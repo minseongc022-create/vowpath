@@ -74,6 +74,7 @@ export async function createAndSendSignupCode(
     channel: input.channel,
     codeHash: hashResetCode(code),
     attempts: 0,
+    verified: false,
     expiresAt: Date.now() + CODE_TTL_MS,
     createdAt: new Date().toISOString(),
   };
@@ -95,10 +96,10 @@ export async function createAndSendSignupCode(
   return { signupRequestId: request.id };
 }
 
-export async function verifySignupCode(
+export async function checkSignupCode(
   signupRequestId: string,
   code: string,
-): Promise<{ pending: PendingSignup } | { error: string }> {
+): Promise<{ ok: true } | { error: string }> {
   const request = await getPendingSignup(signupRequestId);
   if (!request) {
     return { error: "인증번호가 만료되었거나 요청을 찾을 수 없습니다." };
@@ -123,17 +124,56 @@ export async function verifySignupCode(
     return { error: "인증번호가 올바르지 않습니다." };
   }
 
+  request.verified = true;
+  await updatePendingSignup(request);
+  return { ok: true };
+}
+
+export async function completeVerifiedSignup(
+  signupRequestId: string,
+  phone?: string,
+): Promise<{ pending: PendingSignup } | { error: string }> {
+  const request = await getPendingSignup(signupRequestId);
+  if (!request) {
+    return { error: "인증이 만료되었습니다. 처음부터 다시 가입해 주세요." };
+  }
+
+  if (!request.verified) {
+    return { error: "인증번호 확인을 먼저 완료해 주세요." };
+  }
+
+  if (request.expiresAt < Date.now()) {
+    await deletePendingSignup(signupRequestId);
+    return { error: "인증이 만료되었습니다. 처음부터 다시 가입해 주세요." };
+  }
+
+  if (phone) {
+    request.phone = phone;
+    await updatePendingSignup(request);
+  }
+
   if (await findUserByEmail(request.email)) {
     await deletePendingSignup(signupRequestId);
     return { error: "이미 가입된 이메일입니다. 로그인해 주세요." };
   }
 
   if (request.phone && (await findUserByPhone(request.phone))) {
-    await deletePendingSignup(signupRequestId);
     return { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." };
   }
 
   return { pending: request };
+}
+
+/** Legacy: validates code and returns pending signup without creating account */
+export async function verifySignupCode(
+  signupRequestId: string,
+  code: string,
+): Promise<{ pending: PendingSignup } | { error: string }> {
+  const checked = await checkSignupCode(signupRequestId, code);
+  if ("error" in checked) {
+    return checked;
+  }
+  return completeVerifiedSignup(signupRequestId);
 }
 
 export function normalizeSignupPhone(phoneRaw: string): string | null {

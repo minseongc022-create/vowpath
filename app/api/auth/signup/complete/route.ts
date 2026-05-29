@@ -1,29 +1,28 @@
 import { NextResponse } from "next/server";
 import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
-import { checkSignupCode, completeVerifiedSignup } from "@/lib/signup-verify";
+import { completeVerifiedSignup, normalizeSignupPhone } from "@/lib/signup-verify";
 import { deletePendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
 
-/** Legacy: check + complete in one step */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const signupRequestId = String(body?.signupRequestId ?? "").trim();
-    const code = String(body?.code ?? "").trim();
+    const phoneRaw = String(body?.phone ?? "").trim();
+    const phone = phoneRaw ? normalizeSignupPhone(phoneRaw) : undefined;
 
-    if (!signupRequestId || !/^\d{6}$/.test(code)) {
+    if (phoneRaw && !phone) {
       return NextResponse.json(
-        { error: "인증번호 6자리를 입력해 주세요." },
+        { error: "휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)" },
         { status: 400 },
       );
     }
 
-    const checked = await checkSignupCode(signupRequestId, code);
-    if ("error" in checked) {
-      return NextResponse.json({ error: checked.error }, { status: 400 });
+    if (!signupRequestId) {
+      return NextResponse.json({ error: "인증 정보가 없습니다." }, { status: 400 });
     }
 
-    const result = await completeVerifiedSignup(signupRequestId);
+    const result = await completeVerifiedSignup(signupRequestId, phone ?? undefined);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
@@ -52,7 +51,7 @@ export async function POST(request: Request) {
     res.cookies.set(sessionCookieOptions(token));
     return res;
   } catch (e) {
-    console.error("[signup/verify]", e);
+    console.error("[signup/complete]", e);
     if (e instanceof Error && e.message === "KV_REQUIRED") {
       return NextResponse.json(
         { error: "서버 저장소가 설정되지 않았습니다. Vercel KV를 연결해 주세요." },

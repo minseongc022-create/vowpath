@@ -14,6 +14,7 @@ export type PendingSignup = {
   channel: SignupChannel;
   codeHash: string;
   attempts: number;
+  verified: boolean;
   expiresAt: number;
   createdAt: string;
 };

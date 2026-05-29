@@ -34,11 +34,19 @@
 
 @layer components {
   .hvac-card {
-    @apply rounded-2xl border border-surface-border bg-white shadow-card transition-shadow duration-200;
+    @apply rounded-2xl border border-surface-border bg-white shadow-card transition-shadow duration-300;
   }
 
   .hvac-card:hover {
     @apply shadow-card-hover;
+  }
+
+  .hvac-card-elevated {
+    @apply rounded-2xl border border-surface-border/80 bg-white shadow-elevated transition-all duration-300;
+  }
+
+  .hvac-card-elevated:hover {
+    @apply shadow-elevated-hover;
   }
 
   .hvac-badge {
@@ -50,11 +58,11 @@
   }
 
   .hvac-btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-hvac-button font-semibold text-white shadow-md transition hover:brightness-110 hover:shadow-lg active:brightness-95;
+    @apply inline-flex items-center justify-center rounded-xl bg-hvac-button font-semibold text-white shadow-md transition hover:brightness-110 hover:shadow-lg active:brightness-95 active:shadow-md;
   }
 
   .hvac-btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-surface-border bg-white font-semibold text-brand-900 shadow-card transition hover:border-brand-300 hover:bg-brand-50;
+    @apply inline-flex items-center justify-center rounded-xl border border-surface-border bg-white font-semibold text-brand-900 shadow-card transition hover:border-brand-300 hover:bg-brand-50 hover:shadow-card-hover;
   }
 
   .hvac-section-alt {
@@ -63,6 +71,9 @@
 
   .hvac-app-shell {
     @apply min-h-screen bg-gradient-to-b from-brand-50/90 via-white to-brand-50/50;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgb(10 132 199 / 0.08), transparent),
+      linear-gradient(to bottom, rgb(238 247 252 / 0.9), white, rgb(238 247 252 / 0.5));
   }
 
   .hvac-input {

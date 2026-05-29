@@ -31,11 +31,16 @@ const config: Config = {
         },
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgb(0 36 73 / 0.04), 0 4px 12px -2px rgb(0 36 73 / 0.08)",
+        card: "0 1px 2px 0 rgb(0 36 73 / 0.05), 0 4px 16px -2px rgb(0 36 73 / 0.1)",
         "card-hover":
-          "0 8px 24px -4px rgb(0 36 73 / 0.12), 0 4px 8px -4px rgb(0 36 73 / 0.06)",
-        nav: "0 1px 0 0 rgb(0 36 73 / 0.08)",
-        glow: "0 0 48px -8px rgb(10 132 199 / 0.45)",
+          "0 12px 32px -6px rgb(0 36 73 / 0.14), 0 6px 12px -6px rgb(0 36 73 / 0.08)",
+        elevated:
+          "0 2px 4px 0 rgb(0 36 73 / 0.04), 0 8px 24px -4px rgb(0 36 73 / 0.12), 0 0 0 1px rgb(0 36 73 / 0.04)",
+        "elevated-hover":
+          "0 16px 40px -8px rgb(0 36 73 / 0.16), 0 8px 16px -8px rgb(0 36 73 / 0.1), 0 0 0 1px rgb(0 36 73 / 0.05)",
+        nav: "0 1px 0 0 rgb(0 36 73 / 0.06), 0 4px 12px -2px rgb(0 36 73 / 0.06)",
+        glow: "0 0 56px -8px rgb(10 132 199 / 0.5), 0 24px 48px -12px rgb(0 20 40 / 0.35)",
+        "inner-soft": "inset 0 1px 2px 0 rgb(0 36 73 / 0.04)",
         "inner-glow": "inset 0 1px 0 0 rgb(255 255 255 / 0.12)",
       },
       fontFamily: {

@@ -132,7 +132,7 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="hvac-card border-t-4 border-t-brand-500 p-8">
+      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8">
         <h1 className="text-2xl font-semibold text-slate-900">{copy.title}</h1>
         <p className="mt-2 text-sm text-slate-600">
           {step === "request"

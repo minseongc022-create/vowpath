@@ -15,7 +15,7 @@ export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-surface-border bg-white/95 shadow-nav backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-surface-border/80 bg-white/90 shadow-nav backdrop-blur-lg">
       <Container>
         <div className="flex h-16 items-center justify-between gap-3">
           <BrandLogo />

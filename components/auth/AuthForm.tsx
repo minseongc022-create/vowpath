@@ -144,7 +144,7 @@ export function AuthForm({
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="hvac-card border-t-4 border-t-brand-500 p-8">
+      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8">
         <h1 className="text-2xl font-bold text-brand-950">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
 

@@ -63,18 +63,19 @@ export function Hero() {
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            <div className="relative rounded-3xl border border-white/15 bg-white/5 p-8 shadow-glow backdrop-blur-md">
+            <div className="absolute -inset-1 rounded-[1.75rem] bg-gradient-to-br from-brand-400/20 via-transparent to-brand-600/10 blur-sm" aria-hidden />
+            <div className="relative rounded-3xl border border-white/20 bg-white/10 p-8 shadow-glow backdrop-blur-md">
               <div className="flex flex-col items-center">
                 <Image
                   src="/logo.png"
                   alt="Vowpath"
                   width={200}
                   height={200}
-                  className="h-40 w-40 object-contain drop-shadow-lg sm:h-48 sm:w-48"
+                  className="h-40 w-40 object-contain drop-shadow-2xl sm:h-48 sm:w-48"
                   priority
                 />
               </div>
-              <div className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-brand-950/40 p-4">
+              <div className="mt-6 space-y-3 rounded-2xl border border-white/15 bg-brand-950/50 p-4 shadow-inner-glow backdrop-blur-sm">
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-md bg-red-500/90 px-2 py-0.5 text-xs font-bold text-white">
                     긴급
