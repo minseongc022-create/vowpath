@@ -20,6 +20,15 @@ function LoginForm() {
       footerLinkLabel={p.signupLink}
       forgotPasswordHref={ROUTES.forgotPassword}
       forgotPasswordLabel={p.forgotLink}
+      enablePhoneLogin
+      loginCopy={{
+        methodLegend: p.methodLegend,
+        methodEmail: p.methodEmail,
+        methodPhone: p.methodPhone,
+        phoneLabel: p.phoneLabel,
+        phonePlaceholder: p.phonePlaceholder,
+      }}
+      formCopy={authPages.form}
       fields={[
         {
           name: "email",

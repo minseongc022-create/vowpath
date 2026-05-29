@@ -6,3 +6,4 @@ data/users.json
 data/jobber-tokens.json
 data/call-logs.json
 *.tsbuildinfo
+.vercel

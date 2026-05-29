@@ -3,46 +3,45 @@ import path from "path";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "./kv-config";
 
-export type ResetChannel = "email" | "sms";
+export type SignupChannel = "email" | "sms";
 
-export type ResetRequest = {
+export type PendingSignup = {
   id: string;
-  userId: string;
   email: string;
+  passwordHash: string;
+  shopName: string;
   phone?: string;
-  channel: ResetChannel;
+  channel: SignupChannel;
   codeHash: string;
   attempts: number;
   expiresAt: number;
   createdAt: string;
 };
 
-const KV_PREFIX = "vowpath:reset:";
+const KV_PREFIX = "vowpath:signup:";
 const DATA_DIR = path.join(process.cwd(), "data");
-const RESETS_FILE = path.join(DATA_DIR, "password-resets.json");
+const SIGNUPS_FILE = path.join(DATA_DIR, "pending-signups.json");
 
-type ResetFileStore = Record<string, ResetRequest>;
+type SignupFileStore = Record<string, PendingSignup>;
 
-async function readFileStore(): Promise<ResetFileStore> {
+async function readFileStore(): Promise<SignupFileStore> {
   try {
     await mkdir(DATA_DIR, { recursive: true });
-    const raw = await readFile(RESETS_FILE, "utf-8");
-    return JSON.parse(raw) as ResetFileStore;
+    const raw = await readFile(SIGNUPS_FILE, "utf-8");
+    return JSON.parse(raw) as SignupFileStore;
   } catch {
     return {};
   }
 }
 
-async function writeFileStore(store: ResetFileStore) {
+async function writeFileStore(store: SignupFileStore) {
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(RESETS_FILE, JSON.stringify(store, null, 2), "utf-8");
+  await writeFile(SIGNUPS_FILE, JSON.stringify(store, null, 2), "utf-8");
 }
 
-export async function saveResetRequest(request: ResetRequest) {
+export async function savePendingSignup(request: PendingSignup) {
   if (useKvStore()) {
-    await kv.set(`${KV_PREFIX}${request.id}`, request, {
-      ex: 60 * 15,
-    });
+    await kv.set(`${KV_PREFIX}${request.id}`, request, { ex: 60 * 15 });
     return;
   }
   if (process.env.VERCEL === "1") {
@@ -53,9 +52,9 @@ export async function saveResetRequest(request: ResetRequest) {
   await writeFileStore(store);
 }
 
-export async function getResetRequest(id: string): Promise<ResetRequest | null> {
+export async function getPendingSignup(id: string): Promise<PendingSignup | null> {
   if (useKvStore()) {
-    return (await kv.get<ResetRequest>(`${KV_PREFIX}${id}`)) ?? null;
+    return (await kv.get<PendingSignup>(`${KV_PREFIX}${id}`)) ?? null;
   }
   const store = await readFileStore();
   const request = store[id];
@@ -68,11 +67,11 @@ export async function getResetRequest(id: string): Promise<ResetRequest | null> 
   return request;
 }
 
-export async function updateResetRequest(request: ResetRequest) {
-  await saveResetRequest(request);
+export async function updatePendingSignup(request: PendingSignup) {
+  await savePendingSignup(request);
 }
 
-export async function deleteResetRequest(id: string) {
+export async function deletePendingSignup(id: string) {
   if (useKvStore()) {
     await kv.del(`${KV_PREFIX}${id}`);
     return;
@@ -82,9 +81,9 @@ export async function deleteResetRequest(id: string) {
   await writeFileStore(store);
 }
 
-const RATE_KV_PREFIX = "vowpath:ratelimit:forgot:";
+const RATE_KV_PREFIX = "vowpath:ratelimit:signup:";
 
-export async function getForgotAttemptCount(key: string): Promise<number> {
+export async function getSignupAttemptCount(key: string): Promise<number> {
   const normalized = key.trim().toLowerCase();
   if (useKvStore()) {
     return (await kv.get<number>(`${RATE_KV_PREFIX}${normalized}`)) ?? 0;
@@ -92,7 +91,7 @@ export async function getForgotAttemptCount(key: string): Promise<number> {
   return 0;
 }
 
-export async function incrementForgotAttemptCount(key: string): Promise<number> {
+export async function incrementSignupAttemptCount(key: string): Promise<number> {
   const normalized = key.trim().toLowerCase();
   if (useKvStore()) {
     const next = ((await kv.get<number>(`${RATE_KV_PREFIX}${normalized}`)) ?? 0) + 1;

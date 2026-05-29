@@ -10,6 +10,7 @@ import {
   type ResetRequest,
 } from "./password-reset-store";
 import { sendResetCodeEmail, sendResetCodeSms } from "./send-reset-code";
+import { normalizeSmsPhone } from "./phone";
 import type { UserRecord } from "./users-db";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -29,11 +30,7 @@ export function generateResetCode(): string {
 }
 
 export function normalizePhone(input: string): string | null {
-  const digits = input.replace(/\D/g, "");
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (input.trim().startsWith("+") && digits.length >= 10) return `+${digits}`;
-  return null;
+  return normalizeSmsPhone(input);
 }
 
 export async function createAndSendResetCode(

@@ -14,6 +14,23 @@ type Field = {
   autoComplete?: string;
 };
 
+type LoginCopy = {
+  methodLegend: string;
+  methodEmail: string;
+  methodPhone: string;
+  phoneLabel: string;
+  phonePlaceholder: string;
+};
+
+type FormCopy = {
+  passwordConfirmLabel: string;
+  passwordMismatch: string;
+  loading: string;
+  errorGeneric: string;
+  errorNetwork: string;
+  backHome: string;
+};
+
 type AuthFormProps = {
   mode: "login" | "signup";
   title: string;
@@ -27,6 +44,9 @@ type AuthFormProps = {
   forgotPasswordLabel?: string;
   apiPath: "/api/auth/login" | "/api/auth/signup";
   defaultRedirect: string;
+  enablePhoneLogin?: boolean;
+  loginCopy?: LoginCopy;
+  formCopy?: FormCopy;
 };
 
 export function AuthForm({
@@ -42,12 +62,27 @@ export function AuthForm({
   forgotPasswordLabel,
   apiPath,
   defaultRedirect,
+  enablePhoneLogin = false,
+  loginCopy,
+  formCopy,
 }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultEmail = searchParams.get("email")?.trim() ?? "";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [email, setEmail] = useState(defaultEmail);
+  const [phone, setPhone] = useState("");
+
+  const copy: FormCopy = formCopy ?? {
+    passwordConfirmLabel: "비밀번호 확인",
+    passwordMismatch: "비밀번호 확인이 일치하지 않습니다.",
+    loading: "처리 중…",
+    errorGeneric: "요청에 실패했습니다.",
+    errorNetwork: "네트워크 오류. 잠시 후 다시 시도해 주세요.",
+    backHome: "← 홈으로",
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,15 +91,25 @@ export function AuthForm({
 
     const form = new FormData(e.currentTarget);
     const body: Record<string, string> = {};
-    fields.forEach((f) => {
-      body[f.name] = String(form.get(f.name) ?? "");
-    });
+
+    if (mode === "login" && enablePhoneLogin) {
+      if (loginMethod === "phone") {
+        body.phone = phone.trim();
+      } else {
+        body.email = email.trim();
+      }
+      body.password = String(form.get("password") ?? "");
+    } else {
+      fields.forEach((f) => {
+        body[f.name] = String(form.get(f.name) ?? "");
+      });
+    }
 
     if (mode === "signup") {
       const password = body.password ?? "";
       const confirm = String(form.get("passwordConfirm") ?? "");
       if (password !== confirm) {
-        setError("비밀번호 확인이 일치하지 않습니다.");
+        setError(copy.passwordMismatch);
         setLoading(false);
         return;
       }
@@ -79,7 +124,7 @@ export function AuthForm({
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "요청에 실패했습니다.");
+        setError(data.error ?? copy.errorGeneric);
         setLoading(false);
         return;
       }
@@ -88,11 +133,14 @@ export function AuthForm({
       router.push(next && next.startsWith("/") ? next : data.redirect ?? defaultRedirect);
       router.refresh();
     } catch {
-      setError("네트워크 오류. 잠시 후 다시 시도해 주세요.");
+      setError(copy.errorNetwork);
     } finally {
       setLoading(false);
     }
   }
+
+  const passwordField = fields.find((f) => f.name === "password");
+  const usePhoneLogin = mode === "login" && enablePhoneLogin && loginCopy;
 
   return (
     <div className="mx-auto w-full max-w-md">
@@ -101,31 +149,107 @@ export function AuthForm({
         <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-5">
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label
-                htmlFor={field.name}
-                className="block text-sm font-medium text-brand-900"
-              >
-                {field.label}
-              </label>
-              <input
-                id={field.name}
-                name={field.name}
-                type={field.type}
-                required={field.name !== "shopName"}
-                autoComplete={field.autoComplete}
-                placeholder={field.placeholder}
-                defaultValue={
-                  mode === "login" && field.name === "email" ? defaultEmail : undefined
-                }
-                className="hvac-input mt-1.5"
-              />
-              {field.hint ? (
-                <p className="mt-1 text-xs text-slate-500">{field.hint}</p>
+          {usePhoneLogin ? (
+            <>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium text-brand-900">
+                  {loginCopy.methodLegend}
+                </legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                    <input
+                      type="radio"
+                      name="loginMethod"
+                      value="email"
+                      checked={loginMethod === "email"}
+                      onChange={() => setLoginMethod("email")}
+                      className="sr-only"
+                    />
+                    {loginCopy.methodEmail}
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                    <input
+                      type="radio"
+                      name="loginMethod"
+                      value="phone"
+                      checked={loginMethod === "phone"}
+                      onChange={() => setLoginMethod("phone")}
+                      className="sr-only"
+                    />
+                    {loginCopy.methodPhone}
+                  </label>
+                </div>
+              </fieldset>
+
+              <div>
+                <label
+                  htmlFor="login-identifier"
+                  className="block text-sm font-medium text-brand-900"
+                >
+                  {loginMethod === "phone" ? loginCopy.phoneLabel : fields[0].label}
+                </label>
+                <input
+                  id="login-identifier"
+                  type={loginMethod === "phone" ? "tel" : "email"}
+                  required
+                  autoComplete={loginMethod === "phone" ? "tel" : "email"}
+                  placeholder={
+                    loginMethod === "phone" ? loginCopy.phonePlaceholder : undefined
+                  }
+                  value={loginMethod === "phone" ? phone : email}
+                  onChange={(e) =>
+                    loginMethod === "phone" ? setPhone(e.target.value) : setEmail(e.target.value)
+                  }
+                  className="hvac-input mt-1.5"
+                />
+              </div>
+
+              {passwordField ? (
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-brand-900"
+                  >
+                    {passwordField.label}
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    autoComplete={passwordField.autoComplete}
+                    className="hvac-input mt-1.5"
+                  />
+                </div>
               ) : null}
-            </div>
-          ))}
+            </>
+          ) : (
+            fields.map((field) => (
+              <div key={field.name}>
+                <label
+                  htmlFor={field.name}
+                  className="block text-sm font-medium text-brand-900"
+                >
+                  {field.label}
+                </label>
+                <input
+                  id={field.name}
+                  name={field.name}
+                  type={field.type}
+                  required={field.name !== "shopName" && field.name !== "phone"}
+                  autoComplete={field.autoComplete}
+                  placeholder={field.placeholder}
+                  defaultValue={
+                    mode === "login" && field.name === "email" ? defaultEmail : undefined
+                  }
+                  className="hvac-input mt-1.5"
+                />
+                {field.hint ? (
+                  <p className="mt-1 text-xs text-slate-500">{field.hint}</p>
+                ) : null}
+              </div>
+            ))
+          )}
 
           {mode === "signup" && (
             <div>
@@ -133,7 +257,7 @@ export function AuthForm({
                 htmlFor="passwordConfirm"
                 className="block text-sm font-medium text-brand-900"
               >
-                비밀번호 확인
+                {copy.passwordConfirmLabel}
               </label>
               <input
                 id="passwordConfirm"
@@ -168,7 +292,7 @@ export function AuthForm({
             disabled={loading}
             className="hvac-btn-primary w-full px-4 py-3 text-sm disabled:opacity-60"
           >
-            {loading ? "처리 중…" : submitLabel}
+            {loading ? copy.loading : submitLabel}
           </button>
         </form>
 
@@ -182,7 +306,7 @@ export function AuthForm({
 
       <p className="mt-6 text-center">
         <Link href={ROUTES.home} className="text-sm text-slate-500 hover:text-slate-800">
-          ← 홈으로
+          {copy.backHome}
         </Link>
       </p>
     </div>

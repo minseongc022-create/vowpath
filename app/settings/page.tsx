@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AppHeader } from "@/components/app/AppHeader";
+import { MessagingSetup } from "@/components/settings/MessagingSetup";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { Container } from "@/components/ui/Container";
 import { settingsPage } from "@/lib/content";
@@ -28,7 +29,8 @@ export default async function SettingsPage({
           <p className="mt-1 text-xs font-medium uppercase tracking-wider text-brand-600">
             Residential HVAC · Jobber · 콜 포워딩
           </p>
-          <div className="mt-8">
+          <div className="mt-8 space-y-8">
+            <MessagingSetup />
             <Suspense fallback={null}>
               <SettingsView paid={paid} />
             </Suspense>

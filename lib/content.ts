@@ -94,9 +94,9 @@ export const differentiators = {
 };
 
 export const problem = {
-  title: "현장에 있으면 전화를 못 받습니다",
+  title: "현장 작업 중에도 콜은 계속 들어옵니다",
   subtitle:
-    "피크 시즌에는 no-heat·no-cool 콜을 놓치기 쉽고, 음성사서함에는 거의 남기지 않습니다.",
+    "피크 시즌 no-heat·no-cool 문의는 타이밍을 놓치기 쉽습니다. 음성사서함에 남기는 고객은 거의 없고, 대부분 바로 다른 업체로 전화합니다.",
   stats: [
     { value: "27%+", label: "업계 평균 부재중·놓친 인바운드 콜" },
     { value: "$300+", label: "놓친 서비스 콜 1통당 예상 매출 손실" },
@@ -388,6 +388,26 @@ export const dashboardPage = {
   backOnboarding: "연동 설정으로",
 };
 
+export const messagingSetup = {
+  eyebrow: "Auth · Email & SMS",
+  title: "이메일 · 문자 인증",
+  subtitle: "회원가입·비밀번호 찾기 인증번호 발송 설정",
+  emailLabel: "이메일 (Resend)",
+  emailFromLabel: "발신 주소",
+  smsLabel: "문자 (Twilio)",
+  smsFromLabel: "발신 번호",
+  yes: "완료",
+  no: "미설정",
+  readyMessage: "인증번호가 실제 이메일/문자로 발송됩니다.",
+  steps: [
+    "Resend.com 가입 → API Key 발급 → Vercel에 RESEND_API_KEY 추가",
+    "테스트: Resend 가입 이메일로만 수신 (도메인 인증 전)",
+    "문자: TWILIO_ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER 추가",
+    "Twilio Trial은 Verified 번호로만 SMS — Upgrade 후 고객 번호 가능",
+    "환경 변수 저장 후 Vercel Redeploy → 회원가입 테스트",
+  ],
+};
+
 export const phoneSetup = {
   eyebrow: "Phone AI · v3",
   title: "야간 전화 수신",
@@ -480,10 +500,23 @@ export const jobCardGenerator = {
 };
 
 export const authPages = {
+  form: {
+    passwordConfirmLabel: "비밀번호 확인",
+    passwordMismatch: "비밀번호 확인이 일치하지 않습니다.",
+    loading: "처리 중…",
+    errorGeneric: "요청에 실패했습니다.",
+    errorNetwork: "네트워크 오류. 잠시 후 다시 시도해 주세요.",
+    backHome: "← 홈으로",
+  },
   login: {
     title: "로그인",
     subtitle: "Vowpath 대시보드에 접속합니다.",
+    methodLegend: "로그인 방법",
+    methodEmail: "이메일",
+    methodPhone: "전화번호",
     emailLabel: "이메일",
+    phoneLabel: "휴대폰 번호",
+    phonePlaceholder: "010-1234-5678",
     passwordLabel: "비밀번호",
     submit: "로그인",
     noAccount: "계정이 없으신가요?",
@@ -493,10 +526,13 @@ export const authPages = {
   forgotPassword: {
     title: "비밀번호 재설정",
     subtitleRequest: "가입한 이메일로 인증번호를 받아 새 비밀번호를 설정합니다.",
+    subtitleRequestSms: "가입한 휴대폰 번호로 인증번호를 받아 새 비밀번호를 설정합니다.",
     subtitleVerify: "이메일 또는 문자로 받은 6자리 인증번호를 입력하세요.",
     subtitleReset: "새 비밀번호를 입력해 주세요.",
     subtitleDone: "비밀번호가 변경되었습니다.",
     emailLabel: "이메일",
+    phoneLabel: "휴대폰 번호",
+    phonePlaceholder: "010-1234-5678",
     channelLabel: "인증번호 받기",
     channelEmail: "이메일로 받기",
     channelSms: "문자(SMS)로 받기",
@@ -508,6 +544,7 @@ export const authPages = {
     codeHint: "10분 내에 입력해 주세요. 타인에게 공유하지 마세요.",
     verifyCode: "인증 확인",
     resendSms: "문자로 다시 받기",
+    resendSmsSuccess: "등록된 휴대폰으로 인증번호를 보냈습니다.",
     backToEmail: "← 이메일 다시 입력",
     newPasswordLabel: "새 비밀번호",
     confirmPasswordLabel: "새 비밀번호 확인",
@@ -522,15 +559,26 @@ export const authPages = {
   },
   signup: {
     title: "회원가입",
-    subtitle: "HVAC shop 계정을 만들고 setup을 시작합니다.",
+    subtitle: "계정 정보를 입력한 뒤 본인 인증을 완료해 주세요.",
+    subtitleVerify: "이메일 또는 문자로 받은 6자리 인증번호를 입력하세요.",
     shopLabel: "Shop 이름",
     shopPlaceholder: "예: Cool Air HVAC",
     emailLabel: "이메일",
     passwordLabel: "비밀번호",
     passwordHint: "8자 이상",
     phoneLabel: "휴대폰 (선택)",
-    phonePlaceholder: "+1 512 555 0100",
-    phoneHint: "등록하면 비밀번호 재설정 시 문자 인증을 사용할 수 있습니다.",
+    phonePlaceholder: "010-1234-5678",
+    phoneHint: "문자 인증을 선택하면 필수입니다.",
+    verifyChannelLabel: "인증번호 받기",
+    verifyChannelEmail: "이메일로 받기",
+    verifyChannelSms: "문자(SMS)로 받기",
+    verifyChannelHint: "가입 완료 전 본인 확인을 위해 인증번호가 필요합니다.",
+    sendCode: "인증번호 보내기",
+    sentCodeMessage: "인증번호를 보냈습니다. 이메일 또는 문자함을 확인해 주세요.",
+    codeLabel: "인증번호 (6자리)",
+    codeHint: "10분 내에 입력해 주세요. 타인에게 공유하지 마세요.",
+    completeSignup: "인증하고 가입 완료",
+    backToDetails: "← 정보 다시 입력",
     submit: "계정 만들기",
     hasAccount: "이미 계정이 있으신가요?",
     loginLink: "로그인",

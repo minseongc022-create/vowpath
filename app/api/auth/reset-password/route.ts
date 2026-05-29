@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       message: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
+      email: updated.email,
       redirect: "/login",
     });
   } catch (e) {

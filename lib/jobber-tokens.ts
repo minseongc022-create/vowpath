@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
+import { useKvStore } from "./kv-config";
 
 export type JobberTokenRecord = {
   userId: string;
@@ -19,10 +20,6 @@ const TOKENS_FILE = path.join(DATA_DIR, "jobber-tokens.json");
 type TokenStore = {
   tokens: JobberTokenRecord[];
 };
-
-function useKvStore(): boolean {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
 
 function kvKey(userId: string) {
   return `${KV_PREFIX}${userId}`;

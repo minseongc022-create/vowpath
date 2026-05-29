@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAndSendResetCode } from "@/lib/password-reset";
+import { createAndSendResetCode, normalizePhone } from "@/lib/password-reset";
 import { isEmailDeliveryConfigured } from "@/lib/send-reset-code";
 import { isTwilioConfigured } from "@/lib/twilio-config";
-import { findUserByEmail } from "@/lib/users-db";
+import { findUserByEmail, findUserByPhone } from "@/lib/users-db";
 
 const GENERIC_OK =
   "등록된 계정이면 인증번호를 보냈습니다. 이메일 또는 문자함을 확인해 주세요.";
@@ -16,17 +16,34 @@ const DEV_SMS_HINT =
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = String(body?.email ?? "").trim().toLowerCase();
     const channel = body?.channel === "sms" ? "sms" : "email";
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json(
-        { error: "올바른 이메일을 입력해 주세요." },
-        { status: 400 },
-      );
-    }
+    let user;
 
-    const user = await findUserByEmail(email);
+    if (channel === "sms") {
+      const phoneRaw = String(body?.phone ?? "").trim();
+      const phone = normalizePhone(phoneRaw);
+
+      if (!phone) {
+        return NextResponse.json(
+          { error: "올바른 휴대폰 번호를 입력해 주세요." },
+          { status: 400 },
+        );
+      }
+
+      user = await findUserByPhone(phone);
+    } else {
+      const email = String(body?.email ?? "").trim().toLowerCase();
+
+      if (!email || !email.includes("@")) {
+        return NextResponse.json(
+          { error: "올바른 이메일을 입력해 주세요." },
+          { status: 400 },
+        );
+      }
+
+      user = await findUserByEmail(email);
+    }
 
     if (!user) {
       return NextResponse.json({
@@ -44,6 +61,7 @@ export async function POST(request: Request) {
       ok: true,
       message: GENERIC_OK,
       requestId: result.requestId,
+      email: user.email,
       hasPhone: Boolean(user.phone),
       devHint:
         process.env.NODE_ENV !== "production" &&

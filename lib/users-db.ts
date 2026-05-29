@@ -1,12 +1,10 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
+import { useKvStore } from "./kv-config";
+import { normalizeSmsPhone } from "./phone";
 
 const KV_USERS_KEY = "vowpath:users";
-
-function useKvStore(): boolean {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
 
 export type UserRecord = {
   id: string;
@@ -75,8 +73,12 @@ export async function findUserByPhone(
   phone: string,
 ): Promise<UserRecord | undefined> {
   const store = await ensureStore();
-  const normalized = phone.replace(/\s/g, "");
-  return store.users.find((u) => u.phone === normalized);
+  const target = normalizeSmsPhone(phone) ?? phone.replace(/\s/g, "");
+  return store.users.find((u) => {
+    if (!u.phone) return false;
+    const stored = normalizeSmsPhone(u.phone) ?? u.phone.replace(/\s/g, "");
+    return stored === target;
+  });
 }
 
 export async function updateUserPassword(
@@ -102,6 +104,18 @@ export async function createUser(input: {
 
   if (store.users.some((u) => u.email === normalized)) {
     throw new Error("EMAIL_EXISTS");
+  }
+
+  if (input.phone) {
+    const phoneNorm = normalizeSmsPhone(input.phone) ?? input.phone.replace(/\s/g, "");
+    const phoneTaken = store.users.some((u) => {
+      if (!u.phone) return false;
+      const stored = normalizeSmsPhone(u.phone) ?? u.phone.replace(/\s/g, "");
+      return stored === phoneNorm;
+    });
+    if (phoneTaken) {
+      throw new Error("PHONE_EXISTS");
+    }
   }
 
   const user: UserRecord = {

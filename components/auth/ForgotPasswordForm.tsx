@@ -14,7 +14,9 @@ export function ForgotPasswordForm() {
 
   const [step, setStep] = useState<Step>("request");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [channel, setChannel] = useState<"email" | "sms">("email");
+  const isSms = channel === "sms";
   const [requestId, setRequestId] = useState("");
   const [hasPhone, setHasPhone] = useState(false);
   const [code, setCode] = useState("");
@@ -35,7 +37,9 @@ export function ForgotPasswordForm() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, channel }),
+        body: JSON.stringify(
+          isSms ? { phone: phone.trim(), channel: "sms" } : { email, channel: "email" },
+        ),
       });
       const data = await res.json();
 
@@ -53,6 +57,7 @@ export function ForgotPasswordForm() {
       if (data.requestId) {
         setRequestId(data.requestId);
         setHasPhone(Boolean(data.hasPhone));
+        if (data.email) setEmail(data.email);
         setStep("verify");
       }
     } catch {
@@ -96,7 +101,7 @@ export function ForgotPasswordForm() {
     setError(null);
 
     if (password !== passwordConfirm) {
-      setError("비밀번호 확인이 일치하지 않습니다.");
+      setError(authPages.form.passwordMismatch);
       setLoading(false);
       return;
     }
@@ -115,6 +120,7 @@ export function ForgotPasswordForm() {
         return;
       }
 
+      if (data.email) setEmail(data.email);
       setMessage(data.message ?? copy.doneMessage);
       setStep("done");
     } catch {
@@ -130,7 +136,9 @@ export function ForgotPasswordForm() {
         <h1 className="text-2xl font-semibold text-slate-900">{copy.title}</h1>
         <p className="mt-2 text-sm text-slate-600">
           {step === "request"
-            ? copy.subtitleRequest
+            ? isSms
+              ? copy.subtitleRequestSms
+              : copy.subtitleRequest
             : step === "verify"
               ? copy.subtitleVerify
               : step === "reset"
@@ -141,16 +149,17 @@ export function ForgotPasswordForm() {
         {step === "request" ? (
           <form onSubmit={handleRequest} className="mt-8 space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-                {copy.emailLabel}
+              <label htmlFor="contact" className="block text-sm font-medium text-slate-700">
+                {isSms ? copy.phoneLabel : copy.emailLabel}
               </label>
               <input
-                id="email"
-                type="email"
+                id="contact"
+                type={isSms ? "tel" : "email"}
                 required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete={isSms ? "tel" : "email"}
+                placeholder={isSms ? copy.phonePlaceholder : undefined}
+                value={isSms ? phone : email}
+                onChange={(e) => (isSms ? setPhone : setEmail)(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-surface-border px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500"
               />
             </div>
@@ -231,7 +240,7 @@ export function ForgotPasswordForm() {
                   if (res.ok && data.requestId) {
                     setRequestId(data.requestId);
                     setChannel("sms");
-                    setMessage("등록된 휴대폰으로 인증번호를 보냈습니다.");
+                    setMessage(copy.resendSmsSuccess);
                   } else {
                     setError(data.error ?? copy.errorGeneric);
                   }
@@ -340,7 +349,7 @@ export function ForgotPasswordForm() {
 
       <p className="mt-6 text-center">
         <Link href={ROUTES.home} className="text-sm text-slate-500 hover:text-slate-800">
-          ← 홈으로
+          {authPages.form.backHome}
         </Link>
       </p>
     </div>

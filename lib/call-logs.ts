@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
+import { useKvStore } from "./kv-config";
 import type { JobPriority } from "./types";
 
 export type StoredCallLog = {
@@ -24,10 +25,6 @@ const CALLS_FILE = path.join(DATA_DIR, "call-logs.json");
 type CallStore = {
   calls: StoredCallLog[];
 };
-
-function useKvStore(): boolean {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
 
 function kvKey(userId: string) {
   return `vowpath:calls:${userId}`;
