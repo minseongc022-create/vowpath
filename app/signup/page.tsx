@@ -3,6 +3,8 @@ import { SignupForm } from "@/components/auth/SignupForm";
 import { AppHeader } from "@/components/app/AppHeader";
 import { Container } from "@/components/ui/Container";
 
+export const dynamic = "force-dynamic";
+
 export default function SignupPage() {
   return (
     <div className="hvac-app-shell">

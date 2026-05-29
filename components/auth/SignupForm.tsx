@@ -26,6 +26,8 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const isSms = channel === "sms";
+
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -38,6 +40,12 @@ export function SignupForm() {
       return;
     }
 
+    if (isSms && !phone.trim()) {
+      setError(p.phoneRequiredSms);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/auth/signup/send-code", {
         method: "POST",
@@ -45,7 +53,7 @@ export function SignupForm() {
         body: JSON.stringify({
           shopName,
           email,
-          phone,
+          phone: phone.trim(),
           password,
           passwordConfirm,
           channel,
@@ -104,7 +112,15 @@ export function SignupForm() {
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="hvac-card border-t-4 border-t-brand-500 p-8">
-        <h1 className="text-2xl font-bold text-brand-950">{p.title}</h1>
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand-600">
+          <span className={step === "details" ? "text-brand-700" : ""}>{p.step1Label}</span>
+          <span className="text-slate-300">→</span>
+          <span className={step === "verify" ? "text-brand-700" : "text-slate-400"}>
+            {p.step2Label}
+          </span>
+        </div>
+
+        <h1 className="mt-3 text-2xl font-bold text-brand-950">{p.title}</h1>
         <p className="mt-2 text-sm text-slate-600">
           {step === "details" ? p.subtitle : p.subtitleVerify}
         </p>
@@ -177,25 +193,11 @@ export function SignupForm() {
               />
             </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-brand-900">
-                {p.phoneLabel}
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                autoComplete="tel"
-                placeholder={p.phonePlaceholder}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="hvac-input mt-1.5"
-              />
-              <p className="mt-1 text-xs text-slate-500">{p.phoneHint}</p>
-            </div>
-
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-medium text-brand-900">{p.verifyChannelLabel}</legend>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border px-3 py-2.5 text-sm">
+            <fieldset className="space-y-2 rounded-xl border border-brand-200 bg-brand-50/50 p-4">
+              <legend className="px-1 text-sm font-semibold text-brand-900">
+                {p.verifyChannelLabel}
+              </legend>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input
                   type="radio"
                   name="channel"
@@ -205,7 +207,7 @@ export function SignupForm() {
                 />
                 {p.verifyChannelEmail}
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border px-3 py-2.5 text-sm">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input
                   type="radio"
                   name="channel"
@@ -215,18 +217,38 @@ export function SignupForm() {
                 />
                 {p.verifyChannelSms}
               </label>
-              <p className="text-xs text-slate-500">{p.verifyChannelHint}</p>
+              <p className="text-xs text-slate-600">{p.verifyChannelHint}</p>
             </fieldset>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-brand-900">
+                {isSms ? p.phoneLabelRequired : p.phoneLabel}
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                required={isSms}
+                autoComplete="tel"
+                placeholder={p.phonePlaceholder}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="hvac-input mt-1.5"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {isSms ? p.phoneHintSms : p.phoneHintOptional}
+              </p>
+            </div>
 
             {error ? <ErrorBox message={error} /> : null}
 
             <button
               type="submit"
               disabled={loading}
-              className="hvac-btn-primary w-full px-4 py-3 text-sm disabled:opacity-60"
+              className="hvac-btn-primary w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
             >
               {loading ? form.loading : p.sendCode}
             </button>
+            <p className="text-center text-xs text-slate-500">{p.sendCodeNote}</p>
           </form>
         ) : null}
 
@@ -256,7 +278,7 @@ export function SignupForm() {
             <button
               type="submit"
               disabled={loading || code.length !== 6}
-              className="hvac-btn-primary w-full px-4 py-3 text-sm disabled:opacity-60"
+              className="hvac-btn-primary w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
             >
               {loading ? form.loading : p.completeSignup}
             </button>
