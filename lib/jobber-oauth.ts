@@ -13,13 +13,13 @@ export type JobberTokenResponse = {
   token_type: string;
 };
 
-export function buildJobberAuthorizeUrl(state: string): string {
+export function buildJobberAuthorizeUrl(state: string, redirectUri?: string): string {
   const clientId = process.env.JOBBER_CLIENT_ID!.trim();
-  const redirectUri = getJobberRedirectUri();
+  const uri = redirectUri || getJobberRedirectUri();
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
-    redirect_uri: redirectUri,
+    redirect_uri: uri,
     state,
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
@@ -27,17 +27,19 @@ export function buildJobberAuthorizeUrl(state: string): string {
 
 export async function exchangeJobberCode(
   code: string,
+  redirectUri?: string,
 ): Promise<JobberTokenResponse> {
   if (!isJobberConfigured()) {
     throw new Error("JOBBER_NOT_CONFIGURED");
   }
 
+  const uri = redirectUri || getJobberRedirectUri();
   const body = new URLSearchParams({
     client_id: process.env.JOBBER_CLIENT_ID!.trim(),
     client_secret: process.env.JOBBER_CLIENT_SECRET!.trim(),
     grant_type: "authorization_code",
     code,
-    redirect_uri: getJobberRedirectUri(),
+    redirect_uri: uri,
   });
 
   const response = await fetch(TOKEN_URL, {

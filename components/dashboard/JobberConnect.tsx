@@ -8,6 +8,8 @@ type Status = {
   configured: boolean;
   connected: boolean;
   accountName: string | null;
+  redirectUri?: string | null;
+  developerPortalUrl?: string | null;
 };
 
 export function JobberConnect({
@@ -20,6 +22,7 @@ export function JobberConnect({
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,7 +47,7 @@ export function JobberConnect({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [onStatusChange]);
 
   useEffect(() => {
     load();
@@ -76,6 +79,13 @@ export function JobberConnect({
     } finally {
       setDisconnecting(false);
     }
+  }
+
+  async function handleCopyRedirect() {
+    if (!status?.redirectUri) return;
+    await navigator.clipboard.writeText(status.redirectUri);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
   }
 
   if (loading) {
@@ -124,6 +134,36 @@ export function JobberConnect({
             : copy.subtitle}
         </p>
       )}
+
+      {s.configured && s.redirectUri && !s.connected ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+          <p className="text-sm font-semibold text-amber-950">{copy.redirectSetupTitle}</p>
+          <p className="mt-1 text-xs text-amber-900/90">{copy.redirectSetupBody}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <code className="flex-1 break-all rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs text-slate-800">
+              {s.redirectUri}
+            </code>
+            <button
+              type="button"
+              onClick={() => void handleCopyRedirect()}
+              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+            >
+              {copied ? copy.redirectSetupCopied : copy.redirectSetupCopy}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-amber-900/80">{copy.redirectSetupNote}</p>
+          {s.developerPortalUrl ? (
+            <a
+              href={s.developerPortalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex text-xs font-semibold text-brand-700 hover:underline"
+            >
+              {copy.redirectSetupLink} →
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={embedded ? "mt-3 flex flex-wrap gap-3" : "mt-4 flex flex-wrap gap-3"}>
         {!s.connected ? (

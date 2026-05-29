@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildJobberAuthorizeUrl } from "@/lib/jobber-oauth";
-import { isJobberConfigured } from "@/lib/jobber-config";
+import {
+  getJobberOriginFromRequest,
+  getJobberRedirectUri,
+  isJobberConfigured,
+} from "@/lib/jobber-config";
 import {
   clearJobberOAuthState,
   setJobberOAuthState,
@@ -16,13 +20,20 @@ export async function GET(request: Request) {
 
   if (!isJobberConfigured()) {
     return NextResponse.redirect(
-      new URL(`${ROUTES.dashboard}?jobber_error=not_configured`, request.url),
+      new URL(`${ROUTES.settings}?jobber_error=not_configured&section=jobber`, request.url),
+    );
+  }
+
+  const redirectUri = getJobberRedirectUri(getJobberOriginFromRequest(request));
+  if (!redirectUri) {
+    return NextResponse.redirect(
+      new URL(`${ROUTES.settings}?jobber_error=redirect_missing&section=jobber`, request.url),
     );
   }
 
   const state = crypto.randomUUID();
   await clearJobberOAuthState();
-  await setJobberOAuthState(state);
+  await setJobberOAuthState(state, redirectUri);
 
-  return NextResponse.redirect(buildJobberAuthorizeUrl(state));
+  return NextResponse.redirect(buildJobberAuthorizeUrl(state, redirectUri));
 }

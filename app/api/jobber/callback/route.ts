@@ -4,6 +4,7 @@ import { fetchJobberAccount } from "@/lib/jobber-api";
 import { saveJobberTokens } from "@/lib/jobber-tokens";
 import {
   clearJobberOAuthState,
+  readJobberOAuthRedirectUri,
   readJobberOAuthState,
 } from "@/lib/jobber-oauth-state";
 import { ROUTES } from "@/lib/constants";
@@ -21,21 +22,24 @@ export async function GET(request: Request) {
   const error = url.searchParams.get("error");
   if (error) {
     settings.searchParams.set("jobber_error", error);
+    settings.searchParams.set("section", "jobber");
     return NextResponse.redirect(settings);
   }
 
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const savedState = await readJobberOAuthState();
+  const savedRedirectUri = await readJobberOAuthRedirectUri();
   await clearJobberOAuthState();
 
-  if (!code || !state || !savedState || state !== savedState) {
+  if (!code || !state || !savedState || state !== savedState || !savedRedirectUri) {
     settings.searchParams.set("jobber_error", "invalid_state");
+    settings.searchParams.set("section", "jobber");
     return NextResponse.redirect(settings);
   }
 
   try {
-    const tokens = await exchangeJobberCode(code);
+    const tokens = await exchangeJobberCode(code, savedRedirectUri);
     await saveJobberTokens({
       userId: session.sub,
       accessToken: tokens.access_token,
@@ -56,6 +60,7 @@ export async function GET(request: Request) {
   } catch (e) {
     console.error("[jobber/callback]", e);
     settings.searchParams.set("jobber_error", "exchange_failed");
+    settings.searchParams.set("section", "jobber");
     return NextResponse.redirect(settings);
   }
 }

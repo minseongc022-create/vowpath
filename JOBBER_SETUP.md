@@ -13,7 +13,8 @@
    배포 후:
 
    ```
-   https://your-domain.com/api/jobber/callback
+   https://vowpath.vercel.app/api/jobber/callback
+   http://localhost:3000/api/jobber/callback
    ```
 
 4. **Scopes** (최소):
@@ -51,5 +52,5 @@ Jobber에 **Client** + **Request** 가 생성됩니다.
 |------|------|
 | 연결 버튼 비활성 | `JOBBER_CLIENT_ID` / `SECRET` 확인 |
 | `invalid_state` | 쿠키 차단 해제, 같은 브라우저에서 재시도 |
-| GraphQL userErrors | Scopes 부족 → Developer Center에서 scope 추가 후 재연결 |
+| `redirect_uri` 오류 (isn't valid) | Jobber Developer Center → OAuth Callback URL에 **배포 URL** `/api/jobber/callback` 추가 |
 | 배포 후 가입 안 됨 | Vercel Redis(KV) 연결 |

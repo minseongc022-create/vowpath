@@ -462,6 +462,14 @@ export const jobberConnect = {
   disconnecting: "해제 중…",
   notConfigured:
     "개발자용: .env.local에 JOBBER_CLIENT_ID / SECRET을 넣으세요. (JOBBER_SETUP.md)",
+  redirectSetupTitle: "Jobber Developer Center 설정 필요",
+  redirectSetupBody:
+    "아래 Callback URL을 Jobber 앱 설정에 그대로 추가한 뒤 저장하세요. (OAuth Callback URL)",
+  redirectSetupLink: "Jobber Developer Center 열기",
+  redirectSetupCopied: "복사됨",
+  redirectSetupCopy: "URL 복사",
+  redirectSetupNote:
+    "로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록해 두세요.",
   push: "Jobber로 보내기",
   pushing: "Jobber 전송 중…",
   pushed: "Jobber에 생성됨",
