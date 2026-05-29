@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { jobberConnect as copy } from "@/lib/content";
 import { readShopState, writeShopState } from "@/lib/shop-storage";
 
@@ -23,17 +23,24 @@ export function JobberConnect({
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const onStatusChangeRef = useRef(onStatusChange);
+  onStatusChangeRef.current = onStatusChange;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const res = await fetch("/api/jobber/status");
+      if (!res.ok) {
+        setStatus({ configured: false, connected: false, accountName: null });
+        onStatusChangeRef.current?.(false);
+        return;
+      }
       const data = (await res.json()) as Status;
       setStatus(data);
       const freshConnect =
         typeof window !== "undefined" &&
         new URLSearchParams(window.location.search).get("jobber") === "connected";
-      onStatusChange?.(data.connected, { freshConnect });
+      onStatusChangeRef.current?.(data.connected, { freshConnect });
       if (data.connected) {
         const shop = readShopState();
         writeShopState({
@@ -44,19 +51,20 @@ export function JobberConnect({
       }
     } catch {
       setStatus({ configured: false, connected: false, accountName: null });
+      onStatusChangeRef.current?.(false);
     } finally {
       setLoading(false);
     }
-  }, [onStatusChange]);
+  }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("jobber") === "connected" || params.has("jobber_error")) {
-      load();
+      void load({ silent: true });
       params.delete("jobber");
       params.delete("jobber_error");
       const qs = params.toString();
@@ -75,7 +83,7 @@ export function JobberConnect({
         jobberConnected: false,
         jobberSetupConfirmed: false,
       });
-      await load();
+      await load({ silent: true });
     } finally {
       setDisconnecting(false);
     }
@@ -88,7 +96,7 @@ export function JobberConnect({
     window.setTimeout(() => setCopied(false), 2000);
   }
 
-  if (loading) {
+  if (loading && !status) {
     return (
       <div
         className={
