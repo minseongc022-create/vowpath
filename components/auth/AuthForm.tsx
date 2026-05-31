@@ -119,12 +119,19 @@ export function AuthForm({
       const res = await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(body),
       });
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || data.ok === false) {
         setError(data.error ?? copy.errorGeneric);
+        setLoading(false);
+        return;
+      }
+
+      if (mode === "login" && data.ok !== true) {
+        setError(copy.errorGeneric);
         setLoading(false);
         return;
       }
