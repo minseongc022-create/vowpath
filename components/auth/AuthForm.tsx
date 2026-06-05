@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ROUTES } from "@/lib/constants";
+import { clearTenantLocalCache } from "@/lib/dashboard-data-client";
 
 type Field = {
   name: string;
@@ -136,6 +137,10 @@ export function AuthForm({
         return;
       }
 
+      if (mode === "login") {
+        clearTenantLocalCache();
+      }
+
       const next = searchParams.get("next");
       router.push(next && next.startsWith("/") ? next : data.redirect ?? defaultRedirect);
       router.refresh();
@@ -151,7 +156,7 @@ export function AuthForm({
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8">
+      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8 text-slate-900">
         <h1 className="text-2xl font-bold text-brand-950">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
 
@@ -159,11 +164,11 @@ export function AuthForm({
           {usePhoneLogin ? (
             <>
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium text-brand-900">
+                <legend className="text-sm font-medium text-slate-800">
                   {loginCopy.methodLegend}
                 </legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
                     <input
                       type="radio"
                       name="loginMethod"
@@ -174,7 +179,7 @@ export function AuthForm({
                     />
                     {loginCopy.methodEmail}
                   </label>
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
                     <input
                       type="radio"
                       name="loginMethod"
@@ -191,9 +196,9 @@ export function AuthForm({
               <div>
                 <label
                   htmlFor="login-identifier"
-                  className="block text-sm font-medium text-brand-900"
+                  className="block text-sm font-medium text-slate-800"
                 >
-                  {loginMethod === "phone" ? loginCopy.phoneLabel : fields[0].label}
+                  {loginMethod === "phone" ? loginCopy.phoneLabel : fields[0]?.label ?? "이메일"}
                 </label>
                 <input
                   id="login-identifier"
@@ -215,7 +220,7 @@ export function AuthForm({
                 <div>
                   <label
                     htmlFor="password"
-                    className="block text-sm font-medium text-brand-900"
+                    className="block text-sm font-medium text-slate-800"
                   >
                     {passwordField.label}
                   </label>
@@ -235,7 +240,7 @@ export function AuthForm({
               <div key={field.name}>
                 <label
                   htmlFor={field.name}
-                  className="block text-sm font-medium text-brand-900"
+                  className="block text-sm font-medium text-slate-800"
                 >
                   {field.label}
                 </label>

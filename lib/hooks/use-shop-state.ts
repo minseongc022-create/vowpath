@@ -10,6 +10,7 @@ function loadShopState(): ShopState {
     return {
       scheduleWindows: [],
       answerScheduleActive: false,
+      scheduleAlwaysOn: false,
       jobberConnected: false,
       forwardingDone: false,
       onboardingComplete: false,

@@ -5,7 +5,10 @@ export type ScheduleRow = {
   startMinute: number;
   endHour: number;
   endMinute: number;
+  alwaysOn?: boolean;
 };
+
+export const SCHEDULE_ALWAYS_ON_LABEL = "매일 24시간 AI가 콜을 받습니다";
 
 export const DAY_OPTIONS = [
   { id: 1, label: "월" },
@@ -34,13 +37,14 @@ export function dayText(days: number[]) {
     .join("·");
 }
 
-function isOvernight(row: ScheduleRow) {
+export function isOvernight(row: ScheduleRow) {
   const start = row.startHour * 60 + row.startMinute;
   const end = row.endHour * 60 + row.endMinute;
   return end <= start;
 }
 
 export function formatScheduleSentence(row: ScheduleRow): string {
+  if (row.alwaysOn) return SCHEDULE_ALWAYS_ON_LABEL;
   const days = dayText(row.days) || "요일 미선택";
   const start = formatTime(row.startHour, row.startMinute);
   const end = formatTime(row.endHour, row.endMinute);
@@ -54,11 +58,15 @@ type StoredSchedulePayload = {
   startMinute: number;
   endHour: number;
   endMinute: number;
+  alwaysOn?: boolean;
 };
 
 function parsePayload(value: string): StoredSchedulePayload | null {
   try {
     const data = JSON.parse(value) as StoredSchedulePayload;
+    if (data.alwaysOn === true) {
+      return { alwaysOn: true, days: [], startHour: 0, startMinute: 0, endHour: 0, endMinute: 0 };
+    }
     if (!Array.isArray(data.days)) return null;
     return data;
   } catch {
@@ -66,7 +74,43 @@ function parsePayload(value: string): StoredSchedulePayload | null {
   }
 }
 
+export function alwaysOnScheduleRow(): ScheduleRow {
+  return {
+    id: "always-on",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    startHour: 0,
+    startMinute: 0,
+    endHour: 23,
+    endMinute: 59,
+    alwaysOn: true,
+  };
+}
+
+export function alwaysOnWindow() {
+  return {
+    id: "always-on",
+    label: SCHEDULE_ALWAYS_ON_LABEL,
+    value: JSON.stringify({ alwaysOn: true }),
+  };
+}
+
+export function isAlwaysOnFromWindows(
+  windows: { value: string }[],
+  scheduleAlwaysOn?: boolean,
+): boolean {
+  if (scheduleAlwaysOn === true) return true;
+  return windows.some((w) => {
+    try {
+      const data = JSON.parse(w.value) as { alwaysOn?: boolean };
+      return data.alwaysOn === true;
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function rowToWindow(row: ScheduleRow) {
+  if (row.alwaysOn) return alwaysOnWindow();
   return {
     id: row.id,
     label: formatScheduleSentence(row),
@@ -101,6 +145,7 @@ export function parseRowsFromStored(
   return windows.map((w, idx) => {
     const payload = parsePayload(w.value);
     if (payload) {
+      if (payload.alwaysOn) return alwaysOnScheduleRow();
       return {
         id: w.id || `w-${idx + 1}`,
         days: payload.days,

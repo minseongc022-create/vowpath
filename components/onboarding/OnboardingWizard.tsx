@@ -4,31 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
+import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { onboardingPage } from "@/lib/content";
 import { ROUTES, SITE } from "@/lib/constants";
 import {
+  alwaysOnScheduleRow,
+  defaultScheduleRows,
   formatScheduleSentence,
+  isAlwaysOnFromWindows,
   parseRowsFromStored,
-  rowToWindow,
   type ScheduleRow,
 } from "@/lib/schedule-format";
+import type {
+  ForwardingProviderId,
+  ForwardingScenarioId,
+} from "@/lib/forwarding-guides";
+import { canSaveSchedule, markForwardingDone, saveSchedule } from "@/lib/schedule-save";
 import type { ShopState } from "@/lib/types";
 import { readShopState, writeShopState } from "@/lib/shop-storage";
-
-function canSaveSchedule(rows: ScheduleRow[]) {
-  return rows.some((row) => row.days.length > 0);
-}
-
-function saveSchedule(shop: ShopState, rows: ScheduleRow[], activateAi: boolean) {
-  const scheduleWindows = rows.map((row) => rowToWindow(row));
-  const next: ShopState = {
-    ...shop,
-    scheduleWindows,
-    answerScheduleActive: activateAi,
-  };
-  writeShopState(next);
-  return next;
-}
 
 export function OnboardingWizard({
   paid,
@@ -40,6 +33,12 @@ export function OnboardingWizard({
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [shop, setShop] = useState<ShopState>(() => readShopState());
+  const [alwaysOn, setAlwaysOn] = useState(() =>
+    isAlwaysOnFromWindows(
+      readShopState().scheduleWindows,
+      readShopState().scheduleAlwaysOn,
+    ),
+  );
   const [rows, setRows] = useState<ScheduleRow[]>(() =>
     parseRowsFromStored(readShopState().scheduleWindows),
   );
@@ -49,7 +48,14 @@ export function OnboardingWizard({
       : [],
   );
   const scheduleOnly = focus === "schedule";
-  const canConfirm = canSaveSchedule(rows);
+  const canConfirm = canSaveSchedule(rows, alwaysOn);
+  const [forwardingPrefs, setForwardingPrefs] = useState<{
+    scenario: ForwardingScenarioId;
+    provider: ForwardingProviderId;
+  }>({
+    scenario: shop.forwardingScenario ?? "overflow",
+    provider: shop.forwardingProvider ?? "dialpad",
+  });
 
   function handleRowsChange(next: ScheduleRow[]) {
     setRows(next);
@@ -58,12 +64,18 @@ export function OnboardingWizard({
     }
   }
 
+  function handleAlwaysOnChange(next: boolean) {
+    setAlwaysOn(next);
+    setRows(next ? [alwaysOnScheduleRow()] : defaultScheduleRows());
+    if (confirmed.length > 0) setConfirmed([]);
+  }
+
   const steps = onboardingPage.steps;
   const current = steps[step];
 
   function handleConfirm() {
     if (!canConfirm) return;
-    const next = saveSchedule(shop, rows, true);
+    const next = saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
     setConfirmed(next.scheduleWindows.map((w) => w.label));
   }
@@ -71,27 +83,34 @@ export function OnboardingWizard({
   function completeStep() {
     if (current.id === "schedule") {
       if (!canConfirm) return;
-      saveSchedule(shop, rows, true);
+      const next = saveSchedule(shop, rows, true, alwaysOn);
+      setShop(next);
       setStep(1);
       return;
     }
-    if (current.id === "jobber") {
+    if (current.id === "phone") {
+      if (!shop.forwardingDone) return;
       setStep(2);
       return;
     }
-    if (current.id === "phone") {
-      const next = {
-        ...shop,
-        forwardingDone: true,
-        onboardingComplete: true,
-      };
-      writeShopState(next);
-      router.push(ROUTES.dashboard);
+    if (current.id === "jobber") {
+      finishToDashboard();
     }
   }
 
+  function skipJobber() {
+    const next: ShopState = {
+      ...readShopState(),
+      jobberSkipped: true,
+      onboardingComplete: true,
+    };
+    writeShopState(next);
+    setShop(next);
+    router.push(ROUTES.dashboard);
+  }
+
   function finishToDashboard() {
-    writeShopState({ ...shop, onboardingComplete: true });
+    writeShopState({ ...readShopState(), onboardingComplete: true });
     router.push(ROUTES.dashboard);
   }
 
@@ -99,11 +118,16 @@ export function OnboardingWizard({
     return (
       <>
         <div className="mt-8 rounded-xl border border-brand-200 bg-brand-50/50 p-6 shadow-card">
-          <ScheduleEditor rows={rows} onChange={handleRowsChange} />
+          <ScheduleEditor
+            rows={rows}
+            onChange={handleRowsChange}
+            alwaysOn={alwaysOn}
+            onAlwaysOnChange={handleAlwaysOnChange}
+          />
 
           {!canConfirm ? (
             <p className="mt-3 text-xs text-amber-800">
-              최소 1개 시간대에서 요일을 선택해 주세요.
+              24시간 AI를 켜거나, 최소 1개 시간대에서 요일을 선택해 주세요.
             </p>
           ) : null}
 
@@ -173,26 +197,53 @@ export function OnboardingWizard({
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {index + 1}단계 {done ? "· 완료" : ""}
+                {s.id === "jobber" ? " · 선택" : ""}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-slate-900">{s.title}</h2>
               <p className="mt-2 text-sm text-slate-600">{s.description}</p>
 
               {active && s.id === "schedule" ? (
                 <div className="mt-4 rounded-lg border border-surface-border bg-white p-3">
-                  <ScheduleEditor rows={rows} onChange={handleRowsChange} />
+                  <ScheduleEditor
+                    rows={rows}
+                    onChange={handleRowsChange}
+                    alwaysOn={alwaysOn}
+                    onAlwaysOnChange={handleAlwaysOnChange}
+                  />
                   {!canConfirm ? (
                     <p className="mt-2 text-xs text-amber-800">
-                      최소 1개 시간대에서 요일을 선택해 주세요.
+                      24시간 AI를 켜거나, 최소 1개 시간대에서 요일을 선택해 주세요.
                     </p>
                   ) : (
                     <ul className="mt-3 space-y-1 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
-                      {rows
-                        .filter((row) => row.days.length > 0)
-                        .map((row) => (
-                          <li key={row.id}>{formatScheduleSentence(row)}</li>
-                        ))}
+                      {alwaysOn
+                        ? confirmed.length > 0
+                          ? confirmed.map((line) => <li key={line}>{line}</li>)
+                          : rows.map((row) => (
+                              <li key={row.id}>{formatScheduleSentence(row)}</li>
+                            ))
+                        : rows
+                            .filter((row) => row.days.length > 0)
+                            .map((row) => (
+                              <li key={row.id}>{formatScheduleSentence(row)}</li>
+                            ))}
                     </ul>
                   )}
+                </div>
+              ) : null}
+
+              {active && s.id === "phone" ? (
+                <div className="mt-4">
+                  <ForwardingSetup
+                    confirmed={shop.forwardingDone}
+                    initialScenario={shop.forwardingScenario ?? "overflow"}
+                    initialProvider={shop.forwardingProvider ?? "dialpad"}
+                    onPreferencesChange={setForwardingPrefs}
+                    onConfirm={() => {
+                      const next = markForwardingDone(readShopState(), forwardingPrefs);
+                      setShop(next);
+                    }}
+                  />
                 </div>
               ) : null}
 
@@ -205,45 +256,46 @@ export function OnboardingWizard({
                   >
                     Jobber 계정 연결
                   </a>
-                  <p className="text-xs text-slate-500">
-                    연결 후 아래 「다음」을 누르세요. 문제 시{" "}
-                    <a
-                      href={`mailto:${SITE.supportEmail}`}
-                      className="text-brand-600 hover:underline"
-                    >
-                      {SITE.supportEmail}
-                    </a>
-                  </p>
+                  <button
+                    type="button"
+                    onClick={skipJobber}
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    {onboardingPage.jobberSkip}
+                  </button>
                 </div>
               )}
 
-              {active && s.id === "phone" && (
-                <p className="mt-3 text-xs text-slate-500">
-                  통신사 설정에서 after-hours·overflow 번호를 Vowpath로
-                  포워딩합니다. 파일럿은 지원팀이 안내합니다.
-                </p>
-              )}
-
-              <button
-                type="button"
-                disabled={locked || (active && s.id === "schedule" && !canConfirm)}
-                onClick={active ? completeStep : undefined}
-                className={`mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                  locked || (active && s.id === "schedule" && !canConfirm)
-                    ? "cursor-not-allowed bg-slate-100 text-slate-400"
+              {!(active && s.id === "phone") ? (
+                <button
+                  type="button"
+                  disabled={locked || (active && s.id === "schedule" && !canConfirm)}
+                  onClick={active ? completeStep : undefined}
+                  className={`mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                    locked || (active && s.id === "schedule" && !canConfirm)
+                      ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                      : done
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-900 text-white hover:bg-slate-800"
+                  }`}
+                >
+                  {locked
+                    ? onboardingPage.stepLockedLabel
                     : done
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-900 text-white hover:bg-slate-800"
-                }`}
-              >
-                {locked
-                  ? onboardingPage.stepLockedLabel
-                  : done
-                    ? "완료됨"
-                    : s.id === "schedule"
-                      ? "확인"
-                      : s.action}
-              </button>
+                      ? "완료됨"
+                      : s.id === "schedule"
+                        ? "확인"
+                        : s.action}
+                </button>
+              ) : shop.forwardingDone ? (
+                <button
+                  type="button"
+                  onClick={completeStep}
+                  className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                >
+                  {onboardingPage.forwardingNext}
+                </button>
+              ) : null}
             </div>
           );
         })}

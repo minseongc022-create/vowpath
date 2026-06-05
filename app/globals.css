@@ -4,10 +4,19 @@
 
 @layer base {
   :root {
-    --hvac-navy: #001428;
-    --hvac-blue: #0a84c7;
-    --hvac-cyan: #2a9fd9;
-    --hvac-ice: #eef7fc;
+    --vow-navy: #0b0e14;
+    --vow-navy-elevated: #12161f;
+    --vow-navy-card: #161b26;
+    --vow-violet: #8b5cf6;
+    --vow-indigo: #6366f1;
+    --vow-cyan: #38bdf8;
+    --vow-blue-glow: #a78bfa;
+    --vow-blue-bright: #c4b5fd;
+    --hvac-navy: var(--vow-navy);
+    --hvac-blue: var(--vow-indigo);
+    --hvac-cyan: var(--vow-cyan);
+    --hvac-ice: #f5f3ff;
+    --vow-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 48%, #38bdf8 100%);
   }
 
   html {
@@ -70,10 +79,10 @@
   }
 
   .hvac-app-shell {
-    @apply min-h-screen bg-gradient-to-b from-brand-50/90 via-white to-brand-50/50;
+    @apply min-h-screen bg-[#f6f8fb];
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgb(10 132 199 / 0.08), transparent),
-      linear-gradient(to bottom, rgb(238 247 252 / 0.9), white, rgb(238 247 252 / 0.5));
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgb(10 132 199 / 0.06), transparent),
+      linear-gradient(to bottom, #f6f8fb, #ffffff);
   }
 
   .hvac-input {
@@ -84,6 +93,779 @@
   .hvac-icon-wrap {
     @apply flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-100 to-brand-50 text-brand-700 ring-1 ring-brand-200/80;
   }
+
+  .ops-dashboard {
+    @apply text-slate-900;
+  }
+
+  .ops-card {
+    @apply rounded-2xl border border-slate-200/90 bg-white p-5;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 8px 24px rgb(15 23 42 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.9);
+  }
+
+  .ops-kpi {
+    @apply ops-card relative overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgb(15_23_42/0.08)];
+  }
+
+  .ops-kpi::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-400/50 to-transparent;
+  }
+
+  .ops-date-input {
+    @apply rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+  }
+
+  .booking-hero {
+    @apply rounded-2xl border border-brand-200/80 bg-gradient-to-br from-white via-white to-brand-50/50 p-6 sm:p-8;
+    box-shadow:
+      0 1px 2px rgb(10 132 199 / 0.06),
+      0 16px 48px rgb(10 132 199 / 0.1),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+
+  .booking-hero-number {
+    @apply text-6xl font-bold leading-none tracking-tight tabular-nums sm:text-7xl;
+  }
+
+  .booking-hero-stat {
+    @apply rounded-xl border border-slate-200/80 bg-white/80 px-4 py-3;
+  }
+
+  .recent-bookings-panel {
+    @apply rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 12px 32px rgb(15 23 42 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+
+  .recent-booking-card {
+    @apply flex items-center justify-between gap-4 rounded-xl border border-slate-200/70 bg-gradient-to-r from-white to-slate-50/40 px-4 py-4 transition-all duration-200;
+  }
+
+  .recent-booking-card:hover {
+    @apply border-brand-200/80 bg-white shadow-[0_8px_28px_rgb(10_132_199/0.1)] -translate-y-0.5;
+  }
+
+  .booking-detail-hero {
+    @apply rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-slate-50/60 p-6 sm:p-8;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 16px 40px rgb(15 23 42 / 0.07),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+
+  .booking-detail-card {
+    @apply overflow-hidden rounded-2xl border border-slate-200/90 bg-white;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 8px 24px rgb(15 23 42 / 0.05);
+  }
+
+  .booking-action-primary {
+    @apply inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .booking-action-secondary {
+    @apply inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-brand-200 hover:bg-brand-50/40 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .booking-action-muted {
+    @apply inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-400;
+  }
+
+  .vow-dash .booking-detail-hero {
+    @apply rounded-2xl border border-white/[0.06] p-6 sm:p-8;
+    background-color: #12161f;
+    background-image: none;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  }
+
+  .vow-dash .booking-detail-card {
+    @apply overflow-visible rounded-2xl border border-white/[0.06];
+    background-color: #161b22;
+    background-image: none;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  }
+
+  .vow-dash .booking-action-primary {
+    @apply inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    background: var(--vow-gradient);
+    box-shadow: 0 4px 20px rgb(139 92 246 / 0.35);
+  }
+
+  .vow-dash .booking-action-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .vow-dash .booking-action-secondary {
+    @apply inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-violet-500/30 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .vow-dash .booking-action-muted {
+    @apply inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-medium text-slate-500;
+  }
+
+  .vow-dash .booking-detail-banner {
+    @apply rounded-xl border px-4 py-3 text-sm;
+  }
+
+  .vow-dash .booking-detail-banner-warn {
+    @apply border-amber-500/25 bg-amber-500/10 text-amber-100;
+  }
+
+  .vow-dash .booking-detail-banner-info {
+    @apply border-white/[0.08] bg-white/[0.03] text-slate-300;
+  }
+
+  .vow-dash .booking-detail-decision {
+    @apply rounded-xl border border-white/[0.08] bg-[#161b22] p-4 sm:p-5;
+  }
+
+  .notification-bell-btn {
+    @apply relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-200 hover:bg-brand-50/30 hover:shadow-md;
+  }
+
+  .notification-bell-badge {
+    @apply absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white;
+  }
+
+  .notification-dropdown {
+    @apply w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200/90 bg-white;
+    box-shadow:
+      0 4px 6px rgb(15 23 42 / 0.04),
+      0 24px 48px rgb(15 23 42 / 0.12);
+  }
+
+  .notification-dropdown-floating {
+    @apply fixed;
+  }
+
+  .notification-center-panel {
+    @apply rounded-2xl border border-slate-200/90 bg-white;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 12px 32px rgb(15 23 42 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.95);
+  }
+
+  .notification-item {
+    @apply flex gap-3 rounded-xl border px-3 py-3 transition hover:shadow-sm;
+  }
+
+  .notification-item-read {
+    @apply border-white/[0.06] bg-transparent;
+  }
+
+  .notification-item-unread {
+    @apply border-brand-500/20;
+    background-color: rgb(10 132 199 / 0.06);
+  }
+
+  .notification-item-urgent-high {
+    @apply border-rose-500/25;
+    background-color: rgb(244 63 94 / 0.08);
+  }
+
+  .notification-item-urgent-medium {
+    @apply border-amber-500/20;
+    background-color: rgb(245 158 11 / 0.06);
+  }
+
+  .notification-item-title {
+    @apply text-sm leading-snug font-medium text-slate-700;
+  }
+
+  .notification-item-title.is-unread {
+    @apply font-semibold text-slate-900;
+  }
+
+  .notification-item-body {
+    @apply mt-0.5 line-clamp-2 text-xs text-slate-500;
+  }
+
+  .notification-item-time {
+    @apply mt-1 text-[11px] font-medium text-slate-400;
+  }
+
+  .notification-item-dot {
+    @apply mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500;
+  }
+
+  .vow-brand-mark-wrap::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-full;
+    background: radial-gradient(circle, rgb(99 102 241 / 0.08) 0%, transparent 70%);
+    filter: blur(4px);
+    transform: scale(1.05);
+    opacity: 0.45;
+  }
+
+  .vow-brand-mark-flat::before {
+    content: none;
+  }
+
+  .vow-brand-mark-flat .vow-brand-mark-img {
+    mix-blend-mode: lighten;
+    opacity: 0.92;
+    filter: saturate(0.88) brightness(1.04);
+  }
+
+  .vow-site-header .vow-brand-mark-wrap::before,
+  .vow-dash .vow-brand-mark-wrap::before {
+    content: none;
+  }
+
+  .vow-brand-aura {
+    background: radial-gradient(
+      circle,
+      rgb(168 85 247 / 0.4) 0%,
+      rgb(99 102 241 / 0.18) 40%,
+      transparent 72%
+    );
+    filter: blur(32px);
+  }
+
+  .vow-brand-name {
+    @apply inline-block font-bold uppercase leading-none text-brand-800;
+  }
+
+  .vow-brand-name-light {
+    @apply inline-block font-semibold uppercase leading-none text-slate-200;
+  }
+
+  .vow-brand-tagline {
+    @apply block text-[10px] font-normal leading-snug text-slate-400;
+  }
+
+  .vow-brand-tagline-accent {
+    @apply font-medium text-brand-300;
+  }
+
+  .vow-hero {
+    background-color: var(--vow-navy);
+    background-image:
+      radial-gradient(ellipse 90% 60% at 20% 0%, rgb(58 168 240 / 0.18), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 90% 20%, rgb(10 132 199 / 0.12), transparent 50%),
+      linear-gradient(180deg, var(--vow-navy) 0%, #011a32 100%);
+  }
+
+  .vow-hero-card {
+    @apply border border-brand-400/20 shadow-glow backdrop-blur-md;
+    background: linear-gradient(
+      145deg,
+      rgb(2 34 64 / 0.85) 0%,
+      rgb(1 20 40 / 0.75) 100%
+    );
+  }
+
+  .vow-hero-flow-stage {
+    background: linear-gradient(
+      168deg,
+      rgb(6 12 24 / 0.98) 0%,
+      rgb(14 20 36 / 0.92) 45%,
+      rgb(8 12 22 / 0.98) 100%
+    );
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.04) inset,
+      0 28px 90px -30px rgb(45 91 255 / 0.4),
+      0 0 120px -40px rgb(168 85 247 / 0.15);
+  }
+
+  .vow-hero-flow-step {
+    @apply relative rounded-2xl border border-white/[0.08] backdrop-blur-md;
+    background: linear-gradient(165deg, rgb(22 28 42 / 0.95) 0%, rgb(12 16 28 / 0.92) 100%);
+    box-shadow: 0 4px 28px rgb(0 0 0 / 0.35);
+  }
+
+  .vow-hero-flow-step-lg {
+    @apply px-4 py-6;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .vow-hero-flow-step-lg:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgb(45 91 255 / 0.22);
+  }
+
+  .vow-hero-flow-step-icon {
+    background: linear-gradient(145deg, rgb(45 91 255 / 0.35) 0%, rgb(168 85 247 / 0.22) 100%);
+    border: 1px solid rgb(147 180 255 / 0.35);
+    box-shadow: 0 0 28px rgb(45 91 255 / 0.2);
+  }
+
+  .vow-hero-flow-hub {
+    margin-top: -0.5rem;
+  }
+
+  .vow-hero-flow-hub-pedestal {
+    box-shadow:
+      0 0 50px rgb(45 91 255 / 0.3),
+      0 0 100px rgb(168 85 247 / 0.12);
+  }
+
+  .vow-hero-flow-core-glow {
+    background: radial-gradient(
+      circle,
+      rgb(168 85 247 / 0.5) 0%,
+      rgb(45 91 255 / 0.28) 38%,
+      transparent 68%
+    );
+    filter: blur(32px);
+    transform: scale(2.2);
+  }
+
+  .vow-hero-flow-curve {
+    animation: vow-flow-pulse 3s ease-in-out infinite;
+  }
+
+  .vow-hero-flow-live {
+    @apply rounded-2xl border border-white/[0.06];
+    background: linear-gradient(135deg, rgb(8 18 36 / 0.95) 0%, rgb(4 10 22 / 0.9) 100%);
+    box-shadow: 0 0 0 1px rgb(45 91 255 / 0.1) inset;
+  }
+
+  @keyframes vow-flow-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .vow-site-section {
+    border-top: 1px solid rgb(255 255 255 / 0.06);
+    background-color: var(--vow-navy);
+  }
+
+  .vow-site-compare {
+    @apply overflow-hidden rounded-2xl border border-brand-400/20;
+    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-site-compare-row {
+    @apply flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-3.5 last:border-b-0;
+  }
+
+  .vow-site-compare-row-highlight {
+    background-color: rgb(10 132 199 / 0.08);
+  }
+
+  .vow-site-pricing-card {
+    @apply relative flex h-full flex-col rounded-2xl border border-brand-400/10 p-8;
+    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-site-pricing-card-featured {
+    @apply border-brand-400/30 ring-1 ring-brand-400/25;
+    box-shadow:
+      0 0 0 1px rgb(58 168 240 / 0.1),
+      0 20px 50px -20px rgb(10 132 199 / 0.45);
+  }
+
+  .vow-site-pricing-badge {
+    @apply mb-2 inline-block w-fit rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs font-semibold text-brand-200;
+  }
+
+  .vow-site-pricing-badge-featured {
+    @apply absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-600 to-brand-500 px-3 py-0.5 text-xs font-semibold text-white shadow-lg;
+    box-shadow: 0 4px 20px rgb(10 132 199 / 0.4);
+  }
+
+  .vow-site-panel {
+    @apply overflow-hidden rounded-2xl border border-brand-400/10;
+    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-site-callout {
+    @apply rounded-2xl border border-brand-400/20 px-5 py-4 text-sm font-medium leading-relaxed text-slate-300;
+    background: linear-gradient(135deg, rgb(10 132 199 / 0.12) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-site-header {
+    @apply sticky top-0 z-50 border-b border-brand-400/10 shadow-none backdrop-blur-xl;
+    background-color: rgb(0 20 40 / 0.92);
+  }
+
+  .vow-site {
+    background-color: var(--vow-navy);
+    @apply text-slate-100;
+  }
+
+  .vow-site-card {
+    @apply relative rounded-2xl border border-white/[0.08] backdrop-blur-md;
+    background: linear-gradient(165deg, rgb(22 28 42 / 0.95) 0%, rgb(12 16 28 / 0.92) 100%);
+    box-shadow: 0 4px 28px rgb(0 0 0 / 0.3);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .vow-site-card:hover {
+    border-color: rgb(91 140 255 / 0.25);
+    box-shadow: 0 12px 40px rgb(45 91 255 / 0.15);
+  }
+
+  .vow-site .hvac-card {
+    @apply border-white/[0.08] shadow-none;
+    background: linear-gradient(165deg, rgb(22 28 42 / 0.95) 0%, rgb(12 16 28 / 0.92) 100%);
+  }
+
+  .vow-site .hvac-card:hover {
+    border-color: rgb(91 140 255 / 0.25);
+    box-shadow: 0 12px 40px rgb(45 91 255 / 0.15);
+  }
+
+  .vow-site .hvac-section-alt {
+    @apply border-brand-400/10;
+    background-color: var(--vow-navy);
+  }
+
+  .vow-site .hvac-badge {
+    @apply border-brand-500/25 bg-brand-500/10 text-brand-200;
+  }
+
+  .vow-site .hvac-btn-secondary {
+    @apply border-white/10 bg-white/[0.04] text-slate-100 hover:border-brand-400/30 hover:bg-brand-500/10;
+  }
+
+  .vow-site .section-heading-title {
+    @apply text-white;
+  }
+
+  .vow-site .section-heading-subtitle {
+    @apply text-slate-400;
+  }
+
+  .vow-site .section-heading-label {
+    @apply text-brand-300;
+  }
+
+  .vow-site .max-w-2xl > h2 {
+    @apply text-white;
+  }
+
+  .vow-site .max-w-2xl > p.text-lg {
+    @apply text-slate-400;
+  }
+
+  .vow-site .max-w-2xl > p.text-sm.font-semibold {
+    @apply text-brand-300;
+  }
+
+  .vow-site .text-brand-950 {
+    @apply text-white;
+  }
+
+  .vow-site .text-brand-700 {
+    @apply text-brand-300;
+  }
+
+  .vow-site .text-slate-600 {
+    @apply text-slate-400;
+  }
+
+  .vow-site .text-slate-700 {
+    @apply text-slate-300;
+  }
+
+  .vow-site .border-brand-200 {
+    @apply border-brand-500/20;
+  }
+
+  .vow-site .from-brand-50 {
+    --tw-gradient-from: rgb(19 23 29);
+  }
+
+  .vow-site .to-white {
+    --tw-gradient-to: rgb(19 23 29);
+  }
+
+  .vow-site .bg-white {
+    @apply border-brand-400/10;
+    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-site .bg-brand-50 {
+    background-color: rgb(10 132 199 / 0.1);
+  }
+
+  .vow-site .text-slate-500 {
+    @apply text-slate-400;
+  }
+
+  .vow-site .text-brand-800 {
+    @apply text-brand-200;
+  }
+
+  .vow-site .text-brand-900 {
+    @apply text-white;
+  }
+
+  .vow-site .border-surface-border {
+    @apply border-white/[0.08];
+  }
+
+  .vow-site .divide-surface-border > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
+  .vow-site .shadow-card,
+  .vow-site .shadow-card-hover {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.04),
+      0 12px 40px -12px rgb(0 0 0 / 0.45);
+  }
+
+  .vow-site .hvac-btn-primary {
+    @apply rounded-xl text-white;
+    background: var(--vow-gradient);
+    box-shadow: 0 4px 24px rgb(45 91 255 / 0.4);
+  }
+
+  .vow-site .hvac-btn-primary:hover {
+    @apply brightness-110;
+  }
+
+  .vow-app-shell {
+    @apply min-h-screen text-slate-100;
+    background-color: var(--vow-navy);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% -15%, rgb(58 168 240 / 0.14), transparent),
+      linear-gradient(to bottom, var(--vow-navy), #011a32);
+  }
+
+  .vow-dash-integration-banner {
+    @apply rounded-xl border px-5 py-4 text-sm;
+  }
+
+  .vow-dash-integration-banner-live {
+    @apply border-emerald-500/25 bg-emerald-500/10 text-emerald-100;
+  }
+
+  .vow-dash-integration-banner-pending {
+    @apply border-amber-500/25 bg-amber-500/10 text-amber-100;
+  }
+
+  /* Vowpath app dashboard (dark) — logo violet → indigo → cyan */
+  .vow-dash {
+    @apply min-h-screen;
+    color: #e2e8f0;
+    --vow-dash-bg: #0b0e14;
+    --vow-dash-surface: #12161f;
+    --vow-dash-accent: #8b5cf6;
+    --vow-dash-accent-mid: #6366f1;
+    background-color: var(--vow-dash-bg);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 0% 0%, rgb(139 92 246 / 0.12), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 10%, rgb(56 189 248 / 0.06), transparent 50%);
+  }
+
+  .vow-dash-sidebar {
+    @apply flex w-[16rem] shrink-0 flex-col border-r border-white/[0.06];
+    background: linear-gradient(180deg, #12161f 0%, #0f1219 100%);
+    box-shadow: 1px 0 0 rgb(139 92 246 / 0.08);
+  }
+
+  .vow-dash-main {
+    @apply min-w-0 flex-1 overflow-x-hidden;
+    background-color: var(--vow-dash-bg);
+  }
+
+  .vow-dash-card {
+    @apply rounded-2xl border border-white/[0.06] p-5;
+    background: var(--vow-dash-surface);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  }
+
+  .vow-dash-hero {
+    @apply overflow-hidden rounded-xl border border-brand-400/10;
+    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+  }
+
+  .vow-dash-hero-value {
+    @apply text-4xl leading-none sm:text-5xl lg:text-[3.25rem];
+  }
+
+  .vow-dash-panel {
+    @apply overflow-hidden rounded-2xl border border-white/[0.06];
+    background: var(--vow-dash-surface);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  }
+
+  .vow-dash-panel.vow-dash-chart-card {
+    overflow: visible;
+  }
+
+  .vow-dash-panel-head {
+    @apply flex flex-wrap items-center justify-between gap-3 px-5 py-4;
+  }
+
+  .vow-dash-link {
+    @apply text-xs font-medium text-violet-300 transition hover:text-violet-200;
+  }
+
+  .vow-dash-stat-mini {
+    @apply rounded-xl border border-white/[0.05] bg-[#13171d]/80 px-4 py-3;
+  }
+
+  .vow-dash-stat-mini-label {
+    @apply text-[10px] font-medium uppercase tracking-wider text-slate-600;
+  }
+
+  .vow-dash-stat-mini-value {
+    @apply mt-1 text-2xl font-bold tabular-nums text-slate-200 sm:text-3xl;
+  }
+
+  /* Muted copy on dashboard — custom class only (do not target .text-slate-* utilities; Tailwind circular dep) */
+  .vow-dash-muted {
+    color: #94a3b8;
+  }
+
+  .vow-dash-kpi {
+    @apply vow-dash-card relative overflow-hidden p-5 sm:p-6;
+  }
+
+  .vow-dash-kpi-owner {
+    @apply flex min-h-[9rem] flex-col justify-between border-t border-t-transparent;
+  }
+
+  .vow-dash-kpi-value {
+    @apply text-5xl font-bold tracking-tight text-white tabular-nums sm:text-6xl sm:leading-none;
+  }
+
+  .vow-dash-chart-wrap {
+    @apply relative min-h-[132px] w-full overflow-visible;
+  }
+
+  .vow-dash-chart-wrap svg {
+    @apply block h-auto w-full overflow-visible;
+  }
+
+  .vow-dash-nav-item {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition;
+  }
+
+  .vow-dash-nav-item:hover {
+    @apply bg-white/[0.04] text-slate-200;
+  }
+
+  .vow-dash-nav-item-active {
+    @apply bg-violet-500/10 text-violet-200;
+  }
+
+  .vow-dash-nav-item-active::before {
+    content: "";
+    @apply absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full;
+    background: var(--vow-gradient);
+  }
+
+  .vow-dash-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition;
+    background: var(--vow-gradient);
+    box-shadow: 0 4px 24px rgb(139 92 246 / 0.4);
+  }
+
+  .vow-dash-btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .vow-dash-chart-wrap-home {
+    @apply relative min-h-[240px] w-full overflow-visible pb-1;
+  }
+
+  .vow-dash-chart-wrap-home svg {
+    @apply block h-auto w-full max-h-none overflow-visible;
+  }
+
+  /* Missed-calls / trend charts — avoid clipping tooltips and plot edges */
+  .vow-missed-chart {
+    @apply relative overflow-visible py-1;
+  }
+
+  .vow-missed-chart-plot {
+    @apply overflow-visible;
+  }
+
+  .vow-dash-chart-body {
+    @apply overflow-visible px-1 pb-4 pt-1;
+  }
+
+  .vow-dash-chart-body-wide {
+    @apply w-full max-w-none;
+  }
+
+  .vow-dash-chart-body-wide .vow-missed-chart {
+    @apply w-full;
+  }
+
+  .vow-dash-card.vow-dash-chart-card {
+    overflow: visible;
+  }
+
+  .vow-dash-table-row {
+    @apply border-b border-white/[0.06] transition hover:bg-white/[0.03];
+  }
+
+  .vow-dash .notification-bell-btn {
+    @apply border border-white/10 bg-[#161b22] text-slate-300 hover:border-violet-500/30 hover:bg-violet-500/10;
+  }
+
+  .vow-dash .notification-dropdown .text-rose-900 {
+    @apply text-rose-300;
+  }
+
+  .vow-dash .notification-dropdown .text-rose-700 {
+    @apply text-rose-400/90;
+  }
+
+  .vow-dash .notification-dropdown .text-slate-900 {
+    @apply text-white;
+  }
+
+  .vow-dash .notification-dropdown .bg-slate-200 {
+    @apply bg-white/10;
+  }
+
+  .vow-dash .notification-dropdown .bg-slate-100 {
+    @apply bg-white/[0.06];
+  }
+
+  .vow-dash .notification-dropdown {
+    @apply border border-white/10 bg-[#161b22] text-slate-200;
+  }
+
+  .vow-dash .notification-dropdown .border-slate-100 {
+    @apply border-white/[0.08];
+  }
+
+  .vow-dash .notification-item-title {
+    @apply text-slate-300;
+  }
+
+  .vow-dash .notification-item-title.is-unread {
+    @apply text-white;
+  }
+
+  .vow-dash .notification-item-body {
+    @apply text-slate-500;
+  }
+
+  .vow-dash .notification-item-time {
+    @apply text-slate-600;
+  }
+
+  .vow-dash .notification-bell-btn svg {
+    @apply text-slate-300;
+  }
 }
 
 @layer utilities {
@@ -92,6 +874,30 @@
   }
 
   .hvac-text-gradient {
-    @apply bg-gradient-to-r from-brand-300 via-brand-400 to-brand-200 bg-clip-text text-transparent;
+    @apply bg-vow-brand bg-clip-text text-transparent;
+  }
+
+  .vow-dash-settings {
+    color: rgb(226 232 240);
+  }
+
+  .vow-dash-settings select,
+  .vow-dash-settings select option {
+    color: rgb(15 23 42);
+  }
+
+  .vow-dash-settings .bg-white {
+    color: rgb(15 23 42);
+  }
+
+  .vow-dash-settings .hvac-card-elevated {
+    border-color: rgb(255 255 255 / 0.08);
+    background-color: #161b22;
+  }
+
+  .vow-dash-settings .hvac-input {
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: #0f1219;
+    color: rgb(241 245 249);
   }
 }

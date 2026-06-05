@@ -5,37 +5,60 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { JobberConnect } from "@/components/dashboard/JobberConnect";
 import { PhoneSetup } from "@/components/dashboard/PhoneSetup";
+import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
+import { AuditActivityPanel } from "@/components/settings/AuditActivityPanel";
+import { OpsFailuresPanel } from "@/components/settings/OpsFailuresPanel";
+import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { settingsPage } from "@/lib/content";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
-  countComplete,
+  countRequiredComplete,
+  countRequiredTotal,
   getIntegrationItems,
   isFullyLive,
   type IntegrationSection,
 } from "@/lib/integration-status";
-import { parseRowsFromStored } from "@/lib/schedule-format";
+import {
+  alwaysOnScheduleRow,
+  defaultScheduleRows,
+  isAlwaysOnFromWindows,
+  parseRowsFromStored,
+} from "@/lib/schedule-format";
 import {
   canSaveSchedule,
   markForwardingDone,
   markJobberConfirmed,
+  markJobberSkipped,
   saveSchedule,
 } from "@/lib/schedule-save";
 import { readShopState } from "@/lib/shop-storage";
+import type {
+  ForwardingProviderId,
+  ForwardingScenarioId,
+} from "@/lib/forwarding-guides";
 import type { ScheduleRow } from "@/lib/schedule-format";
 
-const TABS: IntegrationSection[] = ["schedule", "jobber", "phone"];
+const TABS: IntegrationSection[] = ["contact", "schedule", "phone", "jobber"];
 
 const TAB_LABELS: Record<IntegrationSection, string> = {
+  contact: settingsPage.tocContact,
   schedule: settingsPage.tocSchedule,
-  jobber: settingsPage.tocJobber,
   phone: settingsPage.tocPhone,
+  jobber: settingsPage.tocJobber,
 };
 
 function tabFromParam(value: string | null): IntegrationSection {
-  if (value === "jobber" || value === "phone" || value === "schedule") return value;
-  return "schedule";
+  if (
+    value === "contact" ||
+    value === "jobber" ||
+    value === "phone" ||
+    value === "schedule"
+  ) {
+    return value;
+  }
+  return "contact";
 }
 
 export function SettingsView({ paid }: { paid?: boolean }) {
@@ -44,8 +67,12 @@ export function SettingsView({ paid }: { paid?: boolean }) {
   const sectionParam = searchParams.get("section");
 
   const { shop, setShop, refresh } = useShopState();
-  const [activeTab, setActiveTab] = useState<IntegrationSection>(() =>
-    tabFromParam(sectionParam),
+  const activeTab = tabFromParam(sectionParam);
+  const [alwaysOn, setAlwaysOn] = useState(() =>
+    isAlwaysOnFromWindows(
+      readShopState().scheduleWindows,
+      readShopState().scheduleAlwaysOn,
+    ),
   );
   const [rows, setRows] = useState<ScheduleRow[]>(() =>
     parseRowsFromStored(readShopState().scheduleWindows),
@@ -59,8 +86,28 @@ export function SettingsView({ paid }: { paid?: boolean }) {
     () => readShopState().jobberConnected,
   );
   const [jobberAccount, setJobberAccount] = useState<string | null>(null);
+  const [contactComplete, setContactComplete] = useState(false);
+  const [forwardingPrefs, setForwardingPrefs] = useState<{
+    scenario: ForwardingScenarioId;
+    provider: ForwardingProviderId;
+  }>({
+    scenario: shop.forwardingScenario ?? "overflow",
+    provider: shop.forwardingProvider ?? "dialpad",
+  });
 
-  const canConfirm = canSaveSchedule(rows);
+  const canConfirm = canSaveSchedule(rows, alwaysOn);
+
+  const refreshContact = useCallback(async () => {
+    try {
+      const res = await fetch("/api/account/contact");
+      const data = (await res.json()) as { contactComplete?: boolean };
+      if (res.ok) {
+        setContactComplete(Boolean(data.contactComplete));
+      }
+    } catch {
+      setContactComplete(false);
+    }
+  }, []);
 
   const refreshJobber = useCallback(async () => {
     try {
@@ -86,10 +133,11 @@ export function SettingsView({ paid }: { paid?: boolean }) {
   }, [setShop]);
 
   useEffect(() => {
-    setActiveTab(tabFromParam(sectionParam));
-  }, [sectionParam]);
-
-  useEffect(() => {
+    const nextAlwaysOn = isAlwaysOnFromWindows(
+      shop.scheduleWindows,
+      shop.scheduleAlwaysOn,
+    );
+    setAlwaysOn(nextAlwaysOn);
     setRows(parseRowsFromStored(shop.scheduleWindows));
     setConfirmed(
       shop.answerScheduleActive
@@ -100,10 +148,11 @@ export function SettingsView({ paid }: { paid?: boolean }) {
 
   useEffect(() => {
     refreshJobber();
-  }, [refreshJobber]);
+    refreshContact();
+  }, [refreshJobber, refreshContact]);
 
   function switchTab(tab: IntegrationSection) {
-    setActiveTab(tab);
+    if (tab === activeTab) return;
     router.replace(`${ROUTES.settings}?section=${tab}`, { scroll: false });
   }
 
@@ -112,13 +161,23 @@ export function SettingsView({ paid }: { paid?: boolean }) {
     if (confirmed.length > 0) setConfirmed([]);
   }
 
+  function handleAlwaysOnChange(next: boolean) {
+    setAlwaysOn(next);
+    setRows(next ? [alwaysOnScheduleRow()] : defaultScheduleRows());
+    if (confirmed.length > 0) setConfirmed([]);
+  }
+
   function handleScheduleConfirm() {
+    if (!contactComplete) {
+      switchTab("contact");
+      return;
+    }
     if (!canConfirm) return;
-    const next = saveSchedule(shop, rows, true);
+    const next = saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
     refresh();
     setConfirmed(next.scheduleWindows.map((w) => w.label));
-    switchTab("jobber");
+    switchTab("phone");
   }
 
   function handleJobberConfirm() {
@@ -126,22 +185,30 @@ export function SettingsView({ paid }: { paid?: boolean }) {
     const next = markJobberConfirmed(shop);
     setShop(next);
     refresh();
-    switchTab("phone");
+  }
+
+  function handleJobberSkip() {
+    const next = markJobberSkipped(shop);
+    setShop(next);
+    refresh();
   }
 
   function handleForwardingConfirm() {
-    const next = markForwardingDone(shop);
+    const next = markForwardingDone(shop, forwardingPrefs);
     setShop(next);
     refresh();
   }
 
   const jobberLinked = jobberConnected;
-  const jobberStepDone = shop.jobberSetupConfirmed === true && jobberLinked;
+  const jobberStepDone =
+    shop.jobberSkipped === true ||
+    (shop.jobberSetupConfirmed === true && jobberLinked);
 
-  const items = getIntegrationItems(shop, { jobberConnected });
-  const complete = countComplete(items);
-  const live = isFullyLive(shop, jobberConnected);
-  const progressPct = Math.round((complete / 3) * 100);
+  const items = getIntegrationItems(shop, { jobberConnected, contactComplete });
+  const requiredTotal = countRequiredTotal(items);
+  const requiredDone = countRequiredComplete(items);
+  const live = isFullyLive(shop, { jobberConnected, contactComplete });
+  const progressPct = Math.round((requiredDone / requiredTotal) * 100);
 
   const scheduleItem = items.find((item) => item.id === "schedule")!;
   const jobberItem = items.find((item) => item.id === "jobber")!;
@@ -168,8 +235,8 @@ export function SettingsView({ paid }: { paid?: boolean }) {
           <div>
             <p className="text-sm font-semibold text-slate-900">
               {settingsPage.progressTitle
-                .replace("{done}", String(complete))
-                .replace("{total}", "3")}
+                .replace("{done}", String(requiredDone))
+                .replace("{total}", String(requiredTotal))}
             </p>
             {live ? (
               <p className="mt-1 text-sm text-emerald-800">{settingsPage.allDone}</p>
@@ -190,7 +257,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
       </div>
 
       <div
-        className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+        className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-4"
         role="tablist"
         aria-label={settingsPage.tocLabel}
       >
@@ -214,7 +281,13 @@ export function SettingsView({ paid }: { paid?: boolean }) {
             >
               <span className="block">{TAB_LABELS[tab]}</span>
               <span className="mt-1 block text-[10px] font-normal opacity-80">
-                {item.done ? "완료" : "설정 필요"}
+                {item.done
+                  ? "완료"
+                  : item.skipped
+                    ? settingsPage.tabSkipped
+                    : item.optional
+                      ? settingsPage.tabOptional
+                      : settingsPage.statusPending}
               </span>
             </button>
           );
@@ -240,18 +313,22 @@ export function SettingsView({ paid }: { paid?: boolean }) {
                 {settingsPage.sectionSteps[activeTab]}단계
               </p>
               <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                {activeTab === "schedule"
-                  ? settingsPage.scheduleTitle
-                  : activeTab === "jobber"
-                    ? settingsPage.jobberTitle
-                    : settingsPage.phoneTitle}
+                {activeTab === "contact"
+                  ? settingsPage.contactTitle
+                  : activeTab === "schedule"
+                    ? settingsPage.scheduleTitle
+                    : activeTab === "jobber"
+                      ? settingsPage.jobberTitle
+                      : settingsPage.phoneTitle}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                {activeTab === "schedule"
-                  ? settingsPage.scheduleDescription
-                  : activeTab === "jobber"
-                    ? settingsPage.jobberDescription
-                    : settingsPage.phoneDescription}
+                {activeTab === "contact"
+                  ? settingsPage.contactDescription
+                  : activeTab === "schedule"
+                    ? settingsPage.scheduleDescription
+                    : activeTab === "jobber"
+                      ? settingsPage.jobberDescription
+                      : settingsPage.phoneDescription}
               </p>
               {activeItem.done ? (
                 <p className="mt-2 text-sm font-medium text-emerald-800">{activeItem.summary}</p>
@@ -270,9 +347,24 @@ export function SettingsView({ paid }: { paid?: boolean }) {
         </div>
 
         <div className="px-5 py-5 sm:px-6">
+          {activeTab === "contact" ? (
+            <OwnerContactSetup onSaved={setContactComplete} />
+          ) : null}
+
           {activeTab === "schedule" ? (
             <>
-              <ScheduleEditor rows={rows} onChange={handleRowsChange} compact />
+              {!contactComplete ? (
+                <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {settingsPage.contactRequiredFirst}
+                </p>
+              ) : null}
+              <ScheduleEditor
+                rows={rows}
+                onChange={handleRowsChange}
+                alwaysOn={alwaysOn}
+                onAlwaysOnChange={handleAlwaysOnChange}
+                compact
+              />
 
               {!canConfirm ? (
                 <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
@@ -293,7 +385,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
 
               <button
                 type="button"
-                disabled={!canConfirm}
+                disabled={!canConfirm || !contactComplete}
                 onClick={handleScheduleConfirm}
                 className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -345,72 +437,114 @@ export function SettingsView({ paid }: { paid?: boolean }) {
                 </p>
               ) : null}
 
-              {jobberLinked ? (
+              {jobberLinked && !jobberStepDone ? (
                 <button
                   type="button"
-                  onClick={
-                    jobberStepDone ? () => switchTab("phone") : handleJobberConfirm
-                  }
+                  onClick={handleJobberConfirm}
                   className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm"
                 >
-                  {jobberStepDone ? settingsPage.nextPhone : settingsPage.jobberConfirm}
+                  {settingsPage.jobberConfirm}
                 </button>
+              ) : null}
+
+              {!jobberStepDone ? (
+                <button
+                  type="button"
+                  onClick={handleJobberSkip}
+                  className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {settingsPage.jobberSkip}
+                </button>
+              ) : null}
+
+              {shop.jobberSkipped && !jobberLinked ? (
+                <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  {settingsPage.jobberSkippedNote}
+                </p>
               ) : null}
             </>
           ) : null}
 
           {activeTab === "phone" ? (
             <>
-              <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-                <PhoneSetup embedded />
-              </div>
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm leading-relaxed text-slate-700">{settingsPage.phoneGuide}</p>
-                <p className="mt-2 text-xs text-slate-500">{settingsPage.phoneSupport}</p>
-              </div>
-              {!shop.forwardingDone ? (
-                <button
-                  type="button"
-                  onClick={handleForwardingConfirm}
-                  className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm"
-                >
-                  {settingsPage.phoneConfirm}
-                </button>
-              ) : (
-                <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                  {settingsPage.phoneConfirmed}
+              {!contactComplete ? (
+                <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  {settingsPage.contactRequiredFirst}
                 </p>
-              )}
+              ) : null}
+              <ForwardingSetup
+                confirmed={shop.forwardingDone}
+                confirmDisabled={!contactComplete}
+                initialScenario={shop.forwardingScenario ?? "overflow"}
+                initialProvider={shop.forwardingProvider ?? "dialpad"}
+                onPreferencesChange={setForwardingPrefs}
+                onConfirm={handleForwardingConfirm}
+              />
+              <details className="mt-6 rounded-xl border border-slate-200 bg-slate-50/80">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">
+                  {settingsPage.forwardingDevTitle}
+                </summary>
+                <div className="border-t border-slate-200 px-4 py-4">
+                  <p className="mb-3 text-xs text-slate-500">{settingsPage.forwardingDevHint}</p>
+                  <PhoneSetup embedded />
+                </div>
+              </details>
             </>
           ) : null}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {activeTab !== "schedule" ? (
+        {activeTab !== "contact" ? (
           <button
             type="button"
-            onClick={() =>
-              switchTab(activeTab === "phone" ? "jobber" : "schedule")
-            }
+            onClick={() => {
+              if (activeTab === "schedule") switchTab("contact");
+              else if (activeTab === "phone") switchTab("schedule");
+              else switchTab("phone");
+            }}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             ← 이전
           </button>
         ) : null}
-        {activeTab !== "phone" ? (
+        {activeTab !== "jobber" ? (
           <button
             type="button"
-            disabled={activeTab === "jobber" && jobberLinked && !jobberStepDone}
-            onClick={() =>
-              switchTab(activeTab === "schedule" ? "jobber" : "phone")
-            }
-            className="ml-auto rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => {
+              if (activeTab === "contact") switchTab("schedule");
+              else if (activeTab === "schedule") switchTab("phone");
+              else switchTab("jobber");
+            }}
+            className="ml-auto rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-200"
           >
-            다음 →
+            {activeTab === "contact"
+              ? settingsPage.tocSchedule
+              : activeTab === "schedule"
+                ? settingsPage.nextPhone
+                : settingsPage.nextJobber}{" "}
+            →
           </button>
         ) : null}
       </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {settingsPage.bookingPolicyTitle}
+        </p>
+        <p className="mt-2 text-sm font-semibold text-slate-900">{settingsPage.bookingPolicyMode}</p>
+        <p className="mt-1 text-sm text-slate-600">{settingsPage.bookingPolicyDescription}</p>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white p-5 shadow-card">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {settingsPage.ownerAlertsTitle}
+        </p>
+        <p className="mt-2 text-sm text-slate-600">{settingsPage.ownerAlertsDescription}</p>
+      </div>
+
+      <AuditActivityPanel />
+      <OpsFailuresPanel />
 
       <button
         type="button"

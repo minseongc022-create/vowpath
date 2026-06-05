@@ -1,0 +1,290 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { dashboardGreeting } from "@/lib/dashboard-home-metrics";
+import { dashboardUi, vowDashboard } from "@/lib/content";
+import { ROUTES } from "@/lib/constants";
+import { useShopState } from "@/lib/hooks/use-shop-state";
+import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
+import { parseDateInput } from "@/lib/dashboard-analytics";
+import { buildDashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
+import { buildMissedCallsAnalytics } from "@/lib/missed-calls-analytics";
+import { missedCallsTrendSubtitle } from "@/lib/missed-calls-chart-series";
+import { buildRecentBookingsList } from "@/lib/recent-bookings";
+import {
+  countWaitingCustomers,
+  isApprovedBooking,
+  type RequestStatus,
+} from "@/lib/booking-policy";
+import { lookupStoredRequestStatus } from "@/lib/request-status-resolve";
+import { OwnerKpiCards } from "@/components/dashboard/OwnerKpiCards";
+import { CustomerVerificationRateKpi } from "@/components/dashboard/CustomerVerificationRateKpi";
+import {
+  DashboardPeriodToolbar,
+  type PeriodPresetOption,
+} from "@/components/dashboard/DashboardPeriodToolbar";
+import {
+  formatDashboardPeriodLabel,
+  matchAnalyticsPreset,
+} from "@/lib/dashboard-period";
+import type { MissedCallsAnalyticsPreset } from "@/lib/missed-calls-analytics";
+import { DashboardRecentRequests } from "@/components/dashboard/DashboardRecentRequests";
+import { MissedCallsPreventedChart } from "@/components/dashboard/MissedCallsPreventedChart";
+import { NotificationCenter } from "@/components/dashboard/NotificationCenter";
+import { DashboardCallInsights } from "@/components/dashboard/DashboardCallInsights";
+import { DashboardUpcomingBookings } from "@/components/dashboard/DashboardUpcomingBookings";
+import {
+  defaultDashboardDateRange,
+  type DashboardDateRange,
+} from "@/components/dashboard/DashboardDateRangePicker";
+import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRequestButton";
+
+const v = vowDashboard;
+const periodPresets = dashboardUi.missedCallsAnalytics.periodPresets as PeriodPresetOption[];
+
+export function DashboardHomeView() {
+  const { shop } = useShopState();
+  const [dateRange, setDateRange] = useState<DashboardDateRange>(defaultDashboardDateRange);
+  const [activePreset, setActivePreset] = useState<MissedCallsAnalyticsPreset | "custom">(
+    () => matchAnalyticsPreset(defaultDashboardDateRange()) ?? "30d",
+  );
+  const [displayName, setDisplayName] = useState("");
+
+  const {
+    calls,
+    jobs,
+    jobberBookings,
+    heroCalls,
+    heroJobs,
+    heroJobberBookings,
+    tenantEvents,
+    jobberConnected,
+    jobberAccountName,
+    jobberError,
+    jobberSyncedAt,
+    error,
+    loading,
+    hasLoaded,
+    refresh,
+    requestStatuses,
+    statusError,
+    customerVerifications,
+  } = useDashboardData(dateRange);
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { shopName?: string; email?: string } | null) => {
+        if (d?.shopName) setDisplayName(d.shopName);
+        else if (d?.email) setDisplayName(d.email.split("@")[0] ?? "");
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const metrics = useMemo(
+    () =>
+      buildDashboardHomeMetrics(
+        heroCalls,
+        heroJobs,
+        heroJobberBookings,
+        shop,
+        requestStatuses,
+        jobberConnected,
+      ),
+    [heroCalls, heroJobs, heroJobberBookings, shop, requestStatuses, jobberConnected],
+  );
+
+  const trendChart = useMemo(() => {
+    const start = parseDateInput(dateRange.start);
+    const end = parseDateInput(dateRange.end);
+    if (!start || !end) {
+      return { data: metrics.dailyPrevented, subtitle: v.trend.last30 };
+    }
+    const endDay = new Date(end);
+    endDay.setHours(23, 59, 59, 999);
+    const analytics = buildMissedCallsAnalytics(heroCalls, shop, start, endDay, {
+      jobs: heroJobs,
+      jobberBookings: heroJobberBookings,
+      requestStatuses,
+    });
+    const dayCount = analytics.dailyPrevented.length;
+    const mode = dayCount > 30 ? "bar" : "line";
+    return {
+      data: analytics.dailyPrevented,
+      subtitle: missedCallsTrendSubtitle(dayCount, mode),
+    };
+  }, [
+    dateRange,
+    heroCalls,
+    heroJobs,
+    heroJobberBookings,
+    requestStatuses,
+    shop,
+    metrics.dailyPrevented,
+  ]);
+
+  const recent = useMemo(
+    () => buildRecentBookingsList(jobs, jobberBookings, calls, 8, requestStatuses),
+    [jobs, jobberBookings, calls, requestStatuses],
+  );
+
+  const upcoming = useMemo(
+    () =>
+      recent.filter((b) => {
+        const s = lookupStoredRequestStatus(b.id, requestStatuses, b.jobberJobId) ?? b.status;
+        return isApprovedBooking(s as RequestStatus) || s === "scheduled";
+      }),
+    [recent, requestStatuses],
+  );
+
+  const notificationProps = {
+    jobs,
+    jobberBookings,
+    calls,
+    jobberConnected,
+    jobberError,
+    jobberSyncedAt,
+    jobberAccountName,
+    requestStatuses,
+    tenantEvents,
+    loading,
+    error: error ?? statusError,
+  };
+
+  const periodLabel = formatDashboardPeriodLabel(dateRange.start, dateRange.end);
+
+  const waitingCustomersNow = useMemo(
+    () => countWaitingCustomers(requestStatuses),
+    [requestStatuses],
+  );
+
+  const handleRangeChange = (next: DashboardDateRange) => {
+    setDateRange(next);
+    setActivePreset(matchAnalyticsPreset(next) ?? "custom");
+  };
+
+  return (
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            {dashboardGreeting()}
+            {displayName ? `, ${displayName}` : ""}!{" "}
+            <span className="inline-block" aria-hidden>
+              👋
+            </span>
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">{v.header.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <DashboardPeriodToolbar
+            value={dateRange}
+            onChange={handleRangeChange}
+            activePreset={activePreset}
+            onPresetChange={setActivePreset}
+            presets={periodPresets}
+            dark
+            className="!flex-row !items-center"
+          />
+          <NotificationCenter {...notificationProps} variant="dropdown" />
+          <DashboardNewRequestButton onCreated={() => void refresh()} />
+        </div>
+      </header>
+
+      {jobberError ? (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Jobber 동기화가 필요합니다.{" "}
+          <Link href={ROUTES.settings} className="font-semibold underline">
+            연동 설정
+          </Link>
+          에서 다시 연결하세요.
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="xl:col-span-5">
+          <OwnerKpiCards
+            daily={trendChart.data}
+            periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
+            waitingCustomersNow={waitingCustomersNow}
+            loading={!hasLoaded && loading}
+            dark
+          />
+        </div>
+        <CustomerVerificationRateKpi
+          records={customerVerifications}
+          loading={!hasLoaded && loading}
+          dark
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2">
+          <div className="space-y-3 border-b border-white/[0.06] px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-white">{v.trend.title}</h2>
+                <p className="text-xs text-slate-500">
+                  {periodLabel} · {trendChart.subtitle}
+                </p>
+              </div>
+              <Link
+                href={ROUTES.missedCallsAnalytics}
+                className="vow-dash-link shrink-0 whitespace-nowrap pt-0.5"
+              >
+                {v.trend.viewDetail} →
+              </Link>
+            </div>
+            <DashboardPeriodToolbar
+              value={dateRange}
+              onChange={handleRangeChange}
+              activePreset={activePreset}
+              onPresetChange={setActivePreset}
+              presets={periodPresets}
+              dark
+              className="!gap-2"
+            />
+          </div>
+          <div className="vow-dash-chart-wrap-home vow-dash-chart-body">
+            {!hasLoaded && loading ? (
+              <p className="flex h-full items-center justify-center text-sm text-slate-500">
+                불러오는 중…
+              </p>
+            ) : (
+              <MissedCallsPreventedChart
+                data={trendChart.data}
+                theme="dark"
+                size="home"
+              />
+            )}
+          </div>
+        </section>
+        <DashboardCallInsights rows={metrics.insights} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <DashboardRecentRequests
+            bookings={recent}
+            calls={calls}
+            requestStatuses={requestStatuses}
+            loading={loading}
+          />
+        </div>
+        <DashboardUpcomingBookings
+          bookings={upcoming.slice(0, 5)}
+          requestStatuses={requestStatuses}
+        />
+      </div>
+
+      <p className="text-center text-xs text-slate-600">
+        통화 시뮬레이션·Job Card·연동 상태는{" "}
+        <Link href={ROUTES.settings} className="text-violet-300 hover:underline">
+          연동 설정
+        </Link>
+        에서 관리할 수 있습니다.
+      </p>
+    </div>
+  );
+}

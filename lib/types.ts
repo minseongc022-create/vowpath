@@ -1,16 +1,32 @@
+import type { BookingMode, RequestStatus } from "./booking-policy";
+import type {
+  ForwardingProviderId,
+  ForwardingScenarioId,
+} from "./forwarding-guides";
+import type { PrioritySource, ServicePriority } from "./service-priority";
+
 export type JobPriority = "P1" | "P2" | "P3";
 
 export type JobCard = {
   id: string;
   jobberJobId?: string;
+  sourceCallId?: string;
+  /** Stored priority: P1 | P2 | P3 (source of truth in DB). */
   priority: JobPriority;
+  /** Derived tier for display (synced from priority on read/write). */
+  servicePriority?: ServicePriority;
+  priorityReasons?: string[];
+  prioritySource?: PrioritySource;
+  priorityOverriddenAt?: string;
   symptom: string;
   customerName: string;
   address: string;
   arrivalWindow: string;
-  status: "confirmed" | "pending_approval" | "sms_sent";
+  status: RequestStatus;
   createdAt: string;
 };
+
+export type { BookingMode, RequestStatus };
 
 export type AnswerWindow = {
   id: string;
@@ -21,9 +37,17 @@ export type AnswerWindow = {
 export type ShopState = {
   scheduleWindows: AnswerWindow[];
   answerScheduleActive: boolean;
+  /** When true, AI answers 24/7 for calls that reach Vowpath. */
+  scheduleAlwaysOn?: boolean;
   jobberConnected: boolean;
   /** Settings wizard: user confirmed Jobber step after OAuth connect */
   jobberSetupConfirmed?: boolean;
+  /** User chose to skip optional Jobber connect in settings */
+  jobberSkipped?: boolean;
   forwardingDone: boolean;
+  forwardingScenario?: ForwardingScenarioId;
+  forwardingProvider?: ForwardingProviderId;
   onboardingComplete: boolean;
+  /** Mode A: request_only (MVP). Mode B: auto_booking (future). */
+  bookingMode?: BookingMode;
 };
