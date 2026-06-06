@@ -42,18 +42,55 @@ export function ForwardingSetup({
 }: ForwardingSetupProps) {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
   const [scenario, setScenario] = useState<ForwardingScenarioId>(initialScenario);
   const [provider, setProvider] = useState<ForwardingProviderId>(initialProvider);
   const [copied, setCopied] = useState(false);
 
+  const loadPhoneStatus = useCallback(async () => {
+    const res = await fetch("/api/phone/status");
+    const d = (await res.json()) as {
+      phoneNumber?: string | null;
+      twilioConfigured?: boolean;
+    };
+    const num = d.phoneNumber?.trim() ?? null;
+    setPhoneNumber(num);
+    return { num, twilioConfigured: Boolean(d.twilioConfigured) };
+  }, []);
+
+  const runProvision = useCallback(async () => {
+    setProvisioning(true);
+    setProvisionError(null);
+    try {
+      const res = await fetch("/api/phone/provision", { method: "POST" });
+      const data = (await res.json()) as { ok?: boolean; phoneNumber?: string; error?: string };
+      if (!res.ok || !data.phoneNumber) {
+        setProvisionError(data.error ?? settingsPage.forwardingNumberProvisionFailed);
+        return;
+      }
+      setPhoneNumber(data.phoneNumber);
+    } catch {
+      setProvisionError(settingsPage.forwardingNumberProvisionFailed);
+    } finally {
+      setProvisioning(false);
+    }
+  }, []);
+
   useEffect(() => {
-    fetch("/api/phone/status")
-      .then((r) => r.json())
-      .then((d: { phoneNumber?: string | null }) => {
-        setPhoneNumber(d.phoneNumber?.trim() ?? null);
-      })
-      .catch(() => setPhoneNumber(null))
-      .finally(() => setLoading(false));
+    void (async () => {
+      try {
+        const { num, twilioConfigured } = await loadPhoneStatus();
+        if (!num && twilioConfigured) {
+          await runProvision();
+        }
+      } catch {
+        setPhoneNumber(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   useEffect(() => {
@@ -97,9 +134,26 @@ export function ForwardingSetup({
             </button>
           </div>
         ) : (
-          <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {settingsPage.forwardingNumberMissing}
-          </p>
+          <div className="mt-4 space-y-3">
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {provisioning
+                ? settingsPage.forwardingNumberProvisioning
+                : settingsPage.forwardingNumberMissing}
+            </p>
+            {provisionError ? (
+              <p className="text-sm text-rose-700">{provisionError}</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={provisioning}
+              onClick={() => void runProvision()}
+              className="rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm hover:bg-brand-50 disabled:opacity-50"
+            >
+              {provisioning
+                ? settingsPage.forwardingNumberProvisioning
+                : settingsPage.forwardingNumberProvision}
+            </button>
+          </div>
         )}
         <p className="mt-3 text-xs text-slate-500">{settingsPage.forwardingCustomerNote}</p>
       </div>

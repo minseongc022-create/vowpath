@@ -9,6 +9,7 @@ import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { offerVisitSlotsForTenant } from "@/lib/scheduling/offer-slots";
 import type { SlotOffer } from "@/lib/booking-settings";
 import { getSession } from "@/lib/session";
+import { getTenantTwilioPhone } from "@/lib/twilio-provision";
 import { findUserById } from "@/lib/users-db";
 import { normalizeCustomerSmsPhone } from "@/lib/sms-region-config";
 import type { JobPriority } from "@/lib/types";
@@ -72,7 +73,10 @@ export async function POST(request: Request) {
   const userId = session.sub;
   const accountPhone = (await findUserById(userId))?.phone?.trim();
   const from = resolveDevCallbackPhone(callbackOverride, accountPhone);
-  const to = process.env.TWILIO_PHONE_NUMBER?.trim() ?? "+12255291680";
+  const to =
+    (await getTenantTwilioPhone(userId)) ??
+    process.env.TWILIO_PHONE_NUMBER?.trim() ??
+    "+12255291680";
 
   try {
     const { draft, confidence } = await extractIntakeFromSpeech(speech, menuPriority);

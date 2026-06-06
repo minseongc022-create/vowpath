@@ -1,6 +1,6 @@
 import { normalizeSmsPhone } from "./phone";
 import { reportSmsDeliveryFailure } from "./report-sms-failure";
-import { getSmsTwilioHealth } from "./sms-twilio-health";
+import { getSmsTwilioHealthForUser } from "./sms-twilio-health";
 import {
   isKrSmsTestMode,
   smsRestrictToUsRecipients,
@@ -138,7 +138,7 @@ export async function sendSms(
     return { ok: true };
   }
 
-  const health = getSmsTwilioHealth();
+  const health = await getSmsTwilioHealthForUser(context?.userId);
   if (!health.ready) {
     const error =
       health.issues[0] ??

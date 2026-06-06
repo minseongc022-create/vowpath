@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import twilio from "twilio";
 import { patchEnvLocal } from "@/lib/env-local-patch";
 import { getSession } from "@/lib/session";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
-import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
+import { ensureTenantTwilioPhone } from "@/lib/twilio-provision";
 
 const DEFAULT_SID = "AC02c2031966fc0fbd8baf35f64ba698b3";
 const DEFAULT_PHONE = "+12255291680";
@@ -63,35 +62,19 @@ export async function POST(request: Request) {
   process.env.TWILIO_AUTH_TOKEN = authToken;
   process.env.TWILIO_PHONE_NUMBER = phoneNumber;
 
+  const provisioned = await ensureTenantTwilioPhone(session.sub);
+  if (!provisioned.ok) {
+    return NextResponse.json({ error: provisioned.error }, { status: 502 });
+  }
+
+  const boundPhone = provisioned.phoneNumber;
   const baseUrl = webhookBase.replace(/\/$/, "");
   const voiceUrl = `${baseUrl}/api/twilio/voice`;
   const smsUrl = `${baseUrl}/api/twilio/sms`;
-  const client = twilio(accountSid, authToken);
-
-  const numbers = await client.incomingPhoneNumbers.list({
-    phoneNumber,
-    limit: 1,
-  });
-
-  if (!numbers[0]) {
-    return NextResponse.json(
-      { error: `Twilio 계정에서 ${phoneNumber} 번호를 찾지 못했습니다.` },
-      { status: 404 },
-    );
-  }
-
-  await numbers[0].update({
-    voiceUrl,
-    voiceMethod: "POST",
-    smsUrl,
-    smsMethod: "POST",
-  });
-
-  await bindTwilioPhoneToUser(phoneNumber, session.sub);
 
   return NextResponse.json({
     ok: true,
-    phoneNumber,
+    phoneNumber: boundPhone,
     voiceUrl,
     smsUrl,
     message:

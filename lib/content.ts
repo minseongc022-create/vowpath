@@ -426,7 +426,10 @@ export const settingsPage = {
     "Dialpad, VoIP 포털, 통신사 착신 전환 설정에 이 번호를 입력하세요. 고객은 여전히 메인 번호로 전화합니다.",
   forwardingNumberLoading: "번호 불러오는 중…",
   forwardingNumberMissing:
-    "Vowpath 번호가 아직 연결되지 않았습니다. 아래 「개발자 · Twilio 테스트」를 설정한 뒤 다시 오세요.",
+    "Vowpath 번호가 아직 없습니다. 아래 「번호 발급」을 눌러 전용 번호를 받으세요.",
+  forwardingNumberProvisioning: "전용 번호 발급 중…",
+  forwardingNumberProvision: "번호 발급",
+  forwardingNumberProvisionFailed: "번호 발급에 실패했습니다. Twilio 잔액과 계정 설정을 확인하세요.",
   forwardingCopy: "번호 복사",
   forwardingCopied: "복사됨",
   forwardingCustomerNote:

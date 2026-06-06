@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { getSmsTwilioHealth } from "@/lib/sms-twilio-health";
+import { getSmsTwilioHealthForUser } from "@/lib/sms-twilio-health";
 import { probeTwilioSmsDelivery } from "@/lib/sms-twilio-probe";
 import { smsDevPreviewEnabled } from "@/lib/send-sms";
 import {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const health = getSmsTwilioHealth();
+  const health = await getSmsTwilioHealthForUser(session.sub);
   const user = await findUserById(session.sub);
   const ownerPhoneOk = user?.phone
     ? normalizeOwnerAlertPhone(user.phone)

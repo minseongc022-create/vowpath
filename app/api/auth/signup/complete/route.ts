@@ -3,6 +3,7 @@ import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
 import { completeVerifiedSignup, normalizeSignupPhone } from "@/lib/signup-verify";
 import { deletePendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
+import { ensureTenantTwilioPhone } from "@/lib/twilio-provision";
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +39,24 @@ export async function POST(request: Request) {
 
     await deletePendingSignup(signupRequestId);
 
+    let phoneProvisioned = false;
+    let phoneError: string | null = null;
+    try {
+      const provision = await ensureTenantTwilioPhone(user.id, {
+        shopPhone: user.phone,
+      });
+      if (provision.ok) {
+        phoneProvisioned = true;
+      } else {
+        phoneError = provision.error;
+        console.warn("[signup/complete] phone provision:", provision.error);
+      }
+    } catch (e) {
+      phoneError =
+        e instanceof Error ? e.message : "Vowpath 번호 발급에 실패했습니다.";
+      console.error("[signup/complete] phone provision", e);
+    }
+
     const token = await createSessionToken({
       sub: user.id,
       email: user.email,
@@ -47,6 +66,8 @@ export async function POST(request: Request) {
     const res = NextResponse.json({
       ok: true,
       redirect: "/settings",
+      phoneProvisioned,
+      phoneError,
     });
     res.cookies.set(sessionCookieOptions(token));
     return res;

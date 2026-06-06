@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 import { getEmailFromAddress, isEmailConfigured } from "@/lib/send-email";
 import { isSmsConfigured } from "@/lib/send-sms";
 import { isTwilioConfigured } from "@/lib/twilio-config";
+import { getTenantTwilioPhone } from "@/lib/twilio-provision";
+import { getSession } from "@/lib/session";
 
 export async function GET() {
+  const session = await getSession();
+  const twilioPhone = session
+    ? await getTenantTwilioPhone(session.sub)
+    : process.env.TWILIO_PHONE_NUMBER?.trim() ?? null;
+
   return NextResponse.json({
     emailConfigured: isEmailConfigured(),
     emailFrom: isEmailConfigured() ? getEmailFromAddress() : null,
     smsConfigured: isSmsConfigured(),
-    twilioPhone: process.env.TWILIO_PHONE_NUMBER?.trim() ?? null,
+    twilioPhone,
     resendNote: !isEmailConfigured()
       ? "RESEND_API_KEY를 Vercel 환경 변수에 추가하세요."
       : getEmailFromAddress().includes("resend.dev")
@@ -16,6 +23,8 @@ export async function GET() {
         : null,
     twilioNote: !isTwilioConfigured()
       ? "Twilio 환경 변수를 추가하세요."
-      : "Trial은 Verified 번호로만 SMS 가능. Upgrade 후 고객 번호로 발송.",
+      : !twilioPhone
+        ? "가입 시 Vowpath 번호가 자동 발급됩니다. 연동 설정에서 발급을 완료하세요."
+        : "Trial은 Verified 번호로만 SMS 가능. Upgrade 후 고객 번호로 발송.",
   });
 }

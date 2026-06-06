@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import twilio from "twilio";
 import { getSession } from "@/lib/session";
 import {
-  getTwilioWebhookBaseUrl,
-  isTwilioConfigured,
-} from "@/lib/twilio-config";
+  configureTwilioWebhooksForNumber,
+  ensureTenantTwilioPhone,
+  getTenantTwilioPhone,
+} from "@/lib/twilio-provision";
+import { getTwilioWebhookBaseUrl, isTwilioConfigured } from "@/lib/twilio-config";
 import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
+import { findUserById } from "@/lib/users-db";
 
 export async function POST() {
   const session = await getSession();
@@ -17,7 +19,7 @@ export async function POST() {
     return NextResponse.json(
       {
         error:
-          ".env.local에 TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER를 설정한 뒤 서버를 재시작하세요.",
+          "TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN를 설정한 뒤 서버를 재시작하세요.",
       },
       { status: 400 },
     );
@@ -34,43 +36,32 @@ export async function POST() {
     );
   }
 
-  const phone = process.env.TWILIO_PHONE_NUMBER!.trim();
-  const baseUrl = base.replace(/\/$/, "");
-  const voiceUrl = `${baseUrl}/api/twilio/voice`;
-  const smsUrl = `${baseUrl}/api/twilio/sms`;
-
-  const client = twilio(
-    process.env.TWILIO_ACCOUNT_SID!.trim(),
-    process.env.TWILIO_AUTH_TOKEN!.trim(),
-  );
-
-  const numbers = await client.incomingPhoneNumbers.list({
-    phoneNumber: phone,
-    limit: 1,
-  });
-
-  if (!numbers[0]) {
-    return NextResponse.json(
-      {
-        error: `Twilio 계정에서 ${phone} 번호를 찾지 못했습니다. 콘솔에서 번호를 구매했는지 확인하세요.`,
-      },
-      { status: 404 },
-    );
+  let phone = await getTenantTwilioPhone(session.sub);
+  if (!phone) {
+    const user = await findUserById(session.sub);
+    const provisioned = await ensureTenantTwilioPhone(session.sub, {
+      shopPhone: user?.phone,
+    });
+    if (!provisioned.ok) {
+      return NextResponse.json({ error: provisioned.error }, { status: 502 });
+    }
+    phone = provisioned.phoneNumber;
   }
 
-  await numbers[0].update({
-    voiceUrl,
-    voiceMethod: "POST",
-    smsUrl,
-    smsMethod: "POST",
-  });
-
-  await bindTwilioPhoneToUser(phone, session.sub);
-
-  return NextResponse.json({
-    ok: true,
-    voiceUrl,
-    smsUrl,
-    phoneNumber: phone,
-  });
+  try {
+    const { voiceUrl, smsUrl } = await configureTwilioWebhooksForNumber(phone);
+    await bindTwilioPhoneToUser(phone, session.sub);
+    return NextResponse.json({
+      ok: true,
+      voiceUrl,
+      smsUrl,
+      phoneNumber: phone,
+    });
+  } catch (e) {
+    console.error("[twilio/configure-webhook]", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "웹훅 등록에 실패했습니다." },
+      { status: 500 },
+    );
+  }
 }

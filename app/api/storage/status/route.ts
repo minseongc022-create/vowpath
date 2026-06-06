@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStorageStatus } from "@/lib/storage-status";
-import { getSmsTwilioHealth } from "@/lib/sms-twilio-health";
+import { getSmsTwilioHealthForUser } from "@/lib/sms-twilio-health";
 import { smsDevPreviewEnabled } from "@/lib/send-sms";
 import { getSession } from "@/lib/session";
 
@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   const storage = getStorageStatus();
-  const sms = getSmsTwilioHealth();
+  const sms = await getSmsTwilioHealthForUser(session.sub);
   return NextResponse.json({
     ...storage,
     smsConfigured: sms.configured,

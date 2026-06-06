@@ -1,9 +1,10 @@
 import { getPublicAppUrl } from "./app-url";
 
-export function isTwilioConfigured(): boolean {  return Boolean(
+/** Twilio account credentials (per-tenant inbound numbers stored separately). */
+export function isTwilioConfigured(): boolean {
+  return Boolean(
     process.env.TWILIO_ACCOUNT_SID?.trim() &&
-      process.env.TWILIO_AUTH_TOKEN?.trim() &&
-      process.env.TWILIO_PHONE_NUMBER?.trim(),
+      process.env.TWILIO_AUTH_TOKEN?.trim(),
   );
 }
 
