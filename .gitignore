@@ -3,8 +3,7 @@ node_modules
 out
 .env*.local
 .env.vercel*
-data/users.json
-data/jobber-tokens.json
-data/call-logs.json
+data/*.json
+.cursor/
 *.tsbuildinfo
 .vercel

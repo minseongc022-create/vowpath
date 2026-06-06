@@ -100,9 +100,33 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
   },
 ];
 
-export const OPERATING_FLOW_LANES = [
-  { from: "고객", to: "업체", label: "메인 번호로 전화" },
-  { from: "업체", to: "Vowpath", label: "못 받을 때 포워딩" },
-  { from: "Vowpath", to: "업체", label: "SMS · 이메일 알림" },
-  { from: "업체", to: "고객 · Jobber", label: "1 승인 → 확정 문자 · 자동 기록" },
+/** Landing hero — approval loop (top diagram only; phase cards unchanged). */
+export const HERO_FLOW_TAGS = [
+  "전화 · 링크 접수",
+  "업체에 승인 요청 문자",
+  "1=승인 · 2=거절",
+  "고객 자동 안내",
+] as const;
+
+export const HERO_FLOW_PIPELINE = [
+  { step: "01", title: "고객 접수", subtitle: "전화 또는 링크", icon: "intake" as const },
+  { step: "02", title: "승인 요청", subtitle: "업체 SMS 발송", icon: "sms" as const },
+  { step: "03", title: "업체 결정", subtitle: "1=승인 · 2=거절", icon: "review" as const },
+  { step: "04", title: "고객 안내", subtitle: "확정·거절 자동 문자", icon: "notify" as const },
+] as const;
+
+export const HERO_FLOW_LOOP_SUMMARY =
+  "고객이 전화·링크로 접수하면 Vowpath가 업체에 승인 요청 문자를 보냅니다. 업체가 1(승인) 또는 2(거절)로 답하면 고객에게 결과 문자가 자동으로 갑니다.";
+
+export const OPERATING_FLOW_NODES = [
+  { id: "customer", title: "고객 접수", caption: "전화·링크로 정보 전달" },
+  { id: "vowpath", title: "Vowpath AI", caption: "요약 · 승인 요청 생성" },
+  { id: "owner", title: "업체 결정", caption: "1=승인 · 2=거절 답장" },
+  { id: "customer-out", title: "고객 안내", caption: "확정·거절 문자 수신" },
+] as const;
+
+export const OPERATING_FLOW_EDGES = [
+  "접수 내용을 정리",
+  "업체 휴대폰으로 승인 요청 문자",
+  "1=승인 · 2=거절 → 고객에게 자동 발송",
 ] as const;

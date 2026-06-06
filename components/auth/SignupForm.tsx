@@ -56,8 +56,8 @@ export function SignupForm() {
       return;
     }
 
-    if (isSms && !phone.trim()) {
-      setError(p.phoneRequiredSms);
+    if (!phone.trim()) {
+      setError(p.phoneRequired);
       setLoading(false);
       return;
     }
@@ -139,7 +139,7 @@ export function SignupForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           signupRequestId,
-          phone: !isSms ? phone.trim() : undefined,
+          phone: phone.trim(),
         }),
       });
       const data = await res.json();
@@ -272,24 +272,22 @@ export function SignupForm() {
               <p className="text-xs text-slate-600">{p.verifyChannelHint}</p>
             </fieldset>
 
-            {isSms ? (
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-brand-900">
-                  {p.phoneLabelRequired}
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  placeholder={p.phonePlaceholder}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="hvac-input mt-1.5"
-                />
-                <p className="mt-1 text-xs text-slate-500">{p.phoneHintSms}</p>
-              </div>
-            ) : null}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-brand-900">
+                {p.phoneLabelRequired}
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                autoComplete="tel"
+                placeholder={p.phonePlaceholder}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="hvac-input mt-1.5"
+              />
+              <p className="mt-1 text-xs text-slate-500">{p.phoneHintRequired}</p>
+            </div>
 
             {error ? <ErrorBox message={error} /> : null}
 
@@ -348,24 +346,6 @@ export function SignupForm() {
 
             {codeVerified ? (
               <form onSubmit={handleComplete} className="space-y-5 border-t border-surface-border pt-5">
-                {!isSms ? (
-                  <div>
-                    <label htmlFor="phoneOptional" className="block text-sm font-medium text-brand-900">
-                      {p.phoneLabel}
-                    </label>
-                    <input
-                      id="phoneOptional"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder={p.phonePlaceholder}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="hvac-input mt-1.5"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">{p.phoneHintOptional}</p>
-                  </div>
-                ) : null}
-
                 <button
                   type="submit"
                   disabled={loading}

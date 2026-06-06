@@ -1,3 +1,4 @@
+import { channelChoiceGatherHint, channelChoiceVoicePrompt } from "./link-intake-copy";
 import { SPEECH_HINTS } from "./twilio-voice-flow";
 
 function escapeXml(value: string): string {
@@ -12,8 +13,20 @@ export function twimlResponse(inner: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`;
 }
 
-export function twimlSay(message: string): string {
-  return `<Say voice="Polly.Joanna" language="en-US">${escapeXml(message)}</Say>`;
+export function twimlMessage(body: string): string {
+  return `<Message>${escapeXml(body)}</Message>`;
+}
+
+export function twimlSay(message: string, language: "en-US" | "ko-KR" = "en-US"): string {
+  const voice = language === "ko-KR" ? "Polly.Seoyeon" : "Polly.Joanna";
+  return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
+}
+
+/** SMS link vs continue-by-phone (press 1 for link, or speak to continue). */
+export function twimlGatherChannelChoice(actionUrl: string, shopName: string): string {
+  const prompt = channelChoiceVoicePrompt(shopName);
+  const hint = channelChoiceGatherHint();
+  return `${twimlSay(prompt, "ko-KR")}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint, "ko-KR")}</Gather>${twimlSay("입력이 없어 통화를 종료합니다. 감사합니다.", "ko-KR")}`;
 }
 
 export function twimlGatherDtmfMenu(actionUrl: string): string {
@@ -28,10 +41,39 @@ export function twimlGatherDtmfMenu(actionUrl: string): string {
 export function twimlGatherSpeechDetailed(
   actionUrl: string,
   intro: string,
+  followUp?: string,
 ): string {
-  const followUp =
+  const defaultFollowUp =
     "Please speak slowly. " +
-    "Say your name, street address and city, phone number, " +
-    "and what is wrong. For example: no cool, indoor eighty-six degrees, two kids at home.";
-  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(followUp)}</Gather>${twimlSay("We did not hear a message. Goodbye.")}`;
+    "Say your first and last name, your full service street address with city, " +
+    "and describe what you need, such as no heat or no cool. " +
+    "We will call you back at the number you are calling from.";
+  const prompt = followUp ?? defaultFollowUp;
+  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay("We did not hear a message. Goodbye.")}`;
+}
+
+export function twimlGatherSpeechField(actionUrl: string, prompt: string): string {
+  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead.")}</Gather>${twimlSay("We did not hear you. Goodbye.")}`;
+}
+
+export function twimlGatherDtmfYesNo(actionUrl: string, prompt: string): string {
+  const help =
+    "Press 1 for yes, or 2 for no.";
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="10" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay("We did not receive a response. Goodbye.")}`;
+}
+
+/** Caller picks visit window: digits 1–5 (numDigits=1, up to 5 options). */
+export function twimlGatherDtmfSlots(
+  actionUrl: string,
+  prompt: string,
+  slotCount: number,
+): string {
+  const max = Math.min(5, Math.max(1, slotCount));
+  const help = `Press 1 through ${max} to choose your visit window.`;
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay("We did not receive a selection. Goodbye.")}`;
+}
+
+export function twimlStartCallRecording(recordingStatusCallback: string): string {
+  if (process.env.CALL_RECORDING_ENABLED === "false") return "";
+  return `<Start><Recording recordingStatusCallback="${escapeXml(recordingStatusCallback)}" recordingStatusCallbackMethod="POST" /></Start>`;
 }

@@ -8,6 +8,7 @@ import { PhoneSetup } from "@/components/dashboard/PhoneSetup";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { AuditActivityPanel } from "@/components/settings/AuditActivityPanel";
 import { OpsFailuresPanel } from "@/components/settings/OpsFailuresPanel";
+import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { settingsPage } from "@/lib/content";
@@ -282,7 +283,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
               <span className="block">{TAB_LABELS[tab]}</span>
               <span className="mt-1 block text-[10px] font-normal opacity-80">
                 {item.done
-                  ? "완료"
+                  ? settingsPage.tabDone
                   : item.skipped
                     ? settingsPage.tabSkipped
                     : item.optional
@@ -310,7 +311,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {settingsPage.sectionSteps[activeTab]}단계
+                {settingsPage.stepPrefix(settingsPage.sectionSteps[activeTab])}
               </p>
               <h2 className="mt-1 text-xl font-semibold text-slate-900">
                 {activeTab === "contact"
@@ -505,7 +506,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
             }}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            ← 이전
+            {settingsPage.prevButton}
           </button>
         ) : null}
         {activeTab !== "jobber" ? (
@@ -528,13 +529,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {settingsPage.bookingPolicyTitle}
-        </p>
-        <p className="mt-2 text-sm font-semibold text-slate-900">{settingsPage.bookingPolicyMode}</p>
-        <p className="mt-1 text-sm text-slate-600">{settingsPage.bookingPolicyDescription}</p>
-      </div>
+      <BookingSettingsEditor />
 
       <div className="rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white p-5 shadow-card">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

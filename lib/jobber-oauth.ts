@@ -75,7 +75,7 @@ export async function refreshJobberAccessToken(
 
   if (!response.ok) {
     const text = await response.text();
-    console.error("[jobber-oauth] refresh", response.status, text);
+    console.warn("[jobber-oauth] refresh failed", response.status, text.slice(0, 120));
     throw new Error("JOBBER_REFRESH_FAILED");
   }
 

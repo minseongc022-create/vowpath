@@ -11,7 +11,7 @@ export function SectionHeading({
   title,
   subtitle,
   align = "left",
-  light = false,
+  light = true,
 }: SectionHeadingProps) {
   const alignClass = align === "center" ? "text-center mx-auto" : "";
 

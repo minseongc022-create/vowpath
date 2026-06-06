@@ -1,42 +1,17 @@
-import { Suspense } from "react";
-import { AppHeader } from "@/components/app/AppHeader";
-import { MessagingSetup } from "@/components/settings/MessagingSetup";
-import { SettingsView } from "@/components/settings/SettingsView";
-import { Container } from "@/components/ui/Container";
-import { settingsPage } from "@/lib/content";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/constants";
 
-export default async function SettingsPage({
+export default async function SettingsRedirectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string; section?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const paid = Boolean(params.session_id);
-
-  return (
-    <div className="hvac-app-shell">
-      <AppHeader
-        activeNav="settings"
-        badge={paid ? settingsPage.paidBadge : settingsPage.badge}
-        badgeTone={paid ? "success" : "warning"}
-      />
-      <Container className="py-12 sm:py-16">
-        <div className="mx-auto max-w-3xl lg:max-w-4xl">
-          <h1 className="text-2xl font-bold text-brand-950 sm:text-3xl">
-            {settingsPage.title}
-          </h1>
-          <p className="mt-2 text-slate-600">{settingsPage.subtitle}</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-brand-600">
-            Residential HVAC · Jobber · 콜 포워딩
-          </p>
-          <div className="mt-8 space-y-8">
-            <MessagingSetup />
-            <Suspense fallback={null}>
-              <SettingsView paid={paid} />
-            </Suspense>
-          </div>
-        </div>
-      </Container>
-    </div>
-  );
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") q.set(key, value);
+    else if (Array.isArray(value) && value[0]) q.set(key, value[0]);
+  }
+  const suffix = q.toString() ? `?${q.toString()}` : "";
+  redirect(`${ROUTES.settings}${suffix}`);
 }

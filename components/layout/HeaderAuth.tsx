@@ -15,13 +15,13 @@ export function HeaderAuth({ session }: HeaderAuthProps) {
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
         <Link
           href={ROUTES.settings}
-          className="whitespace-nowrap text-xs font-medium text-brand-700 hover:text-brand-600 sm:text-sm"
+          className="whitespace-nowrap text-xs font-medium text-slate-300 hover:text-brand-200 sm:text-sm"
         >
           연동 설정
         </Link>
         <Link
           href={ROUTES.dashboard}
-          className="whitespace-nowrap text-xs font-medium text-brand-700 hover:text-brand-600 sm:text-sm"
+          className="whitespace-nowrap text-xs font-medium text-slate-300 hover:text-brand-200 sm:text-sm"
         >
           대시보드
         </Link>
@@ -31,7 +31,7 @@ export function HeaderAuth({ session }: HeaderAuthProps) {
         >
           {session.shopName}
         </span>
-        <LogoutButton className="whitespace-nowrap text-xs font-medium text-slate-600 hover:text-slate-900 sm:text-sm" />
+        <LogoutButton className="whitespace-nowrap text-xs font-medium text-slate-400 hover:text-white sm:text-sm" />
       </div>
     );
   }

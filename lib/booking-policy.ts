@@ -1,0 +1,127 @@
+/**
+ * Booking policy: customer picks a visit window; shop may approve before Jobber write (mode-dependent).
+ */
+
+/** @deprecated Use SchedulingMode from booking-settings.ts */
+export type BookingMode = "request_only" | "auto_booking";
+
+export const DEFAULT_BOOKING_MODE: BookingMode = "request_only";
+
+export type SchedulingMode = "speed" | "hybrid" | "control";
+
+export type RequestStatus =
+  | "request_received"
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "scheduled"
+  | "completed";
+
+export const REQUEST_STATUSES: RequestStatus[] = [
+  "request_received",
+  "pending_review",
+  "approved",
+  "rejected",
+  "scheduled",
+  "completed",
+];
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  request_received: "요청 접수",
+  pending_review: "검토 대기",
+  approved: "승인됨",
+  rejected: "거절됨",
+  scheduled: "일정 확정",
+  completed: "완료",
+};
+
+/** Twilio closing message — never imply appointment is confirmed. */
+export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =
+  "Your request has been received. Our team will review your request and contact you shortly. Goodbye.";
+
+export const CUSTOMER_REQUEST_RECEIVED_MESSAGE_SHORT =
+  "Your request has been received. We will contact you shortly. Goodbye.";
+
+export const CUSTOMER_SLOT_CONFIRMED_MESSAGE =
+  "Thank you. Your visit window is noted. We will send a confirmation text shortly. Goodbye.";
+
+export function isAutoBookingMode(mode: BookingMode = DEFAULT_BOOKING_MODE): boolean {
+  return mode === "auto_booking";
+}
+
+export function normalizeRequestStatus(raw: string | undefined | null): RequestStatus {
+  switch (raw) {
+    case "request_received":
+      return "request_received";
+    case "pending_review":
+      return "pending_review";
+    case "approved":
+    case "Approved":
+      return "approved";
+    case "rejected":
+    case "Rejected":
+      return "rejected";
+    case "scheduled":
+    case "completed":
+      return raw;
+    case "confirmed":
+    case "sms_sent":
+      return "approved";
+    case "pending_approval":
+    case "pending":
+    case "Pending":
+      return "pending_review";
+    default:
+      return "pending_review";
+  }
+}
+
+/** Counts toward request volume (not rejected). */
+export function isActiveServiceRequest(status: string): boolean {
+  const s = normalizeRequestStatus(status);
+  return s !== "rejected";
+}
+
+/** Shop has approved — safe to treat as a confirmed booking for KPIs. */
+export function isApprovedBooking(status: string): boolean {
+  const s = normalizeRequestStatus(status);
+  return s === "approved" || s === "scheduled" || s === "completed";
+}
+
+export function isPendingShopReview(status: string): boolean {
+  const s = normalizeRequestStatus(status);
+  return s === "request_received" || s === "pending_review";
+}
+
+/** AI가 업체에 승인 요청을 보냈고, 업체가 아직 승인/거절하지 않은 고객 */
+export function isWaitingCustomer(status: string): boolean {
+  return normalizeRequestStatus(status) === "pending_review";
+}
+
+/** @deprecated Use countWaitingCustomers from booking-status-counts.ts */
+export function countWaitingCustomers(
+  requestStatuses: Record<string, RequestStatus | string>,
+): number {
+  return Object.values(requestStatuses).filter((s) => isWaitingCustomer(String(s))).length;
+}
+
+export function canApprove(status: string): boolean {
+  return isPendingShopReview(status);
+}
+
+export function canReject(status: string): boolean {
+  return isPendingShopReview(status);
+}
+
+export function canMarkScheduled(status: string): boolean {
+  return normalizeRequestStatus(status) === "approved";
+}
+
+export function canMarkCompleted(status: string): boolean {
+  const s = normalizeRequestStatus(status);
+  return s === "approved" || s === "scheduled";
+}
+
+export function initialRequestStatusAfterIntake(): RequestStatus {
+  return "pending_review";
+}

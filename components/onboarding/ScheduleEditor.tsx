@@ -100,20 +100,22 @@ export function ScheduleEditor({
           className="space-y-3 rounded-lg border border-surface-border bg-white p-4"
         >
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-900">시간대 {index + 1}</p>
+            <p className="text-sm font-semibold text-slate-900">
+              {settingsPage.scheduleWindowLabel(index + 1)}
+            </p>
             {rows.length > 1 ? (
               <button
                 type="button"
                 onClick={() => removeRow(row.id)}
                 className="text-xs font-semibold text-red-600 hover:underline"
               >
-                삭제
+                {settingsPage.scheduleRemove}
               </button>
             ) : null}
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-600">요일</p>
+            <p className="mb-1 text-xs font-medium text-slate-600">{settingsPage.scheduleDaysLabel}</p>
             <div className="grid grid-cols-7 gap-1 rounded-lg border border-surface-border bg-slate-50 p-2">
               {DAY_OPTIONS.map((day) => {
                 const selected = row.days.includes(day.id);
@@ -137,8 +139,8 @@ export function ScheduleEditor({
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <p className="mb-1 text-xs font-medium text-slate-600">시작 시간</p>
-              <div className="flex gap-2">
+              <p className="mb-1 text-xs font-medium text-slate-600">{settingsPage.scheduleStartLabel}</p>
+              <div className="flex items-center gap-1.5">
                 <select
                   size={compact ? undefined : 5}
                   value={row.startHour}
@@ -148,10 +150,16 @@ export function ScheduleEditor({
                 >
                   {HOURS.map((h) => (
                     <option key={h} value={h} className="text-slate-900">
-                      {pad(h)}시
+                      {pad(h)}
                     </option>
                   ))}
                 </select>
+                <span className="text-sm font-semibold text-slate-500" aria-hidden>
+                  {settingsPage.scheduleHourUnit}
+                </span>
+                <span className="text-slate-400" aria-hidden>
+                  :
+                </span>
                 <select
                   size={compact ? undefined : 5}
                   value={row.startMinute}
@@ -161,15 +169,18 @@ export function ScheduleEditor({
                 >
                   {MINUTES.map((m) => (
                     <option key={m} value={m} className="text-slate-900">
-                      {pad(m)}분
+                      {pad(m)}
                     </option>
                   ))}
                 </select>
+                <span className="text-sm font-semibold text-slate-500" aria-hidden>
+                  {settingsPage.scheduleMinuteUnit}
+                </span>
               </div>
             </div>
             <div>
-              <p className="mb-1 text-xs font-medium text-slate-600">종료 시간</p>
-              <div className="flex gap-2">
+              <p className="mb-1 text-xs font-medium text-slate-600">{settingsPage.scheduleEndLabel}</p>
+              <div className="flex items-center gap-1.5">
                 <select
                   size={compact ? undefined : 5}
                   value={row.endHour}
@@ -179,10 +190,16 @@ export function ScheduleEditor({
                 >
                   {HOURS.map((h) => (
                     <option key={h} value={h} className="text-slate-900">
-                      {pad(h)}시
+                      {pad(h)}
                     </option>
                   ))}
                 </select>
+                <span className="text-sm font-semibold text-slate-500" aria-hidden>
+                  {settingsPage.scheduleHourUnit}
+                </span>
+                <span className="text-slate-400" aria-hidden>
+                  :
+                </span>
                 <select
                   size={compact ? undefined : 5}
                   value={row.endMinute}
@@ -192,10 +209,13 @@ export function ScheduleEditor({
                 >
                   {MINUTES.map((m) => (
                     <option key={m} value={m} className="text-slate-900">
-                      {pad(m)}분
+                      {pad(m)}
                     </option>
                   ))}
                 </select>
+                <span className="text-sm font-semibold text-slate-500" aria-hidden>
+                  {settingsPage.scheduleMinuteUnit}
+                </span>
               </div>
             </div>
           </div>
@@ -213,7 +233,7 @@ export function ScheduleEditor({
           onClick={addRow}
           className="rounded-lg border border-surface-border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
         >
-          + 시간대 추가
+          {settingsPage.scheduleAddWindow}
         </button>
       ) : null}
     </div>

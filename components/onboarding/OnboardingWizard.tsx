@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
-import { onboardingPage } from "@/lib/content";
+import { onboardingPage, settingsPage } from "@/lib/content";
 import { ROUTES, SITE } from "@/lib/constants";
 import {
   alwaysOnScheduleRow,
@@ -126,15 +126,13 @@ export function OnboardingWizard({
           />
 
           {!canConfirm ? (
-            <p className="mt-3 text-xs text-amber-800">
-              24시간 AI를 켜거나, 최소 1개 시간대에서 요일을 선택해 주세요.
-            </p>
+            <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
           ) : null}
 
           {confirmed.length > 0 ? (
             <div className="mt-4 space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
-                AI 수신 시간대가 연결되었습니다
+                {settingsPage.scheduleConfirmed}
               </p>
               <ul className="space-y-1 text-sm text-emerald-800">
                 {confirmed.map((line) => (
@@ -150,7 +148,7 @@ export function OnboardingWizard({
             onClick={handleConfirm}
             className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            확인
+            {onboardingPage.scheduleSaveButton}
           </button>
 
           {confirmed.length > 0 ? (
@@ -159,7 +157,7 @@ export function OnboardingWizard({
               onClick={() => router.push(ROUTES.dashboard)}
               className="mt-3 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
             >
-              대시보드로 돌아가기
+              {onboardingPage.scheduleOnlyBack}
             </button>
           ) : null}
         </div>
@@ -169,7 +167,7 @@ export function OnboardingWizard({
             href={ROUTES.dashboard}
             className="text-sm font-medium text-brand-600 hover:underline"
           >
-            ← 대시보드
+            {onboardingPage.dashboardBackShort}
           </Link>
         </p>
       </>
@@ -196,8 +194,9 @@ export function OnboardingWizard({
               }`}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {index + 1}단계 {done ? "· 완료" : ""}
-                {s.id === "jobber" ? " · 선택" : ""}
+                {onboardingPage.stepLabel(index + 1)}
+                {done ? ` ${onboardingPage.stepDoneBadge}` : ""}
+                {s.id === "jobber" ? ` ${onboardingPage.stepOptionalBadge}` : ""}
               </p>
               <h2 className="mt-1 text-lg font-semibold text-slate-900">{s.title}</h2>
               <p className="mt-2 text-sm text-slate-600">{s.description}</p>
@@ -211,9 +210,7 @@ export function OnboardingWizard({
                     onAlwaysOnChange={handleAlwaysOnChange}
                   />
                   {!canConfirm ? (
-                    <p className="mt-2 text-xs text-amber-800">
-                      24시간 AI를 켜거나, 최소 1개 시간대에서 요일을 선택해 주세요.
-                    </p>
+                    <p className="mt-2 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
                   ) : (
                     <ul className="mt-3 space-y-1 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
                       {alwaysOn
@@ -254,7 +251,7 @@ export function OnboardingWizard({
                     href="/api/jobber/connect"
                     className="inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
                   >
-                    Jobber 계정 연결
+                    {onboardingPage.connectJobberButton}
                   </a>
                   <button
                     type="button"
@@ -282,9 +279,9 @@ export function OnboardingWizard({
                   {locked
                     ? onboardingPage.stepLockedLabel
                     : done
-                      ? "완료됨"
+                      ? onboardingPage.stepDoneButton
                       : s.id === "schedule"
-                        ? "확인"
+                        ? onboardingPage.scheduleSaveButton
                         : s.action}
                 </button>
               ) : shop.forwardingDone ? (
@@ -317,7 +314,7 @@ export function OnboardingWizard({
           onClick={finishToDashboard}
           className="mt-4 w-full text-center text-sm text-slate-500 hover:text-slate-700"
         >
-          나중에 설정 · 대시보드로 건너뛰기
+          {onboardingPage.skipToDashboard}
         </button>
       )}
 

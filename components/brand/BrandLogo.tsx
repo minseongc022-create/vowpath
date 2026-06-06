@@ -2,53 +2,79 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { BRAND_MARK_SRC } from "@/lib/brand-assets";
 import { ROUTES, SITE } from "@/lib/constants";
 
 type BrandLogoProps = {
   className?: string;
   showName?: boolean;
-  variant?: "default" | "light";
-  size?: "sm" | "md" | "lg";
+  showTagline?: boolean;
+  variant?: "default" | "light" | "dark";
+  size?: "sm" | "md" | "lg" | "xl";
+  href?: string;
 };
 
-const iconSizes = {
+const markSizes = {
   sm: { box: "h-8 w-8", px: 32 },
-  md: { box: "h-9 w-9", px: 40 },
-  lg: { box: "h-12 w-12", px: 48 },
+  md: { box: "h-10 w-10", px: 40 },
+  lg: { box: "h-11 w-11", px: 44 },
+  xl: { box: "h-12 w-12", px: 48 },
+};
+
+const nameSizes = {
+  sm: "text-sm tracking-[0.12em]",
+  md: "text-sm tracking-[0.14em]",
+  lg: "text-base tracking-[0.16em]",
+  xl: "text-base tracking-[0.18em] sm:text-lg",
 };
 
 export function BrandLogo({
   className = "",
   showName = true,
+  showTagline = false,
   variant = "default",
   size = "md",
+  href = ROUTES.home,
 }: BrandLogoProps) {
-  const icon = iconSizes[size];
-
-  const nameClass =
-    variant === "light"
-      ? "bg-gradient-to-r from-white via-brand-100 to-brand-200 bg-clip-text text-transparent"
-      : "bg-gradient-to-r from-brand-950 via-brand-700 to-brand-400 bg-clip-text text-transparent";
+  const mark = markSizes[size];
+  const onDark = variant === "light" || variant === "dark";
 
   return (
     <Link
-      href={ROUTES.home}
-      className={`flex shrink-0 items-center gap-1.5 transition-opacity hover:opacity-90 ${className}`}
+      href={href}
+      className={`group inline-flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90 ${className}`}
       aria-label={`${SITE.name} 홈으로`}
     >
-      <Image
-        src="/logo.png"
-        alt=""
-        width={icon.px}
-        height={icon.px}
-        className={`${icon.box} shrink-0 object-contain object-left`}
-        priority
-      />
-      {showName ? (
-        <span
-          className={`-ml-0.5 text-lg font-bold uppercase leading-none tracking-[0.1em] ${nameClass}`}
-        >
-          {SITE.name}
+      <span
+        className={`relative shrink-0 ${mark.box} ${
+          onDark ? "vow-brand-mark-flat" : "vow-brand-mark-wrap"
+        }`}
+      >
+        <Image
+          src={BRAND_MARK_SRC}
+          alt=""
+          width={mark.px}
+          height={mark.px}
+          className={`vow-brand-mark-img relative z-10 ${mark.box} object-contain object-center`}
+          priority
+        />
+      </span>
+      {showName || showTagline ? (
+        <span className="flex min-w-0 flex-col justify-center gap-px leading-none">
+          {showName ? (
+            <span
+              className={`font-semibold uppercase ${nameSizes[size]} ${
+                onDark ? "text-slate-200" : "text-brand-900"
+              }`}
+            >
+              {SITE.name.toUpperCase()}
+            </span>
+          ) : null}
+          {showTagline ? (
+            <span className="hidden text-[10px] leading-[1.15] text-slate-500 sm:block">
+              Trusted calls. Better business.
+            </span>
+          ) : null}
         </span>
       ) : null}
     </Link>

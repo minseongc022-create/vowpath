@@ -2,7 +2,7 @@ import { IS_BETA } from "./beta";
 
 export const SITE = {
   name: "Vowpath",
-  tagline: "HVAC shop 야간·주말 콜 → Jobber 예약까지",
+  tagline: "바쁜 날·야간·현장에서도 문자로 예약 확인",
   url: "https://vowpath.com",
   contactEmail: "minseongc022@gmail.com",
   supportEmail: "minseongc022@gmail.com",
@@ -20,8 +20,10 @@ export const ROUTES = {
   signup: "/signup",
   getStarted: "/get-started",
   onboarding: "/onboarding",
-  settings: "/settings",
+  settings: "/dashboard/settings",
   dashboard: "/dashboard",
+  calendar: "/dashboard/calendar",
+  missedCallsAnalytics: "/dashboard/missed-calls",
   privacy: "/privacy",
   terms: "/terms",
 } as const;

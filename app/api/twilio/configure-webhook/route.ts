@@ -5,6 +5,7 @@ import {
   getTwilioWebhookBaseUrl,
   isTwilioConfigured,
 } from "@/lib/twilio-config";
+import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
 
 export async function POST() {
   const session = await getSession();
@@ -34,7 +35,9 @@ export async function POST() {
   }
 
   const phone = process.env.TWILIO_PHONE_NUMBER!.trim();
-  const voiceUrl = `${base.replace(/\/$/, "")}/api/twilio/voice`;
+  const baseUrl = base.replace(/\/$/, "");
+  const voiceUrl = `${baseUrl}/api/twilio/voice`;
+  const smsUrl = `${baseUrl}/api/twilio/sms`;
 
   const client = twilio(
     process.env.TWILIO_ACCOUNT_SID!.trim(),
@@ -58,11 +61,16 @@ export async function POST() {
   await numbers[0].update({
     voiceUrl,
     voiceMethod: "POST",
+    smsUrl,
+    smsMethod: "POST",
   });
+
+  await bindTwilioPhoneToUser(phone, session.sub);
 
   return NextResponse.json({
     ok: true,
     voiceUrl,
+    smsUrl,
     phoneNumber: phone,
   });
 }

@@ -36,17 +36,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const phone = phoneRaw ? normalizeSignupPhone(phoneRaw) : null;
-    if (phoneRaw && !phone) {
+    if (!phoneRaw) {
       return NextResponse.json(
-        { error: "휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)" },
+        { error: "휴대폰 번호를 입력해 주세요. (업체 알림·SMS 승인에 사용)" },
         { status: 400 },
       );
     }
 
-    if (channel === "sms" && !phone) {
+    const phone = normalizeSignupPhone(phoneRaw);
+    if (!phone) {
       return NextResponse.json(
-        { error: "문자 인증을 선택했으면 휴대폰 번호를 입력해 주세요." },
+        { error: "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)" },
         { status: 400 },
       );
     }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       email,
       password,
       shopName,
-      phone: phone ?? undefined,
+      phone,
       channel,
     });
 

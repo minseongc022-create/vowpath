@@ -3,6 +3,7 @@ import twilio from "twilio";
 import { patchEnvLocal } from "@/lib/env-local-patch";
 import { getSession } from "@/lib/session";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
+import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
 
 const DEFAULT_SID = "AC02c2031966fc0fbd8baf35f64ba698b3";
 const DEFAULT_PHONE = "+12255291680";
@@ -62,7 +63,9 @@ export async function POST(request: Request) {
   process.env.TWILIO_AUTH_TOKEN = authToken;
   process.env.TWILIO_PHONE_NUMBER = phoneNumber;
 
-  const voiceUrl = `${webhookBase.replace(/\/$/, "")}/api/twilio/voice`;
+  const baseUrl = webhookBase.replace(/\/$/, "");
+  const voiceUrl = `${baseUrl}/api/twilio/voice`;
+  const smsUrl = `${baseUrl}/api/twilio/sms`;
   const client = twilio(accountSid, authToken);
 
   const numbers = await client.incomingPhoneNumbers.list({
@@ -77,12 +80,21 @@ export async function POST(request: Request) {
     );
   }
 
-  await numbers[0].update({ voiceUrl, voiceMethod: "POST" });
+  await numbers[0].update({
+    voiceUrl,
+    voiceMethod: "POST",
+    smsUrl,
+    smsMethod: "POST",
+  });
+
+  await bindTwilioPhoneToUser(phoneNumber, session.sub);
 
   return NextResponse.json({
     ok: true,
     phoneNumber,
     voiceUrl,
-    message: "Twilio 저장 및 Voice 웹훅 등록 완료. 인증된 휴대폰으로 전화해 보세요.",
+    smsUrl,
+    message:
+      "Twilio 저장 및 Voice/SMS 웹훅 등록 완료. 전화·문자(1=승인, 2=거절)를 테스트하세요.",
   });
 }

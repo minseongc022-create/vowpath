@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/Container";
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="hvac-app-shell">
+    <div className="vow-app-shell">
       <AppHeader />
       <Container className="py-12 sm:py-16">
         <ForgotPasswordForm />

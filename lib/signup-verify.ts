@@ -1,5 +1,5 @@
 import { hashPassword } from "./auth-password";
-import { normalizeSmsPhone } from "./phone";
+import { normalizeUsBusinessPhone } from "./us-contact";
 import {
   deletePendingSignup,
   getPendingSignup,
@@ -59,8 +59,8 @@ export async function createAndSendSignupCode(
     }
   }
 
-  if (input.channel === "sms" && !input.phone) {
-    return { error: "문자 인증을 위해 휴대폰 번호를 입력해 주세요." };
+  if (!input.phone) {
+    return { error: "휴대폰 번호를 입력해 주세요. (업체 알림·SMS 승인에 사용)" };
   }
 
   const passwordHash = await hashPassword(input.password);
@@ -157,7 +157,11 @@ export async function completeVerifiedSignup(
     return { error: "이미 가입된 이메일입니다. 로그인해 주세요." };
   }
 
-  if (request.phone && (await findUserByPhone(request.phone))) {
+  if (!request.phone) {
+    return { error: "휴대폰 번호가 필요합니다. 가입 1단계에서 번호를 입력해 주세요." };
+  }
+
+  if (await findUserByPhone(request.phone)) {
     return { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." };
   }
 
@@ -177,5 +181,5 @@ export async function verifySignupCode(
 }
 
 export function normalizeSignupPhone(phoneRaw: string): string | null {
-  return normalizeSmsPhone(phoneRaw);
+  return normalizeUsBusinessPhone(phoneRaw);
 }

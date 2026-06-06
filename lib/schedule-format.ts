@@ -8,16 +8,16 @@ export type ScheduleRow = {
   alwaysOn?: boolean;
 };
 
-export const SCHEDULE_ALWAYS_ON_LABEL = "매일 24시간 AI가 콜을 받습니다";
+export const SCHEDULE_ALWAYS_ON_LABEL = "24시간 Vowpath가 전화를 받습니다";
 
 export const DAY_OPTIONS = [
+  { id: 0, label: "일" },
   { id: 1, label: "월" },
   { id: 2, label: "화" },
   { id: 3, label: "수" },
   { id: 4, label: "목" },
   { id: 5, label: "금" },
   { id: 6, label: "토" },
-  { id: 0, label: "일" },
 ] as const;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -34,7 +34,7 @@ export function formatTime(hour: number, minute: number) {
 export function dayText(days: number[]) {
   return DAY_OPTIONS.filter((d) => days.includes(d.id))
     .map((d) => d.label)
-    .join("·");
+    .join(", ");
 }
 
 export function isOvernight(row: ScheduleRow) {
@@ -49,7 +49,7 @@ export function formatScheduleSentence(row: ScheduleRow): string {
   const start = formatTime(row.startHour, row.startMinute);
   const end = formatTime(row.endHour, row.endMinute);
   const endLabel = isOvernight(row) ? `익일 ${end}` : end;
-  return `${days}, ${start} ~ ${endLabel} 사이에 AI가 콜을 받습니다`;
+  return `${days} · ${start}~${endLabel}에 Vowpath가 전화를 받습니다`;
 }
 
 type StoredSchedulePayload = {

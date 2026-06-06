@@ -9,17 +9,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const signupRequestId = String(body?.signupRequestId ?? "").trim();
     const phoneRaw = String(body?.phone ?? "").trim();
-    const phone = phoneRaw ? normalizeSignupPhone(phoneRaw) : undefined;
+    if (!signupRequestId) {
+      return NextResponse.json({ error: "인증 정보가 없습니다." }, { status: 400 });
+    }
+
+    const phone = phoneRaw ? normalizeSignupPhone(phoneRaw) : null;
 
     if (phoneRaw && !phone) {
       return NextResponse.json(
-        { error: "휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)" },
+        { error: "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)" },
         { status: 400 },
       );
-    }
-
-    if (!signupRequestId) {
-      return NextResponse.json({ error: "인증 정보가 없습니다." }, { status: 400 });
     }
 
     const result = await completeVerifiedSignup(signupRequestId, phone ?? undefined);
@@ -62,6 +62,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "이미 가입된 이메일입니다. 로그인해 주세요." },
         { status: 409 },
+      );
+    }
+    if (e instanceof Error && e.message === "PHONE_REQUIRED") {
+      return NextResponse.json(
+        { error: "휴대폰 번호가 필요합니다." },
+        { status: 400 },
       );
     }
     if (e instanceof Error && e.message === "PHONE_EXISTS") {

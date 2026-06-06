@@ -25,6 +25,7 @@ export async function sendSignupCodeSms(phone: string, code: string) {
     phone,
     `[Vowpath] 회원가입 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
     "Signup verification SMS",
+    { strict: true },
   );
 }
 
@@ -49,5 +50,6 @@ export async function sendResetCodeSms(phone: string, code: string) {
     phone,
     `[Vowpath] 비밀번호 재설정 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
     "Password reset SMS",
+    { strict: true },
   );
 }

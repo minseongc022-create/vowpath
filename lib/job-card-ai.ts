@@ -1,8 +1,12 @@
-import { applyPriorityGuardrails } from "./priority-guardrails";
+import { applyPriorityAnalysisToCard } from "./apply-service-priority";
+import { legacyToServicePriority, type PrioritySource, type ServicePriority } from "./service-priority";
 import type { JobPriority } from "./types";
 
 export type GeneratedJobCard = {
   priority: JobPriority;
+  servicePriority: ServicePriority;
+  priorityReasons: string[];
+  prioritySource: PrioritySource;
   symptom: string;
   customerName: string;
   address: string;
@@ -16,17 +20,16 @@ const SYSTEM_PROMPT = `You are an expert HVAC dispatch assistant for US resident
 Given messy after-hours call notes, produce a dispatcher-ready Job Card.
 
 Rules:
-- priority: P1 = safety/no heat/no cool/leak/gas smell/elderly/infant; P2 = same-day comfort; P3 = maintenance/non-urgent
-- When uncertain, choose the higher urgency (P1 over P2 over P3). Never under-classify urgent HVAC calls.
 - symptom: short label like "No cool", "No heat", "Leak", "Maintenance"
+- Do NOT set priority (classified separately from full transcript)
 - Use only facts from the notes. If missing, write "Unknown" for that field.
-- arrivalWindow: realistic text for dispatcher (e.g. "Tonight 6–9pm" or "Next available AM")
-- dispatchNotes: 2-4 bullet points for the tech/dispatcher
-- jobberPasteBlock: plain-text block a human can paste into Jobber job notes
+- arrivalWindow: customer PREFERENCE only (e.g. "Caller prefers evening") OR "Pending shop review" — NEVER a confirmed appointment time
+- NEVER write that an appointment is confirmed, scheduled, or assigned to a technician
+- dispatchNotes: 2-4 bullet points for the tech/dispatcher; note that shop must approve before confirming
+- jobberPasteBlock: plain-text block a human can paste into Jobber request notes (request intake, not confirmed job)
 
 Respond with JSON only, matching this schema:
 {
-  "priority": "P1" | "P2" | "P3",
   "symptom": string,
   "customerName": string,
   "address": string,
@@ -47,8 +50,12 @@ function asString(value: unknown, fallback = "Unknown"): string {
 
 export function parseGeneratedJobCard(raw: unknown): GeneratedJobCard {
   const data = (raw ?? {}) as Record<string, unknown>;
+  const priority = normalizePriority(data.priority);
   return {
-    priority: normalizePriority(data.priority),
+    priority,
+    servicePriority: legacyToServicePriority(priority),
+    priorityReasons: [],
+    prioritySource: "ai",
     symptom: asString(data.symptom, "Service call"),
     customerName: asString(data.customerName),
     address: asString(data.address),
@@ -61,6 +68,7 @@ export function parseGeneratedJobCard(raw: unknown): GeneratedJobCard {
 
 export async function generateJobCardFromNotes(
   notes: string,
+  options?: { transcript?: string; menuPriority?: JobPriority | null },
 ): Promise<GeneratedJobCard> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -112,5 +120,6 @@ export async function generateJobCardFromNotes(
   }
 
   const parsed = parseGeneratedJobCard(JSON.parse(content));
-  return applyPriorityGuardrails(notes, parsed);
+  const transcript = (options?.transcript ?? notes).trim();
+  return applyPriorityAnalysisToCard(transcript, parsed, options?.menuPriority ?? null);
 }

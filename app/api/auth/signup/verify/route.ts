@@ -65,6 +65,12 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
+    if (e instanceof Error && e.message === "PHONE_REQUIRED") {
+      return NextResponse.json(
+        { error: "휴대폰 번호가 필요합니다." },
+        { status: 400 },
+      );
+    }
     if (e instanceof Error && e.message === "PHONE_EXISTS") {
       return NextResponse.json(
         { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." },

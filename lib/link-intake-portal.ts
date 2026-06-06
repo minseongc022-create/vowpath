@@ -1,0 +1,276 @@
+import { listCallLogs, patchCallLog, type StoredCallLog } from "./call-logs";
+import { normalizeSmsPhone } from "./phone";
+import { listJobs, upsertJobRecord } from "./jobs-db";
+import { formatLinkRequestNumber } from "./link-intake-urgency";
+import {
+  arrivalWindowForLinkUrgency,
+  buildLinkIntakeDraftFromForm,
+  parseLinkUrgency,
+  type LinkUrgency,
+} from "./link-intake-urgency";
+import { validateServiceAddress } from "./call-intake/address-validation";
+import { generateAiSummary } from "./call-intake/ai-summary";
+import { parseUsAddress } from "./parse-contact";
+import { formatCityState } from "./recent-bookings";
+import type { LinkIntakeSession } from "./call-intake/link-intake-store";
+import { notifyOwnerLinkIntakeUpdated } from "./link-intake-owner-notify";
+import { recordLinkIntakeCustomerUpdated } from "./record-tenant-events";
+
+export type LinkIntakeBookingView = {
+  bookingId: string;
+  callId: string;
+  requestNumber: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  issueType: string;
+  urgency: LinkUrgency;
+  createdAt: string;
+};
+
+function urgencyFromCall(call: StoredCallLog): LinkUrgency {
+  const window = call.arrivalWindow?.toLowerCase() ?? "";
+  if (window.includes("today")) return "today";
+  if (window.includes("week")) return "this_week";
+  if (window.includes("quote") || window.includes("estimate")) return "estimate";
+  if (call.priority === "P1") return "today";
+  if (call.priority === "P2") return "this_week";
+  return "estimate";
+}
+
+export function callToLinkIntakeBookingView(call: StoredCallLog): LinkIntakeBookingView {
+  return {
+    bookingId: `call-${call.id}`,
+    callId: call.id,
+    requestNumber: formatLinkRequestNumber(call.id),
+    customerName: call.customerName?.trim() || "Customer",
+    phone: call.callbackPhone?.trim() || call.from?.trim() || "",
+    address: call.address?.trim() || "",
+    issueType: call.issueType?.trim() || call.symptom?.trim() || "",
+    urgency: urgencyFromCall(call),
+    createdAt: call.createdAt,
+  };
+}
+
+function namesMatch(input: string, stored: string): boolean {
+  const a = input.trim().toLowerCase();
+  const b = stored.trim().toLowerCase();
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function phoneMatchesCall(call: StoredCallLog, phone: string): boolean {
+  const normalized = normalizeSmsPhone(phone);
+  if (!normalized) return false;
+  const candidates = [call.callbackPhone, call.from].filter(Boolean) as string[];
+  return candidates.some((p) => normalizeSmsPhone(p) === normalized);
+}
+
+function isCallFromLinkSession(
+  call: StoredCallLog,
+  session: LinkIntakeSession,
+): boolean {
+  if (session.callId && call.id === session.callId) return true;
+  if (session.callSid && call.callSid === session.callSid) return true;
+  return false;
+}
+
+export async function lookupLinkIntakeBooking(params: {
+  session: LinkIntakeSession;
+  customerName: string;
+  phone: string;
+}): Promise<
+  | { ok: true; booking: LinkIntakeBookingView }
+  | { ok: false; error: string }
+> {
+  const name = params.customerName.trim();
+  const phone = params.phone.trim();
+  if (name.length < 2 || phone.length < 8) {
+    return { ok: false, error: "이름과 전화번호를 입력해 주세요." };
+  }
+
+  const calls = await listCallLogs(params.session.userId);
+  const linkCalls = calls.filter(
+    (c) => c.intakeChannel === "sms_link" && isCallFromLinkSession(c, params.session),
+  );
+
+  const matches = linkCalls
+    .filter(
+      (c) =>
+        phoneMatchesCall(c, phone) && namesMatch(name, c.customerName ?? ""),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+  const call = matches[0];
+  if (!call) {
+    return {
+      ok: false,
+      error: "입력하신 이름·전화번호와 일치하는 접수 내역이 없습니다.",
+    };
+  }
+
+  return { ok: true, booking: callToLinkIntakeBookingView(call) };
+}
+
+/** Load the submission tied to this SMS link token (internal). */
+export async function getLinkIntakeBookingForSession(
+  session: LinkIntakeSession,
+): Promise<LinkIntakeBookingView | null> {
+  if (!session.callId) return null;
+  const calls = await listCallLogs(session.userId);
+  const call = calls.find(
+    (c) => c.id === session.callId && c.intakeChannel === "sms_link",
+  );
+  if (!call) return null;
+  return callToLinkIntakeBookingView(call);
+}
+
+export async function updateLinkIntakeBooking(params: {
+  session: LinkIntakeSession;
+  bookingId: string;
+  callId: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  issueDescription: string;
+  urgency: LinkUrgency;
+}): Promise<
+  | { ok: true; booking: LinkIntakeBookingView }
+  | { ok: false; error: string }
+> {
+  const name = params.customerName.trim();
+  const phone = params.phone.trim();
+  if (name.length < 2) {
+    return { ok: false, error: "이름을 입력해 주세요." };
+  }
+  if (phone.length < 8) {
+    return { ok: false, error: "전화번호를 입력해 주세요." };
+  }
+  if (params.issueDescription.trim().length < 4) {
+    return { ok: false, error: "요청 내용을 입력해 주세요." };
+  }
+
+  const calls = await listCallLogs(params.session.userId);
+  const call = calls.find((c) => c.id === params.callId);
+  if (
+    !call ||
+    call.intakeChannel !== "sms_link" ||
+    !isCallFromLinkSession(call, params.session)
+  ) {
+    return { ok: false, error: "접수 내역을 찾을 수 없습니다." };
+  }
+  if (!phoneMatchesCall(call, phone) || !namesMatch(name, call.customerName ?? "")) {
+    return {
+      ok: false,
+      error: "이름·전화번호가 접수 내역과 일치하지 않습니다.",
+    };
+  }
+
+  const addressCheck = await validateServiceAddress(params.address.trim());
+  if (!addressCheck.valid) {
+    return {
+      ok: false,
+      error: "주소를 확인할 수 없습니다. 도로명, 도시, 주를 다시 입력해 주세요.",
+    };
+  }
+
+  const address = addressCheck.formattedAddress ?? params.address.trim();
+  const urgency = parseLinkUrgency(params.urgency) ?? "this_week";
+  const draft = buildLinkIntakeDraftFromForm({
+    customerName: name,
+    address,
+    issueDescription: params.issueDescription,
+    urgency,
+  });
+
+  const parsed = parseUsAddress(address);
+  const cityHint =
+    parsed.city && parsed.province ? `${parsed.city}, ${parsed.province}` : undefined;
+
+  const updateNote = `Customer updated via SMS link at ${new Date().toISOString()}.`;
+  const transcript = [
+    call.transcript?.trim() ?? "",
+    updateNote,
+    `Name: ${draft.customerName}`,
+    `Address: ${address}`,
+    `Issue: ${draft.issueType}`,
+    `Urgency: ${arrivalWindowForLinkUrgency(urgency)}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const aiSummary = generateAiSummary(
+    {
+      ...draft,
+      address,
+      dispatchNotes: draft.dispatchNotes,
+      jobberPasteBlock: draft.jobberPasteBlock,
+    },
+    draft.priority,
+    cityHint,
+  );
+
+  const callbackPhone = phone || call.callbackPhone || call.from;
+
+  const patched = await patchCallLog(params.session.userId, params.callId, {
+    customerName: draft.customerName,
+    address,
+    issueType: draft.issueType,
+    symptom: draft.symptom,
+    priority: draft.priority,
+    servicePriority: draft.servicePriority,
+    priorityReasons: draft.priorityReasons,
+    prioritySource: draft.prioritySource,
+    arrivalWindow: draft.arrivalWindow,
+    aiSummary,
+    transcript,
+    callbackPhone,
+  });
+  if (!patched) {
+    return { ok: false, error: "접수 내역을 저장하지 못했습니다." };
+  }
+
+  const jobs = await listJobs(params.session.userId);
+  const job = jobs.find((j) => j.sourceCallId === params.callId);
+  if (job) {
+    await upsertJobRecord(params.session.userId, {
+      ...job,
+      customerName: draft.customerName,
+      address,
+      symptom: draft.symptom,
+      priority: draft.priority,
+      servicePriority: draft.servicePriority,
+      priorityReasons: draft.priorityReasons,
+      prioritySource: draft.prioritySource,
+    });
+  }
+
+  const bookingId = params.bookingId;
+
+  try {
+    await recordLinkIntakeCustomerUpdated({
+      userId: params.session.userId,
+      bookingId,
+      callId: params.callId,
+      customerName: draft.customerName,
+      issueType: draft.issueType,
+      cityState: formatCityState(address),
+    });
+    await notifyOwnerLinkIntakeUpdated({
+      userId: params.session.userId,
+      bookingId,
+      customerName: draft.customerName,
+      issueType: draft.issueType,
+      address,
+      cityState: formatCityState(address),
+      priority: draft.priority,
+    });
+  } catch (e) {
+    console.warn("[link-intake-portal] notify", e);
+  }
+
+  return { ok: true, booking: callToLinkIntakeBookingView(patched) };
+}

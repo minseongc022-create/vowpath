@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { jobCardGenerator } from "@/lib/content";
 import type { GeneratedJobCard } from "@/lib/job-card-ai";
 import { formatPriority } from "@/lib/priority-labels";
-import type { JobCard } from "@/lib/types";
+import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import { addJob } from "@/lib/shop-storage";
+import { persistJob } from "@/lib/dashboard-data-client";
 
 type JobCardGeneratorProps = {
-  onSaved: (job: JobCard) => void;
+  onSaved: () => void;
 };
 
 function priorityClass(p: GeneratedJobCard["priority"]) {
@@ -72,18 +73,19 @@ export function JobCardGenerator({ onSaved }: JobCardGeneratorProps) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleSave(jobberJobId?: string) {
+  async function handleSave(jobberJobId?: string) {
     if (!card) return;
-    const saved = addJob({
+    const local = addJob({
       priority: card.priority,
       symptom: card.symptom,
       customerName: card.customerName,
       address: card.address,
       arrivalWindow: card.arrivalWindow,
-      status: jobberJobId ? "confirmed" : "pending_approval",
+      status: initialRequestStatusAfterIntake(),
       jobberJobId,
     });
-    onSaved(saved);
+    await persistJob(local);
+    onSaved();
     setCard(null);
     setNotes("");
     setPushSuccess(null);
@@ -112,16 +114,17 @@ export function JobCardGenerator({ onSaved }: JobCardGeneratorProps) {
       const requestId = data.result?.requestId;
       const uri = data.result?.jobberWebUri;
       if (requestId) {
-        const saved = addJob({
+        const local = addJob({
           priority: card.priority,
           symptom: card.symptom,
           customerName: card.customerName,
           address: card.address,
           arrivalWindow: card.arrivalWindow,
-          status: "confirmed",
+          status: initialRequestStatusAfterIntake(),
           jobberJobId: requestId,
         });
-        onSaved(saved);
+        await persistJob(local);
+        onSaved();
       }
       setPushSuccess(uri ?? jobCardGenerator.pushedJobber);
       setCard(null);

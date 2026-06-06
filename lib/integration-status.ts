@@ -39,31 +39,31 @@ export function getIntegrationItems(
       done: contactDone,
       summary: contactDone
         ? isKrSmsTestMode()
-          ? "이메일·휴대폰 저장됨 (개발/KR 테스트)"
+          ? "이메일·휴대폰 저장됨 (개발/한국 테스트)"
           : "이메일·미국 휴대폰 저장됨"
         : isKrSmsTestMode()
-          ? "알림 받을 이메일·휴대폰 입력 (010 또는 +1)"
-          : "알림 받을 이메일·휴대폰(미국) 입력",
+          ? "알림용 이메일·휴대폰 입력 (010 또는 +1)"
+          : "알림용 이메일·미국 휴대폰 입력",
     },
     {
       id: "schedule",
-      label: "AI 수신 시간대",
+      label: "응대 시간",
       done: scheduleDone,
       summary: scheduleDone
         ? shop.scheduleWindows.map((w) => w.label).join(" · ")
-        : "요일과 시간을 설정해 주세요",
+        : "응대 요일·시간 설정",
     },
     {
       id: "phone",
-      label: "Call forwarding",
+      label: "착신 전환",
       done: phoneDone,
       summary: phoneDone
         ? shop.forwardingScenario === "after_hours"
-          ? "After-hours forwarding set"
+          ? "야간·주말 착신 전환 설정됨"
           : shop.forwardingScenario === "busy_and_after_hours"
-            ? "Busy + after-hours forwarding set"
-            : "Overflow forwarding set"
-        : "Copy Vowpath number → set up forwarding",
+            ? "통화중·야간 착신 전환 설정됨"
+            : "부재 시 착신 전환 설정됨"
+        : "Vowpath 번호 복사 후 착신 전환 설정",
     },
     {
       id: "jobber",
@@ -72,12 +72,12 @@ export function getIntegrationItems(
       skipped: jobberSkipped && !jobberLinked,
       done: jobberDone,
       summary: jobberSkipped
-        ? "건너뜀 — 나중에 연동 설정에서 연결 가능"
+        ? "건너뜀 — 연동 설정에서 언제든 연결 가능"
         : jobberDone && jobberLinked
           ? "Jobber 계정 연결됨"
           : jobberLinked
-            ? "Jobber 연결됨 — 확인을 눌러 주세요"
-            : "이미 Jobber 쓰는 샵만 선택 연동",
+            ? "Jobber 연결됨 — 「연결 확인」 필요"
+            : "선택 — Jobber 사용 샵만 연결",
     },
   ];
 }

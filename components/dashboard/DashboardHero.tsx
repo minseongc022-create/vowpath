@@ -1,0 +1,94 @@
+"use client";
+
+import type { DashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
+import { vowDashboard } from "@/lib/content";
+
+const h = vowDashboard.hero;
+
+type DashboardHeroProps = {
+  metrics: DashboardHomeMetrics;
+  loading?: boolean;
+};
+
+function HeroStat({
+  label,
+  value,
+  deltaPct,
+  accent,
+  loading,
+}: {
+  label: string;
+  value: string;
+  deltaPct: number;
+  accent: "cyan" | "brand" | "rose";
+  loading?: boolean;
+}) {
+  const deltaCls =
+    deltaPct > 0
+      ? "text-emerald-400/90"
+      : deltaPct < 0
+        ? "text-rose-400/90"
+        : "text-slate-600";
+
+  const valueCls =
+    accent === "cyan"
+      ? "text-cyan-300"
+      : accent === "rose"
+        ? "text-rose-300"
+        : "text-white";
+
+  return (
+    <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-white/[0.05] first:lg:border-l-0">
+      <p className="text-[11px] font-medium uppercase tracking-widest text-slate-500">{label}</p>
+      <p
+        className={`mt-2 font-bold tabular-nums tracking-tight ${valueCls} ${
+          loading ? "animate-pulse opacity-60" : ""
+        } vow-dash-hero-value`}
+      >
+        {loading ? "—" : value}
+      </p>
+      <p className={`mt-2 text-xs ${deltaCls}`}>
+        {deltaPct === 0 ? h.deltaFlat : h.delta(deltaPct)}
+      </p>
+    </div>
+  );
+}
+
+export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
+  return (
+    <section className="vow-dash-hero">
+      <div className="flex flex-col gap-1 border-b border-white/[0.05] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-400/90">
+            {h.period}
+          </p>
+          <p className="mt-1 text-sm text-slate-400">{h.tagline}</p>
+        </div>
+        <p className="text-xs text-slate-600">{metrics.rangeLabel}</p>
+      </div>
+      <div className="grid grid-cols-1 divide-y divide-white/[0.05] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <HeroStat
+          label={h.callsSaved}
+          value={metrics.missedPrevented.display}
+          deltaPct={metrics.missedPrevented.deltaPct}
+          accent="cyan"
+          loading={loading}
+        />
+        <HeroStat
+          label={h.aiAnswered}
+          value={metrics.aiAnswered.display}
+          deltaPct={metrics.aiAnswered.deltaPct}
+          accent="brand"
+          loading={loading}
+        />
+        <HeroStat
+          label={h.emergency}
+          value={metrics.emergencyRequests.display}
+          deltaPct={metrics.emergencyRequests.deltaPct}
+          accent="rose"
+          loading={loading}
+        />
+      </div>
+    </section>
+  );
+}

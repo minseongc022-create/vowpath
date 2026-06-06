@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Vowpath">
+  <defs>
+    <linearGradient id="vow-mark" x1="96" y1="88" x2="416" y2="424" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A855F7"/>
+      <stop offset="0.42" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="vow-mark-right" x1="280" y1="96" x2="420" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M118 132c38 72 62 122 102 184 40-62 64-112 102-184-28 0-52 0-78 0-16 28-26 46-40 72-14-26-24-44-40-72-26 0-50 0-78 0Z"
+    fill="url(#vow-mark)"
+  />
+  <path
+    d="M262 132c18 34 30 56 48 90 18-34 30-56 48-90"
+    stroke="url(#vow-mark-right)"
+    stroke-width="36"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M318 248c22 8 38 22 54 42"
+    stroke="url(#vow-mark-right)"
+    stroke-width="28"
+    stroke-linecap="round"
+    opacity="0.9"
+  />
+</svg>

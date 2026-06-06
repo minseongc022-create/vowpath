@@ -28,10 +28,10 @@ export default async function GetStartedPage({
     isStripeConfigured("unlimited") || isStripeConfigured("flex");
 
   return (
-    <div className="hvac-app-shell">
+    <div className="vow-app-shell">
       <header className="border-b border-surface-border bg-white">
         <Container className="flex h-16 items-center justify-between">
-          <BrandLogo />
+          <BrandLogo variant="light" showTagline />
         </Container>
       </header>
 

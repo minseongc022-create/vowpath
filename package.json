@@ -4,11 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "node scripts/dev-clean.mjs",
+    "dev:kill": "powershell -ExecutionPolicy Bypass -File scripts/kill-dev-ports.ps1",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "tunnel": "npx --yes localtunnel --port 3000",
-    "twilio:webhook": "node scripts/twilio-setup-webhook.mjs"
+    "twilio:webhook": "node scripts/twilio-setup-webhook.mjs",
+    "twilio:register": "node scripts/register-twilio-all.mjs",
+    "twilio:check": "node scripts/check-twilio-webhooks.mjs",
+    "sms:diagnose": "node scripts/sms-diagnose.mjs",
+    "e2e:speed-booking": "node scripts/run-speed-booking-e2e.mjs",
+    "e2e:hybrid-booking": "node scripts/run-hybrid-booking-e2e.mjs",
+    "e2e:control-booking": "node scripts/run-control-booking-e2e.mjs",
+    "e2e:booking-modes": "node scripts/run-speed-booking-e2e.mjs && node scripts/run-hybrid-booking-e2e.mjs && node scripts/run-control-booking-e2e.mjs"
   },
   "dependencies": {
     "@vercel/kv": "^3.0.0",

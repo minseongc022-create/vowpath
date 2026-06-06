@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { intakeUrlForMenu } from "@/lib/call-intake/intake-twiml";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
+import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { menuPriorityFromDigit } from "@/lib/twilio-voice-flow";
 import {
   twimlGatherSpeechDetailed,
@@ -10,6 +12,9 @@ import {
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
+  if (!validateTwilioWebhook(request, rawBody)) {
+    return new NextResponse("Invalid signature", { status: 403 });
+  }
   const form = new URLSearchParams(rawBody);
   const digit = form.get("Digits");
 
@@ -26,7 +31,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const gatherUrl = `${base}/api/twilio/gather?priority=${priority}&attempt=1`;
+  const gatherUrl = intakeUrlForMenu(priority);
   let intro = "Please describe your issue.";
   if (priority === "P1") {
     intro = "Emergency line selected.";

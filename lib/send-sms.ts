@@ -1,32 +1,151 @@
 import { normalizeSmsPhone } from "./phone";
+import { reportSmsDeliveryFailure } from "./report-sms-failure";
+import { getSmsTwilioHealth } from "./sms-twilio-health";
+import {
+  isKrSmsTestMode,
+  smsRestrictToUsRecipients,
+} from "./sms-region-config";
 import { isTwilioConfigured } from "./twilio-config";
 
-type SendResult = { ok: true } | { ok: false; error?: string };
+/** Auth codes — failure returns to the user form. */
+export type SmsSendOptions = {
+  strict?: boolean;
+  /** Shop alerts + ops log on failure (all operational SMS). */
+  context?: SmsSendContext;
+  /** Reject non-US (+1) numbers before Twilio (US Twilio numbers). */
+  usRecipientsOnly?: boolean;
+};
+
+export type SmsSendContext = {
+  userId: string;
+  operation: string;
+  callSid?: string;
+  bookingId?: string;
+};
+
+export type SmsSendResult = { ok: true } | { ok: false; error: string };
 
 export function isSmsConfigured(): boolean {
   return isTwilioConfigured();
+}
+
+export function smsDevPreviewEnabled(): boolean {
+  const v = process.env.SMS_DEV_PREVIEW?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function logSmsPreview(label: string, phone: string, body: string): void {
+  console.info(`[sms] ${label} → ${phone}: ${body}`);
+}
+
+function parseTwilioError(e: unknown): { message: string; code: number | null } {
+  const msg = e instanceof Error ? e.message : String(e);
+  const code =
+    typeof e === "object" &&
+    e !== null &&
+    "code" in e &&
+    typeof (e as { code: unknown }).code === "number"
+      ? (e as { code: number }).code
+      : null;
+
+  if (code === 21608 || code === 21610 || msg.includes("unverified")) {
+    return {
+      code,
+      message:
+        "Twilio Trial: 수신 번호를 Verified Caller IDs에 등록·인증해야 문자가 전송됩니다.",
+    };
+  }
+  if (
+    code === 21408 ||
+    msg.includes("Permission to send an SMS has not been enabled")
+  ) {
+    return {
+      code,
+      message:
+        "Twilio Geo permissions: United States(US) SMS를 허용하세요. (Console → Messaging → Geo permissions → United States → Enable)",
+    };
+  }
+  if (code === 21606 || msg.includes("From") || msg.includes("21212")) {
+    return {
+      code,
+      message:
+        "발신 번호(TWILIO_PHONE_NUMBER)가 Twilio 계정의 활성 미국 번호와 일치하는지 확인하세요.",
+    };
+  }
+  if (msg.includes("21211") || msg.toLowerCase().includes("invalid")) {
+    return { code, message: "수신 번호가 올바르지 않습니다." };
+  }
+  return {
+    code,
+    message: "문자 전송에 실패했습니다. Twilio 설정과 수신 번호를 확인해 주세요.",
+  };
+}
+
+async function reportFailure(
+  error: string,
+  opts: {
+    context?: SmsSendContext;
+    toPhone?: string;
+    twilioCode?: number | null;
+    devLogLabel: string;
+  },
+): Promise<SmsSendResult> {
+  if (opts.context) {
+    await reportSmsDeliveryFailure({
+      userId: opts.context.userId,
+      operation: opts.context.operation,
+      message: error,
+      toPhone: opts.toPhone,
+      callSid: opts.context.callSid,
+      bookingId: opts.context.bookingId,
+      retryable: true,
+      twilioCode: opts.twilioCode ?? null,
+    });
+  } else {
+    console.error(`[send-sms] ${opts.devLogLabel}`, error);
+  }
+  return { ok: false, error };
 }
 
 export async function sendSms(
   phoneRaw: string,
   body: string,
   devLogLabel: string,
-): Promise<SendResult> {
+  options?: SmsSendOptions,
+): Promise<SmsSendResult> {
+  const strict = options?.strict === true;
+  const context = options?.context;
   const phone = normalizeSmsPhone(phoneRaw);
+
   if (!phone) {
-    return { ok: false, error: "휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678 또는 +1 512 555 0100)" };
+    const error = isKrSmsTestMode()
+      ? "휴대폰 번호 형식을 확인해 주세요. (한국: 010-1234-5678 · 미국: (512) 555-0100)"
+      : "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)";
+    if (strict) return { ok: false, error };
+    return reportFailure(error, { context, devLogLabel });
   }
 
-  if (!isTwilioConfigured()) {
-    if (process.env.NODE_ENV !== "production") {
-      console.info(`[dev] ${devLogLabel} → ${phone}: ${body}`);
-      return { ok: true };
-    }
-    return {
-      ok: false,
-      error:
-        "문자 발송 설정이 없습니다. Vercel에 TWILIO_ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER를 추가하세요.",
-    };
+  const usOnly = options?.usRecipientsOnly ?? smsRestrictToUsRecipients();
+  if (usOnly && !phone.startsWith("+1")) {
+    const error =
+      "미국 (+1) 번호로만 문자를 보낼 수 있습니다. 업체·고객 번호가 US 형식인지 확인하세요.";
+    if (strict) return { ok: false, error };
+    return reportFailure(error, { context, toPhone: phone, devLogLabel });
+  }
+
+  if (!strict && smsDevPreviewEnabled()) {
+    logSmsPreview(`${devLogLabel} (SMS_DEV_PREVIEW)`, phone, body);
+    return { ok: true };
+  }
+
+  const health = getSmsTwilioHealth();
+  if (!health.ready) {
+    const error =
+      health.issues[0] ??
+      "문자 발송 설정이 완료되지 않았습니다. TWILIO 환경 변수를 확인하세요.";
+    logSmsPreview(`${devLogLabel} (not ready)`, phone, body);
+    if (strict) return { ok: false, error };
+    return reportFailure(error, { context, toPhone: phone, devLogLabel });
   }
 
   try {
@@ -38,24 +157,25 @@ export async function sendSms(
 
     await client.messages.create({
       body,
-      from: process.env.TWILIO_PHONE_NUMBER!,
+      from: health.fromNumber!,
       to: phone,
     });
 
     return { ok: true };
   } catch (e) {
-    console.error("[send-sms]", e);
-    const msg = e instanceof Error ? e.message : "";
-    if (msg.includes("21211") || msg.toLowerCase().includes("invalid")) {
-      return { ok: false, error: "수신 번호가 올바르지 않습니다. 국가 코드 포함 번호를 확인해 주세요." };
-    }
-    if (msg.includes("21608") || msg.includes("21610")) {
-      return {
-        ok: false,
-        error:
-          "Twilio Trial: Verified Caller ID에 등록된 번호로만 문자를 보낼 수 있습니다. Upgrade 후 이용하세요.",
-      };
-    }
-    return { ok: false, error: "문자 전송에 실패했습니다. Twilio 설정을 확인해 주세요." };
+    const { message, code } = parseTwilioError(e);
+    console.warn(`[send-sms] ${devLogLabel}`, message, e);
+    if (strict) return { ok: false, error: message };
+    return reportFailure(message, {
+      context,
+      toPhone: phone,
+      twilioCode: code,
+      devLogLabel,
+    });
   }
+}
+
+/** @deprecated Use result.ok — kept for gradual migration */
+export function smsWasDelivered(result: SmsSendResult): boolean {
+  return result.ok;
 }

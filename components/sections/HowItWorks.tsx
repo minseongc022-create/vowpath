@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="hvac-section-alt py-20 sm:py-24">
+    <section id="how-it-works" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading
           label={SECTION_LABELS.process}
@@ -14,12 +14,12 @@ export function HowItWorks() {
         />
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {howItWorks.steps.map((step) => (
-            <article key={step.step} className="hvac-card relative p-6">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+            <article key={step.step} className="vow-site-card relative p-6">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white">
                 {step.step.replace(/\D/g, "") || step.step}
               </span>
-              <h3 className="mt-4 text-lg font-semibold text-brand-950">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <h3 className="mt-4 text-lg font-semibold text-white">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 {step.description}
               </p>
             </article>

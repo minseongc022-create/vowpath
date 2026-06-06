@@ -3,35 +3,34 @@
 import Image from "next/image";
 import { useId } from "react";
 import { BRAND_MARK_SRC } from "@/lib/brand-assets";
-import { OPERATING_FLOW_LANES, OPERATING_FLOW_PHASES } from "@/lib/operating-flow";
+import {
+  HERO_FLOW_LOOP_SUMMARY,
+  HERO_FLOW_PIPELINE,
+  HERO_FLOW_TAGS,
+  OPERATING_FLOW_EDGES,
+  OPERATING_FLOW_NODES,
+  OPERATING_FLOW_PHASES,
+} from "@/lib/operating-flow";
 
-const INPUT_TAGS = [
-  "메인 번호 유지",
-  "조건부 착신전환",
-  "전화 · 링크 접수",
-  "SMS · 1·2 승인",
-] as const;
+type PipelineIcon = (typeof HERO_FLOW_PIPELINE)[number]["icon"];
 
-const PIPELINE = [
-  { step: "01", title: "착신전환", icon: "phone" as const },
-  { step: "02", title: "AI 접수", icon: "ai" as const },
-  { step: "03", title: "1·2 승인", icon: "review" as const },
-  { step: "04", title: "Jobber", icon: "jobber" as const },
-];
-
-function StepIcon({ type }: { type: (typeof PIPELINE)[number]["icon"] }) {
+function StepIcon({ type }: { type: PipelineIcon }) {
   const cls = "h-5 w-5";
-  if (type === "phone") {
+  if (type === "intake") {
     return (
       <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
       </svg>
     );
   }
-  if (type === "ai") {
+  if (type === "sms") {
     return (
       <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z" />
+        <path
+          fillRule="evenodd"
+          d="M3.43 2.524A2 2 0 002 4.44v7.17a2 2 0 002 2.43l2.58.86a1 1 0 00.63 0l2.58-.86A2 2 0 0012 11.61V4.44a2 2 0 00-2.43-1.916l-3.14-.524a2 2 0 00-.66 0L3.43 2.524zM6.5 6.75a.75.75 0 000 1.5h7a.75.75 0 000-1.5h-7zm-.75 2.75a.75.75 0 01.75-.75h7a.75.75 0 010 1.5h-7a.75.75 0 01-.75-.75z"
+          clipRule="evenodd"
+        />
       </svg>
     );
   }
@@ -46,35 +45,106 @@ function StepIcon({ type }: { type: (typeof PIPELINE)[number]["icon"] }) {
       </svg>
     );
   }
-  return <span className="text-sm font-bold">J</span>;
+  return (
+    <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+      <path d="M3 4a2 2 0 012-2h6.5l3.5 3.5V16a2 2 0 01-2 2H5a2 2 0 01-2-2V4zm8.5 0V6a1 1 0 001 1h2.5L11.5 4z" />
+      <path d="M6 11.5a.75.75 0 01.75-.75h6.5a.75.75 0 010 1.5H6.75a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h4a.75.75 0 010 1.5H6.75a.75.75 0 01-.75-.75z" />
+    </svg>
+  );
 }
 
-function FlowLanes() {
+function FlowNode({
+  title,
+  caption,
+  highlight,
+}: {
+  title: string;
+  caption: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className="mt-8 hidden items-center justify-center gap-3 lg:flex">
-      {OPERATING_FLOW_LANES.map((lane, i) => (
-        <span key={lane.label} className="flex items-center gap-3">
-          <span className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-slate-400">
-            {lane.from}
-          </span>
-          <span className="flex flex-col items-center gap-0.5">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-[#c4b5fd]">
-              {lane.label}
-            </span>
-            <span className="text-[#a855f7]" aria-hidden>
-              →
-            </span>
-          </span>
-          <span className="rounded-lg border border-[#a78bfa]/25 bg-[#8b5cf6]/10 px-3 py-1.5 text-xs font-medium text-slate-200">
-            {lane.to}
-          </span>
-          {i < OPERATING_FLOW_LANES.length - 1 ? (
-            <span className="ml-2 text-slate-600" aria-hidden>
-              ·
-            </span>
-          ) : null}
+    <div
+      className={`flex min-w-[5rem] flex-col items-center rounded-xl border px-3 py-2.5 text-center sm:min-w-[6.5rem] sm:px-4 ${
+        highlight
+          ? "border-[#a78bfa]/40 bg-[#8b5cf6]/15 shadow-[0_0_24px_rgb(139_92_246/0.15)]"
+          : "border-white/[0.08] bg-white/[0.03]"
+      }`}
+    >
+      <p className={`text-xs font-semibold sm:text-sm ${highlight ? "text-white" : "text-slate-200"}`}>
+        {title}
+      </p>
+      <p className="mt-0.5 text-[10px] leading-tight text-slate-500">{caption}</p>
+    </div>
+  );
+}
+
+function FlowConnector({ label }: { label: string }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-1 sm:px-2">
+      <div className="flex w-full max-w-[10rem] items-center gap-1 sm:max-w-[12rem]">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-[#a78bfa]/50 to-[#a78bfa]/80" />
+        <span className="shrink-0 text-sm text-[#a855f7]" aria-hidden>
+          →
         </span>
-      ))}
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent via-[#a78bfa]/50 to-[#a78bfa]/80" />
+      </div>
+      <p className="mt-2 max-w-[10rem] text-center text-[10px] font-medium leading-snug text-[#c4b5fd] sm:max-w-[12rem] sm:text-[11px]">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function FlowTimeline() {
+  return (
+    <div className="mt-8 border-t border-white/[0.06] pt-8">
+      <p className="text-center text-xs font-semibold text-[#c4b5fd]">승인 루프</p>
+      <p className="mx-auto mt-2 max-w-xl text-center text-xs leading-relaxed text-slate-500">
+        {HERO_FLOW_LOOP_SUMMARY}
+      </p>
+
+      <div
+        className="mt-6 hidden items-center justify-center lg:flex"
+        role="list"
+        aria-label="승인 루프"
+      >
+        {OPERATING_FLOW_NODES.map((node, i) => (
+          <div key={node.id} className="flex min-w-0 items-center" role="listitem">
+            <FlowNode
+              title={node.title}
+              caption={node.caption}
+              highlight={node.id === "vowpath" || node.id === "owner"}
+            />
+            {i < OPERATING_FLOW_EDGES.length ? (
+              <FlowConnector label={OPERATING_FLOW_EDGES[i]} />
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      <ol className="mx-auto mt-6 max-w-sm space-y-0 lg:hidden">
+        {OPERATING_FLOW_NODES.map((node, i) => (
+          <li key={node.id}>
+            <div className="flex justify-center">
+              <FlowNode
+                title={node.title}
+                caption={node.caption}
+                highlight={node.id === "vowpath" || node.id === "owner"}
+              />
+            </div>
+            {i < OPERATING_FLOW_EDGES.length ? (
+              <div className="flex flex-col items-center py-2.5">
+                <span className="text-[#a855f7]" aria-hidden>
+                  ↓
+                </span>
+                <p className="mt-1 max-w-[16rem] text-center text-[11px] font-medium leading-snug text-[#c4b5fd]">
+                  {OPERATING_FLOW_EDGES[i]}
+                </p>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -136,8 +206,8 @@ export function HeroFlowVisual() {
           <span className="hvac-text-gradient">문자로 예약 확인</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
-          메인 번호 유지 → 못 받을 때 Vowpath로 전환 → 전화/링크 접수 → 문자·이메일로 1/2 승인 →
-          고객 확정 · Jobber 기록
+          고객이 전화·링크로 접수 → 업체에 승인 요청 문자 → 1=승인 · 2=거절 → 고객에게 확정·거절
+          문자 자동 발송
         </p>
       </header>
 
@@ -152,11 +222,11 @@ export function HeroFlowVisual() {
         />
 
         <p className="relative text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-[#c4b5fd]">
-          서비스 흐름
+          승인 흐름
         </p>
 
         <ul className="relative mt-5 flex flex-wrap justify-center gap-2">
-          {INPUT_TAGS.map((tag) => (
+          {HERO_FLOW_TAGS.map((tag) => (
             <li
               key={tag}
               className="rounded-full border border-[#a78bfa]/25 bg-[#8b5cf6]/12 px-3.5 py-1.5 text-xs font-medium text-slate-200"
@@ -168,7 +238,7 @@ export function HeroFlowVisual() {
 
         <div className="relative mt-8 hidden lg:block">
           <svg
-            className="pointer-events-none absolute left-[5%] right-[5%] top-6 h-5 w-[90%]"
+            className="pointer-events-none absolute left-[5%] right-[5%] top-8 h-5 w-[90%]"
             viewBox="0 0 900 20"
             preserveAspectRatio="none"
             aria-hidden
@@ -189,37 +259,55 @@ export function HeroFlowVisual() {
             />
           </svg>
           <div className="relative flex justify-between gap-2">
-            {PIPELINE.map((item) => (
-              <div key={item.step} className="vow-hero-flow-step flex min-w-0 flex-1 flex-col items-center px-2 py-4 text-center">
+            {HERO_FLOW_PIPELINE.map((item) => (
+              <div
+                key={item.step}
+                className="vow-hero-flow-step flex min-w-0 flex-1 flex-col items-center px-2 py-4 text-center"
+              >
                 <span className="vow-hero-flow-step-icon flex h-12 w-12 items-center justify-center rounded-xl text-[#c4b5fd]">
                   <StepIcon type={item.icon} />
                 </span>
                 <p className="mt-3 text-[10px] font-bold text-[#a78bfa]">{item.step}</p>
                 <p className="mt-1 text-sm font-semibold text-white">{item.title}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{item.subtitle}</p>
               </div>
             ))}
           </div>
-          <div className="relative z-10 -mt-2 flex justify-center">
-            <div className="vow-hero-flow-hub-pedestal flex items-center gap-3 rounded-2xl border border-[#a78bfa]/30 bg-[#060d18]/90 px-5 py-3">
-              <Image src={BRAND_MARK_SRC} alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
-              <div className="text-left">
-                <p className="vow-brand-name vow-brand-name-light text-xs tracking-[0.2em]">VOWPATH</p>
-                <p className="text-[10px] text-slate-500">AI 접수 · 알림</p>
+          <div className="vow-hero-flow-hub relative z-10 mt-2 flex justify-center">
+            <div className="vow-hero-flow-hub-inner flex items-center gap-4 sm:gap-5">
+              <span className="vow-hero-flow-hub-mark relative inline-flex h-[4.25rem] w-[4.25rem] shrink-0 sm:h-[4.75rem] sm:w-[4.75rem]">
+                <Image
+                  src={BRAND_MARK_SRC}
+                  alt=""
+                  width={76}
+                  height={76}
+                  className="vow-brand-mark-img relative z-10 h-full w-full object-contain object-center"
+                  priority
+                />
+              </span>
+              <div className="flex flex-col justify-center gap-0.5 text-left leading-none">
+                <p className="vow-brand-name vow-brand-name-light text-sm tracking-[0.22em] sm:text-base">
+                  VOWPATH
+                </p>
+                <p className="text-xs leading-[1.2] text-slate-400 sm:text-[13px]">
+                  접수 → 승인 요청 → 고객 자동 안내
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-2 lg:hidden">
-          {PIPELINE.map((item) => (
+          {HERO_FLOW_PIPELINE.map((item) => (
             <div key={item.step} className="vow-hero-flow-step p-3 text-center">
               <p className="text-[10px] font-bold text-[#a78bfa]">{item.step}</p>
               <p className="mt-1 text-xs font-semibold text-white">{item.title}</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">{item.subtitle}</p>
             </div>
           ))}
         </div>
 
-        <FlowLanes />
+        <FlowTimeline />
         <PhaseDetailGrid />
       </div>
     </div>

@@ -17,10 +17,10 @@ export default async function HomePage() {
   const session = await getSession();
 
   return (
-    <>
+    <div className="vow-site flex min-h-screen flex-col">
       {IS_BETA ? <BetaBanner /> : null}
       <Header session={session} />
-      <main>
+      <main className="flex-1">
         <Hero />
         <SignupFlow />
         <Differentiators />
@@ -32,6 +32,6 @@ export default async function HomePage() {
         <CTA />
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { jobberConnect as copy } from "@/lib/content";
 import { readShopState, writeShopState } from "@/lib/shop-storage";
+import { notifyJobberUpdated } from "@/lib/dashboard-data-client";
 
 type Status = {
   configured: boolean;
@@ -41,6 +42,7 @@ export function JobberConnect({
         typeof window !== "undefined" &&
         new URLSearchParams(window.location.search).get("jobber") === "connected";
       onStatusChangeRef.current?.(data.connected, { freshConnect });
+      notifyJobberUpdated();
       if (data.connected) {
         const shop = readShopState();
         writeShopState({
@@ -84,6 +86,7 @@ export function JobberConnect({
         jobberSetupConfirmed: false,
       });
       await load({ silent: true });
+      notifyJobberUpdated();
     } finally {
       setDisconnecting(false);
     }

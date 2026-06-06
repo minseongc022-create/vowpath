@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { NAV_LINKS } from "@/lib/constants";
+import { NAV_LINKS, ROUTES } from "@/lib/constants";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
@@ -15,17 +15,17 @@ export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-surface-border/80 bg-white/90 shadow-nav backdrop-blur-lg">
+    <header className="vow-site-header">
       <Container>
         <div className="flex h-16 items-center justify-between gap-3">
-          <BrandLogo />
+          <BrandLogo variant="light" showTagline size="xl" href={ROUTES.home} />
 
           <nav className="hidden items-center justify-center gap-6 lg:flex lg:gap-8">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-brand-800 transition hover:text-brand-600"
+                className="text-sm font-medium text-slate-300 transition hover:text-brand-200"
               >
                 {link.label}
               </Link>
@@ -36,7 +36,7 @@ export function Header({ session }: HeaderProps) {
             <HeaderAuth session={session} />
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg p-2 text-brand-800 hover:bg-brand-50 lg:hidden"
+              className="inline-flex items-center justify-center rounded-lg p-2 text-slate-200 hover:bg-white/10 lg:hidden"
               aria-expanded={open}
               aria-label="메뉴 열기"
               onClick={() => setOpen(!open)}
@@ -54,13 +54,13 @@ export function Header({ session }: HeaderProps) {
       </Container>
 
       {open ? (
-        <div className="border-t border-surface-border bg-white px-5 py-4 lg:hidden">
+        <div className="border-t border-white/[0.08] bg-[#0b0e14] px-5 py-4 lg:hidden">
           <nav className="flex flex-col gap-3">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-brand-900"
+                className="text-sm font-medium text-slate-200"
                 onClick={() => setOpen(false)}
               >
                 {link.label}

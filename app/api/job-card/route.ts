@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const card = await generateJobCardFromNotes(notes);
+    const card = await generateJobCardFromNotes(notes, { transcript: notes });
     return NextResponse.json({ card });
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";

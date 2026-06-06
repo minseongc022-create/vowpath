@@ -1,3 +1,4 @@
+import { DEFAULT_BOOKING_MODE } from "./booking-policy";
 import type { JobCard, ShopState } from "./types";
 
 export const SHOP_STORAGE_KEY = "nightcall_shop";
@@ -9,6 +10,7 @@ const defaultShop: ShopState = {
   jobberConnected: false,
   forwardingDone: false,
   onboardingComplete: false,
+  bookingMode: DEFAULT_BOOKING_MODE,
 };
 
 export function getDefaultShopState(): ShopState {

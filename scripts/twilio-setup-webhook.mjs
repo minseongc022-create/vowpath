@@ -40,6 +40,7 @@ if (base.includes("localhost")) {
 }
 
 const voiceUrl = `${base}/api/twilio/voice`;
+const smsUrl = `${base}/api/twilio/sms`;
 const client = twilio(sid, token);
 
 const numbers = await client.incomingPhoneNumbers.list({ phoneNumber: phone, limit: 1 });
@@ -48,6 +49,12 @@ if (!numbers[0]) {
   process.exit(1);
 }
 
-await numbers[0].update({ voiceUrl, voiceMethod: "POST" });
+await numbers[0].update({
+  voiceUrl,
+  voiceMethod: "POST",
+  smsUrl,
+  smsMethod: "POST",
+});
 console.log("OK Voice webhook:", voiceUrl);
+console.log("OK SMS webhook:", smsUrl);
 console.log("Number:", phone);

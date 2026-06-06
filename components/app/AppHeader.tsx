@@ -8,7 +8,7 @@ import { Container } from "@/components/ui/Container";
 type AppHeaderProps = {
   badge?: string;
   badgeTone?: "default" | "success" | "warning";
-  activeNav?: "dashboard" | "settings";
+  activeNav?: "dashboard" | "analytics" | "settings";
 };
 
 const badgeStyles = {
@@ -25,31 +25,41 @@ export async function AppHeader({
   const session = await getSession();
 
   return (
-    <header className="border-b border-surface-border bg-white/95 shadow-nav backdrop-blur-md">
+    <header className="vow-site-header">
       <Container className="flex h-16 items-center justify-between">
-        <BrandLogo />
+        <BrandLogo variant="light" href={ROUTES.dashboard} />
         <div className="flex items-center gap-4">
           {session ? (
             <>
-              <span className="hidden max-w-[160px] truncate text-sm text-brand-700 sm:inline">
+              <span className="hidden max-w-[160px] truncate text-sm text-slate-300 sm:inline">
                 {session.shopName}
               </span>
               <Link
                 href={ROUTES.dashboard}
                 className={`hidden text-sm sm:inline ${
                   activeNav === "dashboard"
-                    ? "font-semibold text-brand-950"
-                    : "text-brand-700 hover:text-brand-600"
+                    ? "font-semibold text-white"
+                    : "text-slate-300 hover:text-brand-200"
                 }`}
               >
                 대시보드
               </Link>
               <Link
+                href={ROUTES.missedCallsAnalytics}
+                className={`hidden text-sm sm:inline ${
+                  activeNav === "analytics"
+                    ? "font-semibold text-white"
+                    : "text-slate-300 hover:text-brand-200"
+                }`}
+              >
+                놓친 콜 분석
+              </Link>
+              <Link
                 href={ROUTES.settings}
                 className={`hidden text-sm sm:inline ${
                   activeNav === "settings"
-                    ? "font-semibold text-brand-950"
-                    : "text-brand-700 hover:text-brand-600"
+                    ? "font-semibold text-white"
+                    : "text-slate-300 hover:text-brand-200"
                 }`}
               >
                 연동 설정
@@ -59,7 +69,7 @@ export async function AppHeader({
           ) : (
             <Link
               href={ROUTES.login}
-              className="text-sm font-medium text-brand-700 hover:text-brand-600"
+              className="text-sm font-medium text-slate-300 hover:text-brand-200"
             >
               로그인
             </Link>

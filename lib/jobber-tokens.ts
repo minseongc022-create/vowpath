@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
+import { kvGetSafe } from "./kv-safe";
 import { useKvStore } from "./kv-config";
 
 export type JobberTokenRecord = {
@@ -44,7 +45,7 @@ export async function getJobberTokens(
   userId: string,
 ): Promise<JobberTokenRecord | null> {
   if (useKvStore()) {
-    return (await kv.get<JobberTokenRecord>(kvKey(userId))) ?? null;
+    return (await kvGetSafe<JobberTokenRecord>(kvKey(userId))) ?? null;
   }
   const store = await readFileStore();
   return store.tokens.find((t) => t.userId === userId) ?? null;

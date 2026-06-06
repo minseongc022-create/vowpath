@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       const phone = normalizeSmsPhone(phoneRaw);
       if (!phone) {
         return NextResponse.json(
-          { ok: false, error: "휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)" },
+          { ok: false, error: "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)" },
           { status: 400 },
         );
       }

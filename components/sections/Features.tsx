@@ -27,7 +27,7 @@ const icons = [
 
 export function Features() {
   return (
-    <section id="features" className="py-20 sm:py-24">
+    <section id="features" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading
           label={SECTION_LABELS.features}
@@ -36,12 +36,12 @@ export function Features() {
         />
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.items.map((item, i) => (
-            <article key={item.title} className="group hvac-card p-6 hover:border-brand-300">
-              <div className="hvac-icon-wrap transition group-hover:from-brand-200 group-hover:to-brand-100">
+            <article key={item.title} className="group vow-site-card p-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-600/15 text-violet-200">
                 {icons[i]}
               </div>
-              <h3 className="mt-4 text-base font-semibold text-brand-950">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 {item.description}
               </p>
             </article>

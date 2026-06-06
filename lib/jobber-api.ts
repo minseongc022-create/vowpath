@@ -1,4 +1,8 @@
 import type { GeneratedJobCard } from "./job-card-ai";
+import {
+  formatJobberAddress,
+  type JobberBookingRecord,
+} from "./jobber-bookings";
 import { getJobberGraphqlVersion } from "./jobber-config";
 import { refreshJobberAccessToken } from "./jobber-oauth";
 import {
@@ -45,6 +49,7 @@ async function jobberGraphql<T>(
       "X-JOBBER-GRAPHQL-VERSION": getJobberGraphqlVersion(),
     },
     body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(12_000),
   });
 
   const payload = (await response.json()) as {
@@ -75,7 +80,18 @@ async function getValidAccessToken(
     return { accessToken: record.accessToken, record };
   }
 
-  const refreshed = await refreshJobberAccessToken(record.refreshToken);
+  let refreshed;
+  try {
+    refreshed = await refreshJobberAccessToken(record.refreshToken);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "";
+    if (message === "JOBBER_REFRESH_FAILED") {
+      const { deleteJobberTokens } = await import("./jobber-tokens");
+      await deleteJobberTokens(userId);
+      throw new Error("JOBBER_NOT_CONNECTED");
+    }
+    throw e;
+  }
   const updated: JobberTokenRecord = {
     ...record,
     accessToken: refreshed.access_token,
@@ -132,6 +148,8 @@ export type JobberPushResult = {
   clientId: string;
   requestId: string;
   jobberWebUri?: string;
+  jobId?: string;
+  visitId?: string;
 };
 
 export async function pushJobCardToJobber(
@@ -265,4 +283,170 @@ export async function pushJobCardToJobber(
     requestId: request.id,
     jobberWebUri: request.jobberWebUri,
   };
+}
+
+type JobberRequestNode = {
+  id: string;
+  title?: string | null;
+  requestStatus: string;
+  contactName?: string | null;
+  phone?: string | null;
+  source: string;
+  createdAt: string;
+  jobberWebUri?: string | null;
+  client?: { id: string; name?: string | null } | null;
+  property?: {
+    address?: {
+      street1?: string;
+      street2?: string;
+      city?: string;
+      province?: string;
+      postalCode?: string;
+    } | null;
+  } | null;
+  jobs?: { nodes: { id: string }[] } | null;
+};
+
+const REQUESTS_PAGE_SIZE = 50;
+const MAX_REQUEST_PAGES = 20;
+
+const REQUESTS_QUERY = `
+  query JobberRequests($first: Int!, $after: String, $filter: RequestFilterAttributes) {
+    requests(
+      first: $first
+      after: $after
+      filter: $filter
+      sort: [{ key: REQUESTED_AT, direction: DESCENDING }]
+    ) {
+      nodes {
+        id
+        title
+        requestStatus
+        contactName
+        phone
+        source
+        createdAt
+        jobberWebUri
+        client { id name }
+        property { address { street1 street2 city province postalCode } }
+        jobs(first: 5) { nodes { id } }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+function normalizeRequestNode(node: JobberRequestNode): JobberBookingRecord {
+  const address = formatJobberAddress(node.property);
+  return {
+    requestId: node.id,
+    title: node.title?.trim() || "Work request",
+    customerName: node.contactName?.trim() || node.client?.name?.trim() || "Unknown",
+    address,
+    phone: node.phone?.trim() || undefined,
+    requestStatus: node.requestStatus,
+    source: node.source,
+    createdAt: node.createdAt,
+    jobberWebUri: node.jobberWebUri ?? undefined,
+    clientId: node.client?.id,
+    jobIds: node.jobs?.nodes.map((j) => j.id) ?? [],
+  };
+}
+
+function toIsoRange(start: Date, end: Date) {
+  return {
+    from: start.toISOString(),
+    to: end.toISOString(),
+  };
+}
+
+async function fetchRequestsPage(
+  accessToken: string,
+  after: string | null,
+  filter?: { createdAt: { from: string; to: string } },
+): Promise<{
+  nodes: JobberRequestNode[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+}> {
+  const data = await jobberGraphql<{
+    requests?: {
+      nodes: JobberRequestNode[];
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+    };
+  }>(accessToken, REQUESTS_QUERY, {
+    first: REQUESTS_PAGE_SIZE,
+    after,
+    filter: filter ?? null,
+  });
+
+  const requests = data.requests;
+  return {
+    nodes: requests?.nodes ?? [],
+    hasNextPage: requests?.pageInfo.hasNextPage ?? false,
+    endCursor: requests?.pageInfo.endCursor ?? null,
+  };
+}
+
+/** Fetch Jobber work requests for a date range (paginated, server-side filter with client fallback). */
+export async function fetchJobberRequestsInRange(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<JobberBookingRecord[]> {
+  const { accessToken } = await getValidAccessToken(userId);
+  const range = toIsoRange(start, end);
+  const collected: JobberBookingRecord[] = [];
+  let after: string | null = null;
+  let useClientFilter = false;
+
+  for (let page = 0; page < MAX_REQUEST_PAGES; page += 1) {
+    let nodes: JobberRequestNode[];
+    let hasNextPage: boolean;
+    let endCursor: string | null;
+
+    try {
+      const result = await fetchRequestsPage(
+        accessToken,
+        after,
+        useClientFilter ? undefined : { createdAt: range },
+      );
+      nodes = result.nodes;
+      hasNextPage = result.hasNextPage;
+      endCursor = result.endCursor;
+    } catch (e) {
+      if (!useClientFilter && page === 0) {
+        useClientFilter = true;
+        after = null;
+        continue;
+      }
+      throw e;
+    }
+
+    for (const node of nodes) {
+      const booking = normalizeRequestNode(node);
+      const created = new Date(booking.createdAt).getTime();
+      if (created >= start.getTime() && created <= end.getTime()) {
+        collected.push(booking);
+      }
+    }
+
+    if (useClientFilter) {
+      const oldest = nodes[nodes.length - 1];
+      if (oldest && new Date(oldest.createdAt).getTime() < start.getTime()) {
+        break;
+      }
+    }
+
+    if (!hasNextPage || !endCursor) break;
+    after = endCursor;
+  }
+
+  const byId = new Map<string, JobberBookingRecord>();
+  for (const booking of collected) {
+    byId.set(booking.requestId, booking);
+  }
+  return [...byId.values()].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }

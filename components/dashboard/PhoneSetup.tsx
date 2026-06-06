@@ -41,7 +41,16 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
       .catch(() => setUserId(null));
   }, []);
 
-  if (!status) return null;
+  if (!status) {
+    return (
+      <div className={`space-y-3 ${embedded ? "mt-3" : "mt-4"}`} aria-busy="true">
+        <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+        <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+        <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+        <p className="text-xs text-slate-500">전화 연동 상태 불러오는 중…</p>
+      </div>
+    );
+  }
 
   const webhookIsLocal =
     !status.webhookBase ||
@@ -194,7 +203,10 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
         </p>
       )}
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
+      <div
+        id="call-simulate"
+        className="mt-4 scroll-mt-24 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-2"
+      >
         <p className="text-xs text-slate-700">{copy.krTrialNote}</p>
         <p className="text-xs text-slate-600">{copy.ivrNote}</p>
         <p className="text-xs text-slate-600">{copy.costNote}</p>

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { inboundCalls as copy } from "@/lib/content";
-import { formatPriority } from "@/lib/priority-labels";
+import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
+import type { JobPriority } from "@/lib/types";
+
 type CallLogItem = {
   id: string;
   from: string;
-  priority?: "P1" | "P2" | "P3";
+  priority?: JobPriority;
   symptom?: string;
   customerName?: string;
   address?: string;
@@ -14,12 +16,6 @@ type CallLogItem = {
   jobberRequestId?: string;
   createdAt: string;
 };
-
-function priorityClass(p?: CallLogItem["priority"]) {
-  if (p === "P1") return "text-red-700 bg-red-50 border-red-100";
-  if (p === "P2") return "text-amber-800 bg-amber-50 border-amber-100";
-  return "text-slate-700 bg-slate-50 border-slate-200";
-}
 
 export function InboundCalls() {
   const [calls, setCalls] = useState<CallLogItem[]>([]);
@@ -71,11 +67,12 @@ export function InboundCalls() {
               className="rounded-lg border border-surface-border p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <span
-                  className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${priorityClass(call.priority)}`}
-                >
-                  {formatPriority(call.priority)} · {call.symptom ?? "Call"}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <PriorityBadge priority={call.priority} showCode />
+                  <span className="text-xs font-medium text-slate-700">
+                    {call.symptom ?? "Call"}
+                  </span>
+                </div>
                 <span className="text-xs text-slate-500">
                   {new Date(call.createdAt).toLocaleString()}
                 </span>

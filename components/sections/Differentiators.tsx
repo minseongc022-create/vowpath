@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export function Differentiators() {
   return (
-    <section id="differentiators" className="py-20 sm:py-24">
+    <section id="differentiators" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading
           title={differentiators.title}
@@ -16,10 +16,10 @@ export function Differentiators() {
           {differentiators.items.map((item) => (
             <article
               key={item.title}
-              className="hvac-card border-l-4 border-l-brand-500 p-5"
+              className="vow-site-card border-l-4 border-l-violet-500 p-5"
             >
-              <h3 className="font-semibold text-brand-950">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <h3 className="font-semibold text-white">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 {item.description}
               </p>
             </article>

@@ -11,15 +11,20 @@ import { parseDateInput } from "@/lib/dashboard-analytics";
 import { buildDashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
 import { buildMissedCallsAnalytics } from "@/lib/missed-calls-analytics";
 import { missedCallsTrendSubtitle } from "@/lib/missed-calls-chart-series";
+import { countWaitingCustomers } from "@/lib/booking-status-counts";
 import { buildRecentBookingsList } from "@/lib/recent-bookings";
 import {
-  countWaitingCustomers,
   isApprovedBooking,
   type RequestStatus,
 } from "@/lib/booking-policy";
 import { lookupStoredRequestStatus } from "@/lib/request-status-resolve";
 import { OwnerKpiCards } from "@/components/dashboard/OwnerKpiCards";
 import { CustomerVerificationRateKpi } from "@/components/dashboard/CustomerVerificationRateKpi";
+import { KpiDrilldownPanel } from "@/components/dashboard/KpiDrilldownPanel";
+import {
+  buildKpiDrilldownItems,
+  type KpiDrilldownId,
+} from "@/lib/kpi-drilldown";
 import {
   DashboardPeriodToolbar,
   type PeriodPresetOption,
@@ -50,6 +55,7 @@ export function DashboardHomeView() {
     () => matchAnalyticsPreset(defaultDashboardDateRange()) ?? "30d",
   );
   const [displayName, setDisplayName] = useState("");
+  const [activeKpi, setActiveKpi] = useState<KpiDrilldownId | null>(null);
 
   const {
     calls,
@@ -155,9 +161,31 @@ export function DashboardHomeView() {
   const periodLabel = formatDashboardPeriodLabel(dateRange.start, dateRange.end);
 
   const waitingCustomersNow = useMemo(
-    () => countWaitingCustomers(requestStatuses),
-    [requestStatuses],
+    () => countWaitingCustomers(requestStatuses, jobs, jobberBookings, calls),
+    [requestStatuses, jobs, jobberBookings, calls],
   );
+
+  const drilldownItems = useMemo(() => {
+    if (!activeKpi) return [];
+    return buildKpiDrilldownItems(activeKpi, {
+      calls: heroCalls,
+      jobs: heroJobs,
+      jobberBookings: heroJobberBookings,
+      requestStatuses,
+      shop,
+      dateRange,
+      customerVerifications,
+    });
+  }, [
+    activeKpi,
+    heroCalls,
+    heroJobs,
+    heroJobberBookings,
+    requestStatuses,
+    shop,
+    dateRange,
+    customerVerifications,
+  ]);
 
   const handleRangeChange = (next: DashboardDateRange) => {
     setDateRange(next);
@@ -210,14 +238,24 @@ export function DashboardHomeView() {
             waitingCustomersNow={waitingCustomersNow}
             loading={!hasLoaded && loading}
             dark
+            onCardClick={setActiveKpi}
           />
         </div>
         <CustomerVerificationRateKpi
           records={customerVerifications}
           loading={!hasLoaded && loading}
           dark
+          onClick={() => setActiveKpi("customerVerification")}
         />
       </div>
+
+      <KpiDrilldownPanel
+        open={activeKpi !== null}
+        kpiId={activeKpi}
+        items={drilldownItems}
+        periodLabel={periodLabel}
+        onClose={() => setActiveKpi(null)}
+      />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2">
@@ -247,17 +285,13 @@ export function DashboardHomeView() {
             />
           </div>
           <div className="vow-dash-chart-wrap-home vow-dash-chart-body">
-            {!hasLoaded && loading ? (
-              <p className="flex h-full items-center justify-center text-sm text-slate-500">
-                불러오는 중…
-              </p>
-            ) : (
+            <div className={!hasLoaded && loading ? "animate-pulse opacity-70" : ""}>
               <MissedCallsPreventedChart
                 data={trendChart.data}
                 theme="dark"
                 size="home"
               />
-            )}
+            </div>
           </div>
         </section>
         <DashboardCallInsights rows={metrics.insights} />
@@ -269,7 +303,7 @@ export function DashboardHomeView() {
             bookings={recent}
             calls={calls}
             requestStatuses={requestStatuses}
-            loading={loading}
+            loading={!hasLoaded && loading}
           />
         </div>
         <DashboardUpcomingBookings

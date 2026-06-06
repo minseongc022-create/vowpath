@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { settingsPage } from "@/lib/content";
 import {
   FORWARDING_PROVIDERS,
+  FORWARDING_PROVIDER_NOTE,
   FORWARDING_SCENARIOS,
   getForwardingGuideSteps,
   type ForwardingProviderId,
@@ -196,6 +197,7 @@ export function ForwardingSetup({
             <li key={step}>{step}</li>
           ))}
         </ol>
+        <p className="mt-4 text-xs leading-relaxed text-slate-500">{FORWARDING_PROVIDER_NOTE}</p>
       </div>
 
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
