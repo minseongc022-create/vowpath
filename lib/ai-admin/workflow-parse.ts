@@ -191,10 +191,25 @@ export async function analyzeWorkflowIntentAsync(
   query: string,
   locale: UiLocale = runtimeUiLocale(),
 ): Promise<AiAdminAnalysisResult | null> {
+  const keyword = analyzeWorkflowIntent(query, locale);
+  if (keyword) return keyword;
+
+  const q = normalize(query);
+  const looksLikeRule =
+    q.includes("approve") ||
+    q.includes("승인") ||
+    q.includes("urgent") ||
+    q.includes("긴급") ||
+    q.includes("weekend") ||
+    q.includes("주말") ||
+    q.includes("rule") ||
+    q.includes("규칙");
+  if (!looksLikeRule || q.length < 12) return null;
+
   const { parseWorkflowRuleWithLlm } = await import("../workflow-rules/llm-parse");
   const llmDraft = await parseWorkflowRuleWithLlm(query, locale);
   if (llmDraft) return previewFromDraft(llmDraft, locale);
-  return analyzeWorkflowIntent(query, locale);
+  return null;
 }
 
 export function isWorkflowMutationQuery(query: string): boolean {

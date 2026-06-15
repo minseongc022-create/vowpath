@@ -52,7 +52,7 @@ export function composeAssistantReply(params: {
 
   if (params.facts.bullets?.length) {
     for (const line of params.facts.bullets) {
-      parts.push(line);
+      parts.push(`• ${line}`);
     }
   }
 

@@ -24,6 +24,10 @@ import { getShopProfile } from "@/lib/shop-profile-db";
 import { findUserById } from "@/lib/users-db";
 import { listWorkflowRules } from "@/lib/workflow-rules/store";
 import { buildWorkflowSuggestion } from "@/lib/ai-admin/workflow-suggestions";
+import {
+  parseChatHistory,
+  resolveConversationFollowUp,
+} from "@/lib/ai-admin/conversation-followup";
 
 export const maxDuration = 25;
 
@@ -125,6 +129,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const proactive = Boolean(body?.proactive);
     const query = String(body?.query ?? body?.question ?? "").trim();
+    const history = parseChatHistory(body?.history);
 
     if (!proactive && !query) {
       return NextResponse.json({ error: "Question required" }, { status: 400 });
@@ -169,6 +174,24 @@ export async function POST(request: Request) {
         });
       }
       return NextResponse.json({ ok: true, ...response, response });
+    }
+
+    if (shouldRunAdminAnalyzer(query) || history.length > 0) {
+      const followUp = resolveConversationFollowUp({
+        query,
+        history,
+        workflowRules: pack.workflowRules,
+        locale,
+      });
+      if (followUp?.kind === "preview") {
+        const response = {
+          answer: followUp.answer,
+          adminPreview: followUp.preview,
+          actions: [],
+          suggestions: followUp.suggestions,
+        };
+        return NextResponse.json({ ok: true, ...response, response });
+      }
     }
 
     if (shouldRunAdminAnalyzer(query)) {

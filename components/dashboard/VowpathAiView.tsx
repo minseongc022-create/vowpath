@@ -436,6 +436,11 @@ export function VowpathAiView() {
   async function ask(question: string) {
     const q = question.trim();
     if (!q || loading) return;
+    const historyPayload = messages.slice(-10).map((m) =>
+      m.role === "user"
+        ? { role: "user" as const, text: m.content }
+        : { role: "assistant" as const, text: m.answer },
+    );
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), role: "user", content: q },
@@ -446,7 +451,7 @@ export function VowpathAiView() {
       const res = await fetch("/api/vowpath-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({ question: q, history: historyPayload }),
       });
       const data = (await res.json()) as Partial<VowpathAiResponse> & {
         error?: string;
