@@ -381,7 +381,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         <div className="mx-auto max-w-md">
           <button
             type="submit"
-            disabled={loading || slotsLoading || progress < 75}
+            disabled={loading || slotsLoading}
             className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white shadow-lg shadow-[#0c4a6e]/20 transition hover:bg-[#0a3d5c] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading || slotsLoading ? copy.slotStepLoading : copy.submit}
