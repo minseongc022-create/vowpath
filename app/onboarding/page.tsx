@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** 기존 /onboarding 링크 → 연동 설정 페이지로 통합 */
+/** Legacy /onboarding links redirect to integration settings */
 export default async function OnboardingPage({
   searchParams,
 }: {

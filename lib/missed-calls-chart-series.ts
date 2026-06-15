@@ -1,4 +1,5 @@
 import type { MissedCallsDailyPoint } from "./missed-calls-analytics";
+import { isEnglishUi } from "./locale";
 
 /** Line chart for ranges up to this many calendar days; bar chart above. */
 export const MISSED_CALLS_LINE_MAX_DAYS = 30;
@@ -29,12 +30,16 @@ function startOfMonth(d: Date): Date {
   return x;
 }
 
+function chartDateLocale(): string {
+  return isEnglishUi() ? "en-US" : "ko-KR";
+}
+
 function formatWeekLabel(d: Date): string {
-  return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+  return d.toLocaleDateString(chartDateLocale(), { month: "numeric", day: "numeric" });
 }
 
 function formatMonthLabel(d: Date, includeYear: boolean): string {
-  return d.toLocaleDateString("ko-KR", {
+  return d.toLocaleDateString(chartDateLocale(), {
     month: "short",
     ...(includeYear ? { year: "2-digit" } : {}),
   });
@@ -42,8 +47,9 @@ function formatMonthLabel(d: Date, includeYear: boolean): string {
 
 function formatPeriodRange(start: Date, end: Date): string {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const a = start.toLocaleDateString("ko-KR", opts);
-  const b = end.toLocaleDateString("ko-KR", opts);
+  const locale = chartDateLocale();
+  const a = start.toLocaleDateString(locale, opts);
+  const b = end.toLocaleDateString(locale, opts);
   return a === b ? a : `${a} – ${b}`;
 }
 
@@ -155,17 +161,25 @@ export function prepareMissedCallsChartData(
     return {
       data: aggregateWeekly(daily),
       mode,
-      granularityHint: "월요일 기준 · 주간 합계 (막대)",
+      granularityHint: isEnglishUi()
+        ? "Monday-based · weekly totals (bars)"
+        : "월요일 기준 · 주간 합계 (막대)",
     };
   }
   return {
     data: aggregateMonthly(daily),
     mode,
-    granularityHint: "월별 합계 (막대)",
+    granularityHint: isEnglishUi() ? "Monthly totals (bars)" : "월별 합계 (막대)",
   };
 }
 
 export function missedCallsTrendSubtitle(dayCount: number, mode: MissedCallsChartMode): string {
+  if (isEnglishUi()) {
+    if (mode === "line") return `${dayCount} days · daily · line chart`;
+    if (dayCount <= 45) return `${dayCount} days · daily · bar chart`;
+    if (dayCount <= 120) return `${dayCount} days · weekly · bar chart`;
+    return `${dayCount} days · monthly · bar chart`;
+  }
   if (mode === "line") return `${dayCount}일 · 일별 · 선 그래프`;
   if (dayCount <= 45) return `${dayCount}일 · 일별 · 막대 그래프`;
   if (dayCount <= 120) return `${dayCount}일 · 주간 · 막대 그래프`;

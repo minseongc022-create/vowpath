@@ -9,7 +9,7 @@ export async function resolveOwnerAlertPhone(userId: string): Promise<string | n
   const user = await findUserById(userId);
   const fromProfile = user?.phone?.trim();
   if (fromProfile) {
-    const normalized = normalizeOwnerAlertPhone(fromProfile);
+    const normalized = normalizeOwnerAlertPhone(fromProfile, user?.email);
     if (normalized) return normalized;
   }
 
@@ -29,7 +29,7 @@ export async function reportOwnerPhoneMisconfigured(params: {
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const raw = user?.phone?.trim();
-  if (!raw || normalizeOwnerAlertPhone(raw)) return;
+  if (!raw || normalizeOwnerAlertPhone(raw, user?.email)) return;
 
   const message = isKrSmsTestMode()
     ? "업체 휴대폰 형식을 확인하세요. 한국 테스트: 010-XXXX-XXXX, 미국: (512) 555-0100"

@@ -141,13 +141,39 @@ export async function submitCustomerVerificationCorrection(params: {
     params.session.bookingId,
   );
   if (record) {
+    const submittedAt = new Date().toISOString();
+    const changes = [
+      {
+        field: "customerName" as const,
+        originalValue: record.snapshot.customerName,
+        updatedValue: name,
+      },
+      {
+        field: "address" as const,
+        originalValue: record.snapshot.address,
+        updatedValue: address,
+      },
+      {
+        field: "issueType" as const,
+        originalValue: record.snapshot.issueType,
+        updatedValue: issue,
+      },
+    ].filter((change) => change.originalValue !== change.updatedValue);
+
     await saveCustomerVerification({
       ...record,
       snapshot: { customerName: name, address, issueType: issue },
+      corrections:
+        changes.length > 0
+          ? [
+              ...(record.corrections ?? []),
+              ...changes.map((change) => ({ ...change, submittedAt })),
+            ]
+          : record.corrections,
       timeline: [
         ...record.timeline,
         {
-          at: new Date().toISOString(),
+          at: submittedAt,
           message: "Customer submitted corrections via web form.",
         },
       ],

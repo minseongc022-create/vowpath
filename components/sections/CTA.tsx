@@ -1,4 +1,4 @@
-import { cta } from "@/lib/content";
+import { siteCta } from "@/lib/site-content";
 import { SITE } from "@/lib/constants";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
@@ -13,19 +13,21 @@ export function CTA() {
             aria-hidden
           />
           <div className="relative">
-            <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">
-              Residential HVAC · Jobber
-            </p>
+            {"eyebrow" in siteCta && siteCta.eyebrow ? (
+              <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">
+                {siteCta.eyebrow}
+              </p>
+            ) : null}
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl text-balance">
-              {cta.title}
+              {siteCta.title}
             </h2>
-            {cta.subtitle?.trim() ? (
+            {siteCta.subtitle?.trim() ? (
               <p className="mx-auto mt-4 max-w-lg text-lg text-slate-400">
-                {cta.subtitle}
+                {siteCta.subtitle}
               </p>
             ) : null}
             <div
-              className={`flex justify-center ${cta.subtitle?.trim() ? "mt-8" : "mt-6"}`}
+              className={`flex justify-center ${siteCta.subtitle?.trim() ? "mt-8" : "mt-6"}`}
             >
               <CheckoutButton
                 size="lg"
@@ -33,11 +35,11 @@ export function CTA() {
                 directCheckout
                 className="!border-white/25 !bg-white/10 !text-white hover:!bg-white/15"
               >
-                {cta.button}
+                {siteCta.button}
               </CheckoutButton>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              지원: {SITE.supportEmail}
+              Support: {SITE.supportEmail}
             </p>
           </div>
         </div>

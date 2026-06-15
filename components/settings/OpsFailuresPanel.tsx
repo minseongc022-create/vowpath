@@ -8,7 +8,7 @@ type CollapsedFailure = OpsFailureRecord & { repeatCount?: number };
 
 function formatWhen(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("ko-KR", {
+    return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
@@ -24,17 +24,17 @@ const CATEGORY_LABEL: Record<OpsFailureRecord["category"], string> = {
   ai: "AI",
   jobber: "Jobber",
   sms: "SMS",
-  email: "이메일",
-  address: "주소",
-  intake: "접수",
-  storage: "저장소",
+  email: "Email",
+  address: "Address",
+  intake: "Intake",
+  storage: "Storage",
 };
 
 function isTwilioSmsConfigError(row: CollapsedFailure): boolean {
   return (
     row.category === "sms" &&
     row.retryable &&
-    /twilio|문자 전송|문자 발송/i.test(row.message)
+    /twilio|sms send|sms delivery|문자 전송|문자 발송/i.test(row.message)
   );
 }
 
@@ -52,8 +52,8 @@ export function OpsFailuresPanel() {
       if (!res.ok) {
         setError(
           res.status === 401
-            ? "로그인 후 오류 기록을 볼 수 있습니다."
-            : "오류 기록을 불러오지 못했습니다.",
+            ? "Sign in to view error logs."
+            : "Could not load error logs.",
         );
         setFailures([]);
         return;
@@ -61,7 +61,7 @@ export function OpsFailuresPanel() {
       const data = (await res.json()) as { failures?: CollapsedFailure[] };
       setFailures(data.failures ?? []);
     } catch {
-      setError("네트워크 오류로 오류 기록을 불러오지 못했습니다.");
+      setError("Network error. Could not load error logs.");
       setFailures([]);
     } finally {
       setLoading(false);

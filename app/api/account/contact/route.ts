@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
 import { getSession } from "@/lib/session";
+import { isKrOwnerPhoneEmail } from "@/lib/owner-phone-policy";
 import {
   formatOwnerPhoneDisplay,
   isKrSmsTestMode,
@@ -21,13 +22,14 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const phoneE164 = normalizeOwnerAlertPhone(user.phone ?? "") ?? "";
+  const phoneE164 = normalizeOwnerAlertPhone(user.phone ?? "", user.email) ?? "";
   return NextResponse.json({
     email: user.email,
     phone: user.phone ?? "",
     phoneDisplay: phoneE164 ? formatOwnerPhoneDisplay(phoneE164) : "",
     contactComplete: isOwnerContactCompleteForSms(user),
     krTestMode: isKrSmsTestMode(),
+    krOwnerPhone: isKrOwnerPhoneEmail(user.email),
   });
 }
 
@@ -60,10 +62,11 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (!normalizeOwnerAlertPhone(phoneRaw)) {
+    const krPhoneAllowed = isKrSmsTestMode() || isKrOwnerPhoneEmail(email);
+    if (!normalizeOwnerAlertPhone(phoneRaw, email)) {
       return NextResponse.json(
         {
-          error: isKrSmsTestMode()
+          error: krPhoneAllowed
             ? "전화번호 형식을 확인해 주세요. (한국: 010-1234-5678 · 미국: (512) 555-0100)"
             : "미국 전화번호 형식을 확인해 주세요. (예: (512) 555-0100 또는 +1 512-555-0100)",
         },
@@ -82,7 +85,8 @@ export async function PATCH(request: Request) {
       shopName: user.shopName,
     });
 
-    const e164 = normalizeOwnerAlertPhone(user.phone ?? "") ?? user.phone ?? "";
+    const e164 =
+      normalizeOwnerAlertPhone(user.phone ?? "", user.email) ?? user.phone ?? "";
     const res = NextResponse.json({
       ok: true,
       email: user.email,
@@ -90,6 +94,7 @@ export async function PATCH(request: Request) {
       phoneDisplay: e164 ? formatOwnerPhoneDisplay(e164) : "",
       contactComplete: isOwnerContactCompleteForSms(user),
       krTestMode: isKrSmsTestMode(),
+      krOwnerPhone: isKrOwnerPhoneEmail(user.email),
     });
     res.cookies.set(sessionCookieOptions(token));
     return res;

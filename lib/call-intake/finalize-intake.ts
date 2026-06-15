@@ -4,11 +4,17 @@ import type { SlotOffer } from "../booking-settings";
 import { addJobRecord } from "../jobs-db";
 import type { GeneratedJobCard } from "../job-card-ai";
 import { logOperationFailure } from "../ops-failures";
-import { notifyOwnerNewRequest } from "../customer-sms";
+import { notifyCustomerRequestReceived, notifyOwnerNewRequest } from "../customer-sms";
 import { startCustomerVerification } from "../customer-verification/flow";
 import { getShopBookingSettings } from "../shop-settings-db";
+import {
+  extractZipFromAddress,
+  isZipInServiceArea,
+  serviceAreaRejectMessage,
+} from "../service-area";
+import { findUserById } from "../users-db";
 import { applyCustomerChosenSchedule } from "../scheduling/apply-schedule";
-import { looksLikeSpamCall } from "../spam-call-filter";
+import { upsertCallMemory } from "../call-memory";
 import {
   recordCallSignalEvents,
   recordServiceRequestCreated,
@@ -23,6 +29,7 @@ export type FinalizeIntakeOptions = {
   /** Phone intake sends YES/NO verification SMS by default; set false to skip */
   sendCustomerVerificationSms?: boolean;
   selectedSlot?: SlotOffer | null;
+  afterHours?: boolean;
 };
 
 function toJobCard(payload: VerifiedCallPayload): GeneratedJobCard {
@@ -55,9 +62,19 @@ export async function finalizeVerifiedIntake(
   const card = toJobCard(payload);
   const settings = await getShopBookingSettings(userId);
   const schedulingActive = settings.schedulingEnabled;
-  const isSpam =
-    settings.spamFilterEnabled &&
-    looksLikeSpamCall(payload.transcript, payload.symptom);
+
+  if (settings.serviceAreaZips.length > 0 && payload.address) {
+    const zip = extractZipFromAddress(payload.address);
+    if (!isZipInServiceArea(zip, settings.serviceAreaZips)) {
+      const user = await findUserById(userId);
+      return {
+        card,
+        callLogId: "",
+        serviceAreaRejected: true,
+        rejectMessage: serviceAreaRejectMessage(user?.shopName),
+      };
+    }
+  }
 
   const callLogId = crypto.randomUUID();
   try {
@@ -128,6 +145,24 @@ export async function finalizeVerifiedIntake(
   }
 
   const bookingId = `call-${callLogId}`;
+
+  try {
+    await upsertCallMemory({
+      userId,
+      callId: callLogId,
+      bookingId,
+      customerName: payload.customerName,
+      phoneNumber: payload.callbackPhone,
+      issue: payload.issueType || payload.symptom,
+      requestedTime: payload.arrivalWindow,
+      summary: payload.aiSummary || payload.dispatchNotes || payload.transcript,
+      bookingStatus: initialRequestStatusAfterIntake(),
+      priority: payload.priority,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn("[finalize-intake] call memory", e);
+  }
 
   if (schedulingActive) {
     try {
@@ -212,7 +247,7 @@ export async function finalizeVerifiedIntake(
     }
   }
 
-  if (!schedulingActive && !isSpam) {
+  if (!schedulingActive) {
     try {
       await notifyOwnerNewRequest({
         userId,
@@ -226,6 +261,19 @@ export async function finalizeVerifiedIntake(
       });
     } catch (e) {
       console.warn("[finalize-intake] owner new request sms", e);
+    }
+  }
+
+  if (options.afterHours && customerPhone && !sendCustomerVerification) {
+    try {
+      await notifyCustomerRequestReceived({
+        userId,
+        bookingId,
+        phone: customerPhone,
+        afterHours: true,
+      });
+    } catch (e) {
+      console.warn("[finalize-intake] after-hours customer sms", e);
     }
   }
 

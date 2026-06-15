@@ -20,6 +20,23 @@ export function IconRequests({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function IconBriefing({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+      <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V7.414A2 2 0 0017.414 6L15 3.586A2 2 0 0013.586 3H4zm2 5a1 1 0 000 2h8a1 1 0 100-2H6zm0 4a1 1 0 100 2h5a1 1 0 100-2H6z" />
+    </svg>
+  );
+}
+
+export function IconVowpathAi({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+      <path d="M10 2a1 1 0 01.894.553l1.382 2.764 3.052.443a1 1 0 01.554 1.705l-2.209 2.153.522 3.04a1 1 0 01-1.451 1.054L10 12.27l-2.744 1.442a1 1 0 01-1.45-1.054l.521-3.04-2.209-2.153A1 1 0 014.672 5.76l3.052-.443 1.382-2.764A1 1 0 0110 2z" />
+      <path d="M4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" />
+    </svg>
+  );
+}
+
 export function IconMissedCalls({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="currentColor" aria-hidden>

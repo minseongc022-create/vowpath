@@ -1,5 +1,5 @@
 import { DEFAULT_BOOKING_MODE } from "./booking-policy";
-import type { JobCard, ShopState } from "./types";
+import type { AnswerWindow, JobCard, ShopState } from "./types";
 
 export const SHOP_STORAGE_KEY = "nightcall_shop";
 export const JOBS_STORAGE_KEY = "nightcall_jobs";
@@ -17,26 +17,65 @@ export function getDefaultShopState(): ShopState {
   return { ...defaultShop, scheduleWindows: [] };
 }
 
+/** Drop null/invalid rows so schedule parsing never reads `.value` on garbage. */
+export function sanitizeScheduleWindows(windows: unknown): AnswerWindow[] {
+  if (!Array.isArray(windows)) return [];
+  const out: AnswerWindow[] = [];
+  for (let i = 0; i < windows.length; i++) {
+    const row = windows[i];
+    if (!row || typeof row !== "object") continue;
+    const value = (row as AnswerWindow).value;
+    const label = (row as AnswerWindow).label;
+    if (typeof value !== "string" || typeof label !== "string") continue;
+    const id = (row as AnswerWindow).id;
+    out.push({
+      id: typeof id === "string" && id.trim() ? id : `w-${i + 1}`,
+      label,
+      value,
+    });
+  }
+  return out;
+}
+
+/** Coerce corrupt/null scheduleWindows so dashboard analytics never crash on `.length`. */
+export function normalizeShopState(
+  state?: Partial<ShopState> | null,
+): ShopState {
+  const base = getDefaultShopState();
+  if (!state) return base;
+  const merged: ShopState = {
+    ...base,
+    ...state,
+    scheduleWindows: sanitizeScheduleWindows(state.scheduleWindows),
+  };
+  if (
+    merged.scheduleWindows.length > 0 &&
+    state.answerScheduleActive === undefined &&
+    merged.answerScheduleActive === false
+  ) {
+    merged.answerScheduleActive = true;
+  }
+  return merged;
+}
+
 export function readShopState(): ShopState {
   if (typeof window === "undefined") return getDefaultShopState();
   try {
     const raw = localStorage.getItem(SHOP_STORAGE_KEY);
     if (!raw) return getDefaultShopState();
-    const parsed = { ...getDefaultShopState(), ...JSON.parse(raw) } as ShopState;
-    if (
-      parsed.scheduleWindows.length > 0 &&
-      (parsed as { answerScheduleActive?: boolean }).answerScheduleActive === undefined
-    ) {
-      parsed.answerScheduleActive = true;
+    const normalized = normalizeShopState(JSON.parse(raw) as Partial<ShopState>);
+    const repaired = JSON.stringify(normalized);
+    if (repaired !== raw) {
+      localStorage.setItem(SHOP_STORAGE_KEY, repaired);
     }
-    return parsed;
+    return normalized;
   } catch {
     return getDefaultShopState();
   }
 }
 
 export function writeShopState(state: ShopState) {
-  localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(SHOP_STORAGE_KEY, JSON.stringify(normalizeShopState(state)));
 }
 
 export function readJobs(): JobCard[] {

@@ -1,3 +1,4 @@
+import { isKrOwnerPhoneEmail } from "./owner-phone-policy";
 import { normalizeSmsPhone } from "./phone";
 import {
   isValidBusinessEmail,
@@ -52,9 +53,19 @@ export function normalizeKrBusinessPhone(input: string): string | null {
   return normalized;
 }
 
-/** Owner alert destination: US +1 in production; US or KR in dev test mode. */
-export function normalizeOwnerAlertPhone(input: string): string | null {
-  if (isKrSmsTestMode()) {
+function ownerMayUseKrPhone(ownerEmail?: string): boolean {
+  return (
+    isKrSmsTestMode() ||
+    (ownerEmail ? isKrOwnerPhoneEmail(ownerEmail) : false)
+  );
+}
+
+/** Owner alert destination: US +1 by default; KR for dev test or allowlisted owner emails. */
+export function normalizeOwnerAlertPhone(
+  input: string,
+  ownerEmail?: string,
+): string | null {
+  if (ownerMayUseKrPhone(ownerEmail)) {
     return (
       normalizeKrBusinessPhone(input) ?? normalizeUsBusinessPhone(input) ?? null
     );
@@ -97,6 +108,6 @@ export function isOwnerContactCompleteForSms(user: {
 }): boolean {
   return (
     isValidBusinessEmail(user.email ?? "") &&
-    normalizeOwnerAlertPhone(user.phone ?? "") !== null
+    normalizeOwnerAlertPhone(user.phone ?? "", user.email) !== null
   );
 }

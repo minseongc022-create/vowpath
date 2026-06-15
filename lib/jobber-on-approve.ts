@@ -13,6 +13,7 @@ import type { CallRecord } from "./operations-analytics";
 import { logOperationFailure } from "./ops-failures";
 import { setRequestStatusesBulk } from "./requests-db";
 import { resolvePriorityFields } from "./service-priority";
+import { appendTenantEvent } from "./tenant-events";
 import type { JobCard } from "./types";
 
 function callsFromLogs(logs: StoredCallLog[]): CallRecord[] {
@@ -184,6 +185,19 @@ export async function pushJobberWhenApproved(
     const aliases = bookingStatusAliasIds(primaryId, updatedJobs, calls);
     const bulk = Object.fromEntries(aliases.map((id) => [id, status]));
     await setRequestStatusesBulk(userId, bulk);
+    try {
+      await appendTenantEvent({
+        userId,
+        type: "booking_jobber_synced",
+        title: "Jobber synced",
+        body: `Jobber request ${requestId}`,
+        bookingId,
+        href: `/dashboard/bookings/${encodeURIComponent(bookingId)}`,
+        urgency: "medium",
+      });
+    } catch (eventError) {
+      console.warn("[jobber-on-approve] timeline event", eventError);
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : "Jobber push on approve failed";
     await logOperationFailure({

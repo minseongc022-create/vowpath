@@ -1,4 +1,4 @@
-import { pricing } from "@/lib/content";
+import { sitePricing as pricing } from "@/lib/site-content";
 import type { PlanId } from "@/lib/constants";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";

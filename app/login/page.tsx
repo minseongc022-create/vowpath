@@ -52,7 +52,7 @@ export default function LoginPage() {
     <div className="vow-app-shell">
       <AppHeader />
       <Container className="py-12 sm:py-16">
-        <Suspense fallback={<div className="text-center text-slate-500">로딩…</div>}>
+        <Suspense fallback={<div className="text-center text-slate-500">Loading…</div>}>
           <LoginForm />
         </Suspense>
       </Container>

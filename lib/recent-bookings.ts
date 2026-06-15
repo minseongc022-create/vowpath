@@ -21,6 +21,7 @@ import {
   priorityDisplayLabel,
   type PriorityDisplayLabel,
 } from "./priority-display";
+import { isEnglishUi } from "./locale";
 import type { JobCard, JobPriority } from "./types";
 import type { ServicePriority } from "./service-priority";
 
@@ -74,7 +75,10 @@ export function formatCityState(address: string): string {
 }
 
 /** Pull human-readable issue from symptom or Jobber pipe-title. */
-export function extractIssueType(symptom: string, fallback = "서비스 요청"): string {
+export function extractIssueType(
+  symptom: string,
+  fallback = isEnglishUi() ? "Service request" : "서비스 요청",
+): string {
   const raw = symptom.trim();
   if (!raw) return fallback;
 
@@ -158,7 +162,10 @@ function callToRecentBooking(call: CallRecord): RecentBooking {
     customerName: localizeCustomerName(
       call.customerName || call.from || "Unknown customer",
     ),
-    issueType: extractIssueType(call.symptom ?? "", "인바운드 콜"),
+    issueType: extractIssueType(
+      call.symptom ?? "",
+      isEnglishUi() ? "Inbound call" : "인바운드 콜",
+    ),
     cityState: formatCityState(call.address ?? ""),
     priority: pf.priority,
     servicePriority: pf.servicePriority,
@@ -251,7 +258,7 @@ export function findRecentBooking(
 /** Street line for list headlines (comma-separated address → first segment). */
 export function bookingStreetLabel(address: string): string {
   const raw = address?.trim();
-  if (!raw || raw === "—") return "주소 미확인";
+  if (!raw || raw === "—") return isEnglishUi() ? "Address pending" : "주소 미확인";
   const parsed = parseUsAddress(raw);
   const street = koAddress(parsed.street1);
   if (street && street !== "—" && !/unknown|미확인/i.test(street)) {
@@ -281,7 +288,7 @@ export function formatBookingListSubtitle(booking: RecentBooking): string {
 export function formatBookingLocalDateTime(iso: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "—";
-  return at.toLocaleString("ko-KR", {
+  return at.toLocaleString(isEnglishUi() ? "en-US" : "ko-KR", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -294,15 +301,27 @@ export function formatBookingRelativeAgo(iso: string, nowMs = Date.now()): strin
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "—";
   const diff = nowMs - at.getTime();
-  if (diff < 0) return "방금";
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return sec <= 1 ? "방금" : `${sec}초 전`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}일 전`;
+  if (isEnglishUi()) {
+    if (diff < 0) return "Just now";
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return sec <= 1 ? "Just now" : `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return `${day}d ago`;
+  } else {
+    if (diff < 0) return "방금";
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return sec <= 1 ? "방금" : `${sec}초 전`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return `${day}일 전`;
+  }
   return formatBookingLocalDateTime(iso);
 }
 

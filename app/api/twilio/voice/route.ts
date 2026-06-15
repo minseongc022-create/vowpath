@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isTenantAfterHours } from "@/lib/after-hours";
 import {
   DEFAULT_SHOP_DISPLAY_NAME,
   shopDisplayNameForUser,
@@ -23,18 +24,21 @@ export async function POST(request: Request) {
   }
 
   let shopName = DEFAULT_SHOP_DISPLAY_NAME;
+  let afterHours = false;
   const userId = await resolveTenantUserId({ to, callSid });
   if (userId) {
     shopName = await shopDisplayNameForUser(userId);
+    afterHours = await isTenantAfterHours(userId);
   }
 
   const base = getTwilioWebhookBaseUrl();
-  const channelUrl = `${base}/api/twilio/channel`;
+  const afterQ = afterHours ? "&afterHours=1" : "";
+  const channelUrl = `${base}/api/twilio/channel?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const recordingUrl = `${base}/api/twilio/recording`;
 
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
-      twimlGatherChannelChoice(channelUrl, shopName),
+      twimlGatherChannelChoice(channelUrl, shopName, afterHours),
   );
 
   return new NextResponse(twiml, {

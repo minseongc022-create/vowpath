@@ -16,10 +16,10 @@ export function bookingListStatusDisplay(
 ): { label: string; kind: ListStatusKind } | null {
   const s = normalizeRequestStatus(status ?? "pending_review");
   if (isPendingShopReview(s)) {
-    return { label: "검토 필요", kind: "review" };
+    return { label: "Needs review", kind: "review" };
   }
   if (isApprovedBooking(s)) {
-    return { label: "승인됨", kind: "approved" };
+    return { label: "Approved", kind: "approved" };
   }
   return null;
 }

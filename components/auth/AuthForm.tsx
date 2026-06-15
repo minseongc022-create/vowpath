@@ -77,12 +77,12 @@ export function AuthForm({
   const [phone, setPhone] = useState("");
 
   const copy: FormCopy = formCopy ?? {
-    passwordConfirmLabel: "비밀번호 확인",
-    passwordMismatch: "비밀번호 확인이 일치하지 않습니다.",
-    loading: "처리 중…",
-    errorGeneric: "요청에 실패했습니다.",
-    errorNetwork: "네트워크 오류. 잠시 후 다시 시도해 주세요.",
-    backHome: "← 홈으로",
+    passwordConfirmLabel: "Confirm password",
+    passwordMismatch: "Passwords do not match.",
+    loading: "Working…",
+    errorGeneric: "Request failed.",
+    errorNetwork: "Network error. Please try again shortly.",
+    backHome: "← Back to home",
   };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -198,7 +198,7 @@ export function AuthForm({
                   htmlFor="login-identifier"
                   className="block text-sm font-medium text-slate-800"
                 >
-                  {loginMethod === "phone" ? loginCopy.phoneLabel : fields[0]?.label ?? "이메일"}
+                  {loginMethod === "phone" ? loginCopy.phoneLabel : fields[0]?.label ?? "Email"}
                 </label>
                 <input
                   id="login-identifier"

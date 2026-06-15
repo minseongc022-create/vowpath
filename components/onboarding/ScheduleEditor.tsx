@@ -16,7 +16,7 @@ type ScheduleEditorProps = {
   onChange: (rows: ScheduleRow[]) => void;
   alwaysOn?: boolean;
   onAlwaysOnChange?: (alwaysOn: boolean) => void;
-  /** 설정 페이지용: 드롭다운으로 높이 축소 (2·3단계가 한 화면에 보이도록) */
+  /** Settings page: compact dropdown height so steps 2–3 fit on one screen */
   compact?: boolean;
 };
 
@@ -146,7 +146,7 @@ export function ScheduleEditor({
                   value={row.startHour}
                   onChange={(e) => updateRow(row.id, { startHour: Number(e.target.value) })}
                   className={selectClass}
-                  aria-label="시작 시"
+                  aria-label="Start hour"
                 >
                   {HOURS.map((h) => (
                     <option key={h} value={h} className="text-slate-900">
@@ -165,7 +165,7 @@ export function ScheduleEditor({
                   value={row.startMinute}
                   onChange={(e) => updateRow(row.id, { startMinute: Number(e.target.value) })}
                   className={selectClass}
-                  aria-label="시작 분"
+                  aria-label="Start minute"
                 >
                   {MINUTES.map((m) => (
                     <option key={m} value={m} className="text-slate-900">
@@ -186,7 +186,7 @@ export function ScheduleEditor({
                   value={row.endHour}
                   onChange={(e) => updateRow(row.id, { endHour: Number(e.target.value) })}
                   className={selectClass}
-                  aria-label="종료 시"
+                  aria-label="End hour"
                 >
                   {HOURS.map((h) => (
                     <option key={h} value={h} className="text-slate-900">
@@ -205,7 +205,7 @@ export function ScheduleEditor({
                   value={row.endMinute}
                   onChange={(e) => updateRow(row.id, { endMinute: Number(e.target.value) })}
                   className={selectClass}
-                  aria-label="종료 분"
+                  aria-label="End minute"
                 >
                   {MINUTES.map((m) => (
                     <option key={m} value={m} className="text-slate-900">

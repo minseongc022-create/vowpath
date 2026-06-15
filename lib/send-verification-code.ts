@@ -20,13 +20,25 @@ export async function sendSignupCodeEmail(email: string, code: string) {
   });
 }
 
-export async function sendSignupCodeSms(phone: string, code: string) {
-  return sendSms(
-    phone,
-    `[Vowpath] 회원가입 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
-    "Signup verification SMS",
-    { strict: true },
-  );
+export async function sendSignupCodeSms(
+  phone: string,
+  code: string,
+  options?: { allowKrRecipient?: boolean },
+) {
+  const body = `[Vowpath] 회원가입 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`;
+  const result = await sendSms(phone, body, "Signup verification SMS", {
+    strict: true,
+    usRecipientsOnly: options?.allowKrRecipient ? false : undefined,
+  });
+
+  if (result.ok) return result;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[dev] Signup verification SMS → ${phone}: ${code}`);
+    return { ok: true as const };
+  }
+
+  return result;
 }
 
 export async function sendResetCodeEmail(email: string, code: string) {

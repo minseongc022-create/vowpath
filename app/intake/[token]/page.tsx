@@ -18,7 +18,7 @@ export async function generateMetadata({
   const session = await getLinkIntakeSession(token);
   const shopName = session?.shopName?.trim();
   return {
-    title: shopName ? `${shopName} · 서비스 요청` : "서비스 요청 | Vowpath",
+    title: shopName ? `${shopName} · Service request` : "Service request | Vowpath",
     description: copy.formDescription,
   };
 }

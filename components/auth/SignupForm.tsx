@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authPages } from "@/lib/content";
 import { ROUTES } from "@/lib/constants";
+import {
+  ownerSignupPhoneHint,
+  ownerSignupPhonePlaceholder,
+} from "@/lib/owner-phone-policy";
 
 type Step = "details" | "verify";
 
@@ -163,7 +167,7 @@ export function SignupForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8">
+      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8 text-slate-900">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand-600">
           <span className={step === "details" ? "text-brand-700" : ""}>{p.step1Label}</span>
           <span className="text-slate-300">→</span>
@@ -245,31 +249,33 @@ export function SignupForm() {
               />
             </div>
 
-            <fieldset className="space-y-2 rounded-xl border border-brand-200/80 bg-brand-50/60 p-4 shadow-inner-soft">
-              <legend className="px-1 text-sm font-semibold text-brand-900">
+            <fieldset className="space-y-2 rounded-xl border border-brand-200/80 bg-white p-4 shadow-inner-soft">
+              <legend className="px-1 text-sm font-semibold text-slate-950">
                 {p.verifyChannelLabel}
               </legend>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2.5 text-sm shadow-sm transition has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-950 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input
                   type="radio"
                   name="channel"
                   value="email"
                   checked={channel === "email"}
                   onChange={() => setChannel("email")}
+                  className="accent-brand-600"
                 />
-                {p.verifyChannelEmail}
+                <span className="text-slate-950">{p.verifyChannelEmail}</span>
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-surface-border bg-white px-3 py-2.5 text-sm shadow-sm transition has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-950 has-[:checked]:ring-2 has-[:checked]:ring-brand-200">
                 <input
                   type="radio"
                   name="channel"
                   value="sms"
                   checked={channel === "sms"}
                   onChange={() => setChannel("sms")}
+                  className="accent-brand-600"
                 />
-                {p.verifyChannelSms}
+                <span className="text-slate-950">{p.verifyChannelSms}</span>
               </label>
-              <p className="text-xs text-slate-600">{p.verifyChannelHint}</p>
+              <p className="text-xs font-medium text-slate-700">{p.verifyChannelHint}</p>
             </fieldset>
 
             <div>
@@ -281,12 +287,14 @@ export function SignupForm() {
                 type="tel"
                 required
                 autoComplete="tel"
-                placeholder={p.phonePlaceholder}
+                placeholder={ownerSignupPhonePlaceholder(email)}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="hvac-input mt-1.5"
               />
-              <p className="mt-1 text-xs text-slate-500">{p.phoneHintRequired}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {ownerSignupPhoneHint(email)}
+              </p>
             </div>
 
             {error ? <ErrorBox message={error} /> : null}

@@ -1,13 +1,24 @@
 import type { JobPriority } from "./types";
+import { isEnglishUi } from "./locale";
 
 /** UI label mapped from stored P1 / P2 / P3. */
-export type PriorityDisplayLabel = "긴급" | "일반" | "정기";
+export type PriorityDisplayLabel = "Emergency" | "Standard" | "Routine" | "긴급" | "일반" | "정기";
 
-export const PRIORITY_DISPLAY_LABEL: Record<JobPriority, PriorityDisplayLabel> = {
+const PRIORITY_DISPLAY_LABEL_EN: Record<JobPriority, PriorityDisplayLabel> = {
+  P1: "Emergency",
+  P2: "Standard",
+  P3: "Routine",
+};
+
+const PRIORITY_DISPLAY_LABEL_KO: Record<JobPriority, PriorityDisplayLabel> = {
   P1: "긴급",
   P2: "일반",
   P3: "정기",
 };
+
+export const PRIORITY_DISPLAY_LABEL: Record<JobPriority, PriorityDisplayLabel> = isEnglishUi()
+  ? PRIORITY_DISPLAY_LABEL_EN
+  : PRIORITY_DISPLAY_LABEL_KO;
 
 export const PRIORITY_BADGE_CLASS: Record<JobPriority, string> = {
   P1: "bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30",

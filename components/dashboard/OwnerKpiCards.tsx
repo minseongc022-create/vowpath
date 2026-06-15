@@ -2,6 +2,7 @@
 
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
 import { dashboardUi } from "@/lib/content";
+import { isEnglishUi } from "@/lib/locale";
 import type { KpiDrilldownId } from "@/lib/kpi-drilldown";
 import { displayOwnerKpiValue } from "@/lib/owner-dashboard-kpi";
 import {
@@ -91,7 +92,7 @@ export function OwnerKpiCards({
           isWaiting && waitingCustomersNow !== undefined
             ? waitingCustomersNow
             : totals[id];
-        const cardPeriodLabel = isWaiting ? "현재" : periodLabel;
+        const cardPeriodLabel = isWaiting ? (isEnglishUi() ? "Now" : "현재") : periodLabel;
 
         return (
           <OwnerKpiCard

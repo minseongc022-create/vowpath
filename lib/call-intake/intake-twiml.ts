@@ -7,6 +7,7 @@ import {
   twimlResponse,
   twimlSay,
 } from "../twilio-xml";
+import { afterHoursPhoneGoodbye } from "../after-hours-intake";
 import {
   CUSTOMER_REQUEST_RECEIVED_MESSAGE,
   CUSTOMER_SLOT_CONFIRMED_MESSAGE,
@@ -82,7 +83,13 @@ export function twimlForIntakeState(state: CallIntakeState): string {
   return twimlResponse(twimlSay(CUSTOMER_REQUEST_RECEIVED_MESSAGE));
 }
 
-export function twimlGoodbyeAfterCommit(hasSlot?: boolean): string {
+export function twimlGoodbyeAfterCommit(
+  hasSlot?: boolean,
+  afterHours?: boolean,
+): string {
+  if (afterHours && !hasSlot) {
+    return twimlResponse(twimlSay(afterHoursPhoneGoodbye()));
+  }
   const msg = hasSlot
     ? CUSTOMER_SLOT_CONFIRMED_MESSAGE
     : CUSTOMER_REQUEST_RECEIVED_MESSAGE;
@@ -99,7 +106,13 @@ export function parseDtmfYesNo(digit: string | null): "yes" | "no" | null {
   return null;
 }
 
-export function intakeUrlForMenu(priority: string): string {
+export function intakeUrlForMenu(priority: string, afterHours = false): string {
   const base = getTwilioWebhookBaseUrl();
-  return `${base}/api/twilio/intake?phase=collect&priority=${priority}&attempt=1`;
+  const q = new URLSearchParams({
+    phase: "collect",
+    priority,
+    attempt: "1",
+  });
+  if (afterHours) q.set("afterHours", "1");
+  return `${base}/api/twilio/intake?${q.toString()}`;
 }

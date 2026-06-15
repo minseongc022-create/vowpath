@@ -1,5 +1,6 @@
 import type { DashboardDateRange } from "@/components/dashboard/DashboardDateRangePicker";
 import { toDateInputValue } from "./dashboard-analytics";
+import { isEnglishUi } from "./locale";
 import {
   resolveMissedCallsAnalyticsRange,
   type MissedCallsAnalyticsPreset,
@@ -20,11 +21,12 @@ export function formatDashboardPeriodLabel(start: string, end: string): string {
   const e = new Date(`${end}T12:00:00`);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const yearOpts: Intl.DateTimeFormatOptions = { ...opts, year: "numeric" };
+  const locale = isEnglishUi() ? "en-US" : "ko-KR";
   const a = s.toLocaleDateString(
-    "ko-KR",
+    locale,
     s.getFullYear() !== e.getFullYear() ? yearOpts : opts,
   );
-  const b = e.toLocaleDateString("ko-KR", yearOpts);
+  const b = e.toLocaleDateString(locale, yearOpts);
   return a === b ? a : `${a} – ${b}`;
 }
 

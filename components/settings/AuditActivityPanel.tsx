@@ -8,7 +8,7 @@ import type { TenantEvent } from "@/lib/tenant-events";
 
 function formatWhen(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("ko-KR", {
+    return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
@@ -31,23 +31,23 @@ export function AuditActivityPanel() {
       const res = await fetch("/api/audit?days=30", { credentials: "same-origin" });
       if (!res.ok) {
         if (res.status === 401) {
-          setError("활동 기록을 보려면 로그인해 주세요.");
+          setError("Sign in to view activity history.");
           setEvents([]);
           return;
         }
         if (res.status === 503) {
-          setError("프로덕션에서는 Vercel KV가 필요합니다.");
+          setError("Vercel KV is required in production.");
           setEvents([]);
           return;
         }
-        setError("활동 기록을 불러오지 못했습니다.");
+        setError("Could not load activity history.");
         setEvents([]);
         return;
       }
       const data = (await res.json()) as { events?: TenantEvent[] };
       setEvents(data.events ?? []);
     } catch {
-      setError("활동 기록을 불러오는 중 네트워크 오류가 발생했습니다.");
+      setError("Network error while loading activity history.");
       setEvents([]);
     } finally {
       setLoading(false);

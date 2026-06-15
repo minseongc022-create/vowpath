@@ -117,9 +117,10 @@ export function countMissedCallsPrevented(
     ? filterByDateRange(calls, range.start, range.end)
     : calls;
 
+  const scheduleWindows = Array.isArray(shop.scheduleWindows) ? shop.scheduleWindows : [];
   const scheduleRows =
-    shop.answerScheduleActive && shop.scheduleWindows.length > 0
-      ? parseShopScheduleRows(shop.scheduleWindows)
+    shop.answerScheduleActive && scheduleWindows.length > 0
+      ? parseShopScheduleRows(scheduleWindows)
       : [];
 
   let count = 0;

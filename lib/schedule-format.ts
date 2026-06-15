@@ -1,3 +1,5 @@
+import { isEnglishUi } from "./locale";
+
 export type ScheduleRow = {
   id: string;
   days: number[];
@@ -8,9 +10,21 @@ export type ScheduleRow = {
   alwaysOn?: boolean;
 };
 
-export const SCHEDULE_ALWAYS_ON_LABEL = "24시간 Vowpath가 전화를 받습니다";
+export const SCHEDULE_ALWAYS_ON_LABEL = isEnglishUi()
+  ? "Vowpath answers calls 24/7"
+  : "24시간 Vowpath가 전화를 받습니다";
 
-export const DAY_OPTIONS = [
+const DAY_OPTIONS_EN = [
+  { id: 0, label: "Sun" },
+  { id: 1, label: "Mon" },
+  { id: 2, label: "Tue" },
+  { id: 3, label: "Wed" },
+  { id: 4, label: "Thu" },
+  { id: 5, label: "Fri" },
+  { id: 6, label: "Sat" },
+] as const;
+
+const DAY_OPTIONS_KO = [
   { id: 0, label: "일" },
   { id: 1, label: "월" },
   { id: 2, label: "화" },
@@ -19,6 +33,8 @@ export const DAY_OPTIONS = [
   { id: 5, label: "금" },
   { id: 6, label: "토" },
 ] as const;
+
+export const DAY_OPTIONS = isEnglishUi() ? DAY_OPTIONS_EN : DAY_OPTIONS_KO;
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export const MINUTES = [0, 10, 20, 30, 40, 50];
@@ -45,11 +61,17 @@ export function isOvernight(row: ScheduleRow) {
 
 export function formatScheduleSentence(row: ScheduleRow): string {
   if (row.alwaysOn) return SCHEDULE_ALWAYS_ON_LABEL;
-  const days = dayText(row.days) || "요일 미선택";
+  const days = dayText(row.days) || (isEnglishUi() ? "No days selected" : "요일 미선택");
   const start = formatTime(row.startHour, row.startMinute);
   const end = formatTime(row.endHour, row.endMinute);
-  const endLabel = isOvernight(row) ? `익일 ${end}` : end;
-  return `${days} · ${start}~${endLabel}에 Vowpath가 전화를 받습니다`;
+  const endLabel = isOvernight(row)
+    ? isEnglishUi()
+      ? `next day ${end}`
+      : `익일 ${end}`
+    : end;
+  return isEnglishUi()
+    ? `${days} · ${start}–${endLabel} — Vowpath answers`
+    : `${days} · ${start}~${endLabel}에 Vowpath가 전화를 받습니다`;
 }
 
 type StoredSchedulePayload = {
@@ -140,9 +162,17 @@ export function defaultScheduleRows(): ScheduleRow[] {
 export function parseRowsFromStored(
   windows: { id: string; label: string; value: string }[],
 ): ScheduleRow[] {
-  if (windows.length === 0) return defaultScheduleRows();
+  const safe = Array.isArray(windows)
+    ? windows.filter(
+        (w): w is { id: string; label: string; value: string } =>
+          Boolean(w) &&
+          typeof w.value === "string" &&
+          typeof w.label === "string",
+      )
+    : [];
+  if (safe.length === 0) return defaultScheduleRows();
 
-  return windows.map((w, idx) => {
+  return safe.map((w, idx) => {
     const payload = parsePayload(w.value);
     if (payload) {
       if (payload.alwaysOn) return alwaysOnScheduleRow();

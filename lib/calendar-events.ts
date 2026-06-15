@@ -6,6 +6,7 @@ import {
   type PriorityDisplayLabel,
 } from "./priority-display";
 import type { JobPriority } from "./types";
+import { isEnglishUi } from "./locale";
 
 export type CalendarEventSource = "vowpath" | "jobber";
 
@@ -45,8 +46,9 @@ export function calendarPriorityMeta(priority?: JobPriority | string | null): {
 export function formatEventTime(startAt: string, endAt: string): string {
   const s = new Date(startAt);
   const e = new Date(endAt);
+  const locale = isEnglishUi() ? "en-US" : "ko-KR";
   const fmt = (d: Date) =>
-    d.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit", hour12: true });
+    d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit", hour12: true });
   return `${fmt(s)} – ${fmt(e)}`;
 }
 
@@ -95,5 +97,6 @@ export function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function monthTitle(month: Date): string {
-  return month.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
+  const locale = isEnglishUi() ? "en-US" : "ko-KR";
+  return month.toLocaleDateString(locale, { year: "numeric", month: "long" });
 }

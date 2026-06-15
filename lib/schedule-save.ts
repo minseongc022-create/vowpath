@@ -7,6 +7,7 @@ import {
   rowToWindow,
   type ScheduleRow,
 } from "./schedule-format";
+import { patchShopProfile } from "./shop-profile-client";
 import type { ShopState } from "./types";
 import { writeShopState } from "./shop-storage";
 
@@ -14,12 +15,18 @@ export function canSaveSchedule(rows: ScheduleRow[], alwaysOn = false) {
   return alwaysOn || rows.some((row) => row.days.length > 0);
 }
 
-export function saveSchedule(
+async function persistShop(next: ShopState): Promise<ShopState> {
+  writeShopState(next);
+  const saved = await patchShopProfile(next);
+  return saved ?? next;
+}
+
+export async function saveSchedule(
   shop: ShopState,
   rows: ScheduleRow[],
   activateAi: boolean,
   alwaysOn = false,
-): ShopState {
+): Promise<ShopState> {
   const scheduleWindows = alwaysOn
     ? [alwaysOnWindow()]
     : rows.map((row) => rowToWindow(row));
@@ -29,35 +36,32 @@ export function saveSchedule(
     answerScheduleActive: activateAi,
     scheduleAlwaysOn: alwaysOn,
   };
-  writeShopState(next);
-  return next;
+  return persistShop(next);
 }
 
-export function markJobberConfirmed(shop: ShopState): ShopState {
+export async function markJobberConfirmed(shop: ShopState): Promise<ShopState> {
   const next: ShopState = {
     ...shop,
     jobberConnected: true,
     jobberSetupConfirmed: true,
     jobberSkipped: false,
   };
-  writeShopState(next);
-  return next;
+  return persistShop(next);
 }
 
-export function markJobberSkipped(shop: ShopState): ShopState {
+export async function markJobberSkipped(shop: ShopState): Promise<ShopState> {
   const next: ShopState = {
     ...shop,
     jobberSkipped: true,
     jobberSetupConfirmed: false,
   };
-  writeShopState(next);
-  return next;
+  return persistShop(next);
 }
 
-export function markForwardingDone(
+export async function markForwardingDone(
   shop: ShopState,
   prefs?: { scenario?: ForwardingScenarioId; provider?: ForwardingProviderId },
-): ShopState {
+): Promise<ShopState> {
   const next: ShopState = {
     ...shop,
     forwardingDone: true,
@@ -65,6 +69,5 @@ export function markForwardingDone(
     ...(prefs?.scenario ? { forwardingScenario: prefs.scenario } : {}),
     ...(prefs?.provider ? { forwardingProvider: prefs.provider } : {}),
   };
-  writeShopState(next);
-  return next;
+  return persistShop(next);
 }

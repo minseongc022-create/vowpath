@@ -3,8 +3,11 @@ import path from "path";
 import { kv } from "@vercel/kv";
 import { kvGetSafe } from "./kv-safe";
 import { useKvStore } from "./kv-config";
-import { isValidBusinessEmail, normalizeUsBusinessPhone } from "./us-contact";
+import { normalizeOwnerSignupPhone } from "./owner-phone-policy";
+import { isValidBusinessEmail } from "./us-contact";
+import type { PlanId } from "./constants";
 import { normalizeSmsPhone } from "./phone";
+import type { SubscriptionStatus } from "./billing";
 
 const KV_USERS_KEY = "vowpath:users";
 
@@ -15,6 +18,12 @@ export type UserRecord = {
   shopName: string;
   phone?: string;
   createdAt: string;
+  plan?: PlanId;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  flexBillableCount?: number;
+  paidAt?: string;
 };
 
 type UserStore = {
@@ -103,7 +112,7 @@ export async function updateUserPhone(
   const user = store.users.find((u) => u.id === userId);
   if (!user) return undefined;
 
-  const phoneNorm = normalizeUsBusinessPhone(phone);
+  const phoneNorm = normalizeOwnerSignupPhone(user.email, phone);
   if (!phoneNorm) throw new Error("PHONE_INVALID");
 
   const phoneTaken = store.users.some((u) => {
@@ -131,7 +140,7 @@ export async function updateUserContact(
   const email = input.email.trim().toLowerCase();
   if (!isValidBusinessEmail(email)) throw new Error("EMAIL_INVALID");
 
-  const phoneNorm = normalizeUsBusinessPhone(input.phone);
+  const phoneNorm = normalizeOwnerSignupPhone(email, input.phone);
   if (!phoneNorm) throw new Error("PHONE_INVALID");
 
   if (store.users.some((u) => u.id !== userId && u.email === email)) {
@@ -169,7 +178,7 @@ export async function createUser(input: {
     throw new Error("PHONE_REQUIRED");
   }
 
-  const phoneNorm = normalizeUsBusinessPhone(phoneTrim);
+  const phoneNorm = normalizeOwnerSignupPhone(normalized, phoneTrim);
   if (!phoneNorm) throw new Error("PHONE_INVALID");
 
   const phoneTaken = store.users.some((u) => {
@@ -191,6 +200,57 @@ export async function createUser(input: {
   };
 
   store.users.push(user);
+  await saveStore(store);
+  return user;
+}
+
+export async function updateUserBilling(
+  userId: string,
+  patch: {
+    plan?: PlanId;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: SubscriptionStatus;
+    flexBillableCount?: number;
+    paidAt?: string;
+  },
+): Promise<UserRecord | undefined> {
+  const store = await ensureStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user) return undefined;
+  Object.assign(user, patch);
+  await saveStore(store);
+  return user;
+}
+
+export async function findUserByStripeCustomerId(
+  customerId: string,
+): Promise<UserRecord | undefined> {
+  const store = await ensureStore();
+  return store.users.find((u) => u.stripeCustomerId === customerId);
+}
+
+export async function listUsers(): Promise<UserRecord[]> {
+  const store = await ensureStore();
+  return [...store.users];
+}
+
+export async function deleteUserFromStore(userId: string): Promise<boolean> {
+  const store = await ensureStore();
+  const before = store.users.length;
+  store.users = store.users.filter((u) => u.id !== userId);
+  if (store.users.length === before) return false;
+  await saveStore(store);
+  return true;
+}
+
+export async function incrementFlexBillableCount(
+  userId: string,
+): Promise<UserRecord | undefined> {
+  const store = await ensureStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user) return undefined;
+  user.flexBillableCount = (user.flexBillableCount ?? 0) + 1;
   await saveStore(store);
   return user;
 }

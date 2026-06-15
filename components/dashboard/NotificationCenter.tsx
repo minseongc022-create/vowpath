@@ -16,11 +16,10 @@ import {
 import type { RequestStatus } from "@/lib/booking-policy";
 import type { TenantEvent } from "@/lib/tenant-events";
 import { dashboardUi } from "@/lib/content";
+import { isEnglishUi } from "@/lib/locale";
 import { safeDashboardFetch } from "@/lib/dashboard-fetch";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { JobCard } from "@/lib/types";
-
-const n = dashboardUi.notifications;
 
 type NotificationCenterProps = {
   jobs: JobCard[];
@@ -61,6 +60,7 @@ function NotificationRow({
   onToggleSelect?: (id: string) => void;
   nowMs: number;
 }) {
+  const n = dashboardUi.notifications;
   const content = (
     <>
       {selectMode ? (
@@ -70,7 +70,9 @@ function NotificationRow({
           onChange={() => onToggleSelect?.(item.id)}
           onClick={(e) => e.stopPropagation()}
           className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600"
-          aria-label={`${item.title} 선택`}
+          aria-label={
+            isEnglishUi() ? `Select ${item.title}` : `${item.title} 선택`
+          }
         />
       ) : null}
       <span className="mt-0.5 text-lg leading-none" aria-hidden>
@@ -159,6 +161,7 @@ function NotificationListBody({
   dismissingAll: boolean;
   nowMs: number;
 }) {
+  const n = dashboardUi.notifications;
   if (fetchError && items.length === 0) {
     return (
       <div className="px-4 py-10 text-center">
@@ -278,6 +281,7 @@ export function NotificationCenter({
   error,
   variant = "dropdown",
 }: NotificationCenterProps) {
+  const n = dashboardUi.notifications;
   const nowMs = useRelativeNow();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -564,7 +568,7 @@ export function NotificationCenter({
                 <button
                   type="button"
                   className="fixed inset-0 z-[90] cursor-default bg-black/5"
-                  aria-label="알림 닫기"
+                  aria-label={isEnglishUi() ? "Close notifications" : "알림 닫기"}
                   onClick={() => setOpen(false)}
                 />,
                 document.body,

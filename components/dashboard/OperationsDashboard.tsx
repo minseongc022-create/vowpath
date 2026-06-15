@@ -17,8 +17,6 @@ import { MissedCallsPreventedKpi } from "@/components/dashboard/MissedCallsPreve
 import { dashboardUi } from "@/lib/content";
 import type { ShopState } from "@/lib/types";
 
-const ops = dashboardUi.ops;
-
 type OperationsDashboardProps = {
   calls: CallRecord[];
   jobs: JobCard[];
@@ -34,14 +32,17 @@ type OperationsDashboardProps = {
   onDateRangeChange?: (start: string, end: string) => void;
 };
 
-const PRESETS: { id: DatePreset; label: string }[] = [
+function buildPresets(): { id: DatePreset; label: string }[] {
+  const ops = dashboardUi.ops;
+  return [
   { id: "today", label: ops.today },
   { id: "7d", label: ops.last7 },
   { id: "30d", label: ops.last30 },
   { id: "6m", label: ops.last6m },
   { id: "1y", label: ops.last1y },
   { id: "custom", label: ops.customRange },
-];
+  ];
+}
 
 function DeltaBadge({ value, suffix = "%" }: { value: number; suffix?: string }) {
   if (value === 0) return <span className="text-xs text-slate-400">— vs prior</span>;
@@ -165,7 +166,7 @@ function HorizontalBars({ data, colors }: { data: NamedCount[]; colors: string[]
 function formatRelative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return ops.justNow;
+  if (m < 1) return dashboardUi.ops.justNow;
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -185,6 +186,8 @@ export function OperationsDashboard({
   shop,
   onDateRangeChange,
 }: OperationsDashboardProps) {
+  const ops = dashboardUi.ops;
+  const presets = buildPresets();
   const initial = resolveDateRange("30d")!;
   const [preset, setPreset] = useState<DatePreset>("30d");
   const [startDate, setStartDate] = useState(toDateInputValue(initial.start));
@@ -251,7 +254,7 @@ export function OperationsDashboard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
               key={p.id}
               type="button"

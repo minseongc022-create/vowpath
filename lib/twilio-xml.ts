@@ -22,11 +22,14 @@ export function twimlSay(message: string, language: "en-US" | "ko-KR" = "en-US")
   return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
 }
 
-/** SMS link vs continue-by-phone (press 1 for link, or speak to continue). */
-export function twimlGatherChannelChoice(actionUrl: string, shopName: string): string {
-  const prompt = channelChoiceVoicePrompt(shopName);
+export function twimlGatherChannelChoice(
+  actionUrl: string,
+  shopName: string,
+  afterHours = false,
+): string {
+  const prompt = channelChoiceVoicePrompt(shopName, afterHours);
   const hint = channelChoiceGatherHint();
-  return `${twimlSay(prompt, "ko-KR")}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint, "ko-KR")}</Gather>${twimlSay("입력이 없어 통화를 종료합니다. 감사합니다.", "ko-KR")}`;
+  return `${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint)}</Gather>${twimlSay("We did not receive your selection. Goodbye.")}`;
 }
 
 export function twimlGatherDtmfMenu(actionUrl: string): string {

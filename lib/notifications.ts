@@ -44,16 +44,17 @@ export type DashboardNotification = {
   urgency: "high" | "medium" | "low";
 };
 
-const nf = dashboardUi.notifications.filters;
-
-export const NOTIFICATION_FILTERS: { id: NotificationFilter; label: string }[] = [
-  { id: "all", label: nf.all },
-  { id: "bookings", label: nf.bookings },
-  { id: "emergency", label: nf.emergency },
-  { id: "callbacks", label: nf.callbacks },
-  { id: "jobber", label: nf.jobber },
-  { id: "voicemail", label: nf.voicemail },
-];
+export function getNotificationFilters(): { id: NotificationFilter; label: string }[] {
+  const nf = dashboardUi.notifications.filters;
+  return [
+    { id: "all", label: nf.all },
+    { id: "bookings", label: nf.bookings },
+    { id: "emergency", label: nf.emergency },
+    { id: "callbacks", label: nf.callbacks },
+    { id: "jobber", label: nf.jobber },
+    { id: "voicemail", label: nf.voicemail },
+  ];
+}
 
 function bookingHref(bookingId: string): string {
   return `/dashboard/bookings/${encodeURIComponent(bookingId)}`;

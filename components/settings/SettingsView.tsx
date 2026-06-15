@@ -8,10 +8,14 @@ import { PhoneSetup } from "@/components/dashboard/PhoneSetup";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { AuditActivityPanel } from "@/components/settings/AuditActivityPanel";
 import { OpsFailuresPanel } from "@/components/settings/OpsFailuresPanel";
+import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
+import { CompanyAiMemorySettings } from "@/components/settings/CompanyAiMemorySettings";
+import { AutomationRulesView } from "@/components/settings/AutomationRulesView";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
-import { settingsPage } from "@/lib/content";
+import { LanguageSettings } from "@/components/settings/LanguageSettings";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -43,13 +47,6 @@ import type { ScheduleRow } from "@/lib/schedule-format";
 
 const TABS: IntegrationSection[] = ["contact", "schedule", "phone", "jobber"];
 
-const TAB_LABELS: Record<IntegrationSection, string> = {
-  contact: settingsPage.tocContact,
-  schedule: settingsPage.tocSchedule,
-  phone: settingsPage.tocPhone,
-  jobber: settingsPage.tocJobber,
-};
-
 function tabFromParam(value: string | null): IntegrationSection {
   if (
     value === "contact" ||
@@ -62,7 +59,21 @@ function tabFromParam(value: string | null): IntegrationSection {
   return "contact";
 }
 
-export function SettingsView({ paid }: { paid?: boolean }) {
+export function SettingsView({
+  paid: paidProp,
+  sessionId,
+}: {
+  paid?: boolean;
+  sessionId?: string;
+}) {
+  const settingsPage = useSettingsPage();
+  const tabLabels: Record<IntegrationSection, string> = {
+    contact: settingsPage.tocContact,
+    schedule: settingsPage.tocSchedule,
+    phone: settingsPage.tocPhone,
+    jobber: settingsPage.tocJobber,
+  };
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const sectionParam = searchParams.get("section");
@@ -168,36 +179,36 @@ export function SettingsView({ paid }: { paid?: boolean }) {
     if (confirmed.length > 0) setConfirmed([]);
   }
 
-  function handleScheduleConfirm() {
+  async function handleScheduleConfirm() {
     if (!contactComplete) {
       switchTab("contact");
       return;
     }
     if (!canConfirm) return;
-    const next = saveSchedule(shop, rows, true, alwaysOn);
+    const next = await saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
-    refresh();
+    await refresh();
     setConfirmed(next.scheduleWindows.map((w) => w.label));
     switchTab("phone");
   }
 
-  function handleJobberConfirm() {
+  async function handleJobberConfirm() {
     if (!jobberConnected) return;
-    const next = markJobberConfirmed(shop);
+    const next = await markJobberConfirmed(shop);
     setShop(next);
-    refresh();
+    await refresh();
   }
 
-  function handleJobberSkip() {
-    const next = markJobberSkipped(shop);
+  async function handleJobberSkip() {
+    const next = await markJobberSkipped(shop);
     setShop(next);
-    refresh();
+    await refresh();
   }
 
-  function handleForwardingConfirm() {
-    const next = markForwardingDone(shop, forwardingPrefs);
+  async function handleForwardingConfirm() {
+    const next = await markForwardingDone(shop, forwardingPrefs);
     setShop(next);
-    refresh();
+    await refresh();
   }
 
   const jobberLinked = jobberConnected;
@@ -219,10 +230,8 @@ export function SettingsView({ paid }: { paid?: boolean }) {
 
   return (
     <div className="space-y-5">
-      {paid ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          {settingsPage.paidWelcome}
-        </div>
+      {paidProp || sessionId ? (
+        <BillingStatusBanner sessionId={sessionId} />
       ) : null}
 
       <div
@@ -280,7 +289,7 @@ export function SettingsView({ paid }: { paid?: boolean }) {
                     : "bg-slate-50 text-slate-700 hover:bg-slate-100"
               }`}
             >
-              <span className="block">{TAB_LABELS[tab]}</span>
+              <span className="block">{tabLabels[tab]}</span>
               <span className="mt-1 block text-[10px] font-normal opacity-80">
                 {item.done
                   ? settingsPage.tabDone
@@ -397,6 +406,9 @@ export function SettingsView({ paid }: { paid?: boolean }) {
 
           {activeTab === "jobber" ? (
             <>
+              <p className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm leading-relaxed text-brand-950">
+                {settingsPage.jobberScheduleAutoNote}
+              </p>
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
                 <JobberConnect
                   embedded
@@ -530,6 +542,9 @@ export function SettingsView({ paid }: { paid?: boolean }) {
       </div>
 
       <BookingSettingsEditor />
+      <AutomationRulesView />
+      <LanguageSettings />
+      <CompanyAiMemorySettings />
 
       <div className="rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white p-5 shadow-card">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

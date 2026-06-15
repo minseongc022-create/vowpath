@@ -1,4 +1,4 @@
-import { howItWorks } from "@/lib/content";
+import { siteHowItWorks } from "@/lib/site-content";
 import { SECTION_LABELS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -9,11 +9,11 @@ export function HowItWorks() {
       <Container>
         <SectionHeading
           label={SECTION_LABELS.process}
-          title={howItWorks.title}
-          subtitle={howItWorks.subtitle}
+          title={siteHowItWorks.title}
+          subtitle={siteHowItWorks.subtitle}
         />
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {howItWorks.steps.map((step) => (
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {siteHowItWorks.steps.map((step) => (
             <article key={step.step} className="vow-site-card relative p-6">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white">
                 {step.step.replace(/\D/g, "") || step.step}

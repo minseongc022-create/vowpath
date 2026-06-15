@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { NAV_LINKS, ROUTES } from "@/lib/constants";
+import { ROUTES } from "@/lib/constants";
+import { getNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
@@ -13,6 +14,7 @@ type HeaderProps = {
 
 export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
+  const navLinks = getNavLinks();
 
   return (
     <header className="vow-site-header">
@@ -21,7 +23,7 @@ export function Header({ session }: HeaderProps) {
           <BrandLogo variant="light" showTagline size="xl" href={ROUTES.home} />
 
           <nav className="hidden items-center justify-center gap-6 lg:flex lg:gap-8">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -38,7 +40,7 @@ export function Header({ session }: HeaderProps) {
               type="button"
               className="inline-flex items-center justify-center rounded-lg p-2 text-slate-200 hover:bg-white/10 lg:hidden"
               aria-expanded={open}
-              aria-label="메뉴 열기"
+              aria-label="Open menu"
               onClick={() => setOpen(!open)}
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,7 +58,7 @@ export function Header({ session }: HeaderProps) {
       {open ? (
         <div className="border-t border-white/[0.08] bg-[#0b0e14] px-5 py-4 lg:hidden">
           <nav className="flex flex-col gap-3">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

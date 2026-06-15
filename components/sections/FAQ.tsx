@@ -1,4 +1,4 @@
-import { faq } from "@/lib/content";
+import { siteFaq } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
@@ -6,9 +6,9 @@ export function FAQ() {
   return (
     <section id="faq" className="vow-site-section py-20 sm:py-24">
       <Container>
-        <SectionHeading title={faq.title} align="center" />
+        <SectionHeading title={siteFaq.title} align="center" />
         <div className="vow-site-panel mx-auto mt-12 max-w-2xl divide-y divide-white/[0.08]">
-          {faq.items.map((item) => (
+          {siteFaq.items.map((item) => (
             <details key={item.q} className="group px-6 py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
                 {item.q}

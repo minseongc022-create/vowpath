@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { BRAND_MARK_SRC } from "@/lib/brand-assets";
 import { ROUTES, SITE } from "@/lib/constants";
+import { getBrandLogoTagline } from "@/lib/marketing-constants";
+import { isEnglishUi } from "@/lib/locale";
 
 type BrandLogoProps = {
   className?: string;
@@ -43,7 +45,7 @@ export function BrandLogo({
     <Link
       href={href}
       className={`group inline-flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90 ${className}`}
-      aria-label={`${SITE.name} 홈으로`}
+      aria-label={isEnglishUi() ? `${SITE.name} home` : `${SITE.name} 홈으로`}
     >
       <span
         className={`relative shrink-0 ${mark.box} ${
@@ -72,7 +74,7 @@ export function BrandLogo({
           ) : null}
           {showTagline ? (
             <span className="hidden text-[10px] leading-[1.15] text-slate-500 sm:block">
-              Trusted calls. Better business.
+              {getBrandLogoTagline()}
             </span>
           ) : null}
         </span>

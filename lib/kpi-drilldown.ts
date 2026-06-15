@@ -67,9 +67,12 @@ export function buildKpiDrilldownItems(
   const rangeEnd = endOfDay(end);
   const inRangeCalls = filterByDateRange(params.calls, start, rangeEnd);
 
+  const scheduleWindows = Array.isArray(params.shop.scheduleWindows)
+    ? params.shop.scheduleWindows
+    : [];
   const scheduleRows =
-    params.shop.answerScheduleActive && params.shop.scheduleWindows.length > 0
-      ? parseShopScheduleRows(params.shop.scheduleWindows)
+    params.shop.answerScheduleActive && scheduleWindows.length > 0
+      ? parseShopScheduleRows(scheduleWindows)
       : [];
 
   const allBookings = buildAllRecentBookings(

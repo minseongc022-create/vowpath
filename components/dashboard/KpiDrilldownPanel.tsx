@@ -8,6 +8,7 @@ import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 import { ROUTES } from "@/lib/constants";
 import { dashboardUi } from "@/lib/content";
+import { isEnglishUi } from "@/lib/locale";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { KpiDrilldownId, KpiDrilldownItem } from "@/lib/kpi-drilldown";
 import {
@@ -16,8 +17,6 @@ import {
   formatBookingReceivedLabel,
 } from "@/lib/recent-bookings";
 import { trendSeriesDef } from "@/lib/trend-chart-series";
-
-const copy = dashboardUi.kpiDrilldown;
 
 type KpiDrilldownPanelProps = {
   open: boolean;
@@ -35,9 +34,9 @@ function panelTitle(id: KpiDrilldownId): string {
 }
 
 function panelSubtitle(id: KpiDrilldownId, periodLabel: string): string {
-  if (id === "waitingCustomers") return copy.waitingPeriod;
+  if (id === "waitingCustomers") return dashboardUi.kpiDrilldown.waitingPeriod;
   if (id === "customerVerification") return dashboardUi.customerVerificationKpi.periodLabel;
-  return copy.periodSum(periodLabel);
+  return dashboardUi.kpiDrilldown.periodSum(periodLabel);
 }
 
 function CallRow({
@@ -51,7 +50,10 @@ function CallRow({
 }) {
   const bookingId = `call-${call.call.id}`;
   const name = call.call.customerName?.trim() || call.call.from || "Unknown";
-  const issue = call.call.issueType?.trim() || call.call.symptom?.trim() || "인바운드 콜";
+  const issue =
+    call.call.issueType?.trim() ||
+    call.call.symptom?.trim() ||
+    (isEnglishUi() ? "Inbound call" : "인바운드 콜");
 
   return (
     <li>
@@ -134,7 +136,7 @@ function VerificationRow({
       >
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-white">
-            {item.record.snapshot.customerName || "고객"}
+            {item.record.snapshot.customerName || (isEnglishUi() ? "Customer" : "고객")}
           </p>
           <p className="mt-0.5 truncate text-xs text-slate-500">
             {item.record.snapshot.issueType || item.record.snapshot.address}
@@ -168,6 +170,7 @@ export function KpiDrilldownPanel({
   periodLabel,
   onClose,
 }: KpiDrilldownPanelProps) {
+  const copy = dashboardUi.kpiDrilldown;
   const nowMs = useRelativeNow();
 
   useEffect(() => {

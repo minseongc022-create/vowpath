@@ -1,4 +1,5 @@
 import type { MissedCallsDailyPoint } from "./missed-calls-analytics";
+import { isEnglishUi } from "./locale";
 import {
   getTrendSeriesValue,
   type TrendChartSeriesId,
@@ -28,5 +29,5 @@ export function formatTrendTooltipValue(
   id: TrendChartSeriesId,
   value: number,
 ): string {
-  return `${value}건`;
+  return isEnglishUi() ? `${value}` : `${value}건`;
 }

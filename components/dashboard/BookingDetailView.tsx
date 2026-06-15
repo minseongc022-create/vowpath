@@ -35,9 +35,9 @@ import { localizeTranscript } from "@/lib/ko-display";
 import { TrustScorePanel } from "@/components/dashboard/TrustScorePanel";
 import { VerificationStatusPanel } from "@/components/dashboard/VerificationStatusPanel";
 import { CustomerVerificationPanel } from "@/components/dashboard/CustomerVerificationPanel";
+import { BookingTimelinePanel } from "@/components/dashboard/BookingTimelinePanel";
+import { CustomerCorrectionHistoryPanel } from "@/components/dashboard/CustomerCorrectionHistoryPanel";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
-
-const t = dashboardUi.bookingDetail;
 
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
 const BOOKING_SURFACE_DARK =
@@ -62,6 +62,7 @@ type BookingDetailContentProps = {
 export function BookingDetailContent({
   bookingId,
 }: BookingDetailContentProps) {
+  const t = dashboardUi.bookingDetail;
   const {
     jobs,
     jobberBookings,
@@ -74,6 +75,7 @@ export function BookingDetailContent({
     refresh,
     patchRequestStatuses,
     customerVerifications,
+    tenantEvents,
   } = useDashboardData(null);
   const nowMs = useRelativeNow();
   const [statusSaving, setStatusSaving] = useState(false);
@@ -167,7 +169,8 @@ export function BookingDetailContent({
     if (
       detail &&
       !isPendingShopReview(detail.requestStatus) &&
-      actionError?.includes("승인할 수 없는")
+      (actionError?.includes("cannot approve") ||
+        actionError?.includes("승인할 수 없는"))
     ) {
       setActionError(null);
     }
@@ -372,6 +375,7 @@ export function BookingDetailContent({
                 record={customerVerification}
                 title={t.customerVerificationTitle}
               />
+              <CustomerCorrectionHistoryPanel record={customerVerification} />
             </div>
 
             <InfoCard title={t.requestInfo}>
@@ -402,6 +406,12 @@ export function BookingDetailContent({
               ) : null}
             </InfoCard>
           </div>
+
+          <BookingTimelinePanel
+            detail={detail}
+            tenantEvents={tenantEvents}
+            verification={customerVerification}
+          />
 
           {(detail.priorityReasons?.length ?? 0) > 0 ? (
             <InfoCard
@@ -506,6 +516,7 @@ function BookingStatusConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = dashboardUi.bookingDetail;
   useEffect(() => {
     if (!action) return;
     const onKey = (e: KeyboardEvent) => {
@@ -589,6 +600,7 @@ function RequestDecisionBar({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const t = dashboardUi.bookingDetail;
   const showActions = canApprove(status) || canReject(status);
 
   if (!showActions) {
@@ -650,6 +662,7 @@ function ActionBar({
   onScheduled: () => void;
   onCompleted: () => void;
 }) {
+  const t = dashboardUi.bookingDetail;
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[14rem]">
       {telHref ? (
@@ -761,6 +774,7 @@ function DetailSkeleton() {
 }
 
 function ErrorPanel({ message }: { message: string }) {
+  const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-10 text-center">
       <p className="font-semibold text-rose-300">{t.loadFailed}</p>
@@ -770,6 +784,7 @@ function ErrorPanel({ message }: { message: string }) {
 }
 
 function NotFoundPanel() {
+  const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-12 text-center">
       <p className="font-semibold text-white">{t.notFoundTitle}</p>

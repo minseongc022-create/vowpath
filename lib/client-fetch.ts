@@ -24,6 +24,6 @@ export async function clientFetch(
   }
 }
 
-export function clientFetchTimeoutMessage(fallback = "요청 시간이 초과되었습니다.") {
+export function clientFetchTimeoutMessage(fallback = "Request timed out.") {
   return fallback;
 }

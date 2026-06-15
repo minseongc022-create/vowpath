@@ -3,6 +3,7 @@ import { formatEventTime, type CalendarEvent } from "./calendar-events";
 import { normalizeJobPriority } from "./priority-display";
 import { listJobs } from "./jobs-db";
 import { localizeCustomerName, localizeIssueType } from "./ko-display";
+import { isEnglishUi } from "./locale";
 import type { CallRecord } from "./operations-analytics";
 import type { ScheduledBookingRecord } from "./schedule-bookings-db";
 import type { JobberScheduleItem } from "./scheduling/jobber-schedule-api";
@@ -38,10 +39,15 @@ function vowpathEvent(
   const call = resolveCallForBooking(row.bookingId, calls);
   const job = resolveJobForBooking(row.bookingId, call, jobs);
   const customerName = localizeCustomerName(
-    job?.customerName || call?.customerName || "고객",
+    job?.customerName ||
+      call?.customerName ||
+      (isEnglishUi() ? "Customer" : "고객"),
   );
   const issue = localizeIssueType(
-    job?.symptom || call?.issueType || call?.symptom || "서비스 요청",
+    job?.symptom ||
+      call?.issueType ||
+      call?.symptom ||
+      (isEnglishUi() ? "Service request" : "서비스 요청"),
   );
   const address = job?.address || call?.address || call?.serviceLocation || "";
   const phone = call?.callbackPhone || call?.from;

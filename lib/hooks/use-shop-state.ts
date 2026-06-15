@@ -2,39 +2,60 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { readShopState } from "@/lib/shop-storage";
+import { fetchShopProfile } from "@/lib/shop-profile-client";
+import {
+  getDefaultShopState,
+  normalizeShopState,
+  readShopState,
+  writeShopState,
+} from "@/lib/shop-storage";
 import type { ShopState } from "@/lib/types";
 
 function loadShopState(): ShopState {
-  if (typeof window === "undefined") {
-    return {
-      scheduleWindows: [],
-      answerScheduleActive: false,
-      scheduleAlwaysOn: false,
-      jobberConnected: false,
-      forwardingDone: false,
-      onboardingComplete: false,
-    };
-  }
-  return readShopState();
+  return getDefaultShopState();
 }
 
 export function useShopState() {
   const pathname = usePathname();
   const [shop, setShop] = useState<ShopState>(loadShopState);
-  const [ready, setReady] = useState(typeof window !== "undefined");
+  const [ready, setReady] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
-  const refresh = useCallback(() => {
+  useEffect(() => {
     setShop(readShopState());
-    setReady(true);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const server = await fetchShopProfile();
+      if (server) {
+        setShop(normalizeShopState(server));
+      } else {
+        setShop(readShopState());
+      }
+    } finally {
+      setReady(true);
+      setSyncing(false);
+    }
+  }, []);
+
+  const setShopPersist = useCallback((next: ShopState | ((prev: ShopState) => ShopState)) => {
+    setShop((prev) => {
+      const resolved = normalizeShopState(
+        typeof next === "function" ? next(prev) : next,
+      );
+      writeShopState(resolved);
+      return resolved;
+    });
   }, []);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh, pathname]);
 
   useEffect(() => {
-    const sync = () => refresh();
+    const sync = () => void refresh();
     window.addEventListener("focus", sync);
     window.addEventListener("pageshow", sync);
     document.addEventListener("visibilitychange", () => {
@@ -46,5 +67,5 @@ export function useShopState() {
     };
   }, [refresh]);
 
-  return { shop, setShop, refresh, ready };
+  return { shop, setShop: setShopPersist, refresh, ready, syncing };
 }

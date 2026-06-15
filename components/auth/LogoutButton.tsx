@@ -10,7 +10,7 @@ type LogoutButtonProps = {
 
 export function LogoutButton({
   className = "text-sm font-medium text-slate-600 hover:text-slate-900",
-  label = "로그아웃",
+  label = "Sign out",
 }: LogoutButtonProps) {
   const router = useRouter();
 

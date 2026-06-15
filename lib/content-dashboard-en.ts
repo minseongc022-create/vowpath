@@ -1,0 +1,235 @@
+/** Dashboard / settings tool copy — US English. */
+
+
+
+export const messagingSetupEn = {
+
+  eyebrow: "Auth · Email & SMS",
+
+  title: "Email & SMS verification",
+
+  subtitle: "Signup and password-reset code delivery",
+
+  emailLabel: "Email (Resend)",
+
+  emailFromLabel: "From address",
+
+  smsLabel: "SMS (Twilio)",
+
+  smsFromLabel: "From number",
+
+  yes: "Ready",
+
+  no: "Not set",
+
+  readyMessage: "Verification codes send by real email and SMS.",
+
+  steps: [
+
+    "Sign up at Resend.com → API key → add RESEND_API_KEY on Vercel",
+
+    "Test: receive on your Resend signup email until domain is verified",
+
+    "SMS: add TWILIO_ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER",
+
+    "Twilio Trial: SMS only to verified numbers until you upgrade",
+
+    "Save env vars → Vercel redeploy → test signup",
+
+  ],
+
+};
+
+
+
+export const phoneSetupEn = {
+
+  eyebrow: "Phone · v3",
+
+  title: "After-hours call intake",
+
+  subtitle: "Calls to your Twilio number → voice intake → Job Card (optional Jobber push)",
+
+  twilioLabel: "Twilio",
+
+  numberLabel: "Inbound number",
+
+  userLabel: "Shop account",
+
+  webhookLabel: "Webhook URL (public)",
+
+  yes: "Ready",
+
+  no: "Not set",
+
+  hint: "Use Simulate call below if Trial limits block your test number.",
+
+  simulateCall: "Simulate call",
+
+  simulateCallOk: "Simulation complete. Check inbound calls.",
+
+  krTrialNote:
+
+    "Twilio Trial may require verified caller IDs. Production uses your provisioned US number.",
+
+  costNote:
+
+    "Vowpath has no auto-charge. Twilio bills voice/SMS; OpenAI bills Job Card generation when used.",
+
+  ivrNote:
+
+    "Live calls: guided intake for name, address, and issue. Priority captured for your review.",
+
+  stepsTitle: "Connection checklist",
+
+  steps: [
+
+    "Copy Twilio Account SID, Auth Token, and US (+1) number",
+
+    "Add TWILIO_ACCOUNT_SID, AUTH_TOKEN, PHONE_NUMBER to env",
+
+    "Run npm run tunnel → set TWILIO_WEBHOOK_BASE_URL to the https URL",
+
+    "Restart dev server → Register webhook below (or paste Voice URL in Twilio console)",
+
+    "Call your Twilio number to test",
+
+  ],
+
+  configureWebhook: "Register webhook",
+
+  configureWebhookOk: "Twilio Voice webhook registered.",
+
+  configureWebhookFail: "Webhook registration failed.",
+
+  voiceWebhookPath: "/api/twilio/voice",
+
+  restartHint: "Restart the dev server after changing environment variables.",
+
+};
+
+
+
+export const inboundCallsEn = {
+
+  title: "Inbound calls",
+
+  subtitle: "Job Cards from Twilio calls",
+
+  loading: "Loading…",
+
+  empty: "No calls yet. Place a test call to see records here.",
+
+  unknownCustomer: "Unknown customer",
+
+};
+
+
+
+export const jobberConnectEn = {
+
+  eyebrow: "Jobber",
+
+  title: "Jobber connection",
+
+  subtitle: "Connect to push approved requests to Jobber.",
+
+  connectedSubtitle: "Connected: {account}",
+
+  badgeConnected: "Connected",
+
+  badgeDisconnected: "Not connected",
+
+  connect: "Connect Jobber",
+
+  disconnect: "Disconnect",
+
+  disconnecting: "Disconnecting…",
+
+  notConfigured: "Add JOBBER_CLIENT_ID and JOBBER_CLIENT_SECRET to env. (See JOBBER_SETUP.md)",
+
+  redirectSetupTitle: "Jobber Developer Center setup",
+
+  redirectSetupBody: "Add this Callback URL to your Jobber app OAuth settings and save.",
+
+  redirectSetupLink: "Open Jobber Developer Center",
+
+  redirectSetupCopied: "Copied",
+
+  redirectSetupCopy: "Copy URL",
+
+  redirectSetupNote: "For local dev, also register http://localhost:3000/api/jobber/callback.",
+
+  push: "Send to Jobber",
+
+  pushing: "Sending to Jobber…",
+
+  pushed: "Created in Jobber",
+
+  pushError: "Jobber push failed.",
+
+  openJobber: "Open in Jobber",
+
+};
+
+
+
+export const jobCardGeneratorEn = {
+
+  eyebrow: "Available now",
+
+  title: "Call notes → Job Card",
+
+  subtitle:
+
+    "Paste after-hours call notes to draft priority and a Jobber-ready summary. Review before syncing.",
+
+  badge: "Owner approval mode",
+
+  notesLabel: "Call notes / summary",
+
+  notesPlaceholder:
+
+    "e.g. No AC, 123 Oak St Austin TX, Mike, indoor 85°F, odd refrigerant noise, wants visit tonight…",
+
+  generate: "Generate Job Card",
+
+  generating: "Generating…",
+
+  errorGeneric: "Could not generate Job Card.",
+
+  resultLabel: "AI draft — review before Jobber",
+
+  fields: {
+
+    customer: "Customer",
+
+    phone: "Phone",
+
+    address: "Address",
+
+    window: "Visit window",
+
+    dispatch: "Dispatch notes",
+
+    jobber: "Jobber paste block",
+
+  },
+
+  copy: "Copy Jobber notes",
+
+  copied: "Copied",
+
+  save: "Save as pending review",
+
+  pushJobber: "Send to Jobber",
+
+  pushingJobber: "Sending to Jobber…",
+
+  pushedJobber: "Sent to Jobber",
+
+  pushJobberFailed: "Jobber push failed. Try again shortly.",
+
+};
+
+

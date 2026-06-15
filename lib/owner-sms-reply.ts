@@ -13,6 +13,11 @@ import { normalizeSmsPhone } from "./phone";
 import { lookupStoredRequestStatus } from "./request-status-resolve";
 import { getRequestStatuses } from "./requests-db";
 import { getTwilioDefaultUserId } from "./twilio-config";
+import {
+  bookingIdMatchesRef,
+  bookingShortRef,
+  parseOwnerReplyWithRef,
+} from "./booking-ref";
 import { clearSmsReplyTarget, getSmsReplyTarget } from "./sms-reply-context";
 import { getScheduledBooking, listScheduledBookings } from "./schedule-bookings-db";
 import { undoScheduledBooking } from "./scheduling/apply-schedule";
@@ -113,6 +118,56 @@ export async function findLatestPendingBooking(
   return candidates[0] ?? null;
 }
 
+export async function listPendingBookings(
+  userId: string,
+): Promise<PendingCandidate[]> {
+  const [jobs, callLogs, statuses] = await Promise.all([
+    listJobs(userId),
+    listCallLogs(userId),
+    getRequestStatuses(userId),
+  ]);
+
+  const candidates: PendingCandidate[] = [];
+  const seen = new Set<string>();
+
+  const push = (c: PendingCandidate) => {
+    if (seen.has(c.bookingId)) return;
+    seen.add(c.bookingId);
+    candidates.push(c);
+  };
+
+  for (const job of jobs) {
+    const bookingId = job.jobberJobId ? `jobber-${job.jobberJobId}` : job.id;
+    const status = resolveStatus(bookingId, statuses, job.jobberJobId, job.status);
+    if (!isPendingShopReview(status)) continue;
+    push({
+      bookingId,
+      createdAt: job.createdAt,
+      customerName: job.customerName || "Customer",
+      status,
+    });
+  }
+
+  for (const call of callLogs) {
+    const bookingId = call.jobberRequestId
+      ? `jobber-${call.jobberRequestId}`
+      : `call-${call.id}`;
+    const status = resolveStatus(bookingId, statuses, call.jobberRequestId);
+    if (!isPendingShopReview(status)) continue;
+    push({
+      bookingId,
+      createdAt: call.createdAt,
+      customerName: call.customerName || call.from || "Customer",
+      status,
+    });
+  }
+
+  candidates.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  return candidates;
+}
+
 async function resolvePendingByBookingId(
   userId: string,
   bookingId: string,
@@ -183,12 +238,13 @@ export async function handleOwnerSmsReply(params: {
   from: string;
   body: string;
 }): Promise<OwnerSmsReplyResult> {
-  const action = parseOwnerSmsReplyCode(params.body);
+  const parsed = parseOwnerReplyWithRef(params.body);
+  const action = parsed.action ?? parseOwnerSmsReplyCode(params.body);
   if (!action) {
     return {
       handled: false,
       replyBody:
-        "Reply 1 to approve, 2 to reject, or 9 to undo a recent booking.",
+        "Reply 1 REF=Approve, 2 REF=Reject, or 9 to undo. Example: 1 A3F2",
     };
   }
 
@@ -241,9 +297,40 @@ export async function handleOwnerSmsReply(params: {
   }
 
   const replyTarget = await getSmsReplyTarget(userId);
-  let pending = replyTarget
-    ? await resolvePendingByBookingId(userId, replyTarget)
-    : null;
+  const allPending = await listPendingBookings(userId);
+
+  let pending: PendingCandidate | null = null;
+
+  if (parsed.ref) {
+    const match = allPending.find((p) =>
+      bookingIdMatchesRef(p.bookingId, parsed.ref!),
+    );
+    pending = match ?? null;
+    if (!pending) {
+      return {
+        handled: true,
+        replyBody: `${shop}: No pending request matches ref ${parsed.ref}. Check your dashboard.`,
+      };
+    }
+  } else if (replyTarget) {
+    pending = await resolvePendingByBookingId(userId, replyTarget);
+  }
+
+  if (!pending && allPending.length === 1) {
+    pending = allPending[0]!;
+  }
+
+  if (!pending && allPending.length > 1) {
+    const refs = allPending
+      .slice(0, 3)
+      .map((p) => bookingShortRef(p.bookingId))
+      .join(", ");
+    return {
+      handled: true,
+      replyBody: `${shop}: ${allPending.length} pending requests. Reply with ref: ${refs}. Example: 1 ${bookingShortRef(allPending[0]!.bookingId)}`,
+    };
+  }
+
   if (!pending) {
     pending = await findLatestPendingBooking(userId);
   }

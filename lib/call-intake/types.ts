@@ -72,6 +72,8 @@ export type CallIntakeState = {
   attempt: number;
   offeredSlots?: SlotOffer[];
   selectedSlot?: SlotOffer | null;
+  /** Outside configured answer hours — follow up next business day */
+  afterHours?: boolean;
   createdAt: string;
   updatedAt: string;
 };

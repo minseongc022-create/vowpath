@@ -15,11 +15,15 @@ export async function POST(request: Request) {
   if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
+  const url = new URL(request.url);
+  const afterHours = url.searchParams.get("afterHours") === "1";
   const form = new URLSearchParams(rawBody);
   const digit = form.get("Digits");
 
   const base = getTwilioWebhookBaseUrl();
-  const menuUrl = `${base}/api/twilio/menu`;
+  const menuUrl = afterHours
+    ? `${base}/api/twilio/menu?afterHours=1`
+    : `${base}/api/twilio/menu`;
   const priority = menuPriorityFromDigit(digit);
 
   if (!priority) {
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const gatherUrl = intakeUrlForMenu(priority);
+  const gatherUrl = intakeUrlForMenu(priority, afterHours);
   let intro = "Please describe your issue.";
   if (priority === "P1") {
     intro = "Emergency line selected.";

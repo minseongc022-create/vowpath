@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { dashboardPage, settingsPage } from "@/lib/content";
+import { useDashboardPage, useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -17,6 +17,8 @@ type IntegrationStatusBannerProps = {
 };
 
 export function IntegrationStatusBanner({ theme = "light" }: IntegrationStatusBannerProps) {
+  const dashboardPage = useDashboardPage();
+  const settingsPage = useSettingsPage();
   const { shop, ready } = useShopState();
   const [jobberConnected, setJobberConnected] = useState(false);
   const [contactComplete, setContactComplete] = useState(false);
@@ -62,7 +64,7 @@ export function IntegrationStatusBanner({ theme = "light" }: IntegrationStatusBa
                 .replace("{done}", String(requiredDone))
                 .replace("{total}", String(requiredTotal))}
               {pending.length > 0
-                ? ` · 남은 항목: ${pending.map((item) => item.label).join(", ")}`
+                ? ` · Remaining: ${pending.map((item) => item.label).join(", ")}`
                 : ""}
             </p>
           ) : null}

@@ -23,6 +23,7 @@ import {
   type DatePreset,
 } from "./operations-analytics";
 import type { JobCard, ShopState } from "./types";
+import { isEnglishUi } from "./locale";
 
 export type MissedCallsAnalyticsPreset = Extract<
   DatePreset,
@@ -93,7 +94,8 @@ function eachDayInRange(start: Date, end: Date): Date[] {
 }
 
 function formatDayLabel(d: Date, includeYear: boolean): string {
-  return d.toLocaleDateString("ko-KR", {
+  const locale = isEnglishUi() ? "en-US" : "ko-KR";
+  return d.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     ...(includeYear ? { year: "numeric" } : {}),
@@ -138,9 +140,10 @@ export function buildMissedCallsAnalytics(
   ctx?: MissedCallsAnalyticsContext,
 ): MissedCallsAnalytics {
   const inRange = filterByDateRange(calls, start, end);
+  const scheduleWindows = Array.isArray(shop.scheduleWindows) ? shop.scheduleWindows : [];
   const scheduleRows =
-    shop.answerScheduleActive && shop.scheduleWindows.length > 0
-      ? parseShopScheduleRows(shop.scheduleWindows)
+    shop.answerScheduleActive && scheduleWindows.length > 0
+      ? parseShopScheduleRows(scheduleWindows)
       : [];
 
   let aiAnsweredCalls = 0;

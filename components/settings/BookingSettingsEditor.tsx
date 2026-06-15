@@ -9,12 +9,11 @@ import {
 } from "@/lib/booking-settings";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { settingsPage } from "@/lib/content";
+import { isEnglishUi } from "@/lib/locale";
 
-const MODE_LABELS: Record<SchedulingMode, string> = {
-  speed: "빠른 예약",
-  hybrid: "하이브리드",
-  control: "수동 승인",
-};
+const MODE_LABELS: Record<SchedulingMode, string> = isEnglishUi()
+  ? { speed: "Speed", hybrid: "Hybrid", control: "Control" }
+  : { speed: "빠른 예약", hybrid: "하이브리드", control: "수동 승인" };
 
 const MODE_DESCRIPTIONS: Record<SchedulingMode, string> = {
   speed: settingsPage.bookingModeSpeedDesc,
@@ -22,11 +21,9 @@ const MODE_DESCRIPTIONS: Record<SchedulingMode, string> = {
   control: settingsPage.bookingModeControlDesc,
 };
 
-const OWNER_SMS_LABELS: Record<OwnerApprovalSms, string> = {
-  off: "끔",
-  p1_only: "P1만",
-  all: "전체",
-};
+const OWNER_SMS_LABELS: Record<OwnerApprovalSms, string> = isEnglishUi()
+  ? { off: "Off", p1_only: "P1 only", all: "All" }
+  : { off: "끔", p1_only: "P1만", all: "전체" };
 
 export function BookingSettingsEditor() {
   const [settings, setSettings] = useState<ShopBookingSettings | null>(null);
@@ -41,15 +38,15 @@ export function BookingSettingsEditor() {
     try {
       const res = await clientFetch("/api/shop/settings", undefined, 8_000);
       const data = (await res.json()) as { settings?: ShopBookingSettings; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "설정을 불러오지 못했습니다.");
+      if (!res.ok) throw new Error(data.error ?? "Could not load settings.");
       setSettings(mergeShopBookingSettings(data.settings));
     } catch (e) {
       const msg =
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
-          ? clientFetchTimeoutMessage("설정을 불러오지 못했습니다. 다시 시도해 주세요.")
+          ? clientFetchTimeoutMessage("Could not load settings. Please try again.")
           : e instanceof Error
             ? e.message
-            : "설정을 불러오지 못했습니다.";
+            : "Could not load settings.";
       setError(msg);
       setSettings(mergeShopBookingSettings());
     } finally {
@@ -77,16 +74,16 @@ export function BookingSettingsEditor() {
         8_000,
       );
       const data = (await res.json()) as { settings?: ShopBookingSettings; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "저장에 실패했습니다.");
+      if (!res.ok) throw new Error(data.error ?? "Could not save settings.");
       setSettings(mergeShopBookingSettings(data.settings ?? { ...settings, ...partial }));
       setSaved(true);
     } catch (e) {
       const msg =
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
-          ? clientFetchTimeoutMessage("저장 요청 시간이 초과되었습니다.")
+          ? clientFetchTimeoutMessage("Save request timed out.")
           : e instanceof Error
             ? e.message
-            : "저장에 실패했습니다.";
+            : "Could not save settings.";
       setError(msg);
     } finally {
       setSaving(false);
@@ -96,7 +93,7 @@ export function BookingSettingsEditor() {
   if (loading && !settings) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
-        <p className="text-sm text-slate-500">불러오는 중…</p>
+        <p className="text-sm text-slate-500">Loading…</p>
       </div>
     );
   }
@@ -104,13 +101,13 @@ export function BookingSettingsEditor() {
   if (!settings) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-3">
-        <p className="text-sm text-rose-600">{error ?? "설정을 불러오지 못했습니다."}</p>
+        <p className="text-sm text-rose-600">{error ?? "Could not load settings."}</p>
         <button
           type="button"
           onClick={() => void load()}
           className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
         >
-          다시 시도
+          Try again
         </button>
       </div>
     );
@@ -130,7 +127,7 @@ export function BookingSettingsEditor() {
       </div>
 
       <label className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-slate-800">고객 시간 선택 활성화</span>
+        <span className="text-sm font-medium text-slate-800">Enable customer time selection</span>
         <input
           type="checkbox"
           checked={settings.schedulingEnabled}
@@ -141,7 +138,7 @@ export function BookingSettingsEditor() {
       </label>
 
       <div>
-        <p className="text-sm font-medium text-slate-800">예약 모드</p>
+        <p className="text-sm font-medium text-slate-800">Scheduling mode</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["speed", "hybrid", "control"] as SchedulingMode[]).map((mode) => (
             <button
@@ -194,7 +191,7 @@ export function BookingSettingsEditor() {
               >
                 {[1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
-                    {n}개
+                    {n}
                   </option>
                 ))}
               </select>
@@ -223,7 +220,7 @@ export function BookingSettingsEditor() {
       ) : null}
 
       <div>
-        <p className="text-sm font-medium text-slate-800">업주 승인 문자</p>
+        <p className="text-sm font-medium text-slate-800">Owner approval texts</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["off", "p1_only", "all"] as OwnerApprovalSms[]).map((level) => (
             <button
@@ -243,25 +240,29 @@ export function BookingSettingsEditor() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2">
-          <span className="text-sm text-slate-700">Jobber 일정 연동</span>
+      <div>
+        <label className="block">
+          <span className="text-sm font-medium text-slate-800">
+            {isEnglishUi() ? "Service area ZIP codes" : "서비스 지역 ZIP"}
+          </span>
+          <p className="mt-1 text-xs text-slate-500">
+            {isEnglishUi()
+              ? "Optional. Comma-separated 5-digit ZIPs. Leave empty to accept all areas."
+              : "선택. 5자리 ZIP을 쉼표로 구분. 비우면 전 지역 허용."}
+          </p>
           <input
-            type="checkbox"
-            checked={settings.jobberSchedulingEnabled}
+            type="text"
+            value={settings.serviceAreaZips.join(", ")}
             disabled={saving}
-            onChange={(e) => void patch({ jobberSchedulingEnabled: e.target.checked })}
-            className="h-4 w-4"
-          />
-        </label>
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2">
-          <span className="text-sm text-slate-700">스팸 전화 필터</span>
-          <input
-            type="checkbox"
-            checked={settings.spamFilterEnabled}
-            disabled={saving}
-            onChange={(e) => void patch({ spamFilterEnabled: e.target.checked })}
-            className="h-4 w-4"
+            placeholder={isEnglishUi() ? "78701, 78702" : "78701, 78702"}
+            onChange={(e) => {
+              const zips = e.target.value
+                .split(/[,\s]+/)
+                .map((z) => z.trim().slice(0, 5))
+                .filter((z) => /^\d{5}$/.test(z));
+              void patch({ serviceAreaZips: zips });
+            }}
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
         </label>
       </div>
@@ -293,7 +294,7 @@ export function BookingSettingsEditor() {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {saved && <p className="text-sm text-emerald-600">저장됨</p>}
+      {saved && <p className="text-sm text-emerald-600">Saved</p>}
     </div>
   );
 }

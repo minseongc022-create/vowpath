@@ -7,7 +7,7 @@ import Link from "next/link";
 import { BookingStatusBadge } from "@/components/dashboard/BookingStatusBadge";
 import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
 
-import { vowDashboard } from "@/lib/content";
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 import { ROUTES } from "@/lib/constants";
 
@@ -21,8 +21,6 @@ import type { RequestStatus } from "@/lib/booking-policy";
 import type { CallRecord } from "@/lib/operations-analytics";
 
 
-
-const v = vowDashboard.recentRequests;
 
 function resolvePhone(
 
@@ -79,6 +77,7 @@ export function DashboardRecentRequests({
   loading,
 
 }: DashboardRecentRequestsProps) {
+  const v = useVowDashboard().recentRequests;
   const nowMs = useRelativeNow();
 
   return (
@@ -107,7 +106,7 @@ export function DashboardRecentRequests({
 
       {loading && bookings.length === 0 ? (
 
-        <p className="px-5 py-12 text-center text-sm text-slate-500">불러오는 중…</p>
+        <p className="px-5 py-12 text-center text-sm text-slate-500">Loading…</p>
 
       ) : bookings.length === 0 ? (
 
@@ -207,7 +206,7 @@ export function DashboardRecentRequests({
 
                         href={`${ROUTES.dashboard}/bookings/${encodeURIComponent(b.id)}`}
 
-                        aria-label="상세"
+                        aria-label="Details"
 
                       >
 

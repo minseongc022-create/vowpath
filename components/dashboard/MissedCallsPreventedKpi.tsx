@@ -11,15 +11,6 @@ import {
 import { dashboardUi } from "@/lib/content";
 import type { ShopState } from "@/lib/types";
 
-const k = dashboardUi.missedCallsPrevented;
-
-const PERIODS: { id: MissedCallsPeriod; label: string }[] = [
-  { id: "today", label: k.today },
-  { id: "7d", label: k.last7 },
-  { id: "30d", label: k.last30 },
-  { id: "all", label: k.allTime },
-];
-
 type MissedCallsPreventedKpiProps = {
   calls: CallRecord[];
   shop: Pick<ShopState, "scheduleWindows" | "answerScheduleActive">;
@@ -31,6 +22,13 @@ export function MissedCallsPreventedKpi({
   shop,
   loading,
 }: MissedCallsPreventedKpiProps) {
+  const k = dashboardUi.missedCallsPrevented;
+  const periods: { id: MissedCallsPeriod; label: string }[] = [
+    { id: "today", label: k.today },
+    { id: "7d", label: k.last7 },
+    { id: "30d", label: k.last30 },
+    { id: "all", label: k.allTime },
+  ];
   const [period, setPeriod] = useState<MissedCallsPeriod>("30d");
 
   const counts = useMemo(
@@ -39,7 +37,7 @@ export function MissedCallsPreventedKpi({
   );
 
   const value = counts[period];
-  const periodLabel = PERIODS.find((p) => p.id === period)?.label ?? k.last30;
+  const periodLabel = periods.find((p) => p.id === period)?.label ?? k.last30;
 
   return (
     <div className="ops-kpi flex flex-col">
@@ -66,7 +64,7 @@ export function MissedCallsPreventedKpi({
       <p className="mt-1 text-xs font-medium text-slate-600">{periodLabel}</p>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <button
             key={p.id}
             type="button"

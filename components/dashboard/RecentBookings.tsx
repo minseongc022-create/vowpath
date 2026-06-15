@@ -18,8 +18,6 @@ import type { RequestStatus } from "@/lib/booking-policy";
 import { dashboardUi } from "@/lib/content";
 import type { JobCard } from "@/lib/types";
 
-const rb = dashboardUi.recentBookings;
-
 type RecentBookingsProps = {
   jobs: JobCard[];
   jobberBookings: JobberBookingRecord[];
@@ -130,10 +128,13 @@ export function RecentBookings({
   limit = 10,
   showViewAll = true,
   className = "",
-  title = rb.title,
-  subtitle = rb.subtitle,
+  title,
+  subtitle,
   variant = "light",
 }: RecentBookingsProps) {
+  const rb = dashboardUi.recentBookings;
+  const resolvedTitle = title ?? rb.title;
+  const resolvedSubtitle = subtitle ?? rb.subtitle;
   const dark = variant === "dark";
   const nowMs = useRelativeNow();
   const bookings = buildRecentBookingsList(
@@ -167,9 +168,9 @@ export function RecentBookings({
             id="recent-bookings-heading"
             className={`mt-1 text-xl font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}
           >
-            {title}
+            {resolvedTitle}
           </h2>
-          <p className={`mt-0.5 text-sm ${dark ? "text-slate-500" : "text-slate-500"}`}>{subtitle}</p>
+          <p className={`mt-0.5 text-sm ${dark ? "text-slate-500" : "text-slate-500"}`}>{resolvedSubtitle}</p>
         </div>
         {showViewAll && !loading && !showFatalError && bookings.length > 0 ? (
           <Link
@@ -246,8 +247,8 @@ export function RecentBookingsList({
       error={error}
       limit={500}
       showViewAll={false}
-      title="전체 예약"
-      subtitle={`${all.length}건 · 최신순`}
+      title="All bookings"
+      subtitle={`${all.length} total · newest first`}
       variant={variant}
     />
   );

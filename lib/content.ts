@@ -1,27 +1,78 @@
 import { SITE, CHECKOUT_CTA } from "./constants";
 import { IS_BETA } from "./beta";
+import { isEnglishUi, isEnglishUiLocale, runtimeUiLocale, type UiLocale } from "./locale";
+import {
+  authPagesEn,
+  buildDashboardUiEn,
+  dashboardPageEn,
+  legalPagesEn,
+  settingsPageEn,
+  vowDashboardEn,
+} from "./content-ui-en";
+import {
+  inboundCallsEn,
+  jobCardGeneratorEn,
+  jobberConnectEn,
+  messagingSetupEn,
+  phoneSetupEn,
+} from "./content-dashboard-en";
 
 export const hero = IS_BETA
   ? {
       badge: "퍼블릭 베타 · 미국 residential HVAC · 문자 승인",
       headline: "바쁜 날, 야간, 현장에서도",
       headlineAccent: "문자로 예약 확인",
+      brandLine: "Vow는 신뢰(약속). Path는 그 신뢰가 이어지는 길.",
       subhead:
         "고객 번호는 그대로. 못 받을 때·야간에만 Vowpath로 착신전환하면 AI가 전화·링크 접수를 받습니다. 접수 내용은 문자·이메일로 오고, 1=승인·2=거절만 답하면 됩니다.",
       primaryCta: CHECKOUT_CTA,
       secondaryCta: "작동 방식 보기",
-      note: "무료 베타 · Jobber 연동은 선택",
+      note: "무료 베타 · Jobber 연동은 선택 · 신뢰가 이어지는 길",
+      trustPills: [
+        "기존 업체 번호",
+        "못 받을 때 착신전환",
+        "현장에서 문자 승인",
+        "Jobber 선택",
+      ] as const,
     }
   : {
       badge: "미국 residential HVAC · 문자로 예약 승인",
       headline: "밖에서 일할 때도",
       headlineAccent: "놓치지 않는 예약",
+      brandLine: "Vow는 신뢰(약속). Path는 그 신뢰가 이어지는 길.",
       subhead:
         "메인 번호는 유지하고, 안 받으면·야간·주말에만 Vowpath로 넘깁니다. AI가 접수하면 문자·이메일로 요약이 오고, 1=승인·2=거절만 하면 고객 안내와 Jobber 기록이 이어집니다.",
       primaryCta: CHECKOUT_CTA,
       secondaryCta: "제품 보기",
       note: `맞춤 시간대 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 승인 예약당 ${SITE.flexPerBooking}`,
+      trustPills: [
+        "기존 업체 번호",
+        "못 받을 때 착신전환",
+        "현장에서 문자 승인",
+        "Jobber 선택",
+      ] as const,
     };
+
+export const about = {
+  id: "about",
+  badge: "브랜드 이름",
+  title: "Vow는 신뢰. Path는 그걸 이어 주는 길.",
+  subtitle: "모든 전화는 신뢰로 이어지는 길 — 그 길이 끊기지 않게 합니다.",
+  paragraphs: [
+    "Vow는 약속이자 신뢰입니다. 고객이 업체 번호를 눌렀을 때 믿는 것 — 누군가 받아 주고, 제대로 처리해 줄 것. Path는 못 받을 때 그 신뢰가 끊기지 않게 하는 연결입니다. 착신전환, 접수, 문자 승인, 고객 안내까지 한 줄로 이어집니다.",
+    "놓친 한 통은 경쟁업체로 가는 기회입니다. Vowpath는 한 건 한 건 쌓은 신뢰가 음성사서함에서 끊기지 않도록 만든 제품입니다.",
+  ],
+  pillars: [
+    {
+      label: "Vow",
+      meaning: "고객이 업체에 두는 신뢰 — 누군가 반드시 이어 받겠다는 약속.",
+    },
+    {
+      label: "Path",
+      meaning: "벨 울림 → 문자 승인 → 예약까지 이어지는 길. 현장·야간에도 신뢰가 끊기지 않게.",
+    },
+  ],
+};
 
 export const signupFlow = {
   title: "결제 후 10분 안에 연동",
@@ -261,9 +312,21 @@ export const faq = {
   ],
 };
 
+export const footerKo = {
+  privacy: "개인정보처리방침",
+  terms: "이용약관",
+  contact: "문의",
+  tagline: "놓친 전화를 예약으로.",
+  brandMeaning:
+    "Vow는 신뢰(약속). Path는 벨 울림부터 예약까지 신뢰가 이어지는 길 — 고객이 믿고 거는 전화가 끊기지 않게.",
+  subline: "미국 residential HVAC · Jobber 연동 · 야간·주말 콜 접수",
+};
+
 export const cta = {
+  eyebrow: "신뢰가 이어지는 길.",
   title: "바쁠 때도, 문자 한 통으로",
-  subtitle: "시간대 정하고 · 포워딩하고 · 야간 콜은 휴대폰으로.",
+  subtitle:
+    "오늘 시간대·포워딩 설정하고, 내일부터 휴대폰으로 승인하세요. 전화 한 통마다 신뢰가 이어지게.",
   button: CHECKOUT_CTA,
 };
 
@@ -331,7 +394,7 @@ export const onboardingPage = {
   completeAction: "Go to dashboard",
 };
 
-export const settingsPage = {
+const settingsPageKo = {
   title: "연동 설정",
   subtitle: "Vowpath 응대 시간, 착신 전환, Jobber(선택) 동기화를 관리합니다.",
   badge: "연동",
@@ -411,7 +474,9 @@ export const settingsPage = {
   scheduleAddWindow: "+ 시간대 추가",
   jobberTitle: "Jobber (선택)",
   jobberDescription:
-    "이미 Jobber를 쓰는 경우에만 연결하세요. Jobber 없이도 문자·대시보드에서 검토·승인할 수 있습니다. 문자 1로 승인하면 Jobber에 Request로 동기화됩니다.",
+    "이미 Jobber를 쓰는 경우에만 연결하세요. Jobber 없이도 문자·대시보드에서 검토·승인할 수 있습니다.",
+  jobberScheduleAutoNote:
+    "연결하면 승인·자동 확정된 예약이 Jobber 일정에 자동으로 반영됩니다. 별도 일정 연동 설정은 필요 없습니다.",
   jobberConnectedSummary: "연결됨: {account}",
   jobberConfirm: "연결 확인",
   jobberConfirmHint: "OAuth 연결 후 「연결 확인」을 눌러 주세요.",
@@ -435,7 +500,8 @@ export const settingsPage = {
   forwardingCustomerNote:
     "고객에게 보이는 번호가 아닙니다 — 웹사이트·구글에는 기존 샵 번호를 그대로 노출하세요.",
   forwardingScenarioTitle: "1. 언제 전환할까요?",
-  forwardingScenarioHint: "대부분의 샵은 부재 시 전환(오버플로)부터 시작합니다.",
+  forwardingScenarioHint:
+    "대부분의 샵은 부재 시 전환(오버플로)부터 시작합니다. 야간·주말은 아래 응대 시간 설정에서 정합니다.",
   forwardingProviderTitle: "2. 전화 환경은?",
   forwardingProviderHint:
     "Jobber Phone·Dialpad 단계별 가이드가 있습니다. 통신사 단축번호도 가능하나 업체마다 다릅니다.",
@@ -482,7 +548,7 @@ export const settingsPage = {
     "1 이상 — 연습: AI 통화·시간 선택은 정상 진행되지만, 캘린더에는 안 박히고 고객 확정 문자도 보내지 않습니다. 업주 휴대폰으로만 「[TEST] 이 시간으로 예약됐을 거예요」 안내가 오고, 테스트 통화 1번마다 1씩 줄어듭니다.",
   ownerAlertsTitle: "알림 방식",
   ownerAlertsDescription:
-    "문자(기본): 새 요청, 확정 알림, 1=승인 · 2=거절 · 9=최근 예약 취소. 이메일: 백업. Jobber: 승인·자동 확정 후 동기화.",
+    "문자(기본): 새 요청, 확정 알림, 1=승인 · 2=거절 · 9=최근 예약 취소. 이메일: 백업. Jobber 연결 시 일정은 자동 동기화됩니다.",
   auditTitle: "활동 기록",
   auditDescription: "최근 30일 승인·거절·접수 이벤트",
   auditEmpty: "아직 기록이 없습니다. 요청을 승인하거나 거절하면 여기에 표시됩니다.",
@@ -516,9 +582,11 @@ export const settingsPage = {
   } as const,
 };
 
-export const vowDashboard = {
+const vowDashboardKo = {
   nav: {
     dashboard: "대시보드",
+    briefing: "오늘 브리핑",
+    ai: "Vowpath AI",
     requests: "요청 · 예약",
     calendar: "캘린더",
     missedCalls: "통계 분석",
@@ -631,7 +699,7 @@ export const vowDashboard = {
   },
 };
 
-export const dashboardPage = {
+const dashboardPageKo = {
   title: "대시보드",
   subtitle: "야간·overflow 콜과 예약 요청을 한곳에서 확인합니다. 긴급은 문자로 먼저.",
   setupIncomplete:
@@ -665,7 +733,7 @@ export const dashboardPage = {
   backOnboarding: "설정 마치기",
 };
 
-export const dashboardUi = {
+const dashboardUiKo = {
   hero: {
     loading: "불러오는 중…",
     ariaLabel: "이번 달 서비스 요청",
@@ -949,7 +1017,7 @@ export const dashboardUi = {
   },
 };
 
-export const messagingSetup = {
+const messagingSetupKo = {
   eyebrow: "Auth · Email & SMS",
   title: "이메일 · 문자 인증",
   subtitle: "회원가입·비밀번호 찾기 인증번호 발송 설정",
@@ -969,7 +1037,7 @@ export const messagingSetup = {
   ],
 };
 
-export const phoneSetup = {
+const phoneSetupKo = {
   eyebrow: "Phone AI · v3",
   title: "야간 전화 수신",
   subtitle: "Twilio 번호로 걸려온 통화 → 음성 → Job Card (Jobber 연동 시 자동 전송)",
@@ -1003,7 +1071,7 @@ export const phoneSetup = {
   restartHint: "환경 변수 수정 후에는 dev 서버를 껐다 켜야 반영됩니다.",
 };
 
-export const inboundCalls = {
+const inboundCallsKo = {
   title: "인바운드 통화",
   subtitle: "Twilio로 들어온 통화에서 만든 Job Card",
   loading: "불러오는 중…",
@@ -1011,7 +1079,7 @@ export const inboundCalls = {
   unknownCustomer: "고객명 미상",
 };
 
-export const jobberConnect = {
+const jobberConnectKo = {
   eyebrow: "Jobber · v2",
   title: "Jobber 연동",
   subtitle: "연결하면 Job Card를 Jobber Request로 보낼 수 있습니다.",
@@ -1038,7 +1106,7 @@ export const jobberConnect = {
   openJobber: "Jobber에서 열기",
 };
 
-export const jobCardGenerator = {
+const jobCardGeneratorKo = {
   eyebrow: "v1 · 지금 사용 가능",
   title: "콜 메모 → Job Card",
   subtitle:
@@ -1068,7 +1136,7 @@ export const jobCardGenerator = {
   pushJobberFailed: "Jobber 전송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
 };
 
-export const authPages = {
+const authPagesKo = {
   form: {
     passwordConfirmLabel: "비밀번호 확인",
     passwordMismatch: "비밀번호 확인이 일치하지 않습니다.",
@@ -1164,7 +1232,7 @@ export const authPages = {
   },
 };
 
-export const legalPages = {
+const legalPagesKo = {
   privacy: {
     title: "개인정보처리방침",
     updated: "2026년 3월",
@@ -1210,3 +1278,53 @@ export const legalPages = {
     ],
   },
 };
+
+export function getVowDashboardCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? vowDashboardEn : vowDashboardKo;
+}
+
+export function getDashboardPageCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? dashboardPageEn : dashboardPageKo;
+}
+
+export function getDashboardUiCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? buildDashboardUiEn(dashboardUiKo) : dashboardUiKo;
+}
+
+export function getSettingsPageCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale)
+    ? { ...settingsPageKo, ...settingsPageEn }
+    : { ...settingsPageEn, ...settingsPageKo };
+}
+
+/** @deprecated Prefer get*Copy(locale) or useSettingsPage() */
+export const settingsPage = new Proxy({ ...settingsPageKo, ...settingsPageEn }, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getSettingsPageCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof settingsPageEn & typeof settingsPageKo;
+/** @deprecated Prefer getVowDashboardCopy(locale) or useVowDashboard() */
+export const vowDashboard = new Proxy(vowDashboardEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getVowDashboardCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof vowDashboardEn;
+/** @deprecated Prefer getDashboardPageCopy(locale) or useDashboardPage() */
+export const dashboardPage = new Proxy(dashboardPageEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDashboardPageCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof dashboardPageEn;
+/** @deprecated Prefer getDashboardUiCopy(locale) or useDashboardUi() */
+export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDashboardUiCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
+export const authPages = authPagesEn;
+export const legalPages = legalPagesEn;
+export const messagingSetup = messagingSetupEn;
+export const phoneSetup = phoneSetupEn;
+export const inboundCalls = inboundCallsEn;
+export const jobberConnect = jobberConnectEn;
+export const jobCardGenerator = jobCardGeneratorEn;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { jobCardGenerator } from "@/lib/content";
+import { jobCardGenerator, jobberConnect } from "@/lib/content";
 import type { GeneratedJobCard } from "@/lib/job-card-ai";
 import { formatPriority } from "@/lib/priority-labels";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
@@ -186,7 +186,7 @@ export function JobCardGenerator({ onSaved }: JobCardGeneratorProps) {
                 rel="noopener noreferrer"
                 className="font-semibold underline"
               >
-                Jobber에서 열기
+                {jobberConnect.openJobber}
               </a>
             </>
           ) : (

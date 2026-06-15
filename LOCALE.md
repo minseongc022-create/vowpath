@@ -2,7 +2,7 @@
 
 - **Current:** Korean (KO)
 - **CTA model:** Self-serve — pay → onboarding (no demo-first)
-- **Contact / support:** minseongc022@gmail.com
+- **Contact / support:** support@vowpathhq.com
 
 ## Stripe setup
 

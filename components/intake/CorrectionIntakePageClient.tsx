@@ -39,7 +39,7 @@ export function CorrectionIntakePageClient({ token }: CorrectionIntakePageClient
     } catch (e) {
       const msg =
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
-          ? clientFetchTimeoutMessage("접수 내역을 불러오지 못했습니다. 다시 시도해 주세요.")
+          ? clientFetchTimeoutMessage("Could not load your request. Please try again.")
           : copy.correctionExpired;
       setError(msg);
     } finally {
@@ -70,7 +70,7 @@ export function CorrectionIntakePageClient({ token }: CorrectionIntakePageClient
           onClick={() => void load()}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
         >
-          다시 시도
+          Try again
         </button>
       </main>
     );

@@ -15,11 +15,6 @@ const nextConfig: NextConfig = {
         destination: "/#differentiators",
         permanent: false,
       },
-      {
-        source: "/pricing",
-        destination: "/#pricing",
-        permanent: false,
-      },
     ];
   },
 };

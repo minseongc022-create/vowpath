@@ -4,8 +4,6 @@ import { useMemo, useState } from "react";
 import type { BookingTrendPoint } from "@/lib/operations-analytics";
 import { dashboardUi } from "@/lib/content";
 
-const ops = dashboardUi.ops;
-
 const CHART_WIDTH = 720;
 const CHART_HEIGHT = 252;
 const PAD = { t: 20, r: 20, b: 44, l: 44 };
@@ -78,8 +76,8 @@ function CursorTooltip({
       <p className="whitespace-nowrap text-[11px] font-semibold text-slate-900">
         {point.periodLabel ?? point.label}
       </p>
-      <p className="mt-0.5 text-[11px] text-slate-600">{ops.trendTooltipBookings(point.bookings)}</p>
-      <p className="text-[11px] text-slate-500">{ops.trendTooltipCalls(point.calls)}</p>
+      <p className="mt-0.5 text-[11px] text-slate-600">{dashboardUi.ops.trendTooltipBookings(point.bookings)}</p>
+      <p className="text-[11px] text-slate-500">{dashboardUi.ops.trendTooltipCalls(point.calls)}</p>
     </div>
   );
 }
@@ -116,8 +114,8 @@ function useCursorTooltip() {
 
 function granularityHint(data: BookingTrendPoint[]): string | null {
   const g = data[0]?.granularity;
-  if (g === "week") return ops.trendWeeklyHint;
-  if (g === "month") return ops.trendMonthlyHint;
+  if (g === "week") return dashboardUi.ops.trendWeeklyHint;
+  if (g === "month") return dashboardUi.ops.trendMonthlyHint;
   return null;
 }
 
@@ -202,7 +200,7 @@ function LineTrendChart({ data }: { data: BookingTrendPoint[] }) {
               type="button"
               className="pointer-events-auto absolute h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-0 bg-transparent p-0"
               style={{ left: `${leftPct}%`, top: `${(y / CHART_HEIGHT) * 100}%` }}
-              aria-label={`${d.periodLabel ?? d.label}, ${ops.trendTooltipBookings(d.bookings)}`}
+              aria-label={`${d.periodLabel ?? d.label}, ${dashboardUi.ops.trendTooltipBookings(d.bookings)}`}
               {...bindBar(i)}
             />
           ))}
@@ -227,7 +225,7 @@ function BarTrendChart({ data }: { data: BookingTrendPoint[] }) {
             <button
               type="button"
               className="flex w-full max-w-[3.5rem] flex-col items-center gap-1.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-              aria-label={`${d.periodLabel ?? d.label}, ${ops.trendTooltipBookings(d.bookings)}`}
+              aria-label={`${d.periodLabel ?? d.label}, ${dashboardUi.ops.trendTooltipBookings(d.bookings)}`}
               {...bindBar(i)}
             >
               <span className="text-[10px] font-semibold text-slate-600 tabular-nums">

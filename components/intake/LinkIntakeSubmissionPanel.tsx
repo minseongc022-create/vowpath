@@ -9,7 +9,7 @@ type LinkIntakeSubmissionPanelProps = {
   token: string;
   shopName: string;
   initialBooking: LinkIntakeBookingView;
-  /** First submit right now — show “접수 완료” hero */
+  /** First submit right now — show success hero */
   justSubmitted?: boolean;
   defaultCustomerName?: string;
   defaultPhone?: string;
@@ -91,7 +91,7 @@ export function LinkIntakeSubmissionPanel({
         booking?: LinkIntakeBookingView;
       };
       if (!res.ok || !data.booking) {
-        setError(data.error ?? "저장에 실패했습니다.");
+        setError(data.error ?? "Could not save changes.");
         return;
       }
       setBooking(data.booking);
@@ -101,7 +101,7 @@ export function LinkIntakeSubmissionPanel({
       setStep("view");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setError("네트워크 오류입니다. 다시 시도해 주세요.");
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -163,7 +163,7 @@ export function LinkIntakeSubmissionPanel({
                   <Row label={copy.issueLabel} value={booking.issueType} />
                   <Row
                     label={copy.portalSubmittedAt}
-                    value={new Date(booking.createdAt).toLocaleString("ko-KR")}
+                    value={new Date(booking.createdAt).toLocaleString("en-US")}
                   />
                 </dl>
               </div>
@@ -250,7 +250,7 @@ export function LinkIntakeSubmissionPanel({
                 }}
                 className="w-full text-sm text-slate-500"
               >
-                취소
+                Cancel
               </button>
             </form>
           )}

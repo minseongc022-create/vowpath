@@ -26,10 +26,8 @@ import {
   readDashboardSnapshot,
   writeDashboardSnapshot,
 } from "@/lib/dashboard-snapshot-cache";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { clearTenantLocalCache } from "@/lib/dashboard-data-client";
-
-const err = dashboardUi.loadErrors;
 
 export type DashboardDateRange = {
   start: string;
@@ -141,6 +139,8 @@ function readClientDashboardBoot() {
 }
 
 function useDashboardDataSource(): DashboardDataSource {
+  const dashboardUi = useDashboardUi();
+  const err = dashboardUi.loadErrors;
   const heroRange = useMemo(() => resolveHeroQueryRange(), []);
   const jobberFetchRef = useRef(0);
   const fetchGenRef = useRef(0);
@@ -239,9 +239,8 @@ function useDashboardDataSource(): DashboardDataSource {
       setJobberSyncedAt(syncedAt);
       storeFetchedData(existingCalls, existingJobs, allJobber);
 
-      if (nextJobberError) {
-        setError((prev) => prev ?? nextJobberError);
-      }
+      // Jobber is optional. A Jobber refresh/auth problem should show as an
+      // integration warning, not block the whole dashboard from loading.
     },
     [storeFetchedData],
   );

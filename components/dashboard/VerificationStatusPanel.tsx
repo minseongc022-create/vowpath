@@ -1,11 +1,11 @@
+"use client";
+
 import { dashboardUi } from "@/lib/content";
 import type {
   RequestVerificationItem,
   RequestVerificationStatus,
   VerificationItemState,
 } from "@/lib/request-verification-status";
-
-const t = dashboardUi.bookingDetail;
 
 const STATE_STYLES: Record<
   VerificationItemState,
@@ -81,6 +81,8 @@ type VerificationStatusPanelProps = {
 };
 
 export function VerificationStatusPanel({ verification }: VerificationStatusPanelProps) {
+  const t = dashboardUi.bookingDetail;
+
   return (
     <section className="booking-detail-card overflow-visible rounded-2xl border border-white/[0.06] bg-[#161b22] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
       <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">

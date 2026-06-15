@@ -1,7 +1,7 @@
 "use client";
 
 import type { CallInsightRow } from "@/lib/dashboard-home-metrics";
-import { vowDashboard } from "@/lib/content";
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 const ICONS: Record<string, React.ReactNode> = {
   afterHours: (
@@ -36,7 +36,7 @@ const TONE_ICON: Record<CallInsightRow["tone"], string> = {
 };
 
 export function DashboardCallInsights({ rows }: { rows: CallInsightRow[] }) {
-  const v = vowDashboard.insights;
+  const v = useVowDashboard().insights;
 
   return (
     <section className="vow-dash-panel h-full">

@@ -13,27 +13,34 @@ import {
   twimlSay,
 } from "@/lib/twilio-xml";
 
+function menuUrl(base: string, afterHours: boolean): string {
+  return afterHours ? `${base}/api/twilio/menu?afterHours=1` : `${base}/api/twilio/menu`;
+}
+
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
+  const url = new URL(request.url);
+  const afterHours = url.searchParams.get("afterHours") === "1";
+
   const form = new URLSearchParams(rawBody);
   const digit = form.get("Digits");
   const speech = (form.get("SpeechResult") ?? "").trim();
-  const callSid = form.get("CallSid")?.trim() ?? "";
+  const callSid = form.get("CallSid")?.trim() ?? url.searchParams.get("callSid") ?? "";
   const from = form.get("From") ?? "unknown";
   const to = form.get("To") ?? "unknown";
 
   const base = getTwilioWebhookBaseUrl();
-  const menuUrl = `${base}/api/twilio/menu`;
+  const menu = menuUrl(base, afterHours);
 
   const continueByPhone =
     digit !== "1" && (Boolean(speech) || digit === "2" || digit === "3" || !digit);
 
   if (continueByPhone) {
-    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menuUrl)), {
+    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menu)), {
       headers: { "Content-Type": "text/xml" },
     });
   }
@@ -42,10 +49,7 @@ export async function POST(request: Request) {
   if (!userId) {
     return new NextResponse(
       twimlResponse(
-        twimlSay(
-          "회선 설정이 완료되지 않았습니다. 잠시 후 다시 전화해 주세요.",
-          "ko-KR",
-        ),
+        twimlSay("This line is not fully set up yet. Please try again shortly."),
       ),
       { headers: { "Content-Type": "text/xml" } },
     );
@@ -55,10 +59,8 @@ export async function POST(request: Request) {
   if (!callbackPhone || callbackPhone === "unknown") {
     return new NextResponse(
       twimlResponse(
-        twimlSay(
-          "문자를 보낼 수 없습니다. 전화 접수로 안내해 드리겠습니다.",
-          "ko-KR",
-        ) + twimlGatherDtmfMenu(menuUrl),
+        twimlSay("We can't text this number. Let's continue by phone.") +
+          twimlGatherDtmfMenu(menu),
       ),
       { headers: { "Content-Type": "text/xml" } },
     );
@@ -85,10 +87,8 @@ export async function POST(request: Request) {
       console.warn("[twilio/channel] link intake SMS skipped:", sms.error);
       return new NextResponse(
         twimlResponse(
-          twimlSay(
-            "문자를 보낼 수 없습니다. 전화 접수로 안내해 드리겠습니다.",
-            "ko-KR",
-          ) + twimlGatherDtmfMenu(menuUrl),
+          twimlSay("We couldn't send a text. Let's continue by phone.") +
+            twimlGatherDtmfMenu(menu),
         ),
         { headers: { "Content-Type": "text/xml" } },
       );
@@ -96,8 +96,8 @@ export async function POST(request: Request) {
 
     const twiml = twimlResponse(
       twimlSay(
-        "접수 링크를 문자로 보내드렸습니다. 휴대폰에서 링크를 열어 요청을 완료해 주세요. 감사합니다.",
-        "ko-KR",
+        "We texted you a link to submit your request. " +
+          "Open it on your phone to complete the form. Thank you for calling.",
       ),
     );
     return new NextResponse(twiml, {
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("[twilio/channel]", e);
-    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menuUrl)), {
+    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menu)), {
       headers: { "Content-Type": "text/xml" },
     });
   }

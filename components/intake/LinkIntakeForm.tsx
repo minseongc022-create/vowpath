@@ -79,13 +79,13 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         booking?: LinkIntakeBookingView;
       };
       if (!res.ok || !data.booking) {
-        setError(data.error ?? "제출에 실패했습니다. 다시 시도해 주세요.");
+        setError(data.error ?? "Submission failed. Please try again.");
         return;
       }
       setSubmittedBooking(data.booking);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setError("네트워크 오류입니다. 연결을 확인한 뒤 다시 시도해 주세요.");
+      setError("Network error. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +107,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         error?: string;
       };
       if (!res.ok) {
-        setError(data.error ?? "시간을 불러오지 못했습니다.");
+        setError(data.error ?? "Could not load available times.");
         return;
       }
       if (data.schedulingEnabled && (data.slots?.length ?? 0) > 0) {
@@ -121,8 +121,8 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
     } catch (e) {
       setError(
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
-          ? clientFetchTimeoutMessage("시간 선택을 불러오지 못했습니다. 다시 시도해 주세요.")
-          : "네트워크 오류입니다. 연결을 확인한 뒤 다시 시도해 주세요.",
+          ? clientFetchTimeoutMessage("Could not load time slots. Please try again.")
+          : "Network error. Check your connection and try again.",
       );
     } finally {
       setSlotsLoading(false);
@@ -131,7 +131,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function handleSlotConfirm() {
     if (!selectedSlotId) {
-      setError("방문 시간을 선택해 주세요.");
+      setError("Please select a visit time.");
       return;
     }
     await postIntake(selectedSlotId);

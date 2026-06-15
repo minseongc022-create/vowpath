@@ -1,6 +1,7 @@
 import { getConfidenceThreshold } from "./call-intake/confidence-config";
 import type { MandatoryVerifyField, StoredVerifiedFields } from "./call-intake/types";
 import type { CallRecord } from "./operations-analytics";
+import { isEnglishUi } from "./locale";
 
 export type VerificationItemState = "verified" | "not_verified" | "failed";
 
@@ -126,9 +127,23 @@ function resolveRecordingAvailability(call: CallRecord | undefined): Verificatio
 }
 
 function hintForState(state: VerificationItemState): string | undefined {
+  if (isEnglishUi()) {
+    if (state === "verified") return "Verified";
+    if (state === "failed") return "Verification failed";
+    return "Not verified";
+  }
   if (state === "verified") return "확인됨";
   if (state === "failed") return "확인 실패";
   return "미확인";
+}
+
+function availabilityHint(present: boolean): string {
+  if (isEnglishUi()) return present ? "Available" : "None";
+  return present ? "있음" : "없음";
+}
+
+function noLinkedCallHint(): string {
+  return isEnglishUi() ? "No linked call" : "연결된 통화 없음";
 }
 
 export function buildRequestVerificationStatus(
@@ -137,15 +152,24 @@ export function buildRequestVerificationStatus(
   const threshold = getConfidenceThreshold();
 
   if (!call) {
+    const noCall = noLinkedCallHint();
     return {
       hasLinkedCall: false,
-      items: [
-        { key: "name", label: "이름 확인", state: "not_verified", hint: "연결된 통화 없음" },
-        { key: "address", label: "주소 확인", state: "not_verified", hint: "연결된 통화 없음" },
-        { key: "phone", label: "전화번호 확인", state: "not_verified", hint: "연결된 통화 없음" },
-        { key: "transcript", label: "전사본", state: "not_verified" },
-        { key: "recording", label: "통화 녹음", state: "not_verified" },
-      ],
+      items: isEnglishUi()
+        ? [
+            { key: "name", label: "Name verified", state: "not_verified", hint: noCall },
+            { key: "address", label: "Address verified", state: "not_verified", hint: noCall },
+            { key: "phone", label: "Phone verified", state: "not_verified", hint: noCall },
+            { key: "transcript", label: "Transcript", state: "not_verified" },
+            { key: "recording", label: "Call recording", state: "not_verified" },
+          ]
+        : [
+            { key: "name", label: "이름 확인", state: "not_verified", hint: noCall },
+            { key: "address", label: "주소 확인", state: "not_verified", hint: noCall },
+            { key: "phone", label: "전화번호 확인", state: "not_verified", hint: noCall },
+            { key: "transcript", label: "전사본", state: "not_verified" },
+            { key: "recording", label: "통화 녹음", state: "not_verified" },
+          ],
     };
   }
 
@@ -162,37 +186,70 @@ export function buildRequestVerificationStatus(
 
   return {
     hasLinkedCall: true,
-    items: [
-      {
-        key: "name",
-        label: "이름 확인",
-        state: nameState,
-        hint: hintForState(nameState),
-      },
-      {
-        key: "address",
-        label: "주소 확인",
-        state: addressState,
-        hint: hintForState(addressState),
-      },
-      {
-        key: "phone",
-        label: "전화번호 확인",
-        state: phoneState,
-        hint: hintForState(phoneState),
-      },
-      {
-        key: "transcript",
-        label: "전사본",
-        state: transcriptState,
-        hint: transcriptState === "verified" ? "있음" : "없음",
-      },
-      {
-        key: "recording",
-        label: "통화 녹음",
-        state: recordingState,
-        hint: recordingState === "verified" ? "있음" : "없음",
-      },
-    ],
+    items: isEnglishUi()
+      ? [
+          {
+            key: "name",
+            label: "Name verified",
+            state: nameState,
+            hint: hintForState(nameState),
+          },
+          {
+            key: "address",
+            label: "Address verified",
+            state: addressState,
+            hint: hintForState(addressState),
+          },
+          {
+            key: "phone",
+            label: "Phone verified",
+            state: phoneState,
+            hint: hintForState(phoneState),
+          },
+          {
+            key: "transcript",
+            label: "Transcript",
+            state: transcriptState,
+            hint: availabilityHint(transcriptState === "verified"),
+          },
+          {
+            key: "recording",
+            label: "Call recording",
+            state: recordingState,
+            hint: availabilityHint(recordingState === "verified"),
+          },
+        ]
+      : [
+          {
+            key: "name",
+            label: "이름 확인",
+            state: nameState,
+            hint: hintForState(nameState),
+          },
+          {
+            key: "address",
+            label: "주소 확인",
+            state: addressState,
+            hint: hintForState(addressState),
+          },
+          {
+            key: "phone",
+            label: "전화번호 확인",
+            state: phoneState,
+            hint: hintForState(phoneState),
+          },
+          {
+            key: "transcript",
+            label: "전사본",
+            state: transcriptState,
+            hint: availabilityHint(transcriptState === "verified"),
+          },
+          {
+            key: "recording",
+            label: "통화 녹음",
+            state: recordingState,
+            hint: availabilityHint(recordingState === "verified"),
+          },
+        ],
   };
 }

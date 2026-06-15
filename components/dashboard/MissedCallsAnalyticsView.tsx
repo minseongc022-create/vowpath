@@ -30,8 +30,6 @@ import {
 } from "@/components/dashboard/DashboardDateRangePicker";
 import { OwnerKpiCards } from "@/components/dashboard/OwnerKpiCards";
 
-const m = dashboardUi.missedCallsAnalytics;
-
 function resolveRangeFromDateInputs(dateRange: DashboardDateRange) {
   const start = parseDateInput(dateRange.start);
   const end = parseDateInput(dateRange.end);
@@ -42,6 +40,7 @@ function resolveRangeFromDateInputs(dateRange: DashboardDateRange) {
 }
 
 export function MissedCallsAnalyticsView({ variant = "light" }: { variant?: "light" | "dark" }) {
+  const m = dashboardUi.missedCallsAnalytics;
   const dark = variant === "dark";
   const card = dark ? "vow-dash-card" : "ops-card";
   const { shop } = useShopState();

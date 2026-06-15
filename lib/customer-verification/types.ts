@@ -11,6 +11,13 @@ export type CustomerVerificationTimelineEntry = {
   message: string;
 };
 
+export type CustomerCorrectionChange = {
+  field: "customerName" | "address" | "issueType";
+  originalValue: string;
+  updatedValue: string;
+  submittedAt: string;
+};
+
 export type CustomerVerificationRecord = {
   id: string;
   userId: string;
@@ -31,6 +38,7 @@ export type CustomerVerificationRecord = {
   };
   triggerReasons: string[];
   timeline: CustomerVerificationTimelineEntry[];
+  corrections?: CustomerCorrectionChange[];
 };
 
 export type CustomerVerificationView = {

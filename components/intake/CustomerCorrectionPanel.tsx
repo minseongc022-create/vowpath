@@ -58,7 +58,7 @@ export function CustomerCorrectionPanel({
         booking?: CorrectionBookingView;
       };
       if (!res.ok || !data.booking) {
-        setError(data.error ?? "저장에 실패했습니다.");
+        setError(data.error ?? "Could not save changes.");
         return;
       }
       setBooking(data.booking);
@@ -66,7 +66,7 @@ export function CustomerCorrectionPanel({
       setStep("done");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setError("네트워크 오류입니다. 다시 시도해 주세요.");
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export function CustomerCorrectionPanel({
                 }}
                 className="w-full text-sm text-slate-500"
               >
-                취소
+                Cancel
               </button>
             </form>
           )}

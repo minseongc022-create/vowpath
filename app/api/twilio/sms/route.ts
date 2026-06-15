@@ -15,6 +15,18 @@ export async function POST(request: Request) {
   const from = params.get("From") ?? "";
   const body = params.get("Body") ?? "";
 
+  if (/^\s*STOP\s*$/i.test(body.trim())) {
+    const twiml = twimlResponse(
+      twimlMessage(
+        "You are unsubscribed from Vowpath service texts. Reply START to resubscribe.",
+      ),
+    );
+    return new NextResponse(twiml, {
+      status: 200,
+      headers: { "Content-Type": "text/xml" },
+    });
+  }
+
   try {
     const customer = await handleCustomerVerificationReply({ from, body });
     if (customer.handled) {

@@ -42,7 +42,7 @@ export async function AppHeader({
                     : "text-slate-300 hover:text-brand-200"
                 }`}
               >
-                대시보드
+                Dashboard
               </Link>
               <Link
                 href={ROUTES.missedCallsAnalytics}
@@ -52,7 +52,7 @@ export async function AppHeader({
                     : "text-slate-300 hover:text-brand-200"
                 }`}
               >
-                놓친 콜 분석
+                Missed call analytics
               </Link>
               <Link
                 href={ROUTES.settings}
@@ -62,7 +62,7 @@ export async function AppHeader({
                     : "text-slate-300 hover:text-brand-200"
                 }`}
               >
-                연동 설정
+                Settings
               </Link>
               <LogoutButton />
             </>
@@ -71,7 +71,7 @@ export async function AppHeader({
               href={ROUTES.login}
               className="text-sm font-medium text-slate-300 hover:text-brand-200"
             >
-              로그인
+              Sign in
             </Link>
           )}
           {badge ? (

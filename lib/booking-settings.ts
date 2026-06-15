@@ -35,7 +35,6 @@ export type ShopBookingSettings = {
   pmWindowEnd: number;
   maxPerWindow: number;
   serviceAreaZips: string[];
-  spamFilterEnabled: boolean;
 };
 
 export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
@@ -58,13 +57,16 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   pmWindowEnd: 17,
   maxPerWindow: 1,
   serviceAreaZips: [],
-  spamFilterEnabled: true,
 };
 
 export function mergeShopBookingSettings(
   partial?: Partial<ShopBookingSettings> | null,
 ): ShopBookingSettings {
-  return { ...DEFAULT_SHOP_BOOKING_SETTINGS, ...partial };
+  return {
+    ...DEFAULT_SHOP_BOOKING_SETTINGS,
+    ...partial,
+    jobberSchedulingEnabled: true,
+  };
 }
 
 /** Legacy localStorage bookingMode → scheduling mode */

@@ -1,3 +1,5 @@
+import { isEnglishUi } from "./locale";
+
 /**
  * Booking policy: customer picks a visit window; shop may approve before Jobber write (mode-dependent).
  */
@@ -26,7 +28,16 @@ export const REQUEST_STATUSES: RequestStatus[] = [
   "completed",
 ];
 
-export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+const REQUEST_STATUS_LABELS_EN: Record<RequestStatus, string> = {
+  request_received: "Request received",
+  pending_review: "Pending review",
+  approved: "Approved",
+  rejected: "Declined",
+  scheduled: "Scheduled",
+  completed: "Completed",
+};
+
+const REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
   request_received: "요청 접수",
   pending_review: "검토 대기",
   approved: "승인됨",
@@ -34,6 +45,10 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   scheduled: "일정 확정",
   completed: "완료",
 };
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi()
+  ? REQUEST_STATUS_LABELS_EN
+  : REQUEST_STATUS_LABELS_KO;
 
 /** Twilio closing message — never imply appointment is confirmed. */
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =

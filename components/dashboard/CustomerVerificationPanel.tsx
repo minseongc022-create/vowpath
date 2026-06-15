@@ -42,7 +42,7 @@ export function CustomerVerificationPanel({
           {title}
         </h3>
         <p className={`mt-3 text-sm ${dark ? "text-slate-500" : "text-slate-500"}`}>
-          고객 재확인 문자가 발송되지 않았습니다 (문자 링크 접수).
+          No customer verification text was sent (link intake).
         </p>
       </section>
     );
@@ -73,25 +73,25 @@ export function CustomerVerificationPanel({
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className={dark ? "text-slate-500" : "text-slate-500"}>상태</dt>
+          <dt className={dark ? "text-slate-500" : "text-slate-500"}>Status</dt>
           <dd className={`font-medium ${dark ? "text-white" : "text-slate-900"}`}>
             {view.statusLabel}
           </dd>
         </div>
         <div>
-          <dt className={dark ? "text-slate-500" : "text-slate-500"}>응답</dt>
+          <dt className={dark ? "text-slate-500" : "text-slate-500"}>Response</dt>
           <dd className={`font-medium ${dark ? "text-white" : "text-slate-900"}`}>
             {view.responseLabel ?? "—"}
           </dd>
         </div>
         <div>
-          <dt className={dark ? "text-slate-500" : "text-slate-500"}>발송 시간</dt>
+          <dt className={dark ? "text-slate-500" : "text-slate-500"}>Sent</dt>
           <dd className={dark ? "text-slate-200" : "text-slate-800"}>
             {formatVerificationDateTime(view.sentAt)}
           </dd>
         </div>
         <div>
-          <dt className={dark ? "text-slate-500" : "text-slate-500"}>응답 시간</dt>
+          <dt className={dark ? "text-slate-500" : "text-slate-500"}>Responded</dt>
           <dd className={dark ? "text-slate-200" : "text-slate-800"}>
             {formatVerificationDateTime(view.respondedAt)}
           </dd>

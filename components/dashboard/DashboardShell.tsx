@@ -12,6 +12,8 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 
 import {
 
+  IconBriefing,
+
   IconCalendar,
 
   IconDashboard,
@@ -24,15 +26,12 @@ import {
 
   IconSettings,
 
+  IconVowpathAi,
+
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { ROUTES } from "@/lib/constants";
-
-import { vowDashboard } from "@/lib/content";
-
-
-
-const v = vowDashboard.nav;
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 
 
@@ -93,6 +92,8 @@ export function DashboardShell({
 }: DashboardShellProps) {
 
   const pathname = usePathname();
+  const vowDashboard = useVowDashboard();
+  const v = vowDashboard.nav;
 
 
 
@@ -107,6 +108,30 @@ export function DashboardShell({
       match: (p) => p === ROUTES.dashboard,
 
       icon: <IconDashboard />,
+
+    },
+
+    {
+
+      href: ROUTES.briefing,
+
+      label: v.briefing,
+
+      match: (p) => p.startsWith(ROUTES.briefing),
+
+      icon: <IconBriefing />,
+
+    },
+
+    {
+
+      href: ROUTES.ai,
+
+      label: v.ai,
+
+      match: (p) => p.startsWith(ROUTES.ai),
+
+      icon: <IconVowpathAi />,
 
     },
 
@@ -186,7 +211,7 @@ export function DashboardShell({
 
 
 
-          <nav className="mt-8 flex flex-col gap-0.5" aria-label="대시보드 메뉴">
+          <nav className="mt-8 flex flex-col gap-0.5" aria-label="Dashboard menu">
 
             {nav.map((item) => {
 

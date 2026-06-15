@@ -28,6 +28,7 @@ import {
   localizeIssueType,
   localizeArrivalWindow,
 } from "./ko-display";
+import { isEnglishUi } from "./locale";
 
 export type BookingDetail = RecentBooking & {
   phone: string;
@@ -156,33 +157,51 @@ export function generateCallSummary(
   }
 
   const lines: string[] = [];
-  const issueKo = localizeIssueType(booking.issueType);
-  const issueKey = issueKo.toLowerCase();
+  const issue = localizeIssueType(booking.issueType);
+  const issueKey = issue.toLowerCase();
+  const en = isEnglishUi();
 
-  if (
-    issueKo &&
-    issueKo !== "—" &&
-    issueKey !== "서비스 요청" &&
-    issueKey !== "인바운드 콜"
-  ) {
-    lines.push(`고객 증상: ${issueKo}`);
+  const skipIssue =
+    !issue ||
+    issue === "—" ||
+    issueKey === (en ? "service request" : "서비스 요청") ||
+    issueKey === (en ? "inbound call" : "인바운드 콜");
+
+  if (!skipIssue) {
+    lines.push(en ? `Customer reports: ${issue}` : `고객 증상: ${issue}`);
   } else if (call?.symptom) {
-    lines.push(`고객 증상: ${extractIssueType(call.symptom)}`);
+    lines.push(
+      en
+        ? `Customer reports: ${extractIssueType(call.symptom)}`
+        : `고객 증상: ${extractIssueType(call.symptom)}`,
+    );
   }
 
   if (booking.priority === "P1") {
-    lines.push("긴급(P1) — 출동 전 샵 검토·승인이 필요합니다.");
+    lines.push(
+      en
+        ? "Emergency (P1) — shop review and approval required before dispatch."
+        : "긴급(P1) — 출동 전 샵 검토·승인이 필요합니다.",
+    );
   } else if (booking.priority === "P2") {
-    lines.push("당일 희망 가능 — 승인 전까지 예약 확정이 아닙니다.");
+    lines.push(
+      en
+        ? "Same-day preference possible — not confirmed until you approve."
+        : "당일 희망 가능 — 승인 전까지 예약 확정이 아닙니다.",
+    );
   }
 
   if (booking.cityState && booking.cityState !== "—") {
-    lines.push(`위치: ${booking.cityState}`);
+    lines.push(en ? `Location: ${booking.cityState}` : `위치: ${booking.cityState}`);
   }
 
-  if (call?.arrivalWindow && !lines.some((l) => l.includes("당일"))) {
+  const sameDayMarker = en ? "same-day" : "당일";
+  if (call?.arrivalWindow && !lines.some((l) => l.toLowerCase().includes(sameDayMarker))) {
+    const window = localizeArrivalWindow(call.arrivalWindow);
     lines.push(
-      `고객 희망: ${localizeArrivalWindow(call.arrivalWindow)} (검토 대기)`,
+      en
+        ? `Caller preference: ${window} (pending review)`
+        : `고객 희망: ${window} (검토 대기)`,
     );
   }
 
@@ -193,11 +212,14 @@ export function generateCallSummary(
 
   return lines.length > 0
     ? lines.join("\n")
-    : "서비스 요청이 접수되었습니다. 고객 정보를 확인한 뒤 승인 또는 거절해 주세요.";
+    : en
+      ? "Service request received. Review customer details, then approve or decline."
+      : "서비스 요청이 접수되었습니다. 고객 정보를 확인한 뒤 승인 또는 거절해 주세요.";
 }
 
 export function formatBookingDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("ko-KR", {
+  const locale = isEnglishUi() ? "en-US" : "ko-KR";
+  return new Date(iso).toLocaleString(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",

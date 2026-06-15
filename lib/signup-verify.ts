@@ -1,5 +1,9 @@
 import { hashPassword } from "./auth-password";
-import { normalizeUsBusinessPhone } from "./us-contact";
+import { apiErrorsEn as e } from "./api-errors-en";
+import {
+  isKrOwnerPhoneEmail,
+  normalizeOwnerSignupPhone,
+} from "./owner-phone-policy";
 import {
   deletePendingSignup,
   getPendingSignup,
@@ -34,18 +38,18 @@ export async function createAndSendSignupCode(
   const email = input.email.trim().toLowerCase();
 
   if (await findUserByEmail(email)) {
-    return { error: "이미 가입된 이메일입니다. 로그인해 주세요." };
+    return { error: e.emailAlreadyRegistered };
   }
 
   if (input.phone && (await findUserByPhone(input.phone))) {
-    return { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." };
+    return { error: e.phoneAlreadyRegistered };
   }
 
   const emailRateKey = `email:${email}`;
   const emailAttempts = await getSignupAttemptCount(emailRateKey);
   if (emailAttempts >= MAX_SIGNUP_SEND_PER_HOUR) {
     return {
-      error: `이메일 인증 요청은 1시간에 ${MAX_SIGNUP_SEND_PER_HOUR}번까지 가능합니다. 잠시 후 다시 시도해 주세요.`,
+      error: `You can request ${MAX_SIGNUP_SEND_PER_HOUR} email codes per hour. Try again shortly.`,
     };
   }
 
@@ -54,13 +58,13 @@ export async function createAndSendSignupCode(
     const phoneAttempts = await getSignupAttemptCount(phoneRateKey);
     if (phoneAttempts >= MAX_SIGNUP_SEND_PER_HOUR) {
       return {
-        error: `휴대폰 인증 요청은 1시간에 ${MAX_SIGNUP_SEND_PER_HOUR}번까지 가능합니다. 잠시 후 다시 시도해 주세요.`,
+        error: `You can request ${MAX_SIGNUP_SEND_PER_HOUR} SMS codes per hour. Try again shortly.`,
       };
     }
   }
 
   if (!input.phone) {
-    return { error: "휴대폰 번호를 입력해 주세요. (업체 알림·SMS 승인에 사용)" };
+    return { error: e.phoneRequiredSignup };
   }
 
   const passwordHash = await hashPassword(input.password);
@@ -87,10 +91,12 @@ export async function createAndSendSignupCode(
 
   if (input.channel === "email") {
     const sent = await sendSignupCodeEmail(email, code);
-    if (!sent.ok) return { error: sent.error ?? "이메일 전송에 실패했습니다." };
+    if (!sent.ok) return { error: sent.error ?? "Could not send email." };
   } else if (input.phone) {
-    const sent = await sendSignupCodeSms(input.phone, code);
-    if (!sent.ok) return { error: sent.error ?? "문자 전송에 실패했습니다." };
+    const sent = await sendSignupCodeSms(input.phone, code, {
+      allowKrRecipient: isKrOwnerPhoneEmail(email),
+    });
+    if (!sent.ok) return { error: sent.error ?? "Could not send SMS." };
   }
 
   return { signupRequestId: request.id };
@@ -102,18 +108,18 @@ export async function checkSignupCode(
 ): Promise<{ ok: true } | { error: string }> {
   const request = await getPendingSignup(signupRequestId);
   if (!request) {
-    return { error: "인증번호가 만료되었거나 요청을 찾을 수 없습니다." };
+    return { error: e.codeExpired };
   }
 
   if (request.expiresAt < Date.now()) {
     await deletePendingSignup(signupRequestId);
-    return { error: "인증번호가 만료되었습니다. 다시 요청해 주세요." };
+    return { error: e.codeExpiredResend };
   }
 
   if (request.attempts >= MAX_SIGNUP_CODE_ATTEMPTS) {
     await deletePendingSignup(signupRequestId);
     return {
-      error: `인증번호 입력을 ${MAX_SIGNUP_CODE_ATTEMPTS}회 틀렸습니다. 처음부터 다시 가입해 주세요.`,
+      error: `Too many incorrect attempts (${MAX_SIGNUP_CODE_ATTEMPTS}). Start signup again.`,
     };
   }
 
@@ -121,7 +127,7 @@ export async function checkSignupCode(
   if (!valid) {
     request.attempts += 1;
     await updatePendingSignup(request);
-    return { error: "인증번호가 올바르지 않습니다." };
+    return { error: e.codeInvalid };
   }
 
   request.verified = true;
@@ -135,16 +141,16 @@ export async function completeVerifiedSignup(
 ): Promise<{ pending: PendingSignup } | { error: string }> {
   const request = await getPendingSignup(signupRequestId);
   if (!request) {
-    return { error: "인증이 만료되었습니다. 처음부터 다시 가입해 주세요." };
+    return { error: e.verificationExpired };
   }
 
   if (!request.verified) {
-    return { error: "인증번호 확인을 먼저 완료해 주세요." };
+    return { error: e.verifyFirst };
   }
 
   if (request.expiresAt < Date.now()) {
     await deletePendingSignup(signupRequestId);
-    return { error: "인증이 만료되었습니다. 처음부터 다시 가입해 주세요." };
+    return { error: e.verificationExpired };
   }
 
   if (phone) {
@@ -154,15 +160,15 @@ export async function completeVerifiedSignup(
 
   if (await findUserByEmail(request.email)) {
     await deletePendingSignup(signupRequestId);
-    return { error: "이미 가입된 이메일입니다. 로그인해 주세요." };
+    return { error: e.emailAlreadyRegistered };
   }
 
   if (!request.phone) {
-    return { error: "휴대폰 번호가 필요합니다. 가입 1단계에서 번호를 입력해 주세요." };
+    return { error: e.phoneRequired };
   }
 
   if (await findUserByPhone(request.phone)) {
-    return { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." };
+    return { error: e.phoneAlreadyRegistered };
   }
 
   return { pending: request };
@@ -174,12 +180,14 @@ export async function verifySignupCode(
   code: string,
 ): Promise<{ pending: PendingSignup } | { error: string }> {
   const checked = await checkSignupCode(signupRequestId, code);
-  if ("error" in checked) {
-    return checked;
-  }
-  return completeVerifiedSignup(signupRequestId);
+  if ("error" in checked) return checked;
+  const request = await getPendingSignup(signupRequestId);
+  if (!request) return { error: e.verificationExpired };
+  return { pending: request };
 }
 
-export function normalizeSignupPhone(phoneRaw: string): string | null {
-  return normalizeUsBusinessPhone(phoneRaw);
+export function normalizeSignupPhone(input: string, email: string): string | null {
+  return normalizeOwnerSignupPhone(email, input);
 }
+
+export { normalizeOwnerSignupPhone };

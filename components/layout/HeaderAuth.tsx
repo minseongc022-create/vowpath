@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ROUTES, CHECKOUT_CTA } from "@/lib/constants";
+import { LanguageSettings } from "@/components/settings/LanguageSettings";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
@@ -9,21 +10,29 @@ type HeaderAuthProps = {
   session: { email: string; shopName: string } | null;
 };
 
+const labels = {
+  settings: "Settings",
+  dashboard: "Dashboard",
+  login: "Log in",
+  signup: "Sign up",
+};
+
 export function HeaderAuth({ session }: HeaderAuthProps) {
   if (session) {
     return (
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+        <LanguageSettings compact />
         <Link
           href={ROUTES.settings}
           className="whitespace-nowrap text-xs font-medium text-slate-300 hover:text-brand-200 sm:text-sm"
         >
-          연동 설정
+          {labels.settings}
         </Link>
         <Link
           href={ROUTES.dashboard}
           className="whitespace-nowrap text-xs font-medium text-slate-300 hover:text-brand-200 sm:text-sm"
         >
-          대시보드
+          {labels.dashboard}
         </Link>
         <span
           className="hidden max-w-[120px] truncate text-xs text-slate-500 sm:inline sm:text-sm"
@@ -38,17 +47,18 @@ export function HeaderAuth({ session }: HeaderAuthProps) {
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+      <LanguageSettings compact />
       <Link
         href={ROUTES.login}
         className="whitespace-nowrap text-xs font-medium text-brand-700 hover:text-brand-600 sm:text-sm"
       >
-        로그인
+        {labels.login}
       </Link>
       <Link
         href={ROUTES.signup}
         className="hvac-btn-secondary whitespace-nowrap !px-2.5 !py-1.5 !text-xs sm:!px-4 sm:!py-2 sm:!text-sm"
       >
-        회원가입
+        {labels.signup}
       </Link>
       <CheckoutButton
         size="md"
@@ -76,14 +86,14 @@ export function MobileHeaderAuth({
           className="text-sm font-medium text-slate-700"
           onClick={onNavigate}
         >
-          연동 설정
+          {labels.settings}
         </Link>
         <Link
           href={ROUTES.dashboard}
           className="text-sm font-medium text-slate-700"
           onClick={onNavigate}
         >
-          대시보드
+          {labels.dashboard}
         </Link>
         <p className="text-sm text-slate-500">{session.shopName}</p>
         <LogoutButton className="text-left text-sm font-medium text-slate-700" />
@@ -98,14 +108,14 @@ export function MobileHeaderAuth({
         className="text-sm font-medium text-slate-700"
         onClick={onNavigate}
       >
-        로그인
+        {labels.login}
       </Link>
       <Link
         href={ROUTES.signup}
         className="text-sm font-medium text-slate-700"
         onClick={onNavigate}
       >
-        회원가입
+        {labels.signup}
       </Link>
       <CheckoutButton size="md" fullWidth directCheckout />
     </>

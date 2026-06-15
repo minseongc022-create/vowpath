@@ -1,16 +1,24 @@
 import type { JobPriority } from "./types";
+import { isEnglishUi } from "./locale";
 import { legacyToServicePriority } from "./service-priority";
 
 export type LinkUrgency = "today" | "this_week" | "estimate";
 
-export const LINK_URGENCY_OPTIONS: {
-  id: LinkUrgency;
-  label: string;
-}[] = [
+const LINK_URGENCY_OPTIONS_EN: { id: LinkUrgency; label: string }[] = [
+  { id: "today", label: "I need a visit as soon as possible." },
+  { id: "this_week", label: "I need a visit this week." },
+  { id: "estimate", label: "This is a quote or consultation request." },
+];
+
+const LINK_URGENCY_OPTIONS_KO: { id: LinkUrgency; label: string }[] = [
   { id: "today", label: "가능한 빨리 방문이 필요합니다." },
   { id: "this_week", label: "이번 주 안에 방문이 필요합니다." },
   { id: "estimate", label: "견적 또는 상담 문의입니다." },
 ];
+
+export const LINK_URGENCY_OPTIONS = isEnglishUi()
+  ? LINK_URGENCY_OPTIONS_EN
+  : LINK_URGENCY_OPTIONS_KO;
 
 export function parseLinkUrgency(value: unknown): LinkUrgency | null {
   if (value === "today" || value === "this_week" || value === "estimate") {

@@ -20,7 +20,13 @@ import type { CallRecord } from "./operations-analytics";
 import { notifyCustomerStatusChange } from "./customer-sms";
 import { recordRequestStatusChange } from "./record-tenant-events";
 import { getScheduledBooking } from "./schedule-bookings-db";
+import { recordFlexUsage } from "./billing";
 import { completeScheduledBookingAfterOwnerApprove } from "./scheduling/apply-schedule";
+import {
+  findUserById,
+  incrementFlexBillableCount,
+} from "./users-db";
+import { updateCallMemoryStatus } from "./call-memory";
 
 export class BookingStatusTransitionError extends Error {
   readonly code: "CANNOT_APPROVE" | "CANNOT_REJECT" | "CANNOT_SCHEDULE" | "CANNOT_COMPLETE";
@@ -144,6 +150,12 @@ export async function persistRequestStatusForBooking(
     console.warn("[booking-status-sync] tenant event", e);
   }
 
+  try {
+    await updateCallMemoryStatus(userId, bookingId, effectiveStatus);
+  } catch (e) {
+    console.warn("[booking-status-sync] call memory status", e);
+  }
+
   if (!options?.skipCustomerSms) {
     try {
       if (scheduledOnApprove) {
@@ -175,6 +187,19 @@ export async function persistRequestStatusForBooking(
       statuses = await getRequestStatuses(userId);
     } catch (e) {
       console.warn("[booking-status-sync] jobber on approve", e);
+    }
+  }
+
+  if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
+    try {
+      const user = await findUserById(userId);
+      if (user?.plan === "flex") {
+        await incrementFlexBillableCount(userId);
+        const updated = await findUserById(userId);
+        if (updated) await recordFlexUsage(updated);
+      }
+    } catch (e) {
+      console.warn("[booking-status-sync] flex billing", e);
     }
   }
 

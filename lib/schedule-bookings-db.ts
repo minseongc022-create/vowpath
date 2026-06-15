@@ -3,6 +3,7 @@ import path from "path";
 import { kv } from "@vercel/kv";
 import { kvGetSafe } from "./kv-safe";
 import { useKvStore } from "./kv-config";
+import { appendTenantEvent } from "./tenant-events";
 
 export type ScheduledBookingRecord = {
   bookingId: string;
@@ -107,6 +108,19 @@ export async function upsertScheduledBooking(
   };
   store[record.bookingId] = next;
   await writeStore(userId, store);
+  try {
+    await appendTenantEvent({
+      userId,
+      type: "service_request_scheduled",
+      title: "Calendar updated",
+      body: `${next.arrivalWindowLabel || "Scheduled visit"} · ${next.scheduledStartAt}`,
+      bookingId: next.bookingId,
+      href: `/dashboard/bookings/${encodeURIComponent(next.bookingId)}`,
+      urgency: "medium",
+    });
+  } catch (e) {
+    console.warn("[schedule-bookings-db] timeline event", e);
+  }
   return next;
 }
 

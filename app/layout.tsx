@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { IS_BETA } from "@/lib/beta";
 import { SITE } from "@/lib/constants";
+import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { isEnglishUi, resolveServerUiLocale } from "@/lib/locale";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,38 +23,59 @@ const siteMetadataBase = {
   },
 };
 
-export const metadata: Metadata = IS_BETA
-  ? {
-      ...siteMetadataBase,
-      title: `${SITE.name} — 바쁠 때 문자로 예약 확인`,
-      description:
-        "미국 HVAC 퍼블릭 베타. 야간·주말 콜을 AI가 받고, 휴대폰 SMS로 1=확정·2=거절. Jobber 연동은 선택.",
-      openGraph: {
-        title: `${SITE.name} — 현장에서 문자 승인`,
-        description: "야간 콜 → SMS 알림 → Reply 1/2. Job Card 자동 정리.",
-        type: "website",
-      },
-    }
-  : {
-      ...siteMetadataBase,
-      title: `${SITE.name} — 바쁜 날, 문자로 예약 승인`,
-      description:
-        "야간·피크·현장에서도 휴대폰 SMS로 신규 요청 확인. Reply 1=확정, 2=거절. AI intake + Job Card.",
-      openGraph: {
-        title: `${SITE.name} — 야간 콜, 문자로 처리`,
-        description:
-          "맞춤 시간대 AI 수신 · 긴급 SMS · 1/2 승인. Jobber는 선택 연동.",
-        type: "website",
-      },
-    };
+const enMeta = {
+  ...siteMetadataBase,
+  title: `${SITE.name} — AI Booking OS for HVAC`,
+  description:
+    "Turn missed HVAC calls into booked jobs. AI intake, SMS approval, Auto Book · Risk Based · Manual modes. Optional Jobber sync.",
+  openGraph: {
+    title: `${SITE.name} — AI Booking Operating System`,
+    description:
+      "Missed call → AI intake → SMS approval → booked job. Your shop number. Live in 10 minutes.",
+    type: "website" as const,
+  },
+};
 
-export default function RootLayout({
+const enBetaMeta = {
+  ...enMeta,
+  title: `${SITE.name} — Public Beta · AI Booking OS`,
+  description:
+    "Beta for US residential HVAC shops. AI intake, booking modes, SMS approval. Jobber optional.",
+  openGraph: {
+    ...enMeta.openGraph,
+    title: `${SITE.name} — Public Beta · AI Booking OS`,
+    description:
+      "Missed calls → AI intake → booked job. Start free during beta.",
+  },
+};
+
+const koMeta = {
+  ...siteMetadataBase,
+  title: `${SITE.name} — 바쁜 날, 문자로 예약 승인`,
+  description:
+    "야간·피크·현장에서도 휴대폰 SMS로 신규 요청 확인. Reply 1=확정, 2=거절. AI intake + Job Card.",
+  openGraph: {
+    title: `${SITE.name} — 야간 콜, 문자로 처리`,
+    description: "맞춤 시간대 AI 수신 · 긴급 SMS · 1/2 승인. Jobber는 선택 연동.",
+    type: "website" as const,
+  },
+};
+
+export const metadata: Metadata = isEnglishUi()
+  ? IS_BETA
+    ? enBetaMeta
+    : enMeta
+  : koMeta;
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await resolveServerUiLocale();
+
   return (
-    <html lang="ko" className={inter.variable}>
+    <html lang={locale === "ko" ? "ko" : "en"} className={inter.variable}>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
@@ -65,7 +88,9 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

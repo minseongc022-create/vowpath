@@ -1,6 +1,8 @@
+import { isEnglishUi } from "./locale";
+
 /**
- * Dashboard-facing Korean labels for English intake / demo data.
- * Names and phone numbers are kept as-is; phrases and HVAC terms are localized.
+ * Dashboard-facing labels for intake data.
+ * English UI: pass through. Korean UI: localize phrases and HVAC terms.
  */
 
 const ISSUE_EXACT: Record<string, string> = {
@@ -93,6 +95,7 @@ function applyPhraseMap(text: string, rules: [RegExp, string][]): string {
 
 export function localizeIssueType(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw || "—";
   if (!raw || raw === "—") return "—";
 
   const key = normalizeKey(raw);
@@ -107,6 +110,7 @@ export function localizeIssueType(value: string): string {
 
 export function localizeCustomerName(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw || "Unknown customer";
   if (!raw) return "고객명 미상";
   const key = normalizeKey(raw);
   return CUSTOMER_FALLBACK[key] ?? raw;
@@ -114,6 +118,7 @@ export function localizeCustomerName(value: string): string {
 
 export function localizeCityState(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw || "—";
   if (!raw || raw === "—") return "—";
   if (/^unknown$/i.test(raw)) return "미상";
   return raw.replace(/\bUnknown\b/gi, "미상");
@@ -121,6 +126,7 @@ export function localizeCityState(value: string): string {
 
 export function localizeAddress(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw || "—";
   if (!raw || raw === "—") return "—";
   if (/^unknown$/i.test(raw)) return "미상";
 
@@ -142,18 +148,21 @@ export function localizeAddress(value: string): string {
 
 export function localizeArrivalWindow(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw;
   if (!raw) return raw;
   return applyPhraseMap(raw, ARRIVAL_PHRASES);
 }
 
 export function localizePriorityReason(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw;
   if (!raw) return raw;
   return applyPhraseMap(raw, REASON_PHRASES);
 }
 
 export function localizeCallSummary(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw;
   if (!raw) return raw;
   let out = applyPhraseMap(raw, SUMMARY_PHRASES);
   out = applyPhraseMap(out, REASON_PHRASES);
@@ -173,6 +182,7 @@ const TRANSCRIPT_PHRASES: [RegExp, string][] = [
 
 export function localizeTranscript(value: string): string {
   const raw = value?.trim() ?? "";
+  if (isEnglishUi()) return raw;
   if (!raw) return raw;
   return applyPhraseMap(raw, TRANSCRIPT_PHRASES);
 }

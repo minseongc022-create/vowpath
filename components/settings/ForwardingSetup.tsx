@@ -7,15 +7,17 @@ import {
   FORWARDING_PROVIDER_NOTE,
   FORWARDING_SCENARIOS,
   getForwardingGuideSteps,
+  normalizeForwardingScenario,
   type ForwardingProviderId,
   type ForwardingScenarioId,
+  type LegacyForwardingScenarioId,
 } from "@/lib/forwarding-guides";
 
 type ForwardingSetupProps = {
   confirmed: boolean;
   onConfirm: () => void;
   confirmDisabled?: boolean;
-  initialScenario?: ForwardingScenarioId;
+  initialScenario?: LegacyForwardingScenarioId;
   initialProvider?: ForwardingProviderId;
   onPreferencesChange?: (prefs: {
     scenario: ForwardingScenarioId;
@@ -36,7 +38,7 @@ export function ForwardingSetup({
   confirmed,
   onConfirm,
   confirmDisabled = false,
-  initialScenario = "overflow",
+  initialScenario: rawInitialScenario = "overflow",
   initialProvider = "dialpad",
   onPreferencesChange,
 }: ForwardingSetupProps) {
@@ -44,6 +46,7 @@ export function ForwardingSetup({
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
+  const initialScenario = normalizeForwardingScenario(rawInitialScenario);
   const [scenario, setScenario] = useState<ForwardingScenarioId>(initialScenario);
   const [provider, setProvider] = useState<ForwardingProviderId>(initialProvider);
   const [copied, setCopied] = useState(false);

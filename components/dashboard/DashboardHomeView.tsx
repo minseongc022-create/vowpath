@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { dashboardGreeting } from "@/lib/dashboard-home-metrics";
-import { dashboardUi, vowDashboard } from "@/lib/content";
+import { useDashboardUi, useVowDashboard } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
+import { normalizeShopState } from "@/lib/shop-storage";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { parseDateInput } from "@/lib/dashboard-analytics";
@@ -44,12 +45,15 @@ import {
   type DashboardDateRange,
 } from "@/components/dashboard/DashboardDateRangePicker";
 import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRequestButton";
-
-const v = vowDashboard;
-const periodPresets = dashboardUi.missedCallsAnalytics.periodPresets as PeriodPresetOption[];
+import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
 
 export function DashboardHomeView() {
-  const { shop } = useShopState();
+  const v = useVowDashboard();
+  const dashboardUi = useDashboardUi();
+  const periodPresets = dashboardUi.missedCallsAnalytics.periodPresets as PeriodPresetOption[];
+
+  const { shop: rawShop } = useShopState();
+  const shop = useMemo(() => normalizeShopState(rawShop), [rawShop]);
   const [dateRange, setDateRange] = useState<DashboardDateRange>(defaultDashboardDateRange);
   const [activePreset, setActivePreset] = useState<MissedCallsAnalyticsPreset | "custom">(
     () => matchAnalyticsPreset(defaultDashboardDateRange()) ?? "30d",
@@ -222,13 +226,21 @@ export function DashboardHomeView() {
 
       {jobberError ? (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Jobber 동기화가 필요합니다.{" "}
+          Jobber sync issue.{" "}
           <Link href={ROUTES.settings} className="font-semibold underline">
-            연동 설정
-          </Link>
-          에서 다시 연결하세요.
+            Integrations
+          </Link>{" "}
+          to reconnect.
         </div>
       ) : null}
+
+      <PendingReviewQueue
+        jobs={jobs}
+        calls={calls}
+        jobberBookings={jobberBookings}
+        requestStatuses={requestStatuses}
+        onStatusChange={() => void refresh()}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <div className="xl:col-span-5">
@@ -313,11 +325,11 @@ export function DashboardHomeView() {
       </div>
 
       <p className="text-center text-xs text-slate-600">
-        통화 시뮬레이션·Job Card·연동 상태는{" "}
+        Manage call simulation, Job Cards, and integrations in{" "}
         <Link href={ROUTES.settings} className="text-violet-300 hover:underline">
-          연동 설정
+          Settings
         </Link>
-        에서 관리할 수 있습니다.
+        .
       </p>
     </div>
   );

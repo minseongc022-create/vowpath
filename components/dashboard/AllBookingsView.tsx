@@ -16,12 +16,12 @@ export function AllBookingsContent({ variant = "light" }: { variant?: "light" | 
         href="/dashboard"
         className={`text-sm font-medium hover:underline ${dark ? "text-violet-300" : "text-brand-600"}`}
       >
-        ← 대시보드로
+        ← Back to dashboard
       </Link>
       {dark ? (
         <>
-          <h1 className="mt-4 text-2xl font-bold text-white">요청 · 예약</h1>
-          <p className="mt-1 text-sm text-slate-400">모든 인바운드 요청과 승인 상태를 확인합니다.</p>
+          <h1 className="mt-4 text-2xl font-bold text-white">Requests & bookings</h1>
+          <p className="mt-1 text-sm text-slate-400">View all inbound requests and approval status.</p>
         </>
       ) : null}
       <div className="mt-6">

@@ -98,7 +98,7 @@ function FlowConnector({ label }: { label: string }) {
 function FlowTimeline() {
   return (
     <div className="mt-8 border-t border-white/[0.06] pt-8">
-      <p className="text-center text-xs font-semibold text-[#c4b5fd]">승인 루프</p>
+      <p className="text-center text-xs font-semibold text-[#c4b5fd]">Approval loop</p>
       <p className="mx-auto mt-2 max-w-xl text-center text-xs leading-relaxed text-slate-500">
         {HERO_FLOW_LOOP_SUMMARY}
       </p>
@@ -106,7 +106,7 @@ function FlowTimeline() {
       <div
         className="mt-6 hidden items-center justify-center lg:flex"
         role="list"
-        aria-label="승인 루프"
+        aria-label="Approval loop"
       >
         {OPERATING_FLOW_NODES.map((node, i) => (
           <div key={node.id} className="flex min-w-0 items-center" role="listitem">
@@ -196,22 +196,7 @@ export function HeroFlowVisual() {
 
   return (
     <div className="vow-hero-flow relative mx-auto w-full max-w-6xl">
-      <header className="text-center">
-        <p className="hvac-badge-dark mx-auto inline-flex">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-          미국 residential HVAC · 문자 승인
-        </p>
-        <h1 className="mt-5 text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
-          바쁜 날·야간·현장에서{" "}
-          <span className="hvac-text-gradient">문자로 예약 확인</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
-          고객이 전화·링크로 접수 → 업체에 승인 요청 문자 → 1=승인 · 2=거절 → 고객에게 확정·거절
-          문자 자동 발송
-        </p>
-      </header>
-
-      <div className="vow-hero-flow-stage relative mt-10 overflow-hidden rounded-[1.75rem] border border-white/[0.07] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+      <div className="vow-hero-flow-stage relative overflow-hidden rounded-[1.75rem] border border-white/[0.07] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -222,7 +207,7 @@ export function HeroFlowVisual() {
         />
 
         <p className="relative text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-[#c4b5fd]">
-          승인 흐름
+          How approval works
         </p>
 
         <ul className="relative mt-5 flex flex-wrap justify-center gap-2">
@@ -290,7 +275,7 @@ export function HeroFlowVisual() {
                   VOWPATH
                 </p>
                 <p className="text-xs leading-[1.2] text-slate-400 sm:text-[13px]">
-                  접수 → 승인 요청 → 고객 자동 안내
+                  Intake → your alert → customer update
                 </p>
               </div>
             </div>

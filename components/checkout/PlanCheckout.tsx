@@ -1,6 +1,7 @@
-import { pricing } from "@/lib/content";
+import { siteGetStarted, sitePricing as pricing } from "@/lib/site-content";
 import type { PlanId } from "@/lib/constants";
 import { checkoutApiHref } from "@/lib/checkout-urls";
+import { isEnglishUi } from "@/lib/locale";
 import Link from "next/link";
 
 type PlanCheckoutProps = {
@@ -9,13 +10,20 @@ type PlanCheckoutProps = {
 };
 
 export function PlanCheckout({ selectedPlan, stripeReady }: PlanCheckoutProps) {
+  const page = siteGetStarted;
+  const en = isEnglishUi() && "payLabel" in page;
+
   return (
     <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
       {pricing.plans.map((plan) => {
         const isSelected = plan.id === selectedPlan;
         const payLabel = stripeReady
-          ? `${plan.price}${plan.period} 결제하기`
-          : "회원가입하고 시작하기";
+          ? en && typeof page.payLabel === "function"
+            ? page.payLabel(plan.price, plan.period)
+            : `${plan.price}${plan.period} 결제하기`
+          : en && "signupLabel" in page
+            ? (page.signupLabel as string)
+            : "회원가입하고 시작하기";
 
         return (
           <article

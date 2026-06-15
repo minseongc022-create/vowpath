@@ -57,6 +57,7 @@ function newIntakeState(params: {
   from: string;
   to: string;
   menuPriority: JobPriority | null;
+  afterHours?: boolean;
 }): CallIntakeState {
   const priority = params.menuPriority ?? "P2";
   return {
@@ -77,6 +78,7 @@ function newIntakeState(params: {
     verified: {},
     callbackPhone: resolveCallbackFromCallerId(params.from),
     attempt: 1,
+    afterHours: params.afterHours,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -99,10 +101,11 @@ async function commitIntake(
   await finalizeVerifiedIntake(userId, payload, {
     intakeChannel: "phone",
     selectedSlot: state.selectedSlot ?? null,
+    afterHours: state.afterHours,
   });
   await deleteIntakeState(userId, state.callSid);
   return new NextResponse(
-    twimlGoodbyeAfterCommit(Boolean(state.selectedSlot)),
+    twimlGoodbyeAfterCommit(Boolean(state.selectedSlot), state.afterHours),
     { headers: { "Content-Type": "text/xml" } },
   );
 }
@@ -126,6 +129,7 @@ export async function POST(request: Request) {
   const digit = form.get("Digits");
 
   const menuPriority = parsePriorityParam(url.searchParams.get("priority"));
+  const afterHours = url.searchParams.get("afterHours") === "1";
 
   const userId = await resolveTenantUserId({ to, callSid });
   if (!userId) {
@@ -139,7 +143,7 @@ export async function POST(request: Request) {
 
   let state =
     (callSid ? await getIntakeState(userId, callSid) : null) ??
-    newIntakeState({ callSid, userId, from, to, menuPriority });
+    newIntakeState({ callSid, userId, from, to, menuPriority, afterHours });
 
   if (state.userId !== userId) {
     return new NextResponse("Forbidden", { status: 403 });

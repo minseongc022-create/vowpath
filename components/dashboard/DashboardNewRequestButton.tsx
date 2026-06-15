@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { vowDashboard } from "@/lib/content";
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 type DashboardNewRequestButtonProps = {
   onCreated?: () => void;
 };
 
 export function DashboardNewRequestButton({ onCreated }: DashboardNewRequestButtonProps) {
+  const vowDashboard = useVowDashboard();
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 

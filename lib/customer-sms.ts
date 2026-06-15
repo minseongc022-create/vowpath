@@ -4,6 +4,8 @@ import { extractIssueType } from "./recent-bookings";
 import { sendSms, type SmsSendContext } from "./send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "./sms-dedupe";
 import type { JobPriority } from "./types";
+import { afterHoursCustomerSmsBody } from "./after-hours-intake";
+import { bookingShortRef } from "./booking-ref";
 import { setSmsReplyTarget } from "./sms-reply-context";
 import { findUserById } from "./users-db";
 import { resolveShopDisplayName } from "./link-intake-brand";
@@ -18,21 +20,28 @@ function shopLabel(shopName: string | undefined): string {
   return name && name.length > 0 ? name : "Your HVAC team";
 }
 
+const SMS_OPT_OUT = " Reply STOP to opt out.";
+
 export function smsRequestReceivedBody(shopName?: string): string {
-  return `${shopLabel(shopName)}: We received your service request. Our team will review it and contact you shortly. This is not a confirmed appointment.`;
+  return (
+    `${shopLabel(shopName)}: We received your service request. Our team will review it and contact you shortly. This is not a confirmed appointment.` +
+    SMS_OPT_OUT
+  );
 }
 
 export function smsApprovedBody(shopName?: string): string {
   return (
     `${shopLabel(shopName)}: Your service request is confirmed. ` +
-    `We will contact you shortly to schedule your visit.`
+    `We will contact you shortly to schedule your visit.` +
+    SMS_OPT_OUT
   );
 }
 
 export function smsRejectedBody(shopName?: string): string {
   return (
     `${shopLabel(shopName)}: Your service request was declined. ` +
-    `Please call us if you still need service.`
+    `Please call us if you still need service.` +
+    SMS_OPT_OUT
   );
 }
 
@@ -48,6 +57,7 @@ export function smsOwnerEmergencyBody(params: {
 /** SMS to shop owner when a new service request is created (Twilio outbound). */
 export function smsOwnerNewRequestBody(params: {
   shopName?: string;
+  bookingId: string;
   customerName: string;
   issueType?: string;
   symptom?: string;
@@ -56,6 +66,7 @@ export function smsOwnerNewRequestBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = params.customerName?.trim() || "Caller";
+  const ref = bookingShortRef(params.bookingId);
   const issue =
     params.issueType?.trim() ||
     extractIssueType(params.symptom ?? "", "Service request");
@@ -63,9 +74,9 @@ export function smsOwnerNewRequestBody(params: {
     params.cityState?.trim() && params.cityState !== "—"
       ? ` · ${params.cityState}`
       : "";
-  const replyHint = " Reply 1=Approve, 2=Reject.";
+  const replyHint = ` Ref ${ref}. Reply 1 ${ref}=Approve, 2 ${ref}=Reject.`;
   if (params.priority === "P1") {
-    return `${shop} URGENT (P1): ${name} — ${issue}${place}. Pending review.${replyHint}`;
+    return `${shop} URGENT (P1): ${name} — ${issue}${place}. Pending.${replyHint}`;
   }
   const tag = params.priority === "P2" ? "P2" : "P3";
   return `${shop}: New request (${tag}) — ${name}, ${issue}${place}. Pending.${replyHint}`;
@@ -121,9 +132,12 @@ export async function notifyCustomerRequestReceived(params: {
   userId: string;
   bookingId: string;
   phone: string;
+  afterHours?: boolean;
 }): Promise<void> {
   const user = await findUserById(params.userId);
-  const body = smsRequestReceivedBody(user?.shopName);
+  const body = params.afterHours
+    ? afterHoursCustomerSmsBody(user?.shopName)
+    : smsRequestReceivedBody(user?.shopName);
   await sendCustomerSms({
     userId: params.userId,
     phone: params.phone,
@@ -221,6 +235,7 @@ export async function notifyOwnerNewRequest(params: {
 
     const body = smsOwnerNewRequestBody({
       shopName: user?.shopName,
+      bookingId: params.bookingId,
       customerName: params.customerName,
       issueType: params.issueType,
       symptom: params.symptom,

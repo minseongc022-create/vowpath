@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
 import { prepareMissedCallsChartData } from "@/lib/missed-calls-chart-series";
 import { dashboardUi } from "@/lib/content";
+import { isEnglishUi } from "@/lib/locale";
 import {
   formatTrendTooltipValue,
   getTrendChartPlotValue,
@@ -15,8 +16,6 @@ import {
   trendSeriesDef,
   type TrendChartSeriesId,
 } from "@/lib/trend-chart-series";
-
-const m = dashboardUi.missedCallsAnalytics;
 
 const PAD = { t: 24, r: 40, b: 52, l: 44 };
 
@@ -127,7 +126,7 @@ function SeriesLegend({
     <div
       className="mb-3 flex flex-wrap gap-2"
       role="group"
-      aria-label="추세 지표 선택"
+      aria-label={isEnglishUi() ? "Select trend metrics" : "추세 지표 선택"}
     >
       {TREND_CHART_SERIES.map((series) => {
         const on = visible.includes(series.id);
@@ -251,6 +250,7 @@ function MultiSeriesLineChart({
   cfg: (typeof SIZE_CONFIG)[ChartSize];
   visible: TrendChartSeriesId[];
 }) {
+  const m = dashboardUi.missedCallsAnalytics;
   const [hovered, setHovered] = useState<number | null>(null);
   const chartW = cfg.width;
   const chartH = cfg.height;
@@ -515,6 +515,7 @@ export function MissedCallsPreventedChart({
   /** Stretch plot to container width (analytics full-width layout) */
   fluid?: boolean;
 }) {
+  const m = dashboardUi.missedCallsAnalytics;
   const resolvedSize: ChartSize = compact ? (tall ? "home" : "compact") : size;
   const containerRef = useRef<HTMLDivElement>(null);
   const [fluidWidth, setFluidWidth] = useState(SIZE_CONFIG.full.width);

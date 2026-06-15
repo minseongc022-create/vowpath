@@ -1,3 +1,5 @@
+"use client";
+
 import {
   isTrustScoreSufficient,
   TRUST_SCORE_SUFFICIENT_MIN,
@@ -5,8 +7,7 @@ import {
   type TrustScoreBand,
 } from "@/lib/request-trust-score";
 import { dashboardUi } from "@/lib/content";
-
-const t = dashboardUi.bookingDetail;
+import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 
 const BAND_STYLES: Record<
   TrustScoreBand,
@@ -39,7 +40,7 @@ type TrustScorePanelProps = {
   trust: RequestTrustScore;
 };
 
-function reassuranceCopy(trust: RequestTrustScore): string {
+function reassuranceCopy(trust: RequestTrustScore, t: typeof dashboardUi.bookingDetail): string {
   if (!trust.hasLinkedCall) return t.trustNoCallGuide;
   if (trust.band === "high") return t.trustScoreHigh;
   if (isTrustScoreSufficient(trust.score)) return t.trustScoreSufficient;
@@ -47,6 +48,8 @@ function reassuranceCopy(trust: RequestTrustScore): string {
 }
 
 export function TrustScorePanel({ trust }: TrustScorePanelProps) {
+  const t = dashboardUi.bookingDetail;
+  const isEnglish = useIsEnglishUi();
   const sufficient = trust.hasLinkedCall && isTrustScoreSufficient(trust.score);
   const styles =
     sufficient || trust.band === "high" ? BAND_STYLES.high : BAND_STYLES[trust.band];
@@ -62,7 +65,11 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
             {t.trustScore}
           </p>
           <span className="text-[10px] font-medium text-slate-600">
-            {t.trustScoreBenchmark} ({TRUST_SCORE_SUFFICIENT_MIN}점+)
+            {t.trustScoreBenchmark} (
+            {isEnglish
+              ? `${TRUST_SCORE_SUFFICIENT_MIN}+ pts`
+              : `${TRUST_SCORE_SUFFICIENT_MIN}점+`}
+            )
           </span>
         </div>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
@@ -93,7 +100,7 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
                 : "border-white/[0.08] bg-white/[0.03] text-slate-400"
           }`}
         >
-          {reassuranceCopy(trust)}
+          {reassuranceCopy(trust, t)}
         </p>
 
         <p className="mt-2 text-xs text-slate-500">

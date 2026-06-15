@@ -1,4 +1,4 @@
-import { features } from "@/lib/content";
+import { siteFeatures } from "@/lib/site-content";
 import { SECTION_LABELS } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -31,15 +31,20 @@ export function Features() {
       <Container>
         <SectionHeading
           label={SECTION_LABELS.features}
-          title={features.title}
-          subtitle={features.subtitle}
+          title={siteFeatures.title}
+          subtitle={siteFeatures.subtitle}
         />
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.items.map((item, i) => (
+          {siteFeatures.items.map((item, i) => (
             <article key={item.title} className="group vow-site-card p-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-600/15 text-violet-200">
-                {icons[i]}
+                {icons[i % icons.length]}
               </div>
+              {"tag" in item && typeof item.tag === "string" && item.tag ? (
+                <span className="mt-3 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
+                  {item.tag}
+                </span>
+              ) : null}
               <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 {item.description}
@@ -47,6 +52,13 @@ export function Features() {
             </article>
           ))}
         </div>
+        {"removedNote" in siteFeatures &&
+        typeof siteFeatures.removedNote === "string" &&
+        siteFeatures.removedNote ? (
+          <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-slate-500">
+            {siteFeatures.removedNote}
+          </p>
+        ) : null}
       </Container>
     </section>
   );

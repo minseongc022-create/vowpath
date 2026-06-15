@@ -1,22 +1,24 @@
 "use client";
 
 import type { DashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
-import { vowDashboard } from "@/lib/content";
-
-const h = vowDashboard.hero;
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 type DashboardHeroProps = {
   metrics: DashboardHomeMetrics;
   loading?: boolean;
 };
 
+type HeroCopy = ReturnType<typeof useVowDashboard>["hero"];
+
 function HeroStat({
+  h,
   label,
   value,
   deltaPct,
   accent,
   loading,
 }: {
+  h: HeroCopy;
   label: string;
   value: string;
   deltaPct: number;
@@ -55,6 +57,8 @@ function HeroStat({
 }
 
 export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
+  const h = useVowDashboard().hero;
+
   return (
     <section className="vow-dash-hero">
       <div className="flex flex-col gap-1 border-b border-white/[0.05] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -68,6 +72,7 @@ export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
       </div>
       <div className="grid grid-cols-1 divide-y divide-white/[0.05] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <HeroStat
+          h={h}
           label={h.callsSaved}
           value={metrics.missedPrevented.display}
           deltaPct={metrics.missedPrevented.deltaPct}
@@ -75,6 +80,7 @@ export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
           loading={loading}
         />
         <HeroStat
+          h={h}
           label={h.aiAnswered}
           value={metrics.aiAnswered.display}
           deltaPct={metrics.aiAnswered.deltaPct}
@@ -82,6 +88,7 @@ export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
           loading={loading}
         />
         <HeroStat
+          h={h}
           label={h.emergency}
           value={metrics.emergencyRequests.display}
           deltaPct={metrics.emergencyRequests.deltaPct}

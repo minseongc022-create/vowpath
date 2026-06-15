@@ -5,6 +5,9 @@ import {
   shouldOwnerApproveAfterCustomerSlotPick,
   shouldSendOwnerApprovalSms,
 } from "../booking-settings";
+import { isTenantAfterHours } from "../after-hours";
+import { extractZipFromAddress } from "../service-area";
+import { formatCityState } from "../recent-bookings";
 import { getShopBookingSettings, decrementShadowMode } from "../shop-settings-db";
 import {
   getScheduledBooking,
@@ -27,6 +30,14 @@ import {
   notifyOwnerShadowResult,
 } from "../scheduling/schedule-sms";
 import { logOperationFailure } from "../ops-failures";
+import { listWorkflowRules, recordWorkflowRuleMatch } from "../workflow-rules/store";
+import {
+  evaluateWorkflowRules,
+  resolveApprovalFromWorkflow,
+} from "../workflow-rules/evaluate";
+import type { RuleEvaluationContext } from "../workflow-rules/types";
+import { appendWorkflowBookingTags } from "../workflow-rules/booking-tags";
+import { appendTenantEvent } from "../tenant-events";
 
 export type ApplyScheduleParams = {
   userId: string;
@@ -74,12 +85,55 @@ export async function applyCustomerChosenSchedule(
     return "pending_review";
   }
 
-  const needsApproval = shouldOwnerApproveAfterCustomerSlotPick({
+  const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     mode: settings.schedulingMode,
     priority: params.priority,
     confidenceMin: confidenceMin(params.confidence),
     confidenceThreshold: getConfidenceThreshold(),
   });
+
+  const afterHours = await isTenantAfterHours(params.userId);
+  const workflowRules = await listWorkflowRules(params.userId);
+  const evalCtx: RuleEvaluationContext = {
+    userId: params.userId,
+    bookingId: params.bookingId,
+    callLogId: params.callLogId,
+    issueType: params.card.symptom,
+    symptom: params.card.symptom,
+    priority: params.priority,
+    confidenceMin: confidenceMin(params.confidence),
+    customerPhone: params.customerPhone,
+    address: params.card.address,
+    zipCode: extractZipFromAddress(params.card.address) ?? undefined,
+    cityState: formatCityState(params.card.address),
+    slotStartAt: params.slot.startAt,
+    slotEndAt: params.slot.endAt,
+    createdAt: new Date().toISOString(),
+    schedulingMode: settings.schedulingMode,
+    afterHours,
+  };
+
+  const workflowDecision = evaluateWorkflowRules(workflowRules, evalCtx);
+  const effectivePriority = workflowDecision.priorityOverride ?? params.priority;
+  const needsApproval = resolveApprovalFromWorkflow(baseNeedsApproval, workflowDecision);
+
+  if (workflowDecision.matchedRuleIds.length) {
+    await recordWorkflowRuleMatch(params.userId, workflowDecision.matchedRuleIds);
+    if (workflowDecision.tags.length) {
+      await appendWorkflowBookingTags(params.userId, params.bookingId, workflowDecision.tags);
+    }
+    for (const entry of workflowDecision.audit) {
+      await appendTenantEvent({
+        userId: params.userId,
+        type: "workflow_rule_matched",
+        title: "Automation rule applied",
+        body: `${entry.name} · ${params.bookingId}`,
+        bookingId: params.bookingId,
+        href: `/dashboard/bookings/${encodeURIComponent(params.bookingId)}`,
+        urgency: effectivePriority === "P1" ? "high" : "medium",
+      });
+    }
+  }
 
   const undoAt = new Date();
   undoAt.setMinutes(undoAt.getMinutes() + settings.undoWindowMinutes);
@@ -102,6 +156,7 @@ export async function applyCustomerChosenSchedule(
       ...job,
       arrivalWindow: params.slot.label,
       status: needsApproval ? "pending_review" : "scheduled",
+      priority: effectivePriority,
     });
   }
 
@@ -121,20 +176,21 @@ export async function applyCustomerChosenSchedule(
   }
 
   if (needsApproval) {
-    if (
+    const sendSms =
+      workflowDecision.sendOwnerSms ??
       shouldSendOwnerApprovalSms(
         settings.ownerApprovalSms,
-        params.priority,
+        effectivePriority,
         settings.schedulingMode,
-      )
-    ) {
+      );
+    if (sendSms) {
       await notifyOwnerApprovalNeeded({
         userId: params.userId,
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
         window: params.slot.label,
-        priority: params.priority,
+        priority: effectivePriority,
       });
     }
   } else {
@@ -144,7 +200,7 @@ export async function applyCustomerChosenSchedule(
       phone: params.customerPhone,
       window: params.slot.label,
       address: params.card.address,
-      priority: params.priority,
+      priority: effectivePriority,
     });
     await notifyOwnerScheduledFyi({
       userId: params.userId,

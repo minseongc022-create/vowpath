@@ -33,19 +33,18 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
   if (typeof body.shadowModeRemaining === "number" && body.shadowModeRemaining >= 0 && body.shadowModeRemaining <= 50) {
     patch.shadowModeRemaining = Math.round(body.shadowModeRemaining);
   }
-  if (typeof body.jobberSchedulingEnabled === "boolean") {
-    patch.jobberSchedulingEnabled = body.jobberSchedulingEnabled;
-  }
   if (typeof body.nativeCalendarEnabled === "boolean") {
     patch.nativeCalendarEnabled = body.nativeCalendarEnabled;
   }
   if (typeof body.slotOfferCount === "number" && body.slotOfferCount >= 1 && body.slotOfferCount <= 5) {
     patch.slotOfferCount = Math.round(body.slotOfferCount);
   }
-  if (typeof body.spamFilterEnabled === "boolean") {
-    patch.spamFilterEnabled = body.spamFilterEnabled;
+  if (Array.isArray(body.serviceAreaZips)) {
+    patch.serviceAreaZips = (body.serviceAreaZips as unknown[])
+      .filter((z): z is string => typeof z === "string")
+      .map((z) => z.trim().slice(0, 5))
+      .filter((z) => /^\d{5}$/.test(z));
   }
-
   return patch;
 }
 

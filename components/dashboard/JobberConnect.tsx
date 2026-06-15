@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { jobberConnect as copy } from "@/lib/content";
-import { readShopState, writeShopState } from "@/lib/shop-storage";
+import { patchShopProfile } from "@/lib/shop-profile-client";
+import { readShopState } from "@/lib/shop-storage";
 import { notifyJobberUpdated } from "@/lib/dashboard-data-client";
 
 type Status = {
@@ -45,7 +46,7 @@ export function JobberConnect({
       notifyJobberUpdated();
       if (data.connected) {
         const shop = readShopState();
-        writeShopState({
+        void patchShopProfile({
           ...shop,
           jobberConnected: true,
           jobberSetupConfirmed: freshConnect ? false : shop.jobberSetupConfirmed,
@@ -80,7 +81,7 @@ export function JobberConnect({
     try {
       await fetch("/api/jobber/disconnect", { method: "POST" });
       const shop = readShopState();
-      writeShopState({
+      void patchShopProfile({
         ...shop,
         jobberConnected: false,
         jobberSetupConfirmed: false,

@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { vowDashboard } from "@/lib/content";
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 import { formatBookingReceivedLabel, type RecentBooking } from "@/lib/recent-bookings";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import { lookupStoredRequestStatus } from "@/lib/request-status-resolve";
 import { isApprovedBooking, type RequestStatus } from "@/lib/booking-policy";
-
-const v = vowDashboard.upcoming;
 
 type DashboardUpcomingBookingsProps = {
   bookings: RecentBooking[];
@@ -19,6 +17,7 @@ export function DashboardUpcomingBookings({
   bookings,
   requestStatuses,
 }: DashboardUpcomingBookingsProps) {
+  const v = useVowDashboard().upcoming;
   const nowMs = useRelativeNow();
   return (
     <section className="vow-dash-panel h-full">

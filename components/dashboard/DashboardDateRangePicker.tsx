@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { vowDashboard } from "@/lib/content";
+import { getVowDashboardCopy } from "@/lib/content";
+import { useVowDashboard } from "@/components/providers/LocaleProvider";
+import { runtimeUiLocale } from "@/lib/locale";
 import { toDateInputValue } from "@/lib/operations-analytics";
 
 export type DashboardDateRange = {
@@ -10,8 +12,6 @@ export type DashboardDateRange = {
 };
 
 type Preset = "7d" | "30d" | "month";
-
-const h = vowDashboard.header;
 
 function presetRange(preset: Preset): DashboardDateRange {
   const end = new Date();
@@ -31,8 +31,8 @@ function formatLabel(start: string, end: string): string {
   const s = new Date(`${start}T12:00:00`);
   const e = new Date(`${end}T12:00:00`);
   const fmt = (d: Date) =>
-    d.toLocaleDateString("ko-KR", { month: "short", day: "numeric", year: "numeric" });
-  return h.dateRange(fmt(s), fmt(e));
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return getVowDashboardCopy(runtimeUiLocale()).header.dateRange(fmt(s), fmt(e));
 }
 
 function isValidRange(start: string, end: string): boolean {
@@ -46,6 +46,7 @@ type DashboardDateRangePickerProps = {
 };
 
 export function DashboardDateRangePicker({ value, onChange }: DashboardDateRangePickerProps) {
+  const h = useVowDashboard().header;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string | null>(null);
@@ -116,9 +117,9 @@ export function DashboardDateRangePicker({ value, onChange }: DashboardDateRange
           <div className="mt-1.5 space-y-0.5">
             {(
               [
-                ["7d", "최근 7일"],
-                ["30d", "최근 30일"],
-                ["month", "이번 달"],
+                ["7d", "Last 7 days"],
+                ["30d", "Last 30 days"],
+                ["month", "This month"],
               ] as const
             ).map(([key, label]) => (
               <button

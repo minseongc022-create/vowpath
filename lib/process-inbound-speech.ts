@@ -13,6 +13,8 @@ export type InboundSpeechResult = {
   card: GeneratedJobCard;
   jobberRequestId?: string;
   callLogId: string;
+  serviceAreaRejected?: boolean;
+  rejectMessage?: string;
 };
 
 /** @deprecated Production calls use finalizeVerifiedIntake after DTMF verification. */

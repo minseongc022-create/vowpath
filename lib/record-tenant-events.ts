@@ -1,7 +1,5 @@
 import { dashboardUi } from "./content";
 import type { RequestStatus } from "./booking-policy";
-
-const ev = dashboardUi.notificationEvents;
 import {
   isCallbackRequest,
   isEmergencyCall,
@@ -26,7 +24,7 @@ export async function recordServiceRequestCreated(params: {
   await appendTenantEvent({
     userId: params.userId,
     type: "service_request_created",
-    title: ev.reviewRequest,
+    title: dashboardUi.notificationEvents.reviewRequest,
     body: `${params.customerName} · ${params.issueType}${params.cityState ? ` · ${params.cityState}` : ""}`,
     bookingId: params.bookingId,
     callId: params.callId,
@@ -38,10 +36,10 @@ export async function recordServiceRequestCreated(params: {
 const STATUS_EVENT: Partial<
   Record<RequestStatus, { type: TenantEventType; title: string }>
 > = {
-  approved: { type: "service_request_approved", title: ev.approved },
-  rejected: { type: "service_request_rejected", title: ev.rejected },
-  scheduled: { type: "service_request_scheduled", title: ev.scheduled },
-  completed: { type: "service_request_completed", title: ev.completed },
+  approved: { type: "service_request_approved", title: dashboardUi.notificationEvents.approved },
+  rejected: { type: "service_request_rejected", title: dashboardUi.notificationEvents.rejected },
+  scheduled: { type: "service_request_scheduled", title: dashboardUi.notificationEvents.scheduled },
+  completed: { type: "service_request_completed", title: dashboardUi.notificationEvents.completed },
 };
 
 export async function recordRequestStatusChange(params: {
@@ -74,7 +72,7 @@ export async function recordJobberSyncFailed(params: {
     id: JOBBER_SYNC_FAIL_EVENT_ID,
     userId: params.userId,
     type: "jobber_sync_failed",
-    title: ev.jobberFail,
+    title: dashboardUi.notificationEvents.jobberFail,
     body: params.message,
     href: "/settings?section=jobber",
     urgency: "high",
@@ -92,15 +90,15 @@ export async function recordCallSignalEvents(params: {
   recordingUrl?: string | null;
 }): Promise<void> {
   const href = bookingHref(params.bookingId);
-  const label = params.customerName || ev.caller;
-  const detail = params.symptom?.trim() || ev.inboundCall;
+  const label = params.customerName || dashboardUi.notificationEvents.caller;
+  const detail = params.symptom?.trim() || dashboardUi.notificationEvents.inboundCall;
 
   if (isEmergencyCall(params.priority)) {
     await appendTenantEvent({
       id: `emergency-${params.callId}`,
       userId: params.userId,
       type: "emergency_call",
-      title: ev.emergency,
+      title: dashboardUi.notificationEvents.emergency,
       body: `${label} · ${detail}`,
       bookingId: params.bookingId,
       callId: params.callId,
@@ -121,7 +119,7 @@ export async function recordCallSignalEvents(params: {
       id: `callback-${params.callId}`,
       userId: params.userId,
       type: "callback_requested",
-      title: ev.callback,
+      title: dashboardUi.notificationEvents.callback,
       body: `${label} · ${detail}`,
       bookingId: params.bookingId,
       callId: params.callId,
@@ -135,8 +133,8 @@ export async function recordCallSignalEvents(params: {
       id: `voicemail-${params.callId}`,
       userId: params.userId,
       type: "voicemail_received",
-      title: ev.voicemail,
-      body: `${label} · ${params.recordingUrl ? ev.recordingReady : ev.messageCaptured}`,
+      title: dashboardUi.notificationEvents.voicemail,
+      body: `${label} · ${params.recordingUrl ? dashboardUi.notificationEvents.recordingReady : dashboardUi.notificationEvents.messageCaptured}`,
       bookingId: params.bookingId,
       callId: params.callId,
       href,
@@ -155,8 +153,8 @@ export async function recordLinkIntakeCustomerUpdated(params: {
 }): Promise<void> {
   await appendTenantEvent({
     userId: params.userId,
-    type: "service_request_created",
-    title: "고객 접수 수정",
+    type: "customer_corrected",
+    title: "Customer corrected intake",
     body: `${params.customerName} · ${params.issueType}${params.cityState ? ` · ${params.cityState}` : ""} (문자 링크)`,
     bookingId: params.bookingId,
     callId: params.callId,
@@ -173,7 +171,7 @@ export async function recordCallIntakeFailed(params: {
   await appendTenantEvent({
     userId: params.userId,
     type: "call_intake_failed",
-    title: ev.intakeFailed,
+    title: dashboardUi.notificationEvents.intakeFailed,
     body: params.message,
     callId: params.callSid,
     urgency: "high",
@@ -190,7 +188,7 @@ export async function recordSmsDeliveryFailed(params: {
   await appendTenantEvent({
     userId: params.userId,
     type: "sms_delivery_failed",
-    title: ev.smsFailed,
+    title: dashboardUi.notificationEvents.smsFailed,
     body: `${params.operation}: ${params.message}`,
     bookingId: params.bookingId,
     href: params.href ?? "/settings?section=contact",

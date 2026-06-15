@@ -73,17 +73,17 @@ export function OnboardingWizard({
   const steps = onboardingPage.steps;
   const current = steps[step];
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!canConfirm) return;
-    const next = saveSchedule(shop, rows, true, alwaysOn);
+    const next = await saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
     setConfirmed(next.scheduleWindows.map((w) => w.label));
   }
 
-  function completeStep() {
+  async function completeStep() {
     if (current.id === "schedule") {
       if (!canConfirm) return;
-      const next = saveSchedule(shop, rows, true, alwaysOn);
+      const next = await saveSchedule(shop, rows, true, alwaysOn);
       setShop(next);
       setStep(1);
       return;
@@ -237,8 +237,13 @@ export function OnboardingWizard({
                     initialProvider={shop.forwardingProvider ?? "dialpad"}
                     onPreferencesChange={setForwardingPrefs}
                     onConfirm={() => {
-                      const next = markForwardingDone(readShopState(), forwardingPrefs);
-                      setShop(next);
+                      void (async () => {
+                        const next = await markForwardingDone(
+                          readShopState(),
+                          forwardingPrefs,
+                        );
+                        setShop(next);
+                      })();
                     }}
                   />
                 </div>

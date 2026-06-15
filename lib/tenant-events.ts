@@ -9,12 +9,16 @@ export type TenantEventType =
   | "service_request_rejected"
   | "service_request_scheduled"
   | "service_request_completed"
+  | "customer_corrected"
+  | "customer_verified"
+  | "booking_jobber_synced"
   | "emergency_call"
   | "callback_requested"
   | "voicemail_received"
   | "jobber_sync_failed"
   | "call_intake_failed"
-  | "sms_delivery_failed";
+  | "sms_delivery_failed"
+  | "workflow_rule_matched";
 
 export type TenantEvent = {
   id: string;
@@ -129,5 +133,9 @@ export const AUDIT_EVENT_TYPES: TenantEventType[] = [
   "service_request_rejected",
   "service_request_scheduled",
   "service_request_completed",
+  "customer_corrected",
+  "customer_verified",
+  "booking_jobber_synced",
   "call_intake_failed",
+  "workflow_rule_matched",
 ];

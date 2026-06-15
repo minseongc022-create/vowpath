@@ -13,8 +13,6 @@ import {
   type JobberBookingRecord,
 } from "@/lib/operations-analytics";
 
-const t = dashboardUi.hero;
-
 type BookingHeroProps = {
   calls: CallRecord[];
   jobs: JobCard[];
@@ -55,13 +53,13 @@ function MiniSparkline({ values }: { values: number[] }) {
   );
 }
 
-function HeroSkeleton() {
+function HeroSkeleton({ copy }: { copy: typeof dashboardUi.hero }) {
   return (
     <>
       <p className="text-xs font-semibold uppercase tracking-widest text-brand-600">
-        {t.loading}
+        {copy.loading}
       </p>
-      <h2 className="mt-2 text-sm font-medium text-slate-600">{t.serviceRequestsThisMonth}</h2>
+      <h2 className="mt-2 text-sm font-medium text-slate-600">{copy.serviceRequestsThisMonth}</h2>
       <div className="mt-1 h-16 w-32 animate-pulse rounded-lg bg-slate-200 sm:h-20 sm:w-40" />
       <div className="mt-4 h-4 w-48 animate-pulse rounded bg-slate-100" />
     </>
@@ -75,6 +73,7 @@ export function BookingHero({
   jobberConnected = false,
   loading,
 }: BookingHeroProps) {
+  const t = dashboardUi.hero;
   const now = useMemo(() => new Date(), []);
   const monthRange = useMemo(() => resolveMonthToDate(now), [now]);
   const prevRange = useMemo(() => resolvePreviousMonthSamePeriod(now), [now]);
@@ -129,7 +128,7 @@ export function BookingHero({
   if (loading && calls.length === 0 && jobs.length === 0) {
     return (
       <section className="booking-hero" aria-label={t.ariaLabel}>
-        <HeroSkeleton />
+        <HeroSkeleton copy={t} />
       </section>
     );
   }

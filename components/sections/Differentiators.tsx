@@ -1,4 +1,4 @@
-import { differentiators } from "@/lib/content";
+import { siteDifferentiators } from "@/lib/site-content";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -8,12 +8,12 @@ export function Differentiators() {
     <section id="differentiators" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading
-          title={differentiators.title}
-          subtitle={differentiators.subtitle}
+          title={siteDifferentiators.title}
+          subtitle={siteDifferentiators.subtitle}
         />
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {differentiators.items.map((item) => (
+          {siteDifferentiators.items.map((item) => (
             <article
               key={item.title}
               className="vow-site-card border-l-4 border-l-violet-500 p-5"

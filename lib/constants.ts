@@ -1,11 +1,12 @@
 import { IS_BETA } from "./beta";
+import { getCheckoutCta, getSectionLabels, getSiteTagline } from "./marketing-constants";
 
 export const SITE = {
   name: "Vowpath",
-  tagline: "바쁜 날·야간·현장에서도 문자로 예약 확인",
-  url: "https://vowpath.com",
-  contactEmail: "minseongc022@gmail.com",
-  supportEmail: "minseongc022@gmail.com",
+  tagline: getSiteTagline(),
+  url: "https://vowpathhq.com",
+  contactEmail: "support@vowpathhq.com",
+  supportEmail: "support@vowpathhq.com",
   monthlyPrice: "$199",
   flexBasePrice: "$49",
   flexPerBooking: "$18",
@@ -22,6 +23,8 @@ export const ROUTES = {
   onboarding: "/onboarding",
   settings: "/dashboard/settings",
   dashboard: "/dashboard",
+  briefing: "/dashboard/briefing",
+  ai: "/dashboard/ai",
   calendar: "/dashboard/calendar",
   missedCallsAnalytics: "/dashboard/missed-calls",
   privacy: "/privacy",
@@ -29,23 +32,21 @@ export const ROUTES = {
 } as const;
 
 export const FOOTER_LINKS = [
-  { label: "개인정보처리방침", href: ROUTES.privacy },
-  { label: "이용약관", href: ROUTES.terms },
-  { label: "문의", href: `mailto:${SITE.contactEmail}` },
+  { label: "Privacy", href: ROUTES.privacy },
+  { label: "Terms", href: ROUTES.terms },
+  { label: "Contact", href: `mailto:${SITE.contactEmail}` },
 ] as const;
 
 export const NAV_LINKS = [
-  { label: "제품", href: "/#differentiators" },
-  { label: "작동 방식", href: "/#how-it-works" },
-  { label: "가격", href: "/#pricing" },
-  { label: "시작하기", href: ROUTES.getStarted },
+  { label: "Product", href: "/#differentiators" },
+  { label: "Why us", href: "/#about" },
+  { label: "Booking modes", href: "/#scheduling" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Get started", href: ROUTES.getStarted },
 ] as const;
 
-export const SECTION_LABELS = {
-  process: "프로세스",
-  features: "기능",
-  signup: "시작 방법",
-} as const;
+export const SECTION_LABELS = getSectionLabels();
 
-export const CHECKOUT_CTA = IS_BETA ? "무료로 시작하기" : "결제하고 시작하기";
-export const BETA_SIGNUP_CTA = "무료로 시작하기";
+export const CHECKOUT_CTA = getCheckoutCta();
+export const BETA_SIGNUP_CTA = IS_BETA ? "Start free" : "Get started";

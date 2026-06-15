@@ -25,6 +25,7 @@ import type {
   StoredAddressValidation,
   StoredVerifiedFields,
 } from "./call-intake/types";
+import { isEnglishUi } from "./locale";
 
 /** Matches StoredCallLog / GET /api/calls */
 export type CallRecord = {
@@ -182,19 +183,26 @@ export function resolvePreviousMonthSamePeriod(now = new Date()): { start: Date;
   return { start, end };
 }
 
-const DATE_LOCALE = "ko-KR";
+function dateLocale(): string {
+  return isEnglishUi() ? "en-US" : "ko-KR";
+}
 
 export function formatMonthLabel(date = new Date()): string {
-  return date.toLocaleDateString(DATE_LOCALE, { month: "long", year: "numeric" });
+  return date.toLocaleDateString(dateLocale(), { month: "long", year: "numeric" });
 }
 
 export function formatMonthRangeShort(start: Date, end: Date): string {
+  const locale = dateLocale();
   const sameMonth =
     start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   if (sameMonth) {
-    return `${start.toLocaleDateString(DATE_LOCALE, { month: "short" })} ${start.getDate()}일 – ${end.getDate()}일`;
+    if (isEnglishUi()) {
+      const month = start.toLocaleDateString(locale, { month: "short" });
+      return `${month} ${start.getDate()} – ${end.getDate()}`;
+    }
+    return `${start.toLocaleDateString(locale, { month: "short" })} ${start.getDate()}일 – ${end.getDate()}일`;
   }
-  return `${start.toLocaleDateString(DATE_LOCALE, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(DATE_LOCALE, { month: "short", day: "numeric" })}`;
+  return `${start.toLocaleDateString(locale, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(locale, { month: "short", day: "numeric" })}`;
 }
 
 export function resolveDateRange(
@@ -307,18 +315,18 @@ function countDaysInclusive(start: Date, end: Date) {
 }
 
 function formatTrendDayLabel(d: Date) {
-  return d.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+  return d.toLocaleDateString(dateLocale(), { month: "numeric", day: "numeric" });
 }
 
 function formatTrendWeekLabel(weekStart: Date) {
-  return weekStart.toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+  return weekStart.toLocaleDateString(dateLocale(), { month: "numeric", day: "numeric" });
 }
 
 function formatTrendMonthLabel(d: Date, spanCrossesYear: boolean) {
   if (spanCrossesYear) {
-    return d.toLocaleDateString("ko-KR", { year: "2-digit", month: "short" });
+    return d.toLocaleDateString(dateLocale(), { year: "2-digit", month: "short" });
   }
-  return d.toLocaleDateString("ko-KR", { month: "short" });
+  return d.toLocaleDateString(dateLocale(), { month: "short" });
 }
 
 /** Monday-start week (US shop calendar). */
@@ -331,12 +339,13 @@ function startOfWeekMonday(d: Date) {
 }
 
 function formatTrendPeriodRange(start: Date, end: Date, granularity: TrendGranularity): string {
+  const locale = dateLocale();
   if (granularity === "month") {
-    return start.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
+    return start.toLocaleDateString(locale, { year: "numeric", month: "long" });
   }
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  const a = start.toLocaleDateString("ko-KR", opts);
-  const b = end.toLocaleDateString("ko-KR", opts);
+  const a = start.toLocaleDateString(locale, opts);
+  const b = end.toLocaleDateString(locale, opts);
   return a === b ? a : `${a} – ${b}`;
 }
 

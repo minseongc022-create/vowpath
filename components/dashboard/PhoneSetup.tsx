@@ -47,7 +47,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
         <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
         <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
         <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
-        <p className="text-xs text-slate-500">전화 연동 상태 불러오는 중…</p>
+        <p className="text-xs text-slate-500">Loading phone setup status…</p>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
         error?: string;
       };
       if (!res.ok) {
-        setSimulateMsg(data.error ?? "시뮬레이션 실패. 로그인 상태와 dev 서버를 확인하세요.");
+        setSimulateMsg(data.error ?? "Simulation failed. Check that you're signed in and the dev server is running.");
         return;
       }
       setSimulateOk(true);
@@ -87,7 +87,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
       );
       window.dispatchEvent(new CustomEvent("vowpath:calls-updated"));
     } catch {
-      setSimulateMsg("네트워크 오류. npm run dev 가 켜져 있는지 확인하세요.");
+      setSimulateMsg("Network error. Make sure npm run dev is running.");
     } finally {
       setSimulating(false);
     }
@@ -168,7 +168,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
         <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
           <dt className="text-slate-500">{copy.webhookLabel}</dt>
           <dd className="break-all text-right font-mono text-xs text-brand-900">
-            {webhookIsLocal ? "미설정 (localhost는 Twilio가 못 붙음)" : status.webhookBase}
+            {webhookIsLocal ? "Not set (Twilio can't reach localhost)" : status.webhookBase}
           </dd>
         </div>
       </dl>
@@ -176,7 +176,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
       {voiceWebhookUrl && !webhookIsLocal ? (
         <div className="mt-3 space-y-2">
           <p className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-900">
-            Twilio Voice 웹훅에 넣을 주소:
+            Paste this URL into your Twilio Voice webhook:
             <br />
             <span className="font-mono font-semibold">{voiceWebhookUrl}</span>
           </p>
@@ -187,7 +187,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
               disabled={configuring}
               className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
-              {configuring ? "등록 중…" : copy.configureWebhook}
+              {configuring ? "Registering…" : copy.configureWebhook}
             </button>
           ) : null}
           {configureMsg ? (
@@ -199,7 +199,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
       {(userId || !status.defaultUserSet) && (
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
           TWILIO_DEFAULT_USER_ID=
-          {userId ?? "로그인 후 여기 표시됨"}
+          {userId ?? "shown after sign-in"}
         </p>
       )}
 
@@ -216,7 +216,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
           disabled={simulating}
           className="mt-3 w-full rounded-lg border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50 disabled:opacity-60"
         >
-          {simulating ? "AI 처리 중… (10~20초)" : copy.simulateCall}
+          {simulating ? "Processing call… (10–20 sec)" : copy.simulateCall}
         </button>
         {simulateMsg ? (
           <p
@@ -231,7 +231,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
               <>
                 {" "}
                 <a href="/dashboard" className="underline">
-                  대시보드에서 보기 →
+                  View in dashboard →
                 </a>
               </>
             ) : null}
@@ -241,15 +241,15 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
 
       {!status.twilioConfigured ? (
         <div className="mt-4 rounded-xl border border-brand-200 bg-white px-4 py-4">
-          <p className="text-sm font-semibold text-brand-950">Twilio Auth Token (한 번만)</p>
+          <p className="text-sm font-semibold text-brand-950">Twilio Auth Token (one-time)</p>
           <p className="mt-1 text-xs text-slate-600">
-            콘솔 → Account → Auth Token → Show → 복사. SID(+12255291680)와 웹훅은 자동 설정됩니다.
+            Console → Account → Auth Token → Show → copy. SID (+12255291680) and webhooks are configured automatically.
           </p>
           <input
             type="password"
             value={authToken}
             onChange={(e) => setAuthToken(e.target.value)}
-            placeholder="Auth Token 붙여넣기"
+            placeholder="Paste Auth Token"
             className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             autoComplete="off"
           />
@@ -259,7 +259,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
             disabled={completing || authToken.length < 10}
             className="mt-3 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
           >
-            {completing ? "연결 중…" : "전화 연동 완료하기"}
+            {completing ? "Connecting…" : "Complete phone setup"}
           </button>
           {configureMsg && !voiceWebhookUrl ? (
             <p className="mt-2 text-xs text-brand-800">{configureMsg}</p>
@@ -269,7 +269,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
 
       {ready ? (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-          전화 연동 준비 완료. Twilio 번호로 전화해 보세요. (Trial은 인증한 번호만)
+          Phone setup is ready. Call your Twilio number to test. (Trial accounts: verified numbers only.)
         </p>
       ) : (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4">

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROUTES } from "@/lib/constants";
-import { vowDashboard } from "@/lib/content";
+import { getVowDashboardCopy } from "@/lib/content";
+import { runtimeUiLocale, isEnglishUi } from "@/lib/locale";
 import { safeDashboardFetch } from "@/lib/dashboard-fetch";
 import {
   buildMonthGrid,
@@ -28,7 +29,7 @@ function toIsoDate(d: Date): string {
 }
 
 function formatDayHeading(day: Date): string {
-  return day.toLocaleDateString("ko-KR", {
+  return day.toLocaleDateString(isEnglishUi() ? "en-US" : "ko-KR", {
     month: "long",
     day: "numeric",
     weekday: "short",
@@ -36,12 +37,14 @@ function formatDayHeading(day: Date): string {
 }
 
 function formatEventTimeShort(startAt: string): string {
-  return new Date(startAt).toLocaleTimeString("ko-KR", {
+  return new Date(startAt).toLocaleTimeString(isEnglishUi() ? "en-US" : "ko-KR", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
 }
+
+type CalendarLabels = ReturnType<typeof getVowDashboardCopy>["calendar"];
 
 function DayEventsListPanel({
   day,
@@ -54,7 +57,7 @@ function DayEventsListPanel({
   events: CalendarEvent[];
   selectedEventId: string | null;
   onSelectEvent: (event: CalendarEvent) => void;
-  labels: typeof vowDashboard.calendar;
+  labels: CalendarLabels;
 }) {
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
@@ -116,7 +119,7 @@ function EventDetailPanel({
 }: {
   event: CalendarEvent;
   onBack: () => void;
-  labels: typeof vowDashboard.calendar;
+  labels: CalendarLabels;
 }) {
   const sourceLabel =
     event.source === "vowpath" ? labels.sourceVowpath : labels.sourceJobber;
@@ -220,7 +223,7 @@ function SidePanel({
   events: CalendarEvent[];
   onSelectEvent: (event: CalendarEvent) => void;
   onBackToList: () => void;
-  labels: typeof vowDashboard.calendar;
+  labels: CalendarLabels;
 }) {
   if (!selectedDay) {
     return (
@@ -257,7 +260,7 @@ export function CalendarView() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  const c = vowDashboard.calendar;
+  const c = getVowDashboardCopy(runtimeUiLocale()).calendar;
   const today = useMemo(() => new Date(), []);
   const gridDays = useMemo(() => buildMonthGrid(month), [month]);
 
@@ -268,7 +271,11 @@ export function CalendarView() {
       const to = endOfMonth(month);
       const q = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
       const res = await safeDashboardFetch(`/api/jobber/schedule?${q}`, 14_000);
-      if (!res) throw new Error("일정 요청 시간이 초과되었습니다.");
+      if (!res) {
+        throw new Error(
+          isEnglishUi() ? "Schedule request timed out." : "일정 요청 시간이 초과되었습니다.",
+        );
+      }
       const json = (await res.json()) as ScheduleResponse;
       if (!res.ok) throw new Error(json.error ?? "Load failed");
       setEvents(json.events ?? []);
@@ -278,7 +285,13 @@ export function CalendarView() {
         return (json.events ?? []).find((e) => e.id === prev.id) ?? null;
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "일정을 불러오지 못했습니다.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : isEnglishUi()
+            ? "Couldn't load schedule."
+            : "일정을 불러오지 못했습니다.",
+      );
     } finally {
       setLoading(false);
     }

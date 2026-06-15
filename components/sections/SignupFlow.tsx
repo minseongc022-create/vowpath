@@ -1,4 +1,4 @@
-import { signupFlow } from "@/lib/content";
+import { siteSignupFlow } from "@/lib/site-content";
 import { SECTION_LABELS } from "@/lib/constants";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
@@ -10,11 +10,11 @@ export function SignupFlow() {
       <Container>
         <SectionHeading
           label={SECTION_LABELS.signup}
-          title={signupFlow.title}
-          subtitle={signupFlow.subtitle}
+          title={siteSignupFlow.title}
+          subtitle={siteSignupFlow.subtitle}
         />
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {signupFlow.steps.map((s) => (
+          {siteSignupFlow.steps.map((s) => (
             <article
               key={s.step}
               className="vow-site-card relative border-t-4 border-t-violet-500 p-5"

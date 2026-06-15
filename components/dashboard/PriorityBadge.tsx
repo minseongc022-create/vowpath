@@ -8,7 +8,7 @@ import type { JobPriority } from "@/lib/types";
 
 type PriorityBadgeProps = {
   priority: JobPriority | undefined | null;
-  /** Show "P2 · 일반" instead of "일반" only */
+  /** Show "P2 · Normal" instead of "Normal" only */
   showCode?: boolean;
   theme?: "light" | "dark";
   className?: string;
