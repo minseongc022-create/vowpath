@@ -9,7 +9,7 @@ export const heroEn = {
   headlineAccent: "turn into revenue alone",
   brandLine: "Your AI ops partner for after-hours intake, booking control, and revenue follow-up.",
   subhead:
-    "Vowpath answers when you can't, shows customers up to five open visit windows from your calendar, and books the slot they pick — under Auto Book, Hybrid, or Manual Approval.",
+    "Vowpath answers when you can't and shows customers up to five open visit windows. They pick one — Auto Book confirms instantly; Hybrid auto-books only the priorities you choose; Manual sends every pick to your phone for 1 / 2 approval.",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#scheduling",
@@ -41,19 +41,19 @@ export const missedCallFlowEn = {
       id: "intake",
       title: "Customer Picks a Time",
       description:
-        "Up to five open visit windows from your real calendar — on the call or via SMS link. They tap one and Vowpath holds that slot.",
+        "Up to five open visit windows from your real calendar — on the call or via SMS link. They tap the slot they want.",
     },
     {
       id: "approve",
-      title: "You Approve by Text (if needed)",
+      title: "Confirm or Approve by Text",
       description:
-        "In Manual or Hybrid mode, a booking request hits your phone. Reply 1 to approve or 2 to decline — no app required.",
+        "Auto Book: the pick confirms on your calendar right away. Hybrid: checked P1/P2/P3 auto-confirm; unchecked priorities text you the pick + job details — reply 1 or 2. Manual: every pick waits for your 1 or 2.",
     },
     {
       id: "scheduled",
       title: "Job Scheduled",
       description:
-        "The picked window lands on your dashboard and calendar — and Jobber, if connected. Auto Book skips the wait.",
+        "Confirmed visits land on your dashboard and calendar — and Jobber, if connected. Pending picks stay held until you approve.",
     },
   ],
 };
@@ -150,7 +150,7 @@ export const schedulingModesEn = {
   label: "Booking modes",
   title: "Three booking modes, one AI intake",
   subtitle:
-    "Same call capture. Different confirmation rules. Run aggressive in peak season, cautious when dispatch is tight, and switch anytime.",
+    "Every mode shows the same five slots. What happens after the customer picks depends on Auto Book, Hybrid P1/P2/P3 rules, or Manual Approval.",
   modes: [
     {
       id: "speed",
@@ -158,9 +158,9 @@ export const schedulingModesEn = {
       badge: null as string | null,
       tagline: "Pick a slot → confirmed instantly",
       description:
-        "Customer sees up to five open windows from your calendar, picks one, and Vowpath confirms it without waiting on you.",
+        "Customer sees up to five open windows, picks one, and Vowpath confirms it on your calendar — no text approval needed.",
       details: [
-        { label: "Slots shown", value: "Up to 5 from calendar" },
+        { label: "After customer picks", value: "Instant confirm" },
         { label: "Owner approval", value: "Skipped" },
         { label: "Owner", value: "FYI + undo" },
       ],
@@ -170,12 +170,13 @@ export const schedulingModesEn = {
       id: "hybrid",
       name: "Hybrid",
       badge: "Recommended default",
-      tagline: "Pick which priorities auto-book",
-      description: null as string | null,
+      tagline: "Checked priorities auto-book; the rest need your OK",
+      description:
+        "Customer still picks from five open slots. Checked P1/P2/P3 priorities confirm instantly. Unchecked priorities text you the picked time and job details — reply 1 to approve or 2 to decline.",
       details: [
-        { label: "Checked P1 / P2 / P3", value: "Auto book (Speed)" },
-        { label: "Unchecked", value: "Manual approval" },
-        { label: "All three checked", value: "Switches to Auto Book" },
+        { label: "Checked P1 / P2 / P3", value: "Pick → auto confirm" },
+        { label: "Unchecked", value: "Pick → SMS 1 / 2" },
+        { label: "All three checked", value: "Same as Auto Book" },
       ],
       bestFor: "Shops that want speed on routine jobs and control on the rest",
     },
@@ -183,17 +184,19 @@ export const schedulingModesEn = {
       id: "control",
       name: "Manual Approval",
       badge: null as string | null,
-      tagline: "Every job waits for your OK",
-      description: "The AI still captures the job and visit window, but nothing confirms until you approve.",
+      tagline: "Every pick waits for your OK",
+      description:
+        "Customer picks from five open slots, but nothing confirms until you approve. You get a text with the picked time, customer, and issue — reply 1 or 2.",
       details: [
-        { label: "Approve by", value: "SMS 1 / 2" },
+        { label: "After customer picks", value: "SMS 1 / 2 required" },
+        { label: "Alert includes", value: "Picked time + job details" },
         { label: "Also review", value: "Dashboard" },
-        { label: "Ask AI", value: "Pending jobs" },
       ],
       bestFor: "New setup, tight dispatch, or extra-cautious shops",
     },
   ],
-  footnote: "Most shops start on Hybrid: auto-book the priorities they trust, manually approve the rest.",
+  footnote:
+    "Same five-slot picker in every mode. Auto Book confirms every pick. Hybrid splits by priority. Manual approves every pick by text.",
 };
 
 export const revenueLeaksEn = {
@@ -218,7 +221,7 @@ export const revenueLeaksEn = {
     {
       leak: "Customers bouncing to the next shop",
       feature: "5-slot calendar picker",
-      result: "Shows real open windows; the slot they pick books into your schedule",
+      result: "Same picker everywhere; Auto Book confirms instantly, Hybrid/Manual text you the pick for 1 / 2",
       money: "Same instant-book UX homeowners expect",
     },
     {
@@ -243,7 +246,7 @@ export const differentiatorsEn = {
     {
       title: "5-slot calendar booking",
       description:
-        "Up to five real open visit windows from your schedule — on the call or SMS link. Customer picks one; Auto Book confirms instantly, Hybrid/Manual follow your rules.",
+        "Up to five open windows on every call or SMS link. Customer picks one — Auto Book confirms instantly; Hybrid auto-books checked P1/P2/P3 only; Manual texts you the pick for 1 / 2.",
     },
     {
       title: "AI HVAC intake",
@@ -253,7 +256,7 @@ export const differentiatorsEn = {
     {
       title: "SMS approval loop",
       description:
-        "Reply 1 or 2 from anywhere when a job needs your OK. Ref code on every alert. No app on a ladder.",
+        "When Hybrid or Manual needs your OK, the text includes the customer's picked time, contact, and issue. Reply 1 or 2 with a ref code — no app on a ladder.",
     },
     {
       title: "Three booking modes",
@@ -309,8 +312,8 @@ export const comparisonEn = {
   headers: ["", "Vowpath", "Generic answering"],
   rows: [
     ["AI intake → booked job", "Yes", "Message only"],
-    ["5 open slots → customer picks → books", "Yes", "Common in field-service tools"],
-    ["Auto Book · Hybrid · Manual modes", "Yes — switch anytime", "Often one mode only"],
+    ["5 slots shown → customer picks", "Yes — all modes", "Common in field-service tools"],
+    ["After the pick: auto vs SMS 1/2", "Auto / Hybrid / Manual", "Often one setting only"],
     ["SMS approval (1 / 2)", "Yes", "Email or portal"],
     ["Keep your shop number", "Yes", "Often a new number"],
     ["HVAC priority (P1 / P2 / P3)", "Yes", "One-size script"],
@@ -324,9 +327,9 @@ export const featuresEn = {
   subtitle: "One truck to five trucks. No bloat.",
   items: [
     {
-      title: "5-slot instant booking",
+      title: "5-slot picker + mode rules",
       description:
-        "Show up to five open windows from your calendar. Customer picks one — Auto Book confirms on the spot; Hybrid and Manual follow your rules.",
+        "Show up to five open windows. Auto Book: pick confirms instantly. Hybrid: checked P1/P2/P3 auto-confirm; unchecked send you the pick by SMS. Manual: every pick needs your 1 / 2.",
       tag: "Core",
     },
     {
@@ -554,11 +557,11 @@ export const faqEn = {
     },
     {
       q: "What's Auto Book vs Hybrid vs Manual?",
-      a: "Auto Book confirms instantly when the customer picks a slot. Hybrid lets you check P1/P2/P3 priorities that should auto-book; unchecked priorities wait for your approval. Manual waits for your approval on every job. Most shops start on Hybrid.",
+      a: "All three modes show up to five open slots and let the customer pick one. Auto Book confirms that pick instantly on your calendar. Hybrid auto-confirms only the P1/P2/P3 priorities you check — unchecked priorities text you the picked time and job details for 1 / 2 approval. Manual texts you every pick for 1 / 2 before anything confirms.",
     },
     {
       q: "How does SMS approval work?",
-      a: "You get a booking request by text with customer, issue, and window. Reply 1 to approve or 2 to decline. Every message has a ref code. No app required.",
+      a: "You get a booking request by text with customer, issue, and the time they picked. Reply 1 to approve or 2 to decline. Every message has a ref code. No app required.",
     },
     {
       q: "Do I need Jobber?",
@@ -574,7 +577,7 @@ export const faqEn = {
     },
     {
       q: "What happens after hours?",
-      a: "AI intake captures the request. Speed auto-confirms every job. Hybrid auto-confirms only the P1/P2/P3 priorities you check — the rest need your 1/2 text approval. Control always needs your OK.",
+      a: "AI intake captures the request and shows five open slots. Auto Book confirms every pick instantly. Hybrid auto-confirms only checked P1/P2/P3 — unchecked priorities text you the pick for 1 / 2. Manual texts you every pick for 1 / 2.",
     },
   ],
 };
