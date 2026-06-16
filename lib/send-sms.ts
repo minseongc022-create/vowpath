@@ -5,6 +5,8 @@ import {
   isKrSmsTestMode,
   smsRestrictToUsRecipients,
 } from "./sms-region-config";
+import { isKrOwnerPhoneEmail } from "./owner-phone-policy";
+import { findUserById } from "./users-db";
 import { isTwilioConfigured } from "./twilio-config";
 
 /** Auth codes — failure returns to the user form. */
@@ -107,6 +109,17 @@ async function reportFailure(
   return { ok: false, error };
 }
 
+async function smsAllowsRecipientPhone(
+  phone: string,
+  userId?: string,
+): Promise<boolean> {
+  if (!smsRestrictToUsRecipients()) return true;
+  if (phone.startsWith("+1")) return true;
+  if (!phone.startsWith("+82") || !userId) return false;
+  const user = await findUserById(userId);
+  return Boolean(user && isKrOwnerPhoneEmail(user.email));
+}
+
 export async function sendSms(
   phoneRaw: string,
   body: string,
@@ -126,7 +139,7 @@ export async function sendSms(
   }
 
   const usOnly = options?.usRecipientsOnly ?? smsRestrictToUsRecipients();
-  if (usOnly && !phone.startsWith("+1")) {
+  if (usOnly && !(await smsAllowsRecipientPhone(phone, context?.userId))) {
     const error =
       "미국 (+1) 번호로만 문자를 보낼 수 있습니다. 업체·고객 번호가 US 형식인지 확인하세요.";
     if (strict) return { ok: false, error };

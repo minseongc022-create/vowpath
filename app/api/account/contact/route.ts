@@ -23,13 +23,14 @@ export async function GET() {
   }
 
   const phoneE164 = normalizeOwnerAlertPhone(user.phone ?? "", user.email) ?? "";
+  const krOwner = isKrOwnerPhoneEmail(user.email);
   return NextResponse.json({
     email: user.email,
     phone: user.phone ?? "",
     phoneDisplay: phoneE164 ? formatOwnerPhoneDisplay(phoneE164) : "",
     contactComplete: isOwnerContactCompleteForSms(user),
-    krTestMode: isKrSmsTestMode(),
-    krOwnerPhone: isKrOwnerPhoneEmail(user.email),
+    krTestMode: isKrSmsTestMode() || krOwner,
+    krOwnerPhone: krOwner,
   });
 }
 
@@ -87,14 +88,15 @@ export async function PATCH(request: Request) {
 
     const e164 =
       normalizeOwnerAlertPhone(user.phone ?? "", user.email) ?? user.phone ?? "";
+    const krOwner = isKrOwnerPhoneEmail(user.email);
     const res = NextResponse.json({
       ok: true,
       email: user.email,
       phone: user.phone,
       phoneDisplay: e164 ? formatOwnerPhoneDisplay(e164) : "",
       contactComplete: isOwnerContactCompleteForSms(user),
-      krTestMode: isKrSmsTestMode(),
-      krOwnerPhone: isKrOwnerPhoneEmail(user.email),
+      krTestMode: isKrSmsTestMode() || krOwner,
+      krOwnerPhone: krOwner,
     });
     res.cookies.set(sessionCookieOptions(token));
     return res;

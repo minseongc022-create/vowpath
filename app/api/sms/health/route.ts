@@ -8,6 +8,7 @@ import {
   isOwnerContactCompleteForSms,
   normalizeOwnerAlertPhone,
 } from "@/lib/sms-region-config";
+import { isKrOwnerPhoneEmail } from "@/lib/owner-phone-policy";
 import { findUserById } from "@/lib/users-db";
 
 export async function GET(request: Request) {
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
   const health = await getSmsTwilioHealthForUser(session.sub);
   const user = await findUserById(session.sub);
   const ownerPhoneOk = user?.phone
-    ? normalizeOwnerAlertPhone(user.phone)
+    ? normalizeOwnerAlertPhone(user.phone, user.email)
     : null;
 
   const url = new URL(request.url);
@@ -33,7 +34,9 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ...health,
     devPreview: smsDevPreviewEnabled(),
-    krTestMode: isKrSmsTestMode(),
+    krTestMode:
+      isKrSmsTestMode() ||
+      (user?.email ? isKrOwnerPhoneEmail(user.email) : false),
     productionUsOnly: process.env.NODE_ENV === "production",
     ownerPhoneOk: Boolean(ownerPhoneOk),
     ownerContactComplete: user ? isOwnerContactCompleteForSms(user) : false,

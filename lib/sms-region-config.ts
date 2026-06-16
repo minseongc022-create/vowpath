@@ -26,6 +26,12 @@ export function isKrSmsTestMode(): boolean {
   return enabled;
 }
 
+/** KR-owner accounts may use +82 numbers in production (see owner-phone-policy allowlist). */
+export function isKrOwnerTenant(user: { email?: string | null }): boolean {
+  const email = user.email?.trim();
+  return email ? isKrOwnerPhoneEmail(email) : false;
+}
+
 /** When true, outbound SMS must target US +1 (production default). */
 export function smsRestrictToUsRecipients(): boolean {
   return !isKrSmsTestMode();
@@ -73,8 +79,18 @@ export function normalizeOwnerAlertPhone(
   return normalizeUsBusinessPhone(input);
 }
 
-/** Customer/callback SMS destination (same rules as owner in dev KR mode). */
-export function normalizeCustomerSmsPhone(input: string): string | null {
+/** Customer/callback SMS destination (KR owner tenants may use +82 in production). */
+export function normalizeCustomerSmsPhone(
+  input: string,
+  ownerEmail?: string,
+): string | null {
+  if (ownerMayUseKrPhone(ownerEmail)) {
+    return (
+      normalizeKrBusinessPhone(input) ??
+      normalizeUsBusinessPhone(input) ??
+      normalizeSmsPhone(input)
+    );
+  }
   if (smsRestrictToUsRecipients()) {
     const us = normalizeUsBusinessPhone(input);
     if (us) return us;
