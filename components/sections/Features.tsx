@@ -37,7 +37,7 @@ export function Features() {
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {siteFeatures.items.map((item, i) => (
             <article key={item.title} className="group vow-site-card p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-600/15 text-violet-200">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-300/25 bg-teal-500/10 text-teal-100">
                 {icons[i % icons.length]}
               </div>
               {"tag" in item && typeof item.tag === "string" && item.tag ? (

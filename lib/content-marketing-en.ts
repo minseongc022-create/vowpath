@@ -4,21 +4,20 @@ import { getCheckoutCta } from "./marketing-constants";
 const CHECKOUT_CTA = getCheckoutCta();
 
 export const heroEn = {
-  badge: "AI Booking Operating System · Residential HVAC",
+  badge: "AI Revenue Ops · Residential HVAC",
   headline: "Missed calls don't",
-  headlineAccent: "book themselves",
-  brandLine: "Turn missed HVAC calls into booked jobs automatically.",
+  headlineAccent: "turn into revenue alone",
+  brandLine: "Your AI ops partner for after-hours intake, booking control, and revenue follow-up.",
   subhead:
-    "When you can't answer, Vowpath does. " +
-    "We collect the job, verify customer details, and send you a booking request by text.",
+    "Vowpath answers when you can't, captures the job, and confirms it under the booking mode you choose: Auto Book, Hybrid, or Manual Approval.",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
-  secondaryCtaHref: "/#missed-call-flow",
+  secondaryCtaHref: "/#scheduling",
   heroBadges: [
+    "Auto · Hybrid · Manual",
+    "AI chat controls",
     "No new phone number",
-    "SMS approval",
-    "Jobber sync",
-    "Set up in 10 minutes",
+    "SMS approval when needed",
   ] as const,
 };
 
@@ -89,7 +88,7 @@ export const aboutEn = {
   title: "An operating system — not an answering service",
   subtitle: "Vowpath tracks every call, request, approval, and booking in one place.",
   paragraphs: [
-    "Answering services take messages. Vowpath runs intake, risk-based booking rules, SMS approval, and dispatch sync — the full path from missed call to scheduled job.",
+    "Answering services take messages. Vowpath runs intake, P1/P2/P3 booking rules, SMS approval, and dispatch sync — the full path from missed call to scheduled job.",
     "Keep your shop number. Set Speed, Hybrid, or Control. Approve from the truck by text. Optional Jobber sync when you're ready. No portal login on a ladder.",
   ],
   pillars: [
@@ -99,7 +98,7 @@ export const aboutEn = {
     },
     {
       label: "Control",
-      meaning: "Auto-book, risk-based approval, or manual sign-off. You set the rules; Vowpath executes them.",
+      meaning: "Auto-book everything, auto-book selected priorities, or require manual sign-off. You set the rules; Vowpath executes them.",
     },
   ],
 };
@@ -133,7 +132,7 @@ export const howItWorksEn = {
     {
       step: "03",
       title: "Pick a booking mode",
-      description: "Auto Book, Risk Based Approval, or Manual Approval. Most shops start on Hybrid.",
+      description: "Auto Book, Hybrid priority rules, or Manual Approval. Most shops start on Hybrid.",
     },
     {
       step: "04",
@@ -146,52 +145,90 @@ export const howItWorksEn = {
 export const schedulingModesEn = {
   id: "scheduling",
   label: "Booking modes",
-  title: "Three ways to confirm jobs",
+  title: "Three booking modes, one AI intake",
   subtitle:
-    "Set how aggressively Vowpath books on your behalf. Switch modes anytime — no script rewrite, no new number.",
+    "Same call capture. Different confirmation rules. Run aggressive in peak season, cautious when dispatch is tight, and switch anytime.",
   modes: [
     {
       id: "speed",
       name: "Auto Book",
       badge: null as string | null,
-      tagline: "Instant confirmation",
-      description: "Customer selects a time. Booking is created instantly. No approval required.",
-      details: null as { label: string; value: string }[] | null,
+      tagline: "Every picked slot confirms instantly",
+      description: "Customer picks a visit window and Vowpath confirms it without waiting on you.",
+      details: [
+        { label: "Owner approval", value: "Skipped" },
+        { label: "Customer", value: "Confirmed fast" },
+        { label: "Owner", value: "FYI + undo" },
+      ],
       bestFor: "Peak season, tune-ups, high call volume",
     },
     {
       id: "hybrid",
-      name: "Risk Based Approval",
+      name: "Hybrid",
       badge: "Recommended default",
-      tagline: "Smart automation with guardrails",
+      tagline: "Pick which priorities auto-book",
       description: null as string | null,
       details: [
-        { label: "Low risk jobs", value: "Auto book" },
-        { label: "Medium risk jobs", value: "Auto book" },
-        { label: "High risk jobs", value: "Approval required" },
+        { label: "Checked P1 / P2 / P3", value: "Auto book (Speed)" },
+        { label: "Unchecked", value: "Manual approval" },
+        { label: "All three checked", value: "Switches to Auto Book" },
       ],
-      bestFor: "Owner-operators who want speed without losing control",
+      bestFor: "Shops that want speed on routine jobs and control on the rest",
     },
     {
       id: "control",
       name: "Manual Approval",
       badge: null as string | null,
-      tagline: "You sign off on every job",
-      description: "Every booking requires approval.",
+      tagline: "Every job waits for your OK",
+      description: "The AI still captures the job and visit window, but nothing confirms until you approve.",
       details: [
-        { label: "Approve via", value: "SMS" },
-        { label: "", value: "Email" },
-        { label: "", value: "Dashboard" },
+        { label: "Approve by", value: "SMS 1 / 2" },
+        { label: "Also review", value: "Dashboard" },
+        { label: "Ask AI", value: "Pending jobs" },
       ],
       bestFor: "New setup, tight dispatch, or extra-cautious shops",
     },
   ],
-  footnote: "Most shops start on Risk Based Approval. Change modes in one click.",
+  footnote: "Most shops start on Hybrid: auto-book the priorities they trust, manually approve the rest.",
+};
+
+export const revenueLeaksEn = {
+  id: "revenue-leaks",
+  label: "Revenue leaks",
+  title: "Every feature closes a place where revenue leaks out",
+  subtitle:
+    "Not vague AI promises. Each workflow is tied to a specific moment where HVAC shops lose calls, approvals, or booked jobs.",
+  items: [
+    {
+      leak: "Missed after-hours calls",
+      feature: "AI phone + SMS link intake",
+      result: "Turns voicemail risk into a structured booking request",
+      money: "$400+ ticket protected",
+    },
+    {
+      leak: "Slow owner response",
+      feature: "SMS 1 / 2 approval",
+      result: "Confirms before the homeowner calls the next shop",
+      money: "Minutes, not hours",
+    },
+    {
+      leak: "Routine jobs waiting on you",
+      feature: "Hybrid P1/P2/P3 auto-book rules",
+      result: "Auto-books the priorities you trust and holds the rest",
+      money: "More low-risk jobs captured",
+    },
+    {
+      leak: "Not knowing what is pending",
+      feature: "Vowpath AI chat",
+      result: "Ask what came in, what is urgent, and what needs approval",
+      money: "Fewer forgotten approvals",
+    },
+  ] as const,
 };
 
 export const differentiatorsEn = {
-  title: "What an AI booking OS gives you",
-  subtitle: "Message-taking is table stakes. Full intake-to-booking workflow is the point.",
+  title: "What turns the AI into revenue ops",
+  subtitle: "The point is not taking messages. The point is protecting the path from first ring to confirmed job.",
   items: [
     {
       title: "AI HVAC intake",
@@ -201,12 +238,17 @@ export const differentiatorsEn = {
     {
       title: "SMS approval loop",
       description:
-        "Reply 1 or 2 from anywhere. Ref code on every alert. No app on a ladder.",
+        "Reply 1 or 2 from anywhere when a job needs your OK. Ref code on every alert. No app on a ladder.",
     },
     {
       title: "Three booking modes",
       description:
-        "Auto Book, Risk Based Approval, or Manual Approval. You run the shop — we don't lock you into one flow.",
+        "Auto Book, Hybrid P1/P2/P3 auto-book, or Manual Approval. You decide how much control the AI has.",
+    },
+    {
+      title: "AI chat for the owner",
+      description:
+        "Ask what came in last night, show urgent requests, change booking mode, or create an automation rule in plain English.",
     },
     {
       title: "Your main number — period",
@@ -252,7 +294,7 @@ export const comparisonEn = {
   headers: ["", "Vowpath", "Generic answering"],
   rows: [
     ["AI intake → booked job", "Yes", "Message only"],
-    ["Auto Book · Risk Based · Manual modes", "Yes — switch anytime", "Not offered"],
+    ["Auto Book · Hybrid · Manual modes", "Yes — switch anytime", "Not offered"],
     ["SMS approval (1 / 2)", "Yes", "Email or portal"],
     ["Keep your shop number", "Yes", "Often a new number"],
     ["HVAC priority (P1 / P2 / P3)", "Yes", "One-size script"],
@@ -296,8 +338,8 @@ export const featuresEn = {
 };
 
 export const trustRoiEn = {
-  title: "Quick math",
-  subtitle: "One extra booked call covers a lot.",
+  title: "The math is simple",
+  subtitle: "Vowpath is built around moments where one delayed response can lose the job.",
   rows: [
     {
       label: "Avg residential ticket",
@@ -315,38 +357,50 @@ export const trustRoiEn = {
       hint: "Or Flex from " + SITE.flexBasePrice + "/mo",
     },
   ],
-  footnote: "One saved P1 call usually covers the subscription.",
+  footnote: "The promise is specific: fewer missed calls, faster approvals, and more routine jobs confirmed without waiting on you.",
 };
 
 export const aiDispatcherEn = {
   id: "ai-dispatcher",
-  label: "AI dispatcher",
-  title: "Your AI HVAC Dispatcher",
+  label: "Vowpath AI",
+  title: "Ask your shop what is happening",
   subtitle:
-    "More than an answering service. Vowpath tracks every call, every request, every approval, and every booking in one place.",
+    "The chat is not a toy assistant. It reads your calls, bookings, approvals, settings, and automation rules so you can run the shop from a truck seat.",
   cards: [
     {
-      title: "Daily Briefing",
-      description: "Every morning receive:",
-      items: ["Calls", "Bookings", "Approvals", "Pending requests"],
-    },
-    {
-      title: "Smart Calendar",
-      description: "View every booking in one place.",
-      items: ["Jobber optional"],
-    },
-    {
-      title: "Booking History",
-      description: "Track every step from call to approval.",
-      items: ["Full audit trail", "Ref codes", "Status timeline"],
-    },
-    {
-      title: "Vowpath AI",
-      description: "Ask in plain English:",
+      title: "Ask what came in",
+      description: "Get operational answers without digging through menus:",
       items: [
         '"What happened yesterday?"',
-        '"Show urgent requests."',
+        '"Any urgent no-cool calls?"',
         '"How many bookings this week?"',
+      ],
+    },
+    {
+      title: "Find revenue risk",
+      description: "See what still needs attention before the homeowner moves on:",
+      items: [
+        '"Show pending approvals."',
+        '"Which jobs need me?"',
+        '"What came in after hours?"',
+      ],
+    },
+    {
+      title: "Change booking rules",
+      description: "Plain English changes become guarded admin actions:",
+      items: [
+        '"Switch to Hybrid."',
+        '"Auto-book P2 and P3 only."',
+        '"Go back to manual approval."',
+      ],
+    },
+    {
+      title: "Create automations",
+      description: "Let the AI enforce your shop policy while you work:",
+      items: [
+        '"No-cool tune-ups can auto-book."',
+        '"Weekends always need approval."',
+        '"P1 should text me every time."',
       ],
     },
   ],
@@ -393,7 +447,7 @@ export const signupFlowEn = {
     {
       step: "04",
       title: "Pick a booking mode",
-      description: "Start Risk Based Approval. Switch when you're ready.",
+      description: "Start Hybrid. Switch when you're ready.",
       time: "1 min",
     },
   ],
@@ -404,7 +458,7 @@ export const pricingEn = {
   subtitle:
     "Unlimited for busy shops. Flex when nights are quieter. Full booking OS included.",
   compare: [
-    { label: "Auto Book · Risk Based · Manual", amount: "Included" },
+    { label: "Auto Book · Hybrid · Manual", amount: "Included" },
     { label: "SMS approval loop", amount: "Included" },
     { label: "Jobber sync", amount: "Optional — free to connect" },
     {
@@ -477,8 +531,8 @@ export const faqEn = {
       a: "No. Same shop line everywhere. You forward unanswered calls behind the scenes.",
     },
     {
-      q: "What's Auto Book vs Risk Based vs Manual?",
-      a: "Auto Book confirms instantly when the customer picks a slot. Risk Based auto-books low and medium risk jobs but requires approval on high risk. Manual waits for your approval on every job. Most shops start on Risk Based.",
+      q: "What's Auto Book vs Hybrid vs Manual?",
+      a: "Auto Book confirms instantly when the customer picks a slot. Hybrid lets you check P1/P2/P3 priorities that should auto-book; unchecked priorities wait for your approval. Manual waits for your approval on every job. Most shops start on Hybrid.",
     },
     {
       q: "How does SMS approval work?",
@@ -498,7 +552,7 @@ export const faqEn = {
     },
     {
       q: "What happens after hours?",
-      a: "AI intake captures the request. Whether it auto-confirms depends on your booking mode — high risk usually still needs your OK on Risk Based.",
+      a: "AI intake captures the request. Speed auto-confirms every job. Hybrid auto-confirms only the P1/P2/P3 priorities you check — the rest need your 1/2 text approval. Control always needs your OK.",
     },
   ],
 };

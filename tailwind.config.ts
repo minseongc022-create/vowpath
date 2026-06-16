@@ -10,17 +10,17 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#f5f3ff",
-          100: "#ede9fe",
-          200: "#ddd6fe",
-          300: "#c4b5fd",
-          400: "#a78bfa",
-          500: "#8b5cf6",
-          600: "#7c3aed",
-          700: "#6d28d9",
-          800: "#5b21b6",
-          900: "#4c1d95",
-          950: "#1e1033",
+          50: "#f0fdfa",
+          100: "#ccfbf1",
+          200: "#99f6e4",
+          300: "#5eead4",
+          400: "#2dd4bf",
+          500: "#14b8a6",
+          600: "#0d9488",
+          700: "#0f766e",
+          800: "#115e59",
+          900: "#134e4a",
+          950: "#042f2e",
         },
         surface: {
           DEFAULT: "#ffffff",
@@ -56,15 +56,15 @@ const config: Config = {
       },
       backgroundImage: {
         "hvac-gradient":
-          "linear-gradient(160deg, #0b0e14 0%, #12161f 45%, #1a1035 100%)",
+          "linear-gradient(160deg, #0b1220 0%, #111827 45%, #10231f 100%)",
         "hvac-cta":
-          "linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #22d3ee 100%)",
+          "linear-gradient(135deg, #0f766e 0%, #14b8a6 58%, #f59e0b 100%)",
         "hvac-button":
-          "linear-gradient(135deg, #7c3aed 0%, #6366f1 55%, #38bdf8 100%)",
+          "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)",
         "vow-brand":
-          "linear-gradient(135deg, #a855f7 0%, #6366f1 45%, #38bdf8 100%)",
+          "linear-gradient(135deg, #14b8a6 0%, #0f766e 55%, #f59e0b 100%)",
         "hvac-airflow":
-          "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238b5cf6' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+          "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2314b8a6' fill-opacity='0.045'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
       },
     },
   },

@@ -20,7 +20,7 @@ export function Pricing() {
               <span
                 className={
                   row.highlight
-                    ? "font-semibold text-violet-300"
+                    ? "font-semibold text-teal-200"
                     : "text-sm text-slate-400"
                 }
               >
@@ -54,7 +54,7 @@ export function Pricing() {
               </div>
               <p
                 className={`mt-2 text-sm font-medium ${
-                  plan.id === "flex" ? "text-violet-300" : "text-slate-400"
+                  plan.id === "flex" ? "text-teal-200" : "text-slate-400"
                 }`}
               >
                 {plan.usageLine}
@@ -63,7 +63,7 @@ export function Pricing() {
               <ul className="mt-6 flex-1 space-y-2.5 border-t border-white/[0.08] pt-6">
                 {plan.features.map((f) => (
                   <li key={f} className="flex gap-2 text-sm text-slate-400">
-                    <span className="font-bold text-violet-400" aria-hidden>
+                    <span className="font-bold text-amber-300" aria-hidden>
                       ✓
                     </span>
                     {f}

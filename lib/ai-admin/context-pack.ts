@@ -100,7 +100,7 @@ function eventOnDay(event: CalendarEvent, day: Date): boolean {
 
 const MODE_LABEL: Record<SchedulingMode, { en: string; ko: string }> = {
   speed: { en: "Auto Book (Speed)", ko: "자동 확정 (Speed)" },
-  hybrid: { en: "Risk Based (Hybrid)", ko: "위험도 기반 (Hybrid)" },
+  hybrid: { en: "Hybrid (by priority)", ko: "하이브리드 (우선순위 선택)" },
   control: { en: "Manual approval (Control)", ko: "수동 승인 (Control)" },
 };
 

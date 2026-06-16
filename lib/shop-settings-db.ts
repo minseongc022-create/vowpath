@@ -5,7 +5,10 @@ import { kvGetSafe } from "./kv-safe";
 import { useKvStore } from "./kv-config";
 import {
   DEFAULT_SHOP_BOOKING_SETTINGS,
+  coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
+  type OwnerApprovalSms,
+  type SchedulingMode,
   type ShopBookingSettings,
 } from "./booking-settings";
 
@@ -47,7 +50,8 @@ export async function saveShopBookingSettings(
   partial: Partial<ShopBookingSettings>,
 ): Promise<ShopBookingSettings> {
   const current = await getShopBookingSettings(userId);
-  const next = mergeShopBookingSettings({ ...current, ...partial });
+  const coalesced = coalesceSchedulingSettingsPatch(current, partial);
+  const next = mergeShopBookingSettings({ ...current, ...coalesced });
 
   if (useKvStore()) {
     await kv.set(kvKey(userId), next);

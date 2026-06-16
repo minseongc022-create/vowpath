@@ -19,7 +19,6 @@ import { pushJobberWhenApproved } from "../jobber-on-approve";
 import { listCallLogs } from "../call-logs";
 import { listJobs, upsertJobRecord } from "../jobs-db";
 import { resolvePriorityFields } from "../service-priority";
-import { getConfidenceThreshold } from "../call-intake/confidence-config";
 import type { FieldConfidence } from "../call-intake/types";
 import {
   notifyCustomerScheduled,
@@ -88,8 +87,7 @@ export async function applyCustomerChosenSchedule(
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     mode: settings.schedulingMode,
     priority: params.priority,
-    confidenceMin: confidenceMin(params.confidence),
-    confidenceThreshold: getConfidenceThreshold(),
+    hybridAutoPriorities: settings.hybridAutoPriorities,
   });
 
   const afterHours = await isTenantAfterHours(params.userId);
@@ -182,6 +180,7 @@ export async function applyCustomerChosenSchedule(
         settings.ownerApprovalSms,
         effectivePriority,
         settings.schedulingMode,
+        settings.hybridAutoPriorities,
       );
     if (sendSms) {
       await notifyOwnerApprovalNeeded({

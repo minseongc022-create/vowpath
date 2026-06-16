@@ -6,7 +6,6 @@ import {
 } from "./evaluate";
 import type { RuleEvaluationContext, WorkflowRule } from "./types";
 import { shouldOwnerApproveAfterCustomerSlotPick } from "../booking-settings";
-import { getConfidenceThreshold } from "../call-intake/confidence-config";
 
 export type WorkflowSimulationResult = {
   bookingId: string;
@@ -41,8 +40,7 @@ export function simulateWorkflowForBooking(params: {
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     mode: params.bookingSettings.schedulingMode,
     priority: params.booking.priority,
-    confidenceMin: ctx.confidenceMin,
-    confidenceThreshold: getConfidenceThreshold(),
+    hybridAutoPriorities: params.bookingSettings.hybridAutoPriorities,
   });
 
   const decision = evaluateWorkflowRules(params.rules, ctx);

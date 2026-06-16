@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 type StepId = (typeof siteMissedCallFlow.steps)[number]["id"];
 
 function StepIcon({ id }: { id: StepId }) {
-  const cls = "h-6 w-6 text-violet-300";
+  const cls = "h-6 w-6 text-teal-200";
 
   if (id === "call") {
     return (
@@ -62,7 +62,7 @@ function StepIcon({ id }: { id: StepId }) {
 function FlowArrow({ vertical }: { vertical?: boolean }) {
   return (
     <div
-      className={`flex shrink-0 items-center justify-center text-violet-400 ${
+      className={`flex shrink-0 items-center justify-center text-teal-300 ${
         vertical ? "py-2" : "px-1 lg:px-2"
       }`}
       aria-hidden
@@ -87,7 +87,7 @@ export function MissedCallFlow() {
           {s.steps.map((step, i) => (
             <div key={step.id} className="flex min-w-0 items-center">
               <article className="vow-site-card flex w-[11rem] flex-col items-center p-5 text-center xl:w-[12.5rem]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-600/15">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-teal-400/25 bg-teal-500/10">
                   <StepIcon id={step.id} />
                 </span>
                 <h3 className="mt-4 text-sm font-semibold text-white">{step.title}</h3>
@@ -102,7 +102,7 @@ export function MissedCallFlow() {
           {s.steps.map((step, i) => (
             <li key={step.id}>
               <article className="vow-site-card flex flex-col items-center p-5 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-600/15">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-teal-400/25 bg-teal-500/10">
                   <StepIcon id={step.id} />
                 </span>
                 <h3 className="mt-4 text-sm font-semibold text-white">{step.title}</h3>

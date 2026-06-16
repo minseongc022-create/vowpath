@@ -16,7 +16,7 @@ export function Comparison() {
                   <th
                     key={h || "feature"}
                     className={`px-4 py-3 font-semibold ${
-                      i === 1 ? "text-violet-300" : "text-slate-400"
+                      i === 1 ? "text-teal-200" : "text-slate-400"
                     }`}
                   >
                     {h}

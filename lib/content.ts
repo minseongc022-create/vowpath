@@ -29,8 +29,8 @@ export const hero = IS_BETA
       secondaryCta: "작동 방식 보기",
       note: "무료 베타 · Jobber 연동은 선택 · 신뢰가 이어지는 길",
       trustPills: [
+        "빠른·하이브리드·수동",
         "기존 업체 번호",
-        "못 받을 때 착신전환",
         "현장에서 문자 승인",
         "Jobber 선택",
       ] as const,
@@ -46,8 +46,8 @@ export const hero = IS_BETA
       secondaryCta: "제품 보기",
       note: `맞춤 시간대 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 승인 예약당 ${SITE.flexPerBooking}`,
       trustPills: [
+        "빠른·하이브리드·수동",
         "기존 업체 번호",
-        "못 받을 때 착신전환",
         "현장에서 문자 승인",
         "Jobber 선택",
       ] as const,
@@ -530,7 +530,12 @@ const settingsPageKo = {
   bookingModeSpeedDesc:
     "고객이 통화·링크에서 빈 시간 중 하나를 고르면, 업주 승인 없이 바로 예약이 확정됩니다. 확정 후 업주에게 알림 문자가 가며, 필요하면 9번으로 취소할 수 있습니다.",
   bookingModeHybridDesc:
-    "일반 요청은 고객이 고른 시간으로 자동 확정됩니다. 긴급(P1)이거나 주소·증상 정보가 부족하면 업주가 문자 1·2로 승인·거절한 뒤에만 확정됩니다.",
+    "체크한 우선순위(P1·P2·P3)는 고객이 시간을 고르면 빠른 예약처럼 바로 확정됩니다. 체크하지 않은 우선순위는 수동 승인(문자 1·2) 후에만 확정됩니다. 세 가지를 모두 체크하면 자동으로 빠른 예약 모드로 전환됩니다.",
+  hybridAutoPrioritiesLabel: "하이브리드 — 자동 확정할 우선순위",
+  hybridAutoPrioritiesHint:
+    "선택한 P만 빠른 예약처럼 즉시 확정됩니다. 선택하지 않은 P는 수동 승인이 필요합니다. P1·P2·P3를 모두 선택하면 빠른 예약 모드로 바뀝니다.",
+  hybridAllSelectedNote:
+    "P1·P2·P3 모두 자동 확정 중입니다 (빠른 예약 모드). 일부만 자동으로 두려면 하이브리드를 선택하세요.",
   bookingModeControlDesc:
     "고객이 시간을 골라도 항상 업주 승인 후에만 예약이 확정됩니다. 업주에게 문자가 가고, 1=승인 · 2=거절로 결정합니다.",
   slotOfferCountLabel: "고객에게 보여줄 방문 시간 개수",

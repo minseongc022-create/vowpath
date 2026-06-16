@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --vow-navy: #0b0e14;
-    --vow-navy-elevated: #12161f;
-    --vow-navy-card: #161b26;
-    --vow-violet: #8b5cf6;
-    --vow-indigo: #6366f1;
-    --vow-cyan: #38bdf8;
-    --vow-blue-glow: #a78bfa;
-    --vow-blue-bright: #c4b5fd;
+    --vow-navy: #0b1220;
+    --vow-navy-elevated: #111827;
+    --vow-navy-card: #162033;
+    --vow-accent: #14b8a6;
+    --vow-indigo: #0f766e;
+    --vow-cyan: #f59e0b;
+    --vow-blue-glow: #5eead4;
+    --vow-blue-bright: #99f6e4;
     --hvac-navy: var(--vow-navy);
     --hvac-blue: var(--vow-indigo);
     --hvac-cyan: var(--vow-cyan);
-    --hvac-ice: #f5f3ff;
-    --vow-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 48%, #38bdf8 100%);
+    --hvac-ice: #f0fdfa;
+    --vow-gradient: linear-gradient(135deg, #14b8a6 0%, #0f766e 58%, #f59e0b 100%);
   }
 
   html {
@@ -36,7 +36,7 @@
   }
 
   ::selection {
-    background-color: #a8d8f4;
+    background-color: #99f6e4;
     color: var(--hvac-navy);
   }
 }
@@ -203,7 +203,7 @@
   }
 
   .vow-dash .booking-action-secondary {
-    @apply inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-violet-500/30 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-teal-400/30 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .vow-dash .booking-action-muted {
@@ -682,7 +682,7 @@
   .vow-site .hvac-btn-primary {
     @apply rounded-xl text-white;
     background: var(--vow-gradient);
-    box-shadow: 0 4px 24px rgb(45 91 255 / 0.4);
+    box-shadow: 0 4px 24px rgb(20 184 166 / 0.28);
   }
 
   .vow-site .hvac-btn-primary:hover {
@@ -693,8 +693,8 @@
     @apply min-h-screen text-slate-100;
     background-color: var(--vow-navy);
     background-image:
-      radial-gradient(ellipse 70% 45% at 50% -15%, rgb(58 168 240 / 0.14), transparent),
-      linear-gradient(to bottom, var(--vow-navy), #011a32);
+      radial-gradient(ellipse 70% 45% at 50% -15%, rgb(20 184 166 / 0.12), transparent),
+      linear-gradient(to bottom, var(--vow-navy), #071a18);
   }
 
   .vow-dash-integration-banner {
@@ -709,18 +709,18 @@
     @apply border-amber-500/25 bg-amber-500/10 text-amber-100;
   }
 
-  /* Vowpath app dashboard (dark) — logo violet → indigo → cyan */
+  /* Vowpath app dashboard (dark) — midnight navy with teal/amber accents */
   .vow-dash {
     @apply min-h-screen;
     color: #e2e8f0;
-    --vow-dash-bg: #0b0e14;
-    --vow-dash-surface: #12161f;
-    --vow-dash-accent: #8b5cf6;
-    --vow-dash-accent-mid: #6366f1;
+    --vow-dash-bg: #0b1220;
+    --vow-dash-surface: #111827;
+    --vow-dash-accent: #14b8a6;
+    --vow-dash-accent-mid: #0f766e;
     background-color: var(--vow-dash-bg);
     background-image:
-      radial-gradient(ellipse 70% 45% at 0% 0%, rgb(139 92 246 / 0.12), transparent 55%),
-      radial-gradient(ellipse 50% 40% at 100% 10%, rgb(56 189 248 / 0.06), transparent 50%);
+      radial-gradient(ellipse 70% 45% at 0% 0%, rgb(20 184 166 / 0.11), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 10%, rgb(245 158 11 / 0.07), transparent 50%);
   }
 
   .vow-dash-sidebar {
@@ -728,8 +728,8 @@
     width: 16rem;
     max-width: 16rem;
     flex-shrink: 0;
-    background: linear-gradient(180deg, #12161f 0%, #0f1219 100%);
-    box-shadow: 1px 0 0 rgb(139 92 246 / 0.08);
+    background: linear-gradient(180deg, #111827 0%, #0b1220 100%);
+    box-shadow: 1px 0 0 rgb(20 184 166 / 0.08);
   }
 
   @media (max-width: 1023px) {
@@ -773,7 +773,7 @@
   }
 
   .vow-dash-link {
-    @apply text-xs font-medium text-violet-300 transition hover:text-violet-200;
+    @apply text-xs font-medium text-teal-200 transition hover:text-teal-100;
   }
 
   .vow-dash-stat-mini {
@@ -845,7 +845,7 @@
   }
 
   .vow-dash-nav-item-active {
-    @apply bg-violet-500/10 text-violet-200;
+    @apply bg-teal-500/10 text-teal-100;
   }
 
   .vow-dash-nav-item-active::before {
@@ -857,7 +857,7 @@
   .vow-dash-btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition;
     background: var(--vow-gradient);
-    box-shadow: 0 4px 24px rgb(139 92 246 / 0.4);
+    box-shadow: 0 4px 24px rgb(20 184 166 / 0.32);
   }
 
   .vow-dash-btn-primary:hover {
@@ -902,7 +902,7 @@
   }
 
   .vow-dash .notification-bell-btn {
-    @apply border border-white/10 bg-[#161b22] text-slate-300 hover:border-violet-500/30 hover:bg-violet-500/10;
+    @apply border border-white/10 bg-[#161b22] text-slate-300 hover:border-teal-400/30 hover:bg-teal-500/10;
   }
 
   .vow-dash .notification-dropdown .text-rose-900 {

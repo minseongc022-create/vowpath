@@ -18,6 +18,7 @@ import {
   navEn,
   pricingEn,
   problemEn,
+  revenueLeaksEn,
   schedulingModesEn,
   signupFlowEn,
   socialProofEn,
@@ -33,6 +34,7 @@ export const siteSignupFlow = signupFlowEn;
 export const siteDifferentiators = differentiatorsEn;
 export const siteHowItWorks = howItWorksEn;
 export const siteSchedulingModes = schedulingModesEn;
+export const siteRevenueLeaks = revenueLeaksEn;
 export const siteJobber = jobberEn;
 export const siteFeatures = featuresEn;
 export const sitePricing = pricingEn;

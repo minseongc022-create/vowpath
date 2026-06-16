@@ -17,10 +17,10 @@ export function SignupFlow() {
           {siteSignupFlow.steps.map((s) => (
             <article
               key={s.step}
-              className="vow-site-card relative border-t-4 border-t-violet-500 p-5"
+              className="vow-site-card relative border-t-4 border-t-teal-400 p-5"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-violet-300">{s.step}</span>
+                <span className="text-sm font-bold text-teal-200">{s.step}</span>
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs font-medium text-brand-200">
                   {s.time}
                 </span>

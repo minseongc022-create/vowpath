@@ -12,7 +12,7 @@ export function FAQ() {
             <details key={item.q} className="group px-6 py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-white [&::-webkit-details-marker]:hidden">
                 {item.q}
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-violet-600/10 text-violet-200 transition group-open:rotate-45 group-open:border-violet-400/40 group-open:bg-violet-600 group-open:text-white">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-teal-500/10 text-teal-100 transition group-open:rotate-45 group-open:border-teal-300/40 group-open:bg-teal-500 group-open:text-slate-950">
                   +
                 </span>
               </summary>

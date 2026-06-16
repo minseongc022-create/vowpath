@@ -6,6 +6,7 @@ import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
 import { Problem } from "@/components/sections/Problem";
+import { RevenueLeaks } from "@/components/sections/RevenueLeaks";
 import { TrustROI } from "@/components/sections/TrustROI";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { About } from "@/components/sections/About";
@@ -28,9 +29,10 @@ export default async function HomePage() {
       <Header session={session} />
       <main className="flex-1">
         <Hero />
+        <SchedulingModes />
+        <RevenueLeaks />
         <MissedCallFlow />
         <ApprovalLoop />
-        <SchedulingModes />
         <Problem />
         <TrustROI />
         <AiDispatcher />

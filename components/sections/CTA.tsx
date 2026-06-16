@@ -14,7 +14,7 @@ export function CTA() {
           />
           <div className="relative">
             {"eyebrow" in siteCta && siteCta.eyebrow ? (
-              <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">
+              <p className="text-sm font-semibold uppercase tracking-wider text-teal-200">
                 {siteCta.eyebrow}
               </p>
             ) : null}

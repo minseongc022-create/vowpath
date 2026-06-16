@@ -9,7 +9,12 @@ export const settingsPageEn = {
   bookingModeSpeedDesc:
     "Customer picks a slot — booking confirms without owner approval. You get an FYI text; reply 9 to undo within the undo window.",
   bookingModeHybridDesc:
-    "Most requests auto-confirm. P1 or low-confidence intakes need your 1/2 text approval first.",
+    "Check P1/P2/P3 to auto-confirm like Speed. Unchecked priorities need your 1/2 text approval. Selecting all three switches to Auto Book mode.",
+  hybridAutoPrioritiesLabel: "Hybrid — auto-confirm these priorities",
+  hybridAutoPrioritiesHint:
+    "Checked priorities book instantly. Unchecked ones wait for manual approval. All three checked = Auto Book mode.",
+  hybridAllSelectedNote:
+    "P1, P2, and P3 all auto-confirm (Auto Book). Pick Hybrid to auto-book only some priorities.",
   bookingModeControlDesc:
     "Every picked slot waits for owner approval. You get a text — reply 1=approve, 2=reject.",
   slotOfferCountLabel: "Slots shown to customer",

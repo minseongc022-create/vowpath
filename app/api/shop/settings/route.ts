@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
+  ALL_JOB_PRIORITIES,
   DEFAULT_SHOP_BOOKING_SETTINGS,
+  coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
   type OwnerApprovalSms,
   type SchedulingMode,
@@ -45,6 +47,12 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
       .map((z) => z.trim().slice(0, 5))
       .filter((z) => /^\d{5}$/.test(z));
   }
+  if (Array.isArray(body.hybridAutoPriorities)) {
+    patch.hybridAutoPriorities = (body.hybridAutoPriorities as unknown[]).filter(
+      (p): p is (typeof ALL_JOB_PRIORITIES)[number] =>
+        p === "P1" || p === "P2" || p === "P3",
+    );
+  }
   return patch;
 }
 
@@ -71,7 +79,9 @@ export async function PATCH(request: Request) {
 
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const patch = patchFromBody(body);
+    const current = await getShopBookingSettings(session.sub);
+    const rawPatch = patchFromBody(body);
+    const patch = coalesceSchedulingSettingsPatch(current, rawPatch);
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }

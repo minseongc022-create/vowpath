@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  ALL_JOB_PRIORITIES,
   mergeShopBookingSettings,
   type OwnerApprovalSms,
   type SchedulingMode,
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
+import type { JobPriority } from "@/lib/types";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { settingsPage } from "@/lib/content";
 import { isEnglishUi } from "@/lib/locale";
@@ -20,6 +22,10 @@ const MODE_DESCRIPTIONS: Record<SchedulingMode, string> = {
   hybrid: settingsPage.bookingModeHybridDesc,
   control: settingsPage.bookingModeControlDesc,
 };
+
+const PRIORITY_LABELS: Record<JobPriority, string> = isEnglishUi()
+  ? { P1: "P1 (urgent)", P2: "P2", P3: "P3" }
+  : { P1: "P1 (긴급)", P2: "P2", P3: "P3" };
 
 const OWNER_SMS_LABELS: Record<OwnerApprovalSms, string> = isEnglishUi()
   ? { off: "Off", p1_only: "P1 only", all: "All" }
@@ -90,6 +96,15 @@ export function BookingSettingsEditor() {
     }
   }
 
+  function toggleHybridPriority(priority: JobPriority) {
+    if (!settings) return;
+    const current = settings.hybridAutoPriorities;
+    const next = current.includes(priority)
+      ? current.filter((p) => p !== priority)
+      : [...current, priority];
+    void patch({ hybridAutoPriorities: next });
+  }
+
   if (loading && !settings) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
@@ -114,6 +129,7 @@ export function BookingSettingsEditor() {
   }
 
   const isControlMode = settings.schedulingMode === "control";
+  const isHybridMode = settings.schedulingMode === "hybrid";
   const showSlotOfferCount = !isControlMode;
   const showUndoWindow = !isControlMode;
 
@@ -173,6 +189,47 @@ export function BookingSettingsEditor() {
           ))}
         </div>
       </div>
+
+      {isHybridMode && settings.schedulingEnabled ? (
+        <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-4">
+          <p className="text-sm font-medium text-slate-900">
+            {settingsPage.hybridAutoPrioritiesLabel}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            {settingsPage.hybridAutoPrioritiesHint}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ALL_JOB_PRIORITIES.map((priority) => {
+              const checked = settings.hybridAutoPriorities.includes(priority);
+              return (
+                <label
+                  key={priority}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                    checked
+                      ? "border-brand-400 bg-white text-slate-900"
+                      : "border-slate-200 bg-white/80 text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={saving}
+                    onChange={() => toggleHybridPriority(priority)}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  {PRIORITY_LABELS[priority]}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {settings.schedulingMode === "speed" && settings.schedulingEnabled ? (
+        <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          {settingsPage.hybridAllSelectedNote}
+        </p>
+      ) : null}
 
       {showSlotOfferCount || showUndoWindow ? (
         <div

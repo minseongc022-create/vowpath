@@ -16,7 +16,7 @@ export function AiDispatcher() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {s.cards.map((card) => (
             <article key={card.title} className="vow-site-card flex flex-col p-6">
-              <p className="text-xs font-semibold uppercase tracking-wider text-violet-300">
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-200">
                 {card.title}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-slate-400">{card.description}</p>
@@ -24,7 +24,7 @@ export function AiDispatcher() {
                 {card.items.map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm text-slate-300">
                     <span
-                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400"
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"
                       aria-hidden
                     />
                     {item}

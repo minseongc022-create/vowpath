@@ -14,7 +14,7 @@ function FlowNode({
     <div
       className={`flex min-w-[5rem] flex-col items-center rounded-xl border px-3 py-2.5 text-center sm:min-w-[6.5rem] sm:px-4 ${
         highlight
-          ? "border-[#a78bfa]/40 bg-[#8b5cf6]/15 shadow-[0_0_24px_rgb(139_92_246/0.15)]"
+          ? "border-teal-300/35 bg-teal-500/15 shadow-[0_0_24px_rgb(20_184_166/0.14)]"
           : "border-white/[0.08] bg-white/[0.03]"
       }`}
     >
@@ -30,13 +30,13 @@ function FlowConnector({ label }: { label: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-1 sm:px-2">
       <div className="flex w-full max-w-[10rem] items-center gap-1 sm:max-w-[12rem]">
-        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-[#a78bfa]/50 to-[#a78bfa]/80" />
-        <span className="shrink-0 text-sm text-[#a855f7]" aria-hidden>
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-teal-300/45 to-teal-300/70" />
+        <span className="shrink-0 text-sm text-teal-300" aria-hidden>
           →
         </span>
-        <span className="h-px flex-1 bg-gradient-to-l from-transparent via-[#a78bfa]/50 to-[#a78bfa]/80" />
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent via-teal-300/45 to-teal-300/70" />
       </div>
-      <p className="mt-2 max-w-[10rem] text-center text-[10px] font-medium leading-snug text-[#c4b5fd] sm:max-w-[12rem] sm:text-[11px]">
+      <p className="mt-2 max-w-[10rem] text-center text-[10px] font-medium leading-snug text-teal-100 sm:max-w-[12rem] sm:text-[11px]">
         {label}
       </p>
     </div>
@@ -52,7 +52,7 @@ function SmsExampleCard() {
       <div className="mt-3 space-y-1.5 rounded-xl border border-white/[0.06] bg-white/[0.04] p-4">
         <p className="text-sm font-semibold text-white">{ex.customer}</p>
         <p className="text-sm text-slate-300">{ex.issue}</p>
-        <p className="text-sm text-violet-300">{ex.window}</p>
+        <p className="text-sm text-teal-200">{ex.window}</p>
         <div className="mt-3 border-t border-white/[0.06] pt-3">
           <p className="text-xs font-medium text-slate-400">Reply:</p>
           <p className="mt-1 text-sm text-emerald-400">{ex.approveLabel}</p>
@@ -75,12 +75,12 @@ export function ApprovalLoop() {
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 80% 50% at 50% 0%, rgb(45 91 255 / 0.2), transparent 55%)",
+                "radial-gradient(ellipse 80% 50% at 50% 0%, rgb(20 184 166 / 0.16), transparent 55%)",
             }}
             aria-hidden
           />
 
-          <p className="relative text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-[#c4b5fd]">
+          <p className="relative text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-100">
             {a.label}
           </p>
           <h2 className="relative mx-auto mt-3 max-w-xl text-center text-2xl font-bold text-white sm:text-3xl">
@@ -94,7 +94,7 @@ export function ApprovalLoop() {
             {a.tags.map((tag) => (
               <li
                 key={tag}
-                className="rounded-full border border-[#a78bfa]/25 bg-[#8b5cf6]/12 px-3.5 py-1.5 text-xs font-medium text-slate-200"
+                className="rounded-full border border-teal-300/25 bg-teal-500/10 px-3.5 py-1.5 text-xs font-medium text-slate-200"
               >
                 {tag}
               </li>
@@ -130,10 +130,10 @@ export function ApprovalLoop() {
                 </div>
                 {i < a.edges.length ? (
                   <div className="flex flex-col items-center py-2.5">
-                    <span className="text-[#a855f7]" aria-hidden>
+                    <span className="text-teal-300" aria-hidden>
                       ↓
                     </span>
-                    <p className="mt-1 max-w-[16rem] text-center text-[11px] font-medium leading-snug text-[#c4b5fd]">
+                    <p className="mt-1 max-w-[16rem] text-center text-[11px] font-medium leading-snug text-teal-100">
                       {a.edges[i]}
                     </p>
                   </div>

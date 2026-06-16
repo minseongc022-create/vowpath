@@ -15,7 +15,7 @@ export function HowItWorks() {
         <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {siteHowItWorks.steps.map((step) => (
             <article key={step.step} className="vow-site-card relative p-6">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-sm font-bold text-slate-950">
                 {step.step.replace(/\D/g, "") || step.step}
               </span>
               <h3 className="mt-4 text-lg font-semibold text-white">{step.title}</h3>

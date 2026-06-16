@@ -15,15 +15,15 @@ export function SchedulingModes() {
             <article
               key={mode.id}
               className={`vow-site-card relative flex flex-col p-6 ${
-                mode.badge ? "border-violet-500/40 ring-1 ring-violet-500/20" : ""
+                mode.badge ? "border-amber-400/40 ring-1 ring-amber-400/15" : ""
               }`}
             >
               {mode.badge ? (
-                <span className="absolute -top-3 left-5 rounded-full bg-violet-600 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                <span className="absolute -top-3 left-5 rounded-full bg-amber-500 px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-950">
                   {mode.badge}
                 </span>
               ) : null}
-              <p className="text-xs font-semibold uppercase tracking-wider text-violet-300">
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-200">
                 {mode.name}
               </p>
               <h3 className="mt-2 text-lg font-semibold text-white">{mode.tagline}</h3>
