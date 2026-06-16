@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ROUTES } from "@/lib/constants";
 import { clearTenantLocalCache } from "@/lib/dashboard-data-client";
 
@@ -21,6 +21,7 @@ type LoginCopy = {
   methodPhone: string;
   phoneLabel: string;
   phonePlaceholder: string;
+  rememberMeLabel: string;
 };
 
 type FormCopy = {
@@ -75,6 +76,16 @@ export function AuthForm({
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("vowpath_remember_login");
+      if (saved === "0") setRememberMe(false);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const copy: FormCopy = formCopy ?? {
     passwordConfirmLabel: "Confirm password",
@@ -91,7 +102,7 @@ export function AuthForm({
     setError(null);
 
     const form = new FormData(e.currentTarget);
-    const body: Record<string, string> = {};
+    const body: Record<string, string | boolean> = {};
 
     if (mode === "login" && enablePhoneLogin) {
       if (loginMethod === "phone") {
@@ -100,6 +111,7 @@ export function AuthForm({
         body.email = email.trim();
       }
       body.password = String(form.get("password") ?? "");
+      body.rememberMe = rememberMe;
     } else {
       fields.forEach((f) => {
         body[f.name] = String(form.get(f.name) ?? "");
@@ -291,6 +303,26 @@ export function AuthForm({
                 {forgotPasswordLabel}
               </Link>
             </p>
+          ) : null}
+
+          {mode === "login" && loginCopy ? (
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setRememberMe(next);
+                  try {
+                    localStorage.setItem("vowpath_remember_login", next ? "1" : "0");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="h-4 w-4 rounded border-surface-border text-brand-600 focus:ring-brand-500"
+              />
+              {loginCopy.rememberMeLabel}
+            </label>
           ) : null}
 
           {error ? (

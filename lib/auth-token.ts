@@ -49,7 +49,7 @@ export async function verifySessionToken(
   }
 }
 
-export function sessionCookieOptions(token: string) {
+export function sessionCookieOptions(token: string, rememberMe = true) {
   return {
     name: SESSION_COOKIE,
     value: token,
@@ -57,7 +57,7 @@ export function sessionCookieOptions(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
-    maxAge: SESSION_MAX_AGE,
+    ...(rememberMe ? { maxAge: SESSION_MAX_AGE } : {}),
   };
 }
 

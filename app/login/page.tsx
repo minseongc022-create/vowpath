@@ -27,6 +27,7 @@ function LoginForm() {
         methodPhone: p.methodPhone,
         phoneLabel: p.phoneLabel,
         phonePlaceholder: p.phonePlaceholder,
+        rememberMeLabel: p.rememberMeLabel,
       }}
       formCopy={authPages.form}
       fields={[

@@ -9,15 +9,15 @@ export const heroEn = {
   headlineAccent: "turn into revenue alone",
   brandLine: "Your AI ops partner for after-hours intake, booking control, and revenue follow-up.",
   subhead:
-    "Vowpath answers when you can't, captures the job, and confirms it under the booking mode you choose: Auto Book, Hybrid, or Manual Approval.",
+    "Vowpath answers when you can't, shows customers up to five open visit windows from your calendar, and books the slot they pick — under Auto Book, Hybrid, or Manual Approval.",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#scheduling",
   heroBadges: [
+    "5 open slots shown",
     "Auto · Hybrid · Manual",
     "AI chat controls",
     "No new phone number",
-    "SMS approval when needed",
   ] as const,
 };
 
@@ -39,18 +39,21 @@ export const missedCallFlowEn = {
     },
     {
       id: "intake",
-      title: "Customer Completes Intake",
-      description: "Name, address, issue, and priority captured. Visit window selected when applicable.",
+      title: "Customer Picks a Time",
+      description:
+        "Up to five open visit windows from your real calendar — on the call or via SMS link. They tap one and Vowpath holds that slot.",
     },
     {
       id: "approve",
-      title: "You Approve by Text",
-      description: "A booking request hits your phone. Reply 1 to approve or 2 to decline — no app required.",
+      title: "You Approve by Text (if needed)",
+      description:
+        "In Manual or Hybrid mode, a booking request hits your phone. Reply 1 to approve or 2 to decline — no app required.",
     },
     {
       id: "scheduled",
       title: "Job Scheduled",
-      description: "Customer gets confirmation. Job lands on your dashboard — and Jobber, if connected.",
+      description:
+        "The picked window lands on your dashboard and calendar — and Jobber, if connected. Auto Book skips the wait.",
     },
   ],
 };
@@ -153,11 +156,12 @@ export const schedulingModesEn = {
       id: "speed",
       name: "Auto Book",
       badge: null as string | null,
-      tagline: "Every picked slot confirms instantly",
-      description: "Customer picks a visit window and Vowpath confirms it without waiting on you.",
+      tagline: "Pick a slot → confirmed instantly",
+      description:
+        "Customer sees up to five open windows from your calendar, picks one, and Vowpath confirms it without waiting on you.",
       details: [
+        { label: "Slots shown", value: "Up to 5 from calendar" },
         { label: "Owner approval", value: "Skipped" },
-        { label: "Customer", value: "Confirmed fast" },
         { label: "Owner", value: "FYI + undo" },
       ],
       bestFor: "Peak season, tune-ups, high call volume",
@@ -212,6 +216,12 @@ export const revenueLeaksEn = {
       money: "Minutes, not hours",
     },
     {
+      leak: "Customers bouncing to the next shop",
+      feature: "5-slot calendar picker",
+      result: "Shows real open windows; the slot they pick books into your schedule",
+      money: "Same instant-book UX homeowners expect",
+    },
+    {
       leak: "Routine jobs waiting on you",
       feature: "Hybrid P1/P2/P3 auto-book rules",
       result: "Auto-books the priorities you trust and holds the rest",
@@ -230,6 +240,11 @@ export const differentiatorsEn = {
   title: "What turns the AI into revenue ops",
   subtitle: "The point is not taking messages. The point is protecting the path from first ring to confirmed job.",
   items: [
+    {
+      title: "5-slot calendar booking",
+      description:
+        "Up to five real open visit windows from your schedule — on the call or SMS link. Customer picks one; Auto Book confirms instantly, Hybrid/Manual follow your rules.",
+    },
     {
       title: "AI HVAC intake",
       description:
@@ -294,7 +309,8 @@ export const comparisonEn = {
   headers: ["", "Vowpath", "Generic answering"],
   rows: [
     ["AI intake → booked job", "Yes", "Message only"],
-    ["Auto Book · Hybrid · Manual modes", "Yes — switch anytime", "Not offered"],
+    ["5 open slots → customer picks → books", "Yes", "Common in field-service tools"],
+    ["Auto Book · Hybrid · Manual modes", "Yes — switch anytime", "Often one mode only"],
     ["SMS approval (1 / 2)", "Yes", "Email or portal"],
     ["Keep your shop number", "Yes", "Often a new number"],
     ["HVAC priority (P1 / P2 / P3)", "Yes", "One-size script"],
@@ -307,6 +323,12 @@ export const featuresEn = {
   title: "Everything in the operating system",
   subtitle: "One truck to five trucks. No bloat.",
   items: [
+    {
+      title: "5-slot instant booking",
+      description:
+        "Show up to five open windows from your calendar. Customer picks one — Auto Book confirms on the spot; Hybrid and Manual follow your rules.",
+      tag: "Core",
+    },
     {
       title: "After-hours capture",
       description: "AI intake runs nights and weekends. Jobs confirm per your booking mode.",

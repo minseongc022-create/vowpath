@@ -54,6 +54,8 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
+    const rememberMe = body?.rememberMe !== false;
+
     const token = await createSessionToken({
       sub: user.id,
       email: user.email,
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
       ok: true,
       redirect: "/dashboard",
     });
-    res.cookies.set(sessionCookieOptions(token));
+    res.cookies.set(sessionCookieOptions(token, rememberMe));
     return res;
   } catch (e) {
     console.error("[login]", e);

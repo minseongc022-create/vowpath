@@ -1164,6 +1164,7 @@ const authPagesKo = {
     noAccount: "계정이 없으신가요?",
     signupLink: "회원가입",
     forgotLink: "비밀번호를 잊으셨나요?",
+    rememberMeLabel: "이 기기에서 로그인 유지",
   },
   forgotPassword: {
     title: "비밀번호 재설정",

@@ -189,6 +189,7 @@ export const authPagesEn = {
     noAccount: "No account?",
     signupLink: "Sign up",
     forgotLink: "Forgot password?",
+    rememberMeLabel: "Keep me signed in on this device",
   },
   forgotPassword: {
     title: "Reset password",
