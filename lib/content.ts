@@ -395,17 +395,22 @@ export const onboardingPage = {
 };
 
 const settingsPageKo = {
-  title: "연동 설정",
-  subtitle: "Vowpath 응대 시간, 착신 전환, Jobber(선택) 동기화를 관리합니다.",
+  title: "샵 설정",
+  subtitle: "자동 예약 · 기사 배치 · PM 계약을 먼저 맞추고, 아래에서 라이브 체크리스트를 완료하세요.",
   badge: "연동",
+  backDashboardLink: "← 대시보드로",
+  productSectionTitle: "샵 운영 설정",
+  productSectionSubtitle:
+    "업체 이름·예약·기사 문자·PM 계약. 업체 이름은 고객 문자·전화 응대에 자동으로 들어갑니다.",
+  goLiveSectionTitle: "라이브 체크리스트",
+  goLiveSectionSubtitle: "4단계가 한 페이지에 있습니다. 위에서부터 순서대로 한 번만 완료하세요.",
   paidBadge: "결제 완료",
   paidWelcome:
     "결제가 완료되었습니다. 연락처·응대 시간·착신 전환을 마치면 문자 알림을 받기 시작합니다.",
   progressTitle: "필수 {total}단계 중 {done}단계 완료",
   progressSummary: "필수 {total}단계 중 {done}단계 완료",
-  progressHint:
-    "휴대폰과 이메일을 먼저 저장한 뒤, 응대 시간과 착신 전환을 설정하세요. Jobber는 선택입니다.",
-  scrollHint: "연락처 → 응대 시간 → 착신 전환 → Jobber(선택)",
+  progressHint: "연락처 → 응대 시간 → 착신 전환. Jobber는 선택.",
+  scrollHint: "업체명 → 예약 → 기사 → PM → 라이브",
   tocLabel: "바로가기",
   tocContact: "연락처",
   tocSchedule: "응대 시간",
@@ -575,6 +580,19 @@ const settingsPageKo = {
   techDispatchSummary:
     "예약 확정 시 기사에게 문자로 순차 제안합니다. 1=수락, 2=패스. 한 명씩만 연락합니다.",
   agreementNav: "PM 계약",
+  shopNameNav: "업체 이름",
+  shopName: {
+    label: "업체 이름",
+    hint: "예약 문자·전화 응대 시 고객에게 들리는 이름입니다. 예: \"쿨에어 HVAC에 연락 주셔서 감사합니다.\"",
+    placeholder: "쿨에어 HVAC",
+    save: "업체 이름 저장",
+    saving: "저장 중…",
+    saved: "저장됨 — 문자·전화에서 이 이름을 사용합니다.",
+    loading: "불러오는 중…",
+    loadError: "업체 이름을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.",
+    saveError: "저장에 실패했습니다. 다시 시도하세요.",
+    required: "업체 이름을 입력하세요.",
+  },
   agreementKeeper: {
     title: "PM 계약 관리",
     summary:

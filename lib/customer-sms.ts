@@ -15,23 +15,18 @@ import {
   resolveOwnerAlertPhone,
 } from "./owner-alert-phone";
 
-function shopLabel(shopName: string | undefined): string {
-  const name = shopName?.trim();
-  return name && name.length > 0 ? name : "Your HVAC team";
-}
-
 const SMS_OPT_OUT = " Reply STOP to opt out.";
 
 export function smsRequestReceivedBody(shopName?: string): string {
   return (
-    `${shopLabel(shopName)}: We received your service request. Our team will review it and contact you shortly. This is not a confirmed appointment.` +
+    `${resolveShopDisplayName(shopName)}: We received your service request. Our team will review it and contact you shortly. This is not a confirmed appointment.` +
     SMS_OPT_OUT
   );
 }
 
 export function smsApprovedBody(shopName?: string): string {
   return (
-    `${shopLabel(shopName)}: Your service request is confirmed. ` +
+    `${resolveShopDisplayName(shopName)}: Your service request is confirmed. ` +
     `We will contact you shortly to schedule your visit.` +
     SMS_OPT_OUT
   );
@@ -39,7 +34,7 @@ export function smsApprovedBody(shopName?: string): string {
 
 export function smsRejectedBody(shopName?: string): string {
   return (
-    `${shopLabel(shopName)}: Your service request was declined. ` +
+    `${resolveShopDisplayName(shopName)}: Your service request was declined. ` +
     `Please call us if you still need service.` +
     SMS_OPT_OUT
   );
@@ -51,7 +46,7 @@ export function smsOwnerEmergencyBody(params: {
   symptom?: string;
 }): string {
   const detail = params.symptom?.trim() || "Emergency (P1)";
-  return `Vowpath P1: ${detail} — ${params.customerName || "Caller"}. Open your dashboard to review. (${shopLabel(params.shopName)})`;
+  return `Vowpath P1: ${detail} — ${params.customerName || "Caller"}. Open your dashboard to review. (${resolveShopDisplayName(params.shopName)})`;
 }
 
 /** SMS to shop owner when a new service request is created (Twilio outbound). */

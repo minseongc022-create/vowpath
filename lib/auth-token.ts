@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { DEFAULT_SHOP_DISPLAY_NAME } from "./shop-display-name";
 
 export const SESSION_COOKIE = "nightcall_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -44,7 +45,9 @@ export async function verifySessionToken(
       sub: payload.sub,
       email: payload.email,
       shopName:
-        typeof payload.shopName === "string" ? payload.shopName : "My HVAC Shop",
+        typeof payload.shopName === "string"
+          ? payload.shopName
+          : DEFAULT_SHOP_DISPLAY_NAME,
       sessionVersion:
         typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0,
     };

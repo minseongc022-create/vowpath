@@ -1,4 +1,5 @@
 import { sendSms } from "../send-sms";
+import { resolveShopDisplayName } from "../link-intake-brand";
 import { findUserById } from "../users-db";
 import {
   getAgreementKeeperSettings,
@@ -33,7 +34,7 @@ export async function processAgreementRemindersForUser(userId: string): Promise<
   if (!settings.enabled) return { ownerSent: 0, customerSent: 0 };
 
   const user = await findUserById(userId);
-  const shopName = user?.shopName?.trim() || "Your shop";
+  const shopName = resolveShopDisplayName(user?.shopName);
   const ownerPhone = user?.phone?.trim();
   const agreements = await listAgreements(userId);
   let ownerSent = 0;

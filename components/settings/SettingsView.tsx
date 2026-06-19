@@ -1,22 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { JobberConnect } from "@/components/dashboard/JobberConnect";
-import { PhoneSetup } from "@/components/dashboard/PhoneSetup";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
-import { AuditActivityPanel } from "@/components/settings/AuditActivityPanel";
-import { OpsFailuresPanel } from "@/components/settings/OpsFailuresPanel";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
 import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
 import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKeeperSettings";
-import { CompanyAiMemorySettings } from "@/components/settings/CompanyAiMemorySettings";
-import { AutomationRulesView } from "@/components/settings/AutomationRulesView";
+import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
-import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
-import { LanguageSettings } from "@/components/settings/LanguageSettings";
+import { GoLiveStep } from "@/components/settings/GoLiveStep";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
@@ -25,7 +19,6 @@ import {
   countRequiredTotal,
   getIntegrationItems,
   isFullyLive,
-  type IntegrationSection,
 } from "@/lib/integration-status";
 import {
   alwaysOnScheduleRow,
@@ -46,20 +39,7 @@ import type {
   ForwardingScenarioId,
 } from "@/lib/forwarding-guides";
 import type { ScheduleRow } from "@/lib/schedule-format";
-
-const TABS: IntegrationSection[] = ["contact", "schedule", "phone", "jobber"];
-
-function tabFromParam(value: string | null): IntegrationSection {
-  if (
-    value === "contact" ||
-    value === "jobber" ||
-    value === "phone" ||
-    value === "schedule"
-  ) {
-    return value;
-  }
-  return "contact";
-}
+import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 
 export function SettingsView({
   paid: paidProp,
@@ -69,19 +49,9 @@ export function SettingsView({
   sessionId?: string;
 }) {
   const settingsPage = useSettingsPage();
-  const tabLabels: Record<IntegrationSection, string> = {
-    contact: settingsPage.tocContact,
-    schedule: settingsPage.tocSchedule,
-    phone: settingsPage.tocPhone,
-    jobber: settingsPage.tocJobber,
-  };
-
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const sectionParam = searchParams.get("section");
 
   const { shop, setShop, refresh } = useShopState();
-  const activeTab = tabFromParam(sectionParam);
   const [alwaysOn, setAlwaysOn] = useState(() =>
     isAlwaysOnFromWindows(
       readShopState().scheduleWindows,
@@ -136,8 +106,7 @@ export function SettingsView({
       if (connected) {
         setShop((prev) => {
           if (prev.jobberConnected) return prev;
-          const next = { ...prev, jobberConnected: true };
-          return next;
+          return { ...prev, jobberConnected: true };
         });
       }
     } catch {
@@ -147,28 +116,17 @@ export function SettingsView({
   }, [setShop]);
 
   useEffect(() => {
-    const nextAlwaysOn = isAlwaysOnFromWindows(
-      shop.scheduleWindows,
-      shop.scheduleAlwaysOn,
-    );
-    setAlwaysOn(nextAlwaysOn);
+    setAlwaysOn(isAlwaysOnFromWindows(shop.scheduleWindows, shop.scheduleAlwaysOn));
     setRows(parseRowsFromStored(shop.scheduleWindows));
     setConfirmed(
-      shop.answerScheduleActive
-        ? shop.scheduleWindows.map((w) => w.label)
-        : [],
+      shop.answerScheduleActive ? shop.scheduleWindows.map((w) => w.label) : [],
     );
   }, [shop]);
 
   useEffect(() => {
-    refreshJobber();
-    refreshContact();
+    void refreshJobber();
+    void refreshContact();
   }, [refreshJobber, refreshContact]);
-
-  function switchTab(tab: IntegrationSection) {
-    if (tab === activeTab) return;
-    router.replace(`${ROUTES.settings}?section=${tab}`, { scroll: false });
-  }
 
   function handleRowsChange(next: ScheduleRow[]) {
     setRows(next);
@@ -182,16 +140,11 @@ export function SettingsView({
   }
 
   async function handleScheduleConfirm() {
-    if (!contactComplete) {
-      switchTab("contact");
-      return;
-    }
-    if (!canConfirm) return;
+    if (!canConfirm || !contactComplete) return;
     const next = await saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
     await refresh();
     setConfirmed(next.scheduleWindows.map((w) => w.label));
-    switchTab("phone");
   }
 
   async function handleJobberConfirm() {
@@ -219,389 +172,243 @@ export function SettingsView({
     (shop.jobberSetupConfirmed === true && jobberLinked);
 
   const items = getIntegrationItems(shop, { jobberConnected, contactComplete });
+  const contactItem = items.find((i) => i.id === "contact")!;
+  const scheduleItem = items.find((i) => i.id === "schedule")!;
+  const phoneItem = items.find((i) => i.id === "phone")!;
+  const jobberItem = items.find((i) => i.id === "jobber")!;
+
   const requiredTotal = countRequiredTotal(items);
   const requiredDone = countRequiredComplete(items);
   const live = isFullyLive(shop, { jobberConnected, contactComplete });
   const progressPct = Math.round((requiredDone / requiredTotal) * 100);
 
-  const scheduleItem = items.find((item) => item.id === "schedule")!;
-  const jobberItem = items.find((item) => item.id === "jobber")!;
-  const phoneItem = items.find((item) => item.id === "phone")!;
-
-  const activeItem = items.find((item) => item.id === activeTab)!;
+  const stepStatus = {
+    doneLabel: settingsPage.statusDone,
+    pendingLabel: settingsPage.statusPending,
+    optionalLabel: settingsPage.tabOptional,
+    skippedLabel: settingsPage.tabSkipped,
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       {paidProp || sessionId ? (
         <BillingStatusBanner sessionId={sessionId} />
       ) : null}
 
-      <div
-        className={`rounded-2xl border px-5 py-5 sm:px-6 ${
-          live
-            ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
-            : "border-brand-200 bg-gradient-to-br from-brand-50/60 to-white"
-        }`}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {settingsPage.progressTitle
-                .replace("{done}", String(requiredDone))
-                .replace("{total}", String(requiredTotal))}
-            </p>
-            {live ? (
-              <p className="mt-1 text-sm text-emerald-800">{settingsPage.allDone}</p>
-            ) : (
-              <p className="mt-1 text-sm text-slate-600">{settingsPage.progressHint}</p>
-            )}
-          </div>
-          <span className="text-2xl font-bold tabular-nums text-brand-700">{progressPct}%</span>
-        </div>
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/80 ring-1 ring-slate-200/80">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              live ? "bg-emerald-500" : "bg-brand-500"
-            }`}
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-      </div>
-
-      <div
-        className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-4"
-        role="tablist"
-        aria-label={settingsPage.tocLabel}
-      >
-        {TABS.map((tab) => {
-          const item = items.find((i) => i.id === tab)!;
-          const selected = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => switchTab(tab)}
-              className={`rounded-xl px-2 py-3 text-center text-xs font-semibold transition sm:text-sm ${
-                selected
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : item.done
-                    ? "bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                    : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-              }`}
-            >
-              <span className="block">{tabLabels[tab]}</span>
-              <span className="mt-1 block text-[10px] font-normal opacity-80">
-                {item.done
-                  ? settingsPage.tabDone
-                  : item.skipped
-                    ? settingsPage.tabSkipped
-                    : item.optional
-                      ? settingsPage.tabOptional
-                      : settingsPage.statusPending}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        className={`overflow-hidden rounded-2xl border bg-white shadow-card ${
-          activeItem.done ? "border-emerald-200" : "border-slate-200"
-        }`}
-        role="tabpanel"
-      >
-        <div
-          className={`border-b px-5 py-4 sm:px-6 ${
-            activeItem.done
-              ? "border-emerald-100 bg-emerald-50/50"
-              : "border-slate-100 bg-slate-50/80"
-          }`}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {settingsPage.stepPrefix(settingsPage.sectionSteps[activeTab])}
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                {activeTab === "contact"
-                  ? settingsPage.contactTitle
-                  : activeTab === "schedule"
-                    ? settingsPage.scheduleTitle
-                    : activeTab === "jobber"
-                      ? settingsPage.jobberTitle
-                      : settingsPage.phoneTitle}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                {activeTab === "contact"
-                  ? settingsPage.contactDescription
-                  : activeTab === "schedule"
-                    ? settingsPage.scheduleDescription
-                    : activeTab === "jobber"
-                      ? settingsPage.jobberDescription
-                      : settingsPage.phoneDescription}
-              </p>
-              {activeItem.done ? (
-                <p className="mt-2 text-sm font-medium text-emerald-800">{activeItem.summary}</p>
-              ) : null}
-            </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                activeItem.done
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-amber-100 text-amber-900"
-              }`}
-            >
-              {activeItem.done ? settingsPage.statusDone : settingsPage.statusPending}
-            </span>
-          </div>
-        </div>
-
-        <div className="px-5 py-5 sm:px-6">
-          {activeTab === "contact" ? (
-            <OwnerContactSetup onSaved={setContactComplete} />
-          ) : null}
-
-          {activeTab === "schedule" ? (
-            <>
-              {!contactComplete ? (
-                <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  {settingsPage.contactRequiredFirst}
-                </p>
-              ) : null}
-              <ScheduleEditor
-                rows={rows}
-                onChange={handleRowsChange}
-                alwaysOn={alwaysOn}
-                onAlwaysOnChange={handleAlwaysOnChange}
-                compact
-              />
-
-              {!canConfirm ? (
-                <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
-              ) : null}
-
-              {confirmed.length > 0 ? (
-                <div className="mt-4 space-y-2 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
-                  <p className="text-sm font-semibold text-emerald-900">
-                    {settingsPage.scheduleConfirmed}
-                  </p>
-                  <ul className="space-y-1.5 text-sm text-emerald-900">
-                    {confirmed.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                disabled={!canConfirm || !contactComplete}
-                onClick={handleScheduleConfirm}
-                className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {settingsPage.scheduleConfirm}
-              </button>
-            </>
-          ) : null}
-
-          {activeTab === "jobber" ? (
-            <>
-              <p className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm leading-relaxed text-brand-950">
-                {settingsPage.jobberScheduleAutoNote}
-              </p>
-              <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-                <JobberConnect
-                  embedded
-                  onStatusChange={(connected, meta) => {
-                    setJobberConnected(connected);
-                    if (connected && meta?.freshConnect) {
-                      setShop((prev) => ({
-                        ...prev,
-                        jobberConnected: true,
-                        jobberSetupConfirmed: false,
-                      }));
-                    } else if (!connected) {
-                      setJobberAccount(null);
-                      setShop((prev) => ({
-                        ...prev,
-                        jobberConnected: false,
-                        jobberSetupConfirmed: false,
-                      }));
-                    }
-                  }}
-                />
-                {jobberAccount ? (
-                  <p className="mt-3 text-sm text-emerald-800">
-                    {settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)}
-                  </p>
-                ) : null}
-              </div>
-
-              {jobberLinked && !jobberStepDone ? (
-                <p className="mt-3 text-xs text-slate-600">{settingsPage.jobberConfirmHint}</p>
-              ) : null}
-
-              {jobberStepDone ? (
-                <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                  {settingsPage.jobberConfirmed}
-                  {jobberAccount
-                    ? ` (${settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)})`
-                    : ""}
-                </p>
-              ) : null}
-
-              {jobberLinked && !jobberStepDone ? (
-                <button
-                  type="button"
-                  onClick={handleJobberConfirm}
-                  className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm"
-                >
-                  {settingsPage.jobberConfirm}
-                </button>
-              ) : null}
-
-              {!jobberStepDone ? (
-                <button
-                  type="button"
-                  onClick={handleJobberSkip}
-                  className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  {settingsPage.jobberSkip}
-                </button>
-              ) : null}
-
-              {shop.jobberSkipped && !jobberLinked ? (
-                <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  {settingsPage.jobberSkippedNote}
-                </p>
-              ) : null}
-            </>
-          ) : null}
-
-          {activeTab === "phone" ? (
-            <>
-              {!contactComplete ? (
-                <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  {settingsPage.contactRequiredFirst}
-                </p>
-              ) : null}
-              <ForwardingSetup
-                confirmed={shop.forwardingDone}
-                confirmDisabled={!contactComplete}
-                initialScenario={shop.forwardingScenario ?? "overflow"}
-                initialProvider={shop.forwardingProvider ?? "dialpad"}
-                onPreferencesChange={setForwardingPrefs}
-                onConfirm={handleForwardingConfirm}
-              />
-              <details className="mt-6 rounded-xl border border-slate-200 bg-slate-50/80">
-                <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">
-                  {settingsPage.forwardingDevTitle}
-                </summary>
-                <div className="border-t border-slate-200 px-4 py-4">
-                  <p className="mb-3 text-xs text-slate-500">{settingsPage.forwardingDevHint}</p>
-                  <PhoneSetup embedded />
-                </div>
-              </details>
-            </>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {activeTab !== "contact" ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (activeTab === "schedule") switchTab("contact");
-              else if (activeTab === "phone") switchTab("schedule");
-              else switchTab("phone");
-            }}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            {settingsPage.prevButton}
-          </button>
-        ) : null}
-        {activeTab !== "jobber" ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (activeTab === "contact") switchTab("schedule");
-              else if (activeTab === "schedule") switchTab("phone");
-              else switchTab("jobber");
-            }}
-            className="ml-auto rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-200"
-          >
-            {activeTab === "contact"
-              ? settingsPage.tocSchedule
-              : activeTab === "schedule"
-                ? settingsPage.nextPhone
-                : settingsPage.nextJobber}{" "}
-            →
-          </button>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-card">
-        <a
-          href="#booking-settings"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          {settingsPage.bookingNav}
-        </a>
-        <a
-          href="#tech-dispatch"
-          className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-100"
-        >
-          {settingsPage.techDispatchNav}
-        </a>
-        <a
-          href="#agreements"
-          className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-100"
-        >
-          {settingsPage.agreementNav}
-        </a>
-      </div>
-
-      <div id="booking-settings">
-        <BookingSettingsEditor />
-      </div>
-
       <section
-        id="tech-dispatch"
-        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card"
+        id="product-settings"
+        className="scroll-mt-6 rounded-2xl border border-brand-300/50 bg-gradient-to-br from-brand-50/90 to-white p-5 shadow-card sm:p-6"
       >
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {settingsPage.techDispatchTitle}
-        </p>
-        <p className="mt-1 text-sm text-slate-600">{settingsPage.techDispatchSummary}</p>
-        <div className="mt-4">
-          <TechDispatchSettings />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
+            {settingsPage.productSectionTitle}
+          </p>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
+            {settingsPage.productSectionSubtitle}
+          </p>
+        </div>
+
+        <div className="mt-6 space-y-6">
+          <div id="shop-name" className="scroll-mt-24">
+            <ShopNameEditor />
+          </div>
+          <div id="booking-settings" className="scroll-mt-24">
+            <BookingSettingsEditor />
+          </div>
+          <section
+            id="tech-dispatch"
+            className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {settingsPage.techDispatchTitle}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">{settingsPage.techDispatchSummary}</p>
+            <div className="mt-4">
+              <TechDispatchSettings />
+            </div>
+          </section>
+          <AgreementKeeperSettingsEditor />
         </div>
       </section>
 
-      <AgreementKeeperSettingsEditor />
-
-      <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-          Advanced — automation &amp; audit
-        </summary>
-        <div className="mt-4 space-y-6">
-          <AutomationRulesView />
-          <CompanyAiMemorySettings />
-          <AuditActivityPanel />
-          <OpsFailuresPanel />
+      <section id="go-live" className="scroll-mt-6 space-y-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {settingsPage.goLiveSectionTitle}
+          </p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            {settingsPage.goLiveSectionSubtitle}
+          </p>
         </div>
-      </details>
-      <LanguageSettings />
 
-      <div className="rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white p-5 shadow-card">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {settingsPage.ownerAlertsTitle}
-        </p>
-        <p className="mt-2 text-sm text-slate-600">{settingsPage.ownerAlertsDescription}</p>
-      </div>
+        <div
+          className={`rounded-2xl border px-5 py-4 sm:px-6 ${
+            live
+              ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
+              : "border-brand-200 bg-gradient-to-br from-brand-50/60 to-white"
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                {settingsPage.progressTitle
+                  .replace("{done}", String(requiredDone))
+                  .replace("{total}", String(requiredTotal))}
+              </p>
+              <p className="mt-0.5 text-sm text-slate-600">
+                {live ? settingsPage.allDone : settingsPage.progressHint}
+              </p>
+            </div>
+            <span className="text-2xl font-bold tabular-nums text-brand-700">
+              {progressPct}%
+            </span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-slate-200/80">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                live ? "bg-emerald-500" : "bg-brand-500"
+              }`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <GoLiveStep
+            step={settingsPage.stepPrefix(settingsPage.sectionSteps.contact)}
+            title={settingsPage.contactTitle}
+            description={settingsPage.contactDescription}
+            done={contactItem.done}
+            {...stepStatus}
+          >
+            <OwnerContactSetup onSaved={setContactComplete} />
+          </GoLiveStep>
+
+          <GoLiveStep
+            step={settingsPage.stepPrefix(settingsPage.sectionSteps.schedule)}
+            title={settingsPage.scheduleTitle}
+            description={settingsPage.scheduleDescription}
+            done={scheduleItem.done}
+            {...stepStatus}
+          >
+            {!contactComplete ? (
+              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {settingsPage.contactRequiredFirst}
+              </p>
+            ) : null}
+            <ScheduleEditor
+              rows={rows}
+              onChange={handleRowsChange}
+              alwaysOn={alwaysOn}
+              onAlwaysOnChange={handleAlwaysOnChange}
+              compact
+            />
+            {!canConfirm ? (
+              <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
+            ) : null}
+            {confirmed.length > 0 ? (
+              <p className="mt-3 text-sm font-medium text-emerald-800">
+                {settingsPage.scheduleConfirmed}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={!canConfirm || !contactComplete}
+              onClick={handleScheduleConfirm}
+              className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {settingsPage.scheduleConfirm}
+            </button>
+          </GoLiveStep>
+
+          <GoLiveStep
+            step={settingsPage.stepPrefix(settingsPage.sectionSteps.phone)}
+            title={settingsPage.phoneTitle}
+            description={settingsPage.phoneDescription}
+            done={phoneItem.done}
+            {...stepStatus}
+          >
+            {!contactComplete ? (
+              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {settingsPage.contactRequiredFirst}
+              </p>
+            ) : null}
+            <ForwardingSetup
+              confirmed={shop.forwardingDone}
+              confirmDisabled={!contactComplete}
+              initialScenario={shop.forwardingScenario ?? "overflow"}
+              initialProvider={shop.forwardingProvider ?? "dialpad"}
+              onPreferencesChange={setForwardingPrefs}
+              onConfirm={handleForwardingConfirm}
+            />
+          </GoLiveStep>
+
+          <GoLiveStep
+            step={settingsPage.stepPrefix(settingsPage.sectionSteps.jobber)}
+            title={settingsPage.jobberTitle}
+            description={settingsPage.jobberDescription}
+            done={jobberItem.done}
+            optional
+            skipped={jobberItem.skipped}
+            {...stepStatus}
+          >
+            <p className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm leading-relaxed text-brand-950">
+              {settingsPage.jobberScheduleAutoNote}
+            </p>
+            <JobberConnect
+              embedded
+              onStatusChange={(connected, meta) => {
+                setJobberConnected(connected);
+                if (connected && meta?.freshConnect) {
+                  setShop((prev) => ({
+                    ...prev,
+                    jobberConnected: true,
+                    jobberSetupConfirmed: false,
+                  }));
+                } else if (!connected) {
+                  setJobberAccount(null);
+                  setShop((prev) => ({
+                    ...prev,
+                    jobberConnected: false,
+                    jobberSetupConfirmed: false,
+                  }));
+                }
+              }}
+            />
+            {jobberAccount ? (
+              <p className="mt-3 text-sm text-emerald-800">
+                {settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)}
+              </p>
+            ) : null}
+            {jobberStepDone ? (
+              <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+                {shop.jobberSkipped
+                  ? settingsPage.jobberSkippedNote
+                  : settingsPage.jobberConfirmed}
+              </p>
+            ) : (
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                {jobberLinked ? (
+                  <button
+                    type="button"
+                    onClick={handleJobberConfirm}
+                    className="hvac-btn-primary flex-1 px-4 py-3 text-sm"
+                  >
+                    {settingsPage.jobberConfirm}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleJobberSkip}
+                  className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {settingsPage.jobberSkip}
+                </button>
+              </div>
+            )}
+          </GoLiveStep>
+        </div>
+      </section>
 
       <button
         type="button"
@@ -613,12 +420,6 @@ export function SettingsView({
 
       <p className="text-center text-sm text-slate-500">
         {settingsPage.support.replace("{email}", SITE.supportEmail)}
-      </p>
-
-      <p className="text-center">
-        <Link href={ROUTES.home} className="text-sm font-medium text-brand-600 hover:underline">
-          {settingsPage.backHome}
-        </Link>
       </p>
     </div>
   );

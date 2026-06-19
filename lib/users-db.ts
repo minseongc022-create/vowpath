@@ -164,6 +164,22 @@ export async function updateUserContact(
   return user;
 }
 
+export async function updateUserShopName(
+  userId: string,
+  shopName: string,
+): Promise<UserRecord | undefined> {
+  const store = await ensureStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user) return undefined;
+
+  const trimmed = shopName.trim();
+  if (!trimmed) throw new Error("SHOP_NAME_REQUIRED");
+
+  user.shopName = trimmed.slice(0, 80);
+  await saveStore(store);
+  return user;
+}
+
 export async function createUser(input: {
   email: string;
   passwordHash: string;

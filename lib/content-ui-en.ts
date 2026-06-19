@@ -3,12 +3,17 @@ import { SETTINGS_PAGE_EN } from "./content-settings-en-backup";
 
 export const settingsPageEn = {
   ...SETTINGS_PAGE_EN,
-  title: "Go live",
-  subtitle: "10 minutes: your cell → answer hours → forward your line → test call → see a booking.",
+  title: "Shop settings",
+  subtitle: "Auto Book, crew dispatch, and PM plans — then one-time go-live steps.",
   badge: "Go live",
-  progressHint:
-    "Save your cell first, then hours and forwarding. Default is Auto Book. Jobber is optional.",
-  scrollHint: "Contact → Hours → Forwarding → Jobber (optional)",
+  backDashboardLink: "← Dashboard",
+  productSectionTitle: "How your shop runs",
+  productSectionSubtitle:
+    "Shop name, booking, crew texts, and PM plans. Your shop name appears in every customer text and phone greeting.",
+  goLiveSectionTitle: "Go live checklist",
+  goLiveSectionSubtitle: "All four steps are on this page — complete them top to bottom, once.",
+  progressHint: "Contact → Hours → Forwarding. Jobber is optional.",
+  scrollHint: "Shop name → Booking → Crew → PM → Go live",
   allDone:
     "You're live. Missed calls auto-book clear jobs — you text back for urgent or unclear ones.",
   ownerAlertsDescription:
@@ -61,6 +66,19 @@ export const settingsPageEn = {
   techDispatchSummary:
     "On confirm, Vowpath texts one tech at a time (round-robin). Reply 1=accept, 2=pass.",
   agreementNav: "PM plans",
+  shopNameNav: "Shop name",
+  shopName: {
+    label: "Shop name",
+    hint: "Used in booking texts and phone greetings — e.g. “Thanks for calling Cool Air HVAC.”",
+    placeholder: "Cool Air HVAC",
+    save: "Save shop name",
+    saving: "Saving…",
+    saved: "Saved — texts and calls will use this name.",
+    loading: "Loading…",
+    loadError: "Couldn't load shop name. Refresh and try again.",
+    saveError: "Couldn't save. Try again.",
+    required: "Enter your shop name.",
+  },
   agreementKeeper: {
     title: "Agreement Keeper",
     summary:

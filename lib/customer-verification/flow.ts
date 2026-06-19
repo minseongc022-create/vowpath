@@ -224,6 +224,7 @@ export async function handleCustomerVerificationReply(params: {
   }
 
   if (reply === "yes") {
+    const shopName = await shopDisplayNameForUser(pending.userId);
     let record = pushTimeline(
       pending,
       "Customer confirmed request details.",
@@ -256,10 +257,11 @@ export async function handleCustomerVerificationReply(params: {
 
     return {
       handled: true,
-      replyBody: `Thank you. ${record.shopName} has recorded your confirmation.`,
+      replyBody: `Thank you. ${shopName} has recorded your confirmation.`,
     };
   }
 
+  const shopName = await shopDisplayNameForUser(pending.userId);
   const token = await createCorrectionToken(pending);
   const url = correctionUrl(token);
   let record = pushTimeline(pending, "Customer requested corrections.");
@@ -273,7 +275,7 @@ export async function handleCustomerVerificationReply(params: {
     userId: record.userId,
     phone: record.customerPhone,
     body: customerVerificationCorrectionSmsBody({
-      shopName: record.shopName,
+      shopName,
       correctionUrl: url,
     }),
     dedupeId: `${record.bookingId}:customer_verify_correction`,
@@ -291,7 +293,7 @@ export async function handleCustomerVerificationReply(params: {
 
   return {
     handled: true,
-    replyBody: `${record.shopName}: Please use the link we sent to update your request.`,
+    replyBody: `${shopName}: Please use the link we sent to update your request.`,
   };
 }
 
@@ -325,7 +327,8 @@ export async function processCustomerVerificationCron(): Promise<{
       elapsed >= REMINDER_AFTER_MS &&
       !record.reminderSentAt
     ) {
-      const body = customerVerificationReminderBody(record.shopName);
+      const shopName = await shopDisplayNameForUser(record.userId);
+      const body = customerVerificationReminderBody(shopName);
       const ok = await sendCustomerVerificationSms({
         userId: record.userId,
         phone: record.customerPhone,

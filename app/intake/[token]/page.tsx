@@ -16,7 +16,9 @@ export async function generateMetadata({
 }) {
   const { token } = await params;
   const session = await getLinkIntakeSession(token);
-  const shopName = session?.shopName?.trim();
+  const shopName = session
+    ? await shopDisplayNameForUser(session.userId)
+    : undefined;
   return {
     title: shopName ? `${shopName} · Service request` : "Service request | Vowpath",
     description: copy.formDescription,
@@ -49,8 +51,7 @@ export default async function LinkIntakePage({
     );
   }
 
-  const shopName =
-    session.shopName?.trim() || (await shopDisplayNameForUser(session.userId));
+  const shopName = await shopDisplayNameForUser(session.userId);
 
   if (canSubmitLinkIntakeForm(session)) {
     return (

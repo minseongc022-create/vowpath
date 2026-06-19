@@ -46,7 +46,7 @@ export function AgreementKeeperSettingsEditor() {
   }
 
   return (
-    <section id="agreements" className="ops-card scroll-mt-24 p-6">
+    <section id="agreements" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-stone-900">{copy.title}</h2>

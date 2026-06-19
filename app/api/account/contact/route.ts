@@ -9,7 +9,7 @@ import {
   normalizeOwnerAlertPhone,
 } from "@/lib/sms-region-config";
 import { isValidBusinessEmail } from "@/lib/us-contact";
-import { findUserById, updateUserContact } from "@/lib/users-db";
+import { findUserById, updateUserContact, updateUserShopName } from "@/lib/users-db";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 import { apiErrorsEn } from "@/lib/api-errors-en";
 
@@ -30,6 +30,7 @@ export async function GET() {
     email: user.email,
     phone: user.phone ?? "",
     phoneDisplay: phoneE164 ? formatOwnerPhoneDisplay(phoneE164) : "",
+    shopName: user.shopName ?? "",
     contactComplete: isOwnerContactCompleteForSms(user),
     krTestMode: isKrSmsTestMode() || krOwner,
     krOwnerPhone: krOwner,
@@ -47,42 +48,67 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const email = String(body?.email ?? "").trim();
-    const phoneRaw = String(body?.phone ?? "").trim();
+    const emailRaw = body?.email != null ? String(body.email).trim() : "";
+    const phoneRaw = body?.phone != null ? String(body.phone).trim() : "";
+    const shopNameRaw = body?.shopName != null ? String(body.shopName).trim() : "";
 
-    if (!email || !phoneRaw) {
-      return NextResponse.json(
-        {
-          error: isKrSmsTestMode()
-            ? apiErrorsEn.contactFieldsRequiredDev
-            : apiErrorsEn.contactFieldsRequired,
-        },
-        { status: 400 },
-      );
-    }
-
-    if (!isValidBusinessEmail(email)) {
-      return NextResponse.json(
-        { error: apiErrorsEn.invalidEmail },
-        { status: 400 },
-      );
-    }
-
-    const krPhoneAllowed = isKrSmsTestMode() || isKrOwnerPhoneEmail(email);
-    if (!normalizeOwnerAlertPhone(phoneRaw, email)) {
-      return NextResponse.json(
-        {
-          error: krPhoneAllowed
-            ? "Check the phone format. US: (512) 555-0100"
-            : apiErrorsEn.phoneFormatUs,
-        },
-        { status: 400 },
-      );
-    }
-
-    const user = await updateUserContact(session.sub, { email, phone: phoneRaw });
-    if (!user) {
+    const userBefore = await findUserById(session.sub);
+    if (!userBefore) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    let user = userBefore;
+
+    if (shopNameRaw) {
+      const updated = await updateUserShopName(session.sub, shopNameRaw);
+      if (!updated) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+      user = updated;
+    } else if (body?.shopName != null && !shopNameRaw) {
+      return NextResponse.json({ error: apiErrorsEn.shopNameRequired }, { status: 400 });
+    }
+
+    if (emailRaw || phoneRaw) {
+      if (!emailRaw || !phoneRaw) {
+        return NextResponse.json(
+          {
+            error: isKrSmsTestMode()
+              ? apiErrorsEn.contactFieldsRequiredDev
+              : apiErrorsEn.contactFieldsRequired,
+          },
+          { status: 400 },
+        );
+      }
+
+      if (!isValidBusinessEmail(emailRaw)) {
+        return NextResponse.json(
+          { error: apiErrorsEn.invalidEmail },
+          { status: 400 },
+        );
+      }
+
+      const krPhoneAllowed = isKrSmsTestMode() || isKrOwnerPhoneEmail(emailRaw);
+      if (!normalizeOwnerAlertPhone(phoneRaw, emailRaw)) {
+        return NextResponse.json(
+          {
+            error: krPhoneAllowed
+              ? "Check the phone format. US: (512) 555-0100"
+              : apiErrorsEn.phoneFormatUs,
+          },
+          { status: 400 },
+        );
+      }
+
+      const updated = await updateUserContact(session.sub, { email: emailRaw, phone: phoneRaw });
+      if (!updated) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+      user = updated;
+    }
+
+    if (!shopNameRaw && !emailRaw && !phoneRaw) {
+      return NextResponse.json({ error: apiErrorsEn.nothingToSave }, { status: 400 });
     }
 
     const token = await createSessionToken({
@@ -100,6 +126,7 @@ export async function PATCH(request: Request) {
       email: user.email,
       phone: user.phone,
       phoneDisplay: e164 ? formatOwnerPhoneDisplay(e164) : "",
+      shopName: user.shopName,
       contactComplete: isOwnerContactCompleteForSms(user),
       krTestMode: isKrSmsTestMode() || krOwner,
       krOwnerPhone: krOwner,
@@ -118,6 +145,12 @@ export async function PATCH(request: Request) {
         return NextResponse.json(
           { error: apiErrorsEn.phoneInUse },
           { status: 409 },
+        );
+      }
+      if (e.message === "SHOP_NAME_REQUIRED") {
+        return NextResponse.json(
+          { error: apiErrorsEn.shopNameRequired },
+          { status: 400 },
         );
       }
     }

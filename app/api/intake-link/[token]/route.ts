@@ -25,8 +25,7 @@ export async function GET(
   if (!session || isLinkIntakeSessionExpired(session)) {
     return NextResponse.json({ valid: false }, { status: 404 });
   }
-  const shopName =
-    session.shopName?.trim() || (await shopDisplayNameForUser(session.userId));
+  const shopName = await shopDisplayNameForUser(session.userId);
   const mode = canSubmitLinkIntakeForm(session)
     ? "form"
     : isLinkIntakePortalOpen(session)

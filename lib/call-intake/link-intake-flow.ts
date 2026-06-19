@@ -3,7 +3,7 @@ import { sendSms } from "../send-sms";
 import { findUserById } from "../users-db";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import type { JobPriority } from "../types";
-import { resolveShopDisplayName } from "../link-intake-brand";
+import { resolveShopDisplayName, shopDisplayNameForUser } from "../link-intake-brand";
 import { smsLinkIntakeMessage } from "../link-intake-copy";
 import {
   buildLinkIntakeDraftFromForm,
@@ -77,11 +77,7 @@ export async function sendLinkIntakeSms(params: {
   phone: string;
   token: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const session = await getLinkIntakeSession(params.token);
-  const user = await findUserById(params.userId);
-  const shopName = resolveShopDisplayName(
-    session?.shopName ?? user?.shopName,
-  );
+  const shopName = await shopDisplayNameForUser(params.userId);
   const url = buildLinkIntakeUrl(params.token);
   const body = smsLinkIntakeBody(shopName, url);
   const dedupeId = `link-intake:${params.token}`;

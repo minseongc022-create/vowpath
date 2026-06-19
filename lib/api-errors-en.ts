@@ -39,6 +39,8 @@ export const apiErrorsEn = {
   phoneFormatUs: "Enter a valid US phone number (e.g. (512) 555-0100 or +1 512-555-0100).",
   emailInUse: "Email already in use.",
   phoneInUse: "Phone number already registered.",
+  shopNameRequired: "Enter your shop name.",
+  nothingToSave: "Nothing to save.",
   bookingStatusInvalid: "This request was already handled or cannot be approved.",
   bookingRejectInvalid: "This request was already handled or cannot be declined.",
   bookingScheduleInvalid: "Only approved requests can be scheduled.",

@@ -18,8 +18,10 @@ export function afterHoursPhoneGoodbye(): string {
   );
 }
 
+import { resolveShopDisplayName } from "./shop-display-name";
+
 export function afterHoursCustomerSmsBody(shopName?: string): string {
-  const shop = shopName?.trim() || "Your HVAC team";
+  const shop = resolveShopDisplayName(shopName);
   return (
     `${shop}: We received your service request after hours. ` +
     `Our team will review and contact you during the next business day. ` +

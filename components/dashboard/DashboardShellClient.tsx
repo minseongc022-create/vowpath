@@ -19,14 +19,25 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/me", { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { shopName?: string; email?: string } | null) => {
-        if (d?.shopName?.trim()) setShopName(d.shopName.trim());
-        else if (d?.email) setShopName(d.email.split("@")[0] ?? "My shop");
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
+    const load = () => {
+      fetch("/api/me", { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { shopName?: string; email?: string } | null) => {
+          if (d?.shopName?.trim()) setShopName(d.shopName.trim());
+          else if (d?.email) setShopName(d.email.split("@")[0] ?? "My shop");
+        })
+        .catch(() => undefined);
+    };
+    load();
+    const onShopName = (e: Event) => {
+      const name = (e as CustomEvent<{ shopName?: string }>).detail?.shopName?.trim();
+      if (name) setShopName(name);
+    };
+    window.addEventListener("vowpath:shop-name-updated", onShopName);
+    return () => {
+      controller.abort();
+      window.removeEventListener("vowpath:shop-name-updated", onShopName);
+    };
   }, []);
   const { shop } = useShopState();
   const {

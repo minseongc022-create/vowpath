@@ -1,6 +1,7 @@
 import { getPublicAppUrl } from "../app-url";
 import { findUserById } from "../users-db";
 import { sendSms } from "../send-sms";
+import { shopDisplayNameForUser } from "../link-intake-brand";
 import {
   getAgreementKeeperSettings,
   newAgreementId,
@@ -31,8 +32,7 @@ export async function maybeOfferMaintenancePlan(
   const phone = customer.phone?.trim();
   if (!phone) return { offered: false, reason: "no_phone" };
 
-  const user = await findUserById(userId);
-  const shopName = user?.shopName?.trim() || "Your HVAC shop";
+  const shopName = await shopDisplayNameForUser(userId);
 
   const session = await createAgreementOfferSession({
     userId,
@@ -105,7 +105,7 @@ export async function acceptAgreementOffer(token: string): Promise<{
   await markAgreementOfferUsed(token, agreement.id);
 
   const user = await findUserById(session.userId);
-  const shopName = user?.shopName?.trim() || session.shopName || "Your HVAC shop";
+  const shopName = await shopDisplayNameForUser(session.userId);
   const price = formatAgreementPrice(session.annualPriceCents);
   const confirmBody = [
     `${shopName}: You're enrolled in ${session.planName} (${price}/yr).`,

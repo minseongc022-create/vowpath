@@ -18,9 +18,7 @@ export async function GET(
     if (!isCorrectionSessionValid(session)) {
       return NextResponse.json({ error: "Link expired or invalid" }, { status: 404 });
     }
-    const shopName =
-      session!.shopName?.trim() ||
-      (await shopDisplayNameForUser(session!.userId));
+    const shopName = await shopDisplayNameForUser(session!.userId);
     const booking = await buildCorrectionBookingView(session!);
     if (!booking) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });

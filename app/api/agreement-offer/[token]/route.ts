@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { acceptAgreementOffer } from "@/lib/agreements/offer-flow";
 import { getAgreementOfferSession } from "@/lib/agreements/offer-store";
 import { formatAgreementPrice } from "@/lib/agreements/types";
+import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 
 type RouteParams = { params: Promise<{ token: string }> };
 
@@ -12,8 +13,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "expired" }, { status: 404 });
   }
 
+  const shopName = await shopDisplayNameForUser(session.userId);
+
   return NextResponse.json({
-    shopName: session.shopName,
+    shopName,
     customerName: session.customerName,
     planName: session.planName,
     annualPrice: formatAgreementPrice(session.annualPriceCents),
