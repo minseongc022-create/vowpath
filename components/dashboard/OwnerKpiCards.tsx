@@ -50,23 +50,23 @@ function OwnerKpiCard({
       aria-label={`${label} ${value} — ${hint}`}
     >
       <p
-        className={`text-xs font-semibold uppercase tracking-wider ${
-          dark ? "text-slate-300" : "text-slate-600"
+        className={`text-xs font-semibold uppercase tracking-wider vow-dash-kpi-label ${
+          dark ? "" : "text-slate-600"
         }`}
       >
         {label}
       </p>
       <p
         className={`mt-2 min-h-[2.5rem] text-3xl font-bold tabular-nums tracking-tight sm:text-4xl ${
-          dark ? "text-white" : "text-slate-900"
+          dark ? "vow-dash-kpi-value !text-3xl sm:!text-4xl" : "text-slate-900"
         }`}
       >
         {value}
       </p>
-      <p className={`mt-1 text-xs ${dark ? "text-slate-400" : "text-slate-500"}`}>
+      <p className={`mt-1 text-sm ${dark ? "vow-dash-muted" : "text-slate-500"}`}>
         {shortHint}
       </p>
-      <p className={`mt-2 text-[11px] ${dark ? "text-slate-500" : "text-slate-400"}`}>
+      <p className={`mt-2 text-xs ${dark ? "text-stone-500" : "text-slate-400"}`}>
         {periodLabel}
       </p>
     </button>

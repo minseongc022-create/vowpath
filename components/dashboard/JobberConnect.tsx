@@ -16,9 +16,11 @@ type Status = {
 
 export function JobberConnect({
   embedded = false,
+  variant,
   onStatusChange,
 }: {
   embedded?: boolean;
+  variant?: "embedded" | "settings";
   onStatusChange?: (connected: boolean, meta?: { freshConnect?: boolean }) => void;
 }) {
   const [status, setStatus] = useState<Status | null>(null);
@@ -115,10 +117,11 @@ export function JobberConnect({
   }
 
   const s = status ?? { configured: false, connected: false, accountName: null };
+  const isSettings = variant === "settings" || embedded;
 
   const content = (
     <>
-      {!embedded ? (
+      {!isSettings ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-brand-600">{copy.eyebrow}</p>
@@ -139,8 +142,32 @@ export function JobberConnect({
             {s.connected ? copy.badgeConnected : copy.badgeDisconnected}
           </span>
         </div>
+      ) : variant === "settings" ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/50 px-4 py-3.5">
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-brand-950">
+              {s.connected && s.accountName
+                ? copy.connectedSubtitle.replace("{account}", s.accountName)
+                : copy.subtitle}
+            </p>
+            {s.connected ? (
+              <p className="mt-1 text-sm text-stone-600">{copy.settingsConnectedHint}</p>
+            ) : (
+              <p className="mt-1 text-sm text-stone-600">{copy.settingsDisconnectedHint}</p>
+            )}
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              s.connected
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            {s.connected ? copy.badgeConnected : copy.badgeDisconnected}
+          </span>
+        </div>
       ) : (
-        <p className="text-sm text-slate-600">
+        <p className="text-base text-stone-600">
           {s.connected && s.accountName
             ? copy.connectedSubtitle.replace("{account}", s.accountName)
             : copy.subtitle}
@@ -148,28 +175,46 @@ export function JobberConnect({
       )}
 
       {s.configured && s.redirectUri && !s.connected ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
-          <p className="text-sm font-semibold text-amber-950">{copy.redirectSetupTitle}</p>
-          <p className="mt-1 text-xs text-amber-900/90">{copy.redirectSetupBody}</p>
+        <div
+          className={`rounded-xl border border-amber-200 bg-amber-50/80 shadow-sm ${
+            isSettings ? "mt-4 p-5" : "mt-4 p-4"
+          }`}
+        >
+          <p className={`font-semibold text-amber-950 ${isSettings ? "text-base" : "text-sm"}`}>
+            {copy.redirectSetupTitle}
+          </p>
+          <p className={`mt-1 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
+            {copy.redirectSetupBody}
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <code className="flex-1 break-all rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs text-slate-800">
+            <code
+              className={`flex-1 break-all rounded-lg border border-amber-200 bg-white px-3 py-2 text-slate-800 ${
+                isSettings ? "text-sm" : "text-xs"
+              }`}
+            >
               {s.redirectUri}
             </code>
             <button
               type="button"
               onClick={() => void handleCopyRedirect()}
-              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+              className={`rounded-lg border border-amber-300 bg-white px-3 py-2 font-semibold text-amber-950 hover:bg-amber-100 ${
+                isSettings ? "text-sm" : "text-xs"
+              }`}
             >
               {copied ? copy.redirectSetupCopied : copy.redirectSetupCopy}
             </button>
           </div>
-          <p className="mt-2 text-xs text-amber-900/80">{copy.redirectSetupNote}</p>
+          <p className={`mt-2 text-amber-900/80 ${isSettings ? "text-sm" : "text-xs"}`}>
+            {copy.redirectSetupNote}
+          </p>
           {s.developerPortalUrl ? (
             <a
               href={s.developerPortalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex text-xs font-semibold text-brand-700 hover:underline"
+              className={`mt-3 inline-flex font-semibold text-brand-700 hover:underline ${
+                isSettings ? "text-sm" : "text-xs"
+              }`}
             >
               {copy.redirectSetupLink} →
             </a>
@@ -177,11 +222,13 @@ export function JobberConnect({
         </div>
       ) : null}
 
-      <div className={embedded ? "mt-3 flex flex-wrap gap-3" : "mt-4 flex flex-wrap gap-3"}>
+      <div className={isSettings ? "mt-4 flex flex-wrap gap-3" : "mt-4 flex flex-wrap gap-3"}>
         {!s.connected ? (
           <a
             href={s.configured ? "/api/jobber/connect" : undefined}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+            className={`font-semibold ${
+              isSettings ? "rounded-xl px-6 py-3.5 text-base" : "rounded-lg px-4 py-2 text-sm"
+            } ${
               s.configured
                 ? "hvac-btn-primary"
                 : "cursor-not-allowed bg-slate-200 text-slate-500"
@@ -198,7 +245,9 @@ export function JobberConnect({
             type="button"
             onClick={handleDisconnect}
             disabled={disconnecting}
-            className="rounded-lg border border-surface-border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className={`rounded-xl border border-stone-200 bg-white font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50 ${
+              isSettings ? "px-6 py-3 text-base" : "px-4 py-2 text-sm"
+            }`}
           >
             {disconnecting ? copy.disconnecting : copy.disconnect}
           </button>
@@ -206,12 +255,14 @@ export function JobberConnect({
       </div>
 
       {!s.configured ? (
-        <p className="mt-3 text-xs text-amber-800">{copy.notConfigured}</p>
+        <p className={`mt-3 text-amber-800 ${isSettings ? "text-sm" : "text-xs"}`}>
+          {copy.notConfigured}
+        </p>
       ) : null}
     </>
   );
 
-  if (embedded) return content;
+  if (embedded || variant === "settings") return content;
 
   return (
     <section className="rounded-xl border border-surface-border bg-white p-5 shadow-card">

@@ -199,14 +199,14 @@ export function DashboardHomeView() {
     <div className="mx-auto max-w-[1400px] space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
             {dashboardGreeting()}
             {displayName ? `, ${displayName}` : ""}!{" "}
             <span className="inline-block" aria-hidden>
               👋
             </span>
           </h1>
-          <p className="mt-1 text-sm text-slate-400">{v.header.subtitle}</p>
+          <p className="mt-1 text-base text-stone-600">{v.header.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <DashboardPeriodToolbar
@@ -215,7 +215,6 @@ export function DashboardHomeView() {
             activePreset={activePreset}
             onPresetChange={setActivePreset}
             presets={periodPresets}
-            dark
             className="!flex-row !items-center"
           />
           <NotificationCenter {...notificationProps} variant="dropdown" />
@@ -224,7 +223,7 @@ export function DashboardHomeView() {
       </header>
 
       {jobberError ? (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Jobber sync issue.{" "}
           <Link href={ROUTES.settings} className="font-semibold underline">
             Go live
@@ -248,7 +247,6 @@ export function DashboardHomeView() {
             periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
             waitingCustomersNow={waitingCustomersNow}
             loading={!hasLoaded && loading}
-            dark
             onCardClick={setActiveKpi}
           />
         </div>
@@ -264,11 +262,11 @@ export function DashboardHomeView() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2">
-          <div className="space-y-3 border-b border-white/[0.06] px-5 py-4">
+          <div className="space-y-3 border-b border-brand-200/60 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-white">{v.trend.title}</h2>
-                <p className="text-xs text-slate-500">
+                <h2 className="text-base font-semibold text-brand-950">{v.trend.title}</h2>
+                <p className="text-sm text-stone-600">
                   {periodLabel} · {trendChart.subtitle}
                 </p>
               </div>
@@ -285,7 +283,6 @@ export function DashboardHomeView() {
               activePreset={activePreset}
               onPresetChange={setActivePreset}
               presets={periodPresets}
-              dark
               className="!gap-2"
             />
           </div>
@@ -293,7 +290,7 @@ export function DashboardHomeView() {
             <div className={!hasLoaded && loading ? "animate-pulse opacity-70" : ""}>
               <MissedCallsPreventedChart
                 data={trendChart.data}
-                theme="dark"
+                theme="light"
                 size="home"
               />
             </div>
@@ -317,9 +314,9 @@ export function DashboardHomeView() {
         />
       </div>
 
-      <p className="text-center text-xs text-slate-600">
+      <p className="text-center text-sm text-stone-600">
         New jobs text your cell — reply 1 or 2. Finish setup in{" "}
-        <Link href={ROUTES.settings} className="text-brand-300 hover:underline">
+        <Link href={ROUTES.settings} className="font-semibold text-brand-800 hover:underline">
           Go live
         </Link>
         .

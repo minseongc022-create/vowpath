@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { JobberConnect } from "@/components/dashboard/JobberConnect";
+import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
@@ -44,7 +44,11 @@ import type {
   ForwardingProviderId,
   ForwardingScenarioId,
 } from "@/lib/forwarding-guides";
-import type { ScheduleRow } from "@/lib/schedule-format";
+import {
+  FORWARDING_PROVIDERS,
+  FORWARDING_SCENARIOS,
+} from "@/lib/forwarding-guides";
+import { SCHEDULE_ALWAYS_ON_LABEL, type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 
 export function SettingsView({
@@ -95,6 +99,8 @@ function SettingsViewBody({
   );
   const [jobberAccount, setJobberAccount] = useState<string | null>(null);
   const [contactComplete, setContactComplete] = useState(false);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [forwardingPrefs, setForwardingPrefs] = useState<{
     scenario: ForwardingScenarioId;
     provider: ForwardingProviderId;
@@ -108,9 +114,16 @@ function SettingsViewBody({
   const refreshContact = useCallback(async () => {
     try {
       const res = await fetch("/api/account/contact");
-      const data = (await res.json()) as { contactComplete?: boolean };
+      const data = (await res.json()) as {
+        contactComplete?: boolean;
+        email?: string;
+        phone?: string;
+        phoneDisplay?: string;
+      };
       if (res.ok) {
         setContactComplete(Boolean(data.contactComplete));
+        setContactEmail(data.email ?? "");
+        setContactPhone(data.phone ?? data.phoneDisplay ?? "");
       }
     } catch {
       setContactComplete(false);
@@ -178,25 +191,15 @@ function SettingsViewBody({
 
   const persistSchedule = useCallback(async () => {
     if (!contactComplete || !canConfirm) return true;
-    if (shop.answerScheduleActive && confirmed.length > 0) return true;
     const next = await saveSchedule(shop, rows, true, alwaysOn);
     setShop(next);
     await refresh();
     setConfirmed(next.scheduleWindows.map((w) => w.label));
     return true;
-  }, [
-    alwaysOn,
-    canConfirm,
-    confirmed.length,
-    contactComplete,
-    refresh,
-    rows,
-    setShop,
-    shop,
-  ]);
+  }, [alwaysOn, canConfirm, contactComplete, refresh, rows, setShop, shop]);
 
   const persistForwarding = useCallback(async () => {
-    if (!contactComplete || shop.forwardingDone) return true;
+    if (!contactComplete) return true;
     const next = await markForwardingDone(shop, forwardingPrefs);
     setShop(next);
     await refresh();
@@ -241,7 +244,22 @@ function SettingsViewBody({
     pendingLabel: settingsPage.statusPending,
     optionalLabel: settingsPage.tabOptional,
     skippedLabel: settingsPage.tabSkipped,
+    editLabel: settingsPage.editLabel,
+    collapseLabel: settingsPage.collapseLabel,
   };
+
+  const forwardingScenarioLabel =
+    FORWARDING_SCENARIOS.find((s) => s.id === (shop.forwardingScenario ?? "overflow"))?.label ??
+    "";
+  const forwardingProviderLabel =
+    FORWARDING_PROVIDERS.find((p) => p.id === (shop.forwardingProvider ?? "dialpad"))?.label ?? "";
+
+  const scheduleSummary =
+    alwaysOn || shop.scheduleAlwaysOn
+      ? SCHEDULE_ALWAYS_ON_LABEL
+      : confirmed.length > 0
+        ? confirmed
+        : shop.scheduleWindows.map((w) => w.label);
 
   return (
     <div className="space-y-8">
@@ -316,6 +334,21 @@ function SettingsViewBody({
             title={settingsPage.contactTitle}
             description={settingsPage.contactDescription}
             done={contactItem.done}
+            doneSummary={
+              <div className="space-y-1">
+                <p>{settingsPage.contactConfirmed}</p>
+                {contactEmail ? (
+                  <p className="text-sm text-emerald-800/90">
+                    {settingsPage.contactEmailLabel}: {contactEmail}
+                  </p>
+                ) : null}
+                {contactPhone ? (
+                  <p className="text-sm text-emerald-800/90">
+                    {settingsPage.contactPhoneLabelKr}: {contactPhone}
+                  </p>
+                ) : null}
+              </div>
+            }
             {...stepStatus}
           >
             <OwnerContactSetup onSaved={setContactComplete} />
@@ -326,6 +359,17 @@ function SettingsViewBody({
             title={settingsPage.scheduleTitle}
             description={settingsPage.scheduleDescription}
             done={scheduleItem.done}
+            doneSummary={
+              Array.isArray(scheduleSummary) ? (
+                <ul className="space-y-1">
+                  {scheduleSummary.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>{scheduleSummary}</p>
+              )
+            }
             {...stepStatus}
           >
             {!contactComplete ? (
@@ -341,13 +385,10 @@ function SettingsViewBody({
               compact
             />
             {!canConfirm ? (
-              <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
-            ) : null}
-            {confirmed.length > 0 ? (
-              <p className="mt-3 text-base font-medium text-emerald-800">
-                {settingsPage.scheduleConfirmed}
-              </p>
-            ) : null}
+              <p className="mt-3 text-sm text-amber-800">{settingsPage.scheduleValidation}</p>
+            ) : (
+              <p className="mt-3 text-sm text-stone-600">{settingsPage.saveAllHint}</p>
+            )}
           </GoLiveStep>
 
           <GoLiveStep
@@ -355,6 +396,14 @@ function SettingsViewBody({
             title={settingsPage.phoneTitle}
             description={settingsPage.phoneDescription}
             done={phoneItem.done}
+            doneSummary={
+              <div className="space-y-1">
+                <p>{settingsPage.phoneConfirmed}</p>
+                <p className="text-sm text-emerald-800/90">
+                  {forwardingScenarioLabel} · {forwardingProviderLabel}
+                </p>
+              </div>
+            }
             {...stepStatus}
           >
             {!contactComplete ? (
@@ -369,6 +418,7 @@ function SettingsViewBody({
               initialProvider={shop.forwardingProvider ?? "dialpad"}
               onPreferencesChange={setForwardingPrefs}
               batchSave
+              hideConfirmedBanner
             />
           </GoLiveStep>
 
@@ -379,15 +429,29 @@ function SettingsViewBody({
             done={jobberItem.done}
             optional
             skipped={jobberItem.skipped}
+            doneSummary={
+              shop.jobberSkipped ? (
+                <p>{settingsPage.jobberSkippedNote}</p>
+              ) : jobberAccount ? (
+                <p>
+                  {settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)}
+                </p>
+              ) : (
+                <p>{settingsPage.jobberConfirmed}</p>
+              )
+            }
             {...stepStatus}
           >
-            <p className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm leading-relaxed text-brand-950">
-              {settingsPage.jobberScheduleAutoNote}
-            </p>
-            <JobberConnect
-              embedded
+            <JobberSettingsPanel
+              connected={jobberConnected}
+              accountName={jobberAccount}
+              stepDone={jobberStepDone}
+              showConfirm={jobberLinked}
+              onConfirm={() => void handleJobberConfirm()}
+              onSkip={() => void handleJobberSkip()}
               onStatusChange={(connected, meta) => {
                 setJobberConnected(connected);
+                void refreshJobber();
                 if (connected && meta?.freshConnect) {
                   setShop((prev) => ({
                     ...prev,
@@ -404,37 +468,6 @@ function SettingsViewBody({
                 }
               }}
             />
-            {jobberAccount ? (
-              <p className="mt-3 text-sm text-emerald-800">
-                {settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)}
-              </p>
-            ) : null}
-            {jobberStepDone ? (
-              <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
-                {shop.jobberSkipped
-                  ? settingsPage.jobberSkippedNote
-                  : settingsPage.jobberConfirmed}
-              </p>
-            ) : (
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                {jobberLinked ? (
-                  <button
-                    type="button"
-                    onClick={handleJobberConfirm}
-                    className="hvac-btn-primary flex-1 px-4 py-3 text-sm"
-                  >
-                    {settingsPage.jobberConfirm}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={handleJobberSkip}
-                  className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  {settingsPage.jobberSkip}
-                </button>
-              </div>
-            )}
           </GoLiveStep>
         </div>
       </section>

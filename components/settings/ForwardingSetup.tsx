@@ -17,6 +17,7 @@ type ForwardingSetupProps = {
   confirmed: boolean;
   onConfirm?: () => void;
   batchSave?: boolean;
+  hideConfirmedBanner?: boolean;
   confirmDisabled?: boolean;
   initialScenario?: LegacyForwardingScenarioId;
   initialProvider?: ForwardingProviderId;
@@ -39,6 +40,7 @@ export function ForwardingSetup({
   confirmed,
   onConfirm,
   batchSave = false,
+  hideConfirmedBanner = false,
   confirmDisabled = false,
   initialScenario: rawInitialScenario = "overflow",
   initialProvider = "dialpad",
@@ -266,7 +268,7 @@ export function ForwardingSetup({
         </p>
       </div>
 
-      {confirmed ? (
+      {confirmed && !hideConfirmedBanner ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold text-emerald-900">
           {settingsPage.phoneConfirmed}
         </p>

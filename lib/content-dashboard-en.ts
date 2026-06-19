@@ -160,6 +160,10 @@ export const jobberConnectEn = {
 
   redirectSetupNote: "For local dev, also register http://localhost:3000/api/jobber/callback.",
 
+  settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
+
+  settingsDisconnectedHint: "Connect with OAuth to sync requests and calendar events.",
+
   push: "Send to Jobber",
 
   pushing: "Sending to Jobber…",

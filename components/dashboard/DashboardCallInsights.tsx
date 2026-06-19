@@ -30,9 +30,9 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 const TONE_ICON: Record<CallInsightRow["tone"], string> = {
-  brand: "text-brand-300 bg-brand-500/15",
-  emerald: "text-emerald-400 bg-emerald-500/15",
-  rose: "text-rose-400 bg-rose-500/15",
+  brand: "text-brand-700 bg-brand-100",
+  emerald: "text-emerald-700 bg-emerald-100",
+  rose: "text-rose-700 bg-rose-100",
 };
 
 export function DashboardCallInsights({ rows }: { rows: CallInsightRow[] }) {
@@ -40,10 +40,10 @@ export function DashboardCallInsights({ rows }: { rows: CallInsightRow[] }) {
 
   return (
     <section className="vow-dash-panel h-full">
-      <div className="vow-dash-panel-head border-b border-white/[0.06]">
-        <h2 className="text-sm font-semibold text-white">{v.title}</h2>
+      <div className="vow-dash-panel-head border-b border-brand-200/60">
+        <h2 className="text-base font-semibold text-brand-950">{v.title}</h2>
       </div>
-      <ul className="divide-y divide-white/[0.04]">
+      <ul className="divide-y divide-brand-100">
         {rows.map((row) => (
           <li key={row.key} className="flex items-center gap-4 px-5 py-4">
             <span
@@ -52,18 +52,18 @@ export function DashboardCallInsights({ rows }: { rows: CallInsightRow[] }) {
               {ICONS[row.key]}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-200">{row.label}</p>
-              <p className="text-xs text-slate-500">{row.sublabel}</p>
+              <p className="text-sm font-semibold text-brand-950">{row.label}</p>
+              <p className="text-sm text-stone-600">{row.sublabel}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold tabular-nums text-white">{row.value}</p>
+              <p className="text-2xl font-bold tabular-nums text-brand-950">{row.value}</p>
               <p
-                className={`text-xs font-medium ${
+                className={`text-sm font-medium ${
                   row.deltaPct > 0
-                    ? "text-emerald-400"
+                    ? "text-emerald-700"
                     : row.deltaPct < 0
-                      ? "text-rose-400"
-                      : "text-slate-500"
+                      ? "text-rose-700"
+                      : "text-stone-500"
                 }`}
               >
                 {v.delta(row.deltaPct)}

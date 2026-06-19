@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type GoLiveStepProps = {
   step: string;
@@ -13,6 +13,9 @@ type GoLiveStepProps = {
   pendingLabel: string;
   optionalLabel: string;
   skippedLabel: string;
+  editLabel?: string;
+  collapseLabel?: string;
+  doneSummary?: ReactNode;
   children: ReactNode;
 };
 
@@ -27,8 +30,17 @@ export function GoLiveStep({
   pendingLabel,
   optionalLabel,
   skippedLabel,
+  editLabel = "Edit",
+  collapseLabel = "Done",
+  doneSummary,
   children,
 }: GoLiveStepProps) {
+  const [editing, setEditing] = useState(!done);
+
+  useEffect(() => {
+    if (!done) setEditing(true);
+  }, [done]);
+
   const statusLabel = done
     ? doneLabel
     : skipped
@@ -36,6 +48,8 @@ export function GoLiveStep({
       : optional
         ? optionalLabel
         : pendingLabel;
+
+  const showSummaryOnly = done && !editing && doneSummary;
 
   return (
     <section
@@ -53,21 +67,40 @@ export function GoLiveStep({
           <h3 className="mt-1 text-xl font-semibold text-brand-950">{title}</h3>
           <p className="vow-settings-hint mt-2">{description}</p>
         </div>
-        <span
-          className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
-            done
-              ? "bg-emerald-100 text-emerald-800"
-              : skipped
-                ? "bg-stone-100 text-stone-600"
-                : optional
-                  ? "bg-brand-100 text-brand-800"
-                  : "bg-amber-100 text-amber-900"
-          }`}
-        >
-          {statusLabel}
-        </span>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {done ? (
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="rounded-lg border border-brand-300 bg-white px-3.5 py-1.5 text-sm font-semibold text-brand-900 shadow-sm hover:bg-brand-50"
+            >
+              {editing ? collapseLabel : editLabel}
+            </button>
+          ) : null}
+          <span
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+              done
+                ? "bg-emerald-100 text-emerald-800"
+                : skipped
+                  ? "bg-stone-100 text-stone-600"
+                  : optional
+                    ? "bg-brand-100 text-brand-800"
+                    : "bg-amber-100 text-amber-900"
+            }`}
+          >
+            {statusLabel}
+          </span>
+        </div>
       </div>
-      <div className="px-5 py-5 text-base sm:px-6">{children}</div>
+      <div className="px-5 py-5 text-base sm:px-6">
+        {showSummaryOnly ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3.5 text-base text-emerald-900">
+            {doneSummary}
+          </div>
+        ) : (
+          children
+        )}
+      </div>
     </section>
   );
 }

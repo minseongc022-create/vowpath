@@ -73,6 +73,28 @@ export const settingsPageEn = {
   saveAllSuccess: "All settings saved.",
   saveAllHint: "Change anything above, then save once here.",
   saveAllError: "Could not save everything. Check the fields and try again.",
+  editLabel: "Edit",
+  collapseLabel: "Done",
+  jobberPanel: {
+    tagline: "Approved and confirmed visits sync to your Jobber schedule automatically.",
+    statusConnected: "Connected",
+    statusOptional: "Optional",
+    connectTitle: "Connect your Jobber account",
+    features: {
+      requests: {
+        title: "Auto-create Requests",
+        body: "Approved job cards become Jobber Requests — no copy-paste.",
+      },
+      schedule: {
+        title: "Calendar sync",
+        body: "Confirmed visit times land on your Jobber calendar right away.",
+      },
+      optional: {
+        title: "Optional",
+        body: "You can review and approve by text without Jobber.",
+      },
+    },
+  },
   bookingNav: "Booking",
   techDispatchSummary:
     "On confirm, Vowpath texts one tech at a time (round-robin). Reply 1=accept, 2=pass.",

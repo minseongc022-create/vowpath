@@ -459,6 +459,8 @@ const settingsPageKo = {
   tabSkipped: "건너뜀",
   statusDone: "연결됨",
   statusPending: "설정 필요",
+  editLabel: "수정",
+  collapseLabel: "완료",
   manageLink: "연동 설정 관리",
   scheduleTitle: "응대 시간",
   scheduleDescription:
@@ -488,6 +490,26 @@ const settingsPageKo = {
   jobberConfirmed: "Jobber 연결이 저장되었습니다",
   jobberSkip: "Jobber 없이 계속",
   jobberSkippedNote: "Jobber를 건너뛰었습니다. 언제든 여기서 연결할 수 있습니다.",
+  jobberPanel: {
+    tagline: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
+    statusConnected: "연결됨",
+    statusOptional: "선택",
+    connectTitle: "Jobber 계정 연결",
+    features: {
+      requests: {
+        title: "Request 자동 생성",
+        body: "승인한 Job Card가 Jobber Request로 전송됩니다.",
+      },
+      schedule: {
+        title: "일정 동기화",
+        body: "확정된 방문 시간이 Jobber 캘린더에 바로 반영됩니다.",
+      },
+      optional: {
+        title: "선택 연동",
+        body: "Jobber 없이도 문자·대시보드에서 검토·승인할 수 있습니다.",
+      },
+    },
+  },
   phoneTitle: "착신 전환",
   phoneDescription:
     "고객이 아는 기존 번호는 그대로 두고, 부재·야간 전화만 Vowpath로 넘깁니다. Jobber Phone / Dialpad가 가장 수월합니다.",
@@ -1218,6 +1240,8 @@ const jobberConnectKo = {
   redirectSetupCopy: "URL 복사",
   redirectSetupNote:
     "로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록해 두세요.",
+  settingsConnectedHint: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
+  settingsDisconnectedHint: "OAuth로 연결하면 Request·일정이 자동 동기화됩니다.",
   push: "Jobber로 보내기",
   pushing: "Jobber 전송 중…",
   pushed: "Jobber에 생성됨",

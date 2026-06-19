@@ -732,6 +732,10 @@
     @apply text-5xl font-bold tracking-tight text-brand-900 tabular-nums sm:text-6xl sm:leading-none;
   }
 
+  .vow-dash-kpi-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-stone-600;
+  }
+
   .vow-dash-chart-wrap {
     @apply relative min-h-[132px] w-full overflow-visible;
   }
