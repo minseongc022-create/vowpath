@@ -124,7 +124,7 @@ export function ForwardingSetup({
         <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
           {settingsPage.forwardingNumberLabel}
         </p>
-        <p className="mt-1 text-sm text-slate-600">{settingsPage.forwardingNumberHint}</p>
+        <p className="mt-1 text-base text-stone-600">{settingsPage.forwardingNumberHint}</p>
         {loading ? (
           <p className="mt-4 text-sm text-slate-500">{settingsPage.forwardingNumberLoading}</p>
         ) : phoneNumber ? (
@@ -166,8 +166,8 @@ export function ForwardingSetup({
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-slate-900">{settingsPage.forwardingScenarioTitle}</p>
-        <p className="mt-1 text-xs text-slate-500">{settingsPage.forwardingScenarioHint}</p>
+        <p className="vow-settings-label">{settingsPage.forwardingScenarioTitle}</p>
+        <p className="vow-settings-hint mt-1 text-sm">{settingsPage.forwardingScenarioHint}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-1">
           {FORWARDING_SCENARIOS.map((item) => {
             const selected = scenario === item.id;
@@ -176,25 +176,25 @@ export function ForwardingSetup({
                 key={item.id}
                 type="button"
                 onClick={() => setScenario(item.id)}
-                className={`rounded-xl border px-4 py-3 text-left transition ${
+                className={`min-h-[52px] rounded-xl border px-4 py-3.5 text-left transition active:scale-[0.99] ${
                   selected
-                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
+                    ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 }`}
               >
                 <span className="flex items-center gap-2">
                   <span
-                    className={`text-sm font-semibold ${selected ? "text-brand-900" : "text-slate-800"}`}
+                    className={`text-base font-semibold ${selected ? "text-brand-900" : "text-slate-800"}`}
                   >
                     {item.label}
                   </span>
                   {item.recommended ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold uppercase text-emerald-800">
                       {settingsPage.forwardingRecommended}
                     </span>
                   ) : null}
                 </span>
-                <p className="mt-1 text-xs leading-relaxed text-slate-600">{item.summary}</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">{item.summary}</p>
               </button>
             );
           })}
@@ -202,12 +202,12 @@ export function ForwardingSetup({
       </div>
 
       <div>
-        <p className="text-sm font-semibold text-slate-900">{settingsPage.forwardingProviderTitle}</p>
-        <p className="mt-1 text-xs text-slate-500">{settingsPage.forwardingProviderHint}</p>
-        <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs leading-relaxed text-emerald-900">
+        <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
+        <p className="vow-settings-hint mt-1 text-sm">{settingsPage.forwardingProviderHint}</p>
+        <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900">
           {settingsPage.forwardingDialpadBanner}
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {FORWARDING_PROVIDERS.map((item) => {
             const selected = provider === item.id;
             return (
@@ -215,9 +215,9 @@ export function ForwardingSetup({
                 key={item.id}
                 type="button"
                 onClick={() => setProvider(item.id)}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`min-h-[52px] rounded-xl border px-4 py-3.5 text-left transition active:scale-[0.99] ${
                   selected
-                    ? "border-brand-500 bg-brand-50 ring-1 ring-brand-200"
+                    ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
                     : item.recommended
                       ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300"
                       : "border-slate-200 bg-white hover:border-slate-300"
@@ -225,17 +225,17 @@ export function ForwardingSetup({
               >
                 <span className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`text-sm font-semibold ${selected ? "text-brand-900" : "text-slate-800"}`}
+                    className={`text-base font-semibold ${selected ? "text-brand-900" : "text-slate-800"}`}
                   >
                     {item.label}
                   </span>
                   {item.recommended ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-800">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold uppercase text-emerald-800">
                       {settingsPage.forwardingRecommendedProvider}
                     </span>
                   ) : null}
                 </span>
-                <p className="mt-0.5 text-[11px] text-slate-500">{item.hint}</p>
+                <p className="mt-1 text-sm text-stone-600">{item.hint}</p>
               </button>
             );
           })}
@@ -243,17 +243,17 @@ export function ForwardingSetup({
       </div>
 
       {provider === "carrier" ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-950">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
           {settingsPage.forwardingCarrierWarning}
         </p>
       ) : null}
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-900">{settingsPage.forwardingStepsTitle}</p>
-        <p className="mt-1 text-xs text-slate-600">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+        <p className="vow-settings-label">{settingsPage.forwardingStepsTitle}</p>
+        <p className="mt-1 text-sm text-stone-600">
           {activeScenario.label} · {FORWARDING_PROVIDERS.find((p) => p.id === provider)?.label}
         </p>
-        <ol className="mt-4 list-decimal space-y-2.5 pl-5 text-sm leading-relaxed text-slate-800">
+        <ol className="mt-4 list-decimal space-y-3 pl-5 text-base leading-relaxed text-slate-800">
           {guideSteps.map((step) => (
             <li key={step}>{step}</li>
           ))}

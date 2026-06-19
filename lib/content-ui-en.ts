@@ -11,7 +11,7 @@ export const settingsPageEn = {
   productSectionSubtitle:
     "Shop name, booking, crew texts, and PM plans. Your shop name appears in every customer text and phone greeting.",
   goLiveSectionTitle: "Go live checklist",
-  goLiveSectionSubtitle: "All four steps are on this page — complete them top to bottom, once.",
+  goLiveSectionSubtitle: "Follow the steps in order — then save once at the bottom.",
   progressHint: "Contact → Hours → Forwarding. Jobber is optional.",
   scrollHint: "Shop name → Booking → Crew → PM → Go live",
   allDone:
@@ -73,6 +73,16 @@ export const settingsPageEn = {
   saveAllSuccess: "All settings saved.",
   saveAllHint: "Change anything above, then save once here.",
   saveAllError: "Could not save everything. Check the fields and try again.",
+  goLiveWelcome: "Go live in ~10 minutes",
+  goLiveWelcomeHint: "Steps 1→2→3→4. Change anything above, then tap Save all settings below.",
+  goLiveNavContact: "Contact",
+  goLiveNavSchedule: "Hours",
+  goLiveNavPhone: "Forwarding",
+  goLiveNavJobber: "Jobber",
+  contactQuickTip: "New requests and approve/pass texts go to this phone. Reply 1 or 2 from the truck.",
+  scheduleQuickTip: "Vowpath only answers during these windows. Keep daytime calls on your team.",
+  phoneQuickTip: "Customers still dial your shop number — unanswered calls forward to Vowpath.",
+  jobberQuickTip: "Only if you use Jobber. You can run fully on SMS + dashboard without it.",
   editLabel: "Edit",
   collapseLabel: "Done",
   jobberPanel: {

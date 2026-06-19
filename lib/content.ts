@@ -403,7 +403,17 @@ const settingsPageKo = {
   productSectionSubtitle:
     "업체 이름·예약·기사 문자·PM 계약. 업체 이름은 고객 문자·전화 응대에 자동으로 들어갑니다.",
   goLiveSectionTitle: "라이브 체크리스트",
-  goLiveSectionSubtitle: "4단계가 한 페이지에 있습니다. 위에서부터 순서대로 한 번만 완료하세요.",
+  goLiveSectionSubtitle: "순서대로만 따라오세요. 한 번 끝내면 문자 알림이 바로 시작됩니다.",
+  goLiveWelcome: "10분이면 라이브!",
+  goLiveWelcomeHint: "1→2→3→4 순서대로 하면 됩니다. 바꾼 뒤 맨 아래에서 한 번에 저장하세요.",
+  goLiveNavContact: "연락처",
+  goLiveNavSchedule: "응대 시간",
+  goLiveNavPhone: "착신 전환",
+  goLiveNavJobber: "Jobber",
+  contactQuickTip: "💡 여기 번호로 새 요청·승인 문자가 옵니다. 1=승인, 2=거절만 답하면 됩니다.",
+  scheduleQuickTip: "💡 이 시간에만 AI가 전화를 받습니다. 낮에는 평소처럼 직접 받을 수 있어요.",
+  phoneQuickTip: "💡 고객이 보는 번호는 그대로 — 못 받을 때만 Vowpath로 넘깁니다.",
+  jobberQuickTip: "💡 Jobber 쓰는 샵만 연결하세요. 없어도 문자·대시보드만으로 충분합니다.",
   paidBadge: "결제 완료",
   paidWelcome:
     "결제가 완료되었습니다. 연락처·응대 시간·착신 전환을 마치면 문자 알림을 받기 시작합니다.",

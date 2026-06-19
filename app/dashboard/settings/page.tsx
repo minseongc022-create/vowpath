@@ -13,15 +13,23 @@ export default async function DashboardSettingsPage({
   const sessionId = params.session_id?.trim();
 
   return (
-    <div className="vow-dash-settings mx-auto max-w-3xl space-y-6 pb-8 lg:max-w-4xl">
-      <Link href={ROUTES.dashboard} className="vow-dash-link">
+    <div className="vow-dash-settings mx-auto max-w-3xl space-y-5 pb-2 lg:max-w-4xl">
+      <Link
+        href={ROUTES.dashboard}
+        className="vow-dash-link hidden min-h-[44px] items-center lg:inline-flex"
+      >
         {settingsPage.backDashboardLink}
       </Link>
-      <header>
-        <h1 className="text-3xl font-bold text-brand-950 sm:text-4xl">{settingsPage.title}</h1>
-        <p className="mt-3 text-lg text-stone-600">{settingsPage.subtitle}</p>
+      <header className="rounded-2xl border border-brand-200/70 bg-white px-4 py-5 shadow-sm sm:px-6">
+        <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
+          {settingsPage.badge}
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">{settingsPage.title}</h1>
+        <p className="mt-2 text-base leading-relaxed text-stone-600 sm:text-lg">
+          {settingsPage.subtitle}
+        </p>
       </header>
-      <div className="vow-dash-card relative space-y-6 !p-5 sm:!p-6">
+      <div className="relative space-y-6">
         <Suspense fallback={null}>
           <SettingsView paid={Boolean(sessionId)} sessionId={sessionId} />
         </Suspense>

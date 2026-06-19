@@ -11,6 +11,8 @@ import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKe
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveStep } from "@/components/settings/GoLiveStep";
+import { GoLiveStepNav } from "@/components/settings/GoLiveStepNav";
+import { GoLiveProgressCard } from "@/components/settings/GoLiveProgressCard";
 import {
   SettingsSaveProvider,
   useSettingsSaveAll,
@@ -262,7 +264,7 @@ function SettingsViewBody({
         : shop.scheduleWindows.map((w) => w.label);
 
   return (
-    <div className="space-y-8">
+    <div className="vow-settings-page-body space-y-8">
       {paidProp || sessionId ? (
         <BillingStatusBanner sessionId={sessionId} />
       ) : null}
@@ -296,43 +298,51 @@ function SettingsViewBody({
           <p className="vow-settings-hint mt-2 max-w-2xl">{settingsPage.goLiveSectionSubtitle}</p>
         </div>
 
-        <div
-          className={`rounded-2xl border px-5 py-4 sm:px-6 ${
-            live
-              ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
-              : "border-brand-200 bg-gradient-to-br from-brand-50/60 to-white"
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                {settingsPage.progressTitle
-                  .replace("{done}", String(requiredDone))
-                  .replace("{total}", String(requiredTotal))}
-              </p>
-              <p className="mt-0.5 text-sm text-slate-600">
-                {live ? settingsPage.allDone : settingsPage.progressHint}
-              </p>
-            </div>
-            <span className="text-2xl font-bold tabular-nums text-brand-700">
-              {progressPct}%
-            </span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-slate-200/80">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                live ? "bg-emerald-500" : "bg-brand-500"
-              }`}
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
+        <GoLiveProgressCard
+          requiredDone={requiredDone}
+          requiredTotal={requiredTotal}
+          progressPct={progressPct}
+          live={live}
+        />
 
-        <div className="space-y-4">
+        <GoLiveStepNav
+          items={[
+            {
+              id: "go-live-contact",
+              step: settingsPage.sectionSteps.contact,
+              label: settingsPage.goLiveNavContact,
+              done: contactItem.done,
+            },
+            {
+              id: "go-live-schedule",
+              step: settingsPage.sectionSteps.schedule,
+              label: settingsPage.goLiveNavSchedule,
+              done: scheduleItem.done,
+            },
+            {
+              id: "go-live-phone",
+              step: settingsPage.sectionSteps.phone,
+              label: settingsPage.goLiveNavPhone,
+              done: phoneItem.done,
+            },
+            {
+              id: "go-live-jobber",
+              step: settingsPage.sectionSteps.jobber,
+              label: settingsPage.goLiveNavJobber,
+              done: jobberItem.done,
+              optional: true,
+            },
+          ]}
+        />
+
+        <div className="space-y-5">
           <GoLiveStep
+            id="go-live-contact"
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.contact)}
             title={settingsPage.contactTitle}
             description={settingsPage.contactDescription}
+            quickTip={settingsPage.contactQuickTip}
+            icon="📱"
             done={contactItem.done}
             doneSummary={
               <div className="space-y-1">
@@ -355,9 +365,12 @@ function SettingsViewBody({
           </GoLiveStep>
 
           <GoLiveStep
+            id="go-live-schedule"
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.schedule)}
             title={settingsPage.scheduleTitle}
             description={settingsPage.scheduleDescription}
+            quickTip={settingsPage.scheduleQuickTip}
+            icon="🕐"
             done={scheduleItem.done}
             doneSummary={
               Array.isArray(scheduleSummary) ? (
@@ -373,7 +386,7 @@ function SettingsViewBody({
             {...stepStatus}
           >
             {!contactComplete ? (
-              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
                 {settingsPage.contactRequiredFirst}
               </p>
             ) : null}
@@ -392,9 +405,12 @@ function SettingsViewBody({
           </GoLiveStep>
 
           <GoLiveStep
+            id="go-live-phone"
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.phone)}
             title={settingsPage.phoneTitle}
             description={settingsPage.phoneDescription}
+            quickTip={settingsPage.phoneQuickTip}
+            icon="📞"
             done={phoneItem.done}
             doneSummary={
               <div className="space-y-1">
@@ -407,7 +423,7 @@ function SettingsViewBody({
             {...stepStatus}
           >
             {!contactComplete ? (
-              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
                 {settingsPage.contactRequiredFirst}
               </p>
             ) : null}
@@ -423,9 +439,12 @@ function SettingsViewBody({
           </GoLiveStep>
 
           <GoLiveStep
+            id="go-live-jobber"
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.jobber)}
             title={settingsPage.jobberTitle}
             description={settingsPage.jobberDescription}
+            quickTip={settingsPage.jobberQuickTip}
+            icon="🔗"
             done={jobberItem.done}
             optional
             skipped={jobberItem.skipped}
@@ -482,7 +501,7 @@ function SettingsViewBody({
       <button
         type="button"
         onClick={() => router.push(ROUTES.dashboard)}
-        className="hvac-btn-primary w-full px-4 py-3 text-sm"
+        className="hvac-btn-primary hidden min-h-[48px] w-full px-4 py-3 text-base lg:block"
       >
         {settingsPage.backDashboard}
       </button>

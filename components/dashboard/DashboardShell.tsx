@@ -30,6 +30,7 @@ import {
 
 } from "@/components/dashboard/DashboardNavIcons";
 
+import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -337,52 +338,15 @@ export function DashboardShell({
 
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
-        <div className="border-b border-brand-200/80 bg-white/90 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <header className="border-b border-brand-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+          <BrandLogo variant="dark" size="sm" href={ROUTES.dashboard} />
+        </header>
 
-          <div className="flex items-center justify-between gap-3">
+        <main className="vow-dash-main-scroll flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+          {children}
+        </main>
 
-            <BrandLogo variant="dark" size="sm" href={ROUTES.dashboard} />
-
-            <div className="flex gap-2 overflow-x-auto">
-
-              {nav.map((item) => (
-
-                <Link
-
-                  key={item.href}
-
-                  href={item.href}
-
-                  prefetch
-
-                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold ${
-
-                    item.match(pathname)
-
-                      ? "bg-brand-100 text-brand-900"
-
-                      : "text-stone-600"
-
-                  }`}
-
-                >
-
-                  {item.label}
-
-                  {item.badge ? ` (${item.badge})` : ""}
-
-                </Link>
-
-              ))}
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">{children}</main>
-
+        <DashboardMobileNav pendingReviewCount={pendingReviewCount} />
       </div>
 
     </div>
