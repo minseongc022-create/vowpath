@@ -37,7 +37,7 @@ export function Features() {
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {siteFeatures.items.map((item, i) => (
             <article key={item.title} className="group vow-site-card p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-300/25 bg-teal-500/10 text-teal-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-300/25 bg-brand-500/10 text-brand-800">
                 {icons[i % icons.length]}
               </div>
               {"tag" in item && typeof item.tag === "string" && item.tag ? (
@@ -45,8 +45,8 @@ export function Features() {
                   {item.tag}
                 </span>
               ) : null}
-              <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <h3 className="mt-4 text-base font-semibold text-brand-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-700">
                 {item.description}
               </p>
             </article>

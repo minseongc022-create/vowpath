@@ -55,8 +55,15 @@ export function callToLinkIntakeBookingView(call: StoredCallLog): LinkIntakeBook
 function namesMatch(input: string, stored: string): boolean {
   const a = input.trim().toLowerCase();
   const b = stored.trim().toLowerCase();
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
+  if (!a || !b || a.length < 2) return false;
+  return a === b;
+}
+
+export function phoneLast4Matches(phoneRaw: string, last4: string): boolean {
+  const digits = phoneRaw.replace(/\D/g, "");
+  const probe = last4.replace(/\D/g, "");
+  if (probe.length !== 4) return false;
+  return digits.endsWith(probe);
 }
 
 function phoneMatchesCall(call: StoredCallLog, phone: string): boolean {
@@ -86,13 +93,11 @@ export async function lookupLinkIntakeBooking(params: {
   const name = params.customerName.trim();
   const phone = params.phone.trim();
   if (name.length < 2 || phone.length < 8) {
-    return { ok: false, error: "이름과 전화번호를 입력해 주세요." };
+    return { ok: false, error: "Enter your name and phone number." };
   }
 
   const calls = await listCallLogs(params.session.userId);
-  const linkCalls = calls.filter(
-    (c) => c.intakeChannel === "sms_link" && isCallFromLinkSession(c, params.session),
-  );
+  const linkCalls = calls.filter((c) => isCallFromLinkSession(c, params.session));
 
   const matches = linkCalls
     .filter(
@@ -108,7 +113,7 @@ export async function lookupLinkIntakeBooking(params: {
   if (!call) {
     return {
       ok: false,
-      error: "입력하신 이름·전화번호와 일치하는 접수 내역이 없습니다.",
+      error: "No booking matched that name and phone number.",
     };
   }
 
@@ -121,9 +126,7 @@ export async function getLinkIntakeBookingForSession(
 ): Promise<LinkIntakeBookingView | null> {
   if (!session.callId) return null;
   const calls = await listCallLogs(session.userId);
-  const call = calls.find(
-    (c) => c.id === session.callId && c.intakeChannel === "sms_link",
-  );
+  const call = calls.find((c) => c.id === session.callId);
   if (!call) return null;
   return callToLinkIntakeBookingView(call);
 }
@@ -144,28 +147,27 @@ export async function updateLinkIntakeBooking(params: {
   const name = params.customerName.trim();
   const phone = params.phone.trim();
   if (name.length < 2) {
-    return { ok: false, error: "이름을 입력해 주세요." };
+    return { ok: false, error: "Enter your name." };
   }
   if (phone.length < 8) {
-    return { ok: false, error: "전화번호를 입력해 주세요." };
+    return { ok: false, error: "Enter your phone number." };
   }
   if (params.issueDescription.trim().length < 4) {
-    return { ok: false, error: "요청 내용을 입력해 주세요." };
+    return { ok: false, error: "Describe the issue (at least a few words)." };
   }
 
   const calls = await listCallLogs(params.session.userId);
   const call = calls.find((c) => c.id === params.callId);
   if (
     !call ||
-    call.intakeChannel !== "sms_link" ||
     !isCallFromLinkSession(call, params.session)
   ) {
-    return { ok: false, error: "접수 내역을 찾을 수 없습니다." };
+    return { ok: false, error: "Booking not found." };
   }
   if (!phoneMatchesCall(call, phone) || !namesMatch(name, call.customerName ?? "")) {
     return {
       ok: false,
-      error: "이름·전화번호가 접수 내역과 일치하지 않습니다.",
+      error: "Name and phone do not match this booking.",
     };
   }
 
@@ -173,7 +175,7 @@ export async function updateLinkIntakeBooking(params: {
   if (!addressCheck.valid) {
     return {
       ok: false,
-      error: "주소를 확인할 수 없습니다. 도로명, 도시, 주를 다시 입력해 주세요.",
+      error: "We could not verify that address. Enter street, city, and state.",
     };
   }
 
@@ -230,7 +232,7 @@ export async function updateLinkIntakeBooking(params: {
     callbackPhone,
   });
   if (!patched) {
-    return { ok: false, error: "접수 내역을 저장하지 못했습니다." };
+    return { ok: false, error: "Could not save your update. Try again." };
   }
 
   const jobs = await listJobs(params.session.userId);

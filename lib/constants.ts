@@ -27,6 +27,7 @@ export const ROUTES = {
   ai: "/dashboard/ai",
   calendar: "/dashboard/calendar",
   missedCallsAnalytics: "/dashboard/missed-calls",
+  agreements: "/dashboard/agreements",
   privacy: "/privacy",
   terms: "/terms",
 } as const;

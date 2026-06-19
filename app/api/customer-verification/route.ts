@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { listCustomerVerifications } from "@/lib/customer-verification/store";
+import { stripInternalTenantFields } from "@/lib/security/tenant-guard";
 
 export async function GET() {
   const session = await getSession();
@@ -10,7 +11,7 @@ export async function GET() {
 
   try {
     const records = await listCustomerVerifications(session.sub);
-    return NextResponse.json({ ok: true, records });
+    return NextResponse.json({ ok: true, records: records.map(stripInternalTenantFields) });
   } catch (e) {
     console.error("[customer-verification]", e);
     return NextResponse.json(

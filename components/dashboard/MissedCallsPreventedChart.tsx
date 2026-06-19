@@ -368,7 +368,7 @@ function MultiSeriesLineChart({
                   cy={node.y}
                   r={r}
                   fill={line.color}
-                  stroke={dark ? "#0d1117" : "#fff"}
+                  stroke={dark ? "#2a221c" : "#fff"}
                   strokeWidth={isActive ? 2.5 : 2}
                   vectorEffect="non-scaling-stroke"
                   opacity={node.v > 0 ? 1 : isActive ? 1 : 0.55}

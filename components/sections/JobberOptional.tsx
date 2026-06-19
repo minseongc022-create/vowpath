@@ -13,8 +13,8 @@ export function JobberOptional() {
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {j.points.map((point) => (
             <article key={point.title} className="vow-site-card p-5">
-              <h3 className="font-semibold text-white">{point.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">{point.description}</p>
+              <h3 className="font-semibold text-brand-900">{point.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-700">{point.description}</p>
             </article>
           ))}
         </div>

@@ -3,15 +3,8 @@ import { createAndSendResetCode, normalizePhone } from "@/lib/password-reset";
 import { isEmailDeliveryConfigured } from "@/lib/send-reset-code";
 import { isTwilioConfigured } from "@/lib/twilio-config";
 import { findUserByEmail, findUserByPhone } from "@/lib/users-db";
-
-const GENERIC_OK =
-  "등록된 계정이면 인증번호를 보냈습니다. 이메일 또는 문자함을 확인해 주세요.";
-
-const DEV_EMAIL_HINT =
-  "개발 모드: 실제 이메일은 발송되지 않습니다. npm run dev 터미널에서 [dev] Password reset code 로그를 확인하세요.";
-
-const DEV_SMS_HINT =
-  "개발 모드: 실제 문자는 발송되지 않습니다. npm run dev 터미널에서 [dev] Password reset SMS 로그를 확인하세요.";
+import { recordSecurityAudit } from "@/lib/security/audit";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function POST(request: Request) {
   try {
@@ -26,7 +19,7 @@ export async function POST(request: Request) {
 
       if (!phone) {
         return NextResponse.json(
-          { error: "올바른 휴대폰 번호를 입력해 주세요." },
+          { error: apiErrorsEn.invalidUsPhone },
           { status: 400 },
         );
       }
@@ -37,7 +30,7 @@ export async function POST(request: Request) {
 
       if (!email || !email.includes("@")) {
         return NextResponse.json(
-          { error: "올바른 이메일을 입력해 주세요." },
+          { error: apiErrorsEn.invalidEmail },
           { status: 400 },
         );
       }
@@ -48,9 +41,16 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({
         ok: true,
-        message: GENERIC_OK,
+        message: apiErrorsEn.codeSent,
+        requestId: crypto.randomUUID(),
       });
     }
+
+    await recordSecurityAudit({
+      userId: user.id,
+      event: "password_reset_requested",
+      detail: channel,
+    });
 
     const result = await createAndSendResetCode(user, channel);
     if ("error" in result) {
@@ -59,25 +59,23 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: GENERIC_OK,
+      message: apiErrorsEn.codeSent,
       requestId: result.requestId,
-      email: user.email,
-      hasPhone: Boolean(user.phone),
       devHint:
         process.env.NODE_ENV !== "production" &&
         channel === "email" &&
         !isEmailDeliveryConfigured()
-          ? DEV_EMAIL_HINT
+          ? apiErrorsEn.devEmailHint
           : process.env.NODE_ENV !== "production" &&
               channel === "sms" &&
               !isTwilioConfigured()
-            ? DEV_SMS_HINT
+            ? apiErrorsEn.devSmsHint
             : undefined,
     });
   } catch (e) {
     console.error("[forgot-password]", e);
     return NextResponse.json(
-      { error: "요청 처리 중 오류가 발생했습니다." },
+      { error: apiErrorsEn.requestFailed },
       { status: 500 },
     );
   }

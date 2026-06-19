@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { clearSessionCookieOptions } from "@/lib/auth";
 import { hashPassword } from "@/lib/auth-password";
 import { verifyPasswordResetToken } from "@/lib/auth-reset-token";
 import { updateUserPassword } from "@/lib/users-db";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function POST(request: Request) {
   try {
@@ -12,21 +14,21 @@ export async function POST(request: Request) {
 
     if (!resetToken) {
       return NextResponse.json(
-        { error: "인증이 만료되었습니다. 처음부터 다시 시도해 주세요." },
+        { error: apiErrorsEn.resetSessionExpired },
         { status: 400 },
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
-        { error: "비밀번호는 8자 이상이어야 합니다." },
+        { error: apiErrorsEn.passwordTooShort },
         { status: 400 },
       );
     }
 
     if (password !== confirm) {
       return NextResponse.json(
-        { error: "비밀번호 확인이 일치하지 않습니다." },
+        { error: apiErrorsEn.passwordMismatch },
         { status: 400 },
       );
     }
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     const userId = await verifyPasswordResetToken(resetToken);
     if (!userId) {
       return NextResponse.json(
-        { error: "인증이 만료되었습니다. 처음부터 다시 시도해 주세요." },
+        { error: apiErrorsEn.resetSessionExpired },
         { status: 400 },
       );
     }
@@ -43,21 +45,23 @@ export async function POST(request: Request) {
     const updated = await updateUserPassword(userId, passwordHash);
     if (!updated) {
       return NextResponse.json(
-        { error: "계정을 찾을 수 없습니다." },
+        { error: apiErrorsEn.accountNotFound },
         { status: 404 },
       );
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       ok: true,
-      message: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
+      message: apiErrorsEn.resetSuccess,
       email: updated.email,
       redirect: "/login",
     });
+    res.cookies.set(clearSessionCookieOptions());
+    return res;
   } catch (e) {
     console.error("[reset-password]", e);
     return NextResponse.json(
-      { error: "비밀번호 변경 중 오류가 발생했습니다." },
+      { error: apiErrorsEn.resetFailed },
       { status: 500 },
     );
   }

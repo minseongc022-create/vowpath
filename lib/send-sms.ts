@@ -132,8 +132,8 @@ export async function sendSms(
 
   if (!phone) {
     const error = isKrSmsTestMode()
-      ? "휴대폰 번호 형식을 확인해 주세요. (한국: 010-1234-5678 · 미국: (512) 555-0100)"
-      : "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)";
+      ? "Check the phone format. US: (512) 555-0100"
+      : "Enter a valid US mobile number (e.g. (512) 555-0100).";
     if (strict) return { ok: false, error };
     return reportFailure(error, { context, devLogLabel });
   }
@@ -141,7 +141,7 @@ export async function sendSms(
   const usOnly = options?.usRecipientsOnly ?? smsRestrictToUsRecipients();
   if (usOnly && !(await smsAllowsRecipientPhone(phone, context?.userId))) {
     const error =
-      "미국 (+1) 번호로만 문자를 보낼 수 있습니다. 업체·고객 번호가 US 형식인지 확인하세요.";
+      "SMS can only be sent to US (+1) numbers. Check owner and customer phone formats.";
     if (strict) return { ok: false, error };
     return reportFailure(error, { context, toPhone: phone, devLogLabel });
   }

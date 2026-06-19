@@ -14,7 +14,7 @@ export function AllBookingsContent({ variant = "light" }: { variant?: "light" | 
     <div className="mx-auto max-w-[1400px]">
       <Link
         href="/dashboard"
-        className={`text-sm font-medium hover:underline ${dark ? "text-violet-300" : "text-brand-600"}`}
+        className={`text-sm font-medium hover:underline ${dark ? "text-brand-300" : "text-brand-600"}`}
       >
         ← Back to dashboard
       </Link>

@@ -84,7 +84,7 @@ export function VerificationStatusPanel({ verification }: VerificationStatusPane
   const t = dashboardUi.bookingDetail;
 
   return (
-    <section className="booking-detail-card overflow-visible rounded-2xl border border-white/[0.06] bg-[#161b22] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
+    <section className="booking-detail-card overflow-visible rounded-2xl border border-white/[0.06] bg-[#3d3228] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
       <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">
         <h2 className="text-sm font-semibold text-white">{t.verificationTitle}</h2>
         <p className="mt-0.5 text-xs text-slate-500">

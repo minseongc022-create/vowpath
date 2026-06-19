@@ -8,7 +8,7 @@ import type { JobPriority } from "../types";
 /** Time to submit the form on first visit */
 const NEW_INTAKE_TTL_SECONDS = 86_400;
 /** After submit: same link stays open for view / edit */
-const LINK_ACCESS_TTL_SECONDS = 365 * 86_400;
+const LINK_ACCESS_TTL_SECONDS = 14 * 86_400;
 const DATA_DIR = path.join(process.cwd(), "data");
 const LINK_FILE = path.join(DATA_DIR, "link-intake-sessions.json");
 

@@ -34,6 +34,8 @@ const LABELS_EN: Record<TenantEventType, string> = {
 
   sms_delivery_failed: "SMS delivery failed",
 
+  security: "Security",
+
   workflow_rule_matched: "Automation rule applied",
 
 };
@@ -69,6 +71,8 @@ const LABELS_KO: Record<TenantEventType, string> = {
   call_intake_failed: "Intake 실패",
 
   sms_delivery_failed: "문자 전송 실패",
+
+  security: "보안",
 
   workflow_rule_matched: "운영 규칙 적용",
 

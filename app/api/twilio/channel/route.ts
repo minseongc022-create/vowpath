@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { intakeUrlForMenu } from "@/lib/call-intake/intake-twiml";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import {
   createLinkIntakeSession,
@@ -8,13 +9,21 @@ import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
-  twimlGatherDtmfMenu,
+  twimlGatherSpeechDetailed,
   twimlResponse,
   twimlSay,
 } from "@/lib/twilio-xml";
 
-function menuUrl(base: string, afterHours: boolean): string {
-  return afterHours ? `${base}/api/twilio/menu?afterHours=1` : `${base}/api/twilio/menu`;
+function phoneIntakeTwiml(afterHours: boolean) {
+  const gatherUrl = intakeUrlForMenu("P2", afterHours);
+  return twimlResponse(
+    twimlGatherSpeechDetailed(
+      gatherUrl,
+      "Let's take your request by phone. I will ask for the same details as the text link.",
+      "Please say your first and last name, your full service address with city, " +
+        "and describe what you need help with, such as no heat or no cool.",
+    ),
+  );
 }
 
 export async function POST(request: Request) {
@@ -33,14 +42,8 @@ export async function POST(request: Request) {
   const from = form.get("From") ?? "unknown";
   const to = form.get("To") ?? "unknown";
 
-  const base = getTwilioWebhookBaseUrl();
-  const menu = menuUrl(base, afterHours);
-
-  const continueByPhone =
-    digit !== "1" && (Boolean(speech) || digit === "2" || digit === "3" || !digit);
-
-  if (continueByPhone) {
-    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menu)), {
+  if (digit !== "1") {
+    return new NextResponse(phoneIntakeTwiml(afterHours), {
       headers: { "Content-Type": "text/xml" },
     });
   }
@@ -57,13 +60,9 @@ export async function POST(request: Request) {
 
   const callbackPhone = from.replace(/^whatsapp:/, "").trim();
   if (!callbackPhone || callbackPhone === "unknown") {
-    return new NextResponse(
-      twimlResponse(
-        twimlSay("We can't text this number. Let's continue by phone.") +
-          twimlGatherDtmfMenu(menu),
-      ),
-      { headers: { "Content-Type": "text/xml" } },
-    );
+    return new NextResponse(phoneIntakeTwiml(afterHours), {
+      headers: { "Content-Type": "text/xml" },
+    });
   }
 
   try {
@@ -85,13 +84,9 @@ export async function POST(request: Request) {
 
     if (!sms.ok) {
       console.warn("[twilio/channel] link intake SMS skipped:", sms.error);
-      return new NextResponse(
-        twimlResponse(
-          twimlSay("We couldn't send a text. Let's continue by phone.") +
-            twimlGatherDtmfMenu(menu),
-        ),
-        { headers: { "Content-Type": "text/xml" } },
-      );
+      return new NextResponse(phoneIntakeTwiml(afterHours), {
+        headers: { "Content-Type": "text/xml" },
+      });
     }
 
     const twiml = twimlResponse(
@@ -105,7 +100,7 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("[twilio/channel]", e);
-    return new NextResponse(twimlResponse(twimlGatherDtmfMenu(menu)), {
+    return new NextResponse(phoneIntakeTwiml(afterHours), {
       headers: { "Content-Type": "text/xml" },
     });
   }

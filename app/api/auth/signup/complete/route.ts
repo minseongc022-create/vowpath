@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       sub: user.id,
       email: user.email,
       shopName: user.shopName,
+      sessionVersion: user.sessionVersion ?? 0,
     });
 
     const res = NextResponse.json({

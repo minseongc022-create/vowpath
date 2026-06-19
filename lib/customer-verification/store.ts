@@ -15,8 +15,8 @@ function recordKey(userId: string, bookingId: string) {
   return `${userId}:${bookingId}`;
 }
 
-function phoneIndexKey(phone: string) {
-  return `vowpath:cust-verify-phone:${phone}`;
+function phoneIndexKey(userId: string, phone: string) {
+  return `vowpath:cust-verify-phone:${userId}:${phone}`;
 }
 
 function kvRecordKey(userId: string, bookingId: string) {
@@ -94,17 +94,17 @@ async function setPhoneIndex(record: CustomerVerificationRecord) {
   if (!phone) return;
   const payload = { userId: record.userId, bookingId: record.bookingId };
   if (useKvStore()) {
-    await kv.set(phoneIndexKey(phone), payload, { ex: 86_400 * 2 });
+    await kv.set(phoneIndexKey(record.userId, phone), payload, { ex: 86_400 * 2 });
     return;
   }
   if (process.env.VERCEL === "1") return;
 }
 
-async function clearPhoneIndex(phoneRaw: string) {
+async function clearPhoneIndex(userId: string, phoneRaw: string) {
   const phone = normalizeSmsPhone(phoneRaw);
   if (!phone) return;
   if (useKvStore()) {
-    await kv.del(phoneIndexKey(phone));
+    await kv.del(phoneIndexKey(userId, phone));
   }
 }
 
@@ -128,7 +128,7 @@ export async function saveCustomerVerification(
     if (record.status === "pending_response") {
       await setPhoneIndex(record);
     } else {
-      await clearPhoneIndex(record.customerPhone);
+      await clearPhoneIndex(record.userId, record.customerPhone);
     }
     return;
   }
@@ -172,13 +172,15 @@ export async function listCustomerVerifications(
 
 export async function findPendingVerificationByPhone(
   fromRaw: string,
+  userId?: string | null,
 ): Promise<CustomerVerificationRecord | null> {
   const phone = normalizeSmsPhone(fromRaw);
   if (!phone) return null;
 
   if (useKvStore()) {
+    if (!userId) return null;
     const hit = await kv.get<{ userId: string; bookingId: string }>(
-      phoneIndexKey(phone),
+      phoneIndexKey(userId, phone),
     );
     if (!hit) return null;
     const record = await getCustomerVerification(hit.userId, hit.bookingId);
@@ -190,6 +192,7 @@ export async function findPendingVerificationByPhone(
   const store = await readFileStore();
   for (const record of Object.values(store.records)) {
     if (record.status !== "pending_response") continue;
+    if (userId && record.userId !== userId) continue;
     if (normalizeSmsPhone(record.customerPhone) === phone) return record;
   }
   return null;

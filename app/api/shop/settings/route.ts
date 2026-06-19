@@ -4,6 +4,7 @@ import {
   DEFAULT_SHOP_BOOKING_SETTINGS,
   coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
+  normalizeSlotBufferMinutes,
   type OwnerApprovalSms,
   type SchedulingMode,
   type ShopBookingSettings,
@@ -13,6 +14,7 @@ import {
   saveShopBookingSettings,
 } from "@/lib/shop-settings-db";
 import { getSession } from "@/lib/session";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 const MODES: SchedulingMode[] = ["speed", "hybrid", "control"];
 const OWNER_SMS: OwnerApprovalSms[] = ["off", "p1_only", "all"];
@@ -40,6 +42,23 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
   }
   if (typeof body.slotOfferCount === "number" && body.slotOfferCount >= 1 && body.slotOfferCount <= 5) {
     patch.slotOfferCount = Math.round(body.slotOfferCount);
+  }
+  if (
+    typeof body.defaultDurationMinutes === "number" &&
+    body.defaultDurationMinutes >= 15 &&
+    body.defaultDurationMinutes <= 720
+  ) {
+    patch.defaultDurationMinutes = Math.round(body.defaultDurationMinutes);
+  }
+  if (typeof body.slotBufferMinutes === "number") {
+    patch.slotBufferMinutes = normalizeSlotBufferMinutes(body.slotBufferMinutes);
+  }
+  if (
+    typeof body.maxConcurrentVisits === "number" &&
+    body.maxConcurrentVisits >= 1 &&
+    body.maxConcurrentVisits <= 20
+  ) {
+    patch.maxConcurrentVisits = Math.round(body.maxConcurrentVisits);
   }
   if (Array.isArray(body.serviceAreaZips)) {
     patch.serviceAreaZips = (body.serviceAreaZips as unknown[])
@@ -72,6 +91,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

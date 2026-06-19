@@ -5,8 +5,12 @@ import {
 } from "@/lib/ai-admin/execute";
 import type { AiAdminConfirmRequest } from "@/lib/ai-admin/types";
 import { getSession } from "@/lib/session";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 export async function POST(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

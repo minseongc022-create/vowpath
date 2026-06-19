@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { handleCustomerVerificationReply } from "@/lib/customer-verification/flow";
 import { handleOwnerSmsReply } from "@/lib/owner-sms-reply";
+import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { handleTechDispatchReply } from "@/lib/tech-dispatch/assign";
+import { findTechByPhone } from "@/lib/tech-dispatch/store";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { twimlMessage, twimlResponse } from "@/lib/twilio-xml";
 
@@ -13,6 +16,7 @@ export async function POST(request: Request) {
 
   const params = new URLSearchParams(rawBody);
   const from = params.get("From") ?? "";
+  const to = params.get("To") ?? "";
   const body = params.get("Body") ?? "";
 
   if (/^\s*STOP\s*$/i.test(body.trim())) {
@@ -28,7 +32,23 @@ export async function POST(request: Request) {
   }
 
   try {
-    const customer = await handleCustomerVerificationReply({ from, body });
+    const userId = to ? await resolveTenantUserId({ to }) : null;
+
+    if (userId) {
+      const tech = await findTechByPhone(userId, from);
+      if (tech) {
+        const techResult = await handleTechDispatchReply({ userId, fromPhone: from, body });
+        if (techResult.handled) {
+          const twiml = twimlResponse(twimlMessage(techResult.replyBody));
+          return new NextResponse(twiml, {
+            status: 200,
+            headers: { "Content-Type": "text/xml" },
+          });
+        }
+      }
+    }
+
+    const customer = await handleCustomerVerificationReply({ from, body, userId });
     if (customer.handled) {
       const twiml = twimlResponse(twimlMessage(customer.replyBody));
       return new NextResponse(twiml, {

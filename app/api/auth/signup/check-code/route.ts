@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkSignupCode } from "@/lib/signup-verify";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function POST(request: Request) {
   try {
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
 
     if (!signupRequestId || !/^\d{6}$/.test(code)) {
       return NextResponse.json(
-        { error: "인증번호 6자리를 입력해 주세요." },
+        { error: apiErrorsEn.codeRequired },
         { status: 400 },
       );
     }
@@ -19,11 +20,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, message: "인증이 완료되었습니다." });
+    return NextResponse.json({ ok: true, message: apiErrorsEn.verifySuccess });
   } catch (e) {
     console.error("[signup/check-code]", e);
     return NextResponse.json(
-      { error: "인증 처리 중 오류가 발생했습니다." },
+      { error: apiErrorsEn.verifyFailed },
       { status: 500 },
     );
   }

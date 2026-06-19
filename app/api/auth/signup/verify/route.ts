@@ -3,6 +3,7 @@ import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
 import { checkSignupCode, completeVerifiedSignup } from "@/lib/signup-verify";
 import { deletePendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 /** Legacy: check + complete in one step */
 export async function POST(request: Request) {
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
 
     if (!signupRequestId || !/^\d{6}$/.test(code)) {
       return NextResponse.json(
-        { error: "인증번호 6자리를 입력해 주세요." },
+        { error: apiErrorsEn.codeRequired },
         { status: 400 },
       );
     }
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       sub: user.id,
       email: user.email,
       shopName: user.shopName,
+      sessionVersion: user.sessionVersion ?? 0,
     });
 
     const res = NextResponse.json({
@@ -55,30 +57,30 @@ export async function POST(request: Request) {
     console.error("[signup/verify]", e);
     if (e instanceof Error && e.message === "KV_REQUIRED") {
       return NextResponse.json(
-        { error: "서버 저장소가 설정되지 않았습니다. Vercel KV를 연결해 주세요." },
+        { error: apiErrorsEn.kvNotConfigured },
         { status: 503 },
       );
     }
     if (e instanceof Error && e.message === "EMAIL_EXISTS") {
       return NextResponse.json(
-        { error: "이미 가입된 이메일입니다. 로그인해 주세요." },
+        { error: apiErrorsEn.emailAlreadyRegistered },
         { status: 409 },
       );
     }
     if (e instanceof Error && e.message === "PHONE_REQUIRED") {
       return NextResponse.json(
-        { error: "휴대폰 번호가 필요합니다." },
+        { error: apiErrorsEn.phoneRequired },
         { status: 400 },
       );
     }
     if (e instanceof Error && e.message === "PHONE_EXISTS") {
       return NextResponse.json(
-        { error: "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해 주세요." },
+        { error: apiErrorsEn.phoneAlreadyRegistered },
         { status: 409 },
       );
     }
     return NextResponse.json(
-      { error: "회원가입 처리 중 오류가 발생했습니다." },
+      { error: apiErrorsEn.signupFailed },
       { status: 500 },
     );
   }

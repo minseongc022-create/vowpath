@@ -128,6 +128,11 @@ export function canReject(status: string): boolean {
   return isPendingShopReview(status);
 }
 
+/** Cancel an auto-booked (scheduled) job — moves it to rejected. */
+export function canCancelScheduled(status: string): boolean {
+  return normalizeRequestStatus(status) === "scheduled";
+}
+
 export function canMarkScheduled(status: string): boolean {
   return normalizeRequestStatus(status) === "approved";
 }

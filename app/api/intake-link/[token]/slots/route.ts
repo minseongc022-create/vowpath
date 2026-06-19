@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { getLinkIntakeSession, isLinkIntakeSessionExpired } from "@/lib/call-intake/link-intake-store";
-import { offerVisitSlotsForTenant } from "@/lib/scheduling/offer-slots";
+import { offerVisitSlotsForTenant, offerSlotGridForTenant } from "@/lib/scheduling/offer-slots";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { linkUrgencyToPriority, parseLinkUrgency } from "@/lib/link-intake-urgency";
+import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params;
+  const guard = await guardPublicIntakeRoute(request, token);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
+  }
   const session = await getLinkIntakeSession(token);
   if (!session || isLinkIntakeSessionExpired(session)) {
     return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
@@ -28,9 +33,17 @@ export async function GET(
     priority,
   });
 
+  const grid = await offerSlotGridForTenant({
+    userId: session.userId,
+    priority,
+  });
+
   return NextResponse.json({
     schedulingEnabled: true,
     slots,
-    slotOfferCount: settings.slotOfferCount,
+    grid,
+    durationMinutes: settings.defaultDurationMinutes,
+    bufferMinutes: settings.slotBufferMinutes,
+    maxConcurrentVisits: settings.maxConcurrentVisits,
   });
 }

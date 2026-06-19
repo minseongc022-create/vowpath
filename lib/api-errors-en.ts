@@ -1,57 +1,63 @@
-/** API error messages — US English. */
-
-
+/** API error messages — US English (primary product locale). */
 
 export const apiErrorsEn = {
-
   userNotFound: "User not found.",
-
   phoneProvisionFailed: "Could not provision phone number.",
-
-  authMissing: "Authentication required.",
-
+  authMissing: "Sign in required.",
   kvNotConfigured: "Server storage is not configured. Connect Vercel KV.",
-
   emailAlreadyRegistered: "Email already registered. Log in instead.",
-
   phoneRequired: "Mobile number is required.",
-
   phoneAlreadyRegistered: "Mobile number already registered. Use a different number.",
-
   signupFailed: "Signup failed. Try again.",
-
   invalidEmail: "Enter a valid email address.",
-
   passwordTooShort: "Password must be at least 8 characters.",
-
   passwordMismatch: "Passwords do not match.",
-
   phoneRequiredSignup: "Enter your mobile number (used for request alerts and SMS approval).",
-
-  codeSent: "Verification code sent. Check your email or SMS.",
-
+  codeSent: "If an account exists, we sent a code. Check your email or texts.",
   sendCodeFailed: "Could not send verification code.",
-
   codeExpired: "Verification code expired or not found.",
-
   codeExpiredResend: "Verification code expired. Request a new one.",
-
   tooManyAttempts: "Too many incorrect attempts. Start signup again.",
-
   codeInvalid: "Incorrect verification code.",
-
   verificationExpired: "Verification expired. Start signup again.",
-
   verifyFirst: "Complete verification before creating your account.",
-
+  codeRequired: "Enter the 6-digit verification code.",
+  verifySuccess: "Verified.",
+  verifyFailed: "Verification failed. Try again.",
+  resetSessionExpired: "Session expired. Start over from the forgot-password page.",
+  resetSuccess: "Password updated. Log in with your new password.",
+  resetFailed: "Could not update password. Try again.",
+  accountNotFound: "Account not found.",
+  invalidCredentials: "Email, phone, or password is incorrect.",
+  loginFieldsRequired: "Enter your email or phone and password.",
+  invalidUsPhone: "Enter a valid US mobile number (e.g. (512) 555-0100).",
+  loginFailed: "Sign-in failed. Try again in a moment.",
+  requestFailed: "Request failed. Try again.",
+  saveFailed: "Could not save. Try again.",
+  contactFieldsRequired: "Enter your email and US mobile number.",
+  contactFieldsRequiredDev: "Enter your email and mobile number.",
+  phoneFormatUs: "Enter a valid US phone number (e.g. (512) 555-0100 or +1 512-555-0100).",
+  emailInUse: "Email already in use.",
+  phoneInUse: "Phone number already registered.",
+  bookingStatusInvalid: "This request was already handled or cannot be approved.",
+  bookingRejectInvalid: "This request was already handled or cannot be declined.",
+  bookingScheduleInvalid: "Only approved requests can be scheduled.",
+  bookingCompleteInvalid: "Only approved or scheduled requests can be marked complete.",
+  intakeFieldsRequired: "Enter name, service address, and issue description.",
   devEmailHint:
-
-    "Dev mode: email not sent. Check the npm run dev terminal for [dev] Signup verification code.",
-
+    "Dev mode: email not sent. Check the npm run dev terminal for [dev] Password reset code.",
   devSmsHint:
-
+    "Dev mode: SMS not sent. Check the npm run dev terminal for [dev] Password reset SMS.",
+  devSignupEmailHint:
+    "Dev mode: email not sent. Check the npm run dev terminal for [dev] Signup verification code.",
+  resetTooManyRequests: "Too many requests. Try again in an hour.",
+  resetNoPhoneOnFile: "No mobile number on file. Use email instead.",
+  emailSendFailed: "Could not send email.",
+  smsSendFailed: "Could not send text.",
+  resetCodeNotFound: "Code expired or request not found.",
+  resetCodeExpired: "Code expired. Request a new one.",
+  resetTooManyCodeAttempts: "Too many attempts. Request a new code.",
+  resetCodeInvalid: "Incorrect code.",
+  devSignupSmsHint:
     "Dev mode: SMS not sent. Check the npm run dev terminal for [dev] Signup verification SMS.",
-
 } as const;
-
-

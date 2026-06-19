@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { verifyBookingBelongsToTenant } from "@/lib/booking-ownership";
 import { updateBookingPriority } from "@/lib/booking-priority-update";
 import { normalizeJobPriority } from "@/lib/priority-display";
 import { getSession } from "@/lib/session";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 export async function PATCH(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,6 +21,11 @@ export async function PATCH(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "Request id is required" }, { status: 400 });
+    }
+
+    const owned = await verifyBookingBelongsToTenant(session.sub, id);
+    if (!owned) {
+      return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
     const result = await updateBookingPriority(session.sub, id, priority);

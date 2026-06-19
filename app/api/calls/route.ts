@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listCallLogs } from "@/lib/call-logs";
 import { getSession } from "@/lib/session";
+import { stripInternalTenantFields } from "@/lib/security/tenant-guard";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -13,5 +14,5 @@ export async function GET(request: Request) {
   const end = url.searchParams.get("end")?.trim() || undefined;
 
   const calls = await listCallLogs(session.sub, { start, end });
-  return NextResponse.json({ calls });
+  return NextResponse.json({ calls: calls.map(stripInternalTenantFields) });
 }

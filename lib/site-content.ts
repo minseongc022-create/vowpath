@@ -4,6 +4,7 @@ import {
   aboutEn,
   aiDispatcherEn,
   approvalLoopEn,
+  agreementKeeperEn,
   ctaEn,
   comparisonEn,
   differentiatorsEn,
@@ -22,6 +23,7 @@ import {
   schedulingModesEn,
   signupFlowEn,
   socialProofEn,
+  dataTrustEn,
   trustRoiEn,
 } from "./content-marketing-en";
 
@@ -34,11 +36,13 @@ export const siteSignupFlow = signupFlowEn;
 export const siteDifferentiators = differentiatorsEn;
 export const siteHowItWorks = howItWorksEn;
 export const siteSchedulingModes = schedulingModesEn;
+export const siteDataTrust = dataTrustEn;
 export const siteRevenueLeaks = revenueLeaksEn;
 export const siteJobber = jobberEn;
 export const siteFeatures = featuresEn;
 export const sitePricing = pricingEn;
 export const siteFaq = faqEn;
+export const siteAgreementKeeper = agreementKeeperEn;
 export const siteCta = ctaEn;
 export const siteTrustRoi = trustRoiEn;
 export const siteAiDispatcher = aiDispatcherEn;

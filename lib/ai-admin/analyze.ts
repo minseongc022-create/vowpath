@@ -6,7 +6,7 @@ import type { ShopProfile } from "../shop-profile-db";
 import type { UserRecord } from "../users-db";
 import { mergeUserBilling } from "../billing";
 import { composeAssistantReply } from "./compose";
-import { runtimeUiLocale } from "../locale";
+import { runtimeUiLocale, type UiLocale } from "../locale";
 import { isAdminMutationQuery } from "./router";
 import { isWorkflowMutationQuery } from "./workflow-parse";
 import type {
@@ -69,6 +69,17 @@ function preview(
       "Switch booking mode to manual approval.",
     ],
   };
+}
+
+function previewL(
+  locale: UiLocale,
+  title: string,
+  messageEn: string,
+  messageKo: string,
+  action: AiAdminExecutableAction,
+  rows?: AiAdminPreview["rows"],
+): AiAdminAnalysisResult {
+  return preview(title, locale === "ko" ? messageKo : messageEn, action, rows);
 }
 
 function blocked(answer: string, rows?: { label: string; value: string }[]): AiAdminAnalysisResult {
@@ -413,22 +424,36 @@ export function analyzeAiAdminIntent(
 
   const wantsBriefing = q.includes("sms report") || q.includes("briefing") || q.includes("리포트") || q.includes("브리핑");
   if (wantsBriefing && (q.includes("off") || q.includes("disable") || q.includes("꺼"))) {
-    return preview("Disable Daily Briefing SMS", "아침 SMS 리포트를 비활성화하시겠습니까?", {
-      type: "set_daily_briefing_sms",
-      enabled: false,
-    });
+    return previewL(
+      locale,
+      "Disable Daily Briefing SMS",
+      "Turn off the morning SMS report?",
+      "아침 SMS 리포트를 비활성화하시겠습니까?",
+      { type: "set_daily_briefing_sms", enabled: false },
+    );
   }
   if (wantsBriefing && (q.includes("on") || q.includes("enable") || q.includes("켜"))) {
-    return preview("Enable Daily Briefing SMS", "아침 SMS 리포트를 활성화하시겠습니까?", {
-      type: "set_daily_briefing_sms",
-      enabled: true,
-    });
+    return previewL(
+      locale,
+      "Enable Daily Briefing SMS",
+      "Turn on the morning SMS report?",
+      "아침 SMS 리포트를 활성화하시겠습니까?",
+      { type: "set_daily_briefing_sms", enabled: true },
+    );
   }
   if (wantsBriefing && (q.includes("time") || q.includes("change") || q.includes("변경") || q.includes("오전") || q.includes("오후"))) {
     const time = parseTime(query);
-    if (!time) return blocked("SMS 리포트 시간을 찾지 못했습니다. 예: 오전 6시 30분");
-    return preview(
+    if (!time) {
+      return blocked(
+        locale === "ko"
+          ? "SMS 리포트 시간을 찾지 못했습니다. 예: 오전 6시 30분"
+          : "Could not find a time. Try: 6:30 AM",
+      );
+    }
+    return previewL(
+      locale,
       "Change Daily Briefing Time",
+      `Change the daily SMS report to ${formatTime(time)}?`,
       `매일 ${formatTime(time)}으로 변경하시겠습니까?`,
       { type: "set_daily_briefing_time", time },
       [{ label: "New Time", value: formatTime(time) }],
@@ -437,18 +462,30 @@ export function analyzeAiAdminIntent(
 
   if (q.includes("service area") || q.includes("서비스 지역")) {
     const area = extractArea(query);
-    if (!area) return blocked("추가 또는 삭제할 서비스 지역 이름을 알려 주세요.");
+    if (!area) {
+      return blocked(
+        locale === "ko"
+          ? "추가 또는 삭제할 서비스 지역 이름을 알려 주세요."
+          : "Tell me which city or area to add or remove.",
+      );
+    }
     if (q.includes("remove") || q.includes("delete") || q.includes("삭제") || q.includes("빼")) {
-      return preview("Remove Service Area", `${area}를 서비스 지역에서 삭제하시겠습니까?`, {
-        type: "remove_service_area",
-        area,
-      });
+      return previewL(
+        locale,
+        "Remove Service Area",
+        `Remove ${area} from your service areas?`,
+        `${area}를 서비스 지역에서 삭제하시겠습니까?`,
+        { type: "remove_service_area", area },
+      );
     }
     if (q.includes("add") || q.includes("include") || q.includes("추가") || q.includes("넣어")) {
-      return preview("Add Service Area", `${area}를 서비스 지역에 추가하시겠습니까?`, {
-        type: "append_service_area",
-        area,
-      });
+      return previewL(
+        locale,
+        "Add Service Area",
+        `Add ${area} to your service areas?`,
+        `${area}를 서비스 지역에 추가하시겠습니까?`,
+        { type: "append_service_area", area },
+      );
     }
   }
 
@@ -456,42 +493,60 @@ export function analyzeAiAdminIntent(
   if (memoryCommand) return memoryCommand;
 
   if (q.includes("manual approval") || q.includes("수동 승인")) {
-    return preview("Switch To Manual Approval", "모든 예약을 수동 승인 방식으로 변경하시겠습니까?", {
-      type: "set_booking_mode",
-      mode: "control",
-    });
+    return previewL(
+      locale,
+      "Switch To Manual Approval",
+      "Switch every booking to manual approval? You will text 1 or 2 for each pick.",
+      "모든 예약을 수동 승인 방식으로 변경하시겠습니까?",
+      { type: "set_booking_mode", mode: "control" },
+    );
   }
   if (q.includes("auto book") || q.includes("빠른 예약") || q.includes("speed")) {
-    return preview("Switch To Auto Book", "고객이 시간을 선택하면 승인 없이 예약되는 Speed 모드로 변경하시겠습니까?", {
-      type: "set_booking_mode",
-      mode: "speed",
-    });
+    return previewL(
+      locale,
+      "Switch To Auto Book",
+      "Switch to Auto Book? Customer slot picks confirm instantly without your text approval.",
+      "고객이 시간을 선택하면 승인 없이 예약되는 Auto Book 모드로 변경하시겠습니까?",
+      { type: "set_booking_mode", mode: "speed" },
+    );
   }
   if (q.includes("hybrid") || q.includes("하이브리드") || q.includes("risk based")) {
-    return preview("Switch To Hybrid Approval", "위험도 기반 Hybrid 예약 승인 방식으로 변경하시겠습니까?", {
-      type: "set_booking_mode",
-      mode: "hybrid",
-    });
+    return previewL(
+      locale,
+      "Switch To Hybrid",
+      "Switch to Hybrid? Auto-book only the urgencies you check; others wait for your text.",
+      "Hybrid 예약 방식으로 변경하시겠습니까?",
+      { type: "set_booking_mode", mode: "hybrid" },
+    );
   }
 
   if (q.includes("owner approval text") || q.includes("approval sms") || q.includes("승인 문자")) {
     if (q.includes("off") || q.includes("꺼")) {
-      return preview("Turn Off Approval SMS", "업주 승인 SMS 알림을 끄시겠습니까?", {
-        type: "set_owner_approval_sms",
-        level: "off",
-      });
+      return previewL(
+        locale,
+        "Turn Off Approval SMS",
+        "Turn off owner approval texts?",
+        "업주 승인 SMS 알림을 끄시겠습니까?",
+        { type: "set_owner_approval_sms", level: "off" },
+      );
     }
     if (q.includes("all") || q.includes("전체")) {
-      return preview("Send All Approval SMS", "모든 승인 대기 예약에 대해 업주 SMS를 보내시겠습니까?", {
-        type: "set_owner_approval_sms",
-        level: "all",
-      });
+      return previewL(
+        locale,
+        "Send All Approval SMS",
+        "Text you for every booking that needs approval?",
+        "모든 승인 대기 예약에 대해 업주 SMS를 보내시겠습니까?",
+        { type: "set_owner_approval_sms", level: "all" },
+      );
     }
     if (q.includes("p1") || q.includes("urgent") || q.includes("긴급")) {
-      return preview("Send P1 Approval SMS", "P1 긴급 요청에만 업주 승인 SMS를 보내시겠습니까?", {
-        type: "set_owner_approval_sms",
-        level: "p1_only",
-      });
+      return previewL(
+        locale,
+        "Send P1 Approval SMS",
+        "Text you only for P1 urgent approvals?",
+        "P1 긴급 요청에만 업주 승인 SMS를 보내시겠습니까?",
+        { type: "set_owner_approval_sms", level: "p1_only" },
+      );
     }
   }
 

@@ -12,6 +12,7 @@ import {
 import { sendResetCodeEmail, sendResetCodeSms } from "./send-reset-code";
 import { normalizeSmsPhone } from "./phone";
 import type { UserRecord } from "./users-db";
+import { apiErrorsEn } from "./api-errors-en";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
@@ -40,12 +41,12 @@ export async function createAndSendResetCode(
   const rateKey = `${user.email}:${channel}`;
   const attempts = await getForgotAttemptCount(rateKey);
   if (attempts >= MAX_FORGOT_PER_HOUR) {
-    return { error: "요청이 너무 많습니다. 1시간 후 다시 시도해 주세요." };
+    return { error: apiErrorsEn.resetTooManyRequests };
   }
 
   if (channel === "sms") {
     if (!user.phone) {
-      return { error: "등록된 휴대폰 번호가 없습니다. 이메일로 받아 주세요." };
+      return { error: apiErrorsEn.resetNoPhoneOnFile };
     }
   }
 
@@ -67,10 +68,10 @@ export async function createAndSendResetCode(
 
   if (channel === "email") {
     const sent = await sendResetCodeEmail(user.email, code);
-    if (!sent.ok) return { error: sent.error ?? "이메일 전송에 실패했습니다." };
+    if (!sent.ok) return { error: sent.error ?? apiErrorsEn.emailSendFailed };
   } else if (user.phone) {
     const sent = await sendResetCodeSms(user.phone, code);
-    if (!sent.ok) return { error: sent.error ?? "문자 전송에 실패했습니다." };
+    if (!sent.ok) return { error: sent.error ?? apiErrorsEn.smsSendFailed };
   }
 
   return { requestId: request.id };
@@ -82,24 +83,24 @@ export async function verifyResetCode(
 ): Promise<{ userId: string } | { error: string }> {
   const request = await getResetRequest(requestId);
   if (!request) {
-    return { error: "인증번호가 만료되었거나 요청을 찾을 수 없습니다." };
+    return { error: apiErrorsEn.resetCodeNotFound };
   }
 
   if (request.expiresAt < Date.now()) {
     await deleteResetRequest(requestId);
-    return { error: "인증번호가 만료되었습니다. 다시 요청해 주세요." };
+    return { error: apiErrorsEn.resetCodeExpired };
   }
 
   if (request.attempts >= MAX_CODE_ATTEMPTS) {
     await deleteResetRequest(requestId);
-    return { error: "시도 횟수를 초과했습니다. 다시 요청해 주세요." };
+    return { error: apiErrorsEn.resetTooManyCodeAttempts };
   }
 
   const valid = hashResetCode(code.trim()) === request.codeHash;
   if (!valid) {
     request.attempts += 1;
     await updateResetRequest(request);
-    return { error: "인증번호가 올바르지 않습니다." };
+    return { error: apiErrorsEn.resetCodeInvalid };
   }
 
   await deleteResetRequest(requestId);

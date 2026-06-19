@@ -10,6 +10,8 @@ import {
 } from "@/lib/sms-region-config";
 import { isValidBusinessEmail } from "@/lib/us-contact";
 import { findUserById, updateUserContact } from "@/lib/users-db";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function GET() {
   const session = await getSession();
@@ -35,6 +37,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -49,8 +54,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           error: isKrSmsTestMode()
-            ? "이메일과 휴대폰 번호를 모두 입력해 주세요."
-            : "이메일과 미국 휴대폰 번호를 모두 입력해 주세요.",
+            ? apiErrorsEn.contactFieldsRequiredDev
+            : apiErrorsEn.contactFieldsRequired,
         },
         { status: 400 },
       );
@@ -58,7 +63,7 @@ export async function PATCH(request: Request) {
 
     if (!isValidBusinessEmail(email)) {
       return NextResponse.json(
-        { error: "이메일 형식을 확인해 주세요." },
+        { error: apiErrorsEn.invalidEmail },
         { status: 400 },
       );
     }
@@ -68,8 +73,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           error: krPhoneAllowed
-            ? "전화번호 형식을 확인해 주세요. (한국: 010-1234-5678 · 미국: (512) 555-0100)"
-            : "미국 전화번호 형식을 확인해 주세요. (예: (512) 555-0100 또는 +1 512-555-0100)",
+            ? "Check the phone format. US: (512) 555-0100"
+            : apiErrorsEn.phoneFormatUs,
         },
         { status: 400 },
       );
@@ -84,6 +89,7 @@ export async function PATCH(request: Request) {
       sub: user.id,
       email: user.email,
       shopName: user.shopName,
+      sessionVersion: user.sessionVersion ?? 0,
     });
 
     const e164 =
@@ -104,18 +110,18 @@ export async function PATCH(request: Request) {
     if (e instanceof Error) {
       if (e.message === "EMAIL_EXISTS") {
         return NextResponse.json(
-          { error: "이미 사용 중인 이메일입니다." },
+          { error: apiErrorsEn.emailInUse },
           { status: 409 },
         );
       }
       if (e.message === "PHONE_EXISTS") {
         return NextResponse.json(
-          { error: "이미 등록된 전화번호입니다." },
+          { error: apiErrorsEn.phoneInUse },
           { status: 409 },
         );
       }
     }
     console.error("[account/contact]", e);
-    return NextResponse.json({ error: "저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: apiErrorsEn.saveFailed }, { status: 500 });
   }
 }

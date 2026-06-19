@@ -13,7 +13,7 @@ type CustomerCorrectionPanelProps = {
 type Step = "view" | "edit" | "done";
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#0c4a6e]/50 focus:ring-2 focus:ring-[#0c4a6e]/12";
+  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
 
 export function CustomerCorrectionPanel({
   token,
@@ -74,7 +74,7 @@ export function CustomerCorrectionPanel({
 
   if (step === "done") {
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+      <div className="flex min-h-[100dvh] flex-col bg-brand-50">
         <div className="flex flex-1 flex-col px-4 py-8">
           <div className="mx-auto w-full max-w-md space-y-5">
             <div className="text-center">
@@ -91,10 +91,10 @@ export function CustomerCorrectionPanel({
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+    <div className="flex min-h-[100dvh] flex-col bg-brand-50">
       <header className="border-b border-slate-200/80 bg-white px-4 py-4">
         <div className="mx-auto max-w-md">
-          <p className="truncate text-sm font-bold text-[#0c4a6e]">{shopName}</p>
+          <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
           <p className="text-xs text-slate-500">
             {step === "edit" ? copy.correctionEditTitle : copy.correctionViewTitle}
           </p>
@@ -143,7 +143,7 @@ export function CustomerCorrectionPanel({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white disabled:opacity-50"
               >
                 {loading ? copy.portalSaving : copy.portalSave}
               </button>
@@ -172,7 +172,7 @@ export function CustomerCorrectionPanel({
                 setError(null);
                 setStep("edit");
               }}
-              className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white shadow-lg shadow-[#0c4a6e]/20"
+              className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20"
             >
               {copy.portalEdit}
             </button>
@@ -191,7 +191,7 @@ function SummaryCard({ booking }: { booking: CorrectionBookingView }) {
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {copy.requestNumberLabel}
           </p>
-          <p className="mt-1 font-mono text-lg font-bold text-[#0c4a6e]">
+          <p className="mt-1 font-mono text-lg font-bold text-brand-700">
             {booking.requestNumber}
           </p>
         </>
@@ -203,7 +203,7 @@ function SummaryCard({ booking }: { booking: CorrectionBookingView }) {
         {booking.createdAt ? (
           <Row
             label={copy.portalSubmittedAt}
-            value={new Date(booking.createdAt).toLocaleString("ko-KR")}
+            value={new Date(booking.createdAt).toLocaleString("en-US")}
           />
         ) : null}
       </dl>

@@ -4,6 +4,7 @@ import { findUserById } from "../users-db";
 import { resolveOwnerAlertPhone } from "../owner-alert-phone";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { setSmsReplyTarget } from "../sms-reply-context";
+import { getTechDispatchSettings } from "../tech-dispatch/store";
 import type { JobPriority } from "../types";
 
 function shopLabel(shopName?: string): string {
@@ -123,7 +124,7 @@ export async function notifyOwnerScheduledFyi(params: {
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
   const shop = resolveShopDisplayName(user?.shopName);
-  const body = `${shop}: Booked ${params.window} — ${params.customerName}, ${params.issue}. Undo within ${params.undoMinutes} min: reply 9.`;
+  const body = `${shop}: Booked ${params.window} — ${params.customerName}, ${params.issue}. Crew notified if enabled. Undo: reply 9 within ${params.undoMinutes} min.`;
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,
@@ -141,12 +142,17 @@ export async function notifyOwnerApprovalNeeded(params: {
   issue: string;
   window: string;
   priority: JobPriority;
+  ambiguous?: boolean;
 }) {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
   const shop = resolveShopDisplayName(user?.shopName);
-  const tag = params.priority === "P1" ? "P1" : "review";
+  const tag = params.ambiguous
+    ? "NEEDS REVIEW"
+    : params.priority === "P1"
+      ? "P1"
+      : "review";
   const body = `${shop} ${tag}: ${params.customerName} — ${params.issue}. Customer picked ${params.window}. Reply 1=Confirm 2=Pass.`;
   await sendOwner({
     userId: params.userId,
@@ -154,6 +160,32 @@ export async function notifyOwnerApprovalNeeded(params: {
     body,
     dedupeId: `${params.bookingId}:owner_approval`,
     operation: "owner_approval_needed",
+    bookingId: params.bookingId,
+  });
+}
+
+/** P1 auto-booked — calendar set, crew notified; owner can undo or cancel. */
+export async function notifyOwnerUrgentAutoBooked(params: {
+  userId: string;
+  bookingId: string;
+  customerName: string;
+  issue: string;
+  window: string;
+  undoMinutes: number;
+}) {
+  const ownerPhone = await resolveOwnerAlertPhone(params.userId);
+  if (!ownerPhone) return;
+  const user = await findUserById(params.userId);
+  const shop = resolveShopDisplayName(user?.shopName);
+  const body =
+    `${shop} P1 URGENT — booked ${params.window}: ${params.customerName}, ${params.issue}. ` +
+    `Crew notified. Reply 1=OK 2=Cancel job. Undo: reply 9 within ${params.undoMinutes} min.`;
+  await sendOwner({
+    userId: params.userId,
+    phone: ownerPhone,
+    body,
+    dedupeId: `${params.bookingId}:owner_urgent_auto`,
+    operation: "owner_urgent_auto_booked",
     bookingId: params.bookingId,
   });
 }

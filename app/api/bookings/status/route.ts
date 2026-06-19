@@ -11,6 +11,8 @@ import {
   persistRequestStatusForBooking,
 } from "@/lib/booking-status-sync";
 import { getSession } from "@/lib/session";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -23,6 +25,10 @@ export async function GET(request: Request) {
     const statuses = await getBookingRequestStatuses(session.sub);
 
     if (id) {
+      const owned = await verifyBookingBelongsToTenant(session.sub, id);
+      if (!owned) {
+        return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+      }
       return NextResponse.json({ id, status: statuses[id] ?? null });
     }
 
@@ -46,6 +52,9 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,12 +86,12 @@ export async function PATCH(request: Request) {
     if (e instanceof BookingStatusTransitionError) {
       const msg =
         e.code === "CANNOT_APPROVE"
-          ? "이미 처리되었거나 승인할 수 없는 상태입니다."
+          ? apiErrorsEn.bookingStatusInvalid
           : e.code === "CANNOT_REJECT"
-            ? "이미 처리되었거나 거절할 수 없는 상태입니다."
+            ? apiErrorsEn.bookingRejectInvalid
             : e.code === "CANNOT_SCHEDULE"
-              ? "일정 확정은 승인된 요청만 가능합니다."
-              : "완료 처리는 승인·일정 확정된 요청만 가능합니다.";
+              ? apiErrorsEn.bookingScheduleInvalid
+              : apiErrorsEn.bookingCompleteInvalid;
       return NextResponse.json(
         { error: msg, code: e.code, fromStatus: e.fromStatus },
         { status: 409 },

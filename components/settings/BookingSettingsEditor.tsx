@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ALL_JOB_PRIORITIES,
   mergeShopBookingSettings,
@@ -10,33 +10,49 @@ import {
 } from "@/lib/booking-settings";
 import type { JobPriority } from "@/lib/types";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
-import { settingsPage } from "@/lib/content";
-import { isEnglishUi } from "@/lib/locale";
-
-const MODE_LABELS: Record<SchedulingMode, string> = isEnglishUi()
-  ? { speed: "Speed", hybrid: "Hybrid", control: "Control" }
-  : { speed: "빠른 예약", hybrid: "하이브리드", control: "수동 승인" };
-
-const MODE_DESCRIPTIONS: Record<SchedulingMode, string> = {
-  speed: settingsPage.bookingModeSpeedDesc,
-  hybrid: settingsPage.bookingModeHybridDesc,
-  control: settingsPage.bookingModeControlDesc,
-};
-
-const PRIORITY_LABELS: Record<JobPriority, string> = isEnglishUi()
-  ? { P1: "P1 (urgent)", P2: "P2", P3: "P3" }
-  : { P1: "P1 (긴급)", P2: "P2", P3: "P3" };
-
-const OWNER_SMS_LABELS: Record<OwnerApprovalSms, string> = isEnglishUi()
-  ? { off: "Off", p1_only: "P1 only", all: "All" }
-  : { off: "끔", p1_only: "P1만", all: "전체" };
+import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 
 export function BookingSettingsEditor() {
+  const settingsPage = useSettingsPage();
+  const { isEnglish } = useLocale();
   const [settings, setSettings] = useState<ShopBookingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const modeLabels = useMemo<Record<SchedulingMode, string>>(
+    () =>
+      isEnglish
+        ? { speed: "Auto Book", hybrid: "Hybrid", control: "Manual approval" }
+        : { speed: "빠른 예약", hybrid: "하이브리드", control: "수동 승인" },
+    [isEnglish],
+  );
+
+  const priorityLabels = useMemo<Record<JobPriority, string>>(
+    () =>
+      isEnglish
+        ? { P1: "P1 — urgent", P2: "P2", P3: "P3" }
+        : { P1: "P1 (긴급)", P2: "P2", P3: "P3" },
+    [isEnglish],
+  );
+
+  const ownerSmsLabels = useMemo<Record<OwnerApprovalSms, string>>(
+    () =>
+      isEnglish
+        ? { off: "Off", p1_only: "Urgent only", all: "Every time" }
+        : { off: "끔", p1_only: "P1만", all: "전체" },
+    [isEnglish],
+  );
+
+  const modeDescriptions = useMemo<Record<SchedulingMode, string>>(
+    () => ({
+      speed: settingsPage.bookingModeSpeedDesc,
+      hybrid: settingsPage.bookingModeHybridDesc,
+      control: settingsPage.bookingModeControlDesc,
+    }),
+    [settingsPage],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,7 +124,7 @@ export function BookingSettingsEditor() {
   if (loading && !settings) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-slate-500">{settingsPage.bookingLoadingLabel}</p>
       </div>
     );
   }
@@ -116,22 +132,20 @@ export function BookingSettingsEditor() {
   if (!settings) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-3">
-        <p className="text-sm text-rose-600">{error ?? "Could not load settings."}</p>
+        <p className="text-sm text-rose-600">{error ?? settingsPage.bookingLoadingLabel}</p>
         <button
           type="button"
           onClick={() => void load()}
           className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
         >
-          Try again
+          {settingsPage.bookingTryAgainLabel}
         </button>
       </div>
     );
   }
 
-  const isControlMode = settings.schedulingMode === "control";
   const isHybridMode = settings.schedulingMode === "hybrid";
-  const showSlotOfferCount = !isControlMode;
-  const showUndoWindow = !isControlMode;
+  const showUndoWindow = settings.schedulingMode !== "control";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
@@ -143,7 +157,9 @@ export function BookingSettingsEditor() {
       </div>
 
       <label className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-slate-800">Enable customer time selection</span>
+        <span className="text-sm font-medium text-slate-800">
+          {settingsPage.bookingSchedulingEnabledLabel}
+        </span>
         <input
           type="checkbox"
           checked={settings.schedulingEnabled}
@@ -154,24 +170,33 @@ export function BookingSettingsEditor() {
       </label>
 
       <div>
-        <p className="text-sm font-medium text-slate-800">Scheduling mode</p>
+        <p className="text-sm font-medium text-slate-800">
+          {settingsPage.bookingSchedulingModeLabel}
+        </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["speed", "hybrid", "control"] as SchedulingMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
-              disabled={saving || !settings.schedulingEnabled}
+              disabled={saving}
               onClick={() => void patch({ schedulingMode: mode })}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 settings.schedulingMode === mode
                   ? "bg-brand-600 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              {MODE_LABELS[mode]}
+              {modeLabels[mode]}
             </button>
           ))}
         </div>
+        {!settings.schedulingEnabled ? (
+          <p className="mt-2 text-xs text-amber-800">
+            {isEnglish
+              ? "Calendar is off — mode still controls SMS alerts for phone-only intakes. Turn on visit-time picking above for full auto-book."
+              : "캘린더 예약이 꺼져 있어도 모드는 전화 접수 문자 알림에 적용됩니다. 자동 예약을 쓰려면 위에서 「고객 방문 시간 선택」을 켜세요."}
+          </p>
+        ) : null}
 
         <div className="mt-3 space-y-2">
           {(["speed", "hybrid", "control"] as SchedulingMode[]).map((mode) => (
@@ -183,8 +208,8 @@ export function BookingSettingsEditor() {
                   : "border-slate-100 bg-slate-50 text-slate-600"
               }`}
             >
-              <p className="font-semibold text-slate-900">{MODE_LABELS[mode]}</p>
-              <p className="mt-1 text-xs sm:text-sm">{MODE_DESCRIPTIONS[mode]}</p>
+              <p className="font-semibold text-slate-900">{modeLabels[mode]}</p>
+              <p className="mt-1 text-xs sm:text-sm">{modeDescriptions[mode]}</p>
             </div>
           ))}
         </div>
@@ -217,7 +242,7 @@ export function BookingSettingsEditor() {
                     onChange={() => toggleHybridPriority(priority)}
                     className="h-4 w-4 rounded border-slate-300"
                   />
-                  {PRIORITY_LABELS[priority]}
+                  {priorityLabels[priority]}
                 </label>
               );
             })}
@@ -231,53 +256,90 @@ export function BookingSettingsEditor() {
         </p>
       ) : null}
 
-      {showSlotOfferCount || showUndoWindow ? (
-        <div
-          className={`grid gap-3 ${showSlotOfferCount && showUndoWindow ? "sm:grid-cols-2" : ""}`}
-        >
-          {showSlotOfferCount ? (
+      {settings.schedulingEnabled ? (
+        <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
+          <p className="text-sm font-medium text-slate-900">{settingsPage.visitTimingTitle}</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            {settingsPage.visitTimingHint}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <label className="block">
               <span className="text-sm font-medium text-slate-800">
-                {settingsPage.slotOfferCountLabel}
-              </span>
-              <select
-                value={settings.slotOfferCount}
-                disabled={saving || !settings.schedulingEnabled}
-                onChange={(e) => void patch({ slotOfferCount: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              >
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-slate-500">{settingsPage.slotOfferCountHint}</p>
-            </label>
-          ) : null}
-
-          {showUndoWindow ? (
-            <label className="block">
-              <span className="text-sm font-medium text-slate-800">
-                {settingsPage.undoWindowLabel}
+                {settingsPage.defaultDurationLabel}
               </span>
               <input
                 type="number"
-                min={5}
-                max={120}
-                value={settings.undoWindowMinutes}
-                disabled={saving || !settings.schedulingEnabled}
-                onChange={(e) => void patch({ undoWindowMinutes: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                min={15}
+                max={720}
+                step={15}
+                value={settings.defaultDurationMinutes}
+                disabled={saving}
+                onChange={(e) => void patch({ defaultDurationMinutes: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
               />
-              <p className="mt-1 text-xs text-slate-500">{settingsPage.undoWindowHint}</p>
+              <p className="mt-1 text-xs text-slate-500">{settingsPage.defaultDurationHint}</p>
             </label>
-          ) : null}
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-800">
+                {settingsPage.slotBufferLabel}
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={480}
+                step={1}
+                value={settings.slotBufferMinutes}
+                disabled={saving}
+                onChange={(e) => void patch({ slotBufferMinutes: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-500">{settingsPage.slotBufferHint}</p>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-800">
+                {settingsPage.maxConcurrentVisitsLabel}
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                step={1}
+                value={settings.maxConcurrentVisits}
+                disabled={saving}
+                onChange={(e) => void patch({ maxConcurrentVisits: Number(e.target.value) })}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {settingsPage.maxConcurrentVisitsHint}
+              </p>
+            </label>
+          </div>
         </div>
       ) : null}
 
+      {showUndoWindow && settings.schedulingEnabled ? (
+        <label className="block">
+          <span className="text-sm font-medium text-slate-800">
+            {settingsPage.undoWindowLabel}
+          </span>
+          <input
+            type="number"
+            min={5}
+            max={120}
+            value={settings.undoWindowMinutes}
+            disabled={saving}
+            onChange={(e) => void patch({ undoWindowMinutes: Number(e.target.value) })}
+            className="mt-1 w-full max-w-xs rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-slate-500">{settingsPage.undoWindowHint}</p>
+        </label>
+      ) : null}
+
       <div>
-        <p className="text-sm font-medium text-slate-800">Owner approval texts</p>
+        <p className="text-sm font-medium text-slate-800">{settingsPage.ownerApprovalSmsLabel}</p>
+        <p className="mt-1 text-xs text-slate-500">{settingsPage.ownerApprovalSmsHint}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {(["off", "p1_only", "all"] as OwnerApprovalSms[]).map((level) => (
             <button
@@ -291,7 +353,7 @@ export function BookingSettingsEditor() {
                   : "bg-slate-100 text-slate-700"
               }`}
             >
-              {OWNER_SMS_LABELS[level]}
+              {ownerSmsLabels[level]}
             </button>
           ))}
         </div>
@@ -300,18 +362,14 @@ export function BookingSettingsEditor() {
       <div>
         <label className="block">
           <span className="text-sm font-medium text-slate-800">
-            {isEnglishUi() ? "Service area ZIP codes" : "서비스 지역 ZIP"}
+            {settingsPage.serviceAreaZipsLabel}
           </span>
-          <p className="mt-1 text-xs text-slate-500">
-            {isEnglishUi()
-              ? "Optional. Comma-separated 5-digit ZIPs. Leave empty to accept all areas."
-              : "선택. 5자리 ZIP을 쉼표로 구분. 비우면 전 지역 허용."}
-          </p>
+          <p className="mt-1 text-xs text-slate-500">{settingsPage.serviceAreaZipsHint}</p>
           <input
             type="text"
             value={settings.serviceAreaZips.join(", ")}
             disabled={saving}
-            placeholder={isEnglishUi() ? "78701, 78702" : "78701, 78702"}
+            placeholder={settingsPage.serviceAreaZipsPlaceholder}
             onChange={(e) => {
               const zips = e.target.value
                 .split(/[,\s]+/)
@@ -351,7 +409,7 @@ export function BookingSettingsEditor() {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {saved && <p className="text-sm text-emerald-600">Saved</p>}
+      {saved && <p className="text-sm text-emerald-600">{settingsPage.bookingSavedLabel}</p>}
     </div>
   );
 }

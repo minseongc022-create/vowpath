@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { submitLinkIntakeForm } from "@/lib/call-intake/link-intake-flow";
 import {
@@ -9,12 +10,17 @@ import {
 } from "@/lib/call-intake/link-intake-store";
 import { saveIntakePhoto } from "@/lib/intake-photo-store";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
+import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params;
+  const guard = await guardPublicIntakeRoute(request, token);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
+  }
   const session = await getLinkIntakeSession(token);
   if (!session || isLinkIntakeSessionExpired(session)) {
     return NextResponse.json({ valid: false }, { status: 404 });
@@ -39,6 +45,10 @@ export async function POST(
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params;
+  const guard = await guardPublicIntakeRoute(request, token);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
+  }
   const contentType = request.headers.get("content-type") ?? "";
 
   let customerName = "";
@@ -83,7 +93,7 @@ export async function POST(
 
   if (!customerName || !address || issueDescription.length < 4) {
     return NextResponse.json(
-      { error: "이름, 서비스 주소, 문제 설명을 모두 입력해 주세요." },
+      { error: apiErrorsEn.intakeFieldsRequired },
       { status: 400 },
     );
   }

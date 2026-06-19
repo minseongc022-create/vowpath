@@ -561,21 +561,16 @@ export function NotificationCenter({
         ) : null}
       </button>
 
-      {open ? (
-        <>
-          {typeof document !== "undefined"
-            ? createPortal(
-                <button
-                  type="button"
-                  className="fixed inset-0 z-[90] cursor-default bg-black/5"
-                  aria-label={isEnglishUi() ? "Close notifications" : "알림 닫기"}
-                  onClick={() => setOpen(false)}
-                />,
-                document.body,
-              )
-            : null}
-          {menuPos && typeof document !== "undefined"
-            ? createPortal(
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-[90] cursor-default bg-black/5"
+                aria-label={isEnglishUi() ? "Close notifications" : "알림 닫기"}
+                onClick={() => setOpen(false)}
+              />
+              {menuPos ? (
                 <div
                   className="notification-dropdown notification-dropdown-floating z-[100]"
                   style={{ top: menuPos.top, right: menuPos.right }}
@@ -599,12 +594,12 @@ export function NotificationCenter({
                     </button>
                   </div>
                   <NotificationListBody {...listProps} />
-                </div>,
-                document.body,
-              )
-            : null}
-        </>
-      ) : null}
+                </div>
+              ) : null}
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

@@ -42,11 +42,11 @@ import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
 const BOOKING_SURFACE_DARK =
   "border-white/[0.06] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]";
-const BOOKING_HERO_DARK = `rounded-2xl border bg-[#12161f] p-6 sm:p-8 ${BOOKING_SURFACE_DARK}`;
-const BOOKING_CARD_DARK = `overflow-visible rounded-2xl border bg-[#161b22] ${BOOKING_SURFACE_DARK}`;
+const BOOKING_HERO_DARK = `rounded-2xl border bg-[#3d3228] p-6 sm:p-8 ${BOOKING_SURFACE_DARK}`;
+const BOOKING_CARD_DARK = `overflow-visible rounded-2xl border bg-[#3d3228] ${BOOKING_SURFACE_DARK}`;
 
 const REQUEST_STATUS_STYLES: Record<RequestStatus, string> = {
-  request_received: "bg-violet-500/15 text-violet-200 ring-1 ring-violet-500/30",
+  request_received: "bg-brand-500/15 text-brand-200 ring-1 ring-brand-500/30",
   pending_review: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30",
   approved: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
   rejected: "bg-white/10 text-slate-400 ring-1 ring-white/10",
@@ -170,6 +170,7 @@ export function BookingDetailContent({
       detail &&
       !isPendingShopReview(detail.requestStatus) &&
       (actionError?.includes("cannot approve") ||
+        actionError?.includes("already handled") ||
         actionError?.includes("승인할 수 없는"))
     ) {
       setActionError(null);
@@ -276,7 +277,7 @@ export function BookingDetailContent({
     <div className="mx-auto max-w-4xl">
       <Link
         href="/dashboard/bookings"
-        className="text-sm font-medium text-violet-300 transition hover:text-violet-200 hover:underline"
+        className="text-sm font-medium text-brand-300 transition hover:text-brand-200 hover:underline"
       >
         {t.backToList}
       </Link>
@@ -392,7 +393,7 @@ export function BookingDetailContent({
                       type="button"
                       disabled={prioritySaving || detail.priority === p}
                       onClick={() => void updatePriority(p)}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-violet-500/30 hover:bg-violet-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-brand-500/30 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {formatPriorityWithCode(p)}
                     </button>
@@ -441,7 +442,7 @@ export function BookingDetailContent({
 
           <InfoCard title={t.transcriptTitle} subtitle={t.transcriptSubtitle}>
             {detail.transcript ? (
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-[#0d1117] p-4">
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-[#2a221c] p-4">
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
                   {localizeTranscript(detail.transcript)}
                 </p>
@@ -551,7 +552,7 @@ function BookingStatusConfirmDialog({
         aria-modal="true"
         aria-labelledby="booking-confirm-title"
         aria-describedby="booking-confirm-body"
-        className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#161b22] p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#3d3228] p-6 shadow-2xl"
       >
         <h2 id="booking-confirm-title" className="text-lg font-bold text-white">
           {title}
@@ -791,7 +792,7 @@ function NotFoundPanel() {
       <p className="mt-2 text-sm text-slate-400">{t.notFoundBody}</p>
       <Link
         href="/dashboard/bookings"
-        className="mt-4 inline-block text-sm font-semibold text-violet-300 hover:underline"
+        className="mt-4 inline-block text-sm font-semibold text-brand-300 hover:underline"
       >
         {t.viewAll}
       </Link>

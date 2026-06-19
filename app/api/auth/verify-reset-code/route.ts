@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPasswordResetToken } from "@/lib/auth-reset-token";
 import { verifyResetCode } from "@/lib/password-reset";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
 
     if (!requestId || !/^\d{6}$/.test(code)) {
       return NextResponse.json(
-        { error: "인증번호 6자리를 입력해 주세요." },
+        { error: apiErrorsEn.codeRequired },
         { status: 400 },
       );
     }
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("[verify-reset-code]", e);
     return NextResponse.json(
-      { error: "인증 처리 중 오류가 발생했습니다." },
+      { error: apiErrorsEn.verifyFailed },
       { status: 500 },
     );
   }

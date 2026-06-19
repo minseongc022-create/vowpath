@@ -99,9 +99,9 @@ function eventOnDay(event: CalendarEvent, day: Date): boolean {
 }
 
 const MODE_LABEL: Record<SchedulingMode, { en: string; ko: string }> = {
-  speed: { en: "Auto Book (Speed)", ko: "자동 확정 (Speed)" },
-  hybrid: { en: "Hybrid (by priority)", ko: "하이브리드 (우선순위 선택)" },
-  control: { en: "Manual approval (Control)", ko: "수동 승인 (Control)" },
+  speed: { en: "Auto Book", ko: "자동 확정 (Auto Book)" },
+  hybrid: { en: "Hybrid", ko: "하이브리드 (Hybrid)" },
+  control: { en: "Manual approval", ko: "수동 승인 (Manual)" },
 };
 
 export function schedulingModeLabel(mode: SchedulingMode, locale: UiLocale): string {

@@ -73,7 +73,7 @@ export function BrandLogo({
             </span>
           ) : null}
           {showTagline ? (
-            <span className="hidden text-[10px] leading-[1.15] text-slate-500 sm:block">
+            <span className="hidden text-[10px] leading-[1.15] text-stone-700 xl:block">
               {getBrandLogoTagline()}
             </span>
           ) : null}

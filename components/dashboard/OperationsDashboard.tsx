@@ -96,7 +96,7 @@ function KpiCard({
   const accents = {
     blue: "from-brand-500/20 to-brand-500/5 text-brand-600",
     red: "from-rose-500/20 to-rose-500/5 text-rose-600",
-    violet: "from-violet-500/20 to-violet-500/5 text-violet-600",
+    violet: "from-brand-500/20 to-brand-500/5 text-brand-600",
     cyan: "from-cyan-500/20 to-cyan-500/5 text-cyan-600",
   };
 

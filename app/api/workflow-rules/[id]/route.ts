@@ -5,6 +5,7 @@ import {
   updateWorkflowRule,
 } from "@/lib/workflow-rules/store";
 import { getSession } from "@/lib/session";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -24,6 +25,9 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -47,7 +51,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

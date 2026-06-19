@@ -3,6 +3,7 @@ type SectionHeadingProps = {
   title: string;
   subtitle?: string;
   align?: "left" | "center";
+  /** @deprecated Light headings on dark backgrounds only */
   light?: boolean;
 };
 
@@ -11,7 +12,7 @@ export function SectionHeading({
   title,
   subtitle,
   align = "left",
-  light = true,
+  light = false,
 }: SectionHeadingProps) {
   const alignClass = align === "center" ? "text-center mx-auto" : "";
 
@@ -20,7 +21,7 @@ export function SectionHeading({
       {label ? (
         <p
           className={`text-sm font-semibold uppercase tracking-wider ${
-            light ? "text-brand-300" : "text-brand-600"
+            light ? "text-brand-300" : "text-brand-800"
           }`}
         >
           {label}
@@ -36,7 +37,7 @@ export function SectionHeading({
       {subtitle?.trim() ? (
         <p
           className={`mt-4 text-lg leading-relaxed ${
-            light ? "text-brand-100" : "text-slate-600"
+            light ? "text-brand-100" : "text-stone-700"
           }`}
         >
           {subtitle}

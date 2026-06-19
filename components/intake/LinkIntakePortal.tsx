@@ -12,7 +12,7 @@ type LinkIntakePortalProps = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#0c4a6e]/50 focus:ring-2 focus:ring-[#0c4a6e]/12";
+  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
 
 export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
   const [booking, setBooking] = useState<LinkIntakeBookingView | null>(null);
@@ -66,10 +66,10 @@ export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+    <div className="flex min-h-[100dvh] flex-col bg-brand-50">
       <header className="border-b border-slate-200/80 bg-white px-4 py-4">
         <div className="mx-auto max-w-md">
-          <p className="truncate text-sm font-bold text-[#0c4a6e]">{shopName}</p>
+          <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
           <p className="text-xs text-slate-500">{copy.portalGateTitle}</p>
         </div>
       </header>
@@ -112,7 +112,7 @@ export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white disabled:opacity-50"
+            className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white disabled:opacity-50"
           >
             {loading ? copy.portalLooking : copy.portalLookup}
           </button>

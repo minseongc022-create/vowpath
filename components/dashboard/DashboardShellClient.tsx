@@ -50,8 +50,21 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
     return m.pendingReviewCount;
   }, [heroCalls, heroJobs, heroJobberBookings, shop, requestStatuses, jobberConnected]);
 
+  const [renewingAgreementsCount, setRenewingAgreementsCount] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/shop/agreements", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { renewingCount?: number } | null) => {
+        if (typeof d?.renewingCount === "number") setRenewingAgreementsCount(d.renewingCount);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
   return (
-    <DashboardShell shopName={shopName} pendingReviewCount={pendingReviewCount}>
+    <DashboardShell shopName={shopName} pendingReviewCount={pendingReviewCount} renewingAgreementsCount={renewingAgreementsCount}>
       {children}
       <SmsFailureAlert tenantEvents={tenantEvents} />
     </DashboardShell>

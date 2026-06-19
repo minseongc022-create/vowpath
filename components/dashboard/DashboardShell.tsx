@@ -12,7 +12,7 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 
 import {
 
-  IconBriefing,
+  IconAgreements,
 
   IconCalendar,
 
@@ -57,6 +57,8 @@ type DashboardShellProps = {
 
   pendingReviewCount?: number;
 
+  renewingAgreementsCount?: number;
+
   children: React.ReactNode;
 
 };
@@ -87,6 +89,8 @@ export function DashboardShell({
 
   pendingReviewCount = 0,
 
+  renewingAgreementsCount = 0,
+
   children,
 
 }: DashboardShellProps) {
@@ -108,30 +112,6 @@ export function DashboardShell({
       match: (p) => p === ROUTES.dashboard,
 
       icon: <IconDashboard />,
-
-    },
-
-    {
-
-      href: ROUTES.briefing,
-
-      label: v.briefing,
-
-      match: (p) => p.startsWith(ROUTES.briefing),
-
-      icon: <IconBriefing />,
-
-    },
-
-    {
-
-      href: ROUTES.ai,
-
-      label: v.ai,
-
-      match: (p) => p.startsWith(ROUTES.ai),
-
-      icon: <IconVowpathAi />,
 
     },
 
@@ -170,6 +150,32 @@ export function DashboardShell({
       match: (p) => p.startsWith(ROUTES.missedCallsAnalytics),
 
       icon: <IconMissedCalls />,
+
+    },
+
+    {
+
+      href: ROUTES.agreements,
+
+      label: v.agreements,
+
+      match: (p) => p.startsWith(ROUTES.agreements),
+
+      badge: renewingAgreementsCount > 0 ? renewingAgreementsCount : undefined,
+
+      icon: <IconAgreements />,
+
+    },
+
+    {
+
+      href: ROUTES.ai,
+
+      label: v.ai,
+
+      match: (p) => p.startsWith(ROUTES.ai),
+
+      icon: <IconVowpathAi />,
 
     },
 
@@ -237,7 +243,7 @@ export function DashboardShell({
 
                       active
 
-                        ? "bg-violet-500/20 text-violet-200"
+                        ? "bg-brand-500/20 text-brand-200"
 
                         : "bg-white/[0.04] text-slate-500"
 
@@ -271,9 +277,9 @@ export function DashboardShell({
 
 
 
-          <div className="vow-dash-card mt-auto !rounded-2xl !border-violet-500/25 !bg-[#161b22]">
+          <div className="vow-dash-card mt-auto !rounded-2xl !border-brand-500/25 !bg-[#3d3228]">
 
-            <div className="flex items-center gap-2 text-violet-300">
+            <div className="flex items-center gap-2 text-brand-300">
 
               <IconDiamond className="h-4 w-4" />
 
@@ -331,7 +337,7 @@ export function DashboardShell({
 
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
-        <div className="border-b border-white/[0.06] bg-[#12161f] px-4 py-3 lg:hidden">
+        <div className="border-b border-white/[0.06] bg-[#3d3228] px-4 py-3 lg:hidden">
 
           <div className="flex items-center justify-between gap-3">
 
@@ -353,7 +359,7 @@ export function DashboardShell({
 
                     item.match(pathname)
 
-                      ? "bg-violet-500/20 text-violet-200"
+                      ? "bg-brand-500/20 text-brand-200"
 
                       : "text-slate-400"
 

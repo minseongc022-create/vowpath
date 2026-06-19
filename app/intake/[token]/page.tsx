@@ -27,7 +27,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#f6f8fc",
+  themeColor: "#faf8f5",
 };
 
 export default async function LinkIntakePage({
@@ -40,7 +40,7 @@ export default async function LinkIntakePage({
 
   if (!session || isLinkIntakeSessionExpired(session)) {
     return (
-      <main className="flex min-h-[100dvh] items-center justify-center bg-[#f6f8fc] px-6">
+      <main className="flex min-h-[100dvh] items-center justify-center bg-brand-50 px-6">
         <div className="max-w-sm rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-sm">
           <p className="text-lg font-semibold text-slate-900">{copy.expiredTitle}</p>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">{copy.expiredBody}</p>
@@ -69,7 +69,7 @@ export default async function LinkIntakePage({
   }
 
   return (
-    <main className="flex min-h-[100dvh] items-center justify-center bg-[#f6f8fc] px-6">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-brand-50 px-6">
       <div className="max-w-sm rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-sm">
         <p className="text-lg font-semibold text-slate-900">{copy.expiredTitle}</p>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">{copy.expiredBody}</p>

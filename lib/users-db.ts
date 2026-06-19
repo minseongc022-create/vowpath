@@ -24,6 +24,8 @@ export type UserRecord = {
   subscriptionStatus?: SubscriptionStatus;
   flexBillableCount?: number;
   paidAt?: string;
+  sessionVersion?: number;
+  passwordChangedAt?: string;
 };
 
 type UserStore = {
@@ -100,6 +102,8 @@ export async function updateUserPassword(
   const user = store.users.find((u) => u.id === userId);
   if (!user) return undefined;
   user.passwordHash = passwordHash;
+  user.sessionVersion = (user.sessionVersion ?? 0) + 1;
+  user.passwordChangedAt = new Date().toISOString();
   await saveStore(store);
   return user;
 }
@@ -197,6 +201,7 @@ export async function createUser(input: {
     shopName: input.shopName.trim() || "My HVAC Shop",
     phone: phoneNorm,
     createdAt: new Date().toISOString(),
+    sessionVersion: 0,
   };
 
   store.users.push(user);

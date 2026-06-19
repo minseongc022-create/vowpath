@@ -63,6 +63,7 @@ export function smsOwnerNewRequestBody(params: {
   symptom?: string;
   priority: JobPriority;
   cityState?: string;
+  ambiguous?: boolean;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = params.customerName?.trim() || "Caller";
@@ -74,7 +75,9 @@ export function smsOwnerNewRequestBody(params: {
     params.cityState?.trim() && params.cityState !== "—"
       ? ` · ${params.cityState}`
       : "";
-  const replyHint = ` Ref ${ref}. Reply 1 ${ref}=Approve, 2 ${ref}=Reject.`;
+  const replyHint = params.ambiguous
+    ? ` Ref ${ref}. Unclear details — reply 1 ${ref}=Confirm, 2 ${ref}=Pass.`
+    : ` Ref ${ref}. Reply 1 ${ref}=Approve, 2 ${ref}=Reject.`;
   if (params.priority === "P1") {
     return `${shop} URGENT (P1): ${name} — ${issue}${place}. Pending.${replyHint}`;
   }
@@ -226,6 +229,7 @@ export async function notifyOwnerNewRequest(params: {
   priority: JobPriority;
   cityState?: string;
   address?: string;
+  ambiguous?: boolean;
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
@@ -241,6 +245,7 @@ export async function notifyOwnerNewRequest(params: {
       symptom: params.symptom,
       priority: params.priority,
       cityState: params.cityState,
+      ambiguous: params.ambiguous,
     });
 
     await sendOwnerSms({
@@ -276,6 +281,45 @@ export async function notifyOwnerNewRequest(params: {
   } catch (e) {
     console.warn("[customer-sms] owner new request email", e);
   }
+}
+
+/** Owner FYI when intake auto-confirms without scheduling (speed / clear details). */
+export async function notifyOwnerIntakeAutoConfirmed(params: {
+  userId: string;
+  bookingId: string;
+  customerName: string;
+  issueType?: string;
+  symptom?: string;
+  priority: JobPriority;
+  cityState?: string;
+  urgent?: boolean;
+}): Promise<void> {
+  const user = await findUserById(params.userId);
+  const ownerPhone = await resolveOwnerAlertPhone(params.userId);
+  if (!ownerPhone) return;
+
+  const shop = resolveShopDisplayName(user?.shopName);
+  const name = params.customerName?.trim() || "Caller";
+  const issue =
+    params.issueType?.trim() ||
+    extractIssueType(params.symptom ?? "", "Service request");
+  const place =
+    params.cityState?.trim() && params.cityState !== "—"
+      ? ` · ${params.cityState}`
+      : "";
+  const ref = bookingShortRef(params.bookingId);
+  const body = params.urgent
+    ? `${shop} P1 URGENT — confirmed: ${name}, ${issue}${place}. Crew notified if enabled. Ref ${ref}. Reply 2 ${ref}=Cancel.`
+    : `${shop}: Confirmed — ${name}, ${issue}${place}. Jobber synced if connected. Ref ${ref}. Reply 2 ${ref}=Cancel.`;
+
+  await sendOwnerSms({
+    userId: params.userId,
+    phone: ownerPhone,
+    body,
+    dedupeId: `${params.bookingId}:owner_intake_auto`,
+    operation: params.urgent ? "owner_intake_urgent_auto" : "owner_intake_auto",
+    bookingId: params.bookingId,
+  });
 }
 
 /** @deprecated Use notifyOwnerNewRequest — kept for callers that only reference P1. */

@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { IS_BETA } from "@/lib/beta";
 import { SITE } from "@/lib/constants";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
-import { isEnglishUi, resolveServerUiLocale } from "@/lib/locale";
+import { resolveServerUiLocale } from "@/lib/locale";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,27 +25,26 @@ const siteMetadataBase = {
 
 const enMeta = {
   ...siteMetadataBase,
-  title: `${SITE.name} — AI Booking OS for HVAC`,
+  title: `${SITE.name} — Catch the Call. Keep the Contract.`,
   description:
-    "Turn missed HVAC calls into booked jobs. AI intake, SMS approval, Auto Book · Risk Based · Manual modes. Optional Jobber sync.",
+    "Missed HVAC calls auto-book to your calendar. Crew SMS dispatch. Agreement Keeper turns completed jobs into maintenance plans. Jobber optional.",
   openGraph: {
-    title: `${SITE.name} — AI Booking Operating System`,
+    title: `${SITE.name} — Missed Call → Calendar → PM Plan`,
     description:
-      "Missed call → AI intake → SMS approval → booked job. Your shop number. Live in 10 minutes.",
+      "Auto-book clear jobs. Text back for urgent or unclear. Offer maintenance plans when jobs complete. Built for 1–5 truck shops.",
     type: "website" as const,
   },
 };
 
 const enBetaMeta = {
   ...enMeta,
-  title: `${SITE.name} — Public Beta · AI Booking OS`,
+  title: `${SITE.name} — Public Beta · Missed Call Coverage`,
   description:
-    "Beta for US residential HVAC shops. AI intake, booking modes, SMS approval. Jobber optional.",
+    "Beta for US residential HVAC. After-hours intake and text approval. Jobber optional.",
   openGraph: {
     ...enMeta.openGraph,
-    title: `${SITE.name} — Public Beta · AI Booking OS`,
-    description:
-      "Missed calls → AI intake → booked job. Start free during beta.",
+    title: `${SITE.name} — Public Beta · Missed Call Coverage`,
+    description: "Catch after-hours calls. Approve by text. Works with your existing tools.",
   },
 };
 
@@ -61,11 +60,7 @@ const koMeta = {
   },
 };
 
-export const metadata: Metadata = isEnglishUi()
-  ? IS_BETA
-    ? enBetaMeta
-    : enMeta
-  : koMeta;
+export const metadata: Metadata = IS_BETA ? enBetaMeta : enMeta;
 
 export default async function RootLayout({
   children,

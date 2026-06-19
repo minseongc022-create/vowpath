@@ -25,6 +25,7 @@ import {
   notifyCustomerNoSlot,
   notifyOwnerScheduledFyi,
   notifyOwnerApprovalNeeded,
+  notifyOwnerUrgentAutoBooked,
   notifyOwnerNoSlot,
   notifyOwnerShadowResult,
 } from "../scheduling/schedule-sms";
@@ -88,6 +89,7 @@ export async function applyCustomerChosenSchedule(
     mode: settings.schedulingMode,
     priority: params.priority,
     hybridAutoPriorities: settings.hybridAutoPriorities,
+    confidenceMin: confidenceMin(params.confidence),
   });
 
   const afterHours = await isTenantAfterHours(params.userId);
@@ -181,6 +183,7 @@ export async function applyCustomerChosenSchedule(
         effectivePriority,
         settings.schedulingMode,
         settings.hybridAutoPriorities,
+        confidenceMin(params.confidence),
       );
     if (sendSms) {
       await notifyOwnerApprovalNeeded({
@@ -190,6 +193,7 @@ export async function applyCustomerChosenSchedule(
         issue: params.card.symptom,
         window: params.slot.label,
         priority: effectivePriority,
+        ambiguous: confidenceMin(params.confidence) < 65,
       });
     }
   } else {
@@ -201,14 +205,26 @@ export async function applyCustomerChosenSchedule(
       address: params.card.address,
       priority: effectivePriority,
     });
-    await notifyOwnerScheduledFyi({
-      userId: params.userId,
-      bookingId: params.bookingId,
-      customerName: params.card.customerName,
-      issue: params.card.symptom,
-      window: params.slot.label,
-      undoMinutes: settings.undoWindowMinutes,
-    });
+    const urgent = effectivePriority === "P1";
+    if (urgent) {
+      await notifyOwnerUrgentAutoBooked({
+        userId: params.userId,
+        bookingId: params.bookingId,
+        customerName: params.card.customerName,
+        issue: params.card.symptom,
+        window: params.slot.label,
+        undoMinutes: settings.undoWindowMinutes,
+      });
+    } else {
+      await notifyOwnerScheduledFyi({
+        userId: params.userId,
+        bookingId: params.bookingId,
+        customerName: params.card.customerName,
+        issue: params.card.symptom,
+        window: params.slot.label,
+        undoMinutes: settings.undoWindowMinutes,
+      });
+    }
 
     const callLogs = await listCallLogs(params.userId);
     const freshJobs = await listJobs(params.userId);

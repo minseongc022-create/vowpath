@@ -54,9 +54,6 @@ export function readClientUiLocale(): UiLocale {
   const fromCookie = parseUiLocale(match?.[1]);
   if (fromCookie) return fromCookie;
 
-  const nav = navigator.language?.toLowerCase();
-  if (nav?.startsWith("ko")) return "ko";
-
   return defaultUiLocale();
 }
 

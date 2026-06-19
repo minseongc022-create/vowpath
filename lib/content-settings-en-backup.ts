@@ -125,11 +125,11 @@ export const SETTINGS_PAGE_EN = {
   bookingPolicyDescription:
     "Texts to your cell are how you review and approve requests. Email mirrors the same alerts. Jobber gets a Request only after you reply 1 — useful for calendar and job history.",
   bookingModeHint:
-    "Speed: auto-confirm after slot pick · Hybrid: P1/low confidence needs approve · Control: always approve",
+    "Auto Book: confirms after slot pick · Hybrid: auto-book selected urgencies · Manual: you approve every pick",
   shadowModeHint: "0 = real Jobber writes. 1+ = test runs without writing to Jobber.",
   ownerAlertsTitle: "How we reach you",
   ownerAlertsDescription:
-    "Texts (primary): new requests, customer confirmations, reply 1 to book · 2 to pass. Email: same info as backup. Jobber: syncs after approval for scheduling and records.",
+    "Texts to your cell: new requests, booked visits, and reply 1 to approve · 2 to pass · 9 to undo a recent auto-book. Email is backup.",
   auditTitle: "Activity log",
   auditDescription: "Approvals, declines, and intake events from the last 30 days",
   auditEmpty: "Nothing here yet. Approve or decline a request and it'll show up.",

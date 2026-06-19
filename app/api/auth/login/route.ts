@@ -7,8 +7,16 @@ import {
 } from "@/lib/auth";
 import { normalizeSmsPhone } from "@/lib/phone";
 import { findUserByEmail, findUserByPhone } from "@/lib/users-db";
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  rateLimitKey,
+  resetRateLimit,
+} from "@/lib/security/rate-limit";
+import { recordSecurityAudit } from "@/lib/security/audit";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
-const INVALID_CREDENTIALS = "이메일/전화번호 또는 비밀번호가 올바르지 않습니다.";
+const INVALID_CREDENTIALS = apiErrorsEn.invalidCredentials;
 
 function unauthorized(message = INVALID_CREDENTIALS) {
   const res = NextResponse.json({ ok: false, error: message }, { status: 401 });
@@ -18,6 +26,18 @@ function unauthorized(message = INVALID_CREDENTIALS) {
 
 export async function POST(request: Request) {
   try {
+    const ip = clientIpFromRequest(request);
+    const ipKey = rateLimitKey("login:ip", ip);
+    const ipLimit = await checkRateLimit({
+      key: ipKey,
+      limit: 30,
+      windowSeconds: 10 * 60,
+    });
+    if (!ipLimit.ok) {
+      await recordSecurityAudit({ event: "login_rate_limited", ip, detail: "ip" });
+      return unauthorized();
+    }
+
     const body = await request.json();
     const password = String(body?.password ?? "");
     const email = String(body?.email ?? "").trim().toLowerCase();
@@ -25,9 +45,27 @@ export async function POST(request: Request) {
 
     if (!password || (!email && !phoneRaw)) {
       return NextResponse.json(
-        { ok: false, error: "이메일 또는 전화번호와 비밀번호를 입력해 주세요." },
+        { ok: false, error: apiErrorsEn.loginFieldsRequired },
         { status: 400 },
       );
+    }
+
+    const identityKey = rateLimitKey(
+      "login:identity",
+      phoneRaw ? `phone:${phoneRaw.replace(/\D/g, "")}` : `email:${email}`,
+    );
+    const identityLimit = await checkRateLimit({
+      key: identityKey,
+      limit: 8,
+      windowSeconds: 15 * 60,
+    });
+    if (!identityLimit.ok) {
+      await recordSecurityAudit({
+        event: "login_rate_limited",
+        ip,
+        detail: phoneRaw ? "phone" : email,
+      });
+      return unauthorized();
     }
 
     let user;
@@ -36,7 +74,7 @@ export async function POST(request: Request) {
       const phone = normalizeSmsPhone(phoneRaw);
       if (!phone) {
         return NextResponse.json(
-          { ok: false, error: "미국 휴대폰 번호 형식을 확인해 주세요. (예: (512) 555-0100)" },
+          { ok: false, error: apiErrorsEn.invalidUsPhone },
           { status: 400 },
         );
       }
@@ -46,13 +84,27 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
+      await recordSecurityAudit({
+        event: "login_failed",
+        ip,
+        detail: phoneRaw ? "phone" : email,
+      });
       return unauthorized();
     }
 
     const passwordMatches = await verifyPassword(password, user.passwordHash);
     if (!passwordMatches) {
+      await recordSecurityAudit({
+        userId: user.id,
+        event: "login_failed",
+        ip,
+        detail: "bad_password",
+      });
       return unauthorized();
     }
+
+    await resetRateLimit(identityKey);
+    await recordSecurityAudit({ userId: user.id, event: "login_success", ip });
 
     const rememberMe = body?.rememberMe !== false;
 
@@ -60,6 +112,7 @@ export async function POST(request: Request) {
       sub: user.id,
       email: user.email,
       shopName: user.shopName,
+      sessionVersion: user.sessionVersion ?? 0,
     });
 
     const res = NextResponse.json({
@@ -71,7 +124,7 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("[login]", e);
     return NextResponse.json(
-      { ok: false, error: "로그인에 실패했습니다. 잠시 후 다시 시도해 주세요." },
+      { ok: false, error: apiErrorsEn.loginFailed },
       { status: 500 },
     );
   }

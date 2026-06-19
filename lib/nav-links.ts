@@ -16,7 +16,7 @@ export function getNavLinks() {
 
     { label: siteNav.howItWorks, href: "/#how-it-works" },
 
-    { label: siteNav.pricing, href: "/pricing" },
+    { label: siteNav.pricing, href: "/#pricing" },
 
     { label: siteNav.getStarted, href: ROUTES.getStarted },
 

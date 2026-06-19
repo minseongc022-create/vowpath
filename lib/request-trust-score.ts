@@ -1,4 +1,5 @@
 import type { CallRecord } from "./operations-analytics";
+import { isEnglishUi } from "./locale";
 import {
   buildRequestVerificationStatus,
   type VerificationItemState,
@@ -29,17 +30,30 @@ const POINTS_PER_CRITERION = 100 / TRUST_CRITERIA_COUNT;
 /** Shop-facing bar — 80+ is treated as sufficient to proceed. */
 export const TRUST_SCORE_SUFFICIENT_MIN = 80;
 
-export const TRUST_SCORE_BAND_LABELS: Record<TrustScoreBand, string> = {
+const TRUST_SCORE_BAND_LABELS_EN: Record<TrustScoreBand, string> = {
+  high: "Very high",
+  review: "Good to review",
+  manual: "Needs a quick check",
+};
+
+const TRUST_SCORE_BAND_LABELS_KO: Record<TrustScoreBand, string> = {
   high: "매우 높음",
   review: "충분함",
   manual: "추가 확인 필요",
 };
 
+export function trustScoreBandLabels(en = isEnglishUi()): Record<TrustScoreBand, string> {
+  return en ? TRUST_SCORE_BAND_LABELS_EN : TRUST_SCORE_BAND_LABELS_KO;
+}
+
+/** @deprecated Use trustScoreBandLabels() for locale-aware labels */
+export const TRUST_SCORE_BAND_LABELS = TRUST_SCORE_BAND_LABELS_KO;
+
 export function isTrustScoreSufficient(score: number): boolean {
   return score >= TRUST_SCORE_SUFFICIENT_MIN;
 }
 
-function resolveCustomerConfirmation(call: CallRecord | undefined): VerificationItemState {
+function resolveCustomerConfirmation(call: CallRecord | undefined, en: boolean): VerificationItemState {
   if (!call) return "not_verified";
   if (call.verificationComplete === true) return "verified";
   return "not_verified";
@@ -56,9 +70,13 @@ export function resolveTrustScoreBand(score: number): TrustScoreBand {
   return "manual";
 }
 
-export function buildRequestTrustScore(call: CallRecord | undefined): RequestTrustScore {
+export function buildRequestTrustScore(
+  call: CallRecord | undefined,
+  en = isEnglishUi(),
+): RequestTrustScore {
   const verification = buildRequestVerificationStatus(call);
-  const confirmationState = resolveCustomerConfirmation(call);
+  const confirmationState = resolveCustomerConfirmation(call, en);
+  const bandLabels = trustScoreBandLabels(en);
 
   const factors: TrustScoreFactor[] = [
     ...verification.items.map((item) => ({
@@ -70,7 +88,7 @@ export function buildRequestTrustScore(call: CallRecord | undefined): RequestTru
     })),
     {
       key: "customerConfirmation",
-      label: "고객 확인 완료",
+      label: en ? "Customer confirmed details" : "고객 확인 완료",
       state: confirmationState,
       points: pointsForState(confirmationState),
       maxPoints: POINTS_PER_CRITERION,
@@ -85,7 +103,7 @@ export function buildRequestTrustScore(call: CallRecord | undefined): RequestTru
     score,
     maxScore: 100,
     band,
-    bandLabel: TRUST_SCORE_BAND_LABELS[band],
+    bandLabel: bandLabels[band],
     factors,
     hasLinkedCall: verification.hasLinkedCall,
   };

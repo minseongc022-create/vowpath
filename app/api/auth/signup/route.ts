@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
+import { apiErrorsEn } from "@/lib/api-errors-en";
 
 /** Direct signup without verification is disabled — use send-code + verify. */
 export async function POST() {
   return NextResponse.json(
-    {
-      error:
-        "본인 인증이 필요합니다. 인증번호를 받은 뒤 가입을 완료해 주세요.",
-    },
+    { error: apiErrorsEn.verifyFirst },
     { status: 403 },
   );
 }

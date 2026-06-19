@@ -23,13 +23,13 @@ export function SchedulingModes() {
                   {mode.badge}
                 </span>
               ) : null}
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-200">
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
                 {mode.name}
               </p>
-              <h3 className="mt-2 text-lg font-semibold text-white">{mode.tagline}</h3>
+              <h3 className="mt-2 text-lg font-semibold text-brand-900">{mode.tagline}</h3>
 
               {mode.description ? (
-                <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">
+                <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-700">
                   {mode.description}
                 </p>
               ) : null}
@@ -42,11 +42,11 @@ export function SchedulingModes() {
                         key={`${row.label}-${row.value}`}
                         className="flex items-center justify-between gap-3 text-sm"
                       >
-                        <span className="text-slate-400">{row.label}</span>
-                        <span className="font-medium text-slate-200">{row.value}</span>
+                        <span className="text-stone-700">{row.label}</span>
+                        <span className="font-medium text-stone-700">{row.value}</span>
                       </li>
                     ) : (
-                      <li key={`${row.value}-${i}`} className="text-sm font-medium text-slate-200">
+                      <li key={`${row.value}-${i}`} className="text-sm font-medium text-stone-700">
                         {row.value}
                       </li>
                     ),
@@ -54,15 +54,15 @@ export function SchedulingModes() {
                 </ul>
               ) : null}
 
-              <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs text-slate-500">
-                <span className="font-medium text-slate-400">Best for: </span>
+              <p className="mt-4 border-t border-brand-200/80 pt-4 text-xs text-slate-500">
+                <span className="font-medium text-stone-700">Best for: </span>
                 {mode.bestFor}
               </p>
             </article>
           ))}
         </div>
 
-        <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-slate-500">
+        <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-stone-700">
           {s.footnote}
         </p>
       </Container>

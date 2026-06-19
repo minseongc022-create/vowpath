@@ -208,13 +208,14 @@ async function applyStatus(
 export async function handleCustomerVerificationReply(params: {
   from: string;
   body: string;
+  userId?: string | null;
 }): Promise<{ handled: boolean; replyBody: string }> {
   const reply = parseCustomerVerificationReply(params.body);
   if (!reply) {
     return { handled: false, replyBody: "" };
   }
 
-  const pending = await findPendingVerificationByPhone(params.from);
+  const pending = await findPendingVerificationByPhone(params.from, params.userId);
   if (!pending) {
     return {
       handled: true,

@@ -16,12 +16,12 @@ export function Pricing() {
               key={row.label}
               className={`vow-site-compare-row ${row.highlight ? "vow-site-compare-row-highlight" : ""}`}
             >
-              <span className="text-sm text-slate-300">{row.label}</span>
+              <span className="text-sm text-stone-800">{row.label}</span>
               <span
                 className={
                   row.highlight
-                    ? "font-semibold text-teal-200"
-                    : "text-sm text-slate-400"
+                    ? "font-semibold text-brand-700"
+                    : "text-sm text-stone-700"
                 }
               >
                 {row.amount}
@@ -45,25 +45,25 @@ export function Pricing() {
               ) : (
                 <span className="vow-site-pricing-badge">{plan.badge}</span>
               )}
-              <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-              <p className="mt-1 text-sm text-slate-400">{plan.description}</p>
+              <h3 className="text-lg font-semibold text-brand-900">{plan.name}</h3>
+              <p className="mt-1 text-sm text-stone-700">{plan.description}</p>
 
               <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-4xl font-bold tracking-tight text-white">{plan.price}</span>
+                <span className="text-4xl font-bold tracking-tight text-brand-900">{plan.price}</span>
                 <span className="text-slate-500">{plan.period}</span>
               </div>
               <p
                 className={`mt-2 text-sm font-medium ${
-                  plan.id === "flex" ? "text-teal-200" : "text-slate-400"
+                  plan.id === "flex" ? "text-brand-700" : "text-stone-700"
                 }`}
               >
                 {plan.usageLine}
               </p>
 
-              <ul className="mt-6 flex-1 space-y-2.5 border-t border-white/[0.08] pt-6">
+              <ul className="mt-6 flex-1 space-y-2.5 border-t border-brand-200/80 pt-6">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex gap-2 text-sm text-slate-400">
-                    <span className="font-bold text-amber-300" aria-hidden>
+                  <li key={f} className="flex gap-2 text-sm text-stone-700">
+                    <span className="font-bold text-warm-500" aria-hidden>
                       ✓
                     </span>
                     {f}
@@ -87,7 +87,7 @@ export function Pricing() {
         </div>
 
         {pricing.tip?.trim() ? (
-          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-slate-400">{pricing.tip}</p>
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-stone-700">{pricing.tip}</p>
         ) : null}
         {pricing.footnote?.trim() ? (
           <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">

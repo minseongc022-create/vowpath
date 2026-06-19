@@ -30,7 +30,7 @@ export function CustomerVerificationPanel({
       <section
         className={
           dark
-            ? "rounded-2xl border border-white/[0.06] bg-[#161b22] p-6"
+            ? "rounded-2xl border border-white/[0.06] bg-[#3d3228] p-6"
             : "rounded-2xl border border-slate-200 bg-white p-6"
         }
       >
@@ -54,7 +54,7 @@ export function CustomerVerificationPanel({
     <section
       className={
         dark
-          ? "rounded-2xl border border-white/[0.06] bg-[#161b22] p-6"
+          ? "rounded-2xl border border-white/[0.06] bg-[#3d3228] p-6"
           : "rounded-2xl border border-slate-200 bg-white p-6"
       }
     >

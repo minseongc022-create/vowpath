@@ -60,6 +60,33 @@ function customerPhoneFromLogs(
   return null;
 }
 
+function customerDetailsFromLogs(
+  bookingId: string,
+  callLogs: StoredCallLog[],
+  jobs: Awaited<ReturnType<typeof listJobs>>,
+): { phone: string | null; name: string | null; address: string | null } {
+  let call: StoredCallLog | undefined;
+  if (bookingId.startsWith("call-")) {
+    call = callLogs.find((c) => c.id === bookingId.slice("call-".length));
+  } else if (bookingId.startsWith("jobber-")) {
+    call = callLogs.find((c) => c.jobberRequestId === bookingId.slice("jobber-".length));
+  } else {
+    const job = jobs.find((j) => j.id === bookingId);
+    if (job?.sourceCallId) {
+      call = callLogs.find((c) => c.id === job.sourceCallId);
+    }
+  }
+
+  const phone = call
+    ? call.callbackPhone?.trim() || call.from?.trim() || null
+    : customerPhoneFromLogs(bookingId, callLogs);
+  const name = call?.customerName?.trim() || null;
+  const address =
+    call?.address?.trim() || call?.serviceLocation?.trim() || null;
+
+  return { phone, name, address };
+}
+
 function callsFromLogs(
   logs: Awaited<ReturnType<typeof listCallLogs>>,
 ): CallRecord[] {
@@ -192,6 +219,15 @@ export async function persistRequestStatusForBooking(
 
   if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
     try {
+      const { startTechAssignmentForBooking } = await import("./tech-dispatch/assign");
+      await startTechAssignmentForBooking(userId, bookingId);
+    } catch (e) {
+      console.warn("[booking-status-sync] tech dispatch", e);
+    }
+  }
+
+  if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
+    try {
       const user = await findUserById(userId);
       if (user?.plan === "flex") {
         await incrementFlexBillableCount(userId);
@@ -200,6 +236,16 @@ export async function persistRequestStatusForBooking(
       }
     } catch (e) {
       console.warn("[booking-status-sync] flex billing", e);
+    }
+  }
+
+  if (status === "completed") {
+    try {
+      const details = customerDetailsFromLogs(bookingId, callLogs, jobs);
+      const { maybeOfferMaintenancePlan } = await import("./agreements/offer-flow");
+      await maybeOfferMaintenancePlan(userId, bookingId, details);
+    } catch (e) {
+      console.warn("[booking-status-sync] agreement offer", e);
     }
   }
 

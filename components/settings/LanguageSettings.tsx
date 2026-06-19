@@ -8,21 +8,38 @@ const OPTIONS: { id: UiLocale; labelEn: string; labelKo: string; native: string 
   { id: "ko", labelEn: "Korean", labelKo: "한국어", native: "한국어" },
 ];
 
-export function LanguageSettings({ compact = false }: { compact?: boolean }) {
+export function LanguageSettings({
+  compact = false,
+  variant = "dark",
+}: {
+  compact?: boolean;
+  variant?: "dark" | "light";
+}) {
   const { locale, setLocale, isEnglish } = useLocale();
+  const light = variant === "light";
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+      <div
+        className={`flex items-center gap-0.5 rounded-lg border p-0.5 ${
+          light
+            ? "border-brand-200/80 bg-brand-50/60"
+            : "border-white/10 bg-white/[0.03]"
+        }`}
+      >
         {OPTIONS.map((opt) => (
           <button
             key={opt.id}
             type="button"
             onClick={() => setLocale(opt.id)}
-            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+            className={`rounded-md px-2 py-1 text-xs font-semibold transition ${
               locale === opt.id
-                ? "bg-brand-500/20 text-brand-200"
-                : "text-slate-400 hover:text-slate-200"
+                ? light
+                  ? "bg-white text-brand-900 shadow-sm"
+                  : "bg-brand-500/20 text-brand-200"
+                : light
+                  ? "text-stone-600 hover:text-brand-900"
+                  : "text-slate-400 hover:text-slate-200"
             }`}
             aria-pressed={locale === opt.id}
           >

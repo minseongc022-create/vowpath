@@ -5,6 +5,7 @@ import { initialRequestStatusAfterIntake, normalizeRequestStatus } from "@/lib/b
 import { resolvePriorityFields } from "@/lib/service-priority";
 import { normalizeJobPriority } from "@/lib/priority-display";
 import type { JobCard } from "@/lib/types";
+import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -22,6 +23,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const forbidden = verifySameOriginRequest(request);
+  if (forbidden) return forbidden;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

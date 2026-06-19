@@ -30,7 +30,7 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 const TONE_ICON: Record<CallInsightRow["tone"], string> = {
-  brand: "text-violet-300 bg-violet-500/15",
+  brand: "text-brand-300 bg-brand-500/15",
   emerald: "text-emerald-400 bg-emerald-500/15",
   rose: "text-rose-400 bg-rose-500/15",
 };

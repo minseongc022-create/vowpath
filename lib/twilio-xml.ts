@@ -49,7 +49,8 @@ export function twimlGatherSpeechDetailed(
   const defaultFollowUp =
     "Please speak slowly. " +
     "Say your first and last name, your full service street address with city, " +
-    "and describe what you need, such as no heat or no cool. " +
+    "whether you have heat or cool right now, " +
+    "and describe the problem — for example no heat, no cool, or a tune-up. " +
     "We will call you back at the number you are calling from.";
   const prompt = followUp ?? defaultFollowUp;
   return `${twimlSay(intro)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay("We did not hear a message. Goodbye.")}`;

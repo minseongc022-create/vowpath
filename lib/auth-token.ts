@@ -7,6 +7,7 @@ export type SessionPayload = {
   sub: string;
   email: string;
   shopName: string;
+  sessionVersion?: number;
 };
 
 function getSecret() {
@@ -24,6 +25,7 @@ export async function createSessionToken(payload: SessionPayload) {
   return new SignJWT({
     email: payload.email,
     shopName: payload.shopName,
+    sessionVersion: payload.sessionVersion ?? 0,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)
@@ -43,6 +45,8 @@ export async function verifySessionToken(
       email: payload.email,
       shopName:
         typeof payload.shopName === "string" ? payload.shopName : "My HVAC Shop",
+      sessionVersion:
+        typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0,
     };
   } catch {
     return null;

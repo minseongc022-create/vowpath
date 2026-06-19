@@ -109,8 +109,8 @@ export function resolveConversationFollowUp(params: {
     return {
       kind: "preview",
       answer: ko
-        ? "모든 예약을 수동 승인(Control) 모드로 바꿉니다."
-        : "Switch all bookings to manual approval (Control mode).",
+        ? "모든 예약을 수동 승인 모드로 바꿉니다."
+        : "Switch all bookings to manual approval.",
       preview: {
         id: crypto.randomUUID(),
         title: ko ? "전체 수동 승인" : "Manual Approval (All)",

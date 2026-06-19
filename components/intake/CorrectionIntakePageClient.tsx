@@ -53,7 +53,7 @@ export function CorrectionIntakePageClient({ token }: CorrectionIntakePageClient
 
   if (loading) {
     return (
-      <main className="flex min-h-[100dvh] items-center justify-center bg-[#f6f8fc]">
+      <main className="flex min-h-[100dvh] items-center justify-center bg-brand-50">
         <p className="text-sm text-slate-600">{copy.loadingSubmission}</p>
       </main>
     );
@@ -61,7 +61,7 @@ export function CorrectionIntakePageClient({ token }: CorrectionIntakePageClient
 
   if (error || !booking) {
     return (
-      <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-[#f6f8fc] px-6">
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-brand-50 px-6">
         <p className="text-center text-sm text-rose-800">
           {error ?? copy.correctionExpired}
         </p>

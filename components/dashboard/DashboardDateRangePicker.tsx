@@ -78,14 +78,14 @@ export function DashboardDateRangePicker({ value, onChange }: DashboardDateRange
   };
 
   const inputClass =
-    "w-full rounded-lg border border-white/10 bg-[#0d1117] px-2.5 py-2 text-sm text-slate-200 [color-scheme:dark] focus:border-violet-500/40 focus:outline-none focus:ring-1 focus:ring-violet-500/30";
+    "w-full rounded-lg border border-white/10 bg-[#2a221c] px-2.5 py-2 text-sm text-slate-200 [color-scheme:dark] focus:border-brand-500/40 focus:outline-none focus:ring-1 focus:ring-brand-500/30";
 
   return (
     <div className="relative shrink-0" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#12161f] px-3.5 py-2 text-sm font-medium text-slate-200 transition hover:border-white/[0.12] hover:bg-white/[0.04]"
+        className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/[0.08] bg-[#3d3228] px-3.5 py-2 text-sm font-medium text-slate-200 transition hover:border-white/[0.12] hover:bg-white/[0.04]"
         aria-expanded={open}
         aria-haspopup="dialog"
       >
@@ -107,7 +107,7 @@ export function DashboardDateRangePicker({ value, onChange }: DashboardDateRange
       </button>
       {open ? (
         <div
-          className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,17.5rem)] rounded-xl border border-white/[0.08] bg-[#161b22] p-3 shadow-xl"
+          className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,17.5rem)] rounded-xl border border-white/[0.08] bg-[#3d3228] p-3 shadow-xl"
           role="dialog"
           aria-label={h.dateCustom}
         >
@@ -174,7 +174,7 @@ export function DashboardDateRangePicker({ value, onChange }: DashboardDateRange
           <button
             type="button"
             onClick={applyCustom}
-            className="mt-3 w-full rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-violet-500"
+            className="mt-3 w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
           >
             {h.dateApply}
           </button>

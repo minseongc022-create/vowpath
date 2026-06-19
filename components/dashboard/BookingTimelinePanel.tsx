@@ -52,7 +52,7 @@ export function BookingTimelinePanel({
   );
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#161b22] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
+    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#3d3228] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
       <div className="border-b border-white/[0.06] px-4 py-3 sm:px-5">
         <h2 className="text-sm font-semibold text-white">Booking Timeline</h2>
         <p className="mt-1 text-xs text-slate-500">
@@ -68,7 +68,7 @@ export function BookingTimelinePanel({
                 aria-hidden
               />
             ) : null}
-            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border border-violet-400/50 bg-violet-500/30" />
+            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border border-brand-400/50 bg-brand-500/30" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-white">{entry.title}</p>

@@ -22,7 +22,7 @@ export function getSiteTagline(): string {
 
   if (isEnglishUi()) {
 
-    return "Missed calls turned into booked jobs.";
+    return "Catch the call. Keep the contract.";
 
   }
 
@@ -36,7 +36,7 @@ export function getBrandLogoTagline(): string {
 
   if (isEnglishUi()) {
 
-    return "Trust, connected.";
+    return "Missed call → auto calendar → PM plan.";
 
   }
 

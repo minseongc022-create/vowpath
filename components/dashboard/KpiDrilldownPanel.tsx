@@ -60,7 +60,7 @@ function CallRow({
       <Link
         href={`${ROUTES.dashboard}/bookings/${encodeURIComponent(bookingId)}`}
         onClick={onNavigate}
-        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-violet-500/30 hover:bg-white/[0.04]"
+        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-brand-500/30 hover:bg-white/[0.04]"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +93,7 @@ function BookingRow({
       <Link
         href={`${ROUTES.dashboard}/bookings/${encodeURIComponent(item.booking.id)}`}
         onClick={onNavigate}
-        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-violet-500/30 hover:bg-white/[0.04]"
+        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-brand-500/30 hover:bg-white/[0.04]"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -132,7 +132,7 @@ function VerificationRow({
       <Link
         href={`${ROUTES.dashboard}/bookings/${encodeURIComponent(bookingId)}`}
         onClick={onNavigate}
-        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-violet-500/30 hover:bg-white/[0.04]"
+        className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 transition hover:border-brand-500/30 hover:bg-white/[0.04]"
       >
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-white">
@@ -208,7 +208,7 @@ export function KpiDrilldownPanel({
       >
         <header className="flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-violet-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-400">
               {copy.eyebrow}
             </p>
             <h2 id="kpi-drilldown-title" className="mt-1 text-lg font-bold text-white">
@@ -271,7 +271,7 @@ export function KpiDrilldownPanel({
           <footer className="border-t border-white/[0.06] px-5 py-3">
             <Link
               href={ROUTES.dashboard + "/bookings"}
-              className="text-xs font-semibold text-violet-300 hover:underline"
+              className="text-xs font-semibold text-brand-300 hover:underline"
               onClick={onClose}
             >
               {copy.viewAllBookings}

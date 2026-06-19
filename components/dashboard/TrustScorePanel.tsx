@@ -57,7 +57,7 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
 
   return (
     <section
-      className={`booking-detail-card overflow-visible rounded-2xl border-2 border-white/[0.06] bg-[#161b22] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] ${styles.ring}`}
+      className={`booking-detail-card overflow-visible rounded-2xl border-2 border-white/[0.06] bg-[#3d3228] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] ${styles.ring}`}
     >
       <div className="px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2">

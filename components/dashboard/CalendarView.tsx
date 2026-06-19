@@ -73,7 +73,7 @@ function DayEventsListPanel({
             const pri = ev.priority ? calendarPriorityMeta(ev.priority) : null;
             const sourceCls =
               ev.source === "vowpath"
-                ? "bg-violet-500/20 text-violet-200"
+                ? "bg-brand-500/20 text-brand-200"
                 : "bg-sky-500/20 text-sky-200";
 
             return (
@@ -83,8 +83,8 @@ function DayEventsListPanel({
                   onClick={() => onSelectEvent(ev)}
                   className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                     active
-                      ? "border-violet-500/50 bg-violet-500/15 ring-1 ring-violet-500/30"
-                      : "border-slate-700 bg-slate-800/60 hover:border-violet-500/30 hover:bg-slate-800"
+                      ? "border-brand-500/50 bg-brand-500/15 ring-1 ring-brand-500/30"
+                      : "border-slate-700 bg-slate-800/60 hover:border-brand-500/30 hover:bg-slate-800"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -93,7 +93,7 @@ function DayEventsListPanel({
                       {ev.source === "vowpath" ? labels.sourceVowpath : labels.sourceJobber}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-violet-300">{formatEventTimeShort(ev.startAt)}</p>
+                  <p className="mt-1 text-sm text-brand-300">{formatEventTimeShort(ev.startAt)}</p>
                   <p className="mt-1 truncate text-xs text-slate-400">{ev.issue}</p>
                   {pri ? (
                     <span
@@ -125,7 +125,7 @@ function EventDetailPanel({
     event.source === "vowpath" ? labels.sourceVowpath : labels.sourceJobber;
   const sourceCls =
     event.source === "vowpath"
-      ? "bg-violet-500/20 text-violet-200"
+      ? "bg-brand-500/20 text-brand-200"
       : "bg-sky-500/20 text-sky-200";
 
   return (
@@ -133,7 +133,7 @@ function EventDetailPanel({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm font-medium text-violet-300 hover:text-violet-200 hover:underline"
+        className="text-sm font-medium text-brand-300 hover:text-brand-200 hover:underline"
       >
         {labels.backToDayList}
       </button>
@@ -145,7 +145,7 @@ function EventDetailPanel({
       </div>
 
       <h2 className="mt-3 text-lg font-semibold text-white">{event.customerName}</h2>
-      <p className="mt-1 text-sm text-violet-300">{event.timeLabel}</p>
+      <p className="mt-1 text-sm text-brand-300">{event.timeLabel}</p>
 
       <dl className="mt-5 space-y-3 text-sm">
         {event.phone ? (
@@ -154,7 +154,7 @@ function EventDetailPanel({
               {labels.phone}
             </dt>
             <dd className="mt-0.5 text-slate-200">
-              <a href={`tel:${event.phone}`} className="hover:text-violet-300">
+              <a href={`tel:${event.phone}`} className="hover:text-brand-300">
                 {event.phone}
               </a>
             </dd>
@@ -201,7 +201,7 @@ function EventDetailPanel({
       {event.bookingId ? (
         <Link
           href={`${ROUTES.dashboard}/bookings/${encodeURIComponent(event.bookingId)}`}
-          className="mt-5 inline-block text-sm font-medium text-violet-300 hover:underline"
+          className="mt-5 inline-block text-sm font-medium text-brand-300 hover:underline"
         >
           {labels.viewBooking}
         </Link>
@@ -397,7 +397,7 @@ export function CalendarView() {
                     inMonth ? "bg-slate-900/40" : "bg-slate-950/60"
                   } ${
                     isSelected
-                      ? "ring-2 ring-inset ring-violet-500/60 bg-violet-500/[0.08]"
+                      ? "ring-2 ring-inset ring-brand-500/60 bg-brand-500/[0.08]"
                       : "hover:bg-slate-800/50"
                   }`}
                 >
@@ -414,7 +414,7 @@ export function CalendarView() {
                   </p>
                   <div className="clear-both flex min-h-[2rem] flex-col items-center justify-center">
                     {hasEvents ? (
-                      <span className="rounded-full bg-violet-500/25 px-2 py-0.5 text-[10px] font-semibold text-violet-100 sm:text-xs">
+                      <span className="rounded-full bg-brand-500/25 px-2 py-0.5 text-[10px] font-semibold text-brand-100 sm:text-xs">
                         {c.eventCount(dayEvents.length)}
                       </span>
                     ) : inMonth ? (
@@ -441,7 +441,7 @@ export function CalendarView() {
 
       <div className="flex flex-wrap gap-4 text-xs text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded bg-violet-500/50" aria-hidden />
+          <span className="h-2.5 w-2.5 rounded bg-brand-500/50" aria-hidden />
           {c.sourceVowpath}
         </span>
         <span className="flex items-center gap-1.5">

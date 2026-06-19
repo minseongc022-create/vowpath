@@ -14,15 +14,15 @@ export function CTA() {
           />
           <div className="relative">
             {"eyebrow" in siteCta && siteCta.eyebrow ? (
-              <p className="text-sm font-semibold uppercase tracking-wider text-teal-200">
+              <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
                 {siteCta.eyebrow}
               </p>
             ) : null}
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl text-balance">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-brand-900 sm:text-4xl text-balance">
               {siteCta.title}
             </h2>
             {siteCta.subtitle?.trim() ? (
-              <p className="mx-auto mt-4 max-w-lg text-lg text-slate-400">
+              <p className="mx-auto mt-4 max-w-lg text-lg text-stone-700">
                 {siteCta.subtitle}
               </p>
             ) : null}
@@ -33,7 +33,6 @@ export function CTA() {
                 size="lg"
                 variant="secondary"
                 directCheckout
-                className="!border-white/25 !bg-white/10 !text-white hover:!bg-white/15"
               >
                 {siteCta.button}
               </CheckoutButton>

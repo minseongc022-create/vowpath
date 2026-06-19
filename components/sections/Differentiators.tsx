@@ -16,10 +16,10 @@ export function Differentiators() {
           {siteDifferentiators.items.map((item) => (
             <article
               key={item.title}
-              className="vow-site-card border-l-4 border-l-teal-400 p-5"
+              className="vow-site-card border-l-4 border-l-brand-400 p-5"
             >
-              <h3 className="font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <h3 className="font-semibold text-brand-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-700">
                 {item.description}
               </p>
             </article>

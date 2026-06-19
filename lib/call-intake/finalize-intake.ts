@@ -4,7 +4,12 @@ import type { SlotOffer } from "../booking-settings";
 import { addJobRecord } from "../jobs-db";
 import type { GeneratedJobCard } from "../job-card-ai";
 import { logOperationFailure } from "../ops-failures";
-import { notifyCustomerRequestReceived, notifyOwnerNewRequest } from "../customer-sms";
+import {
+  notifyCustomerRequestReceived,
+  notifyOwnerNewRequest,
+  notifyOwnerIntakeAutoConfirmed,
+} from "../customer-sms";
+import { confidenceMinFromFields, resolveAutoBookDecision } from "../auto-book-policy";
 import { startCustomerVerification } from "../customer-verification/flow";
 import { getShopBookingSettings } from "../shop-settings-db";
 import {
@@ -23,6 +28,10 @@ import { persistRequestStatusForBooking } from "../booking-status-sync";
 import { formatCityState } from "../recent-bookings";
 import type { InboundSpeechResult } from "../process-inbound-speech";
 import type { IntakeChannel, VerifiedCallPayload } from "./types";
+import {
+  createBookingReviewLinkSession,
+  sendIntakeBookingConfirmation,
+} from "./booking-confirmation";
 
 export type FinalizeIntakeOptions = {
   intakeChannel?: IntakeChannel;
@@ -49,7 +58,8 @@ function toJobCard(payload: VerifiedCallPayload): GeneratedJobCard {
 }
 
 /**
- * Persist a fully verified intake. Jobber is created after shop approval, not here.
+ * Persist a fully verified intake. With scheduling on, slots auto-confirm per shop mode.
+ * Jobber syncs on confirm (auto-book) or after owner approves held requests.
  */
 export async function finalizeVerifiedIntake(
   userId: string,
@@ -62,6 +72,7 @@ export async function finalizeVerifiedIntake(
   const card = toJobCard(payload);
   const settings = await getShopBookingSettings(userId);
   const schedulingActive = settings.schedulingEnabled;
+  let finalRequestStatus = initialRequestStatusAfterIntake();
 
   if (settings.serviceAreaZips.length > 0 && payload.address) {
     const zip = extractZipFromAddress(payload.address);
@@ -166,7 +177,7 @@ export async function finalizeVerifiedIntake(
 
   if (schedulingActive) {
     try {
-      await applyCustomerChosenSchedule({
+      finalRequestStatus = await applyCustomerChosenSchedule({
         userId,
         bookingId,
         callLogId,
@@ -184,6 +195,7 @@ export async function finalizeVerifiedIntake(
           bookingId,
           initialRequestStatusAfterIntake(),
         );
+        finalRequestStatus = initialRequestStatusAfterIntake();
       } catch (inner) {
         console.warn("[finalize-intake] request status fallback", inner);
       }
@@ -249,16 +261,44 @@ export async function finalizeVerifiedIntake(
 
   if (!schedulingActive) {
     try {
-      await notifyOwnerNewRequest({
-        userId,
-        bookingId,
-        customerName: payload.customerName,
-        issueType: payload.issueType,
-        symptom: payload.symptom,
+      const confMin = confidenceMinFromFields(payload.confidence);
+      const autoDecision = resolveAutoBookDecision({
+        mode: settings.schedulingMode,
         priority: payload.priority,
-        cityState: formatCityState(payload.address),
-        address: payload.address,
+        confidenceMin: confMin,
+        hybridAutoPriorities: settings.hybridAutoPriorities,
       });
+      if (!autoDecision.needsOwnerApproval) {
+        finalRequestStatus = "approved";
+        await persistRequestStatusForBooking(
+          userId,
+          bookingId,
+          "approved",
+          { skipCustomerSms: false },
+        );
+        await notifyOwnerIntakeAutoConfirmed({
+          userId,
+          bookingId,
+          customerName: payload.customerName,
+          issueType: payload.issueType,
+          symptom: payload.symptom,
+          priority: payload.priority,
+          cityState: formatCityState(payload.address),
+          urgent: autoDecision.isUrgentAlert,
+        });
+      } else {
+        await notifyOwnerNewRequest({
+          userId,
+          bookingId,
+          customerName: payload.customerName,
+          issueType: payload.issueType,
+          symptom: payload.symptom,
+          priority: payload.priority,
+          cityState: formatCityState(payload.address),
+          address: payload.address,
+          ambiguous: autoDecision.isAmbiguous,
+        });
+      }
     } catch (e) {
       console.warn("[finalize-intake] owner new request sms", e);
     }
@@ -274,6 +314,35 @@ export async function finalizeVerifiedIntake(
       });
     } catch (e) {
       console.warn("[finalize-intake] after-hours customer sms", e);
+    }
+  }
+
+  if (customerPhone) {
+    try {
+      const reviewSession = await createBookingReviewLinkSession({
+        userId,
+        bookingId,
+        callId: callLogId,
+        callSid: payload.callSid || callLogId,
+        from: customerPhone,
+        to: payload.to,
+        shopName: (await findUserById(userId))?.shopName,
+        customerPhone,
+        customerName: payload.customerName,
+      });
+      await sendIntakeBookingConfirmation({
+        userId,
+        bookingId,
+        callLogId,
+        customerPhone,
+        customerName: payload.customerName,
+        issueType: payload.issueType || payload.symptom,
+        arrivalWindow: payload.arrivalWindow,
+        reviewToken: reviewSession.token,
+        pendingShopReview: finalRequestStatus !== "approved",
+      });
+    } catch (e) {
+      console.warn("[finalize-intake] customer booking confirmation sms", e);
     }
   }
 

@@ -162,7 +162,7 @@ export function DashboardRecentRequests({
 
                       >
 
-                        <p className="font-semibold text-white group-hover:text-violet-300">
+                        <p className="font-semibold text-white group-hover:text-brand-300">
 
                           {b.customerName}
 

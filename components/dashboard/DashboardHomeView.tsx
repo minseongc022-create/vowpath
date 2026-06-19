@@ -20,7 +20,6 @@ import {
 } from "@/lib/booking-policy";
 import { lookupStoredRequestStatus } from "@/lib/request-status-resolve";
 import { OwnerKpiCards } from "@/components/dashboard/OwnerKpiCards";
-import { CustomerVerificationRateKpi } from "@/components/dashboard/CustomerVerificationRateKpi";
 import { KpiDrilldownPanel } from "@/components/dashboard/KpiDrilldownPanel";
 import {
   buildKpiDrilldownItems,
@@ -228,7 +227,7 @@ export function DashboardHomeView() {
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           Jobber sync issue.{" "}
           <Link href={ROUTES.settings} className="font-semibold underline">
-            Integrations
+            Go live
           </Link>{" "}
           to reconnect.
         </div>
@@ -242,7 +241,7 @@ export function DashboardHomeView() {
         onStatusChange={() => void refresh()}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div className="xl:col-span-5">
           <OwnerKpiCards
             daily={trendChart.data}
@@ -253,12 +252,6 @@ export function DashboardHomeView() {
             onCardClick={setActiveKpi}
           />
         </div>
-        <CustomerVerificationRateKpi
-          records={customerVerifications}
-          loading={!hasLoaded && loading}
-          dark
-          onClick={() => setActiveKpi("customerVerification")}
-        />
       </div>
 
       <KpiDrilldownPanel
@@ -325,9 +318,9 @@ export function DashboardHomeView() {
       </div>
 
       <p className="text-center text-xs text-slate-600">
-        Manage call simulation, Job Cards, and integrations in{" "}
-        <Link href={ROUTES.settings} className="text-violet-300 hover:underline">
-          Settings
+        New jobs text your cell — reply 1 or 2. Finish setup in{" "}
+        <Link href={ROUTES.settings} className="text-brand-300 hover:underline">
+          Go live
         </Link>
         .
       </p>

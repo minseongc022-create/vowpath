@@ -19,26 +19,26 @@ export function Header({ session }: HeaderProps) {
   return (
     <header className="vow-site-header">
       <Container>
-        <div className="flex h-16 items-center justify-between gap-3">
-          <BrandLogo variant="light" showTagline size="xl" href={ROUTES.home} />
+        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:grid lg:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] lg:items-center lg:gap-6">
+          <BrandLogo showTagline size="lg" href={ROUTES.home} className="min-w-0 max-w-[11rem] sm:max-w-[13rem] lg:max-w-none" />
 
-          <nav className="hidden items-center justify-center gap-6 lg:flex lg:gap-8">
+          <nav className="hidden items-center justify-center gap-5 xl:flex xl:gap-7">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-slate-300 transition hover:text-brand-200"
+                className="whitespace-nowrap text-sm font-medium text-stone-800 transition hover:text-brand-900"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center lg:ml-0 lg:justify-end">
             <HeaderAuth session={session} />
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg p-2 text-slate-200 hover:bg-white/10 lg:hidden"
+              className="inline-flex items-center justify-center rounded-lg p-2 text-brand-800 hover:bg-brand-100 lg:hidden"
               aria-expanded={open}
               aria-label="Open menu"
               onClick={() => setOpen(!open)}
@@ -56,13 +56,13 @@ export function Header({ session }: HeaderProps) {
       </Container>
 
       {open ? (
-        <div className="border-t border-white/[0.08] bg-[#0b0e14] px-5 py-4 lg:hidden">
+        <div className="border-t border-brand-200 bg-white px-5 py-4 lg:hidden">
           <nav className="flex flex-col gap-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-slate-200"
+                className="text-sm font-medium text-brand-900"
                 onClick={() => setOpen(false)}
               >
                 {link.label}

@@ -59,8 +59,8 @@ export function DailyBriefingView() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <section className="rounded-3xl border border-white/[0.06] bg-[#12161f] p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] sm:p-7">
-        <p className="text-sm font-medium text-violet-300">{briefing.titleDate}</p>
+      <section className="rounded-3xl border border-white/[0.06] bg-[#3d3228] p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] sm:p-7">
+        <p className="text-sm font-medium text-brand-300">{briefing.titleDate}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
           Good Morning, {shopName}
         </h1>
@@ -79,7 +79,7 @@ export function DailyBriefingView() {
       <section className="vow-dash-card p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-violet-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
               AI Summary
             </p>
             <div className="mt-4 space-y-2 text-sm leading-relaxed text-slate-300">
@@ -106,7 +106,7 @@ export function DailyBriefingView() {
         <article className="vow-dash-card p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">Urgent Requests</h2>
-            <Link href="/dashboard/bookings" className="text-sm font-medium text-violet-300">
+            <Link href="/dashboard/bookings" className="text-sm font-medium text-brand-300">
               View all
             </Link>
           </div>
@@ -135,7 +135,7 @@ export function DailyBriefingView() {
         <article className="vow-dash-card p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">Pending Requests</h2>
-            <Link href="/dashboard/bookings" className="text-sm font-medium text-violet-300">
+            <Link href="/dashboard/bookings" className="text-sm font-medium text-brand-300">
               Review
             </Link>
           </div>

@@ -10,6 +10,8 @@ import { AuditActivityPanel } from "@/components/settings/AuditActivityPanel";
 import { OpsFailuresPanel } from "@/components/settings/OpsFailuresPanel";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
+import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
+import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKeeperSettings";
 import { CompanyAiMemorySettings } from "@/components/settings/CompanyAiMemorySettings";
 import { AutomationRulesView } from "@/components/settings/AutomationRulesView";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
@@ -541,10 +543,58 @@ export function SettingsView({
         ) : null}
       </div>
 
-      <BookingSettingsEditor />
-      <AutomationRulesView />
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-card">
+        <a
+          href="#booking-settings"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          {settingsPage.bookingNav}
+        </a>
+        <a
+          href="#tech-dispatch"
+          className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-100"
+        >
+          {settingsPage.techDispatchNav}
+        </a>
+        <a
+          href="#agreements"
+          className="rounded-lg border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-100"
+        >
+          {settingsPage.agreementNav}
+        </a>
+      </div>
+
+      <div id="booking-settings">
+        <BookingSettingsEditor />
+      </div>
+
+      <section
+        id="tech-dispatch"
+        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {settingsPage.techDispatchTitle}
+        </p>
+        <p className="mt-1 text-sm text-slate-600">{settingsPage.techDispatchSummary}</p>
+        <div className="mt-4">
+          <TechDispatchSettings />
+        </div>
+      </section>
+
+      <AgreementKeeperSettingsEditor />
+
+      <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+          Advanced — automation &amp; audit
+        </summary>
+        <div className="mt-4 space-y-6">
+          <AutomationRulesView />
+          <CompanyAiMemorySettings />
+          <AuditActivityPanel />
+          <OpsFailuresPanel />
+        </div>
+      </details>
       <LanguageSettings />
-      <CompanyAiMemorySettings />
 
       <div className="rounded-2xl border border-slate-200 border-l-4 border-l-brand-500 bg-white p-5 shadow-card">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -552,9 +602,6 @@ export function SettingsView({
         </p>
         <p className="mt-2 text-sm text-slate-600">{settingsPage.ownerAlertsDescription}</p>
       </div>
-
-      <AuditActivityPanel />
-      <OpsFailuresPanel />
 
       <button
         type="button"

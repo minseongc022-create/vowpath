@@ -2,21 +2,17 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
-import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
-import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
-import { SchedulingModes } from "@/components/sections/SchedulingModes";
 import { Problem } from "@/components/sections/Problem";
-import { RevenueLeaks } from "@/components/sections/RevenueLeaks";
-import { TrustROI } from "@/components/sections/TrustROI";
-import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { About } from "@/components/sections/About";
-import { HowItWorks } from "@/components/sections/HowItWorks";
-import { Differentiators } from "@/components/sections/Differentiators";
-import { Comparison } from "@/components/sections/Comparison";
-import { JobberOptional } from "@/components/sections/JobberOptional";
+import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
+import { RevenueLeaks } from "@/components/sections/RevenueLeaks";
+import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
+import { AgreementKeeper } from "@/components/sections/AgreementKeeper";
+import { SchedulingModes } from "@/components/sections/SchedulingModes";
 import { Features } from "@/components/sections/Features";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { TrustROI } from "@/components/sections/TrustROI";
 import { SocialProof } from "@/components/sections/SocialProof";
-import { SignupFlow } from "@/components/sections/SignupFlow";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
@@ -28,22 +24,21 @@ export default async function HomePage() {
     <div className="vow-site flex min-h-screen flex-col">
       <Header session={session} />
       <main className="flex-1">
+        {/* 1. What we are + owner benefits */}
         <Hero />
-        <SchedulingModes />
-        <RevenueLeaks />
-        <MissedCallFlow />
-        <ApprovalLoop />
         <Problem />
-        <TrustROI />
-        <AiDispatcher />
         <About />
-        <HowItWorks />
-        <Differentiators />
-        <Comparison />
-        <JobberOptional />
+        {/* 2. Flow + features → how benefits are delivered */}
+        <MissedCallFlow />
+        <RevenueLeaks />
+        <ApprovalLoop />
+        <AgreementKeeper />
+        <SchedulingModes />
         <Features />
+        <HowItWorks />
+        <TrustROI />
         <SocialProof />
-        <SignupFlow />
+        {/* 3. Pricing */}
         <Pricing />
         <FAQ />
         <CTA />

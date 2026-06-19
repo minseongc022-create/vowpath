@@ -25,7 +25,7 @@ export function CustomerCorrectionHistoryPanel({
   const corrections = record?.corrections ?? [];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#161b22] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
+    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#3d3228] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
       <div className="border-b border-white/[0.06] px-4 py-3 sm:px-5">
         <h2 className="text-sm font-semibold text-white">Customer Correction History</h2>
         <p className="mt-1 text-xs text-slate-500">

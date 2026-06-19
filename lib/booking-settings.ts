@@ -14,6 +14,15 @@ export const DEFAULT_HYBRID_AUTO_PRIORITIES: JobPriority[] = ["P2", "P3"];
 
 export type OwnerApprovalSms = "off" | "p1_only" | "all";
 
+const SLOT_BUFFER_MIN = 0;
+const SLOT_BUFFER_MAX = 480;
+
+/** Clamp gap-after-visit minutes to a safe range (0 = back-to-back allowed). */
+export function normalizeSlotBufferMinutes(value: unknown): number {
+  const n = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 30;
+  return Math.min(SLOT_BUFFER_MAX, Math.max(SLOT_BUFFER_MIN, n));
+}
+
 export type SlotOffer = {
   id: string;
   label: string;
@@ -32,7 +41,8 @@ export type ShopBookingSettings = {
   nativeCalendarEnabled: boolean;
   defaultDurationMinutes: number;
   slotBufferMinutes: number;
-  maxVisitsPerDay: number;
+  /** How many visits the shop can run at the same time, e.g. active tech/crew count. */
+  maxConcurrentVisits: number;
   slotOfferCount: number;
   businessDayStartHour: number;
   businessDayEndHour: number;
@@ -40,7 +50,6 @@ export type ShopBookingSettings = {
   amWindowEnd: number;
   pmWindowStart: number;
   pmWindowEnd: number;
-  maxPerWindow: number;
   serviceAreaZips: string[];
   /** Hybrid only: priorities that auto-book (speed). Others need manual approval. */
   hybridAutoPriorities: JobPriority[];
@@ -48,7 +57,7 @@ export type ShopBookingSettings = {
 
 export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   schedulingEnabled: true,
-  schedulingMode: "hybrid",
+  schedulingMode: "speed",
   ownerApprovalSms: "p1_only",
   undoWindowMinutes: 30,
   shadowModeRemaining: 0,
@@ -56,7 +65,7 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   nativeCalendarEnabled: true,
   defaultDurationMinutes: 120,
   slotBufferMinutes: 30,
-  maxVisitsPerDay: 4,
+  maxConcurrentVisits: 1,
   slotOfferCount: 5,
   businessDayStartHour: 8,
   businessDayEndHour: 17,
@@ -64,7 +73,6 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   amWindowEnd: 12,
   pmWindowStart: 12,
   pmWindowEnd: 17,
-  maxPerWindow: 1,
   serviceAreaZips: [],
   hybridAutoPriorities: DEFAULT_HYBRID_AUTO_PRIORITIES,
 };
@@ -99,6 +107,9 @@ export function mergeShopBookingSettings(
     ...partial,
     schedulingMode: mode,
     hybridAutoPriorities,
+    slotBufferMinutes: normalizeSlotBufferMinutes(
+      partial?.slotBufferMinutes ?? DEFAULT_SHOP_BOOKING_SETTINGS.slotBufferMinutes,
+    ),
     jobberSchedulingEnabled: true,
   };
 }
@@ -166,35 +177,10 @@ export function legacyBookingModeToScheduling(
   return "hybrid";
 }
 
-export function shouldOwnerApproveAfterCustomerSlotPick(params: {
-  mode: SchedulingMode;
-  priority: JobPriority;
-  hybridAutoPriorities?: JobPriority[];
-  /** @deprecated Hybrid no longer uses confidence — kept for callers. */
-  confidenceMin?: number;
-  confidenceThreshold?: number;
-}): boolean {
-  if (params.mode === "control") return true;
-  if (params.mode === "speed") return false;
-  const auto =
-    params.hybridAutoPriorities ?? DEFAULT_HYBRID_AUTO_PRIORITIES;
-  return !auto.includes(params.priority);
-}
-
-export function shouldSendOwnerApprovalSms(
-  level: OwnerApprovalSms,
-  priority: JobPriority,
-  mode?: SchedulingMode,
-  hybridAutoPriorities?: JobPriority[],
-): boolean {
-  if (level === "off") return false;
-  if (mode === "control") return true;
-  if (mode === "speed") return false;
-  if (mode === "hybrid") {
-    const auto = hybridAutoPriorities ?? DEFAULT_HYBRID_AUTO_PRIORITIES;
-    if (auto.includes(priority)) return false;
-    return true;
-  }
-  if (level === "all") return true;
-  return priority === "P1";
-}
+export {
+  AUTO_BOOK_CONFIDENCE_MIN,
+  confidenceMinFromFields,
+  resolveAutoBookDecision,
+  shouldOwnerApproveAfterCustomerSlotPick,
+  shouldSendOwnerApprovalSms,
+} from "./auto-book-policy";

@@ -35,7 +35,7 @@ export function DashboardUpcomingBookings({
               status === "scheduled" || isApprovedBooking(status as RequestStatus);
             const iconTone =
               i % 3 === 0
-                ? "text-violet-300 bg-violet-500/15"
+                ? "text-brand-300 bg-brand-500/15"
                 : i % 3 === 1
                   ? "text-emerald-400 bg-emerald-500/15"
                   : "text-amber-400 bg-amber-500/15";

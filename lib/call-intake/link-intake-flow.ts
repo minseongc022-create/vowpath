@@ -20,7 +20,7 @@ import {
 } from "./link-intake-store";
 import { getLinkIntakeBookingForSession } from "../link-intake-portal";
 import type { SlotOffer } from "../booking-settings";
-import { offerVisitSlotsForTenant } from "../scheduling/offer-slots";
+import { offerSlotGridForTenant, offerVisitSlotsForTenant } from "../scheduling/offer-slots";
 import { finalizeVerifiedIntake } from "./finalize-intake";
 import { validateServiceAddress } from "./address-validation";
 import { generateAiSummary } from "./ai-summary";
@@ -111,10 +111,23 @@ export async function resolveLinkIntakeSlot(
   slotId?: string | null,
 ): Promise<SlotOffer | null> {
   if (!slotId?.trim()) return null;
-  const slots = await offerVisitSlotsForTenant({
-    userId,
-    priority: linkUrgencyToPriority(urgency),
-  });
+  const priority = linkUrgencyToPriority(urgency);
+  const grid = await offerSlotGridForTenant({ userId, priority });
+  if (grid) {
+    for (const day of grid.days) {
+      const match = day.slots.find((s) => s.id === slotId && s.status === "available");
+      if (match) {
+        return {
+          id: match.id,
+          label: `${day.weekdayLabel} ${match.label}`,
+          startAt: match.startAt,
+          endAt: match.endAt,
+          source: match.source,
+        };
+      }
+    }
+  }
+  const slots = await offerVisitSlotsForTenant({ userId, priority });
   return slots.find((s) => s.id === slotId) ?? null;
 }
 
@@ -137,7 +150,7 @@ export async function submitLinkIntakeForm(params: {
 > {
   const session = await getLinkIntakeSession(params.token);
   if (!canSubmitLinkIntakeForm(session)) {
-    return { ok: false, error: "이 링크는 만료되었거나 이미 사용되었습니다." };
+    return { ok: false, error: "This link has expired or was already used." };
   }
 
   const draft = buildLinkIntakeDraftFromForm(params);
@@ -154,7 +167,7 @@ export async function submitLinkIntakeForm(params: {
   if (!addressCheck.valid) {
     return {
       ok: false,
-      error: "주소를 확인할 수 없습니다. 도로명, 도시, 주를 다시 입력해 주세요.",
+      error: "We could not verify that address. Enter street, city, and state.",
     };
   }
 

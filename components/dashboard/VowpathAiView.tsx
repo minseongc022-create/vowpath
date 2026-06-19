@@ -110,8 +110,8 @@ function AdminPreviewCard({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-violet-200">
+    <div className="mt-4 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-brand-200">
         {preview.action.type === "create_workflow_rule"
           ? "Automation Rule"
           : "AI Admin Action"}
@@ -139,7 +139,7 @@ function AdminPreviewCard({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-violet-500/50"
+            className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-brand-500/50"
             placeholder="Confirm your password"
           />
         </label>
@@ -266,7 +266,7 @@ function AssistantMessage({
       ) : null}
 
       {message.customer ? (
-        <div className="mt-4 rounded-xl border border-violet-500/20 bg-violet-500/10 p-4">
+        <div className="mt-4 rounded-xl border border-brand-500/20 bg-brand-500/10 p-4">
           <h3 className="font-semibold text-white">{message.customer.name}</h3>
           <dl className="mt-3 grid gap-3 sm:grid-cols-2">
             {message.customer.fields.map((field) => (
@@ -287,7 +287,7 @@ function AssistantMessage({
             <Link
               key={booking.id}
               href={`/dashboard/bookings/${encodeURIComponent(booking.id)}`}
-              className="block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-violet-500/30"
+              className="block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-brand-500/30"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -307,7 +307,7 @@ function AssistantMessage({
         <div className="mt-4 space-y-2">
           {message.items.map((item) => {
             const body = (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-violet-500/30">
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-brand-500/30">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-white">{item.title}</p>
@@ -567,7 +567,7 @@ export function VowpathAiView() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl flex-col gap-5">
       <header className="vow-dash-card p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
           Vowpath AI
         </p>
         <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
@@ -598,7 +598,7 @@ export function VowpathAiView() {
           message.role === "user" ? (
             <div
               key={message.id}
-              className="ml-auto max-w-2xl rounded-2xl bg-violet-600 px-4 py-3 text-sm font-medium text-white"
+              className="ml-auto max-w-2xl rounded-2xl bg-brand-600 px-4 py-3 text-sm font-medium text-white"
             >
               {message.content}
             </div>
@@ -623,7 +623,7 @@ export function VowpathAiView() {
 
       <form
         onSubmit={onSubmit}
-        className="sticky bottom-0 -mx-4 border-t border-white/[0.06] bg-[#0d1117]/95 p-4 backdrop-blur sm:mx-0 sm:rounded-t-2xl sm:border sm:border-white/[0.06]"
+        className="sticky bottom-0 -mx-4 border-t border-white/[0.06] bg-[#2a221c]/95 p-4 backdrop-blur sm:mx-0 sm:rounded-t-2xl sm:border sm:border-white/[0.06]"
       >
         <div className="flex gap-2">
           <input
@@ -631,12 +631,12 @@ export function VowpathAiView() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isEnglish ? "Ask Vowpath AI…" : "Vowpath AI에게 물어보세요…"}
-            className="min-h-12 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-violet-500/50"
+            className="min-h-12 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-brand-500/50"
           />
           <button
             type="submit"
             disabled={!input.trim() || loading}
-            className="min-h-12 rounded-xl bg-violet-600 px-5 text-sm font-bold text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isEnglish ? "Ask" : "질문"}
           </button>

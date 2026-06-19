@@ -4,9 +4,10 @@ import { useMemo, useRef, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
-import type { SlotOffer } from "@/lib/booking-settings";
+import type { SlotGridResult } from "@/lib/scheduling/slot-grid";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { LinkIntakeSubmissionPanel } from "@/components/intake/LinkIntakeSubmissionPanel";
+import { LinkIntakeSlotCalendar } from "@/components/intake/LinkIntakeSlotCalendar";
 
 type LinkIntakeFormProps = {
   token: string;
@@ -37,7 +38,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   const [urgency, setUrgency] = useState<LinkUrgency>("this_week");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [slots, setSlots] = useState<SlotOffer[]>([]);
+  const [slotGrid, setSlotGrid] = useState<SlotGridResult | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -103,16 +104,21 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
       );
       const data = (await res.json()) as {
         schedulingEnabled?: boolean;
-        slots?: SlotOffer[];
+        grid?: SlotGridResult | null;
+        durationMinutes?: number;
+        bufferMinutes?: number;
         error?: string;
       };
       if (!res.ok) {
         setError(data.error ?? "Could not load available times.");
         return;
       }
-      if (data.schedulingEnabled && (data.slots?.length ?? 0) > 0) {
-        setSlots(data.slots ?? []);
-        setSelectedSlotId(data.slots?.[0]?.id ?? null);
+      if (data.schedulingEnabled && (data.grid?.days?.length ?? 0) > 0) {
+        setSlotGrid(data.grid ?? null);
+        const firstOpen = data.grid?.days
+          .flatMap((d) => d.slots)
+          .find((s) => s.status === "available");
+        setSelectedSlotId(firstOpen?.id ?? null);
         setStep("slots");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
@@ -150,10 +156,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   if (step === "slots") {
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+      <div className="flex min-h-[100dvh] flex-col bg-brand-50">
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
           <div className="mx-auto max-w-md px-4 py-4">
-            <p className="truncate text-sm font-bold text-[#0c4a6e]">{shopName}</p>
+            <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
             <p className="text-xs text-slate-500">{copy.slotStepTitle}</p>
           </div>
         </header>
@@ -164,34 +170,21 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
               {copy.slotStepDescription}
             </p>
 
-            <div className="space-y-2.5">
-              {slots.map((slot, i) => (
-                <label
-                  key={slot.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-4 py-4 shadow-sm ${
-                    selectedSlotId === slot.id
-                      ? "border-[#0c4a6e]/40 ring-2 ring-[#0c4a6e]/15"
-                      : "border-slate-200/90"
-                  }`}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700">
-                    {i + 1}
-                  </span>
-                  <span className="text-[15px] font-medium text-slate-800">{slot.label}</span>
-                  <input
-                    type="radio"
-                    name="slot"
-                    value={slot.id}
-                    checked={selectedSlotId === slot.id}
-                    onChange={() => setSelectedSlotId(slot.id)}
-                    className="sr-only"
-                  />
-                </label>
-              ))}
-            </div>
-
-            {slots.length === 0 ? (
+            {slotGrid ? (
+              <LinkIntakeSlotCalendar
+                days={slotGrid.days}
+                selectedSlotId={selectedSlotId}
+                durationMinutes={slotGrid.durationMinutes}
+                bufferMinutes={slotGrid.bufferMinutes}
+                maxConcurrentVisits={slotGrid.maxConcurrentVisits}
+                onSelect={(slot) => setSelectedSlotId(slot.id)}
+              />
+            ) : (
               <p className="text-sm text-slate-500">{copy.slotStepEmpty}</p>
+            )}
+
+            {!slotGrid?.days.some((d) => d.slots.some((s) => s.status === "available")) ? (
+              <p className="text-sm text-amber-800">{copy.slotStepEmpty}</p>
             ) : null}
 
             {error ? (
@@ -208,7 +201,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
               type="button"
               onClick={() => void handleSlotConfirm()}
               disabled={loading || !selectedSlotId}
-              className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white shadow-lg shadow-[#0c4a6e]/20 transition hover:bg-[#0a3d5c] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? copy.submitting : copy.slotStepConfirm}
             </button>
@@ -235,12 +228,12 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   }
 
   return (
-    <form onSubmit={handleFormNext} className="flex min-h-[100dvh] flex-col bg-[#f6f8fc]">
+    <form onSubmit={handleFormNext} className="flex min-h-[100dvh] flex-col bg-brand-50">
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto max-w-md px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-[#0c4a6e]">{shopName}</p>
+              <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
               <p className="text-xs text-slate-500">{copy.formTitle}</p>
             </div>
             <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
@@ -249,7 +242,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           </div>
           <div className="mt-3 h-1 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#0c4a6e] to-[#2563eb] transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-brand-700 to-warm-400 transition-all duration-300"
               style={{ width: `${Math.max(progress, 8)}%` }}
               role="progressbar"
               aria-valuenow={progress}
@@ -340,14 +333,14 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
                   key={opt.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4 shadow-sm transition active:scale-[0.99] ${
                     urgency === opt.id
-                      ? "border-[#0c4a6e]/40 ring-2 ring-[#0c4a6e]/15"
+                      ? "border-brand-700/40 ring-2 ring-brand-500/15"
                       : "border-slate-200/90"
                   }`}
                 >
                   <span
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
                       urgency === opt.id
-                        ? "border-[#0c4a6e] bg-[#0c4a6e]"
+                        ? "border-brand-700 bg-brand-700"
                         : "border-slate-300 bg-white"
                     }`}
                   >
@@ -382,7 +375,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           <button
             type="submit"
             disabled={loading || slotsLoading}
-            className="w-full rounded-2xl bg-[#0c4a6e] py-4 text-lg font-bold text-white shadow-lg shadow-[#0c4a6e]/20 transition hover:bg-[#0a3d5c] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading || slotsLoading ? copy.slotStepLoading : copy.submit}
           </button>
@@ -393,7 +386,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#0c4a6e]/50 focus:ring-2 focus:ring-[#0c4a6e]/12";
+  "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
 
 function Field({
   label,

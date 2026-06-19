@@ -18,6 +18,7 @@ export type TenantEventType =
   | "jobber_sync_failed"
   | "call_intake_failed"
   | "sms_delivery_failed"
+  | "security"
   | "workflow_rule_matched";
 
 export type TenantEvent = {
@@ -137,5 +138,6 @@ export const AUDIT_EVENT_TYPES: TenantEventType[] = [
   "customer_verified",
   "booking_jobber_synced",
   "call_intake_failed",
+  "security",
   "workflow_rule_matched",
 ];

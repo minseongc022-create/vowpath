@@ -6,32 +6,32 @@ export function channelChoiceVoicePrompt(shopName: string, afterHours = false): 
   if (afterHours) {
     return (
       afterHoursVoiceIntro(shop) +
-      " Press 1 to receive a text link to submit your request, or stay on the line to continue by phone."
+      " Press 1 and we will text you a quick intake link, then you can hang up. Press 2 to continue by phone."
     );
   }
   return (
     `Thank you for calling ${shop}. ` +
-    `For faster intake, press 1 to receive a text link. ` +
-    `To continue by phone, stay on the line or start speaking.`
+    `Press 1 and we will text you a quick intake link, then you can hang up. ` +
+    `Press 2 to continue by phone.`
   );
 }
 
 export function channelChoiceGatherHint(): string {
-  return "Press 1 for a text link, or describe your issue to continue by phone.";
+  return "Press 1 for the text link, or press 2 for phone intake.";
 }
 
 export function smsLinkIntakeMessage(shopName: string, url: string): string {
   const shop = resolveShopDisplayName(shopName);
   return (
-    `${shop}: Submit your service request here — name, address, and issue. ` +
-    `Our team will follow up during business hours.\n\n${url}`
+    `${shop}: Submit your service request here — name, address, issue, and preferred visit time. ` +
+    `Open the link to finish quick intake.\n\n${url}`
   );
 }
 
 export const linkIntakePageCopy = {
   formTitle: "Service request",
   formDescription:
-    "Tell us what you need. Our team reviews every request and follows up during business hours.",
+    "Tell us what you need. Our team reviews every request — you will get a confirmation when the shop approves.",
   nameLabel: "Name",
   namePlaceholder: "John Smith",
   addressLabel: "Service address",
@@ -45,8 +45,21 @@ export const linkIntakePageCopy = {
   photoButton: "Add photo",
   photoChange: "Change photo",
   urgencyLabel: "Urgency",
-  slotStepTitle: "Pick a visit window",
-  slotStepDescription: "Choose one available time (up to 5 options).",
+  slotStepTitle: "Pick a visit time",
+  slotStepDescription: "Choose a date, then tap an open time. Unavailable slots are grayed out.",
+  slotCalendarHint: (durationMin: number, bufferMin: number, capacity: number) => {
+    const base = `Each visit is about ${durationMin} minutes. ${
+      bufferMin > 0
+        ? `Exactly ${bufferMin} minutes are reserved after each visit ends before the next slot opens.`
+        : "Pick any open slot."
+    }`;
+    const team =
+      capacity > 1 ? " Some overlapping times may be available when the team has capacity." : "";
+    return `${base}${team}`.trim();
+  },
+  slotDayLabel: (weekday: string) => `Times on ${weekday}`,
+  slotUnavailable: "Unavailable",
+  slotCalendarLegend: "Grey times are already booked or too soon. Other customers' details are never shown.",
   slotStepBack: "Back",
   slotStepConfirm: "Confirm this time",
   slotStepLoading: "Loading available times…",
