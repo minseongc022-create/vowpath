@@ -621,27 +621,28 @@
     @apply border-amber-500/25 bg-amber-500/10 text-amber-100;
   }
 
-  /* Vowpath app dashboard — warm charcoal with beige accents */
+  /* Vowpath app dashboard — landing palette, professional weight */
   .vow-dash {
     @apply min-h-screen;
-    color: #f5f0e8;
-    --vow-dash-bg: #2a221c;
-    --vow-dash-surface: #3d3228;
-    --vow-dash-accent: #b59b78;
-    --vow-dash-accent-mid: #9a7f5e;
+    color: var(--vow-ink);
+    --vow-dash-bg: #ebe3d6;
+    --vow-dash-surface: #ffffff;
+    --vow-dash-accent: #9a7f5e;
+    --vow-dash-accent-mid: #b59b78;
     background-color: var(--vow-dash-bg);
     background-image:
-      radial-gradient(ellipse 70% 45% at 0% 0%, rgb(181 155 120 / 0.12), transparent 55%),
-      radial-gradient(ellipse 50% 40% at 100% 10%, rgb(166 124 82 / 0.08), transparent 50%);
+      radial-gradient(ellipse 80% 55% at 50% -15%, rgb(181 155 120 / 0.18), transparent 58%),
+      linear-gradient(180deg, #f5f0e8 0%, #ebe3d6 48%, #e8dfd0 100%);
   }
 
   .vow-dash-sidebar {
-    @apply flex w-[16rem] shrink-0 flex-col border-r border-white/[0.06];
+    @apply flex w-[16rem] shrink-0 flex-col border-r;
     width: 16rem;
     max-width: 16rem;
     flex-shrink: 0;
-    background: linear-gradient(180deg, #3d3228 0%, #2a221c 100%);
-    box-shadow: 1px 0 0 rgb(181 155 120 / 0.1);
+    border-color: rgb(61 50 40 / 0.12);
+    background: linear-gradient(180deg, #3d3228 0%, #2f261f 100%);
+    box-shadow: 2px 0 24px rgb(61 50 40 / 0.08);
   }
 
   @media (max-width: 1023px) {
@@ -651,29 +652,39 @@
   }
 
   .vow-dash-main {
-    @apply min-w-0 flex-1 overflow-x-hidden;
-    background-color: var(--vow-dash-bg);
+    @apply min-w-0 flex-1 overflow-x-hidden text-brand-900;
+    background: transparent;
   }
 
   .vow-dash-card {
-    @apply rounded-2xl border border-white/[0.06] p-5;
+    @apply rounded-2xl border p-5;
+    border-color: rgb(201 173 138 / 0.55);
     background: var(--vow-dash-surface);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+    color: var(--vow-ink);
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.05),
+      0 8px 28px rgb(61 50 40 / 0.08);
   }
 
   .vow-dash-hero {
-    @apply overflow-hidden rounded-xl border border-brand-400/10;
-    background: linear-gradient(160deg, var(--vow-navy-elevated) 0%, var(--vow-navy-card) 100%);
+    @apply overflow-hidden rounded-xl border;
+    border-color: rgb(201 173 138 / 0.45);
+    background: linear-gradient(160deg, #ffffff 0%, #faf8f5 100%);
+    color: var(--vow-ink);
   }
 
   .vow-dash-hero-value {
-    @apply text-4xl leading-none sm:text-5xl lg:text-[3.25rem];
+    @apply text-4xl leading-none text-brand-900 sm:text-5xl lg:text-[3.25rem];
   }
 
   .vow-dash-panel {
-    @apply overflow-hidden rounded-2xl border border-white/[0.06];
+    @apply overflow-hidden rounded-2xl border;
+    border-color: rgb(201 173 138 / 0.5);
     background: var(--vow-dash-surface);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+    color: var(--vow-ink);
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.04),
+      0 6px 22px rgb(61 50 40 / 0.07);
   }
 
   .vow-dash-panel.vow-dash-chart-card {
@@ -685,24 +696,24 @@
   }
 
   .vow-dash-link {
-    @apply text-xs font-medium text-brand-300 transition hover:text-brand-200;
+    @apply text-sm font-medium text-brand-800 transition hover:text-brand-900;
   }
 
   .vow-dash-stat-mini {
-    @apply rounded-xl border border-white/[0.05] bg-[#13171d]/80 px-4 py-3;
+    @apply rounded-xl border border-brand-200/70 bg-white px-4 py-3;
   }
 
   .vow-dash-stat-mini-label {
-    @apply text-[10px] font-medium uppercase tracking-wider text-slate-600;
+    @apply text-[11px] font-medium uppercase tracking-wider text-stone-500;
   }
 
   .vow-dash-stat-mini-value {
-    @apply mt-1 text-2xl font-bold tabular-nums text-slate-200 sm:text-3xl;
+    @apply mt-1 text-2xl font-bold tabular-nums text-brand-900 sm:text-3xl;
   }
 
   /* Muted copy on dashboard — custom class only (do not target .text-slate-* utilities; Tailwind circular dep) */
   .vow-dash-muted {
-    color: #94a3b8;
+    color: #57534e;
   }
 
   .vow-dash-kpi {
@@ -714,11 +725,11 @@
   }
 
   .vow-dash-kpi-clickable {
-    @apply w-full cursor-pointer hover:border-white/10 hover:bg-white/[0.03];
+    @apply w-full cursor-pointer hover:border-brand-300/70 hover:shadow-[0_12px_32px_rgb(61_50_40/0.1)];
   }
 
   .vow-dash-kpi-value {
-    @apply text-5xl font-bold tracking-tight text-white tabular-nums sm:text-6xl sm:leading-none;
+    @apply text-5xl font-bold tracking-tight text-brand-900 tabular-nums sm:text-6xl sm:leading-none;
   }
 
   .vow-dash-chart-wrap {
@@ -810,59 +821,68 @@
   }
 
   .vow-dash-table-row {
-    @apply border-b border-white/[0.06] transition hover:bg-white/[0.03];
+    @apply border-b border-brand-200/60 transition hover:bg-brand-50/50;
   }
 
-  .vow-dash .notification-bell-btn {
-    @apply border border-white/10 bg-[#3d3228] text-brand-100 hover:border-brand-400/30 hover:bg-brand-500/10;
+  .vow-dash-main .notification-bell-btn {
+    @apply border border-brand-200 bg-white text-brand-800 hover:border-brand-300 hover:bg-brand-50;
   }
 
-  .vow-dash .notification-dropdown .text-rose-900 {
-    @apply text-rose-300;
+  .vow-dash-main .notification-dropdown {
+    @apply border border-brand-200 bg-white text-brand-900 shadow-elevated;
   }
 
-  .vow-dash .notification-dropdown .text-rose-700 {
-    @apply text-rose-400/90;
+  .vow-dash-main .notification-dropdown .border-slate-100 {
+    @apply border-brand-100;
   }
 
-  .vow-dash .notification-dropdown .text-slate-900 {
-    @apply text-white;
+  .vow-dash-main .notification-item-title {
+    @apply text-stone-700;
   }
 
-  .vow-dash .notification-dropdown .bg-slate-200 {
-    @apply bg-white/10;
+  .vow-dash-main .notification-item-title.is-unread {
+    @apply text-brand-900;
   }
 
-  .vow-dash .notification-dropdown .bg-slate-100 {
-    @apply bg-white/[0.06];
+  .vow-dash-main .notification-item-body {
+    @apply text-stone-600;
   }
 
-  .vow-dash .notification-dropdown {
-    @apply border border-white/10 bg-[#3d3228] text-brand-100;
+  .vow-dash-main .notification-item-time {
+    @apply text-stone-500;
   }
 
-  .vow-dash .notification-dropdown .border-slate-100 {
-    @apply border-white/[0.08];
+  .vow-dash-main .notification-bell-btn svg {
+    @apply text-brand-700;
   }
 
-  .vow-dash .notification-item-title {
-    @apply text-slate-300;
+  /* Settings page typography — larger, landing-aligned */
+  .vow-settings-eyebrow {
+    @apply text-sm font-semibold uppercase tracking-wider text-brand-800;
   }
 
-  .vow-dash .notification-item-title.is-unread {
-    @apply text-white;
+  .vow-settings-label {
+    @apply text-base font-semibold text-brand-950;
   }
 
-  .vow-dash .notification-item-body {
-    @apply text-slate-500;
+  .vow-settings-hint {
+    @apply text-base leading-relaxed text-stone-600;
   }
 
-  .vow-dash .notification-item-time {
-    @apply text-slate-600;
+  .vow-settings-muted {
+    @apply text-base text-stone-500;
   }
 
-  .vow-dash .notification-bell-btn svg {
-    @apply text-slate-300;
+  .vow-settings-input {
+    @apply w-full rounded-xl border border-brand-200/80 bg-white px-4 py-3 text-base text-brand-950 outline-none transition placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+  }
+
+  .vow-settings-block {
+    @apply text-base text-brand-900;
+  }
+
+  .vow-settings-save-bar {
+    @apply rounded-b-2xl;
   }
 }
 
@@ -876,26 +896,10 @@
   }
 
   .vow-dash-settings {
-    color: rgb(226 232 240);
+    color: var(--vow-ink);
   }
 
-  .vow-dash-settings select,
-  .vow-dash-settings select option {
-    color: rgb(15 23 42);
-  }
-
-  .vow-dash-settings .bg-white {
-    color: rgb(15 23 42);
-  }
-
-  .vow-dash-settings .hvac-card-elevated {
-    border-color: rgb(255 255 255 / 0.08);
-    background-color: #3d3228;
-  }
-
-  .vow-dash-settings .hvac-input {
-    border-color: rgb(255 255 255 / 0.1);
-    background-color: #2a221c;
-    color: rgb(245 240 232);
+  .vow-dash-settings .vow-dash-link {
+    @apply text-base font-medium text-brand-800 hover:text-brand-900;
   }
 }

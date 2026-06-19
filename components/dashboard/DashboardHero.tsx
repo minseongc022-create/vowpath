@@ -34,10 +34,10 @@ function HeroStat({
 
   const valueCls =
     accent === "cyan"
-      ? "text-cyan-300"
+      ? "text-brand-800"
       : accent === "rose"
-        ? "text-rose-300"
-        : "text-white";
+        ? "text-rose-700"
+        : "text-brand-950";
 
   return (
     <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-white/[0.05] first:lg:border-l-0">

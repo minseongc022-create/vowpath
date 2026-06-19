@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
 const emptyTech = (): TechMember => ({
   id: crypto.randomUUID(),
@@ -61,9 +62,7 @@ export function TechDispatchSettings() {
   const t = copy(isEnglish);
   const [settings, setSettings] = useState<TechDispatchSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,26 +83,26 @@ export function TechDispatchSettings() {
     void load();
   }, [load]);
 
-  async function save(next: TechDispatchSettings) {
-    setSaving(true);
+  const persist = useCallback(async () => {
+    if (!settings) return false;
     setError(null);
-    setSaved(false);
     try {
       const res = await fetch("/api/shop/tech-dispatch", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify(settings),
       });
       if (!res.ok) throw new Error("Save failed");
       const data = (await res.json()) as { settings: TechDispatchSettings };
       setSettings(data.settings);
-      setSaved(true);
+      return true;
     } catch {
       setError(t.saveError);
-    } finally {
-      setSaving(false);
+      return false;
     }
-  }
+  }, [settings, t.saveError]);
+
+  useSettingsSaveRegistration("tech-dispatch", persist, !loading && Boolean(settings));
 
   if (loading) {
     return <p className="text-sm text-slate-500">{t.loading}</p>;
@@ -125,19 +124,19 @@ export function TechDispatchSettings() {
   };
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 sm:p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t.badge}</p>
-      <h3 className="mt-1 text-lg font-semibold text-slate-900">{t.title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{t.body}</p>
+    <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
+      <p className="vow-settings-eyebrow">{t.badge}</p>
+      <h3 className="mt-1 text-xl font-semibold text-brand-950">{t.title}</h3>
+      <p className="vow-settings-hint mt-2">{t.body}</p>
 
-      <label className="mt-4 flex items-center gap-3">
+      <label className="mt-5 flex items-center gap-3">
         <input
           type="checkbox"
           checked={settings.enabled}
           onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-5 w-5 rounded border-stone-300"
         />
-        <span className="text-sm font-medium text-slate-800">{t.enable}</span>
+        <span className="vow-settings-label">{t.enable}</span>
       </label>
 
       {settings.enabled ? (
@@ -149,12 +148,12 @@ export function TechDispatchSettings() {
               onChange={(e) => setSettings({ ...settings, p1SeniorOnly: e.target.checked })}
               className="h-4 w-4 rounded border-slate-300"
             />
-            <span className="text-sm text-slate-700">{t.p1Senior}</span>
+            <span className="text-base text-stone-700">{t.p1Senior}</span>
           </label>
 
           <div>
-            <p className="text-sm font-medium text-slate-800">{t.techsLabel}</p>
-            <p className="text-xs text-slate-500">{t.techsHint}</p>
+            <p className="vow-settings-label">{t.techsLabel}</p>
+            <p className="vow-settings-hint mt-1">{t.techsHint}</p>
             <div className="mt-3 space-y-3">
               {settings.techs.map((tech) => (
                 <div
@@ -166,14 +165,14 @@ export function TechDispatchSettings() {
                     placeholder={t.namePh}
                     value={tech.name}
                     onChange={(e) => updateTech(tech.id, { name: e.target.value })}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="vow-settings-input"
                   />
                   <input
                     type="tel"
                     placeholder={t.phonePh}
                     value={tech.phone}
                     onChange={(e) => updateTech(tech.id, { phone: e.target.value })}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="vow-settings-input"
                   />
                   <label className="flex items-center gap-2 text-xs text-slate-600">
                     <input
@@ -206,18 +205,7 @@ export function TechDispatchSettings() {
         </div>
       ) : null}
 
-      <div className="mt-5 flex items-center gap-3">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => void save(settings)}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-        >
-          {saving ? t.saving : t.save}
-        </button>
-        {saved ? <span className="text-sm text-emerald-600">{t.saved}</span> : null}
-        {error ? <span className="text-sm text-red-500">{error}</span> : null}
-      </div>
+      {error ? <p className="mt-4 text-base text-red-600">{error}</p> : null}
     </div>
   );
 }

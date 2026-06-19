@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AgreementKeeperSettings as AgreementKeeperSettingsData } from "@/lib/agreements/types";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
 export function AgreementKeeperSettingsEditor() {
   const settingsPage = useSettingsPage();
   const copy = settingsPage.agreementKeeper;
   const [settings, setSettings] = useState<AgreementKeeperSettingsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/shop/agreements/settings")
@@ -21,42 +20,34 @@ export function AgreementKeeperSettingsEditor() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function save() {
-    if (!settings) return;
-    setSaving(true);
-    setSaved(false);
+  const persist = useCallback(async () => {
+    if (!settings) return false;
     try {
       const res = await fetch("/api/shop/agreements/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      if (res.ok) {
-        const json = await res.json();
-        setSettings(json.settings);
-        setSaved(true);
-      }
-    } finally {
-      setSaving(false);
+      if (!res.ok) return false;
+      const json = await res.json();
+      setSettings(json.settings);
+      return true;
+    } catch {
+      return false;
     }
-  }
+  }, [settings]);
+
+  useSettingsSaveRegistration("agreements", persist, !loading && Boolean(settings));
 
   if (loading || !settings) {
     return <p className="text-sm text-stone-600">{copy.loading}</p>;
   }
 
   return (
-    <section id="agreements" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-stone-900">{copy.title}</h2>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-600">{copy.summary}</p>
-        </div>
-        {saved ? (
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            {copy.saved}
-          </span>
-        ) : null}
+    <section id="agreements" className="vow-settings-block scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5">
+      <div>
+        <h2 className="text-2xl font-semibold text-brand-950">{copy.title}</h2>
+        <p className="vow-settings-hint mt-2 max-w-2xl">{copy.summary}</p>
       </div>
 
       <label className="mt-6 flex items-center gap-3">
@@ -64,9 +55,9 @@ export function AgreementKeeperSettingsEditor() {
           type="checkbox"
           checked={settings.enabled}
           onChange={(e) => setSettings((s) => s && { ...s, enabled: e.target.checked })}
-          className="h-4 w-4 rounded border-stone-300"
+          className="h-5 w-5 rounded border-stone-300"
         />
-        <span className="text-sm font-medium text-stone-800">{copy.enabledLabel}</span>
+        <span className="vow-settings-label">{copy.enabledLabel}</span>
       </label>
 
       <label className="mt-4 flex items-center gap-3">
@@ -76,27 +67,27 @@ export function AgreementKeeperSettingsEditor() {
           onChange={(e) =>
             setSettings((s) => s && { ...s, offerAfterJobComplete: e.target.checked })
           }
-          className="h-4 w-4 rounded border-stone-300"
+          className="h-5 w-5 rounded border-stone-300"
         />
-        <span className="text-sm text-stone-700">{copy.offerAfterComplete}</span>
+        <span className="text-base text-stone-700">{copy.offerAfterComplete}</span>
       </label>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="font-medium text-stone-700">{copy.defaultPlan}</span>
+        <label className="block">
+          <span className="vow-settings-label">{copy.defaultPlan}</span>
           <input
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2"
+            className="vow-settings-input mt-2"
             value={settings.defaultPlanName}
             onChange={(e) =>
               setSettings((s) => s && { ...s, defaultPlanName: e.target.value })
             }
           />
         </label>
-        <label className="block text-sm">
-          <span className="font-medium text-stone-700">{copy.defaultPrice}</span>
+        <label className="block">
+          <span className="vow-settings-label">{copy.defaultPrice}</span>
           <input
             type="number"
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2"
+            className="vow-settings-input mt-2"
             value={settings.defaultAnnualPriceCents / 100}
             onChange={(e) =>
               setSettings((s) => s && {
@@ -106,12 +97,12 @@ export function AgreementKeeperSettingsEditor() {
             }
           />
         </label>
-        <label className="block text-sm">
-          <span className="font-medium text-stone-700">{copy.visitsPerYear}</span>
+        <label className="block">
+          <span className="vow-settings-label">{copy.visitsPerYear}</span>
           <input
             type="number"
             min={1}
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2"
+            className="vow-settings-input mt-2"
             value={settings.defaultVisitsPerYear}
             onChange={(e) =>
               setSettings((s) => s && {
@@ -121,12 +112,12 @@ export function AgreementKeeperSettingsEditor() {
             }
           />
         </label>
-        <label className="block text-sm">
-          <span className="font-medium text-stone-700">{copy.offerExpires}</span>
+        <label className="block">
+          <span className="vow-settings-label">{copy.offerExpires}</span>
           <input
             type="number"
             min={1}
-            className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2"
+            className="vow-settings-input mt-2"
             value={settings.offerExpiresDays}
             onChange={(e) =>
               setSettings((s) => s && {
@@ -138,16 +129,7 @@ export function AgreementKeeperSettingsEditor() {
         </label>
       </div>
 
-      <p className="mt-4 text-xs text-stone-500">{copy.reminderHint}</p>
-
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={saving}
-        className="mt-6 rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-900 disabled:opacity-60"
-      >
-        {saving ? copy.saving : copy.save}
-      </button>
+      <p className="vow-settings-hint mt-4">{copy.reminderHint}</p>
     </section>
   );
 }

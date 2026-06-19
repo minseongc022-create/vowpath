@@ -11,6 +11,12 @@ import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKe
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveStep } from "@/components/settings/GoLiveStep";
+import {
+  SettingsSaveProvider,
+  useSettingsSaveAll,
+  useSettingsSaveRegistration,
+} from "@/components/settings/SettingsSaveContext";
+import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
@@ -48,8 +54,26 @@ export function SettingsView({
   paid?: boolean;
   sessionId?: string;
 }) {
+  return (
+    <SettingsSaveProvider>
+      <SettingsViewBody paid={paidProp} sessionId={sessionId} />
+    </SettingsSaveProvider>
+  );
+}
+
+function SettingsViewBody({
+  paid: paidProp,
+  sessionId,
+}: {
+  paid?: boolean;
+  sessionId?: string;
+}) {
   const settingsPage = useSettingsPage();
   const router = useRouter();
+  const saveAll = useSettingsSaveAll();
+  const [saveBarSaving, setSaveBarSaving] = useState(false);
+  const [saveBarSaved, setSaveBarSaved] = useState(false);
+  const [saveBarError, setSaveBarError] = useState<string | null>(null);
 
   const { shop, setShop, refresh } = useShopState();
   const [alwaysOn, setAlwaysOn] = useState(() =>
@@ -139,14 +163,6 @@ export function SettingsView({
     if (confirmed.length > 0) setConfirmed([]);
   }
 
-  async function handleScheduleConfirm() {
-    if (!canConfirm || !contactComplete) return;
-    const next = await saveSchedule(shop, rows, true, alwaysOn);
-    setShop(next);
-    await refresh();
-    setConfirmed(next.scheduleWindows.map((w) => w.label));
-  }
-
   async function handleJobberConfirm() {
     if (!jobberConnected) return;
     const next = await markJobberConfirmed(shop);
@@ -160,10 +176,48 @@ export function SettingsView({
     await refresh();
   }
 
-  async function handleForwardingConfirm() {
+  const persistSchedule = useCallback(async () => {
+    if (!contactComplete || !canConfirm) return true;
+    if (shop.answerScheduleActive && confirmed.length > 0) return true;
+    const next = await saveSchedule(shop, rows, true, alwaysOn);
+    setShop(next);
+    await refresh();
+    setConfirmed(next.scheduleWindows.map((w) => w.label));
+    return true;
+  }, [
+    alwaysOn,
+    canConfirm,
+    confirmed.length,
+    contactComplete,
+    refresh,
+    rows,
+    setShop,
+    shop,
+  ]);
+
+  const persistForwarding = useCallback(async () => {
+    if (!contactComplete || shop.forwardingDone) return true;
     const next = await markForwardingDone(shop, forwardingPrefs);
     setShop(next);
     await refresh();
+    return true;
+  }, [contactComplete, forwardingPrefs, refresh, setShop, shop]);
+
+  useSettingsSaveRegistration("schedule", persistSchedule);
+  useSettingsSaveRegistration("forwarding", persistForwarding);
+
+  async function handleSaveAll() {
+    setSaveBarSaving(true);
+    setSaveBarSaved(false);
+    setSaveBarError(null);
+    const result = await saveAll();
+    setSaveBarSaving(false);
+    if (result.ok) {
+      setSaveBarSaved(true);
+      await refreshContact();
+    } else {
+      setSaveBarError(settingsPage.saveAllError);
+    }
   }
 
   const jobberLinked = jobberConnected;
@@ -197,15 +251,11 @@ export function SettingsView({
 
       <section
         id="product-settings"
-        className="scroll-mt-6 rounded-2xl border border-brand-300/50 bg-gradient-to-br from-brand-50/90 to-white p-5 shadow-card sm:p-6"
+        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
-            {settingsPage.productSectionTitle}
-          </p>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-            {settingsPage.productSectionSubtitle}
-          </p>
+          <p className="vow-settings-eyebrow">{settingsPage.productSectionTitle}</p>
+          <p className="vow-settings-hint mt-2 max-w-2xl">{settingsPage.productSectionSubtitle}</p>
         </div>
 
         <div className="mt-6 space-y-6">
@@ -215,17 +265,8 @@ export function SettingsView({
           <div id="booking-settings" className="scroll-mt-24">
             <BookingSettingsEditor />
           </div>
-          <section
-            id="tech-dispatch"
-            className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {settingsPage.techDispatchTitle}
-            </p>
-            <p className="mt-1 text-sm text-slate-600">{settingsPage.techDispatchSummary}</p>
-            <div className="mt-4">
-              <TechDispatchSettings />
-            </div>
+          <section id="tech-dispatch" className="scroll-mt-24">
+            <TechDispatchSettings />
           </section>
           <AgreementKeeperSettingsEditor />
         </div>
@@ -233,12 +274,8 @@ export function SettingsView({
 
       <section id="go-live" className="scroll-mt-6 space-y-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {settingsPage.goLiveSectionTitle}
-          </p>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            {settingsPage.goLiveSectionSubtitle}
-          </p>
+          <p className="vow-settings-eyebrow">{settingsPage.goLiveSectionTitle}</p>
+          <p className="vow-settings-hint mt-2 max-w-2xl">{settingsPage.goLiveSectionSubtitle}</p>
         </div>
 
         <div
@@ -307,18 +344,10 @@ export function SettingsView({
               <p className="mt-3 text-xs text-amber-800">{settingsPage.scheduleValidation}</p>
             ) : null}
             {confirmed.length > 0 ? (
-              <p className="mt-3 text-sm font-medium text-emerald-800">
+              <p className="mt-3 text-base font-medium text-emerald-800">
                 {settingsPage.scheduleConfirmed}
               </p>
             ) : null}
-            <button
-              type="button"
-              disabled={!canConfirm || !contactComplete}
-              onClick={handleScheduleConfirm}
-              className="hvac-btn-primary mt-4 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {settingsPage.scheduleConfirm}
-            </button>
           </GoLiveStep>
 
           <GoLiveStep
@@ -339,7 +368,7 @@ export function SettingsView({
               initialScenario={shop.forwardingScenario ?? "overflow"}
               initialProvider={shop.forwardingProvider ?? "dialpad"}
               onPreferencesChange={setForwardingPrefs}
-              onConfirm={handleForwardingConfirm}
+              batchSave
             />
           </GoLiveStep>
 
@@ -409,6 +438,13 @@ export function SettingsView({
           </GoLiveStep>
         </div>
       </section>
+
+      <SettingsSaveBar
+        saving={saveBarSaving}
+        saved={saveBarSaved}
+        error={saveBarError}
+        onSave={() => void handleSaveAll()}
+      />
 
       <button
         type="button"

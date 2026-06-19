@@ -337,11 +337,11 @@ export function DashboardShell({
 
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
-        <div className="border-b border-white/[0.06] bg-[#3d3228] px-4 py-3 lg:hidden">
+        <div className="border-b border-brand-200/80 bg-white/90 px-4 py-3 backdrop-blur-sm lg:hidden">
 
           <div className="flex items-center justify-between gap-3">
 
-            <BrandLogo variant="light" size="sm" href={ROUTES.dashboard} />
+            <BrandLogo variant="dark" size="sm" href={ROUTES.dashboard} />
 
             <div className="flex gap-2 overflow-x-auto">
 
@@ -355,13 +355,13 @@ export function DashboardShell({
 
                   prefetch
 
-                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold ${
 
                     item.match(pathname)
 
-                      ? "bg-brand-500/20 text-brand-200"
+                      ? "bg-brand-100 text-brand-900"
 
-                      : "text-slate-400"
+                      : "text-stone-600"
 
                   }`}
 

@@ -15,7 +15,8 @@ import {
 
 type ForwardingSetupProps = {
   confirmed: boolean;
-  onConfirm: () => void;
+  onConfirm?: () => void;
+  batchSave?: boolean;
   confirmDisabled?: boolean;
   initialScenario?: LegacyForwardingScenarioId;
   initialProvider?: ForwardingProviderId;
@@ -37,6 +38,7 @@ function formatPhoneDisplay(e164: string): string {
 export function ForwardingSetup({
   confirmed,
   onConfirm,
+  batchSave = false,
   confirmDisabled = false,
   initialScenario: rawInitialScenario = "overflow",
   initialProvider = "dialpad",
@@ -265,15 +267,17 @@ export function ForwardingSetup({
       </div>
 
       {confirmed ? (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold text-emerald-900">
           {settingsPage.phoneConfirmed}
         </p>
+      ) : batchSave ? (
+        <p className="text-base text-stone-600">{settingsPage.saveAllHint}</p>
       ) : (
         <button
           type="button"
           disabled={confirmDisabled || !phoneNumber}
           onClick={onConfirm}
-          className="hvac-btn-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          className="hvac-btn-primary w-full px-4 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
         >
           {settingsPage.phoneConfirm}
         </button>

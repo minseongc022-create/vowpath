@@ -40,36 +40,34 @@ export function GoLiveStep({
   return (
     <section
       className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-        done ? "border-emerald-200" : "border-slate-200"
+        done ? "border-emerald-200" : "border-brand-200/70"
       }`}
     >
       <div
         className={`flex flex-wrap items-start justify-between gap-3 border-b px-5 py-4 sm:px-6 ${
-          done ? "border-emerald-100 bg-emerald-50/60" : "border-slate-100 bg-slate-50/80"
+          done ? "border-emerald-100 bg-emerald-50/60" : "border-brand-100 bg-brand-50/40"
         }`}
       >
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {step}
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">{description}</p>
+          <p className="vow-settings-eyebrow">{step}</p>
+          <h3 className="mt-1 text-xl font-semibold text-brand-950">{title}</h3>
+          <p className="vow-settings-hint mt-2">{description}</p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+          className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold ${
             done
               ? "bg-emerald-100 text-emerald-800"
               : skipped
-                ? "bg-slate-100 text-slate-600"
+                ? "bg-stone-100 text-stone-600"
                 : optional
-                  ? "bg-brand-50 text-brand-800"
+                  ? "bg-brand-100 text-brand-800"
                   : "bg-amber-100 text-amber-900"
           }`}
         >
           {statusLabel}
         </span>
       </div>
-      <div className="px-5 py-5 sm:px-6">{children}</div>
+      <div className="px-5 py-5 text-base sm:px-6">{children}</div>
     </section>
   );
 }
