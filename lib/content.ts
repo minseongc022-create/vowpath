@@ -582,6 +582,11 @@ const settingsPageKo = {
   serviceAreaZipsPlaceholder: "78701, 78702",
   techDispatchTitle: "기사 배치",
   techDispatchNav: "기사 배치",
+  saveAllButton: "모든 설정 저장",
+  saveAllSaving: "설정 저장 중…",
+  saveAllSuccess: "모든 설정이 저장되었습니다.",
+  saveAllHint: "위에서 바꾼 뒤, 맨 아래에서 한 번에 저장하세요.",
+  saveAllError: "일부 설정을 저장하지 못했습니다. 입력값을 확인하고 다시 시도하세요.",
   bookingNav: "예약 설정",
   techDispatchSummary:
     "예약 확정 시 기사에게 문자로 순차 제안합니다. 1=수락, 2=패스. 한 명씩만 연락합니다.",

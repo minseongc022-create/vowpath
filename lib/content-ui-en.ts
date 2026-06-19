@@ -68,6 +68,11 @@ export const settingsPageEn = {
   serviceAreaZipsLabel: "ZIP codes you serve",
   techDispatchTitle: "Crew assignment",
   techDispatchNav: "Crew assign",
+  saveAllButton: "Save all settings",
+  saveAllSaving: "Saving all settings…",
+  saveAllSuccess: "All settings saved.",
+  saveAllHint: "Change anything above, then save once here.",
+  saveAllError: "Could not save everything. Check the fields and try again.",
   bookingNav: "Booking",
   techDispatchSummary:
     "On confirm, Vowpath texts one tech at a time (round-robin). Reply 1=accept, 2=pass.",
