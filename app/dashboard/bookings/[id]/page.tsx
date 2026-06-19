@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function BookingDetailPage({ params }: PageProps) {
   const { id } = await params;
-  return <BookingDetailContent bookingId={id} variant="dark" />;
+  return <BookingDetailContent bookingId={id} />;
 }

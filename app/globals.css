@@ -690,7 +690,10 @@
   .vow-dash-main .vow-dash-kpi .text-white,
   .vow-dash-main .vow-dash-hero .text-white,
   .vow-dash-main .booking-detail-card .text-white,
-  .vow-dash-main .booking-detail-hero .text-white {
+  .vow-dash-main .booking-detail-hero .text-white,
+  .vow-dash-main h1.text-white,
+  .vow-dash-main h2.text-white,
+  .vow-dash-main h3.text-white {
     color: var(--vow-ink) !important;
   }
 

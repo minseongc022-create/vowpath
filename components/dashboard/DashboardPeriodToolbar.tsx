@@ -28,7 +28,7 @@ export function DashboardPeriodToolbar({
   activePreset,
   onPresetChange,
   presets,
-  dark = true,
+  dark = false,
   className = "",
 }: DashboardPeriodToolbarProps) {
   return (

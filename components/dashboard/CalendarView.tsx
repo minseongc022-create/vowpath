@@ -228,7 +228,7 @@ function SidePanel({
   if (!selectedDay) {
     return (
       <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-brand-200/70 bg-stone-50 p-6 text-center">
-        <p className="text-sm text-stone-500">{labels.selectDay}</p>
+        <p className="text-sm text-stone-600">{labels.selectDay}</p>
       </div>
     );
   }
@@ -404,7 +404,7 @@ export function CalendarView() {
                   <p
                     className={`mb-1 text-right text-xs font-semibold ${
                       isToday
-                        ? "inline-flex float-right h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-slate-950"
+                        ? "font-bold text-black"
                         : inMonth
                           ? "text-stone-500"
                           : "text-stone-400"
@@ -414,11 +414,11 @@ export function CalendarView() {
                   </p>
                   <div className="clear-both flex min-h-[2rem] flex-col items-center justify-center">
                     {hasEvents ? (
-                      <span className="rounded-full bg-brand-500/25 px-2 py-0.5 text-[10px] font-semibold text-brand-100 sm:text-xs">
+                      <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white sm:text-xs">
                         {c.eventCount(dayEvents.length)}
                       </span>
                     ) : inMonth ? (
-                      <span className="hidden text-[10px] text-slate-600 sm:block">{c.noEventsDay}</span>
+                      <span className="hidden text-[10px] text-stone-400 sm:block">{c.noEventsDay}</span>
                     ) : null}
                   </div>
                 </button>

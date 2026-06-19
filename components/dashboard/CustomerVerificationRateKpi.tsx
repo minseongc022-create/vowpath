@@ -17,7 +17,7 @@ type CustomerVerificationRateKpiProps = {
 export function CustomerVerificationRateKpi({
   records,
   loading,
-  dark = true,
+  dark = false,
   onClick,
 }: CustomerVerificationRateKpiProps) {
   const copy = dashboardUi.customerVerificationKpi;

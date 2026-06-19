@@ -64,7 +64,7 @@ export function TrendKpiCards({
   daily,
   periodLabel,
   loading,
-  dark = true,
+  dark = false,
 }: TrendKpiCardsProps) {
   const totals = sumTrendSeriesTotals(daily);
 

@@ -63,10 +63,10 @@ function OwnerKpiCard({
       >
         {value}
       </p>
-      <p className={`mt-1 text-sm ${dark ? "vow-dash-muted" : "text-slate-500"}`}>
+      <p className={`mt-1 text-sm ${dark ? "vow-dash-muted" : "text-stone-600"}`}>
         {shortHint}
       </p>
-      <p className={`mt-2 text-xs ${dark ? "text-stone-500" : "text-slate-400"}`}>
+      <p className={`mt-2 text-xs ${dark ? "text-stone-500" : "text-stone-500"}`}>
         {periodLabel}
       </p>
     </button>
@@ -78,7 +78,7 @@ export function OwnerKpiCards({
   periodLabel,
   waitingCustomersNow,
   loading,
-  dark = true,
+  dark = false,
   onCardClick,
 }: OwnerKpiCardsProps) {
   const totals = sumTrendSeriesTotals(daily);
