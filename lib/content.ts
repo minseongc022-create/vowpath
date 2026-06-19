@@ -550,15 +550,21 @@ const settingsPageKo = {
     "지금은 P1·P2·P3 모두 바로 확정 중입니다. 일부만 자동으로 두려면 하이브리드를 선택하세요.",
   bookingModeControlDesc:
     "고객이 시간을 골라도 항상 사장님 승인 후에만 확정됩니다. 문자로 1=승인 · 2=거절로 결정합니다.",
-  visitTimingTitle: "방문 시간 규칙",
+  visitTimingTitle: "예약 간격",
   visitTimingHint:
-    "한 번 방문에 걸리는 시간, 다음 예약 전에 비울 시간, 같은 시간에 받을 수 있는 건수를 정합니다.",
-  defaultDurationLabel: "방문 시간 (분)",
-  defaultDurationHint: "예: 120이면 1시 작업은 2시간 동안 일정에 잡힙니다.",
-  slotBufferLabel: "다음 예약 전 쉬는 시간 (분)",
-  slotBufferHint:
-    "이전 방문이 끝난 뒤, 그만큼 비운 다음에만 다음 예약을 받습니다. 예: 45면 종료 후 45분 뒤부터 가능.",
-  maxConcurrentVisitsLabel: "동시에 받을 수 있는 예약 (건)",
+    "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
+  appointmentIntervalLabel: "예약 간격",
+  appointmentIntervalHint:
+    "한 번 예약하면 그 시간만큼 일정에 잡히고, 다음 예약은 정확히 그 간격 뒤부터 열립니다.",
+  appointmentIntervalExample: (hours: number, minutes: number) =>
+    minutes > 0
+      ? `예: 8시 예약 → 다음은 ${8 + hours}시 ${minutes}분 (${hours}시간 ${minutes}분 간격).`
+      : `예: 8시 예약 → 다음은 ${8 + hours}시 (${hours}시간 간격).`,
+  appointmentIntervalPresets: ["1시간", "1.5시간", "2시간", "3시간"] as const,
+  teamCapacityTitle: "동시에 여러 팀 (선택)",
+  teamCapacityHint:
+    "기사 1명이면 1로 두세요. 같은 시각에 서로 다른 작업을 여러 팀이 동시에 할 수 있을 때만 올리면 됩니다.",
+  maxConcurrentVisitsLabel: "같은 시간에 받을 수 있는 예약 (건)",
   maxConcurrentVisitsHint:
     "같은 시간대에 몇 건까지 받을지 정합니다. 예: 기사 3명이면 3까지 설정.",
   undoWindowLabel: "자동 확정 취소 가능 시간 (분)",

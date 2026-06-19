@@ -39,14 +39,20 @@ export const settingsPageEn = {
     "All urgencies auto-book right now (same as Auto Book). Pick Hybrid to approve some by hand.",
   bookingModeControlDesc:
     "Every pick waits for you. Text 1 to approve or 2 to pass.",
-  visitTimingTitle: "Calendar rules",
+  visitTimingTitle: "Appointment spacing",
   visitTimingHint:
-    "These three numbers control which time slots customers see.",
-  defaultDurationLabel: "Job length (minutes)",
-  defaultDurationHint: "Example: 120 = a 2-hour block for one visit.",
-  slotBufferLabel: "Gap after each job (minutes)",
-  slotBufferHint:
-    "Empty time after a visit ends before the next slot opens. Example: 45 = 45-minute buffer.",
+    "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
+  appointmentIntervalLabel: "Time between visits",
+  appointmentIntervalHint:
+    "Each slot lasts this long. The next open time starts exactly this many minutes after the previous one.",
+  appointmentIntervalExample: (hours: number, minutes: number) =>
+    minutes > 0
+      ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`
+      : `Example: first visit at 8:00 AM → next at ${8 + hours}:00 AM (${hours}-hour spacing).`,
+  appointmentIntervalPresets: ["1 hr", "1.5 hr", "2 hr", "3 hr"] as const,
+  teamCapacityTitle: "Multiple crews at once (optional)",
+  teamCapacityHint:
+    "Leave at 1 for a single crew. Raise only if several technicians can take different jobs at the same clock time.",
   maxConcurrentVisitsLabel: "Jobs at the same time",
   maxConcurrentVisitsHint:
     "How many visits your team can run in the same window. 3 crews: set 3.",

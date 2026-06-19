@@ -177,6 +177,16 @@ export function legacyBookingModeToScheduling(
   return "hybrid";
 }
 
+/** Spacing between offered visit times (visit length = interval; buffer cleared in UI). */
+export function appointmentIntervalMinutes(settings: Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes">): number {
+  return Math.max(15, settings.defaultDurationMinutes + settings.slotBufferMinutes);
+}
+
+export function patchAppointmentInterval(intervalMinutes: number): Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes"> {
+  const interval = Math.min(720, Math.max(15, Math.round(intervalMinutes)));
+  return { defaultDurationMinutes: interval, slotBufferMinutes: 0 };
+}
+
 export {
   AUTO_BOOK_CONFIDENCE_MIN,
   confidenceMinFromFields,

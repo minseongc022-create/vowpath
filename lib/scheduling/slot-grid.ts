@@ -65,7 +65,7 @@ function countBlockingOverlaps(
   }).length;
 }
 
-/** Step size for calendar grid (30-minute ticks within business windows). */
+/** Grid step size (minutes) — kept for tests; slots step by full appointment interval. */
 const GRID_STEP_MINUTES = 30;
 
 export function computeSlotGrid(params: {
@@ -79,10 +79,11 @@ export function computeSlotGrid(params: {
   const { settings, busyBlocks, priority, source } = params;
   const now = params.now ?? new Date();
   const horizon = params.horizonDays ?? 14;
-  const durationMs = settings.defaultDurationMinutes * 60_000;
-  const bufferMs = settings.slotBufferMinutes * 60_000;
+  const intervalMs = Math.max(15, settings.defaultDurationMinutes + settings.slotBufferMinutes) * 60_000;
+  const durationMs = intervalMs;
+  const bufferMs = 0;
   const capacity = Math.max(1, Math.round(settings.maxConcurrentVisits));
-  const stepMs = GRID_STEP_MINUTES * 60_000;
+  const stepMs = intervalMs;
   const startDayOffset = priority === "P1" ? 0 : 1;
   const minLeadMs = 60 * 60_000;
 
@@ -146,8 +147,8 @@ export function computeSlotGrid(params: {
   const days = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   return {
     days,
-    durationMinutes: settings.defaultDurationMinutes,
-    bufferMinutes: settings.slotBufferMinutes,
+    durationMinutes: Math.round(intervalMs / 60_000),
+    bufferMinutes: 0,
     maxConcurrentVisits: capacity,
   };
 }

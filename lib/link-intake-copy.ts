@@ -47,14 +47,18 @@ export const linkIntakePageCopy = {
   urgencyLabel: "Urgency",
   slotStepTitle: "Pick a visit time",
   slotStepDescription: "Choose a date, then tap an open time. Unavailable slots are grayed out.",
-  slotCalendarHint: (durationMin: number, bufferMin: number, capacity: number) => {
-    const base = `Each visit is about ${durationMin} minutes. ${
-      bufferMin > 0
-        ? `Exactly ${bufferMin} minutes are reserved after each visit ends before the next slot opens.`
-        : "Pick any open slot."
-    }`;
+  slotCalendarHint: (intervalMin: number, _bufferMin: number, capacity: number) => {
+    const hours = Math.floor(intervalMin / 60);
+    const mins = intervalMin % 60;
+    const spacing =
+      mins > 0
+        ? `${hours > 0 ? `${hours} hr ` : ""}${mins} min apart`
+        : `${hours}-hour spacing`;
+    const base = `Visit times are ${spacing} (e.g. 8:00 AM, then the next open slot after that).`;
     const team =
-      capacity > 1 ? " Some overlapping times may be available when the team has capacity." : "";
+      capacity > 1
+        ? " Some overlapping times may show when multiple crews are free."
+        : "";
     return `${base}${team}`.trim();
   },
   slotDayLabel: (weekday: string) => `Times on ${weekday}`,

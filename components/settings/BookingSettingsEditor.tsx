@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ALL_JOB_PRIORITIES,
+  appointmentIntervalMinutes,
   mergeShopBookingSettings,
+  patchAppointmentInterval,
   type OwnerApprovalSms,
   type SchedulingMode,
   type ShopBookingSettings,
@@ -11,6 +13,8 @@ import {
 import type { JobPriority } from "@/lib/types";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
+
+const INTERVAL_PRESET_MINUTES = [60, 90, 120, 180] as const;
 
 export function BookingSettingsEditor() {
   const settingsPage = useSettingsPage();
@@ -20,6 +24,8 @@ export function BookingSettingsEditor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [intervalDraft, setIntervalDraft] = useState("120");
+  const [showTeamCapacity, setShowTeamCapacity] = useState(false);
 
   const modeLabels = useMemo<Record<SchedulingMode, string>>(
     () =>
@@ -62,6 +68,10 @@ export function BookingSettingsEditor() {
       const data = (await res.json()) as { settings?: ShopBookingSettings; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Could not load settings.");
       setSettings(mergeShopBookingSettings(data.settings));
+      if (data.settings) {
+        setIntervalDraft(String(appointmentIntervalMinutes(data.settings)));
+        setShowTeamCapacity((data.settings.maxConcurrentVisits ?? 1) > 1);
+      }
     } catch (e) {
       const msg =
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
@@ -80,8 +90,11 @@ export function BookingSettingsEditor() {
     void load();
   }, [load]);
 
-  async function patch(partial: Partial<ShopBookingSettings>) {
+  async function patch(partial: Partial<ShopBookingSettings>, optimistic?: Partial<ShopBookingSettings>) {
     if (!settings) return;
+    if (optimistic) {
+      setSettings(mergeShopBookingSettings({ ...settings, ...optimistic }));
+    }
     setSaving(true);
     setSaved(false);
     setError(null);
@@ -97,9 +110,14 @@ export function BookingSettingsEditor() {
       );
       const data = (await res.json()) as { settings?: ShopBookingSettings; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Could not save settings.");
-      setSettings(mergeShopBookingSettings(data.settings ?? { ...settings, ...partial }));
+      const next = mergeShopBookingSettings(data.settings ?? { ...settings, ...partial });
+      setSettings(next);
+      setIntervalDraft(String(appointmentIntervalMinutes(next)));
       setSaved(true);
     } catch (e) {
+      if (optimistic) {
+        void load();
+      }
       const msg =
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
           ? clientFetchTimeoutMessage("Save request timed out.")
@@ -110,6 +128,17 @@ export function BookingSettingsEditor() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function selectMode(mode: SchedulingMode) {
+    if (!settings || settings.schedulingMode === mode) return;
+    void patch({ schedulingMode: mode }, { schedulingMode: mode });
+  }
+
+  function saveInterval(raw: string) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 15 || n > 720) return;
+    void patch(patchAppointmentInterval(n));
   }
 
   function toggleHybridPriority(priority: JobPriority) {
@@ -146,6 +175,9 @@ export function BookingSettingsEditor() {
 
   const isHybridMode = settings.schedulingMode === "hybrid";
   const showUndoWindow = settings.schedulingMode !== "control";
+  const intervalMinutes = appointmentIntervalMinutes(settings);
+  const intervalHours = Math.floor(intervalMinutes / 60);
+  const intervalMins = intervalMinutes % 60;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card space-y-4">
@@ -178,13 +210,12 @@ export function BookingSettingsEditor() {
             <button
               key={mode}
               type="button"
-              disabled={saving}
-              onClick={() => void patch({ schedulingMode: mode })}
+              onClick={() => selectMode(mode)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 settings.schedulingMode === mode
                   ? "bg-brand-600 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              } disabled:cursor-not-allowed disabled:opacity-50`}
+              }`}
             >
               {modeLabels[mode]}
             </button>
@@ -257,65 +288,100 @@ export function BookingSettingsEditor() {
       ) : null}
 
       {settings.schedulingEnabled ? (
-        <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
-          <p className="text-sm font-medium text-slate-900">{settingsPage.visitTimingTitle}</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600">
-            {settingsPage.visitTimingHint}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-800">
-                {settingsPage.defaultDurationLabel}
+        <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4 space-y-4">
+          <div>
+            <p className="text-sm font-medium text-slate-900">{settingsPage.visitTimingTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              {settingsPage.visitTimingHint}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-slate-800">
+              {settingsPage.appointmentIntervalLabel}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">{settingsPage.appointmentIntervalHint}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {INTERVAL_PRESET_MINUTES.map((minutes, i) => (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() => {
+                    setIntervalDraft(String(minutes));
+                    void patch(patchAppointmentInterval(minutes));
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                    intervalMinutes === minutes
+                      ? "bg-brand-600 text-white"
+                      : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {settingsPage.appointmentIntervalPresets[i]}
+                </button>
+              ))}
+            </div>
+            <label className="mt-3 block">
+              <span className="text-xs font-medium text-slate-600">
+                {isEnglish ? "Custom (minutes)" : "직접 입력 (분)"}
               </span>
               <input
                 type="number"
                 min={15}
                 max={720}
                 step={15}
-                value={settings.defaultDurationMinutes}
-                disabled={saving}
-                onChange={(e) => void patch({ defaultDurationMinutes: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                value={intervalDraft}
+                onChange={(e) => setIntervalDraft(e.target.value)}
+                onBlur={() => saveInterval(intervalDraft)}
+                className="mt-1 w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
               />
-              <p className="mt-1 text-xs text-slate-500">{settingsPage.defaultDurationHint}</p>
             </label>
-
-            <label className="block">
-              <span className="text-sm font-medium text-slate-800">
-                {settingsPage.slotBufferLabel}
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={480}
-                step={1}
-                value={settings.slotBufferMinutes}
-                disabled={saving}
-                onChange={(e) => void patch({ slotBufferMinutes: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-              />
-              <p className="mt-1 text-xs text-slate-500">{settingsPage.slotBufferHint}</p>
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-medium text-slate-800">
-                {settingsPage.maxConcurrentVisitsLabel}
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                step={1}
-                value={settings.maxConcurrentVisits}
-                disabled={saving}
-                onChange={(e) => void patch({ maxConcurrentVisits: Number(e.target.value) })}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                {settingsPage.maxConcurrentVisitsHint}
-              </p>
-            </label>
+            <p className="mt-2 text-xs text-brand-800">
+              {settingsPage.appointmentIntervalExample(intervalHours, intervalMins)}
+            </p>
           </div>
+
+          <details
+            open={showTeamCapacity}
+            className="rounded-lg border border-slate-200 bg-white"
+            onToggle={(e) => setShowTeamCapacity((e.target as HTMLDetailsElement).open)}
+          >
+            <summary className="cursor-pointer px-3 py-2.5 text-sm font-medium text-slate-800">
+              {settingsPage.teamCapacityTitle}
+            </summary>
+            <div className="border-t border-slate-100 px-3 py-3">
+              <p className="text-xs leading-relaxed text-slate-600">
+                {settingsPage.teamCapacityHint}
+              </p>
+              <label className="mt-3 block max-w-xs">
+                <span className="text-sm font-medium text-slate-800">
+                  {settingsPage.maxConcurrentVisitsLabel}
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={settings.maxConcurrentVisits}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n) && n >= 1 && n <= 20) {
+                      setSettings({ ...settings, maxConcurrentVisits: n });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n) && n >= 1 && n <= 20) {
+                      void patch({ maxConcurrentVisits: n });
+                    }
+                  }}
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  {settingsPage.maxConcurrentVisitsHint}
+                </p>
+              </label>
+            </div>
+          </details>
         </div>
       ) : null}
 
