@@ -80,7 +80,7 @@ function ActionButton({
   if (!action.href) return null;
   return (
     <Link
-      className="rounded-xl border border-white/10 px-4 py-3 text-center text-sm font-semibold text-slate-200 hover:bg-white/[0.04]"
+      className="rounded-xl border border-brand-200 bg-white px-4 py-3 text-center text-sm font-semibold text-brand-900 hover:bg-brand-50"
       href={action.href}
     >
       {action.label}
@@ -110,21 +110,21 @@ function AdminPreviewCard({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-200">
+    <div className="vow-ai-preview-card">
+      <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">
         {preview.action.type === "create_workflow_rule"
           ? "Automation Rule"
           : "AI Admin Action"}
       </p>
-      <h3 className="mt-2 text-lg font-bold text-white">{preview.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-200">{preview.message}</p>
+      <h3 className="mt-2 text-lg font-bold text-brand-950">{preview.title}</h3>
+      <p className="mt-2 text-base leading-relaxed text-stone-700">{preview.message}</p>
 
       {preview.rows?.length ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {preview.rows.map((row) => (
-            <div key={`${row.label}-${row.value}`} className="rounded-xl bg-black/20 p-3">
-              <p className="text-xs text-slate-500">{row.label}</p>
-              <p className="mt-1 text-sm font-semibold text-white">{row.value}</p>
+            <div key={`${row.label}-${row.value}`} className="vow-ai-row-card">
+              <p className="text-xs font-medium text-stone-500">{row.label}</p>
+              <p className="mt-1 text-sm font-semibold text-brand-950">{row.value}</p>
             </div>
           ))}
         </div>
@@ -132,14 +132,14 @@ function AdminPreviewCard({
 
       {preview.requiresPassword ? (
         <label className="mt-4 block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-wide text-stone-600">
             Password required
           </span>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-brand-500/50"
+            className="vow-ai-input mt-2"
             placeholder="Confirm your password"
           />
         </label>
@@ -150,7 +150,7 @@ function AdminPreviewCard({
           type="button"
           disabled={busy || (preview.requiresPassword && !password)}
           onClick={() => void confirm()}
-          className="min-h-12 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-12 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Saving..." : preview.confirmLabel ?? "Confirm"}
         </button>
@@ -158,7 +158,7 @@ function AdminPreviewCard({
           type="button"
           disabled={busy}
           onClick={() => onCancel(preview)}
-          className="min-h-12 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
+          className="vow-dash-btn-secondary min-h-12 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {preview.cancelLabel ?? "Cancel"}
         </button>
@@ -184,19 +184,19 @@ function BillingCard({ card }: { card: NonNullable<VowpathAiResponse["billingCar
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
+    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
         Billing & Subscription
       </p>
-      <h3 className="mt-2 text-lg font-bold text-white">{card.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-200">{card.description}</p>
+      <h3 className="mt-2 text-lg font-bold text-brand-950">{card.title}</h3>
+      <p className="mt-2 text-base leading-relaxed text-stone-700">{card.description}</p>
 
       {card.rows?.length ? (
         <div className="mt-4 grid gap-2">
           {card.rows.map((row) => (
-            <div key={`${row.label}-${row.value}`} className="rounded-xl bg-black/20 p-3">
-              <p className="text-xs text-slate-500">{row.label}</p>
-              <p className="mt-1 text-sm font-semibold text-white">{row.value}</p>
+            <div key={`${row.label}-${row.value}`} className="vow-ai-row-card">
+              <p className="text-xs font-medium text-stone-500">{row.label}</p>
+              <p className="mt-1 text-sm font-semibold text-brand-950">{row.value}</p>
             </div>
           ))}
         </div>
@@ -210,7 +210,7 @@ function BillingCard({ card }: { card: NonNullable<VowpathAiResponse["billingCar
               type="button"
               disabled={portalLoading}
               onClick={() => void openPortal()}
-              className="min-h-12 rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="vow-dash-btn-primary min-h-12 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {portalLoading ? "Opening..." : action.label}
             </button>
@@ -218,7 +218,7 @@ function BillingCard({ card }: { card: NonNullable<VowpathAiResponse["billingCar
             <Link
               key={`${action.kind}-${action.label}`}
               href={action.href}
-              className="min-h-12 rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950 hover:bg-slate-100"
+              className="vow-dash-btn-secondary min-h-12"
             >
               {action.label}
             </Link>
@@ -247,34 +247,35 @@ function AssistantMessage({
   const fallbackSuggestions = isEnglish ? FALLBACK_SUGGESTIONS_EN : FALLBACK_SUGGESTIONS_KO;
   return (
     <div className="vow-dash-card max-w-3xl p-4 sm:p-5">
-      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-200">
-        {message.answer}
-      </p>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="vow-ai-avatar !h-9 !w-9 !text-base" aria-hidden>
+          🙂
+        </span>
+        <span className="text-sm font-semibold text-brand-800">
+          {isEnglish ? "Vow" : "보우"}
+        </span>
+      </div>
+      <p className="vow-ai-msg-text">{message.answer}</p>
 
       {message.rows?.length ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {message.rows.map((row) => (
-            <div
-              key={`${row.label}-${row.value}`}
-              className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3"
-            >
-              <p className="text-xs text-slate-500">{row.label}</p>
-              <p className="mt-1 text-sm font-semibold text-white">{row.value}</p>
+            <div key={`${row.label}-${row.value}`} className="vow-ai-row-card">
+              <p className="text-xs font-medium text-stone-500">{row.label}</p>
+              <p className="mt-1 text-sm font-semibold text-brand-950">{row.value}</p>
             </div>
           ))}
         </div>
       ) : null}
 
       {message.customer ? (
-        <div className="mt-4 rounded-xl border border-brand-500/20 bg-brand-500/10 p-4">
-          <h3 className="font-semibold text-white">{message.customer.name}</h3>
+        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50/60 p-4">
+          <h3 className="font-semibold text-brand-950">{message.customer.name}</h3>
           <dl className="mt-3 grid gap-3 sm:grid-cols-2">
             {message.customer.fields.map((field) => (
               <div key={field.label}>
-                <dt className="text-xs text-slate-500">{field.label}</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-200">
-                  {field.value}
-                </dd>
+                <dt className="text-xs font-medium text-stone-500">{field.label}</dt>
+                <dd className="mt-1 text-sm font-medium text-stone-700">{field.value}</dd>
               </div>
             ))}
           </dl>
@@ -287,14 +288,14 @@ function AssistantMessage({
             <Link
               key={booking.id}
               href={`/dashboard/bookings/${encodeURIComponent(booking.id)}`}
-              className="block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-brand-500/30"
+              className="block rounded-xl border border-stone-200 bg-stone-50/80 p-3 transition hover:border-brand-300 hover:bg-brand-50/50"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-white">{booking.customerName}</p>
-                  <p className="mt-1 text-sm text-slate-400">{booking.issueType}</p>
+                  <p className="font-semibold text-brand-950">{booking.customerName}</p>
+                  <p className="mt-1 text-sm text-stone-600">{booking.issueType}</p>
                 </div>
-                <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">
+                <span className="rounded-full bg-brand-100 px-2 py-1 text-xs font-medium text-brand-800">
                   {booking.status}
                 </span>
               </div>
@@ -307,16 +308,16 @@ function AssistantMessage({
         <div className="mt-4 space-y-2">
           {message.items.map((item) => {
             const body = (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 hover:border-brand-500/30">
+              <div className="rounded-xl border border-stone-200 bg-stone-50/80 p-3 transition hover:border-brand-300 hover:bg-brand-50/50">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-white">{item.title}</p>
+                    <p className="font-semibold text-brand-950">{item.title}</p>
                     {item.subtitle ? (
-                      <p className="mt-1 text-sm text-slate-400">{item.subtitle}</p>
+                      <p className="mt-1 text-sm text-stone-600">{item.subtitle}</p>
                     ) : null}
                   </div>
                   {item.status ? (
-                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">
+                    <span className="rounded-full bg-brand-100 px-2 py-1 text-xs font-medium text-brand-800">
                       {item.status}
                     </span>
                   ) : null}
@@ -354,8 +355,8 @@ function AssistantMessage({
         ))}
       </div>
 
-      <div className="mt-5 border-t border-white/[0.06] pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="mt-5 border-t border-stone-200/80 pt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
           {isEnglish ? "Would you like me to show:" : "이것도 확인해 드릴까요?"}
         </p>
         <div className="vow-ai-scrollbar mt-3 flex gap-2 overflow-x-auto pb-2">
@@ -364,7 +365,7 @@ function AssistantMessage({
               key={suggestion}
               type="button"
               onClick={() => onAsk(suggestion)}
-              className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.04]"
+              className="vow-ai-suggestion"
             >
               {suggestion}
             </button>
@@ -566,18 +567,21 @@ export function VowpathAiView() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl flex-col gap-5">
-      <header className="vow-dash-card p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
-          Vowpath AI
-        </p>
-        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-          {isEnglish ? "Your HVAC operations assistant" : "HVAC 운영 AI 비서"}
-        </h1>
-        <p className="mt-2 text-sm text-slate-400">
-          {isEnglish
-            ? "I search your shop data first, then answer with next steps. Settings changes always need your confirmation."
-            : "회사 데이터를 먼저 찾아 답변하고, 다음 행동을 제안합니다. 설정 변경은 항상 확인 후 저장됩니다."}
-        </p>
+      <header className="vow-dash-card flex gap-4 p-5 sm:p-6">
+        <span className="vow-ai-avatar" aria-hidden>
+          🙂
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="vow-settings-eyebrow">Vowpath AI</p>
+          <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">
+            {isEnglish ? "Hi — I'm Vow, your shop sidekick" : "안녕하세요, 샵 도우미 보우예요"}
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-stone-600">
+            {isEnglish
+              ? "I search your shop data first, then answer with next steps. Settings changes always need your confirmation."
+              : "회사 데이터를 먼저 찾아 답변하고, 다음 행동을 제안합니다. 설정 변경은 항상 확인 후 저장됩니다."}
+          </p>
+        </div>
       </header>
 
       <div className="vow-ai-scrollbar flex gap-2 overflow-x-auto pb-2">
@@ -586,19 +590,19 @@ export function VowpathAiView() {
             key={starter}
             type="button"
             onClick={() => void ask(starter)}
-            className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.06]"
+            className="vow-ai-starter"
           >
             {starter}
           </button>
         ))}
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 pb-28">
+      <div className="flex flex-1 flex-col gap-4 pb-32 lg:pb-28">
         {messages.map((message) =>
           message.role === "user" ? (
             <div
               key={message.id}
-              className="ml-auto max-w-2xl rounded-2xl bg-brand-600 px-4 py-3 text-sm font-medium text-white"
+              className="ml-auto max-w-2xl rounded-2xl bg-brand-700 px-4 py-3 text-base font-medium text-white shadow-sm"
             >
               {message.content}
             </div>
@@ -615,28 +619,25 @@ export function VowpathAiView() {
           ),
         )}
         {loading ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-base text-stone-500">
             {isEnglish ? "Checking your shop data…" : "샵 데이터 확인 중…"}
           </p>
         ) : null}
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        className="sticky bottom-0 -mx-4 border-t border-white/[0.06] bg-[#2a221c]/95 p-4 backdrop-blur sm:mx-0 sm:rounded-t-2xl sm:border sm:border-white/[0.06]"
-      >
+      <form onSubmit={onSubmit} className="vow-ai-input-bar">
         <div className="flex gap-2">
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isEnglish ? "Ask Vowpath AI…" : "Vowpath AI에게 물어보세요…"}
-            className="min-h-12 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-brand-500/50"
+            placeholder={isEnglish ? "Ask Vow anything…" : "보우에게 무엇이든 물어보세요…"}
+            className="vow-ai-input"
           />
           <button
             type="submit"
             disabled={!input.trim() || loading}
-            className="min-h-12 rounded-xl bg-brand-600 px-5 text-sm font-bold text-white hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="vow-dash-btn-primary min-h-12 !px-5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isEnglish ? "Ask" : "질문"}
           </button>

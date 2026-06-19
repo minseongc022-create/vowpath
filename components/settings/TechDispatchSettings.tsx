@@ -105,7 +105,7 @@ export function TechDispatchSettings() {
   useSettingsSaveRegistration("tech-dispatch", persist, !loading && Boolean(settings));
 
   if (loading) {
-    return <p className="text-sm text-slate-500">{t.loading}</p>;
+    return <p className="text-base text-stone-600">{t.loading}</p>;
   }
 
   if (!settings) {
@@ -174,18 +174,19 @@ export function TechDispatchSettings() {
                     onChange={(e) => updateTech(tech.id, { phone: e.target.value })}
                     className="vow-settings-input"
                   />
-                  <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <label className="flex items-center gap-2 text-sm font-medium text-stone-700">
                     <input
                       type="checkbox"
                       checked={tech.senior === true}
                       onChange={(e) => updateTech(tech.id, { senior: e.target.checked })}
+                      className="h-4 w-4 rounded border-stone-300"
                     />
                     {t.senior}
                   </label>
                   <button
                     type="button"
                     onClick={() => removeTech(tech.id)}
-                    className="text-xs text-red-600 hover:underline"
+                    className="text-sm font-medium text-red-600 hover:underline"
                   >
                     {t.remove}
                   </button>
@@ -197,7 +198,7 @@ export function TechDispatchSettings() {
               onClick={() =>
                 setSettings({ ...settings, techs: [...settings.techs, emptyTech()] })
               }
-              className="mt-3 text-sm font-medium text-brand-700 hover:underline"
+              className="mt-3 text-base font-semibold text-brand-800 hover:underline"
             >
               {t.addTech}
             </button>

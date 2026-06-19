@@ -40,8 +40,8 @@ function HeroStat({
         : "text-brand-950";
 
   return (
-    <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-white/[0.05] first:lg:border-l-0">
-      <p className="text-[11px] font-medium uppercase tracking-widest text-slate-500">{label}</p>
+    <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:border-l lg:border-brand-200/60 first:lg:border-l-0">
+      <p className="text-[11px] font-medium uppercase tracking-widest text-stone-600">{label}</p>
       <p
         className={`mt-2 font-bold tabular-nums tracking-tight ${valueCls} ${
           loading ? "animate-pulse opacity-60" : ""
@@ -61,16 +61,16 @@ export function DashboardHero({ metrics, loading }: DashboardHeroProps) {
 
   return (
     <section className="vow-dash-hero">
-      <div className="flex flex-col gap-1 border-b border-white/[0.05] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-1 border-b border-brand-200/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-400/90">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-700">
             {h.period}
           </p>
-          <p className="mt-1 text-sm text-slate-400">{h.tagline}</p>
+          <p className="mt-1 text-sm text-stone-600">{h.tagline}</p>
         </div>
-        <p className="text-xs text-slate-600">{metrics.rangeLabel}</p>
+        <p className="text-sm text-stone-500">{metrics.rangeLabel}</p>
       </div>
-      <div className="grid grid-cols-1 divide-y divide-white/[0.05] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <div className="grid grid-cols-1 divide-y divide-brand-200/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <HeroStat
           h={h}
           label={h.callsSaved}

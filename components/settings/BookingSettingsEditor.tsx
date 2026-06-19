@@ -216,10 +216,10 @@ export function BookingSettingsEditor() {
               key={mode}
               type="button"
               onClick={() => selectMode(mode)}
-              className={`rounded-lg px-4 py-2 text-base font-medium transition ${
+              className={`vow-settings-chip ${
                 settings.schedulingMode === mode
-                  ? "bg-brand-600 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "vow-settings-chip-active"
+                  : "vow-settings-chip-inactive"
               }`}
             >
               {modeLabels[mode]}
@@ -282,7 +282,7 @@ export function BookingSettingsEditor() {
       ) : null}
 
       {settings.schedulingMode === "speed" && settings.schedulingEnabled ? (
-        <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-stone-600">
           {settingsPage.hybridAllSelectedNote}
         </p>
       ) : null}
@@ -306,10 +306,10 @@ export function BookingSettingsEditor() {
                     setIntervalDraft(String(minutes));
                     updateLocal(patchAppointmentInterval(minutes));
                   }}
-                  className={`rounded-lg px-4 py-2 text-base font-medium ${
+                  className={`vow-settings-chip ${
                     intervalMinutes === minutes
-                      ? "bg-brand-600 text-white"
-                      : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                      ? "vow-settings-chip-active"
+                      : "vow-settings-chip-inactive"
                   }`}
                 >
                   {settingsPage.appointmentIntervalPresets[i]}
@@ -397,10 +397,10 @@ export function BookingSettingsEditor() {
               key={level}
               type="button"
               onClick={() => updateLocal({ ownerApprovalSms: level })}
-              className={`rounded-lg px-4 py-2 text-base font-medium ${
+              className={`vow-settings-chip ${
                 settings.ownerApprovalSms === level
-                  ? "bg-slate-800 text-white"
-                  : "bg-slate-100 text-slate-700"
+                  ? "vow-settings-chip-active"
+                  : "vow-settings-chip-inactive"
               }`}
             >
               {ownerSmsLabels[level]}

@@ -234,7 +234,9 @@ export function DashboardShell({
 
                   prefetch
 
-                  className={`vow-dash-nav-item ${active ? "vow-dash-nav-item-active" : ""}`}
+                  className={`vow-dash-nav-item ${active ? "vow-dash-nav-item-active" : ""} ${
+                    item.href === ROUTES.ai ? "vow-dash-nav-item-ai" : ""
+                  }`}
 
                 >
 
@@ -288,7 +290,7 @@ export function DashboardShell({
 
             </div>
 
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-300">
 
               {vowDashboard.upgrade.body}
 

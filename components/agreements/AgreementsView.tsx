@@ -35,10 +35,10 @@ const emptyForm = {
 
 function statusBadge(status: MaintenanceAgreement["status"]) {
   const map = {
-    active: "bg-emerald-500/15 text-emerald-300",
-    draft: "bg-slate-500/15 text-slate-300",
-    expired: "bg-amber-500/15 text-amber-300",
-    cancelled: "bg-rose-500/15 text-rose-300",
+    active: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200",
+    draft: "bg-stone-100 text-stone-700 ring-1 ring-stone-200",
+    expired: "bg-amber-100 text-amber-800 ring-1 ring-amber-200",
+    cancelled: "bg-rose-100 text-rose-800 ring-1 ring-rose-200",
   };
   return map[status] ?? map.draft;
 }
@@ -162,9 +162,9 @@ export function AgreementsView() {
     <div className="mx-auto max-w-6xl space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">{a.eyebrow}</p>
-          <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">{a.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{a.subtitle}</p>
+          <p className="vow-settings-eyebrow">{a.eyebrow}</p>
+          <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">{a.title}</h1>
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-stone-600">{a.subtitle}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`${ROUTES.settings}#agreements`} className="vow-dash-btn-secondary text-sm">
@@ -177,45 +177,47 @@ export function AgreementsView() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="vow-dash-card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{a.kpiActive}</p>
-          <p className="mt-2 text-3xl font-bold text-white">
+        <div className="vow-dash-kpi">
+          <p className="vow-dash-kpi-label">{a.kpiActive}</p>
+          <p className="vow-dash-kpi-value mt-2 !text-4xl">
             {agreements.filter((x) => x.status === "active").length}
           </p>
         </div>
-        <div className="vow-dash-card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{a.kpiRenewing}</p>
-          <p className="mt-2 text-3xl font-bold text-amber-300">{data?.renewingCount ?? 0}</p>
+        <div className="vow-dash-kpi">
+          <p className="vow-dash-kpi-label">{a.kpiRenewing}</p>
+          <p className="mt-2 text-4xl font-bold tabular-nums text-amber-700">{data?.renewingCount ?? 0}</p>
         </div>
-        <div className="vow-dash-card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{a.kpiMrr}</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-300">{formatAgreementPrice(Math.round(mrrCents))}</p>
+        <div className="vow-dash-kpi">
+          <p className="vow-dash-kpi-label">{a.kpiMrr}</p>
+          <p className="mt-2 text-4xl font-bold tabular-nums text-emerald-700">
+            {formatAgreementPrice(Math.round(mrrCents))}
+          </p>
         </div>
       </div>
 
       {message ? (
-        <p className="rounded-lg border border-brand-500/30 bg-brand-500/10 px-4 py-2 text-sm text-brand-200">
+        <p className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-base text-brand-900">
           {message}
         </p>
       ) : null}
 
-      <div className="vow-dash-card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
-          <div className="flex gap-1">
+      <div className="vow-dash-card overflow-hidden !p-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200/80 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap gap-2">
             {(["all", "active", "renewing"] as const).map((id) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setFilter(id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  filter === id ? "bg-brand-500/20 text-brand-200" : "text-slate-400 hover:text-white"
+                className={`vow-settings-chip !min-h-[40px] !px-3 !py-2 !text-sm ${
+                  filter === id ? "vow-settings-chip-active" : "vow-settings-chip-inactive"
                 }`}
               >
                 {a.filters[id]}
               </button>
             ))}
           </div>
-          <label className="cursor-pointer text-xs font-semibold text-brand-300 hover:text-brand-200">
+          <label className="cursor-pointer text-sm font-semibold text-brand-800 hover:text-brand-900">
             {importing ? a.importing : a.importCsv}
             <input
               type="file"
@@ -232,22 +234,22 @@ export function AgreementsView() {
         </div>
 
         {loading ? (
-          <p className="px-4 py-8 text-sm text-slate-500">{a.loading}</p>
+          <p className="px-5 py-8 text-base text-stone-600">{a.loading}</p>
         ) : filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="text-sm font-medium text-slate-300">{a.emptyTitle}</p>
-            <p className="mt-2 text-sm text-slate-500">{a.emptyBody}</p>
+          <div className="px-5 py-12 text-center">
+            <p className="text-base font-semibold text-brand-950">{a.emptyTitle}</p>
+            <p className="mt-2 text-base text-stone-600">{a.emptyBody}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-3 font-semibold">{a.colCustomer}</th>
-                  <th className="px-4 py-3 font-semibold">{a.colPlan}</th>
-                  <th className="px-4 py-3 font-semibold">{a.colRenewal}</th>
-                  <th className="px-4 py-3 font-semibold">{a.colStatus}</th>
-                  <th className="px-4 py-3 font-semibold text-right">{a.colPrice}</th>
+                <tr className="border-b border-stone-200/80 text-xs uppercase tracking-wide text-stone-600">
+                  <th className="px-5 py-3 font-semibold">{a.colCustomer}</th>
+                  <th className="px-5 py-3 font-semibold">{a.colPlan}</th>
+                  <th className="px-5 py-3 font-semibold">{a.colRenewal}</th>
+                  <th className="px-5 py-3 font-semibold">{a.colStatus}</th>
+                  <th className="px-5 py-3 font-semibold text-right">{a.colPrice}</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,26 +258,26 @@ export function AgreementsView() {
                   return (
                     <tr
                       key={row.id}
-                      className="cursor-pointer border-b border-white/[0.04] hover:bg-white/[0.03]"
+                      className="cursor-pointer border-b border-stone-100 hover:bg-brand-50/50"
                       onClick={() => setSelected(row)}
                     >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-white">{row.customerName}</p>
-                        <p className="text-xs text-slate-500">{row.serviceAddress}</p>
+                      <td className="px-5 py-3">
+                        <p className="font-semibold text-brand-950">{row.customerName}</p>
+                        <p className="text-sm text-stone-500">{row.serviceAddress}</p>
                       </td>
-                      <td className="px-4 py-3 text-slate-300">{row.planName}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-slate-300">{row.renewalDate}</span>
+                      <td className="px-5 py-3 text-stone-700">{row.planName}</td>
+                      <td className="px-5 py-3">
+                        <span className="text-stone-700">{row.renewalDate}</span>
                         {row.status === "active" && days >= 0 && days <= 30 ? (
-                          <span className="ml-2 text-xs text-amber-400">{a.daysLeft(days)}</span>
+                          <span className="ml-2 text-sm font-medium text-amber-700">{a.daysLeft(days)}</span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(row.status)}`}>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>
                           {row.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-slate-200">
+                      <td className="px-5 py-3 text-right font-semibold text-brand-900">
                         {formatAgreementPrice(row.annualPriceCents)}
                       </td>
                     </tr>
@@ -288,12 +290,12 @@ export function AgreementsView() {
       </div>
 
       {showForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleCreate}
             className="vow-dash-card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6"
           >
-            <h2 className="text-lg font-bold text-white">{a.addTitle}</h2>
+            <h2 className="text-xl font-bold text-brand-950">{a.addTitle}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {(
                 [
@@ -306,7 +308,7 @@ export function AgreementsView() {
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className="block text-sm">
-                  <span className="text-slate-400">{label}</span>
+                  <span className="vow-settings-label !text-sm">{label}</span>
                   <input
                     className="vow-dash-input mt-1 w-full"
                     value={String(form[key as keyof typeof form] ?? "")}
@@ -316,7 +318,7 @@ export function AgreementsView() {
                 </label>
               ))}
               <label className="block text-sm">
-                <span className="text-slate-400">{a.fieldPrice}</span>
+                <span className="vow-settings-label !text-sm">{a.fieldPrice}</span>
                 <input
                   type="number"
                   className="vow-dash-input mt-1 w-full"
@@ -330,7 +332,7 @@ export function AgreementsView() {
                 />
               </label>
               <label className="block text-sm">
-                <span className="text-slate-400">{a.fieldVisits}</span>
+                <span className="vow-settings-label !text-sm">{a.fieldVisits}</span>
                 <input
                   type="number"
                   min={1}
@@ -355,25 +357,25 @@ export function AgreementsView() {
       ) : null}
 
       {selected ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/50">
-          <div className="vow-dash-card h-full w-full max-w-md overflow-y-auto p-6">
-            <button type="button" className="text-sm text-slate-400" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 flex justify-end bg-stone-900/40 backdrop-blur-sm">
+          <div className="vow-dash-card h-full w-full max-w-md overflow-y-auto p-6 shadow-2xl">
+            <button type="button" className="text-sm font-medium text-stone-600 hover:text-brand-900" onClick={() => setSelected(null)}>
               {a.close}
             </button>
-            <h2 className="mt-2 text-xl font-bold text-white">{selected.customerName}</h2>
-            <p className="text-sm text-slate-400">{selected.customerPhone}</p>
-            <dl className="mt-6 space-y-3 text-sm">
+            <h2 className="mt-2 text-xl font-bold text-brand-950">{selected.customerName}</h2>
+            <p className="text-base text-stone-600">{selected.customerPhone}</p>
+            <dl className="mt-6 space-y-3 text-base">
               <div>
-                <dt className="text-slate-500">{a.fieldPlan}</dt>
-                <dd className="text-white">{selected.planName}</dd>
+                <dt className="text-sm font-medium text-stone-500">{a.fieldPlan}</dt>
+                <dd className="font-semibold text-brand-950">{selected.planName}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{a.fieldRenewal}</dt>
-                <dd className="text-white">{selected.renewalDate}</dd>
+                <dt className="text-sm font-medium text-stone-500">{a.fieldRenewal}</dt>
+                <dd className="font-semibold text-brand-950">{selected.renewalDate}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">{a.fieldPrice}</dt>
-                <dd className="text-white">{formatAgreementPrice(selected.annualPriceCents)}/yr</dd>
+                <dt className="text-sm font-medium text-stone-500">{a.fieldPrice}</dt>
+                <dd className="font-semibold text-brand-950">{formatAgreementPrice(selected.annualPriceCents)}/yr</dd>
               </div>
             </dl>
             <div className="mt-6 flex flex-wrap gap-2">
