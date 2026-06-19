@@ -184,17 +184,18 @@
   }
 
   .vow-dash .booking-detail-hero {
-    @apply rounded-2xl border border-white/[0.06] p-6 sm:p-8;
-    background-color: #3d3228;
-    background-image: none;
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+    @apply rounded-2xl border border-brand-200/70 p-6 sm:p-8;
+    background: linear-gradient(160deg, #ffffff 0%, #faf8f5 100%);
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.05),
+      0 8px 28px rgb(61 50 40 / 0.08);
   }
 
   .vow-dash .booking-detail-card {
-    @apply overflow-visible rounded-2xl border border-white/[0.06];
-    background-color: #3d3228;
-    background-image: none;
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+    @apply overflow-visible rounded-2xl border border-brand-200/70 bg-white;
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.05),
+      0 8px 28px rgb(61 50 40 / 0.08);
   }
 
   .vow-dash .booking-action-primary {
@@ -208,11 +209,11 @@
   }
 
   .vow-dash .booking-action-secondary {
-    @apply inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-brand-400/30 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex w-full items-center justify-center rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-900 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .vow-dash .booking-action-muted {
-    @apply inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm font-medium text-slate-500;
+    @apply inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-dashed border-brand-200 bg-stone-50 px-4 py-2.5 text-sm font-medium text-stone-500;
   }
 
   .vow-dash .booking-detail-banner {
@@ -220,16 +221,16 @@
   }
 
   .vow-dash .booking-detail-banner-warn {
-    @apply border-amber-500/25 bg-amber-500/10 text-amber-100;
+    @apply border-amber-200 bg-amber-50 text-amber-900;
   }
 
   .vow-dash .booking-detail-banner-info {
-    @apply border-white/[0.08] bg-white/[0.03] text-slate-300;
+    @apply border-brand-200/80 bg-brand-50/60 text-stone-700;
   }
 
   .vow-ai-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgb(124 58 237 / 0.55) rgb(255 255 255 / 0.04);
+    scrollbar-color: rgb(154 127 94 / 0.45) rgb(231 229 228 / 0.8);
   }
 
   .vow-ai-scrollbar::-webkit-scrollbar {
@@ -238,20 +239,20 @@
 
   .vow-ai-scrollbar::-webkit-scrollbar-track {
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.04);
+    background: rgb(231 229 228 / 0.6);
   }
 
   .vow-ai-scrollbar::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: rgb(124 58 237 / 0.45);
+    background: rgb(154 127 94 / 0.45);
   }
 
   .vow-ai-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgb(139 92 246 / 0.7);
+    background: rgb(125 99 72 / 0.65);
   }
 
   .vow-dash .booking-detail-decision {
-    @apply rounded-xl border border-white/[0.08] bg-[#3d3228] p-4 sm:p-5;
+    @apply rounded-xl border border-brand-200/80 bg-white p-4 shadow-sm sm:p-5;
   }
 
   .notification-bell-btn {
@@ -654,6 +655,84 @@
   .vow-dash-main {
     @apply min-w-0 flex-1 overflow-x-hidden text-brand-900;
     background: transparent;
+  }
+
+  /* Remap legacy dark-theme surfaces inside dashboard main (light beige page) */
+  .vow-dash-main .bg-\[\#3d3228\] {
+    background: var(--vow-dash-surface) !important;
+    color: var(--vow-ink);
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.05),
+      0 8px 28px rgb(61 50 40 / 0.08);
+  }
+
+  .vow-dash-main .bg-slate-900,
+  .vow-dash-main .bg-slate-900\/40,
+  .vow-dash-main .bg-slate-900\/60,
+  .vow-dash-main .bg-slate-900\/80,
+  .vow-dash-main .bg-slate-950\/60,
+  .vow-dash-main .bg-slate-800\/60,
+  .vow-dash-main .bg-slate-800\/80,
+  .vow-dash-main .bg-slate-800\/60 {
+    background-color: #ffffff !important;
+  }
+
+  .vow-dash-main .border-slate-700,
+  .vow-dash-main .border-white\/\[0\.04\],
+  .vow-dash-main .border-white\/\[0\.06\],
+  .vow-dash-main .border-white\/\[0\.08\],
+  .vow-dash-main .border-white\/\[0\.12\] {
+    border-color: rgb(201 173 138 / 0.5) !important;
+  }
+
+  .vow-dash-main .vow-dash-card .text-white,
+  .vow-dash-main .vow-dash-panel .text-white,
+  .vow-dash-main .vow-dash-kpi .text-white,
+  .vow-dash-main .vow-dash-hero .text-white,
+  .vow-dash-main .booking-detail-card .text-white,
+  .vow-dash-main .booking-detail-hero .text-white {
+    color: var(--vow-ink) !important;
+  }
+
+  .vow-dash-main .text-slate-200 {
+    color: #44403c !important;
+  }
+
+  .vow-dash-main .text-slate-300 {
+    color: #57534e !important;
+  }
+
+  .vow-dash-main .text-brand-200,
+  .vow-dash-main .text-brand-300 {
+    color: #6b5344 !important;
+  }
+
+  .vow-dash-main .text-rose-200 {
+    color: #be123c !important;
+  }
+
+  .vow-dash-main .text-emerald-200,
+  .vow-dash-main .text-emerald-300 {
+    color: #047857 !important;
+  }
+
+  .vow-dash-main .text-amber-200,
+  .vow-dash-main .text-amber-300,
+  .vow-dash-main .text-amber-400 {
+    color: #b45309 !important;
+  }
+
+  .vow-dash-main .text-indigo-200 {
+    color: #4338ca !important;
+  }
+
+  .vow-dash-main .hover\:bg-white\/\[0\.04\]:hover,
+  .vow-dash-main .hover\:bg-white\/\[0\.03\]:hover {
+    background-color: rgb(250 248 245 / 0.9) !important;
+  }
+
+  .vow-dash-main .divide-white\/\[0\.05\] > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgb(201 173 138 / 0.45) !important;
   }
 
   .vow-dash-card {

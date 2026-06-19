@@ -71,7 +71,7 @@ export function MissedCallsPreventedKpi({
             onClick={() => setPeriod(p.id)}
             className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
               period === p.id
-                ? "bg-slate-900 text-white"
+                ? "vow-settings-chip-active"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >

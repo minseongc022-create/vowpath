@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     await deletePendingSignup(signupRequestId);
 
     let phoneProvisioned = false;
+    let phoneNumber: string | undefined;
     let phoneError: string | null = null;
     try {
       const provision = await ensureTenantTwilioPhone(user.id, {
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       });
       if (provision.ok) {
         phoneProvisioned = true;
+        phoneNumber = provision.phoneNumber;
       } else {
         phoneError = provision.error;
         console.warn("[signup/complete] phone provision:", provision.error);
@@ -74,8 +76,11 @@ export async function POST(request: Request) {
 
     const res = NextResponse.json({
       ok: true,
-      redirect: "/settings",
+      redirect: phoneProvisioned
+        ? "/dashboard/settings?phoneReady=1#go-live-phone"
+        : "/dashboard/settings",
       phoneProvisioned,
+      phoneNumber,
       phoneError,
     });
     res.cookies.set(sessionCookieOptions(token));

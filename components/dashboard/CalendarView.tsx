@@ -60,12 +60,12 @@ function DayEventsListPanel({
   labels: CalendarLabels;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
-      <h2 className="text-lg font-semibold text-white">{formatDayHeading(day)}</h2>
-      <p className="mt-1 text-sm text-slate-400">{labels.dayEventsTitle(events.length)}</p>
+    <div className="rounded-2xl border border-brand-200/70 bg-white p-5">
+      <h2 className="text-lg font-semibold text-brand-950">{formatDayHeading(day)}</h2>
+      <p className="mt-1 text-sm text-stone-600">{labels.dayEventsTitle(events.length)}</p>
 
       {events.length === 0 ? (
-        <p className="mt-6 text-sm text-slate-500">{labels.noEventsOnDay}</p>
+        <p className="mt-6 text-sm text-stone-500">{labels.noEventsOnDay}</p>
       ) : (
         <ul className="mt-4 max-h-[min(60vh,520px)] space-y-2 overflow-y-auto pr-1">
           {events.map((ev) => {
@@ -73,8 +73,8 @@ function DayEventsListPanel({
             const pri = ev.priority ? calendarPriorityMeta(ev.priority) : null;
             const sourceCls =
               ev.source === "vowpath"
-                ? "bg-brand-500/20 text-brand-200"
-                : "bg-sky-500/20 text-sky-200";
+                ? "bg-brand-100 text-brand-800"
+                : "bg-sky-100 text-sky-800";
 
             return (
               <li key={ev.id}>
@@ -84,17 +84,17 @@ function DayEventsListPanel({
                   className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                     active
                       ? "border-brand-500/50 bg-brand-500/15 ring-1 ring-brand-500/30"
-                      : "border-slate-700 bg-slate-800/60 hover:border-brand-500/30 hover:bg-slate-800"
+                      : "border-brand-200 bg-white hover:border-brand-300 hover:bg-brand-50"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-white">{ev.customerName}</p>
+                    <p className="text-sm font-semibold text-brand-950">{ev.customerName}</p>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${sourceCls}`}>
                       {ev.source === "vowpath" ? labels.sourceVowpath : labels.sourceJobber}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-brand-300">{formatEventTimeShort(ev.startAt)}</p>
-                  <p className="mt-1 truncate text-xs text-slate-400">{ev.issue}</p>
+                  <p className="mt-1 truncate text-xs text-stone-600">{ev.issue}</p>
                   {pri ? (
                     <span
                       className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${pri.chipClass}`}
@@ -129,11 +129,11 @@ function EventDetailPanel({
       : "bg-sky-500/20 text-sky-200";
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
+    <div className="rounded-2xl border border-brand-200/70 bg-white p-5">
       <button
         type="button"
         onClick={onBack}
-        className="text-sm font-medium text-brand-300 hover:text-brand-200 hover:underline"
+        className="text-sm font-medium text-brand-800 hover:text-brand-900 hover:underline"
       >
         {labels.backToDayList}
       </button>
@@ -144,16 +144,16 @@ function EventDetailPanel({
         </span>
       </div>
 
-      <h2 className="mt-3 text-lg font-semibold text-white">{event.customerName}</h2>
+      <h2 className="mt-3 text-lg font-semibold text-brand-950">{event.customerName}</h2>
       <p className="mt-1 text-sm text-brand-300">{event.timeLabel}</p>
 
       <dl className="mt-5 space-y-3 text-sm">
         {event.phone ? (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
               {labels.phone}
             </dt>
-            <dd className="mt-0.5 text-slate-200">
+            <dd className="mt-0.5 text-stone-700">
               <a href={`tel:${event.phone}`} className="hover:text-brand-300">
                 {event.phone}
               </a>
@@ -162,29 +162,29 @@ function EventDetailPanel({
         ) : null}
         {event.address ? (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
               {labels.address}
             </dt>
-            <dd className="mt-0.5 text-slate-200">{event.address}</dd>
+            <dd className="mt-0.5 text-stone-700">{event.address}</dd>
           </div>
         ) : null}
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
             {labels.issue}
           </dt>
-          <dd className="mt-0.5 text-slate-200">{event.issue}</dd>
+          <dd className="mt-0.5 text-stone-700">{event.issue}</dd>
         </div>
         {event.arrivalWindow ? (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
               {labels.time}
             </dt>
-            <dd className="mt-0.5 text-slate-200">{event.arrivalWindow}</dd>
+            <dd className="mt-0.5 text-stone-700">{event.arrivalWindow}</dd>
           </div>
         ) : null}
         {event.priority ? (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">
               {labels.priority}
             </dt>
             <dd className="mt-0.5">
@@ -227,8 +227,8 @@ function SidePanel({
 }) {
   if (!selectedDay) {
     return (
-      <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-6 text-center">
-        <p className="text-sm text-slate-500">{labels.selectDay}</p>
+      <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-brand-200/70 bg-stone-50 p-6 text-center">
+        <p className="text-sm text-stone-500">{labels.selectDay}</p>
       </div>
     );
   }
@@ -320,14 +320,14 @@ export function CalendarView() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">{c.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">{c.subtitle}</p>
+          <h1 className="text-xl font-semibold text-brand-950">{c.title}</h1>
+          <p className="mt-1 text-sm text-stone-600">{c.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => shiftMonth(-1)}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            className="vow-dash-btn-secondary rounded-lg px-3 py-1.5 text-sm"
             aria-label={c.prevMonth}
           >
             ←
@@ -338,14 +338,14 @@ export function CalendarView() {
               setMonth(startOfMonth(new Date()));
               clearSelection();
             }}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            className="vow-dash-btn-secondary rounded-lg px-3 py-1.5 text-sm"
           >
             {c.today}
           </button>
           <button
             type="button"
             onClick={() => shiftMonth(1)}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            className="vow-dash-btn-secondary rounded-lg px-3 py-1.5 text-sm"
             aria-label={c.nextMonth}
           >
             →
@@ -353,26 +353,26 @@ export function CalendarView() {
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            className="vow-dash-btn-secondary rounded-lg px-3 py-1.5 text-sm"
           >
             {c.refresh}
           </button>
         </div>
       </div>
 
-      <p className="text-center text-lg font-semibold text-white">{monthTitle(month)}</p>
+      <p className="text-center text-lg font-semibold text-brand-950">{monthTitle(month)}</p>
 
-      {loading && <p className="text-sm text-slate-400">{c.loading}</p>}
+      {loading && <p className="text-sm text-stone-600">{c.loading}</p>}
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/60">
-          <div className="grid grid-cols-7 border-b border-slate-700 bg-slate-800/80">
+        <div className="overflow-hidden rounded-2xl border border-brand-200/70 bg-white">
+          <div className="grid grid-cols-7 border-b border-brand-200/70 bg-brand-50/80">
             {c.weekdays.map((wd, i) => (
               <div
                 key={wd}
                 className={`px-1 py-2 text-center text-xs font-semibold ${
-                  i === 0 ? "text-rose-400" : i === 6 ? "text-sky-400" : "text-slate-400"
+                  i === 0 ? "text-rose-400" : i === 6 ? "text-sky-400" : "text-stone-600"
                 }`}
               >
                 {wd}
@@ -393,12 +393,12 @@ export function CalendarView() {
                   key={toIsoDate(day)}
                   type="button"
                   onClick={() => selectDay(day)}
-                  className={`min-h-[88px] border-b border-r border-slate-800 p-1.5 text-left transition sm:min-h-[96px] sm:p-2 ${
-                    inMonth ? "bg-slate-900/40" : "bg-slate-950/60"
+                  className={`min-h-[88px] border-b border-r border-brand-200/60 p-1.5 text-left transition sm:min-h-[96px] sm:p-2 ${
+                    inMonth ? "bg-white" : "bg-stone-50/80"
                   } ${
                     isSelected
-                      ? "ring-2 ring-inset ring-brand-500/60 bg-brand-500/[0.08]"
-                      : "hover:bg-slate-800/50"
+                      ? "ring-2 ring-inset ring-brand-500/60 bg-brand-50"
+                      : "hover:bg-brand-50/50"
                   }`}
                 >
                   <p
@@ -406,8 +406,8 @@ export function CalendarView() {
                       isToday
                         ? "inline-flex float-right h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-slate-950"
                         : inMonth
-                          ? "text-slate-300"
-                          : "text-slate-600"
+                          ? "text-stone-500"
+                          : "text-stone-400"
                     }`}
                   >
                     {day.getDate()}
@@ -439,7 +439,7 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-4 text-xs text-stone-500">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded bg-brand-500/50" aria-hidden />
           {c.sourceVowpath}

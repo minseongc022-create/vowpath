@@ -45,7 +45,7 @@ export function DashboardNewRequestButton({ onCreated }: DashboardNewRequestButt
         {vowDashboard.header.newRequest}
       </button>
       {toast ? (
-        <p className="absolute right-0 top-full z-50 mt-2 max-w-xs rounded-lg border border-white/[0.08] bg-[#3d3228] px-3 py-2 text-xs text-slate-300 shadow-lg">
+        <p className="absolute right-0 top-full z-50 mt-2 max-w-xs rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs text-stone-700 shadow-lg">
           {busy ? vowDashboard.header.simulateWorking : toast}
         </p>
       ) : null}

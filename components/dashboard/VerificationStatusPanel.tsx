@@ -12,22 +12,22 @@ const STATE_STYLES: Record<
   { icon: string; label: string; row: string; hint: string }
 > = {
   verified: {
-    icon: "text-emerald-400",
-    label: "text-emerald-200",
-    row: "border-emerald-500/20 bg-emerald-500/[0.06]",
-    hint: "text-emerald-400/80",
+    icon: "text-emerald-600",
+    label: "text-emerald-900",
+    row: "border-emerald-200 bg-emerald-50/80",
+    hint: "text-emerald-700",
   },
   not_verified: {
-    icon: "text-slate-500",
-    label: "text-slate-400",
-    row: "border-white/[0.06] bg-white/[0.02]",
-    hint: "text-slate-500",
+    icon: "text-stone-400",
+    label: "text-stone-700",
+    row: "border-brand-200/70 bg-stone-50/80",
+    hint: "text-stone-500",
   },
   failed: {
-    icon: "text-rose-400",
-    label: "text-rose-200",
-    row: "border-rose-500/20 bg-rose-500/[0.06]",
-    hint: "text-rose-400/80",
+    icon: "text-rose-600",
+    label: "text-rose-900",
+    row: "border-rose-200 bg-rose-50/80",
+    hint: "text-rose-700",
   },
 };
 
@@ -84,10 +84,10 @@ export function VerificationStatusPanel({ verification }: VerificationStatusPane
   const t = dashboardUi.bookingDetail;
 
   return (
-    <section className="booking-detail-card overflow-visible rounded-2xl border border-white/[0.06] bg-[#3d3228] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
-      <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">
-        <h2 className="text-sm font-semibold text-white">{t.verificationTitle}</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
+    <section className="booking-detail-card">
+      <div className="border-b border-brand-200/60 px-5 py-4 sm:px-6">
+        <h2 className="text-sm font-semibold text-brand-950">{t.verificationTitle}</h2>
+        <p className="mt-0.5 text-xs text-stone-500">
           {verification.hasLinkedCall ? t.verificationLinked : t.verificationUnlinked}
         </p>
       </div>

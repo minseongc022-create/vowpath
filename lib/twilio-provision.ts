@@ -217,8 +217,14 @@ export async function ensureTenantTwilioPhone(
 
   const autoProvision =
     process.env.TWILIO_AUTO_PROVISION?.trim().toLowerCase() !== "false";
+  const forceProvision =
+    process.env.TWILIO_FORCE_PROVISION?.trim().toLowerCase() === "true";
 
-  if (!autoProvision || process.env.NODE_ENV === "development") {
+  const skipNewPurchase =
+    !autoProvision ||
+    (process.env.NODE_ENV === "development" && !forceProvision);
+
+  if (skipNewPurchase) {
     if (legacyPhone && isTwilioAccountConfigured()) {
       return adoptLegacyPhone(userId, legacyPhone);
     }

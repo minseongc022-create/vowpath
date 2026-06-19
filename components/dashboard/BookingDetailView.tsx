@@ -40,18 +40,18 @@ import { CustomerCorrectionHistoryPanel } from "@/components/dashboard/CustomerC
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
-const BOOKING_SURFACE_DARK =
-  "border-white/[0.06] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]";
-const BOOKING_HERO_DARK = `rounded-2xl border bg-[#3d3228] p-6 sm:p-8 ${BOOKING_SURFACE_DARK}`;
-const BOOKING_CARD_DARK = `overflow-visible rounded-2xl border bg-[#3d3228] ${BOOKING_SURFACE_DARK}`;
+const BOOKING_SURFACE =
+  "border-brand-200/70 bg-white shadow-[0_1px_2px_rgb(61_50_40/0.05),0_8px_28px_rgb(61_50_40/0.08)]";
+const BOOKING_HERO = `booking-detail-hero rounded-2xl border ${BOOKING_SURFACE} p-6 sm:p-8`;
+const BOOKING_CARD = `booking-detail-card overflow-visible rounded-2xl border ${BOOKING_SURFACE}`;
 
 const REQUEST_STATUS_STYLES: Record<RequestStatus, string> = {
-  request_received: "bg-brand-500/15 text-brand-200 ring-1 ring-brand-500/30",
-  pending_review: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30",
-  approved: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
-  rejected: "bg-white/10 text-slate-400 ring-1 ring-white/10",
-  scheduled: "bg-brand-500/15 text-indigo-200 ring-1 ring-indigo-500/30",
-  completed: "bg-white/10 text-slate-300 ring-1 ring-white/10",
+  request_received: "bg-brand-100 text-brand-800 ring-1 ring-brand-200",
+  pending_review: "bg-amber-100 text-amber-800 ring-1 ring-amber-200",
+  approved: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200",
+  rejected: "bg-stone-100 text-stone-600 ring-1 ring-stone-200",
+  scheduled: "bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200",
+  completed: "bg-stone-100 text-stone-700 ring-1 ring-stone-200",
 };
 
 type BookingDetailContentProps = {
@@ -315,20 +315,20 @@ export function BookingDetailContent({
             onCancel={() => setPendingConfirm(null)}
           />
 
-          <header className={`booking-detail-hero ${BOOKING_HERO_DARK}`}>
+          <header className={`booking-detail-hero ${BOOKING_HERO}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
                   {t.serviceRequest}
                 </p>
-                <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                <h1 className="mt-1 text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
                   {detail.customerName}
                 </h1>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-stone-600">
                   {detail.issueType} · {formatBookingReceivedLabel(detail.createdAt, nowMs)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <PriorityBadge priority={detail.priority} theme="dark" />
+                  <PriorityBadge priority={detail.priority} theme="light" />
                   <StatusBadge label={detail.requestStatusLabel} styleKey={detail.requestStatus} />
                   {customerVerification ? (
                     <CustomerVerificationBadge record={customerVerification} />
@@ -346,7 +346,7 @@ export function BookingDetailContent({
             </div>
 
             {statusError || actionError ? (
-              <p className="mt-4 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                 {actionError ?? statusError}
               </p>
             ) : null}
@@ -382,8 +382,8 @@ export function BookingDetailContent({
             <InfoCard title={t.requestInfo}>
               <InfoRow label={t.issueType} value={detail.issueType} />
               <InfoRow label={t.priority} value={formatPriorityWithCode(detail.priority)} />
-              <div className="border-t border-white/[0.06] px-4 py-3 sm:px-5">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <div className="border-t border-brand-200/60 px-4 py-3 sm:px-5">
+                <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
                   {t.changePriority}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -393,7 +393,7 @@ export function BookingDetailContent({
                       type="button"
                       disabled={prioritySaving || detail.priority === p}
                       onClick={() => void updatePriority(p)}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-brand-500/30 hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-900 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {formatPriorityWithCode(p)}
                     </button>
@@ -423,7 +423,7 @@ export function BookingDetailContent({
                   : t.priorityReasonAi
               }
             >
-              <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-300">
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-stone-700">
                 {detail.priorityReasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}
@@ -435,15 +435,15 @@ export function BookingDetailContent({
             title={t.callSummaryTitle}
             subtitle={detail.linkedCallId ? t.callSummaryLinked : t.callSummaryUnlinked}
           >
-            <p className="whitespace-pre-line text-sm leading-relaxed text-slate-300">
+            <p className="whitespace-pre-line text-sm leading-relaxed text-stone-700">
               {detail.callSummary}
             </p>
           </InfoCard>
 
           <InfoCard title={t.transcriptTitle} subtitle={t.transcriptSubtitle}>
             {detail.transcript ? (
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-[#2a221c] p-4">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-brand-200/70 bg-stone-50 p-4">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-700">
                   {localizeTranscript(detail.transcript)}
                 </p>
               </div>
@@ -473,10 +473,10 @@ export function BookingDetailContent({
 }
 
 const CUSTOMER_VERIFY_BADGE: Record<string, string> = {
-  green: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
-  orange: "bg-orange-500/15 text-orange-200 ring-1 ring-orange-500/30",
-  amber: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30",
-  slate: "bg-white/10 text-slate-400 ring-1 ring-white/10",
+  green: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200",
+  orange: "bg-orange-100 text-orange-800 ring-1 ring-orange-200",
+  amber: "bg-amber-100 text-amber-800 ring-1 ring-amber-200",
+  slate: "bg-stone-100 text-stone-600 ring-1 ring-stone-200",
 };
 
 function CustomerVerificationBadge({
@@ -552,12 +552,12 @@ function BookingStatusConfirmDialog({
         aria-modal="true"
         aria-labelledby="booking-confirm-title"
         aria-describedby="booking-confirm-body"
-        className="relative w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#3d3228] p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-brand-200 bg-white p-6 shadow-2xl"
       >
-        <h2 id="booking-confirm-title" className="text-lg font-bold text-white">
+        <h2 id="booking-confirm-title" className="text-lg font-bold text-brand-950">
           {title}
         </h2>
-        <p id="booking-confirm-body" className="mt-2 text-sm text-slate-400">
+        <p id="booking-confirm-body" className="mt-2 text-sm text-stone-600">
           {body}
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -565,7 +565,7 @@ function BookingStatusConfirmDialog({
             type="button"
             disabled={saving}
             onClick={onCancel}
-            className="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/5 disabled:opacity-50"
+            className="vow-dash-btn-secondary disabled:opacity-50"
           >
             {t.cancel}
           </button>
@@ -609,12 +609,12 @@ function RequestDecisionBar({
       <section className="booking-detail-banner booking-detail-banner-info">
         {status === "approved" ? (
           <p>
-            <span className="font-semibold text-emerald-300">{t.approvedBanner}</span> —{" "}
+            <span className="font-semibold text-emerald-700">{t.approvedBanner}</span> —{" "}
             {t.approvedBannerBody}
           </p>
         ) : status === "rejected" ? (
           <p>
-            <span className="font-semibold text-slate-200">{t.rejectedBanner}</span> —{" "}
+            <span className="font-semibold text-stone-700">{t.rejectedBanner}</span> —{" "}
             {t.rejectedBannerBody}
           </p>
         ) : (
@@ -626,8 +626,8 @@ function RequestDecisionBar({
 
   return (
     <section className="booking-detail-decision" aria-label={t.decisionTitle}>
-      <p className="text-sm font-semibold text-white">{t.decisionTitle}</p>
-      <p className="mt-1 text-xs text-slate-500">{t.decisionSubtitle}</p>
+      <p className="text-sm font-semibold text-brand-950">{t.decisionTitle}</p>
+      <p className="mt-1 text-xs text-stone-500">{t.decisionSubtitle}</p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
         <button
           type="button"
@@ -641,7 +641,7 @@ function RequestDecisionBar({
           type="button"
           disabled={saving}
           onClick={onReject}
-          className="inline-flex flex-1 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-800 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? t.saving : t.reject}
         </button>
@@ -723,10 +723,10 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className={`booking-detail-card ${BOOKING_CARD_DARK}`}>
-      <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {subtitle ? <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p> : null}
+    <section className={`booking-detail-card ${BOOKING_CARD}`}>
+      <div className="border-b border-brand-200/60 px-5 py-4 sm:px-6">
+        <h2 className="text-sm font-semibold text-brand-950">{title}</h2>
+        {subtitle ? <p className="mt-0.5 text-xs text-stone-500">{subtitle}</p> : null}
       </div>
       <div className="px-5 py-2 sm:px-6">{children}</div>
     </section>
@@ -743,10 +743,10 @@ function InfoRow({
   highlight?: boolean;
 }) {
   return (
-    <div className="grid gap-1 border-b border-white/[0.04] py-3 last:border-0 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+    <div className="grid gap-1 border-b border-brand-100 py-3 last:border-0 sm:grid-cols-3 sm:gap-4">
+      <dt className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</dt>
       <dd
-        className={`text-sm sm:col-span-2 ${highlight ? "font-semibold text-white" : "font-medium text-slate-200"}`}
+        className={`text-sm sm:col-span-2 ${highlight ? "font-semibold text-brand-950" : "font-medium text-stone-700"}`}
       >
         {value}
       </dd>
@@ -756,7 +756,7 @@ function InfoRow({
 
 function EmptyBlock({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-slate-500">
+    <div className="rounded-xl border border-dashed border-brand-200 bg-stone-50 px-4 py-8 text-center text-sm text-stone-500">
       {text}
     </div>
   );
@@ -765,10 +765,10 @@ function EmptyBlock({ text }: { text: string }) {
 function DetailSkeleton() {
   return (
     <div className="mt-6 animate-pulse space-y-5">
-      <div className={`booking-detail-hero h-40 ${BOOKING_HERO_DARK}`} />
+      <div className={`booking-detail-hero h-40 ${BOOKING_HERO}`} />
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className={`booking-detail-card h-56 ${BOOKING_CARD_DARK}`} />
-        <div className={`booking-detail-card h-56 ${BOOKING_CARD_DARK}`} />
+        <div className={`booking-detail-card h-56 ${BOOKING_CARD}`} />
+        <div className={`booking-detail-card h-56 ${BOOKING_CARD}`} />
       </div>
     </div>
   );
@@ -778,8 +778,8 @@ function ErrorPanel({ message }: { message: string }) {
   const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-10 text-center">
-      <p className="font-semibold text-rose-300">{t.loadFailed}</p>
-      <p className="mt-1 text-sm text-rose-200/80">{message}</p>
+      <p className="font-semibold text-rose-700">{t.loadFailed}</p>
+      <p className="mt-1 text-sm text-rose-600">{message}</p>
     </div>
   );
 }
@@ -788,11 +788,11 @@ function NotFoundPanel() {
   const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-12 text-center">
-      <p className="font-semibold text-white">{t.notFoundTitle}</p>
-      <p className="mt-2 text-sm text-slate-400">{t.notFoundBody}</p>
+      <p className="font-semibold text-brand-950">{t.notFoundTitle}</p>
+      <p className="mt-2 text-sm text-stone-600">{t.notFoundBody}</p>
       <Link
         href="/dashboard/bookings"
-        className="mt-4 inline-block text-sm font-semibold text-brand-300 hover:underline"
+        className="mt-4 inline-block text-sm font-semibold text-brand-800 hover:underline"
       >
         {t.viewAll}
       </Link>

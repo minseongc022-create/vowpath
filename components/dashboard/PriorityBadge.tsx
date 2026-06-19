@@ -17,7 +17,7 @@ type PriorityBadgeProps = {
 export function PriorityBadge({
   priority,
   showCode = false,
-  theme = "dark",
+  theme = "light",
   className = "",
 }: PriorityBadgeProps) {
   const p = normalizeJobPriority(priority);

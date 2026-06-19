@@ -262,7 +262,7 @@ export function OperationsDashboard({
               onClick={() => selectPreset(p.id)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 preset === p.id
-                  ? "bg-slate-900 text-white shadow-md"
+                  ? "vow-settings-chip-active shadow-md"
                   : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
               }`}
             >

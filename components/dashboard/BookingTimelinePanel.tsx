@@ -52,10 +52,10 @@ export function BookingTimelinePanel({
   );
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#3d3228] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
-      <div className="border-b border-white/[0.06] px-4 py-3 sm:px-5">
-        <h2 className="text-sm font-semibold text-white">Booking Timeline</h2>
-        <p className="mt-1 text-xs text-slate-500">
+    <section className="booking-detail-card overflow-hidden">
+      <div className="border-b border-brand-200/60 px-4 py-3 sm:px-5">
+        <h2 className="text-sm font-semibold text-brand-950">Booking Timeline</h2>
+        <p className="mt-1 text-xs text-stone-500">
           Only verified events from Vowpath records are shown.
         </p>
       </div>
@@ -64,18 +64,18 @@ export function BookingTimelinePanel({
           <li key={entry.id} className="relative flex gap-3 pb-5 last:pb-0">
             {index < entries.length - 1 ? (
               <span
-                className="absolute left-[0.4375rem] top-4 h-full w-px bg-white/[0.08]"
+                className="absolute left-[0.4375rem] top-4 h-full w-px bg-brand-200/80"
                 aria-hidden
               />
             ) : null}
-            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border border-brand-400/50 bg-brand-500/30" />
+            <span className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-brand-400 bg-brand-100" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm font-semibold text-white">{entry.title}</p>
-                <time className="text-xs text-slate-500">{formatTimelineTime(entry.at)}</time>
+                <p className="text-sm font-semibold text-brand-950">{entry.title}</p>
+                <time className="text-xs text-stone-500">{formatTimelineTime(entry.at)}</time>
               </div>
               {entry.detail ? (
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">{entry.detail}</p>
+                <p className="mt-1 text-xs leading-relaxed text-stone-600">{entry.detail}</p>
               ) : null}
             </div>
           </li>

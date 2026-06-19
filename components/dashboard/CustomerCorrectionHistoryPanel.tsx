@@ -25,10 +25,10 @@ export function CustomerCorrectionHistoryPanel({
   const corrections = record?.corrections ?? [];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#3d3228] shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]">
-      <div className="border-b border-white/[0.06] px-4 py-3 sm:px-5">
-        <h2 className="text-sm font-semibold text-white">Customer Correction History</h2>
-        <p className="mt-1 text-xs text-slate-500">
+    <section className="booking-detail-card overflow-hidden">
+      <div className="border-b border-brand-200/60 px-4 py-3 sm:px-5">
+        <h2 className="text-sm font-semibold text-brand-950">Customer Correction History</h2>
+        <p className="mt-1 text-xs text-stone-500">
           Original and updated values submitted by the customer.
         </p>
       </div>
@@ -38,30 +38,30 @@ export function CustomerCorrectionHistoryPanel({
             {corrections.map((change, index) => (
               <li
                 key={`${change.field}-${change.submittedAt}-${index}`}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3"
+                className="rounded-xl border border-brand-200/70 bg-stone-50/80 p-3"
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-brand-950">
                     {FIELD_LABEL[change.field] ?? change.field}
                   </p>
-                  <time className="text-xs text-slate-500">
+                  <time className="text-xs text-stone-500">
                     {formatSubmittedAt(change.submittedAt)}
                   </time>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
                       Original
                     </p>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <p className="mt-1 text-sm text-stone-700">
                       {change.originalValue || "Unknown"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <p className="text-xs font-medium uppercase tracking-wide text-stone-500">
                       Updated
                     </p>
-                    <p className="mt-1 text-sm text-slate-200">
+                    <p className="mt-1 text-sm font-semibold text-brand-900">
                       {change.updatedValue || "Unknown"}
                     </p>
                   </div>
@@ -70,7 +70,7 @@ export function CustomerCorrectionHistoryPanel({
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-sm text-slate-400">
+          <p className="rounded-xl border border-brand-200/70 bg-stone-50/80 p-3 text-sm text-stone-600">
             No customer corrections recorded.
           </p>
         )}

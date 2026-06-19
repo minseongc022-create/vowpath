@@ -14,25 +14,25 @@ const BAND_STYLES: Record<
   { ring: string; score: string; badge: string; bar: string; track: string }
 > = {
   high: {
-    ring: "border-emerald-500/30 bg-emerald-500/[0.06]",
-    score: "text-emerald-300",
-    badge: "bg-emerald-500/15 text-emerald-200 ring-emerald-500/30",
-    bar: "bg-emerald-500",
-    track: "bg-white/10",
+    ring: "border-emerald-200 bg-emerald-50/50",
+    score: "text-emerald-700",
+    badge: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+    bar: "bg-emerald-600",
+    track: "bg-stone-200",
   },
   review: {
-    ring: "border-amber-500/30 bg-amber-500/[0.06]",
-    score: "text-amber-300",
-    badge: "bg-amber-500/15 text-amber-200 ring-amber-500/30",
+    ring: "border-amber-200 bg-amber-50/50",
+    score: "text-amber-700",
+    badge: "bg-amber-100 text-amber-800 ring-amber-200",
     bar: "bg-amber-500",
-    track: "bg-white/10",
+    track: "bg-stone-200",
   },
   manual: {
-    ring: "border-rose-500/30 bg-rose-500/[0.06]",
-    score: "text-rose-300",
-    badge: "bg-rose-500/15 text-rose-200 ring-rose-500/30",
+    ring: "border-rose-200 bg-rose-50/50",
+    score: "text-rose-700",
+    badge: "bg-rose-100 text-rose-800 ring-rose-200",
     bar: "bg-rose-500",
-    track: "bg-white/10",
+    track: "bg-stone-200",
   },
 };
 
@@ -56,9 +56,7 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
   const verifiedCount = trust.factors.filter((f) => f.state === "verified").length;
 
   return (
-    <section
-      className={`booking-detail-card overflow-visible rounded-2xl border-2 border-white/[0.06] bg-[#3d3228] bg-none shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] ${styles.ring}`}
-    >
+    <section className={`booking-detail-card border-2 ${styles.ring}`}>
       <div className="px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -94,16 +92,16 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
         <p
           className={`mt-4 rounded-lg border px-3 py-2.5 text-sm leading-relaxed ${
             sufficient
-              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
               : trust.hasLinkedCall
-                ? "border-amber-500/20 bg-amber-500/[0.08] text-amber-100/90"
-                : "border-white/[0.08] bg-white/[0.03] text-slate-400"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-brand-200 bg-brand-50/60 text-stone-600"
           }`}
         >
           {reassuranceCopy(trust, t)}
         </p>
 
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-stone-500">
           {trust.hasLinkedCall
             ? t.trustCriteriaMet(verifiedCount, trust.factors.length)
             : t.trustNoCall}
