@@ -1,5 +1,5 @@
 import { bookingShortRef } from "../booking-ref";
-import { smsTechDispatchOfferBody } from "../sms-templates";
+import { smsTechDispatchOfferBody, smsStaffEtaHintShort } from "../sms-templates";
 import { listCallLogs, patchCallLog } from "../call-logs";
 import { listJobs } from "../jobs-db";
 import { sendTechSms } from "./send-tech-sms";
@@ -257,9 +257,12 @@ export async function handleTechDispatchReply(params: {
       customerName: target.customerName,
     });
 
+    const user = await findUserById(params.userId);
+    const shop = resolveShopDisplayName(user?.shopName);
+    const ref = bookingShortRef(target.bookingId);
     return {
       handled: true,
-      replyBody: `Vowpath: You're on ${target.customerName} (${bookingShortRef(target.bookingId)}).`,
+      replyBody: `${shop}: Accepted — ${target.customerName} (${ref}). ${smsStaffEtaHintShort()}`,
     };
   }
 

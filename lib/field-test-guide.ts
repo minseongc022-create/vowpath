@@ -73,7 +73,7 @@ export function buildFieldTestGuide(params: {
         title: "3. Tech accepts + On my way",
         steps: [
           `From YOUR phone (crew tech #): reply 1 to job offer`,
-          "Then text OTW30 when 'heading out'",
+          "Then reply 30 when heading out (or 5, 10, 15, 45, 60)",
           `Customer ${FIELD_TEST_CUSTOMER.phone} gets ETA SMS (same as your customer test # if solo)`,
         ],
       },
@@ -82,7 +82,7 @@ export function buildFieldTestGuide(params: {
         title: "4. Or notify from dashboard",
         steps: [
           "Open booking detail → Customer on the way",
-          "Tap 15 / 30 / 45 min — same customer SMS",
+          "Tap 5 / 10 / 15 / 30 / 45 / 60 min — same customer SMS",
         ],
       },
     ],
@@ -97,7 +97,7 @@ export function buildFieldTestGuide(params: {
     settings: {
       shopName: "Settings → Shop name (shows in SMS, not Vowpath)",
       visitHours: "Settings → Booking → Business hours for visits",
-      crew: "Settings → Crew assignment → tech phone = YOUR mobile (01055969438) so 1 / OTW30 replies work",
+      crew: "Settings → Crew assignment → tech phone = YOUR mobile (01055969438) so 1 / 30 replies work",
     },
   };
 }

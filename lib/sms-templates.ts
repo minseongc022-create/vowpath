@@ -58,6 +58,29 @@ export function smsCustomerOptOut(): string {
   return " Reply STOP to opt out.";
 }
 
+/** Minutes staff can text for customer ETA (e.g. reply 30). */
+export const SMS_ETA_MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60] as const;
+export type SmsEtaMinutes = (typeof SMS_ETA_MINUTE_OPTIONS)[number];
+
+export function smsEtaMinutesLabel(): string {
+  return SMS_ETA_MINUTE_OPTIONS.join(", ");
+}
+
+/** Full staff hint — numbers only, no OTW prefix. */
+export function smsStaffEtaHint(): string {
+  return `Heading out? Reply ${smsEtaMinutesLabel()} — customer gets your ETA.`;
+}
+
+/** Short suffix for owner/tech SMS. */
+export function smsStaffEtaHintShort(): string {
+  return `Driving? Reply ${smsEtaMinutesLabel()} (minutes).`;
+}
+
+/** When someone texts OTW/on my way but not a valid minute. */
+export function smsStaffEtaInvalidReply(): string {
+  return `Reply ${smsEtaMinutesLabel()} only (minutes). Example: 30`;
+}
+
 /** Link intake — press 1 on call */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
   const shop = resolveShopDisplayName(shopName);
@@ -162,7 +185,7 @@ export function smsOwnerScheduledFyiBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Booked ${smsTruncate(params.window, 18)} — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}. Undo: reply 9 (${params.undoMinutes}m).`;
+  return `${shop}: Booked ${smsTruncate(params.window, 18)} — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}. Undo: reply 9 (${params.undoMinutes}m). ${smsStaffEtaHintShort()}`;
 }
 
 export function smsOwnerUrgentAutoBookedBody(params: {
@@ -173,7 +196,7 @@ export function smsOwnerUrgentAutoBookedBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop} P1 booked! ${smsTruncate(params.window, 16)}: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}. Reply 2=Cancel. Undo 9 (${params.undoMinutes}m).`;
+  return `${shop} P1 booked! ${smsTruncate(params.window, 16)}: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}. Reply 2=Cancel. Undo 9 (${params.undoMinutes}m). ${smsStaffEtaHintShort()}`;
 }
 
 export function smsOwnerNoSlotBody(params: {
@@ -219,9 +242,9 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 18);
   if (params.urgent) {
-    return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+    return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel. ${smsStaffEtaHintShort()}`;
   }
-  return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+  return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel. ${smsStaffEtaHintShort()}`;
 }
 
 export function smsTechDispatchOfferBody(params: {
@@ -235,16 +258,15 @@ export function smsTechDispatchOfferBody(params: {
   return `${shop}: Job offer — ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}, ${smsTruncate(params.window, 14)}. Reply 1=Accept 2=Pass. Ref ${params.ref}`;
 }
 
-/** After tech accepts — remind them to text OTW when driving. */
+/** After tech accepts — remind them to reply with ETA minutes when driving. */
 export function smsTechOnMyWayAcceptedHint(params: {
+  shopName?: string;
   customerName: string;
   ref: string;
 }): string {
+  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 18);
-  return (
-    `Vowpath: You're on ${name} (${params.ref}). ` +
-    `Heading out? Text OTW15, OTW30, OTW45 or OTW60 — we'll notify the customer!`
-  );
+  return `${shop}: On ${name} (${params.ref}). ${smsStaffEtaHint()}`;
 }
 
 /** Customer — tech en route (Jobber-style ETA). */

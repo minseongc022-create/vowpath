@@ -18,6 +18,7 @@ import {
   bookingShortRef,
   parseOwnerReplyWithRef,
 } from "./booking-ref";
+import { smsStaffEtaHintShort } from "./sms-templates";
 import { clearSmsReplyTarget, getSmsReplyTarget } from "./sms-reply-context";
 import { getScheduledBooking, listScheduledBookings } from "./schedule-bookings-db";
 import { undoScheduledBooking } from "./scheduling/apply-schedule";
@@ -368,10 +369,7 @@ export async function handleOwnerSmsReply(params: {
   }
 
   const label = REQUEST_STATUS_LABELS[nextStatus];
-  const otwHint =
-    action === "approve"
-      ? " Heading out? Text OTW30 (or 30) to send the customer your ETA."
-      : "";
+  const otwHint = action === "approve" ? ` ${smsStaffEtaHintShort()}` : "";
   return {
     handled: true,
     replyBody: `${shop}: ${label} — ${pending.customerName}. Customer notified by SMS.${otwHint}`,

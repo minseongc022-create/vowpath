@@ -7,7 +7,9 @@ import { getRequestStatuses } from "../requests-db";
 import { listScheduledBookings } from "../schedule-bookings-db";
 import {
   smsCustomerOnMyWayBody,
+  smsStaffEtaInvalidReply,
   smsTechOnMyWayAcceptedHint,
+  SMS_ETA_MINUTE_OPTIONS,
 } from "../sms-templates";
 import { sendSms } from "../send-sms";
 import { getSmsReplyTarget } from "../sms-reply-context";
@@ -22,8 +24,8 @@ import {
   setTechActiveJob,
 } from "./store";
 
-export const ON_MY_WAY_ETA_OPTIONS = [5, 10, 15, 30, 45, 60] as const;
-export type OnMyWayEtaMinutes = (typeof ON_MY_WAY_ETA_OPTIONS)[number];
+export const ON_MY_WAY_ETA_OPTIONS = SMS_ETA_MINUTE_OPTIONS;
+export type OnMyWayEtaMinutes = (typeof SMS_ETA_MINUTE_OPTIONS)[number];
 
 function normalizeOtwBody(body: string): string {
   let trimmed = body.trim();
@@ -208,7 +210,9 @@ export async function promptTechOnMyWayAfterAccept(params: {
 }): Promise<void> {
   await setTechActiveJob(params.userId, params.techId, params.bookingId);
   const ref = bookingShortRef(params.bookingId);
+  const user = await findUserById(params.userId);
   const body = smsTechOnMyWayAcceptedHint({
+    shopName: user?.shopName,
     customerName: params.customerName,
     ref,
   });
@@ -232,8 +236,7 @@ export async function handleOnMyWaySmsReply(params: {
     if (looksLikeOnMyWayAttempt(params.body)) {
       return {
         handled: true,
-        replyBody:
-          "Use OTW15, OTW30, OTW45 or OTW60 (or just 30). Example: OTW30",
+        replyBody: smsStaffEtaInvalidReply(),
       };
     }
     return { handled: false, replyBody: "" };
@@ -283,7 +286,7 @@ export async function handleOnMyWaySmsReply(params: {
     return {
       handled: true,
       replyBody:
-        "No active visit found. Approve a booking first, then text OTW30 when heading out.",
+        "No active visit found. Approve a booking first, then reply 30 when heading out.",
     };
   }
 
