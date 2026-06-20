@@ -27,15 +27,18 @@ export async function GET(
   const url = new URL(request.url);
   const urgency = parseLinkUrgency(url.searchParams.get("urgency")) ?? "this_week";
   const priority = linkUrgencyToPriority(urgency);
+  const excludeBookingId = url.searchParams.get("excludeBookingId")?.trim() || undefined;
 
   const slots = await offerVisitSlotsForTenant({
     userId: session.userId,
     priority,
+    excludeBookingId,
   });
 
   const grid = await offerSlotGridForTenant({
     userId: session.userId,
     priority,
+    excludeBookingId,
   });
 
   return NextResponse.json({

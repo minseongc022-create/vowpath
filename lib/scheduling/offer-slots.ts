@@ -6,12 +6,21 @@ import type { SlotOffer } from "../booking-settings";
 import { computeAvailableSlots, computeSlotGrid, type SlotGridResult } from "./compute-slots";
 import { fetchJobberBusyBlocks } from "./jobber-schedule-api";
 
-async function loadBusyBlocks(userId: string, source: "jobber" | "native") {
+async function loadBusyBlocks(
+  userId: string,
+  source: "jobber" | "native",
+  excludeBookingId?: string,
+) {
   const now = new Date();
   const to = new Date(now);
   to.setDate(to.getDate() + 14);
 
-  let busy = (await listScheduledBookings(userId, now, to)).map((r) => ({
+  let rows = await listScheduledBookings(userId, now, to);
+  if (excludeBookingId) {
+    rows = rows.filter((r) => r.bookingId !== excludeBookingId);
+  }
+
+  let busy = rows.map((r) => ({
     startAt: r.scheduledStartAt,
     endAt: r.scheduledEndAt,
   }));
@@ -31,6 +40,7 @@ async function loadBusyBlocks(userId: string, source: "jobber" | "native") {
 export async function offerSlotGridForTenant(params: {
   userId: string;
   priority: JobPriority;
+  excludeBookingId?: string;
 }): Promise<SlotGridResult | null> {
   const settings = await getShopBookingSettings(params.userId);
   if (!settings.schedulingEnabled) return null;
@@ -39,7 +49,11 @@ export async function offerSlotGridForTenant(params: {
   const source: "jobber" | "native" =
     hasJobber && settings.jobberSchedulingEnabled ? "jobber" : "native";
 
-  const { busy, now } = await loadBusyBlocks(params.userId, source);
+  const { busy, now } = await loadBusyBlocks(
+    params.userId,
+    source,
+    params.excludeBookingId,
+  );
 
   return computeSlotGrid({
     settings,
@@ -53,6 +67,7 @@ export async function offerSlotGridForTenant(params: {
 export async function offerVisitSlotsForTenant(params: {
   userId: string;
   priority: JobPriority;
+  excludeBookingId?: string;
 }): Promise<SlotOffer[]> {
   const settings = await getShopBookingSettings(params.userId);
   if (!settings.schedulingEnabled) return [];
@@ -61,7 +76,11 @@ export async function offerVisitSlotsForTenant(params: {
   const source: "jobber" | "native" =
     hasJobber && settings.jobberSchedulingEnabled ? "jobber" : "native";
 
-  const { busy, now } = await loadBusyBlocks(params.userId, source);
+  const { busy, now } = await loadBusyBlocks(
+    params.userId,
+    source,
+    params.excludeBookingId,
+  );
 
   return computeAvailableSlots({
     settings,

@@ -368,8 +368,12 @@ export async function handleOwnerSmsReply(params: {
   }
 
   const label = REQUEST_STATUS_LABELS[nextStatus];
+  const otwHint =
+    action === "approve"
+      ? " Heading out? Text OTW30 (or 30) to send the customer your ETA."
+      : "";
   return {
     handled: true,
-    replyBody: `${shop}: ${label} — ${pending.customerName}. Customer notified by SMS.`,
+    replyBody: `${shop}: ${label} — ${pending.customerName}. Customer notified by SMS.${otwHint}`,
   };
 }

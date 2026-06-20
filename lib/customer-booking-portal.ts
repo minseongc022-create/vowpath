@@ -10,6 +10,8 @@ import { lookupStoredRequestStatus } from "./request-status-resolve";
 import { normalizeRequestStatus } from "./booking-policy";
 import type { LinkIntakeBookingView } from "./link-intake-portal";
 import { callToLinkIntakeBookingView } from "./link-intake-portal";
+import type { LinkUrgency } from "./link-intake-urgency";
+import { linkUrgencyToPriority } from "./link-intake-urgency";
 
 export type CustomerBookingPortalView = LinkIntakeBookingView & {
   status: RequestStatus;
@@ -132,11 +134,13 @@ export async function customerRescheduleBooking(params: {
   callId: string;
   slotId: string;
   customerName: string;
+  urgency?: LinkUrgency;
 }): Promise<
   | { ok: true; arrivalWindow: string }
   | { ok: false; error: string }
 > {
   const { resolveLinkIntakeSlot } = await import("./call-intake/link-intake-flow");
+  const { offerSlotGridForTenant } = await import("./scheduling/offer-slots");
   const { upsertScheduledBooking } = await import("./schedule-bookings-db");
   const { persistRequestStatusForBooking } = await import("./booking-status-sync");
   const { notifyCustomerScheduled } = await import("./scheduling/schedule-sms");
@@ -146,8 +150,45 @@ export async function customerRescheduleBooking(params: {
   const call = calls.find((c) => c.id === params.callId);
   if (!call) return { ok: false, error: "Booking not found." };
 
-  const slot = await resolveLinkIntakeSlot(params.userId, "this_week", params.slotId);
-  if (!slot) return { ok: false, error: "That time is no longer available." };
+  const urgency = params.urgency ?? "this_week";
+  const excludeBookingId = params.bookingId;
+
+  let slot = await resolveLinkIntakeSlot(
+    params.userId,
+    urgency,
+    params.slotId,
+    { excludeBookingId },
+  );
+
+  if (!slot) {
+    const priorities = ["P1", "P2", "P3"] as const;
+    for (const priority of priorities) {
+      if (priority === linkUrgencyToPriority(urgency)) continue;
+      const grid = await offerSlotGridForTenant({
+        userId: params.userId,
+        priority,
+        excludeBookingId,
+      });
+      const match = grid?.days
+        .flatMap((day) => day.slots)
+        .find((s) => s.id === params.slotId && s.status === "available");
+      if (match) {
+        const day = grid!.days.find((d) => d.slots.some((s) => s.id === match.id));
+        slot = {
+          id: match.id,
+          label: `${day?.weekdayLabel ?? ""} ${match.label}`.trim(),
+          startAt: match.startAt,
+          endAt: match.endAt,
+          source: match.source,
+        };
+        break;
+      }
+    }
+  }
+
+  if (!slot) {
+    return { ok: false, error: "That time is no longer available. Pick another window." };
+  }
 
   await upsertScheduledBooking(params.userId, {
     bookingId: params.bookingId,

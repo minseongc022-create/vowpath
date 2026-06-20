@@ -2,11 +2,16 @@ import { bookingShortRef } from "../booking-ref";
 import { listCallLogs } from "../call-logs";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { normalizeSmsPhone } from "../phone";
+import { lookupStoredRequestStatus } from "../request-status-resolve";
+import { getRequestStatuses } from "../requests-db";
+import { listScheduledBookings } from "../schedule-bookings-db";
 import {
   smsCustomerOnMyWayBody,
   smsTechOnMyWayAcceptedHint,
 } from "../sms-templates";
 import { sendSms } from "../send-sms";
+import { getSmsReplyTarget } from "../sms-reply-context";
+import { resolveOwnerUserIdFromSms } from "../owner-sms-reply";
 import { sendTechSms } from "./send-tech-sms";
 import { findUserById } from "../users-db";
 import {
@@ -20,21 +25,46 @@ import {
 export const ON_MY_WAY_ETA_OPTIONS = [5, 10, 15, 30, 45, 60] as const;
 export type OnMyWayEtaMinutes = (typeof ON_MY_WAY_ETA_OPTIONS)[number];
 
+function normalizeOtwBody(body: string): string {
+  let trimmed = body.trim();
+  // Common typo: 0tw30 (zero) instead of OTW30
+  trimmed = trimmed.replace(/^0(?=tw|mw\b)/i, "O");
+  return trimmed;
+}
+
+export function looksLikeOnMyWayAttempt(body: string): boolean {
+  const t = normalizeOtwBody(body);
+  if (parseOnMyWayMinutes(t) !== null) return true;
+  return /^(?:otw|omw|on\s*my\s*way|heading\s*out)\b/i.test(t);
+}
+
 export function parseOnMyWayMinutes(body: string): OnMyWayEtaMinutes | null {
-  const trimmed = body.trim();
-  const otw = trimmed.match(/^OTW\s*(\d{1,2})$/i) ?? trimmed.match(/^OMW\s*(\d{1,2})$/i);
-  if (otw) {
-    const n = Number(otw[1]);
-    return ON_MY_WAY_ETA_OPTIONS.includes(n as OnMyWayEtaMinutes)
-      ? (n as OnMyWayEtaMinutes)
-      : null;
+  const trimmed = normalizeOtwBody(body);
+
+  const patterns = [
+    /^OTW\s*(\d{1,2})$/i,
+    /^OMW\s*(\d{1,2})$/i,
+    /^(?:on\s*my\s*way|heading\s*out)\s*(\d{1,2})$/i,
+    /^(\d{1,2})\s*min(?:ute)?s?\s*(?:eta|away)?$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match) {
+      const n = Number(match[1]);
+      if (ON_MY_WAY_ETA_OPTIONS.includes(n as OnMyWayEtaMinutes)) {
+        return n as OnMyWayEtaMinutes;
+      }
+    }
   }
+
   if (/^\d{1,2}$/.test(trimmed)) {
     const n = Number(trimmed);
     return ON_MY_WAY_ETA_OPTIONS.includes(n as OnMyWayEtaMinutes)
       ? (n as OnMyWayEtaMinutes)
       : null;
   }
+
   return null;
 }
 
@@ -49,6 +79,73 @@ async function resolveCustomerPhone(
   if (!call) return null;
   const raw = call.callbackPhone?.trim() || call.from?.trim();
   return normalizeSmsPhone(raw ?? "") || null;
+}
+
+async function resolveCustomerName(
+  userId: string,
+  bookingId: string,
+): Promise<string> {
+  if (!bookingId.startsWith("call-")) return "Customer";
+  const callId = bookingId.slice("call-".length);
+  const logs = await listCallLogs(userId);
+  const call = logs.find((c) => c.id === callId);
+  return call?.customerName?.trim() || "Customer";
+}
+
+async function findActiveVisitBooking(
+  userId: string,
+): Promise<{ bookingId: string; customerName: string } | null> {
+  const statuses = await getRequestStatuses(userId);
+  const isActive = (bookingId: string) => {
+    const status = lookupStoredRequestStatus(bookingId, statuses);
+    return status === "scheduled" || status === "approved";
+  };
+
+  const replyTarget = await getSmsReplyTarget(userId);
+  if (replyTarget && isActive(replyTarget)) {
+    return {
+      bookingId: replyTarget,
+      customerName: await resolveCustomerName(userId, replyTarget),
+    };
+  }
+
+  const scheduled = await listScheduledBookings(userId);
+  const latest = scheduled
+    .filter((row) => isActive(row.bookingId))
+    .sort(
+      (a, b) =>
+        new Date(b.scheduledStartAt).getTime() -
+        new Date(a.scheduledStartAt).getTime(),
+    )[0];
+
+  if (latest) {
+    return {
+      bookingId: latest.bookingId,
+      customerName: await resolveCustomerName(userId, latest.bookingId),
+    };
+  }
+
+  const calls = await listCallLogs(userId);
+  const callCandidate = calls
+    .map((call) => ({
+      bookingId: `call-${call.id}`,
+      createdAt: call.createdAt,
+      customerName: call.customerName?.trim() || "Customer",
+    }))
+    .filter((row) => isActive(row.bookingId))
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+
+  if (callCandidate) {
+    return {
+      bookingId: callCandidate.bookingId,
+      customerName: callCandidate.customerName,
+    };
+  }
+
+  return null;
 }
 
 export async function notifyCustomerOnMyWay(params: {
@@ -70,6 +167,7 @@ export async function notifyCustomerOnMyWay(params: {
   const techName =
     params.techName?.trim() ||
     assignment?.assignedTechName?.trim() ||
+    user?.shopName?.trim() ||
     "Your technician";
 
   const phone =
@@ -124,36 +222,68 @@ export async function promptTechOnMyWayAfterAccept(params: {
   });
 }
 
-export async function handleTechOnMyWayReply(params: {
+export async function handleOnMyWaySmsReply(params: {
   userId: string;
   fromPhone: string;
   body: string;
 }): Promise<{ handled: boolean; replyBody: string }> {
   const minutes = parseOnMyWayMinutes(params.body);
-  if (minutes === null) return { handled: false, replyBody: "" };
+  if (minutes === null) {
+    if (looksLikeOnMyWayAttempt(params.body)) {
+      return {
+        handled: true,
+        replyBody:
+          "Use OTW15, OTW30, OTW45 or OTW60 (or just 30). Example: OTW30",
+      };
+    }
+    return { handled: false, replyBody: "" };
+  }
 
   const tech = await findTechByPhone(params.userId, params.fromPhone);
-  if (!tech) return { handled: false, replyBody: "" };
+  const ownerUserId = await resolveOwnerUserIdFromSms(params.fromPhone);
+  const isOwner = ownerUserId === params.userId && !tech;
 
-  let bookingId = await getTechActiveJob(params.userId, tech.id);
+  if (!tech && !isOwner) {
+    return { handled: false, replyBody: "" };
+  }
+
+  let bookingId: string | null = null;
+  let customerName = "Customer";
+  let techName = tech?.name;
+
+  if (tech) {
+    bookingId = await getTechActiveJob(params.userId, tech.id);
+    if (!bookingId) {
+      const visit = await findActiveVisitBooking(params.userId);
+      bookingId = visit?.bookingId ?? null;
+      if (visit) customerName = visit.customerName;
+    } else {
+      const assignment = await getTechAssignment(params.userId, bookingId);
+      if (
+        !assignment ||
+        assignment.status !== "accepted" ||
+        assignment.assignedTechId !== tech.id
+      ) {
+        await clearTechActiveJob(params.userId, tech.id);
+        bookingId = null;
+      } else {
+        customerName = assignment.customerName;
+      }
+    }
+  }
+
+  if (!bookingId && isOwner) {
+    const visit = await findActiveVisitBooking(params.userId);
+    bookingId = visit?.bookingId ?? null;
+    if (visit) customerName = visit.customerName;
+    techName = undefined;
+  }
+
   if (!bookingId) {
     return {
       handled: true,
       replyBody:
-        "No active job. Accept a job first (reply 1), then text OTW30 when heading out.",
-    };
-  }
-
-  const assignment = await getTechAssignment(params.userId, bookingId);
-  if (
-    !assignment ||
-    assignment.status !== "accepted" ||
-    assignment.assignedTechId !== tech.id
-  ) {
-    await clearTechActiveJob(params.userId, tech.id);
-    return {
-      handled: true,
-      replyBody: "That job is closed. Check the dashboard for your next assignment.",
+        "No active visit found. Approve a booking first, then text OTW30 when heading out.",
     };
   }
 
@@ -161,8 +291,8 @@ export async function handleTechOnMyWayReply(params: {
     userId: params.userId,
     bookingId,
     etaMinutes: minutes,
-    techName: tech.name,
-    customerName: assignment.customerName,
+    techName,
+    customerName,
   });
 
   if (!sent.ok) {
@@ -176,4 +306,13 @@ export async function handleTechOnMyWayReply(params: {
     handled: true,
     replyBody: `Customer notified — ETA ~${minutes} min. Drive safe!`,
   };
+}
+
+/** @deprecated Use handleOnMyWaySmsReply */
+export async function handleTechOnMyWayReply(params: {
+  userId: string;
+  fromPhone: string;
+  body: string;
+}): Promise<{ handled: boolean; replyBody: string }> {
+  return handleOnMyWaySmsReply(params);
 }

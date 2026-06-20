@@ -103,10 +103,16 @@ export async function resolveLinkIntakeSlot(
   userId: string,
   urgency: LinkUrgency,
   slotId?: string | null,
+  options?: { excludeBookingId?: string },
 ): Promise<SlotOffer | null> {
   if (!slotId?.trim()) return null;
   const priority = linkUrgencyToPriority(urgency);
-  const grid = await offerSlotGridForTenant({ userId, priority });
+  const excludeBookingId = options?.excludeBookingId;
+  const grid = await offerSlotGridForTenant({
+    userId,
+    priority,
+    excludeBookingId,
+  });
   if (grid) {
     for (const day of grid.days) {
       const match = day.slots.find((s) => s.id === slotId && s.status === "available");
@@ -121,7 +127,11 @@ export async function resolveLinkIntakeSlot(
       }
     }
   }
-  const slots = await offerVisitSlotsForTenant({ userId, priority });
+  const slots = await offerVisitSlotsForTenant({
+    userId,
+    priority,
+    excludeBookingId,
+  });
   return slots.find((s) => s.id === slotId) ?? null;
 }
 

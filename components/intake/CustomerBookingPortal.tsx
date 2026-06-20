@@ -12,6 +12,16 @@ type Mode = "view" | "edit" | "reschedule" | "cancel";
 const inputClass =
   "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
 
+async function readJsonResponse(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error("invalid_json");
+  }
+}
+
 export function CustomerBookingPortal({
   token,
   shopName,
@@ -49,7 +59,7 @@ export function CustomerBookingPortal({
     let cancelled = false;
     (async () => {
       const res = await fetch(
-        `/api/intake-link/${token}/slots?urgency=${booking.urgency}`,
+        `/api/intake-link/${token}/slots?urgency=${booking.urgency}&excludeBookingId=${encodeURIComponent(booking.bookingId)}`,
       );
       if (!res.ok || cancelled) return;
       const data = await res.json();
@@ -83,17 +93,21 @@ export function CustomerBookingPortal({
           urgency,
         }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok || !data.booking) {
-        setError(data.error ?? "Could not save changes.");
+        setError(String(data.error ?? "Could not save changes."));
         return;
       }
       setBooking({ ...booking, ...data.booking, status: booking.status, statusLabel: booking.statusLabel, arrivalWindow: booking.arrivalWindow, portalToken: token, canCancel: booking.canCancel, canReschedule: booking.canReschedule });
       setNotice(copy.portalUpdateSuccessBody);
       setMode("view");
       await refresh();
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "invalid_json"
+          ? "Server error. Please refresh and try again."
+          : "Network error. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -112,16 +126,20 @@ export function CustomerBookingPortal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slotId: selectedSlotId }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok) {
-        setError(data.error ?? "Could not reschedule.");
+        setError(String(data.error ?? "Could not reschedule."));
         return;
       }
-      if (data.booking) setBooking(data.booking);
+      if (data.booking) setBooking(data.booking as CustomerBookingPortalView);
       setNotice("Visit time updated! We'll see you then.");
       setMode("view");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "invalid_json"
+          ? "Server error. Please refresh and try again."
+          : "Network error. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -140,8 +158,12 @@ export function CustomerBookingPortal({
       if (data.booking) setBooking(data.booking);
       setNotice("Your visit was cancelled.");
       setMode("view");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message === "invalid_json"
+          ? "Server error. Please refresh and try again."
+          : "Network error. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
