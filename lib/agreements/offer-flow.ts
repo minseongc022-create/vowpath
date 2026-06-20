@@ -1,4 +1,5 @@
 import { getPublicAppUrl } from "../app-url";
+import { getPortalBaseUrl } from "../portal-url";
 import { findUserById } from "../users-db";
 import { sendSms } from "../send-sms";
 import { shopDisplayNameForUser } from "../link-intake-brand";
@@ -11,7 +12,8 @@ import { createAgreementOfferSession, markAgreementOfferUsed } from "./offer-sto
 import { formatAgreementPrice, type MaintenanceAgreement } from "./types";
 
 export async function buildAgreementOfferUrl(token: string): Promise<string> {
-  const base = getPublicAppUrl() || "https://vowpathhq.com";
+  const base = getPortalBaseUrl() || getPublicAppUrl();
+  if (!base) return `/agreement-offer/${token}`;
   return `${base.replace(/\/$/, "")}/agreement-offer/${token}`;
 }
 

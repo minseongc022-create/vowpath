@@ -6,7 +6,15 @@ import { isPortalHost } from "@/lib/portal-url";
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
 /** Customer portal paths — safe on portal/app subdomains (no marketing homepage). */
-const portalPublicPrefixes = ["/r/", "/intake/", "/portal", "/api/intake-link/", "/api/correction/"];
+const portalPublicPrefixes = [
+  "/r/",
+  "/intake/",
+  "/portal",
+  "/agreement-offer/",
+  "/api/intake-link/",
+  "/api/correction/",
+  "/api/agreement-offer/",
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

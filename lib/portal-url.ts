@@ -1,24 +1,28 @@
 import { getPublicAppUrl } from "./app-url";
+import { warnIfBrandedPortalUrl } from "./customer-brand";
 
-const PORTAL_HOST_SUFFIXES = ["portal.", "book.", "app."] as const;
+const PORTAL_HOST_SUFFIXES = ["portal.", "book.", "app.", "link.", "go.", "requests."] as const;
 
 /** Customer-facing portal (intake links, booking manage). Never use bare marketing homepage. */
 export function getPortalBaseUrl(): string {
   const portal = process.env.NEXT_PUBLIC_PORTAL_URL?.trim();
   if (portal && !portal.includes("localhost")) {
-    return portal.replace(/\/$/, "");
+    const base = portal.replace(/\/$/, "");
+    warnIfBrandedPortalUrl(base);
+    return base;
   }
 
   const app = getPublicAppUrl();
   if (app) {
     try {
       const hostname = new URL(app).hostname.replace(/^www\./, "");
-      // book.{your-domain} — add this subdomain in Vercel + DNS (see .env.example)
+      // link.{your-domain} — neutral SMS link, not the marketing site (see .env.example)
       if (
         process.env.NEXT_PUBLIC_PORTAL_USE_BOOK_SUBDOMAIN === "true" &&
-        !hostname.startsWith("book.")
+        !hostname.startsWith("book.") &&
+        !hostname.startsWith("link.")
       ) {
-        return `https://book.${hostname}`;
+        return `https://link.${hostname}`;
       }
     } catch {
       /* ignore */
@@ -52,6 +56,9 @@ export function isPortalHost(host: string | null | undefined): boolean {
   return (
     h === "portal.vowpath.com" ||
     h === "app.vowpath.com" ||
-    h === "book.vowpathhq.com"
+    h === "link.vowpath.com" ||
+    h === "book.vowpathhq.com" ||
+    h === "link.vowpathhq.com" ||
+    h === "go.vowpathhq.com"
   );
 }

@@ -6,6 +6,11 @@ import { handleTechDispatchReply } from "@/lib/tech-dispatch/assign";
 import { findTechByPhone } from "@/lib/tech-dispatch/store";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { twimlMessage, twimlResponse } from "@/lib/twilio-xml";
+import {
+  customerSmsErrorReply,
+  customerSmsStartReply,
+  customerSmsStopReply,
+} from "@/lib/customer-brand";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -20,11 +25,15 @@ export async function POST(request: Request) {
   const body = params.get("Body") ?? "";
 
   if (/^\s*STOP\s*$/i.test(body.trim())) {
-    const twiml = twimlResponse(
-      twimlMessage(
-        "You are unsubscribed from Vowpath service texts. Reply START to resubscribe.",
-      ),
-    );
+    const twiml = twimlResponse(twimlMessage(customerSmsStopReply));
+    return new NextResponse(twiml, {
+      status: 200,
+      headers: { "Content-Type": "text/xml" },
+    });
+  }
+
+  if (/^\s*START\s*$/i.test(body.trim())) {
+    const twiml = twimlResponse(twimlMessage(customerSmsStartReply));
     return new NextResponse(twiml, {
       status: 200,
       headers: { "Content-Type": "text/xml" },
@@ -65,9 +74,7 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("[twilio/sms]", e);
-    const twiml = twimlResponse(
-      twimlMessage("Vowpath: Something went wrong. Please use your dashboard."),
-    );
+    const twiml = twimlResponse(twimlMessage(customerSmsErrorReply));
     return new NextResponse(twiml, {
       status: 200,
       headers: { "Content-Type": "text/xml" },
@@ -76,7 +83,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  return new NextResponse(twimlResponse(twimlMessage("Vowpath SMS webhook is active.")), {
+  return new NextResponse(twimlResponse(twimlMessage("SMS webhook active.")), {
     status: 200,
     headers: { "Content-Type": "text/xml" },
   });
