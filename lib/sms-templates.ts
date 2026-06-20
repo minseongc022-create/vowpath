@@ -195,7 +195,7 @@ export function smsOwnerScheduledFyiBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Booked ${smsTruncate(params.window, 18)} — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}. Undo: reply 9 (${params.undoMinutes}m). ${smsStaffEtaHintShort()}`;
+  return `${shop}: Booked ${smsTruncate(params.window, 18)} — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}. Undo: reply 9 (${params.undoMinutes}m).`;
 }
 
 export function smsOwnerUrgentAutoBookedBody(params: {
@@ -206,7 +206,7 @@ export function smsOwnerUrgentAutoBookedBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop} P1 booked! ${smsTruncate(params.window, 16)}: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}. Reply 2=Cancel. Undo 9 (${params.undoMinutes}m). ${smsStaffEtaHintShort()}`;
+  return `${shop} P1 booked! ${smsTruncate(params.window, 16)}: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}. Reply 2=Cancel. Undo 9 (${params.undoMinutes}m).`;
 }
 
 export function smsOwnerNoSlotBody(params: {
@@ -252,9 +252,9 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 18);
   if (params.urgent) {
-    return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel. ${smsStaffEtaHintShort()}`;
+    return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
   }
-  return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel. ${smsStaffEtaHintShort()}`;
+  return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
 }
 
 export function smsTechDispatchOfferBody(params: {

@@ -18,7 +18,7 @@ import {
   bookingShortRef,
   parseOwnerReplyWithRef,
 } from "./booking-ref";
-import { smsStaffEtaHintShort } from "./sms-templates";
+import { notifyStaffEtaInstructions, phonesShareCustomerLine } from "./staff-eta-notify";
 import { clearSmsReplyTarget, getSmsReplyTarget } from "./sms-reply-context";
 import { getScheduledBooking, listScheduledBookings } from "./schedule-bookings-db";
 import { undoScheduledBooking } from "./scheduling/apply-schedule";
@@ -368,10 +368,28 @@ export async function handleOwnerSmsReply(params: {
     };
   }
 
+  if (action === "approve") {
+    try {
+      await notifyStaffEtaInstructions({
+        userId,
+        bookingId: pending.bookingId,
+      });
+    } catch (e) {
+      console.warn("[owner-sms-reply] staff eta instructions", e);
+    }
+  }
+
   const label = REQUEST_STATUS_LABELS[nextStatus];
-  const otwHint = action === "approve" ? ` ${smsStaffEtaHintShort()}` : "";
+  const sharedLine = await phonesShareCustomerLine(
+    userId,
+    pending.bookingId,
+    params.from,
+  );
+  const replyBody = sharedLine
+    ? `${shop}: You're all set — see you soon!`
+    : `${shop}: ${label} — ${pending.customerName}.`;
   return {
     handled: true,
-    replyBody: `${shop}: ${label} — ${pending.customerName}. Customer notified by SMS.${otwHint}`,
+    replyBody,
   };
 }

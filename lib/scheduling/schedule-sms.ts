@@ -15,6 +15,7 @@ import {
 } from "../sms-templates";
 import { findPortalTokenForBooking } from "../customer-booking-portal";
 import { buildBookingPortalUrl } from "../portal-url";
+import { notifyStaffEtaInstructions } from "../staff-eta-notify";
 
 function smsCtx(userId: string, op: string, bookingId?: string): SmsSendContext {
   return { userId, operation: op, bookingId };
@@ -151,6 +152,16 @@ export async function notifyOwnerScheduledFyi(params: {
     operation: "owner_scheduled_fyi",
     bookingId: params.bookingId,
   });
+
+  try {
+    await notifyStaffEtaInstructions({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      dedupeSuffix: "staff_eta_after_schedule",
+    });
+  } catch {
+    /* optional */
+  }
 }
 
 export async function notifyOwnerApprovalNeeded(params: {
@@ -209,6 +220,16 @@ export async function notifyOwnerUrgentAutoBooked(params: {
     operation: "owner_urgent_auto_booked",
     bookingId: params.bookingId,
   });
+
+  try {
+    await notifyStaffEtaInstructions({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      dedupeSuffix: "staff_eta_after_urgent",
+    });
+  } catch {
+    /* optional */
+  }
 }
 
 export async function notifyOwnerNoSlot(params: {

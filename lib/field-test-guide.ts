@@ -97,7 +97,7 @@ export function buildFieldTestGuide(params: {
     settings: {
       shopName: "Settings → Shop name (shows in SMS, not Vowpath)",
       visitHours: "Settings → Booking → Business hours for visits",
-      crew: "Settings → Crew assignment → tech phone = YOUR mobile (01055969438) so 1 / 30 replies work",
+      crew: "Settings → Crew: tech phone = STAFF line (not customer). Customer phone on booking = customer only. Same 010 for both? Use dashboard for ETA.",
     },
   };
 }

@@ -1,5 +1,5 @@
 import { bookingShortRef } from "../booking-ref";
-import { smsTechDispatchOfferBody, smsStaffEtaHintShort } from "../sms-templates";
+import { smsTechDispatchOfferBody } from "../sms-templates";
 import { listCallLogs, patchCallLog } from "../call-logs";
 import { listJobs } from "../jobs-db";
 import { sendTechSms } from "./send-tech-sms";
@@ -262,7 +262,7 @@ export async function handleTechDispatchReply(params: {
     const ref = bookingShortRef(target.bookingId);
     return {
       handled: true,
-      replyBody: `${shop}: Accepted — ${target.customerName} (${ref}). ${smsStaffEtaHintShort()}`,
+      replyBody: `${shop}: Accepted — ${target.customerName} (${ref}).`,
     };
   }
 

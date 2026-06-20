@@ -1,4 +1,3 @@
-import { bookingShortRef } from "../booking-ref";
 import { listCallLogs } from "../call-logs";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { normalizeSmsPhone } from "../phone";
@@ -8,13 +7,12 @@ import { listScheduledBookings } from "../schedule-bookings-db";
 import {
   smsCustomerOnMyWayBody,
   smsStaffEtaInvalidReply,
-  smsTechOnMyWayAcceptedHint,
   SMS_ETA_MINUTE_OPTIONS,
 } from "../sms-templates";
+import { notifyStaffEtaInstructions } from "../staff-eta-notify";
 import { sendSms } from "../send-sms";
 import { getSmsReplyTarget } from "../sms-reply-context";
 import { resolveOwnerUserIdFromSms } from "../owner-sms-reply";
-import { sendTechSms } from "./send-tech-sms";
 import { findUserById } from "../users-db";
 import {
   clearTechActiveJob,
@@ -209,20 +207,12 @@ export async function promptTechOnMyWayAfterAccept(params: {
   customerName: string;
 }): Promise<void> {
   await setTechActiveJob(params.userId, params.techId, params.bookingId);
-  const ref = bookingShortRef(params.bookingId);
-  const user = await findUserById(params.userId);
-  const body = smsTechOnMyWayAcceptedHint({
-    shopName: user?.shopName,
-    customerName: params.customerName,
-    ref,
-  });
-  await sendTechSms({
+  await notifyStaffEtaInstructions({
     userId: params.userId,
-    techPhone: params.techPhone,
-    body,
-    devLogLabel: "tech-on-my-way-hint",
-    operation: "tech_on_my_way_hint",
     bookingId: params.bookingId,
+    staffPhone: params.techPhone,
+    customerName: params.customerName,
+    dedupeSuffix: "staff_eta_after_tech_accept",
   });
 }
 
