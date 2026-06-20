@@ -183,6 +183,7 @@ export function CustomerBookingPortal({
                 <Row label={copy.issueLabel} value={booking.issueType} />
                 <Row label={copy.bookingTimeLabel} value={booking.arrivalWindow} />
               </dl>
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">{copy.bookingTimeHint}</p>
             </div>
           ) : null}
 

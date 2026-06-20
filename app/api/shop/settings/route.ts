@@ -5,6 +5,7 @@ import {
   coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
   normalizeSlotBufferMinutes,
+  sanitizeVisitWindowPatch,
   type OwnerApprovalSms,
   type SchedulingMode,
   type ShopBookingSettings,
@@ -78,6 +79,13 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
         p === "P1" || p === "P2" || p === "P3",
     );
   }
+  const visitWindows = sanitizeVisitWindowPatch({
+    amWindowStart: typeof body.amWindowStart === "number" ? body.amWindowStart : undefined,
+    amWindowEnd: typeof body.amWindowEnd === "number" ? body.amWindowEnd : undefined,
+    pmWindowStart: typeof body.pmWindowStart === "number" ? body.pmWindowStart : undefined,
+    pmWindowEnd: typeof body.pmWindowEnd === "number" ? body.pmWindowEnd : undefined,
+  });
+  if (visitWindows) Object.assign(patch, visitWindows);
   return patch;
 }
 

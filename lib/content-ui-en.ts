@@ -39,6 +39,14 @@ export const settingsPageEn = {
   visitTimingTitle: "Appointment spacing",
   visitTimingHint:
     "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
+  visitHoursTitle: "Business hours for visits",
+  visitHoursHint:
+    "Customer booking slots only appear in these windows (Mon–Sat). Most US HVAC shops use a morning and afternoon block.",
+  visitHoursAmLabel: "Morning window",
+  visitHoursPmLabel: "Afternoon window",
+  visitHoursToLabel: "to",
+  visitHoursExample: (am: string, pm: string) =>
+    `Example slots: ${am} and ${pm} on the next open day.`,
   appointmentIntervalLabel: "Time between visits",
   appointmentIntervalHint:
     "Each slot lasts this long. The next open time starts exactly this many minutes after the previous one.",

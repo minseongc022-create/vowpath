@@ -582,6 +582,14 @@ const settingsPageKo = {
   visitTimingTitle: "예약 간격",
   visitTimingHint:
     "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
+  visitHoursTitle: "방문 가능 시간 (영업시간)",
+  visitHoursHint:
+    "고객 예약 슬롯은 이 시간대 안에서만 생성됩니다 (월–토). 미국 HVAC는 보통 오전·오후 구간으로 나눕니다.",
+  visitHoursAmLabel: "오전 구간",
+  visitHoursPmLabel: "오후 구간",
+  visitHoursToLabel: "~",
+  visitHoursExample: (am: string, pm: string) =>
+    `예: 다음 영업일 ${am}, ${pm} 같은 슬롯이 보입니다.`,
   appointmentIntervalLabel: "예약 간격",
   appointmentIntervalHint:
     "한 번 예약하면 그 시간만큼 일정에 잡히고, 다음 예약은 정확히 그 간격 뒤부터 열립니다.",

@@ -61,7 +61,7 @@ export function smsCustomerOptOut(): string {
 /** Link intake — press 1 on call */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return smsBodyWithUrl(`${shop}: Tap to book your visit:`, url);
+  return smsBodyWithUrl(`${shop}: Hey! 👋 Book your visit here — takes 60 sec!`, url);
 }
 
 /** After booking / request received */
@@ -76,13 +76,15 @@ export function smsCustomerBookingConfirmationBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
-  const issue = smsTruncate(params.issueType, 28);
+  const issue = smsTruncate(params.issueType, 26);
   const ref = params.requestNumber;
   const window = params.arrivalWindow?.trim()
-    ? smsTruncate(params.arrivalWindow, 22)
+    ? smsTruncate(params.arrivalWindow, 20)
     : "";
-  const pending = params.pendingShopReview ? " We'll confirm soon!" : " You're on the schedule!";
-  const core = `${shop}: Hi ${first}! ${ref} received — ${issue}.${window ? ` ${window}.` : pending}`;
+  const pending = params.pendingShopReview
+    ? " We'll confirm your arrival window soon!"
+    : " You're on the schedule!";
+  const core = `${shop}: Hi ${first}! ✅ ${ref} — ${issue}.${window ? ` Window: ${window}.` : pending}`;
   return smsBodyWithUrl(core, params.portalUrl);
 }
 
@@ -95,9 +97,9 @@ export function smsCustomerScheduledBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
-  const window = smsTruncate(params.window, 24);
+  const window = smsTruncate(params.window, 22);
   const urgent = params.priority === "P1" ? " Priority visit!" : "";
-  const core = `${shop}: Hi ${first}! You're set for ${window}.${urgent} See you soon!`;
+  const core = `${shop}: Hi ${first}! 📅 You're set for ${window}.${urgent} We'll text when we're on the way!`;
   if (params.portalUrl) {
     return smsBodyWithUrl(core, params.portalUrl);
   }
@@ -107,33 +109,33 @@ export function smsCustomerScheduledBody(params: {
 export function smsCustomerIntakeAckBody(shopName: string | undefined, issue: string): string {
   const shop = resolveShopDisplayName(shopName);
   return smsFitSingleSegment([
-    `${shop}: Got it — ${smsTruncate(issue, 30)}! We'll text your visit time soon.${smsCustomerOptOut()}`,
+    `${shop}: Got it — ${smsTruncate(issue, 28)}! 🔧 We'll text your arrival window soon.${smsCustomerOptOut()}`,
   ]);
 }
 
 export function smsCustomerNoSlotBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Request received! Our schedule is full — we'll call within 2 hrs to book you.${smsCustomerOptOut()}`;
+  return `${shop}: Request in! 📞 Calendar's tight — we'll call within 2 hrs to lock in your window.${smsCustomerOptOut()}`;
 }
 
 export function smsCustomerApprovedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Your visit is confirmed! We'll text arrival details soon.${smsCustomerOptOut()}`;
+  return `${shop}: You're confirmed! ✅ We'll text your arrival window & when we're on the way.${smsCustomerOptOut()}`;
 }
 
 export function smsCustomerRejectedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: We can't take this request right now. Call us if you still need help.${smsCustomerOptOut()}`;
+  return `${shop}: We can't take this one right now — give us a call if you still need help!${smsCustomerOptOut()}`;
 }
 
 export function smsRequestReceivedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Request received! Not confirmed yet — we'll follow up shortly.${smsCustomerOptOut()}`;
+  return `${shop}: Got your request! 👋 Not confirmed yet — we'll follow up shortly.${smsCustomerOptOut()}`;
 }
 
 export function smsAfterHoursCustomerBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: After-hours request received! We'll reach out next business day.${smsCustomerOptOut()}`;
+  return `${shop}: After-hours request received! 🌙 We'll reach out next business day.${smsCustomerOptOut()}`;
 }
 
 export function smsOwnerApprovalNeededBody(params: {
@@ -238,5 +240,5 @@ export function smsCustomerVerificationBody(params: {
   issueType: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Please confirm your request (${smsTruncate(params.issueType, 24)}). Reply YES or NO.${smsCustomerOptOut()}`;
+  return `${shop}: Quick check — is this right (${smsTruncate(params.issueType, 22)})? Reply YES or NO.${smsCustomerOptOut()}`;
 }

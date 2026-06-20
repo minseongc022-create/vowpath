@@ -36,10 +36,10 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): b
 function formatTimeLabel(start: Date, end: Date): string {
   const fmt = (d: Date) => {
     const h = d.getHours();
-    const ap = h >= 12 ? "pm" : "am";
+    const ap = h >= 12 ? "PM" : "AM";
     const hs = h % 12 || 12;
     const m = d.getMinutes();
-    return m === 0 ? `${hs}${ap}` : `${hs}:${String(m).padStart(2, "0")}${ap}`;
+    return m === 0 ? `${hs} ${ap}` : `${hs}:${String(m).padStart(2, "0")} ${ap}`;
   };
   return `${fmt(start)}–${fmt(end)}`;
 }

@@ -5,9 +5,9 @@ import { legacyToServicePriority } from "./service-priority";
 export type LinkUrgency = "today" | "this_week" | "estimate";
 
 const LINK_URGENCY_OPTIONS_EN: { id: LinkUrgency; label: string }[] = [
-  { id: "today", label: "I need a visit as soon as possible." },
-  { id: "this_week", label: "I need a visit this week." },
-  { id: "estimate", label: "This is a quote or consultation request." },
+  { id: "today", label: "ASAP — no heat, no AC, or urgent issue 🔥" },
+  { id: "this_week", label: "This week works — comfort issue but not an emergency" },
+  { id: "estimate", label: "Quote / new system / maintenance visit" },
 ];
 
 const LINK_URGENCY_OPTIONS_KO: { id: LinkUrgency; label: string }[] = [

@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Service request",
-  description: "Complete or update your HVAC service request",
+  title: "Book a visit",
+  description: "Schedule HVAC service or check your arrival window",
 };
 
 export default function IntakeLayout({ children }: { children: React.ReactNode }) {

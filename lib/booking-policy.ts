@@ -30,11 +30,11 @@ export const REQUEST_STATUSES: RequestStatus[] = [
 
 const REQUEST_STATUS_LABELS_EN: Record<RequestStatus, string> = {
   request_received: "Request received",
-  pending_review: "Pending review",
-  approved: "Approved",
-  rejected: "Declined",
-  scheduled: "Scheduled",
-  completed: "Completed",
+  pending_review: "Reviewing your request",
+  approved: "Approved — we'll see you soon!",
+  rejected: "Unable to schedule",
+  scheduled: "On the schedule",
+  completed: "Visit complete",
 };
 
 const REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
@@ -52,7 +52,7 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi(
 
 /** Twilio closing message — never imply appointment is confirmed. */
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =
-  "Got it — your request is in! Our team will follow up with you soon. Thanks for calling. Take care!";
+  "Got it — your request is in! Our team will follow up with your arrival window soon. Thanks for calling!";
 
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE_SHORT =
   "Your request is in! We'll be in touch shortly. Thanks!";

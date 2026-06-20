@@ -182,6 +182,50 @@ export function patchAppointmentInterval(intervalMinutes: number): Pick<ShopBook
   return { defaultDurationMinutes: interval, slotBufferMinutes: 0 };
 }
 
+export function formatVisitHourLabel(hour: number): string {
+  const h = Math.min(23, Math.max(0, Math.round(hour)));
+  const ap = h >= 12 ? "PM" : "AM";
+  const hs = h % 12 || 12;
+  return `${hs} ${ap}`;
+}
+
+/** Hour options for visit-window pickers (6 AM – 8 PM). */
+export const VISIT_HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => i + 6);
+
+export function sanitizeVisitWindowPatch(
+  patch: Partial<
+    Pick<
+      ShopBookingSettings,
+      | "amWindowStart"
+      | "amWindowEnd"
+      | "pmWindowStart"
+      | "pmWindowEnd"
+      | "businessDayStartHour"
+      | "businessDayEndHour"
+    >
+  >,
+): Partial<ShopBookingSettings> | null {
+  const clamp = (n: unknown) =>
+    typeof n === "number" && Number.isFinite(n) ? Math.min(23, Math.max(0, Math.round(n))) : null;
+
+  const amStart = clamp(patch.amWindowStart);
+  const amEnd = clamp(patch.amWindowEnd);
+  const pmStart = clamp(patch.pmWindowStart);
+  const pmEnd = clamp(patch.pmWindowEnd);
+
+  if (amStart === null || amEnd === null || pmStart === null || pmEnd === null) return null;
+  if (amStart >= amEnd || pmStart >= pmEnd || amEnd > pmStart) return null;
+
+  return {
+    amWindowStart: amStart,
+    amWindowEnd: amEnd,
+    pmWindowStart: pmStart,
+    pmWindowEnd: pmEnd,
+    businessDayStartHour: amStart,
+    businessDayEndHour: pmEnd,
+  };
+}
+
 export {
   AUTO_BOOK_CONFIDENCE_MIN,
   confidenceMinFromFields,

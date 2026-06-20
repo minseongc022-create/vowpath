@@ -14,7 +14,7 @@ export function customerVerificationSmsBody(params: {
 
 export function customerVerificationReminderBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Still need your YES or NO to confirm your request. Thanks!`;
+  return `${shop}: Still need YES or NO to confirm — thanks! 👍`;
 }
 
 export function customerVerificationCorrectionSmsBody(params: {
@@ -22,5 +22,5 @@ export function customerVerificationCorrectionSmsBody(params: {
   correctionUrl: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Update your request here 👉 ${params.correctionUrl}`;
+  return `${shop}: Update your details here 👉 ${params.correctionUrl}`;
 }

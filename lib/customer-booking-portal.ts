@@ -50,7 +50,7 @@ export async function loadCustomerBookingPortalView(params: {
   const arrivalWindow =
     scheduled?.arrivalWindowLabel?.trim() ||
     call.arrivalWindow?.trim() ||
-    "Pending shop review";
+    "Pending — we'll confirm your window soon";
 
   const terminal = status === "rejected" || status === "completed";
   const canReschedule =

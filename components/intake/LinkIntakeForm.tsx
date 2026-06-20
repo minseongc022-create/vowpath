@@ -62,7 +62,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function postIntake(slotId?: string) {
     if (!smsConsent) {
-      setError("Please agree to receive service-related text messages.");
+      setError(copy.smsConsentRequired);
       return;
     }
     setError(null);
@@ -101,7 +101,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   async function handleFormNext(e: React.FormEvent) {
     e.preventDefault();
     if (!smsConsent) {
-      setError("Please agree to receive service-related text messages.");
+      setError(copy.smsConsentRequired);
       return;
     }
     setError(null);
@@ -120,7 +120,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         error?: string;
       };
       if (!res.ok) {
-        setError(data.error ?? "Could not load available times.");
+        setError(data.error ?? copy.slotLoadFailed);
         return;
       }
       if (data.schedulingEnabled && (data.grid?.days?.length ?? 0) > 0) {
@@ -137,8 +137,8 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
     } catch (e) {
       setError(
         e instanceof Error && e.message === "REQUEST_TIMEOUT"
-          ? clientFetchTimeoutMessage("Could not load time slots. Please try again.")
-          : "Network error. Check your connection and try again.",
+          ? clientFetchTimeoutMessage(copy.slotLoadFailed)
+          : copy.networkError,
       );
     } finally {
       setSlotsLoading(false);
@@ -147,7 +147,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function handleSlotConfirm() {
     if (!selectedSlotId) {
-      setError("Please select a visit time.");
+      setError(copy.selectVisitTime);
       return;
     }
     await postIntake(selectedSlotId);

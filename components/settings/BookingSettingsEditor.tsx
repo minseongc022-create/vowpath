@@ -5,8 +5,11 @@ import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveC
 import {
   appointmentIntervalMinutes,
   coalesceSchedulingSettingsPatch,
+  formatVisitHourLabel,
   mergeShopBookingSettings,
   patchAppointmentInterval,
+  sanitizeVisitWindowPatch,
+  VISIT_HOUR_OPTIONS,
   type OwnerApprovalSms,
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
@@ -89,6 +92,10 @@ export function BookingSettingsEditor() {
             slotBufferMinutes: settings.slotBufferMinutes,
             maxConcurrentVisits: settings.maxConcurrentVisits,
             serviceAreaZips: settings.serviceAreaZips,
+            amWindowStart: settings.amWindowStart,
+            amWindowEnd: settings.amWindowEnd,
+            pmWindowStart: settings.pmWindowStart,
+            pmWindowEnd: settings.pmWindowEnd,
           }),
         },
         12_000,
@@ -117,6 +124,41 @@ export function BookingSettingsEditor() {
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 15 || n > 720) return;
     updateLocal(patchAppointmentInterval(n));
+  }
+
+  function applyVisitWindows(
+    partial: Partial<
+      Pick<ShopBookingSettings, "amWindowStart" | "amWindowEnd" | "pmWindowStart" | "pmWindowEnd">
+    >,
+  ) {
+    if (!settings) return;
+    const sanitized = sanitizeVisitWindowPatch({ ...settings, ...partial });
+    if (!sanitized) {
+      setError(isEnglish ? "Morning must end before afternoon starts." : "오전 구간은 오후 시작 전에 끝나야 합니다.");
+      return;
+    }
+    updateLocal(sanitized);
+  }
+
+  function visitHourSelect(
+    value: number,
+    onChange: (hour: number) => void,
+    id: string,
+  ) {
+    return (
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="vow-settings-input mt-1 min-w-[7rem]"
+      >
+        {VISIT_HOUR_OPTIONS.map((h) => (
+          <option key={h} value={h}>
+            {formatVisitHourLabel(h)}
+          </option>
+        ))}
+      </select>
+    );
   }
 
   if (loading && !settings) {
@@ -175,6 +217,41 @@ export function BookingSettingsEditor() {
           ))}
         </ul>
       </div>
+
+      {settings.schedulingEnabled ? (
+        <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4 space-y-4">
+          <div>
+            <p className="vow-settings-label">{settingsPage.visitHoursTitle}</p>
+            <p className="vow-settings-hint mt-1">{settingsPage.visitHoursHint}</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursAmLabel}</p>
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                {visitHourSelect(settings.amWindowStart, (h) => applyVisitWindows({ amWindowStart: h }), "am-start")}
+                <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
+                {visitHourSelect(settings.amWindowEnd, (h) => applyVisitWindows({ amWindowEnd: h }), "am-end")}
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursPmLabel}</p>
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                {visitHourSelect(settings.pmWindowStart, (h) => applyVisitWindows({ pmWindowStart: h }), "pm-start")}
+                <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
+                {visitHourSelect(settings.pmWindowEnd, (h) => applyVisitWindows({ pmWindowEnd: h }), "pm-end")}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-brand-800">
+            {settingsPage.visitHoursExample(
+              `${formatVisitHourLabel(settings.amWindowStart)}–${formatVisitHourLabel(settings.amWindowEnd)}`,
+              `${formatVisitHourLabel(settings.pmWindowStart)}–${formatVisitHourLabel(settings.pmWindowEnd)}`,
+            )}
+          </p>
+        </div>
+      ) : null}
 
       {settings.schedulingEnabled ? (
         <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4 space-y-4">

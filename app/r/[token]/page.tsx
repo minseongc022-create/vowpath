@@ -22,7 +22,7 @@ export async function generateMetadata({
     ? await shopDisplayNameForUser(session.userId)
     : undefined;
   return {
-    title: shopName ? `${shopName} · Your booking` : "Your booking",
+    title: shopName ? `${shopName} · Your visit` : "Your visit",
     description: copy.bookingPortalTitle,
   };
 }
