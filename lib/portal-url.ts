@@ -49,9 +49,23 @@ export function buildLinkIntakeUrl(token: string): string {
   return buildBookingPortalUrl(token);
 }
 
+/** Hostname from NEXT_PUBLIC_PORTAL_URL (e.g. hvacsvc.link). */
+export function getPortalRootHostname(): string | null {
+  const portal = process.env.NEXT_PUBLIC_PORTAL_URL?.trim();
+  if (!portal || portal.includes("localhost")) return null;
+  try {
+    const url = portal.startsWith("http") ? portal : `https://${portal}`;
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 export function isPortalHost(host: string | null | undefined): boolean {
   if (!host) return false;
   const h = host.toLowerCase().split(":")[0];
+  const root = getPortalRootHostname();
+  if (root && (h === root || h === `www.${root}`)) return true;
   if (PORTAL_HOST_SUFFIXES.some((prefix) => h.startsWith(prefix))) return true;
   return (
     h === "portal.vowpath.com" ||
@@ -59,6 +73,8 @@ export function isPortalHost(host: string | null | undefined): boolean {
     h === "link.vowpath.com" ||
     h === "book.vowpathhq.com" ||
     h === "link.vowpathhq.com" ||
-    h === "go.vowpathhq.com"
+    h === "go.vowpathhq.com" ||
+    h === "hvacsvc.link" ||
+    h === "www.hvacsvc.link"
   );
 }
