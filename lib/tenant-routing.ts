@@ -69,6 +69,11 @@ export async function resolveTenantUserId(params: {
   }
 
   const fallback = getTwilioDefaultUserId();
+  const sharedPhone = process.env.TWILIO_PHONE_NUMBER?.trim();
+  if (fallback && sharedPhone && normalizeE164(sharedPhone) === to) {
+    return fallback;
+  }
+
   const allowFallback =
     process.env.ALLOW_TWILIO_DEFAULT_TENANT === "true" ||
     process.env.NODE_ENV === "development";

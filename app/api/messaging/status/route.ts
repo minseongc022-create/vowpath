@@ -25,6 +25,6 @@ export async function GET() {
       ? "Twilio 환경 변수를 추가하세요."
       : !twilioPhone
         ? "가입 시 Vowpath 번호가 자동 발급됩니다. 연동 설정에서 발급을 완료하세요."
-        : "Trial은 Verified 번호로만 SMS 가능. Upgrade 후 고객 번호로 발송.",
+        : "Pay-as-you-go Twilio: US (+1) SMS to customers. Enable United States in Messaging Geo permissions.",
   });
 }

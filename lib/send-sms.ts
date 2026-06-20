@@ -32,6 +32,7 @@ export function isSmsConfigured(): boolean {
 }
 
 export function smsDevPreviewEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
   const v = process.env.SMS_DEV_PREVIEW?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }

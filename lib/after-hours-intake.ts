@@ -2,19 +2,16 @@
 
 export function afterHoursVoiceIntro(shopName: string): string {
   return (
-    `Thank you for calling ${shopName}. ` +
-    `We're outside our regular office hours right now. ` +
-    `We'll take your service request on this call. ` +
-    `Our team will review it and contact you during the next business day. ` +
-    `This is not a confirmed appointment.`
+    `We're outside regular hours right now, but we're still happy to help. ` +
+    `We'll take your request and our team will follow up on the next business day. ` +
+    `Just so you know — this isn't a confirmed appointment yet.`
   );
 }
 
 export function afterHoursPhoneGoodbye(): string {
   return (
-    "Your request has been received. " +
-    "Our team will review it and contact you during the next business day. " +
-    "This is not a confirmed appointment. Goodbye."
+    "Got it — your request is in! Our team will reach out on the next business day. " +
+    "Thanks for calling. Take care!"
   );
 }
 

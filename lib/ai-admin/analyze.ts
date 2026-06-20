@@ -492,31 +492,22 @@ export function analyzeAiAdminIntent(
   const memoryCommand = companyMemorySetCommand(query, q);
   if (memoryCommand) return memoryCommand;
 
-  if (q.includes("manual approval") || q.includes("수동 승인")) {
+  if (q.includes("manual approval") || q.includes("수동 승인") || q.includes("every booking")) {
     return previewL(
       locale,
-      "Switch To Manual Approval",
-      "Switch every booking to manual approval? You will text 1 or 2 for each pick.",
-      "모든 예약을 수동 승인 방식으로 변경하시겠습니까?",
-      { type: "set_booking_mode", mode: "control" },
+      "Text Me For Every Booking",
+      "Get an approval text for every booking (not just urgent or unclear ones)?",
+      "모든 예약마다 승인 문자를 받으시겠습니까?",
+      { type: "set_owner_approval_sms", level: "all" },
     );
   }
-  if (q.includes("auto book") || q.includes("빠른 예약") || q.includes("speed")) {
+  if (q.includes("auto book") || q.includes("빠른 예약") || q.includes("speed") || q.includes("hybrid")) {
     return previewL(
       locale,
-      "Switch To Auto Book",
-      "Switch to Auto Book? Customer slot picks confirm instantly without your text approval.",
-      "고객이 시간을 선택하면 승인 없이 예약되는 Auto Book 모드로 변경하시겠습니까?",
-      { type: "set_booking_mode", mode: "speed" },
-    );
-  }
-  if (q.includes("hybrid") || q.includes("하이브리드") || q.includes("risk based")) {
-    return previewL(
-      locale,
-      "Switch To Hybrid",
-      "Switch to Hybrid? Auto-book only the urgencies you check; others wait for your text.",
-      "Hybrid 예약 방식으로 변경하시겠습니까?",
-      { type: "set_booking_mode", mode: "hybrid" },
+      "Smart Auto-Book (Default)",
+      "Use smart auto-book? Clear routine jobs confirm instantly; P1 and fuzzy intakes wait for your text.",
+      "스마트 자동 예약을 사용하시겠습니까? 명확한 일반 건은 자동 확정, 긴급·불명확 건은 승인 문자를 받습니다.",
+      { type: "set_owner_approval_sms", level: "p1_only" },
     );
   }
 

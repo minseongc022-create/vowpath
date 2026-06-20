@@ -43,8 +43,11 @@ function isKrTest() {
 }
 
 const probeEnv = normalizeSmsPhone(process.env.SMS_PROBE_TO?.trim() ?? "");
+const defaultKr = "+821055969438";
 const testTo =
-  process.argv[2]?.trim() || probeEnv || (isKrTest() ? null : "+15125550100");
+  normalizeSmsPhone(process.argv[2]?.trim() ?? "") ||
+  probeEnv ||
+  (isKrTest() ? defaultKr : "+15125550100");
 
 console.log("--- env ---");
 console.log("configured:", Boolean(sid && token && from));
@@ -64,10 +67,8 @@ if (!from.startsWith("+1")) {
 }
 
 if (!testTo) {
-  console.log(
-    "KR test mode: set SMS_PROBE_TO in .env.local or run:",
-  );
-  console.log("  node scripts/sms-diagnose.mjs +821012345678");
+  console.log("Set SMS_PROBE_TO in .env.local or pass E.164:");
+  console.log("  node scripts/sms-diagnose.mjs +821055969438");
   process.exit(1);
 }
 
@@ -79,7 +80,7 @@ const client = twilio(sid, token);
 
 try {
   const acc = await client.api.accounts(sid).fetch();
-  console.log("account:", acc.friendlyName, acc.status);
+  console.log("account:", acc.friendlyName, acc.status, "type:", acc.type);
 } catch (e) {
   console.log("account_fetch_error:", e.message);
 }

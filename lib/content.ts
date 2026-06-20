@@ -29,7 +29,7 @@ export const hero = IS_BETA
       secondaryCta: "작동 방식 보기",
       note: "무료 베타 · Jobber 연동은 선택 · 신뢰가 이어지는 길",
       trustPills: [
-        "빠른·하이브리드·수동",
+        "스마트 자동 예약",
         "기존 업체 번호",
         "현장에서 문자 승인",
         "Jobber 선택",
@@ -46,7 +46,7 @@ export const hero = IS_BETA
       secondaryCta: "제품 보기",
       note: `맞춤 시간대 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 승인 예약당 ${SITE.flexPerBooking}`,
       trustPills: [
-        "빠른·하이브리드·수동",
+        "스마트 자동 예약",
         "기존 업체 번호",
         "현장에서 문자 승인",
         "Jobber 선택",
@@ -257,7 +257,7 @@ export const pricing = {
       features: [
         "정액과 동일한 AI · 문자 승인 · Job Card",
         "맞춤 수신 시간대",
-        "예약 승인 모드",
+        "스마트 자동 예약",
         "월 기본료 + 확정 예약당 수수료",
         "콜만 받고 예약 0건 → 기본료만",
       ],
@@ -298,8 +298,8 @@ export const faq = {
       a: "미국 residential HVAC, owner-operator, 바쁜 날·야간·현장에서 휴대폰만으로 예약을 처리하고 싶은 shop입니다.",
     },
     {
-      q: "예약 승인 모드가 뭔가요?",
-      a: "AI가 접수만 하고, 오너가 문자 1=확정·2=거절로 결정합니다. 확정 후 고객에게 안내 문자가 갑니다.",
+      q: "예약은 어떻게 확정되나요?",
+      a: "명확한 일반 건(P2/P3)은 달력에 자동 확정됩니다. P1 긴급이거나 이름·주소가 애매하면 사장님 문자 1=승인·2=거절 후 확정됩니다.",
     },
     {
       q: "정액이랑 성과형, 뭐가 다른가요?",
@@ -570,18 +570,15 @@ const settingsPageKo = {
   bookingLoadingLabel: "불러오는 중…",
   bookingTryAgainLabel: "다시 시도",
   bookingPolicyDescription:
-    "전화나 문자 링크로 접수할 때 고객이 달력에서 날짜·시간을 고릅니다. 모드에 따라 바로 확정되거나, 사장님이 문자로 승인한 뒤 확정됩니다.",
-  bookingModeSpeedDesc:
-    "고객이 시간을 고르면 바로 예약이 확정됩니다. 사장님께 알림 문자가 가고, 필요하면 9번으로 취소할 수 있습니다.",
-  bookingModeHybridDesc:
-    "체크한 긴급도(P1·P2·P3)만 바로 확정됩니다. 체크하지 않은 건은 사장님이 문자 1(승인)·2(거절) 후 확정. 세 개 모두 체크하면 빠른 예약과 같습니다.",
-  hybridAutoPrioritiesLabel: "하이브리드 — 바로 확정할 긴급도",
-  hybridAutoPrioritiesHint:
-    "체크한 것만 즉시 확정. 체크 안 한 건은 사장님 승인이 필요합니다. P1·P2·P3를 모두 체크하면 빠른 예약 모드로 바뀝니다.",
-  hybridAllSelectedNote:
-    "지금은 P1·P2·P3 모두 바로 확정 중입니다. 일부만 자동으로 두려면 하이브리드를 선택하세요.",
-  bookingModeControlDesc:
-    "고객이 시간을 골라도 항상 사장님 승인 후에만 확정됩니다. 문자로 1=승인 · 2=거절로 결정합니다.",
+    "스마트 자동 예약: 명확한 일반 건(P2/P3)은 바로 확정. 긴급(P1)이나 정보가 애매하면 사장님 문자(1/2) 후 확정.",
+  smartAutoBookingTitle: "예약 방식",
+  smartAutoBookingIntro: "모드 선택 없이 한 가지 정책으로 동작합니다.",
+  smartAutoBookingRules: [
+    "이름·주소·증상이 분명한 P2/P3 → 달력에 자동 확정.",
+    "P1 긴급(난방/냉방/안전) → 항상 사장님 승인 대기.",
+    "정보 불명확·신뢰도 낮음 → 1(승인)/2(거절) 문자 후 확정.",
+    "자동 확정 후 마음 바뀌면 undo 시간 안에 9번 회신.",
+  ] as const,
   visitTimingTitle: "예약 간격",
   visitTimingHint:
     "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
@@ -1264,7 +1261,7 @@ const jobCardGeneratorKo = {
   title: "콜 메모 → Job Card",
   subtitle:
     "야간·주말 통화 내용을 붙여넣으면 긴급도(긴급·당일·일반)와 Jobber용 메모 초안을 만듭니다. 확인 후 붙여넣기.",
-  badge: "예약 승인 모드",
+  badge: "스마트 자동 예약",
   notesLabel: "콜 메모 / 통화 요약",
   notesPlaceholder:
     "예: No AC, 123 Oak St Austin TX, 이름 Mike, 실내 85°F, 냉매 소리 이상, 오늘 밤 방문 희망…",

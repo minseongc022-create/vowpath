@@ -70,6 +70,8 @@ export type CallIntakeState = {
   recordingUrl?: string;
   recordingSid?: string;
   attempt: number;
+  /** Failed speech / verification attempts — triggers SMS link fallback */
+  phoneIntakeStrikes?: number;
   offeredSlots?: SlotOffer[];
   selectedSlot?: SlotOffer | null;
   /** Outside configured answer hours — follow up next business day */

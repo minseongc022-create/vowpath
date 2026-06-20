@@ -59,6 +59,8 @@ await numbers[0].update({
   voiceMethod: "POST",
   smsUrl,
   smsMethod: "POST",
+  statusCallback: `${base}/api/twilio/call-status`,
+  statusCallbackMethod: "POST",
 });
 
 console.log("OK webhooks registered");

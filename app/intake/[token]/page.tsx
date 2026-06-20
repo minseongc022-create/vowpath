@@ -1,7 +1,9 @@
 import { LinkIntakeForm } from "@/components/intake/LinkIntakeForm";
 import { LinkIntakePortal } from "@/components/intake/LinkIntakePortal";
+import { CustomerBookingPortal } from "@/components/intake/CustomerBookingPortal";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { loadCustomerBookingPortalView } from "@/lib/customer-booking-portal";
 import {
   canSubmitLinkIntakeForm,
   getLinkIntakeSession,
@@ -59,6 +61,17 @@ export default async function LinkIntakePage({
         <LinkIntakeForm token={token} shopName={shopName} />
       </main>
     );
+  }
+
+  if (isLinkIntakePortalOpen(session) && session.callId) {
+    const booking = await loadCustomerBookingPortalView({ session, token });
+    if (booking) {
+      return (
+        <main className="min-h-[100dvh]">
+          <CustomerBookingPortal token={token} shopName={shopName} initialBooking={booking} />
+        </main>
+      );
+    }
   }
 
   if (isLinkIntakePortalOpen(session)) {

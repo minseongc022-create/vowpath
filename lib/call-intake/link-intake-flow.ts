@@ -1,10 +1,10 @@
-import { getPublicAppUrl } from "../app-url";
+import { buildLinkIntakeUrl as portalBuildLinkIntakeUrl } from "../portal-url";
+import { smsLinkIntakeBody as tplLinkIntakeSms } from "../sms-templates";
 import { sendSms } from "../send-sms";
 import { findUserById } from "../users-db";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import type { JobPriority } from "../types";
-import { resolveShopDisplayName, shopDisplayNameForUser } from "../link-intake-brand";
-import { smsLinkIntakeMessage } from "../link-intake-copy";
+import { shopDisplayNameForUser, resolveShopDisplayName } from "../link-intake-brand";
 import {
   buildLinkIntakeDraftFromForm,
   formatLinkRequestNumber,
@@ -37,13 +37,11 @@ const LINK_CONFIDENCE: FieldConfidence = {
 };
 
 export function buildLinkIntakeUrl(token: string): string {
-  const base = getPublicAppUrl();
-  if (!base) return `/intake/${token}`;
-  return `${base.replace(/\/$/, "")}/intake/${token}`;
+  return portalBuildLinkIntakeUrl(token);
 }
 
 export function smsLinkIntakeBody(shopName: string, url: string): string {
-  return smsLinkIntakeMessage(shopName, url);
+  return tplLinkIntakeSms(shopName, url);
 }
 
 export async function createLinkIntakeSession(params: {

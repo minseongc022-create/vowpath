@@ -4,7 +4,6 @@ import { extractIssueType } from "./recent-bookings";
 import { sendSms, type SmsSendContext } from "./send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "./sms-dedupe";
 import type { JobPriority } from "./types";
-import { afterHoursCustomerSmsBody } from "./after-hours-intake";
 import { bookingShortRef } from "./booking-ref";
 import { setSmsReplyTarget } from "./sms-reply-context";
 import { findUserById } from "./users-db";
@@ -15,30 +14,16 @@ import {
   resolveOwnerAlertPhone,
 } from "./owner-alert-phone";
 
-const SMS_OPT_OUT = " Reply STOP to opt out.";
+import {
+  smsAfterHoursCustomerBody,
+  smsCustomerApprovedBody,
+  smsCustomerRejectedBody,
+  smsOwnerIntakeAutoConfirmedBody,
+  smsOwnerNewRequestBody as tplOwnerNewRequestBody,
+  smsRequestReceivedBody,
+} from "./sms-templates";
 
-export function smsRequestReceivedBody(shopName?: string): string {
-  return (
-    `${resolveShopDisplayName(shopName)}: We received your service request. Our team will review it and contact you shortly. This is not a confirmed appointment.` +
-    SMS_OPT_OUT
-  );
-}
-
-export function smsApprovedBody(shopName?: string): string {
-  return (
-    `${resolveShopDisplayName(shopName)}: Your service request is confirmed. ` +
-    `We will contact you shortly to schedule your visit.` +
-    SMS_OPT_OUT
-  );
-}
-
-export function smsRejectedBody(shopName?: string): string {
-  return (
-    `${resolveShopDisplayName(shopName)}: Your service request was declined. ` +
-    `Please call us if you still need service.` +
-    SMS_OPT_OUT
-  );
-}
+export { smsRequestReceivedBody, smsCustomerApprovedBody as smsApprovedBody, smsCustomerRejectedBody as smsRejectedBody };
 
 export function smsOwnerEmergencyBody(params: {
   shopName?: string;
@@ -60,24 +45,19 @@ export function smsOwnerNewRequestBody(params: {
   cityState?: string;
   ambiguous?: boolean;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const name = params.customerName?.trim() || "Caller";
   const ref = bookingShortRef(params.bookingId);
   const issue =
     params.issueType?.trim() ||
     extractIssueType(params.symptom ?? "", "Service request");
-  const place =
-    params.cityState?.trim() && params.cityState !== "—"
-      ? ` · ${params.cityState}`
-      : "";
-  const replyHint = params.ambiguous
-    ? ` Ref ${ref}. Unclear details — reply 1 ${ref}=Confirm, 2 ${ref}=Pass.`
-    : ` Ref ${ref}. Reply 1 ${ref}=Approve, 2 ${ref}=Reject.`;
-  if (params.priority === "P1") {
-    return `${shop} URGENT (P1): ${name} — ${issue}${place}. Pending.${replyHint}`;
-  }
-  const tag = params.priority === "P2" ? "P2" : "P3";
-  return `${shop}: New request (${tag}) — ${name}, ${issue}${place}. Pending.${replyHint}`;
+  return tplOwnerNewRequestBody({
+    shopName: params.shopName,
+    ref,
+    customerName: params.customerName,
+    issue,
+    priority: params.priority,
+    cityState: params.cityState,
+    ambiguous: params.ambiguous,
+  });
 }
 
 function smsContext(
@@ -134,7 +114,7 @@ export async function notifyCustomerRequestReceived(params: {
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const body = params.afterHours
-    ? afterHoursCustomerSmsBody(user?.shopName)
+    ? smsAfterHoursCustomerBody(user?.shopName)
     : smsRequestReceivedBody(user?.shopName);
   await sendCustomerSms({
     userId: params.userId,
@@ -166,7 +146,7 @@ export async function notifyCustomerApproved(params: {
   await sendCustomerSms({
     userId: params.userId,
     phone,
-    body: smsApprovedBody(user?.shopName),
+    body: smsCustomerApprovedBody(user?.shopName),
     dedupeId: `${params.bookingId}:approved`,
     operation: "customer_approved",
     bookingId: params.bookingId,
@@ -192,7 +172,7 @@ export async function notifyCustomerRejected(params: {
   await sendCustomerSms({
     userId: params.userId,
     phone,
-    body: smsRejectedBody(user?.shopName),
+    body: smsCustomerRejectedBody(user?.shopName),
     dedupeId: `${params.bookingId}:rejected`,
     operation: "customer_rejected",
     bookingId: params.bookingId,
@@ -293,19 +273,17 @@ export async function notifyOwnerIntakeAutoConfirmed(params: {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
 
-  const shop = resolveShopDisplayName(user?.shopName);
-  const name = params.customerName?.trim() || "Caller";
+  const ref = bookingShortRef(params.bookingId);
   const issue =
     params.issueType?.trim() ||
     extractIssueType(params.symptom ?? "", "Service request");
-  const place =
-    params.cityState?.trim() && params.cityState !== "—"
-      ? ` · ${params.cityState}`
-      : "";
-  const ref = bookingShortRef(params.bookingId);
-  const body = params.urgent
-    ? `${shop} P1 URGENT — confirmed: ${name}, ${issue}${place}. Crew notified if enabled. Ref ${ref}. Reply 2 ${ref}=Cancel.`
-    : `${shop}: Confirmed — ${name}, ${issue}${place}. Jobber synced if connected. Ref ${ref}. Reply 2 ${ref}=Cancel.`;
+  const body = smsOwnerIntakeAutoConfirmedBody({
+    shopName: user?.shopName,
+    customerName: params.customerName,
+    issue,
+    ref,
+    urgent: params.urgent,
+  });
 
   await sendOwnerSms({
     userId: params.userId,

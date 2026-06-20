@@ -46,6 +46,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [smsConsent, setSmsConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const progress = useMemo(() => {
@@ -60,6 +61,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   }
 
   async function postIntake(slotId?: string) {
+    if (!smsConsent) {
+      setError("Please agree to receive service-related text messages.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -68,6 +73,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
       form.set("address", address);
       form.set("issueDescription", issueDescription);
       form.set("urgency", urgency);
+      form.set("smsConsent", "1");
       if (slotId) form.set("slotId", slotId);
       if (photo) form.set("photo", photo);
 
@@ -94,6 +100,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function handleFormNext(e: React.FormEvent) {
     e.preventDefault();
+    if (!smsConsent) {
+      setError("Please agree to receive service-related text messages.");
+      return;
+    }
     setError(null);
     setSlotsLoading(true);
     try {
@@ -361,6 +371,17 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
               ))}
             </div>
           </fieldset>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm">
+            <input
+              type="checkbox"
+              checked={smsConsent}
+              onChange={(e) => setSmsConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-700"
+              required
+            />
+            <span className="text-sm leading-relaxed text-slate-700">{copy.smsConsentLabel}</span>
+          </label>
 
           {error ? (
             <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">

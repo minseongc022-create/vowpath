@@ -4,6 +4,7 @@ import {
   DEFAULT_SHOP_DISPLAY_NAME,
   shopDisplayNameForUser,
 } from "@/lib/link-intake-brand";
+import { recordInboundEvent } from "@/lib/inbound-events";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
@@ -29,9 +30,17 @@ export async function POST(request: Request) {
   if (userId) {
     shopName = await shopDisplayNameForUser(userId);
     afterHours = await isTenantAfterHours(userId);
+    await recordInboundEvent(userId, {
+      callSid,
+      from: form.get("From") ?? "",
+      to,
+      status: "voice_started",
+      direction: "inbound",
+    });
   }
 
   const base = getTwilioWebhookBaseUrl();
+  const statusCallbackUrl = `${base}/api/twilio/call-status`;
   const afterQ = afterHours ? "&afterHours=1" : "";
   const channelUrl = `${base}/api/twilio/channel?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const recordingUrl = `${base}/api/twilio/recording`;
@@ -39,6 +48,7 @@ export async function POST(request: Request) {
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
       twimlGatherChannelChoice(channelUrl, shopName, afterHours),
+    statusCallbackUrl,
   );
 
   return new NextResponse(twiml, {

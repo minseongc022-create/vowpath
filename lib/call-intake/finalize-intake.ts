@@ -263,10 +263,8 @@ export async function finalizeVerifiedIntake(
     try {
       const confMin = confidenceMinFromFields(payload.confidence);
       const autoDecision = resolveAutoBookDecision({
-        mode: settings.schedulingMode,
         priority: payload.priority,
         confidenceMin: confMin,
-        hybridAutoPriorities: settings.hybridAutoPriorities,
       });
       if (!autoDecision.needsOwnerApproval) {
         finalRequestStatus = "approved";

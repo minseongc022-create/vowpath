@@ -99,13 +99,15 @@ function eventOnDay(event: CalendarEvent, day: Date): boolean {
 }
 
 const MODE_LABEL: Record<SchedulingMode, { en: string; ko: string }> = {
-  speed: { en: "Auto Book", ko: "자동 확정 (Auto Book)" },
-  hybrid: { en: "Hybrid", ko: "하이브리드 (Hybrid)" },
-  control: { en: "Manual approval", ko: "수동 승인 (Manual)" },
+  auto: { en: "Smart auto-book", ko: "스마트 자동 예약" },
+  speed: { en: "Smart auto-book", ko: "스마트 자동 예약" },
+  hybrid: { en: "Smart auto-book", ko: "스마트 자동 예약" },
+  control: { en: "Smart auto-book", ko: "스마트 자동 예약" },
 };
 
 export function schedulingModeLabel(mode: SchedulingMode, locale: UiLocale): string {
-  return locale === "ko" ? MODE_LABEL[mode].ko : MODE_LABEL[mode].en;
+  const normalized = mode === "auto" ? "auto" : "auto";
+  return locale === "ko" ? MODE_LABEL[normalized].ko : MODE_LABEL[normalized].en;
 }
 
 export function buildAiContextPack(params: {

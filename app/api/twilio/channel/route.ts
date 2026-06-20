@@ -5,7 +5,6 @@ import {
   createLinkIntakeSession,
   sendLinkIntakeSms,
 } from "@/lib/call-intake/link-intake-flow";
-import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
@@ -13,56 +12,59 @@ import {
   twimlResponse,
   twimlSay,
 } from "@/lib/twilio-xml";
+import {
+  voiceLinkSmsFailed,
+  voiceLinkSmsSent,
+  voicePhoneIntakeIntro,
+  voicePhoneIntakePrompt,
+} from "@/lib/voice-copy";
 
-function phoneIntakeTwiml(afterHours: boolean) {
+function twimlXml(body: string) {
+  return new NextResponse(body, {
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+
+function phoneIntakeTwiml(afterHours: boolean, intro?: string) {
   const gatherUrl = intakeUrlForMenu("P2", afterHours);
   return twimlResponse(
     twimlGatherSpeechDetailed(
       gatherUrl,
-      "Let's take your request by phone. I will ask for the same details as the text link.",
-      "Please say your first and last name, your full service address with city, " +
-        "and describe what you need help with, such as no heat or no cool.",
+      intro ?? voicePhoneIntakeIntro,
+      voicePhoneIntakePrompt,
     ),
   );
 }
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Invalid signature", { status: 403 });
-  }
-
   const url = new URL(request.url);
   const afterHours = url.searchParams.get("afterHours") === "1";
 
+  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+    console.error("[twilio/channel] invalid signature:", request.url);
+    return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
+  }
+
   const form = new URLSearchParams(rawBody);
   const digit = form.get("Digits");
-  const speech = (form.get("SpeechResult") ?? "").trim();
   const callSid = form.get("CallSid")?.trim() ?? url.searchParams.get("callSid") ?? "";
   const from = form.get("From") ?? "unknown";
   const to = form.get("To") ?? "unknown";
 
   if (digit !== "1") {
-    return new NextResponse(phoneIntakeTwiml(afterHours), {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return twimlXml(phoneIntakeTwiml(afterHours));
   }
 
   const userId = await resolveTenantUserId({ to, callSid });
   if (!userId) {
-    return new NextResponse(
-      twimlResponse(
-        twimlSay("This line is not fully set up yet. Please try again shortly."),
-      ),
-      { headers: { "Content-Type": "text/xml" } },
-    );
+    console.error("[twilio/channel] no tenant for To=", to, "callSid=", callSid);
+    return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
   }
 
   const callbackPhone = from.replace(/^whatsapp:/, "").trim();
   if (!callbackPhone || callbackPhone === "unknown") {
-    return new NextResponse(phoneIntakeTwiml(afterHours), {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return twimlXml(phoneIntakeTwiml(afterHours));
   }
 
   try {
@@ -83,25 +85,20 @@ export async function POST(request: Request) {
     });
 
     if (!sms.ok) {
-      console.warn("[twilio/channel] link intake SMS skipped:", sms.error);
-      return new NextResponse(phoneIntakeTwiml(afterHours), {
-        headers: { "Content-Type": "text/xml" },
-      });
+      console.warn(
+        "[twilio/channel] link intake SMS failed:",
+        sms.error,
+        "to=",
+        callbackPhone,
+        "callSid=",
+        callSid,
+      );
+      return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
     }
 
-    const twiml = twimlResponse(
-      twimlSay(
-        "We texted you a link to submit your request. " +
-          "Open it on your phone to complete the form. Thank you for calling.",
-      ),
-    );
-    return new NextResponse(twiml, {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return twimlXml(twimlResponse(twimlSay(voiceLinkSmsSent)));
   } catch (e) {
     console.error("[twilio/channel]", e);
-    return new NextResponse(phoneIntakeTwiml(afterHours), {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
   }
 }

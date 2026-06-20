@@ -1,7 +1,4 @@
-import type { SchedulingMode } from "./booking-settings";
 import type { JobPriority } from "./types";
-
-const HYBRID_AUTO_DEFAULT: JobPriority[] = ["P2", "P3"];
 
 /** Below this min field confidence (0–100), slot is held for owner review. */
 export const AUTO_BOOK_CONFIDENCE_MIN = 65;
@@ -28,55 +25,39 @@ export function confidenceMinFromFields(confidence: {
 }
 
 /**
- * Default (speed): auto-confirm when info is clear.
- * Exceptions: low confidence → owner 1/2 before confirm.
- * P1 still lands on calendar; owner + crew get urgent SMS (not a block).
+ * Smart auto-book (single product policy):
+ * - P1 emergency → owner approval + urgent alert
+ * - Low field confidence → owner approval
+ * - Clear P2/P3 → auto-confirm
  */
 export function resolveAutoBookDecision(params: {
-  mode: SchedulingMode;
   priority: JobPriority;
   confidenceMin?: number;
-  hybridAutoPriorities?: JobPriority[];
 }): AutoBookDecision {
   const reasons: string[] = [];
   const conf = params.confidenceMin ?? 100;
   const ambiguous = conf < AUTO_BOOK_CONFIDENCE_MIN;
   if (ambiguous) reasons.push("low_confidence");
 
-  if (params.mode === "control") {
+  if (params.priority === "P1") {
     return {
       needsOwnerApproval: true,
-      isUrgentAlert: params.priority === "P1",
+      isUrgentAlert: true,
       isAmbiguous: ambiguous,
-      reasons: [...reasons, "manual_mode"],
+      reasons: [...reasons, "p1_requires_owner"],
     };
   }
 
-  if (params.mode === "hybrid") {
-    const auto = params.hybridAutoPriorities ?? HYBRID_AUTO_DEFAULT;
-    const needsOwnerApproval = !auto.includes(params.priority) || ambiguous;
-    if (!auto.includes(params.priority)) reasons.push("hybrid_priority");
-    return {
-      needsOwnerApproval,
-      isUrgentAlert: params.priority === "P1" && !needsOwnerApproval,
-      isAmbiguous: ambiguous,
-      reasons,
-    };
-  }
-
-  // speed (default)
   return {
     needsOwnerApproval: ambiguous,
-    isUrgentAlert: params.priority === "P1",
+    isUrgentAlert: false,
     isAmbiguous: ambiguous,
     reasons,
   };
 }
 
 export function shouldOwnerApproveAfterCustomerSlotPick(params: {
-  mode: SchedulingMode;
   priority: JobPriority;
-  hybridAutoPriorities?: JobPriority[];
   confidenceMin?: number;
 }): boolean {
   return resolveAutoBookDecision(params).needsOwnerApproval;
@@ -85,16 +66,9 @@ export function shouldOwnerApproveAfterCustomerSlotPick(params: {
 export function shouldSendOwnerApprovalSms(
   level: "off" | "p1_only" | "all",
   priority: JobPriority,
-  mode?: SchedulingMode,
-  hybridAutoPriorities?: JobPriority[],
   confidenceMin?: number,
 ): boolean {
-  const decision = resolveAutoBookDecision({
-    mode: mode ?? "speed",
-    priority,
-    hybridAutoPriorities,
-    confidenceMin,
-  });
+  const decision = resolveAutoBookDecision({ priority, confidenceMin });
   if (decision.needsOwnerApproval) return true;
   if (level === "off") return false;
   if (decision.isUrgentAlert) return true;

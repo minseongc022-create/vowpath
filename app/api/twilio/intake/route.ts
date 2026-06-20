@@ -33,6 +33,12 @@ import { parsePriorityParam } from "@/lib/twilio-voice-flow";
 import { twimlGatherSpeechDetailed, twimlResponse, twimlSay } from "@/lib/twilio-xml";
 import type { JobPriority } from "@/lib/types";
 import { legacyToServicePriority } from "@/lib/service-priority";
+import {
+  buildLinkIntakeFallbackTwiml,
+  bumpPhoneIntakeStrike,
+  shouldOfferLinkIntakeFallback,
+} from "@/lib/call-intake/phone-link-fallback";
+import { voiceCollectRetry } from "@/lib/voice-copy";
 
 function emptyDraft(priority: JobPriority) {
   return {
@@ -110,9 +116,23 @@ async function commitIntake(
   );
 }
 
+async function offerLinkFallbackAndClose(
+  userId: string,
+  state: CallIntakeState,
+): Promise<Response> {
+  await deleteIntakeState(userId, state.callSid);
+  const twiml = await buildLinkIntakeFallbackTwiml({
+    userId,
+    callSid: state.callSid,
+    callbackPhone: state.callbackPhone || state.from,
+    to: state.to,
+  });
+  return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
+}
+
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (!validateTwilioWebhook(request, rawBody)) {
+  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
@@ -152,17 +172,30 @@ export async function POST(request: Request) {
   try {
     if (phase === "collect") {
       if (!speech || speech.length < 8) {
+        state = bumpPhoneIntakeStrike(state);
+        await saveIntakeState(state);
+
+        if (shouldOfferLinkIntakeFallback(state)) {
+          await logOperationFailure({
+            userId,
+            category: "intake",
+            operation: "collect",
+            message: "Speech unclear — SMS link fallback",
+            retryable: false,
+            callSid,
+          });
+          return offerLinkFallbackAndClose(userId, state);
+        }
+
         if (attempt < 2) {
           const retryUrl = new URL(request.url);
           retryUrl.searchParams.set("attempt", String(attempt + 1));
           const twiml = twimlResponse(
-            twimlGatherSpeechDetailed(
-              retryUrl.toString(),
-              "Sorry, I did not catch that. Please try again, slowly.",
-            ),
+            twimlGatherSpeechDetailed(retryUrl.toString(), voiceCollectRetry),
           );
           return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
         }
+
         await logOperationFailure({
           userId,
           category: "intake",
@@ -171,10 +204,7 @@ export async function POST(request: Request) {
           retryable: false,
           callSid,
         });
-        return new NextResponse(
-          twimlErrorGoodbye("We could not record your message. Please call back. Goodbye."),
-          { headers: { "Content-Type": "text/xml" } },
-        );
+        return offerLinkFallbackAndClose(userId, state);
       }
 
       state.rawTranscript = speech;
@@ -202,6 +232,11 @@ export async function POST(request: Request) {
     if (phase === "repeat") {
       const field = url.searchParams.get("field");
       if (!isMandatoryField(field) || !speech || speech.length < 3) {
+        state = bumpPhoneIntakeStrike(state);
+        await saveIntakeState(state);
+        if (shouldOfferLinkIntakeFallback(state)) {
+          return offerLinkFallbackAndClose(userId, state);
+        }
         const twiml = twimlForIntakeState(
           field && isMandatoryField(field)
             ? startRepeatForField(state, field)
@@ -250,6 +285,10 @@ export async function POST(request: Request) {
       }
 
       if (answer === "no") {
+        state = bumpPhoneIntakeStrike(state);
+        if (shouldOfferLinkIntakeFallback(state)) {
+          return offerLinkFallbackAndClose(userId, state);
+        }
         state = startRepeatForField(state, field);
         await saveIntakeState(state);
         return new NextResponse(twimlForIntakeState(state), {

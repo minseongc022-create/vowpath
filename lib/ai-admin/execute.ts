@@ -97,10 +97,13 @@ function validateAction(action: unknown): AiAdminExecutableAction {
       };
     }
     case "set_booking_mode":
-      if (raw.mode !== "speed" && raw.mode !== "hybrid" && raw.mode !== "control") {
-        throw new AiAdminExecutionError("Invalid booking mode.");
+      if (raw.mode === "control") {
+        return { type: "set_owner_approval_sms", level: "all" };
       }
-      return { type: "set_booking_mode", mode: raw.mode };
+      if (raw.mode === "speed" || raw.mode === "hybrid" || raw.mode === "auto") {
+        return { type: "set_owner_approval_sms", level: "p1_only" };
+      }
+      throw new AiAdminExecutionError("Invalid booking mode.");
     case "set_owner_approval_sms":
       if (raw.level !== "off" && raw.level !== "p1_only" && raw.level !== "all") {
         throw new AiAdminExecutionError("Invalid owner approval SMS setting.");
@@ -213,23 +216,18 @@ export async function executeAiAdminAction(params: {
   }
 
   if (action.type === "set_booking_mode") {
-    const settings = await saveShopBookingSettings(
-      params.userId,
-      action.mode === "control"
-        ? {
-            schedulingEnabled: true,
-            schedulingMode: action.mode,
-            ownerApprovalSms: "all",
-          }
-        : {
-            schedulingEnabled: true,
-            schedulingMode: action.mode,
-          },
-    );
+    const level = action.mode === "control" ? "all" : "p1_only";
+    const settings = await saveShopBookingSettings(params.userId, {
+      schedulingEnabled: true,
+      ownerApprovalSms: level,
+    });
     return {
-      message: `Booking mode is now ${settings.schedulingMode}.`,
+      message:
+        level === "all"
+          ? "You will now get approval texts for every booking."
+          : "Smart auto-book is active — only urgent or unclear jobs need your text.",
       rows: [
-        { label: "Scheduling Mode", value: settings.schedulingMode },
+        { label: "Policy", value: "Smart auto-book" },
         { label: "Owner Approval SMS", value: settings.ownerApprovalSms },
       ],
     };

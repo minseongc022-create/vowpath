@@ -1,31 +1,30 @@
 import { afterHoursVoiceIntro } from "./after-hours-intake";
 import { resolveShopDisplayName } from "./shop-display-name";
+import { smsLinkIntakeBody } from "./sms-templates";
 
 export function channelChoiceVoicePrompt(shopName: string, afterHours = false): string {
   const shop = resolveShopDisplayName(shopName);
   if (afterHours) {
     return (
+      `Hi there! Thanks for calling ${shop}. ` +
       afterHoursVoiceIntro(shop) +
-      " Press 1 and we will text you a quick intake link, then you can hang up. Press 2 to continue by phone."
+      ` Press 1 and we'll text you a quick link to book — super easy! ` +
+      `Press 2 to tell us what you need right on this call.`
     );
   }
   return (
-    `Thank you for calling ${shop}. ` +
-    `Press 1 and we will text you a quick intake link, then you can hang up. ` +
-    `Press 2 to continue by phone.`
+    `Hi! Thanks for calling ${shop} — we're so glad you reached out! ` +
+    `Press 1 and we'll text you a quick booking link you can tap. ` +
+    `Press 2 to share what you need on this call.`
   );
 }
 
 export function channelChoiceGatherHint(): string {
-  return "Press 1 for the text link, or press 2 for phone intake.";
+  return "Go ahead — press 1 for the text link, or 2 to keep talking with us here!";
 }
 
 export function smsLinkIntakeMessage(shopName: string, url: string): string {
-  const shop = resolveShopDisplayName(shopName);
-  return (
-    `${shop}: Submit your service request here — name, address, issue, and preferred visit time. ` +
-    `Open the link to finish quick intake.\n\n${url}`
-  );
+  return smsLinkIntakeBody(shopName, url);
 }
 
 export const linkIntakePageCopy = {
@@ -72,6 +71,8 @@ export const linkIntakePageCopy = {
   slotStepSkip: "Submit without picking a time",
   submit: "Next — pick a time",
   submitNoSlots: "Submit request",
+  smsConsentLabel:
+    "I agree to receive service-related text messages about this request. Message and data rates may apply. Reply STOP to opt out.",
   submitting: "Submitting…",
   eta: "~1 min",
   successTitle: "Request received",
@@ -103,4 +104,16 @@ export const linkIntakePageCopy = {
   correctionDoneTitle: "Update sent",
   correctionDoneBody: "The shop was notified. They'll follow up during business hours.",
   correctionExpired: "This link expired or is invalid.",
+  bookingPortalTitle: "Your booking",
+  bookingStatusLabel: "Status",
+  bookingTimeLabel: "Visit time",
+  bookingChangeTime: "Change visit time",
+  bookingEditDetails: "Edit address or issue",
+  bookingCancel: "Cancel visit",
+  bookingRescheduleHint: "Pick a new open time below.",
+  bookingConfirmTime: "Confirm new time",
+  bookingCancelConfirmTitle: "Cancel this visit?",
+  bookingCancelConfirmBody: "We'll notify the shop. You can always call to book again.",
+  bookingCancelConfirmButton: "Yes, cancel visit",
+  portalBackToView: "Back",
 } as const;

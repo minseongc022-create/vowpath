@@ -3,16 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 import {
-  ALL_JOB_PRIORITIES,
   appointmentIntervalMinutes,
   coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
   patchAppointmentInterval,
   type OwnerApprovalSms,
-  type SchedulingMode,
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
-import type { JobPriority } from "@/lib/types";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 
@@ -27,37 +24,12 @@ export function BookingSettingsEditor() {
   const [intervalDraft, setIntervalDraft] = useState("120");
   const [showTeamCapacity, setShowTeamCapacity] = useState(false);
 
-  const modeLabels = useMemo<Record<SchedulingMode, string>>(
-    () =>
-      isEnglish
-        ? { speed: "Auto Book", hybrid: "Hybrid", control: "Manual approval" }
-        : { speed: "빠른 예약", hybrid: "하이브리드", control: "수동 승인" },
-    [isEnglish],
-  );
-
-  const priorityLabels = useMemo<Record<JobPriority, string>>(
-    () =>
-      isEnglish
-        ? { P1: "P1 — urgent", P2: "P2", P3: "P3" }
-        : { P1: "P1 (긴급)", P2: "P2", P3: "P3" },
-    [isEnglish],
-  );
-
   const ownerSmsLabels = useMemo<Record<OwnerApprovalSms, string>>(
     () =>
       isEnglish
         ? { off: "Off", p1_only: "Urgent only", all: "Every time" }
         : { off: "끔", p1_only: "P1만", all: "전체" },
     [isEnglish],
-  );
-
-  const modeDescriptions = useMemo<Record<SchedulingMode, string>>(
-    () => ({
-      speed: settingsPage.bookingModeSpeedDesc,
-      hybrid: settingsPage.bookingModeHybridDesc,
-      control: settingsPage.bookingModeControlDesc,
-    }),
-    [settingsPage],
   );
 
   const load = useCallback(async () => {
@@ -109,15 +81,14 @@ export function BookingSettingsEditor() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             schedulingEnabled: settings.schedulingEnabled,
-            schedulingMode: settings.schedulingMode,
             ownerApprovalSms: settings.ownerApprovalSms,
             undoWindowMinutes: settings.undoWindowMinutes,
             shadowModeRemaining: settings.shadowModeRemaining,
+            avgJobTicketUsd: settings.avgJobTicketUsd,
             defaultDurationMinutes: settings.defaultDurationMinutes,
             slotBufferMinutes: settings.slotBufferMinutes,
             maxConcurrentVisits: settings.maxConcurrentVisits,
             serviceAreaZips: settings.serviceAreaZips,
-            hybridAutoPriorities: settings.hybridAutoPriorities,
           }),
         },
         12_000,
@@ -142,24 +113,10 @@ export function BookingSettingsEditor() {
 
   useSettingsSaveRegistration("booking", persist, !loading && Boolean(settings));
 
-  function selectMode(mode: SchedulingMode) {
-    if (!settings || settings.schedulingMode === mode) return;
-    updateLocal({ schedulingMode: mode });
-  }
-
   function applyInterval(raw: string) {
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 15 || n > 720) return;
     updateLocal(patchAppointmentInterval(n));
-  }
-
-  function toggleHybridPriority(priority: JobPriority) {
-    if (!settings) return;
-    const current = settings.hybridAutoPriorities;
-    const next = current.includes(priority)
-      ? current.filter((p) => p !== priority)
-      : [...current, priority];
-    updateLocal({ hybridAutoPriorities: next });
   }
 
   if (loading && !settings) {
@@ -185,8 +142,6 @@ export function BookingSettingsEditor() {
     );
   }
 
-  const isHybridMode = settings.schedulingMode === "hybrid";
-  const showUndoWindow = settings.schedulingMode !== "control";
   const intervalMinutes = appointmentIntervalMinutes(settings);
   const intervalHours = Math.floor(intervalMinutes / 60);
   const intervalMins = intervalMinutes % 60;
@@ -208,84 +163,18 @@ export function BookingSettingsEditor() {
         />
       </label>
 
-      <div>
-        <p className="vow-settings-label">{settingsPage.bookingSchedulingModeLabel}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(["speed", "hybrid", "control"] as SchedulingMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => selectMode(mode)}
-              className={`vow-settings-chip ${
-                settings.schedulingMode === mode
-                  ? "vow-settings-chip-active"
-                  : "vow-settings-chip-inactive"
-              }`}
-            >
-              {modeLabels[mode]}
-            </button>
+      <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-4">
+        <p className="vow-settings-label">{settingsPage.smartAutoBookingTitle}</p>
+        <p className="vow-settings-hint mt-1">{settingsPage.smartAutoBookingIntro}</p>
+        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-stone-700">
+          {settingsPage.smartAutoBookingRules.map((rule) => (
+            <li key={rule} className="flex gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden />
+              <span>{rule}</span>
+            </li>
           ))}
-        </div>
-        {!settings.schedulingEnabled ? (
-          <p className="mt-2 text-sm text-amber-800">
-            {isEnglish
-              ? "Calendar is off — mode still controls SMS alerts for phone-only intakes. Turn on visit-time picking above for full auto-book."
-              : "캘린더 예약이 꺼져 있어도 모드는 전화 접수 문자 알림에 적용됩니다. 자동 예약을 쓰려면 위에서 「고객 방문 시간 선택」을 켜세요."}
-          </p>
-        ) : null}
-
-        <div className="mt-3 space-y-2">
-          {(["speed", "hybrid", "control"] as SchedulingMode[]).map((mode) => (
-            <div
-              key={mode}
-              className={`rounded-lg border px-3 py-3 text-base leading-relaxed ${
-                settings.schedulingMode === mode
-                  ? "border-brand-200 bg-brand-50 text-slate-800"
-                  : "border-slate-100 bg-slate-50 text-slate-600"
-              }`}
-            >
-              <p className="font-semibold text-slate-900">{modeLabels[mode]}</p>
-              <p className="mt-1 text-sm">{modeDescriptions[mode]}</p>
-            </div>
-          ))}
-        </div>
+        </ul>
       </div>
-
-      {isHybridMode && settings.schedulingEnabled ? (
-        <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-4">
-          <p className="vow-settings-label">{settingsPage.hybridAutoPrioritiesLabel}</p>
-          <p className="vow-settings-hint mt-1">{settingsPage.hybridAutoPrioritiesHint}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {ALL_JOB_PRIORITIES.map((priority) => {
-              const checked = settings.hybridAutoPriorities.includes(priority);
-              return (
-                <label
-                  key={priority}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                    checked
-                      ? "border-brand-400 bg-white text-slate-900"
-                      : "border-slate-200 bg-white/80 text-slate-600"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleHybridPriority(priority)}
-                    className="h-4 w-4 rounded border-slate-300"
-                  />
-                  {priorityLabels[priority]}
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      {settings.schedulingMode === "speed" && settings.schedulingEnabled ? (
-        <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-stone-600">
-          {settingsPage.hybridAllSelectedNote}
-        </p>
-      ) : null}
 
       {settings.schedulingEnabled ? (
         <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4 space-y-4">
@@ -373,7 +262,7 @@ export function BookingSettingsEditor() {
         </div>
       ) : null}
 
-      {showUndoWindow && settings.schedulingEnabled ? (
+      {settings.schedulingEnabled ? (
         <label className="block">
           <span className="vow-settings-label">{settingsPage.undoWindowLabel}</span>
           <input
@@ -425,6 +314,26 @@ export function BookingSettingsEditor() {
               updateLocal({ serviceAreaZips: zips });
             }}
             className="vow-settings-input mt-2"
+          />
+        </label>
+      </div>
+
+      <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
+        <label className="block">
+          <span className="vow-settings-label">Avg job ticket ($)</span>
+          <p className="vow-settings-hint mt-1">
+            Used on the dashboard to estimate recovered revenue from missed calls.
+          </p>
+          <input
+            type="number"
+            min={50}
+            max={5000}
+            step={25}
+            value={settings.avgJobTicketUsd}
+            onChange={(e) =>
+              updateLocal({ avgJobTicketUsd: Math.round(Number(e.target.value) || 350) })
+            }
+            className="vow-settings-input mt-3 max-w-xs"
           />
         </label>
       </div>

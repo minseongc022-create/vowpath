@@ -42,6 +42,8 @@ export type StoredCallLog = {
   intakePhotoRef?: string;
   addressValidation?: StoredAddressValidation;
   verifiedFields?: StoredVerifiedFields;
+  /** Customer portal link token (SMS manage booking) */
+  portalToken?: string;
   createdAt: string;
 };
 
@@ -110,6 +112,7 @@ export async function patchCallLog(
       | "transcript"
       | "arrivalWindow"
       | "callbackPhone"
+      | "portalToken"
     >
   >,
 ): Promise<StoredCallLog | null> {

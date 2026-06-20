@@ -414,51 +414,24 @@ export const howItWorksEn = {
 export const schedulingModesEn = {
   id: "scheduling",
   label: "Booking",
-  title: "Default: auto-book. Dial back control anytime.",
+  title: "Smart auto-book — with owner gates where it matters",
   subtitle:
-    "Most shops start on Auto Book — calendar confirms while you work. Switch to Hybrid or Manual in settings when you want more gates.",
+    "No mode switches. Clear routine jobs confirm while you work. Emergencies and fuzzy intakes always wait for your OK.",
   modes: [
     {
-      id: "speed",
-      name: "Auto Book",
+      id: "auto",
+      name: "Smart auto-book",
       badge: "Default" as string | null,
-      tagline: "Customer picks — job confirms instantly",
+      tagline: "Fast when it's clear · you decide when it's not",
       description:
-        "Clear intakes land on your calendar. You get a heads-up SMS. P1 triggers urgent alert. Reply 9 to undo.",
+        "Customer picks a visit time. If the intake is routine and complete, the job lands on your calendar. P1 or unclear details? You get a text to approve (1) or pass (2).",
       details: [
-        { label: "P1 emergencies", value: "Book + urgent SMS" },
-        { label: "Unclear details", value: "Hold for 1 / 2" },
-        { label: "Undo", value: "Reply 9 in your window" },
+        { label: "P2 / P3 · clear info", value: "Auto confirm" },
+        { label: "P1 emergency", value: "Your 1 / 2 first" },
+        { label: "Fuzzy name / address", value: "Your 1 / 2 first" },
+        { label: "Changed your mind", value: "Reply 9 to undo" },
       ],
-      bestFor: "Owner-operators who want speed without losing exceptions",
-    },
-    {
-      id: "hybrid",
-      name: "Hybrid",
-      badge: null as string | null,
-      tagline: "P2/P3 auto-book · P1 always texts you",
-      description:
-        "P1 waits for your 1 / 2 before confirm. Routine jobs still auto-book overnight.",
-      details: [
-        { label: "P1 no-heat / safety", value: "SMS 1 / 2 first" },
-        { label: "P2 / P3 checked", value: "Auto confirm" },
-        { label: "Change anytime", value: "Settings → booking" },
-      ],
-      bestFor: "Shops that want manual gate on every emergency",
-    },
-    {
-      id: "control",
-      name: "Manual",
-      badge: null as string | null,
-      tagline: "Every job waits for your text",
-      description:
-        "Customer picks a time. You get full details. Reply 1 or 2. Safest when you are new to forwarding.",
-      details: [
-        { label: "All priorities", value: "SMS 1 / 2 required" },
-        { label: "Alert includes", value: "Time + address + issue" },
-        { label: "Also review", value: "Dashboard queue" },
-      ],
-      bestFor: "First week live or extra-cautious shops",
+      bestFor: "Owner-operators who want speed without blind auto-dispatch",
     },
   ],
   footnote: "On confirm, crew SMS goes out when techs are set up — round-robin, 1=accept 2=pass.",

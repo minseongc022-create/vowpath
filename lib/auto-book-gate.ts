@@ -1,14 +1,9 @@
 import type { RequestStatus } from "./booking-policy";
-import {
-  DEFAULT_HYBRID_AUTO_PRIORITIES,
-  type SchedulingMode,
-  type ShopBookingSettings,
-} from "./booking-settings";
 import type { FieldConfidence } from "./call-intake/types";
 import type { JobPriority } from "./types";
 
 /** Minimum field confidence (0–100) to auto-confirm without owner review. */
-export const AUTO_BOOK_CONFIDENCE_MIN = 70;
+export const AUTO_BOOK_CONFIDENCE_MIN = 65;
 
 export type BookingGate = "auto_confirm" | "needs_review" | "urgent_review";
 
@@ -34,19 +29,13 @@ export function isAmbiguousIntake(params: {
   return false;
 }
 
-/**
- * Default: auto-confirm to calendar. Exceptions: P1 urgent, ambiguous info, manual mode.
- */
+/** Smart auto-book: P1 → urgent review; fuzzy intake → review; else auto-confirm. */
 export function resolveBookingGate(params: {
-  mode: SchedulingMode;
   priority: JobPriority;
   confidenceMin: number;
   customerName?: string | null;
   address?: string | null;
-  hybridAutoPriorities?: JobPriority[];
 }): BookingGate {
-  if (params.mode === "control") return "needs_review";
-
   if (params.priority === "P1") return "urgent_review";
 
   if (
@@ -59,10 +48,7 @@ export function resolveBookingGate(params: {
     return "needs_review";
   }
 
-  if (params.mode === "speed") return "auto_confirm";
-
-  const auto = params.hybridAutoPriorities ?? DEFAULT_HYBRID_AUTO_PRIORITIES;
-  return auto.includes(params.priority) ? "auto_confirm" : "needs_review";
+  return "auto_confirm";
 }
 
 export function gateNeedsOwnerApproval(gate: BookingGate): boolean {
@@ -75,7 +61,7 @@ export function statusForGate(gate: BookingGate, hasSlot: boolean): RequestStatu
 }
 
 export function resolveBookingGateFromSettings(
-  settings: Pick<ShopBookingSettings, "schedulingMode" | "hybridAutoPriorities">,
+  _settings: unknown,
   params: {
     priority: JobPriority;
     confidence: FieldConfidence;
@@ -84,11 +70,9 @@ export function resolveBookingGateFromSettings(
   },
 ): BookingGate {
   return resolveBookingGate({
-    mode: settings.schedulingMode,
     priority: params.priority,
     confidenceMin: confidenceMin(params.confidence),
     customerName: params.customerName,
     address: params.address,
-    hybridAutoPriorities: settings.hybridAutoPriorities,
   });
 }

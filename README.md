@@ -1,55 +1,62 @@
-# Vowpath — HVAC After-Hours Landing
+# Vowpath — HVAC After-Hours
 
-Production-ready marketing site for a US HVAC SaaS (Stripe / Linear style).
+US residential HVAC SaaS: missed-call recovery, smart auto-booking, owner SMS approval.
 
 ## Stack
 
-- Next.js 15 (App Router)
-- Tailwind CSS
-- TypeScript
-
-## Structure
-
-```
-app/                 # routes & layout
-components/
-  layout/            # Header, Footer
-  sections/          # page sections
-  ui/                # Button, Container, SectionHeading
-lib/
-  constants.ts       # site config
-  content.ts         # all marketing copy
-  utils.ts           # helpers
-```
+- Next.js 15 (App Router), TypeScript, Tailwind
+- Twilio (voice/SMS), OpenAI (intake extraction), Vercel KV, Stripe
 
 ## Develop
 
 ```bash
 npm install
+cp .env.example .env.local   # fill keys — see TWILIO_SETUP.md
+npm run seed:dev-user
 npm run dev
 ```
 
 Open http://localhost:3000
 
-## Build
+## Test
+
+```bash
+npm run test          # unit tests (policy, guardrails)
+npm run test:e2e      # full E2E: simulate-call, owner 1/2/9, 16 SMS templates, Twilio inbound
+```
+
+Set `SMS_DEV_PREVIEW=1` to log SMS bodies without sending. Set `OPENAI_API_KEY` for intake simulation.
+
+## Build & deploy
 
 ```bash
 npm run build
 npm start
 ```
 
-## Deploy
+Push to GitHub → Vercel. After deploy:
 
-Push to GitHub → connect [Vercel](https://vercel.com).
+```bash
+npm run twilio:register
+node scripts/check-production-readiness.mjs
+```
 
-## Edit copy
+See `LOCALE.md` for Stripe, KV, and beta flags.
 
-Update `lib/content.ts` only — sections read from there.
+## Product flows (tested in dev)
 
-## Payments (self-serve)
+| Flow | How |
+|------|-----|
+| Inbound call → SMS link | `npm run e2e:twilio-inbound` |
+| Phone speech intake | same + `intake_speech` step |
+| P2 auto-book + customer SMS | `npm run e2e:smart-booking` |
+| P1 owner approval 1/2 | same |
+| Owner undo (9) | same |
+| All SMS templates | `npm run e2e:sms-flows` |
 
-1. Copy `.env.example` to `.env.local`
-2. Add Stripe keys or Payment Link
-3. `결제하고 시작하기` → Stripe → `/onboarding`
+Live Twilio SMS: `node scripts/sms-diagnose.mjs +1XXXXXXXXXX` (verified recipient on trial).
 
-Jobber OAuth and phone provisioning are stubbed on `/onboarding` until product phase.
+## Settings
+
+- `/settings` — schedule, forwarding guides, Jobber OAuth, booking policy
+- `/onboarding` redirects to `/settings`

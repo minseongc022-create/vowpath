@@ -6,6 +6,7 @@ import { completeVerifiedSignup, normalizeSignupPhone } from "@/lib/signup-verif
 import { deletePendingSignup, getPendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
 import { ensureTenantTwilioPhone } from "@/lib/twilio-provision";
+import { initializeNewTenantShopSettings } from "@/lib/shop-settings-db";
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +47,8 @@ export async function POST(request: Request) {
     });
 
     await deletePendingSignup(signupRequestId);
+
+    await initializeNewTenantShopSettings(user.id);
 
     let phoneProvisioned = false;
     let phoneNumber: string | undefined;

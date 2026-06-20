@@ -10,7 +10,7 @@ export function SchedulingModes() {
       <Container>
         <SectionHeading label={s.label} title={s.title} subtitle={s.subtitle} />
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+        <div className="mt-12 mx-auto grid max-w-xl gap-5">
           {s.modes.map((mode) => (
             <article
               key={mode.id}

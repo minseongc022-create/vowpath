@@ -1,4 +1,5 @@
 import { bookingShortRef } from "../booking-ref";
+import { smsTechDispatchOfferBody } from "../sms-templates";
 import { listCallLogs, patchCallLog } from "../call-logs";
 import { listJobs } from "../jobs-db";
 import { sendSms } from "../send-sms";
@@ -87,14 +88,13 @@ function techOfferSms(params: {
   ctx: JobOfferContext;
   ref: string;
 }): string {
-  const { shopName, ctx, ref } = params;
-  return (
-    `[Vowpath] ${shopName}\n` +
-    `Job offer: ${ctx.customerName}\n` +
-    `${ctx.issue} - ${ctx.window}\n` +
-    `Reply 1=accept 2=pass\n` +
-    `Ref ${ref}`
-  );
+  return smsTechDispatchOfferBody({
+    shopName: params.shopName,
+    customerName: params.ctx.customerName,
+    issue: params.ctx.issue,
+    window: params.ctx.window,
+    ref: params.ref,
+  });
 }
 
 async function notifyTech(

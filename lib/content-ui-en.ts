@@ -27,18 +27,15 @@ export const settingsPageEn = {
   bookingLoadingLabel: "Loading...",
   bookingTryAgainLabel: "Try again",
   bookingPolicyDescription:
-    "Auto Book (default): clear jobs confirm instantly; P1 books with urgent SMS; unclear intakes wait for 1 / 2. Hybrid or Manual when you want more gates.",
-  bookingModeSpeedDesc:
-    "Instant booking. You get a heads-up text. Reply 9 to undo if you need to.",
-  bookingModeHybridDesc:
-    "Some urgencies book instantly; others wait for your text (1 = yes, 2 = no). Check all three to work like Auto Book.",
-  hybridAutoPrioritiesLabel: "Auto-book these urgencies",
-  hybridAutoPrioritiesHint:
-    "Checked = books right away. Unchecked = you approve by text first.",
-  hybridAllSelectedNote:
-    "All urgencies auto-book right now (same as Auto Book). Pick Hybrid to approve some by hand.",
-  bookingModeControlDesc:
-    "Every pick waits for you. Text 1 to approve or 2 to pass.",
+    "Smart auto-book: clear routine jobs confirm instantly. Emergencies and fuzzy details wait for your text (1 / 2).",
+  smartAutoBookingTitle: "How booking works",
+  smartAutoBookingIntro: "One policy — no mode switching.",
+  smartAutoBookingRules: [
+    "P2 / P3 with clear name, address, and issue → auto-confirms on your calendar.",
+    "P1 emergencies (no heat, no cool, safety) → always waits for your approval.",
+    "Unclear or low-confidence intake → waits for your 1 / 2 before confirming.",
+    "Reply 9 within your undo window to cancel an auto-book.",
+  ] as const,
   visitTimingTitle: "Appointment spacing",
   visitTimingHint:
     "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",

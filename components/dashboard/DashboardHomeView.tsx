@@ -45,6 +45,7 @@ import {
 } from "@/components/dashboard/DashboardDateRangePicker";
 import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRequestButton";
 import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
+import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
 
 export function DashboardHomeView() {
   const v = useVowDashboard();
@@ -238,6 +239,11 @@ export function DashboardHomeView() {
         jobberBookings={jobberBookings}
         requestStatuses={requestStatuses}
         onStatusChange={() => void refresh()}
+      />
+
+      <RecoveryMetricsPanel
+        dateRange={dateRange}
+        loading={!hasLoaded && loading}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

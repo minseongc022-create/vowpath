@@ -5,7 +5,15 @@
 
 import type { JobPriority } from "./types";
 
-export type SchedulingMode = "speed" | "hybrid" | "control";
+export type SchedulingMode = "auto" | "speed" | "hybrid" | "control";
+
+/** @deprecated Legacy stored values — all map to the same smart auto-book policy. */
+export const LEGACY_SCHEDULING_MODES = ["speed", "hybrid", "control"] as const;
+
+/** Single product policy: clear P2/P3 auto-book; P1 or fuzzy info → owner approval. */
+export function normalizeSchedulingMode(_mode?: SchedulingMode | null): "auto" {
+  return "auto";
+}
 
 export const ALL_JOB_PRIORITIES: JobPriority[] = ["P1", "P2", "P3"];
 
@@ -37,6 +45,10 @@ export type ShopBookingSettings = {
   ownerApprovalSms: OwnerApprovalSms;
   undoWindowMinutes: number;
   shadowModeRemaining: number;
+  /** Log every inbound touch 24/7 for ROI / missed-call stats (independent of AI schedule). */
+  measurementAlwaysOn: boolean;
+  /** Used for estimated $ recovered on dashboard. */
+  avgJobTicketUsd: number;
   jobberSchedulingEnabled: boolean;
   nativeCalendarEnabled: boolean;
   defaultDurationMinutes: number;
@@ -55,12 +67,17 @@ export type ShopBookingSettings = {
   hybridAutoPriorities: JobPriority[];
 };
 
+/** Practice bookings during onboarding — no customer SMS / Jobber push until depleted. */
+export const NEW_TENANT_SHADOW_DAYS = 14;
+
 export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   schedulingEnabled: true,
-  schedulingMode: "speed",
+  schedulingMode: "auto",
   ownerApprovalSms: "p1_only",
   undoWindowMinutes: 30,
   shadowModeRemaining: 0,
+  measurementAlwaysOn: true,
+  avgJobTicketUsd: 350,
   jobberSchedulingEnabled: true,
   nativeCalendarEnabled: true,
   defaultDurationMinutes: 120,
@@ -76,6 +93,18 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   serviceAreaZips: [],
   hybridAutoPriorities: DEFAULT_HYBRID_AUTO_PRIORITIES,
 };
+
+/** Safe defaults for a brand-new shop (14-day shadow baseline + hybrid). */
+export function newTenantShopBookingSettings(): ShopBookingSettings {
+  return mergeShopBookingSettings({
+    schedulingMode: "auto",
+    ownerApprovalSms: "p1_only",
+    shadowModeRemaining: NEW_TENANT_SHADOW_DAYS,
+    measurementAlwaysOn: true,
+    avgJobTicketUsd: 350,
+    hybridAutoPriorities: [...DEFAULT_HYBRID_AUTO_PRIORITIES],
+  });
+}
 
 function sanitizeHybridAutoPriorities(list: JobPriority[] | undefined): JobPriority[] {
   if (!list?.length) return [];
@@ -97,11 +126,8 @@ function resolvedHybridAutoPriorities(
 export function mergeShopBookingSettings(
   partial?: Partial<ShopBookingSettings> | null,
 ): ShopBookingSettings {
-  const mode = partial?.schedulingMode ?? DEFAULT_SHOP_BOOKING_SETTINGS.schedulingMode;
-  const hybridAutoPriorities = resolvedHybridAutoPriorities(
-    mode,
-    partial?.hybridAutoPriorities ?? DEFAULT_SHOP_BOOKING_SETTINGS.hybridAutoPriorities,
-  );
+  const mode = normalizeSchedulingMode(partial?.schedulingMode);
+  const hybridAutoPriorities = [...DEFAULT_HYBRID_AUTO_PRIORITIES];
   return {
     ...DEFAULT_SHOP_BOOKING_SETTINGS,
     ...partial,
@@ -114,44 +140,15 @@ export function mergeShopBookingSettings(
   };
 }
 
-/** Apply mode + hybrid priority rules before persisting. */
+/** Legacy patch coalescing — mode is always smart auto-book. */
 export function coalesceSchedulingSettingsPatch(
   current: ShopBookingSettings,
   patch: Partial<ShopBookingSettings>,
 ): Partial<ShopBookingSettings> {
-  const result = { ...patch };
-  let mode = patch.schedulingMode ?? current.schedulingMode;
-  let priorities =
-    patch.hybridAutoPriorities !== undefined
-      ? sanitizeHybridAutoPriorities(patch.hybridAutoPriorities)
-      : current.hybridAutoPriorities;
-
-  if (patch.schedulingMode === "speed") {
-    mode = "speed";
-    priorities = [...ALL_JOB_PRIORITIES];
-  } else if (patch.schedulingMode === "control") {
-    mode = "control";
-  } else if (patch.schedulingMode === "hybrid") {
-    mode = "hybrid";
-    if (patch.hybridAutoPriorities === undefined && priorities.length === ALL_JOB_PRIORITIES.length) {
-      priorities = [...DEFAULT_HYBRID_AUTO_PRIORITIES];
-    }
-  }
-
-  if (patch.hybridAutoPriorities !== undefined) {
-    priorities = sanitizeHybridAutoPriorities(patch.hybridAutoPriorities);
-    if (priorities.length === ALL_JOB_PRIORITIES.length) {
-      mode = "speed";
-      priorities = [...ALL_JOB_PRIORITIES];
-    } else {
-      mode = "hybrid";
-    }
-  }
-
   return {
-    ...result,
-    schedulingMode: mode,
-    hybridAutoPriorities: mode === "speed" ? [...ALL_JOB_PRIORITIES] : priorities,
+    ...patch,
+    schedulingMode: "auto",
+    hybridAutoPriorities: [...DEFAULT_HYBRID_AUTO_PRIORITIES],
   };
 }
 
@@ -168,13 +165,11 @@ export function formatHybridAutoPriorities(
   return priorities.join(", ");
 }
 
-/** Legacy localStorage bookingMode → scheduling mode */
+/** Legacy localStorage bookingMode → always smart auto */
 export function legacyBookingModeToScheduling(
-  mode?: string | null,
+  _mode?: string | null,
 ): SchedulingMode {
-  if (mode === "auto_booking") return "speed";
-  if (mode === "request_only") return "control";
-  return "hybrid";
+  return "auto";
 }
 
 /** Spacing between offered visit times (visit length = interval; buffer cleared in UI). */

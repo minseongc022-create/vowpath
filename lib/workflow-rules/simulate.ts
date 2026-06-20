@@ -33,14 +33,12 @@ export function simulateWorkflowForBooking(params: {
     address: params.booking.address,
     cityState: params.booking.cityState,
     createdAt: params.booking.createdAt,
-    schedulingMode: params.bookingSettings.schedulingMode,
+    schedulingMode: "auto",
     ...params.ctxExtras,
   };
 
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
-    mode: params.bookingSettings.schedulingMode,
     priority: params.booking.priority,
-    hybridAutoPriorities: params.bookingSettings.hybridAutoPriorities,
   });
 
   const decision = evaluateWorkflowRules(params.rules, ctx);

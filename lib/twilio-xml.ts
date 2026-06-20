@@ -1,5 +1,12 @@
 import { channelChoiceGatherHint, channelChoiceVoicePrompt } from "./link-intake-copy";
 import { SPEECH_HINTS } from "./twilio-voice-flow";
+import {
+  voiceGatherMissedChoice,
+  voiceGatherMissedDtmf,
+  voiceGatherMissedSpeech,
+  voiceGoAhead,
+  voicePhoneIntakePrompt,
+} from "./voice-copy";
 
 function escapeXml(value: string): string {
   return value
@@ -9,7 +16,10 @@ function escapeXml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function twimlResponse(inner: string): string {
+export function twimlResponse(inner: string, statusCallbackUrl?: string): string {
+  if (statusCallbackUrl?.trim()) {
+    return `<?xml version="1.0" encoding="UTF-8"?><Response statusCallback="${escapeXml(statusCallbackUrl)}" statusCallbackMethod="POST" statusCallbackEvent="initiated ringing answered completed">${inner}</Response>`;
+  }
   return `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`;
 }
 
@@ -19,7 +29,7 @@ export function twimlMessage(body: string): string {
 
 export function twimlSay(message: string, language: "en-US" | "ko-KR" = "en-US"): string {
   const voice = language === "ko-KR" ? "Polly.Seoyeon" : "Polly.Joanna";
-  return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
+  return `<Say voice="${voice}" language="${language}" rate="95%">${escapeXml(message)}</Say>`;
 }
 
 export function twimlGatherChannelChoice(
@@ -29,7 +39,7 @@ export function twimlGatherChannelChoice(
 ): string {
   const prompt = channelChoiceVoicePrompt(shopName, afterHours);
   const hint = channelChoiceGatherHint();
-  return `${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint)}</Gather>${twimlSay("We did not receive your selection. Goodbye.")}`;
+  return `${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="15" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint)}</Gather>${twimlSay(voiceGatherMissedChoice)}`;
 }
 
 export function twimlGatherDtmfMenu(actionUrl: string): string {
@@ -38,7 +48,7 @@ export function twimlGatherDtmfMenu(actionUrl: string): string {
     "Press 1 if you have no heat, no cool, a leak, or a safety emergency. " +
     "Press 2 for same-day comfort, not working well. " +
     "Press 3 for maintenance or non-urgent. ";
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="8" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Enter your choice now.")}</Gather>${twimlSay("We did not receive a selection. Goodbye.")}`;
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="10" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead — enter your choice now.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 export function twimlGatherSpeechDetailed(
@@ -46,24 +56,19 @@ export function twimlGatherSpeechDetailed(
   intro: string,
   followUp?: string,
 ): string {
-  const defaultFollowUp =
-    "Please speak slowly. " +
-    "Say your first and last name, your full service street address with city, " +
-    "whether you have heat or cool right now, " +
-    "and describe the problem — for example no heat, no cool, or a tune-up. " +
-    "We will call you back at the number you are calling from.";
+  const defaultFollowUp = voicePhoneIntakePrompt;
   const prompt = followUp ?? defaultFollowUp;
-  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay("We did not hear a message. Goodbye.")}`;
+  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
 }
 
 export function twimlGatherSpeechField(actionUrl: string, prompt: string): string {
-  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead.")}</Gather>${twimlSay("We did not hear you. Goodbye.")}`;
+  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="3" speechModel="phone_call" hints="${escapeXml(SPEECH_HINTS)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(voiceGoAhead)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
 }
 
 export function twimlGatherDtmfYesNo(actionUrl: string, prompt: string): string {
   const help =
     "Press 1 for yes, or 2 for no.";
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="10" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay("We did not receive a response. Goodbye.")}`;
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /** Caller picks visit window: digits 1–5 (numDigits=1, up to 5 options). */
@@ -74,7 +79,7 @@ export function twimlGatherDtmfSlots(
 ): string {
   const max = Math.min(5, Math.max(1, slotCount));
   const help = `Press 1 through ${max} to choose your visit window.`;
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay("We did not receive a selection. Goodbye.")}`;
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="14" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(help)}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 export function twimlStartCallRecording(recordingStatusCallback: string): string {

@@ -2,10 +2,19 @@ import { sendSms, type SmsSendContext } from "../send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
 import { resolveOwnerAlertPhone } from "../owner-alert-phone";
-import { resolveShopDisplayName } from "../link-intake-brand";
 import { setSmsReplyTarget } from "../sms-reply-context";
-import { getTechDispatchSettings } from "../tech-dispatch/store";
 import type { JobPriority } from "../types";
+import {
+  smsCustomerIntakeAckBody,
+  smsCustomerNoSlotBody,
+  smsCustomerScheduledBody,
+  smsOwnerApprovalNeededBody,
+  smsOwnerNoSlotBody,
+  smsOwnerScheduledFyiBody,
+  smsOwnerUrgentAutoBookedBody,
+} from "../sms-templates";
+import { findPortalTokenForBooking } from "../customer-booking-portal";
+import { buildBookingPortalUrl } from "../portal-url";
 
 function smsCtx(userId: string, op: string, bookingId?: string): SmsSendContext {
   return { userId, operation: op, bookingId };
@@ -51,7 +60,7 @@ export async function notifyCustomerIntakeAck(params: {
   const phone = params.phone?.trim();
   if (!phone) return;
   const user = await findUserById(params.userId);
-  const body = `${resolveShopDisplayName(user?.shopName)}: We got your request for ${params.issue}. We'll confirm your visit window shortly.`;
+  const body = smsCustomerIntakeAckBody(user?.shopName, params.issue);
   await sendCustomer({
     userId: params.userId,
     phone,
@@ -69,15 +78,24 @@ export async function notifyCustomerScheduled(params: {
   window: string;
   address: string;
   priority: JobPriority;
+  customerName?: string;
+  portalUrl?: string;
 }) {
   const phone = params.phone?.trim();
   if (!phone) return;
   const user = await findUserById(params.userId);
-  const shop = resolveShopDisplayName(user?.shopName);
-  const body =
-    params.priority === "P1"
-      ? `${shop}: URGENT — We've prioritized your request. Expected arrival window: ${params.window} at ${params.address}.`
-      : `${shop}: Your visit is scheduled for ${params.window} at ${params.address}. We'll call if we're running late.`;
+  let portalUrl = params.portalUrl;
+  if (!portalUrl) {
+    const token = await findPortalTokenForBooking(params.userId, params.bookingId);
+    if (token) portalUrl = buildBookingPortalUrl(token);
+  }
+  const body = smsCustomerScheduledBody({
+    shopName: user?.shopName,
+    customerName: params.customerName ?? "there",
+    window: params.window,
+    portalUrl,
+    priority: params.priority,
+  });
   await sendCustomer({
     userId: params.userId,
     phone,
@@ -96,7 +114,7 @@ export async function notifyCustomerNoSlot(params: {
   const phone = params.phone?.trim();
   if (!phone) return;
   const user = await findUserById(params.userId);
-  const body = `${resolveShopDisplayName(user?.shopName)}: We received your request. Our schedule is full for now — we'll contact you within 2 hours to set a time.`;
+  const body = smsCustomerNoSlotBody(user?.shopName);
   await sendCustomer({
     userId: params.userId,
     phone,
@@ -118,8 +136,13 @@ export async function notifyOwnerScheduledFyi(params: {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
-  const shop = resolveShopDisplayName(user?.shopName);
-  const body = `${shop}: Booked ${params.window} — ${params.customerName}, ${params.issue}. Crew notified if enabled. Undo: reply 9 within ${params.undoMinutes} min.`;
+  const body = smsOwnerScheduledFyiBody({
+    shopName: user?.shopName,
+    customerName: params.customerName,
+    issue: params.issue,
+    window: params.window,
+    undoMinutes: params.undoMinutes,
+  });
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,
@@ -142,13 +165,14 @@ export async function notifyOwnerApprovalNeeded(params: {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
-  const shop = resolveShopDisplayName(user?.shopName);
-  const tag = params.ambiguous
-    ? "NEEDS REVIEW"
-    : params.priority === "P1"
-      ? "P1"
-      : "review";
-  const body = `${shop} ${tag}: ${params.customerName} — ${params.issue}. Customer picked ${params.window}. Reply 1=Confirm 2=Pass.`;
+  const body = smsOwnerApprovalNeededBody({
+    shopName: user?.shopName,
+    customerName: params.customerName,
+    issue: params.issue,
+    window: params.window,
+    priority: params.priority,
+    ambiguous: params.ambiguous,
+  });
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,
@@ -159,7 +183,6 @@ export async function notifyOwnerApprovalNeeded(params: {
   });
 }
 
-/** P1 auto-booked — calendar set, crew notified; owner can undo or cancel. */
 export async function notifyOwnerUrgentAutoBooked(params: {
   userId: string;
   bookingId: string;
@@ -171,10 +194,13 @@ export async function notifyOwnerUrgentAutoBooked(params: {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
-  const shop = resolveShopDisplayName(user?.shopName);
-  const body =
-    `${shop} P1 URGENT — booked ${params.window}: ${params.customerName}, ${params.issue}. ` +
-    `Crew notified. Reply 1=OK 2=Cancel job. Undo: reply 9 within ${params.undoMinutes} min.`;
+  const body = smsOwnerUrgentAutoBookedBody({
+    shopName: user?.shopName,
+    customerName: params.customerName,
+    issue: params.issue,
+    window: params.window,
+    undoMinutes: params.undoMinutes,
+  });
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,
@@ -194,8 +220,11 @@ export async function notifyOwnerNoSlot(params: {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
   const user = await findUserById(params.userId);
-  const shop = resolveShopDisplayName(user?.shopName);
-  const body = `${shop}: No open slot for ${params.customerName} — ${params.issue}. Assign manually in dashboard.`;
+  const body = smsOwnerNoSlotBody({
+    shopName: user?.shopName,
+    customerName: params.customerName,
+    issue: params.issue,
+  });
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,
@@ -215,7 +244,7 @@ export async function notifyOwnerShadowResult(params: {
 }) {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
-  const body = `Vowpath [TEST]: Would have booked ${params.window} for ${params.customerName}. ${params.shadowLeft} test calls left.`;
+  const body = `Vowpath [TEST]: Would book ${params.window} for ${params.customerName}. ${params.shadowLeft} test runs left.`;
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,

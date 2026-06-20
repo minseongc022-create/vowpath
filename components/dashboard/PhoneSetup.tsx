@@ -269,7 +269,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
 
       {ready ? (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
-          Phone setup is ready. Call your Twilio number to test. (Trial accounts: verified numbers only.)
+          Phone setup is ready. Call your Twilio number to test inbound voice + SMS.
         </p>
       ) : (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4">

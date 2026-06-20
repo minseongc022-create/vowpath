@@ -1,47 +1,19 @@
-import { getPublicAppUrl } from "../app-url";
+import { buildBookingPortalUrl } from "../portal-url";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { formatLinkRequestNumber } from "../link-intake-urgency";
 import { sendSms } from "../send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
+import { smsCustomerBookingConfirmationBody } from "../sms-templates";
+import { savePortalTokenOnCall } from "../customer-booking-portal";
 import {
   saveLinkIntakeSession,
   type LinkIntakeSession,
 } from "./link-intake-store";
 
 const REVIEW_LINK_TTL_MS = 14 * 86_400_000;
-const SMS_OPT_OUT = " Reply STOP to opt out.";
 
-export function buildIntakeReviewUrl(token: string): string {
-  const base = getPublicAppUrl();
-  if (!base) return `/intake/${token}`;
-  return `${base.replace(/\/$/, "")}/intake/${token}`;
-}
-
-export function smsBookingConfirmationBody(params: {
-  shopName: string;
-  requestNumber: string;
-  customerName: string;
-  issueType: string;
-  arrivalWindow?: string;
-  reviewUrl: string;
-  pendingShopReview?: boolean;
-}): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const lines = [
-    `${shop}: Request #${params.requestNumber} received.`,
-    `${params.customerName} - ${params.issueType}`,
-  ];
-  if (params.arrivalWindow?.trim()) {
-    lines.push(`Visit window: ${params.arrivalWindow.trim()}`);
-  }
-  if (params.pendingShopReview) {
-    lines.push("Pending shop review - we'll confirm shortly.");
-  }
-  lines.push(`Review or update details: ${params.reviewUrl}`);
-  lines.push(SMS_OPT_OUT.trim());
-  return lines.join("\n");
-}
+export { buildBookingPortalUrl as buildIntakeReviewUrl };
 
 export async function createBookingReviewLinkSession(params: {
   userId: string;
@@ -73,6 +45,7 @@ export async function createBookingReviewLinkSession(params: {
     customerName: params.customerName,
   };
   await saveLinkIntakeSession(session);
+  await savePortalTokenOnCall(params.userId, params.callId, token);
   return session;
 }
 
@@ -91,14 +64,14 @@ export async function sendIntakeBookingConfirmation(params: {
   if (!phone) return { ok: false, error: "no_phone" };
 
   const user = await findUserById(params.userId);
-  const reviewUrl = buildIntakeReviewUrl(params.reviewToken);
-  const body = smsBookingConfirmationBody({
+  const portalUrl = buildBookingPortalUrl(params.reviewToken);
+  const body = smsCustomerBookingConfirmationBody({
     shopName: user?.shopName ?? "",
     requestNumber: formatLinkRequestNumber(params.callLogId),
     customerName: params.customerName,
     issueType: params.issueType,
     arrivalWindow: params.arrivalWindow,
-    reviewUrl,
+    portalUrl,
     pendingShopReview: params.pendingShopReview,
   });
 

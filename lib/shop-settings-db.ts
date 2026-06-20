@@ -7,6 +7,7 @@ import {
   DEFAULT_SHOP_BOOKING_SETTINGS,
   coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
+  newTenantShopBookingSettings,
   type OwnerApprovalSms,
   type SchedulingMode,
   type ShopBookingSettings,
@@ -72,4 +73,25 @@ export async function decrementShadowMode(
   return saveShopBookingSettings(userId, {
     shadowModeRemaining: current.shadowModeRemaining - 1,
   });
+}
+
+/** First signup — hybrid + 14-day shadow baseline (idempotent). */
+export async function initializeNewTenantShopSettings(userId: string): Promise<ShopBookingSettings> {
+  if (useKvStore()) {
+    const existing = await kvGetSafe<Partial<ShopBookingSettings>>(kvKey(userId));
+    if (existing && Object.keys(existing).length > 0) {
+      return mergeShopBookingSettings(existing);
+    }
+    const next = newTenantShopBookingSettings();
+    await kv.set(kvKey(userId), next);
+    return next;
+  }
+  const all = await readFileStore();
+  if (all[userId]) {
+    return mergeShopBookingSettings(all[userId]);
+  }
+  const next = newTenantShopBookingSettings();
+  all[userId] = next;
+  await writeFileStore(all);
+  return next;
 }

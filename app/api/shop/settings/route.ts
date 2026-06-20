@@ -16,7 +16,7 @@ import {
 import { getSession } from "@/lib/session";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
-const MODES: SchedulingMode[] = ["speed", "hybrid", "control"];
+const MODES: SchedulingMode[] = ["auto", "speed", "hybrid", "control"];
 const OWNER_SMS: OwnerApprovalSms[] = ["off", "p1_only", "all"];
 
 function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettings> {
@@ -36,6 +36,12 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
   }
   if (typeof body.shadowModeRemaining === "number" && body.shadowModeRemaining >= 0 && body.shadowModeRemaining <= 50) {
     patch.shadowModeRemaining = Math.round(body.shadowModeRemaining);
+  }
+  if (typeof body.measurementAlwaysOn === "boolean") {
+    patch.measurementAlwaysOn = body.measurementAlwaysOn;
+  }
+  if (typeof body.avgJobTicketUsd === "number" && body.avgJobTicketUsd >= 50 && body.avgJobTicketUsd <= 5000) {
+    patch.avgJobTicketUsd = Math.round(body.avgJobTicketUsd);
   }
   if (typeof body.nativeCalendarEnabled === "boolean") {
     patch.nativeCalendarEnabled = body.nativeCalendarEnabled;

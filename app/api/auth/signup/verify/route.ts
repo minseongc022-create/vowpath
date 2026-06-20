@@ -3,6 +3,7 @@ import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
 import { checkSignupCode, completeVerifiedSignup } from "@/lib/signup-verify";
 import { deletePendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
+import { initializeNewTenantShopSettings } from "@/lib/shop-settings-db";
 import { apiErrorsEn } from "@/lib/api-errors-en";
 
 /** Legacy: check + complete in one step */
@@ -39,6 +40,8 @@ export async function POST(request: Request) {
     });
 
     await deletePendingSignup(signupRequestId);
+
+    await initializeNewTenantShopSettings(user.id);
 
     const token = await createSessionToken({
       sub: user.id,

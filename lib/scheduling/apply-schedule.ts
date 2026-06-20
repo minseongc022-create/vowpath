@@ -86,9 +86,7 @@ export async function applyCustomerChosenSchedule(
   }
 
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
-    mode: settings.schedulingMode,
     priority: params.priority,
-    hybridAutoPriorities: settings.hybridAutoPriorities,
     confidenceMin: confidenceMin(params.confidence),
   });
 
@@ -109,7 +107,7 @@ export async function applyCustomerChosenSchedule(
     slotStartAt: params.slot.startAt,
     slotEndAt: params.slot.endAt,
     createdAt: new Date().toISOString(),
-    schedulingMode: settings.schedulingMode,
+    schedulingMode: "auto",
     afterHours,
   };
 
@@ -181,8 +179,6 @@ export async function applyCustomerChosenSchedule(
       shouldSendOwnerApprovalSms(
         settings.ownerApprovalSms,
         effectivePriority,
-        settings.schedulingMode,
-        settings.hybridAutoPriorities,
         confidenceMin(params.confidence),
       );
     if (sendSms) {
@@ -204,6 +200,7 @@ export async function applyCustomerChosenSchedule(
       window: params.slot.label,
       address: params.card.address,
       priority: effectivePriority,
+      customerName: params.card.customerName,
     });
     const urgent = effectivePriority === "P1";
     if (urgent) {
@@ -303,6 +300,7 @@ export async function completeScheduledBookingAfterOwnerApprove(
     window: scheduled.arrivalWindowLabel,
     address: card.address,
     priority: card.priority,
+    customerName: card.customerName,
   });
 
   const undoAt = new Date();
