@@ -23,9 +23,9 @@ import {
 } from "@/lib/scheduling/schedule-sms";
 import { customerVerificationSmsBody } from "@/lib/customer-verification/sms-copy";
 import { sendSignupCodeSms } from "@/lib/send-verification-code";
-import { sendSms } from "@/lib/send-sms";
+import { smsCustomerOnMyWayBody, smsTechDispatchOfferBody } from "@/lib/sms-templates";
 import { getSession } from "@/lib/session";
-import { smsDevPreviewEnabled } from "@/lib/send-sms";
+import { sendSms, smsDevPreviewEnabled } from "@/lib/send-sms";
 import { findUserById } from "@/lib/users-db";
 
 type FlowId =
@@ -44,7 +44,8 @@ type FlowId =
   | "link_intake"
   | "customer_verification"
   | "signup_verification"
-  | "tech_dispatch_offer";
+  | "tech_dispatch_offer"
+  | "customer_on_my_way";
 
 const TEST_BOOKING = `dev-sms-smoke-${Date.now()}`;
 const TEST_CALL = "dev-sms-smoke-call";
@@ -239,16 +240,30 @@ async function runFlow(
         break;
       }
       case "tech_dispatch_offer": {
-        const body =
-          `[Vowpath] ${shopName}\n` +
-          `Job offer: ${sampleName}\n` +
-          `${sampleIssue} - ${sampleWindow}\n` +
-          `Reply 1=accept 2=pass\n` +
-          `Ref A3F2`;
+        const body = smsTechDispatchOfferBody({
+          shopName,
+          customerName: sampleName,
+          issue: sampleIssue,
+          window: sampleWindow,
+          ref: "A3F2",
+        });
         const result = await sendSms(phone, body, "tech_dispatch_offer", {
           context: { userId, operation: "tech_dispatch_offer", bookingId: TEST_BOOKING },
         });
         if (!result.ok) return { ok: false, error: result.error ?? "tech dispatch sms failed" };
+        break;
+      }
+      case "customer_on_my_way": {
+        const previewBody = smsCustomerOnMyWayBody({
+          shopName,
+          customerName: sampleName,
+          techName: "Mike",
+          etaMinutes: 30,
+        });
+        const result = await sendSms(phone, previewBody, "customer-on-my-way", {
+          context: { userId, operation: "customer_on_my_way", bookingId: TEST_BOOKING },
+        });
+        if (!result.ok) return { ok: false, error: result.error ?? "on my way sms failed" };
         break;
       }
       default:
@@ -307,6 +322,7 @@ export async function POST(request: Request) {
     "customer_verification",
     "signup_verification",
     "tech_dispatch_offer",
+    "customer_on_my_way",
   ];
 
   const toRun = flows.length ? flows : allFlows;

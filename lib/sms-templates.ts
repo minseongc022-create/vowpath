@@ -235,6 +235,34 @@ export function smsTechDispatchOfferBody(params: {
   return `${shop}: Job offer — ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}, ${smsTruncate(params.window, 14)}. Reply 1=Accept 2=Pass. Ref ${params.ref}`;
 }
 
+/** After tech accepts — remind them to text OTW when driving. */
+export function smsTechOnMyWayAcceptedHint(params: {
+  customerName: string;
+  ref: string;
+}): string {
+  const name = smsTruncate(params.customerName, 18);
+  return (
+    `Vowpath: You're on ${name} (${params.ref}). ` +
+    `Heading out? Text OTW15, OTW30, OTW45 or OTW60 — we'll notify the customer!`
+  );
+}
+
+/** Customer — tech en route (Jobber-style ETA). */
+export function smsCustomerOnMyWayBody(params: {
+  shopName?: string;
+  customerName: string;
+  techName: string;
+  etaMinutes: number;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const tech = smsTruncate(params.techName, 16);
+  const eta = params.etaMinutes;
+  return smsFitSingleSegment([
+    `${shop}: Hi ${first}! 🔧 ${tech} is on the way — ETA ~${eta} min! Please clear access to your HVAC unit. See you soon!${smsCustomerOptOut()}`,
+  ]);
+}
+
 export function smsCustomerVerificationBody(params: {
   shopName?: string;
   issueType: string;

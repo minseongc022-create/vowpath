@@ -37,6 +37,7 @@ import { VerificationStatusPanel } from "@/components/dashboard/VerificationStat
 import { CustomerVerificationPanel } from "@/components/dashboard/CustomerVerificationPanel";
 import { BookingTimelinePanel } from "@/components/dashboard/BookingTimelinePanel";
 import { CustomerCorrectionHistoryPanel } from "@/components/dashboard/CustomerCorrectionHistoryPanel";
+import { CustomerOnMyWayPanel } from "@/components/dashboard/CustomerOnMyWayPanel";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
@@ -405,6 +406,10 @@ export function BookingDetailContent({
               {detail.arrivalWindow ? (
                 <InfoRow label={t.customerPreference} value={detail.arrivalWindow} />
               ) : null}
+              <CustomerOnMyWayPanel
+                bookingId={decodedId}
+                customerName={detail.customerName}
+              />
             </InfoCard>
           </div>
 

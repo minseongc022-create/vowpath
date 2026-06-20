@@ -2,7 +2,7 @@ import { bookingShortRef } from "../booking-ref";
 import { smsTechDispatchOfferBody } from "../sms-templates";
 import { listCallLogs, patchCallLog } from "../call-logs";
 import { listJobs } from "../jobs-db";
-import { sendSms } from "../send-sms";
+import { sendTechSms } from "./send-tech-sms";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { findUserById } from "../users-db";
 import {
@@ -105,10 +105,14 @@ async function notifyTech(
 ): Promise<boolean> {
   const ref = bookingShortRef(ctx.bookingId);
   const body = techOfferSms({ shopName, ctx, ref });
-  const result = await sendSms(tech.phone, body, "tech-dispatch-offer", {
-    context: { userId, operation: "tech_dispatch_offer", bookingId: ctx.bookingId },
+  return sendTechSms({
+    userId,
+    techPhone: tech.phone,
+    body,
+    devLogLabel: "tech-dispatch-offer",
+    operation: "tech_dispatch_offer",
+    bookingId: ctx.bookingId,
   });
-  return result.ok;
 }
 
 export async function startTechAssignmentForBooking(
@@ -243,6 +247,15 @@ export async function handleTechDispatchReply(params: {
         await patchCallLog(params.userId, callId, { aiSummary });
       }
     }
+
+    const { promptTechOnMyWayAfterAccept } = await import("./on-my-way");
+    await promptTechOnMyWayAfterAccept({
+      userId: params.userId,
+      techId: tech.id,
+      techPhone: tech.phone,
+      bookingId: target.bookingId,
+      customerName: target.customerName,
+    });
 
     return {
       handled: true,

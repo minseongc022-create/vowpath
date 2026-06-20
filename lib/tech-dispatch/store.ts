@@ -124,6 +124,10 @@ function pendingOfferKey(userId: string, techId: string) {
   return `vowpath:tech-pending:${userId}:${techId}`;
 }
 
+function activeJobKey(userId: string, techId: string) {
+  return `vowpath:tech-active:${userId}:${techId}`;
+}
+
 export async function setTechPendingOffer(
   userId: string,
   techId: string,
@@ -156,6 +160,41 @@ export async function getTechPendingOffer(
     return (await kvGetSafe<string>(pendingOfferKey(userId, techId))) ?? null;
   }
   const all = await readJsonFile<Record<string, string>>(path.join(DATA_DIR, "tech-pending.json"));
+  return all[`${userId}:${techId}`] ?? null;
+}
+
+export async function setTechActiveJob(
+  userId: string,
+  techId: string,
+  bookingId: string,
+): Promise<void> {
+  if (useKvStore()) {
+    await kv.set(activeJobKey(userId, techId), bookingId);
+    return;
+  }
+  const all = await readJsonFile<Record<string, string>>(path.join(DATA_DIR, "tech-active.json"));
+  all[`${userId}:${techId}`] = bookingId;
+  await writeJsonFile(path.join(DATA_DIR, "tech-active.json"), all);
+}
+
+export async function clearTechActiveJob(userId: string, techId: string): Promise<void> {
+  if (useKvStore()) {
+    await kv.del(activeJobKey(userId, techId));
+    return;
+  }
+  const all = await readJsonFile<Record<string, string>>(path.join(DATA_DIR, "tech-active.json"));
+  delete all[`${userId}:${techId}`];
+  await writeJsonFile(path.join(DATA_DIR, "tech-active.json"), all);
+}
+
+export async function getTechActiveJob(
+  userId: string,
+  techId: string,
+): Promise<string | null> {
+  if (useKvStore()) {
+    return (await kvGetSafe<string>(activeJobKey(userId, techId))) ?? null;
+  }
+  const all = await readJsonFile<Record<string, string>>(path.join(DATA_DIR, "tech-active.json"));
   return all[`${userId}:${techId}`] ?? null;
 }
 

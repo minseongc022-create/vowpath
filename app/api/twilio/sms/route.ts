@@ -3,6 +3,7 @@ import { handleCustomerVerificationReply } from "@/lib/customer-verification/flo
 import { handleOwnerSmsReply } from "@/lib/owner-sms-reply";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { handleTechDispatchReply } from "@/lib/tech-dispatch/assign";
+import { handleTechOnMyWayReply } from "@/lib/tech-dispatch/on-my-way";
 import { findTechByPhone } from "@/lib/tech-dispatch/store";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { twimlMessage, twimlResponse } from "@/lib/twilio-xml";
@@ -46,6 +47,15 @@ export async function POST(request: Request) {
     if (userId) {
       const tech = await findTechByPhone(userId, from);
       if (tech) {
+        const otwResult = await handleTechOnMyWayReply({ userId, fromPhone: from, body });
+        if (otwResult.handled) {
+          const twiml = twimlResponse(twimlMessage(otwResult.replyBody));
+          return new NextResponse(twiml, {
+            status: 200,
+            headers: { "Content-Type": "text/xml" },
+          });
+        }
+
         const techResult = await handleTechDispatchReply({ userId, fromPhone: from, body });
         if (techResult.handled) {
           const twiml = twimlResponse(twimlMessage(techResult.replyBody));
