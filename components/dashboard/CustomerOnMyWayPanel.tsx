@@ -43,9 +43,9 @@ export function CustomerOnMyWayPanel({
         Customer on the way
       </p>
       <p className="mt-1 text-sm text-stone-600">
-        Notify the customer when your tech is heading out. From the field, text{" "}
-        <span className="font-semibold text-stone-800">30</span> (or{" "}
-        {SMS_ETA_MINUTE_OPTIONS.join(", ")}) to your shop number.
+        Field staff: when leaving, reply to the <strong>shop SMS thread</strong> with minutes until
+        arrival ({SMS_ETA_MINUTE_OPTIONS.join(", ")}). Ex: <strong>30</strong> = ~30 min — we text
+        the customer. Or tap below to notify from the dashboard.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {SMS_ETA_MINUTE_OPTIONS.map((min) => (

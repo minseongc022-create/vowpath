@@ -66,19 +66,29 @@ export function smsEtaMinutesLabel(): string {
   return SMS_ETA_MINUTE_OPTIONS.join(", ");
 }
 
-/** Full staff hint — numbers only, no OTW prefix. */
+/** Full staff ETA instructions — reply to shop SMS, not the customer. */
 export function smsStaffEtaHint(): string {
-  return `Heading out? Reply ${smsEtaMinutesLabel()} — customer gets your ETA.`;
+  return (
+    `FOR STAFF: When you leave, reply to THIS text with minutes until you arrive ` +
+    `(${smsEtaMinutesLabel()}). Ex: 30 = ~30 min away. ` +
+    `We text the customer your ETA — don't text the customer yourself.`
+  );
 }
 
-/** Short suffix for owner/tech SMS. */
+/** Shorter suffix when appended to another shop SMS. */
 export function smsStaffEtaHintShort(): string {
-  return `Driving? Reply ${smsEtaMinutesLabel()} (minutes).`;
+  return (
+    `Staff: leaving? Reply HERE ${smsEtaMinutesLabel()} = minutes to customer. ` +
+    `Ex: 30. We notify them for you.`
+  );
 }
 
-/** When someone texts OTW/on my way but not a valid minute. */
+/** When staff text something invalid (or customer texts a number by mistake). */
 export function smsStaffEtaInvalidReply(): string {
-  return `Reply ${smsEtaMinutesLabel()} only (minutes). Example: 30`;
+  return (
+    `Staff: reply ${smsEtaMinutesLabel()} to THIS shop text only = minutes until arrival. ` +
+    `Ex: 30. We text the customer. Don't text the customer directly.`
+  );
 }
 
 /** Link intake — press 1 on call */

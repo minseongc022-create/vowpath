@@ -286,7 +286,7 @@ export async function handleOnMyWaySmsReply(params: {
     return {
       handled: true,
       replyBody:
-        "No active visit found. Approve a booking first, then reply 30 when heading out.",
+        "Staff: accept or approve the visit first. Then reply 30 HERE (minutes away) — we text the customer.",
     };
   }
 
@@ -307,7 +307,7 @@ export async function handleOnMyWaySmsReply(params: {
 
   return {
     handled: true,
-    replyBody: `Customer notified — ETA ~${minutes} min. Drive safe!`,
+    replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
   };
 }
 
