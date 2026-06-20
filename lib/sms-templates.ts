@@ -7,6 +7,30 @@ import { resolveShopDisplayName } from "./shop-display-name";
 
 const GSM_SINGLE = 160;
 
+function forcesUcs2Encoding(text: string): boolean {
+  for (const ch of text) {
+    if (ch.charCodeAt(0) > 127) return true;
+  }
+  return false;
+}
+
+/**
+ * SMS with a URL — never truncate the link (truncated links open the marketing homepage).
+ * Twilio splits long bodies into multiple segments automatically.
+ */
+export function smsBodyWithUrl(intro: string, url: string, optOut = true): string {
+  const tail = optOut ? smsCustomerOptOut().trim() : "";
+  const body = tail ? `${intro.trim()} ${url} ${tail}` : `${intro.trim()} ${url}`;
+  const limit = forcesUcs2Encoding(body) ? 70 : 160;
+  if (body.length <= limit) return body;
+  // Drop opt-out before touching the URL; URL must stay intact.
+  if (tail && body.length > limit) {
+    const withoutOpt = `${intro.trim()} ${url}`;
+    if (withoutOpt.length <= limit * 2) return withoutOpt;
+  }
+  return `${intro.trim()} ${url}`;
+}
+
 export function smsFirstName(fullName: string): string {
   const first = fullName.trim().split(/\s+/)[0];
   return first && first.length >= 2 ? first : "there";
@@ -37,10 +61,7 @@ export function smsCustomerOptOut(): string {
 /** Link intake — press 1 on call */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return smsFitSingleSegment([
-    `${shop}: Need HVAC help? Tap here to book! 👉`,
-    url,
-  ]);
+  return smsBodyWithUrl(`${shop}: Tap to book your visit:`, url);
 }
 
 /** After booking / request received */
@@ -62,7 +83,7 @@ export function smsCustomerBookingConfirmationBody(params: {
     : "";
   const pending = params.pendingShopReview ? " We'll confirm soon!" : " You're on the schedule!";
   const core = `${shop}: Hi ${first}! ${ref} received — ${issue}.${window ? ` ${window}.` : pending}`;
-  return smsFitSingleSegment([core, `Details: ${params.portalUrl}`, smsCustomerOptOut().trim()]);
+  return smsBodyWithUrl(core, params.portalUrl);
 }
 
 export function smsCustomerScheduledBody(params: {
@@ -78,7 +99,7 @@ export function smsCustomerScheduledBody(params: {
   const urgent = params.priority === "P1" ? " Priority visit!" : "";
   const core = `${shop}: Hi ${first}! You're set for ${window}.${urgent} See you soon!`;
   if (params.portalUrl) {
-    return smsFitSingleSegment([core, `Manage: ${params.portalUrl}`, smsCustomerOptOut().trim()]);
+    return smsBodyWithUrl(core, params.portalUrl);
   }
   return smsFitSingleSegment([core + smsCustomerOptOut()]);
 }
