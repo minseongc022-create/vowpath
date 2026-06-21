@@ -102,6 +102,7 @@ async function validateWithGoogle(address: string): Promise<AddressValidationRes
 
 export async function validateServiceAddress(
   address: string,
+  options?: { fallbackToHeuristic?: boolean },
 ): Promise<AddressValidationResult> {
   const trimmed = address.trim();
   if (!trimmed) {
@@ -113,7 +114,11 @@ export async function validateServiceAddress(
     process.env.GOOGLE_MAPS_API_KEY?.trim();
 
   if (useGoogle) {
-    return validateWithGoogle(trimmed);
+    const google = await validateWithGoogle(trimmed);
+    if (google.valid || !options?.fallbackToHeuristic) {
+      return google;
+    }
+    return heuristicValidate(trimmed);
   }
 
   return heuristicValidate(trimmed);

@@ -145,15 +145,9 @@ export async function updateLinkIntakeBooking(params: {
   | { ok: false; error: string }
 > {
   const name = params.customerName.trim();
-  const phone = params.phone.trim();
+  let phone = params.phone.trim();
   if (name.length < 2) {
     return { ok: false, error: "Enter your name." };
-  }
-  if (phone.length < 8) {
-    return { ok: false, error: "Enter your phone number." };
-  }
-  if (params.issueDescription.trim().length < 4) {
-    return { ok: false, error: "Describe the issue (at least a few words)." };
   }
 
   const calls = await listCallLogs(params.session.userId);
@@ -164,14 +158,26 @@ export async function updateLinkIntakeBooking(params: {
   ) {
     return { ok: false, error: "Booking not found." };
   }
-  if (!phoneMatchesCall(call, phone) || !namesMatch(name, call.customerName ?? "")) {
+
+  if (!phone) {
+    phone = call.callbackPhone?.trim() || call.from?.trim() || "";
+  }
+  if (phone.length < 8) {
+    return { ok: false, error: "Enter your phone number." };
+  }
+  if (!phoneMatchesCall(call, phone)) {
     return {
       ok: false,
-      error: "Name and phone do not match this booking.",
+      error: "This link does not match that phone number. Open the link from your confirmation text.",
     };
   }
+  if (params.issueDescription.trim().length < 4) {
+    return { ok: false, error: "Describe the issue (at least a few words)." };
+  }
 
-  const addressCheck = await validateServiceAddress(params.address.trim());
+  const addressCheck = await validateServiceAddress(params.address.trim(), {
+    fallbackToHeuristic: true,
+  });
   if (!addressCheck.valid) {
     return {
       ok: false,

@@ -55,8 +55,12 @@ export async function loadCustomerBookingPortalView(params: {
     "Pending — we'll confirm your window soon";
 
   const terminal = status === "rejected" || status === "completed";
+  const hasScheduledSlot = Boolean(scheduled?.scheduledStartAt);
   const canReschedule =
-    !terminal && (status === "scheduled" || status === "approved");
+    !terminal &&
+    (status === "scheduled" ||
+      status === "approved" ||
+      (status === "pending_review" && hasScheduledSlot));
   const canCancel = !terminal;
 
   return {
@@ -203,7 +207,9 @@ export async function customerRescheduleBooking(params: {
     arrivalWindow: slot.label,
   });
 
-  await persistRequestStatusForBooking(params.userId, params.bookingId, "scheduled");
+  await persistRequestStatusForBooking(params.userId, params.bookingId, "scheduled", {
+    skipCustomerSms: true,
+  });
 
   const token = await findPortalTokenForBooking(params.userId, params.bookingId);
   const portalUrl = token ? buildBookingPortalUrl(token) : undefined;
