@@ -8,6 +8,13 @@ import type { SlotGridResult } from "@/lib/scheduling/slot-grid";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { LinkIntakeSubmissionPanel } from "@/components/intake/LinkIntakeSubmissionPanel";
 import { LinkIntakeSlotCalendar } from "@/components/intake/LinkIntakeSlotCalendar";
+import { UsAddressField } from "@/components/intake/UsAddressField";
+import {
+  composeUsAddress,
+  emptyUsAddressValue,
+  isUsAddressReady,
+  type UsAddressFieldValue,
+} from "@/lib/address/us-address";
 
 type LinkIntakeFormProps = {
   token: string;
@@ -18,13 +25,13 @@ type FormStep = "form" | "slots";
 
 function formProgress(
   name: string,
-  address: string,
+  addressValue: UsAddressFieldValue,
   issue: string,
   urgency: LinkUrgency,
 ): number {
   let n = 0;
   if (name.trim().length >= 2) n += 1;
-  if (address.trim().length >= 5) n += 1;
+  if (isUsAddressReady(addressValue)) n += 1;
   if (issue.trim().length >= 4) n += 1;
   if (urgency) n += 1;
   return Math.round((n / 4) * 100);
@@ -33,7 +40,7 @@ function formProgress(
 export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   const [step, setStep] = useState<FormStep>("form");
   const [customerName, setCustomerName] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressValue, setAddressValue] = useState<UsAddressFieldValue>(emptyUsAddressValue());
   const [issueDescription, setIssueDescription] = useState("");
   const [urgency, setUrgency] = useState<LinkUrgency>("this_week");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -51,8 +58,8 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   const progress = useMemo(() => {
     if (step === "slots") return 100;
-    return formProgress(customerName, address, issueDescription, urgency);
-  }, [step, customerName, address, issueDescription, urgency]);
+    return formProgress(customerName, addressValue, issueDescription, urgency);
+  }, [step, customerName, addressValue, issueDescription, urgency]);
 
   function onPhotoChange(file: File | null) {
     setPhoto(file);
@@ -61,6 +68,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   }
 
   async function postIntake(slotId?: string) {
+    if (!isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      return;
+    }
     if (!smsConsent) {
       setError(copy.smsConsentRequired);
       return;
@@ -70,7 +81,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
     try {
       const form = new FormData();
       form.set("customerName", customerName);
-      form.set("address", address);
+      form.set("address", composeUsAddress(addressValue));
       form.set("issueDescription", issueDescription);
       form.set("urgency", urgency);
       form.set("smsConsent", "1");
@@ -100,6 +111,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function handleFormNext(e: React.FormEvent) {
     e.preventDefault();
+    if (!isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      return;
+    }
     if (!smsConsent) {
       setError(copy.smsConsentRequired);
       return;
@@ -279,13 +294,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           </Field>
 
           <Field label={copy.addressLabel} required>
-            <input
-              required
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className={inputClass}
-              autoComplete="street-address"
-              placeholder={copy.addressPlaceholder}
+            <UsAddressField
+              value={addressValue}
+              onChange={setAddressValue}
+              inputClassName={inputClass}
             />
           </Field>
 

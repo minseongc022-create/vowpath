@@ -167,7 +167,9 @@ export async function submitLinkIntakeForm(params: {
     draft.arrivalWindow = selectedSlot.label;
   }
 
-  const addressCheck = await validateServiceAddress(draft.address);
+  const addressCheck = await validateServiceAddress(draft.address, {
+    fallbackToHeuristic: true,
+  });
   if (!addressCheck.valid) {
     return {
       ok: false,

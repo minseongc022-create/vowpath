@@ -1099,3 +1099,28 @@
     @apply text-base font-medium text-brand-800 hover:text-brand-900;
   }
 }
+
+/* Google Places dropdown — above sticky intake headers on mobile */
+.pac-container {
+  z-index: 10050 !important;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(226 232 240 / 0.9);
+  box-shadow: 0 10px 40px rgb(15 23 42 / 0.12);
+  margin-top: 4px;
+  font-family: inherit;
+}
+
+.pac-item {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.pac-item-query {
+  font-size: 0.9375rem;
+}
+
+.pac-icon {
+  display: none;
+}

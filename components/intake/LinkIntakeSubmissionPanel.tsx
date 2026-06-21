@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
+import { UsAddressField } from "@/components/intake/UsAddressField";
+import {
+  composeUsAddress,
+  isUsAddressReady,
+  usAddressFromStored,
+  type UsAddressFieldValue,
+} from "@/lib/address/us-address";
 
 type LinkIntakeSubmissionPanelProps = {
   token: string;
@@ -46,7 +53,9 @@ export function LinkIntakeSubmissionPanel({
     defaultCustomerName ?? initialBooking.customerName,
   );
   const [phone, setPhone] = useState(defaultPhone ?? initialBooking.phone);
-  const [address, setAddress] = useState(initialBooking.address);
+  const [addressValue, setAddressValue] = useState<UsAddressFieldValue>(() =>
+    usAddressFromStored(initialBooking.address),
+  );
   const [issueDescription, setIssueDescription] = useState(initialBooking.issueType);
   const [urgency, setUrgency] = useState<LinkUrgency>(initialBooking.urgency);
   const [loading, setLoading] = useState(false);
@@ -58,7 +67,7 @@ export function LinkIntakeSubmissionPanel({
     const f = formFromBooking(b);
     setCustomerName(f.customerName);
     setPhone(f.phone);
-    setAddress(f.address);
+    setAddressValue(usAddressFromStored(f.address));
     setIssueDescription(f.issueDescription);
     setUrgency(f.urgency);
   }, []);
@@ -72,6 +81,11 @@ export function LinkIntakeSubmissionPanel({
     e.preventDefault();
     setError(null);
     setLoading(true);
+    if (!isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/intake-link/${token}/update`, {
         method: "POST",
@@ -81,7 +95,7 @@ export function LinkIntakeSubmissionPanel({
           callId: booking.callId,
           customerName,
           phone,
-          address,
+          address: composeUsAddress(addressValue),
           issueDescription,
           urgency,
         }),
@@ -190,12 +204,10 @@ export function LinkIntakeSubmissionPanel({
                 />
               </Field>
               <Field label={copy.addressLabel} required>
-                <input
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className={inputClass}
-                  autoComplete="street-address"
+                <UsAddressField
+                  value={addressValue}
+                  onChange={setAddressValue}
+                  inputClassName={inputClass}
                 />
               </Field>
               <Field label={copy.issueLabel} required>

@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import type { CorrectionBookingView } from "@/lib/customer-verification/correction-types";
+import { UsAddressField } from "@/components/intake/UsAddressField";
+import {
+  composeUsAddress,
+  isUsAddressReady,
+  usAddressFromStored,
+  type UsAddressFieldValue,
+} from "@/lib/address/us-address";
 
 type CustomerCorrectionPanelProps = {
   token: string;
@@ -23,14 +30,16 @@ export function CustomerCorrectionPanel({
   const [step, setStep] = useState<Step>("view");
   const [booking, setBooking] = useState(initialBooking);
   const [customerName, setCustomerName] = useState(initialBooking.customerName);
-  const [address, setAddress] = useState(initialBooking.address);
+  const [addressValue, setAddressValue] = useState<UsAddressFieldValue>(() =>
+    usAddressFromStored(initialBooking.address),
+  );
   const [issueDescription, setIssueDescription] = useState(initialBooking.issueType);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const syncForm = useCallback((b: CorrectionBookingView) => {
     setCustomerName(b.customerName);
-    setAddress(b.address);
+    setAddressValue(usAddressFromStored(b.address));
     setIssueDescription(b.issueType);
   }, []);
 
@@ -43,13 +52,18 @@ export function CustomerCorrectionPanel({
     e.preventDefault();
     setError(null);
     setLoading(true);
+    if (!isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/correction/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName,
-          address,
+          address: composeUsAddress(addressValue),
           issueDescription,
         }),
       });
@@ -122,12 +136,10 @@ export function CustomerCorrectionPanel({
                 />
               </Field>
               <Field label={copy.addressLabel} required>
-                <input
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className={inputClass}
-                  autoComplete="street-address"
+                <UsAddressField
+                  value={addressValue}
+                  onChange={setAddressValue}
+                  inputClassName={inputClass}
                 />
               </Field>
               <Field label={copy.issueLabel} required>

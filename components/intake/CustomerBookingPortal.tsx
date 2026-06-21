@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import type { CustomerBookingPortalView } from "@/lib/customer-booking-portal";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import { LinkIntakeSlotCalendar } from "@/components/intake/LinkIntakeSlotCalendar";
+import { UsAddressField } from "@/components/intake/UsAddressField";
+import {
+  composeUsAddress,
+  isUsAddressReady,
+  usAddressFromStored,
+  type UsAddressFieldValue,
+} from "@/lib/address/us-address";
 import type { SlotGridDay, SlotGridItem } from "@/lib/scheduling/slot-grid";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
 
@@ -38,7 +45,9 @@ export function CustomerBookingPortal({
   const [notice, setNotice] = useState<string | null>(null);
 
   const [customerName, setCustomerName] = useState(booking.customerName);
-  const [address, setAddress] = useState(booking.address);
+  const [addressValue, setAddressValue] = useState<UsAddressFieldValue>(() =>
+    usAddressFromStored(booking.address),
+  );
   const [issueDescription, setIssueDescription] = useState(booking.issueType);
   const [urgency, setUrgency] = useState<LinkUrgency>(booking.urgency);
 
@@ -79,6 +88,11 @@ export function CustomerBookingPortal({
     e.preventDefault();
     setError(null);
     setLoading(true);
+    if (!isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/intake-link/${token}/update`, {
         method: "POST",
@@ -88,7 +102,7 @@ export function CustomerBookingPortal({
           callId: booking.callId,
           customerName,
           phone: booking.phone,
-          address,
+          address: composeUsAddress(addressValue),
           issueDescription,
           urgency,
         }),
@@ -215,7 +229,11 @@ export function CustomerBookingPortal({
                 <input required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className={inputClass} />
               </Field>
               <Field label={copy.addressLabel} required>
-                <input required value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+                <UsAddressField
+                  value={addressValue}
+                  onChange={setAddressValue}
+                  inputClassName={inputClass}
+                />
               </Field>
               <Field label={copy.issueLabel} required>
                 <textarea required rows={3} value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} className={`${inputClass} resize-none`} />
