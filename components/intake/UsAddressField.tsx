@@ -19,6 +19,17 @@ type UsAddressFieldProps = {
   disabled?: boolean;
 };
 
+type AddressMode = "search" | "manual";
+
+function manualFieldsComplete(manual: { street: string; city: string; state: string; zip: string }) {
+  return (
+    manual.street.trim().length > 0 &&
+    manual.city.trim().length > 0 &&
+    manual.state.trim().length >= 2 &&
+    manual.zip.trim().length >= 5
+  );
+}
+
 export function UsAddressField({
   value,
   onChange,
@@ -30,12 +41,14 @@ export function UsAddressField({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<GooglePlacesAutocomplete | null>(null);
   const listenerRef = useRef<{ remove(): void } | null>(null);
+  const initAttemptRef = useRef(0);
 
   const placesAvailable = googlePlacesEnabled();
+  const [mode, setMode] = useState<AddressMode>(placesAvailable ? "search" : "manual");
   const [mapsStatus, setMapsStatus] = useState<"idle" | "loading" | "ready" | "error">(
     placesAvailable ? "idle" : "error",
   );
-  const [manualMode, setManualMode] = useState(!placesAvailable);
+  const [manualError, setManualError] = useState<string | null>(null);
   const [manual, setManual] = useState({
     street: "",
     city: "",
@@ -44,15 +57,20 @@ export function UsAddressField({
   });
 
   useEffect(() => {
-    if (!placesAvailable || manualMode || disabled) return;
+    if (!placesAvailable || mode !== "search" || disabled) return;
 
     let cancelled = false;
+    initAttemptRef.current += 1;
+    const attempt = initAttemptRef.current;
     setMapsStatus("loading");
 
     (async () => {
       try {
         await ensureGoogleMapsPlacesLoaded();
-        if (cancelled || !inputRef.current) return;
+        if (cancelled || attempt !== initAttemptRef.current || !inputRef.current) return;
+
+        listenerRef.current?.remove();
+        autocompleteRef.current = null;
 
         const ac = new window.google!.maps!.places!.Autocomplete(inputRef.current, {
           types: ["address"],
@@ -71,13 +89,15 @@ export function UsAddressField({
             placeId: place.place_id,
             verified: true,
           });
+          setManualError(null);
         });
 
-        setMapsStatus("ready");
+        if (!cancelled && attempt === initAttemptRef.current) {
+          setMapsStatus("ready");
+        }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && attempt === initAttemptRef.current) {
           setMapsStatus("error");
-          setManualMode(true);
         }
       }
     })();
@@ -88,8 +108,8 @@ export function UsAddressField({
       listenerRef.current = null;
       autocompleteRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per mode
-  }, [placesAvailable, manualMode, disabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init when switching back to search
+  }, [placesAvailable, mode, disabled]);
 
   useEffect(() => {
     if (!inputRef.current) return;
@@ -99,6 +119,11 @@ export function UsAddressField({
   }, [value.formatted, value.verified]);
 
   function handleManualApply() {
+    if (!manualFieldsComplete(manual)) {
+      setManualError(copy.addressManualIncomplete);
+      return;
+    }
+
     const next = composeManualUsAddress({
       street: manual.street,
       city: manual.city,
@@ -106,91 +131,208 @@ export function UsAddressField({
       zip: manual.zip,
       unit: value.unit,
     });
+
+    if (!next.verified) {
+      setManualError(copy.addressManualInvalid);
+      return;
+    }
+
+    setManualError(null);
     onChange(next);
+  }
+
+  function switchToSearch() {
+    setManualError(null);
+    setMode("search");
+    setMapsStatus("idle");
+  }
+
+  function switchToManual() {
+    setManualError(null);
+    setMode("manual");
+  }
+
+  function retrySearch() {
+    setManualError(null);
+    setMapsStatus("idle");
+    setMode("search");
   }
 
   const composed = composeUsAddress(value);
   const showConfirmed = value.verified && composed.length > 0;
+  const manualReady = manualFieldsComplete(manual);
+  const hint =
+    mode === "search" && placesAvailable ? copy.addressHintSearch : copy.addressHintManual;
 
   return (
     <div className="space-y-3">
-      <p className="text-xs leading-relaxed text-slate-500">{copy.addressHint}</p>
-
-      {!manualMode ? (
-        <div className="relative">
-          <label htmlFor={inputId} className="sr-only">
-            {copy.addressLabel}
-          </label>
-          <span
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            aria-hidden
+      {placesAvailable ? (
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1"
+          role="tablist"
+          aria-label={copy.addressLabel}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "search"}
+            onClick={switchToSearch}
+            disabled={disabled}
+            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+              mode === "search"
+                ? "bg-white text-brand-900 shadow-sm"
+                : "text-slate-600 hover:text-brand-900"
+            }`}
           >
-            <PinIcon />
-          </span>
-          <input
-            id={inputId}
-            ref={inputRef}
-            type="text"
-            defaultValue={value.formatted}
-            disabled={disabled || mapsStatus === "loading"}
-            placeholder={copy.addressPlaceholder}
-            autoComplete="off"
-            className={`${inputClassName} pl-11`}
-            onChange={() => {
-              onChange({
-                formatted: inputRef.current?.value ?? "",
-                unit: value.unit,
-                verified: false,
-              });
-            }}
-          />
+            {copy.addressTabSearch}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "manual"}
+            onClick={switchToManual}
+            disabled={disabled}
+            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+              mode === "manual"
+                ? "bg-white text-brand-900 shadow-sm"
+                : "text-slate-600 hover:text-brand-900"
+            }`}
+          >
+            {copy.addressTabManual}
+          </button>
+        </div>
+      ) : null}
+
+      <p className="text-sm leading-relaxed text-slate-600">{hint}</p>
+
+      {mode === "search" && placesAvailable ? (
+        <div className="space-y-2">
+          {mapsStatus === "error" ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+              <p>{copy.addressSearchError}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={retrySearch}
+                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-900 ring-1 ring-brand-200"
+                >
+                  {copy.addressSearchRetry}
+                </button>
+                <button
+                  type="button"
+                  onClick={switchToManual}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-brand-800 underline-offset-2 hover:underline"
+                >
+                  {copy.addressTabManual}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="relative">
+            <label htmlFor={inputId} className="sr-only">
+              {copy.addressLabel}
+            </label>
+            <span
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            >
+              <PinIcon />
+            </span>
+            <input
+              id={inputId}
+              ref={inputRef}
+              type="text"
+              defaultValue={value.formatted}
+              disabled={disabled || mapsStatus === "loading"}
+              placeholder={copy.addressPlaceholder}
+              autoComplete="street-address"
+              className={`${inputClassName} pl-11`}
+              onChange={() => {
+                onChange({
+                  formatted: inputRef.current?.value ?? "",
+                  unit: value.unit,
+                  verified: false,
+                });
+                setManualError(null);
+              }}
+            />
+          </div>
+
           {mapsStatus === "loading" ? (
-            <p className="mt-1.5 text-xs text-slate-400">{copy.addressLoading}</p>
+            <p className="text-xs text-slate-500">{copy.addressLoading}</p>
+          ) : mapsStatus === "ready" ? (
+            <p className="text-xs text-slate-500">{copy.addressSearchReady}</p>
           ) : null}
         </div>
       ) : (
         <div className="space-y-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-slate-600">{copy.addressManualTitle}</p>
           <input
             value={manual.street}
-            onChange={(e) => setManual((m) => ({ ...m, street: e.target.value }))}
+            onChange={(e) => {
+              setManual((m) => ({ ...m, street: e.target.value }));
+              setManualError(null);
+            }}
             placeholder={copy.addressManualStreet}
             className={inputClassName}
             autoComplete="address-line1"
+            aria-label={copy.addressManualStreet}
           />
           <div className="grid grid-cols-2 gap-2">
             <input
               value={manual.city}
-              onChange={(e) => setManual((m) => ({ ...m, city: e.target.value }))}
+              onChange={(e) => {
+                setManual((m) => ({ ...m, city: e.target.value }));
+                setManualError(null);
+              }}
               placeholder={copy.addressManualCity}
               className={inputClassName}
               autoComplete="address-level2"
+              aria-label={copy.addressManualCity}
             />
             <input
               value={manual.state}
-              onChange={(e) =>
-                setManual((m) => ({ ...m, state: e.target.value.toUpperCase().slice(0, 2) }))
-              }
+              onChange={(e) => {
+                setManual((m) => ({
+                  ...m,
+                  state: e.target.value.toUpperCase().slice(0, 2),
+                }));
+                setManualError(null);
+              }}
               placeholder={copy.addressManualState}
               className={inputClassName}
               autoComplete="address-level1"
               maxLength={2}
+              aria-label={copy.addressManualState}
             />
           </div>
           <input
             value={manual.zip}
-            onChange={(e) =>
-              setManual((m) => ({ ...m, zip: e.target.value.replace(/[^\d-]/g, "").slice(0, 10) }))
-            }
+            onChange={(e) => {
+              setManual((m) => ({
+                ...m,
+                zip: e.target.value.replace(/[^\d-]/g, "").slice(0, 10),
+              }));
+              setManualError(null);
+            }}
             placeholder={copy.addressManualZip}
             className={inputClassName}
             autoComplete="postal-code"
             inputMode="numeric"
+            aria-label={copy.addressManualZip}
           />
+          {manualError ? (
+            <p className="text-sm text-rose-700" role="alert">
+              {manualError}
+            </p>
+          ) : !manualReady ? (
+            <p className="text-xs text-slate-500">{copy.addressManualIncomplete}</p>
+          ) : null}
           <button
             type="button"
             onClick={handleManualApply}
-            className="w-full rounded-xl border border-brand-200 bg-brand-50 py-2.5 text-sm font-semibold text-brand-900"
+            disabled={disabled || !manualReady}
+            className="w-full rounded-xl bg-brand-700 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
           >
             {copy.addressManualApply}
           </button>
@@ -228,29 +370,10 @@ export function UsAddressField({
             <span className="mt-0.5 block text-emerald-800/90">{composed}</span>
           </span>
         </div>
-      ) : null}
-
-      {placesAvailable && !manualMode ? (
-        <button
-          type="button"
-          onClick={() => setManualMode(true)}
-          className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-brand-800 hover:underline"
-        >
-          {copy.addressManualSwitch}
-        </button>
-      ) : null}
-
-      {manualMode && placesAvailable ? (
-        <button
-          type="button"
-          onClick={() => {
-            setManualMode(false);
-            setMapsStatus("idle");
-          }}
-          className="text-xs font-medium text-brand-800 underline-offset-2 hover:underline"
-        >
-          {copy.addressSearchSwitch}
-        </button>
+      ) : mode === "search" && placesAvailable && mapsStatus === "ready" && value.formatted && !value.verified ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+          {copy.addressPickRequired}
+        </p>
       ) : null}
     </div>
   );
