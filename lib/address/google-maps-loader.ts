@@ -50,7 +50,8 @@ export async function ensureGoogleMapsPlacesLoaded(): Promise<void> {
   if (!loadPromise) {
     loadPromise = new Promise<void>((resolve, reject) => {
       const callbackName = "__vowpathGoogleMapsReady";
-      (window as Window & Record<string, () => void>)[callbackName] = () => {
+      const win = window as unknown as Window & Record<string, (() => void) | undefined>;
+      win[callbackName] = () => {
         void waitForPlacesLibrary()
           .then(resolve)
           .catch(reject);
