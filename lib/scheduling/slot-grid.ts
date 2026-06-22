@@ -81,7 +81,7 @@ export function computeSlotGrid(params: {
   const horizon = params.horizonDays ?? 14;
   const intervalMs = Math.max(15, settings.defaultDurationMinutes + settings.slotBufferMinutes) * 60_000;
   const durationMs = intervalMs;
-  const bufferMs = 0;
+  const bufferMs = Math.max(0, settings.slotBufferMinutes) * 60_000;
   const capacity = Math.max(1, Math.round(settings.maxConcurrentVisits));
   const stepMs = intervalMs;
   const startDayOffset = priority === "P1" ? 0 : 1;
@@ -148,7 +148,7 @@ export function computeSlotGrid(params: {
   return {
     days,
     durationMinutes: Math.round(intervalMs / 60_000),
-    bufferMinutes: 0,
+    bufferMinutes: Math.max(0, settings.slotBufferMinutes),
     maxConcurrentVisits: capacity,
   };
 }

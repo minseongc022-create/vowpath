@@ -19,7 +19,7 @@ import { resolveBookingCustomerPhone } from "./booking-contact";
 import type { CallRecord } from "./operations-analytics";
 import { notifyCustomerStatusChange } from "./customer-sms";
 import { recordRequestStatusChange } from "./record-tenant-events";
-import { getScheduledBooking } from "./schedule-bookings-db";
+import { getScheduledBooking, deleteScheduledBooking } from "./schedule-bookings-db";
 import { recordFlexUsage } from "./billing";
 import { completeScheduledBookingAfterOwnerApprove } from "./scheduling/apply-schedule";
 import {
@@ -241,11 +241,24 @@ export async function persistRequestStatusForBooking(
 
   if (status === "completed") {
     try {
+      await deleteScheduledBooking(userId, bookingId);
+    } catch (e) {
+      console.warn("[booking-status-sync] clear schedule on complete", e);
+    }
+    try {
       const details = customerDetailsFromLogs(bookingId, callLogs, jobs);
       const { maybeOfferMaintenancePlan } = await import("./agreements/offer-flow");
       await maybeOfferMaintenancePlan(userId, bookingId, details);
     } catch (e) {
       console.warn("[booking-status-sync] agreement offer", e);
+    }
+  }
+
+  if (status === "rejected") {
+    try {
+      await deleteScheduledBooking(userId, bookingId);
+    } catch (e) {
+      console.warn("[booking-status-sync] clear schedule on reject", e);
     }
   }
 

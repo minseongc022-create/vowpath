@@ -72,6 +72,8 @@ export function LinkIntakeSlotCalendar({
             {selectedDay.slots.map((slot) => {
               const selectable = slot.status === "available";
               const selected = selectedSlotId === slot.id;
+              const isPast = slot.status === "past";
+              const isBlocked = slot.status === "blocked";
               return (
                 <button
                   key={slot.id}
@@ -79,19 +81,25 @@ export function LinkIntakeSlotCalendar({
                   disabled={!selectable}
                   onClick={() => selectable && onSelect(slot)}
                   className={`rounded-xl border px-3 py-3 text-left text-sm font-medium transition ${
-                    !selectable
-                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300 line-through decoration-slate-300/80"
-                      : selected
-                        ? "border-brand-700/40 bg-brand-700/5 text-brand-700 ring-2 ring-brand-500/15"
-                        : "border-slate-200 bg-white text-slate-800 hover:border-brand-700/30"
+                    isPast
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50/80 text-slate-400"
+                      : isBlocked
+                        ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300 line-through decoration-slate-300/80"
+                        : selected
+                          ? "border-brand-700/40 bg-brand-700/5 text-brand-700 ring-2 ring-brand-500/15"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-brand-700/30"
                   }`}
                   aria-pressed={selected}
                   aria-disabled={!selectable}
                 >
                   {slot.label}
-                  {!selectable && slot.status === "blocked" ? (
+                  {isBlocked ? (
                     <span className="mt-0.5 block text-[10px] font-normal text-slate-300">
                       {copy.slotUnavailable}
+                    </span>
+                  ) : isPast ? (
+                    <span className="mt-0.5 block text-[10px] font-normal text-slate-400">
+                      {copy.slotPast}
                     </span>
                   ) : null}
                 </button>

@@ -68,8 +68,16 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   }
 
   async function postIntake(slotId?: string) {
+    if (!customerName.trim()) {
+      setError(copy.nameLabel + " is required.");
+      return;
+    }
     if (!isUsAddressReady(addressValue)) {
       setError(copy.addressPickRequired);
+      return;
+    }
+    if (issueDescription.trim().length < 4) {
+      setError(copy.issueLabel + " — please add a few more details.");
       return;
     }
     if (!smsConsent) {
@@ -189,7 +197,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-36 pt-5">
+        <div className="flex-1 overflow-y-auto px-4 py-5">
           <div className="mx-auto max-w-md space-y-4">
             <p className="text-[15px] leading-relaxed text-slate-600">
               {copy.slotStepDescription}
@@ -202,7 +210,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
                 durationMinutes={slotGrid.durationMinutes}
                 bufferMinutes={slotGrid.bufferMinutes}
                 maxConcurrentVisits={slotGrid.maxConcurrentVisits}
-                onSelect={(slot) => setSelectedSlotId(slot.id)}
+                onSelect={(slot) => {
+                  setSelectedSlotId(slot.id);
+                  setError(null);
+                }}
               />
             ) : (
               <p className="text-sm text-slate-500">{copy.slotStepEmpty}</p>
@@ -211,17 +222,19 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
             {!slotGrid?.days.some((d) => d.slots.some((s) => s.status === "available")) ? (
               <p className="text-sm text-amber-800">{copy.slotStepEmpty}</p>
             ) : null}
-
-            {error ? (
-              <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-                {error}
-              </p>
-            ) : null}
           </div>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+        <div className="shrink-0 space-y-2 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
           <div className="mx-auto max-w-md space-y-2">
+            {error ? (
+              <p
+                role="alert"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+              >
+                {error}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => void handleSlotConfirm()}
@@ -240,7 +253,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
             </button>
             <button
               type="button"
-              onClick={() => setStep("form")}
+              onClick={() => {
+                setError(null);
+                setStep("form");
+              }}
               disabled={loading}
               className="w-full py-2 text-sm text-slate-500"
             >
@@ -278,7 +294,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-36 pt-5">
+      <div className="flex-1 overflow-y-auto px-4 py-5">
         <div className="mx-auto max-w-md space-y-6">
           <p className="text-[15px] leading-relaxed text-slate-600">{copy.formDescription}</p>
 
@@ -394,17 +410,19 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
             />
             <span className="text-sm leading-relaxed text-slate-700">{copy.smsConsentLabel}</span>
           </label>
-
-          {error ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {error}
-            </p>
-          ) : null}
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-        <div className="mx-auto max-w-md">
+      <div className="shrink-0 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+        <div className="mx-auto max-w-md space-y-2">
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+            >
+              {error}
+            </p>
+          ) : null}
           <button
             type="submit"
             disabled={loading || slotsLoading}

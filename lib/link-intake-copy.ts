@@ -86,9 +86,10 @@ export const linkIntakePageCopy = {
     return `${base}${team}`.trim();
   },
   slotDayLabel: (weekday: string) => `${weekday} — open windows`,
-  slotUnavailable: "Booked",
+  slotUnavailable: "Full",
+  slotPast: "Too soon",
   slotCalendarLegend:
-    "Gray windows are full or too soon to book. Your info stays private — we never show other customers' details.",
+    "Strikethrough windows are full. Lighter gray means that time already passed or is too soon. Your info stays private — we never show other customers' details.",
   slotStepBack: "Go back",
   slotStepConfirm: "Lock in this window!",
   slotStepLoading: "Loading open windows…",

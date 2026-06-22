@@ -66,23 +66,29 @@ export function CustomerBookingPortal({
   useEffect(() => {
     if (mode !== "reschedule") return;
     let cancelled = false;
+    setSelectedSlotId(null);
     (async () => {
       const res = await fetch(
         `/api/intake-link/${token}/slots?urgency=${booking.urgency}&excludeBookingId=${encodeURIComponent(booking.bookingId)}`,
       );
       if (!res.ok || cancelled) return;
       const data = await res.json();
-      setGridDays(data.grid?.days ?? []);
+      const days = data.grid?.days ?? [];
+      setGridDays(days);
       setSlotMeta({
         duration: data.durationMinutes ?? 120,
         buffer: data.bufferMinutes ?? 0,
         capacity: data.maxConcurrentVisits ?? 1,
       });
+      const firstOpen = days
+        .flatMap((d: SlotGridDay) => d.slots)
+        .find((s: SlotGridItem) => s.status === "available");
+      if (!cancelled) setSelectedSlotId(firstOpen?.id ?? null);
     })();
     return () => {
       cancelled = true;
     };
-  }, [mode, token, booking.urgency]);
+  }, [mode, token, booking.urgency, booking.bookingId]);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -112,7 +118,6 @@ export function CustomerBookingPortal({
         setError(String(data.error ?? "Could not save changes."));
         return;
       }
-      setBooking({ ...booking, ...data.booking, status: booking.status, statusLabel: booking.statusLabel, arrivalWindow: booking.arrivalWindow, portalToken: token, canCancel: booking.canCancel, canReschedule: booking.canReschedule });
       setNotice(copy.portalUpdateSuccessBody);
       setMode("view");
       await refresh();
@@ -192,7 +197,7 @@ export function CustomerBookingPortal({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 pb-36">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-md space-y-5">
           {notice ? (
             <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
@@ -238,10 +243,11 @@ export function CustomerBookingPortal({
               <Field label={copy.issueLabel} required>
                 <textarea required rows={3} value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} className={`${inputClass} resize-none`} />
               </Field>
+              {error ? <ErrorBox message={error} /> : null}
               <button type="submit" disabled={loading} className="w-full rounded-2xl bg-brand-700 py-4 font-bold text-white disabled:opacity-50">
                 {loading ? copy.portalSaving : copy.portalSave}
               </button>
-              <button type="button" onClick={() => setMode("view")} className="w-full text-sm text-slate-500">
+              <button type="button" onClick={() => { setError(null); setMode("view"); }} className="w-full text-sm text-slate-500">
                 {copy.portalBackToView}
               </button>
             </form>
@@ -253,17 +259,14 @@ export function CustomerBookingPortal({
               <LinkIntakeSlotCalendar
                 days={gridDays}
                 selectedSlotId={selectedSlotId}
-                onSelect={(s: SlotGridItem) => setSelectedSlotId(s.id)}
+                onSelect={(s: SlotGridItem) => {
+                  setSelectedSlotId(s.id);
+                  setError(null);
+                }}
                 durationMinutes={slotMeta.duration}
                 bufferMinutes={slotMeta.buffer}
                 maxConcurrentVisits={slotMeta.capacity}
               />
-              <button type="button" disabled={loading || !selectedSlotId} onClick={handleReschedule} className="w-full rounded-2xl bg-brand-700 py-4 font-bold text-white disabled:opacity-50">
-                {loading ? copy.portalSaving : copy.bookingConfirmTime}
-              </button>
-              <button type="button" onClick={() => setMode("view")} className="w-full text-sm text-slate-500">
-                {copy.portalBackToView}
-              </button>
             </div>
           ) : null}
 
@@ -280,14 +283,35 @@ export function CustomerBookingPortal({
             </div>
           ) : null}
 
-          {error ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p>
-          ) : null}
+          {mode !== "reschedule" && error ? <ErrorBox message={error} /> : null}
         </div>
       </div>
 
+      {mode === "reschedule" ? (
+        <div className="shrink-0 space-y-2 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+          <div className="mx-auto max-w-md space-y-2">
+            {error ? <ErrorBox message={error} /> : null}
+            <button
+              type="button"
+              disabled={loading || !selectedSlotId}
+              onClick={() => void handleReschedule()}
+              className="w-full rounded-2xl bg-brand-700 py-4 font-bold text-white disabled:opacity-50"
+            >
+              {loading ? copy.portalSaving : copy.bookingConfirmTime}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setError(null); setMode("view"); }}
+              className="w-full text-sm text-slate-500"
+            >
+              {copy.portalBackToView}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {mode === "view" && booking.status !== "rejected" ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+        <div className="shrink-0 border-t border-slate-200/90 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
           <div className="mx-auto max-w-md space-y-2">
             {booking.canReschedule ? (
               <button type="button" onClick={() => { setError(null); setMode("reschedule"); }} className="w-full rounded-2xl bg-brand-700 py-3.5 font-bold text-white">
@@ -318,6 +342,17 @@ function Field({ label, required, children }: { label: string; required?: boolea
       </label>
       {children}
     </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <p
+      role="alert"
+      className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+    >
+      {message}
+    </p>
   );
 }
 
