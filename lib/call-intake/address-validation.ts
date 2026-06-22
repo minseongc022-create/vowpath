@@ -125,4 +125,4 @@ export async function validateServiceAddress(
 }
 
 export const ADDRESS_VERIFY_FAIL_PROMPT =
-  "I couldn't verify that address. Could you repeat your full street address, city, and state?";
+  "I want to make sure we send the tech to the right place — could you repeat your full street address, city, and state? Take your time.";

@@ -17,26 +17,26 @@ import { parseUsAddress } from "../parse-contact";
 export function fieldVerifyPrompt(field: MandatoryVerifyField, value: string): string {
   switch (field) {
     case "customerName":
-      return `I heard the name ${value}. Is that correct? Press 1 for yes, 2 for no.`;
+      return `I heard ${value} — did I get that right? Press 1 for yes, or 2 if you'd like to say it again.`;
     case "address":
-      return `I heard the address ${value}. Is that correct? Press 1 for yes, 2 for no.`;
+      return `I have the address as ${value}. Does that sound right to you? Press 1 for yes, 2 if I should try again.`;
     case "serviceLocation":
-      return `Service will be performed at ${value}. Is that correct? Press 1 for yes, 2 for no.`;
+      return `Service would be at ${value}. Is that the right spot? Press 1 for yes, 2 for no.`;
     case "issueType":
-      return `I heard the issue is ${value}. Is that correct? Press 1 for yes, 2 for no.`;
+      return `Sounds like the issue is ${value}. Did I hear that correctly? Press 1 for yes, 2 if I missed something.`;
   }
 }
 
 export function fieldRepeatPrompt(field: MandatoryVerifyField): string {
   switch (field) {
     case "customerName":
-      return "Please say your first and last name clearly.";
+      return "No problem at all — could you say your first and last name again? Nice and clear — I'm listening.";
     case "address":
       return ADDRESS_VERIFY_FAIL_PROMPT;
     case "serviceLocation":
-      return "Please say the full address where service is needed.";
+      return "Sure thing — what's the full address where you need us? Street, city, and state, whenever you're ready.";
     case "issueType":
-      return "Please describe what is wrong with your H V A C system.";
+      return "Got it — tell me again what's going on with your heating or cooling. Take your time — no rush.";
   }
 }
 
@@ -46,12 +46,12 @@ export function finalConfirmPrompt(state: CallIntakeState): string {
     ? ` Visit window: ${state.selectedSlot.label}.`
     : "";
   return (
-    `Please confirm your request. ` +
+    `Perfect — let me read everything back to make sure I've got you completely covered. ` +
     `Name: ${state.draft.customerName}. ` +
     `Address: ${state.draft.address}. ` +
     `Issue: ${state.draft.issueType}.${windowPart} ` +
-    `We will call you back at ${phone}, the number you are calling from. ` +
-    `Press 1 to submit your request, or 2 to start over.`
+    `We'll reach you at ${phone}, the number you're calling from. ` +
+    `Press 1 if all of that looks good, or 2 to start over — totally fine either way.`
   );
 }
 

@@ -94,7 +94,7 @@ export function smsStaffEtaInvalidReply(): string {
 /** Link intake — press 1 on call */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return smsBodyWithUrl(`${shop}: Hey! 👋 Book your visit here — takes 60 sec!`, url);
+  return smsBodyWithUrl(`${shop}: Hey! 👋 So glad you called — book your visit here (takes ~60 sec):`, url);
 }
 
 /** After booking / request received */

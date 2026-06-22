@@ -6,9 +6,9 @@ import type { CallIntakeState } from "./types";
 export function slotPickPrompt(slots: SlotOffer[]): string {
   const lines = slots.map((s, i) => `Press ${i + 1} for ${s.label}.`);
   return (
-    "We have these visit windows available. " +
+    "Great news — we have some open visit windows! " +
     lines.join(" ") +
-    " Press the number for your preferred time."
+    " Just press the number for whichever time works best for you."
   );
 }
 

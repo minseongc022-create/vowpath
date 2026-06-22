@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
@@ -22,6 +22,59 @@ type LinkIntakeFormProps = {
 };
 
 type FormStep = "form" | "slots";
+
+type IntakeDraft = {
+  customerName: string;
+  addressValue: UsAddressFieldValue;
+  issueDescription: string;
+  urgency: LinkUrgency;
+  smsConsent: boolean;
+};
+
+function draftStorageKey(token: string) {
+  return `vowpath-intake-draft:${token}`;
+}
+
+function readDraft(token: string): IntakeDraft | null {
+  try {
+    const raw = sessionStorage.getItem(draftStorageKey(token));
+    if (!raw) return null;
+    return JSON.parse(raw) as IntakeDraft;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(token: string, draft: IntakeDraft) {
+  try {
+    sessionStorage.setItem(draftStorageKey(token), JSON.stringify(draft));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function clearDraft(token: string) {
+  try {
+    sessionStorage.removeItem(draftStorageKey(token));
+  } catch {
+    /* ignore */
+  }
+}
+
+function validateIntakeFields(
+  customerName: string,
+  addressValue: UsAddressFieldValue,
+  issueDescription: string,
+  smsConsent: boolean,
+): string | null {
+  if (!customerName.trim()) return "What's your name? We'd love to know who we're helping today.";
+  if (!isUsAddressReady(addressValue)) return copy.addressPickRequired;
+  if (issueDescription.trim().length < 4) {
+    return "Tell us a little about what's going on — even one sentence helps us send the right tech!";
+  }
+  if (!smsConsent) return copy.smsConsentRequired;
+  return null;
+}
 
 function formProgress(
   name: string,
@@ -56,6 +109,26 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   const [smsConsent, setSmsConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const saved = readDraft(token);
+    if (!saved) return;
+    setCustomerName(saved.customerName);
+    setAddressValue(saved.addressValue);
+    setIssueDescription(saved.issueDescription);
+    setUrgency(saved.urgency);
+    setSmsConsent(saved.smsConsent);
+  }, [token]);
+
+  useEffect(() => {
+    writeDraft(token, {
+      customerName,
+      addressValue,
+      issueDescription,
+      urgency,
+      smsConsent,
+    });
+  }, [token, customerName, addressValue, issueDescription, urgency, smsConsent]);
+
   const progress = useMemo(() => {
     if (step === "slots") return 100;
     return formProgress(customerName, addressValue, issueDescription, urgency);
@@ -68,20 +141,18 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   }
 
   async function postIntake(slotId?: string) {
-    if (!customerName.trim()) {
-      setError(copy.nameLabel + " is required.");
-      return;
-    }
-    if (!isUsAddressReady(addressValue)) {
-      setError(copy.addressPickRequired);
-      return;
-    }
-    if (issueDescription.trim().length < 4) {
-      setError(copy.issueLabel + " — please add a few more details.");
-      return;
-    }
-    if (!smsConsent) {
-      setError(copy.smsConsentRequired);
+    const validationError = validateIntakeFields(
+      customerName,
+      addressValue,
+      issueDescription,
+      smsConsent,
+    );
+    if (validationError) {
+      setError(
+        step === "slots"
+          ? `${validationError} Tap "Go back" below to update your info, then try again.`
+          : validationError,
+      );
       return;
     }
     setError(null);
@@ -109,6 +180,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
         return;
       }
       setSubmittedBooking(data.booking);
+      clearDraft(token);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setError("Network error. Check your connection and try again.");
@@ -119,14 +191,23 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
 
   async function handleFormNext(e: React.FormEvent) {
     e.preventDefault();
-    if (!isUsAddressReady(addressValue)) {
-      setError(copy.addressPickRequired);
+    const validationError = validateIntakeFields(
+      customerName,
+      addressValue,
+      issueDescription,
+      smsConsent,
+    );
+    if (validationError) {
+      setError(validationError);
       return;
     }
-    if (!smsConsent) {
-      setError(copy.smsConsentRequired);
-      return;
-    }
+    writeDraft(token, {
+      customerName,
+      addressValue,
+      issueDescription,
+      urgency,
+      smsConsent,
+    });
     setError(null);
     setSlotsLoading(true);
     try {
@@ -152,6 +233,13 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           .flatMap((d) => d.slots)
           .find((s) => s.status === "available");
         setSelectedSlotId(firstOpen?.id ?? null);
+        writeDraft(token, {
+          customerName,
+          addressValue,
+          issueDescription,
+          urgency,
+          smsConsent,
+        });
         setStep("slots");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
@@ -171,6 +259,49 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   async function handleSlotConfirm() {
     if (!selectedSlotId) {
       setError(copy.selectVisitTime);
+      return;
+    }
+
+    const validationError = validateIntakeFields(
+      customerName,
+      addressValue,
+      issueDescription,
+      smsConsent,
+    );
+    if (validationError) {
+      setError(`${validationError} Tap "Go back" below to update your info, then try again.`);
+      return;
+    }
+
+    setError(null);
+    try {
+      const res = await clientFetch(
+        `/api/intake-link/${token}/slots?urgency=${encodeURIComponent(urgency)}`,
+        undefined,
+        14_000,
+      );
+      const data = (await res.json()) as {
+        grid?: SlotGridResult | null;
+        error?: string;
+      };
+      if (res.ok && data.grid) {
+        setSlotGrid(data.grid);
+        const stillOpen = data.grid.days
+          .flatMap((d) => d.slots)
+          .some((s) => s.id === selectedSlotId && s.status === "available");
+        if (!stillOpen) {
+          setError(
+            "Oh no — that window just filled up! Pick another open time and we'll lock it in for you.",
+          );
+          const firstOpen = data.grid.days
+            .flatMap((d) => d.slots)
+            .find((s) => s.status === "available");
+          setSelectedSlotId(firstOpen?.id ?? null);
+          return;
+        }
+      }
+    } catch {
+      setError(copy.networkError);
       return;
     }
     await postIntake(selectedSlotId);
@@ -238,7 +369,7 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
             <button
               type="button"
               onClick={() => void handleSlotConfirm()}
-              disabled={loading || !selectedSlotId}
+              disabled={loading}
               className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? copy.submitting : copy.slotStepConfirm}

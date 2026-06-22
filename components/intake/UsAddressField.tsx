@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { ensureGoogleMapsPlacesLoaded, googlePlacesEnabled } from "@/lib/address/google-maps-loader";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   composeManualUsAddress,
   composeUsAddress,
   type UsAddressFieldValue,
 } from "@/lib/address/us-address";
+import { fetchClientPlaceDetails, fetchClientPlacePredictions } from "@/lib/address/places-client";
+import { googlePlacesEnabled } from "@/lib/address/google-maps-loader";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 
 const defaultInputClass =
@@ -20,6 +21,13 @@ type UsAddressFieldProps = {
 };
 
 type AddressMode = "search" | "manual";
+
+type Prediction = {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+};
 
 function manualFieldsComplete(manual: { street: string; city: string; state: string; zip: string }) {
   return (
@@ -38,16 +46,16 @@ export function UsAddressField({
 }: UsAddressFieldProps) {
   const inputId = useId();
   const unitId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<GooglePlacesAutocomplete | null>(null);
-  const listenerRef = useRef<{ remove(): void } | null>(null);
-  const initAttemptRef = useRef(0);
+  const listId = useId();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const placesAvailable = googlePlacesEnabled();
-  const [mode, setMode] = useState<AddressMode>(placesAvailable ? "search" : "manual");
-  const [mapsStatus, setMapsStatus] = useState<"idle" | "loading" | "ready" | "error">(
-    placesAvailable ? "idle" : "error",
-  );
+  const [mode, setMode] = useState<AddressMode>("search");
+  const [query, setQuery] = useState(value.formatted);
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [searchStatus, setSearchStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [listOpen, setListOpen] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
   const [manual, setManual] = useState({
     street: "",
@@ -56,67 +64,163 @@ export function UsAddressField({
     zip: "",
   });
 
-  useEffect(() => {
-    if (!placesAvailable || mode !== "search" || disabled) return;
+  const fetchPredictions = useCallback(async (input: string) => {
+    const trimmed = input.trim();
+    if (trimmed.length < 1) {
+      setPredictions([]);
+      setSearchStatus("ready");
+      return;
+    }
 
-    let cancelled = false;
-    initAttemptRef.current += 1;
-    const attempt = initAttemptRef.current;
-    setMapsStatus("loading");
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setSearchStatus("loading");
 
-    (async () => {
+    async function loadFromClient(): Promise<Prediction[]> {
       try {
-        await ensureGoogleMapsPlacesLoaded();
-        if (cancelled || attempt !== initAttemptRef.current || !inputRef.current) return;
-
-        listenerRef.current?.remove();
-        autocompleteRef.current = null;
-
-        const ac = new window.google!.maps!.places!.Autocomplete(inputRef.current, {
-          types: ["address"],
-          componentRestrictions: { country: "us" },
-          fields: ["address_components", "formatted_address", "geometry", "place_id"],
-        });
-        autocompleteRef.current = ac;
-
-        listenerRef.current = ac.addListener("place_changed", () => {
-          const place = ac.getPlace();
-          const formatted = place.formatted_address?.trim() ?? "";
-          if (!formatted) return;
-          onChange({
-            formatted,
-            unit: value.unit,
-            placeId: place.place_id,
-            verified: true,
-          });
-          setManualError(null);
-        });
-
-        if (!cancelled && attempt === initAttemptRef.current) {
-          setMapsStatus("ready");
-        }
+        return await fetchClientPlacePredictions(trimmed);
       } catch {
-        if (!cancelled && attempt === initAttemptRef.current) {
-          setMapsStatus("error");
+        return [];
+      }
+    }
+
+    try {
+      const res = await fetch(
+        `/api/places/autocomplete?input=${encodeURIComponent(trimmed)}`,
+        { signal: controller.signal },
+      );
+      const data = (await res.json()) as {
+        predictions?: Prediction[];
+        enabled?: boolean;
+      };
+
+      if (controller.signal.aborted) return;
+
+      let next = data.predictions ?? [];
+
+      if (next.length === 0 && (data.enabled === false || !res.ok)) {
+        next = await loadFromClient();
+      }
+
+      if (next.length === 0 && res.ok && data.enabled !== false) {
+        next = await loadFromClient();
+      }
+
+      if (next.length === 0 && !res.ok && data.enabled === false && !googlePlacesEnabled()) {
+        setPredictions([]);
+        setSearchStatus("error");
+        return;
+      }
+
+      setPredictions(next);
+      setSearchStatus("ready");
+      setListOpen(next.length > 0);
+    } catch (e) {
+      if (controller.signal.aborted) return;
+      const clientResults = await loadFromClient();
+      if (clientResults.length > 0) {
+        setPredictions(clientResults);
+        setSearchStatus("ready");
+        setListOpen(true);
+        return;
+      }
+      setPredictions([]);
+      setSearchStatus(googlePlacesEnabled() ? "ready" : "error");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "search") return;
+    setQuery(value.formatted);
+  }, [value.formatted, value.verified, mode]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  function handleQueryChange(next: string) {
+    setQuery(next);
+    onChange({
+      formatted: next,
+      unit: value.unit,
+      verified: false,
+      placeId: undefined,
+    });
+    setManualError(null);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (next.trim().length <= 2) {
+      void fetchPredictions(next);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      void fetchPredictions(next);
+    }, 60);
+  }
+
+  async function selectPrediction(prediction: Prediction) {
+    setListOpen(false);
+    setPredictions([]);
+    setSearchStatus("loading");
+
+    try {
+      const res = await fetch(
+        `/api/places/details?placeId=${encodeURIComponent(prediction.placeId)}`,
+      );
+      const data = (await res.json()) as {
+        formattedAddress?: string;
+        placeId?: string;
+        error?: string;
+      };
+
+      let formatted = data.formattedAddress;
+      let resolvedPlaceId = data.placeId ?? prediction.placeId;
+
+      if (!res.ok || !formatted) {
+        const clientDetails = await fetchClientPlaceDetails(prediction.placeId);
+        if (clientDetails) {
+          formatted = clientDetails.formattedAddress;
+          resolvedPlaceId = clientDetails.placeId;
         }
       }
-    })();
 
-    return () => {
-      cancelled = true;
-      listenerRef.current?.remove();
-      listenerRef.current = null;
-      autocompleteRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init when switching back to search
-  }, [placesAvailable, mode, disabled]);
+      if (!formatted) {
+        onChange({
+          formatted: prediction.description,
+          unit: value.unit,
+          placeId: prediction.placeId,
+          verified: false,
+        });
+        setQuery(prediction.description);
+        setSearchStatus("ready");
+        return;
+      }
 
-  useEffect(() => {
-    if (!inputRef.current) return;
-    if (value.verified && value.formatted && inputRef.current.value !== value.formatted) {
-      inputRef.current.value = value.formatted;
+      onChange({
+        formatted,
+        unit: value.unit,
+        placeId: resolvedPlaceId,
+        verified: true,
+      });
+      setQuery(formatted);
+      setSearchStatus("ready");
+      setManualError(null);
+    } catch {
+      onChange({
+        formatted: prediction.description,
+        unit: value.unit,
+        placeId: prediction.placeId,
+        verified: false,
+      });
+      setQuery(prediction.description);
+      setSearchStatus("error");
     }
-  }, [value.formatted, value.verified]);
+  }
 
   function handleManualApply() {
     if (!manualFieldsComplete(manual)) {
@@ -144,70 +248,71 @@ export function UsAddressField({
   function switchToSearch() {
     setManualError(null);
     setMode("search");
-    setMapsStatus("idle");
+    setSearchStatus("idle");
+    setQuery(value.formatted);
   }
 
   function switchToManual() {
     setManualError(null);
     setMode("manual");
+    setListOpen(false);
+    setPredictions([]);
   }
 
   function retrySearch() {
     setManualError(null);
-    setMapsStatus("idle");
+    setSearchStatus("idle");
     setMode("search");
+    void fetchPredictions(query);
   }
 
   const composed = composeUsAddress(value);
   const showConfirmed = value.verified && composed.length > 0;
   const manualReady = manualFieldsComplete(manual);
-  const hint =
-    mode === "search" && placesAvailable ? copy.addressHintSearch : copy.addressHintManual;
+  const hint = mode === "search" ? copy.addressHintSearch : copy.addressHintManual;
 
   return (
     <div className="space-y-3">
-      {placesAvailable ? (
-        <div
-          className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1"
-          role="tablist"
-          aria-label={copy.addressLabel}
+      <div
+        className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200/90 bg-slate-100/80 p-1"
+        role="tablist"
+        aria-label={copy.addressLabel}
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "search"}
+          onClick={switchToSearch}
+          disabled={disabled}
+          className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+            mode === "search"
+              ? "bg-white text-brand-900 shadow-sm"
+              : "text-slate-600 hover:text-brand-900"
+          }`}
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "search"}
-            onClick={switchToSearch}
-            disabled={disabled}
-            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-              mode === "search"
-                ? "bg-white text-brand-900 shadow-sm"
-                : "text-slate-600 hover:text-brand-900"
-            }`}
-          >
-            {copy.addressTabSearch}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "manual"}
-            onClick={switchToManual}
-            disabled={disabled}
-            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-              mode === "manual"
-                ? "bg-white text-brand-900 shadow-sm"
-                : "text-slate-600 hover:text-brand-900"
-            }`}
-          >
-            {copy.addressTabManual}
-          </button>
-        </div>
-      ) : null}
+          {copy.addressTabSearch}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "manual"}
+          onClick={switchToManual}
+          disabled={disabled}
+          className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+            mode === "manual"
+              ? "bg-white text-brand-900 shadow-sm"
+              : "text-slate-600 hover:text-brand-900"
+          }`}
+        >
+          {copy.addressTabManual}
+        </button>
+      </div>
 
       <p className="text-sm leading-relaxed text-slate-600">{hint}</p>
 
-      {mode === "search" && placesAvailable ? (
+      {mode === "search" ? (
         <div className="space-y-2">
-          {mapsStatus === "error" ? (
+          {searchStatus === "error" && !listOpen ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
               <p>{copy.addressSearchError}</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -234,36 +339,63 @@ export function UsAddressField({
               {copy.addressLabel}
             </label>
             <span
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400"
               aria-hidden
             >
               <PinIcon />
             </span>
             <input
               id={inputId}
-              ref={inputRef}
               type="text"
-              defaultValue={value.formatted}
-              disabled={disabled || mapsStatus === "loading"}
+              value={query}
+              disabled={disabled}
               placeholder={copy.addressPlaceholder}
-              autoComplete="street-address"
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={listOpen}
+              aria-controls={listId}
+              aria-autocomplete="list"
               className={`${inputClassName} pl-11`}
-              onChange={() => {
-                onChange({
-                  formatted: inputRef.current?.value ?? "",
-                  unit: value.unit,
-                  verified: false,
-                });
-                setManualError(null);
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onFocus={() => {
+                if (predictions.length > 0) setListOpen(true);
+                if (query.trim()) void fetchPredictions(query);
+              }}
+              onBlur={() => {
+                blurTimerRef.current = setTimeout(() => setListOpen(false), 180);
               }}
             />
+
+            {listOpen && predictions.length > 0 ? (
+              <ul
+                id={listId}
+                role="listbox"
+                className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+              >
+                {predictions.map((p) => (
+                  <li key={p.placeId} role="option">
+                    <button
+                      type="button"
+                      className="flex w-full flex-col px-3 py-2.5 text-left hover:bg-brand-50 active:bg-brand-100"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => void selectPrediction(p)}
+                    >
+                      <span className="text-sm font-medium text-slate-900">{p.mainText}</span>
+                      {p.secondaryText ? (
+                        <span className="text-xs text-slate-500">{p.secondaryText}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
-          {mapsStatus === "loading" ? (
+          {searchStatus === "loading" ? (
             <p className="text-xs text-slate-500">{copy.addressLoading}</p>
-          ) : mapsStatus === "ready" ? (
+          ) : (
             <p className="text-xs text-slate-500">{copy.addressSearchReady}</p>
-          ) : null}
+          )}
         </div>
       ) : (
         <div className="space-y-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
@@ -370,7 +502,7 @@ export function UsAddressField({
             <span className="mt-0.5 block text-emerald-800/90">{composed}</span>
           </span>
         </div>
-      ) : mode === "search" && placesAvailable && mapsStatus === "ready" && value.formatted && !value.verified ? (
+      ) : mode === "search" && query.trim() && !value.verified ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
           {copy.addressPickRequired}
         </p>

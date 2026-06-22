@@ -37,10 +37,10 @@ export function twimlForIntakeState(state: CallIntakeState): string {
 
   if (state.phase === "collect") {
     const url = intakeUrl(callSid, "collect", { priority: priorityQ, attempt: "1" });
-    let intro = "Please describe your issue.";
-    if (menuPriority === "P1") intro = "Emergency line selected.";
-    else if (menuPriority === "P2") intro = "Same-day service selected.";
-    else if (menuPriority === "P3") intro = "Routine service selected.";
+    let intro = "Tell me what's going on — I'm here to help.";
+    if (menuPriority === "P1") intro = "I'm here for you — sounds like this might be urgent, so let's get you taken care of.";
+    else if (menuPriority === "P2") intro = "Same-day service — let's figure out what's going on and get you comfortable again.";
+    else if (menuPriority === "P3") intro = "Happy to help with your service request — take your time.";
     return twimlResponse(twimlGatherSpeechDetailed(url, intro));
   }
 

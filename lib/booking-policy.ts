@@ -52,13 +52,13 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi(
 
 /** Twilio closing message — never imply appointment is confirmed. */
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =
-  "Got it — your request is in! Our team will follow up with your arrival window soon. Thanks for calling!";
+  "You're all set — we've got your request, and we really appreciate you calling! Our team will follow up with your arrival window very soon. Thank you so much — we're looking forward to helping you!";
 
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE_SHORT =
-  "Your request is in! We'll be in touch shortly. Thanks!";
+  "Got it — your request is in! We'll be in touch shortly. Thank you so much for reaching out!";
 
 export const CUSTOMER_SLOT_CONFIRMED_MESSAGE =
-  "You're all set! We noted your visit window and we'll text you a confirmation shortly. Thanks so much!";
+  "Wonderful — you're all set! We noted your visit window and we'll text you a confirmation very soon. Thank you so much for choosing us — we can't wait to help you out!";
 
 export function isAutoBookingMode(mode: BookingMode = DEFAULT_BOOKING_MODE): boolean {
   return mode === "auto_booking";

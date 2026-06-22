@@ -2,16 +2,16 @@
 
 export function afterHoursVoiceIntro(shopName: string): string {
   return (
-    `We're outside regular hours right now, but we're still happy to help. ` +
-    `We'll take your request and our team will follow up on the next business day. ` +
-    `Just so you know — this isn't a confirmed appointment yet.`
+    `We're outside our regular hours right now, but please don't worry — we're still here for you. ` +
+    `We'll take your request and our team will personally follow up first thing on the next business day. ` +
+    `Just so you know, this isn't a confirmed appointment yet — but we've absolutely got your back, and we're glad you called.`
   );
 }
 
 export function afterHoursPhoneGoodbye(): string {
   return (
-    "Got it — your request is in! Our team will reach out on the next business day. " +
-    "Thanks for calling. Take care!"
+    "Perfect — your request is in! Our team will reach out on the next business day. " +
+    "Thank you so much for calling — take care, and we'll talk soon!"
   );
 }
 
