@@ -5,37 +5,29 @@ import {
 } from "./booking-policy";
 import { filterByDateRange } from "./dashboard-analytics";
 import type { InboundEvent } from "./inbound-events";
-import {
-  isAiHandledCall,
-  isLikelyMissedWithoutAi,
-  parseShopScheduleRows,
-} from "./missed-calls-prevented";
-import type { CallRecord } from "./operations-analytics";
+import { isAiHandledCall } from "./missed-calls-prevented";
+import { isAfterHours, type CallRecord } from "./operations-analytics";
 import { lookupStoredRequestStatus } from "./request-status-resolve";
-import type { ShopState } from "./types";
 
 export type RecoveryMetrics = {
   periodLabel: string;
-  avgJobTicketUsd: number;
   inboundTotal: number;
   inboundAnsweredByAi: number;
   inboundMissedRaw: number;
-  callsRecovered: number;
-  callsRecoveredRatePct: number;
-  estimatedRecoveredUsd: number;
+  /** AI calls that reached scheduled / confirmed / completed in Vowpath. */
+  bookingsFromAiCalls: number;
+  /** Subset booked from after-hours AI calls (objective time window). */
+  afterHoursBookingsFromAi: number;
+  bookingRatePct: number;
   shadowModeActive: boolean;
   shadowModeRemaining: number;
   inShadowBaseline: boolean;
 };
 
-function isRecoveredStatus(status: RequestStatus | undefined): boolean {
+function isBookedStatus(status: RequestStatus | undefined): boolean {
   if (!status) return false;
   const n = normalizeRequestStatus(status);
-  return (
-    isApprovedBooking(n) ||
-    n === "scheduled" ||
-    n === "completed"
-  );
+  return isApprovedBooking(n) || n === "scheduled" || n === "completed";
 }
 
 function countRawMissedInbound(events: InboundEvent[], callSidsWithAi: Set<string>): number {
@@ -56,26 +48,25 @@ function countRawMissedInbound(events: InboundEvent[], callSidsWithAi: Set<strin
   return missed;
 }
 
+function bookingStatusForCall(
+  call: CallRecord,
+  requestStatuses: Record<string, RequestStatus>,
+): RequestStatus | undefined {
+  const bookingId = `call-${call.id}`;
+  return (
+    lookupStoredRequestStatus(bookingId, requestStatuses, call.jobberRequestId) ?? undefined
+  );
+}
+
 export function buildRecoveryMetrics(params: {
   calls: CallRecord[];
   requestStatuses: Record<string, RequestStatus>;
-  shop: Pick<ShopState, "scheduleWindows" | "answerScheduleActive">;
   inboundEvents: InboundEvent[];
-  avgJobTicketUsd: number;
   shadowModeRemaining: number;
   start: Date;
   end: Date;
 }): RecoveryMetrics {
-  const {
-    calls,
-    requestStatuses,
-    shop,
-    inboundEvents,
-    avgJobTicketUsd,
-    shadowModeRemaining,
-    start,
-    end,
-  } = params;
+  const { calls, requestStatuses, inboundEvents, shadowModeRemaining, start, end } = params;
 
   const inRangeCalls = filterByDateRange(calls, start, end);
   const inRangeEvents = inboundEvents.filter((e) => {
@@ -83,33 +74,18 @@ export function buildRecoveryMetrics(params: {
     return t >= start.getTime() && t <= end.getTime();
   });
 
-  const scheduleWindows = Array.isArray(shop.scheduleWindows) ? shop.scheduleWindows : [];
-  const scheduleRows =
-    shop.answerScheduleActive && scheduleWindows.length > 0
-      ? parseShopScheduleRows(scheduleWindows)
-      : [];
-
   const aiHandled = inRangeCalls.filter(isAiHandledCall);
   const aiCallSids = new Set(
     aiHandled.map((c) => c.callSid).filter((s): s is string => Boolean(s?.trim())),
   );
 
-  let recovered = 0;
+  let bookingsFromAiCalls = 0;
+  let afterHoursBookingsFromAi = 0;
   for (const call of aiHandled) {
-    if (
-      !isLikelyMissedWithoutAi(
-        call.createdAt,
-        scheduleRows,
-        shop.answerScheduleActive,
-      )
-    ) {
-      continue;
-    }
-    const bookingId = `call-${call.id}`;
-    const status =
-      lookupStoredRequestStatus(bookingId, requestStatuses, call.jobberRequestId) ??
-      undefined;
-    if (isRecoveredStatus(status)) recovered += 1;
+    const status = bookingStatusForCall(call, requestStatuses);
+    if (!isBookedStatus(status)) continue;
+    bookingsFromAiCalls += 1;
+    if (isAfterHours(call.createdAt)) afterHoursBookingsFromAi += 1;
   }
 
   const inboundTotal = Math.max(
@@ -120,18 +96,19 @@ export function buildRecoveryMetrics(params: {
   );
 
   const inboundMissedRaw = countRawMissedInbound(inRangeEvents, aiCallSids);
-  const ratePct =
-    aiHandled.length > 0 ? Math.round((recovered / aiHandled.length) * 100) : 0;
+  const bookingRatePct =
+    aiHandled.length > 0
+      ? Math.round((bookingsFromAiCalls / aiHandled.length) * 100)
+      : 0;
 
   return {
     periodLabel: `${start.toLocaleDateString("en-US")} – ${end.toLocaleDateString("en-US")}`,
-    avgJobTicketUsd,
     inboundTotal,
     inboundAnsweredByAi: aiHandled.length,
     inboundMissedRaw,
-    callsRecovered: recovered,
-    callsRecoveredRatePct: ratePct,
-    estimatedRecoveredUsd: recovered * avgJobTicketUsd,
+    bookingsFromAiCalls,
+    afterHoursBookingsFromAi,
+    bookingRatePct,
     shadowModeActive: shadowModeRemaining > 0,
     shadowModeRemaining,
     inShadowBaseline: shadowModeRemaining > 0,

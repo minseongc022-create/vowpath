@@ -11,7 +11,6 @@ type RecoveryMetricsPanelProps = {
 
 export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPanelProps) {
   const [metrics, setMetrics] = useState<RecoveryMetrics | null>(null);
-  const [avgTicket, setAvgTicket] = useState(350);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,13 +22,12 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
     const qs = new URLSearchParams({ start: dateRange.start, end: dateRange.end });
     fetch(`/api/shop/recovery-metrics?${qs}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed"))))
-      .then((d: { metrics: RecoveryMetrics; settings?: { avgJobTicketUsd: number } }) => {
+      .then((d: { metrics: RecoveryMetrics }) => {
         if (cancelled) return;
         setMetrics(d.metrics);
-        if (d.settings?.avgJobTicketUsd) setAvgTicket(d.settings.avgJobTicketUsd);
       })
       .catch(() => {
-        if (!cancelled) setError("Could not load recovery metrics.");
+        if (!cancelled) setError("Could not load call recovery metrics.");
       })
       .finally(() => {
         if (!cancelled) setBusy(false);
@@ -39,15 +37,6 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
     };
   }, [dateRange.start, dateRange.end, loading]);
 
-  async function saveAvgTicket(next: number) {
-    setAvgTicket(next);
-    await fetch("/api/shop/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ avgJobTicketUsd: next }),
-    });
-  }
-
   const m = metrics;
   const showShadow = m?.shadowModeActive;
 
@@ -55,9 +44,9 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
     <section className="vow-dash-panel">
       <div className="vow-dash-panel-head border-b border-brand-200/60">
         <div>
-          <h2 className="text-base font-semibold text-brand-950">Recovered revenue</h2>
+          <h2 className="text-base font-semibold text-brand-950">Call recovery</h2>
           <p className="mt-0.5 text-xs text-stone-600">
-            Missed-call recovery tracked 24/7 — not only when AI is scheduled on.
+            Counts from Vowpath bookings and Twilio call logs — no revenue estimates.
           </p>
         </div>
       </div>
@@ -72,15 +61,21 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
 
       <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
         {busy ? (
-          <p className="col-span-full text-sm text-stone-500">Loading recovery metrics…</p>
+          <p className="col-span-full text-sm text-stone-500">Loading call recovery metrics…</p>
         ) : error ? (
           <p className="col-span-full text-sm text-rose-700">{error}</p>
         ) : m ? (
           <>
             <MetricCard
-              label="Est. recovered"
-              value={`$${m.estimatedRecoveredUsd.toLocaleString()}`}
-              hint={`${m.callsRecovered} booked from after-hours / missed-risk calls`}
+              label="Bookings from AI calls"
+              value={String(m.bookingsFromAiCalls)}
+              hint="Scheduled or completed in Vowpath after AI intake"
+              accent="border-t-emerald-500"
+            />
+            <MetricCard
+              label="After-hours bookings"
+              value={String(m.afterHoursBookingsFromAi)}
+              hint="Same, but call arrived evenings or weekends"
               accent="border-t-orange-500"
             />
             <MetricCard
@@ -88,12 +83,6 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
               value={String(m.inboundAnsweredByAi)}
               hint={`${m.inboundTotal} inbound touches logged`}
               accent="border-t-sky-500"
-            />
-            <MetricCard
-              label="Recovery rate"
-              value={`${m.callsRecoveredRatePct}%`}
-              hint="Booked ÷ AI-handled (missed-risk window)"
-              accent="border-t-emerald-500"
             />
             <MetricCard
               label="Raw missed (CDR)"
@@ -105,22 +94,13 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
         ) : null}
       </div>
 
-      <div className="border-t border-brand-200/50 px-5 py-4">
-        <label className="flex flex-wrap items-center gap-3 text-sm text-stone-700">
-          <span className="font-medium">Avg job ticket (for $ estimate)</span>
-          <span className="text-stone-500">$</span>
-          <input
-            type="number"
-            min={50}
-            max={5000}
-            step={25}
-            value={avgTicket}
-            onChange={(e) => setAvgTicket(Number(e.target.value) || 350)}
-            onBlur={() => void saveAvgTicket(avgTicket)}
-            className="w-28 rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-brand-950"
-          />
-        </label>
-      </div>
+      {m && !busy && !error ? (
+        <p className="border-t border-brand-200/50 px-5 py-3 text-xs text-stone-500">
+          Booking rate this period: {m.bookingRatePct}% of AI-handled calls (
+          {m.bookingsFromAiCalls}/{m.inboundAnsweredByAi || 0}). Dollar totals belong in Jobber
+          invoices — Vowpath does not sync invoice amounts yet.
+        </p>
+      ) : null}
     </section>
   );
 }

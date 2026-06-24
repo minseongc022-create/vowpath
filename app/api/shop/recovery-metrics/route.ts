@@ -4,7 +4,6 @@ import { parseDateInput } from "@/lib/dashboard-analytics";
 import { listInboundEvents } from "@/lib/inbound-events";
 import { buildRecoveryMetrics } from "@/lib/recovery-roi";
 import { getRequestStatuses } from "@/lib/requests-db";
-import { getShopProfile } from "@/lib/shop-profile-db";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { getSession } from "@/lib/session";
 import type { CallRecord } from "@/lib/operations-analytics";
@@ -47,29 +46,23 @@ export async function GET(request: Request) {
 
   try {
     const userId = session.sub;
-    const [settings, callsRaw, requestStatuses, inboundEvents, shop] = await Promise.all([
+    const [settings, callsRaw, requestStatuses, inboundEvents] = await Promise.all([
       getShopBookingSettings(userId),
       listCallLogs(userId),
       getRequestStatuses(userId),
       listInboundEvents(userId, { since: start }),
-      getShopProfile(userId),
     ]);
 
     const metrics = buildRecoveryMetrics({
       calls: callsRaw.map(toCallRecord),
       requestStatuses,
-      shop,
       inboundEvents,
-      avgJobTicketUsd: settings.avgJobTicketUsd,
       shadowModeRemaining: settings.shadowModeRemaining,
       start,
       end: endDay,
     });
 
-    return NextResponse.json({
-      metrics,
-      settings: { avgJobTicketUsd: settings.avgJobTicketUsd },
-    });
+    return NextResponse.json({ metrics });
   } catch (e) {
     console.error("[shop/recovery-metrics]", e);
     return NextResponse.json({ error: "Failed to load recovery metrics" }, { status: 500 });

@@ -397,26 +397,6 @@ export function BookingSettingsEditor() {
 
       <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
         <label className="block">
-          <span className="vow-settings-label">Avg job ticket ($)</span>
-          <p className="vow-settings-hint mt-1">
-            Used on the dashboard to estimate recovered revenue from missed calls.
-          </p>
-          <input
-            type="number"
-            min={50}
-            max={5000}
-            step={25}
-            value={settings.avgJobTicketUsd}
-            onChange={(e) =>
-              updateLocal({ avgJobTicketUsd: Math.round(Number(e.target.value) || 350) })
-            }
-            className="vow-settings-input mt-3 max-w-xs"
-          />
-        </label>
-      </div>
-
-      <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
-        <label className="block">
           <span className="vow-settings-label">{settingsPage.shadowModeLabel}</span>
           <p className="vow-settings-hint mt-1">{settingsPage.shadowModeIntro}</p>
           <input
