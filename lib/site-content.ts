@@ -19,6 +19,7 @@ import {
   navEn,
   pricingEn,
   problemEn,
+  productStackEn,
   revenueLeaksEn,
   schedulingModesEn,
   signupFlowEn,
@@ -28,6 +29,7 @@ import {
 } from "./content-marketing-en";
 
 export const siteHero = heroEn;
+export const siteProductStack = productStackEn;
 export const siteMissedCallFlow = missedCallFlowEn;
 export const siteApprovalLoop = approvalLoopEn;
 export const siteAbout = aboutEn;

@@ -59,10 +59,10 @@ export function DashboardPreview() {
 
       <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-4">
         {[
-          { label: "Calls", value: "128", delta: "+12%" },
+          { label: "Inbound calls", value: "128", delta: "+12%" },
           { label: "Bookings", value: "47", delta: "+18%" },
-          { label: "Revenue", value: "$18.1k", delta: "+9%" },
-          { label: "Response", value: "94%", delta: "+3%" },
+          { label: "Recovered est.", value: "$4.2k", delta: "illustrative" },
+          { label: "Pending", value: "3", delta: "needs you" },
         ].map((m) => (
           <div
             key={m.label}

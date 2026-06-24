@@ -4,72 +4,129 @@ import { getCheckoutCta } from "./marketing-constants";
 const CHECKOUT_CTA = getCheckoutCta();
 
 export const heroEn = {
-  badge: "Missed calls → calendar → contracts",
-  headline: "Catch the call.",
-  headlineAccent: "Keep the contract.",
+  badge: "AI phone · analytics · ops assistant",
+  headline: "AI that answers when you can't.",
+  headlineAccent: "Books the job. Runs the shop with you.",
   brandLine:
-    "Vowpath auto-books clear HVAC jobs from your same shop line — then turns completed visits into maintenance plans so recurring revenue doesn't walk out the door.",
+    "Vowpath is not a generic answering service. Your main line stays the same — when you miss a ring, our AI phone layer captures HVAC intake, books real arrival windows, and keeps the homeowner in the loop until your tech is on the way.",
   subhead:
-    "Overflow, after-hours, and peak-season rings land on your calendar. P1 still pings you. Unclear intakes wait for 1 / 2. When the truck rolls, Agreement Keeper offers your PM plan by text.",
-  trustLine: "Built for 1–5 truck owner-operators · Jobber optional",
+    "Core: AI phone + SMS link intake and smart booking. Built in: missed-call analytics and Vowpath AI — your pocket ops assistant for approvals, calendar, and shop settings.",
+  trustLine: "US residential HVAC · 1–5 truck shops · Jobber optional",
   primaryCta: CHECKOUT_CTA,
-  secondaryCta: "See how it works",
+  secondaryCta: "See the full flow",
   secondaryCtaHref: "/#missed-call-flow",
   heroBadges: [
-    "Auto calendar",
-    "Crew SMS dispatch",
-    "PM plan offers",
-    "Jobber optional",
+    "AI phone intake",
+    "Owner SMS 1 / 2",
+    "Shop analytics",
+    "Vowpath AI assistant",
   ] as const,
+};
+
+export const productStackEn = {
+  id: "product-stack",
+  label: "What Vowpath is",
+  title: "One platform — three layers",
+  subtitle:
+    "Most tools only answer the phone. Vowpath starts there, then shows you what you captured and lets you run the shop without opening ten menus.",
+  layers: [
+    {
+      id: "phone",
+      tier: "core" as const,
+      badge: "Main",
+      label: "AI phone layer",
+      title: "Catch every ring you miss",
+      description:
+        "Overflow, after-hours, and peak-season calls forward to Vowpath. Customers talk or tap a text link — name, address, issue, and a real arrival window.",
+      points: [
+        "Same shop number on Google",
+        "HVAC triage (P1 / P2 / P3)",
+        "Phone or SMS link intake",
+        "Smart auto-book + owner 1 / 2",
+      ],
+    },
+    {
+      id: "analytics",
+      tier: "sub" as const,
+      badge: null,
+      label: "AI analytics",
+      title: "See what almost slipped away",
+      description:
+        "Dashboard KPIs, missed-call prevention, and recovery estimates — so you know what would have hit voicemail and what turned into booked work.",
+      points: [
+        "Leads, emergencies, confirmations",
+        "Missed-call analytics page",
+        "Trend charts + drill-downs",
+        "Recovery estimates (not accounting)",
+      ],
+    },
+    {
+      id: "assistant",
+      tier: "sub" as const,
+      badge: null,
+      label: "Vowpath AI",
+      title: "Your ops assistant in your pocket",
+      description:
+        "Ask what came in, what needs approval, or what is on the calendar — and change booking rules in plain English when you are on a roof.",
+      points: [
+        "Morning briefing on open",
+        "Pending approvals + urgent calls",
+        "Guarded settings changes",
+        "Optional daily SMS briefing",
+      ],
+    },
+  ],
+  footnote:
+    "Jobber sync, crew dispatch texts, and maintenance-plan offers are built in — connect what you use, skip what you do not.",
 };
 
 export const missedCallFlowEn = {
   id: "missed-call-flow",
-  title: "How a real HVAC shop runs — with Vowpath on the gaps",
+  title: "From ring to doorstep — without losing the homeowner",
   subtitle:
-    "You still answer during the day. Vowpath only handles what you miss: overflow, after hours, and peak-season hold times.",
+    "High level only: your customer experience from the first call until your tech arrives. You stay in control; Vowpath handles the gaps.",
   steps: [
     {
-      id: "day",
-      title: "You answer (daytime)",
-      description:
-        "Business hours: you or office picks up the same shop line customers already trust.",
-    },
-    {
       id: "call",
-      title: "Missed ring forwards",
+      title: "Customer calls your line",
       description:
-        "On a roof, after 6pm, or when three lines ring at once — unanswered calls route to Vowpath.",
+        "They dial the same number on your truck and Google listing — no new number to explain.",
     },
     {
-      id: "triage",
-      title: "HVAC triage",
+      id: "forward",
+      title: "You miss it → Vowpath answers",
       description:
-        "P1 no-heat / no-cool / leak. P2 same-day comfort. P3 tune-up or quote. Name, address, and issue captured.",
+        "On a job, after hours, or when lines stack up — unanswered calls forward to the AI phone layer.",
     },
     {
       id: "intake",
-      title: "Customer picks a time",
+      title: "Intake + arrival window",
       description:
-        "Phone intake or SMS link. They tap a real open slot — not a callback promise.",
+        "Phone or SMS link. HVAC triage, address capture, and a real open slot — not a vague callback promise.",
     },
     {
       id: "approve",
-      title: "Calendar confirms (auto)",
+      title: "Confirm or hold",
       description:
-        "Clear jobs land on your calendar instantly. P1 still books — you get an urgent SMS. Messy address or name? Held for your 1 / 2.",
+        "Clear routine jobs can auto-confirm. Emergencies and messy details wait for your text: 1 = yes, 2 = pass.",
     },
     {
-      id: "scheduled",
-      title: "Job on your board",
+      id: "dispatch",
+      title: "Crew gets the job",
       description:
-        "Confirmed visits hit dashboard and Jobber (if connected). Crew gets a text when enabled. Reply 9 to undo within your window.",
+        "Optional tech dispatch by SMS — round-robin offer, accept or pass. Jobber Request when you connect.",
     },
     {
-      id: "pm",
-      title: "Offer the PM plan",
+      id: "onway",
+      title: "On the way text",
       description:
-        "Mark complete → customer gets your maintenance plan by SMS. Renewals tracked in Agreement Keeper.",
+        "Tech replies with minutes out or taps On my way — homeowner gets an ETA without you typing it twice.",
+    },
+    {
+      id: "arrival",
+      title: "Tech arrives",
+      description:
+        "Visit happens in your arrival window. Mark complete → optional maintenance-plan offer by text.",
     },
   ],
 };
@@ -79,46 +136,46 @@ export const approvalLoopEn = {
   label: "Smart exceptions",
   title: "Auto-book the routine. Ping you for what actually needs a human.",
   summary:
-    "Competitors auto-book everything — including bad addresses. Vowpath auto-books clear jobs like they do, but holds unclear intakes and flags P1 so you can cancel from the truck.",
-  tags: ["Auto calendar", "P1 urgent SMS", "Hold on unclear", "Reply 9 undo"] as const,
+    "Competitors auto-book everything — including bad addresses. Vowpath auto-books clear routine jobs, but holds P1 emergencies and fuzzy intakes for your 1 / 2 before anything confirms.",
+  tags: ["Routine auto-confirms", "P1 → 1 / 2", "Unclear → 1 / 2", "Reply 9 undo"] as const,
   smsExample: {
     customer: "John Smith",
     issue: "No Cooling",
     window: "Tomorrow 2PM",
-    approveLabel: "Routine = FYI only",
-    declineLabel: "Unclear = Reply 1 · 2",
+    approveLabel: "Routine = auto-confirmed",
+    declineLabel: "P1 or unclear = Reply 1 · 2",
   },
   nodes: [
     { id: "customer", title: "Customer picks slot", caption: "Real open time" },
-    { id: "vowpath", title: "Vowpath", caption: "Auto confirm" },
-    { id: "owner", title: "Your phone", caption: "FYI or 1 / 2" },
+    { id: "vowpath", title: "Vowpath", caption: "Routine confirms" },
+    { id: "owner", title: "Your phone", caption: "P1 / unclear → 1 / 2" },
     { id: "customer-out", title: "Job scheduled", caption: "SMS + Jobber" },
   ] as const,
   edges: [
     "HVAC triage + intake",
-    "Calendar confirms instantly",
-    "Urgent / unclear → your text",
+    "Clear P2/P3 confirm instantly",
+    "P1 or fuzzy details → your text",
   ] as const,
 };
 
 export const aboutEn = {
   id: "about",
   badge: "Built for owner-operators",
-  title: "More booked jobs. Fewer thumbs on every alert.",
+  title: "More than an AI phone bot",
   subtitle:
-    "Big shops have CSRs and dispatchers. On a 1–5 truck crew, missed calls and slow callbacks cost tickets — Vowpath auto-books the clear stuff so you keep working.",
+    "Generic AI answers and hangs up. Vowpath is the phone layer plus shop analytics plus an assistant that knows your bookings — built for US HVAC crews who live on their cell.",
   paragraphs: [
-    "Answering services leave voicemails. Generic AI books into your calendar — including jobs you would have declined. Vowpath captures the call, triages HVAC urgency, and puts clear requests on your calendar while you stay on the ladder.",
-    "You still get control where it counts: P1 no-heat triggers an urgent text (job already booked — reply 2 to cancel). Fuzzy address or name? We hold for your 1 / 2. Same number. No dispatch software swap.",
+    "The AI phone layer captures what you miss: after-hours no-heat, overflow rings, and peak-season hold times. It triages HVAC urgency, collects intake, and puts clear jobs on your calendar while you stay on the ladder.",
+    "Analytics show what would have been voicemail and what became booked work. Vowpath AI lets you ask what needs attention and adjust rules from the truck — without learning another dispatch system.",
   ],
   pillars: [
     {
-      label: "Capture",
-      meaning: "After-hours and overflow become calendar slots — not voicemail tag at 7 AM.",
+      label: "AI phone",
+      meaning: "Forward when busy or closed. Intake, triage, and real arrival windows on your line.",
     },
     {
-      label: "Exceptions",
-      meaning: "Auto-book by default. You only text back for urgent or unclear jobs.",
+      label: "AI + you",
+      meaning: "Auto-book when it is clear. Text 1 / 2 when it is urgent or fuzzy. Crew and customer texts through confirm.",
     },
   ],
 };
@@ -163,7 +220,7 @@ export const revenueLeaksEn = {
     },
     {
       leak: "Owner buried in tune-up texts",
-      feature: "Auto Book default + smart holds",
+      feature: "Smart auto-book + owner exceptions",
       result: "Routine P2/P3 confirm while you work; only urgent or messy intakes ping you",
       money: "More jobs without more thumb time",
     },
@@ -186,9 +243,9 @@ export const differentiatorsEn = {
         "Customers pick real open slots. Clear jobs confirm instantly — you get a heads-up, not a homework assignment.",
     },
     {
-      title: "P1 still books — you get urgent SMS",
+      title: "P1 urgent → your 1 / 2 first",
       description:
-        "No-heat lands on the calendar and crew gets notified. You can cancel from the truck if it looks wrong.",
+        "No-heat and no-cool trigger an urgent text. Reply 1 to confirm or 2 to pass — nothing locks in until you OK it.",
     },
     {
       title: "HVAC intake — not a generic script",
@@ -257,58 +314,62 @@ export const comparisonEn = {
     ["Customer picks real open slot", "Yes", "Often", "Rare"],
     ["Keep your shop number", "Yes", "Forward required", "Often new number"],
     ["Works without Jobber / ST / HCP", "Yes — SMS + dashboard", "Usually needs CRM", "Separate tool"],
-    ["Jobber sync on confirm", "Yes", "On intake", "Manual retype"],
+    ["Jobber sync on confirm", "Yes", "On intake", "Hand retyped"],
     ["Go live", "~10 minutes", "Days + CRM setup", "Days + scripting"],
     ["Price (typical)", "$199/mo flat", "$99–$500+ add-on", "$200–$800/mo"],
   ],
 };
 
 export const featuresEn = {
-  title: "How each feature puts money back in your pocket",
-  subtitle: "Missed-call capture, auto calendar, crew text — tied to real shop moments.",
+  title: "Everything that ships today",
+  subtitle: "AI phone is the core. Analytics and Vowpath AI are built in — not upsells on a generic call bot.",
   items: [
     {
-      title: "Auto calendar + booking rules",
+      title: "AI phone + link intake",
       description:
-        "Private SMS links show real availability — visit length, gaps, and crew capacity built in. Default Auto Book confirms clear jobs; Hybrid or Manual when you want more gates.",
+        "Forwarded calls and SMS booking links. HVAC triage, verified address, and customer-picked arrival windows.",
       tag: "Core",
     },
     {
-      title: "After-hours capture",
-      description: "AI intake runs nights and weekends. Jobs confirm per your booking mode — not voicemail.",
-      tag: "Core",
-    },
-    {
-      title: "Visit length · gaps · crews",
+      title: "Smart auto-book + owner SMS",
       description:
-        "Set how long each job takes, minutes between visits, and how many crews can run at once. The calendar only shows times that fit your rules.",
+        "Clear P2/P3 jobs can confirm instantly. P1 and fuzzy intakes ping you: 1 = approve, 2 = pass, 9 = undo.",
       tag: "Core",
     },
     {
-      title: "Smart owner SMS",
+      title: "Shop analytics dashboard",
       description:
-        "Routine jobs = FYI text. P1 = urgent alert. Unclear intake = reply 1 / 2. Ref codes on every message.",
-      tag: "Core",
+        "KPI cards, trends, missed-call prevention, and drill-downs to calls and bookings — see what almost slipped away.",
+      tag: "Analytics",
     },
     {
-      title: "Crew text dispatch",
-      description: "On confirm, round-robin to techs: reply 1=accept 2=pass. Optional — on by default when you add techs.",
-      tag: "Core",
+      title: "Vowpath AI assistant",
+      description:
+        "Ask what came in, what is urgent, and what is pending. Change booking rules with guarded confirmations.",
+      tag: "Assistant",
     },
     {
-      title: "Missed-call analytics",
-      description: "See what would've hit voicemail — and what Vowpath turned into bookings.",
-      tag: "Core",
-    },
-    {
-      title: "Customer confirmation texts",
-      description: "Homeowners know: received, scheduled, or pending your review.",
+      title: "Crew dispatch + on my way",
+      description:
+        "Optional round-robin tech SMS on confirm. Tech replies with ETA — customer gets an on-the-way text.",
       tag: "Included",
     },
     {
-      title: "Dashboard · email · Jobber",
+      title: "Calendar · email · Jobber",
       description:
-        "Every job tracked in one place. Connect Jobber and confirmed visits sync — no double entry.",
+        "Dashboard calendar, owner email backup, and optional Jobber sync on approve — no double entry at 7 AM.",
+      tag: "Included",
+    },
+    {
+      title: "Agreement Keeper",
+      description:
+        "After you mark complete, optional maintenance-plan SMS offer and renewal tracking.",
+      tag: "Included",
+    },
+    {
+      title: "Customer portal links",
+      description:
+        "Homeowners reschedule, update details, or cancel from secure SMS links — private, expiring.",
       tag: "Included",
     },
   ],
@@ -340,44 +401,44 @@ export const trustRoiEn = {
 export const aiDispatcherEn = {
   id: "ai-dispatcher",
   label: "Vowpath AI",
-  title: "Ask your shop what is happening",
+  title: "Your pocket ops assistant",
   subtitle:
-    "The chat is not a toy assistant. It reads your calls, bookings, approvals, settings, and automation rules so you can run the shop from a truck seat.",
+    "Not a chatbot on your website — an assistant that reads your shop's calls, bookings, and settings so you can run the business from the truck.",
   cards: [
     {
-      title: "Ask what came in",
-      description: "Get operational answers without digging through menus:",
+      title: "Morning pulse",
+      description: "Opens with what matters today:",
       items: [
-        '"What happened yesterday?"',
-        '"Any urgent no-cool calls?"',
-        '"How many bookings this week?"',
+        '"What came in overnight?"',
+        '"Any P1 still open?"',
+        '"What is on the calendar?"',
       ],
     },
     {
-      title: "Find revenue risk",
-      description: "See what still needs attention before the homeowner moves on:",
+      title: "Revenue at risk",
+      description: "Surface jobs before the homeowner moves on:",
       items: [
         '"Show pending approvals."',
-        '"Which jobs need me?"',
-        '"What came in after hours?"',
+        '"What needs my 1 or 2?"',
+        '"Missed calls this week?"',
       ],
     },
     {
-      title: "Change booking rules",
-      description: "Plain English changes become guarded admin actions:",
+      title: "Change rules safely",
+      description: "Plain English → preview → confirm:",
       items: [
-        '"Switch to Hybrid."',
-        '"Auto-book P2 and P3 only."',
-        '"Go back to manual approval."',
+        '"Who gets owner SMS?"',
+        '"Adjust visit length."',
+        '"Turn off after-hours AI."',
       ],
     },
     {
-      title: "Create automations",
-      description: "Let the AI enforce your shop policy while you work:",
+      title: "Shop memory",
+      description: "Teach Vowpath how you talk to customers:",
       items: [
-        '"No-cool tune-ups can auto-book."',
-        '"Weekends always need approval."',
-        '"P1 should text me every time."',
+        '"Remember we do not do commercial."',
+        '"Our service area is …"',
+        '"Add a workflow for weekends."',
       ],
     },
   ],
@@ -405,26 +466,26 @@ export const howItWorksEn = {
     },
     {
       step: "04",
-      title: "Test + auto-book",
-      description: "One test call. Pick a slot. Job lands on dashboard — Jobber if connected.",
+      title: "Test call + dashboard",
+      description: "One test ring. Routine jobs auto-confirm; P1 or unclear waits for your 1 / 2.",
     },
   ],
 };
 
 export const schedulingModesEn = {
   id: "scheduling",
-  label: "Booking",
-  title: "Smart auto-book — with owner gates where it matters",
+  label: "Booking policy",
+  title: "Routine jobs confirm instantly. Urgent or unclear waits for you.",
   subtitle:
-    "No mode switches. Clear routine jobs confirm while you work. Emergencies and fuzzy intakes always wait for your OK.",
+    "One smart policy — no Speed / Hybrid / Manual switches. Clear P2/P3 lands on your calendar. P1 emergencies and messy intakes need your text: 1 = yes, 2 = pass.",
   modes: [
     {
       id: "auto",
       name: "Smart auto-book",
-      badge: "Default" as string | null,
+      badge: "Built in" as string | null,
       tagline: "Fast when it's clear · you decide when it's not",
       description:
-        "Customer picks a visit time. If the intake is routine and complete, the job lands on your calendar. P1 or unclear details? You get a text to approve (1) or pass (2).",
+        "Customer picks a visit time. Routine jobs with complete info confirm right away. P1 or unclear name/address? You get a text before anything is locked in.",
       details: [
         { label: "P2 / P3 · clear info", value: "Auto confirm" },
         { label: "P1 emergency", value: "Your 1 / 2 first" },
@@ -460,37 +521,20 @@ export const dataTrustEn = {
 };
 
 export const socialProofEn = {
-  title: "Built for shops like yours",
+  title: "Built for real HVAC shops",
   items: [
-    { stat: "~10 min", label: "to go live" },
-    { stat: "Auto", label: "calendar by default" },
-    { stat: "24/7", label: "overflow coverage" },
+    { stat: "~10 min", label: "typical go-live" },
+    { stat: "3 layers", label: "phone · analytics · AI" },
+    { stat: "24/7", label: "forward when you want" },
     { stat: "$400+", label: "one saved call can cover the month" },
   ],
-  badges: ["Residential HVAC", "Same shop number", "Jobber optional"],
-  testimonials: [
-    {
-      quote:
-        "I forward after 6pm only. First week two no-cool jobs landed on the calendar before I saw the text — would've been voicemail at 7am.",
-      name: "Mike R.",
-      detail: "6-tech shop, Austin TX",
-      label: "Early beta example",
-    },
-    {
-      quote:
-        "I don't want another system to learn. Forward, calendar fills, Jobber gets the request. I only text back when it's P1 or the address looks wrong.",
-      name: "Sarah L.",
-      detail: "Owner-operator, Phoenix",
-      label: "Early beta example",
-    },
-    {
-      quote:
-        "We still dispatch in ServiceTitan. Vowpath is the night shift that actually books slots.",
-      name: "Tom K.",
-      detail: "12 trucks, Dallas",
-      label: "Early beta example",
-    },
-  ],
+  badges: ["US residential HVAC", "Same shop number", "Jobber optional"],
+  testimonials: [] as Array<{
+    quote: string;
+    name: string;
+    detail: string;
+    label?: string;
+  }>,
 };
 
 export const signupFlowEn = {
@@ -517,9 +561,9 @@ export const signupFlowEn = {
     },
     {
       step: "04",
-      title: "Pick a booking mode",
-      description: "Auto Book is default. Switch to Hybrid or Manual when you want.",
-      time: "1 min",
+      title: "Test call + dashboard",
+      description: "One test ring. See intake, analytics, and Vowpath AI on your phone.",
+      time: "2 min",
     },
   ],
 };
@@ -528,8 +572,8 @@ export const pricingEn = {
   title: "One no-heat call at 2 AM pays for the month",
   subtitle: "Unlimited for busy shops. Flex when nights are quieter.",
   compare: [
-    { label: "After-hours answering", amount: "Included" },
-    { label: "Auto calendar + booking links", amount: "Included" },
+    { label: "AI phone + link intake", amount: "Included" },
+    { label: "Shop analytics + Vowpath AI", amount: "Included" },
     { label: "Owner SMS (FYI + exceptions)", amount: "Included" },
     { label: "Jobber sync", amount: "Optional", highlight: true },
   ],
@@ -580,7 +624,7 @@ export const getStartedEn = {
   canceledMessage: "Checkout canceled. Pick a plan below to try again.",
   checkoutError: "Couldn't start checkout. Try again or sign up to continue.",
   demoNotice: "Payments aren't live yet. Pick a plan and sign up to finish setup.",
-  afterPay: "After checkout → hours, forwarding, mode — ~10 minutes",
+  afterPay: "After checkout → set hours & forwarding → test call (~10 min)",
   payLabel: (price: string, period: string) => `Subscribe — ${price}${period}`,
   signupLabel: "Sign up and continue",
 };
@@ -594,7 +638,7 @@ export const faqEn = {
     },
     {
       q: "How is this different from Jobber AI or CallJolt?",
-      a: "They auto-book everything. Vowpath auto-books clear jobs too — but holds unclear intakes and sends urgent SMS on P1 so you can cancel bad bookings from the truck.",
+      a: "They auto-book everything. Vowpath auto-books clear routine jobs too — but P1 emergencies and unclear intakes wait for your 1 / 2 before confirming.",
     },
     {
       q: "Does this replace Jobber or ServiceTitan?",
@@ -602,11 +646,11 @@ export const faqEn = {
     },
     {
       q: "What if the AI gets something wrong?",
-      a: "Unclear address or name? Job waits for your 1 / 2. Already auto-booked? Reply 2 to cancel or 9 to undo within your window. Switch to Manual anytime.",
+      a: "Unclear address or name? Job waits for your 1 / 2. Already auto-booked? Reply 2 to cancel or 9 to undo within your window. Tighten rules anytime in settings or ask Vowpath AI.",
     },
     {
-      q: "What is Auto Book vs Hybrid vs Manual?",
-      a: "Auto Book (default): clear jobs confirm instantly; P1 books with urgent SMS; messy intakes hold. Hybrid: P1 waits for 1 / 2. Manual: every job needs your text.",
+      q: "Is this just an AI answering service?",
+      a: "No. The AI phone layer is the core — but you also get shop analytics (missed calls, KPIs, trends) and Vowpath AI to ask what is happening and change rules from your phone.",
     },
     {
       q: "Who answers during the day?",
@@ -664,9 +708,9 @@ export const agreementKeeperEn = {
 };
 
 export const ctaEn = {
-  eyebrow: "Your competitor books at 7 PM. You can too.",
-  title: "Forward tonight. Wake up to a fuller calendar.",
-  subtitle: "Same number. HVAC triage. Auto-book by default — you text back only when it matters.",
+  eyebrow: "Your line. Your calendar. Your assistant.",
+  title: "Forward tonight. Wake up to booked work.",
+  subtitle: "AI phone intake, shop analytics, and Vowpath AI — one subscription for owner-operators who miss calls on the job.",
   button: CHECKOUT_CTA,
 };
 
@@ -683,7 +727,7 @@ export const footerEn = {
   privacy: "Privacy",
   terms: "Terms",
   contact: "Contact",
-  tagline: "Stop losing customers to missed calls.",
-  brandMeaning: "Missed call → HVAC intake → auto calendar → booked job. Jobber optional.",
-  subline: "US residential HVAC - works with Jobber, HCP, and ServiceTitan",
+  tagline: "AI phone, analytics, and ops assistant for HVAC shops.",
+  brandMeaning: "Missed call → AI intake → booked window → tech on the way. Jobber optional.",
+  subline: "US residential HVAC — works with Jobber; HCP and ServiceTitan stay your dispatch tools",
 };

@@ -125,7 +125,7 @@ export const SETTINGS_PAGE_EN = {
   bookingPolicyDescription:
     "Texts to your cell are how you review and approve requests. Email mirrors the same alerts. Jobber gets a Request only after you reply 1 — useful for calendar and job history.",
   bookingModeHint:
-    "Auto Book: confirms after slot pick · Hybrid: auto-book selected urgencies · Manual: you approve every pick",
+    "Smart auto-book: routine P2/P3 confirm instantly · P1 or unclear intakes wait for your 1 / 2",
   shadowModeHint: "0 = real Jobber writes. 1+ = test runs without writing to Jobber.",
   ownerAlertsTitle: "How we reach you",
   ownerAlertsDescription:

@@ -4,7 +4,7 @@ import { SETTINGS_PAGE_EN } from "./content-settings-en-backup";
 export const settingsPageEn = {
   ...SETTINGS_PAGE_EN,
   title: "Shop settings",
-  subtitle: "Auto Book, crew dispatch, and PM plans — then one-time go-live steps.",
+  subtitle: "Smart auto-book, crew dispatch, and PM plans — then one-time go-live steps.",
   badge: "Go live",
   backDashboardLink: "← Dashboard",
   productSectionTitle: "How your shop runs",

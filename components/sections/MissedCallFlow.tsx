@@ -21,6 +21,17 @@ function StepIcon({ id }: { id: StepId }) {
       </svg>
     );
   }
+  if (id === "forward") {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path
+          fillRule="evenodd"
+          d="M15.75 4.5a3 3 0 11.626 2.122l-8.25 8.25a.75.75 0 01-1.06 0l-2.122-2.122a.75.75 0 011.06-1.06l1.591 1.59 7.72-7.72A1.5 1.5 0 0117.25 6v12a.75.75 0 001.5 0V6a3 3 0 00-3-1.5z"
+          clipRule="evenodd"
+        />
+      </svg>
+    );
+  }
   if (id === "triage") {
     return (
       <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -62,6 +73,31 @@ function StepIcon({ id }: { id: StepId }) {
       </svg>
     );
   }
+  if (id === "dispatch") {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path d="M8.25 4.5a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM4.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122z" />
+      </svg>
+    );
+  }
+  if (id === "onway") {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-.18 60.517 60.517 0 00-18.445-8.984z" />
+      </svg>
+    );
+  }
+  if (id === "arrival") {
+    return (
+      <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <path
+          fillRule="evenodd"
+          d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+          clipRule="evenodd"
+        />
+      </svg>
+    );
+  }
   return (
     <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path
@@ -97,10 +133,11 @@ export function MissedCallFlow() {
       <Container>
         <SectionHeading title={s.title} subtitle={s.subtitle} align="center" />
 
-        <div className="mt-12 hidden items-stretch justify-center lg:flex">
+        <div className="mt-12 hidden overflow-x-auto pb-2 lg:block">
+          <div className="mx-auto flex w-max min-w-full items-stretch justify-center px-2">
           {s.steps.map((step, i) => (
             <div key={step.id} className="flex min-w-0 items-center">
-              <article className="vow-site-card flex w-[11rem] flex-col items-center p-5 text-center xl:w-[12.5rem]">
+              <article className="vow-site-card flex w-[10.5rem] flex-col items-center p-4 text-center xl:w-[11.5rem]">
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-brand-400/25 bg-brand-500/10">
                   <StepIcon id={step.id} />
                 </span>
@@ -110,9 +147,10 @@ export function MissedCallFlow() {
               {i < s.steps.length - 1 ? <FlowArrow /> : null}
             </div>
           ))}
+          </div>
         </div>
 
-        <ol className="mx-auto mt-12 max-w-sm space-y-0 lg:hidden">
+        <ol className="mx-auto mt-12 max-w-md space-y-0 px-1 sm:max-w-lg lg:hidden">
           {s.steps.map((step, i) => (
             <li key={step.id}>
               <article className="vow-site-card flex flex-col items-center p-5 text-center">

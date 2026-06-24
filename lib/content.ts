@@ -339,7 +339,7 @@ export const getStartedPage = {
     "결제를 시작하지 못했습니다. 아래 버튼으로 다시 시도하거나 회원가입으로 진행해 주세요.",
   demoNotice:
     "결제 연동 전입니다. 플랜을 고른 뒤 회원가입하면 연동 설정으로 이어집니다.",
-  afterPay: "결제 완료 후 → 연동 설정(시간대 · 포워딩) 약 10분 · Jobber 선택",
+  afterPay: "결제 완료 후 → 시간대·포워딩 설정 → 테스트 통화 (~10분) · Jobber 선택",
 };
 
 export const onboardingPage = {

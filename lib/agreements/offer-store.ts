@@ -30,8 +30,10 @@ async function writeFileStore(store: OfferStore) {
   await writeFile(OFFER_FILE, JSON.stringify(store, null, 2), "utf-8");
 }
 
+import { randomBytes } from "crypto";
+
 export function newOfferToken(): string {
-  return `pm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return `pm_${randomBytes(16).toString("hex")}`;
 }
 
 export async function createAgreementOfferSession(

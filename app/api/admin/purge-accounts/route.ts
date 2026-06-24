@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 import { purgeAllAccounts } from "@/lib/account-purge";
 
 function purgeSecret(): string | undefined {
-  return (
-    process.env.PURGE_ACCOUNTS_SECRET?.trim() ||
-    process.env.CRON_SECRET?.trim() ||
-    process.env.AUTH_SECRET?.trim()
-  );
+  return process.env.PURGE_ACCOUNTS_SECRET?.trim() || undefined;
 }
 
 function isAuthorized(request: Request): boolean {
@@ -32,7 +28,7 @@ export async function POST(request: Request) {
 
   if (!purgeSecret()) {
     return NextResponse.json(
-      { error: "PURGE_ACCOUNTS_SECRET, CRON_SECRET, or AUTH_SECRET required" },
+      { error: "PURGE_ACCOUNTS_SECRET is not configured" },
       { status: 503 },
     );
   }

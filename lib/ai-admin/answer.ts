@@ -297,7 +297,7 @@ function handleSettingsRead(pack: AiContextPack): VowpathAiResponse {
       facts: {
         headline: loc === "ko" ? "현재 샵 설정입니다." : "Here are your current shop settings.",
         bullets: [
-          loc === "ko" ? `예약 모드: ${mode}` : `Booking mode: ${mode}`,
+          loc === "ko" ? `예약 정책: ${mode}` : `Booking policy: ${mode}`,
           loc === "ko"
             ? `아침 SMS 브리핑: ${m.dailyBriefingSmsEnabled ? "켜짐" : "꺼짐"} (${m.dailyBriefingSmsTime})`
             : `Morning SMS briefing: ${m.dailyBriefingSmsEnabled ? "On" : "Off"} (${m.dailyBriefingSmsTime})`,
@@ -308,7 +308,7 @@ function handleSettingsRead(pack: AiContextPack): VowpathAiResponse {
       },
     }),
     rows: [
-      { label: loc === "ko" ? "예약 모드" : "Booking Mode", value: mode },
+      { label: loc === "ko" ? "예약 정책" : "Booking policy", value: mode },
       { label: loc === "ko" ? "승인 SMS" : "Approval SMS", value: s.ownerApprovalSms },
       { label: loc === "ko" ? "아침 브리핑" : "Morning Briefing", value: m.dailyBriefingSmsEnabled ? "On" : "Off" },
       { label: loc === "ko" ? "브리핑 시간" : "Briefing Time", value: m.dailyBriefingSmsTime },
@@ -316,8 +316,8 @@ function handleSettingsRead(pack: AiContextPack): VowpathAiResponse {
     actions: [{ label: labels(pack).openSettings, href: "/dashboard/settings" }],
     suggestions:
       loc === "ko"
-        ? ["수동 승인으로 바꿔줘", "아침 SMS 꺼줘", "서비스 지역 보여줘"]
-        : ["Switch to manual approval", "Turn off morning SMS", "Show service areas"],
+        ? ["주말은 수동 승인 규칙 만들어줘", "아침 SMS 꺼줘", "서비스 지역 보여줘"]
+        : ["Add a weekend manual-approval rule", "Turn off morning SMS", "Show service areas"],
   };
 }
 
