@@ -136,6 +136,21 @@ export const jobberConnectEn = {
 
   connectedSubtitle: "Connected: {account}",
 
+  connectedAccountTitle: "Connected Jobber account",
+
+  connectedCompanyLabel: "Company",
+
+  connectedEmailLabel: "Signed in as",
+
+  connectedPhoneLabel: "Shop phone",
+
+  connectedIdLabel: "Account ID",
+
+  connectedAtLabel: "Connected on",
+
+  connectedPendingAccount:
+    "OAuth connected — fetching your Jobber account details. Refresh if this stays empty.",
+
   badgeConnected: "Connected",
 
   badgeDisconnected: "Not connected",
@@ -158,7 +173,11 @@ export const jobberConnectEn = {
 
   redirectSetupCopy: "Copy URL",
 
-  redirectSetupNote: "For local dev, also register http://localhost:3000/api/jobber/callback.",
+  redirectSetupNote:
+    "If you created a new VOWROAD app, open the app whose Client ID matches Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
+
+  redirectSetupClientId:
+    "Vowroad uses Jobber Client ID: {clientId} — add the Callback URL to that app in Developer Center.",
 
   settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
 

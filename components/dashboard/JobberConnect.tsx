@@ -10,7 +10,12 @@ type Status = {
   configured: boolean;
   connected: boolean;
   accountName: string | null;
+  accountId?: string | null;
+  accountEmail?: string | null;
+  accountPhone?: string | null;
+  connectedAt?: string | null;
   redirectUri?: string | null;
+  clientId?: string | null;
   developerPortalUrl?: string | null;
   invoiceAccess?: {
     ok: boolean;
@@ -18,6 +23,19 @@ type Status = {
     reconnectRecommended: boolean;
   } | null;
 };
+
+function formatConnectedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export function JobberConnect({
   embedded = false,
@@ -151,8 +169,10 @@ export function JobberConnect({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/50 px-4 py-3.5">
           <div className="min-w-0">
             <p className="text-base font-semibold text-brand-950">
-              {s.connected && s.accountName
-                ? copy.connectedSubtitle.replace("{account}", s.accountName)
+              {s.connected
+                ? s.accountName
+                  ? copy.connectedSubtitle.replace("{account}", s.accountName)
+                  : copy.connectedPendingAccount
                 : copy.subtitle}
             </p>
             {s.connected ? (
@@ -212,6 +232,11 @@ export function JobberConnect({
           <p className={`mt-2 text-amber-900/80 ${isSettings ? "text-sm" : "text-xs"}`}>
             {copy.redirectSetupNote}
           </p>
+          {s.clientId ? (
+            <p className={`mt-2 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
+              {copy.redirectSetupClientId.replace("{clientId}", s.clientId)}
+            </p>
+          ) : null}
           {s.developerPortalUrl ? (
             <a
               href={s.developerPortalUrl}
@@ -224,6 +249,66 @@ export function JobberConnect({
               {copy.redirectSetupLink} →
             </a>
           ) : null}
+        </div>
+      ) : null}
+
+      {s.connected ? (
+        <div
+          className={`rounded-xl border border-emerald-200 bg-emerald-50/80 ${
+            isSettings ? "mt-4 px-4 py-4" : "mt-4 px-4 py-3"
+          }`}
+        >
+          <p className={`font-semibold text-emerald-950 ${isSettings ? "text-base" : "text-sm"}`}>
+            {copy.connectedAccountTitle}
+          </p>
+          {s.accountName || s.accountEmail || s.accountId || s.accountPhone ? (
+            <dl
+              className={`mt-3 grid gap-2 ${
+                isSettings ? "text-sm sm:grid-cols-2" : "text-xs"
+              }`}
+            >
+              {s.accountName ? (
+                <div>
+                  <dt className="font-medium text-emerald-900/80">{copy.connectedCompanyLabel}</dt>
+                  <dd className="mt-0.5 font-semibold text-emerald-950">{s.accountName}</dd>
+                </div>
+              ) : null}
+              {s.accountEmail ? (
+                <div>
+                  <dt className="font-medium text-emerald-900/80">{copy.connectedEmailLabel}</dt>
+                  <dd className="mt-0.5 break-all font-semibold text-emerald-950">
+                    {s.accountEmail}
+                  </dd>
+                </div>
+              ) : null}
+              {s.accountPhone ? (
+                <div>
+                  <dt className="font-medium text-emerald-900/80">{copy.connectedPhoneLabel}</dt>
+                  <dd className="mt-0.5 font-semibold text-emerald-950">{s.accountPhone}</dd>
+                </div>
+              ) : null}
+              {s.accountId ? (
+                <div className={isSettings ? "sm:col-span-2" : undefined}>
+                  <dt className="font-medium text-emerald-900/80">{copy.connectedIdLabel}</dt>
+                  <dd className="mt-0.5 break-all font-mono text-[0.85em] text-emerald-950">
+                    {s.accountId}
+                  </dd>
+                </div>
+              ) : null}
+              {formatConnectedAt(s.connectedAt) ? (
+                <div>
+                  <dt className="font-medium text-emerald-900/80">{copy.connectedAtLabel}</dt>
+                  <dd className="mt-0.5 font-semibold text-emerald-950">
+                    {formatConnectedAt(s.connectedAt)}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : (
+            <p className={`mt-2 text-emerald-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
+              {copy.connectedPendingAccount}
+            </p>
+          )}
         </div>
       ) : null}
 

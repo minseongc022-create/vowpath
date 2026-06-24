@@ -11,6 +11,8 @@ export type JobberTokenRecord = {
   expiresAt: number;
   accountId?: string;
   accountName?: string;
+  accountEmail?: string;
+  accountPhone?: string;
   updatedAt: string;
 };
 

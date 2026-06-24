@@ -12,7 +12,6 @@ const SYNC_ITEMS = [
 export function JobberSettingsPanel({
   onStatusChange,
   connected,
-  accountName,
   stepDone,
   onConfirm,
   onSkip,
@@ -20,7 +19,6 @@ export function JobberSettingsPanel({
 }: {
   onStatusChange: (connected: boolean, meta?: { freshConnect?: boolean }) => void;
   connected: boolean;
-  accountName: string | null;
   stepDone: boolean;
   onConfirm: () => void;
   onSkip: () => void;
@@ -81,11 +79,6 @@ export function JobberSettingsPanel({
         <div className="mt-4">
           <JobberConnect embedded variant="settings" onStatusChange={onStatusChange} />
         </div>
-        {connected && accountName ? (
-          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-medium text-emerald-900">
-            {settingsPage.jobberConnectedSummary.replace("{account}", accountName)}
-          </p>
-        ) : null}
       </div>
 
       {stepDone ? null : (

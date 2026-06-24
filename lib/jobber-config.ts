@@ -34,6 +34,11 @@ export function isJobberConfigured(): boolean {
   return Boolean(id && secret && getJobberRedirectUri());
 }
 
+/** Public OAuth client id (not secret) — matches Jobber Developer Center app. */
+export function getJobberClientId(): string {
+  return process.env.JOBBER_CLIENT_ID?.trim() || "";
+}
+
 /**
  * OAuth redirect URI. Prefer explicit env, then request origin, then Vercel env.
  * Must exactly match Jobber Developer Center → OAuth Callback URL.

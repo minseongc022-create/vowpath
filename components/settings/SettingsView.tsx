@@ -138,10 +138,15 @@ function SettingsViewBody({
       const data = (await res.json()) as {
         connected?: boolean;
         accountName?: string | null;
+        accountEmail?: string | null;
       };
       const connected = Boolean(data.connected);
       setJobberConnected(connected);
-      setJobberAccount(data.accountName ?? null);
+      const label = data.accountName?.trim();
+      const email = data.accountEmail?.trim();
+      setJobberAccount(
+        label && email ? `${label} (${email})` : label || email || null,
+      );
       if (connected) {
         setShop((prev) => {
           if (prev.jobberConnected) return prev;
@@ -463,7 +468,6 @@ function SettingsViewBody({
           >
             <JobberSettingsPanel
               connected={jobberConnected}
-              accountName={jobberAccount}
               stepDone={jobberStepDone}
               showConfirm={jobberLinked}
               onConfirm={() => void handleJobberConfirm()}

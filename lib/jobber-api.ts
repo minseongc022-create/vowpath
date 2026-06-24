@@ -104,20 +104,48 @@ async function getValidAccessToken(
   return { accessToken: updated.accessToken, record: updated };
 }
 
-export async function fetchJobberAccount(userId: string): Promise<{
+export type JobberAccountSummary = {
   accountId?: string;
   accountName?: string;
-}> {
+  accountEmail?: string;
+  accountPhone?: string;
+};
+
+export async function fetchJobberAccount(userId: string): Promise<JobberAccountSummary> {
   const { accessToken, record } = await getValidAccessToken(userId);
 
   const data = await jobberGraphql<{
-    account?: { id: string; name: string };
+    account?: { id: string; name: string; phone?: string | null };
   }>(
     accessToken,
-    `query AccountName {
-      account { id name }
+    `query AccountProfile {
+      account { id name phone }
     }`,
   );
+
+  let accountEmail: string | undefined;
+  try {
+    const usersData = await jobberGraphql<{
+      users?: {
+        nodes?: Array<{
+          isAccountOwner?: boolean;
+          email?: { raw?: string | null };
+        }>;
+      };
+    }>(
+      accessToken,
+      `query AccountUsers {
+        users(first: 10) {
+          nodes { isAccountOwner email { raw } }
+        }
+      }`,
+    );
+    const nodes = usersData.users?.nodes ?? [];
+    const owner = nodes.find((user) => user.isAccountOwner) ?? nodes[0];
+    accountEmail = owner?.email?.raw?.trim() || undefined;
+  } catch {
+    // Users scope may be unavailable on the app.
+  }
 
   const account = data.account;
   if (account) {
@@ -125,6 +153,8 @@ export async function fetchJobberAccount(userId: string): Promise<{
       ...record,
       accountId: account.id,
       accountName: account.name,
+      accountPhone: account.phone?.trim() || undefined,
+      accountEmail,
       updatedAt: new Date().toISOString(),
     };
     await saveJobberTokens(updated);
@@ -133,6 +163,8 @@ export async function fetchJobberAccount(userId: string): Promise<{
   return {
     accountId: account?.id,
     accountName: account?.name,
+    accountEmail,
+    accountPhone: account?.phone?.trim() || undefined,
   };
 }
 

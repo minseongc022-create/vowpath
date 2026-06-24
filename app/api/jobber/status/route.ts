@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { probeJobberInvoiceAccess } from "@/lib/jobber-api";
+import { fetchJobberAccount, probeJobberInvoiceAccess } from "@/lib/jobber-api";
 import { getJobberTokens } from "@/lib/jobber-tokens";
 import {
   getJobberDeveloperPortalUrl,
+  getJobberClientId,
   getJobberOriginFromRequest,
   getJobberRedirectUri,
   isJobberConfigured,
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
 
   const configured = isJobberConfigured();
   const redirectUri = getJobberRedirectUri(getJobberOriginFromRequest(request));
-  const tokens = await getJobberTokens(session.sub);
+  let tokens = await getJobberTokens(session.sub);
 
   let invoiceAccess: {
     ok: boolean;
@@ -26,6 +27,15 @@ export async function GET(request: Request) {
   } | null = null;
 
   if (tokens) {
+    if (!tokens.accountName) {
+      try {
+        await fetchJobberAccount(session.sub);
+        tokens = (await getJobberTokens(session.sub)) ?? tokens;
+      } catch (e) {
+        console.warn("[jobber/status] account refresh", e);
+      }
+    }
+
     invoiceAccess = await probeJobberInvoiceAccess(session.sub);
   }
 
@@ -33,7 +43,12 @@ export async function GET(request: Request) {
     configured,
     connected: Boolean(tokens),
     accountName: tokens?.accountName ?? null,
+    accountId: tokens?.accountId ?? null,
+    accountEmail: tokens?.accountEmail ?? null,
+    accountPhone: tokens?.accountPhone ?? null,
+    connectedAt: tokens?.updatedAt ?? null,
     redirectUri,
+    clientId: getJobberClientId() || null,
     developerPortalUrl: getJobberDeveloperPortalUrl(),
     invoiceAccess,
   });

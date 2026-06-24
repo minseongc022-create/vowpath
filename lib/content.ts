@@ -1254,7 +1254,9 @@ const jobberConnectKo = {
   redirectSetupCopied: "복사됨",
   redirectSetupCopy: "URL 복사",
   redirectSetupNote:
-    "로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록해 두세요.",
+    "VOWROAD 앱을 새로 만들었다면, Vercel에 등록된 Client ID와 같은 앱을 열어야 합니다. 로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록하세요.",
+  redirectSetupClientId:
+    "Vowroad가 사용 중인 Jobber Client ID: {clientId} — Developer Center에서 이 ID가 보이는 앱에 Callback URL을 추가하세요.",
   settingsConnectedHint: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
   invoiceAccessOk: "수금 매출: Jobber 인보이스 읽기 권한 정상.",
   invoiceAccessReconnect:
