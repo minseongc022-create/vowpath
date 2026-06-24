@@ -11,6 +11,7 @@ import {
   type JobberTokenRecord,
 } from "./jobber-tokens";
 import { normalizePhone, parseCustomerName, parseUsAddress } from "./parse-contact";
+import { parseJobberMoneyCents } from "./jobber-money";
 
 const GRAPHQL_URL = "https://api.getjobber.com/api/graphql";
 
@@ -449,4 +450,171 @@ export async function fetchJobberRequestsInRange(
   return [...byId.values()].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+}
+
+export type JobberInvoiceSnapshot = {
+  invoiceId: string;
+  invoiceNumber?: string;
+  invoiceStatus: string;
+  issuedDate?: string;
+  collectedCents: number;
+  invoicedCents: number;
+  outstandingCents: number;
+  jobberJobIds: string[];
+  jobberWebUri?: string;
+};
+
+type JobberInvoiceNode = {
+  id: string;
+  invoiceNumber?: string;
+  invoiceStatus: string;
+  issuedDate?: string | null;
+  createdAt?: string;
+  jobberWebUri?: string | null;
+  amounts?: {
+    total?: unknown;
+    paymentsTotal?: unknown;
+    outstanding?: unknown;
+  } | null;
+  jobs?: { nodes: { id: string }[] } | null;
+};
+
+const INVOICES_PAGE_SIZE = 50;
+const MAX_INVOICE_PAGES = 30;
+
+const INVOICES_QUERY = `
+  query JobberInvoices($first: Int!, $after: String, $filter: InvoiceFilterAttributes) {
+    invoices(
+      first: $first
+      after: $after
+      filter: $filter
+      sort: [{ key: ISSUED_DATE, direction: DESCENDING }]
+    ) {
+      nodes {
+        id
+        invoiceNumber
+        invoiceStatus
+        issuedDate
+        createdAt
+        jobberWebUri
+        amounts {
+          total
+          paymentsTotal
+          outstanding
+        }
+        jobs(first: 10) {
+          nodes { id }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+function normalizeInvoiceNode(node: JobberInvoiceNode): JobberInvoiceSnapshot {
+  return {
+    invoiceId: node.id,
+    invoiceNumber: node.invoiceNumber ?? undefined,
+    invoiceStatus: node.invoiceStatus,
+    issuedDate: node.issuedDate ?? node.createdAt ?? undefined,
+    collectedCents: parseJobberMoneyCents(node.amounts?.paymentsTotal),
+    invoicedCents: parseJobberMoneyCents(node.amounts?.total),
+    outstandingCents: parseJobberMoneyCents(node.amounts?.outstanding),
+    jobberJobIds: node.jobs?.nodes.map((j) => j.id) ?? [],
+    jobberWebUri: node.jobberWebUri ?? undefined,
+  };
+}
+
+async function fetchInvoicesPage(
+  accessToken: string,
+  after: string | null,
+  filter?: { issuedDate: { from: string; to: string } },
+): Promise<{
+  nodes: JobberInvoiceNode[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+}> {
+  const data = await jobberGraphql<{
+    invoices?: {
+      nodes: JobberInvoiceNode[];
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+    };
+  }>(accessToken, INVOICES_QUERY, {
+    first: INVOICES_PAGE_SIZE,
+    after,
+    filter: filter ?? null,
+  });
+
+  const invoices = data.invoices;
+  return {
+    nodes: invoices?.nodes ?? [],
+    hasNextPage: invoices?.pageInfo.hasNextPage ?? false,
+    endCursor: invoices?.pageInfo.endCursor ?? null,
+  };
+}
+
+/** Fetch Jobber invoices for a date range (paginated, server-side filter with client fallback). */
+export async function fetchJobberInvoicesInRange(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<JobberInvoiceSnapshot[]> {
+  const { accessToken } = await getValidAccessToken(userId);
+  const range = toIsoRange(start, end);
+  const collected: JobberInvoiceSnapshot[] = [];
+  let after: string | null = null;
+  let useClientFilter = false;
+
+  for (let page = 0; page < MAX_INVOICE_PAGES; page += 1) {
+    let nodes: JobberInvoiceNode[];
+    let hasNextPage: boolean;
+    let endCursor: string | null;
+
+    try {
+      const result = await fetchInvoicesPage(
+        accessToken,
+        after,
+        useClientFilter ? undefined : { issuedDate: range },
+      );
+      nodes = result.nodes;
+      hasNextPage = result.hasNextPage;
+      endCursor = result.endCursor;
+    } catch (e) {
+      if (!useClientFilter && page === 0) {
+        useClientFilter = true;
+        after = null;
+        continue;
+      }
+      throw e;
+    }
+
+    for (const node of nodes) {
+      const invoice = normalizeInvoiceNode(node);
+      const issued = new Date(invoice.issuedDate ?? 0).getTime();
+      if (issued >= start.getTime() && issued <= end.getTime()) {
+        collected.push(invoice);
+      }
+    }
+
+    if (useClientFilter) {
+      const oldest = nodes[nodes.length - 1];
+      const oldestDate = oldest?.issuedDate ?? oldest?.createdAt;
+      if (oldestDate && new Date(oldestDate).getTime() < start.getTime()) {
+        break;
+      }
+    }
+
+    if (!hasNextPage || !endCursor) break;
+    after = endCursor;
+  }
+
+  const byId = new Map<string, JobberInvoiceSnapshot>();
+  for (const invoice of collected) {
+    byId.set(invoice.invoiceId, invoice);
+  }
+  return [...byId.values()].sort((a, b) => {
+    const ta = new Date(a.issuedDate ?? 0).getTime();
+    const tb = new Date(b.issuedDate ?? 0).getTime();
+    return tb - ta;
+  });
 }

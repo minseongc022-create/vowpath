@@ -54,6 +54,15 @@ export async function GET(request: Request) {
       console.warn("[jobber/callback] account fetch", e);
     }
 
+    void import("@/lib/revenue-sync")
+      .then(({ syncRevenueLedgerForUser }) => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 90);
+        return syncRevenueLedgerForUser(session.sub, start, end, { force: true });
+      })
+      .catch((e) => console.warn("[jobber/callback] revenue sync", e));
+
     settings.searchParams.set("jobber", "connected");
     settings.searchParams.set("section", "jobber");
     return NextResponse.redirect(settings);

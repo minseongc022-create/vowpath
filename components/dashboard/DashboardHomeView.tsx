@@ -45,6 +45,7 @@ import {
 } from "@/components/dashboard/DashboardDateRangePicker";
 import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRequestButton";
 import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
+import { CollectedRevenuePanel } from "@/components/dashboard/CollectedRevenuePanel";
 import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
 
 export function DashboardHomeView() {
@@ -239,6 +240,11 @@ export function DashboardHomeView() {
         jobberBookings={jobberBookings}
         requestStatuses={requestStatuses}
         onStatusChange={() => void refresh()}
+      />
+
+      <CollectedRevenuePanel
+        dateRange={dateRange}
+        loading={!hasLoaded && loading}
       />
 
       <RecoveryMetricsPanel

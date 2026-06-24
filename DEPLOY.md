@@ -45,7 +45,8 @@ Console:
 
 ## 4. Smoke test (production)
 
-- `/dashboard` loads — call recovery shows booking **counts**, not $ estimates
+- `/dashboard` loads — **Collected revenue** from Jobber invoices (paid amounts)
+- `/dashboard` — Call recovery shows booking counts (no $ estimates)
 - `/dashboard/ai` — proactive briefing + rule preview
 - `/dashboard/settings` — Automation Rules list
 - `POST /api/vowpath-ai` with session cookie
