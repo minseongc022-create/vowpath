@@ -4,9 +4,9 @@ import { getCheckoutCta, getSectionLabels, getSiteTagline } from "./marketing-co
 export const SITE = {
   name: "Vowpath",
   tagline: getSiteTagline(),
-  url: "https://vowpathhq.com",
-  contactEmail: "support@vowpathhq.com",
-  supportEmail: "support@vowpathhq.com",
+  url: "https://vowroad.com",
+  contactEmail: "support@vowroad.com",
+  supportEmail: "support@vowroad.com",
   monthlyPrice: "$199",
   flexBasePrice: "$49",
   flexPerBooking: "$18",

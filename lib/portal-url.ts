@@ -74,6 +74,9 @@ export function isPortalHost(host: string | null | undefined): boolean {
     h === "book.vowpathhq.com" ||
     h === "link.vowpathhq.com" ||
     h === "go.vowpathhq.com" ||
+    h === "book.vowroad.com" ||
+    h === "link.vowroad.com" ||
+    h === "go.vowroad.com" ||
     h === "hvacsvc.link" ||
     h === "www.hvacsvc.link"
   );

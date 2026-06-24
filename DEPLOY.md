@@ -17,7 +17,7 @@ Required:
 - `AUTH_SECRET`
 - `KV_REST_API_URL` + `KV_REST_API_TOKEN` (attach Vercel KV — auto-injects these)
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
-- `TWILIO_WEBHOOK_BASE_URL` = your prod domain (e.g. `https://vowpath.vercel.app`)
+- `TWILIO_WEBHOOK_BASE_URL` = your prod domain (e.g. `https://vowroad.com`)
 - `OPENAI_API_KEY`
 - `STRIPE_SECRET_KEY` + price IDs (if billing live)
 - `RESEND_API_KEY` (email OTP)

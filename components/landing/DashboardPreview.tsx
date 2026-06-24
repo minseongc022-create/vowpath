@@ -54,7 +54,7 @@ export function DashboardPreview() {
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
         </div>
-        <span className="text-[11px] font-medium text-slate-400">vowpathhq.com/dashboard</span>
+        <span className="text-[11px] font-medium text-slate-400">vowroad.com/dashboard</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-4">

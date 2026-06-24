@@ -11,10 +11,10 @@ export const customerSmsStartReply =
 export const customerSmsErrorReply =
   "Something went wrong. Please call your service provider or use the booking link we texted you.";
 
-/** True when the portal hostname exposes platform branding (e.g. vowpathhq.com). */
+/** True when the portal hostname exposes platform branding (e.g. vowroad.com). */
 export function isPlatformBrandedHost(hostname: string): boolean {
   const h = hostname.toLowerCase().split(":")[0];
-  return /vowpath/i.test(h);
+  return /vowpath|vowroad/i.test(h);
 }
 
 export function warnIfBrandedPortalUrl(url: string): void {
