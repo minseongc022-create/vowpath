@@ -49,7 +49,7 @@ export function buildLinkIntakeUrl(token: string): string {
   return buildBookingPortalUrl(token);
 }
 
-/** Hostname from NEXT_PUBLIC_PORTAL_URL (e.g. link.vowroad.com). */
+/** Hostname from NEXT_PUBLIC_PORTAL_URL (e.g. link.effiroad.com). */
 export function getPortalRootHostname(): string | null {
   const portal = process.env.NEXT_PUBLIC_PORTAL_URL?.trim();
   if (!portal || portal.includes("localhost")) return null;
@@ -74,9 +74,11 @@ export function isPortalHost(host: string | null | undefined): boolean {
     h === "book.vowpathhq.com" ||
     h === "link.vowpathhq.com" ||
     h === "go.vowpathhq.com" ||
-    h === "book.vowroad.com" ||
+    h === "book.effiroad.com" ||
+    h === "link.effiroad.com" ||
+    h === "go.effiroad.com" ||
     h === "link.vowroad.com" ||
-    h === "go.vowroad.com" ||
+    h === "book.vowroad.com" ||
     h === "hvacsvc.link" ||
     h === "www.hvacsvc.link"
   );

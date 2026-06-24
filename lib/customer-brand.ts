@@ -1,5 +1,5 @@
 /**
- * Customer-facing copy — no platform (Vowroad) branding in SMS or portal replies.
+ * Customer-facing copy — no platform (Effiroad) branding in SMS or portal replies.
  */
 
 export const customerSmsStopReply =
@@ -11,7 +11,7 @@ export const customerSmsStartReply =
 export const customerSmsErrorReply =
   "Something went wrong. Please call your service provider or use the booking link we texted you.";
 
-/** True when the portal hostname exposes platform branding (e.g. vowroad.com). */
+/** True when the portal hostname exposes platform branding (e.g. effiroad.com). */
 export function isPlatformBrandedHost(hostname: string): boolean {
   const h = hostname.toLowerCase().split(":")[0];
   return /vowpath/i.test(h);

@@ -1,13 +1,13 @@
 import type { AiAdminBillingCard, AiAdminPreview } from "./ai-admin/types";
 
-export type VowroadAiAction = {
+export type EffiroadAiAction = {
   label: string;
   href?: string;
   kind?: "approve" | "decline";
   bookingId?: string;
 };
 
-export type VowroadAiResponse = {
+export type EffiroadAiResponse = {
   answer: string;
   rows?: { label: string; value: string }[];
   customer?: { name: string; fields: { label: string; value: string }[] };
@@ -21,7 +21,7 @@ export type VowroadAiResponse = {
   }[];
   adminPreview?: AiAdminPreview;
   billingCard?: AiAdminBillingCard;
-  actions: VowroadAiAction[];
+  actions: EffiroadAiAction[];
   suggestions?: string[];
 };
 

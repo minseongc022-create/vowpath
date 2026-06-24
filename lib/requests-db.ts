@@ -17,12 +17,12 @@ const REQUESTS_FILE = path.join(DATA_DIR, "requests-db.json");
 
 /** Current KV key for tenant request statuses. */
 function kvKey(userId: string) {
-  return `vowroad:requests:${userId}`;
+  return `effiroad:requests:${userId}`;
 }
 
 /** Legacy key — merged on read, not written after migration. */
 function legacyKvKey(userId: string) {
-  return `vowroad:booking-status:${userId}`;
+  return `effiroad:booking-status:${userId}`;
 }
 
 function normalizeMap(raw: Record<string, string>): RequestStatusMap {

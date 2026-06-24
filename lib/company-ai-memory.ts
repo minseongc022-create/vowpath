@@ -25,7 +25,7 @@ const FILE = path.join(DATA_DIR, "company-ai-memory.json");
 type Store = Record<string, CompanyAiMemory>;
 
 function kvKey(userId: string) {
-  return `vowroad:company-ai-memory:${userId}`;
+  return `effiroad:company-ai-memory:${userId}`;
 }
 
 export function defaultCompanyAiMemory(userId: string): CompanyAiMemory {

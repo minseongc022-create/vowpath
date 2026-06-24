@@ -1,5 +1,5 @@
-import { VowroadAiView } from "@/components/dashboard/VowroadAiView";
+import { EffiroadAiView } from "@/components/dashboard/EffiroadAiView";
 
-export default function VowroadAiPage() {
-  return <VowroadAiView />;
+export default function EffiroadAiPage() {
+  return <EffiroadAiView />;
 }

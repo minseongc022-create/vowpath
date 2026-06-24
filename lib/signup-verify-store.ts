@@ -19,7 +19,7 @@ export type PendingSignup = {
   createdAt: string;
 };
 
-const KV_PREFIX = "vowroad:signup:";
+const KV_PREFIX = "effiroad:signup:";
 const DATA_DIR = path.join(process.cwd(), "data");
 const SIGNUPS_FILE = path.join(DATA_DIR, "pending-signups.json");
 
@@ -82,7 +82,7 @@ export async function deletePendingSignup(id: string) {
   await writeFileStore(store);
 }
 
-const RATE_KV_PREFIX = "vowroad:ratelimit:signup:";
+const RATE_KV_PREFIX = "effiroad:ratelimit:signup:";
 
 export async function getSignupAttemptCount(key: string): Promise<number> {
   const normalized = key.trim().toLowerCase();

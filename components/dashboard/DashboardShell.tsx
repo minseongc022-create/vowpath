@@ -26,7 +26,7 @@ import {
 
   IconSettings,
 
-  IconVowroadAi,
+  IconEffiroadAi,
 
 } from "@/components/dashboard/DashboardNavIcons";
 
@@ -176,7 +176,7 @@ export function DashboardShell({
 
       match: (p) => p.startsWith(ROUTES.ai),
 
-      icon: <IconVowroadAi />,
+      icon: <IconEffiroadAi />,
 
     },
 
@@ -324,7 +324,7 @@ export function DashboardShell({
 
               <p className="truncate text-sm font-semibold text-white">{shopName}</p>
 
-              <p className="truncate text-xs text-slate-500">HVAC · Vowroad</p>
+              <p className="truncate text-xs text-slate-500">HVAC · Effiroad</p>
 
             </div>
 

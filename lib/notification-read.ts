@@ -7,7 +7,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const READ_FILE = path.join(DATA_DIR, "notification-read.json");
 
 function kvKey(userId: string) {
-  return `vowroad:notification-read:${userId}`;
+  return `effiroad:notification-read:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, string[]>> {

@@ -285,7 +285,7 @@ export async function pushJobCardToJobber(
   const noteMessage = [
     structuredNote,
     card.jobberPasteBlock ? `\n\n원문 메모:\n${card.jobberPasteBlock}` : "",
-    `\n\n— Sent via Vowroad`,
+    `\n\n— Sent via Effiroad`,
   ].join("");
 
   if (noteMessage.trim()) {

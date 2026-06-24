@@ -15,11 +15,11 @@ const SETTINGS_FILE = path.join(DATA_DIR, "tech-dispatch-settings.json");
 const ASSIGN_FILE = path.join(DATA_DIR, "tech-assignments.json");
 
 function settingsKey(userId: string) {
-  return `vowroad:tech-dispatch:${userId}`;
+  return `effiroad:tech-dispatch:${userId}`;
 }
 
 function assignmentKey(userId: string, bookingId: string) {
-  return `vowroad:tech-assignment:${userId}:${bookingId}`;
+  return `effiroad:tech-assignment:${userId}:${bookingId}`;
 }
 
 function sanitizeTechs(techs: TechMember[] | undefined): TechMember[] {
@@ -121,11 +121,11 @@ export async function saveTechAssignment(assignment: TechAssignment): Promise<vo
 }
 
 function pendingOfferKey(userId: string, techId: string) {
-  return `vowroad:tech-pending:${userId}:${techId}`;
+  return `effiroad:tech-pending:${userId}:${techId}`;
 }
 
 function activeJobKey(userId: string, techId: string) {
-  return `vowroad:tech-active:${userId}:${techId}`;
+  return `effiroad:tech-active:${userId}:${techId}`;
 }
 
 export async function setTechPendingOffer(

@@ -209,21 +209,21 @@ export async function handleTechDispatchReply(params: {
 
   let bookingId = await getTechPendingOffer(params.userId, tech.id);
   if (parsed.ref && bookingId && !bookingIdMatchesRef(bookingId, parsed.ref)) {
-    return { handled: true, replyBody: "Vowroad: Ref does not match your open offer." };
+    return { handled: true, replyBody: "Effiroad: Ref does not match your open offer." };
   }
 
   if (!bookingId) {
-    return { handled: true, replyBody: "Vowroad: No open job offer for you right now." };
+    return { handled: true, replyBody: "Effiroad: No open job offer for you right now." };
   }
 
   const target = await getTechAssignment(params.userId, bookingId);
   if (!target || target.status !== "offering" || target.currentTechId !== tech.id) {
-    return { handled: true, replyBody: "Vowroad: That offer already closed." };
+    return { handled: true, replyBody: "Effiroad: That offer already closed." };
   }
 
   const offer = target.offers.find((o) => o.techId === tech.id && o.outcome === "pending");
   if (!offer) {
-    return { handled: true, replyBody: "Vowroad: That offer already closed." };
+    return { handled: true, replyBody: "Effiroad: That offer already closed." };
   }
 
   await clearTechPendingOffer(params.userId, tech.id);
@@ -237,7 +237,7 @@ export async function handleTechDispatchReply(params: {
     target.updatedAt = new Date().toISOString();
     await saveTechAssignment(target);
 
-    const note = `Assigned to ${tech.name} via Vowroad.`;
+    const note = `Assigned to ${tech.name} via Effiroad.`;
     if (target.bookingId.startsWith("call-")) {
       const callId = target.bookingId.slice("call-".length);
       const logs = await listCallLogs(params.userId);
@@ -273,11 +273,11 @@ export async function handleTechDispatchReply(params: {
 
   const next = await startTechAssignmentForBooking(params.userId, target.bookingId);
   if (next?.status === "offering") {
-    return { handled: true, replyBody: "Vowroad: Passed. Offering to the next tech." };
+    return { handled: true, replyBody: "Effiroad: Passed. Offering to the next tech." };
   }
 
   return {
     handled: true,
-    replyBody: "Vowroad: Passed. Shop will assign manually.",
+    replyBody: "Effiroad: Passed. Shop will assign manually.",
   };
 }

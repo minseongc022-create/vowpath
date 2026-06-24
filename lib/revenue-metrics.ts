@@ -44,7 +44,7 @@ export function buildRevenueMetrics(params: {
     collectedCents += fact.collectedCents;
     invoicedCents += fact.invoicedCents;
     outstandingCents += fact.outstandingCents;
-    if (fact.attributedToVowroad) {
+    if (fact.attributedToEffiroad) {
       attributedCollectedCents += fact.collectedCents;
       attributedInvoiceCount += 1;
     }

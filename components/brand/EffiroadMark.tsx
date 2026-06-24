@@ -1,11 +1,11 @@
-type VowroadMarkProps = {
+type EffiroadMarkProps = {
   className?: string;
   size?: number;
   /** Unique id prefix when multiple marks render on one page */
   idPrefix?: string;
 };
 
-export function VowroadMark({ className = "", size = 32, idPrefix = "vow" }: VowroadMarkProps) {
+export function EffiroadMark({ className = "", size = 32, idPrefix = "vow" }: EffiroadMarkProps) {
   const grad = `${idPrefix}-mark-grad`;
   const glow = `${idPrefix}-mark-glow`;
 

@@ -110,7 +110,7 @@ export function getIntegrationItems(
 
           ? shop.scheduleWindows.map((w) => w.label).join(" · ")
 
-          : "Set days and times Vowroad answers",
+          : "Set days and times Effiroad answers",
 
       },
 
@@ -130,7 +130,7 @@ export function getIntegrationItems(
 
             : "No-answer forwarding configured"
 
-          : "Copy Vowroad number and set forwarding",
+          : "Copy Effiroad number and set forwarding",
 
       },
 
@@ -226,7 +226,7 @@ export function getIntegrationItems(
 
           : "부재 시 착신 전환 설정됨"
 
-        : "Vowroad 번호 복사 후 착신 전환 설정",
+        : "Effiroad 번호 복사 후 착신 전환 설정",
 
     },
 

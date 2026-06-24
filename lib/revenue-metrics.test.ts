@@ -22,7 +22,7 @@ describe("buildRevenueMetrics", () => {
         invoicedCents: 40000,
         outstandingCents: 0,
         jobberJobIds: ["j1"],
-        attributedToVowroad: true,
+        attributedToEffiroad: true,
         updatedAt: "2026-06-10T12:00:00.000Z",
       },
       {
@@ -33,7 +33,7 @@ describe("buildRevenueMetrics", () => {
         invoicedCents: 25000,
         outstandingCents: 0,
         jobberJobIds: ["j2"],
-        attributedToVowroad: false,
+        attributedToEffiroad: false,
         updatedAt: "2026-06-15T12:00:00.000Z",
       },
     ];

@@ -2,7 +2,7 @@ import { shouldTenantAnswerNow } from "./answer-schedule";
 
 
 
-/** True when call is outside the shop's configured Vowroad answer windows. */
+/** True when call is outside the shop's configured Effiroad answer windows. */
 
 export async function isTenantAfterHours(
 

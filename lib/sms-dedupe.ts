@@ -7,7 +7,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const DEDUPE_FILE = path.join(DATA_DIR, "sms-dedupe.json");
 
 function dedupeKey(userId: string, key: string) {
-  return `vowroad:sms-sent:${userId}:${key}`;
+  return `effiroad:sms-sent:${userId}:${key}`;
 }
 
 type DedupeStore = Record<string, Record<string, boolean>>;

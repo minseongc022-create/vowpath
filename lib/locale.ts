@@ -2,8 +2,8 @@
 
 export type UiLocale = "en" | "ko";
 
-export const UI_LOCALE_STORAGE_KEY = "vowroad:ui-locale";
-export const UI_LOCALE_COOKIE = "vowroad_locale";
+export const UI_LOCALE_STORAGE_KEY = "effiroad:ui-locale";
+export const UI_LOCALE_COOKIE = "effiroad_locale";
 
 export const UI_LOCALE = (process.env.NEXT_PUBLIC_LOCALE ?? "en").toLowerCase();
 

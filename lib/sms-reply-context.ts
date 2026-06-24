@@ -7,7 +7,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const CONTEXT_FILE = path.join(DATA_DIR, "sms-reply-context.json");
 
 function kvKey(userId: string) {
-  return `vowroad:sms-reply-target:${userId}`;
+  return `effiroad:sms-reply-target:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, string>> {

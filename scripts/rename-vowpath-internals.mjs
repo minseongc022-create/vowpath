@@ -1,5 +1,5 @@
 /**
- * Rename internal vowpath identifiers → vowroad (API paths, KV keys, types, portal host).
+ * Rename internal vowpath identifiers → effiroad (API paths, KV keys, types, portal host).
  * Run: node scripts/rename-vowpath-internals.mjs
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, renameSync, mkdirSync } from "node:fs";
@@ -19,32 +19,32 @@ const EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".md", ".json", ".ps1", ".exa
 
 /** Longest-first to avoid partial replacements */
 const REPLACEMENTS = [
-  ["estimatedMissedWithoutVowpath", "estimatedMissedWithoutVowroad"],
-  ["attributedToVowpath", "attributedToVowroad"],
-  ["VowpathAiResponse", "VowroadAiResponse"],
-  ["VowpathAiAction", "VowroadAiAction"],
-  ["VowpathAiView", "VowroadAiView"],
-  ["VowpathAiPage", "VowroadAiPage"],
-  ["IconVowpathAi", "IconVowroadAi"],
-  ["VowpathMark", "VowroadMark"],
-  ["vowpath-ai-query", "vowroad-ai-query"],
-  ["/api/vowpath-ai", "/api/vowroad-ai"],
-  ["vowpath-intake-photos", "vowroad-intake-photos"],
-  ["vowpath-intake-draft", "vowroad-intake-draft"],
-  ["vowpath_remember_login", "vowroad_remember_login"],
-  ["vowpath_locale", "vowroad_locale"],
-  ["__vowpathGoogleMapsReady", "__vowroadGoogleMapsReady"],
-  ["data-vowpath-google-maps", "data-vowroad-google-maps"],
-  ["vowpathCallId", "vowroadCallId"],
-  ["vowpathBookingId", "vowroadBookingId"],
-  ["www.hvacsvc.link", "link.vowroad.com"],
-  ["hvacsvc.link", "link.vowroad.com"],
-  ['source: "vowpath"', 'source: "vowroad"'],
-  ['=== "vowpath"', '=== "vowroad"'],
-  ["vowpath:", "vowroad:"],
-  ["@vowpath.local", "@vowroad.local"],
-  ["n === \"vowpath\"", "n === \"vowroad\""],
-  ["vowpathEvent", "vowroadEvent"],
+  ["estimatedMissedWithoutVowpath", "estimatedMissedWithoutEffiroad"],
+  ["attributedToVowpath", "attributedToEffiroad"],
+  ["VowpathAiResponse", "EffiroadAiResponse"],
+  ["VowpathAiAction", "EffiroadAiAction"],
+  ["VowpathAiView", "EffiroadAiView"],
+  ["VowpathAiPage", "EffiroadAiPage"],
+  ["IconVowpathAi", "IconEffiroadAi"],
+  ["VowpathMark", "EffiroadMark"],
+  ["vowpath-ai-query", "effiroad-ai-query"],
+  ["/api/vowpath-ai", "/api/effiroad-ai"],
+  ["vowpath-intake-photos", "effiroad-intake-photos"],
+  ["vowpath-intake-draft", "effiroad-intake-draft"],
+  ["vowpath_remember_login", "effiroad_remember_login"],
+  ["vowpath_locale", "effiroad_locale"],
+  ["__vowpathGoogleMapsReady", "__effiroadGoogleMapsReady"],
+  ["data-vowpath-google-maps", "data-effiroad-google-maps"],
+  ["vowpathCallId", "effiroadCallId"],
+  ["vowpathBookingId", "effiroadBookingId"],
+  ["www.hvacsvc.link", "link.effiroad.com"],
+  ["hvacsvc.link", "link.effiroad.com"],
+  ['source: "vowpath"', 'source: "effiroad"'],
+  ['=== "vowpath"', '=== "effiroad"'],
+  ["vowpath:", "effiroad:"],
+  ["@vowpath.local", "@effiroad.local"],
+  ["n === \"vowpath\"", "n === \"effiroad\""],
+  ["vowpathEvent", "effiroadEvent"],
 ];
 
 function walk(dir, out = []) {
@@ -76,10 +76,10 @@ function renamePath(fromRel, toRel) {
 
 // 1) File renames
 const fileRenames = [
-  ["lib/vowpath-ai-query.ts", "lib/vowroad-ai-query.ts"],
-  ["components/dashboard/VowpathAiView.tsx", "components/dashboard/VowroadAiView.tsx"],
-  ["components/brand/VowpathMark.tsx", "components/brand/VowroadMark.tsx"],
-  ["app/api/vowpath-ai", "app/api/vowroad-ai"],
+  ["lib/vowpath-ai-query.ts", "lib/effiroad-ai-query.ts"],
+  ["components/dashboard/VowpathAiView.tsx", "components/dashboard/EffiroadAiView.tsx"],
+  ["components/brand/VowpathMark.tsx", "components/brand/EffiroadMark.tsx"],
+  ["app/api/vowpath-ai", "app/api/effiroad-ai"],
 ];
 
 for (const [from, to] of fileRenames) {

@@ -37,7 +37,7 @@ function webhookBaseUrl() {
   const base =
     process.env.TWILIO_WEBHOOK_BASE_URL?.trim() ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    "https://vowroad.com";
+    "https://effiroad.com";
   return base.replace(/\/$/, "");
 }
 

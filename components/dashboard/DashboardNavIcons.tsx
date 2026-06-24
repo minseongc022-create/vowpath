@@ -28,7 +28,7 @@ export function IconBriefing({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
-export function IconVowroadAi({ className = "h-4 w-4" }: IconProps) {
+export function IconEffiroadAi({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
       <path

@@ -14,7 +14,7 @@ export type RecoveryMetrics = {
   inboundTotal: number;
   inboundAnsweredByAi: number;
   inboundMissedRaw: number;
-  /** AI calls that reached scheduled / confirmed / completed in Vowroad. */
+  /** AI calls that reached scheduled / confirmed / completed in Effiroad. */
   bookingsFromAiCalls: number;
   /** Subset booked from after-hours AI calls (objective time window). */
   afterHoursBookingsFromAi: number;

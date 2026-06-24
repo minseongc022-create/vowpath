@@ -24,7 +24,7 @@ export async function GET() {
     twilioNote: !isTwilioConfigured()
       ? "Twilio 환경 변수를 추가하세요."
       : !twilioPhone
-        ? "가입 시 Vowroad 번호가 자동 발급됩니다. 연동 설정에서 발급을 완료하세요."
+        ? "가입 시 Effiroad 번호가 자동 발급됩니다. 연동 설정에서 발급을 완료하세요."
         : "Pay-as-you-go Twilio: US (+1) SMS to customers. Enable United States in Messaging Geo permissions.",
   });
 }

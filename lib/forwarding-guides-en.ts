@@ -68,7 +68,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "Your main line rings first. If no one answers in about 15–20 seconds, the call forwards to Vowroad.",
+      "Your main line rings first. If no one answers in about 15–20 seconds, the call forwards to Effiroad.",
 
     recommended: true,
 
@@ -82,7 +82,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "While you are on another call, calls forward to Vowroad. Set after-hours windows separately in answer hours.",
+      "While you are on another call, calls forward to Effiroad. Set after-hours windows separately in answer hours.",
 
   },
 
@@ -144,13 +144,13 @@ export function getForwardingGuideSteps(
 
   scenario: LegacyForwardingScenarioId,
 
-  vowroadNumber: string,
+  effiroadNumber: string,
 
 ): string[] {
 
   const activeScenario = normalizeForwardingScenario(scenario);
 
-  const num = vowroadNumber || "(your Vowroad number)";
+  const num = effiroadNumber || "(your Effiroad number)";
 
   const ringTip = "Let it ring about 15–20 seconds so your team can answer before forwarding.";
 
@@ -172,7 +172,7 @@ export function getForwardingGuideSteps(
 
         "If you use a contact center queue, add the same external number to the queue overflow rule.",
 
-        `During business hours your shop line rings first; missed calls go to Vowroad. ${ringTip}`,
+        `During business hours your shop line rings first; missed calls go to Effiroad. ${ringTip}`,
 
         "Save, then call your public shop number during business hours to verify.",
 
@@ -210,7 +210,7 @@ export function getForwardingGuideSteps(
 
         "On Verizon iPhone: Settings → Phone → turn off Live Voicemail, then test *71.",
 
-        "Call your main shop number and confirm Vowroad answers after a few rings.",
+        "Call your main shop number and confirm Effiroad answers after a few rings.",
 
       ];
 
@@ -280,7 +280,7 @@ export function getForwardingGuideSteps(
 
     "After-hours windows are set under Integrations → answer hours.",
 
-    "Call the number customers actually dial and confirm Vowroad answers.",
+    "Call the number customers actually dial and confirm Effiroad answers.",
 
   ];
 

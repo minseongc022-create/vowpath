@@ -13,7 +13,7 @@
    배포 후:
 
    ```
-   https://vowroad.com/api/jobber/callback
+   https://effiroad.com/api/jobber/callback
    http://localhost:3000/api/jobber/callback
    ```
 
@@ -50,7 +50,7 @@ JOBBER_GRAPHQL_VERSION=2025-04-16
    - [secure.getjobber.com/login](https://secure.getjobber.com/login) → 로그인 또는 **비밀번호 재설정**
    - 로그인 되면 아래 지원 메일로 **developer testing 으로 전환** 요청 (Trial 만료여도 OK)
 
-2. **새 이메일로 가입** — Gmail / `@vowroad.com` 등 **한 번도 Jobber에 안 쓴** 주소로 developer-sign-up
+2. **새 이메일로 가입** — Gmail / `@effiroad.com` 등 **한 번도 Jobber에 안 쓴** 주소로 developer-sign-up
 
 3. **지원팀** — `api-support@getjobber.com`
 

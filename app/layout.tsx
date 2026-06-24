@@ -25,36 +25,36 @@ const siteMetadataBase = {
 
 const enMeta = {
   ...siteMetadataBase,
-  title: `${SITE.name} — Catch the Call. Keep the Contract.`,
+  title: `${SITE.name} — ${SITE.tagline}`,
   description:
-    "Missed HVAC calls auto-book to your calendar. Crew SMS dispatch. Agreement Keeper turns completed jobs into maintenance plans. Jobber optional.",
+    "The road to efficiency for HVAC shops. Missed calls auto-book to your calendar. Crew SMS dispatch. Jobber optional.",
   openGraph: {
-    title: `${SITE.name} — Missed Call → Calendar → PM Plan`,
+    title: `${SITE.name} — The Road to Efficiency`,
     description:
-      "Auto-book clear jobs. Text back for urgent or unclear. Offer maintenance plans when jobs complete. Built for 1–5 truck shops.",
+      "Efficiency + Road: auto-book clear jobs, text back for urgent calls, and run the shop from your phone. Built for 1–5 truck shops.",
     type: "website" as const,
   },
 };
 
 const enBetaMeta = {
   ...enMeta,
-  title: `${SITE.name} — Public Beta · Missed Call Coverage`,
+  title: `${SITE.name} — Public Beta · ${SITE.tagline}`,
   description:
-    "Beta for US residential HVAC. After-hours intake and text approval. Jobber optional.",
+    "Beta for US residential HVAC. The road to efficiency — after-hours intake and text approval. Jobber optional.",
   openGraph: {
     ...enMeta.openGraph,
-    title: `${SITE.name} — Public Beta · Missed Call Coverage`,
-    description: "Catch after-hours calls. Approve by text. Works with your existing tools.",
+    title: `${SITE.name} — Public Beta · The Road to Efficiency`,
+    description: "Catch after-hours calls. Approve by text. The efficient path for owner-operators.",
   },
 };
 
 const koMeta = {
   ...siteMetadataBase,
-  title: `${SITE.name} — 바쁜 날, 문자로 예약 승인`,
+  title: `${SITE.name} — 효율로 가는 길`,
   description:
-    "야간·피크·현장에서도 휴대폰 SMS로 신규 요청 확인. Reply 1=확정, 2=거절. AI intake + Job Card.",
+    "효율적인 길 — 야간·피크·현장에서도 휴대폰 SMS로 신규 요청 확인. Reply 1=확정, 2=거절. AI intake + Job Card.",
   openGraph: {
-    title: `${SITE.name} — 야간 콜, 문자로 처리`,
+    title: `${SITE.name} — 효율로 가는 길`,
     description: "맞춤 시간대 AI 수신 · 긴급 SMS · 1/2 승인. Jobber는 선택 연동.",
     type: "website" as const,
   },

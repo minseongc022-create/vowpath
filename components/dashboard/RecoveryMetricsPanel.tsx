@@ -46,7 +46,7 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
         <div>
           <h2 className="text-base font-semibold text-brand-950">Call recovery</h2>
           <p className="mt-0.5 text-xs text-stone-600">
-            Counts from Vowroad bookings and Twilio call logs — no revenue estimates.
+            Counts from Effiroad bookings and Twilio call logs — no revenue estimates.
           </p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
             <MetricCard
               label="Bookings from AI calls"
               value={String(m.bookingsFromAiCalls)}
-              hint="Scheduled or completed in Vowroad after AI intake"
+              hint="Scheduled or completed in Effiroad after AI intake"
               accent="border-t-emerald-500"
             />
             <MetricCard
@@ -98,7 +98,7 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
         <p className="border-t border-brand-200/50 px-5 py-3 text-xs text-stone-500">
           Booking rate this period: {m.bookingRatePct}% of AI-handled calls (
           {m.bookingsFromAiCalls}/{m.inboundAnsweredByAi || 0}). Dollar totals belong in Jobber
-          invoices — Vowroad does not sync invoice amounts yet.
+          invoices — Effiroad does not sync invoice amounts yet.
         </p>
       ) : null}
     </section>

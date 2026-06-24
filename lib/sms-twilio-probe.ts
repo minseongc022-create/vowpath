@@ -90,7 +90,7 @@ export async function probeTwilioSmsDelivery(): Promise<SmsTwilioProbeResult> {
       process.env.TWILIO_AUTH_TOKEN!,
     );
     await client.messages.create({
-      body: "[Vowroad] SMS connectivity check",
+      body: "[Effiroad] SMS connectivity check",
       from,
       to: probeTo,
     });

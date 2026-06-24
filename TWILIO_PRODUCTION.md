@@ -30,7 +30,7 @@ Set in Vercel → Project → Environment Variables (Production):
 ```
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
-TWILIO_WEBHOOK_BASE_URL=https://vowroad.com
+TWILIO_WEBHOOK_BASE_URL=https://effiroad.com
 ALLOW_TWILIO_OWNER_ALERT=true
 ```
 

@@ -169,7 +169,7 @@ async function purchaseAndBindNumber(
     voiceMethod: "POST",
     smsUrl,
     smsMethod: "POST",
-    friendlyName: `Vowroad ${userId.slice(0, 8)}`,
+    friendlyName: `Effiroad ${userId.slice(0, 8)}`,
   });
 
   const e164 = purchased.phoneNumber;

@@ -16,7 +16,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE_PATH = path.join(DATA_DIR, "tenant-phones.json");
 
 function kvKey(userId: string) {
-  return `vowroad:tenant-inbound-phone:${userId}`;
+  return `effiroad:tenant-inbound-phone:${userId}`;
 }
 
 type FileStore = { records: Record<string, TenantPhoneRecord> };

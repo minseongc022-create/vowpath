@@ -17,7 +17,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "shop-settings.json");
 
 function kvKey(userId: string) {
-  return `vowroad:shop-settings:${userId}`;
+  return `effiroad:shop-settings:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, ShopBookingSettings>> {

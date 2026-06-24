@@ -72,7 +72,7 @@ function DayEventsListPanel({
             const active = selectedEventId === ev.id;
             const pri = ev.priority ? calendarPriorityMeta(ev.priority) : null;
             const sourceCls =
-              ev.source === "vowroad"
+              ev.source === "effiroad"
                 ? "bg-brand-100 text-brand-800"
                 : "bg-sky-100 text-sky-800";
 
@@ -90,7 +90,7 @@ function DayEventsListPanel({
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-semibold text-brand-950">{ev.customerName}</p>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${sourceCls}`}>
-                      {ev.source === "vowroad" ? labels.sourceVowroad : labels.sourceJobber}
+                      {ev.source === "effiroad" ? labels.sourceEffiroad : labels.sourceJobber}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-brand-300">{formatEventTimeShort(ev.startAt)}</p>
@@ -122,9 +122,9 @@ function EventDetailPanel({
   labels: CalendarLabels;
 }) {
   const sourceLabel =
-    event.source === "vowroad" ? labels.sourceVowroad : labels.sourceJobber;
+    event.source === "effiroad" ? labels.sourceEffiroad : labels.sourceJobber;
   const sourceCls =
-    event.source === "vowroad"
+    event.source === "effiroad"
       ? "bg-brand-500/20 text-brand-200"
       : "bg-sky-500/20 text-sky-200";
 
@@ -442,7 +442,7 @@ export function CalendarView() {
       <div className="flex flex-wrap gap-4 text-xs text-stone-500">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded bg-brand-500/50" aria-hidden />
-          {c.sourceVowroad}
+          {c.sourceEffiroad}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded bg-sky-500/50" aria-hidden />

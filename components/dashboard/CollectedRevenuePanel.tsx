@@ -103,9 +103,9 @@ export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePa
               accent="border-t-emerald-600"
             />
             <MetricCard
-              label="Vowroad-attributed"
+              label="Effiroad-attributed"
               value={m.attributedCollectedLabel}
-              hint={`${m.attributedInvoiceCount} invoice${m.attributedInvoiceCount === 1 ? "" : "s"} linked to Vowroad intake`}
+              hint={`${m.attributedInvoiceCount} invoice${m.attributedInvoiceCount === 1 ? "" : "s"} linked to Effiroad intake`}
               accent="border-t-brand-500"
             />
             <MetricCard
@@ -127,7 +127,7 @@ export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePa
       {m && !busy && !error ? (
         <p className="border-t border-brand-200/50 px-5 py-3 text-xs text-stone-500">
           Collected uses Jobber <span className="font-medium">payments total</span> per invoice.
-          Vowroad-attributed links invoices to AI calls or bookings via Jobber request / job IDs.
+          Effiroad-attributed links invoices to AI calls or bookings via Jobber request / job IDs.
           Dollar totals are not multiplied by average ticket size.
         </p>
       ) : null}

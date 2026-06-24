@@ -265,7 +265,7 @@ export async function notifyOwnerShadowResult(params: {
 }) {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
-  const body = `Vowroad [TEST]: Would book ${params.window} for ${params.customerName}. ${params.shadowLeft} test runs left.`;
+  const body = `Effiroad [TEST]: Would book ${params.window} for ${params.customerName}. ${params.shadowLeft} test runs left.`;
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,

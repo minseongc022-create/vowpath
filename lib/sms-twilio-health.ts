@@ -42,7 +42,7 @@ export async function getSmsTwilioHealthForUser(
   if (!fromNumber) {
     issues.push(
       userId
-        ? "이 업체에 할당된 Vowroad 번호가 없습니다. 연동 설정에서 번호 발급을 완료하세요."
+        ? "이 업체에 할당된 Effiroad 번호가 없습니다. 연동 설정에서 번호 발급을 완료하세요."
         : "발신 Twilio 번호가 없습니다.",
     );
   } else if (!fromNumber.startsWith("+1")) {
@@ -83,7 +83,7 @@ export function getSmsTwilioHealth(): SmsTwilioHealth {
   const rawFrom = process.env.TWILIO_PHONE_NUMBER?.trim() ?? "";
   const fromNumber = normalizeSmsPhone(rawFrom);
   if (!fromNumber) {
-    issues.push("테넌트별 Vowroad 번호가 필요합니다.");
+    issues.push("테넌트별 Effiroad 번호가 필요합니다.");
   } else if (!fromNumber.startsWith("+1")) {
     issues.push("발신 번호는 미국 (+1) Twilio 번호여야 합니다.");
   }

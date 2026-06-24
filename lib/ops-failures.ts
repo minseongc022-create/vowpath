@@ -33,7 +33,7 @@ const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 const SMS_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
 function kvKey(userId: string) {
-  return `vowroad:ops-failures:${userId}`;
+  return `effiroad:ops-failures:${userId}`;
 }
 
 export function failureDedupeKey(

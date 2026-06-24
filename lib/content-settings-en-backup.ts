@@ -4,7 +4,7 @@
  */
 export const SETTINGS_PAGE_EN = {
   title: "Integrations",
-  subtitle: "Manage when Vowroad answers, how calls reach us, and optional Jobber sync.",
+  subtitle: "Manage when Effiroad answers, how calls reach us, and optional Jobber sync.",
   badge: "Integrations",
   paidBadge: "Paid",
   paidWelcome:
@@ -57,17 +57,17 @@ export const SETTINGS_PAGE_EN = {
   nextPhone: "Next: Forwarding",
   nextJobber: "Jobber (optional)",
   allDone:
-    "You're live. Vowroad answers on your schedule and texts you when something needs a look.",
+    "You're live. Effiroad answers on your schedule and texts you when something needs a look.",
   tabOptional: "Optional",
   tabSkipped: "Skipped",
   statusDone: "Connected",
   statusPending: "Needs setup",
   manageLink: "Manage integrations",
   scheduleTitle: "Answer hours",
-  scheduleDescription: "Set the days and times Vowroad should pick up, or turn on 24/7.",
+  scheduleDescription: "Set the days and times Effiroad should pick up, or turn on 24/7.",
   scheduleAlwaysOn: "Answer 24/7",
   scheduleAlwaysOnHint:
-    "Vowroad handles every forwarded call around the clock. Match your forwarding rules to this.",
+    "Effiroad handles every forwarded call around the clock. Match your forwarding rules to this.",
   scheduleValidation: "Turn on 24/7 or pick at least one day in a time window.",
   scheduleConfirm: "Save hours",
   scheduleConfirmed: "Hours saved",
@@ -88,13 +88,13 @@ export const SETTINGS_PAGE_EN = {
   jobberSkippedNote: "Jobber is skipped. You can connect anytime from here.",
   phoneTitle: "Call forwarding",
   phoneDescription:
-    "Keep the number customers already know. Forward missed and after-hours calls to Vowroad — Jobber Phone / Dialpad is the smoothest path.",
-  forwardingNumberLabel: "Your Vowroad number",
+    "Keep the number customers already know. Forward missed and after-hours calls to Effiroad — Jobber Phone / Dialpad is the smoothest path.",
+  forwardingNumberLabel: "Your Effiroad number",
   forwardingNumberHint:
     "Enter this in Dialpad, your VoIP portal, or your carrier's forwarding settings. Customers still dial your main line.",
   forwardingNumberLoading: "Loading your number…",
   forwardingNumberMissing:
-    "Your Vowroad number isn't connected yet. Use Developer · Twilio test below, then come back here.",
+    "Your Effiroad number isn't connected yet. Use Developer · Twilio test below, then come back here.",
   forwardingCopy: "Copy number",
   forwardingCopied: "Copied",
   forwardingCustomerNote:
@@ -111,10 +111,10 @@ export const SETTINGS_PAGE_EN = {
   forwardingStepsTitle: "3. Follow these steps",
   forwardingTestTitle: "4. Run a test call",
   forwardingTestBody:
-    "Call your main shop number from another phone. Vowroad should pick up after a few rings (or right away after hours). You'll get a text summary — reply 1 to approve or 2 to pass.",
+    "Call your main shop number from another phone. Effiroad should pick up after a few rings (or right away after hours). You'll get a text summary — reply 1 to approve or 2 to pass.",
   forwardingRecommended: "Popular",
   forwardingRecommendedProvider: "Recommended",
-  forwardingConfirmBlocked: "We need your Vowroad number connected before you can finish this step.",
+  forwardingConfirmBlocked: "We need your Effiroad number connected before you can finish this step.",
   phoneConfirm: "Forwarding works — I've tested it",
   phoneConfirmed: "Forwarding setup complete",
   forwardingDevTitle: "Developer · Twilio test",
@@ -148,7 +148,7 @@ export const SETTINGS_PAGE_EN = {
   storageOk: "Storage connected",
   storageRequired: "Storage required for production",
   storageStep1: "Vercel → Storage → Create database → KV",
-  storageStep2: "Link to this project (vowroad)",
+  storageStep2: "Link to this project (effiroad)",
   storageStep3: "Deploy → Redeploy",
   storageDocHint: "Details: KV_SETUP.md in the project root",
   backDashboard: "Back to dashboard",

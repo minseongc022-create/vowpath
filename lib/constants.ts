@@ -2,11 +2,11 @@ import { IS_BETA } from "./beta";
 import { getCheckoutCta, getSectionLabels, getSiteTagline } from "./marketing-constants";
 
 export const SITE = {
-  name: "Vowroad",
+  name: "Effiroad",
   tagline: getSiteTagline(),
-  url: "https://vowroad.com",
-  contactEmail: "support@vowroad.com",
-  supportEmail: "support@vowroad.com",
+  url: "https://effiroad.com",
+  contactEmail: "support@effiroad.com",
+  supportEmail: "support@effiroad.com",
   monthlyPrice: "$199",
   flexBasePrice: "$49",
   flexPerBooking: "$18",

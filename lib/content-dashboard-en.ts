@@ -74,7 +74,7 @@ export const phoneSetupEn = {
 
   costNote:
 
-    "Vowroad has no auto-charge. Twilio bills voice/SMS; OpenAI bills Job Card generation when used.",
+    "Effiroad has no auto-charge. Twilio bills voice/SMS; OpenAI bills Job Card generation when used.",
 
   ivrNote:
 
@@ -174,10 +174,10 @@ export const jobberConnectEn = {
   redirectSetupCopy: "Copy URL",
 
   redirectSetupNote:
-    "If you created a new VOWROAD app, open the app whose Client ID matches Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
+    "If you created a new EFFIROAD app, open the app whose Client ID matches Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
 
   redirectSetupClientId:
-    "Vowroad uses Jobber Client ID: {clientId} — add the Callback URL to that app in Developer Center.",
+    "Effiroad uses Jobber Client ID: {clientId} — add the Callback URL to that app in Developer Center.",
 
   settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
 

@@ -7,10 +7,10 @@ export { isSmsConfigured } from "./send-sms";
 export async function sendSignupCodeEmail(email: string, code: string) {
   return sendEmail({
     to: email,
-    subject: "Vowroad 회원가입 인증번호",
+    subject: "Effiroad 회원가입 인증번호",
     devLogLabel: "Signup verification code",
     text: [
-      "Vowroad 회원가입을 진행 중입니다.",
+      "Effiroad 회원가입을 진행 중입니다.",
       "",
       `인증번호: ${code}`,
       "",
@@ -25,7 +25,7 @@ export async function sendSignupCodeSms(
   code: string,
   options?: { allowKrRecipient?: boolean },
 ) {
-  const body = `[Vowroad] 회원가입 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`;
+  const body = `[Effiroad] 회원가입 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`;
   const result = await sendSms(phone, body, "Signup verification SMS", {
     strict: true,
     usRecipientsOnly: options?.allowKrRecipient ? false : undefined,
@@ -44,10 +44,10 @@ export async function sendSignupCodeSms(
 export async function sendResetCodeEmail(email: string, code: string) {
   return sendEmail({
     to: email,
-    subject: "Vowroad 비밀번호 재설정 인증번호",
+    subject: "Effiroad 비밀번호 재설정 인증번호",
     devLogLabel: "Password reset code",
     text: [
-      "Vowroad 비밀번호 재설정을 요청하셨습니다.",
+      "Effiroad 비밀번호 재설정을 요청하셨습니다.",
       "",
       `인증번호: ${code}`,
       "",
@@ -60,7 +60,7 @@ export async function sendResetCodeEmail(email: string, code: string) {
 export async function sendResetCodeSms(phone: string, code: string) {
   return sendSms(
     phone,
-    `[Vowroad] 비밀번호 재설정 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
+    `[Effiroad] 비밀번호 재설정 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
     "Password reset SMS",
     { strict: true },
   );

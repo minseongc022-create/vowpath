@@ -22,12 +22,12 @@ export const hero = IS_BETA
       badge: "퍼블릭 베타 · 미국 residential HVAC · 문자 승인",
       headline: "바쁜 날, 야간, 현장에서도",
       headlineAccent: "문자로 예약 확인",
-      brandLine: "Vow는 신뢰(약속). Path는 그 신뢰가 이어지는 길.",
+      brandLine: "Efficiency + Road — 효율로 가는 길. 놓친 전화도 예약으로 이어집니다.",
       subhead:
-        "고객 번호는 그대로. 못 받을 때·야간에만 Vowroad로 착신전환하면 AI가 전화·링크 접수를 받습니다. 접수 내용은 문자·이메일로 오고, 1=승인·2=거절만 답하면 됩니다.",
+        "고객 번호는 그대로. 못 받을 때·야간에만 Effiroad로 착신전환하면 AI가 전화·링크 접수를 받습니다. 접수 내용은 문자·이메일로 오고, 1=승인·2=거절만 답하면 됩니다.",
       primaryCta: CHECKOUT_CTA,
       secondaryCta: "작동 방식 보기",
-      note: "무료 베타 · Jobber 연동은 선택 · 신뢰가 이어지는 길",
+      note: "효율로 가는 길 · 무료 베타 · Jobber 연동은 선택",
       trustPills: [
         "스마트 자동 예약",
         "기존 업체 번호",
@@ -39,9 +39,9 @@ export const hero = IS_BETA
       badge: "미국 residential HVAC · 문자로 예약 승인",
       headline: "밖에서 일할 때도",
       headlineAccent: "놓치지 않는 예약",
-      brandLine: "Vow는 신뢰(약속). Path는 그 신뢰가 이어지는 길.",
+      brandLine: "Efficiency + Road — 효율적인 길. 놓친 전화를 놓치지 않습니다.",
       subhead:
-        "메인 번호는 유지하고, 안 받으면·야간·주말에만 Vowroad로 넘깁니다. AI가 접수하면 문자·이메일로 요약이 오고, 1=승인·2=거절만 하면 고객 안내와 Jobber 기록이 이어집니다.",
+        "메인 번호는 유지하고, 안 받으면·야간·주말에만 Effiroad로 넘깁니다. AI가 접수하면 문자·이메일로 요약이 오고, 1=승인·2=거절만 하면 고객 안내와 Jobber 기록이 이어집니다.",
       primaryCta: CHECKOUT_CTA,
       secondaryCta: "제품 보기",
       note: `맞춤 시간대 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 승인 예약당 ${SITE.flexPerBooking}`,
@@ -56,20 +56,20 @@ export const hero = IS_BETA
 export const about = {
   id: "about",
   badge: "브랜드 이름",
-  title: "Vow는 신뢰. Path는 그걸 이어 주는 길.",
-  subtitle: "모든 전화는 신뢰로 이어지는 길 — 그 길이 끊기지 않게 합니다.",
+  title: "Efficiency + Road — 효율로 가는 길",
+  subtitle: "The Road to Efficiency — 놓친 전화도 효율적으로 예약으로.",
   paragraphs: [
-    "Vow는 약속이자 신뢰입니다. 고객이 업체 번호를 눌렀을 때 믿는 것 — 누군가 받아 주고, 제대로 처리해 줄 것. Path는 못 받을 때 그 신뢰가 끊기지 않게 하는 연결입니다. 착신전환, 접수, 문자 승인, 고객 안내까지 한 줄로 이어집니다.",
-    "놓친 한 통은 경쟁업체로 가는 기회입니다. Vowroad는 한 건 한 건 쌓은 신뢰가 음성사서함에서 끊기지 않도록 만든 제품입니다.",
+    "Effiroad는 Efficiency(효율)와 Road(길)의 합성어입니다. HVAC 업체가 바쁠 때도 전화·접수·승인·예약이 끊기지 않고 이어지는, 더 효율적인 운영의 길을 만듭니다.",
+    "놓친 한 통은 경쟁업체로 가는 기회입니다. Effiroad는 그 길 위에서 한 건 한 건 쌓은 신뢰가 음성사서함에서 끊기지 않도록 돕습니다.",
   ],
   pillars: [
     {
-      label: "Vow",
-      meaning: "고객이 업체에 두는 신뢰 — 누군가 반드시 이어 받겠다는 약속.",
+      label: "Efficiency",
+      meaning: "현장·야간에도 문자 한 통으로 승인 — 메뉴 여러 개 열지 않고 shop을 돌립니다.",
     },
     {
-      label: "Path",
-      meaning: "벨 울림 → 문자 승인 → 예약까지 이어지는 길. 현장·야간에도 신뢰가 끊기지 않게.",
+      label: "Road",
+      meaning: "벨 울림 → 접수 → 문자 승인 → 예약까지 이어지는 길. 고객이 믿고 거는 전화가 끊기지 않게.",
     },
   ],
 };
@@ -95,7 +95,7 @@ export const signupFlow = {
       step: "03",
       title: "콜 포워딩",
       description:
-        "안 받으면·통화중·야간에 메인 번호 → Vowroad로 착신전환. 고객 번호는 바꾸지 않습니다.",
+        "안 받으면·통화중·야간에 메인 번호 → Effiroad로 착신전환. 고객 번호는 바꾸지 않습니다.",
       time: "3분",
     },
     {
@@ -108,9 +108,9 @@ export const signupFlow = {
 };
 
 export const differentiators = {
-  title: "Vowroad가 하는 일",
+  title: "Effiroad가 하는 일",
   subtitle:
-    "메인 번호는 그대로 두고, 못 받을 때만 Vowroad로 넘깁니다. 접수는 문자·이메일로, 1·2로 승인하면 고객 안내와 Jobber까지 이어집니다.",
+    "메인 번호는 그대로 두고, 못 받을 때만 Effiroad로 넘깁니다. 접수는 문자·이메일로, 1·2로 승인하면 고객 안내와 Jobber까지 이어집니다.",
   items: [
     {
       title: "메인 번호 그대로",
@@ -120,7 +120,7 @@ export const differentiators = {
     {
       title: "조건부 착신전환",
       description:
-        "안 받으면 / 통화중 / 몇 초 후 Vowroad로 전환. 야간·주말은 통신사 스케줄 또는 VoIP 시간 규칙으로 설정합니다.",
+        "안 받으면 / 통화중 / 몇 초 후 Effiroad로 전환. 야간·주말은 통신사 스케줄 또는 VoIP 시간 규칙으로 설정합니다.",
     },
     {
       title: "전화 or 링크 접수",
@@ -159,13 +159,13 @@ export const problem = {
 
 export const howItWorks = {
   title: "작동 방식",
-  subtitle: "메인 번호는 그대로 — 못 받을 때만 Vowroad로 넘기면 접수·승인·Jobber까지 이어집니다.",
+  subtitle: "메인 번호는 그대로 — 못 받을 때만 Effiroad로 넘기면 접수·승인·Jobber까지 이어집니다.",
   steps: [
     {
       step: "01",
       title: "착신전환 설정",
       description:
-        "업체 번호는 그대로 둡니다. 안 받으면·통화중·야간·주말에 Vowroad로 착신전환합니다. 대시보드에서 AI 받을 시간도 함께 정합니다.",
+        "업체 번호는 그대로 둡니다. 안 받으면·통화중·야간·주말에 Effiroad로 착신전환합니다. 대시보드에서 AI 받을 시간도 함께 정합니다.",
     },
     {
       step: "02",
@@ -189,7 +189,7 @@ export const features = {
     {
       title: "조건부 착신전환",
       description:
-        "안 받으면 / 통화중 / 몇 초 후 Vowroad로 전환. 고객에게 보이는 번호는 업체 메인 번호 그대로입니다.",
+        "안 받으면 / 통화중 / 몇 초 후 Effiroad로 전환. 고객에게 보이는 번호는 업체 메인 번호 그대로입니다.",
     },
     {
       title: "전화 · 링크 접수",
@@ -275,11 +275,11 @@ export const faq = {
   items: [
     {
       q: "번호 두 개 써야 하나요?",
-      a: "아니요. 고객에게는 지금 쓰는 메인 번호 하나만 보입니다. 통신사·VoIP에서 안 받으면·통화중이면·야간·주말에만 Vowroad 번호로 착신전환합니다. Vowroad 번호는 설정용이지, 사이트에 새로 올리는 번호가 아닙니다.",
+      a: "아니요. 고객에게는 지금 쓰는 메인 번호 하나만 보입니다. 통신사·VoIP에서 안 받으면·통화중이면·야간·주말에만 Effiroad 번호로 착신전환합니다. Effiroad 번호는 설정용이지, 사이트에 새로 올리는 번호가 아닙니다.",
     },
     {
       q: "낮 시간은 AI가 안 받나요?",
-      a: "낮 9–5는 업체가 직접 받고, 저녁·주말·못 받을 때만 Vowroad로 넘깁니다. 착신전환을 ‘안 받을 때만’으로 두면 낮에는 평소처럼 연결됩니다.",
+      a: "낮 9–5는 업체가 직접 받고, 저녁·주말·못 받을 때만 Effiroad로 넘깁니다. 착신전환을 ‘안 받을 때만’으로 두면 낮에는 평소처럼 연결됩니다.",
     },
     {
       q: "시간대는 어떻게 설정하나요?",
@@ -316,17 +316,17 @@ export const footerKo = {
   privacy: "개인정보처리방침",
   terms: "이용약관",
   contact: "문의",
-  tagline: "놓친 전화를 예약으로.",
+  tagline: "효율로 가는 길",
   brandMeaning:
-    "Vow는 신뢰(약속). Path는 벨 울림부터 예약까지 신뢰가 이어지는 길 — 고객이 믿고 거는 전화가 끊기지 않게.",
+    "Efficiency + Road — 효율적인 길. 벨 울림부터 예약까지, 더 효율적으로 이어집니다.",
   subline: "미국 residential HVAC · Jobber 연동 · 야간·주말 콜 접수",
 };
 
 export const cta = {
-  eyebrow: "신뢰가 이어지는 길.",
+  eyebrow: "효율로 가는 길",
   title: "바쁠 때도, 문자 한 통으로",
   subtitle:
-    "오늘 시간대·포워딩 설정하고, 내일부터 휴대폰으로 승인하세요. 전화 한 통마다 신뢰가 이어지게.",
+    "오늘 시간대·포워딩 설정하고, 내일부터 휴대폰으로 승인하세요. The road to efficiency starts here.",
   button: CHECKOUT_CTA,
 };
 
@@ -362,7 +362,7 @@ export const onboardingPage = {
   steps: [
     {
       id: "schedule",
-      title: "When should Vowroad answer?",
+      title: "When should Effiroad answer?",
       description:
         "Pick your days and times, or flip on 24/7. You can add more than one window.",
       action: "Save and continue",
@@ -372,7 +372,7 @@ export const onboardingPage = {
       id: "phone",
       title: "Set up call forwarding",
       description:
-        "Add your Vowroad number in Dialpad or your phone system, follow the steps, and run a quick test.",
+        "Add your Effiroad number in Dialpad or your phone system, follow the steps, and run a quick test.",
       action: "Continue",
       status: "ready" as const,
     },
@@ -386,7 +386,7 @@ export const onboardingPage = {
     },
   ],
   liveBanner:
-    "Once your hours and forwarding are set, Vowroad picks up calls and texts you summaries. Jobber is optional.",
+    "Once your hours and forwarding are set, Effiroad picks up calls and texts you summaries. Jobber is optional.",
   forwardingNext: "Next: Jobber (optional)",
   jobberSkip: "Skip Jobber",
   skipToDashboard: "Finish later · skip to dashboard",
@@ -412,7 +412,7 @@ const settingsPageKo = {
   goLiveNavJobber: "Jobber",
   contactQuickTip: "💡 여기 번호로 새 요청·승인 문자가 옵니다. 1=승인, 2=거절만 답하면 됩니다.",
   scheduleQuickTip: "💡 이 시간에만 AI가 전화를 받습니다. 낮에는 평소처럼 직접 받을 수 있어요.",
-  phoneQuickTip: "💡 고객이 보는 번호는 그대로 — 못 받을 때만 Vowroad로 넘깁니다.",
+  phoneQuickTip: "💡 고객이 보는 번호는 그대로 — 못 받을 때만 Effiroad로 넘깁니다.",
   jobberQuickTip: "💡 Jobber 쓰는 샵만 연결하세요. 없어도 문자·대시보드만으로 충분합니다.",
   paidBadge: "결제 완료",
   paidWelcome:
@@ -464,7 +464,7 @@ const settingsPageKo = {
   nextPhone: "다음: 착신 전환",
   nextJobber: "Jobber (선택)",
   allDone:
-    "라이브 상태입니다. 설정한 시간에 Vowroad가 전화를 받고, 검토가 필요하면 문자로 알려드립니다.",
+    "라이브 상태입니다. 설정한 시간에 Effiroad가 전화를 받고, 검토가 필요하면 문자로 알려드립니다.",
   tabOptional: "선택",
   tabSkipped: "건너뜀",
   statusDone: "연결됨",
@@ -474,10 +474,10 @@ const settingsPageKo = {
   manageLink: "연동 설정 관리",
   scheduleTitle: "응대 시간",
   scheduleDescription:
-    "사무실이 비는 시간(퇴근 후, 주말, 점심 등)에 걸리는 전화를 Vowroad가 대신 받을 요일·시간을 정하세요. 예: 월–금 17:00~다음 날 08:00. 낮에도 항상 AI가 받게 하려면 「24시간 응대」를 켜세요.",
+    "사무실이 비는 시간(퇴근 후, 주말, 점심 등)에 걸리는 전화를 Effiroad가 대신 받을 요일·시간을 정하세요. 예: 월–금 17:00~다음 날 08:00. 낮에도 항상 AI가 받게 하려면 「24시간 응대」를 켜세요.",
   scheduleAlwaysOn: "24시간 응대",
   scheduleAlwaysOnHint:
-    "켜면 요일·시간과 관계없이 들어오는 전화를 모두 Vowroad가 받습니다. ③ 착신 전환도 24시간으로 맞추세요.",
+    "켜면 요일·시간과 관계없이 들어오는 전화를 모두 Effiroad가 받습니다. ③ 착신 전환도 24시간으로 맞추세요.",
   scheduleHourUnit: "시",
   scheduleMinuteUnit: "분",
   scheduleValidation: "24시간 응대를 켜거나, 시간대에 최소 하루를 선택하세요.",
@@ -522,13 +522,13 @@ const settingsPageKo = {
   },
   phoneTitle: "착신 전환",
   phoneDescription:
-    "고객이 아는 기존 번호는 그대로 두고, 부재·야간 전화만 Vowroad로 넘깁니다. Jobber Phone / Dialpad가 가장 수월합니다.",
-  forwardingNumberLabel: "Vowroad 번호",
+    "고객이 아는 기존 번호는 그대로 두고, 부재·야간 전화만 Effiroad로 넘깁니다. Jobber Phone / Dialpad가 가장 수월합니다.",
+  forwardingNumberLabel: "Effiroad 번호",
   forwardingNumberHint:
     "Dialpad, VoIP 포털, 통신사 착신 전환 설정에 이 번호를 입력하세요. 고객은 여전히 메인 번호로 전화합니다.",
   forwardingNumberLoading: "번호 불러오는 중…",
   forwardingNumberMissing:
-    "Vowroad 번호가 아직 없습니다. 아래 「번호 발급」을 눌러 전용 번호를 받으세요.",
+    "Effiroad 번호가 아직 없습니다. 아래 「번호 발급」을 눌러 전용 번호를 받으세요.",
   forwardingNumberProvisioning: "전용 번호 발급 중…",
   forwardingNumberProvision: "번호 발급",
   forwardingNumberProvisionFailed: "번호 발급에 실패했습니다. Twilio 잔액과 계정 설정을 확인하세요.",
@@ -549,10 +549,10 @@ const settingsPageKo = {
   forwardingStepsTitle: "3. 아래 단계를 따르세요",
   forwardingTestTitle: "4. 테스트 통화",
   forwardingTestBody:
-    "다른 휴대폰으로 샵 메인 번호에 전화해 보세요. 몇 번 울린 뒤(또는 영업시간 외 즉시) Vowroad가 받아야 합니다. 요약 문자가 오면 1=승인, 2=거절로 답하세요.",
+    "다른 휴대폰으로 샵 메인 번호에 전화해 보세요. 몇 번 울린 뒤(또는 영업시간 외 즉시) Effiroad가 받아야 합니다. 요약 문자가 오면 1=승인, 2=거절로 답하세요.",
   forwardingRecommended: "인기",
   forwardingRecommendedProvider: "권장",
-  forwardingConfirmBlocked: "Vowroad 번호가 연결되어야 이 단계를 완료할 수 있습니다.",
+  forwardingConfirmBlocked: "Effiroad 번호가 연결되어야 이 단계를 완료할 수 있습니다.",
   phoneGuide: "",
   phoneSupport: "",
   phoneConfirm: "착신 전환 확인 — 테스트 완료",
@@ -678,7 +678,7 @@ const settingsPageKo = {
   storageOk: "저장소 연결됨",
   storageRequired: "운영 환경에 저장소 필요",
   storageStep1: "Vercel → Storage → Create database → KV",
-  storageStep2: "이 프로젝트(vowroad)에 연결",
+  storageStep2: "이 프로젝트(effiroad)에 연결",
   storageStep3: "Deploy → Redeploy",
   storageDocHint: "자세한 내용: 프로젝트 루트 KV_SETUP.md",
   backDashboard: "대시보드로",
@@ -697,7 +697,7 @@ const vowDashboardKo = {
   nav: {
     dashboard: "대시보드",
     briefing: "오늘 브리핑",
-    ai: "Vowroad AI",
+    ai: "Effiroad AI",
     requests: "요청 · 예약",
     calendar: "캘린더",
     missedCalls: "통계 분석",
@@ -719,7 +719,7 @@ const vowDashboardKo = {
     noEventsOnDay: "이 날에는 예약이 없습니다.",
     backToDayList: "← 목록으로",
     eventCount: (count: number) => `${count}건`,
-    sourceVowroad: "Vowroad 확정",
+    sourceEffiroad: "Effiroad 확정",
     sourceJobber: "Jobber",
     customer: "고객",
     phone: "연락처",
@@ -729,9 +729,9 @@ const vowDashboardKo = {
     priority: "긴급도",
     viewBooking: "요청 상세 보기",
     close: "닫기",
-    vowroadBookings: "Vowroad 확정",
+    effiroadBookings: "Effiroad 확정",
     jobberCalendar: "Jobber 일정",
-    emptyNative: "아직 Vowroad에 확정된 방문이 없습니다.",
+    emptyNative: "아직 Effiroad에 확정된 방문이 없습니다.",
     emptyJobber: "Jobber 일정이 없거나 연동이 필요합니다.",
     weekdays: ["일", "월", "화", "수", "목", "금", "토"] as const,
   },
@@ -860,7 +860,7 @@ const dashboardPageKo = {
   subtitle: "야간·overflow 콜과 예약 요청을 한곳에서 확인합니다. 긴급은 문자로 먼저.",
   setupIncomplete:
     "연동 설정이 아직 완료되지 않았습니다. 전화 응대를 시작하려면 설정을 마치세요.",
-  setupComplete: "라이브 상태 — Vowroad가 설정한 시간에 전화를 받고 있습니다.",
+  setupComplete: "라이브 상태 — Effiroad가 설정한 시간에 전화를 받고 있습니다.",
   stats: {
     tonightCalls: "오늘 밤 콜",
     bookings: "서비스 요청",
@@ -1107,7 +1107,7 @@ const dashboardUiKo = {
     eyebrow: "가치 분석",
     title: "지켜낸 고객",
     subtitle:
-      "Customers captured by Vowroad during missed calls, after-hours, and unavailable periods.",
+      "Customers captured by Effiroad during missed calls, after-hours, and unavailable periods.",
     backToDashboard: "← 대시보드로",
     refresh: "새로고침",
     refreshing: "불러오는 중…",
@@ -1125,10 +1125,10 @@ const dashboardUiKo = {
     loadingChart: "불러오는 중…",
     chartAria: "일별 놓친 콜 방지 추세",
     chartTooltip: (n: number) => `방지 ${n}건`,
-    withoutVowroad: "Vowroad 없었다면",
+    withoutEffiroad: "Effiroad 없었다면",
     estimatedMissed: "추정 놓친 콜",
     estimatedMissedBody:
-      "야간·주말 또는 AI 수신 시간에 Vowroad가 받은 콜 — 음성사서함·누락됐을 가능성이 큰 건수입니다.",
+      "야간·주말 또는 AI 수신 시간에 Effiroad가 받은 콜 — 음성사서함·누락됐을 가능성이 큰 건수입니다.",
     periodNote: (period: string) => `${period} 기준 · 새 통화 동기화 시 갱신`,
     howCalculated: "집계 방식",
     howCalculatedBody:
@@ -1149,7 +1149,7 @@ const dashboardUiKo = {
     conversionRate: "전환율",
     afterHours: "야간 처리",
     bookingTrend: "예약 추세",
-    trendSubtitleJobber: "Jobber 작업 요청 + Vowroad 예약",
+    trendSubtitleJobber: "Jobber 작업 요청 + Effiroad 예약",
     trendSubtitle: "선택 기간 확정 예약",
     noBookingsInRange: "이 기간에 예약이 없습니다.",
     trendWeeklyHint: "월요일 기준 · 주간 합계 (막대)",
@@ -1209,7 +1209,7 @@ const phoneSetupKo = {
   krTrialNote:
     "한국 번호(010…)로 오는 업주·고객 문자: Twilio Trial이면 콘솔에서 해당 번호를 Verified caller IDs에 등록해야 합니다. 실전화도 Verified 번호로만 발신 가능합니다.",
   costNote:
-    "비용: Vowroad는 자동 결제 없음. Twilio는 실제 전화·월 번호요금, OpenAI는 Job Card 생성 시 API 사용료만 (시뮬레이션도 OpenAI 소액). Trial 크레딧 소진 전까지 청구 없을 수 있음.",
+    "비용: Effiroad는 자동 결제 없음. Twilio는 실제 전화·월 번호요금, OpenAI는 Job Card 생성 시 API 사용료만 (시뮬레이션도 OpenAI 소액). Trial 크레딧 소진 전까지 청구 없을 수 있음.",
   ivrNote:
     "실전화: 1=긴급, 2=당일, 3=일반 → 이후 천천히 이름·주소·증상 말하기 (발음 힌트·재시도 적용).",
   stepsTitle: "연결 체크리스트",
@@ -1254,9 +1254,9 @@ const jobberConnectKo = {
   redirectSetupCopied: "복사됨",
   redirectSetupCopy: "URL 복사",
   redirectSetupNote:
-    "VOWROAD 앱을 새로 만들었다면, Vercel에 등록된 Client ID와 같은 앱을 열어야 합니다. 로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록하세요.",
+    "EFFIROAD 앱을 새로 만들었다면, Vercel에 등록된 Client ID와 같은 앱을 열어야 합니다. 로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록하세요.",
   redirectSetupClientId:
-    "Vowroad가 사용 중인 Jobber Client ID: {clientId} — Developer Center에서 이 ID가 보이는 앱에 Callback URL을 추가하세요.",
+    "Effiroad가 사용 중인 Jobber Client ID: {clientId} — Developer Center에서 이 ID가 보이는 앱에 Callback URL을 추가하세요.",
   settingsConnectedHint: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
   invoiceAccessOk: "수금 매출: Jobber 인보이스 읽기 권한 정상.",
   invoiceAccessReconnect:
@@ -1311,7 +1311,7 @@ const authPagesKo = {
   },
   login: {
     title: "로그인",
-    subtitle: "Vowroad 대시보드에 접속합니다.",
+    subtitle: "Effiroad 대시보드에 접속합니다.",
     methodLegend: "로그인 방법",
     methodEmail: "이메일",
     methodPhone: "전화번호",
@@ -1426,7 +1426,7 @@ const legalPagesKo = {
     sections: [
       {
         heading: "서비스",
-        body: "Vowroad는 HVAC shop의 맞춤 시간대 inbound 콜을 처리하고 Jobber 등 FSM에 예약을 반영하는 운영 소프트웨어입니다.",
+        body: "Effiroad는 HVAC shop의 맞춤 시간대 inbound 콜을 처리하고 Jobber 등 FSM에 예약을 반영하는 운영 소프트웨어입니다.",
       },
       {
         heading: "요금·환불",

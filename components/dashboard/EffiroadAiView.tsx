@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
-import type { VowroadAiAction, VowroadAiResponse } from "@/lib/vowroad-ai-query";
+import type { EffiroadAiAction, EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import type { AiAdminPreview } from "@/lib/ai-admin/types";
 
 type Message =
   | { id: string; role: "user"; content: string }
-  | ({ id: string; role: "assistant" } & VowroadAiResponse);
+  | ({ id: string; role: "assistant" } & EffiroadAiResponse);
 
 const STARTERS_EN = [
   "Auto approve No Cooling",
@@ -52,7 +52,7 @@ function ActionButton({
   action,
   onStatus,
 }: {
-  action: VowroadAiAction;
+  action: EffiroadAiAction;
   onStatus: (bookingId: string, status: "approved" | "rejected") => void;
 }) {
   if (action.kind === "approve" && action.bookingId) {
@@ -167,7 +167,7 @@ function AdminPreviewCard({
   );
 }
 
-function BillingCard({ card }: { card: NonNullable<VowroadAiResponse["billingCard"]> }) {
+function BillingCard({ card }: { card: NonNullable<EffiroadAiResponse["billingCard"]> }) {
   const [portalLoading, setPortalLoading] = useState(false);
 
   async function openPortal() {
@@ -376,7 +376,7 @@ function AssistantMessage({
   );
 }
 
-export function VowroadAiView() {
+export function EffiroadAiView() {
   const isEnglish = useIsEnglishUi();
   const starters = isEnglish ? STARTERS_EN : STARTERS_KO;
   const fallbackSuggestions = isEnglish ? FALLBACK_SUGGESTIONS_EN : FALLBACK_SUGGESTIONS_KO;
@@ -392,12 +392,12 @@ export function VowroadAiView() {
     void (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/vowroad-ai", {
+        const res = await fetch("/api/effiroad-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ proactive: true }),
         });
-        const data = (await res.json()) as Partial<VowroadAiResponse> & { error?: string };
+        const data = (await res.json()) as Partial<EffiroadAiResponse> & { error?: string };
         setMessages([
           {
             id: "briefing",
@@ -449,12 +449,12 @@ export function VowroadAiView() {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/vowroad-ai", {
+      const res = await fetch("/api/effiroad-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, history: historyPayload }),
       });
-      const data = (await res.json()) as Partial<VowroadAiResponse> & {
+      const data = (await res.json()) as Partial<EffiroadAiResponse> & {
         error?: string;
       };
       setMessages((prev) => [
@@ -507,7 +507,7 @@ export function VowroadAiView() {
 
   async function confirmAdmin(preview: AiAdminPreview, password?: string) {
     try {
-      const res = await fetch("/api/vowroad-ai/admin/confirm", {
+      const res = await fetch("/api/effiroad-ai/admin/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: preview.action, password }),
@@ -526,7 +526,7 @@ export function VowroadAiView() {
           rows: data.rows,
           actions: [
             { label: isEnglish ? "Automation Rules" : "운영 규칙", href: "/dashboard/settings" },
-            { label: isEnglish ? "Ask Vowroad AI" : "Vowroad AI", href: "/dashboard/ai" },
+            { label: isEnglish ? "Ask Effiroad AI" : "Effiroad AI", href: "/dashboard/ai" },
           ],
           suggestions: fallbackSuggestions,
         },
@@ -572,7 +572,7 @@ export function VowroadAiView() {
           🙂
         </span>
         <div className="min-w-0 flex-1">
-          <p className="vow-settings-eyebrow">Vowroad AI</p>
+          <p className="vow-settings-eyebrow">Effiroad AI</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">
             {isEnglish ? "Hi — I'm Vow, your shop sidekick" : "안녕하세요, 샵 도우미 보우예요"}
           </h1>

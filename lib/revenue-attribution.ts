@@ -70,24 +70,24 @@ export function attributeInvoiceJobs(
   now = new Date(),
 ): RevenueFact {
   let jobberRequestId: string | undefined;
-  let vowroadCallId: string | undefined;
-  let vowroadBookingId: string | undefined;
+  let effiroadCallId: string | undefined;
+  let effiroadBookingId: string | undefined;
 
   for (const jobId of invoice.jobberJobIds) {
     const requestId = maps.jobToRequestId.get(jobId);
     if (!requestId) continue;
     jobberRequestId = requestId;
-    vowroadCallId = maps.requestToCallId.get(requestId);
-    vowroadBookingId = maps.requestToBookingId.get(requestId);
-    if (vowroadCallId || vowroadBookingId) break;
+    effiroadCallId = maps.requestToCallId.get(requestId);
+    effiroadBookingId = maps.requestToBookingId.get(requestId);
+    if (effiroadCallId || effiroadBookingId) break;
   }
 
-  if (!vowroadCallId && !vowroadBookingId && jobberRequestId) {
-    vowroadCallId = maps.requestToCallId.get(jobberRequestId);
-    vowroadBookingId = maps.requestToBookingId.get(jobberRequestId);
+  if (!effiroadCallId && !effiroadBookingId && jobberRequestId) {
+    effiroadCallId = maps.requestToCallId.get(jobberRequestId);
+    effiroadBookingId = maps.requestToBookingId.get(jobberRequestId);
   }
 
-  const attributedToVowroad = Boolean(vowroadCallId || vowroadBookingId);
+  const attributedToEffiroad = Boolean(effiroadCallId || effiroadBookingId);
 
   return {
     invoiceId: invoice.invoiceId,
@@ -99,9 +99,9 @@ export function attributeInvoiceJobs(
     outstandingCents: invoice.outstandingCents,
     jobberJobIds: invoice.jobberJobIds,
     jobberRequestId,
-    vowroadCallId,
-    vowroadBookingId,
-    attributedToVowroad,
+    effiroadCallId,
+    effiroadBookingId,
+    attributedToEffiroad,
     jobberWebUri: invoice.jobberWebUri,
     updatedAt: now.toISOString(),
   };

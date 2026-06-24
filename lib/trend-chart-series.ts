@@ -46,7 +46,7 @@ const OWNER_KPI_SERIES_EN: TrendChartSeriesDef[] = [
 
     color: "#38bdf8",
 
-    description: "Customers Vowroad saved from voicemail or hang-ups",
+    description: "Customers Effiroad saved from voicemail or hang-ups",
 
   },
 
@@ -122,7 +122,7 @@ const OWNER_KPI_SERIES_KO: TrendChartSeriesDef[] = [
 
     color: "#38bdf8",
 
-    description: "Vowroad가 없었다면 놓쳤을 콜·고객",
+    description: "Effiroad가 없었다면 놓쳤을 콜·고객",
 
   },
 

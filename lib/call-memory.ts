@@ -32,7 +32,7 @@ type Store = {
 };
 
 function kvKey(userId: string) {
-  return `vowroad:call-memory:${userId}`;
+  return `effiroad:call-memory:${userId}`;
 }
 
 async function readFileStore(): Promise<Store> {

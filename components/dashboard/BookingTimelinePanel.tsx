@@ -56,7 +56,7 @@ export function BookingTimelinePanel({
       <div className="border-b border-brand-200/60 px-4 py-3 sm:px-5">
         <h2 className="text-sm font-semibold text-brand-950">Booking Timeline</h2>
         <p className="mt-1 text-xs text-stone-500">
-          Only verified events from Vowroad records are shown.
+          Only verified events from Effiroad records are shown.
         </p>
       </div>
       <ol className="space-y-0 px-4 py-4 sm:px-5">

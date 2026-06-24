@@ -5,7 +5,7 @@ import {
 } from "../booking-policy";
 import { buildDailyBriefing } from "../dashboard-briefing";
 import { isNoCoolingText } from "../urgent-requests";
-import type { VowroadAiAction, VowroadAiResponse } from "../vowroad-ai-query";
+import type { EffiroadAiAction, EffiroadAiResponse } from "../effiroad-ai-query";
 import {
   bookingStatusOf,
   buildAiContextPack,
@@ -37,7 +37,7 @@ function labels(pack: AiContextPack) {
   return actionLabels(pack.locale);
 }
 
-function defaultActions(pack: AiContextPack): VowroadAiAction[] {
+function defaultActions(pack: AiContextPack): EffiroadAiAction[] {
   const L = labels(pack);
   return [
     { label: L.pendingApprovals, href: "/dashboard/bookings" },
@@ -59,12 +59,12 @@ function bookingItem(pack: AiContextPack, booking: RecentBooking) {
   };
 }
 
-function actionsForBooking(pack: AiContextPack, booking: RecentBooking | null): VowroadAiAction[] {
+function actionsForBooking(pack: AiContextPack, booking: RecentBooking | null): EffiroadAiAction[] {
   const L = labels(pack);
   const base = defaultActions(pack);
   if (!booking) return base;
   const status = bookingStatusOf(pack, booking);
-  const actions: VowroadAiAction[] = [
+  const actions: EffiroadAiAction[] = [
     { label: L.bookingDetails, href: `/dashboard/bookings/${encodeURIComponent(booking.id)}` },
     { label: L.callHistory, href: "/dashboard/missed-calls" },
     { label: L.calendar, href: "/dashboard/calendar" },
@@ -84,7 +84,7 @@ function listResponse(
   headline: string,
   bookings: RecentBooking[],
   partial = false,
-): VowroadAiResponse {
+): EffiroadAiResponse {
   if (bookings.length === 0) {
     return {
       answer: composeEmptyResult({
@@ -122,7 +122,7 @@ function listResponse(
   };
 }
 
-function handleCustomer(pack: AiContextPack, name: string): VowroadAiResponse {
+function handleCustomer(pack: AiContextPack, name: string): EffiroadAiResponse {
   const needle = name.toLowerCase();
   const bookings = pack.bookings.filter((b) => b.customerName.toLowerCase().includes(needle));
   const calls = pack.calls.filter((c) => (c.customerName ?? "").toLowerCase().includes(needle));
@@ -210,7 +210,7 @@ function handleCustomer(pack: AiContextPack, name: string): VowroadAiResponse {
   };
 }
 
-function handleCallMemory(pack: AiContextPack): VowroadAiResponse {
+function handleCallMemory(pack: AiContextPack): EffiroadAiResponse {
   const memory = pack.callMemory;
   if (memory.length === 0) {
     return {
@@ -257,7 +257,7 @@ function handleCallMemory(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handlePolicy(pack: AiContextPack): VowroadAiResponse {
+function handlePolicy(pack: AiContextPack): EffiroadAiResponse {
   const m = pack.companyMemory;
   const loc = pack.locale;
   return {
@@ -284,7 +284,7 @@ function handlePolicy(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handleSettingsRead(pack: AiContextPack): VowroadAiResponse {
+function handleSettingsRead(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const s = pack.bookingSettings;
   const m = pack.companyMemory;
@@ -321,7 +321,7 @@ function handleSettingsRead(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handleAutomationRules(pack: AiContextPack): VowroadAiResponse {
+function handleAutomationRules(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const rules = pack.workflowRules;
   if (!rules.length) {
@@ -343,7 +343,7 @@ function handleAutomationRules(pack: AiContextPack): VowroadAiResponse {
       }),
       actions: [
         { label: loc === "ko" ? "설정 열기" : "Open Settings", href: "/dashboard/settings" },
-        { label: loc === "ko" ? "Vowroad AI" : "Vowroad AI", href: "/dashboard/ai" },
+        { label: loc === "ko" ? "Effiroad AI" : "Effiroad AI", href: "/dashboard/ai" },
       ],
       suggestions:
         loc === "ko"
@@ -379,13 +379,13 @@ function handleAutomationRules(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handleIntegration(pack: AiContextPack): VowroadAiResponse {
+function handleIntegration(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const live = pack.snapshot.integrationLive;
   const headline = live
     ? loc === "ko"
-      ? "샵이 라이브 상태입니다. Vowroad가 설정한 시간에 전화를 받을 수 있습니다."
-      : "Your shop is live — Vowroad can answer calls on your configured schedule."
+      ? "샵이 라이브 상태입니다. Effiroad가 설정한 시간에 전화를 받을 수 있습니다."
+      : "Your shop is live — Effiroad can answer calls on your configured schedule."
     : loc === "ko"
       ? "아직 연동 설정이 완료되지 않았습니다. 연락처·시간대·착신 전환을 마무리해 주세요."
       : "Setup isn't complete yet. Finish contact, schedule, and call forwarding to go live.";
@@ -406,7 +406,7 @@ function handleIntegration(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handleCalendarToday(pack: AiContextPack): VowroadAiResponse {
+function handleCalendarToday(pack: AiContextPack): EffiroadAiResponse {
   const events = pack.calendarEvents.filter((e) => eventOnDay(e, pack.now));
   const loc = pack.locale;
   const headline =
@@ -447,7 +447,7 @@ function handleCalendarToday(pack: AiContextPack): VowroadAiResponse {
   };
 }
 
-function handleGeneral(pack: AiContextPack, query: string): VowroadAiResponse {
+function handleGeneral(pack: AiContextPack, query: string): EffiroadAiResponse {
   const loc = pack.locale;
   const ragHits = searchCallRag({
     query,
@@ -506,7 +506,7 @@ function handleGeneral(pack: AiContextPack, query: string): VowroadAiResponse {
   };
 }
 
-export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQueryIntent): VowroadAiResponse {
+export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQueryIntent): EffiroadAiResponse {
   const now = pack.now;
   const today = { start: startOfDay(now), end: endOfDay(now) };
   const yesterdayDate = new Date(now);
@@ -736,7 +736,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
   }
 }
 
-export function buildProactiveBriefing(pack: AiContextPack): VowroadAiResponse {
+export function buildProactiveBriefing(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const s = pack.snapshot;
   const bullets = snapshotLines(pack);

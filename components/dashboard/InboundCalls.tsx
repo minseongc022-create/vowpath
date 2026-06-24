@@ -33,8 +33,8 @@ export function InboundCalls() {
   useEffect(() => {
     loadCalls();
     const onUpdate = () => loadCalls();
-    window.addEventListener("vowroad:calls-updated", onUpdate);
-    return () => window.removeEventListener("vowroad:calls-updated", onUpdate);
+    window.addEventListener("effiroad:calls-updated", onUpdate);
+    return () => window.removeEventListener("effiroad:calls-updated", onUpdate);
   }, []);
 
   return (

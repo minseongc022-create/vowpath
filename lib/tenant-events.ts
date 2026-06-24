@@ -41,7 +41,7 @@ const EVENTS_FILE = path.join(DATA_DIR, "tenant-events.json");
 type EventStore = { byUser: Record<string, TenantEvent[]> };
 
 function kvKey(userId: string) {
-  return `vowroad:tenant-events:${userId}`;
+  return `effiroad:tenant-events:${userId}`;
 }
 
 async function readFileStore(): Promise<EventStore> {

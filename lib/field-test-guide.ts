@@ -25,7 +25,7 @@ export function buildFieldTestGuide(params: {
 }) {
   const shop = params.shopName?.trim() || "Your HVAC Shop";
   const twilio = params.shopPhone?.trim() || process.env.TWILIO_PHONE_NUMBER || "+12255291680";
-  const portal = params.portalUrl?.trim() || getPortalBaseUrl() || "https://link.vowroad.com";
+  const portal = params.portalUrl?.trim() || getPortalBaseUrl() || "https://link.effiroad.com";
   const ownerPhone = params.ownerPhone?.trim() || FIELD_TEST_CUSTOMER.phone;
   const testTech = {
     name: "You (test tech)",
@@ -34,7 +34,7 @@ export function buildFieldTestGuide(params: {
   };
 
   return {
-    title: "Vowroad field test checklist",
+    title: "Effiroad field test checklist",
     shopName: shop,
     numbers: {
       customerCalls: twilio,
@@ -95,7 +95,7 @@ export function buildFieldTestGuide(params: {
       },
     },
     settings: {
-      shopName: "Settings → Shop name (shows in SMS, not Vowroad)",
+      shopName: "Settings → Shop name (shows in SMS, not Effiroad)",
       visitHours: "Settings → Booking → Business hours for visits",
       crew: "Settings → Crew: tech phone = STAFF line (not customer). Customer phone on booking = customer only. Same 010 for both? Use dashboard for ETA.",
     },

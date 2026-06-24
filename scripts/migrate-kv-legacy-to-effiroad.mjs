@@ -1,13 +1,13 @@
 /**
- * One-time: copy vowpath:* KV keys → vowroad:* (production migration after prefix rename).
- * Usage: node scripts/migrate-kv-vowpath-to-vowroad.mjs
- * Requires KV_REST_API_URL + KV_REST_API_TOKEN (or Upstash equivalents) in env.
+ * Copy legacy vowpath:* and vowroad:* KV keys → effiroad:* (idempotent).
+ * Usage: node scripts/migrate-kv-legacy-to-effiroad.mjs
  */
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const LEGACY_PREFIXES = ["vowpath:", "vowroad:"];
 
 function loadEnvFile(rel) {
   const file = path.join(root, rel);
@@ -69,19 +69,15 @@ async function scan(pattern) {
   return keys;
 }
 
-async function main() {
-  const oldKeys = await scan("vowpath:*");
-  console.log(`Found ${oldKeys.length} vowpath:* keys`);
-  if (oldKeys.length === 0) {
-    const newKeys = await scan("vowroad:*");
-    console.log(`vowroad:* keys already present: ${newKeys.length}`);
-    console.log("Nothing to migrate.");
-    return;
-  }
+async function migratePrefix(prefix) {
+  const oldKeys = await scan(`${prefix}*`);
+  console.log(`Found ${oldKeys.length} ${prefix}* keys`);
+  if (oldKeys.length === 0) return { copied: 0, skipped: 0 };
+
   let copied = 0;
   let skipped = 0;
   for (const oldKey of oldKeys) {
-    const newKey = oldKey.replace(/^vowpath:/, "vowroad:");
+    const newKey = oldKey.replace(new RegExp(`^${prefix}`), "effiroad:");
     const exists = await kvCmd(["EXISTS", newKey]);
     if (exists.result === 1) {
       skipped += 1;
@@ -97,8 +93,27 @@ async function main() {
     }
     copied += 1;
   }
-  console.log(`Migrated ${copied} keys (${skipped} already had vowroad: copy).`);
-  console.log("Old vowpath:* keys left in place for rollback; delete manually after verifying.");
+  return { copied, skipped };
+}
+
+async function main() {
+  let totalCopied = 0;
+  let totalSkipped = 0;
+  for (const prefix of LEGACY_PREFIXES) {
+    const { copied, skipped } = await migratePrefix(prefix);
+    totalCopied += copied;
+    totalSkipped += skipped;
+  }
+
+  if (totalCopied === 0 && totalSkipped === 0) {
+    const newKeys = await scan("effiroad:*");
+    console.log(`effiroad:* keys already present: ${newKeys.length}`);
+    console.log("Nothing to migrate.");
+    return;
+  }
+
+  console.log(`Migrated ${totalCopied} keys (${totalSkipped} already had effiroad: copy).`);
+  console.log("Legacy vowpath:/vowroad: keys left for rollback; delete manually after verifying.");
 }
 
 main().catch((e) => {

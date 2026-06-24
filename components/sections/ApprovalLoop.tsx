@@ -65,7 +65,7 @@ function SmsExampleCard() {
 
 export function ApprovalLoop() {
   const a = siteApprovalLoop;
-  const highlightIds = new Set(["vowroad", "owner"]);
+  const highlightIds = new Set(["effiroad", "owner"]);
 
   return (
     <section id={a.id} className="vow-site-section py-16 sm:py-20">

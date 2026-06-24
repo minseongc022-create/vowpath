@@ -3,7 +3,7 @@ import { parseRowsFromStored } from "./schedule-format";
 import { getShopProfile } from "./shop-profile-db";
 import type { ShopProfile } from "./shop-profile-db";
 
-/** Whether Vowroad should actively handle calls right now (server-side). */
+/** Whether Effiroad should actively handle calls right now (server-side). */
 export function shouldAnswerNow(profile: ShopProfile, now = new Date()): boolean {
   if (!profile.answerScheduleActive) return false;
   if (profile.scheduleAlwaysOn) return true;

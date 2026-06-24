@@ -395,11 +395,11 @@ function useDashboardDataSource(): DashboardDataSource {
       void refreshRef.current();
     };
 
-    window.addEventListener("vowroad:calls-updated", onRefresh);
-    window.addEventListener("vowroad:jobs-updated", onRefresh);
-    window.addEventListener("vowroad:jobber-updated", onRefresh);
-    window.addEventListener("vowroad:bookings-status-updated", onRefresh);
-    window.addEventListener("vowroad:tenant-events-updated", onRefresh);
+    window.addEventListener("effiroad:calls-updated", onRefresh);
+    window.addEventListener("effiroad:jobs-updated", onRefresh);
+    window.addEventListener("effiroad:jobber-updated", onRefresh);
+    window.addEventListener("effiroad:bookings-status-updated", onRefresh);
+    window.addEventListener("effiroad:tenant-events-updated", onRefresh);
 
     const poll =
       typeof document !== "undefined"
@@ -411,11 +411,11 @@ function useDashboardDataSource(): DashboardDataSource {
         : undefined;
 
     return () => {
-      window.removeEventListener("vowroad:calls-updated", onRefresh);
-      window.removeEventListener("vowroad:jobs-updated", onRefresh);
-      window.removeEventListener("vowroad:jobber-updated", onRefresh);
-      window.removeEventListener("vowroad:bookings-status-updated", onRefresh);
-      window.removeEventListener("vowroad:tenant-events-updated", onRefresh);
+      window.removeEventListener("effiroad:calls-updated", onRefresh);
+      window.removeEventListener("effiroad:jobs-updated", onRefresh);
+      window.removeEventListener("effiroad:jobber-updated", onRefresh);
+      window.removeEventListener("effiroad:bookings-status-updated", onRefresh);
+      window.removeEventListener("effiroad:tenant-events-updated", onRefresh);
       if (poll !== undefined) window.clearInterval(poll);
     };
   }, []);

@@ -1,5 +1,5 @@
 /**
- * User-facing Vowpath → Vowroad rebrand (display copy only).
+ * User-facing Vowpath → Effiroad rebrand (display copy only).
  * Does not rename APIs, KV keys, or TypeScript identifiers.
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -39,19 +39,19 @@ const files = [
   "components/dashboard/CollectedRevenuePanel.tsx",
   "components/dashboard/RecoveryMetricsPanel.tsx",
   "components/dashboard/DashboardShell.tsx",
-  "components/dashboard/VowroadAiView.tsx",
+  "components/dashboard/EffiroadAiView.tsx",
   "components/dashboard/BookingTimelinePanel.tsx",
   "components/settings/CompanyAiMemorySettings.tsx",
   "components/settings/AutomationRulesView.tsx",
 ];
 
 const pairs = [
-  ["VOWPATH", "VOWROAD"],
-  ["Vowpath", "Vowroad"],
-  ['id: "vowpath"', 'id: "vowroad"'],
-  ['"vowpath", "owner"', '"vowroad", "owner"'],
-  ['node.id === "vowroad"', 'node.id === "vowroad"'],
-  ["project(vowpath)", "project(vowroad)"],
+  ["VOWPATH", "EFFIROAD"],
+  ["Vowpath", "Effiroad"],
+  ['id: "vowpath"', 'id: "effiroad"'],
+  ['"vowpath", "owner"', '"effiroad", "owner"'],
+  ['node.id === "effiroad"', 'node.id === "effiroad"'],
+  ["project(vowpath)", "project(effiroad)"],
 ];
 
 let touched = 0;

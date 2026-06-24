@@ -16,7 +16,7 @@ export type JobberTokenRecord = {
   updatedAt: string;
 };
 
-const KV_PREFIX = "vowroad:jobber:";
+const KV_PREFIX = "effiroad:jobber:";
 const DATA_DIR = path.join(process.cwd(), "data");
 const TOKENS_FILE = path.join(DATA_DIR, "jobber-tokens.json");
 
