@@ -1,7 +1,7 @@
 /**
- * One-time: copy vowroad:* KV keys → vowroad:* (production migration after prefix rename).
+ * One-time: copy vowpath:* KV keys → vowroad:* (production migration after prefix rename).
  * Usage: node scripts/migrate-kv-vowpath-to-vowroad.mjs
- * Requires KV_REST_API_URL + KV_REST_API_TOKEN in env.
+ * Requires KV_REST_API_URL + KV_REST_API_TOKEN (or Upstash equivalents) in env.
  */
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
@@ -13,27 +13,43 @@ function loadEnvFile(rel) {
   const file = path.join(root, rel);
   if (!existsSync(file)) return;
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const m = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
     if (!m || process.env[m[1]]) continue;
-    process.env[m[1]] = m[2].replace(/^"|"$/g, "");
+    const val = m[2].replace(/^"|"$/g, "").trim();
+    if (!val) continue;
+    process.env[m[1]] = val;
   }
 }
 
-loadEnvFile(".env.local");
-loadEnvFile(".env.production.local");
-loadEnvFile(".env.vercel.production");
+if (process.env.VERCEL !== "1") {
+  loadEnvFile(".env.kv-migrate.tmp");
+  loadEnvFile(".env.local");
+  loadEnvFile(".env.production.local");
+  loadEnvFile(".env.vercel.production");
+}
 
-const url = process.env.KV_REST_API_URL?.trim();
-const token = process.env.KV_REST_API_TOKEN?.trim();
-if (!url || !token) {
-  console.error("Set KV_REST_API_URL and KV_REST_API_TOKEN");
+function kvRestConfig() {
+  const url =
+    process.env.KV_REST_API_URL?.trim() ||
+    process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token =
+    process.env.KV_REST_API_TOKEN?.trim() ||
+    process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  return url && token ? { url, token } : null;
+}
+
+const cfg = kvRestConfig();
+if (!cfg) {
+  console.error("Set KV_REST_API_URL and KV_REST_API_TOKEN (or Upstash REST equivalents)");
   process.exit(1);
 }
 
 async function kvCmd(command) {
-  const res = await fetch(url, {
+  const res = await fetch(cfg.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${cfg.token}`, "Content-Type": "application/json" },
     body: JSON.stringify(command),
   });
   if (!res.ok) throw new Error(`${command[0]} failed: ${res.status} ${await res.text()}`);
@@ -54,15 +70,18 @@ async function scan(pattern) {
 }
 
 async function main() {
-  const oldKeys = await scan("vowroad:*");
+  const oldKeys = await scan("vowpath:*");
+  console.log(`Found ${oldKeys.length} vowpath:* keys`);
   if (oldKeys.length === 0) {
-    console.log("No vowroad:* keys found — nothing to migrate.");
+    const newKeys = await scan("vowroad:*");
+    console.log(`vowroad:* keys already present: ${newKeys.length}`);
+    console.log("Nothing to migrate.");
     return;
   }
   let copied = 0;
   let skipped = 0;
   for (const oldKey of oldKeys) {
-    const newKey = oldKey.replace(/^vowroad:/, "vowroad:");
+    const newKey = oldKey.replace(/^vowpath:/, "vowroad:");
     const exists = await kvCmd(["EXISTS", newKey]);
     if (exists.result === 1) {
       skipped += 1;
@@ -79,7 +98,7 @@ async function main() {
     copied += 1;
   }
   console.log(`Migrated ${copied} keys (${skipped} already had vowroad: copy).`);
-  console.log("Old vowroad:* keys left in place for rollback; delete manually after verifying.");
+  console.log("Old vowpath:* keys left in place for rollback; delete manually after verifying.");
 }
 
 main().catch((e) => {
