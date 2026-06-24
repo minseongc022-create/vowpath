@@ -32,7 +32,7 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
 
     summary:
 
-      "고객에게 보이는 번호는 지금 쓰는 업체 번호 그대로입니다. 못 받을 때·야간·주말에만 Vowpath로 착신전환합니다.",
+      "고객에게 보이는 번호는 지금 쓰는 업체 번호 그대로입니다. 못 받을 때·야간·주말에만 Vowroad로 착신전환합니다.",
 
     outputs: ["번호 1개 유지", "조건부 전환", "시간대 설정"],
 
@@ -50,7 +50,7 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
 
         label: "조건부 전환",
 
-        text: "안 받으면 / 통화중 / 몇 초 후 → Vowpath 번호로 넘깁니다.",
+        text: "안 받으면 / 통화중 / 몇 초 후 → Vowroad 번호로 넘깁니다.",
 
       },
 
@@ -76,7 +76,7 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
 
     summary:
 
-      "Vowpath로 넘어온 전화에서 AI가 전화 접수와 링크 접수 중 선택을 안내합니다. 연락처·주소·증상을 받아 요약합니다.",
+      "Vowroad로 넘어온 전화에서 AI가 전화 접수와 링크 접수 중 선택을 안내합니다. 연락처·주소·증상을 받아 요약합니다.",
 
     outputs: ["전화 접수", "링크 접수", "요약 정리"],
 
@@ -232,7 +232,7 @@ export const HERO_FLOW_PIPELINE = [
 
 export const HERO_FLOW_LOOP_SUMMARY =
 
-  "고객이 전화·링크로 접수하면 Vowpath가 업체에 승인 요청 문자를 보냅니다. 업체가 1(승인) 또는 2(거절)로 답하면 고객에게 결과 문자가 자동으로 갑니다.";
+  "고객이 전화·링크로 접수하면 Vowroad가 업체에 승인 요청 문자를 보냅니다. 업체가 1(승인) 또는 2(거절)로 답하면 고객에게 결과 문자가 자동으로 갑니다.";
 
 
 
@@ -240,7 +240,7 @@ export const OPERATING_FLOW_NODES = [
 
   { id: "customer", title: "고객 접수", caption: "전화·링크로 정보 전달" },
 
-  { id: "vowpath", title: "Vowpath AI", caption: "요약 · 승인 요청 생성" },
+  { id: "vowroad", title: "Vowroad AI", caption: "요약 · 승인 요청 생성" },
 
   { id: "owner", title: "업체 결정", caption: "1=승인 · 2=거절 답장" },
 

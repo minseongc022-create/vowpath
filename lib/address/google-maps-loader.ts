@@ -49,7 +49,7 @@ export async function ensureGoogleMapsPlacesLoaded(): Promise<void> {
 
   if (!loadPromise) {
     loadPromise = new Promise<void>((resolve, reject) => {
-      const callbackName = "__vowpathGoogleMapsReady";
+      const callbackName = "__vowroadGoogleMapsReady";
       const win = window as unknown as Window & Record<string, (() => void) | undefined>;
       win[callbackName] = () => {
         void waitForPlacesLibrary()
@@ -58,7 +58,7 @@ export async function ensureGoogleMapsPlacesLoaded(): Promise<void> {
       };
 
       const existing = document.querySelector<HTMLScriptElement>(
-        'script[data-vowpath-google-maps="1"]',
+        'script[data-vowroad-google-maps="1"]',
       );
       if (existing) {
         void waitForPlacesLibrary().then(resolve).catch(reject);
@@ -66,7 +66,7 @@ export async function ensureGoogleMapsPlacesLoaded(): Promise<void> {
       }
 
       const script = document.createElement("script");
-      script.dataset.vowpathGoogleMaps = "1";
+      script.dataset.vowroadGoogleMaps = "1";
       script.async = true;
       script.defer = true;
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&callback=${callbackName}`;

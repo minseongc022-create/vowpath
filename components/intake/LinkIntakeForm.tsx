@@ -32,7 +32,7 @@ type IntakeDraft = {
 };
 
 function draftStorageKey(token: string) {
-  return `vowpath-intake-draft:${token}`;
+  return `vowroad-intake-draft:${token}`;
 }
 
 function readDraft(token: string): IntakeDraft | null {

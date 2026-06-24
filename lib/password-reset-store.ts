@@ -17,7 +17,7 @@ export type ResetRequest = {
   createdAt: string;
 };
 
-const KV_PREFIX = "vowpath:reset:";
+const KV_PREFIX = "vowroad:reset:";
 const DATA_DIR = path.join(process.cwd(), "data");
 const RESETS_FILE = path.join(DATA_DIR, "password-resets.json");
 
@@ -82,7 +82,7 @@ export async function deleteResetRequest(id: string) {
   await writeFileStore(store);
 }
 
-const RATE_KV_PREFIX = "vowpath:ratelimit:forgot:";
+const RATE_KV_PREFIX = "vowroad:ratelimit:forgot:";
 
 export async function getForgotAttemptCount(key: string): Promise<number> {
   const normalized = key.trim().toLowerCase();

@@ -13,6 +13,7 @@
    배포 후:
 
    ```
+   https://vowpathhq.com/api/jobber/callback
    https://vowroad.com/api/jobber/callback
    http://localhost:3000/api/jobber/callback
    ```

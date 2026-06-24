@@ -3,7 +3,7 @@ export function isEmailConfigured(): boolean {
 }
 
 export function getEmailFromAddress(): string {
-  return process.env.EMAIL_FROM?.trim() ?? "Vowpath <onboarding@resend.dev>";
+  return process.env.EMAIL_FROM?.trim() ?? "Vowroad <onboarding@resend.dev>";
 }
 
 export type SendEmailInput = {

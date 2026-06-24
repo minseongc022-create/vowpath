@@ -210,8 +210,8 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
         title: locale === "ko" ? "현재 플랜" : "Current Plan",
         description:
           locale === "ko"
-            ? "Vowpath AI에서는 플랜 조회만 가능합니다."
-            : "Plan lookup is read-only inside Vowpath AI.",
+            ? "Vowroad AI에서는 플랜 조회만 가능합니다."
+            : "Plan lookup is read-only inside Vowroad AI.",
         rows: currentPlanRows(context.user, context.nextBillingDate),
         actions: [
           { label: locale === "ko" ? "플랜 비교" : "Compare Plans", href: "/pricing", kind: "compare" },
@@ -231,7 +231,7 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
   if (q.includes("compare") || q.includes("차이")) {
     return {
       kind: "billing",
-      answer: "Vowpath currently has Flex and Unlimited plans.",
+      answer: "Vowroad currently has Flex and Unlimited plans.",
       billingCard: {
         title: "Plan Comparison",
         description: sitePricing.tip,
@@ -354,7 +354,7 @@ export function analyzeAiAdminIntent(
     return {
       kind: "preview",
       answer:
-        locale === "ko" ? "Jobber 연결을 해제합니다." : "This disconnects Jobber from Vowpath.",
+        locale === "ko" ? "Jobber 연결을 해제합니다." : "This disconnects Jobber from Vowroad.",
       preview: {
         id: crypto.randomUUID(),
         title: locale === "ko" ? "Jobber 연결 해제" : "Disconnect Jobber",

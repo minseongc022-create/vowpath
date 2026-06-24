@@ -7,7 +7,7 @@ import type { CustomerVerificationRecord } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const VERIFY_FILE = path.join(DATA_DIR, "customer-verification.json");
-const PENDING_INDEX_KEY = "vowpath:customer-verification-pending";
+const PENDING_INDEX_KEY = "vowroad:customer-verification-pending";
 
 type VerifyStore = { records: Record<string, CustomerVerificationRecord> };
 
@@ -16,15 +16,15 @@ function recordKey(userId: string, bookingId: string) {
 }
 
 function phoneIndexKey(userId: string, phone: string) {
-  return `vowpath:cust-verify-phone:${userId}:${phone}`;
+  return `vowroad:cust-verify-phone:${userId}:${phone}`;
 }
 
 function kvRecordKey(userId: string, bookingId: string) {
-  return `vowpath:customer-verification:${userId}:${bookingId}`;
+  return `vowroad:customer-verification:${userId}:${bookingId}`;
 }
 
 function kvUserIndexKey(userId: string) {
-  return `vowpath:customer-verification-index:${userId}`;
+  return `vowroad:customer-verification-index:${userId}`;
 }
 
 async function readFileStore(): Promise<VerifyStore> {

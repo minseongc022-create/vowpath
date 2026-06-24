@@ -11,7 +11,7 @@ const INTAKE_FILE = path.join(DATA_DIR, "call-intake-sessions.json");
 type IntakeStore = { sessions: Record<string, CallIntakeState> };
 
 function kvKey(userId: string, callSid: string) {
-  return `vowpath:call-intake:${userId}:${callSid}`;
+  return `vowroad:call-intake:${userId}:${callSid}`;
 }
 
 async function readFileStore(): Promise<IntakeStore> {
@@ -41,7 +41,7 @@ export async function getIntakeState(
   if (useKvStore()) {
     return (
       (await kv.get<CallIntakeState>(kvKey(userId, callSid))) ??
-      (await kv.get<CallIntakeState>(`vowpath:call-intake:${callSid}`)) ??
+      (await kv.get<CallIntakeState>(`vowroad:call-intake:${callSid}`)) ??
       null
     );
   }
@@ -74,7 +74,7 @@ export async function deleteIntakeState(
 ): Promise<void> {
   if (useKvStore()) {
     await kv.del(kvKey(userId, callSid));
-    await kv.del(`vowpath:call-intake:${callSid}`);
+    await kv.del(`vowroad:call-intake:${callSid}`);
     return;
   }
   const store = await readFileStore();

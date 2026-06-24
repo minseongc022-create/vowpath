@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     const response = answerAiQuestion(query, pack, intent);
     return NextResponse.json({ ok: true, ...response, response });
   } catch (e) {
-    console.error("[vowpath-ai]", e);
+    console.error("[vowroad-ai]", e);
     return NextResponse.json({ error: "AI query failed" }, { status: 500 });
   }
 }

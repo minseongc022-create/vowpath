@@ -80,7 +80,7 @@ export function AuthForm({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("vowpath_remember_login");
+      const saved = localStorage.getItem("vowroad_remember_login");
       if (saved === "0") setRememberMe(false);
     } catch {
       /* ignore */
@@ -314,7 +314,7 @@ export function AuthForm({
                   const next = e.target.checked;
                   setRememberMe(next);
                   try {
-                    localStorage.setItem("vowpath_remember_login", next ? "1" : "0");
+                    localStorage.setItem("vowroad_remember_login", next ? "1" : "0");
                   } catch {
                     /* ignore */
                   }

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     if (e instanceof AiAdminExecutionError) {
       return NextResponse.json({ error: e.message }, { status: e.status });
     }
-    console.error("[vowpath-ai/admin/confirm]", e);
+    console.error("[vowroad-ai/admin/confirm]", e);
     return NextResponse.json({ error: "Admin action failed" }, { status: 500 });
   }
 }

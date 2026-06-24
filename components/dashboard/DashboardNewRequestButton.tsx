@@ -23,7 +23,7 @@ export function DashboardNewRequestButton({ onCreated }: DashboardNewRequestButt
         return;
       }
       setToast(vowDashboard.header.simulateDone);
-      window.dispatchEvent(new CustomEvent("vowpath:calls-updated"));
+      window.dispatchEvent(new CustomEvent("vowroad:calls-updated"));
       onCreated?.();
       setTimeout(() => setToast(null), 4000);
     } catch {

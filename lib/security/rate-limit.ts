@@ -34,7 +34,7 @@ function safeKey(input: string) {
 }
 
 export function rateLimitKey(scope: string, value: string) {
-  return `vowpath:rl:${safeKey(scope)}:${safeKey(value || "unknown")}`;
+  return `vowroad:rl:${safeKey(scope)}:${safeKey(value || "unknown")}`;
 }
 
 export function clientIpFromRequest(request: Request): string {

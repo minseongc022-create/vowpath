@@ -5,7 +5,7 @@ import {
 } from "../booking-policy";
 import { buildDailyBriefing } from "../dashboard-briefing";
 import { isNoCoolingText } from "../urgent-requests";
-import type { VowpathAiAction, VowpathAiResponse } from "../vowpath-ai-query";
+import type { VowroadAiAction, VowroadAiResponse } from "../vowroad-ai-query";
 import {
   bookingStatusOf,
   buildAiContextPack,
@@ -37,7 +37,7 @@ function labels(pack: AiContextPack) {
   return actionLabels(pack.locale);
 }
 
-function defaultActions(pack: AiContextPack): VowpathAiAction[] {
+function defaultActions(pack: AiContextPack): VowroadAiAction[] {
   const L = labels(pack);
   return [
     { label: L.pendingApprovals, href: "/dashboard/bookings" },
@@ -59,12 +59,12 @@ function bookingItem(pack: AiContextPack, booking: RecentBooking) {
   };
 }
 
-function actionsForBooking(pack: AiContextPack, booking: RecentBooking | null): VowpathAiAction[] {
+function actionsForBooking(pack: AiContextPack, booking: RecentBooking | null): VowroadAiAction[] {
   const L = labels(pack);
   const base = defaultActions(pack);
   if (!booking) return base;
   const status = bookingStatusOf(pack, booking);
-  const actions: VowpathAiAction[] = [
+  const actions: VowroadAiAction[] = [
     { label: L.bookingDetails, href: `/dashboard/bookings/${encodeURIComponent(booking.id)}` },
     { label: L.callHistory, href: "/dashboard/missed-calls" },
     { label: L.calendar, href: "/dashboard/calendar" },
@@ -84,7 +84,7 @@ function listResponse(
   headline: string,
   bookings: RecentBooking[],
   partial = false,
-): VowpathAiResponse {
+): VowroadAiResponse {
   if (bookings.length === 0) {
     return {
       answer: composeEmptyResult({
@@ -122,7 +122,7 @@ function listResponse(
   };
 }
 
-function handleCustomer(pack: AiContextPack, name: string): VowpathAiResponse {
+function handleCustomer(pack: AiContextPack, name: string): VowroadAiResponse {
   const needle = name.toLowerCase();
   const bookings = pack.bookings.filter((b) => b.customerName.toLowerCase().includes(needle));
   const calls = pack.calls.filter((c) => (c.customerName ?? "").toLowerCase().includes(needle));
@@ -210,7 +210,7 @@ function handleCustomer(pack: AiContextPack, name: string): VowpathAiResponse {
   };
 }
 
-function handleCallMemory(pack: AiContextPack): VowpathAiResponse {
+function handleCallMemory(pack: AiContextPack): VowroadAiResponse {
   const memory = pack.callMemory;
   if (memory.length === 0) {
     return {
@@ -257,7 +257,7 @@ function handleCallMemory(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handlePolicy(pack: AiContextPack): VowpathAiResponse {
+function handlePolicy(pack: AiContextPack): VowroadAiResponse {
   const m = pack.companyMemory;
   const loc = pack.locale;
   return {
@@ -284,7 +284,7 @@ function handlePolicy(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handleSettingsRead(pack: AiContextPack): VowpathAiResponse {
+function handleSettingsRead(pack: AiContextPack): VowroadAiResponse {
   const loc = pack.locale;
   const s = pack.bookingSettings;
   const m = pack.companyMemory;
@@ -321,7 +321,7 @@ function handleSettingsRead(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handleAutomationRules(pack: AiContextPack): VowpathAiResponse {
+function handleAutomationRules(pack: AiContextPack): VowroadAiResponse {
   const loc = pack.locale;
   const rules = pack.workflowRules;
   if (!rules.length) {
@@ -343,7 +343,7 @@ function handleAutomationRules(pack: AiContextPack): VowpathAiResponse {
       }),
       actions: [
         { label: loc === "ko" ? "설정 열기" : "Open Settings", href: "/dashboard/settings" },
-        { label: loc === "ko" ? "Vowpath AI" : "Vowpath AI", href: "/dashboard/ai" },
+        { label: loc === "ko" ? "Vowroad AI" : "Vowroad AI", href: "/dashboard/ai" },
       ],
       suggestions:
         loc === "ko"
@@ -379,13 +379,13 @@ function handleAutomationRules(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handleIntegration(pack: AiContextPack): VowpathAiResponse {
+function handleIntegration(pack: AiContextPack): VowroadAiResponse {
   const loc = pack.locale;
   const live = pack.snapshot.integrationLive;
   const headline = live
     ? loc === "ko"
-      ? "샵이 라이브 상태입니다. Vowpath가 설정한 시간에 전화를 받을 수 있습니다."
-      : "Your shop is live — Vowpath can answer calls on your configured schedule."
+      ? "샵이 라이브 상태입니다. Vowroad가 설정한 시간에 전화를 받을 수 있습니다."
+      : "Your shop is live — Vowroad can answer calls on your configured schedule."
     : loc === "ko"
       ? "아직 연동 설정이 완료되지 않았습니다. 연락처·시간대·착신 전환을 마무리해 주세요."
       : "Setup isn't complete yet. Finish contact, schedule, and call forwarding to go live.";
@@ -406,7 +406,7 @@ function handleIntegration(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handleCalendarToday(pack: AiContextPack): VowpathAiResponse {
+function handleCalendarToday(pack: AiContextPack): VowroadAiResponse {
   const events = pack.calendarEvents.filter((e) => eventOnDay(e, pack.now));
   const loc = pack.locale;
   const headline =
@@ -447,7 +447,7 @@ function handleCalendarToday(pack: AiContextPack): VowpathAiResponse {
   };
 }
 
-function handleGeneral(pack: AiContextPack, query: string): VowpathAiResponse {
+function handleGeneral(pack: AiContextPack, query: string): VowroadAiResponse {
   const loc = pack.locale;
   const ragHits = searchCallRag({
     query,
@@ -506,7 +506,7 @@ function handleGeneral(pack: AiContextPack, query: string): VowpathAiResponse {
   };
 }
 
-export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQueryIntent): VowpathAiResponse {
+export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQueryIntent): VowroadAiResponse {
   const now = pack.now;
   const today = { start: startOfDay(now), end: endOfDay(now) };
   const yesterdayDate = new Date(now);
@@ -736,7 +736,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
   }
 }
 
-export function buildProactiveBriefing(pack: AiContextPack): VowpathAiResponse {
+export function buildProactiveBriefing(pack: AiContextPack): VowroadAiResponse {
   const loc = pack.locale;
   const s = pack.snapshot;
   const bullets = snapshotLines(pack);

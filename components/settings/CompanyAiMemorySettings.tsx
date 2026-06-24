@@ -97,10 +97,10 @@ export function CompanyAiMemorySettings() {
           Company AI Memory
         </p>
         <h2 className="mt-1 text-xl font-semibold text-slate-900">
-          Teach Vowpath how your shop operates
+          Teach Vowroad how your shop operates
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Vowpath AI and daily briefings use these rules as company policy. Answers
+          Vowroad AI and daily briefings use these rules as company policy. Answers
           still come only from saved data.
         </p>
       </div>

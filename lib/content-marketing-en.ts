@@ -8,9 +8,9 @@ export const heroEn = {
   headline: "AI that answers when you can't.",
   headlineAccent: "Books the job. Runs the shop with you.",
   brandLine:
-    "Vowpath is not a generic answering service. Your main line stays the same — when you miss a ring, our AI phone layer captures HVAC intake, books real arrival windows, and keeps the homeowner in the loop until your tech is on the way.",
+    "Vowroad is not a generic answering service. Your main line stays the same — when you miss a ring, our AI phone layer captures HVAC intake, books real arrival windows, and keeps the homeowner in the loop until your tech is on the way.",
   subhead:
-    "Core: AI phone + SMS link intake and smart booking. Built in: missed-call analytics and Vowpath AI — your pocket ops assistant for approvals, calendar, and shop settings.",
+    "Core: AI phone + SMS link intake and smart booking. Built in: missed-call analytics and Vowroad AI — your pocket ops assistant for approvals, calendar, and shop settings.",
   trustLine: "US residential HVAC · 1–5 truck shops · Jobber optional",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See the full flow",
@@ -19,16 +19,16 @@ export const heroEn = {
     "AI phone intake",
     "Owner SMS 1 / 2",
     "Shop analytics",
-    "Vowpath AI assistant",
+    "Vowroad AI assistant",
   ] as const,
 };
 
 export const productStackEn = {
   id: "product-stack",
-  label: "What Vowpath is",
+  label: "What Vowroad is",
   title: "One platform — three layers",
   subtitle:
-    "Most tools only answer the phone. Vowpath starts there, then shows you what you captured and lets you run the shop without opening ten menus.",
+    "Most tools only answer the phone. Vowroad starts there, then shows you what you captured and lets you run the shop without opening ten menus.",
   layers: [
     {
       id: "phone",
@@ -37,7 +37,7 @@ export const productStackEn = {
       label: "AI phone layer",
       title: "Catch every ring you miss",
       description:
-        "Overflow, after-hours, and peak-season calls forward to Vowpath. Customers talk or tap a text link — name, address, issue, and a real arrival window.",
+        "Overflow, after-hours, and peak-season calls forward to Vowroad. Customers talk or tap a text link — name, address, issue, and a real arrival window.",
       points: [
         "Same shop number on Google",
         "HVAC triage (P1 / P2 / P3)",
@@ -64,7 +64,7 @@ export const productStackEn = {
       id: "assistant",
       tier: "sub" as const,
       badge: null,
-      label: "Vowpath AI",
+      label: "Vowroad AI",
       title: "Your ops assistant in your pocket",
       description:
         "Ask what came in, what needs approval, or what is on the calendar — and change booking rules in plain English when you are on a roof.",
@@ -84,7 +84,7 @@ export const missedCallFlowEn = {
   id: "missed-call-flow",
   title: "From ring to doorstep — without losing the homeowner",
   subtitle:
-    "High level only: your customer experience from the first call until your tech arrives. You stay in control; Vowpath handles the gaps.",
+    "High level only: your customer experience from the first call until your tech arrives. You stay in control; Vowroad handles the gaps.",
   steps: [
     {
       id: "call",
@@ -94,7 +94,7 @@ export const missedCallFlowEn = {
     },
     {
       id: "forward",
-      title: "You miss it → Vowpath answers",
+      title: "You miss it → Vowroad answers",
       description:
         "On a job, after hours, or when lines stack up — unanswered calls forward to the AI phone layer.",
     },
@@ -136,7 +136,7 @@ export const approvalLoopEn = {
   label: "Smart exceptions",
   title: "Auto-book the routine. Ping you for what actually needs a human.",
   summary:
-    "Competitors auto-book everything — including bad addresses. Vowpath auto-books clear routine jobs, but holds P1 emergencies and fuzzy intakes for your 1 / 2 before anything confirms.",
+    "Competitors auto-book everything — including bad addresses. Vowroad auto-books clear routine jobs, but holds P1 emergencies and fuzzy intakes for your 1 / 2 before anything confirms.",
   tags: ["Routine auto-confirms", "P1 → 1 / 2", "Unclear → 1 / 2", "Reply 9 undo"] as const,
   smsExample: {
     customer: "John Smith",
@@ -147,7 +147,7 @@ export const approvalLoopEn = {
   },
   nodes: [
     { id: "customer", title: "Customer picks slot", caption: "Real open time" },
-    { id: "vowpath", title: "Vowpath", caption: "Routine confirms" },
+    { id: "vowroad", title: "Vowroad", caption: "Routine confirms" },
     { id: "owner", title: "Your phone", caption: "P1 / unclear → 1 / 2" },
     { id: "customer-out", title: "Job scheduled", caption: "SMS + Jobber" },
   ] as const,
@@ -163,10 +163,10 @@ export const aboutEn = {
   badge: "Built for owner-operators",
   title: "More than an AI phone bot",
   subtitle:
-    "Generic AI answers and hangs up. Vowpath is the phone layer plus shop analytics plus an assistant that knows your bookings — built for US HVAC crews who live on their cell.",
+    "Generic AI answers and hangs up. Vowroad is the phone layer plus shop analytics plus an assistant that knows your bookings — built for US HVAC crews who live on their cell.",
   paragraphs: [
     "The AI phone layer captures what you miss: after-hours no-heat, overflow rings, and peak-season hold times. It triages HVAC urgency, collects intake, and puts clear jobs on your calendar while you stay on the ladder.",
-    "Analytics show what would have been voicemail and what became booked work. Vowpath AI lets you ask what needs attention and adjust rules from the truck — without learning another dispatch system.",
+    "Analytics show what would have been voicemail and what became booked work. Vowroad AI lets you ask what needs attention and adjust rules from the truck — without learning another dispatch system.",
   ],
   pillars: [
     {
@@ -234,7 +234,7 @@ export const revenueLeaksEn = {
 };
 
 export const differentiatorsEn = {
-  title: "What HVAC shops get with Vowpath",
+  title: "What HVAC shops get with Vowroad",
   subtitle: "Auto-book speed — with triage and exceptions built for owner-operators.",
   items: [
     {
@@ -284,7 +284,7 @@ export const jobberEn = {
     {
       title: "No Jobber? You're covered",
       description:
-        "Owner SMS, email backup, Job Cards, and the Vowpath dashboard. Nothing else to buy or connect.",
+        "Owner SMS, email backup, Job Cards, and the Vowroad dashboard. Nothing else to buy or connect.",
     },
     {
       title: "Confirmed jobs → Jobber",
@@ -297,15 +297,15 @@ export const jobberEn = {
         "Confirmed visits show on your Jobber schedule. One source of truth instead of copy-paste from a text thread.",
     },
   ],
-  footnote: "Connect or skip in settings. Vowpath works either way.",
+  footnote: "Connect or skip in settings. Vowroad works either way.",
 };
 
 export const comparisonEn = {
   id: "comparison",
   title: "Auto-book speed — with HVAC triage and owner exceptions",
   subtitle:
-    "Jobber AI and CallJolt auto-book everything. Vowpath does too for clear jobs — but holds messy intakes and flags P1 so bad bookings do not slip through.",
-  headers: ["", "Vowpath", "AI auto-book", "Answering service"],
+    "Jobber AI and CallJolt auto-book everything. Vowroad does too for clear jobs — but holds messy intakes and flags P1 so bad bookings do not slip through.",
+  headers: ["", "Vowroad", "AI auto-book", "Answering service"],
   rows: [
     ["Auto-book to calendar", "Yes — default", "Yes", "No — message only"],
     ["HVAC P1 / P2 / P3 triage", "Built in", "Varies", "Script varies"],
@@ -322,7 +322,7 @@ export const comparisonEn = {
 
 export const featuresEn = {
   title: "Everything that ships today",
-  subtitle: "AI phone is the core. Analytics and Vowpath AI are built in — not upsells on a generic call bot.",
+  subtitle: "AI phone is the core. Analytics and Vowroad AI are built in — not upsells on a generic call bot.",
   items: [
     {
       title: "AI phone + link intake",
@@ -343,7 +343,7 @@ export const featuresEn = {
       tag: "Analytics",
     },
     {
-      title: "Vowpath AI assistant",
+      title: "Vowroad AI assistant",
       description:
         "Ask what came in, what is urgent, and what is pending. Change booking rules with guarded confirmations.",
       tag: "Assistant",
@@ -377,7 +377,7 @@ export const featuresEn = {
 
 export const trustRoiEn = {
   title: "The math is simple",
-  subtitle: "Vowpath is built around moments where one delayed response can lose the job.",
+  subtitle: "Vowroad is built around moments where one delayed response can lose the job.",
   rows: [
     {
       label: "Avg residential ticket",
@@ -390,7 +390,7 @@ export const trustRoiEn = {
       hint: "Nights, weekends, peak",
     },
     {
-      label: "Vowpath Unlimited",
+      label: "Vowroad Unlimited",
       value: SITE.monthlyPrice + "/mo",
       hint: "Or Flex from " + SITE.flexBasePrice + "/mo",
     },
@@ -400,7 +400,7 @@ export const trustRoiEn = {
 
 export const aiDispatcherEn = {
   id: "ai-dispatcher",
-  label: "Vowpath AI",
+  label: "Vowroad AI",
   title: "Your pocket ops assistant",
   subtitle:
     "Not a chatbot on your website — an assistant that reads your shop's calls, bookings, and settings so you can run the business from the truck.",
@@ -434,7 +434,7 @@ export const aiDispatcherEn = {
     },
     {
       title: "Shop memory",
-      description: "Teach Vowpath how you talk to customers:",
+      description: "Teach Vowroad how you talk to customers:",
       items: [
         '"Remember we do not do commercial."',
         '"Our service area is …"',
@@ -456,13 +456,13 @@ export const howItWorksEn = {
     },
     {
       step: "02",
-      title: "When Vowpath answers",
+      title: "When Vowroad answers",
       description: "Evenings, weekends, or no-answer — your hours, your rules.",
     },
     {
       step: "03",
       title: "Forward the main line",
-      description: "Customers dial the same shop number. Busy / no answer → Vowpath.",
+      description: "Customers dial the same shop number. Busy / no answer → Vowroad.",
     },
     {
       step: "04",
@@ -556,13 +556,13 @@ export const signupFlowEn = {
     {
       step: "03",
       title: "Forward the main line",
-      description: "Customers still dial your shop. Unanswered → Vowpath.",
+      description: "Customers still dial your shop. Unanswered → Vowroad.",
       time: "5 min",
     },
     {
       step: "04",
       title: "Test call + dashboard",
-      description: "One test ring. See intake, analytics, and Vowpath AI on your phone.",
+      description: "One test ring. See intake, analytics, and Vowroad AI on your phone.",
       time: "2 min",
     },
   ],
@@ -573,7 +573,7 @@ export const pricingEn = {
   subtitle: "Unlimited for busy shops. Flex when nights are quieter.",
   compare: [
     { label: "AI phone + link intake", amount: "Included" },
-    { label: "Shop analytics + Vowpath AI", amount: "Included" },
+    { label: "Shop analytics + Vowroad AI", amount: "Included" },
     { label: "Owner SMS (FYI + exceptions)", amount: "Included" },
     { label: "Jobber sync", amount: "Optional", highlight: true },
   ],
@@ -619,7 +619,7 @@ export const pricingEn = {
 
 export const getStartedEn = {
   eyebrow: "Get started",
-  title: "Put Vowpath on your line",
+  title: "Put Vowroad on your line",
   subtitle: `Unlimited ${SITE.monthlyPrice}/mo or Flex ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking} per approved booking`,
   canceledMessage: "Checkout canceled. Pick a plan below to try again.",
   checkoutError: "Couldn't start checkout. Try again or sign up to continue.",
@@ -638,23 +638,23 @@ export const faqEn = {
     },
     {
       q: "How is this different from Jobber AI or CallJolt?",
-      a: "They auto-book everything. Vowpath auto-books clear routine jobs too — but P1 emergencies and unclear intakes wait for your 1 / 2 before confirming.",
+      a: "They auto-book everything. Vowroad auto-books clear routine jobs too — but P1 emergencies and unclear intakes wait for your 1 / 2 before confirming.",
     },
     {
       q: "Does this replace Jobber or ServiceTitan?",
-      a: "No. Vowpath is the missed-call layer. Your dispatch software stays. Jobber connect is optional.",
+      a: "No. Vowroad is the missed-call layer. Your dispatch software stays. Jobber connect is optional.",
     },
     {
       q: "What if the AI gets something wrong?",
-      a: "Unclear address or name? Job waits for your 1 / 2. Already auto-booked? Reply 2 to cancel or 9 to undo within your window. Tighten rules anytime in settings or ask Vowpath AI.",
+      a: "Unclear address or name? Job waits for your 1 / 2. Already auto-booked? Reply 2 to cancel or 9 to undo within your window. Tighten rules anytime in settings or ask Vowroad AI.",
     },
     {
       q: "Is this just an AI answering service?",
-      a: "No. The AI phone layer is the core — but you also get shop analytics (missed calls, KPIs, trends) and Vowpath AI to ask what is happening and change rules from your phone.",
+      a: "No. The AI phone layer is the core — but you also get shop analytics (missed calls, KPIs, trends) and Vowroad AI to ask what is happening and change rules from your phone.",
     },
     {
       q: "Who answers during the day?",
-      a: "You do — same as today. Vowpath only picks up forwarded calls when you miss them or after hours.",
+      a: "You do — same as today. Vowroad only picks up forwarded calls when you miss them or after hours.",
     },
     {
       q: "Can it text my tech after a job confirms?",
@@ -662,7 +662,7 @@ export const faqEn = {
     },
     {
       q: "What is Agreement Keeper?",
-      a: "When you mark a job complete, Vowpath can SMS your maintenance plan offer. Track renewals, import CSVs, and get reminder texts before contracts lapse.",
+      a: "When you mark a job complete, Vowroad can SMS your maintenance plan offer. Track renewals, import CSVs, and get reminder texts before contracts lapse.",
     },
     {
       q: "How fast to go live?",
@@ -680,7 +680,7 @@ export const agreementKeeperEn = {
   label: "Agreement Keeper",
   title: "Book the job. Offer the plan. Renew on autopilot.",
   subtitle:
-    "Most shops lose PM revenue because nobody follows up after the truck leaves. Vowpath texts your plan when a job is marked complete — then tracks renewals so contracts don't quietly expire.",
+    "Most shops lose PM revenue because nobody follows up after the truck leaves. Vowroad texts your plan when a job is marked complete — then tracks renewals so contracts don't quietly expire.",
   steps: [
     {
       title: "Job completes",
@@ -710,7 +710,7 @@ export const agreementKeeperEn = {
 export const ctaEn = {
   eyebrow: "Your line. Your calendar. Your assistant.",
   title: "Forward tonight. Wake up to booked work.",
-  subtitle: "AI phone intake, shop analytics, and Vowpath AI — one subscription for owner-operators who miss calls on the job.",
+  subtitle: "AI phone intake, shop analytics, and Vowroad AI — one subscription for owner-operators who miss calls on the job.",
   button: CHECKOUT_CTA,
 };
 

@@ -49,7 +49,7 @@ Console:
 - `/dashboard` — Call recovery shows booking counts (no $ estimates)
 - `/dashboard/ai` — proactive briefing + rule preview
 - `/dashboard/settings` — Automation Rules list
-- `POST /api/vowpath-ai` with session cookie
+- `POST /api/vowroad-ai` with session cookie
 - Place test call or use call simulation in settings
 
 ## 5. Jobber

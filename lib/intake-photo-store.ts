@@ -4,7 +4,7 @@ import os from "os";
 
 const DATA_DIR =
   process.env.VERCEL === "1"
-    ? path.join(os.tmpdir(), "vowpath-intake-photos")
+    ? path.join(os.tmpdir(), "vowroad-intake-photos")
     : path.join(process.cwd(), "data", "intake-photos");
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);

@@ -9,7 +9,7 @@ import type { PlanId } from "./constants";
 import { normalizeSmsPhone } from "./phone";
 import type { SubscriptionStatus } from "./billing";
 
-const KV_USERS_KEY = "vowpath:users";
+const KV_USERS_KEY = "vowroad:users";
 
 export type UserRecord = {
   id: string;

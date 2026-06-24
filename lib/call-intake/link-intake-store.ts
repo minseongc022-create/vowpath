@@ -33,7 +33,7 @@ export type LinkIntakeSession = {
 type LinkStore = { sessions: Record<string, LinkIntakeSession> };
 
 function kvKey(token: string) {
-  return `vowpath:link-intake:${token}`;
+  return `vowroad:link-intake:${token}`;
 }
 
 async function readFileStore(): Promise<LinkStore> {

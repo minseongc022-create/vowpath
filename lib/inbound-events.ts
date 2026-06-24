@@ -23,7 +23,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "inbound-events.json");
 
 function kvKey(userId: string) {
-  return `vowpath:inbound-events:${userId}`;
+  return `vowroad:inbound-events:${userId}`;
 }
 
 type Store = { events: InboundEvent[] };

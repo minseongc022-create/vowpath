@@ -57,11 +57,11 @@ export function AuditActivityPanel() {
   useEffect(() => {
     void load();
     const onUpdate = () => void load();
-    window.addEventListener("vowpath:tenant-events-updated", onUpdate);
-    window.addEventListener("vowpath:bookings-status-updated", onUpdate);
+    window.addEventListener("vowroad:tenant-events-updated", onUpdate);
+    window.addEventListener("vowroad:bookings-status-updated", onUpdate);
     return () => {
-      window.removeEventListener("vowpath:tenant-events-updated", onUpdate);
-      window.removeEventListener("vowpath:bookings-status-updated", onUpdate);
+      window.removeEventListener("vowroad:tenant-events-updated", onUpdate);
+      window.removeEventListener("vowroad:bookings-status-updated", onUpdate);
     };
   }, [load]);
 

@@ -11,8 +11,8 @@ export type ScheduleRow = {
 };
 
 export const SCHEDULE_ALWAYS_ON_LABEL = isEnglishUi()
-  ? "Vowpath answers calls 24/7"
-  : "24시간 Vowpath가 전화를 받습니다";
+  ? "Vowroad answers calls 24/7"
+  : "24시간 Vowroad가 전화를 받습니다";
 
 const DAY_OPTIONS_EN = [
   { id: 0, label: "Sun" },
@@ -70,8 +70,8 @@ export function formatScheduleSentence(row: ScheduleRow): string {
       : `익일 ${end}`
     : end;
   return isEnglishUi()
-    ? `${days} · ${start}–${endLabel} — Vowpath answers`
-    : `${days} · ${start}~${endLabel}에 Vowpath가 전화를 받습니다`;
+    ? `${days} · ${start}–${endLabel} — Vowroad answers`
+    : `${days} · ${start}~${endLabel}에 Vowroad가 전화를 받습니다`;
 }
 
 type StoredSchedulePayload = {

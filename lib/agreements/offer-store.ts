@@ -12,7 +12,7 @@ const OFFER_TTL_SECONDS = 14 * 86_400;
 type OfferStore = { sessions: Record<string, AgreementOfferSession> };
 
 function kvKey(token: string) {
-  return `vowpath:agreement-offer:${token}`;
+  return `vowroad:agreement-offer:${token}`;
 }
 
 async function readFileStore(): Promise<OfferStore> {

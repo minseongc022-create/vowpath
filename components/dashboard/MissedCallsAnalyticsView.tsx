@@ -87,7 +87,7 @@ export function MissedCallsAnalyticsView({ variant = "light" }: { variant?: "lig
         missedCallsPrevented: 0,
         afterHoursCalls: 0,
         weekendCalls: 0,
-        estimatedMissedWithoutVowpath: 0,
+        estimatedMissedWithoutVowroad: 0,
         dailyPrevented: [],
       };
     }

@@ -68,7 +68,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "메인 번호가 먼저 울립니다. 약 15~20초 안에 받지 않으면 Vowpath로 넘어갑니다.",
+      "메인 번호가 먼저 울립니다. 약 15~20초 안에 받지 않으면 Vowroad로 넘어갑니다.",
 
     recommended: true,
 
@@ -82,7 +82,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "다른 통화 중일 때 Vowpath로 넘깁니다. 야간·주말은 응대 시간 설정에서 따로 정합니다.",
+      "다른 통화 중일 때 Vowroad로 넘깁니다. 야간·주말은 응대 시간 설정에서 따로 정합니다.",
 
   },
 
@@ -144,17 +144,17 @@ export function getForwardingGuideSteps(
 
   scenario: LegacyForwardingScenarioId,
 
-  vowpathNumber: string,
+  vowroadNumber: string,
 
 ): string[] {
 
   const activeScenario = normalizeForwardingScenario(scenario);
 
-  const num = vowpathNumber || "(Vowpath 번호)";
+  const num = vowroadNumber || "(Vowroad 번호)";
 
   const ringTip =
 
-    "직원이 받을 수 있도록 15~20초 정도 울리게 한 뒤 Vowpath로 넘기세요.";
+    "직원이 받을 수 있도록 15~20초 정도 울리게 한 뒤 Vowroad로 넘기세요.";
 
   const dialNum = num.replace(/\D/g, "").slice(-10);
 
@@ -174,7 +174,7 @@ export function getForwardingGuideSteps(
 
         "컨택센터 큐를 쓰면 큐의 오버플로 규칙에도 같은 외부 번호를 넣으세요.",
 
-        `영업 시간에는 샵 번호가 먼저 울리고, 받지 못한 통화만 Vowpath로 갑니다. ${ringTip}`,
+        `영업 시간에는 샵 번호가 먼저 울리고, 받지 못한 통화만 Vowroad로 갑니다. ${ringTip}`,
 
         "저장 후 영업 시간에 공개 샵 번호로 전화해 동작을 확인하세요.",
 
@@ -212,7 +212,7 @@ export function getForwardingGuideSteps(
 
         "Verizon iPhone은 설정 → 전화 → Live Voicemail을 끄고 *71을 테스트하세요.",
 
-        "메인 샵 번호로 전화해 몇 번 울린 뒤 Vowpath가 받는지 확인하세요.",
+        "메인 샵 번호로 전화해 몇 번 울린 뒤 Vowroad가 받는지 확인하세요.",
 
       ];
 
@@ -282,7 +282,7 @@ export function getForwardingGuideSteps(
 
     "야간·주말 응대는 연동 설정의 응대 시간에서 정합니다.",
 
-    "고객이 실제로 거는 번호로 전화해 Vowpath가 받는지 확인하세요.",
+    "고객이 실제로 거는 번호로 전화해 Vowroad가 받는지 확인하세요.",
 
   ];
 

@@ -85,7 +85,7 @@ export function PhoneSetup({ embedded = false }: { embedded?: boolean }) {
       setSimulateMsg(
         `${copy.simulateCallOk} ${p ? formatPriority(p) : ""} · ${data.card?.symptom ?? ""}`,
       );
-      window.dispatchEvent(new CustomEvent("vowpath:calls-updated"));
+      window.dispatchEvent(new CustomEvent("vowroad:calls-updated"));
     } catch {
       setSimulateMsg("Network error. Make sure npm run dev is running.");
     } finally {

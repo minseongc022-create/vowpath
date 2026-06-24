@@ -2,7 +2,7 @@ import { kv } from "@vercel/kv";
 import { useKvStore } from "./kv-config";
 import { deleteUserFromStore } from "./users-db";
 
-const TENANT_KEY_PREFIX = "vowpath:";
+const TENANT_KEY_PREFIX = "vowroad:";
 
 async function deleteTenantKvKeys(userId: string): Promise<number> {
   if (!useKvStore()) return 0;

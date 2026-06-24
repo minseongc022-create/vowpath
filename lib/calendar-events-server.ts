@@ -31,7 +31,7 @@ function resolveJobForBooking(
   return undefined;
 }
 
-function vowpathEvent(
+function vowroadEvent(
   row: ScheduledBookingRecord,
   calls: CallRecord[],
   jobs: JobCard[],
@@ -53,8 +53,8 @@ function vowpathEvent(
   const phone = call?.callbackPhone || call?.from;
 
   return {
-    id: `vowpath:${row.bookingId}`,
-    source: "vowpath",
+    id: `vowroad:${row.bookingId}`,
+    source: "vowroad",
     bookingId: row.bookingId,
     startAt: row.scheduledStartAt,
     endAt: row.scheduledEndAt,
@@ -94,10 +94,10 @@ export async function buildCalendarEvents(
     listJobs(userId),
   ]);
 
-  const vowpath = native.map((row) => vowpathEvent(row, calls, jobs));
+  const vowroadEvents = native.map((row) => vowroadEvent(row, calls, jobs));
   const jobberEvents = jobber.map(jobberEvent);
 
-  return [...vowpath, ...jobberEvents].sort(
+  return [...vowroadEvents, ...jobberEvents].sort(
     (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
   );
 }

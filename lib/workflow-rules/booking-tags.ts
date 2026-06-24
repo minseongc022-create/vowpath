@@ -10,7 +10,7 @@ const FILE = path.join(DATA_DIR, "workflow-booking-tags.json");
 type TagStore = Record<string, Record<string, string[]>>;
 
 function kvKey(userId: string) {
-  return `vowpath:workflow-booking-tags:${userId}`;
+  return `vowroad:workflow-booking-tags:${userId}`;
 }
 
 async function readFileStore(): Promise<TagStore> {

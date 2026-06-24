@@ -20,11 +20,11 @@ function settingsFile(userId: string) {
 }
 
 function kvAgreementsKey(userId: string) {
-  return `vowpath:agreements:${userId}`;
+  return `vowroad:agreements:${userId}`;
 }
 
 function kvSettingsKey(userId: string) {
-  return `vowpath:agreement-settings:${userId}`;
+  return `vowroad:agreement-settings:${userId}`;
 }
 
 type AgreementStore = { agreements: MaintenanceAgreement[] };

@@ -13,7 +13,7 @@ const FILE = path.join(DATA_DIR, "shop-profiles.json");
 export type ShopProfile = ShopState;
 
 function kvKey(userId: string) {
-  return `vowpath:shop-profile:${userId}`;
+  return `vowroad:shop-profile:${userId}`;
 }
 
 export function defaultShopProfile(): ShopProfile {

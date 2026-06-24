@@ -25,7 +25,7 @@ export type CorrectionIntakeSession = {
 type CorrectionStore = { sessions: Record<string, CorrectionIntakeSession> };
 
 function kvKey(token: string) {
-  return `vowpath:correction-intake:${token}`;
+  return `vowroad:correction-intake:${token}`;
 }
 
 async function readFileStore(): Promise<CorrectionStore> {

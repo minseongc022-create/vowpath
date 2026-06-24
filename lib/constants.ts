@@ -2,7 +2,7 @@ import { IS_BETA } from "./beta";
 import { getCheckoutCta, getSectionLabels, getSiteTagline } from "./marketing-constants";
 
 export const SITE = {
-  name: "Vowpath",
+  name: "Vowroad",
   tagline: getSiteTagline(),
   url: "https://vowroad.com",
   contactEmail: "support@vowroad.com",

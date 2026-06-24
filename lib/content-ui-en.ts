@@ -85,8 +85,8 @@ export const settingsPageEn = {
   goLiveNavPhone: "Forwarding",
   goLiveNavJobber: "Jobber",
   contactQuickTip: "New requests and approve/pass texts go to this phone. Reply 1 or 2 from the truck.",
-  scheduleQuickTip: "Vowpath only answers during these windows. Keep daytime calls on your team.",
-  phoneQuickTip: "Customers still dial your shop number — unanswered calls forward to Vowpath.",
+  scheduleQuickTip: "Vowroad only answers during these windows. Keep daytime calls on your team.",
+  phoneQuickTip: "Customers still dial your shop number — unanswered calls forward to Vowroad.",
   jobberQuickTip: "Only if you use Jobber. You can run fully on SMS + dashboard without it.",
   editLabel: "Edit",
   collapseLabel: "Done",
@@ -112,7 +112,7 @@ export const settingsPageEn = {
   },
   bookingNav: "Booking",
   techDispatchSummary:
-    "On confirm, Vowpath texts one tech at a time (round-robin). Reply 1=accept, 2=pass.",
+    "On confirm, Vowroad texts one tech at a time (round-robin). Reply 1=accept, 2=pass.",
   agreementNav: "PM plans",
   shopNameNav: "Shop name",
   shopName: {
@@ -179,7 +179,7 @@ export const vowDashboardEn = {
     noEventsOnDay: "No bookings on this day.",
     backToDayList: "← Back to list",
     eventCount: (count: number) => `${count}`,
-    sourceVowpath: "Vowpath confirmed",
+    sourceVowroad: "Vowroad confirmed",
     sourceJobber: "Jobber",
     customer: "Customer",
     phone: "Phone",
@@ -189,9 +189,9 @@ export const vowDashboardEn = {
     priority: "Priority",
     viewBooking: "View request",
     close: "Close",
-    vowpathBookings: "Vowpath confirmed",
+    vowroadBookings: "Vowroad confirmed",
     jobberCalendar: "Jobber schedule",
-    emptyNative: "No confirmed Vowpath visits yet.",
+    emptyNative: "No confirmed Vowroad visits yet.",
     emptyJobber: "No Jobber events or connection needed.",
     weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const,
   },
@@ -319,7 +319,7 @@ export const dashboardPageEn = {
   title: "Dashboard",
   subtitle: "After-hours and overflow calls in one place. Emergencies surface by text first.",
   setupIncomplete: "Setup isn't finished. Complete integrations to start answering calls.",
-  setupComplete: "Live — Vowpath answers on your schedule.",
+  setupComplete: "Live — Vowroad answers on your schedule.",
   stats: {
     tonightCalls: "Tonight's calls",
     bookings: "Service requests",
@@ -341,7 +341,7 @@ export const authPagesEn = {
   },
   login: {
     title: "Log in",
-    subtitle: "Access your Vowpath dashboard.",
+    subtitle: "Access your Vowroad dashboard.",
     methodLegend: "Sign in with",
     methodEmail: "Email",
     methodPhone: "Phone",
@@ -459,7 +459,7 @@ export const legalPagesEn = {
     sections: [
       {
         heading: "Service",
-        body: "Vowpath provides after-hours call intake and owner approval workflows for HVAC shops. Jobber integration is optional.",
+        body: "Vowroad provides after-hours call intake and owner approval workflows for HVAC shops. Jobber integration is optional.",
       },
       {
         heading: "Billing",
@@ -699,7 +699,7 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       eyebrow: "Value",
       title: "Leads captured",
       subtitle:
-        "Customers captured by Vowpath during missed calls, after-hours, and unavailable periods.",
+        "Customers captured by Vowroad during missed calls, after-hours, and unavailable periods.",
       backToDashboard: "← Back to dashboard",
       refresh: "Refresh",
       refreshing: "Loading…",
@@ -717,10 +717,10 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       loadingChart: "Loading…",
       chartAria: "Daily leads captured trend",
       chartTooltip: (n: number) => `${n} captured`,
-      withoutVowpath: "Without Vowpath",
+      withoutVowroad: "Without Vowroad",
       estimatedMissed: "Estimated missed calls",
       estimatedMissedBody:
-        "Calls Vowpath answered after hours or when you were unavailable — likely voicemail otherwise.",
+        "Calls Vowroad answered after hours or when you were unavailable — likely voicemail otherwise.",
       periodNote: (period: string) => `${period} · updates when new calls sync`,
       howCalculated: "How we count",
       howCalculatedBody:
@@ -741,7 +741,7 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       conversionRate: "Conversion",
       afterHours: "After hours",
       bookingTrend: "Booking trend",
-      trendSubtitleJobber: "Jobber requests + Vowpath bookings",
+      trendSubtitleJobber: "Jobber requests + Vowroad bookings",
       trendSubtitle: "Confirmed requests in period",
       noBookingsInRange: "No requests in this period.",
       trendWeeklyHint: "Monday-based · weekly totals (bars)",

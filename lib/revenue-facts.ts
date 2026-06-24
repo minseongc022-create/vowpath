@@ -14,9 +14,9 @@ export type RevenueFact = {
   outstandingCents: number;
   jobberJobIds: string[];
   jobberRequestId?: string;
-  vowpathCallId?: string;
-  vowpathBookingId?: string;
-  attributedToVowpath: boolean;
+  vowroadCallId?: string;
+  vowroadBookingId?: string;
+  attributedToVowroad: boolean;
   jobberWebUri?: string;
   updatedAt: string;
 };
@@ -32,7 +32,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "revenue-ledgers.json");
 
 function kvKey(userId: string) {
-  return `vowpath:revenue-ledger:${userId}`;
+  return `vowroad:revenue-ledger:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, RevenueLedger>> {

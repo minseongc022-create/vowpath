@@ -24,7 +24,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "schedule-bookings.json");
 
 function kvKey(userId: string) {
-  return `vowpath:schedule-bookings:${userId}`;
+  return `vowroad:schedule-bookings:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, Store>> {

@@ -7,7 +7,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const DISMISSED_FILE = path.join(DATA_DIR, "notification-dismissed.json");
 
 function kvKey(userId: string) {
-  return `vowpath:notification-dismissed:${userId}`;
+  return `vowroad:notification-dismissed:${userId}`;
 }
 
 async function readFileStore(): Promise<Record<string, string[]>> {

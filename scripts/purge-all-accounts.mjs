@@ -58,7 +58,7 @@ async function redisCmd(cfg, command) {
   return res.json();
 }
 
-async function scanAllKeys(cfg, pattern = "vowpath:*") {
+async function scanAllKeys(cfg, pattern = "vowroad:*") {
   const keys = new Set();
   let cursor = "0";
   do {
@@ -112,7 +112,7 @@ async function main() {
   let usersBefore = [];
   if (cfg) {
     try {
-      const usersRaw = await redisCmd(cfg, ["GET", "vowpath:users"]);
+      const usersRaw = await redisCmd(cfg, ["GET", "vowroad:users"]);
       const parsed = usersRaw.result ? JSON.parse(usersRaw.result) : null;
       usersBefore = parsed?.users ?? [];
     } catch {
@@ -127,13 +127,13 @@ async function main() {
       console.log(`  - ${u.email} (${u.id}) ${u.shopName ?? ""}`);
     }
   } else {
-    console.log("No accounts found in vowpath:users (or KV unreachable).");
+    console.log("No accounts found in vowroad:users (or KV unreachable).");
   }
 
   let kvDeleted = 0;
   if (cfg) {
     const keys = await scanAllKeys(cfg);
-    console.log(`KV keys matched vowpath:* : ${keys.length}`);
+    console.log(`KV keys matched vowroad:* : ${keys.length}`);
     kvDeleted = await deleteKeys(cfg, keys);
     console.log(`KV keys deleted: ${kvDeleted}`);
   } else {

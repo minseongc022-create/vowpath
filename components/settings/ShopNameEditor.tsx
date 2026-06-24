@@ -61,7 +61,7 @@ export function ShopNameEditor() {
       }
       if (data.shopName) setName(data.shopName);
       window.dispatchEvent(
-        new CustomEvent("vowpath:shop-name-updated", {
+        new CustomEvent("vowroad:shop-name-updated", {
           detail: { shopName: data.shopName ?? trimmed },
         }),
       );

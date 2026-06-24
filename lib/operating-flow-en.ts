@@ -32,7 +32,7 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
 
     summary:
 
-      "Customers keep calling the number they already know. When you miss a call — evenings, weekends, or on a job — it forwards to Vowpath.",
+      "Customers keep calling the number they already know. When you miss a call — evenings, weekends, or on a job — it forwards to Vowroad.",
 
     outputs: ["Same public number", "Conditional forwarding", "Custom hours"],
 
@@ -50,7 +50,7 @@ export const OPERATING_FLOW_PHASES: OperatingFlowPhase[] = [
 
         label: "Conditional forward",
 
-        text: "No answer, busy, or after a few rings → routes to Vowpath.",
+        text: "No answer, busy, or after a few rings → routes to Vowroad.",
 
       },
 
@@ -232,7 +232,7 @@ export const HERO_FLOW_PIPELINE = [
 
 export const HERO_FLOW_LOOP_SUMMARY =
 
-  "A customer calls or submits a link. Vowpath texts you a summary. Reply 1 to approve or 2 to pass — the homeowner gets the result automatically.";
+  "A customer calls or submits a link. Vowroad texts you a summary. Reply 1 to approve or 2 to pass — the homeowner gets the result automatically.";
 
 
 
@@ -240,7 +240,7 @@ export const OPERATING_FLOW_NODES = [
 
   { id: "customer", title: "Customer request", caption: "Phone or link" },
 
-  { id: "vowpath", title: "Vowpath", caption: "Summary · approval request" },
+  { id: "vowroad", title: "Vowroad", caption: "Summary · approval request" },
 
   { id: "owner", title: "Your decision", caption: "Reply 1 or 2" },
 

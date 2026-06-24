@@ -113,8 +113,8 @@ export function AutomationRulesView() {
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
             {isEnglish
-              ? "IF/THEN rules run when customers pick a time. Create rules in Vowpath AI or manage them here."
-              : "고객이 시간을 선택할 때 IF/THEN 규칙이 실행됩니다. Vowpath AI로 만들거나 여기서 관리하세요."}
+              ? "IF/THEN rules run when customers pick a time. Create rules in Vowroad AI or manage them here."
+              : "고객이 시간을 선택할 때 IF/THEN 규칙이 실행됩니다. Vowroad AI로 만들거나 여기서 관리하세요."}
           </p>
         </div>
         <Link

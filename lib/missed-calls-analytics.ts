@@ -67,7 +67,7 @@ export type MissedCallsAnalytics = {
   afterHoursCalls: number;
   weekendCalls: number;
   /** Calls that likely would have been missed without Vowpath (same as prevented in range). */
-  estimatedMissedWithoutVowpath: number;
+  estimatedMissedWithoutVowroad: number;
   dailyPrevented: MissedCallsDailyPoint[];
 };
 
@@ -229,7 +229,7 @@ export function buildMissedCallsAnalytics(
     missedCallsPrevented,
     afterHoursCalls,
     weekendCalls,
-    estimatedMissedWithoutVowpath: missedCallsPrevented,
+    estimatedMissedWithoutVowroad: missedCallsPrevented,
     dailyPrevented,
   };
 }

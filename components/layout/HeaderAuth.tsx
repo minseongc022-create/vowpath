@@ -21,7 +21,7 @@ function showShopName(shopName: string): boolean {
   const n = shopName.trim().toLowerCase();
   if (!n) return false;
   if (n === SITE.name.toLowerCase()) return false;
-  if (n === "vowpath") return false;
+  if (n === "vowroad") return false;
   return true;
 }
 

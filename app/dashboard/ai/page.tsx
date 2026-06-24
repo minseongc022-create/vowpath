@@ -1,5 +1,5 @@
-import { VowpathAiView } from "@/components/dashboard/VowpathAiView";
+import { VowroadAiView } from "@/components/dashboard/VowroadAiView";
 
-export default function VowpathAiPage() {
-  return <VowpathAiView />;
+export default function VowroadAiPage() {
+  return <VowroadAiView />;
 }

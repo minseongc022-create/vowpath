@@ -113,7 +113,7 @@ function FlowTimeline() {
             <FlowNode
               title={node.title}
               caption={node.caption}
-              highlight={node.id === "vowpath" || node.id === "owner"}
+              highlight={node.id === "vowroad" || node.id === "owner"}
             />
             {i < OPERATING_FLOW_EDGES.length ? (
               <FlowConnector label={OPERATING_FLOW_EDGES[i]} />
@@ -129,7 +129,7 @@ function FlowTimeline() {
               <FlowNode
                 title={node.title}
                 caption={node.caption}
-                highlight={node.id === "vowpath" || node.id === "owner"}
+                highlight={node.id === "vowroad" || node.id === "owner"}
               />
             </div>
             {i < OPERATING_FLOW_EDGES.length ? (
@@ -262,7 +262,7 @@ export function HeroFlowVisual() {
             <div className="vow-hero-flow-hub-inner flex items-center justify-center">
               <Image
                 src={BRAND_LOGO_SRC}
-                alt="Vowpath"
+                alt="Vowroad"
                 width={96}
                 height={96}
                 className="vow-brand-mark-img relative z-10 h-20 w-20 rounded-[18%] object-contain object-center sm:h-24 sm:w-24"

@@ -27,7 +27,7 @@ function sentKey(userId: string, date = todayKey()) {
 }
 
 function kvSentKey(userId: string, date = todayKey()) {
-  return `vowpath:daily-briefing-sent:${userId}:${date}`;
+  return `vowroad:daily-briefing-sent:${userId}:${date}`;
 }
 
 async function readFileStore(): Promise<SendStore> {

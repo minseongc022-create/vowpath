@@ -31,7 +31,7 @@ export function smsOwnerEmergencyBody(params: {
   symptom?: string;
 }): string {
   const detail = params.symptom?.trim() || "Emergency (P1)";
-  return `Vowpath P1: ${detail} — ${params.customerName || "Caller"}. Open your dashboard to review. (${resolveShopDisplayName(params.shopName)})`;
+  return `Vowroad P1: ${detail} — ${params.customerName || "Caller"}. Open your dashboard to review. (${resolveShopDisplayName(params.shopName)})`;
 }
 
 /** SMS to shop owner when a new service request is created (Twilio outbound). */

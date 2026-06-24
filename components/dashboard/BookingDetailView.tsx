@@ -231,8 +231,8 @@ export function BookingDetailContent({
         }
         void reloadServerDetail();
         void refresh();
-        window.dispatchEvent(new CustomEvent("vowpath:bookings-status-updated"));
-        window.dispatchEvent(new CustomEvent("vowpath:jobs-updated"));
+        window.dispatchEvent(new CustomEvent("vowroad:bookings-status-updated"));
+        window.dispatchEvent(new CustomEvent("vowroad:jobs-updated"));
         notifyTenantEventsUpdated();
       } catch {
         patchRequestStatuses({ [detail.id]: detail.requestStatus });
@@ -261,8 +261,8 @@ export function BookingDetailContent({
           return;
         }
         await refresh();
-        window.dispatchEvent(new CustomEvent("vowpath:jobs-updated"));
-        window.dispatchEvent(new CustomEvent("vowpath:calls-updated"));
+        window.dispatchEvent(new CustomEvent("vowroad:jobs-updated"));
+        window.dispatchEvent(new CustomEvent("vowroad:calls-updated"));
       } catch {
         setActionError(t.priorityNetworkError);
       } finally {

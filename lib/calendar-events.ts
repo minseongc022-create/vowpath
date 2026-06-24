@@ -8,7 +8,7 @@ import {
 import type { JobPriority } from "./types";
 import { isEnglishUi } from "./locale";
 
-export type CalendarEventSource = "vowpath" | "jobber";
+export type CalendarEventSource = "vowroad" | "jobber";
 
 export type CalendarEvent = {
   id: string;

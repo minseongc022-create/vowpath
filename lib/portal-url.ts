@@ -49,7 +49,7 @@ export function buildLinkIntakeUrl(token: string): string {
   return buildBookingPortalUrl(token);
 }
 
-/** Hostname from NEXT_PUBLIC_PORTAL_URL (e.g. hvacsvc.link). */
+/** Hostname from NEXT_PUBLIC_PORTAL_URL (e.g. link.vowroad.com). */
 export function getPortalRootHostname(): string | null {
   const portal = process.env.NEXT_PUBLIC_PORTAL_URL?.trim();
   if (!portal || portal.includes("localhost")) return null;

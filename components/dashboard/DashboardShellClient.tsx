@@ -33,10 +33,10 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
       const name = (e as CustomEvent<{ shopName?: string }>).detail?.shopName?.trim();
       if (name) setShopName(name);
     };
-    window.addEventListener("vowpath:shop-name-updated", onShopName);
+    window.addEventListener("vowroad:shop-name-updated", onShopName);
     return () => {
       controller.abort();
-      window.removeEventListener("vowpath:shop-name-updated", onShopName);
+      window.removeEventListener("vowroad:shop-name-updated", onShopName);
     };
   }, []);
   const { shop } = useShopState();

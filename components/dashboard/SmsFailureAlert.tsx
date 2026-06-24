@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TenantEvent } from "@/lib/tenant-events";
 import { dashboardUi } from "@/lib/content";
 
-const SEEN_KEY = "vowpath:seen-sms-failures";
+const SEEN_KEY = "vowroad:seen-sms-failures";
 const ALERT_MAX_AGE_MS = 30 * 60 * 1000;
 
 function loadSeen(): Set<string> {

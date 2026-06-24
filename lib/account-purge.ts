@@ -2,7 +2,7 @@ import { kv } from "@vercel/kv";
 import { useKvStore } from "./kv-config";
 import type { UserRecord } from "./users-db";
 
-const USERS_KEY = "vowpath:users";
+const USERS_KEY = "vowroad:users";
 
 type UserStore = { users: UserRecord[] };
 
@@ -29,7 +29,7 @@ async function redisCmd(cfg: { url: string; token: string }, command: string[]) 
   return res.json() as Promise<{ result: unknown }>;
 }
 
-async function scanAllKeys(pattern = "vowpath:*"): Promise<string[]> {
+async function scanAllKeys(pattern = "vowroad:*"): Promise<string[]> {
   const cfg = kvRestConfig();
   if (!cfg) return [];
 

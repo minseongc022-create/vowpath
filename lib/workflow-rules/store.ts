@@ -16,7 +16,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "workflow-rules.json");
 
 function kvKey(userId: string) {
-  return `vowpath:workflow-rules:${userId}`;
+  return `vowroad:workflow-rules:${userId}`;
 }
 
 function emptyDocument(userId: string): WorkflowRulesDocument {

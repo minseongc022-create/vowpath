@@ -15,7 +15,7 @@ function normalizeE164(phone: string): string {
 }
 
 function kvKey(phone: string) {
-  return `vowpath:twilio-phone:${normalizeE164(phone)}`;
+  return `vowroad:twilio-phone:${normalizeE164(phone)}`;
 }
 
 type PhoneMapStore = { mappings: Record<string, string> };

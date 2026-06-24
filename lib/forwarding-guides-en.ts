@@ -68,7 +68,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "Your main line rings first. If no one answers in about 15–20 seconds, the call forwards to Vowpath.",
+      "Your main line rings first. If no one answers in about 15–20 seconds, the call forwards to Vowroad.",
 
     recommended: true,
 
@@ -82,7 +82,7 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     summary:
 
-      "While you are on another call, calls forward to Vowpath. Set after-hours windows separately in answer hours.",
+      "While you are on another call, calls forward to Vowroad. Set after-hours windows separately in answer hours.",
 
   },
 
@@ -144,13 +144,13 @@ export function getForwardingGuideSteps(
 
   scenario: LegacyForwardingScenarioId,
 
-  vowpathNumber: string,
+  vowroadNumber: string,
 
 ): string[] {
 
   const activeScenario = normalizeForwardingScenario(scenario);
 
-  const num = vowpathNumber || "(your Vowpath number)";
+  const num = vowroadNumber || "(your Vowroad number)";
 
   const ringTip = "Let it ring about 15–20 seconds so your team can answer before forwarding.";
 
@@ -172,7 +172,7 @@ export function getForwardingGuideSteps(
 
         "If you use a contact center queue, add the same external number to the queue overflow rule.",
 
-        `During business hours your shop line rings first; missed calls go to Vowpath. ${ringTip}`,
+        `During business hours your shop line rings first; missed calls go to Vowroad. ${ringTip}`,
 
         "Save, then call your public shop number during business hours to verify.",
 
@@ -210,7 +210,7 @@ export function getForwardingGuideSteps(
 
         "On Verizon iPhone: Settings → Phone → turn off Live Voicemail, then test *71.",
 
-        "Call your main shop number and confirm Vowpath answers after a few rings.",
+        "Call your main shop number and confirm Vowroad answers after a few rings.",
 
       ];
 
@@ -280,7 +280,7 @@ export function getForwardingGuideSteps(
 
     "After-hours windows are set under Integrations → answer hours.",
 
-    "Call the number customers actually dial and confirm Vowpath answers.",
+    "Call the number customers actually dial and confirm Vowroad answers.",
 
   ];
 

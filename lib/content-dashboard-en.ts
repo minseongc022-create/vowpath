@@ -74,7 +74,7 @@ export const phoneSetupEn = {
 
   costNote:
 
-    "Vowpath has no auto-charge. Twilio bills voice/SMS; OpenAI bills Job Card generation when used.",
+    "Vowroad has no auto-charge. Twilio bills voice/SMS; OpenAI bills Job Card generation when used.",
 
   ivrNote:
 

@@ -36,7 +36,7 @@ export function ensureDevUser() {
   const passwordHash = bcrypt.hashSync("dev-test-pass-123", 10);
   user = {
     id,
-    email: "dev-e2e@vowpath.local",
+    email: "dev-e2e@vowroad.local",
     passwordHash,
     shopName: "Dev HVAC Shop",
     phone: process.env.TWILIO_OWNER_ALERT_PHONE?.trim() || "+15125550100",

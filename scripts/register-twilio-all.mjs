@@ -81,7 +81,7 @@ function normalizeE164(p) {
 
 const e164 = normalizeE164(phone);
 if (useKv) {
-  await kv.set(`vowpath:twilio-phone:${e164}`, userId);
+  await kv.set(`vowroad:twilio-phone:${e164}`, userId);
   console.log("OK phone bound to tenant (KV):", e164, "→", userId);
 } else {
   const mapPath = join(process.cwd(), "data", "twilio-phone-map.json");

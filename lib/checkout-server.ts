@@ -63,7 +63,7 @@ export async function getCheckoutRedirectUrl(plan: PlanId): Promise<string> {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl()}/settings?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
     cancel_url: `${appUrl()}/get-started?canceled=1&plan=${plan}`,
-    metadata: { product: "vowpath-hvac", plan },
+    metadata: { product: "vowroad-hvac", plan },
     subscription_data: { metadata: { plan } },
     allow_promotion_codes: true,
   });

@@ -2,7 +2,7 @@ import type { RequestStatus } from "@/lib/booking-policy";
 import type { CallRecord } from "@/lib/dashboard-data-client";
 import type { JobCard } from "@/lib/types";
 
-const CACHE_KEY = "vowpath:dashboard-snapshot";
+const CACHE_KEY = "vowroad:dashboard-snapshot";
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 export type DashboardSnapshot = {
