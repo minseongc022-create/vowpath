@@ -618,3 +618,32 @@ export async function fetchJobberInvoicesInRange(
     return tb - ta;
   });
 }
+
+const INVOICE_PROBE_QUERY = `
+  query InvoiceProbe {
+    invoices(first: 1) {
+      nodes { id }
+    }
+  }
+`;
+
+/** Quick check that the stored OAuth token can read invoices (collected revenue). */
+export async function probeJobberInvoiceAccess(userId: string): Promise<{
+  ok: boolean;
+  error?: string;
+  reconnectRecommended: boolean;
+}> {
+  try {
+    const { accessToken } = await getValidAccessToken(userId);
+    await jobberGraphql<{ invoices?: { nodes: { id: string }[] } }>(
+      accessToken,
+      INVOICE_PROBE_QUERY,
+    );
+    return { ok: true, reconnectRecommended: false };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Invoice probe failed";
+    const reconnectRecommended =
+      /scope|permission|authorized|forbidden|401|access denied|not allowed/i.test(error);
+    return { ok: false, error, reconnectRecommended };
+  }
+}

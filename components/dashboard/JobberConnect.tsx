@@ -12,6 +12,11 @@ type Status = {
   accountName: string | null;
   redirectUri?: string | null;
   developerPortalUrl?: string | null;
+  invoiceAccess?: {
+    ok: boolean;
+    error?: string;
+    reconnectRecommended: boolean;
+  } | null;
 };
 
 export function JobberConnect({
@@ -219,6 +224,24 @@ export function JobberConnect({
               {copy.redirectSetupLink} →
             </a>
           ) : null}
+        </div>
+      ) : null}
+
+      {s.connected && s.invoiceAccess ? (
+        <div
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            s.invoiceAccess.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+              : s.invoiceAccess.reconnectRecommended
+                ? "border-amber-200 bg-amber-50 text-amber-950"
+                : "border-rose-200 bg-rose-50 text-rose-900"
+          }`}
+        >
+          {s.invoiceAccess.ok
+            ? copy.invoiceAccessOk
+            : s.invoiceAccess.reconnectRecommended
+              ? copy.invoiceAccessReconnect
+              : copy.invoiceAccessError}
         </div>
       ) : null}
 

@@ -1256,6 +1256,10 @@ const jobberConnectKo = {
   redirectSetupNote:
     "로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록해 두세요.",
   settingsConnectedHint: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
+  invoiceAccessOk: "수금 매출: Jobber 인보이스 읽기 권한 정상.",
+  invoiceAccessReconnect:
+    "수금 매출용 권한 갱신이 필요합니다. 연결 해제 후 다시 연결하세요.",
+  invoiceAccessError: "인보이스 권한 확인 실패. Jobber 재연결을 시도하세요.",
   settingsDisconnectedHint: "OAuth로 연결하면 Request·일정이 자동 동기화됩니다.",
   push: "Jobber로 보내기",
   pushing: "Jobber 전송 중…",

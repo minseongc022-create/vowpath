@@ -162,6 +162,13 @@ export const jobberConnectEn = {
 
   settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
 
+  invoiceAccessOk: "Collected revenue: Jobber invoice access OK.",
+
+  invoiceAccessReconnect:
+    "Reconnect Jobber (Disconnect → Connect) to refresh invoice permissions for collected revenue.",
+
+  invoiceAccessError: "Invoice access check failed. Try reconnecting Jobber.",
+
   settingsDisconnectedHint: "Connect with OAuth to sync requests and calendar events.",
 
   push: "Send to Jobber",
