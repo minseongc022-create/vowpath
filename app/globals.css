@@ -327,8 +327,8 @@
 
   .vow-brand-mark-wrap::before {
     content: "";
-    @apply pointer-events-none absolute inset-0 rounded-full;
-    background: radial-gradient(circle, rgb(99 102 241 / 0.08) 0%, transparent 70%);
+    @apply pointer-events-none absolute inset-0 rounded-[18%];
+    background: radial-gradient(circle, rgb(196 168 130 / 0.14) 0%, transparent 70%);
     filter: blur(4px);
     transform: scale(1.05);
     opacity: 0.45;
@@ -351,8 +351,8 @@
   .vow-brand-aura {
     background: radial-gradient(
       circle,
-      rgb(168 85 247 / 0.4) 0%,
-      rgb(99 102 241 / 0.18) 40%,
+      rgb(196 168 130 / 0.35) 0%,
+      rgb(139 94 60 / 0.12) 40%,
       transparent 72%
     );
     filter: blur(32px);

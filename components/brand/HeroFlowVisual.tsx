@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useId } from "react";
-import { BRAND_MARK_SRC } from "@/lib/brand-assets";
+import { BRAND_LOGO_SRC } from "@/lib/brand-assets";
 import {
   HERO_FLOW_LOOP_SUMMARY,
   HERO_FLOW_PIPELINE,
@@ -259,25 +259,15 @@ export function HeroFlowVisual() {
             ))}
           </div>
           <div className="vow-hero-flow-hub relative z-10 mt-2 flex justify-center">
-            <div className="vow-hero-flow-hub-inner flex items-center gap-4 sm:gap-5">
-              <span className="vow-hero-flow-hub-mark relative inline-flex h-[4.25rem] w-[4.25rem] shrink-0 sm:h-[4.75rem] sm:w-[4.75rem]">
-                <Image
-                  src={BRAND_MARK_SRC}
-                  alt=""
-                  width={76}
-                  height={76}
-                  className="vow-brand-mark-img relative z-10 h-full w-full object-contain object-center"
-                  priority
-                />
-              </span>
-              <div className="flex flex-col justify-center gap-0.5 text-left leading-none">
-                <p className="vow-brand-name vow-brand-name-light text-sm tracking-[0.22em] sm:text-base">
-                  VOWPATH
-                </p>
-                <p className="text-xs leading-[1.2] text-slate-400 sm:text-[13px]">
-                  Intake → your alert → customer update
-                </p>
-              </div>
+            <div className="vow-hero-flow-hub-inner flex items-center justify-center">
+              <Image
+                src={BRAND_LOGO_SRC}
+                alt="Vowpath"
+                width={96}
+                height={96}
+                className="vow-brand-mark-img relative z-10 h-20 w-20 rounded-[18%] object-contain object-center sm:h-24 sm:w-24"
+                priority
+              />
             </div>
           </div>
         </div>

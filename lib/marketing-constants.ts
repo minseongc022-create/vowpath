@@ -33,15 +33,7 @@ export function getSiteTagline(): string {
 
 
 export function getBrandLogoTagline(): string {
-
-  if (isEnglishUi()) {
-
-    return "Missed call → auto calendar → PM plan.";
-
-  }
-
-  return "신뢰가 이어지는 길";
-
+  return "ai call · booking";
 }
 
 
