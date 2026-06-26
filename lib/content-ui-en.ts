@@ -27,26 +27,36 @@ export const settingsPageEn = {
   bookingLoadingLabel: "Loading...",
   bookingTryAgainLabel: "Try again",
   bookingPolicyDescription:
-    "Smart auto-book: clear routine jobs confirm instantly. Emergencies and fuzzy details wait for your text (1 / 2).",
+    "Clear routine jobs book instantly. Emergencies and fuzzy details wait for your text reply (1 = yes, 2 = pass).",
   smartAutoBookingTitle: "How booking works",
-  smartAutoBookingIntro: "One policy — no mode switching.",
+  smartAutoBookingIntro: "One policy — Effiroad handles the rules below automatically.",
   smartAutoBookingRules: [
-    "P2 / P3 with clear name, address, and issue → auto-confirms on your calendar.",
-    "P1 emergencies (no heat, no cool, safety) → always waits for your approval.",
-    "Unclear or low-confidence intake → waits for your 1 / 2 before confirming.",
-    "Reply 9 within your undo window to cancel an auto-book.",
+    "Clear P2 / P3 (name, address, issue) → lands on your calendar right away.",
+    "P1 emergencies (no heat, no cool, safety) → texts you to approve first.",
+    "Unclear intake → texts you 1 / 2 before anything is confirmed.",
+    "Changed your mind on an auto-book? Reply 9 within the undo window below.",
   ] as const,
   visitTimingTitle: "Appointment spacing",
   visitTimingHint:
     "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
-  visitHoursTitle: "Business hours for visits",
+  visitHoursTitle: "Customer booking hours",
   visitHoursHint:
-    "Customer booking slots only appear in these windows (Mon–Sat). Most US HVAC shops use a morning and afternoon block.",
-  visitHoursAmLabel: "Morning window",
-  visitHoursPmLabel: "Afternoon window",
+    "When customers can pick a visit (Mon–Sat). Use two blocks or one open-to-close shift.",
+  visitHoursLayoutLabel: "Schedule style",
+  visitHoursLayoutSplit: "Morning & afternoon",
+  visitHoursLayoutContinuous: "One continuous block",
+  visitHoursAmLabel: "Morning block",
+  visitHoursPmLabel: "Afternoon block",
+  visitHoursContinuousStartLabel: "Doors open",
+  visitHoursContinuousEndLabel: "Last slot ends by",
+  visitHoursPresetStandard: "Classic (8–12, 12–5)",
+  visitHoursPresetFullDay: "Full day (8–5)",
+  visitHoursPresetExtended: "Long day (7–7)",
   visitHoursToLabel: "to",
   visitHoursExample: (am: string, pm: string) =>
-    `Example slots: ${am} and ${pm} on the next open day.`,
+    `Example slots on the next open day: ${am} and ${pm}.`,
+  visitHoursExampleContinuous: (range: string) =>
+    `Example slots on the next open day: ${range} (back-to-back).`,
   appointmentIntervalLabel: "Time between visits",
   appointmentIntervalHint:
     "Each slot lasts this long. The next open time starts exactly this many minutes after the previous one.",
@@ -61,16 +71,16 @@ export const settingsPageEn = {
   maxConcurrentVisitsLabel: "Jobs at the same time",
   maxConcurrentVisitsHint:
     "How many visits your team can run in the same window. 3 crews: set 3.",
-  undoWindowLabel: "Undo window (minutes)",
+  undoWindowLabel: "Undo auto-book (minutes)",
   undoWindowHint:
-    "After an auto-book, reply 9 within this many minutes to cancel it.",
+    "After a routine job auto-books, reply 9 within this many minutes to cancel it.",
   shadowModeLabel: "Practice calls left",
   shadowModeIntro:
     "Run the full intake flow without booking real jobs or texting customers.",
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
     "1+ = Practice - no customer texts or calendar writes. You only get a [TEST] heads-up. Drops by 1 per test call.",
-  serviceAreaZipsLabel: "ZIP codes you serve",
+  serviceAreaZipsLabel: "Service area ZIPs (optional)",
   techDispatchTitle: "Crew assignment",
   techDispatchNav: "Crew assign",
   saveAllButton: "Save all settings",
@@ -143,8 +153,9 @@ export const settingsPageEn = {
     save: "Save PM settings",
     saved: "Saved",
   },
-  serviceAreaZipsHint: "Optional. Comma-separated 5-digit ZIPs. Leave blank for all areas.",
-  serviceAreaZipsPlaceholder: "78701, 78702",
+  serviceAreaZipsHint:
+    "ZIP codes your crews actually drive to — not one customer's address. Comma-separated. Leave blank to accept any area.",
+  serviceAreaZipsPlaceholder: "78701, 78702, 78745",
   sectionSteps: {
     contact: "1",
     schedule: "2",

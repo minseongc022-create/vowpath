@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 import {
   BOOKING_RULE_ICONS,
@@ -11,11 +11,13 @@ import {
   appointmentIntervalMinutes,
   coalesceSchedulingSettingsPatch,
   formatVisitHourLabel,
+  isContinuousVisitWindows,
   mergeShopBookingSettings,
   patchAppointmentInterval,
+  patchContinuousVisitWindow,
   sanitizeVisitWindowPatch,
   VISIT_HOUR_OPTIONS,
-  type OwnerApprovalSms,
+  VISIT_WINDOW_PRESETS,
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
@@ -31,14 +33,6 @@ export function BookingSettingsEditor() {
   const [error, setError] = useState<string | null>(null);
   const [intervalDraft, setIntervalDraft] = useState("120");
   const [showTeamCapacity, setShowTeamCapacity] = useState(false);
-
-  const ownerSmsLabels = useMemo<Record<OwnerApprovalSms, string>>(
-    () =>
-      isEnglish
-        ? { off: "Off", p1_only: "Urgent only", all: "Every time" }
-        : { off: "끔", p1_only: "P1만", all: "전체" },
-    [isEnglish],
-  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,7 +83,6 @@ export function BookingSettingsEditor() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             schedulingEnabled: settings.schedulingEnabled,
-            ownerApprovalSms: settings.ownerApprovalSms,
             undoWindowMinutes: settings.undoWindowMinutes,
             shadowModeRemaining: settings.shadowModeRemaining,
             avgJobTicketUsd: settings.avgJobTicketUsd,
@@ -139,10 +132,39 @@ export function BookingSettingsEditor() {
     if (!settings) return;
     const sanitized = sanitizeVisitWindowPatch({ ...settings, ...partial });
     if (!sanitized) {
-      setError(isEnglish ? "Morning must end before afternoon starts." : "오전 구간은 오후 시작 전에 끝나야 합니다.");
+      setError(
+        isEnglish
+          ? "Morning must end before afternoon starts."
+          : "오전 구간은 오후 시작 전에 끝나야 합니다.",
+      );
       return;
     }
     updateLocal(sanitized);
+  }
+
+  function applyContinuousWindow(startHour: number, endHour: number) {
+    const patched = patchContinuousVisitWindow(startHour, endHour);
+    if (!patched) {
+      setError(isEnglish ? "Close time must be after open time." : "종료 시간은 시작보다 늦어야 합니다.");
+      return;
+    }
+    updateLocal(patched);
+  }
+
+  function setVisitLayout(mode: "split" | "continuous") {
+    if (!settings) return;
+    if (mode === "continuous") {
+      applyContinuousWindow(
+        settings.amWindowStart,
+        Math.max(settings.amWindowEnd, settings.pmWindowEnd),
+      );
+      return;
+    }
+    applyVisitWindows(VISIT_WINDOW_PRESETS.splitStandard);
+  }
+
+  function applyVisitPreset(preset: keyof typeof VISIT_WINDOW_PRESETS) {
+    updateLocal(VISIT_WINDOW_PRESETS[preset]);
   }
 
   function visitHourSelect(
@@ -192,6 +214,7 @@ export function BookingSettingsEditor() {
   const intervalMinutes = appointmentIntervalMinutes(settings);
   const intervalHours = Math.floor(intervalMinutes / 60);
   const intervalMins = intervalMinutes % 60;
+  const continuousHours = isContinuousVisitWindows(settings);
 
   return (
     <div className="vow-settings-block rounded-2xl border border-brand-200/70 bg-white p-5 shadow-card space-y-5 sm:p-6">
@@ -240,30 +263,106 @@ export function BookingSettingsEditor() {
           hint={settingsPage.visitHoursHint}
           className="space-y-4"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursAmLabel}</p>
-              <div className="mt-2 flex flex-wrap items-end gap-2">
-                {visitHourSelect(settings.amWindowStart, (h) => applyVisitWindows({ amWindowStart: h }), "am-start")}
-                <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
-                {visitHourSelect(settings.amWindowEnd, (h) => applyVisitWindows({ amWindowEnd: h }), "am-end")}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3">
-              <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursPmLabel}</p>
-              <div className="mt-2 flex flex-wrap items-end gap-2">
-                {visitHourSelect(settings.pmWindowStart, (h) => applyVisitWindows({ pmWindowStart: h }), "pm-start")}
-                <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
-                {visitHourSelect(settings.pmWindowEnd, (h) => applyVisitWindows({ pmWindowEnd: h }), "pm-end")}
-              </div>
+          <div>
+            <p className="vow-settings-label">{settingsPage.visitHoursLayoutLabel}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setVisitLayout("split")}
+                className={`vow-settings-chip ${
+                  !continuousHours ? "vow-settings-chip-active" : "vow-settings-chip-inactive"
+                }`}
+              >
+                {settingsPage.visitHoursLayoutSplit}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisitLayout("continuous")}
+                className={`vow-settings-chip ${
+                  continuousHours ? "vow-settings-chip-active" : "vow-settings-chip-inactive"
+                }`}
+              >
+                {settingsPage.visitHoursLayoutContinuous}
+              </button>
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => applyVisitPreset("splitStandard")}
+              className="vow-settings-chip vow-settings-chip-inactive text-sm"
+            >
+              {settingsPage.visitHoursPresetStandard}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyVisitPreset("continuousFullDay")}
+              className="vow-settings-chip vow-settings-chip-inactive text-sm"
+            >
+              {settingsPage.visitHoursPresetFullDay}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyVisitPreset("continuousExtended")}
+              className="vow-settings-chip vow-settings-chip-inactive text-sm"
+            >
+              {settingsPage.visitHoursPresetExtended}
+            </button>
+          </div>
+
+          {continuousHours ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-3">
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-800">
+                    {settingsPage.visitHoursContinuousStartLabel}
+                  </span>
+                  {visitHourSelect(settings.amWindowStart, (h) => {
+                    applyContinuousWindow(h, settings.amWindowEnd);
+                  }, "day-start")}
+                </label>
+                <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-800">
+                    {settingsPage.visitHoursContinuousEndLabel}
+                  </span>
+                  {visitHourSelect(settings.amWindowEnd, (h) => {
+                    applyContinuousWindow(settings.amWindowStart, h);
+                  }, "day-end")}
+                </label>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursAmLabel}</p>
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  {visitHourSelect(settings.amWindowStart, (h) => applyVisitWindows({ amWindowStart: h }), "am-start")}
+                  <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
+                  {visitHourSelect(settings.amWindowEnd, (h) => applyVisitWindows({ amWindowEnd: h }), "am-end")}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <p className="text-sm font-medium text-slate-800">{settingsPage.visitHoursPmLabel}</p>
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  {visitHourSelect(settings.pmWindowStart, (h) => applyVisitWindows({ pmWindowStart: h }), "pm-start")}
+                  <span className="pb-2 text-sm text-slate-500">{settingsPage.visitHoursToLabel}</span>
+                  {visitHourSelect(settings.pmWindowEnd, (h) => applyVisitWindows({ pmWindowEnd: h }), "pm-end")}
+                </div>
+              </div>
+            </div>
+          )}
+
           <p className="text-sm text-brand-800">
-            {settingsPage.visitHoursExample(
-              `${formatVisitHourLabel(settings.amWindowStart)}–${formatVisitHourLabel(settings.amWindowEnd)}`,
-              `${formatVisitHourLabel(settings.pmWindowStart)}–${formatVisitHourLabel(settings.pmWindowEnd)}`,
-            )}
+            {continuousHours
+              ? settingsPage.visitHoursExampleContinuous(
+                  `${formatVisitHourLabel(settings.amWindowStart)}–${formatVisitHourLabel(settings.amWindowEnd)}`,
+                )
+              : settingsPage.visitHoursExample(
+                  `${formatVisitHourLabel(settings.amWindowStart)}–${formatVisitHourLabel(settings.amWindowEnd)}`,
+                  `${formatVisitHourLabel(settings.pmWindowStart)}–${formatVisitHourLabel(settings.pmWindowEnd)}`,
+                )}
           </p>
         </SettingsSubsection>
       ) : null}
@@ -367,29 +466,6 @@ export function BookingSettingsEditor() {
           />
         </SettingsSubsection>
       ) : null}
-
-      <SettingsSubsection
-        icon="💬"
-        title={settingsPage.ownerApprovalSmsLabel}
-        hint={settingsPage.ownerApprovalSmsHint}
-      >
-        <div className="flex flex-wrap gap-2">
-          {(["off", "p1_only", "all"] as OwnerApprovalSms[]).map((level) => (
-            <button
-              key={level}
-              type="button"
-              onClick={() => updateLocal({ ownerApprovalSms: level })}
-              className={`vow-settings-chip ${
-                settings.ownerApprovalSms === level
-                  ? "vow-settings-chip-active"
-                  : "vow-settings-chip-inactive"
-              }`}
-            >
-              {ownerSmsLabels[level]}
-            </button>
-          ))}
-        </div>
-      </SettingsSubsection>
 
       <SettingsSubsection icon="📍" title={settingsPage.serviceAreaZipsLabel} hint={settingsPage.serviceAreaZipsHint}>
         <input

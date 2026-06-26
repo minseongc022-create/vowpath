@@ -1,4 +1,5 @@
 import type { ShopBookingSettings, SlotOffer } from "../booking-settings";
+import { getVisitWindowsForSlots } from "../visit-windows";
 import type { BusyBlock } from "./compute-slots";
 
 export type SlotGridStatus = "available" | "blocked" | "past";
@@ -95,10 +96,7 @@ export function computeSlotGrid(params: {
     day.setDate(day.getDate() + d);
     if (day.getDay() === 0) continue;
 
-    const windows = [
-      { startH: settings.amWindowStart, endH: settings.amWindowEnd },
-      { startH: settings.pmWindowStart, endH: settings.pmWindowEnd },
-    ];
+    const windows = getVisitWindowsForSlots(settings);
 
     for (const tmpl of windows) {
       const windowStart = new Date(day);

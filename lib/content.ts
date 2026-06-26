@@ -582,14 +582,24 @@ const settingsPageKo = {
   visitTimingTitle: "예약 간격",
   visitTimingHint:
     "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
-  visitHoursTitle: "방문 가능 시간 (영업시간)",
+  visitHoursTitle: "고객 예약 시간대",
   visitHoursHint:
-    "고객 예약 슬롯은 이 시간대 안에서만 생성됩니다 (월–토). 미국 HVAC는 보통 오전·오후 구간으로 나눕니다.",
-  visitHoursAmLabel: "오전 구간",
-  visitHoursPmLabel: "오후 구간",
+    "고객이 방문 시간을 고를 수 있는 구간입니다 (월–토). 오전·오후 나누기 또는 하루 연속 블록을 선택하세요.",
+  visitHoursLayoutLabel: "시간표 방식",
+  visitHoursLayoutSplit: "오전 · 오후",
+  visitHoursLayoutContinuous: "하루 연속",
+  visitHoursAmLabel: "오전 블록",
+  visitHoursPmLabel: "오후 블록",
+  visitHoursContinuousStartLabel: "영업 시작",
+  visitHoursContinuousEndLabel: "마지막 슬롯 종료",
+  visitHoursPresetStandard: "기본 (8–12, 12–5)",
+  visitHoursPresetFullDay: "풀데이 (8–5)",
+  visitHoursPresetExtended: "장시간 (7–7)",
   visitHoursToLabel: "~",
   visitHoursExample: (am: string, pm: string) =>
-    `예: 다음 영업일 ${am}, ${pm} 같은 슬롯이 보입니다.`,
+    `예: 다음 영업일 ${am}, ${pm} 슬롯이 보입니다.`,
+  visitHoursExampleContinuous: (range: string) =>
+    `예: 다음 영업일 ${range} 슬롯이 연속으로 보입니다.`,
   appointmentIntervalLabel: "예약 간격",
   appointmentIntervalHint:
     "한 번 예약하면 그 시간만큼 일정에 잡히고, 다음 예약은 정확히 그 간격 뒤부터 열립니다.",
@@ -614,9 +624,10 @@ const settingsPageKo = {
     "0 — 실전: 고객이 고른 시간이 캘린더·문자·Jobber에 그대로 반영됩니다.",
   shadowModePractice:
     "1 이상 — 연습: 흐름만 진행되고 캘린더에는 안 박힙니다. 사장님께 [TEST] 안내만 가며, 테스트 1번당 1씩 줄어듭니다.",
-  serviceAreaZipsLabel: "서비스 가능 우편번호",
-  serviceAreaZipsHint: "선택. 5자리 ZIP을 쉼표로 구분. 비우면 전 지역 허용.",
-  serviceAreaZipsPlaceholder: "78701, 78702",
+  serviceAreaZipsLabel: "출장 가능 ZIP (선택)",
+  serviceAreaZipsHint:
+    "실제로 출장하는 ZIP 목록입니다 (고객 한 집 주소 아님). 쉼표로 구분. 비우면 전 지역 허용.",
+  serviceAreaZipsPlaceholder: "78701, 78702, 78745",
   techDispatchTitle: "기사 배치",
   techDispatchNav: "기사 배치",
   saveAllButton: "모든 설정 저장",
