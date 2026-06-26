@@ -21,13 +21,23 @@ export default async function DashboardSettingsPage({
         {settingsPage.backDashboardLink}
       </Link>
       <header className="rounded-2xl border border-brand-200/70 bg-white px-4 py-5 shadow-sm sm:px-6">
-        <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
-          {settingsPage.badge}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">{settingsPage.title}</h1>
-        <p className="mt-2 text-base leading-relaxed text-stone-600 sm:text-lg">
-          {settingsPage.subtitle}
-        </p>
+        <div className="flex gap-3 sm:gap-4">
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-xl shadow-sm ring-1 ring-brand-200/80 sm:h-14 sm:w-14 sm:text-2xl"
+            aria-hidden
+          >
+            🛠️
+          </span>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
+              {settingsPage.badge}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">{settingsPage.title}</h1>
+            <p className="mt-2 text-base leading-relaxed text-stone-600 sm:text-lg">
+              {settingsPage.subtitle}
+            </p>
+          </div>
+        </div>
       </header>
       <div className="relative space-y-6">
         <Suspense fallback={null}>

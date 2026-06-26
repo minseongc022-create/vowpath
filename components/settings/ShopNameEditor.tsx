@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
 export function ShopNameEditor() {
@@ -83,10 +84,9 @@ export function ShopNameEditor() {
   }
 
   return (
-    <div className="vow-settings-block rounded-xl border border-brand-200 bg-white p-5 shadow-sm">
+    <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 shadow-sm sm:p-6">
+      <SettingsSectionHeader icon="🏪" title={copy.label} hint={copy.hint} className="mb-5" />
       <label className="block">
-        <span className="vow-settings-label">{copy.label}</span>
-        <p className="vow-settings-hint mt-1">{copy.hint}</p>
         <input
           type="text"
           value={name}
@@ -96,7 +96,7 @@ export function ShopNameEditor() {
           }}
           placeholder={copy.placeholder}
           maxLength={80}
-          className="vow-settings-input mt-3"
+          className="vow-settings-input"
         />
       </label>
       {error ? <p className="mt-2 text-base text-rose-700">{error}</p> : null}

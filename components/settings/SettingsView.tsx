@@ -19,6 +19,7 @@ import {
   useSettingsSaveRegistration,
 } from "@/components/settings/SettingsSaveContext";
 import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
+import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
@@ -278,12 +279,14 @@ function SettingsViewBody({
         id="product-settings"
         className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
       >
-        <div>
-          <p className="vow-settings-eyebrow">{settingsPage.productSectionTitle}</p>
-          <p className="vow-settings-hint mt-2 max-w-2xl">{settingsPage.productSectionSubtitle}</p>
-        </div>
+        <SettingsSectionHeader
+          icon="⚙️"
+          title={settingsPage.productSectionTitle}
+          hint={settingsPage.productSectionSubtitle}
+          className="mb-6 border-b border-brand-100 pb-5"
+        />
 
-        <div className="mt-6 space-y-6">
+        <div className="space-y-6">
           <div id="shop-name" className="scroll-mt-24">
             <ShopNameEditor />
           </div>
@@ -298,10 +301,12 @@ function SettingsViewBody({
       </section>
 
       <section id="go-live" className="scroll-mt-6 space-y-5">
-        <div>
-          <p className="vow-settings-eyebrow">{settingsPage.goLiveSectionTitle}</p>
-          <p className="vow-settings-hint mt-2 max-w-2xl">{settingsPage.goLiveSectionSubtitle}</p>
-        </div>
+        <SettingsSectionHeader
+          icon="🚀"
+          title={settingsPage.goLiveSectionTitle}
+          hint={settingsPage.goLiveSectionSubtitle}
+          className="rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
+        />
 
         <GoLiveProgressCard
           requiredDone={requiredDone}

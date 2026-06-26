@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AgreementKeeperSettings as AgreementKeeperSettingsData } from "@/lib/agreements/types";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
 export function AgreementKeeperSettingsEditor() {
@@ -44,13 +45,15 @@ export function AgreementKeeperSettingsEditor() {
   }
 
   return (
-    <section id="agreements" className="vow-settings-block scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5">
-      <div>
-        <h2 className="text-2xl font-semibold text-brand-950">{copy.title}</h2>
-        <p className="vow-settings-hint mt-2 max-w-2xl">{copy.summary}</p>
-      </div>
+    <section id="agreements" className="vow-settings-block scroll-mt-24 rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
+      <SettingsSectionHeader
+        icon="🛡️"
+        title={copy.title}
+        hint={copy.summary}
+        className="mb-2"
+      />
 
-      <label className="mt-6 flex items-center gap-3">
+      <label className="mt-5 flex items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
         <input
           type="checkbox"
           checked={settings.enabled}
@@ -60,7 +63,7 @@ export function AgreementKeeperSettingsEditor() {
         <span className="vow-settings-label">{copy.enabledLabel}</span>
       </label>
 
-      <label className="mt-4 flex items-center gap-3">
+      <label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
         <input
           type="checkbox"
           checked={settings.offerAfterJobComplete}
@@ -69,7 +72,10 @@ export function AgreementKeeperSettingsEditor() {
           }
           className="h-5 w-5 rounded border-stone-300"
         />
-        <span className="text-base text-stone-700">{copy.offerAfterComplete}</span>
+        <span className="flex items-center gap-2 text-base text-stone-700">
+          <span aria-hidden>📨</span>
+          {copy.offerAfterComplete}
+        </span>
       </label>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -129,7 +135,10 @@ export function AgreementKeeperSettingsEditor() {
         </label>
       </div>
 
-      <p className="vow-settings-hint mt-4">{copy.reminderHint}</p>
+      <p className="vow-settings-hint mt-4 flex items-start gap-2">
+        <span className="shrink-0" aria-hidden>🔔</span>
+        <span>{copy.reminderHint}</span>
+      </p>
     </section>
   );
 }

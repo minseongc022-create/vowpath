@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
 const emptyTech = (): TechMember => ({
@@ -127,11 +128,15 @@ export function TechDispatchSettings() {
 
   return (
     <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
-      <p className="vow-settings-eyebrow">{t.badge}</p>
-      <h3 className="mt-1 text-xl font-semibold text-brand-950">{t.title}</h3>
-      <p className="vow-settings-hint mt-2">{t.body}</p>
+      <SettingsSectionHeader
+        icon="👷"
+        eyebrow={t.badge}
+        title={t.title}
+        hint={t.body}
+        className="mb-5"
+      />
 
-      <label className="mt-5 flex items-center gap-3">
+      <label className="flex items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
         <input
           type="checkbox"
           checked={settings.enabled}
@@ -143,18 +148,24 @@ export function TechDispatchSettings() {
 
       {settings.enabled ? (
         <div className="mt-4 space-y-4">
-          <label className="flex items-center gap-3">
+          <label className="flex items-center gap-3 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2.5">
             <input
               type="checkbox"
               checked={settings.p1SeniorOnly}
               onChange={(e) => setSettings({ ...settings, p1SeniorOnly: e.target.checked })}
               className="h-4 w-4 rounded border-slate-300"
             />
-            <span className="text-base text-stone-700">{t.p1Senior}</span>
+            <span className="flex items-center gap-2 text-base text-stone-700">
+              <span aria-hidden>🚨</span>
+              {t.p1Senior}
+            </span>
           </label>
 
-          <div>
-            <p className="vow-settings-label">{t.techsLabel}</p>
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p className="flex items-center gap-2 vow-settings-label">
+              <span aria-hidden>📱</span>
+              {t.techsLabel}
+            </p>
             <p className="vow-settings-hint mt-1">{t.techsHint}</p>
             <div className="mt-3 space-y-3">
               {settings.techs.map((tech) => (
@@ -200,9 +211,10 @@ export function TechDispatchSettings() {
               onClick={() =>
                 setSettings({ ...settings, techs: [...settings.techs, emptyTech()] })
               }
-              className="mt-3 text-base font-semibold text-brand-800 hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-base font-semibold text-brand-800 hover:underline"
             >
-              {t.addTech}
+              <span aria-hidden>➕</span>
+              {t.addTech.replace(/^\+ /, "")}
             </button>
           </div>
         </div>

@@ -24,9 +24,12 @@ export function GoLiveProgressCard({
       }`}
     >
       <div className="px-5 py-5 sm:px-6">
-        <p className="text-lg font-bold text-brand-950">{settingsPage.goLiveWelcome}</p>
+        <p className="flex items-center gap-2 text-lg font-bold text-brand-950">
+          <span aria-hidden>{live ? "✅" : "🎯"}</span>
+          {live ? settingsPage.allDone : settingsPage.goLiveWelcome}
+        </p>
         <p className="mt-2 text-base leading-relaxed text-stone-600">
-          {live ? settingsPage.allDone : settingsPage.goLiveWelcomeHint}
+          {live ? settingsPage.progressHint : settingsPage.goLiveWelcomeHint}
         </p>
         <div className="mt-4 flex items-end justify-between gap-4">
           <div>
