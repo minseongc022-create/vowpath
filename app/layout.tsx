@@ -13,6 +13,7 @@ const inter = Inter({
 });
 
 const siteMetadataBase = {
+  metadataBase: new URL(SITE.url),
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -33,6 +34,8 @@ const enMeta = {
     description:
       "Efficiency + Road: auto-book clear jobs, text back for urgent calls, and run the shop from your phone. Built for 1–5 truck shops.",
     type: "website" as const,
+    url: SITE.url,
+    siteName: SITE.name,
   },
 };
 
