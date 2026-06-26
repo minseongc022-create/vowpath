@@ -22,7 +22,7 @@ export function Footer() {
       <Container className="py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-sm">
-            <BrandLogo size="sm" href={ROUTES.home} />
+            <BrandLogo size="sm" surface="footer" href={ROUTES.home} />
             <p className="mt-3 text-sm leading-relaxed text-stone-800">{tagline}</p>
             {siteFooter?.brandMeaning ? (
               <p className="mt-3 text-sm leading-relaxed text-stone-700">{siteFooter.brandMeaning}</p>

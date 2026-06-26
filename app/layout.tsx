@@ -16,11 +16,11 @@ const siteMetadataBase = {
   metadataBase: new URL(SITE.url),
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico?v=7", sizes: "any" },
+      { url: "/favicon-32.png?v=7", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png?v=7", sizes: "16x16", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png?v=7", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -75,10 +75,10 @@ export default async function RootLayout({
   return (
     <html lang={locale === "ko" ? "ko" : "en"} className={inter.variable}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+        <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
+        <link rel="icon" href="/favicon-32.png?v=7" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16.png?v=7" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" sizes="180x180" />
         <link
           rel="stylesheet"
           as="style"

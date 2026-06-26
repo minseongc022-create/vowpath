@@ -205,15 +205,11 @@ export function DashboardShell({
         <div className="flex h-full w-full flex-col px-4 py-5">
 
           <BrandLogo
-
-            variant="light"
-
+            variant="dark"
+            surface="dark"
             size="sm"
-
             href={ROUTES.dashboard}
-
             className="px-1"
-
           />
 
 
@@ -341,7 +337,7 @@ export function DashboardShell({
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
         <header className="border-b border-brand-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden">
-          <BrandLogo variant="dark" size="sm" href={ROUTES.dashboard} />
+          <BrandLogo surface="header" size="sm" href={ROUTES.dashboard} />
         </header>
 
         <main className="vow-dash-main-scroll flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
