@@ -1,5 +1,5 @@
 /**
- * Crop Gemini watermark, normalize cream background, export web logo assets.
+ * Export /public brand PNGs from latest Effiroad logo sources.
  * Usage: node scripts/process-effroad-logos.mjs
  */
 import sharp from "sharp";
@@ -13,31 +13,35 @@ const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
 
 /** Match site --vow-beige-light */
-const SITE_BG = { r: 250, g: 248, b: 245 };
+const SITE_BG = { r: 250, g: 248, b: 245, alpha: 1 };
 
 const SOURCES = {
   horizontal: "effiroad-logo-horizontal.png",
-  icon: "effiroad-logo-icon.png",
-  favicon: "effiroad-logo-favicon.png",
+  medallion: "effiroad-logo-medallion.png",
+  appIcon: "effiroad-logo-app-icon.png",
 };
 
 function isPaperPixel(r, g, b) {
-  return r > 210 && g > 205 && b > 195 && Math.max(r, g, b) - Math.min(r, g, b) < 35;
+  return r > 210 && g > 205 && b > 195 && Math.max(r, g, b) - Math.min(r, g, b) < 40;
+}
+
+function isBlackPixel(r, g, b) {
+  return r < 28 && g < 28 && b < 28;
 }
 
 async function copyUserSources() {
   const assets = [
     [
-      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_e8c161e0-7456-4e88-b748-2b06d2a52084-707af9d9-d625-4a77-9373-fce7e08e5bfa.png",
+      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_638c2e18-f267-4f10-baab-16513e0df975-e15da7a0-f84c-4829-b8bf-9ff0ab6e0a20.png",
       SOURCES.horizontal,
     ],
     [
-      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_2159014a-7657-4493-bb58-efe585986248-f1f09aa0-af65-481f-8e7c-0eaff105e9f3.png",
-      SOURCES.icon,
+      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_2b7e34f5-ebde-49a5-85f0-e73b782a10ac-12d766ab-893c-4a14-b5b5-ab0c13bf11e9.png",
+      SOURCES.medallion,
     ],
     [
-      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_e2d8c4d7-b20b-4a74-8025-23c6d462b3a6-c5137839-4619-4920-9be9-88d52ebd9233.png",
-      SOURCES.favicon,
+      "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_f77e267f-32c0-4469-a716-d383cfbe85dc-9c9d7ab1-d733-48bb-a888-20135eb8fe59.png",
+      SOURCES.appIcon,
     ],
   ];
 
@@ -61,22 +65,8 @@ async function copyUserSources() {
   }
 }
 
-/** Remove bottom-right Gemini badge area, then trim cream margins. */
-async function prepareLogo(inputPath, crop, { transparentBg = false } = {}) {
-  const meta = await sharp(inputPath).metadata();
-  const w = meta.width ?? 0;
-  const h = meta.height ?? 0;
-  const cropW = Math.floor(w * (1 - crop.rightFrac));
-  const cropH = Math.floor(h * (1 - crop.bottomFrac));
-
-  const img = sharp(inputPath).extract({
-    left: 0,
-    top: 0,
-    width: cropW,
-    height: cropH,
-  });
-
-  const { data, info } = await img
+async function mapPixels(inputPath, shouldClear, { flattenPaper = false } = {}) {
+  const { data, info } = await sharp(inputPath)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -88,21 +78,21 @@ async function prepareLogo(inputPath, crop, { transparentBg = false } = {}) {
     const b = pixels[i + 2];
     const a = pixels[i + 3];
     if (a < 16) continue;
-    if (isPaperPixel(r, g, b)) {
-      if (transparentBg) {
-        pixels[i + 3] = 0;
-      } else {
-        pixels[i] = SITE_BG.r;
-        pixels[i + 1] = SITE_BG.g;
-        pixels[i + 2] = SITE_BG.b;
-        pixels[i + 3] = 255;
-      }
+    if (shouldClear(r, g, b)) {
+      pixels[i + 3] = 0;
+      continue;
+    }
+    if (flattenPaper && isPaperPixel(r, g, b)) {
+      pixels[i] = SITE_BG.r;
+      pixels[i + 1] = SITE_BG.g;
+      pixels[i + 2] = SITE_BG.b;
+      pixels[i + 3] = 255;
     }
   }
 
   return sharp(Buffer.from(pixels), {
     raw: { width: info.width, height: info.height, channels: 4 },
-  }).trim({ threshold: transparentBg ? 1 : 12 });
+  }).trim({ threshold: 8 });
 }
 
 async function writePng(pipeline, outPath, width) {
@@ -118,30 +108,29 @@ async function main() {
   await copyUserSources();
 
   const horizontalSrc = path.join(sourcesDir, SOURCES.horizontal);
-  const iconSrc = path.join(sourcesDir, SOURCES.icon);
-  const faviconSrc = path.join(sourcesDir, SOURCES.favicon);
+  const medallionSrc = path.join(sourcesDir, SOURCES.medallion);
+  const appIconSrc = path.join(sourcesDir, SOURCES.appIcon);
 
-  const horizontal = await prepareLogo(horizontalSrc, { rightFrac: 0.1, bottomFrac: 0.14 });
-  const horizontalTransparent = await prepareLogo(
-    horizontalSrc,
-    { rightFrac: 0.1, bottomFrac: 0.14 },
-    { transparentBg: true },
-  );
-  const icon = await prepareLogo(iconSrc, { rightFrac: 0.12, bottomFrac: 0.14 });
-  const iconTransparent = await prepareLogo(iconSrc, { rightFrac: 0.12, bottomFrac: 0.14 }, {
-    transparentBg: true,
-  });
-  const faviconCard = await prepareLogo(faviconSrc, { rightFrac: 0.11, bottomFrac: 0.12 });
+  const horizontalLight = await mapPixels(horizontalSrc, () => false);
+  const horizontalSolid = await mapPixels(horizontalSrc, () => false, { flattenPaper: true });
 
-  await writePng(horizontal, path.join(publicDir, "logo-horizontal.png"), 720);
-  await writePng(horizontalTransparent, path.join(publicDir, "logo-horizontal-light.png"), 720);
-  await writePng(icon, path.join(publicDir, "logo-icon.png"), 512);
-  await writePng(iconTransparent, path.join(publicDir, "logo-icon-light.png"), 512);
-  await writePng(faviconCard, path.join(publicDir, "logo-mark.png"), 512);
-  await writePng(icon, path.join(publicDir, "logo.png"), 512);
+  const iconLight = await mapPixels(medallionSrc, isBlackPixel);
+  const iconSolid = await sharp(appIconSrc)
+    .ensureAlpha()
+    .flatten({ background: SITE_BG })
+    .trim({ threshold: 12 });
+
+  const faviconSource = await sharp(appIconSrc).ensureAlpha().trim({ threshold: 12 });
+
+  await writePng(horizontalLight, path.join(publicDir, "logo-horizontal-light.png"), 880);
+  await writePng(horizontalSolid, path.join(publicDir, "logo-horizontal.png"), 880);
+  await writePng(iconLight, path.join(publicDir, "logo-icon-light.png"), 512);
+  await writePng(iconSolid, path.join(publicDir, "logo-icon.png"), 512);
+  await writePng(iconLight, path.join(publicDir, "logo-mark.png"), 512);
+  await writePng(iconLight, path.join(publicDir, "logo.png"), 512);
 
   for (const size of [32, 16]) {
-    await faviconCard
+    await faviconSource
       .clone()
       .resize(size, size, { fit: "cover", position: "centre" })
       .png()
@@ -149,14 +138,14 @@ async function main() {
     console.log(`wrote public/favicon-${size}.png`);
   }
 
-  await faviconCard
+  await faviconSource
     .clone()
     .resize(32, 32, { fit: "cover", position: "centre" })
     .toFormat("png")
     .toFile(path.join(publicDir, "favicon.ico"));
   console.log("wrote public/favicon.ico");
 
-  await faviconCard
+  await faviconSource
     .clone()
     .resize(180, 180, { fit: "cover", position: "centre" })
     .png()

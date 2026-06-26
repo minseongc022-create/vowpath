@@ -25,17 +25,17 @@ type BrandLogoProps = {
 };
 
 const iconSizes = {
-  sm: { box: "h-9 w-9", px: 36 },
-  md: { box: "h-10 w-10", px: 40 },
-  lg: { box: "h-11 w-11", px: 44 },
-  xl: { box: "h-12 w-12", px: 48 },
+  sm: { box: "h-10 w-10", px: 40 },
+  md: { box: "h-11 w-11", px: 44 },
+  lg: { box: "h-12 w-12", px: 48 },
+  xl: { box: "h-14 w-14", px: 56 },
 };
 
 const horizontalSizes = {
-  sm: { class: "h-8 w-auto max-w-[8.5rem]", w: 136, h: 32 },
-  md: { class: "h-9 w-auto max-w-[9.5rem]", w: 152, h: 36 },
-  lg: { class: "h-10 w-auto max-w-[11rem]", w: 176, h: 40 },
-  xl: { class: "h-11 w-auto max-w-[12rem]", w: 192, h: 44 },
+  sm: { class: "h-12 w-auto max-w-[11rem]", w: 176, h: 48 },
+  md: { class: "h-14 w-auto max-w-[13rem]", w: 208, h: 56 },
+  lg: { class: "h-16 w-auto max-w-[18rem]", w: 288, h: 64 },
+  xl: { class: "h-[4.5rem] w-auto max-w-[20rem]", w: 320, h: 72 },
 };
 
 function resolveLayout(size: BrandLogoProps["size"], layout?: BrandLogoProps["layout"]) {
