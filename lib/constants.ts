@@ -39,11 +39,9 @@ export const FOOTER_LINKS = [
 ] as const;
 
 export const NAV_LINKS = [
-  { label: "Product", href: "/#differentiators" },
-  { label: "Why us", href: "/#about" },
-  { label: "Booking modes", href: "/#scheduling" },
+  { label: "Features", href: "/#features" },
   { label: "How it works", href: "/#how-it-works" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Pricing", href: "/#pricing" },
   { label: "Get started", href: ROUTES.getStarted },
 ] as const;
 

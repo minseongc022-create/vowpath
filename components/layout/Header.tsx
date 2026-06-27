@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ROUTES } from "@/lib/constants";
-import { getNavLinks } from "@/lib/nav-links";
+import { getMarketingNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
@@ -14,27 +14,30 @@ type HeaderProps = {
 
 export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
-  const navLinks = getNavLinks();
+  const navLinks = getMarketingNavLinks();
 
   return (
     <header className="vow-site-header">
       <Container>
-        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-6">
+        <div className="flex h-14 min-h-14 items-center gap-4 sm:h-16 lg:gap-6">
           <BrandLogo placement="site-header" href={ROUTES.home} />
 
-          <nav className="hidden items-center justify-center gap-5 xl:flex xl:gap-7">
+          <nav
+            className="hidden min-w-0 flex-1 items-center justify-center gap-6 lg:flex xl:gap-8"
+            aria-label="Primary"
+          >
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="whitespace-nowrap text-sm font-medium text-stone-800 transition hover:text-brand-900"
+                className="whitespace-nowrap text-sm font-medium text-stone-700 transition hover:text-brand-900"
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center lg:ml-0 lg:justify-end">
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             <HeaderAuth session={session} />
             <button
               type="button"
@@ -57,7 +60,7 @@ export function Header({ session }: HeaderProps) {
 
       {open ? (
         <div className="border-t border-brand-200 bg-white px-5 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3">
+          <nav className="flex flex-col gap-3" aria-label="Primary mobile">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

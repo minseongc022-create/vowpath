@@ -348,9 +348,8 @@
   }
 
   .vow-brand-logo__horizontal-img {
-    @apply block max-w-none object-contain object-left;
+    @apply block w-auto max-w-none object-contain object-left;
     height: auto;
-    width: auto;
   }
 
   .vow-brand-logo__symbol {

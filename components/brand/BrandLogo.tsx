@@ -10,13 +10,11 @@ import {
   BRAND_SYMBOL_WIDTH,
   BRAND_LOGO_PLACEMENTS,
   type BrandLogoPlacement,
-  horizontalWidthForHeight,
   legacyPlacementFromSize,
 } from "@/lib/brand-logo-system";
 import { pickBrandHorizontalSrc, pickBrandIconSrc } from "@/lib/brand-assets";
 import { ROUTES, SITE } from "@/lib/constants";
 import { getBrandLogoTagline } from "@/lib/marketing-constants";
-import { isEnglishUi } from "@/lib/locale";
 
 type BrandLogoProps = {
   className?: string;
@@ -74,21 +72,15 @@ function HorizontalMark({
   surface: "default" | "header" | "footer" | "dark";
   priority?: boolean;
 }) {
-  const widthPx = horizontalWidthForHeight(heightPx);
-
   return (
-    <span
-      className="vow-brand-logo__horizontal"
-      style={{ height: heightPx, width: widthPx }}
-      data-surface={surface}
-    >
+    <span className="vow-brand-logo__horizontal" data-surface={surface}>
       <Image
         src={pickBrandHorizontalSrc(surface)}
         alt={SITE.name}
         width={BRAND_HORIZONTAL_WIDTH}
         height={BRAND_HORIZONTAL_HEIGHT}
         className="vow-brand-logo__horizontal-img"
-        style={{ height: heightPx, width: widthPx }}
+        style={{ height: heightPx }}
         priority={priority}
       />
     </span>
@@ -122,7 +114,7 @@ export function BrandLogo({
           <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />
         </span>
         <span className="hidden lg:block">
-          <HorizontalMark heightPx={spec.heightPx ?? 36} surface={spec.surface} />
+          <HorizontalMark heightPx={spec.heightPx ?? 40} surface={spec.surface} />
         </span>
       </>
     );
@@ -136,7 +128,7 @@ export function BrandLogo({
     <Link
       href={href}
       className={`vow-brand-logo group shrink-0 ${className}`}
-      aria-label={isEnglishUi() ? `${SITE.name} home` : `${SITE.name} 홈으로`}
+      aria-label={`${SITE.name} home`}
     >
       {mark}
       {(showName || showTagline) && (

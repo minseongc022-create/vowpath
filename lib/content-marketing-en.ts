@@ -8,13 +8,13 @@ export const heroEn = {
   headline: "The efficient path for every missed call.",
   headlineAccent: "Answer. Book. Run the shop — without the chaos.",
   brandLine:
-    "Effiroad means Efficiency + Road — the road to running your HVAC shop smarter. Your main line stays the same; when you miss a ring, our AI captures intake, books real arrival windows, and keeps homeowners updated until your tech is on the way.",
+    "Keep your main line. When you miss a ring, Effiroad captures intake, books real arrival windows, and keeps homeowners updated until your tech is on the way.",
   subhead:
-    "Core: AI phone + SMS link intake and smart booking. Built in: missed-call analytics and Effiroad AI — your pocket ops assistant for approvals, calendar, and shop settings.",
+    "AI phone + SMS intake, smart booking, shop analytics, and Effiroad AI — your pocket ops assistant for approvals, calendar, and settings.",
   trustLine: "US residential HVAC · 1–5 truck shops · Jobber optional",
   primaryCta: CHECKOUT_CTA,
-  secondaryCta: "See the full flow",
-  secondaryCtaHref: "/#product-stack",
+  secondaryCta: "See how it works",
+  secondaryCtaHref: "/#how-it-works",
   heroBadges: [
     "AI phone intake",
     "Owner SMS 1 / 2",
@@ -517,7 +517,8 @@ export const dataTrustEn = {
     },
     {
       title: "Works with your stack",
-      description: "Jobber, Housecall Pro, and ServiceTitan stay your dispatch source of truth.",
+      description:
+        "Jobber sync when you connect. Effiroad works alongside the dispatch or CRM tools you already use — focused on missed-call intake and booking.",
     },
   ],
   footnote: "See how we handle data in our",
@@ -718,11 +719,14 @@ export const ctaEn = {
 };
 
 export const navEn = {
-  product: "How it works",
-  about: "Why us",
-  scheduling: "Booking",
-  howItWorks: "Go live",
+  features: "Features",
+  howItWorks: "How it works",
   pricing: "Pricing",
+  why: "Why Effiroad",
+  /** @deprecated Legacy keys — do not use in new UI */
+  product: "Features",
+  about: "Why Effiroad",
+  scheduling: "Booking",
   getStarted: "Get started",
 };
 
@@ -732,5 +736,5 @@ export const footerEn = {
   contact: "Contact",
   tagline: "AI phone, analytics, and ops assistant for HVAC shops.",
   brandMeaning: "Missed call → AI intake → booked window → tech on the way. Jobber optional.",
-  subline: "US residential HVAC — works with Jobber; HCP and ServiceTitan stay your dispatch tools",
+  subline: "US residential HVAC · Same shop number · Jobber optional",
 };
