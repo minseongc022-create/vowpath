@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BRAND_HORIZONTAL_HEIGHT,
+  BRAND_HORIZONTAL_RATIO,
   BRAND_HORIZONTAL_WIDTH,
   BRAND_SYMBOL_HEIGHT,
   BRAND_SYMBOL_WIDTH,
@@ -72,15 +73,21 @@ function HorizontalMark({
   surface: "default" | "header" | "footer" | "dark";
   priority?: boolean;
 }) {
+  const widthPx = Math.round(heightPx * BRAND_HORIZONTAL_RATIO);
+
   return (
-    <span className="vow-brand-logo__horizontal" data-surface={surface}>
+    <span
+      className="vow-brand-logo__horizontal"
+      style={{ height: heightPx, width: widthPx }}
+      data-surface={surface}
+    >
       <Image
         src={pickBrandHorizontalSrc(surface)}
         alt={SITE.name}
         width={BRAND_HORIZONTAL_WIDTH}
         height={BRAND_HORIZONTAL_HEIGHT}
         className="vow-brand-logo__horizontal-img"
-        style={{ height: heightPx }}
+        style={{ height: heightPx, width: widthPx }}
         priority={priority}
       />
     </span>

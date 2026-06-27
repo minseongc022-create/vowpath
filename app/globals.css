@@ -344,12 +344,11 @@
   }
 
   .vow-brand-logo__horizontal {
-    @apply relative inline-flex shrink-0 items-center overflow-visible;
+    @apply relative inline-flex shrink-0 items-center justify-start overflow-visible;
   }
 
   .vow-brand-logo__horizontal-img {
-    @apply block w-auto max-w-none object-contain object-left;
-    height: auto;
+    @apply block h-full w-full max-w-none object-contain object-left;
   }
 
   .vow-brand-logo__symbol {

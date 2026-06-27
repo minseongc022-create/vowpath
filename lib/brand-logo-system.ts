@@ -40,8 +40,8 @@ export const BRAND_LOGO_PLACEMENTS: Record<BrandLogoPlacement, PlacementSpec> = 
   "site-header": {
     layout: "horizontal",
     heightPx: 40,
-    symbolPx: 32,
-    surface: "default",
+    symbolPx: 36,
+    surface: "header",
   },
   "site-footer": {
     layout: "horizontal",

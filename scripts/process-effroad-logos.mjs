@@ -1,5 +1,7 @@
 /**
- * Export /public brand PNGs — strip fake transparency, crop lockups, extract ER marks only.
+ * Export /public brand PNGs from official Effiroad sources.
+ * - Horizontal lockup: ER + EFFIROAD (tagline stripped, no aggressive crop)
+ * - Symbol: ER mark extracted from lockup (frameless, matches header)
  * Usage: node scripts/process-effroad-logos.mjs
  */
 import sharp from "sharp";
@@ -11,6 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
+const ASSET_VERSION = "13";
 
 const SITE_BG = { r: 250, g: 248, b: 245 };
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
@@ -23,20 +26,21 @@ const SOURCES = {
   appIcon: "effiroad-logo-app-icon.png",
 };
 
-const ASSET_FILES = [
-  [
+/** Prefer newest chat uploads; fall back to prior asset names. */
+const ASSET_CANDIDATES = {
+  horizontal: [
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_90455dc0-4720-494d-bc00-433c29e12898-b7b546f9-8a1b-4c92-9068-f7901cc974ce.png",
     "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_90455dc0-4720-494d-bc00-433c29e12898-0fa2d55d-0a67-4fc0-a4d6-faa0513be05d.png",
-    SOURCES.horizontal,
   ],
-  [
+  medallion: [
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_0ec9ad7e-41a4-4410-8050-44691452fd33-cf5d42f2-2624-4651-a2a9-dfc13eafcd26.png",
     "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_0ec9ad7e-41a4-4410-8050-44691452fd33-efd3a58f-aa45-4f6b-84d6-b430ad092aba.png",
-    SOURCES.medallion,
   ],
-  [
+  appIcon: [
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_f77e267f-32c0-4469-a716-d383cfbe85dc-929a303f-288b-49ea-adde-66cfb7eda14a.png",
     "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_f77e267f-32c0-4469-a716-d383cfbe85dc-d37ff734-f18e-4342-a147-68eeb8da099b.png",
-    SOURCES.appIcon,
   ],
-];
+};
 
 function isPaperPixel(r, g, b) {
   return r > 208 && g > 203 && b > 193 && Math.max(r, g, b) - Math.min(r, g, b) < 42;
@@ -67,6 +71,14 @@ function isMedallionFill(r, g, b) {
   return r > 175 && g > 140 && b > 110 && r - b < 95;
 }
 
+function shouldClearHorizontalBackground(r, g, b) {
+  return (
+    isCheckerboardPixel(r, g, b) ||
+    isFringePixel(r, g, b) ||
+    isPaperPixel(r, g, b)
+  );
+}
+
 function shouldClearBackground(r, g, b) {
   return (
     isCheckerboardPixel(r, g, b) ||
@@ -77,24 +89,37 @@ function shouldClearBackground(r, g, b) {
   );
 }
 
+function assetsRoot() {
+  return path.join(os.homedir(), ".cursor", "projects", "c-Users-Documents", "assets");
+}
+
 async function copyUserSources() {
-  const assetsRoot = path.join(
-    os.homedir(),
-    ".cursor",
-    "projects",
-    "c-Users-Documents",
-    "assets",
-  );
   mkdirSync(sourcesDir, { recursive: true });
-  for (const [assetName, destName] of ASSET_FILES) {
-    const from = path.join(assetsRoot, assetName);
-    const to = path.join(sourcesDir, destName);
-    if (!existsSync(from)) {
-      console.error("Missing source:", from);
+  const rootAssets = assetsRoot();
+
+  for (const [key, destName] of Object.entries(SOURCES)) {
+    const candidates = ASSET_CANDIDATES[key];
+    const existing = path.join(sourcesDir, destName);
+    let copied = false;
+
+    for (const assetName of candidates) {
+      const from = path.join(rootAssets, assetName);
+      if (!existsSync(from)) continue;
+      copyFileSync(from, existing);
+      console.log("copied", destName, "←", assetName.slice(-40));
+      copied = true;
+      break;
+    }
+
+    if (!copied && existsSync(existing)) {
+      console.log("keep existing", destName);
+      continue;
+    }
+
+    if (!copied) {
+      console.error("Missing source for", destName, "— add PNG to", sourcesDir);
       process.exit(1);
     }
-    copyFileSync(from, to);
-    console.log("copied", destName);
   }
 }
 
@@ -122,65 +147,118 @@ async function clearAndTrim(inputPath, clearFn) {
     .toBuffer();
 }
 
-/** ER icon + EFFIROAD only — strip tagline rows */
-async function cropHorizontalWordmark(inputPath) {
-  const buf = await clearAndTrim(inputPath, shouldClearBackground);
-  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+function analyzeRows(data, width, height) {
+  const rowMaxX = new Array(height).fill(0);
+  const rowMinX = new Array(height).fill(width);
+  const rowHas = new Array(height).fill(false);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > 20) {
+        rowHas[y] = true;
+        rowMaxX[y] = Math.max(rowMaxX[y], x);
+        rowMinX[y] = Math.min(rowMinX[y], x);
+      }
+    }
+  }
+
+  return { rowMaxX, rowMinX, rowHas };
+}
+
+/** Keep full ER + EFFIROAD lockup; zero-out tagline rows below the wordmark. */
+async function prepareHorizontalLockup(inputPath) {
+  const trimmed = await clearAndTrim(inputPath, shouldClearHorizontalBackground);
+  const { data, info } = await sharp(trimmed).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const pixels = new Uint8Array(data);
   const { width: w, height: h } = info;
+  const { rowMaxX } = analyzeRows(pixels, w, h);
 
-  const rowCounts = new Array(h).fill(0);
+  const wordmarkThreshold = Math.round(w * 0.82);
+  let lastWordmarkRow = -1;
   for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      if (data[i + 3] > 20) rowCounts[y]++;
+    if (rowMaxX[y] >= wordmarkThreshold) lastWordmarkRow = y;
+  }
+
+  if (lastWordmarkRow >= 0 && lastWordmarkRow < h - 1) {
+    for (let y = lastWordmarkRow + 1; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        pixels[i + 3] = 0;
+      }
     }
   }
 
-  let top = 0;
-  for (let y = 0; y < h; y++) {
-    if (rowCounts[y] > w * 0.008) {
-      top = y;
-      break;
-    }
-  }
-
-  let peak = 0;
-  let peakY = top;
-  for (let y = top; y < h; y++) {
-    if (rowCounts[y] > peak) {
-      peak = rowCounts[y];
-      peakY = y;
-    }
-  }
-
-  const bandThreshold = peak * 0.35;
-  let bandBottom = peakY;
-  for (let y = peakY; y < h; y++) {
-    if (rowCounts[y] >= bandThreshold) bandBottom = y;
-  }
-
-  let cropBottom = bandBottom + 4;
-  for (let y = bandBottom + 1; y < h; y++) {
-    if (rowCounts[y] < peak * 0.45) {
-      cropBottom = y - 2;
-      break;
-    }
-  }
-
-  cropBottom = Math.min(cropBottom, top + Math.round(h * 0.48));
-
-  const cropped = await sharp(buf)
-    .extract({
-      left: 0,
-      top: Math.max(0, top - 2),
-      width: w,
-      height: Math.max(1, cropBottom - top + 4),
+  return sharp(Buffer.from(pixels), {
+    raw: { width: w, height: h, channels: 4 },
+  })
+    .trim({ threshold: 8 })
+    .extend({
+      top: 6,
+      bottom: 6,
+      left: 6,
+      right: 6,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .trim({ threshold: 8 })
     .png()
     .toBuffer();
+}
 
-  return cropped;
+/** Frameless ER mark — top band of lockup (before full-width wordmark rows). */
+async function extractSymbolFromLockup(horizontalBuf) {
+  const { data, info } = await sharp(horizontalBuf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const { rowMaxX, rowHas } = analyzeRows(data, w, h);
+
+  const symbolBandMaxX = Math.round(w * 0.72);
+  let top = h;
+  let bottom = 0;
+  let right = 0;
+
+  for (let y = 0; y < h; y++) {
+    if (!rowHas[y]) continue;
+    if (rowMaxX[y] > symbolBandMaxX) continue;
+    top = Math.min(top, y);
+    bottom = Math.max(bottom, y);
+    right = Math.max(right, rowMaxX[y]);
+  }
+
+  if (top > bottom || right < 16) return null;
+
+  const cropTop = Math.max(0, top - 12);
+  const cropHeight = Math.min(h - cropTop, bottom - top + 24);
+  const cropWidth = Math.min(w, right + 10);
+  if (cropWidth < 16 || cropHeight < 16) return null;
+
+  try {
+    const cropped = await sharp(horizontalBuf)
+      .extract({ left: 0, top: cropTop, width: cropWidth, height: cropHeight })
+      .png()
+      .toBuffer();
+
+    const symbolBuf = await sharp(cropped)
+      .trim({ threshold: 8 })
+      .extend({
+        top: 10,
+        bottom: 10,
+        left: 10,
+        right: 10,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .trim({ threshold: 8 })
+      .png()
+      .toBuffer();
+
+    const out = await sharp(symbolBuf).metadata();
+    if ((out.width ?? 0) > 32 && (out.height ?? 0) > 32) return symbolBuf;
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 async function centerCropBuffer(buf, ratio) {
@@ -197,14 +275,14 @@ async function centerCropBuffer(buf, ratio) {
     .toBuffer();
 }
 
-async function extractErMark(appIconPath, medallionPath) {
+async function extractErMarkFallback(appIconPath, medallionPath) {
   const appBuf = await clearAndTrim(appIconPath, shouldClearBackground);
   const medalBuf = await clearAndTrim(medallionPath, (r, g, b) =>
     shouldClearBackground(r, g, b) || isMedallionFill(r, g, b),
   );
 
-  const appMark = await centerCropBuffer(appBuf, 0.56);
-  const medalMark = await centerCropBuffer(medalBuf, 0.46);
+  const appMark = await centerCropBuffer(appBuf, 0.62);
+  const medalMark = await centerCropBuffer(medalBuf, 0.52);
 
   const appArea = (await sharp(appMark).metadata()).width ?? 0;
   const medalArea = (await sharp(medalMark).metadata()).width ?? 0;
@@ -224,14 +302,9 @@ async function writePngFromBuffer(buf, outPath, width) {
   console.log("wrote", path.relative(root, outPath));
 }
 
-async function writePng(pipeline, outPath, width) {
-  const buf = await pipeline.clone().png().toBuffer();
-  await writePngFromBuffer(buf, outPath, width);
-}
-
 async function buildFavicon(symbolBuf, bg = FAVICON_BG) {
   const trimmed = await sharp(symbolBuf).trim({ threshold: 10 }).png().toBuffer();
-  const inner = 20;
+  const inner = 22;
   const canvas = 32;
   const resizedBuf = await sharp(trimmed)
     .resize(inner, inner, { fit: "inside", kernel: sharp.kernel.lanczos3 })
@@ -273,6 +346,43 @@ export const BRAND_SYMBOL_HEIGHT = ${sh};
   console.log("wrote lib/brand-dimensions.ts", `${hw}x${hh}`, `${sw}x${sh}`);
 }
 
+function writeBrandAssetsModule() {
+  const v = ASSET_VERSION;
+  const content = `/** Official Effiroad assets in /public (generated by scripts/process-effroad-logos.mjs) */
+export const BRAND_ASSET_VERSION = "${v}";
+
+export const BRAND_LOGO_HORIZONTAL_SRC = "/logo-horizontal-light.png?v=${v}";
+export const BRAND_LOGO_ICON_SRC = "/logo-icon-light.png?v=${v}";
+export const BRAND_LOGO_HORIZONTAL_SOLID_SRC = "/logo-horizontal.png?v=${v}";
+export const BRAND_LOGO_HORIZONTAL_FOOTER_SRC = "/logo-horizontal-footer.png?v=${v}";
+export const BRAND_LOGO_ICON_SOLID_SRC = "/logo-icon.png?v=${v}";
+export const BRAND_LOGO_ICON_HEADER_SRC = "/logo-icon-header.png?v=${v}";
+export const BRAND_LOGO_ICON_SITE_SRC = "/logo-icon-site.png?v=${v}";
+export const BRAND_MARK_SRC = "/logo-mark.png?v=${v}";
+/** @deprecated Use BRAND_LOGO_ICON_SRC */
+export const BRAND_LOGO_SRC = BRAND_LOGO_ICON_SRC;
+/** @deprecated Wordmark is included in horizontal lockup */
+export const BRAND_WORDMARK_SRC = BRAND_LOGO_HORIZONTAL_SRC;
+
+export type BrandLogoSurface = "default" | "header" | "footer" | "dark";
+
+export function pickBrandIconSrc(surface: BrandLogoSurface = "default") {
+  if (surface === "footer") return BRAND_LOGO_ICON_SOLID_SRC;
+  if (surface === "header") return BRAND_LOGO_ICON_HEADER_SRC;
+  if (surface === "dark") return BRAND_LOGO_ICON_SRC;
+  return BRAND_LOGO_ICON_SRC;
+}
+
+export function pickBrandHorizontalSrc(surface: BrandLogoSurface = "default") {
+  if (surface === "footer") return BRAND_LOGO_HORIZONTAL_FOOTER_SRC;
+  if (surface === "header") return BRAND_LOGO_HORIZONTAL_SOLID_SRC;
+  return BRAND_LOGO_HORIZONTAL_SRC;
+}
+`;
+  writeFileSync(path.join(root, "lib", "brand-assets.ts"), content);
+  console.log("wrote lib/brand-assets.ts v" + v);
+}
+
 async function main() {
   await copyUserSources();
 
@@ -280,9 +390,15 @@ async function main() {
   const medallionSrc = path.join(sourcesDir, SOURCES.medallion);
   const appIconSrc = path.join(sourcesDir, SOURCES.appIcon);
 
-  const horizontalWordmarkBuf = await cropHorizontalWordmark(horizontalSrc);
-  const horizontalWordmark = sharp(horizontalWordmarkBuf);
-  const symbolBuf = await extractErMark(appIconSrc, medallionSrc);
+  const horizontalWordmarkBuf = await prepareHorizontalLockup(horizontalSrc);
+  let symbolBuf = await extractSymbolFromLockup(horizontalWordmarkBuf);
+  if (!symbolBuf) {
+    console.log("symbol: fallback to medallion/app icon extraction");
+    symbolBuf = await extractErMarkFallback(appIconSrc, medallionSrc);
+  } else {
+    console.log("symbol: extracted from horizontal lockup");
+  }
+
   const faviconBase = await buildFavicon(symbolBuf);
 
   await writePngFromBuffer(horizontalWordmarkBuf, path.join(publicDir, "logo-horizontal-light.png"), 720);
@@ -338,6 +454,7 @@ async function main() {
   const horizontalMeta = await sharp(path.join(publicDir, "logo-horizontal-light.png")).metadata();
   const symbolMeta = await sharp(path.join(publicDir, "logo-icon-light.png")).metadata();
   writeDimensions(horizontalMeta, symbolMeta);
+  writeBrandAssetsModule();
 
   console.log("done");
 }
