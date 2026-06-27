@@ -80,6 +80,15 @@ export const settingsPageEn = {
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
     "1+ = Practice - no customer texts or calendar writes. You only get a [TEST] heads-up. Drops by 1 per test call.",
+  stormModeLabel: "Storm surge mode",
+  stormModeHint:
+    "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",
+  stormModeToggleLabel: "Storm mode on incoming calls",
+  onCallScheduleLabel: "On-call rotation",
+  onCallScheduleHint:
+    "Pick who gets the first crew dispatch text for each weekday. Overrides round-robin when set.",
+  onCallWeekdayLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const,
+  onCallNoneOption: "Round-robin (default)",
   serviceAreaZipsLabel: "Service area ZIPs (optional)",
   techDispatchTitle: "Crew assignment",
   techDispatchNav: "Crew assign",

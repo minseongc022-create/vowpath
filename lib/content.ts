@@ -624,6 +624,15 @@ const settingsPageKo = {
     "0 — 실전: 고객이 고른 시간이 캘린더·문자·Jobber에 그대로 반영됩니다.",
   shadowModePractice:
     "1 이상 — 연습: 흐름만 진행되고 캘린더에는 안 박힙니다. 사장님께 [TEST] 안내만 가며, 테스트 1번당 1씩 줄어듭니다.",
+  stormModeLabel: "폭풍·호우 surge 모드",
+  stormModeHint:
+    "허리케인·집중 호우 기간 — 전화 안내를 짧게 하고 대기 중임을 안내합니다. 평상시에는 끄세요.",
+  stormModeToggleLabel: "수신 전화 storm mode",
+  onCallScheduleLabel: "요일별 on-call",
+  onCallScheduleHint:
+    "요일마다 첫 crew dispatch 문자를 받을 사람을 지정합니다. 비우면 round-robin.",
+  onCallWeekdayLabels: ["일", "월", "화", "수", "목", "금", "토"] as const,
+  onCallNoneOption: "Round-robin (기본)",
   serviceAreaZipsLabel: "출장 가능 ZIP (선택)",
   serviceAreaZipsHint:
     "실제로 출장하는 ZIP 목록입니다 (고객 한 집 주소 아님). 쉼표로 구분. 비우면 전 지역 허용.",

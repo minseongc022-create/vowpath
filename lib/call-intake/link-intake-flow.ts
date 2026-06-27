@@ -144,6 +144,10 @@ export async function submitLinkIntakeForm(params: {
   urgency: LinkUrgency;
   photoRef?: string;
   slotId?: string | null;
+  insuranceCarrier?: string;
+  insuranceClaimNumber?: string;
+  waterSource?: string;
+  activeLoss?: boolean;
 }): Promise<
   | {
       ok: true;
@@ -197,6 +201,10 @@ export async function submitLinkIntakeForm(params: {
     `Address: ${address}`,
     `Issue: ${draft.issueType}`,
     `Urgency: ${params.urgency}`,
+    draft.insuranceCarrier ? `Insurance: ${draft.insuranceCarrier}` : "",
+    draft.insuranceClaimNumber ? `Claim #: ${draft.insuranceClaimNumber}` : "",
+    draft.waterSource ? `Water source: ${draft.waterSource}` : "",
+    draft.activeLoss ? "Active loss: yes" : "",
     params.photoRef ? "Photo: attached" : "",
   ]
     .filter(Boolean)
@@ -236,6 +244,10 @@ export async function submitLinkIntakeForm(params: {
       MANDATORY_VERIFY_FIELDS.map((f) => [f, true]),
     ) as VerifiedCallPayload["verifiedFields"],
     lossCategory: inferLossCategoryFromText(draft.issueType, draft.symptom),
+    insuranceCarrier: draft.insuranceCarrier,
+    insuranceClaimNumber: draft.insuranceClaimNumber,
+    waterSource: draft.waterSource,
+    activeLoss: draft.activeLoss,
   };
 
   const result = await finalizeVerifiedIntake(session!.userId, payload, {

@@ -56,6 +56,10 @@ export async function POST(
   let urgencyRaw: unknown = "this_week";
   let photoRef: string | undefined;
   let slotId: string | undefined;
+  let insuranceCarrier = "";
+  let insuranceClaimNumber = "";
+  let waterSource = "";
+  let activeLoss = false;
 
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
@@ -64,6 +68,10 @@ export async function POST(
     issueDescription = String(form.get("issueDescription") ?? "").trim();
     urgencyRaw = form.get("urgency") ?? "this_week";
     slotId = String(form.get("slotId") ?? "").trim() || undefined;
+    insuranceCarrier = String(form.get("insuranceCarrier") ?? "").trim();
+    insuranceClaimNumber = String(form.get("insuranceClaimNumber") ?? "").trim();
+    waterSource = String(form.get("waterSource") ?? "").trim();
+    activeLoss = form.get("activeLoss") === "1" || form.get("activeLoss") === "true";
     const photo = form.get("photo");
     if (photo && photo instanceof File && photo.size > 0) {
       const buffer = Buffer.from(await photo.arrayBuffer());
@@ -86,6 +94,10 @@ export async function POST(
     issueDescription = String(body.issueDescription ?? "").trim();
     urgencyRaw = body.urgency;
     slotId = String(body.slotId ?? "").trim() || undefined;
+    insuranceCarrier = String(body.insuranceCarrier ?? "").trim();
+    insuranceClaimNumber = String(body.insuranceClaimNumber ?? "").trim();
+    waterSource = String(body.waterSource ?? "").trim();
+    activeLoss = body.activeLoss === true || body.activeLoss === "1";
   }
 
   const urgency = parseLinkUrgency(urgencyRaw) ?? "this_week";
@@ -105,6 +117,10 @@ export async function POST(
     urgency,
     photoRef,
     slotId,
+    insuranceCarrier: insuranceCarrier || undefined,
+    insuranceClaimNumber: insuranceClaimNumber || undefined,
+    waterSource: waterSource || undefined,
+    activeLoss,
   });
 
   if (!result.ok) {

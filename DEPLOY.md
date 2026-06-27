@@ -1,4 +1,6 @@
-# Vowpath production deploy checklist
+# Effiroad — Production Deploy Checklist
+
+Full step-by-step: `docs/founder-launch-runbook.md`
 
 ## 1. Git
 
@@ -14,51 +16,79 @@ Vercel deploys automatically on push to `main`.
 
 Required:
 
-- `AUTH_SECRET`
-- `KV_REST_API_URL` + `KV_REST_API_TOKEN` (attach Vercel KV — auto-injects these)
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
-- `TWILIO_WEBHOOK_BASE_URL` = your prod domain (e.g. `https://effiroad.com`)
-- `OPENAI_API_KEY`
-- `STRIPE_SECRET_KEY` + price IDs (if billing live)
-- `RESEND_API_KEY` (email OTP)
-- `PURGE_ACCOUNTS_SECRET` — separate random secret for `/api/admin/purge-accounts` (not `AUTH_SECRET`)
+| Variable | Value |
+|----------|-------|
+| `AUTH_SECRET` | 32+ random chars (`openssl rand -hex 32`) |
+| `KV_REST_API_URL` + `KV_REST_API_TOKEN` | Attach Vercel KV — auto-injects |
+| `TWILIO_ACCOUNT_SID` | `ACxxxxxxxxx` |
+| `TWILIO_AUTH_TOKEN` | from Twilio console |
+| `TWILIO_WEBHOOK_BASE_URL` | `https://effiroad.com` |
+| `OPENAI_API_KEY` | `sk-...` |
+| `STRIPE_SECRET_KEY` | `sk_live_...` (use `sk_test_` for staging) |
+| `STRIPE_PRICE_ID_UNLIMITED` | `price_...` ($199/mo) |
+| `STRIPE_PRICE_ID_FLEX` | `price_...` ($49/mo base) |
+| `STRIPE_PRICE_ID_FLEX_USAGE` | `price_...` ($18/dispatch) |
+| `RESEND_API_KEY` | `re_...` (password reset email) |
+| `CRON_SECRET` | random string (protects /api/cron/*) |
+| `NEXT_PUBLIC_BETA` | `false` |
 
-Production safety (leave **unset** or explicitly `false`):
+Leave **unset** in production:
 
-- `ALLOW_TWILIO_OWNER_ALERT` — do **not** set `true` in production unless you intentionally route owner SMS via `TWILIO_OWNER_ALERT_PHONE`
-- `ALLOW_TWILIO_DEFAULT_TENANT` — do **not** set `true` in production (shared-number fallback is dev-only)
+- `ALLOW_TWILIO_OWNER_ALERT` — dev only
+- `ALLOW_TWILIO_DEFAULT_TENANT` — dev only
 
-## 3. Twilio webhooks
+## 3. Twilio webhook registration
 
-After deploy, from repo root:
+After each deploy (or domain change):
 
 ```bash
+# Registers voice + SMS webhooks to effiroad.com
 npm run twilio:register
+
+# Verify they're correct
 npm run twilio:check
 ```
 
-Console:
+Then in Twilio Console ([console.twilio.com](https://console.twilio.com)):
 
-1. **Verified Caller IDs** — add owner mobile (fixes error 21608 on Trial)
-2. **Messaging → Geo permissions** — enable United States (fixes 21408)
-3. Upgrade account when ready for non-verified customer numbers
+1. **Phone Numbers → Manage → Active Numbers** → confirm Voice URL = `https://effiroad.com/api/twilio/voice`
+2. **Messaging → Settings → Geo Permissions** → enable **United States**
+3. **Verified Caller IDs** → add your mobile (required if account has any trial restrictions)
 
-## 4. Smoke test (production)
-
-- `/dashboard` loads — **Collected revenue** from Jobber invoices (paid amounts)
-- `/dashboard` — Call recovery shows booking counts (no $ estimates)
-- `/dashboard/ai` — proactive briefing + rule preview
-- `/dashboard/settings` — Automation Rules list
-- `POST /api/effiroad-ai` with session cookie
-- Place test call or use call simulation in settings
-
-## 5. Jobber
-
-If `JOBBER_REFRESH_FAILED`: Settings → Jobber → reconnect OAuth.
-
-## 6. Local dev tunnel
+## 4. Run readiness check
 
 ```bash
-npx localtunnel --port 3000
-# set TWILIO_WEBHOOK_BASE_URL to tunnel URL, then npm run twilio:register
+npm run launch:check
+```
+
+Expected: all checks ✓, verdict: **GO**
+
+## 5. Smoke test (production)
+
+- `/dashboard` loads — bookings list, analytics visible
+- `/dashboard/settings` → storm mode toggle saves
+- `/dashboard/settings` → crew dispatch: add a tech, assign on-call weekdays, save
+- `/dashboard/ai` → proactive briefing loads
+- Place test call or use Settings → "Simulate a call"
+- Confirm owner SMS arrives, reply `1` to approve
+
+## 6. E2E test script
+
+```bash
+# Simulates: water loss → P1 → auto dispatch → crew SMS + owner FYI
+npm run e2e:smart-booking
+```
+
+Expected logs: `DISPATCH_SENT`, `OWNER_FYI_SENT`
+
+## 7. Jobber (optional)
+
+Settings → Integrations → Connect Jobber. If `JOBBER_REFRESH_FAILED`: reconnect OAuth.
+
+## 8. Local dev tunnel (for Twilio testing locally)
+
+```bash
+npm run tunnel
+# set TWILIO_WEBHOOK_BASE_URL to the tunnel URL, then:
+npm run twilio:register
 ```

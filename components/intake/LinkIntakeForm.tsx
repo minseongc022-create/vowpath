@@ -29,6 +29,10 @@ type IntakeDraft = {
   issueDescription: string;
   urgency: LinkUrgency;
   smsConsent: boolean;
+  insuranceCarrier: string;
+  insuranceClaimNumber: string;
+  waterSource: string;
+  activeLoss: boolean;
 };
 
 function draftStorageKey(token: string) {
@@ -107,6 +111,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
   );
   const [error, setError] = useState<string | null>(null);
   const [smsConsent, setSmsConsent] = useState(false);
+  const [insuranceCarrier, setInsuranceCarrier] = useState("");
+  const [insuranceClaimNumber, setInsuranceClaimNumber] = useState("");
+  const [waterSource, setWaterSource] = useState("");
+  const [activeLoss, setActiveLoss] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -117,6 +125,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
     setIssueDescription(saved.issueDescription);
     setUrgency(saved.urgency);
     setSmsConsent(saved.smsConsent);
+    setInsuranceCarrier(saved.insuranceCarrier ?? "");
+    setInsuranceClaimNumber(saved.insuranceClaimNumber ?? "");
+    setWaterSource(saved.waterSource ?? "");
+    setActiveLoss(saved.activeLoss ?? false);
   }, [token]);
 
   useEffect(() => {
@@ -126,8 +138,23 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
       issueDescription,
       urgency,
       smsConsent,
+      insuranceCarrier,
+      insuranceClaimNumber,
+      waterSource,
+      activeLoss,
     });
-  }, [token, customerName, addressValue, issueDescription, urgency, smsConsent]);
+  }, [
+    token,
+    customerName,
+    addressValue,
+    issueDescription,
+    urgency,
+    smsConsent,
+    insuranceCarrier,
+    insuranceClaimNumber,
+    waterSource,
+    activeLoss,
+  ]);
 
   const progress = useMemo(() => {
     if (step === "slots") return 100;
@@ -164,6 +191,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
       form.set("issueDescription", issueDescription);
       form.set("urgency", urgency);
       form.set("smsConsent", "1");
+      if (insuranceCarrier.trim()) form.set("insuranceCarrier", insuranceCarrier.trim());
+      if (insuranceClaimNumber.trim()) form.set("insuranceClaimNumber", insuranceClaimNumber.trim());
+      if (waterSource.trim()) form.set("waterSource", waterSource.trim());
+      if (activeLoss) form.set("activeLoss", "1");
       if (slotId) form.set("slotId", slotId);
       if (photo) form.set("photo", photo);
 
@@ -207,6 +238,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
       issueDescription,
       urgency,
       smsConsent,
+      insuranceCarrier,
+      insuranceClaimNumber,
+      waterSource,
+      activeLoss,
     });
     setError(null);
     setSlotsLoading(true);
@@ -239,6 +274,10 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
           issueDescription,
           urgency,
           smsConsent,
+          insuranceCarrier,
+          insuranceClaimNumber,
+          waterSource,
+          activeLoss,
         });
         setStep("slots");
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -458,6 +497,47 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
               placeholder={copy.issuePlaceholder}
             />
           </Field>
+
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold text-slate-800">{copy.insuranceSectionLabel}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.insuranceSectionHint}</p>
+            <div className="mt-4 space-y-4">
+              <Field label={copy.insuranceCarrierLabel}>
+                <input
+                  value={insuranceCarrier}
+                  onChange={(e) => setInsuranceCarrier(e.target.value)}
+                  className={inputClass}
+                  autoComplete="organization"
+                  placeholder={copy.insuranceCarrierPlaceholder}
+                />
+              </Field>
+              <Field label={copy.insuranceClaimLabel}>
+                <input
+                  value={insuranceClaimNumber}
+                  onChange={(e) => setInsuranceClaimNumber(e.target.value)}
+                  className={inputClass}
+                  placeholder={copy.insuranceClaimPlaceholder}
+                />
+              </Field>
+              <Field label={copy.waterSourceLabel}>
+                <input
+                  value={waterSource}
+                  onChange={(e) => setWaterSource(e.target.value)}
+                  className={inputClass}
+                  placeholder={copy.waterSourcePlaceholder}
+                />
+              </Field>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={activeLoss}
+                  onChange={(e) => setActiveLoss(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700"
+                />
+                <span className="text-sm leading-relaxed text-slate-700">{copy.activeLossLabel}</span>
+              </label>
+            </div>
+          </div>
 
           <div>
             <div className="mb-2 flex items-baseline gap-1.5">

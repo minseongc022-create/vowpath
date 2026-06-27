@@ -55,9 +55,23 @@ export function buildLinkIntakeDraftFromForm(params: {
   address: string;
   issueDescription: string;
   urgency: LinkUrgency;
+  insuranceCarrier?: string;
+  insuranceClaimNumber?: string;
+  waterSource?: string;
+  activeLoss?: boolean;
 }) {
   const priority = linkUrgencyToPriority(params.urgency);
   const issue = params.issueDescription.trim();
+  const insuranceCarrier = params.insuranceCarrier?.trim() ?? "";
+  const insuranceClaimNumber = params.insuranceClaimNumber?.trim() ?? "";
+  const waterSource = params.waterSource?.trim() ?? "";
+  const insuranceLines = [
+    insuranceCarrier ? `Insurance: ${insuranceCarrier}` : "",
+    insuranceClaimNumber ? `Claim #: ${insuranceClaimNumber}` : "",
+    waterSource ? `Water source: ${waterSource}` : "",
+    params.activeLoss ? "Active loss: yes (still spreading)" : "",
+  ].filter(Boolean);
+
   return {
     customerName: params.customerName.trim(),
     address: params.address.trim(),
@@ -69,15 +83,20 @@ export function buildLinkIntakeDraftFromForm(params: {
     priorityReasons: [`Link intake: ${params.urgency}`],
     prioritySource: "ai" as const,
     arrivalWindow: arrivalWindowForLinkUrgency(params.urgency),
-    dispatchNotes: "",
+    dispatchNotes: insuranceLines.length ? insuranceLines.join("\n") : "",
     jobberPasteBlock: [
       "=== SMS link intake (customer entered) ===",
       `Name: ${params.customerName.trim()}`,
       `Address: ${params.address.trim()}`,
       `Issue: ${issue}`,
       `Urgency: ${LINK_URGENCY_OPTIONS.find((o) => o.id === params.urgency)?.label ?? params.urgency}`,
+      ...insuranceLines,
     ].join("\n"),
     lossCategory: inferLossCategoryFromText(issue, issue),
+    insuranceCarrier: insuranceCarrier || undefined,
+    insuranceClaimNumber: insuranceClaimNumber || undefined,
+    waterSource: waterSource || undefined,
+    activeLoss: params.activeLoss === true,
   };
 }
 

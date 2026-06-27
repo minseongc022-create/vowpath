@@ -73,6 +73,9 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
       .map((z) => z.trim().slice(0, 5))
       .filter((z) => /^\d{5}$/.test(z));
   }
+  if (typeof body.stormModeEnabled === "boolean") {
+    patch.stormModeEnabled = body.stormModeEnabled;
+  }
   if (Array.isArray(body.hybridAutoPriorities)) {
     patch.hybridAutoPriorities = (body.hybridAutoPriorities as unknown[]).filter(
       (p): p is (typeof ALL_JOB_PRIORITIES)[number] =>

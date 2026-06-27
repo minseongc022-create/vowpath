@@ -90,6 +90,7 @@ export function BookingSettingsEditor() {
             slotBufferMinutes: settings.slotBufferMinutes,
             maxConcurrentVisits: settings.maxConcurrentVisits,
             serviceAreaZips: settings.serviceAreaZips,
+            stormModeEnabled: settings.stormModeEnabled,
             amWindowStart: settings.amWindowStart,
             amWindowEnd: settings.amWindowEnd,
             pmWindowStart: settings.pmWindowStart,
@@ -466,6 +467,22 @@ export function BookingSettingsEditor() {
           />
         </SettingsSubsection>
       ) : null}
+
+      <SettingsSubsection
+        icon="⛈️"
+        title={settingsPage.stormModeLabel}
+        hint={settingsPage.stormModeHint}
+      >
+        <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
+          <span className="vow-settings-label">{settingsPage.stormModeToggleLabel}</span>
+          <input
+            type="checkbox"
+            checked={settings.stormModeEnabled}
+            onChange={(e) => updateLocal({ stormModeEnabled: e.target.checked })}
+            className="h-5 w-5 rounded border-slate-300"
+          />
+        </label>
+      </SettingsSubsection>
 
       <SettingsSubsection icon="📍" title={settingsPage.serviceAreaZipsLabel} hint={settingsPage.serviceAreaZipsHint}>
         <input

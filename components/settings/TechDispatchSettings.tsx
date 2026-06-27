@@ -2,17 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types";
-import { useLocale } from "@/components/providers/LocaleProvider";
+import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 
-const emptyTech = (): TechMember => ({
-  id: crypto.randomUUID(),
-  name: "",
-  phone: "",
-  active: true,
-  senior: false,
-});
+const WEEKDAY_KEYS = ["0", "1", "2", "3", "4", "5", "6"] as const;
+type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
+
+function emptyTech(): TechMember {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    phone: "",
+    active: true,
+    senior: false,
+  };
+}
 
 function copy(isEnglish: boolean) {
   return isEnglish
@@ -62,6 +67,7 @@ function copy(isEnglish: boolean) {
 
 export function TechDispatchSettings() {
   const { isEnglish } = useLocale();
+  const settingsPage = useSettingsPage();
   const t = copy(isEnglish);
   const [settings, setSettings] = useState<TechDispatchSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,8 +129,25 @@ export function TechDispatchSettings() {
   };
 
   const removeTech = (id: string) => {
-    setSettings({ ...settings, techs: settings.techs.filter((tech) => tech.id !== id) });
+    const nextTechs = settings.techs.filter((tech) => tech.id !== id);
+    const nextOnCall = { ...settings.onCallByWeekday };
+    for (const key of WEEKDAY_KEYS) {
+      if (nextOnCall[key] === id) delete nextOnCall[key];
+    }
+    setSettings({ ...settings, techs: nextTechs, onCallByWeekday: nextOnCall });
   };
+
+  const setOnCallForWeekday = (key: WeekdayKey, techId: string) => {
+    const next = { ...settings.onCallByWeekday };
+    if (!techId) {
+      delete next[key];
+    } else {
+      next[key] = techId;
+    }
+    setSettings({ ...settings, onCallByWeekday: next });
+  };
+
+  const activeTechs = settings.techs.filter((tech) => tech.active && tech.name.trim());
 
   return (
     <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
@@ -217,6 +240,37 @@ export function TechDispatchSettings() {
               {t.addTech.replace(/^\+ /, "")}
             </button>
           </div>
+
+          {activeTechs.length > 0 ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+              <p className="flex items-center gap-2 vow-settings-label">
+                <span aria-hidden>📅</span>
+                {settingsPage.onCallScheduleLabel}
+              </p>
+              <p className="vow-settings-hint mt-1">{settingsPage.onCallScheduleHint}</p>
+              <div className="mt-3 space-y-2">
+                {WEEKDAY_KEYS.map((key, i) => (
+                  <label key={key} className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="w-10 shrink-0 font-medium text-stone-700">
+                      {settingsPage.onCallWeekdayLabels[i]}
+                    </span>
+                    <select
+                      value={settings.onCallByWeekday[key] ?? ""}
+                      onChange={(e) => setOnCallForWeekday(key, e.target.value)}
+                      className="vow-settings-input min-w-[12rem] flex-1"
+                    >
+                      <option value="">{settingsPage.onCallNoneOption}</option>
+                      {activeTechs.map((tech) => (
+                        <option key={tech.id} value={tech.id}>
+                          {tech.name.trim() || tech.phone}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
