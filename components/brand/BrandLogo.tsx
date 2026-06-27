@@ -29,17 +29,17 @@ type BrandLogoProps = {
 };
 
 const iconSizes = {
-  sm: { box: "h-10 w-10", px: 40 },
-  md: { box: "h-11 w-11", px: 44 },
-  lg: { box: "h-12 w-12", px: 48 },
-  xl: { box: "h-14 w-14", px: 56 },
+  sm: { box: "h-11 w-11", px: 88 },
+  md: { box: "h-12 w-12", px: 96 },
+  lg: { box: "h-12 w-12", px: 96 },
+  xl: { box: "h-14 w-14", px: 112 },
 };
 
 const horizontalSizes = {
-  sm: { class: "h-12 w-auto max-w-[11rem]", w: 176, h: 48 },
-  md: { class: "h-14 w-auto max-w-[13rem]", w: 208, h: 56 },
-  lg: { class: "h-16 w-auto max-w-[18rem]", w: 288, h: 64 },
-  xl: { class: "h-[4.5rem] w-auto max-w-[20rem]", w: 320, h: 72 },
+  sm: { class: "h-9 w-auto max-w-[10.5rem]", w: 168, h: 36 },
+  md: { class: "h-10 w-auto max-w-[12rem]", w: 192, h: 40 },
+  lg: { class: "h-10 w-auto max-w-[13.5rem] sm:h-11", w: 216, h: 44 },
+  xl: { class: "h-11 w-auto max-w-[15rem]", w: 240, h: 44 },
 };
 
 function resolveLayout(size: BrandLogoProps["size"], layout?: BrandLogoProps["layout"]) {
@@ -78,7 +78,7 @@ export function BrandLogo({
 
   const iconClass =
     resolvedSurface === "dark"
-      ? `${icon.box} object-contain object-center drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]`
+      ? `${icon.box} object-contain object-center drop-shadow-[0_1px_8px_rgba(0,0,0,0.35)]`
       : `${icon.box} object-contain object-center`;
 
   const iconImage = (

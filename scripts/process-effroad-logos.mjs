@@ -1,5 +1,5 @@
 /**
- * Export /public brand PNGs — background-matched variants for each surface.
+ * Export /public brand PNGs — strip fake transparency, crop lockups, extract ER marks only.
  * Usage: node scripts/process-effroad-logos.mjs
  */
 import sharp from "sharp";
@@ -12,12 +12,11 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
 
-/** --vow-beige-light / marketing pages */
 const SITE_BG = { r: 250, g: 248, b: 245 };
-/** tailwind brand-100 — footer */
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
-/** header glass */
 const HEADER_BG = { r: 255, g: 255, b: 255 };
+/** Chrome light-tab backing — avoids transparent halo in favicon */
+const FAVICON_BG = { r: 237, g: 237, b: 237 };
 
 const SOURCES = {
   horizontal: "effiroad-logo-horizontal.png",
@@ -27,15 +26,15 @@ const SOURCES = {
 
 const ASSET_FILES = [
   [
-    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_638c2e18-f267-4f10-baab-16513e0df975-e15da7a0-f84c-4829-b8bf-9ff0ab6e0a20-d8702036-34c0-4020-8cbe-5db6e1e6563a.png",
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_90455dc0-4720-494d-bc00-433c29e12898-0fa2d55d-0a67-4fc0-a4d6-faa0513be05d.png",
     SOURCES.horizontal,
   ],
   [
-    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_2b7e34f5-ebde-49a5-85f0-e73b782a10ac-12d766ab-893c-4a14-b5b5-ab0c13bf11e9-3cbd6d40-275a-4e59-babb-0961b469e7ac.png",
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_0ec9ad7e-41a4-4410-8050-44691452fd33-efd3a58f-aa45-4f6b-84d6-b430ad092aba.png",
     SOURCES.medallion,
   ],
   [
-    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_f77e267f-32c0-4469-a716-d383cfbe85dc-9c9d7ab1-d733-48bb-a888-20135eb8fe59-d1b07477-7e64-4181-ac28-7622316fd570.png",
+    "c__Users_____AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_f77e267f-32c0-4469-a716-d383cfbe85dc-d37ff734-f18e-4342-a147-68eeb8da099b.png",
     SOURCES.appIcon,
   ],
 ];
@@ -50,6 +49,23 @@ function isBlackPixel(r, g, b) {
 
 function isFringePixel(r, g, b) {
   return r > 242 && g > 242 && b > 242;
+}
+
+function isCheckerboardPixel(r, g, b) {
+  const spread = Math.max(r, g, b) - Math.min(r, g, b);
+  if (spread > 10) return false;
+  if (r > 236 && g > 236 && b > 236) return true;
+  if (r > 196 && g > 196 && b > 196 && r < 212 && g < 212 && b < 212) return true;
+  return false;
+}
+
+function shouldClearBackground(r, g, b) {
+  return (
+    isCheckerboardPixel(r, g, b) ||
+    isFringePixel(r, g, b) ||
+    isPaperPixel(r, g, b) ||
+    isBlackPixel(r, g, b)
+  );
 }
 
 async function copyUserSources() {
@@ -73,7 +89,7 @@ async function copyUserSources() {
   }
 }
 
-async function mapPixels(inputPath, { clear, flatten } = {}) {
+async function clearAndTrim(inputPath, clearFn) {
   const { data, info } = await sharp(inputPath)
     .ensureAlpha()
     .raw()
@@ -86,23 +102,96 @@ async function mapPixels(inputPath, { clear, flatten } = {}) {
     const b = pixels[i + 2];
     const a = pixels[i + 3];
     if (a < 16) continue;
-
-    if (clear?.(r, g, b)) {
-      pixels[i + 3] = 0;
-      continue;
-    }
-
-    if (flatten && (isPaperPixel(r, g, b) || isFringePixel(r, g, b))) {
-      pixels[i] = flatten.r;
-      pixels[i + 1] = flatten.g;
-      pixels[i + 2] = flatten.b;
-      pixels[i + 3] = 255;
-    }
+    if (clearFn(r, g, b)) pixels[i + 3] = 0;
   }
 
   return sharp(Buffer.from(pixels), {
     raw: { width: info.width, height: info.height, channels: 4 },
-  }).trim({ threshold: 10 });
+  })
+    .trim({ threshold: 8 })
+    .png()
+    .toBuffer();
+}
+
+async function cropHorizontalWordmark(inputPath) {
+  const buf = await clearAndTrim(inputPath, shouldClearBackground);
+  const { data, info } = await sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+
+  const rowCounts = new Array(h).fill(0);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] > 20) rowCounts[y]++;
+    }
+  }
+
+  let top = 0;
+  for (let y = 0; y < h; y++) {
+    if (rowCounts[y] > w * 0.01) {
+      top = y;
+      break;
+    }
+  }
+
+  let peak = 0;
+  let peakY = top;
+  for (let y = top; y < h; y++) {
+    if (rowCounts[y] > peak) {
+      peak = rowCounts[y];
+      peakY = y;
+    }
+  }
+
+  const gapThreshold = peak * 0.18;
+  let cropBottom = h - 1;
+  for (let y = peakY + 12; y < h; y++) {
+    if (rowCounts[y] < gapThreshold) {
+      cropBottom = y - 8;
+      break;
+    }
+  }
+
+  cropBottom = Math.min(cropBottom, top + Math.round(h * 0.72));
+
+  return sharp(buf).extract({
+    left: 0,
+    top: Math.max(0, top - 2),
+    width: w,
+    height: Math.max(1, cropBottom - top + 4),
+  });
+}
+
+async function centerCropBuffer(buf, ratio) {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  const size = Math.round(Math.min(w, h) * ratio);
+  const left = Math.round((w - size) / 2);
+  const top = Math.round((h - size) / 2);
+  return sharp(buf)
+    .extract({ left, top, width: size, height: size })
+    .trim({ threshold: 8 })
+    .png()
+    .toBuffer();
+}
+
+/** ER letters + road only — no square/circle frames */
+async function extractErMark(appIconPath, medallionPath) {
+  const appBuf = await clearAndTrim(appIconPath, shouldClearBackground);
+  const medalBuf = await clearAndTrim(medallionPath, shouldClearBackground);
+
+  const appMark = await centerCropBuffer(appBuf, 0.58);
+  const medalMark = await centerCropBuffer(medalBuf, 0.48);
+
+  const appArea = (await sharp(appMark).metadata()).width ?? 0;
+  const medalArea = (await sharp(medalMark).metadata()).width ?? 0;
+  const picked = medalArea > appArea * 0.9 ? medalMark : appMark;
+  return sharp(picked);
+}
+
+async function flattenPipeline(pipeline, bg) {
+  return pipeline.flatten({ background: { ...bg, alpha: 1 } });
 }
 
 async function writePng(pipeline, outPath, width) {
@@ -110,8 +199,40 @@ async function writePng(pipeline, outPath, width) {
   if (width) {
     chain = chain.resize(width, null, { fit: "inside", withoutEnlargement: false });
   }
-  await chain.png({ compressionLevel: 9 }).toFile(outPath);
+  await chain.png({ compressionLevel: 9, effort: 10 }).toFile(outPath);
   console.log("wrote", path.relative(root, outPath));
+}
+
+async function buildFavicon(erMarkPipeline, bg = FAVICON_BG) {
+  const trimmedBuf = await erMarkPipeline.clone().trim({ threshold: 8 }).png().toBuffer();
+  const inner = 26;
+  const canvas = 32;
+  const resizedBuf = await sharp(trimmedBuf)
+    .resize(inner, inner, {
+      fit: "inside",
+      withoutEnlargement: false,
+      kernel: sharp.kernel.lanczos3,
+    })
+    .png()
+    .toBuffer();
+  const resizedMeta = await sharp(resizedBuf).metadata();
+  const rw = resizedMeta.width ?? inner;
+  const rh = resizedMeta.height ?? inner;
+
+  return sharp({
+    create: {
+      width: canvas,
+      height: canvas,
+      channels: 4,
+      background: { ...bg, alpha: 1 },
+    },
+  }).composite([
+    {
+      input: resizedBuf,
+      left: Math.round((canvas - rw) / 2),
+      top: Math.round((canvas - rh) / 2),
+    },
+  ]);
 }
 
 async function main() {
@@ -121,57 +242,52 @@ async function main() {
   const medallionSrc = path.join(sourcesDir, SOURCES.medallion);
   const appIconSrc = path.join(sourcesDir, SOURCES.appIcon);
 
-  const horizontalLight = await mapPixels(horizontalSrc, {
-    clear: (r, g, b) => isFringePixel(r, g, b) || isPaperPixel(r, g, b),
-  });
-  const horizontalHeader = await mapPixels(horizontalSrc, {
-    clear: (r, g, b) => isFringePixel(r, g, b) || isPaperPixel(r, g, b),
-    flatten: HEADER_BG,
-  });
-  const horizontalFooter = await mapPixels(horizontalSrc, {
-    clear: (r, g, b) => isFringePixel(r, g, b) || isPaperPixel(r, g, b),
-    flatten: FOOTER_BG,
-  });
+  const horizontalWordmark = await cropHorizontalWordmark(horizontalSrc);
+  const erMark = await extractErMark(appIconSrc, medallionSrc);
+  const faviconBase = await buildFavicon(erMark);
 
-  const iconLight = await mapPixels(medallionSrc, { clear: isBlackPixel });
-  const iconFooter = await mapPixels(appIconSrc, { flatten: FOOTER_BG });
-  const iconHeader = await mapPixels(appIconSrc, { flatten: HEADER_BG });
-  const iconSite = await mapPixels(appIconSrc, { flatten: SITE_BG });
+  await writePng(horizontalWordmark, path.join(publicDir, "logo-horizontal-light.png"), 640);
+  await writePng(
+    await flattenPipeline(horizontalWordmark, HEADER_BG),
+    path.join(publicDir, "logo-horizontal.png"),
+    640,
+  );
+  await writePng(
+    await flattenPipeline(horizontalWordmark, FOOTER_BG),
+    path.join(publicDir, "logo-horizontal-footer.png"),
+    640,
+  );
 
-  const faviconBase = await sharp(appIconSrc)
-    .ensureAlpha()
-    .flatten({ background: { ...HEADER_BG, alpha: 1 } })
-    .trim({ threshold: 12 });
-
-  await writePng(horizontalLight, path.join(publicDir, "logo-horizontal-light.png"), 880);
-  await writePng(horizontalHeader, path.join(publicDir, "logo-horizontal.png"), 880);
-  await writePng(horizontalFooter, path.join(publicDir, "logo-horizontal-footer.png"), 880);
-  await writePng(iconLight, path.join(publicDir, "logo-icon-light.png"), 512);
-  await writePng(iconFooter, path.join(publicDir, "logo-icon.png"), 512);
-  await writePng(iconHeader, path.join(publicDir, "logo-icon-header.png"), 512);
-  await writePng(iconSite, path.join(publicDir, "logo-icon-site.png"), 512);
-  await writePng(iconLight, path.join(publicDir, "logo-mark.png"), 512);
-  await writePng(iconLight, path.join(publicDir, "logo.png"), 512);
-
-  for (const size of [32, 16]) {
-    await faviconBase
-      .clone()
-      .resize(size, size, { fit: "cover", position: "centre" })
-      .png()
-      .toFile(path.join(publicDir, `favicon-${size}.png`));
-    console.log(`wrote public/favicon-${size}.png`);
-  }
+  await writePng(erMark, path.join(publicDir, "logo-icon-light.png"), 512);
+  await writePng(await flattenPipeline(erMark, FOOTER_BG), path.join(publicDir, "logo-icon.png"), 512);
+  await writePng(await flattenPipeline(erMark, HEADER_BG), path.join(publicDir, "logo-icon-header.png"), 512);
+  await writePng(await flattenPipeline(erMark, SITE_BG), path.join(publicDir, "logo-icon-site.png"), 512);
+  await writePng(erMark, path.join(publicDir, "logo-mark.png"), 512);
+  await writePng(erMark, path.join(publicDir, "logo.png"), 512);
 
   await faviconBase
     .clone()
-    .resize(32, 32, { fit: "cover", position: "centre" })
+    .resize(32, 32, { fit: "fill", kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toFile(path.join(publicDir, "favicon-32.png"));
+  console.log("wrote public/favicon-32.png");
+
+  await sharp(path.join(publicDir, "favicon-32.png"))
+    .resize(16, 16, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toFile(path.join(publicDir, "favicon-16.png"));
+  console.log("wrote public/favicon-16.png");
+
+  await faviconBase
+    .clone()
+    .resize(32, 32, { fit: "fill", kernel: sharp.kernel.lanczos3 })
     .toFormat("png")
     .toFile(path.join(publicDir, "favicon.ico"));
   console.log("wrote public/favicon.ico");
 
   await faviconBase
     .clone()
-    .resize(180, 180, { fit: "cover", position: "centre" })
+    .resize(180, 180, { fit: "fill", kernel: sharp.kernel.lanczos3 })
     .png()
     .toFile(path.join(publicDir, "apple-touch-icon.png"));
   console.log("wrote public/apple-touch-icon.png");
