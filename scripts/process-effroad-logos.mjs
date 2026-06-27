@@ -15,8 +15,8 @@ const sourcesDir = path.join(root, "public", "brand-sources");
 const SITE_BG = { r: 250, g: 248, b: 245 };
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
 const HEADER_BG = { r: 255, g: 255, b: 255 };
-/** Chrome light-tab backing — avoids transparent halo in favicon */
-const FAVICON_BG = { r: 237, g: 237, b: 237 };
+/** Site beige — favicon tile matches tab + header */
+const FAVICON_BG = { r: 250, g: 248, b: 245 };
 
 const SOURCES = {
   horizontal: "effiroad-logo-horizontal.png",
@@ -59,12 +59,22 @@ function isCheckerboardPixel(r, g, b) {
   return false;
 }
 
+function isDarkFringe(r, g, b) {
+  return r < 130 && g < 90 && b < 60;
+}
+
+function isMedallionFill(r, g, b) {
+  if (isPaperPixel(r, g, b)) return true;
+  return r > 175 && g > 140 && b > 110 && r - b < 95;
+}
+
 function shouldClearBackground(r, g, b) {
   return (
     isCheckerboardPixel(r, g, b) ||
     isFringePixel(r, g, b) ||
     isPaperPixel(r, g, b) ||
-    isBlackPixel(r, g, b)
+    isBlackPixel(r, g, b) ||
+    isDarkFringe(r, g, b)
   );
 }
 
@@ -108,7 +118,7 @@ async function clearAndTrim(inputPath, clearFn) {
   return sharp(Buffer.from(pixels), {
     raw: { width: info.width, height: info.height, channels: 4 },
   })
-    .trim({ threshold: 8 })
+    .trim({ threshold: 10 })
     .png()
     .toBuffer();
 }
@@ -171,7 +181,25 @@ async function centerCropBuffer(buf, ratio) {
   const top = Math.round((h - size) / 2);
   return sharp(buf)
     .extract({ left, top, width: size, height: size })
-    .trim({ threshold: 8 })
+    .trim({ threshold: 10 })
+    .png()
+    .toBuffer();
+}
+
+/** Uniform clearspace padding (12%) for symbol exports */
+async function addSymbolClearspace(buf, ratio = 0.12) {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  const pad = Math.round(Math.max(w, h) * ratio);
+  return sharp(buf)
+    .extend({
+      top: pad,
+      bottom: pad,
+      left: pad,
+      right: pad,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 }
@@ -179,23 +207,25 @@ async function centerCropBuffer(buf, ratio) {
 /** ER letters + road only — no square/circle frames */
 async function extractErMark(appIconPath, medallionPath) {
   const appBuf = await clearAndTrim(appIconPath, shouldClearBackground);
-  const medalBuf = await clearAndTrim(medallionPath, shouldClearBackground);
+  const medalBuf = await clearAndTrim(medallionPath, (r, g, b) =>
+    shouldClearBackground(r, g, b) || isMedallionFill(r, g, b),
+  );
 
-  const appMark = await centerCropBuffer(appBuf, 0.58);
-  const medalMark = await centerCropBuffer(medalBuf, 0.48);
+  const appMark = await centerCropBuffer(appBuf, 0.56);
+  const medalMark = await centerCropBuffer(medalBuf, 0.46);
 
   const appArea = (await sharp(appMark).metadata()).width ?? 0;
   const medalArea = (await sharp(medalMark).metadata()).width ?? 0;
-  const picked = medalArea > appArea * 0.9 ? medalMark : appMark;
-  return sharp(picked);
+  const picked = medalArea > appArea * 0.88 ? medalMark : appMark;
+  return addSymbolClearspace(picked, 0.12);
 }
 
-async function flattenPipeline(pipeline, bg) {
-  return pipeline.flatten({ background: { ...bg, alpha: 1 } });
+async function flattenBuffer(buf, bg) {
+  return sharp(buf).flatten({ background: { ...bg, alpha: 1 } });
 }
 
-async function writePng(pipeline, outPath, width) {
-  let chain = pipeline.clone();
+async function writePngFromBuffer(buf, outPath, width) {
+  let chain = sharp(buf);
   if (width) {
     chain = chain.resize(width, null, { fit: "inside", withoutEnlargement: false });
   }
@@ -203,11 +233,17 @@ async function writePng(pipeline, outPath, width) {
   console.log("wrote", path.relative(root, outPath));
 }
 
-async function buildFavicon(erMarkPipeline, bg = FAVICON_BG) {
-  const trimmedBuf = await erMarkPipeline.clone().trim({ threshold: 8 }).png().toBuffer();
-  const inner = 26;
+async function writePng(pipeline, outPath, width) {
+  const buf = await pipeline.clone().png().toBuffer();
+  await writePngFromBuffer(buf, outPath, width);
+}
+
+/** Symbol-only favicon — padded mark on brand tile */
+async function buildFavicon(symbolBuf, bg = FAVICON_BG) {
+  const trimmed = await sharp(symbolBuf).trim({ threshold: 10 }).png().toBuffer();
   const canvas = 32;
-  const resizedBuf = await sharp(trimmedBuf)
+  const inner = 20;
+  const resizedBuf = await sharp(trimmed)
     .resize(inner, inner, {
       fit: "inside",
       withoutEnlargement: false,
@@ -243,31 +279,43 @@ async function main() {
   const appIconSrc = path.join(sourcesDir, SOURCES.appIcon);
 
   const horizontalWordmark = await cropHorizontalWordmark(horizontalSrc);
-  const erMark = await extractErMark(appIconSrc, medallionSrc);
-  const faviconBase = await buildFavicon(erMark);
+  const symbolBuf = await extractErMark(appIconSrc, medallionSrc);
+  const erMark = sharp(symbolBuf);
+  const faviconBase = await buildFavicon(symbolBuf);
 
   await writePng(horizontalWordmark, path.join(publicDir, "logo-horizontal-light.png"), 640);
   await writePng(
-    await flattenPipeline(horizontalWordmark, HEADER_BG),
+    await flattenBuffer(await horizontalWordmark.clone().png().toBuffer(), HEADER_BG),
     path.join(publicDir, "logo-horizontal.png"),
     640,
   );
   await writePng(
-    await flattenPipeline(horizontalWordmark, FOOTER_BG),
+    await flattenBuffer(await horizontalWordmark.clone().png().toBuffer(), FOOTER_BG),
     path.join(publicDir, "logo-horizontal-footer.png"),
     640,
   );
 
-  await writePng(erMark, path.join(publicDir, "logo-icon-light.png"), 512);
-  await writePng(await flattenPipeline(erMark, FOOTER_BG), path.join(publicDir, "logo-icon.png"), 512);
-  await writePng(await flattenPipeline(erMark, HEADER_BG), path.join(publicDir, "logo-icon-header.png"), 512);
-  await writePng(await flattenPipeline(erMark, SITE_BG), path.join(publicDir, "logo-icon-site.png"), 512);
-  await writePng(erMark, path.join(publicDir, "logo-mark.png"), 512);
-  await writePng(erMark, path.join(publicDir, "logo.png"), 512);
+  await writePngFromBuffer(symbolBuf, path.join(publicDir, "logo-icon-light.png"), 512);
+  await writePngFromBuffer(
+    await flattenBuffer(symbolBuf, FOOTER_BG).then((s) => s.png().toBuffer()),
+    path.join(publicDir, "logo-icon.png"),
+    512,
+  );
+  await writePngFromBuffer(
+    await flattenBuffer(symbolBuf, HEADER_BG).then((s) => s.png().toBuffer()),
+    path.join(publicDir, "logo-icon-header.png"),
+    512,
+  );
+  await writePngFromBuffer(
+    await flattenBuffer(symbolBuf, SITE_BG).then((s) => s.png().toBuffer()),
+    path.join(publicDir, "logo-icon-site.png"),
+    512,
+  );
+  await writePngFromBuffer(symbolBuf, path.join(publicDir, "logo-mark.png"), 512);
+  await writePngFromBuffer(symbolBuf, path.join(publicDir, "logo.png"), 512);
 
   await faviconBase
     .clone()
-    .resize(32, 32, { fit: "fill", kernel: sharp.kernel.lanczos3 })
     .png()
     .toFile(path.join(publicDir, "favicon-32.png"));
   console.log("wrote public/favicon-32.png");
@@ -280,8 +328,7 @@ async function main() {
 
   await faviconBase
     .clone()
-    .resize(32, 32, { fit: "fill", kernel: sharp.kernel.lanczos3 })
-    .toFormat("png")
+    .png()
     .toFile(path.join(publicDir, "favicon.ico"));
   console.log("wrote public/favicon.ico");
 

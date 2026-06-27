@@ -10,16 +10,14 @@ import { Pricing } from "@/components/sections/Pricing";
 
 import { IS_BETA } from "@/lib/beta";
 
-import { SITE } from "@/lib/constants";
-
 import { getSession } from "@/lib/session";
 
 
 
 export const metadata: Metadata = {
-  title: `${SITE.name} — Pricing`,
+  title: "Pricing",
   description:
-    "Unlimited $199/mo or Flex $49/mo + $18 per approved booking. Text approval and Job Cards included. Jobber optional.",
+    "Effiroad plans for HVAC shops — Unlimited $199/mo or Flex $49/mo + $18 per booking. AI voice, SMS, scheduling, and analytics included.",
 };
 
 

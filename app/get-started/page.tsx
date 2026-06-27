@@ -34,7 +34,7 @@ export default async function GetStartedPage({
     <div className="vow-app-shell">
       <header className="border-b border-surface-border bg-white">
         <Container className="flex h-16 items-center justify-between">
-          <BrandLogo variant="light" surface="header" />
+          <BrandLogo placement="auth-header" />
         </Container>
       </header>
 

@@ -27,7 +27,7 @@ export async function AppHeader({
   return (
     <header className="vow-site-header">
       <Container className="flex h-16 items-center justify-between">
-        <BrandLogo variant="light" surface="header" href={ROUTES.dashboard} />
+        <BrandLogo placement="auth-header" href={ROUTES.dashboard} />
         <div className="flex items-center gap-4">
           {session ? (
             <>

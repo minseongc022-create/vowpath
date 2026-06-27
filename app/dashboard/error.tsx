@@ -22,7 +22,7 @@ export default function DashboardError({
   return (
     <div className="vow-dash flex min-h-screen items-center justify-center px-4">
       <div className="vow-dash-card max-w-md text-center">
-        <BrandLogo variant="dark" surface="dark" size="md" href={ROUTES.dashboard} className="mx-auto justify-center" />
+        <BrandLogo placement="dash-sidebar" href={ROUTES.dashboard} className="mx-auto justify-center" />
         <h1 className="mt-6 text-xl font-bold text-white">
           {isEnglish ? "Could not load dashboard" : "대시보드를 불러오지 못했습니다"}
         </h1>

@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useId } from "react";
-import { BRAND_LOGO_ICON_SRC } from "@/lib/brand-assets";
+import { BrandMark } from "@/components/brand/BrandMark";
 import {
   HERO_FLOW_LOOP_SUMMARY,
   HERO_FLOW_PIPELINE,
@@ -260,14 +259,7 @@ export function HeroFlowVisual() {
           </div>
           <div className="vow-hero-flow-hub relative z-10 mt-2 flex justify-center">
             <div className="vow-hero-flow-hub-inner flex items-center justify-center">
-              <Image
-                src={BRAND_LOGO_ICON_SRC}
-                alt="Effiroad"
-                width={96}
-                height={96}
-                className="vow-brand-mark-img relative z-10 h-20 w-20 object-contain object-center sm:h-24 sm:w-24"
-                priority
-              />
+              <BrandMark placement="flow-hub" priority />
             </div>
           </div>
         </div>

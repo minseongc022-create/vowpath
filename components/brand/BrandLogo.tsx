@@ -1,126 +1,198 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  BRAND_LOGO_PLACEMENTS,
+  type BrandLogoPlacement,
   type BrandLogoSurface,
-  pickBrandHorizontalSrc,
-  pickBrandIconSrc,
-} from "@/lib/brand-assets";
+  clearspacePx,
+  horizontalWidthForHeight,
+  legacyPlacementFromSize,
+} from "@/lib/brand-logo-system";
+import { pickBrandHorizontalSrc, pickBrandIconSrc } from "@/lib/brand-assets";
 import { ROUTES, SITE } from "@/lib/constants";
 import { getBrandLogoTagline } from "@/lib/marketing-constants";
 import { isEnglishUi } from "@/lib/locale";
 
 type BrandLogoProps = {
   className?: string;
-  /** @deprecated Logo image includes the wordmark */
+  /** Preferred — consistent placement token */
+  placement?: BrandLogoPlacement;
+  /** @deprecated Use placement */
   showName?: boolean;
   /** @deprecated Logo image includes the tagline */
   showTagline?: boolean;
-  /** dark = chocolate sidebar; light = on white panels */
+  /** @deprecated Use placement */
   variant?: "default" | "light" | "dark";
-  /** Match exported PNG backing to the surrounding UI */
+  /** @deprecated Use placement */
   surface?: BrandLogoSurface;
+  /** @deprecated Use placement */
   size?: "sm" | "md" | "lg" | "xl";
-  /** horizontal = full lockup, icon = ER mark, responsive = icon on mobile + horizontal on lg+ */
-  layout?: "horizontal" | "icon" | "responsive";
+  /** @deprecated Derived from placement */
+  layout?: "horizontal" | "icon" | "symbol" | "responsive";
   href?: string;
 };
 
-const iconSizes = {
-  sm: { box: "h-11 w-11", px: 88 },
-  md: { box: "h-12 w-12", px: 96 },
-  lg: { box: "h-12 w-12", px: 96 },
-  xl: { box: "h-14 w-14", px: 112 },
-};
-
-const horizontalSizes = {
-  sm: { class: "h-9 w-auto max-w-[10.5rem]", w: 168, h: 36 },
-  md: { class: "h-10 w-auto max-w-[12rem]", w: 192, h: 40 },
-  lg: { class: "h-10 w-auto max-w-[13.5rem] sm:h-11", w: 216, h: 44 },
-  xl: { class: "h-11 w-auto max-w-[15rem]", w: 240, h: 44 },
-};
-
-function resolveLayout(size: BrandLogoProps["size"], layout?: BrandLogoProps["layout"]) {
-  if (layout) return layout;
-  return size === "sm" || size === "md" ? "icon" : "responsive";
+function resolvePlacement(props: BrandLogoProps): BrandLogoPlacement {
+  if (props.placement) return props.placement;
+  const surface =
+    props.surface ??
+    (props.variant === "dark" ? "dark" : props.variant === "light" ? "header" : undefined);
+  return legacyPlacementFromSize(props.size ?? "md", surface);
 }
 
-function resolveSurface(
-  surface: BrandLogoSurface | undefined,
-  variant: BrandLogoProps["variant"],
-): BrandLogoSurface {
-  if (surface) return surface;
-  if (variant === "dark") return "dark";
-  if (variant === "light") return "header";
-  return "default";
+function SymbolMark({
+  px,
+  surface,
+  srcScale,
+  priority = true,
+}: {
+  px: number;
+  surface: BrandLogoSurface;
+  srcScale: number;
+  priority?: boolean;
+}) {
+  const pad = clearspacePx(px);
+  const frame = px + pad * 2;
+  const src = pickBrandIconSrc(surface);
+  const srcPx = Math.round(frame * srcScale);
+
+  return (
+    <span
+      className="vow-brand-logo__frame vow-brand-logo__frame--symbol"
+      style={
+        {
+          "--brand-symbol-frame": `${frame}px`,
+          "--brand-symbol-pad": `${pad}px`,
+        } as CSSProperties
+      }
+      data-surface={surface}
+    >
+      <Image
+        src={src}
+        alt={SITE.name}
+        width={srcPx}
+        height={srcPx}
+        className="vow-brand-logo__img vow-brand-logo__img--symbol"
+        priority={priority}
+      />
+    </span>
+  );
+}
+
+function HorizontalMark({
+  heightPx,
+  surface,
+  srcScale,
+  priority = true,
+}: {
+  heightPx: number;
+  surface: BrandLogoSurface;
+  srcScale: number;
+  priority?: boolean;
+}) {
+  const widthPx = horizontalWidthForHeight(heightPx);
+  const padY = clearspacePx(heightPx);
+  const src = pickBrandHorizontalSrc(surface);
+  const srcW = Math.round(widthPx * srcScale);
+  const srcH = Math.round(heightPx * srcScale);
+
+  return (
+    <span
+      className="vow-brand-logo__frame vow-brand-logo__frame--horizontal"
+      style={
+        {
+          "--brand-logo-h": `${heightPx}px`,
+          "--brand-logo-w": `${widthPx}px`,
+          "--brand-logo-pad-y": `${padY}px`,
+        } as CSSProperties
+      }
+      data-surface={surface}
+    >
+      <Image
+        src={src}
+        alt={SITE.name}
+        width={srcW}
+        height={srcH}
+        className="vow-brand-logo__img vow-brand-logo__img--horizontal"
+        priority={priority}
+      />
+    </span>
+  );
 }
 
 export function BrandLogo({
   className = "",
+  placement,
   showName = false,
   showTagline = false,
-  variant = "default",
+  variant,
   surface,
-  size = "md",
+  size,
   layout,
   href = ROUTES.home,
 }: BrandLogoProps) {
-  const resolvedLayout = resolveLayout(size, layout);
-  const resolvedSurface = resolveSurface(surface, variant);
-  const icon = iconSizes[size];
-  const horizontal = horizontalSizes[size];
-  const iconSrc = pickBrandIconSrc(resolvedSurface);
-  const horizontalSrc = pickBrandHorizontalSrc(
-    resolvedSurface === "dark" ? "default" : resolvedSurface,
-  );
-
-  const iconClass =
-    resolvedSurface === "dark"
-      ? `${icon.box} object-contain object-center drop-shadow-[0_1px_8px_rgba(0,0,0,0.35)]`
-      : `${icon.box} object-contain object-center`;
-
-  const iconImage = (
-    <Image
-      src={iconSrc}
-      alt={SITE.name}
-      width={icon.px}
-      height={icon.px}
-      className={`vow-brand-mark-img ${iconClass}`}
-      priority
-    />
-  );
-
-  const horizontalImage = (
-    <Image
-      src={horizontalSrc}
-      alt={SITE.name}
-      width={horizontal.w}
-      height={horizontal.h}
-      className={`vow-brand-mark-img ${horizontal.class} object-contain object-left`}
-      priority
-    />
-  );
+  const resolved = resolvePlacement({ placement, variant, surface, size });
+  const spec = BRAND_LOGO_PLACEMENTS[resolved];
+  const resolvedSurface = spec.surface;
 
   let mark: ReactNode;
-  if (resolvedLayout === "horizontal") {
-    mark = horizontalImage;
-  } else if (resolvedLayout === "icon") {
-    mark = iconImage;
-  } else {
+
+  if (layout === "icon" || layout === "symbol") {
+    mark = (
+      <SymbolMark
+        px={spec.symbolPx ?? 36}
+        surface={resolvedSurface}
+        srcScale={spec.srcScale}
+      />
+    );
+  } else if (layout === "horizontal") {
+    mark = (
+      <HorizontalMark
+        heightPx={spec.heightPx ?? 36}
+        surface={resolvedSurface}
+        srcScale={spec.srcScale}
+      />
+    );
+  } else if (resolved === "site-header") {
     mark = (
       <>
-        <span className={`shrink-0 lg:hidden ${icon.box}`}>{iconImage}</span>
-        <span className="hidden shrink-0 lg:block">{horizontalImage}</span>
+        <span className="lg:hidden">
+          <SymbolMark px={spec.symbolPx ?? 36} surface={resolvedSurface} srcScale={spec.srcScale} />
+        </span>
+        <span className="hidden lg:inline-flex">
+          <HorizontalMark
+            heightPx={spec.heightPx ?? 38}
+            surface={resolvedSurface}
+            srcScale={spec.srcScale}
+          />
+        </span>
       </>
+    );
+  } else if (spec.layout === "horizontal" && spec.heightPx) {
+    mark = (
+      <HorizontalMark
+        heightPx={spec.heightPx}
+        surface={resolvedSurface}
+        srcScale={spec.srcScale}
+      />
+    );
+  } else {
+    mark = (
+      <SymbolMark
+        px={spec.symbolPx ?? 36}
+        surface={resolvedSurface}
+        srcScale={spec.srcScale}
+      />
     );
   }
 
   return (
     <Link
       href={href}
-      className={`group inline-flex shrink-0 items-center transition-opacity hover:opacity-90 ${className}`}
+      className={`vow-brand-logo group shrink-0 ${className}`}
       aria-label={isEnglishUi() ? `${SITE.name} home` : `${SITE.name} 홈으로`}
     >
       {mark}

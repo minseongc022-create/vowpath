@@ -334,6 +334,60 @@
     opacity: 0.45;
   }
 
+  /* ── Brand logo system (clearspace + aspect ratio) ── */
+  .vow-brand-logo {
+    @apply inline-flex items-center no-underline transition-opacity duration-200;
+  }
+
+  .vow-brand-logo:hover {
+    @apply opacity-90;
+  }
+
+  .vow-brand-logo__frame {
+    @apply relative inline-flex shrink-0 items-center justify-center;
+  }
+
+  .vow-brand-logo__frame--symbol {
+    width: var(--brand-symbol-frame, 2.75rem);
+    height: var(--brand-symbol-frame, 2.75rem);
+    padding: var(--brand-symbol-pad, 0.25rem);
+  }
+
+  .vow-brand-logo__frame--horizontal {
+    height: calc(var(--brand-logo-h, 2.375rem) + var(--brand-logo-pad-y, 0.25rem) * 2);
+    width: calc(var(--brand-logo-w, auto) + 0.25rem);
+    padding-block: var(--brand-logo-pad-y, 0.25rem);
+    padding-inline: 0.125rem;
+  }
+
+  .vow-brand-logo__img {
+    @apply block select-none;
+  }
+
+  .vow-brand-logo__img--symbol {
+    @apply h-full w-full object-contain object-center;
+  }
+
+  .vow-brand-logo__img--horizontal {
+    height: var(--brand-logo-h, 2.375rem);
+    width: var(--brand-logo-w, auto);
+    max-width: none;
+    @apply object-contain object-left;
+  }
+
+  .vow-brand-logo__frame[data-surface="dark"] .vow-brand-logo__img--symbol {
+    filter: drop-shadow(0 1px 6px rgb(0 0 0 / 0.35));
+  }
+
+  .vow-brand-mark {
+    @apply inline-flex items-center justify-center;
+  }
+
+  .vow-brand-mark__frame[data-surface="default"] .vow-brand-logo__img--symbol,
+  .vow-brand-mark .vow-brand-logo__frame[data-surface="default"] .vow-brand-logo__img--symbol {
+    filter: drop-shadow(0 4px 14px rgb(92 64 51 / 0.12));
+  }
+
   .vow-brand-mark-flat::before {
     content: none;
   }
