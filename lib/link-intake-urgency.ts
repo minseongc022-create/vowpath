@@ -1,13 +1,14 @@
 import type { JobPriority } from "./types";
 import { isEnglishUi } from "./locale";
 import { legacyToServicePriority } from "./service-priority";
+import { inferLossCategoryFromText } from "./loss-category";
 
 export type LinkUrgency = "today" | "this_week" | "estimate";
 
 const LINK_URGENCY_OPTIONS_EN: { id: LinkUrgency; label: string }[] = [
-  { id: "today", label: "ASAP — no heat, no AC, or urgent issue 🔥" },
-  { id: "this_week", label: "This week works — comfort issue but not an emergency" },
-  { id: "estimate", label: "Quote / new system / maintenance visit" },
+  { id: "today", label: "Emergency — active water, fire, mold, or sewage" },
+  { id: "this_week", label: "This week — contained loss or assessment needed" },
+  { id: "estimate", label: "Inspection / estimate / follow-up" },
 ];
 
 const LINK_URGENCY_OPTIONS_KO: { id: LinkUrgency; label: string }[] = [
@@ -76,6 +77,7 @@ export function buildLinkIntakeDraftFromForm(params: {
       `Issue: ${issue}`,
       `Urgency: ${LINK_URGENCY_OPTIONS.find((o) => o.id === params.urgency)?.label ?? params.urgency}`,
     ].join("\n"),
+    lossCategory: inferLossCategoryFromText(issue, issue),
   };
 }
 

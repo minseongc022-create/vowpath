@@ -359,6 +359,15 @@
     @apply block max-h-full max-w-full object-contain object-center;
   }
 
+  .vow-brand-logo__lockup .vow-brand-logo__wordmark {
+    @apply text-brand-900;
+  }
+
+  [data-surface="footer"] + .vow-brand-logo__wordmark,
+  .vow-brand-logo__lockup[data-surface="footer"] .vow-brand-logo__wordmark {
+    @apply text-brand-800;
+  }
+
   .vow-brand-logo__symbol[data-surface="dark"] .vow-brand-logo__symbol-img {
     filter: drop-shadow(0 1px 5px rgb(0 0 0 / 0.32));
   }

@@ -7,14 +7,37 @@ import {
   AUTO_BOOK_CONFIDENCE_MIN,
 } from "../../lib/auto-book-policy.ts";
 
-test("P1 always needs owner approval", () => {
-  const d = resolveAutoBookDecision({ priority: "P1", confidenceMin: 95 });
+test("clear P1 water auto-dispatches without owner approval", () => {
+  const d = resolveAutoBookDecision({
+    priority: "P1",
+    confidenceMin: 95,
+    lossCategory: "water",
+    customerName: "Jane Doe",
+    address: "123 Main St, Austin TX 78701",
+  });
+  assert.equal(d.needsOwnerApproval, false);
+  assert.equal(d.autoWaterDispatch, true);
+  assert.equal(d.isUrgentAlert, true);
+});
+
+test("P1 fire needs owner approval", () => {
+  const d = resolveAutoBookDecision({
+    priority: "P1",
+    confidenceMin: 95,
+    lossCategory: "fire",
+  });
   assert.equal(d.needsOwnerApproval, true);
   assert.equal(d.isUrgentAlert, true);
 });
 
 test("P2 clear intake auto-books", () => {
-  const d = resolveAutoBookDecision({ priority: "P2", confidenceMin: 80 });
+  const d = resolveAutoBookDecision({
+    priority: "P2",
+    confidenceMin: 80,
+    lossCategory: "water",
+    customerName: "Jane",
+    address: "123 Main St, Austin TX 78701",
+  });
   assert.equal(d.needsOwnerApproval, false);
 });
 
@@ -22,6 +45,7 @@ test("P3 low confidence needs review", () => {
   const d = resolveAutoBookDecision({
     priority: "P3",
     confidenceMin: AUTO_BOOK_CONFIDENCE_MIN - 1,
+    lossCategory: "inspection",
   });
   assert.equal(d.needsOwnerApproval, true);
   assert.equal(d.isAmbiguous, true);
@@ -38,12 +62,6 @@ test("confidenceMinFromFields uses minimum field", () => {
 });
 
 test("shouldSendOwnerApprovalSms p1_only skips P2 auto", () => {
-  assert.equal(
-    shouldSendOwnerApprovalSms("p1_only", "P2", 90),
-    false,
-  );
-  assert.equal(
-    shouldSendOwnerApprovalSms("p1_only", "P1", 90),
-    true,
-  );
+  assert.equal(shouldSendOwnerApprovalSms("p1_only", "P2", 90, "water"), false);
+  assert.equal(shouldSendOwnerApprovalSms("p1_only", "P1", 90, "fire"), true);
 });

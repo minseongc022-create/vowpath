@@ -25,7 +25,7 @@ type BrandLogoProps = {
   variant?: "default" | "light" | "dark";
   surface?: "default" | "header" | "footer" | "dark";
   size?: "sm" | "md" | "lg" | "xl";
-  layout?: "horizontal" | "icon" | "symbol" | "responsive";
+  layout?: "horizontal" | "icon" | "symbol" | "responsive" | "lockup";
   href?: string;
 };
 
@@ -94,6 +94,29 @@ function HorizontalMark({
   );
 }
 
+function CssLockup({
+  symbolPx,
+  surface,
+  priority = true,
+}: {
+  symbolPx: number;
+  surface: "default" | "header" | "footer" | "dark";
+  priority?: boolean;
+}) {
+  return (
+    <span className="vow-brand-logo__lockup inline-flex items-center gap-2.5">
+      <SymbolMark boxPx={symbolPx} surface={surface} priority={priority} />
+      <span
+        className={`vow-brand-logo__wordmark font-serif text-[1.375rem] font-semibold leading-none tracking-[-0.02em] ${
+          surface === "footer" ? "text-brand-800" : "text-brand-900"
+        }`}
+      >
+        {SITE.name}
+      </span>
+    </span>
+  );
+}
+
 export function BrandLogo({
   className = "",
   placement,
@@ -112,19 +135,25 @@ export function BrandLogo({
 
   if (layout === "icon" || layout === "symbol") {
     mark = <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />;
+  } else if (layout === "lockup") {
+    mark = <CssLockup symbolPx={spec.symbolPx ?? 36} surface={spec.surface} />;
   } else if (layout === "horizontal" && spec.heightPx) {
     mark = <HorizontalMark heightPx={spec.heightPx} surface={spec.surface} />;
   } else if (resolved === "site-header") {
     mark = (
       <>
         <span className="lg:hidden">
-          <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />
+          <SymbolMark boxPx={spec.symbolPx ?? 36} surface={spec.surface} />
         </span>
         <span className="hidden lg:block">
-          <HorizontalMark heightPx={spec.heightPx ?? 40} surface={spec.surface} />
+          <CssLockup symbolPx={spec.symbolPx ?? 38} surface={spec.surface} />
         </span>
       </>
     );
+  } else if (resolved === "auth-header") {
+    mark = <CssLockup symbolPx={spec.symbolPx ?? 34} surface={spec.surface} />;
+  } else if (resolved === "site-footer") {
+    mark = <CssLockup symbolPx={28} surface={spec.surface} />;
   } else if (spec.layout === "horizontal" && spec.heightPx) {
     mark = <HorizontalMark heightPx={spec.heightPx} surface={spec.surface} />;
   } else {

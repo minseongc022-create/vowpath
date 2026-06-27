@@ -1,6 +1,7 @@
 import type { SlotOffer } from "../booking-settings";
 import type { JobPriority } from "../types";
 import type { PrioritySource, ServicePriority } from "../service-priority";
+import type { LossCategory } from "../loss-category";
 
 export const MANDATORY_VERIFY_FIELDS = [
   "customerName",
@@ -35,6 +36,11 @@ export type IntakeDraft = {
   arrivalWindow: string;
   dispatchNotes: string;
   jobberPasteBlock: string;
+  lossCategory: LossCategory;
+  insuranceCarrier?: string;
+  insuranceClaimNumber?: string;
+  waterSource?: string;
+  activeLoss?: boolean;
 };
 
 export type FieldConfidence = Record<MandatoryVerifyField, number>;
@@ -105,4 +111,9 @@ export type VerifiedCallPayload = {
   addressValidation?: CallIntakeState["addressValidation"];
   verifiedFields?: Partial<Record<MandatoryVerifyField, boolean>>;
   intakePhotoRef?: string;
+  lossCategory: LossCategory;
+  insuranceCarrier?: string;
+  insuranceClaimNumber?: string;
+  waterSource?: string;
+  activeLoss?: boolean;
 };

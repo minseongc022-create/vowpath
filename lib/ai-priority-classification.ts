@@ -1,4 +1,5 @@
 import { analyzeServicePriorityFromTranscript } from "./emergency-detection";
+import type { LossCategory } from "./loss-category";
 import type { JobPriority } from "./types";
 import type { PrioritySource, ServicePriority } from "./service-priority";
 
@@ -7,6 +8,7 @@ export type AiPriorityClassification = {
   servicePriority: ServicePriority;
   priorityReasons: string[];
   prioritySource: PrioritySource;
+  lossCategory: LossCategory;
 };
 
 /**
@@ -26,5 +28,6 @@ export async function classifyRequestPriorityFromTranscript(
     servicePriority: result.servicePriority,
     priorityReasons: result.priorityReasons,
     prioritySource: result.prioritySource,
+    lossCategory: result.lossCategory,
   };
 }

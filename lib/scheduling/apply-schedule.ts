@@ -6,7 +6,8 @@ import {
   shouldSendOwnerApprovalSms,
 } from "../booking-settings";
 import { isTenantAfterHours } from "../after-hours";
-import { extractZipFromAddress } from "../service-area";
+import { extractZipFromAddress, isZipInServiceArea } from "../service-area";
+import { inferLossCategoryFromText } from "../loss-category";
 import { formatCityState } from "../recent-bookings";
 import { getShopBookingSettings, decrementShadowMode } from "../shop-settings-db";
 import {
@@ -85,9 +86,20 @@ export async function applyCustomerChosenSchedule(
     return "pending_review";
   }
 
+  const lossCategory = inferLossCategoryFromText(params.card.symptom, params.card.symptom);
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     priority: params.priority,
     confidenceMin: confidenceMin(params.confidence),
+    lossCategory,
+    issueType: params.card.symptom,
+    symptom: params.card.symptom,
+    customerName: params.card.customerName,
+    address: params.card.address,
+    inServiceArea:
+      settings.serviceAreaZips.length === 0 ||
+      (params.card.address
+        ? isZipInServiceArea(extractZipFromAddress(params.card.address), settings.serviceAreaZips)
+        : true),
   });
 
   const afterHours = await isTenantAfterHours(params.userId);

@@ -54,6 +54,7 @@ function emptyDraft(priority: JobPriority) {
     arrivalWindow: "Pending shop review",
     dispatchNotes: "",
     jobberPasteBlock: "",
+    lossCategory: "other" as const,
   };
 }
 

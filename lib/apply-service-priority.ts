@@ -30,6 +30,7 @@ export async function applyPriorityAnalysisToDraft(
     servicePriority: analysis.servicePriority,
     priorityReasons: analysis.priorityReasons,
     prioritySource: analysis.prioritySource,
+    lossCategory: analysis.lossCategory,
   };
 }
 

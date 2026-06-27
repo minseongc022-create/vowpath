@@ -15,6 +15,8 @@ export type TechDispatchSettings = {
   assignOnApprove: boolean;
   /** Limit offers to senior techs for P1 jobs */
   p1SeniorOnly: boolean;
+  /** Weekday (0=Sun … 6=Sat) → primary on-call tech id */
+  onCallByWeekday: Partial<Record<"0" | "1" | "2" | "3" | "4" | "5" | "6", string>>;
   techs: TechMember[];
   lastAssignedTechId: string | null;
 };
@@ -24,6 +26,7 @@ export const DEFAULT_TECH_DISPATCH_SETTINGS: TechDispatchSettings = {
   responseTimeoutMinutes: 10,
   assignOnApprove: true,
   p1SeniorOnly: true,
+  onCallByWeekday: {},
   techs: [],
   lastAssignedTechId: null,
 };

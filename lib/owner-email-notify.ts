@@ -209,6 +209,28 @@ export async function notifyOwnerSmsFailureEmail(params: {
   });
 }
 
+export async function notifyOwnerDispatchPacketEmail(params: {
+  userId: string;
+  bookingId: string;
+  packetText: string;
+}): Promise<void> {
+  const user = await findUserById(params.userId);
+  const shop = resolveShopDisplayName(user?.shopName);
+
+  await sendOwnerEmailAlert({
+    userId: params.userId,
+    bookingId: params.bookingId,
+    subject: `${shop} · Dispatch packet ready`,
+    text:
+      `Dispatch packet — ${shop}\n\n` +
+      `${params.packetText}\n\n` +
+      `Dashboard:\n${bookingDashboardUrl(params.bookingId)}\n\n` +
+      `${OWNER_EMAIL_BACKUP_NOTE}\n`,
+    dedupeId: `${params.bookingId}:dispatch_packet`,
+    operation: "owner_dispatch_packet_email",
+  });
+}
+
 export async function notifyOwnerLinkIntakeUpdatedEmail(params: {
   userId: string;
   bookingId: string;

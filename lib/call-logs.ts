@@ -44,6 +44,13 @@ export type StoredCallLog = {
   verifiedFields?: StoredVerifiedFields;
   /** Customer portal link token (SMS manage booking) */
   portalToken?: string;
+  lossCategory?: string;
+  insuranceCarrier?: string;
+  insuranceClaimNumber?: string;
+  waterSource?: string;
+  activeLoss?: boolean;
+  dispatchNotes?: string;
+  jobberPasteBlock?: string;
   createdAt: string;
 };
 
@@ -187,6 +194,14 @@ export async function updateCallLogRecording(
   store.calls[idx] = { ...store.calls[idx], recordingUrl };
   await writeFileStore(store);
   return true;
+}
+
+export async function findCallLogByCallSid(
+  userId: string,
+  callSid: string,
+): Promise<StoredCallLog | null> {
+  const calls = await listCallLogs(userId);
+  return calls.find((c) => c.callSid === callSid) ?? null;
 }
 
 function filterByIsoRange(

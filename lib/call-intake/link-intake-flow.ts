@@ -27,6 +27,7 @@ import { generateAiSummary } from "./ai-summary";
 import { resolveCallbackFromCallerId } from "./caller-id";
 import type { FieldConfidence, VerifiedCallPayload } from "./types";
 import { MANDATORY_VERIFY_FIELDS } from "./types";
+import { inferLossCategoryFromText } from "../loss-category";
 import { parseUsAddress } from "../parse-contact";
 
 const LINK_CONFIDENCE: FieldConfidence = {
@@ -234,6 +235,7 @@ export async function submitLinkIntakeForm(params: {
     verifiedFields: Object.fromEntries(
       MANDATORY_VERIFY_FIELDS.map((f) => [f, true]),
     ) as VerifiedCallPayload["verifiedFields"],
+    lossCategory: inferLossCategoryFromText(draft.issueType, draft.symptom),
   };
 
   const result = await finalizeVerifiedIntake(session!.userId, payload, {

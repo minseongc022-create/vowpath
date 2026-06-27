@@ -1,9 +1,16 @@
 import type { RequestStatus } from "./booking-policy";
 import type { FieldConfidence } from "./call-intake/types";
 import type { JobPriority } from "./types";
+import {
+  inferLossCategoryFromText,
+  normalizeLossCategory,
+  resolveRestorationDispatchDecision,
+  AUTO_BOOK_CONFIDENCE_MIN,
+  isAmbiguousIntakeFields,
+  type LossCategory,
+} from "./loss-category.js";
 
-/** Minimum field confidence (0–100) to auto-confirm without owner review. */
-export const AUTO_BOOK_CONFIDENCE_MIN = 65;
+export { AUTO_BOOK_CONFIDENCE_MIN } from "./loss-category.js";
 
 export type BookingGate = "auto_confirm" | "needs_review" | "urgent_review";
 
@@ -21,33 +28,40 @@ export function isAmbiguousIntake(params: {
   customerName?: string | null;
   address?: string | null;
 }): boolean {
-  const name = params.customerName?.trim() ?? "";
-  const address = params.address?.trim() ?? "";
-  if (params.confidenceMin < AUTO_BOOK_CONFIDENCE_MIN) return true;
-  if (!name || name === "Unknown" || name.length < 2) return true;
-  if (!address || address === "Unknown" || address.length < 8) return true;
-  return false;
+  return isAmbiguousIntakeFields(params);
 }
 
-/** Smart auto-book: P1 → urgent review; fuzzy intake → review; else auto-confirm. */
+/** Restoration smart dispatch gate. */
 export function resolveBookingGate(params: {
   priority: JobPriority;
   confidenceMin: number;
   customerName?: string | null;
   address?: string | null;
+  lossCategory?: LossCategory | string | null;
+  issueType?: string | null;
+  symptom?: string | null;
+  inServiceArea?: boolean;
 }): BookingGate {
-  if (params.priority === "P1") return "urgent_review";
+  const lossCategory =
+    params.lossCategory != null
+      ? normalizeLossCategory(params.lossCategory)
+      : inferLossCategoryFromText(
+          params.issueType?.trim() ?? "",
+          params.symptom?.trim() ?? "",
+        );
 
-  if (
-    isAmbiguousIntake({
-      confidenceMin: params.confidenceMin,
-      customerName: params.customerName,
-      address: params.address,
-    })
-  ) {
-    return "needs_review";
+  const decision = resolveRestorationDispatchDecision({
+    priority: params.priority,
+    lossCategory,
+    confidenceMin: params.confidenceMin,
+    customerName: params.customerName,
+    address: params.address,
+    inServiceArea: params.inServiceArea,
+  });
+
+  if (decision.needsOwnerApproval) {
+    return decision.isUrgentAlert ? "urgent_review" : "needs_review";
   }
-
   return "auto_confirm";
 }
 
@@ -67,6 +81,10 @@ export function resolveBookingGateFromSettings(
     confidence: FieldConfidence;
     customerName?: string | null;
     address?: string | null;
+    lossCategory?: LossCategory | string | null;
+    issueType?: string | null;
+    symptom?: string | null;
+    inServiceArea?: boolean;
   },
 ): BookingGate {
   return resolveBookingGate({
@@ -74,5 +92,9 @@ export function resolveBookingGateFromSettings(
     confidenceMin: confidenceMin(params.confidence),
     customerName: params.customerName,
     address: params.address,
+    lossCategory: params.lossCategory,
+    issueType: params.issueType,
+    symptom: params.symptom,
+    inServiceArea: params.inServiceArea,
   });
 }

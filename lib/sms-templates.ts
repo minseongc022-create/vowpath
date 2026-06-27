@@ -247,14 +247,26 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   issue: string;
   ref: string;
   urgent?: boolean;
+  autoWaterDispatch?: boolean;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 18);
+  if (params.autoWaterDispatch) {
+    return `${shop} CREW DISPATCHED: ${name}, ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo.`;
+  }
   if (params.urgent) {
     return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
   }
   return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+}
+
+export function smsMissedCallTextbackBody(params: {
+  shopName?: string;
+  url: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  return `${shop}: Sorry we missed your call — report your loss here (1 min): ${params.url}`;
 }
 
 export function smsTechDispatchOfferBody(params: {

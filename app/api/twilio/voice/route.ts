@@ -6,6 +6,7 @@ import {
 } from "@/lib/link-intake-brand";
 import { recordInboundEvent } from "@/lib/inbound-events";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
+import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
@@ -26,10 +27,13 @@ export async function POST(request: Request) {
 
   let shopName = DEFAULT_SHOP_DISPLAY_NAME;
   let afterHours = false;
+  let stormMode = false;
   const userId = await resolveTenantUserId({ to, callSid });
   if (userId) {
     shopName = await shopDisplayNameForUser(userId);
     afterHours = await isTenantAfterHours(userId);
+    const settings = await getShopBookingSettings(userId);
+    stormMode = settings.stormModeEnabled;
     await recordInboundEvent(userId, {
       callSid,
       from: form.get("From") ?? "",
@@ -47,7 +51,7 @@ export async function POST(request: Request) {
 
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
-      twimlGatherChannelChoice(channelUrl, shopName, afterHours),
+      twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode),
     statusCallbackUrl,
   );
 

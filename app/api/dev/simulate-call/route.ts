@@ -120,6 +120,7 @@ export async function POST(request: Request) {
         serviceLocation: true,
         issueType: true,
       },
+      lossCategory: draft.lossCategory,
     };
 
     const settings = await getShopBookingSettings(userId);

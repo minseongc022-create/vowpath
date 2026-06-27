@@ -63,6 +63,8 @@ export type ShopBookingSettings = {
   pmWindowStart: number;
   pmWindowEnd: number;
   serviceAreaZips: string[];
+  /** Storm surge — shorter voice prompts, concurrent call reassurance */
+  stormModeEnabled: boolean;
   /** Hybrid only: priorities that auto-book (speed). Others need manual approval. */
   hybridAutoPriorities: JobPriority[];
 };
@@ -77,7 +79,7 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   undoWindowMinutes: 30,
   shadowModeRemaining: 0,
   measurementAlwaysOn: true,
-  avgJobTicketUsd: 350,
+  avgJobTicketUsd: 8000,
   jobberSchedulingEnabled: true,
   nativeCalendarEnabled: true,
   defaultDurationMinutes: 120,
@@ -91,6 +93,7 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   pmWindowStart: 12,
   pmWindowEnd: 17,
   serviceAreaZips: [],
+  stormModeEnabled: false,
   hybridAutoPriorities: DEFAULT_HYBRID_AUTO_PRIORITIES,
 };
 

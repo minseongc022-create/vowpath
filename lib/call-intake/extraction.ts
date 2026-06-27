@@ -1,4 +1,5 @@
 import { applyPriorityAnalysisToDraft } from "../apply-service-priority";
+import { normalizeLossCategory, inferLossCategoryFromText } from "../loss-category";
 import type { JobPriority } from "../types";
 import type { FieldConfidence, IntakeDraft } from "./types";
 
@@ -16,6 +17,11 @@ Rules:
 - serviceLocation: where loss occurred (usually same as address; if unclear, copy address)
 - issueType: short label (e.g. "Basement flooding", "Fire damage", "Mold growth", "Sewage backup")
 - symptom: dispatcher label (Water loss, Fire/smoke, Mold, Sewage, Inspection)
+- lossCategory: water | fire | mold | sewage_cat3 | commercial | inspection | other
+- insuranceCarrier: carrier name if mentioned, else empty string
+- insuranceClaimNumber: claim # if mentioned, else empty string
+- waterSource: e.g. supply line, appliance, roof leak — if water loss and mentioned
+- activeLoss: true if damage is actively spreading now
 - arrivalWindow: customer preference ONLY or "Pending dispatch review" — never confirmed ETA
 - Do NOT set priority here (classified separately from full transcript)
 - phone: IGNORE spoken phone numbers; always return "USE_CALLER_ID"
@@ -28,6 +34,11 @@ Respond JSON only:
   "serviceLocation": string,
   "issueType": string,
   "symptom": string,
+  "lossCategory": string,
+  "insuranceCarrier": string,
+  "insuranceClaimNumber": string,
+  "waterSource": string,
+  "activeLoss": boolean,
   "arrivalWindow": string,
   "dispatchNotes": string,
   "jobberPasteBlock": string,
@@ -101,7 +112,16 @@ export async function extractIntakeFromSpeech(
     arrivalWindow: asString(data.arrivalWindow, "Pending shop review"),
     dispatchNotes: asString(data.dispatchNotes),
     jobberPasteBlock: asString(data.jobberPasteBlock),
+    lossCategory: normalizeLossCategory(data.lossCategory),
+    insuranceCarrier: asString(data.insuranceCarrier, ""),
+    insuranceClaimNumber: asString(data.insuranceClaimNumber, ""),
+    waterSource: asString(data.waterSource, ""),
+    activeLoss: data.activeLoss === true,
   };
+
+  if (draft.lossCategory === "other") {
+    draft.lossCategory = inferLossCategoryFromText(draft.issueType, draft.symptom);
+  }
 
   draft = await applyPriorityAnalysisToDraft(speech.trim(), draft, menuPriority);
 

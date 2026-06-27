@@ -304,20 +304,19 @@ export const jobberEn = {
 
 export const comparisonEn = {
   id: "comparison",
-  title: "Dispatch speed — with restoration triage and owner exceptions",
+  title: "Why restoration shops pick Effiroad",
   subtitle:
-    "Answering services take messages. Effiroad dispatches clear water losses — but holds fire, mold, and messy intakes so bad dispatches don't slip through.",
-  headers: ["", "Effiroad", "AI answering", "Call center"],
+    "ServiceAgent auto-dispatches everything. Call centers take messages. Effiroad auto-dispatches clear water — and holds fire, Cat-3, and messy intakes so bad rolls don't slip through.",
+  headers: ["", "Effiroad", "ServiceAgent / Restoration AI", "Human call center"],
   rows: [
-    ["Emergency dispatch", "Yes — default", "Message only", "Message only"],
-    ["Water / fire / mold triage", "Built in", "Generic script", "Script varies"],
-    ["Hold unclear address / loss type", "Yes", "Rare", "N/A"],
-    ["Large loss owner alert", "Yes — SMS 1 / 2", "Sometimes", "Email / portal"],
-    ["Crew round-robin SMS", "Yes", "Rare", "No"],
-    ["Keep your company number", "Yes", "Often new number", "Often new number"],
-    ["Works without CRM", "Yes — SMS + dashboard", "Varies", "Separate tool"],
-    ["Go live", "~10 minutes", "Days + scripting", "Days + scripting"],
-    ["Price (typical)", "$199/mo flat", "$200–$800/mo", "$300–$1,200/mo"],
+    ["Clear P1 water auto-dispatch", "Yes — crew SMS + owner FYI", "Yes — blind auto", "No — message only"],
+    ["Hold fire / Cat-3 / commercial", "Owner SMS 1 / 2", "Varies", "Script only"],
+    ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
+    ["Missed call text-back", "60 sec SMS link", "Sometimes", "Callback later"],
+    ["Insurance-ready intake", "Built in", "Partial", "Manual notes"],
+    ["Flat price", "$199/mo", "Usage / $600+", "$500–2K/mo"],
+    ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
+    ["Go live", "~10 minutes", "Days", "Days + scripting"],
   ],
 };
 

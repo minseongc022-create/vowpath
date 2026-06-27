@@ -60,6 +60,24 @@ function customerPhoneFromLogs(
   return null;
 }
 
+function callLogForBooking(
+  bookingId: string,
+  callLogs: StoredCallLog[],
+  jobs: Awaited<ReturnType<typeof listJobs>> = [],
+): StoredCallLog | undefined {
+  if (bookingId.startsWith("call-")) {
+    return callLogs.find((c) => c.id === bookingId.slice("call-".length));
+  }
+  if (bookingId.startsWith("jobber-")) {
+    return callLogs.find((c) => c.jobberRequestId === bookingId.slice("jobber-".length));
+  }
+  const job = jobs.find((j) => j.id === bookingId);
+  if (job?.sourceCallId) {
+    return callLogs.find((c) => c.id === job.sourceCallId);
+  }
+  return undefined;
+}
+
 function customerDetailsFromLogs(
   bookingId: string,
   callLogs: StoredCallLog[],
@@ -223,6 +241,30 @@ export async function persistRequestStatusForBooking(
       await startTechAssignmentForBooking(userId, bookingId);
     } catch (e) {
       console.warn("[booking-status-sync] tech dispatch", e);
+    }
+  }
+
+  if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
+    try {
+      const call = callLogForBooking(bookingId, callLogs, jobs);
+      if (call) {
+        const user = await findUserById(userId);
+        const { buildDispatchPacket } = await import("./dispatch-packet");
+        const { notifyOwnerDispatchPacketEmail } = await import("./owner-email-notify");
+        const { resolveShopDisplayName } = await import("./link-intake-brand");
+        const packet = buildDispatchPacket({
+          bookingId,
+          shopName: resolveShopDisplayName(user?.shopName),
+          call,
+        });
+        await notifyOwnerDispatchPacketEmail({
+          userId,
+          bookingId,
+          packetText: packet.plainText,
+        });
+      }
+    } catch (e) {
+      console.warn("[booking-status-sync] dispatch packet email", e);
     }
   }
 

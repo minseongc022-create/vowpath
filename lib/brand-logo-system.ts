@@ -39,13 +39,14 @@ type PlacementSpec = {
 export const BRAND_LOGO_PLACEMENTS: Record<BrandLogoPlacement, PlacementSpec> = {
   "site-header": {
     layout: "horizontal",
-    heightPx: 40,
-    symbolPx: 36,
+    heightPx: 44,
+    symbolPx: 38,
     surface: "header",
   },
   "site-footer": {
     layout: "horizontal",
-    heightPx: 30,
+    heightPx: 32,
+    symbolPx: 28,
     surface: "footer",
   },
   "dash-sidebar": {
@@ -60,7 +61,8 @@ export const BRAND_LOGO_PLACEMENTS: Record<BrandLogoPlacement, PlacementSpec> = 
   },
   "auth-header": {
     layout: "horizontal",
-    heightPx: 32,
+    heightPx: 36,
+    symbolPx: 34,
     surface: "header",
   },
   hero: {

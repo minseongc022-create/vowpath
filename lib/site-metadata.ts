@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SITE } from "@/lib/constants";
 
 /** Cache-bust favicons after asset updates */
-export const SITE_ICON_VERSION = "13";
+export const SITE_ICON_VERSION = "15";
 
 export const SITE_SEO = {
   title: "Effiroad | AI Emergency Intake & Dispatch for Restoration Companies",

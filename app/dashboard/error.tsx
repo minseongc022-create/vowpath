@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 
@@ -22,8 +21,7 @@ export default function DashboardError({
   return (
     <div className="vow-dash flex min-h-screen items-center justify-center px-4">
       <div className="vow-dash-card max-w-md text-center">
-        <BrandLogo placement="dash-sidebar" href={ROUTES.dashboard} className="mx-auto justify-center" />
-        <h1 className="mt-6 text-xl font-bold text-white">
+        <h1 className="text-xl font-bold text-white">
           {isEnglish ? "Could not load dashboard" : "대시보드를 불러오지 못했습니다"}
         </h1>
         <p className="mt-2 text-sm text-slate-400">

@@ -35,3 +35,14 @@ export const voicePhoneIntakeLinkFallbackSent =
 export const voicePhoneIntakeLinkFallbackFailed =
   "I'm having trouble catching everything on this call. " +
   "If you can, hang up and call back, then press 1 — we'll text you a link to send your request in writing.";
+
+/** Spoken when clear P1 water auto-dispatch is confirmed (never before). */
+export const voiceDispatchConfirmed =
+  "Thank you — our on-call crew is being notified now. You'll get a confirmation text shortly.";
+
+/** Spoken when intake is held for owner review. */
+export const voiceDispatchPendingReview =
+  "Thank you — we've captured everything and our team is confirming dispatch now. You'll hear back shortly.";
+
+export const voiceStormSurgeIntro =
+  "We're handling high call volume right now — you're in the queue and we'll take care of you.";

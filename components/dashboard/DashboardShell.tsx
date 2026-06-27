@@ -6,8 +6,6 @@ import Link from "next/link";
 
 import { usePathname } from "next/navigation";
 
-import { BrandLogo } from "@/components/brand/BrandLogo";
-
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 import {
@@ -188,11 +186,11 @@ export function DashboardShell({
 
         <div className="flex h-full w-full flex-col px-4 py-5">
 
-          <BrandLogo placement="dash-sidebar" href={ROUTES.dashboard} />
+          <p className="px-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            {shopName}
+          </p>
 
-
-
-          <nav className="mt-8 flex flex-col gap-0.5" aria-label="Dashboard menu">
+          <nav className="mt-6 flex flex-col gap-0.5" aria-label="Dashboard menu">
 
             {nav.map((item) => {
 
@@ -315,7 +313,7 @@ export function DashboardShell({
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
         <header className="border-b border-brand-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden">
-          <BrandLogo placement="dash-header" href={ROUTES.dashboard} />
+          <p className="truncate text-sm font-semibold text-brand-900">{shopName}</p>
         </header>
 
         <main className="vow-dash-main-scroll flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">

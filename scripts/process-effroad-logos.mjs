@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
-const ASSET_VERSION = "13";
+const ASSET_VERSION = "15";
 
 const SITE_BG = { r: 250, g: 248, b: 245 };
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
@@ -304,15 +304,37 @@ async function writePngFromBuffer(buf, outPath, width) {
 
 async function buildFavicon(symbolBuf, bg = FAVICON_BG) {
   const trimmed = await sharp(symbolBuf).trim({ threshold: 10 }).png().toBuffer();
-  const inner = 22;
   const canvas = 32;
+  const inner = 26;
   const resizedBuf = await sharp(trimmed)
-    .resize(inner, inner, { fit: "inside", kernel: sharp.kernel.lanczos3 })
+    .resize(inner, inner, { fit: "contain", kernel: sharp.kernel.lanczos3 })
     .png()
     .toBuffer();
   const resizedMeta = await sharp(resizedBuf).metadata();
   const rw = resizedMeta.width ?? inner;
   const rh = resizedMeta.height ?? inner;
+
+  const roundMask = Buffer.from(
+    `<svg width="${canvas}" height="${canvas}"><circle cx="16" cy="16" r="16" fill="white"/></svg>`,
+  );
+
+  const symbolOnRound = await sharp({
+    create: {
+      width: canvas,
+      height: canvas,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([
+      {
+        input: resizedBuf,
+        left: Math.round((canvas - rw) / 2),
+        top: Math.round((canvas - rh) / 2),
+      },
+    ])
+    .png()
+    .toBuffer();
 
   return sharp({
     create: {
@@ -321,13 +343,9 @@ async function buildFavicon(symbolBuf, bg = FAVICON_BG) {
       channels: 4,
       background: { ...bg, alpha: 1 },
     },
-  }).composite([
-    {
-      input: resizedBuf,
-      left: Math.round((canvas - rw) / 2),
-      top: Math.round((canvas - rh) / 2),
-    },
-  ]);
+  })
+    .composite([{ input: symbolOnRound, blend: "over" }])
+    .composite([{ input: roundMask, blend: "dest-in" }]);
 }
 
 function writeDimensions(horizontalMeta, symbolMeta) {
@@ -446,7 +464,7 @@ async function main() {
 
   await faviconBase
     .clone()
-    .resize(180, 180, { fit: "fill", kernel: sharp.kernel.lanczos3 })
+    .resize(180, 180, { fit: "cover", kernel: sharp.kernel.lanczos3 })
     .png()
     .toFile(path.join(publicDir, "apple-touch-icon.png"));
   console.log("wrote public/apple-touch-icon.png");

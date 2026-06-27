@@ -215,6 +215,11 @@ export function buildVerifiedPayload(state: CallIntakeState): VerifiedCallPayloa
     verificationComplete: true,
     addressValidation: state.addressValidation,
     verifiedFields: state.verified,
+    lossCategory: state.draft.lossCategory ?? "other",
+    insuranceCarrier: state.draft.insuranceCarrier,
+    insuranceClaimNumber: state.draft.insuranceClaimNumber,
+    waterSource: state.draft.waterSource,
+    activeLoss: state.draft.activeLoss,
   };
 }
 

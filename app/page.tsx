@@ -9,6 +9,7 @@ import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
+import { Comparison } from "@/components/sections/Comparison";
 import { Features } from "@/components/sections/Features";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { TrustROI } from "@/components/sections/TrustROI";
@@ -36,6 +37,7 @@ export default async function HomePage() {
         <ApprovalLoop />
         <AiDispatcher />
         <SchedulingModes />
+        <Comparison />
         {/* AgreementKeeper hidden — not core for restoration */}
         {/* 5. Features — full capability grid */}
         <Features />

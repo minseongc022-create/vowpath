@@ -8,12 +8,14 @@ import {
   type ServicePriority,
 } from "./service-priority";
 import { normalizeJobPriority } from "./priority-display";
+import { normalizeLossCategory, type LossCategory } from "./loss-category";
 
 export type EmergencyDetectionResult = {
   servicePriority: ServicePriority;
   priority: JobPriority;
   priorityReasons: string[];
   prioritySource: PrioritySource;
+  lossCategory: LossCategory;
 };
 
 const SYSTEM_PROMPT = `You are a restoration dispatch triage AI for US water, fire, and mold companies.
@@ -53,9 +55,19 @@ Rules:
 - When uncertain between P2 and P1, choose P1 (property damage spreads fast).
 - When uncertain between P2 and P3, choose P2 unless clearly routine follow-up.
 
+Also classify lossCategory:
+- water: active or recent water/flood/leak losses
+- fire: fire, smoke, soot damage
+- mold: mold/mildew
+- sewage_cat3: sewage backup, contaminated water, Cat-3
+- commercial: large commercial or multi-unit property
+- inspection: assessment, estimate, follow-up, monitoring only
+- other: unclear
+
 Respond JSON only:
 {
   "priority": "P1" | "P2" | "P3",
+  "lossCategory": "water" | "fire" | "mold" | "sewage_cat3" | "commercial" | "inspection" | "other",
   "priorityReasons": string[]
 }`;
 
@@ -93,6 +105,7 @@ export async function analyzeServicePriorityFromTranscript(
         "Transcript too short for AI classification; defaulted to P2 (Normal) for shop review.",
       ],
       prioritySource: "ai",
+      lossCategory: "other",
     };
   }
 
@@ -156,5 +169,6 @@ export async function analyzeServicePriorityFromTranscript(
         ? priorityReasons
         : [`AI classified as ${priority} (${servicePriority}) from call transcript.`],
     prioritySource: "ai",
+    lossCategory: normalizeLossCategory(data.lossCategory),
   };
 }

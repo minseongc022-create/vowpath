@@ -116,6 +116,13 @@ export async function finalizeVerifiedIntake(
       intakePhotoRef: payload.intakePhotoRef,
       addressValidation: payload.addressValidation,
       verifiedFields: payload.verifiedFields,
+      lossCategory: payload.lossCategory,
+      insuranceCarrier: payload.insuranceCarrier,
+      insuranceClaimNumber: payload.insuranceClaimNumber,
+      waterSource: payload.waterSource,
+      activeLoss: payload.activeLoss,
+      dispatchNotes: payload.dispatchNotes,
+      jobberPasteBlock: payload.jobberPasteBlock,
       createdAt: new Date().toISOString(),
     });
   } catch (e) {
@@ -262,9 +269,20 @@ export async function finalizeVerifiedIntake(
   if (!schedulingActive) {
     try {
       const confMin = confidenceMinFromFields(payload.confidence);
+      const inServiceArea =
+        settings.serviceAreaZips.length === 0 ||
+        (payload.address
+          ? isZipInServiceArea(extractZipFromAddress(payload.address), settings.serviceAreaZips)
+          : true);
       const autoDecision = resolveAutoBookDecision({
         priority: payload.priority,
         confidenceMin: confMin,
+        lossCategory: payload.lossCategory,
+        issueType: payload.issueType,
+        symptom: payload.symptom,
+        customerName: payload.customerName,
+        address: payload.address,
+        inServiceArea,
       });
       if (!autoDecision.needsOwnerApproval) {
         finalRequestStatus = "approved";
@@ -283,6 +301,7 @@ export async function finalizeVerifiedIntake(
           priority: payload.priority,
           cityState: formatCityState(payload.address),
           urgent: autoDecision.isUrgentAlert,
+          autoWaterDispatch: autoDecision.autoWaterDispatch,
         });
       } else {
         await notifyOwnerNewRequest({

@@ -6,6 +6,7 @@ import {
   voiceGatherMissedSpeech,
   voiceGoAhead,
   voicePhoneIntakePrompt,
+  voiceStormSurgeIntro,
 } from "./voice-copy";
 
 function escapeXml(value: string): string {
@@ -36,10 +37,12 @@ export function twimlGatherChannelChoice(
   actionUrl: string,
   shopName: string,
   afterHours = false,
+  stormMode = false,
 ): string {
+  const stormLine = stormMode ? `${twimlSay(voiceStormSurgeIntro)}` : "";
   const prompt = channelChoiceVoicePrompt(shopName, afterHours);
   const hint = channelChoiceGatherHint();
-  return `${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="15" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint)}</Gather>${twimlSay(voiceGatherMissedChoice)}`;
+  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" timeout="15" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(hint)}</Gather>${twimlSay(voiceGatherMissedChoice)}`;
 }
 
 export function twimlGatherDtmfMenu(actionUrl: string): string {

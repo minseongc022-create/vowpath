@@ -14,6 +14,7 @@ import {
   saveTechDispatchSettings,
   setTechPendingOffer,
 } from "./store";
+import { orderPoolWithOnCall } from "./on-call";
 import type { TechAssignment, TechMember } from "./types";
 
 export type JobOfferContext = {
@@ -69,7 +70,7 @@ function eligibleTechs(
     const seniors = pool.filter((t) => t.senior);
     if (seniors.length > 0) pool = seniors;
   }
-  return pool;
+  return orderPoolWithOnCall(settings, pool);
 }
 
 function pickNextTech(

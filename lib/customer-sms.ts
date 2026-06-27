@@ -268,6 +268,7 @@ export async function notifyOwnerIntakeAutoConfirmed(params: {
   priority: JobPriority;
   cityState?: string;
   urgent?: boolean;
+  autoWaterDispatch?: boolean;
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
@@ -283,6 +284,7 @@ export async function notifyOwnerIntakeAutoConfirmed(params: {
     issue,
     ref,
     urgent: params.urgent,
+    autoWaterDispatch: params.autoWaterDispatch,
   });
 
   await sendOwnerSms({

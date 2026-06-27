@@ -48,6 +48,7 @@ export function mergeTechDispatchSettings(
         : base.responseTimeoutMinutes,
     assignOnApprove: partial.assignOnApprove !== false,
     p1SeniorOnly: partial.p1SeniorOnly === true,
+    onCallByWeekday: partial.onCallByWeekday ?? base.onCallByWeekday,
     techs: sanitizeTechs(partial.techs),
     lastAssignedTechId:
       typeof partial.lastAssignedTechId === "string" ? partial.lastAssignedTechId : null,
