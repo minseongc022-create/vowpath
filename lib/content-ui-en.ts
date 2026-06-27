@@ -4,18 +4,18 @@ import { SETTINGS_PAGE_EN } from "./content-settings-en-backup";
 export const settingsPageEn = {
   ...SETTINGS_PAGE_EN,
   title: "Shop settings",
-  subtitle: "Smart auto-book, crew dispatch, and PM plans — then one-time go-live steps.",
+  subtitle: "Smart auto-dispatch, crew texts, and optional follow-ups — then one-time go-live steps.",
   badge: "Go live",
   backDashboardLink: "← Dashboard",
   productSectionTitle: "How your shop runs",
   productSectionSubtitle:
-    "Shop name, booking, crew texts, and PM plans. Your shop name appears in every customer text and phone greeting.",
+    "Shop name, dispatch rules, crew texts, and optional follow-ups. Your company name appears in every customer text and phone greeting.",
   goLiveSectionTitle: "Go live checklist",
   goLiveSectionSubtitle: "Follow the steps in order — then save once at the bottom.",
   progressHint: "Contact → Hours → Forwarding. Jobber is optional.",
-  scrollHint: "Shop name → Booking → Crew → PM → Go live",
+  scrollHint: "Company name → Dispatch → Crew → Follow-up → Go live",
   allDone:
-    "You're live. Missed calls auto-book clear jobs — you text back for urgent or unclear ones.",
+    "You're live. Standard water losses auto-dispatch — you text back for fire, Cat-3, or unclear jobs.",
   ownerAlertsDescription:
     "Texts to your cell: booked visits (FYI), P1 urgent alerts, unclear intakes (1 / 2), or 9 to undo. Email is backup.",
   bookingPolicyTitle: "Booking & schedule",
@@ -27,14 +27,14 @@ export const settingsPageEn = {
   bookingLoadingLabel: "Loading...",
   bookingTryAgainLabel: "Try again",
   bookingPolicyDescription:
-    "Clear routine jobs book instantly. Emergencies and fuzzy details wait for your text reply (1 = yes, 2 = pass).",
-  smartAutoBookingTitle: "How booking works",
+    "Clear standard losses dispatch instantly. Fire, Cat-3, and fuzzy details wait for your text reply (1 = go, 2 = pass).",
+  smartAutoBookingTitle: "How dispatch works",
   smartAutoBookingIntro: "One policy — Effiroad handles the rules below automatically.",
   smartAutoBookingRules: [
-    "Clear P2 / P3 (name, address, issue) → lands on your calendar right away.",
-    "P1 emergencies (no heat, no cool, safety) → texts you to approve first.",
+    "Clear standard water loss (name, address, loss type) → crew gets dispatched right away.",
+    "Fire, structure loss, or Cat-3 sewage → texts you to approve first.",
     "Unclear intake → texts you 1 / 2 before anything is confirmed.",
-    "Changed your mind on an auto-book? Reply 9 within the undo window below.",
+    "Changed your mind on an auto-dispatch? Reply 9 within the undo window below.",
   ] as const,
   visitTimingTitle: "Appointment spacing",
   visitTimingHint:
@@ -127,8 +127,8 @@ export const settingsPageEn = {
   shopNameNav: "Shop name",
   shopName: {
     label: "Shop name",
-    hint: "Used in booking texts and phone greetings — e.g. “Thanks for calling Cool Air HVAC.”",
-    placeholder: "Cool Air HVAC",
+    hint: "Used in texts and phone greetings — e.g. “Thanks for calling ABC Restoration.”",
+    placeholder: "ABC Restoration",
     save: "Save shop name",
     saving: "Saving…",
     saved: "Saved — texts and calls will use this name.",
@@ -406,7 +406,7 @@ export const authPagesEn = {
     subtitle: "Enter your info, then tap Send code to verify.",
     subtitleVerify: "After verifying, tap Create account to finish.",
     shopLabel: "Shop name",
-    shopPlaceholder: "e.g. Cool Air HVAC",
+    shopPlaceholder: "e.g. ABC Restoration",
     emailLabel: "Email",
     passwordLabel: "Password",
     passwordHint: "8+ characters",
@@ -470,7 +470,7 @@ export const legalPagesEn = {
     sections: [
       {
         heading: "Service",
-        body: "Effiroad provides after-hours call intake and owner approval workflows for HVAC shops. Jobber integration is optional.",
+        body: "Effiroad provides 24/7 emergency call intake, owner approval workflows, and crew dispatch for restoration companies. CRM integration is optional.",
       },
       {
         heading: "Billing",

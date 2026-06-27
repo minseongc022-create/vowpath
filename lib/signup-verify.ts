@@ -73,7 +73,7 @@ export async function createAndSendSignupCode(
     id: crypto.randomUUID(),
     email,
     passwordHash,
-    shopName: input.shopName.trim() || "My HVAC Shop",
+    shopName: input.shopName.trim() || "My Restoration Company",
     phone: input.phone,
     channel: input.channel,
     codeHash: hashResetCode(code),

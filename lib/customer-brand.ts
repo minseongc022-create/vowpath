@@ -6,7 +6,7 @@ export const customerSmsStopReply =
   "You are unsubscribed from service text updates. Reply START to resubscribe.";
 
 export const customerSmsStartReply =
-  "You are resubscribed to service text updates from your HVAC provider.";
+  "You are resubscribed to service text updates from your restoration provider.";
 
 export const customerSmsErrorReply =
   "Something went wrong. Please call your service provider or use the booking link we texted you.";

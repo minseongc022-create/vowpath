@@ -15,7 +15,7 @@ export function Footer() {
   const footerLinks = getFooterLinks();
   const tagline = siteFooter?.tagline ?? SITE.tagline;
   const subline =
-    siteFooter?.subline ?? "US residential HVAC · optional Jobber sync · after-hours call intake";
+    siteFooter?.subline ?? "US water · fire · mold restoration · optional CRM · 24/7 intake";
 
   return (
     <footer className="border-t border-brand-200 bg-brand-100 text-stone-800">

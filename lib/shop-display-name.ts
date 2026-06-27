@@ -1,5 +1,5 @@
 /** Fallback when shop name is unset — US English for SMS/voice. */
-export const DEFAULT_SHOP_DISPLAY_NAME = "Your HVAC team";
+export const DEFAULT_SHOP_DISPLAY_NAME = "Your restoration team";
 
 export function resolveShopDisplayName(shopName?: string | null): string {
   const trimmed = shopName?.trim();

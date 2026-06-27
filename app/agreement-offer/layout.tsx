@@ -1,6 +1,6 @@
 export const metadata = {
   title: "Maintenance plan",
-  description: "Review your HVAC maintenance plan offer",
+  description: "Review your restoration service follow-up offer",
 };
 
 export default function AgreementOfferLayout({

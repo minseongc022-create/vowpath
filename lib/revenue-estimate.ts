@@ -1,5 +1,5 @@
-/** Default HVAC service ticket (USD) when shop has no custom average. */
-export const DEFAULT_AVERAGE_JOB_USD = 400;
+/** Default restoration mitigation job (USD) when shop has no custom average. */
+export const DEFAULT_AVERAGE_JOB_USD = 8000;
 
 export function estimateRevenueProtectedUsd(
   securedCustomerCount: number,

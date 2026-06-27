@@ -96,9 +96,9 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
 
     id: "dialpad",
 
-    label: "Jobber Phone / Dialpad",
+    label: "Business Phone / Dialpad",
 
-    hint: "ServiceTitan Phones Pro and other Dialpad-based systems work the same way",
+    hint: "Jobber Phone, ServiceTitan Phones Pro, and other Dialpad-based systems work the same way",
 
     recommended: true,
 
@@ -166,7 +166,7 @@ export function getForwardingGuideSteps(
 
       return [
 
-        "In Dialpad or Jobber Phone, open call routing for your main business line.",
+        "In Dialpad or your business phone system, open call routing for your main shop line.",
 
         `Set overflow / no-answer external number to ${num}.`,
 
@@ -285,4 +285,3 @@ export function getForwardingGuideSteps(
   ];
 
 }
-

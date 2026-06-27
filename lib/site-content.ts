@@ -1,4 +1,4 @@
-/** Public marketing site copy — English for US HVAC market. */
+/** Public marketing site copy — English for US restoration market. */
 
 import {
   aboutEn,

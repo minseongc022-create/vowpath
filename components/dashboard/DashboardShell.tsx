@@ -12,8 +12,6 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 
 import {
 
-  IconAgreements,
-
   IconCalendar,
 
   IconDashboard,
@@ -151,20 +149,6 @@ export function DashboardShell({
       match: (p) => p.startsWith(ROUTES.missedCallsAnalytics),
 
       icon: <IconMissedCalls />,
-
-    },
-
-    {
-
-      href: ROUTES.agreements,
-
-      label: v.agreements,
-
-      match: (p) => p.startsWith(ROUTES.agreements),
-
-      badge: renewingAgreementsCount > 0 ? renewingAgreementsCount : undefined,
-
-      icon: <IconAgreements />,
 
     },
 
@@ -314,7 +298,7 @@ export function DashboardShell({
 
               <p className="truncate text-sm font-semibold text-white">{shopName}</p>
 
-              <p className="truncate text-xs text-slate-500">HVAC · Effiroad</p>
+              <p className="truncate text-xs text-slate-500">Restoration · Effiroad</p>
 
             </div>
 
@@ -346,4 +330,3 @@ export function DashboardShell({
   );
 
 }
-

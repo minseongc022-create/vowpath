@@ -214,7 +214,7 @@ export async function createUser(input: {
     id: crypto.randomUUID(),
     email: normalized,
     passwordHash: input.passwordHash,
-    shopName: input.shopName.trim() || "My HVAC Shop",
+    shopName: input.shopName.trim() || "My Restoration Co",
     phone: phoneNorm,
     createdAt: new Date().toISOString(),
     sessionVersion: 0,

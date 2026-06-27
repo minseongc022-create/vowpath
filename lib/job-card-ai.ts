@@ -16,17 +16,17 @@ export type GeneratedJobCard = {
   jobberPasteBlock: string;
 };
 
-const SYSTEM_PROMPT = `You are an expert HVAC dispatch assistant for US residential shops using Jobber.
+const SYSTEM_PROMPT = `You are an expert restoration dispatch assistant for US water, fire, and mold companies.
 Given messy after-hours call notes, produce a dispatcher-ready Job Card.
 
 Rules:
-- symptom: short label like "No cool", "No heat", "Leak", "Maintenance"
+- symptom: short label like "Water loss", "Fire/smoke", "Mold", "Sewage", "Inspection"
 - Do NOT set priority (classified separately from full transcript)
 - Use only facts from the notes. If missing, write "Unknown" for that field.
-- arrivalWindow: customer PREFERENCE only (e.g. "Caller prefers evening") OR "Pending shop review" — NEVER a confirmed appointment time
-- NEVER write that an appointment is confirmed, scheduled, or assigned to a technician
-- dispatchNotes: 2-4 bullet points for the tech/dispatcher; note that shop must approve before confirming
-- jobberPasteBlock: plain-text block a human can paste into Jobber request notes (request intake, not confirmed job)
+- arrivalWindow: customer PREFERENCE only (e.g. "Caller needs crew tonight") OR "Pending dispatch review" — NEVER a confirmed ETA
+- NEVER write that a crew is dispatched, confirmed, or on the way unless notes explicitly state shop approved
+- dispatchNotes: 2-4 bullet points for the crew/dispatcher; note insurance info if mentioned
+- jobberPasteBlock: plain-text block a human can paste into CRM request notes (intake only, not confirmed job)
 
 Respond with JSON only, matching this schema:
 {
@@ -89,7 +89,7 @@ export async function generateJobCardFromNotes(
         { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
-          content: `After-hours HVAC call notes:\n\n${notes.trim()}`,
+          content: `After-hours restoration call notes:\n\n${notes.trim()}`,
         },
       ],
     }),

@@ -18,7 +18,7 @@ export function getSiteTagline(): string {
 }
 
 export function getBrandLogoTagline(): string {
-  return "efficiency · booking";
+  return "efficiency · dispatch";
 }
 
 export function getSectionLabels() {

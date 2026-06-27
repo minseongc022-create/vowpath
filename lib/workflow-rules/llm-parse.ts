@@ -2,7 +2,7 @@ import { openAiJsonCompletion } from "../openai-json";
 import type { UiLocale } from "../locale";
 import type { WorkflowRuleDraft } from "./types";
 
-const SYSTEM = `You convert HVAC shop owner requests into automation workflow rules.
+const SYSTEM = `You convert restoration company owner requests into automation workflow rules.
 Return JSON only:
 {
   "name": string,

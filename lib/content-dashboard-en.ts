@@ -48,7 +48,7 @@ export const phoneSetupEn = {
 
   title: "After-hours call intake",
 
-  subtitle: "Calls to your Twilio number → voice intake → Job Card (optional Jobber push)",
+  subtitle: "Calls to your Twilio number → voice intake → Job Card (optional CRM push)",
 
   twilioLabel: "Twilio",
 
@@ -78,7 +78,7 @@ export const phoneSetupEn = {
 
   ivrNote:
 
-    "Live calls: guided intake for name, address, and issue. Priority captured for your review.",
+    "Live calls: guided intake for name, address, and loss details. Priority captured for your review.",
 
   stepsTitle: "Connection checklist",
 
@@ -220,7 +220,7 @@ export const jobCardGeneratorEn = {
 
   notesPlaceholder:
 
-    "e.g. No AC, 123 Oak St Austin TX, Mike, indoor 85°F, odd refrigerant noise, wants visit tonight…",
+    "e.g. Check engine light on, 123 Oak St Austin TX, Mike, 2019 Toyota Camry, wants visit tomorrow morning…",
 
   generate: "Generate Job Card",
 
@@ -238,7 +238,7 @@ export const jobCardGeneratorEn = {
 
     address: "Address",
 
-    window: "Visit window",
+    window: "Appointment window",
 
     dispatch: "Dispatch notes",
 
@@ -261,5 +261,3 @@ export const jobCardGeneratorEn = {
   pushJobberFailed: "Jobber push failed. Try again shortly.",
 
 };
-
-

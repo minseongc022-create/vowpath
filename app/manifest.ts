@@ -3,7 +3,7 @@ import { SITE_SEO } from "@/lib/site-metadata";
 import { SITE } from "@/lib/constants";
 
 export default function manifest(): MetadataRoute.Manifest {
-  const v = "12";
+  const v = "13";
   return {
     name: SITE.name,
     short_name: SITE.name,

@@ -1,6 +1,6 @@
 import { getPortalBaseUrl } from "./portal-url";
 
-/** Shared test fixtures for live field / SMS testing (US HVAC). */
+/** Shared test fixtures for live field / SMS testing (US restoration). */
 export const FIELD_TEST_CUSTOMER = {
   name: "John Smith",
   phone: "+821055969438",
@@ -23,7 +23,7 @@ export function buildFieldTestGuide(params: {
   portalUrl?: string;
   ownerPhone?: string;
 }) {
-  const shop = params.shopName?.trim() || "Your HVAC Shop";
+  const shop = params.shopName?.trim() || "Your Restoration Company";
   const twilio = params.shopPhone?.trim() || process.env.TWILIO_PHONE_NUMBER || "+12255291680";
   const portal = params.portalUrl?.trim() || getPortalBaseUrl() || "https://link.effiroad.com";
   const ownerPhone = params.ownerPhone?.trim() || FIELD_TEST_CUSTOMER.phone;

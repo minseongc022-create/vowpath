@@ -1,5 +1,5 @@
 /**
- * US HVAC SMS copy — short, friendly, single-segment when possible (GSM ~160 chars).
+ * US restoration SMS copy — short, friendly, single-segment when possible (GSM ~160 chars).
  * One line per message body (no newlines) so URLs are not split mid-string.
  */
 
@@ -291,7 +291,7 @@ export function smsCustomerOnMyWayBody(params: {
   const tech = smsTruncate(params.techName, 16);
   const eta = params.etaMinutes;
   return smsFitSingleSegment([
-    `${shop}: Hi ${first}! 🔧 ${tech} is on the way — ETA ~${eta} min! Please clear access to your HVAC unit. See you soon!${smsCustomerOptOut()}`,
+    `${shop}: Hi ${first}! ${tech} is on the way — ETA ~${eta} min. Please clear access to the affected area. Thank you.${smsCustomerOptOut()}`,
   ]);
 }
 

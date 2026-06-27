@@ -7,7 +7,7 @@ import type { JobPriority } from "./types";
 
 export const PRIORITY_LABELS = PRIORITY_DISPLAY_LABEL;
 
-export const PRIORITY_LEGEND = "P1 Emergency · P2 Normal · P3 Maintenance";
+export const PRIORITY_LEGEND = "P1 Breakdown · P2 Repair · P3 Service";
 
 export function formatPriority(priority: JobPriority | undefined | null): string {
   if (priority == null) return "—";

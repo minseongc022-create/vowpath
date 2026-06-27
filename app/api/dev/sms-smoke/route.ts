@@ -57,7 +57,7 @@ async function runFlow(
   targetPhone?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await findUserById(userId);
-  const shopName = user?.shopName ?? "Your HVAC team";
+  const shopName = user?.shopName ?? "Your restoration team";
   const phone = targetPhone ?? TEST_PHONE;
   const sampleName = user?.shopName?.includes("Dev") ? "Test Caller" : "Customer";
   const sampleIssue = "AC not cooling";

@@ -2,34 +2,34 @@ import type { Metadata } from "next";
 import { SITE } from "@/lib/constants";
 
 /** Cache-bust favicons after asset updates */
-export const SITE_ICON_VERSION = "12";
+export const SITE_ICON_VERSION = "13";
 
 export const SITE_SEO = {
-  title: "Effiroad | AI Customer Automation for HVAC Businesses",
+  title: "Effiroad | AI Emergency Intake & Dispatch for Restoration Companies",
   description:
-    "Effiroad helps HVAC businesses answer every call, automate follow-ups, schedule appointments, and grow with AI-powered efficiency. AI voice, SMS, scheduling, analytics, and automation in one platform.",
-  ogTitle: "Effiroad | The Road to Limitless Success",
+    "Effiroad helps water, fire, and mold restoration companies answer every emergency call, capture insurance-ready intake, dispatch crews, and never lose a claim to voicemail. 24/7 AI phone, SMS, dispatch, and analytics in one platform.",
+  ogTitle: "Effiroad | Never Lose a $10,000 Job at 2 AM Again",
   ogDescription:
-    "AI-powered efficiency designed to help businesses capture every opportunity.",
+    "AI-powered emergency intake and crew dispatch built for independent restoration companies.",
   keywords: [
-    "HVAC AI",
-    "AI customer automation",
-    "missed call recovery",
-    "AI phone answering",
-    "HVAC scheduling software",
-    "AI SMS automation",
-    "HVAC business analytics",
-    "field service automation",
+    "restoration AI phone",
+    "water damage call answering",
+    "fire restoration dispatch",
+    "mold remediation intake",
+    "missed call recovery restoration",
+    "AI answering service restoration",
+    "emergency dispatch software",
+    "restoration business automation",
     "Effiroad",
   ],
 } as const;
 
 export const SITE_SEO_KO = {
-  title: "Effiroad | HVAC AI 고객 자동화 플랫폼",
+  title: "Effiroad | 복구(Restoration) 업체 AI 긴급 접수·디스패치",
   description:
-    "Effiroad는 HVAC 업체가 모든 전화에 응답하고, 후속 연락·예약을 자동화하며 AI 기반 효율로 성장하도록 돕는 B2B SaaS 플랫폼입니다.",
+    "Effiroad는 침수·화재·곰팡이 복구 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
   ogTitle: "Effiroad | 끝없는 성공으로 가는 길",
-  ogDescription: "모든 기회를 놓치지 않도록 돕는 AI 기반 효율 플랫폼.",
+  ogDescription: "긴급 전화를 놓치지 않도록 돕는 AI 기반 복구 업체 플랫폼.",
 } as const;
 
 function iconUrl(path: string) {

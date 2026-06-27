@@ -1,8 +1,8 @@
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 
 export const metadata = {
-  title: "Book a visit",
-  description: "Schedule HVAC service or check your arrival window",
+  title: "Report a loss",
+  description: "Report water, fire, or mold damage — or check your request status",
 };
 
 export default function PortalHomePage() {
