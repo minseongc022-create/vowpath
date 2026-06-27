@@ -2,15 +2,15 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import {
   BRAND_LOGO_PLACEMENTS,
+  BRAND_SYMBOL_HEIGHT,
+  BRAND_SYMBOL_WIDTH,
   type BrandLogoPlacement,
-  clearspacePx,
 } from "@/lib/brand-logo-system";
 import { pickBrandIconSrc } from "@/lib/brand-assets";
 import { SITE } from "@/lib/constants";
 
 type BrandMarkProps = {
   placement?: BrandLogoPlacement;
-  /** Override alt text */
   alt?: string;
   className?: string;
   priority?: boolean;
@@ -24,30 +24,21 @@ export function BrandMark({
   priority = false,
 }: BrandMarkProps) {
   const spec = BRAND_LOGO_PLACEMENTS[placement];
-  const px = spec.symbolPx ?? 96;
-  const pad = clearspacePx(px);
-  const frame = px + pad * 2;
-  const src = pickBrandIconSrc(spec.surface);
-  const srcPx = Math.round(frame * spec.srcScale);
+  const boxPx = spec.symbolPx ?? 96;
 
   return (
     <div className={`vow-brand-mark ${className}`} data-placement={placement}>
       <span
-        className="vow-brand-logo__frame vow-brand-logo__frame--symbol vow-brand-mark__frame"
-        style={
-          {
-            "--brand-symbol-frame": `${frame}px`,
-            "--brand-symbol-pad": `${pad}px`,
-          } as CSSProperties
-        }
+        className="vow-brand-logo__symbol vow-brand-mark__symbol"
+        style={{ width: boxPx, height: boxPx } as CSSProperties}
         data-surface={spec.surface}
       >
         <Image
-          src={src}
+          src={pickBrandIconSrc(spec.surface)}
           alt={alt}
-          width={srcPx}
-          height={srcPx}
-          className="vow-brand-logo__img vow-brand-logo__img--symbol"
+          width={BRAND_SYMBOL_WIDTH}
+          height={BRAND_SYMBOL_HEIGHT}
+          className="vow-brand-logo__symbol-img"
           priority={priority}
         />
       </span>

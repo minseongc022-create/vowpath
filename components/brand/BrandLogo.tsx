@@ -1,13 +1,15 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  BRAND_HORIZONTAL_HEIGHT,
+  BRAND_HORIZONTAL_WIDTH,
+  BRAND_SYMBOL_HEIGHT,
+  BRAND_SYMBOL_WIDTH,
   BRAND_LOGO_PLACEMENTS,
   type BrandLogoPlacement,
-  type BrandLogoSurface,
-  clearspacePx,
   horizontalWidthForHeight,
   legacyPlacementFromSize,
 } from "@/lib/brand-logo-system";
@@ -18,19 +20,12 @@ import { isEnglishUi } from "@/lib/locale";
 
 type BrandLogoProps = {
   className?: string;
-  /** Preferred — consistent placement token */
   placement?: BrandLogoPlacement;
-  /** @deprecated Use placement */
   showName?: boolean;
-  /** @deprecated Logo image includes the tagline */
   showTagline?: boolean;
-  /** @deprecated Use placement */
   variant?: "default" | "light" | "dark";
-  /** @deprecated Use placement */
-  surface?: BrandLogoSurface;
-  /** @deprecated Use placement */
+  surface?: "default" | "header" | "footer" | "dark";
   size?: "sm" | "md" | "lg" | "xl";
-  /** @deprecated Derived from placement */
   layout?: "horizontal" | "icon" | "symbol" | "responsive";
   href?: string;
 };
@@ -44,38 +39,26 @@ function resolvePlacement(props: BrandLogoProps): BrandLogoPlacement {
 }
 
 function SymbolMark({
-  px,
+  boxPx,
   surface,
-  srcScale,
   priority = true,
 }: {
-  px: number;
-  surface: BrandLogoSurface;
-  srcScale: number;
+  boxPx: number;
+  surface: "default" | "header" | "footer" | "dark";
   priority?: boolean;
 }) {
-  const pad = clearspacePx(px);
-  const frame = px + pad * 2;
-  const src = pickBrandIconSrc(surface);
-  const srcPx = Math.round(frame * srcScale);
-
   return (
     <span
-      className="vow-brand-logo__frame vow-brand-logo__frame--symbol"
-      style={
-        {
-          "--brand-symbol-frame": `${frame}px`,
-          "--brand-symbol-pad": `${pad}px`,
-        } as CSSProperties
-      }
+      className="vow-brand-logo__symbol"
+      style={{ width: boxPx, height: boxPx }}
       data-surface={surface}
     >
       <Image
-        src={src}
+        src={pickBrandIconSrc(surface)}
         alt={SITE.name}
-        width={srcPx}
-        height={srcPx}
-        className="vow-brand-logo__img vow-brand-logo__img--symbol"
+        width={BRAND_SYMBOL_WIDTH}
+        height={BRAND_SYMBOL_HEIGHT}
+        className="vow-brand-logo__symbol-img"
         priority={priority}
       />
     </span>
@@ -85,38 +68,27 @@ function SymbolMark({
 function HorizontalMark({
   heightPx,
   surface,
-  srcScale,
   priority = true,
 }: {
   heightPx: number;
-  surface: BrandLogoSurface;
-  srcScale: number;
+  surface: "default" | "header" | "footer" | "dark";
   priority?: boolean;
 }) {
   const widthPx = horizontalWidthForHeight(heightPx);
-  const padY = clearspacePx(heightPx);
-  const src = pickBrandHorizontalSrc(surface);
-  const srcW = Math.round(widthPx * srcScale);
-  const srcH = Math.round(heightPx * srcScale);
 
   return (
     <span
-      className="vow-brand-logo__frame vow-brand-logo__frame--horizontal"
-      style={
-        {
-          "--brand-logo-h": `${heightPx}px`,
-          "--brand-logo-w": `${widthPx}px`,
-          "--brand-logo-pad-y": `${padY}px`,
-        } as CSSProperties
-      }
+      className="vow-brand-logo__horizontal"
+      style={{ height: heightPx, width: widthPx }}
       data-surface={surface}
     >
       <Image
-        src={src}
+        src={pickBrandHorizontalSrc(surface)}
         alt={SITE.name}
-        width={srcW}
-        height={srcH}
-        className="vow-brand-logo__img vow-brand-logo__img--horizontal"
+        width={BRAND_HORIZONTAL_WIDTH}
+        height={BRAND_HORIZONTAL_HEIGHT}
+        className="vow-brand-logo__horizontal-img"
+        style={{ height: heightPx, width: widthPx }}
         priority={priority}
       />
     </span>
@@ -136,57 +108,28 @@ export function BrandLogo({
 }: BrandLogoProps) {
   const resolved = resolvePlacement({ placement, variant, surface, size });
   const spec = BRAND_LOGO_PLACEMENTS[resolved];
-  const resolvedSurface = spec.surface;
 
   let mark: ReactNode;
 
   if (layout === "icon" || layout === "symbol") {
-    mark = (
-      <SymbolMark
-        px={spec.symbolPx ?? 36}
-        surface={resolvedSurface}
-        srcScale={spec.srcScale}
-      />
-    );
-  } else if (layout === "horizontal") {
-    mark = (
-      <HorizontalMark
-        heightPx={spec.heightPx ?? 36}
-        surface={resolvedSurface}
-        srcScale={spec.srcScale}
-      />
-    );
+    mark = <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />;
+  } else if (layout === "horizontal" && spec.heightPx) {
+    mark = <HorizontalMark heightPx={spec.heightPx} surface={spec.surface} />;
   } else if (resolved === "site-header") {
     mark = (
       <>
         <span className="lg:hidden">
-          <SymbolMark px={spec.symbolPx ?? 36} surface={resolvedSurface} srcScale={spec.srcScale} />
+          <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />
         </span>
-        <span className="hidden lg:inline-flex">
-          <HorizontalMark
-            heightPx={spec.heightPx ?? 38}
-            surface={resolvedSurface}
-            srcScale={spec.srcScale}
-          />
+        <span className="hidden lg:block">
+          <HorizontalMark heightPx={spec.heightPx ?? 36} surface={spec.surface} />
         </span>
       </>
     );
   } else if (spec.layout === "horizontal" && spec.heightPx) {
-    mark = (
-      <HorizontalMark
-        heightPx={spec.heightPx}
-        surface={resolvedSurface}
-        srcScale={spec.srcScale}
-      />
-    );
+    mark = <HorizontalMark heightPx={spec.heightPx} surface={spec.surface} />;
   } else {
-    mark = (
-      <SymbolMark
-        px={spec.symbolPx ?? 36}
-        surface={resolvedSurface}
-        srcScale={spec.srcScale}
-      />
-    );
+    mark = <SymbolMark boxPx={spec.symbolPx ?? 32} surface={spec.surface} />;
   }
 
   return (

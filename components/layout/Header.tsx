@@ -19,7 +19,7 @@ export function Header({ session }: HeaderProps) {
   return (
     <header className="vow-site-header">
       <Container>
-        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:grid lg:grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] lg:items-center lg:gap-6">
+        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-6">
           <BrandLogo placement="site-header" href={ROUTES.home} />
 
           <nav className="hidden items-center justify-center gap-5 xl:flex xl:gap-7">

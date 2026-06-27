@@ -1,20 +1,25 @@
 /**
- * Effiroad brand logo system — sizing, clearspace, and aspect ratios.
- * All logo placements should use these tokens (Stripe/Notion-style consistency).
+ * Effiroad brand logo system — placement tokens (sizes only).
+ * Aspect ratios come from lib/brand-dimensions.ts (generated with assets).
  */
+import {
+  BRAND_HORIZONTAL_HEIGHT,
+  BRAND_HORIZONTAL_RATIO,
+  BRAND_HORIZONTAL_WIDTH,
+  BRAND_SYMBOL_HEIGHT,
+  BRAND_SYMBOL_WIDTH,
+} from "@/lib/brand-dimensions";
 
-/** Exported horizontal wordmark aspect (640×85 source) */
-export const BRAND_HORIZONTAL_RATIO = 640 / 85;
-
-/** Symbol mark is exported square with built-in clearspace padding */
-export const BRAND_SYMBOL_RATIO = 1;
-
-/** Minimum clearspace around the mark (fraction of display height) */
-export const BRAND_CLEARSPACE_RATIO = 0.14;
+export {
+  BRAND_HORIZONTAL_HEIGHT,
+  BRAND_HORIZONTAL_RATIO,
+  BRAND_HORIZONTAL_WIDTH,
+  BRAND_SYMBOL_HEIGHT,
+  BRAND_SYMBOL_WIDTH,
+};
 
 export type BrandLogoSurface = "default" | "header" | "footer" | "dark";
 
-/** Where the logo appears — drives size, layout, and surface */
 export type BrandLogoPlacement =
   | "site-header"
   | "site-footer"
@@ -26,58 +31,47 @@ export type BrandLogoPlacement =
 
 type PlacementSpec = {
   layout: "horizontal" | "symbol";
-  /** Display height in px (horizontal lockup) */
   heightPx?: number;
-  /** Symbol frame box in px (square clearspace frame) */
   symbolPx?: number;
   surface: BrandLogoSurface;
-  /** Source pixel width for next/image (2× display for retina) */
-  srcScale: number;
 };
 
 export const BRAND_LOGO_PLACEMENTS: Record<BrandLogoPlacement, PlacementSpec> = {
   "site-header": {
     layout: "horizontal",
-    heightPx: 38,
-    symbolPx: 36,
+    heightPx: 36,
+    symbolPx: 32,
     surface: "default",
-    srcScale: 2.5,
   },
   "site-footer": {
     layout: "horizontal",
-    heightPx: 32,
+    heightPx: 30,
     surface: "footer",
-    srcScale: 2.5,
   },
   "dash-sidebar": {
     layout: "symbol",
-    symbolPx: 40,
+    symbolPx: 36,
     surface: "dark",
-    srcScale: 2.5,
   },
   "dash-header": {
     layout: "symbol",
-    symbolPx: 36,
+    symbolPx: 32,
     surface: "header",
-    srcScale: 2.5,
   },
   "auth-header": {
     layout: "horizontal",
-    heightPx: 34,
+    heightPx: 32,
     surface: "header",
-    srcScale: 2.5,
   },
   hero: {
     layout: "symbol",
-    symbolPx: 112,
+    symbolPx: 96,
     surface: "default",
-    srcScale: 2,
   },
   "flow-hub": {
     layout: "symbol",
-    symbolPx: 80,
+    symbolPx: 72,
     surface: "default",
-    srcScale: 2,
   },
 };
 
@@ -85,11 +79,6 @@ export function horizontalWidthForHeight(heightPx: number) {
   return Math.round(heightPx * BRAND_HORIZONTAL_RATIO);
 }
 
-export function clearspacePx(displayPx: number) {
-  return Math.max(4, Math.round(displayPx * BRAND_CLEARSPACE_RATIO));
-}
-
-/** @deprecated Use BrandLogoPlacement — maps legacy size props */
 export function legacyPlacementFromSize(
   size: "sm" | "md" | "lg" | "xl",
   surface?: BrandLogoSurface,
