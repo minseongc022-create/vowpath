@@ -3,8 +3,10 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export function Problem() {
+  const id = "id" in siteProblem && siteProblem.id ? siteProblem.id : "problem";
+
   return (
-    <section className="vow-site-section py-20 sm:py-24">
+    <section id={id} className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading title={siteProblem.title} subtitle={siteProblem.subtitle} />
         <div className="mt-12 grid gap-4 sm:grid-cols-3">

@@ -3,9 +3,13 @@ import { siteTrustRoi } from "@/lib/site-content";
 
 export function TrustROI() {
   const t = siteTrustRoi;
+  const id = "id" in t && t.id ? t.id : undefined;
 
   return (
-    <section className="vow-site-section border-y border-brand-200/80 bg-brand-50 py-20 sm:py-24">
+    <section
+      id={id}
+      className="vow-site-section border-y border-brand-200/80 bg-brand-50 py-20 sm:py-24"
+    >
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-brand-900 sm:text-4xl">

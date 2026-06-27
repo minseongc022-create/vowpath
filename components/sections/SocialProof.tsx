@@ -1,10 +1,42 @@
 import { siteSocialProof } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 
-export function SocialProof() {
+type SocialProofProps = {
+  /** trust = compact bar right after hero; default = full section */
+  variant?: "trust" | "default";
+};
+
+export function SocialProof({ variant = "default" }: SocialProofProps) {
   const s = siteSocialProof;
   const testimonials =
     "testimonials" in s && Array.isArray(s.testimonials) ? s.testimonials : [];
+
+  if (variant === "trust") {
+    return (
+      <section id="trust" className="border-b border-brand-200/70 bg-brand-50/90 py-8 sm:py-10">
+        <Container>
+          <p className="text-center text-xs font-semibold uppercase tracking-wider text-brand-700">
+            {s.title}
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {s.items.map((item) => (
+              <div key={item.label} className="vow-site-card px-3 py-4 text-center sm:p-5">
+                <p className="text-xl font-bold text-brand-700 sm:text-2xl">{item.stat}</p>
+                <p className="mt-1 text-[11px] leading-snug text-stone-700 sm:text-xs">{item.label}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="mt-5 flex flex-wrap justify-center gap-2">
+            {s.badges.map((badge) => (
+              <li key={badge} className="hvac-badge-dark text-xs">
+                {badge}
+              </li>
+            ))}
+          </ul>
+        </Container>
+      </section>
+    );
+  }
 
   return (
     <section className="vow-site-section py-16 sm:py-20">

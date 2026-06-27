@@ -8,7 +8,7 @@ export function getNavLinks() {
 
   return [
 
-    { label: siteNav.product, href: "/#missed-call-flow" },
+    { label: siteNav.product, href: "/#product-stack" },
 
     { label: siteNav.about, href: "/#about" },
 

@@ -14,7 +14,7 @@ export const heroEn = {
   trustLine: "US residential HVAC · 1–5 truck shops · Jobber optional",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See the full flow",
-  secondaryCtaHref: "/#missed-call-flow",
+  secondaryCtaHref: "/#product-stack",
   heroBadges: [
     "AI phone intake",
     "Owner SMS 1 / 2",
@@ -161,12 +161,13 @@ export const approvalLoopEn = {
 export const aboutEn = {
   id: "about",
   badge: "The Road to Efficiency",
-  title: "Efficiency + Road",
+  title: "Efficiency is the Road to Limitless Success",
   subtitle:
-    "Effiroad is the efficient path for HVAC shops — AI phone, analytics, and a pocket ops assistant on one road.",
+    "Efficiency builds the road — and that road leads to growth without limits. Effiroad walks with you from the first step of your customers' journey.",
   paragraphs: [
     "Efficiency means fewer steps between a missed ring and a booked job: intake, triage, owner SMS approval, and customer updates without opening ten apps.",
     "Road is the through-line — from the first call to the calendar, crew dispatch, and optional Jobber sync. Built for US owner-operators who live on their cell.",
+    "Effiroad is not just software. It is the efficient path your shop takes every day — from the first call to booked work, crew dispatch, and long-term customer relationships.",
   ],
   pillars: [
     {
@@ -181,6 +182,7 @@ export const aboutEn = {
 };
 
 export const problemEn = {
+  id: "problem",
   title: "At 6:58 AM they wake up sweating. You are writing tickets. Voicemail wins.",
   subtitle:
     "27%+ of shop calls go unanswered. No-heat callers dial the next name on Google. One saved ticket pays for the month.",
@@ -376,7 +378,8 @@ export const featuresEn = {
 };
 
 export const trustRoiEn = {
-  title: "The math is simple",
+  id: "results",
+  title: "Real results. Simple math.",
   subtitle: "Effiroad is built around moments where one delayed response can lose the job.",
   rows: [
     {
@@ -521,7 +524,7 @@ export const dataTrustEn = {
 };
 
 export const socialProofEn = {
-  title: "Built for real HVAC shops",
+  title: "Built for real HVAC shops — live in minutes, not months",
   items: [
     { stat: "~10 min", label: "typical go-live" },
     { stat: "3 layers", label: "phone · analytics · AI" },

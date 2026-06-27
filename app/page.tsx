@@ -2,18 +2,18 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
-import { ProductStack } from "@/components/sections/ProductStack";
+import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
-import { About } from "@/components/sections/About";
+import { ProductStack } from "@/components/sections/ProductStack";
 import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
-import { Features } from "@/components/sections/Features";
-import { AgreementKeeper } from "@/components/sections/AgreementKeeper";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
+import { AgreementKeeper } from "@/components/sections/AgreementKeeper";
+import { Features } from "@/components/sections/Features";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { TrustROI } from "@/components/sections/TrustROI";
-import { SocialProof } from "@/components/sections/SocialProof";
+import { About } from "@/components/sections/About";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
@@ -25,19 +25,28 @@ export default async function HomePage() {
     <div className="vow-site flex min-h-screen flex-col">
       <Header session={session} />
       <main className="flex-1">
+        {/* 1. Hero — value prop + primary CTA */}
         <Hero />
+        {/* 2. Trust — credibility before the pain */}
+        <SocialProof variant="trust" />
+        {/* 3. Problem — why missed calls hurt */}
+        <Problem />
+        {/* 4. Solution — platform + workflows (all existing product sections) */}
         <ProductStack />
         <MissedCallFlow />
-        <Problem />
-        <About />
         <ApprovalLoop />
         <AiDispatcher />
-        <Features />
-        <AgreementKeeper />
         <SchedulingModes />
+        <AgreementKeeper />
+        {/* 5. Features — full capability grid */}
+        <Features />
+        {/* 6. How it works — go-live steps */}
         <HowItWorks />
+        {/* 7. Results — ROI math */}
         <TrustROI />
-        <SocialProof />
+        {/* 8. Philosophy — brand meaning */}
+        <About />
+        {/* 9. Conversion path */}
         <Pricing />
         <FAQ />
         <CTA />
