@@ -1,6 +1,8 @@
 /**
- * US restoration SMS copy — short, friendly, single-segment when possible (GSM ~160 chars).
- * One line per message body (no newlines) so URLs are not split mid-string.
+ * US restoration SMS copy — warm, professional, single-segment when possible (GSM ~160 chars).
+ * BRAND RULE:
+ *   - Customer-facing messages: use shop name only (resolveShopDisplayName)
+ *   - Tech/staff-facing messages: prefix with "Effiroad" so they know the platform
  */
 
 import { resolveShopDisplayName } from "./shop-display-name";
@@ -14,16 +16,11 @@ function forcesUcs2Encoding(text: string): boolean {
   return false;
 }
 
-/**
- * SMS with a URL — never truncate the link (truncated links open the marketing homepage).
- * Twilio splits long bodies into multiple segments automatically.
- */
 export function smsBodyWithUrl(intro: string, url: string, optOut = true): string {
   const tail = optOut ? smsCustomerOptOut().trim() : "";
   const body = tail ? `${intro.trim()} ${url} ${tail}` : `${intro.trim()} ${url}`;
   const limit = forcesUcs2Encoding(body) ? 70 : 160;
   if (body.length <= limit) return body;
-  // Drop opt-out before touching the URL; URL must stay intact.
   if (tail && body.length > limit) {
     const withoutOpt = `${intro.trim()} ${url}`;
     if (withoutOpt.length <= limit * 2) return withoutOpt;
@@ -42,11 +39,9 @@ export function smsTruncate(text: string, max: number): string {
   return `${t.slice(0, max - 1).trim()}…`;
 }
 
-/** Fit text to one SMS segment; drops optional tail first. */
 export function smsFitSingleSegment(parts: string[], max = GSM_SINGLE): string {
   let msg = parts.filter(Boolean).join(" ");
   if (msg.length <= max) return msg;
-  // Drop middle segments (usually issue detail) before URL
   if (parts.length > 2) {
     msg = smsFitSingleSegment([parts[0], parts[parts.length - 1]], max);
     if (msg.length <= max) return msg;
@@ -58,7 +53,6 @@ export function smsCustomerOptOut(): string {
   return " Reply STOP to opt out.";
 }
 
-/** Minutes staff can text for customer ETA (e.g. reply 30). */
 export const SMS_ETA_MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60] as const;
 export type SmsEtaMinutes = (typeof SMS_ETA_MINUTE_OPTIONS)[number];
 
@@ -66,35 +60,33 @@ export function smsEtaMinutesLabel(): string {
   return SMS_ETA_MINUTE_OPTIONS.join(", ");
 }
 
-/** Full staff ETA instructions — reply to shop SMS, not the customer. */
 export function smsStaffEtaHint(): string {
   return (
-    `FOR STAFF: When you leave, reply to THIS text with minutes until you arrive ` +
-    `(${smsEtaMinutesLabel()}). Ex: 30 = ~30 min away. ` +
-    `We text the customer your ETA — don't text the customer yourself.`
+    `Effiroad: When you're heading out, reply to THIS text with your drive time in minutes ` +
+    `(${smsEtaMinutesLabel()}). Example: 20 = 20 min away. We'll text the customer — don't contact them directly.`
   );
 }
 
-/** Shorter suffix when appended to another shop SMS. */
 export function smsStaffEtaHintShort(): string {
-  return (
-    `Staff: leaving? Reply HERE ${smsEtaMinutesLabel()} = minutes to customer. ` +
-    `Ex: 30. We notify them for you.`
-  );
+  return `Effiroad: Leaving? Reply with minutes to arrival (${smsEtaMinutesLabel()}). We text the customer for you.`;
 }
 
-/** When staff text something invalid (or customer texts a number by mistake). */
 export function smsStaffEtaInvalidReply(): string {
   return (
-    `Staff: reply ${smsEtaMinutesLabel()} to THIS shop text only = minutes until arrival. ` +
-    `Ex: 30. We text the customer. Don't text the customer directly.`
+    `Effiroad: To update ETA, reply to THIS text with minutes only (${smsEtaMinutesLabel()}). ` +
+    `Example: 20. We'll notify the customer — please don't text them directly.`
   );
 }
+
+// ─── Customer-facing messages (shop name, no "Effiroad") ────────────────────
 
 /** Link intake — press 1 on call */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return smsBodyWithUrl(`${shop}: Hey! 👋 So glad you called — book your visit here (takes ~60 sec):`, url);
+  return smsBodyWithUrl(
+    `${shop}: Thanks for calling! Tap the link to submit your info — takes about 60 seconds:`,
+    url,
+  );
 }
 
 /** After booking / request received */
@@ -111,13 +103,11 @@ export function smsCustomerBookingConfirmationBody(params: {
   const first = smsFirstName(params.customerName);
   const issue = smsTruncate(params.issueType, 26);
   const ref = params.requestNumber;
-  const window = params.arrivalWindow?.trim()
-    ? smsTruncate(params.arrivalWindow, 20)
-    : "";
+  const window = params.arrivalWindow?.trim() ? smsTruncate(params.arrivalWindow, 22) : "";
   const pending = params.pendingShopReview
-    ? " We'll confirm your arrival window soon!"
-    : " You're on the schedule!";
-  const core = `${shop}: Hi ${first}! ✅ ${ref} — ${issue}.${window ? ` Window: ${window}.` : pending}`;
+    ? " We're reviewing your request and will confirm your window shortly."
+    : " You're on our schedule!";
+  const core = `${shop}: Hi ${first}! Your request is confirmed (${ref}) — ${issue}.${window ? ` Arrival window: ${window}.` : pending} You can view or update details here:`;
   return smsBodyWithUrl(core, params.portalUrl);
 }
 
@@ -131,45 +121,134 @@ export function smsCustomerScheduledBody(params: {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
   const window = smsTruncate(params.window, 22);
-  const urgent = params.priority === "P1" ? " Priority visit!" : "";
-  const core = `${shop}: Hi ${first}! 📅 You're set for ${window}.${urgent} We'll text when we're on the way!`;
-  if (params.portalUrl) {
-    return smsBodyWithUrl(core, params.portalUrl);
-  }
+  const urgent = params.priority === "P1" ? " Our team is treating this as priority." : "";
+  const core = `${shop}: Hi ${first}! You're scheduled for ${window}.${urgent} We'll send a heads-up when we're on our way.`;
+  if (params.portalUrl) return smsBodyWithUrl(core, params.portalUrl);
   return smsFitSingleSegment([core + smsCustomerOptOut()]);
 }
 
 export function smsCustomerIntakeAckBody(shopName: string | undefined, issue: string): string {
   const shop = resolveShopDisplayName(shopName);
   return smsFitSingleSegment([
-    `${shop}: Got it — ${smsTruncate(issue, 28)}! 🔧 We'll text your arrival window soon.${smsCustomerOptOut()}`,
+    `${shop}: Got it — ${smsTruncate(issue, 30)}. We'll confirm your arrival window shortly.${smsCustomerOptOut()}`,
   ]);
 }
 
 export function smsCustomerNoSlotBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Request in! 📞 Calendar's tight — we'll call within 2 hrs to lock in your window.${smsCustomerOptOut()}`;
+  return smsFitSingleSegment([
+    `${shop}: We've received your request. Our calendar is full right now — someone will call you within 2 hours to lock in a window.${smsCustomerOptOut()}`,
+  ]);
 }
 
 export function smsCustomerApprovedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: You're confirmed! ✅ We'll text your arrival window & when we're on the way.${smsCustomerOptOut()}`;
+  return smsFitSingleSegment([
+    `${shop}: You're confirmed! We'll send your arrival window and a heads-up when we're on the way.${smsCustomerOptOut()}`,
+  ]);
 }
 
 export function smsCustomerRejectedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: We can't take this one right now — give us a call if you still need help!${smsCustomerOptOut()}`;
+  return smsFitSingleSegment([
+    `${shop}: Unfortunately we're unable to take this job right now. Please give us a call if you still need assistance — we're happy to help.${smsCustomerOptOut()}`,
+  ]);
 }
 
 export function smsRequestReceivedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: Got your request! 👋 Not confirmed yet — we'll follow up shortly.${smsCustomerOptOut()}`;
+  return smsFitSingleSegment([
+    `${shop}: We've received your request and our team is reviewing it now. We'll follow up shortly.${smsCustomerOptOut()}`,
+  ]);
 }
 
 export function smsAfterHoursCustomerBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
-  return `${shop}: After-hours request received! 🌙 We'll reach out next business day.${smsCustomerOptOut()}`;
+  return smsFitSingleSegment([
+    `${shop}: After-hours request received. Our team will reach out first thing in the morning.${smsCustomerOptOut()}`,
+  ]);
 }
+
+/** Customer — tech en route */
+export function smsCustomerOnMyWayBody(params: {
+  shopName?: string;
+  customerName: string;
+  techName: string;
+  etaMinutes: number;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const tech = smsTruncate(params.techName, 18);
+  return smsFitSingleSegment([
+    `${shop}: Hi ${first}! ${tech} is heading your way — estimated arrival in ~${params.etaMinutes} min. Please clear access to the affected area. Thank you!${smsCustomerOptOut()}`,
+  ]);
+}
+
+export function smsCustomerVerificationBody(params: {
+  shopName?: string;
+  issueType: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  return smsFitSingleSegment([
+    `${shop}: Just to confirm — is this correct: "${smsTruncate(params.issueType, 24)}"? Reply YES or NO.${smsCustomerOptOut()}`,
+  ]);
+}
+
+export function smsMissedCallTextbackBody(params: {
+  shopName?: string;
+  url: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  return `${shop}: We're sorry we missed your call! Submit your request here (takes 1 min): ${params.url}`;
+}
+
+// ─── 30-minute appointment reminder ─────────────────────────────────────────
+
+/** To tech: 30 min before window — ask for ETA */
+export function smsApptReminderToTech(params: {
+  customerName: string;
+  window: string;
+  bookingId: string;
+}): string {
+  const name = smsTruncate(params.customerName, 18);
+  const win = smsTruncate(params.window, 20);
+  return (
+    `Effiroad: You have a job in ~30 min — ${name}, window ${win}. ` +
+    `How many minutes away are you? Reply with a number (e.g. 20). ` +
+    `We'll let the customer know. Ref: ${params.bookingId.slice(-6)}`
+  );
+}
+
+/** To customer: tech gave ETA */
+export function smsApptEtaToCustomer(params: {
+  shopName?: string;
+  customerName: string;
+  etaMinutes: number;
+  window: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = smsFirstName(params.customerName);
+  return smsFitSingleSegment([
+    `${shop}: Hi ${first}! Your technician is about ${params.etaMinutes} min away. Please have the area ready. See you soon!${smsCustomerOptOut()}`,
+  ]);
+}
+
+/** To customer: no ETA from tech — fallback */
+export function smsApptFallbackToCustomer(params: {
+  shopName?: string;
+  customerName: string;
+  window: string;
+  techName?: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const win = smsTruncate(params.window, 20);
+  return smsFitSingleSegment([
+    `${shop}: Hi ${first}! A reminder — your technician is scheduled for ${win} and will be on the way shortly. We'll keep you posted!${smsCustomerOptOut()}`,
+  ]);
+}
+
+// ─── Owner/staff-facing messages (Effiroad prefix) ──────────────────────────
 
 export function smsOwnerApprovalNeededBody(params: {
   shopName?: string;
@@ -183,8 +262,8 @@ export function smsOwnerApprovalNeededBody(params: {
   const name = smsTruncate(params.customerName, 16);
   const issue = smsTruncate(params.issue, 22);
   const window = smsTruncate(params.window, 18);
-  const tag = params.ambiguous ? "REVIEW" : params.priority === "P1" ? "P1!" : "Approve?";
-  return `${shop} ${tag}: ${name}, ${issue}. ${window}. Reply 1=Yes 2=No`;
+  const tag = params.ambiguous ? "REVIEW" : params.priority === "P1" ? "P1!" : "New job";
+  return `${shop} ${tag}: ${name} — ${issue}. ${window}. Reply 1=Approve 2=Decline`;
 }
 
 export function smsOwnerScheduledFyiBody(params: {
@@ -195,7 +274,7 @@ export function smsOwnerScheduledFyiBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Booked ${smsTruncate(params.window, 18)} — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}. Undo: reply 9 (${params.undoMinutes}m).`;
+  return `${shop}: Booked — ${smsTruncate(params.customerName, 14)}, ${smsTruncate(params.issue, 18)}, ${smsTruncate(params.window, 18)}. Reply 9 to undo (${params.undoMinutes}m).`;
 }
 
 export function smsOwnerUrgentAutoBookedBody(params: {
@@ -206,7 +285,7 @@ export function smsOwnerUrgentAutoBookedBody(params: {
   undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop} P1 booked! ${smsTruncate(params.window, 16)}: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}. Reply 2=Cancel. Undo 9 (${params.undoMinutes}m).`;
+  return `${shop} P1 AUTO-BOOKED: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}, ${smsTruncate(params.window, 16)}. Reply 2=Cancel | 9=Undo (${params.undoMinutes}m).`;
 }
 
 export function smsOwnerNoSlotBody(params: {
@@ -215,7 +294,7 @@ export function smsOwnerNoSlotBody(params: {
   issue: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: No slot for ${smsTruncate(params.customerName, 14)} (${smsTruncate(params.issue, 20)}). Assign in dashboard.`;
+  return `${shop}: No available slot for ${smsTruncate(params.customerName, 14)} (${smsTruncate(params.issue, 22)}). Please assign manually in the dashboard.`;
 }
 
 export function smsOwnerNewRequestBody(params: {
@@ -229,16 +308,13 @@ export function smsOwnerNewRequestBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
-  const issue = smsTruncate(params.issue, 20);
+  const issue = smsTruncate(params.issue, 22);
   const place =
     params.cityState?.trim() && params.cityState !== "—"
-      ? ` ${smsTruncate(params.cityState, 12)}`
+      ? ` · ${smsTruncate(params.cityState, 12)}`
       : "";
-  const tag = params.priority === "P1" ? "P1!" : params.priority;
-  const reply = params.ambiguous
-    ? ` Reply 1 ${params.ref}=Yes 2 ${params.ref}=No.`
-    : ` Reply 1 ${params.ref}=Yes 2 ${params.ref}=No.`;
-  return `${shop} ${tag}: ${name}, ${issue}${place}.${reply}`;
+  const tag = params.priority === "P1" ? "P1 URGENT" : params.priority;
+  return `${shop} ${tag}: ${name} — ${issue}${place}. Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
 }
 
 export function smsOwnerIntakeAutoConfirmedBody(params: {
@@ -251,23 +327,17 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
-  const issue = smsTruncate(params.issue, 18);
+  const issue = smsTruncate(params.issue, 20);
   if (params.autoWaterDispatch) {
-    return `${shop} CREW DISPATCHED: ${name}, ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo.`;
+    return `${shop} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo.`;
   }
   if (params.urgent) {
-    return `${shop} P1 confirmed: ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+    return `${shop} P1 CONFIRMED: ${name} — ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
   }
-  return `${shop}: Confirmed ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+  return `${shop}: Confirmed — ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
 }
 
-export function smsMissedCallTextbackBody(params: {
-  shopName?: string;
-  url: string;
-}): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Sorry we missed your call — report your loss here (1 min): ${params.url}`;
-}
+// ─── Tech dispatch offer (Effiroad platform, tech sees our name) ─────────────
 
 export function smsTechDispatchOfferBody(params: {
   shopName?: string;
@@ -276,41 +346,18 @@ export function smsTechDispatchOfferBody(params: {
   window: string;
   ref: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Job offer — ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}, ${smsTruncate(params.window, 14)}. Reply 1=Accept 2=Pass. Ref ${params.ref}`;
+  return (
+    `Effiroad: New job offer — ${smsTruncate(params.customerName, 14)}, ` +
+    `${smsTruncate(params.issue, 18)}, ${smsTruncate(params.window, 16)}. ` +
+    `Reply 1=Accept 2=Pass. Ref ${params.ref}`
+  );
 }
 
-/** After tech accepts — remind them to reply with ETA minutes when driving. */
 export function smsTechOnMyWayAcceptedHint(params: {
   shopName?: string;
   customerName: string;
   ref: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 18);
-  return `${shop}: On ${name} (${params.ref}). ${smsStaffEtaHint()}`;
-}
-
-/** Customer — tech en route (Jobber-style ETA). */
-export function smsCustomerOnMyWayBody(params: {
-  shopName?: string;
-  customerName: string;
-  techName: string;
-  etaMinutes: number;
-}): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const first = smsFirstName(params.customerName);
-  const tech = smsTruncate(params.techName, 16);
-  const eta = params.etaMinutes;
-  return smsFitSingleSegment([
-    `${shop}: Hi ${first}! ${tech} is on the way — ETA ~${eta} min. Please clear access to the affected area. Thank you.${smsCustomerOptOut()}`,
-  ]);
-}
-
-export function smsCustomerVerificationBody(params: {
-  shopName?: string;
-  issueType: string;
-}): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Quick check — is this right (${smsTruncate(params.issueType, 22)})? Reply YES or NO.${smsCustomerOptOut()}`;
+  return `Effiroad: Accepted — ${name} (${params.ref}). ${smsStaffEtaHintShort()}`;
 }

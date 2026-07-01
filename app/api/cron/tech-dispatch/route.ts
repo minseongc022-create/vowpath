@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
+import { processApptRemindersAll } from "@/lib/tech-dispatch/appointment-reminder";
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
@@ -19,8 +20,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await processExpiredTechOffersAll();
-    return NextResponse.json({ ok: true, ...result });
+    const [timeouts, reminders] = await Promise.all([
+      processExpiredTechOffersAll(),
+      processApptRemindersAll(),
+    ]);
+    return NextResponse.json({ ok: true, timeouts, reminders });
   } catch (e) {
     console.error("[cron/tech-dispatch]", e);
     return NextResponse.json(
