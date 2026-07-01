@@ -1,7 +1,20 @@
 import type { JobPriority } from "./types";
+import type { ShopVertical } from "./shop-vertical";
 
-export const SPEECH_HINTS =
+const HVAC_SPEECH_HINTS =
   "no heat,no cool,not cooling,leak,gas smell,water leak,emergency,tonight,today,maintenance,tune up";
+
+const RESTORATION_SPEECH_HINTS =
+  "water damage,flood,sewage,sewage backup,mold,black mold,fire damage,smoke damage,water in basement,burst pipe,insurance claim,deductible,emergency,tonight,today,address,phone number,callback";
+
+/** Legacy default — kept for callers that haven't switched to buildSpeechHints yet. */
+export const SPEECH_HINTS = HVAC_SPEECH_HINTS;
+
+/** Speech recognition hints tuned per trade vertical. Defaults to HVAC hints. */
+export function buildSpeechHints(vertical?: ShopVertical | string): string {
+  if (vertical === "restoration") return RESTORATION_SPEECH_HINTS;
+  return HVAC_SPEECH_HINTS;
+}
 
 export function menuPriorityFromDigit(digit: string | null): JobPriority | null {
   if (digit === "1") return "P1";

@@ -68,18 +68,8 @@ export function isPortalHost(host: string | null | undefined): boolean {
   if (root && (h === root || h === `www.${root}`)) return true;
   if (PORTAL_HOST_SUFFIXES.some((prefix) => h.startsWith(prefix))) return true;
   return (
-    h === "portal.vowpath.com" ||
-    h === "app.vowpath.com" ||
-    h === "link.vowpath.com" ||
-    h === "book.vowpathhq.com" ||
-    h === "link.vowpathhq.com" ||
-    h === "go.vowpathhq.com" ||
     h === "book.effiroad.com" ||
     h === "link.effiroad.com" ||
-    h === "go.effiroad.com" ||
-    h === "link.vowroad.com" ||
-    h === "book.vowroad.com" ||
-    h === "hvacsvc.link" ||
-    h === "www.hvacsvc.link"
+    h === "go.effiroad.com"
   );
 }

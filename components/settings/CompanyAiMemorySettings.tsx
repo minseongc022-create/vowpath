@@ -14,6 +14,8 @@ const EMPTY: FormState = {
   specialInstructions: "",
   dailyBriefingSmsEnabled: false,
   dailyBriefingSmsTime: "08:00",
+  temporaryClosureDate: "",
+  temporaryClosureMessage: "",
 };
 
 function Field({
@@ -185,7 +187,7 @@ export function CompanyAiMemorySettings() {
         type="button"
         disabled={loading || saving}
         onClick={save}
-        className="hvac-btn-primary mt-5 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        className="vow-dash-btn-primary mt-5 w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? "Saving..." : "Save AI Memory"}
       </button>

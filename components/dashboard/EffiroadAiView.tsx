@@ -252,7 +252,7 @@ function AssistantMessage({
           🙂
         </span>
         <span className="text-sm font-semibold text-brand-800">
-          {isEnglish ? "Vow" : "보우"}
+          Effiroad AI
         </span>
       </div>
       <p className="vow-ai-msg-text">{message.answer}</p>
@@ -574,12 +574,39 @@ export function EffiroadAiView() {
         <div className="min-w-0 flex-1">
           <p className="vow-settings-eyebrow">Effiroad AI</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">
-            {isEnglish ? "Hi — I'm Vow, your shop sidekick" : "안녕하세요, 샵 도우미 보우예요"}
+            {isEnglish ? "Hi — I'm your Effiroad AI sidekick" : "안녕하세요, Effiroad AI 도우미예요"}
           </h1>
           <p className="mt-2 text-base leading-relaxed text-stone-600">
             {isEnglish
-              ? "I search your shop data first, then answer with next steps. Settings changes always need your confirmation."
-              : "회사 데이터를 먼저 찾아 답변하고, 다음 행동을 제안합니다. 설정 변경은 항상 확인 후 저장됩니다."}
+              ? "I pull your live shop data before every answer and suggest concrete next steps. Any settings change requires your confirmation before it saves."
+              : "매 질문마다 실시간 업체 데이터를 먼저 확인하고 구체적인 다음 행동을 제안합니다. 설정 변경은 항상 확인 후 저장됩니다."}
+          </p>
+          <ul className="mt-4 grid gap-1.5 text-sm text-stone-500 sm:grid-cols-2">
+            {(isEnglish ? [
+              "Answer questions about calls, bookings & schedule",
+              "Approve or decline pending requests in chat",
+              "Create and manage automation rules by voice",
+              "Change settings — hours, SMS alerts, service areas",
+              "Compare this week vs. last week automatically",
+              "Proactive briefing every time you open this page",
+            ] : [
+              "통화·예약·일정 관련 질문에 바로 답변",
+              "채팅에서 승인 대기 요청을 즉시 처리",
+              "자연어로 자동화 규칙 생성·관리",
+              "영업시간·SMS 알림·서비스 지역 등 설정 변경",
+              "이번 주 vs 저번 주 자동 비교 분석",
+              "페이지 열 때마다 운영 브리핑 자동 제공",
+            ]).map((cap) => (
+              <li key={cap} className="flex items-start gap-2">
+                <span className="mt-0.5 text-brand-400" aria-hidden>✓</span>
+                {cap}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-stone-400">
+            {isEnglish
+              ? "Every settings change requires your explicit confirmation before it applies. Effiroad AI never modifies dispatch rules, billing, or account access without your approval."
+              : "모든 설정 변경은 확인 후에만 적용됩니다. 승인 없이 자동으로 변경되는 항목은 없습니다."}
           </p>
         </div>
       </header>
@@ -631,7 +658,7 @@ export function EffiroadAiView() {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isEnglish ? "Ask Vow anything…" : "보우에게 무엇이든 물어보세요…"}
+            placeholder={isEnglish ? "Ask Effiroad AI anything…" : "Effiroad AI에게 무엇이든 물어보세요…"}
             className="vow-ai-input"
           />
           <button

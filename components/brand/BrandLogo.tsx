@@ -77,7 +77,7 @@ function HorizontalMark({
 
   return (
     <span
-      className="vow-brand-logo__horizontal"
+      className="vow-brand-logo__horizontal block leading-none"
       style={{ height: heightPx, width: widthPx }}
       data-surface={surface}
     >
@@ -86,7 +86,7 @@ function HorizontalMark({
         alt={SITE.name}
         width={BRAND_HORIZONTAL_WIDTH}
         height={BRAND_HORIZONTAL_HEIGHT}
-        className="vow-brand-logo__horizontal-img"
+        className="vow-brand-logo__horizontal-img block"
         style={{ height: heightPx, width: widthPx }}
         priority={priority}
       />
@@ -142,18 +142,18 @@ export function BrandLogo({
   } else if (resolved === "site-header") {
     mark = (
       <>
-        <span className="lg:hidden">
-          <SymbolMark boxPx={spec.symbolPx ?? 36} surface={spec.surface} />
+        <span className="sm:hidden">
+          <HorizontalMark heightPx={32} surface={spec.surface} />
         </span>
-        <span className="hidden lg:block">
-          <CssLockup symbolPx={spec.symbolPx ?? 38} surface={spec.surface} />
+        <span className="hidden sm:block">
+          <HorizontalMark heightPx={48} surface={spec.surface} />
         </span>
       </>
     );
   } else if (resolved === "auth-header") {
     mark = <CssLockup symbolPx={spec.symbolPx ?? 34} surface={spec.surface} />;
   } else if (resolved === "site-footer") {
-    mark = <CssLockup symbolPx={28} surface={spec.surface} />;
+    mark = <HorizontalMark heightPx={32} surface={spec.surface} />;
   } else if (spec.layout === "horizontal" && spec.heightPx) {
     mark = <HorizontalMark heightPx={spec.heightPx} surface={spec.surface} />;
   } else {
@@ -163,7 +163,7 @@ export function BrandLogo({
   return (
     <Link
       href={href}
-      className={`vow-brand-logo group shrink-0 ${className}`}
+      className={`vow-brand-logo group shrink-0 flex items-center ${className}`}
       aria-label={`${SITE.name} home`}
     >
       {mark}

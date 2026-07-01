@@ -1,5 +1,5 @@
 /**
- * Delete ALL Vowpath accounts and tenant data (KV + local data/*.json).
+ * Delete ALL Effiroad accounts and tenant data (KV + local data/*.json).
  * Usage: node scripts/purge-all-accounts.mjs --confirm
  */
 import { readFileSync, readdirSync, unlinkSync, writeFileSync, mkdirSync } from "fs";
@@ -120,7 +120,7 @@ async function main() {
     }
   }
 
-  console.log("=== Vowpath account purge ===");
+  console.log("=== Effiroad account purge ===");
   if (usersBefore.length > 0) {
     console.log(`Accounts to remove (${usersBefore.length}):`);
     for (const u of usersBefore) {

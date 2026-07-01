@@ -216,6 +216,77 @@ Only ask: if it works, a quick quote I can share anonymously."
 
 ---
 
+---
+
+## HVAC Vertical — Outreach Templates
+
+### HVAC Email 1
+
+**Subject:** When your tech is on a job and the furnace call goes to voicemail
+
+Hi [First Name],
+
+HVAC shop owners miss no-heat calls for one reason: they're already working.
+
+Effiroad answers after-hours and overflow calls automatically — classifies the job (no-heat, AC, gas smell, maintenance), and dispatches your on-call tech in under 90 seconds for emergencies.
+
+Gas smell? Never auto-dispatched — it texts you first and waits.
+
+30-day free trial, I do the setup, takes 10 minutes.
+
+[Your name]
+
+---
+
+### HVAC Email 2 (follow-up, Day 5)
+
+**Subject:** Re: HVAC after-hours calls
+
+Quick follow-up — one thing that sets this apart from generic answering services:
+
+Effiroad knows the difference between "no heat" (auto-dispatch) and "gas smell" (hold, text you). Regular answering services don't make that call.
+
+Worth 15 minutes to show you a live demo?
+
+[Your name]
+
+---
+
+### HVAC LinkedIn DM 1
+
+Hi [Name] — I work with HVAC shops on after-hours call handling. No-heat calls in January are $1,500+ jobs. Missing one because you're on another job costs more than the fix. Built something that auto-dispatches those while holding gas-smell calls for your approval. Happy to show you a 2-minute demo.
+
+---
+
+### HVAC Loom Demo Script (2 min)
+
+```
+[0:00–0:15] Hook
+"It's January, 11pm. Homeowner calls — no heat, furnace won't start.
+You're on another job. Here's what Effiroad does instead of voicemail."
+
+[0:15–0:45] Phone intake demo
+"The call hits Effiroad. AI greets them as [Shop Name].
+Caller: no heat, furnace won't start, address confirmed.
+This takes about 45 seconds."
+
+[0:45–1:10] Auto-dispatch
+"No hold needed — this is a clear P1 no-heat with a verified address.
+Your on-call tech gets an SMS: New HVAC job, no heat, [address].
+Reply 1 to accept."
+
+[1:10–1:35] Gas smell demo
+"Now watch what happens when someone says gas smell.
+No auto-dispatch — you get an urgent SMS: hold for your approval.
+Reply 1 to send, 2 to hold. Always your call."
+
+[1:35–2:00] Dashboard + CTA
+"Everything logs here — issue type, address, dispatch log.
+30-day free trial. I do the setup. Just reply."
+```
+
+---
+
 ## Objection Responses
 
 | Objection | Response |

@@ -12,6 +12,8 @@ import {
   type SchedulingMode,
   type ShopBookingSettings,
 } from "./booking-settings";
+import { getVerticalConfig } from "./vertical-config.js";
+import type { ShopVertical } from "./shop-vertical.js";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "shop-settings.json");
@@ -76,22 +78,28 @@ export async function decrementShadowMode(
 }
 
 /** First signup — hybrid + 14-day shadow baseline (idempotent). */
-export async function initializeNewTenantShopSettings(userId: string): Promise<ShopBookingSettings> {
+export async function initializeNewTenantShopSettings(
+  userId: string,
+  vertical?: ShopVertical,
+): Promise<ShopBookingSettings> {
+  const base = newTenantShopBookingSettings();
+  if (vertical) {
+    base.avgJobTicketUsd = getVerticalConfig(vertical).defaultAvgJobTicketUsd;
+  }
+
   if (useKvStore()) {
     const existing = await kvGetSafe<Partial<ShopBookingSettings>>(kvKey(userId));
     if (existing && Object.keys(existing).length > 0) {
       return mergeShopBookingSettings(existing);
     }
-    const next = newTenantShopBookingSettings();
-    await kv.set(kvKey(userId), next);
-    return next;
+    await kv.set(kvKey(userId), base);
+    return base;
   }
   const all = await readFileStore();
   if (all[userId]) {
     return mergeShopBookingSettings(all[userId]);
   }
-  const next = newTenantShopBookingSettings();
-  all[userId] = next;
+  all[userId] = base;
   await writeFileStore(all);
-  return next;
+  return base;
 }

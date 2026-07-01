@@ -12,7 +12,7 @@ import {
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
   const url = new URL(request.url);
@@ -21,6 +21,11 @@ export async function POST(request: Request) {
   const digit = form.get("Digits");
 
   const base = getTwilioWebhookBaseUrl();
+  if (!base) {
+    console.error(
+      "[twilio/menu] empty webhook base URL — set TWILIO_WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL; generated TwiML callback URLs will be invalid",
+    );
+  }
   const menuUrl = afterHours
     ? `${base}/api/twilio/menu?afterHours=1`
     : `${base}/api/twilio/menu`;

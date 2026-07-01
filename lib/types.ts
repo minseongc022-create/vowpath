@@ -1,9 +1,10 @@
-import type { BookingMode, RequestStatus } from "./booking-policy";
+﻿import type { BookingMode, RequestStatus } from "./booking-policy";
 import type {
   ForwardingProviderId,
   ForwardingScenarioId,
 } from "./forwarding-guides";
 import type { PrioritySource, ServicePriority } from "./service-priority";
+import type { ShopVertical } from "./shop-vertical.js";
 
 export type JobPriority = "P1" | "P2" | "P3";
 
@@ -37,7 +38,7 @@ export type AnswerWindow = {
 export type ShopState = {
   scheduleWindows: AnswerWindow[];
   answerScheduleActive: boolean;
-  /** When true, AI answers 24/7 for calls that reach Vowpath. */
+  /** When true, AI answers 24/7 for calls that reach Effiroad. */
   scheduleAlwaysOn?: boolean;
   jobberConnected: boolean;
   /** Settings wizard: user confirmed Jobber step after OAuth connect */
@@ -50,4 +51,8 @@ export type ShopState = {
   onboardingComplete: boolean;
   /** Mode A: request_only (MVP). Mode B: auto_booking (future). */
   bookingMode?: BookingMode;
+  /** Trade vertical — drives AI prompts, dispatch rules, and intake fields. Default: restoration. */
+  vertical?: ShopVertical;
 };
+
+export type { ShopVertical };

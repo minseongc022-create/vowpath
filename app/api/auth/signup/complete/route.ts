@@ -7,12 +7,15 @@ import { deletePendingSignup, getPendingSignup } from "@/lib/signup-verify-store
 import { createUser } from "@/lib/users-db";
 import { ensureTenantTwilioPhone } from "@/lib/twilio-provision";
 import { initializeNewTenantShopSettings } from "@/lib/shop-settings-db";
+import { saveShopProfile } from "@/lib/shop-profile-db";
+import { normalizeShopVertical } from "@/lib/shop-vertical";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const signupRequestId = String(body?.signupRequestId ?? "").trim();
     const phoneRaw = String(body?.phone ?? "").trim();
+    const vertical = normalizeShopVertical(body?.vertical);
     if (!signupRequestId) {
       return NextResponse.json({ error: apiErrorsEn.verifyFirst }, { status: 400 });
     }
@@ -48,7 +51,8 @@ export async function POST(request: Request) {
 
     await deletePendingSignup(signupRequestId);
 
-    await initializeNewTenantShopSettings(user.id);
+    await initializeNewTenantShopSettings(user.id, vertical);
+    await saveShopProfile(user.id, { vertical });
 
     let phoneProvisioned = false;
     let phoneNumber: string | undefined;

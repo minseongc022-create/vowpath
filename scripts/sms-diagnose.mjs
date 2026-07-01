@@ -87,7 +87,7 @@ try {
 
 try {
   const msg = await client.messages.create({
-    body: "[Vowpath] SMS diagnose OK",
+    body: "[Effiroad] SMS diagnose OK",
     from,
     to: testTo,
   });

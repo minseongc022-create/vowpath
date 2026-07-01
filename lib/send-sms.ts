@@ -157,7 +157,7 @@ export async function sendSms(
     const error =
       health.issues[0] ??
       "문자 발송 설정이 완료되지 않았습니다. TWILIO 환경 변수를 확인하세요.";
-    logSmsPreview(`${devLogLabel} (not ready)`, phone, body);
+    console.warn(`[send-sms] ${devLogLabel} not ready: ${error}`);
     if (strict) return { ok: false, error };
     return reportFailure(error, { context, toPhone: phone, devLogLabel });
   }

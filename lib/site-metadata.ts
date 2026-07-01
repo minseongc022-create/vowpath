@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { SITE } from "@/lib/constants";
+import type { ShopVertical } from "@/lib/shop-vertical";
 
 /** Cache-bust favicons after asset updates */
-export const SITE_ICON_VERSION = "15";
+export const SITE_ICON_VERSION = "22";
 
 export const SITE_SEO = {
-  title: "Effiroad | AI Emergency Intake & Dispatch for Restoration Companies",
+  title: "AI Dispatch & Answering for Restoration Companies | Effiroad",
   description:
-    "Effiroad helps water, fire, and mold restoration companies answer every emergency call, capture insurance-ready intake, dispatch crews, and never lose a claim to voicemail. 24/7 AI phone, SMS, dispatch, and analytics in one platform.",
+    "24/7 AI phone answering, smart dispatch, and crew alerts for independent water, fire & mold restoration companies. Live in 10 minutes. No CRM required.",
   ogTitle: "Effiroad | Never Lose a $10,000 Job at 2 AM Again",
   ogDescription:
     "AI-powered emergency intake and crew dispatch built for independent restoration companies.",
@@ -98,6 +99,43 @@ export function buildSiteMetadata(locale: "en" | "ko" = "en"): Metadata {
   };
 }
 
+/** Build metadata for vertical-specific landing pages (/hvac, /plumbing, etc.) */
+export function buildVerticalPageMetadata(
+  vertical: ShopVertical,
+  overrides: {
+    title: string;
+    description: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    keywords?: string[];
+  },
+): Metadata {
+  return {
+    metadataBase: new URL(SITE.url),
+    title: overrides.title,
+    description: overrides.description,
+    keywords: overrides.keywords,
+    icons: getSiteIcons(),
+    openGraph: {
+      title: overrides.ogTitle ?? overrides.title,
+      description: overrides.ogDescription ?? overrides.description,
+      type: "website",
+      url: `${SITE.url}/${vertical}`,
+      siteName: SITE.name,
+      locale: "en_US",
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
+    alternates: {
+      canonical: `${SITE.url}/${vertical}`,
+    },
+    applicationName: SITE.name,
+  };
+}
+
 export function siteJsonLd() {
   return {
     "@context": "https://schema.org",
@@ -117,5 +155,54 @@ export function siteJsonLd() {
       name: SITE.name,
       url: SITE.url,
     },
+  };
+}
+
+export function siteFaqJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Do I change my phone number?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "No. Same line on Google and your trucks. You forward unanswered calls behind the scenes.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How is Effiroad different from an answering service?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Answering services take messages. Effiroad captures loss type and address, dispatches standard water jobs automatically, and texts you 1/2 on fire, Cat-3, or unclear intakes.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How fast can I go live?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "About 10 minutes: enter your contact, set on-call hours, forward your main line, and do one test call.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What happens during a storm surge when many calls come in at once?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Effiroad handles simultaneous calls — each caller goes through intake independently. Standard water jobs dispatch automatically; anything requiring judgment queues for your 1/2 reply.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is there a risk-free trial?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Every plan includes a 30-day money-back guarantee. Cancel anytime — no contracts, no cancellation fees.",
+        },
+      },
+    ],
   };
 }

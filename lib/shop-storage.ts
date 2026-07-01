@@ -1,4 +1,5 @@
-import { DEFAULT_BOOKING_MODE } from "./booking-policy";
+﻿import { DEFAULT_BOOKING_MODE } from "./booking-policy";
+import { normalizeShopVertical } from "./shop-vertical.js";
 import type { AnswerWindow, JobCard, ShopState } from "./types";
 
 export const SHOP_STORAGE_KEY = "nightcall_shop";
@@ -47,6 +48,7 @@ export function normalizeShopState(
     ...base,
     ...state,
     scheduleWindows: sanitizeScheduleWindows(state.scheduleWindows),
+    vertical: state.vertical != null ? normalizeShopVertical(state.vertical) : undefined,
   };
   if (
     merged.scheduleWindows.length > 0 &&

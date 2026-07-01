@@ -14,6 +14,10 @@ export type CompanyAiMemory = {
   specialInstructions: string;
   dailyBriefingSmsEnabled: boolean;
   dailyBriefingSmsTime: string;
+  /** "YYYY-MM-DD" — callers hear a closed message on this day. Empty = no override. */
+  temporaryClosureDate: string;
+  /** Custom message played to callers on the closure day. Defaults to generic closed message. */
+  temporaryClosureMessage: string;
   updatedAt: string;
 };
 
@@ -39,6 +43,8 @@ export function defaultCompanyAiMemory(userId: string): CompanyAiMemory {
     specialInstructions: "",
     dailyBriefingSmsEnabled: false,
     dailyBriefingSmsTime: "08:00",
+    temporaryClosureDate: "",
+    temporaryClosureMessage: "",
     updatedAt: new Date().toISOString(),
   };
 }
@@ -55,6 +61,8 @@ function clean(input: Partial<CompanyAiMemoryInput>, userId: string): CompanyAiM
     specialInstructions: String(input.specialInstructions ?? "").trim(),
     dailyBriefingSmsEnabled: Boolean(input.dailyBriefingSmsEnabled),
     dailyBriefingSmsTime: String(input.dailyBriefingSmsTime ?? "08:00").trim() || "08:00",
+    temporaryClosureDate: String(input.temporaryClosureDate ?? "").trim(),
+    temporaryClosureMessage: String(input.temporaryClosureMessage ?? "").trim(),
     updatedAt: new Date().toISOString(),
   };
 }

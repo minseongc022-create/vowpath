@@ -1,5 +1,6 @@
 import { getTwilioWebhookBaseUrl } from "../twilio-config";
 import {
+  twimlGatherDtmfChoice,
   twimlGatherDtmfSlots,
   twimlGatherDtmfYesNo,
   twimlGatherSpeechDetailed,
@@ -12,6 +13,8 @@ import {
   CUSTOMER_REQUEST_RECEIVED_MESSAGE,
   CUSTOMER_SLOT_CONFIRMED_MESSAGE,
 } from "../booking-policy";
+import { getVerticalConfig } from "../vertical-config.js";
+import { voiceEmergencyEmpathy } from "../voice-copy";
 import { slotPickPrompt } from "./slot-pick-flow";
 import type { CallIntakeState, MandatoryVerifyField } from "./types";
 import {
@@ -35,33 +38,73 @@ export function twimlForIntakeState(state: CallIntakeState): string {
   const { callSid, menuPriority } = state;
   const priorityQ = menuPriority ?? "P2";
 
+  if (state.phase === "returning_customer" && state.returningCustomerMatch) {
+    const { customerName, address } = state.returningCustomerMatch;
+    const url = intakeUrl(callSid, "returning_customer");
+    return twimlResponse(
+      twimlGatherDtmfYesNo(
+        url,
+        `Welcome back! Is this still ${customerName} at ${address}? Press 1 for yes, or press 2 to start fresh.`,
+      ),
+    );
+  }
+
   if (state.phase === "collect") {
     const url = intakeUrl(callSid, "collect", { priority: priorityQ, attempt: "1" });
-    let intro = "Tell me what's going on — I'm here to help.";
-    if (menuPriority === "P1") intro = "I'm here for you — sounds like this might be urgent, so let's get you taken care of.";
-    else if (menuPriority === "P2") intro = "Same-day service — let's figure out what's going on and get you comfortable again.";
-    else if (menuPriority === "P3") intro = "Happy to help with your service request — take your time.";
-    return twimlResponse(twimlGatherSpeechDetailed(url, intro));
+    const knownReturningCustomer = Boolean(state.verified.customerName && state.verified.address);
+    let intro = "I'm here to help — tell me what's going on.";
+    if (knownReturningCustomer) intro = "Welcome back! What's going on this time?";
+    else if (menuPriority === "P1") intro = `${voiceEmergencyEmpathy} Tell me what's going on.`;
+    else if (menuPriority === "P2") intro = "Let's get you scheduled for same-day service — tell me what's going on so we can get you comfortable again.";
+    else if (menuPriority === "P3") intro = "Happy to help with your service request — take all the time you need.";
+    return twimlResponse(twimlGatherSpeechDetailed(url, intro, undefined, state.vertical));
   }
 
   if (state.phase === "address_retry" && state.activeField === "address") {
     const url = intakeUrl(callSid, "repeat", { field: "address" });
     return twimlResponse(
-      twimlGatherSpeechField(url, ADDRESS_VERIFY_FAIL_PROMPT),
+      twimlGatherSpeechField(url, ADDRESS_VERIFY_FAIL_PROMPT, state.vertical),
     );
   }
 
   if (state.phase === "repeat" && state.activeField) {
     const field = state.activeField;
     const url = intakeUrl(callSid, "repeat", { field });
-    return twimlResponse(twimlGatherSpeechField(url, fieldRepeatPrompt(field)));
+    return twimlResponse(
+      twimlGatherSpeechField(url, fieldRepeatPrompt(field, state.vertical), state.vertical),
+    );
   }
 
   if (state.phase === "verify" && state.activeField) {
     const field = state.activeField;
     const value = state.draft[field];
     const url = intakeUrl(callSid, "verify", { field });
-    return twimlResponse(twimlGatherDtmfYesNo(url, fieldVerifyPrompt(field, value)));
+    return twimlResponse(
+      twimlGatherDtmfYesNo(url, fieldVerifyPrompt(field, value, state.vertical)),
+    );
+  }
+
+  if (state.phase === "optional_collect" && state.activeOptionalField) {
+    const config = getVerticalConfig(state.vertical).optionalIntakeFields.find(
+      (f) => f.key === state.activeOptionalField,
+    );
+    if (config) {
+      const url = intakeUrl(callSid, "optional_collect", { field: config.key });
+      const question = config.askPrompt ?? config.label;
+
+      if (config.type === "choice" && config.choices) {
+        const prompt =
+          `${question} ` +
+          config.choices.map((c, i) => `Press ${i + 1} for ${c}.`).join(" ");
+        return twimlResponse(twimlGatherDtmfChoice(url, prompt, config.choices.length));
+      }
+      if (config.type === "checkbox") {
+        return twimlResponse(
+          twimlGatherDtmfYesNo(url, `${question} Press 1 for yes, press 2 for no.`),
+        );
+      }
+      return twimlResponse(twimlGatherSpeechField(url, question, state.vertical));
+    }
   }
 
   if (state.phase === "slot_pick" && state.offeredSlots?.length) {

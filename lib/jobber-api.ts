@@ -37,7 +37,11 @@ function clean(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
-async function jobberGraphql<T>(
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function jobberGraphqlOnce<T>(
   accessToken: string,
   query: string,
   variables?: Record<string, unknown>,
@@ -61,11 +65,34 @@ async function jobberGraphql<T>(
   if (!response.ok || payload.errors?.length) {
     const msg =
       payload.errors?.map((e) => e.message).join("; ") || `HTTP ${response.status}`;
+    const transient = !response.ok && response.status >= 500;
+    const err = new Error(msg) as Error & { transient?: boolean };
+    err.transient = transient;
     console.error("[jobber-api]", msg);
-    throw new Error(msg);
+    throw err;
   }
 
   return payload.data as T;
+}
+
+/** Retries once on transient failures (network error, timeout, 5xx) — not on
+ * GraphQL validation errors or 4xx, which would just fail the same way again. */
+async function jobberGraphql<T>(
+  accessToken: string,
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    return await jobberGraphqlOnce<T>(accessToken, query, variables);
+  } catch (e) {
+    const isTransient =
+      (e instanceof Error && (e as Error & { transient?: boolean }).transient) ||
+      (e instanceof DOMException && e.name === "TimeoutError") ||
+      (e instanceof TypeError && e.message.includes("fetch"));
+    if (!isTransient) throw e;
+    await sleep(500);
+    return jobberGraphqlOnce<T>(accessToken, query, variables);
+  }
 }
 
 async function getValidAccessToken(

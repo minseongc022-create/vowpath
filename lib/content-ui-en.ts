@@ -49,9 +49,6 @@ export const settingsPageEn = {
   visitHoursPmLabel: "Afternoon block",
   visitHoursContinuousStartLabel: "Doors open",
   visitHoursContinuousEndLabel: "Last slot ends by",
-  visitHoursPresetStandard: "Classic (8–12, 12–5)",
-  visitHoursPresetFullDay: "Full day (8–5)",
-  visitHoursPresetExtended: "Long day (7–7)",
   visitHoursToLabel: "to",
   visitHoursExample: (am: string, pm: string) =>
     `Example slots on the next open day: ${am} and ${pm}.`,
@@ -339,7 +336,7 @@ export const dashboardPageEn = {
   title: "Dashboard",
   subtitle: "After-hours and overflow calls in one place. Emergencies surface by text first.",
   setupIncomplete: "Setup isn't finished. Complete integrations to start answering calls.",
-  setupComplete: "Live — Effiroad answers on your schedule.",
+  setupComplete: "Live — Effiroad is monitoring your line during configured windows. All call data stays in your account.",
   stats: {
     tonightCalls: "Tonight's calls",
     bookings: "Service requests",
@@ -412,7 +409,7 @@ export const authPagesEn = {
     title: "Sign up",
     step1Label: "1. Your details",
     step2Label: "2. Verify",
-    subtitle: "Enter your info, then tap Send code to verify.",
+    subtitle: "Enter your info, then tap Send code to verify. Your data is protected and never shared — 30-day money-back guarantee.",
     subtitleVerify: "After verifying, tap Create account to finish.",
     shopLabel: "Shop name",
     shopPlaceholder: "e.g. ABC Restoration",
@@ -742,9 +739,9 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       estimatedMissedBody:
         "Calls Effiroad answered after hours or when you were unavailable — likely voicemail otherwise.",
       periodNote: (period: string) => `${period} · updates when new calls sync`,
-      howCalculated: "How we count",
+      howCalculated: "Data scope & methodology",
       howCalculatedBody:
-        "From stored call and request logs only. Leads captured = inbound calls answered. Bookings = requests approved or scheduled in the period.",
+        "All metrics reflect calls handled directly by Effiroad AI within your configured answer windows. Calls that reach your shop line outside those windows are not routed through Effiroad and are therefore not included in these figures. Leads captured = inbound calls answered by AI. Bookings = service requests approved or scheduled during the selected period. Call recordings and customer details are encrypted at rest and accessible only from your dashboard.",
       pageBadge: "Analytics",
     },
     ops: {

@@ -6,6 +6,9 @@ import {
   FORWARDING_PROVIDERS,
   FORWARDING_PROVIDER_NOTE,
   FORWARDING_SCENARIOS,
+  FORWARDING_TROUBLESHOOTING,
+  FORWARDING_TROUBLESHOOTING_FALLBACK,
+  FORWARDING_TROUBLESHOOTING_SWITCH_NOTE,
   getForwardingGuideSteps,
   normalizeForwardingScenario,
   type ForwardingProviderId,
@@ -54,6 +57,7 @@ export function ForwardingSetup({
   const [scenario, setScenario] = useState<ForwardingScenarioId>(initialScenario);
   const [provider, setProvider] = useState<ForwardingProviderId>(initialProvider);
   const [copied, setCopied] = useState(false);
+  const [stuckOpen, setStuckOpen] = useState(false);
 
   const loadPhoneStatus = useCallback(async () => {
     const res = await fetch("/api/phone/status");
@@ -261,6 +265,38 @@ export function ForwardingSetup({
         <p className="mt-4 text-xs leading-relaxed text-slate-500">{FORWARDING_PROVIDER_NOTE}</p>
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <button
+          type="button"
+          onClick={() => setStuckOpen((open) => !open)}
+          aria-expanded={stuckOpen}
+          className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-semibold text-slate-800 sm:px-5"
+        >
+          Stuck?
+          <span
+            className={`text-slate-400 transition-transform ${stuckOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </button>
+        {stuckOpen ? (
+          <div className="space-y-3 border-t border-slate-200 px-4 py-4 sm:px-5">
+            <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-slate-700">
+              {FORWARDING_TROUBLESHOOTING[provider].map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
+            <p className="text-sm leading-relaxed text-slate-600">
+              {FORWARDING_TROUBLESHOOTING_SWITCH_NOTE[provider]}
+            </p>
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm leading-relaxed text-emerald-900">
+              {FORWARDING_TROUBLESHOOTING_FALLBACK}
+            </p>
+          </div>
+        ) : null}
+      </div>
+
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
         <p className="text-sm font-semibold text-emerald-900">{settingsPage.forwardingTestTitle}</p>
         <p className="mt-2 text-sm leading-relaxed text-emerald-900/90">
@@ -279,7 +315,7 @@ export function ForwardingSetup({
           type="button"
           disabled={confirmDisabled || !phoneNumber}
           onClick={onConfirm}
-          className="hvac-btn-primary w-full px-4 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
+          className="vow-dash-btn-primary w-full px-4 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
         >
           {settingsPage.phoneConfirm}
         </button>

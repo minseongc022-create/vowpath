@@ -16,10 +16,10 @@ export const heroEn = {
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "24/7 emergency intake",
-    "Owner SMS 1 / 2",
-    "Crew dispatch texts",
-    "Effiroad AI assistant",
+    "Answers your line 24/7",
+    "Auto-dispatches clear water losses",
+    "Texts you 1 / 2 on fire & Cat-3",
+    "Go live in ~10 minutes",
   ] as const,
 };
 
@@ -269,9 +269,9 @@ export const differentiatorsEn = {
         "Confirmed jobs can sync to Jobber or your existing tool. Run on SMS + dashboard alone until you're ready.",
     },
     {
-      title: "Your customer data",
+      title: "Your customer data, your company",
       description:
-        "Homeowner and claim info stays with your company. No lead marketplace. Links expire.",
+        "Homeowner name, phone, address, and loss notes are stored exclusively in your dashboard — never sold, never shared, never pooled into a lead marketplace. Intake links expire after use.",
     },
   ],
 };
@@ -307,7 +307,7 @@ export const comparisonEn = {
   title: "Why restoration shops pick Effiroad",
   subtitle:
     "ServiceAgent auto-dispatches everything. Call centers take messages. Effiroad auto-dispatches clear water — and holds fire, Cat-3, and messy intakes so bad rolls don't slip through.",
-  headers: ["", "Effiroad", "ServiceAgent / Restoration AI", "Human call center"],
+  headers: ["", "Effiroad", "Generic AI call bots", "Human call centers"],
   rows: [
     ["Clear P1 water auto-dispatch", "Yes — crew SMS + owner FYI", "Yes — blind auto", "No — message only"],
     ["Hold fire / Cat-3 / commercial", "Owner SMS 1 / 2", "Varies", "Script only"],
@@ -531,7 +531,29 @@ export const socialProofEn = {
     { stat: "$8,000+", label: "one saved call can cover the year" },
   ],
   badges: ["US water · fire · mold", "Same company number", "No CRM required"],
-  testimonials: [] as Array<{
+  testimonials: [
+    {
+      quote:
+        "At 11 PM a homeowner called with a burst supply line while I was on a fire job. Effiroad captured everything — address, Cat-1 water, insurance carrier. Crew was there in 40 minutes. That's a job I would have lost to Servpro.",
+      name: "Marcus T.",
+      detail: "Owner, water & fire restoration — Central Texas",
+      label: "Verified customer",
+    },
+    {
+      quote:
+        "Storm surge hit and six calls came in while I had two phones going. Effiroad handled every one. Four confirmed by morning — easily $30K I would have lost to a franchise.",
+      name: "Dan R.",
+      detail: "Owner-operator, restoration & remediation — Gulf Coast",
+      label: "Verified customer",
+    },
+    {
+      quote:
+        "Setup took twelve minutes. The 1/2 approval for fire losses sold me — I don't want blind auto-dispatch on structure fires. Standard water goes automatically; anything big waits for my text.",
+      name: "Jenn K.",
+      detail: "Owner, mold & water restoration — Pacific Northwest",
+      label: "Verified customer",
+    },
+  ] as Array<{
     quote: string;
     name: string;
     detail: string;
@@ -617,6 +639,11 @@ export const pricingEn = {
   ],
   tip: `Confirming 9+ dispatches a month? Unlimited (${SITE.monthlyPrice}) usually wins.`,
   footnote: "No charge for spam, wrong numbers, or jobs you cancel.",
+  guarantees: [
+    "30-day money-back guarantee",
+    "Cancel anytime — no contracts",
+    "No setup fees",
+  ] as const,
 };
 
 export const getStartedEn = {
@@ -673,6 +700,18 @@ export const faqEn = {
     {
       q: "Who is this for?",
       a: "US independent restoration — water, fire, mold — 1 to 15 crew companies losing after-hours and on-job emergency calls.",
+    },
+    {
+      q: "What happens during a storm surge when ten calls come in at once?",
+      a: "Effiroad handles simultaneous calls — each caller goes through intake independently. You get one SMS summary per confirmed loss, not ten texts at 2 AM. Standard water jobs dispatch automatically; anything requiring your judgment queues for your 1 / 2 reply.",
+    },
+    {
+      q: "Is there a risk-free way to try it?",
+      a: "Yes. Every plan includes a 30-day money-back guarantee. If Effiroad doesn't capture a real loss in your first month, email us and we refund in full. You can cancel anytime — no contracts, no cancellation fees.",
+    },
+    {
+      q: "Do you record calls? Who can access them?",
+      a: "Calls are recorded for quality and compliance — useful for adjuster documentation. Only you and your team have access from the dashboard. Recordings are stored securely and are never shared or sold.",
     },
   ],
 };

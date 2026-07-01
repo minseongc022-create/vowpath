@@ -29,7 +29,7 @@ export function SettingsSaveBar({
           type="button"
           disabled={saving}
           onClick={onSave}
-          className="hvac-btn-primary min-h-[48px] w-full px-5 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50"
+          className="vow-dash-btn-primary min-h-[48px] w-full px-5 py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? copy.saveAllSaving : copy.saveAllButton}
         </button>

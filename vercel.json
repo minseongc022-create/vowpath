@@ -1,37 +1,5 @@
 {
   "framework": "nextjs",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "vowroad.com" }],
-      "destination": "https://effiroad.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.vowroad.com" }],
-      "destination": "https://effiroad.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "link.vowroad.com" }],
-      "destination": "https://link.effiroad.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "vowpathhq.com" }],
-      "destination": "https://effiroad.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.vowpathhq.com" }],
-      "destination": "https://effiroad.com/:path*",
-      "permanent": true
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/customer-verification",

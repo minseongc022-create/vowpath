@@ -1,5 +1,5 @@
 import { sendEmail } from "./send-email";
-import { sendSms } from "./send-sms";
+import { sendSms, smsDevPreviewEnabled } from "./send-sms";
 
 export { isEmailConfigured as isEmailDeliveryConfigured } from "./send-email";
 export { isSmsConfigured } from "./send-sms";
@@ -33,7 +33,9 @@ export async function sendSignupCodeSms(
 
   if (result.ok) return result;
 
-  if (process.env.NODE_ENV !== "production") {
+  // Only surface the raw code locally when a developer has explicitly opted
+  // into SMS_DEV_PREVIEW — never as an automatic fallback on send failure.
+  if (smsDevPreviewEnabled()) {
     console.info(`[dev] Signup verification SMS → ${phone}: ${code}`);
     return { ok: true as const };
   }

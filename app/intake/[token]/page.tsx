@@ -10,6 +10,7 @@ import {
   isLinkIntakePortalOpen,
   isLinkIntakeSessionExpired,
 } from "@/lib/call-intake/link-intake-store";
+import { getShopVertical } from "@/lib/vertical-context";
 
 export async function generateMetadata({
   params,
@@ -53,12 +54,15 @@ export default async function LinkIntakePage({
     );
   }
 
-  const shopName = await shopDisplayNameForUser(session.userId);
+  const [shopName, vertical] = await Promise.all([
+    shopDisplayNameForUser(session.userId),
+    getShopVertical(session.userId),
+  ]);
 
   if (canSubmitLinkIntakeForm(session)) {
     return (
       <main className="min-h-[100dvh]">
-        <LinkIntakeForm token={token} shopName={shopName} />
+        <LinkIntakeForm token={token} shopName={shopName} vertical={vertical} />
       </main>
     );
   }

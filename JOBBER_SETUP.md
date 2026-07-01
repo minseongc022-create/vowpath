@@ -62,7 +62,7 @@ Hi,
 I need a developer testing account for API integration (OAuth app in Developer Center).
 
 Email: [your email]
-App name: Vowpath
+App name: Effiroad
 Issue: developer-sign-up shows "unexpected error" OR my trial expired and I need developer testing access.
 
 Please convert my account to developer testing or enable API access for this email.

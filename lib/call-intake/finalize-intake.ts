@@ -9,7 +9,8 @@ import {
   notifyOwnerNewRequest,
   notifyOwnerIntakeAutoConfirmed,
 } from "../customer-sms";
-import { confidenceMinFromFields, resolveAutoBookDecision } from "../auto-book-policy";
+import { confidenceMinFromFields, resolveAutoBookDecisionForVertical } from "../auto-book-policy";
+import { getShopVertical } from "../vertical-context.js";
 import { startCustomerVerification } from "../customer-verification/flow";
 import { getShopBookingSettings } from "../shop-settings-db";
 import {
@@ -70,7 +71,10 @@ export async function finalizeVerifiedIntake(
   const sendCustomerVerification =
     channel === "phone" && options.sendCustomerVerificationSms !== false;
   const card = toJobCard(payload);
-  const settings = await getShopBookingSettings(userId);
+  const [settings, vertical] = await Promise.all([
+    getShopBookingSettings(userId),
+    getShopVertical(userId),
+  ]);
   const schedulingActive = settings.schedulingEnabled;
   let finalRequestStatus = initialRequestStatusAfterIntake();
 
@@ -121,6 +125,9 @@ export async function finalizeVerifiedIntake(
       insuranceClaimNumber: payload.insuranceClaimNumber,
       waterSource: payload.waterSource,
       activeLoss: payload.activeLoss,
+      severity: payload.severity,
+      lastServiceYear: payload.lastServiceYear,
+      urgency: payload.urgency,
       dispatchNotes: payload.dispatchNotes,
       jobberPasteBlock: payload.jobberPasteBlock,
       createdAt: new Date().toISOString(),
@@ -274,7 +281,7 @@ export async function finalizeVerifiedIntake(
         (payload.address
           ? isZipInServiceArea(extractZipFromAddress(payload.address), settings.serviceAreaZips)
           : true);
-      const autoDecision = resolveAutoBookDecision({
+      const autoDecision = resolveAutoBookDecisionForVertical(vertical, {
         priority: payload.priority,
         confidenceMin: confMin,
         lossCategory: payload.lossCategory,

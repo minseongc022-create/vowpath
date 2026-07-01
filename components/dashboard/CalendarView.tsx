@@ -363,7 +363,14 @@ export function CalendarView() {
       <p className="text-center text-lg font-semibold text-brand-950">{monthTitle(month)}</p>
 
       {loading && <p className="text-sm text-stone-600">{c.loading}</p>}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {error}
+          {error.toLowerCase().includes("jobber") || error.toLowerCase().includes("connect") ? null : (
+            <span> — {isEnglishUi() ? "Connect Jobber in " : "Jobber를 "}<a href="/dashboard/settings" className="font-semibold underline">{isEnglishUi() ? "Settings" : "설정에서 연결"}</a>{isEnglishUi() ? " to see your schedule." : "하면 일정이 표시됩니다."}</span>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="overflow-hidden rounded-2xl border border-brand-200/70 bg-white">

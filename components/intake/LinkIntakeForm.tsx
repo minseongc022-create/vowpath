@@ -15,10 +15,12 @@ import {
   isUsAddressReady,
   type UsAddressFieldValue,
 } from "@/lib/address/us-address";
+import type { ShopVertical } from "@/lib/shop-vertical";
 
 type LinkIntakeFormProps = {
   token: string;
   shopName: string;
+  vertical?: ShopVertical;
 };
 
 type FormStep = "form" | "slots";
@@ -94,7 +96,9 @@ function formProgress(
   return Math.round((n / 4) * 100);
 }
 
-export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
+export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: LinkIntakeFormProps) {
+  const isRestoration = vertical === "restoration";
+  const isHvac = vertical === "hvac";
   const [step, setStep] = useState<FormStep>("form");
   const [customerName, setCustomerName] = useState("");
   const [addressValue, setAddressValue] = useState<UsAddressFieldValue>(emptyUsAddressValue());
@@ -498,46 +502,74 @@ export function LinkIntakeForm({ token, shopName }: LinkIntakeFormProps) {
             />
           </Field>
 
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold text-slate-800">{copy.insuranceSectionLabel}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.insuranceSectionHint}</p>
-            <div className="mt-4 space-y-4">
-              <Field label={copy.insuranceCarrierLabel}>
-                <input
-                  value={insuranceCarrier}
-                  onChange={(e) => setInsuranceCarrier(e.target.value)}
-                  className={inputClass}
-                  autoComplete="organization"
-                  placeholder={copy.insuranceCarrierPlaceholder}
-                />
-              </Field>
-              <Field label={copy.insuranceClaimLabel}>
-                <input
-                  value={insuranceClaimNumber}
-                  onChange={(e) => setInsuranceClaimNumber(e.target.value)}
-                  className={inputClass}
-                  placeholder={copy.insuranceClaimPlaceholder}
-                />
-              </Field>
-              <Field label={copy.waterSourceLabel}>
-                <input
-                  value={waterSource}
-                  onChange={(e) => setWaterSource(e.target.value)}
-                  className={inputClass}
-                  placeholder={copy.waterSourcePlaceholder}
-                />
-              </Field>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
-                <input
-                  type="checkbox"
-                  checked={activeLoss}
-                  onChange={(e) => setActiveLoss(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700"
-                />
-                <span className="text-sm leading-relaxed text-slate-700">{copy.activeLossLabel}</span>
-              </label>
+          {isRestoration ? (
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-800">{copy.insuranceSectionLabel}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.insuranceSectionHint}</p>
+              <div className="mt-4 space-y-4">
+                <Field label={copy.insuranceCarrierLabel}>
+                  <input
+                    value={insuranceCarrier}
+                    onChange={(e) => setInsuranceCarrier(e.target.value)}
+                    className={inputClass}
+                    autoComplete="organization"
+                    placeholder={copy.insuranceCarrierPlaceholder}
+                  />
+                </Field>
+                <Field label={copy.insuranceClaimLabel}>
+                  <input
+                    value={insuranceClaimNumber}
+                    onChange={(e) => setInsuranceClaimNumber(e.target.value)}
+                    className={inputClass}
+                    placeholder={copy.insuranceClaimPlaceholder}
+                  />
+                </Field>
+                <Field label={copy.waterSourceLabel}>
+                  <input
+                    value={waterSource}
+                    onChange={(e) => setWaterSource(e.target.value)}
+                    className={inputClass}
+                    placeholder={copy.waterSourcePlaceholder}
+                  />
+                </Field>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={activeLoss}
+                    onChange={(e) => setActiveLoss(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700"
+                  />
+                  <span className="text-sm leading-relaxed text-slate-700">{copy.activeLossLabel}</span>
+                </label>
+              </div>
             </div>
-          </div>
+          ) : null}
+
+          {isHvac ? (
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-800">System details</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">Optional — helps us send the right tech.</p>
+              <div className="mt-4 space-y-4">
+                <Field label="System type (optional)">
+                  <input
+                    value={waterSource}
+                    onChange={(e) => setWaterSource(e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. Gas furnace, heat pump, central AC"
+                  />
+                </Field>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={activeLoss}
+                    onChange={(e) => setActiveLoss(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700"
+                  />
+                  <span className="text-sm leading-relaxed text-slate-700">No heat / no cool right now</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
 
           <div>
             <div className="mb-2 flex items-baseline gap-1.5">

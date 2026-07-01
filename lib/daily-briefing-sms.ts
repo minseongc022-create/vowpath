@@ -63,6 +63,14 @@ async function markSent(userId: string): Promise<void> {
   await writeFileStore(store);
 }
 
+// Twilio long-code numbers are throttled to ~1 msg/sec; space sends out so a
+// large user base doesn't trigger 429s mid-cron.
+const SEND_THROTTLE_MS = 150;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function metric(metrics: ReturnType<typeof buildDailyBriefing>["metrics"], label: string) {
   return metrics.find((item) => item.label === label)?.value ?? "No data";
 }
@@ -147,6 +155,7 @@ export async function processDailyBriefingSmsCron() {
       failed += 1;
       console.warn("[daily-briefing-sms] user failed", user.id, e);
     }
+    await sleep(SEND_THROTTLE_MS);
   }
 
   return { sent, skipped, failed, users: users.length };

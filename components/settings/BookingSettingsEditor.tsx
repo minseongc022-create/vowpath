@@ -288,29 +288,6 @@ export function BookingSettingsEditor() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => applyVisitPreset("splitStandard")}
-              className="vow-settings-chip vow-settings-chip-inactive text-sm"
-            >
-              {settingsPage.visitHoursPresetStandard}
-            </button>
-            <button
-              type="button"
-              onClick={() => applyVisitPreset("continuousFullDay")}
-              className="vow-settings-chip vow-settings-chip-inactive text-sm"
-            >
-              {settingsPage.visitHoursPresetFullDay}
-            </button>
-            <button
-              type="button"
-              onClick={() => applyVisitPreset("continuousExtended")}
-              className="vow-settings-chip vow-settings-chip-inactive text-sm"
-            >
-              {settingsPage.visitHoursPresetExtended}
-            </button>
-          </div>
 
           {continuousHours ? (
             <div className="rounded-lg border border-slate-200 bg-white p-3">

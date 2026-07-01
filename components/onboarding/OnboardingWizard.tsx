@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { VerticalPicker } from "@/components/onboarding/VerticalPicker";
+import type { ShopVertical } from "@/lib/shop-vertical";
+import { normalizeShopVertical } from "@/lib/shop-vertical";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { onboardingPage, settingsPage } from "@/lib/content";
@@ -33,6 +36,9 @@ export function OnboardingWizard({
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [shop, setShop] = useState<ShopState>(() => readShopState());
+  const [verticalDone, setVerticalDone] = useState<boolean>(
+    () => readShopState().vertical != null,
+  );
   const [alwaysOn, setAlwaysOn] = useState(() =>
     isAlwaysOnFromWindows(
       readShopState().scheduleWindows,
@@ -114,6 +120,21 @@ export function OnboardingWizard({
     router.push(ROUTES.dashboard);
   }
 
+  if (!verticalDone) {
+    return (
+      <div className="mt-8 rounded-xl border border-brand-200 bg-brand-50/50 p-6 shadow-card">
+        <VerticalPicker
+          onComplete={(v: ShopVertical) => {
+            const next = { ...readShopState(), vertical: v };
+            writeShopState(next);
+            setShop(next);
+            setVerticalDone(true);
+          }}
+        />
+      </div>
+    );
+  }
+
   if (scheduleOnly) {
     return (
       <>
@@ -185,12 +206,12 @@ export function OnboardingWizard({
           return (
             <div
               key={s.id}
-              className={`rounded-xl border p-6 shadow-card ${
+              className={`rounded-xl border p-6 shadow-card transition-all duration-300 ${
                 active
-                  ? "border-brand-200 bg-brand-50/50"
+                  ? "tour-step-active-card border-brand-300 bg-brand-50/50"
                   : done
                     ? "border-emerald-200 bg-emerald-50/30"
-                    : "border-surface-border bg-white opacity-80"
+                    : "border-surface-border bg-white opacity-60"
               }`}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -254,7 +275,7 @@ export function OnboardingWizard({
                   <p className="text-xs text-slate-500">{onboardingPage.jobberHint}</p>
                   <a
                     href="/api/jobber/connect"
-                    className="inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                    className="inline-flex rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 tour-pulse-btn"
                   >
                     {onboardingPage.connectJobberButton}
                   </a>
@@ -278,7 +299,7 @@ export function OnboardingWizard({
                       ? "cursor-not-allowed bg-slate-100 text-slate-400"
                       : done
                         ? "bg-emerald-600 text-white"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
+                        : `bg-slate-900 text-white hover:bg-slate-800 ${active ? "tour-pulse-btn" : ""}`
                   }`}
                 >
                   {locked
@@ -293,7 +314,7 @@ export function OnboardingWizard({
                 <button
                   type="button"
                   onClick={completeStep}
-                  className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 tour-pulse-btn"
                 >
                   {onboardingPage.forwardingNext}
                 </button>
@@ -307,7 +328,7 @@ export function OnboardingWizard({
         <button
           type="button"
           onClick={finishToDashboard}
-          className="mt-6 w-full rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700"
+          className="mt-6 w-full rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 tour-pulse-btn"
         >
           {onboardingPage.completeAction}
         </button>

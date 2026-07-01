@@ -45,7 +45,7 @@ Set `TWILIO_AUTO_PROVISION=false` if you use one shared dev number.
 ## 5. Register webhooks (after deploy)
 
 ```bash
-cd "path/to/vowpath"
+cd "path/to/effiroad"
 npm run twilio:register
 npm run twilio:check
 ```
@@ -67,4 +67,4 @@ npm run twilio:check
 - **SMS**: per segment (US ~$0.0079 outbound)
 - Monitor: Console → **Monitor** → **Usage**
 
-Vowpath does **not** auto-upgrade Twilio or charge your card for Twilio — that is separate from Stripe subscription.
+Effiroad does **not** auto-upgrade Twilio or charge your card for Twilio — that is separate from Stripe subscription.

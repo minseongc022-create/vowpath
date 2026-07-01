@@ -1,4 +1,4 @@
-# Vowpath: GitHub push + Vercel deploy (로그인 후 한 번 실행)
+# Effiroad: GitHub push + Vercel deploy (로그인 후 한 번 실행)
 # 사전: gh auth login  /  npx vercel login
 
 $ErrorActionPreference = "Stop"
@@ -11,7 +11,7 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
-$repo = "vowpath"
+$repo = "effiroad"
 $owner = gh api user -q .login
 $remote = "https://github.com/$owner/$repo.git"
 
@@ -34,7 +34,7 @@ Write-Host "`n=== 3. Vercel deploy ===" -ForegroundColor Cyan
 npx vercel link --yes 2>$null
 npx vercel deploy --prod --yes
 
-$url = npx vercel ls vowpath --yes 2>$null | Select-String "https://" | Select-Object -First 1
+$url = npx vercel ls effiroad --yes 2>$null | Select-String "https://" | Select-Object -First 1
 Write-Host "`n배포 후 Vercel Dashboard에서:" -ForegroundColor Yellow
 Write-Host "  - Storage > Upstash Redis 연결"
 Write-Host "  - Settings > Environment Variables (.env.local 복사)"

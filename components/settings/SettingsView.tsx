@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
+import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
@@ -290,6 +292,12 @@ function SettingsViewBody({
           <div id="shop-name" className="scroll-mt-24">
             <ShopNameEditor />
           </div>
+          <div id="shop-vertical" className="scroll-mt-24">
+            <VerticalSelector
+              vertical={shop.vertical ?? "restoration"}
+              onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
+            />
+          </div>
           <div id="booking-settings" className="scroll-mt-24">
             <BookingSettingsEditor />
           </div>
@@ -510,7 +518,7 @@ function SettingsViewBody({
       <button
         type="button"
         onClick={() => router.push(ROUTES.dashboard)}
-        className="hvac-btn-primary hidden min-h-[48px] w-full px-4 py-3 text-base lg:block"
+        className="vow-dash-btn-primary hidden min-h-[48px] w-full px-4 py-3 text-base lg:block"
       >
         {settingsPage.backDashboard}
       </button>
@@ -518,6 +526,74 @@ function SettingsViewBody({
       <p className="text-center text-sm text-slate-500">
         {settingsPage.support.replace("{email}", SITE.supportEmail)}
       </p>
+    </div>
+  );
+}
+
+function VerticalSelector({
+  vertical,
+  onSaved,
+}: {
+  vertical: ShopVertical;
+  onSaved: (v: ShopVertical) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [draft, setDraft] = useState<ShopVertical>(vertical);
+
+  async function handleChange(v: ShopVertical) {
+    setDraft(v);
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/shop/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vertical: v }),
+      });
+      if (res.ok) {
+        onSaved(v);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Trade vertical</p>
+      <p className="mb-3 text-xs text-slate-500">
+        Sets your AI dispatch rules, intake questions, and landing page.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {ALL_SHOP_VERTICALS.map((v) => {
+          const cfg = getVerticalConfig(v);
+          const active = draft === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              disabled={saving}
+              onClick={() => void handleChange(v)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 ${
+                active
+                  ? "border-brand-600 bg-brand-50 text-brand-800 ring-2 ring-brand-200"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50"
+              }`}
+            >
+              <span>{cfg.icon}</span>
+              <span>{cfg.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      {saving ? (
+        <p className="mt-2 text-xs text-slate-500">Saving…</p>
+      ) : saved ? (
+        <p className="mt-2 text-xs text-emerald-600">Saved</p>
+      ) : null}
     </div>
   );
 }

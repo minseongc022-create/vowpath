@@ -3,8 +3,24 @@ import { apiErrorsEn } from "@/lib/api-errors-en";
 import { ownerSignupPhoneError } from "@/lib/owner-phone-policy";
 import { createAndSendSignupCode, normalizeSignupPhone } from "@/lib/signup-verify";
 import { isEmailDeliveryConfigured } from "@/lib/send-verification-code";
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  rateLimitKey,
+} from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: 8 signup attempts per IP per hour
+  const ip = clientIpFromRequest(request);
+  const ipLimit = await checkRateLimit({
+    key: rateLimitKey("signup:ip", ip),
+    limit: 8,
+    windowSeconds: 60 * 60,
+  });
+  if (!ipLimit.ok) {
+    return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const email = String(body?.email ?? "").trim();

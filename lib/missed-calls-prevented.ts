@@ -71,7 +71,7 @@ function isWithinScheduleRow(d: Date, row: ScheduleRow): boolean {
   return false;
 }
 
-/** Inbound call that reached Vowpath AI intake (not a bare routing ping). */
+/** Inbound call that reached Effiroad AI intake (not a bare routing ping). */
 export function isAiHandledCall(call: CallRecord): boolean {
   const transcript = call.transcript?.trim() ?? "";
   if (transcript.length >= MIN_TRANSCRIPT_CHARS) return true;
@@ -83,7 +83,7 @@ export function isAiHandledCall(call: CallRecord): boolean {
 }
 
 /**
- * Calls the shop likely would not have answered without Vowpath:
+ * Calls the shop likely would not have answered without Effiroad:
  * after-hours (evenings/weekends) or inside configured AI schedule windows.
  */
 export function isLikelyMissedWithoutAi(

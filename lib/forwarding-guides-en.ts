@@ -54,7 +54,7 @@ export function normalizeForwardingScenario(
 
 export const FORWARDING_PROVIDER_NOTE =
 
-  "Carrier and phone menus vary. Use this as a starting guide and confirm with your provider's docs before changing settings.";
+  "Interface paths and option labels are updated by providers without prior notice. The steps above reflect verified configurations as of mid-2025 and serve as a reference baseline — cross-check against your provider's current documentation before applying. For configuration assistance, contact Effiroad Support.";
 
 
 
@@ -64,11 +64,11 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     id: "overflow",
 
-    label: "When you miss a call (most common)",
+    label: "No-answer overflow",
 
     summary:
 
-      "Your main line rings first. If no one answers in about 15–20 seconds, the call forwards to Effiroad.",
+      "Your main line rings first. After 15–20 seconds without a response, the call transfers automatically to Effiroad — no interruption to daytime operations.",
 
     recommended: true,
 
@@ -78,11 +78,11 @@ export const FORWARDING_SCENARIOS: ForwardingScenario[] = [
 
     id: "busy_and_after_hours",
 
-    label: "When line is busy",
+    label: "Busy line forwarding",
 
     summary:
 
-      "While you are on another call, calls forward to Effiroad. Set after-hours windows separately in answer hours.",
+      "Incoming calls route to Effiroad when your line is already engaged. Configure after-hours windows separately under Answer Hours.",
 
   },
 
@@ -96,9 +96,9 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
 
     id: "dialpad",
 
-    label: "Business Phone / Dialpad",
+    label: "Jobber Phone · Dialpad",
 
-    hint: "Jobber Phone, ServiceTitan Phones Pro, and other Dialpad-based systems work the same way",
+    hint: "Includes Jobber Phone, ServiceTitan Phones Pro, and all Dialpad-based business phone systems",
 
     recommended: true,
 
@@ -110,7 +110,7 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
 
     label: "Mobile carrier",
 
-    hint: "Verizon, AT&T, T-Mobile — codes vary by carrier",
+    hint: "Verizon, AT&T, T-Mobile — activation codes vary by carrier",
 
   },
 
@@ -120,7 +120,7 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
 
     label: "Business VoIP",
 
-    hint: "RingCentral, OpenPhone, 3CX, etc.",
+    hint: "RingCentral, OpenPhone, 3CX, and similar hosted platforms",
 
   },
 
@@ -128,13 +128,79 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
 
     id: "other",
 
-    label: "Other",
+    label: "Other / Custom",
 
-    hint: "PBX, hosted voice, custom setup",
+    hint: "PBX systems, hosted voice, or custom phone configurations",
 
   },
 
 ];
+
+
+
+export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> = {
+
+  dialpad: [
+
+    "Confirm Call Forwarding is turned on under Dialpad app → Settings → Call Forwarding.",
+
+    "Double-check that the forwarding number is entered correctly.",
+
+    "Confirm your Dialpad account status is active.",
+
+  ],
+
+  carrier: [
+
+    "Re-dial using the exact carrier-specific code from the steps above (Verizon: My Verizon app, not a star code; AT&T/T-Mobile: **61*...) rather than a generic star code — *72/*21 are not valid activation codes for these carriers.",
+
+    "Make sure you included the leading 1 before the number (US).",
+
+    "Check with your carrier whether call forwarding is blocked on your plan.",
+
+  ],
+
+  voip: [
+
+    "Confirm call forwarding is enabled in your VoIP provider's portal.",
+
+    "Check that your SIP trunk settings are configured correctly.",
+
+    "Contact your VoIP provider's support team for help.",
+
+  ],
+
+  other: [
+
+    "Check your phone manufacturer's manual for the call forwarding code.",
+
+    "Make a test call to confirm the connection goes through.",
+
+    "Rule out network or line issues with your carrier.",
+
+  ],
+
+};
+
+
+
+export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId, string> = {
+
+  dialpad: "If forwarding still fails, try your mobile carrier's native call forwarding instead.",
+
+  carrier: "Consider switching to Dialpad for app-based forwarding.",
+
+  voip: "For simplest setup, we recommend Dialpad.",
+
+  other: "Can't get it working? Dialpad is our most reliable option.",
+
+};
+
+
+
+export const FORWARDING_TROUBLESHOOTING_FALLBACK =
+
+  "Still not working? We recommend switching to Dialpad — it's the most reliable option and takes under 2 minutes to set up.";
 
 
 
@@ -152,8 +218,6 @@ export function getForwardingGuideSteps(
 
   const num = effiroadNumber || "(your Effiroad number)";
 
-  const ringTip = "Let it ring about 15–20 seconds so your team can answer before forwarding.";
-
   const dialNum = num.replace(/\D/g, "").slice(-10);
 
   const tenDigit = dialNum || "10-digit number";
@@ -166,15 +230,15 @@ export function getForwardingGuideSteps(
 
       return [
 
-        "In Dialpad or your business phone system, open call routing for your main shop line.",
+        "In Dialpad, navigate to Settings (⚙) → Phone Numbers → select your primary line → Edit.",
 
-        `Set overflow / no-answer external number to ${num}.`,
+        "Under Call Handling → When Unanswered, enable Forward to external number.",
 
-        "If you use a contact center queue, add the same external number to the queue overflow rule.",
+        `Enter ${num} as the external destination. Set the ring timeout to 20 seconds, then Save.`,
 
-        `During business hours your shop line rings first; missed calls go to Effiroad. ${ringTip}`,
+        "Jobber Phone: navigate to Settings → Phone → Call Routing — the same configuration fields apply.",
 
-        "Save, then call your public shop number during business hours to verify.",
+        "Verify the setup by dialing your shop number from a separate device and allowing it to ring past 20 seconds.",
 
       ];
 
@@ -182,13 +246,13 @@ export function getForwardingGuideSteps(
 
     return [
 
-      `Business hours — no answer / overflow → ${num}`,
+      "In Dialpad, navigate to Settings (⚙) → Phone Numbers → select your primary line → Edit.",
 
-      `After hours — same destination: ${num}`,
+      "Configure When Unanswered → Forward to external number, and When Busy → the same external number.",
 
-      "If calls pass through a queue, mirror the same rules on the queue.",
+      `Enter ${num} as the destination for both rules, then Save.`,
 
-      "Test all three: daytime no-answer, after hours, and busy.",
+      "Verify each condition independently: no-answer during business hours, line-busy, and after-hours.",
 
     ];
 
@@ -202,15 +266,15 @@ export function getForwardingGuideSteps(
 
       return [
 
-        "iPhone default forwarding sends all calls (not just missed). Carrier codes below are usually better.",
+        `Verizon — No-answer forwarding is managed via the My Verizon app: Account → Manage Device → Call Forwarding → When Unanswered → enter ${num} → Save. Star codes (*71/*72) on Verizon forward all calls unconditionally, not just unanswered ones.`,
 
-        `Verizon example: no answer / busy *71${tenDigit}, cancel *73 — confirm latest codes on Verizon support.`,
+        `AT&T — Dial **61*+1${tenDigit}*11*20# and press Call (20 = ring duration in seconds). To deactivate: ##61# → Call.`,
 
-        `AT&T example: no answer *92${tenDigit}#, cancel *93# — busy codes may differ.`,
+        `T-Mobile — Dial **61*+1${tenDigit}# and press Call. To deactivate: ##61# → Call.`,
 
-        "On Verizon iPhone: Settings → Phone → turn off Live Voicemail, then test *71.",
+        "Important: iPhone's built-in Call Forwarding (Settings → Phone → Call Forwarding) routes all incoming calls unconditionally — it cannot be limited to unanswered calls only. Use the carrier codes above for no-answer-only routing.",
 
-        "Call your main shop number and confirm Effiroad answers after a few rings.",
+        "After applying the configuration, dial your main number from a second device and allow it to ring to confirm Effiroad engages.",
 
       ];
 
@@ -218,13 +282,13 @@ export function getForwardingGuideSteps(
 
     return [
 
-      `Verizon-style no answer / busy: *71${tenDigit} (cancel *73).`,
+      `Verizon — Configure via My Verizon app: Account → Manage Device → Call Forwarding → set both When Unanswered and When Busy to ${num} → Save.`,
 
-      `AT&T-style no answer: *92${tenDigit}# (cancel *93#). Check your carrier for busy codes.`,
+      `AT&T — No-answer: dial **61*+1${tenDigit}*11*20# → Call. To deactivate: ##61# → Call.`,
 
-      "On Verizon iPhone, disable Live Voicemail before testing.",
+      `T-Mobile — No-answer: dial **61*+1${tenDigit}# → Call. To deactivate: ##61# → Call.`,
 
-      "Set after-hours windows in Integrations, then test during those hours.",
+      "Verify routing from a separate device during your configured after-hours window.",
 
     ];
 
@@ -238,13 +302,13 @@ export function getForwardingGuideSteps(
 
       return [
 
-        "In your VoIP admin portal, open call routing / time rules for the main number.",
+        "RingCentral: Admin Portal → Phone System → Users → [select user] → Call Handling & Forwarding → Add Rule → Forward to External Number.",
 
-        `Add or edit a no-answer rule to forward externally to ${num}.`,
+        "OpenPhone: Settings → Phone Numbers → select your number → Call Routing → When Unanswered → Forward to External Number.",
 
-        `Set ring time to about 15–20 seconds. ${ringTip}`,
+        `Set ${num} as the external destination with a 20-second ring timeout, then save.`,
 
-        "Optional: add a busy rule to the same number, save, and test.",
+        "3CX and other platforms: locate Inbound Rules or Time Conditions and configure the no-answer action to forward to an external number.",
 
       ];
 
@@ -252,13 +316,13 @@ export function getForwardingGuideSteps(
 
     return [
 
-      "Create a busy rule and set the external destination.",
+      "RingCentral / OpenPhone: create both a no-answer rule and a busy rule, each pointing to the same external destination.",
 
-      `Destination: ${num}`,
+      `External destination for both rules: ${num}.`,
 
-      "Keep a no-answer rule as backup for peak season.",
+      "3CX and other platforms: configure overflow handling under Call Queues or Ring Groups to route to an external number.",
 
-      "Test each scenario from your public shop number.",
+      "Verify each forwarding condition — no-answer, busy, and after-hours — from your public-facing shop number.",
 
     ];
 
@@ -268,19 +332,19 @@ export function getForwardingGuideSteps(
 
   return [
 
-    "Find call forwarding or external routing in your phone system.",
+    "Locate call forwarding or external routing in your phone system's admin panel.",
 
-    `Forward to ${num}.`,
+    `Set the forwarding destination to ${num}.`,
 
     activeScenario === "busy_and_after_hours"
 
-      ? "Enable busy forwarding if your system supports it."
+      ? "Enable both no-answer and busy forwarding where supported by your system."
 
       : "Enable no-answer forwarding.",
 
-    "After-hours windows are set under Integrations → answer hours.",
+    "After-hours windows are managed under Integrations → Answer Hours.",
 
-    "Call the number customers actually dial and confirm Effiroad answers.",
+    "Verify by dialing the number your customers use and confirming Effiroad answers.",
 
   ];
 

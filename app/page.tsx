@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
+import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
@@ -27,7 +28,9 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* 1. Hero — value prop + primary CTA */}
         <Hero />
-        {/* 2. Trust — credibility before the pain */}
+        {/* 2. Interactive intake call demo */}
+        <IntakeCallDemo />
+        {/* 3. Trust — credibility before the pain */}
         <SocialProof variant="trust" />
         {/* 3. Problem — why missed calls hurt */}
         <Problem />
@@ -45,9 +48,11 @@ export default async function HomePage() {
         <HowItWorks />
         {/* 7. Results — ROI math */}
         <TrustROI />
-        {/* 8. Philosophy — brand meaning */}
+        {/* 8. Testimonials — social proof from real operators */}
+        <SocialProof />
+        {/* 9. Philosophy — brand meaning */}
         <About />
-        {/* 9. Conversion path */}
+        {/* 10. Conversion path */}
         <Pricing />
         <FAQ />
         <CTA />

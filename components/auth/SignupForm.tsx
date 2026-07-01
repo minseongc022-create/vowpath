@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authPages } from "@/lib/content";
 import { ROUTES } from "@/lib/constants";
@@ -9,6 +9,7 @@ import {
   ownerSignupPhoneHint,
   ownerSignupPhonePlaceholder,
 } from "@/lib/owner-phone-policy";
+import { normalizeShopVertical, type ShopVertical } from "@/lib/shop-vertical";
 
 type Step = "details" | "verify";
 
@@ -16,8 +17,14 @@ const RESEND_COOLDOWN_SEC = 60;
 
 export function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const p = authPages.signup;
   const form = authPages.form;
+
+  const verticalParam = searchParams.get("vertical");
+  const vertical: ShopVertical = normalizeShopVertical(
+    verticalParam ?? undefined,
+  );
 
   const [step, setStep] = useState<Step>("details");
   const [channel, setChannel] = useState<"email" | "sms">("email");
@@ -144,6 +151,7 @@ export function SignupForm() {
         body: JSON.stringify({
           signupRequestId,
           phone: phone.trim(),
+          vertical,
         }),
       });
       const data = await res.json();
@@ -310,6 +318,17 @@ export function SignupForm() {
                   ? p.sendCodeCooldown.replace("{seconds}", String(cooldown))
                   : p.sendCode}
             </button>
+            <p className="text-center text-xs text-slate-500">
+              By signing up, you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-slate-700">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-slate-700">
+                Privacy Policy
+              </Link>
+              .
+            </p>
             <p className="text-center text-xs text-slate-500">{p.sendCodeNote}</p>
           </form>
         ) : null}

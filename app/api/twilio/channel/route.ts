@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const afterHours = url.searchParams.get("afterHours") === "1";
 
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     console.error("[twilio/channel] invalid signature:", request.url);
     return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
   }
@@ -54,6 +54,11 @@ export async function POST(request: Request) {
 
   if (digit !== "1") {
     return twimlXml(phoneIntakeTwiml(afterHours));
+  }
+
+  if (!callSid) {
+    console.error("[twilio/channel] missing CallSid; to=", to);
+    return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
   }
 
   const userId = await resolveTenantUserId({ to, callSid });

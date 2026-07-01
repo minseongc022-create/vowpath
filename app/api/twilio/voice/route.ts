@@ -7,11 +7,13 @@ import {
 import { recordInboundEvent } from "@/lib/inbound-events";
 import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
-  twimlGatherChannelChoice,
+  twimlGatherMainMenu,
   twimlResponse,
+  twimlSay,
   twimlStartCallRecording,
 } from "@/lib/twilio-xml";
 
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
   const to = form.get("To") ?? "";
   const callSid = form.get("CallSid")?.trim() ?? "";
 
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
@@ -30,28 +32,52 @@ export async function POST(request: Request) {
   let stormMode = false;
   const userId = await resolveTenantUserId({ to, callSid });
   if (userId) {
-    shopName = await shopDisplayNameForUser(userId);
-    afterHours = await isTenantAfterHours(userId);
-    const settings = await getShopBookingSettings(userId);
-    stormMode = settings.stormModeEnabled;
-    await recordInboundEvent(userId, {
-      callSid,
-      from: form.get("From") ?? "",
-      to,
-      status: "voice_started",
-      direction: "inbound",
-    });
+    try {
+      shopName = await shopDisplayNameForUser(userId);
+
+      // Check temporary closure before doing anything else
+      const todayUtc = new Date().toISOString().split("T")[0];
+      const memory = await getCompanyAiMemory(userId);
+      if (memory?.temporaryClosureDate === todayUtc) {
+        const closedMsg =
+          memory?.temporaryClosureMessage ||
+          `Thank you for calling ${shopName}. We are closed today. Please call back tomorrow or leave a text message and we'll get back to you.`;
+        const twiml = twimlResponse(twimlSay(closedMsg));
+        return new NextResponse(twiml, {
+          status: 200,
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
+      afterHours = await isTenantAfterHours(userId);
+      const settings = await getShopBookingSettings(userId);
+      stormMode = settings.stormModeEnabled;
+      await recordInboundEvent(userId, {
+        callSid,
+        from: form.get("From") ?? "",
+        to,
+        status: "voice_started",
+        direction: "inbound",
+      });
+    } catch (e) {
+      console.error("[twilio/voice] tenant lookup failed:", e);
+    }
   }
 
   const base = getTwilioWebhookBaseUrl();
+  if (!base) {
+    console.error(
+      "[twilio/voice] empty webhook base URL — set TWILIO_WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL; generated TwiML callback URLs will be invalid",
+    );
+  }
   const statusCallbackUrl = `${base}/api/twilio/call-status`;
   const afterQ = afterHours ? "&afterHours=1" : "";
-  const channelUrl = `${base}/api/twilio/channel?callSid=${encodeURIComponent(callSid)}${afterQ}`;
+  const mainMenuUrl = `${base}/api/twilio/main-menu?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const recordingUrl = `${base}/api/twilio/recording`;
 
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
-      twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode),
+      twimlGatherMainMenu(mainMenuUrl, shopName, stormMode),
     statusCallbackUrl,
   );
 
@@ -63,11 +89,11 @@ export async function POST(request: Request) {
 
 export async function GET() {
   const base = getTwilioWebhookBaseUrl();
-  const channelUrl = `${base}/api/twilio/channel`;
+  const mainMenuUrl = `${base}/api/twilio/main-menu`;
   const recordingUrl = `${base}/api/twilio/recording`;
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
-      twimlGatherChannelChoice(channelUrl, DEFAULT_SHOP_DISPLAY_NAME),
+      twimlGatherMainMenu(mainMenuUrl, DEFAULT_SHOP_DISPLAY_NAME),
   );
   return new NextResponse(twiml, {
     status: 200,

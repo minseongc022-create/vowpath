@@ -2,6 +2,7 @@ import type { SlotOffer } from "../booking-settings";
 import type { JobPriority } from "../types";
 import type { PrioritySource, ServicePriority } from "../service-priority";
 import type { LossCategory } from "../loss-category";
+import type { ShopVertical } from "../shop-vertical.js";
 
 export const MANDATORY_VERIFY_FIELDS = [
   "customerName",
@@ -15,10 +16,12 @@ export type MandatoryVerifyField = (typeof MANDATORY_VERIFY_FIELDS)[number];
 export type IntakeChannel = "phone" | "sms_link";
 
 export type IntakePhase =
+  | "returning_customer"
   | "collect"
   | "verify"
   | "repeat"
   | "address_retry"
+  | "optional_collect"
   | "slot_pick"
   | "final"
   | "committed";
@@ -41,6 +44,12 @@ export type IntakeDraft = {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
+  /** Restoration: caller's self-reported damage severity ("Minor" | "Moderate" | "Severe"). */
+  severity?: string;
+  /** HVAC: rough year of last service, or a note that this is a first-time customer. */
+  lastServiceYear?: string;
+  /** HVAC: how soon the caller wants service ("Today" | "This week" | "Flexible"). */
+  urgency?: string;
 };
 
 export type FieldConfidence = Record<MandatoryVerifyField, number>;
@@ -60,9 +69,18 @@ export type CallIntakeState = {
   from: string;
   to: string;
   menuPriority: JobPriority | null;
+  vertical: ShopVertical;
   phase: IntakePhase;
   /** Field being verified or re-collected */
   activeField?: MandatoryVerifyField;
+  /** Key of the optionalIntakeFields entry currently being asked in "optional_collect" */
+  activeOptionalField?: string;
+  /** Candidate match from a past call by this caller ID, pending yes/no confirmation */
+  returningCustomerMatch?: {
+    customerName: string;
+    address: string;
+    serviceLocation: string;
+  } | null;
   rawTranscript: string;
   draft: IntakeDraft;
   confidence: FieldConfidence;
@@ -116,4 +134,7 @@ export type VerifiedCallPayload = {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
+  severity?: string;
+  lastServiceYear?: string;
+  urgency?: string;
 };

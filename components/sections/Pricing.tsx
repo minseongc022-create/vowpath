@@ -9,6 +9,14 @@ export function Pricing() {
     <section id="pricing" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading title={pricing.title} subtitle={pricing.subtitle} align="center" />
+        <p className="mt-4 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-800">
+            <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 11.94l6.72-6.72a.75.75 0 011.06 0z" />
+            </svg>
+            7-day free trial included — no credit card required
+          </span>
+        </p>
 
         <div className="vow-site-compare mx-auto mt-10 max-w-3xl">
           {pricing.compare.map((row) => (
@@ -86,8 +94,33 @@ export function Pricing() {
           ))}
         </div>
 
+        {"guarantees" in pricing && Array.isArray(pricing.guarantees) && pricing.guarantees.length > 0 ? (
+          <ul className="mx-auto mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {(pricing.guarantees as readonly string[]).map((g) => (
+              <li key={g} className="flex items-center gap-1.5 text-sm text-stone-600">
+                <svg className="h-4 w-4 shrink-0 text-emerald-600" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                  <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 11.94l6.72-6.72a.75.75 0 011.06 0z" />
+                </svg>
+                {g}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-200 bg-brand-50 px-6 py-5 text-center">
+          <p className="text-sm font-semibold text-brand-900">Break-even math</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-stone-700">
+            Average water mitigation job: <strong className="text-brand-800">$8,000</strong>.{" "}
+            One saved 2 AM call covers{" "}
+            <strong className="text-brand-800">40 months</strong> of Unlimited at $199/mo.
+          </p>
+          <p className="mt-2 text-xs text-stone-500">
+            On Flex? One confirmed dispatch at $8K avg = ~220× your per-dispatch cost.
+          </p>
+        </div>
+
         {pricing.tip?.trim() ? (
-          <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-stone-700">{pricing.tip}</p>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-stone-700">{pricing.tip}</p>
         ) : null}
         {pricing.footnote?.trim() ? (
           <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">

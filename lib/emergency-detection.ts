@@ -1,4 +1,5 @@
 import type { JobPriority } from "./types";
+import type { ShopVertical } from "./shop-vertical.js";
 import {
   legacyToServicePriority,
   mergeMenuServicePriority,
@@ -9,6 +10,7 @@ import {
 } from "./service-priority";
 import { normalizeJobPriority } from "./priority-display";
 import { normalizeLossCategory, type LossCategory } from "./loss-category";
+import { getVerticalConfig } from "./vertical-config.js";
 
 export type EmergencyDetectionResult = {
   servicePriority: ServicePriority;
@@ -17,6 +19,45 @@ export type EmergencyDetectionResult = {
   prioritySource: PrioritySource;
   lossCategory: LossCategory;
 };
+
+/** Build the emergency-detection system prompt for a given vertical. */
+export function buildEmergencyDetectionPrompt(vertical: ShopVertical): string {
+  if (vertical === "restoration") return SYSTEM_PROMPT;
+  const cfg = getVerticalConfig(vertical);
+  return `You are a home services dispatch triage AI for a ${cfg.label} company.
+
+${cfg.emergencyDetectionContext}
+
+Read the ENTIRE call transcript. Classify using context, severity, timing, and implied urgency.
+
+Assign exactly one priority:
+
+P1 — Emergency
+Active or spreading issue that needs immediate crew dispatch. Examples depend on trade — for ${cfg.shortLabel}: ${cfg.issueExamples.slice(0, 3).join(", ")}.
+
+P2 — Normal
+Service needed soon, not actively spreading or safety-critical.
+
+P3 — Maintenance / follow-up
+Planned, preventive, or non-urgent work. "Next week" or flexible timing.
+
+Rules:
+- Base every reason on facts stated or clearly implied in the transcript.
+- priorityReasons: 2–5 short English bullets for the dispatcher.
+- Do not invent details not supported by the transcript.
+- When uncertain between P2 and P1, choose P1 (damage / safety risks spread fast).
+
+Also classify lossCategory using the closest match:
+- water | fire | mold | sewage_cat3 | commercial | inspection | other
+(Use "other" if none fit your trade.)
+
+Respond JSON only:
+{
+  "priority": "P1" | "P2" | "P3",
+  "lossCategory": "water" | "fire" | "mold" | "sewage_cat3" | "commercial" | "inspection" | "other",
+  "priorityReasons": string[]
+}`;
+}
 
 const SYSTEM_PROMPT = `You are a restoration dispatch triage AI for US water, fire, and mold companies.
 
@@ -89,7 +130,34 @@ function parsePriorityFromResponse(data: Record<string, unknown>): JobPriority {
   return "P2";
 }
 
+/** Vertical-aware wrapper — uses the right system prompt for the shop's trade. */
+export async function analyzeServicePriorityForVertical(
+  vertical: ShopVertical,
+  transcript: string,
+  options?: {
+    menuPriority?: JobPriority | null;
+    supplementalContext?: string;
+  },
+): Promise<EmergencyDetectionResult> {
+  return analyzeServicePriorityFromTranscriptWithPrompt(
+    buildEmergencyDetectionPrompt(vertical),
+    transcript,
+    options,
+  );
+}
+
 export async function analyzeServicePriorityFromTranscript(
+  transcript: string,
+  options?: {
+    menuPriority?: JobPriority | null;
+    supplementalContext?: string;
+  },
+): Promise<EmergencyDetectionResult> {
+  return analyzeServicePriorityFromTranscriptWithPrompt(SYSTEM_PROMPT, transcript, options);
+}
+
+async function analyzeServicePriorityFromTranscriptWithPrompt(
+  systemPrompt: string,
   transcript: string,
   options?: {
     menuPriority?: JobPriority | null;
@@ -135,7 +203,7 @@ export async function analyzeServicePriorityFromTranscript(
       temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userParts.join("\n") },
       ],
     }),

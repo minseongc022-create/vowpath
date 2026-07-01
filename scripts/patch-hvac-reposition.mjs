@@ -1,5 +1,5 @@
-/**
- * HVAC shop-flow repositioning — marketing + nav copy patch.
+﻿/**
+ * HVAC shop-flow repositioning ??marketing + nav copy patch.
  * Run: node scripts/patch-hvac-reposition.mjs
  */
 import fs from "fs";
@@ -15,9 +15,9 @@ const heroBlock = `export const heroEn = {
   badge: "Night shift for your shop line",
   headline: "They call your number.",
   headlineAccent: "You text 1 to book it.",
-  brandLine: "Daytime: you answer. Nights, weekends, and missed rings: Vowpath catches the call, runs HVAC intake, and texts you to approve.",
+  brandLine: "Daytime: you answer. Nights, weekends, and missed rings: Effiroad catches the call, runs HVAC intake, and texts you to approve.",
   subhead:
-    "Same shop number on Google and your trucks. Forward when you are on a job or closed. No new app for your crew — reply 1 to approve, 2 to pass. Jobber sync is optional.",
+    "Same shop number on Google and your trucks. Forward when you are on a job or closed. No new app for your crew ??reply 1 to approve, 2 to pass. Jobber sync is optional.",
   trustLine:
     "Not a replacement for Jobber, Housecall Pro, or ServiceTitan. The layer that stops missed calls from becoming your competitor's job.",
   primaryCta: CHECKOUT_CTA,
@@ -35,9 +35,9 @@ m = m.replace(/export const heroEn = \{[\s\S]*?\} as const,\n\};/, heroBlock);
 
 const missedFlowBlock = `export const missedCallFlowEn = {
   id: "missed-call-flow",
-  title: "How a real HVAC shop runs — with Vowpath on the gaps",
+  title: "How a real HVAC shop runs ??with Effiroad on the gaps",
   subtitle:
-    "You still answer during the day. Vowpath only handles what you miss: overflow, after hours, and peak-season hold times.",
+    "You still answer during the day. Effiroad only handles what you miss: overflow, after hours, and peak-season hold times.",
   steps: [
     {
       id: "day",
@@ -49,7 +49,7 @@ const missedFlowBlock = `export const missedCallFlowEn = {
       id: "call",
       title: "Missed ring forwards",
       description:
-        "On a roof, after 6pm, or when three lines ring at once — unanswered calls route to Vowpath.",
+        "On a roof, after 6pm, or when three lines ring at once ??unanswered calls route to Effiroad.",
     },
     {
       id: "triage",
@@ -61,7 +61,7 @@ const missedFlowBlock = `export const missedCallFlowEn = {
       id: "intake",
       title: "Customer picks a time",
       description:
-        "Phone intake or SMS link. They tap a real open slot — not a callback promise.",
+        "Phone intake or SMS link. They tap a real open slot ??not a callback promise.",
     },
     {
       id: "approve",
@@ -82,20 +82,20 @@ m = m.replace(/export const missedCallFlowEn = \{[\s\S]*?\],\n\};/, missedFlowBl
 
 const comparisonBlock = `export const comparisonEn = {
   id: "comparison",
-  title: "Why shops pick Vowpath over AI that auto-books without you",
+  title: "Why shops pick Effiroad over AI that auto-books without you",
   subtitle:
-    "Jobber AI, CallJolt, and HCP CSR AI book straight to the calendar. Vowpath texts you first — so bad addresses and spam never become jobs.",
-  headers: ["", "Vowpath", "AI auto-book", "Answering service"],
+    "Jobber AI, CallJolt, and HCP CSR AI book straight to the calendar. Effiroad texts you first ??so bad addresses and spam never become jobs.",
+  headers: ["", "Effiroad", "AI auto-book", "Answering service"],
   rows: [
-    ["Owner approves by text (1 / 2)", "Yes — core product", "Rare", "Email / portal"],
-    ["Wrong job never hits calendar", "Yes — you gate every booking", "AI decides", "Message only"],
+    ["Owner approves by text (1 / 2)", "Yes ??core product", "Rare", "Email / portal"],
+    ["Wrong job never hits calendar", "Yes ??you gate every booking", "AI decides", "Message only"],
     ["HVAC P1 / P2 / P3 triage", "Built in", "Varies", "Script varies"],
     ["Customer picks real open slot", "Yes", "Often", "Rare"],
     ["Keep your shop number", "Yes", "Forward required", "Often new number"],
-    ["Works without Jobber / ST / HCP", "Yes — SMS + dashboard", "Usually needs CRM", "Separate tool"],
+    ["Works without Jobber / ST / HCP", "Yes ??SMS + dashboard", "Usually needs CRM", "Separate tool"],
     ["Jobber sync after you approve", "Yes", "On intake", "Manual retype"],
     ["Go live", "~10 minutes", "Days + CRM setup", "Days + scripting"],
-    ["Price (typical)", "$199/mo flat", "$99–$500+ add-on", "$200–$800/mo"],
+    ["Price (typical)", "$199/mo flat", "$99??500+ add-on", "$200??800/mo"],
   ],
 };`;
 
@@ -106,15 +106,15 @@ const aboutBlock = `export const aboutEn = {
   badge: "Built for owner-operators",
   title: "CSR fills the bucket. You decide what becomes a job.",
   subtitle:
-    "Big shops split call-takers and dispatchers. On a 1–5 truck crew, that is you — Vowpath handles intake so you only approve from the truck.",
+    "Big shops split call-takers and dispatchers. On a 1?? truck crew, that is you ??Effiroad handles intake so you only approve from the truck.",
   paragraphs: [
-    "Answering services leave voicemails. AI receptionists auto-book into your calendar — including jobs you would have declined. Vowpath captures the call, runs HVAC intake, and texts you: approve or pass.",
+    "Answering services leave voicemails. AI receptionists auto-book into your calendar ??including jobs you would have declined. Effiroad captures the call, runs HVAC intake, and texts you: approve or pass.",
     "Hybrid mode is the sweet spot: routine P2/P3 jobs can auto-book while no-heat P1 always waits for your text. Same number. No dispatch software swap.",
   ],
   pillars: [
     {
       label: "Catch",
-      meaning: "After-hours and overflow become structured requests — not voicemail tag.",
+      meaning: "After-hours and overflow become structured requests ??not voicemail tag.",
     },
     {
       label: "Control",
@@ -154,7 +154,7 @@ const revenueLeaksBlock = `export const revenueLeaksEn = {
     {
       leak: "Owner cannot approve from the truck",
       feature: "SMS 1 / 2 with ref code",
-      result: "Confirm in seconds — no app, no portal login",
+      result: "Confirm in seconds ??no app, no portal login",
       money: "Beat the next contractor",
     },
     {
@@ -171,7 +171,7 @@ const revenueLeaksBlock = `export const revenueLeaksEn = {
     },
     {
       leak: "Double entry into Jobber at night",
-      feature: "Approve once → Jobber Request",
+      feature: "Approve once ??Jobber Request",
       result: "Morning board already has the job",
       money: "No retyping at 7 AM",
     },
@@ -181,13 +181,13 @@ const revenueLeaksBlock = `export const revenueLeaksEn = {
 m = m.replace(/export const revenueLeaksEn = \{[\s\S]*?\] as const,\n\};/, revenueLeaksBlock);
 
 const differentiatorsBlock = `export const differentiatorsEn = {
-  title: "What only Vowpath does for small HVAC shops",
-  subtitle: "Competitors auto-book. We auto-capture — you auto-approve.",
+  title: "What only Effiroad does for small HVAC shops",
+  subtitle: "Competitors auto-book. We auto-capture ??you auto-approve.",
   items: [
     {
       title: "Text 1 / 2 approval",
       description:
-        "The only layer built around your thumb on a ladder — not a dispatcher desk. Ref codes so you never mix up jobs.",
+        "The only layer built around your thumb on a ladder ??not a dispatcher desk. Ref codes so you never mix up jobs.",
     },
     {
       title: "Hybrid by urgency",
@@ -195,7 +195,7 @@ const differentiatorsBlock = `export const differentiatorsEn = {
         "P2/P3 routine can auto-book. P1 no-heat always pings you first. Matches how owners actually trust the AI.",
     },
     {
-      title: "HVAC intake — not a generic script",
+      title: "HVAC intake ??not a generic script",
       description:
         "No-heat, no-cool, gas smell, tune-up. Priority, address, and visit window before you see the alert.",
     },
@@ -212,7 +212,7 @@ const differentiatorsBlock = `export const differentiatorsEn = {
     {
       title: "Jobber when you are ready",
       description:
-        "Run on texts and dashboard alone. Connect Jobber once — approved jobs become Requests automatically.",
+        "Run on texts and dashboard alone. Connect Jobber once ??approved jobs become Requests automatically.",
     },
     {
       title: "Your customer data",
@@ -235,26 +235,26 @@ const schedulingBlock = `export const schedulingModesEn = {
       id: "speed",
       name: "Auto Book",
       badge: null as string | null,
-      tagline: "Customer picks — job confirms instantly",
+      tagline: "Customer picks ??job confirms instantly",
       description: "Best for peak season when you trust every intake. You get a heads-up text. Reply 9 to undo.",
       details: [
         { label: "P1 emergencies", value: "Auto confirm" },
         { label: "Owner approval", value: "Skipped" },
         { label: "Undo", value: "Reply 9 in your window" },
       ],
-      bestFor: "High-volume routine — you still review dashboard",
+      bestFor: "High-volume routine ??you still review dashboard",
     },
     {
       id: "hybrid",
       name: "Hybrid",
       badge: "Recommended for HVAC",
-      tagline: "P2/P3 auto-book · P1 texts you first",
+      tagline: "P2/P3 auto-book 쨌 P1 texts you first",
       description:
         "Default for HVAC: no-heat waits for your 1 / 2. Same-day and tune-ups can confirm while you sleep.",
       details: [
         { label: "P1 no-heat / safety", value: "Always text 1 / 2" },
         { label: "P2 / P3 checked", value: "Auto confirm" },
-        { label: "Change anytime", value: "Settings → booking" },
+        { label: "Change anytime", value: "Settings ??booking" },
       ],
       bestFor: "Owner-operators who want speed + control",
     },
@@ -272,7 +272,7 @@ const schedulingBlock = `export const schedulingModesEn = {
       bestFor: "First week live or extra-cautious shops",
     },
   ],
-  footnote: "After you approve, optional crew SMS — one tech at a time, 1=accept 2=pass.",
+  footnote: "After you approve, optional crew SMS ??one tech at a time, 1=accept 2=pass.",
 };`;
 
 m = m.replace(/export const schedulingModesEn = \{[\s\S]*?footnote: "[^"]*",\n\};/, schedulingBlock);
@@ -280,7 +280,7 @@ m = m.replace(/export const schedulingModesEn = \{[\s\S]*?footnote: "[^"]*",\n\}
 const howItWorksBlock = `export const howItWorksEn = {
   id: "how-it-works",
   title: "Live tonight in ~10 minutes",
-  subtitle: "Pay → cell number → forward rules → test call → text 1. No sales call.",
+  subtitle: "Pay ??cell number ??forward rules ??test call ??text 1. No sales call.",
   steps: [
     {
       step: "01",
@@ -289,18 +289,18 @@ const howItWorksBlock = `export const howItWorksEn = {
     },
     {
       step: "02",
-      title: "When Vowpath answers",
-      description: "Evenings, weekends, or no-answer — your hours, your rules.",
+      title: "When Effiroad answers",
+      description: "Evenings, weekends, or no-answer ??your hours, your rules.",
     },
     {
       step: "03",
       title: "Forward the main line",
-      description: "Customers dial the same shop number. Busy / no answer → Vowpath.",
+      description: "Customers dial the same shop number. Busy / no answer ??Effiroad.",
     },
     {
       step: "04",
       title: "Test + text 1",
-      description: "One test call. Reply 1. See the job on your dashboard — Jobber if connected.",
+      description: "One test call. Reply 1. See the job on your dashboard ??Jobber if connected.",
     },
   ],
 };`;
@@ -316,11 +316,11 @@ const faqBlock = `export const faqEn = {
     },
     {
       q: "How is this different from Jobber AI or CallJolt?",
-      a: "They auto-book into your calendar. Vowpath texts you to approve first — so you control what becomes a job. Jobber sync runs after you text 1.",
+      a: "They auto-book into your calendar. Effiroad texts you to approve first ??so you control what becomes a job. Jobber sync runs after you text 1.",
     },
     {
       q: "Does this replace Jobber or ServiceTitan?",
-      a: "No. Vowpath is the missed-call layer. Your dispatch software stays. Jobber connect is optional.",
+      a: "No. Effiroad is the missed-call layer. Your dispatch software stays. Jobber connect is optional.",
     },
     {
       q: "What if the AI gets something wrong?",
@@ -332,7 +332,7 @@ const faqBlock = `export const faqEn = {
     },
     {
       q: "Who answers during the day?",
-      a: "You do — same as today. Vowpath only picks up forwarded calls when you miss them or after hours.",
+      a: "You do ??same as today. Effiroad only picks up forwarded calls when you miss them or after hours.",
     },
     {
       q: "Can it text my tech after I approve?",
@@ -344,7 +344,7 @@ const faqBlock = `export const faqEn = {
     },
     {
       q: "Who is this for?",
-      a: "US residential HVAC — 1 to 5 trucks, owner-operators losing after-hours and on-job calls.",
+      a: "US residential HVAC ??1 to 5 trucks, owner-operators losing after-hours and on-job calls.",
     },
   ],
 };`;
@@ -373,3 +373,4 @@ m = m.replace(/export const navEn = \{[\s\S]*?getStarted: "[^"]*",\n\};/, navBlo
 
 fs.writeFileSync(marketingPath, m, "utf8");
 console.log("Patched content-marketing-en.ts");
+

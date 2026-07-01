@@ -1,6 +1,8 @@
 import type { RequestStatus } from "./booking-policy";
 import type { FieldConfidence } from "./call-intake/types";
 import type { JobPriority } from "./types";
+import type { ShopVertical } from "./shop-vertical.js";
+import { isRestorationVertical } from "./shop-vertical.js";
 import {
   inferLossCategoryFromText,
   normalizeLossCategory,
@@ -9,6 +11,7 @@ import {
   isAmbiguousIntakeFields,
   type LossCategory,
 } from "./loss-category.js";
+import { resolveHomeServicesDispatchDecision } from "./home-services-issue.js";
 
 export { AUTO_BOOK_CONFIDENCE_MIN } from "./loss-category.js";
 
@@ -97,4 +100,41 @@ export function resolveBookingGateFromSettings(
     symptom: params.symptom,
     inServiceArea: params.inServiceArea,
   });
+}
+
+/**
+ * Vertical-aware booking gate.
+ * Restoration → existing resolveBookingGate (regression-safe).
+ * Other verticals → home-services dispatch with vertical-specific policy.
+ */
+export function resolveBookingGateForVertical(
+  vertical: ShopVertical,
+  params: {
+    priority: JobPriority;
+    confidenceMin: number;
+    customerName?: string | null;
+    address?: string | null;
+    lossCategory?: LossCategory | string | null;
+    issueType?: string | null;
+    symptom?: string | null;
+    inServiceArea?: boolean;
+  },
+): BookingGate {
+  if (isRestorationVertical(vertical)) {
+    return resolveBookingGate(params);
+  }
+  const decision = resolveHomeServicesDispatchDecision({
+    vertical,
+    priority: params.priority,
+    confidenceMin: params.confidenceMin,
+    issueType: params.issueType,
+    symptom: params.symptom,
+    customerName: params.customerName,
+    address: params.address,
+    inServiceArea: params.inServiceArea,
+  });
+  if (decision.needsOwnerApproval) {
+    return decision.isUrgentAlert ? "urgent_review" : "needs_review";
+  }
+  return "auto_confirm";
 }

@@ -20,6 +20,8 @@ export type StoredCallLog = {
   from: string;
   to: string;
   transcript: string;
+  /** Higher-accuracy full-call transcript from Deepgram post-call re-transcription */
+  deepgramTranscript?: string;
   priority?: JobPriority;
   servicePriority?: ServicePriority;
   priorityReasons?: string[];
@@ -49,6 +51,9 @@ export type StoredCallLog = {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
+  severity?: string;
+  lastServiceYear?: string;
+  urgency?: string;
   dispatchNotes?: string;
   jobberPasteBlock?: string;
   createdAt: string;
@@ -113,13 +118,26 @@ export async function patchCallLog(
       | "priorityOverriddenAt"
       | "customerName"
       | "address"
+      | "serviceLocation"
       | "issueType"
       | "symptom"
       | "aiSummary"
       | "transcript"
+      | "deepgramTranscript"
       | "arrivalWindow"
       | "callbackPhone"
       | "portalToken"
+      | "confidence"
+      | "lossCategory"
+      | "insuranceCarrier"
+      | "insuranceClaimNumber"
+      | "waterSource"
+      | "activeLoss"
+      | "severity"
+      | "lastServiceYear"
+      | "urgency"
+      | "dispatchNotes"
+      | "jobberPasteBlock"
     >
   >,
 ): Promise<StoredCallLog | null> {
@@ -202,6 +220,27 @@ export async function findCallLogByCallSid(
 ): Promise<StoredCallLog | null> {
   const calls = await listCallLogs(userId);
   return calls.find((c) => c.callSid === callSid) ?? null;
+}
+
+/** Most recent prior call from this caller ID with a usable name + address, for the
+ * "Welcome back" returning-customer greeting. listCallLogs is already newest-first. */
+export async function findRecentCallLogByPhone(
+  userId: string,
+  phone: string,
+): Promise<StoredCallLog | null> {
+  const normalized = phone.trim();
+  if (!normalized) return null;
+  const calls = await listCallLogs(userId);
+  return (
+    calls.find(
+      (c) =>
+        c.from === normalized &&
+        c.customerName?.trim() &&
+        c.customerName.trim().toLowerCase() !== "unknown" &&
+        c.address?.trim() &&
+        c.address.trim().toLowerCase() !== "unknown",
+    ) ?? null
+  );
 }
 
 function filterByIsoRange(

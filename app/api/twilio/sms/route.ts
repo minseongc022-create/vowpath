@@ -16,7 +16,7 @@ import {
 export async function POST(request: Request) {
   const rawBody = await request.text();
 
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

@@ -17,6 +17,8 @@ import type { CallIntakeState, MandatoryVerifyField } from "@/lib/call-intake/ty
 import { MANDATORY_VERIFY_FIELDS } from "@/lib/call-intake/types";
 import {
   applyFieldValue,
+  applyOptionalFieldAnswer,
+  advanceToOptionalCollectOrSlotPick,
   buildVerifiedPayload,
   canFastTrackPhoneIntake,
   markFieldVerified,
@@ -39,6 +41,9 @@ import {
   shouldOfferLinkIntakeFallback,
 } from "@/lib/call-intake/phone-link-fallback";
 import { voiceCollectRetry } from "@/lib/voice-copy";
+import { findRecentCallLogByPhone } from "@/lib/call-logs";
+import { getShopVertical } from "@/lib/vertical-context";
+import type { ShopVertical } from "@/lib/shop-vertical.js";
 
 function emptyDraft(priority: JobPriority) {
   return {
@@ -64,7 +69,13 @@ function newIntakeState(params: {
   from: string;
   to: string;
   menuPriority: JobPriority | null;
+  vertical: ShopVertical;
   afterHours?: boolean;
+  returningCustomerMatch?: {
+    customerName: string;
+    address: string;
+    serviceLocation: string;
+  } | null;
 }): CallIntakeState {
   const priority = params.menuPriority ?? "P2";
   return {
@@ -73,7 +84,9 @@ function newIntakeState(params: {
     from: params.from,
     to: params.to,
     menuPriority: params.menuPriority,
-    phase: "collect",
+    vertical: params.vertical,
+    phase: params.returningCustomerMatch ? "returning_customer" : "collect",
+    returningCustomerMatch: params.returningCustomerMatch ?? null,
     rawTranscript: "",
     draft: emptyDraft(priority),
     confidence: {
@@ -93,6 +106,19 @@ function newIntakeState(params: {
 
 function isMandatoryField(value: string | null): value is MandatoryVerifyField {
   return MANDATORY_VERIFY_FIELDS.includes(value as MandatoryVerifyField);
+}
+
+// Serializes concurrent webhook requests for the same callSid (Twilio retries,
+// double-taps) so they don't read-modify-write the intake state out of order.
+// Note: this only holds within a single warm serverless instance — it does not
+// provide cross-instance locking on Vercel.
+const intakeLocks = new Map<string, Promise<unknown>>();
+
+function withIntakeLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prior = intakeLocks.get(key) ?? Promise.resolve();
+  const result = prior.then(fn, fn);
+  intakeLocks.set(key, result.catch(() => undefined));
+  return result;
 }
 
 async function afterVerificationStep(state: CallIntakeState): Promise<CallIntakeState> {
@@ -133,7 +159,7 @@ async function offerLinkFallbackAndClose(
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
@@ -148,6 +174,11 @@ export async function POST(request: Request) {
   const to = form.get("To") ?? "unknown";
   const speech = (form.get("SpeechResult") ?? "").trim();
   const digit = form.get("Digits");
+  const confidenceRaw = form.get("Confidence");
+  const speechConfidence =
+    confidenceRaw !== null && Number.isFinite(Number(confidenceRaw))
+      ? Number(confidenceRaw)
+      : null;
 
   const menuPriority = parsePriorityParam(url.searchParams.get("priority"));
   const afterHours = url.searchParams.get("afterHours") === "1";
@@ -162,15 +193,58 @@ export async function POST(request: Request) {
     );
   }
 
-  let state =
-    (callSid ? await getIntakeState(userId, callSid) : null) ??
-    newIntakeState({ callSid, userId, from, to, menuPriority, afterHours });
+  const lockKey = callSid || userId;
+  return withIntakeLock(lockKey, async () => {
+  let state = callSid ? await getIntakeState(userId, callSid) : null;
+  if (!state) {
+    const vertical = await getShopVertical(userId);
+    const callbackPhone = resolveCallbackFromCallerId(from);
+    const pastMatch = await findRecentCallLogByPhone(userId, callbackPhone);
+    state = newIntakeState({
+      callSid,
+      userId,
+      from,
+      to,
+      menuPriority,
+      afterHours,
+      vertical,
+      returningCustomerMatch: pastMatch
+        ? {
+            customerName: pastMatch.customerName ?? "",
+            address: pastMatch.address ?? "",
+            serviceLocation: pastMatch.serviceLocation || pastMatch.address || "",
+          }
+        : null,
+    });
+  }
 
   if (state.userId !== userId) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
   try {
+    if (phase === "returning_customer") {
+      const answer = parseDtmfYesNo(digit);
+      const match = state.returningCustomerMatch;
+      if (answer === "yes" && match) {
+        state.draft.customerName = match.customerName;
+        state.draft.address = match.address;
+        state.draft.serviceLocation = match.serviceLocation;
+        state.confidence.customerName = 100;
+        state.confidence.address = 100;
+        state.confidence.serviceLocation = 100;
+        state.verified.customerName = true;
+        state.verified.address = true;
+        state.verified.serviceLocation = true;
+      }
+      state.returningCustomerMatch = null;
+      state.phase = "collect";
+      await saveIntakeState(state);
+      return new NextResponse(twimlForIntakeState(state), {
+        headers: { "Content-Type": "text/xml" },
+      });
+    }
+
     if (phase === "collect") {
       if (!speech || speech.length < 8) {
         state = bumpPhoneIntakeStrike(state);
@@ -208,13 +282,32 @@ export async function POST(request: Request) {
         return offerLinkFallbackAndClose(userId, state);
       }
 
+      // Low-confidence speech recognition — ask the caller to repeat, up to 2 times.
+      if (speechConfidence !== null && speechConfidence < 0.6 && attempt < 3) {
+        const retryUrl = new URL(request.url);
+        retryUrl.searchParams.set("attempt", String(attempt + 1));
+        const twiml = twimlResponse(
+          twimlGatherSpeechDetailed(
+            retryUrl.toString(),
+            "I'm sorry, I didn't catch that clearly. Could you say that again?",
+          ),
+        );
+        return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
+      }
+
+      // Anything below 0.75 (including the "still low after 2 retries" case) gets tagged
+      // so the extraction prompt knows to lean on contextual inference.
+      const lowConfidenceTranscript = speechConfidence !== null && speechConfidence < 0.75;
+
       state.rawTranscript = speech;
-      state = await runExtractionAfterCollect(state);
+      state = await runExtractionAfterCollect(state, { lowConfidence: lowConfidenceTranscript });
 
       if (canFastTrackPhoneIntake(state)) {
         state = autoVerifyConfidentFields(state);
-        state = { ...state, phase: "slot_pick" };
-        state = await prepareSlotPickPhase(state);
+        state = advanceToOptionalCollectOrSlotPick(state);
+        if (state.phase === "slot_pick") {
+          state = await prepareSlotPickPhase(state);
+        }
         if (state.phase === "final") {
           return commitIntake(userId, state);
         }
@@ -246,7 +339,7 @@ export async function POST(request: Request) {
         return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
       }
 
-      state = applyFieldValue(state, field, speech);
+      state = await applyFieldValue(state, field, speech);
 
       if (field === "address") {
         const check = await validateServiceAddress(state.draft.address);
@@ -305,6 +398,24 @@ export async function POST(request: Request) {
       });
     }
 
+    if (phase === "optional_collect") {
+      const fieldKey = url.searchParams.get("field") ?? state.activeOptionalField ?? null;
+      state = fieldKey
+        ? applyOptionalFieldAnswer(state, fieldKey, { digit, speech })
+        : advanceToOptionalCollectOrSlotPick(state);
+
+      if (state.phase === "slot_pick") {
+        state = await prepareSlotPickPhase(state);
+      }
+      if (state.phase === "final") {
+        return commitIntake(userId, state);
+      }
+      await saveIntakeState(state);
+      return new NextResponse(twimlForIntakeState(state), {
+        headers: { "Content-Type": "text/xml" },
+      });
+    }
+
     if (phase === "slot_pick") {
       const count = state.offeredSlots?.length ?? 0;
       if (count === 0) {
@@ -331,7 +442,14 @@ export async function POST(request: Request) {
       const answer = parseDtmfYesNo(digit);
       if (answer !== "yes") {
         state = {
-          ...newIntakeState({ callSid, userId, from, to, menuPriority: state.menuPriority }),
+          ...newIntakeState({
+            callSid,
+            userId,
+            from,
+            to,
+            menuPriority: state.menuPriority,
+            vertical: state.vertical,
+          }),
           recordingUrl: state.recordingUrl,
           recordingSid: state.recordingSid,
         };
@@ -377,5 +495,6 @@ export async function POST(request: Request) {
 
   return new NextResponse(twimlForIntakeState(state), {
     headers: { "Content-Type": "text/xml" },
+  });
   });
 }

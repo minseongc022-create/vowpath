@@ -5,8 +5,24 @@ import { isTwilioConfigured } from "@/lib/twilio-config";
 import { findUserByEmail, findUserByPhone } from "@/lib/users-db";
 import { recordSecurityAudit } from "@/lib/security/audit";
 import { apiErrorsEn } from "@/lib/api-errors-en";
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  rateLimitKey,
+} from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: 5 reset attempts per IP per 15 minutes
+  const ip = clientIpFromRequest(request);
+  const ipLimit = await checkRateLimit({
+    key: rateLimitKey("reset:ip", ip),
+    limit: 5,
+    windowSeconds: 15 * 60,
+  });
+  if (!ipLimit.ok) {
+    return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const channel = body?.channel === "sms" ? "sms" : "email";

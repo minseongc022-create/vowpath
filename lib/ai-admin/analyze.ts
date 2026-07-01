@@ -16,6 +16,7 @@ import type {
   AiAdminPreview,
   CompanyMemoryField,
 } from "./types";
+import { mightBeClosureRelated } from "./closure-intent";
 
 export type AiAdminContext = {
   companyMemory: CompanyAiMemory;
@@ -579,6 +580,7 @@ export function shouldRunAdminAnalyzer(query: string): boolean {
     q.includes("플랜") ||
     q.includes("구독") ||
     q.includes("refund") ||
-    q.includes("환불")
+    q.includes("환불") ||
+    mightBeClosureRelated(query)
   );
 }

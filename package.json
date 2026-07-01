@@ -33,6 +33,7 @@
     "launch:verify": "node scripts/verify-twilio-webhooks.mjs"
   },
   "dependencies": {
+    "@deepgram/sdk": "^5.5.0",
     "@vercel/kv": "^3.0.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",

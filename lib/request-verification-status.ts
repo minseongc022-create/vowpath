@@ -149,8 +149,6 @@ function noLinkedCallHint(): string {
 export function buildRequestVerificationStatus(
   call: CallRecord | undefined,
 ): RequestVerificationStatus {
-  const threshold = getConfidenceThreshold();
-
   if (!call) {
     const noCall = noLinkedCallHint();
     return {
@@ -177,9 +175,14 @@ export function buildRequestVerificationStatus(
     "customerName",
     call.customerName,
     call,
-    threshold,
+    getConfidenceThreshold("customerName"),
   );
-  const addressState = resolveFieldVerification("address", call.address, call, threshold);
+  const addressState = resolveFieldVerification(
+    "address",
+    call.address,
+    call,
+    getConfidenceThreshold("address"),
+  );
   const phoneState = resolvePhoneVerification(call);
   const transcriptState = resolveTranscriptAvailability(call);
   const recordingState = resolveRecordingAvailability(call);

@@ -20,7 +20,7 @@ export function channelChoiceVoicePrompt(shopName: string, afterHours = false): 
 }
 
 export function channelChoiceGatherHint(): string {
-  return "Press 1 for the text link, or 2 to talk with us here.";
+  return "Press 1 for the text link, or press 2 to talk with us right here.";
 }
 
 export function smsLinkIntakeMessage(shopName: string, url: string): string {

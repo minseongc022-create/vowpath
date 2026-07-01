@@ -14,7 +14,7 @@
 | 변수 | 값 |
 |------|-----|
 | `RESEND_API_KEY` | `re_...` |
-| `EMAIL_FROM` | (선택) `Vowpath <onboarding@resend.dev>` |
+| `EMAIL_FROM` | (선택) `Effiroad <onboarding@resend.dev>` |
 
 **Redeploy** 필수.
 
@@ -26,7 +26,7 @@
 ### 로컬 (`.env.local`)
 ```env
 RESEND_API_KEY=re_xxxxxxxx
-EMAIL_FROM=Vowpath <onboarding@resend.dev>
+EMAIL_FROM=Effiroad <onboarding@resend.dev>
 ```
 `npm run dev` 재시작 후 `/signup`에서 **본인 Resend 이메일**로 테스트.
 
@@ -65,4 +65,4 @@ EMAIL_FROM=Vowpath <onboarding@resend.dev>
 | Resend | 월 3,000통 무료 | 이후 소액 |
 | Twilio SMS | Trial 크레딧 | 건당 과금 + Upgrade |
 
-Vowpath는 자동 결제 없음. Resend/Twilio 계정에만 청구됩니다.
+Effiroad는 자동 결제 없음. Resend/Twilio 계정에만 청구됩니다.

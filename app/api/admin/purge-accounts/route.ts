@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { purgeAllAccounts } from "@/lib/account-purge";
+import {
+  checkRateLimit,
+  clientIpFromRequest,
+  rateLimitKey,
+} from "@/lib/security/rate-limit";
 
 function purgeSecret(): string | undefined {
   return process.env.PURGE_ACCOUNTS_SECRET?.trim() || undefined;
@@ -33,7 +38,19 @@ export async function POST(request: Request) {
     );
   }
 
+  const ip = clientIpFromRequest(request);
+  const attemptLimit = await checkRateLimit({
+    key: rateLimitKey("purge-accounts:ip", ip),
+    limit: 5,
+    windowSeconds: 60 * 60,
+  });
+  if (!attemptLimit.ok) {
+    console.error("[admin/purge-accounts] rate limited; ip=", ip);
+    return NextResponse.json({ error: "Too many attempts" }, { status: 429 });
+  }
+
   if (!isAuthorized(request)) {
+    console.error("[admin/purge-accounts] unauthorized attempt; ip=", ip);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -45,8 +62,13 @@ export async function POST(request: Request) {
     );
   }
 
+  console.error(
+    `[admin/purge-accounts] PURGE TRIGGERED at ${new Date().toISOString()}; ip=${ip}`,
+  );
+
   try {
     const result = await purgeAllAccounts();
+    console.error("[admin/purge-accounts] purge completed", result);
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     console.error("[admin/purge-accounts]", e);

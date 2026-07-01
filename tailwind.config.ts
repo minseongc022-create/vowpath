@@ -63,6 +63,33 @@ const config: Config = {
       maxWidth: {
         content: "72rem",
       },
+      keyframes: {
+        "tour-ring": {
+          "0%, 100%": {
+            boxShadow: "0 0 0 0 rgba(181,155,120,0.55), 0 0 0 0 rgba(181,155,120,0.25)",
+            outlineColor: "rgba(181,155,120,0.9)",
+            outlineOffset: "2px",
+          },
+          "50%": {
+            boxShadow: "0 0 0 8px rgba(181,155,120,0.08), 0 0 0 18px rgba(181,155,120,0.03)",
+            outlineColor: "rgba(181,155,120,0.45)",
+            outlineOffset: "5px",
+          },
+        },
+        "tour-btn-pulse": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(154,127,94,0.65)" },
+          "50%": { boxShadow: "0 0 0 16px rgba(154,127,94,0)" },
+        },
+        "tour-slide-up": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+      },
+      animation: {
+        "tour-ring": "tour-ring 1.6s ease-in-out infinite",
+        "tour-btn-pulse": "tour-btn-pulse 1.3s ease-in-out infinite",
+        "tour-slide-up": "tour-slide-up 0.35s cubic-bezier(0.16,1,0.3,1) forwards",
+      },
       backgroundImage: {
         "hvac-gradient":
           "linear-gradient(160deg, #faf8f5 0%, #f5f0e8 45%, #ffffff 100%)",

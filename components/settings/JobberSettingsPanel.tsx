@@ -87,7 +87,7 @@ export function JobberSettingsPanel({
             <button
               type="button"
               onClick={onConfirm}
-              className="hvac-btn-primary flex-1 px-4 py-3.5 text-base"
+              className="vow-dash-btn-primary flex-1 px-4 py-3.5 text-base"
             >
               {settingsPage.jobberConfirm}
             </button>

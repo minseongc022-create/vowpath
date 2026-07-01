@@ -7,7 +7,7 @@ export type AiAdminRisk = "low" | "medium" | "high";
 
 export type CompanyMemoryField = Exclude<
   keyof CompanyAiMemoryInput,
-  "dailyBriefingSmsEnabled" | "dailyBriefingSmsTime"
+  "dailyBriefingSmsEnabled" | "dailyBriefingSmsTime" | "temporaryClosureDate" | "temporaryClosureMessage"
 >;
 
 export type AiAdminExecutableAction =
@@ -59,7 +59,9 @@ export type AiAdminExecutableAction =
     }
   | { type: "delete_account" }
   | { type: "disconnect_jobber" }
-  | { type: "update_owner_phone"; phone: string };
+  | { type: "update_owner_phone"; phone: string }
+  | { type: "set_temporary_closure"; date: string; message: string }
+  | { type: "clear_temporary_closure" };
 
 export type AiAdminPreview = {
   id: string;

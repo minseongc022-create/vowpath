@@ -12,6 +12,7 @@ import type {
 } from "@/lib/forwarding-guides";
 import type { BookingMode } from "@/lib/booking-policy";
 import type { AnswerWindow } from "@/lib/types";
+import { normalizeShopVertical, ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 
 const SCENARIOS = new Set<ForwardingScenarioId>([
   "overflow",
@@ -68,6 +69,12 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
     (body.bookingMode === "request_only" || body.bookingMode === "auto_booking")
   ) {
     patch.bookingMode = body.bookingMode as BookingMode;
+  }
+  if (
+    typeof body.vertical === "string" &&
+    ALL_SHOP_VERTICALS.includes(body.vertical as ShopVertical)
+  ) {
+    patch.vertical = normalizeShopVertical(body.vertical);
   }
 
   return patch;

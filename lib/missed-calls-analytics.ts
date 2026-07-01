@@ -66,7 +66,7 @@ export type MissedCallsAnalytics = {
   missedCallsPrevented: number;
   afterHoursCalls: number;
   weekendCalls: number;
-  /** Calls that likely would have been missed without Vowpath (same as prevented in range). */
+  /** Calls that likely would have been missed without Effiroad (same as prevented in range). */
   estimatedMissedWithoutEffiroad: number;
   dailyPrevented: MissedCallsDailyPoint[];
 };

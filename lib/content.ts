@@ -592,9 +592,6 @@ const settingsPageKo = {
   visitHoursPmLabel: "오후 블록",
   visitHoursContinuousStartLabel: "영업 시작",
   visitHoursContinuousEndLabel: "마지막 슬롯 종료",
-  visitHoursPresetStandard: "기본 (8–12, 12–5)",
-  visitHoursPresetFullDay: "풀데이 (8–5)",
-  visitHoursPresetExtended: "장시간 (7–7)",
   visitHoursToLabel: "~",
   visitHoursExample: (am: string, pm: string) =>
     `예: 다음 영업일 ${am}, ${pm} 슬롯이 보입니다.`,
@@ -1150,9 +1147,9 @@ const dashboardUiKo = {
     estimatedMissedBody:
       "야간·주말 또는 AI 수신 시간에 Effiroad가 받은 콜 — 음성사서함·누락됐을 가능성이 큰 건수입니다.",
     periodNote: (period: string) => `${period} 기준 · 새 통화 동기화 시 갱신`,
-    howCalculated: "집계 방식",
+    howCalculated: "데이터 범위 및 집계 방식",
     howCalculatedBody:
-      "저장된 통화·예약 기록만 사용합니다. AI가 받은 콜·살린 고객은 실제 인바운드 통화 기준, 확정 예약·검토 필요는 해당 기간에 접수된 요청 상태 기준입니다.",
+      "모든 수치는 설정된 AI 응대 시간대 안에 Effiroad AI가 직접 받은 통화만 반영합니다. 응대 시간 외에 업체 번호로 걸려온 전화는 Effiroad를 경유하지 않으므로 이 통계에 포함되지 않습니다. AI가 받은 콜·살린 고객은 실제 인바운드 통화 기준, 확정 예약·검토 필요는 해당 기간에 접수된 요청 상태 기준입니다.",
     pageBadge: "분석",
   },
   ops: {
@@ -1506,10 +1503,67 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
     return Reflect.get(getDashboardUiCopy(runtimeUiLocale()) as object, prop, receiver);
   },
 }) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
-export const authPages = authPagesEn;
-export const legalPages = legalPagesEn;
-export const messagingSetup = messagingSetupEn;
-export const phoneSetup = phoneSetupEn;
-export const inboundCalls = inboundCallsEn;
-export const jobberConnect = jobberConnectEn;
-export const jobCardGenerator = jobCardGeneratorEn;
+export function getAuthPagesCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? authPagesEn : authPagesKo;
+}
+export function getLegalPagesCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? legalPagesEn : legalPagesKo;
+}
+export function getMessagingSetupCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? messagingSetupEn : messagingSetupKo;
+}
+export function getPhoneSetupCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? phoneSetupEn : phoneSetupKo;
+}
+export function getInboundCallsCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? inboundCallsEn : inboundCallsKo;
+}
+export function getJobberConnectCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? jobberConnectEn : jobberConnectKo;
+}
+export function getJobCardGeneratorCopy(locale: UiLocale) {
+  return isEnglishUiLocale(locale) ? jobCardGeneratorEn : jobCardGeneratorKo;
+}
+
+/** @deprecated Prefer getAuthPagesCopy(locale) */
+export const authPages = new Proxy(authPagesEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getAuthPagesCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof authPagesEn;
+/** @deprecated Prefer getLegalPagesCopy(locale) */
+export const legalPages = new Proxy(legalPagesEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getLegalPagesCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof legalPagesEn;
+/** @deprecated Prefer getMessagingSetupCopy(locale) */
+export const messagingSetup = new Proxy(messagingSetupEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getMessagingSetupCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof messagingSetupEn;
+/** @deprecated Prefer getPhoneSetupCopy(locale) */
+export const phoneSetup = new Proxy(phoneSetupEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getPhoneSetupCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof phoneSetupEn;
+/** @deprecated Prefer getInboundCallsCopy(locale) */
+export const inboundCalls = new Proxy(inboundCallsEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getInboundCallsCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof inboundCallsEn;
+/** @deprecated Prefer getJobberConnectCopy(locale) */
+export const jobberConnect = new Proxy(jobberConnectEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getJobberConnectCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof jobberConnectEn;
+/** @deprecated Prefer getJobCardGeneratorCopy(locale) */
+export const jobCardGenerator = new Proxy(jobCardGeneratorEn, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getJobCardGeneratorCopy(runtimeUiLocale()) as object, prop, receiver);
+  },
+}) as typeof jobCardGeneratorEn;

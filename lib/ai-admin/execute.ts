@@ -138,6 +138,17 @@ function validateAction(action: unknown): AiAdminExecutableAction {
       return { type: "disconnect_jobber" };
     case "update_owner_phone":
       return { type: "update_owner_phone", phone: requireString(raw.phone, "Phone") };
+    case "set_temporary_closure": {
+      const date = requireString(raw.date, "Date");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new AiAdminExecutionError("Invalid date format.");
+      return {
+        type: "set_temporary_closure",
+        date,
+        message: typeof raw.message === "string" ? raw.message.trim() : "",
+      };
+    }
+    case "clear_temporary_closure":
+      return { type: "clear_temporary_closure" };
     default:
       throw new AiAdminExecutionError("This admin action is not supported.");
   }
@@ -318,6 +329,28 @@ export async function executeAiAdminAction(params: {
       message: "Owner phone was updated.",
       rows: [{ label: "Phone", value: user.phone ?? "" }],
     };
+  }
+
+  if (action.type === "set_temporary_closure") {
+    const memory = await saveMemoryPatch(params.userId, {
+      temporaryClosureDate: action.date,
+      temporaryClosureMessage: action.message,
+    });
+    return {
+      message: `Temporary closure set for ${action.date}. Callers today will hear a closed message.`,
+      rows: [
+        { label: "Date", value: memory.temporaryClosureDate },
+        { label: "Message", value: memory.temporaryClosureMessage || "(default closed message)" },
+      ],
+    };
+  }
+
+  if (action.type === "clear_temporary_closure") {
+    await saveMemoryPatch(params.userId, {
+      temporaryClosureDate: "",
+      temporaryClosureMessage: "",
+    });
+    return { message: "Temporary closure cleared. Normal phone answering resumed." };
   }
 
   throw new AiAdminExecutionError("Unsupported admin action.");

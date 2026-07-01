@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd } from "@/lib/site-metadata";
+import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd } from "@/lib/site-metadata";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { resolveServerUiLocale } from "@/lib/locale";
 import "./globals.css";
@@ -33,6 +33,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href={`/apple-touch-icon.png?v=${iconV}`} sizes="180x180" />
         <link rel="manifest" href={`/site.webmanifest?v=${iconV}`} />
         <meta name="theme-color" content="#faf8f5" />
+        <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
         <link
           rel="stylesheet"
           as="style"
@@ -44,6 +45,10 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteFaqJsonLd()) }}
         />
         <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
       </body>

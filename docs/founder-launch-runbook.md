@@ -83,10 +83,12 @@ After setting all variables → redeploy: Vercel → Deployments → Redeploy la
 | D1 | Run smart booking E2E | `npm run e2e:smart-booking` | P1 water → crew SMS + owner FYI | ☐ |
 | D2 | Run SMS flows E2E | `npm run e2e:sms-flows` | All 16 templates pass | ☐ |
 | D3 | Run Twilio inbound E2E | `npm run e2e:twilio-inbound` | Inbound → SMS link → intake | ☐ |
-| D4 | Live call test | Forward your mobile → call it from another phone → complete intake | Real SMS arrives | ☐ |
-| D5 | Undo test | Reply `9` to owner FYI SMS within 30 min | Customer notified of cancellation | ☐ |
+| D4 | Live call — restoration scenario | Forward your mobile → call it → say "Basement flooding, burst pipe" | Auto-dispatch SMS received | ☐ |
+| D5 | Live call — HVAC scenario | Call → say "No heat, furnace won't start" | Auto-dispatch SMS received | ☐ |
+| D6 | Live call — safety hold scenario | Call → say "I smell gas near my furnace" | Hold SMS received (NOT auto-dispatch) | ☐ |
+| D7 | Undo test | Reply `9` to owner FYI SMS within 30 min | Customer notified of cancellation | ☐ |
 
-**Done criteria:** D1-D3 all pass, D4 real SMS received
+**Done criteria:** D1-D3 all pass, D4-D6 real SMS received, D6 shows HOLD not auto-dispatch
 
 ---
 

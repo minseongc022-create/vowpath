@@ -47,11 +47,30 @@ If wrong: `npm run twilio:register` then re-run `npm run twilio:check`
 
 ---
 
-## C. E2E Test Call — Water Loss → Auto Dispatch
+## C. Vertical & Dispatch Policy Check
+
+| Check | Status |
+|-------|--------|
+| `/onboarding` shows vertical picker before schedule step | ☐ pass |
+| Selecting HVAC sets `vertical=hvac` in shop profile | ☐ pass |
+| `/hvac` landing page loads | ☐ pass |
+| `/restoration` redirects to `/` | ☐ pass |
+| `npm test` — all vertical tests pass | ☐ pass |
+
+Run unit tests:
+```bash
+npm test
+```
+
+Expected: shop-vertical, home-services-dispatch, data-truthfulness, auto-book-gate, auto-book-policy all pass.
+
+---
+
+## D. E2E Test Call — Water Loss → Auto Dispatch (restoration regression)
 
 Run in order:
 
-### Step 1: Simulate P1 water call
+### Step 1 (Restoration): Simulate P1 water call
 
 ```bash
 npm run e2e:smart-booking
@@ -72,7 +91,7 @@ npm run e2e:smart-booking
 | Owner FYI SMS | ☐ yes / ☐ no |
 | Job appears in dashboard | ☐ yes / ☐ no |
 
-### Step 2: Simulate Fire/Cat-3 hold
+### Step 2 (Restoration): Simulate Fire/Cat-3 hold
 
 Expected: owner gets `1=approve, 2=pass` SMS (NOT auto-dispatch)
 
@@ -81,13 +100,24 @@ Expected: owner gets `1=approve, 2=pass` SMS (NOT auto-dispatch)
 | Owner hold SMS (1/2) | ☐ yes / ☐ no |
 | No crew auto-dispatch | ☐ confirmed |
 
-### Step 3: Owner undo (reply 9)
+### Step 3 (old — replaced by above)
 
 Run: `npm run e2e:sms-flows`
 
 Expected: undo within 30-min window cancels dispatch + customer notified.
 
-### Step 4: Live forward test (optional but recommended)
+### Step 3 (HVAC vertical): Simulate no-heat auto-dispatch
+
+For an HVAC shop: set vertical to HVAC in settings, then run test call with "no heat" scenario.
+Expected: auto-dispatch (not held). Gas smell scenario: expected hold.
+
+### Step 4: Owner undo (reply 9)
+
+Run: `npm run e2e:sms-flows`
+
+Expected: undo within 30-min window cancels dispatch + customer notified.
+
+### Step 5: Live forward test (optional but recommended)
 
 1. Forward your personal number to your Effiroad Twilio number
 2. Call from a third phone

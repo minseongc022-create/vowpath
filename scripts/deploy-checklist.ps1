@@ -1,5 +1,5 @@
-# Vowpath 배포 전 로컬 확인 (비밀값은 출력하지 않음)
-Write-Host "=== Vowpath deploy checklist ===" -ForegroundColor Cyan
+# Effiroad 배포 전 로컬 확인 (비밀값은 출력하지 않음)
+Write-Host "=== Effiroad deploy checklist ===" -ForegroundColor Cyan
 
 if (-not (Test-Path ".git")) {
   Write-Host "[ ] git init 필요" -ForegroundColor Yellow

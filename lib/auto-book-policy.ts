@@ -1,4 +1,6 @@
 import type { JobPriority } from "./types";
+import type { ShopVertical } from "./shop-vertical.js";
+import { isRestorationVertical } from "./shop-vertical.js";
 import {
   inferLossCategoryFromText,
   normalizeLossCategory,
@@ -6,6 +8,10 @@ import {
   AUTO_BOOK_CONFIDENCE_MIN,
   type LossCategory,
 } from "./loss-category.js";
+import {
+  resolveHomeServicesDispatchDecision,
+  type HomeServicesDispatchDecision,
+} from "./home-services-issue.js";
 
 export { AUTO_BOOK_CONFIDENCE_MIN } from "./loss-category.js";
 
@@ -94,4 +100,49 @@ export function shouldSendOwnerApprovalSms(
   if (decision.isUrgentAlert) return true;
   if (level === "all") return true;
   return false;
+}
+
+/**
+ * Vertical-aware auto-book decision.
+ * Restoration → existing resolveAutoBookDecision (regression-safe).
+ * Other verticals → home-services dispatch with vertical-specific policy.
+ */
+export function resolveAutoBookDecisionForVertical(
+  vertical: ShopVertical,
+  params: {
+    priority: JobPriority;
+    confidenceMin?: number;
+    lossCategory?: LossCategory | string | null;
+    issueType?: string | null;
+    symptom?: string | null;
+    customerName?: string | null;
+    address?: string | null;
+    inServiceArea?: boolean;
+  },
+): AutoBookDecision {
+  if (isRestorationVertical(vertical)) {
+    return resolveAutoBookDecision(params);
+  }
+  const hs: HomeServicesDispatchDecision = resolveHomeServicesDispatchDecision({
+    vertical,
+    priority: params.priority,
+    confidenceMin: params.confidenceMin,
+    issueType: params.issueType,
+    symptom: params.symptom,
+    customerName: params.customerName,
+    address: params.address,
+    inServiceArea: params.inServiceArea,
+  });
+  const lossCategory =
+    params.lossCategory != null
+      ? normalizeLossCategory(params.lossCategory)
+      : normalizeLossCategory("other");
+  return {
+    needsOwnerApproval: hs.needsOwnerApproval,
+    isUrgentAlert: hs.isUrgentAlert,
+    isAmbiguous: hs.isAmbiguous,
+    autoWaterDispatch: hs.autoDispatch,
+    lossCategory,
+    reasons: hs.reasons,
+  };
 }

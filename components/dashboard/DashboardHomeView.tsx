@@ -47,6 +47,7 @@ import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRe
 import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
 import { CollectedRevenuePanel } from "@/components/dashboard/CollectedRevenuePanel";
 import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
+import { DashboardTour } from "@/components/dashboard/DashboardTour";
 
 export function DashboardHomeView() {
   const v = useVowDashboard();
@@ -220,7 +221,9 @@ export function DashboardHomeView() {
             className="!flex-row !items-center"
           />
           <NotificationCenter {...notificationProps} variant="dropdown" />
-          <DashboardNewRequestButton onCreated={() => void refresh()} />
+          <div data-tour-step="new-request">
+            <DashboardNewRequestButton onCreated={() => void refresh()} />
+          </div>
         </div>
       </header>
 
@@ -234,26 +237,32 @@ export function DashboardHomeView() {
         </div>
       ) : null}
 
-      <PendingReviewQueue
-        jobs={jobs}
-        calls={calls}
-        jobberBookings={jobberBookings}
-        requestStatuses={requestStatuses}
-        onStatusChange={() => void refresh()}
-      />
+      <div data-tour-step="pending-review">
+        <PendingReviewQueue
+          jobs={jobs}
+          calls={calls}
+          jobberBookings={jobberBookings}
+          requestStatuses={requestStatuses}
+          onStatusChange={() => void refresh()}
+        />
+      </div>
 
-      <CollectedRevenuePanel
-        dateRange={dateRange}
-        loading={!hasLoaded && loading}
-      />
+      <div data-tour-step="revenue">
+        <CollectedRevenuePanel
+          dateRange={dateRange}
+          loading={!hasLoaded && loading}
+        />
+      </div>
 
-      <RecoveryMetricsPanel
-        dateRange={dateRange}
-        loading={!hasLoaded && loading}
-      />
+      <div data-tour-step="recovery-metrics">
+        <RecoveryMetricsPanel
+          dateRange={dateRange}
+          loading={!hasLoaded && loading}
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5" data-tour-step="kpi-cards">
           <OwnerKpiCards
             daily={trendChart.data}
             periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
@@ -273,7 +282,7 @@ export function DashboardHomeView() {
       />
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2">
+        <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2" data-tour-step="trend-chart">
           <div className="space-y-3 border-b border-brand-200/60 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -312,7 +321,7 @@ export function DashboardHomeView() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2" data-tour-step="recent-requests">
           <DashboardRecentRequests
             bookings={recent}
             calls={calls}
@@ -320,19 +329,23 @@ export function DashboardHomeView() {
             loading={!hasLoaded && loading}
           />
         </div>
-        <DashboardUpcomingBookings
-          bookings={upcoming.slice(0, 5)}
-          requestStatuses={requestStatuses}
-        />
+        <div data-tour-step="upcoming-bookings">
+          <DashboardUpcomingBookings
+            bookings={upcoming.slice(0, 5)}
+            requestStatuses={requestStatuses}
+          />
+        </div>
       </div>
 
       <p className="text-center text-sm text-stone-600">
-        New jobs text your cell — reply 1 or 2. Finish setup in{" "}
+        New jobs text your phone — finish setup in{" "}
         <Link href={ROUTES.settings} className="font-semibold text-brand-800 hover:underline">
           Go live
         </Link>
         .
       </p>
+
+      <DashboardTour />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { analyzeAiAdminIntent, shouldRunAdminAnalyzer } from "@/lib/ai-admin/analyze";
 import { analyzeWorkflowIntentAsync } from "@/lib/ai-admin/workflow-parse";
+import { analyzeClosureIntentAsync } from "@/lib/ai-admin/closure-intent";
 import { answerAiQuestion, buildProactiveBriefing } from "@/lib/ai-admin/answer";
 import { buildAiContextPack } from "@/lib/ai-admin/context-pack";
 import { routeAiQuery } from "@/lib/ai-admin/router";
@@ -195,17 +196,29 @@ export async function POST(request: Request) {
     }
 
     if (shouldRunAdminAnalyzer(query)) {
-      const workflow = await analyzeWorkflowIntentAsync(query, locale);
-      if (workflow) {
-        if (workflow.kind === "preview") {
-          const response = {
-            answer: workflow.answer,
-            adminPreview: workflow.preview,
-            actions: [],
-            suggestions: workflow.suggestions,
-          };
-          return NextResponse.json({ ok: true, ...response, response });
-        }
+      const [workflow, closure] = await Promise.all([
+        analyzeWorkflowIntentAsync(query, locale),
+        analyzeClosureIntentAsync(query, locale),
+      ]);
+
+      if (workflow?.kind === "preview") {
+        const response = {
+          answer: workflow.answer,
+          adminPreview: workflow.preview,
+          actions: [],
+          suggestions: workflow.suggestions,
+        };
+        return NextResponse.json({ ok: true, ...response, response });
+      }
+
+      if (closure?.kind === "preview") {
+        const response = {
+          answer: closure.answer,
+          adminPreview: closure.preview,
+          actions: [],
+          suggestions: closure.suggestions,
+        };
+        return NextResponse.json({ ok: true, ...response, response });
       }
 
       const admin = analyzeAiAdminIntent(query, {

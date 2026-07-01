@@ -51,7 +51,7 @@ const client = twilio(sid, token);
 
 try {
   const req = await client.validationRequests.create({
-    friendlyName: "Vowpath owner",
+    friendlyName: "Effiroad owner",
     phoneNumber: phone,
   });
 

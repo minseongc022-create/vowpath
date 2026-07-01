@@ -6,7 +6,7 @@ import { resolveTenantUserId } from "@/lib/tenant-routing";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  if (process.env.NODE_ENV === "production" && !validateTwilioWebhook(request, rawBody)) {
+  if (!validateTwilioWebhook(request, rawBody)) {
     return new NextResponse("Invalid signature", { status: 403 });
   }
 
