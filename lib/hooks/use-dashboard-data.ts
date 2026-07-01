@@ -407,7 +407,7 @@ function useDashboardDataSource(): DashboardDataSource {
             if (document.visibilityState === "visible") {
               void refreshRef.current();
             }
-          }, 90_000)
+          }, 60_000)
         : undefined;
 
     return () => {
