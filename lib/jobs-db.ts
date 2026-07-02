@@ -112,6 +112,9 @@ export async function patchJobRecord(
       | "priorityReasons"
       | "prioritySource"
       | "priorityOverriddenAt"
+      | "quotedAmountCents"
+      | "quotedAt"
+      | "quoteFollowUpSentAt"
     >
   >,
 ): Promise<StoredJob | null> {
@@ -121,6 +124,7 @@ export async function patchJobRecord(
     if (idx < 0) return null;
     const merged: StoredJob = {
       ...existing[idx],
+      ...patch,
       ...resolvePriorityFields({ ...existing[idx], ...patch }),
     };
     existing[idx] = merged;
@@ -135,6 +139,7 @@ export async function patchJobRecord(
   if (idx < 0) return null;
   const merged: StoredJob = {
     ...store.jobs[idx],
+    ...patch,
     ...resolvePriorityFields({ ...store.jobs[idx], ...patch }),
   };
   store.jobs[idx] = merged;

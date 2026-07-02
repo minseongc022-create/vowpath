@@ -18,6 +18,7 @@ import {
 import {
   smsAfterHoursCustomerBody,
   smsCustomerApprovedBody,
+  smsCustomerQuoteFollowUpBody,
   smsCustomerRejectedBody,
   smsCustomerReviewRequestBody,
   smsOwnerIntakeAutoConfirmedBody,
@@ -184,6 +185,37 @@ export async function notifyCustomerReviewRequest(params: {
     body: smsCustomerReviewRequestBody({ shopName: user?.shopName, reviewUrl }),
     dedupeId: `${params.bookingId}:review_request`,
     operation: "customer_review_request",
+    bookingId: params.bookingId,
+  });
+}
+
+/** SMS nudge for a customer who was quoted but hasn't booked N days later. */
+export async function notifyCustomerQuoteFollowUp(params: {
+  userId: string;
+  bookingId: string;
+  phone?: string | null;
+  amountCents: number;
+}): Promise<void> {
+  const phone =
+    params.phone?.trim() ||
+    (await resolveBookingCustomerPhone(params.userId, params.bookingId));
+  if (!phone) {
+    console.info(
+      `[customer-sms] skip quote_follow_up — no phone for ${params.bookingId}`,
+    );
+    return;
+  }
+
+  const user = await findUserById(params.userId);
+  await sendCustomerSms({
+    userId: params.userId,
+    phone,
+    body: smsCustomerQuoteFollowUpBody({
+      shopName: user?.shopName,
+      amountCents: params.amountCents,
+    }),
+    dedupeId: `${params.bookingId}:quote_follow_up`,
+    operation: "customer_quote_follow_up",
     bookingId: params.bookingId,
   });
 }

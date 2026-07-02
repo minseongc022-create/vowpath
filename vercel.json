@@ -28,6 +28,10 @@
     {
       "path": "/api/cron/beta-cohort-price-step",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/quote-follow-up",
+      "schedule": "0 16 * * *"
     }
   ]
 }

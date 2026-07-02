@@ -299,6 +299,19 @@ export function smsCustomerReviewRequestBody(params: {
   );
 }
 
+export function smsCustomerQuoteFollowUpBody(params: {
+  shopName?: string;
+  amountCents: number;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const amount = (params.amountCents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+  return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.`;
+}
+
 export function smsOwnerNoSlotBody(params: {
   shopName?: string;
   customerName: string;

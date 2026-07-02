@@ -25,6 +25,10 @@ export type JobCard = {
   arrivalWindow: string;
   status: RequestStatus;
   createdAt: string;
+  /** Owner-entered quote/estimate amount, in cents. Drives the unbooked-quote follow-up. */
+  quotedAmountCents?: number;
+  quotedAt?: string;
+  quoteFollowUpSentAt?: string;
 };
 
 export type { BookingMode, RequestStatus };

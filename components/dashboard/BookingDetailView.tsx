@@ -21,8 +21,11 @@ import {
   REQUEST_STATUS_LABELS,
   type RequestStatus,
 } from "@/lib/booking-policy";
-import { lookupStoredRequestStatus } from "@/lib/request-status-resolve";
-import type { JobPriority } from "@/lib/types";
+import {
+  findJobsToUpdateForBooking,
+  lookupStoredRequestStatus,
+} from "@/lib/request-status-resolve";
+import type { JobCard, JobPriority } from "@/lib/types";
 import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
 import {
   buildAllRecentBookings,
@@ -197,6 +200,11 @@ export function BookingDetailContent({
   const customerVerification = useMemo(
     () => customerVerifications.find((r) => r.bookingId === decodedId) ?? null,
     [customerVerifications, decodedId],
+  );
+
+  const linkedJob = useMemo(
+    () => findJobsToUpdateForBooking(decodedId, jobs, calls)[0] ?? null,
+    [jobs, calls, decodedId],
   );
 
   const updateStatus = useCallback(
@@ -378,6 +386,9 @@ export function BookingDetailContent({
                 title={t.customerVerificationTitle}
               />
               <CustomerCorrectionHistoryPanel record={customerVerification} />
+              {linkedJob ? (
+                <QuoteEstimateCard bookingId={decodedId} job={linkedJob} onSaved={refresh} />
+              ) : null}
             </div>
 
             <InfoCard title={t.requestInfo}>
@@ -756,6 +767,82 @@ function InfoRow({
         {value}
       </dd>
     </div>
+  );
+}
+
+function QuoteEstimateCard({
+  bookingId,
+  job,
+  onSaved,
+}: {
+  bookingId: string;
+  job: JobCard;
+  onSaved: () => void;
+}) {
+  const [amount, setAmount] = useState(
+    job.quotedAmountCents ? (job.quotedAmountCents / 100).toFixed(0) : "",
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    const dollars = Number(amount);
+    if (!Number.isFinite(dollars) || dollars <= 0) {
+      setError("금액을 입력해 주세요.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/jobs/quote", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bookingId, quotedAmountCents: Math.round(dollars * 100) }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "저장하지 못했습니다.");
+        return;
+      }
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <InfoCard
+      title="견적/예상 금액"
+      subtitle={
+        job.quotedAt
+          ? `${new Date(job.quotedAt).toLocaleDateString()}에 전달됨 — 예약이 안 되면 3일 뒤 고객에게 자동으로 안내 문자가 나갑니다.`
+          : "금액을 입력하면 3일 뒤에도 예약이 안 됐을 때 고객에게 자동으로 안내 문자를 보냅니다."
+      }
+    >
+      <div className="flex items-center gap-2 py-3">
+        <span className="text-sm text-stone-500">$</span>
+        <input
+          type="number"
+          min={0}
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            setError(null);
+          }}
+          placeholder="4500"
+          className="w-32 rounded-lg border border-brand-200 px-2 py-1.5 text-sm"
+        />
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void handleSave()}
+          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
+        >
+          {saving ? "저장 중…" : "저장"}
+        </button>
+      </div>
+      {error ? <p className="pb-3 text-xs text-rose-700">{error}</p> : null}
+    </InfoCard>
   );
 }
 
