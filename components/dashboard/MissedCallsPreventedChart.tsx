@@ -506,6 +506,8 @@ export function MissedCallsPreventedChart({
   compact,
   tall,
   fluid = false,
+  controlledVisible,
+  onVisibleChange,
 }: {
   data: MissedCallsDailyPoint[];
   theme?: "light" | "dark";
@@ -514,6 +516,10 @@ export function MissedCallsPreventedChart({
   tall?: boolean;
   /** Stretch plot to container width (analytics full-width layout) */
   fluid?: boolean;
+  /** When provided, the series legend UI is hidden and this list drives which series render */
+  controlledVisible?: string[];
+  /** Called when the (externally controlled) visible series selection should change */
+  onVisibleChange?: (ids: string[]) => void;
 }) {
   const m = dashboardUi.missedCallsAnalytics;
   const resolvedSize: ChartSize = compact ? (tall ? "home" : "compact") : size;
@@ -547,9 +553,20 @@ export function MissedCallsPreventedChart({
   }, [resolvedSize, fluid, fluidWidth]);
 
   const dark = theme === "dark";
-  const [visibleSeries, setVisibleSeries] = useState<TrendChartSeriesId[]>(
+  const isControlled = controlledVisible !== undefined;
+  const [localVisibleSeries, setLocalVisibleSeries] = useState<TrendChartSeriesId[]>(
     DEFAULT_TREND_SERIES_VISIBLE,
   );
+  const visibleSeries = isControlled
+    ? (controlledVisible as TrendChartSeriesId[])
+    : localVisibleSeries;
+  const handleToggleSeries = (id: TrendChartSeriesId) => {
+    if (isControlled) {
+      onVisibleChange?.(toggleTrendSeries(visibleSeries, id));
+    } else {
+      setLocalVisibleSeries((prev) => toggleTrendSeries(prev, id));
+    }
+  };
 
   const prepared = useMemo(() => prepareMissedCallsChartData(data), [data]);
 
@@ -563,11 +580,9 @@ export function MissedCallsPreventedChart({
 
   return (
     <div ref={containerRef} className={cfg.containerClass}>
-      <SeriesLegend
-        visible={visibleSeries}
-        dark={dark}
-        onToggle={(id) => setVisibleSeries((prev) => toggleTrendSeries(prev, id))}
-      />
+      {isControlled ? null : (
+        <SeriesLegend visible={visibleSeries} dark={dark} onToggle={handleToggleSeries} />
+      )}
       <p
         className={`mb-2 min-h-[1rem] text-right text-[10px] font-medium ${
           dark ? "text-slate-500" : "text-slate-400"

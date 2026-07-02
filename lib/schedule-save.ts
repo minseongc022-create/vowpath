@@ -58,6 +58,17 @@ export async function markJobberSkipped(shop: ShopState): Promise<ShopState> {
   return persistShop(next);
 }
 
+export async function saveDashboardVisibleMetrics(
+  shop: ShopState,
+  visibleIds: string[],
+): Promise<ShopState> {
+  const next: ShopState = {
+    ...shop,
+    dashboardVisibleMetrics: visibleIds,
+  };
+  return persistShop(next);
+}
+
 export async function markForwardingDone(
   shop: ShopState,
   prefs?: { scenario?: ForwardingScenarioId; provider?: ForwardingProviderId },

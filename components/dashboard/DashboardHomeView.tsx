@@ -5,8 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { dashboardGreeting } from "@/lib/dashboard-home-metrics";
 import { useDashboardUi, useVowDashboard } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
+import { isEnglishUi } from "@/lib/locale";
 import { normalizeShopState } from "@/lib/shop-storage";
 import { useShopState } from "@/lib/hooks/use-shop-state";
+import { saveDashboardVisibleMetrics } from "@/lib/schedule-save";
+import { TREND_CHART_SERIES } from "@/lib/trend-chart-series";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { parseDateInput } from "@/lib/dashboard-analytics";
 import { buildDashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
@@ -47,14 +50,15 @@ import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRe
 import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
 import { CollectedRevenuePanel } from "@/components/dashboard/CollectedRevenuePanel";
 import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
-import { DashboardTour } from "@/components/dashboard/DashboardTour";
+import { GuidedTour } from "@/components/shared/GuidedTour";
+import { DASHBOARD_TOUR_STEPS } from "@/lib/guided-tour-steps";
 
 export function DashboardHomeView() {
   const v = useVowDashboard();
   const dashboardUi = useDashboardUi();
   const periodPresets = dashboardUi.missedCallsAnalytics.periodPresets as PeriodPresetOption[];
 
-  const { shop: rawShop } = useShopState();
+  const { shop: rawShop, setShop } = useShopState();
   const shop = useMemo(() => normalizeShopState(rawShop), [rawShop]);
   const [dateRange, setDateRange] = useState<DashboardDateRange>(defaultDashboardDateRange);
   const [activePreset, setActivePreset] = useState<MissedCallsAnalyticsPreset | "custom">(
@@ -62,6 +66,28 @@ export function DashboardHomeView() {
   );
   const [displayName, setDisplayName] = useState("");
   const [activeKpi, setActiveKpi] = useState<KpiDrilldownId | null>(null);
+  const [kpiEditMode, setKpiEditMode] = useState(false);
+  const [visibleMetricIds, setVisibleMetricIds] = useState<string[]>(
+    () => shop.dashboardVisibleMetrics ?? TREND_CHART_SERIES.map((s) => s.id),
+  );
+
+  useEffect(() => {
+    setVisibleMetricIds(shop.dashboardVisibleMetrics ?? TREND_CHART_SERIES.map((s) => s.id));
+  }, [shop.dashboardVisibleMetrics]);
+
+  const persistVisibleMetrics = async (ids: string[]) => {
+    setVisibleMetricIds(ids);
+    const saved = await saveDashboardVisibleMetrics(shop, ids);
+    setShop(saved);
+  };
+
+  const handleToggleMetric = (id: string) => {
+    const next = visibleMetricIds.includes(id)
+      ? visibleMetricIds.filter((v) => v !== id)
+      : [...visibleMetricIds, id];
+    if (next.length === 0) return;
+    void persistVisibleMetrics(next);
+  };
 
   const {
     calls,
@@ -263,12 +289,30 @@ export function DashboardHomeView() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div className="xl:col-span-5" data-tour-step="kpi-cards">
+          <div className="mb-2 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setKpiEditMode((v) => !v)}
+              className="rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
+            >
+              {kpiEditMode
+                ? isEnglishUi()
+                  ? "Done"
+                  : "완료"
+                : isEnglishUi()
+                  ? "Edit"
+                  : "수정"}
+            </button>
+          </div>
           <OwnerKpiCards
             daily={trendChart.data}
             periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
             waitingCustomersNow={waitingCustomersNow}
             loading={!hasLoaded && loading}
-            onCardClick={setActiveKpi}
+            onCardClick={kpiEditMode ? undefined : setActiveKpi}
+            visibleIds={visibleMetricIds}
+            editMode={kpiEditMode}
+            onToggle={handleToggleMetric}
           />
         </div>
       </div>
@@ -313,6 +357,8 @@ export function DashboardHomeView() {
                 data={trendChart.data}
                 theme="light"
                 size="home"
+                controlledVisible={visibleMetricIds}
+                onVisibleChange={(ids) => void persistVisibleMetrics(ids)}
               />
             </div>
           </div>
@@ -345,7 +391,7 @@ export function DashboardHomeView() {
         .
       </p>
 
-      <DashboardTour />
+      <GuidedTour steps={DASHBOARD_TOUR_STEPS} storageKey="effiroad_tour_v1_never" />
     </div>
   );
 }

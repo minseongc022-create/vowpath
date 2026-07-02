@@ -53,6 +53,8 @@ export type ShopState = {
   bookingMode?: BookingMode;
   /** Trade vertical — drives AI prompts, dispatch rules, and intake fields. Default: restoration. */
   vertical?: ShopVertical;
+  /** KPI cards the owner has chosen to show on the dashboard. */
+  dashboardVisibleMetrics?: string[];
 };
 
 export type { ShopVertical };

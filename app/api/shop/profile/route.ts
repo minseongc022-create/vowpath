@@ -13,6 +13,7 @@ import type {
 import type { BookingMode } from "@/lib/booking-policy";
 import type { AnswerWindow } from "@/lib/types";
 import { normalizeShopVertical, ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
+import { TREND_CHART_SERIES, type TrendChartSeriesId } from "@/lib/trend-chart-series";
 
 const SCENARIOS = new Set<ForwardingScenarioId>([
   "overflow",
@@ -24,6 +25,9 @@ const PROVIDERS = new Set<ForwardingProviderId>([
   "carrier",
   "other",
 ]);
+const DASHBOARD_METRIC_IDS = new Set<TrendChartSeriesId>(
+  TREND_CHART_SERIES.map((s) => s.id),
+);
 
 function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
   const patch: Partial<ShopProfile> = {};
@@ -75,6 +79,15 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
     ALL_SHOP_VERTICALS.includes(body.vertical as ShopVertical)
   ) {
     patch.vertical = normalizeShopVertical(body.vertical);
+  }
+  if (
+    Array.isArray(body.dashboardVisibleMetrics) &&
+    body.dashboardVisibleMetrics.every(
+      (id): id is TrendChartSeriesId =>
+        typeof id === "string" && DASHBOARD_METRIC_IDS.has(id as TrendChartSeriesId),
+    )
+  ) {
+    patch.dashboardVisibleMetrics = body.dashboardVisibleMetrics as TrendChartSeriesId[];
   }
 
   return patch;

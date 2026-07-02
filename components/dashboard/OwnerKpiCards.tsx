@@ -18,6 +18,9 @@ type OwnerKpiCardsProps = {
   loading?: boolean;
   dark?: boolean;
   onCardClick?: (id: KpiDrilldownId) => void;
+  visibleIds?: string[];
+  editMode?: boolean;
+  onToggle?: (id: string) => void;
 };
 
 function OwnerKpiCard({
@@ -28,6 +31,9 @@ function OwnerKpiCard({
   periodLabel,
   dark,
   onClick,
+  editMode,
+  included,
+  onToggle,
 }: {
   label: string;
   shortHint: string;
@@ -36,19 +42,14 @@ function OwnerKpiCard({
   periodLabel: string;
   dark?: boolean;
   onClick?: () => void;
+  editMode?: boolean;
+  included?: boolean;
+  onToggle?: () => void;
 }) {
   const hint = dashboardUi.kpiDrilldown.tapHint;
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left transition ${
-        dark ? "vow-dash-kpi vow-dash-kpi-owner vow-dash-kpi-clickable" : "ops-kpi ops-kpi-clickable"
-      }`}
-      style={{ borderTopColor: color, borderTopWidth: 3 }}
-      aria-label={`${label} ${value} — ${hint}`}
-    >
+  const body = (
+    <>
       <p
         className={`text-xs font-semibold uppercase tracking-wider vow-dash-kpi-label ${
           dark ? "" : "text-slate-600"
@@ -69,6 +70,56 @@ function OwnerKpiCard({
       <p className={`mt-2 text-xs ${dark ? "text-stone-500" : "text-stone-500"}`}>
         {periodLabel}
       </p>
+    </>
+  );
+
+  if (editMode) {
+    const toggleLabel = included
+      ? isEnglishUi()
+        ? `Remove ${label} from dashboard`
+        : `${label} 대시보드에서 제거`
+      : isEnglishUi()
+        ? `Add ${label} to dashboard`
+        : `${label} 대시보드에 추가`;
+
+    return (
+      <div
+        className={`relative text-left transition ${
+          dark ? "vow-dash-kpi vow-dash-kpi-owner" : "ops-kpi"
+        } ${included ? "" : "opacity-50"}`}
+        style={{ borderTopColor: color, borderTopWidth: 3 }}
+      >
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={included}
+          aria-label={toggleLabel}
+          className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition ${
+            included
+              ? "bg-blue-600 text-white"
+              : dark
+                ? "bg-white/10 text-slate-300 hover:bg-white/20"
+                : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+          }`}
+        >
+          {included ? "✓" : "+"}
+        </button>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left transition ${
+        dark ? "vow-dash-kpi vow-dash-kpi-owner vow-dash-kpi-clickable" : "ops-kpi ops-kpi-clickable"
+      }`}
+      style={{ borderTopColor: color, borderTopWidth: 3 }}
+      aria-label={`${label} ${value} — ${hint}`}
+    >
+      {body}
     </button>
   );
 }
@@ -80,12 +131,18 @@ export function OwnerKpiCards({
   loading,
   dark = false,
   onCardClick,
+  visibleIds,
+  editMode = false,
+  onToggle,
 }: OwnerKpiCardsProps) {
   const totals = sumTrendSeriesTotals(daily);
+  const cardSeries = editMode
+    ? TREND_CHART_SERIES
+    : TREND_CHART_SERIES.filter((s) => !visibleIds || visibleIds.includes(s.id));
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      {TREND_CHART_SERIES.map((series) => {
+      {cardSeries.map((series) => {
         const id = series.id as TrendChartSeriesId;
         const isWaiting = id === "waitingCustomers";
         const value =
@@ -93,6 +150,7 @@ export function OwnerKpiCards({
             ? waitingCustomersNow
             : totals[id];
         const cardPeriodLabel = isWaiting ? (isEnglishUi() ? "Now" : "현재") : periodLabel;
+        const included = !visibleIds || visibleIds.includes(id);
 
         return (
           <OwnerKpiCard
@@ -104,6 +162,9 @@ export function OwnerKpiCards({
             periodLabel={cardPeriodLabel}
             dark={dark}
             onClick={onCardClick ? () => onCardClick(id) : undefined}
+            editMode={editMode}
+            included={included}
+            onToggle={onToggle ? () => onToggle(id) : undefined}
           />
         );
       })}
