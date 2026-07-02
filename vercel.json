@@ -24,6 +24,10 @@
     {
       "path": "/api/cron/daily-summary",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/beta-cohort-price-step",
+      "schedule": "0 10 * * *"
     }
   ]
 }
