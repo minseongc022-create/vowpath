@@ -6,6 +6,7 @@ import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
   twimlGatherChannelChoice,
   twimlGatherEstimateMenu,
+  twimlGatherSpanishIntake,
   twimlResponse,
 } from "@/lib/twilio-xml";
 
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
   if (digit === "2") {
     const estimateActionUrl = `${base}/api/twilio/estimate?callSid=${encodeURIComponent(callSid)}${afterQ}`;
     return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateActionUrl)));
+  }
+
+  if (digit === "3") {
+    const esIntakeActionUrl = `${base}/api/twilio/es-intake?callSid=${encodeURIComponent(callSid)}`;
+    return twimlXml(twimlResponse(twimlGatherSpanishIntake(esIntakeActionUrl)));
   }
 
   // Digit 1, no input, or anything unrecognized defaults to the emergency path.

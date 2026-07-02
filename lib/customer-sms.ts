@@ -24,6 +24,7 @@ import {
   smsOwnerIntakeAutoConfirmedBody,
   smsOwnerNewRequestBody as tplOwnerNewRequestBody,
   smsRequestReceivedBody,
+  smsRequestReceivedEsBody,
 } from "./sms-templates";
 
 export { smsRequestReceivedBody, smsCustomerApprovedBody as smsApprovedBody, smsCustomerRejectedBody as smsRejectedBody };
@@ -127,6 +128,23 @@ export async function notifyCustomerRequestReceived(params: {
     body,
     dedupeId: `${params.bookingId}:request_received`,
     operation: "customer_request_received",
+    bookingId: params.bookingId,
+  });
+}
+
+/** Spanish counterpart of notifyCustomerRequestReceived — used by the Spanish phone intake path. */
+export async function notifyCustomerRequestReceivedEs(params: {
+  userId: string;
+  bookingId: string;
+  phone: string;
+}): Promise<void> {
+  const user = await findUserById(params.userId);
+  await sendCustomerSms({
+    userId: params.userId,
+    phone: params.phone,
+    body: smsRequestReceivedEsBody(user?.shopName),
+    dedupeId: `${params.bookingId}:request_received`,
+    operation: "customer_request_received_es",
     bookingId: params.bookingId,
   });
 }

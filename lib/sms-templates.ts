@@ -169,6 +169,13 @@ export function smsAfterHoursCustomerBody(shopName?: string): string {
   ]);
 }
 
+export function smsRequestReceivedEsBody(shopName?: string): string {
+  const shop = resolveShopDisplayName(shopName);
+  return smsFitSingleSegment([
+    `${shop}: Hemos recibido su solicitud y la estamos revisando. Le contactaremos en breve.${smsCustomerOptOut()}`,
+  ]);
+}
+
 /** Customer — tech en route */
 export function smsCustomerOnMyWayBody(params: {
   shopName?: string;

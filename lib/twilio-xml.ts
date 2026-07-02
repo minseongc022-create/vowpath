@@ -29,8 +29,16 @@ export function twimlMessage(body: string): string {
   return `<Message>${escapeXml(body)}</Message>`;
 }
 
-export function twimlSay(message: string, language: "en-US" | "ko-KR" = "en-US"): string {
-  const voice = language === "ko-KR" ? "Polly.Seoyeon-Neural" : "Polly.Joanna-Neural";
+export function twimlSay(
+  message: string,
+  language: "en-US" | "ko-KR" | "es-US" = "en-US",
+): string {
+  const voice =
+    language === "ko-KR"
+      ? "Polly.Seoyeon-Neural"
+      : language === "es-US"
+        ? "Polly.Lupe-Neural"
+        : "Polly.Joanna-Neural";
   return `<Say voice="${voice}" language="${language}" rate="95%">${escapeXml(message)}</Say>`;
 }
 
@@ -62,8 +70,26 @@ export function twimlGatherMainMenu(
   stormMode = false,
 ): string {
   const stormLine = stormMode ? twimlSay(voiceStormSurgeIntro) : "";
-  const prompt = `Thank you for calling ${shopName}! Press 1 for emergency service, or press 2 to request a free estimate.`;
+  const prompt = `Thank you for calling ${shopName}! Press 1 for emergency service, or press 2 to request a free estimate. Para español, oprima el tres.`;
   return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+}
+
+/**
+ * Spanish intake — simpler than the English tree on purpose: one open question, one
+ * speech capture, always reviewed by the owner before dispatch (no auto-confirm path).
+ */
+export function twimlGatherSpanishIntake(actionUrl: string): string {
+  const prompt =
+    "Por favor describa su emergencia o el servicio que necesita, incluyendo su nombre y dirección. " +
+    "Le responderemos en breve.";
+  return `${twimlSay(prompt, "es-US")}<Gather input="speech" language="es-US" speechTimeout="auto" enhanced="true" timeout="20" action="${escapeXml(actionUrl)}" method="POST"></Gather>${twimlSay("No escuchamos su respuesta. Por favor intente de nuevo.", "es-US")}`;
+}
+
+export function twimlSpanishIntakeConfirmation(): string {
+  return twimlSay(
+    "Gracias. Hemos recibido su solicitud y alguien se comunicará con usted en breve. Adiós.",
+    "es-US",
+  );
 }
 
 /** Estimate sub-menu: text form vs. give details on the call now. */
