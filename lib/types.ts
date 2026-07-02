@@ -55,6 +55,8 @@ export type ShopState = {
   vertical?: ShopVertical;
   /** KPI cards the owner has chosen to show on the dashboard. */
   dashboardVisibleMetrics?: string[];
+  /** Google review link — customers get a one-tap SMS ask when a job is marked completed. */
+  googleReviewUrl?: string;
 };
 
 export type { ShopVertical };

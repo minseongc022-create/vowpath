@@ -288,6 +288,17 @@ export function smsOwnerUrgentAutoBookedBody(params: {
   return `${shop} P1 AUTO-BOOKED: ${smsTruncate(params.customerName, 12)}, ${smsTruncate(params.issue, 16)}, ${smsTruncate(params.window, 16)}. Reply 2=Cancel | 9=Undo (${params.undoMinutes}m).`;
 }
 
+export function smsCustomerReviewRequestBody(params: {
+  shopName?: string;
+  reviewUrl: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  return smsBodyWithUrl(
+    `Thanks for choosing ${shop}! Mind leaving us a quick review?`,
+    params.reviewUrl,
+  );
+}
+
 export function smsOwnerNoSlotBody(params: {
   shopName?: string;
   customerName: string;

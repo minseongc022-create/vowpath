@@ -10,6 +10,7 @@ import {
   BookingStatusTransitionError,
   persistRequestStatusForBooking,
 } from "@/lib/booking-status-sync";
+import { notifyCustomerReviewRequest } from "@/lib/customer-sms";
 import { getSession } from "@/lib/session";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 import { apiErrorsEn } from "@/lib/api-errors-en";
@@ -78,8 +79,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
+    const beforeStatuses = await getBookingRequestStatuses(session.sub);
+    const previousStatus = beforeStatuses[id];
+
     const statuses = await persistRequestStatusForBooking(session.sub, id, status);
     const effectiveStatus = statuses[id] ?? status;
+
+    if (effectiveStatus === "completed" && previousStatus !== "completed") {
+      try {
+        await notifyCustomerReviewRequest({ userId: session.sub, bookingId: id });
+      } catch (e) {
+        console.warn("[bookings/status PATCH] review request sms", e);
+      }
+    }
+
     return NextResponse.json({ ok: true, id, status: effectiveStatus, statuses });
   } catch (e) {
     console.error("[bookings/status PATCH]", e);

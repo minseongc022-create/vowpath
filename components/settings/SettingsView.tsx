@@ -300,6 +300,12 @@ function SettingsViewBody({
               onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
             />
           </div>
+          <div className="scroll-mt-24">
+            <GoogleReviewUrlEditor
+              reviewUrl={shop.googleReviewUrl}
+              onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
+            />
+          </div>
           <div id="booking-settings" className="scroll-mt-24">
             <BookingSettingsEditor />
           </div>
@@ -602,6 +608,71 @@ function VerticalSelector({
           );
         })}
       </div>
+      {saving ? (
+        <p className="mt-2 text-xs text-slate-500">Saving…</p>
+      ) : saved ? (
+        <p className="mt-2 text-xs text-emerald-600">Saved</p>
+      ) : null}
+    </div>
+  );
+}
+
+function GoogleReviewUrlEditor({
+  reviewUrl,
+  onSaved,
+}: {
+  reviewUrl?: string;
+  onSaved: (url: string | undefined) => void;
+}) {
+  const [draft, setDraft] = useState(reviewUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    const trimmed = draft.trim();
+    if (trimmed && !/^https:\/\/.+/.test(trimmed)) {
+      setError("https:// 로 시작하는 링크를 입력해 주세요.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/shop/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ googleReviewUrl: trimmed }),
+      });
+      if (res.ok) {
+        onSaved(trimmed || undefined);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">구글 리뷰 링크</p>
+      <p className="mb-3 text-xs text-slate-500">
+        작업 완료 처리하면 고객에게 이 링크로 리뷰 요청 문자가 자동으로 나갑니다. 비워두면 안 보냅니다.
+      </p>
+      <input
+        type="url"
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setError(null);
+        }}
+        onBlur={() => void handleSave()}
+        placeholder="https://g.page/r/..."
+        maxLength={300}
+        className="vow-settings-input"
+      />
+      {error ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
       {saving ? (
         <p className="mt-2 text-xs text-slate-500">Saving…</p>
       ) : saved ? (

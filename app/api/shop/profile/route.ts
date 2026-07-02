@@ -89,6 +89,14 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
   ) {
     patch.dashboardVisibleMetrics = body.dashboardVisibleMetrics as TrendChartSeriesId[];
   }
+  if (typeof body.googleReviewUrl === "string") {
+    const url = body.googleReviewUrl.trim();
+    if (url === "") {
+      patch.googleReviewUrl = undefined;
+    } else if (/^https:\/\/.{1,300}$/.test(url)) {
+      patch.googleReviewUrl = url;
+    }
+  }
 
   return patch;
 }

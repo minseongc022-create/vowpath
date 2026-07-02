@@ -7,6 +7,7 @@ import type { JobPriority } from "./types";
 import { bookingShortRef } from "./booking-ref";
 import { setSmsReplyTarget } from "./sms-reply-context";
 import { findUserById } from "./users-db";
+import { getShopProfile } from "./shop-profile-db";
 import { resolveShopDisplayName } from "./link-intake-brand";
 import { notifyOwnerNewRequestEmail } from "./owner-email-notify";
 import {
@@ -18,6 +19,7 @@ import {
   smsAfterHoursCustomerBody,
   smsCustomerApprovedBody,
   smsCustomerRejectedBody,
+  smsCustomerReviewRequestBody,
   smsOwnerIntakeAutoConfirmedBody,
   smsOwnerNewRequestBody as tplOwnerNewRequestBody,
   smsRequestReceivedBody,
@@ -151,6 +153,37 @@ export async function notifyCustomerApproved(params: {
     body: smsCustomerApprovedBody(user?.shopName),
     dedupeId: `${params.bookingId}:approved`,
     operation: "customer_approved",
+    bookingId: params.bookingId,
+  });
+}
+
+/** SMS to customer asking for a review once a job is marked completed. No-ops if the shop hasn't configured a review link. */
+export async function notifyCustomerReviewRequest(params: {
+  userId: string;
+  bookingId: string;
+  phone?: string | null;
+}): Promise<void> {
+  const profile = await getShopProfile(params.userId);
+  const reviewUrl = profile.googleReviewUrl?.trim();
+  if (!reviewUrl) return;
+
+  const phone =
+    params.phone?.trim() ||
+    (await resolveBookingCustomerPhone(params.userId, params.bookingId));
+  if (!phone) {
+    console.info(
+      `[customer-sms] skip review_request — no phone for ${params.bookingId}`,
+    );
+    return;
+  }
+
+  const user = await findUserById(params.userId);
+  await sendCustomerSms({
+    userId: params.userId,
+    phone,
+    body: smsCustomerReviewRequestBody({ shopName: user?.shopName, reviewUrl }),
+    dedupeId: `${params.bookingId}:review_request`,
+    operation: "customer_review_request",
     bookingId: params.bookingId,
   });
 }
