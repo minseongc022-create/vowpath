@@ -22,6 +22,8 @@ import {
 } from "@/components/settings/SettingsSaveContext";
 import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
+import { GuidedTour } from "@/components/shared/GuidedTour";
+import { SETTINGS_TOUR_STEPS } from "@/lib/guided-tour-steps";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
@@ -58,24 +60,24 @@ import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 
 export function SettingsView({
   paid: paidProp,
-  sessionId,
+  transactionId,
 }: {
   paid?: boolean;
-  sessionId?: string;
+  transactionId?: string;
 }) {
   return (
     <SettingsSaveProvider>
-      <SettingsViewBody paid={paidProp} sessionId={sessionId} />
+      <SettingsViewBody paid={paidProp} transactionId={transactionId} />
     </SettingsSaveProvider>
   );
 }
 
 function SettingsViewBody({
   paid: paidProp,
-  sessionId,
+  transactionId,
 }: {
   paid?: boolean;
-  sessionId?: string;
+  transactionId?: string;
 }) {
   const settingsPage = useSettingsPage();
   const router = useRouter();
@@ -273,8 +275,8 @@ function SettingsViewBody({
 
   return (
     <div className="vow-settings-page-body space-y-8">
-      {paidProp || sessionId ? (
-        <BillingStatusBanner sessionId={sessionId} />
+      {paidProp || transactionId ? (
+        <BillingStatusBanner transactionId={transactionId} />
       ) : null}
 
       <section
@@ -526,6 +528,17 @@ function SettingsViewBody({
       <p className="text-center text-sm text-slate-500">
         {settingsPage.support.replace("{email}", SITE.supportEmail)}
       </p>
+
+      <GuidedTour
+        steps={SETTINGS_TOUR_STEPS}
+        storageKey="effiroad_settings_tour_v1_never"
+        doneMap={{
+          "go-live-contact": contactItem.done,
+          "go-live-schedule": scheduleItem.done,
+          "go-live-phone": phoneItem.done,
+          "go-live-jobber": jobberItem.done,
+        }}
+      />
     </div>
   );
 }

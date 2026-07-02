@@ -64,6 +64,20 @@ const config: Config = {
         content: "72rem",
       },
       keyframes: {
+        "tour-spotlight": {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 0 4px rgba(6,182,212,0.5), 0 0 20px rgba(6,182,212,0.4)",
+            outlineColor: "rgba(6,182,212,0.95)",
+            outlineOffset: "4px",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 0 12px rgba(6,182,212,0.3), 0 0 40px 16px rgba(6,182,212,0.45)",
+            outlineColor: "rgba(6,182,212,0.6)",
+            outlineOffset: "9px",
+          },
+        },
         "tour-ring": {
           "0%, 100%": {
             boxShadow: "0 0 0 0 rgba(181,155,120,0.55), 0 0 0 0 rgba(181,155,120,0.25)",
@@ -86,6 +100,7 @@ const config: Config = {
         },
       },
       animation: {
+        "tour-spotlight": "tour-spotlight 1.1s ease-in-out infinite",
         "tour-ring": "tour-ring 1.6s ease-in-out infinite",
         "tour-btn-pulse": "tour-btn-pulse 1.3s ease-in-out infinite",
         "tour-slide-up": "tour-slide-up 0.35s cubic-bezier(0.16,1,0.3,1) forwards",
