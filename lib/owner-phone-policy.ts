@@ -34,13 +34,21 @@ export function isKrOwnerPhoneEmail(email: string): boolean {
   return krOwnerEmailAllowlist().includes(email.trim().toLowerCase());
 }
 
+/** TEMP: everyone can sign up with a KR (+82) number for now, not just the
+ * allowlist above. Flip to false to restrict KR signup back to isKrOwnerPhoneEmail. */
+const ALLOW_ANY_KR_SIGNUP = true;
+
+function krPhoneAllowedForSignup(email: string): boolean {
+  return ALLOW_ANY_KR_SIGNUP || isKrOwnerPhoneEmail(email);
+}
+
 export function normalizeOwnerSignupPhone(
   email: string,
   input: string,
 ): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  if (isKrOwnerPhoneEmail(email)) {
+  if (krPhoneAllowedForSignup(email)) {
     return (
       normalizeKrBusinessPhone(trimmed) ?? normalizeUsBusinessPhone(trimmed)
     );
@@ -53,6 +61,11 @@ export function ownerSignupPhoneError(email: string): string {
     return isEnglishUi()
       ? "Check your Korean mobile number format. (e.g. 010-1234-5678)"
       : "한국 휴대폰 번호 형식을 확인해 주세요. (예: 010-1234-5678)";
+  }
+  if (ALLOW_ANY_KR_SIGNUP) {
+    return isEnglishUi()
+      ? "Check your mobile number format. (US e.g. (512) 555-0100 / KR e.g. 010-1234-5678)"
+      : "휴대폰 번호 형식을 확인해 주세요. (미국 예: (512) 555-0100 / 한국 예: 010-1234-5678)";
   }
   return isEnglishUi()
     ? "Check your US mobile number format. (e.g. (512) 555-0100)"

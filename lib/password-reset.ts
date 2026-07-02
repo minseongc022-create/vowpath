@@ -13,6 +13,7 @@ import { sendResetCodeEmail, sendResetCodeSms } from "./send-reset-code";
 import { normalizeSmsPhone } from "./phone";
 import type { UserRecord } from "./users-db";
 import { apiErrorsEn } from "./api-errors-en";
+import { isKrOwnerPhoneEmail } from "./owner-phone-policy";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
@@ -70,7 +71,9 @@ export async function createAndSendResetCode(
     const sent = await sendResetCodeEmail(user.email, code);
     if (!sent.ok) return { error: sent.error ?? apiErrorsEn.emailSendFailed };
   } else if (user.phone) {
-    const sent = await sendResetCodeSms(user.phone, code);
+    const sent = await sendResetCodeSms(user.phone, code, {
+      allowKrRecipient: isKrOwnerPhoneEmail(user.email),
+    });
     if (!sent.ok) return { error: sent.error ?? apiErrorsEn.smsSendFailed };
   }
 

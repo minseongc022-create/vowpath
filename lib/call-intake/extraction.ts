@@ -1,5 +1,7 @@
 import { applyPriorityAnalysisToDraft } from "../apply-service-priority";
 import { normalizeLossCategory, inferLossCategoryFromText } from "../loss-category";
+import { alertCritical } from "../owner-alerts";
+import { withCircuitBreaker, withRetry } from "../resilience";
 import type { JobPriority } from "../types";
 import type { ShopVertical } from "../shop-vertical.js";
 import { getVerticalConfig } from "../vertical-config.js";
@@ -167,34 +169,51 @@ async function extractIntakeFromSpeechWithPrompt(
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  const content = await withCircuitBreaker(
+    () =>
+      withRetry(
+        async () => {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: process.env.OPENAI_MODEL ?? "gpt-4o",
+              temperature: 0.1,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Call transcript:\n\n${speech.trim()}` },
+              ],
+            }),
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            console.error("[call-intake/extraction]", response.status, errText);
+            throw new Error("OPENAI_REQUEST_FAILED");
+          }
+
+          const payload = (await response.json()) as {
+            choices?: { message?: { content?: string } }[];
+          };
+          const result = payload.choices?.[0]?.message?.content;
+          if (!result) throw new Error("OPENAI_EMPTY_RESPONSE");
+          return result;
+        },
+        { maxAttempts: 3, delayMs: 1000, backoff: 2 },
+      ),
+    "openai",
+    {
+      onOpen: (_key, consecutiveFailures) =>
+        alertCritical(
+          "openai_down",
+          `🚨 CRITICAL: OpenAI down — ${consecutiveFailures} consecutive failures. Calls falling back to safe message. Check dashboard.`,
+        ),
     },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o",
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Call transcript:\n\n${speech.trim()}` },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("[call-intake/extraction]", response.status, errText);
-    throw new Error("OPENAI_REQUEST_FAILED");
-  }
-
-  const payload = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OPENAI_EMPTY_RESPONSE");
+  );
 
   const data = JSON.parse(content) as Record<string, unknown>;
   const confRaw = (data.confidence ?? {}) as Record<string, unknown>;

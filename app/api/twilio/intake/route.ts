@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { CUSTOMER_REQUEST_RECEIVED_MESSAGE } from "@/lib/booking-policy";
+import { AI_BRIEF_ISSUE_MESSAGE, CUSTOMER_REQUEST_RECEIVED_MESSAGE } from "@/lib/booking-policy";
+import { CircuitOpenError } from "@/lib/resilience";
 import { resolveCallbackFromCallerId } from "@/lib/call-intake/caller-id";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import {
@@ -475,6 +476,7 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("[twilio/intake]", phase, e);
     const message = e instanceof Error ? e.message : "Intake failed";
+    const isAiOutage = e instanceof CircuitOpenError || /^OPENAI_/.test(message);
     await logOperationFailure({
       userId,
       category: phase === "collect" ? "ai" : "intake",
@@ -488,9 +490,12 @@ export async function POST(request: Request) {
     } catch {
       /* ignore */
     }
-    return new NextResponse(twimlResponse(twimlSay(CUSTOMER_REQUEST_RECEIVED_MESSAGE)), {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return new NextResponse(
+      twimlResponse(
+        twimlSay(isAiOutage ? AI_BRIEF_ISSUE_MESSAGE : CUSTOMER_REQUEST_RECEIVED_MESSAGE),
+      ),
+      { headers: { "Content-Type": "text/xml" } },
+    );
   }
 
   return new NextResponse(twimlForIntakeState(state), {

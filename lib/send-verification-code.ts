@@ -59,11 +59,15 @@ export async function sendResetCodeEmail(email: string, code: string) {
   });
 }
 
-export async function sendResetCodeSms(phone: string, code: string) {
+export async function sendResetCodeSms(
+  phone: string,
+  code: string,
+  options?: { allowKrRecipient?: boolean },
+) {
   return sendSms(
     phone,
     `[Effiroad] 비밀번호 재설정 인증번호: ${code}. 10분 내 입력. 타인에게 공유하지 마세요.`,
     "Password reset SMS",
-    { strict: true },
+    { strict: true, usRecipientsOnly: options?.allowKrRecipient ? false : undefined },
   );
 }

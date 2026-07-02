@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { recordInboundEvent } from "@/lib/inbound-events";
 import { maybeSendMissedCallTextback } from "@/lib/missed-call-textback";
+import { trackCallOutcomeForAlert } from "@/lib/owner-alerts";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 
@@ -46,6 +47,12 @@ export async function POST(request: Request) {
       } catch (e) {
         console.warn("[call-status] missed call textback", e);
       }
+    }
+
+    try {
+      await trackCallOutcomeForAlert({ userId, callSid, status });
+    } catch (e) {
+      console.warn("[call-status] owner alert tracking", e);
     }
   }
 

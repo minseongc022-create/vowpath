@@ -57,6 +57,12 @@ export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE_SHORT =
   "Got it — your request is in! We'll be in touch shortly. Thank you so much for reaching out!";
 
+/** Played instead of CUSTOMER_REQUEST_RECEIVED_MESSAGE when the failure was specifically
+ * an AI/OpenAI outage (extraction never ran), so the caller isn't told their request
+ * details were captured when they weren't. */
+export const AI_BRIEF_ISSUE_MESSAGE =
+  "I'm sorry, we're experiencing a brief issue. Please hold while I connect you, or we'll call you right back shortly.";
+
 export const CUSTOMER_SLOT_CONFIRMED_MESSAGE =
   "Wonderful — you're all set! We noted your visit window and we'll text you a confirmation very soon. Thank you so much for choosing us — we can't wait to help you out!";
 

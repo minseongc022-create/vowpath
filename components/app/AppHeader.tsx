@@ -67,12 +67,20 @@ export async function AppHeader({
               <LogoutButton />
             </>
           ) : (
-            <Link
-              href={ROUTES.login}
-              className="text-sm font-medium text-slate-300 hover:text-brand-200"
-            >
-              Sign in
-            </Link>
+            <>
+              <Link
+                href={ROUTES.login}
+                className="text-sm font-medium text-slate-300 hover:text-brand-200"
+              >
+                Sign in
+              </Link>
+              <Link
+                href={ROUTES.signup}
+                className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-400"
+              >
+                Sign up
+              </Link>
+            </>
           )}
           {badge ? (
             <span

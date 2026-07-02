@@ -49,11 +49,8 @@ export function ForgotPasswordForm() {
         return;
       }
 
-      setMessage(
-        data.devHint
-          ? `${data.message ?? copy.sentMessage}\n\n${data.devHint}`
-          : (data.message ?? copy.sentMessage),
-      );
+      const channelMessage = isSms ? copy.sentMessageSms : copy.sentMessageEmail;
+      setMessage(data.devHint ? `${channelMessage}\n\n${data.devHint}` : channelMessage);
       if (data.requestId) {
         setRequestId(data.requestId);
         setHasPhone(Boolean(data.hasPhone));

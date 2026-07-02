@@ -150,8 +150,6 @@ export function BrandLogo({
         </span>
       </>
     );
-  } else if (resolved === "auth-header") {
-    mark = <CssLockup symbolPx={spec.symbolPx ?? 34} surface={spec.surface} />;
   } else if (resolved === "site-footer") {
     mark = <HorizontalMark heightPx={32} surface={spec.surface} />;
   } else if (spec.layout === "horizontal" && spec.heightPx) {

@@ -1,5 +1,7 @@
 import { normalizeSmsPhone } from "./phone";
+import { alertCritical } from "./owner-alerts";
 import { reportSmsDeliveryFailure } from "./report-sms-failure";
+import { withRetry } from "./resilience";
 import { getSmsTwilioHealthForUser } from "./sms-twilio-health";
 import {
   isKrSmsTestMode,
@@ -163,22 +165,28 @@ export async function sendSms(
   }
 
   try {
-    const twilio = (await import("twilio")).default;
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!,
-    );
+    await withRetry(
+      async () => {
+        const twilio = (await import("twilio")).default;
+        const client = twilio(
+          process.env.TWILIO_ACCOUNT_SID!,
+          process.env.TWILIO_AUTH_TOKEN!,
+        );
 
-    await client.messages.create({
-      body,
-      from: health.fromNumber!,
-      to: phone,
-    });
+        await client.messages.create({
+          body,
+          from: health.fromNumber!,
+          to: phone,
+        });
+      },
+      { maxAttempts: 3, delayMs: 1000, backoff: 2 },
+    );
 
     return { ok: true };
   } catch (e) {
     const { message, code } = parseTwilioError(e);
     console.warn(`[send-sms] ${devLogLabel}`, message, e);
+    await notifyOwnerOfFinalSmsFailure({ context, devLogLabel, message });
     if (strict) return { ok: false, error: message };
     return reportFailure(message, {
       context,
@@ -186,6 +194,30 @@ export async function sendSms(
       twilioCode: code,
       devLogLabel,
     });
+  }
+}
+
+/** Fires once all 3 Twilio delivery attempts have failed — pages the site owner
+ * (distinct from the per-tenant shop-owner email already sent via reportFailure). */
+async function notifyOwnerOfFinalSmsFailure(params: {
+  context?: SmsSendContext;
+  devLogLabel: string;
+  message: string;
+}): Promise<void> {
+  // Avoid recursing back into sendSms() if the owner-alert SMS itself is the one failing.
+  if (params.devLogLabel === "owner-alert") return;
+  try {
+    let label = params.devLogLabel;
+    if (params.context?.userId) {
+      const user = await findUserById(params.context.userId);
+      if (user?.shopName) label = user.shopName;
+    }
+    await alertCritical(
+      "sms_failed",
+      `⚠️ SMS failed after 3 retries for ${label}. Customer may not have received dispatch.`,
+    );
+  } catch (e) {
+    console.warn("[send-sms] owner alert failed", e);
   }
 }
 

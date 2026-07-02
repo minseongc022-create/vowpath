@@ -2,6 +2,7 @@ import { DeepgramClient } from "@deepgram/sdk";
 import { findCallLogByCallSid, patchCallLog } from "../call-logs";
 import { getShopVertical } from "../vertical-context.js";
 import { logOperationFailure } from "../ops-failures";
+import { withRetry } from "../resilience";
 import { extractIntakeFromSpeechForVertical } from "./extraction";
 
 async function fetchTwilioRecordingAudio(recordingUrl: string): Promise<Buffer | null> {
@@ -43,11 +44,17 @@ export async function retranscribeCallWithDeepgram(params: {
     if (!audio) return;
 
     const client = new DeepgramClient({ apiKey });
-    const result = await client.listen.v1.media.transcribeFile(audio, {
-      model: "nova-3",
-      language: "en-US",
-      detect_language: true,
-    });
+    // Best-effort re-transcription — on repeated failure we simply keep the Twilio
+    // transcript already on the call log (this function never overwrites it on error).
+    const result = await withRetry(
+      () =>
+        client.listen.v1.media.transcribeFile(audio, {
+          model: "nova-3",
+          language: "en-US",
+          detect_language: true,
+        }),
+      { maxAttempts: 3, delayMs: 1000, backoff: 2 },
+    );
 
     const transcript =
       "results" in result
