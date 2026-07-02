@@ -207,6 +207,11 @@ export function BookingDetailContent({
     [jobs, calls, decodedId],
   );
 
+  const linkedCall = useMemo(
+    () => (detail?.linkedCallId ? calls.find((c) => c.id === detail.linkedCallId) ?? null : null),
+    [calls, detail?.linkedCallId],
+  );
+
   const updateStatus = useCallback(
     async (status: RequestStatus) => {
       if (!detail) return;
@@ -377,6 +382,12 @@ export function BookingDetailContent({
 
               {detail.trustScore ? (
                 <TrustScorePanel trust={detail.trustScore} />
+              ) : null}
+              {linkedCall?.qualityScore != null ? (
+                <CallQualityScorePanel
+                  score={linkedCall.qualityScore}
+                  reasoning={linkedCall.qualityReasoning}
+                />
               ) : null}
               {detail.verification ? (
                 <VerificationStatusPanel verification={detail.verification} />
@@ -767,6 +778,41 @@ function InfoRow({
         {value}
       </dd>
     </div>
+  );
+}
+
+function CallQualityScorePanel({
+  score,
+  reasoning,
+}: {
+  score: number;
+  reasoning?: string;
+}) {
+  const tone =
+    score >= 85
+      ? "text-emerald-600 ring-emerald-200 bg-emerald-50"
+      : score >= 65
+        ? "text-amber-600 ring-amber-200 bg-amber-50"
+        : "text-rose-600 ring-rose-200 bg-rose-50";
+
+  return (
+    <section className="booking-detail-card border-2 border-brand-100">
+      <div className="px-5 py-5 sm:px-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          AI 통화 처리 점수
+        </p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+          <p className="text-4xl font-bold tabular-nums tracking-tight text-brand-950">
+            {score}
+            <span className="text-lg font-semibold text-slate-500"> / 100</span>
+          </p>
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${tone}`}>
+            {score >= 85 ? "우수" : score >= 65 ? "양호" : "확인 필요"}
+          </span>
+        </div>
+        {reasoning ? <p className="mt-3 text-sm text-stone-600">{reasoning}</p> : null}
+      </div>
+    </section>
   );
 }
 

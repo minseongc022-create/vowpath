@@ -52,6 +52,8 @@ export type CallRecord = {
   verificationComplete?: boolean;
   addressValidation?: StoredAddressValidation;
   verifiedFields?: StoredVerifiedFields;
+  qualityScore?: number;
+  qualityReasoning?: string;
   createdAt: string;
 };
 

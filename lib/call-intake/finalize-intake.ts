@@ -1,4 +1,5 @@
-import { addCallLog } from "../call-logs";
+import { addCallLog, patchCallLog } from "../call-logs";
+import { scoreCallQuality } from "../call-quality-score";
 import { initialRequestStatusAfterIntake } from "../booking-policy";
 import type { SlotOffer } from "../booking-settings";
 import { addJobRecord } from "../jobs-db";
@@ -144,6 +145,29 @@ export async function finalizeVerifiedIntake(
     });
     throw e;
   }
+
+  // Not awaited on purpose — this is a dashboard nice-to-have, not part of the customer-facing
+  // flow, and awaiting an extra OpenAI round trip here would slow down every live call. May get
+  // cut short if the serverless instance exits right after the response, in which case the call
+  // simply stays unscored (harmless).
+  void scoreCallQuality({
+    transcript: payload.transcript,
+    extracted: {
+      priority: payload.priority,
+      customerName: payload.customerName,
+      address: payload.address,
+      issueType: payload.issueType,
+      symptom: payload.symptom,
+    },
+  })
+    .then((result) => {
+      if (!result) return;
+      return patchCallLog(userId, callLogId, {
+        qualityScore: result.score,
+        qualityReasoning: result.reasoning,
+      });
+    })
+    .catch((e) => console.warn("[finalize-intake] call quality score", e));
 
   try {
     await addJobRecord(userId, {

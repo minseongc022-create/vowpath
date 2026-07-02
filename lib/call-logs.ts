@@ -56,6 +56,9 @@ export type StoredCallLog = {
   urgency?: string;
   dispatchNotes?: string;
   jobberPasteBlock?: string;
+  /** AI self-assessment of how well this call was handled (0-100), scored best-effort after intake finalizes. */
+  qualityScore?: number;
+  qualityReasoning?: string;
   createdAt: string;
 };
 
@@ -138,6 +141,8 @@ export async function patchCallLog(
       | "urgency"
       | "dispatchNotes"
       | "jobberPasteBlock"
+      | "qualityScore"
+      | "qualityReasoning"
     >
   >,
 ): Promise<StoredCallLog | null> {
