@@ -313,6 +313,7 @@ function SettingsViewBody({
             <TechDispatchSettings />
           </section>
           <AgreementKeeperSettingsEditor />
+          <WidgetEmbedCard />
         </div>
       </section>
 
@@ -678,6 +679,66 @@ function GoogleReviewUrlEditor({
       ) : saved ? (
         <p className="mt-2 text-xs text-emerald-600">Saved</p>
       ) : null}
+    </div>
+  );
+}
+
+function WidgetEmbedCard() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { userId?: string } | null) => {
+        if (!cancelled && d?.userId) setUserId(d.userId);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!userId) return null;
+
+  const widgetUrl = `${window.location.origin}/widget/${userId}`;
+  const embedCode = `<iframe src="${widgetUrl}" style="position:fixed;bottom:20px;right:20px;width:360px;height:520px;border:none;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:9999;" title="Chat"></iframe>`;
+
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">웹사이트 채팅창</p>
+      <p className="mb-3 text-xs text-slate-500">
+        전화·문자 받는 것과 같은 AI가 홈페이지 채팅도 처리합니다. 아래 코드를 사장님 홈페이지에 붙여넣으세요.
+      </p>
+      <textarea
+        readOnly
+        value={embedCode}
+        rows={3}
+        onFocus={(e) => e.currentTarget.select()}
+        className="vow-settings-input font-mono text-xs"
+      />
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(embedCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
+        >
+          {copied ? "복사됨!" : "코드 복사"}
+        </button>
+        <a
+          href={widgetUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
+        >
+          미리보기
+        </a>
+      </div>
     </div>
   );
 }

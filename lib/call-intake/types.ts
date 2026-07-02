@@ -13,7 +13,7 @@ export const MANDATORY_VERIFY_FIELDS = [
 
 export type MandatoryVerifyField = (typeof MANDATORY_VERIFY_FIELDS)[number];
 
-export type IntakeChannel = "phone" | "sms_link";
+export type IntakeChannel = "phone" | "sms_link" | "webchat";
 
 export type IntakePhase =
   | "returning_customer"
