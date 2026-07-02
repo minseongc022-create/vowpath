@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { IS_BETA } from "@/lib/beta";
-import { isEntitled, mergeUserBilling, verifyCheckoutSession } from "@/lib/billing";
+import { isEntitled, mergeUserBilling, verifyTransaction } from "@/lib/billing";
 import { getSession } from "@/lib/session";
 import { findUserById, updateUserBilling } from "@/lib/users-db";
 
@@ -11,21 +11,21 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const sessionId = url.searchParams.get("session_id")?.trim();
+  const transactionId = url.searchParams.get("transaction_id")?.trim();
 
   let user = await findUserById(session.sub);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (sessionId) {
-    const verified = await verifyCheckoutSession(sessionId);
+  if (transactionId) {
+    const verified = await verifyTransaction(transactionId);
     if (verified.ok) {
       user =
         (await updateUserBilling(session.sub, {
           plan: verified.plan,
-          stripeCustomerId: verified.customerId,
-          stripeSubscriptionId: verified.subscriptionId,
+          paddleCustomerId: verified.customerId,
+          paddleSubscriptionId: verified.subscriptionId,
           subscriptionStatus: "active",
           paidAt: new Date().toISOString(),
         })) ?? user;
@@ -39,7 +39,8 @@ export async function GET(request: Request) {
     plan: billing.plan ?? null,
     subscriptionStatus: billing.subscriptionStatus ?? "none",
     flexBillableCount: billing.flexBillableCount ?? 0,
-    stripeCustomerId: billing.stripeCustomerId ?? null,
+    paddleCustomerId: billing.paddleCustomerId ?? null,
     paidAt: billing.paidAt ?? null,
+    trialEndsAt: billing.trialEndsAt ?? null,
   });
 }

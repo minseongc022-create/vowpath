@@ -6,10 +6,10 @@ import Link from "next/link";
 
 type PlanCheckoutProps = {
   selectedPlan: PlanId;
-  stripeReady: boolean;
+  paddleReady: boolean;
 };
 
-export function PlanCheckout({ selectedPlan, stripeReady }: PlanCheckoutProps) {
+export function PlanCheckout({ selectedPlan, paddleReady }: PlanCheckoutProps) {
   const page = siteGetStarted;
   const en = isEnglishUi() && "payLabel" in page;
 
@@ -17,7 +17,7 @@ export function PlanCheckout({ selectedPlan, stripeReady }: PlanCheckoutProps) {
     <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
       {pricing.plans.map((plan) => {
         const isSelected = plan.id === selectedPlan;
-        const payLabel = stripeReady
+        const payLabel = paddleReady
           ? en && typeof page.payLabel === "function"
             ? page.payLabel(plan.price, plan.period)
             : `${plan.price}${plan.period} 결제하기`

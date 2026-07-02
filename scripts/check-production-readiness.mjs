@@ -28,24 +28,24 @@ ok(
   "Set NEXT_PUBLIC_BETA=false for paid launch",
 );
 ok(
-  "Stripe secret",
-  Boolean(process.env.STRIPE_SECRET_KEY?.startsWith("sk_")),
-  "STRIPE_SECRET_KEY",
+  "Paddle API key",
+  Boolean(process.env.PADDLE_API_KEY?.startsWith("pdl_")),
+  "PADDLE_API_KEY",
 );
 ok(
-  "Stripe unlimited price",
-  Boolean(process.env.STRIPE_PRICE_ID_UNLIMITED || process.env.STRIPE_PRICE_ID),
-  "STRIPE_PRICE_ID_UNLIMITED",
+  "Paddle unlimited price",
+  Boolean(process.env.PADDLE_PRICE_ID_UNLIMITED),
+  "PADDLE_PRICE_ID_UNLIMITED",
 );
 ok(
-  "Stripe flex base",
-  Boolean(process.env.STRIPE_PRICE_ID_FLEX),
-  "STRIPE_PRICE_ID_FLEX for flex plan",
+  "Paddle flex base",
+  Boolean(process.env.PADDLE_PRICE_ID_FLEX),
+  "PADDLE_PRICE_ID_FLEX for flex plan",
 );
 ok(
-  "Stripe flex usage",
-  Boolean(process.env.STRIPE_PRICE_ID_FLEX_USAGE),
-  "STRIPE_PRICE_ID_FLEX_USAGE — per-booking fee for flex plan",
+  "Paddle flex usage",
+  Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE),
+  "PADDLE_PRICE_ID_FLEX_USAGE — per-booking fee for flex plan",
 );
 ok(
   "Twilio",

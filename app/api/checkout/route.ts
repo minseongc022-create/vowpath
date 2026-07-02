@@ -43,7 +43,7 @@ async function handleCheckout(plan: ReturnType<typeof parsePlanId>) {
   }
 }
 
-/** 브라우저 링크용 — Stripe 또는 회원가입으로 바로 리다이렉트 */
+/** 브라우저 링크용 — Paddle 또는 회원가입으로 바로 리다이렉트 */
 export async function GET(request: Request) {
   if (IS_BETA) {
     return NextResponse.redirect(new URL(ROUTES.signup, request.url));

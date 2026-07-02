@@ -7,20 +7,20 @@ type BillingStatus = {
   entitled: boolean;
   plan: string | null;
   subscriptionStatus: string;
-  stripeCustomerId: string | null;
+  paddleCustomerId: string | null;
 };
 
-export function BillingStatusBanner({ sessionId }: { sessionId?: string }) {
+export function BillingStatusBanner({ transactionId }: { transactionId?: string }) {
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    const qs = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+    const qs = transactionId ? `?transaction_id=${encodeURIComponent(transactionId)}` : "";
     void fetch(`/api/billing/status${qs}`)
       .then((r) => r.json())
       .then((data) => setStatus(data as BillingStatus))
       .catch(() => setStatus(null));
-  }, [sessionId]);
+  }, [transactionId]);
 
   if (!status?.entitled) return null;
 
@@ -46,7 +46,7 @@ export function BillingStatusBanner({ sessionId }: { sessionId?: string }) {
           ) : null}
         </p>
       ) : null}
-      {status.stripeCustomerId ? (
+      {status.paddleCustomerId ? (
         <button
           type="button"
           onClick={() => void openPortal()}

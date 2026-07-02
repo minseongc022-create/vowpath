@@ -19,10 +19,10 @@ function check(name, pass, hint = "") {
 check("AUTH_SECRET", Boolean(process.env.AUTH_SECRET?.trim() && process.env.AUTH_SECRET.length >= 32), "32+ char random string");
 check("KV (Vercel)", Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN), "Attach Vercel KV in production");
 check("NEXT_PUBLIC_BETA=false", process.env.NEXT_PUBLIC_BETA !== "true", "Set NEXT_PUBLIC_BETA=false for paid launch");
-check("Stripe secret", Boolean(process.env.STRIPE_SECRET_KEY?.startsWith("sk_")), "STRIPE_SECRET_KEY");
-check("Stripe unlimited price", Boolean(process.env.STRIPE_PRICE_ID_UNLIMITED || process.env.STRIPE_PRICE_ID), "STRIPE_PRICE_ID_UNLIMITED");
-check("Stripe flex base", Boolean(process.env.STRIPE_PRICE_ID_FLEX), "STRIPE_PRICE_ID_FLEX");
-check("Stripe flex usage", Boolean(process.env.STRIPE_PRICE_ID_FLEX_USAGE), "STRIPE_PRICE_ID_FLEX_USAGE");
+check("Paddle API key", Boolean(process.env.PADDLE_API_KEY?.startsWith("pdl_")), "PADDLE_API_KEY");
+check("Paddle unlimited price", Boolean(process.env.PADDLE_PRICE_ID_UNLIMITED), "PADDLE_PRICE_ID_UNLIMITED");
+check("Paddle flex base", Boolean(process.env.PADDLE_PRICE_ID_FLEX), "PADDLE_PRICE_ID_FLEX");
+check("Paddle flex usage", Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE), "PADDLE_PRICE_ID_FLEX_USAGE");
 check("Twilio creds", Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN), "TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN");
 check("Twilio webhook base", Boolean(process.env.TWILIO_WEBHOOK_BASE_URL?.startsWith("https://")), "TWILIO_WEBHOOK_BASE_URL=https://effiroad.com");
 check("OpenAI", Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-")), "OPENAI_API_KEY");

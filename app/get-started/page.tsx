@@ -3,7 +3,7 @@ import { siteGetStarted, sitePricing } from "@/lib/site-content";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { IS_BETA } from "@/lib/beta";
 import { ROUTES } from "@/lib/constants";
-import { isStripeConfigured } from "@/lib/stripe-config";
+import { isPaddleConfigured } from "@/lib/paddle-config";
 import { PlanCheckout } from "@/components/checkout/PlanCheckout";
 import { Container } from "@/components/ui/Container";
 
@@ -24,8 +24,8 @@ export default async function GetStartedPage({
   const canceled = params.canceled === "1";
   const checkoutError = params.checkout_error;
   const selectedPlan = params.plan === "flex" ? "flex" : "unlimited";
-  const stripeReady =
-    isStripeConfigured("unlimited") || isStripeConfigured("flex");
+  const paddleReady =
+    isPaddleConfigured("unlimited") || isPaddleConfigured("flex");
 
   const page = siteGetStarted;
   const pricing = sitePricing;
@@ -34,7 +34,7 @@ export default async function GetStartedPage({
     <div className="vow-app-shell">
       <header className="border-b border-surface-border bg-white">
         <Container className="flex h-16 items-center justify-between">
-          <BrandLogo placement="auth-header" layout="lockup" />
+          <BrandLogo placement="auth-header" />
         </Container>
       </header>
 
@@ -58,14 +58,14 @@ export default async function GetStartedPage({
             </p>
           )}
 
-          {!stripeReady && (
+          {!paddleReady && (
             <p className="mt-6 rounded-lg border border-surface-border bg-white px-4 py-3 text-sm text-slate-600">
               {page.demoNotice}
             </p>
           )}
         </div>
 
-        <PlanCheckout selectedPlan={selectedPlan} stripeReady={stripeReady} />
+        <PlanCheckout selectedPlan={selectedPlan} paddleReady={paddleReady} />
 
         <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-surface-border bg-white px-5 py-4 shadow-card">
           <p className="text-center text-sm font-medium text-slate-900">{pricing.tip}</p>

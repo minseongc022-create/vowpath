@@ -19,13 +19,22 @@ export type UserRecord = {
   phone?: string;
   createdAt: string;
   plan?: PlanId;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  paddleCustomerId?: string;
+  paddleSubscriptionId?: string;
   subscriptionStatus?: SubscriptionStatus;
   flexBillableCount?: number;
   paidAt?: string;
   sessionVersion?: number;
   passwordChangedAt?: string;
+  /** 14-day free trial from signup — checked by isEntitled() while subscriptionStatus is "trialing". */
+  trialEndsAt?: string;
+  feedbackText?: string;
+  feedbackSubmittedAt?: string;
+  /** Set when the user gives trial-end feedback and unlocks the $129/mo intro rate. */
+  discountCohort?: "beta_feedback";
+  /** When the cron in api/cron/beta-cohort-price-step should step their price 129 -> 159. */
+  betaCohortPriceStepAt?: string;
+  betaCohortSteppedAt?: string;
 };
 
 type UserStore = {
@@ -210,14 +219,19 @@ export async function createUser(input: {
     throw new Error("PHONE_EXISTS");
   }
 
+  const now = new Date();
+  const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
   const user: UserRecord = {
     id: crypto.randomUUID(),
     email: normalized,
     passwordHash: input.passwordHash,
     shopName: input.shopName.trim() || "My Restoration Co",
     phone: phoneNorm,
-    createdAt: new Date().toISOString(),
+    createdAt: now.toISOString(),
     sessionVersion: 0,
+    subscriptionStatus: "trialing",
+    trialEndsAt: trialEndsAt.toISOString(),
   };
 
   store.users.push(user);
@@ -229,11 +243,17 @@ export async function updateUserBilling(
   userId: string,
   patch: {
     plan?: PlanId;
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
+    paddleCustomerId?: string;
+    paddleSubscriptionId?: string;
     subscriptionStatus?: SubscriptionStatus;
     flexBillableCount?: number;
     paidAt?: string;
+    trialEndsAt?: string;
+    feedbackText?: string;
+    feedbackSubmittedAt?: string;
+    discountCohort?: "beta_feedback";
+    betaCohortPriceStepAt?: string;
+    betaCohortSteppedAt?: string;
   },
 ): Promise<UserRecord | undefined> {
   const store = await ensureStore();
@@ -244,11 +264,11 @@ export async function updateUserBilling(
   return user;
 }
 
-export async function findUserByStripeCustomerId(
+export async function findUserByPaddleCustomerId(
   customerId: string,
 ): Promise<UserRecord | undefined> {
   const store = await ensureStore();
-  return store.users.find((u) => u.stripeCustomerId === customerId);
+  return store.users.find((u) => u.paddleCustomerId === customerId);
 }
 
 export async function listUsers(): Promise<UserRecord[]> {

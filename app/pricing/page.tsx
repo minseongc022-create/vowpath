@@ -17,7 +17,7 @@ import { getSession } from "@/lib/session";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Effiroad plans for restoration companies — Unlimited $199/mo or Flex $49/mo + $18 per dispatch. AI voice, SMS, dispatch, and analytics included.",
+    "Effiroad plans for restoration companies — Unlimited $189/mo or Flex $49/mo + $18 per dispatch. AI voice, SMS, dispatch, and analytics included.",
 };
 
 

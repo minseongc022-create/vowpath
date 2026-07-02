@@ -7,9 +7,12 @@ export const SITE = {
   url: "https://effiroad.com",
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
-  monthlyPrice: "$199",
+  monthlyPrice: "$189",
   flexBasePrice: "$49",
   flexPerBooking: "$18",
+  /** Trial-feedback cohort: first 6 months, then betaLockedPrice for life. */
+  betaIntroPrice: "$129",
+  betaLockedPrice: "$159",
 } as const;
 
 export type PlanId = "unlimited" | "flex";

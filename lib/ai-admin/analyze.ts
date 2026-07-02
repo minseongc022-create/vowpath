@@ -171,7 +171,7 @@ function planCard(plan: PlanId): AiAdminAnalysisResult {
   ];
   return {
     kind: "billing",
-    answer: `${target.name} checkout is handled by Stripe. I can open the official checkout page, but I cannot process payment inside chat.`,
+    answer: `${target.name} checkout is handled by Paddle. I can open the official checkout page, but I cannot process payment inside chat.`,
     billingCard: {
       title: `${target.name} Plan`,
       description: target.description,
@@ -285,8 +285,8 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
     }
     return blocked(
       locale === "ko"
-        ? "다음 결제일을 불러오지 못했습니다. 공식 Stripe 결제 포털에서 확인해 주세요."
-        : "I couldn't load the next billing date. Please check the official Stripe billing portal.",
+        ? "다음 결제일을 불러오지 못했습니다. 공식 Paddle 결제 포털에서 확인해 주세요."
+        : "I couldn't load the next billing date. Please check the official Paddle billing portal.",
       [{ label: "Portal", value: "Settings → Billing" }],
     );
   }

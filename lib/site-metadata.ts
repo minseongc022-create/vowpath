@@ -147,7 +147,7 @@ export function siteJsonLd() {
     description: SITE_SEO.description,
     offers: {
       "@type": "Offer",
-      price: "199",
+      price: "189",
       priceCurrency: "USD",
     },
     publisher: {

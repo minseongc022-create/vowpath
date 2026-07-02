@@ -400,6 +400,8 @@ export const authPagesEn = {
     goLogin: "Log in",
     backLogin: "Back to login",
     sentMessage: "If an account exists, we sent a code.",
+    sentMessageEmail: "If an account exists, we sent a code to your email.",
+    sentMessageSms: "If an account exists, we texted a code to your phone.",
     doneMessage: "Password changed. Log in with your new password.",
     loading: "Working…",
     errorGeneric: "Request failed.",
@@ -450,7 +452,7 @@ export const legalPagesEn = {
     sections: [
       {
         heading: "Information we collect",
-        body: "Email, shop name, payment info (Stripe), Jobber metadata when connected, and call logs when intake is enabled.",
+        body: "Email, shop name, payment info (Paddle), Jobber metadata when connected, and call logs when intake is enabled.",
       },
       {
         heading: "How we use it",
@@ -480,7 +482,7 @@ export const legalPagesEn = {
       },
       {
         heading: "Billing",
-        body: "Paid plans bill via Stripe. Flex plan charges per approved booking as described at checkout.",
+        body: "Paid plans bill via Paddle. Flex plan charges per approved booking as described at checkout.",
       },
       {
         heading: "Liability",

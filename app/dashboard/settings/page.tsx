@@ -7,10 +7,10 @@ import { settingsPage } from "@/lib/content";
 export default async function DashboardSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string; section?: string }>;
+  searchParams: Promise<{ transaction_id?: string; section?: string }>;
 }) {
   const params = await searchParams;
-  const sessionId = params.session_id?.trim();
+  const transactionId = params.transaction_id?.trim();
 
   return (
     <div className="vow-dash-settings mx-auto max-w-3xl space-y-5 pb-2 lg:max-w-4xl">
@@ -41,7 +41,7 @@ export default async function DashboardSettingsPage({
       </header>
       <div className="relative space-y-6">
         <Suspense fallback={null}>
-          <SettingsView paid={Boolean(sessionId)} sessionId={sessionId} />
+          <SettingsView paid={Boolean(transactionId)} transactionId={transactionId} />
         </Suspense>
       </div>
     </div>

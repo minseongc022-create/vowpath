@@ -1,7 +1,7 @@
-import Stripe from "stripe";
 import { IS_BETA } from "./beta";
 import type { PlanId } from "./constants";
-import { isValidStripeEnvValue } from "./stripe-config";
+import { isValidPaddleEnvValue } from "./paddle-config";
+import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
 
 export type SubscriptionStatus =
@@ -9,13 +9,13 @@ export type SubscriptionStatus =
   | "trialing"
   | "active"
   | "past_due"
-  | "canceled"
-  | "incomplete";
+  | "paused"
+  | "canceled";
 
 export type UserBilling = {
   plan?: PlanId;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  paddleCustomerId?: string;
+  paddleSubscriptionId?: string;
   subscriptionStatus?: SubscriptionStatus;
   flexBillableCount?: number;
   paidAt?: string;
@@ -25,89 +25,107 @@ export function mergeUserBilling(user: UserRecord): UserRecord & UserBilling {
   return user as UserRecord & UserBilling;
 }
 
-/** Beta or active subscription = entitled to product features. */
+/** Beta, active subscription, or still within the 14-day trial = entitled to product features. */
 export function isEntitled(user: UserRecord | undefined | null): boolean {
   if (!user) return false;
   if (IS_BETA) return true;
   const b = mergeUserBilling(user);
-  const status = b.subscriptionStatus ?? "none";
-  return status === "active" || status === "trialing";
+  const status = b.subscriptionStatus;
+  // Never touched by the billing system at all (signed up before the trial system
+  // existed) — grandfathered in rather than gated, since they were never given a trial.
+  if (!status || status === "none") return true;
+  if (status === "active") return true;
+  if (status === "trialing") {
+    if (!b.trialEndsAt) return true;
+    return new Date(b.trialEndsAt).getTime() > Date.now();
+  }
+  return false;
 }
 
 export function requiresEntitlement(): boolean {
-  return !IS_BETA && isValidStripeEnvValue(process.env.STRIPE_SECRET_KEY);
+  return !IS_BETA && isValidPaddleEnvValue(process.env.PADDLE_API_KEY);
 }
 
-export function stripeClient(): Stripe | null {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!isValidStripeEnvValue(key)) return null;
-  return new Stripe(key!, { apiVersion: "2026-04-22.dahlia" });
-}
+type PaddleTransactionDetail = {
+  status: string;
+  customer_id?: string;
+  subscription_id?: string;
+  custom_data?: Record<string, unknown> | null;
+};
 
-export async function verifyCheckoutSession(
-  sessionId: string,
-): Promise<{
+/** Confirms a Paddle transaction completed and resolves the buyer's plan/customer/subscription. */
+export async function verifyTransaction(transactionId: string): Promise<{
   ok: boolean;
   plan?: PlanId;
   customerId?: string;
   subscriptionId?: string;
   email?: string;
 }> {
-  const stripe = stripeClient();
-  if (!stripe) return { ok: false };
-
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["subscription"],
-    });
-    if (session.payment_status !== "paid" && session.status !== "complete") {
+    const result = await paddleFetch<{ data: PaddleTransactionDetail }>(
+      `/transactions/${transactionId}`,
+    );
+    const tx = result.data;
+    if (tx.status !== "completed" && tx.status !== "paid") {
       return { ok: false };
     }
-    const plan = (session.metadata?.plan === "flex" ? "flex" : "unlimited") as PlanId;
-    const sub =
-      typeof session.subscription === "string"
-        ? null
-        : session.subscription;
+
+    const plan = (tx.custom_data?.plan === "flex" ? "flex" : "unlimited") as PlanId;
+    let email: string | undefined;
+    if (tx.customer_id) {
+      try {
+        const customer = await paddleFetch<{ data: { email?: string } }>(
+          `/customers/${tx.customer_id}`,
+        );
+        email = customer.data?.email;
+      } catch (e) {
+        console.warn("[billing] customer lookup", e);
+      }
+    }
+
     return {
       ok: true,
       plan,
-      customerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
-      subscriptionId: sub?.id ?? (typeof session.subscription === "string" ? session.subscription : undefined),
-      email: session.customer_details?.email ?? session.customer_email ?? undefined,
+      customerId: tx.customer_id,
+      subscriptionId: tx.subscription_id,
+      email,
     };
   } catch (e) {
-    console.error("[billing] verify session", e);
+    console.error("[billing] verify transaction", e);
     return { ok: false };
   }
 }
 
+/** Fetched fresh each call — Paddle's management_urls are short-lived tokens, never cache. */
 export async function createBillingPortalUrl(
-  customerId: string,
-  returnUrl: string,
+  subscriptionId: string,
 ): Promise<string | null> {
-  const stripe = stripeClient();
-  if (!stripe) return null;
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: returnUrl,
-  });
-  return session.url;
+  try {
+    const result = await paddleFetch<{
+      data: { management_urls?: { update_payment_method?: string; cancel?: string } };
+    }>(`/subscriptions/${subscriptionId}`);
+    return (
+      result.data.management_urls?.update_payment_method ??
+      result.data.management_urls?.cancel ??
+      null
+    );
+  } catch (e) {
+    console.warn("[billing] portal url", e);
+    return null;
+  }
 }
 
-export async function fetchNextBillingDate(customerId: string | undefined): Promise<string | null> {
+export async function fetchNextBillingDate(
+  customerId: string | undefined,
+): Promise<string | null> {
   if (!customerId) return null;
-  const stripe = stripeClient();
-  if (!stripe) return null;
   try {
-    const subs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-    const sub = subs.data[0] as Stripe.Subscription & { current_period_end?: number };
-    const periodEnd = sub?.current_period_end;
-    if (!periodEnd) return null;
-    return new Date(periodEnd * 1000).toLocaleDateString("en-US", {
+    const result = await paddleFetch<{
+      data: Array<{ next_billed_at?: string; status: string }>;
+    }>(`/subscriptions?customer_id=${customerId}&status=active`);
+    const sub = result.data[0];
+    if (!sub?.next_billed_at) return null;
+    return new Date(sub.next_billed_at).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -118,22 +136,22 @@ export async function fetchNextBillingDate(customerId: string | undefined): Prom
   }
 }
 
-export async function recordFlexUsage(
-  user: UserRecord,
-): Promise<void> {
+/** Flex plan per-booking overage — billed as a one-time charge on the next renewal. */
+export async function recordFlexUsage(user: UserRecord): Promise<void> {
   const b = mergeUserBilling(user);
   if (b.plan !== "flex") return;
-  const stripe = stripeClient();
-  const priceId = process.env.STRIPE_PRICE_ID_FLEX_USAGE;
-  if (!stripe || !isValidStripeEnvValue(priceId) || !b.stripeCustomerId) return;
+  const priceId = process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
 
   try {
-    await stripe.invoiceItems.create({
-      customer: b.stripeCustomerId,
-      pricing: { price: priceId! },
-      quantity: 1,
+    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
+      method: "POST",
+      body: {
+        effective_from: "next_billing_period",
+        items: [{ price_id: priceId, quantity: 1 }],
+      },
     });
   } catch (e) {
-    console.warn("[billing] flex usage invoice item", e);
+    console.warn("[billing] flex usage charge", e);
   }
 }

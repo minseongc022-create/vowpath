@@ -80,7 +80,7 @@ export const signupFlow = {
   steps: [
     {
       step: "01",
-      title: "Stripe 결제",
+      title: "Paddle 결제",
       description: `${SITE.monthlyPrice}/월. 결제 즉시 온보딩 화면으로 이동.`,
       time: "1분",
     },
@@ -333,7 +333,7 @@ export const cta = {
 export const getStartedPage = {
   eyebrow: "결제",
   title: "플랜 선택",
-  subtitle: `Stripe 안전 결제 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 예약당 ${SITE.flexPerBooking}`,
+  subtitle: `Paddle 안전 결제 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 예약당 ${SITE.flexPerBooking}`,
   canceledMessage: "결제가 취소되었습니다. 아래에서 플랜을 다시 선택해 주세요.",
   checkoutError:
     "결제를 시작하지 못했습니다. 아래 버튼으로 다시 시도하거나 회원가입으로 진행해 주세요.",
@@ -1371,6 +1371,8 @@ const authPagesKo = {
     goLogin: "로그인하기",
     backLogin: "로그인으로 돌아가기",
     sentMessage: "등록된 계정이면 인증번호를 보냈습니다.",
+    sentMessageEmail: "등록된 이메일로 인증번호를 보냈습니다.",
+    sentMessageSms: "등록된 휴대폰 번호로 인증번호를 보냈습니다.",
     doneMessage: "비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.",
     loading: "처리 중…",
     errorGeneric: "요청에 실패했습니다.",
@@ -1421,7 +1423,7 @@ const legalPagesKo = {
     sections: [
       {
         heading: "수집 항목",
-        body: "이메일, shop 이름, 결제 정보(Stripe), Jobber 연동 시 고객·예약 메타데이터, 통화 로그(연동 시).",
+        body: "이메일, shop 이름, 결제 정보(Paddle), Jobber 연동 시 고객·예약 메타데이터, 통화 로그(연동 시).",
       },
       {
         heading: "이용 목적",

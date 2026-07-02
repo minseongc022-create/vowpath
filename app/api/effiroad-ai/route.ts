@@ -96,7 +96,7 @@ async function loadTenantContext(userId: string, range: { start: Date; end: Date
   const calendarEvents = await buildCalendarEvents(userId, nativeSchedule, jobberSchedule);
 
   const billing = mergeUserBilling(user);
-  const nextBillingDate = await fetchNextBillingDate(billing.stripeCustomerId);
+  const nextBillingDate = await fetchNextBillingDate(billing.paddleCustomerId);
 
   const pack = buildAiContextPack({
     userId,
