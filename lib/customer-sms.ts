@@ -44,6 +44,7 @@ export function smsOwnerNewRequestBody(params: {
   priority: JobPriority;
   cityState?: string;
   ambiguous?: boolean;
+  customerPhone?: string;
 }): string {
   const ref = bookingShortRef(params.bookingId);
   const issue =
@@ -57,6 +58,7 @@ export function smsOwnerNewRequestBody(params: {
     priority: params.priority,
     cityState: params.cityState,
     ambiguous: params.ambiguous,
+    customerPhone: params.customerPhone,
   });
 }
 
@@ -205,6 +207,7 @@ export async function notifyOwnerNewRequest(params: {
   cityState?: string;
   address?: string;
   ambiguous?: boolean;
+  customerPhone?: string;
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
@@ -221,6 +224,7 @@ export async function notifyOwnerNewRequest(params: {
       priority: params.priority,
       cityState: params.cityState,
       ambiguous: params.ambiguous,
+      customerPhone: params.customerPhone,
     });
 
     await sendOwnerSms({
@@ -269,6 +273,7 @@ export async function notifyOwnerIntakeAutoConfirmed(params: {
   cityState?: string;
   urgent?: boolean;
   autoWaterDispatch?: boolean;
+  undoMinutes: number;
 }): Promise<void> {
   const user = await findUserById(params.userId);
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
@@ -285,6 +290,7 @@ export async function notifyOwnerIntakeAutoConfirmed(params: {
     ref,
     urgent: params.urgent,
     autoWaterDispatch: params.autoWaterDispatch,
+    undoMinutes: params.undoMinutes,
   });
 
   await sendOwnerSms({

@@ -203,6 +203,7 @@ async function runFlow(
           priority: "P3",
           cityState: "Austin, TX",
           urgent: false,
+          undoMinutes: 30,
         });
         break;
       case "link_intake": {

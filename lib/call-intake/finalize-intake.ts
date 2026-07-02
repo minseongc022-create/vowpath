@@ -20,6 +20,7 @@ import {
 } from "../service-area";
 import { findUserById } from "../users-db";
 import { applyCustomerChosenSchedule } from "../scheduling/apply-schedule";
+import { setInstantUndoExpiry } from "../instant-undo-store";
 import { upsertCallMemory } from "../call-memory";
 import {
   recordCallSignalEvents,
@@ -299,6 +300,11 @@ export async function finalizeVerifiedIntake(
           "approved",
           { skipCustomerSms: false },
         );
+        const undoExpiresAt = await setInstantUndoExpiry(
+          userId,
+          bookingId,
+          settings.undoWindowMinutes,
+        );
         await notifyOwnerIntakeAutoConfirmed({
           userId,
           bookingId,
@@ -309,6 +315,10 @@ export async function finalizeVerifiedIntake(
           cityState: formatCityState(payload.address),
           urgent: autoDecision.isUrgentAlert,
           autoWaterDispatch: autoDecision.autoWaterDispatch,
+          undoMinutes: Math.max(
+            1,
+            Math.round((new Date(undoExpiresAt).getTime() - Date.now()) / 60_000),
+          ),
         });
       } else {
         await notifyOwnerNewRequest({
@@ -321,6 +331,7 @@ export async function finalizeVerifiedIntake(
           cityState: formatCityState(payload.address),
           address: payload.address,
           ambiguous: autoDecision.isAmbiguous,
+          customerPhone: payload.callbackPhone,
         });
       }
     } catch (e) {

@@ -305,6 +305,7 @@ export function smsOwnerNewRequestBody(params: {
   priority: string;
   cityState?: string;
   ambiguous?: boolean;
+  customerPhone?: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
@@ -314,7 +315,12 @@ export function smsOwnerNewRequestBody(params: {
       ? ` · ${smsTruncate(params.cityState, 12)}`
       : "";
   const tag = params.priority === "P1" ? "P1 URGENT" : params.priority;
-  return `${shop} ${tag}: ${name} — ${issue}${place}. Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
+  // P1 only — a phone number on every routine request would just be noise.
+  const callLine =
+    params.priority === "P1" && params.customerPhone?.trim()
+      ? ` Call ${params.customerPhone.trim()}?`
+      : "";
+  return `${shop} ${tag}: ${name} — ${issue}${place}.${callLine} Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
 }
 
 export function smsOwnerIntakeAutoConfirmedBody(params: {
@@ -324,12 +330,13 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   ref: string;
   urgent?: boolean;
   autoWaterDispatch?: boolean;
+  undoMinutes: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 20);
   if (params.autoWaterDispatch) {
-    return `${shop} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo.`;
+    return `${shop} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo (${params.undoMinutes}m).`;
   }
   if (params.urgent) {
     return `${shop} P1 CONFIRMED: ${name} — ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;

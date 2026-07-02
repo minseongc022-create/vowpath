@@ -22,6 +22,11 @@ import { notifyStaffEtaInstructions, phonesShareCustomerLine } from "./staff-eta
 import { clearSmsReplyTarget, getSmsReplyTarget } from "./sms-reply-context";
 import { getScheduledBooking, listScheduledBookings } from "./schedule-bookings-db";
 import { undoScheduledBooking } from "./scheduling/apply-schedule";
+import {
+  clearInstantUndoExpiry,
+  findMostRecentActiveInstantUndo,
+  getActiveInstantUndoExpiry,
+} from "./instant-undo-store";
 import { resolveShopDisplayName } from "./link-intake-brand";
 import { findUserById, findUserByPhone } from "./users-db";
 
@@ -273,6 +278,10 @@ export async function handleOwnerSmsReply(params: {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )[0];
       bookingId = undoable?.bookingId;
+      if (!bookingId) {
+        const instant = await findMostRecentActiveInstantUndo(userId);
+        bookingId = instant?.bookingId ?? null;
+      }
     }
     if (!bookingId) {
       return {
@@ -280,20 +289,33 @@ export async function handleOwnerSmsReply(params: {
         replyBody: `${shop}: No recent booking to undo.`,
       };
     }
+
     const scheduled = await getScheduledBooking(userId, bookingId);
-    if (!scheduled?.undoExpiresAt) {
+    if (scheduled?.undoExpiresAt) {
+      const ok = await undoScheduledBooking(userId, bookingId);
+      await clearSmsReplyTarget(userId);
       return {
         handled: true,
-        replyBody: `${shop}: Undo window expired or booking not auto-scheduled.`,
+        replyBody: ok
+          ? `${shop}: Booking undone — moved back to review.`
+          : `${shop}: Could not undo. Check your dashboard.`,
       };
     }
-    const ok = await undoScheduledBooking(userId, bookingId);
-    await clearSmsReplyTarget(userId);
+
+    const instantExpiresAt = await getActiveInstantUndoExpiry(userId, bookingId);
+    if (instantExpiresAt) {
+      await persistRequestStatusForBooking(userId, bookingId, "pending_review");
+      await clearInstantUndoExpiry(userId, bookingId);
+      await clearSmsReplyTarget(userId);
+      return {
+        handled: true,
+        replyBody: `${shop}: Booking undone — moved back to review.`,
+      };
+    }
+
     return {
       handled: true,
-      replyBody: ok
-        ? `${shop}: Booking undone — moved back to review.`
-        : `${shop}: Could not undo. Check your dashboard.`,
+      replyBody: `${shop}: Undo window expired or booking not auto-scheduled.`,
     };
   }
 
