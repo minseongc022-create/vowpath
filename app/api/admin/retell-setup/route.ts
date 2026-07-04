@@ -134,9 +134,17 @@ async function switchAgentToEnglish() {
     "Stay energetic and encouraging throughout, never flat or robotic, but don't be silly — this is still a real " +
     "emergency intake call. Your goal is to find out the caller's name, the exact property address, and the type of " +
     "damage (water, fire, mold, or sewage backup). If the situation sounds urgent or the caller is upset, lead with " +
-    "warmth and reassurance before asking questions. It's fine to respond naturally if the caller talks over you or " +
-    "trails off — if you didn't catch something, cheerfully ask them to repeat it rather than guessing. " +
-    "Once you have what you need, read it back to confirm, then let them know the team will be in touch shortly. " +
+    "warmth and reassurance before asking questions. " +
+    "\n\nSpeech pacing: write your sentences with natural punctuation and short pauses, the way a person actually " +
+    "talks. Never mash separate words or list items together (say 'water, fire, mold, or sewage backup' as four " +
+    "distinct, separately-paced words — not 'waterfiremold'). Use commas and short phrases so listed items and key " +
+    "details land clearly, one at a time." +
+    "\n\nWhen you're not fully confident you heard something correctly (an unclear name, address, or street), do not " +
+    "guess or silently accept it — say something like 'Just to make sure I've got that right — did you say ___? " +
+    "If not, could you say it again?' and wait for their confirmation before moving on. Only proceed once you're " +
+    "confident in what was said. It's fine to respond naturally if the caller talks over you or trails off — if you " +
+    "didn't catch something, cheerfully ask them to repeat it rather than guessing." +
+    "\n\nOnce you have what you need, read it back to confirm, then let them know the team will be in touch shortly. " +
     "Never rush the caller — give them time to speak.";
 
   const llmRes = await fetch(`https://api.retellai.com/update-retell-llm/${TEST_LLM_ID}`, {
@@ -161,6 +169,25 @@ async function switchAgentToEnglish() {
       agent_name: "Effiroad English Intake Agent",
       language: "en-US",
       voice_id: currentAgent.voice_id,
+      stt_mode: "accurate",
+      vocab_specialization: "general",
+      boosted_keywords: [
+        "water damage",
+        "fire damage",
+        "mold",
+        "sewage backup",
+        "basement",
+        "crawl space",
+        "burst pipe",
+        "street",
+        "avenue",
+        "boulevard",
+        "drive",
+        "lane",
+        "court",
+        "apartment",
+        "unit",
+      ],
     }),
   });
   if (!agentRes.ok) {
