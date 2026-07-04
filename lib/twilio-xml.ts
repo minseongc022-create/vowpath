@@ -35,11 +35,11 @@ export function twimlSay(
 ): string {
   const voice =
     language === "ko-KR"
-      ? "Polly.Seoyeon-Neural"
+      ? "Google.ko-KR-Chirp3-HD-Aoede"
       : language === "es-US"
-        ? "Polly.Lupe-Neural"
-        : "Polly.Joanna-Neural";
-  return `<Say voice="${voice}" language="${language}" rate="95%">${escapeXml(message)}</Say>`;
+        ? "Google.es-US-Chirp3-HD-Aoede"
+        : "Google.en-US-Chirp3-HD-Aoede";
+  return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
 }
 
 export function twimlGatherChannelChoice(
