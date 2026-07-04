@@ -144,6 +144,10 @@ async function switchAgentToEnglish() {
     "If not, could you say it again?' and wait for their confirmation before moving on. Only proceed once you're " +
     "confident in what was said. It's fine to respond naturally if the caller talks over you or trails off — if you " +
     "didn't catch something, cheerfully ask them to repeat it rather than guessing." +
+    "\n\nIf what the caller describes doesn't clearly match a type of damage this company handles (water, fire, " +
+    "mold, or sewage backup), don't force it into one of those categories. Instead, warmly let them know a team " +
+    "member will follow up personally to make sure they're taken care of, then just collect their name, phone " +
+    "number, and a brief note of what they described — nothing else." +
     "\n\nOnce you have what you need, read it back to confirm, then let them know the team will be in touch shortly. " +
     "Never rush the caller — give them time to speak.";
 
