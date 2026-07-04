@@ -19,7 +19,7 @@ import {
   parseOwnerReplyWithRef,
 } from "./booking-ref";
 import { notifyStaffEtaInstructions, phonesShareCustomerLine } from "./staff-eta-notify";
-import { clearSmsReplyTarget, getSmsReplyTarget } from "./sms-reply-context";
+import { clearSmsReplyTarget, getSmsReplyTarget, setSmsReplyTarget } from "./sms-reply-context";
 import { getScheduledBooking, listScheduledBookings } from "./schedule-bookings-db";
 import { undoScheduledBooking } from "./scheduling/apply-schedule";
 import {
@@ -335,6 +335,9 @@ export async function handleOwnerSmsReply(params: {
         replyBody: `${shop}: No pending request matches ref ${parsed.ref}. Check your dashboard.`,
       };
     }
+    // A ref-qualified reply disambiguates which booking the owner means — remember it so
+    // a follow-up bare "1"/"2" (without a ref) applies to the same booking.
+    await setSmsReplyTarget(userId, pending.bookingId);
   } else if (replyTarget) {
     pending = await resolvePendingByBookingId(userId, replyTarget);
   }
@@ -385,7 +388,7 @@ export async function handleOwnerSmsReply(params: {
   } catch (e) {
     console.error("[owner-sms-reply] persist status", e);
     return {
-      handled: false,
+      handled: true,
       replyBody: `${shop}: Could not save status. Try again from your dashboard.`,
     };
   }

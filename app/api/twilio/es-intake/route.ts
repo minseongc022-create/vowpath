@@ -14,6 +14,7 @@ import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
+  twimlGatherSpanishIntake,
   twimlResponse,
   twimlSay,
   twimlSpanishIntakeConfirmation,
@@ -47,8 +48,13 @@ export async function POST(request: Request) {
   const from = form.get("From") ?? "";
   const to = form.get("To") ?? "";
   const callSid = form.get("CallSid")?.trim() ?? url.searchParams.get("callSid") ?? "";
+  const attempt = Number(url.searchParams.get("attempt") ?? "1");
 
   if (!speech) {
+    if (attempt < 2) {
+      const retryUrl = `${url.origin}${url.pathname}?callSid=${encodeURIComponent(callSid)}&attempt=${attempt + 1}`;
+      return twimlXml(twimlResponse(twimlGatherSpanishIntake(retryUrl)));
+    }
     return twimlXml(
       twimlResponse(
         twimlSay(
