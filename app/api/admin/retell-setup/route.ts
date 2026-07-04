@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/session";
+
+/** One-time helper: creates the Korean test agent in Retell. Requires an authenticated owner session. */
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Log in first, then reload this page." }, { status: 401 });
+  }
+
+  const apiKey = process.env.RETELL_API_KEY?.trim();
+  if (!apiKey) {
+    return NextResponse.json({ error: "RETELL_API_KEY not configured" }, { status: 503 });
+  }
+
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+
+  const voicesRes = await fetch("https://api.retellai.com/list-voices", { headers });
+  if (!voicesRes.ok) {
+    return NextResponse.json(
+      { error: "list-voices failed", status: voicesRes.status, body: await voicesRes.text() },
+      { status: 500 },
+    );
+  }
+  const voices = (await voicesRes.json()) as Array<{
+    voice_id: string;
+    voice_name?: string;
+    provider?: string;
+    gender?: string;
+    accent?: string;
+  }>;
+  const korean = voices.filter(
+    (v) =>
+      (v.accent || "").toLowerCase().includes("korean") ||
+      (v.voice_id || "").toLowerCase().includes("kr") ||
+      (v.voice_name || "").toLowerCase().includes("korean"),
+  );
+  const chosenVoice = korean[0] ?? voices[0];
+  if (!chosenVoice) {
+    return NextResponse.json({ error: "No voices returned by Retell" }, { status: 500 });
+  }
+
+  const generalPrompt =
+    "당신은 미국의 수해/화재/곰팡이 복구 업체 전화 상담원입니다. 친절하고 차분하며 자연스러운 존댓말로 대화하세요. " +
+    "목표는 발신자의 이름, 정확한 사고 현장 주소, 피해 종류(물, 불, 곰팡이, 하수구 역류 중 하나)를 파악하는 것입니다. " +
+    "발신자가 말하는 도중에 자연스럽게 반응해도 되고, 잘 못 알아들었으면 정중하게 다시 한번 말씀해달라고 요청하세요. " +
+    "필요한 정보를 다 확인했으면 요약해서 다시 말해주고, 팀이 곧 연락드릴 거라고 안내하며 통화를 마무리하세요. " +
+    "절대 서두르지 말고, 발신자가 편하게 말할 시간을 충분히 주세요.";
+
+  const llmRes = await fetch("https://api.retellai.com/create-retell-llm", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      general_prompt: generalPrompt,
+      model: "gpt-4.1",
+      start_speaker: "agent",
+      begin_message: "안녕하세요, 전화 주셔서 감사합니다. 성함이랑 사고 나신 주소, 어떤 피해인지 편하게 말씀해주시겠어요?",
+    }),
+  });
+  if (!llmRes.ok) {
+    return NextResponse.json(
+      { error: "create-retell-llm failed", status: llmRes.status, body: await llmRes.text() },
+      { status: 500 },
+    );
+  }
+  const llm = (await llmRes.json()) as { llm_id: string };
+
+  const agentRes = await fetch("https://api.retellai.com/create-agent", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      agent_name: "Effiroad 한국어 테스트 에이전트",
+      response_engine: { type: "retell-llm", llm_id: llm.llm_id },
+      voice_id: chosenVoice.voice_id,
+      language: "ko-KR",
+    }),
+  });
+  if (!agentRes.ok) {
+    return NextResponse.json(
+      { error: "create-agent failed", status: agentRes.status, body: await agentRes.text() },
+      { status: 500 },
+    );
+  }
+  const agent = (await agentRes.json()) as { agent_id: string };
+
+  return NextResponse.json({
+    ok: true,
+    agent_id: agent.agent_id,
+    llm_id: llm.llm_id,
+    voice_id: chosenVoice.voice_id,
+    voice_name: chosenVoice.voice_name,
+    voice_provider: chosenVoice.provider,
+    koreanVoiceCandidateCount: korean.length,
+  });
+}
