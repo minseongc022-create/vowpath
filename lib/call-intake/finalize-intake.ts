@@ -28,6 +28,7 @@ import {
   recordServiceRequestCreated,
 } from "../record-tenant-events";
 import { persistRequestStatusForBooking } from "../booking-status-sync";
+import { notifyZapierNewRequest } from "../zapier-webhook";
 import { formatCityState } from "../recent-bookings";
 import type { InboundSpeechResult } from "../process-inbound-speech";
 import type { IntakeChannel, VerifiedCallPayload } from "./types";
@@ -362,6 +363,18 @@ export async function finalizeVerifiedIntake(
       console.warn("[finalize-intake] owner new request sms", e);
     }
   }
+
+  void notifyZapierNewRequest({
+    userId,
+    bookingId,
+    customerName: payload.customerName,
+    phone: payload.callbackPhone,
+    issueType: payload.issueType,
+    symptom: payload.symptom,
+    address: payload.address,
+    priority: payload.priority,
+    createdAt: new Date().toISOString(),
+  });
 
   if (options.afterHours && customerPhone && !sendCustomerVerification) {
     try {

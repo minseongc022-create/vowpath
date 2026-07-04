@@ -61,6 +61,8 @@ export type ShopState = {
   dashboardVisibleMetrics?: string[];
   /** Google review link — customers get a one-tap SMS ask when a job is marked completed. */
   googleReviewUrl?: string;
+  /** "Webhooks by Zapier" Catch Hook URL — every new request POSTs its details here. */
+  zapierWebhookUrl?: string;
 };
 
 export type { ShopVertical };

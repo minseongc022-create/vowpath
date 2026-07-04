@@ -314,6 +314,12 @@ function SettingsViewBody({
           </section>
           <AgreementKeeperSettingsEditor />
           <WidgetEmbedCard />
+          <div className="scroll-mt-24">
+            <ZapierWebhookEditor
+              webhookUrl={shop.zapierWebhookUrl}
+              onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
+            />
+          </div>
         </div>
       </section>
 
@@ -670,6 +676,72 @@ function GoogleReviewUrlEditor({
         }}
         onBlur={() => void handleSave()}
         placeholder="https://g.page/r/..."
+        maxLength={300}
+        className="vow-settings-input"
+      />
+      {error ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
+      {saving ? (
+        <p className="mt-2 text-xs text-slate-500">Saving…</p>
+      ) : saved ? (
+        <p className="mt-2 text-xs text-emerald-600">Saved</p>
+      ) : null}
+    </div>
+  );
+}
+
+function ZapierWebhookEditor({
+  webhookUrl,
+  onSaved,
+}: {
+  webhookUrl?: string;
+  onSaved: (url: string | undefined) => void;
+}) {
+  const [draft, setDraft] = useState(webhookUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    const trimmed = draft.trim();
+    if (trimmed && !/^https:\/\/hooks\.zapier\.com\/.+/.test(trimmed)) {
+      setError("Zapier의 Webhooks by Zapier → Catch Hook 주소(https://hooks.zapier.com/…)를 입력해 주세요.");
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/shop/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zapierWebhookUrl: trimmed }),
+      });
+      if (res.ok) {
+        onSaved(trimmed || undefined);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Zapier 연동 (ServiceTitan · Housecall Pro 등)</p>
+      <p className="mb-3 text-xs text-slate-500">
+        Zapier에서 &quot;Webhooks by Zapier → Catch Hook&quot;을 만들고 그 주소를 붙여넣으세요. 새 요청이 들어올
+        때마다 고객 정보가 자동으로 전송되어, 쓰시는 CRM·스프레드시트·Slack 등 무엇이든 연결할 수 있어요.
+      </p>
+      <input
+        type="url"
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setError(null);
+        }}
+        onBlur={() => void handleSave()}
+        placeholder="https://hooks.zapier.com/hooks/catch/..."
         maxLength={300}
         className="vow-settings-input"
       />

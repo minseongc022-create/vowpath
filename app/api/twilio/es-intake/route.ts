@@ -8,6 +8,7 @@ import {
   notifyCustomerRequestReceivedEs,
   notifyOwnerNewRequest,
 } from "@/lib/customer-sms";
+import { notifyZapierNewRequest } from "@/lib/zapier-webhook";
 import { formatCityState } from "@/lib/recent-bookings";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
@@ -147,6 +148,18 @@ export async function POST(request: Request) {
     } catch (e) {
       console.warn("[twilio/es-intake] customer notify", e);
     }
+
+    void notifyZapierNewRequest({
+      userId,
+      bookingId: `call-${callLogId}`,
+      customerName: draft.customerName,
+      phone: from,
+      issueType: draft.issueType,
+      symptom: draft.symptom,
+      address: draft.address,
+      priority: draft.priority,
+      createdAt: new Date().toISOString(),
+    });
 
     return twimlXml(twimlResponse(twimlSpanishIntakeConfirmation()));
   } catch (e) {

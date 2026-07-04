@@ -97,6 +97,14 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
       patch.googleReviewUrl = url;
     }
   }
+  if (typeof body.zapierWebhookUrl === "string") {
+    const url = body.zapierWebhookUrl.trim();
+    if (url === "") {
+      patch.zapierWebhookUrl = undefined;
+    } else if (/^https:\/\/hooks\.zapier\.com\/.{1,300}$/.test(url)) {
+      patch.zapierWebhookUrl = url;
+    }
+  }
 
   return patch;
 }

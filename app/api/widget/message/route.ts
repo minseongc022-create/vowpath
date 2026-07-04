@@ -6,6 +6,7 @@ import { applyPriorityAnalysisToDraft } from "@/lib/apply-service-priority";
 import { getShopVertical } from "@/lib/vertical-context.js";
 import { findUserById } from "@/lib/users-db";
 import { notifyOwnerNewRequest } from "@/lib/customer-sms";
+import { notifyZapierNewRequest } from "@/lib/zapier-webhook";
 import { formatCityState } from "@/lib/recent-bookings";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import {
@@ -126,6 +127,18 @@ export async function POST(request: Request) {
     } catch (e) {
       console.warn("[widget/message] owner notify", e);
     }
+
+    void notifyZapierNewRequest({
+      userId,
+      bookingId: `call-${callLogId}`,
+      customerName: draft.customerName,
+      phone: contactPhone,
+      issueType: draft.issueType,
+      symptom: draft.symptom,
+      address: draft.address,
+      priority: draft.priority,
+      createdAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       ok: true,
