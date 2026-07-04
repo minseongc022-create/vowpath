@@ -678,6 +678,14 @@ export const faqEn = {
       a: "Unclear address or loss type? Dispatch waits for your 1 / 2. Already auto-dispatched? Reply 2 to cancel or 9 to undo. Tighten rules anytime in settings or ask Effiroad AI.",
     },
     {
+      q: "Does it actually book the job, or just take a message?",
+      a: "It books it. On a clear standard water loss, Effiroad captures the intake, dispatches your crew, and texts the homeowner a confirmation — no message for you to call back on. It only waits on your 1 / 2 for the cases that genuinely need a human call: fire, Cat-3, commercial, or anything it couldn't verify.",
+    },
+    {
+      q: "Why an AI instead of a live answering service?",
+      a: "A person picks up on ring three, on a good night — an AI picks up on ring one, every night, on the tenth simultaneous storm call as calmly as the first. It never mishears an address because it's 3 AM, and it applies your exact priority rules the same way every time. You still make every real judgment call by text; the AI just never lets a 2 AM emergency sit in voicemail while it decides.",
+    },
+    {
       q: "Is this just an AI answering service?",
       a: "No. You get emergency intake, crew dispatch texts, missed-call analytics, and Effiroad AI to ask what's happening and change rules from your phone.",
     },
