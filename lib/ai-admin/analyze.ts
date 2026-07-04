@@ -34,6 +34,7 @@ const FIELD_LABELS: Record<CompanyMemoryField, string> = {
   emergencyPolicy: "Emergency Policy",
   approvalPolicy: "Approval Policy",
   specialInstructions: "Special Instructions",
+  customGreeting: "Call Greeting",
 };
 
 function normalize(text: string): string {
@@ -301,6 +302,7 @@ function companyMemorySetCommand(query: string, q: string): AiAdminAnalysisResul
     { field: "emergencyPolicy", keywords: ["emergency policy", "urgent policy", "긴급 요청", "긴급 정책"], title: "Emergency Policy" },
     { field: "approvalPolicy", keywords: ["approval policy", "승인 정책"], title: "Approval Policy" },
     { field: "specialInstructions", keywords: ["special instructions", "instructions", "특별 지시", "특이사항"], title: "Special Instructions" },
+    { field: "customGreeting", keywords: ["greeting", "call greeting", "인사말", "안내 인사"], title: "Call Greeting" },
   ];
 
   for (const item of fields) {

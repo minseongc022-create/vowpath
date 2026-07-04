@@ -12,6 +12,8 @@ export type CompanyAiMemory = {
   emergencyPolicy: string;
   approvalPolicy: string;
   specialInstructions: string;
+  /** Custom opening line the AI speaks before the menu, e.g. "Thanks for calling Acme — your comfort experts since 1998." Empty = default. */
+  customGreeting: string;
   dailyBriefingSmsEnabled: boolean;
   dailyBriefingSmsTime: string;
   /** "YYYY-MM-DD" — callers hear a closed message on this day. Empty = no override. */
@@ -41,6 +43,7 @@ export function defaultCompanyAiMemory(userId: string): CompanyAiMemory {
     emergencyPolicy: "",
     approvalPolicy: "",
     specialInstructions: "",
+    customGreeting: "",
     dailyBriefingSmsEnabled: false,
     dailyBriefingSmsTime: "08:00",
     temporaryClosureDate: "",
@@ -59,6 +62,7 @@ function clean(input: Partial<CompanyAiMemoryInput>, userId: string): CompanyAiM
     emergencyPolicy: String(input.emergencyPolicy ?? "").trim(),
     approvalPolicy: String(input.approvalPolicy ?? "").trim(),
     specialInstructions: String(input.specialInstructions ?? "").trim(),
+    customGreeting: String(input.customGreeting ?? "").trim().slice(0, 240),
     dailyBriefingSmsEnabled: Boolean(input.dailyBriefingSmsEnabled),
     dailyBriefingSmsTime: String(input.dailyBriefingSmsTime ?? "08:00").trim() || "08:00",
     temporaryClosureDate: String(input.temporaryClosureDate ?? "").trim(),

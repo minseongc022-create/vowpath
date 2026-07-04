@@ -31,6 +31,7 @@ export async function PUT(request: Request) {
       emergencyPolicy: body?.emergencyPolicy,
       approvalPolicy: body?.approvalPolicy,
       specialInstructions: body?.specialInstructions,
+      customGreeting: body?.customGreeting,
       dailyBriefingSmsEnabled: body?.dailyBriefingSmsEnabled,
       dailyBriefingSmsTime: body?.dailyBriefingSmsTime,
     });

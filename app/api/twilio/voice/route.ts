@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   let shopName = DEFAULT_SHOP_DISPLAY_NAME;
   let afterHours = false;
   let stormMode = false;
+  let customGreeting = "";
   const userId = await resolveTenantUserId({ to, callSid });
   if (userId) {
     try {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       // Check temporary closure before doing anything else
       const todayUtc = new Date().toISOString().split("T")[0];
       const memory = await getCompanyAiMemory(userId);
+      customGreeting = memory?.customGreeting ?? "";
       if (memory?.temporaryClosureDate === todayUtc) {
         const closedMsg =
           memory?.temporaryClosureMessage ||
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
 
   const twiml = twimlResponse(
     twimlStartCallRecording(recordingUrl) +
-      twimlGatherMainMenu(mainMenuUrl, shopName, stormMode),
+      twimlGatherMainMenu(mainMenuUrl, shopName, stormMode, customGreeting),
     statusCallbackUrl,
   );
 

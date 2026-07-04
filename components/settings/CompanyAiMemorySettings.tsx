@@ -12,6 +12,7 @@ const EMPTY: FormState = {
   emergencyPolicy: "",
   approvalPolicy: "",
   specialInstructions: "",
+  customGreeting: "",
   dailyBriefingSmsEnabled: false,
   dailyBriefingSmsTime: "08:00",
   temporaryClosureDate: "",
@@ -108,6 +109,12 @@ export function CompanyAiMemorySettings() {
       </div>
 
       <div className="mt-5 grid gap-4">
+        <Field
+          label="Call Greeting (spoken to every caller)"
+          value={form.customGreeting}
+          onChange={(value) => patch({ customGreeting: value })}
+          placeholder="Thanks for calling Acme Restoration — your 24/7 water and fire experts. (Leave blank for the default greeting.)"
+        />
         <Field
           label="Service Areas"
           value={form.serviceAreas}

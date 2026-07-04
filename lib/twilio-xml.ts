@@ -68,9 +68,15 @@ export function twimlGatherMainMenu(
   actionUrl: string,
   shopName: string,
   stormMode = false,
+  customGreeting = "",
 ): string {
   const stormLine = stormMode ? twimlSay(voiceStormSurgeIntro) : "";
-  const prompt = `Thank you for calling ${shopName}! Press 1 for emergency service, or press 2 to request a free estimate. Para español, oprima el tres.`;
+  // Menu instructions are never customizable — only the opening line is, so the DTMF
+  // options callers rely on always play verbatim.
+  const opening = customGreeting.trim()
+    ? customGreeting.trim()
+    : `Thank you for calling ${shopName}!`;
+  const prompt = `${opening} Press 1 for emergency service, or press 2 to request a free estimate. Para español, oprima el tres.`;
   return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
