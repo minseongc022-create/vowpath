@@ -5,7 +5,7 @@
  * Usage: node scripts/process-effroad-logos.mjs
  */
 import sharp from "sharp";
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -105,6 +105,13 @@ async function copyUserSources() {
     for (const assetName of candidates) {
       const from = path.join(rootAssets, assetName);
       if (!existsSync(from)) continue;
+      // Never clobber a source the user (or an earlier run) placed directly in
+      // brand-sources/ with an older cached candidate from rootAssets.
+      if (existsSync(existing) && statSync(existing).mtimeMs > statSync(from).mtimeMs) {
+        console.log("keep existing (newer than candidate)", destName);
+        copied = true;
+        break;
+      }
       copyFileSync(from, existing);
       console.log("copied", destName, "←", assetName.slice(-40));
       copied = true;
@@ -348,6 +355,21 @@ async function buildFavicon(symbolBuf, bg = FAVICON_BG) {
     .composite([{ input: roundMask, blend: "dest-in" }]);
 }
 
+/** Uses the dedicated square app-icon source as-is (own background/border already baked
+ *  in) instead of re-deriving a circular favicon from the horizontal-lockup extraction —
+ *  far more reliable, and keeps enough resolution that apple-touch-icon (180x180) isn't
+ *  upscaled from a tiny 32px base. */
+async function buildFaviconFromSquareSource(appIconPath) {
+  const meta = await sharp(appIconPath).metadata();
+  const size = Math.min(meta.width ?? 0, meta.height ?? 0);
+  const left = Math.round(((meta.width ?? size) - size) / 2);
+  const top = Math.round(((meta.height ?? size) - size) / 2);
+  return sharp(appIconPath)
+    .extract({ left, top, width: size, height: size })
+    .resize(512, 512, { kernel: sharp.kernel.lanczos3 })
+    .ensureAlpha();
+}
+
 function writeDimensions(horizontalMeta, symbolMeta) {
   const hw = horizontalMeta.width ?? 640;
   const hh = horizontalMeta.height ?? 90;
@@ -417,7 +439,12 @@ async function main() {
     console.log("symbol: extracted from horizontal lockup");
   }
 
-  const faviconBase = await buildFavicon(symbolBuf);
+  // Prefer the dedicated square app-icon source for favicons/app icons — it's purpose-built
+  // (already square, own background/border) and far more reliable than trying to re-crop a
+  // square icon out of the wide horizontal-lockup extraction.
+  const faviconBase = existsSync(appIconSrc)
+    ? await buildFaviconFromSquareSource(appIconSrc)
+    : await buildFavicon(symbolBuf);
 
   await writePngFromBuffer(horizontalWordmarkBuf, path.join(publicDir, "logo-horizontal-light.png"), 720);
   await writePngFromBuffer(
@@ -450,7 +477,11 @@ async function main() {
   await writePngFromBuffer(symbolBuf, path.join(publicDir, "logo-mark.png"), 512);
   await writePngFromBuffer(symbolBuf, path.join(publicDir, "logo.png"), 512);
 
-  await faviconBase.clone().png().toFile(path.join(publicDir, "favicon-32.png"));
+  await faviconBase
+    .clone()
+    .resize(32, 32, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toFile(path.join(publicDir, "favicon-32.png"));
   console.log("wrote public/favicon-32.png");
 
   await sharp(path.join(publicDir, "favicon-32.png"))
@@ -459,7 +490,11 @@ async function main() {
     .toFile(path.join(publicDir, "favicon-16.png"));
   console.log("wrote public/favicon-16.png");
 
-  await faviconBase.clone().png().toFile(path.join(publicDir, "favicon.ico"));
+  await faviconBase
+    .clone()
+    .resize(32, 32, { kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toFile(path.join(publicDir, "favicon.ico"));
   console.log("wrote public/favicon.ico");
 
   await faviconBase

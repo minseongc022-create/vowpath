@@ -3,7 +3,7 @@ import { SITE } from "@/lib/constants";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
 /** Cache-bust favicons after asset updates */
-export const SITE_ICON_VERSION = "22";
+export const SITE_ICON_VERSION = "23";
 
 export const SITE_SEO = {
   title: "AI Dispatch & Answering for Restoration Companies | Effiroad",
