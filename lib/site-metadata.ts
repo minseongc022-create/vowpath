@@ -8,7 +8,7 @@ export const SITE_ICON_VERSION = "23";
 export const SITE_SEO = {
   title: "AI Dispatch & Answering for Restoration Companies | Effiroad",
   description:
-    "24/7 AI phone answering, smart dispatch, and crew alerts for independent water, fire & mold restoration companies. Live in 10 minutes. No CRM required.",
+    "Effiroad answers every call 24/7, captures insurance-ready intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration companies. Live in 10 minutes, no CRM required.",
   ogTitle: "Effiroad | Never Lose a $10,000 Job at 2 AM Again",
   ogDescription:
     "AI-powered emergency intake and crew dispatch built for independent restoration companies.",

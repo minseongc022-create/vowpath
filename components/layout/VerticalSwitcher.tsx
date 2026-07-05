@@ -16,7 +16,7 @@ export function VerticalSwitcher({ className = "" }: { className?: string }) {
 
   return (
     <div
-      className={`inline-flex items-center gap-0.5 rounded-full border border-brand-200 bg-brand-50 p-0.5 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full border border-brand-300 bg-white p-1 shadow-sm ${className}`}
       role="group"
       aria-label="업종 선택"
     >
@@ -24,7 +24,7 @@ export function VerticalSwitcher({ className = "" }: { className?: string }) {
         <Link
           key={opt.href}
           href={opt.href}
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
             active === opt.href
               ? "bg-brand-900 text-white shadow-sm"
               : "text-brand-700 hover:bg-brand-100"

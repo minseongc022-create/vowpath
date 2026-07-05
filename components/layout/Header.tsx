@@ -38,8 +38,6 @@ export function Header({ session }: HeaderProps) {
             ))}
           </nav>
 
-          <VerticalSwitcher className="hidden sm:inline-flex" />
-
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             <HeaderAuth session={session} />
             <button
@@ -61,9 +59,17 @@ export function Header({ session }: HeaderProps) {
         </div>
       </Container>
 
+      <div className="border-t border-brand-200/70 bg-brand-50/80 py-3.5">
+        <Container>
+          <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
+            <p className="text-sm font-medium text-stone-700">당신에게 맞는 업종을 선택하세요</p>
+            <VerticalSwitcher />
+          </div>
+        </Container>
+      </div>
+
       {open ? (
         <div className="border-t border-brand-200 bg-white px-5 py-4 lg:hidden">
-          <VerticalSwitcher className="mb-4 sm:hidden" />
           <nav className="flex flex-col gap-3" aria-label="Primary mobile">
             {navLinks.map((link) => (
               <Link

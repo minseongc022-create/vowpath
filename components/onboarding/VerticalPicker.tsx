@@ -2,17 +2,10 @@
 
 import { useState } from "react";
 import { clientFetch } from "@/lib/client-fetch";
-import { ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
+import { VISIBLE_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 import { VERTICAL_CONFIGS } from "@/lib/vertical-config";
 
-const VERTICAL_ORDER: ShopVertical[] = [
-  "restoration",
-  "hvac",
-  "plumbing",
-  "electrical",
-  "pest",
-  "general",
-];
+const VERTICAL_ORDER: ShopVertical[] = VISIBLE_SHOP_VERTICALS;
 
 export function VerticalPicker({
   onComplete,

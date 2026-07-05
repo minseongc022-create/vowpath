@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
+import { VISIBLE_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
@@ -594,7 +594,12 @@ function VerticalSelector({
         Sets your AI dispatch rules, intake questions, and landing page.
       </p>
       <div className="flex flex-wrap gap-2">
-        {ALL_SHOP_VERTICALS.map((v) => {
+        {/* Always include the shop's current vertical even if it's not in the visible
+            picker list (e.g. set before we narrowed the picker) so nothing disappears. */}
+        {(VISIBLE_SHOP_VERTICALS.includes(draft)
+          ? VISIBLE_SHOP_VERTICALS
+          : [...VISIBLE_SHOP_VERTICALS, draft]
+        ).map((v) => {
           const cfg = getVerticalConfig(v);
           const active = draft === v;
           return (

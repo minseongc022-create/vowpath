@@ -18,17 +18,6 @@ import { About } from "@/components/sections/About";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
-import { VerticalFeatureToggle } from "@/components/sections/VerticalFeatureToggle";
-import {
-  problemHvac,
-  productStackHvac,
-  missedCallFlowHvac,
-  approvalLoopHvac,
-  aiDispatcherHvac,
-  schedulingModesHvac,
-  comparisonHvac,
-  featuresHvac,
-} from "@/lib/content-marketing-hvac-en";
 
 export default async function HomePage() {
   const session = await getSession();
@@ -43,33 +32,17 @@ export default async function HomePage() {
         <IntakeCallDemo />
         {/* 3. Trust — credibility before the pain */}
         <SocialProof variant="trust" />
-        {/* 3-5. Vertical-specific sections — toggle without leaving the page */}
-        <VerticalFeatureToggle
-          restoration={
-            <>
-              <Problem />
-              <ProductStack />
-              <MissedCallFlow />
-              <ApprovalLoop />
-              <AiDispatcher />
-              <SchedulingModes />
-              <Comparison />
-              <Features />
-            </>
-          }
-          hvac={
-            <>
-              <Problem content={problemHvac} />
-              <ProductStack content={productStackHvac} />
-              <MissedCallFlow content={missedCallFlowHvac} />
-              <ApprovalLoop content={approvalLoopHvac} />
-              <AiDispatcher content={aiDispatcherHvac} />
-              <SchedulingModes content={schedulingModesHvac} />
-              <Comparison content={comparisonHvac} />
-              <Features content={featuresHvac} />
-            </>
-          }
-        />
+        {/* 3. Problem — why missed calls hurt */}
+        <Problem />
+        {/* 4. Solution — platform + workflows (all existing product sections) */}
+        <ProductStack />
+        <MissedCallFlow />
+        <ApprovalLoop />
+        <AiDispatcher />
+        <SchedulingModes />
+        <Comparison />
+        {/* 5. Features — full capability grid */}
+        <Features />
         {/* 6. How it works — go-live steps */}
         <HowItWorks />
         {/* 7. Results — ROI math */}
