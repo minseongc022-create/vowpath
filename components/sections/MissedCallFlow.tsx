@@ -122,8 +122,12 @@ function FlowArrow({ vertical }: { vertical?: boolean }) {
   );
 }
 
-export function MissedCallFlow() {
-  const s = siteMissedCallFlow;
+export function MissedCallFlow({
+  content = siteMissedCallFlow,
+}: {
+  content?: typeof siteMissedCallFlow;
+}) {
+  const s = content;
 
   return (
     <section

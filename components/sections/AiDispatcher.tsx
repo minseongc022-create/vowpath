@@ -2,8 +2,8 @@ import { siteAiDispatcher } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-export function AiDispatcher() {
-  const s = siteAiDispatcher;
+export function AiDispatcher({ content = siteAiDispatcher }: { content?: typeof siteAiDispatcher }) {
+  const s = content;
 
   return (
     <section

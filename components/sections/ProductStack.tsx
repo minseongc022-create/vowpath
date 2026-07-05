@@ -7,8 +7,8 @@ const tierStyles = {
   sub: "border-brand-200/80",
 } as const;
 
-export function ProductStack() {
-  const s = siteProductStack;
+export function ProductStack({ content = siteProductStack }: { content?: typeof siteProductStack }) {
+  const s = content;
 
   return (
     <section id={s.id} className="vow-site-section py-16 sm:py-20">

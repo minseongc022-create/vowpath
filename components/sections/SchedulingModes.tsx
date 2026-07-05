@@ -2,8 +2,12 @@ import { siteSchedulingModes } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-export function SchedulingModes() {
-  const s = siteSchedulingModes;
+export function SchedulingModes({
+  content = siteSchedulingModes,
+}: {
+  content?: typeof siteSchedulingModes;
+}) {
+  const s = content;
 
   return (
     <section id={s.id} className="vow-site-section py-20 sm:py-24">

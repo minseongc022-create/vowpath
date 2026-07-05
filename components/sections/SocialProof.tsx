@@ -4,10 +4,11 @@ import { Container } from "@/components/ui/Container";
 type SocialProofProps = {
   /** trust = compact bar right after hero; default = full section */
   variant?: "trust" | "default";
+  content?: typeof siteSocialProof;
 };
 
-export function SocialProof({ variant = "default" }: SocialProofProps) {
-  const s = siteSocialProof;
+export function SocialProof({ variant = "default", content = siteSocialProof }: SocialProofProps) {
+  const s = content;
   const testimonials =
     "testimonials" in s && Array.isArray(s.testimonials) ? s.testimonials : [];
 

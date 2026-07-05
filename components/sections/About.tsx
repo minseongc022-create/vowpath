@@ -1,8 +1,8 @@
 import { siteAbout } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 
-export function About() {
-  const a = siteAbout;
+export function About({ content = siteAbout }: { content?: typeof siteAbout }) {
+  const a = content;
 
   return (
     <section id={a.id} className="vow-site-section border-y border-brand-200/80 bg-brand-50 py-20 sm:py-24">

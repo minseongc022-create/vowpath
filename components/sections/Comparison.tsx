@@ -2,8 +2,8 @@ import { siteComparison } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-export function Comparison() {
-  const c = siteComparison;
+export function Comparison({ content = siteComparison }: { content?: typeof siteComparison }) {
+  const c = content;
   const [, col1, col2, col3] = c.headers;
   return (
     <section id={c.id} className="vow-site-section py-20 sm:py-24">

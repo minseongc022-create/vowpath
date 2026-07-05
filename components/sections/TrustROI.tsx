@@ -1,8 +1,8 @@
 import { Container } from "@/components/ui/Container";
 import { siteTrustRoi } from "@/lib/site-content";
 
-export function TrustROI() {
-  const t = siteTrustRoi;
+export function TrustROI({ content = siteTrustRoi }: { content?: typeof siteTrustRoi }) {
+  const t = content;
   const id = "id" in t && t.id ? t.id : undefined;
 
   return (

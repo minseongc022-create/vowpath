@@ -25,17 +25,17 @@ const icons = [
   </svg>,
 ];
 
-export function Features() {
+export function Features({ content = siteFeatures }: { content?: typeof siteFeatures }) {
   return (
     <section id="features" className="vow-site-section py-20 sm:py-24">
       <Container>
         <SectionHeading
           label={SECTION_LABELS.features}
-          title={siteFeatures.title}
-          subtitle={siteFeatures.subtitle}
+          title={content.title}
+          subtitle={content.subtitle}
         />
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {siteFeatures.items.map((item, i) => (
+          {content.items.map((item, i) => (
             <article key={item.title} className="group vow-site-card p-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-300/25 bg-brand-500/10 text-brand-800">
                 {icons[i % icons.length]}
@@ -52,11 +52,11 @@ export function Features() {
             </article>
           ))}
         </div>
-        {"removedNote" in siteFeatures &&
-        typeof siteFeatures.removedNote === "string" &&
-        siteFeatures.removedNote ? (
+        {"removedNote" in content &&
+        typeof content.removedNote === "string" &&
+        content.removedNote ? (
           <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-slate-500">
-            {siteFeatures.removedNote}
+            {content.removedNote}
           </p>
         ) : null}
       </Container>

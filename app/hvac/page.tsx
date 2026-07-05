@@ -4,10 +4,31 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
 import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
+import { SocialProof } from "@/components/sections/SocialProof";
+import { Problem } from "@/components/sections/Problem";
+import { ProductStack } from "@/components/sections/ProductStack";
+import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
+import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
+import { AiDispatcher } from "@/components/sections/AiDispatcher";
+import { SchedulingModes } from "@/components/sections/SchedulingModes";
+import { Comparison } from "@/components/sections/Comparison";
+import { Features } from "@/components/sections/Features";
+import { TrustROI } from "@/components/sections/TrustROI";
+import { About } from "@/components/sections/About";
 import { getSession } from "@/lib/session";
 import { ROUTES } from "@/lib/constants";
 import {
-  hvacProblem,
+  problemHvac,
+  productStackHvac,
+  missedCallFlowHvac,
+  approvalLoopHvac,
+  aiDispatcherHvac,
+  schedulingModesHvac,
+  comparisonHvac,
+  featuresHvac,
+  trustRoiHvac,
+  socialProofHvac,
+  aboutHvac,
   hvacDispatchPolicy,
   hvacHowItWorks,
   hvacPricing,
@@ -39,25 +60,17 @@ export default async function HvacPage() {
         {/* Interactive intake call demo — HVAC no-heat scenario */}
         <IntakeCallDemo vertical="hvac" />
 
-        {/* Problem */}
-        <section className="py-16 sm:py-20">
-          <div className="mx-auto max-w-3xl px-5">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">{hvacProblem.title}</h2>
-            <p className="mt-4 text-slate-600">{hvacProblem.body}</p>
-            <ul className="mt-6 space-y-3">
-              {hvacProblem.points.map((point) => (
-                <li key={point} className="flex gap-3 text-slate-700">
-                  <span className="shrink-0 text-rose-500" aria-hidden>
-                    ✕
-                  </span>
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <SocialProof variant="trust" content={socialProofHvac} />
+        <Problem content={problemHvac} />
+        <ProductStack content={productStackHvac} />
+        <MissedCallFlow content={missedCallFlowHvac} />
+        <ApprovalLoop content={approvalLoopHvac} />
+        <AiDispatcher content={aiDispatcherHvac} />
+        <SchedulingModes content={schedulingModesHvac} />
+        <Comparison content={comparisonHvac} />
+        <Features content={featuresHvac} />
 
-        {/* Dispatch policy */}
+        {/* Dispatch policy detail table */}
         <section className="border-y border-brand-100 bg-brand-50/40 py-16 sm:py-20">
           <div className="mx-auto max-w-4xl px-5">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
@@ -123,8 +136,12 @@ export default async function HvacPage() {
           </div>
         </section>
 
+        <TrustROI content={trustRoiHvac} />
+        <SocialProof content={socialProofHvac} />
+        <About content={aboutHvac} />
+
         {/* Pricing */}
-        <section className="border-y border-brand-100 bg-brand-50/40 py-16 sm:py-20">
+        <section id="pricing" className="border-y border-brand-100 bg-brand-50/40 py-16 sm:py-20">
           <div className="mx-auto max-w-4xl px-5">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
               {hvacPricing.title}

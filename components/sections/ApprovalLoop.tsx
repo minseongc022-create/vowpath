@@ -1,6 +1,23 @@
 import { siteApprovalLoop } from "@/lib/site-content";
 import { Container } from "@/components/ui/Container";
 
+type ApprovalLoopContent = {
+  id: string;
+  label: string;
+  title: string;
+  summary: string;
+  tags: readonly string[];
+  smsExample: {
+    customer: string;
+    issue: string;
+    window: string;
+    approveLabel: string;
+    declineLabel: string;
+  };
+  nodes: readonly { id: string; title: string; caption: string }[];
+  edges: readonly string[];
+};
+
 function FlowNode({
   title,
   caption,
@@ -43,9 +60,7 @@ function FlowConnector({ label }: { label: string }) {
   );
 }
 
-function SmsExampleCard() {
-  const ex = siteApprovalLoop.smsExample;
-
+function SmsExampleCard({ ex }: { ex: ApprovalLoopContent["smsExample"] }) {
   return (
     <div className="mx-auto w-full max-w-xs rounded-2xl border border-brand-200 bg-white p-4 shadow-card">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Example SMS</p>
@@ -63,8 +78,8 @@ function SmsExampleCard() {
   );
 }
 
-export function ApprovalLoop() {
-  const a = siteApprovalLoop;
+export function ApprovalLoop({ content = siteApprovalLoop }: { content?: ApprovalLoopContent }) {
+  const a = content;
   const highlightIds = new Set(["effiroad", "owner"]);
 
   return (
@@ -143,7 +158,7 @@ export function ApprovalLoop() {
           </ol>
 
           <div className="relative mt-10">
-            <SmsExampleCard />
+            <SmsExampleCard ex={a.smsExample} />
           </div>
         </div>
       </Container>
