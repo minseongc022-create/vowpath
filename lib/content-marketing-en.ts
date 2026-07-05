@@ -3,22 +3,24 @@ import { getCheckoutCta } from "./marketing-constants";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
+/** Vertical-neutral — shown identically on every landing page above the vertical-specific
+ *  sections below it. Keep this short: the pitch that's true for any home-service shop. */
 export const heroEn = {
   badge: "The Road to Efficiency",
-  headline: "Never lose a $10,000 job at 2 AM again.",
-  headlineAccent: "Answer. Dispatch. Document — before they call Servpro.",
+  headline: "Never miss another emergency job.",
+  headlineAccent: "Answer. Dispatch. Document — around the clock.",
   brandLine:
-    "Keep your main line. When water, fire, or mold hits and your crew is on a job, Effiroad answers, captures insurance-ready intake, and dispatches your on-call team — while the homeowner is still on the line.",
+    "Keep your main line. When a call comes in and your crew is on a job, Effiroad answers, captures the details, and dispatches your on-call team — while the customer is still on the line.",
   subhead:
-    "24/7 AI phone + SMS intake, emergency triage, crew dispatch texts, shop analytics, and Effiroad AI — built for independent restoration companies.",
-  trustLine: "US water · fire · mold restoration · 1–15 crew shops · No CRM required",
+    "24/7 AI phone + SMS intake, emergency triage, crew dispatch texts, shop analytics, and Effiroad AI — built for independent home service companies.",
+  trustLine: "1–15 crew shops · No CRM required",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
     "Answers your line 24/7",
-    "Auto-dispatches clear water losses",
-    "Texts you 1 / 2 on fire & Cat-3",
+    "Auto-dispatches clear jobs",
+    "Texts your crew to dispatch",
     "Go live in ~10 minutes",
   ] as const,
 };

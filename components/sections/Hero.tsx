@@ -28,7 +28,7 @@ export function Hero() {
             </span>
           </h1>
           <h2 className="mx-auto mt-5 max-w-2xl text-base font-medium text-stone-600 sm:text-lg">
-            The AI Answering Service Built for Water, Fire &amp; Mold Restoration Companies
+            The AI Answering Service Built for Home Service Companies
           </h2>
           {"brandLine" in h && h.brandLine ? (
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-stone-700">
@@ -92,7 +92,7 @@ export function Hero() {
             <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
               <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM3 18a7 7 0 1114 0H3z" />
             </svg>
-            Trusted by 40+ restoration companies
+            Trusted by 40+ home service companies
           </span>
           <span className="inline-flex items-center gap-1.5 text-xs text-stone-500">
             <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>

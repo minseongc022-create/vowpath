@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { Hero } from "@/components/sections/Hero";
+import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
 import { getSession } from "@/lib/session";
 import { ROUTES } from "@/lib/constants";
 import {
-  hvacHero,
   hvacProblem,
   hvacDispatchPolicy,
   hvacHowItWorks,
@@ -32,42 +33,11 @@ export default async function HvacPage() {
     <div className="vow-site flex min-h-screen flex-col">
       <Header session={session} />
       <main className="flex-1">
-        {/* Hero */}
-        <section className="border-b border-brand-100 bg-brand-50/40 py-20 sm:py-28">
-          <div className="mx-auto max-w-4xl px-5 text-center">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-              {hvacHero.eyebrow}
-            </p>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              {hvacHero.headline}
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">{hvacHero.subhead}</p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href={`${ROUTES.signup}?vertical=hvac`}
-                className="rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-brand-700"
-              >
-                {hvacHero.primaryCta}
-              </Link>
-              <a
-                href="#how-it-works"
-                className="rounded-xl border border-brand-200 bg-white px-6 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50"
-              >
-                {hvacHero.secondaryCta}
-              </a>
-            </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-2">
-              {hvacHero.trustPills.map((pill) => (
-                <span
-                  key={pill}
-                  className="rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-medium text-brand-800"
-                >
-                  {pill}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Hero — common across every vertical */}
+        <Hero />
+
+        {/* Interactive intake call demo — HVAC no-heat scenario */}
+        <IntakeCallDemo vertical="hvac" />
 
         {/* Problem */}
         <section className="py-16 sm:py-20">

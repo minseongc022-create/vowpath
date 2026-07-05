@@ -11,7 +11,7 @@ type Step = {
   delay: number;
 };
 
-const SCRIPT: Step[] = [
+const RESTORATION_SCRIPT: Step[] = [
   { role: "system", text: "Incoming call — 2:14 AM", delay: 400 },
   {
     role: "ai",
@@ -55,7 +55,56 @@ const SCRIPT: Step[] = [
   { role: "caller", text: "Thank you so much!", delay: 1800 },
   {
     role: "system",
-    text: "Intake saved · Crew dispatched · Call recorded · Job created in 4 min 22 sec",
+    text: "Technician arrived on-site · Intake saved · Crew dispatched · Job created in 4 min 22 sec",
+    delay: 800,
+  },
+];
+
+const HVAC_SCRIPT: Step[] = [
+  { role: "system", text: "Incoming call — 6:40 AM", delay: 400 },
+  {
+    role: "ai",
+    text: "Thanks for calling Comfort Air HVAC. This call is being recorded to capture your service details. What's going on with your system today?",
+    delay: 1000,
+  },
+  {
+    role: "caller",
+    text: "Our heat completely died overnight and it's freezing in here — we have two kids.",
+    delay: 2400,
+  },
+  {
+    role: "ai",
+    text: "I'm sorry, we'll get someone out to you right away. Can I get your name and the service address?",
+    delay: 1600,
+  },
+  { role: "caller", text: "Sarah Bennett, 118 Birchwood Lane, Denver Colorado.", delay: 2000 },
+  { role: "ai", text: "Got it, Sarah. Any smell of gas, or is it just no heat?", delay: 1400 },
+  {
+    role: "caller",
+    text: "No gas smell, just completely dead — it was blowing cold air then shut off.",
+    delay: 2000,
+  },
+  {
+    role: "ai",
+    text: "Got it — a clear no-heat call, so I'm flagging this Priority 1 and dispatching your on-call tech now. What's the best callback number?",
+    delay: 1800,
+  },
+  { role: "caller", text: "303-555-0148. Thank you so much.", delay: 1800 },
+  {
+    role: "sms",
+    text: "NEW JOB · Sarah Bennett · 118 Birchwood Ln, Denver CO · No heat, system dead overnight · P1 AUTO-DISPATCHED",
+    delay: 1200,
+  },
+  { role: "system", text: "Crew auto-dispatched — no owner approval needed", delay: 2200 },
+  {
+    role: "ai",
+    text: "Good news, Sarah — a technician is on the way. You'll get a text with their ETA shortly. In the meantime, keep the thermostat set to heat so the system's ready to kick on.",
+    delay: 1600,
+  },
+  { role: "caller", text: "Thank you, that's a relief!", delay: 1800 },
+  {
+    role: "system",
+    text: "Technician arrived on-site · Intake saved · Crew dispatched · Job created in 3 min 40 sec",
     delay: 800,
   },
 ];
@@ -159,7 +208,28 @@ function Bubble({ step, typing }: { step: Step; typing?: boolean }) {
   );
 }
 
-export function IntakeCallDemo() {
+const DEMO_COPY = {
+  restoration: {
+    heading: "A real 2 AM emergency intake — start to dispatch",
+    subhead:
+      "Watch Effiroad answer a sewage backup call, capture insurance-ready intake, alert the owner, and dispatch a crew — all while the homeowner is still on the line.",
+    statusTime: "2:14 AM",
+  },
+  hvac: {
+    heading: "A real 6 AM no-heat call — start to dispatch",
+    subhead:
+      "Watch Effiroad answer a no-heat emergency, capture the job details, and auto-dispatch the on-call tech — all while the customer is still on the line.",
+    statusTime: "6:40 AM",
+  },
+} as const;
+
+export function IntakeCallDemo({
+  vertical = "restoration",
+}: {
+  vertical?: "restoration" | "hvac";
+}) {
+  const script = vertical === "hvac" ? HVAC_SCRIPT : RESTORATION_SCRIPT;
+  const copy = DEMO_COPY[vertical];
   const [visible, setVisible] = useState<number[]>([]);
   const [typing, setTyping] = useState<number | null>(null);
   const [done, setDone] = useState(false);
@@ -178,7 +248,7 @@ export function IntakeCallDemo() {
     setDone(false);
 
     let cursor = 600;
-    SCRIPT.forEach((step, idx) => {
+    script.forEach((step, idx) => {
       cursor += step.delay;
       const showTypingAt = cursor;
       const showBubbleAt = cursor + TYPING_DURATION_MS;
@@ -188,13 +258,13 @@ export function IntakeCallDemo() {
         setTimeout(() => {
           setTyping((prev) => (prev === idx ? null : prev));
           setVisible((prev) => [...prev, idx]);
-          if (idx === SCRIPT.length - 1) setDone(true);
+          if (idx === script.length - 1) setDone(true);
         }, showBubbleAt),
       );
 
       cursor = showBubbleAt;
     });
-  }, [clearAll]);
+  }, [clearAll, script]);
 
   // Auto-play on mount
   useEffect(() => {
@@ -216,10 +286,10 @@ export function IntakeCallDemo() {
             Live demo
           </p>
           <h2 className="text-2xl font-bold text-brand-950 sm:text-3xl">
-            A real 2 AM emergency intake — start to dispatch
+            {copy.heading}
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm text-stone-600">
-            Watch Effiroad answer a sewage backup call, capture insurance-ready intake, alert the owner, and dispatch a crew — all while the homeowner is still on the line.
+            {copy.subhead}
           </p>
         </div>
 
@@ -228,7 +298,7 @@ export function IntakeCallDemo() {
           <div className="overflow-hidden rounded-3xl border-4 border-slate-800 bg-slate-800 shadow-2xl shadow-slate-900/30">
             {/* Status bar */}
             <div className="flex items-center justify-between bg-slate-900 px-4 py-2 text-xs text-slate-400">
-              <span>2:14 AM</span>
+              <span>{copy.statusTime}</span>
               <span className="flex items-center gap-1">
                 <svg className="h-3 w-3 text-emerald-400" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
                   <circle cx="6" cy="6" r="5" />
@@ -245,14 +315,14 @@ export function IntakeCallDemo() {
               aria-live="polite"
             >
               {/* Render confirmed bubbles */}
-              {SCRIPT.map((step, idx) => {
+              {script.map((step, idx) => {
                 if (!visible.includes(idx)) return null;
                 return <Bubble key={idx} step={step} />;
               })}
 
               {/* Typing indicator for next bubble */}
               {typing !== null && !visible.includes(typing) && (
-                <Bubble key={`typing-${typing}`} step={SCRIPT[typing]} typing />
+                <Bubble key={`typing-${typing}`} step={script[typing]} typing />
               )}
             </div>
 
