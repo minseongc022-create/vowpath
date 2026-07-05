@@ -10,6 +10,10 @@ export type TourStep = {
   target: string;
 };
 
+type Rect = { top: number; left: number; width: number; height: number };
+
+const PAD = 8;
+
 export function GuidedTour({
   steps,
   storageKey,
@@ -23,7 +27,7 @@ export function GuidedTour({
 }) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
-  const prevElRef = useRef<Element | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
   const stepBaselineDoneRef = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
@@ -32,24 +36,37 @@ export function GuidedTour({
     return () => clearTimeout(t);
   }, [storageKey]);
 
+  // Recompute the spotlight rect for the current step, and keep it pinned to the target
+  // through scroll/resize/animation instead of relying on any CSS z-index/stacking trick.
   useEffect(() => {
     if (!visible) return;
 
-    if (prevElRef.current) {
-      prevElRef.current.classList.remove("tour-highlight");
-      prevElRef.current = null;
-    }
-
     const current = steps[step];
     const el = document.querySelector(current.target);
-    if (el) {
-      el.classList.add("tour-highlight");
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      prevElRef.current = el;
+    if (!el) {
+      setRect(null);
+      return;
     }
 
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+
+    measure();
+    const raf1 = requestAnimationFrame(measure);
+    const t = setTimeout(measure, 350); // after scrollIntoView's smooth-scroll settles
+
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+
     return () => {
-      el?.classList.remove("tour-highlight");
+      cancelAnimationFrame(raf1);
+      clearTimeout(t);
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
     };
   }, [step, visible, steps]);
 
@@ -73,26 +90,10 @@ export function GuidedTour({
     }
   }, [doneMap, step, visible, steps]);
 
-  useEffect(() => {
-    return () => {
-      if (prevElRef.current) {
-        prevElRef.current.classList.remove("tour-highlight");
-      }
-    };
-  }, []);
-
-  function clearHighlight() {
-    if (prevElRef.current) {
-      prevElRef.current.classList.remove("tour-highlight");
-      prevElRef.current = null;
-    }
-  }
-
   function handleNext() {
     if (step < steps.length - 1) {
       setStep((s) => s + 1);
     } else {
-      clearHighlight();
       setVisible(false);
     }
   }
@@ -102,12 +103,10 @@ export function GuidedTour({
   }
 
   function handleClose() {
-    clearHighlight();
     setVisible(false);
   }
 
   function handleNever() {
-    clearHighlight();
     localStorage.setItem(storageKey, "1");
     setVisible(false);
   }
@@ -117,11 +116,63 @@ export function GuidedTour({
   const current = steps[step];
   const isLast = step === steps.length - 1;
 
+  const holeX = rect ? rect.left - PAD : 0;
+  const holeY = rect ? rect.top - PAD : 0;
+  const holeW = rect ? rect.width + PAD * 2 : 0;
+  const holeH = rect ? rect.height + PAD * 2 : 0;
+
   return (
     <>
-      {/* Dimming spotlight overlay — raised above any in-page z-40/z-50 popovers/toasts so
-          nothing pokes through un-dimmed; the highlighted target sits above this via z-index */}
-      <div className="fixed inset-0 z-50 bg-black/60 transition-opacity" aria-hidden />
+      {/* Single-piece dimming overlay with a precise rectangular cutout carved via an SVG
+          mask — guarantees full coverage everywhere except exactly the spotlighted target,
+          with no dependency on the target's own z-index/stacking context. */}
+      <svg
+        className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+        aria-hidden
+      >
+        <defs>
+          <mask id="tour-spotlight-mask">
+            <rect x="0" y="0" width="100%" height="100%" fill="white" />
+            {rect ? (
+              <rect
+                x={holeX}
+                y={holeY}
+                width={holeW}
+                height={holeH}
+                rx={12}
+                fill="black"
+              />
+            ) : null}
+          </mask>
+        </defs>
+        <rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="rgba(0,0,0,0.6)"
+          mask="url(#tour-spotlight-mask)"
+        />
+        {rect ? (
+          <rect
+            x={holeX}
+            y={holeY}
+            width={holeW}
+            height={holeH}
+            rx={12}
+            fill="none"
+            stroke="rgba(6,182,212,0.95)"
+            strokeWidth={4}
+          >
+            <animate
+              attributeName="stroke-opacity"
+              values="1;0.55;1"
+              dur="1.1s"
+              repeatCount="indefinite"
+            />
+          </rect>
+        ) : null}
+      </svg>
 
       <div className="fixed bottom-0 left-0 right-0 z-[60] animate-tour-slide-up">
         <div className="flex justify-center gap-2 pb-3">
@@ -151,7 +202,7 @@ export function GuidedTour({
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">
                 {current.title}
               </h3>
-              <p className="mt-2 text-base leading-relaxed text-brand-100 sm:text-[17px]">
+              <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
                 {current.description}
               </p>
             </div>
@@ -159,7 +210,7 @@ export function GuidedTour({
             <button
               type="button"
               onClick={handleClose}
-              className="shrink-0 rounded-lg p-2 text-brand-200 transition hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
               aria-label="닫기"
             >
               <svg
@@ -179,7 +230,7 @@ export function GuidedTour({
             <button
               type="button"
               onClick={handleNever}
-              className="text-sm font-medium text-brand-300 transition hover:text-white"
+              className="text-sm font-medium text-white/70 transition hover:text-white"
             >
               다시 보지 않기
             </button>

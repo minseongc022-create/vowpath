@@ -143,10 +143,10 @@ export function BrandLogo({
     mark = (
       <>
         <span className="sm:hidden">
-          <HorizontalMark heightPx={30} surface={spec.surface} />
+          <HorizontalMark heightPx={22} surface={spec.surface} />
         </span>
         <span className="hidden sm:block">
-          <HorizontalMark heightPx={40} surface={spec.surface} />
+          <HorizontalMark heightPx={28} surface={spec.surface} />
         </span>
       </>
     );

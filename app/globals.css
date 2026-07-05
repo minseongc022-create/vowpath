@@ -1173,43 +1173,6 @@
 
 /* ── Guided tour ─────────────────────────────────────────────────── */
 
-/* Defined directly (not just in tailwind.config.ts) because Tailwind's JIT scanner only
-   emits theme.extend.keyframes when a matching animate-* utility class is used somewhere
-   in scanned content — this keyframe is only ever referenced via a raw `animation:`
-   property below, so without this explicit block the pulse never actually rendered. */
-@keyframes tour-spotlight {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 4px rgba(6, 182, 212, 0.5),
-      0 0 20px rgba(6, 182, 212, 0.4);
-    outline-color: rgba(6, 182, 212, 0.95);
-    outline-offset: 4px;
-  }
-  50% {
-    box-shadow:
-      0 0 0 12px rgba(6, 182, 212, 0.3),
-      0 0 40px 16px rgba(6, 182, 212, 0.45);
-    outline-color: rgba(6, 182, 212, 0.6);
-    outline-offset: 9px;
-  }
-}
-
-/* Pulsing ring highlight on dashboard sections — sits above the tour's dim overlay (z-50).
-   Blue/cyan on purpose: the brand palette is all warm amber/brown, so a cool accent is the
-   only color that reliably stands out against brand buttons/cards. */
-.tour-highlight {
-  position: relative;
-  z-index: 55;
-  outline: 4px solid rgba(6, 182, 212, 0.95);
-  outline-offset: 4px;
-  border-radius: 1rem;
-  box-shadow:
-    0 0 0 4px rgba(6, 182, 212, 0.5),
-    0 0 20px rgba(6, 182, 212, 0.4);
-  animation: tour-spotlight 1.1s ease-in-out infinite;
-}
-
 /* Pulsing glow on setup-wizard action buttons */
 .tour-pulse-btn {
   animation: tour-btn-pulse 1.3s ease-in-out infinite;
