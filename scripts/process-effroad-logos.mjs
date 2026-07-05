@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
-const ASSET_VERSION = "15";
+const ASSET_VERSION = "16";
 
 const SITE_BG = { r: 250, g: 248, b: 245 };
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
