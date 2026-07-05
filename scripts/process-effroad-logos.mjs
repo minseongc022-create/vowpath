@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourcesDir = path.join(root, "public", "brand-sources");
-const ASSET_VERSION = "16";
+const ASSET_VERSION = "17";
 
 const SITE_BG = { r: 250, g: 248, b: 245 };
 const FOOTER_BG = { r: 245, g: 240, b: 232 };
@@ -172,28 +172,15 @@ function analyzeRows(data, width, height) {
   return { rowMaxX, rowMinX, rowHas };
 }
 
-/** Keep full ER + EFFIROAD lockup; zero-out tagline rows below the wordmark. */
+/** Keep the full ER + EFFIROAD lockup, including the road-ribbon tail flourish that dips
+ *  below the wordmark baseline — earlier source art had a tagline below the logo that
+ *  needed stripping, but the current source doesn't, and that same row-based cutoff was
+ *  incorrectly chopping off the tail flourish since it extends lower than the wordmark. */
 async function prepareHorizontalLockup(inputPath) {
   const trimmed = await clearAndTrim(inputPath, shouldClearHorizontalBackground);
   const { data, info } = await sharp(trimmed).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const pixels = new Uint8Array(data);
   const { width: w, height: h } = info;
-  const { rowMaxX } = analyzeRows(pixels, w, h);
-
-  const wordmarkThreshold = Math.round(w * 0.82);
-  let lastWordmarkRow = -1;
-  for (let y = 0; y < h; y++) {
-    if (rowMaxX[y] >= wordmarkThreshold) lastWordmarkRow = y;
-  }
-
-  if (lastWordmarkRow >= 0 && lastWordmarkRow < h - 1) {
-    for (let y = lastWordmarkRow + 1; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = (y * w + x) * 4;
-        pixels[i + 3] = 0;
-      }
-    }
-  }
 
   return sharp(Buffer.from(pixels), {
     raw: { width: w, height: h, channels: 4 },
