@@ -2,7 +2,7 @@ import { IS_BETA } from "./beta";
 import { getCheckoutCta, getSectionLabels, getSiteTagline } from "./marketing-constants";
 
 export const SITE = {
-  name: "Effiroad",
+  name: "EFFIROAD",
   tagline: getSiteTagline(),
   url: "https://effiroad.com",
   contactEmail: "support@effiroad.com",

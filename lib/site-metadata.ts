@@ -6,10 +6,10 @@ import type { ShopVertical } from "@/lib/shop-vertical";
 export const SITE_ICON_VERSION = "23";
 
 export const SITE_SEO = {
-  title: "AI Dispatch & Answering for Restoration Companies | Effiroad",
+  title: "AI Dispatch & Answering for Restoration Companies | EFFIROAD",
   description:
-    "Effiroad answers every call 24/7, captures insurance-ready intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration companies. Live in 10 minutes, no CRM required.",
-  ogTitle: "Effiroad | Never Lose a $10,000 Job at 2 AM Again",
+    "EFFIROAD answers every call 24/7, captures insurance-ready intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration companies. Live in 10 minutes, no CRM required.",
+  ogTitle: "EFFIROAD | Never Lose a $10,000 Job at 2 AM Again",
   ogDescription:
     "AI-powered emergency intake and crew dispatch built for independent restoration companies.",
   keywords: [
@@ -21,15 +21,15 @@ export const SITE_SEO = {
     "AI answering service restoration",
     "emergency dispatch software",
     "restoration business automation",
-    "Effiroad",
+    "EFFIROAD",
   ],
 } as const;
 
 export const SITE_SEO_KO = {
-  title: "Effiroad | 복구(Restoration) 업체 AI 긴급 접수·디스패치",
+  title: "EFFIROAD | 복구(Restoration) 업체 AI 긴급 접수·디스패치",
   description:
-    "Effiroad는 침수·화재·곰팡이 복구 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
-  ogTitle: "Effiroad | 끝없는 성공으로 가는 길",
+    "EFFIROAD는 침수·화재·곰팡이 복구 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
+  ogTitle: "EFFIROAD | 끝없는 성공으로 가는 길",
   ogDescription: "긴급 전화를 놓치지 않도록 돕는 AI 기반 복구 업체 플랫폼.",
 } as const;
 
