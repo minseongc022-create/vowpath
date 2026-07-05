@@ -137,10 +137,12 @@ export function buildVerticalPageMetadata(
 }
 
 export function siteJsonLd() {
+  const logoUrl = `${SITE.url}/logo-schema.png`;
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: SITE.name,
+    image: logoUrl,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: SITE.url,
@@ -154,6 +156,10 @@ export function siteJsonLd() {
       "@type": "Organization",
       name: SITE.name,
       url: SITE.url,
+      logo: {
+        "@type": "ImageObject",
+        url: logoUrl,
+      },
     },
   };
 }
