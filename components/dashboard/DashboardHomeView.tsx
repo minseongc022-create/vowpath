@@ -247,7 +247,7 @@ export function DashboardHomeView() {
             className="!flex-row !items-center"
           />
           <NotificationCenter {...notificationProps} variant="dropdown" />
-          <div data-tour-step="new-request">
+          <div className="inline-flex" data-tour-step="new-request">
             <DashboardNewRequestButton onCreated={() => void refresh()} />
           </div>
         </div>

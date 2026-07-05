@@ -7,6 +7,7 @@ import { getMarketingNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
+import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
 
 type HeaderProps = {
   session: { email: string; shopName: string } | null;
@@ -37,6 +38,8 @@ export function Header({ session }: HeaderProps) {
             ))}
           </nav>
 
+          <VerticalSwitcher className="hidden sm:inline-flex" />
+
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             <HeaderAuth session={session} />
             <button
@@ -60,6 +63,7 @@ export function Header({ session }: HeaderProps) {
 
       {open ? (
         <div className="border-t border-brand-200 bg-white px-5 py-4 lg:hidden">
+          <VerticalSwitcher className="mb-4 sm:hidden" />
           <nav className="flex flex-col gap-3" aria-label="Primary mobile">
             {navLinks.map((link) => (
               <Link
