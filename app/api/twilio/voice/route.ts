@@ -11,6 +11,7 @@ import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import {
+  twimlDialForward,
   twimlGatherMainMenu,
   twimlResponse,
   twimlSay,
@@ -77,11 +78,21 @@ export async function POST(request: Request) {
   const mainMenuUrl = `${base}/api/twilio/main-menu?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const recordingUrl = `${base}/api/twilio/recording`;
 
-  const twiml = twimlResponse(
-    twimlStartCallRecording(recordingUrl) +
-      twimlGatherMainMenu(mainMenuUrl, shopName, stormMode, customGreeting),
-    statusCallbackUrl,
-  );
+  // When set, forward the live call to a Retell AI voice agent's phone
+  // number instead of the scripted Gather-based IVR below. Keeps the
+  // existing tenant/closure/recording setup untouched, and can be reverted
+  // instantly by unsetting the env var (no redeploy of Twilio config needed).
+  const retellForwardNumber = process.env.RETELL_FORWARD_NUMBER?.trim();
+  const twiml = retellForwardNumber
+    ? twimlResponse(
+        twimlStartCallRecording(recordingUrl) + twimlDialForward(retellForwardNumber),
+        statusCallbackUrl,
+      )
+    : twimlResponse(
+        twimlStartCallRecording(recordingUrl) +
+          twimlGatherMainMenu(mainMenuUrl, shopName, stormMode, customGreeting),
+        statusCallbackUrl,
+      );
 
   return new NextResponse(twiml, {
     status: 200,

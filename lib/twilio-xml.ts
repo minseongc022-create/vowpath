@@ -164,3 +164,8 @@ export function twimlStartCallRecording(recordingStatusCallback: string): string
   if (process.env.CALL_RECORDING_ENABLED === "false") return "";
   return `<Start><Recording recordingStatusCallback="${escapeXml(recordingStatusCallback)}" recordingStatusCallbackMethod="POST" /></Start>`;
 }
+
+/** Forwards the live call to a Retell AI voice agent's phone number. */
+export function twimlDialForward(toNumber: string): string {
+  return `<Dial>${escapeXml(toNumber)}</Dial>`;
+}
