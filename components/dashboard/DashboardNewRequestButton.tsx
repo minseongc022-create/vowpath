@@ -37,6 +37,7 @@ export function DashboardNewRequestButton({ onCreated }: DashboardNewRequestButt
     <div className="relative">
       <button
         type="button"
+        data-tour-step="new-request"
         onClick={() => void handleClick()}
         disabled={busy}
         className="vow-dash-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
