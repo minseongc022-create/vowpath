@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
-import { processApptRemindersAll } from "@/lib/tech-dispatch/appointment-reminder";
 
-// Offer escalation now runs every minute via /api/cron/tech-offer-escalation.
-// This daily job keeps a once-a-day escalation pass as a backstop and sends
-// the morning appointment reminders.
-
+/**
+ * Runs every minute (see vercel.json). Expires stale tech offers and rolls the
+ * job to the next crew member, so an ignored dispatch text escalates within
+ * ~1 minute of its responseTimeoutMinutes window instead of waiting for the
+ * once-a-day tech-dispatch cron. This is the difference between "crew assigned
+ * in minutes" and "job stuck until tomorrow morning."
+ */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   const isDeployed = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
-
   if (isDeployed && !secret) {
     return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 503 });
   }
-
   if (secret) {
     const auth = request.headers.get("authorization");
     const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -24,13 +24,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [timeouts, reminders] = await Promise.all([
-      processExpiredTechOffersAll(),
-      processApptRemindersAll(),
-    ]);
-    return NextResponse.json({ ok: true, timeouts, reminders });
+    const timeouts = await processExpiredTechOffersAll();
+    return NextResponse.json({ ok: true, timeouts });
   } catch (e) {
-    console.error("[cron/tech-dispatch]", e);
+    console.error("[cron/tech-offer-escalation]", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Cron failed" },
       { status: 500 },
