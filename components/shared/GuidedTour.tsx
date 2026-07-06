@@ -130,56 +130,37 @@ export function GuidedTour({
 
   return (
     <>
-      {/* Single-piece dimming overlay with a precise rectangular cutout carved via an SVG
-          mask — guarantees full coverage everywhere except exactly the spotlighted target,
-          with no dependency on the target's own z-index/stacking context. */}
-      <svg
-        className="pointer-events-none fixed inset-0 z-50 h-full w-full"
-        aria-hidden
-      >
-        <defs>
-          <mask id="tour-spotlight-mask">
-            <rect x="0" y="0" width="100%" height="100%" fill="white" />
-            {rect ? (
-              <rect
-                x={holeX}
-                y={holeY}
-                width={holeW}
-                height={holeH}
-                rx={12}
-                fill="black"
-              />
-            ) : null}
-          </mask>
-        </defs>
-        <rect
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.6)"
-          mask="url(#tour-spotlight-mask)"
-        />
-        {rect ? (
-          <rect
-            x={holeX}
-            y={holeY}
-            width={holeW}
-            height={holeH}
-            rx={12}
-            fill="none"
-            stroke="rgba(6,182,212,0.95)"
-            strokeWidth={4}
-          >
-            <animate
-              attributeName="stroke-opacity"
-              values="1;0.55;1"
-              dur="1.1s"
-              repeatCount="indefinite"
-            />
-          </rect>
-        ) : null}
-      </svg>
+      {/* Spotlight via a single box-shadow that spreads 9999px in every direction from the
+          hole rectangle — this dims the ENTIRE viewport with zero gaps (no dependency on
+          any element's width/height, scroll container, or stacking context), and the cyan
+          ring is an outline on the very same rectangle so it can never drift off the hole.
+          When there's no target yet, just dim everything flat. */}
+      {rect ? (
+        <>
+          <div
+            className="pointer-events-none fixed z-50 rounded-xl"
+            style={{
+              top: holeY,
+              left: holeX,
+              width: holeW,
+              height: holeH,
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
+            }}
+          />
+          <div
+            className="pointer-events-none fixed z-50 animate-pulse rounded-xl"
+            style={{
+              top: holeY,
+              left: holeX,
+              width: holeW,
+              height: holeH,
+              outline: "4px solid rgba(6,182,212,0.95)",
+            }}
+          />
+        </>
+      ) : (
+        <div className="pointer-events-none fixed inset-0 z-50 bg-black/60" />
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 z-[60] animate-tour-slide-up">
         <div className="flex justify-center gap-2 pb-3">
