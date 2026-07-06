@@ -59,12 +59,19 @@ export function GuidedTour({
     const raf1 = requestAnimationFrame(measure);
     const t = setTimeout(measure, 350); // after scrollIntoView's smooth-scroll settles
 
+    // Dashboard content (KPI cards, counts) often loads in asynchronously after
+    // the initial render and can shift the target's position without firing a
+    // scroll/resize event — keep polling while this step is open so the
+    // spotlight doesn't go stale.
+    const poll = setInterval(measure, 500);
+
     window.addEventListener("scroll", measure, true);
     window.addEventListener("resize", measure);
 
     return () => {
       cancelAnimationFrame(raf1);
       clearTimeout(t);
+      clearInterval(poll);
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
     };
@@ -126,8 +133,12 @@ export function GuidedTour({
       {/* Single-piece dimming overlay with a precise rectangular cutout carved via an SVG
           mask — guarantees full coverage everywhere except exactly the spotlighted target,
           with no dependency on the target's own z-index/stacking context. */}
+      {/* inset-0 alone pins all four edges to the visual viewport exactly — adding an
+          explicit w-screen/h-full class on top of it can conflict with the scrollbar
+          gutter (100vw/100% don't always equal the true visual viewport) and shift
+          the whole overlay relative to real element positions from getBoundingClientRect(). */}
       <svg
-        className="pointer-events-none fixed inset-0 z-50 h-screen w-screen"
+        className="pointer-events-none fixed inset-0 z-50"
         aria-hidden
       >
         <defs>
