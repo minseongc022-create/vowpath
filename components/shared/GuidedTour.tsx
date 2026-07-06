@@ -171,7 +171,7 @@ export function GuidedTour({
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                기능 안내 &nbsp;{step + 1} / {steps.length}
+                기능 안내 &nbsp;{step + 1} / {steps.length} &nbsp;· v3
               </p>
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
               <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
