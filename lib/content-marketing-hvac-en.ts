@@ -11,14 +11,14 @@ export const hvacHero = {
   eyebrow: "Built for HVAC shops · 1–15 technicians",
   headline: "Never lose a no-heat call at 2 AM again",
   subhead:
-    "Effiroad answers every call 24/7, qualifies the job, and dispatches your on-call tech automatically — in under 90 seconds for no-heat emergencies. Gas smell? Always held for your approval.",
+    "Effiroad answers every call 24/7, qualifies the job, and dispatches your on-call tech automatically — the moment a no-heat emergency is verified. Gas smell? Always held for your approval.",
   primaryCta: "Start free trial",
   secondaryCta: "See how it works",
   trustPills: [
     "24/7 AI intake",
     "No-heat auto-dispatch",
     "Gas smell always held",
-    "Owner SMS in 30s",
+    "Instant owner SMS",
   ] as const,
 };
 
@@ -27,7 +27,7 @@ export const hvacProblem = {
   body: "No-heat calls in January are $1,500–$3,000 jobs. Missing one means the customer calls your competitor, who answers. Effiroad is the layer between your phone and those missed calls.",
   points: [
     "Calls after hours go to voicemail — and to the next shop",
-    "No-heat in winter is a P1 emergency — 90 seconds matters",
+    "No-heat in winter is a P1 emergency — every minute matters",
     "Gas smell calls need a human to decide — auto-dispatch is wrong",
   ],
 };
@@ -138,7 +138,7 @@ export const hvacFaq = [
 export const hvacSeoMeta = {
   title: "Effiroad for HVAC — AI Intake & Dispatch for HVAC Companies",
   description:
-    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically in under 90 seconds, and holds gas smell calls for owner approval. $189/mo, no CRM needed.",
+    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. $189/mo, no CRM needed.",
   ogTitle: "Effiroad — Never Lose a No-Heat Call at 2 AM",
   ogDescription:
     "AI-powered call intake and dispatch built for HVAC shops. No-heat auto-dispatch. Gas smell always held.",
@@ -156,11 +156,11 @@ export const problemHvac = {
   id: "problem",
   title: "At 6 AM the heat dies. You're already on another job. The next shop answers.",
   subtitle:
-    "20–47% of HVAC emergency calls go unanswered. Customers don't leave voicemail — they call the next name on Google. One saved no-heat job pays for the month.",
+    "Industry studies show a large share of HVAC emergency calls go unanswered after hours. Customers don't leave voicemail — they call the next name on Google. One saved no-heat job pays for the month.",
   stats: [
-    { value: "27%+", label: "of emergency calls unanswered" },
+    { value: "20–47%", label: "of after-hours calls go unanswered (industry studies)" },
     { value: "$1,500+", label: "avg no-heat/no-cool job" },
-    { value: "85%", label: "call the next company if you don't answer" },
+    { value: "~85%", label: "of callers try the next company if you don't answer (industry studies)" },
   ],
   callout: "You don't need more leads. You need to answer the line you already advertise.",
 };
@@ -219,7 +219,7 @@ export const productStackHvac = {
     },
   ],
   footnote:
-    "Optional CRM sync, crew round-robin texts, and customer portal links are built in — connect what you use, skip what you don't.",
+    "Optional CRM sync, crew round-robin texts, and secure update/reschedule links are built in — connect what you use, skip what you don't.",
 };
 
 export const missedCallFlowHvac = {
@@ -431,7 +431,7 @@ export const featuresHvac = {
       tag: "Included",
     },
     {
-      title: "Customer portal links",
+      title: "Update & reschedule links",
       description:
         "Customers update details or reschedule from secure SMS links — private, expiring.",
       tag: "Included",
@@ -478,29 +478,9 @@ export const socialProofHvac = {
     { stat: "$3,000+", label: "one saved call can cover the month" },
   ],
   badges: ["US HVAC service", "Same company number", "No CRM required"],
-  testimonials: [
-    {
-      quote:
-        "Our heat call at 6 AM would've gone to voicemail while I was already on site somewhere else. Effiroad caught it, got the address, and my tech was there before the family even woke the kids up.",
-      name: "Ray D.",
-      detail: "Owner, residential HVAC — Denver metro",
-      label: "Verified customer",
-    },
-    {
-      quote:
-        "The gas-smell hold is what sold me. I don't want anything auto-dispatching on a safety call — Effiroad texts me first every time, but a normal no-cool call just goes straight to my tech.",
-      name: "Priya S.",
-      detail: "Owner-operator, HVAC & refrigeration — Phoenix",
-      label: "Verified customer",
-    },
-    {
-      quote:
-        "Setup took about ten minutes. We were missing 4-5 calls a week during peak season and now every one of them gets answered, even at 11 PM.",
-      name: "Tom K.",
-      detail: "Owner, HVAC service — Chicago suburbs",
-      label: "Verified customer",
-    },
-  ] as Array<{
+  // No paying customers yet — do not add placeholder/fabricated testimonials here.
+  // Add real ones (with permission) once shops are live on the platform.
+  testimonials: [] as Array<{
     quote: string;
     name: string;
     detail: string;

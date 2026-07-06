@@ -52,21 +52,29 @@ export function defaultCompanyAiMemory(userId: string): CompanyAiMemory {
   };
 }
 
+// Free-text fields are shop-authored (typed directly or via the AI admin chat)
+// but still need a ceiling: temporaryClosureMessage is spoken aloud via TTS on
+// real calls, and all of these persist indefinitely in KV, so an unbounded
+// string (e.g. a pasted document) shouldn't be able to blow up call cost/UX
+// or storage.
+const LONG_FIELD_MAX = 1000;
+const SPOKEN_FIELD_MAX = 300;
+
 function clean(input: Partial<CompanyAiMemoryInput>, userId: string): CompanyAiMemory {
   const base = defaultCompanyAiMemory(userId);
   return {
     ...base,
-    serviceAreas: String(input.serviceAreas ?? "").trim(),
-    businessHours: String(input.businessHours ?? "").trim(),
-    holidayRules: String(input.holidayRules ?? "").trim(),
-    emergencyPolicy: String(input.emergencyPolicy ?? "").trim(),
-    approvalPolicy: String(input.approvalPolicy ?? "").trim(),
-    specialInstructions: String(input.specialInstructions ?? "").trim(),
+    serviceAreas: String(input.serviceAreas ?? "").trim().slice(0, LONG_FIELD_MAX),
+    businessHours: String(input.businessHours ?? "").trim().slice(0, LONG_FIELD_MAX),
+    holidayRules: String(input.holidayRules ?? "").trim().slice(0, LONG_FIELD_MAX),
+    emergencyPolicy: String(input.emergencyPolicy ?? "").trim().slice(0, LONG_FIELD_MAX),
+    approvalPolicy: String(input.approvalPolicy ?? "").trim().slice(0, LONG_FIELD_MAX),
+    specialInstructions: String(input.specialInstructions ?? "").trim().slice(0, LONG_FIELD_MAX),
     customGreeting: String(input.customGreeting ?? "").trim().slice(0, 240),
     dailyBriefingSmsEnabled: Boolean(input.dailyBriefingSmsEnabled),
     dailyBriefingSmsTime: String(input.dailyBriefingSmsTime ?? "08:00").trim() || "08:00",
     temporaryClosureDate: String(input.temporaryClosureDate ?? "").trim(),
-    temporaryClosureMessage: String(input.temporaryClosureMessage ?? "").trim(),
+    temporaryClosureMessage: String(input.temporaryClosureMessage ?? "").trim().slice(0, SPOKEN_FIELD_MAX),
     updatedAt: new Date().toISOString(),
   };
 }

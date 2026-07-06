@@ -1,8 +1,6 @@
 import { isApprovedBooking } from "./booking-policy";
 import type { JobCard } from "./types";
 
-export const EST_REVENUE_PER_BOOKING = 385;
-
 export type DailyMetric = {
   date: string;
   label: string;
@@ -21,7 +19,6 @@ export type ActivityItem = {
 export type AnalyticsSummary = {
   totalCalls: number;
   totalBookings: number;
-  estimatedRevenue: number;
   responseRate: number;
   callsDelta: number;
   bookingsDelta: number;
@@ -127,7 +124,6 @@ export function summarizeAnalytics(
   return {
     totalCalls,
     totalBookings,
-    estimatedRevenue: totalBookings * EST_REVENUE_PER_BOOKING,
     responseRate: totalCalls > 0 ? Math.round((totalBookings / totalCalls) * 100) : 0,
     callsDelta: pctChange(totalCalls, prevCalls.length),
     bookingsDelta: pctChange(totalBookings, prevBookings.length),

@@ -24,7 +24,7 @@ export async function sendTechSms(params: {
   const ownerNorm = ownerPhone ? normalizeSmsPhone(ownerPhone) : null;
 
   if (ownerNorm && techNorm && ownerNorm !== techNorm) {
-    await sendSms(
+    const ownerCopy = await sendSms(
       ownerNorm,
       `[TECH copy] ${params.body}`,
       `${params.devLogLabel}-owner-copy`,
@@ -36,6 +36,11 @@ export async function sendTechSms(params: {
         },
       },
     );
+    if (!ownerCopy.ok) {
+      console.warn(
+        `[send-tech-sms] owner copy failed for ${params.operation} (userId=${params.userId}): ${ownerCopy.error ?? "unknown error"}`,
+      );
+    }
   }
 
   return primary.ok;

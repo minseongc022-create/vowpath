@@ -203,16 +203,32 @@ export async function pushJobberScheduledBooking(
     );
     const visitId = await createVisitOnJob(accessToken, jobId, schedule, card);
 
-    await upsertScheduledBooking(userId, {
-      bookingId,
-      scheduledStartAt: schedule.startAt,
-      scheduledEndAt: schedule.endAt,
-      arrivalWindowLabel: schedule.label,
-      slotSource: "jobber",
-      jobberRequestId: base.requestId,
-      jobberJobId: jobId,
-      jobberVisitId: visitId,
-    });
+    // The Jobber job + visit already exist at this point — if local bookkeeping
+    // fails, we must NOT throw (that would signal total failure and invite a
+    // caller retry, which would create a duplicate Jobber job/visit since
+    // Jobber already has this one). Log it and still return success so the
+    // caller records jobberRequestId/jobberJobId and treats this as linked.
+    try {
+      await upsertScheduledBooking(userId, {
+        bookingId,
+        scheduledStartAt: schedule.startAt,
+        scheduledEndAt: schedule.endAt,
+        arrivalWindowLabel: schedule.label,
+        slotSource: "jobber",
+        jobberRequestId: base.requestId,
+        jobberJobId: jobId,
+        jobberVisitId: visitId,
+      });
+    } catch (e) {
+      await logOperationFailure({
+        userId,
+        category: "jobber",
+        operation: "pushJobberScheduledBooking.upsertScheduledBooking",
+        message: e instanceof Error ? e.message : "Local schedule bookkeeping failed after Jobber push succeeded",
+        retryable: false,
+        payload: { bookingId, jobId, visitId },
+      });
+    }
 
     return { ...base, jobId, visitId };
   } catch (e) {

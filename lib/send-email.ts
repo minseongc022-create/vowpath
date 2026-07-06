@@ -44,6 +44,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendResult> {
         subject: input.subject,
         text: input.text,
       }),
+      signal: AbortSignal.timeout(8_000),
     });
 
     if (!res.ok) {

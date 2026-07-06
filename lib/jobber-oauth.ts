@@ -46,6 +46,7 @@ export async function exchangeJobberCode(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -54,7 +55,11 @@ export async function exchangeJobberCode(
     throw new Error("JOBBER_TOKEN_EXCHANGE_FAILED");
   }
 
-  return (await response.json()) as JobberTokenResponse;
+  try {
+    return (await response.json()) as JobberTokenResponse;
+  } catch {
+    throw new Error("JOBBER_TOKEN_EXCHANGE_FAILED");
+  }
 }
 
 export async function refreshJobberAccessToken(
@@ -71,6 +76,7 @@ export async function refreshJobberAccessToken(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -79,5 +85,9 @@ export async function refreshJobberAccessToken(
     throw new Error("JOBBER_REFRESH_FAILED");
   }
 
-  return (await response.json()) as JobberTokenResponse;
+  try {
+    return (await response.json()) as JobberTokenResponse;
+  } catch {
+    throw new Error("JOBBER_REFRESH_FAILED");
+  }
 }

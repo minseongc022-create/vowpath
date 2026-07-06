@@ -173,22 +173,34 @@ async function extractIntakeFromSpeechWithPrompt(
     () =>
       withRetry(
         async () => {
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: process.env.OPENAI_MODEL ?? "gpt-4o",
-              temperature: 0.1,
-              response_format: { type: "json_object" },
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: `Call transcript:\n\n${speech.trim()}` },
-              ],
-            }),
-          });
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 12_000);
+
+          let response: Response;
+          try {
+            response = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: process.env.OPENAI_MODEL ?? "gpt-4o",
+                temperature: 0.1,
+                response_format: { type: "json_object" },
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: `Call transcript:\n\n${speech.trim()}` },
+                ],
+              }),
+              signal: controller.signal,
+            });
+          } catch (e) {
+            if (e instanceof Error && e.name === "AbortError") throw new Error("OPENAI_TIMEOUT");
+            throw new Error("OPENAI_REQUEST_FAILED");
+          } finally {
+            clearTimeout(timeout);
+          }
 
           if (!response.ok) {
             const errText = await response.text();
@@ -215,7 +227,13 @@ async function extractIntakeFromSpeechWithPrompt(
     },
   );
 
-  const data = JSON.parse(content) as Record<string, unknown>;
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(content) as Record<string, unknown>;
+  } catch (e) {
+    console.error("[call-intake/extraction] malformed JSON from OpenAI:", content.slice(0, 500));
+    throw new Error("OPENAI_INVALID_JSON");
+  }
   const confRaw = (data.confidence ?? {}) as Record<string, unknown>;
 
   let draft: IntakeDraft = {

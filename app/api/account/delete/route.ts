@@ -17,10 +17,17 @@ async function redisCmd(cfg: { url: string; token: string }, command: string[]) 
     method: "POST",
     headers: { Authorization: `Bearer ${cfg.token}` },
     body: JSON.stringify(command),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`Redis ${res.status}`);
-  return res.json() as Promise<{ result: unknown }>;
+  try {
+    return (await res.json()) as { result: unknown };
+  } catch {
+    throw new Error("Redis response was not valid JSON");
+  }
 }
+
+const SCAN_MAX_ITERATIONS = 200;
 
 async function deleteUserKvKeys(userId: string): Promise<number> {
   const cfg = kvRestConfig();
@@ -28,12 +35,14 @@ async function deleteUserKvKeys(userId: string): Promise<number> {
 
   const keys: string[] = [];
   let cursor = "0";
+  let iterations = 0;
   do {
     const result = await redisCmd(cfg, ["SCAN", cursor, "MATCH", `effiroad:*:${userId}*`, "COUNT", "100"]);
     const tuple = result.result as [string, string[]];
     cursor = String(tuple[0]);
     keys.push(...(tuple[1] ?? []));
-  } while (cursor !== "0");
+    iterations += 1;
+  } while (cursor !== "0" && iterations < SCAN_MAX_ITERATIONS);
 
   if (keys.length === 0) return 0;
   await redisCmd(cfg, ["DEL", ...keys]);

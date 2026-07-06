@@ -79,7 +79,7 @@ export const productStackEn = {
     },
   ],
   footnote:
-    "Optional CRM sync, crew round-robin texts, and customer portal links are built in — connect what you use, skip what you don't.",
+    "Optional CRM sync, crew round-robin texts, and secure update/reschedule links are built in — connect what you use, skip what you don't.",
 };
 
 export const missedCallFlowEn = {
@@ -187,11 +187,11 @@ export const problemEn = {
   id: "problem",
   title: "At 11 PM the pipe bursts. You're still on a fire job. Servpro answers.",
   subtitle:
-    "20–47% of restoration calls go unanswered. Homeowners don't leave voicemail — they call the next name on Google. One saved mitigation pays for the year.",
+    "Industry studies show a large share of restoration calls go unanswered after hours. Homeowners don't leave voicemail — they call the next name on Google. One saved mitigation pays for the year.",
   stats: [
-    { value: "27%+", label: "of emergency calls unanswered" },
+    { value: "20–47%", label: "of after-hours calls go unanswered (industry studies)" },
     { value: "$8,000+", label: "avg water loss job" },
-    { value: "85%", label: "call the next company if you don't answer" },
+    { value: "~85%", label: "of callers try the next company if you don't answer (industry studies)" },
   ],
   callout: "You don't need more leads. You need to answer the line you already advertise.",
 };
@@ -296,9 +296,9 @@ export const jobberEn = {
         "When a loss confirms, the request lands in Jobber automatically. Customer, address, loss type — already filled in.",
     },
     {
-      title: "One source of truth",
+      title: "No re-typing",
       description:
-        "Confirmed jobs show on your schedule. No copy-paste from a text thread at 6 AM.",
+        "Confirmed jobs push to your schedule automatically — one-way, on confirm. No copy-paste from a text thread at 6 AM.",
     },
   ],
   footnote: "Connect or skip in settings. Effiroad works either way.",
@@ -363,7 +363,7 @@ export const featuresEn = {
       tag: "Included",
     },
     {
-      title: "Customer portal links",
+      title: "Update & reschedule links",
       description:
         "Homeowners update details or reschedule from secure SMS links — private, expiring.",
       tag: "Included",
@@ -533,29 +533,9 @@ export const socialProofEn = {
     { stat: "$8,000+", label: "one saved call can cover the year" },
   ],
   badges: ["US water · fire · mold", "Same company number", "No CRM required"],
-  testimonials: [
-    {
-      quote:
-        "At 11 PM a homeowner called with a burst supply line while I was on a fire job. Effiroad captured everything — address, Cat-1 water, insurance carrier. Crew was there in 40 minutes. That's a job I would have lost to Servpro.",
-      name: "Marcus T.",
-      detail: "Owner, water & fire restoration — Central Texas",
-      label: "Verified customer",
-    },
-    {
-      quote:
-        "Storm surge hit and six calls came in while I had two phones going. Effiroad handled every one. Four confirmed by morning — easily $30K I would have lost to a franchise.",
-      name: "Dan R.",
-      detail: "Owner-operator, restoration & remediation — Gulf Coast",
-      label: "Verified customer",
-    },
-    {
-      quote:
-        "Setup took twelve minutes. The 1/2 approval for fire losses sold me — I don't want blind auto-dispatch on structure fires. Standard water goes automatically; anything big waits for my text.",
-      name: "Jenn K.",
-      detail: "Owner, mold & water restoration — Pacific Northwest",
-      label: "Verified customer",
-    },
-  ] as Array<{
+  // No paying customers yet — do not add placeholder/fabricated testimonials here.
+  // Add real ones (with permission) once shops are live on the platform.
+  testimonials: [] as Array<{
     quote: string;
     name: string;
     detail: string;

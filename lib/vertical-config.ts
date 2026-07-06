@@ -42,7 +42,7 @@ const RESTORATION_CONFIG: VerticalConfig = {
   label: "Water / Fire / Mold Restoration",
   shortLabel: "Restoration",
   icon: "💧",
-  tagline: "Answer every 2 AM call. Dispatch crews in under 90 seconds.",
+  tagline: "Answer every 2 AM call. Dispatch crews the moment a loss is verified.",
   defaultAvgJobTicketUsd: 8000,
   issueExamples: [
     "Basement flooding from burst pipe",
@@ -85,7 +85,7 @@ const HVAC_CONFIG: VerticalConfig = {
   label: "HVAC",
   shortLabel: "HVAC",
   icon: "❄️",
-  tagline: "No-heat calls dispatched in under 90 seconds.",
+  tagline: "No-heat calls dispatched the moment they're verified.",
   defaultAvgJobTicketUsd: 1200,
   issueExamples: [
     "No heat — furnace not working",

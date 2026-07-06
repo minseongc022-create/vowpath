@@ -14,6 +14,7 @@ async function fetchTwilioRecordingAudio(recordingUrl: string): Promise<Buffer |
     headers: {
       Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
     },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());

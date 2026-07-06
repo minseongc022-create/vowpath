@@ -70,6 +70,16 @@ export async function checkRateLimit({
     };
   }
 
+  if (process.env.VERCEL === "1") {
+    // Vercel is multi-instance — an in-memory bucket only limits requests that
+    // happen to land on the same warm instance, so this rate limit is not
+    // actually enforced platform-wide. Surface it loudly rather than silently
+    // degrading a security control.
+    console.error(
+      `[rate-limit] KV not configured on Vercel — rate limit for "${key}" is per-instance only, not enforced globally.`,
+    );
+  }
+
   const existing = memoryBuckets.get(key);
   const bucket =
     existing && existing.resetAt > now

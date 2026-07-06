@@ -192,36 +192,71 @@ async function analyzeServicePriorityFromTranscriptWithPrompt(
     );
   }
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userParts.join("\n") },
-      ],
-    }),
-  });
+  const NEEDS_REVIEW_FALLBACK: EmergencyDetectionResult = {
+    servicePriority: "normal",
+    priority: "P2",
+    priorityReasons: [
+      "AI priority classification failed or timed out; defaulted to P2 (Normal) for shop review.",
+    ],
+    prioritySource: "ai",
+    lossCategory: "other",
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userParts.join("\n") },
+        ],
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    console.error(
+      "[ai-priority-classification] request failed, falling back to P2 review:",
+      e instanceof Error ? e.message : e,
+    );
+    return NEEDS_REVIEW_FALLBACK;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const errText = await response.text();
     console.error("[ai-priority-classification]", response.status, errText);
-    throw new Error("OPENAI_REQUEST_FAILED");
+    return NEEDS_REVIEW_FALLBACK;
   }
 
   const payload = (await response.json()) as {
     choices?: { message?: { content?: string } }[];
   };
   const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OPENAI_EMPTY_RESPONSE");
+  if (!content) return NEEDS_REVIEW_FALLBACK;
 
-  const data = JSON.parse(content) as Record<string, unknown>;
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    console.error(
+      "[ai-priority-classification] malformed JSON from OpenAI, falling back to P2 review:",
+      content.slice(0, 500),
+    );
+    return NEEDS_REVIEW_FALLBACK;
+  }
+
   let priority = normalizeJobPriority(parsePriorityFromResponse(data));
   const priorityReasons = asStringArray(data.priorityReasons);
 

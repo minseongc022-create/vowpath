@@ -43,11 +43,15 @@ function joinAreas(areas: string[]): string {
   return [...new Set(areas.map((area) => area.trim()).filter(Boolean))].join(", ");
 }
 
-function requireString(value: unknown, label: string): string {
+function requireString(value: unknown, label: string, maxLength = 500): string {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new AiAdminExecutionError(`${label} is required.`);
   }
-  return value.trim();
+  const trimmed = value.trim();
+  if (trimmed.length > maxLength) {
+    throw new AiAdminExecutionError(`${label} is too long (max ${maxLength} characters).`);
+  }
+  return trimmed;
 }
 
 function isCompanyMemoryField(value: string): value is CompanyMemoryField {
@@ -323,7 +327,15 @@ export async function executeAiAdminAction(params: {
   }
 
   if (action.type === "update_owner_phone") {
-    const user = await updateUserPhone(params.userId, action.phone);
+    let user;
+    try {
+      user = await updateUserPhone(params.userId, action.phone);
+    } catch (e) {
+      if (e instanceof Error && e.message === "PHONE_INVALID") {
+        throw new AiAdminExecutionError("That phone number doesn't look valid.");
+      }
+      throw e;
+    }
     if (!user) throw new AiAdminExecutionError("User not found.", 404);
     return {
       message: "Owner phone was updated.",

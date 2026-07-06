@@ -45,6 +45,7 @@ import { voiceCollectRetry } from "@/lib/voice-copy";
 import { findRecentCallLogByPhone } from "@/lib/call-logs";
 import { getShopVertical } from "@/lib/vertical-context";
 import type { ShopVertical } from "@/lib/shop-vertical.js";
+import { withDistributedLock } from "@/lib/distributed-lock";
 
 function emptyDraft(priority: JobPriority) {
   return {
@@ -110,16 +111,10 @@ function isMandatoryField(value: string | null): value is MandatoryVerifyField {
 }
 
 // Serializes concurrent webhook requests for the same callSid (Twilio retries,
-// double-taps) so they don't read-modify-write the intake state out of order.
-// Note: this only holds within a single warm serverless instance — it does not
-// provide cross-instance locking on Vercel.
-const intakeLocks = new Map<string, Promise<unknown>>();
-
+// double-taps landing on different serverless instances) so they don't
+// read-modify-write the intake state out of order. Backed by KV in prod.
 function withIntakeLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const prior = intakeLocks.get(key) ?? Promise.resolve();
-  const result = prior.then(fn, fn);
-  intakeLocks.set(key, result.catch(() => undefined));
-  return result;
+  return withDistributedLock(`intake:${key}`, fn);
 }
 
 async function afterVerificationStep(state: CallIntakeState): Promise<CallIntakeState> {
