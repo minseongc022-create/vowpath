@@ -133,12 +133,8 @@ export function GuidedTour({
       {/* Single-piece dimming overlay with a precise rectangular cutout carved via an SVG
           mask — guarantees full coverage everywhere except exactly the spotlighted target,
           with no dependency on the target's own z-index/stacking context. */}
-      {/* inset-0 alone pins all four edges to the visual viewport exactly — adding an
-          explicit w-screen/h-full class on top of it can conflict with the scrollbar
-          gutter (100vw/100% don't always equal the true visual viewport) and shift
-          the whole overlay relative to real element positions from getBoundingClientRect(). */}
       <svg
-        className="pointer-events-none fixed inset-0 z-50"
+        className="pointer-events-none fixed inset-0 z-50 h-full w-full"
         aria-hidden
       >
         <defs>
