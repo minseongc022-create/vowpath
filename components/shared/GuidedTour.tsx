@@ -127,7 +127,7 @@ export function GuidedTour({
           mask — guarantees full coverage everywhere except exactly the spotlighted target,
           with no dependency on the target's own z-index/stacking context. */}
       <svg
-        className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+        className="pointer-events-none fixed inset-0 z-50 h-screen w-screen"
         aria-hidden
       >
         <defs>
@@ -193,7 +193,7 @@ export function GuidedTour({
           ))}
         </div>
 
-        <div className="mx-4 mb-0 rounded-t-2xl border border-b-0 border-cyan-400/30 bg-brand-950 px-6 py-6 shadow-[0_-12px_50px_-8px_rgba(0,0,0,0.55)] sm:mx-auto sm:max-w-2xl sm:px-8 sm:py-7">
+        <div className="guided-tour-tooltip mx-4 mb-0 rounded-t-2xl border border-b-0 border-cyan-400/30 bg-brand-950 px-6 py-6 shadow-[0_-12px_50px_-8px_rgba(0,0,0,0.55)] sm:mx-auto sm:max-w-2xl sm:px-8 sm:py-7">
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">

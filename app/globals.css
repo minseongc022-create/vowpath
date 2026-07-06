@@ -743,6 +743,14 @@
     color: var(--vow-ink) !important;
   }
 
+  /* The guided-tour tooltip is a deliberately dark floating panel, not one of the
+     legacy light-remapped dashboard surfaces above — the bare h1/h2/h3.text-white
+     selectors were matching it too and turning its "white" text dark-on-dark. */
+  .vow-dash-main .guided-tour-tooltip .text-white,
+  .vow-dash-main .guided-tour-tooltip h3.text-white {
+    color: #fff !important;
+  }
+
   .vow-dash-main .text-slate-200 {
     color: #44403c !important;
   }
