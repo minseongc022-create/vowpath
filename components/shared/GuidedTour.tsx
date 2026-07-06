@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type TourStep = {
   id: string;
@@ -31,8 +32,11 @@ export function GuidedTour({
 }) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const stepBaselineDoneRef = useRef<boolean | undefined>(undefined);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -107,7 +111,7 @@ export function GuidedTour({
     setVisible(false);
   }
 
-  if (!visible) return null;
+  if (!visible || !mounted) return null;
 
   const current = steps[step];
   if (!current) return null;
@@ -118,7 +122,11 @@ export function GuidedTour({
   const holeW = rect ? rect.width + PAD * 2 : 0;
   const holeH = rect ? rect.height + PAD * 2 : 0;
 
-  return (
+  // Render into <body> so the fixed overlay is positioned against the visual
+  // viewport, not against any transformed/scrolled dashboard ancestor (which
+  // would remap position:fixed and misalign the spotlight from the measured
+  // getBoundingClientRect coords).
+  return createPortal(
     <>
       {rect ? (
         <>
@@ -171,7 +179,7 @@ export function GuidedTour({
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                기능 안내 &nbsp;{step + 1} / {steps.length} &nbsp;· v4 {rect ? `[${Math.round(rect.width)}×${Math.round(rect.height)}]` : "[no rect]"}
+                기능 안내 &nbsp;{step + 1} / {steps.length} &nbsp;· v5
               </p>
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
               <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
@@ -226,6 +234,7 @@ export function GuidedTour({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
