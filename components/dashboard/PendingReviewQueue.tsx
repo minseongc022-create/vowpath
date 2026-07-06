@@ -82,14 +82,17 @@ export function PendingReviewQueue({
     [onStatusChange],
   );
 
-  if (pending.length === 0) return null;
-
   return (
     <section className="vow-dash-card !p-0 overflow-hidden border-amber-200/80">
       <div className="border-b border-amber-100 bg-amber-50/80 px-5 py-4">
         <h2 className="text-lg font-semibold text-amber-950">{title}</h2>
         <p className="mt-1 text-sm text-amber-800/90">{subtitle}</p>
       </div>
+      {pending.length === 0 ? (
+        <p className="px-5 py-6 text-sm text-slate-500">
+          {copy?.empty ?? "No requests waiting."}
+        </p>
+      ) : (
       <ul className="divide-y divide-slate-100">
         {pending.map((b) => {
           const ref = bookingShortRef(b.id);
@@ -142,11 +145,7 @@ export function PendingReviewQueue({
           );
         })}
       </ul>
-      {pending.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-slate-500">
-          {copy?.empty ?? "No requests waiting."}
-        </p>
-      ) : null}
+      )}
     </section>
   );
 }

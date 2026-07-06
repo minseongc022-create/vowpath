@@ -117,6 +117,12 @@ export function GuidedTour({
   if (!current) return null;
   const isLast = step === steps.length - 1;
 
+  // A brand-new account has many empty sections (0 requests, no revenue, etc.)
+  // that render as a near-zero-height strip. Spotlighting that looks broken, so
+  // treat too-small/absent targets as "no highlight" and just show the teaching
+  // card over a flat dim instead.
+  const hasSpot = !!rect && rect.height >= 24 && rect.width >= 24;
+
   const holeX = rect ? rect.left - PAD : 0;
   const holeY = rect ? rect.top - PAD : 0;
   const holeW = rect ? rect.width + PAD * 2 : 0;
@@ -128,7 +134,7 @@ export function GuidedTour({
   // getBoundingClientRect coords).
   return createPortal(
     <>
-      {rect ? (
+      {hasSpot ? (
         <>
           {/* Dim the ENTIRE viewport via a shadow that spreads 9999px in all
               directions from the hole — no gaps possible, ever. */}
@@ -179,7 +185,7 @@ export function GuidedTour({
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                기능 안내 &nbsp;{step + 1} / {steps.length} &nbsp;· v5
+                기능 안내 &nbsp;{step + 1} / {steps.length}
               </p>
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
               <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
