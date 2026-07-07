@@ -76,8 +76,16 @@ export function twimlGatherMainMenu(
   const opening = customGreeting.trim()
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}!`;
-  const prompt = `${opening} Press 1 for emergency service, or press 2 to request a free estimate. Para español, oprima el tres.`;
+  const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
   return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+}
+
+/** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */
+export function twimlGatherBookingChannel(actionUrl: string): string {
+  const prompt =
+    "Great. To tell our assistant what's going on right now, press 1. " +
+    "Or to get a booking link by text message, press 2.";
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /**
@@ -102,7 +110,7 @@ export function twimlSpanishIntakeConfirmation(): string {
 export function twimlGatherEstimateMenu(actionUrl: string): string {
   const prompt =
     "Wonderful — we'd love to put together a free estimate for you. " +
-    "Press 1 to receive a quick estimate form by text, or press 2 to tell us the details right now.";
+    "To give us your project details right now, press 1. Or to receive a quick estimate form by text, press 2.";
   return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 

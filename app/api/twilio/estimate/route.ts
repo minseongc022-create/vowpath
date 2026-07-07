@@ -62,7 +62,8 @@ export async function POST(request: Request) {
 
     if (!state) {
       // First hit after the sub-menu prompt: the digit chooses the channel.
-      const channel = digit === "2" ? "phone" : "link";
+      // 1 = give details by phone now, 2 = get an estimate form by text.
+      const channel = digit === "1" ? "phone" : "link";
       state = newEstimateState({ callSid, userId, from, to, channel, afterHours });
       await saveEstimateState(state);
       return twimlXml(twimlForEstimateState(state));
