@@ -80,7 +80,7 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
   {
     id: "att",
     label: "AT&T Wireless",
-    hint: "Shop cell on AT&T — **61* code from your phone",
+    hint: "Shop cell on AT&T (or Cricket, Straight Talk) — **61* code from your phone",
   },
   {
     id: "tmobile",

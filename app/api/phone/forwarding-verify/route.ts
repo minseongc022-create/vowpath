@@ -1,12 +1,45 @@
 import { NextResponse } from "next/server";
+import { kv } from "@vercel/kv";
 import { listInboundEvents } from "@/lib/inbound-events";
 import { getSession } from "@/lib/session";
 import { getTenantTwilioPhone } from "@/lib/twilio-provision";
 import { findUserById } from "@/lib/users-db";
 import { isTenantProductEntitled } from "@/lib/tenant-product-access";
+import { useKvStore } from "@/lib/kv-config";
+import { kvGetSafe } from "@/lib/kv-safe";
 
 const WAIT_MS = 20 * 60 * 1000;
-const waitStarted = new Map<string, number>();
+const TEST_TTL_SECONDS = 25 * 60;
+
+// The forwarding test start-time must survive across serverless instances: the
+// POST (start test) and the GET (poll) frequently land on different instances,
+// so a per-instance Map would drop the start time and make verification flaky.
+// Store it in KV; fall back to an in-process Map only for local dev without KV.
+const localWaitStarted = new Map<string, number>();
+
+function fwdTestKey(userId: string) {
+  return `effiroad:fwd-test:${userId}`;
+}
+async function setTestStart(userId: string, ts: number): Promise<void> {
+  if (useKvStore()) {
+    await kv.set(fwdTestKey(userId), ts, { ex: TEST_TTL_SECONDS });
+    return;
+  }
+  localWaitStarted.set(userId, ts);
+}
+async function getTestStart(userId: string): Promise<number | null> {
+  if (useKvStore()) {
+    return (await kvGetSafe<number>(fwdTestKey(userId)).catch(() => null)) ?? null;
+  }
+  return localWaitStarted.get(userId) ?? null;
+}
+async function clearTestStart(userId: string): Promise<void> {
+  if (useKvStore()) {
+    await kv.del(fwdTestKey(userId)).catch(() => undefined);
+    return;
+  }
+  localWaitStarted.delete(userId);
+}
 
 function inboundLooksLikeTest(status: string): boolean {
   const s = status.toLowerCase();
@@ -37,7 +70,7 @@ export async function POST(request: Request) {
     /* empty body → forward test */
   }
 
-  waitStarted.set(session.sub, Date.now());
+  await setTestStart(session.sub, Date.now());
   const user = await findUserById(session.sub);
   const effiroad = await getTenantTwilioPhone(session.sub);
 
@@ -61,7 +94,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const sinceMs = waitStarted.get(session.sub) ?? Date.now() - WAIT_MS;
+  const sinceMs = (await getTestStart(session.sub)) ?? Date.now() - WAIT_MS;
   const events = await listInboundEvents(session.sub, {
     since: new Date(sinceMs),
     limit: 20,
@@ -69,7 +102,7 @@ export async function GET() {
 
   const hit = events.find((e) => inboundLooksLikeTest(e.status));
   if (hit) {
-    waitStarted.delete(session.sub);
+    await clearTestStart(session.sub);
     return NextResponse.json({
       verified: true,
       verifiedAt: hit.createdAt,
