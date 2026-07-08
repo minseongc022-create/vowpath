@@ -123,13 +123,7 @@ export function getIntegrationItems(
         done: phoneDone,
 
         summary: phoneDone
-
-          ? shop.forwardingScenario === "busy_and_after_hours"
-
-            ? "Busy forwarding configured"
-
-            : "No-answer forwarding configured"
-
+          ? "No-answer forwarding configured"
           : "Copy Effiroad number and set forwarding",
 
       },
@@ -219,13 +213,7 @@ export function getIntegrationItems(
       done: phoneDone,
 
       summary: phoneDone
-
-        ? shop.forwardingScenario === "busy_and_after_hours"
-
-          ? "통화 중 착신 전환 설정됨"
-
-          : "부재 시 착신 전환 설정됨"
-
+        ? "부재 시 착신 전환 설정됨"
         : "Effiroad 번호 복사 후 착신 전환 설정",
 
     },

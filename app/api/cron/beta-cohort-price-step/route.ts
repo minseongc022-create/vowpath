@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { betaCohortLockedPriceId } from "@/lib/paddle-config";
+import { betaCohortLockedPriceId, priceIdForPlan } from "@/lib/paddle-config";
 import { paddleFetch } from "@/lib/paddle-client";
 import { listUsers, updateUserBilling } from "@/lib/users-db";
 
 /**
- * Daily: steps beta_feedback cohort subscriptions from the $129 intro price to the
- * $159 locked price once their 6-month betaCohortPriceStepAt has passed. Idempotent
- * via betaCohortSteppedAt so a retried/late run never re-fires a stepped user.
+ * Daily: steps beta_feedback cohort from $129/mo to regular $189/mo after 5 years.
+ * Idempotent via betaCohortSteppedAt.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
@@ -25,10 +24,10 @@ export async function GET(request: Request) {
     }
   }
 
-  const lockedPriceId = betaCohortLockedPriceId();
+  const lockedPriceId = betaCohortLockedPriceId() ?? priceIdForPlan("unlimited");
   if (!lockedPriceId) {
     return NextResponse.json(
-      { error: "PADDLE_PRICE_ID_BETA_LOCKED not configured" },
+      { error: "PADDLE_PRICE_ID_BETA_LOCKED or PADDLE_PRICE_ID_UNLIMITED not configured" },
       { status: 503 },
     );
   }

@@ -31,6 +31,7 @@ import { validateServiceAddress } from "@/lib/call-intake/address-validation";
 import { logOperationFailure } from "@/lib/ops-failures";
 import { recordCallIntakeFailed } from "@/lib/record-tenant-events";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { parsePriorityParam } from "@/lib/twilio-voice-flow";
 import { twimlGatherSpeechDetailed, twimlResponse, twimlSay } from "@/lib/twilio-xml";
@@ -188,6 +189,9 @@ export async function POST(request: Request) {
       { headers: { "Content-Type": "text/xml" } },
     );
   }
+
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  if (blocked) return blocked;
 
   const lockKey = callSid || userId;
   return withIntakeLock(lockKey, async () => {

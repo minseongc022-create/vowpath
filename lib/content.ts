@@ -536,20 +536,35 @@ const settingsPageKo = {
   forwardingCopied: "복사됨",
   forwardingCustomerNote:
     "고객에게 보이는 번호가 아닙니다 — 웹사이트·구글에는 기존 샵 번호를 그대로 노출하세요.",
-  forwardingScenarioTitle: "1. 언제 전환할까요?",
-  forwardingScenarioHint:
-    "대부분의 샵은 부재 시 전환(오버플로)부터 시작합니다. 야간·주말은 아래 응대 시간 설정에서 정합니다.",
-  forwardingProviderTitle: "2. 전화 환경은?",
+  forwardingWhatYouAreSetting: "설정하는 내용",
+  forwardingProviderTitle: "전화 환경 선택",
   forwardingProviderHint:
-    "Jobber Phone·Dialpad 단계별 가이드가 있습니다. 통신사 단축번호도 가능하나 업체마다 다릅니다.",
+    "검증된 방법만 표시됩니다. 아래 번호 단계를 해당 휴대폰·포털에서 직접 따라야 합니다 — Effiroad가 원격으로 켤 수 없습니다.",
   forwardingDialpadBanner:
-    "권장: Jobber Phone 또는 Dialpad — 아래 단계는 이 환경에 맞춰져 있습니다. ServiceTitan Phones Pro도 동일 흐름입니다.",
-  forwardingCarrierWarning:
-    "Verizon·AT&T·T-Mobile 단축번호는 서로 다릅니다. 야간 규칙이 필요하면 Dialpad가 더 수월합니다. iPhone 기본 착신전환은 모든 통화를 넘겨 부재 전용이 아닙니다.",
-  forwardingStepsTitle: "3. 아래 단계를 따르세요",
-  forwardingTestTitle: "4. 테스트 통화",
+    "Jobber Phone / Dialpad 사용 시 권장 — Dialpad 웹에서 미응답 시 외부 번호로 설정 (별표 코드 아님).",
+  forwardingVerizonWarning:
+    "Verizon: *71 통화 버튼 먼저, 그다음 My Verizon. *72·iPhone 착신전환 설정은 금지.",
+  forwardingUnblockTitle: "막히면 — 상황별 해결",
+  forwardingUnblockHint:
+    "본인 상황을 펼쳐 보세요. 선불·법인·음성사서함·앱 메뉴 없음 등 검증된 우회 경로입니다.",
+  forwardingCarrierCallLabel: "통신사 문의:",
+  forwardingStepsTitle: "단계별 가이드 (순서대로)",
+  forwardingTestTitle: "테스트 통화",
+  forwardingOneTapTitle: "휴대폰 빠른 실행",
+  forwardingOneTapHint:
+    "AT&T / T-Mobile만: 샵 휴대폰에서 코드 통화 → 확인 후 체크. Dialpad·Verizon은 위 포털/앱 버튼 사용.",
+  forwardingTapToActivate: "이 휴대폰에서 코드 통화",
+  forwardingCopyNumber: "Effiroad 번호 복사",
+  forwardingTurnOff: "이 규칙 끄기",
+  forwardingStepDone: "완료 — 실행함",
+  forwardingOneTapComplete: "설정 단계 완료. 테스트 통화로 이동하세요.",
+  forwardingOneTapProgress: "각 단계 실행 후 체크 — 그다음 테스트.",
   forwardingTestBody:
-    "다른 휴대폰으로 샵 메인 번호에 전화해 보세요. 몇 번 울린 뒤(또는 영업시간 외 즉시) Effiroad가 받아야 합니다. 요약 문자가 오면 1=승인, 2=거절로 답하세요.",
+    "테스트 시작 후 다른 폰으로 샵 메인 번호에 전화하세요. 받지 않고 울리게 — Effiroad가 받으면 성공입니다.",
+  forwardingTestBodyDirect:
+    "테스트 시작 후 다른 폰으로 Effiroad 번호에 직접 전화하세요. 착신 설정 없이 응대 시간대로 받아야 합니다.",
+  forwardingVerifyCallEffiroad: "이 Effiroad 번호로 전화:",
+  forwardingVerifyWaitingDirect: "대기 중 — 지금 Effiroad 번호로 전화하세요",
   forwardingRecommended: "인기",
   forwardingRecommendedProvider: "권장",
   forwardingConfirmBlocked: "Effiroad 번호가 연결되어야 이 단계를 완료할 수 있습니다.",
@@ -1413,6 +1428,10 @@ const authPagesKo = {
     backToDetails: "← 정보 다시 입력",
     hasAccount: "이미 계정이 있으신가요?",
     loginLink: "로그인",
+    consentTermsLabel: "이용약관 및 개인정보처리방침에 동의합니다 (필수).",
+    consentSmsLabel:
+      "등록한 휴대폰으로 서비스 관련 문자(인증번호, 신규 요청 알림, Reply 1/2) 수신에 동의합니다. 요금이 부과될 수 있으며 STOP으로 수신 거부할 수 있습니다 (필수).",
+    consentRequired: "아래 두 항목에 모두 동의해야 계속할 수 있습니다.",
   },
 };
 
@@ -1434,6 +1453,10 @@ const legalPagesKo = {
         body: "계정 해지 요청 시 관련 데이터를 삭제합니다. 법적 보관 의무가 있는 결제 기록은 해당 기간 동안 보관할 수 있습니다.",
       },
       {
+        heading: "SMS·TCPA",
+        body: "서비스 문자에는 STOP 수신 거부 안내가 포함됩니다. 가입·고객 인테이크 시 동의 시각을 기록합니다. 메시지·데이터 요금이 부과될 수 있습니다.",
+      },
+      {
         heading: "문의",
         body: `개인정보 관련 문의: ${SITE.supportEmail}`,
       },
@@ -1450,6 +1473,10 @@ const legalPagesKo = {
       {
         heading: "요금·환불",
         body: "구독 요금은 결제 시 안내된 플랜에 따릅니다. 파일럿 기간 환불 정책은 별도 안내를 따릅니다.",
+      },
+      {
+        heading: "SMS·메시징",
+        body: "고객에게 문자를 보내기 전 동의를 받을 책임은 shop에 있습니다. Effiroad는 인테이크 동의 체크박스와 STOP 처리를 제공합니다. A2P/10DLC 등 통신사 규정 준수는 shop의 의무입니다.",
       },
       {
         heading: "책임",

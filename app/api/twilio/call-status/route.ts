@@ -4,6 +4,7 @@ import { maybeSendMissedCallTextback } from "@/lib/missed-call-textback";
 import { trackCallOutcomeForAlert } from "@/lib/owner-alerts";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   }
 
   const userId = await resolveTenantUserId({ to, callSid });
+  const entitled = userId ? await isTenantProductEntitled(userId) : false;
   if (userId) {
     await recordInboundEvent(userId, {
       callSid,
@@ -34,7 +36,10 @@ export async function POST(request: Request) {
       durationSec: Number.isFinite(durationSec) ? durationSec : undefined,
     });
 
-    if (status === "no-answer" || status === "busy" || status === "failed" || status === "canceled") {
+    if (
+      entitled &&
+      (status === "no-answer" || status === "busy" || status === "failed" || status === "canceled")
+    ) {
       try {
         await maybeSendMissedCallTextback({
           userId,
@@ -49,10 +54,12 @@ export async function POST(request: Request) {
       }
     }
 
-    try {
-      await trackCallOutcomeForAlert({ userId, callSid, status });
-    } catch (e) {
-      console.warn("[call-status] owner alert tracking", e);
+    if (entitled) {
+      try {
+        await trackCallOutcomeForAlert({ userId, callSid, status });
+      } catch (e) {
+        console.warn("[call-status] owner alert tracking", e);
+      }
     }
   }
 

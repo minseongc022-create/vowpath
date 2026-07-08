@@ -12,8 +12,7 @@ type BillingStatusResponse = {
 
 /**
  * Blocks the dashboard once a user's 14-day trial has ended and they have no active
- * subscription. Offers the $129/mo (6mo, then $159 for life) rate in exchange for a
- * one-line feedback, or a plain link to the regular checkout at SITE.monthlyPrice.
+ * subscription. Feedback unlocks $129/mo for 5 years (regular $189/mo).
  */
 export function TrialGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<BillingStatusResponse | null>(null);
@@ -73,8 +72,8 @@ function TrialEndedCard() {
         </h2>
         <p className="mt-2 text-sm text-slate-600">
           {en
-            ? `Leave a quick line of feedback and keep going at ${SITE.betaIntroPrice}/mo for 6 months (then ${SITE.betaLockedPrice}/mo for life).`
-            : `짧은 후기 한 줄만 남겨주시면 6개월간 ${SITE.betaIntroPrice}/월로 계속 쓰실 수 있어요 (이후 평생 ${SITE.betaLockedPrice}/월).`}
+            ? `Leave a quick line of feedback and keep going at ${SITE.betaIntroPrice}/mo for ${SITE.betaDiscountYears} years (regular ${SITE.monthlyPrice}/mo).`
+            : `짧은 후기 한 줄만 남겨주시면 ${SITE.betaDiscountYears}년간 ${SITE.betaIntroPrice}/월로 계속 쓰실 수 있어요 (정가 ${SITE.monthlyPrice}/월).`}
         </p>
 
         <textarea

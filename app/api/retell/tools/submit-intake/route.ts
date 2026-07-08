@@ -4,6 +4,7 @@ import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
 import { validateRetellWebhook } from "@/lib/retell-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 import { getShopVertical } from "@/lib/vertical-context";
 import { extractIntakeFromSpeechForVertical } from "@/lib/call-intake/extraction";
 import { generateAiSummary } from "@/lib/call-intake/ai-summary";
@@ -77,6 +78,15 @@ export async function POST(request: Request) {
   if (!userId) {
     return NextResponse.json({
       result: "This line isn't fully set up yet — please call back later or reach out during business hours.",
+    });
+  }
+
+  // Payment gate (defense in depth): even if a caller reaches the Retell agent
+  // directly, an unpaid/expired tenant must not have requests logged for them.
+  if (!(await isTenantProductEntitled(userId))) {
+    return NextResponse.json({
+      result:
+        "Thanks for calling. This answering service isn't active right now — please contact the business directly.",
     });
   }
 

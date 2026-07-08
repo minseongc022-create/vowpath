@@ -25,20 +25,28 @@ export function mergeUserBilling(user: UserRecord): UserRecord & UserBilling {
   return user as UserRecord & UserBilling;
 }
 
-/** Beta, active subscription, or still within the 14-day trial = entitled to product features. */
+/**
+ * Product + phone/SMS access.
+ * Beta: open. Paddle off (local dev): open. Production: active subscription or valid beta trial only.
+ */
 export function isEntitled(user: UserRecord | undefined | null): boolean {
   if (!user) return false;
   if (IS_BETA) return true;
+  if (!requiresEntitlement()) return true;
+
   const b = mergeUserBilling(user);
-  const status = b.subscriptionStatus;
-  // Never touched by the billing system at all (signed up before the trial system
-  // existed) — grandfathered in rather than gated, since they were never given a trial.
-  if (!status || status === "none") return true;
+  const status = b.subscriptionStatus ?? "none";
+
   if (status === "active") return true;
+
+  // Paddle past_due: keep access briefly while dunning (subscription still exists).
+  if (status === "past_due") return true;
+
   if (status === "trialing") {
-    if (!b.trialEndsAt) return true;
+    if (!b.trialEndsAt) return false;
     return new Date(b.trialEndsAt).getTime() > Date.now();
   }
+
   return false;
 }
 

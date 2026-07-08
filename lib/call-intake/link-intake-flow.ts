@@ -148,6 +148,7 @@ export async function submitLinkIntakeForm(params: {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
+  smsConsentAt?: string;
 }): Promise<
   | {
       ok: true;
@@ -206,6 +207,7 @@ export async function submitLinkIntakeForm(params: {
     draft.waterSource ? `Water source: ${draft.waterSource}` : "",
     draft.activeLoss ? "Active loss: yes" : "",
     params.photoRef ? "Photo: attached" : "",
+    params.smsConsentAt ? `Customer SMS consent: yes (${params.smsConsentAt})` : "",
   ]
     .filter(Boolean)
     .join("\n");

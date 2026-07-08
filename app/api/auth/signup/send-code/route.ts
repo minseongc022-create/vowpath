@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorsEn } from "@/lib/api-errors-en";
+import { parseLegalConsentBody } from "@/lib/legal-consent";
 import { ownerSignupPhoneError } from "@/lib/owner-phone-policy";
 import { createAndSendSignupCode, normalizeSignupPhone } from "@/lib/signup-verify";
 import { isEmailDeliveryConfigured } from "@/lib/send-verification-code";
@@ -29,6 +30,11 @@ export async function POST(request: Request) {
     const shopName = String(body?.shopName ?? "").trim();
     const phoneRaw = String(body?.phone ?? "").trim();
     const channel = body?.channel === "sms" ? "sms" : "email";
+
+    const consentParsed = parseLegalConsentBody(body as Record<string, unknown>);
+    if (!consentParsed.ok) {
+      return NextResponse.json({ error: consentParsed.error }, { status: 400 });
+    }
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ error: apiErrorsEn.invalidEmail }, { status: 400 });
@@ -60,6 +66,7 @@ export async function POST(request: Request) {
       shopName,
       phone,
       channel,
+      legalConsent: consentParsed.consent,
     });
 
     if ("error" in result) {

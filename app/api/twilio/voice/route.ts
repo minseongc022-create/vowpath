@@ -10,6 +10,7 @@ import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import {
   twimlGatherMainMenu,
   twimlResponse,
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
   let stormMode = false;
   let customGreeting = "";
   const userId = await resolveTenantUserId({ to, callSid });
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  if (blocked) return blocked;
+
   if (userId) {
     try {
       shopName = await shopDisplayNameForUser(userId);

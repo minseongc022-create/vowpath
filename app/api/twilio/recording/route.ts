@@ -4,6 +4,7 @@ import { retranscribeCallWithDeepgram } from "@/lib/call-intake/deepgram-retrans
 import { updateCallLogRecording } from "@/lib/call-logs";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 import { logOperationFailure } from "@/lib/ops-failures";
 
 export async function POST(request: Request) {
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
   try {
     const userId = await resolveTenantUserId({ to, callSid });
     if (!userId) {
+      return new NextResponse("", { status: 204 });
+    }
+
+    if (!(await isTenantProductEntitled(userId))) {
       return new NextResponse("", { status: 204 });
     }
 

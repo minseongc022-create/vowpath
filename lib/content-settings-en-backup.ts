@@ -99,19 +99,43 @@ export const SETTINGS_PAGE_EN = {
   forwardingCopied: "Copied",
   forwardingCustomerNote:
     "This number is a behind-the-scenes routing destination — your public-facing shop number stays unchanged on your website, Google Business Profile, and truck signage.",
-  forwardingScenarioTitle: "1. Select a forwarding trigger",
-  forwardingScenarioHint: "No-answer overflow is the standard starting configuration for most restoration shops.",
-  forwardingProviderTitle: "2. Select your phone environment",
+  forwardingWhatYouAreSetting: "What you are setting up",
+  forwardingProviderTitle: "Pick your phone system",
   forwardingProviderHint:
-    "Precise, step-by-step instructions are provided for each platform. Jobber Phone and Dialpad offer the most straightforward setup path.",
+    "Only verified paths are shown. Follow every numbered step on the right phone or portal — Effiroad cannot turn on forwarding remotely.",
   forwardingDialpadBanner:
-    "Recommended: Jobber Phone or Dialpad — the instructions below are optimized for this environment. ServiceTitan Phones Pro follows the identical Dialpad configuration.",
-  forwardingCarrierWarning:
-    "AT&T and T-Mobile support standard GSM conditional forwarding codes. Verizon Wireless does not offer no-answer-only star codes — use the My Verizon app instead. For consistent after-hours routing rules, Dialpad is the more reliable option. Important: iPhone's built-in Call Forwarding (Settings → Phone → Call Forwarding) routes all incoming calls unconditionally and cannot be restricted to unanswered calls only.",
-  forwardingStepsTitle: "3. Configure forwarding",
-  forwardingTestTitle: "4. Verify with a live test call",
+    "Recommended if you use Jobber Phone or Dialpad — set When unanswered → external number in the Dialpad web app (not a phone star code).",
+  forwardingUnblockTitle: "If something blocks you — alternate paths",
+  forwardingUnblockHint:
+    "Pick the situation that matches your phone. These are verified workarounds when the main steps fail (prepaid, business line, voicemail, missing app menu).",
+  forwardingCarrierCallLabel: "Carrier support:",
+  forwardingVerizonWarning:
+    "Verizon: try the *71 dial button first, then My Verizon. Never *72 or iPhone Settings → Call Forwarding (forwards every call).",
+  forwardingStepsTitle: "Step-by-step (follow in order)",
+  forwardingTestTitle: "Test call",
   forwardingTestBody:
-    "Dial your main shop number from a separate device and allow it to ring past the no-answer threshold. Effiroad should engage — you will receive an intake summary by text. Reply 1 to confirm or 2 to decline.",
+    "Tap Start test below, then call your main shop number from another phone. Let it ring without answering — we detect when Effiroad receives the forwarded call.",
+  forwardingTestBodyDirect:
+    "Tap Start test below, then call your Effiroad number from another phone. No forwarding needed — Effiroad should answer per your Answer Hours.",
+  forwardingVerifyCallEffiroad: "Call this Effiroad number:",
+  forwardingVerifyWaitingDirect: "Waiting — call your Effiroad number now from another phone",
+  forwardingOneTapTitle: "Quick actions on your phone",
+  forwardingOneTapHint:
+    "AT&T / T-Mobile only: on the shop cell, tap Dial code, wait for confirmation, then check Done. Dialpad and Verizon use the portal/app buttons instead.",
+  forwardingTapToActivate: "Tap to activate on this phone",
+  forwardingCopyNumber: "Copy Effiroad number",
+  forwardingTurnOff: "Turn off this rule",
+  forwardingStepDone: "Done — I tapped this",
+  forwardingOneTapComplete: "Setup steps marked done. Continue to Test call.",
+  forwardingOneTapProgress: "Check each step after you tap — then go to Test call.",
+  forwardingVerifyStart: "Start forwarding test",
+  forwardingVerifyListening: "Listening for your test call…",
+  forwardingVerifyWaiting: "Waiting — call your shop number now from another phone",
+  forwardingVerifyCallShop: "Call this number (your shop line):",
+  forwardingVerifyNotEffiroad: "Do not call the Effiroad routing number:",
+  forwardingVerifySuccess: "Forwarding works — Effiroad received your test call.",
+  forwardingVerifyError: "Could not start the test. Try again.",
+  forwardingVerifyRequired: "Complete the forwarding test above before confirming.",
   forwardingRecommended: "Recommended",
   forwardingRecommendedProvider: "Recommended",
   forwardingConfirmBlocked: "A provisioned Effiroad number is required to complete this step.",

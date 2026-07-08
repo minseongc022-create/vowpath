@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       passwordHash: pending.passwordHash,
       shopName: pending.shopName,
       phone: pending.phone,
+      legalConsent: pending.legalConsent,
     });
 
     await deletePendingSignup(signupRequestId);

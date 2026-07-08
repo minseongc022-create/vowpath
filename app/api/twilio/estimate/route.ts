@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import {
   createLinkIntakeSession,
@@ -56,6 +57,9 @@ export async function POST(request: Request) {
     console.error("[twilio/estimate] no tenant for To=", to, "callSid=", callSid);
     return twimlXml(twimlEstimateLinkFailedGoodbye());
   }
+
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  if (blocked) return blocked;
 
   try {
     let state = await getEstimateState(userId, callSid);

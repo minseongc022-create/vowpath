@@ -21,12 +21,12 @@ export function priceIdForPlan(plan: PlanId): string | undefined {
     : process.env.PADDLE_PRICE_ID_UNLIMITED;
 }
 
-/** $129/mo — first 6 months for trial users who give feedback when their trial ends. */
+/** $129/mo — feedback cohort rate for 5 years (vs $189/mo regular). */
 export function betaCohortIntroPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_INTRO;
 }
 
-/** $159/mo — where the beta_feedback cohort's price steps to after their 6-month intro period. */
+/** $189/mo — regular unlimited price after 5-year feedback cohort ends. */
 export function betaCohortLockedPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_LOCKED;
 }

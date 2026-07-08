@@ -12,6 +12,7 @@ import { notifyZapierNewRequest } from "@/lib/zapier-webhook";
 import { formatCityState } from "@/lib/recent-bookings";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
   twimlGatherSpanishIntake,
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
       twimlResponse(twimlSay("Lo sentimos, ocurrió un error. Adiós.", "es-US")),
     );
   }
+
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  if (blocked) return blocked;
 
   try {
     const vertical = await getShopVertical(userId);

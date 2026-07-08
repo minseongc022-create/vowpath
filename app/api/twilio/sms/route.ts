@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { handleCustomerVerificationReply } from "@/lib/customer-verification/flow";
 import { handleOwnerSmsReply } from "@/lib/owner-sms-reply";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import { handleTechDispatchReply } from "@/lib/tech-dispatch/assign";
 import { handleOnMyWaySmsReply } from "@/lib/tech-dispatch/on-my-way";
 import { findTechByPhone } from "@/lib/tech-dispatch/store";
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
 
   try {
     const userId = to ? await resolveTenantUserId({ to }) : null;
+
+    if (userId) {
+      const blocked = await twilioBlockIfNotEntitled(userId, "sms");
+      if (blocked) return blocked;
+    }
 
     if (userId) {
       const otwResult = await handleOnMyWaySmsReply({ userId, fromPhone: from, body });

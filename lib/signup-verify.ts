@@ -17,6 +17,7 @@ import {
 import { sendSignupCodeEmail, sendSignupCodeSms } from "./send-verification-code";
 import { findUserByEmail, findUserByPhone } from "./users-db";
 import { generateResetCode, hashResetCode } from "./password-reset";
+import type { StoredLegalConsent } from "./legal-consent";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 /** Wrong code guesses per signup request */
@@ -30,6 +31,7 @@ export type SignupInput = {
   shopName: string;
   phone?: string;
   channel: SignupChannel;
+  legalConsent: StoredLegalConsent;
 };
 
 export async function createAndSendSignupCode(
@@ -81,6 +83,7 @@ export async function createAndSendSignupCode(
     verified: false,
     expiresAt: Date.now() + CODE_TTL_MS,
     createdAt: new Date().toISOString(),
+    legalConsent: input.legalConsent,
   };
 
   await savePendingSignup(request);

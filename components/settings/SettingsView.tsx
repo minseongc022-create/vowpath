@@ -54,6 +54,7 @@ import type {
 import {
   FORWARDING_PROVIDERS,
   FORWARDING_SCENARIOS,
+  normalizeForwardingProvider,
 } from "@/lib/forwarding-guides";
 import { SCHEDULE_ALWAYS_ON_LABEL, type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
@@ -112,8 +113,8 @@ function SettingsViewBody({
     scenario: ForwardingScenarioId;
     provider: ForwardingProviderId;
   }>({
-    scenario: shop.forwardingScenario ?? "overflow",
-    provider: shop.forwardingProvider ?? "dialpad",
+    scenario: "overflow",
+    provider: normalizeForwardingProvider(shop.forwardingProvider ?? "effiroad_main"),
   });
 
   const canConfirm = canSaveSchedule(rows, alwaysOn);
@@ -264,7 +265,7 @@ function SettingsViewBody({
     FORWARDING_SCENARIOS.find((s) => s.id === (shop.forwardingScenario ?? "overflow"))?.label ??
     "";
   const forwardingProviderLabel =
-    FORWARDING_PROVIDERS.find((p) => p.id === (shop.forwardingProvider ?? "dialpad"))?.label ?? "";
+    FORWARDING_PROVIDERS.find((p) => p.id === normalizeForwardingProvider(shop.forwardingProvider))?.label ?? "";
 
   const scheduleSummary =
     alwaysOn || shop.scheduleAlwaysOn

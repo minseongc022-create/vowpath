@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "./kv-config";
+import type { StoredLegalConsent } from "./legal-consent";
 
 export type SignupChannel = "email" | "sms";
 
@@ -17,6 +18,7 @@ export type PendingSignup = {
   verified: boolean;
   expiresAt: number;
   createdAt: string;
+  legalConsent?: StoredLegalConsent;
 };
 
 const KV_PREFIX = "effiroad:signup:";

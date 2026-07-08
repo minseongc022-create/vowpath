@@ -22,6 +22,7 @@ import type {
   ForwardingProviderId,
   ForwardingScenarioId,
 } from "@/lib/forwarding-guides";
+import { normalizeForwardingProvider } from "@/lib/forwarding-guides";
 import { canSaveSchedule, markForwardingDone, saveSchedule } from "@/lib/schedule-save";
 import type { ShopState } from "@/lib/types";
 import { readShopState, writeShopState } from "@/lib/shop-storage";
@@ -59,8 +60,8 @@ export function OnboardingWizard({
     scenario: ForwardingScenarioId;
     provider: ForwardingProviderId;
   }>({
-    scenario: shop.forwardingScenario ?? "overflow",
-    provider: shop.forwardingProvider ?? "dialpad",
+    scenario: "overflow",
+    provider: normalizeForwardingProvider(shop.forwardingProvider),
   });
 
   function handleRowsChange(next: ScheduleRow[]) {

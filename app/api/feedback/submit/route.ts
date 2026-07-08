@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { betaCohortIntroPriceId } from "@/lib/paddle-config";
+import { feedbackCohortPriceStepDate } from "@/lib/billing-cohort";
 import { getCheckoutRedirectUrl } from "@/lib/checkout-server";
 import { getSession } from "@/lib/session";
 import { findUserById, updateUserBilling } from "@/lib/users-db";
@@ -7,9 +8,8 @@ import { findUserById, updateUserBilling } from "@/lib/users-db";
 const MAX_FEEDBACK_LENGTH = 2000;
 
 /**
- * Called when a trial-expired user submits the one-line feedback prompt. Unlocks the
- * $129/mo intro rate (steps to $159/mo lifetime after 6 months — see
- * api/cron/beta-cohort-price-step) and returns the Paddle checkout URL for it.
+ * Trial-ended user submits feedback → unlocks $129/mo for 5 years (vs $189 regular).
+ * After 5 years, cron steps subscription to standard unlimited price.
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -29,8 +29,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const priceStepAt = new Date(now);
-  priceStepAt.setMonth(priceStepAt.getMonth() + 6);
+  const priceStepAt = feedbackCohortPriceStepDate(now);
 
   await updateUserBilling(user.id, {
     feedbackText: text.slice(0, MAX_FEEDBACK_LENGTH),

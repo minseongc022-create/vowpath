@@ -442,6 +442,11 @@ export const authPagesEn = {
     backToDetails: "← Edit details",
     hasAccount: "Already have an account?",
     loginLink: "Log in",
+    consentTermsLabel:
+      "I agree to the Terms of Service and Privacy Policy (required).",
+    consentSmsLabel:
+      "I agree to receive service-related text messages at my mobile number — verification codes, new job alerts, and reply 1/2 approvals. Msg & data rates may apply. Reply STOP to opt out. (required)",
+    consentRequired: "Check both agreement boxes to continue.",
   },
 };
 
@@ -464,7 +469,11 @@ export const legalPagesEn = {
       },
       {
         heading: "SMS & TCPA",
-        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply.",
+        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply. We store consent timestamps when you sign up or when your customers opt in on intake forms.",
+      },
+      {
+        heading: "Your rights (US)",
+        body: "California residents may request access or deletion of personal information by emailing support. We do not sell personal data.",
       },
       {
         heading: "Contact",
@@ -483,6 +492,10 @@ export const legalPagesEn = {
       {
         heading: "Billing",
         body: "Paid plans bill via Paddle. Flex plan charges per approved booking as described at checkout.",
+      },
+      {
+        heading: "SMS & messaging",
+        body: "You are responsible for obtaining consent before texting your customers. Effiroad provides intake consent checkboxes and STOP handling. You must register your business for A2P/10DLC messaging with your carrier as required.",
       },
       {
         heading: "Liability",

@@ -7,7 +7,9 @@ import { normalizeOwnerSignupPhone } from "./owner-phone-policy";
 import { isValidBusinessEmail } from "./us-contact";
 import type { PlanId } from "./constants";
 import { normalizeSmsPhone } from "./phone";
+import { TRIAL_DAYS } from "./billing-cohort";
 import type { SubscriptionStatus } from "./billing";
+import type { StoredLegalConsent } from "./legal-consent";
 
 const KV_USERS_KEY = "effiroad:users";
 
@@ -26,6 +28,8 @@ export type UserRecord = {
   paidAt?: string;
   sessionVersion?: number;
   passwordChangedAt?: string;
+  /** Terms + Privacy + service SMS consent at signup. */
+  legalConsent?: StoredLegalConsent;
   /** 14-day free trial from signup — checked by isEntitled() while subscriptionStatus is "trialing". */
   trialEndsAt?: string;
   feedbackText?: string;
@@ -194,6 +198,7 @@ export async function createUser(input: {
   passwordHash: string;
   shopName: string;
   phone?: string;
+  legalConsent?: StoredLegalConsent;
 }): Promise<UserRecord> {
   const store = await ensureStore();
   const normalized = input.email.trim().toLowerCase();
@@ -220,7 +225,7 @@ export async function createUser(input: {
   }
 
   const now = new Date();
-  const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const trialEndsAt = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
   const user: UserRecord = {
     id: crypto.randomUUID(),
@@ -232,6 +237,7 @@ export async function createUser(input: {
     sessionVersion: 0,
     subscriptionStatus: "trialing",
     trialEndsAt: trialEndsAt.toISOString(),
+    ...(input.legalConsent ? { legalConsent: input.legalConsent } : {}),
   };
 
   store.users.push(user);

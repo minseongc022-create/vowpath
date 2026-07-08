@@ -11,6 +11,8 @@ import {
 import { saveIntakePhoto } from "@/lib/intake-photo-store";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
+import { guardTenantProductEntitled } from "@/lib/tenant-product-access";
+import { parseCustomerSmsConsent } from "@/lib/legal-consent";
 
 export async function GET(
   request: Request,
@@ -24,6 +26,10 @@ export async function GET(
   const session = await getLinkIntakeSession(token);
   if (!session || isLinkIntakeSessionExpired(session)) {
     return NextResponse.json({ valid: false }, { status: 404 });
+  }
+  const entitled = await guardTenantProductEntitled(session.userId);
+  if (!entitled.ok) {
+    return NextResponse.json({ error: entitled.error, code: entitled.code }, { status: entitled.status });
   }
   const shopName = await shopDisplayNameForUser(session.userId);
   const mode = canSubmitLinkIntakeForm(session)
@@ -48,6 +54,16 @@ export async function POST(
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
+
+  const session = await getLinkIntakeSession(token);
+  if (!session || isLinkIntakeSessionExpired(session)) {
+    return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
+  }
+  const entitled = await guardTenantProductEntitled(session.userId);
+  if (!entitled.ok) {
+    return NextResponse.json({ error: entitled.error, code: entitled.code }, { status: entitled.status });
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
 
   let customerName = "";
@@ -60,6 +76,7 @@ export async function POST(
   let insuranceClaimNumber = "";
   let waterSource = "";
   let activeLoss = false;
+  let smsConsent = false;
 
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
@@ -72,6 +89,7 @@ export async function POST(
     insuranceClaimNumber = String(form.get("insuranceClaimNumber") ?? "").trim();
     waterSource = String(form.get("waterSource") ?? "").trim();
     activeLoss = form.get("activeLoss") === "1" || form.get("activeLoss") === "true";
+    smsConsent = parseCustomerSmsConsent(form.get("smsConsent"));
     const photo = form.get("photo");
     if (photo && photo instanceof File && photo.size > 0) {
       const buffer = Buffer.from(await photo.arrayBuffer());
@@ -98,6 +116,14 @@ export async function POST(
     insuranceClaimNumber = String(body.insuranceClaimNumber ?? "").trim();
     waterSource = String(body.waterSource ?? "").trim();
     activeLoss = body.activeLoss === true || body.activeLoss === "1";
+    smsConsent = parseCustomerSmsConsent(body.smsConsent);
+  }
+
+  if (!smsConsent) {
+    return NextResponse.json(
+      { error: "SMS consent is required to submit this form." },
+      { status: 400 },
+    );
   }
 
   const urgency = parseLinkUrgency(urgencyRaw) ?? "this_week";
@@ -121,6 +147,7 @@ export async function POST(
     insuranceClaimNumber: insuranceClaimNumber || undefined,
     waterSource: waterSource || undefined,
     activeLoss,
+    smsConsentAt: new Date().toISOString(),
   });
 
   if (!result.ok) {

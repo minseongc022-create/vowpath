@@ -7,6 +7,7 @@ import {
 } from "@/lib/call-intake/link-intake-flow";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import {
   twimlDialForward,
   twimlGatherSpeechDetailed,
@@ -78,6 +79,9 @@ export async function POST(request: Request) {
     console.error("[twilio/booking-channel] no tenant for To=", to, "callSid=", callSid);
     return twimlXml(phoneIntakeTwiml(afterHours, voiceLinkSmsFailed));
   }
+
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  if (blocked) return blocked;
 
   const callbackPhone = from.replace(/^whatsapp:/, "").trim();
   if (!callbackPhone || callbackPhone === "unknown") {

@@ -40,8 +40,11 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [smsServiceConsent, setSmsServiceConsent] = useState(false);
 
   const isSms = channel === "sms";
+  const consentOk = termsAccepted && smsServiceConsent;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -73,6 +76,12 @@ export function SignupForm() {
       return;
     }
 
+    if (!consentOk) {
+      setError(p.consentRequired);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/auth/signup/send-code", {
         method: "POST",
@@ -84,6 +93,8 @@ export function SignupForm() {
           password,
           passwordConfirm,
           channel,
+          termsAccepted: true,
+          smsServiceConsent: true,
         }),
       });
       const data = await res.json();
@@ -305,11 +316,44 @@ export function SignupForm() {
               </p>
             </div>
 
+            <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <legend className="px-1 text-sm font-semibold text-slate-900">Legal agreements</legend>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+                  required
+                />
+                <span>
+                  {p.consentTermsLabel}{" "}
+                  <Link href="/terms" className="font-medium text-brand-600 underline">
+                    Terms
+                  </Link>
+                  {" · "}
+                  <Link href="/privacy" className="font-medium text-brand-600 underline">
+                    Privacy
+                  </Link>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={smsServiceConsent}
+                  onChange={(e) => setSmsServiceConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+                  required
+                />
+                <span>{p.consentSmsLabel}</span>
+              </label>
+            </fieldset>
+
             {error ? <ErrorBox message={error} /> : null}
 
             <button
               type="submit"
-              disabled={sendDisabled}
+              disabled={sendDisabled || !consentOk}
               className="hvac-btn-primary w-full px-4 py-3 text-sm font-semibold disabled:opacity-60"
             >
               {loading
@@ -318,17 +362,6 @@ export function SignupForm() {
                   ? p.sendCodeCooldown.replace("{seconds}", String(cooldown))
                   : p.sendCode}
             </button>
-            <p className="text-center text-xs text-slate-500">
-              By signing up, you agree to our{" "}
-              <Link href="/terms" className="underline hover:text-slate-700">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="underline hover:text-slate-700">
-                Privacy Policy
-              </Link>
-              .
-            </p>
             <p className="text-center text-xs text-slate-500">{p.sendCodeNote}</p>
           </form>
         ) : null}

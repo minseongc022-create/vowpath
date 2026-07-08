@@ -5,6 +5,7 @@ import { recordInboundEvent } from "@/lib/inbound-events";
 import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { getShopVertical } from "@/lib/vertical-context";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 import { validateRetellWebhook } from "@/lib/retell-signature";
 
 /**
@@ -48,6 +49,21 @@ export async function POST(request: Request) {
           shop_name: DEFAULT_SHOP_DISPLAY_NAME,
           closed_message:
             "This line is not fully set up yet. Please call back later or contact your office during business hours.",
+        },
+      },
+    });
+  }
+
+  // Payment gate: unpaid/expired tenant → the agent greets with a "not active"
+  // closed message and collects nothing.
+  if (!(await isTenantProductEntitled(userId))) {
+    const shopName = await shopDisplayNameForUser(userId).catch(() => DEFAULT_SHOP_DISPLAY_NAME);
+    return NextResponse.json({
+      call_inbound: {
+        dynamic_variables: {
+          shop_name: shopName,
+          closed_message:
+            "Thank you for calling. This answering service is not active right now. Please contact the business directly.",
         },
       },
     });

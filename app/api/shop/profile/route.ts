@@ -15,15 +15,14 @@ import type { AnswerWindow } from "@/lib/types";
 import { normalizeShopVertical, ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 import { TREND_CHART_SERIES, type TrendChartSeriesId } from "@/lib/trend-chart-series";
 
-const SCENARIOS = new Set<ForwardingScenarioId>([
-  "overflow",
-  "busy_and_after_hours",
-]);
+const SCENARIOS = new Set<ForwardingScenarioId>(["overflow"]);
 const PROVIDERS = new Set<ForwardingProviderId>([
+  "effiroad_main",
   "dialpad",
-  "voip",
-  "carrier",
-  "other",
+  "google_voice",
+  "att",
+  "tmobile",
+  "verizon",
 ]);
 const DASHBOARD_METRIC_IDS = new Set<TrendChartSeriesId>(
   TREND_CHART_SERIES.map((s) => s.id),

@@ -10,9 +10,10 @@ export const SITE = {
   monthlyPrice: "$189",
   flexBasePrice: "$49",
   flexPerBooking: "$18",
-  /** Trial-feedback cohort: first 6 months, then betaLockedPrice for life. */
+  /** Trial-feedback cohort: $129/mo for 5 years, then regular $189/mo. */
   betaIntroPrice: "$129",
-  betaLockedPrice: "$159",
+  betaLockedPrice: "$189",
+  betaDiscountYears: 5,
 } as const;
 
 export type PlanId = "unlimited" | "flex";
