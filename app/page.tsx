@@ -7,6 +7,7 @@ import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
 import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
+import { NumberChoice } from "@/components/sections/NumberChoice";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
@@ -37,6 +38,8 @@ export default async function HomePage() {
         {/* 4. Solution — platform + workflows (all existing product sections) */}
         <ProductStack />
         <MissedCallFlow />
+        {/* Your number or ours + the AI-backup safety net */}
+        <NumberChoice />
         <ApprovalLoop />
         <AiDispatcher />
         <SchedulingModes />

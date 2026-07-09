@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const OPTIONS = [
-  { href: "/", label: "복구업체" },
+  { href: "/", label: "Restoration" },
   { href: "/hvac", label: "HVAC" },
 ] as const;
 
@@ -18,7 +18,7 @@ export function VerticalSwitcher({ className = "" }: { className?: string }) {
     <div
       className={`inline-flex items-center gap-1 rounded-full border border-brand-300 bg-white p-1 shadow-sm ${className}`}
       role="group"
-      aria-label="업종 선택"
+      aria-label="Choose your trade"
     >
       {OPTIONS.map((opt) => (
         <Link

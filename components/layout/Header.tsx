@@ -62,7 +62,7 @@ export function Header({ session }: HeaderProps) {
       <div className="border-t border-brand-200/70 bg-brand-50/80 py-3.5">
         <Container>
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
-            <p className="text-sm font-medium text-stone-700">당신에게 맞는 업종을 선택하세요</p>
+            <p className="text-sm font-medium text-stone-700">See the site built for your trade</p>
             <VerticalSwitcher />
           </div>
         </Container>
