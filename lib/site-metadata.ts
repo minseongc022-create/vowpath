@@ -6,31 +6,35 @@ import type { ShopVertical } from "@/lib/shop-vertical";
 export const SITE_ICON_VERSION = "23";
 
 export const SITE_SEO = {
-  title: "AI Dispatch & Answering for Restoration Companies | EFFIROAD",
+  title: "AI Dispatch & Answering for Restoration & HVAC Companies | EFFIROAD",
   description:
-    "EFFIROAD answers every call 24/7, captures insurance-ready intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration companies. Live in 10 minutes, no CRM required.",
-  ogTitle: "EFFIROAD | Never Lose a $10,000 Job at 2 AM Again",
+    "EFFIROAD answers every call 24/7, captures insurance-ready or no-heat/no-cool intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration and HVAC companies. Live in 10 minutes, no CRM required.",
+  ogTitle: "EFFIROAD | Never Lose an Emergency Job at 2 AM Again",
   ogDescription:
-    "AI-powered emergency intake and crew dispatch built for independent restoration companies.",
+    "AI-powered emergency intake and crew dispatch built for independent restoration and HVAC companies.",
   keywords: [
     "restoration AI phone",
     "water damage call answering",
     "fire restoration dispatch",
     "mold remediation intake",
+    "HVAC AI phone answering",
+    "no-heat emergency dispatch",
     "missed call recovery restoration",
+    "missed call recovery HVAC",
     "AI answering service restoration",
+    "AI answering service HVAC",
     "emergency dispatch software",
-    "restoration business automation",
+    "home service business automation",
     "EFFIROAD",
   ],
 } as const;
 
 export const SITE_SEO_KO = {
-  title: "EFFIROAD | 복구(Restoration) 업체 AI 긴급 접수·디스패치",
+  title: "EFFIROAD | 복구(Restoration)·HVAC 업체 AI 긴급 접수·디스패치",
   description:
-    "EFFIROAD는 침수·화재·곰팡이 복구 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
+    "EFFIROAD는 침수·화재·곰팡이 복구 업체와 HVAC(냉난방) 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
   ogTitle: "EFFIROAD | 끝없는 성공으로 가는 길",
-  ogDescription: "긴급 전화를 놓치지 않도록 돕는 AI 기반 복구 업체 플랫폼.",
+  ogDescription: "긴급 전화를 놓치지 않도록 돕는 AI 기반 복구·HVAC 업체 플랫폼.",
 } as const;
 
 function iconUrl(path: string) {
@@ -149,7 +153,7 @@ export function siteJsonLd() {
     description: SITE_SEO.description,
     offers: {
       "@type": "Offer",
-      price: "189",
+      price: SITE.monthlyPrice.replace("$", ""),
       priceCurrency: "USD",
     },
     publisher: {

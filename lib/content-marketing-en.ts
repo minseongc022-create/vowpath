@@ -632,7 +632,7 @@ export const pricingEn = {
 export const getStartedEn = {
   eyebrow: "Get started",
   title: "Put Effiroad on your emergency line",
-  subtitle: `Unlimited ${SITE.monthlyPrice}/mo or Flex ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking} per approved dispatch`,
+  subtitle: `For restoration and HVAC companies — Unlimited ${SITE.monthlyPrice}/mo or Flex ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking} per approved dispatch`,
   canceledMessage: "Checkout canceled. Pick a plan below to try again.",
   checkoutError: "Couldn't start checkout. Try again or sign up to continue.",
   demoNotice: "Payments aren't live yet. Pick a plan and sign up to finish setup.",
