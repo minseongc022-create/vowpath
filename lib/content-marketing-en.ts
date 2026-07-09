@@ -262,8 +262,9 @@ export const differentiatorsEn = {
         "Bad address or vague loss details? Job waits for your 1 / 2 — competitors would have dispatched blind.",
     },
     {
-      title: "Same company number",
-      description: "Forward when busy or closed. Google listing and truck signage stay the same.",
+      title: "Your number or ours — your call",
+      description:
+        "Keep your company number and forward busy/no-answer calls to Effiroad, or use the dedicated number we give you as your main line. Either way you never miss a call.",
     },
     {
       title: "Optional CRM sync",

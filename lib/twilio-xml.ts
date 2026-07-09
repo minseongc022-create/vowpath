@@ -177,3 +177,17 @@ export function twimlStartCallRecording(recordingStatusCallback: string): string
 export function twimlDialForward(toNumber: string): string {
   return `<Dial>${escapeXml(toNumber)}</Dial>`;
 }
+
+/**
+ * "Effiroad-number-as-main" live pass-through: ring the shop's own phone, and
+ * if nobody there answers within `timeout` seconds (or it's busy/failed), Twilio
+ * POSTs to `fallbackUrl` so the AI can still catch the call. The original
+ * caller's number passes through as the caller ID by default.
+ */
+export function twimlDialToShop(
+  shopPhone: string,
+  fallbackUrl: string,
+  timeoutSeconds = 20,
+): string {
+  return `${twimlSay("One moment while I connect you.")}<Dial timeout="${timeoutSeconds}" action="${escapeXml(fallbackUrl)}" method="POST">${escapeXml(shopPhone)}</Dial>`;
+}

@@ -11,7 +11,12 @@ import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
+import { getShopProfile } from "@/lib/shop-profile-db";
+import { shouldAnswerNow } from "@/lib/answer-schedule";
+import { findUserById } from "@/lib/users-db";
+import { normalizeSmsPhone } from "@/lib/phone";
 import {
+  twimlDialToShop,
   twimlGatherMainMenu,
   twimlResponse,
   twimlSay,
@@ -65,6 +70,35 @@ export async function POST(request: Request) {
         status: "voice_started",
         direction: "inbound",
       });
+
+      // "Effiroad number as main line" mode: the shop publishes our number, so
+      // there is no carrier forward. During AI answer hours the AI handles the
+      // call (menu flow below); outside those hours we ring the shop's own
+      // phone live, and only if they don't pick up does the AI catch it
+      // (handled by the passthrough-fallback route). No extra setup needed —
+      // if they haven't configured any answer schedule, AI stays on 24/7.
+      const profile = await getShopProfile(userId);
+      if (profile.forwardingProvider === "effiroad_main") {
+        const scheduleConfigured = profile.answerScheduleActive;
+        const aiAnswersNow = scheduleConfigured ? shouldAnswerNow(profile) : true;
+        if (!aiAnswersNow) {
+          const owner = await findUserById(userId);
+          const shopPhone = normalizeSmsPhone(owner?.phone ?? "");
+          if (shopPhone) {
+            const base = getTwilioWebhookBaseUrl();
+            const fallbackUrl = `${base}/api/twilio/passthrough-fallback?callSid=${encodeURIComponent(callSid)}`;
+            const twiml = twimlResponse(
+              twimlStartCallRecording(`${base}/api/twilio/recording`) +
+                twimlDialToShop(shopPhone, fallbackUrl),
+              `${base}/api/twilio/call-status`,
+            );
+            return new NextResponse(twiml, {
+              status: 200,
+              headers: { "Content-Type": "text/xml" },
+            });
+          }
+        }
+      }
     } catch (e) {
       console.error("[twilio/voice] tenant lookup failed:", e);
     }

@@ -49,7 +49,7 @@ export const FORWARDING_OVERFLOW_SUMMARY =
   "Your shop number rings first. If nobody answers in about 20 seconds, the call forwards to Effiroad. You can still pick up live calls — only missed rings go to us.";
 
 export const FORWARDING_EFFIROAD_MAIN_SUMMARY =
-  "No carrier forwarding needed. Put your Effiroad number everywhere customers look (Google, website, trucks). They call it directly — Effiroad answers per your Answer Hours.";
+  "No carrier forwarding needed. Put your Effiroad number everywhere customers look (Google, website, trucks). During your Answer Hours the AI picks up; outside them the call rings your own phone so you can take it live — and if you miss it, the AI still catches it. Set no Answer Hours and the AI simply covers you 24/7.";
 
 export const FORWARDING_AFTER_HOURS_NOTE =
   "Night and weekend coverage: set Answer Hours in Settings → Effiroad answers when your schedule is closed (no extra carrier codes needed).";
