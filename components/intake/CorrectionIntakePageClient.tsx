@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import type { CorrectionBookingView } from "@/lib/customer-verification/correction-types";
 import { CustomerCorrectionPanel } from "@/components/intake/CustomerCorrectionPanel";
@@ -11,6 +11,7 @@ type CorrectionIntakePageClientProps = {
 };
 
 export function CorrectionIntakePageClient({ token }: CorrectionIntakePageClientProps) {
+  const copy = useLinkIntakeCopy();
   const [shopName, setShopName] = useState("");
   const [booking, setBooking] = useState<CorrectionBookingView | null>(null);
   const [loading, setLoading] = useState(true);

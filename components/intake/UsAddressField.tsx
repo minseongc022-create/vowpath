@@ -8,7 +8,7 @@ import {
 } from "@/lib/address/us-address";
 import { fetchClientPlaceDetails, fetchClientPlacePredictions } from "@/lib/address/places-client";
 import { googlePlacesEnabled } from "@/lib/address/google-maps-loader";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 
 const defaultInputClass =
   "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
@@ -44,6 +44,7 @@ export function UsAddressField({
   inputClassName = defaultInputClass,
   disabled = false,
 }: UsAddressFieldProps) {
+  const copy = useLinkIntakeCopy();
   const inputId = useId();
   const unitId = useId();
   const listId = useId();

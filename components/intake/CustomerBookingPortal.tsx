@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CustomerBookingPortalView } from "@/lib/customer-booking-portal";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 import { LinkIntakeSlotCalendar } from "@/components/intake/LinkIntakeSlotCalendar";
 import { UsAddressField } from "@/components/intake/UsAddressField";
 import {
@@ -38,6 +38,7 @@ export function CustomerBookingPortal({
   shopName: string;
   initialBooking: CustomerBookingPortalView;
 }) {
+  const copy = useLinkIntakeCopy();
   const [booking, setBooking] = useState(initialBooking);
   const [mode, setMode] = useState<Mode>("view");
   const [loading, setLoading] = useState(false);

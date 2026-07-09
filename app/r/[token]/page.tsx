@@ -1,6 +1,7 @@
 import { LinkIntakeForm } from "@/components/intake/LinkIntakeForm";
 import { LinkIntakePortal } from "@/components/intake/LinkIntakePortal";
 import { CustomerBookingPortal } from "@/components/intake/CustomerBookingPortal";
+import { LinkIntakeCopyProvider } from "@/components/intake/LinkIntakeCopyContext";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
 import { loadCustomerBookingPortalView } from "@/lib/customer-booking-portal";
@@ -58,7 +59,9 @@ export default async function ShortBookingPortalPage({
   if (canSubmitLinkIntakeForm(session)) {
     return (
       <main className="min-h-[100dvh]">
-        <LinkIntakeForm token={token} shopName={shopName} />
+        <LinkIntakeCopyProvider>
+          <LinkIntakeForm token={token} shopName={shopName} />
+        </LinkIntakeCopyProvider>
       </main>
     );
   }
@@ -68,7 +71,9 @@ export default async function ShortBookingPortalPage({
     if (booking) {
       return (
         <main className="min-h-[100dvh]">
-          <CustomerBookingPortal token={token} shopName={shopName} initialBooking={booking} />
+          <LinkIntakeCopyProvider>
+            <CustomerBookingPortal token={token} shopName={shopName} initialBooking={booking} />
+          </LinkIntakeCopyProvider>
         </main>
       );
     }
@@ -77,7 +82,9 @@ export default async function ShortBookingPortalPage({
   if (isLinkIntakePortalOpen(session)) {
     return (
       <main className="min-h-[100dvh]">
-        <LinkIntakePortal token={token} shopName={shopName} />
+        <LinkIntakeCopyProvider>
+          <LinkIntakePortal token={token} shopName={shopName} />
+        </LinkIntakeCopyProvider>
       </main>
     );
   }

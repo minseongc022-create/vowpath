@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 import { isEnglishUi } from "@/lib/locale";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { LinkIntakeSubmissionPanel } from "@/components/intake/LinkIntakeSubmissionPanel";
@@ -15,6 +15,7 @@ const inputClass =
   "w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-700/50 focus:ring-2 focus:ring-brand-500/12";
 
 export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
+  const copy = useLinkIntakeCopy();
   const [booking, setBooking] = useState<LinkIntakeBookingView | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");

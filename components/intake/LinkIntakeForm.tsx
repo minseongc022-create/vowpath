@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
+import type { LinkIntakeCopy } from "@/lib/link-intake-copy";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
 import type { SlotGridResult } from "@/lib/scheduling/slot-grid";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
@@ -72,11 +73,12 @@ function validateIntakeFields(
   addressValue: UsAddressFieldValue,
   issueDescription: string,
   smsConsent: boolean,
+  copy: LinkIntakeCopy,
 ): string | null {
-  if (!customerName.trim()) return "What's your name? We'd love to know who we're helping today.";
+  if (!customerName.trim()) return copy.validateNameRequired;
   if (!isUsAddressReady(addressValue)) return copy.addressPickRequired;
   if (issueDescription.trim().length < 4) {
-    return "Tell us a little about what's going on — even one sentence helps us send the right tech!";
+    return copy.validateIssueRequired;
   }
   if (!smsConsent) return copy.smsConsentRequired;
   return null;
@@ -97,6 +99,7 @@ function formProgress(
 }
 
 export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: LinkIntakeFormProps) {
+  const copy = useLinkIntakeCopy();
   const isRestoration = vertical === "restoration";
   const isHvac = vertical === "hvac";
   const [step, setStep] = useState<FormStep>("form");
@@ -177,6 +180,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
+      copy,
     );
     if (validationError) {
       setError(
@@ -231,6 +235,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
+      copy,
     );
     if (validationError) {
       setError(validationError);
@@ -310,6 +315,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
+      copy,
     );
     if (validationError) {
       setError(`${validationError} Tap "Go back" below to update your info, then try again.`);

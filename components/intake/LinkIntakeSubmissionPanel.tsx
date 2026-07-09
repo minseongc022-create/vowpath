@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { UsAddressField } from "@/components/intake/UsAddressField";
@@ -47,6 +47,7 @@ export function LinkIntakeSubmissionPanel({
   defaultPhone,
   onBackToLookup,
 }: LinkIntakeSubmissionPanelProps) {
+  const copy = useLinkIntakeCopy();
   const [step, setStep] = useState<Step>("view");
   const [booking, setBooking] = useState(initialBooking);
   const [customerName, setCustomerName] = useState(

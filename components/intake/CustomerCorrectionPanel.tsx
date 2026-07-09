@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
+import type { LinkIntakeCopy } from "@/lib/link-intake-copy";
 import type { CorrectionBookingView } from "@/lib/customer-verification/correction-types";
 import { UsAddressField } from "@/components/intake/UsAddressField";
 import {
@@ -27,6 +28,7 @@ export function CustomerCorrectionPanel({
   shopName,
   initialBooking,
 }: CustomerCorrectionPanelProps) {
+  const copy = useLinkIntakeCopy();
   const [step, setStep] = useState<Step>("view");
   const [booking, setBooking] = useState(initialBooking);
   const [customerName, setCustomerName] = useState(initialBooking.customerName);
@@ -97,7 +99,7 @@ export function CustomerCorrectionPanel({
               </h2>
               <p className="mt-2 text-sm text-slate-600">{copy.correctionDoneBody}</p>
             </div>
-            <SummaryCard booking={booking} />
+            <SummaryCard booking={booking} copy={copy} />
           </div>
         </div>
       </div>
@@ -122,7 +124,7 @@ export function CustomerCorrectionPanel({
               <p className="text-[15px] leading-relaxed text-slate-600">
                 {copy.correctionViewHint}
               </p>
-              <SummaryCard booking={booking} />
+              <SummaryCard booking={booking} copy={copy} />
             </>
           ) : (
             <form onSubmit={handleUpdate} className="space-y-5">
@@ -195,7 +197,13 @@ export function CustomerCorrectionPanel({
   );
 }
 
-function SummaryCard({ booking }: { booking: CorrectionBookingView }) {
+function SummaryCard({
+  booking,
+  copy,
+}: {
+  booking: CorrectionBookingView;
+  copy: LinkIntakeCopy;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
       {booking.requestNumber ? (

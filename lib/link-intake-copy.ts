@@ -110,6 +110,9 @@ export const linkIntakePageCopy = {
   smsConsentLabel:
     "Yes — text me about this request (updates, crew ETA, etc.). Msg & data rates may apply. Reply STOP anytime.",
   smsConsentRequired: "Check the box so we can text you about your request.",
+  validateNameRequired: "What's your name? We'd love to know who we're helping today.",
+  validateIssueRequired:
+    "Tell us a little about what's going on — even one sentence helps us send the right tech!",
   selectVisitTime: "Pick an arrival window and we'll take it from there.",
   networkError: "Connection issue — please try again.",
   slotLoadFailed: "Couldn't load open windows — please try again.",
@@ -162,3 +165,151 @@ export const linkIntakePageCopy = {
   portalLandingBody:
     "Open the link from your text message to submit details or check your request status.",
 } as const;
+
+/** Widen the `as const` literal string types to plain `string` so a
+ *  translated pack can be assigned, while keeping the function-valued keys. */
+type WidenStrings<T> = { [K in keyof T]: T[K] extends string ? string : T[K] };
+export type LinkIntakeCopy = WidenStrings<typeof linkIntakePageCopy>;
+
+/** Spanish (es-US) customer-facing intake copy — same shape as the English pack.
+ *  Shown only when the customer's browser is Spanish (or they pick Español), so
+ *  language is never mismatched. */
+export const linkIntakePageCopyEs: LinkIntakeCopy = {
+  formTitle: "Reporte su daño",
+  formDescription:
+    "Lamentamos que esté pasando por esto — está en el lugar correcto. Cuéntenos lo que ocurre y nuestro equipo se encargará. Le mantendremos informado por mensaje de texto.",
+  nameLabel: "Su nombre",
+  namePlaceholder: "Sara Martínez",
+  addressLabel: "Dirección de la propiedad",
+  addressPlaceholder: "Empiece a escribir — número, ciudad o código postal",
+  addressHintSearch:
+    "Empiece a escribir — su dirección aparecerá. Número, calle, ciudad o código postal funcionan.",
+  addressHintManual:
+    "Escriba su dirección completa en EE. UU. — así enviamos al equipo correcto.",
+  addressLoading: "Buscando direcciones…",
+  addressSearchReady: "Siga escribiendo — las coincidencias aparecen. ¡Toque una para confirmar!",
+  addressSearchError: "La búsqueda está lenta — siga escribiendo o use Escribirla.",
+  addressSearchRetry: "Intentar de nuevo",
+  addressTabSearch: "Buscar mi dirección",
+  addressTabManual: "Escribirla",
+  addressUnitLabel: "Apto / unidad / código de puerta (opcional)",
+  addressUnitPlaceholder: "Apto 4B, Unidad 12, puerta 1234…",
+  addressConfirmedLabel: "Dirección confirmada",
+  addressPickRequired:
+    "Elija su dirección de la lista, o use Escribirla y complete calle, ciudad, estado y código postal.",
+  addressManualStreet: "Dirección (calle y número)",
+  addressManualCity: "Ciudad",
+  addressManualState: "Est.",
+  addressManualZip: "Código postal",
+  addressManualApply: "Confirmar dirección",
+  addressManualIncomplete: "Complete calle, ciudad, estado y código postal.",
+  addressManualInvalid: "Aún no parece una dirección completa — revise ciudad, estado y código postal.",
+  issueLabel: "¿Qué está pasando?",
+  issuePlaceholder:
+    "Inundación en el sótano por tubería rota\nAgua filtrándose por el techo\nOlor a humo tras un incendio\nMoho en el baño\nRetorno de aguas negras",
+  insuranceSectionLabel: "Seguro (opcional)",
+  insuranceSectionHint: "Ayuda a nuestro equipo y a su ajustador — omítalo si aún no lo tiene.",
+  insuranceCarrierLabel: "Compañía de seguro",
+  insuranceCarrierPlaceholder: "State Farm, Allstate…",
+  insuranceClaimLabel: "Número de reclamo",
+  insuranceClaimPlaceholder: "Si ya lo presentó",
+  waterSourceLabel: "Origen del agua",
+  waterSourcePlaceholder: "Tubería rota, fuga de electrodoméstico, techo…",
+  activeLossLabel: "El daño sigue extendiéndose / activo ahora mismo",
+  photoLabel: "Foto del daño",
+  photoOptional: "Opcional — ayuda a preparar al equipo",
+  photoHint: "Una foto rápida ayuda al equipo a llevar el equipo adecuado.",
+  photoButton: "Agregar una foto",
+  photoChange: "Cambiar foto",
+  urgencyLabel: "¿Qué tan urgente es?",
+  slotStepTitle: "¿Cuándo podemos llegar?",
+  slotStepDescription:
+    "Elija el horario más pronto que le sirva — en emergencias priorizamos el equipo disponible más cercano.",
+  slotCalendarHint: (intervalMin: number, _bufferMin: number, capacity: number) => {
+    const hours = Math.floor(intervalMin / 60);
+    const mins = intervalMin % 60;
+    const spacing =
+      mins > 0
+        ? `bloques de ${hours > 0 ? `${hours} h ` : ""}${mins} min`
+        : `ventanas de llegada de ${hours} hora${hours === 1 ? "" : "s"}`;
+    const base = `Los horarios muestran ${spacing} — ventanas de llegada del equipo.`;
+    const team =
+      capacity > 1 ? " Puede haber más de un equipo disponible — elija el que mejor le sirva." : "";
+    return `${base}${team}`.trim();
+  },
+  slotDayLabel: (weekday: string) => `${weekday} — horarios disponibles`,
+  slotUnavailable: "Lleno",
+  slotPast: "Muy pronto",
+  slotCalendarLegend:
+    "Los horarios tachados están llenos. Gris significa que ya pasó o es demasiado pronto. Su información es privada.",
+  slotStepBack: "Volver",
+  slotStepConfirm: "Confirmar este horario",
+  slotStepLoading: "Cargando horarios disponibles…",
+  slotStepEmpty:
+    "No hay horarios disponibles ahora — envíe su solicitud y le llamaremos para coordinar la llegada.",
+  slotStepSkip: "Omitir — solo enviar mi solicitud",
+  submit: "Siguiente — elegir horario de llegada",
+  submitNoSlots: "Enviar mi solicitud",
+  smsConsentLabel:
+    "Sí — envíenme mensajes sobre esta solicitud (actualizaciones, hora de llegada, etc.). Pueden aplicar tarifas. Responda STOP en cualquier momento.",
+  smsConsentRequired: "Marque la casilla para poder enviarle mensajes sobre su solicitud.",
+  validateNameRequired: "¿Cuál es su nombre? Nos encantaría saber a quién ayudamos hoy.",
+  validateIssueRequired:
+    "Cuéntenos un poco lo que ocurre — incluso una frase nos ayuda a enviar al técnico correcto.",
+  selectVisitTime: "Elija un horario de llegada y nosotros nos encargamos del resto.",
+  networkError: "Problema de conexión — intente de nuevo.",
+  slotLoadFailed: "No se pudieron cargar los horarios — intente de nuevo.",
+  submitting: "Enviando su solicitud…",
+  eta: "~1 min",
+  successTitle: "¡Todo listo!",
+  successBody:
+    "Gracias — tenemos sus datos. Confirmaremos la llegada por mensaje pronto. Toque Editar si algo debe cambiar.",
+  requestNumberLabel: "Solicitud #",
+  submissionTitle: "Su reporte de daño",
+  submissionSummaryTitle: "Resumen rápido",
+  portalGateTitle: "Encuentre su solicitud",
+  portalGateDescription: "Ingrese el nombre y teléfono que usó — buscaremos su solicitud.",
+  portalPhoneLabel: "Número de celular",
+  portalPhonePlaceholder: "(512) 555-0100",
+  portalLookup: "Ver mi solicitud",
+  portalLooking: "Buscando…",
+  portalLookupFailed: "No encontramos coincidencia — verifique su nombre y número.",
+  portalBackToLookup: "Intentar de nuevo",
+  portalEditTitle: "Actualice sus datos",
+  portalEdit: "Editar",
+  portalSave: "Guardar cambios",
+  portalSaving: "Guardando…",
+  portalUpdateSuccessBody: "Listo — recibimos sus cambios. Nuestro equipo dará seguimiento si es necesario.",
+  portalSubmittedAt: "Enviado",
+  loadingSubmission: "Cargando su solicitud…",
+  loadSubmissionFailed: "No se pudo cargar este enlace. Intente de nuevo o llame a la empresa directamente.",
+  expiredTitle: "Este enlace expiró",
+  expiredBody: "Este enlace ya no está activo. Llame a la empresa y le ayudaremos.",
+  correctionViewTitle: "Revise su solicitud",
+  correctionViewHint: "Verifique que todo esté bien — toque Editar si algo debe cambiar.",
+  correctionEditTitle: "Edite su solicitud",
+  correctionDoneTitle: "Cambios enviados",
+  correctionDoneBody: "La empresa recibió sus cambios y dará seguimiento en horario laboral.",
+  correctionExpired: "Este enlace expiró o ya no es válido.",
+  bookingPortalTitle: "Su solicitud de servicio",
+  bookingStatusLabel: "Estado",
+  bookingTimeLabel: "Horario de llegada",
+  bookingTimeHint: "Nuestro equipo procurará este horario. Le enviaremos un mensaje para confirmar.",
+  bookingChangeTime: "Cambiar horario de llegada",
+  bookingEditDetails: "Actualizar dirección o detalles del daño",
+  bookingCancel: "Cancelar solicitud",
+  bookingRescheduleHint: "Elija un nuevo horario disponible abajo.",
+  bookingConfirmTime: "Confirmar nuevo horario",
+  bookingCancelConfirmTitle: "¿Cancelar esta solicitud?",
+  bookingCancelConfirmBody: "Avisaremos a la empresa. Puede volver a llamar si aún necesita ayuda.",
+  bookingCancelConfirmButton: "Sí, cancelar mi solicitud",
+  portalBackToView: "Volver",
+  portalLandingTitle: "Reportar un daño",
+  portalLandingBody:
+    "Abra el enlace de su mensaje de texto para enviar detalles o revisar el estado de su solicitud.",
+};
+
+/** Pick the customer-facing intake copy for a locale. Unknown → English. */
+export function getLinkIntakeCopy(locale?: string | null): LinkIntakeCopy {
+  return locale?.toLowerCase().startsWith("es") ? linkIntakePageCopyEs : linkIntakePageCopy;
+}

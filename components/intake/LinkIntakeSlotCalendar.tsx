@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { SlotGridDay, SlotGridItem } from "@/lib/scheduling/slot-grid";
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 
 type LinkIntakeSlotCalendarProps = {
   days: SlotGridDay[];
@@ -21,6 +21,7 @@ export function LinkIntakeSlotCalendar({
   bufferMinutes,
   maxConcurrentVisits,
 }: LinkIntakeSlotCalendarProps) {
+  const copy = useLinkIntakeCopy();
   const firstWithOpen = days.find((d) => d.slots.some((s) => s.status === "available"));
   const [selectedDate, setSelectedDate] = useState(firstWithOpen?.date ?? days[0]?.date ?? "");
 
