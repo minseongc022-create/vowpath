@@ -8,6 +8,7 @@ import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
 import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
+import { NumberChoice } from "@/components/sections/NumberChoice";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
@@ -64,6 +65,7 @@ export default async function HvacPage() {
         <Problem content={problemHvac} />
         <ProductStack content={productStackHvac} />
         <MissedCallFlow content={missedCallFlowHvac} />
+        <NumberChoice />
         <ApprovalLoop content={approvalLoopHvac} />
         <AiDispatcher content={aiDispatcherHvac} />
         <SchedulingModes content={schedulingModesHvac} />
