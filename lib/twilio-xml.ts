@@ -77,7 +77,10 @@ export function twimlGatherMainMenu(
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}!`;
   const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
-  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+  // Spanish callers get an explicit, spoken-in-Spanish option (accurate by
+  // design — we never guess the language; the caller chooses it).
+  const spanishTag = twimlSay("Para español, oprima el tres.", "es-US");
+  return `${stormLine}${twimlSay(prompt)}${spanishTag}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */

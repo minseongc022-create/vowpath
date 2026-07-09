@@ -4,6 +4,7 @@ import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
   twimlGatherBookingChannel,
   twimlGatherEstimateMenu,
+  twimlGatherSpanishIntake,
   twimlResponse,
 } from "@/lib/twilio-xml";
 
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
   if (digit === "2") {
     const estimateActionUrl = `${base}/api/twilio/estimate?callSid=${encodeURIComponent(callSid)}${afterQ}`;
     return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateActionUrl)));
+  }
+
+  // 3 = Spanish → hand off to the Spanish voice intake (es-US TTS + recognition,
+  // Spanish confirmation SMS). The caller explicitly chose Spanish, so there's
+  // no language guesswork.
+  if (digit === "3") {
+    const esUrl = `${base}/api/twilio/es-intake?callSid=${encodeURIComponent(callSid)}`;
+    return twimlXml(twimlResponse(twimlGatherSpanishIntake(esUrl)));
   }
 
   // 1, no input, or anything else → booking branch → booking sub-menu
