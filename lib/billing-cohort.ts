@@ -22,7 +22,7 @@ export function isInTrialGrace(trialEndsAt: string | Date | undefined, now = Dat
   return now >= end && now < trialHardCutoff(trialEndsAt);
 }
 
-/** Feedback cohort: $129/mo instead of $189/mo for this many months (5 years). */
+/** Feedback cohort: $129/mo instead of $169/mo for this many months (5 years). */
 export const FEEDBACK_DISCOUNT_MONTHS = 60;
 
 export function feedbackCohortPriceStepDate(from: Date = new Date()): Date {

@@ -21,12 +21,12 @@ export function priceIdForPlan(plan: PlanId): string | undefined {
     : process.env.PADDLE_PRICE_ID_UNLIMITED;
 }
 
-/** $129/mo — feedback cohort rate for 5 years (vs $189/mo regular). */
+/** $129/mo — feedback cohort rate for 5 years (vs $169/mo regular). */
 export function betaCohortIntroPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_INTRO;
 }
 
-/** $189/mo — regular unlimited price after 5-year feedback cohort ends. */
+/** $169/mo — regular unlimited price after 5-year feedback cohort ends. */
 export function betaCohortLockedPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_LOCKED;
 }

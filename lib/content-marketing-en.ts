@@ -317,7 +317,7 @@ export const comparisonEn = {
     ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
     ["Missed call text-back", "60 sec SMS link", "Sometimes", "Callback later"],
     ["Insurance-ready intake", "Built in", "Partial", "Manual notes"],
-    ["Flat price", "$189/mo", "Usage / $600+", "$500–2K/mo"],
+    ["Flat price", "$169/mo", "Usage / $600+", "$500–2K/mo"],
     ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
     ["Go live", "~10 minutes", "Days", "Days + scripting"],
   ],

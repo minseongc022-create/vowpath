@@ -112,10 +112,10 @@ export function Pricing() {
           <p className="mt-1.5 text-sm leading-relaxed text-stone-700">
             Average water mitigation job: <strong className="text-brand-800">$8,000</strong>.{" "}
             One saved 2 AM call covers{" "}
-            <strong className="text-brand-800">42 months</strong> of Unlimited at $189/mo.
+            <strong className="text-brand-800">47 months</strong> of Unlimited at $169/mo.
           </p>
           <p className="mt-2 text-xs text-stone-500">
-            On Flex? One confirmed dispatch at $8K avg = ~220× your per-dispatch cost.
+            On Flex? One confirmed dispatch at $8K avg = ~700× your per-dispatch cost.
           </p>
         </div>
 

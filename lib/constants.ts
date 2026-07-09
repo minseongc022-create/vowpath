@@ -7,12 +7,12 @@ export const SITE = {
   url: "https://effiroad.com",
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
-  monthlyPrice: "$189",
+  monthlyPrice: "$169",
   flexBasePrice: "$49",
   flexPerBooking: "$11",
-  /** Trial-feedback cohort: $129/mo for 5 years, then regular $189/mo. */
+  /** Trial-feedback cohort: $129/mo for 5 years, then regular $169/mo. */
   betaIntroPrice: "$129",
-  betaLockedPrice: "$189",
+  betaLockedPrice: "$169",
   betaDiscountYears: 5,
 } as const;
 
