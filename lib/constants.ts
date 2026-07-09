@@ -9,7 +9,7 @@ export const SITE = {
   supportEmail: "support@effiroad.com",
   monthlyPrice: "$189",
   flexBasePrice: "$49",
-  flexPerBooking: "$18",
+  flexPerBooking: "$11",
   /** Trial-feedback cohort: $129/mo for 5 years, then regular $189/mo. */
   betaIntroPrice: "$129",
   betaLockedPrice: "$189",

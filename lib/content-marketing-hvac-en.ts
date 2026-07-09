@@ -106,7 +106,7 @@ export const hvacPricing = {
   },
   flex: {
     name: "Flex",
-    price: "$49/mo + $18/dispatch",
+    price: "$49/mo + $11/dispatch",
     description: "Low base, pay per confirmed dispatch.",
     features: [
       "Same intake and dispatch features",
