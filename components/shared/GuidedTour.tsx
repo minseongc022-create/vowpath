@@ -176,7 +176,7 @@ export function GuidedTour({
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === step ? "w-8 bg-amber-400" : i < step ? "w-2 bg-amber-200" : "w-2 bg-white/30"
               }`}
-              aria-label={`${i + 1}단계로 이동`}
+              aria-label={`Go to step ${i + 1}`}
             />
           ))}
         </div>
@@ -185,7 +185,7 @@ export function GuidedTour({
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                기능 안내 &nbsp;{step + 1} / {steps.length}
+                Quick tour &nbsp;{step + 1} / {steps.length}
               </p>
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
               <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
@@ -196,7 +196,7 @@ export function GuidedTour({
               type="button"
               onClick={handleClose}
               className="shrink-0 rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
-              aria-label="닫기"
+              aria-label="Close"
             >
               <svg
                 className="h-5 w-5"
@@ -217,7 +217,7 @@ export function GuidedTour({
               onClick={handleNever}
               className="text-sm font-medium text-white/70 transition hover:text-white"
             >
-              다시 보지 않기
+              Don't show again
             </button>
             <div className="flex items-center gap-2">
               {step > 0 && (
@@ -226,7 +226,7 @@ export function GuidedTour({
                   onClick={handlePrev}
                   className="rounded-lg border border-white/25 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  ← 이전
+                  ← Back
                 </button>
               )}
               <button
@@ -234,7 +234,7 @@ export function GuidedTour({
                 onClick={handleNext}
                 className="rounded-lg bg-amber-400 px-5 py-2 text-sm font-bold text-brand-950 shadow-sm transition hover:bg-amber-300"
               >
-                {isLast ? "완료 ✓" : "다음 →"}
+                {isLast ? "Done ✓" : "Next →"}
               </button>
             </div>
           </div>

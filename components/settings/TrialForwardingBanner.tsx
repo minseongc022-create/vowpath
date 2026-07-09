@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { SITE } from "@/lib/constants";
 import { isEnglishUi } from "@/lib/locale";
+import { trialHardCutoff } from "@/lib/billing-cohort";
+import { checkoutApiHref } from "@/lib/checkout-urls";
 
 type BillingStatus = {
   entitled: boolean;
@@ -10,6 +12,10 @@ type BillingStatus = {
   subscriptionStatus?: string;
   trialEndsAt?: string | null;
 };
+
+function ceilDays(ms: number): number {
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
 
 export function TrialForwardingBanner() {
   const [status, setStatus] = useState<BillingStatus | null>(null);
@@ -23,15 +29,34 @@ export function TrialForwardingBanner() {
   }, []);
 
   if (!status || status.beta || status.subscriptionStatus === "active") return null;
+  if (status.subscriptionStatus !== "trialing" || !status.trialEndsAt) return null;
 
-  const trialEnd = status.trialEndsAt ? new Date(status.trialEndsAt) : null;
-  const daysLeft =
-    trialEnd && status.subscriptionStatus === "trialing"
-      ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86_400_000))
-      : null;
+  const now = Date.now();
+  const end = new Date(status.trialEndsAt).getTime();
+  const graceEnd = trialHardCutoff(status.trialEndsAt);
 
-  if (daysLeft === null) return null;
+  // Trial ended but still inside the grace window → urgent "subscribe now" nag.
+  if (now >= end && now < graceEnd) {
+    const graceLeft = ceilDays(graceEnd - now);
+    return (
+      <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <p className="font-semibold">
+          {en
+            ? `Your free trial has ended. Subscribe now to keep answering calls — access pauses in ${graceLeft} day${graceLeft === 1 ? "" : "s"}.`
+            : `무료 체험이 끝났어요. 지금 결제하면 전화 응대가 계속돼요 — ${graceLeft}일 뒤 기능이 정지됩니다.`}
+        </p>
+        <a
+          href={checkoutApiHref("unlimited")}
+          className="mt-2 inline-block rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-red-500"
+        >
+          {en ? "Subscribe now" : "지금 결제하기"}
+        </a>
+      </div>
+    );
+  }
 
+  // Still in the trial → friendly days-left reminder.
+  const daysLeft = ceilDays(end - now);
   return (
     <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
       {en

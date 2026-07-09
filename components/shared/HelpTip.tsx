@@ -10,7 +10,7 @@ import { useState } from "react";
  */
 export function HelpTip({
   text,
-  label = "도움말",
+  label = "Help",
   className = "",
 }: {
   text: string;

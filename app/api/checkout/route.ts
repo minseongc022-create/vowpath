@@ -36,14 +36,14 @@ async function handleCheckout(plan: ReturnType<typeof parsePlanId>) {
     console.error("[checkout]", e);
     return NextResponse.json(
       {
-        error: `${SITE.name} 결제를 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.`,
+        error: `We couldn't start ${SITE.name} checkout. Please try again in a moment.`,
       },
       { status: 500 },
     );
   }
 }
 
-/** 브라우저 링크용 — Paddle 또는 회원가입으로 바로 리다이렉트 */
+/** Browser link — redirects straight to Paddle checkout or signup. */
 export async function GET(request: Request) {
   if (IS_BETA) {
     return NextResponse.redirect(new URL(ROUTES.signup, request.url));

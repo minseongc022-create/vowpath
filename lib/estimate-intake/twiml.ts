@@ -72,7 +72,28 @@ export function twimlForEstimateState(state: EstimateState): string {
   if (state.phase === "ask_phone") {
     return twimlResponse(twimlGatherPhoneNumber(url, prompt));
   }
-  return twimlResponse(twimlGatherSpeechField(url, prompt));
+  return twimlResponse(
+    twimlGatherSpeechField(url, prompt, undefined, phaseSpeechHints(state.phase)),
+  );
+}
+
+/** Question-specific words that make the phone speech recognizer far more
+ *  reliable on the answers that get garbled most (damage types, addresses,
+ *  day/time). Empty for open-ended fields like the caller's name. */
+function phaseSpeechHints(phase: EstimateState["phase"]): string | undefined {
+  if (phase === "ask_damage_type") {
+    return "water, water damage, fire, fire damage, smoke, soot, mold, mildew, sewage, sewage backup, flood, flooding, storm, leak, burst pipe, roof leak, basement, crawl space, no heat, no cooling, air conditioning";
+  }
+  if (phase === "ask_address") {
+    return "street, avenue, boulevard, drive, lane, road, court, place, way, apartment, unit, suite, north, south, east, west";
+  }
+  if (phase === "ask_noticed_when") {
+    return "today, yesterday, this morning, last night, this week, last week, a few days ago, just now, over the weekend";
+  }
+  if (phase === "ask_preferred_time") {
+    return "today, tomorrow, morning, afternoon, evening, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday, as soon as possible, anytime";
+  }
+  return undefined;
 }
 
 export function twimlEstimateLinkGoodbye(name?: string): string {

@@ -1,4 +1,5 @@
 import { IS_BETA } from "./beta";
+import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
 import { isValidPaddleEnvValue } from "./paddle-config";
 import { paddleFetch } from "./paddle-client";
@@ -44,7 +45,9 @@ export function isEntitled(user: UserRecord | undefined | null): boolean {
 
   if (status === "trialing") {
     if (!b.trialEndsAt) return false;
-    return new Date(b.trialEndsAt).getTime() > Date.now();
+    // Entitled through the trial AND the short grace window after it; hard-cut
+    // once the grace period lapses (unpaid = no access, no exceptions).
+    return trialHardCutoff(b.trialEndsAt) > Date.now();
   }
 
   return false;

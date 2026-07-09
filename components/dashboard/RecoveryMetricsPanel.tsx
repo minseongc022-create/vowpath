@@ -47,7 +47,7 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
         <div>
           <h2 className="inline-flex items-center gap-1.5 text-base font-semibold text-brand-950">
             Call recovery
-            <HelpTip text="Effiroad가 놓칠 뻔한 통화를 얼마나 살렸는지 보여줍니다. 예약·통화 로그 실측 기준이며, 매출 추정치는 넣지 않습니다 — 실제 금액은 Jobber 인보이스에서 확인하세요." />
+            <HelpTip text="Shows how many would-be-missed calls Effiroad saved. Counted from real bookings and call logs — no revenue estimates. Actual dollar amounts live in your Jobber invoices." />
           </h2>
           <p className="mt-0.5 text-xs text-stone-600">
             Counts from Effiroad bookings and Twilio call logs — no revenue estimates.

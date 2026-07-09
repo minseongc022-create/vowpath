@@ -136,8 +136,14 @@ export function twimlGatherSpeechField(
   actionUrl: string,
   prompt: string,
   vertical?: ShopVertical | string,
+  /** Extra question-specific words to boost recognition (e.g. damage types on
+   *  the "what kind of damage" question, street suffixes on the address one). */
+  extraHints?: string,
 ): string {
-  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" hints="${escapeXml(buildSpeechHints(vertical))}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(voiceGoAhead)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
+  const hints = [buildSpeechHints(vertical), extraHints]
+    .filter(Boolean)
+    .join(", ");
+  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" hints="${escapeXml(hints)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(voiceGoAhead)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
 }
 
 export function twimlGatherDtmfYesNo(actionUrl: string, prompt: string): string {
