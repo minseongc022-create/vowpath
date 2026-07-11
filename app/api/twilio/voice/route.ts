@@ -125,7 +125,7 @@ export async function POST(request: Request) {
   const retellForwardNumber = process.env.RETELL_FORWARD_NUMBER?.trim();
   const twiml = retellForwardNumber
     ? twimlResponse(
-        twimlStartCallRecording(recordingUrl) + twimlDialForward(retellForwardNumber),
+        twimlStartCallRecording(recordingUrl) + twimlDialForward(retellForwardNumber, to),
         statusCallbackUrl,
       )
     : twimlResponse(

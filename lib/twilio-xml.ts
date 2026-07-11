@@ -182,9 +182,16 @@ export function twimlStartCallRecording(recordingStatusCallback: string): string
   return `<Start><Recording recordingStatusCallback="${escapeXml(recordingStatusCallback)}" recordingStatusCallbackMethod="POST" /></Start>`;
 }
 
-/** Forwards the live call to a Retell AI voice agent's phone number. */
-export function twimlDialForward(toNumber: string): string {
-  return `<Dial>${escapeXml(toNumber)}</Dial>`;
+/**
+ * Forwards the live call to a Retell AI voice agent's phone number.
+ * Explicitly sets callerId to one of OUR owned Twilio numbers — without it,
+ * Twilio's <Dial> defaults to passing through the original caller's raw
+ * number as the outbound caller ID, which foreign/unverified numbers get
+ * rejected for (carrier fails the leg in ~0s with no ring at all).
+ */
+export function twimlDialForward(toNumber: string, callerId?: string): string {
+  const callerIdAttr = callerId ? ` callerId="${escapeXml(callerId)}"` : "";
+  return `<Dial${callerIdAttr}>${escapeXml(toNumber)}</Dial>`;
 }
 
 /**
