@@ -123,9 +123,11 @@ export async function POST(request: Request) {
   // NOT dispatch anyone). Falls back to the scripted button menu only if
   // Retell isn't configured, so the phone line never goes fully silent.
   const retellForwardNumber = process.env.RETELL_FORWARD_NUMBER?.trim();
+  const dialFallbackUrl = `${base}/api/twilio/dial-fallback?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const twiml = retellForwardNumber
     ? twimlResponse(
-        twimlStartCallRecording(recordingUrl) + twimlDialForward(retellForwardNumber, to),
+        twimlStartCallRecording(recordingUrl) +
+          twimlDialForward(retellForwardNumber, to, dialFallbackUrl),
         statusCallbackUrl,
       )
     : twimlResponse(

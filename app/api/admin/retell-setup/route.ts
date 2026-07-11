@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
 
 const TEST_AGENT_ID = "agent_6e612965cf4b69f4312deee3f8";
 const TEST_LLM_ID = "llm_9e819a0687ea88f77b29f8de448d";
@@ -17,6 +18,18 @@ export async function GET(request: Request) {
   }
   if (searchParams.get("action") === "production") {
     return switchAgentToProduction();
+  }
+  // Bind a phone number (e.g. the Retell agent number) to the logged-in shop so
+  // that calls arriving on it — and the Retell tool webhooks fired for them —
+  // resolve to this tenant and log bookings/estimates to the right account.
+  // Usage: ?action=bind-number&number=%2B17623549277
+  if (searchParams.get("action") === "bind-number") {
+    const raw = searchParams.get("number")?.trim() ?? "";
+    if (!/^\+?\d{10,15}$/.test(raw)) {
+      return NextResponse.json({ error: "Pass ?number=+1XXXXXXXXXX (E.164)." }, { status: 400 });
+    }
+    await bindTwilioPhoneToUser(raw, session.sub);
+    return NextResponse.json({ ok: true, boundNumber: raw, toUserId: session.sub });
   }
 
   const apiKey = process.env.RETELL_API_KEY?.trim();

@@ -189,9 +189,19 @@ export function twimlStartCallRecording(recordingStatusCallback: string): string
  * number as the outbound caller ID, which foreign/unverified numbers get
  * rejected for (carrier fails the leg in ~0s with no ring at all).
  */
-export function twimlDialForward(toNumber: string, callerId?: string): string {
+export function twimlDialForward(
+  toNumber: string,
+  callerId?: string,
+  actionUrl?: string,
+): string {
   const callerIdAttr = callerId ? ` callerId="${escapeXml(callerId)}"` : "";
-  return `<Dial${callerIdAttr}>${escapeXml(toNumber)}</Dial>`;
+  // When the forwarded leg fails to connect (or ends), Twilio POSTs to
+  // actionUrl so we can gracefully fall back to the scripted intake instead
+  // of dead-ending the call (which sounds like "answered then hung up").
+  const actionAttr = actionUrl
+    ? ` action="${escapeXml(actionUrl)}" method="POST"`
+    : "";
+  return `<Dial${callerIdAttr}${actionAttr}>${escapeXml(toNumber)}</Dial>`;
 }
 
 /**
