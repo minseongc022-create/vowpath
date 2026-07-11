@@ -57,12 +57,8 @@ export async function GET(request: Request) {
       e instanceof CheckoutUnavailableError
         ? "unavailable"
         : "failed";
-    // Temporary diagnostic: surface the underlying Paddle reason in the URL so
-    // it can be read without server-log access. Safe to remove once live.
-    const detail =
-      e instanceof Error ? encodeURIComponent(e.message.slice(0, 200)) : "";
     return NextResponse.redirect(
-      new URL(`/get-started?checkout_error=${message}&plan=${plan}&d=${detail}`, request.url),
+      new URL(`/get-started?checkout_error=${message}&plan=${plan}`, request.url),
     );
   }
 }
