@@ -315,6 +315,7 @@ export const faq = {
 export const footerKo = {
   privacy: "개인정보처리방침",
   terms: "이용약관",
+  refund: "환불 정책",
   contact: "문의",
   tagline: "효율로 가는 길",
   brandMeaning:
@@ -1485,6 +1486,32 @@ const legalPagesKo = {
       {
         heading: "문의",
         body: `약관 문의: ${SITE.supportEmail}`,
+      },
+    ],
+  },
+  refund: {
+    title: "환불 정책",
+    updated: "2026년 7월",
+    sections: [
+      {
+        heading: "30일 환불 보장",
+        body: "모든 Effiroad 구독은 30일 환불 보장을 포함합니다. 첫 유료 구독 후 30일 이내에 만족하지 못하시면 이메일 주시면 최근 결제 금액을 전액 환불해 드립니다.",
+      },
+      {
+        heading: "환불 요청 방법",
+        body: `계정에 등록된 이메일 주소로 ${SITE.supportEmail}에 상호명과 함께 문의해 주세요. 결제 대행사이자 판매자(Merchant of Record)인 Paddle을 통해 원 결제 수단으로 보통 영업일 기준 5~10일 내 처리됩니다.`,
+      },
+      {
+        heading: "해지",
+        body: "언제든 해지할 수 있으며 약정·해지 수수료가 없습니다. 해지 시 향후 갱신이 중단되고, 현재 결제 주기 종료 시까지는 서비스가 유지됩니다. 현재 주기에 이미 청구된 금액은 위 30일 보장 외에는 환불되지 않습니다.",
+      },
+      {
+        heading: "Flex 요금제(건당 요금)",
+        body: "Flex 요금제의 승인 예약 건당 요금은 이미 제공된 서비스에 대한 것으로 환불되지 않습니다. 단, 오류로 청구된 경우 즉시 바로잡아 드립니다.",
+      },
+      {
+        heading: "문의",
+        body: `환불·결제 문의: ${SITE.supportEmail}`,
       },
     ],
   },

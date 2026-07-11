@@ -507,6 +507,32 @@ export const legalPagesEn = {
       },
     ],
   },
+  refund: {
+    title: "Refund Policy",
+    updated: "July 2026",
+    sections: [
+      {
+        heading: "30-day money-back guarantee",
+        body: "Every Effiroad subscription includes a 30-day money-back guarantee. If you're not satisfied within the first 30 days of your first paid subscription, email us and we'll refund your most recent subscription payment in full.",
+      },
+      {
+        heading: "How to request a refund",
+        body: `Email ${SITE.supportEmail} from the address on your account with your business name. We process eligible refunds to your original payment method, typically within 5–10 business days via Paddle, our payment provider and Merchant of Record.`,
+      },
+      {
+        heading: "Cancellations",
+        body: "You can cancel anytime — there are no contracts or cancellation fees. Cancelling stops future renewals; your service remains active until the end of the current billing period. Amounts already billed for the current period are non-refundable except under the 30-day guarantee above.",
+      },
+      {
+        heading: "Flex plan (per-dispatch) charges",
+        body: "On the Flex plan, per-approved-dispatch charges reflect service already delivered and are non-refundable, except where a charge was made in error — in which case we will correct it promptly.",
+      },
+      {
+        heading: "Contact",
+        body: `Refund or billing questions: ${SITE.supportEmail}`,
+      },
+    ],
+  },
 };
 
 /** Full English dashboard UI — merges over Korean base for any missing keys. */

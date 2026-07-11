@@ -760,6 +760,7 @@ export const navEn = {
 export const footerEn = {
   privacy: "Privacy",
   terms: "Terms",
+  refund: "Refunds",
   contact: "Contact",
   tagline: "AI phone, dispatch, and ops assistant for restoration companies.",
   brandMeaning: "Missed call → AI intake → crew dispatch → claim captured. No CRM required.",

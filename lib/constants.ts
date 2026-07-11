@@ -34,6 +34,7 @@ export const ROUTES = {
   agreements: "/dashboard/agreements",
   privacy: "/privacy",
   terms: "/terms",
+  refund: "/refund",
 } as const;
 
 export const FOOTER_LINKS = [

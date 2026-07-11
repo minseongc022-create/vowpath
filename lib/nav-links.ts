@@ -22,6 +22,7 @@ export function getFooterLinks() {
   return [
     { label: siteFooter.privacy, href: ROUTES.privacy },
     { label: siteFooter.terms, href: ROUTES.terms },
+    { label: siteFooter.refund, href: ROUTES.refund },
     { label: siteFooter.contact, href: `mailto:${SITE.contactEmail}` },
   ];
 }
