@@ -541,6 +541,25 @@
     }
   }
 
+  .vow-marquee-track {
+    animation: vow-marquee-scroll 28s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vow-marquee-track {
+      animation: none;
+    }
+  }
+
+  @keyframes vow-marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   .vow-site-section {
     border-top: 1px solid var(--vow-beige-deep);
     background-color: var(--vow-beige-light);

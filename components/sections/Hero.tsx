@@ -65,9 +65,17 @@ export function Hero() {
           </a>
         </p>
 
-        <p className="mt-2 text-center text-sm text-brand-700">
-          <a href="/#intake-demo" className="font-medium hover:underline">
-            See a sample intake call →
+        <p className="mt-4 text-center">
+          <a
+            href="/#intake-demo"
+            className="inline-flex items-center gap-2.5 rounded-full border border-brand-300/60 bg-white px-5 py-2.5 text-sm font-semibold text-brand-900 shadow-sm transition hover:border-brand-400 hover:bg-brand-50"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-white">
+              <svg className="ml-0.5 h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+                <path d="M2 1.2a.6.6 0 01.92-.51l7 4.8a.6.6 0 010 .99l-7 4.8A.6.6 0 012 11.3V1.2z" />
+              </svg>
+            </span>
+            Hear a Real 2 AM Water Loss Call
           </a>
         </p>
 

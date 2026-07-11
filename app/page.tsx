@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
+import { Marquee } from "@/components/sections/Marquee";
 import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
@@ -11,11 +12,13 @@ import { NumberChoice } from "@/components/sections/NumberChoice";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { AiDispatcher } from "@/components/sections/AiDispatcher";
 import { SchedulingModes } from "@/components/sections/SchedulingModes";
+import { FeatureTabs } from "@/components/sections/FeatureTabs";
 import { Comparison } from "@/components/sections/Comparison";
 import { Features } from "@/components/sections/Features";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { TrustROI } from "@/components/sections/TrustROI";
 import { About } from "@/components/sections/About";
+import { WorkForYou } from "@/components/sections/WorkForYou";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
@@ -29,6 +32,7 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* 1. Hero — value prop + primary CTA */}
         <Hero />
+        <Marquee />
         {/* 2. Interactive intake call demo */}
         <IntakeCallDemo />
         {/* 3. Trust — credibility before the pain */}
@@ -43,6 +47,7 @@ export default async function HomePage() {
         <ApprovalLoop />
         <AiDispatcher />
         <SchedulingModes />
+        <FeatureTabs />
         <Comparison />
         {/* 5. Features — full capability grid */}
         <Features />
@@ -54,6 +59,7 @@ export default async function HomePage() {
         <SocialProof />
         {/* 9. Philosophy — brand meaning */}
         <About />
+        <WorkForYou />
         {/* 10. Conversion path */}
         <Pricing />
         <FAQ />
