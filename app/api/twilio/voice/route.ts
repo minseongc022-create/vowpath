@@ -16,7 +16,6 @@ import { shouldAnswerNow } from "@/lib/answer-schedule";
 import { findUserById } from "@/lib/users-db";
 import { normalizeSmsPhone } from "@/lib/phone";
 import {
-  twimlDialForward,
   twimlDialToShop,
   twimlGatherMainMenu,
   twimlResponse,
@@ -116,25 +115,15 @@ export async function POST(request: Request) {
   const mainMenuUrl = `${base}/api/twilio/main-menu?callSid=${encodeURIComponent(callSid)}${afterQ}`;
   const recordingUrl = `${base}/api/twilio/recording`;
 
-  // Full conversational experience: when a Retell agent is configured, connect
-  // the caller straight to it — no button menu at all. The agent itself asks
-  // what the caller needs and calls the matching tool (submit-intake for a
-  // booking/emergency, submit-estimate for a free-estimate request that must
-  // NOT dispatch anyone). Falls back to the scripted button menu only if
-  // Retell isn't configured, so the phone line never goes fully silent.
-  const retellForwardNumber = process.env.RETELL_FORWARD_NUMBER?.trim();
-  const dialFallbackUrl = `${base}/api/twilio/dial-fallback?callSid=${encodeURIComponent(callSid)}${afterQ}`;
-  const twiml = retellForwardNumber
-    ? twimlResponse(
-        twimlStartCallRecording(recordingUrl) +
-          twimlDialForward(retellForwardNumber, to, dialFallbackUrl),
-        statusCallbackUrl,
-      )
-    : twimlResponse(
-        twimlStartCallRecording(recordingUrl) +
-          twimlGatherMainMenu(mainMenuUrl, shopName, stormMode, customGreeting),
-        statusCallbackUrl,
-      );
+  // Always play the top menu (book/emergency = 1, estimate = 2). The Retell AI
+  // conversational agent is dialed later, only on the booking → "talk to the
+  // assistant now" branch (handled in /api/twilio/booking-channel) — so callers
+  // pick a button first, and only phone-intake callers get the AI conversation.
+  const twiml = twimlResponse(
+    twimlStartCallRecording(recordingUrl) +
+      twimlGatherMainMenu(mainMenuUrl, shopName, stormMode, customGreeting),
+    statusCallbackUrl,
+  );
 
   return new NextResponse(twiml, {
     status: 200,
