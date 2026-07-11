@@ -71,12 +71,13 @@ export async function getCheckoutRedirectUrl(
   } catch (e) {
     if (e instanceof CheckoutUnavailableError) throw e;
     const anyErr = e as { status?: number; body?: unknown; message?: string };
+    const detail = JSON.stringify(anyErr?.body ?? anyErr?.message ?? String(e)).slice(0, 300);
     console.error(
       "[checkout-server] paddle transaction FAILED status=",
       anyErr?.status,
       "body=",
-      JSON.stringify(anyErr?.body ?? anyErr?.message ?? e),
+      detail,
     );
-    throw new CheckoutUnavailableError("Checkout URL을 생성하지 못했습니다.");
+    throw new CheckoutUnavailableError(`paddle_${anyErr?.status ?? "err"}: ${detail}`);
   }
 }
