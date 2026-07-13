@@ -7,7 +7,7 @@ import {
   createLinkIntakeSession,
   sendLinkIntakeSms,
 } from "@/lib/call-intake/link-intake-flow";
-import { voiceLinkSmsSent, voiceLinkSmsFailed } from "@/lib/voice-copy";
+import { voiceLinkSmsFailed } from "@/lib/voice-copy";
 
 type SendLinkArgs = {
   purpose?: "booking" | "estimate" | string;
@@ -90,17 +90,16 @@ export async function POST(request: Request) {
     if (!sms.ok) {
       return NextResponse.json({
         result:
-          "The text didn't go through — no worries, I can take everything right here on the call. What's your name and the property address?",
+          "Hmm, that text didn't go through — no worries at all. Let's take care of everything right here. What's your name, and what's the address?",
       });
     }
 
-    const estimateNote =
+    const linkMsg =
       purpose === "estimate"
-        ? " It's a quick form for your free estimate request."
-        : "";
-    return NextResponse.json({
-      result: `${voiceLinkSmsSent}${estimateNote} Is there anything else before we hang up?`,
-    });
+        ? "Perfect — I just texted you a link for your free estimate. Open it when you get a chance and fill in the details — our team will follow up soon. Thanks for calling!"
+        : "Perfect — I just sent a text with a secure link. It only takes a couple of minutes to complete, and our team will be in touch right after. Thanks for calling!";
+
+    return NextResponse.json({ result: linkMsg });
   } catch (e) {
     console.error("[retell/tools/send-intake-link]", e);
     return NextResponse.json({
