@@ -1,4 +1,4 @@
-import { getTwilioWebhookBaseUrl } from "../twilio-config";
+import { buildTwilioCallbackUrl } from "../twilio-callback-url";
 import {
   twimlGatherDtmfChoice,
   twimlGatherDtmfSlots,
@@ -29,9 +29,8 @@ function intakeUrl(
   phase: string,
   extra?: Record<string, string>,
 ): string {
-  const base = getTwilioWebhookBaseUrl();
   const q = new URLSearchParams({ phase, callSid, ...extra });
-  return `${base}/api/twilio/intake?${q.toString()}`;
+  return buildTwilioCallbackUrl("/api/twilio/intake", Object.fromEntries(q.entries()));
 }
 
 export function twimlForIntakeState(state: CallIntakeState): string {
@@ -150,12 +149,10 @@ export function parseDtmfYesNo(digit: string | null): "yes" | "no" | null {
 }
 
 export function intakeUrlForMenu(priority: string, afterHours = false): string {
-  const base = getTwilioWebhookBaseUrl();
-  const q = new URLSearchParams({
+  return buildTwilioCallbackUrl("/api/twilio/intake", {
     phase: "collect",
     priority,
     attempt: "1",
+    ...(afterHours ? { afterHours: "1" } : {}),
   });
-  if (afterHours) q.set("afterHours", "1");
-  return `${base}/api/twilio/intake?${q.toString()}`;
 }

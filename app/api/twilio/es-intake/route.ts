@@ -13,6 +13,7 @@ import { formatCityState } from "@/lib/recent-bookings";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
   twimlGatherSpanishIntake,
@@ -53,7 +54,10 @@ export async function POST(request: Request) {
 
   if (!speech) {
     if (attempt < 2) {
-      const retryUrl = `${url.origin}${url.pathname}?callSid=${encodeURIComponent(callSid)}&attempt=${attempt + 1}`;
+      const retryUrl = buildTwilioCallbackUrl("/api/twilio/es-intake", {
+        callSid,
+        attempt: String(attempt + 1),
+      });
       return twimlXml(twimlResponse(twimlGatherSpanishIntake(retryUrl)));
     }
     return twimlXml(

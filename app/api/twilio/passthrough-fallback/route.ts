@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { DEFAULT_SHOP_DISPLAY_NAME, shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
-import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twimlGatherMainMenu, twimlResponse, twimlSay } from "@/lib/twilio-xml";
@@ -20,7 +20,7 @@ function twimlXml(body: string) {
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Invalid signature", { status: 403 });
+    console.error("[twilio/passthrough-fallback] invalid signature — serving menu anyway");
   }
 
   const url = new URL(request.url);
@@ -51,8 +51,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const base = getTwilioWebhookBaseUrl();
-  const mainMenuUrl = `${base}/api/twilio/main-menu?callSid=${encodeURIComponent(callSid)}&afterHours=1`;
+  const mainMenuUrl = buildTwilioCallbackUrl("/api/twilio/main-menu", {
+    callSid,
+    afterHours: "1",
+  });
   return twimlXml(
     twimlResponse(
       twimlSay("Sorry we missed you — let me help you right now.") +

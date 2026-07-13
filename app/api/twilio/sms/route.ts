@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
 
   if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Forbidden", { status: 403 });
+    console.error("[twilio/sms] invalid signature — empty TwiML ack");
+    return new NextResponse(twimlResponse(""), {
+      status: 200,
+      headers: { "Content-Type": "text/xml" },
+    });
   }
 
   const params = new URLSearchParams(rawBody);

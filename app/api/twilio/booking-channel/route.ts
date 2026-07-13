@@ -5,8 +5,8 @@ import {
   createLinkIntakeSession,
   sendLinkIntakeSms,
 } from "@/lib/call-intake/link-intake-flow";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
-import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import {
@@ -40,8 +40,9 @@ function phoneIntakeTwiml(afterHours: boolean, to: string, intro?: string) {
     // original caller's raw number, which foreign/unverified numbers get
     // rejected for at the carrier level (fails in ~0s, no ring). The action
     // URL hands the caller to the scripted intake if the forward never bridges.
-    const base = getTwilioWebhookBaseUrl();
-    const fallbackUrl = `${base}/api/twilio/dial-fallback${afterHours ? "?afterHours=1" : ""}`;
+    const fallbackUrl = buildTwilioCallbackUrl("/api/twilio/dial-fallback", {
+      ...(afterHours ? { afterHours: "1" } : {}),
+    });
     return twimlResponse(
       twimlDialForward(retell, to !== "unknown" ? to : undefined, fallbackUrl),
     );

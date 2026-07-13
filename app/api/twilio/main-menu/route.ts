@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTwilioWebhookBaseUrl } from "@/lib/twilio-config";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
   twimlGatherBookingChannel,
@@ -14,8 +14,10 @@ function twimlXml(body: string) {
 
 /** Booking branch: choose to talk to the AI now (1) or get a text link (2). */
 function bookingChannelMenu(afterHours: boolean, callSid: string) {
-  const base = getTwilioWebhookBaseUrl();
-  const url = `${base}/api/twilio/booking-channel?callSid=${encodeURIComponent(callSid)}${afterHours ? "&afterHours=1" : ""}`;
+  const url = buildTwilioCallbackUrl("/api/twilio/booking-channel", {
+    callSid,
+    ...(afterHours ? { afterHours: "1" } : {}),
+  });
   return twimlXml(twimlResponse(twimlGatherBookingChannel(url)));
 }
 
@@ -33,25 +35,18 @@ export async function POST(request: Request) {
     return bookingChannelMenu(afterHours, callSid);
   }
 
-  const base = getTwilioWebhookBaseUrl();
-  if (!base) {
-    console.error(
-      "[twilio/main-menu] empty webhook base URL — set TWILIO_WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL; generated TwiML callback URLs will be invalid",
-    );
-  }
-  const afterQ = afterHours ? "&afterHours=1" : "";
+  const afterQ = afterHours ? { afterHours: "1" } : undefined;
 
-  // 2 = free estimate branch → estimate sub-menu (phone details / text form).
   if (digit === "2") {
-    const estimateActionUrl = `${base}/api/twilio/estimate?callSid=${encodeURIComponent(callSid)}${afterQ}`;
+    const estimateActionUrl = buildTwilioCallbackUrl("/api/twilio/estimate", {
+      callSid,
+      ...afterQ,
+    });
     return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateActionUrl)));
   }
 
-  // 3 = Spanish → hand off to the Spanish voice intake (es-US TTS + recognition,
-  // Spanish confirmation SMS). The caller explicitly chose Spanish, so there's
-  // no language guesswork.
   if (digit === "3") {
-    const esUrl = `${base}/api/twilio/es-intake?callSid=${encodeURIComponent(callSid)}`;
+    const esUrl = buildTwilioCallbackUrl("/api/twilio/es-intake", { callSid });
     return twimlXml(twimlResponse(twimlGatherSpanishIntake(esUrl)));
   }
 
