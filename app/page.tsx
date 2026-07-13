@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
 import { Marquee } from "@/components/sections/Marquee";
 import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
+import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
@@ -33,7 +34,8 @@ export default async function HomePage() {
         {/* 1. Hero — value prop + primary CTA */}
         <Hero />
         <Marquee />
-        {/* 2. Interactive intake call demo */}
+        {/* 2. Tabbed demo videos (ACE-style) + interactive call demo */}
+        <DemoVideoHero />
         <IntakeCallDemo />
         {/* 3. Trust — credibility before the pain */}
         <SocialProof variant="trust" />

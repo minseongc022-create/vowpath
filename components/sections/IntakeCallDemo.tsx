@@ -1,64 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { VOICE_EMERGENCY_DEMO } from "@/lib/demo-scripts";
 
 type Role = "caller" | "ai" | "system" | "sms";
 
 type Step = {
   role: Role;
   text: string;
-  /** ms to wait BEFORE showing this bubble */
   delay: number;
 };
 
-const RESTORATION_SCRIPT: Step[] = [
-  { role: "system", text: "Incoming call — 2:14 AM", delay: 400 },
-  {
-    role: "ai",
-    text: "Thank you for calling Ridgeline Restoration. This call is being recorded to capture your emergency details. Are you experiencing water damage, fire or smoke damage, or mold?",
-    delay: 1000,
-  },
-  {
-    role: "caller",
-    text: "Water — there's water flooding my basement right now. It's coming up through the floor drain.",
-    delay: 2400,
-  },
-  {
-    role: "ai",
-    text: "I understand — we'll get help to you right away. Can I get your name and the service address?",
-    delay: 1600,
-  },
-  { role: "caller", text: "Mike Wilson, 4821 Oak Drive, Austin Texas.", delay: 2000 },
-  { role: "ai", text: "Got it, Mike. How long has the water been rising?", delay: 1400 },
-  {
-    role: "caller",
-    text: "About two hours. It's already six inches in some spots.",
-    delay: 2000,
-  },
-  {
-    role: "ai",
-    text: "This looks like a sewage backup — I'm flagging this as Priority 1. I'm alerting the on-call tech right now. What's the best callback number?",
-    delay: 1800,
-  },
-  { role: "caller", text: "512-555-0192. Please hurry.", delay: 1800 },
-  {
-    role: "sms",
-    text: "NEW JOB · Mike Wilson · 4821 Oak Dr, Austin TX · Sewage backup, ~2 hrs, 6\" standing water · P1 URGENT · Reply 1 to dispatch, 2 to decline",
-    delay: 1200,
-  },
-  { role: "system", text: "Owner replied: 1 — Dispatching", delay: 2200 },
-  {
-    role: "ai",
-    text: "Good news, Mike — a technician is on the way. You'll get a text with their ETA in a few minutes. Stay out of the water if possible and cut power to the basement if it's safe to do so.",
-    delay: 1600,
-  },
-  { role: "caller", text: "Thank you so much!", delay: 1800 },
-  {
-    role: "system",
-    text: "Technician arrived on-site · Intake saved · Crew dispatched · Job created in 4 min 22 sec",
-    delay: 800,
-  },
-];
+const RESTORATION_SCRIPT: Step[] = VOICE_EMERGENCY_DEMO;
 
 const HVAC_SCRIPT: Step[] = [
   { role: "system", text: "Incoming call — 6:40 AM", delay: 400 },
