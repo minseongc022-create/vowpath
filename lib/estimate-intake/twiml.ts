@@ -4,7 +4,7 @@ import {
   twimlResponse,
   twimlSay,
 } from "../twilio-xml";
-import { getTwilioWebhookBaseUrl } from "../twilio-config";
+import { buildTwilioCallbackUrl } from "../twilio-callback-url";
 import type { EstimateState } from "./types";
 
 function smsFirstName(fullName?: string): string {
@@ -13,14 +13,7 @@ function smsFirstName(fullName?: string): string {
 }
 
 function estimateUrl(callSid: string, extra?: Record<string, string>): string {
-  const base = getTwilioWebhookBaseUrl();
-  if (!base) {
-    console.error(
-      "[estimate-intake] empty webhook base URL — set TWILIO_WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL; generated TwiML callback URLs will be invalid",
-    );
-  }
-  const q = new URLSearchParams({ callSid, ...extra });
-  return `${base}/api/twilio/estimate?${q.toString()}`;
+  return buildTwilioCallbackUrl("/api/twilio/estimate", { callSid, ...extra });
 }
 
 const RETRY_PREFIX = "I'm sorry about that — could you say that one more time? ";

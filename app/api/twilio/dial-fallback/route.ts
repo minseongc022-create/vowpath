@@ -31,11 +31,20 @@ export async function POST(request: Request) {
   }
 
   const form = new URLSearchParams(rawBody);
-  const dialStatus = form.get("DialCallStatus") ?? "";
+  const dialStatus = (form.get("DialCallStatus") ?? "").toLowerCase();
+  const dialDuration = Number(form.get("DialCallDuration") ?? "0");
 
-  if (dialStatus === "completed") {
-    // Forward connected and finished normally — nothing left to do.
+  // Normal end after a connected Retell conversation.
+  if (dialStatus === "completed" && dialDuration > 0) {
     return twimlXml(twimlResponse(""));
+  }
+
+  // Instant reject / zero-duration bridge — treat like a failed forward.
+  if (dialStatus === "completed" && dialDuration <= 0) {
+    console.warn(
+      "[twilio/dial-fallback] Retell forward completed with 0s duration — using scripted intake",
+    );
+    return twimlXml(scriptedIntake(afterHours));
   }
 
   // failed / busy / no-answer / canceled → the forward never bridged.

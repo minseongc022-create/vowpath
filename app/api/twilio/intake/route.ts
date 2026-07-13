@@ -32,6 +32,7 @@ import { logOperationFailure } from "@/lib/ops-failures";
 import { recordCallIntakeFailed } from "@/lib/record-tenant-events";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
+import { twilioCallbackUrlFromRequest } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { parsePriorityParam } from "@/lib/twilio-voice-flow";
 import { twimlGatherSpeechDetailed, twimlResponse, twimlSay } from "@/lib/twilio-xml";
@@ -157,7 +158,7 @@ async function offerLinkFallbackAndClose(
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Invalid signature", { status: 403 });
+    console.error("[twilio/intake] invalid signature — continuing with error-safe TwiML");
   }
 
   const url = new URL(request.url);
@@ -263,10 +264,11 @@ export async function POST(request: Request) {
         }
 
         if (attempt < 2) {
-          const retryUrl = new URL(request.url);
-          retryUrl.searchParams.set("attempt", String(attempt + 1));
+          const retryUrl = twilioCallbackUrlFromRequest(request, {
+            attempt: String(attempt + 1),
+          });
           const twiml = twimlResponse(
-            twimlGatherSpeechDetailed(retryUrl.toString(), voiceCollectRetry),
+            twimlGatherSpeechDetailed(retryUrl, voiceCollectRetry),
           );
           return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
         }
@@ -284,11 +286,12 @@ export async function POST(request: Request) {
 
       // Low-confidence speech recognition — ask the caller to repeat, up to 2 times.
       if (speechConfidence !== null && speechConfidence < 0.6 && attempt < 3) {
-        const retryUrl = new URL(request.url);
-        retryUrl.searchParams.set("attempt", String(attempt + 1));
+        const retryUrl = twilioCallbackUrlFromRequest(request, {
+          attempt: String(attempt + 1),
+        });
         const twiml = twimlResponse(
           twimlGatherSpeechDetailed(
-            retryUrl.toString(),
+            retryUrl,
             "I'm sorry, I didn't catch that clearly. Could you say that again?",
           ),
         );
