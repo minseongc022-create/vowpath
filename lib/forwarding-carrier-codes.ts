@@ -47,13 +47,23 @@ export function getCarrierQuickActions(
   }
 
   if (provider === "tmobile") {
+    const code20 = `**61*1${td}**20#`;
     const code = `**61*1${td}#`;
     const tenOnly = `**61*${td}#`;
     return [
       {
+        id: "tmobile-no-answer-20s",
+        label: "T-Mobile — activate (20 sec ring)",
+        description:
+          "Primary code. No-answer only — wait for T-Mobile confirmation tone or text.",
+        dial: code20,
+        copyText: code20,
+        deactivateDial: "##61#",
+      },
+      {
         id: "tmobile-no-answer",
-        label: "T-Mobile — activate no-answer",
-        description: "Wait for T-Mobile confirmation. Covers no-answer and busy on most plans.",
+        label: "T-Mobile — alternate (carrier default ring)",
+        description: "Shorter code without ring timer — try if the 20-second code errors.",
         dial: code,
         copyText: code,
         deactivateDial: "##61#",
@@ -61,7 +71,7 @@ export function getCarrierQuickActions(
       {
         id: "tmobile-no-answer-alt",
         label: "T-Mobile — alternate (10-digit)",
-        description: "Try if the first code fails on Metro / Mint.",
+        description: "Try if the first codes fail on Metro / Mint.",
         dial: tenOnly,
         copyText: tenOnly,
         deactivateDial: "##004#",

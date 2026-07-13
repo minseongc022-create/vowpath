@@ -214,11 +214,13 @@ export function getForwardingGuideSteps(
   }
 
   if (provider === "tmobile") {
-    const code = `**61*1${tenDigit}#`;
+    const code = `**61*1${tenDigit}**20#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
       "Use the T-Mobile phone that receives your shop's customer calls (includes Metro, Mint on T-Mobile network).",
       "Open the Phone app.",
-      `Dial exactly: ${code}`,
+      `Dial exactly: ${code} (no-answer overflow — about 20 seconds)`,
+      `If that errors, try: ${alt} (carrier default ring time)`,
       "Press Call and wait for a confirmation tone or text from T-Mobile.",
       "To remove later: dial ##61# and press Call (or ##004# to clear all conditional forwarding).",
       FORWARDING_IPHONE_WARNING,

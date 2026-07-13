@@ -16,6 +16,8 @@ export type InboundEvent = {
   direction?: string;
   durationSec?: number;
   aiScheduleActive?: boolean;
+  /** Set when the carrier passes Twilio a ForwardedFrom header (conditional forward). */
+  forwardedFrom?: string;
   createdAt: string;
 };
 
