@@ -91,7 +91,7 @@ export async function GET() {
       needsSync: liveAgent ? !liveAgent.promptSynced || !liveAgent.toneSynced : null,
     },
     howToTest:
-      'Call +1 (225) 529-1680 — expect casual hello: "Hey, thanks for calling … what\'s going on?"',
+      'Call +1 (225) 529-1680 — warm, upbeat US tone: "Hi there, thanks for calling … we\'ll take care of you."',
     syncAgent: "GET /api/cron/retell-production-sync with CRON_SECRET",
   });
 }
