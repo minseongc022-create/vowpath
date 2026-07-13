@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const userId = to ? await resolveTenantUserId({ to }) : null;
 
     if (userId) {
-      const blocked = await twilioBlockIfNotEntitled(userId, "sms");
+      const blocked = await twilioBlockIfNotEntitled(userId, "sms", to);
       if (blocked) return blocked;
     }
 

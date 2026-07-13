@@ -43,11 +43,16 @@ export async function bindTwilioPhoneToUser(
   const key = normalizeE164(phoneNumber);
   if (useKvStore()) {
     await kv.set(kvKey(key), userId);
+    const { setUserTwilioBoundMarker, ensurePilotTrial } = await import("./pilot-trial");
+    await setUserTwilioBoundMarker(userId, key);
+    await ensurePilotTrial(userId);
     return;
   }
   const store = await readFileMap();
   store.mappings[key] = userId;
   await writeFileMap(store);
+  const { ensurePilotTrial } = await import("./pilot-trial");
+  await ensurePilotTrial(userId);
 }
 
 /**
