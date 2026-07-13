@@ -3,15 +3,15 @@
  */
 
 /** Bump when prompt/tone changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "warm-v3-2026-07-13";
+export const RETELL_PROMPT_VERSION = "trust-pro-v4-2026-07-13";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Grace */
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Sloane */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Grace",
   "Sloane",
-  "Hailey",
   "Paola",
   "Adrian",
+  "Grace",
+  "Hailey",
 ] as const;
 
 export type RetellVoiceInfo = {
@@ -32,7 +32,7 @@ function isUsEnglishVoice(v: RetellVoiceInfo): boolean {
   return true;
 }
 
-/** Pick a warm, upbeat US English receptionist voice for the intake agent. */
+/** Pick a calm, professional US English dispatcher voice. */
 export function pickNaturalReceptionistVoice(
   voices: RetellVoiceInfo[],
   options?: { explicitId?: string; currentVoiceId?: string },
@@ -58,7 +58,7 @@ export function pickNaturalReceptionistVoice(
   return american[0]?.voice_id;
 }
 
-/** Shared PATCH body — warm American phone tone, natural pace and pitch for US listeners. */
+/** Shared PATCH body — professional US dispatcher: louder, faster, noise-resistant. */
 export function buildRetellProductionAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     agent_name: "Effiroad Intake Agent",
@@ -67,29 +67,32 @@ export function buildRetellProductionAgentPatch(voiceId?: string) {
     vocab_specialization: "general",
     boosted_keywords: [
       "water damage",
+      "water leak",
       "fire damage",
       "mold",
-      "sewage backup",
+      "sewage",
       "basement",
       "burst pipe",
+      "flood",
       "estimate",
       "emergency",
       "HVAC",
       "no heat",
+      "no cool",
+      "restoration",
+      "mitigation",
     ],
-    // ~1.0 = standard American conversational pace; dynamic adjusts to caller
-    voice_temperature: 1.05,
-    voice_speed: 1.0,
-    voice_model: "eleven_v3",
-    enable_dynamic_voice_speed: true,
-    // Engaged but not interrupting — feels attentive to US callers
-    responsiveness: 0.8,
-    enable_dynamic_responsiveness: true,
-    interruption_sensitivity: 0.4,
-    enable_backchannel: true,
-    backchannel_frequency: 0.6,
-    backchannel_words: ["yeah", "absolutely", "for sure", "okay", "got it", "right"],
-    reminder_trigger_ms: 15000,
+    denoising_mode: "noise-and-background-speech-cancellation",
+    voice_temperature: 0.88,
+    voice_speed: 1.1,
+    voice_model: "eleven_turbo_v2_5",
+    enable_dynamic_voice_speed: false,
+    volume: 1.35,
+    responsiveness: 1.0,
+    enable_dynamic_responsiveness: false,
+    interruption_sensitivity: 0.22,
+    enable_backchannel: false,
+    reminder_trigger_ms: 12000,
     reminder_max_count: 1,
   };
 

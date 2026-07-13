@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
+import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
+import { isRetellConfigured } from "@/lib/retell-config";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import {
   createLinkIntakeSession,
@@ -65,9 +67,18 @@ export async function POST(request: Request) {
     let state = await getEstimateState(userId, callSid);
 
     if (!state) {
-      // First hit after the sub-menu prompt: the digit chooses the channel.
-      // 1 = give details by phone now, 2 = get an estimate form by text.
       const channel = digit === "1" ? "phone" : "link";
+      if (channel === "phone" && isRetellConfigured()) {
+        return twimlXml(
+          await buildRetellBridgeTwiml({
+            afterHours,
+            to,
+            from,
+            callSid,
+            ivrPath: "phone_estimate",
+          }),
+        );
+      }
       state = newEstimateState({ callSid, userId, from, to, channel, afterHours });
       await saveEstimateState(state);
       return twimlXml(twimlForEstimateState(state));

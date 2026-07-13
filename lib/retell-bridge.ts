@@ -25,6 +25,8 @@ export type RetellBridgeParams = {
   from: string;
   callSid?: string;
   intro?: string;
+  /** Set when caller chose a path on the Twilio DTMF menu before Retell. */
+  ivrPath?: "phone_booking" | "phone_estimate" | "";
   /** Add call recording + status callbacks (first inbound webhook). */
   includeInboundRecording?: boolean;
 };
@@ -77,6 +79,7 @@ export async function buildRetellBridgeTwiml(
               `Thank you for calling ${shopName}. We are closed today.`
             : "",
           custom_greeting: memory?.customGreeting ?? "",
+          ivr_path: params.ivrPath ?? "",
         };
       } catch (e) {
         console.warn("[retell-bridge] tenant context failed:", e);

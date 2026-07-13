@@ -2,15 +2,15 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "warm-v3-2026-07-13";
+export const RETELL_PROMPT_VERSION = "trust-pro-v4-2026-07-13";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Grace */
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Sloane */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Grace",
   "Sloane",
-  "Hailey",
   "Paola",
   "Adrian",
+  "Grace",
+  "Hailey",
 ];
 
 function isUsEnglishVoice(v) {
@@ -53,27 +53,32 @@ export function buildRetellProductionAgentPatch(voiceId) {
     vocab_specialization: "general",
     boosted_keywords: [
       "water damage",
+      "water leak",
       "fire damage",
       "mold",
-      "sewage backup",
+      "sewage",
       "basement",
       "burst pipe",
+      "flood",
       "estimate",
       "emergency",
       "HVAC",
       "no heat",
+      "no cool",
+      "restoration",
+      "mitigation",
     ],
-    voice_temperature: 1.05,
-    voice_speed: 1.0,
-    voice_model: "eleven_v3",
-    enable_dynamic_voice_speed: true,
-    responsiveness: 0.8,
-    enable_dynamic_responsiveness: true,
-    interruption_sensitivity: 0.4,
-    enable_backchannel: true,
-    backchannel_frequency: 0.6,
-    backchannel_words: ["yeah", "absolutely", "for sure", "okay", "got it", "right"],
-    reminder_trigger_ms: 15000,
+    denoising_mode: "noise-and-background-speech-cancellation",
+    voice_temperature: 0.88,
+    voice_speed: 1.1,
+    voice_model: "eleven_turbo_v2_5",
+    enable_dynamic_voice_speed: false,
+    volume: 1.35,
+    responsiveness: 1.0,
+    enable_dynamic_responsiveness: false,
+    interruption_sensitivity: 0.22,
+    enable_backchannel: false,
+    reminder_trigger_ms: 12000,
     reminder_max_count: 1,
   };
 
