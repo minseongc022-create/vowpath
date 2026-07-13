@@ -5,6 +5,7 @@ import {
   ensurePilotTrialForMappedPhone,
 } from "./pilot-trial";
 import { findUserById } from "./users-db";
+import { resolveTenantUserId } from "./tenant-routing";
 import { twimlMessage, twimlResponse, twimlSay } from "./twilio-xml";
 
 const SMS_SUSPENDED =
@@ -61,10 +62,21 @@ export async function twilioBlockIfNotEntitled(
 
   if (inboundTo) {
     await ensurePilotTrialForMappedPhone(userId, inboundTo);
+    if (await isTenantProductEntitled(userId)) return null;
+
+    const mapped = await resolveTenantUserId({ to: inboundTo });
+    if (mapped === userId) {
+      console.warn(
+        "[tenant-product-access] allowing mapped inbound line during pilot:",
+        userId,
+        inboundTo,
+      );
+      return null;
+    }
   } else {
     await ensurePilotTrial(userId);
+    if (await isTenantProductEntitled(userId)) return null;
   }
-  if (await isTenantProductEntitled(userId)) return null;
 
   return channel === "voice"
     ? twilioVoiceSuspendedResponse()
