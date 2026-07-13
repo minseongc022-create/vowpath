@@ -1,3 +1,7 @@
+import {
+  resolvePaddleClientEnvironment,
+  resolvePaddleClientToken,
+} from "./paddle-client-public";
 import { isPaddleConfigured, isValidPaddleEnvValue } from "./paddle-config";
 
 /** Build-time flag from NEXT_PUBLIC_BETA (baked into client bundle). */
@@ -26,7 +30,7 @@ export function isPaidCheckoutEnabled(): boolean {
 }
 
 export function paddleClientTokenConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim());
+  return Boolean(resolvePaddleClientToken());
 }
 
 export type CheckoutReadiness = {
@@ -34,6 +38,9 @@ export type CheckoutReadiness = {
   mode: "beta" | "not_configured" | "paddle_checkout_disabled" | "ready";
   paddleConfigured: boolean;
   clientTokenConfigured: boolean;
+  /** Runtime Paddle.js token (public by design) when configured server-side. */
+  paddleClientToken?: string;
+  paddleEnvironment?: "production" | "sandbox";
   issues: string[];
 };
 
@@ -69,20 +76,22 @@ export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutR
   }
 
   if (!clientTokenConfigured) {
-    issues.push("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing — checkout overlay cannot open.");
+    issues.push(
+      "Paddle client token is missing — set PADDLE_CLIENT_TOKEN or NEXT_PUBLIC_PADDLE_CLIENT_TOKEN in Vercel (Production).",
+    );
   }
 
   if (paddleErrorCode === "paddle_checkout_disabled") {
     issues.push(
       "Paddle seller onboarding is incomplete — enable Checkout in Paddle dashboard (transaction_checkout_not_enabled).",
     );
-    return {
+    return withPaddleClientPublic({
       checkoutEnabled: true,
       mode: "paddle_checkout_disabled",
       paddleConfigured: true,
       clientTokenConfigured,
       issues,
-    };
+    });
   }
 
   if (!clientTokenConfigured) {
@@ -95,11 +104,22 @@ export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutR
     };
   }
 
-  return {
+  return withPaddleClientPublic({
     checkoutEnabled: true,
     mode: "ready",
     paddleConfigured: true,
     clientTokenConfigured: true,
     issues,
+  });
+}
+
+function withPaddleClientPublic(
+  base: Omit<CheckoutReadiness, "paddleClientToken" | "paddleEnvironment">,
+): CheckoutReadiness {
+  if (!base.clientTokenConfigured) return base;
+  return {
+    ...base,
+    paddleClientToken: resolvePaddleClientToken(),
+    paddleEnvironment: resolvePaddleClientEnvironment(),
   };
 }

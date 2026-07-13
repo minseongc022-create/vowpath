@@ -22,7 +22,7 @@ async function main() {
 
   const ok =
     status.checkoutEnabled &&
-    status.clientTokenConfigured &&
+    (status.clientTokenConfigured || Boolean(status.paddleClientToken)) &&
     status.paddleConfigured &&
     (post.transactionId || post.code === "paddle_checkout_disabled");
 

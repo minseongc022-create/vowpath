@@ -43,6 +43,14 @@ ok(
   "PADDLE_PRICE_ID_FLEX for flex plan",
 );
 ok(
+  "Paddle client token",
+  Boolean(
+    process.env.PADDLE_CLIENT_TOKEN?.trim() ||
+      process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim(),
+  ),
+  "PADDLE_CLIENT_TOKEN or NEXT_PUBLIC_PADDLE_CLIENT_TOKEN",
+);
+ok(
   "Paddle flex usage",
   Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE),
   "PADDLE_PRICE_ID_FLEX_USAGE — per-booking fee for flex plan",

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { checkoutErrorMessage, checkoutErrorMessageKo } from "@/lib/checkout-errors";
 import { isEnglishUi } from "@/lib/locale";
-import { openPaddleCheckout, paddleClientToken } from "@/lib/paddle-checkout-client";
+import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 
 /**
  * Set as the Paddle "Default payment link" (Paddle > Checkout > Checkout settings).
@@ -20,14 +20,14 @@ export default function PayPage() {
       return;
     }
 
-    if (!paddleClientToken()) {
-      setError("missing_client_token");
-      return;
-    }
-
     let cancelled = false;
-    void openPaddleCheckout(transactionId).catch(() => {
-      if (!cancelled) setError("unavailable");
+    void openPaddleCheckout(transactionId).catch((e) => {
+      if (cancelled) return;
+      const code =
+        typeof e === "object" && e !== null && "code" in e
+          ? String((e as { code?: string }).code)
+          : "unavailable";
+      setError(code);
     });
 
     return () => {
