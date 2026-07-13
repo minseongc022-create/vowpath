@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
+import { getRetellWebhookBaseUrl } from "@/lib/retell-config";
+import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
+import { buildRetellGeneralTools } from "@/lib/retell-tools";
 
 const TEST_AGENT_ID = "agent_6e612965cf4b69f4312deee3f8";
 const TEST_LLM_ID = "llm_9e819a0687ea88f77b29f8de448d";
@@ -242,49 +245,15 @@ async function switchAgentToProduction() {
     "Content-Type": "application/json",
   };
 
-  const generalPrompt =
-    "You are a warm, upbeat phone intake specialist for a US water, fire, and mold restoration company. " +
-    "Speak the way someone naturally reassures a worried person — bright, caring, a little bouncy in your delivery. " +
-    "Stay energetic and encouraging throughout, never flat or robotic, but don't be silly — this is still a real " +
-    "intake call.\n\n" +
-    "FIRST, figure out what the caller wants — do not assume. Ask naturally, e.g. 'What's going on, or are you " +
-    "just looking for a free estimate?' Two paths:\n\n" +
-    "PATH A — Booking / emergency (active damage, needs a crew, wants to schedule service): find out the caller's " +
-    "name, the exact property address, and the type of damage (water, fire, mold, or sewage backup). If the " +
-    "situation sounds urgent or the caller is upset, lead with warmth and reassurance before asking questions. " +
-    "Once you have what you need, read it back to confirm, then call the submit_intake tool with the details.\n\n" +
-    "PATH B — Free estimate only (no active emergency, just wants pricing/info): find out their name, the address, " +
-    "what kind of work/damage it's for, when they first noticed it, and their preferred day/time for a callback. " +
-    "NEVER estimate or quote a price yourself — you only collect information, the shop prices the job. Once you " +
-    "have the details, read them back to confirm, then call the submit_estimate tool.\n\n" +
-    "Only call one tool, once, near the end of the call — after you've confirmed the details with the caller, not " +
-    "before.\n\n" +
-    "Speech pacing: write your sentences with natural punctuation and short pauses, the way a person actually " +
-    "talks. Never mash separate words or list items together (say 'water, fire, mold, or sewage backup' as four " +
-    "distinct, separately-paced words — not 'waterfiremold'). Use commas and short phrases so listed items and key " +
-    "details land clearly, one at a time.\n\n" +
-    "Many callers are on job sites or outside with real background noise (trucks, tools, TV, other people talking). " +
-    "Be patient: if you only catch part of what someone said, or the audio sounded muffled/unclear, say something " +
-    "like 'Sorry, it got a little noisy there — could you say that again?' rather than guessing or assuming. If " +
-    "there's a pause, wait a beat before speaking again — the caller may just be gathering their thoughts, not " +
-    "finished, or dealing with noise on their end. Never talk over the caller; if you're not sure they're done, " +
-    "wait rather than jumping in.\n\n" +
-    "When you're not fully confident you heard something correctly (an unclear name, address, or street), do not " +
-    "guess or silently accept it — say something like 'Just to make sure I've got that right — did you say ___? " +
-    "If not, could you say it again?' and wait for their confirmation before moving on.\n\n" +
-    "If what the caller describes doesn't clearly match a type of damage this company handles (water, fire, mold, " +
-    "or sewage backup), don't force it into one of those categories. Instead, warmly let them know a team member " +
-    "will follow up personally to make sure they're taken care of, then collect their name, phone number, and a " +
-    "brief note of what they described, then call submit_intake with that as the notes.\n\n" +
-    "Never rush the caller — give them time to speak.";
+  const { generalTools } = buildRetellGeneralTools(getRetellWebhookBaseUrl());
 
   const llmRes = await fetch(`https://api.retellai.com/update-retell-llm/${TEST_LLM_ID}`, {
     method: "PATCH",
     headers,
     body: JSON.stringify({
-      general_prompt: generalPrompt,
-      begin_message:
-        "Thanks so much for calling~ I'm here to help — could you tell me your name, and what's going on today?",
+      general_prompt: RETELL_PRODUCTION_PROMPT,
+      begin_message: RETELL_PRODUCTION_BEGIN_MESSAGE,
+      general_tools: generalTools,
     }),
   });
   if (!llmRes.ok) {
@@ -294,16 +263,29 @@ async function switchAgentToProduction() {
     );
   }
 
-  // Noise-robustness tuning: lower interruption sensitivity so background
-  // noise is less likely to be mistaken for the caller talking (fewer false
-  // barge-ins where the agent cuts itself off mid-sentence).
   const agentRes = await fetch(`https://api.retellai.com/update-agent/${TEST_AGENT_ID}`, {
     method: "PATCH",
     headers,
     body: JSON.stringify({
-      interruption_sensitivity: 0.5,
-      responsiveness: 0.9,
-      reminder_trigger_ms: 12000,
+      agent_name: "Effiroad Intake Agent",
+      language: "en-US",
+      stt_mode: "accurate",
+      vocab_specialization: "general",
+      boosted_keywords: [
+        "water damage",
+        "fire damage",
+        "mold",
+        "sewage backup",
+        "basement",
+        "burst pipe",
+        "estimate",
+        "emergency",
+        "HVAC",
+        "no heat",
+      ],
+      interruption_sensitivity: 0.45,
+      responsiveness: 0.88,
+      reminder_trigger_ms: 14000,
       reminder_max_count: 1,
     }),
   });
@@ -318,6 +300,6 @@ async function switchAgentToProduction() {
     ok: true,
     agent_id: TEST_AGENT_ID,
     llm_id: TEST_LLM_ID,
-    switchedTo: "production (booking + estimate branching, noise-tuned)",
+    switchedTo: "production (shared prompt + tools)",
   });
 }
