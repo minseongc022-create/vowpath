@@ -9,7 +9,8 @@ import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Invalid signature", { status: 403 });
+    console.error("[twilio/call-status] invalid signature — ack anyway");
+    return new NextResponse("OK", { status: 200 });
   }
 
   const form = new URLSearchParams(rawBody);

@@ -7,8 +7,19 @@ export function validateTwilioWebhook(request: Request, rawBody: string): boolea
     return process.env.NODE_ENV !== "production";
   }
   const signature = request.headers.get("x-twilio-signature");
-  if (!signature) return false;
+  if (!signature) {
+    console.warn("[twilio-signature] missing X-Twilio-Signature header");
+    return false;
+  }
   const url = getTwilioPublicRequestUrl(request);
   const params = Object.fromEntries(new URLSearchParams(rawBody));
-  return twilio.validateRequest(token, signature, url, params);
+  const ok = twilio.validateRequest(token, signature, url, params);
+  if (!ok) {
+    console.error(
+      "[twilio-signature] validation failed for URL:",
+      url,
+      "(set TWILIO_WEBHOOK_BASE_URL to the exact public origin Twilio calls)",
+    );
+  }
+  return ok;
 }

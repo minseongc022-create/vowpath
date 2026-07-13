@@ -10,7 +10,8 @@ import { logOperationFailure } from "@/lib/ops-failures";
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
-    return new NextResponse("Invalid signature", { status: 403 });
+    console.error("[twilio/recording] invalid signature — ack anyway");
+    return new NextResponse("", { status: 204 });
   }
 
   const form = new URLSearchParams(rawBody);

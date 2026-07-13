@@ -1,11 +1,18 @@
-import { getTwilioWebhookBaseUrl } from "./twilio-config";
+import { requireTwilioWebhookBaseUrl } from "./twilio-config";
 
 /** Absolute HTTPS URL for Twilio <Gather action="..."> callbacks (never relative). */
 export function buildTwilioCallbackUrl(
   path: string,
   params?: Record<string, string | number | undefined | null>,
 ): string {
-  const base = getTwilioWebhookBaseUrl();
+  const base =
+    requireTwilioWebhookBaseUrl("twilio-callback-url") ||
+    (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "");
+  if (!base) {
+    throw new Error(
+      "TWILIO_WEBHOOK_BASE_URL or NEXT_PUBLIC_APP_URL required for Twilio callbacks",
+    );
+  }
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const search = new URLSearchParams();
   if (params) {
