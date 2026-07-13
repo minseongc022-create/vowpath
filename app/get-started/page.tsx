@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { siteGetStarted, sitePricing } from "@/lib/site-content";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { IS_BETA } from "@/lib/beta";
+import { isPaidCheckoutEnabled } from "@/lib/billing-mode";
 import { ROUTES } from "@/lib/constants";
 import { isPaddleConfigured } from "@/lib/paddle-config";
 import { PlanCheckout } from "@/components/checkout/PlanCheckout";
@@ -16,7 +16,7 @@ export default async function GetStartedPage({
     checkout_error?: string;
   }>;
 }) {
-  if (IS_BETA) {
+  if (!isPaidCheckoutEnabled()) {
     redirect(ROUTES.signup);
   }
 
