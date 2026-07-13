@@ -57,7 +57,7 @@ This script (same logic as production postbuild sync):
 
 - Sets Retell inbound webhook → `https://effiroad.com/api/retell/inbound`
 - Pushes `general_prompt`, `begin_message`, and all tools (`send_intake_link`, `submit_intake`, `submit_estimate`)
-- Tunes agent STT keywords and responsiveness
+- Tunes agent voice (natural US receptionist), backchannel ("mm-hmm", "yeah"), and slower, more patient pacing
 - Binds Retell phone → tenant in KV (when `TWILIO_DEFAULT_USER_ID` set)
 
 ## 4. Sync English production agent

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { bindTwilioPhoneToUser } from "@/lib/tenant-routing";
 import { getRetellWebhookBaseUrl } from "@/lib/retell-config";
+import { buildRetellProductionAgentPatch, pickNaturalReceptionistVoice } from "@/lib/retell-agent-settings";
 import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
 import { buildRetellGeneralTools } from "@/lib/retell-tools";
 
@@ -247,6 +248,19 @@ async function switchAgentToProduction() {
 
   const { generalTools } = buildRetellGeneralTools(getRetellWebhookBaseUrl());
 
+  const [getAgentRes, voicesRes] = await Promise.all([
+    fetch(`https://api.retellai.com/get-agent/${TEST_AGENT_ID}`, { headers }),
+    fetch("https://api.retellai.com/list-voices", { headers }),
+  ]);
+  let voiceId: string | undefined = process.env.RETELL_VOICE_ID?.trim();
+  if (!voiceId && voicesRes.ok) {
+    const voices = (await voicesRes.json()) as Parameters<typeof pickNaturalReceptionistVoice>[0];
+    const currentVoiceId = getAgentRes.ok
+      ? ((await getAgentRes.json()) as { voice_id?: string }).voice_id
+      : undefined;
+    voiceId = pickNaturalReceptionistVoice(voices, { currentVoiceId });
+  }
+
   const llmRes = await fetch(`https://api.retellai.com/update-retell-llm/${TEST_LLM_ID}`, {
     method: "PATCH",
     headers,
@@ -266,28 +280,7 @@ async function switchAgentToProduction() {
   const agentRes = await fetch(`https://api.retellai.com/update-agent/${TEST_AGENT_ID}`, {
     method: "PATCH",
     headers,
-    body: JSON.stringify({
-      agent_name: "Effiroad Intake Agent",
-      language: "en-US",
-      stt_mode: "accurate",
-      vocab_specialization: "general",
-      boosted_keywords: [
-        "water damage",
-        "fire damage",
-        "mold",
-        "sewage backup",
-        "basement",
-        "burst pipe",
-        "estimate",
-        "emergency",
-        "HVAC",
-        "no heat",
-      ],
-      interruption_sensitivity: 0.45,
-      responsiveness: 0.88,
-      reminder_trigger_ms: 14000,
-      reminder_max_count: 1,
-    }),
+    body: JSON.stringify(buildRetellProductionAgentPatch(voiceId)),
   });
   if (!agentRes.ok) {
     return NextResponse.json(
@@ -300,6 +293,7 @@ async function switchAgentToProduction() {
     ok: true,
     agent_id: TEST_AGENT_ID,
     llm_id: TEST_LLM_ID,
-    switchedTo: "production (shared prompt + tools)",
+    voice_id: voiceId,
+    switchedTo: "production (human tone + shared prompt)",
   });
 }

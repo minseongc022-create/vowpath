@@ -3,6 +3,10 @@ import {
   RETELL_PRODUCTION_PROMPT,
   buildRetellGeneralTools,
 } from "./retell-agent-config.mjs";
+import {
+  buildRetellProductionAgentPatch,
+  pickNaturalReceptionistVoice,
+} from "./retell-agent-settings.mjs";
 
 /**
  * Push prompt, tools, and agent settings to Retell. Idempotent.
@@ -42,6 +46,13 @@ export async function runRetellSync(env = process.env) {
 
   const { generalTools, urls } = buildRetellGeneralTools(base);
 
+  const currentAgent = await retell(`/get-agent/${agentId}`);
+  const voices = await retell("/list-voices");
+  const voiceId = pickNaturalReceptionistVoice(voices, {
+    explicitId: env.RETELL_VOICE_ID,
+    currentVoiceId: currentAgent.voice_id,
+  });
+
   await retell(`/update-retell-llm/${llmId}`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -53,28 +64,7 @@ export async function runRetellSync(env = process.env) {
 
   await retell(`/update-agent/${agentId}`, {
     method: "PATCH",
-    body: JSON.stringify({
-      agent_name: "Effiroad Intake Agent",
-      language: "en-US",
-      stt_mode: "accurate",
-      vocab_specialization: "general",
-      boosted_keywords: [
-        "water damage",
-        "fire damage",
-        "mold",
-        "sewage backup",
-        "basement",
-        "burst pipe",
-        "estimate",
-        "emergency",
-        "HVAC",
-        "no heat",
-      ],
-      interruption_sensitivity: 0.45,
-      responsiveness: 0.88,
-      reminder_trigger_ms: 14000,
-      reminder_max_count: 1,
-    }),
+    body: JSON.stringify(buildRetellProductionAgentPatch(voiceId)),
   });
 
   const list = await retell("/v2/list-phone-numbers?limit=100");
@@ -109,5 +99,5 @@ export async function runRetellSync(env = process.env) {
     }
   }
 
-  return { ok: true, phone: e164, agentId, llmId, base, urls };
+  return { ok: true, phone: e164, agentId, llmId, base, urls, voiceId };
 }

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getRetellAgentId, getRetellLlmId, getRetellWebhookBaseUrl, retellToolUrls, shouldRetellAnswerAllCalls } from "@/lib/retell-config";
+import { buildRetellProductionAgentPatch, pickNaturalReceptionistVoice } from "@/lib/retell-agent-settings";
 import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
 import { buildRetellGeneralTools } from "@/lib/retell-tools";
-
-const PRODUCTION_PROMPT = RETELL_PRODUCTION_PROMPT;
-const PRODUCTION_BEGIN = RETELL_PRODUCTION_BEGIN_MESSAGE;
 
 function cronAuth(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -45,8 +43,8 @@ export async function GET(request: Request) {
       method: "PATCH",
       headers,
       body: JSON.stringify({
-        general_prompt: PRODUCTION_PROMPT,
-        begin_message: PRODUCTION_BEGIN,
+        general_prompt: RETELL_PRODUCTION_PROMPT,
+        begin_message: RETELL_PRODUCTION_BEGIN_MESSAGE,
         general_tools: generalTools,
       }),
     });
@@ -61,28 +59,11 @@ export async function GET(request: Request) {
     const agentRes = await fetch(`https://api.retellai.com/update-agent/${agentId}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({
-        agent_name: "Effiroad Intake Agent",
-        language: "en-US",
-        stt_mode: "accurate",
-        vocab_specialization: "general",
-        boosted_keywords: [
-          "water damage",
-          "fire damage",
-          "mold",
-          "sewage backup",
-          "basement",
-          "burst pipe",
-          "estimate",
-          "emergency",
-          "HVAC",
-          "no heat",
-        ],
-        interruption_sensitivity: 0.45,
-        responsiveness: 0.88,
-        reminder_trigger_ms: 14000,
-        reminder_max_count: 1,
-      }),
+      body: JSON.stringify(
+        buildRetellProductionAgentPatch(
+          await resolveProductionVoiceId(apiKey, agentId),
+        ),
+      ),
     });
     if (!agentRes.ok) {
       const body = await agentRes.text();
@@ -136,4 +117,22 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+async function resolveProductionVoiceId(apiKey: string, agentId: string): Promise<string | undefined> {
+  const headers = { Authorization: `Bearer ${apiKey}` };
+  const explicit = process.env.RETELL_VOICE_ID?.trim();
+  if (explicit) return explicit;
+
+  const [agentRes, voicesRes] = await Promise.all([
+    fetch(`https://api.retellai.com/get-agent/${agentId}`, { headers }),
+    fetch("https://api.retellai.com/list-voices", { headers }),
+  ]);
+  if (!voicesRes.ok) return undefined;
+
+  const voices = (await voicesRes.json()) as Parameters<typeof pickNaturalReceptionistVoice>[0];
+  const currentVoiceId = agentRes.ok
+    ? ((await agentRes.json()) as { voice_id?: string }).voice_id
+    : undefined;
+  return pickNaturalReceptionistVoice(voices, { currentVoiceId });
 }
