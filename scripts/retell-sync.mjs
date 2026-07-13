@@ -51,9 +51,26 @@ const toolUrls = {
   inbound: `${base}/api/retell/inbound`,
   submitIntake: `${base}/api/retell/tools/submit-intake`,
   submitEstimate: `${base}/api/retell/tools/submit-estimate`,
+  sendIntakeLink: `${base}/api/retell/tools/send-intake-link`,
 };
 
 const generalTools = [
+  {
+    type: "custom",
+    name: "send_intake_link",
+    description:
+      "Text the caller a secure link when they chose SMS instead of staying on the phone. Call once, then wrap up.",
+    speak_after_execution: true,
+    speak_during_execution: false,
+    url: toolUrls.sendIntakeLink,
+    parameters: {
+      type: "object",
+      properties: {
+        purpose: { type: "string", enum: ["booking", "estimate"] },
+      },
+      required: ["purpose"],
+    },
+  },
   {
     type: "custom",
     name: "submit_intake",

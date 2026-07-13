@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getRetellAgentId, getRetellLlmId, retellToolUrls, shouldRetellAnswerAllCalls } from "@/lib/retell-config";
+import { getRetellAgentId, getRetellLlmId, getRetellWebhookBaseUrl, retellToolUrls, shouldRetellAnswerAllCalls } from "@/lib/retell-config";
 import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
+import { buildRetellGeneralTools } from "@/lib/retell-tools";
 
 const PRODUCTION_PROMPT = RETELL_PRODUCTION_PROMPT;
 const PRODUCTION_BEGIN = RETELL_PRODUCTION_BEGIN_MESSAGE;
@@ -33,52 +34,11 @@ export async function GET(request: Request) {
   const agentId = getRetellAgentId();
   const llmId = getRetellLlmId();
   const urls = retellToolUrls();
+  const { generalTools } = buildRetellGeneralTools(getRetellWebhookBaseUrl());
   const headers = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
-
-  const generalTools = [
-    {
-      type: "custom",
-      name: "submit_intake",
-      description:
-        "Call once after confirming booking/emergency details: customer name, property address, damage type, notes.",
-      speak_after_execution: true,
-      speak_during_execution: false,
-      url: urls.submitIntake,
-      parameters: {
-        type: "object",
-        properties: {
-          customerName: { type: "string" },
-          address: { type: "string" },
-          issueType: { type: "string" },
-          notes: { type: "string" },
-        },
-        required: ["customerName", "address", "issueType"],
-      },
-    },
-    {
-      type: "custom",
-      name: "submit_estimate",
-      description: "Call once after confirming free-estimate details. Never quote a price.",
-      speak_after_execution: true,
-      speak_during_execution: false,
-      url: urls.submitEstimate,
-      parameters: {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          address: { type: "string" },
-          damageType: { type: "string" },
-          noticedWhen: { type: "string" },
-          preferredTime: { type: "string" },
-          callbackPhone: { type: "string" },
-        },
-        required: ["name", "address", "damageType"],
-      },
-    },
-  ];
 
   try {
     const llmRes = await fetch(`https://api.retellai.com/update-retell-llm/${llmId}`, {
