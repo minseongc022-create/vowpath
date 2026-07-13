@@ -12,8 +12,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "send_intake_link",
       description:
-        "Caller chose to receive a TEXT LINK instead of continuing on the phone. " +
-        "Texts a secure self-service form to their mobile. Call once, confirm delivery, then wrap up the call.",
+        "Caller wants a TEXT instead of staying on the phone. Send the form link once, confirm it went out, then wrap up.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.sendIntakeLink,
@@ -33,7 +32,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "submit_intake",
       description:
-        "Caller chose PHONE intake for booking/emergency. Call ONCE after confirming name, address, and damage type.",
+        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, address, and damage type confirmed.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitIntake,
@@ -52,7 +51,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "submit_estimate",
       description:
-        "Caller chose PHONE intake for a FREE ESTIMATE. Call ONCE after confirming details. Never quote a price.",
+        "Caller is doing phone intake for a free estimate. Call ONCE after details confirmed. Never quote a price.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitEstimate,

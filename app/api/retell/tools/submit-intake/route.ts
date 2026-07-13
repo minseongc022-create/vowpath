@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   try {
     body = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ result: "Sorry, something went wrong on our end." }, { status: 400 });
+    return NextResponse.json({ result: "Sorry, something got mixed up on our end." }, { status: 400 });
   }
 
   const call = (body.call ?? {}) as Record<string, unknown>;
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
   const userId = await resolveTenantUserId({ to, from, callSid: callId });
   if (!userId) {
     return NextResponse.json({
-      result: "This line isn't fully set up yet — please call back later or reach out during business hours.",
+      result: "Hmm, I'm not finding this line in our system — try calling back in a bit.",
     });
   }
 
@@ -86,14 +86,14 @@ export async function POST(request: Request) {
   if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     return NextResponse.json({
       result:
-        "Thanks for calling. This answering service isn't active right now — please contact the business directly.",
+        "Thanks for calling — looks like this answering service isn't turned on right now. Best to reach the shop directly.",
     });
   }
 
   const firstSubmission = await claimFirstSubmission(callId);
   if (!firstSubmission) {
     return NextResponse.json({
-      result: "I've already got your request logged — our team will be in touch shortly.",
+      result: "You're all set — we already have your info. Someone from the team will reach out soon.",
     });
   }
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
 
   if (!transcriptSource.trim()) {
     return NextResponse.json({
-      result: "I didn't quite catch the details — could you tell me your name, address, and the issue once more?",
+      result: "Sorry, I missed that — what's your name, the address, and what's going on?",
     });
   }
 
@@ -163,12 +163,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       result:
-        "Thanks — I've got your name, address, and the issue logged. Our team will follow up shortly to confirm.",
+        "Alright, you're all set — I've got everything down. Someone from the team will be in touch real soon. Hang in there.",
     });
   } catch (e) {
     console.error("[retell/tools/submit-intake]", e);
     return NextResponse.json({
-      result: "I'm having trouble logging that right now, but a team member will follow up with you directly.",
+      result: "Something glitched on my end — but don't worry, someone from the team will call you back.",
     });
   }
 }
