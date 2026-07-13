@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
+  isSpanishIvrEnabled,
   twimlGatherBookingChannel,
   twimlGatherEstimateMenu,
   twimlGatherSpanishIntake,
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
     return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateActionUrl)));
   }
 
-  if (digit === "3") {
+  if (digit === "3" && isSpanishIvrEnabled()) {
     const esUrl = buildTwilioCallbackUrl("/api/twilio/es-intake", { callSid });
     return twimlXml(twimlResponse(twimlGatherSpanishIntake(esUrl)));
   }
