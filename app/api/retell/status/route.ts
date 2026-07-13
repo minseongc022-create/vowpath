@@ -9,8 +9,9 @@ import {
   retellToolUrls,
   shouldRetellAnswerAllCalls,
 } from "@/lib/retell-config";
-import { RETELL_PROMPT_VERSION, buildRetellProductionAgentPatch } from "@/lib/retell-agent-settings";
+import { RETELL_PROMPT_VERSION, RETELL_PROMPT_SYNC_MARKER, buildRetellProductionAgentPatch } from "@/lib/retell-agent-settings";
 import { RETELL_PRODUCTION_BEGIN_MESSAGE } from "@/lib/retell-prompt";
+import { mainMenuIsEnglishOnly } from "@/lib/twilio-xml";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ type LiveAgentSnapshot = {
   backchannelEnabled?: boolean;
   beginMessage?: string;
   promptSynced?: boolean;
+  promptEnglishStrict?: boolean;
   toneSynced?: boolean;
 };
 
@@ -49,12 +51,13 @@ async function fetchLiveAgentSnapshot(): Promise<LiveAgentSnapshot | null> {
     enable_backchannel?: boolean;
   };
   const llm = llmRes.ok
-    ? ((await llmRes.json()) as { begin_message?: string })
+    ? ((await llmRes.json()) as { begin_message?: string; general_prompt?: string })
     : null;
 
   const expected = buildRetellProductionAgentPatch();
   const beginMessage = llm?.begin_message?.trim();
   const expectedBegin = RETELL_PRODUCTION_BEGIN_MESSAGE.trim();
+  const generalPrompt = llm?.general_prompt ?? "";
 
   return {
     voiceId: agent.voice_id,
@@ -62,7 +65,10 @@ async function fetchLiveAgentSnapshot(): Promise<LiveAgentSnapshot | null> {
     responsiveness: agent.responsiveness,
     backchannelEnabled: agent.enable_backchannel,
     beginMessage: beginMessage?.slice(0, 80),
-    promptSynced: beginMessage === expectedBegin,
+    promptSynced:
+      beginMessage === expectedBegin &&
+      generalPrompt.includes(RETELL_PROMPT_SYNC_MARKER),
+    promptEnglishStrict: generalPrompt.includes(RETELL_PROMPT_SYNC_MARKER),
     toneSynced:
       agent.enable_backchannel === expected.enable_backchannel &&
       agent.responsiveness === expected.responsiveness &&
@@ -94,7 +100,12 @@ export async function GET() {
       agentId: getRetellAgentId(),
       toolUrls: retellToolUrls(),
       liveAgent,
-      needsSync: liveAgent ? !liveAgent.promptSynced || !liveAgent.toneSynced : null,
+      needsSync: liveAgent
+        ? !liveAgent.promptSynced || !liveAgent.toneSynced || !liveAgent.promptEnglishStrict
+        : null,
+    },
+    twilio: {
+      mainMenuEnglishOnly: mainMenuIsEnglishOnly(),
     },
     howToTest:
       "Call your shop line → main menu → press 1 (service) → press 1 (phone) → dispatcher collects details.",

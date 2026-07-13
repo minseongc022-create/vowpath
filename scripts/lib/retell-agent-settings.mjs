@@ -2,15 +2,17 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "trust-pro-v4-en-only-2026-07-13";
+export const RETELL_PROMPT_VERSION = "trust-pro-v5-english-strict-2026-07-13";
+
+export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
 /** Override in Vercel: RETELL_VOICE_ID=11labs-Sloane */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Sloane",
-  "Paola",
-  "Adrian",
   "Grace",
   "Hailey",
+  "Sloane",
+  "Adrian",
+  "Paola",
 ];
 
 function isUsEnglishVoice(v) {

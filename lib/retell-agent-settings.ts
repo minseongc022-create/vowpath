@@ -3,15 +3,18 @@
  */
 
 /** Bump when prompt/tone changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "trust-pro-v4-en-only-2026-07-13";
+export const RETELL_PROMPT_VERSION = "trust-pro-v5-english-strict-2026-07-13";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Sloane */
+/** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
+export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
+
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Grace */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Sloane",
-  "Paola",
-  "Adrian",
   "Grace",
   "Hailey",
+  "Sloane",
+  "Adrian",
+  "Paola",
 ] as const;
 
 export type RetellVoiceInfo = {
