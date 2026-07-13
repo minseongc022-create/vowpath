@@ -14,7 +14,12 @@ Customer → +1 (225) 529-1680 (Twilio)
 
 **Important:** When `RETELL_API_KEY` is set, inbound calls connect straight to Retell — **no press-1-2-3 menu**. Set `RETELL_DTMF_IVR=true` to restore the old phone tree.
 
-Retell handles booking, free estimates, general questions, and Spanish — all in one conversation.
+Retell handles the full call conversationally — no press-1-2-3. The agent explains services verbally, then asks link vs phone.
+
+Example flow:
+- Caller: "I need a free estimate"
+- AI: "I can text you a quick form link, or we can do it right here on the call — which do you prefer?"
+- Link → `send_intake_link` tool | Phone → collect details → `submit_estimate`
 
 Twilio sets **callerId** to your shop Twilio line when forwarding, so Retell tool webhooks resolve the correct tenant from `from` or `to`.
 
@@ -86,5 +91,6 @@ If Retell fails to connect, Twilio falls back to scripted speech intake automati
 | Endpoint | Purpose |
 |----------|---------|
 | `POST /api/retell/inbound` | Dynamic variables before call connects |
-| `POST /api/retell/tools/submit-intake` | Book/dispatch after AI collects details |
+| `POST /api/retell/tools/send-intake-link` | Text self-service link when caller chooses SMS |
+| `POST /api/retell/tools/submit-intake` | Book/dispatch after phone intake |
 | `POST /api/retell/tools/submit-estimate` | Free estimate request (no dispatch) |
