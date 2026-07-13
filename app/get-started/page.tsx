@@ -52,12 +52,6 @@ export default async function GetStartedPage({
             </p>
           )}
 
-          {checkoutError && (
-            <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-              {page.checkoutError}
-            </p>
-          )}
-
           {!paddleReady && (
             <p className="mt-6 rounded-lg border border-surface-border bg-white px-4 py-3 text-sm text-slate-600">
               {page.demoNotice}
@@ -65,7 +59,11 @@ export default async function GetStartedPage({
           )}
         </div>
 
-        <PlanCheckout selectedPlan={selectedPlan} paddleReady={paddleReady} />
+        <PlanCheckout
+          selectedPlan={selectedPlan}
+          paddleReady={paddleReady}
+          checkoutErrorCode={checkoutError}
+        />
 
         <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-surface-border bg-white px-5 py-4 shadow-card">
           <p className="text-center text-sm font-medium text-slate-900">{pricing.tip}</p>

@@ -1,17 +1,26 @@
 import { ROUTES, type PlanId } from "@/lib/constants";
+import { paddleErrorToCode } from "@/lib/checkout-errors";
 import {
   allowCheckoutFallback,
   isValidPaddleEnvValue,
   priceIdForPlan,
 } from "@/lib/paddle-config";
-import { paddleFetch } from "@/lib/paddle-client";
+import { PaddleApiError, paddleFetch } from "@/lib/paddle-client";
 
 export class CheckoutUnavailableError extends Error {
-  constructor(message = "결제를 시작할 수 없습니다.") {
+  code: string;
+
+  constructor(message = "결제를 시작할 수 없습니다.", code = "unavailable") {
     super(message);
     this.name = "CheckoutUnavailableError";
+    this.code = code;
   }
 }
+
+export type CheckoutSession = {
+  transactionId: string;
+  url?: string;
+};
 
 export function appUrl(): string {
   return (
@@ -28,8 +37,8 @@ type PaddleTransactionResponse = {
   data: { id: string; checkout?: { url?: string } };
 };
 
-/** Paddle Checkout · (개발) 회원가입 폴백 URL */
-export async function getCheckoutRedirectUrl(
+/** Paddle Checkout session · (dev) signup fallback when Paddle env missing */
+export async function createCheckoutSession(
   plan: PlanId,
   opts?: {
     /** Use this price instead of the plan's normal price (e.g. the $129 beta-feedback intro rate). */
@@ -37,7 +46,7 @@ export async function getCheckoutRedirectUrl(
     /** Tagged onto the transaction's custom_data so the webhook can mark the user's cohort. */
     cohort?: "beta_feedback";
   },
-): Promise<string> {
+): Promise<CheckoutSession> {
   const priceId = opts?.priceIdOverride ?? priceIdForPlan(plan);
   const configured =
     isValidPaddleEnvValue(process.env.PADDLE_API_KEY) && isValidPaddleEnvValue(priceId);
@@ -46,10 +55,11 @@ export async function getCheckoutRedirectUrl(
     if (allowCheckoutFallback()) {
       const signup = new URL(ROUTES.signup, appUrl());
       signup.searchParams.set("plan", plan);
-      return signup.toString();
+      return { transactionId: "", url: signup.toString() };
     }
     throw new CheckoutUnavailableError(
       "결제 시스템을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
+      "not_configured",
     );
   }
 
@@ -63,21 +73,43 @@ export async function getCheckoutRedirectUrl(
       },
     });
 
+    const transactionId = result.data?.id?.trim();
     const url = result.data?.checkout?.url;
-    if (!url) {
-      throw new CheckoutUnavailableError("Checkout URL을 생성하지 못했습니다.");
+    if (!transactionId) {
+      throw new CheckoutUnavailableError(
+        "Checkout session을 생성하지 못했습니다.",
+        "missing_transaction",
+      );
     }
-    return url;
+    return { transactionId, url };
   } catch (e) {
     if (e instanceof CheckoutUnavailableError) throw e;
-    const anyErr = e as { status?: number; body?: unknown; message?: string };
-    const detail = JSON.stringify(anyErr?.body ?? anyErr?.message ?? String(e)).slice(0, 300);
-    console.error(
-      "[checkout-server] paddle transaction FAILED status=",
-      anyErr?.status,
-      "body=",
-      detail,
-    );
-    throw new CheckoutUnavailableError(`paddle_${anyErr?.status ?? "err"}: ${detail}`);
+    if (e instanceof PaddleApiError) {
+      const code = paddleErrorToCode(e.body);
+      console.error("[checkout-server] paddle transaction FAILED", e.status, e.body);
+      throw new CheckoutUnavailableError(
+        code === "paddle_checkout_disabled"
+          ? "Paddle checkout is not enabled on this account yet."
+          : "Could not start checkout.",
+        code,
+      );
+    }
+    console.error("[checkout-server] checkout failed", e);
+    throw new CheckoutUnavailableError("Could not start checkout.", "unavailable");
   }
+}
+
+/** @deprecated Prefer createCheckoutSession + Paddle.js overlay */
+export async function getCheckoutRedirectUrl(
+  plan: PlanId,
+  opts?: Parameters<typeof createCheckoutSession>[1],
+): Promise<string> {
+  const session = await createCheckoutSession(plan, opts);
+  if (session.url) return session.url;
+  if (session.transactionId) {
+    const pay = new URL("/pay", appUrl());
+    pay.searchParams.set("_ptxn", session.transactionId);
+    return pay.toString();
+  }
+  throw new CheckoutUnavailableError("Checkout URL을 생성하지 못했습니다.", "missing_transaction");
 }

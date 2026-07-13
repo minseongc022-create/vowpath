@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { betaCohortIntroPriceId } from "@/lib/paddle-config";
 import { feedbackCohortPriceStepDate } from "@/lib/billing-cohort";
-import { getCheckoutRedirectUrl } from "@/lib/checkout-server";
+import { createCheckoutSession } from "@/lib/checkout-server";
 import { getSession } from "@/lib/session";
 import { findUserById, updateUserBilling } from "@/lib/users-db";
 
@@ -39,11 +39,14 @@ export async function POST(request: Request) {
   });
 
   try {
-    const url = await getCheckoutRedirectUrl("unlimited", {
+    const checkout = await createCheckoutSession("unlimited", {
       priceIdOverride: betaCohortIntroPriceId(),
       cohort: "beta_feedback",
     });
-    return NextResponse.json({ url });
+    return NextResponse.json({
+      transactionId: checkout.transactionId,
+      url: checkout.url,
+    });
   } catch (e) {
     console.error("[feedback/submit] checkout", e);
     return NextResponse.json(

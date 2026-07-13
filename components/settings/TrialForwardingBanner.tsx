@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { SITE } from "@/lib/constants";
 import { isEnglishUi } from "@/lib/locale";
 import { trialHardCutoff } from "@/lib/billing-cohort";
-import { checkoutApiHref } from "@/lib/checkout-urls";
+import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
 type BillingStatus = {
   entitled: boolean;
@@ -45,12 +45,13 @@ export function TrialForwardingBanner() {
             ? `Your free trial has ended. Subscribe now to keep answering calls — access pauses in ${graceLeft} day${graceLeft === 1 ? "" : "s"}.`
             : `무료 체험이 끝났어요. 지금 결제하면 전화 응대가 계속돼요 — ${graceLeft}일 뒤 기능이 정지됩니다.`}
         </p>
-        <a
-          href={checkoutApiHref("unlimited")}
+        <StartCheckoutButton
+          plan="unlimited"
+          directCheckout
           className="mt-2 inline-block rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-red-500"
         >
           {en ? "Subscribe now" : "지금 결제하기"}
-        </a>
+        </StartCheckoutButton>
       </div>
     );
   }

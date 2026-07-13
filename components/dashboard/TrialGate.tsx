@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { isEnglishUi } from "@/lib/locale";
-import { checkoutApiHref } from "@/lib/checkout-urls";
+import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
+import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 import { SITE } from "@/lib/constants";
 
 type BillingStatusResponse = {
@@ -49,11 +50,23 @@ function TrialEndedCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: feedback.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.url) {
+      const data = (await res.json()) as {
+        url?: string;
+        transactionId?: string;
+        error?: string;
+      };
+      if (!res.ok) {
         throw new Error(data.error ?? "failed");
       }
-      window.location.href = data.url;
+      if (data.transactionId) {
+        await openPaddleCheckout(data.transactionId);
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error("failed");
     } catch {
       setError(
         en
@@ -105,14 +118,15 @@ function TrialEndedCard() {
               : `제출하고 ${SITE.betaIntroPrice}/월로 계속하기`}
         </button>
 
-        <a
-          href={checkoutApiHref("unlimited")}
-          className="mt-3 block text-center text-sm font-medium text-slate-500 transition hover:text-slate-700"
+        <StartCheckoutButton
+          plan="unlimited"
+          directCheckout
+          className="mt-3 block w-full text-center text-sm font-medium text-slate-500 transition hover:text-slate-700"
         >
           {en
             ? `No thanks, continue at ${SITE.monthlyPrice}/mo`
             : `괜찮아요, 정가 ${SITE.monthlyPrice}/월로 계속할게요`}
-        </a>
+        </StartCheckoutButton>
       </div>
     </div>
   );
