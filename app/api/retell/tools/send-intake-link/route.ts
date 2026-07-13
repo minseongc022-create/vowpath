@@ -90,20 +90,20 @@ export async function POST(request: Request) {
     if (!sms.ok) {
       return NextResponse.json({
         result:
-          "Hmm, that text didn't go through — no worries at all. Let's take care of everything right here. What's your name, and what's the address?",
+          "Hmm, that text didn't go through — no worries. We can just do it right here. What's your name, and what's the address?",
       });
     }
 
     const linkMsg =
       purpose === "estimate"
-        ? "Perfect — I just texted you a link for your free estimate. Open it when you get a chance and fill in the details — our team will follow up soon. Thanks for calling!"
-        : "Perfect — I just sent a text with a secure link. It only takes a couple of minutes to complete, and our team will be in touch right after. Thanks for calling!";
+        ? "Alright, just texted you — should pop up any second. Fill that out when you get a chance and someone from the team will reach out. Thanks for calling!"
+        : "Okay, just sent that text — should be on your phone in a sec. Takes like two minutes, and then we'll be in touch. Thanks for calling!";
 
     return NextResponse.json({ result: linkMsg });
   } catch (e) {
     console.error("[retell/tools/send-intake-link]", e);
     return NextResponse.json({
-      result: "I had trouble sending that text — let's finish everything on this call instead.",
+      result: "Shoot, that text didn't go through — let's just finish up here on the phone.",
     });
   }
 }
