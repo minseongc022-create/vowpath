@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   const userId = await resolveTenantUserId({ to, callSid });
-  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice", to);
   if (blocked) return blocked;
 
   const ctx = await resolveInboundVoiceContext({

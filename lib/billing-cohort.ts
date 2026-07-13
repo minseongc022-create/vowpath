@@ -1,5 +1,8 @@
-/** 14-day product trial — phone, SMS, and dispatch included. */
+/** Signup trial length — phone, SMS, and dispatch included. */
 export const TRIAL_DAYS = 14;
+
+/** 30-day pilot for shops with an Effiroad inbound line bound. */
+export const PILOT_TRIAL_DAYS = 30;
 
 /**
  * Grace period after the trial ends before access is hard-cut. The dashboard

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { isEntitled } from "./billing";
+import {
+  ensurePilotTrial,
+  ensurePilotTrialForMappedPhone,
+} from "./pilot-trial";
 import { findUserById } from "./users-db";
 import { twimlMessage, twimlResponse, twimlSay } from "./twilio-xml";
 
@@ -50,9 +54,18 @@ export function twilioSmsSuspendedResponse(): NextResponse {
 export async function twilioBlockIfNotEntitled(
   userId: string | null | undefined,
   channel: "voice" | "sms",
+  inboundTo?: string,
 ): Promise<NextResponse | null> {
   if (!userId) return null;
   if (await isTenantProductEntitled(userId)) return null;
+
+  if (inboundTo) {
+    await ensurePilotTrialForMappedPhone(userId, inboundTo);
+  } else {
+    await ensurePilotTrial(userId);
+  }
+  if (await isTenantProductEntitled(userId)) return null;
+
   return channel === "voice"
     ? twilioVoiceSuspendedResponse()
     : twilioSmsSuspendedResponse();
