@@ -15,11 +15,14 @@ let BASE = process.env.DEMO_RECORD_BASE_URL?.replace(/\/$/, "") || "http://local
 const VIEWPORT = { width: 1280, height: 720 };
 
 const SCENES = [
+  { slug: "overview", out: "demo-overview.webm", waitMs: 14_000 },
   { slug: "voice", out: "demo-voice.webm", waitMs: 28_000 },
+  { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 18_000 },
   { slug: "estimate", out: "demo-estimate.webm", waitMs: 22_000 },
   { slug: "dispatch", out: "demo-dispatch.webm", waitMs: 18_000 },
   { slug: "live-call", out: "demo-live-call.webm", waitMs: 24_000 },
   { slug: "dashboard", out: "demo-dashboard.webm", waitMs: 20_000 },
+  { slug: "onboarding", out: "demo-onboarding.webm", waitMs: 13_000 },
 ];
 
 async function waitForServer(attempts = 40) {

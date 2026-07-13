@@ -13,7 +13,7 @@ export const VOICE_EMERGENCY_DEMO: DemoStep[] = [
   { role: "system", text: "Incoming call · 2:14 AM", delay: 500 },
   {
     role: "ai",
-    text: "Hi there, thanks for calling Ridgeline Restoration! What's going on — we'll take care of you.",
+    text: "Hi there, thanks for calling Ridgeline Restoration! I can help right now — what's going on?",
     delay: 900,
   },
   {
@@ -71,7 +71,7 @@ export const ESTIMATE_DEMO: DemoStep[] = [
   },
   {
     role: "sms",
-    text: "Ridgeline Restoration: Here's your free estimate form → effiroad.com/r/…",
+    text: "Ridgeline: Hi! Thanks for calling! Finish here (~1 min): effiroad.com/r/…",
     delay: 1000,
   },
   { role: "system", text: "Estimate request logged · Owner notified", delay: 1800 },
