@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { IS_BETA } from "@/lib/beta";
+import { isPaidCheckoutEnabled } from "@/lib/billing-mode";
 import { ROUTES, SITE } from "@/lib/constants";
 import {
   CheckoutUnavailableError,
@@ -28,7 +28,7 @@ async function planFromBody(request: Request): Promise<ReturnType<typeof parsePl
 
 /** POST — create Paddle transaction; client opens Paddle.js overlay with transactionId. */
 export async function POST(request: Request) {
-  if (IS_BETA) {
+  if (!isPaidCheckoutEnabled()) {
     return NextResponse.json(
       { error: "Checkout disabled in beta mode.", code: "beta" },
       { status: 503 },
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
 /** Browser link — redirects to /pay?_ptxn=… or signup (legacy). */
 export async function GET(request: Request) {
-  if (IS_BETA) {
+  if (!isPaidCheckoutEnabled()) {
     return NextResponse.redirect(new URL(ROUTES.signup, request.url));
   }
   const plan = planFromRequest(request);

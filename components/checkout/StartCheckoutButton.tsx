@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { IS_BETA } from "@/lib/beta";
 import { ROUTES, type PlanId } from "@/lib/constants";
 import { checkoutErrorMessage, checkoutErrorMessageKo } from "@/lib/checkout-errors";
 import { getStartedHref } from "@/lib/checkout-urls";
 import { isEnglishUi } from "@/lib/locale";
 import { startPlanCheckout } from "@/lib/paddle-checkout-client";
 
+type CheckoutStatus = {
+  checkoutEnabled: boolean;
+  mode: string;
+};
+
 type Props = {
   plan?: PlanId;
   children: React.ReactNode;
   className?: string;
-  /** When false, link to /get-started instead of opening checkout (marketing default). */
   directCheckout?: boolean;
   disabled?: boolean;
 };
@@ -27,12 +30,27 @@ export function StartCheckoutButton({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<CheckoutStatus | null>(null);
   const en = isEnglishUi();
 
-  if (IS_BETA || !directCheckout) {
-    const href = IS_BETA ? ROUTES.signup : getStartedHref(plan);
+  useEffect(() => {
+    void fetch("/api/checkout/status")
+      .then((r) => r.json())
+      .then((d: CheckoutStatus) => setStatus(d))
+      .catch(() => setStatus(null));
+  }, []);
+
+  if (!directCheckout) {
     return (
-      <Link href={href} className={className}>
+      <Link href={getStartedHref(plan)} className={className}>
+        {children}
+      </Link>
+    );
+  }
+
+  if (status && !status.checkoutEnabled) {
+    return (
+      <Link href={ROUTES.signup} className={className}>
         {children}
       </Link>
     );
@@ -59,10 +77,18 @@ export function StartCheckoutButton({
       <button
         type="button"
         onClick={() => void onClick()}
-        disabled={disabled || busy}
+        disabled={disabled || busy || status === null}
         className={className}
       >
-        {busy ? (en ? "Opening checkout…" : "결제창 여는 중…") : children}
+        {busy
+          ? en
+            ? "Opening checkout…"
+            : "결제창 여는 중…"
+          : status === null
+            ? en
+              ? "Loading…"
+              : "불러오는 중…"
+            : children}
       </button>
       {error ? (
         <span className="text-sm font-normal text-red-700" role="alert">

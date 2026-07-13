@@ -1,8 +1,7 @@
-import { IS_BETA } from "@/lib/beta";
-import { ROUTES, type PlanId } from "@/lib/constants";
+import Link from "next/link";
+import { CHECKOUT_CTA, ROUTES, type PlanId } from "@/lib/constants";
 import { getStartedHref } from "@/lib/checkout-urls";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
-import Link from "next/link";
 
 const sizes = {
   md: "px-4 py-2 text-sm",
@@ -25,7 +24,7 @@ type CheckoutButtonProps = {
 };
 
 export function CheckoutButton({
-  children,
+  children = CHECKOUT_CTA,
   plan = "unlimited",
   size = "md",
   variant = "primary",
@@ -34,14 +33,6 @@ export function CheckoutButton({
   directCheckout = false,
 }: CheckoutButtonProps) {
   const classes = `inline-flex items-center justify-center rounded-xl font-semibold transition ${variants[variant]} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${className}`;
-
-  if (IS_BETA) {
-    return (
-      <Link href={ROUTES.signup} className={classes}>
-        {children}
-      </Link>
-    );
-  }
 
   if (directCheckout) {
     return (
