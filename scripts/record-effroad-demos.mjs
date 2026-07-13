@@ -18,6 +18,8 @@ const SCENES = [
   { slug: "voice", out: "demo-voice.webm", waitMs: 28_000 },
   { slug: "estimate", out: "demo-estimate.webm", waitMs: 22_000 },
   { slug: "dispatch", out: "demo-dispatch.webm", waitMs: 18_000 },
+  { slug: "live-call", out: "demo-live-call.webm", waitMs: 24_000 },
+  { slug: "dashboard", out: "demo-dashboard.webm", waitMs: 20_000 },
 ];
 
 async function waitForServer(attempts = 40) {
@@ -107,7 +109,7 @@ async function main() {
     );
   }
 
-  console.log("[demo:record] Done — 6 files in public/videos/");
+  console.log("[demo:record] Done —", SCENES.length * 2, "files in public/videos/");
 }
 
 main().catch((e) => {
