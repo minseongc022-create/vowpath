@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   const callSid = form.get("CallSid")?.trim() ?? "";
   const from = form.get("From") ?? "";
   const to = form.get("To") ?? "";
+  const forwardedFrom = form.get("ForwardedFrom")?.trim() || undefined;
   const status = form.get("CallStatus") ?? form.get("DialCallStatus") ?? "unknown";
   const durationRaw = form.get("CallDuration") ?? form.get("Duration");
   const durationSec = durationRaw ? Number.parseInt(durationRaw, 10) : undefined;
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
       status,
       direction: form.get("Direction") ?? "inbound",
       durationSec: Number.isFinite(durationSec) ? durationSec : undefined,
+      forwardedFrom,
     });
 
     if (

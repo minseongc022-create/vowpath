@@ -121,12 +121,14 @@ export function getForwardingUnblockGuides(
   }
 
   if (provider === "tmobile") {
+    const code20 = `**61*1${td}**20#`;
     const code = `**61*1${td}#`;
     return [
       {
         id: "tm-code-fails",
         problem: "코드 실패 / 확인 문자 없음",
         steps: [
+          `20초 코드: ${code20}`,
           `##004# 초기화 후 ${code} 재시도.`,
           `${TMO_SUPPORT} — 조건부 착신전환 개통 요청.`,
         ],
@@ -135,7 +137,8 @@ export function getForwardingUnblockGuides(
         id: "tm-mvno",
         problem: "Metro / Mint / Ultra",
         steps: [
-          `동일 코드 ${code} (T-Mobile 망).`,
+          `기본: ${code20} (T-Mobile 망).`,
+          `대체: ${code}`,
           "Wi-Fi 통화만 쓰는 경우: Wi-Fi 통화 끄고 셀룰러에서 재시도.",
         ],
       },

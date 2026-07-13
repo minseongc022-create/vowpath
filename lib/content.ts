@@ -566,6 +566,18 @@ const settingsPageKo = {
     "테스트 시작 후 다른 폰으로 Effiroad 번호에 직접 전화하세요. 착신 설정 없이 응대 시간대로 받아야 합니다.",
   forwardingVerifyCallEffiroad: "이 Effiroad 번호로 전화:",
   forwardingVerifyWaitingDirect: "대기 중 — 지금 Effiroad 번호로 전화하세요",
+  forwardingVerifyStart: "착신전환 테스트 시작",
+  forwardingVerifyListening: "테스트 전화 대기 중…",
+  forwardingVerifyWaiting: "대기 중 — 지금 샵 번호로 전화하세요",
+  forwardingVerifyCallShop: "이 번호(샵 메인)로 전화:",
+  forwardingVerifyNotEffiroad: "Effiroad 라우팅 번호는 걸지 마세요:",
+  forwardingVerifySuccess: "착신전환 성공 — Effiroad가 테스트 전화를 받았습니다.",
+  forwardingVerifySuccessInboundOnly:
+    "Effiroad로 전화가 들어왔습니다. 샵 번호 경유 여부는 확인되지 않았습니다 — Effiroad가 아닌 샵 번호로 걸고 받지 않은 채 울리게 하세요.",
+  forwardingVerifyWrongForward:
+    "전화는 들어왔지만 통신사가 다른 착신 경로를 보고했습니다. 샵 휴대폰에서 코드를 실행했는지, 연락처의 샵 번호가 맞는지 확인하세요.",
+  forwardingVerifyError: "테스트를 시작하지 못했습니다. 다시 시도하세요.",
+  forwardingVerifyRequired: "확인 전에 위 착신전환 테스트를 완료하세요.",
   forwardingRecommended: "인기",
   forwardingRecommendedProvider: "권장",
   forwardingConfirmBlocked: "Effiroad 번호가 연결되어야 이 단계를 완료할 수 있습니다.",

@@ -35,6 +35,7 @@ export async function resolveInboundVoiceContext(params: {
   from: string;
   to: string;
   userId: string | null;
+  forwardedFrom?: string;
 }): Promise<InboundVoiceContext> {
   let shopName = DEFAULT_SHOP_DISPLAY_NAME;
   let afterHours = false;
@@ -65,6 +66,7 @@ export async function resolveInboundVoiceContext(params: {
         to: params.to,
         status: "voice_started",
         direction: "inbound",
+        forwardedFrom: params.forwardedFrom,
       });
     } catch (e) {
       console.error("[twilio/inbound-voice] tenant lookup failed:", e);

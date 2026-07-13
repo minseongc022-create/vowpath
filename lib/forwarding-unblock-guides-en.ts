@@ -165,6 +165,7 @@ export function getForwardingUnblockGuides(
   }
 
   if (provider === "tmobile") {
+    const code20 = `**61*1${td}**20#`;
     const code = `**61*1${td}#`;
     const tenOnly = `**61*${td}#`;
     return [
@@ -172,7 +173,8 @@ export function getForwardingUnblockGuides(
         id: "tm-code-fails",
         problem: "Code fails or no confirmation text",
         steps: [
-          `Try: ${tenOnly} (10-digit destination, no leading 1).`,
+          `Try 20-second code: ${code20}`,
+          `Or shorter: ${tenOnly} (10-digit destination, no leading 1).`,
           "Clear all rules: ##004# then retry.",
           `Call ${TMO_SUPPORT} — request conditional call forwarding enabled.`,
         ],
@@ -181,7 +183,8 @@ export function getForwardingUnblockGuides(
         id: "tm-mvno",
         problem: "Metro / Mint / Ultra Mobile",
         steps: [
-          `Same code ${code} — these use T-Mobile network.`,
+          `Primary: ${code20} — these use T-Mobile network.`,
+          `Alternate: ${code}`,
           "Mint: must dial from the Mint phone app, not Wi-Fi calling only.",
           "If Wi-Fi calling only: disable Wi-Fi calling temporarily and retry on cellular.",
         ],

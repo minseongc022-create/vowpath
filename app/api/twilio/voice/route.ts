@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   const to = form.get("To") ?? "";
   const callSid = form.get("CallSid")?.trim() ?? "";
   const from = form.get("From") ?? "";
+  const forwardedFrom = form.get("ForwardedFrom")?.trim() || undefined;
 
   const signatureOk = validateTwilioWebhook(request, rawBody);
   if (!signatureOk) {
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
     from,
     to,
     userId,
+    forwardedFrom,
   });
 
   const twiml = await buildInboundVoiceTwiml(ctx);

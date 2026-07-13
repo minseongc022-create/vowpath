@@ -201,11 +201,14 @@ export function getForwardingGuideSteps(
   }
 
   if (provider === "tmobile") {
-    const code = `**61*1${tenDigit}#`;
+    const code = `**61*1${tenDigit}**20#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
       "T-Mobile 샵 휴대폰.",
-      `입력: ${code} → 통화.`,
-      "해제: ##61#",
+      `입력: ${code} → 통화 (미응답 약 20초).`,
+      `실패 시: ${alt} (통신사 기본 링 시간).`,
+      "확인 톤/문자 대기.",
+      "해제: ##61# 또는 ##004#",
       FORWARDING_IPHONE_WARNING,
       "가게 번호로 테스트.",
     ];

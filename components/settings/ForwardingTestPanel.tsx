@@ -11,6 +11,8 @@ type VerifyState = {
   instruction?: string;
   waitingSince?: string;
   testMode?: "forward" | "direct";
+  confidence?: "direct" | "forwarded" | "inbound_only";
+  reason?: string;
 };
 
 type Props = {
@@ -121,7 +123,15 @@ export function ForwardingTestPanel({ provider, onVerified }: Props) {
 
       {state?.verified ? (
         <p className="rounded-xl border border-emerald-300 bg-emerald-100 px-4 py-3 text-base font-semibold text-emerald-900">
-          {settingsPage.forwardingVerifySuccess}
+          {state.confidence === "inbound_only"
+            ? settingsPage.forwardingVerifySuccessInboundOnly
+            : settingsPage.forwardingVerifySuccess}
+        </p>
+      ) : null}
+
+      {state?.reason === "wrong_forward_source" ? (
+        <p className="text-sm text-amber-800">
+          {settingsPage.forwardingVerifyWrongForward}
         </p>
       ) : null}
 

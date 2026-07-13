@@ -33,7 +33,8 @@ export function getForwardingConditionMatrix(): ForwardingConditionMatrix {
       {
         condition: "Line busy (on another call)",
         yourMainLine: "You stay on the active call",
-        effiroad: "Usually receives the second caller (via **61* on AT&T/T-Mobile)",
+        effiroad:
+          "Verizon *71 forwards busy calls; AT&T/T-Mobile **61* is no-answer only (busy needs **67*)",
       },
       {
         condition: "After hours (schedule closed)",

@@ -134,6 +134,10 @@ export const SETTINGS_PAGE_EN = {
   forwardingVerifyCallShop: "Call this number (your shop line):",
   forwardingVerifyNotEffiroad: "Do not call the Effiroad routing number:",
   forwardingVerifySuccess: "Forwarding works — Effiroad received your test call.",
+  forwardingVerifySuccessInboundOnly:
+    "Effiroad received a call. We could not confirm it came through your shop line — call your shop number (not Effiroad) and let it ring without answering.",
+  forwardingVerifyWrongForward:
+    "A call arrived but the carrier reported a different forwarding source. Check that you dialed the code on your shop phone and that your shop number matches Contact settings.",
   forwardingVerifyError: "Could not start the test. Try again.",
   forwardingVerifyRequired: "Complete the forwarding test above before confirming.",
   forwardingRecommended: "Recommended",
