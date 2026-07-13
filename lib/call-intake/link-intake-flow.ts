@@ -1,3 +1,4 @@
+import { generateLinkIntakeToken } from "../link-intake-token";
 import { buildLinkIntakeUrl as portalBuildLinkIntakeUrl } from "../portal-url";
 import { smsLinkIntakeBody as tplLinkIntakeSms } from "../sms-templates";
 import { sendSms } from "../send-sms";
@@ -53,7 +54,7 @@ export async function createLinkIntakeSession(params: {
   shopName: string;
   menuPriority?: JobPriority | null;
 }): Promise<LinkIntakeSession> {
-  const token = crypto.randomUUID().replace(/-/g, "");
+  const token = generateLinkIntakeToken();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 86_400_000).toISOString();
   const session: LinkIntakeSession = {
