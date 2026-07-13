@@ -10,6 +10,11 @@ import {
   voiceStormSurgeIntro,
 } from "./voice-copy";
 
+/** When true, main menu adds "press 3 for Spanish". Default: English-only IVR. */
+export function isSpanishIvrEnabled(): boolean {
+  return process.env.TWILIO_SPANISH_IVR === "true";
+}
+
 function escapeXml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -77,9 +82,9 @@ export function twimlGatherMainMenu(
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}!`;
   const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
-  // Spanish callers get an explicit, spoken-in-Spanish option (accurate by
-  // design — we never guess the language; the caller chooses it).
-  const spanishTag = twimlSay("Para español, oprima el tres.", "es-US");
+  const spanishTag = isSpanishIvrEnabled()
+    ? twimlSay("Para español, oprima el tres.", "es-US")
+    : "";
   return `${stormLine}${twimlSay(prompt)}${spanishTag}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
