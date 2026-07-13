@@ -14,18 +14,20 @@ export async function GET() {
   const apiKeyConfigured = isRetellConfigured();
   const forwardFromEnv = Boolean(getRetellForwardNumberEnv());
   const forwardNumber = apiKeyConfigured ? await resolveRetellForwardNumber() : null;
-  const urls = retellToolUrls();
 
   return NextResponse.json({
-    ok: apiKeyConfigured && Boolean(forwardNumber),
+    ok: apiKeyConfigured,
     retell: {
       apiKeyConfigured,
-      forwardFromEnv,
+      forwardFromEnv: forwardFromEnv,
       forwardNumberConfigured: Boolean(forwardNumber),
+      bridgeMode: apiKeyConfigured ? "sip-register-phone-call" : "none",
+      pstnFallbackNumber: forwardNumber,
       agentId: getRetellAgentId(),
-      toolUrls: urls,
+      toolUrls: retellToolUrls(),
     },
     howToTest:
-      "Call +1 (225) 529-1680 → press 1 (book) → press 1 (talk to AI). Retell handles that path when forward number resolves.",
+      "Call +1 (225) 529-1680 → press 1 → press 1. You should hear the Retell conversational agent (not Google TTS scripted intake).",
+    syncAgent: "GET /api/cron/retell-production-sync with CRON_SECRET",
   });
 }

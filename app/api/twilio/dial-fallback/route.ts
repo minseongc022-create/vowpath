@@ -42,13 +42,15 @@ export async function POST(request: Request) {
   // Instant reject / zero-duration bridge — treat like a failed forward.
   if (dialStatus === "completed" && dialDuration <= 0) {
     console.warn(
-      "[twilio/dial-fallback] Retell forward completed with 0s duration — using scripted intake",
+      "[twilio/dial-fallback] Retell SIP/PSTN bridge completed with 0s duration — using scripted intake",
     );
     return twimlXml(scriptedIntake(afterHours));
   }
 
   // failed / busy / no-answer / canceled → the forward never bridged.
-  console.warn(`[twilio/dial-fallback] Retell forward did not connect (DialCallStatus=${dialStatus}); using scripted intake`);
+  console.warn(
+    `[twilio/dial-fallback] Retell bridge did not connect (DialCallStatus=${dialStatus}); using scripted intake`,
+  );
   return twimlXml(scriptedIntake(afterHours));
 }
 
