@@ -9,10 +9,13 @@ Everything else (main menu, estimates, Spanish, SMS link) stays on Twilio script
 Customer → +1 (225) 529-1680 (Twilio)
          → IVR menu (press 1/2/3)
          → press 1 → press 1
-         → Twilio <Dial> → Retell PSTN number
+         → register-phone-call (Retell API)
+         → Twilio <Dial><Sip>sip:{call_id}@sip.retellai.com</Sip></Dial>
          → Retell conversational agent
          → tools: submit_intake / submit_estimate → Effiroad API
 ```
+
+**Important:** The old PSTN `<Dial>+1…</Dial>` path often failed instantly and fell back to Google TTS scripted intake. Production now uses the official **SIP bridge** above.
 
 Twilio sets **callerId** to your shop Twilio line when forwarding, so Retell tool webhooks resolve the correct tenant from `from` or `to`.
 
@@ -52,7 +55,16 @@ This script:
 - Binds Retell phone → tenant in KV (when `TWILIO_DEFAULT_USER_ID` set)
 - Prints `RETELL_FORWARD_NUMBER` to paste into Vercel
 
-## 4. Verify
+## 4. Sync English production agent
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://effiroad.com/api/cron/retell-production-sync
+```
+
+Or locally: `npm run retell:sync`
+
+## 5. Verify
 
 ```bash
 curl https://effiroad.com/api/retell/status
@@ -64,7 +76,7 @@ Expect `ok: true` and `forwardNumberConfigured: true`.
 
 If Retell fails to connect, Twilio falls back to scripted speech intake automatically (`/api/twilio/dial-fallback`).
 
-## 5. Owner setup URLs (logged in)
+## 6. Owner setup URLs (logged in)
 
 - Switch agent to English: `/api/admin/retell-setup?action=english`
 - Production prompt (booking + estimate branching): `/api/admin/retell-setup?action=production`

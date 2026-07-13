@@ -205,6 +205,18 @@ export function twimlDialForward(
 }
 
 /**
+ * Bridge a live Twilio call to Retell via SIP (recommended).
+ * Requires a prior POST /v2/register-phone-call that returns call_id.
+ */
+export function twimlDialRetellSip(callId: string, actionUrl?: string): string {
+  const sipUri = `sip:${callId}@sip.retellai.com`;
+  const actionAttr = actionUrl
+    ? ` action="${escapeXml(actionUrl)}" method="POST"`
+    : "";
+  return `<Dial${actionAttr}><Sip>${escapeXml(sipUri)}</Sip></Dial>`;
+}
+
+/**
  * "Effiroad-number-as-main" live pass-through: ring the shop's own phone, and
  * if nobody there answers within `timeout` seconds (or it's busy/failed), Twilio
  * POSTs to `fallbackUrl` so the AI can still catch the call. The original

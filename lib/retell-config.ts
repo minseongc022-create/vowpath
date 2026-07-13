@@ -81,3 +81,67 @@ export function retellToolUrls() {
     submitEstimate: `${base}/api/retell/tools/submit-estimate`,
   };
 }
+
+export type RegisterRetellCallParams = {
+  from: string;
+  to: string;
+  dynamicVariables?: Record<string, string>;
+};
+
+export type RegisterRetellCallResult =
+  | { ok: true; callId: string; sipUri: string }
+  | { ok: false; error: string };
+
+/** Official Twilio → Retell bridge: register call, then <Dial><Sip>…</Sip></Dial>. */
+export async function registerRetellInboundCall(
+  params: RegisterRetellCallParams,
+): Promise<RegisterRetellCallResult> {
+  const apiKey = getRetellApiKey();
+  if (!apiKey) return { ok: false, error: "RETELL_API_KEY not configured" };
+
+  const from = params.from.replace(/^whatsapp:/, "").trim();
+  const to = params.to.trim();
+  const body: Record<string, unknown> = {
+    agent_id: getRetellAgentId(),
+    agent_version: "latest",
+    direction: "inbound",
+  };
+  if (from && from !== "unknown") body.from_number = from;
+  if (to && to !== "unknown") body.to_number = to;
+  if (params.dynamicVariables && Object.keys(params.dynamicVariables).length > 0) {
+    body.retell_llm_dynamic_variables = params.dynamicVariables;
+  }
+
+  try {
+    const res = await fetch("https://api.retellai.com/v2/register-phone-call", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      console.error("[retell-config] register-phone-call failed:", res.status, text);
+      return { ok: false, error: `register-phone-call ${res.status}` };
+    }
+    const data = JSON.parse(text) as { call_id?: string };
+    const callId = data.call_id?.trim();
+    if (!callId) {
+      return { ok: false, error: "register-phone-call missing call_id" };
+    }
+    return {
+      ok: true,
+      callId,
+      sipUri: `sip:${callId}@sip.retellai.com`,
+    };
+  } catch (e) {
+    console.error("[retell-config] register-phone-call error:", e);
+    return { ok: false, error: e instanceof Error ? e.message : "register failed" };
+  }
+}
+
+export function retellSipUri(callId: string): string {
+  return `sip:${callId}@sip.retellai.com`;
+}
