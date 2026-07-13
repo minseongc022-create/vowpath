@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      result: "Perfect — got it all down. The team will reach out to schedule your free estimate. Thanks for calling!",
+      result: "Perfect — you're all set! I've got everything and the team will reach out to schedule your free estimate. Thanks for calling!",
     });
   } catch (e) {
     console.error("[retell/tools/submit-estimate]", e);

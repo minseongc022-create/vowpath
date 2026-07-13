@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   const firstSubmission = await claimFirstSubmission(callId);
   if (!firstSubmission) {
     return NextResponse.json({
-      result: "You're all set — we already have your info. Someone from the team will reach out soon.",
+      result: "You're all good — we already have your info. The team's on it and someone will reach out soon.",
     });
   }
 
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       result:
-        "Alright, you're all set — I've got everything down. Someone from the team will be in touch real soon. Hang in there.",
+        "Perfect — you're all set. I've got everything down and our team's gonna be on this. Hang in there — help is on the way.",
     });
   } catch (e) {
     console.error("[retell/tools/submit-intake]", e);

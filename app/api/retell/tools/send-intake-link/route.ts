@@ -96,8 +96,8 @@ export async function POST(request: Request) {
 
     const linkMsg =
       purpose === "estimate"
-        ? "Alright, just texted you — should pop up any second. Fill that out when you get a chance and someone from the team will reach out. Thanks for calling!"
-        : "Okay, just sent that text — should be on your phone in a sec. Takes like two minutes, and then we'll be in touch. Thanks for calling!";
+        ? "Perfect — just texted you! Fill that out when you get a sec and our team will be in touch. You're in good hands — thanks for calling!"
+        : "Awesome — just sent that text. Should be on your phone any second. Our team's gonna jump on this. Thanks for calling!";
 
     return NextResponse.json({ result: linkMsg });
   } catch (e) {
