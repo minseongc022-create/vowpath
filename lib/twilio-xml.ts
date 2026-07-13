@@ -10,9 +10,9 @@ import {
   voiceStormSurgeIntro,
 } from "./voice-copy";
 
-/** When true, main menu adds "press 3 for Spanish". Default: English-only IVR. */
-export function isSpanishIvrEnabled(): boolean {
-  return process.env.TWILIO_SPANISH_IVR === "true";
+/** Main menu is English-only (no Spanish option). */
+export function mainMenuIsEnglishOnly(): boolean {
+  return true;
 }
 
 function escapeXml(value: string): string {
@@ -82,10 +82,7 @@ export function twimlGatherMainMenu(
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}!`;
   const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
-  const spanishTag = isSpanishIvrEnabled()
-    ? twimlSay("Para español, oprima el tres.", "es-US")
-    : "";
-  return `${stormLine}${twimlSay(prompt)}${spanishTag}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */

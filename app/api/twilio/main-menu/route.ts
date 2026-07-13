@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import {
-  isSpanishIvrEnabled,
   twimlGatherBookingChannel,
   twimlGatherEstimateMenu,
-  twimlGatherSpanishIntake,
   twimlResponse,
 } from "@/lib/twilio-xml";
 
@@ -46,12 +44,6 @@ export async function POST(request: Request) {
     return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateActionUrl)));
   }
 
-  if (digit === "3" && isSpanishIvrEnabled()) {
-    const esUrl = buildTwilioCallbackUrl("/api/twilio/es-intake", { callSid });
-    return twimlXml(twimlResponse(twimlGatherSpanishIntake(esUrl)));
-  }
-
-  // 1, no input, or anything else → booking branch → booking sub-menu
-  // (talk to the AI assistant now / get a booking link by text).
+  // 1, 3, no input, or anything else → booking branch (English only).
   return bookingChannelMenu(afterHours, callSid);
 }
