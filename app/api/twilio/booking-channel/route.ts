@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { intakeUrlForMenu } from "@/lib/call-intake/intake-twiml";
+import { resolveRetellForwardNumber } from "@/lib/retell-config";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import {
   createLinkIntakeSession,
@@ -33,8 +34,8 @@ function twimlXml(body: string) {
  *     back to the built-in scripted speech intake so booking still works.
  *   digit 2 → text the caller a self-service booking link and hang up.
  */
-function phoneIntakeTwiml(afterHours: boolean, to: string, intro?: string) {
-  const retell = process.env.RETELL_FORWARD_NUMBER?.trim();
+async function phoneIntakeTwiml(afterHours: boolean, to: string, intro?: string) {
+  const retell = await resolveRetellForwardNumber();
   if (retell) {
     // Explicit callerId (our own number) — without it <Dial> defaults to the
     // original caller's raw number, which foreign/unverified numbers get
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
 
   if (!validateTwilioWebhook(request, rawBody)) {
     console.error("[twilio/booking-channel] invalid signature:", request.url);
-    return twimlXml(phoneIntakeTwiml(afterHours, to));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to));
   }
 
   const digit = form.get("Digits");
@@ -75,27 +76,27 @@ export async function POST(request: Request) {
 
   // 1 or default → talk to the assistant now (Retell if configured).
   if (digit !== "2") {
-    return twimlXml(phoneIntakeTwiml(afterHours, to));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to));
   }
 
   // 2 → text a self-service booking link.
   if (!callSid) {
     console.error("[twilio/booking-channel] missing CallSid; to=", to);
-    return twimlXml(phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
   }
 
   const userId = await resolveTenantUserId({ to, callSid });
   if (!userId) {
     console.error("[twilio/booking-channel] no tenant for To=", to, "callSid=", callSid);
-    return twimlXml(phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
   }
 
-  const blocked = await twilioBlockIfNotEntitled(userId, "voice");
+  const blocked = await twilioBlockIfNotEntitled(userId, "voice", to);
   if (blocked) return blocked;
 
   const callbackPhone = from.replace(/^whatsapp:/, "").trim();
   if (!callbackPhone || callbackPhone === "unknown") {
-    return twimlXml(phoneIntakeTwiml(afterHours, to));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to));
   }
 
   try {
@@ -124,12 +125,12 @@ export async function POST(request: Request) {
         "callSid=",
         callSid,
       );
-      return twimlXml(phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
+      return twimlXml(await phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
     }
 
     return twimlXml(twimlResponse(twimlSay(voiceLinkSmsSent)));
   } catch (e) {
     console.error("[twilio/booking-channel]", e);
-    return twimlXml(phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
+    return twimlXml(await phoneIntakeTwiml(afterHours, to, voiceLinkSmsFailed));
   }
 }

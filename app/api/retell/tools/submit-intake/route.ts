@@ -4,7 +4,7 @@ import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
 import { validateRetellWebhook } from "@/lib/retell-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
-import { isTenantProductEntitled } from "@/lib/tenant-product-access";
+import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { getShopVertical } from "@/lib/vertical-context";
 import { extractIntakeFromSpeechForVertical } from "@/lib/call-intake/extraction";
 import { generateAiSummary } from "@/lib/call-intake/ai-summary";
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = await resolveTenantUserId({ to, callSid: callId });
+  const userId = await resolveTenantUserId({ to, from, callSid: callId });
   if (!userId) {
     return NextResponse.json({
       result: "This line isn't fully set up yet — please call back later or reach out during business hours.",
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
   // Payment gate (defense in depth): even if a caller reaches the Retell agent
   // directly, an unpaid/expired tenant must not have requests logged for them.
-  if (!(await isTenantProductEntitled(userId))) {
+  if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     return NextResponse.json({
       result:
         "Thanks for calling. This answering service isn't active right now — please contact the business directly.",

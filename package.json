@@ -15,6 +15,7 @@
     "twilio:register": "node scripts/register-twilio-all.mjs",
     "twilio:check": "node scripts/check-twilio-webhooks.mjs",
     "twilio:grant-pilot": "node scripts/grant-pilot-trial.mjs",
+    "retell:sync": "node scripts/retell-sync.mjs",
     "twilio:status": "node scripts/twilio-account-status.mjs",
     "twilio:verify": "node scripts/verify-caller-id.mjs",
     "twilio:verified": "node scripts/list-verified-caller-ids.mjs",
