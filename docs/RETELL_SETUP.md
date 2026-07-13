@@ -7,15 +7,14 @@ Everything else (main menu, estimates, Spanish, SMS link) stays on Twilio script
 
 ```
 Customer → +1 (225) 529-1680 (Twilio)
-         → IVR menu (press 1/2/3)
-         → press 1 → press 1
-         → register-phone-call (Retell API)
-         → Twilio <Dial><Sip>sip:{call_id}@sip.retellai.com</Sip></Dial>
-         → Retell conversational agent
+         → register-phone-call + SIP bridge (immediate)
+         → Retell conversational agent (entire call)
          → tools: submit_intake / submit_estimate → Effiroad API
 ```
 
-**Important:** The old PSTN `<Dial>+1…</Dial>` path often failed instantly and fell back to Google TTS scripted intake. Production now uses the official **SIP bridge** above.
+**Important:** When `RETELL_API_KEY` is set, inbound calls connect straight to Retell — **no press-1-2-3 menu**. Set `RETELL_DTMF_IVR=true` to restore the old phone tree.
+
+Retell handles booking, free estimates, general questions, and Spanish — all in one conversation.
 
 Twilio sets **callerId** to your shop Twilio line when forwarding, so Retell tool webhooks resolve the correct tenant from `from` or `to`.
 

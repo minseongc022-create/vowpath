@@ -5,6 +5,7 @@ import {
   isRetellConfigured,
   resolveRetellForwardNumber,
   retellToolUrls,
+  shouldRetellAnswerAllCalls,
 } from "@/lib/retell-config";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +23,14 @@ export async function GET() {
       forwardFromEnv: forwardFromEnv,
       forwardNumberConfigured: Boolean(forwardNumber),
       bridgeMode: apiKeyConfigured ? "sip-register-phone-call" : "none",
+      answerAllCalls: shouldRetellAnswerAllCalls(),
+      dtmfMenuDisabled: shouldRetellAnswerAllCalls(),
       pstnFallbackNumber: forwardNumber,
       agentId: getRetellAgentId(),
       toolUrls: retellToolUrls(),
     },
     howToTest:
-      "Call +1 (225) 529-1680 → press 1 → press 1. You should hear the Retell conversational agent (not Google TTS scripted intake).",
+      "Call +1 (225) 529-1680 — Retell AI answers immediately (no press 1/2/3). Handles booking, estimates, and Spanish in conversation.",
     syncAgent: "GET /api/cron/retell-production-sync with CRON_SECRET",
   });
 }

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { validateTwilioWebhook } from "@/lib/twilio-signature";
+import { resolveTenantUserId } from "@/lib/tenant-routing";
+import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
+import { shouldRetellAnswerAllCalls } from "@/lib/retell-config";
 import { DEFAULT_SHOP_DISPLAY_NAME, shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
-import { validateTwilioWebhook } from "@/lib/twilio-signature";
-import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twimlGatherMainMenu, twimlResponse, twimlSay } from "@/lib/twilio-xml";
 
 function twimlXml(body: string) {
@@ -13,14 +15,12 @@ function twimlXml(body: string) {
 
 /**
  * Runs after an "Effiroad-number-as-main" live pass-through <Dial> completes.
- * If the shop's phone actually answered (DialCallStatus = completed), we hang
- * up. If it rang out / was busy / failed, the AI catches the call so nothing
- * is lost — the same menu the caller would have gotten if the AI answered.
+ * If the shop's phone actually answered, hang up. Otherwise Retell AI catches the call.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
   if (!validateTwilioWebhook(request, rawBody)) {
-    console.error("[twilio/passthrough-fallback] invalid signature — serving menu anyway");
+    console.error("[twilio/passthrough-fallback] invalid signature — serving AI anyway");
   }
 
   const url = new URL(request.url);
@@ -28,17 +28,28 @@ export async function POST(request: Request) {
   const dialStatus = (form.get("DialCallStatus") ?? "").toLowerCase();
   const callSid = form.get("CallSid")?.trim() ?? url.searchParams.get("callSid") ?? "";
   const to = form.get("To") ?? "";
+  const from = form.get("From") ?? "unknown";
 
-  // The shop picked up — the caller already talked to a human. End cleanly.
   if (dialStatus === "completed" || dialStatus === "answered") {
     return twimlXml(twimlResponse(""));
   }
 
-  // No answer / busy / failed → the AI answers so the lead isn't missed.
+  if (shouldRetellAnswerAllCalls()) {
+    return twimlXml(
+      await buildRetellBridgeTwiml({
+        afterHours: true,
+        to,
+        from,
+        callSid,
+        includeInboundRecording: true,
+      }),
+    );
+  }
+
   let shopName = DEFAULT_SHOP_DISPLAY_NAME;
   let stormMode = false;
   let customGreeting = "";
-  const userId = await resolveTenantUserId({ to, callSid });
+  const userId = await resolveTenantUserId({ to, from, callSid });
   if (userId) {
     try {
       shopName = await shopDisplayNameForUser(userId);

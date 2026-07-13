@@ -9,6 +9,8 @@ import { getShopBookingSettings } from "./shop-settings-db";
 import { getShopProfile } from "./shop-profile-db";
 import { buildTwilioCallbackUrl } from "./twilio-callback-url";
 import { getTwilioWebhookBaseUrl } from "./twilio-config";
+import { buildRetellBridgeTwiml } from "./retell-bridge";
+import { shouldRetellAnswerAllCalls } from "./retell-config";
 import {
   twimlDialToShop,
   twimlGatherMainMenu,
@@ -118,6 +120,16 @@ export async function buildInboundVoiceTwiml(
         }
       }
     }
+  }
+
+  if (shouldRetellAnswerAllCalls()) {
+    return buildRetellBridgeTwiml({
+      afterHours: ctx.afterHours,
+      to: ctx.to,
+      from: ctx.from,
+      callSid: ctx.callSid,
+      includeInboundRecording: true,
+    });
   }
 
   const afterQ = ctx.afterHours ? { afterHours: "1" } : undefined;

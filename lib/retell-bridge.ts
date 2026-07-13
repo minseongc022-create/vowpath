@@ -14,6 +14,7 @@ import {
   twimlDialRetellSip,
   twimlGatherSpeechDetailed,
   twimlResponse,
+  twimlStartCallRecording,
 } from "./twilio-xml";
 import { voicePhoneIntakeIntro, voicePhoneIntakePrompt } from "./voice-copy";
 import { intakeUrlForMenu } from "./call-intake/intake-twiml";
@@ -24,7 +25,21 @@ export type RetellBridgeParams = {
   from: string;
   callSid?: string;
   intro?: string;
+  /** Add call recording + status callbacks (first inbound webhook). */
+  includeInboundRecording?: boolean;
 };
+
+function wrapInboundTwiml(params: RetellBridgeParams, inner: string): string {
+  if (!params.includeInboundRecording) {
+    return twimlResponse(inner);
+  }
+  const recordingUrl = buildTwilioCallbackUrl("/api/twilio/recording");
+  const statusCallbackUrl = buildTwilioCallbackUrl("/api/twilio/call-status");
+  return twimlResponse(
+    twimlStartCallRecording(recordingUrl) + inner,
+    statusCallbackUrl,
+  );
+}
 
 /** Connect caller to Retell conversational AI (SIP first, PSTN fallback). */
 export async function buildRetellBridgeTwiml(
@@ -76,7 +91,7 @@ export async function buildRetellBridgeTwiml(
     });
     if (registered.ok) {
       console.log("[retell-bridge] SIP connect call_id=", registered.callId);
-      return twimlResponse(twimlDialRetellSip(registered.callId, fallbackUrl));
+      return wrapInboundTwiml(params, twimlDialRetellSip(registered.callId, fallbackUrl));
     }
     console.warn("[retell-bridge] SIP register failed:", registered.error);
   }
@@ -84,11 +99,12 @@ export async function buildRetellBridgeTwiml(
   const pstn = await resolveRetellForwardNumber();
   if (pstn) {
     console.warn("[retell-bridge] falling back to PSTN dial:", pstn);
-    return twimlResponse(twimlDialForward(pstn, callerId, fallbackUrl));
+    return wrapInboundTwiml(params, twimlDialForward(pstn, callerId, fallbackUrl));
   }
 
   const gatherUrl = intakeUrlForMenu("P2", params.afterHours);
-  return twimlResponse(
+  return wrapInboundTwiml(
+    params,
     twimlGatherSpeechDetailed(
       gatherUrl,
       params.intro ?? voicePhoneIntakeIntro,

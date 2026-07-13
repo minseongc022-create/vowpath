@@ -19,6 +19,13 @@ export function isRetellConfigured(): boolean {
   return Boolean(getRetellApiKey());
 }
 
+/** When true, inbound calls skip DTMF menus and connect straight to Retell. Default on if Retell is configured. */
+export function shouldRetellAnswerAllCalls(): boolean {
+  if (!isRetellConfigured()) return false;
+  if (process.env.RETELL_DTMF_IVR === "true") return false;
+  return true;
+}
+
 export function getRetellForwardNumberEnv(): string | undefined {
   return process.env.RETELL_FORWARD_NUMBER?.trim() || undefined;
 }
