@@ -5,7 +5,7 @@ import { recordInboundEvent } from "@/lib/inbound-events";
 import { getCompanyAiMemory } from "@/lib/company-ai-memory";
 import { getShopVertical } from "@/lib/vertical-context";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
-import { isTenantProductEntitled } from "@/lib/tenant-product-access";
+import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { validateRetellWebhook } from "@/lib/retell-signature";
 
 /**
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing to_number" }, { status: 400 });
   }
 
-  const userId = await resolveTenantUserId({ to });
+  const userId = await resolveTenantUserId({ to, from });
   if (!userId) {
     return NextResponse.json({
       call_inbound: {
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
   // Payment gate: unpaid/expired tenant → the agent greets with a "not active"
   // closed message and collects nothing.
-  if (!(await isTenantProductEntitled(userId))) {
+  if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     const shopName = await shopDisplayNameForUser(userId).catch(() => DEFAULT_SHOP_DISPLAY_NAME);
     return NextResponse.json({
       call_inbound: {

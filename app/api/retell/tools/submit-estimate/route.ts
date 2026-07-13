@@ -4,7 +4,7 @@ import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
 import { validateRetellWebhook } from "@/lib/retell-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
-import { isTenantProductEntitled } from "@/lib/tenant-product-access";
+import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { summarizeEstimateRequest } from "@/lib/estimate-intake/summarize";
 import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
 import type { EstimateAnswers } from "@/lib/estimate-intake/types";
@@ -65,14 +65,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = await resolveTenantUserId({ to, callSid: callId });
+  const userId = await resolveTenantUserId({ to, from, callSid: callId });
   if (!userId) {
     return NextResponse.json({
       result: "This line isn't fully set up yet — please call back later or reach out during business hours.",
     });
   }
 
-  if (!(await isTenantProductEntitled(userId))) {
+  if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     return NextResponse.json({
       result: "Thanks for calling. This answering service isn't active right now — please contact the business directly.",
     });

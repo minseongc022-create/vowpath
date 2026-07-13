@@ -14,6 +14,18 @@ function normalizeE164(phone: string): string {
   return phone.startsWith("+") ? phone : `+${digits}`;
 }
 
+export { normalizeE164 };
+
+async function lookupMappedUser(phone: string): Promise<string | null> {
+  const e164 = normalizeE164(phone);
+  if (useKvStore()) {
+    const mapped = await kv.get<string>(kvKey(e164));
+    return mapped ?? null;
+  }
+  const store = await readFileMap();
+  return store.mappings[e164] ?? null;
+}
+
 function kvKey(phone: string) {
   return `effiroad:twilio-phone:${normalizeE164(phone)}`;
 }
@@ -57,25 +69,31 @@ export async function bindTwilioPhoneToUser(
 
 /**
  * Resolve tenant from called number (To). Falls back to TWILIO_DEFAULT_USER_ID.
- * Never returns a userId without a binding in production multi-tenant mode.
+ * When `from` is set, also checks the caller line — used when Twilio forwards
+ * to Retell with callerId set to the shop's Twilio number.
  */
 export async function resolveTenantUserId(params: {
   to: string;
+  from?: string;
   callSid?: string;
 }): Promise<string | null> {
   const to = normalizeE164(params.to);
 
-  if (useKvStore()) {
-    const mapped = await kv.get<string>(kvKey(to));
-    if (mapped) return mapped;
-  } else {
-    const store = await readFileMap();
-    if (store.mappings[to]) return store.mappings[to];
+  const toMapped = await lookupMappedUser(to);
+  if (toMapped) return toMapped;
+
+  const from = params.from?.trim();
+  if (from) {
+    const fromMapped = await lookupMappedUser(from);
+    if (fromMapped) return fromMapped;
   }
 
   const fallback = getTwilioDefaultUserId();
   const sharedPhone = process.env.TWILIO_PHONE_NUMBER?.trim();
   if (fallback && sharedPhone && normalizeE164(sharedPhone) === to) {
+    return fallback;
+  }
+  if (fallback && sharedPhone && from && normalizeE164(sharedPhone) === normalizeE164(from)) {
     return fallback;
   }
 
@@ -94,7 +112,14 @@ export async function resolveTenantUserId(params: {
     );
   }
 
-  console.error("[tenant-routing] No tenant for To=", to, "callSid=", params.callSid);
+  console.error(
+    "[tenant-routing] No tenant for To=",
+    to,
+    "From=",
+    from ?? "",
+    "callSid=",
+    params.callSid,
+  );
   return null;
 }
 

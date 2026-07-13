@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { useKvStore } from "@/lib/kv-config";
 import { getCircuitBreakerState } from "@/lib/resilience";
+import { isRetellConfigured, getRetellForwardNumberEnv } from "@/lib/retell-config";
 import { isTwilioConfigured } from "@/lib/twilio-config";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export async function GET() {
   const openaiBreaker = getCircuitBreakerState("openai");
 
   const twilioConfigured = isTwilioConfigured();
+  const retellConfigured = isRetellConfigured();
+  const retellForwardSet = Boolean(getRetellForwardNumberEnv());
   const kvConfigured = useKvStore();
   const onVercel = process.env.VERCEL === "1";
   // On Vercel, the file-based store isn't durable — KV is required for a working DB.
@@ -29,6 +32,11 @@ export async function GET() {
     twilio: {
       configured: twilioConfigured,
       ok: twilioConfigured,
+    },
+    retell: {
+      apiKeyConfigured: retellConfigured,
+      forwardNumberEnvSet: retellForwardSet,
+      ok: true,
     },
     database: {
       store: kvConfigured ? "kv" : "file",
