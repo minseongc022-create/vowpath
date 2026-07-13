@@ -34,14 +34,11 @@ export async function hasInboundTwilioLine(userId: string): Promise<boolean> {
   }
 }
 
-/** Grant or extend a 30-day pilot trial when the tenant has an inbound line. */
-export async function ensurePilotTrial(userId: string): Promise<boolean> {
+/** Grant or extend a 30-day pilot trial (billing update only). */
+async function grantPilotTrialBilling(userId: string): Promise<boolean> {
   const user = await findUserById(userId);
   if (!user) return false;
   if (isEntitled(user)) return true;
-
-  const hasLine = await hasInboundTwilioLine(userId);
-  if (!hasLine) return false;
 
   const trialEndsAt = new Date(
     Date.now() + PILOT_TRIAL_DAYS * 24 * 60 * 60 * 1000,
@@ -53,6 +50,13 @@ export async function ensurePilotTrial(userId: string): Promise<boolean> {
   return true;
 }
 
+/** Grant or extend a 30-day pilot trial when the tenant has an inbound line. */
+export async function ensurePilotTrial(userId: string): Promise<boolean> {
+  const hasLine = await hasInboundTwilioLine(userId);
+  if (!hasLine) return false;
+  return grantPilotTrialBilling(userId);
+}
+
 /** Grant pilot trial when an inbound call/SMS maps this To number to the tenant. */
 export async function ensurePilotTrialForMappedPhone(
   userId: string,
@@ -60,13 +64,19 @@ export async function ensurePilotTrialForMappedPhone(
 ): Promise<boolean> {
   const mapped = await resolveTenantUserId({ to: toE164 });
   if (mapped !== userId) return false;
-  return ensurePilotTrial(userId);
+  await setUserTwilioBoundMarker(userId, toE164.replace(/\s/g, ""));
+  return grantPilotTrialBilling(userId);
 }
 
 export async function setUserTwilioBoundMarker(
   userId: string,
   phoneE164: string,
 ): Promise<void> {
+  const digits = phoneE164.replace(/\D/g, "");
+  let key = phoneE164;
+  if (digits.length === 10) key = `+1${digits}`;
+  else if (digits.length === 11 && digits.startsWith("1")) key = `+${digits}`;
+  else if (!phoneE164.startsWith("+")) key = `+${digits}`;
   if (!useKvStore()) return;
-  await kv.set(userTwilioBoundKey(userId), phoneE164);
+  await kv.set(userTwilioBoundKey(userId), key);
 }
