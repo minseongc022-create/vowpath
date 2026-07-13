@@ -1,6 +1,6 @@
 import { kv } from "@vercel/kv";
 
-const DEFAULT_KV_TIMEOUT_MS = 4_000;
+export const DEFAULT_KV_TIMEOUT_MS = 4_000;
 
 export class KvReadTimeoutError extends Error {
   constructor() {

@@ -80,13 +80,15 @@ export function smsStaffEtaInvalidReply(): string {
 
 // ─── Customer-facing messages (shop name, no "Effiroad") ────────────────────
 
-/** Link intake — press 1 on call */
+/** Link intake — press 1 on call (GSM-7, single segment when possible). */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
-  const shop = resolveShopDisplayName(shopName);
-  return smsBodyWithUrl(
-    `${shop}: Thanks for calling! Tap the link to submit your info — takes about 60 seconds:`,
-    url,
-  );
+  const shop = smsTruncate(resolveShopDisplayName(shopName), 24);
+  const intro = `${shop}: Hi! Thanks for calling! Finish here (~1 min):`;
+  const withOptOut = `${intro} ${url} Reply STOP to opt out.`;
+  if (withOptOut.length <= GSM_SINGLE) return withOptOut;
+  const compact = `${intro} ${url}`;
+  if (compact.length <= GSM_SINGLE) return compact;
+  return smsFitSingleSegment([intro, url, "Reply STOP to opt out."], GSM_SINGLE);
 }
 
 /** After booking / request received */

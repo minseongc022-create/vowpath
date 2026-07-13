@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { kv } from "@vercel/kv";
-import { kvGetSafe } from "../kv-safe";
+import { KvReadTimeoutError, DEFAULT_KV_TIMEOUT_MS } from "../kv-safe";
+import { normalizeLinkIntakeToken } from "../link-intake-token";
 import { useKvStore } from "../kv-config";
 import type { JobPriority } from "../types";
 
@@ -67,12 +68,47 @@ export async function saveLinkIntakeSession(session: LinkIntakeSession): Promise
   await writeFileStore(store);
 }
 
-export async function getLinkIntakeSession(
+export class LinkIntakeSessionLookupError extends Error {
+  constructor(cause?: unknown) {
+    super("LINK_INTAKE_LOOKUP_FAILED");
+    this.name = "LinkIntakeSessionLookupError";
+    if (cause instanceof Error) this.cause = cause;
+  }
+}
+
+async function readLinkIntakeSessionFromKv(
   token: string,
 ): Promise<LinkIntakeSession | null> {
+  const key = kvKey(token);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await Promise.race([
+        kv.get<LinkIntakeSession>(key),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new KvReadTimeoutError()), DEFAULT_KV_TIMEOUT_MS);
+        }),
+      ]);
+      return result ?? null;
+    } catch (e) {
+      lastError = e;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+        continue;
+      }
+    }
+  }
+  console.error("[link-intake] KV lookup failed after retries", { token: token.slice(0, 8) }, lastError);
+  throw new LinkIntakeSessionLookupError(lastError);
+}
+
+export async function getLinkIntakeSession(
+  rawToken: string,
+): Promise<LinkIntakeSession | null> {
+  const token = normalizeLinkIntakeToken(rawToken);
   if (!token) return null;
   if (useKvStore()) {
-    return (await kvGetSafe<LinkIntakeSession>(kvKey(token))) ?? null;
+    return readLinkIntakeSessionFromKv(token);
   }
   if (process.env.VERCEL === "1") throw new Error("KV_REQUIRED");
   const store = await readFileStore();

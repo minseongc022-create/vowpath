@@ -142,6 +142,9 @@ export const linkIntakePageCopy = {
   loadSubmissionFailed: "Couldn't load this link. Try again or call the company directly.",
   expiredTitle: "This link expired",
   expiredBody: "This link isn't active anymore. Call the company and we'll get you taken care of.",
+  unavailableTitle: "One moment…",
+  unavailableBody:
+    "We couldn't load your link right now. Wait a few seconds and tap the text message link again. Still stuck? Call the company and we'll help.",
   correctionViewTitle: "Review your request",
   correctionViewHint: "Make sure everything looks good — tap Edit if anything needs a change.",
   correctionEditTitle: "Edit your request",
@@ -285,6 +288,9 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   loadSubmissionFailed: "No se pudo cargar este enlace. Intente de nuevo o llame a la empresa directamente.",
   expiredTitle: "Este enlace expiró",
   expiredBody: "Este enlace ya no está activo. Llame a la empresa y le ayudaremos.",
+  unavailableTitle: "Un momento…",
+  unavailableBody:
+    "No pudimos cargar su enlace ahora. Espere unos segundos y vuelva a tocar el enlace del mensaje. ¿Sigue sin funcionar? Llame a la empresa.",
   correctionViewTitle: "Revise su solicitud",
   correctionViewHint: "Verifique que todo esté bien — toque Editar si algo debe cambiar.",
   correctionEditTitle: "Edite su solicitud",
