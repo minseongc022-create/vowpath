@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
-import { getRetellAgentId, getRetellLlmId, retellToolUrls } from "@/lib/retell-config";
+import { getRetellAgentId, getRetellLlmId, retellToolUrls, shouldRetellAnswerAllCalls } from "@/lib/retell-config";
+import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
 
-const PRODUCTION_PROMPT =
-  "You are a warm, upbeat phone intake specialist for a US water, fire, and mold restoration company. " +
-  "Speak naturally and reassuringly — never robotic. " +
-  "FIRST figure out what the caller wants: active damage/emergency (PATH A) or free estimate only (PATH B). " +
-  "PATH A: get name, exact address, damage type (water/fire/mold/sewage). Confirm, then call submit_intake once. " +
-  "PATH B: get name, address, damage type, when noticed, preferred callback time. Never quote a price. Confirm, then call submit_estimate once. " +
-  "If audio is unclear, ask them to repeat — never guess addresses or names. Give callers time to speak.";
-
-const PRODUCTION_BEGIN =
-  "Thanks so much for calling — I'm here to help. Could you tell me your name, and what's going on today?";
+const PRODUCTION_PROMPT = RETELL_PRODUCTION_PROMPT;
+const PRODUCTION_BEGIN = RETELL_PRODUCTION_BEGIN_MESSAGE;
 
 function cronAuth(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -160,7 +153,8 @@ export async function GET(request: Request) {
       llmId,
       phoneWebhookUpdated: phoneUpdated,
       toolUrls: urls,
-      mode: "english-production-sip",
+      mode: "english-production-sip-all-calls",
+      answerAllCalls: shouldRetellAnswerAllCalls(),
     });
   } catch (e) {
     console.error("[cron/retell-production-sync]", e);
