@@ -10,12 +10,47 @@ export type CheckoutApiErr = {
   code?: string;
 };
 
+export type PaddleClientConfig = {
+  token: string;
+  environment: "production" | "sandbox";
+};
+
+type CheckoutStatusPayload = {
+  paddleClientToken?: string;
+  paddleEnvironment?: "production" | "sandbox";
+};
+
+let cachedClientConfig: PaddleClientConfig | null = null;
+
 export function paddleClientToken(): string | undefined {
   return process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() || undefined;
 }
 
 export function paddleClientEnvironment(): "production" | "sandbox" {
   return process.env.NEXT_PUBLIC_PADDLE_ENV === "production" ? "production" : "sandbox";
+}
+
+export async function fetchPaddleClientConfig(): Promise<PaddleClientConfig> {
+  const buildToken = paddleClientToken();
+  if (buildToken) {
+    return { token: buildToken, environment: paddleClientEnvironment() };
+  }
+  if (cachedClientConfig) return cachedClientConfig;
+
+  const res = await fetch("/api/checkout/status");
+  const data = (await res.json()) as CheckoutStatusPayload;
+  const token = data.paddleClientToken?.trim();
+  if (!token) {
+    const err = new Error("Paddle client token missing");
+    (err as Error & { code?: string }).code = "missing_client_token";
+    throw err;
+  }
+
+  cachedClientConfig = {
+    token,
+    environment: data.paddleEnvironment === "production" ? "production" : "sandbox",
+  };
+  return cachedClientConfig;
 }
 
 export async function createCheckoutSession(plan: PlanId): Promise<CheckoutApiOk> {
@@ -39,17 +74,12 @@ export async function createCheckoutSession(plan: PlanId): Promise<CheckoutApiOk
 }
 
 export async function openPaddleCheckout(transactionId: string): Promise<void> {
-  const token = paddleClientToken();
-  if (!token) {
-    const err = new Error("Paddle client token missing");
-    (err as Error & { code?: string }).code = "missing_client_token";
-    throw err;
-  }
+  const { token, environment } = await fetchPaddleClientConfig();
 
   const { initializePaddle } = await import("@paddle/paddle-js");
   const paddle = await initializePaddle({
     token,
-    environment: paddleClientEnvironment(),
+    environment,
   });
   if (!paddle) {
     const err = new Error("Paddle.js failed to load");
