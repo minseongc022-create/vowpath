@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   try {
     body = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ result: "Sorry, something went wrong on our end." }, { status: 400 });
+    return NextResponse.json({ result: "Sorry, something got mixed up on our end." }, { status: 400 });
   }
 
   const call = (body.call ?? {}) as Record<string, unknown>;
@@ -68,20 +68,20 @@ export async function POST(request: Request) {
   const userId = await resolveTenantUserId({ to, from, callSid: callId });
   if (!userId) {
     return NextResponse.json({
-      result: "This line isn't fully set up yet — please call back later or reach out during business hours.",
+      result: "Hmm, I'm not finding this line in our system — try calling back in a bit.",
     });
   }
 
   if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     return NextResponse.json({
-      result: "Thanks for calling. This answering service isn't active right now — please contact the business directly.",
+      result: "Thanks for calling — looks like this answering service isn't turned on right now. Best to reach the shop directly.",
     });
   }
 
   const firstSubmission = await claimFirstSubmission(callId);
   if (!firstSubmission) {
     return NextResponse.json({
-      result: "I've already got your estimate request logged — the team will follow up shortly.",
+      result: "You're all set — we already have your estimate request. Someone will reach out soon.",
     });
   }
 
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
   if (!answers.address && !answers.damageType) {
     return NextResponse.json({
-      result: "I didn't quite catch the project details — could you describe what you need an estimate for, and the address?",
+      result: "Sorry, I missed that — what do you need an estimate for, and what's the address?",
     });
   }
 
@@ -110,12 +110,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      result: "Perfect — I've sent your estimate request to the team. They'll follow up with you soon.",
+      result: "Perfect — got it all down. The team will reach out to schedule your free estimate. Thanks for calling!",
     });
   } catch (e) {
     console.error("[retell/tools/submit-estimate]", e);
     return NextResponse.json({
-      result: "I'm having trouble logging that right now, but a team member will follow up with you directly.",
+      result: "Something glitched on my end — but don't worry, someone from the team will call you back.",
     });
   }
 }

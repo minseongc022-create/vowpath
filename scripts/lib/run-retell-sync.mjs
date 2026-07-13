@@ -4,6 +4,7 @@ import {
   buildRetellGeneralTools,
 } from "./retell-agent-config.mjs";
 import {
+  RETELL_PROMPT_VERSION,
   buildRetellProductionAgentPatch,
   pickNaturalReceptionistVoice,
 } from "./retell-agent-settings.mjs";
@@ -99,5 +100,5 @@ export async function runRetellSync(env = process.env) {
     }
   }
 
-  return { ok: true, phone: e164, agentId, llmId, base, urls, voiceId };
+  return { ok: true, phone: e164, agentId, llmId, base, urls, voiceId, promptVersion: RETELL_PROMPT_VERSION };
 }

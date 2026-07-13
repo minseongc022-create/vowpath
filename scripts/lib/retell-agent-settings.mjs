@@ -2,6 +2,9 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
+export const RETELL_PROMPT_VERSION = "human-v2-2026-07-13";
+
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Hailey */
 export const RETELL_PREFERRED_VOICE_NAMES = [
   "Hailey",
   "Grace",
@@ -58,6 +61,7 @@ export function buildRetellProductionAgentPatch(voiceId) {
     ],
     voice_temperature: 1.12,
     voice_speed: 0.93,
+    voice_model: "eleven_v3",
     enable_dynamic_voice_speed: true,
     responsiveness: 0.72,
     enable_dynamic_responsiveness: true,

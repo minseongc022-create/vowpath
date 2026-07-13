@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRetellAgentId, getRetellLlmId, getRetellWebhookBaseUrl, retellToolUrls, shouldRetellAnswerAllCalls } from "@/lib/retell-config";
-import { buildRetellProductionAgentPatch, pickNaturalReceptionistVoice } from "@/lib/retell-agent-settings";
+import { RETELL_PROMPT_VERSION, buildRetellProductionAgentPatch, pickNaturalReceptionistVoice } from "@/lib/retell-agent-settings";
 import { RETELL_PRODUCTION_BEGIN_MESSAGE, RETELL_PRODUCTION_PROMPT } from "@/lib/retell-prompt";
 import { buildRetellGeneralTools } from "@/lib/retell-tools";
 
@@ -103,6 +103,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      promptVersion: RETELL_PROMPT_VERSION,
       agentId,
       llmId,
       phoneWebhookUpdated: phoneUpdated,
