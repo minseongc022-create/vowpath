@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Container } from "@/components/ui/Container";
 
-type TabId = "voice" | "estimate" | "dispatch";
+type TabId = "voice" | "estimate" | "dispatch" | "live-call" | "dashboard";
 
-const TABS: { id: TabId; label: string; webm: string; mp4: string }[] = [
-  { id: "voice", label: "Voice AI", webm: "/videos/demo-voice.webm", mp4: "/videos/demo-voice.mp4" },
-  { id: "estimate", label: "Free Estimate", webm: "/videos/demo-estimate.webm", mp4: "/videos/demo-estimate.mp4" },
-  { id: "dispatch", label: "Smart Dispatch", webm: "/videos/demo-dispatch.webm", mp4: "/videos/demo-dispatch.mp4" },
+const TABS: { id: TabId; label: string; webm: string; mp4: string; group: "flow" | "product" }[] = [
+  { id: "voice", label: "Voice AI", webm: "/videos/demo-voice.webm", mp4: "/videos/demo-voice.mp4", group: "flow" },
+  { id: "estimate", label: "Free Estimate", webm: "/videos/demo-estimate.webm", mp4: "/videos/demo-estimate.mp4", group: "flow" },
+  { id: "dispatch", label: "Smart Dispatch", webm: "/videos/demo-dispatch.webm", mp4: "/videos/demo-dispatch.mp4", group: "flow" },
+  { id: "live-call", label: "Live Call UI", webm: "/videos/demo-live-call.webm", mp4: "/videos/demo-live-call.mp4", group: "product" },
+  { id: "dashboard", label: "Dashboard", webm: "/videos/demo-dashboard.webm", mp4: "/videos/demo-dashboard.mp4", group: "product" },
 ];
 
 export function DemoVideoHero() {
@@ -31,7 +33,7 @@ export function DemoVideoHero() {
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {TABS.map((t) => (
+          {TABS.filter((t) => t.group === "flow").map((t) => (
             <button
               key={t.id}
               type="button"
@@ -39,6 +41,25 @@ export function DemoVideoHero() {
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 active === t.id
                   ? "bg-[#9a7f5e] text-white shadow-lg shadow-[#9a7f5e]/30"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-[11px] font-semibold uppercase tracking-widest text-white/35">
+          Real product UI
+        </p>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          {TABS.filter((t) => t.group === "product").map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActive(t.id)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                active === t.id
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
                   : "bg-white/10 text-white/70 hover:bg-white/15"
               }`}
             >
@@ -64,7 +85,9 @@ export function DemoVideoHero() {
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">
-          Simulated call flow · Same logic as production Retell + Twilio intake
+          {tab.group === "product"
+            ? "Recorded from production UI components · Same dashboard owners use daily"
+            : "Simulated call flow · Same logic as production Retell + Twilio intake"}
         </p>
       </Container>
     </section>
