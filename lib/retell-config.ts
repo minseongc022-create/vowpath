@@ -19,11 +19,16 @@ export function isRetellConfigured(): boolean {
   return Boolean(getRetellApiKey());
 }
 
-/** When true, inbound calls skip DTMF menus and connect straight to Retell. Default on if Retell is configured. */
+/**
+ * When true, inbound calls skip the Twilio DTMF menu and connect straight to Retell.
+ * Default: menu first (press 1 = service, press 2 = estimate), then Retell on booking path.
+ * Set RETELL_SKIP_DTMF_MENU=true to restore direct-to-Retell behavior.
+ */
 export function shouldRetellAnswerAllCalls(): boolean {
   if (!isRetellConfigured()) return false;
-  if (process.env.RETELL_DTMF_IVR === "true") return false;
-  return true;
+  const skip = process.env.RETELL_SKIP_DTMF_MENU?.trim().toLowerCase();
+  if (skip === "true" || skip === "1" || skip === "yes") return true;
+  return false;
 }
 
 export function getRetellForwardNumberEnv(): string | undefined {

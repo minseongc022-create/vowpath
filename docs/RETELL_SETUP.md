@@ -11,7 +11,7 @@ Customer → +1 (225) 529-1680 (Twilio)
          → tools: send_intake_link | submit_intake | submit_estimate
 ```
 
-**Important:** When `RETELL_API_KEY` is set, inbound calls connect straight to Retell — **no press-1-2-3 menu**. Set `RETELL_DTMF_IVR=true` to restore the old phone tree.
+**Default flow:** Twilio plays the main menu first (press 1 = service, press 2 = estimate), then connects to Retell when the caller chooses phone intake. Set `RETELL_SKIP_DTMF_MENU=true` to skip the menu and connect straight to Retell.
 
 The agent explains services verbally, detects intent (emergency vs estimate), then offers **link vs phone** in conversation.
 
@@ -77,7 +77,7 @@ curl https://effiroad.com/api/retell/status
 
 Expect `ok: true` and `forwardNumberConfigured: true`.
 
-**Live test:** call **+1 (225) 529-1680** → AI answers immediately → say "I need an estimate" → choose link or phone.
+**Live test:** call your Effiroad number → hear main menu → press **1** (service) → press **1** (talk now) → professional dispatcher collects name, address, issue.
 
 If Retell fails to connect, Twilio falls back to scripted speech intake automatically (`/api/twilio/dial-fallback`).
 

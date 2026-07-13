@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     to,
     from,
     callSid,
+    ivrPath: "phone_booking" as const,
   };
 
   if (!validateTwilioWebhook(request, rawBody)) {

@@ -43,6 +43,9 @@ async function fetchLiveAgentSnapshot(): Promise<LiveAgentSnapshot | null> {
     voice_id?: string;
     voice_speed?: number;
     responsiveness?: number;
+    interruption_sensitivity?: number;
+    volume?: number;
+    denoising_mode?: string;
     enable_backchannel?: boolean;
   };
   const llm = llmRes.ok
@@ -63,7 +66,10 @@ async function fetchLiveAgentSnapshot(): Promise<LiveAgentSnapshot | null> {
     toneSynced:
       agent.enable_backchannel === expected.enable_backchannel &&
       agent.responsiveness === expected.responsiveness &&
-      agent.voice_speed === expected.voice_speed,
+      agent.voice_speed === expected.voice_speed &&
+      agent.interruption_sensitivity === expected.interruption_sensitivity &&
+      agent.volume === expected.volume &&
+      agent.denoising_mode === expected.denoising_mode,
   };
 }
 
@@ -91,7 +97,7 @@ export async function GET() {
       needsSync: liveAgent ? !liveAgent.promptSynced || !liveAgent.toneSynced : null,
     },
     howToTest:
-      'Call +1 (225) 529-1680 — warm, upbeat US tone: "Hi there, thanks for calling … we\'ll take care of you."',
+      "Call your shop line → main menu → press 1 (service) → press 1 (phone) → dispatcher collects details.",
     syncAgent: "GET /api/cron/retell-production-sync with CRON_SECRET",
   });
 }
