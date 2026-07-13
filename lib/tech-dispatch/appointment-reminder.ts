@@ -91,14 +91,22 @@ type BookingEntry = {
   techPhone?: string | null;
 };
 
+const WEEKDAY_PREFIX = /^(sun|mon|tue|wed|thu|fri|sat)\w*\.?\s/i;
+
+function isArrivalWindowToday(window: string): boolean {
+  const trimmed = window.trim();
+  if (!WEEKDAY_PREFIX.test(trimmed)) return true;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "short" }).slice(0, 3);
+  return trimmed.toLowerCase().startsWith(today.toLowerCase());
+}
+
 async function loadTodayBookingsForUser(userId: string): Promise<BookingEntry[]> {
   const [calls, jobs] = await Promise.all([listCallLogs(userId), listJobs(userId)]);
-  const today = new Date().toDateString();
   const entries: BookingEntry[] = [];
 
   for (const call of calls) {
     if (!call.arrivalWindow || call.arrivalWindow === "TBD") continue;
-    // Only include bookings where window looks like today or has no date prefix
+    if (!isArrivalWindowToday(call.arrivalWindow)) continue;
     entries.push({
       bookingId: `call-${call.id}`,
       customerName: call.customerName ?? "Customer",
@@ -109,6 +117,7 @@ async function loadTodayBookingsForUser(userId: string): Promise<BookingEntry[]>
 
   for (const job of jobs) {
     if (!job.arrivalWindow || job.arrivalWindow === "TBD") continue;
+    if (!isArrivalWindowToday(job.arrivalWindow)) continue;
     entries.push({
       bookingId: job.id,
       customerName: job.customerName ?? "Customer",

@@ -75,6 +75,7 @@ export async function sendLinkIntakeSms(params: {
   userId: string;
   phone: string;
   token: string;
+  callSid?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const shopName = await shopDisplayNameForUser(params.userId);
   const url = buildLinkIntakeUrl(params.token);
@@ -84,13 +85,15 @@ export async function sendLinkIntakeSms(params: {
   const allowed = await shouldSendSmsOnce(params.userId, dedupeId);
   if (!allowed) return { ok: true };
 
+  const session = await getLinkIntakeSession(params.token);
+  const callSid = params.callSid ?? session?.callSid;
+
   const result = await sendSms(params.phone, body, "link_intake", {
-    // Caller pressed 1 during an inbound call — text their Twilio Caller ID (+1 or +82).
     usRecipientsOnly: false,
     context: {
       userId: params.userId,
       operation: "link_intake",
-      callSid: params.token,
+      callSid,
     },
   });
   if (!result.ok) {

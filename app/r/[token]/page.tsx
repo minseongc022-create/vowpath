@@ -12,6 +12,8 @@ import {
   isLinkIntakeSessionExpired,
 } from "@/lib/call-intake/link-intake-store";
 
+import { getShopVertical } from "@/lib/vertical-context";
+
 export async function generateMetadata({
   params,
 }: {
@@ -55,12 +57,13 @@ export default async function ShortBookingPortalPage({
   }
 
   const shopName = await shopDisplayNameForUser(session.userId);
+  const vertical = await getShopVertical(session.userId);
 
   if (canSubmitLinkIntakeForm(session)) {
     return (
       <main className="min-h-[100dvh]">
         <LinkIntakeCopyProvider>
-          <LinkIntakeForm token={token} shopName={shopName} />
+          <LinkIntakeForm token={token} shopName={shopName} vertical={vertical} />
         </LinkIntakeCopyProvider>
       </main>
     );

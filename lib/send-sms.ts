@@ -53,11 +53,14 @@ function parseTwilioError(e: unknown): { message: string; code: number | null } 
       ? (e as { code: number }).code
       : null;
 
+  const en = process.env.NODE_ENV === "production";
+
   if (code === 21608 || code === 21610 || msg.includes("unverified")) {
     return {
       code,
-      message:
-        "Twilio Trial: 수신 번호를 Verified Caller IDs에 등록·인증해야 문자가 전송됩니다.",
+      message: en
+        ? "Twilio Trial: verify the recipient number in Verified Caller IDs before sending SMS."
+        : "Twilio Trial: 수신 번호를 Verified Caller IDs에 등록·인증해야 문자가 전송됩니다.",
     };
   }
   if (
@@ -66,23 +69,30 @@ function parseTwilioError(e: unknown): { message: string; code: number | null } 
   ) {
     return {
       code,
-      message:
-        "Twilio Geo permissions: United States(US) SMS를 허용하세요. (Console → Messaging → Geo permissions → United States → Enable)",
+      message: en
+        ? "Twilio Geo permissions: enable United States (US) SMS in Console → Messaging → Geo permissions."
+        : "Twilio Geo permissions: United States(US) SMS를 허용하세요. (Console → Messaging → Geo permissions → United States → Enable)",
     };
   }
   if (code === 21606 || msg.includes("From") || msg.includes("21212")) {
     return {
       code,
-      message:
-        "발신 번호(TWILIO_PHONE_NUMBER)가 Twilio 계정의 활성 미국 번호와 일치하는지 확인하세요.",
+      message: en
+        ? "Check that your Twilio from-number matches an active US number on your account."
+        : "발신 번호(TWILIO_PHONE_NUMBER)가 Twilio 계정의 활성 미국 번호와 일치하는지 확인하세요.",
     };
   }
   if (msg.includes("21211") || msg.toLowerCase().includes("invalid")) {
-    return { code, message: "수신 번호가 올바르지 않습니다." };
+    return {
+      code,
+      message: en ? "Invalid recipient phone number." : "수신 번호가 올바르지 않습니다.",
+    };
   }
   return {
     code,
-    message: "문자 전송에 실패했습니다. Twilio 설정과 수신 번호를 확인해 주세요.",
+    message: en
+      ? "SMS delivery failed. Check Twilio settings and the recipient number."
+      : "문자 전송에 실패했습니다. Twilio 설정과 수신 번호를 확인해 주세요.",
   };
 }
 

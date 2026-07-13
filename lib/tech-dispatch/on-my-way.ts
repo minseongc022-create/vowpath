@@ -14,6 +14,7 @@ import { sendSms } from "../send-sms";
 import { getSmsReplyTarget } from "../sms-reply-context";
 import { resolveOwnerUserIdFromSms } from "../owner-sms-reply";
 import { findUserById } from "../users-db";
+import { handleApptEtaReply } from "./appointment-reminder";
 import {
   clearTechActiveJob,
   findTechByPhone,
@@ -277,6 +278,21 @@ export async function handleOnMyWaySmsReply(params: {
       handled: true,
       replyBody:
         "Staff: accept or approve the visit first. Then reply 30 HERE (minutes away) — we text the customer.",
+    };
+  }
+
+  const user = await findUserById(params.userId);
+  const shopName = resolveShopDisplayName(user?.shopName);
+  const apptEtaSent = await handleApptEtaReply({
+    userId: params.userId,
+    bookingId,
+    etaMinutes: minutes,
+    shopName,
+  });
+  if (apptEtaSent) {
+    return {
+      handled: true,
+      replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
     };
   }
 

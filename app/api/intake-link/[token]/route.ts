@@ -13,6 +13,7 @@ import { parseLinkUrgency } from "@/lib/link-intake-urgency";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 import { guardTenantProductEntitled } from "@/lib/tenant-product-access";
 import { parseCustomerSmsConsent } from "@/lib/legal-consent";
+import { withDistributedLock } from "@/lib/distributed-lock";
 
 export async function GET(
   request: Request,
@@ -135,20 +136,22 @@ export async function POST(
     );
   }
 
-  const result = await submitLinkIntakeForm({
-    token,
-    customerName,
-    address,
-    issueDescription,
-    urgency,
-    photoRef,
-    slotId,
-    insuranceCarrier: insuranceCarrier || undefined,
-    insuranceClaimNumber: insuranceClaimNumber || undefined,
-    waterSource: waterSource || undefined,
-    activeLoss,
-    smsConsentAt: new Date().toISOString(),
-  });
+  const result = await withDistributedLock(`link-intake-submit:${token}`, () =>
+    submitLinkIntakeForm({
+      token,
+      customerName,
+      address,
+      issueDescription,
+      urgency,
+      photoRef,
+      slotId,
+      insuranceCarrier: insuranceCarrier || undefined,
+      insuranceClaimNumber: insuranceClaimNumber || undefined,
+      waterSource: waterSource || undefined,
+      activeLoss,
+      smsConsentAt: new Date().toISOString(),
+    }),
+  );
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
