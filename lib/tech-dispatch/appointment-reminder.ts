@@ -21,6 +21,11 @@ import {
   smsApptEtaToCustomer,
   smsApptFallbackToCustomer,
 } from "../sms-templates";
+import {
+  DEFAULT_SHOP_TIMEZONE,
+  minutesSinceMidnightInTimezone,
+  weekdayShortInTimezone,
+} from "../us-timezone";
 
 export type ApptReminderState = {
   sentAt: string;        // ISO — when we asked the tech for ETA
@@ -76,10 +81,9 @@ export function parseWindowStartHour(window: string): number | null {
   return hour * 60 + minutes; // return minutes-since-midnight for precision
 }
 
-/** Returns minutes since midnight for now (in the server's local timezone). */
-function nowMinutesSinceMidnight(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+/** Returns minutes since midnight in the shop's default US timezone. */
+function nowMinutesSinceMidnight(timeZone = DEFAULT_SHOP_TIMEZONE): number {
+  return minutesSinceMidnightInTimezone(timeZone);
 }
 
 type BookingEntry = {
@@ -93,10 +97,13 @@ type BookingEntry = {
 
 const WEEKDAY_PREFIX = /^(sun|mon|tue|wed|thu|fri|sat)\w*\.?\s/i;
 
-function isArrivalWindowToday(window: string): boolean {
+function isArrivalWindowToday(
+  window: string,
+  timeZone = DEFAULT_SHOP_TIMEZONE,
+): boolean {
   const trimmed = window.trim();
   if (!WEEKDAY_PREFIX.test(trimmed)) return true;
-  const today = new Date().toLocaleDateString("en-US", { weekday: "short" }).slice(0, 3);
+  const today = weekdayShortInTimezone(timeZone);
   return trimmed.toLowerCase().startsWith(today.toLowerCase());
 }
 

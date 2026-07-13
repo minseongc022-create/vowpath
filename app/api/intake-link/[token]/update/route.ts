@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getLinkIntakeSession,
-  isLinkIntakePortalOpen,
-  isLinkIntakeSessionExpired,
-} from "@/lib/call-intake/link-intake-store";
+import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import { updateLinkIntakeBooking } from "@/lib/link-intake-portal";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
@@ -19,15 +15,17 @@ export async function POST(
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
-    const session = await getLinkIntakeSession(token);
-    if (
-      !session ||
-      isLinkIntakeSessionExpired(session) ||
-      !isLinkIntakePortalOpen(session) ||
-      !session.callId
-    ) {
-      return NextResponse.json({ error: "Link expired or invalid" }, { status: 404 });
+    const sessionGuard = await requireLinkIntakeSession(token, {
+      requirePortalOpen: true,
+      requireCallId: true,
+    });
+    if (!sessionGuard.ok) {
+      return NextResponse.json(
+        { error: sessionGuard.error, code: sessionGuard.code },
+        { status: sessionGuard.status },
+      );
     }
+    const session = sessionGuard.session;
 
     let body: Record<string, unknown>;
     try {

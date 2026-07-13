@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getLinkIntakeSession,
-  isLinkIntakeSessionExpired,
-} from "@/lib/call-intake/link-intake-store";
+import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import {
   customerCancelBooking,
   loadCustomerBookingPortalView,
@@ -22,10 +19,14 @@ export async function POST(
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
-  const session = await getLinkIntakeSession(token);
-  if (!session || isLinkIntakeSessionExpired(session) || !session.callId) {
-    return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
+  const sessionGuard = await requireLinkIntakeSession(token, { requireCallId: true });
+  if (!sessionGuard.ok) {
+    return NextResponse.json(
+      { error: sessionGuard.error, code: sessionGuard.code },
+      { status: sessionGuard.status },
+    );
   }
+  const session = sessionGuard.session;
 
   const view = await loadCustomerBookingPortalView({ session, token });
   if (!view?.canCancel) {

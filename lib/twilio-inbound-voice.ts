@@ -48,6 +48,17 @@ export async function resolveInboundVoiceContext(params: {
       const todayUtc = new Date().toISOString().split("T")[0];
       const memory = await getCompanyAiMemory(params.userId);
       customGreeting = memory?.customGreeting ?? "";
+
+      // Log every inbound call (including closure days) for forwarding tests and metrics.
+      await recordInboundEvent(params.userId, {
+        callSid: params.callSid,
+        from: params.from,
+        to: params.to,
+        status: "voice_started",
+        direction: "inbound",
+        forwardedFrom: params.forwardedFrom,
+      });
+
       if (memory?.temporaryClosureDate === todayUtc) {
         return {
           ...params,
@@ -60,14 +71,6 @@ export async function resolveInboundVoiceContext(params: {
       afterHours = await isTenantAfterHours(params.userId);
       const settings = await getShopBookingSettings(params.userId);
       stormMode = settings.stormModeEnabled;
-      await recordInboundEvent(params.userId, {
-        callSid: params.callSid,
-        from: params.from,
-        to: params.to,
-        status: "voice_started",
-        direction: "inbound",
-        forwardedFrom: params.forwardedFrom,
-      });
     } catch (e) {
       console.error("[twilio/inbound-voice] tenant lookup failed:", e);
     }

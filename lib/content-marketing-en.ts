@@ -1,4 +1,5 @@
 import { SITE } from "./constants";
+import { TRIAL_DAYS } from "./billing-cohort";
 import { getCheckoutCta } from "./marketing-constants";
 
 const CHECKOUT_CTA = getCheckoutCta();
@@ -698,7 +699,7 @@ export const faqEn = {
     },
     {
       q: "Is there a risk-free way to try it?",
-      a: "Yes. Every plan includes a 30-day money-back guarantee. If Effiroad doesn't capture a real loss in your first month, email us and we refund in full. You can cancel anytime — no contracts, no cancellation fees.",
+      a: `Yes. Start with a ${TRIAL_DAYS}-day free trial — phone, SMS, and dispatch included, no credit card required. Every paid plan also includes a 30-day money-back guarantee. Cancel anytime — no contracts, no cancellation fees.`,
     },
     {
       q: "Do you record calls? Who can access them?",

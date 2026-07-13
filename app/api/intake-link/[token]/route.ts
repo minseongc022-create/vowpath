@@ -4,14 +4,12 @@ import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { submitLinkIntakeForm } from "@/lib/call-intake/link-intake-flow";
 import {
   canSubmitLinkIntakeForm,
-  getLinkIntakeSession,
   isLinkIntakePortalOpen,
-  isLinkIntakeSessionExpired,
 } from "@/lib/call-intake/link-intake-store";
+import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import { saveIntakePhoto } from "@/lib/intake-photo-store";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
-import { guardTenantProductEntitled } from "@/lib/tenant-product-access";
 import { parseCustomerSmsConsent } from "@/lib/legal-consent";
 import { withDistributedLock } from "@/lib/distributed-lock";
 
@@ -24,14 +22,17 @@ export async function GET(
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
-  const session = await getLinkIntakeSession(token);
-  if (!session || isLinkIntakeSessionExpired(session)) {
-    return NextResponse.json({ valid: false }, { status: 404 });
+  const sessionGuard = await requireLinkIntakeSession(token);
+  if (!sessionGuard.ok) {
+    if (sessionGuard.status === 404) {
+      return NextResponse.json({ valid: false }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: sessionGuard.error, code: sessionGuard.code },
+      { status: sessionGuard.status },
+    );
   }
-  const entitled = await guardTenantProductEntitled(session.userId);
-  if (!entitled.ok) {
-    return NextResponse.json({ error: entitled.error, code: entitled.code }, { status: entitled.status });
-  }
+  const session = sessionGuard.session;
   const shopName = await shopDisplayNameForUser(session.userId);
   const mode = canSubmitLinkIntakeForm(session)
     ? "form"
@@ -56,14 +57,14 @@ export async function POST(
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
-  const session = await getLinkIntakeSession(token);
-  if (!session || isLinkIntakeSessionExpired(session)) {
-    return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
+  const sessionGuard = await requireLinkIntakeSession(token);
+  if (!sessionGuard.ok) {
+    return NextResponse.json(
+      { error: sessionGuard.error, code: sessionGuard.code },
+      { status: sessionGuard.status },
+    );
   }
-  const entitled = await guardTenantProductEntitled(session.userId);
-  if (!entitled.ok) {
-    return NextResponse.json({ error: entitled.error, code: entitled.code }, { status: entitled.status });
-  }
+  const session = sessionGuard.session;
 
   const contentType = request.headers.get("content-type") ?? "";
 

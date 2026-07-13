@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getLinkIntakeSession,
-  isLinkIntakePortalOpen,
-} from "@/lib/call-intake/link-intake-store";
+import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import { lookupLinkIntakeBooking } from "@/lib/link-intake-portal";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 
@@ -15,10 +12,14 @@ export async function POST(
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
-  const session = await getLinkIntakeSession(token);
-  if (!isLinkIntakePortalOpen(session)) {
-    return NextResponse.json({ error: "Link expired or invalid" }, { status: 404 });
+  const sessionGuard = await requireLinkIntakeSession(token, { requirePortalOpen: true });
+  if (!sessionGuard.ok) {
+    return NextResponse.json(
+      { error: sessionGuard.error, code: sessionGuard.code },
+      { status: sessionGuard.status },
+    );
   }
+  const session = sessionGuard.session;
 
   let body: Record<string, unknown>;
   try {
@@ -28,7 +29,7 @@ export async function POST(
   }
 
   const result = await lookupLinkIntakeBooking({
-    session: session!,
+    session,
     customerName: String(body.customerName ?? "").trim(),
     phone: String(body.phone ?? "").trim(),
   });

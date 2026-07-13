@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
-import {
-  getLinkIntakeSession,
-  isLinkIntakeSessionExpired,
-} from "@/lib/call-intake/link-intake-store";
+import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import { loadCustomerBookingPortalView } from "@/lib/customer-booking-portal";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 
@@ -17,10 +14,14 @@ export async function GET(
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
-  const session = await getLinkIntakeSession(token);
-  if (!session || isLinkIntakeSessionExpired(session)) {
-    return NextResponse.json({ error: "Invalid or expired link" }, { status: 404 });
+  const sessionGuard = await requireLinkIntakeSession(token);
+  if (!sessionGuard.ok) {
+    return NextResponse.json(
+      { error: sessionGuard.error, code: sessionGuard.code },
+      { status: sessionGuard.status },
+    );
   }
+  const session = sessionGuard.session;
 
   if (!session.callId) {
     return NextResponse.json(

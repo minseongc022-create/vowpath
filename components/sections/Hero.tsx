@@ -1,6 +1,7 @@
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { TRIAL_DAYS } from "@/lib/billing-cohort";
 import { siteHero } from "@/lib/site-content";
 
 export function Hero() {
@@ -50,7 +51,7 @@ export function Hero() {
         <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
           <CheckoutButton size="lg" directCheckout className="w-full sm:w-auto" />
           <Button
-            href={"secondaryCtaHref" in h && h.secondaryCtaHref ? h.secondaryCtaHref : "/#missed-call-flow"}
+            href={"secondaryCtaHref" in h && h.secondaryCtaHref ? h.secondaryCtaHref : "/#how-it-works"}
             variant="secondary"
             size="lg"
             className="w-full sm:w-auto"
@@ -61,7 +62,7 @@ export function Hero() {
 
         <p className="mt-3 text-center">
           <a href="/get-started" className="text-sm font-semibold text-brand-700 hover:underline">
-            Start free — 7 days on us →
+            Start free — {TRIAL_DAYS} days on us →
           </a>
         </p>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE } from "@/lib/constants";
+import { TRIAL_DAYS } from "@/lib/billing-cohort";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
 /** Cache-bust favicons after asset updates */
@@ -210,7 +211,7 @@ export function siteFaqJsonLd() {
         name: "Is there a risk-free trial?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Every plan includes a 30-day money-back guarantee. Cancel anytime — no contracts, no cancellation fees.",
+          text: `${TRIAL_DAYS}-day free trial with phone, SMS, and dispatch included — no credit card required. Paid plans also include a 30-day money-back guarantee. Cancel anytime — no contracts, no cancellation fees.`,
         },
       },
     ],
