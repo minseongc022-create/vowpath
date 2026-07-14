@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { AppHeader } from "@/components/app/AppHeader";
 import { authPages } from "@/lib/content";
 import { ROUTES } from "@/lib/constants";
 import { Container } from "@/components/ui/Container";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 function LoginForm() {
   const p = authPages.login;
