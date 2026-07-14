@@ -26,8 +26,8 @@ async function checkRedirect(from, expectedPrefix) {
       res.status <= 308 &&
       loc.replace(/\/$/, "").startsWith(expectedPrefix.replace(/\/$/, ""));
     console.log(`${ok ? "✓" : "✗"} ${from} → ${res.status} ${loc || "(no location)"}`);
-    if (!ok && res.status === 404) {
-      console.log("    ↳ Attach domain in Vercel or run: npm run porkbun:forward");
+    if (!ok && (res.status === 404 || res.status === 0)) {
+      console.log("    ↳ Run: npm run porkbun:forward (ALIAS @ → uixie.porkbun.com + URL forward)");
     }
     return ok;
   } catch (e) {

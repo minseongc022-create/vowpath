@@ -48,11 +48,13 @@ After deploy, in **Vercel → Project → Settings → Domains**:
 
 Or with API token: `VERCEL_TOKEN=... VERCEL_PROJECT_ID=... npm run vercel:domains`
 
-**vowroad.com still 404?** DNS is on Porkbun — either attach domain in Vercel (above) **or** URL-forward via Porkbun API:
+**vowroad.com still 404?** DNS is on Porkbun — root needs **ALIAS `@` → `uixie.porkbun.com`** (Porkbun URL forward target) plus forwards. One command via API:
 
 ```bash
 PORKBUN_API_KEY=... PORKBUN_SECRET_KEY=... npm run porkbun:forward
 ```
+
+(Manual: Porkbun → vowroad.com → DNS → ALIAS, Host blank, Answer `uixie.porkbun.com`.)
 
 Add those keys to **GitHub repo secrets** → push to `main` runs `.github/workflows/seo-deploy.yml` automatically.
 
