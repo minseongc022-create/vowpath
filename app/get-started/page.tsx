@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { siteGetStarted, sitePricing } from "@/lib/site-content";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -6,6 +7,10 @@ import { ROUTES } from "@/lib/constants";
 import { isPaddleConfigured } from "@/lib/paddle-config";
 import { PlanCheckout } from "@/components/checkout/PlanCheckout";
 import { Container } from "@/components/ui/Container";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function GetStartedPage({
   searchParams,

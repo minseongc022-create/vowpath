@@ -14,8 +14,6 @@ const base = (process.argv[2] ?? `https://${config.host}`).replace(/\/$/, "");
 
 const URLS = [
   `${base}/`,
-  `${base}/signup`,
-  `${base}/get-started`,
   `${base}/pricing`,
   `${base}/hvac`,
   `${base}/privacy`,
