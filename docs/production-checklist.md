@@ -21,6 +21,7 @@ Run: `npm run check:prod`
 | TWILIO_WEBHOOK_BASE_URL | ☐ pass / ☐ fail | Must be `https://effiroad.com` |
 | OPENAI_API_KEY (sk-) | ☐ pass / ☐ fail | |
 | CRON_SECRET | ☐ pass / ☐ fail | |
+| cron-job.org → `/api/cron/tech-dispatch` every 60s | ☐ pass / ☐ fail | See **CRON.md** — not in vercel.json |
 
 All pass → continue. Any fail → fix in Vercel dashboard before proceeding.
 

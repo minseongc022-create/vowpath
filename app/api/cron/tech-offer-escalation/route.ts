@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
 
 /**
- * Runs every minute (see vercel.json). Expires stale tech offers and rolls the
- * job to the next crew member, so an ignored dispatch text escalates within
- * ~1 minute of its responseTimeoutMinutes window instead of waiting for the
- * once-a-day tech-dispatch cron. This is the difference between "crew assigned
- * in minutes" and "job stuck until tomorrow morning."
+ * Timeouts only (no appointment reminders). Schedule: see CRON.md.
+ * Production: optional external target at 60s via cron-job.org; primary path is
+ * /api/cron/tech-dispatch (same interval, includes reminders).
+ * NOT listed in vercel.json — sub-daily Vercel crons block Hobby deploys.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();

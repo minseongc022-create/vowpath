@@ -28,6 +28,15 @@ check("Twilio webhook base", Boolean(process.env.TWILIO_WEBHOOK_BASE_URL?.starts
 check("OpenAI", Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-")), "OPENAI_API_KEY");
 check("CRON_SECRET", Boolean(process.env.CRON_SECRET?.trim()), "Protects /api/cron/* routes");
 
+let cronConfigOk = false;
+try {
+  execSync("node scripts/check-cron-config.mjs", { stdio: "pipe" });
+  cronConfigOk = true;
+} catch {
+  cronConfigOk = false;
+}
+check("Cron config (Hobby-safe)", cronConfigOk, "Run: npm run check:cron — see CRON.md");
+
 // ── Twilio webhook live check ──
 let twilioWebhookOk = false;
 try {
