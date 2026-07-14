@@ -6,8 +6,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
     ROUTES.home,
     ROUTES.getStarted,
-    ROUTES.signup,
-    ROUTES.login,
     "/pricing",
     "/hvac",
     ROUTES.privacy,

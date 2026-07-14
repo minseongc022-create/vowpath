@@ -40,6 +40,7 @@ jobs:
         env:
           PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
           PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          GOOGLE_SITE_VERIFICATION_VOWROAD: ${{ secrets.GOOGLE_SITE_VERIFICATION_VOWROAD }}
         run: |
           if [ -z "$PORKBUN_API_KEY" ] || [ -z "$PORKBUN_SECRET_KEY" ]; then
             echo "Skip Porkbun — add PORKBUN_API_KEY + PORKBUN_SECRET_KEY to GitHub repo secrets"
