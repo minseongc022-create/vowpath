@@ -6,6 +6,12 @@ import { useEffect, useState } from "react";
 import { ROUTES } from "@/lib/constants";
 import { clearTenantLocalCache } from "@/lib/dashboard-data-client";
 
+/** Reject open redirects like `//evil.com` while allowing internal paths. */
+function safeNextPath(next: string | null): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 type Field = {
   name: string;
   label: string;
@@ -153,8 +159,8 @@ export function AuthForm({
         clearTenantLocalCache();
       }
 
-      const next = searchParams.get("next");
-      router.push(next && next.startsWith("/") ? next : data.redirect ?? defaultRedirect);
+      const next = safeNextPath(searchParams.get("next"));
+      router.push(next ?? data.redirect ?? defaultRedirect);
       router.refresh();
     } catch {
       setError(copy.errorNetwork);

@@ -100,7 +100,7 @@ export function DemoVideoHero() {
   const tab = TABS.find((t) => t.id === active) ?? TABS[0];
 
   return (
-    <section className="border-y border-brand-200/40 bg-[#0c0b0a] py-16 text-white sm:py-20">
+    <section id="demo" className="border-y border-brand-200/40 bg-[#0c0b0a] py-16 text-white sm:py-20">
       <Container>
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">

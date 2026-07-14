@@ -77,6 +77,8 @@ export async function POST(request: Request) {
       ok: true,
       message: apiErrorsEn.codeSent,
       requestId: result.requestId,
+      email: channel === "email" ? user.email : undefined,
+      hasPhone: Boolean(normalizePhone(user.phone ?? "")),
       devHint:
         process.env.NODE_ENV !== "production" &&
         channel === "email" &&

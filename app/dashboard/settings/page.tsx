@@ -41,7 +41,11 @@ export default async function DashboardSettingsPage({
       </header>
       <div className="relative space-y-6">
         <Suspense fallback={null}>
-          <SettingsView paid={Boolean(transactionId)} transactionId={transactionId} />
+          <SettingsView
+            paid={Boolean(transactionId)}
+            transactionId={transactionId}
+            section={params.section?.trim()}
+          />
         </Suspense>
       </div>
     </div>

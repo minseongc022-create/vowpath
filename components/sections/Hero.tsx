@@ -68,7 +68,7 @@ export function Hero() {
 
         <p className="mt-4 text-center">
           <a
-            href="/#intake-demo"
+            href="/#demo"
             className="inline-flex items-center gap-2.5 rounded-full border border-brand-300/60 bg-white px-5 py-2.5 text-sm font-semibold text-brand-900 shadow-sm transition hover:border-brand-400 hover:bg-brand-50"
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-white">

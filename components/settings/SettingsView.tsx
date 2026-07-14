@@ -59,16 +59,25 @@ import {
 import { SCHEDULE_ALWAYS_ON_LABEL, type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 
+const SECTION_SCROLL_IDS: Record<string, string> = {
+  contact: "go-live-contact",
+  schedule: "go-live-schedule",
+  phone: "go-live-phone",
+  jobber: "go-live-jobber",
+};
+
 export function SettingsView({
   paid: paidProp,
   transactionId,
+  section,
 }: {
   paid?: boolean;
   transactionId?: string;
+  section?: string;
 }) {
   return (
     <SettingsSaveProvider>
-      <SettingsViewBody paid={paidProp} transactionId={transactionId} />
+      <SettingsViewBody paid={paidProp} transactionId={transactionId} section={section} />
     </SettingsSaveProvider>
   );
 }
@@ -76,9 +85,11 @@ export function SettingsView({
 function SettingsViewBody({
   paid: paidProp,
   transactionId,
+  section,
 }: {
   paid?: boolean;
   transactionId?: string;
+  section?: string;
 }) {
   const settingsPage = useSettingsPage();
   const router = useRouter();
@@ -177,6 +188,15 @@ function SettingsViewBody({
     void refreshJobber();
     void refreshContact();
   }, [refreshJobber, refreshContact]);
+
+  useEffect(() => {
+    if (!section) return;
+    const targetId = SECTION_SCROLL_IDS[section] ?? section;
+    const el = document.getElementById(targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [section]);
 
   function handleRowsChange(next: ScheduleRow[]) {
     setRows(next);

@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Report a loss",
-  description: "Report water, fire, or mold damage — or check your request status",
+  title: "Your visit",
+  description: "View or update your service request, appointment, or estimate",
 };
 
 export default function CustomerPortalLayout({

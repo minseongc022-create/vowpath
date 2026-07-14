@@ -10,6 +10,8 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 
 import {
 
+  IconBriefing,
+
   IconCalendar,
 
   IconDashboard,
@@ -147,6 +149,18 @@ export function DashboardShell({
       match: (p) => p.startsWith(ROUTES.missedCallsAnalytics),
 
       icon: <IconMissedCalls />,
+
+    },
+
+    {
+
+      href: ROUTES.briefing,
+
+      label: v.briefing,
+
+      match: (p) => p.startsWith(ROUTES.briefing),
+
+      icon: <IconBriefing />,
 
     },
 

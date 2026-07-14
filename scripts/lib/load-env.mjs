@@ -21,6 +21,6 @@ export function loadEnvLocal() {
 export function authSecret() {
   return (
     process.env.AUTH_SECRET?.trim() ||
-    "dev-only-change-auth-secret-32chars-minimum"
+    "dev-only-change-auth-secret-32chars"
   );
 }
