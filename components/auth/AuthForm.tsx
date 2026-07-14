@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ROUTES } from "@/lib/constants";
 import { clearTenantLocalCache } from "@/lib/dashboard-data-client";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 /** Reject open redirects like `//evil.com` while allowing internal paths. */
-function safeNextPath(next: string | null): string | null {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
-  return next;
+function safeNextPathLocal(next: string | null): string | null {
+  return safeNextPath(next);
 }
 
 type Field = {
@@ -159,7 +159,7 @@ export function AuthForm({
         clearTenantLocalCache();
       }
 
-      const next = safeNextPath(searchParams.get("next"));
+      const next = safeNextPathLocal(searchParams.get("next"));
       router.push(next ?? data.redirect ?? defaultRedirect);
       router.refresh();
     } catch {

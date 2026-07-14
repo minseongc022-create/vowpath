@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
+import { clearSessionCookieOptions, SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
 import {
   buildCanonicalRedirectUrl,
   normalizeHostname,
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -19,6 +20,13 @@ const portalPublicPrefixes = [
   "/api/correction/",
   "/api/agreement-offer/",
 ];
+
+function loginRedirect(request: NextRequest, nextPath?: string | null) {
+  const login = new URL("/login", request.url);
+  const next = safeNextPath(nextPath ?? null);
+  if (next) login.searchParams.set("next", next);
+  return NextResponse.redirect(login);
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -47,26 +55,40 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = token ? await verifySessionToken(token) : null;
+  const jwtSession = token ? await verifySessionToken(token) : null;
 
   const isProtected = protectedPaths.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 
-  if (isProtected && !session) {
+  // Force re-login when an API 401 sent the user here with a stale cookie.
+  if (pathname === "/login" && request.nextUrl.searchParams.get("reauth") === "1") {
+    const next = safeNextPath(request.nextUrl.searchParams.get("next"));
     const login = new URL("/login", request.url);
-    login.searchParams.set("next", pathname);
-    return NextResponse.redirect(login);
+    if (next) login.searchParams.set("next", next);
+    const res = NextResponse.redirect(login);
+    res.cookies.set(clearSessionCookieOptions());
+    return res;
   }
 
-  if (session) {
+  if (isProtected && !jwtSession) {
+    return loginRedirect(request, `${pathname}${request.nextUrl.search}`);
+  }
+
+  if (jwtSession) {
     if (pathname === "/settings" || pathname.startsWith("/settings/")) {
       const dest = new URL("/dashboard/settings", request.url);
       dest.search = request.nextUrl.search;
       return NextResponse.redirect(dest, 308);
     }
+    if (pathname === "/onboarding") {
+      const dest = new URL("/dashboard/settings", request.url);
+      dest.search = request.nextUrl.search;
+      return NextResponse.redirect(dest, 308);
+    }
     if (pathname === "/" || pathname === "/login") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      const next = safeNextPath(request.nextUrl.searchParams.get("next"));
+      return NextResponse.redirect(new URL(next ?? "/dashboard", request.url));
     }
     if (pathname === "/signup" && !request.nextUrl.searchParams.has("invite")) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
