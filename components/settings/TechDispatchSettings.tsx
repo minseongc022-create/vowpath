@@ -5,6 +5,12 @@ import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types
 import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
+import {
+  clientFetch,
+  clientFetchTimeoutMessage,
+  redirectToLoginIfUnauthorized,
+} from "@/lib/client-fetch";
+import { DEFAULT_TECH_DISPATCH_SETTINGS } from "@/lib/tech-dispatch/types";
 
 const WEEKDAY_KEYS = ["0", "1", "2", "3", "4", "5", "6"] as const;
 type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
@@ -24,6 +30,8 @@ function copy(isEnglish: boolean) {
     ? {
         loading: "Loading crew settings...",
         loadError: "Could not load crew settings.",
+        sessionError: "Your session expired. Please sign in again.",
+        retry: "Try again",
         saveError: "Could not save.",
         badge: "Crew assignment",
         title: "Auto-assign when a job confirms",
@@ -45,6 +53,8 @@ function copy(isEnglish: boolean) {
     : {
         loading: "기사 설정 불러오는 중...",
         loadError: "기사 설정을 불러오지 못했습니다.",
+        sessionError: "세션이 만료되었습니다. 다시 로그인해 주세요.",
+        retry: "다시 시도",
         saveError: "저장에 실패했습니다.",
         badge: "기사 배치",
         title: "예약 확정 시 기사에게 자동 제안",
@@ -77,16 +87,28 @@ export function TechDispatchSettings() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/shop/tech-dispatch");
-      if (!res.ok) throw new Error("Failed to load");
-      const data = (await res.json()) as { settings: TechDispatchSettings };
-      setSettings(data.settings);
-    } catch {
-      setError(t.loadError);
+      const res = await clientFetch("/api/shop/tech-dispatch");
+      if (redirectToLoginIfUnauthorized(res)) {
+        setError(t.sessionError);
+        setSettings({ ...DEFAULT_TECH_DISPATCH_SETTINGS, techs: [] });
+        return;
+      }
+      const data = (await res.json()) as { settings?: TechDispatchSettings; error?: string };
+      if (!res.ok) throw new Error(data.error ?? t.loadError);
+      setSettings(data.settings ?? { ...DEFAULT_TECH_DISPATCH_SETTINGS, techs: [] });
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message === "REQUEST_TIMEOUT"
+          ? clientFetchTimeoutMessage(t.loadError)
+          : e instanceof Error
+            ? e.message
+            : t.loadError;
+      setError(msg);
+      setSettings({ ...DEFAULT_TECH_DISPATCH_SETTINGS, techs: [] });
     } finally {
       setLoading(false);
     }
-  }, [t.loadError]);
+  }, [t.loadError, t.sessionError]);
 
   useEffect(() => {
     void load();
@@ -96,11 +118,15 @@ export function TechDispatchSettings() {
     if (!settings) return false;
     setError(null);
     try {
-      const res = await fetch("/api/shop/tech-dispatch", {
+      const res = await clientFetch("/api/shop/tech-dispatch", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
+      if (redirectToLoginIfUnauthorized(res)) {
+        setError(t.sessionError);
+        return false;
+      }
       if (!res.ok) throw new Error("Save failed");
       const data = (await res.json()) as { settings: TechDispatchSettings };
       setSettings(data.settings);
@@ -118,7 +144,18 @@ export function TechDispatchSettings() {
   }
 
   if (!settings) {
-    return error ? <p className="text-sm text-red-500">{error}</p> : null;
+    return (
+      <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
+        <p className="text-sm text-red-600">{error ?? t.loadError}</p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="mt-3 text-sm font-semibold text-brand-800 underline-offset-2 hover:underline"
+        >
+          {t.retry}
+        </button>
+      </div>
+    );
   }
 
   const updateTech = (id: string, patch: Partial<TechMember>) => {

@@ -82,6 +82,15 @@ export function routeAiQuery(query: string): AiQueryIntent {
     return { kind: "proactive" };
   }
 
+  if (
+    /^(hi|hello|hey|yo|howdy|good morning|good afternoon|good evening|sup|what'?s up)[!.?\s]*$/i.test(
+      raw.trim(),
+    ) ||
+    /^(안녕|안녕하세요|하이|헬로)[!.?\s]*$/i.test(raw.trim())
+  ) {
+    return { kind: "chitchat" };
+  }
+
   if (!isMutationIntent(q)) {
     const customerName = extractCustomerName(raw);
     if (

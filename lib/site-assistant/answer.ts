@@ -46,6 +46,16 @@ export async function answerSiteAssistantQuestion(params: {
   loggedIn?: boolean;
 }): Promise<SiteAssistantReply> {
   const { question, history, locale, loggedIn } = params;
+
+  if (
+    /^(hi|hello|hey|yo|howdy|good morning|good afternoon|good evening|sup|what'?s up)[!.?\s]*$/i.test(
+      question.trim(),
+    ) ||
+    /^(안녕|안녕하세요|하이|헬로)[!.?\s]*$/i.test(question.trim())
+  ) {
+    return siteAssistantGreeting(locale, Boolean(loggedIn));
+  }
+
   const knowledge = buildSiteAssistantKnowledge();
 
   const system = `You are Effiroad AI — the friendly product expert for Effiroad.com.
@@ -53,6 +63,8 @@ You speak naturally, like a helpful colleague (not a robot). Keep answers concis
 Reply in ${locale === "ko" ? "Korean" : "English"} unless the user writes in another language — then match their language.
 
 You know everything below about the product. Never invent pricing or features not listed.
+NEVER reveal: API keys, env secrets, passwords, tokens, other customers' data, internal server paths, or raw database contents.
+If asked for secrets or unrelated private data, politely refuse and offer product help instead.
 If asked to change live shop settings and the user is NOT logged in, explain the steps and suggest signing in.
 ${loggedIn ? "The user IS logged in — you can reference their dashboard and settings paths directly." : "The user is browsing the marketing site (not logged in) — guide them to sign up or log in for shop-specific actions."}
 

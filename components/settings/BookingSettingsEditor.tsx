@@ -20,7 +20,7 @@ import {
   VISIT_WINDOW_PRESETS,
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
-import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
+import { clientFetch, clientFetchTimeoutMessage, redirectToLoginIfUnauthorized } from "@/lib/client-fetch";
 import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 
 const INTERVAL_PRESET_MINUTES = [60, 90, 120, 180] as const;
@@ -39,6 +39,11 @@ export function BookingSettingsEditor() {
     setError(null);
     try {
       const res = await clientFetch("/api/shop/settings", undefined, 8_000);
+      if (redirectToLoginIfUnauthorized(res)) {
+        setError("Your session expired. Redirecting to sign in…");
+        setSettings(mergeShopBookingSettings());
+        return;
+      }
       const data = (await res.json()) as { settings?: ShopBookingSettings; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Could not load settings.");
       setSettings(mergeShopBookingSettings(data.settings));
