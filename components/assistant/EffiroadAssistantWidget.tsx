@@ -6,12 +6,17 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { OPEN_AI_EVENT } from "@/lib/assistant-events";
+import {
+  beginAssistantRequest,
+  endAssistantRequest,
+  hydrateAssistantStore,
+  markAssistantRead,
+  patchAssistantStore,
+  pushAssistantMessage,
+  useAssistantStore,
+} from "@/lib/assistant-session-store";
 import type { EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import { ROUTES } from "@/lib/constants";
-
-type ChatMessage =
-  | { id: string; role: "user"; text: string }
-  | { id: string; role: "assistant"; text: string; suggestions?: string[]; actions?: { label: string; href?: string }[] };
 
 const HINT_KEY = "effiroad-ai-hint-v2";
 
@@ -37,13 +42,13 @@ function IconSend() {
   );
 }
 
-function useAssistantContext() {
+function useAssistantContext(pathname: string) {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [inDashboard, setInDashboard] = useState(false);
 
   useEffect(() => {
-    setInDashboard(window.location.pathname.startsWith("/dashboard"));
+    setInDashboard(pathname.startsWith("/dashboard"));
     fetch("/api/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { shopName?: string; email?: string } | null) => {
@@ -52,7 +57,7 @@ function useAssistantContext() {
         else if (d?.email) setDisplayName(d.email.split("@")[0] ?? "");
       })
       .catch(() => setLoggedIn(false));
-  }, []);
+  }, [pathname]);
 
   return { loggedIn, displayName, inDashboard };
 }
@@ -60,16 +65,15 @@ function useAssistantContext() {
 export function EffiroadAssistantWidget() {
   const pathname = usePathname();
   const { isEnglish } = useLocale();
-  const { loggedIn, displayName, inDashboard } = useAssistantContext();
+  const { loggedIn, displayName, inDashboard } = useAssistantContext(pathname);
+  const { messages, loading, unread, booted, starters } = useAssistantStore();
   const [open, setOpen] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [starters, setStarters] = useState<string[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [booted, setBooted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const openRef = useRef(open);
+  openRef.current = open;
 
   const copy = isEnglish
     ? {
@@ -82,7 +86,9 @@ export function EffiroadAssistantWidget() {
         close: "Close",
         open: "Open Effiroad AI",
         thinking: "Thinking…",
+        thinkingBackground: "Effiroad AI is replying…",
         fullAi: "Open full AI workspace",
+        newReply: "New AI reply",
       }
     : {
         name: "Effiroad AI",
@@ -94,13 +100,19 @@ export function EffiroadAssistantWidget() {
         close: "닫기",
         open: "Effiroad AI 열기",
         thinking: "생각 중…",
+        thinkingBackground: "Effiroad AI가 답변 중…",
         fullAi: "전체 AI 화면 열기",
+        newReply: "새 AI 답변",
       };
 
   const defaultStarters = useMemo(
     () => (isEnglish ? [...STARTERS_EN] : [...STARTERS_KO]),
     [isEnglish],
   );
+
+  useEffect(() => {
+    hydrateAssistantStore();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -112,6 +124,7 @@ export function EffiroadAssistantWidget() {
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = "hidden";
+    markAssistantRead();
     return () => {
       document.body.style.overflow = "";
     };
@@ -132,18 +145,15 @@ export function EffiroadAssistantWidget() {
       suggestions?: string[];
       actions?: { label: string; href?: string }[];
     }) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          text: payload.text,
-          suggestions: payload.suggestions,
-          actions: payload.actions,
-        },
-      ]);
+      pushAssistantMessage({
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: payload.text,
+        suggestions: payload.suggestions,
+        actions: payload.actions,
+      });
       if (payload.suggestions?.length) {
-        setStarters(payload.suggestions.slice(0, 6));
+        patchAssistantStore({ starters: payload.suggestions.slice(0, 6) });
       }
     },
     [],
@@ -151,9 +161,8 @@ export function EffiroadAssistantWidget() {
 
   const bootChat = useCallback(async () => {
     if (booted) return;
-    setBooted(true);
-    setStarters(defaultStarters);
-    setLoading(true);
+    patchAssistantStore({ booted: true, starters: defaultStarters });
+    beginAssistantRequest();
     try {
       if (loggedIn) {
         const res = await fetch("/api/effiroad-ai", {
@@ -162,7 +171,7 @@ export function EffiroadAssistantWidget() {
           body: JSON.stringify({ proactive: true }),
         });
         const data = (await res.json()) as Partial<EffiroadAiResponse> & { error?: string };
-        if (data.suggestions?.length) setStarters(data.suggestions.slice(0, 6));
+        if (data.suggestions?.length) patchAssistantStore({ starters: data.suggestions.slice(0, 6) });
         pushAssistant({
           text:
             data.answer ??
@@ -179,7 +188,7 @@ export function EffiroadAssistantWidget() {
           body: JSON.stringify({ greet: true }),
         });
         const data = (await res.json()) as { answer?: string; suggestions?: string[] };
-        if (data.suggestions?.length) setStarters(data.suggestions.slice(0, 6));
+        if (data.suggestions?.length) patchAssistantStore({ starters: data.suggestions.slice(0, 6) });
         pushAssistant({
           text: data.answer ?? copy.subgreet,
           suggestions: data.suggestions,
@@ -192,7 +201,7 @@ export function EffiroadAssistantWidget() {
           : "안녕하세요! Effiroad AI예요 — 무엇이든 물어보세요.",
       });
     } finally {
-      setLoading(false);
+      endAssistantRequest({ panelOpen: openRef.current });
     }
   }, [booted, loggedIn, isEnglish, pushAssistant, copy.subgreet, defaultStarters]);
 
@@ -202,6 +211,7 @@ export function EffiroadAssistantWidget() {
 
   const openChat = useCallback(() => {
     dismissHint();
+    markAssistantRead();
     setOpen(true);
   }, [dismissHint]);
 
@@ -217,12 +227,12 @@ export function EffiroadAssistantWidget() {
 
     const historyPayload = messages.slice(-10).map((m) => ({
       role: m.role,
-      text: m.role === "user" ? m.text : m.text,
+      text: m.text,
     }));
 
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", text: q }]);
+    pushAssistantMessage({ id: crypto.randomUUID(), role: "user", text: q });
     setInput("");
-    setLoading(true);
+    beginAssistantRequest();
 
     try {
       if (loggedIn) {
@@ -257,8 +267,8 @@ export function EffiroadAssistantWidget() {
         text: isEnglish ? "Something went wrong. Please try again." : "오류가 발생했습니다. 다시 시도해 주세요.",
       });
     } finally {
-      setLoading(false);
-      inputRef.current?.focus();
+      endAssistantRequest({ panelOpen: openRef.current });
+      if (openRef.current) inputRef.current?.focus();
     }
   }
 
@@ -286,9 +296,25 @@ export function EffiroadAssistantWidget() {
     ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
     : "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
 
+  const statusPill = !open && loading ? (
+    <div
+      className={`pointer-events-none fixed ${hintBottom} right-4 z-[255] max-w-[12rem] rounded-full bg-[#3d3228]/90 px-3 py-2 text-center text-[11px] font-semibold text-white shadow-lg sm:right-5`}
+    >
+      {copy.thinkingBackground}
+    </div>
+  ) : null;
+
+  const unreadDot = unread ? (
+    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
+      !
+    </span>
+  ) : null;
+
   return (
     <>
-      {hintVisible && !open ? (
+      {statusPill}
+
+      {hintVisible && !open && !loading ? (
         <div
           className={`pointer-events-none fixed ${hintBottom} right-4 z-[260] flex max-w-[min(calc(100vw-5.5rem),16rem)] flex-col items-end sm:right-5 sm:max-w-xs`}
           role="status"
@@ -326,7 +352,7 @@ export function EffiroadAssistantWidget() {
           <div ref={scrollRef} className="vow-ai-scrollbar flex flex-1 flex-col overflow-y-auto">
             {showEmptyHero ? (
               <div className="flex flex-col items-center px-5 pt-6 pb-4 text-center">
-                <EffiroadAiMark size={64} className="rounded-3xl" />
+                <EffiroadAiMark size={72} className="rounded-3xl" showBadge={false} />
                 <h2 className="mt-5 text-xl font-bold leading-snug text-brand-950 sm:text-2xl">
                   {copy.greet(displayName)}
                 </h2>
@@ -342,6 +368,7 @@ export function EffiroadAssistantWidget() {
                     type="button"
                     className="kb-prompt-pill"
                     onClick={() => void sendQuestion(s)}
+                    disabled={loading}
                   >
                     <EffiroadAiMark size={36} showBadge={false} className="rounded-xl" />
                     <span className="min-w-0 flex-1">{s}</span>
@@ -387,6 +414,7 @@ export function EffiroadAssistantWidget() {
                               type="button"
                               className="kb-prompt-pill !min-h-[44px] !py-2.5 !text-sm"
                               onClick={() => void sendQuestion(s)}
+                              disabled={loading}
                             >
                               {s}
                             </button>
@@ -435,12 +463,13 @@ export function EffiroadAssistantWidget() {
       {!open && !inDashboard ? (
         <button
           type="button"
-          className={`fixed ${fabBottom} right-4 z-[240] flex h-14 w-14 items-center justify-center rounded-full bg-brand-950 text-white transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem]`}
+          className={`fixed ${fabBottom} right-4 z-[240] relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem]`}
           style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
-          aria-label={copy.open}
+          aria-label={unread ? copy.newReply : copy.open}
           onClick={openChat}
         >
-          <EffiroadAiMark size={52} className="rounded-full" />
+          <EffiroadAiMark size={56} className="rounded-full" showBadge={false} />
+          {unreadDot}
         </button>
       ) : null}
     </>

@@ -14,6 +14,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
+import { useAssistantStore } from "@/lib/assistant-session-store";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -40,6 +41,7 @@ export function DashboardMobileNav({
 }) {
   const pathname = usePathname();
   const v = useVowDashboard().nav;
+  const { unread, loading } = useAssistantStore();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const morePaths = [
@@ -210,14 +212,21 @@ export function DashboardMobileNav({
 
           <button
             type="button"
-            className="kb-nav-ai-btn !h-[3.25rem] !w-[3.25rem] !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
+            className="kb-nav-ai-btn !relative !h-[3.25rem] !w-[3.25rem] !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
             aria-label="Effiroad AI"
             onClick={() => {
               setMoreOpen(false);
               openEffiroadAssistant();
             }}
           >
-            <EffiroadAiMark size={52} className="rounded-full" />
+            <EffiroadAiMark size={52} className="rounded-full" showBadge={false} />
+            {unread ? (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white">
+                !
+              </span>
+            ) : loading ? (
+              <span className="absolute -right-0.5 -top-0.5 h-3 w-3 animate-pulse rounded-full bg-brand-500 ring-2 ring-white" />
+            ) : null}
           </button>
         </div>
       </div>
