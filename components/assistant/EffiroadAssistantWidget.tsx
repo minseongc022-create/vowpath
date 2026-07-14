@@ -328,11 +328,7 @@ export function EffiroadAssistantWidget() {
   const suggestionQuestions =
     starters.length > 0 ? starters.slice(0, 4) : examplePrompts.map((e) => e.question);
 
-  const hintBottom = inDashboard
-    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6"
-    : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]";
-
-  const fabBottom = inDashboard
+  const fabAnchorBottom = inDashboard
     ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6"
     : "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
 
@@ -352,43 +348,47 @@ export function EffiroadAssistantWidget() {
     <>
       {!open && loading ? (
         <div
-          className={`pointer-events-none fixed ${hintBottom} right-4 z-[255] max-w-[12rem] rounded-full bg-stone-800/90 px-3 py-2 text-center text-[11px] font-medium text-white shadow-lg sm:right-5`}
+          className={`pointer-events-none fixed ${fabAnchorBottom} right-4 z-[255] max-w-[12rem] rounded-full bg-stone-800/90 px-3 py-2 text-center text-[11px] font-medium text-white shadow-lg sm:right-5`}
         >
           {copy.thinkingBackground}
         </div>
       ) : null}
 
-      {hintVisible && !open && !loading ? (
-        <div
-          className={`fixed ${hintBottom} right-4 z-[260] flex max-w-[min(calc(100vw-5.5rem),16rem)] flex-col items-end sm:right-5`}
-          role="status"
-        >
-          <div className="kb-speech-bubble pointer-events-auto pr-8">
-            <button
-              type="button"
-              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm text-stone-400 hover:bg-stone-50"
-              aria-label={copy.close}
-              onClick={dismissHint}
-            >
-              ×
-            </button>
-            <p className="text-stone-600">{copy.hint}</p>
-            <span className={`kb-speech-bubble-tail ${inDashboard ? "right-14 lg:right-5" : "right-5"}`} aria-hidden />
-          </div>
-        </div>
-      ) : null}
-
       {!open ? (
-        <button
-          type="button"
-          className={`fixed ${fabBottom} right-4 z-[240] relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem] ${inDashboard ? "hidden lg:flex" : ""}`}
-          style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
-          aria-label={unread ? copy.newReply : copy.open}
-          onClick={openChat}
+        <div
+          className={`fixed ${fabAnchorBottom} right-4 z-[260] flex flex-col items-end gap-2 sm:right-5 ${
+            inDashboard ? "hidden lg:flex" : "flex"
+          }`}
         >
-          <EffiroadAiMark size={56} className="rounded-full" showBadge />
-          {unreadDot}
-        </button>
+          {hintVisible && !loading ? (
+            <div className="kb-speech-bubble pointer-events-auto max-w-[min(calc(100vw-5.5rem),16rem)] pr-8" role="status">
+              <button
+                type="button"
+                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm text-stone-400 hover:bg-stone-50"
+                aria-label={copy.close}
+                onClick={dismissHint}
+              >
+                ×
+              </button>
+              <div className="flex items-start gap-2.5">
+                <EffiroadAiMark size={36} showBadge={false} className="rounded-xl shrink-0" />
+                <p className="text-stone-600">{copy.hint}</p>
+              </div>
+              <span className="kb-speech-bubble-tail right-6" aria-hidden />
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            className="relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem]"
+            style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
+            aria-label={unread ? copy.newReply : copy.open}
+            onClick={openChat}
+          >
+            <EffiroadAiMark size={56} className="rounded-full" showBadge />
+            {unreadDot}
+          </button>
+        </div>
       ) : null}
 
       {open ? (
