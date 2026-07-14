@@ -31,7 +31,7 @@ export function Header({ session }: HeaderProps) {
     <header className="vow-site-header w-full">
       <Container className="w-full">
         <div className="flex h-14 w-full min-w-0 items-center gap-2 sm:h-16 sm:gap-3">
-          <BrandLogo placement="site-header" href={ROUTES.home} />
+          <BrandLogo placement="site-header" href={session ? ROUTES.dashboard : ROUTES.home} />
 
           <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
             <PublicLocaleToggle className="hidden sm:inline-flex" />

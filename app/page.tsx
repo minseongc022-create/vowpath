@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ROUTES } from "@/lib/constants";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
 import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
@@ -14,10 +16,13 @@ import { CTA } from "@/components/sections/CTA";
 
 export default async function HomePage() {
   const session = await getSession();
+  if (session) {
+    redirect(ROUTES.dashboard);
+  }
 
   return (
     <div className="vow-site flex min-h-screen flex-col overflow-x-hidden">
-      <Header session={session} />
+      <Header session={null} />
       <main className="flex-1 w-full min-w-0">
         <Hero />
         <DemoVideoHero />
