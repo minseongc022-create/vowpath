@@ -361,7 +361,10 @@ export function EffiroadAssistantWidget() {
           }`}
         >
           {hintVisible && !loading ? (
-            <div className="kb-speech-bubble pointer-events-auto max-w-[min(calc(100vw-5.5rem),16rem)] pr-8" role="status">
+            <div
+              className="kb-speech-bubble kb-speech-bubble-from-ai pointer-events-auto max-w-[min(calc(100vw-5.5rem),16rem)] pr-8"
+              role="status"
+            >
               <button
                 type="button"
                 className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm text-stone-400 hover:bg-stone-50"
@@ -370,11 +373,9 @@ export function EffiroadAssistantWidget() {
               >
                 ×
               </button>
-              <div className="flex items-start gap-2.5">
-                <EffiroadAiMark size={36} showBadge={false} className="rounded-xl shrink-0" />
-                <p className="text-stone-600">{copy.hint}</p>
-              </div>
-              <span className="kb-speech-bubble-tail right-6" aria-hidden />
+              <p className="text-xs font-semibold text-brand-800">{copy.name}</p>
+              <p className="mt-1 text-stone-600">{copy.hint}</p>
+              <span className="kb-speech-bubble-tail right-[1.625rem]" aria-hidden />
             </div>
           ) : null}
 

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     const res = NextResponse.json({
       ok: true,
-      redirect: "/settings",
+      redirect: ROUTES.settings,
     });
     res.cookies.set(sessionCookieOptions(token));
     return res;

@@ -1421,6 +1421,21 @@
     box-shadow: 2px 2px 4px rgb(61 50 40 / 0.06);
   }
 
+  .kb-speech-bubble-from-ai {
+    animation: kb-speech-bubble-in 420ms ease-out both;
+  }
+
+  @keyframes kb-speech-bubble-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   .kb-more-sheet {
     @apply rounded-t-[1.75rem] border border-brand-100/80 bg-[#f8f6f2];
     box-shadow: 0 -12px 40px rgb(61 50 40 / 0.14);
