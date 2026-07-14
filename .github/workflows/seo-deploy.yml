@@ -19,7 +19,7 @@ jobs:
           node-version: "22"
 
       - name: Wait for Vercel production
-        run: sleep 45
+        run: sleep 120
 
       - name: IndexNow (Bing / partner engines)
         run: node scripts/indexnow-submit.mjs
