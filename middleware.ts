@@ -48,6 +48,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
+  if (session) {
+    if (pathname === "/" || pathname === "/login") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    if (pathname === "/signup" && !request.nextUrl.searchParams.has("invite")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

@@ -225,29 +225,30 @@ export function DashboardHomeView() {
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
+    <div className="mx-auto w-full max-w-[1400px] space-y-5">
+      <header className="space-y-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight text-brand-950 sm:text-3xl">
             {dashboardGreeting()}
             {displayName ? `, ${displayName}` : ""}!{" "}
             <span className="inline-block" aria-hidden>
               👋
             </span>
           </h1>
-          <p className="mt-1 text-base text-stone-600">{v.header.subtitle}</p>
+          <p className="mt-1 text-sm text-stone-600 sm:text-base">{v.header.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-brand-200/80 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
           <DashboardPeriodToolbar
             value={dateRange}
             onChange={handleRangeChange}
             activePreset={activePreset}
             onPresetChange={setActivePreset}
             presets={periodPresets}
-            className="!flex-row !items-center"
+            className="w-full min-w-0 flex-1"
           />
-          <NotificationCenter {...notificationProps} variant="dropdown" />
-          <div className="inline-flex">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-brand-100 pt-3 sm:border-t-0 sm:pt-0">
+            <NotificationCenter {...notificationProps} variant="dropdown" />
             <DashboardNewRequestButton onCreated={() => void refresh()} />
           </div>
         </div>
@@ -348,7 +349,7 @@ export function DashboardHomeView() {
               activePreset={activePreset}
               onPresetChange={setActivePreset}
               presets={periodPresets}
-              className="!gap-2"
+              className="hidden !gap-2 sm:flex"
             />
           </div>
           <div className="vow-dash-chart-wrap-home vow-dash-chart-body">

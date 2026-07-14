@@ -33,9 +33,9 @@ export function DashboardPeriodToolbar({
 }: DashboardPeriodToolbarProps) {
   return (
     <div
-      className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between ${className}`}
+      className={`flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between ${className}`}
     >
-      <div className="flex flex-wrap gap-2">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {presets.map((p) => (
           <button
             key={p.id}
@@ -44,7 +44,7 @@ export function DashboardPeriodToolbar({
               onPresetChange(p.id);
               onChange(analyticsPresetToDateRange(p.id));
             }}
-            className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+            className={`min-h-[40px] shrink-0 snap-start rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
               activePreset === p.id
                 ? dark
                   ? "bg-white/10 text-slate-100 ring-1 ring-white/15"
