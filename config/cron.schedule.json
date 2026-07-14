@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "summary": "Tech dispatch runs every 60 seconds via cron-job.org (external). vercel.json is daily-only so Vercel Hobby deploys succeed.",
+  "externalCrons": [
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/tech-dispatch",
+      "intervalSeconds": 60,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": true,
+      "does": [
+        "Expire stale tech dispatch SMS offers and roll to next crew",
+        "Send appointment reminder SMS"
+      ],
+      "note": "Do NOT add * * * * * for this path in vercel.json — Hobby deploys fail (see commit 69f0d15)."
+    }
+  ],
+  "vercelCrons": [
+    { "path": "/api/cron/customer-verification", "schedule": "0 15 * * *", "utcHour": 15 },
+    { "path": "/api/cron/daily-briefing", "schedule": "0 12 * * *", "utcHour": 12 },
+    { "path": "/api/cron/tech-dispatch", "schedule": "0 8 * * *", "utcHour": 8, "note": "Backup daily run; production real-time path is external 60s cron above" },
+    { "path": "/api/cron/agreement-reminders", "schedule": "0 9 * * *", "utcHour": 9 },
+    { "path": "/api/cron/revenue-sync", "schedule": "0 11 * * *", "utcHour": 11 },
+    { "path": "/api/cron/daily-summary", "schedule": "0 14 * * *", "utcHour": 14 },
+    { "path": "/api/cron/beta-cohort-price-step", "schedule": "0 10 * * *", "utcHour": 10 },
+    { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 }
+  ],
+  "manualOrPostbuildCrons": [
+    {
+      "path": "/api/cron/tech-offer-escalation",
+      "note": "Timeouts only (no appointment reminders). Alternative external target; NOT in vercel.json."
+    },
+    {
+      "path": "/api/cron/retell-production-sync",
+      "note": "Also triggered by postbuild script; manual curl documented in docs/RETELL_SETUP.md"
+    },
+    {
+      "path": "/api/cron/ensure-pilot-trials",
+      "note": "Manual one-off backfill after deploy"
+    }
+  ],
+  "clientPolls": [
+    { "name": "Dashboard data", "intervalSeconds": 60, "file": "lib/hooks/use-dashboard-data.ts", "when": "Tab visible" },
+    { "name": "Ops failures panel", "intervalSeconds": 15, "file": "components/settings/OpsFailuresPanel.tsx", "when": "Settings page, tab visible" },
+    { "name": "Forwarding verify test", "intervalSeconds": 3, "file": "components/settings/ForwardingTestPanel.tsx", "when": "During active test only" },
+    { "name": "Relative time labels", "intervalSeconds": 30, "file": "lib/hooks/use-relative-now.ts", "when": "While subscribed" }
+  ]
+}

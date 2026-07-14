@@ -32,6 +32,12 @@ Required:
 | `CRON_SECRET` | random string (protects /api/cron/*) |
 | `NEXT_PUBLIC_BETA` | `false` |
 
+## 2b. Cron (read CRON.md)
+
+- **Tech dispatch (60s):** configure [cron-job.org](https://cron-job.org) → `GET https://effiroad.com/api/cron/tech-dispatch` every 1 minute with `Authorization: Bearer $CRON_SECRET`.
+- **Do not** add `* * * * *` to `vercel.json` on Hobby — deploys fail. Run `npm run check:cron` before push.
+- Full schedule: **[CRON.md](./CRON.md)** and `config/cron.schedule.json`.
+
 Leave **unset** in production:
 
 - `ALLOW_TWILIO_OWNER_ALERT` — dev only

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
 import { processApptRemindersAll } from "@/lib/tech-dispatch/appointment-reminder";
 
-// Tech offer escalation runs on the daily tech-dispatch cron (Hobby: once/day).
-// /api/cron/tech-offer-escalation remains available for Pro plans (sub-minute cron).
+// Schedule: see CRON.md (source of truth — NOT vercel.json alone).
+// Production: cron-job.org hits this route every 60s (tech offer timeout + appt reminders).
+// vercel.json lists 0 8 * * * as a daily backup only (Vercel Hobby blocks sub-daily crons).
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();

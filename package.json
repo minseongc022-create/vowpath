@@ -29,6 +29,7 @@
     "e2e:twilio-inbound": "node scripts/run-twilio-inbound-e2e.mjs",
     "e2e:booking-modes": "node scripts/run-smart-booking-e2e.mjs",
     "check:prod": "node scripts/check-production-readiness.mjs",
+    "check:cron": "node scripts/check-cron-config.mjs",
     "seed:dev-user": "node scripts/seed-dev-user.mjs",
     "test": "node --experimental-strip-types --test tests/unit/*.test.mjs && node --experimental-strip-types scripts/test-priority-guardrails.mjs",
     "test:e2e": "node scripts/run-all-tests.mjs",

@@ -401,6 +401,7 @@ function useDashboardDataSource(): DashboardDataSource {
     window.addEventListener("effiroad:bookings-status-updated", onRefresh);
     window.addEventListener("effiroad:tenant-events-updated", onRefresh);
 
+    // Browser poll interval — see CRON.md (clientPolls.dashboard, 60s).
     const poll =
       typeof document !== "undefined"
         ? window.setInterval(() => {

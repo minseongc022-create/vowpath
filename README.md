@@ -43,6 +43,8 @@ npm run launch:check
 
 See `DEPLOY.md` for full production checklist and `docs/founder-launch-runbook.md` for step-by-step.
 
+**Cron & polling:** see **[CRON.md](./CRON.md)** — tech dispatch runs every **60s** via cron-job.org (not daily). AI assistants: read [AGENTS.md](./AGENTS.md).
+
 ## Product flows (tested in dev)
 
 | Flow | How |
