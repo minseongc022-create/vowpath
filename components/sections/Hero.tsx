@@ -22,7 +22,7 @@ export function Hero() {
           <p className="mb-4 inline-flex rounded-full border border-brand-300/50 bg-brand-100 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-brand-800">
             {h.badge}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight text-brand-950 sm:text-5xl lg:text-6xl">
+          <h1 className="text-2xl font-bold leading-tight tracking-tight text-brand-950 sm:text-5xl lg:text-6xl">
             {h.headline}
             <span className="mt-1 block bg-gradient-to-r from-brand-900 via-brand-800 to-warm-600 bg-clip-text text-transparent">
               {h.headlineAccent}
@@ -81,7 +81,7 @@ export function Hero() {
         </p>
 
         {badges.length > 0 ? (
-          <ul className="mx-auto mt-6 grid max-w-sm grid-cols-2 gap-2 sm:flex sm:max-w-3xl sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
+          <ul className="mx-auto mt-6 grid w-full max-w-sm grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:flex sm:max-w-3xl sm:flex-wrap sm:items-center sm:justify-center sm:gap-2">
             {badges.map((badge) => (
               <li
                 key={badge}

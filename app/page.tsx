@@ -18,7 +18,7 @@ export default async function HomePage() {
   return (
     <div className="vow-site flex min-h-screen flex-col overflow-x-hidden">
       <Header session={session} />
-      <main className="flex-1">
+      <main className="flex-1 w-full min-w-0">
         <Hero />
         <DemoVideoHero />
         <DemoSummary />

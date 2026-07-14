@@ -70,7 +70,7 @@ export function Header({ session }: HeaderProps) {
         </div>
       </Container>
 
-      <div className="border-t border-brand-200/70 bg-brand-50/80 py-2.5 sm:py-3.5">
+      <div className="hidden border-t border-brand-200/70 bg-brand-50/80 py-2.5 sm:block sm:py-3.5">
         <Container>
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
             <p className="text-xs font-medium text-stone-700 sm:text-sm">See the site built for your trade</p>
@@ -80,8 +80,12 @@ export function Header({ session }: HeaderProps) {
       </div>
 
       {open ? (
-        <div className="fixed inset-0 top-[calc(3.5rem+3.25rem)] z-40 overflow-y-auto border-t border-brand-200 bg-white lg:hidden sm:top-[calc(4rem+3.25rem)]">
+        <div className="fixed inset-0 top-14 z-40 overflow-y-auto border-t border-brand-200 bg-white sm:top-16 lg:hidden">
           <nav className="flex flex-col px-5 py-4" aria-label="Primary mobile">
+            <div className="mb-3 flex flex-col items-start gap-2 border-b border-brand-100 pb-4 sm:hidden">
+              <p className="text-xs font-medium text-stone-600">Your trade</p>
+              <VerticalSwitcher />
+            </div>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
