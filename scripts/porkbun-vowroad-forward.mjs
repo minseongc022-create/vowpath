@@ -1,13 +1,16 @@
 /**
- * Point vowroad.com → effiroad.com via Porkbun URL forward (root + www).
+ * vowroad.com → effiroad.com: Porkbun root ALIAS + URL forwards.
  *
  *   export PORKBUN_API_KEY=...
  *   export PORKBUN_SECRET_KEY=...
  *   node scripts/porkbun-vowroad-forward.mjs
  */
+const DOMAIN = "vowroad.com";
+const FORWARD_TARGET = "https://effiroad.com";
+const ROOT_ALIAS = "uixie.porkbun.com";
+
 const apiKey = process.env.PORKBUN_API_KEY?.trim();
 const secretKey = process.env.PORKBUN_SECRET_KEY?.trim();
-const TARGET = "https://effiroad.com";
 
 async function porkbun(path, body = {}) {
   const res = await fetch(`https://api.porkbun.com/api/json/v3${path}`, {
@@ -18,17 +21,63 @@ async function porkbun(path, body = {}) {
   return res.json();
 }
 
-async function setForward(domain, subdomain = "") {
-  const label = subdomain ? `${subdomain}.${domain}` : domain;
-  const result = await porkbun(`/domain/forward/${domain}`, {
+function isRootName(name) {
+  return !name || name === "@" || name === DOMAIN;
+}
+
+async function ensureRootAlias() {
+  const result = await porkbun(`/dns/retrieve/${DOMAIN}`);
+  if (result.status !== "SUCCESS") {
+    console.log(`✗ DNS retrieve:`, result.message ?? result);
+    return false;
+  }
+
+  const records = result.records ?? [];
+  const rootRecords = records.filter((r) => isRootName(r.name));
+  const alias = rootRecords.find(
+    (r) =>
+      r.type === "ALIAS" &&
+      String(r.content).replace(/\.$/, "") === ROOT_ALIAS,
+  );
+
+  if (alias) {
+    console.log(`✓ ${DOMAIN} ALIAS @ → ${ROOT_ALIAS} (id ${alias.id})`);
+    return true;
+  }
+
+  const conflicting = rootRecords.filter((r) => r.type === "A" || r.type === "CNAME");
+  if (conflicting.length) {
+    console.log(`✗ ${DOMAIN} root has conflicting records (delete A/CNAME @ first):`);
+    for (const r of conflicting) {
+      console.log(`    ${r.type} id=${r.id} content=${r.content}`);
+    }
+    return false;
+  }
+
+  const create = await porkbun(`/dns/create/${DOMAIN}`, {
+    name: "",
+    type: "ALIAS",
+    content: ROOT_ALIAS,
+  });
+  if (create.status === "SUCCESS") {
+    console.log(`✓ ${DOMAIN} ALIAS @ → ${ROOT_ALIAS} (created id ${create.id})`);
+    return true;
+  }
+  console.log(`✗ ${DOMAIN} ALIAS create:`, create.message ?? create);
+  return false;
+}
+
+async function setForward(subdomain = "") {
+  const label = subdomain ? `${subdomain}.${DOMAIN}` : DOMAIN;
+  const result = await porkbun(`/domain/forward/${DOMAIN}`, {
     subdomain,
-    location: TARGET,
+    location: FORWARD_TARGET,
     type: "permanent",
     includePath: "yes",
     wildcard: subdomain ? "false" : "true",
   });
   if (result.status === "SUCCESS") {
-    console.log(`✓ ${label} → ${TARGET}`);
+    console.log(`✓ ${label} → ${FORWARD_TARGET}`);
     return true;
   }
   console.log(`✗ ${label}:`, result.message ?? result);
@@ -41,15 +90,18 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\n=== Porkbun vowroad.com forward ===\n");
+  console.log("\n=== Porkbun vowroad.com setup ===\n");
+
   let ok = 0;
-  if (await setForward("vowroad.com", "")) ok++;
-  if (await setForward("vowroad.com", "www")) ok++;
-  if (await setForward("vowroad.com", "link")) ok++;
-  if (await setForward("vowroad.com", "book")) ok++;
-  if (await setForward("vowroad.com", "go")) ok++;
-  console.log(`\n${ok}/5 forwards set\n`);
-  if (ok === 0) process.exit(1);
+  if (await ensureRootAlias()) ok++;
+  if (await setForward("")) ok++;
+  if (await setForward("www")) ok++;
+  if (await setForward("link")) ok++;
+  if (await setForward("book")) ok++;
+  if (await setForward("go")) ok++;
+
+  console.log(`\n${ok}/6 steps OK\n`);
+  if (ok < 1) process.exit(1);
 }
 
 main();
