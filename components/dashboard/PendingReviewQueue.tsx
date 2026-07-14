@@ -83,7 +83,17 @@ export function PendingReviewQueue({
   );
 
   if (pending.length === 0) {
-    return null;
+    return (
+      <section className="kb-3d-card overflow-hidden border-brand-100">
+        <div className="flex items-center justify-between gap-3 border-b border-brand-100/80 px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-brand-950">{title}</h2>
+            <p className="text-xs text-stone-600">{subtitle}</p>
+          </div>
+        </div>
+        <p className="px-4 py-3 text-sm text-stone-500">{copy?.empty ?? "No requests waiting for approval."}</p>
+      </section>
+    );
   }
 
   return (

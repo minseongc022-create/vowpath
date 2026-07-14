@@ -17,8 +17,7 @@ import {
 } from "@/lib/assistant-session-store";
 import type { EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import { ROUTES } from "@/lib/constants";
-
-const HINT_KEY = "effiroad-ai-hint-v2";
+import { ASSISTANT_HINT_KEY, useAssistantHint } from "@/lib/assistant-hint";
 
 type ExamplePrompt = { icon: string; label: string; question: string };
 
@@ -129,8 +128,8 @@ export function EffiroadAssistantWidget() {
   const { isEnglish } = useLocale();
   const { loggedIn, displayName, inDashboard } = useAssistantContext(pathname);
   const { messages, loading, unread, booted, starters } = useAssistantStore();
+  const { hintVisible, dismissHint: dismissPublicHint } = useAssistantHint();
   const [open, setOpen] = useState(false);
-  const [hintVisible, setHintVisible] = useState(false);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -175,13 +174,6 @@ export function EffiroadAssistantWidget() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(HINT_KEY)) return;
-    const t = window.setTimeout(() => setHintVisible(true), 800);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
     if (!open) return;
     document.body.style.overflow = "hidden";
     markAssistantRead();
@@ -197,9 +189,15 @@ export function EffiroadAssistantWidget() {
   }, [messages, loading, open]);
 
   const dismissHint = useCallback(() => {
-    setHintVisible(false);
-    sessionStorage.setItem(HINT_KEY, "1");
-  }, []);
+    dismissPublicHint();
+    sessionStorage.setItem(ASSISTANT_HINT_KEY, "1");
+  }, [dismissPublicHint]);
+
+  const openChat = useCallback(() => {
+    dismissHint();
+    markAssistantRead();
+    setOpen(true);
+  }, [dismissHint]);
 
   const pushAssistant = useCallback(
     (payload: {
@@ -247,12 +245,6 @@ export function EffiroadAssistantWidget() {
   useEffect(() => {
     if (open && loggedIn !== null) void bootChat();
   }, [open, loggedIn, bootChat]);
-
-  const openChat = useCallback(() => {
-    dismissHint();
-    markAssistantRead();
-    setOpen(true);
-  }, [dismissHint]);
 
   useEffect(() => {
     const handler = () => openChat();
@@ -328,9 +320,11 @@ export function EffiroadAssistantWidget() {
   const suggestionQuestions =
     starters.length > 0 ? starters.slice(0, 4) : examplePrompts.map((e) => e.question);
 
-  const fabAnchorBottom = inDashboard
-    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6"
-    : "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
+  const fabAnchorBottom = "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
+  const showPublicFab = !inDashboard;
+  const thinkingAnchorBottom = inDashboard
+    ? "bottom-6 lg:bottom-8"
+    : fabAnchorBottom;
 
   const unreadDot = unread ? (
     <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-white">
@@ -348,17 +342,15 @@ export function EffiroadAssistantWidget() {
     <>
       {!open && loading ? (
         <div
-          className={`pointer-events-none fixed ${fabAnchorBottom} right-4 z-[255] max-w-[12rem] rounded-full bg-stone-800/90 px-3 py-2 text-center text-[11px] font-medium text-white shadow-lg sm:right-5`}
+          className={`pointer-events-none fixed ${thinkingAnchorBottom} right-4 z-[255] max-w-[12rem] rounded-full bg-stone-800/90 px-3 py-2 text-center text-[11px] font-medium text-white shadow-lg sm:right-5`}
         >
           {copy.thinkingBackground}
         </div>
       ) : null}
 
-      {!open ? (
+      {!open && showPublicFab ? (
         <div
-          className={`fixed ${fabAnchorBottom} right-4 z-[260] flex flex-col items-end gap-2 sm:right-5 ${
-            inDashboard ? "hidden lg:flex" : "flex"
-          }`}
+          className={`fixed ${fabAnchorBottom} right-4 z-[260] flex flex-col items-end gap-2 sm:right-5`}
         >
           {hintVisible && !loading ? (
             <div
@@ -393,7 +385,11 @@ export function EffiroadAssistantWidget() {
       ) : null}
 
       {open ? (
-        <section className="kb-ai-screen" role="dialog" aria-label={copy.name}>
+        <section
+          className={`kb-ai-screen ${inDashboard ? "kb-ai-screen-dash" : ""}`}
+          role="dialog"
+          aria-label={copy.name}
+        >
           <header className="kb-ai-header">
             <button
               type="button"

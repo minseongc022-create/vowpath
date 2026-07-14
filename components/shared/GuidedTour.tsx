@@ -45,6 +45,20 @@ export function GuidedTour({
     return () => clearTimeout(t);
   }, [storageKey]);
 
+  // Skip steps whose target is missing (e.g. sidebar AI hidden on mobile).
+  useEffect(() => {
+    if (!visible) return;
+    const current = steps[step];
+    if (!current) return;
+    const el = document.querySelector(current.target);
+    if (el) return;
+    const t = window.setTimeout(() => {
+      if (step < steps.length - 1) setStep((s) => s + 1);
+      else setVisible(false);
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [step, visible, steps]);
+
   // Measure the current target and keep the spotlight pinned to it through scroll,
   // resize, and async dashboard layout shifts (poll) — the box-shadow dim + ring
   // are drawn from this rect, so a fresh rect means no gap and a snug ring.

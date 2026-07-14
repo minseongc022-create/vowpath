@@ -12,6 +12,7 @@ import {
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
+import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -199,18 +200,21 @@ export function DashboardMobileNav({
             </ul>
           </nav>
 
-          <Link
-            href={ROUTES.ai}
-            prefetch
+          <button
+            type="button"
+            data-tour-step="sidebar-ai"
             className="kb-nav-ai-btn !relative !h-[3.25rem] !w-[3.25rem] !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
             aria-label="Effiroad AI"
-            onClick={() => setMoreOpen(false)}
+            onClick={() => {
+              setMoreOpen(false);
+              openEffiroadAssistant();
+            }}
           >
             <EffiroadAiMark size={52} className="rounded-full" showBadge={false} />
             {pathname.startsWith(ROUTES.ai) ? (
               <span className="absolute -bottom-0.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-500" />
             ) : null}
-          </Link>
+          </button>
         </div>
       </div>
     </>

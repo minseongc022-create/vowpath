@@ -309,12 +309,18 @@ export function DashboardHomeView() {
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2" data-tour-step="revenue">
-        <CollectedRevenuePanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
-        <RecoveryMetricsPanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div data-tour-step="revenue">
+          <CollectedRevenuePanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
+        </div>
+        <div data-tour-step="recovery-metrics">
+          <RecoveryMetricsPanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
+        </div>
       </div>
 
-      <DashboardCallInsights rows={metrics.insights} compact />
+      <div data-tour-step="call-insights">
+        <DashboardCallInsights rows={metrics.insights} compact />
+      </div>
 
       <section className="kb-3d-card overflow-hidden" data-tour-step="trend-chart">
         <div className="flex items-start justify-between gap-3 border-b border-brand-100/80 px-3 py-3 sm:px-4">
@@ -377,7 +383,7 @@ export function DashboardHomeView() {
         .
       </p>
 
-      <GuidedTour steps={DASHBOARD_TOUR_STEPS} storageKey="effiroad_tour_v1_never" />
+      <GuidedTour steps={DASHBOARD_TOUR_STEPS} storageKey="effiroad_tour_v2" />
     </div>
   );
 }
