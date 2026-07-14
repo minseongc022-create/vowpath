@@ -58,6 +58,7 @@ import {
 } from "@/lib/forwarding-guides";
 import { SCHEDULE_ALWAYS_ON_LABEL, type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
+import { SettingsIntegrationsHub } from "@/components/settings/SettingsIntegrationsHub";
 
 const SECTION_SCROLL_IDS: Record<string, string> = {
   contact: "go-live-contact",
@@ -300,50 +301,6 @@ function SettingsViewBody({
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
 
-      <section
-        id="product-settings"
-        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
-      >
-        <SettingsSectionHeader
-          icon="⚙️"
-          title={settingsPage.productSectionTitle}
-          hint={settingsPage.productSectionSubtitle}
-          className="mb-6 border-b border-brand-100 pb-5"
-        />
-
-        <div className="space-y-6">
-          <div id="shop-name" className="scroll-mt-24">
-            <ShopNameEditor />
-          </div>
-          <div id="shop-vertical" className="scroll-mt-24">
-            <VerticalSelector
-              vertical={shop.vertical ?? "restoration"}
-              onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
-            />
-          </div>
-          <div className="scroll-mt-24">
-            <GoogleReviewUrlEditor
-              reviewUrl={shop.googleReviewUrl}
-              onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
-            />
-          </div>
-          <div id="booking-settings" className="scroll-mt-24">
-            <BookingSettingsEditor />
-          </div>
-          <section id="tech-dispatch" className="scroll-mt-24">
-            <TechDispatchSettings />
-          </section>
-          <AgreementKeeperSettingsEditor />
-          <WidgetEmbedCard />
-          <div className="scroll-mt-24">
-            <ZapierWebhookEditor
-              webhookUrl={shop.zapierWebhookUrl}
-              onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
-            />
-          </div>
-        </div>
-      </section>
-
       <section id="go-live" className="scroll-mt-6 space-y-5">
         <SettingsSectionHeader
           icon="🚀"
@@ -357,6 +314,13 @@ function SettingsViewBody({
           requiredTotal={requiredTotal}
           progressPct={progressPct}
           live={live}
+        />
+
+        <SettingsIntegrationsHub
+          phoneDone={phoneItem.done}
+          jobberDone={jobberItem.done}
+          jobberOptional
+          zapierUrl={shop.zapierWebhookUrl}
         />
 
         <GoLiveStepNav
@@ -544,6 +508,55 @@ function SettingsViewBody({
         </div>
       </section>
 
+      <section
+        id="product-settings"
+        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
+      >
+        <SettingsSectionHeader
+          icon="⚙️"
+          title="Shop preferences"
+          hint="Booking rules, crew dispatch, and optional extras. Go-live steps above come first."
+          className="mb-6 border-b border-brand-100 pb-5"
+        />
+
+        <div className="space-y-8">
+          <div id="shop-name" className="scroll-mt-24">
+            <ShopNameEditor />
+          </div>
+          <div id="shop-vertical" className="scroll-mt-24">
+            <VerticalSelector
+              vertical={shop.vertical ?? "restoration"}
+              onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
+            />
+          </div>
+          <div id="booking-settings" className="scroll-mt-24">
+            <BookingSettingsEditor />
+          </div>
+          <section id="tech-dispatch" className="scroll-mt-24">
+            <TechDispatchSettings />
+          </section>
+          <AgreementKeeperSettingsEditor />
+
+          <div id="integrations-zapier" className="scroll-mt-24 rounded-xl border border-brand-100 bg-brand-50/20 p-4 sm:p-5">
+            <ZapierWebhookEditor
+              webhookUrl={shop.zapierWebhookUrl}
+              onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
+            />
+          </div>
+
+          <div id="integrations-widget" className="scroll-mt-24 rounded-xl border border-brand-100 bg-brand-50/20 p-4 sm:p-5">
+            <WidgetEmbedCard />
+          </div>
+
+          <div className="scroll-mt-24">
+            <GoogleReviewUrlEditor
+              reviewUrl={shop.googleReviewUrl}
+              onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
+            />
+          </div>
+        </div>
+      </section>
+
       <SettingsSaveBar
         saving={saveBarSaving}
         saved={saveBarSaved}
@@ -665,7 +678,7 @@ function GoogleReviewUrlEditor({
   async function handleSave() {
     const trimmed = draft.trim();
     if (trimmed && !/^https:\/\/.+/.test(trimmed)) {
-      setError("https:// 로 시작하는 링크를 입력해 주세요.");
+      setError("Enter a valid https:// link.");
       return;
     }
     setError(null);
@@ -689,9 +702,9 @@ function GoogleReviewUrlEditor({
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">구글 리뷰 링크</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Google review link</p>
       <p className="mb-3 text-xs text-slate-500">
-        작업 완료 처리하면 고객에게 이 링크로 리뷰 요청 문자가 자동으로 나갑니다. 비워두면 안 보냅니다.
+        After a job is marked complete, customers get an SMS with this link. Leave blank to skip review requests.
       </p>
       <input
         type="url"
@@ -730,7 +743,7 @@ function ZapierWebhookEditor({
   async function handleSave() {
     const trimmed = draft.trim();
     if (trimmed && !/^https:\/\/hooks\.zapier\.com\/.+/.test(trimmed)) {
-      setError("Zapier의 Webhooks by Zapier → Catch Hook 주소(https://hooks.zapier.com/…)를 입력해 주세요.");
+      setError("Paste your Zapier Catch Hook URL (https://hooks.zapier.com/…).");
       return;
     }
     setError(null);
@@ -754,11 +767,16 @@ function ZapierWebhookEditor({
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Zapier 연동 (ServiceTitan · Housecall Pro 등)</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Zapier webhook</p>
       <p className="mb-3 text-xs text-slate-500">
-        Zapier에서 &quot;Webhooks by Zapier → Catch Hook&quot;을 만들고 그 주소를 붙여넣으세요. 새 요청이 들어올
-        때마다 고객 정보가 자동으로 전송되어, 쓰시는 CRM·스프레드시트·Slack 등 무엇이든 연결할 수 있어요.
+        In Zapier: create <strong>Webhooks by Zapier → Catch Hook</strong>, paste the URL here. New requests
+        will flow to ServiceTitan, Housecall Pro, Slack, or any tool you connect in Zapier.
       </p>
+      <ol className="mb-3 list-decimal space-y-1 pl-4 text-xs text-stone-600">
+        <li>Zapier.com → Create Zap → Trigger: Catch Hook</li>
+        <li>Copy the hook URL → paste below → Save</li>
+        <li>Add your CRM/spreadsheet as the Zap action</li>
+      </ol>
       <input
         type="url"
         value={draft}
@@ -805,9 +823,9 @@ function WidgetEmbedCard() {
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">웹사이트 채팅창</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Website chat widget</p>
       <p className="mb-3 text-xs text-slate-500">
-        전화·문자 받는 것과 같은 AI가 홈페이지 채팅도 처리합니다. 아래 코드를 사장님 홈페이지에 붙여넣으세요.
+        Same AI intake as your phone line — embed on your homepage. Copy the code below into your site HTML.
       </p>
       <textarea
         readOnly
@@ -826,7 +844,7 @@ function WidgetEmbedCard() {
           }}
           className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
         >
-          {copied ? "복사됨!" : "코드 복사"}
+          {copied ? "Copied!" : "Copy code"}
         </button>
         <a
           href={widgetUrl}
@@ -834,7 +852,7 @@ function WidgetEmbedCard() {
           rel="noreferrer"
           className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
         >
-          미리보기
+          Preview
         </a>
       </div>
     </div>

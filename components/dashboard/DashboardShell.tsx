@@ -266,7 +266,17 @@ export function DashboardShell({
 
           </nav>
 
-
+          <button
+            type="button"
+            onClick={() => openEffiroadAssistant()}
+            className="mt-4 flex w-full items-center gap-3 rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2.5 text-left transition hover:bg-brand-500/20"
+          >
+            <EffiroadAiMark size={36} showBadge className="rounded-xl" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-white">Effiroad AI</span>
+              <span className="block truncate text-xs text-slate-400">Ask anything · settings help</span>
+            </span>
+          </button>
 
           <div className="vow-dash-card mt-auto !rounded-2xl !border-brand-500/25 !bg-[#3d3228]">
 

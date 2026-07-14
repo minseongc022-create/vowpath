@@ -506,6 +506,37 @@ function handleGeneral(pack: AiContextPack, query: string): EffiroadAiResponse {
   };
 }
 
+function handleChitchat(pack: AiContextPack): EffiroadAiResponse {
+  const loc = pack.locale;
+  const name = pack.ownerName?.trim();
+  return {
+    answer: composeAssistantReply({
+      locale: loc,
+      now: pack.now,
+      ownerName: pack.ownerName,
+      facts: {
+        headline: name
+          ? loc === "ko"
+            ? `안녕하세요, ${name}님! Effiroad AI예요.`
+            : `Hi ${name}! I'm Effiroad AI — your in-app assistant.`
+          : loc === "ko"
+            ? "안녕하세요! Effiroad AI예요."
+            : "Hi there! I'm Effiroad AI — your in-app assistant.",
+        bullets: [
+          loc === "ko"
+            ? "설정 위치, 통화·예약 현황, 크루 디스패치 방법을 물어보세요."
+            : "Ask me where a setting lives, how dispatch works, or what's happening in your shop today.",
+          loc === "ko"
+            ? "비밀번호·API 키·다른 업체 데이터는 절대 공유하지 않아요."
+            : "I never share passwords, API keys, or other shops' private data.",
+        ],
+      },
+    }),
+    actions: defaultActions(pack),
+    suggestions: defaultSuggestions(loc),
+  };
+}
+
 export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQueryIntent): EffiroadAiResponse {
   const now = pack.now;
   const today = { start: startOfDay(now), end: endOfDay(now) };
@@ -518,6 +549,8 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
   switch (intent.kind) {
     case "proactive":
       return buildProactiveBriefing(pack);
+    case "chitchat":
+      return handleChitchat(pack);
     case "customer":
       return handleCustomer(pack, intent.name);
     case "call_memory":

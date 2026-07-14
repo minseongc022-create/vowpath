@@ -17,4 +17,5 @@ export type AiQueryIntent =
   | { kind: "integration_status" }
   | { kind: "automation_rules" }
   | { kind: "proactive" }
+  | { kind: "chitchat" }
   | { kind: "general" };

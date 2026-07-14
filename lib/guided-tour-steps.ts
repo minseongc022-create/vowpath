@@ -82,9 +82,17 @@ export const SETTINGS_TOUR_STEPS: TourStep[] = [
     target: "#booking-settings",
   },
   {
+    id: "integrations-hub",
+    title: "🔌 Integrations hub",
+    description:
+      "Quick overview of Phone, Jobber, Zapier, and website chat. Green badge = done. Tap any card to jump to setup.",
+    target: "#integrations-hub",
+  },
+  {
     id: "tech-dispatch",
     title: "🚚 Crew dispatch",
-    description: "Automatically text confirmed jobs to your field techs.",
+    description:
+      "Add your techs and pick who is on-call each day. When a job confirms, they get a text — reply 1 to accept.",
     target: "#tech-dispatch",
   },
   {

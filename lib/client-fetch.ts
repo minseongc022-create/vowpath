@@ -27,3 +27,17 @@ export async function clientFetch(
 export function clientFetchTimeoutMessage(fallback = "Request timed out.") {
   return fallback;
 }
+
+/** Redirect to login when session cookie is stale (401). */
+export function redirectToLoginIfUnauthorized(res: Response): boolean {
+  if (typeof window === "undefined" || res.status !== 401) return false;
+  const next = `${window.location.pathname}${window.location.search}`;
+  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+  return true;
+}
+
+export function sessionExpiredMessage(isEnglish = true): string {
+  return isEnglish
+    ? "Your session expired. Redirecting to sign in…"
+    : "세션이 만료되었습니다. 로그인 페이지로 이동합니다…";
+}

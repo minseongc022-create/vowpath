@@ -78,7 +78,8 @@ export function EffiroadAssistantWidget() {
   const copy = isEnglish
     ? {
         name: "Effiroad AI",
-        hint: "Tap here to ask about features, settings, or your shop — I'll guide you step by step.",
+        hint: "Tap the AI button to ask about features, settings, or your shop — I'll guide you step by step.",
+        openHint: "Open AI",
         greet: (name: string) =>
           name ? `${name}, ask Effiroad AI anything` : "Ask Effiroad AI like you're chatting",
         subgreet: "Calls, dispatch, settings, analytics — just type naturally.",
@@ -92,7 +93,8 @@ export function EffiroadAssistantWidget() {
       }
     : {
         name: "Effiroad AI",
-        hint: "기능·설정·샵 운영이 궁금하면 여기를 눌러보세요. 대화하듯 안내해 드릴게요.",
+        hint: "기능·설정·샵 운영이 궁금하면 AI 버튼을 눌러보세요. 대화하듯 안내해 드릴게요.",
+        openHint: "AI 열기",
         greet: (name: string) =>
           name ? `${name}님, Effiroad AI에게 물어보세요` : "대화하듯 Effiroad AI에게 물어보세요",
         subgreet: "통화, 디스패치, 설정, 분석 — 편하게 물어보세요.",
@@ -289,11 +291,11 @@ export function EffiroadAssistantWidget() {
   const promptList = starters.length ? starters : defaultStarters;
 
   const hintBottom = inDashboard
-    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6"
     : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]";
 
   const fabBottom = inDashboard
-    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+    ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6"
     : "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
 
   const statusPill = !open && loading ? (
@@ -316,7 +318,7 @@ export function EffiroadAssistantWidget() {
 
       {hintVisible && !open && !loading ? (
         <div
-          className={`pointer-events-none fixed ${hintBottom} right-4 z-[260] flex max-w-[min(calc(100vw-5.5rem),16rem)] flex-col items-end sm:right-5 sm:max-w-xs`}
+          className={`fixed ${hintBottom} right-4 z-[260] flex max-w-[min(calc(100vw-5.5rem),18rem)] flex-col items-end gap-2 sm:right-5 sm:max-w-xs`}
           role="status"
         >
           <div className="kb-speech-bubble pointer-events-auto pr-8">
@@ -329,9 +331,22 @@ export function EffiroadAssistantWidget() {
               ×
             </button>
             <p>{copy.hint}</p>
-            <span className={`kb-speech-bubble-tail ${inDashboard ? "right-3" : "right-5"}`} aria-hidden />
+            <span className={`kb-speech-bubble-tail ${inDashboard ? "right-14 lg:right-5" : "right-5"}`} aria-hidden />
           </div>
         </div>
+      ) : null}
+
+      {!open ? (
+        <button
+          type="button"
+          className={`fixed ${fabBottom} right-4 z-[240] relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem] ${inDashboard ? "hidden lg:flex" : ""}`}
+          style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
+          aria-label={unread ? copy.newReply : copy.open}
+          onClick={openChat}
+        >
+          <EffiroadAiMark size={56} className="rounded-full" showBadge />
+          {unreadDot}
+        </button>
       ) : null}
 
       {open ? (
@@ -460,18 +475,6 @@ export function EffiroadAssistantWidget() {
         </section>
       ) : null}
 
-      {!open && !inDashboard ? (
-        <button
-          type="button"
-          className={`fixed ${fabBottom} right-4 z-[240] relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem]`}
-          style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
-          aria-label={unread ? copy.newReply : copy.open}
-          onClick={openChat}
-        >
-          <EffiroadAiMark size={56} className="rounded-full" showBadge={false} />
-          {unreadDot}
-        </button>
-      ) : null}
     </>
   );
 }
