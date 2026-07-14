@@ -9,9 +9,10 @@ import { ROUTES } from "@/lib/constants";
 type CollectedRevenuePanelProps = {
   dateRange: DashboardDateRange;
   loading?: boolean;
+  compact?: boolean;
 };
 
-export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePanelProps) {
+export function CollectedRevenuePanel({ dateRange, loading, compact = false }: CollectedRevenuePanelProps) {
   const [metrics, setMetrics] = useState<RevenueMetrics | null>(null);
   const [connected, setConnected] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(true);
@@ -52,7 +53,7 @@ export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePa
     };
   }, [dateRange.start, dateRange.end, loading]);
 
-  if (connected === false) {
+  if (connected === false && !compact) {
     return (
       <section className="vow-dash-panel">
         <div className="vow-dash-panel-head border-b border-brand-200/60 px-5 py-4">
@@ -68,7 +69,35 @@ export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePa
     );
   }
 
+  if (connected === false && compact) {
+    return null;
+  }
+
   const m = metrics;
+
+  if (compact) {
+    return (
+      <section className="kb-3d-card overflow-hidden">
+        <div className="border-b border-brand-100/80 px-3 py-2.5">
+          <h2 className="text-sm font-bold text-brand-950">Revenue</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-brand-100/60">
+          {busy ? (
+            <p className="col-span-2 bg-white px-3 py-4 text-xs text-stone-500">Loading…</p>
+          ) : error ? (
+            <p className="col-span-2 bg-white px-3 py-4 text-xs text-rose-700">{error}</p>
+          ) : m ? (
+            <>
+              <CompactMetric label="Collected" value={m.collectedLabel} accent="text-emerald-700" />
+              <CompactMetric label="Effiroad" value={m.attributedCollectedLabel} accent="text-brand-800" />
+              <CompactMetric label="Invoiced" value={m.invoicedLabel} accent="text-sky-700" />
+              <CompactMetric label="Outstanding" value={m.outstandingLabel} accent="text-amber-700" />
+            </>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="vow-dash-panel">
@@ -132,6 +161,23 @@ export function CollectedRevenuePanel({ dateRange, loading }: CollectedRevenuePa
         </p>
       ) : null}
     </section>
+  );
+}
+
+function CompactMetric({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <div className="bg-white px-3 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{label}</p>
+      <p className={`mt-1 truncate text-lg font-bold tabular-nums ${accent}`}>{value}</p>
+    </div>
   );
 }
 

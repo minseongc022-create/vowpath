@@ -35,8 +35,39 @@ const TONE_ICON: Record<CallInsightRow["tone"], string> = {
   rose: "text-rose-700 bg-rose-100",
 };
 
-export function DashboardCallInsights({ rows }: { rows: CallInsightRow[] }) {
+export function DashboardCallInsights({
+  rows,
+  compact = false,
+}: {
+  rows: CallInsightRow[];
+  compact?: boolean;
+}) {
   const v = useVowDashboard().insights;
+
+  if (compact) {
+    return (
+      <section className="kb-3d-card overflow-hidden">
+        <div className="border-b border-brand-100/80 px-3 py-2.5">
+          <h2 className="text-sm font-bold text-brand-950">{v.title}</h2>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-brand-100/80">
+          {rows.map((row) => (
+            <div key={row.key} className="px-2 py-3 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{row.label}</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-brand-950">{row.value}</p>
+              <p
+                className={`mt-0.5 text-[10px] font-semibold ${
+                  row.deltaPct > 0 ? "text-emerald-700" : row.deltaPct < 0 ? "text-rose-700" : "text-stone-400"
+                }`}
+              >
+                {v.delta(row.deltaPct)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="vow-dash-panel h-full">

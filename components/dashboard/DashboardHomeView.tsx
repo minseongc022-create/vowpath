@@ -225,17 +225,17 @@ export function DashboardHomeView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-5">
-      <header className="space-y-4">
+    <div className="mx-auto w-full max-w-[1400px] space-y-3 sm:space-y-4">
+      <header className="space-y-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-brand-950 sm:text-3xl">
+          <h1 className="text-lg font-bold tracking-tight text-brand-950 sm:text-2xl">
             {dashboardGreeting()}
             {displayName ? `, ${displayName}` : ""}!{" "}
             <span className="inline-block" aria-hidden>
               👋
             </span>
           </h1>
-          <p className="mt-1 text-sm text-stone-600 sm:text-base">{v.header.subtitle}</p>
+          <p className="mt-0.5 text-xs text-stone-600 sm:text-sm">{v.header.subtitle}</p>
         </div>
 
         <div className="kb-3d-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
@@ -255,7 +255,7 @@ export function DashboardHomeView() {
       </header>
 
       {jobberError ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
           Jobber sync issue.{" "}
           <Link href={ROUTES.settings} className="font-semibold underline">
             Go live
@@ -263,6 +263,41 @@ export function DashboardHomeView() {
           to reconnect.
         </div>
       ) : null}
+
+      <section data-tour-step="kpi-cards">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-brand-950">
+              {isEnglishUi() ? "At a glance" : "한눈에 보기"}
+            </h2>
+            <p className="text-[11px] text-stone-500">{periodLabel}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setKpiEditMode((v) => !v)}
+            className="kb-3d-btn shrink-0 !rounded-full !px-3 !py-1.5 !text-xs"
+          >
+            {kpiEditMode
+              ? isEnglishUi()
+                ? "Done"
+                : "완료"
+              : isEnglishUi()
+                ? "Edit"
+                : "수정"}
+          </button>
+        </div>
+        <OwnerKpiCards
+          daily={trendChart.data}
+          periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
+          waitingCustomersNow={waitingCustomersNow}
+          loading={!hasLoaded && loading}
+          onCardClick={kpiEditMode ? undefined : setActiveKpi}
+          visibleIds={visibleMetricIds}
+          editMode={kpiEditMode}
+          onToggle={handleToggleMetric}
+          compact
+        />
+      </section>
 
       <div data-tour-step="pending-review">
         <PendingReviewQueue
@@ -274,49 +309,40 @@ export function DashboardHomeView() {
         />
       </div>
 
-      <div data-tour-step="revenue">
-        <CollectedRevenuePanel
-          dateRange={dateRange}
-          loading={!hasLoaded && loading}
-        />
+      <div className="grid gap-3 sm:grid-cols-2" data-tour-step="revenue">
+        <CollectedRevenuePanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
+        <RecoveryMetricsPanel dateRange={dateRange} loading={!hasLoaded && loading} compact />
       </div>
 
-      <div data-tour-step="recovery-metrics">
-        <RecoveryMetricsPanel
-          dateRange={dateRange}
-          loading={!hasLoaded && loading}
-        />
-      </div>
+      <DashboardCallInsights rows={metrics.insights} compact />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <div className="xl:col-span-5" data-tour-step="kpi-cards">
-          <div className="mb-2 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setKpiEditMode((v) => !v)}
-              className="rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
-            >
-              {kpiEditMode
-                ? isEnglishUi()
-                  ? "Done"
-                  : "완료"
-                : isEnglishUi()
-                  ? "Edit"
-                  : "수정"}
-            </button>
+      <section className="kb-3d-card overflow-hidden" data-tour-step="trend-chart">
+        <div className="flex items-start justify-between gap-3 border-b border-brand-100/80 px-3 py-3 sm:px-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-brand-950">{v.trend.title}</h2>
+            <p className="text-[11px] text-stone-500">
+              {periodLabel} · {trendChart.subtitle}
+            </p>
           </div>
-          <OwnerKpiCards
-            daily={trendChart.data}
-            periodLabel={dashboardUi.missedCallsAnalytics.periodSum}
-            waitingCustomersNow={waitingCustomersNow}
-            loading={!hasLoaded && loading}
-            onCardClick={kpiEditMode ? undefined : setActiveKpi}
-            visibleIds={visibleMetricIds}
-            editMode={kpiEditMode}
-            onToggle={handleToggleMetric}
-          />
+          <Link
+            href={ROUTES.missedCallsAnalytics}
+            className="shrink-0 text-xs font-semibold text-brand-800 hover:underline"
+          >
+            {v.trend.viewDetail} →
+          </Link>
         </div>
-      </div>
+        <div className="vow-dash-chart-wrap-home vow-dash-chart-body px-2 pb-3 pt-1 sm:px-3">
+          <div className={!hasLoaded && loading ? "animate-pulse opacity-70" : ""}>
+            <MissedCallsPreventedChart
+              data={trendChart.data}
+              theme="light"
+              size="home"
+              controlledVisible={visibleMetricIds}
+              onVisibleChange={(ids) => void persistVisibleMetrics(ids)}
+            />
+          </div>
+        </div>
+      </section>
 
       <KpiDrilldownPanel
         open={activeKpi !== null}
@@ -326,48 +352,7 @@ export function DashboardHomeView() {
         onClose={() => setActiveKpi(null)}
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <section className="vow-dash-panel vow-dash-chart-card lg:col-span-2" data-tour-step="trend-chart">
-          <div className="space-y-3 border-b border-brand-200/60 px-5 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold text-brand-950">{v.trend.title}</h2>
-                <p className="text-sm text-stone-600">
-                  {periodLabel} · {trendChart.subtitle}
-                </p>
-              </div>
-              <Link
-                href={ROUTES.missedCallsAnalytics}
-                className="vow-dash-link shrink-0 whitespace-nowrap pt-0.5"
-              >
-                {v.trend.viewDetail} →
-              </Link>
-            </div>
-            <DashboardPeriodToolbar
-              value={dateRange}
-              onChange={handleRangeChange}
-              activePreset={activePreset}
-              onPresetChange={setActivePreset}
-              presets={periodPresets}
-              className="hidden !gap-2 sm:flex"
-            />
-          </div>
-          <div className="vow-dash-chart-wrap-home vow-dash-chart-body">
-            <div className={!hasLoaded && loading ? "animate-pulse opacity-70" : ""}>
-              <MissedCallsPreventedChart
-                data={trendChart.data}
-                theme="light"
-                size="home"
-                controlledVisible={visibleMetricIds}
-                onVisibleChange={(ids) => void persistVisibleMetrics(ids)}
-              />
-            </div>
-          </div>
-        </section>
-        <DashboardCallInsights rows={metrics.insights} />
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <div className="lg:col-span-2" data-tour-step="recent-requests">
           <DashboardRecentRequests
             bookings={recent}
@@ -384,7 +369,7 @@ export function DashboardHomeView() {
         </div>
       </div>
 
-      <p className="text-center text-sm text-stone-600">
+      <p className="hidden text-center text-sm text-stone-600 sm:block">
         New jobs text your phone — finish setup in{" "}
         <Link href={ROUTES.settings} className="font-semibold text-brand-800 hover:underline">
           Go live

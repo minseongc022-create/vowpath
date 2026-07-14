@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { OPEN_AI_EVENT } from "@/lib/assistant-events";
 import type { EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import { ROUTES } from "@/lib/constants";
@@ -32,14 +33,6 @@ function IconSend() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M3.4 20.6 21 12 3.4 3.4l2.8 7.2L17 12l-10.8 1.4-2.8 7.2z" />
-    </svg>
-  );
-}
-
-function IconStarAi() {
-  return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.7L12 17.8 6.4 19.5l2.1-6.7L3 8.8h6.8L12 2z" />
     </svg>
   );
 }
@@ -333,9 +326,7 @@ export function EffiroadAssistantWidget() {
           <div ref={scrollRef} className="vow-ai-scrollbar flex flex-1 flex-col overflow-y-auto">
             {showEmptyHero ? (
               <div className="flex flex-col items-center px-5 pt-6 pb-4 text-center">
-                <div className="kb-ai-gem" aria-hidden>
-                  ✦
-                </div>
+                <EffiroadAiMark size={64} className="rounded-3xl" />
                 <h2 className="mt-5 text-xl font-bold leading-snug text-brand-950 sm:text-2xl">
                   {copy.greet(displayName)}
                 </h2>
@@ -352,9 +343,7 @@ export function EffiroadAssistantWidget() {
                     className="kb-prompt-pill"
                     onClick={() => void sendQuestion(s)}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
-                      <IconStarAi />
-                    </span>
+                    <EffiroadAiMark size={36} showBadge={false} className="rounded-xl" />
                     <span className="min-w-0 flex-1">{s}</span>
                   </button>
                 ))}
@@ -451,7 +440,7 @@ export function EffiroadAssistantWidget() {
           aria-label={copy.open}
           onClick={openChat}
         >
-          <IconStarAi />
+          <EffiroadAiMark size={52} className="rounded-full" />
         </button>
       ) : null}
     </>

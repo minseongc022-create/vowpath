@@ -12,6 +12,7 @@ import {
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
+import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
@@ -28,14 +29,6 @@ function IconMenu({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M4 7h16v2H4V7zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
-    </svg>
-  );
-}
-
-function IconStarAi({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.7L12 17.8 6.4 19.5l2.1-6.7L3 8.8h6.8L12 2z" />
     </svg>
   );
 }
@@ -217,14 +210,14 @@ export function DashboardMobileNav({
 
           <button
             type="button"
-            className="kb-nav-ai-btn"
+            className="kb-nav-ai-btn !h-[3.25rem] !w-[3.25rem] !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
             aria-label="Effiroad AI"
             onClick={() => {
               setMoreOpen(false);
               openEffiroadAssistant();
             }}
           >
-            <IconStarAi />
+            <EffiroadAiMark size={52} className="rounded-full" />
           </button>
         </div>
       </div>

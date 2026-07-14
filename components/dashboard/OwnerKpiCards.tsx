@@ -17,6 +17,7 @@ type OwnerKpiCardsProps = {
   waitingCustomersNow?: number;
   loading?: boolean;
   dark?: boolean;
+  compact?: boolean;
   onCardClick?: (id: KpiDrilldownId) => void;
   visibleIds?: string[];
   editMode?: boolean;
@@ -34,6 +35,7 @@ function OwnerKpiCard({
   editMode,
   included,
   onToggle,
+  compact = false,
 }: {
   label: string;
   shortHint: string;
@@ -45,10 +47,28 @@ function OwnerKpiCard({
   editMode?: boolean;
   included?: boolean;
   onToggle?: () => void;
+  compact?: boolean;
 }) {
   const hint = dashboardUi.kpiDrilldown.tapHint;
 
-  const body = (
+  const body = compact ? (
+    <>
+      <p
+        className={`truncate text-[10px] font-bold uppercase tracking-wide ${
+          dark ? "text-slate-400" : "text-stone-500"
+        }`}
+      >
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-xl font-bold tabular-nums tracking-tight sm:text-2xl ${
+          dark ? "vow-dash-kpi-value !text-xl sm:!text-2xl" : "text-brand-950"
+        }`}
+      >
+        {value}
+      </p>
+    </>
+  ) : (
     <>
       <p
         className={`text-xs font-semibold uppercase tracking-wider vow-dash-kpi-label ${
@@ -73,6 +93,14 @@ function OwnerKpiCard({
     </>
   );
 
+  const cardClass = compact
+    ? dark
+      ? "vow-dash-kpi vow-dash-kpi-owner !p-3"
+      : "ops-kpi !p-3"
+    : dark
+      ? "vow-dash-kpi vow-dash-kpi-owner"
+      : "ops-kpi";
+
   if (editMode) {
     const toggleLabel = included
       ? isEnglishUi()
@@ -84,9 +112,7 @@ function OwnerKpiCard({
 
     return (
       <div
-        className={`relative text-left transition ${
-          dark ? "vow-dash-kpi vow-dash-kpi-owner" : "ops-kpi"
-        } ${included ? "" : "opacity-50"}`}
+        className={`relative text-left transition ${cardClass} ${included ? "" : "opacity-50"}`}
         style={{ borderTopColor: color, borderTopWidth: 3 }}
       >
         <button
@@ -114,7 +140,9 @@ function OwnerKpiCard({
       type="button"
       onClick={onClick}
       className={`text-left transition ${
-        dark ? "vow-dash-kpi vow-dash-kpi-owner vow-dash-kpi-clickable" : "ops-kpi ops-kpi-clickable"
+        dark
+          ? `vow-dash-kpi vow-dash-kpi-owner vow-dash-kpi-clickable ${compact ? "!p-3" : ""}`
+          : `ops-kpi ops-kpi-clickable ${compact ? "!p-3" : ""}`
       }`}
       style={{ borderTopColor: color, borderTopWidth: 3 }}
       aria-label={`${label} ${value} — ${hint}`}
@@ -130,6 +158,7 @@ export function OwnerKpiCards({
   waitingCustomersNow,
   loading,
   dark = false,
+  compact = false,
   onCardClick,
   visibleIds,
   editMode = false,
@@ -141,7 +170,7 @@ export function OwnerKpiCards({
     : TREND_CHART_SERIES.filter((s) => !visibleIds || visibleIds.includes(s.id));
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className={`grid gap-2 ${compact ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" : "gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"}`}>
       {cardSeries.map((series) => {
         const id = series.id as TrendChartSeriesId;
         const isWaiting = id === "waitingCustomers";
@@ -165,6 +194,7 @@ export function OwnerKpiCards({
             editMode={editMode}
             included={included}
             onToggle={onToggle ? () => onToggle(id) : undefined}
+            compact={compact}
           />
         );
       })}

@@ -8,9 +8,10 @@ import type { DashboardDateRange } from "@/components/dashboard/DashboardDateRan
 type RecoveryMetricsPanelProps = {
   dateRange: DashboardDateRange;
   loading?: boolean;
+  compact?: boolean;
 };
 
-export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPanelProps) {
+export function RecoveryMetricsPanel({ dateRange, loading, compact = false }: RecoveryMetricsPanelProps) {
   const [metrics, setMetrics] = useState<RecoveryMetrics | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,35 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
 
   const m = metrics;
   const showShadow = m?.shadowModeActive;
+
+  if (compact) {
+    return (
+      <section className="kb-3d-card overflow-hidden">
+        <div className="border-b border-brand-100/80 px-3 py-2.5">
+          <h2 className="text-sm font-bold text-brand-950">Call recovery</h2>
+        </div>
+        {showShadow ? (
+          <p className="border-b border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+            Baseline period — {m?.shadowModeRemaining} practice left
+          </p>
+        ) : null}
+        <div className="grid grid-cols-2 gap-px bg-brand-100/60">
+          {busy ? (
+            <p className="col-span-2 bg-white px-3 py-4 text-xs text-stone-500">Loading…</p>
+          ) : error ? (
+            <p className="col-span-2 bg-white px-3 py-4 text-xs text-rose-700">{error}</p>
+          ) : m ? (
+            <>
+              <CompactMetric label="AI bookings" value={String(m.bookingsFromAiCalls)} accent="text-emerald-700" />
+              <CompactMetric label="After hours" value={String(m.afterHoursBookingsFromAi)} accent="text-orange-700" />
+              <CompactMetric label="AI answered" value={String(m.inboundAnsweredByAi)} accent="text-sky-700" />
+              <CompactMetric label="Missed raw" value={String(m.inboundMissedRaw)} accent="text-rose-600" />
+            </>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="vow-dash-panel">
@@ -106,6 +136,23 @@ export function RecoveryMetricsPanel({ dateRange, loading }: RecoveryMetricsPane
         </p>
       ) : null}
     </section>
+  );
+}
+
+function CompactMetric({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <div className="bg-white px-3 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{label}</p>
+      <p className={`mt-1 text-lg font-bold tabular-nums ${accent}`}>{value}</p>
+    </div>
   );
 }
 

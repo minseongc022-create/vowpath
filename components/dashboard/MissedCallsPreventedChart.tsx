@@ -40,9 +40,9 @@ const SIZE_CONFIG: Record<
   },
   home: {
     width: 720,
-    height: 220,
+    height: 160,
     maxLabels: 8,
-    barHeight: 168,
+    barHeight: 128,
     containerClass: "vow-missed-chart w-full",
   },
   full: {

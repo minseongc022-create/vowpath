@@ -30,13 +30,21 @@ export function IconBriefing({ className = "h-4 w-4" }: IconProps) {
 
 export function IconEffiroadAi({ className = "h-4 w-4" }: IconProps) {
   return (
-    <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.5-6.5a1.25 1.25 0 112.5 0 1.25 1.25 0 01-2.5 0zm5 0a1.25 1.25 0 112.5 0 1.25 1.25 0 01-2.5 0zM7.2 12.1c.7.8 1.9.8 2.6 0 .3-.3.8-.3 1.1 0 .3.3.3.8 0 1.1-1.3 1.5-3.5 1.5-4.7 0-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0z"
-        clipRule="evenodd"
-      />
-      <path d="M15.2 3.8a.75.75 0 01.53 1.28l-.35.35.35.35a.75.75 0 11-1.06 1.06l-.35-.35-.35.35a.75.75 0 11-1.06-1.06l.35-.35-.35-.35a.75.75 0 011.06-1.06l.35.35.35-.35z" />
+    <svg className={className} width={16} height={16} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="1" y="1" width="18" height="18" rx="5" fill="url(#effi-ai-bg)" />
+      <path d="M4.5 14.5 10 5.5l5.5 9H4.5Z" fill="white" fillOpacity={0.25} />
+      <path d="M6 13 10 7l4 6H6Z" fill="white" />
+      <path d="M12.5 10.5h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="13.5" y="2" width="5" height="4.5" rx="1.2" fill="#3d3228" />
+      <text x="16" y="5.1" textAnchor="middle" fill="#f5f0e8" fontSize="3.2" fontWeight="700">
+        AI
+      </text>
+      <defs>
+        <linearGradient id="effi-ai-bg" x1="2" y1="2" x2="18" y2="18" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#b59b78" />
+          <stop offset="1" stopColor="#7d6348" />
+        </linearGradient>
+      </defs>
     </svg>
   );
 }

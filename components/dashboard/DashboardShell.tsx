@@ -29,6 +29,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
+import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
@@ -335,9 +336,11 @@ export function DashboardShell({
             </div>
             <button
               type="button"
-              className="kb-3d-btn-primary shrink-0 rounded-full px-4 py-2 text-xs"
+              className="flex shrink-0 items-center gap-2 rounded-full bg-[#3d3228] py-1.5 pl-1.5 pr-3.5 text-xs font-bold text-white transition active:scale-[0.98]"
+              style={{ boxShadow: "0 4px 12px rgb(61 50 40 / 0.22)" }}
               onClick={() => openEffiroadAssistant()}
             >
+              <EffiroadAiMark size={28} showBadge={false} className="rounded-lg" />
               AI
             </button>
           </div>
