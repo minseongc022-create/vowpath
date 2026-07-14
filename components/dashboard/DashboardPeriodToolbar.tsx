@@ -44,14 +44,12 @@ export function DashboardPeriodToolbar({
               onPresetChange(p.id);
               onChange(analyticsPresetToDateRange(p.id));
             }}
-            className={`min-h-[40px] shrink-0 snap-start rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+            className={`kb-period-pill ${
               activePreset === p.id
-                ? dark
-                  ? "bg-white/10 text-slate-100 ring-1 ring-white/15"
-                  : "bg-brand-500 text-white shadow-md"
+                ? "kb-period-pill-active"
                 : dark
                   ? "bg-white/[0.06] text-slate-400 ring-1 ring-white/10 hover:bg-white/[0.1]"
-                  : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  : "kb-period-pill-inactive"
             }`}
           >
             {p.label}

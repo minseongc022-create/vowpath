@@ -12,24 +12,30 @@ import {
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
+import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
 type Tab = {
-  href?: string;
+  href: string;
   label: string;
   match: (path: string) => boolean;
   icon: React.ReactNode;
   badge?: number;
-  action?: "more";
 };
 
-function IconMore({ className = "h-6 w-6" }: { className?: string }) {
+function IconMenu({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <circle cx="5" cy="12" r="2" />
-      <circle cx="12" cy="12" r="2" />
-      <circle cx="19" cy="12" r="2" />
+      <path d="M4 7h16v2H4V7zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
+    </svg>
+  );
+}
+
+function IconStarAi({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2l2.2 6.8H21l-5.5 4 2.1 6.7L12 17.8 6.4 19.5l2.1-6.7L3 8.8h6.8L12 2z" />
     </svg>
   );
 }
@@ -43,7 +49,12 @@ export function DashboardMobileNav({
   const v = useVowDashboard().nav;
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const morePaths = [ROUTES.missedCallsAnalytics, ROUTES.briefing, ROUTES.ai];
+  const morePaths = [
+    ROUTES.missedCallsAnalytics,
+    ROUTES.briefing,
+    ROUTES.ai,
+    ROUTES.settings,
+  ];
   const moreActive = morePaths.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
@@ -79,38 +90,32 @@ export function DashboardMobileNav({
       match: (p) => p.startsWith(ROUTES.calendar),
       icon: <IconCalendar className="h-6 w-6" />,
     },
-    {
-      label: "More",
-      match: () => moreActive,
-      icon: <IconMore className="h-6 w-6" />,
-      action: "more",
-    },
-    {
-      href: ROUTES.settings,
-      label: v.settings,
-      match: (p) => p.startsWith(ROUTES.settings),
-      icon: <IconSettings className="h-6 w-6" />,
-    },
   ];
 
   const moreLinks = [
     {
       href: ROUTES.missedCallsAnalytics,
       label: v.missedCalls,
-      icon: <IconMissedCalls className="h-5 w-5" />,
+      icon: <IconMissedCalls className="h-6 w-6" />,
       match: (p: string) => p.startsWith(ROUTES.missedCallsAnalytics),
     },
     {
       href: ROUTES.briefing,
       label: v.briefing,
-      icon: <IconBriefing className="h-5 w-5" />,
+      icon: <IconBriefing className="h-6 w-6" />,
       match: (p: string) => p.startsWith(ROUTES.briefing),
     },
     {
       href: ROUTES.ai,
       label: v.ai,
-      icon: <IconEffiroadAi className="h-5 w-5" />,
+      icon: <IconEffiroadAi className="h-6 w-6" />,
       match: (p: string) => p.startsWith(ROUTES.ai),
+    },
+    {
+      href: ROUTES.settings,
+      label: v.settings,
+      icon: <IconSettings className="h-6 w-6" />,
+      match: (p: string) => p.startsWith(ROUTES.settings),
     },
   ];
 
@@ -119,7 +124,7 @@ export function DashboardMobileNav({
       {moreOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-20 bg-brand-950/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-brand-950/35 backdrop-blur-[1px] lg:hidden"
           aria-label="Close menu"
           onClick={() => setMoreOpen(false)}
         />
@@ -127,100 +132,102 @@ export function DashboardMobileNav({
 
       {moreOpen ? (
         <div
-          className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 rounded-t-2xl border border-brand-200 bg-white px-4 py-3 shadow-[0_-8px_32px_rgb(0_0_0/0.12)] lg:hidden"
+          className="kb-more-sheet fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 lg:hidden"
           role="dialog"
-          aria-label="More navigation"
+          aria-label="All menu"
         >
-          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
-          <ul className="space-y-1">
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
+          <p className="mb-3 text-center text-sm font-bold text-brand-950">
+            {v.settings === "Settings" ? "All menus" : "전체 메뉴"}
+          </p>
+          <div className="grid grid-cols-4 gap-3">
             {moreLinks.map((link) => {
               const active = link.match(pathname);
               return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    prefetch
-                    className={`flex min-h-[48px] items-center gap-3 rounded-xl px-3 text-sm font-semibold transition ${
-                      active ? "bg-brand-100 text-brand-900" : "text-stone-700 hover:bg-brand-50"
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  prefetch
+                  className={`kb-more-grid-item ${active ? "ring-2 ring-brand-400/60" : ""}`}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                      active ? "bg-brand-100 text-brand-800" : "bg-brand-50 text-stone-600"
                     }`}
-                    onClick={() => setMoreOpen(false)}
                   >
-                    <span
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                        active ? "bg-white text-brand-800" : "bg-brand-50 text-stone-600"
-                      }`}
-                    >
-                      {link.icon}
-                    </span>
-                    {link.label}
-                  </Link>
-                </li>
+                    {link.icon}
+                  </span>
+                  <span className="text-[11px] font-semibold leading-tight text-stone-700">{link.label}</span>
+                </Link>
               );
             })}
-          </ul>
+          </div>
         </div>
       ) : null}
 
-      <nav
-        className="vow-mobile-nav fixed inset-x-0 bottom-0 z-30 border-t border-brand-200/80 bg-white/95 backdrop-blur-md lg:hidden"
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] lg:hidden"
         aria-label="Mobile navigation"
       >
-        <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)]">
-          {tabs.map((tab) => {
-            const active = tab.action === "more" ? moreOpen || moreActive : tab.match(pathname);
-
-            if (tab.action === "more") {
-              return (
-                <li key="more" className="flex-1">
-                  <button
-                    type="button"
-                    className={`relative flex min-h-[3.5rem] w-full flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-semibold transition ${
-                      active ? "text-brand-800" : "text-stone-500"
-                    }`}
-                    aria-expanded={moreOpen}
-                    onClick={() => setMoreOpen((o) => !o)}
-                  >
-                    <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-xl transition ${
-                        active ? "bg-brand-100 text-brand-800" : "text-stone-500"
+        <div className="mx-auto flex max-w-lg items-end gap-2">
+          <nav className="kb-floating-nav min-w-0 flex-1">
+            <ul className="flex items-center justify-between px-1 py-1.5">
+              {tabs.map((tab) => {
+                const active = tab.match(pathname);
+                return (
+                  <li key={tab.href} className="flex-1">
+                    <Link
+                      href={tab.href}
+                      prefetch
+                      className={`relative flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-bold transition ${
+                        active ? "text-brand-900" : "text-stone-400"
                       }`}
                     >
-                      {tab.icon}
-                    </span>
-                    <span className="max-w-full truncate">{tab.label}</span>
-                  </button>
-                </li>
-              );
-            }
-
-            return (
-              <li key={tab.href} className="flex-1">
-                <Link
-                  href={tab.href!}
-                  prefetch
-                  className={`relative flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-semibold transition ${
-                    active ? "text-brand-800" : "text-stone-500"
-                  }`}
+                      <span
+                        className={`flex h-9 w-9 items-center justify-center rounded-2xl transition ${
+                          active ? "bg-brand-100 text-brand-800" : "text-stone-500"
+                        }`}
+                      >
+                        {tab.icon}
+                      </span>
+                      <span className="max-w-full truncate">{tab.label}</span>
+                      {tab.badge ? (
+                        <span className="absolute right-1 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                          {tab.badge > 9 ? "9+" : tab.badge}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+              <li className="shrink-0 px-1">
+                <button
+                  type="button"
+                  className={`kb-nav-all-btn ${moreOpen || moreActive ? "ring-2 ring-brand-300" : ""}`}
+                  aria-expanded={moreOpen}
+                  aria-label="All menus"
+                  onClick={() => setMoreOpen((o) => !o)}
                 >
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-xl transition ${
-                      active ? "bg-brand-100 text-brand-800" : "text-stone-500"
-                    }`}
-                  >
-                    {tab.icon}
-                  </span>
-                  <span className="max-w-full truncate">{tab.label}</span>
-                  {tab.badge ? (
-                    <span className="absolute right-[calc(50%-1.25rem)] top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                      {tab.badge > 9 ? "9+" : tab.badge}
-                    </span>
-                  ) : null}
-                </Link>
+                  <IconMenu />
+                </button>
               </li>
-            );
-          })}
-        </ul>
-      </nav>
+            </ul>
+          </nav>
+
+          <button
+            type="button"
+            className="kb-nav-ai-btn"
+            aria-label="Effiroad AI"
+            onClick={() => {
+              setMoreOpen(false);
+              openEffiroadAssistant();
+            }}
+          >
+            <IconStarAi />
+          </button>
+        </div>
+      </div>
     </>
   );
 }

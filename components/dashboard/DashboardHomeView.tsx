@@ -238,7 +238,7 @@ export function DashboardHomeView() {
           <p className="mt-1 text-sm text-stone-600 sm:text-base">{v.header.subtitle}</p>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-brand-200/80 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+        <div className="kb-3d-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
           <DashboardPeriodToolbar
             value={dateRange}
             onChange={handleRangeChange}

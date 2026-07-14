@@ -954,17 +954,27 @@
   }
 
   .vow-dash-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition;
-    background: var(--vow-gradient);
-    box-shadow: 0 4px 24px rgb(154 127 94 / 0.32);
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98];
+    background: linear-gradient(180deg, #a68968 0%, #9a7f5e 45%, #8a7050 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.25) inset,
+      0 3px 0 #6d5842,
+      0 6px 20px rgb(154 127 94 / 0.35);
   }
 
   .vow-dash-btn-primary:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.05);
   }
 
   .vow-dash-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-brand-200/80 bg-white px-4 py-2.5 text-sm font-semibold text-brand-900 transition hover:border-brand-300 hover:bg-brand-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/90 bg-white px-4 py-2.5 text-sm font-semibold text-brand-900 transition active:scale-[0.98];
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.04),
+      0 4px 12px rgb(61 50 40 / 0.08);
+  }
+
+  .vow-dash-btn-secondary:hover {
+    @apply border-brand-200 bg-brand-50/50;
   }
 
   .vow-dash-input {
@@ -1176,8 +1186,148 @@
     color: var(--vow-ink);
   }
 
-  .vow-dash-settings .vow-dash-link {
+  .vow-dash-settings   .vow-dash-link {
     @apply text-base font-medium text-brand-800 hover:text-brand-900;
+  }
+
+  /* ── KakaoBank-inspired mobile UI ───────────────────────────────── */
+  .kb-3d-card {
+    @apply rounded-2xl border border-white/80 bg-white;
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.04),
+      0 4px 12px rgb(61 50 40 / 0.08),
+      0 12px 28px rgb(61 50 40 / 0.06);
+  }
+
+  .kb-3d-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/90 bg-white font-semibold text-brand-900 transition active:scale-[0.98];
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.9) inset,
+      0 2px 4px rgb(61 50 40 / 0.06),
+      0 6px 16px rgb(61 50 40 / 0.1);
+  }
+
+  .kb-3d-btn:hover {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.95) inset,
+      0 4px 8px rgb(61 50 40 / 0.08),
+      0 10px 24px rgb(61 50 40 / 0.12);
+  }
+
+  .kb-3d-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold text-white transition active:scale-[0.98];
+    background: linear-gradient(180deg, #a68968 0%, #9a7f5e 45%, #8a7050 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.25) inset,
+      0 3px 0 #6d5842,
+      0 6px 20px rgb(154 127 94 / 0.35);
+  }
+
+  .kb-3d-btn-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .kb-3d-btn-primary:active {
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.15) inset,
+      0 1px 0 #6d5842,
+      0 3px 12px rgb(154 127 94 / 0.3);
+    transform: translateY(1px);
+  }
+
+  .kb-floating-nav {
+    @apply rounded-[1.75rem] border border-white/90 bg-white/95 backdrop-blur-xl;
+    box-shadow:
+      0 2px 8px rgb(61 50 40 / 0.06),
+      0 8px 28px rgb(61 50 40 / 0.12);
+  }
+
+  .kb-nav-ai-btn {
+    @apply flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-full border border-white/90 bg-white text-brand-800 transition active:scale-95;
+    box-shadow:
+      0 2px 8px rgb(61 50 40 / 0.08),
+      0 8px 24px rgb(61 50 40 / 0.14);
+  }
+
+  .kb-nav-all-btn {
+    @apply flex h-11 w-11 items-center justify-center rounded-full bg-brand-950 text-white transition active:scale-95;
+    box-shadow: 0 4px 14px rgb(61 50 40 / 0.28);
+  }
+
+  .kb-prompt-pill {
+    @apply flex w-full min-h-[52px] items-center gap-3 rounded-2xl border border-white/90 bg-white px-4 py-3.5 text-left text-[15px] font-medium leading-snug text-stone-800 transition active:scale-[0.99];
+    box-shadow:
+      0 1px 2px rgb(61 50 40 / 0.04),
+      0 4px 14px rgb(61 50 40 / 0.08);
+  }
+
+  .kb-prompt-pill:hover {
+    @apply border-brand-200/80 bg-brand-50/40;
+  }
+
+  .kb-ai-gem {
+    @apply flex h-16 w-16 items-center justify-center rounded-2xl text-2xl text-white;
+    background: linear-gradient(135deg, #6eb5ff 0%, #9a7f5e 42%, #f0c674 100%);
+    box-shadow: 0 8px 24px rgb(154 127 94 / 0.35);
+  }
+
+  .kb-ai-screen {
+    @apply fixed inset-0 z-[250] flex flex-col bg-[#f2f0ec];
+  }
+
+  .kb-ai-input-wrap {
+    @apply shrink-0 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2;
+  }
+
+  .kb-ai-input-bar {
+    @apply flex items-center gap-2 rounded-[1.75rem] border border-white/90 bg-white px-4 py-2;
+    box-shadow:
+      0 2px 6px rgb(61 50 40 / 0.05),
+      0 8px 24px rgb(61 50 40 / 0.1);
+  }
+
+  .kb-ai-input {
+    @apply min-h-[44px] flex-1 border-0 bg-transparent text-base text-brand-950 outline-none placeholder:text-stone-400;
+  }
+
+  .kb-ai-send-btn {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-950 text-white transition disabled:opacity-40;
+    box-shadow: 0 4px 12px rgb(61 50 40 / 0.25);
+  }
+
+  .kb-speech-bubble {
+    @apply relative rounded-2xl border border-white/90 bg-white px-4 py-3 text-sm font-medium leading-snug text-stone-700;
+    box-shadow:
+      0 2px 8px rgb(61 50 40 / 0.08),
+      0 12px 32px rgb(61 50 40 / 0.14);
+  }
+
+  .kb-speech-bubble-tail {
+    @apply absolute -bottom-2 h-4 w-4 rotate-45 border-b border-r border-white/90 bg-white;
+    box-shadow: 2px 2px 4px rgb(61 50 40 / 0.06);
+  }
+
+  .kb-more-sheet {
+    @apply rounded-t-[1.75rem] border border-brand-100/80 bg-[#f8f6f2];
+    box-shadow: 0 -12px 40px rgb(61 50 40 / 0.14);
+  }
+
+  .kb-more-grid-item {
+    @apply flex flex-col items-center gap-2 rounded-2xl bg-white px-3 py-4 text-center transition active:scale-[0.98];
+    box-shadow: 0 2px 10px rgb(61 50 40 / 0.06);
+  }
+
+  .kb-period-pill {
+    @apply min-h-[40px] shrink-0 snap-start rounded-xl px-3.5 py-2 text-xs font-semibold transition;
+    box-shadow: 0 1px 3px rgb(61 50 40 / 0.06);
+  }
+
+  .kb-period-pill-active {
+    @apply kb-3d-btn-primary !rounded-xl border-0 text-white;
+  }
+
+  .kb-period-pill-inactive {
+    @apply kb-3d-btn !rounded-xl border-stone-100 bg-white text-stone-600;
   }
 }
 

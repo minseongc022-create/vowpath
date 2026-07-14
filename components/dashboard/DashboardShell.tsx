@@ -29,6 +29,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
+import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -326,11 +327,23 @@ export function DashboardShell({
 
       <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
 
-        <header className="border-b border-brand-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm lg:hidden">
-          <p className="truncate text-sm font-semibold text-brand-900">{shopName}</p>
+        <header className="border-b border-brand-200/60 bg-[#f8f6f2]/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-bold text-brand-950">{shopName}</p>
+              <p className="truncate text-xs text-stone-500">Effiroad</p>
+            </div>
+            <button
+              type="button"
+              className="kb-3d-btn-primary shrink-0 rounded-full px-4 py-2 text-xs"
+              onClick={() => openEffiroadAssistant()}
+            >
+              AI
+            </button>
+          </div>
         </header>
 
-        <main className="vow-dash-main-scroll flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
           {children}
         </main>
 
