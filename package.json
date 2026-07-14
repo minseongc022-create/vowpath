@@ -20,6 +20,8 @@
     "demo:tts": "node scripts/generate-demo-tts.mjs",
     "demo:mux-voice": "node scripts/mux-demo-voice-audio.mjs",
     "og:image": "node scripts/generate-og-image.mjs",
+    "seo:ping": "node scripts/seo-post-deploy.mjs",
+    "vercel:domains": "node scripts/vercel-link-domains.mjs",
     "twilio:status": "node scripts/twilio-account-status.mjs",
     "twilio:verify": "node scripts/verify-caller-id.mjs",
     "twilio:verified": "node scripts/list-verified-caller-ids.mjs",

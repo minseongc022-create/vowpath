@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
 import {
-  canonicalMarketingUrl,
-  isMarketingHostAlias,
+  buildCanonicalRedirectUrl,
   normalizeHostname,
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
@@ -26,8 +25,8 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const hostname = normalizeHostname(host);
 
-  if (!isPortalHost(hostname) && isMarketingHostAlias(hostname)) {
-    const target = canonicalMarketingUrl(pathname, request.nextUrl.search);
+  const target = buildCanonicalRedirectUrl(hostname, pathname, request.nextUrl.search);
+  if (target) {
     return NextResponse.redirect(target, 308);
   }
 

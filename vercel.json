@@ -18,6 +18,24 @@
       "has": [{ "type": "host", "value": "www.vowroad.com" }],
       "destination": "https://effiroad.com/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "link.vowroad.com" }],
+      "destination": "https://link.effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "book.vowroad.com" }],
+      "destination": "https://link.effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "go.vowroad.com" }],
+      "destination": "https://go.effiroad.com/:path*",
+      "permanent": true
     }
   ],
   "crons": [
