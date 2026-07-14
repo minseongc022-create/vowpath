@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ROUTES.signup,
     ROUTES.login,
     "/pricing",
+    "/hvac",
     ROUTES.privacy,
     ROUTES.terms,
   ];

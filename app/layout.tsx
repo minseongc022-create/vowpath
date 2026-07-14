@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd } from "@/lib/site-metadata";
+import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd, siteOrganizationJsonLd } from "@/lib/site-metadata";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { EffiroadAssistantRoot } from "@/components/assistant/EffiroadAssistantRoot";
 import { resolveServerUiLocale } from "@/lib/locale";
@@ -50,6 +50,10 @@ export default async function RootLayout({
         />
       </head>
       <body className="w-full min-w-0 overflow-x-hidden font-sans antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteOrganizationJsonLd()) }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}

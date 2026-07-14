@@ -1,5 +1,25 @@
 {
   "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.effiroad.com" }],
+      "destination": "https://effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "vowroad.com" }],
+      "destination": "https://effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.vowroad.com" }],
+      "destination": "https://effiroad.com/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/customer-verification",

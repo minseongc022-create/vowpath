@@ -3,16 +3,18 @@ import { SITE } from "@/lib/constants";
 import { TRIAL_DAYS } from "@/lib/billing-cohort";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
-/** Cache-bust favicons after asset updates */
-export const SITE_ICON_VERSION = "23";
+/** Cache-bust favicons and OG image after asset updates */
+export const SITE_ICON_VERSION = "24";
+
+export const OG_IMAGE_PATH = "/og-image.png";
 
 export const SITE_SEO = {
   title: "AI Dispatch & Answering for Restoration & HVAC Companies | EFFIROAD",
   description:
-    "EFFIROAD answers every call 24/7, captures insurance-ready or no-heat/no-cool intake, and dispatches your on-call crew automatically — built for independent water, fire & mold restoration and HVAC companies. Live in 10 minutes, no CRM required.",
+    "Never lose a 2 AM water loss to voicemail. Effiroad answers 24/7, captures intake, and texts your crew — built for restoration & HVAC shops. 14-day free trial.",
   ogTitle: "EFFIROAD | Never Lose an Emergency Job at 2 AM Again",
   ogDescription:
-    "AI-powered emergency intake and crew dispatch built for independent restoration and HVAC companies.",
+    "AI emergency intake and crew dispatch for independent restoration and HVAC companies. Live in ~10 minutes.",
   keywords: [
     "restoration AI phone",
     "water damage call answering",
@@ -33,9 +35,9 @@ export const SITE_SEO = {
 export const SITE_SEO_KO = {
   title: "EFFIROAD | 복구(Restoration)·HVAC 업체 AI 긴급 접수·디스패치",
   description:
-    "EFFIROAD는 침수·화재·곰팡이 복구 업체와 HVAC(냉난방) 업체가 모든 긴급 전화에 응답하고, intake·crew dispatch·분석을 자동화하도록 돕는 B2B SaaS입니다.",
+    "2AM 긴급 전화를 voicemail에 놓치지 마세요. Effiroad가 24/7 응답·접수·crew SMS dispatch. 복구·HVAC 소형 업체용. 14일 무료 체험.",
   ogTitle: "EFFIROAD | 끝없는 성공으로 가는 길",
-  ogDescription: "긴급 전화를 놓치지 않도록 돕는 AI 기반 복구·HVAC 업체 플랫폼.",
+  ogDescription: "복구·HVAC 업체를 위한 AI 긴급 전화 접수 및 crew dispatch.",
 } as const;
 
 function iconUrl(path: string) {
@@ -56,7 +58,7 @@ export function getSiteIcons(): Metadata["icons"] {
 
 export function buildSiteMetadata(locale: "en" | "ko" = "en"): Metadata {
   const seo = locale === "ko" ? SITE_SEO_KO : SITE_SEO;
-  const ogImage = `${SITE.url}${iconUrl("/apple-touch-icon.png")}`;
+  const ogImage = `${SITE.url}${iconUrl(OG_IMAGE_PATH)}`;
 
   return {
     metadataBase: new URL(SITE.url),
@@ -78,15 +80,15 @@ export function buildSiteMetadata(locale: "en" | "ko" = "en"): Metadata {
       images: [
         {
           url: ogImage,
-          width: 180,
-          height: 180,
-          alt: `${SITE.name} — The Road to Limitless Success`,
+          width: 1200,
+          height: 630,
+          alt: `${SITE.name} — AI emergency intake and dispatch for restoration & HVAC`,
           type: "image/png",
         },
       ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: seo.ogTitle,
       description: seo.ogDescription,
       images: [ogImage],
@@ -115,6 +117,7 @@ export function buildVerticalPageMetadata(
     keywords?: string[];
   },
 ): Metadata {
+  const ogImage = `${SITE.url}${iconUrl(OG_IMAGE_PATH)}`;
   return {
     metadataBase: new URL(SITE.url),
     title: overrides.title,
@@ -128,6 +131,15 @@ export function buildVerticalPageMetadata(
       url: `${SITE.url}/${vertical}`,
       siteName: SITE.name,
       locale: "en_US",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${SITE.name} — ${overrides.title}`,
+          type: "image/png",
+        },
+      ],
     },
     robots: {
       index: true,
@@ -138,6 +150,19 @@ export function buildVerticalPageMetadata(
       canonical: `${SITE.url}/${vertical}`,
     },
     applicationName: SITE.name,
+  };
+}
+
+export function siteOrganizationJsonLd() {
+  const logoUrl = `${SITE.url}/logo-schema.png`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE.name,
+    url: SITE.url,
+    logo: logoUrl,
+    email: SITE.contactEmail,
+    description: SITE_SEO.description,
   };
 }
 

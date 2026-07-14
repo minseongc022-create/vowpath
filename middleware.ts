@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
+import {
+  canonicalMarketingUrl,
+  isMarketingHostAlias,
+  normalizeHostname,
+} from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
@@ -19,6 +24,13 @@ const portalPublicPrefixes = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
+  const hostname = normalizeHostname(host);
+
+  if (!isPortalHost(hostname) && isMarketingHostAlias(hostname)) {
+    const target = canonicalMarketingUrl(pathname, request.nextUrl.search);
+    return NextResponse.redirect(target, 308);
+  }
+
   const portalHost = isPortalHost(host);
 
   if (portalHost && pathname === "/") {

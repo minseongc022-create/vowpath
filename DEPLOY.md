@@ -38,6 +38,24 @@ Required:
 - **Do not** add `* * * * *` to `vercel.json` on Hobby — deploys fail. Run `npm run check:cron` before push.
 - Full schedule: **[CRON.md](./CRON.md)** and `config/cron.schedule.json`.
 
+## 2c. SEO & domains (Google brand search)
+
+After deploy, in **Vercel → Project → Settings → Domains**:
+
+1. **`www.effiroad.com`** → Redirect to `effiroad.com` (code also 308s via `vercel.json` + middleware)
+2. **`vowroad.com`** (+ `www.vowroad.com` if owned) → Add to this project → Redirect to `effiroad.com`  
+   Until the domain is attached, Google may still show old `vowroad.com` results (404).
+
+Or with API token: `VERCEL_TOKEN=... VERCEL_PROJECT_ID=... npm run vercel:domains`
+
+**Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)):
+
+- Request indexing for `https://effiroad.com`
+- Remove or redirect old `vowroad.com` / `http://effiroad.com` URLs
+
+After deploy: `npm run seo:ping` · Regenerate OG image: `npm run og:image`
+
+
 Leave **unset** in production:
 
 - `ALLOW_TWILIO_OWNER_ALERT` — dev only
