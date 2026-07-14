@@ -203,14 +203,14 @@ export function DashboardMobileNav({
           <button
             type="button"
             data-tour-step="sidebar-ai"
-            className="kb-nav-ai-btn !relative !h-[3.25rem] !w-[3.25rem] !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
+            className="kb-nav-ai-btn !relative !h-auto !w-auto !rounded-full !border-0 !bg-transparent !p-0 !shadow-none"
             aria-label="Effiroad AI"
             onClick={() => {
               setMoreOpen(false);
               openEffiroadAssistant();
             }}
           >
-            <EffiroadAiMark size={52} />
+            <EffiroadAiMark size={52} variant="orb" />
             {pathname.startsWith(ROUTES.ai) ? (
               <span className="absolute -bottom-0.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-500" />
             ) : null}

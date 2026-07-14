@@ -373,12 +373,11 @@ export function EffiroadAssistantWidget() {
 
           <button
             type="button"
-            className="relative flex h-14 w-14 items-center justify-center rounded-full transition active:scale-95 sm:h-[3.25rem] sm:w-[3.25rem]"
-            style={{ boxShadow: "0 4px 16px rgb(61 50 40 / 0.28), 0 8px 28px rgb(61 50 40 / 0.18)" }}
+            className="relative rounded-full transition hover:scale-[1.03] active:scale-95"
             aria-label={unread ? copy.newReply : copy.open}
             onClick={openChat}
           >
-            <EffiroadAiMark size={56} />
+            <EffiroadAiMark size={56} variant="orb" />
             {unreadDot}
           </button>
         </div>
