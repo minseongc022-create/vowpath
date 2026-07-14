@@ -13,6 +13,10 @@ type CheckoutStatus = {
   mode: string;
 };
 
+function checkoutReady(status: CheckoutStatus | null): boolean {
+  return Boolean(status?.checkoutEnabled && status.mode === "ready");
+}
+
 type Props = {
   plan?: PlanId;
   children: React.ReactNode;
@@ -48,7 +52,7 @@ export function StartCheckoutButton({
     );
   }
 
-  if (status && !status.checkoutEnabled) {
+  if (!checkoutReady(status)) {
     return (
       <Link href={ROUTES.signup} className={className}>
         {children}

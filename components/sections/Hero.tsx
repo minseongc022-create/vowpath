@@ -1,3 +1,4 @@
+import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
@@ -17,8 +18,11 @@ export function Hero() {
         aria-hidden
       />
 
-      <Container className="relative py-10 sm:py-14 lg:py-20">
-        <div className="mx-auto max-w-4xl text-center">
+      <Container className="relative w-full py-8 sm:py-14 lg:py-20">
+        <div className="mb-5 flex justify-center md:hidden">
+          <VerticalSwitcher />
+        </div>
+        <div className="mx-auto w-full max-w-4xl text-center">
           <p className="mb-4 inline-flex rounded-full border border-brand-300/50 bg-brand-100 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-brand-800">
             {h.badge}
           </p>
@@ -48,8 +52,8 @@ export function Hero() {
           ) : null}
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-          <CheckoutButton size="lg" directCheckout className="w-full sm:w-auto" />
+        <div className="mx-auto mt-10 flex w-full max-w-lg flex-col items-stretch gap-3 px-1 sm:max-w-xl sm:flex-row sm:items-center sm:justify-center sm:gap-4">
+          <CheckoutButton size="lg" directCheckout={false} className="w-full sm:w-auto" />
           <Button
             href={"secondaryCtaHref" in h && h.secondaryCtaHref ? h.secondaryCtaHref : "/#how-it-works"}
             variant="secondary"

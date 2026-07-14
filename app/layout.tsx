@@ -40,7 +40,7 @@ export default async function RootLayout({
         <link rel="icon" href={`/favicon-16.png?v=${iconV}`} type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href={`/apple-touch-icon.png?v=${iconV}`} sizes="180x180" />
         <link rel="manifest" href={`/site.webmanifest?v=${iconV}`} />
-        <meta name="theme-color" content="#faf8f5" />
+        <meta name="google" content="notranslate" />
         <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
         <link
           rel="stylesheet"
@@ -49,7 +49,7 @@ export default async function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
       </head>
-      <body className="font-sans">
+      <body className="w-full min-w-0 overflow-x-hidden font-sans antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}

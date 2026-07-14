@@ -7,6 +7,7 @@ import { getMarketingNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
+import { PublicLocaleToggle } from "@/components/layout/PublicLocaleToggle";
 import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
 
 type HeaderProps = {
@@ -27,27 +28,21 @@ export function Header({ session }: HeaderProps) {
   }, [open]);
 
   return (
-    <header className="vow-site-header">
-      <Container>
-        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:gap-6">
+    <header className="vow-site-header w-full">
+      <Container className="w-full">
+        <div className="flex h-14 w-full min-w-0 items-center gap-2 sm:h-16 sm:gap-3">
           <BrandLogo placement="site-header" href={ROUTES.home} />
 
-          <nav
-            className="hidden min-w-0 flex-1 items-center justify-center gap-6 lg:flex xl:gap-8"
-            aria-label="Primary"
-          >
-            {navLinks.map((link) => (
+          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
+            <PublicLocaleToggle className="hidden sm:inline-flex" />
+            {!session ? (
               <Link
-                key={link.href}
-                href={link.href}
-                className="whitespace-nowrap text-sm font-medium text-stone-700 transition hover:text-brand-900"
+                href={ROUTES.login}
+                className="inline-flex min-h-[44px] items-center rounded-lg px-2 text-sm font-medium text-stone-700 hover:text-brand-900 lg:hidden"
               >
-                {link.label}
+                Log in
               </Link>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0 lg:gap-2">
+            ) : null}
             <div className="hidden lg:block">
               <HeaderAuth session={session} />
             </div>
@@ -70,35 +65,43 @@ export function Header({ session }: HeaderProps) {
         </div>
       </Container>
 
-      <div className="hidden border-t border-brand-200/70 bg-brand-50/80 py-2.5 sm:block sm:py-3.5">
+      <div className="hidden border-t border-brand-200/70 bg-brand-50/80 py-2.5 md:block md:py-3">
         <Container>
-          <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
-            <p className="text-xs font-medium text-stone-700 sm:text-sm">See the site built for your trade</p>
+          <div className="flex flex-col items-center justify-center gap-2 text-center md:flex-row md:gap-3">
+            <p className="text-xs font-medium text-stone-700 md:text-sm">See the site built for your trade</p>
             <VerticalSwitcher />
           </div>
         </Container>
       </div>
 
       {open ? (
-        <div className="fixed inset-0 top-14 z-40 overflow-y-auto border-t border-brand-200 bg-white sm:top-16 lg:hidden">
-          <nav className="flex flex-col px-5 py-4" aria-label="Primary mobile">
-            <div className="mb-3 flex flex-col items-start gap-2 border-b border-brand-100 pb-4 sm:hidden">
-              <p className="text-xs font-medium text-stone-600">Your trade</p>
-              <VerticalSwitcher />
-            </div>
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex min-h-[44px] items-center text-base font-medium text-brand-900"
-                onClick={() => setOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <MobileHeaderAuth session={session} onNavigate={() => setOpen(false)} />
-          </nav>
-        </div>
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 top-14 z-40 bg-brand-950/30 sm:top-16 lg:hidden"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="fixed inset-x-0 top-14 z-50 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t border-brand-200 bg-white shadow-lg sm:top-16 lg:hidden">
+            <nav className="flex flex-col px-4 py-3" aria-label="Primary mobile">
+              <div className="mb-3 flex items-center justify-between gap-3 border-b border-brand-100 pb-3">
+                <PublicLocaleToggle />
+                <VerticalSwitcher />
+              </div>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex min-h-[48px] items-center text-base font-medium text-brand-900"
+                  onClick={() => setOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <MobileHeaderAuth session={session} onNavigate={() => setOpen(false)} />
+            </nav>
+          </div>
+        </>
       ) : null}
     </header>
   );

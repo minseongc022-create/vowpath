@@ -43,7 +43,7 @@ export function EffiroadAssistantWidget() {
   const copy = isEnglish
     ? {
         name: "Effiroad AI",
-        hint: "Questions about Effiroad, settings, or your shop? Tap to ask.",
+        hint: "Curious about features, settings, or your shop? Tap here — I'll walk you through it.",
         placeholder: loggedIn ? "Ask anything about your shop…" : "Ask about features, pricing, setup…",
         ask: "Ask",
         close: "Close",
@@ -53,7 +53,7 @@ export function EffiroadAssistantWidget() {
       }
     : {
         name: "Effiroad AI",
-        hint: "사이트·기능·설정이 궁금하시면 탭해서 물어보세요.",
+        hint: "기능·설정·샵 분석이 궁금하면 여기를 눌러 물어보세요. 자연스럽게 안내해 드릴게요.",
         placeholder: loggedIn ? "샵 설정·기능 뭐든 물어보세요…" : "기능, 가격, 설정 방법을 물어보세요…",
         ask: "질문",
         close: "닫기",
@@ -217,8 +217,8 @@ export function EffiroadAssistantWidget() {
   }
 
   const fabBottom = inDashboard
-    ? "bottom-[calc(4.25rem+env(safe-area-inset-bottom))]"
-    : "bottom-[calc(1rem+env(safe-area-inset-bottom))]";
+    ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
+    : "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]";
 
   const hidden =
     pathname.startsWith("/widget/") ||
@@ -232,7 +232,7 @@ export function EffiroadAssistantWidget() {
     <>
       {open ? (
         <div
-          className="fixed inset-0 z-[90] bg-brand-950/40 backdrop-blur-[2px] sm:bg-brand-950/25"
+          className="fixed inset-0 z-[200] bg-brand-950/40 backdrop-blur-[2px] sm:bg-brand-950/25"
           aria-hidden
           onClick={() => setOpen(false)}
         />
@@ -240,7 +240,7 @@ export function EffiroadAssistantWidget() {
 
       {hintVisible && !open ? (
         <div
-          className={`pointer-events-none fixed ${fabBottom} right-4 z-[85] flex max-w-[min(calc(100vw-5.5rem),16rem)] flex-col items-end sm:max-w-xs`}
+          className={`pointer-events-none fixed ${fabBottom} right-3 z-[190] flex max-w-[min(calc(100vw-4.5rem),18rem)] flex-col items-end sm:right-4 sm:max-w-xs`}
         >
           <div className="pointer-events-auto relative rounded-2xl border border-brand-200 bg-white px-4 py-3 text-sm leading-snug text-stone-700 shadow-lg shadow-brand-900/10">
             <button
@@ -262,7 +262,7 @@ export function EffiroadAssistantWidget() {
 
       {open ? (
         <section
-          className="fixed inset-x-0 bottom-0 z-[95] flex max-h-[min(92dvh,640px)] flex-col overflow-hidden rounded-t-3xl border border-brand-200 bg-white shadow-2xl sm:inset-x-auto sm:bottom-24 sm:right-4 sm:w-[min(calc(100vw-2rem),24rem)] sm:rounded-2xl"
+          className="fixed inset-x-0 bottom-0 z-[210] flex max-h-[min(92dvh,640px)] flex-col overflow-hidden rounded-t-3xl border border-brand-200 bg-white shadow-2xl sm:inset-x-auto sm:bottom-24 sm:right-4 sm:w-[min(calc(100vw-2rem),24rem)] sm:rounded-2xl"
           role="dialog"
           aria-label={copy.name}
         >
@@ -370,14 +370,14 @@ export function EffiroadAssistantWidget() {
       {!open ? (
         <button
           type="button"
-          className={`fixed ${fabBottom} right-4 z-[85] flex min-h-[56px] min-w-[56px] items-center justify-center gap-2 rounded-full bg-gradient-to-br from-brand-700 to-brand-600 px-4 text-white shadow-lg shadow-brand-900/25 transition hover:brightness-110 sm:px-5`}
+          className={`fixed ${fabBottom} right-3 z-[190] flex min-h-[60px] min-w-[60px] animate-pulse items-center justify-center gap-2 rounded-full bg-gradient-to-br from-brand-700 to-brand-500 px-4 text-white shadow-[0_8px_32px_rgb(61_50_40/0.35)] ring-4 ring-brand-300/40 transition hover:scale-105 hover:brightness-110 sm:right-4 sm:min-h-[56px] sm:min-w-[56px] sm:animate-none`}
           aria-label={copy.open}
           onClick={openChat}
         >
-          <span className="text-xl" aria-hidden>
-            ✨
+          <span className="text-2xl" aria-hidden>
+            💬
           </span>
-          <span className="hidden text-sm font-semibold sm:inline">{copy.name}</span>
+          <span className="hidden max-w-[7rem] truncate text-sm font-bold sm:inline">{copy.name}</span>
         </button>
       ) : null}
     </>
