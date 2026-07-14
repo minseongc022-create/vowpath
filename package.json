@@ -17,6 +17,8 @@
     "twilio:grant-pilot": "node scripts/grant-pilot-trial.mjs",
     "retell:sync": "node scripts/retell-sync.mjs",
     "demo:record": "node scripts/record-effroad-demos.mjs",
+    "demo:tts": "node scripts/generate-demo-tts.mjs",
+    "demo:mux-voice": "node scripts/mux-demo-voice-audio.mjs",
     "twilio:status": "node scripts/twilio-account-status.mjs",
     "twilio:verify": "node scripts/verify-caller-id.mjs",
     "twilio:verified": "node scripts/list-verified-caller-ids.mjs",

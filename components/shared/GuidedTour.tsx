@@ -57,7 +57,10 @@ export function GuidedTour({
       return;
     }
 
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.scrollIntoView({
+      behavior: "smooth",
+      block: typeof window !== "undefined" && window.innerWidth < 640 ? "nearest" : "center",
+    });
 
     const measure = () => {
       const r = el.getBoundingClientRect();

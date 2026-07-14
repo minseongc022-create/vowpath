@@ -1,6 +1,6 @@
 /**
- * Record Effiroad demo videos for the landing page.
- * Usage: npm run demo:record  (starts dev server if needed, records 3 scenes)
+ * Record Effiroad demo videos for the landing page (3 focused demos).
+ * Usage: npm run demo:record
  */
 import { spawn } from "node:child_process";
 import { mkdir, rename, rm } from "node:fs/promises";
@@ -15,14 +15,9 @@ let BASE = process.env.DEMO_RECORD_BASE_URL?.replace(/\/$/, "") || "http://local
 const VIEWPORT = { width: 1280, height: 720 };
 
 const SCENES = [
-  { slug: "overview", out: "demo-overview.webm", waitMs: 14_000 },
-  { slug: "voice", out: "demo-voice.webm", waitMs: 28_000 },
+  { slug: "overview", out: "demo-overview.webm", waitMs: 18_000 },
+  { slug: "voice", out: "demo-voice.webm", waitMs: 38_000 },
   { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 18_000 },
-  { slug: "estimate", out: "demo-estimate.webm", waitMs: 22_000 },
-  { slug: "dispatch", out: "demo-dispatch.webm", waitMs: 18_000 },
-  { slug: "live-call", out: "demo-live-call.webm", waitMs: 24_000 },
-  { slug: "dashboard", out: "demo-dashboard.webm", waitMs: 20_000 },
-  { slug: "onboarding", out: "demo-onboarding.webm", waitMs: 13_000 },
 ];
 
 async function waitForServer(attempts = 40) {
@@ -34,7 +29,9 @@ async function waitForServer(attempts = 40) {
   for (let i = 0; i < attempts; i++) {
     for (const base of bases) {
       try {
-        const res = await fetch(`${base}/demo/record/voice`, { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${base}/demo/record/overview`, {
+          signal: AbortSignal.timeout(2000),
+        });
         if (res.ok) return base.replace(/\/$/, "");
       } catch {
         /* retry */
@@ -91,7 +88,10 @@ async function main() {
   }
 
   console.log("[demo:record] Recording demos at", BASE);
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--autoplay-policy=no-user-gesture-required"],
+  });
 
   for (const scene of SCENES) {
     console.log(`  Scene: ${scene.slug}`);
@@ -106,13 +106,26 @@ async function main() {
   for (const scene of SCENES) {
     const webm = path.join(OUT_DIR, scene.out);
     const mp4 = path.join(OUT_DIR, scene.out.replace(".webm", ".mp4"));
-    execSync(
-      `ffmpeg -y -i "${webm}" -c:v libx264 -pix_fmt yuv420p -movflags +faststart -an "${mp4}"`,
-      { stdio: "ignore" },
-    );
+    const stripAudio = scene.slug !== "voice";
+    try {
+      execSync(
+        `ffmpeg -y -i "${webm}" -c:v libx264 -pix_fmt yuv420p -movflags +faststart ${stripAudio ? "-an" : ""} "${mp4}"`,
+        { stdio: "ignore" },
+      );
+    } catch {
+      console.warn("[demo:record] ffmpeg skip (install ffmpeg for MP4 fallback)");
+    }
   }
 
-  console.log("[demo:record] Done —", SCENES.length * 2, "files in public/videos/");
+  try {
+    console.log("[demo:record] Generating AI voice + muxing into voice demo…");
+    execSync("npm run demo:tts", { cwd: ROOT, stdio: "inherit" });
+    execSync("npm run demo:mux-voice", { cwd: ROOT, stdio: "inherit" });
+  } catch (e) {
+    console.warn("[demo:record] Voice audio mux skipped:", e.message ?? e);
+  }
+
+  console.log("[demo:record] Done —", SCENES.length, "demos in public/videos/");
 }
 
 main().catch((e) => {

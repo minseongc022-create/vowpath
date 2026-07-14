@@ -3,153 +3,76 @@
 import { useState } from "react";
 import { Container } from "@/components/ui/Container";
 
-type TabId =
-  | "overview"
-  | "voice"
-  | "link-intake"
-  | "estimate"
-  | "dispatch"
-  | "live-call"
-  | "dashboard"
-  | "onboarding";
-
-type TabGroup = "start" | "flow" | "product";
-
-const TABS: {
-  id: TabId;
-  label: string;
-  webm: string;
-  mp4: string;
-  group: TabGroup;
-  hint: string;
-}[] = [
+const DEMOS = [
   {
     id: "overview",
-    label: "How it works",
+    label: "What is Effiroad?",
     webm: "/videos/demo-overview.webm",
     mp4: "/videos/demo-overview.mp4",
-    group: "start",
-    hint: "4-step overview · no actor required",
+    hint: "60-second overview — same number, AI intake, dispatch, you approve exceptions",
   },
   {
     id: "voice",
-    label: "Emergency call",
+    label: "AI phone response",
     webm: "/videos/demo-voice.webm",
     mp4: "/videos/demo-voice.mp4",
-    group: "flow",
-    hint: "P1 water/sewage · owner approves by SMS",
+    hint: "AI speaks on the call · customer replies by text · owner SMS dispatch",
   },
   {
     id: "link-intake",
-    label: "Text link",
+    label: "Text link intake",
     webm: "/videos/demo-link-intake.webm",
     mp4: "/videos/demo-link-intake.mp4",
-    group: "flow",
-    hint: "Press 2 → SMS form · ~1 min self-service",
+    hint: "Press 2 → SMS form · ~1 min self-service · no phone tag",
   },
-  {
-    id: "estimate",
-    label: "Free estimate",
-    webm: "/videos/demo-estimate.webm",
-    mp4: "/videos/demo-estimate.mp4",
-    group: "flow",
-    hint: "Non-urgent · conversational intake",
-  },
-  {
-    id: "dispatch",
-    label: "Dispatch",
-    webm: "/videos/demo-dispatch.webm",
-    mp4: "/videos/demo-dispatch.mp4",
-    group: "flow",
-    hint: "Owner SMS → crew out · customer ETA text",
-  },
-  {
-    id: "onboarding",
-    label: "Go live",
-    webm: "/videos/demo-onboarding.webm",
-    mp4: "/videos/demo-onboarding.mp4",
-    group: "start",
-    hint: "Signup · forward calls · test call",
-  },
-  {
-    id: "live-call",
-    label: "Live call UI",
-    webm: "/videos/demo-live-call.webm",
-    mp4: "/videos/demo-live-call.mp4",
-    group: "product",
-    hint: "Production Retell agent on a real call",
-  },
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    webm: "/videos/demo-dashboard.webm",
-    mp4: "/videos/demo-dashboard.mp4",
-    group: "product",
-    hint: "Recordings, transcript, approve & dispatch",
-  },
-];
+] as const;
 
-const GROUP_LABELS: Record<TabGroup, string> = {
-  start: "Start here",
-  flow: "Call flows",
-  product: "Real product UI",
-};
+type DemoId = (typeof DEMOS)[number]["id"];
 
 export function DemoVideoHero() {
-  const [active, setActive] = useState<TabId>("overview");
-  const tab = TABS.find((t) => t.id === active) ?? TABS[0];
+  const [active, setActive] = useState<DemoId>("overview");
+  const tab = DEMOS.find((t) => t.id === active) ?? DEMOS[0];
 
   return (
-    <section id="demo" className="border-y border-brand-200/40 bg-[#0c0b0a] py-12 text-white sm:py-20">
+    <section id="demo" className="border-y border-brand-200/40 bg-[#0c0b0a] py-12 text-white sm:py-16">
       <Container>
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">
-            See it in action
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">See it in action</p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-4xl">
-            Your AI front desk — on every call
+            3 short demos — what we do &amp; how calls work
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/55 sm:text-base">
-            Same phone number. Voice AI or text link. You approve what needs a human call.
+            Overview first, then how Effiroad responds on a real emergency call.
           </p>
         </div>
 
-        {(["start", "flow", "product"] as TabGroup[]).map((group) => (
-          <div key={group} className="mt-6 sm:mt-8">
-            <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-white/35">
-              {GROUP_LABELS[group]}
-            </p>
-            <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 snap-x snap-mandatory sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
-              {TABS.filter((t) => t.group === group).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActive(t.id)}
-                  className={`min-h-[44px] shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-semibold transition sm:shrink ${
-                    active === t.id
-                      ? group === "product"
-                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                        : "bg-[#9a7f5e] text-white shadow-lg shadow-[#9a7f5e]/30"
-                      : "bg-white/10 text-white/70 hover:bg-white/15"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="-mx-2 mt-8 flex gap-2 overflow-x-auto px-2 pb-1 snap-x snap-mandatory sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0">
+          {DEMOS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActive(t.id)}
+              className={`min-h-[48px] shrink-0 snap-center rounded-full px-5 py-2.5 text-sm font-semibold transition sm:shrink ${
+                active === t.id
+                  ? "bg-[#9a7f5e] text-white shadow-lg shadow-[#9a7f5e]/30"
+                  : "bg-white/10 text-white/70 hover:bg-white/15"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50 sm:mt-8">
+        <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl sm:mt-8">
           <video
             key={tab.id}
-            className="aspect-video w-full object-cover"
+            className="aspect-video w-full bg-black object-contain"
             autoPlay
             muted
             loop
             playsInline
             controls
-            preload="metadata"
+            preload="auto"
             aria-label={`Effiroad ${tab.label} demo`}
           >
             <source src={tab.webm} type="video/webm" />
@@ -157,7 +80,14 @@ export function DemoVideoHero() {
           </video>
         </div>
 
-        <p className="mt-4 text-center text-xs text-white/40 sm:mt-6">{tab.hint}</p>
+        <p className="mt-4 text-center text-xs text-white/45 sm:mt-6">
+          {tab.hint}
+          {active === "voice" ? (
+            <span className="mt-1 block text-[#b59b78]">
+              Tap the speaker icon on the player to hear the AI voice — customer replies are text-only.
+            </span>
+          ) : null}
+        </p>
       </Container>
     </section>
   );
