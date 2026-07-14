@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 import type { EffiroadAiAction, EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import type { AiAdminPreview } from "@/lib/ai-admin/types";
@@ -248,9 +249,7 @@ function AssistantMessage({
   return (
     <div className="vow-dash-card max-w-3xl p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
-        <span className="vow-ai-avatar !h-9 !w-9 !text-base" aria-hidden>
-          🙂
-        </span>
+        <EffiroadAiMark size={36} showBadge={false} className="rounded-xl" />
         <span className="text-sm font-semibold text-brand-800">
           Effiroad AI
         </span>
@@ -568,9 +567,7 @@ export function EffiroadAiView() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl flex-col gap-5">
       <header className="vow-dash-card flex gap-4 p-5 sm:p-6">
-        <span className="vow-ai-avatar" aria-hidden>
-          🙂
-        </span>
+        <EffiroadAiMark size={56} showBadge={false} className="rounded-2xl shadow-md" />
         <div className="min-w-0 flex-1">
           <p className="vow-settings-eyebrow">Effiroad AI</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">

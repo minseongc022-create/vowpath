@@ -24,13 +24,10 @@ import {
 
   IconSettings,
 
-  IconEffiroadAi,
-
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
-import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -168,18 +165,6 @@ export function DashboardShell({
 
     {
 
-      href: ROUTES.ai,
-
-      label: v.ai,
-
-      match: (p) => p.startsWith(ROUTES.ai),
-
-      icon: <IconEffiroadAi />,
-
-    },
-
-    {
-
       href: ROUTES.settings,
 
       label: v.settings,
@@ -266,17 +251,21 @@ export function DashboardShell({
 
           </nav>
 
-          <button
-            type="button"
-            onClick={() => openEffiroadAssistant()}
-            className="mt-4 flex w-full items-center gap-3 rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2.5 text-left transition hover:bg-brand-500/20"
-          >
-            <EffiroadAiMark size={36} showBadge className="rounded-xl" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-white">Effiroad AI</span>
-              <span className="block truncate text-xs text-slate-400">Ask anything · settings help</span>
-            </span>
-          </button>
+          <div className="vow-dash-ai-sanctuary mt-8">
+            <Link
+              href={ROUTES.ai}
+              prefetch
+              className={`vow-dash-ai-card ${pathname.startsWith(ROUTES.ai) ? "vow-dash-ai-card-active" : ""}`}
+            >
+              <EffiroadAiMark size={52} showBadge={false} className="rounded-2xl shadow-lg" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-white">Effiroad AI</span>
+                <span className="block truncate text-xs text-brand-200/80">
+                  {v.ai === "Shop AI" ? "Ask anything · settings help" : "무엇이든 물어보세요 · 설정 도움"}
+                </span>
+              </span>
+            </Link>
+          </div>
 
           <div className="vow-dash-card mt-auto !rounded-2xl !border-brand-500/25 !bg-[#3d3228]">
 
@@ -344,15 +333,6 @@ export function DashboardShell({
               <p className="truncate text-lg font-bold text-brand-950">{shopName}</p>
               <p className="truncate text-xs text-stone-500">Effiroad</p>
             </div>
-            <button
-              type="button"
-              className="flex shrink-0 items-center gap-2 rounded-full bg-[#3d3228] py-1.5 pl-1.5 pr-3.5 text-xs font-bold text-white transition active:scale-[0.98]"
-              style={{ boxShadow: "0 4px 12px rgb(61 50 40 / 0.22)" }}
-              onClick={() => openEffiroadAssistant()}
-            >
-              <EffiroadAiMark size={28} showBadge={false} className="rounded-lg" />
-              AI
-            </button>
           </div>
         </header>
 
