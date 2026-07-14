@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
 import { processApptRemindersAll } from "@/lib/tech-dispatch/appointment-reminder";
 
-// Offer escalation now runs every minute via /api/cron/tech-offer-escalation.
-// This daily job keeps a once-a-day escalation pass as a backstop and sends
-// the morning appointment reminders.
+// Tech offer escalation runs on the daily tech-dispatch cron (Hobby: once/day).
+// /api/cron/tech-offer-escalation remains available for Pro plans (sub-minute cron).
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();

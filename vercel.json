@@ -7,11 +7,7 @@
     },
     {
       "path": "/api/cron/daily-briefing",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/tech-offer-escalation",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/tech-dispatch",
