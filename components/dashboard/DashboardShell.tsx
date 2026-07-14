@@ -27,7 +27,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
-import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
+import { SidebarAiLauncher } from "@/components/assistant/SidebarAiLauncher";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
 
@@ -251,21 +251,7 @@ export function DashboardShell({
 
           </nav>
 
-          <div className="vow-dash-ai-sanctuary mt-8">
-            <Link
-              href={ROUTES.ai}
-              prefetch
-              className={`vow-dash-ai-card ${pathname.startsWith(ROUTES.ai) ? "vow-dash-ai-card-active" : ""}`}
-            >
-              <EffiroadAiMark size={52} showBadge={false} className="rounded-2xl shadow-lg" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-white">Effiroad AI</span>
-                <span className="block truncate text-xs text-brand-200/80">
-                  {v.ai === "Shop AI" ? "Ask anything · settings help" : "무엇이든 물어보세요 · 설정 도움"}
-                </span>
-              </span>
-            </Link>
-          </div>
+          <SidebarAiLauncher />
 
           <div className="vow-dash-card mt-auto !rounded-2xl !border-brand-500/25 !bg-[#3d3228]">
 

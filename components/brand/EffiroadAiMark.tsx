@@ -12,7 +12,7 @@ export function EffiroadAiMark({ size = 40, className = "", showBadge = true }: 
       style={{ width: size, height: size }}
     >
       <img
-        src="/effiroad-ai-mark.png?v=2"
+        src="/effiroad-ai-mark.png?v=3"
         alt=""
         className="h-full w-full object-contain"
         draggable={false}

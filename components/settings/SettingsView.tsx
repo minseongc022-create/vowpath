@@ -578,7 +578,7 @@ function SettingsViewBody({
 
       <GuidedTour
         steps={SETTINGS_TOUR_STEPS}
-        storageKey="effiroad_settings_tour_v1_never"
+        storageKey="effiroad_settings_tour_v2"
         doneMap={{
           "go-live-contact": contactItem.done,
           "go-live-schedule": scheduleItem.done,

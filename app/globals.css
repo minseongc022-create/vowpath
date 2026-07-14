@@ -958,7 +958,8 @@
   }
 
   .vow-dash-ai-card {
-    @apply flex w-full items-center gap-3 rounded-xl px-2.5 py-3 text-left transition;
+    @apply flex w-full cursor-pointer items-center gap-3 rounded-xl border-0 px-2.5 py-3 text-left transition;
+    background: transparent;
   }
 
   .vow-dash-ai-card:hover {
@@ -1297,6 +1298,13 @@
     @apply fixed inset-0 z-[250] flex flex-col bg-white;
   }
 
+  @media (min-width: 1024px) {
+    .kb-ai-screen-dash {
+      left: 16rem;
+      width: calc(100% - 16rem);
+    }
+  }
+
   .kb-ai-header {
     @apply flex shrink-0 items-center gap-2 border-b border-stone-100 px-3 py-2.5 sm:px-4;
   }
@@ -1419,6 +1427,17 @@
   .kb-speech-bubble-tail {
     @apply absolute -bottom-2 h-4 w-4 rotate-45 border-b border-r border-white/90 bg-white;
     box-shadow: 2px 2px 4px rgb(61 50 40 / 0.06);
+  }
+
+  .kb-speech-bubble-sidebar {
+    @apply border-brand-200/80 bg-[#faf7f2];
+    box-shadow:
+      0 2px 8px rgb(61 50 40 / 0.1),
+      0 8px 24px rgb(0 0 0 / 0.18);
+  }
+
+  .kb-speech-bubble-tail-down {
+    @apply -bottom-2 top-auto rotate-[225deg];
   }
 
   .kb-speech-bubble-from-ai {

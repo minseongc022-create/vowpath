@@ -70,7 +70,21 @@ export function CollectedRevenuePanel({ dateRange, loading, compact = false }: C
   }
 
   if (connected === false && compact) {
-    return null;
+    return (
+      <section className="kb-3d-card overflow-hidden">
+        <div className="border-b border-brand-100/80 px-3 py-2.5">
+          <h2 className="text-sm font-bold text-brand-950">Revenue</h2>
+        </div>
+        <div className="px-3 py-4">
+          <p className="text-xs leading-relaxed text-stone-600">
+            Connect Jobber to show collected invoice totals.
+          </p>
+          <Link href={ROUTES.settings} className="vow-dash-link mt-2 inline-block text-xs font-semibold">
+            Connect in Settings →
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   const m = metrics;
