@@ -1,4 +1,4 @@
-import { DEFAULT_SHOP_TIMEZONE } from "./us-timezone.ts";
+import { DEFAULT_SHOP_TIMEZONE } from "./us-timezone";
 
 function hourMinuteInTimezone(timeZone = DEFAULT_SHOP_TIMEZONE, date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
