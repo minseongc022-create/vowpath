@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 
 export type TourStep = {
   id: string;
@@ -9,6 +10,8 @@ export type TourStep = {
   description: string;
   /** CSS selector for the element to spotlight, e.g. "#shop-name" or '[data-tour-step="kpi-cards"]' */
   target: string;
+  /** Short context above the title — e.g. "Step 1 of 4 · Required" */
+  eyebrow?: string;
 };
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -23,18 +26,21 @@ export function GuidedTour({
   steps,
   storageKey,
   doneMap,
+  tourLabel,
 }: {
   steps: TourStep[];
   storageKey: string;
   /** Maps a TourStep.id to whether the user has completed that step's action. When the
    *  current step's entry flips to true, the tour auto-advances after a short delay. */
   doneMap?: Record<string, boolean>;
+  tourLabel?: string;
 }) {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const stepBaselineDoneRef = useRef<boolean | undefined>(undefined);
+  const en = useIsEnglishUi();
 
   useEffect(() => setMounted(true), []);
 
@@ -133,6 +139,16 @@ export function GuidedTour({
   const current = steps[step];
   if (!current) return null;
   const isLast = step === steps.length - 1;
+  const ui = {
+    tour: tourLabel ?? (en ? "Quick tour" : "둘러보기"),
+    step: (n: number, total: number) =>
+      en ? `Step ${n} of ${total}` : `${total}단계 중 ${n}단계`,
+    never: en ? "Don't show again" : "다시 보지 않기",
+    back: en ? "← Back" : "← 이전",
+    next: en ? "Next →" : "다음 →",
+    done: en ? "Done ✓" : "완료 ✓",
+    goTo: (n: number) => (en ? `Go to step ${n}` : `${n}단계로 이동`),
+  };
 
   // A brand-new account has many empty sections (0 requests, no revenue, etc.)
   // that render as a near-zero-height strip. Spotlighting that looks broken, so
@@ -193,7 +209,7 @@ export function GuidedTour({
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === step ? "w-8 bg-amber-400" : i < step ? "w-2 bg-amber-200" : "w-2 bg-white/30"
               }`}
-              aria-label={`Go to step ${i + 1}`}
+              aria-label={ui.goTo(i + 1)}
             />
           ))}
         </div>
@@ -202,8 +218,11 @@ export function GuidedTour({
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                Quick tour &nbsp;{step + 1} / {steps.length}
+                {ui.tour} · {ui.step(step + 1, steps.length)}
               </p>
+              {current.eyebrow ? (
+                <p className="mt-1 text-sm font-semibold text-amber-200/90">{current.eyebrow}</p>
+              ) : null}
               <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
               <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
                 {current.description}
@@ -234,7 +253,7 @@ export function GuidedTour({
               onClick={handleNever}
               className="text-sm font-medium text-white/70 transition hover:text-white"
             >
-              Don't show again
+              {ui.never}
             </button>
             <div className="flex items-center gap-2">
               {step > 0 && (
@@ -243,7 +262,7 @@ export function GuidedTour({
                   onClick={handlePrev}
                   className="rounded-lg border border-white/25 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
-                  ← Back
+                  {ui.back}
                 </button>
               )}
               <button
@@ -251,7 +270,7 @@ export function GuidedTour({
                 onClick={handleNext}
                 className="rounded-lg bg-amber-400 px-5 py-2 text-sm font-bold text-brand-950 shadow-sm transition hover:bg-amber-300"
               >
-                {isLast ? "Done ✓" : "Next →"}
+                {isLast ? ui.done : ui.next}
               </button>
             </div>
           </div>

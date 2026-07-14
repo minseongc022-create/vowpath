@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { VISIBLE_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
@@ -23,8 +23,8 @@ import {
 import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { GuidedTour } from "@/components/shared/GuidedTour";
-import { SETTINGS_TOUR_STEPS } from "@/lib/guided-tour-steps";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
+import { useIsEnglishUi, useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -93,6 +93,8 @@ function SettingsViewBody({
   section?: string;
 }) {
   const settingsPage = useSettingsPage();
+  const isEnglish = useIsEnglishUi();
+  const settingsTourSteps = useMemo(() => getSettingsTourSteps(isEnglish), [isEnglish]);
   const router = useRouter();
   const saveAll = useSettingsSaveAll();
   const [saveBarSaving, setSaveBarSaving] = useState(false);
@@ -309,12 +311,14 @@ function SettingsViewBody({
           className="rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
         />
 
-        <GoLiveProgressCard
-          requiredDone={requiredDone}
-          requiredTotal={requiredTotal}
-          progressPct={progressPct}
-          live={live}
-        />
+        <div id="go-live-progress" className="scroll-mt-24">
+          <GoLiveProgressCard
+            requiredDone={requiredDone}
+            requiredTotal={requiredTotal}
+            progressPct={progressPct}
+            live={live}
+          />
+        </div>
 
         <SettingsIntegrationsHub
           phoneDone={phoneItem.done}
@@ -557,12 +561,14 @@ function SettingsViewBody({
         </div>
       </section>
 
-      <SettingsSaveBar
-        saving={saveBarSaving}
-        saved={saveBarSaved}
-        error={saveBarError}
-        onSave={() => void handleSaveAll()}
-      />
+      <div data-tour-step="settings-save" className="scroll-mt-24">
+        <SettingsSaveBar
+          saving={saveBarSaving}
+          saved={saveBarSaved}
+          error={saveBarError}
+          onSave={() => void handleSaveAll()}
+        />
+      </div>
 
       <button
         type="button"
@@ -577,8 +583,9 @@ function SettingsViewBody({
       </p>
 
       <GuidedTour
-        steps={SETTINGS_TOUR_STEPS}
-        storageKey="effiroad_settings_tour_v2"
+        steps={settingsTourSteps}
+        storageKey="effiroad_settings_tour_v3"
+        tourLabel={isEnglish ? "Setup guide" : "설정 가이드"}
         doneMap={{
           "go-live-contact": contactItem.done,
           "go-live-schedule": scheduleItem.done,
