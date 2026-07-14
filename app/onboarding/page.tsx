@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/constants";
 
 /** Legacy /onboarding links redirect to integration settings */
 export default async function OnboardingPage({
@@ -14,5 +15,5 @@ export default async function OnboardingPage({
   if (params.focus === "schedule") qs.set("section", "schedule");
 
   const query = qs.toString();
-  redirect(`/settings${query ? `?${query}` : ""}`);
+  redirect(`${ROUTES.settings}${query ? `?${query}` : ""}`);
 }

@@ -5,6 +5,7 @@ import { deletePendingSignup } from "@/lib/signup-verify-store";
 import { createUser } from "@/lib/users-db";
 import { initializeNewTenantShopSettings } from "@/lib/shop-settings-db";
 import { apiErrorsEn } from "@/lib/api-errors-en";
+import { ROUTES } from "@/lib/constants";
 
 /** Legacy: check + complete in one step */
 export async function POST(request: Request) {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
     const res = NextResponse.json({
       ok: true,
-      redirect: "/settings",
+      redirect: ROUTES.settings,
     });
     res.cookies.set(sessionCookieOptions(token));
     return res;

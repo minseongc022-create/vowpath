@@ -60,6 +60,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (session) {
+    if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+      const dest = new URL("/dashboard/settings", request.url);
+      dest.search = request.nextUrl.search;
+      return NextResponse.redirect(dest, 308);
+    }
     if (pathname === "/" || pathname === "/login") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }

@@ -173,7 +173,7 @@ export function SignupForm() {
         return;
       }
 
-      router.push(data.redirect ?? "/settings");
+      router.push(data.redirect ?? ROUTES.settings);
       router.refresh();
     } catch {
       setError(form.errorNetwork);

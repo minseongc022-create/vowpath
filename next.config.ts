@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/settings",
+        destination: "/dashboard/settings",
+        permanent: true,
+      },
+      {
         source: "/how-it-works",
         destination: "/#how-it-works",
         permanent: false,

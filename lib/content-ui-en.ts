@@ -179,7 +179,7 @@ export const vowDashboardEn = {
     calendar: "Calendar",
     missedCalls: "Missed calls",
     agreements: "PM plans",
-    settings: "Go live",
+    settings: "Settings",
     shopTools: "Shop tools",
   },
   calendar: {
