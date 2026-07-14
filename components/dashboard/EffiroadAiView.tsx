@@ -249,7 +249,7 @@ function AssistantMessage({
   return (
     <div className="vow-dash-card max-w-3xl p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
-        <EffiroadAiMark size={36} showBadge={false} className="rounded-xl" />
+        <EffiroadAiMark size={36} />
         <span className="text-sm font-semibold text-brand-800">
           Effiroad AI
         </span>
@@ -567,7 +567,7 @@ export function EffiroadAiView() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl flex-col gap-5">
       <header className="vow-dash-card flex gap-4 p-5 sm:p-6">
-        <EffiroadAiMark size={56} showBadge={false} className="rounded-2xl shadow-md" />
+        <EffiroadAiMark size={56} className="drop-shadow-md" />
         <div className="min-w-0 flex-1">
           <p className="vow-settings-eyebrow">Effiroad AI</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">

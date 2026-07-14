@@ -210,7 +210,7 @@ export function DashboardMobileNav({
               openEffiroadAssistant();
             }}
           >
-            <EffiroadAiMark size={52} className="rounded-full" showBadge={false} />
+            <EffiroadAiMark size={52} />
             {pathname.startsWith(ROUTES.ai) ? (
               <span className="absolute -bottom-0.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-500" />
             ) : null}

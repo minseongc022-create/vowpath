@@ -75,7 +75,7 @@ export function SidebarAiLauncher() {
         aria-label={unread ? copy.newReply : copy.open}
         onClick={handleOpen}
       >
-        <EffiroadAiMark size={52} showBadge={false} className="rounded-2xl shadow-lg" />
+        <EffiroadAiMark size={52} className="drop-shadow-lg" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-white">Effiroad AI</span>
           <span className="block truncate text-xs text-brand-200/80">

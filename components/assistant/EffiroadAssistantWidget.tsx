@@ -378,7 +378,7 @@ export function EffiroadAssistantWidget() {
             aria-label={unread ? copy.newReply : copy.open}
             onClick={openChat}
           >
-            <EffiroadAiMark size={56} className="rounded-full" showBadge />
+            <EffiroadAiMark size={56} />
             {unreadDot}
           </button>
         </div>
@@ -400,7 +400,7 @@ export function EffiroadAssistantWidget() {
               ×
             </button>
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
-              <EffiroadAiMark size={24} showBadge={false} className="rounded-lg" />
+              <EffiroadAiMark size={24} />
               <span className="truncate text-sm font-semibold text-stone-800">{copy.name}</span>
             </div>
             {loggedIn ? (
