@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TenantEvent } from "@/lib/tenant-events";
 import { dashboardUi } from "@/lib/content";
+import { ROUTES } from "@/lib/constants";
 
 const SEEN_KEY = "effiroad:seen-sms-failures";
 const ALERT_MAX_AGE_MS = 30 * 60 * 1000;
@@ -69,7 +70,7 @@ export function SmsFailureAlert({ tenantEvents }: SmsFailureAlertProps) {
       <p className="mt-1 text-xs leading-relaxed text-slate-300">{active.body}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Link
-          href={active.href ?? "/settings?section=contact"}
+          href={active.href ?? `${ROUTES.settings}?section=contact`}
           className="rounded-md bg-red-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600"
         >
           {copy.fixSettings}

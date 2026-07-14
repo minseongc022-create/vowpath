@@ -32,7 +32,9 @@ export function clientFetchTimeoutMessage(fallback = "Request timed out.") {
 export function redirectToLoginIfUnauthorized(res: Response): boolean {
   if (typeof window === "undefined" || res.status !== 401) return false;
   const next = `${window.location.pathname}${window.location.search}`;
-  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+  window.location.assign(
+    `/login?next=${encodeURIComponent(next)}&reauth=1`,
+  );
   return true;
 }
 
