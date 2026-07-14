@@ -91,7 +91,7 @@
   }
 
   .hvac-input {
-    @apply w-full rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+    @apply min-h-[44px] w-full rounded-xl border border-surface-border bg-white px-3 py-2.5 text-base outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 sm:text-sm;
     color: var(--hvac-navy);
   }
 
@@ -256,7 +256,7 @@
   }
 
   .notification-bell-btn {
-    @apply relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-200 hover:bg-brand-50/30 hover:shadow-md;
+    @apply relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-200 hover:bg-brand-50/30 hover:shadow-md;
   }
 
   .notification-bell-badge {
@@ -571,7 +571,7 @@
   }
 
   .vow-site-compare-row {
-    @apply flex items-center justify-between gap-4 border-b border-brand-100 px-5 py-3.5 last:border-b-0;
+    @apply flex flex-col items-start gap-1 border-b border-brand-100 px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5;
   }
 
   .vow-site-compare-row-highlight {
@@ -579,12 +579,12 @@
   }
 
   .vow-site-pricing-card {
-    @apply relative flex h-full flex-col rounded-2xl border border-brand-200/70 bg-white p-8;
+    @apply relative flex h-full flex-col rounded-2xl border border-brand-200/70 bg-white p-6 sm:p-8;
     box-shadow: 0 4px 24px rgb(61 50 40 / 0.05);
   }
 
   .vow-site-pricing-card-featured {
-    @apply border-brand-400/50 ring-1 ring-brand-300/40;
+    @apply border-brand-400/50 pt-7 ring-1 ring-brand-300/40 sm:pt-8;
     box-shadow:
       0 0 0 1px rgb(201 173 138 / 0.15),
       0 20px 50px -20px rgb(154 127 94 / 0.2);
@@ -615,7 +615,7 @@
 
   .vow-site {
     background-color: var(--vow-beige-light);
-    @apply text-brand-900;
+    @apply overflow-x-hidden text-brand-900;
   }
 
   .vow-site-card {

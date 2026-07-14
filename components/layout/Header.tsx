@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ROUTES } from "@/lib/constants";
 import { getMarketingNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -17,10 +17,19 @@ export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const navLinks = getMarketingNavLinks();
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <header className="vow-site-header">
       <Container>
-        <div className="flex h-14 min-h-14 items-center gap-4 sm:h-16 lg:gap-6">
+        <div className="flex h-14 min-h-14 items-center gap-3 sm:h-16 lg:gap-6">
           <BrandLogo placement="site-header" href={ROUTES.home} />
 
           <nav
@@ -38,13 +47,15 @@ export function Header({ session }: HeaderProps) {
             ))}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
-            <HeaderAuth session={session} />
+          <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0 lg:gap-2">
+            <div className="hidden lg:block">
+              <HeaderAuth session={session} />
+            </div>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-lg p-2 text-brand-800 hover:bg-brand-100 lg:hidden"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-brand-800 hover:bg-brand-100 lg:hidden"
               aria-expanded={open}
-              aria-label="Open menu"
+              aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen(!open)}
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,23 +70,23 @@ export function Header({ session }: HeaderProps) {
         </div>
       </Container>
 
-      <div className="border-t border-brand-200/70 bg-brand-50/80 py-3.5">
+      <div className="border-t border-brand-200/70 bg-brand-50/80 py-2.5 sm:py-3.5">
         <Container>
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
-            <p className="text-sm font-medium text-stone-700">See the site built for your trade</p>
+            <p className="text-xs font-medium text-stone-700 sm:text-sm">See the site built for your trade</p>
             <VerticalSwitcher />
           </div>
         </Container>
       </div>
 
       {open ? (
-        <div className="border-t border-brand-200 bg-white px-5 py-4 lg:hidden">
-          <nav className="flex flex-col gap-3" aria-label="Primary mobile">
+        <div className="fixed inset-0 top-[calc(3.5rem+3.25rem)] z-40 overflow-y-auto border-t border-brand-200 bg-white lg:hidden sm:top-[calc(4rem+3.25rem)]">
+          <nav className="flex flex-col px-5 py-4" aria-label="Primary mobile">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-brand-900"
+                className="flex min-h-[44px] items-center text-base font-medium text-brand-900"
                 onClick={() => setOpen(false)}
               >
                 {link.label}

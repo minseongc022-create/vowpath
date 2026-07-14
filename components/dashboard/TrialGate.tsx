@@ -78,8 +78,8 @@ function TrialEndedCard() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-brand-950/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-surface-border bg-white p-8 shadow-card">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-brand-950/70 p-4 sm:items-center">
+      <div className="my-auto w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl border border-surface-border bg-white p-5 shadow-card sm:p-8">
         <h2 className="text-xl font-bold text-slate-900">
           {en ? "Your free trial has ended" : "무료 체험이 끝났어요"}
         </h2>
@@ -99,7 +99,7 @@ function TrialEndedCard() {
               ? "What's working, what's not — one line is plenty."
               : "어떤 점이 좋았고 아쉬웠는지 한 줄만 적어주세요."
           }
-          className="mt-4 w-full rounded-lg border border-surface-border px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="mt-4 w-full min-h-[44px] rounded-lg border border-surface-border px-3 py-2.5 text-base text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:text-sm"
         />
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
 

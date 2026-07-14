@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd } from "@/lib/site-metadata";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
@@ -15,6 +15,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(locale === "ko" ? "ko" : "en");
 }
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#faf8f5",
+};
 
 export default async function RootLayout({
   children,

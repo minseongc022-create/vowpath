@@ -16,7 +16,7 @@ export default async function HomePage() {
   const session = await getSession();
 
   return (
-    <div className="vow-site flex min-h-screen flex-col">
+    <div className="vow-site flex min-h-screen flex-col overflow-x-hidden">
       <Header session={session} />
       <main className="flex-1">
         <Hero />

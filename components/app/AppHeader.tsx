@@ -17,6 +17,9 @@ const badgeStyles = {
   warning: "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
 };
 
+const navLink =
+  "inline-flex min-h-[44px] items-center text-sm font-medium text-stone-700 transition hover:text-brand-900";
+
 export async function AppHeader({
   badge,
   badgeTone = "default",
@@ -26,57 +29,48 @@ export async function AppHeader({
 
   return (
     <header className="vow-site-header">
-      <Container className="flex h-16 items-center justify-between">
-        <BrandLogo placement="auth-header" href={ROUTES.dashboard} />
-        <div className="flex items-center gap-4">
+      <Container className="flex min-h-14 items-center justify-between gap-3 py-2 sm:h-16 sm:py-0">
+        <BrandLogo placement="auth-header" href={ROUTES.home} />
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {session ? (
             <>
-              <span className="hidden max-w-[160px] truncate text-sm text-slate-300 sm:inline">
+              <span className="hidden max-w-[160px] truncate text-sm text-stone-600 sm:inline">
                 {session.shopName}
               </span>
               <Link
                 href={ROUTES.dashboard}
-                className={`hidden text-sm sm:inline ${
-                  activeNav === "dashboard"
-                    ? "font-semibold text-white"
-                    : "text-slate-300 hover:text-brand-200"
+                className={`hidden sm:inline-flex ${navLink} ${
+                  activeNav === "dashboard" ? "font-semibold text-brand-900" : ""
                 }`}
               >
                 Dashboard
               </Link>
               <Link
                 href={ROUTES.missedCallsAnalytics}
-                className={`hidden text-sm sm:inline ${
-                  activeNav === "analytics"
-                    ? "font-semibold text-white"
-                    : "text-slate-300 hover:text-brand-200"
+                className={`hidden md:inline-flex ${navLink} ${
+                  activeNav === "analytics" ? "font-semibold text-brand-900" : ""
                 }`}
               >
-                Missed call analytics
+                Missed calls
               </Link>
               <Link
                 href={ROUTES.settings}
-                className={`hidden text-sm sm:inline ${
-                  activeNav === "settings"
-                    ? "font-semibold text-white"
-                    : "text-slate-300 hover:text-brand-200"
+                className={`hidden sm:inline-flex ${navLink} ${
+                  activeNav === "settings" ? "font-semibold text-brand-900" : ""
                 }`}
               >
                 Settings
               </Link>
-              <LogoutButton />
+              <LogoutButton className="min-h-[44px] px-2 text-sm text-stone-600 hover:text-brand-900" />
             </>
           ) : (
             <>
-              <Link
-                href={ROUTES.login}
-                className="text-sm font-medium text-slate-300 hover:text-brand-200"
-              >
+              <Link href={ROUTES.login} className={navLink}>
                 Sign in
               </Link>
               <Link
                 href={ROUTES.signup}
-                className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-400"
+                className="inline-flex min-h-[44px] items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-500"
               >
                 Sign up
               </Link>

@@ -371,7 +371,7 @@ export function UsAddressField({
               <ul
                 id={listId}
                 role="listbox"
-                className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+                className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
               >
                 {predictions.map((p) => (
                   <li key={p.placeId} role="option">

@@ -9,10 +9,10 @@ export function FAQ() {
         <SectionHeading title={siteFaq.title} align="center" />
         <div className="vow-site-panel mx-auto mt-12 max-w-2xl divide-y divide-white/[0.08]">
           {siteFaq.items.map((item) => (
-            <details key={item.q} className="group px-6 py-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-brand-900 [&::-webkit-details-marker]:hidden">
+            <details key={item.q} className="group px-4 py-1 sm:px-6 sm:py-5">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 py-2 text-base font-semibold text-brand-900 [&::-webkit-details-marker]:hidden">
                 {item.q}
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-brand-500/10 text-brand-800 transition group-open:rotate-45 group-open:border-brand-300/40 group-open:bg-brand-500 group-open:text-slate-950">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-brand-500/10 text-brand-800 transition group-open:rotate-45 group-open:border-brand-300/40 group-open:bg-brand-500 group-open:text-slate-950">
                   +
                 </span>
               </summary>

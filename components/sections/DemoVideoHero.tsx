@@ -100,7 +100,7 @@ export function DemoVideoHero() {
   const tab = TABS.find((t) => t.id === active) ?? TABS[0];
 
   return (
-    <section id="demo" className="border-y border-brand-200/40 bg-[#0c0b0a] py-16 text-white sm:py-20">
+    <section id="demo" className="border-y border-brand-200/40 bg-[#0c0b0a] py-12 text-white sm:py-20">
       <Container>
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">
@@ -115,17 +115,17 @@ export function DemoVideoHero() {
         </div>
 
         {(["start", "flow", "product"] as TabGroup[]).map((group) => (
-          <div key={group} className="mt-8">
+          <div key={group} className="mt-6 sm:mt-8">
             <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-white/35">
               {GROUP_LABELS[group]}
             </p>
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
+            <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 snap-x snap-mandatory sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
               {TABS.filter((t) => t.group === group).map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setActive(t.id)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`min-h-[44px] shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-semibold transition sm:shrink ${
                     active === t.id
                       ? group === "product"
                         ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
@@ -140,7 +140,7 @@ export function DemoVideoHero() {
           </div>
         ))}
 
-        <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
+        <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50 sm:mt-8">
           <video
             key={tab.id}
             className="aspect-video w-full object-cover"
@@ -148,7 +148,8 @@ export function DemoVideoHero() {
             muted
             loop
             playsInline
-            preload="auto"
+            controls
+            preload="metadata"
             aria-label={`Effiroad ${tab.label} demo`}
           >
             <source src={tab.webm} type="video/webm" />
@@ -156,7 +157,7 @@ export function DemoVideoHero() {
           </video>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/40">{tab.hint}</p>
+        <p className="mt-4 text-center text-xs text-white/40 sm:mt-6">{tab.hint}</p>
       </Container>
     </section>
   );

@@ -173,8 +173,8 @@ export function AuthForm({
   const usePhoneLogin = mode === "login" && enablePhoneLogin && loginCopy;
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-8 text-slate-900">
+    <div className="mx-auto w-full max-w-md px-1 sm:px-0">
+      <div className="hvac-card-elevated border-t-4 border-t-brand-500 p-5 text-slate-900 sm:p-8">
         <h1 className="text-2xl font-bold text-brand-950">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
 
@@ -186,7 +186,7 @@ export function AuthForm({
                   {loginCopy.methodLegend}
                 </legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
+                  <label className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
                     <input
                       type="radio"
                       name="loginMethod"
@@ -197,7 +197,7 @@ export function AuthForm({
                     />
                     {loginCopy.methodEmail}
                   </label>
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
+                  <label className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-surface-border px-3 py-2.5 text-sm font-medium text-slate-700 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-900">
                     <input
                       type="radio"
                       name="loginMethod"
@@ -230,7 +230,7 @@ export function AuthForm({
                   onChange={(e) =>
                     loginMethod === "phone" ? setPhone(e.target.value) : setEmail(e.target.value)
                   }
-                  className="hvac-input mt-1.5"
+                  className="hvac-input mt-1.5 min-h-[44px]"
                 />
               </div>
 
@@ -248,7 +248,7 @@ export function AuthForm({
                     type="password"
                     required
                     autoComplete={passwordField.autoComplete}
-                    className="hvac-input mt-1.5"
+                    className="hvac-input mt-1.5 min-h-[44px]"
                   />
                 </div>
               ) : null}
@@ -272,7 +272,7 @@ export function AuthForm({
                   defaultValue={
                     mode === "login" && field.name === "email" ? defaultEmail : undefined
                   }
-                  className="hvac-input mt-1.5"
+                  className="hvac-input mt-1.5 min-h-[44px]"
                 />
                 {field.hint ? (
                   <p className="mt-1 text-xs text-slate-500">{field.hint}</p>
@@ -295,7 +295,7 @@ export function AuthForm({
                 type="password"
                 required
                 autoComplete="new-password"
-                className="hvac-input mt-1.5"
+                className="hvac-input mt-1.5 min-h-[44px]"
               />
             </div>
           )}
