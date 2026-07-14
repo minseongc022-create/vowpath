@@ -12,8 +12,10 @@ import {
 } from "@/lib/call-intake/link-intake-store";
 import {
   LinkIntakeSessionLookupError,
+  isLinkIntakeTenantActive,
   loadLinkIntakeSession,
 } from "@/lib/link-intake-page";
+import { LinkIntakeInactivePage } from "@/components/intake/LinkIntakeInactivePage";
 
 export const dynamic = "force-dynamic";
 import { getShopVertical } from "@/lib/vertical-context";
@@ -81,6 +83,10 @@ export default async function LinkIntakePage({
         </div>
       </main>
     );
+  }
+
+  if (!(await isLinkIntakeTenantActive(session.userId))) {
+    return <LinkIntakeInactivePage />;
   }
 
   const [shopName, vertical] = await Promise.all([

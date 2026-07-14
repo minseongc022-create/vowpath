@@ -4,8 +4,13 @@ import {
   type LinkIntakeSession,
 } from "@/lib/call-intake/link-intake-store";
 import { normalizeLinkIntakeToken } from "@/lib/link-intake-token";
+import { isTenantProductEntitled } from "@/lib/tenant-product-access";
 
 export { LinkIntakeSessionLookupError };
+
+export async function isLinkIntakeTenantActive(userId: string): Promise<boolean> {
+  return isTenantProductEntitled(userId);
+}
 
 export async function loadLinkIntakeSession(
   rawToken: string,

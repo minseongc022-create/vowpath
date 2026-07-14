@@ -33,6 +33,8 @@ export type BriefingInput = {
   jobberBookings: JobberBookingRecord[];
   requestStatuses: Record<string, RequestStatus>;
   now?: Date;
+  /** Which day KPI cards reflect. Dashboard uses today; morning SMS uses yesterday. */
+  metricsFocus?: "today" | "yesterday";
 };
 
 function startOfLocalDay(date: Date): Date {
@@ -106,6 +108,7 @@ function statusFor(booking: RecentBooking, statuses: Record<string, RequestStatu
 
 export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const now = input.now ?? new Date();
+  const metricsFocus = input.metricsFocus ?? "today";
   const today = todayRange(now);
   const yesterday = yesterdayRange(now);
   const bookings = buildAllRecentBookings(
@@ -114,6 +117,9 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     input.calls,
     input.requestStatuses,
   );
+
+  const metricsRange = metricsFocus === "yesterday" ? yesterday : today;
+  const dayLabel = metricsFocus === "yesterday" ? "Yesterday's" : "Today's";
 
   const todayCalls = input.calls.filter((call) => isWithin(call.createdAt, today.start, today.end));
   const todayBookings = bookings.filter((booking) =>
@@ -126,20 +132,27 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     isWithin(booking.createdAt, yesterday.start, yesterday.end),
   );
 
+  const metricsCalls = input.calls.filter((call) =>
+    isWithin(call.createdAt, metricsRange.start, metricsRange.end),
+  );
+  const metricsBookings = bookings.filter((booking) =>
+    isWithin(booking.createdAt, metricsRange.start, metricsRange.end),
+  );
+
   const pendingBookings = bookings.filter((booking) =>
     isPendingShopReview(statusFor(booking, input.requestStatuses)),
   );
-  const approvedBookings = todayBookings.filter((booking) =>
+  const approvedBookings = metricsBookings.filter((booking) =>
     isApprovedBooking(statusFor(booking, input.requestStatuses)),
   );
-  const declinedBookings = todayBookings.filter(
+  const declinedBookings = metricsBookings.filter(
     (booking) => statusFor(booking, input.requestStatuses) === "rejected",
   );
   const urgentBookings = bookings.filter(isUrgentBooking);
-  const afterHoursCalls = todayCalls.filter(isAfterHours);
-  const urgentToday = [
-    ...todayBookings.filter(isUrgentBooking),
-    ...todayCalls.filter(isUrgentCall).map((call) => ({
+  const afterHoursCalls = metricsCalls.filter(isAfterHours);
+  const urgentInMetrics = [
+    ...metricsBookings.filter(isUrgentBooking),
+    ...metricsCalls.filter(isUrgentCall).map((call) => ({
       id: `call-${call.id}`,
       customerName: call.customerName || call.from || "Unknown customer",
       issueType: call.issueType || call.symptom || "Urgent request",
@@ -176,14 +189,14 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
         : `Your busiest time was between ${yPeak}.`,
     ],
     metrics: [
-      { label: "Today's Calls", value: String(todayCalls.length) },
+      { label: `${dayLabel} Calls`, value: String(metricsCalls.length) },
       { label: "Pending Requests", value: String(pendingBookings.length) },
       { label: "Approved Requests", value: String(approvedBookings.length) },
       { label: "Declined Requests", value: String(declinedBookings.length) },
-      { label: "Most Requested Service", value: mostCommonService(todayBookings) },
-      { label: "Peak Call Time", value: formatHourRange(peakCallHour(todayCalls)) },
+      { label: "Most Requested Service", value: mostCommonService(metricsBookings) },
+      { label: "Peak Call Time", value: formatHourRange(peakCallHour(metricsCalls)) },
       { label: "After Hours Calls", value: String(afterHoursCalls.length) },
-      { label: "Urgent Requests", value: String(urgentToday.length) },
+      { label: "Urgent Requests", value: String(urgentInMetrics.length) },
     ],
     urgentBookings: urgentBookings.slice(0, 8),
     pendingBookings: pendingBookings.slice(0, 8),

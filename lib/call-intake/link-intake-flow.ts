@@ -167,6 +167,14 @@ export async function submitLinkIntakeForm(params: {
     return { ok: false, error: "This link has expired or was already used." };
   }
 
+  const { isTenantProductEntitled } = await import("../tenant-product-access");
+  if (!(await isTenantProductEntitled(session!.userId))) {
+    return {
+      ok: false,
+      error: "This service line is not active. Please contact the business directly.",
+    };
+  }
+
   const draft = buildLinkIntakeDraftFromForm(params);
   const selectedSlot = await resolveLinkIntakeSlot(
     session!.userId,

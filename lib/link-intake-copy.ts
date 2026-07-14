@@ -145,6 +145,9 @@ export const linkIntakePageCopy = {
   unavailableTitle: "One moment…",
   unavailableBody:
     "We couldn't load your link right now. Wait a few seconds and tap the text message link again. Still stuck? Call the company and we'll help.",
+  serviceInactiveTitle: "This link is temporarily unavailable",
+  serviceInactiveBody:
+    "Please call the business directly — their answering service isn't active right now.",
   correctionViewTitle: "Review your request",
   correctionViewHint: "Make sure everything looks good — tap Edit if anything needs a change.",
   correctionEditTitle: "Edit your request",
@@ -291,6 +294,9 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   unavailableTitle: "Un momento…",
   unavailableBody:
     "No pudimos cargar su enlace ahora. Espere unos segundos y vuelva a tocar el enlace del mensaje. ¿Sigue sin funcionar? Llame a la empresa.",
+  serviceInactiveTitle: "Este enlace no está disponible temporalmente",
+  serviceInactiveBody:
+    "Llame directamente a la empresa — su servicio de contestación no está activo en este momento.",
   correctionViewTitle: "Revise su solicitud",
   correctionViewHint: "Verifique que todo esté bien — toque Editar si algo debe cambiar.",
   correctionEditTitle: "Edite su solicitud",

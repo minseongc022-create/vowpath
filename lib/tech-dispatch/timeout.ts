@@ -1,3 +1,5 @@
+import { listCallLogs } from "../call-logs";
+import { listJobs } from "../jobs-db";
 import { listUsers } from "../users-db";
 import { getTechDispatchSettings, getTechAssignment, saveTechAssignment } from "./store";
 import { startTechAssignmentForBooking } from "./assign";
@@ -7,36 +9,58 @@ function offerTimedOut(offeredAt: string, timeoutMinutes: number): boolean {
   return Date.now() - new Date(offeredAt).getTime() >= ms;
 }
 
+/** All booking IDs that may have crew dispatch assignments (calls + native/Jobber jobs). */
+export async function listDispatchBookingIds(userId: string): Promise<string[]> {
+  const [calls, jobs] = await Promise.all([listCallLogs(userId), listJobs(userId)]);
+  const ids = new Set<string>();
+  for (const call of calls) ids.add(`call-${call.id}`);
+  for (const job of jobs) {
+    ids.add(job.id);
+    const jobberId = (job as { jobberJobId?: string }).jobberJobId;
+    if (jobberId) ids.add(`jobber-${jobberId}`);
+  }
+  return [...ids];
+}
+
+async function expireAndEscalateOffer(
+  userId: string,
+  bookingId: string,
+  timeoutMinutes: number,
+): Promise<boolean> {
+  const assignment = await getTechAssignment(userId, bookingId);
+  if (!assignment || assignment.status !== "offering" || !assignment.currentTechId) {
+    return false;
+  }
+
+  const pending = assignment.offers.find(
+    (o) => o.techId === assignment.currentTechId && o.outcome === "pending",
+  );
+  if (!pending || !offerTimedOut(pending.offeredAt, timeoutMinutes)) return false;
+
+  pending.outcome = "expired";
+  assignment.currentTechId = null;
+  assignment.updatedAt = new Date().toISOString();
+  await saveTechAssignment(assignment);
+
+  const { clearTechPendingOffer } = await import("./store");
+  await clearTechPendingOffer(userId, pending.techId);
+
+  await startTechAssignmentForBooking(userId, bookingId);
+  return true;
+}
+
 /** Expire stale tech offers and offer to the next crew member. */
 export async function processExpiredTechOffersForUser(userId: string): Promise<number> {
   const settings = await getTechDispatchSettings(userId);
   if (!settings.enabled || !settings.techs.length) return 0;
 
-  const { listCallLogs } = await import("../call-logs");
-  const calls = await listCallLogs(userId);
+  const bookingIds = await listDispatchBookingIds(userId);
   let escalated = 0;
 
-  for (const call of calls) {
-    const bookingId = `call-${call.id}`;
-    const assignment = await getTechAssignment(userId, bookingId);
-    if (!assignment || assignment.status !== "offering" || !assignment.currentTechId) continue;
-
-    const pending = assignment.offers.find(
-      (o) => o.techId === assignment.currentTechId && o.outcome === "pending",
-    );
-    if (!pending) continue;
-    if (!offerTimedOut(pending.offeredAt, settings.responseTimeoutMinutes)) continue;
-
-    pending.outcome = "expired";
-    assignment.currentTechId = null;
-    assignment.updatedAt = new Date().toISOString();
-    await saveTechAssignment(assignment);
-
-    const { clearTechPendingOffer } = await import("./store");
-    await clearTechPendingOffer(userId, pending.techId);
-
-    await startTechAssignmentForBooking(userId, bookingId);
-    escalated += 1;
+  for (const bookingId of bookingIds) {
+    if (await expireAndEscalateOffer(userId, bookingId, settings.responseTimeoutMinutes)) {
+      escalated += 1;
+    }
   }
 
   return escalated;

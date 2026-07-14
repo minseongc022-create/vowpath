@@ -12,14 +12,19 @@ import { kvGetSafe } from "./kv-safe";
 import { useKvStore } from "./kv-config";
 import { sendSms } from "./send-sms";
 import { listUsers } from "./users-db";
+import {
+  calendarDateInTimezone,
+  isBriefingSmsSendWindow,
+} from "./briefing-sms-window";
+import { DEFAULT_SHOP_TIMEZONE } from "./us-timezone";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE = path.join(DATA_DIR, "daily-briefing-sends.json");
 
 type SendStore = Record<string, string>;
 
-function todayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
+function todayKey(date = new Date(), timeZone = DEFAULT_SHOP_TIMEZONE) {
+  return calendarDateInTimezone(timeZone, date);
 }
 
 function sentKey(userId: string, date = todayKey()) {
@@ -71,8 +76,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function metric(metrics: ReturnType<typeof buildDailyBriefing>["metrics"], label: string) {
-  return metrics.find((item) => item.label === label)?.value ?? "No data";
+function metric(metrics: ReturnType<typeof buildDailyBriefing>["metrics"], suffix: string) {
+  return metrics.find((item) => item.label.endsWith(suffix))?.value ?? "No data";
 }
 
 function briefingSmsBody(shopName: string, briefing: ReturnType<typeof buildDailyBriefing>) {
@@ -80,9 +85,10 @@ function briefingSmsBody(shopName: string, briefing: ReturnType<typeof buildDail
     Number(metric(briefing.metrics, "Approved Requests")) +
     Number(metric(briefing.metrics, "Pending Requests")) +
     Number(metric(briefing.metrics, "Declined Requests"));
+  const callsLabel = briefing.metrics.find((m) => m.label.endsWith(" Calls"))?.label ?? "Calls";
   return [
-    `${shopName} Yesterday's Briefing`,
-    `Calls: ${metric(briefing.metrics, "Today's Calls")}`,
+    `${shopName} — Morning briefing`,
+    `${callsLabel}: ${metric(briefing.metrics, " Calls")}`,
     `Requests: ${Number.isFinite(requests) ? requests : "No data"}`,
     `Approved: ${metric(briefing.metrics, "Approved Requests")}`,
     `Pending: ${metric(briefing.metrics, "Pending Requests")}`,
@@ -114,6 +120,10 @@ export async function processDailyBriefingSmsCron() {
         skipped += 1;
         continue;
       }
+      if (!isBriefingSmsSendWindow(memory.dailyBriefingSmsTime)) {
+        skipped += 1;
+        continue;
+      }
       if (await wasSent(user.id)) {
         skipped += 1;
         continue;
@@ -135,6 +145,7 @@ export async function processDailyBriefingSmsCron() {
         jobberBookings,
         requestStatuses,
         now: start,
+        metricsFocus: "yesterday",
       });
       const result = await sendSms(
         user.phone,

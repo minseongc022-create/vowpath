@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         from: callbackPhone,
         to,
         shopName,
-        menuPriority: null,
+        menuPriority: "P3",
       });
       const sms = await sendLinkIntakeSms({ userId, phone: callbackPhone, token: session.token });
       if (!sms.ok) {

@@ -48,7 +48,11 @@ export function ForwardingTestPanel({ provider, onVerified }: Props) {
       });
       const data = (await res.json()) as VerifyState & { error?: string };
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed");
+        const msg =
+          res.status === 403 && data.error?.toLowerCase().includes("subscription")
+            ? "Your trial has ended or subscription is inactive. Subscribe to test forwarding again."
+            : (data.error ?? "Failed");
+        throw new Error(msg);
       }
       setState(data);
       setListening(true);
@@ -65,8 +69,8 @@ export function ForwardingTestPanel({ provider, onVerified }: Props) {
           })
           .catch(() => undefined);
       }, 3000);
-    } catch {
-      setError(settingsPage.forwardingVerifyError);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : settingsPage.forwardingVerifyError);
     }
   }
 

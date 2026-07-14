@@ -12,8 +12,10 @@ import {
 } from "@/lib/call-intake/link-intake-store";
 import {
   LinkIntakeSessionLookupError,
+  isLinkIntakeTenantActive,
   loadLinkIntakeSession,
 } from "@/lib/link-intake-page";
+import { LinkIntakeInactivePage } from "@/components/intake/LinkIntakeInactivePage";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +84,10 @@ export default async function ShortBookingPortalPage({
         </div>
       </main>
     );
+  }
+
+  if (!(await isLinkIntakeTenantActive(session.userId))) {
+    return <LinkIntakeInactivePage />;
   }
 
   const shopName = await shopDisplayNameForUser(session.userId);

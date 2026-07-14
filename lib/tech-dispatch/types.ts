@@ -22,7 +22,7 @@ export type TechDispatchSettings = {
 };
 
 export const DEFAULT_TECH_DISPATCH_SETTINGS: TechDispatchSettings = {
-  enabled: true,
+  enabled: false,
   responseTimeoutMinutes: 10,
   assignOnApprove: true,
   p1SeniorOnly: true,

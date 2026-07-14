@@ -18,6 +18,7 @@ import { TrustROI } from "@/components/sections/TrustROI";
 import { About } from "@/components/sections/About";
 import { getSession } from "@/lib/session";
 import { ROUTES } from "@/lib/constants";
+import { TRIAL_DAYS } from "@/lib/billing-cohort";
 import {
   problemHvac,
   productStackHvac,
@@ -205,7 +206,7 @@ export default async function HvacPage() {
               Ready to stop missing no-heat calls?
             </h2>
             <p className="mt-3 text-brand-100">
-              30-day free trial. Setup takes 10 minutes.
+              {TRIAL_DAYS}-day free trial. Setup takes 10 minutes.
             </p>
             <Link
               href={`${ROUTES.signup}?vertical=hvac`}

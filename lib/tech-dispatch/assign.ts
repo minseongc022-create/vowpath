@@ -121,7 +121,9 @@ export async function startTechAssignmentForBooking(
   bookingId: string,
 ): Promise<TechAssignment | null> {
   const settings = await getTechDispatchSettings(userId);
-  if (!settings.enabled || !settings.assignOnApprove) return null;
+  if (!settings.enabled || !settings.assignOnApprove || !settings.techs.length) {
+    return null;
+  }
 
   const ctx = await loadJobContext(userId, bookingId);
   if (!ctx) return null;

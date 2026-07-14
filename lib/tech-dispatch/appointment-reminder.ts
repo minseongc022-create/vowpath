@@ -6,6 +6,8 @@
  */
 
 import { kv } from "@vercel/kv";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import path from "path";
 import { useKvStore } from "../kv-config";
 import { kvGetSafe } from "../kv-safe";
 import { listCallLogs } from "../call-logs";
@@ -40,18 +42,45 @@ function reminderKey(userId: string, bookingId: string) {
   return `effiroad:appt-reminder:${userId}:${bookingId}`;
 }
 
+const DATA_DIR = path.join(process.cwd(), "data");
+const REMINDER_FILE = path.join(DATA_DIR, "appt-reminder-state.json");
+
+type ReminderFileStore = Record<string, ApptReminderState>;
+
+function fileStoreKey(userId: string, bookingId: string) {
+  return `${userId}:${bookingId}`;
+}
+
+async function readReminderFileStore(): Promise<ReminderFileStore> {
+  try {
+    await mkdir(DATA_DIR, { recursive: true });
+    return JSON.parse(await readFile(REMINDER_FILE, "utf-8")) as ReminderFileStore;
+  } catch {
+    return {};
+  }
+}
+
+async function writeReminderFileStore(store: ReminderFileStore) {
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(REMINDER_FILE, JSON.stringify(store, null, 2), "utf-8");
+}
+
 async function getReminderState(userId: string, bookingId: string): Promise<ApptReminderState | null> {
   if (useKvStore()) {
     return kvGetSafe<ApptReminderState>(reminderKey(userId, bookingId));
   }
-  return null;
+  const all = await readReminderFileStore();
+  return all[fileStoreKey(userId, bookingId)] ?? null;
 }
 
 async function saveReminderState(userId: string, bookingId: string, state: ApptReminderState) {
   if (useKvStore()) {
-    // TTL 48 hours — reminder state is short-lived
     await kv.set(reminderKey(userId, bookingId), state, { ex: 60 * 60 * 48 });
+    return;
   }
+  const all = await readReminderFileStore();
+  all[fileStoreKey(userId, bookingId)] = state;
+  await writeReminderFileStore(all);
 }
 
 /**
