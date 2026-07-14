@@ -1,0 +1,51 @@
+name: SEO deploy automation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Wait for Vercel production
+        run: sleep 45
+
+      - name: IndexNow (Bing / partner engines)
+        run: node scripts/indexnow-submit.mjs
+
+      - name: Link legacy domains on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Skip Vercel domains — add VERCEL_TOKEN + VERCEL_PROJECT_ID to GitHub repo secrets"
+            exit 0
+          fi
+          node scripts/vercel-link-domains.mjs
+
+      - name: Porkbun vowroad.com → effiroad.com forward
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+        run: |
+          if [ -z "$PORKBUN_API_KEY" ] || [ -z "$PORKBUN_SECRET_KEY" ]; then
+            echo "Skip Porkbun — add PORKBUN_API_KEY + PORKBUN_SECRET_KEY to GitHub repo secrets"
+            exit 0
+          fi
+          node scripts/porkbun-vowroad-forward.mjs
+
+      - name: Verify redirects
+        run: node scripts/seo-post-deploy.mjs

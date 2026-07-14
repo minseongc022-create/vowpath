@@ -2,26 +2,20 @@
  * Ping search engines + verify canonical redirects after deploy.
  * Usage: node scripts/seo-post-deploy.mjs [baseUrl]
  */
-const base = (process.argv[2] ?? "https://effiroad.com").replace(/\/$/, "");
-const sitemap = `${base}/sitemap.xml`;
+import { spawnSync } from "child_process";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const REDIRECT_CHECKS = [
-  ["https://www.effiroad.com/", "https://effiroad.com/"],
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const base = (process.argv[2] ?? "https://effiroad.com").replace(/\/$/, "");
+
+const REQUIRED_REDIRECTS = [["https://www.effiroad.com/", "https://effiroad.com/"]];
+
+const OPTIONAL_REDIRECTS = [
   ["https://vowroad.com/", "https://effiroad.com/"],
   ["https://www.vowroad.com/", "https://effiroad.com/"],
   ["https://link.vowroad.com/r/test", "https://link.effiroad.com/r/test"],
 ];
-
-async function ping(url, label) {
-  try {
-    const res = await fetch(url, { redirect: "manual" });
-    console.log(`${label}: HTTP ${res.status}`);
-    return res.ok || res.status === 200;
-  } catch (e) {
-    console.log(`${label}: failed — ${e instanceof Error ? e.message : e}`);
-    return false;
-  }
-}
 
 async function checkRedirect(from, expectedPrefix) {
   try {
@@ -33,7 +27,7 @@ async function checkRedirect(from, expectedPrefix) {
       loc.replace(/\/$/, "").startsWith(expectedPrefix.replace(/\/$/, ""));
     console.log(`${ok ? "✓" : "✗"} ${from} → ${res.status} ${loc || "(no location)"}`);
     if (!ok && res.status === 404) {
-      console.log("    ↳ Domain may not be attached to Vercel project yet (run vercel-link-domains.mjs)");
+      console.log("    ↳ Attach domain in Vercel or run: npm run porkbun:forward");
     }
     return ok;
   } catch (e) {
@@ -45,23 +39,32 @@ async function checkRedirect(from, expectedPrefix) {
 async function main() {
   console.log("\n=== SEO post-deploy ===\n");
 
-  console.log("--- Sitemap ping ---");
-  await ping(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemap)}`, "Google ping");
-  await ping(`https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemap)}`, "Bing ping");
+  console.log("--- IndexNow ---");
+  const indexNow = spawnSync("node", ["scripts/indexnow-submit.mjs", base], {
+    cwd: root,
+    stdio: "inherit",
+  });
 
-  console.log("\n--- Redirect checks ---");
-  let passed = 0;
-  for (const [from, to] of REDIRECT_CHECKS) {
-    if (await checkRedirect(from, to)) passed++;
+  console.log("\n--- Required redirects ---");
+  let required = 0;
+  for (const [from, to] of REQUIRED_REDIRECTS) {
+    if (await checkRedirect(from, to)) required++;
   }
 
-  console.log(`\n${passed}/${REDIRECT_CHECKS.length} redirects OK`);
-  console.log(
-    "\nGoogle Search Console (manual): https://search.google.com/search-console",
-  );
-  console.log(`  → URL inspection → ${base} → Request indexing\n`);
+  console.log("\n--- Legacy vowroad redirects (optional until domains linked) ---");
+  let optional = 0;
+  for (const [from, to] of OPTIONAL_REDIRECTS) {
+    if (await checkRedirect(from, to)) optional++;
+  }
 
-  if (passed < REDIRECT_CHECKS.length) {
+  console.log(
+    `\nRequired: ${required}/${REQUIRED_REDIRECTS.length} · Legacy: ${optional}/${OPTIONAL_REDIRECTS.length}`,
+  );
+  console.log(
+    "\nGoogle Search Console: https://search.google.com/search-console → URL inspection → Request indexing\n",
+  );
+
+  if (required < REQUIRED_REDIRECTS.length || indexNow.status !== 0) {
     process.exit(1);
   }
 }

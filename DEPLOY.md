@@ -48,12 +48,15 @@ After deploy, in **Vercel → Project → Settings → Domains**:
 
 Or with API token: `VERCEL_TOKEN=... VERCEL_PROJECT_ID=... npm run vercel:domains`
 
-**Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)):
+**vowroad.com still 404?** DNS is on Porkbun — either attach domain in Vercel (above) **or** URL-forward via Porkbun API:
 
-- Request indexing for `https://effiroad.com`
-- Remove or redirect old `vowroad.com` / `http://effiroad.com` URLs
+```bash
+PORKBUN_API_KEY=... PORKBUN_SECRET_KEY=... npm run porkbun:forward
+```
 
-After deploy: `npm run seo:ping` · Regenerate OG image: `npm run og:image`
+Add those keys to **GitHub repo secrets** → push to `main` runs `.github/workflows/seo-deploy.yml` automatically.
+
+**Search indexing:** `npm run seo:indexnow` (IndexNow → Bing/Yandex). Google sitemap ping is deprecated — use Search Console once.
 
 
 Leave **unset** in production:
