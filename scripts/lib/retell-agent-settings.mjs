@@ -2,17 +2,20 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "warm-male-v6-english-strict-2026-07-15";
+export const RETELL_PROMPT_VERSION = "deep-male-v7-warm-human-2026-07-15";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Warm American male dispatcher — override in Vercel: RETELL_VOICE_ID=11labs-Adrian */
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
+
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Adrian",
-  "Mark",
   "Steve",
+  "Mark",
+  "George",
   "Dylan",
+  "Eric",
   "Anthony",
+  "Adrian",
 ];
 
 function isUsEnglishVoice(v) {
@@ -25,26 +28,32 @@ function isUsEnglishVoice(v) {
   return true;
 }
 
+function isMale(v) {
+  return (v.gender || "").toLowerCase() === "male";
+}
+
 export function pickNaturalReceptionistVoice(voices, options = {}) {
   const explicit = options.explicitId?.trim();
   if (explicit) return explicit;
 
-  const american = (voices ?? []).filter(isUsEnglishVoice);
+  const americanMales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isMale(v));
 
   for (const preferred of RETELL_PREFERRED_VOICE_NAMES) {
-    const hit = american.find((v) =>
+    const hit = americanMales.find((v) =>
       (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
     );
     if (hit) return hit.voice_id;
   }
 
-  const male = american.find((v) => (v.gender || "").toLowerCase() === "male");
-  if (male) return male.voice_id;
+  if (americanMales[0]?.voice_id) return americanMales[0].voice_id;
 
   const current = options.currentVoiceId;
-  if (current && american.some((v) => v.voice_id === current)) return current;
+  const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
+  if (current && currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
+    return current;
+  }
 
-  return american[0]?.voice_id;
+  return RETELL_FALLBACK_MALE_VOICE_ID;
 }
 
 export function buildRetellProductionAgentPatch(voiceId) {
@@ -71,12 +80,12 @@ export function buildRetellProductionAgentPatch(voiceId) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.95,
-    voice_speed: 1.02,
+    voice_temperature: 0.78,
+    voice_speed: 0.96,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.3,
-    responsiveness: 0.95,
+    volume: 1.28,
+    responsiveness: 0.92,
     enable_dynamic_responsiveness: false,
     interruption_sensitivity: 0.2,
     enable_backchannel: false,

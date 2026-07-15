@@ -183,7 +183,7 @@ export function DemoVideoHero() {
             onVolumeChange={syncMuted}
             onLoadedData={syncMuted}
           >
-            <source src={`${tab.mp4}?v=3`} type="video/mp4" />
+            <source src={`${tab.mp4}?v=4`} type="video/mp4" />
           </video>
 
           <button

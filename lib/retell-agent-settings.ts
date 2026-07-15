@@ -2,19 +2,24 @@
  * Retell agent voice + interaction tuning — keep in sync with scripts/lib/retell-agent-settings.mjs
  */
 
-/** Bump when prompt/tone changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "warm-male-v6-english-strict-2026-07-15";
+/** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
+export const RETELL_PROMPT_VERSION = "deep-male-v7-warm-human-2026-07-15";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Warm American male dispatcher — override in Vercel: RETELL_VOICE_ID=11labs-Adrian */
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Steve */
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
+
+/** Deep, warm American male — Steve/Mark first (lower register). */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Adrian",
-  "Mark",
   "Steve",
+  "Mark",
+  "George",
   "Dylan",
+  "Eric",
   "Anthony",
+  "Adrian",
 ] as const;
 
 export type RetellVoiceInfo = {
@@ -35,33 +40,39 @@ function isUsEnglishVoice(v: RetellVoiceInfo): boolean {
   return true;
 }
 
-/** Pick a warm, caring US English male dispatcher voice. */
+function isMale(v: RetellVoiceInfo): boolean {
+  return (v.gender || "").toLowerCase() === "male";
+}
+
+/** Pick a deep, warm US English male dispatcher — never returns a female voice. */
 export function pickNaturalReceptionistVoice(
   voices: RetellVoiceInfo[],
   options?: { explicitId?: string; currentVoiceId?: string },
-): string | undefined {
+): string {
   const explicit = options?.explicitId?.trim();
   if (explicit) return explicit;
 
-  const american = (voices ?? []).filter(isUsEnglishVoice);
+  const americanMales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isMale(v));
 
   for (const preferred of RETELL_PREFERRED_VOICE_NAMES) {
-    const hit = american.find((v) =>
+    const hit = americanMales.find((v) =>
       (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
     );
     if (hit) return hit.voice_id;
   }
 
-  const male = american.find((v) => (v.gender || "").toLowerCase() === "male");
-  if (male) return male.voice_id;
+  if (americanMales[0]?.voice_id) return americanMales[0].voice_id;
 
   const current = options?.currentVoiceId;
-  if (current && american.some((v) => v.voice_id === current)) return current;
+  const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
+  if (current && currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
+    return current;
+  }
 
-  return american[0]?.voice_id;
+  return RETELL_FALLBACK_MALE_VOICE_ID;
 }
 
-/** Shared PATCH body — warm US dispatcher: patient, clear, noise-resistant. */
+/** Shared PATCH body — deep warm US dispatcher: human, steady, noise-resistant. */
 export function buildRetellProductionAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     agent_name: "Effiroad Intake Agent",
@@ -86,12 +97,12 @@ export function buildRetellProductionAgentPatch(voiceId?: string) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.95,
-    voice_speed: 1.02,
+    voice_temperature: 0.78,
+    voice_speed: 0.96,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.3,
-    responsiveness: 0.95,
+    volume: 1.28,
+    responsiveness: 0.92,
     enable_dynamic_responsiveness: false,
     interruption_sensitivity: 0.2,
     enable_backchannel: false,

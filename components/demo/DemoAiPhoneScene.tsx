@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PHONE_DEMO_TIMELINE, type PhoneDemoPhase } from "@/lib/demo-phone-script";
 
+const STEPS = ["Ring", "Answer", "Intake", "Dispatch", "Done"] as const;
+
 function Waveform({ active }: { active: boolean }) {
   return (
     <div className="flex h-10 items-end justify-center gap-1.5" aria-hidden>
@@ -19,7 +21,7 @@ function Waveform({ active }: { active: boolean }) {
   );
 }
 
-export function DemoAiPhoneScene() {
+export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean }) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [speaking, setSpeaking] = useState(false);
   const [customerLines, setCustomerLines] = useState<string[]>([]);
@@ -27,6 +29,7 @@ export function DemoAiPhoneScene() {
   const [systemLine, setSystemLine] = useState<string | null>(null);
   const [smsLine, setSmsLine] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -40,10 +43,10 @@ export function DemoAiPhoneScene() {
       await new Promise<void>((resolve) => {
         audio.onended = () => resolve();
         audio.onerror = () => resolve();
-        setTimeout(resolve, Math.max(phase.text.length * 55, 2500));
+        setTimeout(resolve, Math.max(phase.text.length * 60, 3000));
       });
     } catch {
-      await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 55, 2500)));
+      await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 60, 3000)));
     } finally {
       setSpeaking(false);
     }
@@ -59,33 +62,44 @@ export function DemoAiPhoneScene() {
     setSmsLine(null);
     setSpeaking(false);
     setTyping(false);
+    setStepIdx(0);
 
     let cursor = 400;
     PHONE_DEMO_TIMELINE.forEach((phase, idx) => {
       cursor += phase.delayMs;
       if (phase.kind === "customer-text") {
-        timeouts.current.push(
-          setTimeout(() => setTyping(true), cursor - 400),
-        );
+        timeouts.current.push(setTimeout(() => setTyping(true), cursor - 500));
       }
       timeouts.current.push(
         setTimeout(() => {
           setVisibleCount(idx + 1);
-          if (phase.kind === "system") setSystemLine(phase.text);
-          if (phase.kind === "sms") setSmsLine(phase.text);
+          if (phase.kind === "system") {
+            setSystemLine(phase.text);
+            if (phase.text.includes("Incoming")) setStepIdx(0);
+            if (phase.text.includes("Owner replied")) setStepIdx(3);
+            if (phase.text.includes("Intake saved")) setStepIdx(4);
+          }
+          if (phase.kind === "sms") {
+            setSmsLine(phase.text);
+            setStepIdx(3);
+          }
           if (phase.kind === "customer-text") {
             setTyping(false);
             setCustomerLines((prev) => [...prev, phase.text]);
+            setStepIdx(2);
           }
-          if (phase.kind === "ai-voice") void playAi(phase);
+          if (phase.kind === "ai-voice") {
+            setStepIdx((s) => (s < 1 ? 1 : s));
+            void playAi(phase);
+          }
         }, cursor),
       );
     });
 
-    timeouts.current.push(
-      setTimeout(() => run(), cursor + 3000),
-    );
-  }, [playAi]);
+    if (!recordMode) {
+      timeouts.current.push(setTimeout(() => run(), cursor + 5000));
+    }
+  }, [playAi, recordMode]);
 
   useEffect(() => {
     run();
@@ -97,17 +111,29 @@ export function DemoAiPhoneScene() {
 
   return (
     <div className="flex h-full w-full flex-col bg-gradient-to-br from-[#0c0b0a] via-[#12100e] to-[#1a1612] text-white">
-      <div className="flex items-center justify-between border-b border-white/10 px-8 py-5">
+      <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 md:px-8 md:py-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">
-            How Effiroad responds
+            Full call — start to finish
           </p>
-          <h1 className="text-xl font-bold sm:text-2xl">AI speaks · customer types</h1>
-          <p className="mt-1 text-sm text-white/50">
-            Only AI voice on the call — customer replies by text (no caller audio)
-          </p>
+          <h1 className="text-lg font-bold md:text-2xl">AI answers · intake · dispatch</h1>
         </div>
-        <img src="/logo-mark.png" alt="" className="h-10 w-10 opacity-90" />
+        <div className="hidden gap-1 sm:flex">
+          {STEPS.map((label, i) => (
+            <span
+              key={label}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                i === stepIdx
+                  ? "bg-[#9a7f5e] text-white"
+                  : i < stepIdx
+                    ? "bg-white/15 text-white/70"
+                    : "bg-white/5 text-white/35"
+              }`}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="grid flex-1 grid-cols-1 gap-5 p-5 md:grid-cols-2 md:gap-6 md:p-8">
@@ -123,11 +149,6 @@ export function DemoAiPhoneScene() {
               <div className="mt-4">
                 <Waveform active={speaking} />
               </div>
-              {speaking ? (
-                <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-                  AI speaking…
-                </p>
-              ) : null}
             </div>
             <div className="min-h-[150px] bg-[#141210] px-4 py-4">
               {aiLine ? (
@@ -139,25 +160,21 @@ export function DemoAiPhoneScene() {
                 <p className="pt-6 text-center text-xs text-white/30">Connecting caller…</p>
               )}
             </div>
-            <div className="flex items-center justify-center gap-3 border-t border-white/10 py-4">
-              <span className="h-10 w-10 rounded-full bg-red-500/90" />
-              <span className="h-12 w-12 rounded-full bg-emerald-500/90 ring-4 ring-emerald-500/30" />
-            </div>
           </div>
         </div>
 
         <div className="flex flex-col justify-center">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
-            Customer — text only (no voice)
+            Customer — text only
           </p>
           <div className="min-h-[200px] space-y-3 rounded-2xl border border-white/10 bg-black/45 p-4">
             {customerLines.length === 0 && !typing ? (
-              <p className="text-sm text-white/35">Customer messages appear here as they type…</p>
+              <p className="text-sm text-white/35">Customer messages appear here…</p>
             ) : (
               customerLines.map((line, i) => (
                 <div
                   key={`${line}-${i}`}
-                  className="ml-auto max-w-[95%] animate-[fadeIn_0.35s_ease-out] rounded-2xl rounded-tr-sm bg-sky-500/20 px-4 py-3 text-sm leading-relaxed text-white ring-1 ring-sky-400/30"
+                  className="ml-auto max-w-[95%] rounded-2xl rounded-tr-sm bg-sky-500/20 px-4 py-3 text-sm leading-relaxed text-white ring-1 ring-sky-400/30"
                 >
                   {line}
                 </div>
@@ -165,15 +182,15 @@ export function DemoAiPhoneScene() {
             )}
             {typing ? (
               <div className="ml-auto flex max-w-[40%] items-center gap-1 rounded-2xl bg-white/10 px-4 py-3">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: "0ms" }} />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: "120ms" }} />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: "240ms" }} />
               </div>
             ) : null}
           </div>
 
-          {smsLine && visibleCount > 0 ? (
-            <div className="mt-4 animate-[fadeIn_0.4s_ease-out] rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-4">
+          {smsLine ? (
+            <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-4">
               <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Owner SMS</p>
               <p className="mt-2 text-xs leading-relaxed text-emerald-100">{smsLine}</p>
             </div>

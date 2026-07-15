@@ -68,6 +68,8 @@ export async function runRetellSync(env = process.env) {
     body: JSON.stringify(buildRetellProductionAgentPatch(voiceId)),
   });
 
+  console.log("[retell:sync] voice_id →", voiceId);
+
   const list = await retell("/v2/list-phone-numbers?limit=100");
   const items = list.items ?? [];
   let phone = items.find((n) =>

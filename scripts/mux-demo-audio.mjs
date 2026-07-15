@@ -30,7 +30,7 @@ const DEMOS = {
     video: "demo-voice.mp4",
     files: ["voice-ai-0.mp3", "voice-ai-1.mp3", "voice-ai-2.mp3", "voice-ai-3.mp3"],
     /** Min start aligned to DemoAiPhoneScene ai-voice cues — mux extends if clip runs long. */
-    anchorMs: [1900, 6300, 10300, 14900],
+    anchorMs: [2400, 9000, 15600, 21600],
     volume: 1.1,
   },
   "link-intake": {
