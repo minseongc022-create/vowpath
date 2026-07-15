@@ -1,6 +1,7 @@
 /**
- * Record Effiroad demo videos for the landing page (3 focused demos).
+ * Record Effiroad demo videos for landing pages (restoration + HVAC verticals).
  * Usage: npm run demo:record
+ * Optional: DEMO_VERTICAL=hvac|restoration|all (default all)
  */
 import { spawn } from "node:child_process";
 import { mkdir, rename, rm } from "node:fs/promises";
@@ -14,11 +15,23 @@ const OUT_DIR = path.join(ROOT, "public", "videos");
 let BASE = process.env.DEMO_RECORD_BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 const VIEWPORT = { width: 1280, height: 720 };
 
-const SCENES = [
-  { slug: "overview", out: "demo-overview.webm", waitMs: 18_000 },
-  { slug: "voice", out: "demo-voice.webm", waitMs: 54_000 },
-  { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 16_000 },
+const RESTORATION_SCENES = [
+  { slug: "overview", query: "", out: "demo-overview.webm", waitMs: 18_000, stripAudio: true },
+  { slug: "voice", query: "", out: "demo-voice.webm", waitMs: 54_000, stripAudio: false },
+  { slug: "link-intake", query: "", out: "demo-link-intake.webm", waitMs: 16_000, stripAudio: true },
 ];
+
+const HVAC_SCENES = [
+  { slug: "overview", query: "?vertical=hvac", out: "demo-overview-hvac.webm", waitMs: 18_000, stripAudio: true },
+  { slug: "voice", query: "?vertical=hvac", out: "demo-voice-hvac.webm", waitMs: 36_000, stripAudio: false },
+  { slug: "risk-hold", query: "", out: "demo-risk-hold-hvac.webm", waitMs: 30_000, stripAudio: false },
+];
+
+function scenesForVertical(vertical) {
+  if (vertical === "restoration") return RESTORATION_SCENES;
+  if (vertical === "hvac") return HVAC_SCENES;
+  return [...RESTORATION_SCENES, ...HVAC_SCENES];
+}
 
 async function waitForServer(attempts = 40) {
   const bases = [
@@ -50,7 +63,7 @@ function startDevServer() {
   });
 }
 
-async function recordScene(browser, slug, outName, waitMs) {
+async function recordScene(browser, slug, query, outName, waitMs) {
   const tmpDir = path.join(OUT_DIR, "_tmp");
   await mkdir(tmpDir, { recursive: true });
 
@@ -59,14 +72,17 @@ async function recordScene(browser, slug, outName, waitMs) {
     recordVideo: { dir: tmpDir, size: VIEWPORT },
   });
   const page = await context.newPage();
-  await page.goto(`${BASE}/demo/record/${slug}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.goto(`${BASE}/demo/record/${slug}${query}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
   await page.waitForTimeout(1200);
   await page.waitForTimeout(waitMs);
   await context.close();
 
   const files = await import("node:fs/promises").then((fs) => fs.readdir(tmpDir));
   const webm = files.find((f) => f.endsWith(".webm"));
-  if (!webm) throw new Error(`No video recorded for ${slug}`);
+  if (!webm) throw new Error(`No video recorded for ${slug}${query}`);
 
   const dest = path.join(OUT_DIR, outName);
   await rename(path.join(tmpDir, webm), dest);
@@ -76,6 +92,9 @@ async function recordScene(browser, slug, outName, waitMs) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
+
+  const vertical = process.env.DEMO_VERTICAL?.trim() || "all";
+  const SCENES = scenesForVertical(vertical);
 
   let devProc = null;
   let startedDev = false;
@@ -88,15 +107,15 @@ async function main() {
     BASE = await waitForServer();
   }
 
-  console.log("[demo:record] Recording demos at", BASE);
+  console.log("[demo:record] Recording demos at", BASE, `(${vertical})`);
   const browser = await chromium.launch({
     headless: true,
     args: ["--autoplay-policy=no-user-gesture-required"],
   });
 
   for (const scene of SCENES) {
-    console.log(`  Scene: ${scene.slug}`);
-    await recordScene(browser, scene.slug, scene.out, scene.waitMs);
+    console.log(`  Scene: ${scene.slug}${scene.query}`);
+    await recordScene(browser, scene.slug, scene.query, scene.out, scene.waitMs);
   }
 
   await browser.close();
@@ -107,7 +126,7 @@ async function main() {
   for (const scene of SCENES) {
     const webm = path.join(OUT_DIR, scene.out);
     const mp4 = path.join(OUT_DIR, scene.out.replace(".webm", ".mp4"));
-    const stripAudio = scene.slug !== "voice";
+    const stripAudio = scene.stripAudio;
     try {
       execSync(
         `ffmpeg -y -i "${webm}" -c:v libx264 -pix_fmt yuv420p -movflags +faststart ${stripAudio ? "-an" : ""} "${mp4}"`,
@@ -121,7 +140,9 @@ async function main() {
   try {
     console.log("[demo:record] Generating narration + muxing audio into all demos…");
     execSync("npm run demo:tts", { cwd: ROOT, stdio: "inherit" });
-    execSync("node scripts/mux-demo-audio.mjs all", { cwd: ROOT, stdio: "inherit" });
+    const muxTarget =
+      vertical === "hvac" ? "hvac-all" : vertical === "restoration" ? "restoration-all" : "all";
+    execSync(`node scripts/mux-demo-audio.mjs ${muxTarget}`, { cwd: ROOT, stdio: "inherit" });
   } catch (e) {
     console.warn("[demo:record] Demo audio mux skipped:", e.message ?? e);
   }

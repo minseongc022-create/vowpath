@@ -1,6 +1,6 @@
 /**
  * Mux demo audio — one voice at a time, never overlapping.
- * Usage: node scripts/mux-demo-audio.mjs [overview|voice|link-intake|all]
+ * Usage: node scripts/mux-demo-audio.mjs [overview|voice|link-intake|all|hvac-all]
  */
 import { execSync } from "node:child_process";
 import { existsSync, unlinkSync } from "node:fs";
@@ -26,11 +26,33 @@ const DEMOS = {
     ],
     startOffsetMs: 700,
   },
+  "overview-hvac": {
+    video: "demo-overview-hvac.mp4",
+    files: [
+      "overview-hvac-narr-0.mp3",
+      "overview-hvac-narr-1.mp3",
+      "overview-hvac-narr-2.mp3",
+      "overview-hvac-narr-3.mp3",
+      "overview-hvac-narr-4.mp3",
+    ],
+    startOffsetMs: 700,
+  },
   voice: {
     video: "demo-voice.mp4",
     files: ["voice-ai-0.mp3", "voice-ai-1.mp3", "voice-ai-2.mp3", "voice-ai-3.mp3"],
-    /** Min start aligned to DemoAiPhoneScene ai-voice cues — mux extends if clip runs long. */
     anchorMs: [2400, 9000, 15600, 21600],
+    volume: 1.1,
+  },
+  "voice-hvac": {
+    video: "demo-voice-hvac.mp4",
+    files: ["voice-hvac-0.mp3", "voice-hvac-1.mp3", "voice-hvac-2.mp3", "voice-hvac-3.mp3"],
+    anchorMs: [2500, 9100, 14300, 20900],
+    volume: 1.1,
+  },
+  "risk-hold-hvac": {
+    video: "demo-risk-hold-hvac.mp4",
+    files: ["voice-hvac-gas-0.mp3", "voice-hvac-gas-1.mp3", "voice-hvac-gas-2.mp3"],
+    anchorMs: [2500, 8700, 15300],
     volume: 1.1,
   },
   "link-intake": {
@@ -84,8 +106,8 @@ function muxDemo(id) {
   const outPath = path.join(videoDir, `_${id}-out.mp4`);
 
   if (!existsSync(videoPath)) {
-    console.error(`[mux] Missing ${videoPath}`);
-    process.exit(1);
+    console.warn(`[mux] Skip ${id} — missing ${videoPath}`);
+    return;
   }
 
   for (const file of cfg.files) {
@@ -139,7 +161,17 @@ function muxDemo(id) {
 }
 
 const target = process.argv[2] ?? "all";
-for (const id of target === "all" ? Object.keys(DEMOS) : [target]) {
+const allIds = Object.keys(DEMOS);
+const hvacIds = ["overview-hvac", "voice-hvac", "risk-hold-hvac"];
+const restorationIds = ["overview", "voice", "link-intake"];
+
+let ids;
+if (target === "all") ids = allIds;
+else if (target === "hvac-all") ids = hvacIds;
+else if (target === "restoration-all") ids = restorationIds;
+else ids = [target];
+
+for (const id of ids) {
   if (!DEMOS[id]) {
     console.error(`Unknown demo: ${id}`);
     process.exit(1);

@@ -1,26 +1,52 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { useLocale, useSiteContent } from "@/components/providers/LocaleProvider";
+import { hvacHero } from "@/lib/content-marketing-hvac-en";
 import { TRIAL_DAYS } from "@/lib/billing-cohort";
 
 export function Hero() {
+  const pathname = usePathname();
+  const isHvac = pathname === "/hvac";
   const { locale } = useLocale();
-  const { hero: h } = useSiteContent();
+  const { hero: siteHero } = useSiteContent();
+  const h = isHvac
+    ? {
+        badge: hvacHero.eyebrow,
+        headline: "Never miss a no-heat call",
+        headlineAccent: "when you're on another job.",
+        brandLine: hvacHero.subhead,
+        subhead: undefined,
+        trustLine: undefined,
+        secondaryCta: hvacHero.secondaryCta,
+        secondaryCtaHref: "/hvac#how-it-works",
+        heroBadges: hvacHero.trustPills,
+      }
+    : siteHero;
   const badges: readonly string[] =
     "heroBadges" in h && Array.isArray(h.heroBadges) ? h.heroBadges : [];
   const isEs = locale === "es";
 
   const subhead2 = isEs
     ? "Servicio de contestación con IA para empresas de servicios en el hogar"
-    : "The AI Answering Service Built for Home Service Companies";
+    : isHvac
+      ? "Schedule-based AI answering for independent HVAC shops"
+      : "The AI Answering Service Built for Home Service Companies";
   const trialLink = isEs
     ? `Empieza gratis — ${TRIAL_DAYS} días por nuestra cuenta →`
     : `Start free — ${TRIAL_DAYS} days on us →`;
-  const demoCta = isEs ? "Escucha una llamada real de pérdida por agua a las 2 AM" : "Hear a Real 2 AM Water Loss Call";
+  const demoCta = isEs
+    ? isHvac
+      ? "Escucha una llamada completa sin calefacción"
+      : "Escucha una llamada real de pérdida por agua a las 2 AM"
+    : isHvac
+      ? "Hear a Full No-Heat Call — Start to Finish"
+      : "Hear a Real 2 AM Water Loss Call";
+  const demoHref = isHvac ? "/hvac#demo" : "/#demo";
   const guarantees = isEs
     ? ["Garantía 30 días", "Cifrado 256-bit", "Sin venta de datos · Cancela cuando quieras"]
     : ["30-day money-back guarantee", "256-bit encrypted", "No data selling · Cancel anytime"];
@@ -87,7 +113,7 @@ export function Hero() {
 
         <p className="mt-4 text-center">
           <a
-            href="/#demo"
+            href={demoHref}
             className="inline-flex items-center gap-2.5 rounded-full border border-brand-300/60 bg-white px-5 py-2.5 text-sm font-semibold text-brand-900 shadow-sm transition hover:border-brand-400 hover:bg-brand-50"
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-white">

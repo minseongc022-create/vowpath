@@ -13,6 +13,7 @@ const EDGE_RATE = "-5%";
 const EDGE_PITCH = "-8Hz";
 
 const CLIPS = [
+  // Restoration voice call
   {
     file: "voice-ai-0.mp3",
     text: "Hey — thanks for calling Ridgeline Restoration. You've got me. What's going on over there?",
@@ -29,26 +30,28 @@ const CLIPS = [
     file: "voice-ai-3.mp3",
     text: "You're all set, Mike. Someone's already heading your way. You'll get a text with their ETA in just a minute.",
   },
+  // Restoration overview
   {
     file: "overview-narr-0.mp3",
-    text: "Effiroad answers emergency calls for restoration and HVAC shops — twenty-four seven.",
+    text: "Effiroad catches the calls you miss — nights, weekends, and when you're on a job.",
   },
   {
     file: "overview-narr-1.mp3",
-    text: "Keep your same phone number. Just forward unanswered calls to Effiroad.",
+    text: "Keep your same number. Set when Effiroad answers, then forward unanswered calls.",
   },
   {
     file: "overview-narr-2.mp3",
-    text: "A real person picks up every time — voice intake, or press two for a quick text link.",
+    text: "AI voice intake, or press two for a quick text link — address and loss type either way.",
   },
   {
     file: "overview-narr-3.mp3",
-    text: "We capture the address, loss type, and urgency. P one water can auto-dispatch your crew.",
+    text: "Clear P one water can auto-dispatch your crew. Fire, mold, or unclear jobs wait for your text.",
   },
   {
     file: "overview-narr-4.mp3",
-    text: "Fire, mold, or unclear jobs? You get a text to approve before anyone rolls.",
+    text: "Reply one to dispatch, two to hold — you're always in control.",
   },
+  // Link intake (restoration)
   {
     file: "link-narr-0.mp3",
     text: "A customer calls your shop late at night.",
@@ -68,6 +71,57 @@ const CLIPS = [
   {
     file: "link-narr-4.mp3",
     text: "Done — you get notified and the job is captured.",
+  },
+  // HVAC no-heat voice call
+  {
+    file: "voice-hvac-0.mp3",
+    text: "Comfort Air HVAC — thanks for calling. Who am I speaking with, and what's going on at the house?",
+  },
+  {
+    file: "voice-hvac-1.mp3",
+    text: "I'm sorry you're dealing with that. Quick safety check — do you smell gas or hear any sparking?",
+  },
+  {
+    file: "voice-hvac-2.mp3",
+    text: "Good — no gas smell. What's the address, and about how cold is it inside right now?",
+  },
+  {
+    file: "voice-hvac-3.mp3",
+    text: "Got it, Sarah. No-heat verified — I'm dispatching your on-call tech now. You'll get a text with ETA shortly.",
+  },
+  // HVAC gas smell hold
+  {
+    file: "voice-hvac-gas-0.mp3",
+    text: "Comfort Air HVAC — you've reached us. Tell me what's happening and if anyone is feeling sick.",
+  },
+  {
+    file: "voice-hvac-gas-1.mp3",
+    text: "I hear you — gas smell is serious. I'm not sending anyone until the owner approves. Name and address?",
+  },
+  {
+    file: "voice-hvac-gas-2.mp3",
+    text: "Thank you. I'm holding this as a safety call and texting the owner now — they'll decide next steps.",
+  },
+  // HVAC overview
+  {
+    file: "overview-hvac-narr-0.mp3",
+    text: "Saturday six A M on an install? Effiroad picks up the calls you can't — on the schedule you set.",
+  },
+  {
+    file: "overview-hvac-narr-1.mp3",
+    text: "Forward unanswered calls from your main line. Customers never see a new number.",
+  },
+  {
+    file: "overview-hvac-narr-2.mp3",
+    text: "Verified no-heat or no-cool with a clear address? Your on-call tech gets an SMS instantly.",
+  },
+  {
+    file: "overview-hvac-narr-3.mp3",
+    text: "Gas smell, sparking, or fuzzy details? Owner gets a hold text — reply one to dispatch, two to hold.",
+  },
+  {
+    file: "overview-hvac-narr-4.mp3",
+    text: "Tech replies one to accept. Customer gets an on-the-way text. You stay in control.",
   },
 ];
 

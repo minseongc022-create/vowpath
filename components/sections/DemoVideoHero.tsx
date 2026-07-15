@@ -2,39 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
-
-const DEMOS = [
-  {
-    id: "overview",
-    label: "What is Effiroad?",
-    mp4: "/videos/demo-overview.mp4",
-    hint: "60-second overview — same number, AI intake, dispatch, you approve exceptions",
-  },
-  {
-    id: "voice",
-    label: "AI phone response",
-    mp4: "/videos/demo-voice.mp4",
-    hint: "AI speaks on the call · customer replies by text · owner SMS dispatch",
-  },
-  {
-    id: "link-intake",
-    label: "Text link intake",
-    mp4: "/videos/demo-link-intake.mp4",
-    hint: "Press 2 → SMS form · ~1 min self-service · no phone tag",
-  },
-] as const;
-
-type DemoId = (typeof DEMOS)[number]["id"];
+import {
+  DEMO_VERTICAL_CONFIG,
+  type DemoTab,
+  type DemoVertical,
+} from "@/lib/demo-vertical-config";
 
 const VISIBLE_RATIO = 0.35;
+const CACHE_V = "6";
 
-export function DemoVideoHero() {
-  const [active, setActive] = useState<DemoId>("overview");
+type DemoVideoHeroProps = {
+  vertical?: DemoVertical;
+};
+
+export function DemoVideoHero({ vertical = "restoration" }: DemoVideoHeroProps) {
+  const config = DEMO_VERTICAL_CONFIG[vertical];
+  const demos = config.tabs;
+  const [active, setActive] = useState(demos[0].id);
   const [isMuted, setIsMuted] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const visibleRef = useRef(false);
-  const tab = DEMOS.find((t) => t.id === active) ?? DEMOS[0];
+  const tab = demos.find((t) => t.id === active) ?? demos[0];
 
   const syncMuted = useCallback(() => {
     const video = videoRef.current;
@@ -116,7 +105,11 @@ export function DemoVideoHero() {
     };
   }, [playVisible, stopVideo]);
 
-  const selectTab = (id: DemoId) => {
+  useEffect(() => {
+    setActive(demos[0].id);
+  }, [vertical, demos]);
+
+  const selectTab = (id: DemoTab["id"]) => {
     setActive(id);
     setIsMuted(true);
     requestAnimationFrame(() => {
@@ -144,16 +137,15 @@ export function DemoVideoHero() {
       <Container>
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">See it in action</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-4xl">
-            3 short demos — what we do &amp; how calls work
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/55 sm:text-base">
-            Scroll here to play · tap the speaker to turn sound on or off
+          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-4xl">{config.headline}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/55 sm:text-base">{config.subhead}</p>
+          <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-[#b59b78]/80 sm:text-sm">
+            {config.identityLine}
           </p>
         </div>
 
         <div className="-mx-2 mt-8 flex gap-2 overflow-x-auto px-2 pb-1 snap-x snap-mandatory sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0">
-          {DEMOS.map((t) => (
+          {demos.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -172,7 +164,7 @@ export function DemoVideoHero() {
         <div className="relative mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl sm:mt-8">
           <video
             ref={videoRef}
-            key={tab.id}
+            key={`${vertical}-${tab.id}`}
             className="aspect-video w-full bg-black object-contain"
             loop
             playsInline
@@ -183,7 +175,7 @@ export function DemoVideoHero() {
             onVolumeChange={syncMuted}
             onLoadedData={syncMuted}
           >
-            <source src={`${tab.mp4}?v=4`} type="video/mp4" />
+            <source src={`${tab.mp4}?v=${CACHE_V}`} type="video/mp4" />
           </video>
 
           <button
@@ -223,10 +215,8 @@ export function DemoVideoHero() {
 
         <p className="mt-4 text-center text-xs text-white/45 sm:mt-6">
           {tab.hint}
-          {active === "voice" ? (
-            <span className="mt-1 block text-[#b59b78]">
-              Only the AI speaks — customer replies are text-only.
-            </span>
+          {(active === "voice" || active === "risk-hold") && config.voiceFootnote ? (
+            <span className="mt-1 block text-[#b59b78]">{config.voiceFootnote}</span>
           ) : null}
         </p>
       </Container>
