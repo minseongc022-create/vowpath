@@ -339,10 +339,7 @@ export function EffiroadAssistantWidget() {
             aria-label={unread ? copy.newReply : copy.open}
             onClick={openChat}
           >
-            <EffiroadAiMark
-              size={56}
-              className="drop-shadow-[0_4px_14px_rgb(61_50_40_/_0.28)]"
-            />
+            <EffiroadAiMark size={56} shadow="lg" />
             {unreadDot}
           </button>
         </div>
@@ -364,7 +361,7 @@ export function EffiroadAssistantWidget() {
               ×
             </button>
             <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
-              <EffiroadAiMark size={24} />
+              <EffiroadAiMark size={24} shadow="sm" />
               <span className="truncate text-sm font-semibold text-stone-800">{copy.name}</span>
             </div>
             {useShopAi ? (

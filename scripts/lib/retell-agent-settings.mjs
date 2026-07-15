@@ -2,17 +2,17 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "trust-pro-v5-english-strict-2026-07-13";
+export const RETELL_PROMPT_VERSION = "warm-male-v6-english-strict-2026-07-15";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Sloane */
+/** Warm American male dispatcher — override in Vercel: RETELL_VOICE_ID=11labs-Adrian */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Grace",
-  "Hailey",
-  "Sloane",
   "Adrian",
-  "Paola",
+  "Mark",
+  "Steve",
+  "Dylan",
+  "Anthony",
 ];
 
 function isUsEnglishVoice(v) {
@@ -38,8 +38,8 @@ export function pickNaturalReceptionistVoice(voices, options = {}) {
     if (hit) return hit.voice_id;
   }
 
-  const female = american.find((v) => (v.gender || "").toLowerCase() === "female");
-  if (female) return female.voice_id;
+  const male = american.find((v) => (v.gender || "").toLowerCase() === "male");
+  if (male) return male.voice_id;
 
   const current = options.currentVoiceId;
   if (current && american.some((v) => v.voice_id === current)) return current;
@@ -71,14 +71,14 @@ export function buildRetellProductionAgentPatch(voiceId) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.88,
-    voice_speed: 1.1,
+    voice_temperature: 0.95,
+    voice_speed: 1.02,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.35,
-    responsiveness: 1.0,
+    volume: 1.3,
+    responsiveness: 0.95,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.22,
+    interruption_sensitivity: 0.2,
     enable_backchannel: false,
     reminder_trigger_ms: 12000,
     reminder_max_count: 1,

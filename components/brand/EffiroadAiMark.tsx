@@ -4,17 +4,25 @@ import { useId } from "react";
 
 type EffiroadAiMarkProps = {
   size?: number;
-  className?: string;
+  /** Optional shadow on the circular badge (applied to round wrapper, not square SVG). */
+  shadow?: "none" | "sm" | "md" | "lg";
 };
 
-/** Professional AI badge — sparkle + AI label, no custom image logo. */
-export function EffiroadAiMark({ size = 40, className = "" }: EffiroadAiMarkProps) {
+const SHADOW: Record<NonNullable<EffiroadAiMarkProps["shadow"]>, string> = {
+  none: "",
+  sm: "shadow-[0_2px_8px_rgb(61_50_40_/_0.18)]",
+  md: "shadow-[0_4px_14px_rgb(61_50_40_/_0.24)]",
+  lg: "shadow-[0_6px_20px_rgb(61_50_40_/_0.28)]",
+};
+
+/** Professional AI badge — sparkle + AI label, no square halo from SVG drop-shadow. */
+export function EffiroadAiMark({ size = 40, shadow = "md" }: EffiroadAiMarkProps) {
   const uid = useId().replace(/:/g, "");
   const gradId = `effi-ai-grad-${uid}`;
 
   return (
     <span
-      className="inline-flex shrink-0 overflow-hidden rounded-full"
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${SHADOW[shadow]}`}
       style={{ width: size, height: size }}
       aria-hidden
     >
@@ -25,7 +33,7 @@ export function EffiroadAiMark({ size = 40, className = "" }: EffiroadAiMarkProp
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="presentation"
-        className={className}
+        className="block"
       >
         <defs>
           <linearGradient id={gradId} x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">

@@ -69,7 +69,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     id: "sidebar-ai",
     title: "✨ Effiroad AI",
     description:
-      "Your shop assistant lives here on desktop — ask about setup, calls, crew dispatch, or today's numbers.",
+      "On mobile, the AI button is here at the bottom. On desktop, it's in the left sidebar. Ask about setup, calls, or today's numbers.",
     target: '[data-tour-step="sidebar-ai"]',
   },
 ];

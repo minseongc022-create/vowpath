@@ -1,9 +1,9 @@
-/** AI voice lines for the landing demo — customer uses text only (no TTS). */
+/** AI voice lines for the landing demo — warm male US dispatcher, customer text only. */
 export const VOICE_DEMO_AI_LINES = [
-  "Hi there, thanks for calling Ridgeline Restoration! I can help right now — what's going on?",
-  "I'm really glad you called — we're gonna take care of this. Can I get your name and the address?",
-  "Got it, Mike. Sounds like a sewage backup — I'm flagging this urgent and alerting the team now.",
-  "You're in good hands, Mike — a tech is on the way. You'll get a text with their ETA shortly.",
+  "Hey there — thanks so much for calling Ridgeline Restoration! I'm right here with you... what's going on?",
+  "Oh, I'm really glad you called, okay? We're gonna take care of this together. Can I get your name and the address for me?",
+  "Got it, Mike — okay, that sounds like a sewage backup. I'm flagging this urgent and getting your team alerted right now, alright?",
+  "You're in good hands, Mike — I promise. A tech is on the way, and you'll get a text with their ETA in just a minute, okay?",
 ] as const;
 
 export const VOICE_DEMO_CUSTOMER_TEXT = [
@@ -28,7 +28,7 @@ export const PHONE_DEMO_TIMELINE: PhoneDemoPhase[] = [
   {
     kind: "customer-text",
     text: VOICE_DEMO_CUSTOMER_TEXT[0],
-    delayMs: 3200,
+    delayMs: 4500,
   },
   {
     kind: "ai-voice",
@@ -39,7 +39,7 @@ export const PHONE_DEMO_TIMELINE: PhoneDemoPhase[] = [
   {
     kind: "customer-text",
     text: VOICE_DEMO_CUSTOMER_TEXT[1],
-    delayMs: 2800,
+    delayMs: 4500,
   },
   {
     kind: "ai-voice",
@@ -50,14 +50,14 @@ export const PHONE_DEMO_TIMELINE: PhoneDemoPhase[] = [
   {
     kind: "sms",
     text: "NEW JOB · Mike Wilson · 4821 Oak Dr · Sewage backup · P1 · Reply 1 to dispatch",
-    delayMs: 1400,
+    delayMs: 1600,
   },
-  { kind: "system", text: "Owner replied 1 · Crew dispatched", delayMs: 2000 },
+  { kind: "system", text: "Owner replied 1 · Crew dispatched", delayMs: 2200 },
   {
     kind: "ai-voice",
     text: VOICE_DEMO_AI_LINES[3],
     audioIndex: 3,
     delayMs: 1200,
   },
-  { kind: "system", text: "Intake saved · Dispatched · 4 min 12 sec", delayMs: 2200 },
+  { kind: "system", text: "Intake saved · Dispatched · 4 min 12 sec", delayMs: 2400 },
 ];

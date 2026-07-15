@@ -17,10 +17,45 @@ export type TourStep = {
 type Rect = { top: number; left: number; width: number; height: number };
 
 const PAD = 8;
-// Warm gold — on-brand (site palette is warm brown/tan) and highly visible
-// against the dark dimming overlay.
 const RING = "rgba(224, 168, 88, 0.98)";
 const RING_GLOW = "rgba(224, 168, 88, 0.45)";
+
+/** Bottom tour card + dots + safe area — keep targets above this on mobile. */
+function tourBottomReserve() {
+  if (typeof window === "undefined") return 120;
+  return window.innerWidth < 768 ? 300 : 140;
+}
+
+function findVisibleTarget(selector: string): Element | null {
+  const nodes = document.querySelectorAll(selector);
+  for (const el of nodes) {
+    const r = el.getBoundingClientRect();
+    if (r.width >= 20 && r.height >= 20) return el;
+  }
+  return null;
+}
+
+function scrollTargetIntoTourView(el: Element) {
+  const mobile = window.innerWidth < 768;
+  const rect = el.getBoundingClientRect();
+  const topReserve = mobile ? 64 : 96;
+  const bottomReserve = tourBottomReserve();
+  const viewH = window.innerHeight;
+
+  let delta = 0;
+  if (rect.top < topReserve) {
+    delta = rect.top - topReserve - 12;
+  } else if (rect.bottom > viewH - bottomReserve) {
+    delta = rect.bottom - (viewH - bottomReserve) + 12;
+  }
+
+  if (Math.abs(delta) > 4) {
+    window.scrollTo({
+      top: Math.max(0, window.scrollY + delta),
+      behavior: mobile ? "auto" : "smooth",
+    });
+  }
+}
 
 export function GuidedTour({
   steps,
@@ -30,8 +65,6 @@ export function GuidedTour({
 }: {
   steps: TourStep[];
   storageKey: string;
-  /** Maps a TourStep.id to whether the user has completed that step's action. When the
-   *  current step's entry flips to true, the tour auto-advances after a short delay. */
   doneMap?: Record<string, boolean>;
   tourLabel?: string;
 }) {
@@ -40,6 +73,7 @@ export function GuidedTour({
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const stepBaselineDoneRef = useRef<boolean | undefined>(undefined);
+  const measureRafRef = useRef<number | null>(null);
   const en = useIsEnglishUi();
 
   useEffect(() => setMounted(true), []);
@@ -51,12 +85,11 @@ export function GuidedTour({
     return () => clearTimeout(t);
   }, [storageKey]);
 
-  // Skip steps whose target is missing (e.g. sidebar AI hidden on mobile).
   useEffect(() => {
     if (!visible) return;
     const current = steps[step];
     if (!current) return;
-    const el = document.querySelector(current.target);
+    const el = findVisibleTarget(current.target);
     if (el) return;
     const t = window.setTimeout(() => {
       if (step < steps.length - 1) setStep((s) => s + 1);
@@ -65,41 +98,66 @@ export function GuidedTour({
     return () => window.clearTimeout(t);
   }, [step, visible, steps]);
 
-  // Measure the current target and keep the spotlight pinned to it through scroll,
-  // resize, and async dashboard layout shifts (poll) — the box-shadow dim + ring
-  // are drawn from this rect, so a fresh rect means no gap and a snug ring.
   useEffect(() => {
     if (!visible) return;
     const current = steps[step];
-    const el = current ? document.querySelector(current.target) : null;
+    if (!current) {
+      setRect(null);
+      return;
+    }
+
+    const el = findVisibleTarget(current.target);
     if (!el) {
       setRect(null);
       return;
     }
 
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: typeof window !== "undefined" && window.innerWidth < 640 ? "nearest" : "center",
-    });
+    scrollTargetIntoTourView(el);
 
     const measure = () => {
-      const r = el.getBoundingClientRect();
-      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      const target = findVisibleTarget(current.target);
+      if (!target) {
+        setRect(null);
+        return;
+      }
+      const r = target.getBoundingClientRect();
+      setRect((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.top - r.top) < 1 &&
+          Math.abs(prev.left - r.left) < 1 &&
+          Math.abs(prev.width - r.width) < 1 &&
+          Math.abs(prev.height - r.height) < 1
+        ) {
+          return prev;
+        }
+        return { top: r.top, left: r.left, width: r.width, height: r.height };
+      });
+    };
+
+    const scheduleMeasure = () => {
+      if (measureRafRef.current != null) cancelAnimationFrame(measureRafRef.current);
+      measureRafRef.current = requestAnimationFrame(measure);
     };
 
     measure();
-    const raf = requestAnimationFrame(measure);
-    const settle = setTimeout(measure, 350);
-    const poll = setInterval(measure, 500);
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
+    const settle = setTimeout(measure, 120);
+    const settle2 = setTimeout(measure, 400);
+    window.addEventListener("scroll", scheduleMeasure, true);
+    window.addEventListener("resize", scheduleMeasure);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", scheduleMeasure);
+    }
 
     return () => {
-      cancelAnimationFrame(raf);
+      if (measureRafRef.current != null) cancelAnimationFrame(measureRafRef.current);
       clearTimeout(settle);
-      clearInterval(poll);
-      window.removeEventListener("scroll", measure, true);
-      window.removeEventListener("resize", measure);
+      clearTimeout(settle2);
+      window.removeEventListener("scroll", scheduleMeasure, true);
+      window.removeEventListener("resize", scheduleMeasure);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", scheduleMeasure);
+      }
     };
   }, [step, visible, steps]);
 
@@ -150,10 +208,6 @@ export function GuidedTour({
     goTo: (n: number) => (en ? `Go to step ${n}` : `${n}단계로 이동`),
   };
 
-  // A brand-new account has many empty sections (0 requests, no revenue, etc.)
-  // that render as a near-zero-height strip. Spotlighting that looks broken, so
-  // treat too-small/absent targets as "no highlight" and just show the teaching
-  // card over a flat dim instead.
   const hasSpot = !!rect && rect.height >= 24 && rect.width >= 24;
 
   const holeX = rect ? rect.left - PAD : 0;
@@ -161,16 +215,10 @@ export function GuidedTour({
   const holeW = rect ? rect.width + PAD * 2 : 0;
   const holeH = rect ? rect.height + PAD * 2 : 0;
 
-  // Render into <body> so the fixed overlay is positioned against the visual
-  // viewport, not against any transformed/scrolled dashboard ancestor (which
-  // would remap position:fixed and misalign the spotlight from the measured
-  // getBoundingClientRect coords).
   return createPortal(
     <>
       {hasSpot ? (
         <>
-          {/* Dim the ENTIRE viewport via a shadow that spreads 9999px in all
-              directions from the hole — no gaps possible, ever. */}
           <div
             className="pointer-events-none fixed z-[90] rounded-xl"
             style={{
@@ -181,9 +229,8 @@ export function GuidedTour({
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
             }}
           />
-          {/* Glowing brand-gold ring on the exact same rect — cannot drift off. */}
           <div
-            className="pointer-events-none fixed z-[91] animate-pulse rounded-xl"
+            className="pointer-events-none fixed z-[91] rounded-xl"
             style={{
               top: holeY,
               left: holeX,
@@ -198,8 +245,10 @@ export function GuidedTour({
         <div className="pointer-events-none fixed inset-0 z-[90] bg-black/60" />
       )}
 
-      {/* Bottom-anchored guide card */}
-      <div className="fixed bottom-0 left-0 right-0 z-[95] animate-tour-slide-up">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[95] animate-tour-slide-up"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="flex justify-center gap-2 pb-3">
           {steps.map((_, i) => (
             <button
@@ -214,7 +263,7 @@ export function GuidedTour({
           ))}
         </div>
 
-        <div className="guided-tour-tooltip mx-4 mb-0 rounded-t-2xl border border-b-0 border-amber-400/30 bg-brand-950 px-6 py-6 shadow-[0_-12px_50px_-8px_rgba(0,0,0,0.55)] sm:mx-auto sm:max-w-2xl sm:px-8 sm:py-7">
+        <div className="guided-tour-tooltip mx-4 mb-0 max-h-[min(42vh,320px)] overflow-y-auto rounded-t-2xl border border-b-0 border-amber-400/30 bg-brand-950 px-5 py-5 shadow-[0_-12px_50px_-8px_rgba(0,0,0,0.55)] sm:mx-auto sm:max-w-2xl sm:px-8 sm:py-7">
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
@@ -223,8 +272,8 @@ export function GuidedTour({
               {current.eyebrow ? (
                 <p className="mt-1 text-sm font-semibold text-amber-200/90">{current.eyebrow}</p>
               ) : null}
-              <h3 className="mt-1.5 text-xl font-bold text-white sm:text-2xl">{current.title}</h3>
-              <p className="mt-2 text-base leading-relaxed text-white/90 sm:text-[17px]">
+              <h3 className="mt-1.5 text-lg font-bold text-white sm:text-2xl">{current.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/90 sm:text-[17px]">
                 {current.description}
               </p>
             </div>

@@ -16,7 +16,7 @@ const VIEWPORT = { width: 1280, height: 720 };
 
 const SCENES = [
   { slug: "overview", out: "demo-overview.webm", waitMs: 16_000 },
-  { slug: "voice", out: "demo-voice.webm", waitMs: 22_000 },
+  { slug: "voice", out: "demo-voice.webm", waitMs: 28_000 },
   { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 15_000 },
 ];
 
