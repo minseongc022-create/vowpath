@@ -22,16 +22,16 @@ import { ASSISTANT_HINT_KEY, useAssistantHint } from "@/lib/assistant-hint";
 type ExamplePrompt = { icon: string; label: string; question: string };
 
 const EXAMPLES_PUBLIC_EN: ExamplePrompt[] = [
-  { icon: "📞", label: "Call forwarding", question: "How does call forwarding work?" },
-  { icon: "🚚", label: "Crew dispatch", question: "How does crew dispatch work?" },
-  { icon: "⚙️", label: "First-time setup", question: "What should I set up first?" },
+  { icon: "✨", label: "What is Effiroad?", question: "What is Effiroad and who is it for?" },
+  { icon: "📞", label: "How calls work", question: "How does 24/7 call answering work?" },
+  { icon: "🚚", label: "Auto-dispatch", question: "How does auto-dispatch work?" },
   { icon: "💰", label: "Pricing & trial", question: "Explain pricing and the free trial" },
 ];
 
 const EXAMPLES_PUBLIC_KO: ExamplePrompt[] = [
-  { icon: "📞", label: "착신전환", question: "착신전환은 어떻게 하나요?" },
-  { icon: "🚚", label: "크루 디스패치", question: "크루 디스패치는 어떻게 되나요?" },
-  { icon: "⚙️", label: "처음 설정", question: "처음에 뭘 설정해야 하나요?" },
+  { icon: "✨", label: "Effiroad 소개", question: "Effiroad가 뭐고 누구를 위한 서비스인가요?" },
+  { icon: "📞", label: "통화 응대", question: "24시간 전화 응대는 어떻게 동작하나요?" },
+  { icon: "🚚", label: "자동 디스패치", question: "자동 디스패치는 어떻게 되나요?" },
   { icon: "💰", label: "요금·체험", question: "요금제와 무료 체험 알려줘" },
 ];
 
@@ -127,6 +127,7 @@ export function EffiroadAssistantWidget() {
   const pathname = usePathname();
   const { isEnglish } = useLocale();
   const { loggedIn, displayName, inDashboard } = useAssistantContext(pathname);
+  const useShopAi = inDashboard && Boolean(loggedIn);
   const { messages, loading, unread, booted, starters } = useAssistantStore();
   const { hintVisible, dismissHint: dismissPublicHint } = useAssistantHint();
   const [open, setOpen] = useState(false);
@@ -139,9 +140,15 @@ export function EffiroadAssistantWidget() {
   const copy = isEnglish
     ? {
         name: "Effiroad AI",
-        hint: "Tap the AI button — ask about setup, calls, or your shop.",
-        headline: displayName ? `Hi ${displayName.split(" ")[0]}` : "What's on your mind?",
-        placeholder: "Ask anything",
+        hint: useShopAi
+          ? "Tap the AI button — ask about setup, calls, or your shop."
+          : "Tap here — learn how Effiroad works, pricing, and getting started.",
+        headline: useShopAi
+          ? displayName
+            ? `Hi ${displayName.split(" ")[0]}`
+            : "What's on your mind?"
+          : "Questions about Effiroad?",
+        placeholder: useShopAi ? "Ask anything" : "Ask about Effiroad…",
         close: "Close",
         open: "Open Effiroad AI",
         thinking: "Thinking…",
@@ -152,9 +159,15 @@ export function EffiroadAssistantWidget() {
       }
     : {
         name: "Effiroad AI",
-        hint: "AI 버튼을 눌러 설정·통화·샵 운영을 물어보세요.",
-        headline: displayName ? `안녕하세요, ${displayName.split(" ")[0]}님` : "무슨 생각을 하고 계신가요?",
-        placeholder: "무엇이든 물어보세요",
+        hint: useShopAi
+          ? "AI 버튼을 눌러 설정·통화·샵 운영을 물어보세요."
+          : "여기를 눌러 Effiroad 소개, 요금, 시작 방법을 물어보세요.",
+        headline: useShopAi
+          ? displayName
+            ? `안녕하세요, ${displayName.split(" ")[0]}님`
+            : "무슨 생각을 하고 계신가요?"
+          : "Effiroad가 궁금하신가요?",
+        placeholder: useShopAi ? "무엇이든 물어보세요" : "Effiroad에 대해 물어보세요…",
         close: "닫기",
         open: "Effiroad AI 열기",
         thinking: "생각 중…",
@@ -165,9 +178,9 @@ export function EffiroadAssistantWidget() {
       };
 
   const examplePrompts = useMemo(() => {
-    if (loggedIn) return isEnglish ? EXAMPLES_DASHBOARD_EN : EXAMPLES_DASHBOARD_KO;
+    if (useShopAi) return isEnglish ? EXAMPLES_DASHBOARD_EN : EXAMPLES_DASHBOARD_KO;
     return isEnglish ? EXAMPLES_PUBLIC_EN : EXAMPLES_PUBLIC_KO;
-  }, [loggedIn, isEnglish]);
+  }, [useShopAi, isEnglish]);
 
   useEffect(() => {
     hydrateAssistantStore();
@@ -226,7 +239,7 @@ export function EffiroadAssistantWidget() {
       starters: examplePrompts.map((e) => e.question),
     });
     try {
-      if (loggedIn) {
+      if (useShopAi) {
         const res = await fetch("/api/effiroad-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -240,7 +253,7 @@ export function EffiroadAssistantWidget() {
     } catch {
       /* keep default examples */
     }
-  }, [booted, loggedIn, examplePrompts]);
+  }, [booted, useShopAi, examplePrompts]);
 
   useEffect(() => {
     if (open && loggedIn !== null) void bootChat();
@@ -266,7 +279,7 @@ export function EffiroadAssistantWidget() {
     beginAssistantRequest();
 
     try {
-      if (loggedIn) {
+      if (useShopAi) {
         const res = await fetch("/api/effiroad-ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -285,7 +298,7 @@ export function EffiroadAssistantWidget() {
         const res = await fetch("/api/site-assistant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q, history: historyPayload }),
+          body: JSON.stringify({ question: q, history: historyPayload, marketing: true }),
         });
         const data = (await res.json()) as { answer?: string; suggestions?: string[]; error?: string };
         pushAssistant({
@@ -373,13 +386,13 @@ export function EffiroadAssistantWidget() {
 
           <button
             type="button"
-            className="relative rounded-full transition hover:scale-[1.03] active:scale-95"
+            className="relative flex size-14 items-center justify-center rounded-full border-0 bg-transparent p-0 shadow-none outline-none ring-0 transition hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50"
             aria-label={unread ? copy.newReply : copy.open}
             onClick={openChat}
           >
             <EffiroadAiMark
               size={56}
-              className="shadow-[0_4px_20px_rgb(61_50_40_/_0.26),0_2px_8px_rgb(61_50_40_/_0.14)]"
+              className="drop-shadow-[0_4px_14px_rgb(61_50_40_/_0.28)]"
             />
             {unreadDot}
           </button>
@@ -405,7 +418,7 @@ export function EffiroadAssistantWidget() {
               <EffiroadAiMark size={24} />
               <span className="truncate text-sm font-semibold text-stone-800">{copy.name}</span>
             </div>
-            {loggedIn ? (
+            {useShopAi ? (
               <Link
                 href={ROUTES.ai}
                 className="kb-ai-header-link"

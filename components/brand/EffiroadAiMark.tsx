@@ -14,7 +14,7 @@ export function EffiroadAiMark({ size = 40, className = "" }: EffiroadAiMarkProp
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center ${className}`}
+      className="inline-flex shrink-0 overflow-hidden rounded-full"
       style={{ width: size, height: size }}
       aria-hidden
     >
@@ -25,6 +25,7 @@ export function EffiroadAiMark({ size = 40, className = "" }: EffiroadAiMarkProp
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         role="presentation"
+        className={className}
       >
         <defs>
           <linearGradient id={gradId} x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
@@ -34,8 +35,7 @@ export function EffiroadAiMark({ size = 40, className = "" }: EffiroadAiMarkProp
           </linearGradient>
         </defs>
         <circle cx="24" cy="24" r="22" fill={`url(#${gradId})`} />
-        <circle cx="24" cy="24" r="22" stroke="rgba(255,255,255,0.4)" strokeWidth="1.25" />
-        <circle cx="24" cy="24" r="21" stroke="rgba(61,50,40,0.12)" strokeWidth="0.75" />
+        <circle cx="24" cy="24" r="22" stroke="rgba(255,255,255,0.35)" strokeWidth="1" />
         <path
           d="M24 12.2 25.55 17h4.75l-3.85 2.8 1.47 4.52L24 21.52l-3.92 2.8 1.47-4.52-3.85-2.8h4.75L24 12.2Z"
           fill="white"

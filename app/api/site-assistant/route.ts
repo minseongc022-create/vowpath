@@ -20,11 +20,12 @@ export async function POST(request: Request) {
           .filter((h) => h.text)
       : [];
 
+    const marketingOnly = Boolean(body?.marketing);
     const session = await getSession();
     const locale = runtimeUiLocale();
 
     if (greet && !question) {
-      const reply = siteAssistantGreeting(locale, Boolean(session));
+      const reply = siteAssistantGreeting(locale, Boolean(session), marketingOnly);
       return NextResponse.json({ ok: true, ...reply });
     }
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       history,
       locale,
       loggedIn: Boolean(session),
+      marketingOnly,
     });
 
     return NextResponse.json({ ok: true, ...reply });

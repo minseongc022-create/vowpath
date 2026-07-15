@@ -7,16 +7,16 @@ export type SiteAssistantReply = {
 };
 
 const STARTERS_EN = [
+  "What is Effiroad?",
   "How does call forwarding work?",
   "What's included in the free trial?",
-  "Where do I add my crew?",
   "How does auto-dispatch work?",
 ];
 
 const STARTERS_KO = [
+  "Effiroad가 뭐예요?",
   "착신전환은 어떻게 하나요?",
   "무료 체험에 뭐가 포함돼요?",
-  "크루는 어디서 추가하나요?",
   "자동 디스패치는 어떻게 동작해요?",
 ];
 
@@ -44,8 +44,10 @@ export async function answerSiteAssistantQuestion(params: {
   history: { role: "user" | "assistant"; text: string }[];
   locale: "en" | "ko";
   loggedIn?: boolean;
+  /** Marketing/landing surface — intro only, no shop settings or live data. */
+  marketingOnly?: boolean;
 }): Promise<SiteAssistantReply> {
-  const { question, history, locale, loggedIn } = params;
+  const { question, history, locale, loggedIn, marketingOnly } = params;
 
   if (
     /^(hi|hello|hey|yo|howdy|good morning|good afternoon|good evening|sup|what'?s up)[!.?\s]*$/i.test(
@@ -53,10 +55,20 @@ export async function answerSiteAssistantQuestion(params: {
     ) ||
     /^(안녕|안녕하세요|하이|헬로)[!.?\s]*$/i.test(question.trim())
   ) {
-    return siteAssistantGreeting(locale, Boolean(loggedIn));
+    return siteAssistantGreeting(locale, Boolean(loggedIn), Boolean(marketingOnly));
   }
 
   const knowledge = buildSiteAssistantKnowledge();
+
+  const marketingRules = marketingOnly
+    ? `You are on the PUBLIC marketing site assistant — NOT the logged-in shop workspace.
+Your ONLY job: explain what Effiroad is, how it works, pricing, trial, and getting started.
+Do NOT: change settings, access shop/call/booking data, run dispatches, or give dashboard-specific operational advice.
+If the user asks to change settings, view their shop, approve requests, or manage crew — politely say those actions are only in the dashboard after sign-in, and briefly explain the product concept instead.
+Never link to /dashboard/settings or other shop admin paths as something they can do from this chat.`
+    : loggedIn
+      ? "The user IS logged in — you can reference their dashboard and settings paths directly."
+      : "The user is browsing the marketing site (not logged in) — guide them to sign up or log in for shop-specific actions.";
 
   const system = `You are Effiroad AI — the friendly product expert for Effiroad.com.
 You speak naturally, like a helpful colleague (not a robot). Keep answers concise (2-4 short paragraphs max).
@@ -65,8 +77,7 @@ Reply in ${locale === "ko" ? "Korean" : "English"} unless the user writes in ano
 You know everything below about the product. Never invent pricing or features not listed.
 NEVER reveal: API keys, env secrets, passwords, tokens, other customers' data, internal server paths, or raw database contents.
 If asked for secrets or unrelated private data, politely refuse and offer product help instead.
-If asked to change live shop settings and the user is NOT logged in, explain the steps and suggest signing in.
-${loggedIn ? "The user IS logged in — you can reference their dashboard and settings paths directly." : "The user is browsing the marketing site (not logged in) — guide them to sign up or log in for shop-specific actions."}
+${marketingRules}
 
 PRODUCT KNOWLEDGE:
 ${knowledge}`;
@@ -92,7 +103,20 @@ ${knowledge}`;
   }
 }
 
-export function siteAssistantGreeting(locale: "en" | "ko", loggedIn: boolean): SiteAssistantReply {
+export function siteAssistantGreeting(
+  locale: "en" | "ko",
+  loggedIn: boolean,
+  marketingOnly = false,
+): SiteAssistantReply {
+  if (marketingOnly) {
+    return {
+      answer:
+        locale === "ko"
+          ? "안녕하세요! Effiroad AI예요. Effiroad가 무엇인지, 어떻게 동작하는지, 가격과 무료 체험 — 궁금한 걸 편하게 물어보세요."
+          : "Hi! I'm Effiroad AI. Ask me what Effiroad is, how it works, pricing, or the free trial — I'm here to help you understand the product.",
+      suggestions: locale === "ko" ? STARTERS_KO : STARTERS_EN,
+    };
+  }
   if (loggedIn) {
     return {
       answer:
