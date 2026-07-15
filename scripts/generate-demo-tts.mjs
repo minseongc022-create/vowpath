@@ -9,11 +9,21 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const VOICE_DEMO_AI_LINES = [
-  "Hi there, thanks for calling Ridgeline Restoration! I can help right now — what's going on?",
-  "I'm really glad you called — we're gonna take care of this. Can I get your name and the address?",
-  "Got it, Mike. Sounds like a sewage backup — I'm flagging this urgent and alerting the team now.",
-  "You're in good hands, Mike — a tech is on the way. You'll get a text with their ETA shortly.",
+const CLIPS = [
+  { file: "voice-ai-0.mp3", text: "Hi there, thanks for calling Ridgeline Restoration! I can help right now — what's going on?" },
+  { file: "voice-ai-1.mp3", text: "I'm really glad you called — we're gonna take care of this. Can I get your name and the address?" },
+  { file: "voice-ai-2.mp3", text: "Got it, Mike. Sounds like a sewage backup — I'm flagging this urgent and alerting the team now." },
+  { file: "voice-ai-3.mp3", text: "You're in good hands, Mike — a tech is on the way. You'll get a text with their ETA shortly." },
+  { file: "overview-narr-0.mp3", text: "Effiroad answers emergency calls for restoration and HVAC shops — twenty-four seven." },
+  { file: "overview-narr-1.mp3", text: "Keep your same phone number. Forward unanswered calls to Effiroad." },
+  { file: "overview-narr-2.mp3", text: "AI picks up every time — voice intake, or press two for a text link." },
+  { file: "overview-narr-3.mp3", text: "We capture the address, loss type, and urgency. P1 water can auto-dispatch your crew." },
+  { file: "overview-narr-4.mp3", text: "Fire, mold, or unclear jobs? You get a text to approve before anyone rolls." },
+  { file: "link-narr-0.mp3", text: "A customer calls your shop late at night." },
+  { file: "link-narr-1.mp3", text: "They press two to get a self-service link by text." },
+  { file: "link-narr-2.mp3", text: "An SMS arrives with a one-minute form — no phone tag needed." },
+  { file: "link-narr-3.mp3", text: "They fill in their name, address, and the issue on their phone." },
+  { file: "link-narr-4.mp3", text: "Done — you get notified and the job is captured." },
 ];
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -60,19 +70,18 @@ async function main() {
     console.log("[demo:tts] OPENAI_API_KEY not set — using Edge TTS (JennyNeural)");
   }
 
-  for (let i = 0; i < VOICE_DEMO_AI_LINES.length; i++) {
-    const text = VOICE_DEMO_AI_LINES[i];
-    const mp3 = path.join(outDir, `voice-ai-${i}.mp3`);
+  for (const clip of CLIPS) {
+    const mp3 = path.join(outDir, clip.file);
     if (useOpenAi) {
-      const buf = await openAiTts(text, key);
+      const buf = await openAiTts(clip.text, key);
       await writeFile(mp3, buf);
     } else {
-      await edgeTts(text, mp3);
+      await edgeTts(clip.text, mp3);
     }
     console.log("Wrote", mp3);
   }
 
-  console.log("Done —", VOICE_DEMO_AI_LINES.length, "AI voice clips");
+  console.log("Done —", CLIPS.length, "demo audio clips");
 }
 
 main().catch((e) => {

@@ -19,6 +19,7 @@
     "demo:record": "node scripts/record-effroad-demos.mjs",
     "demo:tts": "node scripts/generate-demo-tts.mjs",
     "demo:mux-voice": "node scripts/mux-demo-voice-audio.mjs",
+    "demo:mux-audio": "node scripts/mux-demo-audio.mjs all",
     "og:image": "node scripts/generate-og-image.mjs",
     "seo:ping": "node scripts/seo-post-deploy.mjs",
     "seo:indexnow": "node scripts/indexnow-submit.mjs",

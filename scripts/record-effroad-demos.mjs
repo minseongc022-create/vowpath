@@ -119,11 +119,11 @@ async function main() {
   }
 
   try {
-    console.log("[demo:record] Generating AI voice + muxing into voice demo…");
+    console.log("[demo:record] Generating narration + muxing audio into all demos…");
     execSync("npm run demo:tts", { cwd: ROOT, stdio: "inherit" });
-    execSync("npm run demo:mux-voice", { cwd: ROOT, stdio: "inherit" });
+    execSync("node scripts/mux-demo-audio.mjs all", { cwd: ROOT, stdio: "inherit" });
   } catch (e) {
-    console.warn("[demo:record] Voice audio mux skipped:", e.message ?? e);
+    console.warn("[demo:record] Demo audio mux skipped:", e.message ?? e);
   }
 
   console.log("[demo:record] Done —", SCENES.length, "demos in public/videos/");
