@@ -18,9 +18,10 @@ type VerifyState = {
 type Props = {
   provider: ForwardingProviderId;
   onVerified?: () => void;
+  onTestStarted?: () => void;
 };
 
-export function ForwardingTestPanel({ provider, onVerified }: Props) {
+export function ForwardingTestPanel({ provider, onVerified, onTestStarted }: Props) {
   const [state, setState] = useState<VerifyState | null>(null);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export function ForwardingTestPanel({ provider, onVerified }: Props) {
       }
       setState(data);
       setListening(true);
+      onTestStarted?.();
 
       pollRef.current = setInterval(() => {
         void fetch("/api/phone/forwarding-verify")

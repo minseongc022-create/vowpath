@@ -10,7 +10,10 @@ export type ForwardingProviderId =
   | "google_voice"
   | "att"
   | "tmobile"
-  | "verizon";
+  | "verizon"
+  | "xfinity"
+  | "ringcentral"
+  | "grasshopper";
 
 export type ForwardingProvider = {
   id: ForwardingProviderId;
@@ -36,7 +39,10 @@ export function normalizeForwardingProvider(value?: string | null): ForwardingPr
     value === "google_voice" ||
     value === "att" ||
     value === "tmobile" ||
-    value === "verizon"
+    value === "verizon" ||
+    value === "xfinity" ||
+    value === "ringcentral" ||
+    value === "grasshopper"
   ) {
     return value;
   }
@@ -57,8 +63,15 @@ export const FORWARDING_AFTER_HOURS_NOTE =
 export const FORWARDING_IPHONE_WARNING =
   "Do not use iPhone Settings → Phone → Call Forwarding — that forwards every call unconditionally. Use the steps below instead.";
 
+export const FORWARDING_EFFIROAD_MAIN_FEATURES = [
+  "No carrier star codes, no Dialpad admin — customers dial your Effiroad number directly.",
+  "You control Answer Hours: AI answers when you are closed; during open hours you can still take live calls on your cell.",
+  "Works on every phone plan — prepaid, business, Google Voice limits do not apply.",
+  "Update Google Business Profile, website, and truck signage once — then test by calling the Effiroad number.",
+] as const;
+
 export const FORWARDING_PROVIDER_NOTE =
-  "Steps verified for Effiroad-as-main-line, Google Voice, Dialpad, AT&T, T-Mobile, and Verizon. Prepaid or locked-down business lines may need carrier support.";
+  "Steps verified for Effiroad dedicated line, Google Voice, Dialpad, RingCentral, Grasshopper, AT&T, T-Mobile, Verizon, and Xfinity Mobile.";
 
 export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
   {
@@ -91,6 +104,21 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
     id: "verizon",
     label: "Verizon Wireless",
     hint: "Shop cell on Verizon — *71 or My Verizon app",
+  },
+  {
+    id: "xfinity",
+    label: "Xfinity Mobile",
+    hint: "Comcast Xfinity cell — *71 from the phone (Verizon-network codes)",
+  },
+  {
+    id: "ringcentral",
+    label: "RingCentral",
+    hint: "RingCentral admin — sequential ring then external number",
+  },
+  {
+    id: "grasshopper",
+    label: "Grasshopper",
+    hint: "Grasshopper extension — add Effiroad as forwarding number",
   },
 ];
 
@@ -140,6 +168,25 @@ export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> 
     "iPhone: disable Live Voicemail; do not use Settings → Call Forwarding.",
     `Still blocked? Call Verizon 800-922-0204 — ask to enable conditional call forwarding.`,
   ],
+  xfinity: [
+    "Dial *71 + Effiroad number from the Xfinity Mobile phone only — cannot activate from web.",
+    "Never *72 (forwards every call without ringing your phone).",
+    "Turn off with *73 before retrying.",
+    "iPhone: disable Live Voicemail so voicemail does not beat the forward.",
+    "If forwarding still fails after all steps: switch to Effiroad dedicated number (no codes needed).",
+  ],
+  ringcentral: [
+    "Use Admin Portal → call handling → ring your cell sequentially ~5–8 sec, then external Effiroad number.",
+    "Choose Sequentially — not Simultaneously — under Phones Will Ring.",
+    "Enable caller ID pass-through (original caller, not your RingCentral line).",
+    "Transfer-back number must differ from your main RingCentral line to avoid loops.",
+  ],
+  grasshopper: [
+    "Extensions → Edit → Add forwarding number → Effiroad number.",
+    "Select “Calls will connect to you as soon as you pick up” — not press-1 screening.",
+    "Set Caller ID to the caller’s number, not your Grasshopper line.",
+    "Toggle the Effiroad line ON and Save.",
+  ],
 };
 
 export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId, string> = {
@@ -151,6 +198,9 @@ export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId
   att: "On Dialpad or Jobber Phone instead? Switch provider above for app-based setup.",
   tmobile: "On Dialpad or Jobber Phone instead? Switch provider above.",
   verizon: "Prepaid or business line? Expand “If something blocks you” below for alternate paths.",
+  xfinity: "Xfinity only allows *71 from the mobile device — no web portal. Still stuck? Use Effiroad dedicated number.",
+  ringcentral: "RingCentral UI changed? See support.ringcentral.com call forwarding — or use Effiroad dedicated number.",
+  grasshopper: "Call screening (“press 1”)? Set direct connect on the forwarding number in Grasshopper.",
 };
 
 export const FORWARDING_TROUBLESHOOTING_FALLBACK =
@@ -261,6 +311,47 @@ export function getForwardingGuideSteps(
       "More options: https://support.t-mobile.com/docs/DOC-4041",
       FORWARDING_IPHONE_WARNING,
       "Test: call your shop number from another phone and do not answer.",
+    ];
+  }
+
+  if (provider === "xfinity") {
+    return [
+      "Use the Xfinity Mobile phone that receives your shop's customer calls (Xfinity official + Smith.ai verified).",
+      "Do NOT use *72 — that forwards every call without ringing your phone.",
+      `On the Xfinity phone, dial *71${tenDigit} then press Call.`,
+      "Wait for confirmation tone or message. Activation only works from the Xfinity device — not web or another phone.",
+      "To remove: dial *73 and press Call.",
+      FORWARDING_IPHONE_WARNING,
+      "Note: Xfinity does not let you choose ring count — about 5 rings before forward is normal.",
+      "Test: call your shop number from another phone and let it ring without answering.",
+    ];
+  }
+
+  if (provider === "ringcentral") {
+    return [
+      "Log in to RingCentral Admin Portal (Smith.ai verified overflow pattern):",
+      "Go to Phone System → Users → the user/line that receives shop calls → Call Handling & Forwarding.",
+      "Set your cell to ring first — about 5–8 seconds (never more than 10 sec or callers hang up).",
+      "Under Phones Will Ring: choose Sequentially — not Simultaneously.",
+      `Then add external forward to ${e164} when unanswered or after sequential ring fails.`,
+      "Enable caller ID pass-through so Effiroad sees the original caller number.",
+      "If Effiroad transfers calls back to you, use a different number than your main RingCentral line (avoids loops).",
+      "RingCentral changes their UI often — search support.ringcentral.com for “call forwarding external number” if menus differ.",
+      "Test: call your RingCentral shop number and do not answer.",
+    ];
+  }
+
+  if (provider === "grasshopper") {
+    return [
+      "Log in at grasshopper.com (Smith.ai verified):",
+      "Numbers → confirm which extension your main shop number routes to.",
+      "Extensions → Edit that extension → Add a forwarding number.",
+      `Enter ${e164} as forwarding number.`,
+      "How should Grasshopper handle this number: “Calls will connect to you as soon as you pick up” — NOT press-1 screening.",
+      "Set Caller ID to the caller’s number (not your Grasshopper line).",
+      "Toggle the Effiroad forwarding line ON → Save.",
+      "Pre-2011 accounts: Settings → Extensions → Call Forwarding → Add number (same options).",
+      "Test: call your Grasshopper number and let it route to Effiroad.",
     ];
   }
 

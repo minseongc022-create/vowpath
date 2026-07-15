@@ -203,6 +203,7 @@ export function getForwardingUnblockGuides(
           `Or shorter: ${tenOnly} (10-digit destination, no leading 1).`,
           "Clear all rules: ##004# then retry.",
           `Call ${TMO_SUPPORT} — request conditional call forwarding enabled.`,
+          "Done everything? Switch to Effiroad dedicated number — no codes required.",
         ],
       },
       {
@@ -222,6 +223,75 @@ export function getForwardingUnblockGuides(
           "Dial ##61# to reset, then re-apply code.",
           "T-Mobile Visual Voicemail: shorten voicemail ring in T-Mobile app if available.",
           "iPhone Live Voicemail → OFF.",
+        ],
+      },
+    ];
+  }
+
+  if (provider === "xfinity") {
+    const star71 = `*71${td}`;
+    return [
+      {
+        id: "xf-device-only",
+        problem: "Cannot activate from computer or another phone",
+        steps: [
+          "Xfinity only allows *71 from the Xfinity Mobile device itself — this is normal.",
+          `On the shop Xfinity phone: ${star71} → wait for confirmation.`,
+          `Turn off first: *73, then retry ${star71}.`,
+        ],
+      },
+      {
+        id: "xf-voicemail",
+        problem: "Voicemail answers before Effiroad",
+        steps: [
+          "iPhone: Settings → Phone → Live Voicemail → OFF.",
+          `Re-apply ${star71} after *73 reset.`,
+          "Still failing? Use Effiroad dedicated number instead of forwarding.",
+        ],
+      },
+    ];
+  }
+
+  if (provider === "ringcentral") {
+    return [
+      {
+        id: "rc-ui-changed",
+        problem: "Menus do not match the guide",
+        steps: [
+          "Search support.ringcentral.com for “call forwarding external number”.",
+          "Use sequential ring (5–8 sec) then external — not simultaneous ring.",
+          "Enable original caller ID pass-through.",
+          "Still stuck? Switch to Effiroad dedicated number.",
+        ],
+      },
+      {
+        id: "rc-loop",
+        problem: "Calls loop or drop",
+        steps: [
+          "Transfer-back number must differ from your main RingCentral line.",
+          "Do not forward 100% of calls unconditionally unless you intend to.",
+        ],
+      },
+    ];
+  }
+
+  if (provider === "grasshopper") {
+    return [
+      {
+        id: "gh-press1",
+        problem: "Receptionist hears “press 1 to accept”",
+        steps: [
+          "Extensions → Edit forwarding number → “Calls will connect as soon as you pick up”.",
+          "Disable call screening / call announce on that forwarding number.",
+        ],
+      },
+      {
+        id: "gh-wrong-ext",
+        problem: "Calls never reach Effiroad",
+        steps: [
+          "Numbers tab → confirm which extension your main line uses.",
+          "Edit that extension’s forwarding list — Effiroad line must be toggled ON.",
+          "Set Caller ID to caller’s number.",
         ],
       },
     ];

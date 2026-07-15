@@ -13,6 +13,7 @@ export const normalizeForwardingScenario = guides.normalizeForwardingScenario;
 export const normalizeForwardingProvider = guides.normalizeForwardingProvider;
 export const FORWARDING_OVERFLOW_SUMMARY = guides.FORWARDING_OVERFLOW_SUMMARY;
 export const FORWARDING_EFFIROAD_MAIN_SUMMARY = guides.FORWARDING_EFFIROAD_MAIN_SUMMARY;
+export const FORWARDING_EFFIROAD_MAIN_FEATURES = guides.FORWARDING_EFFIROAD_MAIN_FEATURES;
 export const isDirectEffiroadLineProvider = guides.isDirectEffiroadLineProvider;
 export const FORWARDING_AFTER_HOURS_NOTE = guides.FORWARDING_AFTER_HOURS_NOTE;
 export const FORWARDING_IPHONE_WARNING = guides.FORWARDING_IPHONE_WARNING;

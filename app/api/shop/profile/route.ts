@@ -23,6 +23,9 @@ const PROVIDERS = new Set<ForwardingProviderId>([
   "att",
   "tmobile",
   "verizon",
+  "xfinity",
+  "ringcentral",
+  "grasshopper",
 ]);
 const DASHBOARD_METRIC_IDS = new Set<TrendChartSeriesId>(
   TREND_CHART_SERIES.map((s) => s.id),

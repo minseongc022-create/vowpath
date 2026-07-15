@@ -79,14 +79,21 @@ export function getCarrierQuickActions(
     ];
   }
 
-  if (provider === "verizon") {
+  if (provider === "verizon" || provider === "xfinity") {
     const code = `*71${td}`;
+    const label =
+      provider === "xfinity"
+        ? "Xfinity — dial *71 code"
+        : "Verizon — dial *71 code";
+    const description =
+      provider === "xfinity"
+        ? "Xfinity official conditional forward — activate only from the Xfinity phone."
+        : "Official Verizon conditional forward (no-answer + busy). Phone rings first, then Effiroad.";
     return [
       {
-        id: "verizon-conditional",
-        label: "Verizon — dial *71 code",
-        description:
-          "Official Verizon conditional forward (no-answer + busy). Phone rings first, then Effiroad.",
+        id: `${provider}-conditional`,
+        label,
+        description,
         dial: code,
         copyText: code,
         deactivateDial: "*73",
@@ -104,4 +111,7 @@ export const VERIZON_CALL_FORWARDING_WEB = "https://m.vzw.com/callforwarding";
 export const VERIZON_FORWARDING_FAQ = "https://www.verizon.com/support/call-forwarding-faqs/";
 export const DIALPAD_FORWARDING_URL = "https://dialpad.com/app";
 export const DIALPAD_ADMIN_MAIN_LINE_URL = "https://dialpad.com/officesettings";
-export const ATT_FORWARDING_SUPPORT = "800-331-0500";
+export const XFINITY_FORWARDING_FAQ =
+  "https://www.xfinity.com/support/articles/how-to-use-call-forwarding";
+export const RINGCENTRAL_ADMIN_URL = "https://service.ringcentral.com/";
+export const GRASSHOPPER_LOGIN_URL = "https://grasshopper.com/login/";

@@ -10,7 +10,10 @@ export type ForwardingProviderId =
   | "google_voice"
   | "att"
   | "tmobile"
-  | "verizon";
+  | "verizon"
+  | "xfinity"
+  | "ringcentral"
+  | "grasshopper";
 
 export type ForwardingProvider = {
   id: ForwardingProviderId;
@@ -36,7 +39,10 @@ export function normalizeForwardingProvider(value?: string | null): ForwardingPr
     value === "google_voice" ||
     value === "att" ||
     value === "tmobile" ||
-    value === "verizon"
+    value === "verizon" ||
+    value === "xfinity" ||
+    value === "ringcentral" ||
+    value === "grasshopper"
   ) {
     return value;
   }
@@ -92,6 +98,21 @@ export const FORWARDING_PROVIDERS: ForwardingProvider[] = [
     label: "Verizon Wireless",
     hint: "Verizon — *71 또는 My Verizon",
   },
+  {
+    id: "xfinity",
+    label: "Xfinity Mobile",
+    hint: "Xfinity 휴대폰 — *71",
+  },
+  {
+    id: "ringcentral",
+    label: "RingCentral",
+    hint: "RingCentral admin — 순차 울림 후 외부 번호",
+  },
+  {
+    id: "grasshopper",
+    label: "Grasshopper",
+    hint: "Grasshopper extension — Effiroad 착신 추가",
+  },
 ];
 
 export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> = {
@@ -138,6 +159,9 @@ export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> 
     "Live Voicemail 끄기.",
     `막히면 Verizon 800-922-0204 — 조건부 착신전환 요청.`,
   ],
+  xfinity: ["*71만 — Xfinity 폰에서만 활성화.", "*72 금지.", "실패 시 Effiroad 전용번호."],
+  ringcentral: ["순차 울림 5–8초 후 external.", "Simultaneous 금지.", "caller ID pass-through."],
+  grasshopper: ["Extension → forwarding → direct connect.", "press-1 screening 끄기."],
 };
 
 export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId, string> = {
@@ -147,6 +171,9 @@ export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId
   att: "Dialpad 사용 시 제공자 변경.",
   tmobile: "Dialpad 사용 시 제공자 변경.",
   verizon: "막히면 아래 우회 가이드 참고.",
+  xfinity: "Xfinity는 폰에서만 *71 — 안 되면 Effiroad 전용번호.",
+  ringcentral: "RingCentral UI 다르면 support 문서 — 또는 Effiroad 전용번호.",
+  grasshopper: "press 1 안내 끄기 — direct connect.",
 };
 
 export const FORWARDING_TROUBLESHOOTING_FALLBACK =
@@ -249,8 +276,34 @@ export function getForwardingGuideSteps(
       `  통화중: ${busy}`,
       `  통화불가: ${unreachable}`,
       "해제: ##61#, ##67#, ##62#, ##004#",
-      FORWARDING_IPHONE_WARNING,
-      "가게 번호로 테스트.",
+    FORWARDING_IPHONE_WARNING,
+    "가게 번호로 테스트.",
+    ];
+  }
+
+  if (provider === "xfinity") {
+    return [
+      `Xfinity 폰에서 *71${tenDigit} → 통화 (*72 금지).`,
+      "Xfinity 기기에서만 활성화 가능.",
+      "해제: *73",
+      "테스트: 샵 번호로 전화.",
+    ];
+  }
+
+  if (provider === "ringcentral") {
+    return [
+      "RingCentral Admin → Call Handling → 순차 울림 5–8초.",
+      `미응답 시 external ${e164}.`,
+      "caller ID pass-through.",
+      "테스트: RingCentral 샵 번호로 전화.",
+    ];
+  }
+
+  if (provider === "grasshopper") {
+    return [
+      "grasshopper.com → Extensions → forwarding 추가.",
+      `${e164} — direct connect, caller ID on.`,
+      "테스트: Grasshopper 번호로 전화.",
     ];
   }
 

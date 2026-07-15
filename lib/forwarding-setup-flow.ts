@@ -3,8 +3,11 @@ import {
   DIALPAD_FORWARDING_URL,
   getCarrierQuickActions,
   GOOGLE_VOICE_SETTINGS_URL,
+  GRASSHOPPER_LOGIN_URL,
+  RINGCENTRAL_ADMIN_URL,
   VERIZON_CALL_FORWARDING_WEB,
   VERIZON_FORWARDING_FAQ,
+  XFINITY_FORWARDING_FAQ,
   VERIZON_MY_VERIZON_URL,
 } from "./forwarding-carrier-codes";
 import { isDirectEffiroadLineProvider, type ForwardingProviderId } from "./forwarding-guides-en";
@@ -132,6 +135,62 @@ export function getOrderedSetupActions(
       },
     ];
     return actions;
+  }
+
+  if (provider === "ringcentral") {
+    return [
+      {
+        id: "rc-admin",
+        order: 1,
+        label: "Open RingCentral Admin",
+        description: "Phone System → User → Call Handling → sequential ring then external number.",
+        externalHref: RINGCENTRAL_ADMIN_URL,
+        externalLabel: "RingCentral admin",
+        copyText: effiroadE164,
+      },
+    ];
+  }
+
+  if (provider === "grasshopper") {
+    return [
+      {
+        id: "gh-login",
+        order: 1,
+        label: "Open Grasshopper",
+        description: "Extensions → Add forwarding number → Effiroad → direct connect, caller ID on.",
+        externalHref: GRASSHOPPER_LOGIN_URL,
+        externalLabel: "grasshopper.com/login",
+        copyText: effiroadE164,
+      },
+    ];
+  }
+
+  if (provider === "xfinity") {
+    const carrier = getCarrierQuickActions(provider, effiroadE164);
+    const star = carrier[0];
+    return [
+      {
+        id: "xfinity-star",
+        order: 1,
+        label: star?.label ?? "Xfinity *71 code",
+        description: star?.description ?? "Dial from the Xfinity phone only.",
+        tapHref: star ? `tel:${encodeURIComponent(star.dial)}` : undefined,
+        tapLabel: "Dial *71 on this phone",
+        copyText: star?.copyText,
+        deactivateHref: star?.deactivateDial
+          ? `tel:${encodeURIComponent(star.deactivateDial)}`
+          : undefined,
+        deactivateLabel: "Turn off (*73)",
+      },
+      {
+        id: "xfinity-faq",
+        order: 2,
+        label: "Xfinity official guide",
+        description: "Xfinity support article — *71 only, no web activation.",
+        externalHref: XFINITY_FORWARDING_FAQ,
+        externalLabel: "Xfinity forwarding help",
+      },
+    ];
   }
 
   const carrier = getCarrierQuickActions(provider, effiroadE164);
