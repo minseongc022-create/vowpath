@@ -377,7 +377,10 @@ export function EffiroadAssistantWidget() {
             aria-label={unread ? copy.newReply : copy.open}
             onClick={openChat}
           >
-            <EffiroadAiMark size={56} variant="orb" />
+            <EffiroadAiMark
+              size={56}
+              className="shadow-[0_4px_20px_rgb(61_50_40_/_0.26),0_2px_8px_rgb(61_50_40_/_0.14)]"
+            />
             {unreadDot}
           </button>
         </div>
