@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 import { summarizeWorkflowRule } from "@/lib/workflow-rules/format";
 import type { WorkflowRule } from "@/lib/workflow-rules/types";
 import { WorkflowRuleEditor } from "@/components/settings/WorkflowRuleEditor";
 
 export function AutomationRulesView() {
-  const isEnglish = useIsEnglishUi();
   const [rules, setRules] = useState<WorkflowRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,8 +16,6 @@ export function AutomationRulesView() {
   const [simResults, setSimResults] = useState<
     { bookingId: string; issueType: string; summary: string }[]
   >([]);
-
-  const locale = isEnglish ? "en" : "ko";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,11 +76,7 @@ export function AutomationRulesView() {
   }
 
   async function deleteRule(rule: WorkflowRule) {
-    const ok = window.confirm(
-      isEnglish
-        ? `Delete "${rule.name}"? This cannot be undone.`
-        : `"${rule.name}" 규칙을 삭제할까요? 되돌릴 수 없습니다.`,
-    );
+    const ok = window.confirm(`Delete "${rule.name}"? This cannot be undone.`);
     if (!ok) return;
     setBusyId(rule.id);
     try {
@@ -105,30 +97,24 @@ export function AutomationRulesView() {
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {isEnglish ? "Automation" : "자동화"}
-          </p>
-          <h2 className="mt-1 text-lg font-bold text-slate-900">
-            {isEnglish ? "Automation Rules" : "운영 규칙"}
-          </h2>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Automation</p>
+          <h2 className="mt-1 text-lg font-bold text-slate-900">Automation Rules</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            {isEnglish
-              ? "IF/THEN rules run when customers pick a time. Create rules in Effiroad AI or manage them here."
-              : "고객이 시간을 선택할 때 IF/THEN 규칙이 실행됩니다. Effiroad AI로 만들거나 여기서 관리하세요."}
+            IF/THEN rules run when customers pick a time. Create rules in Effiroad AI or manage them here.
           </p>
         </div>
         <Link
           href="/dashboard/ai"
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
-          {isEnglish ? "Create with AI" : "AI로 만들기"}
+          Create with AI
         </Link>
         <button
           type="button"
           onClick={() => setShowEditor((v) => !v)}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
         >
-          {isEnglish ? "Manual rule" : "직접 만들기"}
+          Manual rule
         </button>
         <button
           type="button"
@@ -136,13 +122,7 @@ export function AutomationRulesView() {
           onClick={() => void runSimulation()}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
         >
-          {simulating
-            ? isEnglish
-              ? "Simulating..."
-              : "시뮬레이션 중..."
-            : isEnglish
-              ? "Simulate (30d)"
-              : "시뮬레이션 (30일)"}
+          {simulating ? "Simulating..." : "Simulate (30d)"}
         </button>
       </div>
 
@@ -159,7 +139,7 @@ export function AutomationRulesView() {
       {simResults.length > 0 ? (
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
           <p className="font-semibold text-slate-800">
-            {isEnglish ? "Simulation matches" : "시뮬레이션 결과"} ({simResults.length})
+            Simulation matches ({simResults.length})
           </p>
           <ul className="mt-2 space-y-1 text-slate-700">
             {simResults.slice(0, 8).map((r) => (
@@ -178,16 +158,12 @@ export function AutomationRulesView() {
       ) : null}
 
       {loading ? (
-        <p className="mt-6 text-sm text-slate-500">{isEnglish ? "Loading..." : "불러오는 중..."}</p>
+        <p className="mt-6 text-sm text-slate-500">Loading...</p>
       ) : rules.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-          <p className="text-sm font-medium text-slate-700">
-            {isEnglish ? "No automation rules yet" : "저장된 운영 규칙이 없습니다"}
-          </p>
+          <p className="text-sm font-medium text-slate-700">No automation rules yet</p>
           <p className="mt-2 text-sm text-slate-500">
-            {isEnglish
-              ? 'Try: "Auto approve No Cooling" or "Weekend bookings need approval"'
-              : '"No Cooling은 자동 승인해줘" 또는 "주말 예약은 승인 필요"'}
+            Try: &quot;Auto approve No Cooling&quot; or &quot;Weekend bookings need approval&quot;
           </p>
         </div>
       ) : (
@@ -208,28 +184,20 @@ export function AutomationRulesView() {
                           : "bg-slate-200 text-slate-600"
                       }`}
                     >
-                      {rule.enabled
-                        ? isEnglish
-                          ? "Active"
-                          : "활성"
-                        : isEnglish
-                          ? "Off"
-                          : "비활성"}
+                      {rule.enabled ? "Active" : "Off"}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-slate-700">
-                    {summarizeWorkflowRule(rule, locale)}
+                    {summarizeWorkflowRule(rule, "en")}
                   </p>
                   <p className="mt-2 text-xs text-slate-500">
-                    {isEnglish ? "Created" : "생성"}:{" "}
-                    {new Date(rule.createdAt).toLocaleDateString(isEnglish ? "en-US" : "ko-KR")}
+                    Created: {new Date(rule.createdAt).toLocaleDateString("en-US")}
                     {" · "}
-                    {isEnglish ? "Updated" : "수정"}:{" "}
-                    {new Date(rule.updatedAt).toLocaleDateString(isEnglish ? "en-US" : "ko-KR")}
+                    Updated: {new Date(rule.updatedAt).toLocaleDateString("en-US")}
                     {typeof rule.matchCount === "number" && rule.matchCount > 0 ? (
                       <>
                         {" · "}
-                        {isEnglish ? "Matched" : "적용"}: {rule.matchCount}
+                        Matched: {rule.matchCount}
                       </>
                     ) : null}
                   </p>
@@ -241,13 +209,7 @@ export function AutomationRulesView() {
                     onClick={() => void toggleRule(rule)}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                   >
-                    {rule.enabled
-                      ? isEnglish
-                        ? "Turn off"
-                        : "끄기"
-                      : isEnglish
-                        ? "Turn on"
-                        : "켜기"}
+                    {rule.enabled ? "Turn off" : "Turn on"}
                   </button>
                   <button
                     type="button"
@@ -255,7 +217,7 @@ export function AutomationRulesView() {
                     onClick={() => void deleteRule(rule)}
                     className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
-                    {isEnglish ? "Delete" : "삭제"}
+                    Delete
                   </button>
                 </div>
               </div>

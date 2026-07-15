@@ -1,7 +1,6 @@
 import { siteGetStarted, sitePricing as pricing } from "@/lib/site-content";
 import type { PlanId } from "@/lib/constants";
-import { checkoutErrorMessage, checkoutErrorMessageKo } from "@/lib/checkout-errors";
-import { isEnglishUi } from "@/lib/locale";
+import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
 type PlanCheckoutProps = {
@@ -16,11 +15,8 @@ export function PlanCheckout({
   checkoutErrorCode,
 }: PlanCheckoutProps) {
   const page = siteGetStarted;
-  const en = isEnglishUi() && "payLabel" in page;
   const bannerError = checkoutErrorCode
-    ? en
-      ? checkoutErrorMessage(checkoutErrorCode)
-      : checkoutErrorMessageKo(checkoutErrorCode)
+    ? checkoutErrorMessage(checkoutErrorCode)
     : null;
 
   return (
@@ -35,12 +31,12 @@ export function PlanCheckout({
         {pricing.plans.map((plan) => {
           const isSelected = plan.id === selectedPlan;
           const payLabel = paddleReady
-            ? en && typeof page.payLabel === "function"
+            ? typeof page.payLabel === "function"
               ? page.payLabel(plan.price, plan.period)
-              : `${plan.price}${plan.period} 결제하기`
-            : en && "signupLabel" in page
+              : `Pay ${plan.price}${plan.period}`
+            : "signupLabel" in page
               ? (page.signupLabel as string)
-              : "회원가입하고 시작하기";
+              : "Sign up to get started";
 
           const buttonClass = `inline-flex w-full items-center justify-center rounded-lg px-6 py-3 text-base font-semibold transition-colors ${
             plan.recommended

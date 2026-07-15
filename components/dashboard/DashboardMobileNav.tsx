@@ -122,9 +122,7 @@ export function DashboardMobileNav({
           aria-label="All menu"
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
-          <p className="mb-3 text-center text-sm font-bold text-brand-950">
-            {v.settings === "Settings" ? "All menus" : "전체 메뉴"}
-          </p>
+          <p className="mb-3 text-center text-sm font-bold text-brand-950">All menus</p>
           <div className="grid grid-cols-4 gap-3">
             {moreLinks.map((link) => {
               const active = link.match(pathname);

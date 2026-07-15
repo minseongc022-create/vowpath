@@ -25,7 +25,6 @@ const EXAMPLES_PUBLIC_KO: ExamplePrompt[] = [
 
 export function getPublicExamplePrompts(locale: UiLocale): ExamplePrompt[] {
   if (locale === "es") return EXAMPLES_PUBLIC_ES;
-  if (locale === "ko") return EXAMPLES_PUBLIC_KO;
   return EXAMPLES_PUBLIC_EN;
 }
 
@@ -53,31 +52,6 @@ export function getAssistantWidgetCopy(locale: UiLocale, displayName: string, us
       errorRetry: "Inténtalo de nuevo en un momento.",
       errorGeneric: "Algo salió mal. Inténtalo de nuevo.",
       errorLoad: "No pude cargar eso ahora.",
-    };
-  }
-  if (locale === "ko") {
-    return {
-      name: "Effiroad AI",
-      hint: useShopAi
-        ? "AI 버튼을 눌러 설정·통화·샵 운영을 물어보세요."
-        : "여기를 눌러 Effiroad 소개, 요금, 시작 방법을 물어보세요.",
-      headline: useShopAi
-        ? displayName
-          ? `안녕하세요, ${displayName.split(" ")[0]}님`
-          : "무슨 생각을 하고 계신가요?"
-        : "Effiroad가 궁금하신가요?",
-      placeholder: useShopAi ? "무엇이든 물어보세요" : "Effiroad에 대해 물어보세요…",
-      close: "닫기",
-      open: "Effiroad AI 열기",
-      thinking: "생각 중…",
-      thinkingBackground: "Effiroad AI가 답변 중…",
-      fullAi: "전체 AI 화면",
-      newReply: "새 AI 답변",
-      examples: "예시",
-      send: "전송",
-      errorRetry: "잠시 후 다시 시도해 주세요.",
-      errorGeneric: "오류가 발생했습니다. 다시 시도해 주세요.",
-      errorLoad: "지금은 불러오지 못했습니다.",
     };
   }
   return {

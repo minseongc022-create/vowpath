@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { checkoutErrorMessage, checkoutErrorMessageKo } from "@/lib/checkout-errors";
-import { isEnglishUi } from "@/lib/locale";
+import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 
 /**
@@ -11,12 +10,11 @@ import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
  */
 export default function PayPage() {
   const [error, setError] = useState<string | null>(null);
-  const en = isEnglishUi();
 
   useEffect(() => {
     const transactionId = new URLSearchParams(window.location.search).get("_ptxn");
     if (!transactionId) {
-      setError(en ? "missing_transaction" : "missing_transaction");
+      setError("missing_transaction");
       return;
     }
 
@@ -33,15 +31,9 @@ export default function PayPage() {
     return () => {
       cancelled = true;
     };
-  }, [en]);
+  }, []);
 
-  const message = error
-    ? en
-      ? checkoutErrorMessage(error)
-      : checkoutErrorMessageKo(error)
-    : en
-      ? "Loading checkout…"
-      : "결제창을 불러오는 중…";
+  const message = error ? checkoutErrorMessage(error) : "Loading checkout…";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-950 px-4">

@@ -29,13 +29,6 @@ const EXAMPLES_DASHBOARD_EN: ExamplePrompt[] = [
   { icon: "🚚", label: "Crew on-call", question: "How do I add techs and set on-call hours?" },
 ];
 
-const EXAMPLES_DASHBOARD_KO: ExamplePrompt[] = [
-  { icon: "📊", label: "오늘 현황", question: "오늘 샵 운영 브리핑 해줘" },
-  { icon: "⏳", label: "승인 대기", question: "승인 대기 중인 요청 있어?" },
-  { icon: "☎️", label: "전화 설정", question: "착신전환은 어디서 설정해?" },
-  { icon: "🚚", label: "크루 온콜", question: "기사 추가랑 온콜 스케줄 어떻게 해?" },
-];
-
 function IconSend() {
   return (
     <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -127,7 +120,7 @@ export function EffiroadAssistantWidget() {
   const copy = getAssistantWidgetCopy(locale, displayName, useShopAi);
 
   const examplePrompts = useMemo(() => {
-    if (useShopAi) return locale === "ko" ? EXAMPLES_DASHBOARD_KO : EXAMPLES_DASHBOARD_EN;
+    if (useShopAi) return EXAMPLES_DASHBOARD_EN;
     return getPublicExamplePrompts(locale);
   }, [useShopAi, locale]);
 

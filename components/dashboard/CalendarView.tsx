@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ROUTES } from "@/lib/constants";
 import { getVowDashboardCopy } from "@/lib/content";
-import { runtimeUiLocale, isEnglishUi } from "@/lib/locale";
+import { runtimeUiLocale } from "@/lib/locale";
 import { safeDashboardFetch } from "@/lib/dashboard-fetch";
 import {
   buildMonthGrid,
@@ -29,7 +29,7 @@ function toIsoDate(d: Date): string {
 }
 
 function formatDayHeading(day: Date): string {
-  return day.toLocaleDateString(isEnglishUi() ? "en-US" : "ko-KR", {
+  return day.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     weekday: "short",
@@ -37,7 +37,7 @@ function formatDayHeading(day: Date): string {
 }
 
 function formatEventTimeShort(startAt: string): string {
-  return new Date(startAt).toLocaleTimeString(isEnglishUi() ? "en-US" : "ko-KR", {
+  return new Date(startAt).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
@@ -272,9 +272,7 @@ export function CalendarView() {
       const q = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
       const res = await safeDashboardFetch(`/api/jobber/schedule?${q}`, 14_000);
       if (!res) {
-        throw new Error(
-          isEnglishUi() ? "Schedule request timed out." : "일정 요청 시간이 초과되었습니다.",
-        );
+        throw new Error("Schedule request timed out.");
       }
       const json = (await res.json()) as ScheduleResponse;
       if (!res.ok) throw new Error(json.error ?? "Load failed");
@@ -288,9 +286,7 @@ export function CalendarView() {
       setError(
         e instanceof Error
           ? e.message
-          : isEnglishUi()
-            ? "Couldn't load schedule."
-            : "일정을 불러오지 못했습니다.",
+          : "Couldn't load schedule.",
       );
     } finally {
       setLoading(false);
@@ -367,7 +363,7 @@ export function CalendarView() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {error}
           {error.toLowerCase().includes("jobber") || error.toLowerCase().includes("connect") ? null : (
-            <span> — {isEnglishUi() ? "Connect Jobber in " : "Jobber를 "}<a href="/dashboard/settings" className="font-semibold underline">{isEnglishUi() ? "Settings" : "설정에서 연결"}</a>{isEnglishUi() ? " to see your schedule." : "하면 일정이 표시됩니다."}</span>
+            <span> — Connect Jobber in <a href="/dashboard/settings" className="font-semibold underline">Settings</a> to see your schedule.</span>
           )}
         </div>
       )}

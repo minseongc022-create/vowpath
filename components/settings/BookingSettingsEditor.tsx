@@ -21,13 +21,12 @@ import {
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
 import { clientFetch, clientFetchTimeoutMessage, redirectToLoginIfUnauthorized } from "@/lib/client-fetch";
-import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 
 const INTERVAL_PRESET_MINUTES = [60, 90, 120, 180] as const;
 
 export function BookingSettingsEditor() {
   const settingsPage = useSettingsPage();
-  const { isEnglish } = useLocale();
   const [settings, setSettings] = useState<ShopBookingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,11 +137,7 @@ export function BookingSettingsEditor() {
     if (!settings) return;
     const sanitized = sanitizeVisitWindowPatch({ ...settings, ...partial });
     if (!sanitized) {
-      setError(
-        isEnglish
-          ? "Morning must end before afternoon starts."
-          : "오전 구간은 오후 시작 전에 끝나야 합니다.",
-      );
+      setError("Morning must end before afternoon starts.");
       return;
     }
     updateLocal(sanitized);
@@ -151,7 +146,7 @@ export function BookingSettingsEditor() {
   function applyContinuousWindow(startHour: number, endHour: number) {
     const patched = patchContinuousVisitWindow(startHour, endHour);
     if (!patched) {
-      setError(isEnglish ? "Close time must be after open time." : "종료 시간은 시작보다 늦어야 합니다.");
+      setError("Close time must be after open time.");
       return;
     }
     updateLocal(patched);
@@ -227,7 +222,7 @@ export function BookingSettingsEditor() {
       <SettingsSectionHeader
         icon="📅"
         eyebrow={settingsPage.bookingPolicyTitle}
-        title={isEnglish ? "Booking & visit times" : "예약 · 방문 시간"}
+        title="Booking & visit times"
         hint={settingsPage.bookingPolicyDescription}
       />
 
@@ -381,7 +376,7 @@ export function BookingSettingsEditor() {
             </div>
             <label className="mt-3 block">
               <span className="text-sm font-medium text-stone-600">
-                {isEnglish ? "Custom (minutes)" : "직접 입력 (분)"}
+                Custom (minutes)
               </span>
               <input
                 type="number"

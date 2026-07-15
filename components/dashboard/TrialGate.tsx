@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isEnglishUi } from "@/lib/locale";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 import { SITE } from "@/lib/constants";
@@ -35,7 +34,6 @@ export function TrialGate({ children }: { children: React.ReactNode }) {
 }
 
 function TrialEndedCard() {
-  const en = isEnglishUi();
   const [feedback, setFeedback] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +66,7 @@ function TrialEndedCard() {
       }
       throw new Error("failed");
     } catch {
-      setError(
-        en
-          ? "Something went wrong. Please try again."
-          : "문제가 발생했어요. 다시 시도해 주세요.",
-      );
+      setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
   }
@@ -80,13 +74,10 @@ function TrialEndedCard() {
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-brand-950/70 p-4 sm:items-center">
       <div className="my-auto w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl border border-surface-border bg-white p-5 shadow-card sm:p-8">
-        <h2 className="text-xl font-bold text-slate-900">
-          {en ? "Your free trial has ended" : "무료 체험이 끝났어요"}
-        </h2>
+        <h2 className="text-xl font-bold text-slate-900">Your free trial has ended</h2>
         <p className="mt-2 text-sm text-slate-600">
-          {en
-            ? `Leave a quick line of feedback and keep going at ${SITE.betaIntroPrice}/mo for ${SITE.betaDiscountYears} years (regular ${SITE.monthlyPrice}/mo).`
-            : `짧은 후기 한 줄만 남겨주시면 ${SITE.betaDiscountYears}년간 ${SITE.betaIntroPrice}/월로 계속 쓰실 수 있어요 (정가 ${SITE.monthlyPrice}/월).`}
+          Leave a quick line of feedback and keep going at {SITE.betaIntroPrice}/mo for{" "}
+          {SITE.betaDiscountYears} years (regular {SITE.monthlyPrice}/mo).
         </p>
 
         <textarea
@@ -94,11 +85,7 @@ function TrialEndedCard() {
           onChange={(e) => setFeedback(e.target.value)}
           rows={3}
           maxLength={2000}
-          placeholder={
-            en
-              ? "What's working, what's not — one line is plenty."
-              : "어떤 점이 좋았고 아쉬웠는지 한 줄만 적어주세요."
-          }
+          placeholder="What's working, what's not — one line is plenty."
           className="mt-4 w-full min-h-[44px] rounded-lg border border-surface-border px-3 py-2.5 text-base text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:text-sm"
         />
         {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
@@ -110,12 +97,8 @@ function TrialEndedCard() {
           className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting
-            ? en
-              ? "Working…"
-              : "처리 중…"
-            : en
-              ? `Submit & unlock ${SITE.betaIntroPrice}/mo`
-              : `제출하고 ${SITE.betaIntroPrice}/월로 계속하기`}
+            ? "Working…"
+            : `Submit & unlock ${SITE.betaIntroPrice}/mo`}
         </button>
 
         <StartCheckoutButton
@@ -123,9 +106,7 @@ function TrialEndedCard() {
           directCheckout
           className="mt-3 block w-full text-center text-sm font-medium text-slate-500 transition hover:text-slate-700"
         >
-          {en
-            ? `No thanks, continue at ${SITE.monthlyPrice}/mo`
-            : `괜찮아요, 정가 ${SITE.monthlyPrice}/월로 계속할게요`}
+          {`No thanks, continue at ${SITE.monthlyPrice}/mo`}
         </StartCheckoutButton>
       </div>
     </div>

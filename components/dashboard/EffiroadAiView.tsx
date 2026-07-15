@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
-import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 import type { EffiroadAiAction, EffiroadAiResponse } from "@/lib/effiroad-ai-query";
 import type { AiAdminPreview } from "@/lib/ai-admin/types";
 
@@ -11,7 +10,7 @@ type Message =
   | { id: string; role: "user"; content: string }
   | ({ id: string; role: "assistant" } & EffiroadAiResponse);
 
-const STARTERS_EN = [
+const STARTERS = [
   "Auto approve No Cooling",
   "Gas smell is always urgent",
   "Weekend bookings need approval",
@@ -22,18 +21,7 @@ const STARTERS_EN = [
   "Show pending approvals",
 ];
 
-const STARTERS_KO = [
-  "No Cooling은 자동 승인해줘",
-  "Gas Smell은 무조건 긴급 처리",
-  "주말 예약은 승인 필요",
-  "아침 SMS 리포트 꺼줘",
-  "운영 규칙 목록 보여줘",
-  "오늘 통화 몇 건이야?",
-  "승인 대기 보여줘",
-  "이번 주 예약 보여줘",
-];
-
-const FALLBACK_SUGGESTIONS_EN = [
+const FALLBACK_SUGGESTIONS = [
   "Pending approvals",
   "Urgent requests",
   "Today's schedule",
@@ -41,12 +29,13 @@ const FALLBACK_SUGGESTIONS_EN = [
   "This week's bookings",
 ];
 
-const FALLBACK_SUGGESTIONS_KO = [
-  "승인 대기 보여줘",
-  "긴급 요청 보여줘",
-  "오늘 일정",
-  "최근 통화",
-  "이번 주 예약",
+const CAPABILITIES = [
+  "Answer questions about calls, bookings & schedule",
+  "Approve or decline pending requests in chat",
+  "Create and manage automation rules by voice",
+  "Change settings — hours, SMS alerts, service areas",
+  "Compare this week vs. last week automatically",
+  "Proactive briefing every time you open this page",
 ];
 
 function ActionButton({
@@ -236,16 +225,13 @@ function AssistantMessage({
   onStatus,
   onAdminConfirm,
   onAdminCancel,
-  isEnglish,
 }: {
   message: Extract<Message, { role: "assistant" }>;
   onAsk: (q: string) => void;
   onStatus: (bookingId: string, status: "approved" | "rejected") => void;
   onAdminConfirm: (preview: AiAdminPreview, password?: string) => Promise<void>;
   onAdminCancel: (preview: AiAdminPreview) => void;
-  isEnglish: boolean;
 }) {
-  const fallbackSuggestions = isEnglish ? FALLBACK_SUGGESTIONS_EN : FALLBACK_SUGGESTIONS_KO;
   return (
     <div className="vow-dash-card max-w-3xl p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -356,10 +342,10 @@ function AssistantMessage({
 
       <div className="mt-5 border-t border-stone-200/80 pt-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-          {isEnglish ? "Would you like me to show:" : "이것도 확인해 드릴까요?"}
+          Would you like me to show:
         </p>
         <div className="vow-ai-scrollbar mt-3 flex gap-2 overflow-x-auto pb-2">
-          {(message.suggestions ?? fallbackSuggestions).map((suggestion) => (
+          {(message.suggestions ?? FALLBACK_SUGGESTIONS).map((suggestion) => (
             <button
               key={suggestion}
               type="button"
@@ -376,9 +362,6 @@ function AssistantMessage({
 }
 
 export function EffiroadAiView() {
-  const isEnglish = useIsEnglishUi();
-  const starters = isEnglish ? STARTERS_EN : STARTERS_KO;
-  const fallbackSuggestions = isEnglish ? FALLBACK_SUGGESTIONS_EN : FALLBACK_SUGGESTIONS_KO;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -403,13 +386,11 @@ export function EffiroadAiView() {
             role: "assistant",
             answer:
               data.answer ??
-              (isEnglish
-                ? "Good morning. I'm ready to help with your shop operations."
-                : "좋은 아침입니다, 사장님. 샵 운영을 도와드릴 준비가 되었습니다."),
+              "Good morning. I'm ready to help with your shop operations.",
             rows: data.rows,
             adminPreview: data.adminPreview,
             actions: data.actions ?? [],
-            suggestions: data.suggestions ?? fallbackSuggestions,
+            suggestions: data.suggestions ?? FALLBACK_SUGGESTIONS,
           },
         ]);
       } catch {
@@ -417,21 +398,19 @@ export function EffiroadAiView() {
           {
             id: "briefing",
             role: "assistant",
-            answer: isEnglish
-              ? "Good morning. Ask about calls, customers, bookings, or shop settings."
-              : "좋은 아침입니다, 사장님. 통화, 고객, 예약, 설정에 대해 물어보세요.",
+            answer: "Good morning. Ask about calls, customers, bookings, or shop settings.",
             actions: [
-              { label: isEnglish ? "Open Calendar" : "캘린더", href: "/dashboard/calendar" },
-              { label: isEnglish ? "Call History" : "통화 기록", href: "/dashboard/missed-calls" },
+              { label: "Open Calendar", href: "/dashboard/calendar" },
+              { label: "Call History", href: "/dashboard/missed-calls" },
             ],
-            suggestions: fallbackSuggestions,
+            suggestions: FALLBACK_SUGGESTIONS,
           },
         ]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [booted, isEnglish, fallbackSuggestions]);
+  }, [booted]);
 
   async function ask(question: string) {
     const q = question.trim();
@@ -464,16 +443,14 @@ export function EffiroadAiView() {
           answer:
             data.answer ??
             data.error ??
-            (isEnglish
-              ? "I couldn't load that data right now. Try a pending approvals or customer name search."
-              : "지금은 데이터를 불러오지 못했습니다. 승인 대기나 고객 이름으로 다시 물어봐 주세요."),
+            "I couldn't load that data right now. Try a pending approvals or customer name search.",
           rows: data.rows,
           bookings: data.bookings,
           customer: data.customer,
           adminPreview: data.adminPreview,
           billingCard: data.billingCard,
           actions: data.actions ?? [],
-          suggestions: data.suggestions ?? fallbackSuggestions,
+          suggestions: data.suggestions ?? FALLBACK_SUGGESTIONS,
         },
       ]);
     } catch {
@@ -482,11 +459,9 @@ export function EffiroadAiView() {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          answer: isEnglish
-            ? "Something went wrong. Please try again in a moment."
-            : "일시적인 오류입니다. 잠시 후 다시 시도해 주세요.",
+          answer: "Something went wrong. Please try again in a moment.",
           actions: [],
-          suggestions: fallbackSuggestions,
+          suggestions: FALLBACK_SUGGESTIONS,
         },
       ]);
     } finally {
@@ -524,10 +499,10 @@ export function EffiroadAiView() {
           answer: data.message ?? data.error ?? "Admin action failed.",
           rows: data.rows,
           actions: [
-            { label: isEnglish ? "Automation Rules" : "운영 규칙", href: "/dashboard/settings" },
-            { label: isEnglish ? "Ask Effiroad AI" : "Effiroad AI", href: "/dashboard/ai" },
+            { label: "Automation Rules", href: "/dashboard/settings" },
+            { label: "Ask Effiroad AI", href: "/dashboard/ai" },
           ],
-          suggestions: fallbackSuggestions,
+          suggestions: FALLBACK_SUGGESTIONS,
         },
       ]);
     } catch {
@@ -536,9 +511,9 @@ export function EffiroadAiView() {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          answer: isEnglish ? "Admin action failed." : "설정 변경에 실패했습니다.",
-          actions: [{ label: isEnglish ? "Open Settings" : "설정 열기", href: "/dashboard/settings" }],
-          suggestions: fallbackSuggestions,
+          answer: "Admin action failed.",
+          actions: [{ label: "Open Settings", href: "/dashboard/settings" }],
+          suggestions: FALLBACK_SUGGESTIONS,
         },
       ]);
     }
@@ -550,11 +525,9 @@ export function EffiroadAiView() {
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        answer: isEnglish
-          ? `${preview.title} was cancelled. No settings were changed.`
-          : `${preview.title} 변경을 취소했습니다. 설정은 변경되지 않았습니다.`,
+        answer: `${preview.title} was cancelled. No settings were changed.`,
         actions: [],
-        suggestions: fallbackSuggestions,
+        suggestions: FALLBACK_SUGGESTIONS,
       },
     ]);
   }
@@ -571,29 +544,13 @@ export function EffiroadAiView() {
         <div className="min-w-0 flex-1">
           <p className="vow-settings-eyebrow">Effiroad AI</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-950 sm:text-3xl">
-            {isEnglish ? "Hi — I'm your Effiroad AI sidekick" : "안녕하세요, Effiroad AI 도우미예요"}
+            Hi — I'm your Effiroad AI sidekick
           </h1>
           <p className="mt-2 text-base leading-relaxed text-stone-600">
-            {isEnglish
-              ? "I pull your live shop data before every answer and suggest concrete next steps. Any settings change requires your confirmation before it saves."
-              : "매 질문마다 실시간 업체 데이터를 먼저 확인하고 구체적인 다음 행동을 제안합니다. 설정 변경은 항상 확인 후 저장됩니다."}
+            I pull your live shop data before every answer and suggest concrete next steps. Any settings change requires your confirmation before it saves.
           </p>
           <ul className="mt-4 grid gap-1.5 text-sm text-stone-500 sm:grid-cols-2">
-            {(isEnglish ? [
-              "Answer questions about calls, bookings & schedule",
-              "Approve or decline pending requests in chat",
-              "Create and manage automation rules by voice",
-              "Change settings — hours, SMS alerts, service areas",
-              "Compare this week vs. last week automatically",
-              "Proactive briefing every time you open this page",
-            ] : [
-              "통화·예약·일정 관련 질문에 바로 답변",
-              "채팅에서 승인 대기 요청을 즉시 처리",
-              "자연어로 자동화 규칙 생성·관리",
-              "영업시간·SMS 알림·서비스 지역 등 설정 변경",
-              "이번 주 vs 저번 주 자동 비교 분석",
-              "페이지 열 때마다 운영 브리핑 자동 제공",
-            ]).map((cap) => (
+            {CAPABILITIES.map((cap) => (
               <li key={cap} className="flex items-start gap-2">
                 <span className="mt-0.5 text-brand-400" aria-hidden>✓</span>
                 {cap}
@@ -601,15 +558,13 @@ export function EffiroadAiView() {
             ))}
           </ul>
           <p className="mt-4 text-xs text-stone-400">
-            {isEnglish
-              ? "Every settings change requires your explicit confirmation before it applies. Effiroad AI never modifies dispatch rules, billing, or account access without your approval."
-              : "모든 설정 변경은 확인 후에만 적용됩니다. 승인 없이 자동으로 변경되는 항목은 없습니다."}
+            Every settings change requires your explicit confirmation before it applies. Effiroad AI never modifies dispatch rules, billing, or account access without your approval.
           </p>
         </div>
       </header>
 
       <div className="vow-ai-scrollbar flex gap-2 overflow-x-auto pb-2">
-        {starters.map((starter) => (
+        {STARTERS.map((starter) => (
           <button
             key={starter}
             type="button"
@@ -634,7 +589,6 @@ export function EffiroadAiView() {
             <AssistantMessage
               key={message.id}
               message={message}
-              isEnglish={isEnglish}
               onAsk={(q) => void ask(q)}
               onStatus={(id, status) => void updateStatus(id, status)}
               onAdminConfirm={confirmAdmin}
@@ -643,9 +597,7 @@ export function EffiroadAiView() {
           ),
         )}
         {loading ? (
-          <p className="text-base text-stone-500">
-            {isEnglish ? "Checking your shop data…" : "샵 데이터 확인 중…"}
-          </p>
+          <p className="text-base text-stone-500">Checking your shop data…</p>
         ) : null}
       </div>
 
@@ -655,7 +607,7 @@ export function EffiroadAiView() {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isEnglish ? "Ask Effiroad AI anything…" : "Effiroad AI에게 무엇이든 물어보세요…"}
+            placeholder="Ask Effiroad AI anything…"
             className="vow-ai-input"
           />
           <button
@@ -663,7 +615,7 @@ export function EffiroadAiView() {
             disabled={!input.trim() || loading}
             className="vow-dash-btn-primary min-h-12 !px-5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isEnglish ? "Ask" : "질문"}
+            Ask
           </button>
         </div>
       </form>

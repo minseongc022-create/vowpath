@@ -16,7 +16,6 @@ import {
 import type { RequestStatus } from "@/lib/booking-policy";
 import type { TenantEvent } from "@/lib/tenant-events";
 import { dashboardUi } from "@/lib/content";
-import { isEnglishUi } from "@/lib/locale";
 import { safeDashboardFetch } from "@/lib/dashboard-fetch";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { JobCard } from "@/lib/types";
@@ -70,9 +69,7 @@ function NotificationRow({
           onChange={() => onToggleSelect?.(item.id)}
           onClick={(e) => e.stopPropagation()}
           className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600"
-          aria-label={
-            isEnglishUi() ? `Select ${item.title}` : `${item.title} 선택`
-          }
+          aria-label={`Select ${item.title}`}
         />
       ) : null}
       <span className="mt-0.5 text-lg leading-none" aria-hidden>
@@ -567,7 +564,7 @@ export function NotificationCenter({
               <button
                 type="button"
                 className="fixed inset-0 z-[90] cursor-default bg-black/5"
-                aria-label={isEnglishUi() ? "Close notifications" : "알림 닫기"}
+                aria-label="Close notifications"
                 onClick={() => setOpen(false)}
               />
               {menuPos ? (

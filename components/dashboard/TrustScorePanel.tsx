@@ -7,7 +7,6 @@ import {
   type TrustScoreBand,
 } from "@/lib/request-trust-score";
 import { dashboardUi } from "@/lib/content";
-import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
 
 const BAND_STYLES: Record<
   TrustScoreBand,
@@ -49,7 +48,6 @@ function reassuranceCopy(trust: RequestTrustScore, t: typeof dashboardUi.booking
 
 export function TrustScorePanel({ trust }: TrustScorePanelProps) {
   const t = dashboardUi.bookingDetail;
-  const isEnglish = useIsEnglishUi();
   const sufficient = trust.hasLinkedCall && isTrustScoreSufficient(trust.score);
   const styles =
     sufficient || trust.band === "high" ? BAND_STYLES.high : BAND_STYLES[trust.band];
@@ -64,9 +62,7 @@ export function TrustScorePanel({ trust }: TrustScorePanelProps) {
           </p>
           <span className="text-[10px] font-medium text-slate-600">
             {t.trustScoreBenchmark} (
-            {isEnglish
-              ? `${TRUST_SCORE_SUFFICIENT_MIN}+ pts`
-              : `${TRUST_SCORE_SUFFICIENT_MIN}점+`}
+            {`${TRUST_SCORE_SUFFICIENT_MIN}+ pts`}
             )
           </span>
         </div>

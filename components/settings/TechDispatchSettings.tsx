@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types";
-import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 import {
@@ -25,60 +25,33 @@ function emptyTech(): TechMember {
   };
 }
 
-function copy(isEnglish: boolean) {
-  return isEnglish
-    ? {
-        loading: "Loading crew settings...",
-        loadError: "Could not load crew settings.",
-        sessionError: "Your session expired. Please sign in again.",
-        retry: "Try again",
-        saveError: "Could not save.",
-        badge: "Crew assignment",
-        title: "Auto-assign when a job confirms",
-        body: "When a job confirms, crew get a text here. Reply 1=accept, 2=pass. When leaving, reply to THIS shop text with minutes (5,10,15,30,45,60) — ex: 30. We text the customer; staff don't text the customer.",
-        enable: "Enable crew text assignment",
-        p1Senior: "Emergencies (P1) — senior techs only",
-        techsLabel: "Your techs",
-        techsHint:
-          "US mobile or KR 010 for testing. Solo test? Use YOUR phone — reply 1 to accept, then 30 when driving.",
-        namePh: "Name",
-        phonePh: "(512) 555-0100",
-        senior: "Senior",
-        remove: "Remove",
-        addTech: "+ Add tech",
-        save: "Save crew settings",
-        saving: "Saving...",
-        saved: "Saved",
-      }
-    : {
-        loading: "기사 설정 불러오는 중...",
-        loadError: "기사 설정을 불러오지 못했습니다.",
-        sessionError: "세션이 만료되었습니다. 다시 로그인해 주세요.",
-        retry: "다시 시도",
-        saveError: "저장에 실패했습니다.",
-        badge: "기사 배치",
-        title: "예약 확정 시 기사에게 자동 제안",
-        body: "예약 확정 시 기사에게 문자. 1=수락, 2=패스. 출발 시 이 업체 번호로 분(5·10·15·30·45·60) 회신 — 예: 30. 고객에게 ETA는 우리가 보냄. 기사가 고객에게 직접 보내지 않음.",
-        enable: "기사 문자 배치 사용",
-        p1Senior: "긴급(P1) — 시니어 기사만",
-        techsLabel: "기사 목록",
-        techsHint:
-          "미국 번호 또는 테스트용 010. 혼자 테스트? 본인 번호 넣고 같은 폰에서 1 → 30 회신.",
-        namePh: "이름",
-        phonePh: "(512) 555-0100",
-        senior: "시니어",
-        remove: "삭제",
-        addTech: "+ 기사 추가",
-        save: "기사 배치 저장",
-        saving: "저장 중...",
-        saved: "저장됨",
-      };
-}
+const COPY = {
+  loading: "Loading crew settings...",
+  loadError: "Could not load crew settings.",
+  sessionError: "Your session expired. Please sign in again.",
+  retry: "Try again",
+  saveError: "Could not save.",
+  badge: "Crew assignment",
+  title: "Auto-assign when a job confirms",
+  body: "When a job confirms, crew get a text here. Reply 1=accept, 2=pass. When leaving, reply to THIS shop text with minutes (5,10,15,30,45,60) — ex: 30. We text the customer; staff don't text the customer.",
+  enable: "Enable crew text assignment",
+  p1Senior: "Emergencies (P1) — senior techs only",
+  techsLabel: "Your techs",
+  techsHint:
+    "US mobile or KR 010 for testing. Solo test? Use YOUR phone — reply 1 to accept, then 30 when driving.",
+  namePh: "Name",
+  phonePh: "(512) 555-0100",
+  senior: "Senior",
+  remove: "Remove",
+  addTech: "+ Add tech",
+  save: "Save crew settings",
+  saving: "Saving...",
+  saved: "Saved",
+} as const;
 
 export function TechDispatchSettings() {
-  const { isEnglish } = useLocale();
   const settingsPage = useSettingsPage();
-  const t = copy(isEnglish);
+  const t = COPY;
   const [settings, setSettings] = useState<TechDispatchSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -10,7 +10,7 @@ import { PaddleApiError, paddleFetch } from "@/lib/paddle-client";
 export class CheckoutUnavailableError extends Error {
   code: string;
 
-  constructor(message = "결제를 시작할 수 없습니다.", code = "unavailable") {
+  constructor(message = "Could not start checkout.", code = "unavailable") {
     super(message);
     this.name = "CheckoutUnavailableError";
     this.code = code;
@@ -58,7 +58,7 @@ export async function createCheckoutSession(
       return { transactionId: "", url: signup.toString() };
     }
     throw new CheckoutUnavailableError(
-      "결제 시스템을 준비 중입니다. 잠시 후 다시 시도해 주세요.",
+      "Checkout is still being set up. Please try again shortly.",
       "not_configured",
     );
   }
@@ -77,7 +77,7 @@ export async function createCheckoutSession(
     const url = result.data?.checkout?.url;
     if (!transactionId) {
       throw new CheckoutUnavailableError(
-        "Checkout session을 생성하지 못했습니다.",
+        "Could not create a checkout session.",
         "missing_transaction",
       );
     }
@@ -111,5 +111,5 @@ export async function getCheckoutRedirectUrl(
     pay.searchParams.set("_ptxn", session.transactionId);
     return pay.toString();
   }
-  throw new CheckoutUnavailableError("Checkout URL을 생성하지 못했습니다.", "missing_transaction");
+  throw new CheckoutUnavailableError("Could not create a checkout URL.", "missing_transaction");
 }

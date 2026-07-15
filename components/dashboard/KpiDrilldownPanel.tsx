@@ -8,7 +8,6 @@ import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 import { ROUTES } from "@/lib/constants";
 import { dashboardUi } from "@/lib/content";
-import { isEnglishUi } from "@/lib/locale";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { KpiDrilldownId, KpiDrilldownItem } from "@/lib/kpi-drilldown";
 import {
@@ -51,9 +50,9 @@ function CallRow({
   const bookingId = `call-${call.call.id}`;
   const name = call.call.customerName?.trim() || call.call.from || "Unknown";
   const issue =
-    call.call.issueType?.trim() ||
+    (call.call.issueType?.trim() ||
     call.call.symptom?.trim() ||
-    (isEnglishUi() ? "Inbound call" : "인바운드 콜");
+    "Inbound call");
 
   return (
     <li>
@@ -136,7 +135,7 @@ function VerificationRow({
       >
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-white">
-            {item.record.snapshot.customerName || (isEnglishUi() ? "Customer" : "고객")}
+            {item.record.snapshot.customerName || "Customer"}
           </p>
           <p className="mt-0.5 truncate text-xs text-slate-500">
             {item.record.snapshot.issueType || item.record.snapshot.address}

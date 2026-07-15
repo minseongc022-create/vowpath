@@ -24,7 +24,7 @@ import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { GuidedTour } from "@/components/shared/GuidedTour";
 import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
-import { useIsEnglishUi, useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -93,8 +93,7 @@ function SettingsViewBody({
   section?: string;
 }) {
   const settingsPage = useSettingsPage();
-  const isEnglish = useIsEnglishUi();
-  const settingsTourSteps = useMemo(() => getSettingsTourSteps(isEnglish), [isEnglish]);
+  const settingsTourSteps = useMemo(() => getSettingsTourSteps(), []);
   const router = useRouter();
   const saveAll = useSettingsSaveAll();
   const [saveBarSaving, setSaveBarSaving] = useState(false);
@@ -585,7 +584,7 @@ function SettingsViewBody({
       <GuidedTour
         steps={settingsTourSteps}
         storageKey="effiroad_settings_tour_v3"
-        tourLabel={isEnglish ? "Setup guide" : "설정 가이드"}
+        tourLabel="Setup guide"
         doneMap={{
           "go-live-contact": contactItem.done,
           "go-live-schedule": scheduleItem.done,

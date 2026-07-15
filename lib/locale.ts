@@ -1,6 +1,6 @@
-/** UI locale — English default; Spanish on marketing site; Korean for legacy dashboard copy. */
+/** UI locale — English default on app; Spanish on marketing site only. */
 
-export type UiLocale = "en" | "ko" | "es";
+export type UiLocale = "en" | "es";
 
 export const UI_LOCALE_STORAGE_KEY = "effiroad:ui-locale";
 export const UI_LOCALE_COOKIE = "effiroad_locale";
@@ -8,21 +8,17 @@ export const UI_LOCALE_COOKIE = "effiroad_locale";
 export const UI_LOCALE = (process.env.NEXT_PUBLIC_LOCALE ?? "en").toLowerCase();
 
 export function defaultUiLocale(): UiLocale {
-  if (UI_LOCALE === "ko" || UI_LOCALE.startsWith("ko-")) return "ko";
   if (UI_LOCALE === "es" || UI_LOCALE.startsWith("es-")) return "es";
   return "en";
 }
 
+/** Legacy Korean values map to English. */
 export function parseUiLocale(value: string | null | undefined): UiLocale | null {
-  if (value === "en" || value === "ko" || value === "es") return value;
-  if (value?.startsWith("ko")) return "ko";
-  if (value?.startsWith("es")) return "es";
-  if (value?.startsWith("en")) return "en";
+  if (!value) return null;
+  if (value === "ko" || value.startsWith("ko")) return "en";
+  if (value === "en" || value.startsWith("en")) return "en";
+  if (value === "es" || value.startsWith("es")) return "es";
   return null;
-}
-
-export function isKoreanUiLocale(locale: UiLocale): boolean {
-  return locale === "ko";
 }
 
 export function isSpanishUiLocale(locale: UiLocale): boolean {
@@ -33,19 +29,18 @@ export function isEnglishUiLocale(locale: UiLocale): boolean {
   return locale === "en";
 }
 
-/** Marketing pages: English or Spanish. Korean maps to English on public site. */
+/** Marketing pages: English or Spanish. */
 export function marketingUiLocale(locale: UiLocale): "en" | "es" {
   return locale === "es" ? "es" : "en";
 }
 
 export function uiLocaleHtmlLang(locale: UiLocale): string {
-  if (locale === "ko") return "ko";
-  if (locale === "es") return "es";
-  return "en";
+  return locale === "es" ? "es" : "en";
 }
 
-export function shopAiLocale(locale: UiLocale): "en" | "ko" {
-  return locale === "ko" ? "ko" : "en";
+/** Dashboard and shop AI are English-only. */
+export function shopAiLocale(_locale: UiLocale = "en"): "en" {
+  return "en";
 }
 
 /** Build-time / fallback when no cookie is available. */
@@ -73,11 +68,21 @@ export function readClientUiLocale(): UiLocale {
   if (typeof window === "undefined") return defaultUiLocale();
 
   const stored = parseUiLocale(localStorage.getItem(UI_LOCALE_STORAGE_KEY));
-  if (stored) return stored;
+  if (stored) {
+    if (localStorage.getItem(UI_LOCALE_STORAGE_KEY) === "ko") {
+      persistUiLocale("en");
+    }
+    return stored;
+  }
 
   const match = document.cookie.match(new RegExp(`${UI_LOCALE_COOKIE}=([^;]+)`));
   const fromCookie = parseUiLocale(match?.[1]);
-  if (fromCookie) return fromCookie;
+  if (fromCookie) {
+    if (match?.[1] === "ko") {
+      persistUiLocale("en");
+    }
+    return fromCookie;
+  }
 
   return defaultUiLocale();
 }
