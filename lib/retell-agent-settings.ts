@@ -3,24 +3,24 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "natural-male-v10-davis-native-2026-07-15";
+export const RETELL_PROMPT_VERSION = "natural-female-v11-jenny-native-2026-07-15";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Steve */
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
+/** Override in Vercel: RETELL_VOICE_ID=11labs-Rachel */
+export const RETELL_FALLBACK_FEMALE_VOICE_ID = "11labs-Rachel";
 
-/** Natural, full American male — prefer naturally thick voices over pitch-shifted darkness. */
+/** Natural, warm American female — professional dispatcher tone. */
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Steve",
-  "Mark",
-  "George",
-  "Marcus",
-  "Dylan",
-  "Eric",
-  "Anthony",
-  "Adrian",
+  "Rachel",
+  "Sarah",
+  "Aria",
+  "Charlotte",
+  "Laura",
+  "Jessica",
+  "Matilda",
+  "Nicole",
 ] as const;
 
 export type RetellVoiceInfo = {
@@ -41,11 +41,11 @@ function isUsEnglishVoice(v: RetellVoiceInfo): boolean {
   return true;
 }
 
-function isMale(v: RetellVoiceInfo): boolean {
-  return (v.gender || "").toLowerCase() === "male";
+function isFemale(v: RetellVoiceInfo): boolean {
+  return (v.gender || "").toLowerCase() === "female";
 }
 
-/** Pick a deep, warm US English male dispatcher — never returns a female voice. */
+/** Pick a warm US English female dispatcher — never returns a male voice. */
 export function pickNaturalReceptionistVoice(
   voices: RetellVoiceInfo[],
   options?: { explicitId?: string; currentVoiceId?: string },
@@ -53,27 +53,27 @@ export function pickNaturalReceptionistVoice(
   const explicit = options?.explicitId?.trim();
   if (explicit) return explicit;
 
-  const americanMales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isMale(v));
+  const americanFemales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isFemale(v));
 
   for (const preferred of RETELL_PREFERRED_VOICE_NAMES) {
-    const hit = americanMales.find((v) =>
+    const hit = americanFemales.find((v) =>
       (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
     );
     if (hit) return hit.voice_id;
   }
 
-  if (americanMales[0]?.voice_id) return americanMales[0].voice_id;
+  if (americanFemales[0]?.voice_id) return americanFemales[0].voice_id;
 
   const current = options?.currentVoiceId;
   const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
-  if (current && currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
+  if (current && currentVoice && isFemale(currentVoice) && isUsEnglishVoice(currentVoice)) {
     return current;
   }
 
-  return RETELL_FALLBACK_MALE_VOICE_ID;
+  return RETELL_FALLBACK_FEMALE_VOICE_ID;
 }
 
-/** Shared PATCH body — deep warm US dispatcher: human, steady, noise-resistant. */
+/** Shared PATCH body — warm US dispatcher: human, steady, noise-resistant. */
 export function buildRetellProductionAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     agent_name: "Effiroad Intake Agent",
