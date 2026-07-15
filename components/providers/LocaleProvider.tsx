@@ -10,8 +10,10 @@ import {
 } from "react";
 import {
   isEnglishUiLocale,
+  isSpanishUiLocale,
   persistUiLocale,
   readClientUiLocale,
+  uiLocaleHtmlLang,
   type UiLocale,
 } from "@/lib/locale";
 import {
@@ -20,11 +22,25 @@ import {
   getSettingsPageCopy,
   getVowDashboardCopy,
 } from "@/lib/content";
+import {
+  getDemoSummary,
+  getNumberChoice,
+  getSiteApprovalLoop,
+  getSiteCta,
+  getSiteFaq,
+  getSiteFooter,
+  getSiteHero,
+  getSiteHowItWorks,
+  getSiteNav,
+  getSitePricing,
+  getSiteSocialProof,
+} from "@/lib/site-content-locale";
 
 type LocaleContextValue = {
   locale: UiLocale;
   setLocale: (locale: UiLocale) => void;
   isEnglish: boolean;
+  isSpanish: boolean;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -42,7 +58,7 @@ export function LocaleProvider({ initialLocale, children }: LocaleProviderProps)
     if (clientLocale !== locale) {
       setLocaleState(clientLocale);
     }
-    document.documentElement.lang = clientLocale === "ko" ? "ko" : "en";
+    document.documentElement.lang = uiLocaleHtmlLang(clientLocale);
   }, [locale]);
 
   const setLocale = (next: UiLocale) => {
@@ -56,6 +72,7 @@ export function LocaleProvider({ initialLocale, children }: LocaleProviderProps)
       locale,
       setLocale,
       isEnglish: isEnglishUiLocale(locale),
+      isSpanish: isSpanishUiLocale(locale),
     }),
     [locale, setLocale],
   );
@@ -73,6 +90,26 @@ export function useLocale(): LocaleContextValue {
 
 export function useIsEnglishUi(): boolean {
   return useLocale().isEnglish;
+}
+
+export function useSiteContent() {
+  const { locale } = useLocale();
+  return useMemo(
+    () => ({
+      hero: getSiteHero(locale),
+      nav: getSiteNav(locale),
+      footer: getSiteFooter(locale),
+      faq: getSiteFaq(locale),
+      pricing: getSitePricing(locale),
+      cta: getSiteCta(locale),
+      howItWorks: getSiteHowItWorks(locale),
+      approvalLoop: getSiteApprovalLoop(locale),
+      socialProof: getSiteSocialProof(locale),
+      demoSummary: getDemoSummary(locale),
+      numberChoice: getNumberChoice(locale),
+    }),
+    [locale],
+  );
 }
 
 export function useVowDashboard() {

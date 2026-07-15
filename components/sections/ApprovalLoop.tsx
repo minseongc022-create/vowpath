@@ -1,4 +1,6 @@
-import { siteApprovalLoop } from "@/lib/site-content";
+"use client";
+
+import { useSiteContent } from "@/components/providers/LocaleProvider";
 import { Container } from "@/components/ui/Container";
 
 type ApprovalLoopContent = {
@@ -78,8 +80,10 @@ function SmsExampleCard({ ex }: { ex: ApprovalLoopContent["smsExample"] }) {
   );
 }
 
-export function ApprovalLoop({ content = siteApprovalLoop }: { content?: ApprovalLoopContent }) {
-  const a = content;
+export function ApprovalLoop({ content }: { content?: ApprovalLoopContent }) {
+  const { approvalLoop: localized } = useSiteContent();
+  const loop = content ?? localized;
+  const a = loop;
   const highlightIds = new Set(["effiroad", "owner"]);
 
   return (

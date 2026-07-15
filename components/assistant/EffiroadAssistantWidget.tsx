@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { getAssistantWidgetCopy, getPublicExamplePrompts } from "@/lib/assistant-public-copy";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { OPEN_AI_EVENT } from "@/lib/assistant-events";
 import {
@@ -20,20 +21,6 @@ import { ROUTES } from "@/lib/constants";
 import { ASSISTANT_HINT_KEY, useAssistantHint } from "@/lib/assistant-hint";
 
 type ExamplePrompt = { icon: string; label: string; question: string };
-
-const EXAMPLES_PUBLIC_EN: ExamplePrompt[] = [
-  { icon: "✨", label: "What is Effiroad?", question: "What is Effiroad and who is it for?" },
-  { icon: "📞", label: "How calls work", question: "How does 24/7 call answering work?" },
-  { icon: "🚚", label: "Auto-dispatch", question: "How does auto-dispatch work?" },
-  { icon: "💰", label: "Pricing & trial", question: "Explain pricing and the free trial" },
-];
-
-const EXAMPLES_PUBLIC_KO: ExamplePrompt[] = [
-  { icon: "✨", label: "Effiroad 소개", question: "Effiroad가 뭐고 누구를 위한 서비스인가요?" },
-  { icon: "📞", label: "통화 응대", question: "24시간 전화 응대는 어떻게 동작하나요?" },
-  { icon: "🚚", label: "자동 디스패치", question: "자동 디스패치는 어떻게 되나요?" },
-  { icon: "💰", label: "요금·체험", question: "요금제와 무료 체험 알려줘" },
-];
 
 const EXAMPLES_DASHBOARD_EN: ExamplePrompt[] = [
   { icon: "📊", label: "Shop briefing", question: "Give me a quick briefing on my shop today" },
@@ -84,7 +71,7 @@ type ComposerProps = {
   placeholder: string;
   loading: boolean;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  isEnglish: boolean;
+  sendLabel: string;
   centered?: boolean;
 };
 
@@ -95,7 +82,7 @@ function AiComposer({
   placeholder,
   loading,
   inputRef,
-  isEnglish,
+  sendLabel,
   centered,
 }: ComposerProps) {
   return (
@@ -115,7 +102,7 @@ function AiComposer({
         type="submit"
         disabled={!input.trim() || loading}
         className="kb-ai-composer-send"
-        aria-label={isEnglish ? "Send" : "전송"}
+        aria-label={sendLabel}
       >
         <IconSend />
       </button>
@@ -125,7 +112,7 @@ function AiComposer({
 
 export function EffiroadAssistantWidget() {
   const pathname = usePathname();
-  const { isEnglish } = useLocale();
+  const { locale } = useLocale();
   const { loggedIn, displayName, inDashboard } = useAssistantContext(pathname);
   const useShopAi = inDashboard && Boolean(loggedIn);
   const { messages, loading, unread, booted, starters } = useAssistantStore();
@@ -137,50 +124,12 @@ export function EffiroadAssistantWidget() {
   const openRef = useRef(open);
   openRef.current = open;
 
-  const copy = isEnglish
-    ? {
-        name: "Effiroad AI",
-        hint: useShopAi
-          ? "Tap the AI button — ask about setup, calls, or your shop."
-          : "Tap here — learn how Effiroad works, pricing, and getting started.",
-        headline: useShopAi
-          ? displayName
-            ? `Hi ${displayName.split(" ")[0]}`
-            : "What's on your mind?"
-          : "Questions about Effiroad?",
-        placeholder: useShopAi ? "Ask anything" : "Ask about Effiroad…",
-        close: "Close",
-        open: "Open Effiroad AI",
-        thinking: "Thinking…",
-        thinkingBackground: "Effiroad AI is replying…",
-        fullAi: "Open full workspace",
-        newReply: "New AI reply",
-        examples: "Examples",
-      }
-    : {
-        name: "Effiroad AI",
-        hint: useShopAi
-          ? "AI 버튼을 눌러 설정·통화·샵 운영을 물어보세요."
-          : "여기를 눌러 Effiroad 소개, 요금, 시작 방법을 물어보세요.",
-        headline: useShopAi
-          ? displayName
-            ? `안녕하세요, ${displayName.split(" ")[0]}님`
-            : "무슨 생각을 하고 계신가요?"
-          : "Effiroad가 궁금하신가요?",
-        placeholder: useShopAi ? "무엇이든 물어보세요" : "Effiroad에 대해 물어보세요…",
-        close: "닫기",
-        open: "Effiroad AI 열기",
-        thinking: "생각 중…",
-        thinkingBackground: "Effiroad AI가 답변 중…",
-        fullAi: "전체 AI 화면",
-        newReply: "새 AI 답변",
-        examples: "예시",
-      };
+  const copy = getAssistantWidgetCopy(locale, displayName, useShopAi);
 
   const examplePrompts = useMemo(() => {
-    if (useShopAi) return isEnglish ? EXAMPLES_DASHBOARD_EN : EXAMPLES_DASHBOARD_KO;
-    return isEnglish ? EXAMPLES_PUBLIC_EN : EXAMPLES_PUBLIC_KO;
-  }, [useShopAi, isEnglish]);
+    if (useShopAi) return locale === "ko" ? EXAMPLES_DASHBOARD_KO : EXAMPLES_DASHBOARD_EN;
+    return getPublicExamplePrompts(locale);
+  }, [useShopAi, locale]);
 
   useEffect(() => {
     hydrateAssistantStore();
@@ -290,7 +239,7 @@ export function EffiroadAssistantWidget() {
           text:
             data.answer ??
             data.error ??
-            (isEnglish ? "I couldn't load that right now." : "지금은 불러오지 못했습니다."),
+            (copy.errorLoad),
           suggestions: data.suggestions,
           actions: data.actions?.filter((a) => a.href).map((a) => ({ label: a.label, href: a.href })),
         });
@@ -302,13 +251,13 @@ export function EffiroadAssistantWidget() {
         });
         const data = (await res.json()) as { answer?: string; suggestions?: string[]; error?: string };
         pushAssistant({
-          text: data.answer ?? data.error ?? (isEnglish ? "Try again in a moment." : "잠시 후 다시 시도해 주세요."),
+          text: data.answer ?? data.error ?? copy.errorRetry,
           suggestions: data.suggestions,
         });
       }
     } catch {
       pushAssistant({
-        text: isEnglish ? "Something went wrong. Please try again." : "오류가 발생했습니다. 다시 시도해 주세요.",
+        text: copy.errorGeneric,
       });
     } finally {
       endAssistantRequest({ panelOpen: openRef.current });
@@ -367,7 +316,7 @@ export function EffiroadAssistantWidget() {
         >
           {hintVisible && !loading ? (
             <div
-              className="kb-speech-bubble kb-speech-bubble-from-ai pointer-events-auto max-w-[min(calc(100vw-5.5rem),16rem)] pr-8"
+              className="kb-speech-bubble kb-speech-bubble-fab kb-speech-bubble-from-ai pointer-events-auto max-w-[min(calc(100vw-5.5rem),18rem)] pr-8"
               role="status"
             >
               <button
@@ -380,7 +329,7 @@ export function EffiroadAssistantWidget() {
               </button>
               <p className="text-xs font-semibold text-brand-800">{copy.name}</p>
               <p className="mt-1 text-stone-600">{copy.hint}</p>
-              <span className="kb-speech-bubble-tail right-[1.625rem]" aria-hidden />
+              <span className="kb-speech-bubble-tail kb-speech-bubble-tail-fab right-[1.625rem]" aria-hidden />
             </div>
           ) : null}
 
@@ -444,7 +393,7 @@ export function EffiroadAssistantWidget() {
                   placeholder={copy.placeholder}
                   loading={loading}
                   inputRef={inputRef}
-                  isEnglish={isEnglish}
+                  sendLabel={copy.send}
                   centered
                 />
 
@@ -526,7 +475,7 @@ export function EffiroadAssistantWidget() {
                   placeholder={copy.placeholder}
                   loading={loading}
                   inputRef={inputRef}
-                  isEnglish={isEnglish}
+                  sendLabel={copy.send}
                 />
               </div>
             </>

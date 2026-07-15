@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { answerSiteAssistantQuestion, siteAssistantGreeting } from "@/lib/site-assistant/answer";
 import { getSession } from "@/lib/session";
-import { runtimeUiLocale } from "@/lib/locale";
+import { resolveServerUiLocale } from "@/lib/locale";
 
 export const maxDuration = 25;
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     const marketingOnly = Boolean(body?.marketing);
     const session = await getSession();
-    const locale = runtimeUiLocale();
+    const locale = await resolveServerUiLocale();
 
     if (greet && !question) {
       const reply = siteAssistantGreeting(locale, Boolean(session), marketingOnly);

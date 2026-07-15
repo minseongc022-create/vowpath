@@ -1,4 +1,5 @@
 import { openAiTextCompletion, type ChatTurn } from "@/lib/openai-chat";
+import { marketingUiLocale, type UiLocale } from "@/lib/locale";
 import { buildSiteAssistantKnowledge } from "./knowledge";
 
 export type SiteAssistantReply = {
@@ -6,11 +7,20 @@ export type SiteAssistantReply = {
   suggestions: string[];
 };
 
+type AssistantLang = "en" | "es" | "ko";
+
 const STARTERS_EN = [
   "What is Effiroad?",
   "How does call forwarding work?",
   "What's included in the free trial?",
   "How does auto-dispatch work?",
+];
+
+const STARTERS_ES = [
+  "¿Qué es Effiroad?",
+  "¿Cómo funciona el desvío de llamadas?",
+  "¿Qué incluye la prueba gratis?",
+  "¿Cómo funciona el auto-despacho?",
 ];
 
 const STARTERS_KO = [
@@ -20,45 +30,71 @@ const STARTERS_KO = [
   "자동 디스패치는 어떻게 동작해요?",
 ];
 
-function fallback(locale: "en" | "ko"): SiteAssistantReply {
+function resolveLang(locale: UiLocale): AssistantLang {
+  if (locale === "ko") return "ko";
+  if (locale === "es") return "es";
+  return "en";
+}
+
+function startersFor(lang: AssistantLang): string[] {
+  if (lang === "ko") return STARTERS_KO;
+  if (lang === "es") return STARTERS_ES;
+  return STARTERS_EN;
+}
+
+const TRADE_VOICE_EN = `VOICE: Sound like a seasoned restoration/HVAC ops advisor — someone who has dispatched mitigation crews at 2 AM. Confident, direct, respectful. Use trade terms when they help (water loss, Cat-3, on-call, dispatch, mitigation) but keep sentences short and plain. No corporate fluff. Help them grasp the idea fast.`;
+
+const TRADE_VOICE_ES = `VOZ: Habla como un asesor operativo con experiencia en restauración/HVAC — alguien que ha despachado cuadrillas a las 2 AM. Seguro, directo, respetuoso. Usa términos del oficio cuando ayuden (pérdida por agua, Cat-3, guardia, despacho, mitigación) pero en oraciones cortas y claras. Sin rodeos corporativos. Que entiendan rápido.`;
+
+function fallback(locale: UiLocale): SiteAssistantReply {
+  const lang = resolveLang(locale);
   return {
     answer:
-      locale === "ko"
+      lang === "ko"
         ? "지금은 잠시 연결이 어렵습니다. effiroad.com/pricing 또는 support@effiroad.com 으로 문의해 주세요."
-        : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email support@effiroad.com.",
-    suggestions: locale === "ko" ? STARTERS_KO : STARTERS_EN,
+        : lang === "es"
+          ? "Ahora no puedo conectar. Visita effiroad.com/pricing o escribe a support@effiroad.com."
+          : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email support@effiroad.com.",
+    suggestions: startersFor(lang),
   };
 }
 
-function parseSuggestions(text: string, locale: "en" | "ko"): string[] {
+function parseSuggestions(text: string, lang: AssistantLang): string[] {
   const lines = text
     .split("\n")
     .map((l) => l.replace(/^[-•*]\s*/, "").trim())
     .filter(Boolean);
-  const fromAnswer = lines.filter((l) => l.length < 60).slice(0, 3);
-  return fromAnswer.length >= 2 ? fromAnswer : locale === "ko" ? STARTERS_KO : STARTERS_EN;
+  const fromAnswer = lines.filter((l) => l.length < 72).slice(0, 3);
+  return fromAnswer.length >= 2 ? fromAnswer : startersFor(lang);
+}
+
+function replyLanguageLine(lang: AssistantLang): string {
+  if (lang === "ko") return "Reply in Korean unless the user writes in another language — then match their language.";
+  if (lang === "es") return "Reply in Spanish unless the user writes in another language — then match their language.";
+  return "Reply in English unless the user writes in another language — then match their language.";
 }
 
 export async function answerSiteAssistantQuestion(params: {
   question: string;
   history: { role: "user" | "assistant"; text: string }[];
-  locale: "en" | "ko";
+  locale: UiLocale;
   loggedIn?: boolean;
-  /** Marketing/landing surface — intro only, no shop settings or live data. */
   marketingOnly?: boolean;
 }): Promise<SiteAssistantReply> {
   const { question, history, locale, loggedIn, marketingOnly } = params;
+  const lang = resolveLang(locale);
 
   if (
     /^(hi|hello|hey|yo|howdy|good morning|good afternoon|good evening|sup|what'?s up)[!.?\s]*$/i.test(
       question.trim(),
     ) ||
+    /^(hola|buenos días|buenas tardes|buenas noches|qué tal)[!.?\s]*$/i.test(question.trim()) ||
     /^(안녕|안녕하세요|하이|헬로)[!.?\s]*$/i.test(question.trim())
   ) {
     return siteAssistantGreeting(locale, Boolean(loggedIn), Boolean(marketingOnly));
   }
 
-  const knowledge = buildSiteAssistantKnowledge();
+  const knowledge = buildSiteAssistantKnowledge(marketingUiLocale(locale));
 
   const marketingRules = marketingOnly
     ? `You are on the PUBLIC marketing site assistant — NOT the logged-in shop workspace.
@@ -70,9 +106,12 @@ Never link to /dashboard/settings or other shop admin paths as something they ca
       ? "The user IS logged in — you can reference their dashboard and settings paths directly."
       : "The user is browsing the marketing site (not logged in) — guide them to sign up or log in for shop-specific actions.";
 
+  const tradeVoice = lang === "es" ? TRADE_VOICE_ES : lang === "en" ? TRADE_VOICE_EN : "";
+
   const system = `You are Effiroad AI — the friendly product expert for Effiroad.com.
-You speak naturally, like a helpful colleague (not a robot). Keep answers concise (2-4 short paragraphs max).
-Reply in ${locale === "ko" ? "Korean" : "English"} unless the user writes in another language — then match their language.
+Keep answers concise (2-4 short paragraphs max).
+${replyLanguageLine(lang)}
+${tradeVoice}
 
 You know everything below about the product. Never invent pricing or features not listed.
 NEVER reveal: API keys, env secrets, passwords, tokens, other customers' data, internal server paths, or raw database contents.
@@ -95,7 +134,7 @@ ${knowledge}`;
     const answer = await openAiTextCompletion({ messages, temperature: 0.35 });
     return {
       answer,
-      suggestions: parseSuggestions(answer, locale),
+      suggestions: parseSuggestions(answer, lang),
     };
   } catch (e) {
     console.error("[site-assistant]", e);
@@ -104,33 +143,42 @@ ${knowledge}`;
 }
 
 export function siteAssistantGreeting(
-  locale: "en" | "ko",
+  locale: UiLocale,
   loggedIn: boolean,
   marketingOnly = false,
 ): SiteAssistantReply {
+  const lang = resolveLang(locale);
+  const suggestions = startersFor(lang);
+
   if (marketingOnly) {
     return {
       answer:
-        locale === "ko"
+        lang === "ko"
           ? "안녕하세요! Effiroad AI예요. Effiroad가 무엇인지, 어떻게 동작하는지, 가격과 무료 체험 — 궁금한 걸 편하게 물어보세요."
-          : "Hi! I'm Effiroad AI. Ask me what Effiroad is, how it works, pricing, or the free trial — I'm here to help you understand the product.",
-      suggestions: locale === "ko" ? STARTERS_KO : STARTERS_EN,
+          : lang === "es"
+            ? "¡Hola! Soy Effiroad AI. Pregúntame qué es Effiroad, cómo funciona, precios o la prueba gratis — estoy aquí para ayudarte a entender el producto."
+            : "Hi! I'm Effiroad AI. Ask me what Effiroad is, how it works, pricing, or the free trial — I'm here to help you understand the product.",
+      suggestions,
     };
   }
   if (loggedIn) {
     return {
       answer:
-        locale === "ko"
+        lang === "ko"
           ? "안녕하세요! Effiroad AI예요. 설정 위치, 기능 사용법, 오늘 통화·예약 현황 — 무엇이든 편하게 물어보세요."
-          : "Hi! I'm Effiroad AI. Ask me where a setting lives, how a feature works, or what's happening in your shop today.",
-      suggestions: locale === "ko" ? STARTERS_KO : STARTERS_EN,
+          : lang === "es"
+            ? "¡Hola! Soy Effiroad AI. Pregúntame dónde está una configuración, cómo funciona algo o qué pasó hoy en tu taller."
+            : "Hi! I'm Effiroad AI. Ask me where a setting lives, how a feature works, or what's happening in your shop today.",
+      suggestions,
     };
   }
   return {
     answer:
-      locale === "ko"
+      lang === "ko"
         ? "안녕하세요! Effiroad AI예요. 가격, 착신전환, 디스패치, 무료 체험 — 궁금한 걸 편하게 물어보세요."
-        : "Hi! I'm Effiroad AI. Ask me about pricing, call forwarding, dispatch, or the free trial — happy to walk you through it.",
-    suggestions: locale === "ko" ? STARTERS_KO : STARTERS_EN,
+        : lang === "es"
+          ? "¡Hola! Soy Effiroad AI. Pregúntame sobre precios, desvío de llamadas, despacho o la prueba gratis."
+          : "Hi! I'm Effiroad AI. Ask me about pricing, call forwarding, dispatch, or the free trial — happy to walk you through it.",
+    suggestions,
   };
 }

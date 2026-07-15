@@ -16,7 +16,7 @@ import { parseDateInput, toDateInputValue } from "@/lib/dashboard-analytics";
 import { listJobs } from "@/lib/jobs-db";
 import { fetchJobberRequestsInRange } from "@/lib/jobber-api";
 import { getJobberTokens } from "@/lib/jobber-tokens";
-import { runtimeUiLocale } from "@/lib/locale";
+import { resolveServerUiLocale, shopAiLocale } from "@/lib/locale";
 import { listScheduledBookings } from "@/lib/schedule-bookings-db";
 import { fetchJobberScheduleItems } from "@/lib/scheduling/jobber-schedule-api";
 import { getSession } from "@/lib/session";
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     }
 
     const { pack } = loaded;
-    const locale = runtimeUiLocale();
+    const locale = shopAiLocale(await resolveServerUiLocale());
 
     if (proactive) {
       const response = buildProactiveBriefing(pack);

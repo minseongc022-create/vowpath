@@ -1,18 +1,21 @@
 import { SITE } from "@/lib/constants";
 import { TRIAL_DAYS, PILOT_TRIAL_DAYS } from "@/lib/billing-cohort";
-import { siteFaq, siteHowItWorks, sitePricing } from "@/lib/site-content";
+import type { UiLocale } from "@/lib/locale";
+import { getSiteFaq, getSiteHowItWorks, getSitePricing } from "@/lib/site-content-locale";
 
 /** Compact product knowledge for the public Effiroad assistant. */
-export function buildSiteAssistantKnowledge(): string {
-  const faqBlock = siteFaq.items
-    .map((item) => `Q: ${item.q}\nA: ${item.a}`)
-    .join("\n\n");
+export function buildSiteAssistantKnowledge(locale: UiLocale = "en"): string {
+  const faq = getSiteFaq(locale);
+  const howItWorks = getSiteHowItWorks(locale);
+  const pricing = getSitePricing(locale);
 
-  const howSteps = siteHowItWorks.steps
+  const faqBlock = faq.items.map((item) => `Q: ${item.q}\nA: ${item.a}`).join("\n\n");
+
+  const howSteps = howItWorks.steps
     .map((s, i) => `${i + 1}. ${s.title}: ${s.description}`)
     .join("\n");
 
-  const plans = sitePricing.plans
+  const plans = pricing.plans
     .map(
       (p) =>
         `${p.name} — ${p.price}${p.period}${"usageLine" in p ? ` (${p.usageLine})` : ""}: ${p.description}`,

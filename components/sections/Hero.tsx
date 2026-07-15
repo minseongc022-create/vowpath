@@ -1,14 +1,29 @@
+"use client";
+
 import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { useLocale, useSiteContent } from "@/components/providers/LocaleProvider";
 import { TRIAL_DAYS } from "@/lib/billing-cohort";
-import { siteHero } from "@/lib/site-content";
 
 export function Hero() {
-  const h = siteHero;
+  const { locale } = useLocale();
+  const { hero: h } = useSiteContent();
   const badges: readonly string[] =
     "heroBadges" in h && Array.isArray(h.heroBadges) ? h.heroBadges : [];
+  const isEs = locale === "es";
+
+  const subhead2 = isEs
+    ? "Servicio de contestación con IA para empresas de servicios en el hogar"
+    : "The AI Answering Service Built for Home Service Companies";
+  const trialLink = isEs
+    ? `Empieza gratis — ${TRIAL_DAYS} días por nuestra cuenta →`
+    : `Start free — ${TRIAL_DAYS} days on us →`;
+  const demoCta = isEs ? "Escucha una llamada real de pérdida por agua a las 2 AM" : "Hear a Real 2 AM Water Loss Call";
+  const guarantees = isEs
+    ? ["Garantía 30 días", "Cifrado 256-bit", "Sin venta de datos · Cancela cuando quieras"]
+    : ["30-day money-back guarantee", "256-bit encrypted", "No data selling · Cancel anytime"];
 
   return (
     <section className="vow-hero relative overflow-hidden">
@@ -33,7 +48,7 @@ export function Hero() {
             </span>
           </h1>
           <h2 className="mx-auto mt-5 max-w-2xl text-base font-medium text-stone-600 sm:text-lg">
-            The AI Answering Service Built for Home Service Companies
+            {subhead2}
           </h2>
           {"brandLine" in h && h.brandLine ? (
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-stone-700">
@@ -66,7 +81,7 @@ export function Hero() {
 
         <p className="mt-3 text-center">
           <a href="/get-started" className="text-sm font-semibold text-brand-700 hover:underline">
-            Start free — {TRIAL_DAYS} days on us →
+            {trialLink}
           </a>
         </p>
 
@@ -80,7 +95,7 @@ export function Hero() {
                 <path d="M2 1.2a.6.6 0 01.92-.51l7 4.8a.6.6 0 010 .99l-7 4.8A.6.6 0 012 11.3V1.2z" />
               </svg>
             </span>
-            Hear a Real 2 AM Water Loss Call
+            {demoCta}
           </a>
         </p>
 
@@ -101,24 +116,14 @@ export function Hero() {
         ) : null}
 
         <div className="mx-auto mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-brand-200/40 pt-5">
-          <span className="inline-flex items-center gap-1.5 text-xs text-stone-500">
-            <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM3 18a7 7 0 1114 0H3z" />
-            </svg>
-            30-day money-back guarantee
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs text-stone-500">
-            <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
-            256-bit encrypted
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs text-stone-500">
-            <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            No data selling · Cancel anytime
-          </span>
+          {guarantees.map((label) => (
+            <span key={label} className="inline-flex items-center gap-1.5 text-xs text-stone-500">
+              <svg className="h-3.5 w-3.5 shrink-0 text-brand-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              {label}
+            </span>
+          ))}
         </div>
       </Container>
     </section>

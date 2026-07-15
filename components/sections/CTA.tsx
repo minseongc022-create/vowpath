@@ -1,44 +1,36 @@
-import { siteCta } from "@/lib/site-content";
+"use client";
+
+import { useSiteContent } from "@/components/providers/LocaleProvider";
 import { SITE } from "@/lib/constants";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
 
 export function CTA() {
+  const { cta: siteCta } = useSiteContent();
+  const supportLabel = siteCta.title.startsWith("Desvía") ? "Soporte" : "Support";
+
   return (
     <section className="vow-site-section py-20 sm:py-24">
       <Container>
         <div className="vow-site-panel relative overflow-hidden px-6 py-14 text-center sm:px-12 sm:py-16">
-          <div
-            className="pointer-events-none absolute inset-0 bg-hvac-airflow opacity-30"
-            aria-hidden
-          />
+          <div className="pointer-events-none absolute inset-0 bg-hvac-airflow opacity-30" aria-hidden />
           <div className="relative">
             {"eyebrow" in siteCta && siteCta.eyebrow ? (
-              <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
-                {siteCta.eyebrow}
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">{siteCta.eyebrow}</p>
             ) : null}
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-brand-900 sm:text-4xl text-balance">
               {siteCta.title}
             </h2>
             {siteCta.subtitle?.trim() ? (
-              <p className="mx-auto mt-4 max-w-lg text-lg text-stone-700">
-                {siteCta.subtitle}
-              </p>
+              <p className="mx-auto mt-4 max-w-lg text-lg text-stone-700">{siteCta.subtitle}</p>
             ) : null}
-            <div
-              className={`flex justify-center ${siteCta.subtitle?.trim() ? "mt-8" : "mt-6"}`}
-            >
-              <CheckoutButton
-                size="lg"
-                variant="secondary"
-                directCheckout
-              >
+            <div className={`flex justify-center ${siteCta.subtitle?.trim() ? "mt-8" : "mt-6"}`}>
+              <CheckoutButton size="lg" variant="secondary" directCheckout>
                 {siteCta.button}
               </CheckoutButton>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              Support: {SITE.supportEmail}
+              {supportLabel}: {SITE.supportEmail}
             </p>
           </div>
         </div>

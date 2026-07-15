@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ROUTES } from "@/lib/constants";
+import { useLocale } from "@/components/providers/LocaleProvider";
 import { getMarketingNavLinks } from "@/lib/nav-links";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Container } from "@/components/ui/Container";
@@ -16,7 +17,10 @@ type HeaderProps = {
 
 export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
-  const navLinks = getMarketingNavLinks();
+  const { locale } = useLocale();
+  const navLinks = getMarketingNavLinks(locale);
+  const tradeBanner =
+    locale === "es" ? "Mira el sitio para tu oficio" : "See the site built for your trade";
 
   useEffect(() => {
     if (!open) return;
@@ -68,7 +72,7 @@ export function Header({ session }: HeaderProps) {
       <div className="hidden border-t border-brand-200/70 bg-brand-50/80 py-2.5 md:block md:py-3">
         <Container>
           <div className="flex flex-col items-center justify-center gap-2 text-center md:flex-row md:gap-3">
-            <p className="text-xs font-medium text-stone-700 md:text-sm">See the site built for your trade</p>
+            <p className="text-xs font-medium text-stone-700 md:text-sm">{tradeBanner}</p>
             <VerticalSwitcher />
           </div>
         </Container>

@@ -1,10 +1,15 @@
 "use client";
 
 import { useLocale } from "@/components/providers/LocaleProvider";
+import type { UiLocale } from "@/lib/locale";
 
-/** Compact EN/KR toggle — avoids Safari/Google auto-translate breaking mobile layout. */
+/** Public marketing language — English or Spanish. */
 export function PublicLocaleToggle({ className = "" }: { className?: string }) {
   const { locale, setLocale } = useLocale();
+
+  function pick(next: UiLocale) {
+    setLocale(next);
+  }
 
   return (
     <div
@@ -18,19 +23,19 @@ export function PublicLocaleToggle({ className = "" }: { className?: string }) {
           locale === "en" ? "bg-brand-900 text-white" : "text-stone-600 hover:text-brand-900"
         }`}
         aria-pressed={locale === "en"}
-        onClick={() => setLocale("en")}
+        onClick={() => pick("en")}
       >
         EN
       </button>
       <button
         type="button"
         className={`min-h-[32px] rounded-full px-3 py-1 transition ${
-          locale === "ko" ? "bg-brand-900 text-white" : "text-stone-600 hover:text-brand-900"
+          locale === "es" ? "bg-brand-900 text-white" : "text-stone-600 hover:text-brand-900"
         }`}
-        aria-pressed={locale === "ko"}
-        onClick={() => setLocale("ko")}
+        aria-pressed={locale === "es"}
+        onClick={() => pick("es")}
       >
-        KR
+        ES
       </button>
     </div>
   );

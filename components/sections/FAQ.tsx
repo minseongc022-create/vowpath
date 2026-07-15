@@ -1,14 +1,17 @@
-import { siteFaq } from "@/lib/site-content";
+"use client";
+
+import { useSiteContent } from "@/components/providers/LocaleProvider";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 export function FAQ() {
+  const { faq } = useSiteContent();
   return (
     <section id="faq" className="vow-site-section py-20 sm:py-24">
       <Container>
-        <SectionHeading title={siteFaq.title} align="center" />
+        <SectionHeading title={faq.title} align="center" />
         <div className="vow-site-panel mx-auto mt-12 max-w-2xl divide-y divide-white/[0.08]">
-          {siteFaq.items.map((item) => (
+          {faq.items.map((item) => (
             <details key={item.q} className="group px-4 py-1 sm:px-6 sm:py-5">
               <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 py-2 text-base font-semibold text-brand-900 [&::-webkit-details-marker]:hidden">
                 {item.q}

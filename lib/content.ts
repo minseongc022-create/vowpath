@@ -1,6 +1,6 @@
 import { SITE, CHECKOUT_CTA } from "./constants";
 import { IS_BETA } from "./beta";
-import { isEnglishUi, isEnglishUiLocale, runtimeUiLocale, type UiLocale } from "./locale";
+import { isEnglishUi, isKoreanUiLocale, runtimeUiLocale, type UiLocale } from "./locale";
 import {
   authPagesEn,
   buildDashboardUiEn,
@@ -1530,19 +1530,19 @@ const legalPagesKo = {
 };
 
 export function getVowDashboardCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? vowDashboardEn : vowDashboardKo;
+  return isKoreanUiLocale(locale) ? vowDashboardKo : vowDashboardEn;
 }
 
 export function getDashboardPageCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? dashboardPageEn : dashboardPageKo;
+  return isKoreanUiLocale(locale) ? dashboardPageKo : dashboardPageEn;
 }
 
 export function getDashboardUiCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? buildDashboardUiEn(dashboardUiKo) : dashboardUiKo;
+  return isKoreanUiLocale(locale) ? dashboardUiKo : buildDashboardUiEn(dashboardUiKo);
 }
 
 export function getSettingsPageCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale)
+  return isKoreanUiLocale(locale)
     ? { ...settingsPageKo, ...settingsPageEn }
     : { ...settingsPageEn, ...settingsPageKo };
 }
@@ -1572,25 +1572,25 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
   },
 }) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
 export function getAuthPagesCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? authPagesEn : authPagesKo;
+  return isKoreanUiLocale(locale) ? authPagesKo : authPagesEn;
 }
 export function getLegalPagesCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? legalPagesEn : legalPagesKo;
+  return isKoreanUiLocale(locale) ? legalPagesKo : legalPagesEn;
 }
 export function getMessagingSetupCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? messagingSetupEn : messagingSetupKo;
+  return isKoreanUiLocale(locale) ? messagingSetupKo : messagingSetupEn;
 }
 export function getPhoneSetupCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? phoneSetupEn : phoneSetupKo;
+  return isKoreanUiLocale(locale) ? phoneSetupKo : phoneSetupEn;
 }
 export function getInboundCallsCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? inboundCallsEn : inboundCallsKo;
+  return isKoreanUiLocale(locale) ? inboundCallsKo : inboundCallsEn;
 }
 export function getJobberConnectCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? jobberConnectEn : jobberConnectKo;
+  return isKoreanUiLocale(locale) ? jobberConnectKo : jobberConnectEn;
 }
 export function getJobCardGeneratorCopy(locale: UiLocale) {
-  return isEnglishUiLocale(locale) ? jobCardGeneratorEn : jobCardGeneratorKo;
+  return isKoreanUiLocale(locale) ? jobCardGeneratorKo : jobCardGeneratorEn;
 }
 
 /** @deprecated Prefer getAuthPagesCopy(locale) */

@@ -1,10 +1,29 @@
-import { sitePricing as pricing } from "@/lib/site-content";
+"use client";
+
+import { useLocale, useSiteContent } from "@/components/providers/LocaleProvider";
 import type { PlanId } from "@/lib/constants";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { TRIAL_DAYS } from "@/lib/billing-cohort";
 
 export function Pricing() {
+  const { locale } = useLocale();
+  const { pricing } = useSiteContent();
+  const trialBadge =
+    locale === "es"
+      ? `Prueba gratis de ${TRIAL_DAYS} días — sin tarjeta`
+      : "14-day free trial included — no credit card required";
+  const breakEvenTitle = locale === "es" ? "Cuenta rápida" : "Break-even math";
+  const breakEvenBody =
+    locale === "es"
+      ? "Trabajo promedio de mitigación por agua: $8,000. Una llamada salvada a las 2 AM paga 47 meses de Unlimited a $169/mes."
+      : "Average water mitigation job: $8,000. One saved 2 AM call covers 47 months of Unlimited at $169/mo.";
+  const breakEvenFoot =
+    locale === "es"
+      ? "¿Flex? Un despacho confirmado a $8K promedio = ~700× tu costo por despacho."
+      : "On Flex? One confirmed dispatch at $8K avg = ~700× your per-dispatch cost.";
+
   return (
     <section id="pricing" className="vow-site-section py-20 sm:py-24">
       <Container>
@@ -14,7 +33,7 @@ export function Pricing() {
             <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
               <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 11.94l6.72-6.72a.75.75 0 011.06 0z" />
             </svg>
-            14-day free trial included — no credit card required
+            {trialBadge}
           </span>
         </p>
 
@@ -108,15 +127,18 @@ export function Pricing() {
         ) : null}
 
         <div className="mx-auto mt-8 max-w-2xl rounded-xl border border-brand-200 bg-brand-50 px-6 py-5 text-center">
-          <p className="text-sm font-semibold text-brand-900">Break-even math</p>
+          <p className="text-sm font-semibold text-brand-900">{breakEvenTitle}</p>
           <p className="mt-1.5 text-sm leading-relaxed text-stone-700">
-            Average water mitigation job: <strong className="text-brand-800">$8,000</strong>.{" "}
-            One saved 2 AM call covers{" "}
-            <strong className="text-brand-800">47 months</strong> of Unlimited at $169/mo.
+            {locale === "en" ? (
+              <>
+                Average water mitigation job: <strong className="text-brand-800">$8,000</strong>. One saved 2 AM call covers{" "}
+                <strong className="text-brand-800">47 months</strong> of Unlimited at $169/mo.
+              </>
+            ) : (
+              breakEvenBody
+            )}
           </p>
-          <p className="mt-2 text-xs text-stone-500">
-            On Flex? One confirmed dispatch at $8K avg = ~700× your per-dispatch cost.
-          </p>
+          <p className="mt-2 text-xs text-stone-500">{breakEvenFoot}</p>
         </div>
 
         {pricing.tip?.trim() ? (

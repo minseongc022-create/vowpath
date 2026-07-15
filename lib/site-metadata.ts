@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SITE } from "@/lib/constants";
 import { TRIAL_DAYS } from "@/lib/billing-cohort";
+import type { UiLocale } from "@/lib/locale";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
 /** Cache-bust favicons and OG image after asset updates */
@@ -56,7 +57,7 @@ export function getSiteIcons(): Metadata["icons"] {
   };
 }
 
-export function buildSiteMetadata(locale: "en" | "ko" = "en"): Metadata {
+export function buildSiteMetadata(locale: UiLocale = "en"): Metadata {
   const seo = locale === "ko" ? SITE_SEO_KO : SITE_SEO;
   const ogImage = `${SITE.url}${iconUrl(OG_IMAGE_PATH)}`;
 
@@ -76,7 +77,7 @@ export function buildSiteMetadata(locale: "en" | "ko" = "en"): Metadata {
       type: "website",
       url: SITE.url,
       siteName: SITE.name,
-      locale: locale === "ko" ? "ko_KR" : "en_US",
+      locale: locale === "ko" ? "ko_KR" : locale === "es" ? "es_US" : "en_US",
       images: [
         {
           url: ogImage,
