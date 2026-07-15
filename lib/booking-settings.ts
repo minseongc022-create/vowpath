@@ -157,13 +157,13 @@ export function coalesceSchedulingSettingsPatch(
 
 export function formatHybridAutoPriorities(
   priorities: JobPriority[],
-  locale: "ko" | "en" = "ko",
+  _locale: "en" = "en",
 ): string {
   if (priorities.length === ALL_JOB_PRIORITIES.length) {
-    return locale === "ko" ? "P1·P2·P3 (스마트 자동 예약과 동일)" : "P1, P2, P3 (same as smart auto-book)";
+    return "P1, P2, P3 (same as smart auto-book)";
   }
   if (priorities.length === 0) {
-    return locale === "ko" ? "없음 (전부 수동 승인)" : "None (all manual)";
+    return "None (all manual)";
   }
   return priorities.join(", ");
 }

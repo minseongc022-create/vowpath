@@ -69,37 +69,30 @@ function formatDisplayTime(closeTime: string): string {
   return `${displayH}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-function buildResult(data: ClosureClassification, locale: UiLocale): AiAdminAnalysisResult | null {
+function buildResult(data: ClosureClassification, _locale: UiLocale): AiAdminAnalysisResult | null {
   if (data.intent === "none") return null;
 
   const today = new Date().toISOString().split("T")[0];
-  const ko = locale === "ko";
 
   if (data.intent === "day_off") {
     const msg = data.customMessage?.trim() ?? "";
     return {
       kind: "preview",
-      answer: ko
-        ? `오늘(${today})을 휴무일로 설정합니다. 전화를 건 고객에게 휴무 안내 메시지가 재생됩니다.`
-        : `Set today (${today}) as a closure day? Callers will hear a closed message instead of intake.`,
+      answer: `Set today (${today}) as a closure day? Callers will hear a closed message instead of intake.`,
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "오늘 휴무 설정" : "Set Today as Closed",
-        message: ko
-          ? `오늘(${today})을 휴무일로 설정합니다.`
-          : `Today (${today}) will be set as a closure day.`,
+        title: "Set Today as Closed",
+        message: `Today (${today}) will be set as a closure day.`,
         risk: "medium",
-        confirmLabel: ko ? "설정" : "Confirm",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
         rows: [
-          { label: ko ? "날짜" : "Date", value: today },
-          ...(msg ? [{ label: ko ? "커스텀 메시지" : "Message", value: msg }] : []),
+          { label: "Date", value: today },
+          ...(msg ? [{ label: "Message", value: msg }] : []),
         ],
         action: { type: "set_temporary_closure", date: today, message: msg },
       },
-      suggestions: ko
-        ? ["오늘 휴무 해제", "오늘 오후 3시에 마감해"]
-        : ["Clear today's closure", "Close early at 3 PM today"],
+      suggestions: ["Clear today's closure", "Close early at 3 PM today"],
     };
   }
 
@@ -108,19 +101,17 @@ function buildResult(data: ClosureClassification, locale: UiLocale): AiAdminAnal
     if (!msg) return null;
     return {
       kind: "preview",
-      answer: ko
-        ? `오늘(${today}) 전화 발신자에게 이 메시지를 재생합니다: "${msg}"`
-        : `Play this message to callers today (${today}): "${msg}"`,
+      answer: `Play this message to callers today (${today}): "${msg}"`,
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "오늘 임시 안내 메시지" : "Today-Only Custom Message",
-        message: ko ? `오늘 발신자에게 재생: "${msg}"` : `Play to callers today: "${msg}"`,
+        title: "Today-Only Custom Message",
+        message: `Play to callers today: "${msg}"`,
         risk: "medium",
-        confirmLabel: ko ? "설정" : "Confirm",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
         rows: [
-          { label: ko ? "날짜" : "Date", value: today },
-          { label: ko ? "메시지" : "Message", value: msg },
+          { label: "Date", value: today },
+          { label: "Message", value: msg },
         ],
         action: { type: "set_temporary_closure", date: today, message: msg },
       },
@@ -132,26 +123,20 @@ function buildResult(data: ClosureClassification, locale: UiLocale): AiAdminAnal
     const closeTime = data.closeTime?.trim() ?? "";
     if (!/^\d{2}:\d{2}$/.test(closeTime)) return null;
     const displayTime = formatDisplayTime(closeTime);
-    const callerMsg = ko
-      ? `오늘은 ${displayTime}에 마감합니다. 이후에는 다음 날 연락 주세요.`
-      : `We are closing early today at ${displayTime}. Please call back tomorrow for assistance.`;
+    const callerMsg = `We are closing early today at ${displayTime}. Please call back tomorrow for assistance.`;
     return {
       kind: "preview",
-      answer: ko
-        ? `오늘(${today}) ${displayTime}부로 조기 마감 설정합니다.`
-        : `Set today (${today}) to close early at ${displayTime}?`,
+      answer: `Set today (${today}) to close early at ${displayTime}?`,
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "오늘 조기 마감 설정" : "Set Early Close Today",
-        message: ko
-          ? `오늘 ${displayTime}부터 발신자에게 마감 안내를 재생합니다.`
-          : `Callers after ${displayTime} will hear a closed message.`,
+        title: "Set Early Close Today",
+        message: `Callers after ${displayTime} will hear a closed message.`,
         risk: "medium",
-        confirmLabel: ko ? "설정" : "Confirm",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
         rows: [
-          { label: ko ? "마감 시간" : "Close Time", value: displayTime },
-          { label: ko ? "안내 메시지" : "Caller Message", value: callerMsg },
+          { label: "Close Time", value: displayTime },
+          { label: "Caller Message", value: callerMsg },
         ],
         action: { type: "set_temporary_closure", date: today, message: callerMsg },
       },
@@ -162,18 +147,14 @@ function buildResult(data: ClosureClassification, locale: UiLocale): AiAdminAnal
   if (data.intent === "clear_closure") {
     return {
       kind: "preview",
-      answer: ko
-        ? "오늘 임시 휴무를 해제하고 정상 전화 응답으로 돌아갑니다."
-        : "Resume normal phone answering today?",
+      answer: "Resume normal phone answering today?",
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "임시 휴무 해제" : "Clear Temporary Closure",
-        message: ko
-          ? "임시 휴무 해제 후 정상 전화 응답이 재개됩니다."
-          : "Normal phone answering will resume immediately.",
+        title: "Clear Temporary Closure",
+        message: "Normal phone answering will resume immediately.",
         risk: "low",
-        confirmLabel: ko ? "해제" : "Clear",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Clear",
+        cancelLabel: "Cancel",
         action: { type: "clear_temporary_closure" },
       },
       suggestions: [],
