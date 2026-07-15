@@ -7,10 +7,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Natural warm American male — clear dispatcher pace, not artificially pitched down. */
-const EDGE_VOICE = "en-US-GuyNeural";
-const EDGE_RATE = "-2%";
-const EDGE_PITCH = "-8Hz";
+/** Naturally full American male — native voice, no artificial pitch-down. */
+const EDGE_VOICE = "en-US-ChristopherNeural";
+const EDGE_RATE = "+0%";
+const EDGE_PITCH = "+0Hz";
 
 const CLIPS = [
   // Restoration voice call
@@ -45,7 +45,7 @@ const CLIPS = [
   },
   {
     file: "overview-narr-3.mp3",
-    text: "Clear P one water can page your crew. Fire, mold, sewage ambiguity, or unclear details, wait for your approval text.",
+    text: `<speak>Clear P one water can page your crew. <break time="350ms"/> Fire, <break time="280ms"/> mold, <break time="280ms"/> or sewage with unclear details <break time="350ms"/> wait for your approval text.</speak>`,
   },
   {
     file: "overview-narr-4.mp3",
@@ -58,7 +58,7 @@ const CLIPS = [
   },
   {
     file: "link-narr-1.mp3",
-    text: "The link is for more than a contact form. It can capture an emergency booking, a free estimate request, or a callback time.",
+    text: `<speak>The link is for more than a contact form. <break time="300ms"/> It can capture an emergency booking, <break time="280ms"/> a free estimate request, <break time="280ms"/> or a callback time.</speak>`,
   },
   {
     file: "link-narr-2.mp3",
@@ -117,7 +117,7 @@ const CLIPS = [
   },
   {
     file: "overview-hvac-narr-3.mp3",
-    text: "But gas smell, sparking, or fuzzy details, do not auto-dispatch. You get a hold text: reply one to send a tech, two to hold.",
+    text: `<speak>But gas smell, <break time="280ms"/> sparking, <break time="280ms"/> or fuzzy details <break time="350ms"/> do not auto-dispatch. You get a hold text: reply one to send a tech, two to hold.</speak>`,
   },
   {
     file: "overview-hvac-narr-4.mp3",
@@ -139,7 +139,7 @@ async function openAiTts(text, key) {
       model: "tts-1-hd",
       voice: "onyx",
       input: text,
-      speed: 0.96,
+      speed: 1.0,
     }),
   });
   if (!res.ok) throw new Error(await res.text());
