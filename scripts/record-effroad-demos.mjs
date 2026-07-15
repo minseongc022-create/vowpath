@@ -16,15 +16,15 @@ let BASE = process.env.DEMO_RECORD_BASE_URL?.replace(/\/$/, "") || "http://local
 const VIEWPORT = { width: 1280, height: 720 };
 
 const RESTORATION_SCENES = [
-  { slug: "overview", query: "", out: "demo-overview.webm", waitMs: 18_000, stripAudio: true },
-  { slug: "voice", query: "", out: "demo-voice.webm", waitMs: 54_000, stripAudio: false },
-  { slug: "link-intake", query: "", out: "demo-link-intake.webm", waitMs: 16_000, stripAudio: true },
+  { slug: "overview", query: "", out: "demo-overview.webm", waitMs: 48_000, stripAudio: true },
+  { slug: "voice", query: "", out: "demo-voice.webm", waitMs: 58_000, stripAudio: false },
+  { slug: "link-intake", query: "", out: "demo-link-intake.webm", waitMs: 44_000, stripAudio: true },
 ];
 
 const HVAC_SCENES = [
-  { slug: "overview", query: "?vertical=hvac", out: "demo-overview-hvac.webm", waitMs: 18_000, stripAudio: true },
-  { slug: "voice", query: "?vertical=hvac", out: "demo-voice-hvac.webm", waitMs: 36_000, stripAudio: false },
-  { slug: "risk-hold", query: "", out: "demo-risk-hold-hvac.webm", waitMs: 30_000, stripAudio: false },
+  { slug: "overview", query: "?vertical=hvac", out: "demo-overview-hvac.webm", waitMs: 48_000, stripAudio: true },
+  { slug: "voice", query: "?vertical=hvac", out: "demo-voice-hvac.webm", waitMs: 48_000, stripAudio: false },
+  { slug: "risk-hold", query: "", out: "demo-risk-hold-hvac.webm", waitMs: 46_000, stripAudio: false },
 ];
 
 function scenesForVertical(vertical) {
