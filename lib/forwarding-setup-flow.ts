@@ -1,7 +1,9 @@
 import {
+  DIALPAD_ADMIN_MAIN_LINE_URL,
   DIALPAD_FORWARDING_URL,
   getCarrierQuickActions,
   GOOGLE_VOICE_SETTINGS_URL,
+  VERIZON_CALL_FORWARDING_WEB,
   VERIZON_FORWARDING_FAQ,
   VERIZON_MY_VERIZON_URL,
 } from "./forwarding-carrier-codes";
@@ -51,7 +53,8 @@ export function getOrderedSetupActions(
         id: "gv-open",
         order: 1,
         label: "Open Google Voice settings",
-        description: "Calls → add Effiroad as unanswered forward destination.",
+        description:
+          "Calls tab → turn off Screen calls & caller-ID masking → add Effiroad as linked/forward number.",
         externalHref: GOOGLE_VOICE_SETTINGS_URL,
         externalLabel: "voice.google.com/settings",
         copyText: effiroadE164,
@@ -62,12 +65,22 @@ export function getOrderedSetupActions(
   if (provider === "dialpad") {
     return [
       {
-        id: "dialpad-open",
+        id: "dialpad-mainline",
         order: 1,
-        label: "Open Dialpad web app",
-        description: "Settings → Users → your shop line → When unanswered → Forward to external.",
+        label: "ServiceTitan / Main Line path",
+        description:
+          "Admin → Main Line → Business Hours & Call Routing → Edit → Fallback or Other routing → external number.",
+        externalHref: DIALPAD_ADMIN_MAIN_LINE_URL,
+        externalLabel: "dialpad.com/officesettings",
+        copyText: effiroadE164,
+      },
+      {
+        id: "dialpad-user",
+        order: 2,
+        label: "Jobber Phone / user line path",
+        description: "Settings → Users → shop line → When unanswered → Forward to external.",
         externalHref: DIALPAD_FORWARDING_URL,
-        externalLabel: "Open dialpad.com/app",
+        externalLabel: "dialpad.com/app",
         copyText: effiroadE164,
       },
     ];
@@ -91,18 +104,27 @@ export function getOrderedSetupActions(
         deactivateLabel: "Turn off (*73)",
       },
       {
-        id: "verizon-app",
+        id: "verizon-web",
         order: 2,
-        label: "Or use My Verizon app",
+        label: "Or use My Verizon (web or app)",
         description:
-          "Account → your line → Call forwarding → When unanswered → paste Effiroad number.",
+          "When unanswered / No answer only — never Forward all. Paste Effiroad number → Save.",
+        externalHref: VERIZON_CALL_FORWARDING_WEB,
+        externalLabel: "m.vzw.com/callforwarding",
+        copyText: effiroadE164,
+      },
+      {
+        id: "verizon-app",
+        order: 3,
+        label: "My Verizon app download",
+        description: "Account → your line → Manage call forwarding → When unanswered.",
         externalHref: VERIZON_MY_VERIZON_URL,
-        externalLabel: "My Verizon app",
+        externalLabel: "My Verizon app help",
         copyText: effiroadE164,
       },
       {
         id: "verizon-faq",
-        order: 3,
+        order: 4,
         label: "Verizon official guide",
         description: "If app and *71 both fail — Verizon FAQ or 800-922-0204.",
         externalHref: VERIZON_FORWARDING_FAQ,

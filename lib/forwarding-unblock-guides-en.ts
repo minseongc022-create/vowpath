@@ -8,6 +8,7 @@ export type ForwardingUnblockGuide = {
 
 const VERIZON_SUPPORT = "800-922-0204";
 const ATT_SUPPORT = "611 from your AT&T phone";
+const ATT_SUPPORT_TOLL = "800-331-0500";
 const TMO_SUPPORT = "611 from your T-Mobile phone";
 
 export function getForwardingUnblockGuides(
@@ -44,6 +45,8 @@ export function getForwardingUnblockGuides(
         id: "gv-verify-fail",
         problem: "Google cannot verify the Effiroad number",
         steps: [
+          "Turn OFF active forwarding before requesting a verification code — Effiroad must receive Google's robocall directly.",
+          "Choose phone-call verification (not text) when Google offers both.",
           "Start the test call step — Effiroad must receive Google's verification robocall.",
           "If verification never works: use Effiroad-as-main-line (no GV forward) or cell carrier **61* / *71.",
         ],
@@ -52,7 +55,8 @@ export function getForwardingUnblockGuides(
         id: "gv-rings-cell",
         problem: "My cell answers instead of Effiroad",
         steps: [
-          "voice.google.com → Settings → Calls → review linked devices — disable ring on personal cell for overflow tests.",
+          "voice.google.com → Settings → Calls → My Devices — disable ring on personal cell for overflow tests.",
+          "Turn OFF “Show my Google Voice number as caller ID when forwarding”.",
           "Or switch to Effiroad-as-main-line so customers skip GV entirely.",
         ],
       },
@@ -61,7 +65,26 @@ export function getForwardingUnblockGuides(
         problem: "No unanswered-forward option in Google Voice",
         steps: [
           "Use desktop browser at voice.google.com/settings — not only the mobile app.",
+          "Add Effiroad under Linked numbers and toggle forwarding ON under Calls.",
           "If still missing: forward from the cell that rings when GV calls (AT&T/T-Mobile/Verizon paths).",
+        ],
+      },
+      {
+        id: "gv-screen-calls",
+        problem: "Callers hear screening or extra prompts before Effiroad",
+        steps: [
+          "Settings → Calls → turn OFF Screen calls.",
+          "Turn OFF call announcement / call screening on any linked device.",
+          "Ruby & Smith.ai: extra GV prompts delay AI pickup — disable all pre-connection menus.",
+        ],
+      },
+      {
+        id: "gv-overflow-limit",
+        problem: "GV cannot ring my phone first, then Effiroad after 20 sec",
+        steps: [
+          "Google Voice does not reliably support delayed overflow to an external AI line.",
+          "Use Effiroad-as-main-line, OR set **61* / *71 on the cell that rings when customers call.",
+          "Jobber users: link GV to a dedicated number only when you accept GV's hand-off limits.",
         ],
       },
     ];
@@ -124,15 +147,18 @@ export function getForwardingUnblockGuides(
   if (provider === "att") {
     const code = `**61*1${td}*11*20#`;
     const alt = `**61*1${td}#`;
+    const iphone10 = `*61*1${td}*11*10#`;
     return [
       {
         id: "att-code-fails",
         problem: "Code gives error tone or fast busy",
         steps: [
           `Try shorter code: ${alt} (some plans ignore ring timer).`,
+          `Try iPhone 10-sec code: ${iphone10}`,
           `Reset: ##61# then retry ${code}.`,
-          `Call ${ATT_SUPPORT} — ask to enable "conditional call forwarding" on your line.`,
+          `Call ${ATT_SUPPORT} or ${ATT_SUPPORT_TOLL} — ask to enable "conditional call forwarding" on your line.`,
           "Confirm you are on AT&T Wireless, not AT&T landline (*72/*73 landline codes differ).",
+          "Never use *21* for overflow — that forwards every call.",
         ],
       },
       {
@@ -206,10 +232,21 @@ export function getForwardingUnblockGuides(
       id: "dp-wrong-line",
       problem: "Forwarding saved but test call fails",
       steps: [
-        "Confirm you edited the number customers actually dial (main office line).",
-        "Rule must be When unanswered — not Always forward.",
+        "Confirm you edited the number customers actually dial (main office line or ServiceTitan tracking number).",
+        "Rule must be Fallback / When unanswered — not Always forward.",
         "External number must include +1 and full 10 digits.",
+        "Enable caller ID pass-through (original caller) in Dialpad if Effiroad shows wrong number.",
         "Wait 2 minutes after Save, then test again.",
+      ],
+    },
+    {
+      id: "dp-servicetitan",
+      problem: "ServiceTitan Phones Pro — no Fallback on Main Line",
+      steps: [
+        "Your routing may use Contact Center instead of Main Line.",
+        "Dialpad → Admin Settings → Contact Center → default center → Business Hours & Call Routing.",
+        "Edit Call Routing → Fallback Options → external number → paste Effiroad.",
+        "Set Closed Hours Routing the same way (Avoca verified path).",
       ],
     },
     {
@@ -223,11 +260,21 @@ export function getForwardingUnblockGuides(
     },
     {
       id: "dp-admin",
-      problem: "Not a Dialpad admin",
+      problem: "Not a Dialpad admin / external number greyed out",
       steps: [
+        "Contact Dialpad support — ask to enable forward-to-external on your account (Smith.ai documented requirement).",
         "Ask your office admin to add the unanswered forward rule.",
         `Give them Effiroad number: +1${td}.`,
         "Or use AT&T/T-Mobile/Verizon steps on the cell that rings if no admin access.",
+      ],
+    },
+    {
+      id: "dp-closed-hours",
+      problem: "Works in daytime but not after hours",
+      steps: [
+        "Main Line → Closed Hours Routing → Edit → same external Effiroad number.",
+        "Department lines: set both Open Hours AND Closed Hours routing.",
+        "Confirm you saved both and saw “Changes saved”.",
       ],
     },
   ];

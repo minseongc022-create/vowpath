@@ -101,31 +101,42 @@ export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> 
     "옛 번호는 인쇄물 소진 전까지 병행 가능합니다.",
   ],
   dialpad: [
-    "고객이 거는 가게 번호를 맞게 선택했는지 확인하세요.",
-    "미응답 시 전환만 — 무조건 착신 금지.",
-    "Effiroad 번호에 +1 포함.",
-    "저장 후 1분 뒤 테스트.",
+    "고객이 거는 가게 번호(메인 회선)를 맞게 선택했는지 확인하세요.",
+    "미응답 / Fallback만 — 무조건 착신(Always forward) 금지.",
+    "ServiceTitan Phones Pro: Dialpad Main Line에서 Fallback + Closed Hours 둘 다 설정.",
+    "Main Line에 Fallback이 없으면 Contact Center → 기본 센터에서 동일 설정.",
+    "Effiroad 번호에 +1 포함, 발신자 번호 전달(caller ID pass-through) 켜기.",
+    "저장 후 “Changes saved” 확인, 1분 뒤 테스트.",
   ],
   google_voice: [
-    "PC 브라우저에서 voice.google.com 사용.",
-    "번호 연결 실패 시 휴대폰 통신사 경로(AT&T/T-Mobile/Verizon) 사용.",
-    "연결 기기가 전화를 가로채지 않는지 확인.",
+    "PC 브라우저에서 voice.google.com/settings 사용.",
+    "전환 전: Screen calls 끄기, “Show my Google Voice number as caller ID” 끄기.",
+    "My Devices에서 개인폰 동시 울림 끄기 — overflow 테스트 방해.",
+    "Linked numbers에 Effiroad 추가, 전화 인증(Effiroad가 코드 수신).",
+    "GV만으로 ‘몇 초 울리고 넘기기’ 어려움 — **61*/*71 또는 Effiroad 메인 번호.",
+    "GV가 아닌 다른 폰으로 GV 번호에 테스트 전화.",
   ],
   att: [
     "AT&T 휴대폰에서 직접 코드 실행.",
+    "조건부 코드(**61*, *61*, *62*, *67*)만 — *21*(전체 착신) 금지.",
     "확인 톤/문자 대기.",
-    "실패 시 AT&T에 조건부 착신전환 요청.",
-    "해제: ##61#",
+    "실패 시 AT&T (800) 331-0500 — conditional call forwarding 개통 요청.",
+    "해제: ##61#, ##62#, ##67#",
   ],
   tmobile: [
     "T-Mobile 회선에서 실행.",
+    "**61* / *61*만 — **21*(전체 착신) 금지.",
     "확인 톤/문자 대기.",
+    "선불 요금제는 차단될 수 있음 — T-Mobile에 개통 요청.",
     "해제: ##61# 또는 ##004#",
   ],
   verizon: [
-    "*71 먼저, My Verizon 대안.",
-    "*72 금지.",
+    "*71 먼저(공식 조건부), My Verizon 대안.",
+    "*72(전체 착신) 금지.",
+    "웹: m.vzw.com/callforwarding → 미응답 시만.",
+    "선불: *71만 사용(앱 불가인 경우 많음).",
     "Live Voicemail 끄기.",
+    `막히면 Verizon 800-922-0204 — 조건부 착신전환 요청.`,
   ],
 };
 
@@ -166,35 +177,58 @@ export function getForwardingGuideSteps(
 
   if (provider === "google_voice") {
     return [
-      "PC에서 https://voice.google.com 로그인 (샵 GV 계정).",
-      "톱니바퀴 → Calls.",
-      "미응답 시 전환 / Call forwarding → 외부 번호.",
-      `목적지: ${e164}`,
-      "번호 인증 요청 시 Effiroad가 받는지 테스트 단계에서 확인.",
-      "연결 기기가 전화를 가로채면 끄기.",
-      "GV만으로 ‘몇 초 울리고 넘기기’가 어려우면 Effiroad 메인 번호 또는 **61* 사용.",
+      "PC에서 https://voice.google.com/settings 로그인 (샵 GV 계정).",
+      "Calls 탭 — 전환 전 설정 (Ruby/Smith.ai/Jobber 검증):",
+      "  • Screen calls 끄기 (추가 안내 없이 Effiroad 연결).",
+      "  • “Show my Google Voice number as caller ID when forwarding” 끄기 (실제 발신자 번호 필요).",
+      "  • My Devices: 개인폰/태블릿 동시 울림 끄기.",
+      "Linked numbers → New linked number → Effiroad 번호 → Send code.",
+      `목적지: ${e164} (+1 포함).`,
+      "인증: 전화(가능하면 문자 아님) — Effiroad가 6자리 코드 수신하는지 테스트 단계에서 확인.",
+      "Calls → Linked numbers에서 Effiroad로 전환 ON. 목적지는 하나만.",
+      "한계: GV만으로 ‘휴대폰 먼저 울리고 20초 후 Effiroad’ 어려움 — AT&T/T-Mobile/Verizon **61*/*71 또는 Effiroad 메인 번호.",
+      "Jobber 방식(GV→전용 AI 번호) 사용 시: 수신 측 짧은 answer delay 권장.",
       "테스트: GV 번호로 전화.",
     ];
   }
 
   if (provider === "dialpad") {
     return [
-      "https://dialpad.com/app 접속.",
-      "Settings → Users → 샵 회선.",
-      "미응답 시 → Forward to external.",
-      `${e164} 입력 후 저장.`,
-      "Jobber Phone: Jobber → Settings → Phone.",
+      "경로 A — ServiceTitan Phones Pro / Main Line (Avoca·Smith.ai 검증):",
+      "https://dialpad.com/officesettings → Admin Settings → Main Line.",
+      "Business Hours & Call Routing → Edit Call Routing.",
+      "Fallback Options(또는 Other routing) → “To a team member, room phone, or external number”.",
+      `${e164} 입력 후 Enter — “Changes saved” 확인.`,
+      "Closed Hours Routing에도 동일 Effiroad 번호.",
+      "Main Line에 Fallback 없으면 Contact Center → 기본 센터 → 동일 단계.",
+      "경로 B — 사용자/Jobber Phone:",
+      "https://dialpad.com/app → Settings → Users → 샵 회선 → 미응답 시 → Forward to external.",
+      `Jobber: Settings → Phone → 미응답 → 외부 번호 ${e164}.`,
+      "경로 C — Department: Admin Settings → Departments → Call Routing → external.",
+      "발신자 번호 전달(caller ID pass-through) 켜기.",
+      "external number 비활성 시 Dialpad 지원에 forward-to-external 활성화 요청.",
       "가게 번호로 테스트.",
     ];
   }
 
   if (provider === "att") {
     const code = `**61*1${tenDigit}*11*20#`;
+    const iphone10 = `*61*1${tenDigit}*11*10#`;
+    const unreachable = `*62*1${tenDigit}#`;
+    const busy = `*67*1${tenDigit}#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
-      "AT&T 샵 휴대폰 사용.",
-      `입력: ${code} → 통화.`,
-      "확인 톤/문자 대기.",
-      "해제: ##61#",
+      "AT&T 샵 휴대폰 사용 (Cricket, Straight Talk 포함).",
+      "*21* 금지 — 조건부 코드만 사용.",
+      "기본 — 미응답 약 20초:",
+      `  ${code}`,
+      `실패 시: ${alt}`,
+      "iPhone/AT&T 대체 (Smith.ai 검증):",
+      `  10초: ${iphone10}`,
+      `  통화불가: ${unreachable}`,
+      `  통화중: ${busy}`,
+      "해제: ##61#, ##62#, ##67#",
+      "코드 실패: AT&T (800) 331-0500 — conditional call forwarding 요청.",
       FORWARDING_IPHONE_WARNING,
       "가게 번호로 테스트.",
     ];
@@ -203,23 +237,33 @@ export function getForwardingGuideSteps(
   if (provider === "tmobile") {
     const code = `**61*1${tenDigit}**20#`;
     const alt = `**61*1${tenDigit}#`;
+    const busy = `*67*${tenDigit}#`;
+    const unreachable = `*62*${tenDigit}#`;
     return [
-      "T-Mobile 샵 휴대폰.",
-      `입력: ${code} → 통화 (미응답 약 20초).`,
-      `실패 시: ${alt} (통신사 기본 링 시간).`,
-      "확인 톤/문자 대기.",
-      "해제: ##61# 또는 ##004#",
+      "T-Mobile 샵 휴대폰 (Metro, Mint 포함).",
+      "**21* 금지 — 조건부만.",
+      "기본 — 미응답 약 20초:",
+      `  ${code}`,
+      `실패 시: ${alt}`,
+      "선택 (통화중/통화불가):",
+      `  통화중: ${busy}`,
+      `  통화불가: ${unreachable}`,
+      "해제: ##61#, ##67#, ##62#, ##004#",
       FORWARDING_IPHONE_WARNING,
       "가게 번호로 테스트.",
     ];
   }
 
   return [
-    `*71${tenDigit} (Verizon 공식)`,
-    "또는 My Verizon → 미응답 시 착신.",
+    "방법 A — *71 (Verizon 공식, Smith.ai 검증):",
+    `*71${tenDigit} → 통화. *72(전체 착신) 금지.`,
+    "해제: *73",
+    "방법 B — m.vzw.com/callforwarding → 미응답 시만.",
     `목적지 ${e164}`,
+    "방법 C — My Verizon 앱 → 미응답 착신.",
     FORWARDING_IPHONE_WARNING,
-    "가게 번호로 테스트.",
+    "iPhone Live Voicemail 끄기.",
+    "25초 이상 울리게 테스트.",
   ];
 }
 

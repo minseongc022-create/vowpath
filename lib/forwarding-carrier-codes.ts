@@ -100,5 +100,8 @@ export function getCarrierQuickActions(
 export const GOOGLE_VOICE_SETTINGS_URL = "https://voice.google.com/u/0/settings";
 
 export const VERIZON_MY_VERIZON_URL = "https://www.verizon.com/support/my-verizon-app/";
+export const VERIZON_CALL_FORWARDING_WEB = "https://m.vzw.com/callforwarding";
 export const VERIZON_FORWARDING_FAQ = "https://www.verizon.com/support/call-forwarding-faqs/";
 export const DIALPAD_FORWARDING_URL = "https://dialpad.com/app";
+export const DIALPAD_ADMIN_MAIN_LINE_URL = "https://dialpad.com/officesettings";
+export const ATT_FORWARDING_SUPPORT = "800-331-0500";

@@ -103,24 +103,30 @@ export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> 
   ],
   dialpad: [
     "Confirm you edited the correct office line (the number customers dial).",
-    "Forwarding must be When unanswered / No answer — not Always forward.",
-    "Paste the full Effiroad number including +1.",
-    "Save, then wait 1 minute before testing.",
+    "Forwarding must be When unanswered / No answer / Fallback — not Always forward.",
+    "ServiceTitan Phones Pro: set Fallback Options AND Closed Hours Routing in Dialpad Main Line.",
+    "If Main Line has no Fallback menu, use Contact Center → default center → same routing.",
+    "Paste the full Effiroad number including +1; enable caller ID pass-through (original caller, not your line).",
+    "Save, wait for “Changes saved”, then test after 1 minute.",
   ],
   google_voice: [
-    "Use a desktop browser at voice.google.com — the mobile app hides some routing options.",
-    "If Effiroad cannot be added as a linked number, forward from your cell carrier instead (AT&T/T-Mobile/Verizon above).",
-    "Turn off conflicting ring-all-linked-devices if calls never reach Effiroad.",
+    "Use a desktop browser at voice.google.com/settings — the mobile app hides some routing options.",
+    "Before forwarding: turn OFF Screen calls and “Show my Google Voice number as caller ID when forwarding”.",
+    "Turn OFF ring on extra linked devices under My Devices — they can steal overflow tests.",
+    "Add Effiroad under Linked numbers; verify via phone call (Effiroad must receive the code).",
+    "Google Voice cannot always ring your cell first then Effiroad — use cell carrier **61* / *71 or Effiroad-as-main-line.",
     "Test from a non-GV phone calling your Google Voice number.",
   ],
   att: [
     "Dial the code from the AT&T phone itself — not a different device.",
+    "Use conditional codes (**61*, *61*, *62*, *67*) — never *21* (forwards every call).",
     "Wait for a success tone or confirmation text before testing.",
-    "If the code fails, your plan may block forwarding — call AT&T and ask to enable conditional call forwarding.",
-    "Turn off with ##61# if you need to reset.",
+    "If the code fails, your plan may block forwarding — call AT&T (800) 331-0500 and ask to enable conditional call forwarding.",
+    "Turn off with ##61# (no-answer), ##62# (unreachable), or ##67# (busy) if you need to reset.",
   ],
   tmobile: [
     "Dial from the T-Mobile line that receives customer calls.",
+    "Use **61* / *61* for no-answer — never **21* (forwards every call).",
     "Wait for the confirmation tone or text message.",
     "Some prepaid plans block forwarding — contact T-Mobile to enable it.",
     "Turn off with ##61# or ##004# to clear all conditional rules.",
@@ -128,6 +134,7 @@ export const FORWARDING_TROUBLESHOOTING: Record<ForwardingProviderId, string[]> 
   verizon: [
     "Try *71 + Effiroad number first (official conditional code) — then My Verizon if you prefer the app.",
     "Use When unanswered / No answer — never *72 (forwards every call).",
+    "Web: m.vzw.com/callforwarding → When unanswered only.",
     "Prepaid: dial *71 from the phone — app often cannot set forwarding.",
     "Turn off with *73 before retrying if settings conflict.",
     "iPhone: disable Live Voicemail; do not use Settings → Call Forwarding.",
@@ -174,40 +181,62 @@ export function getForwardingGuideSteps(
 
   if (provider === "google_voice") {
     return [
-      "On a computer, open https://voice.google.com and sign in to the Google account that owns your shop GV number.",
-      "Click the gear icon (Settings) → Calls (left menu).",
-      "Under Call forwarding / Linked numbers: add a forwarding destination when calls are not answered.",
-      `Enter ${e164} as the external forward destination (+1 and area code).`,
-      "If Google asks to verify the number: Effiroad must receive that verification call — run the test call step after saving.",
-      "Disable extra linked devices that steal calls if routing fails (Settings → Calls → Manage linked devices).",
-      "Note: Google Voice cannot always ring your cell first then Effiroad — many shops use Effiroad-as-main-line or cell carrier **61* instead.",
+      "On a computer, open https://voice.google.com/settings and sign in to the Google account that owns your shop GV number.",
+      "Calls tab — prep before forwarding (verified with Ruby, Smith.ai, Jobber):",
+      "  • Turn OFF Screen calls (callers must hear Effiroad immediately — no extra prompts).",
+      "  • Turn OFF “Show my Google Voice number as caller ID when forwarding calls” (Effiroad needs the real caller number).",
+      "  • Under My Devices: turn OFF ring on personal cell/tablets during overflow setup — extra rings can block forwarding.",
+      "Linked numbers: click New linked number → enter Effiroad number → Send code.",
+      `Enter ${e164} — include +1 and area code.`,
+      "Verification: choose phone call (not text if possible). Effiroad must receive the 6-digit code — run the test-call step after saving.",
+      "Toggle ON forwarding to Effiroad under Calls → Linked numbers. Only one forward destination should be active.",
+      "Limitation: Google Voice often cannot ring your cell first, then Effiroad after 20 sec — for true overflow, use AT&T/T-Mobile/Verizon **61*/*71 on the cell that rings, or Effiroad-as-main-line.",
+      "If you use Jobber-style linking (GV → dedicated AI number): enable a short answer delay on the receiving side so the greeting is captured cleanly.",
       "Test: call your Google Voice number from another phone and let it route to Effiroad.",
     ];
   }
 
   if (provider === "dialpad") {
     return [
-      "Open https://dialpad.com/app and sign in as an admin (or the user whose line receives shop calls).",
-      "Click the gear icon (Settings) in the left sidebar.",
-      "Go to Office Settings → Users → click the user/line that receives your shop calls.",
-      "Open Answering rules or Call handling for that user.",
-      "Under When call is not answered (or Unanswered), choose Forward to external number.",
-      `Enter ${e164} as the external number (include +1).`,
-      "Set ring duration to about 20 seconds if the field exists, then click Save.",
-      "Jobber Phone: Jobber → Settings → Phone → select your line → same Unanswered → Forward to external → paste the Effiroad number → Save.",
+      "Path A — ServiceTitan Phones Pro / Main Line (Avoca & Smith.ai verified):",
+      "Open https://dialpad.com/officesettings → Admin Settings → Main Line.",
+      "Scroll to Business Hours & Call Routing → Edit Call Routing.",
+      "Under Fallback Options (or Other routing options): choose “To a team member, room phone, or external number”.",
+      `Enter ${e164} and press Enter — wait for “Changes saved”.`,
+      "Closed Hours Routing: repeat the same external number for after-hours overflow.",
+      "If Fallback is missing on Main Line, your account routes via Contact Center — go to Admin Settings → Contact Center → default center → same Fallback + Closed Hours steps.",
+      "Path B — per-user / Jobber Phone (Smith.ai verified):",
+      "Open https://dialpad.com/app → Settings (gear) → Office Settings → Users → shop line.",
+      "Answering rules / Call handling → When call is not answered → Forward to external number.",
+      `Paste ${e164} (+1). Set ring duration ~20 seconds if available → Save.`,
+      "Jobber Phone shortcut: Jobber → Settings → Phone → your line → Unanswered → Forward to external → paste Effiroad number.",
+      "Path C — Department line: Admin Settings → Departments → Business Hours & Call Handling → Edit Call Routing → Other routing → external number (set both open and closed hours if split).",
+      "Enable caller ID pass-through so Effiroad sees the original caller, not your Dialpad line.",
+      "If “external number” is greyed out: contact Dialpad support and ask them to enable forward-to-external on your account.",
       "Test: call your shop number from another phone and let it ring without answering.",
     ];
   }
 
   if (provider === "att") {
     const code = `**61*1${tenDigit}*11*20#`;
+    const iphone10 = `*61*1${tenDigit}*11*10#`;
+    const unreachable = `*62*1${tenDigit}#`;
+    const busy = `*67*1${tenDigit}#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
-      "Use the AT&T cell phone that receives your shop's customer calls.",
-      "Open the Phone app.",
-      `Dial exactly: ${code}`,
-      "Press the green Call button (do not add spaces).",
-      "Wait for a success tone or a confirmation text from AT&T.",
-      "To remove later: dial ##61# and press Call.",
+      "Use the AT&T cell phone that receives your shop's customer calls (includes Cricket, Straight Talk on AT&T network).",
+      "Do NOT use *21* — that forwards every call. Use conditional codes below so your phone rings first.",
+      "Primary — no answer after ~20 seconds (GSM standard):",
+      `  Dial exactly: ${code}`,
+      "Press Call and wait for a success tone or confirmation text from AT&T.",
+      "If that errors, try shorter code (carrier default ring time):",
+      `  ${alt}`,
+      "iPhone / AT&T alternate codes (Smith.ai verified — run each that you need):",
+      `  No answer ~10 sec: ${iphone10}`,
+      `  Unreachable (phone off / no signal): ${unreachable}`,
+      `  Busy line only: ${busy}`,
+      "To remove: ##61# (no-answer), ##62# (unreachable), ##67# (busy), or #21# if you accidentally used forward-all.",
+      "If codes fail: call AT&T (800) 331-0500 — ask to enable conditional call forwarding on your line.",
       FORWARDING_IPHONE_WARNING,
       `Test: from a different phone, call your shop number and let it ring ~20 seconds — Effiroad should answer.`,
     ];
@@ -216,27 +245,36 @@ export function getForwardingGuideSteps(
   if (provider === "tmobile") {
     const code = `**61*1${tenDigit}**20#`;
     const alt = `**61*1${tenDigit}#`;
+    const busy = `*67*${tenDigit}#`;
+    const unreachable = `*62*${tenDigit}#`;
     return [
       "Use the T-Mobile phone that receives your shop's customer calls (includes Metro, Mint on T-Mobile network).",
-      "Open the Phone app.",
-      `Dial exactly: ${code} (no-answer overflow — about 20 seconds)`,
+      "Do NOT use **21* — that forwards every call. Use conditional codes so your phone rings first.",
+      "Primary — no answer after ~20 seconds:",
+      `  Dial exactly: ${code}`,
       `If that errors, try: ${alt} (carrier default ring time)`,
+      "Optional extras (T-Mobile GSM — only if you want busy/unreachable coverage too):",
+      `  Busy only: ${busy}`,
+      `  Unreachable only: ${unreachable}`,
       "Press Call and wait for a confirmation tone or text from T-Mobile.",
-      "To remove later: dial ##61# and press Call (or ##004# to clear all conditional forwarding).",
+      "To remove: ##61# (no-answer), ##67# (busy), ##62# (unreachable), or ##004# to clear all conditional rules.",
+      "More options: https://support.t-mobile.com/docs/DOC-4041",
       FORWARDING_IPHONE_WARNING,
       "Test: call your shop number from another phone and do not answer.",
     ];
   }
 
   return [
-    "Method A — star code (works on most Verizon Wireless lines, including many prepaid):",
+    "Method A — star code (Verizon official — Smith.ai verified):",
     `On the shop phone, open Phone and dial *71${tenDigit} then press Call.`,
-    "Wait for confirmation tone. To remove later: dial *73 and press Call.",
-    "Method B — My Verizon app (if you prefer the app or *71 fails):",
-    "Install/open My Verizon → Account (bottom) → select your mobile line.",
-    "Manage device / Services → Call forwarding → When unanswered or No answer.",
-    "Do not choose Forward all calls.",
-    `Enter +1${tenDigit} as destination → Save → wait one minute.`,
+    "Wait for confirmation tone. *71 covers busy AND no-answer — your phone rings first.",
+    "Do NOT use *72 — that forwards every call unconditionally.",
+    "To remove: dial *73 and press Call.",
+    "Method B — My Verizon web (When unanswered only):",
+    "Open m.vzw.com/callforwarding → sign in → select your line → Call forwarding → Manage.",
+    `Enter ${e164} under When unanswered / No answer → Update Call Forwarding Status.`,
+    "Method C — My Verizon app:",
+    "Account → your line → Manage call forwarding → When unanswered → paste Effiroad number → Save.",
     FORWARDING_IPHONE_WARNING,
     "iPhone: Settings → Phone → Live Voicemail → OFF (stops voicemail from beating the forward).",
     "Test: call your shop number from another phone and let it ring 25+ seconds.",
