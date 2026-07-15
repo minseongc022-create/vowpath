@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { DemoVertical } from "@/lib/demo-vertical-config";
 import {
   getPhoneDemoTimeline,
   getVoiceAudioPrefix,
   type PhoneDemoPhase,
 } from "@/lib/demo-phone-script";
+import { useDemoPhoneTimeline } from "@/lib/hooks/use-demo-phone-timeline";
 
 const STEPS = ["Ring", "Answer", "Intake", "Dispatch", "Done"] as const;
 
@@ -31,21 +32,48 @@ type DemoAiPhoneSceneProps = {
   vertical?: DemoVertical;
 };
 
+function stepIdxForRestorationOrHvac(phase: PhoneDemoPhase, onIncoming?: (time: string) => void): number | null {
+  if (phase.kind === "system") {
+    if (phase.text.includes("Incoming")) {
+      const timeMatch = phase.text.match(/· ([^·]+?) ·/);
+      if (timeMatch) onIncoming?.(timeMatch[1].trim());
+      return 0;
+    }
+    if (phase.text.includes("Owner replied") || phase.text.includes("AUTO-DISPATCH")) return 3;
+    if (phase.text.includes("Tech replied") || phase.text.includes("Customer ETA")) return 4;
+  }
+  if (phase.kind === "customer-text") return 2;
+  if (phase.kind === "sms") return 3;
+  return null;
+}
+
 export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" }: DemoAiPhoneSceneProps) {
   const timeline = useMemo(() => getPhoneDemoTimeline(vertical), [vertical]);
   const audioPrefix = getVoiceAudioPrefix(vertical);
-  const [customerLines, setCustomerLines] = useState<string[]>([]);
-  const [aiLine, setAiLine] = useState<string | null>(null);
-  const [systemLine, setSystemLine] = useState<string | null>(null);
-  const [ownerSms, setOwnerSms] = useState<string | null>(null);
-  const [crewSms, setCrewSms] = useState<string | null>(null);
-  const [fyiSms, setFyiSms] = useState<string | null>(null);
-  const [speaking, setSpeaking] = useState(false);
-  const [typing, setTyping] = useState(false);
-  const [stepIdx, setStepIdx] = useState(0);
   const [callMeta, setCallMeta] = useState(vertical === "hvac" ? "6:42 AM Sat" : "2:14 AM");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cancelledRef = useRef(false);
+
+  const stepIdxForPhase = useCallback(
+    (phase: PhoneDemoPhase) => stepIdxForRestorationOrHvac(phase, setCallMeta),
+    [],
+  );
+
+  const {
+    customerLines,
+    aiLine,
+    systemLine,
+    ownerSms,
+    crewSms,
+    fyiSms,
+    speaking,
+    typing,
+    stepIdx,
+    customerScrollRef,
+  } = useDemoPhoneTimeline({
+    timeline,
+    audioPrefix,
+    recordMode,
+    stepIdxForPhase,
+  });
 
   const header =
     vertical === "hvac"
@@ -57,102 +85,6 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
           eyebrow: "Full emergency call — start to finish",
           title: "Intake · owner approval · crew dispatch",
         };
-
-  const playAi = useCallback(
-    async (phase: Extract<PhoneDemoPhase, { kind: "ai-voice" }>) => {
-      setAiLine(phase.text);
-      setSpeaking(true);
-      const audio = new Audio(`/demo-audio/${audioPrefix}-${phase.audioIndex}.mp3`);
-      audioRef.current = audio;
-      try {
-        await audio.play();
-        await new Promise<void>((resolve) => {
-          audio.onended = () => resolve();
-          audio.onerror = () => resolve();
-          setTimeout(resolve, Math.max(phase.text.length * 78, 3800));
-        });
-      } catch {
-        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 78, 3800)));
-      } finally {
-        setSpeaking(false);
-      }
-    },
-    [audioPrefix],
-  );
-
-  const run = useCallback(() => {
-    cancelledRef.current = true;
-    audioRef.current?.pause();
-    cancelledRef.current = false;
-    setCustomerLines([]);
-    setAiLine(null);
-    setSystemLine(null);
-    setOwnerSms(null);
-    setCrewSms(null);
-    setFyiSms(null);
-    setSpeaking(false);
-    setTyping(false);
-    setStepIdx(0);
-
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    const applyPhase = async (phase: PhoneDemoPhase) => {
-      if (cancelledRef.current) return;
-      await sleep(phase.delayMs);
-      if (cancelledRef.current) return;
-
-      if (phase.kind === "system") {
-        setSystemLine(phase.text);
-        if (phase.text.includes("Incoming")) {
-          setStepIdx(0);
-          const timeMatch = phase.text.match(/· ([^·]+?) ·/);
-          if (timeMatch) setCallMeta(timeMatch[1].trim());
-        }
-        if (phase.text.includes("Owner replied") || phase.text.includes("AUTO-DISPATCH")) setStepIdx(3);
-        if (phase.text.includes("Tech replied") || phase.text.includes("Customer ETA")) setStepIdx(4);
-      }
-      if (phase.kind === "sms") {
-        if (phase.variant === "crew") setCrewSms(phase.text);
-        else if (phase.variant === "fyi") setFyiSms(phase.text);
-        else setOwnerSms(phase.text);
-        setStepIdx(3);
-      }
-      if (phase.kind === "customer-text") {
-        setTyping(true);
-        await sleep(650);
-        if (cancelledRef.current) return;
-        setTyping(false);
-        setCustomerLines((prev) => [...prev, phase.text]);
-        setStepIdx(2);
-      }
-      if (phase.kind === "ai-voice") {
-        setStepIdx((s) => (s < 1 ? 1 : s));
-        await playAi(phase);
-        await sleep(650);
-      }
-    };
-
-    void (async () => {
-      do {
-        for (const phase of timeline) {
-          await applyPhase(phase);
-          if (cancelledRef.current) return;
-        }
-        if (recordMode) return;
-        await sleep(5000);
-        if (!cancelledRef.current) run();
-        return;
-      } while (false);
-    })();
-  }, [playAi, recordMode, timeline]);
-
-  useEffect(() => {
-    run();
-    return () => {
-      cancelledRef.current = true;
-      audioRef.current?.pause();
-    };
-  }, [run]);
 
   return (
     <div className="flex h-full w-full flex-col bg-gradient-to-br from-[#0c0b0a] via-[#12100e] to-[#1a1612] text-white">
@@ -179,8 +111,8 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-5 p-5 md:grid-cols-2 md:gap-6 md:p-8">
-        <div className="flex flex-col items-center justify-center">
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-5 p-5 md:gap-6 md:p-8">
+        <div className="flex min-h-0 flex-col items-center justify-center">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
             On the call — AI voice only
           </p>
@@ -206,11 +138,14 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
           </div>
         </div>
 
-        <div className="flex flex-col justify-center">
+        <div className="flex min-h-0 flex-col justify-center">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
             Customer — text only
           </p>
-          <div className="min-h-[160px] space-y-3 rounded-2xl border border-white/10 bg-black/45 p-4">
+          <div
+            ref={customerScrollRef}
+            className="max-h-[280px] min-h-[160px] space-y-3 overflow-y-auto rounded-2xl border border-white/10 bg-black/45 p-4"
+          >
             {customerLines.length === 0 && !typing ? (
               <p className="text-sm text-white/35">Customer messages appear here…</p>
             ) : (

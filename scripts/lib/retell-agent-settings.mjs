@@ -2,21 +2,21 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "natural-male-v10-davis-native-2026-07-15";
+export const RETELL_PROMPT_VERSION = "natural-female-v11-jenny-native-2026-07-15";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
+export const RETELL_FALLBACK_FEMALE_VOICE_ID = "11labs-Rachel";
 
 export const RETELL_PREFERRED_VOICE_NAMES = [
-  "Steve",
-  "Mark",
-  "George",
-  "Marcus",
-  "Dylan",
-  "Eric",
-  "Anthony",
-  "Adrian",
+  "Rachel",
+  "Sarah",
+  "Aria",
+  "Charlotte",
+  "Laura",
+  "Jessica",
+  "Matilda",
+  "Nicole",
 ];
 
 function isUsEnglishVoice(v) {
@@ -29,32 +29,32 @@ function isUsEnglishVoice(v) {
   return true;
 }
 
-function isMale(v) {
-  return (v.gender || "").toLowerCase() === "male";
+function isFemale(v) {
+  return (v.gender || "").toLowerCase() === "female";
 }
 
 export function pickNaturalReceptionistVoice(voices, options = {}) {
   const explicit = options.explicitId?.trim();
   if (explicit) return explicit;
 
-  const americanMales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isMale(v));
+  const americanFemales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isFemale(v));
 
   for (const preferred of RETELL_PREFERRED_VOICE_NAMES) {
-    const hit = americanMales.find((v) =>
+    const hit = americanFemales.find((v) =>
       (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
     );
     if (hit) return hit.voice_id;
   }
 
-  if (americanMales[0]?.voice_id) return americanMales[0].voice_id;
+  if (americanFemales[0]?.voice_id) return americanFemales[0].voice_id;
 
   const current = options.currentVoiceId;
   const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
-  if (current && currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
+  if (current && currentVoice && isFemale(currentVoice) && isUsEnglishVoice(currentVoice)) {
     return current;
   }
 
-  return RETELL_FALLBACK_MALE_VOICE_ID;
+  return RETELL_FALLBACK_FEMALE_VOICE_ID;
 }
 
 export function buildRetellProductionAgentPatch(voiceId) {

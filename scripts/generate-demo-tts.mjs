@@ -7,8 +7,8 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Naturally full American male — native voice, no artificial pitch-down. */
-const EDGE_VOICE = "en-US-ChristopherNeural";
+/** Warm professional American female — native voice, no pitch shift. */
+const EDGE_VOICE = "en-US-JennyNeural";
 const EDGE_RATE = "+0%";
 const EDGE_PITCH = "+0Hz";
 
@@ -137,7 +137,7 @@ async function openAiTts(text, key) {
     },
     body: JSON.stringify({
       model: "tts-1-hd",
-      voice: "onyx",
+      voice: "nova",
       input: text,
       speed: 1.0,
     }),
@@ -171,7 +171,7 @@ async function main() {
   const useOpenAi = key?.startsWith("sk-");
   console.log(
     useOpenAi
-      ? "[demo:tts] OpenAI onyx (deep male)"
+      ? "[demo:tts] OpenAI nova (warm female)"
       : `[demo:tts] Edge TTS ${EDGE_VOICE} (${EDGE_RATE}, ${EDGE_PITCH})`,
   );
 
@@ -185,7 +185,7 @@ async function main() {
     console.log("Wrote", mp3);
   }
 
-  console.log("Done —", CLIPS.length, "clips (single deep male voice)");
+  console.log("Done —", CLIPS.length, "clips (single warm female voice)");
 }
 
 main().catch((e) => {

@@ -124,8 +124,12 @@ export function getGasHoldAudioPrefix(): string {
 /** Total scene runtime for recording (ms) — one full call, no loop. */
 export function phoneDemoTotalMs(timeline: PhoneDemoPhase[]): number {
   let cursor = 400;
-  for (const phase of timeline) cursor += phase.delayMs;
-  return cursor + 6000;
+  for (const phase of timeline) {
+    cursor += phase.delayMs;
+    if (phase.kind === "customer-text") cursor += 3300;
+    if (phase.kind === "ai-voice") cursor += 650;
+  }
+  return cursor + 8000;
 }
 
 /** @deprecated Use getPhoneDemoTimeline("restoration") */
