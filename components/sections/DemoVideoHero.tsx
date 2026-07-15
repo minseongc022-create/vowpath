@@ -29,14 +29,24 @@ const DEMOS = [
 
 type DemoId = (typeof DEMOS)[number]["id"];
 
+const VISIBLE_RATIO = 0.35;
+
 export function DemoVideoHero() {
   const [active, setActive] = useState<DemoId>("overview");
-  const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const visibleRef = useRef(false);
   const tab = DEMOS.find((t) => t.id === active) ?? DEMOS[0];
 
+  const stopVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    video.muted = true;
+    video.currentTime = 0;
+  }, []);
+
+  /** Play unmuted — call from scroll/click handlers (user-gesture context). */
   const playWithSound = useCallback(async (restart = false) => {
     const video = videoRef.current;
     if (!video || !visibleRef.current) return;
@@ -45,17 +55,13 @@ export function DemoVideoHero() {
     video.volume = 1;
     try {
       await video.play();
-      return;
     } catch {
-      /* fall through */
-    }
-    try {
       video.muted = true;
-      await video.play();
-      video.muted = false;
-      await video.play();
-    } catch {
-      /* browser blocked autoplay */
+      try {
+        await video.play();
+      } catch {
+        /* browser blocked */
+      }
     }
   }, []);
 
@@ -63,47 +69,48 @@ export function DemoVideoHero() {
     const section = sectionRef.current;
     if (!section) return;
 
-    const onVisibleChange = (next: boolean) => {
-      visibleRef.current = next;
-      setIsVisible(next);
-      const video = videoRef.current;
-      if (!video) return;
-      if (next) {
-        void playWithSound(true);
-      } else {
-        video.pause();
-      }
-    };
-
     const observer = new IntersectionObserver(
       ([entry]) => {
-        onVisibleChange(entry.isIntersecting && entry.intersectionRatio >= 0.3);
+        const next = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
+        const was = visibleRef.current;
+        visibleRef.current = next;
+
+        if (!next) {
+          stopVideo();
+        } else if (!was) {
+          /* Entered viewport — play on the next scroll/click gesture, not here. */
+        }
       },
-      { threshold: [0, 0.3, 0.5, 0.7] },
+      { threshold: [0, VISIBLE_RATIO, 0.55, 0.75] },
     );
     observer.observe(section);
 
-    const onScroll = () => {
-      if (visibleRef.current) void playWithSound(false);
+    const onUserGesture = () => {
+      if (visibleRef.current) {
+        void playWithSound(false);
+      } else {
+        stopVideo();
+      }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onScroll, { passive: true });
-    window.addEventListener("touchmove", onScroll, { passive: true });
+
+    window.addEventListener("scroll", onUserGesture, { passive: true });
+    window.addEventListener("wheel", onUserGesture, { passive: true });
+    window.addEventListener("touchmove", onUserGesture, { passive: true });
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onScroll);
-      window.removeEventListener("touchmove", onScroll);
+      window.removeEventListener("scroll", onUserGesture);
+      window.removeEventListener("wheel", onUserGesture);
+      window.removeEventListener("touchmove", onUserGesture);
+      stopVideo();
     };
-  }, [playWithSound]);
-
-  useEffect(() => {
-    if (isVisible) void playWithSound(true);
-  }, [active, isVisible, playWithSound]);
+  }, [playWithSound, stopVideo]);
 
   const selectTab = (id: DemoId) => {
     setActive(id);
+    requestAnimationFrame(() => {
+      if (visibleRef.current) void playWithSound(true);
+    });
   };
 
   return (
@@ -119,7 +126,7 @@ export function DemoVideoHero() {
             3 short demos — what we do &amp; how calls work
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/55 sm:text-base">
-            Scroll here — videos play automatically with narration.
+            Scroll to this section — video plays with sound. Scroll away and it stops.
           </p>
         </div>
 
@@ -147,8 +154,9 @@ export function DemoVideoHero() {
             className="aspect-video w-full bg-black object-contain"
             loop
             playsInline
+            muted
             controls
-            preload="auto"
+            preload="metadata"
             aria-label={`Effiroad ${tab.label} demo`}
           >
             <source src={tab.mp4} type="video/mp4" />
@@ -160,7 +168,7 @@ export function DemoVideoHero() {
           {tab.hint}
           {active === "voice" ? (
             <span className="mt-1 block text-[#b59b78]">
-              Only the AI speaks on this demo — customer replies appear as text.
+              Only the AI speaks — customer replies are text-only.
             </span>
           ) : null}
         </p>
