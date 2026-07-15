@@ -510,3 +510,27 @@ export const aboutHvac = {
     },
   ],
 };
+
+export const demoSummaryHvac = {
+  title: "What you just saw — HVAC in plain English",
+  subtitle:
+    "We answer when you're on a job or off the clock — on the schedule you set. No-heat rolls fast; gas smell waits for you.",
+  steps: [
+    {
+      title: "Schedule-based answering",
+      body: "Set nights, weekends, storm weeks. Forward unanswered calls — your main number stays on the truck and Google.",
+    },
+    {
+      title: "No-heat auto-dispatch",
+      body: "Verified no-heat with name and address? On-call tech gets crew SMS instantly. You get an FYI text.",
+    },
+    {
+      title: "Gas smell = your call",
+      body: "Gas odor, sparking, or unclear intake → owner SMS hold. Reply 1 to dispatch, 2 to hold. Never blind roll.",
+    },
+    {
+      title: "Live in ~10 minutes",
+      body: "Sign up, set on-call hours, forward your line, run one test call. Jobber sync optional.",
+    },
+  ],
+} as const;

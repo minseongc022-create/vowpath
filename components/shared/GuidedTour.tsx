@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useIsEnglishUi } from "@/components/providers/LocaleProvider";
-
 export type TourStep = {
   id: string;
   title: string;
@@ -74,7 +72,6 @@ export function GuidedTour({
   const [rect, setRect] = useState<Rect | null>(null);
   const stepBaselineDoneRef = useRef<boolean | undefined>(undefined);
   const measureRafRef = useRef<number | null>(null);
-  const en = useIsEnglishUi();
 
   useEffect(() => setMounted(true), []);
 
@@ -198,14 +195,13 @@ export function GuidedTour({
   if (!current) return null;
   const isLast = step === steps.length - 1;
   const ui = {
-    tour: tourLabel ?? (en ? "Quick tour" : "둘러보기"),
-    step: (n: number, total: number) =>
-      en ? `Step ${n} of ${total}` : `${total}단계 중 ${n}단계`,
-    never: en ? "Don't show again" : "다시 보지 않기",
-    back: en ? "← Back" : "← 이전",
-    next: en ? "Next →" : "다음 →",
-    done: en ? "Done ✓" : "완료 ✓",
-    goTo: (n: number) => (en ? `Go to step ${n}` : `${n}단계로 이동`),
+    tour: tourLabel ?? "Quick tour",
+    step: (n: number, total: number) => `Step ${n} of ${total}`,
+    never: "Don't show again",
+    back: "← Back",
+    next: "Next →",
+    done: "Done ✓",
+    goTo: (n: number) => `Go to step ${n}`,
   };
 
   const hasSpot = !!rect && rect.height >= 24 && rect.width >= 24;

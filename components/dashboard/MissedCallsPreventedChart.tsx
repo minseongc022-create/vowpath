@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
 import { prepareMissedCallsChartData } from "@/lib/missed-calls-chart-series";
 import { dashboardUi } from "@/lib/content";
-import { isEnglishUi } from "@/lib/locale";
 import {
   formatTrendTooltipValue,
   getTrendChartPlotValue,
@@ -126,7 +125,7 @@ function SeriesLegend({
     <div
       className="mb-3 flex flex-wrap gap-2"
       role="group"
-      aria-label={isEnglishUi() ? "Select trend metrics" : "추세 지표 선택"}
+      aria-label="Select trend metrics"
     >
       {TREND_CHART_SERIES.map((series) => {
         const on = visible.includes(series.id);

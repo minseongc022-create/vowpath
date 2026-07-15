@@ -181,9 +181,9 @@ export function DashboardShell({
 
   return (
 
-    <div className="vow-dash flex min-h-screen items-start">
+    <div className="vow-dash">
 
-      <aside className="vow-dash-sidebar hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:max-h-screen lg:shrink-0 lg:overflow-y-auto">
+      <aside className="vow-dash-sidebar">
 
         <div className="flex h-full w-full flex-col px-4 py-5">
 
@@ -311,9 +311,9 @@ export function DashboardShell({
 
 
 
-      <div className="vow-dash-main flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="vow-dash-main">
 
-        <header className="border-b border-brand-200/60 bg-[#f8f6f2]/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <header className="vow-dash-mobile-header">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-bold text-brand-950">{shopName}</p>

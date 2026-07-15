@@ -58,7 +58,7 @@ export function getSiteIcons(): Metadata["icons"] {
 }
 
 export function buildSiteMetadata(locale: UiLocale = "en"): Metadata {
-  const seo = locale === "ko" ? SITE_SEO_KO : SITE_SEO;
+  const seo = SITE_SEO;
   const ogImage = `${SITE.url}${iconUrl(OG_IMAGE_PATH)}`;
 
   return {
@@ -77,7 +77,7 @@ export function buildSiteMetadata(locale: UiLocale = "en"): Metadata {
       type: "website",
       url: SITE.url,
       siteName: SITE.name,
-      locale: locale === "ko" ? "ko_KR" : locale === "es" ? "es_US" : "en_US",
+      locale: locale === "es" ? "es_US" : "en_US",
       images: [
         {
           url: ogImage,

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
-import { IntakeCallDemo } from "@/components/sections/IntakeCallDemo";
+import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
+import { DemoSummary } from "@/components/sections/DemoSummary";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
@@ -59,8 +60,8 @@ export default async function HvacPage() {
         {/* Hero — common across every vertical */}
         <Hero />
 
-        {/* Interactive intake call demo — HVAC no-heat scenario */}
-        <IntakeCallDemo vertical="hvac" />
+        <DemoVideoHero vertical="hvac" />
+        <DemoSummary vertical="hvac" />
 
         <SocialProof variant="trust" content={socialProofHvac} />
         <Problem content={problemHvac} />

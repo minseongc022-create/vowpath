@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { dashboardGreeting } from "@/lib/dashboard-home-metrics";
 import { useDashboardUi, useVowDashboard } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
-import { isEnglishUi } from "@/lib/locale";
 import { normalizeShopState } from "@/lib/shop-storage";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import { saveDashboardVisibleMetrics } from "@/lib/schedule-save";
@@ -267,9 +266,7 @@ export function DashboardHomeView() {
       <section data-tour-step="kpi-cards">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-brand-950">
-              {isEnglishUi() ? "At a glance" : "한눈에 보기"}
-            </h2>
+            <h2 className="text-sm font-bold text-brand-950">At a glance</h2>
             <p className="text-[11px] text-stone-500">{periodLabel}</p>
           </div>
           <button
@@ -277,13 +274,7 @@ export function DashboardHomeView() {
             onClick={() => setKpiEditMode((v) => !v)}
             className="kb-3d-btn shrink-0 !rounded-full !px-3 !py-1.5 !text-xs"
           >
-            {kpiEditMode
-              ? isEnglishUi()
-                ? "Done"
-                : "완료"
-              : isEnglishUi()
-                ? "Edit"
-                : "수정"}
+            {kpiEditMode ? "Done" : "Edit"}
           </button>
         </div>
         <OwnerKpiCards

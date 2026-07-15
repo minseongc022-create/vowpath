@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ROUTES, type PlanId } from "@/lib/constants";
-import { checkoutErrorMessage, checkoutErrorMessageKo } from "@/lib/checkout-errors";
+import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { getStartedHref } from "@/lib/checkout-urls";
-import { isEnglishUi } from "@/lib/locale";
 import { startPlanCheckout } from "@/lib/paddle-checkout-client";
 
 type CheckoutStatus = {
@@ -35,7 +34,6 @@ export function StartCheckoutButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<CheckoutStatus | null>(null);
-  const en = isEnglishUi();
 
   useEffect(() => {
     void fetch("/api/checkout/status")
@@ -70,7 +68,7 @@ export function StartCheckoutButton({
         typeof e === "object" && e !== null && "code" in e
           ? String((e as { code?: string }).code)
           : "unavailable";
-      setError(en ? checkoutErrorMessage(code) : checkoutErrorMessageKo(code));
+      setError(checkoutErrorMessage(code));
     } finally {
       setBusy(false);
     }
@@ -84,15 +82,7 @@ export function StartCheckoutButton({
         disabled={disabled || busy || status === null}
         className={className}
       >
-        {busy
-          ? en
-            ? "Opening checkout…"
-            : "결제창 여는 중…"
-          : status === null
-            ? en
-              ? "Loading…"
-              : "불러오는 중…"
-            : children}
+        {busy ? "Opening checkout…" : status === null ? "Loading…" : children}
       </button>
       {error ? (
         <span className="text-sm font-normal text-red-700" role="alert">

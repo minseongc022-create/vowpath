@@ -75,9 +75,8 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
 ];
 
 /** Settings tour — top-to-bottom, matching the Go live 1→2→3→4 flow on the page. */
-export function getSettingsTourSteps(isEnglish: boolean): TourStep[] {
-  if (isEnglish) {
-    return [
+export function getSettingsTourSteps(): TourStep[] {
+  return [
       {
         id: "go-live-progress",
         eyebrow: "Start here",
@@ -175,104 +174,6 @@ export function getSettingsTourSteps(isEnglish: boolean): TourStep[] {
         target: '[data-tour-step="settings-save"]',
       },
     ];
-  }
-
-  return [
-    {
-      id: "go-live-progress",
-      eyebrow: "여기서 시작",
-      title: "🎯 Go live 체크리스트",
-      description:
-        "아래 1→2→3→4 순서대로 진행하세요. 진행률 바가 전화 응대 시작 전 남은 단계를 보여줍니다.",
-      target: "#go-live-progress",
-    },
-    {
-      id: "integrations-hub",
-      eyebrow: "한눈에 보기",
-      title: "🔌 연동 맵",
-      description:
-        "전화, Jobber, Zapier, 웹 채팅 상태를 한눈에 확인합니다. 초록색 = 완료. 카드를 누르면 해당 섹션으로 이동합니다.",
-      target: "#integrations-hub",
-    },
-    {
-      id: "go-live-contact",
-      eyebrow: "1단계 / 4 · 필수",
-      title: "📱 연락처 확인",
-      description:
-        "먼저 새 요청 알림을 받을 이메일과 휴대폰 번호를 등록하세요. 저장하기 전까지 2·3단계는 잠겨 있습니다.",
-      target: "#go-live-contact",
-    },
-    {
-      id: "go-live-schedule",
-      eyebrow: "2단계 / 4 · 필수",
-      title: "🕐 AI 응대 시간",
-      description:
-        "다음으로 Effiroad가 전화를 받을 시간대를 정하세요. 야간·주말·상시 중에서 선택합니다.",
-      target: "#go-live-schedule",
-    },
-    {
-      id: "go-live-phone",
-      eyebrow: "3단계 / 4 · 필수",
-      title: "☎️ 착신전환 연결",
-      description:
-        "Effiroad 전용 번호를 받고, 메인 번호에서 안 받을 때 여기로 넘기세요. 고객은 기존 샵 번호 그대로 누릅니다.",
-      target: "#go-live-phone",
-    },
-    {
-      id: "go-live-jobber",
-      eyebrow: "4단계 / 4 · 선택",
-      title: "🔗 Jobber 연결",
-      description:
-        "선택 사항 — Jobber를 연결하면 승인된 작업이 일정·매출 대시보드에 자동 반영됩니다.",
-      target: "#go-live-jobber",
-    },
-    {
-      id: "product-settings",
-      eyebrow: "Go live 이후",
-      title: "⚙️ 샵 운영 설정",
-      description:
-        "Go live 단계가 끝나면, 아래에서 예약 규칙·크루 문자·추가 연동을 세밀하게 조정하세요.",
-      target: "#product-settings",
-    },
-    {
-      id: "shop-name",
-      eyebrow: "운영 설정",
-      title: "🏢 샵 이름",
-      description: "통화·문자에 나오는 이름입니다. 실제 사업자명을 입력하세요.",
-      target: "#shop-name",
-    },
-    {
-      id: "shop-vertical",
-      eyebrow: "운영 설정",
-      title: "🔧 업종 선택",
-      description: "Restoration 또는 HVAC — AI 응대 스크립트와 접수 질문이 맞춰집니다.",
-      target: "#shop-vertical",
-    },
-    {
-      id: "booking-settings",
-      eyebrow: "운영 설정",
-      title: "📅 예약 규칙",
-      description:
-        "일반 건은 자동 확정 vs. 먼저 문자로 승인 요청 중 선택합니다. 긴급·애매한 건은 항상 샵에 옵니다.",
-      target: "#booking-settings",
-    },
-    {
-      id: "tech-dispatch",
-      eyebrow: "운영 설정",
-      title: "🚚 크루 디스패치",
-      description:
-        "기사와 온콜 요일을 등록하세요. 작업 확정 시 문자가 가고, 1번 회신으로 수락합니다.",
-      target: "#tech-dispatch",
-    },
-    {
-      id: "settings-save",
-      eyebrow: "마무리",
-      title: "💾 모든 설정 저장",
-      description:
-        "변경 후에는 맨 아래 '모든 설정 저장'을 꼭 누르세요. 2·3단계도 저장해야 완료로 표시됩니다.",
-      target: '[data-tour-step="settings-save"]',
-    },
-  ];
 }
 
-export const SETTINGS_TOUR_STEPS: TourStep[] = getSettingsTourSteps(true);
+export const SETTINGS_TOUR_STEPS: TourStep[] = getSettingsTourSteps();

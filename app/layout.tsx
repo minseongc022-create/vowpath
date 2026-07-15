@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd, siteOrganizationJsonLd } from "@/lib/site-metadata";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { EffiroadAssistantRoot } from "@/components/assistant/EffiroadAssistantRoot";
-import { resolveServerUiLocale } from "@/lib/locale";
+import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,7 +14,7 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerUiLocale();
-  return buildSiteMetadata(locale === "ko" ? "ko" : "en");
+  return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
 
 export const viewport: Viewport = {
@@ -33,7 +33,7 @@ export default async function RootLayout({
   const iconV = SITE_ICON_VERSION;
 
   return (
-    <html lang={locale === "ko" ? "ko" : "en"} className={inter.variable} translate="no">
+    <html lang={locale === "es" ? "es" : "en"} className={inter.variable} translate="no">
       <head>
         <link rel="icon" href={`/favicon.ico?v=${iconV}`} sizes="any" />
         <link rel="icon" href={`/favicon-32.png?v=${iconV}`} type="image/png" sizes="32x32" />
@@ -44,8 +44,6 @@ export default async function RootLayout({
         <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
         <link
           rel="stylesheet"
-          as="style"
-          crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
       </head>

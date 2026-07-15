@@ -104,6 +104,8 @@ export const settingsPageEn = {
   scheduleQuickTip: "Effiroad only answers during these windows. Keep daytime calls on your team.",
   phoneQuickTip: "Customers still dial your shop number — unanswered calls forward to Effiroad.",
   jobberQuickTip: "Only if you use Jobber. You can run fully on SMS + dashboard without it.",
+  jobberScheduleAutoNote:
+    "Once connected, approved and auto-confirmed visits sync to your Jobber schedule — no extra calendar setup.",
   editLabel: "Edit",
   collapseLabel: "Done",
   jobberPanel: {

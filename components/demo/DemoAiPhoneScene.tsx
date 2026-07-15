@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PHONE_DEMO_TIMELINE, type PhoneDemoPhase } from "@/lib/demo-phone-script";
+import type { DemoVertical } from "@/lib/demo-vertical-config";
+import {
+  getPhoneDemoTimeline,
+  getVoiceAudioPrefix,
+  type PhoneDemoPhase,
+} from "@/lib/demo-phone-script";
 
 const STEPS = ["Ring", "Answer", "Intake", "Dispatch", "Done"] as const;
 
@@ -21,66 +26,95 @@ function Waveform({ active }: { active: boolean }) {
   );
 }
 
-export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean }) {
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [speaking, setSpeaking] = useState(false);
+type DemoAiPhoneSceneProps = {
+  recordMode?: boolean;
+  vertical?: DemoVertical;
+};
+
+export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" }: DemoAiPhoneSceneProps) {
+  const timeline = getPhoneDemoTimeline(vertical);
+  const audioPrefix = getVoiceAudioPrefix(vertical);
   const [customerLines, setCustomerLines] = useState<string[]>([]);
   const [aiLine, setAiLine] = useState<string | null>(null);
   const [systemLine, setSystemLine] = useState<string | null>(null);
-  const [smsLine, setSmsLine] = useState<string | null>(null);
+  const [ownerSms, setOwnerSms] = useState<string | null>(null);
+  const [crewSms, setCrewSms] = useState<string | null>(null);
+  const [fyiSms, setFyiSms] = useState<string | null>(null);
+  const [speaking, setSpeaking] = useState(false);
   const [typing, setTyping] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
+  const [callMeta, setCallMeta] = useState(vertical === "hvac" ? "6:42 AM Sat" : "2:14 AM");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const playAi = useCallback(async (phase: Extract<PhoneDemoPhase, { kind: "ai-voice" }>) => {
-    setAiLine(phase.text);
-    setSpeaking(true);
-    const audio = new Audio(`/demo-audio/voice-ai-${phase.audioIndex}.mp3`);
-    audioRef.current = audio;
-    try {
-      await audio.play();
-      await new Promise<void>((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-        setTimeout(resolve, Math.max(phase.text.length * 60, 3000));
-      });
-    } catch {
-      await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 60, 3000)));
-    } finally {
-      setSpeaking(false);
-    }
-  }, []);
+  const header =
+    vertical === "hvac"
+      ? {
+          eyebrow: "Full no-heat call — start to finish",
+          title: "Verify · auto-dispatch · crew SMS",
+        }
+      : {
+          eyebrow: "Full emergency call — start to finish",
+          title: "Intake · owner approval · crew dispatch",
+        };
+
+  const playAi = useCallback(
+    async (phase: Extract<PhoneDemoPhase, { kind: "ai-voice" }>) => {
+      setAiLine(phase.text);
+      setSpeaking(true);
+      const audio = new Audio(`/demo-audio/${audioPrefix}-${phase.audioIndex}.mp3`);
+      audioRef.current = audio;
+      try {
+        await audio.play();
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+          setTimeout(resolve, Math.max(phase.text.length * 60, 3000));
+        });
+      } catch {
+        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 60, 3000)));
+      } finally {
+        setSpeaking(false);
+      }
+    },
+    [audioPrefix],
+  );
 
   const run = useCallback(() => {
     for (const t of timeouts.current) clearTimeout(t);
     timeouts.current = [];
-    setVisibleCount(0);
     setCustomerLines([]);
     setAiLine(null);
     setSystemLine(null);
-    setSmsLine(null);
+    setOwnerSms(null);
+    setCrewSms(null);
+    setFyiSms(null);
     setSpeaking(false);
     setTyping(false);
     setStepIdx(0);
 
     let cursor = 400;
-    PHONE_DEMO_TIMELINE.forEach((phase, idx) => {
+    timeline.forEach((phase, idx) => {
       cursor += phase.delayMs;
       if (phase.kind === "customer-text") {
         timeouts.current.push(setTimeout(() => setTyping(true), cursor - 500));
       }
       timeouts.current.push(
         setTimeout(() => {
-          setVisibleCount(idx + 1);
           if (phase.kind === "system") {
             setSystemLine(phase.text);
-            if (phase.text.includes("Incoming")) setStepIdx(0);
-            if (phase.text.includes("Owner replied")) setStepIdx(3);
-            if (phase.text.includes("Intake saved")) setStepIdx(4);
+            if (phase.text.includes("Incoming")) {
+              setStepIdx(0);
+              const timeMatch = phase.text.match(/· ([^·]+?) ·/);
+              if (timeMatch) setCallMeta(timeMatch[1].trim());
+            }
+            if (phase.text.includes("Owner replied") || phase.text.includes("Auto-dispatch")) setStepIdx(3);
+            if (phase.text.includes("Tech replied") || phase.text.includes("Intake saved")) setStepIdx(4);
           }
           if (phase.kind === "sms") {
-            setSmsLine(phase.text);
+            if (phase.variant === "crew") setCrewSms(phase.text);
+            else if (phase.variant === "fyi") setFyiSms(phase.text);
+            else setOwnerSms(phase.text);
             setStepIdx(3);
           }
           if (phase.kind === "customer-text") {
@@ -92,6 +126,7 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
             setStepIdx((s) => (s < 1 ? 1 : s));
             void playAi(phase);
           }
+          void idx;
         }, cursor),
       );
     });
@@ -99,7 +134,7 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
     if (!recordMode) {
       timeouts.current.push(setTimeout(() => run(), cursor + 5000));
     }
-  }, [playAi, recordMode]);
+  }, [playAi, recordMode, timeline]);
 
   useEffect(() => {
     run();
@@ -113,10 +148,8 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
     <div className="flex h-full w-full flex-col bg-gradient-to-br from-[#0c0b0a] via-[#12100e] to-[#1a1612] text-white">
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 md:px-8 md:py-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">
-            Full call — start to finish
-          </p>
-          <h1 className="text-lg font-bold md:text-2xl">AI answers · intake · dispatch</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">{header.eyebrow}</p>
+          <h1 className="text-lg font-bold md:text-2xl">{header.title}</h1>
         </div>
         <div className="hidden gap-1 sm:flex">
           {STEPS.map((label, i) => (
@@ -145,7 +178,7 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
             <div className="bg-gradient-to-b from-brand-900/90 to-black px-4 py-6 text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Active call</p>
               <p className="mt-1 text-lg font-semibold">Effiroad AI</p>
-              <p className="text-xs text-emerald-400">2:14 AM · Recording</p>
+              <p className="text-xs text-emerald-400">{callMeta} · Recording</p>
               <div className="mt-4">
                 <Waveform active={speaking} />
               </div>
@@ -167,7 +200,7 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
             Customer — text only
           </p>
-          <div className="min-h-[200px] space-y-3 rounded-2xl border border-white/10 bg-black/45 p-4">
+          <div className="min-h-[160px] space-y-3 rounded-2xl border border-white/10 bg-black/45 p-4">
             {customerLines.length === 0 && !typing ? (
               <p className="text-sm text-white/35">Customer messages appear here…</p>
             ) : (
@@ -189,10 +222,24 @@ export function DemoAiPhoneScene({ recordMode = false }: { recordMode?: boolean 
             ) : null}
           </div>
 
-          {smsLine ? (
-            <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-4">
+          {ownerSms ? (
+            <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Owner SMS</p>
-              <p className="mt-2 text-xs leading-relaxed text-emerald-100">{smsLine}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-emerald-100">{ownerSms}</p>
+            </div>
+          ) : null}
+
+          {fyiSms ? (
+            <div className="mt-3 rounded-xl border border-sky-500/35 bg-sky-950/50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-300">Owner FYI</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-sky-100">{fyiSms}</p>
+            </div>
+          ) : null}
+
+          {crewSms ? (
+            <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-950/50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Crew dispatch SMS</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-amber-100">{crewSms}</p>
             </div>
           ) : null}
 

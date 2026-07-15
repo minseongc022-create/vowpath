@@ -799,7 +799,7 @@ function CallQualityScorePanel({
     <section className="booking-detail-card border-2 border-brand-100">
       <div className="px-5 py-5 sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          AI 통화 처리 점수
+          AI call handling score
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <p className="text-4xl font-bold tabular-nums tracking-tight text-brand-950">
@@ -807,7 +807,7 @@ function CallQualityScorePanel({
             <span className="text-lg font-semibold text-slate-500"> / 100</span>
           </p>
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${tone}`}>
-            {score >= 85 ? "우수" : score >= 65 ? "양호" : "확인 필요"}
+            {score >= 85 ? "Excellent" : score >= 65 ? "Good" : "Needs review"}
           </span>
         </div>
         {reasoning ? <p className="mt-3 text-sm text-stone-600">{reasoning}</p> : null}
@@ -834,7 +834,7 @@ function QuoteEstimateCard({
   async function handleSave() {
     const dollars = Number(amount);
     if (!Number.isFinite(dollars) || dollars <= 0) {
-      setError("금액을 입력해 주세요.");
+      setError("Enter an amount.");
       return;
     }
     setError(null);
@@ -847,7 +847,7 @@ function QuoteEstimateCard({
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "저장하지 못했습니다.");
+        setError(data.error ?? "Could not save.");
         return;
       }
       onSaved();
@@ -858,11 +858,11 @@ function QuoteEstimateCard({
 
   return (
     <InfoCard
-      title="견적/예상 금액"
+      title="Quote / estimate"
       subtitle={
         job.quotedAt
-          ? `${new Date(job.quotedAt).toLocaleDateString()}에 전달됨 — 예약이 안 되면 3일 뒤 고객에게 자동으로 안내 문자가 나갑니다.`
-          : "금액을 입력하면 3일 뒤에도 예약이 안 됐을 때 고객에게 자동으로 안내 문자를 보냅니다."
+          ? `Sent on ${new Date(job.quotedAt).toLocaleDateString()} — if the job is not booked, the customer gets an automatic follow-up text in 3 days.`
+          : "Enter an amount to send an automatic follow-up text in 3 days if the job is still not booked."
       }
     >
       <div className="flex items-center gap-2 py-3">
@@ -884,7 +884,7 @@ function QuoteEstimateCard({
           onClick={() => void handleSave()}
           className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
         >
-          {saving ? "저장 중…" : "저장"}
+          {saving ? "Saving…" : "Save"}
         </button>
       </div>
       {error ? <p className="pb-3 text-xs text-rose-700">{error}</p> : null}

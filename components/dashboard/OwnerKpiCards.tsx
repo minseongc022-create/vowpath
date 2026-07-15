@@ -2,7 +2,6 @@
 
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
 import { dashboardUi } from "@/lib/content";
-import { isEnglishUi } from "@/lib/locale";
 import type { KpiDrilldownId } from "@/lib/kpi-drilldown";
 import { displayOwnerKpiValue } from "@/lib/owner-dashboard-kpi";
 import {
@@ -103,12 +102,8 @@ function OwnerKpiCard({
 
   if (editMode) {
     const toggleLabel = included
-      ? isEnglishUi()
-        ? `Remove ${label} from dashboard`
-        : `${label} 대시보드에서 제거`
-      : isEnglishUi()
-        ? `Add ${label} to dashboard`
-        : `${label} 대시보드에 추가`;
+      ? `Remove ${label} from dashboard`
+      : `Add ${label} to dashboard`;
 
     return (
       <div
@@ -178,7 +173,7 @@ export function OwnerKpiCards({
           isWaiting && waitingCustomersNow !== undefined
             ? waitingCustomersNow
             : totals[id];
-        const cardPeriodLabel = isWaiting ? (isEnglishUi() ? "Now" : "현재") : periodLabel;
+        const cardPeriodLabel = isWaiting ? "Now" : periodLabel;
         const included = !visibleIds || visibleIds.includes(id);
 
         return (

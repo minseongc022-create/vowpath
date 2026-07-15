@@ -3,7 +3,6 @@ import {
   isPendingShopReview,
   normalizeRequestStatus,
 } from "../booking-policy";
-import type { UiLocale } from "../locale";
 import type { AiContextPack } from "./context-pack";
 import type { AiAdminAnalysisResult } from "./types";
 import { listWorkflowRules } from "../workflow-rules/store";
@@ -38,7 +37,6 @@ function hasSimilarRule(
 export async function buildWorkflowSuggestion(
   pack: AiContextPack,
 ): Promise<AiAdminAnalysisResult | null> {
-  const locale = pack.locale;
   const cutoff = new Date(pack.now);
   cutoff.setDate(cutoff.getDate() - LOOKBACK_DAYS);
 
@@ -86,14 +84,8 @@ export async function buildWorkflowSuggestion(
   const pct = Math.round(bestRate * 100);
 
   const draft: WorkflowRuleDraft = {
-    name:
-      locale === "ko"
-        ? `${displayIssue} 자동 승인`
-        : `${displayIssue} Auto Approve`,
-    description:
-      locale === "ko"
-        ? `최근 ${LOOKBACK_DAYS}일 승인률 ${pct}%`
-        : `${pct}% approval rate over the last ${LOOKBACK_DAYS} days`,
+    name: `${displayIssue} Auto Approve`,
+    description: `${pct}% approval rate over the last ${LOOKBACK_DAYS} days`,
     enabled: true,
     priority: 15,
     source: "ai_suggestion",
@@ -101,10 +93,7 @@ export async function buildWorkflowSuggestion(
     actions: [{ type: "auto_approve" }],
   };
 
-  const message =
-    locale === "ko"
-      ? `최근 ${LOOKBACK_DAYS}일 동안 ${displayIssue} 예약 ${pct}%가 승인되었습니다 (${bestTotal}건).\n자동 승인 규칙을 생성하시겠습니까?`
-      : `Over the last ${LOOKBACK_DAYS} days, ${pct}% of ${displayIssue} bookings were approved (${bestTotal} total).\nCreate an auto-approve rule?`;
+  const message = `Over the last ${LOOKBACK_DAYS} days, ${pct}% of ${displayIssue} bookings were approved (${bestTotal} total).\nCreate an auto-approve rule?`;
 
   return {
     kind: "preview",
@@ -114,27 +103,24 @@ export async function buildWorkflowSuggestion(
       title: draft.name,
       message,
       risk: "medium",
-      confirmLabel: locale === "ko" ? "생성" : "Create",
-      cancelLabel: locale === "ko" ? "나중에" : "Later",
+      confirmLabel: "Create",
+      cancelLabel: "Later",
       rows: [
         {
-          label: locale === "ko" ? "조건" : "Condition",
-          value: locale === "ko" ? `이슈 = ${displayIssue}` : `Issue = ${displayIssue}`,
+          label: "Condition",
+          value: `Issue = ${displayIssue}`,
         },
         {
-          label: locale === "ko" ? "동작" : "Action",
-          value: locale === "ko" ? "자동 승인" : "Auto Approve",
+          label: "Action",
+          value: "Auto Approve",
         },
         {
-          label: locale === "ko" ? "승인률" : "Approval Rate",
+          label: "Approval Rate",
           value: `${pct}%`,
         },
       ],
       action: { type: "create_workflow_rule", rule: draft },
     },
-    suggestions:
-      locale === "ko"
-        ? ["운영 규칙 목록 보여줘", "Gas Smell은 무조건 긴급 처리"]
-        : ["Show automation rules", "Gas smell is always urgent"],
+    suggestions: ["Show automation rules", "Gas smell is always urgent"],
   };
 }

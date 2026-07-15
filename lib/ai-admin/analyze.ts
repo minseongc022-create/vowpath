@@ -24,7 +24,7 @@ export type AiAdminContext = {
   shopProfile: ShopProfile;
   user: UserRecord;
   nextBillingDate?: string | null;
-  locale?: "en" | "ko";
+  locale?: UiLocale;
 };
 
 const FIELD_LABELS: Record<CompanyMemoryField, string> = {
@@ -74,14 +74,14 @@ function preview(
 }
 
 function previewL(
-  locale: UiLocale,
+  _locale: UiLocale,
   title: string,
   messageEn: string,
-  messageKo: string,
+  _messageKo: string,
   action: AiAdminExecutableAction,
   rows?: AiAdminPreview["rows"],
 ): AiAdminAnalysisResult {
-  return preview(title, locale === "ko" ? messageKo : messageEn, action, rows);
+  return preview(title, messageEn, action, rows);
 }
 
 function blocked(answer: string, rows?: { label: string; value: string }[]): AiAdminAnalysisResult {
@@ -203,24 +203,20 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
         locale,
         facts: {
           headline:
-            locale === "ko"
-              ? "계정에 저장된 플랜 정보입니다. 결제 변경은 공식 결제 페이지에서만 가능합니다."
-              : "Here is your plan information. Billing changes go through the official billing portal only.",
+            "Here is your plan information. Billing changes go through the official billing portal only.",
         },
       }),
       billingCard: {
-        title: locale === "ko" ? "현재 플랜" : "Current Plan",
+        title: "Current Plan",
         description:
-          locale === "ko"
-            ? "Effiroad AI에서는 플랜 조회만 가능합니다."
-            : "Plan lookup is read-only inside Effiroad AI.",
+          "Plan lookup is read-only inside Effiroad AI.",
         rows: currentPlanRows(context.user, context.nextBillingDate),
         actions: [
-          { label: locale === "ko" ? "플랜 비교" : "Compare Plans", href: "/pricing", kind: "compare" },
-          { label: locale === "ko" ? "결제 포털" : "Open Billing Portal", kind: "portal" },
+          { label: "Compare Plans", href: "/pricing", kind: "compare" },
+          { label: "Open Billing Portal", kind: "portal" },
         ],
       },
-      suggestions: locale === "ko" ? ["Flex와 Unlimited 비교", "결제 포털 열기"] : ["Compare Flex and Unlimited.", "Open billing portal."],
+      suggestions: ["Compare Flex and Unlimited.", "Open billing portal."],
     };
   }
 
@@ -267,27 +263,21 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
           locale,
           facts: {
             headline:
-              locale === "ko"
-                ? `다음 결제 예정일은 ${context.nextBillingDate}입니다.`
-                : `Your next billing date is ${context.nextBillingDate}.`,
+              `Your next billing date is ${context.nextBillingDate}.`,
           },
         }),
         billingCard: {
-          title: locale === "ko" ? "다음 결제" : "Next Billing",
+          title: "Next Billing",
           description:
-            locale === "ko"
-              ? "카드 변경·환불은 결제 포털에서 처리해 주세요."
-              : "Card changes and refunds are handled in the billing portal.",
+            "Card changes and refunds are handled in the billing portal.",
           rows: currentPlanRows(context.user, context.nextBillingDate),
-          actions: [{ label: locale === "ko" ? "결제 포털" : "Open Billing Portal", kind: "portal" }],
+          actions: [{ label: "Open Billing Portal", kind: "portal" }],
         },
-        suggestions: locale === "ko" ? ["내 플랜 보여줘"] : ["What is my current plan?"],
+        suggestions: ["What is my current plan?"],
       };
     }
     return blocked(
-      locale === "ko"
-        ? "다음 결제일을 불러오지 못했습니다. 공식 Paddle 결제 포털에서 확인해 주세요."
-        : "I couldn't load the next billing date. Please check the official Paddle billing portal.",
+      "I couldn't load the next billing date. Please check the official Paddle billing portal.",
       [{ label: "Portal", value: "Settings → Billing" }],
     );
   }
@@ -335,18 +325,16 @@ export function analyzeAiAdminIntent(
     return {
       kind: "preview",
       answer:
-        locale === "ko"
-          ? "계정과 모든 샵 데이터를 영구 삭제합니다."
-          : "This permanently deletes your account and all shop data.",
+        "This permanently deletes your account and all shop data.",
       preview: {
         id: crypto.randomUUID(),
-        title: locale === "ko" ? "계정 삭제" : "Delete Account",
+        title: "Delete Account",
         message:
-          locale === "ko" ? "비밀번호를 입력하고 확인해 주세요." : "Enter your password to confirm.",
+          "Enter your password to confirm.",
         risk: "high",
         requiresPassword: true,
-        confirmLabel: locale === "ko" ? "삭제" : "Delete",
-        cancelLabel: locale === "ko" ? "취소" : "Cancel",
+        confirmLabel: "Delete",
+        cancelLabel: "Cancel",
         action: { type: "delete_account" },
       },
       suggestions: [],
@@ -357,16 +345,16 @@ export function analyzeAiAdminIntent(
     return {
       kind: "preview",
       answer:
-        locale === "ko" ? "Jobber 연결을 해제합니다." : "This disconnects Jobber from Effiroad.",
+        "This disconnects Jobber from Effiroad.",
       preview: {
         id: crypto.randomUUID(),
-        title: locale === "ko" ? "Jobber 연결 해제" : "Disconnect Jobber",
+        title: "Disconnect Jobber",
         message:
-          locale === "ko" ? "비밀번호를 입력하고 확인해 주세요." : "Enter your password to confirm.",
+          "Enter your password to confirm.",
         risk: "high",
         requiresPassword: true,
-        confirmLabel: locale === "ko" ? "해제" : "Disconnect",
-        cancelLabel: locale === "ko" ? "취소" : "Cancel",
+        confirmLabel: "Disconnect",
+        cancelLabel: "Cancel",
         action: { type: "disconnect_jobber" },
       },
       suggestions: [],
@@ -379,27 +367,23 @@ export function analyzeAiAdminIntent(
       extractAfterKeyword(query, ["change phone", "전화번호", "phone to", "번호를"]);
     if (!phone) {
       return blocked(
-        locale === "ko"
-          ? "변경할 전화번호를 알려 주세요."
-          : 'Tell me the new phone number. Example: "Change phone to (512) 555-0100"',
+        'Tell me the new phone number. Example: "Change phone to (512) 555-0100"',
       );
     }
     return {
       kind: "preview",
       answer:
-        locale === "ko"
-          ? `업주 연락처를 ${phone}(으)로 변경합니다.`
-          : `Owner contact phone will change to ${phone}.`,
+        `Owner contact phone will change to ${phone}.`,
       preview: {
         id: crypto.randomUUID(),
-        title: locale === "ko" ? "전화번호 변경" : "Change Phone",
+        title: "Change Phone",
         message:
-          locale === "ko" ? "비밀번호를 입력하고 확인해 주세요." : "Enter your password to confirm.",
+          "Enter your password to confirm.",
         risk: "high",
         requiresPassword: true,
-        rows: [{ label: locale === "ko" ? "새 번호" : "New phone", value: phone }],
-        confirmLabel: locale === "ko" ? "변경" : "Update",
-        cancelLabel: locale === "ko" ? "취소" : "Cancel",
+        rows: [{ label: "New phone", value: phone }],
+        confirmLabel: "Update",
+        cancelLabel: "Cancel",
         action: { type: "update_owner_phone", phone },
       },
       suggestions: [],
@@ -409,19 +393,11 @@ export function analyzeAiAdminIntent(
   if (q.includes("always on") || q.includes("24시간 응답") || q.includes("항상 응답")) {
     const enable = !(q.includes("off") || q.includes("꺼") || q.includes("disable"));
     const title = enable
-      ? locale === "ko"
-        ? "AI 항상 응답"
-        : "AI Always On"
-      : locale === "ko"
-        ? "AI 항상 응답 끄기"
-        : "Disable AI Always On";
+      ? "AI Always On"
+      : "Disable AI Always On";
     const message = enable
-      ? locale === "ko"
-        ? "설정된 시간과 관계없이 AI가 전화를 받도록 합니다."
-        : "AI will answer calls regardless of schedule windows."
-      : locale === "ko"
-        ? "스케줄과 관계없이 AI 전화 응답을 끕니다."
-        : "AI will stop answering outside your configured schedule.";
+      ? "AI will answer calls regardless of schedule windows."
+      : "AI will stop answering outside your configured schedule.";
     return preview(title, message, { type: "set_ai_phone_answering", enabled: enable });
   }
 
@@ -448,9 +424,7 @@ export function analyzeAiAdminIntent(
     const time = parseTime(query);
     if (!time) {
       return blocked(
-        locale === "ko"
-          ? "SMS 리포트 시간을 찾지 못했습니다. 예: 오전 6시 30분"
-          : "Could not find a time. Try: 6:30 AM",
+        "Could not find a time. Try: 6:30 AM",
       );
     }
     return previewL(
@@ -467,9 +441,7 @@ export function analyzeAiAdminIntent(
     const area = extractArea(query);
     if (!area) {
       return blocked(
-        locale === "ko"
-          ? "추가 또는 삭제할 서비스 지역 이름을 알려 주세요."
-          : "Tell me which city or area to add or remove.",
+        "Tell me which city or area to add or remove.",
       );
     }
     if (q.includes("remove") || q.includes("delete") || q.includes("삭제") || q.includes("빼")) {

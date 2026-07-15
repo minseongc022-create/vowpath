@@ -1,6 +1,6 @@
 import { SITE, CHECKOUT_CTA } from "./constants";
 import { IS_BETA } from "./beta";
-import { isEnglishUi, isKoreanUiLocale, runtimeUiLocale, type UiLocale } from "./locale";
+import { isEnglishUi, runtimeUiLocale, type UiLocale } from "./locale";
 import {
   authPagesEn,
   buildDashboardUiEn,
@@ -1529,22 +1529,20 @@ const legalPagesKo = {
   },
 };
 
-export function getVowDashboardCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? vowDashboardKo : vowDashboardEn;
+export function getVowDashboardCopy(_locale: UiLocale) {
+  return vowDashboardEn;
 }
 
-export function getDashboardPageCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? dashboardPageKo : dashboardPageEn;
+export function getDashboardPageCopy(_locale: UiLocale) {
+  return dashboardPageEn;
 }
 
-export function getDashboardUiCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? dashboardUiKo : buildDashboardUiEn(dashboardUiKo);
+export function getDashboardUiCopy(_locale: UiLocale) {
+  return buildDashboardUiEn(dashboardUiKo);
 }
 
-export function getSettingsPageCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale)
-    ? { ...settingsPageKo, ...settingsPageEn }
-    : { ...settingsPageEn, ...settingsPageKo };
+export function getSettingsPageCopy(_locale: UiLocale) {
+  return settingsPageEn;
 }
 
 /** @deprecated Prefer get*Copy(locale) or useSettingsPage() */
@@ -1571,26 +1569,26 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
     return Reflect.get(getDashboardUiCopy(runtimeUiLocale()) as object, prop, receiver);
   },
 }) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
-export function getAuthPagesCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? authPagesKo : authPagesEn;
+export function getAuthPagesCopy(_locale: UiLocale) {
+  return authPagesEn;
 }
-export function getLegalPagesCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? legalPagesKo : legalPagesEn;
+export function getLegalPagesCopy(_locale: UiLocale) {
+  return legalPagesEn;
 }
-export function getMessagingSetupCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? messagingSetupKo : messagingSetupEn;
+export function getMessagingSetupCopy(_locale: UiLocale) {
+  return messagingSetupEn;
 }
-export function getPhoneSetupCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? phoneSetupKo : phoneSetupEn;
+export function getPhoneSetupCopy(_locale: UiLocale) {
+  return phoneSetupEn;
 }
-export function getInboundCallsCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? inboundCallsKo : inboundCallsEn;
+export function getInboundCallsCopy(_locale: UiLocale) {
+  return inboundCallsEn;
 }
-export function getJobberConnectCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? jobberConnectKo : jobberConnectEn;
+export function getJobberConnectCopy(_locale: UiLocale) {
+  return jobberConnectEn;
 }
-export function getJobCardGeneratorCopy(locale: UiLocale) {
-  return isKoreanUiLocale(locale) ? jobCardGeneratorKo : jobCardGeneratorEn;
+export function getJobCardGeneratorCopy(_locale: UiLocale) {
+  return jobCardGeneratorEn;
 }
 
 /** @deprecated Prefer getAuthPagesCopy(locale) */

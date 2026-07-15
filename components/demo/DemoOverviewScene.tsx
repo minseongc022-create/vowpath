@@ -1,51 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  DEMO_VERTICAL_CONFIG,
+  OVERVIEW_INTRO,
+  OVERVIEW_STEPS,
+  type DemoVertical,
+} from "@/lib/demo-vertical-config";
 
-const STEPS = [
-  {
-    icon: "📞",
-    title: "Same number, always on",
-    body: "Forward unanswered calls to Effiroad. Google listing & truck decals stay the same.",
-    tag: "No new line",
-  },
-  {
-    icon: "🤖",
-    title: "AI answers 24/7",
-    body: "English phone menu — voice intake or press 2 for a self-service text link.",
-    tag: "Never miss 2 AM",
-  },
-  {
-    icon: "📋",
-    title: "Jobs captured & triaged",
-    body: "Address, loss type, urgency scored. P1 water can auto-dispatch your crew.",
-    tag: "Smart intake",
-  },
-  {
-    icon: "✅",
-    title: "You approve exceptions",
-    body: "Fire, mold, or unclear jobs → SMS you 1 / 2 before anyone rolls.",
-    tag: "You stay in control",
-  },
-] as const;
-
-export function DemoOverviewScene() {
+export function DemoOverviewScene({ vertical = "restoration" }: { vertical?: DemoVertical }) {
+  const steps = OVERVIEW_STEPS[vertical];
+  const intro = OVERVIEW_INTRO[vertical];
+  const identity = DEMO_VERTICAL_CONFIG[vertical].identityLine;
   const [step, setStep] = useState(-1);
 
   useEffect(() => {
-    const timings = [1400, 2800, 2800, 2800, 2800];
+    const timings = [1400, 2800, 2800, 2800, 3200];
     let i = -1;
     let t: ReturnType<typeof setTimeout>;
     const tick = () => {
-      i = (i + 1) % (STEPS.length + 1);
+      i = (i + 1) % (steps.length + 1);
       setStep(i - 1);
       t = setTimeout(tick, timings[i] ?? 2800);
     };
     t = setTimeout(tick, 500);
     return () => clearTimeout(t);
-  }, []);
+  }, [steps.length]);
 
-  const progress = step < 0 ? 0 : ((step + 1) / STEPS.length) * 100;
+  const progress = step < 0 ? 0 : ((step + 1) / steps.length) * 100;
 
   return (
     <div className="flex h-full w-full flex-col bg-gradient-to-br from-[#0c0b0a] via-[#141210] to-[#1a1612] text-white">
@@ -67,16 +49,15 @@ export function DemoOverviewScene() {
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-8 md:gap-8 md:px-12">
         {step < 0 ? (
           <div className="max-w-2xl text-center">
-            <p className="text-6xl md:text-7xl">📞</p>
-            <p className="mt-5 text-2xl font-bold md:text-3xl">Never miss a 2 AM emergency call</p>
-            <p className="mt-3 text-base text-white/55">
-              AI answering for independent restoration &amp; HVAC shops · 1–15 crew
-            </p>
+            <p className="text-6xl md:text-7xl">{intro.emoji}</p>
+            <p className="mt-5 text-2xl font-bold md:text-3xl">{intro.title}</p>
+            <p className="mt-3 text-base text-white/55">{intro.subtitle}</p>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-[#b59b78]/90">{identity}</p>
           </div>
         ) : (
           <>
             <div className="grid w-full max-w-4xl grid-cols-4 gap-2 md:gap-3">
-              {STEPS.map((s, i) => (
+              {steps.map((s, i) => (
                 <div
                   key={s.title}
                   className={`rounded-xl border px-2 py-3 text-center transition-all duration-500 md:px-3 md:py-4 ${
@@ -97,11 +78,11 @@ export function DemoOverviewScene() {
 
             <div className="w-full max-w-2xl rounded-2xl border border-white/12 bg-black/55 px-6 py-8 text-center shadow-2xl md:px-10 md:py-9">
               <span className="inline-block rounded-full bg-[#9a7f5e]/25 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b59b78]">
-                {STEPS[step].tag}
+                {steps[step].tag}
               </span>
-              <h2 className="mt-4 text-xl font-bold md:text-2xl">{STEPS[step].title}</h2>
+              <h2 className="mt-4 text-xl font-bold md:text-2xl">{steps[step].title}</h2>
               <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-white/75 md:text-base">
-                {STEPS[step].body}
+                {steps[step].body}
               </p>
             </div>
           </>

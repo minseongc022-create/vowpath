@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
-import { isEnglishUi } from "@/lib/locale";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { LinkIntakeSubmissionPanel } from "@/components/intake/LinkIntakeSubmissionPanel";
 
@@ -42,9 +41,7 @@ export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
       }
       setBooking(data.booking);
     } catch {
-      setError(
-        isEnglishUi() ? "Network error. Please try again." : "네트워크 오류입니다. 다시 시도해 주세요.",
-      );
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

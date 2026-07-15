@@ -101,28 +101,23 @@ export function resolveConversationFollowUp(params: {
   locale: UiLocale;
 }): AiAdminAnalysisResult | null {
   const { query, history, workflowRules, locale } = params;
-  const ko = locale === "ko";
 
   if (!isRevertToManualIntent(query)) return null;
 
   if (isGlobalManualIntent(query)) {
     return {
       kind: "preview",
-      answer: ko
-        ? "모든 예약을 수동 승인 모드로 바꿉니다."
-        : "Switch all bookings to manual approval.",
+      answer: "Switch all bookings to manual approval.",
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "전체 수동 승인" : "Manual Approval (All)",
-        message: ko
-          ? "방금 만든 자동 승인 규칙과 별개로, 전역 예약 모드를 수동 승인으로 바꿉니다."
-          : "This changes the global booking mode to manual approval.",
+        title: "Manual Approval (All)",
+        message: "This changes the global booking mode to manual approval.",
         risk: "medium",
-        confirmLabel: ko ? "변경" : "Confirm",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
         action: { type: "set_booking_mode", mode: "control" },
       },
-      suggestions: ko ? ["운영 규칙 목록 보여줘"] : ["Show automation rules"],
+      suggestions: ["Show automation rules"],
     };
   }
 
@@ -131,41 +126,31 @@ export function resolveConversationFollowUp(params: {
   if (rule) {
     return {
       kind: "preview",
-      answer: ko
-        ? `"${rule.name}" 자동 승인 규칙을 끄면 다시 수동 승인 흐름으로 돌아갑니다.`
-        : `Turning off "${rule.name}" restores manual approval for that case.`,
+      answer: `Turning off "${rule.name}" restores manual approval for that case.`,
       preview: {
         id: crypto.randomUUID(),
-        title: ko ? "자동 승인 규칙 끄기" : "Disable Auto-Approve Rule",
-        message: ko
-          ? "이전 대화에서 만든 규칙을 비활성화합니다. 삭제하지 않고 끕니다."
-          : "Disables the rule from your recent conversation (not deleted).",
+        title: "Disable Auto-Approve Rule",
+        message: "Disables the rule from your recent conversation (not deleted).",
         risk: "medium",
-        confirmLabel: ko ? "끄기" : "Turn off",
-        cancelLabel: ko ? "취소" : "Cancel",
+        confirmLabel: "Turn off",
+        cancelLabel: "Cancel",
         rows: workflowRulePreviewRows(rule, locale),
         action: { type: "toggle_workflow_rule", ruleId: rule.id, enabled: false },
       },
-      suggestions: ko
-        ? ["운영 규칙 목록 보여줘", "수동 승인으로 전체 바꿔줘"]
-        : ["Show automation rules", "Switch all to manual approval"],
+      suggestions: ["Show automation rules", "Switch all to manual approval"],
     };
   }
 
   return {
     kind: "preview",
-    answer: ko
-      ? "자동 승인 규칙은 없지만, 전역 예약 모드를 수동 승인으로 바꿀 수 있습니다."
-      : "No auto-approve rule is active. You can switch global booking to manual approval.",
+    answer: "No auto-approve rule is active. You can switch global booking to manual approval.",
     preview: {
       id: crypto.randomUUID(),
-      title: ko ? "수동 승인 모드" : "Manual Approval Mode",
-      message: ko
-        ? "모든 예약이 다시 승인 대기로 갑니다."
-        : "All new bookings will require your approval again.",
+      title: "Manual Approval Mode",
+      message: "All new bookings will require your approval again.",
       risk: "medium",
-      confirmLabel: ko ? "변경" : "Confirm",
-      cancelLabel: ko ? "취소" : "Cancel",
+      confirmLabel: "Confirm",
+      cancelLabel: "Cancel",
       action: { type: "set_booking_mode", mode: "control" },
     },
     suggestions: [],

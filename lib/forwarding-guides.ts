@@ -1,12 +1,8 @@
-import { isEnglishUi } from "./locale";
 import * as enUnblock from "./forwarding-unblock-guides-en";
-import * as koUnblock from "./forwarding-unblock-guides-ko";
-
 import * as en from "./forwarding-guides-en";
-import * as ko from "./forwarding-guides-ko";
 
-const guides = isEnglishUi() ? en : ko;
-const unblock = isEnglishUi() ? enUnblock : koUnblock;
+const guides = en;
+const unblock = enUnblock;
 
 export type ForwardingScenarioId = en.ForwardingScenarioId;
 export type LegacyForwardingScenarioId = en.LegacyForwardingScenarioId;

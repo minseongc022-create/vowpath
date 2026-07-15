@@ -402,6 +402,27 @@
     content: none;
   }
 
+  .effi-ai-mark {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 9999px;
+  }
+
+  .effi-ai-mark-shadow-sm {
+    box-shadow: 0 2px 8px rgb(61 50 40 / 0.18);
+  }
+
+  .effi-ai-mark-shadow-md {
+    box-shadow: 0 4px 14px rgb(61 50 40 / 0.24);
+  }
+
+  .effi-ai-mark-shadow-lg {
+    box-shadow: 0 6px 20px rgb(61 50 40 / 0.28);
+  }
+
   .vow-brand-aura {
     background: radial-gradient(
       circle,
@@ -698,6 +719,9 @@
   /* Effiroad app dashboard — landing palette, professional weight */
   .vow-dash {
     @apply min-h-screen;
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
     color: var(--vow-ink);
     --vow-dash-bg: #ebe3d6;
     --vow-dash-surface: #ffffff;
@@ -711,12 +735,24 @@
 
   .vow-dash-sidebar {
     @apply flex w-[16rem] shrink-0 flex-col border-r;
+    display: none;
     width: 16rem;
     max-width: 16rem;
     flex-shrink: 0;
     border-color: rgb(61 50 40 / 0.12);
     background: linear-gradient(180deg, #3d3228 0%, #2f261f 100%);
     box-shadow: 2px 0 24px rgb(61 50 40 / 0.08);
+  }
+
+  @media (min-width: 1024px) {
+    .vow-dash-sidebar {
+      display: flex !important;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
   }
 
   @media (max-width: 1023px) {
@@ -727,7 +763,32 @@
 
   .vow-dash-main {
     @apply min-w-0 flex-1 overflow-x-hidden text-brand-900;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 100vh;
+    min-width: 0;
     background: transparent;
+  }
+
+  .vow-dash-mobile-header {
+    display: block;
+    border-bottom: 1px solid rgb(235 227 214 / 0.6);
+    background: rgb(248 246 242 / 0.95);
+    padding: 0.75rem 1rem;
+    backdrop-filter: blur(4px);
+  }
+
+  @media (min-width: 1024px) {
+    .vow-dash-mobile-header {
+      display: none;
+    }
+  }
+
+  .vow-dash-error {
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
   }
 
   /* Remap legacy dark-theme surfaces inside dashboard main (light beige page) */

@@ -13,7 +13,7 @@ import type { CompanyAiMemory } from "../company-ai-memory";
 import type { CustomerVerificationRecord } from "../customer-verification/types";
 import { isFullyLive } from "../integration-status";
 import type { JobberBookingRecord } from "../jobber-bookings";
-import { runtimeUiLocale, type UiLocale } from "../locale";
+import type { UiLocale } from "../locale";
 import type { CallRecord } from "../operations-analytics";
 import {
   buildAllRecentBookings,
@@ -45,7 +45,7 @@ export type AiBillingSummary = {
 
 export type AiContextPack = {
   userId: string;
-  locale: UiLocale;
+  locale: "en";
   now: Date;
   ownerName?: string;
   shopName?: string;
@@ -105,9 +105,9 @@ const MODE_LABEL: Record<SchedulingMode, { en: string; ko: string }> = {
   control: { en: "Smart auto-book", ko: "스마트 자동 예약" },
 };
 
-export function schedulingModeLabel(mode: SchedulingMode, locale: UiLocale): string {
+export function schedulingModeLabel(mode: SchedulingMode, _locale?: UiLocale): string {
   const normalized = mode === "auto" ? "auto" : "auto";
-  return locale === "ko" ? MODE_LABEL[normalized].ko : MODE_LABEL[normalized].en;
+  return MODE_LABEL[normalized].en;
 }
 
 export function buildAiContextPack(params: {
@@ -129,7 +129,7 @@ export function buildAiContextPack(params: {
   workflowRules?: WorkflowRule[];
 }): AiContextPack {
   const now = params.now ?? new Date();
-  const locale = runtimeUiLocale();
+  const locale = "en" as const;
   const today = { start: startOfDay(now), end: endOfDay(now) };
   const week = { start: weekStart(now), end: endOfDay(now) };
 
@@ -195,15 +195,6 @@ export function buildAiContextPack(params: {
 }
 
 export function snapshotLines(pack: AiContextPack): string[] {
-  const loc = pack.locale;
-  if (loc === "ko") {
-    return [
-      `오늘 통화 ${pack.snapshot.callsToday}건`,
-      `승인 대기 ${pack.snapshot.pendingCount}건`,
-      `긴급 요청 ${pack.snapshot.urgentCount}건`,
-      `오늘 방문 ${pack.snapshot.todayVisits}건`,
-    ];
-  }
   return [
     `${pack.snapshot.callsToday} call${pack.snapshot.callsToday === 1 ? "" : "s"} today`,
     `${pack.snapshot.pendingCount} pending approval${pack.snapshot.pendingCount === 1 ? "" : "s"}`,

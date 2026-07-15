@@ -254,7 +254,7 @@ export async function POST(request: Request) {
         const response = {
           answer: admin.answer,
           rows: admin.rows,
-          actions: [{ label: locale === "ko" ? "결제 포털" : "Billing portal", href: "/api/billing/portal" }],
+          actions: [{ label: "Billing portal", href: "/api/billing/portal" }],
           suggestions: admin.suggestions,
         };
         return NextResponse.json({ ok: true, ...response, response });

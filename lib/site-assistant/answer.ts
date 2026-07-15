@@ -7,7 +7,7 @@ export type SiteAssistantReply = {
   suggestions: string[];
 };
 
-type AssistantLang = "en" | "es" | "ko";
+type AssistantLang = "en" | "es";
 
 const STARTERS_EN = [
   "What is Effiroad?",
@@ -23,21 +23,12 @@ const STARTERS_ES = [
   "¿Cómo funciona el auto-despacho?",
 ];
 
-const STARTERS_KO = [
-  "Effiroad가 뭐예요?",
-  "착신전환은 어떻게 하나요?",
-  "무료 체험에 뭐가 포함돼요?",
-  "자동 디스패치는 어떻게 동작해요?",
-];
-
 function resolveLang(locale: UiLocale): AssistantLang {
-  if (locale === "ko") return "ko";
   if (locale === "es") return "es";
   return "en";
 }
 
 function startersFor(lang: AssistantLang): string[] {
-  if (lang === "ko") return STARTERS_KO;
   if (lang === "es") return STARTERS_ES;
   return STARTERS_EN;
 }
@@ -50,11 +41,9 @@ function fallback(locale: UiLocale): SiteAssistantReply {
   const lang = resolveLang(locale);
   return {
     answer:
-      lang === "ko"
-        ? "지금은 잠시 연결이 어렵습니다. effiroad.com/pricing 또는 support@effiroad.com 으로 문의해 주세요."
-        : lang === "es"
-          ? "Ahora no puedo conectar. Visita effiroad.com/pricing o escribe a support@effiroad.com."
-          : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email support@effiroad.com.",
+      lang === "es"
+        ? "Ahora no puedo conectar. Visita effiroad.com/pricing o escribe a support@effiroad.com."
+        : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email support@effiroad.com.",
     suggestions: startersFor(lang),
   };
 }
@@ -69,7 +58,6 @@ function parseSuggestions(text: string, lang: AssistantLang): string[] {
 }
 
 function replyLanguageLine(lang: AssistantLang): string {
-  if (lang === "ko") return "Reply in Korean unless the user writes in another language — then match their language.";
   if (lang === "es") return "Reply in Spanish unless the user writes in another language — then match their language.";
   return "Reply in English unless the user writes in another language — then match their language.";
 }
@@ -106,7 +94,7 @@ Never link to /dashboard/settings or other shop admin paths as something they ca
       ? "The user IS logged in — you can reference their dashboard and settings paths directly."
       : "The user is browsing the marketing site (not logged in) — guide them to sign up or log in for shop-specific actions.";
 
-  const tradeVoice = lang === "es" ? TRADE_VOICE_ES : lang === "en" ? TRADE_VOICE_EN : "";
+  const tradeVoice = lang === "es" ? TRADE_VOICE_ES : TRADE_VOICE_EN;
 
   const system = `You are Effiroad AI — the friendly product expert for Effiroad.com.
 Keep answers concise (2-4 short paragraphs max).
@@ -153,32 +141,26 @@ export function siteAssistantGreeting(
   if (marketingOnly) {
     return {
       answer:
-        lang === "ko"
-          ? "안녕하세요! Effiroad AI예요. Effiroad가 무엇인지, 어떻게 동작하는지, 가격과 무료 체험 — 궁금한 걸 편하게 물어보세요."
-          : lang === "es"
-            ? "¡Hola! Soy Effiroad AI. Pregúntame qué es Effiroad, cómo funciona, precios o la prueba gratis — estoy aquí para ayudarte a entender el producto."
-            : "Hi! I'm Effiroad AI. Ask me what Effiroad is, how it works, pricing, or the free trial — I'm here to help you understand the product.",
+        lang === "es"
+          ? "¡Hola! Soy Effiroad AI. Pregúntame qué es Effiroad, cómo funciona, precios o la prueba gratis — estoy aquí para ayudarte a entender el producto."
+          : "Hi! I'm Effiroad AI. Ask me what Effiroad is, how it works, pricing, or the free trial — I'm here to help you understand the product.",
       suggestions,
     };
   }
   if (loggedIn) {
     return {
       answer:
-        lang === "ko"
-          ? "안녕하세요! Effiroad AI예요. 설정 위치, 기능 사용법, 오늘 통화·예약 현황 — 무엇이든 편하게 물어보세요."
-          : lang === "es"
-            ? "¡Hola! Soy Effiroad AI. Pregúntame dónde está una configuración, cómo funciona algo o qué pasó hoy en tu taller."
-            : "Hi! I'm Effiroad AI. Ask me where a setting lives, how a feature works, or what's happening in your shop today.",
+        lang === "es"
+          ? "¡Hola! Soy Effiroad AI. Pregúntame dónde está una configuración, cómo funciona algo o qué pasó hoy en tu taller."
+          : "Hi! I'm Effiroad AI. Ask me where a setting lives, how a feature works, or what's happening in your shop today.",
       suggestions,
     };
   }
   return {
     answer:
-      lang === "ko"
-        ? "안녕하세요! Effiroad AI예요. 가격, 착신전환, 디스패치, 무료 체험 — 궁금한 걸 편하게 물어보세요."
-        : lang === "es"
-          ? "¡Hola! Soy Effiroad AI. Pregúntame sobre precios, desvío de llamadas, despacho o la prueba gratis."
-          : "Hi! I'm Effiroad AI. Ask me about pricing, call forwarding, dispatch, or the free trial — happy to walk you through it.",
+      lang === "es"
+        ? "¡Hola! Soy Effiroad AI. Pregúntame sobre precios, desvío de llamadas, despacho o la prueba gratis."
+        : "Hi! I'm Effiroad AI. Ask me about pricing, call forwarding, dispatch, or the free trial — happy to walk you through it.",
     suggestions,
   };
 }

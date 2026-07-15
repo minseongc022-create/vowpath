@@ -21,10 +21,7 @@ function previewFromDraft(
     type: "create_workflow_rule",
     rule: draft,
   };
-  const message =
-    locale === "ko"
-      ? "다음 운영 규칙을 생성합니다."
-      : "The following automation rule will be created.";
+  const message = "The following automation rule will be created.";
   return {
     kind: "preview",
     answer: message,
@@ -33,15 +30,12 @@ function previewFromDraft(
       title: draft.name,
       message,
       risk: "medium",
-      confirmLabel: locale === "ko" ? "생성" : "Create",
-      cancelLabel: locale === "ko" ? "취소" : "Cancel",
+      confirmLabel: "Create",
+      cancelLabel: "Cancel",
       rows,
       action,
     },
-    suggestions:
-      locale === "ko"
-        ? ["운영 규칙 목록 보여줘", "Gas Smell은 무조건 긴급 처리", "주말 예약은 승인 필요"]
-        : ["Show automation rules", "Gas smell is always urgent", "Weekend bookings need approval"],
+    suggestions: ["Show automation rules", "Gas smell is always urgent", "Weekend bookings need approval"],
   };
 }
 
@@ -97,16 +91,13 @@ function extractIssuePhrase(query: string, q: string): string | null {
 function buildIssueRule(
   issue: string,
   actions: WorkflowAction[],
-  locale: UiLocale,
+  _locale: UiLocale,
 ): WorkflowRuleDraft {
   const condition: WorkflowCondition = { type: "issue_contains", value: issue };
-  const name =
-    locale === "ko"
-      ? `${issue} 운영 규칙`
-      : `${issue} Automation Rule`;
+  const name = `${issue} Automation Rule`;
   return {
     name,
-    description: locale === "ko" ? `이슈 "${issue}"에 적용` : `Applies when issue contains "${issue}"`,
+    description: `Applies when issue contains "${issue}"`,
     enabled: true,
     priority: hasUrgentIntent(normalize(issue)) ? 5 : 20,
     source: "ai_chat",
@@ -137,9 +128,8 @@ export function analyzeWorkflowIntent(
 
   if (q.includes("weekend") || q.includes("주말")) {
     const draft: WorkflowRuleDraft = {
-      name: locale === "ko" ? "주말 수동 승인" : "Weekend Manual Approval",
-      description:
-        locale === "ko" ? "토·일 예약은 승인이 필요합니다." : "Saturday and Sunday bookings need approval.",
+      name: "Weekend Manual Approval",
+      description: "Saturday and Sunday bookings need approval.",
       enabled: true,
       priority: 30,
       source: "ai_chat",
@@ -151,7 +141,7 @@ export function analyzeWorkflowIntent(
 
   if (q.includes("after hours") || q.includes("영업시간 외") || q.includes("야간")) {
     const draft: WorkflowRuleDraft = {
-      name: locale === "ko" ? "영업시간 외 승인 필요" : "After-Hours Manual Approval",
+      name: "After-Hours Manual Approval",
       enabled: true,
       priority: 25,
       source: "ai_chat",

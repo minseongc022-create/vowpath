@@ -53,7 +53,7 @@ function bookingItem(pack: AiContextPack, booking: RecentBooking) {
   return {
     id: booking.id,
     title: booking.customerName,
-    subtitle: `${booking.issueType} · ${booking.arrivalWindow ?? (pack.locale === "ko" ? "시간 미정" : "No requested time")}`,
+    subtitle: `${booking.issueType} · ${booking.arrivalWindow ?? ("No requested time")}`,
     href: `/dashboard/bookings/${encodeURIComponent(booking.id)}`,
     status: REQUEST_STATUS_LABELS[status],
   };
@@ -95,7 +95,7 @@ function listResponse(
         snapshotLines: snapshotLines(pack),
       }),
       rows: snapshotLines(pack).map((line, i) => ({
-        label: pack.locale === "ko" ? "상태" : "Status",
+        label: "Status",
         value: line,
       })),
       actions: defaultActions(pack),
@@ -137,9 +137,7 @@ function handleCustomer(pack: AiContextPack, name: string): EffiroadAiResponse {
     if (similar.length > 0) {
       return listResponse(
         pack,
-        pack.locale === "ko"
-          ? `"${name}"과(와) 정확히 일치하는 고객은 없지만, 비슷한 이름 ${similar.length}건을 찾았습니다.`
-          : `I couldn't find an exact match for "${name}", but I found ${similar.length} similar customer record${similar.length === 1 ? "" : "s"}.`,
+        `I couldn't find an exact match for "${name}", but I found ${similar.length} similar customer record${similar.length === 1 ? "" : "s"}.`,
         similar,
         true,
       );
@@ -149,7 +147,7 @@ function handleCustomer(pack: AiContextPack, name: string): EffiroadAiResponse {
         locale: pack.locale,
         now: pack.now,
         ownerName: pack.ownerName,
-        topic: pack.locale === "ko" ? `"${name}" 고객` : `customer "${name}"`,
+        topic: `customer "${name}"`,
         snapshotLines: snapshotLines(pack),
       }),
       actions: defaultActions(pack),
@@ -167,16 +165,10 @@ function handleCustomer(pack: AiContextPack, name: string): EffiroadAiResponse {
 
   const displayName = latestBooking?.customerName ?? latestCall?.customerName ?? name;
   const headline =
-    pack.locale === "ko"
-      ? `${displayName} 고객을 찾았습니다.`
-      : `I found ${displayName}.`;
+    `I found ${displayName}.`;
   const bullets = [
-    pack.locale === "ko"
-      ? `최근 문의: ${issue} — 상태: ${status}`
-      : `Latest request: ${issue} — status: ${status}`,
-    pack.locale === "ko"
-      ? `최근 통화 ${calls.length}건 · 요청 ${bookings.length}건`
-      : `${calls.length} recent call${calls.length === 1 ? "" : "s"} · ${bookings.length} request${bookings.length === 1 ? "" : "s"}`,
+    `Latest request: ${issue} — status: ${status}`,
+    `${calls.length} recent call${calls.length === 1 ? "" : "s"} · ${bookings.length} request${bookings.length === 1 ? "" : "s"}`,
   ];
 
   return {
@@ -190,23 +182,20 @@ function handleCustomer(pack: AiContextPack, name: string): EffiroadAiResponse {
       name: displayName,
       fields: [
         {
-          label: pack.locale === "ko" ? "연락처" : "Phone",
+          label: "Phone",
           value: latestCall?.callbackPhone ?? latestCall?.from ?? "—",
         },
         {
-          label: pack.locale === "ko" ? "주소" : "Address",
+          label: "Address",
           value: latestBooking?.address ?? latestCall?.address ?? "—",
         },
-        { label: pack.locale === "ko" ? "상태" : "Status", value: status },
-        { label: pack.locale === "ko" ? "요청 내용" : "Service", value: issue },
+        { label: "Status", value: status },
+        { label: "Service", value: issue },
       ],
     },
     items: bookings.slice(0, 5).map((b) => bookingItem(pack, b)),
     actions: actionsForBooking(pack, latestBooking),
-    suggestions:
-      pack.locale === "ko"
-        ? [`${displayName} 통화 기록`, "승인 대기 보여줘", "긴급 요청 보여줘"]
-        : [`${displayName} call history`, "Show pending approvals", "Show urgent requests"],
+    suggestions: [`${displayName} call history`, "Show pending approvals", "Show urgent requests"],
   };
 }
 
@@ -218,7 +207,7 @@ function handleCallMemory(pack: AiContextPack): EffiroadAiResponse {
         locale: pack.locale,
         now: pack.now,
         ownerName: pack.ownerName,
-        topic: pack.locale === "ko" ? "통화 메모" : "call memory",
+        topic: "call memory",
         snapshotLines: snapshotLines(pack),
       }),
       actions: defaultActions(pack),
@@ -227,13 +216,9 @@ function handleCallMemory(pack: AiContextPack): EffiroadAiResponse {
   }
   const selected = memory[0];
   const headline =
-    pack.locale === "ko"
-      ? `최근 고객 ${selected.customerName}님의 통화 요약입니다.`
-      : `Here's the latest call summary for ${selected.customerName}.`;
+    `Here's the latest call summary for ${selected.customerName}.`;
   const bullets = [
-    pack.locale === "ko"
-      ? `문의: ${selected.issue}`
-      : `Issue: ${selected.issue}`,
+    `Issue: ${selected.issue}`,
     selected.summary,
   ];
   return {
@@ -244,10 +229,10 @@ function handleCallMemory(pack: AiContextPack): EffiroadAiResponse {
       facts: { headline, bullets },
     }),
     rows: [
-      { label: pack.locale === "ko" ? "고객" : "Customer", value: selected.customerName },
-      { label: pack.locale === "ko" ? "연락처" : "Phone", value: selected.phoneNumber || "—" },
-      { label: pack.locale === "ko" ? "상태" : "Status", value: REQUEST_STATUS_LABELS[selected.bookingStatus] },
-      { label: pack.locale === "ko" ? "요약" : "Summary", value: selected.summary },
+      { label: "Customer", value: selected.customerName },
+      { label: "Phone", value: selected.phoneNumber || "—" },
+      { label: "Status", value: REQUEST_STATUS_LABELS[selected.bookingStatus] },
+      { label: "Summary", value: selected.summary },
     ],
     actions: actionsForBooking(
       pack,
@@ -266,15 +251,15 @@ function handlePolicy(pack: AiContextPack): EffiroadAiResponse {
       now: pack.now,
       ownerName: pack.ownerName,
       facts: {
-        headline: loc === "ko" ? "저장된 회사 정책입니다." : "Here is your saved company policy.",
+        headline: "Here is your saved company policy.",
       },
     }),
     rows: [
-      { label: loc === "ko" ? "서비스 지역" : "Service Areas", value: m.serviceAreas || (loc === "ko" ? "미설정" : "Not saved") },
-      { label: loc === "ko" ? "영업 시간" : "Business Hours", value: m.businessHours || (loc === "ko" ? "미설정" : "Not saved") },
-      { label: loc === "ko" ? "휴일 규칙" : "Holiday Rules", value: m.holidayRules || (loc === "ko" ? "미설정" : "Not saved") },
-      { label: loc === "ko" ? "긴급 정책" : "Emergency Policy", value: m.emergencyPolicy || (loc === "ko" ? "미설정" : "Not saved") },
-      { label: loc === "ko" ? "승인 정책" : "Approval Policy", value: m.approvalPolicy || (loc === "ko" ? "미설정" : "Not saved") },
+      { label: "Service Areas", value: m.serviceAreas || ("Not saved") },
+      { label: "Business Hours", value: m.businessHours || ("Not saved") },
+      { label: "Holiday Rules", value: m.holidayRules || ("Not saved") },
+      { label: "Emergency Policy", value: m.emergencyPolicy || ("Not saved") },
+      { label: "Approval Policy", value: m.approvalPolicy || ("Not saved") },
     ],
     actions: [
       { label: labels(pack).editMemory, href: "/dashboard/settings" },
@@ -295,29 +280,22 @@ function handleSettingsRead(pack: AiContextPack): EffiroadAiResponse {
       now: pack.now,
       ownerName: pack.ownerName,
       facts: {
-        headline: loc === "ko" ? "현재 샵 설정입니다." : "Here are your current shop settings.",
+        headline: "Here are your current shop settings.",
         bullets: [
-          loc === "ko" ? `예약 정책: ${mode}` : `Booking policy: ${mode}`,
-          loc === "ko"
-            ? `아침 SMS 브리핑: ${m.dailyBriefingSmsEnabled ? "켜짐" : "꺼짐"} (${m.dailyBriefingSmsTime})`
-            : `Morning SMS briefing: ${m.dailyBriefingSmsEnabled ? "On" : "Off"} (${m.dailyBriefingSmsTime})`,
-          loc === "ko"
-            ? `AI 전화 응답: ${pack.shopProfile.answerScheduleActive ? "활성" : "비활성"}`
-            : `AI phone answering: ${pack.shopProfile.answerScheduleActive ? "Active" : "Inactive"}`,
+          `Booking policy: ${mode}`,
+          `Morning SMS briefing: ${m.dailyBriefingSmsEnabled ? "On" : "Off"} (${m.dailyBriefingSmsTime})`,
+          `AI phone answering: ${pack.shopProfile.answerScheduleActive ? "Active" : "Inactive"}`,
         ],
       },
     }),
     rows: [
-      { label: loc === "ko" ? "예약 정책" : "Booking policy", value: mode },
-      { label: loc === "ko" ? "승인 SMS" : "Approval SMS", value: s.ownerApprovalSms },
-      { label: loc === "ko" ? "아침 브리핑" : "Morning Briefing", value: m.dailyBriefingSmsEnabled ? "On" : "Off" },
-      { label: loc === "ko" ? "브리핑 시간" : "Briefing Time", value: m.dailyBriefingSmsTime },
+      { label: "Booking policy", value: mode },
+      { label: "Approval SMS", value: s.ownerApprovalSms },
+      { label: "Morning Briefing", value: m.dailyBriefingSmsEnabled ? "On" : "Off" },
+      { label: "Briefing Time", value: m.dailyBriefingSmsTime },
     ],
     actions: [{ label: labels(pack).openSettings, href: "/dashboard/settings" }],
-    suggestions:
-      loc === "ko"
-        ? ["주말은 수동 승인 규칙 만들어줘", "아침 SMS 꺼줘", "서비스 지역 보여줘"]
-        : ["Add a weekend manual-approval rule", "Turn off morning SMS", "Show service areas"],
+    suggestions: ["Add a weekend manual-approval rule", "Turn off morning SMS", "Show service areas"],
   };
 }
 
@@ -332,23 +310,15 @@ function handleAutomationRules(pack: AiContextPack): EffiroadAiResponse {
         ownerName: pack.ownerName,
         facts: {
           headline:
-            loc === "ko"
-              ? "저장된 운영 규칙이 없습니다. 자연어로 규칙을 만들 수 있습니다."
-              : "You don't have any automation rules yet. You can create one in plain language.",
-          bullets:
-            loc === "ko"
-              ? ['예: "No Cooling은 자동 승인해줘"', '"주말 예약은 승인 필요"']
-              : ['Try: "Auto approve No Cooling"', '"Weekend bookings need approval"'],
+            "You don't have any automation rules yet. You can create one in plain language.",
+          bullets: ['Try: "Auto approve No Cooling"', '"Weekend bookings need approval"'],
         },
       }),
       actions: [
-        { label: loc === "ko" ? "설정 열기" : "Open Settings", href: "/dashboard/settings" },
-        { label: loc === "ko" ? "Effiroad AI" : "Effiroad AI", href: "/dashboard/ai" },
+        { label: "Open Settings", href: "/dashboard/settings" },
+        { label: "Effiroad AI", href: "/dashboard/ai" },
       ],
-      suggestions:
-        loc === "ko"
-          ? ["No Cooling은 자동 승인해줘", "Gas Smell은 무조건 긴급 처리"]
-          : ["Auto approve No Cooling", "Gas smell is always urgent"],
+      suggestions: ["Auto approve No Cooling", "Gas smell is always urgent"],
     };
   }
 
@@ -359,9 +329,7 @@ function handleAutomationRules(pack: AiContextPack): EffiroadAiResponse {
       ownerName: pack.ownerName,
       facts: {
         headline:
-          loc === "ko"
-            ? `활성 운영 규칙 ${rules.filter((r) => r.enabled).length}건 / 전체 ${rules.length}건`
-            : `${rules.filter((r) => r.enabled).length} active automation rule${rules.length === 1 ? "" : "s"} (${rules.length} total)`,
+          `${rules.filter((r) => r.enabled).length} active automation rule${rules.length === 1 ? "" : "s"} (${rules.length} total)`,
         bullets: rules.slice(0, 6).map((r) => summarizeWorkflowRule(r, loc)),
       },
     }),
@@ -369,13 +337,10 @@ function handleAutomationRules(pack: AiContextPack): EffiroadAiResponse {
       id: r.id,
       title: r.name,
       subtitle: summarizeWorkflowRule(r, loc),
-      status: r.enabled ? (loc === "ko" ? "활성" : "Active") : loc === "ko" ? "비활성" : "Inactive",
+      status: r.enabled ? ("Active") : "Inactive",
     })),
-    actions: [{ label: loc === "ko" ? "설정에서 관리" : "Manage in Settings", href: "/dashboard/settings" }],
-    suggestions:
-      loc === "ko"
-        ? ["No Cooling은 자동 승인해줘", "주말 예약은 승인 필요"]
-        : ["Auto approve No Cooling", "Weekend bookings need approval"],
+    actions: [{ label: "Manage in Settings", href: "/dashboard/settings" }],
+    suggestions: ["Auto approve No Cooling", "Weekend bookings need approval"],
   };
 }
 
@@ -383,12 +348,8 @@ function handleIntegration(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const live = pack.snapshot.integrationLive;
   const headline = live
-    ? loc === "ko"
-      ? "샵이 라이브 상태입니다. Effiroad가 설정한 시간에 전화를 받을 수 있습니다."
-      : "Your shop is live — Effiroad can answer calls on your configured schedule."
-    : loc === "ko"
-      ? "아직 연동 설정이 완료되지 않았습니다. 연락처·시간대·착신 전환을 마무리해 주세요."
-      : "Setup isn't complete yet. Finish contact, schedule, and call forwarding to go live.";
+    ? "Your shop is live — Effiroad can answer calls on your configured schedule."
+    : "Setup isn't complete yet. Finish contact, schedule, and call forwarding to go live.";
   return {
     answer: composeAssistantReply({
       locale: loc,
@@ -397,9 +358,9 @@ function handleIntegration(pack: AiContextPack): EffiroadAiResponse {
       facts: { headline },
     }),
     rows: [
-      { label: loc === "ko" ? "라이브" : "Live", value: live ? (loc === "ko" ? "예" : "Yes") : (loc === "ko" ? "아니오" : "No") },
-      { label: "Jobber", value: pack.snapshot.jobberConnected ? (loc === "ko" ? "연결됨" : "Connected") : (loc === "ko" ? "미연결" : "Not connected") },
-      { label: loc === "ko" ? "AI 수신" : "AI answering", value: pack.shopProfile.answerScheduleActive ? (loc === "ko" ? "켜짐" : "On") : (loc === "ko" ? "꺼짐" : "Off") },
+      { label: "Live", value: live ? ("Yes") : ("No") },
+      { label: "Jobber", value: pack.snapshot.jobberConnected ? ("Connected") : ("Not connected") },
+      { label: "AI answering", value: pack.shopProfile.answerScheduleActive ? ("On") : ("Off") },
     ],
     actions: [{ label: labels(pack).openSettings, href: "/dashboard/settings" }],
     suggestions: defaultSuggestions(loc),
@@ -410,16 +371,14 @@ function handleCalendarToday(pack: AiContextPack): EffiroadAiResponse {
   const events = pack.calendarEvents.filter((e) => eventOnDay(e, pack.now));
   const loc = pack.locale;
   const headline =
-    loc === "ko"
-      ? `오늘 방문 예정은 ${events.length}건입니다.`
-      : `You have ${events.length} visit${events.length === 1 ? "" : "s"} scheduled today.`;
+    `You have ${events.length} visit${events.length === 1 ? "" : "s"} scheduled today.`;
   if (events.length === 0) {
     return {
       answer: composeEmptyResult({
         locale: loc,
         now: pack.now,
         ownerName: pack.ownerName,
-        topic: loc === "ko" ? "오늘 일정" : "today's schedule",
+        topic: "today's schedule",
         snapshotLines: snapshotLines(pack),
       }),
       actions: [{ label: labels(pack).calendar, href: "/dashboard/calendar" }],
@@ -463,9 +422,7 @@ function handleGeneral(pack: AiContextPack, query: string): EffiroadAiResponse {
         ownerName: pack.ownerName,
         facts: {
           headline:
-            loc === "ko"
-              ? `통화 기록에서 ${ragHits.length}건을 찾았습니다.`
-              : `I found ${ragHits.length} related call${ragHits.length === 1 ? "" : "s"} in your records.`,
+            `I found ${ragHits.length} related call${ragHits.length === 1 ? "" : "s"} in your records.`,
           bullets: ragHits.map((h) => `${h.customerName} — ${h.issue}: ${h.summary}`),
         },
       }),
@@ -482,15 +439,11 @@ function handleGeneral(pack: AiContextPack, query: string): EffiroadAiResponse {
 
   const s = pack.snapshot;
   const headline =
-    loc === "ko"
-      ? "지금 샵 운영 스냅샷입니다."
-      : "Here's a quick snapshot of your shop right now.";
+    "Here's a quick snapshot of your shop right now.";
   const bullets = snapshotLines(pack);
   if (s.pendingCount > 0) {
     bullets.push(
-      loc === "ko"
-        ? `승인 대기 ${s.pendingCount}건이 먼저 확인이 필요합니다.`
-        : `${s.pendingCount} request${s.pendingCount === 1 ? "" : "s"} need your approval.`,
+      `${s.pendingCount} request${s.pendingCount === 1 ? "" : "s"} need your approval.`,
     );
   }
   return {
@@ -500,7 +453,7 @@ function handleGeneral(pack: AiContextPack, query: string): EffiroadAiResponse {
       ownerName: pack.ownerName,
       facts: { headline, bullets },
     }),
-    rows: bullets.map((b) => ({ label: loc === "ko" ? "요약" : "Summary", value: b })),
+    rows: bullets.map((b) => ({ label: "Summary", value: b })),
     actions: defaultActions(pack),
     suggestions: defaultSuggestions(loc),
   };
@@ -516,19 +469,11 @@ function handleChitchat(pack: AiContextPack): EffiroadAiResponse {
       ownerName: pack.ownerName,
       facts: {
         headline: name
-          ? loc === "ko"
-            ? `안녕하세요, ${name}님! Effiroad AI예요.`
-            : `Hi ${name}! I'm Effiroad AI — your in-app assistant.`
-          : loc === "ko"
-            ? "안녕하세요! Effiroad AI예요."
-            : "Hi there! I'm Effiroad AI — your in-app assistant.",
+          ? `Hi ${name}! I'm Effiroad AI — your in-app assistant.`
+          : "Hi there! I'm Effiroad AI — your in-app assistant.",
         bullets: [
-          loc === "ko"
-            ? "설정 위치, 통화·예약 현황, 크루 디스패치 방법을 물어보세요."
-            : "Ask me where a setting lives, how dispatch works, or what's happening in your shop today.",
-          loc === "ko"
-            ? "비밀번호·API 키·다른 업체 데이터는 절대 공유하지 않아요."
-            : "I never share passwords, API keys, or other shops' private data.",
+          "Ask me where a setting lives, how dispatch works, or what's happening in your shop today.",
+          "I never share passwords, API keys, or other shops' private data.",
         ],
       },
     }),
@@ -574,9 +519,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           ownerName: pack.ownerName,
           facts: {
             headline:
-              loc === "ko"
-                ? `이번 주 일정은 ${events.length}건입니다.`
-                : `You have ${events.length} scheduled event${events.length === 1 ? "" : "s"} this week.`,
+              `You have ${events.length} scheduled event${events.length === 1 ? "" : "s"} this week.`,
             bullets: events.slice(0, 5).map((e) => `${e.timeLabel} — ${e.customerName}`),
           },
         }),
@@ -596,10 +539,10 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           locale: loc,
           now,
           ownerName: pack.ownerName,
-          label: loc === "ko" ? "오늘 통화" : "Calls today",
+          label: "Calls today",
           count: pack.snapshot.callsToday,
         }),
-        rows: [{ label: loc === "ko" ? "오늘 통화" : "Calls today", value: String(pack.snapshot.callsToday) }],
+        rows: [{ label: "Calls today", value: String(pack.snapshot.callsToday) }],
         actions: [{ label: labels(pack).recentCalls, href: "/dashboard/missed-calls" }],
         suggestions: defaultSuggestions(loc),
       };
@@ -607,9 +550,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
       const pending = pack.bookings.filter((b) => isPendingShopReview(bookingStatusOf(pack, b)));
       return listResponse(
         pack,
-        loc === "ko"
-          ? `승인 대기 요청은 ${pending.length}건입니다.`
-          : `You have ${pending.length} pending approval${pending.length === 1 ? "" : "s"}.`,
+        `You have ${pending.length} pending approval${pending.length === 1 ? "" : "s"}.`,
         pending,
       );
     }
@@ -617,9 +558,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
       const urgent = pack.bookings.filter(isUrgentBooking);
       return listResponse(
         pack,
-        loc === "ko"
-          ? `긴급 요청은 ${urgent.length}건입니다.`
-          : `You have ${urgent.length} urgent request${urgent.length === 1 ? "" : "s"}.`,
+        `You have ${urgent.length} urgent request${urgent.length === 1 ? "" : "s"}.`,
         urgent,
       );
     }
@@ -629,9 +568,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
       );
       return listResponse(
         pack,
-        loc === "ko"
-          ? `이번 주 확정 예약은 ${weekBookings.length}건입니다.`
-          : `You have ${weekBookings.length} confirmed booking${weekBookings.length === 1 ? "" : "s"} this week.`,
+        `You have ${weekBookings.length} confirmed booking${weekBookings.length === 1 ? "" : "s"} this week.`,
         weekBookings,
       );
     }
@@ -647,10 +584,10 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           locale: loc,
           now,
           ownerName: pack.ownerName,
-          label: loc === "ko" ? "근무 외 통화" : "After-hours calls",
+          label: "After-hours calls",
           count: afterHours.length,
         }),
-        rows: [{ label: loc === "ko" ? "근무 외 통화" : "After-hours calls", value: String(afterHours.length) }],
+        rows: [{ label: "After-hours calls", value: String(afterHours.length) }],
         actions: [{ label: labels(pack).recentCalls, href: "/dashboard/missed-calls" }],
         suggestions: defaultSuggestions(loc),
       };
@@ -667,9 +604,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
       );
       return listResponse(
         pack,
-        loc === "ko"
-          ? `냉방 불량(No Cooling) 요청 ${noCooling.length}건입니다.`
-          : `Found ${noCooling.length} no-cooling request${noCooling.length === 1 ? "" : "s"}.`,
+        `Found ${noCooling.length} no-cooling request${noCooling.length === 1 ? "" : "s"}.`,
         noCooling,
       );
     }
@@ -688,7 +623,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
             locale: loc,
             now,
             ownerName: pack.ownerName,
-            topic: loc === "ko" ? "어제 활동" : "yesterday's activity",
+            topic: "yesterday's activity",
             snapshotLines: snapshotLines(pack),
           }),
           actions: defaultActions(pack),
@@ -701,7 +636,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           now,
           ownerName: pack.ownerName,
           facts: {
-            headline: loc === "ko" ? "어제 샵 활동 요약입니다." : "Here's what happened yesterday.",
+            headline: "Here's what happened yesterday.",
             bullets: briefing.summary.length ? briefing.summary : [`${yCalls.length} calls`],
           },
         }),
@@ -712,7 +647,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
     case "busiest_day": {
       const days = new Map<string, number>();
       for (const call of pack.calls.filter((c) => inRange(c.createdAt, week.start, week.end))) {
-        const key = new Date(call.createdAt).toLocaleDateString(loc === "ko" ? "ko-KR" : "en-US", {
+        const key = new Date(call.createdAt).toLocaleDateString("en-US", {
           weekday: "long",
         });
         days.set(key, (days.get(key) ?? 0) + 1);
@@ -724,7 +659,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
             locale: loc,
             now,
             ownerName: pack.ownerName,
-            topic: loc === "ko" ? "이번 주 통화" : "calls this week",
+            topic: "calls this week",
             snapshotLines: snapshotLines(pack),
           }),
           actions: defaultActions(pack),
@@ -738,9 +673,7 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           ownerName: pack.ownerName,
           facts: {
             headline:
-              loc === "ko"
-                ? `이번 주 가장 바쁜 날은 ${busiest[0]} (${busiest[1]}통화)입니다.`
-                : `Your busiest day this week was ${busiest[0]} with ${busiest[1]} call${busiest[1] === 1 ? "" : "s"}.`,
+              `Your busiest day this week was ${busiest[0]} with ${busiest[1]} call${busiest[1] === 1 ? "" : "s"}.`,
           },
         }),
         rows: [{ label: busiest[0], value: String(busiest[1]) }],
@@ -755,10 +688,10 @@ export function answerAiQuestion(query: string, pack: AiContextPack, intent: AiQ
           locale: loc,
           now,
           ownerName: pack.ownerName,
-          label: loc === "ko" ? "긴급 통화" : "Urgent calls",
+          label: "Urgent calls",
           count,
         }),
-        rows: [{ label: loc === "ko" ? "긴급 통화" : "Urgent calls", value: String(count) }],
+        rows: [{ label: "Urgent calls", value: String(count) }],
         actions: [{ label: labels(pack).recentCalls, href: "/dashboard/missed-calls" }],
         suggestions: defaultSuggestions(loc),
       };
@@ -775,22 +708,16 @@ export function buildProactiveBriefing(pack: AiContextPack): EffiroadAiResponse 
   const bullets = snapshotLines(pack);
   if (s.pendingCount > 0) {
     bullets.unshift(
-      loc === "ko"
-        ? `먼저 확인: 승인 대기 ${s.pendingCount}건`
-        : `Needs attention: ${s.pendingCount} pending approval${s.pendingCount === 1 ? "" : "s"}`,
+      `Needs attention: ${s.pendingCount} pending approval${s.pendingCount === 1 ? "" : "s"}`,
     );
   }
   if (s.urgentCount > 0) {
     bullets.unshift(
-      loc === "ko"
-        ? `긴급 요청 ${s.urgentCount}건`
-        : `${s.urgentCount} urgent request${s.urgentCount === 1 ? "" : "s"}`,
+      `${s.urgentCount} urgent request${s.urgentCount === 1 ? "" : "s"}`,
     );
   }
   const headline =
-    loc === "ko"
-      ? "오늘 샵 운영 브리핑입니다. 무엇을 먼저 확인할까요?"
-      : "Here's your shop briefing for today. What would you like to check first?";
+    "Here's your shop briefing for today. What would you like to check first?";
 
   return {
     answer: composeAssistantReply({
@@ -799,7 +726,7 @@ export function buildProactiveBriefing(pack: AiContextPack): EffiroadAiResponse 
       ownerName: pack.ownerName,
       facts: { headline, bullets },
     }),
-    rows: bullets.map((b) => ({ label: loc === "ko" ? "요약" : "Summary", value: b })),
+    rows: bullets.map((b) => ({ label: "Summary", value: b })),
     actions: defaultActions(pack),
     suggestions: defaultSuggestions(loc),
   };
