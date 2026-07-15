@@ -19,7 +19,7 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="vow-dash flex min-h-screen items-center justify-center px-4">
+    <div className="vow-dash vow-dash-error">
       <div className="vow-dash-card max-w-md text-center">
         <h1 className="text-xl font-bold text-white">
           {isEnglish ? "Could not load dashboard" : "대시보드를 불러오지 못했습니다"}

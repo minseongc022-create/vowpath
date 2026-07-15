@@ -10,9 +10,9 @@ type EffiroadAiMarkProps = {
 
 const SHADOW: Record<NonNullable<EffiroadAiMarkProps["shadow"]>, string> = {
   none: "",
-  sm: "shadow-[0_2px_8px_rgb(61_50_40_/_0.18)]",
-  md: "shadow-[0_4px_14px_rgb(61_50_40_/_0.24)]",
-  lg: "shadow-[0_6px_20px_rgb(61_50_40_/_0.28)]",
+  sm: "effi-ai-mark-shadow-sm",
+  md: "effi-ai-mark-shadow-md",
+  lg: "effi-ai-mark-shadow-lg",
 };
 
 /** Professional AI badge — sparkle + AI label, no square halo from SVG drop-shadow. */
@@ -22,7 +22,7 @@ export function EffiroadAiMark({ size = 40, shadow = "md" }: EffiroadAiMarkProps
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${SHADOW[shadow]}`}
+      className={`effi-ai-mark ${SHADOW[shadow]}`}
       style={{ width: size, height: size }}
       aria-hidden
     >

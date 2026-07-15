@@ -44,8 +44,6 @@ export default async function RootLayout({
         <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
         <link
           rel="stylesheet"
-          as="style"
-          crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
       </head>
