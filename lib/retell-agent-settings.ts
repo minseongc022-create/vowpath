@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "deep-male-v8-lower-warmer-2026-07-15";
+export const RETELL_PROMPT_VERSION = "natural-male-v9-clear-noise-robust-2026-07-15";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -11,11 +11,11 @@ export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 /** Override in Vercel: RETELL_VOICE_ID=11labs-Steve */
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
-/** Deep, warm American male — lowest natural registers first. */
+/** Natural, full American male — prefer naturally thick voices over pitch-shifted darkness. */
 export const RETELL_PREFERRED_VOICE_NAMES = [
   "Steve",
-  "George",
   "Mark",
+  "George",
   "Marcus",
   "Dylan",
   "Eric",
@@ -98,14 +98,14 @@ export function buildRetellProductionAgentPatch(voiceId?: string) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.68,
-    voice_speed: 0.9,
+    voice_temperature: 0.72,
+    voice_speed: 0.98,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
     volume: 1.22,
-    responsiveness: 0.86,
+    responsiveness: 0.84,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.2,
+    interruption_sensitivity: 0.12,
     enable_backchannel: false,
     reminder_trigger_ms: 12000,
     reminder_max_count: 1,
