@@ -15,9 +15,9 @@ let BASE = process.env.DEMO_RECORD_BASE_URL?.replace(/\/$/, "") || "http://local
 const VIEWPORT = { width: 1280, height: 720 };
 
 const SCENES = [
-  { slug: "overview", out: "demo-overview.webm", waitMs: 18_000 },
-  { slug: "voice", out: "demo-voice.webm", waitMs: 38_000 },
-  { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 18_000 },
+  { slug: "overview", out: "demo-overview.webm", waitMs: 16_000 },
+  { slug: "voice", out: "demo-voice.webm", waitMs: 22_000 },
+  { slug: "link-intake", out: "demo-link-intake.webm", waitMs: 15_000 },
 ];
 
 async function waitForServer(attempts = 40) {
@@ -59,7 +59,8 @@ async function recordScene(browser, slug, outName, waitMs) {
     recordVideo: { dir: tmpDir, size: VIEWPORT },
   });
   const page = await context.newPage();
-  await page.goto(`${BASE}/demo/record/${slug}`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/demo/record/${slug}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.waitForTimeout(1200);
   await page.waitForTimeout(waitMs);
   await context.close();
 

@@ -22,7 +22,7 @@ export function VerticalSwitcher({ className = "" }: { className?: string }) {
     <div className={`flex flex-col items-center gap-2 ${className}`}>
       <p className="text-xs font-medium text-stone-600 md:text-sm">{banner}</p>
       <div
-        className="inline-flex items-center gap-1 rounded-full border border-brand-300 bg-white p-1 shadow-sm"
+        className="inline-flex items-stretch gap-1 rounded-full border border-brand-300 bg-white p-1 shadow-sm"
         role="group"
         aria-label={isEs ? "Elige tu oficio" : "Choose your trade"}
       >
@@ -32,13 +32,13 @@ export function VerticalSwitcher({ className = "" }: { className?: string }) {
             <Link
               key={opt.href}
               href={opt.href}
-              className={`inline-flex h-11 min-w-[7.5rem] items-center justify-center rounded-full px-5 text-sm font-semibold leading-none transition ${
+              className={`grid h-11 min-w-[7.5rem] place-items-center rounded-full px-5 text-sm font-semibold transition ${
                 active === opt.href
                   ? "bg-brand-900 text-white shadow-sm"
                   : "text-brand-700 hover:bg-brand-100"
               }`}
             >
-              {label}
+              <span className="block translate-y-px leading-[1.125]">{label}</span>
             </Link>
           );
         })}
