@@ -34,7 +34,7 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
   const [typing, setTyping] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const cancelledRef = useRef(false);
 
   const playAi = useCallback(
     async (phase: Extract<PhoneDemoPhase, { kind: "ai-voice" }>) => {
@@ -47,10 +47,10 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
         await new Promise<void>((resolve) => {
           audio.onended = () => resolve();
           audio.onerror = () => resolve();
-          setTimeout(resolve, Math.max(phase.text.length * 60, 3000));
+          setTimeout(resolve, Math.max(phase.text.length * 78, 3800));
         });
       } catch {
-        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 60, 3000)));
+        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 78, 3800)));
       } finally {
         setSpeaking(false);
       }
@@ -59,8 +59,9 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
   );
 
   const run = useCallback(() => {
-    for (const t of timeouts.current) clearTimeout(t);
-    timeouts.current = [];
+    cancelledRef.current = true;
+    audioRef.current?.pause();
+    cancelledRef.current = false;
     setCustomerLines([]);
     setAiLine(null);
     setSystemLine(null);
@@ -69,46 +70,53 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
     setTyping(false);
     setStepIdx(0);
 
-    let cursor = 400;
-    timeline.forEach((phase) => {
-      cursor += phase.delayMs;
-      if (phase.kind === "customer-text") {
-        timeouts.current.push(setTimeout(() => setTyping(true), cursor - 500));
-      }
-      timeouts.current.push(
-        setTimeout(() => {
-          if (phase.kind === "system") {
-            setSystemLine(phase.text);
-            if (phase.text.includes("Incoming")) setStepIdx(0);
-            if (phase.text.includes("Owner replied")) setStepIdx(3);
-            if (phase.text.includes("Safety intake")) setStepIdx(4);
-          }
-          if (phase.kind === "sms") {
-            setOwnerSms(phase.text);
-            setStepIdx(2);
-          }
-          if (phase.kind === "customer-text") {
-            setTyping(false);
-            setCustomerLines((prev) => [...prev, phase.text]);
-            setStepIdx(1);
-          }
-          if (phase.kind === "ai-voice") {
-            setStepIdx((s) => (s < 1 ? 1 : s));
-            void playAi(phase);
-          }
-        }, cursor),
-      );
-    });
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    if (!recordMode) {
-      timeouts.current.push(setTimeout(() => run(), cursor + 5000));
-    }
+    const applyPhase = async (phase: PhoneDemoPhase) => {
+      await sleep(phase.delayMs);
+      if (cancelledRef.current) return;
+
+      if (phase.kind === "system") {
+        setSystemLine(phase.text);
+        if (phase.text.includes("Incoming")) setStepIdx(0);
+        if (phase.text.includes("Owner replied")) setStepIdx(3);
+        if (phase.text.includes("Safety intake")) setStepIdx(4);
+      }
+      if (phase.kind === "sms") {
+        setOwnerSms(phase.text);
+        setStepIdx(2);
+      }
+      if (phase.kind === "customer-text") {
+        setTyping(true);
+        await sleep(650);
+        if (cancelledRef.current) return;
+        setTyping(false);
+        setCustomerLines((prev) => [...prev, phase.text]);
+        setStepIdx(1);
+      }
+      if (phase.kind === "ai-voice") {
+        setStepIdx((s) => (s < 1 ? 1 : s));
+        await playAi(phase);
+        await sleep(650);
+      }
+    };
+
+    void (async () => {
+      for (const phase of timeline) {
+        await applyPhase(phase);
+        if (cancelledRef.current) return;
+      }
+      if (!recordMode) {
+        await sleep(5000);
+        if (!cancelledRef.current) run();
+      }
+    })();
   }, [playAi, recordMode, timeline]);
 
   useEffect(() => {
     run();
     return () => {
-      for (const t of timeouts.current) clearTimeout(t);
+      cancelledRef.current = true;
       audioRef.current?.pause();
     };
   }, [run]);

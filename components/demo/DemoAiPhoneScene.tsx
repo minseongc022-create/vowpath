@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DemoVertical } from "@/lib/demo-vertical-config";
 import {
   getPhoneDemoTimeline,
@@ -32,7 +32,7 @@ type DemoAiPhoneSceneProps = {
 };
 
 export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" }: DemoAiPhoneSceneProps) {
-  const timeline = getPhoneDemoTimeline(vertical);
+  const timeline = useMemo(() => getPhoneDemoTimeline(vertical), [vertical]);
   const audioPrefix = getVoiceAudioPrefix(vertical);
   const [customerLines, setCustomerLines] = useState<string[]>([]);
   const [aiLine, setAiLine] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
   const [stepIdx, setStepIdx] = useState(0);
   const [callMeta, setCallMeta] = useState(vertical === "hvac" ? "6:42 AM Sat" : "2:14 AM");
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const cancelledRef = useRef(false);
 
   const header =
     vertical === "hvac"
@@ -69,10 +69,10 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
         await new Promise<void>((resolve) => {
           audio.onended = () => resolve();
           audio.onerror = () => resolve();
-          setTimeout(resolve, Math.max(phase.text.length * 60, 3000));
+          setTimeout(resolve, Math.max(phase.text.length * 78, 3800));
         });
       } catch {
-        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 60, 3000)));
+        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 78, 3800)));
       } finally {
         setSpeaking(false);
       }
@@ -81,8 +81,9 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
   );
 
   const run = useCallback(() => {
-    for (const t of timeouts.current) clearTimeout(t);
-    timeouts.current = [];
+    cancelledRef.current = true;
+    audioRef.current?.pause();
+    cancelledRef.current = false;
     setCustomerLines([]);
     setAiLine(null);
     setSystemLine(null);
@@ -93,53 +94,62 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
     setTyping(false);
     setStepIdx(0);
 
-    let cursor = 400;
-    timeline.forEach((phase, idx) => {
-      cursor += phase.delayMs;
-      if (phase.kind === "customer-text") {
-        timeouts.current.push(setTimeout(() => setTyping(true), cursor - 500));
-      }
-      timeouts.current.push(
-        setTimeout(() => {
-          if (phase.kind === "system") {
-            setSystemLine(phase.text);
-            if (phase.text.includes("Incoming")) {
-              setStepIdx(0);
-              const timeMatch = phase.text.match(/· ([^·]+?) ·/);
-              if (timeMatch) setCallMeta(timeMatch[1].trim());
-            }
-            if (phase.text.includes("Owner replied") || phase.text.includes("Auto-dispatch")) setStepIdx(3);
-            if (phase.text.includes("Tech replied") || phase.text.includes("Intake saved")) setStepIdx(4);
-          }
-          if (phase.kind === "sms") {
-            if (phase.variant === "crew") setCrewSms(phase.text);
-            else if (phase.variant === "fyi") setFyiSms(phase.text);
-            else setOwnerSms(phase.text);
-            setStepIdx(3);
-          }
-          if (phase.kind === "customer-text") {
-            setTyping(false);
-            setCustomerLines((prev) => [...prev, phase.text]);
-            setStepIdx(2);
-          }
-          if (phase.kind === "ai-voice") {
-            setStepIdx((s) => (s < 1 ? 1 : s));
-            void playAi(phase);
-          }
-          void idx;
-        }, cursor),
-      );
-    });
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    if (!recordMode) {
-      timeouts.current.push(setTimeout(() => run(), cursor + 5000));
-    }
+    const applyPhase = async (phase: PhoneDemoPhase) => {
+      if (cancelledRef.current) return;
+      await sleep(phase.delayMs);
+      if (cancelledRef.current) return;
+
+      if (phase.kind === "system") {
+        setSystemLine(phase.text);
+        if (phase.text.includes("Incoming")) {
+          setStepIdx(0);
+          const timeMatch = phase.text.match(/· ([^·]+?) ·/);
+          if (timeMatch) setCallMeta(timeMatch[1].trim());
+        }
+        if (phase.text.includes("Owner replied") || phase.text.includes("AUTO-DISPATCH")) setStepIdx(3);
+        if (phase.text.includes("Tech replied") || phase.text.includes("Customer ETA")) setStepIdx(4);
+      }
+      if (phase.kind === "sms") {
+        if (phase.variant === "crew") setCrewSms(phase.text);
+        else if (phase.variant === "fyi") setFyiSms(phase.text);
+        else setOwnerSms(phase.text);
+        setStepIdx(3);
+      }
+      if (phase.kind === "customer-text") {
+        setTyping(true);
+        await sleep(650);
+        if (cancelledRef.current) return;
+        setTyping(false);
+        setCustomerLines((prev) => [...prev, phase.text]);
+        setStepIdx(2);
+      }
+      if (phase.kind === "ai-voice") {
+        setStepIdx((s) => (s < 1 ? 1 : s));
+        await playAi(phase);
+        await sleep(650);
+      }
+    };
+
+    void (async () => {
+      do {
+        for (const phase of timeline) {
+          await applyPhase(phase);
+          if (cancelledRef.current) return;
+        }
+        if (recordMode) return;
+        await sleep(5000);
+        if (!cancelledRef.current) run();
+        return;
+      } while (false);
+    })();
   }, [playAi, recordMode, timeline]);
 
   useEffect(() => {
     run();
     return () => {
-      for (const t of timeouts.current) clearTimeout(t);
+      cancelledRef.current = true;
       audioRef.current?.pause();
     };
   }, [run]);

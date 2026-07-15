@@ -11,8 +11,8 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const videoDir = path.join(root, "public", "videos");
 const audioDir = path.join(root, "public", "demo-audio");
 
-/** Gap between lines so only one voice is heard at a time. */
-const GAP_MS = 450;
+/** Narration gap: enough room for the screen to breathe before the next sentence. */
+const GAP_MS = 950;
 
 const DEMOS = {
   overview: {
@@ -40,19 +40,22 @@ const DEMOS = {
   voice: {
     video: "demo-voice.mp4",
     files: ["voice-ai-0.mp3", "voice-ai-1.mp3", "voice-ai-2.mp3", "voice-ai-3.mp3"],
-    anchorMs: [2400, 9000, 15600, 21600],
+    startOffsetMs: 2200,
+    gapsAfterClipMs: [3600, 3700, 6750],
     volume: 1.1,
   },
   "voice-hvac": {
     video: "demo-voice-hvac.mp4",
     files: ["voice-hvac-0.mp3", "voice-hvac-1.mp3", "voice-hvac-2.mp3", "voice-hvac-3.mp3"],
-    anchorMs: [2500, 9100, 14300, 20900],
+    startOffsetMs: 2200,
+    gapsAfterClipMs: [3600, 3500, 3600],
     volume: 1.1,
   },
   "risk-hold-hvac": {
     video: "demo-risk-hold-hvac.mp4",
     files: ["voice-hvac-gas-0.mp3", "voice-hvac-gas-1.mp3", "voice-hvac-gas-2.mp3"],
-    anchorMs: [2500, 8700, 15300],
+    startOffsetMs: 2200,
+    gapsAfterClipMs: [3600, 3700],
     volume: 1.1,
   },
   "link-intake": {
@@ -99,6 +102,17 @@ function scheduleAnchored(files, anchorMs, gapMs) {
   });
 }
 
+function scheduleWithClipGaps(files, startOffsetMs, gapsAfterClipMs) {
+  let cursor = startOffsetMs;
+  return files.map((file, i) => {
+    const mp3 = path.join(audioDir, file);
+    const startMs = Math.round(cursor);
+    const durMs = ffprobeDuration(mp3) * 1000;
+    cursor = startMs + durMs + (gapsAfterClipMs[i] ?? GAP_MS);
+    return { file, startMs };
+  });
+}
+
 function muxDemo(id) {
   const cfg = DEMOS[id];
   const videoPath = path.join(videoDir, cfg.video);
@@ -118,9 +132,11 @@ function muxDemo(id) {
     }
   }
 
-  const clips = cfg.anchorMs
-    ? scheduleAnchored(cfg.files, cfg.anchorMs, GAP_MS)
-    : scheduleSequential(cfg.files, cfg.startOffsetMs ?? 0, GAP_MS);
+  const clips = cfg.gapsAfterClipMs
+    ? scheduleWithClipGaps(cfg.files, cfg.startOffsetMs ?? 0, cfg.gapsAfterClipMs)
+    : cfg.anchorMs
+      ? scheduleAnchored(cfg.files, cfg.anchorMs, GAP_MS)
+      : scheduleSequential(cfg.files, cfg.startOffsetMs ?? 0, GAP_MS);
 
   const videoDur = ffprobeDuration(videoPath);
   const vol = cfg.volume ?? 1;
