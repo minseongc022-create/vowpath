@@ -7,10 +7,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Lower, warmer American male — calm dispatcher pace, not robotic. */
+/** Natural warm American male — clear dispatcher pace, not artificially pitched down. */
 const EDGE_VOICE = "en-US-GuyNeural";
-const EDGE_RATE = "-9%";
-const EDGE_PITCH = "-18Hz";
+const EDGE_RATE = "-2%";
+const EDGE_PITCH = "-8Hz";
 
 const CLIPS = [
   // Restoration voice call
@@ -41,11 +41,11 @@ const CLIPS = [
   },
   {
     file: "overview-narr-2.mp3",
-    text: "We capture the caller's name, address, and problem, then decide whether it can move forward safely.",
+    text: "We capture the caller's name, address, and problem. Then we decide whether it can move forward safely.",
   },
   {
     file: "overview-narr-3.mp3",
-    text: "Clear P one water can page your crew. Fire, mold, sewage ambiguity, or unclear details wait for your approval text.",
+    text: "Clear P one water can page your crew. Fire, mold, sewage ambiguity, or unclear details, wait for your approval text.",
   },
   {
     file: "overview-narr-4.mp3",
@@ -62,7 +62,7 @@ const CLIPS = [
   },
   {
     file: "link-narr-2.mp3",
-    text: "They choose the purpose, then enter name, address, issue, photos if needed, and the best time to follow up.",
+    text: "They choose the purpose. Then they enter name, address, issue, photos if needed, and the best time to follow up.",
   },
   {
     file: "link-narr-3.mp3",
@@ -83,7 +83,7 @@ const CLIPS = [
   },
   {
     file: "voice-hvac-2.mp3",
-    text: "Good — no gas smell. What's the address, and about how cold is it inside right now?",
+    text: "Good. No gas smell. What's the address, and about how cold is it inside right now?",
   },
   {
     file: "voice-hvac-3.mp3",
@@ -117,7 +117,7 @@ const CLIPS = [
   },
   {
     file: "overview-hvac-narr-3.mp3",
-    text: "But gas smell, sparking, or fuzzy details do not auto-dispatch. You get a hold text: reply one to send a tech, two to hold.",
+    text: "But gas smell, sparking, or fuzzy details, do not auto-dispatch. You get a hold text: reply one to send a tech, two to hold.",
   },
   {
     file: "overview-hvac-narr-4.mp3",
@@ -139,7 +139,7 @@ async function openAiTts(text, key) {
       model: "tts-1-hd",
       voice: "onyx",
       input: text,
-      speed: 0.84,
+      speed: 0.96,
     }),
   });
   if (!res.ok) throw new Error(await res.text());
