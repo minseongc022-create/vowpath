@@ -1,5 +1,5 @@
 /**
- * Generate demo audio — deep warm male US voice, one speaker, no overlap in mux.
+ * Generate demo audio — warm gentle male US voice, one speaker, no overlap in mux.
  * Usage: npm run demo:tts
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -7,20 +7,20 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Naturally full American male — native voice, no artificial pitch-down. */
-const EDGE_VOICE = "en-US-ChristopherNeural";
-const EDGE_RATE = "+0%";
-const EDGE_PITCH = "+0Hz";
+/** Warm, gently bright American male — natural caring tone, not pitch-shifted. */
+const EDGE_VOICE = "en-US-GuyNeural";
+const EDGE_RATE = "-4%";
+const EDGE_PITCH = "+2Hz";
 
 const CLIPS = [
   // Restoration voice call — one question per turn
   {
     file: "voice-ai-0.mp3",
-    text: "Hey, thanks for calling Ridgeline Restoration. What's going on?",
+    text: "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
   },
   {
     file: "voice-ai-1.mp3",
-    text: "I'm really glad you called. We'll take care of this. What's your name?",
+    text: "I'm really glad you called. We'll take care of this together. What's your name?",
   },
   {
     file: "voice-ai-2.mp3",
@@ -79,7 +79,7 @@ const CLIPS = [
   // HVAC no-heat voice call — one question per turn
   {
     file: "voice-hvac-0.mp3",
-    text: "Comfort Air HVAC, thanks for calling. What's going on at the house?",
+    text: "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
   },
   {
     file: "voice-hvac-1.mp3",
@@ -100,7 +100,7 @@ const CLIPS = [
   // HVAC gas smell hold
   {
     file: "voice-hvac-gas-0.mp3",
-    text: "Comfort Air HVAC, you've reached us. Tell me what's happening — and whether anyone feels sick.",
+    text: "Comfort Air HVAC, you've reached us. I'm here with you — tell me what's happening, and whether anyone feels sick.",
   },
   {
     file: "voice-hvac-gas-1.mp3",

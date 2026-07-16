@@ -2,21 +2,21 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "natural-male-v12-listen-first-2026-07-16";
+export const RETELL_PROMPT_VERSION = "natural-male-v13-gentle-warm-2026-07-16";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
 export const RETELL_PREFERRED_VOICE_NAMES = [
+  "Chris",
+  "Brian",
+  "Daniel",
+  "Eric",
   "Steve",
   "Mark",
   "George",
   "Marcus",
-  "Dylan",
-  "Eric",
-  "Anthony",
-  "Adrian",
 ];
 
 function isUsEnglishVoice(v) {
@@ -81,11 +81,11 @@ export function buildRetellProductionAgentPatch(voiceId) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.78,
-    voice_speed: 0.98,
+    voice_temperature: 0.86,
+    voice_speed: 0.94,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.18,
+    volume: 1.12,
     responsiveness: 0.72,
     enable_dynamic_responsiveness: false,
     interruption_sensitivity: 0.04,

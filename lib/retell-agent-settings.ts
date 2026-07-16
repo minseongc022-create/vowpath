@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "natural-male-v12-listen-first-2026-07-16";
+export const RETELL_PROMPT_VERSION = "natural-male-v13-gentle-warm-2026-07-16";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -11,16 +11,16 @@ export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 /** Override in Vercel: RETELL_VOICE_ID=11labs-Steve */
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
-/** Natural, full American male — prefer naturally thick voices over pitch-shifted darkness. */
+/** Natural, gently warm US male — caring dispatcher tone, not dark or artificially deep. */
 export const RETELL_PREFERRED_VOICE_NAMES = [
+  "Chris",
+  "Brian",
+  "Daniel",
+  "Eric",
   "Steve",
   "Mark",
   "George",
   "Marcus",
-  "Dylan",
-  "Eric",
-  "Anthony",
-  "Adrian",
 ] as const;
 
 export type RetellVoiceInfo = {
@@ -73,7 +73,7 @@ export function pickNaturalReceptionistVoice(
   return RETELL_FALLBACK_MALE_VOICE_ID;
 }
 
-/** Shared PATCH body — deep warm US dispatcher: human, steady, noise-resistant. */
+/** Shared PATCH body — warm, gentle US dispatcher: human, caring, noise-resistant. */
 export function buildRetellProductionAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     agent_name: "Effiroad Intake Agent",
@@ -98,11 +98,11 @@ export function buildRetellProductionAgentPatch(voiceId?: string) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.78,
-    voice_speed: 0.98,
+    voice_temperature: 0.86,
+    voice_speed: 0.94,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.18,
+    volume: 1.12,
     responsiveness: 0.72,
     enable_dynamic_responsiveness: false,
     interruption_sensitivity: 0.04,

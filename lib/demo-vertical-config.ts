@@ -21,23 +21,16 @@ export const DEMO_VERTICAL_CONFIG: Record<
   }
 > = {
   restoration: {
-    headline: "3 demos — restoration shops",
-    subhead: "Night, weekend & field missed calls → AI intake → risk-based dispatch",
+    headline: "See Effiroad in action",
+    subhead: "Night, weekend & field missed calls → warm intake → risk-based dispatch",
     identityLine:
       "You're on a job or off the clock — Effiroad answers on the schedule you set. Clear P1 water can auto-dispatch; fire, mold & unclear jobs wait for your 1 / 2.",
     tabs: [
       {
-        id: "overview",
-        label: "What is Effiroad?",
-        mp4: "/videos/demo-overview.mp4",
-        hint: "Same number · schedule-based answering · P1 auto-dispatch vs owner approval",
-        recordSlug: "overview",
-      },
-      {
         id: "voice",
         label: "2 AM emergency call",
         mp4: "/videos/demo-voice.mp4",
-        hint: "Full call — sewage P1 · owner SMS · crew dispatch · start to finish",
+        hint: "Live demo — receptionist voice on the left · customer types on the right",
         recordSlug: "voice",
       },
       {
@@ -48,33 +41,26 @@ export const DEMO_VERTICAL_CONFIG: Record<
         recordSlug: "link-intake",
       },
     ],
-    voiceFootnote: "Only the receptionist speaks on the call — customer replies are text-only.",
+    voiceFootnote: "Only the receptionist speaks on the call — customer replies appear as text chat.",
   },
   hvac: {
-    headline: "3 demos — HVAC shops",
+    headline: "See Effiroad in action",
     subhead: "No-heat auto-dispatch · gas smell safety hold · schedule you control",
     identityLine:
       "Saturday 6 AM on another job? Effiroad picks up on your hours. Verified no-heat dispatches your on-call tech — gas smell always waits for your 1 / 2.",
     tabs: [
       {
-        id: "overview",
-        label: "What is Effiroad?",
-        mp4: "/videos/demo-overview-hvac.mp4",
-        hint: "Forward when you're busy · AI intake · smart dispatch vs safety hold",
-        recordSlug: "overview",
-      },
-      {
         id: "voice",
         label: "No-heat auto-dispatch",
         mp4: "/videos/demo-voice-hvac.mp4",
-        hint: "Full call — verified no-heat · auto-dispatch · crew SMS · owner FYI",
+        hint: "Live demo — receptionist voice on the left · customer types on the right",
         recordSlug: "voice",
       },
       {
         id: "risk-hold",
         label: "Gas smell hold",
         mp4: "/videos/demo-risk-hold-hvac.mp4",
-        hint: "Safety call — owner SMS 1 = dispatch · 2 = hold · never blind roll",
+        hint: "Live demo — safety hold · owner SMS 1 = dispatch · 2 = hold",
         recordSlug: "risk-hold",
       },
     ],
