@@ -111,9 +111,13 @@ async function notifyTech(
   tech: TechMember,
   ctx: JobOfferContext,
   shopName: string,
+  practiceMode: boolean,
 ): Promise<boolean> {
   const ref = bookingShortRef(ctx.bookingId);
-  const body = techOfferSms({ shopName, ctx, ref });
+  let body = techOfferSms({ shopName, ctx, ref });
+  if (practiceMode) {
+    body = `Effiroad [TEST]: ${body}`;
+  }
   return sendTechSms({
     userId,
     techPhone: tech.phone,
@@ -132,7 +136,7 @@ export async function startTechAssignmentForBooking(
     getTechDispatchSettings(userId),
     getShopBookingSettings(userId),
   ]);
-  if (isPracticeMode(bookingSettings)) return null;
+  const practiceMode = isPracticeMode(bookingSettings);
   if (!settings.enabled || !settings.assignOnApprove || !settings.techs.length) {
     return null;
   }
@@ -176,7 +180,7 @@ export async function startTechAssignmentForBooking(
 
   const user = await findUserById(userId);
   const shopName = resolveShopDisplayName(user?.shopName);
-  const sent = await notifyTech(userId, tech, ctx, shopName);
+  const sent = await notifyTech(userId, tech, ctx, shopName, practiceMode);
 
   if (!sent) {
     assignment.status = "unassigned";

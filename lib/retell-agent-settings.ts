@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "natural-male-v11-kind-receptionist-2026-07-16";
+export const RETELL_PROMPT_VERSION = "natural-male-v12-listen-first-2026-07-16";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -103,12 +103,10 @@ export function buildRetellProductionAgentPatch(voiceId?: string) {
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
     volume: 1.18,
-    responsiveness: 0.82,
+    responsiveness: 0.72,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.1,
-    enable_backchannel: true,
-    backchannel_frequency: 0.35,
-    backchannel_words: ["mm-hmm", "got it", "okay", "right", "I hear you"],
+    interruption_sensitivity: 0.04,
+    enable_backchannel: false,
     reminder_trigger_ms: 12000,
     reminder_max_count: 1,
   };

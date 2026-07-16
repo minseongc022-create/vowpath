@@ -76,7 +76,7 @@ export const settingsPageEn = {
     "Run the full intake flow without booking real jobs or texting customers.",
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
-    "1+ = Practice - no customer texts or calendar writes. You only get a [TEST] heads-up. Drops by 1 per test call.",
+    "1+ = Practice - no customer texts or calendar writes. Crew dispatch texts still fire (marked [TEST]). Drops by 1 per test call.",
   stormModeLabel: "Storm surge mode",
   stormModeHint:
     "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",
