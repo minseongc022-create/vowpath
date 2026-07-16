@@ -8,6 +8,9 @@ export const MARKETING_HOST_ALIASES = new Set([
   "www.vowroad.com",
 ]);
 
+/** Retired domains — respond 410 + noindex so Google drops cached SERP entries. */
+export const DECOMMISSIONED_HOSTS = new Set(["hvacsvc.link", "www.hvacsvc.link"]);
+
 /** Legacy vowroad subdomains → current effiroad portal/marketing host (hostname only). */
 export const LEGACY_PORTAL_HOST_REDIRECTS: Record<string, string> = {
   "link.vowroad.com": "link.effiroad.com",
@@ -25,6 +28,11 @@ export function normalizeHostname(host: string | null | undefined): string {
 export function isMarketingHostAlias(host: string | null | undefined): boolean {
   const h = normalizeHostname(host);
   return MARKETING_HOST_ALIASES.has(h);
+}
+
+export function isDecommissionedHost(host: string | null | undefined): boolean {
+  const h = normalizeHostname(host);
+  return DECOMMISSIONED_HOSTS.has(h);
 }
 
 export function legacyPortalRedirectHost(host: string | null | undefined): string | null {
