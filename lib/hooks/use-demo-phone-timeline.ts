@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PhoneDemoPhase } from "@/lib/demo-phone-script";
 
 const CUSTOMER_TYPING_MS = 900;
-const CUSTOMER_HOLD_MS = 2400;
+const CUSTOMER_HOLD_MS = 3200;
 const PHASE_TAIL_MS = 650;
 
 type AiVoicePhase = Extract<PhoneDemoPhase, { kind: "ai-voice" }>;
@@ -13,6 +13,8 @@ type UseDemoPhoneTimelineOptions = {
   timeline: PhoneDemoPhase[];
   audioPrefix: string;
   recordMode: boolean;
+  /** When false, pause timeline and audio (e.g. demo scrolled off-screen). */
+  enabled?: boolean;
   loopDelayMs?: number;
   /** Return next step index when a phase should advance the stepper. */
   stepIdxForPhase?: (phase: PhoneDemoPhase) => number | null;
@@ -22,6 +24,7 @@ export function useDemoPhoneTimeline({
   timeline,
   audioPrefix,
   recordMode,
+  enabled = true,
   loopDelayMs = 5000,
   stepIdxForPhase,
 }: UseDemoPhoneTimelineOptions) {
@@ -131,12 +134,17 @@ export function useDemoPhoneTimeline({
   }, [loopDelayMs, playAi, recordMode, resetScene, stepIdxForPhase, timeline]);
 
   useEffect(() => {
+    if (!enabled) {
+      runGenerationRef.current += 1;
+      audioRef.current?.pause();
+      return;
+    }
     run();
     return () => {
       runGenerationRef.current += 1;
       audioRef.current?.pause();
     };
-  }, [run]);
+  }, [run, enabled]);
 
   useEffect(() => {
     const el = customerScrollRef.current;

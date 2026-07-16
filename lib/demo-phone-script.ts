@@ -2,15 +2,15 @@ import type { DemoVertical } from "./demo-vertical-config";
 
 /** Receptionist voice lines — warm US dispatcher; customer text only in demo. One question per turn. */
 export const RESTORATION_AI_LINES = [
-  "Hey, thanks for calling Ridgeline Restoration. What's going on?",
-  "I'm really glad you called — we'll take care of this. What's your name?",
+  "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
+  "I'm really glad you called. We'll take care of this together. What's your name?",
   "Thanks, Mike. What's the full property address — street, city, and state?",
   "A sewage backup can move fast. I'm marking this urgent and texting the owner for approval now.",
   "You're all set, Mike. Jake accepted the job and is heading your way. You'll get his ETA by text in just a moment.",
 ] as const;
 
 export const HVAC_AI_LINES = [
-  "Comfort Air HVAC, thanks for calling. What's going on at the house?",
+  "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
   "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
   "Good — no gas smell. What's your name?",
   "Thanks, Sarah. What's the full service address?",
@@ -18,7 +18,7 @@ export const HVAC_AI_LINES = [
 ] as const;
 
 export const HVAC_GAS_AI_LINES = [
-  "Comfort Air HVAC, you've reached us. Tell me what's happening — and whether anyone feels sick.",
+  "Comfort Air HVAC, you've reached us. I'm here with you — tell me what's happening, and whether anyone feels sick.",
   "I hear you. Gas smell is serious, so I'm not sending anyone blindly. What's your name?",
   "Thank you. What's the full property address?",
   "Got it. I'm holding this as a safety call and texting the owner now, so they can decide the safest next step.",
