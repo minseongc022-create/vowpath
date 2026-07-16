@@ -30,11 +30,26 @@ export function generateAiSummary(
     }
   }
 
-  if (
-    draft.arrivalWindow &&
+  if (draft.arrivalWindow &&
     !draft.arrivalWindow.toLowerCase().includes("pending shop review")
   ) {
     lines.push(`Caller preference: ${draft.arrivalWindow} (pending review).`);
+  }
+
+  if (draft.activeLoss === true) {
+    lines.push("Active loss — damage still spreading.");
+  }
+  if (draft.severity?.trim()) {
+    lines.push(`Severity: ${draft.severity.trim()}.`);
+  }
+  if (draft.insuranceCarrier?.trim()) {
+    lines.push(`Insurance: ${draft.insuranceCarrier.trim()}${draft.insuranceClaimNumber ? ` (claim ${draft.insuranceClaimNumber.trim()})` : ""}.`);
+  }
+  if (draft.waterSource?.trim()) {
+    lines.push(`Water source: ${draft.waterSource.trim()}.`);
+  }
+  if (draft.urgency?.trim()) {
+    lines.push(`Service urgency: ${draft.urgency.trim()}.`);
   }
 
   return lines.length > 0

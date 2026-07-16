@@ -385,10 +385,12 @@ export function smsTechDispatchOfferBody(params: {
   issue: string;
   window: string;
   ref: string;
+  priority?: string;
 }): string {
+  const pri = params.priority?.trim() ? `${params.priority} ` : "";
   return (
-    `Effiroad: New job offer — ${smsTruncate(params.customerName, 14)}, ` +
-    `${smsTruncate(params.issue, 18)}, ${smsTruncate(params.window, 16)}. ` +
+    `Effiroad: ${pri}job — ${smsTruncate(params.customerName, 14)}, ` +
+    `${smsTruncate(params.issue, 22)}, ${smsTruncate(params.window, 14)}. ` +
     `Reply 1=Accept 2=Pass. Ref ${params.ref}`
   );
 }

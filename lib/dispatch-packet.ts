@@ -44,6 +44,8 @@ export function buildDispatchPacket(params: {
     c.insuranceClaimNumber ? `Claim #: ${c.insuranceClaimNumber}` : null,
     c.waterSource ? `Water source: ${c.waterSource}` : null,
     c.activeLoss ? "Active loss: YES (spreading)" : null,
+    c.severity ? `Severity: ${c.severity}` : null,
+    c.urgency ? `Urgency: ${c.urgency}` : null,
     "",
     "Dispatch notes:",
     c.aiSummary ?? c.dispatchNotes ?? "(none)",

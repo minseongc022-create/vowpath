@@ -118,7 +118,7 @@ export async function finalizeVerifiedIntake(
       aiSummary: payload.aiSummary,
       callbackPhone: payload.callbackPhone,
       confidence: payload.confidence,
-      verificationComplete: true,
+      verificationComplete: payload.verificationComplete === true,
       intakeChannel: channel,
       intakePhotoRef: payload.intakePhotoRef,
       addressValidation: payload.addressValidation,

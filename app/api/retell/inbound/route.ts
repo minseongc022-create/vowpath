@@ -7,6 +7,11 @@ import { getShopVertical } from "@/lib/vertical-context";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { validateRetellWebhook } from "@/lib/retell-signature";
+import { findRecentCallLogByPhone } from "@/lib/call-logs";
+import {
+  buildRetellIntakeGuide,
+  buildReturningCustomerHint,
+} from "@/lib/retell-intake-guide";
 
 /**
  * Retell's "Inbound Call Webhook" for an imported phone number — called
@@ -70,11 +75,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [shopName, vertical, memory, afterHours] = await Promise.all([
+    const [shopName, vertical, memory, afterHours, pastMatch] = await Promise.all([
       shopDisplayNameForUser(userId),
       getShopVertical(userId),
       getCompanyAiMemory(userId),
       isTenantAfterHours(userId),
+      findRecentCallLogByPhone(userId, from),
     ]);
 
     const todayUtc = new Date().toISOString().split("T")[0];
@@ -100,6 +106,16 @@ export async function POST(request: Request) {
           after_hours: afterHours ? "true" : "false",
           closed_message: closedMessage,
           custom_greeting: memory?.customGreeting ?? "",
+          ivr_path: "",
+          intake_guide: buildRetellIntakeGuide(vertical),
+          returning_customer: buildReturningCustomerHint(
+            pastMatch
+              ? {
+                  customerName: pastMatch.customerName ?? "",
+                  address: pastMatch.address ?? "",
+                }
+              : null,
+          ),
         },
       },
     });

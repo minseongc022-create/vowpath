@@ -18,6 +18,11 @@ import {
 } from "./twilio-xml";
 import { voicePhoneIntakeIntro, voicePhoneIntakePrompt } from "./voice-copy";
 import { intakeUrlForMenu } from "./call-intake/intake-twiml";
+import { findRecentCallLogByPhone } from "./call-logs";
+import {
+  buildRetellIntakeGuide,
+  buildReturningCustomerHint,
+} from "./retell-intake-guide";
 
 export type RetellBridgeParams = {
   afterHours: boolean;
@@ -63,11 +68,12 @@ export async function buildRetellBridgeTwiml(
     if (userId) {
       try {
         const todayUtc = new Date().toISOString().split("T")[0];
-        const [shopName, vertical, memory, afterHours] = await Promise.all([
+        const [shopName, vertical, memory, afterHours, pastMatch] = await Promise.all([
           shopDisplayNameForUser(userId),
           getShopVertical(userId),
           getCompanyAiMemory(userId),
           isTenantAfterHours(userId),
+          findRecentCallLogByPhone(userId, params.from),
         ]);
         const isClosedToday = memory?.temporaryClosureDate === todayUtc;
         dynamicVariables = {
@@ -80,6 +86,16 @@ export async function buildRetellBridgeTwiml(
             : "",
           custom_greeting: memory?.customGreeting ?? "",
           ivr_path: params.ivrPath ?? "",
+          intake_guide: buildRetellIntakeGuide(vertical),
+          returning_customer: buildReturningCustomerHint(
+            pastMatch
+              ? {
+                  customerName: pastMatch.customerName ?? "",
+                  address: pastMatch.address ?? "",
+                }
+              : null,
+          ),
+          twilio_call_sid: params.callSid ?? "",
         };
       } catch (e) {
         console.warn("[retell-bridge] tenant context failed:", e);

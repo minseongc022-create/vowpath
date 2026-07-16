@@ -125,7 +125,7 @@ export type VerifiedCallPayload = {
   to: string;
   recordingUrl?: string;
   confidence: FieldConfidence;
-  verificationComplete: true;
+  verificationComplete: boolean;
   addressValidation?: CallIntakeState["addressValidation"];
   verifiedFields?: Partial<Record<MandatoryVerifyField, boolean>>;
   intakePhotoRef?: string;

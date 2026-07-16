@@ -32,7 +32,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "submit_intake",
       description:
-        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, address, and damage type confirmed.",
+        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, address, issue, trade-specific details, and read-back confirmed.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitIntake,
@@ -41,8 +41,16 @@ export function buildRetellGeneralTools(base: string) {
         properties: {
           customerName: { type: "string", description: "Caller's full name" },
           address: { type: "string", description: "Full service property address" },
-          issueType: { type: "string", description: "water, fire, mold, or sewage backup" },
-          notes: { type: "string", description: "Urgency, access info, or other details" },
+          issueType: {
+            type: "string",
+            description:
+              "Short issue label: water damage, fire, mold, sewage, no heat, no AC, gas smell, plumbing leak, maintenance, etc.",
+          },
+          notes: {
+            type: "string",
+            description:
+              "Urgency, active loss/spreading water, insurance carrier/claim, access info, HVAC urgency, severity",
+          },
         },
         required: ["customerName", "address", "issueType"],
       },

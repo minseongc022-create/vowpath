@@ -8,9 +8,9 @@ import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { getShopVertical } from "@/lib/vertical-context";
 import { extractIntakeFromSpeechForVertical } from "@/lib/call-intake/extraction";
 import { generateAiSummary } from "@/lib/call-intake/ai-summary";
+import { enrichRetellIntakeForFinalize } from "@/lib/call-intake/retell-verify";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import { isTenantAfterHours } from "@/lib/after-hours";
-import type { VerifiedCallPayload } from "@/lib/call-intake/types";
 
 function submittedKey(callId: string) {
   return `effiroad:retell-intake-submitted:${callId}`;
@@ -18,7 +18,7 @@ function submittedKey(callId: string) {
 
 /** True the first time this call submits intake; false on any repeat call from Retell. */
 async function claimFirstSubmission(callId: string): Promise<boolean> {
-  if (!callId) return true; // no call id to dedupe on — let it through rather than block
+  if (!callId) return true;
   const key = submittedKey(callId);
   if (useKvStore()) {
     const set = await kv.set(key, "1", { nx: true, ex: 60 * 60 * 6 });
@@ -35,17 +35,13 @@ type SubmitIntakeArgs = {
   notes?: string;
 };
 
+type RetellDynamicVars = {
+  twilio_call_sid?: string;
+};
+
 /**
- * Retell custom-function ("tool") endpoint. The agent calls this once per
- * call, after it has naturally collected the caller's name, address, and
- * issue in conversation. Rather than trusting the LLM's own field parsing as
- * the source of truth, we run the FULL call transcript through the same
- * GPT extraction + priority classification + booking pipeline used by the
- * Twilio Gather-based intake flow, so both call paths behave identically.
- *
- * Request shape follows Retell's documented custom-function webhook contract
- * (call context + name + args). Verify against a live Retell test call and
- * adjust field lookups here if Retell's dashboard test shows a mismatch.
+ * Retell custom-function endpoint — runs full GPT extraction + address validation
+ * + confidence scoring, matching the Twilio Gather intake pipeline.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -66,6 +62,11 @@ export async function POST(request: Request) {
   const from = String(call.from_number ?? body.from_number ?? "");
   const args = (body.args ?? body.arguments ?? body.parameters ?? {}) as SubmitIntakeArgs;
   const callTranscript = String(call.transcript ?? body.transcript ?? "").trim();
+  const dynamicVars = (call.retell_llm_dynamic_variables ??
+    call.dynamic_variables ??
+    {}) as RetellDynamicVars;
+  const twilioCallSid = String(dynamicVars.twilio_call_sid ?? "").trim();
+  const logCallSid = twilioCallSid || callId || `retell-${Date.now()}`;
 
   if (!to) {
     return NextResponse.json(
@@ -74,15 +75,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = await resolveTenantUserId({ to, from, callSid: callId });
+  const userId = await resolveTenantUserId({ to, from, callSid: logCallSid });
   if (!userId) {
     return NextResponse.json({
       result: "Hmm, I'm not finding this line in our system — try calling back in a bit.",
     });
   }
 
-  // Payment gate (defense in depth): even if a caller reaches the Retell agent
-  // directly, an unpaid/expired tenant must not have requests logged for them.
   if (!(await isRetellTenantEntitled(userId, { to, from }))) {
     return NextResponse.json({
       result:
@@ -97,9 +96,6 @@ export async function POST(request: Request) {
     });
   }
 
-  // Prefer the verbatim transcript (same signal quality as the Twilio flow's
-  // speech Gather); fall back to the structured args Retell parsed itself if
-  // no transcript was provided in this webhook payload.
   const transcriptSource =
     callTranscript ||
     [args.customerName, args.address, args.issueType, args.notes].filter(Boolean).join(". ");
@@ -120,35 +116,15 @@ export async function POST(request: Request) {
     const afterHours = await isTenantAfterHours(userId);
     const aiSummary = generateAiSummary(draft, draft.priority);
 
-    const payload: VerifiedCallPayload = {
-      transcript: transcriptSource,
-      customerName: draft.customerName,
-      address: draft.address,
-      serviceLocation: draft.serviceLocation,
-      issueType: draft.issueType,
-      symptom: draft.symptom,
-      priority: draft.priority,
-      servicePriority: draft.servicePriority,
-      priorityReasons: draft.priorityReasons,
-      prioritySource: draft.prioritySource,
-      arrivalWindow: draft.arrivalWindow,
-      dispatchNotes: draft.dispatchNotes,
-      jobberPasteBlock: draft.jobberPasteBlock,
-      callbackPhone: from || "Unknown",
-      aiSummary,
-      callSid: callId || `retell-${Date.now()}`,
-      to,
+    const { payload } = await enrichRetellIntakeForFinalize({
+      draft,
       confidence,
-      verificationComplete: true,
-      lossCategory: draft.lossCategory,
-      insuranceCarrier: draft.insuranceCarrier,
-      insuranceClaimNumber: draft.insuranceClaimNumber,
-      waterSource: draft.waterSource,
-      activeLoss: draft.activeLoss,
-      severity: draft.severity,
-      lastServiceYear: draft.lastServiceYear,
-      urgency: draft.urgency,
-    };
+      transcriptSource,
+      callSid: logCallSid,
+      to,
+      from,
+      aiSummary,
+    });
 
     const result = await finalizeVerifiedIntake(userId, payload, {
       intakeChannel: "phone",
@@ -161,10 +137,11 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({
-      result:
-        "Perfect — you're all set. I've got everything down and our team's gonna be on this. Hang in there — help is on the way.",
-    });
+    const closing = payload.verificationComplete
+      ? "Perfect — you're all set. I've got everything down and our team's getting on this. Hang in there — help is on the way."
+      : "Thanks — I've got your info down and the shop will confirm the details shortly. Someone will be in touch very soon.";
+
+    return NextResponse.json({ result: closing });
   } catch (e) {
     console.error("[retell/tools/submit-intake]", e);
     return NextResponse.json({

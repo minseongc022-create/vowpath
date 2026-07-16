@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "natural-male-v10-davis-native-2026-07-15";
+export const RETELL_PROMPT_VERSION = "natural-male-v11-kind-receptionist-2026-07-16";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
@@ -81,15 +81,17 @@ export function buildRetellProductionAgentPatch(voiceId) {
       "mitigation",
     ],
     denoising_mode: "noise-and-background-speech-cancellation",
-    voice_temperature: 0.72,
-    voice_speed: 1.0,
+    voice_temperature: 0.78,
+    voice_speed: 0.98,
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    volume: 1.22,
-    responsiveness: 0.84,
+    volume: 1.18,
+    responsiveness: 0.82,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.08,
-    enable_backchannel: false,
+    interruption_sensitivity: 0.1,
+    enable_backchannel: true,
+    backchannel_frequency: 0.35,
+    backchannel_words: ["mm-hmm", "got it", "okay", "right", "I hear you"],
     reminder_trigger_ms: 12000,
     reminder_max_count: 1,
   };

@@ -16,6 +16,8 @@ import {
 } from "./store";
 import { orderPoolWithOnCall } from "./on-call";
 import type { TechAssignment, TechMember } from "./types";
+import { getShopBookingSettings } from "../shop-settings-db";
+import { isPracticeMode } from "../data-truthfulness";
 
 export type JobOfferContext = {
   bookingId: string;
@@ -35,10 +37,15 @@ async function loadJobContext(
     const callId = bookingId.slice("call-".length);
     const call = calls.find((c) => c.id === callId);
     if (!call) return null;
+    const issueParts = [
+      call.issueType?.trim() || call.symptom?.trim() || "Service request",
+      call.activeLoss ? "ACTIVE" : null,
+      call.insuranceCarrier?.trim() ? `Ins: ${call.insuranceCarrier.trim()}` : null,
+    ].filter(Boolean);
     return {
       bookingId,
       customerName: call.customerName?.trim() || "Customer",
-      issue: call.issueType?.trim() || call.symptom?.trim() || "Service request",
+      issue: issueParts.join(" · "),
       window: call.arrivalWindow?.trim() || "TBD",
       priority: call.priority || "P2",
     };
@@ -95,6 +102,7 @@ function techOfferSms(params: {
     issue: params.ctx.issue,
     window: params.ctx.window,
     ref: params.ref,
+    priority: params.ctx.priority,
   });
 }
 
@@ -120,7 +128,11 @@ export async function startTechAssignmentForBooking(
   userId: string,
   bookingId: string,
 ): Promise<TechAssignment | null> {
-  const settings = await getTechDispatchSettings(userId);
+  const [settings, bookingSettings] = await Promise.all([
+    getTechDispatchSettings(userId),
+    getShopBookingSettings(userId),
+  ]);
+  if (isPracticeMode(bookingSettings)) return null;
   if (!settings.enabled || !settings.assignOnApprove || !settings.techs.length) {
     return null;
   }
