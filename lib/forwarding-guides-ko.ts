@@ -205,7 +205,7 @@ export function getForwardingGuideSteps(
   if (provider === "google_voice") {
     return [
       "PC에서 https://voice.google.com/settings 로그인 (샵 GV 계정).",
-      "Calls 탭 — 전환 전 설정 (Ruby/Smith.ai/Jobber 검증):",
+      "Calls 탭 — 전환 전 설정 (업계 검증):",
       "  • Screen calls 끄기 (추가 안내 없이 Effiroad 연결).",
       "  • “Show my Google Voice number as caller ID when forwarding” 끄기 (실제 발신자 번호 필요).",
       "  • My Devices: 개인폰/태블릿 동시 울림 끄기.",
@@ -221,7 +221,7 @@ export function getForwardingGuideSteps(
 
   if (provider === "dialpad") {
     return [
-      "경로 A — ServiceTitan Phones Pro / Main Line (Avoca·Smith.ai 검증):",
+      "경로 A — ServiceTitan Phones Pro / Main Line (업계 검증):",
       "https://dialpad.com/officesettings → Admin Settings → Main Line.",
       "Business Hours & Call Routing → Edit Call Routing.",
       "Fallback Options(또는 Other routing) → “To a team member, room phone, or external number”.",
@@ -250,7 +250,7 @@ export function getForwardingGuideSteps(
       "기본 — 미응답 약 20초:",
       `  ${code}`,
       `실패 시: ${alt}`,
-      "iPhone/AT&T 대체 (Smith.ai 검증):",
+      "iPhone/AT&T 대체 (업계 검증):",
       `  10초: ${iphone10}`,
       `  통화불가: ${unreachable}`,
       `  통화중: ${busy}`,
@@ -308,7 +308,7 @@ export function getForwardingGuideSteps(
   }
 
   return [
-    "방법 A — *71 (Verizon 공식, Smith.ai 검증):",
+    "방법 A — *71 (Verizon 공식, 업계 검증):",
     `*71${tenDigit} → 통화. *72(전체 착신) 금지.`,
     "해제: *73",
     "방법 B — m.vzw.com/callforwarding → 미응답 시만.",

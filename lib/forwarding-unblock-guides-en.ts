@@ -75,7 +75,7 @@ export function getForwardingUnblockGuides(
         steps: [
           "Settings → Calls → turn OFF Screen calls.",
           "Turn OFF call announcement / call screening on any linked device.",
-          "Ruby & Smith.ai: extra GV prompts delay AI pickup — disable all pre-connection menus.",
+          "Some answering services: extra GV prompts delay AI pickup — disable all pre-connection menus.",
         ],
       },
       {
@@ -316,7 +316,7 @@ export function getForwardingUnblockGuides(
         "Your routing may use Contact Center instead of Main Line.",
         "Dialpad → Admin Settings → Contact Center → default center → Business Hours & Call Routing.",
         "Edit Call Routing → Fallback Options → external number → paste Effiroad.",
-        "Set Closed Hours Routing the same way (Avoca verified path).",
+        "Set Closed Hours Routing the same way (industry-verified path).",
       ],
     },
     {
@@ -332,7 +332,7 @@ export function getForwardingUnblockGuides(
       id: "dp-admin",
       problem: "Not a Dialpad admin / external number greyed out",
       steps: [
-        "Contact Dialpad support — ask to enable forward-to-external on your account (Smith.ai documented requirement).",
+        "Contact Dialpad support — ask to enable forward-to-external on your account (documented industry requirement).",
         "Ask your office admin to add the unanswered forward rule.",
         `Give them Effiroad number: +1${td}.`,
         "Or use AT&T/T-Mobile/Verizon steps on the cell that rings if no admin access.",

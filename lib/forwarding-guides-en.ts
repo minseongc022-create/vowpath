@@ -232,7 +232,7 @@ export function getForwardingGuideSteps(
   if (provider === "google_voice") {
     return [
       "On a computer, open https://voice.google.com/settings and sign in to the Google account that owns your shop GV number.",
-      "Calls tab — prep before forwarding (verified with Ruby, Smith.ai, Jobber):",
+      "Calls tab — prep before forwarding (industry-verified):",
       "  • Turn OFF Screen calls (callers must hear Effiroad immediately — no extra prompts).",
       "  • Turn OFF “Show my Google Voice number as caller ID when forwarding calls” (Effiroad needs the real caller number).",
       "  • Under My Devices: turn OFF ring on personal cell/tablets during overflow setup — extra rings can block forwarding.",
@@ -248,14 +248,14 @@ export function getForwardingGuideSteps(
 
   if (provider === "dialpad") {
     return [
-      "Path A — ServiceTitan Phones Pro / Main Line (Avoca & Smith.ai verified):",
+      "Path A — ServiceTitan Phones Pro / Main Line (industry-verified):",
       "Open https://dialpad.com/officesettings → Admin Settings → Main Line.",
       "Scroll to Business Hours & Call Routing → Edit Call Routing.",
       "Under Fallback Options (or Other routing options): choose “To a team member, room phone, or external number”.",
       `Enter ${e164} and press Enter — wait for “Changes saved”.`,
       "Closed Hours Routing: repeat the same external number for after-hours overflow.",
       "If Fallback is missing on Main Line, your account routes via Contact Center — go to Admin Settings → Contact Center → default center → same Fallback + Closed Hours steps.",
-      "Path B — per-user / Jobber Phone (Smith.ai verified):",
+      "Path B — per-user / Jobber Phone (industry-verified):",
       "Open https://dialpad.com/app → Settings (gear) → Office Settings → Users → shop line.",
       "Answering rules / Call handling → When call is not answered → Forward to external number.",
       `Paste ${e164} (+1). Set ring duration ~20 seconds if available → Save.`,
@@ -281,7 +281,7 @@ export function getForwardingGuideSteps(
       "Press Call and wait for a success tone or confirmation text from AT&T.",
       "If that errors, try shorter code (carrier default ring time):",
       `  ${alt}`,
-      "iPhone / AT&T alternate codes (Smith.ai verified — run each that you need):",
+      "iPhone / AT&T alternate codes (industry-verified — run each that you need):",
       `  No answer ~10 sec: ${iphone10}`,
       `  Unreachable (phone off / no signal): ${unreachable}`,
       `  Busy line only: ${busy}`,
@@ -316,7 +316,7 @@ export function getForwardingGuideSteps(
 
   if (provider === "xfinity") {
     return [
-      "Use the Xfinity Mobile phone that receives your shop's customer calls (Xfinity official + Smith.ai verified).",
+      "Use the Xfinity Mobile phone that receives your shop's customer calls (Xfinity official + industry-verified).",
       "Do NOT use *72 — that forwards every call without ringing your phone.",
       `On the Xfinity phone, dial *71${tenDigit} then press Call.`,
       "Wait for confirmation tone or message. Activation only works from the Xfinity device — not web or another phone.",
@@ -329,7 +329,7 @@ export function getForwardingGuideSteps(
 
   if (provider === "ringcentral") {
     return [
-      "Log in to RingCentral Admin Portal (Smith.ai verified overflow pattern):",
+      "Log in to RingCentral Admin Portal (industry-verified overflow pattern):",
       "Go to Phone System → Users → the user/line that receives shop calls → Call Handling & Forwarding.",
       "Set your cell to ring first — about 5–8 seconds (never more than 10 sec or callers hang up).",
       "Under Phones Will Ring: choose Sequentially — not Simultaneously.",
@@ -343,7 +343,7 @@ export function getForwardingGuideSteps(
 
   if (provider === "grasshopper") {
     return [
-      "Log in at grasshopper.com (Smith.ai verified):",
+      "Log in at grasshopper.com (industry-verified):",
       "Numbers → confirm which extension your main shop number routes to.",
       "Extensions → Edit that extension → Add a forwarding number.",
       `Enter ${e164} as forwarding number.`,
@@ -356,7 +356,7 @@ export function getForwardingGuideSteps(
   }
 
   return [
-    "Method A — star code (Verizon official — Smith.ai verified):",
+    "Method A — star code (Verizon official — industry-verified):",
     `On the shop phone, open Phone and dial *71${tenDigit} then press Call.`,
     "Wait for confirmation tone. *71 covers busy AND no-answer — your phone rings first.",
     "Do NOT use *72 — that forwards every call unconditionally.",

@@ -31,10 +31,10 @@ export const quickFaqEn = {
   label: "Quick answers",
   title: "Why Effiroad — not another answering service",
   subtitle:
-    "The questions owners ask first — and how we're built differently from Smith.ai, Ruby, Jobber AI, and Avoca.",
+    "The questions owners ask first — and how we're built differently from typical answering services and CRM add-ons.",
   items: [
     {
-      q: "Why Effiroad instead of Smith.ai or Ruby?",
+      q: "Why Effiroad instead of a per-minute answering service?",
       a: "Flat monthly price — no per-minute rounding, no surprise live-agent transfer fees. Same natural voice every call, not a rotating receptionist who rushes through a script.",
     },
     {
@@ -46,8 +46,8 @@ export const quickFaqEn = {
       a: "Address, loss type, urgency, and insurance details — verified on the call. Clear standard water jobs dispatch while they wait. Fire, Cat-3, and fuzzy details wait for your 1 / 2.",
     },
     {
-      q: "How is this different from Jobber AI Receptionist?",
-      a: "Conversational intake tuned for trades — not checkbox questions. Works with or without Jobber. Three forwarding paths plus a dedicated-number fallback when carriers block overflow.",
+      q: "How is this different from a CRM add-on receptionist?",
+      a: "Conversational intake tuned for trades — not checkbox questions. Works with or without your CRM. Three forwarding paths plus a dedicated-number fallback when carriers block overflow.",
     },
     {
       q: "Do I have to change my phone number?",
@@ -87,10 +87,10 @@ export const callExperienceEn = {
   contrast: {
     title: "What we fixed that reviews flag elsewhere",
     theirs: [
-      "Per-minute billing and surprise transfer fees (Ruby, Smith.ai)",
-      "Rigid form-style questions — \"a form with a voice\" (Jobber AI)",
+      "Per-minute billing and surprise transfer fees",
+      "Rigid form-style questions — \"a form with a voice\"",
       "Complex calls default to message-taking only",
-      "Weeks of onboarding and enterprise pricing (Avoca)",
+      "Weeks of onboarding and enterprise-only pricing",
     ],
     ours: [
       "Flat monthly — predictable every storm season",
@@ -383,18 +383,18 @@ export const jobberEn = {
 
 export const comparisonEn = {
   id: "comparison",
-  title: "Why shops pick Effiroad over Smith.ai, Ruby, Jobber AI & Avoca",
+  title: "Why shops pick Effiroad over typical alternatives",
   subtitle:
     "Independent reviews flag billing surprises, rigid scripts, and weeks-long setup elsewhere. Effiroad is built for 1–15 crew shops that need accurate intake, friendly voice, and go-live in minutes — not enterprise sales calls.",
-  headers: ["", "Effiroad", "Smith.ai / Ruby", "Jobber AI / Avoca"],
+  headers: ["", "Effiroad", "Typical answering service", "CRM add-on / enterprise AI"],
   rows: [
-    ["Phone setup", "4 paths + one-tap codes + dedicated number", "Help docs + onboarding call", "ST admin / Jobber-only / 4–12 wk"],
+    ["Phone setup", "3 paths + one-tap codes + dedicated fallback", "Help docs + onboarding call", "Admin portal / CRM-only / multi-week"],
     ["Forwarding if stuck", "Switch to dedicated number in-app", "Email support", "CSM / sales process"],
-    ["Call voice quality", "Natural US voice + Retell tuning", "Human variance or AI transfer fees", "Varies; Jobber rigid Q&A"],
+    ["Call voice quality", "Natural US voice + consistent tuning", "Human variance or transfer fees", "Varies; rigid scripted Q&A"],
     ["Intake accuracy", "Address + loss triage + insurance fields", "Script-dependent; operator variance", "Form-style Q&A; complex → message"],
-    ["Job dispatch", "Auto-dispatch clear jobs + crew SMS", "Message / schedule add-on fees", "Books to Jobber calendar only"],
-    ["Pricing", `Flat ${SITE.monthlyPrice}/mo — no per-minute`, "Per-minute + overages + transfer fees", "Custom / $99+ add-on / $1K+ enterprise"],
-    ["Works without CRM", "Yes — SMS + dashboard", "Yes", "Jobber-only or ServiceTitan-only"],
+    ["Job dispatch", "Auto-dispatch clear jobs + crew SMS", "Message / schedule add-on fees", "Calendar booking only"],
+    ["Pricing", `Flat ${SITE.monthlyPrice}/mo — no per-minute`, "Per-minute + overages + transfer fees", "Custom / add-on / $1K+ enterprise"],
+    ["Works without CRM", "Yes — SMS + dashboard", "Yes", "Often CRM- or platform-locked"],
     ["Test before go-live", "Built-in test call verify", "Call your own line manually", "Demo / pilot required"],
     ["Go live", "~10 minutes", "Days + scripting", "Days to weeks"],
   ],
@@ -405,7 +405,7 @@ export const competitorWinEn = {
   label: "What reviews say elsewhere",
   title: "We fixed what contractors complain about",
   subtitle:
-    "Pain points from Trustpilot, G2, Jobber Community, and independent HVAC reviews — and how Effiroad is built differently.",
+    "Common pain points from public reviews and trade forums — and how Effiroad is built differently.",
   pillars: [
     {
       title: "Setup that finishes",
@@ -426,44 +426,44 @@ export const competitorWinEn = {
   ],
   competitors: [
     {
-      name: "Smith.ai",
+      name: "AI + live-agent hybrids",
       pains: [
-        "Trustpilot: AI transfers to live agents without consent — extra charges",
+        "AI transfers to live agents without consent — extra charges",
         "Billing surprises from add-ons and spam-call overages",
         "Receptionist quality varies call to call",
       ],
       fix: "Flat monthly price. No live-agent transfer fees. Same AI voice and script every time. Test call built into setup.",
     },
     {
-      name: "Ruby",
+      name: "Per-minute virtual receptionists",
       pains: [
         "Per-minute billing with 60-second rounding — hangups still bill",
-        "$12M class action over deceptive billing; bill shock in busy season",
-        "Inconsistent script following; dogs/noise on live calls in reviews",
+        "Bill shock in busy season from unpredictable usage",
+        "Inconsistent script following on live calls in reviews",
       ],
       fix: "No per-minute clock. Predictable flat rate. AI answers instantly — professional tone without hold music or bored agents.",
     },
     {
-      name: "Jobber AI Receptionist",
+      name: "CRM add-on AI receptionists",
       pains: [
-        "Community: rigid form-style questions — 'a form with a voice'",
+        "Rigid form-style questions — 'a form with a voice'",
         "Complex calls default to message-taking; business-name confusion",
-        "Jobber-only; $99/mo add-on; forwarding setup still on you",
+        "CRM-locked; extra monthly fee; forwarding setup still on you",
       ],
-      fix: "Works with or without Jobber. Conversational intake tuned for trades. Three forwarding paths + dedicated number fallback (same quality).",
+      fix: "Works with or without your CRM. Conversational intake tuned for trades. Three forwarding paths + dedicated number fallback (same quality).",
     },
     {
-      name: "Avoca",
+      name: "Enterprise trade AI platforms",
       pains: [
-        "Enterprise pricing ($1K–$3K/mo cited); 4–12 week onboarding",
-        "ServiceTitan-only for full value; overkill for 1–15 crew shops",
+        "Enterprise pricing ($1K–$3K/mo cited in reviews); multi-week onboarding",
+        "Platform-locked for full value; overkill for 1–15 crew shops",
         "No public pricing; sales call required to compare",
       ],
-      fix: "Transparent flat pricing for owner-operators. Go live in ~10 minutes. Optional Jobber sync — no ST required.",
+      fix: "Transparent flat pricing for owner-operators. Go live in ~10 minutes. Optional CRM sync — no single platform required.",
     },
   ],
   footnote:
-    "Sources: Trustpilot, G2, Clutch, Jobber Community, ConsumerAffairs, Contractor ToolStack & HomeServiceSorted independent reviews (2024–2026).",
+    "Based on patterns from public review sites, trade forums, and independent contractor comparisons (2024–2026). No endorsement implied.",
 };
 
 export const featuresEn = {

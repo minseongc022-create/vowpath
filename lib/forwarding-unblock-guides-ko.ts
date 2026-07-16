@@ -75,7 +75,7 @@ export function getForwardingUnblockGuides(
         steps: [
           "Settings → Calls → Screen calls 끄기.",
           "연결 기기의 call screening/announcement 끄기.",
-          "Ruby·Smith.ai: GV 추가 프롬프트는 AI 연결 지연 — 모두 끄기.",
+          "일부 AI 응대 서비스: GV 추가 프롬프트는 AI 연결 지연 — 모두 끄기.",
         ],
       },
       {
