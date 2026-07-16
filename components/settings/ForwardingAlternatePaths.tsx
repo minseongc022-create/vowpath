@@ -31,11 +31,11 @@ export function ForwardingAlternatePaths({ current, onSwitch, limit = 3 }: Props
               onClick={() => onSwitch(id)}
               className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                 isDedicated
-                  ? "border-emerald-400 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                  ? "border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100"
                   : "border-slate-300 bg-white text-slate-800 hover:border-brand-400"
               }`}
             >
-              {isDedicated ? `★ ${label}` : label}
+              {isDedicated ? a.dedicatedLabel : label}
             </button>
           );
         })}

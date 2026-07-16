@@ -11,20 +11,95 @@ export const heroEn = {
   headline: "Never miss another emergency job.",
   headlineAccent: "Answer. Dispatch. Document — around the clock.",
   brandLine:
-    "Keep your main line. When a call comes in and your crew is on a job, Effiroad answers, captures the details, and dispatches your on-call team — while the customer is still on the line.",
+    "When your crew can't pick up, Effiroad answers like a trained receptionist — calm, polite, and thorough. It talks naturally with callers, collects address and loss details, and dispatches your team while the customer is still on the line.",
   subhead:
-    "24/7 AI phone + SMS intake, emergency triage, crew dispatch texts, shop analytics, and Effiroad AI — built for independent home service companies.",
+    "Natural US voice on every call. Respectful intake. Complete info before dispatch — built for independent home service companies.",
   trustLine: "1–15 crew shops · No CRM required",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "Answers your line 24/7",
-    "Auto-dispatches clear jobs",
-    "Texts your crew to dispatch",
+    "Natural, human-like phone voice",
+    "Polite intake — every caller",
+    "Complete info before dispatch",
     "Go live in ~10 minutes",
   ] as const,
 };
+
+export const quickFaqEn = {
+  id: "quick-qa",
+  label: "Quick answers",
+  title: "Why Effiroad — not another answering service",
+  subtitle:
+    "The questions owners ask first — and how we're built differently from Smith.ai, Ruby, Jobber AI, and Avoca.",
+  items: [
+    {
+      q: "Why Effiroad instead of Smith.ai or Ruby?",
+      a: "Flat monthly price — no per-minute rounding, no surprise live-agent transfer fees. Same natural voice every call, not a rotating receptionist who rushes through a script.",
+    },
+    {
+      q: "Does the AI actually sound human?",
+      a: "Yes. Warm US voice, conversational pacing, and polite follow-ups — like a trained shop receptionist, not a rigid phone tree or form-with-a-voice.",
+    },
+    {
+      q: "Will it collect complete job info before dispatch?",
+      a: "Address, loss type, urgency, and insurance details — verified on the call. Clear standard water jobs dispatch while they wait. Fire, Cat-3, and fuzzy details wait for your 1 / 2.",
+    },
+    {
+      q: "How is this different from Jobber AI Receptionist?",
+      a: "Conversational intake tuned for trades — not checkbox questions. Works with or without Jobber. Three forwarding paths plus a dedicated-number fallback when carriers block overflow.",
+    },
+    {
+      q: "Do I have to change my phone number?",
+      a: "Usually no — forward unanswered calls from your existing line. If forwarding won't work on your carrier, use your Effiroad dedicated number — same AI quality, not a downgrade.",
+    },
+    {
+      q: "What do contractors complain about elsewhere?",
+      a: "Bill shock, inconsistent agents, message-only on complex calls, and weeks of onboarding. Effiroad: transparent pricing, instant AI pickup, real dispatch, and ~10-minute go-live.",
+    },
+  ],
+} as const;
+
+export const callExperienceEn = {
+  id: "call-experience",
+  label: "Phone experience",
+  title: "Sounds human. Collects everything. Dispatches right.",
+  subtitle:
+    "Homeowners in a panic don't want a form or hold music — they want someone calm who gets the address right and gets a tech rolling.",
+  points: [
+    {
+      title: "Natural, human-like voice",
+      body: "Warm US tone with conversational pacing — not robotic menus or bored agents reading a script. Same professional voice on every call, 2 AM or 2 PM.",
+    },
+    {
+      title: "Polite, respectful intake",
+      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. No press-1 screening or abrupt transfers.",
+    },
+    {
+      title: "Complete info before dispatch",
+      body: "Verified address, loss type, active leak status, and insurance-ready notes — captured on the call, not a vague \"we'll call you back.\"",
+    },
+    {
+      title: "Dispatch while they wait",
+      body: "Clear standard jobs roll to your crew with SMS. Fire, Cat-3, and unclear intakes ping you: 1 = go, 2 = pass — not blind auto-book or message-only.",
+    },
+  ],
+  contrast: {
+    title: "What we fixed that reviews flag elsewhere",
+    theirs: [
+      "Per-minute billing and surprise transfer fees (Ruby, Smith.ai)",
+      "Rigid form-style questions — \"a form with a voice\" (Jobber AI)",
+      "Complex calls default to message-taking only",
+      "Weeks of onboarding and enterprise pricing (Avoca)",
+    ],
+    ours: [
+      "Flat monthly — predictable every storm season",
+      "Conversational intake tuned for water, fire, mold, HVAC",
+      "Real dispatch on clear jobs — you approve the edge cases",
+      "Go live in ~10 minutes — test call built into setup",
+    ],
+  },
+} as const;
 
 export const productStackEn = {
   id: "product-stack",
@@ -334,7 +409,7 @@ export const competitorWinEn = {
   pillars: [
     {
       title: "Setup that finishes",
-      body: "Four verified paths, one-tap carrier codes, and a dedicated-number escape hatch — not a PDF and a prayer.",
+      body: "Three forwarding paths with one-tap codes — and a dedicated-number fallback with the same AI quality when carriers block overflow.",
     },
     {
       title: "Accurate intake, not voicemail",
@@ -375,7 +450,7 @@ export const competitorWinEn = {
         "Complex calls default to message-taking; business-name confusion",
         "Jobber-only; $99/mo add-on; forwarding setup still on you",
       ],
-      fix: "Works with or without Jobber. Conversational intake tuned for trades. Four forwarding paths + dedicated number fallback.",
+      fix: "Works with or without Jobber. Conversational intake tuned for trades. Three forwarding paths + dedicated number fallback (same quality).",
     },
     {
       name: "Avoca",

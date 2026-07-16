@@ -26,6 +26,7 @@ import {
   getDemoSummary,
   getNumberChoice,
   getSiteApprovalLoop,
+  getSiteCallExperience,
   getSiteCta,
   getSiteFaq,
   getSiteFooter,
@@ -33,6 +34,7 @@ import {
   getSiteHowItWorks,
   getSiteNav,
   getSitePricing,
+  getSiteQuickFaq,
   getSiteSocialProof,
 } from "@/lib/site-content-locale";
 
@@ -107,6 +109,8 @@ export function useSiteContent() {
       socialProof: getSiteSocialProof(locale),
       demoSummary: getDemoSummary(locale),
       numberChoice: getNumberChoice(locale),
+      quickFaq: getSiteQuickFaq(locale),
+      callExperience: getSiteCallExperience(locale),
     }),
     [locale],
   );

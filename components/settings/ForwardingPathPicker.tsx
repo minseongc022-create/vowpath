@@ -5,13 +5,15 @@ import { settingsPage } from "@/lib/content";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import {
   CELL_CARRIER_OPTIONS,
-  FORWARDING_SETUP_PATHS,
+  FORWARDING_OVERFLOW_PATHS,
   VOIP_SYSTEM_OPTIONS,
   type ForwardingSetupPathId,
 } from "@/lib/forwarding-paths";
 import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
+import { EffiroadDedicatedLineCard } from "@/components/settings/EffiroadDedicatedLineCard";
 
 type Props = {
+  phoneNumber?: string | null;
   onSelect: (provider: ForwardingProviderId, pathId: ForwardingSetupPathId) => void;
 };
 
@@ -21,7 +23,7 @@ const confidenceStyles = {
   medium: "border-amber-300 bg-amber-50/50",
 } as const;
 
-export function ForwardingPathPicker({ onSelect }: Props) {
+export function ForwardingPathPicker({ phoneNumber, onSelect }: Props) {
   const p = settingsPage.forwardingPathPicker;
   const [subPick, setSubPick] = useState<ForwardingSetupPathId | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -53,9 +55,20 @@ export function ForwardingPathPicker({ onSelect }: Props) {
             </button>
           ))}
         </div>
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          {p.overflowFallbackHint}
+        </p>
         <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
           {p.back}
         </button>
+        {phoneNumber ? (
+          <EffiroadDedicatedLineCard
+            phoneNumber={phoneNumber}
+            variant="fallback"
+            compact
+            onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
+          />
+        ) : null}
       </div>
     );
   }
@@ -77,9 +90,20 @@ export function ForwardingPathPicker({ onSelect }: Props) {
             </button>
           ))}
         </div>
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          {p.overflowFallbackHint}
+        </p>
         <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
           {p.back}
         </button>
+        {phoneNumber ? (
+          <EffiroadDedicatedLineCard
+            phoneNumber={phoneNumber}
+            variant="fallback"
+            compact
+            onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
+          />
+        ) : null}
       </div>
     );
   }
@@ -93,7 +117,7 @@ export function ForwardingPathPicker({ onSelect }: Props) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {FORWARDING_SETUP_PATHS.map((path) => {
+        {FORWARDING_OVERFLOW_PATHS.map((path) => {
           const copy = p.paths[path.id];
           const style = confidenceStyles[path.confidence];
           return (
@@ -116,18 +140,12 @@ export function ForwardingPathPicker({ onSelect }: Props) {
               }}
               className={`rounded-xl border-2 p-4 text-left ring-2 ring-transparent transition hover:ring-brand-200 ${style}`}
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-bold text-slate-900">{copy.title}</span>
-                {path.confidence === "highest" ? (
-                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
-                    {p.bestBadge}
-                  </span>
-                ) : null}
-              </div>
+              <span className="font-bold text-slate-900">{copy.title}</span>
               <p className="mt-2 text-sm leading-relaxed text-stone-700">{copy.description}</p>
               <p className="mt-2 text-xs font-semibold text-brand-800">
                 {path.successLabel} · {path.timeLabel}
               </p>
+              <p className="mt-2 text-xs text-amber-800">{p.cardFallbackLine}</p>
             </button>
           );
         })}
@@ -140,6 +158,19 @@ export function ForwardingPathPicker({ onSelect }: Props) {
       >
         {p.quizFallback}
       </button>
+
+      {phoneNumber ? (
+        <EffiroadDedicatedLineCard
+          phoneNumber={phoneNumber}
+          variant="fallback"
+          onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
+        />
+      ) : (
+        <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 p-4">
+          <p className="text-sm font-semibold text-emerald-900">{p.dedicatedFallbackTitle}</p>
+          <p className="mt-2 text-sm leading-relaxed text-emerald-800">{p.dedicatedEqualQuality}</p>
+        </div>
+      )}
     </div>
   );
 }

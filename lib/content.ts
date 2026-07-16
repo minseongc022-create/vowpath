@@ -579,13 +579,20 @@ const settingsPageKo = {
   forwardingChangePath: "← 다른 설정 경로 선택",
   forwardingPathPicker: {
     badge: "설정 방법 선택",
-    title: "검증된 연결 방법 4가지",
-    subtitle: "샵에 맞는 경로를 고르세요 — 단계별 가이드와 원탭 실행이 있습니다.",
+    title: "착신전환 3가지 방법",
+    subtitle:
+      "overflow·VoIP·Google Voice로 기존 번호를 유지하세요. 착신전환이 안 되면 아래 Effiroad 전용번호를 쓰세요 — AI 품질은 동일합니다.",
     bestBadge: "가장 쉬움",
     pickCarrier: "샵 휴대폰 통신사는?",
     pickVoip: "업무 전화 시스템은?",
     back: "← 전체 경로로",
     quizFallback: "모르겠음? 질문 3개로 찾기",
+    overflowFallbackHint:
+      "이 통신사에서 착신전환이 안 되나요? Effiroad 전용번호를 쓰세요 — 같은 AI 음성, 같은 접수, 별표 코드 없음.",
+    cardFallbackLine: "착신전환 불가? → Effiroad 전용번호 (품질 동일)",
+    dedicatedFallbackTitle: "착신전환이 불가능하면 Effiroad 전용번호를 쓰세요",
+    dedicatedEqualQuality:
+      "하위 옵션이 아닙니다 — 고객이 Effiroad로 직접 전화해도 overflow와 같은 자연스러운 음성, 정중한 접수, 동일한 배차 규칙이 적용됩니다.",
     paths: {
       dedicated_line: {
         title: "Effiroad 전용번호",
@@ -611,20 +618,24 @@ const settingsPageKo = {
   },
   forwardingAlternatePaths: {
     title: "이 경로가 안 되면 다음 시도:",
-    hint: "★ Effiroad 전용번호는 통신사/VoIP가 막혀도 됩니다.",
+    hint: "착신전환이 전부 안 되면 Effiroad 전용번호로 전환 — 통화 품질 동일, 통신사 코드 불필요.",
+    dedicatedLabel: "★ Effiroad 전용번호 (품질 동일)",
   },
   forwardingChangeProvider: "다른 전화 환경?",
   forwardingDedicatedLine: {
     badge: "Effiroad 전용번호",
-    title: "항상 되는 방법",
-    body: "통신사 코드·VoIP 설정 없이 고객이 Effiroad 번호로 직접 전화합니다. 응대 시간에 AI가 받습니다.",
+    title: "착신전환과 같은 품질 — 코드 없음",
+    body: "고객이 Effiroad 번호로 직접 전화합니다. 같은 자연스러운 AI 음성, 정중한 접수, 같은 배차 규칙 — 통신사 코드·VoIP 설정만 없습니다.",
     fallbackBadge: "착신전환이 안 되나요?",
-    fallbackTitle: "Effiroad 전용번호로 전환하세요",
+    fallbackTitle: "Effiroad 전용번호를 대신 쓰세요",
     fallbackBody:
-      "단계를 다 따라했는데 테스트가 실패하나요? 통신사와 싸우지 마세요 — Effiroad 번호를 메인으로 쓰면 됩니다.",
+      "착신전환 경로를 다 시도했는데 테스트가 실패하나요? 구글·웹·트럭에 Effiroad 번호를 올리세요. 고객 경험은 완전히 같습니다 — 많은 샵이 이걸 선호합니다.",
     switchButton: "Effiroad 전용번호 쓰기 — 방법 보기",
     footer: "옛 번호는 구글·간판 업데이트 전까지 개인 연락처에만 두면 됩니다.",
+    equalQualityNote:
+      "overflow 착신전환과 동일한 AI 통화 품질 — 자연스러운 대화, 완전한 접수, 고객 대기 중 배차.",
     features: [
+      "착신전환과 같은 전문 음성·접수 — 하위 옵션이 아닙니다.",
       "별표 코드·Dialpad admin 없음 — 고객이 Effiroad로 직접 전화.",
       "응대 시간으로 AI vs 내 폰 응답 조절.",
       "선불·법인·Google Voice 제한 없음.",

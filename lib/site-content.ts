@@ -8,6 +8,8 @@ import {
   ctaEn,
   comparisonEn,
   competitorWinEn,
+  callExperienceEn,
+  quickFaqEn,
   differentiatorsEn,
   faqEn,
   featuresEn,
@@ -51,6 +53,8 @@ export const siteTrustRoi = trustRoiEn;
 export const siteAiDispatcher = aiDispatcherEn;
 export const siteComparison = comparisonEn;
 export const siteCompetitorWin = competitorWinEn;
+export const siteQuickFaq = quickFaqEn;
+export const siteCallExperience = callExperienceEn;
 export const siteSocialProof = socialProofEn;
 export const siteGetStarted = getStartedEn;
 export const siteNav = navEn;

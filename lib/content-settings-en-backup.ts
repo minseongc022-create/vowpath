@@ -145,13 +145,20 @@ export const SETTINGS_PAGE_EN = {
   forwardingChangePath: "← Pick a different setup path",
   forwardingPathPicker: {
     badge: "Choose your setup",
-    title: "Four verified ways to connect Effiroad",
-    subtitle: "Pick the path that matches your shop — each has step-by-step guides and one-tap actions.",
+    title: "Three ways to forward your line",
+    subtitle:
+      "Start with overflow or VoIP routing — keep your Google number. If forwarding won't work on your plan, use your Effiroad dedicated number below (same AI quality).",
     bestBadge: "Easiest",
     pickCarrier: "Which carrier is your shop cell on?",
     pickVoip: "Which business phone system?",
     back: "← Back to all paths",
     quizFallback: "Not sure? Answer 3 quick questions instead",
+    overflowFallbackHint:
+      "Can't set up forwarding on this carrier? Use your Effiroad dedicated number — same AI voice, same intake, no star codes.",
+    cardFallbackLine: "Forwarding blocked? → Effiroad dedicated number (same quality)",
+    dedicatedFallbackTitle: "If forwarding isn't possible, use your Effiroad number",
+    dedicatedEqualQuality:
+      "Not a downgrade — customers call Effiroad directly and get the same natural voice, polite intake, and dispatch rules as overflow forwarding.",
     paths: {
       dedicated_line: {
         title: "Effiroad dedicated number",
@@ -177,20 +184,24 @@ export const SETTINGS_PAGE_EN = {
   },
   forwardingAlternatePaths: {
     title: "If this path fails, try next:",
-    hint: "Dedicated Effiroad number (★) works when carriers or VoIP block forwarding.",
+    hint: "When every forwarding option fails, switch to your Effiroad dedicated number — same call quality, no carrier codes.",
+    dedicatedLabel: "★ Effiroad dedicated (same quality)",
   },
   forwardingChangeProvider: "Different phone setup?",
   forwardingDedicatedLine: {
     badge: "Effiroad dedicated number",
-    title: "Your always-works option",
-    body: "Skip carrier star codes and VoIP admin menus. Customers call your Effiroad number directly — AI answers per your Answer Hours.",
+    title: "Same quality as forwarding — no codes required",
+    body: "Customers call your Effiroad number directly. Same natural AI voice, same polite intake, same dispatch rules — just without carrier star codes or VoIP admin menus.",
     fallbackBadge: "Forwarding not working?",
-    fallbackTitle: "Switch to your Effiroad dedicated number",
+    fallbackTitle: "Use your Effiroad dedicated number instead",
     fallbackBody:
-      "You followed every step but the test still fails? Stop fighting the carrier — publish your Effiroad number instead. It works on every plan, every day.",
+      "Tried every forwarding path and the test still fails? Publish your Effiroad number on Google, your website, and trucks. Callers get the exact same experience — many shops prefer this.",
     switchButton: "Use Effiroad dedicated number — show me how",
     footer: "Your old shop number can stay on personal contacts until Google and signage are updated.",
+    equalQualityNote:
+      "Same AI call quality as overflow forwarding — natural conversation, complete intake, and dispatch while the customer waits.",
     features: [
+      "Same professional voice and intake as forwarding — not a lesser option.",
       "No star codes, no Dialpad admin — customers dial Effiroad directly.",
       "Answer Hours control when AI picks up vs. when your cell rings.",
       "Works on prepaid, business lines, and Google Voice — no forwarding limits.",

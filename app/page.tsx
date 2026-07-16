@@ -4,6 +4,8 @@ import { Footer } from "@/components/layout/Footer";
 import { ROUTES } from "@/lib/constants";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
+import { LandingQuickQA } from "@/components/sections/LandingQuickQA";
+import { CallExperience } from "@/components/sections/CallExperience";
 import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { DemoSummary } from "@/components/sections/DemoSummary";
 import { SocialProof } from "@/components/sections/SocialProof";
@@ -27,6 +29,8 @@ export default async function HomePage() {
       <Header session={null} />
       <main className="flex-1 w-full min-w-0">
         <Hero />
+        <LandingQuickQA />
+        <CallExperience />
         <DemoVideoHero />
         <DemoSummary />
         <SocialProof variant="trust" />

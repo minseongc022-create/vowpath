@@ -246,23 +246,13 @@ export function ForwardingSetup({
             </div>
           )}
           <p className="mt-3 text-xs text-slate-500">{settingsPage.forwardingCustomerNote}</p>
-          {phoneNumber ? (
-            <div className="mt-4">
-              <EffiroadDedicatedLineCard
-                phoneNumber={phoneNumber}
-                variant="promo"
-                compact
-                onSwitchToDedicated={switchToDedicatedLine}
-              />
-            </div>
-          ) : null}
         </div>
       ) : null}
 
       {wizardStep === 2 ? (
         <>
           {!quizDone ? (
-            <ForwardingPathPicker onSelect={handlePathSelect} />
+            <ForwardingPathPicker phoneNumber={phoneNumber} onSelect={handlePathSelect} />
           ) : null}
 
           {quizDone ? (

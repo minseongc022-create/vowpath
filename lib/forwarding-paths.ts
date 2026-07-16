@@ -19,15 +19,8 @@ export type ForwardingSetupPath = {
   requiresVoipPick?: boolean;
 };
 
-/** Primary setup paths — ordered by real-world success rate for US HVAC/trades shops */
-export const FORWARDING_SETUP_PATHS: ForwardingSetupPath[] = [
-  {
-    id: "dedicated_line",
-    provider: "effiroad_main",
-    confidence: "highest",
-    successLabel: "~99% success",
-    timeLabel: "~10 min",
-  },
+/** Overflow / forwarding paths — try these first */
+export const FORWARDING_OVERFLOW_PATHS: ForwardingSetupPath[] = [
   {
     id: "cell_overflow",
     provider: null,
@@ -53,6 +46,9 @@ export const FORWARDING_SETUP_PATHS: ForwardingSetupPath[] = [
   },
 ];
 
+/** @deprecated Use FORWARDING_OVERFLOW_PATHS — dedicated line is shown separately as fallback */
+export const FORWARDING_SETUP_PATHS = FORWARDING_OVERFLOW_PATHS;
+
 export const CELL_CARRIER_OPTIONS: { id: ForwardingProviderId; label: string; hint: string }[] = [
   { id: "att", label: "AT&T / Cricket", hint: "One-tap **61* code" },
   { id: "tmobile", label: "T-Mobile / Metro / Mint", hint: "One-tap **61* code" },
@@ -71,7 +67,6 @@ export function getAlternateForwardingPaths(
   current: ForwardingProviderId,
 ): ForwardingProviderId[] {
   const order: ForwardingProviderId[] = [
-    "effiroad_main",
     "verizon",
     "att",
     "tmobile",
@@ -80,6 +75,7 @@ export function getAlternateForwardingPaths(
     "ringcentral",
     "grasshopper",
     "google_voice",
+    "effiroad_main",
   ];
   return order.filter((p) => p !== current);
 }

@@ -1,5 +1,6 @@
 import {
   approvalLoopEn,
+  callExperienceEn,
   ctaEn,
   faqEn,
   footerEn,
@@ -7,6 +8,7 @@ import {
   howItWorksEn,
   navEn,
   pricingEn,
+  quickFaqEn,
   socialProofEn,
 } from "./content-marketing-en";
 import {
@@ -68,6 +70,14 @@ export function getNumberChoice(locale: UiLocale) {
   return marketingUiLocale(locale) === "es" ? numberChoiceEs : numberChoiceEn;
 }
 
+export function getSiteQuickFaq(locale: UiLocale) {
+  return marketingUiLocale(locale) === "es" ? quickFaqEn : quickFaqEn;
+}
+
+export function getSiteCallExperience(locale: UiLocale) {
+  return marketingUiLocale(locale) === "es" ? callExperienceEn : callExperienceEn;
+}
+
 export const demoSummaryEn = {
   title: "What you just saw — in plain English",
   subtitle: "Built for independent water, fire, mold restoration and HVAC shops — not franchise call centers.",
@@ -92,16 +102,16 @@ export const demoSummaryEn = {
 } as const;
 
 export const numberChoiceEn = {
-  title: "Four verified ways to connect — pick what fits",
+  title: "Connect your line — forwarding first, dedicated as backup",
   subtitle:
-    "Most shops go live in 10 minutes. Dedicated number is fastest; keep your cell with one-tap overflow; or use Dialpad/Jobber routing.",
+    "Most shops keep their Google number with overflow or VoIP routing. If your carrier blocks forwarding, switch to your Effiroad dedicated number — same AI voice and intake.",
   footer:
-    "Every path includes a built-in test call. If forwarding fails, switch to the dedicated Effiroad number in one click — no carrier fight required.",
+    "Every path includes a built-in test call. Dedicated number is not a downgrade — same natural voice, polite intake, and dispatch. Use it when forwarding won't stick.",
   options: [
     {
       id: "keep",
-      badge: "Paths A & B",
-      title: "Keep your number (overflow)",
+      badge: "Start here",
+      title: "Keep your number (overflow / VoIP)",
       description:
         "Shop cell: one-tap AT&T, T-Mobile, Verizon, or Xfinity codes. Business phone: Dialpad, RingCentral, or Grasshopper unanswered routing. Your line rings first — Effiroad catches the miss.",
       points: [
@@ -112,14 +122,14 @@ export const numberChoiceEn = {
     },
     {
       id: "ours",
-      badge: "Path ★ Easiest",
-      title: "Effiroad dedicated number (~99% success)",
+      badge: "If forwarding fails",
+      title: "Effiroad dedicated number (same quality)",
       description:
-        "Skip carrier codes entirely. Publish your Effiroad number on Google, website, and trucks. Answer Hours control when AI picks up vs. when your cell rings.",
+        "When overflow won't work on your plan, publish your Effiroad number on Google, website, and trucks. Same natural AI voice, same polite intake — customers call Effiroad directly.",
       points: [
-        "Zero forwarding — works on every plan",
+        "Same call experience as forwarding — not a lesser option",
+        "Zero carrier codes — works on every plan",
         "Copy number → update Google → test call",
-        "Recommended if overflow setup fails",
       ],
     },
   ],

@@ -57,6 +57,9 @@ export function EffiroadDedicatedLineCard({
       <p className="mt-2 text-sm leading-relaxed text-emerald-900/90">
         {isFallback ? c.fallbackBody : c.body}
       </p>
+      <p className="mt-2 rounded-lg border border-emerald-300/60 bg-white/60 px-3 py-2 text-sm font-medium text-emerald-900">
+        {c.equalQualityNote}
+      </p>
 
       {!compact ? (
         <ul className="mt-4 space-y-2">
