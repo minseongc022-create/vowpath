@@ -1,6 +1,20 @@
 import type { ShopBookingSettings, SlotOffer } from "../booking-settings";
 import { getVisitWindowsForSlots } from "../visit-windows";
 import type { BusyBlock } from "./compute-slots";
+import {
+  lanesAvailableAt,
+  schedulingLeadMs,
+  maxSlotOffersForPriority,
+  type LaneBooking,
+} from "./lane-capacity";
+import {
+  addDaysToDateKey,
+  dateKeyInTimezone,
+  dayOfWeekInTimezone,
+  utcFromShopLocal,
+  formatTimeLabelInTimezone,
+  weekdayShortInTimezone,
+} from "../us-timezone";
 
 export type SlotGridStatus = "available" | "blocked" | "past";
 
@@ -11,6 +25,8 @@ export type SlotGridItem = {
   label: string;
   status: SlotGridStatus;
   source: "jobber" | "native";
+  /** How many crew lanes still open at this time (when capacity > 1). */
+  lanesOpen?: number;
 };
 
 export type SlotGridDay = {
@@ -25,83 +41,65 @@ export type SlotGridResult = {
   durationMinutes: number;
   bufferMinutes: number;
   maxConcurrentVisits: number;
+  timeZone: string;
+  jobberScheduleUncertain?: boolean;
 };
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && bStart < aEnd;
+function monthDayLabel(dateKey: string, timeZone: string): string {
+  const d = utcFromShopLocal(dateKey, 12, 0, timeZone);
+  const month = new Intl.DateTimeFormat("en-US", { timeZone, month: "short" }).format(d);
+  const day = new Intl.DateTimeFormat("en-US", { timeZone, day: "numeric" }).format(d);
+  return `${month} ${day}`;
 }
-
-function formatTimeLabel(start: Date, end: Date): string {
-  const fmt = (d: Date) => {
-    const h = d.getHours();
-    const ap = h >= 12 ? "PM" : "AM";
-    const hs = h % 12 || 12;
-    const m = d.getMinutes();
-    return m === 0 ? `${hs} ${ap}` : `${hs}:${String(m).padStart(2, "0")} ${ap}`;
-  };
-  return `${fmt(start)}–${fmt(end)}`;
-}
-
-function dateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** Each busy block reserves [start, end + gap]. The next visit may start exactly at end + gap. */
-function countBlockingOverlaps(
-  startMs: number,
-  endMs: number,
-  bufferMs: number,
-  busyBlocks: BusyBlock[],
-): number {
-  return busyBlocks.filter((b) => {
-    const bStart = new Date(b.startAt).getTime();
-    const reservedEnd = new Date(b.endAt).getTime() + bufferMs;
-    return overlaps(startMs, endMs, bStart, reservedEnd);
-  }).length;
-}
-
-/** Grid step size (minutes) — kept for tests; slots step by full appointment interval. */
-const GRID_STEP_MINUTES = 30;
 
 export function computeSlotGrid(params: {
   settings: ShopBookingSettings;
-  busyBlocks: BusyBlock[];
+  laneBookings: LaneBooking[];
+  externalBlocks: BusyBlock[];
   priority: "P1" | "P2" | "P3";
+  capacity: number;
+  timeZone: string;
   now?: Date;
   source: "jobber" | "native";
   horizonDays?: number;
+  jobberScheduleUncertain?: boolean;
 }): SlotGridResult {
-  const { settings, busyBlocks, priority, source } = params;
+  const {
+    settings,
+    laneBookings,
+    externalBlocks,
+    priority,
+    capacity,
+    timeZone,
+    source,
+  } = params;
   const now = params.now ?? new Date();
   const horizon = params.horizonDays ?? 14;
   const durationMs = Math.max(15, settings.defaultDurationMinutes) * 60_000;
   const bufferMs = Math.max(0, settings.slotBufferMinutes) * 60_000;
   const stepMs = durationMs + bufferMs;
-  const capacity = Math.max(1, Math.round(settings.maxConcurrentVisits));
   const startDayOffset = priority === "P1" ? 0 : 1;
-  const minLeadMs = 60 * 60_000;
+  const minLeadMs = schedulingLeadMs(priority);
 
   const dayMap = new Map<string, SlotGridDay>();
+  let cursorDateKey = dateKeyInTimezone(timeZone, now);
 
   for (let d = startDayOffset; d < horizon + startDayOffset; d++) {
-    const day = new Date(now);
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() + d);
-    if (day.getDay() === 0) continue;
+    const dayKey =
+      d === startDayOffset && startDayOffset === 0
+        ? cursorDateKey
+        : addDaysToDateKey(cursorDateKey, d, timeZone);
+
+    const noon = utcFromShopLocal(dayKey, 12, 0, timeZone);
+    if (dayOfWeekInTimezone(timeZone, noon) === 0) continue;
 
     const windows = getVisitWindowsForSlots(settings);
 
     for (const tmpl of windows) {
-      const windowStart = new Date(day);
-      windowStart.setHours(tmpl.startH, 0, 0, 0);
-      const windowEnd = new Date(day);
-      windowEnd.setHours(tmpl.endH, 0, 0, 0);
+      const windowStart = utcFromShopLocal(dayKey, tmpl.startH, 0, timeZone);
+      const windowEnd = utcFromShopLocal(dayKey, tmpl.endH, 0, timeZone);
       const latestStart = windowEnd.getTime() - durationMs;
 
       for (let t = windowStart.getTime(); t <= latestStart; t += stepMs) {
@@ -110,32 +108,50 @@ export function computeSlotGrid(params: {
         const startMs = slotStart.getTime();
         const endMs = slotEnd.getTime();
 
+        const lanesOpen = lanesAvailableAt(
+          startMs,
+          endMs,
+          bufferMs,
+          capacity,
+          laneBookings,
+          externalBlocks,
+        );
+
         let status: SlotGridStatus = "available";
         if (startMs < now.getTime() + minLeadMs) {
           status = "past";
-        } else if (countBlockingOverlaps(startMs, endMs, bufferMs, busyBlocks) >= capacity) {
+        } else if (lanesOpen <= 0) {
           status = "blocked";
         }
 
-        const key = dateKey(day);
-        if (!dayMap.has(key)) {
-          dayMap.set(key, {
-            date: key,
-            weekdayLabel: DAY_NAMES[day.getDay()],
-            monthDayLabel: `${MONTH_NAMES[day.getMonth()]} ${day.getDate()}`,
+        if (!dayMap.has(dayKey)) {
+          dayMap.set(dayKey, {
+            date: dayKey,
+            weekdayLabel: weekdayShortInTimezone(timeZone, noon),
+            monthDayLabel: monthDayLabel(dayKey, timeZone),
             slots: [],
           });
         }
 
-        const dayEntry = dayMap.get(key)!;
-        const slotId = `${key}-${slotStart.getHours()}-${slotStart.getMinutes()}`;
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone,
+          hour: "numeric",
+          minute: "numeric",
+          hour12: false,
+        }).formatToParts(slotStart);
+        const h = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+        const min = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+        const slotId = `${dayKey}-${h}-${min}`;
+
+        const dayEntry = dayMap.get(dayKey)!;
         dayEntry.slots.push({
           id: slotId,
           startAt: slotStart.toISOString(),
           endAt: slotEnd.toISOString(),
-          label: formatTimeLabel(slotStart, slotEnd),
+          label: formatTimeLabelInTimezone(slotStart, slotEnd, timeZone),
           status,
           source,
+          lanesOpen: status === "available" ? lanesOpen : 0,
         });
       }
     }
@@ -147,6 +163,8 @@ export function computeSlotGrid(params: {
     durationMinutes: Math.round(durationMs / 60_000),
     bufferMinutes: Math.max(0, settings.slotBufferMinutes),
     maxConcurrentVisits: capacity,
+    timeZone,
+    jobberScheduleUncertain: params.jobberScheduleUncertain,
   };
 }
 
@@ -154,19 +172,25 @@ export function availableSlotsFromGrid(
   grid: SlotGridResult,
   maxOffers: number,
   source: "jobber" | "native",
+  priority: "P1" | "P2" | "P3" = "P2",
 ): SlotOffer[] {
+  const limit = maxSlotOffersForPriority(priority, maxOffers);
   const offers: SlotOffer[] = [];
   for (const day of grid.days) {
     for (const slot of day.slots) {
       if (slot.status !== "available") continue;
+      const lanesNote =
+        grid.maxConcurrentVisits > 1 && slot.lanesOpen
+          ? ` (${slot.lanesOpen} crew${slot.lanesOpen === 1 ? "" : "s"} free)`
+          : "";
       offers.push({
         id: slot.id,
-        label: `${day.weekdayLabel} ${slot.label}`,
+        label: `${day.weekdayLabel} ${slot.label}${lanesNote}`,
         startAt: slot.startAt,
         endAt: slot.endAt,
         source,
       });
-      if (offers.length >= maxOffers) return offers;
+      if (offers.length >= limit) return offers;
     }
   }
   return offers;

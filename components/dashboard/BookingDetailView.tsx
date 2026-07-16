@@ -41,7 +41,7 @@ import { CustomerVerificationPanel } from "@/components/dashboard/CustomerVerifi
 import { BookingTimelinePanel } from "@/components/dashboard/BookingTimelinePanel";
 import { CustomerCorrectionHistoryPanel } from "@/components/dashboard/CustomerCorrectionHistoryPanel";
 import { CustomerOnMyWayPanel } from "@/components/dashboard/CustomerOnMyWayPanel";
-import { TechDispatchPanel } from "@/components/dashboard/TechDispatchPanel";
+import { CrewAssignPanel } from "@/components/dashboard/CrewAssignPanel";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
@@ -433,7 +433,7 @@ export function BookingDetailContent({
                 bookingId={decodedId}
                 customerName={detail.customerName}
               />
-              <TechDispatchPanel bookingId={decodedId} />
+              <CrewAssignPanel bookingId={decodedId} />
             </InfoCard>
           </div>
 

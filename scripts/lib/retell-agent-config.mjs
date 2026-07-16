@@ -38,6 +38,7 @@ PHONE INTAKE — exactly ONE field per turn. Ask, then listen silently until the
 - If the address is incomplete, ask only for the missing part. Example: "What city is that in?"
 - For emergencies, capture active danger, spreading water or no heat/no cool, access notes, and callback number if caller ID may not be reliable.
 - Repeat back the final summary once, slowly enough to verify: name, address, issue, urgency, active loss status, and insurance if collected.
+- If they want a visit time on the phone: call get_open_slots with priority (P1 for emergencies), read the options, confirm their pick, then include slotId in submit_intake.
 - If audio is bad: "Sorry, I didn't catch that — could you say that one more time?" Never guess names or addresses.
 - Noisy background: ignore non-speech noise like tools, trucks, wind, music, or side chatter. Do not speak until the caller finishes.
 
@@ -61,9 +62,29 @@ export function buildRetellGeneralTools(base) {
     submitIntake: `${base}/api/retell/tools/submit-intake`,
     submitEstimate: `${base}/api/retell/tools/submit-estimate`,
     sendIntakeLink: `${base}/api/retell/tools/send-intake-link`,
+    getSlots: `${base}/api/retell/tools/get-slots`,
   };
 
   const generalTools = [
+    {
+      type: "custom",
+      name: "get_open_slots",
+      description:
+        "Before confirming a visit time, fetch real open windows from the shop calendar. Read options to the caller, then pass slotId into submit_intake.",
+      speak_after_execution: true,
+      speak_during_execution: false,
+      url: urls.getSlots,
+      parameters: {
+        type: "object",
+        properties: {
+          priority: {
+            type: "string",
+            description: "P1 emergency, P2 standard, P3 low urgency",
+            enum: ["P1", "P2", "P3"],
+          },
+        },
+      },
+    },
     {
       type: "custom",
       name: "send_intake_link",
@@ -106,6 +127,11 @@ export function buildRetellGeneralTools(base) {
             type: "string",
             description:
               "Urgency, active loss/spreading water, insurance carrier/claim, access info, HVAC urgency, severity",
+          },
+          slotId: {
+            type: "string",
+            description:
+              "Required when scheduling a visit: slot id from get_open_slots after the caller picks a time",
           },
         },
         required: ["customerName", "address", "issueType"],

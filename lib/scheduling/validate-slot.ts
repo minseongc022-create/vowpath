@@ -24,7 +24,10 @@ export async function validateSlotAvailable(params: {
 
   for (const day of grid.days) {
     const match = day.slots.find(
-      (s) => s.id === params.slot.id && s.status === "available",
+      (s) =>
+        s.status === "available" &&
+        (s.id === params.slot.id ||
+          (params.slot.startAt && s.startAt === params.slot.startAt)),
     );
     if (match) {
       return {

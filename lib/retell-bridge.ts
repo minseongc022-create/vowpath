@@ -23,6 +23,9 @@ import {
   buildRetellIntakeGuide,
   buildReturningCustomerHint,
 } from "./retell-intake-guide";
+import { getShopProfile } from "./shop-profile-db";
+import { resolveShopTimezone } from "./shop-timezone";
+import { dateKeyInTimezone } from "./us-timezone";
 
 export type RetellBridgeParams = {
   afterHours: boolean;
@@ -67,7 +70,8 @@ export async function buildRetellBridgeTwiml(
     let dynamicVariables: Record<string, string> = {};
     if (userId) {
       try {
-        const todayUtc = new Date().toISOString().split("T")[0];
+        const profile = await getShopProfile(userId);
+        const todayLocal = dateKeyInTimezone(resolveShopTimezone(profile));
         const [shopName, vertical, memory, afterHours, pastMatch] = await Promise.all([
           shopDisplayNameForUser(userId),
           getShopVertical(userId),
@@ -75,7 +79,7 @@ export async function buildRetellBridgeTwiml(
           isTenantAfterHours(userId),
           findRecentCallLogByPhone(userId, params.from),
         ]);
-        const isClosedToday = memory?.temporaryClosureDate === todayUtc;
+        const isClosedToday = memory?.temporaryClosureDate === todayLocal;
         dynamicVariables = {
           shop_name: shopName,
           vertical: String(vertical ?? ""),

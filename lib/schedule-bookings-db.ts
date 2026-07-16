@@ -11,6 +11,9 @@ export type ScheduledBookingRecord = {
   scheduledEndAt: string;
   arrivalWindowLabel: string;
   slotSource: "jobber" | "native";
+  /** Pre-assigned crew lane (optional until dispatch accepts). */
+  assignedTechId?: string;
+  assignedTechName?: string;
   jobberRequestId?: string;
   jobberJobId?: string;
   jobberVisitId?: string;

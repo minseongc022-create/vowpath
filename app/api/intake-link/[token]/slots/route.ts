@@ -51,6 +51,7 @@ export async function GET(
     grid,
     durationMinutes: settings.defaultDurationMinutes,
     bufferMinutes: settings.slotBufferMinutes,
-    maxConcurrentVisits: settings.maxConcurrentVisits,
+    maxConcurrentVisits: grid?.maxConcurrentVisits ?? settings.maxConcurrentVisits,
+    jobberScheduleUncertain: grid?.jobberScheduleUncertain ?? false,
   });
 }

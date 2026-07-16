@@ -20,6 +20,7 @@ import { getShopBookingSettings } from "../shop-settings-db";
 import { isPracticeMode } from "../data-truthfulness";
 import { getShopProfile } from "../shop-profile-db";
 import { resolveShopTimezone } from "../shop-timezone";
+import { getScheduledBooking } from "../schedule-bookings-db";
 
 export type JobOfferContext = {
   bookingId: string;
@@ -146,6 +147,8 @@ export async function startTechAssignmentForBooking(
   const ctx = await loadJobContext(userId, bookingId);
   if (!ctx) return null;
 
+  const scheduled = await getScheduledBooking(userId, bookingId);
+
   let assignment = await getTechAssignment(userId, bookingId);
   if (assignment?.status === "accepted") return assignment;
 
@@ -177,7 +180,14 @@ export async function startTechAssignmentForBooking(
   const profile = await getShopProfile(userId);
   const timeZone = resolveShopTimezone(profile);
   const pool = eligibleTechs(settings, ctx, declined);
-  const tech = pickNextTech(orderPoolWithOnCall(settings, pool, timeZone), settings.lastAssignedTechId);
+
+  let tech: TechMember | null = null;
+  if (scheduled?.assignedTechId) {
+    tech = pool.find((t) => t.id === scheduled.assignedTechId) ?? null;
+  }
+  if (!tech) {
+    tech = pickNextTech(orderPoolWithOnCall(settings, pool, timeZone), settings.lastAssignedTechId);
+  }
 
   if (!tech) {
     assignment.status = "declined_all";
@@ -308,4 +318,66 @@ export async function handleTechDispatchReply(params: {
     handled: true,
     replyBody: "Effiroad: Passed. Shop will assign manually.",
   };
+}
+
+/** Owner manually assigns a crew member — skips round-robin, marks lane on calendar. */
+export async function manualAssignTechToBooking(
+  userId: string,
+  bookingId: string,
+  techId: string,
+  options?: { notify?: boolean },
+): Promise<TechAssignment | { error: string }> {
+  const settings = await getTechDispatchSettings(userId);
+  const tech = settings.techs.find((t) => t.id === techId && t.active);
+  if (!tech) return { error: "Crew member not found." };
+
+  const ctx = await loadJobContext(userId, bookingId);
+  if (!ctx) return { error: "Booking not found." };
+
+  const scheduled = await getScheduledBooking(userId, bookingId);
+  if (scheduled) {
+    await import("../schedule-bookings-db").then((m) =>
+      m.upsertScheduledBooking(userId, {
+        ...scheduled,
+        assignedTechId: tech.id,
+        assignedTechName: tech.name.trim() || tech.phone,
+      }),
+    );
+  }
+
+  const assignment: TechAssignment = {
+    bookingId,
+    userId,
+    status: "accepted",
+    assignedTechId: tech.id,
+    assignedTechName: tech.name.trim() || tech.phone,
+    currentTechId: null,
+    offers: [
+      {
+        techId: tech.id,
+        techName: tech.name.trim() || tech.phone,
+        outcome: "accepted",
+        offeredAt: new Date().toISOString(),
+      },
+    ],
+    customerName: ctx.customerName,
+    issue: ctx.issue,
+    window: ctx.window,
+    priority: ctx.priority,
+    updatedAt: new Date().toISOString(),
+  };
+  await saveTechAssignment(assignment);
+  await saveTechDispatchSettings(userId, { lastAssignedTechId: tech.id });
+
+  if (options?.notify !== false && settings.enabled) {
+    const [bookingSettings, user] = await Promise.all([
+      getShopBookingSettings(userId),
+      findUserById(userId),
+    ]);
+    const practiceMode = isPracticeMode(bookingSettings);
+    const shopName = resolveShopDisplayName(user?.shopName);
+    await notifyTech(userId, tech, ctx, shopName, practiceMode);
+  }
+
+  return assignment;
 }

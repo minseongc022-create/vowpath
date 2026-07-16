@@ -90,12 +90,25 @@ export async function saveTechDispatchSettings(
 
   if (useKvStore()) {
     await kv.set(settingsKey(userId), next);
-    return next;
+  } else {
+    const all = await readJsonFile<Record<string, TechDispatchSettings>>(SETTINGS_FILE);
+    all[userId] = next;
+    await writeJsonFile(SETTINGS_FILE, all);
   }
 
-  const all = await readJsonFile<Record<string, TechDispatchSettings>>(SETTINGS_FILE);
-  all[userId] = next;
-  await writeJsonFile(SETTINGS_FILE, all);
+  const activeCrew = next.techs.filter(
+    (t) => t.active && t.name.trim().length >= 1,
+  ).length;
+  if (activeCrew > 0) {
+    const { getShopBookingSettings, saveShopBookingSettings } = await import(
+      "../shop-settings-db"
+    );
+    const booking = await getShopBookingSettings(userId);
+    if (booking.maxConcurrentVisits !== activeCrew) {
+      await saveShopBookingSettings(userId, { maxConcurrentVisits: activeCrew });
+    }
+  }
+
   return next;
 }
 
