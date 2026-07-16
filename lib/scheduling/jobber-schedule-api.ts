@@ -66,7 +66,7 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
 }
 
 const SCHEDULED_ITEMS_QUERY = `
-  query ScheduledItems($from: ISO8601DateTime!, $to: ISO8601DateTime!) {
+  query ScheduledItems($from: ISO8601DateTime!, $to: ISO8601DateTime!, $after: String) {
     scheduledItems(
       filter: {
         startsBetween: { from: $from, to: $to }
@@ -75,6 +75,7 @@ const SCHEDULED_ITEMS_QUERY = `
       }
       sort: [{ key: START_AT, direction: ASCENDING }]
       first: 100
+      after: $after
     ) {
       nodes {
         id
@@ -84,6 +85,10 @@ const SCHEDULED_ITEMS_QUERY = `
         ... on Visit {
           client { id name }
         }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
@@ -106,22 +111,42 @@ export async function fetchJobberScheduleItems(
   if (!accessToken) return [];
 
   try {
-    const data = await jobberGraphql<{
-      scheduledItems?: {
-        nodes: Array<{
-          id: string;
-          title?: string | null;
-          startAt?: string | null;
-          endAt?: string | null;
-          client?: { name?: string | null } | null;
-        }>;
-      };
-    }>(accessToken, SCHEDULED_ITEMS_QUERY, {
-      from: from.toISOString(),
-      to: to.toISOString(),
-    });
+    const allNodes: Array<{
+      id: string;
+      title?: string | null;
+      startAt?: string | null;
+      endAt?: string | null;
+      client?: { name?: string | null } | null;
+    }> = [];
+    let after: string | null = null;
+    let hasNextPage = true;
 
-    return (data.scheduledItems?.nodes ?? [])
+    while (hasNextPage) {
+      const data = await jobberGraphql<{
+        scheduledItems?: {
+          nodes: Array<{
+            id: string;
+            title?: string | null;
+            startAt?: string | null;
+            endAt?: string | null;
+            client?: { name?: string | null } | null;
+          }>;
+          pageInfo?: { hasNextPage?: boolean; endCursor?: string | null };
+        };
+      }>(accessToken, SCHEDULED_ITEMS_QUERY, {
+        from: from.toISOString(),
+        to: to.toISOString(),
+        after,
+      });
+
+      const page = data.scheduledItems;
+      allNodes.push(...(page?.nodes ?? []));
+      hasNextPage = page?.pageInfo?.hasNextPage === true;
+      after = page?.pageInfo?.endCursor ?? null;
+      if (hasNextPage && !after) break;
+    }
+
+    return allNodes
       .filter((n) => n.startAt && n.endAt)
       .map((n) => ({
         id: n.id,

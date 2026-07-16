@@ -26,6 +26,9 @@ import type {
   StoredVerifiedFields,
 } from "./call-intake/types";
 import { isEnglishUi } from "./locale";
+import type { ScheduleRow } from "./schedule-format";
+import { isWithinAnyAiSchedule } from "./missed-calls-prevented";
+import { DEFAULT_SHOP_TIMEZONE } from "./us-timezone";
 
 /** Matches StoredCallLog / GET /api/calls */
 export type CallRecord = {
@@ -141,12 +144,33 @@ export function isEmergencyPriority(p?: JobPriority): boolean {
 }
 
 /** US shop hours: Mon–Fri 8am–5pm = business; else after-hours */
-export function isAfterHours(iso: string): boolean {
+export type AfterHoursContext = {
+  scheduleRows?: ScheduleRow[];
+  scheduleActive?: boolean;
+  scheduleAlwaysOn?: boolean;
+  timeZone?: string;
+};
+
+/** Legacy Mon–Fri 8–17 check (server local time). Prefer isAfterHours with shop context. */
+export function isAfterHoursLegacy(iso: string): boolean {
   const d = new Date(iso);
   const day = d.getDay();
   const hour = d.getHours();
   if (day === 0 || day === 6) return true;
   return hour < 8 || hour >= 17;
+}
+
+/**
+ * True when the call arrived outside configured AI answer windows.
+ * Falls back to Mon–Fri 8am–5pm when no schedule is configured.
+ */
+export function isAfterHours(iso: string, ctx?: AfterHoursContext): boolean {
+  if (ctx?.scheduleAlwaysOn) return false;
+  const rows = ctx?.scheduleRows ?? [];
+  if (ctx?.scheduleActive && rows.length > 0) {
+    return !isWithinAnyAiSchedule(iso, rows, ctx.timeZone ?? DEFAULT_SHOP_TIMEZONE);
+  }
+  return isAfterHoursLegacy(iso);
 }
 
 export function extractZipCode(address?: string): string | null {
@@ -675,6 +699,7 @@ export function buildOperationsMetrics(
   jobberBookings: JobberBookingRecord[] = [],
   jobberConnected = false,
   requestStatuses: Record<string, RequestStatus> = {},
+  afterHoursCtx?: AfterHoursContext,
 ): OperationsMetrics {
   const rangeCalls = filterByDateRange(calls, start, end);
   const rangeJobber = jobberInRange(jobberBookings, start, end);
@@ -687,7 +712,7 @@ export function buildOperationsMetrics(
     requestStatuses,
   );
   const emergencies = rangeCalls.filter((c) => isEmergencyPriority(c.priority));
-  const afterHours = rangeCalls.filter((c) => isAfterHours(c.createdAt));
+  const afterHours = rangeCalls.filter((c) => isAfterHours(c.createdAt, afterHoursCtx));
 
   const prev = previousPeriod(start, end);
   const prevCalls = filterByDateRange(calls, prev.start, prev.end);
@@ -700,7 +725,7 @@ export function buildOperationsMetrics(
     requestStatuses,
   );
   const prevEmergencies = prevCalls.filter((c) => isEmergencyPriority(c.priority));
-  const prevAfterHours = prevCalls.filter((c) => isAfterHours(c.createdAt));
+  const prevAfterHours = prevCalls.filter((c) => isAfterHours(c.createdAt, afterHoursCtx));
 
   const conversionRate =
     rangeCalls.length > 0 ? Math.round((totalBookings / rangeCalls.length) * 100) : 0;

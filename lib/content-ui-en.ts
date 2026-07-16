@@ -41,7 +41,7 @@ export const settingsPageEn = {
     "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
   visitHoursTitle: "Customer booking hours",
   visitHoursHint:
-    "When customers can pick a visit (Mon–Sat). Use two blocks or one open-to-close shift.",
+    "When customers can pick a visit (Mon–Sat). This is not the same as AI phone answer hours — use split AM/PM blocks or one continuous shift.",
   visitHoursLayoutLabel: "Schedule style",
   visitHoursLayoutSplit: "Morning & afternoon",
   visitHoursLayoutContinuous: "One continuous block",
@@ -56,7 +56,7 @@ export const settingsPageEn = {
     `Example slots on the next open day: ${range} (back-to-back).`,
   appointmentIntervalLabel: "Time between visits",
   appointmentIntervalHint:
-    "Each slot lasts this long. The next open time starts exactly this many minutes after the previous one.",
+    "How long each visit slot lasts. Booked times block the calendar; the next open slot starts after any buffer you set.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`

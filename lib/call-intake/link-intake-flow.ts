@@ -21,7 +21,7 @@ import {
 } from "./link-intake-store";
 import { getLinkIntakeBookingForSession } from "../link-intake-portal";
 import type { SlotOffer } from "../booking-settings";
-import { offerSlotGridForTenant, offerVisitSlotsForTenant } from "../scheduling/offer-slots";
+import { resolveSlotById } from "../scheduling/validate-slot";
 import { finalizeVerifiedIntake } from "./finalize-intake";
 import { validateServiceAddress } from "./address-validation";
 import { generateAiSummary } from "./ai-summary";
@@ -112,32 +112,12 @@ export async function resolveLinkIntakeSlot(
 ): Promise<SlotOffer | null> {
   if (!slotId?.trim()) return null;
   const priority = linkUrgencyToPriority(urgency);
-  const excludeBookingId = options?.excludeBookingId;
-  const grid = await offerSlotGridForTenant({
+  return resolveSlotById({
     userId,
+    slotId: slotId.trim(),
     priority,
-    excludeBookingId,
+    excludeBookingId: options?.excludeBookingId,
   });
-  if (grid) {
-    for (const day of grid.days) {
-      const match = day.slots.find((s) => s.id === slotId && s.status === "available");
-      if (match) {
-        return {
-          id: match.id,
-          label: `${day.weekdayLabel} ${match.label}`,
-          startAt: match.startAt,
-          endAt: match.endAt,
-          source: match.source,
-        };
-      }
-    }
-  }
-  const slots = await offerVisitSlotsForTenant({
-    userId,
-    priority,
-    excludeBookingId,
-  });
-  return slots.find((s) => s.id === slotId) ?? null;
 }
 
 export async function submitLinkIntakeForm(params: {

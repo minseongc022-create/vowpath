@@ -7,6 +7,8 @@ import { findUserById } from "./users-db";
 import { normalizeSmsPhone } from "./phone";
 import { getShopBookingSettings } from "./shop-settings-db";
 import { getShopProfile } from "./shop-profile-db";
+import { resolveShopTimezone } from "./shop-timezone";
+import { dateKeyInTimezone } from "./us-timezone";
 import { buildTwilioCallbackUrl } from "./twilio-callback-url";
 import { getTwilioWebhookBaseUrl } from "./twilio-config";
 import { buildRetellBridgeTwiml } from "./retell-bridge";
@@ -45,7 +47,8 @@ export async function resolveInboundVoiceContext(params: {
   if (params.userId) {
     try {
       shopName = await shopDisplayNameForUser(params.userId);
-      const todayUtc = new Date().toISOString().split("T")[0];
+      const profile = await getShopProfile(params.userId);
+      const todayLocal = dateKeyInTimezone(resolveShopTimezone(profile));
       const memory = await getCompanyAiMemory(params.userId);
       customGreeting = memory?.customGreeting ?? "";
 
@@ -59,7 +62,7 @@ export async function resolveInboundVoiceContext(params: {
         forwardedFrom: params.forwardedFrom,
       });
 
-      if (memory?.temporaryClosureDate === todayUtc) {
+      if (memory?.temporaryClosureDate === todayLocal) {
         return {
           ...params,
           shopName,
@@ -96,16 +99,16 @@ export async function buildInboundVoiceTwiml(
   }
 
   if (ctx.userId) {
-    const todayUtc = new Date().toISOString().split("T")[0];
+    const profile = await getShopProfile(ctx.userId);
+    const todayLocal = dateKeyInTimezone(resolveShopTimezone(profile));
     const memory = await getCompanyAiMemory(ctx.userId);
-    if (memory?.temporaryClosureDate === todayUtc) {
+    if (memory?.temporaryClosureDate === todayLocal) {
       const closedMsg =
         memory?.temporaryClosureMessage ||
         `Thank you for calling ${ctx.shopName}. We are closed today. Please call back tomorrow or leave a text message and we'll get back to you.`;
       return twimlResponse(twimlSay(closedMsg));
     }
 
-    const profile = await getShopProfile(ctx.userId);
     if (profile.forwardingProvider === "effiroad_main") {
       const scheduleConfigured = profile.answerScheduleActive;
       const aiAnswersNow = scheduleConfigured ? shouldAnswerNow(profile) : true;

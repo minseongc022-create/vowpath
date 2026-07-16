@@ -1,6 +1,7 @@
 import type { SlotOffer } from "../booking-settings";
 import { getShopBookingSettings } from "../shop-settings-db";
 import { offerVisitSlotsForTenant } from "../scheduling/offer-slots";
+import { validateSlotAvailable } from "../scheduling/validate-slot";
 import type { CallIntakeState } from "./types";
 
 export function slotPickPrompt(slots: SlotOffer[]): string {
@@ -65,5 +66,35 @@ export function applySlotSelection(
     phase: "final",
     selectedSlot: slot,
     draft: { ...state.draft, arrivalWindow: slot.label },
+  };
+}
+
+/** Re-validate the customer's DTMF slot pick before finalize. */
+export async function confirmPhoneIntakeSlot(
+  state: CallIntakeState,
+): Promise<CallIntakeState> {
+  const slot = state.selectedSlot;
+  if (!slot?.id) return state;
+
+  const priority = state.menuPriority ?? state.draft.priority ?? "P2";
+  const check = await validateSlotAvailable({
+    userId: state.userId,
+    slot,
+    priority,
+  });
+
+  if (check.ok) {
+    return {
+      ...state,
+      selectedSlot: check.slot,
+      draft: { ...state.draft, arrivalWindow: check.slot.label },
+    };
+  }
+
+  return {
+    ...state,
+    phase: "final",
+    selectedSlot: null,
+    draft: { ...state.draft, arrivalWindow: "Pending — slot no longer available" },
   };
 }

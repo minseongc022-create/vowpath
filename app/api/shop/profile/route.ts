@@ -14,6 +14,7 @@ import type { BookingMode } from "@/lib/booking-policy";
 import type { AnswerWindow } from "@/lib/types";
 import { normalizeShopVertical, ALL_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
 import { TREND_CHART_SERIES, type TrendChartSeriesId } from "@/lib/trend-chart-series";
+import { isValidIanaTimezone } from "@/lib/us-timezone";
 
 const SCENARIOS = new Set<ForwardingScenarioId>(["overflow"]);
 const PROVIDERS = new Set<ForwardingProviderId>([
@@ -105,6 +106,14 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
       patch.zapierWebhookUrl = undefined;
     } else if (/^https:\/\/hooks\.zapier\.com\/.{1,300}$/.test(url)) {
       patch.zapierWebhookUrl = url;
+    }
+  }
+  if (typeof body.shopTimezone === "string") {
+    const tz = body.shopTimezone.trim();
+    if (tz === "") {
+      patch.shopTimezone = undefined;
+    } else if (isValidIanaTimezone(tz)) {
+      patch.shopTimezone = tz;
     }
   }
 

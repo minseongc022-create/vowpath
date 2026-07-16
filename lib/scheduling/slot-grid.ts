@@ -80,11 +80,10 @@ export function computeSlotGrid(params: {
   const { settings, busyBlocks, priority, source } = params;
   const now = params.now ?? new Date();
   const horizon = params.horizonDays ?? 14;
-  const intervalMs = Math.max(15, settings.defaultDurationMinutes + settings.slotBufferMinutes) * 60_000;
-  const durationMs = intervalMs;
+  const durationMs = Math.max(15, settings.defaultDurationMinutes) * 60_000;
   const bufferMs = Math.max(0, settings.slotBufferMinutes) * 60_000;
+  const stepMs = durationMs + bufferMs;
   const capacity = Math.max(1, Math.round(settings.maxConcurrentVisits));
-  const stepMs = intervalMs;
   const startDayOffset = priority === "P1" ? 0 : 1;
   const minLeadMs = 60 * 60_000;
 
@@ -145,7 +144,7 @@ export function computeSlotGrid(params: {
   const days = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   return {
     days,
-    durationMinutes: Math.round(intervalMs / 60_000),
+    durationMinutes: Math.round(durationMs / 60_000),
     bufferMinutes: Math.max(0, settings.slotBufferMinutes),
     maxConcurrentVisits: capacity,
   };

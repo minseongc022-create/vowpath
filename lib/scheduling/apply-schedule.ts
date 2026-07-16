@@ -38,6 +38,7 @@ import {
 import type { RuleEvaluationContext } from "../workflow-rules/types";
 import { appendWorkflowBookingTags } from "../workflow-rules/booking-tags";
 import { appendTenantEvent } from "../tenant-events";
+import { validateSlotAvailable } from "./validate-slot";
 
 export type ApplyScheduleParams = {
   userId: string;
@@ -86,6 +87,34 @@ export async function applyCustomerChosenSchedule(
     return "pending_review";
   }
 
+  const slotCheck = await validateSlotAvailable({
+    userId: params.userId,
+    slot: params.slot,
+    priority: params.priority,
+    excludeBookingId: params.bookingId,
+  });
+  if (!slotCheck.ok) {
+    await notifyCustomerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      phone: params.customerPhone,
+      practiceMode: shadow,
+    });
+    await notifyOwnerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      customerName: params.card.customerName,
+      issue: params.card.symptom,
+    });
+    await persistRequestStatusForBooking(
+      params.userId,
+      params.bookingId,
+      "pending_review",
+    );
+    return "pending_review";
+  }
+  const confirmedSlot = slotCheck.slot;
+
   const lossCategory = inferLossCategoryFromText(params.card.symptom, params.card.symptom);
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     priority: params.priority,
@@ -116,8 +145,8 @@ export async function applyCustomerChosenSchedule(
     address: params.card.address,
     zipCode: extractZipFromAddress(params.card.address) ?? undefined,
     cityState: formatCityState(params.card.address),
-    slotStartAt: params.slot.startAt,
-    slotEndAt: params.slot.endAt,
+    slotStartAt: confirmedSlot.startAt,
+    slotEndAt: confirmedSlot.endAt,
     createdAt: new Date().toISOString(),
     schedulingMode: "auto",
     afterHours,
@@ -151,10 +180,10 @@ export async function applyCustomerChosenSchedule(
   if (!shadow) {
     await upsertScheduledBooking(params.userId, {
       bookingId: params.bookingId,
-      scheduledStartAt: params.slot.startAt,
-      scheduledEndAt: params.slot.endAt,
-      arrivalWindowLabel: params.slot.label,
-      slotSource: params.slot.source,
+      scheduledStartAt: confirmedSlot.startAt,
+      scheduledEndAt: confirmedSlot.endAt,
+      arrivalWindowLabel: confirmedSlot.label,
+      slotSource: confirmedSlot.source,
       undoExpiresAt: needsApproval ? undefined : undoAt.toISOString(),
     });
   }
@@ -164,7 +193,7 @@ export async function applyCustomerChosenSchedule(
   if (job) {
     await upsertJobRecord(params.userId, {
       ...job,
-      arrivalWindow: params.slot.label,
+      arrivalWindow: confirmedSlot.label,
       status: needsApproval ? "pending_review" : "scheduled",
       priority: effectivePriority,
     });
@@ -191,7 +220,7 @@ export async function applyCustomerChosenSchedule(
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         priority: effectivePriority,
         ambiguous: confidenceMin(params.confidence) < 65,
       });
@@ -201,7 +230,7 @@ export async function applyCustomerChosenSchedule(
       userId: params.userId,
       bookingId: params.bookingId,
       phone: params.customerPhone,
-      window: params.slot.label,
+      window: confirmedSlot.label,
       address: params.card.address,
       priority: effectivePriority,
       customerName: params.card.customerName,
@@ -214,7 +243,7 @@ export async function applyCustomerChosenSchedule(
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         undoMinutes: settings.undoWindowMinutes,
       });
     } else {
@@ -223,7 +252,7 @@ export async function applyCustomerChosenSchedule(
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         undoMinutes: settings.undoWindowMinutes,
       });
     }

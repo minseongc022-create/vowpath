@@ -32,7 +32,8 @@ import type { JobCard } from "./types";
 
 import { normalizeShopState } from "./shop-storage";
 import type { ShopState } from "./types";
-
+import { parseRowsFromStored } from "./schedule-format";
+import { resolveShopTimezone } from "./shop-timezone";
 import { isEnglishUi } from "./locale";
 
 
@@ -301,7 +302,10 @@ export function buildDashboardHomeMetrics(
 
   jobberBookings: JobberBookingRecord[],
 
-  shop: Pick<ShopState, "scheduleWindows" | "answerScheduleActive">,
+  shop: Pick<
+    ShopState,
+    "scheduleWindows" | "answerScheduleActive" | "scheduleAlwaysOn" | "shopTimezone"
+  >,
 
   requestStatuses: Record<string, RequestStatus> = {},
 
@@ -312,6 +316,15 @@ export function buildDashboardHomeMetrics(
 ): DashboardHomeMetrics {
 
   const safeShop = normalizeShopState(shop);
+  const afterHoursCtx = {
+    scheduleActive: safeShop.answerScheduleActive,
+    scheduleAlwaysOn: safeShop.scheduleAlwaysOn,
+    scheduleRows:
+      safeShop.answerScheduleActive && safeShop.scheduleWindows.length > 0
+        ? parseRowsFromStored(safeShop.scheduleWindows)
+        : [],
+    timeZone: resolveShopTimezone(safeShop),
+  };
 
   const monthRange = resolveMonthToDate(now);
 
@@ -346,21 +359,14 @@ export function buildDashboardHomeMetrics(
 
 
   const monthOps = buildOperationsMetrics(
-
     calls,
-
     jobs,
-
     monthRange.start,
-
     monthRange.end,
-
     jobberBookings,
-
     jobberConnected,
-
     requestStatuses,
-
+    afterHoursCtx,
   );
 
 

@@ -15,13 +15,19 @@ function dedupeBusyBlocks(blocks: BusyBlock[]): BusyBlock[] {
     (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
   );
   const out: BusyBlock[] = [];
+  const TOLERANCE_MS = 5 * 60_000;
+
   for (const block of sorted) {
     const start = new Date(block.startAt).getTime();
     const end = new Date(block.endAt).getTime();
     const duplicate = out.some((existing) => {
       const es = new Date(existing.startAt).getTime();
       const ee = new Date(existing.endAt).getTime();
-      return Math.abs(es - start) < 60_000 && Math.abs(ee - end) < 60_000;
+      const startsClose = Math.abs(es - start) < TOLERANCE_MS;
+      const endsClose = Math.abs(ee - end) < TOLERANCE_MS;
+      const overlaps =
+        start < ee + TOLERANCE_MS && es < end + TOLERANCE_MS;
+      return (startsClose && endsClose) || overlaps;
     });
     if (!duplicate) out.push({ startAt: block.startAt, endAt: block.endAt });
   }

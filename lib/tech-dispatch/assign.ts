@@ -18,6 +18,8 @@ import { orderPoolWithOnCall } from "./on-call";
 import type { TechAssignment, TechMember } from "./types";
 import { getShopBookingSettings } from "../shop-settings-db";
 import { isPracticeMode } from "../data-truthfulness";
+import { getShopProfile } from "../shop-profile-db";
+import { resolveShopTimezone } from "../shop-timezone";
 
 export type JobOfferContext = {
   bookingId: string;
@@ -77,7 +79,7 @@ function eligibleTechs(
     const seniors = pool.filter((t) => t.senior);
     if (seniors.length > 0) pool = seniors;
   }
-  return orderPoolWithOnCall(settings, pool);
+  return pool;
 }
 
 function pickNextTech(
@@ -147,6 +149,11 @@ export async function startTechAssignmentForBooking(
   let assignment = await getTechAssignment(userId, bookingId);
   if (assignment?.status === "accepted") return assignment;
 
+  const pendingOffer = assignment?.offers.find((o) => o.outcome === "pending");
+  if (assignment?.status === "offering" && pendingOffer) {
+    return assignment;
+  }
+
   if (!assignment) {
     assignment = {
       bookingId,
@@ -167,8 +174,10 @@ export async function startTechAssignmentForBooking(
   const declined = new Set(
     assignment.offers.filter((o) => o.outcome === "declined").map((o) => o.techId),
   );
+  const profile = await getShopProfile(userId);
+  const timeZone = resolveShopTimezone(profile);
   const pool = eligibleTechs(settings, ctx, declined);
-  const tech = pickNextTech(pool, settings.lastAssignedTechId);
+  const tech = pickNextTech(orderPoolWithOnCall(settings, pool, timeZone), settings.lastAssignedTechId);
 
   if (!tech) {
     assignment.status = "declined_all";

@@ -1,6 +1,7 @@
 ﻿import { DEFAULT_BOOKING_MODE } from "./booking-policy";
 import { normalizeShopVertical } from "./shop-vertical.js";
 import type { AnswerWindow, JobCard, ShopState } from "./types";
+import { isValidIanaTimezone } from "./us-timezone";
 
 export const SHOP_STORAGE_KEY = "nightcall_shop";
 export const JOBS_STORAGE_KEY = "nightcall_jobs";
@@ -56,6 +57,11 @@ export function normalizeShopState(
     merged.answerScheduleActive === false
   ) {
     merged.answerScheduleActive = true;
+  }
+  if (state.shopTimezone !== undefined) {
+    const tz = String(state.shopTimezone).trim();
+    merged.shopTimezone =
+      tz && isValidIanaTimezone(tz) ? tz : undefined;
   }
   return merged;
 }

@@ -716,7 +716,7 @@ const settingsPageKo = {
     "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
   visitHoursTitle: "고객 예약 시간대",
   visitHoursHint:
-    "고객이 방문 시간을 고를 수 있는 구간입니다 (월–토). 오전·오후 나누기 또는 하루 연속 블록을 선택하세요.",
+    "고객 방문 예약 시간대입니다 (월–토). AI 전화 응답 시간과는 별개입니다 — 오전·오후 블록 또는 하루 연속으로 설정하세요.",
   visitHoursLayoutLabel: "시간표 방식",
   visitHoursLayoutSplit: "오전 · 오후",
   visitHoursLayoutContinuous: "하루 연속",
@@ -731,7 +731,7 @@ const settingsPageKo = {
     `예: 다음 영업일 ${range} 슬롯이 연속으로 보입니다.`,
   appointmentIntervalLabel: "예약 간격",
   appointmentIntervalHint:
-    "한 번 예약하면 그 시간만큼 일정에 잡히고, 다음 예약은 정확히 그 간격 뒤부터 열립니다.",
+    "각 슬롯 길이입니다. 예약이 잡히면 그만큼 일정을 차지하고, 버퍼(간격) 후에만 다음 빈 시간이 열립니다.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `예: 8시 예약 → 다음은 ${8 + hours}시 ${minutes}분 (${hours}시간 ${minutes}분 간격).`

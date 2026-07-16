@@ -44,6 +44,10 @@ const COPY = {
   senior: "Senior",
   remove: "Remove",
   addTech: "+ Add tech",
+  assignOnApprove: "Assign only after you approve the booking",
+  responseTimeout: "Crew reply timeout (minutes)",
+  responseTimeoutHint: "If no reply, the offer moves to the next tech automatically.",
+  assignOnApproveHint: "When off, crew texts go out as soon as the job confirms (no owner approval wait).",
   save: "Save crew settings",
   saving: "Saving...",
   saved: "Saved",
@@ -192,6 +196,39 @@ export function TechDispatchSettings() {
               <span aria-hidden>🚨</span>
               {t.p1Senior}
             </span>
+          </label>
+
+          <label className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={settings.assignOnApprove}
+              onChange={(e) => setSettings({ ...settings, assignOnApprove: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            <span className="text-base text-stone-700">{t.assignOnApprove}</span>
+          </label>
+          <p className="text-sm text-stone-600">{t.assignOnApproveHint}</p>
+
+          <label className="block rounded-lg border border-slate-100 bg-white px-3 py-2.5">
+            <span className="text-base font-medium text-stone-800">{t.responseTimeout}</span>
+            <p className="mt-1 text-sm text-stone-600">{t.responseTimeoutHint}</p>
+            <input
+              type="number"
+              min={5}
+              max={120}
+              step={5}
+              value={settings.responseTimeoutMinutes}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  responseTimeoutMinutes: Math.min(
+                    120,
+                    Math.max(5, Number(e.target.value) || 10),
+                  ),
+                })
+              }
+              className="vow-settings-input mt-2 w-28"
+            />
           </label>
 
           <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
