@@ -14,6 +14,8 @@ export type ScheduledBookingRecord = {
   /** Pre-assigned crew lane (optional until dispatch accepts). */
   assignedTechId?: string;
   assignedTechName?: string;
+  /** Practice/shadow booking — blocks calendar like live; no Jobber push. */
+  isPractice?: boolean;
   jobberRequestId?: string;
   jobberJobId?: string;
   jobberVisitId?: string;
@@ -115,7 +117,7 @@ export async function upsertScheduledBooking(
     await appendTenantEvent({
       userId,
       type: "service_request_scheduled",
-      title: "Calendar updated",
+      title: next.isPractice ? "Calendar updated [TEST]" : "Calendar updated",
       body: `${next.arrivalWindowLabel || "Scheduled visit"} · ${next.scheduledStartAt}`,
       bookingId: next.bookingId,
       href: `/dashboard/bookings/${encodeURIComponent(next.bookingId)}`,

@@ -8,6 +8,11 @@ import {
   type LaneBooking,
 } from "./lane-capacity";
 import {
+  schedulingGapMs,
+  travelReleaseStarts,
+  mergeSlotStartTimes,
+} from "./scheduling-gap";
+import {
   addDaysToDateKey,
   dateKeyInTimezone,
   dayOfWeekInTimezone,
@@ -40,6 +45,7 @@ export type SlotGridResult = {
   days: SlotGridDay[];
   durationMinutes: number;
   bufferMinutes: number;
+  travelMinutes: number;
   maxConcurrentVisits: number;
   timeZone: string;
   jobberScheduleUncertain?: boolean;
@@ -78,10 +84,11 @@ export function computeSlotGrid(params: {
   const now = params.now ?? new Date();
   const horizon = params.horizonDays ?? 14;
   const durationMs = Math.max(15, settings.defaultDurationMinutes) * 60_000;
-  const bufferMs = Math.max(0, settings.slotBufferMinutes) * 60_000;
-  const stepMs = durationMs + bufferMs;
+  const gapMs = schedulingGapMs(settings);
+  const stepMs = durationMs + gapMs;
   const startDayOffset = priority === "P1" ? 0 : 1;
   const minLeadMs = schedulingLeadMs(priority);
+  const travelStarts = travelReleaseStarts(laneBookings, externalBlocks, gapMs);
 
   const dayMap = new Map<string, SlotGridDay>();
   let cursorDateKey = dateKeyInTimezone(timeZone, now);
@@ -102,7 +109,21 @@ export function computeSlotGrid(params: {
       const windowEnd = utcFromShopLocal(dayKey, tmpl.endH, 0, timeZone);
       const latestStart = windowEnd.getTime() - durationMs;
 
+      const fixedStarts: number[] = [];
       for (let t = windowStart.getTime(); t <= latestStart; t += stepMs) {
+        fixedStarts.push(t);
+      }
+      const dynamicInWindow = travelStarts.filter(
+        (t) => t >= windowStart.getTime() && t <= latestStart,
+      );
+      const slotStarts = mergeSlotStartTimes(
+        fixedStarts,
+        dynamicInWindow,
+        durationMs,
+        windowEnd.getTime(),
+      );
+
+      for (const t of slotStarts) {
         const slotStart = new Date(t);
         const slotEnd = new Date(t + durationMs);
         const startMs = slotStart.getTime();
@@ -111,7 +132,7 @@ export function computeSlotGrid(params: {
         const lanesOpen = lanesAvailableAt(
           startMs,
           endMs,
-          bufferMs,
+          gapMs,
           capacity,
           laneBookings,
           externalBlocks,
@@ -162,6 +183,7 @@ export function computeSlotGrid(params: {
     days,
     durationMinutes: Math.round(durationMs / 60_000),
     bufferMinutes: Math.max(0, settings.slotBufferMinutes),
+    travelMinutes: Math.max(0, settings.travelMinutes),
     maxConcurrentVisits: capacity,
     timeZone,
     jobberScheduleUncertain: params.jobberScheduleUncertain,

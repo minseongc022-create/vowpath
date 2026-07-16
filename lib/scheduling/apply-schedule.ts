@@ -28,6 +28,7 @@ import {
   notifyOwnerApprovalNeeded,
   notifyOwnerUrgentAutoBooked,
   notifyOwnerNoSlot,
+  notifyOwnerShadowResult,
 } from "../scheduling/schedule-sms";
 import { logOperationFailure } from "../ops-failures";
 import { listWorkflowRules, recordWorkflowRuleMatch } from "../workflow-rules/store";
@@ -175,49 +176,49 @@ export async function applyCustomerChosenSchedule(
     }
   }
 
-  const undoAt = new Date();
-  undoAt.setMinutes(undoAt.getMinutes() + settings.undoWindowMinutes);
-
-  if (!shadow) {
-    const committed = await commitSlotBooking({
+  const committed = await commitSlotBooking({
+    userId: params.userId,
+    bookingId: params.bookingId,
+    slot: confirmedSlot,
+    priority: effectivePriority,
+    skipAutoAssign: false,
+    isPractice: shadow,
+  });
+  if (!committed.ok) {
+    await notifyCustomerNoSlot({
       userId: params.userId,
       bookingId: params.bookingId,
-      slot: confirmedSlot,
-      priority: effectivePriority,
-      skipAutoAssign: false,
+      phone: params.customerPhone,
+      practiceMode: shadow,
     });
-    if (!committed.ok) {
-      await notifyCustomerNoSlot({
-        userId: params.userId,
-        bookingId: params.bookingId,
-        phone: params.customerPhone,
-        practiceMode: shadow,
-      });
-      await notifyOwnerNoSlot({
-        userId: params.userId,
-        bookingId: params.bookingId,
-        customerName: params.card.customerName,
-        issue: params.card.symptom,
-      });
-      await persistRequestStatusForBooking(
-        params.userId,
-        params.bookingId,
-        "pending_review",
-      );
-      return "pending_review";
-    }
-    confirmedSlot = committed.slot;
-    await upsertScheduledBooking(params.userId, {
+    await notifyOwnerNoSlot({
+      userId: params.userId,
       bookingId: params.bookingId,
-      scheduledStartAt: confirmedSlot.startAt,
-      scheduledEndAt: confirmedSlot.endAt,
-      arrivalWindowLabel: confirmedSlot.label,
-      slotSource: confirmedSlot.source,
-      assignedTechId: committed.assignedTechId ?? undefined,
-      assignedTechName: committed.assignedTechName ?? undefined,
-      undoExpiresAt: needsApproval ? undefined : undoAt.toISOString(),
+      customerName: params.card.customerName,
+      issue: params.card.symptom,
     });
+    await persistRequestStatusForBooking(
+      params.userId,
+      params.bookingId,
+      "pending_review",
+    );
+    return "pending_review";
   }
+  confirmedSlot = committed.slot;
+
+  const undoAt = new Date();
+  undoAt.setMinutes(undoAt.getMinutes() + settings.undoWindowMinutes);
+  await upsertScheduledBooking(params.userId, {
+    bookingId: params.bookingId,
+    scheduledStartAt: confirmedSlot.startAt,
+    scheduledEndAt: confirmedSlot.endAt,
+    arrivalWindowLabel: confirmedSlot.label,
+    slotSource: confirmedSlot.source,
+    assignedTechId: committed.assignedTechId ?? undefined,
+    assignedTechName: committed.assignedTechName ?? undefined,
+    isPractice: shadow || undefined,
+    undoExpiresAt: !shadow && !needsApproval ? undoAt.toISOString() : undefined,
+  });
 
   const jobs = await listJobs(params.userId);
   const job = jobs.find((j) => j.sourceCallId === params.callLogId);
@@ -268,7 +269,16 @@ export async function applyCustomerChosenSchedule(
       practiceMode: shadow,
     });
     const urgent = effectivePriority === "P1";
-    if (urgent) {
+    if (shadow) {
+      const freshSettings = await getShopBookingSettings(params.userId);
+      await notifyOwnerShadowResult({
+        userId: params.userId,
+        bookingId: params.bookingId,
+        window: confirmedSlot.label,
+        customerName: params.card.customerName,
+        shadowLeft: freshSettings.shadowModeRemaining,
+      });
+    } else if (urgent) {
       await notifyOwnerUrgentAutoBooked({
         userId: params.userId,
         bookingId: params.bookingId,

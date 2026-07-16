@@ -168,12 +168,17 @@ export async function customerRescheduleBooking(params: {
     return { ok: false, error: "That time is no longer available. Pick another window." };
   }
 
+  const { getShopBookingSettings } = await import("./shop-settings-db");
+  const bookingSettings = await getShopBookingSettings(params.userId);
+  const isPractice = bookingSettings.shadowModeRemaining > 0;
+
   const committed = await commitSlotBooking({
     userId: params.userId,
     bookingId: params.bookingId,
     slot,
     priority,
     excludeBookingId,
+    isPractice,
   });
 
   if (!committed.ok) {

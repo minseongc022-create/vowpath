@@ -737,6 +737,10 @@ const settingsPageKo = {
       ? `예: 8시 예약 → 다음은 ${8 + hours}시 ${minutes}분 (${hours}시간 ${minutes}분 간격).`
       : `예: 8시 예약 → 다음은 ${8 + hours}시 (${hours}시간 간격).`,
   appointmentIntervalPresets: ["1시간", "1.5시간", "2시간", "3시간"] as const,
+  travelMinutesLabel: "기사 이동 시간",
+  travelMinutesHint:
+    "방문 종료 후 다음 집까지 이동·주차 시간입니다. 마무리 버퍼와 합쳐져 다음 빈 슬롯이 열립니다.",
+  travelMinutesFieldLabel: "이동 시간 (분)",
   teamCapacityTitle: "동시에 여러 팀 (선택)",
   teamCapacityHint:
     "기사 1명이면 1로 두세요. 같은 시각에 서로 다른 작업을 여러 팀이 동시에 할 수 있을 때만 올리면 됩니다.",
@@ -748,11 +752,11 @@ const settingsPageKo = {
     "바로 확정되면 사장님께 알림 문자가 갑니다. 이 시간 안에 9번 답장하면 확정을 취소하고 다시 검토할 수 있습니다.",
   shadowModeLabel: "연습 모드 (남은 테스트 횟수)",
   shadowModeIntro:
-    "실제 캘린더·고객 문자 없이 통화·접수 흐름만 연습합니다. 처음 설정할 때 유용합니다.",
+    "실전과 같은 캘린더·슬롯 차단으로 통화·접수를 연습합니다. Jobber만 빠집니다.",
   shadowModeLive:
     "0 — 실전: 고객이 고른 시간이 캘린더·문자·Jobber에 그대로 반영됩니다.",
   shadowModePractice:
-    "1 이상 — 연습: 고객·기사 SMS는 [TEST]로 발송. Jobber·캘린더 기록만 꺼짐. 테스트 1번당 1씩 줄어듭니다.",
+    "1 이상 — 연습: 캘린더·슬롯은 실전처럼 막힘. SMS는 [TEST]. Jobber 기록만 꺼짐. 테스트 1번당 1씩 줄어듭니다.",
   stormModeLabel: "폭풍·호우 surge 모드",
   stormModeHint:
     "허리케인·집중 호우 기간 — 전화 안내를 짧게 하고 대기 중임을 안내합니다. 평상시에는 끄세요.",

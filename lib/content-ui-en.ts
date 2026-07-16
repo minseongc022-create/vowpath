@@ -62,6 +62,10 @@ export const settingsPageEn = {
       ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`
       : `Example: first visit at 8:00 AM → next at ${8 + hours}:00 AM (${hours}-hour spacing).`,
   appointmentIntervalPresets: ["1 hr", "1.5 hr", "2 hr", "3 hr"] as const,
+  travelMinutesLabel: "Drive time between jobs",
+  travelMinutesHint:
+    "Minutes after a visit ends before the tech can start the next stop. Added to wrap-up buffer when blocking slots.",
+  travelMinutesFieldLabel: "Travel time (minutes)",
   teamCapacityTitle: "Multiple crews at once (optional)",
   teamCapacityHint:
     "Leave at 1 for a single crew. Raise only if several technicians can take different jobs at the same clock time.",
@@ -73,10 +77,10 @@ export const settingsPageEn = {
     "After a routine job auto-books, reply 9 within this many minutes to cancel it.",
   shadowModeLabel: "Practice calls left",
   shadowModeIntro:
-    "Run the full intake flow — customer and crew texts fire (marked [TEST]). Jobber and calendar stay off until live.",
+    "Practice with real calendar slot holds — same as live. Jobber stays off until you go live.",
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
-    "1+ = Practice - customer & crew SMS still send ([TEST] prefix). No Jobber or calendar writes. Drops by 1 per test call.",
+    "1+ = Practice - calendar slots held like live. SMS marked [TEST]. No Jobber writes. Drops by 1 per test call.",
   stormModeLabel: "Storm surge mode",
   stormModeHint:
     "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",

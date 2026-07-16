@@ -5,6 +5,7 @@ import {
   coalesceSchedulingSettingsPatch,
   mergeShopBookingSettings,
   normalizeSlotBufferMinutes,
+  normalizeTravelMinutes,
   sanitizeVisitWindowPatch,
   type OwnerApprovalSms,
   type SchedulingMode,
@@ -59,6 +60,9 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopBookingSettin
   }
   if (typeof body.slotBufferMinutes === "number") {
     patch.slotBufferMinutes = normalizeSlotBufferMinutes(body.slotBufferMinutes);
+  }
+  if (typeof body.travelMinutes === "number") {
+    patch.travelMinutes = normalizeTravelMinutes(body.travelMinutes);
   }
   if (
     typeof body.maxConcurrentVisits === "number" &&

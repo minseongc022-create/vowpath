@@ -88,7 +88,7 @@ export function RecoveryMetricsPanel({ dateRange, loading, compact = false }: Re
       {showShadow ? (
         <div className="border-b border-amber-200/80 bg-amber-50/90 px-5 py-3 text-sm text-amber-950">
           <strong>Baseline period:</strong> {m.shadowModeRemaining} practice booking
-          {m.shadowModeRemaining === 1 ? "" : "s"} left — customer & crew SMS still send
+          {m.shadowModeRemaining === 1 ? "" : "s"} left — calendar slots held like live; SMS marked [TEST]
           ([TEST] prefix). Jobber and calendar writes stay off until practice ends.
         </div>
       ) : null}

@@ -31,6 +31,15 @@ export function normalizeSlotBufferMinutes(value: unknown): number {
   return Math.min(SLOT_BUFFER_MAX, Math.max(SLOT_BUFFER_MIN, n));
 }
 
+const TRAVEL_MIN = 0;
+const TRAVEL_MAX = 240;
+
+/** Drive / transit time between visits (minutes). */
+export function normalizeTravelMinutes(value: unknown): number {
+  const n = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 30;
+  return Math.min(TRAVEL_MAX, Math.max(TRAVEL_MIN, n));
+}
+
 export type SlotOffer = {
   id: string;
   label: string;
@@ -53,6 +62,8 @@ export type ShopBookingSettings = {
   nativeCalendarEnabled: boolean;
   defaultDurationMinutes: number;
   slotBufferMinutes: number;
+  /** Drive time between jobs (added to slotBufferMinutes for lane blocking). */
+  travelMinutes: number;
   /** How many visits the shop can run at the same time, e.g. active tech/crew count. */
   maxConcurrentVisits: number;
   slotOfferCount: number;
@@ -84,6 +95,7 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   nativeCalendarEnabled: true,
   defaultDurationMinutes: 120,
   slotBufferMinutes: 30,
+  travelMinutes: 30,
   maxConcurrentVisits: 1,
   slotOfferCount: 5,
   businessDayStartHour: 8,
@@ -139,6 +151,9 @@ export function mergeShopBookingSettings(
     slotBufferMinutes: normalizeSlotBufferMinutes(
       partial?.slotBufferMinutes ?? DEFAULT_SHOP_BOOKING_SETTINGS.slotBufferMinutes,
     ),
+    travelMinutes: normalizeTravelMinutes(
+      partial?.travelMinutes ?? DEFAULT_SHOP_BOOKING_SETTINGS.travelMinutes,
+    ),
     jobberSchedulingEnabled: true,
   };
 }
@@ -175,9 +190,18 @@ export function legacyBookingModeToScheduling(
   return "auto";
 }
 
-/** Spacing between offered visit times (visit length = interval; buffer cleared in UI). */
-export function appointmentIntervalMinutes(settings: Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes">): number {
-  return Math.max(15, settings.defaultDurationMinutes + settings.slotBufferMinutes);
+import { schedulingGapMinutes as computeSchedulingGapMinutes } from "./scheduling/scheduling-gap";
+
+export { schedulingGapMinutes } from "./scheduling/scheduling-gap";
+
+/** Spacing between offered visit times (visit length + wrap-up + travel). */
+export function appointmentIntervalMinutes(
+  settings: Pick<
+    ShopBookingSettings,
+    "defaultDurationMinutes" | "slotBufferMinutes" | "travelMinutes"
+  >,
+): number {
+  return Math.max(15, settings.defaultDurationMinutes + computeSchedulingGapMinutes(settings));
 }
 
 export function patchAppointmentInterval(intervalMinutes: number): Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes"> {

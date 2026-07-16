@@ -6,6 +6,7 @@ import { validateSlotAvailable } from "./validate-slot";
 import { pickFreeTechForWindow, listActiveCrew } from "./tech-lanes";
 import { loadSchedulingContext } from "./offer-slots";
 import { getShopBookingSettings } from "../shop-settings-db";
+import { schedulingGapMs } from "./scheduling-gap";
 import { getTechDispatchSettings } from "../tech-dispatch/store";
 import { orderPoolWithOnCall } from "../tech-dispatch/on-call";
 import { getShopProfile } from "../shop-profile-db";
@@ -31,7 +32,7 @@ async function resolveAutoTech(params: {
   if (!dispatch.enabled) return null;
 
   const settings = await getShopBookingSettings(params.userId);
-  const bufferMs = Math.max(0, settings.slotBufferMinutes) * 60_000;
+  const gapMs = schedulingGapMs(settings);
   const startMs = new Date(params.slot.startAt).getTime();
   const endMs = new Date(params.slot.endAt).getTime();
 
@@ -59,7 +60,7 @@ async function resolveAutoTech(params: {
     techs: ordered,
     startMs,
     endMs,
-    bufferMs,
+    gapMs,
     laneBookings: ctx.laneBookings,
     preferredTechId: ordered[0]?.id,
   });
@@ -76,6 +77,7 @@ export async function commitSlotBooking(params: {
   excludeBookingId?: string;
   manualTechId?: string | null;
   skipAutoAssign?: boolean;
+  isPractice?: boolean;
 }): Promise<CommitSlotResult> {
   const lockKey = `slot-commit:${params.userId}:${params.slot.startAt}`;
 
@@ -123,6 +125,7 @@ export async function commitSlotBooking(params: {
       slotSource: check.slot.source,
       assignedTechId: assignedTechId ?? undefined,
       assignedTechName: assignedTechName ?? undefined,
+      isPractice: params.isPractice === true,
     });
 
     return {

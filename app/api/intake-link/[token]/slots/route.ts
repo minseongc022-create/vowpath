@@ -51,6 +51,7 @@ export async function GET(
     grid,
     durationMinutes: settings.defaultDurationMinutes,
     bufferMinutes: settings.slotBufferMinutes,
+    travelMinutes: settings.travelMinutes,
     maxConcurrentVisits: grid?.maxConcurrentVisits ?? settings.maxConcurrentVisits,
     jobberScheduleUncertain: grid?.jobberScheduleUncertain ?? false,
   });
