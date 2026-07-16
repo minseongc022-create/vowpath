@@ -151,12 +151,12 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
       <div className="grid flex-1 grid-cols-1 gap-5 p-5 md:grid-cols-2 md:gap-6 md:p-8">
         <div className="flex flex-col items-center justify-center">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
-            AI screens · no crew until you approve
+            Safety screening · no crew until you approve
           </p>
           <div className="w-full max-w-xs overflow-hidden rounded-[2rem] border-4 border-amber-900/60 bg-black shadow-2xl ring-2 ring-amber-500/30">
             <div className="bg-gradient-to-b from-amber-950/90 to-black px-4 py-6 text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Safety call</p>
-              <p className="mt-1 text-lg font-semibold">Effiroad AI</p>
+              <p className="mt-1 text-lg font-semibold">Effiroad</p>
               <p className="text-xs text-amber-400">9:18 PM · Gas smell</p>
               <div className="mt-4">
                 <Waveform active={speaking} />
@@ -165,7 +165,7 @@ export function DemoRiskHoldScene({ recordMode = false }: { recordMode?: boolean
             <div className="min-h-[150px] bg-[#141210] px-4 py-4">
               {aiLine ? (
                 <div className="rounded-xl bg-amber-950/40 p-3 ring-1 ring-amber-500/40">
-                  <p className="text-[10px] font-bold uppercase text-amber-300">AI (voice)</p>
+                  <p className="text-[10px] font-bold uppercase text-amber-300">Receptionist</p>
                   <p className="mt-2 text-sm leading-relaxed text-[#f5f0e8]">{aiLine}</p>
                 </div>
               ) : (

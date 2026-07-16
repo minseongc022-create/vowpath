@@ -14,50 +14,50 @@ type Step = {
 const RESTORATION_SCRIPT: Step[] = VOICE_EMERGENCY_DEMO;
 
 const HVAC_SCRIPT: Step[] = [
-  { role: "system", text: "Incoming call — 6:40 AM", delay: 400 },
+  { role: "system", text: "Incoming call — 6:42 AM", delay: 400 },
   {
     role: "ai",
-    text: "Thanks for calling Comfort Air HVAC. This call is being recorded to capture your service details. What's going on with your system today?",
+    text: "Comfort Air HVAC, thanks for calling. What's going on at the house?",
     delay: 1000,
   },
   {
     role: "caller",
-    text: "Our heat completely died overnight and it's freezing in here — we have two kids.",
+    text: "No heat — it's fifty-eight degrees inside and we've got kids home.",
     delay: 2400,
   },
   {
     role: "ai",
-    text: "I'm sorry, we'll get someone out to you right away. Can I get your name and the service address?",
+    text: "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
     delay: 1600,
   },
-  { role: "caller", text: "Sarah Bennett, 118 Birchwood Lane, Denver Colorado.", delay: 2000 },
-  { role: "ai", text: "Got it, Sarah. Any smell of gas, or is it just no heat?", delay: 1400 },
-  {
-    role: "caller",
-    text: "No gas smell, just completely dead — it was blowing cold air then shut off.",
-    delay: 2000,
-  },
+  { role: "caller", text: "No gas smell, no sparking.", delay: 1800 },
+  { role: "ai", text: "Good — no gas smell. What's your name?", delay: 1400 },
+  { role: "caller", text: "Sarah Bennett.", delay: 1600 },
   {
     role: "ai",
-    text: "Got it — a clear no-heat call, so I'm flagging this Priority 1 and dispatching your on-call tech now. What's the best callback number?",
+    text: "Thanks, Sarah. What's the full service address?",
+    delay: 1400,
+  },
+  { role: "caller", text: "904 Cedar Lane, Round Rock, Texas.", delay: 1800 },
+  {
+    role: "ai",
+    text: "Got it. That's a verified no-heat call, so I'm dispatching your on-call tech now. You'll get an ETA text shortly.",
     delay: 1800,
   },
-  { role: "caller", text: "303-555-0148. Thank you so much.", delay: 1800 },
   {
     role: "sms",
-    text: "NEW JOB · Sarah Bennett · 118 Birchwood Ln, Denver CO · No heat, system dead overnight · P1 AUTO-DISPATCHED",
+    text: "NEW JOB · Sarah Bennett · No heat · 904 Cedar Ln · Reply 1 accept",
     delay: 1200,
   },
-  { role: "system", text: "Crew auto-dispatched — no owner approval needed", delay: 2200 },
+  { role: "system", text: "Tech replied 1 · En route · ETA 28 min", delay: 2200 },
   {
     role: "ai",
-    text: "Good news, Sarah — a technician is on the way. You'll get a text with their ETA shortly. In the meantime, keep the thermostat set to heat so the system's ready to kick on.",
+    text: "Good news, Sarah — a technician is on the way. You'll get a text with their ETA shortly.",
     delay: 1600,
   },
-  { role: "caller", text: "Thank you, that's a relief!", delay: 1800 },
   {
     role: "system",
-    text: "Technician arrived on-site · Intake saved · Crew dispatched · Job created in 3 min 40 sec",
+    text: "Customer ETA text sent · Intake saved · Auto-dispatched · 3 min 40 sec",
     delay: 800,
   },
 ];
@@ -72,10 +72,10 @@ function CallerIcon() {
   );
 }
 
-function AiIcon() {
+function ReceptionIcon() {
   return (
     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-      AI
+      E
     </span>
   );
 }
@@ -149,7 +149,7 @@ function Bubble({ step, typing }: { step: Step; typing?: boolean }) {
   // ai
   return (
     <div className="flex items-start gap-2 pl-2">
-      <AiIcon />
+      <ReceptionIcon />
       <div className="max-w-[82%] rounded-2xl rounded-tl-none bg-brand-50 px-3 py-2 shadow-sm ring-1 ring-brand-200">
         {typing ? (
           <TypingDots />
@@ -172,7 +172,7 @@ const DEMO_COPY = {
     heading: "A real 6 AM no-heat call — start to dispatch",
     subhead:
       "Watch Effiroad answer a no-heat emergency, capture the job details, and auto-dispatch the on-call tech — all while the customer is still on the line.",
-    statusTime: "6:40 AM",
+    statusTime: "6:42 AM",
   },
 } as const;
 
@@ -256,7 +256,7 @@ export function IntakeCallDemo({
                 <svg className="h-3 w-3 text-emerald-400" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
                   <circle cx="6" cy="6" r="5" />
                 </svg>
-                Effiroad AI
+                Effiroad
               </span>
               <span>100%</span>
             </div>
@@ -281,7 +281,7 @@ export function IntakeCallDemo({
 
             {/* Bottom bar */}
             <div className="flex items-center justify-between bg-slate-900 px-4 py-3">
-              <span className="text-xs text-slate-400">Recording · Intake capturing</span>
+              <span className="text-xs text-slate-400">Live call · Intake capturing</span>
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500">
                 <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <path d="M6.62 10.79a15.91 15.91 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.21 11.36 11.36 0 003.54.56 1 1 0 011 1v3.5a1 1 0 01-1 1A17 17 0 013 5a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.56 3.54 1 1 0 01-.25 1.06z" />

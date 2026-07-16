@@ -48,7 +48,7 @@ export const DEMO_VERTICAL_CONFIG: Record<
         recordSlug: "link-intake",
       },
     ],
-    voiceFootnote: "Only the AI speaks on the call — customer replies are text-only.",
+    voiceFootnote: "Only the receptionist speaks on the call — customer replies are text-only.",
   },
   hvac: {
     headline: "3 demos — HVAC shops",
@@ -104,8 +104,8 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
       tag: "Field & after-hours",
     },
     {
-      icon: "🤖",
-      title: "AI intake & triage",
+      icon: "📋",
+      title: "Smart intake & triage",
       body: "Address, loss type, urgency scored. P1 water with clear info can auto-page your crew.",
       tag: "Smart intake",
     },

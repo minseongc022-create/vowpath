@@ -182,13 +182,13 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
       <div className="grid flex-1 grid-cols-1 gap-5 p-5 md:grid-cols-2 md:gap-6 md:p-8">
         <div className="flex flex-col items-center justify-center">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
-            On the call — AI voice only
+            On the call — receptionist voice only
           </p>
           <div className="w-full max-w-xs overflow-hidden rounded-[2rem] border-4 border-slate-700 bg-black shadow-2xl">
             <div className="bg-gradient-to-b from-brand-900/90 to-black px-4 py-6 text-center">
               <p className="text-[10px] uppercase tracking-widest text-white/40">Active call</p>
-              <p className="mt-1 text-lg font-semibold">Effiroad AI</p>
-              <p className="text-xs text-emerald-400">{callMeta} · Recording</p>
+              <p className="mt-1 text-lg font-semibold">Effiroad</p>
+              <p className="text-xs text-emerald-400">{callMeta} · Active</p>
               <div className="mt-4">
                 <Waveform active={speaking} />
               </div>
@@ -196,7 +196,7 @@ export function DemoAiPhoneScene({ recordMode = false, vertical = "restoration" 
             <div className="min-h-[150px] bg-[#141210] px-4 py-4">
               {aiLine ? (
                 <div className="rounded-xl bg-[#9a7f5e]/25 p-3 ring-1 ring-[#9a7f5e]/50">
-                  <p className="text-[10px] font-bold uppercase text-[#b59b78]">AI (voice)</p>
+                  <p className="text-[10px] font-bold uppercase text-[#b59b78]">Receptionist</p>
                   <p className="mt-2 text-sm leading-relaxed text-[#f5f0e8]">{aiLine}</p>
                 </div>
               ) : (
