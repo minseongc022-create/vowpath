@@ -452,14 +452,18 @@ export const authPagesEn = {
       "I agree to the Terms of Service and Privacy Policy (required).",
     consentSmsLabel:
       "I agree to receive service-related text messages at my mobile number — verification codes, new job alerts, and reply 1/2 approvals. Msg & data rates may apply. Reply STOP to opt out. (required)",
-    consentRequired: "Check both agreement boxes to continue.",
+    consentMarketingEmailLabel:
+      "Optional — send me Effiroad product tips and updates by email.",
+    consentMarketingSmsLabel:
+      "Optional — send me Effiroad product tips and updates by text. Msg & data rates may apply. Reply STOP to opt out.",
+    consentRequired: "Check both required agreement boxes to continue.",
   },
 };
 
 export const legalPagesEn = {
   privacy: {
     title: "Privacy Policy",
-    updated: "March 2026",
+    updated: "July 2026",
     sections: [
       {
         heading: "Information we collect",
@@ -475,7 +479,15 @@ export const legalPagesEn = {
       },
       {
         heading: "SMS & TCPA",
-        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply. We store consent timestamps when you sign up or when your customers opt in on intake forms.",
+        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply. We store consent timestamps when you sign up or when your customers opt in on intake forms. Transactional texts (booking updates, verification codes) require consent. Promotional texts (offers, maintenance reminders, review requests) require a separate optional opt-in.",
+      },
+      {
+        heading: "Marketing communications",
+        body: "You may optionally opt in to Effiroad product tips by email or text at signup. Customers may optionally opt in to promotional texts on link intake forms. You can opt out anytime via STOP (SMS) or by emailing support.",
+      },
+      {
+        heading: "Cookies & essential storage",
+        body: "We use essential cookies for login sessions, locale preference, and OAuth state (e.g. Jobber). We do not use advertising cookies. See your browser settings to clear cookies.",
       },
       {
         heading: "Your rights (US)",

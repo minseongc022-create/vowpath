@@ -42,6 +42,8 @@ export function SignupForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [smsServiceConsent, setSmsServiceConsent] = useState(false);
+  const [marketingEmailConsent, setMarketingEmailConsent] = useState(false);
+  const [marketingSmsConsent, setMarketingSmsConsent] = useState(false);
 
   const isSms = channel === "sms";
   const consentOk = termsAccepted && smsServiceConsent;
@@ -95,6 +97,8 @@ export function SignupForm() {
           channel,
           termsAccepted: true,
           smsServiceConsent: true,
+          marketingEmailConsent,
+          marketingSmsConsent,
         }),
       });
       const data = await res.json();
@@ -346,6 +350,24 @@ export function SignupForm() {
                   required
                 />
                 <span>{p.consentSmsLabel}</span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={marketingEmailConsent}
+                  onChange={(e) => setMarketingEmailConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                <span>{p.consentMarketingEmailLabel}</span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={marketingSmsConsent}
+                  onChange={(e) => setMarketingSmsConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+                />
+                <span>{p.consentMarketingSmsLabel}</span>
               </label>
             </fieldset>
 

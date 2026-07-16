@@ -164,6 +164,16 @@ export async function sendSms(
     return { ok: true };
   }
 
+  if (context?.userId) {
+    const { isSmsOptedOut } = await import("./sms-suppression");
+    if (await isSmsOptedOut(context.userId, phone)) {
+      const error = "Recipient opted out (Reply STOP). SMS not sent.";
+      console.info(`[send-sms] ${devLogLabel} blocked: ${phone} opted out`);
+      if (strict) return { ok: false, error };
+      return reportFailure(error, { context, toPhone: phone, devLogLabel });
+    }
+  }
+
   const health = await getSmsTwilioHealthForUser(context?.userId);
   if (!health.ready) {
     const error =

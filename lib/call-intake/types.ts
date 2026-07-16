@@ -137,4 +137,5 @@ export type VerifiedCallPayload = {
   severity?: string;
   lastServiceYear?: string;
   urgency?: string;
+  customerSmsConsent?: import("../legal-consent").CustomerSmsConsentRecord;
 };

@@ -59,6 +59,8 @@ export type StoredCallLog = {
   /** AI self-assessment of how well this call was handled (0-100), scored best-effort after intake finalizes. */
   qualityScore?: number;
   qualityReasoning?: string;
+  /** Structured TCPA consent from link intake / portal. */
+  customerSmsConsent?: import("./legal-consent").CustomerSmsConsentRecord;
   createdAt: string;
 };
 

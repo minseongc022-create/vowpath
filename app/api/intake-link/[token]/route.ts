@@ -10,7 +10,7 @@ import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-gu
 import { saveIntakePhoto } from "@/lib/intake-photo-store";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
-import { parseCustomerSmsConsent } from "@/lib/legal-consent";
+import { parseCustomerSmsConsent, parseCustomerMarketingSmsConsent, buildCustomerSmsConsentRecord } from "@/lib/legal-consent";
 import { withDistributedLock } from "@/lib/distributed-lock";
 
 export async function GET(
@@ -79,6 +79,7 @@ export async function POST(
   let waterSource = "";
   let activeLoss = false;
   let smsConsent = false;
+  let smsMarketingConsent = false;
 
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
@@ -92,6 +93,7 @@ export async function POST(
     waterSource = String(form.get("waterSource") ?? "").trim();
     activeLoss = form.get("activeLoss") === "1" || form.get("activeLoss") === "true";
     smsConsent = parseCustomerSmsConsent(form.get("smsConsent"));
+    smsMarketingConsent = parseCustomerMarketingSmsConsent(form.get("smsMarketingConsent"));
     const photo = form.get("photo");
     if (photo && photo instanceof File && photo.size > 0) {
       const buffer = Buffer.from(await photo.arrayBuffer());
@@ -119,9 +121,14 @@ export async function POST(
     waterSource = String(body.waterSource ?? "").trim();
     activeLoss = body.activeLoss === true || body.activeLoss === "1";
     smsConsent = parseCustomerSmsConsent(body.smsConsent);
+    smsMarketingConsent = parseCustomerMarketingSmsConsent(body.smsMarketingConsent);
   }
 
-  if (!smsConsent) {
+  const customerSmsConsent = buildCustomerSmsConsentRecord({
+    serviceConsent: smsConsent,
+    marketingConsent: smsMarketingConsent,
+  });
+  if (!customerSmsConsent) {
     return NextResponse.json(
       { error: "SMS consent is required to submit this form." },
       { status: 400 },
@@ -150,7 +157,7 @@ export async function POST(
       insuranceClaimNumber: insuranceClaimNumber || undefined,
       waterSource: waterSource || undefined,
       activeLoss,
-      smsConsentAt: new Date().toISOString(),
+      customerSmsConsent,
     }),
   );
 

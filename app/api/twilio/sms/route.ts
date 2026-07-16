@@ -31,6 +31,10 @@ export async function POST(request: Request) {
   const body = params.get("Body") ?? "";
 
   if (/^\s*STOP\s*$/i.test(body.trim())) {
+    if (userId) {
+      const { setSmsOptOut } = await import("@/lib/sms-suppression");
+      await setSmsOptOut(userId, from);
+    }
     const twiml = twimlResponse(twimlMessage(customerSmsStopReply));
     return new NextResponse(twiml, {
       status: 200,
@@ -39,6 +43,10 @@ export async function POST(request: Request) {
   }
 
   if (/^\s*START\s*$/i.test(body.trim())) {
+    if (userId) {
+      const { clearSmsOptOut } = await import("@/lib/sms-suppression");
+      await clearSmsOptOut(userId, from);
+    }
     const twiml = twimlResponse(twimlMessage(customerSmsStartReply));
     return new NextResponse(twiml, {
       status: 200,

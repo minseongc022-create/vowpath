@@ -132,7 +132,7 @@ export async function submitLinkIntakeForm(params: {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
-  smsConsentAt?: string;
+  customerSmsConsent?: import("../legal-consent").CustomerSmsConsentRecord;
 }): Promise<
   | {
       ok: true;
@@ -199,7 +199,13 @@ export async function submitLinkIntakeForm(params: {
     draft.waterSource ? `Water source: ${draft.waterSource}` : "",
     draft.activeLoss ? "Active loss: yes" : "",
     params.photoRef ? "Photo: attached" : "",
-    params.smsConsentAt ? `Customer SMS consent: yes (${params.smsConsentAt})` : "",
+    params.customerSmsConsent
+      ? `Customer SMS consent: service (${params.customerSmsConsent.smsServiceAt})${
+          params.customerSmsConsent.smsMarketingAt
+            ? `, marketing (${params.customerSmsConsent.smsMarketingAt})`
+            : ""
+        }`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -242,6 +248,7 @@ export async function submitLinkIntakeForm(params: {
     insuranceClaimNumber: draft.insuranceClaimNumber,
     waterSource: draft.waterSource,
     activeLoss: draft.activeLoss,
+    customerSmsConsent: params.customerSmsConsent,
   };
 
   const result = await finalizeVerifiedIntake(session!.userId, payload, {
