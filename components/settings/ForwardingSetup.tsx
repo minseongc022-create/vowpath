@@ -22,9 +22,11 @@ import { ForwardingConditionMatrix } from "@/components/settings/ForwardingCondi
 import { ForwardingOneTapSetup } from "@/components/settings/ForwardingOneTapSetup";
 import { ForwardingTestPanel } from "@/components/settings/ForwardingTestPanel";
 import { TrialForwardingBanner } from "@/components/settings/TrialForwardingBanner";
-import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
+import { ForwardingPathPicker } from "@/components/settings/ForwardingPathPicker";
+import { ForwardingAlternatePaths } from "@/components/settings/ForwardingAlternatePaths";
 import { EffiroadDedicatedLineCard } from "@/components/settings/EffiroadDedicatedLineCard";
 import { DialpadRoutingVisual } from "@/components/settings/DialpadRoutingVisual";
+import type { ForwardingSetupPathId } from "@/lib/forwarding-paths";
 
 type ForwardingSetupProps = {
   confirmed: boolean;
@@ -70,6 +72,7 @@ export function ForwardingSetup({
   const [wizardStep, setWizardStep] = useState(1);
   const [forwardingVerified, setForwardingVerified] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<ForwardingSetupPathId | null>(null);
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [testAttempted, setTestAttempted] = useState(false);
 
@@ -159,10 +162,15 @@ export function ForwardingSetup({
       ? [providerMeta]
       : FORWARDING_PROVIDERS;
 
-  function switchToDedicatedLine() {
-    setProvider("effiroad_main");
-    setShowAllProviders(false);
+  function handlePathSelect(nextProvider: ForwardingProviderId, pathId: ForwardingSetupPathId) {
+    setProvider(nextProvider);
+    setSelectedPath(pathId);
     setQuizDone(true);
+    setShowAllProviders(pathId === "quiz");
+  }
+
+  function switchToDedicatedLine() {
+    handlePathSelect("effiroad_main", "dedicated_line");
     setWizardStep(2);
   }
 
@@ -254,18 +262,17 @@ export function ForwardingSetup({
       {wizardStep === 2 ? (
         <>
           {!quizDone ? (
-            <ForwardingPathQuiz
-              initialProvider={provider}
-              onResolved={(picked) => {
-                setProvider(picked);
-                setQuizDone(true);
-                setShowAllProviders(false);
-              }}
-            />
+            <ForwardingPathPicker onSelect={handlePathSelect} />
           ) : null}
 
           {quizDone ? (
             <>
+          {selectedPath && selectedPath !== "dedicated_line" ? (
+            <ForwardingAlternatePaths
+              current={provider}
+              onSwitch={(id) => handlePathSelect(id, id === "effiroad_main" ? "dedicated_line" : selectedPath)}
+            />
+          ) : null}
           <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
             <p className="vow-settings-label">{settingsPage.forwardingWhatYouAreSetting}</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">{setupSummary}</p>
@@ -286,10 +293,13 @@ export function ForwardingSetup({
             {!showAllProviders ? (
               <button
                 type="button"
-                onClick={() => setShowAllProviders(true)}
+                onClick={() => {
+                  setQuizDone(false);
+                  setSelectedPath(null);
+                }}
                 className="mt-2 text-sm font-semibold text-brand-700 underline"
               >
-                {settingsPage.forwardingChangeProvider}
+                {settingsPage.forwardingChangePath}
               </button>
             ) : null}
             {provider === "dialpad" ? (

@@ -576,6 +576,43 @@ const settingsPageKo = {
     showGuide: "가이드 보기",
     back: "← 이전",
   },
+  forwardingChangePath: "← 다른 설정 경로 선택",
+  forwardingPathPicker: {
+    badge: "설정 방법 선택",
+    title: "검증된 연결 방법 4가지",
+    subtitle: "샵에 맞는 경로를 고르세요 — 단계별 가이드와 원탭 실행이 있습니다.",
+    bestBadge: "가장 쉬움",
+    pickCarrier: "샵 휴대폰 통신사는?",
+    pickVoip: "업무 전화 시스템은?",
+    back: "← 전체 경로로",
+    quizFallback: "모르겠음? 질문 3개로 찾기",
+    paths: {
+      dedicated_line: {
+        title: "Effiroad 전용번호",
+        description: "착신 코드 없음. 구글·웹·트럭에 번호만 올리면 ~10분.",
+      },
+      cell_overflow: {
+        title: "기존 휴대폰 + 원탭 overflow",
+        description: "내 폰이 먼저 울림. 못 받으면 Effiroad. AT&T/T-Mobile/Verizon/Xfinity.",
+      },
+      business_voip: {
+        title: "Jobber Phone / Dialpad / RingCentral",
+        description: "VoIP 관리자에서 미응답/Fallback → Effiroad 외부 번호.",
+      },
+      google_voice: {
+        title: "Google Voice 착신",
+        description: "GV가 메인일 때. 휴대폰 overflow는 불안정 — 아래 경고 참고.",
+      },
+      quiz: {
+        title: "도와줘",
+        description: "질문 3개로 경로 찾기.",
+      },
+    },
+  },
+  forwardingAlternatePaths: {
+    title: "이 경로가 안 되면 다음 시도:",
+    hint: "★ Effiroad 전용번호는 통신사/VoIP가 막혀도 됩니다.",
+  },
   forwardingChangeProvider: "다른 전화 환경?",
   forwardingDedicatedLine: {
     badge: "Effiroad 전용번호",

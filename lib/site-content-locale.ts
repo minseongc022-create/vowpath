@@ -92,34 +92,34 @@ export const demoSummaryEn = {
 } as const;
 
 export const numberChoiceEn = {
-  title: "Your number or ours — either way, no missed call",
+  title: "Four verified ways to connect — pick what fits",
   subtitle:
-    "Pick whichever fits how you already run. The safety net is the same: if a call slips past a human, the AI catches it.",
+    "Most shops go live in 10 minutes. Dedicated number is fastest; keep your cell with one-tap overflow; or use Dialpad/Jobber routing.",
   footer:
-    "Miss a call and the AI backs you up automatically. No answer, busy line, after hours, or three phones ringing at once — the caller still gets answered, their details captured, and the lead lands on your dashboard. Nothing falls through.",
+    "Every path includes a built-in test call. If forwarding fails, switch to the dedicated Effiroad number in one click — no carrier fight required.",
   options: [
     {
       id: "keep",
-      badge: "Option A",
-      title: "Keep your own number",
+      badge: "Paths A & B",
+      title: "Keep your number (overflow)",
       description:
-        "Customers dial the same company number that's on your trucks and Google listing. When you're busy or nobody answers in ~20 seconds, the call forwards to Effiroad — you still pick up every live call yourself.",
+        "Shop cell: one-tap AT&T, T-Mobile, Verizon, or Xfinity codes. Business phone: Dialpad, RingCentral, or Grasshopper unanswered routing. Your line rings first — Effiroad catches the miss.",
       points: [
-        "Nothing changes for your customers",
-        "One-tap carrier setup, or use your VoIP / Google Voice",
-        "Only missed rings come to us",
+        "One-tap dial codes on your shop phone",
+        "Dialpad / ServiceTitan Fallback visual guide",
+        "Backup paths if the first method fails",
       ],
     },
     {
       id: "ours",
-      badge: "Option B",
-      title: "Use the number we give you",
+      badge: "Path ★ Easiest",
+      title: "Effiroad dedicated number (~99% success)",
       description:
-        "Publish the dedicated Effiroad number instead — no carrier codes at all. During your answer hours the AI picks up; outside them the call rings your own phone so you can take it live. Set no hours and the AI simply covers you 24/7.",
+        "Skip carrier codes entirely. Publish your Effiroad number on Google, website, and trucks. Answer Hours control when AI picks up vs. when your cell rings.",
       points: [
-        "Zero forwarding setup — just use our number",
-        "Business hours ring straight to you",
-        "Turn it on with one click",
+        "Zero forwarding — works on every plan",
+        "Copy number → update Google → test call",
+        "Recommended if overflow setup fails",
       ],
     },
   ],

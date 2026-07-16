@@ -142,6 +142,43 @@ export const SETTINGS_PAGE_EN = {
     showGuide: "Show my guide",
     back: "← Back",
   },
+  forwardingChangePath: "← Pick a different setup path",
+  forwardingPathPicker: {
+    badge: "Choose your setup",
+    title: "Four verified ways to connect Effiroad",
+    subtitle: "Pick the path that matches your shop — each has step-by-step guides and one-tap actions.",
+    bestBadge: "Easiest",
+    pickCarrier: "Which carrier is your shop cell on?",
+    pickVoip: "Which business phone system?",
+    back: "← Back to all paths",
+    quizFallback: "Not sure? Answer 3 quick questions instead",
+    paths: {
+      dedicated_line: {
+        title: "Effiroad dedicated number",
+        description: "No carrier codes. Put our number on Google, website, and trucks — test in 10 minutes.",
+      },
+      cell_overflow: {
+        title: "Keep your cell — one-tap overflow",
+        description: "Your shop phone rings first. Miss it → Effiroad. AT&T, T-Mobile, Verizon, or Xfinity.",
+      },
+      business_voip: {
+        title: "Jobber Phone / Dialpad / RingCentral",
+        description: "Set unanswered or Fallback routing to Effiroad in your VoIP admin portal.",
+      },
+      google_voice: {
+        title: "Google Voice forward",
+        description: "Best when GV is your main line. Overflow to your cell is unreliable — see warning below.",
+      },
+      quiz: {
+        title: "Help me choose",
+        description: "Three questions to find your path.",
+      },
+    },
+  },
+  forwardingAlternatePaths: {
+    title: "If this path fails, try next:",
+    hint: "Dedicated Effiroad number (★) works when carriers or VoIP block forwarding.",
+  },
   forwardingChangeProvider: "Different phone setup?",
   forwardingDedicatedLine: {
     badge: "Effiroad dedicated number",

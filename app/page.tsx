@@ -8,6 +8,8 @@ import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { DemoSummary } from "@/components/sections/DemoSummary";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { NumberChoice } from "@/components/sections/NumberChoice";
+import { Comparison } from "@/components/sections/Comparison";
+import { WhyWeWin } from "@/components/sections/WhyWeWin";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Pricing } from "@/components/sections/Pricing";
@@ -29,6 +31,8 @@ export default async function HomePage() {
         <DemoSummary />
         <SocialProof variant="trust" />
         <NumberChoice />
+        <Comparison />
+        <WhyWeWin />
         <ApprovalLoop />
         <HowItWorks />
         <SocialProof />

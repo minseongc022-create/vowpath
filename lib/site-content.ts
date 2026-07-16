@@ -7,6 +7,7 @@ import {
   agreementKeeperEn,
   ctaEn,
   comparisonEn,
+  competitorWinEn,
   differentiatorsEn,
   faqEn,
   featuresEn,
@@ -49,6 +50,7 @@ export const siteCta = ctaEn;
 export const siteTrustRoi = trustRoiEn;
 export const siteAiDispatcher = aiDispatcherEn;
 export const siteComparison = comparisonEn;
+export const siteCompetitorWin = competitorWinEn;
 export const siteSocialProof = socialProofEn;
 export const siteGetStarted = getStartedEn;
 export const siteNav = navEn;
