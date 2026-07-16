@@ -28,7 +28,6 @@ import {
   notifyOwnerApprovalNeeded,
   notifyOwnerUrgentAutoBooked,
   notifyOwnerNoSlot,
-  notifyOwnerShadowResult,
 } from "../scheduling/schedule-sms";
 import { logOperationFailure } from "../ops-failures";
 import { listWorkflowRules, recordWorkflowRuleMatch } from "../workflow-rules/store";
@@ -71,6 +70,7 @@ export async function applyCustomerChosenSchedule(
       userId: params.userId,
       bookingId: params.bookingId,
       phone: params.customerPhone,
+      practiceMode: shadow,
     });
     await notifyOwnerNoSlot({
       userId: params.userId,
@@ -174,15 +174,7 @@ export async function applyCustomerChosenSchedule(
   await persistRequestStatusForBooking(params.userId, params.bookingId, status);
 
   if (shadow) {
-    const left = await decrementShadowMode(params.userId);
-    await notifyOwnerShadowResult({
-      userId: params.userId,
-      bookingId: params.bookingId,
-      window: params.slot.label,
-      customerName: params.card.customerName,
-      shadowLeft: left.shadowModeRemaining,
-    });
-    return status;
+    await decrementShadowMode(params.userId);
   }
 
   if (needsApproval) {
@@ -213,6 +205,7 @@ export async function applyCustomerChosenSchedule(
       address: params.card.address,
       priority: effectivePriority,
       customerName: params.card.customerName,
+      practiceMode: shadow,
     });
     const urgent = effectivePriority === "P1";
     if (urgent) {
@@ -234,7 +227,9 @@ export async function applyCustomerChosenSchedule(
         undoMinutes: settings.undoWindowMinutes,
       });
     }
+  }
 
+  if (!shadow) {
     const callLogs = await listCallLogs(params.userId);
     const freshJobs = await listJobs(params.userId);
     try {

@@ -5,6 +5,9 @@ import { sendSms } from "../send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
 import { smsCustomerBookingConfirmationBody } from "../sms-templates";
+import { withPracticeSmsPrefix } from "../practice-sms";
+import { getShopBookingSettings } from "../shop-settings-db";
+import { isPracticeMode } from "../data-truthfulness";
 import { savePortalTokenOnCall } from "../customer-booking-portal";
 import {
   saveLinkIntakeSession,
@@ -64,8 +67,10 @@ export async function sendIntakeBookingConfirmation(params: {
   if (!phone) return { ok: false, error: "no_phone" };
 
   const user = await findUserById(params.userId);
+  const settings = await getShopBookingSettings(params.userId);
+  const practiceMode = isPracticeMode(settings);
   const portalUrl = buildBookingPortalUrl(params.reviewToken);
-  const body = smsCustomerBookingConfirmationBody({
+  let body = smsCustomerBookingConfirmationBody({
     shopName: user?.shopName ?? "",
     requestNumber: formatLinkRequestNumber(params.callLogId),
     customerName: params.customerName,
@@ -74,6 +79,7 @@ export async function sendIntakeBookingConfirmation(params: {
     portalUrl,
     pendingShopReview: params.pendingShopReview,
   });
+  body = withPracticeSmsPrefix(body, practiceMode);
 
   const dedupeId = `${params.bookingId}:booking_confirmation`;
   if (!(await shouldSendSmsOnce(params.userId, dedupeId))) {

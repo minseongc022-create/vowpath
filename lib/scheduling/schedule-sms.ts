@@ -16,6 +16,7 @@ import {
 import { findPortalTokenForBooking } from "../customer-booking-portal";
 import { buildBookingPortalUrl } from "../portal-url";
 import { notifyStaffEtaInstructions } from "../staff-eta-notify";
+import { withPracticeSmsPrefix } from "../practice-sms";
 
 function smsCtx(userId: string, op: string, bookingId?: string): SmsSendContext {
   return { userId, operation: op, bookingId };
@@ -28,9 +29,11 @@ async function sendCustomer(params: {
   dedupeId: string;
   operation: string;
   bookingId: string;
+  practiceMode?: boolean;
 }) {
   if (!(await shouldSendSmsOnce(params.userId, params.dedupeId))) return;
-  const result = await sendSms(params.phone, params.body, params.operation, {
+  const body = withPracticeSmsPrefix(params.body, params.practiceMode === true);
+  const result = await sendSms(params.phone, body, params.operation, {
     context: smsCtx(params.userId, params.operation, params.bookingId),
   });
   if (result.ok) await markSmsSent(params.userId, params.dedupeId);
@@ -81,6 +84,7 @@ export async function notifyCustomerScheduled(params: {
   priority: JobPriority;
   customerName?: string;
   portalUrl?: string;
+  practiceMode?: boolean;
 }) {
   const phone = params.phone?.trim();
   if (!phone) return;
@@ -104,6 +108,7 @@ export async function notifyCustomerScheduled(params: {
     dedupeId: `${params.bookingId}:scheduled`,
     operation: "customer_scheduled",
     bookingId: params.bookingId,
+    practiceMode: params.practiceMode,
   });
 }
 
@@ -111,6 +116,7 @@ export async function notifyCustomerNoSlot(params: {
   userId: string;
   bookingId: string;
   phone?: string | null;
+  practiceMode?: boolean;
 }) {
   const phone = params.phone?.trim();
   if (!phone) return;
@@ -123,6 +129,7 @@ export async function notifyCustomerNoSlot(params: {
     dedupeId: `${params.bookingId}:no_slot`,
     operation: "customer_no_slot",
     bookingId: params.bookingId,
+    practiceMode: params.practiceMode,
   });
 }
 

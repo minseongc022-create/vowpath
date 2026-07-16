@@ -73,10 +73,10 @@ export const settingsPageEn = {
     "After a routine job auto-books, reply 9 within this many minutes to cancel it.",
   shadowModeLabel: "Practice calls left",
   shadowModeIntro:
-    "Run the full intake flow without booking real jobs or texting customers.",
+    "Run the full intake flow — customer and crew texts fire (marked [TEST]). Jobber and calendar stay off until live.",
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
-    "1+ = Practice - no customer texts or calendar writes. Crew dispatch texts still fire (marked [TEST]). Drops by 1 per test call.",
+    "1+ = Practice - customer & crew SMS still send ([TEST] prefix). No Jobber or calendar writes. Drops by 1 per test call.",
   stormModeLabel: "Storm surge mode",
   stormModeHint:
     "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",

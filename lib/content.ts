@@ -752,7 +752,7 @@ const settingsPageKo = {
   shadowModeLive:
     "0 — 실전: 고객이 고른 시간이 캘린더·문자·Jobber에 그대로 반영됩니다.",
   shadowModePractice:
-    "1 이상 — 연습: 흐름만 진행되고 캘린더에는 안 박힙니다. 사장님께 [TEST] 안내만 가며, 테스트 1번당 1씩 줄어듭니다.",
+    "1 이상 — 연습: 고객·기사 SMS는 [TEST]로 발송. Jobber·캘린더 기록만 꺼짐. 테스트 1번당 1씩 줄어듭니다.",
   stormModeLabel: "폭풍·호우 surge 모드",
   stormModeHint:
     "허리케인·집중 호우 기간 — 전화 안내를 짧게 하고 대기 중임을 안내합니다. 평상시에는 끄세요.",

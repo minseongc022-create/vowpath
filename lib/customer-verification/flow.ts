@@ -29,6 +29,9 @@ import type {
 } from "./types";
 import type { IntakeChannel } from "../call-intake/types";
 import { shouldSendCustomerVerificationSms } from "./triggers";
+import { withPracticeSmsPrefix } from "../practice-sms";
+import { getShopBookingSettings } from "../shop-settings-db";
+import { isPracticeMode } from "../data-truthfulness";
 
 const REMINDER_AFTER_MS = 30 * 60 * 1000;
 const UNVERIFIED_AFTER_MS = 24 * 60 * 60 * 1000;
@@ -57,7 +60,9 @@ async function sendCustomerVerificationSms(params: {
 }): Promise<boolean> {
   const allowed = await shouldSendSmsOnce(params.userId, params.dedupeId);
   if (!allowed) return true;
-  const result = await sendSms(params.phone, params.body, params.operation, {
+  const settings = await getShopBookingSettings(params.userId);
+  const body = withPracticeSmsPrefix(params.body, isPracticeMode(settings));
+  const result = await sendSms(params.phone, body, params.operation, {
     context: {
       userId: params.userId,
       operation: params.operation,

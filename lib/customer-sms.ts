@@ -14,6 +14,9 @@ import {
   reportOwnerPhoneMisconfigured,
   resolveOwnerAlertPhone,
 } from "./owner-alert-phone";
+import { withPracticeSmsPrefix } from "./practice-sms";
+import { getShopBookingSettings } from "./shop-settings-db";
+import { isPracticeMode } from "./data-truthfulness";
 
 import {
   smsAfterHoursCustomerBody,
@@ -100,11 +103,19 @@ async function sendCustomerSms(params: {
   dedupeId: string;
   operation: string;
   bookingId?: string;
+  practiceMode?: boolean;
 }): Promise<void> {
   const allowed = await shouldSendSmsOnce(params.userId, params.dedupeId);
   if (!allowed) return;
 
-  const result = await sendSms(params.phone, params.body, params.operation, {
+  let practiceMode = params.practiceMode;
+  if (practiceMode === undefined) {
+    const settings = await getShopBookingSettings(params.userId);
+    practiceMode = isPracticeMode(settings);
+  }
+  const body = withPracticeSmsPrefix(params.body, practiceMode === true);
+
+  const result = await sendSms(params.phone, body, params.operation, {
     context: smsContext(params.userId, params.operation, params.bookingId),
   });
   if (result.ok) {
