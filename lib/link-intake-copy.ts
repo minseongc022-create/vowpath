@@ -29,9 +29,13 @@ export function smsLinkIntakeMessage(shopName: string, url: string): string {
 
 /** Customer-facing portal & link intake — US restoration tone. */
 export const linkIntakePageCopy = {
-  formTitle: "Report your loss",
+  formTitle: "Tell us what's going on",
+  formStepLabel: "Step 1 of 2 — Your details",
+  formTrustBanner: "About 1 minute · We'll text you updates on this request only",
+  formNextSteps:
+    "Next: pick an arrival window if one's open, then we'll confirm by text.",
   formDescription:
-    "We're sorry you're dealing with this — you're in the right place. Tell us what's going on below and our team will take it from here. We'll keep you updated by text.",
+    "You're in the right place. A few quick details help us send the right crew.",
   nameLabel: "Your name",
   namePlaceholder: "Sarah Mitchell",
   addressLabel: "Property address",
@@ -64,6 +68,7 @@ export const linkIntakePageCopy = {
     "Basement flooding from burst pipe\nWater through ceiling\nSmoke smell after fire\nMold in bathroom\nSewage backup",
   insuranceSectionLabel: "Insurance (optional)",
   insuranceSectionHint: "Helps our crew and your adjuster — skip if you don't have it yet.",
+  insuranceSectionToggle: "Add insurance details",
   insuranceCarrierLabel: "Insurance company",
   insuranceCarrierPlaceholder: "State Farm, Allstate…",
   insuranceClaimLabel: "Claim number",
@@ -77,9 +82,9 @@ export const linkIntakePageCopy = {
   photoButton: "Add a photo",
   photoChange: "Change photo",
   urgencyLabel: "How urgent is this?",
-  slotStepTitle: "When can we arrive?",
+  slotStepTitle: "Step 2 of 2 — Pick a time",
   slotStepDescription:
-    "Pick the soonest window that works — for emergencies we'll prioritize the earliest available crew.",
+    "Choose the soonest window that works. Emergencies get the earliest crew available.",
   slotCalendarHint: (intervalMin: number, _bufferMin: number, capacity: number) => {
     const hours = Math.floor(intervalMin / 60);
     const mins = intervalMin % 60;
@@ -105,7 +110,7 @@ export const linkIntakePageCopy = {
   slotStepEmpty:
     "No open windows right now — submit your request and we'll call you to coordinate arrival.",
   slotStepSkip: "Skip — just send my request",
-  submit: "Next — pick arrival window",
+  submit: "Continue — pick arrival time",
   submitNoSlots: "Send my request",
   smsConsentLabel:
     "Required — text me about THIS request only (updates, crew ETA, arrival). Msg & data rates may apply. Reply STOP anytime.",
@@ -125,7 +130,7 @@ export const linkIntakePageCopy = {
   eta: "~1 min",
   successTitle: "You're all set",
   successBody:
-    "Thank you — we have your details. We'll confirm arrival by text soon. Tap Edit if anything needs to change.",
+    "We have your details. We'll text you soon with confirmation. Tap Edit if anything changes.",
   requestNumberLabel: "Request #",
   submissionTitle: "Your loss report",
   submissionSummaryTitle: "Quick summary",
@@ -186,9 +191,13 @@ export type LinkIntakeCopy = WidenStrings<typeof linkIntakePageCopy>;
  *  Shown only when the customer's browser is Spanish (or they pick Español), so
  *  language is never mismatched. */
 export const linkIntakePageCopyEs: LinkIntakeCopy = {
-  formTitle: "Reporte su daño",
+  formTitle: "Cuéntenos qué pasa",
+  formStepLabel: "Paso 1 de 2 — Sus datos",
+  formTrustBanner: "Un minuto · Le avisamos por texto solo sobre esta solicitud",
+  formNextSteps:
+    "Siguiente: elija horario de llegada si hay disponibilidad; luego confirmamos por texto.",
   formDescription:
-    "Lamentamos que esté pasando por esto — está en el lugar correcto. Cuéntenos lo que ocurre y nuestro equipo se encargará. Le mantendremos informado por mensaje de texto.",
+    "Está en el lugar correcto. Unos datos rápidos nos ayudan a enviar al equipo adecuado.",
   nameLabel: "Su nombre",
   namePlaceholder: "Sara Martínez",
   addressLabel: "Dirección de la propiedad",
@@ -220,6 +229,7 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
     "Inundación en el sótano por tubería rota\nAgua filtrándose por el techo\nOlor a humo tras un incendio\nMoho en el baño\nRetorno de aguas negras",
   insuranceSectionLabel: "Seguro (opcional)",
   insuranceSectionHint: "Ayuda a nuestro equipo y a su ajustador — omítalo si aún no lo tiene.",
+  insuranceSectionToggle: "Agregar datos del seguro",
   insuranceCarrierLabel: "Compañía de seguro",
   insuranceCarrierPlaceholder: "State Farm, Allstate…",
   insuranceClaimLabel: "Número de reclamo",
@@ -233,7 +243,7 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   photoButton: "Agregar una foto",
   photoChange: "Cambiar foto",
   urgencyLabel: "¿Qué tan urgente es?",
-  slotStepTitle: "¿Cuándo podemos llegar?",
+  slotStepTitle: "Paso 2 de 2 — Elija horario",
   slotStepDescription:
     "Elija el horario más pronto que le sirva — en emergencias priorizamos el equipo disponible más cercano.",
   slotCalendarHint: (intervalMin: number, _bufferMin: number, capacity: number) => {

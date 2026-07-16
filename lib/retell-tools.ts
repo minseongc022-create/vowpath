@@ -4,7 +4,6 @@ export function buildRetellGeneralTools(base: string) {
   const urls = {
     submitIntake: `${base}/api/retell/tools/submit-intake`,
     submitEstimate: `${base}/api/retell/tools/submit-estimate`,
-    sendIntakeLink: `${base}/api/retell/tools/send-intake-link`,
     getSlots: `${base}/api/retell/tools/get-slots`,
   };
 
@@ -26,26 +25,6 @@ export function buildRetellGeneralTools(base: string) {
             enum: ["P1", "P2", "P3"],
           },
         },
-      },
-    },
-    {
-      type: "custom",
-      name: "send_intake_link",
-      description:
-        "Caller wants a TEXT instead of staying on the phone. Send the form link once, confirm it went out, then wrap up.",
-      speak_after_execution: true,
-      speak_during_execution: false,
-      url: urls.sendIntakeLink,
-      parameters: {
-        type: "object",
-        properties: {
-          purpose: {
-            type: "string",
-            description: "booking = emergency/service request link; estimate = free estimate form link",
-            enum: ["booking", "estimate"],
-          },
-        },
-        required: ["purpose"],
       },
     },
     {

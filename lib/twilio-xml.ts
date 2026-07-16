@@ -80,18 +80,17 @@ export function twimlGatherMainMenu(
   // options callers rely on always play verbatim.
   const opening = customGreeting.trim()
     ? customGreeting.trim()
-    : `Thank you for calling ${shopName}!`;
+    : `Thank you for calling ${shopName}.`;
   const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
-  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */
 export function twimlGatherBookingChannel(actionUrl: string): string {
   const prompt =
-    "Great. To tell our assistant what's going on right now, press 1. " +
-    "Or to get a one-time booking link by text, press 2. " +
-    "Message and data rates may apply.";
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+    "I'm here with you. To talk with us on this call, press 1. " +
+    "Or to get a quick form by text instead, press 2. Message and data rates may apply.";
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /**
@@ -115,11 +114,10 @@ export function twimlSpanishIntakeConfirmation(): string {
 /** Estimate sub-menu: text form vs. give details on the call now. */
 export function twimlGatherEstimateMenu(actionUrl: string): string {
   const prompt =
-    "Wonderful — we'd love to put together a free estimate for you. " +
-    "To give us your project details right now, press 1. " +
-    "Or to receive a one-time estimate form by text, press 2. " +
-    "Message and data rates may apply.";
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+    "We'd love to put together a free estimate. " +
+    "To tell us about your project on this call, press 1. " +
+    "Or to get a short form by text, press 2. Message and data rates may apply.";
+  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
 /** Phone-number capture: accepts spoken digits or keypad entry ending in #. Falls back
