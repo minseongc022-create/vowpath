@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { clearSessionCookieOptions, SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
 import {
   buildCanonicalRedirectUrl,
+  isDecommissionedHost,
   normalizeHostname,
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
@@ -32,6 +33,23 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const hostname = normalizeHostname(host);
+
+  if (isDecommissionedHost(hostname)) {
+    if (pathname === "/robots.txt") {
+      return new NextResponse("User-agent: *\nDisallow: /\n", {
+        status: 200,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+    return new NextResponse("This site is no longer available.", {
+      status: 410,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
 
   const target = buildCanonicalRedirectUrl(hostname, pathname, request.nextUrl.search);
   if (target) {

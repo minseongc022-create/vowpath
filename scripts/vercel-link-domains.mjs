@@ -1,6 +1,9 @@
 /**
  * Attach legacy domains to the Vercel project (requires API token).
  *
+ * hvacsvc.link is registered on Namecheap (DNS already → Vercel). Link it here
+ * so middleware can return 410 Gone + noindex and Google drops the old listing.
+ *
  *   export VERCEL_TOKEN=...          # vercel.com/account/tokens
  *   export VERCEL_PROJECT_ID=...     # Project → Settings → General
  *   export VERCEL_TEAM_ID=...        # optional, team projects only
