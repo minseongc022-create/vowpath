@@ -92,6 +92,6 @@ If Retell fails to connect, Twilio falls back to scripted speech intake automati
 | Endpoint | Purpose |
 |----------|---------|
 | `POST /api/retell/inbound` | Dynamic variables before call connects |
-| `POST /api/retell/tools/send-intake-link` | Text self-service link when caller chooses SMS |
 | `POST /api/retell/tools/submit-intake` | Book/dispatch after phone intake |
 | `POST /api/retell/tools/submit-estimate` | Free estimate request (no dispatch) |
+| `POST /api/retell/tools/get-slots` | Open visit windows for scheduling |
