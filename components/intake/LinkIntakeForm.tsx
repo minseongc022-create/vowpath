@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
@@ -32,6 +33,7 @@ type IntakeDraft = {
   issueDescription: string;
   urgency: LinkUrgency;
   smsConsent: boolean;
+  smsMarketingConsent: boolean;
   insuranceCarrier: string;
   insuranceClaimNumber: string;
   waterSource: string;
@@ -118,6 +120,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
   );
   const [error, setError] = useState<string | null>(null);
   const [smsConsent, setSmsConsent] = useState(false);
+  const [smsMarketingConsent, setSmsMarketingConsent] = useState(false);
   const [insuranceCarrier, setInsuranceCarrier] = useState("");
   const [insuranceClaimNumber, setInsuranceClaimNumber] = useState("");
   const [waterSource, setWaterSource] = useState("");
@@ -132,6 +135,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
     setIssueDescription(saved.issueDescription);
     setUrgency(saved.urgency);
     setSmsConsent(saved.smsConsent);
+    setSmsMarketingConsent(saved.smsMarketingConsent ?? false);
     setInsuranceCarrier(saved.insuranceCarrier ?? "");
     setInsuranceClaimNumber(saved.insuranceClaimNumber ?? "");
     setWaterSource(saved.waterSource ?? "");
@@ -145,6 +149,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       issueDescription,
       urgency,
       smsConsent,
+      smsMarketingConsent,
       insuranceCarrier,
       insuranceClaimNumber,
       waterSource,
@@ -157,6 +162,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
     issueDescription,
     urgency,
     smsConsent,
+    smsMarketingConsent,
     insuranceCarrier,
     insuranceClaimNumber,
     waterSource,
@@ -199,6 +205,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       form.set("issueDescription", issueDescription);
       form.set("urgency", urgency);
       form.set("smsConsent", "1");
+      if (smsMarketingConsent) form.set("smsMarketingConsent", "1");
       if (insuranceCarrier.trim()) form.set("insuranceCarrier", insuranceCarrier.trim());
       if (insuranceClaimNumber.trim()) form.set("insuranceClaimNumber", insuranceClaimNumber.trim());
       if (waterSource.trim()) form.set("waterSource", waterSource.trim());
@@ -247,6 +254,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       issueDescription,
       urgency,
       smsConsent,
+      smsMarketingConsent,
       insuranceCarrier,
       insuranceClaimNumber,
       waterSource,
@@ -283,6 +291,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
           issueDescription,
           urgency,
           smsConsent,
+      smsMarketingConsent,
           insuranceCarrier,
           insuranceClaimNumber,
           waterSource,
@@ -659,6 +668,27 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
             />
             <span className="text-sm leading-relaxed text-slate-700">{copy.smsConsentLabel}</span>
           </label>
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4">
+            <input
+              type="checkbox"
+              checked={smsMarketingConsent}
+              onChange={(e) => setSmsMarketingConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-700"
+            />
+            <span className="text-sm leading-relaxed text-slate-600">{copy.smsMarketingConsentLabel}</span>
+          </label>
+
+          <p className="text-xs leading-relaxed text-slate-500">
+            {copy.privacyNoticePrefix}{" "}
+            <Link href="/privacy" className="font-medium text-brand-700 underline" target="_blank">
+              {copy.privacyLinkLabel}
+            </Link>
+            {" · "}
+            <Link href="/terms" className="font-medium text-brand-700 underline" target="_blank">
+              {copy.termsLinkLabel}
+            </Link>
+          </p>
         </div>
       </div>
 
@@ -674,7 +704,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
           ) : null}
           <button
             type="submit"
-            disabled={loading || slotsLoading}
+            disabled={loading || slotsLoading || !smsConsent}
             className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading || slotsLoading ? copy.slotStepLoading : copy.submit}

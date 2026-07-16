@@ -1,3 +1,4 @@
+import { hasCustomerMarketingSmsConsent } from "./customer-marketing-consent";
 import type { RequestStatus } from "./booking-policy";
 import { resolveBookingCustomerPhone } from "./booking-contact";
 import { extractIssueType } from "./recent-bookings";
@@ -207,6 +208,13 @@ export async function notifyCustomerReviewRequest(params: {
     return;
   }
 
+  if (!(await hasCustomerMarketingSmsConsent(params.userId, params.bookingId))) {
+    console.info(
+      `[customer-sms] skip review_request — no marketing SMS consent for ${params.bookingId}`,
+    );
+    return;
+  }
+
   const user = await findUserById(params.userId);
   await sendCustomerSms({
     userId: params.userId,
@@ -218,7 +226,6 @@ export async function notifyCustomerReviewRequest(params: {
   });
 }
 
-/** SMS nudge for a customer who was quoted but hasn't booked N days later. */
 export async function notifyCustomerQuoteFollowUp(params: {
   userId: string;
   bookingId: string;
@@ -231,6 +238,13 @@ export async function notifyCustomerQuoteFollowUp(params: {
   if (!phone) {
     console.info(
       `[customer-sms] skip quote_follow_up — no phone for ${params.bookingId}`,
+    );
+    return;
+  }
+
+  if (!(await hasCustomerMarketingSmsConsent(params.userId, params.bookingId))) {
+    console.info(
+      `[customer-sms] skip quote_follow_up — no marketing SMS consent for ${params.bookingId}`,
     );
     return;
   }

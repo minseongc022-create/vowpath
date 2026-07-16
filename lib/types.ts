@@ -42,6 +42,8 @@ export type AnswerWindow = {
 export type ShopState = {
   scheduleWindows: AnswerWindow[];
   answerScheduleActive: boolean;
+  /** IANA timezone for AI answer hours, visit windows, and on-call weekday. */
+  shopTimezone?: string;
   /** When true, AI answers 24/7 for calls that reach Effiroad. */
   scheduleAlwaysOn?: boolean;
   jobberConnected: boolean;

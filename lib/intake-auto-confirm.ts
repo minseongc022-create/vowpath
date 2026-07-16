@@ -89,11 +89,4 @@ export async function completeAutoConfirmedBooking(params: {
       payload: { bookingId: params.bookingId },
     });
   }
-
-  try {
-    const { startTechAssignmentForBooking } = await import("./tech-dispatch/assign");
-    await startTechAssignmentForBooking(params.userId, params.bookingId);
-  } catch (e) {
-    console.warn("[intake-auto-confirm] tech dispatch", e);
-  }
 }

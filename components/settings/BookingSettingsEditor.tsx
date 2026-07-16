@@ -92,6 +92,7 @@ export function BookingSettingsEditor() {
             avgJobTicketUsd: settings.avgJobTicketUsd,
             defaultDurationMinutes: settings.defaultDurationMinutes,
             slotBufferMinutes: settings.slotBufferMinutes,
+            travelMinutes: settings.travelMinutes,
             maxConcurrentVisits: settings.maxConcurrentVisits,
             serviceAreaZips: settings.serviceAreaZips,
             stormModeEnabled: settings.stormModeEnabled,
@@ -392,6 +393,30 @@ export function BookingSettingsEditor() {
             <p className="mt-2 text-sm text-brand-800">
               {settingsPage.appointmentIntervalExample(intervalHours, intervalMins)}
             </p>
+          </div>
+
+          <div>
+            <p className="vow-settings-label">{settingsPage.travelMinutesLabel}</p>
+            <p className="vow-settings-hint mt-1">{settingsPage.travelMinutesHint}</p>
+            <label className="mt-2 block max-w-xs">
+              <span className="text-sm font-medium text-stone-600">
+                {settingsPage.travelMinutesFieldLabel}
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={240}
+                step={5}
+                value={settings.travelMinutes}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n) && n >= 0 && n <= 240) {
+                    updateLocal({ travelMinutes: n });
+                  }
+                }}
+                className="vow-settings-input mt-1"
+              />
+            </label>
           </div>
 
           <details

@@ -144,8 +144,7 @@ export async function customerRescheduleBooking(params: {
   | { ok: false; error: string }
 > {
   const { resolveLinkIntakeSlot } = await import("./call-intake/link-intake-flow");
-  const { offerSlotGridForTenant } = await import("./scheduling/offer-slots");
-  const { upsertScheduledBooking } = await import("./schedule-bookings-db");
+  const { commitSlotBooking } = await import("./scheduling/commit-slot");
   const { persistRequestStatusForBooking } = await import("./booking-status-sync");
   const { notifyCustomerScheduled } = await import("./scheduling/schedule-sms");
   const { buildBookingPortalUrl } = await import("./portal-url");
@@ -157,7 +156,8 @@ export async function customerRescheduleBooking(params: {
   const urgency = params.urgency ?? "this_week";
   const excludeBookingId = params.bookingId;
 
-  let slot = await resolveLinkIntakeSlot(
+  const priority = linkUrgencyToPriority(urgency);
+  const slot = await resolveLinkIntakeSlot(
     params.userId,
     urgency,
     params.slotId,
@@ -165,46 +165,28 @@ export async function customerRescheduleBooking(params: {
   );
 
   if (!slot) {
-    const priorities = ["P1", "P2", "P3"] as const;
-    for (const priority of priorities) {
-      if (priority === linkUrgencyToPriority(urgency)) continue;
-      const grid = await offerSlotGridForTenant({
-        userId: params.userId,
-        priority,
-        excludeBookingId,
-      });
-      const match = grid?.days
-        .flatMap((day) => day.slots)
-        .find((s) => s.id === params.slotId && s.status === "available");
-      if (match) {
-        const day = grid!.days.find((d) => d.slots.some((s) => s.id === match.id));
-        slot = {
-          id: match.id,
-          label: `${day?.weekdayLabel ?? ""} ${match.label}`.trim(),
-          startAt: match.startAt,
-          endAt: match.endAt,
-          source: match.source,
-        };
-        break;
-      }
-    }
-  }
-
-  if (!slot) {
     return { ok: false, error: "That time is no longer available. Pick another window." };
   }
 
-  await upsertScheduledBooking(params.userId, {
+  const { getShopBookingSettings } = await import("./shop-settings-db");
+  const bookingSettings = await getShopBookingSettings(params.userId);
+  const isPractice = bookingSettings.shadowModeRemaining > 0;
+
+  const committed = await commitSlotBooking({
+    userId: params.userId,
     bookingId: params.bookingId,
-    scheduledStartAt: slot.startAt,
-    scheduledEndAt: slot.endAt,
-    arrivalWindowLabel: slot.label,
-    slotSource: slot.source,
-    undoExpiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+    slot,
+    priority,
+    excludeBookingId,
+    isPractice,
   });
 
+  if (!committed.ok) {
+    return { ok: false, error: "That time is no longer available. Pick another window." };
+  }
+
   await patchCallLog(params.userId, params.callId, {
-    arrivalWindow: slot.label,
+    arrivalWindow: committed.slot.label,
   });
 
   await persistRequestStatusForBooking(params.userId, params.bookingId, "scheduled", {
@@ -219,7 +201,7 @@ export async function customerRescheduleBooking(params: {
       userId: params.userId,
       bookingId: params.bookingId,
       phone: call.callbackPhone ?? call.from,
-      window: slot.label,
+      window: committed.slot.label,
       address: call.address ?? "",
       priority: call.priority ?? "P2",
       portalUrl,
@@ -229,5 +211,5 @@ export async function customerRescheduleBooking(params: {
     /* optional */
   }
 
-  return { ok: true, arrivalWindow: slot.label };
+  return { ok: true, arrivalWindow: committed.slot.label };
 }

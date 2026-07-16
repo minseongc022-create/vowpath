@@ -17,6 +17,11 @@ const OPTIONAL_REDIRECTS = [
   ["https://link.vowroad.com/r/test", "https://link.effiroad.com/r/test"],
 ];
 
+const OPTIONAL_DECOMMISSIONED = [
+  ["https://hvacsvc.link/get-started", 410],
+  ["https://www.hvacsvc.link/", 410],
+];
+
 async function checkRedirect(from, expectedPrefix) {
   try {
     const res = await fetch(from, { redirect: "manual" });
@@ -27,11 +32,31 @@ async function checkRedirect(from, expectedPrefix) {
       loc.replace(/\/$/, "").startsWith(expectedPrefix.replace(/\/$/, ""));
     console.log(`${ok ? "✓" : "✗"} ${from} → ${res.status} ${loc || "(no location)"}`);
     if (!ok && (res.status === 404 || res.status === 0)) {
-      console.log("    ↳ Run: npm run porkbun:forward (ALIAS @ → uixie.porkbun.com + URL forward)");
+      console.log("    ↳ Run: npm run porkbun:forward, then npm run vercel:domains");
     }
     return ok;
   } catch (e) {
     console.log(`✗ ${from} — ${e instanceof Error ? e.message : e}`);
+    return false;
+  }
+}
+
+async function checkGone(url, expectedStatus) {
+  try {
+    const res = await fetch(url, { redirect: "manual" });
+    const ok = res.status === expectedStatus;
+    const robots = res.headers.get("x-robots-tag") ?? "";
+    console.log(
+      `${ok ? "✓" : "✗"} ${url} → ${res.status}${robots ? ` (${robots})` : ""}`,
+    );
+    if (!ok && (res.status === 404 || res.status === 0)) {
+      console.log(
+        "    ↳ hvacsvc.link is on Namecheap — link domain in Vercel project, redeploy, then GSC Removals",
+      );
+    }
+    return ok;
+  } catch (e) {
+    console.log(`✗ ${url} — ${e instanceof Error ? e.message : e}`);
     return false;
   }
 }
@@ -57,11 +82,17 @@ async function main() {
     if (await checkRedirect(from, to)) optional++;
   }
 
+  console.log("\n--- Retired hvacsvc.link (410 Gone, optional until linked on Vercel) ---");
+  let gone = 0;
+  for (const [url, status] of OPTIONAL_DECOMMISSIONED) {
+    if (await checkGone(url, status)) gone++;
+  }
+
   console.log(
-    `\nRequired: ${required}/${REQUIRED_REDIRECTS.length} · Legacy: ${optional}/${OPTIONAL_REDIRECTS.length}`,
+    `\nRequired: ${required}/${REQUIRED_REDIRECTS.length} · Legacy: ${optional}/${OPTIONAL_REDIRECTS.length} · Retired: ${gone}/${OPTIONAL_DECOMMISSIONED.length}`,
   );
   console.log(
-    "\nGoogle Search Console: https://search.google.com/search-console → URL inspection → Request indexing\n",
+    "\nGoogle Search Console (effiroad.com): Removals → Temporary removal → prefix https://hvacsvc.link/\n",
   );
 
   if (required < REQUIRED_REDIRECTS.length || indexNow.status !== 0) {

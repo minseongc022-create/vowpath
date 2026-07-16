@@ -133,6 +133,7 @@ export async function finalizeVerifiedIntake(
       urgency: payload.urgency,
       dispatchNotes: payload.dispatchNotes,
       jobberPasteBlock: payload.jobberPasteBlock,
+      customerSmsConsent: payload.customerSmsConsent,
       createdAt: new Date().toISOString(),
     });
   } catch (e) {

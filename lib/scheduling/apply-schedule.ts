@@ -28,6 +28,7 @@ import {
   notifyOwnerApprovalNeeded,
   notifyOwnerUrgentAutoBooked,
   notifyOwnerNoSlot,
+  notifyOwnerShadowResult,
 } from "../scheduling/schedule-sms";
 import { logOperationFailure } from "../ops-failures";
 import { listWorkflowRules, recordWorkflowRuleMatch } from "../workflow-rules/store";
@@ -38,6 +39,8 @@ import {
 import type { RuleEvaluationContext } from "../workflow-rules/types";
 import { appendWorkflowBookingTags } from "../workflow-rules/booking-tags";
 import { appendTenantEvent } from "../tenant-events";
+import { commitSlotBooking } from "./commit-slot";
+import { validateSlotAvailable } from "./validate-slot";
 
 export type ApplyScheduleParams = {
   userId: string;
@@ -86,6 +89,34 @@ export async function applyCustomerChosenSchedule(
     return "pending_review";
   }
 
+  const slotCheck = await validateSlotAvailable({
+    userId: params.userId,
+    slot: params.slot,
+    priority: params.priority,
+    excludeBookingId: params.bookingId,
+  });
+  if (!slotCheck.ok) {
+    await notifyCustomerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      phone: params.customerPhone,
+      practiceMode: shadow,
+    });
+    await notifyOwnerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      customerName: params.card.customerName,
+      issue: params.card.symptom,
+    });
+    await persistRequestStatusForBooking(
+      params.userId,
+      params.bookingId,
+      "pending_review",
+    );
+    return "pending_review";
+  }
+  let confirmedSlot = slotCheck.slot;
+
   const lossCategory = inferLossCategoryFromText(params.card.symptom, params.card.symptom);
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
     priority: params.priority,
@@ -116,8 +147,8 @@ export async function applyCustomerChosenSchedule(
     address: params.card.address,
     zipCode: extractZipFromAddress(params.card.address) ?? undefined,
     cityState: formatCityState(params.card.address),
-    slotStartAt: params.slot.startAt,
-    slotEndAt: params.slot.endAt,
+    slotStartAt: confirmedSlot.startAt,
+    slotEndAt: confirmedSlot.endAt,
     createdAt: new Date().toISOString(),
     schedulingMode: "auto",
     afterHours,
@@ -145,26 +176,56 @@ export async function applyCustomerChosenSchedule(
     }
   }
 
+  const committed = await commitSlotBooking({
+    userId: params.userId,
+    bookingId: params.bookingId,
+    slot: confirmedSlot,
+    priority: effectivePriority,
+    skipAutoAssign: false,
+    isPractice: shadow,
+  });
+  if (!committed.ok) {
+    await notifyCustomerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      phone: params.customerPhone,
+      practiceMode: shadow,
+    });
+    await notifyOwnerNoSlot({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      customerName: params.card.customerName,
+      issue: params.card.symptom,
+    });
+    await persistRequestStatusForBooking(
+      params.userId,
+      params.bookingId,
+      "pending_review",
+    );
+    return "pending_review";
+  }
+  confirmedSlot = committed.slot;
+
   const undoAt = new Date();
   undoAt.setMinutes(undoAt.getMinutes() + settings.undoWindowMinutes);
-
-  if (!shadow) {
-    await upsertScheduledBooking(params.userId, {
-      bookingId: params.bookingId,
-      scheduledStartAt: params.slot.startAt,
-      scheduledEndAt: params.slot.endAt,
-      arrivalWindowLabel: params.slot.label,
-      slotSource: params.slot.source,
-      undoExpiresAt: needsApproval ? undefined : undoAt.toISOString(),
-    });
-  }
+  await upsertScheduledBooking(params.userId, {
+    bookingId: params.bookingId,
+    scheduledStartAt: confirmedSlot.startAt,
+    scheduledEndAt: confirmedSlot.endAt,
+    arrivalWindowLabel: confirmedSlot.label,
+    slotSource: confirmedSlot.source,
+    assignedTechId: committed.assignedTechId ?? undefined,
+    assignedTechName: committed.assignedTechName ?? undefined,
+    isPractice: shadow || undefined,
+    undoExpiresAt: !shadow && !needsApproval ? undoAt.toISOString() : undefined,
+  });
 
   const jobs = await listJobs(params.userId);
   const job = jobs.find((j) => j.sourceCallId === params.callLogId);
   if (job) {
     await upsertJobRecord(params.userId, {
       ...job,
-      arrivalWindow: params.slot.label,
+      arrivalWindow: confirmedSlot.label,
       status: needsApproval ? "pending_review" : "scheduled",
       priority: effectivePriority,
     });
@@ -191,7 +252,7 @@ export async function applyCustomerChosenSchedule(
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         priority: effectivePriority,
         ambiguous: confidenceMin(params.confidence) < 65,
       });
@@ -201,20 +262,29 @@ export async function applyCustomerChosenSchedule(
       userId: params.userId,
       bookingId: params.bookingId,
       phone: params.customerPhone,
-      window: params.slot.label,
+      window: confirmedSlot.label,
       address: params.card.address,
       priority: effectivePriority,
       customerName: params.card.customerName,
       practiceMode: shadow,
     });
     const urgent = effectivePriority === "P1";
-    if (urgent) {
+    if (shadow) {
+      const freshSettings = await getShopBookingSettings(params.userId);
+      await notifyOwnerShadowResult({
+        userId: params.userId,
+        bookingId: params.bookingId,
+        window: confirmedSlot.label,
+        customerName: params.card.customerName,
+        shadowLeft: freshSettings.shadowModeRemaining,
+      });
+    } else if (urgent) {
       await notifyOwnerUrgentAutoBooked({
         userId: params.userId,
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         undoMinutes: settings.undoWindowMinutes,
       });
     } else {
@@ -223,7 +293,7 @@ export async function applyCustomerChosenSchedule(
         bookingId: params.bookingId,
         customerName: params.card.customerName,
         issue: params.card.symptom,
-        window: params.slot.label,
+        window: confirmedSlot.label,
         undoMinutes: settings.undoWindowMinutes,
       });
     }
@@ -265,12 +335,28 @@ export async function completeScheduledBookingAfterOwnerApprove(
   const scheduled = await getScheduledBooking(userId, bookingId);
   if (!scheduled) return false;
 
-  const settings = await getShopBookingSettings(userId);
   const call = callLogs.find((c) => bookingId === `call-${c.id}`);
   const job = jobs.find((j) => j.sourceCallId === call?.id);
   const pf = call
     ? resolvePriorityFields(call)
     : resolvePriorityFields(job ?? { priority: "P2" });
+
+  const slotStillValid = await validateSlotAvailable({
+    userId,
+    slot: {
+      id: `${scheduled.scheduledStartAt}`,
+      startAt: scheduled.scheduledStartAt,
+      endAt: scheduled.scheduledEndAt,
+      source: scheduled.slotSource,
+    },
+    priority: pf.priority,
+    excludeBookingId: bookingId,
+  });
+  if (!slotStillValid.ok) {
+    return false;
+  }
+
+  const settings = await getShopBookingSettings(userId);
   const card: GeneratedJobCard = call
     ? {
         priority: pf.priority,

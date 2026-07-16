@@ -10,6 +10,7 @@ import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
 import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
 import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKeeperSettings";
+import { SmsComplianceGuide } from "@/components/settings/SmsComplianceGuide";
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveStep } from "@/components/settings/GoLiveStep";
@@ -539,6 +540,7 @@ function SettingsViewBody({
             <TechDispatchSettings />
           </section>
           <AgreementKeeperSettingsEditor />
+          <SmsComplianceGuide />
 
           <div id="integrations-zapier" className="scroll-mt-24 rounded-xl border border-brand-100 bg-brand-50/20 p-4 sm:p-5">
             <ZapierWebhookEditor

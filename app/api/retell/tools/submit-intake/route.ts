@@ -11,6 +11,7 @@ import { generateAiSummary } from "@/lib/call-intake/ai-summary";
 import { enrichRetellIntakeForFinalize } from "@/lib/call-intake/retell-verify";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import { isTenantAfterHours } from "@/lib/after-hours";
+import { resolveSlotById } from "@/lib/scheduling/validate-slot";
 
 function submittedKey(callId: string) {
   return `effiroad:retell-intake-submitted:${callId}`;
@@ -33,6 +34,7 @@ type SubmitIntakeArgs = {
   address?: string;
   issueType?: string;
   notes?: string;
+  slotId?: string;
 };
 
 type RetellDynamicVars = {
@@ -126,9 +128,22 @@ export async function POST(request: Request) {
       aiSummary,
     });
 
+    let selectedSlot = null;
+    if (args.slotId?.trim()) {
+      selectedSlot = await resolveSlotById({
+        userId,
+        slotId: args.slotId.trim(),
+        priority: payload.priority ?? draft.priority,
+      });
+      if (selectedSlot) {
+        payload.arrivalWindow = selectedSlot.label;
+      }
+    }
+
     const result = await finalizeVerifiedIntake(userId, payload, {
       intakeChannel: "phone",
       afterHours,
+      selectedSlot,
     });
 
     if (result.serviceAreaRejected) {

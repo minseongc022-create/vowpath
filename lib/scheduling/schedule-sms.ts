@@ -272,7 +272,7 @@ export async function notifyOwnerShadowResult(params: {
 }) {
   const ownerPhone = await resolveOwnerAlertPhone(params.userId);
   if (!ownerPhone) return;
-  const body = `Effiroad [TEST]: Would book ${params.window} for ${params.customerName}. ${params.shadowLeft} test runs left.`;
+  const body = `Effiroad [TEST]: Booked ${params.window} for ${params.customerName}. Slot held on calendar. ${params.shadowLeft} practice run${params.shadowLeft === 1 ? "" : "s"} left.`;
   await sendOwner({
     userId: params.userId,
     phone: ownerPhone,

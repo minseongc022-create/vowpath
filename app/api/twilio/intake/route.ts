@@ -5,6 +5,7 @@ import { resolveCallbackFromCallerId } from "@/lib/call-intake/caller-id";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import {
   applySlotSelection,
+  confirmPhoneIntakeSlot,
   parseSlotDigit,
   prepareSlotPickPhase,
 } from "@/lib/call-intake/slot-pick-flow";
@@ -128,6 +129,7 @@ async function commitIntake(
   userId: string,
   state: CallIntakeState,
 ): Promise<Response> {
+  state = await confirmPhoneIntakeSlot(state);
   const payload = buildVerifiedPayload(state);
   await finalizeVerifiedIntake(userId, payload, {
     intakeChannel: "phone",

@@ -1,6 +1,8 @@
 import { listCallLogs } from "../call-logs";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { normalizeSmsPhone } from "../phone";
+import { getShopBookingSettings } from "../shop-settings-db";
+import { isPracticeMode } from "../data-truthfulness";
 import { lookupStoredRequestStatus } from "../request-status-resolve";
 import { getRequestStatuses } from "../requests-db";
 import { listScheduledBookings } from "../schedule-bookings-db";
@@ -185,7 +187,11 @@ export async function notifyCustomerOnMyWay(params: {
     etaMinutes: params.etaMinutes,
   });
 
-  const result = await sendSms(phone, body, "customer-on-my-way", {
+  const bookingSettings = await getShopBookingSettings(params.userId);
+  const practiceMode = isPracticeMode(bookingSettings);
+  const smsBody = practiceMode ? `Effiroad [TEST]: ${body}` : body;
+
+  const result = await sendSms(phone, smsBody, "customer-on-my-way", {
     context: {
       userId: params.userId,
       operation: "customer_on_my_way",

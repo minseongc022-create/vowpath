@@ -108,8 +108,13 @@ export const linkIntakePageCopy = {
   submit: "Next — pick arrival window",
   submitNoSlots: "Send my request",
   smsConsentLabel:
-    "Yes — text me about this request (updates, crew ETA, etc.). Msg & data rates may apply. Reply STOP anytime.",
-  smsConsentRequired: "Check the box so we can text you about your request.",
+    "Required — text me about THIS request only (updates, crew ETA, arrival). Msg & data rates may apply. Reply STOP anytime.",
+  smsMarketingConsentLabel:
+    "Optional — also send offers, maintenance reminders, and review requests by text. Msg & data rates may apply. Reply STOP anytime.",
+  smsConsentRequired: "Check the required box so we can text you about your request.",
+  privacyNoticePrefix: "By submitting you agree to our",
+  privacyLinkLabel: "Privacy Policy",
+  termsLinkLabel: "Terms",
   validateNameRequired: "What's your name? We'd love to know who we're helping today.",
   validateIssueRequired:
     "Tell us a little about what's going on — even one sentence helps us send the right tech!",
@@ -257,8 +262,13 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   submit: "Siguiente — elegir horario de llegada",
   submitNoSlots: "Enviar mi solicitud",
   smsConsentLabel:
-    "Sí — envíenme mensajes sobre esta solicitud (actualizaciones, hora de llegada, etc.). Pueden aplicar tarifas. Responda STOP en cualquier momento.",
-  smsConsentRequired: "Marque la casilla para poder enviarle mensajes sobre su solicitud.",
+    "Obligatorio — envíenme mensajes solo sobre ESTA solicitud (actualizaciones, hora de llegada). Pueden aplicar tarifas. Responda STOP en cualquier momento.",
+  smsMarketingConsentLabel:
+    "Opcional — también envíen ofertas, recordatorios de mantenimiento y solicitudes de reseña por mensaje. Pueden aplicar tarifas. Responda STOP.",
+  smsConsentRequired: "Marque la casilla obligatoria para poder enviarle mensajes sobre su solicitud.",
+  privacyNoticePrefix: "Al enviar, acepta nuestra",
+  privacyLinkLabel: "Política de privacidad",
+  termsLinkLabel: "Términos",
   validateNameRequired: "¿Cuál es su nombre? Nos encantaría saber a quién ayudamos hoy.",
   validateIssueRequired:
     "Cuéntenos un poco lo que ocurre — incluso una frase nos ayuda a enviar al técnico correcto.",

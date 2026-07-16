@@ -89,7 +89,8 @@ export function twimlGatherMainMenu(
 export function twimlGatherBookingChannel(actionUrl: string): string {
   const prompt =
     "Great. To tell our assistant what's going on right now, press 1. " +
-    "Or to get a booking link by text message, press 2.";
+    "Or to get a one-time booking link by text, press 2. " +
+    "Message and data rates may apply.";
   return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 
@@ -115,7 +116,9 @@ export function twimlSpanishIntakeConfirmation(): string {
 export function twimlGatherEstimateMenu(actionUrl: string): string {
   const prompt =
     "Wonderful — we'd love to put together a free estimate for you. " +
-    "To give us your project details right now, press 1. Or to receive a quick estimate form by text, press 2.";
+    "To give us your project details right now, press 1. " +
+    "Or to receive a one-time estimate form by text, press 2. " +
+    "Message and data rates may apply.";
   return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Go ahead whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
 }
 

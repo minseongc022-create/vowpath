@@ -2,6 +2,8 @@ import { filterByDateRange } from "./dashboard-analytics";
 import { isAfterHours, type CallRecord } from "./operations-analytics";
 import { isOvernight, parseRowsFromStored, type ScheduleRow } from "./schedule-format";
 import type { AnswerWindow, ShopState } from "./types";
+import { minutesSinceMidnightInTimezone, dayOfWeekInTimezone } from "./us-timezone";
+import { resolveShopTimezone } from "./shop-timezone";
 
 export type MissedCallsPeriod = "today" | "7d" | "30d" | "all";
 
@@ -42,23 +44,28 @@ export function resolveMissedCallsPeriodRange(
   }
 }
 
-function minutesSinceMidnight(d: Date): number {
+function minutesSinceMidnight(d: Date, timeZone?: string): number {
+  if (timeZone) return minutesSinceMidnightInTimezone(timeZone, d);
   return d.getHours() * 60 + d.getMinutes();
 }
 
 /** Whether local time falls in a configured AI answer window (supports overnight ranges). */
-export function isWithinAnyAiSchedule(iso: string, rows: ScheduleRow[]): boolean {
+export function isWithinAnyAiSchedule(
+  iso: string,
+  rows: ScheduleRow[],
+  timeZone?: string,
+): boolean {
   if (rows.length === 0) return false;
   if (rows.some((row) => row.alwaysOn)) return true;
   const d = new Date(iso);
-  return rows.some((row) => isWithinScheduleRow(d, row));
+  return rows.some((row) => isWithinScheduleRow(d, row, timeZone));
 }
 
-function isWithinScheduleRow(d: Date, row: ScheduleRow): boolean {
-  const mins = minutesSinceMidnight(d);
+function isWithinScheduleRow(d: Date, row: ScheduleRow, timeZone?: string): boolean {
+  const mins = minutesSinceMidnight(d, timeZone);
   const startMins = row.startHour * 60 + row.startMinute;
   const endMins = row.endHour * 60 + row.endMinute;
-  const day = d.getDay();
+  const day = timeZone ? dayOfWeekInTimezone(timeZone, d) : d.getDay();
 
   if (!isOvernight(row)) {
     if (!row.days.includes(day)) return false;
@@ -90,12 +97,25 @@ export function isLikelyMissedWithoutAi(
   createdAt: string,
   scheduleRows: ScheduleRow[],
   scheduleActive: boolean,
+  options?: {
+    scheduleAlwaysOn?: boolean;
+    timeZone?: string;
+  },
 ): boolean {
-  if (isAfterHours(createdAt)) return true;
+  const ctx =
+    scheduleActive && scheduleRows.length > 0
+      ? {
+          scheduleRows,
+          scheduleActive: true,
+          scheduleAlwaysOn: options?.scheduleAlwaysOn,
+          timeZone: options?.timeZone,
+        }
+      : undefined;
+  if (isAfterHours(createdAt, ctx)) return true;
   if (
     scheduleActive &&
     scheduleRows.length > 0 &&
-    isWithinAnyAiSchedule(createdAt, scheduleRows)
+    isWithinAnyAiSchedule(createdAt, scheduleRows, options?.timeZone)
   ) {
     return true;
   }
@@ -109,7 +129,10 @@ export function parseShopScheduleRows(windows: AnswerWindow[]): ScheduleRow[] {
 export function countMissedCallsPrevented(
   calls: CallRecord[],
   period: MissedCallsPeriod,
-  shop: Pick<ShopState, "scheduleWindows" | "answerScheduleActive">,
+  shop: Pick<
+    ShopState,
+    "scheduleWindows" | "answerScheduleActive" | "scheduleAlwaysOn" | "shopTimezone"
+  >,
   now = new Date(),
 ): number {
   const range = resolveMissedCallsPeriodRange(period, now);
@@ -122,6 +145,7 @@ export function countMissedCallsPrevented(
     shop.answerScheduleActive && scheduleWindows.length > 0
       ? parseShopScheduleRows(scheduleWindows)
       : [];
+  const timeZone = resolveShopTimezone(shop);
 
   let count = 0;
   for (const call of inRange) {
@@ -131,6 +155,7 @@ export function countMissedCallsPrevented(
         call.createdAt,
         scheduleRows,
         shop.answerScheduleActive,
+        { scheduleAlwaysOn: shop.scheduleAlwaysOn, timeZone },
       )
     ) {
       continue;
@@ -142,7 +167,10 @@ export function countMissedCallsPrevented(
 
 export function buildMissedCallsPreventedByPeriod(
   calls: CallRecord[],
-  shop: Pick<ShopState, "scheduleWindows" | "answerScheduleActive">,
+  shop: Pick<
+    ShopState,
+    "scheduleWindows" | "answerScheduleActive" | "scheduleAlwaysOn" | "shopTimezone"
+  >,
   now = new Date(),
 ): Record<MissedCallsPeriod, number> {
   return {

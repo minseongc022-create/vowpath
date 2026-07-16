@@ -95,7 +95,22 @@ export async function buildCalendarEvents(
   ]);
 
   const effiroadEvents = native.map((row) => effiroadEvent(row, calls, jobs));
-  const jobberEvents = jobber.map(jobberEvent);
+  const jobberEvents = jobber
+    .map(jobberEvent)
+    .filter((jb) => {
+      const jbStart = new Date(jb.startAt).getTime();
+      const jbEnd = new Date(jb.endAt).getTime();
+      const TOLERANCE_MS = 5 * 60_000;
+      return !effiroadEvents.some((ef) => {
+        const efStart = new Date(ef.startAt).getTime();
+        const efEnd = new Date(ef.endAt).getTime();
+        const startsClose = Math.abs(efStart - jbStart) < TOLERANCE_MS;
+        const endsClose = Math.abs(efEnd - jbEnd) < TOLERANCE_MS;
+        const overlaps =
+          jbStart < efEnd + TOLERANCE_MS && efStart < jbEnd + TOLERANCE_MS;
+        return (startsClose && endsClose) || overlaps;
+      });
+    });
 
   return [...effiroadEvents, ...jobberEvents].sort(
     (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),

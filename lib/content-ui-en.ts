@@ -41,7 +41,7 @@ export const settingsPageEn = {
     "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
   visitHoursTitle: "Customer booking hours",
   visitHoursHint:
-    "When customers can pick a visit (Mon–Sat). Use two blocks or one open-to-close shift.",
+    "When customers can pick a visit (Mon–Sat). This is not the same as AI phone answer hours — use split AM/PM blocks or one continuous shift.",
   visitHoursLayoutLabel: "Schedule style",
   visitHoursLayoutSplit: "Morning & afternoon",
   visitHoursLayoutContinuous: "One continuous block",
@@ -56,12 +56,16 @@ export const settingsPageEn = {
     `Example slots on the next open day: ${range} (back-to-back).`,
   appointmentIntervalLabel: "Time between visits",
   appointmentIntervalHint:
-    "Each slot lasts this long. The next open time starts exactly this many minutes after the previous one.",
+    "How long each visit slot lasts. Booked times block the calendar; the next open slot starts after any buffer you set.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`
       : `Example: first visit at 8:00 AM → next at ${8 + hours}:00 AM (${hours}-hour spacing).`,
   appointmentIntervalPresets: ["1 hr", "1.5 hr", "2 hr", "3 hr"] as const,
+  travelMinutesLabel: "Drive time between jobs",
+  travelMinutesHint:
+    "Minutes after a visit ends before the tech can start the next stop. Added to wrap-up buffer when blocking slots.",
+  travelMinutesFieldLabel: "Travel time (minutes)",
   teamCapacityTitle: "Multiple crews at once (optional)",
   teamCapacityHint:
     "Leave at 1 for a single crew. Raise only if several technicians can take different jobs at the same clock time.",
@@ -73,10 +77,10 @@ export const settingsPageEn = {
     "After a routine job auto-books, reply 9 within this many minutes to cancel it.",
   shadowModeLabel: "Practice calls left",
   shadowModeIntro:
-    "Run the full intake flow — customer and crew texts fire (marked [TEST]). Jobber and calendar stay off until live.",
+    "Practice with real calendar slot holds — same as live. Jobber stays off until you go live.",
   shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
   shadowModePractice:
-    "1+ = Practice - customer & crew SMS still send ([TEST] prefix). No Jobber or calendar writes. Drops by 1 per test call.",
+    "1+ = Practice - calendar slots held like live. SMS marked [TEST]. No Jobber writes. Drops by 1 per test call.",
   stormModeLabel: "Storm surge mode",
   stormModeHint:
     "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",
@@ -148,9 +152,10 @@ export const settingsPageEn = {
   agreementKeeper: {
     title: "Agreement Keeper",
     summary:
-      "After a job is marked complete, offer your maintenance plan by SMS. Track renewals and get reminded before contracts lapse.",
+      "After a job is marked complete, offer your maintenance plan by SMS to customers who opted in to marketing texts at intake. Track renewals and get reminded before contracts lapse.",
     enabledLabel: "Enable Agreement Keeper",
-    offerAfterComplete: "SMS maintenance plan offer when a job is marked complete",
+    offerAfterComplete:
+      "SMS maintenance plan offer when a job is marked complete (marketing opt-in required)",
     defaultPlan: "Default plan name",
     defaultPrice: "Annual price (USD)",
     visitsPerYear: "Tune-ups per year",
@@ -160,6 +165,21 @@ export const settingsPageEn = {
     saving: "Saving…",
     save: "Save PM settings",
     saved: "Saved",
+  },
+  smsCompliance: {
+    title: "SMS compliance (A2P / 10DLC)",
+    summary:
+      "US carriers require business SMS registration before you text customers at scale. Effiroad sends through your Twilio number — you register the shop brand and campaign.",
+    steps: [
+      "In Twilio Console → Messaging → Trust Hub, register your business (EIN or sole prop).",
+      "Create a Messaging Campaign for transactional alerts (booking updates, crew ETA).",
+      "If you send promotional texts (reviews, PM plans, quote follow-ups), register a separate marketing campaign or include both use cases where Twilio allows.",
+      "Link your Effiroad Twilio number to the approved campaign before going live.",
+      "Collect SMS consent on intake — Effiroad records checkboxes; you must honor STOP replies (handled automatically).",
+    ],
+    twilioLink: "https://console.twilio.com/us1/develop/sms/trust-hub",
+    twilioLinkLabel: "Open Twilio Trust Hub",
+    note: "Terms place A2P/10DLC registration on the shop. Contact support if texts fail with carrier error 30007 or similar.",
   },
   serviceAreaZipsHint:
     "ZIP codes your crews actually drive to — not one customer's address. Comma-separated. Leave blank to accept any area.",
@@ -448,14 +468,18 @@ export const authPagesEn = {
       "I agree to the Terms of Service and Privacy Policy (required).",
     consentSmsLabel:
       "I agree to receive service-related text messages at my mobile number — verification codes, new job alerts, and reply 1/2 approvals. Msg & data rates may apply. Reply STOP to opt out. (required)",
-    consentRequired: "Check both agreement boxes to continue.",
+    consentMarketingEmailLabel:
+      "Optional — send me Effiroad product tips and updates by email.",
+    consentMarketingSmsLabel:
+      "Optional — send me Effiroad product tips and updates by text. Msg & data rates may apply. Reply STOP to opt out.",
+    consentRequired: "Check both required agreement boxes to continue.",
   },
 };
 
 export const legalPagesEn = {
   privacy: {
     title: "Privacy Policy",
-    updated: "March 2026",
+    updated: "July 2026",
     sections: [
       {
         heading: "Information we collect",
@@ -471,7 +495,15 @@ export const legalPagesEn = {
       },
       {
         heading: "SMS & TCPA",
-        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply. We store consent timestamps when you sign up or when your customers opt in on intake forms.",
+        body: "Service-related texts include opt-out instructions (Reply STOP). Message and data rates may apply. We store consent timestamps when you sign up or when your customers opt in on intake forms. Transactional texts (booking updates, verification codes) require consent. Promotional texts (offers, maintenance reminders, review requests) require a separate optional opt-in.",
+      },
+      {
+        heading: "Marketing communications",
+        body: "You may optionally opt in to Effiroad product tips by email or text at signup. Customers may optionally opt in to promotional texts on link intake forms. You can opt out anytime via STOP (SMS) or by emailing support.",
+      },
+      {
+        heading: "Cookies & essential storage",
+        body: "We use essential cookies for login sessions, locale preference, and OAuth state (e.g. Jobber). We do not use advertising cookies. See your browser settings to clear cookies.",
       },
       {
         heading: "Your rights (US)",

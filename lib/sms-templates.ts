@@ -208,7 +208,7 @@ export function smsMissedCallTextbackBody(params: {
   url: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: We're sorry we missed your call! Submit your request here (takes 1 min): ${params.url}`;
+  return `${shop}: We're sorry we missed your call! Submit your request here (takes 1 min): ${params.url} Reply STOP to opt out.`;
 }
 
 // ─── 30-minute appointment reminder ─────────────────────────────────────────
@@ -318,7 +318,7 @@ export function smsCustomerQuoteFollowUpBody(params: {
     currency: "USD",
     maximumFractionDigits: 0,
   });
-  return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.`;
+  return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.${smsCustomerOptOut()}`;
 }
 
 export function smsOwnerNoSlotBody(params: {

@@ -58,7 +58,12 @@ export async function processExpiredTechOffersForUser(userId: string): Promise<n
   let escalated = 0;
 
   for (const bookingId of bookingIds) {
-    if (await expireAndEscalateOffer(userId, bookingId, settings.responseTimeoutMinutes)) {
+    const assignment = await getTechAssignment(userId, bookingId);
+    const timeout =
+      assignment?.priority === "P1"
+        ? Math.min(5, settings.responseTimeoutMinutes)
+        : settings.responseTimeoutMinutes;
+    if (await expireAndEscalateOffer(userId, bookingId, timeout)) {
       escalated += 1;
     }
   }
