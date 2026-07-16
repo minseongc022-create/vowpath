@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   const from = params.get("From") ?? "";
   const to = params.get("To") ?? "";
   const body = params.get("Body") ?? "";
+  const userId = to ? await resolveTenantUserId({ to }) : null;
 
   if (/^\s*STOP\s*$/i.test(body.trim())) {
     if (userId) {
@@ -55,8 +56,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const userId = to ? await resolveTenantUserId({ to }) : null;
-
     if (userId) {
       const blocked = await twilioBlockIfNotEntitled(userId, "sms", to);
       if (blocked) return blocked;

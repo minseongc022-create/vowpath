@@ -180,5 +180,3 @@ export async function offerVisitSlotsForTenant(params: {
     jobberScheduleUncertain: ctx.jobberScheduleUncertain,
   });
 }
-
-export { loadSchedulingContext };

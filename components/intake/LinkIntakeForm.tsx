@@ -186,7 +186,6 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
-      smsMarketingConsent,
       copy,
     );
     if (validationError) {
@@ -243,7 +242,6 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
-      smsMarketingConsent,
       copy,
     );
     if (validationError) {
@@ -326,7 +324,6 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       addressValue,
       issueDescription,
       smsConsent,
-      smsMarketingConsent,
       copy,
     );
     if (validationError) {

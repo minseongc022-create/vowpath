@@ -60,7 +60,7 @@ async function resolveAutoTech(params: {
     techs: ordered,
     startMs,
     endMs,
-    gapMs,
+    bufferMs: gapMs,
     laneBookings: ctx.laneBookings,
     preferredTechId: ordered[0]?.id,
   });

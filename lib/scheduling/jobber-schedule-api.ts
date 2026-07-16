@@ -111,33 +111,34 @@ export async function fetchJobberScheduleItems(
   if (!accessToken) return [];
 
   try {
-    const allNodes: Array<{
+    type ScheduleNode = {
       id: string;
       title?: string | null;
       startAt?: string | null;
       endAt?: string | null;
       client?: { name?: string | null } | null;
-    }> = [];
+    };
+    type ScheduledItemsResponse = {
+      scheduledItems?: {
+        nodes: ScheduleNode[];
+        pageInfo?: { hasNextPage?: boolean; endCursor?: string | null };
+      };
+    };
+
+    const allNodes: ScheduleNode[] = [];
     let after: string | null = null;
     let hasNextPage = true;
 
     while (hasNextPage) {
-      const data = await jobberGraphql<{
-        scheduledItems?: {
-          nodes: Array<{
-            id: string;
-            title?: string | null;
-            startAt?: string | null;
-            endAt?: string | null;
-            client?: { name?: string | null } | null;
-          }>;
-          pageInfo?: { hasNextPage?: boolean; endCursor?: string | null };
-        };
-      }>(accessToken, SCHEDULED_ITEMS_QUERY, {
-        from: from.toISOString(),
-        to: to.toISOString(),
-        after,
-      });
+      const data: ScheduledItemsResponse = await jobberGraphql<ScheduledItemsResponse>(
+        accessToken,
+        SCHEDULED_ITEMS_QUERY,
+        {
+          from: from.toISOString(),
+          to: to.toISOString(),
+          after,
+        },
+      );
 
       const page = data.scheduledItems;
       allNodes.push(...(page?.nodes ?? []));
