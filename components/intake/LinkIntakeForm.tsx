@@ -464,6 +464,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
+              <p className="text-xs font-medium text-slate-600">{copy.formStepLabel}</p>
               <p className="text-xs text-slate-500">{copy.formTitle}</p>
             </div>
             <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
@@ -484,10 +485,14 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        <div className="mx-auto max-w-md space-y-6">
-          <p className="text-[15px] leading-relaxed text-slate-600">{copy.formDescription}</p>
+        <div className="mx-auto max-w-md space-y-5">
+          <div className="rounded-2xl border border-brand-200/60 bg-white px-4 py-3 shadow-sm">
+            <p className="text-sm font-medium text-brand-800">{copy.formTrustBanner}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.formDescription}</p>
+          </div>
 
-          <Field label={copy.nameLabel} required>
+          <section className="space-y-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+            <Field label={copy.nameLabel} required>
             <input
               required
               value={customerName}
@@ -518,10 +523,15 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
           </Field>
 
           {isRestoration ? (
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-800">{copy.insuranceSectionLabel}</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.insuranceSectionHint}</p>
-              <div className="mt-4 space-y-4">
+            <details className="group rounded-xl border border-slate-100 bg-slate-50/50">
+              <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between gap-2">
+                  {copy.insuranceSectionToggle}
+                  <span className="text-xs font-normal text-slate-400 group-open:hidden">+</span>
+                </span>
+              </summary>
+              <div className="space-y-4 border-t border-slate-100 px-3 pb-4 pt-3">
+                <p className="text-xs leading-relaxed text-slate-500">{copy.insuranceSectionHint}</p>
                 <Field label={copy.insuranceCarrierLabel}>
                   <input
                     value={insuranceCarrier}
@@ -547,7 +557,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
                     placeholder={copy.waterSourcePlaceholder}
                   />
                 </Field>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-white px-3 py-3">
                   <input
                     type="checkbox"
                     checked={activeLoss}
@@ -557,15 +567,14 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
                   <span className="text-sm leading-relaxed text-slate-700">{copy.activeLossLabel}</span>
                 </label>
               </div>
-            </div>
+            </details>
           ) : null}
 
           {isHvac ? (
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-800">System details</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500">Optional — helps us send the right tech.</p>
-              <div className="mt-4 space-y-4">
-                <Field label="System type (optional)">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+              <p className="text-sm font-semibold text-slate-800">System details (optional)</p>
+              <div className="mt-3 space-y-4">
+                <Field label="System type">
                   <input
                     value={waterSource}
                     onChange={(e) => setWaterSource(e.target.value)}
@@ -573,7 +582,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
                     placeholder="e.g. Gas furnace, heat pump, central AC"
                   />
                 </Field>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-white px-3 py-3">
                   <input
                     type="checkbox"
                     checked={activeLoss}
@@ -585,6 +594,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
               </div>
             </div>
           ) : null}
+          </section>
 
           <div>
             <div className="mb-2 flex items-baseline gap-1.5">
@@ -657,6 +667,10 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
               ))}
             </div>
           </fieldset>
+
+          <p className="rounded-xl bg-brand-50/80 px-3 py-2.5 text-xs leading-relaxed text-brand-900/80">
+            {copy.formNextSteps}
+          </p>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm">
             <input

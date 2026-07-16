@@ -8,17 +8,17 @@ Retell handles the **entire inbound call** when `RETELL_API_KEY` is set — no D
 Customer → +1 (225) 529-1680 (Twilio)
          → register-phone-call + SIP bridge (immediate)
          → Retell conversational agent (entire call)
-         → tools: send_intake_link | submit_intake | submit_estimate
+         → tools: submit_intake | submit_estimate | get_open_slots
 ```
 
 **Default flow:** Twilio plays the main menu first (press 1 = service, press 2 = estimate), then connects to Retell when the caller chooses phone intake. Set `RETELL_SKIP_DTMF_MENU=true` to skip the menu and connect straight to Retell.
 
-The agent explains services verbally, detects intent (emergency vs estimate), then offers **link vs phone** in conversation.
+The agent collects intake on the phone — one question at a time, soft and clear. Text links are only via Twilio menu press 2, not mid-call.
 
 Example flow:
-- Caller: "I need a free estimate"
-- AI: "Happy to help — would you like me to text you a quick form, or walk through it together on the phone?"
-- Link → `send_intake_link` tool | Phone → collect details → `submit_estimate`
+- Caller presses 1 (service) → 1 (talk now)
+- AI: "I'm here with you. What's your name?"
+- Collects address, issue, read-back → `submit_intake`
 
 **Auto-sync:** On every Vercel production deploy, `postbuild-retell-sync.mjs` pushes the latest prompt and tools to Retell (when `RETELL_API_KEY` is set in Vercel).
 
@@ -56,7 +56,7 @@ npm run retell:sync
 This script (same logic as production postbuild sync):
 
 - Sets Retell inbound webhook → `https://effiroad.com/api/retell/inbound`
-- Pushes `general_prompt`, `begin_message`, and all tools (`send_intake_link`, `submit_intake`, `submit_estimate`)
+- Pushes `general_prompt`, `begin_message`, and tools (`submit_intake`, `submit_estimate`, `get_open_slots`)
 - Tunes agent voice (natural US receptionist), backchannel ("mm-hmm", "yeah"), and slower, more patient pacing
 - Binds Retell phone → tenant in KV (when `TWILIO_DEFAULT_USER_ID` set)
 

@@ -91,7 +91,6 @@ export function retellToolUrls() {
     inbound: `${base}/api/retell/inbound`,
     submitIntake: `${base}/api/retell/tools/submit-intake`,
     submitEstimate: `${base}/api/retell/tools/submit-estimate`,
-    sendIntakeLink: `${base}/api/retell/tools/send-intake-link`,
   };
 }
 
