@@ -13,7 +13,7 @@ export const VOICE_EMERGENCY_DEMO: DemoStep[] = [
   { role: "system", text: "Incoming call · 2:14 AM", delay: 500 },
   {
     role: "ai",
-    text: "Hi there, thanks for calling Ridgeline Restoration! I can help right now — what's going on?",
+    text: "Hey, thanks for calling Ridgeline Restoration. What's going on?",
     delay: 900,
   },
   {
@@ -23,24 +23,30 @@ export const VOICE_EMERGENCY_DEMO: DemoStep[] = [
   },
   {
     role: "ai",
-    text: "I'm really glad you called — we're gonna take care of this. Can I get your name and the address?",
+    text: "I'm really glad you called — we'll take care of this. What's your name?",
     delay: 1500,
   },
-  { role: "caller", text: "Mike Wilson, 4821 Oak Drive, Austin.", delay: 1800 },
+  { role: "caller", text: "Mike Wilson.", delay: 1600 },
   {
     role: "ai",
-    text: "Got it, Mike. Sounds like a sewage backup — I'm flagging this urgent and alerting the team now.",
+    text: "Thanks, Mike. What's the full property address — street, city, and state?",
+    delay: 1400,
+  },
+  { role: "caller", text: "4821 Oak Drive, Austin, Texas.", delay: 1800 },
+  {
+    role: "ai",
+    text: "A sewage backup can move fast. I'm marking this urgent and texting the owner for approval now.",
     delay: 1400,
   },
   {
     role: "sms",
-    text: "NEW JOB · Mike Wilson · 4821 Oak Dr · Sewage backup, rising · P1 URGENT · Reply 1 to dispatch",
+    text: "NEW JOB · Mike Wilson · 4821 Oak Dr · Sewage backup, rising · P1 · Reply 1 to dispatch · 2 pass",
     delay: 1100,
   },
   { role: "system", text: "Owner replied 1 · Crew dispatched", delay: 2000 },
   {
     role: "ai",
-    text: "You're in good hands, Mike — a tech is on the way. You'll get a text with their ETA shortly.",
+    text: "You're all set, Mike — a tech is on the way. You'll get a text with their ETA shortly.",
     delay: 1400,
   },
   { role: "system", text: "Intake saved · Dispatched · 4 min 12 sec", delay: 1200 },
@@ -106,7 +112,7 @@ export const DEMO_SCENES: Record<
   { title: string; subtitle: string; steps: DemoStep[]; statusTime: string }
 > = {
   voice: {
-    title: "Voice AI Intake",
+    title: "Voice Intake",
     subtitle: "Emergency call → intake → dispatch",
     steps: VOICE_EMERGENCY_DEMO,
     statusTime: "2:14 AM",

@@ -13,21 +13,25 @@ const EDGE_RATE = "+0%";
 const EDGE_PITCH = "+0Hz";
 
 const CLIPS = [
-  // Restoration voice call
+  // Restoration voice call — one question per turn
   {
     file: "voice-ai-0.mp3",
-    text: "Hey, thanks for calling Ridgeline Restoration. I'm here with you. Tell me what's happening.",
+    text: "Hey, thanks for calling Ridgeline Restoration. What's going on?",
   },
   {
     file: "voice-ai-1.mp3",
-    text: "I'm really glad you called. We'll take care of this. What's your name, and what's the property address?",
+    text: "I'm really glad you called. We'll take care of this. What's your name?",
   },
   {
     file: "voice-ai-2.mp3",
-    text: "Thank you, Mike. A sewage backup can move fast, so I'm marking this urgent and texting the owner for approval now.",
+    text: "Thanks, Mike. What's the full property address — street, city, and state?",
   },
   {
     file: "voice-ai-3.mp3",
+    text: "A sewage backup can move fast. I'm marking this urgent and texting the owner for approval now.",
+  },
+  {
+    file: "voice-ai-4.mp3",
     text: "You're all set, Mike. Jake accepted the job and is heading your way. You'll get his ETA by text in just a moment.",
   },
   // Restoration overview
@@ -72,35 +76,43 @@ const CLIPS = [
     file: "link-narr-4.mp3",
     text: "From there, you can approve dispatch, schedule the visit, or call back with the full context already captured.",
   },
-  // HVAC no-heat voice call
+  // HVAC no-heat voice call — one question per turn
   {
     file: "voice-hvac-0.mp3",
-    text: "Comfort Air HVAC, thanks for calling. I'm here to help. Who am I speaking with, and what's going on at the house?",
+    text: "Comfort Air HVAC, thanks for calling. What's going on at the house?",
   },
   {
     file: "voice-hvac-1.mp3",
-    text: "I'm sorry you're dealing with that, especially this early. Quick safety check: do you smell gas or hear any sparking?",
+    text: "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
   },
   {
     file: "voice-hvac-2.mp3",
-    text: "Good. No gas smell. What's the address, and about how cold is it inside right now?",
+    text: "Good. No gas smell. What's your name?",
   },
   {
     file: "voice-hvac-3.mp3",
-    text: "Got it, Sarah. That's a verified no-heat call, so I'm dispatching your on-call tech now. You'll get an ETA text shortly.",
+    text: "Thanks, Sarah. What's the full service address?",
+  },
+  {
+    file: "voice-hvac-4.mp3",
+    text: "Got it. That's a verified no-heat call, so I'm dispatching your on-call tech now. You'll get an ETA text shortly.",
   },
   // HVAC gas smell hold
   {
     file: "voice-hvac-gas-0.mp3",
-    text: "Comfort Air HVAC, you've reached us. I'm here with you. Tell me what's happening, and whether anyone feels sick.",
+    text: "Comfort Air HVAC, you've reached us. Tell me what's happening — and whether anyone feels sick.",
   },
   {
     file: "voice-hvac-gas-1.mp3",
-    text: "I hear you. Gas smell is serious, so I'm not sending anyone blindly. What's your name and the address?",
+    text: "I hear you. Gas smell is serious, so I'm not sending anyone blindly. What's your name?",
   },
   {
     file: "voice-hvac-gas-2.mp3",
-    text: "Thank you. I'm holding this as a safety call and texting the owner now, so they can decide the safest next step.",
+    text: "Thank you. What's the full property address?",
+  },
+  {
+    file: "voice-hvac-gas-3.mp3",
+    text: "Got it. I'm holding this as a safety call and texting the owner now, so they can decide the safest next step.",
   },
   // HVAC overview
   {
