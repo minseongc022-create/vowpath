@@ -21,6 +21,8 @@ const DOMAINS = [
   "link.vowroad.com",
   "book.vowroad.com",
   "go.vowroad.com",
+  "hvacsvc.link",
+  "www.hvacsvc.link",
 ];
 
 async function api(path, method = "GET", body) {

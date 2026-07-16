@@ -6,6 +6,8 @@ export const MARKETING_HOST_ALIASES = new Set([
   "www.effiroad.com",
   "vowroad.com",
   "www.vowroad.com",
+  "hvacsvc.link",
+  "www.hvacsvc.link",
 ]);
 
 /** Legacy vowroad subdomains → current effiroad portal/marketing host (hostname only). */

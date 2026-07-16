@@ -21,6 +21,18 @@
     },
     {
       "source": "/:path*",
+      "has": [{ "type": "host", "value": "hvacsvc.link" }],
+      "destination": "https://effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.hvacsvc.link" }],
+      "destination": "https://effiroad.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
       "has": [{ "type": "host", "value": "link.vowroad.com" }],
       "destination": "https://link.effiroad.com/:path*",
       "permanent": true

@@ -15,6 +15,8 @@ const OPTIONAL_REDIRECTS = [
   ["https://vowroad.com/", "https://effiroad.com/"],
   ["https://www.vowroad.com/", "https://effiroad.com/"],
   ["https://link.vowroad.com/r/test", "https://link.effiroad.com/r/test"],
+  ["https://hvacsvc.link/get-started", "https://effiroad.com/get-started"],
+  ["https://www.hvacsvc.link/get-started", "https://effiroad.com/get-started"],
 ];
 
 async function checkRedirect(from, expectedPrefix) {
@@ -27,7 +29,7 @@ async function checkRedirect(from, expectedPrefix) {
       loc.replace(/\/$/, "").startsWith(expectedPrefix.replace(/\/$/, ""));
     console.log(`${ok ? "✓" : "✗"} ${from} → ${res.status} ${loc || "(no location)"}`);
     if (!ok && (res.status === 404 || res.status === 0)) {
-      console.log("    ↳ Run: npm run porkbun:forward (ALIAS @ → uixie.porkbun.com + URL forward)");
+      console.log("    ↳ Run: npm run porkbun:forward or npm run porkbun:hvacsvc, then npm run vercel:domains");
     }
     return ok;
   } catch (e) {

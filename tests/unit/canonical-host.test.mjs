@@ -10,6 +10,8 @@ import {
 assert.equal(normalizeHostname("WWW.Effiroad.com:443"), "www.effiroad.com");
 assert.equal(isMarketingHostAlias("www.effiroad.com"), true);
 assert.equal(isMarketingHostAlias("vowroad.com"), true);
+assert.equal(isMarketingHostAlias("hvacsvc.link"), true);
+assert.equal(isMarketingHostAlias("www.hvacsvc.link"), true);
 assert.equal(isMarketingHostAlias("effiroad.com"), false);
 assert.equal(isMarketingHostAlias("link.effiroad.com"), false);
 assert.equal(
@@ -24,6 +26,14 @@ assert.equal(
 assert.equal(
   buildCanonicalRedirectUrl("link.vowroad.com", "/r/abc", ""),
   "https://link.effiroad.com/r/abc",
+);
+assert.equal(
+  buildCanonicalRedirectUrl("hvacsvc.link", "/get-started", ""),
+  "https://effiroad.com/get-started",
+);
+assert.equal(
+  buildCanonicalRedirectUrl("www.hvacsvc.link", "/get-started", "?ref=1"),
+  "https://effiroad.com/get-started?ref=1",
 );
 
 console.log("canonical-host checks passed");
