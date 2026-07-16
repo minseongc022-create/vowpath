@@ -9,7 +9,7 @@ import {
 } from "@/lib/demo-vertical-config";
 
 const VISIBLE_RATIO = 0.35;
-const CACHE_V = "8";
+const CACHE_V = "9";
 
 type DemoVideoHeroProps = {
   vertical?: DemoVertical;
