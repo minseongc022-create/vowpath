@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listJobs, patchJobRecord } from "@/lib/jobs-db";
 import { listUsers } from "@/lib/users-db";
+import { hasCustomerMarketingSmsConsent } from "@/lib/customer-marketing-consent";
 import { notifyCustomerQuoteFollowUp } from "@/lib/customer-sms";
 
 const FOLLOW_UP_AFTER_DAYS = 3;
@@ -46,6 +47,12 @@ export async function GET(request: Request) {
 
       for (const job of due) {
         try {
+          if (!(await hasCustomerMarketingSmsConsent(user.id, job.id))) {
+            await patchJobRecord(user.id, job.id, {
+              quoteFollowUpSentAt: new Date().toISOString(),
+            });
+            continue;
+          }
           await notifyCustomerQuoteFollowUp({
             userId: user.id,
             bookingId: job.id,

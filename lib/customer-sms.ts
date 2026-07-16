@@ -1,6 +1,6 @@
+import { hasCustomerMarketingSmsConsent } from "./customer-marketing-consent";
 import type { RequestStatus } from "./booking-policy";
 import { resolveBookingCustomerPhone } from "./booking-contact";
-import { listCallLogs } from "./call-logs";
 import { extractIssueType } from "./recent-bookings";
 import { sendSms, type SmsSendContext } from "./send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "./sms-dedupe";
@@ -208,7 +208,7 @@ export async function notifyCustomerReviewRequest(params: {
     return;
   }
 
-  if (!(await customerMarketingSmsAllowed(params.userId, params.bookingId))) {
+  if (!(await hasCustomerMarketingSmsConsent(params.userId, params.bookingId))) {
     console.info(
       `[customer-sms] skip review_request — no marketing SMS consent for ${params.bookingId}`,
     );
@@ -226,18 +226,6 @@ export async function notifyCustomerReviewRequest(params: {
   });
 }
 
-async function customerMarketingSmsAllowed(
-  userId: string,
-  bookingId: string,
-): Promise<boolean> {
-  if (!bookingId.startsWith("call-")) return false;
-  const callId = bookingId.slice("call-".length);
-  const logs = await listCallLogs(userId);
-  const call = logs.find((c) => c.id === callId);
-  return Boolean(call?.customerSmsConsent?.smsMarketingAt);
-}
-
-/** SMS nudge for a customer who was quoted but hasn't booked N days later. */
 export async function notifyCustomerQuoteFollowUp(params: {
   userId: string;
   bookingId: string;
@@ -254,7 +242,7 @@ export async function notifyCustomerQuoteFollowUp(params: {
     return;
   }
 
-  if (!(await customerMarketingSmsAllowed(params.userId, params.bookingId))) {
+  if (!(await hasCustomerMarketingSmsConsent(params.userId, params.bookingId))) {
     console.info(
       `[customer-sms] skip quote_follow_up — no marketing SMS consent for ${params.bookingId}`,
     );

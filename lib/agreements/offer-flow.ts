@@ -1,3 +1,4 @@
+import { hasCustomerMarketingSmsConsent } from "../customer-marketing-consent";
 import { getPublicAppUrl } from "../app-url";
 import { getPortalBaseUrl } from "../portal-url";
 import { findUserById } from "../users-db";
@@ -33,6 +34,13 @@ export async function maybeOfferMaintenancePlan(
 
   const phone = customer.phone?.trim();
   if (!phone) return { offered: false, reason: "no_phone" };
+
+  if (!(await hasCustomerMarketingSmsConsent(userId, bookingId))) {
+    console.info(
+      `[agreement-offer] skip — no marketing SMS consent for ${bookingId}`,
+    );
+    return { offered: false, reason: "no_marketing_consent" };
+  }
 
   const shopName = await shopDisplayNameForUser(userId);
 

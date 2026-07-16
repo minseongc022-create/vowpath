@@ -152,9 +152,10 @@ export const settingsPageEn = {
   agreementKeeper: {
     title: "Agreement Keeper",
     summary:
-      "After a job is marked complete, offer your maintenance plan by SMS. Track renewals and get reminded before contracts lapse.",
+      "After a job is marked complete, offer your maintenance plan by SMS to customers who opted in to marketing texts at intake. Track renewals and get reminded before contracts lapse.",
     enabledLabel: "Enable Agreement Keeper",
-    offerAfterComplete: "SMS maintenance plan offer when a job is marked complete",
+    offerAfterComplete:
+      "SMS maintenance plan offer when a job is marked complete (marketing opt-in required)",
     defaultPlan: "Default plan name",
     defaultPrice: "Annual price (USD)",
     visitsPerYear: "Tune-ups per year",
@@ -164,6 +165,21 @@ export const settingsPageEn = {
     saving: "Saving…",
     save: "Save PM settings",
     saved: "Saved",
+  },
+  smsCompliance: {
+    title: "SMS compliance (A2P / 10DLC)",
+    summary:
+      "US carriers require business SMS registration before you text customers at scale. Effiroad sends through your Twilio number — you register the shop brand and campaign.",
+    steps: [
+      "In Twilio Console → Messaging → Trust Hub, register your business (EIN or sole prop).",
+      "Create a Messaging Campaign for transactional alerts (booking updates, crew ETA).",
+      "If you send promotional texts (reviews, PM plans, quote follow-ups), register a separate marketing campaign or include both use cases where Twilio allows.",
+      "Link your Effiroad Twilio number to the approved campaign before going live.",
+      "Collect SMS consent on intake — Effiroad records checkboxes; you must honor STOP replies (handled automatically).",
+    ],
+    twilioLink: "https://console.twilio.com/us1/develop/sms/trust-hub",
+    twilioLinkLabel: "Open Twilio Trust Hub",
+    note: "Terms place A2P/10DLC registration on the shop. Contact support if texts fail with carrier error 30007 or similar.",
   },
   serviceAreaZipsHint:
     "ZIP codes your crews actually drive to — not one customer's address. Comma-separated. Leave blank to accept any area.",

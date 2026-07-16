@@ -704,7 +704,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
           ) : null}
           <button
             type="submit"
-            disabled={loading || slotsLoading}
+            disabled={loading || slotsLoading || !smsConsent}
             className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading || slotsLoading ? copy.slotStepLoading : copy.submit}
