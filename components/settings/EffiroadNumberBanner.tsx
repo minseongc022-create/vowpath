@@ -34,22 +34,27 @@ export function EffiroadNumberBanner({
 
   if (layout === "bar") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-300 bg-white px-3 py-2.5 shadow-sm sm:px-4 sm:py-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-brand-700 sm:text-xs">
-            {mode === "dedicated" ? c.badgeDedicated : c.badgeOverflow}
-          </p>
-          <p className="font-mono text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
-            {national}
-          </p>
+      <div className="rounded-xl border-2 border-brand-400 bg-white px-3 py-3 shadow-sm sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-700">
+              {mode === "dedicated" ? c.badgeDedicated : c.badgeOverflow}
+            </p>
+            <p className="font-mono text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
+              {national}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void copyNumber()}
+            className="shrink-0 rounded-lg bg-brand-600 px-4 py-2.5 text-base font-semibold text-white hover:bg-brand-500"
+          >
+            {copied ? settingsPage.forwardingCopied : settingsPage.forwardingCopy}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void copyNumber()}
-          className="shrink-0 rounded-lg bg-brand-600 px-4 py-2.5 text-base font-semibold text-white hover:bg-brand-500"
-        >
-          {copied ? settingsPage.forwardingCopied : settingsPage.forwardingCopy}
-        </button>
+        <p className="mt-2 text-base leading-snug text-slate-700">
+          {mode === "dedicated" ? c.noteDedicated : c.barHintOverflow}
+        </p>
       </div>
     );
   }

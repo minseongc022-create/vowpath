@@ -549,6 +549,7 @@ const settingsPageKo = {
     noteOverflow: "샵 번호는 구글·웹사이트에 그대로 둡니다.",
     noteDedicated: "옛 번호는 구글·간판 업데이트 전까지 개인 연락처에만 두면 됩니다.",
     carrierPasteHint: "앱에서 +1을 요구하면 {e164}를 사용하세요.",
+    barHintOverflow: "Dialpad·통신사에서 착신 전환 번호를 물을 때 이 번호를 붙여 넣으세요.",
   },
   forwardingValueHero: {
     badge: "Effiroad가 다른 점",
@@ -565,9 +566,10 @@ const settingsPageKo = {
   forwardingMoreHelp: "추가 도움 (선택)",
   forwardingWizardSteps: {
     choosePath: "경로 선택",
-    setUp: "설정",
+    setUp: "착신전환 설정",
     testCall: "테스트 통화",
   },
+  forwardingSetupPrompt: "아래에서 전화 종류를 고르세요. 탭·복사 단계가 바로 아래에 나옵니다.",
   forwardingWhatYouAreSetting: "설정하는 내용",
   forwardingProviderTitle: "전화 환경 선택",
   forwardingProviderHint:
@@ -609,10 +611,11 @@ const settingsPageKo = {
   },
   forwardingChangePath: "← 다른 설정 경로 선택",
   forwardingPathPicker: {
-    badge: "설정 방법 선택",
-    title: "어떻게 연결할까요?",
-    subtitle:
-      "경로 하나를 고르세요. Effiroad 번호는 위에 있습니다 — 착신 전환 번호를 물을 때 복사해 붙여 넣으세요.",
+    badge: "1단계 · 전화 종류",
+    title: "고객이 거는 번호는?",
+    subtitle: "하나만 탭하세요. 착신전환 단계가 바로 아래에 나옵니다.",
+    selectedLabel: "전화 종류: {type}",
+    changeType: "변경",
     bestBadge: "가장 쉬움",
     pickCarrier: "샵 휴대폰 통신사는?",
     pickVoip: "업무 전화 시스템은?",
@@ -628,18 +631,22 @@ const settingsPageKo = {
       dedicated_line: {
         title: "Effiroad 전용번호",
         description: "착신 코드 없음. 구글·웹·트럭에 번호만 올리면 ~10분.",
+        shortDescription: "착신전환 없음 — Effiroad 번호를 메인으로",
       },
       cell_overflow: {
-        title: "기존 휴대폰 + 원탭 overflow",
+        title: "샵 휴대폰",
         description: "내 폰이 먼저 울림. 못 받으면 Effiroad. AT&T/T-Mobile/Verizon/Xfinity.",
+        shortDescription: "먼저 울림 → 못 받으면 Effiroad",
       },
       business_voip: {
-        title: "Jobber Phone / Dialpad / RingCentral",
+        title: "Dialpad / Jobber Phone / RingCentral",
         description: "VoIP 관리자에서 미응답/Fallback → Effiroad 외부 번호.",
+        shortDescription: "Dialpad·VoIP에 Effiroad 번호 붙여넣기",
       },
       google_voice: {
-        title: "Google Voice 착신",
+        title: "Google Voice",
         description: "GV가 메인일 때. 휴대폰 overflow는 불안정 — 아래 경고 참고.",
+        shortDescription: "voice.google.com에서 전환",
       },
       quiz: {
         title: "도와줘",

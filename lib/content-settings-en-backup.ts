@@ -111,6 +111,7 @@ export const SETTINGS_PAGE_EN = {
     noteOverflow: "Your shop number stays on Google and your website.",
     noteDedicated: "Your old number can stay on personal contacts until marketing is updated.",
     carrierPasteHint: "Some apps want +1 included — use {e164} if asked.",
+    barHintOverflow: "Paste this number when Dialpad or your carrier asks for a forward-to number.",
   },
   forwardingValueHero: {
     badge: "Why Effiroad",
@@ -127,9 +128,11 @@ export const SETTINGS_PAGE_EN = {
   forwardingMoreHelp: "More help (optional)",
   forwardingWizardSteps: {
     choosePath: "Choose path",
-    setUp: "Set up",
+    setUp: "Set up forwarding",
     testCall: "Test call",
   },
+  forwardingSetupPrompt:
+    "Pick your phone type below. Tap / copy steps show up right under it — no extra quiz.",
   forwardingWhatYouAreSetting: "What you are setting up",
   forwardingProviderTitle: "Pick your phone system",
   forwardingProviderHint:
@@ -175,10 +178,11 @@ export const SETTINGS_PAGE_EN = {
   },
   forwardingChangePath: "← Pick a different setup path",
   forwardingPathPicker: {
-    badge: "Choose your setup",
-    title: "How do you want to connect?",
-    subtitle:
-      "Pick one path. Your Effiroad number is at the top — copy it when a step asks for a forward-to number.",
+    badge: "Step 1 · Phone type",
+    title: "What phone do customers call?",
+    subtitle: "Tap one option. Forwarding steps appear below immediately.",
+    selectedLabel: "Phone type: {type}",
+    changeType: "Change",
     bestBadge: "Easiest",
     pickCarrier: "Which carrier is your shop cell on?",
     pickVoip: "Which business phone system?",
@@ -194,18 +198,22 @@ export const SETTINGS_PAGE_EN = {
       dedicated_line: {
         title: "Effiroad dedicated number",
         description: "No carrier codes. Put our number on Google, website, and trucks — test in 10 minutes.",
+        shortDescription: "No forwarding — use Effiroad number everywhere",
       },
       cell_overflow: {
-        title: "Keep your cell — one-tap overflow",
+        title: "Shop cell phone",
         description: "Your shop phone rings first. Miss it → Effiroad. AT&T, T-Mobile, Verizon, or Xfinity.",
+        shortDescription: "Ring first → Effiroad if you miss it",
       },
       business_voip: {
-        title: "Jobber Phone / Dialpad / RingCentral",
+        title: "Dialpad / Jobber Phone / RingCentral",
         description: "Set unanswered or Fallback routing to Effiroad in your VoIP admin portal.",
+        shortDescription: "Paste Effiroad in Dialpad / VoIP admin",
       },
       google_voice: {
-        title: "Google Voice forward",
+        title: "Google Voice",
         description: "Best when GV is your main line. Overflow to your cell is unreliable — see warning below.",
+        shortDescription: "Forward from voice.google.com",
       },
       quiz: {
         title: "Help me choose",
