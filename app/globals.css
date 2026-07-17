@@ -1428,22 +1428,6 @@
       padding-left: 1rem;
       padding-right: 1rem;
     }
-
-    .vow-dash-settings > header {
-      @apply px-3 py-3 sm:px-6 sm:py-5;
-    }
-
-    .vow-dash-settings > header h1 {
-      @apply text-xl sm:text-3xl;
-    }
-
-    .vow-dash-settings > header .text-base {
-      @apply mt-1 text-sm leading-snug sm:mt-2 sm:text-lg;
-    }
-
-    .vow-dash-settings > header span[aria-hidden] {
-      @apply h-10 w-10 text-lg sm:h-14 sm:w-14 sm:text-2xl;
-    }
   }
 }
 
