@@ -13,15 +13,16 @@ import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
 
 type Props = {
   onSelect: (provider: ForwardingProviderId, pathId: ForwardingSetupPathId) => void;
+  /** When set, show compact summary instead of full list */
+  selectedProvider?: ForwardingProviderId | null;
+  onChangePath?: () => void;
 };
 
-const confidenceStyles = {
-  highest: "border-emerald-400 bg-emerald-50/80 ring-emerald-200",
-  high: "border-brand-300 bg-white",
-  medium: "border-amber-300 bg-amber-50/50",
-} as const;
-
-export function ForwardingPathPicker({ onSelect }: Props) {
+export function ForwardingPathPicker({
+  onSelect,
+  selectedProvider = null,
+  onChangePath,
+}: Props) {
   const p = settingsPage.forwardingPathPicker;
   const [subPick, setSubPick] = useState<ForwardingSetupPathId | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -38,22 +39,24 @@ export function ForwardingPathPicker({ onSelect }: Props) {
 
   if (subPick === "cell_overflow") {
     return (
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
         <p className="text-lg font-bold text-slate-900">{p.pickCarrier}</p>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
           {CELL_CARRIER_OPTIONS.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => onSelect(c.id, "cell_overflow")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-left hover:border-brand-400"
+              className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400"
             >
               <span className="text-base font-semibold text-slate-900">{c.label}</span>
-              <p className="mt-1 text-sm leading-relaxed text-stone-600">{c.hint}</p>
+              <span className="text-brand-600" aria-hidden="true">
+                →
+              </span>
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
+        <button type="button" onClick={() => setSubPick(null)} className="text-base font-semibold text-brand-700 underline">
           {p.back}
         </button>
       </div>
@@ -62,82 +65,125 @@ export function ForwardingPathPicker({ onSelect }: Props) {
 
   if (subPick === "business_voip") {
     return (
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
         <p className="text-lg font-bold text-slate-900">{p.pickVoip}</p>
-        <div className="grid gap-2">
+        <div className="flex flex-col gap-2">
           {VOIP_SYSTEM_OPTIONS.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => onSelect(c.id, "business_voip")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-left hover:border-brand-400"
+              className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400"
             >
               <span className="text-base font-semibold text-slate-900">{c.label}</span>
-              <p className="mt-1 text-sm leading-relaxed text-stone-600">{c.hint}</p>
+              <span className="text-brand-600" aria-hidden="true">
+                →
+              </span>
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
+        <button type="button" onClick={() => setSubPick(null)} className="text-base font-semibold text-brand-700 underline">
           {p.back}
         </button>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-brand-700">{p.badge}</p>
-        <p className="mt-1 text-xl font-bold text-brand-950">{p.title}</p>
-        <p className="mt-2 text-base leading-relaxed text-slate-600">{p.subtitle}</p>
-      </div>
+  if (selectedProvider && onChangePath) {
+    const label =
+      CELL_CARRIER_OPTIONS.find((c) => c.id === selectedProvider)?.label ??
+      VOIP_SYSTEM_OPTIONS.find((c) => c.id === selectedProvider)?.label ??
+      p.paths[
+        selectedProvider === "effiroad_main"
+          ? "dedicated_line"
+          : selectedProvider === "google_voice"
+            ? "google_voice"
+            : "cell_overflow"
+      ]?.title ??
+      selectedProvider;
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        {FORWARDING_OVERFLOW_PATHS.map((path) => {
-          const copy = p.paths[path.id];
-          const style = confidenceStyles[path.confidence];
-          return (
-            <button
-              key={path.id}
-              type="button"
-              onClick={() => {
-                if (path.provider) {
-                  onSelect(path.provider, path.id);
-                  return;
-                }
-                if (path.requiresCarrierPick) {
-                  setSubPick("cell_overflow");
-                  return;
-                }
-                if (path.requiresVoipPick) {
-                  setSubPick("business_voip");
-                  return;
-                }
-              }}
-              className={`rounded-xl border-2 p-4 text-left ring-2 ring-transparent transition hover:ring-brand-200 ${style}`}
-            >
-              <span className="text-base font-bold text-slate-900">{copy.title}</span>
-              <p className="mt-2 text-base leading-relaxed text-stone-700">{copy.description}</p>
-              <p className="mt-2 text-sm font-semibold text-brand-800">
-                {path.successLabel} · {path.timeLabel}
-              </p>
-            </button>
-          );
-        })}
-
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/80 px-4 py-3">
+        <p className="text-base font-semibold text-brand-950">{p.selectedLabel.replace("{type}", label)}</p>
         <button
           type="button"
-          onClick={() => onSelect("effiroad_main", "dedicated_line")}
-          className="col-span-2 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-3 text-left ring-2 ring-transparent transition hover:ring-emerald-200 sm:p-4"
+          onClick={onChangePath}
+          className="text-base font-semibold text-brand-700 underline"
         >
-          <span className="text-base font-bold text-emerald-950">
-            {p.paths.dedicated_line.title}
-          </span>
-          <p className="mt-2 text-base leading-relaxed text-emerald-900">
-            {p.paths.dedicated_line.description}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-emerald-800">{p.bestBadge}</p>
+          {p.changeType}
         </button>
+      </div>
+    );
+  }
+
+  const pathButtons: {
+    key: string;
+    title: string;
+    description: string;
+    onClick: () => void;
+    highlight?: boolean;
+  }[] = [
+    ...FORWARDING_OVERFLOW_PATHS.map((path) => {
+      const copy = p.paths[path.id] as { title: string; description: string; shortDescription?: string };
+      return {
+        key: path.id,
+        title: copy.title,
+        description: copy.shortDescription ?? copy.description,
+        onClick: () => {
+          if (path.provider) {
+            onSelect(path.provider, path.id);
+            return;
+          }
+          if (path.requiresCarrierPick) {
+            setSubPick("cell_overflow");
+            return;
+          }
+          if (path.requiresVoipPick) {
+            setSubPick("business_voip");
+          }
+        },
+      };
+    }),
+    {
+      key: "dedicated_line",
+      title: p.paths.dedicated_line.title,
+      description:
+        (p.paths.dedicated_line as { shortDescription?: string }).shortDescription ??
+        p.paths.dedicated_line.description,
+      onClick: () => onSelect("effiroad_main", "dedicated_line"),
+      highlight: true,
+    },
+  ];
+
+  return (
+    <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide text-brand-700">{p.badge}</p>
+        <p className="mt-1 text-lg font-bold text-brand-950">{p.title}</p>
+        <p className="mt-1 text-base leading-snug text-slate-600">{p.subtitle}</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {pathButtons.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={item.onClick}
+            className={`flex min-h-[56px] w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition active:scale-[0.99] ${
+              item.highlight
+                ? "border-emerald-300 bg-emerald-50/70 hover:border-emerald-400"
+                : "border-slate-200 bg-white hover:border-brand-400"
+            }`}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-bold text-slate-900">{item.title}</span>
+              <span className="mt-0.5 block text-sm leading-snug text-stone-600">{item.description}</span>
+            </span>
+            <span className="shrink-0 text-xl font-bold text-brand-600" aria-hidden="true">
+              →
+            </span>
+          </button>
+        ))}
       </div>
 
       <button
