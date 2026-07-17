@@ -34,27 +34,32 @@ export function EffiroadNumberBanner({
 
   if (layout === "bar") {
     return (
-      <div className="rounded-xl border-2 border-brand-400 bg-white px-3 py-3 shadow-sm sm:px-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-lg border-2 border-brand-400 bg-white px-2.5 py-2 shadow-sm sm:rounded-xl sm:px-4 sm:py-3">
+        <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-brand-700">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-brand-700 sm:text-xs">
               {mode === "dedicated" ? c.badgeDedicated : c.badgeOverflow}
             </p>
-            <p className="font-mono text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
+            <p className="font-mono text-xl font-bold leading-none tracking-tight text-brand-950 sm:text-3xl">
               {national}
             </p>
           </div>
           <button
             type="button"
             onClick={() => void copyNumber()}
-            className="shrink-0 rounded-lg bg-brand-600 px-4 py-2.5 text-base font-semibold text-white hover:bg-brand-500"
+            className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500 sm:px-4 sm:py-2.5 sm:text-base"
           >
             {copied ? settingsPage.forwardingCopied : settingsPage.forwardingCopy}
           </button>
         </div>
-        <p className="mt-2 text-base leading-snug text-slate-700">
+        <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:mt-2 sm:text-sm">
           {mode === "dedicated" ? c.noteDedicated : c.barHintOverflow}
         </p>
+        {mode === "overflow" ? (
+          <p className="mt-1 text-xs leading-snug text-slate-500 sm:text-sm">
+            {c.carrierPasteHint.replace("{e164}", e164)}
+          </p>
+        ) : null}
       </div>
     );
   }

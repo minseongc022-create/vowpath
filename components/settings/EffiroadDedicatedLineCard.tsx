@@ -38,7 +38,7 @@ export function EffiroadDedicatedLineCard({
 
   return (
     <div
-      className={`rounded-xl border-2 p-4 sm:p-5 ${
+      className={`rounded-xl border-2 p-3 sm:p-5 ${
         isFallback
           ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-white shadow-sm"
           : "border-emerald-200 bg-emerald-50/50"
@@ -47,30 +47,28 @@ export function EffiroadDedicatedLineCard({
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">
         {isFallback ? c.fallbackBadge : c.badge}
       </p>
-      <p className="mt-2 text-lg font-bold text-emerald-950">
+      <p className="mt-1.5 text-base font-bold text-emerald-950 sm:mt-2 sm:text-lg">
         {isFallback ? c.fallbackTitle : c.title}
       </p>
-      <p className="mt-2 text-sm leading-relaxed text-emerald-900/90">
+      <p className="mt-1.5 text-sm leading-snug text-emerald-900/90 sm:mt-2 sm:leading-relaxed">
         {isFallback ? c.fallbackBody : c.body}
       </p>
-      <p className="mt-2 rounded-lg border border-emerald-300/60 bg-white/60 px-3 py-2 text-sm font-medium text-emerald-900">
+      <p className="mt-2 rounded-lg border border-emerald-300/60 bg-white/60 px-3 py-2 text-sm font-medium leading-snug text-emerald-900">
         {c.equalQualityNote}
       </p>
 
-      {!compact ? (
-        <ul className="mt-4 space-y-2">
-          {features.map((item) => (
-            <li key={item} className="flex gap-2 text-sm leading-relaxed text-emerald-900">
-              <span className="mt-0.5 text-emerald-600" aria-hidden="true">
-                ✓
-              </span>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <ul className={`mt-3 space-y-1.5 ${compact ? "sm:mt-4 sm:space-y-2" : "mt-4 space-y-2"}`}>
+        {features.map((item) => (
+          <li key={item} className="flex gap-2 text-sm leading-snug text-emerald-900 sm:leading-relaxed">
+            <span className="mt-0.5 text-emerald-600" aria-hidden="true">
+              ✓
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4 sm:gap-3">
         <p className="font-mono text-xl font-bold tracking-tight text-brand-950">
           {formatPhoneDisplay(phoneNumber)}
         </p>

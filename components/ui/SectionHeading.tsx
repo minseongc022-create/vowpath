@@ -20,7 +20,7 @@ export function SectionHeading({
     <div className={`max-w-2xl ${alignClass}`}>
       {label ? (
         <p
-          className={`text-sm font-semibold uppercase tracking-wider ${
+          className={`text-xs font-semibold uppercase tracking-wider sm:text-sm ${
             light ? "text-brand-300" : "text-brand-800"
           }`}
         >
@@ -28,7 +28,7 @@ export function SectionHeading({
         </p>
       ) : null}
       <h2
-        className={`mt-2 text-3xl font-bold tracking-tight sm:text-4xl text-balance ${
+        className={`mt-1.5 text-2xl font-bold tracking-tight sm:mt-2 sm:text-4xl text-balance ${
           light ? "text-white" : "text-brand-950"
         } ${align === "center" ? "mx-auto" : ""}`}
       >
@@ -36,7 +36,7 @@ export function SectionHeading({
       </h2>
       {subtitle?.trim() ? (
         <p
-          className={`mt-4 text-lg leading-relaxed ${
+          className={`mt-2 text-base leading-snug sm:mt-4 sm:text-lg sm:leading-relaxed ${
             light ? "text-brand-100" : "text-stone-700"
           }`}
         >

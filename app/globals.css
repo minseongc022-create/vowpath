@@ -1294,6 +1294,141 @@
       bottom: auto;
     }
   }
+
+  /* ── Mobile compact density (≤1023px) — more content per screen ── */
+  @media (max-width: 1023px) {
+    .vow-dash-card {
+      @apply rounded-xl p-3;
+    }
+
+    .vow-dash-kpi {
+      @apply p-3;
+    }
+
+    .vow-dash-kpi-owner {
+      min-height: 6.5rem;
+    }
+
+    .vow-dash-kpi-value {
+      @apply text-3xl leading-none;
+    }
+
+    .vow-dash-panel-head {
+      @apply gap-2 px-3 py-2.5;
+    }
+
+    .vow-dash-hero-value {
+      @apply text-3xl;
+    }
+
+    .vow-dash-stat-mini {
+      @apply px-3 py-2;
+    }
+
+    .vow-dash-stat-mini-value {
+      @apply mt-0.5 text-xl;
+    }
+
+    .vow-dash-input {
+      @apply min-h-9 px-3 py-2 text-sm;
+    }
+
+    .vow-dash-mobile-header {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .vow-dash-main-scroll {
+      padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vow-settings-eyebrow {
+      @apply text-xs tracking-wide;
+    }
+
+    .vow-settings-label {
+      @apply text-sm;
+    }
+
+    .vow-settings-hint,
+    .vow-settings-muted,
+    .vow-settings-block {
+      @apply text-sm leading-snug;
+    }
+
+    .vow-settings-input {
+      @apply min-h-9 px-3 py-2 text-sm;
+    }
+
+    .vow-settings-chip {
+      @apply min-h-9 px-3 py-1.5 text-sm;
+    }
+
+    .vow-settings-save-bar-fixed {
+      @apply px-3 py-2.5;
+      bottom: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vow-settings-page-body {
+      padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vow-golive-nav {
+      @apply py-2;
+    }
+
+    .vow-forwarding-sticky {
+      top: 2.1rem;
+      padding-bottom: 0.15rem;
+    }
+
+    .vow-forwarding-setup {
+      font-size: 0.875rem;
+    }
+
+    .vow-forwarding-setup .vow-forwarding-sticky {
+      margin-left: -0.125rem;
+      margin-right: -0.125rem;
+    }
+
+    .vow-golive-step {
+      scroll-margin-top: 5.5rem;
+    }
+
+    .vow-forwarding-setup .vow-forwarding-nav {
+      bottom: calc(2.75rem + env(safe-area-inset-bottom));
+    }
+
+    .vow-ai-input-bar {
+      @apply p-3;
+      bottom: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vow-ai-msg-text {
+      @apply text-sm leading-snug;
+    }
+
+    section.vow-site-section {
+      padding-top: 2.75rem !important;
+      padding-bottom: 2.75rem !important;
+    }
+
+    .vow-site-pricing-card {
+      @apply p-4 sm:p-6;
+    }
+
+    .vow-site-compare-row {
+      @apply gap-0.5 px-3 py-2.5;
+    }
+
+    .vow-site-callout {
+      @apply px-3 py-2.5 text-sm leading-snug;
+    }
+
+    .vow-site-panel .px-6 {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
 }
 
 @layer utilities {
@@ -1375,6 +1510,36 @@
   .kb-nav-all-btn {
     @apply flex h-11 w-11 items-center justify-center rounded-full bg-brand-950 text-white transition active:scale-95;
     box-shadow: 0 4px 14px rgb(61 50 40 / 0.28);
+  }
+
+  @media (max-width: 1023px) {
+    .kb-floating-nav {
+      @apply rounded-[1.35rem];
+    }
+
+    .kb-floating-nav ul {
+      @apply py-0.5;
+    }
+
+    .kb-nav-all-btn {
+      @apply h-9 w-9;
+    }
+
+    .kb-nav-ai-btn {
+      @apply h-11 w-11;
+    }
+
+    .kb-more-sheet {
+      @apply px-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] pt-2;
+    }
+
+    .kb-more-grid-item span:first-child {
+      @apply h-9 w-9 rounded-xl;
+    }
+
+    .kb-prompt-pill {
+      @apply min-h-[44px] rounded-xl px-3 py-2.5 text-sm;
+    }
   }
 
   .kb-prompt-pill {

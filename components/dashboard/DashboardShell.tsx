@@ -314,15 +314,15 @@ export function DashboardShell({
       <div className="vow-dash-main">
 
         <header className="vow-dash-mobile-header">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-bold text-brand-950">{shopName}</p>
-              <p className="truncate text-xs text-stone-500">Effiroad</p>
+              <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
+              <p className="truncate text-[11px] text-stone-500">Effiroad</p>
             </div>
           </div>
         </header>
 
-        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
+        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-3 py-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
           {children}
         </main>
 

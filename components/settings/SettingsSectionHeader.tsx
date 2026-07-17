@@ -18,9 +18,9 @@ export function SettingsSectionHeader({
   className = "",
 }: SettingsSectionHeaderProps) {
   return (
-    <div className={`flex gap-3 sm:gap-4 ${className}`}>
+    <div className={`flex gap-2.5 sm:gap-4 ${className}`}>
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-xl shadow-sm ring-1 ring-brand-200/80 sm:h-14 sm:w-14 sm:text-2xl"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-lg shadow-sm ring-1 ring-brand-200/80 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl"
         aria-hidden
       >
         {icon}
@@ -28,10 +28,10 @@ export function SettingsSectionHeader({
       <div className="min-w-0 flex-1">
         {eyebrow ? <p className="vow-settings-eyebrow">{eyebrow}</p> : null}
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h2 className="text-xl font-bold text-brand-950 sm:text-2xl">{title}</h2>
+          <h2 className="text-lg font-bold text-brand-950 sm:text-2xl">{title}</h2>
           {action}
         </div>
-        {hint ? <p className="vow-settings-hint mt-2 max-w-2xl">{hint}</p> : null}
+        {hint ? <p className="vow-settings-hint mt-1 max-w-2xl sm:mt-2">{hint}</p> : null}
       </div>
     </div>
   );
@@ -53,7 +53,7 @@ export function SettingsSubsection({
   className = "",
 }: SettingsSubsectionProps) {
   return (
-    <div className={`rounded-xl border border-slate-100 bg-slate-50/80 p-4 ${className}`}>
+    <div className={`rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4 ${className}`}>
       <div className="flex gap-3">
         {icon ? (
           <span

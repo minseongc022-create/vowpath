@@ -23,7 +23,7 @@ export function GoLiveStepNav({ items }: { items: GoLiveNavItem[] }) {
             key={item.id}
             type="button"
             onClick={() => scrollTo(item.id)}
-            className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition active:scale-[0.98] sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm ${
               item.done
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                 : item.optional
@@ -32,7 +32,7 @@ export function GoLiveStepNav({ items }: { items: GoLiveNavItem[] }) {
             }`}
           >
             <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+              className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold sm:h-6 sm:w-6 sm:text-xs ${
                 item.done
                   ? "bg-emerald-600 text-white"
                   : "bg-white text-inherit ring-1 ring-inset ring-current/20"

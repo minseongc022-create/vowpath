@@ -13,10 +13,35 @@ import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
 
 type Props = {
   onSelect: (provider: ForwardingProviderId, pathId: ForwardingSetupPathId) => void;
-  /** When set, show compact summary instead of full list */
   selectedProvider?: ForwardingProviderId | null;
   onChangePath?: () => void;
 };
+
+function OptionGrid({
+  options,
+  onPick,
+}: {
+  options: { id: string; label: string; hint?: string }[];
+  onPick: (id: ForwardingProviderId) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {options.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => onPick(c.id as ForwardingProviderId)}
+          className="flex min-h-[52px] flex-col justify-center rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left hover:border-brand-400 active:scale-[0.99] sm:px-3 sm:py-2.5"
+        >
+          <span className="text-sm font-semibold leading-tight text-slate-900">{c.label}</span>
+          {c.hint ? (
+            <span className="mt-0.5 text-xs leading-snug text-stone-600">{c.hint}</span>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ForwardingPathPicker({
   onSelect,
@@ -39,24 +64,10 @@ export function ForwardingPathPicker({
 
   if (subPick === "cell_overflow") {
     return (
-      <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
-        <p className="text-lg font-bold text-slate-900">{p.pickCarrier}</p>
-        <div className="flex flex-col gap-2">
-          {CELL_CARRIER_OPTIONS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect(c.id, "cell_overflow")}
-              className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400"
-            >
-              <span className="text-base font-semibold text-slate-900">{c.label}</span>
-              <span className="text-brand-600" aria-hidden="true">
-                →
-              </span>
-            </button>
-          ))}
-        </div>
-        <button type="button" onClick={() => setSubPick(null)} className="text-base font-semibold text-brand-700 underline">
+      <div className="space-y-2.5 rounded-xl border-2 border-brand-200 bg-white p-3 sm:p-4">
+        <p className="text-base font-bold text-slate-900 sm:text-lg">{p.pickCarrier}</p>
+        <OptionGrid options={CELL_CARRIER_OPTIONS} onPick={(id) => onSelect(id, "cell_overflow")} />
+        <button type="button" onClick={() => setSubPick(null)} className="text-sm font-semibold text-brand-700 underline">
           {p.back}
         </button>
       </div>
@@ -65,24 +76,10 @@ export function ForwardingPathPicker({
 
   if (subPick === "business_voip") {
     return (
-      <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
-        <p className="text-lg font-bold text-slate-900">{p.pickVoip}</p>
-        <div className="flex flex-col gap-2">
-          {VOIP_SYSTEM_OPTIONS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect(c.id, "business_voip")}
-              className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-400"
-            >
-              <span className="text-base font-semibold text-slate-900">{c.label}</span>
-              <span className="text-brand-600" aria-hidden="true">
-                →
-              </span>
-            </button>
-          ))}
-        </div>
-        <button type="button" onClick={() => setSubPick(null)} className="text-base font-semibold text-brand-700 underline">
+      <div className="space-y-2.5 rounded-xl border-2 border-brand-200 bg-white p-3 sm:p-4">
+        <p className="text-base font-bold text-slate-900 sm:text-lg">{p.pickVoip}</p>
+        <OptionGrid options={VOIP_SYSTEM_OPTIONS} onPick={(id) => onSelect(id, "business_voip")} />
+        <button type="button" onClick={() => setSubPick(null)} className="text-sm font-semibold text-brand-700 underline">
           {p.back}
         </button>
       </div>
@@ -103,13 +100,11 @@ export function ForwardingPathPicker({
       selectedProvider;
 
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/80 px-4 py-3">
-        <p className="text-base font-semibold text-brand-950">{p.selectedLabel.replace("{type}", label)}</p>
-        <button
-          type="button"
-          onClick={onChangePath}
-          className="text-base font-semibold text-brand-700 underline"
-        >
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/80 px-3 py-2.5 sm:px-4 sm:py-3">
+        <p className="text-sm font-semibold text-brand-950 sm:text-base">
+          {p.selectedLabel.replace("{type}", label)}
+        </p>
+        <button type="button" onClick={onChangePath} className="text-sm font-semibold text-brand-700 underline">
           {p.changeType}
         </button>
       </div>
@@ -128,7 +123,7 @@ export function ForwardingPathPicker({
       return {
         key: path.id,
         title: copy.title,
-        description: copy.shortDescription ?? copy.description,
+        description: copy.description,
         onClick: () => {
           if (path.provider) {
             onSelect(path.provider, path.id);
@@ -147,20 +142,18 @@ export function ForwardingPathPicker({
     {
       key: "dedicated_line",
       title: p.paths.dedicated_line.title,
-      description:
-        (p.paths.dedicated_line as { shortDescription?: string }).shortDescription ??
-        p.paths.dedicated_line.description,
+      description: p.paths.dedicated_line.description,
       onClick: () => onSelect("effiroad_main", "dedicated_line"),
       highlight: true,
     },
   ];
 
   return (
-    <div className="space-y-3 rounded-xl border-2 border-brand-200 bg-white p-4">
+    <div className="space-y-2.5 rounded-xl border-2 border-brand-200 bg-white p-3 sm:p-4">
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-brand-700">{p.badge}</p>
-        <p className="mt-1 text-lg font-bold text-brand-950">{p.title}</p>
-        <p className="mt-1 text-base leading-snug text-slate-600">{p.subtitle}</p>
+        <p className="text-base font-bold text-brand-950 sm:text-lg">{p.title}</p>
+        <p className="mt-1 text-sm leading-snug text-slate-600">{p.subtitle}</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -169,17 +162,17 @@ export function ForwardingPathPicker({
             key={item.key}
             type="button"
             onClick={item.onClick}
-            className={`flex min-h-[56px] w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition active:scale-[0.99] ${
+            className={`flex w-full items-start gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition active:scale-[0.99] sm:gap-3 sm:px-4 sm:py-3 ${
               item.highlight
                 ? "border-emerald-300 bg-emerald-50/70 hover:border-emerald-400"
                 : "border-slate-200 bg-white hover:border-brand-400"
             }`}
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-base font-bold text-slate-900">{item.title}</span>
-              <span className="mt-0.5 block text-sm leading-snug text-stone-600">{item.description}</span>
+              <span className="block text-sm font-bold text-slate-900 sm:text-base">{item.title}</span>
+              <span className="mt-0.5 block text-xs leading-snug text-stone-600 sm:text-sm">{item.description}</span>
             </span>
-            <span className="shrink-0 text-xl font-bold text-brand-600" aria-hidden="true">
+            <span className="shrink-0 pt-0.5 text-lg font-bold text-brand-600 sm:text-xl" aria-hidden="true">
               →
             </span>
           </button>
@@ -189,7 +182,7 @@ export function ForwardingPathPicker({
       <button
         type="button"
         onClick={() => setShowQuiz(true)}
-        className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700 hover:border-brand-400"
+        className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:border-brand-400"
       >
         {p.quizFallback}
       </button>
