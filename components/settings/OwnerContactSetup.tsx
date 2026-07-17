@@ -20,8 +20,10 @@ type ContactState = {
 
 export function OwnerContactSetup({
   onSaved,
+  onValidChange,
 }: {
   onSaved: (complete: boolean) => void;
+  onValidChange?: (valid: boolean) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +122,12 @@ export function OwnerContactSetup({
 
   useSettingsSaveRegistration("contact", persist, !loading);
 
+  const valid = Boolean(email.trim() && phone.trim());
+
+  useEffect(() => {
+    onValidChange?.(valid);
+  }, [onValidChange, valid]);
+
   if (loading) {
     return <p className="vow-settings-muted">{settingsPage.contactLoading}</p>;
   }
@@ -154,15 +162,21 @@ export function OwnerContactSetup({
         </div>
       ) : null}
 
-      <div>
+      <div className="vow-settings-field">
         <label htmlFor="owner-email" className="vow-settings-label block">
-          {settingsPage.contactEmailLabel}
+          {settingsPage.contactEmailLabel}{" "}
+          <span className="vow-settings-required" aria-hidden="true">
+            *
+          </span>
+          <span className="sr-only"> ({settingsPage.contactRequiredMark})</span>
         </label>
         <input
           id="owner-email"
           type="email"
           autoComplete="email"
           inputMode="email"
+          required
+          aria-required="true"
           placeholder={US_EMAIL_INPUT_PLACEHOLDER}
           value={email}
           onChange={(e) => {
@@ -174,15 +188,21 @@ export function OwnerContactSetup({
         <p className="vow-settings-hint mt-1.5 text-sm">{settingsPage.contactEmailHint}</p>
       </div>
 
-      <div>
+      <div className="vow-settings-field">
         <label htmlFor="owner-phone" className="vow-settings-label block">
-          {krTestMode ? settingsPage.contactPhoneLabelKr : settingsPage.contactPhoneLabel}
+          {krTestMode ? settingsPage.contactPhoneLabelKr : settingsPage.contactPhoneLabel}{" "}
+          <span className="vow-settings-required" aria-hidden="true">
+            *
+          </span>
+          <span className="sr-only"> ({settingsPage.contactRequiredMark})</span>
         </label>
         <input
           id="owner-phone"
           type="tel"
           autoComplete="tel"
           inputMode="tel"
+          required
+          aria-required="true"
           placeholder={
             krTestMode ? KR_PHONE_INPUT_PLACEHOLDER : US_PHONE_INPUT_PLACEHOLDER
           }

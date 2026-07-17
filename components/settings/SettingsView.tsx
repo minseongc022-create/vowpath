@@ -13,13 +13,13 @@ import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKe
 import { SmsComplianceGuide } from "@/components/settings/SmsComplianceGuide";
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
-import { GoLiveStep } from "@/components/settings/GoLiveStep";
-import { GoLiveStepNav } from "@/components/settings/GoLiveStepNav";
+import { GoLiveWizard, type GoLiveWizardStep } from "@/components/settings/GoLiveWizard";
 import { GoLiveProgressCard } from "@/components/settings/GoLiveProgressCard";
 import {
   SettingsSaveProvider,
   useSettingsSaveAll,
   useSettingsSaveRegistration,
+  useSettingsSaveStep,
 } from "@/components/settings/SettingsSaveContext";
 import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
@@ -53,11 +53,9 @@ import type {
   ForwardingScenarioId,
 } from "@/lib/forwarding-guides";
 import {
-  FORWARDING_PROVIDERS,
-  FORWARDING_SCENARIOS,
   normalizeForwardingProvider,
 } from "@/lib/forwarding-guides";
-import { SCHEDULE_ALWAYS_ON_LABEL, type ScheduleRow } from "@/lib/schedule-format";
+import { type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { SettingsIntegrationsHub } from "@/components/settings/SettingsIntegrationsHub";
 
@@ -97,6 +95,7 @@ function SettingsViewBody({
   const settingsTourSteps = useMemo(() => getSettingsTourSteps(), []);
   const router = useRouter();
   const saveAll = useSettingsSaveAll();
+  const saveStep = useSettingsSaveStep();
   const [saveBarSaving, setSaveBarSaving] = useState(false);
   const [saveBarSaved, setSaveBarSaved] = useState(false);
   const [saveBarError, setSaveBarError] = useState<string | null>(null);
@@ -121,8 +120,11 @@ function SettingsViewBody({
   );
   const [jobberAccount, setJobberAccount] = useState<string | null>(null);
   const [contactComplete, setContactComplete] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
+  const [contactValid, setContactValid] = useState(false);
+  const [phoneProgress, setPhoneProgress] = useState<{
+    quizDone: boolean;
+    phoneNumber: string | null;
+  }>({ quizDone: false, phoneNumber: null });
   const [forwardingPrefs, setForwardingPrefs] = useState<{
     scenario: ForwardingScenarioId;
     provider: ForwardingProviderId;
@@ -144,8 +146,6 @@ function SettingsViewBody({
       };
       if (res.ok) {
         setContactComplete(Boolean(data.contactComplete));
-        setContactEmail(data.email ?? "");
-        setContactPhone(data.phone ?? data.phoneDisplay ?? "");
       }
     } catch {
       setContactComplete(false);
@@ -192,14 +192,29 @@ function SettingsViewBody({
     void refreshContact();
   }, [refreshJobber, refreshContact]);
 
-  useEffect(() => {
-    if (!section) return;
-    const targetId = SECTION_SCROLL_IDS[section] ?? section;
-    const el = document.getElementById(targetId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [section]);
+  const handleBeforeContinue = useCallback(
+    async (stepId: string) => {
+      const saverId =
+        stepId === "go-live-contact"
+          ? "contact"
+          : stepId === "go-live-schedule"
+            ? "schedule"
+            : stepId === "go-live-phone"
+              ? "forwarding"
+              : null;
+      if (!saverId) return true;
+      setSaveBarError(null);
+      const result = await saveStep(saverId);
+      if (result.ok) {
+        setSaveBarSaved(true);
+        await refreshContact();
+        return true;
+      }
+      setSaveBarError(settingsPage.saveAllError);
+      return false;
+    },
+    [refreshContact, saveStep, settingsPage.saveAllError],
+  );
 
   function handleRowsChange(next: ScheduleRow[]) {
     setRows(next);
@@ -275,27 +290,161 @@ function SettingsViewBody({
   const live = isFullyLive(shop, { jobberConnected, contactComplete });
   const progressPct = Math.round((requiredDone / requiredTotal) * 100);
 
-  const stepStatus = {
-    doneLabel: settingsPage.statusDone,
-    pendingLabel: settingsPage.statusPending,
-    optionalLabel: settingsPage.tabOptional,
-    skippedLabel: settingsPage.tabSkipped,
-    editLabel: settingsPage.editLabel,
-    collapseLabel: settingsPage.collapseLabel,
-  };
+  const initialWizardStepId = section ? SECTION_SCROLL_IDS[section] : undefined;
 
-  const forwardingScenarioLabel =
-    FORWARDING_SCENARIOS.find((s) => s.id === (shop.forwardingScenario ?? "overflow"))?.label ??
-    "";
-  const forwardingProviderLabel =
-    FORWARDING_PROVIDERS.find((p) => p.id === normalizeForwardingProvider(shop.forwardingProvider))?.label ?? "";
-
-  const scheduleSummary =
-    alwaysOn || shop.scheduleAlwaysOn
-      ? SCHEDULE_ALWAYS_ON_LABEL
-      : confirmed.length > 0
-        ? confirmed
-        : shop.scheduleWindows.map((w) => w.label);
+  const wizardSteps: GoLiveWizardStep[] = useMemo(
+    () => [
+      {
+        id: "go-live-contact",
+        label: settingsPage.goLiveNavContact,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.contact),
+        title: settingsPage.contactTitle,
+        description: settingsPage.contactDescription,
+        quickTip: settingsPage.contactQuickTip,
+        icon: "📱",
+        done: contactItem.done,
+        canContinue: contactValid,
+        continueHint: contactValid ? undefined : settingsPage.wizardContactRequired,
+        content: (
+          <OwnerContactSetup onSaved={setContactComplete} onValidChange={setContactValid} />
+        ),
+      },
+      {
+        id: "go-live-schedule",
+        label: settingsPage.goLiveNavSchedule,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.schedule),
+        title: settingsPage.scheduleTitle,
+        description: settingsPage.scheduleDescription,
+        quickTip: settingsPage.scheduleQuickTip,
+        icon: "🕐",
+        done: scheduleItem.done,
+        canContinue: contactComplete && canConfirm,
+        continueHint: !contactComplete
+          ? settingsPage.contactRequiredFirst
+          : !canConfirm
+            ? settingsPage.wizardScheduleRequired
+            : undefined,
+        content: (
+          <>
+            {!contactComplete ? (
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
+                {settingsPage.contactRequiredFirst}
+              </p>
+            ) : null}
+            <ScheduleEditor
+              rows={rows}
+              onChange={handleRowsChange}
+              alwaysOn={alwaysOn}
+              onAlwaysOnChange={handleAlwaysOnChange}
+              compact
+            />
+          </>
+        ),
+      },
+      {
+        id: "go-live-phone",
+        label: settingsPage.goLiveNavPhone,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.phone),
+        title: settingsPage.phoneTitle,
+        description: settingsPage.phoneDescription,
+        quickTip: settingsPage.phoneQuickTip,
+        icon: "📞",
+        done: phoneItem.done,
+        canContinue:
+          contactComplete && phoneProgress.quizDone && Boolean(phoneProgress.phoneNumber),
+        continueHint: !contactComplete
+          ? settingsPage.contactRequiredFirst
+          : !phoneProgress.quizDone || !phoneProgress.phoneNumber
+            ? settingsPage.wizardPhoneRequired
+            : undefined,
+        content: (
+          <>
+            {!contactComplete ? (
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
+                {settingsPage.contactRequiredFirst}
+              </p>
+            ) : null}
+            <ForwardingSetup
+              confirmed={shop.forwardingDone}
+              confirmDisabled={!contactComplete}
+              initialScenario={shop.forwardingScenario ?? "overflow"}
+              initialProvider={shop.forwardingProvider ?? "dialpad"}
+              onPreferencesChange={setForwardingPrefs}
+              onProgressChange={setPhoneProgress}
+              batchSave
+              hideConfirmedBanner
+              embeddedInGoLive
+            />
+          </>
+        ),
+      },
+      {
+        id: "go-live-jobber",
+        label: settingsPage.goLiveNavJobber,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.jobber),
+        title: settingsPage.jobberTitle,
+        description: settingsPage.jobberDescription,
+        quickTip: settingsPage.jobberQuickTip,
+        icon: "🔗",
+        optional: true,
+        done: jobberItem.done,
+        canContinue: true,
+        content: (
+          <JobberSettingsPanel
+            connected={jobberConnected}
+            stepDone={jobberStepDone}
+            showConfirm={jobberLinked}
+            onConfirm={() => void handleJobberConfirm()}
+            onSkip={() => void handleJobberSkip()}
+            onStatusChange={(connected, meta) => {
+              setJobberConnected(connected);
+              void refreshJobber();
+              if (connected && meta?.freshConnect) {
+                setShop((prev) => ({
+                  ...prev,
+                  jobberConnected: true,
+                  jobberSetupConfirmed: false,
+                }));
+              } else if (!connected) {
+                setJobberAccount(null);
+                setShop((prev) => ({
+                  ...prev,
+                  jobberConnected: false,
+                  jobberSetupConfirmed: false,
+                }));
+              }
+            }}
+          />
+        ),
+      },
+    ],
+    [
+      alwaysOn,
+      canConfirm,
+      contactComplete,
+      contactItem.done,
+      contactValid,
+      handleAlwaysOnChange,
+      handleJobberConfirm,
+      handleJobberSkip,
+      handleRowsChange,
+      jobberConnected,
+      jobberItem.done,
+      jobberLinked,
+      jobberStepDone,
+      phoneItem.done,
+      phoneProgress.phoneNumber,
+      phoneProgress.quizDone,
+      refreshJobber,
+      rows,
+      scheduleItem.done,
+      settingsPage,
+      shop.forwardingDone,
+      shop.forwardingProvider,
+      shop.forwardingScenario,
+      setShop,
+    ],
+  );
 
   return (
     <div className="vow-settings-page-body space-y-4 sm:space-y-8">
@@ -327,188 +476,17 @@ function SettingsViewBody({
           zapierUrl={shop.zapierWebhookUrl}
         />
 
-        <GoLiveStepNav
-          items={[
-            {
-              id: "go-live-contact",
-              step: settingsPage.sectionSteps.contact,
-              label: settingsPage.goLiveNavContact,
-              done: contactItem.done,
-            },
-            {
-              id: "go-live-schedule",
-              step: settingsPage.sectionSteps.schedule,
-              label: settingsPage.goLiveNavSchedule,
-              done: scheduleItem.done,
-            },
-            {
-              id: "go-live-phone",
-              step: settingsPage.sectionSteps.phone,
-              label: settingsPage.goLiveNavPhone,
-              done: phoneItem.done,
-            },
-            {
-              id: "go-live-jobber",
-              step: settingsPage.sectionSteps.jobber,
-              label: settingsPage.goLiveNavJobber,
-              done: jobberItem.done,
-              optional: true,
-            },
-          ]}
+        <GoLiveWizard
+          steps={wizardSteps}
+          initialStepId={initialWizardStepId}
+          onBeforeContinue={handleBeforeContinue}
+          onStepChange={(stepId) => {
+            const key = Object.entries(SECTION_SCROLL_IDS).find(([, v]) => v === stepId)?.[0];
+            if (key) {
+              router.replace(`${ROUTES.settings}?section=${key}`, { scroll: false });
+            }
+          }}
         />
-
-        <div className="space-y-3 sm:space-y-5">
-          <GoLiveStep
-            id="go-live-contact"
-            step={settingsPage.stepPrefix(settingsPage.sectionSteps.contact)}
-            title={settingsPage.contactTitle}
-            description={settingsPage.contactDescription}
-            quickTip={settingsPage.contactQuickTip}
-            icon="📱"
-            done={contactItem.done}
-            doneSummary={
-              <div className="space-y-1">
-                <p>{settingsPage.contactConfirmed}</p>
-                {contactEmail ? (
-                  <p className="text-sm text-emerald-800/90">
-                    {settingsPage.contactEmailLabel}: {contactEmail}
-                  </p>
-                ) : null}
-                {contactPhone ? (
-                  <p className="text-sm text-emerald-800/90">
-                    {settingsPage.contactPhoneLabelKr}: {contactPhone}
-                  </p>
-                ) : null}
-              </div>
-            }
-            {...stepStatus}
-          >
-            <OwnerContactSetup onSaved={setContactComplete} />
-          </GoLiveStep>
-
-          <GoLiveStep
-            id="go-live-schedule"
-            step={settingsPage.stepPrefix(settingsPage.sectionSteps.schedule)}
-            title={settingsPage.scheduleTitle}
-            description={settingsPage.scheduleDescription}
-            quickTip={settingsPage.scheduleQuickTip}
-            icon="🕐"
-            done={scheduleItem.done}
-            doneSummary={
-              Array.isArray(scheduleSummary) ? (
-                <ul className="space-y-1">
-                  {scheduleSummary.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>{scheduleSummary}</p>
-              )
-            }
-            {...stepStatus}
-          >
-            {!contactComplete ? (
-              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
-                {settingsPage.contactRequiredFirst}
-              </p>
-            ) : null}
-            <ScheduleEditor
-              rows={rows}
-              onChange={handleRowsChange}
-              alwaysOn={alwaysOn}
-              onAlwaysOnChange={handleAlwaysOnChange}
-              compact
-            />
-            {!canConfirm ? (
-              <p className="mt-3 text-sm text-amber-800">{settingsPage.scheduleValidation}</p>
-            ) : (
-              <p className="mt-3 text-sm text-stone-600">{settingsPage.saveAllHint}</p>
-            )}
-          </GoLiveStep>
-
-          <GoLiveStep
-            id="go-live-phone"
-            step={settingsPage.stepPrefix(settingsPage.sectionSteps.phone)}
-            title={settingsPage.phoneTitle}
-            description={settingsPage.phoneDescription}
-            icon="📞"
-            done={phoneItem.done}
-            doneSummary={
-              <div className="space-y-1">
-                <p>{settingsPage.phoneConfirmed}</p>
-                <p className="text-sm text-emerald-800/90">
-                  {forwardingScenarioLabel} · {forwardingProviderLabel}
-                </p>
-              </div>
-            }
-            {...stepStatus}
-          >
-            {!contactComplete ? (
-              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-900">
-                {settingsPage.contactRequiredFirst}
-              </p>
-            ) : null}
-            <ForwardingSetup
-              confirmed={shop.forwardingDone}
-              confirmDisabled={!contactComplete}
-              initialScenario={shop.forwardingScenario ?? "overflow"}
-              initialProvider={shop.forwardingProvider ?? "dialpad"}
-              onPreferencesChange={setForwardingPrefs}
-              batchSave
-              hideConfirmedBanner
-            />
-          </GoLiveStep>
-
-          <GoLiveStep
-            id="go-live-jobber"
-            step={settingsPage.stepPrefix(settingsPage.sectionSteps.jobber)}
-            title={settingsPage.jobberTitle}
-            description={settingsPage.jobberDescription}
-            quickTip={settingsPage.jobberQuickTip}
-            icon="🔗"
-            done={jobberItem.done}
-            optional
-            skipped={jobberItem.skipped}
-            doneSummary={
-              shop.jobberSkipped ? (
-                <p>{settingsPage.jobberSkippedNote}</p>
-              ) : jobberAccount ? (
-                <p>
-                  {settingsPage.jobberConnectedSummary.replace("{account}", jobberAccount)}
-                </p>
-              ) : (
-                <p>{settingsPage.jobberConfirmed}</p>
-              )
-            }
-            {...stepStatus}
-          >
-            <JobberSettingsPanel
-              connected={jobberConnected}
-              stepDone={jobberStepDone}
-              showConfirm={jobberLinked}
-              onConfirm={() => void handleJobberConfirm()}
-              onSkip={() => void handleJobberSkip()}
-              onStatusChange={(connected, meta) => {
-                setJobberConnected(connected);
-                void refreshJobber();
-                if (connected && meta?.freshConnect) {
-                  setShop((prev) => ({
-                    ...prev,
-                    jobberConnected: true,
-                    jobberSetupConfirmed: false,
-                  }));
-                } else if (!connected) {
-                  setJobberAccount(null);
-                  setShop((prev) => ({
-                    ...prev,
-                    jobberConnected: false,
-                    jobberSetupConfirmed: false,
-                  }));
-                }
-              }}
-            />
-          </GoLiveStep>
-        </div>
       </section>
 
       <section
