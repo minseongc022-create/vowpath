@@ -298,7 +298,7 @@ function SettingsViewBody({
         : shop.scheduleWindows.map((w) => w.label);
 
   return (
-    <div className="vow-settings-page-body space-y-8">
+    <div className="vow-settings-page-body space-y-5 sm:space-y-8">
       {paidProp || transactionId ? (
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
@@ -431,7 +431,7 @@ function SettingsViewBody({
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.phone)}
             title={settingsPage.phoneTitle}
             description={settingsPage.phoneDescription}
-            quickTip={settingsPage.phoneQuickTip}
+            streamlineMobile
             icon="📞"
             done={phoneItem.done}
             doneSummary={

@@ -85,14 +85,14 @@ export function ForwardingPathPicker({ onSelect }: Props) {
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-brand-700">{p.badge}</p>
         <p className="mt-1 text-xl font-bold text-brand-950">{p.title}</p>
         <p className="mt-2 text-base leading-relaxed text-slate-600">{p.subtitle}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         {FORWARDING_OVERFLOW_PATHS.map((path) => {
           const copy = p.paths[path.id];
           const style = confidenceStyles[path.confidence];
@@ -128,7 +128,7 @@ export function ForwardingPathPicker({ onSelect }: Props) {
         <button
           type="button"
           onClick={() => onSelect("effiroad_main", "dedicated_line")}
-          className="rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-4 text-left ring-2 ring-transparent transition hover:ring-emerald-200 sm:col-span-2"
+          className="col-span-2 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-3 text-left ring-2 ring-transparent transition hover:ring-emerald-200 sm:p-4"
         >
           <span className="text-base font-bold text-emerald-950">
             {p.paths.dedicated_line.title}
