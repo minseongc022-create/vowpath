@@ -66,7 +66,7 @@ export function ForwardingSetup({
     normalizeForwardingProvider(rawInitialProvider),
   );
   const [stuckOpen, setStuckOpen] = useState(false);
-  const [moreHelpOpen, setMoreHelpOpen] = useState(true);
+  const [moreHelpOpen, setMoreHelpOpen] = useState(!embeddedInGoLive);
   const initialNormalized = normalizeForwardingProvider(rawInitialProvider);
   const [quizDone, setQuizDone] = useState(
     () => initialNormalized !== "effiroad_main" || confirmed,
@@ -397,18 +397,28 @@ export function ForwardingSetup({
   const showTestSection = embeddedInGoLive ? quizDone : wizardStep === 2 && quizDone;
 
   return (
-    <div className="vow-forwarding-setup space-y-2 text-slate-900 sm:space-y-4">
-      <TrialForwardingBanner />
+    <div
+      className={`vow-forwarding-setup space-y-3 text-slate-900 sm:space-y-4 ${embeddedInGoLive ? "vow-forwarding-embedded" : ""}`}
+    >
+      {!embeddedInGoLive ? <TrialForwardingBanner /> : null}
 
-      <div className="vow-forwarding-sticky space-y-1.5 sm:space-y-2">
+      <div
+        className={
+          embeddedInGoLive
+            ? "vow-settings-section space-y-2"
+            : "vow-forwarding-sticky space-y-1.5 sm:space-y-2"
+        }
+      >
         {!embeddedInGoLive ? wizardNav : null}
         {numberBlock}
       </div>
 
-      {setupInstructions}
+      {setupInstructions ? (
+        <div className="vow-settings-section">{setupInstructions}</div>
+      ) : null}
 
       {showTestSection ? (
-        <>
+        <div className="vow-settings-section space-y-3">
           <ForwardingTestPanel
             provider={provider}
             onVerified={() => setForwardingVerified(true)}
@@ -460,9 +470,9 @@ export function ForwardingSetup({
             <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-semibold text-emerald-900">
               {settingsPage.phoneConfirmed}
             </p>
-          ) : batchSave ? (
+          ) : batchSave && !embeddedInGoLive ? (
             <p className="text-base text-stone-600">{settingsPage.saveAllHint}</p>
-          ) : (
+          ) : batchSave && embeddedInGoLive ? null : (
             <button
               type="button"
               disabled={confirmDisabled || !phoneNumber || !forwardingVerified}
@@ -477,7 +487,7 @@ export function ForwardingSetup({
           ) : !forwardingVerified && phoneNumber ? (
             <p className="text-center text-xs text-amber-800">{settingsPage.forwardingVerifyRequired}</p>
           ) : null}
-        </>
+        </div>
       ) : null}
 
       <div className={`vow-forwarding-nav flex flex-wrap gap-1.5 pt-0.5 sm:gap-2 sm:pt-1 ${embeddedInGoLive ? "hidden" : ""}`}>
