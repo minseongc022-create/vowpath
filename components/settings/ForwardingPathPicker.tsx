@@ -10,10 +10,8 @@ import {
   type ForwardingSetupPathId,
 } from "@/lib/forwarding-paths";
 import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
-import { EffiroadDedicatedLineCard } from "@/components/settings/EffiroadDedicatedLineCard";
 
 type Props = {
-  phoneNumber?: string | null;
   onSelect: (provider: ForwardingProviderId, pathId: ForwardingSetupPathId) => void;
 };
 
@@ -23,7 +21,7 @@ const confidenceStyles = {
   medium: "border-amber-300 bg-amber-50/50",
 } as const;
 
-export function ForwardingPathPicker({ phoneNumber, onSelect }: Props) {
+export function ForwardingPathPicker({ onSelect }: Props) {
   const p = settingsPage.forwardingPathPicker;
   const [subPick, setSubPick] = useState<ForwardingSetupPathId | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -40,80 +38,58 @@ export function ForwardingPathPicker({ phoneNumber, onSelect }: Props) {
 
   if (subPick === "cell_overflow") {
     return (
-      <div className="space-y-4">
-        <p className="text-sm font-semibold text-slate-800">{p.pickCarrier}</p>
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-lg font-bold text-slate-900">{p.pickCarrier}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {CELL_CARRIER_OPTIONS.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => onSelect(c.id, "cell_overflow")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left hover:border-brand-400"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-left hover:border-brand-400"
             >
-              <span className="font-semibold text-slate-900">{c.label}</span>
-              <p className="mt-1 text-sm text-stone-600">{c.hint}</p>
+              <span className="text-base font-semibold text-slate-900">{c.label}</span>
+              <p className="mt-1 text-sm leading-relaxed text-stone-600">{c.hint}</p>
             </button>
           ))}
         </div>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          {p.overflowFallbackHint}
-        </p>
         <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
           {p.back}
         </button>
-        {phoneNumber ? (
-          <EffiroadDedicatedLineCard
-            phoneNumber={phoneNumber}
-            variant="fallback"
-            compact
-            onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
-          />
-        ) : null}
       </div>
     );
   }
 
   if (subPick === "business_voip") {
     return (
-      <div className="space-y-4">
-        <p className="text-sm font-semibold text-slate-800">{p.pickVoip}</p>
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-lg font-bold text-slate-900">{p.pickVoip}</p>
         <div className="grid gap-2">
           {VOIP_SYSTEM_OPTIONS.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => onSelect(c.id, "business_voip")}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left hover:border-brand-400"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-left hover:border-brand-400"
             >
-              <span className="font-semibold text-slate-900">{c.label}</span>
-              <p className="mt-1 text-sm text-stone-600">{c.hint}</p>
+              <span className="text-base font-semibold text-slate-900">{c.label}</span>
+              <p className="mt-1 text-sm leading-relaxed text-stone-600">{c.hint}</p>
             </button>
           ))}
         </div>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          {p.overflowFallbackHint}
-        </p>
         <button type="button" onClick={() => setSubPick(null)} className="text-sm text-brand-700 underline">
           {p.back}
         </button>
-        {phoneNumber ? (
-          <EffiroadDedicatedLineCard
-            phoneNumber={phoneNumber}
-            variant="fallback"
-            compact
-            onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
-          />
-        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">{p.badge}</p>
-        <p className="mt-1 text-lg font-bold text-brand-950">{p.title}</p>
-        <p className="mt-1 text-sm text-slate-600">{p.subtitle}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-brand-700">{p.badge}</p>
+        <p className="mt-1 text-xl font-bold text-brand-950">{p.title}</p>
+        <p className="mt-2 text-base leading-relaxed text-slate-600">{p.subtitle}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -140,37 +116,37 @@ export function ForwardingPathPicker({ phoneNumber, onSelect }: Props) {
               }}
               className={`rounded-xl border-2 p-4 text-left ring-2 ring-transparent transition hover:ring-brand-200 ${style}`}
             >
-              <span className="font-bold text-slate-900">{copy.title}</span>
-              <p className="mt-2 text-sm leading-relaxed text-stone-700">{copy.description}</p>
-              <p className="mt-2 text-xs font-semibold text-brand-800">
+              <span className="text-base font-bold text-slate-900">{copy.title}</span>
+              <p className="mt-2 text-base leading-relaxed text-stone-700">{copy.description}</p>
+              <p className="mt-2 text-sm font-semibold text-brand-800">
                 {path.successLabel} · {path.timeLabel}
               </p>
-              <p className="mt-2 text-xs text-amber-800">{p.cardFallbackLine}</p>
             </button>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => onSelect("effiroad_main", "dedicated_line")}
+          className="rounded-xl border-2 border-emerald-300 bg-emerald-50/60 p-4 text-left ring-2 ring-transparent transition hover:ring-emerald-200 sm:col-span-2"
+        >
+          <span className="text-base font-bold text-emerald-950">
+            {p.paths.dedicated_line.title}
+          </span>
+          <p className="mt-2 text-base leading-relaxed text-emerald-900">
+            {p.paths.dedicated_line.description}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-emerald-800">{p.bestBadge}</p>
+        </button>
       </div>
 
       <button
         type="button"
         onClick={() => setShowQuiz(true)}
-        className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-brand-400"
+        className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-700 hover:border-brand-400"
       >
         {p.quizFallback}
       </button>
-
-      {phoneNumber ? (
-        <EffiroadDedicatedLineCard
-          phoneNumber={phoneNumber}
-          variant="fallback"
-          onSwitchToDedicated={() => onSelect("effiroad_main", "dedicated_line")}
-        />
-      ) : (
-        <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 p-4">
-          <p className="text-sm font-semibold text-emerald-900">{p.dedicatedFallbackTitle}</p>
-          <p className="mt-2 text-sm leading-relaxed text-emerald-800">{p.dedicatedEqualQuality}</p>
-        </div>
-      )}
     </div>
   );
 }

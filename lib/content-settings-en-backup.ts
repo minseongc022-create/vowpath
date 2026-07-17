@@ -99,6 +99,32 @@ export const SETTINGS_PAGE_EN = {
   forwardingCopied: "Copied",
   forwardingCustomerNote:
     "This number is a behind-the-scenes routing destination — your public-facing shop number stays unchanged on your website, Google Business Profile, and truck signage.",
+  forwardingNumberBanner: {
+    badgeOverflow: "Your Effiroad number",
+    badgeDedicated: "Your main line number",
+    titleOverflow: "Paste this when your carrier or phone app asks for a forward-to number",
+    titleDedicated: "Put this number where customers look",
+    bodyOverflow:
+      "Customers still call your shop number. You only paste this number inside your phone or VoIP settings — not on Google or your website.",
+    bodyDedicated:
+      "No forwarding codes. Update Google, your website, and trucks with this number. Effiroad answers per your Answer Hours.",
+    noteOverflow: "Your shop number stays on Google and your website.",
+    noteDedicated: "Your old number can stay on personal contacts until marketing is updated.",
+    carrierPasteHint: "Some apps want +1 included — use {e164} if asked.",
+  },
+  forwardingValueHero: {
+    badge: "Why Effiroad",
+    title: "Keep your shop number. Never miss a lead.",
+    subtitle: "Same natural voice and intake whether you forward or use a dedicated line.",
+    bullets: [
+      "Your phone rings first. Effiroad only picks up when you miss the call (~20 seconds).",
+      "Clear water jobs can auto-dispatch. Urgent or unclear jobs text you to approve first.",
+      "No extra hold music or phone tree — polite intake and dispatch while the customer waits.",
+    ] as const,
+  },
+  forwardingDoNowTitle: "Do these steps now",
+  forwardingDoNowHint: "One step at a time. Check Done after each tap or paste.",
+  forwardingMoreHelp: "More help (optional)",
   forwardingWhatYouAreSetting: "What you are setting up",
   forwardingProviderTitle: "Pick your phone system",
   forwardingProviderHint:
@@ -145,9 +171,9 @@ export const SETTINGS_PAGE_EN = {
   forwardingChangePath: "← Pick a different setup path",
   forwardingPathPicker: {
     badge: "Choose your setup",
-    title: "Three ways to forward your line",
+    title: "How do you want to connect?",
     subtitle:
-      "Start with overflow or VoIP routing — keep your Google number. If forwarding won't work on your plan, use your Effiroad dedicated number below (same AI quality).",
+      "Pick one path. Your Effiroad number is at the top — copy it when a step asks for a forward-to number.",
     bestBadge: "Easiest",
     pickCarrier: "Which carrier is your shop cell on?",
     pickVoip: "Which business phone system?",
@@ -215,7 +241,7 @@ export const SETTINGS_PAGE_EN = {
   },
   forwardingTestFailedDedicated:
     "Test still failing after every step? Use your Effiroad dedicated number instead — no forwarding required.",
-  forwardingStepsTitle: "Step-by-step (follow in order)",
+  forwardingStepsTitle: "Quick checklist",
   forwardingTestTitle: "Test call",
   forwardingTestBody:
     "Tap Start test below, then call your main shop number from another phone. Let it ring without answering — we detect when Effiroad receives the forwarded call.",
@@ -223,9 +249,9 @@ export const SETTINGS_PAGE_EN = {
     "Tap Start test below, then call your Effiroad number from another phone. No forwarding needed — Effiroad should answer per your Answer Hours.",
   forwardingVerifyCallEffiroad: "Call this Effiroad number:",
   forwardingVerifyWaitingDirect: "Waiting — call your Effiroad number now from another phone",
-  forwardingOneTapTitle: "Quick actions on your phone",
+  forwardingOneTapTitle: "Tap or open — then check Done",
   forwardingOneTapHint:
-    "AT&T / T-Mobile only: on the shop cell, tap Dial code, wait for confirmation, then check Done. Dialpad and Verizon use the portal/app buttons instead.",
+    "Use the buttons below on the phone or computer that receives customer calls.",
   forwardingTapToActivate: "Tap to activate on this phone",
   forwardingCopyNumber: "Copy Effiroad number",
   forwardingTurnOff: "Turn off this rule",

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { settingsPage } from "@/lib/content";
+import { formatUsPhoneNational } from "@/lib/phone-display";
 
 type Props = {
   phoneNumber: string;
@@ -11,12 +12,7 @@ type Props = {
 };
 
 function formatPhoneDisplay(e164: string): string {
-  const digits = e164.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("1")) {
-    const n = digits.slice(1);
-    return `+1 (${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`;
-  }
-  return e164;
+  return formatUsPhoneNational(e164);
 }
 
 export function EffiroadDedicatedLineCard({

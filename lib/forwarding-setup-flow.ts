@@ -6,9 +6,7 @@ import {
   GRASSHOPPER_LOGIN_URL,
   RINGCENTRAL_ADMIN_URL,
   VERIZON_CALL_FORWARDING_WEB,
-  VERIZON_FORWARDING_FAQ,
   XFINITY_FORWARDING_FAQ,
-  VERIZON_MY_VERIZON_URL,
 } from "./forwarding-carrier-codes";
 import { isDirectEffiroadLineProvider, type ForwardingProviderId } from "./forwarding-guides-en";
 
@@ -92,12 +90,12 @@ export function getOrderedSetupActions(
   if (provider === "verizon") {
     const carrier = getCarrierQuickActions(provider, effiroadE164);
     const star = carrier[0];
-    const actions: ForwardingSetupAction[] = [
+    return [
       {
         id: "verizon-star",
         order: 1,
-        label: star?.label ?? "Verizon *71 code",
-        description: star?.description ?? "Dial from the shop phone.",
+        label: star?.label ?? "Dial *71 on your shop phone",
+        description: "Your phone rings first. Wait for a confirmation tone.",
         tapHref: star ? `tel:${encodeURIComponent(star.dial)}` : undefined,
         tapLabel: "Dial *71 on this phone",
         copyText: star?.copyText,
@@ -109,32 +107,13 @@ export function getOrderedSetupActions(
       {
         id: "verizon-web",
         order: 2,
-        label: "Or use My Verizon (web or app)",
-        description:
-          "When unanswered / No answer only — never Forward all. Paste Effiroad number → Save.",
+        label: "Or use My Verizon (When unanswered only)",
+        description: "Paste Effiroad number → Save. Never Forward all.",
         externalHref: VERIZON_CALL_FORWARDING_WEB,
-        externalLabel: "m.vzw.com/callforwarding",
+        externalLabel: "Open My Verizon",
         copyText: effiroadE164,
-      },
-      {
-        id: "verizon-app",
-        order: 3,
-        label: "My Verizon app download",
-        description: "Account → your line → Manage call forwarding → When unanswered.",
-        externalHref: VERIZON_MY_VERIZON_URL,
-        externalLabel: "My Verizon app help",
-        copyText: effiroadE164,
-      },
-      {
-        id: "verizon-faq",
-        order: 4,
-        label: "Verizon official guide",
-        description: "If app and *71 both fail — Verizon FAQ or 800-922-0204.",
-        externalHref: VERIZON_FORWARDING_FAQ,
-        externalLabel: "Verizon forwarding FAQ",
       },
     ];
-    return actions;
   }
 
   if (provider === "ringcentral") {
