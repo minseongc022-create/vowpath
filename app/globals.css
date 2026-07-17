@@ -1258,20 +1258,21 @@
 
   .vow-forwarding-sticky {
     position: sticky;
-    z-index: 15;
-    top: 0;
+    z-index: 20;
+    top: 3.25rem;
     margin-left: -0.25rem;
     margin-right: -0.25rem;
     padding-left: 0.25rem;
     padding-right: 0.25rem;
-    padding-bottom: 0.25rem;
-    background: rgb(248 246 242 / 0.94);
-    backdrop-filter: blur(8px);
+    padding-bottom: 0.35rem;
+    background: rgb(248 246 242 / 0.97);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgb(61 50 40 / 0.06);
   }
 
-  @media (max-width: 1023px) {
+  @media (min-width: 1024px) {
     .vow-forwarding-sticky {
-      top: 3.25rem;
+      top: 0;
     }
   }
 

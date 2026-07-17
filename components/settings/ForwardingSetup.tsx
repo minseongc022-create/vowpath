@@ -75,9 +75,9 @@ export function ForwardingSetup({
   const [testAttempted, setTestAttempted] = useState(false);
 
   const WIZARD_STEPS = [
-    { n: 1, label: "Choose path" },
-    { n: 2, label: "Set up" },
-    { n: 3, label: "Test call" },
+    { n: 1, label: settingsPage.forwardingWizardSteps.choosePath },
+    { n: 2, label: settingsPage.forwardingWizardSteps.setUp },
+    { n: 3, label: settingsPage.forwardingWizardSteps.testCall },
   ] as const;
 
   const loadPhoneStatus = useCallback(async () => {

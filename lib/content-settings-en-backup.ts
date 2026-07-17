@@ -125,6 +125,11 @@ export const SETTINGS_PAGE_EN = {
   forwardingDoNowTitle: "Do these steps now",
   forwardingDoNowHint: "One step at a time. Check Done after each tap or paste.",
   forwardingMoreHelp: "More help (optional)",
+  forwardingWizardSteps: {
+    choosePath: "Choose path",
+    setUp: "Set up",
+    testCall: "Test call",
+  },
   forwardingWhatYouAreSetting: "What you are setting up",
   forwardingProviderTitle: "Pick your phone system",
   forwardingProviderHint:
