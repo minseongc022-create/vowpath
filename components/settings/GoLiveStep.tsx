@@ -18,8 +18,6 @@ type GoLiveStepProps = {
   skippedLabel: string;
   editLabel?: string;
   collapseLabel?: string;
-  /** Hide long description / tip on small screens to reduce scroll in nested wizards */
-  streamlineMobile?: boolean;
   doneSummary?: ReactNode;
   children: ReactNode;
 };
@@ -40,7 +38,6 @@ export function GoLiveStep({
   skippedLabel,
   editLabel = "Edit",
   collapseLabel = "Done",
-  streamlineMobile = false,
   doneSummary,
   children,
 }: GoLiveStepProps) {
@@ -106,11 +103,7 @@ export function GoLiveStep({
             </div>
             <h3 className="mt-0 text-sm font-bold text-brand-950 sm:mt-1 sm:text-xl">{title}</h3>
             {!showSummaryOnly ? (
-              <p
-                className={`mt-0.5 text-xs leading-snug text-stone-600 sm:mt-2 sm:text-base sm:leading-relaxed ${
-                  streamlineMobile ? "hidden sm:block" : ""
-                }`}
-              >
+              <p className="mt-1 text-sm leading-snug text-stone-600 sm:mt-2 sm:text-base sm:leading-relaxed">
                 {description}
               </p>
             ) : null}
@@ -118,11 +111,7 @@ export function GoLiveStep({
         </div>
 
         {quickTip && !showSummaryOnly ? (
-          <p
-            className={`mt-2 rounded-xl border border-sky-100 bg-sky-50/90 px-3 py-2.5 text-base leading-snug text-sky-950 sm:mt-3 sm:py-3 sm:leading-relaxed ${
-              streamlineMobile ? "hidden sm:block" : ""
-            }`}
-          >
+          <p className="mt-2 rounded-xl border border-sky-100 bg-sky-50/90 px-3 py-2.5 text-sm leading-snug text-sky-950 sm:mt-3 sm:py-3 sm:text-base sm:leading-relaxed">
             {quickTip}
           </p>
         ) : null}

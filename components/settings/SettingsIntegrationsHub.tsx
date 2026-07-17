@@ -72,7 +72,7 @@ export function SettingsIntegrationsHub({
       <div className="mb-3 border-b border-brand-100 pb-2 sm:mb-5 sm:pb-4">
         <p className="text-[10px] font-bold uppercase tracking-wide text-brand-600 sm:text-xs">Connect</p>
         <h2 className="text-sm font-bold text-brand-950 sm:text-lg">Integrations at a glance</h2>
-        <p className="mt-0.5 hidden text-sm text-stone-500 sm:block">
+        <p className="mt-1 text-xs leading-snug text-stone-500 sm:text-sm">
           One card per connection. Tap a card to jump to that setup section.
         </p>
       </div>
@@ -102,13 +102,13 @@ export function SettingsIntegrationsHub({
                   {item.statusLabel}
                 </span>
               </div>
-              <p className="mt-0.5 hidden text-sm leading-snug text-stone-600 sm:block">{item.subtitle}</p>
+              <p className="mt-1 text-xs leading-snug text-stone-600 sm:text-sm">{item.subtitle}</p>
             </div>
           </a>
         ))}
       </div>
 
-      <p className="mt-2 hidden text-center text-xs text-stone-500 sm:mt-4 sm:block">
+      <p className="mt-3 text-center text-xs text-stone-500 sm:mt-4">
         Need help? Ask{" "}
         <button
           type="button"

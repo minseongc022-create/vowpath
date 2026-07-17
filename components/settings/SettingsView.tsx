@@ -431,7 +431,6 @@ function SettingsViewBody({
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.phone)}
             title={settingsPage.phoneTitle}
             description={settingsPage.phoneDescription}
-            streamlineMobile
             icon="📞"
             done={phoneItem.done}
             doneSummary={

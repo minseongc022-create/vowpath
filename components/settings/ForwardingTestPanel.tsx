@@ -82,16 +82,16 @@ export function ForwardingTestPanel({ provider, onVerified, onTestStarted }: Pro
 
   return (
     <div className="space-y-2 sm:space-y-4">
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5 sm:rounded-xl sm:p-4">
-        <p className="text-xs font-semibold text-emerald-900 sm:text-sm">{settingsPage.forwardingTestTitle}</p>
-        <p className="mt-1 hidden text-sm leading-relaxed text-emerald-900/90 sm:mt-2 sm:block">{testBody}</p>
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 sm:p-4">
+        <p className="text-sm font-semibold text-emerald-900">{settingsPage.forwardingTestTitle}</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-emerald-900/90">{testBody}</p>
       </div>
 
       <button
         type="button"
         onClick={() => void startTest()}
         disabled={listening && !state?.verified}
-        className="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-60 sm:rounded-xl sm:px-4 sm:py-3.5 sm:text-base"
+        className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-60 sm:py-3.5 sm:text-base"
       >
         {listening ? settingsPage.forwardingVerifyListening : settingsPage.forwardingVerifyStart}
       </button>

@@ -28,16 +28,17 @@ export function GoLiveProgressCard({
           <span aria-hidden>{live ? "✅" : "🎯"}</span>
           {live ? settingsPage.allDone : settingsPage.goLiveWelcome}
         </p>
-        <p className="mt-1 hidden text-sm leading-relaxed text-stone-600 sm:mt-2 sm:block sm:text-base">
+        <p className="mt-1.5 text-sm leading-relaxed text-stone-600 sm:mt-2 sm:text-base">
           {live ? settingsPage.progressHint : settingsPage.goLiveWelcomeHint}
         </p>
-        <div className="mt-2 flex items-end justify-between gap-3 sm:mt-4 sm:gap-4">
+        <div className="mt-2.5 flex items-end justify-between gap-3 sm:mt-4 sm:gap-4">
           <div>
-            <p className="text-xs font-semibold text-stone-700 sm:text-sm">
+            <p className="text-sm font-semibold text-stone-700">
               {settingsPage.progressTitle
                 .replace("{done}", String(requiredDone))
                 .replace("{total}", String(requiredTotal))}
             </p>
+            <p className="mt-0.5 text-xs text-stone-500 sm:text-sm">{settingsPage.progressHint}</p>
           </div>
           <span
             className={`text-2xl font-bold tabular-nums sm:text-3xl ${

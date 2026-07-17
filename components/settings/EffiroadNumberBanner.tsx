@@ -52,9 +52,14 @@ export function EffiroadNumberBanner({
             {copied ? settingsPage.forwardingCopied : settingsPage.forwardingCopy}
           </button>
         </div>
-        <p className="mt-1 hidden text-sm leading-snug text-slate-700 sm:block">
+        <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:mt-2 sm:text-sm">
           {mode === "dedicated" ? c.noteDedicated : c.barHintOverflow}
         </p>
+        {mode === "overflow" ? (
+          <p className="mt-1 text-xs leading-snug text-slate-500 sm:text-sm">
+            {c.carrierPasteHint.replace("{e164}", e164)}
+          </p>
+        ) : null}
       </div>
     );
   }

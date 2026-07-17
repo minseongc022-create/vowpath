@@ -57,7 +57,7 @@ export function ForwardingSetup({
     normalizeForwardingProvider(rawInitialProvider),
   );
   const [stuckOpen, setStuckOpen] = useState(false);
-  const [moreHelpOpen, setMoreHelpOpen] = useState(false);
+  const [moreHelpOpen, setMoreHelpOpen] = useState(true);
   const initialNormalized = normalizeForwardingProvider(rawInitialProvider);
   const [quizDone, setQuizDone] = useState(
     () => initialNormalized !== "effiroad_main" || confirmed,
@@ -217,11 +217,9 @@ export function ForwardingSetup({
   const setupInstructions =
     wizardStep === 1 ? (
       <>
-        {!quizDone ? (
-          <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-2.5 py-2 text-xs font-medium leading-snug text-brand-950 sm:px-3 sm:py-2.5 sm:text-base">
-            {settingsPage.forwardingSetupPrompt}
-          </p>
-        ) : null}
+        <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-snug text-brand-950 sm:text-base">
+          {settingsPage.forwardingSetupPrompt}
+        </p>
 
         {showPathPicker || !quizDone ? (
           <ForwardingPathPicker onSelect={handlePathSelect} />
@@ -233,66 +231,56 @@ export function ForwardingSetup({
           />
         )}
 
-        {quizDone ? (
+        {!quizDone ? (
+          <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center text-sm text-slate-600">
+            {settingsPage.forwardingPathPicker.subtitle}
+          </p>
+        ) : (
           <>
             {provider === "verizon" && !directMain ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-950 sm:px-3 sm:py-2.5 sm:text-base">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
                 {settingsPage.forwardingVerizonWarning}
               </p>
             ) : null}
 
             {provider === "google_voice" && !directMain ? (
-              <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-950 sm:px-3 sm:py-2.5 sm:text-base">
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
                 {settingsPage.forwardingGoogleVoiceWarning}
               </p>
             ) : null}
 
             {provider === "dialpad" && !directMain ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs leading-snug text-emerald-900 sm:px-3 sm:py-2.5 sm:text-base">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm leading-snug text-emerald-900">
                 {settingsPage.forwardingDialpadBanner}
               </p>
             ) : null}
 
             {phoneNumber ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
                 <ForwardingSimpleSteps steps={guideSteps} />
               </div>
             ) : null}
 
-            {!directMain && phoneNumber ? (
-              <button
-                type="button"
-                onClick={switchToDedicatedLine}
-                className="w-full rounded-lg border border-emerald-300 bg-emerald-50/80 px-2.5 py-2 text-left text-xs font-semibold text-emerald-900 hover:bg-emerald-100 sm:hidden"
-              >
-                {settingsPage.forwardingDedicatedLine.switchButton} →
-              </button>
-            ) : null}
-
             {directMain && phoneNumber ? (
-              <div className="hidden sm:block">
-                <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
-              </div>
+              <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
             ) : null}
 
             {!directMain && phoneNumber ? (
-              <div className="hidden sm:block">
-                <EffiroadDedicatedLineCard
-                  phoneNumber={phoneNumber}
-                  variant="fallback"
-                  compact
-                  onSwitchToDedicated={switchToDedicatedLine}
-                />
-              </div>
+              <EffiroadDedicatedLineCard
+                phoneNumber={phoneNumber}
+                variant="fallback"
+                compact
+                onSwitchToDedicated={switchToDedicatedLine}
+              />
             ) : null}
 
-            <div className="rounded-lg border border-slate-200 bg-white sm:rounded-xl">
+            <div className="rounded-xl border border-slate-200 bg-white">
               <button
                 type="button"
                 onClick={() => setMoreHelpOpen((open) => !open)}
                 aria-expanded={moreHelpOpen}
-                className="flex w-full items-center justify-between px-2.5 py-2 text-left text-xs font-semibold text-slate-800 sm:px-4 sm:py-3 sm:text-base"
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-semibold text-slate-800 sm:px-4 sm:py-3 sm:text-base"
               >
                 {settingsPage.forwardingMoreHelp}
                 <span
@@ -303,16 +291,8 @@ export function ForwardingSetup({
                 </span>
               </button>
               {moreHelpOpen ? (
-                <div className="space-y-2 border-t border-slate-200 px-2.5 py-2 sm:space-y-3 sm:px-4 sm:py-3">
+                <div className="space-y-2.5 border-t border-slate-200 px-3 py-3 sm:space-y-3 sm:px-4">
                   <ForwardingValueHero dense />
-                  {!directMain && phoneNumber ? (
-                    <EffiroadDedicatedLineCard
-                      phoneNumber={phoneNumber}
-                      variant="fallback"
-                      compact
-                      onSwitchToDedicated={switchToDedicatedLine}
-                    />
-                  ) : null}
                   {selectedPath && selectedPath !== "dedicated_line" ? (
                     <ForwardingAlternatePaths
                       current={provider}
@@ -327,7 +307,7 @@ export function ForwardingSetup({
                   {!showAllProviders ? (
                     <div>
                       <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
-                      <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:mt-2 sm:grid-cols-2 sm:gap-2">
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                         {visibleProviders.map((item) => {
                           const selected = provider === item.id;
                           return (
@@ -335,14 +315,14 @@ export function ForwardingSetup({
                               key={item.id}
                               type="button"
                               onClick={() => setProvider(item.id)}
-                              className={`min-h-[40px] rounded-lg border px-2 py-1.5 text-left sm:min-h-[48px] sm:rounded-xl sm:px-3 sm:py-2.5 ${
+                              className={`min-h-[48px] rounded-xl border px-3 py-2.5 text-left ${
                                 selected
                                   ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
                                   : "border-slate-200 bg-white hover:border-slate-300"
                               }`}
                             >
-                              <span className="text-xs font-semibold text-slate-900 sm:text-base">{item.label}</span>
-                              <p className="mt-0.5 hidden text-sm text-stone-600 sm:block">{item.hint}</p>
+                              <span className="text-sm font-semibold text-slate-900 sm:text-base">{item.label}</span>
+                              <p className="mt-0.5 text-xs leading-snug text-stone-600 sm:text-sm">{item.hint}</p>
                             </button>
                           );
                         })}
@@ -357,7 +337,7 @@ export function ForwardingSetup({
               ) : null}
             </div>
           </>
-        ) : null}
+        )}
       </>
     ) : null;
 
