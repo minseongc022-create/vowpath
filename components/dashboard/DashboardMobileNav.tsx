@@ -66,20 +66,20 @@ export function DashboardMobileNav({
       href: ROUTES.dashboard,
       label: v.dashboard,
       match: (p) => p === ROUTES.dashboard,
-      icon: <IconDashboard className="h-6 w-6" />,
+      icon: <IconDashboard className="h-5 w-5" />,
     },
     {
       href: `${ROUTES.dashboard}/bookings`,
       label: v.requests,
       match: (p) => p.startsWith(`${ROUTES.dashboard}/bookings`),
-      icon: <IconRequests className="h-6 w-6" />,
+      icon: <IconRequests className="h-5 w-5" />,
       badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
     },
     {
       href: ROUTES.calendar,
       label: v.calendar,
       match: (p) => p.startsWith(ROUTES.calendar),
-      icon: <IconCalendar className="h-6 w-6" />,
+      icon: <IconCalendar className="h-5 w-5" />,
     },
   ];
 
@@ -87,19 +87,19 @@ export function DashboardMobileNav({
     {
       href: ROUTES.missedCallsAnalytics,
       label: v.missedCalls,
-      icon: <IconMissedCalls className="h-6 w-6" />,
+      icon: <IconMissedCalls className="h-5 w-5" />,
       match: (p: string) => p.startsWith(ROUTES.missedCallsAnalytics),
     },
     {
       href: ROUTES.briefing,
       label: v.briefing,
-      icon: <IconBriefing className="h-6 w-6" />,
+      icon: <IconBriefing className="h-5 w-5" />,
       match: (p: string) => p.startsWith(ROUTES.briefing),
     },
     {
       href: ROUTES.settings,
       label: v.settings,
-      icon: <IconSettings className="h-6 w-6" />,
+      icon: <IconSettings className="h-5 w-5" />,
       match: (p: string) => p.startsWith(ROUTES.settings),
     },
   ];
@@ -117,13 +117,13 @@ export function DashboardMobileNav({
 
       {moreOpen ? (
         <div
-          className="kb-more-sheet fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 lg:hidden"
+          className="kb-more-sheet fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] pt-2 lg:hidden"
           role="dialog"
           aria-label="All menu"
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
-          <p className="mb-3 text-center text-sm font-bold text-brand-950">All menus</p>
-          <div className="grid grid-cols-4 gap-3">
+          <p className="mb-2 text-center text-xs font-bold text-brand-950">All menus</p>
+          <div className="grid grid-cols-4 gap-2">
             {moreLinks.map((link) => {
               const active = link.match(pathname);
               return (
@@ -135,7 +135,7 @@ export function DashboardMobileNav({
                   onClick={() => setMoreOpen(false)}
                 >
                   <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${
                       active ? "bg-brand-100 text-brand-800" : "bg-brand-50 text-stone-600"
                     }`}
                   >
@@ -150,12 +150,12 @@ export function DashboardMobileNav({
       ) : null}
 
       <div
-        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 px-2 pb-[calc(0.4rem+env(safe-area-inset-bottom))] lg:hidden"
         aria-label="Mobile navigation"
       >
-        <div className="mx-auto flex max-w-lg items-end gap-2">
+        <div className="mx-auto flex max-w-lg items-end gap-1.5">
           <nav className="kb-floating-nav min-w-0 flex-1">
-            <ul className="flex items-center justify-between px-1 py-1.5">
+            <ul className="flex items-center justify-between px-0.5 py-0.5">
               {tabs.map((tab) => {
                 const active = tab.match(pathname);
                 return (
@@ -163,12 +163,12 @@ export function DashboardMobileNav({
                     <Link
                       href={tab.href}
                       prefetch
-                      className={`relative flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-bold transition ${
+                      className={`relative flex min-h-[2.75rem] flex-col items-center justify-center gap-0 px-0.5 py-1 text-[9px] font-bold transition ${
                         active ? "text-brand-900" : "text-stone-400"
                       }`}
                     >
                       <span
-                        className={`flex h-9 w-9 items-center justify-center rounded-2xl transition ${
+                        className={`flex h-8 w-8 items-center justify-center rounded-xl transition ${
                           active ? "bg-brand-100 text-brand-800" : "text-stone-500"
                         }`}
                       >
@@ -208,7 +208,7 @@ export function DashboardMobileNav({
               openEffiroadAssistant();
             }}
           >
-            <EffiroadAiMark size={52} shadow="md" />
+            <EffiroadAiMark size={44} shadow="md" />
             {pathname.startsWith(ROUTES.ai) ? (
               <span className="absolute -bottom-0.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-brand-500" />
             ) : null}

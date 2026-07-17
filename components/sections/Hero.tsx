@@ -59,7 +59,7 @@ export function Hero() {
         aria-hidden
       />
 
-      <Container className="relative w-full py-8 sm:py-14 lg:py-20">
+      <Container className="relative w-full py-6 sm:py-14 lg:py-20">
         <div className="mb-5 flex justify-center md:hidden">
           <VerticalSwitcher />
         </div>

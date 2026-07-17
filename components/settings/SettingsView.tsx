@@ -298,12 +298,12 @@ function SettingsViewBody({
         : shop.scheduleWindows.map((w) => w.label);
 
   return (
-    <div className="vow-settings-page-body space-y-5 sm:space-y-8">
+    <div className="vow-settings-page-body space-y-4 sm:space-y-8">
       {paidProp || transactionId ? (
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
 
-      <section id="go-live" className="scroll-mt-6 space-y-5">
+      <section id="go-live" className="scroll-mt-6 space-y-4 sm:space-y-5">
         <SettingsSectionHeader
           icon="🚀"
           title={settingsPage.goLiveSectionTitle}
