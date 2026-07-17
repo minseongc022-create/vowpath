@@ -63,19 +63,19 @@ export function GoLiveStep({
   return (
     <section
       id={id}
-      className={`vow-golive-step scroll-mt-28 rounded-2xl border bg-white shadow-sm ${
+      className={`vow-golive-step scroll-mt-28 rounded-xl border bg-white shadow-sm sm:rounded-2xl ${
         done ? "border-emerald-200" : "border-brand-200/70"
       }`}
     >
       <div
-        className={`border-b px-3 py-3 sm:px-6 sm:py-4 ${
+        className={`border-b px-2.5 py-2 sm:px-6 sm:py-4 ${
           done ? "border-emerald-100 bg-emerald-50/50" : "border-brand-100 bg-brand-50/30"
         }`}
       >
-        <div className="flex gap-2.5 sm:gap-4">
+        <div className="flex gap-2 sm:gap-4">
           {icon ? (
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl ${
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base shadow-sm sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl ${
                 done
                   ? "bg-emerald-100 ring-1 ring-emerald-200"
                   : "bg-white ring-1 ring-brand-200/80"
@@ -86,12 +86,12 @@ export function GoLiveStep({
             </span>
           ) : null}
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-brand-700 sm:text-sm">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-700 sm:text-sm">
                 {step}
               </p>
               <span
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold sm:text-sm ${
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold sm:px-2.5 sm:py-1 sm:text-sm ${
                   done
                     ? "bg-emerald-100 text-emerald-800"
                     : skipped
@@ -104,10 +104,10 @@ export function GoLiveStep({
                 {statusLabel}
               </span>
             </div>
-            <h3 className="mt-0.5 text-base font-bold text-brand-950 sm:mt-1 sm:text-xl">{title}</h3>
+            <h3 className="mt-0 text-sm font-bold text-brand-950 sm:mt-1 sm:text-xl">{title}</h3>
             {!showSummaryOnly ? (
               <p
-                className={`mt-1 text-base leading-snug text-stone-600 sm:mt-2 sm:leading-relaxed ${
+                className={`mt-0.5 text-xs leading-snug text-stone-600 sm:mt-2 sm:text-base sm:leading-relaxed ${
                   streamlineMobile ? "hidden sm:block" : ""
                 }`}
               >
@@ -131,16 +131,16 @@ export function GoLiveStep({
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
-            className="mt-4 min-h-[44px] w-full rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-base font-semibold text-brand-900 shadow-sm active:bg-brand-50 sm:w-auto sm:min-w-[7rem]"
+            className="mt-2 min-h-9 w-full rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-900 shadow-sm active:bg-brand-50 sm:mt-4 sm:min-h-[44px] sm:w-auto sm:min-w-[7rem] sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-base"
           >
             {editing ? collapseLabel : editLabel}
           </button>
         ) : null}
       </div>
 
-      <div className="px-3 py-4 text-base sm:px-6 sm:py-5">
+      <div className="px-2.5 py-2.5 text-sm sm:px-6 sm:py-5 sm:text-base">
         {showSummaryOnly ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-4 text-base leading-relaxed text-emerald-900">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2.5 text-xs leading-snug text-emerald-900 sm:rounded-xl sm:px-4 sm:py-4 sm:text-base sm:leading-relaxed">
             {doneSummary}
           </div>
         ) : (

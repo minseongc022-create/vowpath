@@ -67,31 +67,31 @@ export function SettingsIntegrationsHub({
   return (
     <section
       id="integrations-hub"
-      className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
+      className="scroll-mt-6 rounded-xl border border-brand-200/80 bg-white p-3 shadow-card sm:rounded-2xl sm:p-6"
     >
-      <div className="mb-5 border-b border-brand-100 pb-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-brand-600">Connect</p>
-        <h2 className="mt-1 text-lg font-bold text-brand-950">Integrations at a glance</h2>
-        <p className="mt-1 text-sm text-stone-500">
+      <div className="mb-3 border-b border-brand-100 pb-2 sm:mb-5 sm:pb-4">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-brand-600 sm:text-xs">Connect</p>
+        <h2 className="text-sm font-bold text-brand-950 sm:text-lg">Integrations at a glance</h2>
+        <p className="mt-0.5 hidden text-sm text-stone-500 sm:block">
           One card per connection. Tap a card to jump to that setup section.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
         {items.map((item) => (
           <a
             key={item.id}
             href={item.href}
-            className="group flex gap-3 rounded-xl border border-brand-100 bg-brand-50/30 p-4 transition hover:border-brand-300 hover:bg-brand-50/60"
+            className="group flex flex-col gap-1 rounded-lg border border-brand-100 bg-brand-50/30 p-2 transition hover:border-brand-300 hover:bg-brand-50/60 sm:flex-row sm:gap-3 sm:rounded-xl sm:p-4"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-base shadow-sm sm:h-11 sm:w-11 sm:rounded-xl sm:text-xl">
               {item.icon}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-brand-950">{item.title}</p>
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                <p className="text-xs font-semibold leading-tight text-brand-950 sm:text-base">{item.title}</p>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:px-2 sm:text-[10px] ${
                     item.status === "done"
                       ? "bg-emerald-100 text-emerald-800"
                       : item.status === "todo"
@@ -102,13 +102,13 @@ export function SettingsIntegrationsHub({
                   {item.statusLabel}
                 </span>
               </div>
-              <p className="mt-1 text-sm leading-snug text-stone-600">{item.subtitle}</p>
+              <p className="mt-0.5 hidden text-sm leading-snug text-stone-600 sm:block">{item.subtitle}</p>
             </div>
           </a>
         ))}
       </div>
 
-      <p className="mt-4 text-center text-xs text-stone-500">
+      <p className="mt-2 hidden text-center text-xs text-stone-500 sm:mt-4 sm:block">
         Need help? Ask{" "}
         <button
           type="button"

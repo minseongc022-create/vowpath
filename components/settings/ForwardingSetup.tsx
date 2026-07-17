@@ -159,7 +159,7 @@ export function ForwardingSetup({
   const wizardNav = (
     <nav
       aria-label="Forwarding setup progress"
-      className="vow-forwarding-wizard-nav flex gap-2 overflow-x-auto pb-0.5"
+      className="vow-forwarding-wizard-nav flex gap-1.5 overflow-x-auto pb-0.5 sm:gap-2"
     >
       {WIZARD_STEPS.map((s) => {
         const active = wizardStep === s.n;
@@ -171,7 +171,7 @@ export function ForwardingSetup({
             type="button"
             onClick={() => canJump && setWizardStep(s.n)}
             disabled={!canJump}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition sm:text-base ${
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
               active
                 ? "bg-brand-600 text-white"
                 : done
@@ -217,9 +217,11 @@ export function ForwardingSetup({
   const setupInstructions =
     wizardStep === 1 ? (
       <>
-        <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-base font-medium leading-snug text-brand-950">
-          {settingsPage.forwardingSetupPrompt}
-        </p>
+        {!quizDone ? (
+          <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-2.5 py-2 text-xs font-medium leading-snug text-brand-950 sm:px-3 sm:py-2.5 sm:text-base">
+            {settingsPage.forwardingSetupPrompt}
+          </p>
+        ) : null}
 
         {showPathPicker || !quizDone ? (
           <ForwardingPathPicker onSelect={handlePathSelect} />
@@ -231,56 +233,66 @@ export function ForwardingSetup({
           />
         )}
 
-        {!quizDone ? (
-          <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-center text-base text-slate-600">
-            {settingsPage.forwardingPathPicker.subtitle}
-          </p>
-        ) : (
+        {quizDone ? (
           <>
             {provider === "verizon" && !directMain ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-base leading-snug text-amber-950">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-950 sm:px-3 sm:py-2.5 sm:text-base">
                 {settingsPage.forwardingVerizonWarning}
               </p>
             ) : null}
 
             {provider === "google_voice" && !directMain ? (
-              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-base leading-snug text-amber-950">
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs leading-snug text-amber-950 sm:px-3 sm:py-2.5 sm:text-base">
                 {settingsPage.forwardingGoogleVoiceWarning}
               </p>
             ) : null}
 
             {provider === "dialpad" && !directMain ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-base leading-snug text-emerald-900">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs leading-snug text-emerald-900 sm:px-3 sm:py-2.5 sm:text-base">
                 {settingsPage.forwardingDialpadBanner}
               </p>
             ) : null}
 
             {phoneNumber ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
                 <ForwardingSimpleSteps steps={guideSteps} />
               </div>
             ) : null}
 
+            {!directMain && phoneNumber ? (
+              <button
+                type="button"
+                onClick={switchToDedicatedLine}
+                className="w-full rounded-lg border border-emerald-300 bg-emerald-50/80 px-2.5 py-2 text-left text-xs font-semibold text-emerald-900 hover:bg-emerald-100 sm:hidden"
+              >
+                {settingsPage.forwardingDedicatedLine.switchButton} →
+              </button>
+            ) : null}
+
             {directMain && phoneNumber ? (
-              <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
+              <div className="hidden sm:block">
+                <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
+              </div>
             ) : null}
 
             {!directMain && phoneNumber ? (
-              <EffiroadDedicatedLineCard
-                phoneNumber={phoneNumber}
-                variant="fallback"
-                compact
-                onSwitchToDedicated={switchToDedicatedLine}
-              />
+              <div className="hidden sm:block">
+                <EffiroadDedicatedLineCard
+                  phoneNumber={phoneNumber}
+                  variant="fallback"
+                  compact
+                  onSwitchToDedicated={switchToDedicatedLine}
+                />
+              </div>
             ) : null}
 
-            <div className="rounded-xl border border-slate-200 bg-white">
+            <div className="rounded-lg border border-slate-200 bg-white sm:rounded-xl">
               <button
                 type="button"
                 onClick={() => setMoreHelpOpen((open) => !open)}
                 aria-expanded={moreHelpOpen}
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-base font-semibold text-slate-800"
+                className="flex w-full items-center justify-between px-2.5 py-2 text-left text-xs font-semibold text-slate-800 sm:px-4 sm:py-3 sm:text-base"
               >
                 {settingsPage.forwardingMoreHelp}
                 <span
@@ -291,8 +303,16 @@ export function ForwardingSetup({
                 </span>
               </button>
               {moreHelpOpen ? (
-                <div className="space-y-3 border-t border-slate-200 px-4 py-3">
+                <div className="space-y-2 border-t border-slate-200 px-2.5 py-2 sm:space-y-3 sm:px-4 sm:py-3">
                   <ForwardingValueHero dense />
+                  {!directMain && phoneNumber ? (
+                    <EffiroadDedicatedLineCard
+                      phoneNumber={phoneNumber}
+                      variant="fallback"
+                      compact
+                      onSwitchToDedicated={switchToDedicatedLine}
+                    />
+                  ) : null}
                   {selectedPath && selectedPath !== "dedicated_line" ? (
                     <ForwardingAlternatePaths
                       current={provider}
@@ -307,7 +327,7 @@ export function ForwardingSetup({
                   {!showAllProviders ? (
                     <div>
                       <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
-                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:mt-2 sm:grid-cols-2 sm:gap-2">
                         {visibleProviders.map((item) => {
                           const selected = provider === item.id;
                           return (
@@ -315,14 +335,14 @@ export function ForwardingSetup({
                               key={item.id}
                               type="button"
                               onClick={() => setProvider(item.id)}
-                              className={`min-h-[48px] rounded-xl border px-3 py-2.5 text-left ${
+                              className={`min-h-[40px] rounded-lg border px-2 py-1.5 text-left sm:min-h-[48px] sm:rounded-xl sm:px-3 sm:py-2.5 ${
                                 selected
                                   ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
                                   : "border-slate-200 bg-white hover:border-slate-300"
                               }`}
                             >
-                              <span className="text-base font-semibold text-slate-900">{item.label}</span>
-                              <p className="mt-0.5 text-sm text-stone-600">{item.hint}</p>
+                              <span className="text-xs font-semibold text-slate-900 sm:text-base">{item.label}</span>
+                              <p className="mt-0.5 hidden text-sm text-stone-600 sm:block">{item.hint}</p>
                             </button>
                           );
                         })}
@@ -337,15 +357,15 @@ export function ForwardingSetup({
               ) : null}
             </div>
           </>
-        )}
+        ) : null}
       </>
     ) : null;
 
   return (
-    <div className="vow-forwarding-setup space-y-3 text-slate-900 sm:space-y-4">
+    <div className="vow-forwarding-setup space-y-2 text-slate-900 sm:space-y-4">
       <TrialForwardingBanner />
 
-      <div className="vow-forwarding-sticky space-y-2">
+      <div className="vow-forwarding-sticky space-y-1.5 sm:space-y-2">
         {wizardNav}
         {numberBlock}
       </div>
@@ -369,12 +389,12 @@ export function ForwardingSetup({
             />
           ) : null}
 
-          <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="rounded-lg border border-slate-200 bg-white sm:rounded-xl">
             <button
               type="button"
               onClick={() => setStuckOpen((open) => !open)}
               aria-expanded={stuckOpen}
-              className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-semibold text-slate-800 sm:px-5"
+              className="flex w-full items-center justify-between px-2.5 py-2 text-left text-xs font-semibold text-slate-800 sm:px-5 sm:py-3.5 sm:text-base"
             >
               Stuck?
               <span
@@ -412,7 +432,7 @@ export function ForwardingSetup({
               type="button"
               disabled={confirmDisabled || !phoneNumber || !forwardingVerified}
               onClick={onConfirm}
-              className="vow-dash-btn-primary w-full px-4 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
+              className="vow-dash-btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-3 sm:text-base"
             >
               {settingsPage.phoneConfirm}
             </button>
@@ -425,12 +445,12 @@ export function ForwardingSetup({
         </>
       ) : null}
 
-      <div className="vow-forwarding-nav flex flex-wrap gap-2 pt-1">
+      <div className="vow-forwarding-nav flex flex-wrap gap-1.5 pt-0.5 sm:gap-2 sm:pt-1">
         {wizardStep > 1 ? (
           <button
             type="button"
             onClick={() => setWizardStep(1)}
-            className="min-h-[44px] rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-base font-semibold text-slate-700"
+            className="min-h-9 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 sm:min-h-[44px] sm:px-4 sm:py-2.5 sm:text-base"
           >
             ← Back
           </button>
@@ -439,7 +459,7 @@ export function ForwardingSetup({
           <button
             type="button"
             onClick={() => setWizardStep(2)}
-            className="min-h-[44px] flex-1 rounded-lg bg-brand-600 px-4 py-2.5 text-base font-semibold text-white sm:flex-none"
+            className="min-h-9 flex-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white sm:min-h-[44px] sm:flex-none sm:px-4 sm:py-2.5 sm:text-base"
           >
             Next → {settingsPage.forwardingWizardSteps.testCall}
           </button>

@@ -308,7 +308,7 @@ function SettingsViewBody({
           icon="🚀"
           title={settingsPage.goLiveSectionTitle}
           hint={settingsPage.goLiveSectionSubtitle}
-          className="rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
+          className="rounded-xl border border-brand-200/80 bg-white p-3 shadow-card sm:rounded-2xl sm:p-6"
         />
 
         <div id="go-live-progress" className="scroll-mt-24">
@@ -357,7 +357,7 @@ function SettingsViewBody({
           ]}
         />
 
-        <div className="space-y-5">
+        <div className="space-y-3 sm:space-y-5">
           <GoLiveStep
             id="go-live-contact"
             step={settingsPage.stepPrefix(settingsPage.sectionSteps.contact)}

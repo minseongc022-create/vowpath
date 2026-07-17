@@ -1377,8 +1377,21 @@
     }
 
     .vow-forwarding-sticky {
-      top: 2.35rem;
-      padding-bottom: 0.2rem;
+      top: 2.1rem;
+      padding-bottom: 0.15rem;
+    }
+
+    .vow-forwarding-setup {
+      font-size: 0.875rem;
+    }
+
+    .vow-forwarding-setup .vow-forwarding-sticky {
+      margin-left: -0.125rem;
+      margin-right: -0.125rem;
+    }
+
+    .vow-golive-step {
+      scroll-margin-top: 5.5rem;
     }
 
     .vow-forwarding-setup .vow-forwarding-nav {

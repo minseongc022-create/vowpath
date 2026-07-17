@@ -60,39 +60,44 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
 
   const allDone = actions.every((a) => done[a.id]);
 
+  const actionBtn =
+    "rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:px-3 sm:py-2 sm:text-sm";
+
   return (
-    <div className="space-y-3 rounded-xl border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-4">
+    <div className="space-y-2 rounded-lg border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-2.5 sm:space-y-3 sm:rounded-xl sm:p-4">
       <div>
-        <p className="text-lg font-bold text-brand-950">{settingsPage.forwardingOneTapTitle}</p>
-        <p className="mt-0.5 text-base leading-snug text-slate-600">{settingsPage.forwardingOneTapHint}</p>
+        <p className="text-sm font-bold text-brand-950 sm:text-lg">{settingsPage.forwardingOneTapTitle}</p>
+        <p className="mt-0.5 hidden text-sm leading-snug text-slate-600 sm:block">
+          {settingsPage.forwardingOneTapHint}
+        </p>
       </div>
 
-      <ol className="space-y-3">
+      <ol className="space-y-1.5 sm:space-y-3">
         {actions.map((action) => {
           const checked = Boolean(done[action.id]);
           return (
             <li
               key={action.id}
-              className={`rounded-xl border p-3 transition sm:p-4 ${
+              className={`rounded-lg border p-2 transition sm:rounded-xl sm:p-3 ${
                 checked ? "border-emerald-300 bg-emerald-50/60" : "border-slate-200 bg-white"
               }`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2 sm:gap-3">
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold sm:h-8 sm:w-8 sm:text-sm ${
                     checked ? "bg-emerald-600 text-white" : "bg-brand-600 text-white"
                   }`}
                 >
                   {checked ? "✓" : action.order}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">{action.label}</p>
-                  <p className="mt-1 text-sm text-slate-600">{action.description}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <p className="text-xs font-semibold leading-tight text-slate-900 sm:text-base">{action.label}</p>
+                  <p className="mt-0.5 hidden text-sm text-slate-600 sm:block">{action.description}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1 sm:mt-2 sm:gap-2">
                     {action.tapHref ? (
                       <a
                         href={action.tapHref}
-                        className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
+                        className={`${actionBtn} bg-brand-600 text-white hover:bg-brand-500`}
                       >
                         {action.tapLabel ?? settingsPage.forwardingTapToActivate}
                       </a>
@@ -102,7 +107,7 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
                         href={action.externalHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
+                        className={`${actionBtn} bg-brand-600 text-white hover:bg-brand-500`}
                       >
                         {action.externalLabel ?? "Open settings"}
                       </a>
@@ -111,7 +116,7 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
                       <button
                         type="button"
                         onClick={() => void copyText(action.id, action.copyText!)}
-                        className="rounded-lg border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+                        className={`${actionBtn} border border-brand-300 bg-white text-brand-800 hover:bg-brand-50`}
                       >
                         {copiedId === action.id
                           ? settingsPage.forwardingCopied
@@ -121,20 +126,20 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
                     {action.deactivateHref ? (
                       <a
                         href={action.deactivateHref}
-                        className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        className={`${actionBtn} border border-slate-300 bg-white font-medium text-slate-700 hover:bg-slate-50`}
                       >
                         {action.deactivateLabel ?? settingsPage.forwardingTurnOff}
                       </a>
                     ) : null}
                   </div>
-                  <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                  <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-slate-700 sm:mt-2 sm:gap-2 sm:text-sm">
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={(e) =>
                         persist({ ...done, [action.id]: e.target.checked })
                       }
-                      className="h-4 w-4 rounded border-slate-300 text-brand-600"
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600 sm:h-4 sm:w-4"
                     />
                     {settingsPage.forwardingStepDone}
                   </label>
@@ -146,11 +151,11 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
       </ol>
 
       {allDone ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-900 sm:px-4 sm:py-3 sm:text-sm">
           {settingsPage.forwardingOneTapComplete}
         </p>
       ) : (
-        <p className="text-xs text-slate-500">{settingsPage.forwardingOneTapProgress}</p>
+        <p className="text-[10px] text-slate-500 sm:text-xs">{settingsPage.forwardingOneTapProgress}</p>
       )}
     </div>
   );
