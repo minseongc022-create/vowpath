@@ -1163,6 +1163,27 @@
     @apply font-bold text-rose-600;
   }
 
+  .vow-settings-section {
+    @apply rounded-xl border border-stone-200 bg-stone-50/50 p-3 sm:p-4;
+  }
+
+  .vow-settings-step-panel {
+    @apply overflow-visible;
+  }
+
+  .vow-settings-step-tab {
+    @apply min-h-[3.25rem];
+  }
+
+  .vow-forwarding-embedded .vow-forwarding-sticky {
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
   .vow-settings-choice {
     @apply rounded-xl border-2 border-stone-200 bg-white px-3 py-2.5 text-left transition hover:border-brand-300;
   }

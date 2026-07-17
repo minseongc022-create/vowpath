@@ -57,7 +57,6 @@ import {
 } from "@/lib/forwarding-guides";
 import { type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
-import { SettingsIntegrationsHub } from "@/components/settings/SettingsIntegrationsHub";
 
 const SECTION_SCROLL_IDS: Record<string, string> = {
   contact: "go-live-contact",
@@ -214,6 +213,16 @@ function SettingsViewBody({
       return false;
     },
     [refreshContact, saveStep, settingsPage.saveAllError],
+  );
+
+  const handleWizardStepChange = useCallback(
+    (stepId: string) => {
+      const key = Object.entries(SECTION_SCROLL_IDS).find(([, v]) => v === stepId)?.[0];
+      if (key) {
+        router.replace(`${ROUTES.settings}?section=${key}`, { scroll: false });
+      }
+    },
+    [router],
   );
 
   function handleRowsChange(next: ScheduleRow[]) {
@@ -469,29 +478,17 @@ function SettingsViewBody({
           />
         </div>
 
-        <SettingsIntegrationsHub
-          phoneDone={phoneItem.done}
-          jobberDone={jobberItem.done}
-          jobberOptional
-          zapierUrl={shop.zapierWebhookUrl}
-        />
-
         <GoLiveWizard
           steps={wizardSteps}
           initialStepId={initialWizardStepId}
           onBeforeContinue={handleBeforeContinue}
-          onStepChange={(stepId) => {
-            const key = Object.entries(SECTION_SCROLL_IDS).find(([, v]) => v === stepId)?.[0];
-            if (key) {
-              router.replace(`${ROUTES.settings}?section=${key}`, { scroll: false });
-            }
-          }}
+          onStepChange={handleWizardStepChange}
         />
       </section>
 
       <section
         id="product-settings"
-        className="scroll-mt-6 rounded-2xl border border-brand-200/80 bg-white p-5 shadow-card sm:p-6"
+        className="vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-5 shadow-sm sm:p-6"
       >
         <SettingsSectionHeader
           icon="⚙️"
