@@ -63,7 +63,7 @@ export function GoLiveStep({
   return (
     <section
       id={id}
-      className={`vow-golive-step scroll-mt-28 overflow-hidden rounded-2xl border bg-white shadow-sm ${
+      className={`vow-golive-step scroll-mt-28 rounded-2xl border bg-white shadow-sm ${
         done ? "border-emerald-200" : "border-brand-200/70"
       }`}
     >

@@ -563,6 +563,11 @@ const settingsPageKo = {
   forwardingDoNowTitle: "지금 할 일",
   forwardingDoNowHint: "한 단계씩. 탭하거나 붙여 넣은 뒤 완료에 체크하세요.",
   forwardingMoreHelp: "추가 도움 (선택)",
+  forwardingWizardSteps: {
+    choosePath: "경로 선택",
+    setUp: "설정",
+    testCall: "테스트 통화",
+  },
   forwardingWhatYouAreSetting: "설정하는 내용",
   forwardingProviderTitle: "전화 환경 선택",
   forwardingProviderHint:
