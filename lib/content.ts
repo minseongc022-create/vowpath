@@ -537,6 +537,32 @@ const settingsPageKo = {
   forwardingCopied: "복사됨",
   forwardingCustomerNote:
     "고객에게 보이는 번호가 아닙니다 — 웹사이트·구글에는 기존 샵 번호를 그대로 노출하세요.",
+  forwardingNumberBanner: {
+    badgeOverflow: "Effiroad 번호",
+    badgeDedicated: "메인 라인 번호",
+    titleOverflow: "통신사·전화 앱에서 착신 전환 번호를 물을 때 이 번호를 붙여 넣으세요",
+    titleDedicated: "고객이 보는 곳에 이 번호를 올리세요",
+    bodyOverflow:
+      "고객은 여전히 샵 번호로 전화합니다. 이 번호는 휴대폰·VoIP 설정 안에만 넣습니다 — 구글이나 웹사이트가 아닙니다.",
+    bodyDedicated:
+      "착신 코드 없음. 구글·웹·트럭에 이 번호를 올리면 됩니다. 응대 시간에 따라 Effiroad가 받습니다.",
+    noteOverflow: "샵 번호는 구글·웹사이트에 그대로 둡니다.",
+    noteDedicated: "옛 번호는 구글·간판 업데이트 전까지 개인 연락처에만 두면 됩니다.",
+    carrierPasteHint: "앱에서 +1을 요구하면 {e164}를 사용하세요.",
+  },
+  forwardingValueHero: {
+    badge: "Effiroad가 다른 점",
+    title: "샵 번호는 그대로. 놓치는 전화는 없게.",
+    subtitle: "착신전환이든 전용번호든 같은 자연스러운 음성·접수입니다.",
+    bullets: [
+      "내 폰이 먼저 울립니다. ~20초 못 받으면 Effiroad가 받습니다.",
+      "일반 누수는 자동 배차. 긴급·불명홙한 건 문자로 승인 후 진행.",
+      "대기음악·복잡한 메뉴 없음 — 정중한 접수와 대기 중 배차.",
+    ] as const,
+  },
+  forwardingDoNowTitle: "지금 할 일",
+  forwardingDoNowHint: "한 단계씩. 탭하거나 붙여 넣은 뒤 완료에 체크하세요.",
+  forwardingMoreHelp: "추가 도움 (선택)",
   forwardingWhatYouAreSetting: "설정하는 내용",
   forwardingProviderTitle: "전화 환경 선택",
   forwardingProviderHint:
@@ -579,9 +605,9 @@ const settingsPageKo = {
   forwardingChangePath: "← 다른 설정 경로 선택",
   forwardingPathPicker: {
     badge: "설정 방법 선택",
-    title: "착신전환 3가지 방법",
+    title: "어떻게 연결할까요?",
     subtitle:
-      "overflow·VoIP·Google Voice로 기존 번호를 유지하세요. 착신전환이 안 되면 아래 Effiroad 전용번호를 쓰세요 — AI 품질은 동일합니다.",
+      "경로 하나를 고르세요. Effiroad 번호는 위에 있습니다 — 착신 전환 번호를 물을 때 복사해 붙여 넣으세요.",
     bestBadge: "가장 쉬움",
     pickCarrier: "샵 휴대폰 통신사는?",
     pickVoip: "업무 전화 시스템은?",
@@ -655,9 +681,9 @@ const settingsPageKo = {
   forwardingCarrierCallLabel: "통신사 문의:",
   forwardingStepsTitle: "단계별 가이드 (순서대로)",
   forwardingTestTitle: "테스트 통화",
-  forwardingOneTapTitle: "휴대폰 빠른 실행",
+  forwardingOneTapTitle: "탭 또는 열기 — 완료에 체크",
   forwardingOneTapHint:
-    "AT&T / T-Mobile만: 샵 휴대폰에서 코드 통화 → 확인 후 체크. Dialpad·Verizon은 위 포털/앱 버튼 사용.",
+    "고객 전화를 받는 휴대폰 또는 컴퓨터에서 아래 버튼을 사용하세요.",
   forwardingTapToActivate: "이 휴대폰에서 코드 통화",
   forwardingCopyNumber: "Effiroad 번호 복사",
   forwardingTurnOff: "이 규칙 끄기",

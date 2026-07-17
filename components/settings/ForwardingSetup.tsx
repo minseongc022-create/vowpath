@@ -5,20 +5,17 @@ import { settingsPage } from "@/lib/content";
 import {
   FORWARDING_OVERFLOW_SUMMARY,
   FORWARDING_EFFIROAD_MAIN_SUMMARY,
-  FORWARDING_AFTER_HOURS_NOTE,
-  isDirectEffiroadLineProvider,
-  FORWARDING_PROVIDERS,
-  FORWARDING_PROVIDER_NOTE,
   FORWARDING_TROUBLESHOOTING,
   FORWARDING_TROUBLESHOOTING_FALLBACK,
   FORWARDING_TROUBLESHOOTING_SWITCH_NOTE,
+  isDirectEffiroadLineProvider,
+  FORWARDING_PROVIDERS,
   getForwardingGuideSteps,
   normalizeForwardingProvider,
   type ForwardingProviderId,
   type LegacyForwardingScenarioId,
 } from "@/lib/forwarding-guides";
 import { ForwardingUnblockGuide } from "@/components/settings/ForwardingUnblockGuide";
-import { ForwardingConditionMatrix } from "@/components/settings/ForwardingConditionMatrix";
 import { ForwardingOneTapSetup } from "@/components/settings/ForwardingOneTapSetup";
 import { ForwardingTestPanel } from "@/components/settings/ForwardingTestPanel";
 import { TrialForwardingBanner } from "@/components/settings/TrialForwardingBanner";
@@ -26,6 +23,9 @@ import { ForwardingPathPicker } from "@/components/settings/ForwardingPathPicker
 import { ForwardingAlternatePaths } from "@/components/settings/ForwardingAlternatePaths";
 import { EffiroadDedicatedLineCard } from "@/components/settings/EffiroadDedicatedLineCard";
 import { DialpadRoutingVisual } from "@/components/settings/DialpadRoutingVisual";
+import { EffiroadNumberBanner } from "@/components/settings/EffiroadNumberBanner";
+import { ForwardingValueHero } from "@/components/settings/ForwardingValueHero";
+import { ForwardingSimpleSteps } from "@/components/settings/ForwardingSimpleSteps";
 import type { ForwardingSetupPathId } from "@/lib/forwarding-paths";
 
 type ForwardingSetupProps = {
@@ -41,15 +41,6 @@ type ForwardingSetupProps = {
     provider: ForwardingProviderId;
   }) => void;
 };
-
-function formatPhoneDisplay(e164: string): string {
-  const digits = e164.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("1")) {
-    const n = digits.slice(1);
-    return `+1 (${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`;
-  }
-  return e164;
-}
 
 export function ForwardingSetup({
   confirmed,
@@ -67,18 +58,25 @@ export function ForwardingSetup({
   const [provider, setProvider] = useState<ForwardingProviderId>(
     normalizeForwardingProvider(rawInitialProvider),
   );
-  const [copied, setCopied] = useState(false);
   const [stuckOpen, setStuckOpen] = useState(false);
-  const [wizardStep, setWizardStep] = useState(1);
+  const [moreHelpOpen, setMoreHelpOpen] = useState(false);
+  const initialNormalized = normalizeForwardingProvider(rawInitialProvider);
+  const [quizDone, setQuizDone] = useState(
+    () => initialNormalized !== "effiroad_main" || confirmed,
+  );
+  const [selectedPath, setSelectedPath] = useState<ForwardingSetupPathId | null>(() =>
+    initialNormalized === "effiroad_main" ? null : "quiz",
+  );
+  const [wizardStep, setWizardStep] = useState(() =>
+    confirmed ? 3 : initialNormalized !== "effiroad_main" ? 2 : 1,
+  );
   const [forwardingVerified, setForwardingVerified] = useState(false);
-  const [quizDone, setQuizDone] = useState(false);
-  const [selectedPath, setSelectedPath] = useState<ForwardingSetupPathId | null>(null);
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [testAttempted, setTestAttempted] = useState(false);
 
   const WIZARD_STEPS = [
-    { n: 1, label: "Your number" },
-    { n: 2, label: "Setup guide" },
+    { n: 1, label: "Choose path" },
+    { n: 2, label: "Set up" },
     { n: 3, label: "Test call" },
   ] as const;
 
@@ -133,23 +131,6 @@ export function ForwardingSetup({
     setTestAttempted(false);
   }, [provider, onPreferencesChange]);
 
-  useEffect(() => {
-    if (phoneNumber && wizardStep === 1) {
-      setWizardStep(2);
-    }
-  }, [phoneNumber, wizardStep]);
-
-  const copyNumber = useCallback(async () => {
-    if (!phoneNumber) return;
-    try {
-      await navigator.clipboard.writeText(phoneNumber);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }, [phoneNumber]);
-
   const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "");
   const providerMeta = FORWARDING_PROVIDERS.find((p) => p.id === provider);
   const providerLabel = providerMeta?.label ?? "";
@@ -167,12 +148,50 @@ export function ForwardingSetup({
     setSelectedPath(pathId);
     setQuizDone(true);
     setShowAllProviders(pathId === "quiz");
+    setWizardStep(2);
   }
 
   function switchToDedicatedLine() {
     handlePathSelect("effiroad_main", "dedicated_line");
-    setWizardStep(2);
   }
+
+  function resetPath() {
+    setQuizDone(false);
+    setSelectedPath(null);
+    setWizardStep(1);
+  }
+
+  const numberBanner =
+    phoneNumber && !loading ? (
+      <EffiroadNumberBanner
+        phoneNumber={phoneNumber}
+        mode={directMain && quizDone ? "dedicated" : "overflow"}
+        compact={wizardStep === 1 && !quizDone}
+      />
+    ) : loading ? (
+      <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        {settingsPage.forwardingNumberLoading}
+      </p>
+    ) : (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <p className="text-sm text-amber-900">
+          {provisioning
+            ? settingsPage.forwardingNumberProvisioning
+            : settingsPage.forwardingNumberMissing}
+        </p>
+        {provisionError ? <p className="mt-2 text-sm text-rose-700">{provisionError}</p> : null}
+        <button
+          type="button"
+          disabled={provisioning}
+          onClick={() => void runProvision()}
+          className="mt-3 rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50 disabled:opacity-50"
+        >
+          {provisioning
+            ? settingsPage.forwardingNumberProvisioning
+            : settingsPage.forwardingNumberProvision}
+        </button>
+      </div>
+    );
 
   return (
     <div className="space-y-5 text-slate-900">
@@ -182,12 +201,13 @@ export function ForwardingSetup({
         {WIZARD_STEPS.map((s) => {
           const active = wizardStep === s.n;
           const done = wizardStep > s.n;
+          const canJump = phoneNumber && (s.n === 1 || quizDone);
           return (
             <button
               key={s.n}
               type="button"
-              onClick={() => phoneNumber && setWizardStep(s.n)}
-              disabled={!phoneNumber && s.n > 1}
+              onClick={() => canJump && setWizardStep(s.n)}
+              disabled={!canJump}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 active
                   ? "bg-brand-600 text-white"
@@ -202,182 +222,131 @@ export function ForwardingSetup({
         })}
       </nav>
 
+      {numberBanner}
+
       {wizardStep === 1 ? (
-        <div className="rounded-xl border-2 border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
-            {settingsPage.forwardingNumberLabel}
-          </p>
-          <p className="mt-1 text-base text-stone-600">{settingsPage.forwardingNumberHint}</p>
-          {loading ? (
-            <p className="mt-4 text-sm text-slate-500">{settingsPage.forwardingNumberLoading}</p>
-          ) : phoneNumber ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="font-mono text-2xl font-bold tracking-tight text-brand-950 sm:text-3xl">
-                {formatPhoneDisplay(phoneNumber)}
-              </p>
-              <button
-                type="button"
-                onClick={copyNumber}
-                className="rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm hover:bg-brand-50"
-              >
-                {copied ? settingsPage.forwardingCopied : settingsPage.forwardingCopy}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4 space-y-3">
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {provisioning
-                  ? settingsPage.forwardingNumberProvisioning
-                  : settingsPage.forwardingNumberMissing}
-              </p>
-              {provisionError ? (
-                <p className="text-sm text-rose-700">{provisionError}</p>
-              ) : null}
-              <button
-                type="button"
-                disabled={provisioning}
-                onClick={() => void runProvision()}
-                className="rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm hover:bg-brand-50 disabled:opacity-50"
-              >
-                {provisioning
-                  ? settingsPage.forwardingNumberProvisioning
-                  : settingsPage.forwardingNumberProvision}
-              </button>
-            </div>
-          )}
-          <p className="mt-3 text-xs text-slate-500">{settingsPage.forwardingCustomerNote}</p>
-        </div>
+        <>
+          <ForwardingValueHero />
+          <ForwardingPathPicker onSelect={handlePathSelect} />
+        </>
       ) : null}
 
-      {wizardStep === 2 ? (
+      {wizardStep === 2 && quizDone ? (
         <>
-          {!quizDone ? (
-            <ForwardingPathPicker phoneNumber={phoneNumber} onSelect={handlePathSelect} />
-          ) : null}
-
-          {quizDone ? (
-            <>
           {selectedPath && selectedPath !== "dedicated_line" ? (
             <ForwardingAlternatePaths
               current={provider}
-              onSwitch={(id) => handlePathSelect(id, id === "effiroad_main" ? "dedicated_line" : selectedPath)}
+              onSwitch={(id) =>
+                handlePathSelect(id, id === "effiroad_main" ? "dedicated_line" : selectedPath)
+              }
             />
           ) : null}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-            <p className="vow-settings-label">{settingsPage.forwardingWhatYouAreSetting}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700">{setupSummary}</p>
-            {!directMain ? (
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{FORWARDING_AFTER_HOURS_NOTE}</p>
-            ) : null}
-          </div>
 
-          {!directMain ? <ForwardingConditionMatrix /> : null}
-
-          {directMain && phoneNumber ? (
-            <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" />
-          ) : null}
-
-          <div>
-            <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
-            <p className="vow-settings-hint mt-1 text-sm">{settingsPage.forwardingProviderHint}</p>
-            {!showAllProviders ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuizDone(false);
-                  setSelectedPath(null);
-                }}
-                className="mt-2 text-sm font-semibold text-brand-700 underline"
-              >
-                {settingsPage.forwardingChangePath}
-              </button>
-            ) : null}
-            {provider === "dialpad" ? (
-              <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900">
-                {settingsPage.forwardingDialpadBanner}
-              </p>
-            ) : null}
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {visibleProviders.map((item) => {
-                const selected = provider === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setProvider(item.id)}
-                    className={`min-h-[52px] rounded-xl border px-4 py-3.5 text-left transition active:scale-[0.99] ${
-                      selected
-                        ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
-                        : item.recommended
-                          ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300"
-                          : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`text-base font-semibold ${selected ? "text-brand-900" : "text-slate-800"}`}
-                      >
-                        {item.label}
-                      </span>
-                      {item.recommended ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold uppercase text-emerald-800">
-                          {settingsPage.forwardingRecommendedProvider}
-                        </span>
-                      ) : null}
-                    </span>
-                    <p className="mt-1 text-sm text-stone-600">{item.hint}</p>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+            <p className="text-sm font-semibold text-slate-800">{providerLabel}</p>
+            <p className="mt-1 text-base leading-relaxed text-slate-700">{setupSummary}</p>
+            <button
+              type="button"
+              onClick={resetPath}
+              className="mt-2 text-sm font-semibold text-brand-700 underline"
+            >
+              {settingsPage.forwardingChangePath}
+            </button>
           </div>
 
           {provider === "verizon" && !directMain ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950">
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-950">
               {settingsPage.forwardingVerizonWarning}
             </p>
           ) : null}
 
           {provider === "google_voice" && !directMain ? (
-            <p className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium leading-relaxed text-amber-950">
+            <p className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-base font-medium leading-relaxed text-amber-950">
               {settingsPage.forwardingGoogleVoiceWarning}
             </p>
           ) : null}
 
-          {provider === "dialpad" && phoneNumber ? <DialpadRoutingVisual /> : null}
-
-          {phoneNumber ? (
-            <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
+          {provider === "dialpad" && !directMain ? (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base leading-relaxed text-emerald-900">
+              {settingsPage.forwardingDialpadBanner}
+            </p>
           ) : null}
 
           {phoneNumber ? (
-            <ForwardingUnblockGuide provider={provider} effiroadNumber={phoneNumber} />
+            <>
+              <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
+              <ForwardingSimpleSteps steps={guideSteps} />
+            </>
           ) : null}
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-            <p className="vow-settings-label">{settingsPage.forwardingStepsTitle}</p>
-            <p className="mt-1 text-sm text-stone-600">{providerLabel}</p>
-            <ol className="mt-4 list-decimal space-y-3 pl-5 text-base leading-relaxed text-slate-800">
-              {guideSteps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-            <p className="mt-4 text-xs leading-relaxed text-slate-500">{FORWARDING_PROVIDER_NOTE}</p>
-          </div>
+          {directMain && phoneNumber ? (
+            <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
+          ) : null}
 
           {!directMain && phoneNumber ? (
             <EffiroadDedicatedLineCard
               phoneNumber={phoneNumber}
               variant="fallback"
+              compact
               onSwitchToDedicated={switchToDedicatedLine}
             />
           ) : null}
-            </>
-          ) : null}
+
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setMoreHelpOpen((open) => !open)}
+              aria-expanded={moreHelpOpen}
+              className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-semibold text-slate-800 sm:px-5"
+            >
+              {settingsPage.forwardingMoreHelp}
+              <span
+                className={`text-slate-400 transition-transform ${moreHelpOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {moreHelpOpen ? (
+              <div className="space-y-4 border-t border-slate-200 px-4 py-4 sm:px-5">
+                {!showAllProviders ? (
+                  <div>
+                    <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {visibleProviders.map((item) => {
+                        const selected = provider === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setProvider(item.id)}
+                            className={`min-h-[52px] rounded-xl border px-4 py-3 text-left ${
+                              selected
+                                ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                          >
+                            <span className="text-base font-semibold text-slate-900">{item.label}</span>
+                            <p className="mt-1 text-sm text-stone-600">{item.hint}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {provider === "dialpad" && phoneNumber ? <DialpadRoutingVisual /> : null}
+
+                {phoneNumber ? (
+                  <ForwardingUnblockGuide provider={provider} effiroadNumber={phoneNumber} />
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </>
       ) : null}
 
-      {wizardStep === 3 ? (
+      {wizardStep === 3 && quizDone ? (
         <>
           <ForwardingTestPanel
             provider={provider}
@@ -389,6 +358,7 @@ export function ForwardingSetup({
             <EffiroadDedicatedLineCard
               phoneNumber={phoneNumber}
               variant="fallback"
+              compact
               onSwitchToDedicated={switchToDedicatedLine}
             />
           ) : null}
@@ -398,7 +368,7 @@ export function ForwardingSetup({
               type="button"
               onClick={() => setStuckOpen((open) => !open)}
               aria-expanded={stuckOpen}
-              className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-semibold text-slate-800 sm:px-5"
+              className="flex w-full items-center justify-between px-4 py-3.5 text-left text-base font-semibold text-slate-800 sm:px-5"
             >
               Stuck?
               <span
@@ -410,15 +380,15 @@ export function ForwardingSetup({
             </button>
             {stuckOpen ? (
               <div className="space-y-3 border-t border-slate-200 px-4 py-4 sm:px-5">
-                <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-slate-700">
+                <ol className="list-decimal space-y-2 pl-5 text-base leading-relaxed text-slate-700">
                   {FORWARDING_TROUBLESHOOTING[provider].map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ol>
-                <p className="text-sm leading-relaxed text-slate-600">
+                <p className="text-base leading-relaxed text-slate-600">
                   {FORWARDING_TROUBLESHOOTING_SWITCH_NOTE[provider]}
                 </p>
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm leading-relaxed text-emerald-900">
+                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-base leading-relaxed text-emerald-900">
                   {FORWARDING_TROUBLESHOOTING_FALLBACK}
                 </p>
                 {!directMain && phoneNumber ? (
@@ -467,13 +437,13 @@ export function ForwardingSetup({
             ← Back
           </button>
         ) : null}
-        {wizardStep < 3 && phoneNumber ? (
+        {wizardStep === 2 && quizDone && phoneNumber ? (
           <button
             type="button"
-            onClick={() => setWizardStep((s) => Math.min(3, s + 1))}
+            onClick={() => setWizardStep(3)}
             className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white"
           >
-            Next →
+            Next → Test call
           </button>
         ) : null}
       </div>
