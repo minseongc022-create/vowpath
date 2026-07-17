@@ -13,7 +13,7 @@ export default async function DashboardSettingsPage({
   const transactionId = params.transaction_id?.trim();
 
   return (
-    <div className="vow-dash-settings mx-auto max-w-3xl space-y-5 pb-2 lg:max-w-4xl">
+    <div className="vow-dash-settings mx-auto w-full max-w-4xl space-y-4 pb-2 sm:space-y-5">
       <Link
         href={ROUTES.dashboard}
         className="vow-dash-link hidden min-h-[44px] items-center lg:inline-flex"

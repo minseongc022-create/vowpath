@@ -1255,6 +1255,44 @@
       @apply static mx-0 bg-transparent px-0 py-0 backdrop-blur-none;
     }
   }
+
+  .vow-forwarding-sticky {
+    position: sticky;
+    z-index: 15;
+    top: 0;
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    padding-bottom: 0.25rem;
+    background: rgb(248 246 242 / 0.94);
+    backdrop-filter: blur(8px);
+  }
+
+  @media (max-width: 1023px) {
+    .vow-forwarding-sticky {
+      top: 3.25rem;
+    }
+  }
+
+  .vow-forwarding-wizard-nav {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .vow-forwarding-wizard-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vow-forwarding-setup .vow-forwarding-nav {
+    @apply sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-10 -mx-1 border-t border-stone-200/80 bg-[#f8f6f2]/95 px-1 py-2 backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none;
+  }
+
+  @media (min-width: 1024px) {
+    .vow-forwarding-setup .vow-forwarding-nav {
+      bottom: auto;
+    }
+  }
 }
 
 @layer utilities {

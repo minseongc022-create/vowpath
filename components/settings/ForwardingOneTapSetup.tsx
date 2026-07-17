@@ -61,19 +61,19 @@ export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
   const allDone = actions.every((a) => done[a.id]);
 
   return (
-    <div className="space-y-4 rounded-xl border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-5">
+    <div className="space-y-3 rounded-xl border-2 border-brand-300 bg-gradient-to-br from-brand-50 to-white p-4">
       <div>
         <p className="text-lg font-bold text-brand-950">{settingsPage.forwardingOneTapTitle}</p>
-        <p className="mt-1 text-sm text-slate-600">{settingsPage.forwardingOneTapHint}</p>
+        <p className="mt-0.5 text-base leading-snug text-slate-600">{settingsPage.forwardingOneTapHint}</p>
       </div>
 
-      <ol className="space-y-4">
+      <ol className="space-y-3">
         {actions.map((action) => {
           const checked = Boolean(done[action.id]);
           return (
             <li
               key={action.id}
-              className={`rounded-xl border p-4 transition ${
+              className={`rounded-xl border p-3 transition sm:p-4 ${
                 checked ? "border-emerald-300 bg-emerald-50/60" : "border-slate-200 bg-white"
               }`}
             >
