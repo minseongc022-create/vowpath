@@ -15,6 +15,7 @@ type SaveTask = () => Promise<boolean>;
 type SettingsSaveContextValue = {
   register: (id: string, task: SaveTask) => () => void;
   saveAll: () => Promise<{ ok: boolean; failedId?: string }>;
+  saveStep: (id: string) => Promise<{ ok: boolean; failedId?: string }>;
 };
 
 const SettingsSaveContext = createContext<SettingsSaveContextValue | null>(null);
@@ -37,7 +38,14 @@ export function SettingsSaveProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }, []);
 
-  const value = useMemo(() => ({ register, saveAll }), [register, saveAll]);
+  const saveStep = useCallback(async (id: string) => {
+    const task = savers.current.get(id);
+    if (!task) return { ok: true };
+    const ok = await task();
+    return ok ? { ok: true } : { ok: false, failedId: id };
+  }, []);
+
+  const value = useMemo(() => ({ register, saveAll, saveStep }), [register, saveAll, saveStep]);
 
   return (
     <SettingsSaveContext.Provider value={value}>{children}</SettingsSaveContext.Provider>
@@ -67,4 +75,12 @@ export function useSettingsSaveAll() {
     throw new Error("useSettingsSaveAll must be used within SettingsSaveProvider");
   }
   return ctx.saveAll;
+}
+
+export function useSettingsSaveStep() {
+  const ctx = useContext(SettingsSaveContext);
+  if (!ctx) {
+    throw new Error("useSettingsSaveStep must be used within SettingsSaveProvider");
+  }
+  return ctx.saveStep;
 }

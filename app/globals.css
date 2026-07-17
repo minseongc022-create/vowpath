@@ -1152,7 +1152,27 @@
   }
 
   .vow-settings-input {
-    @apply w-full rounded-xl border border-brand-200/80 bg-white px-4 py-3 text-base text-brand-950 outline-none transition placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+    @apply w-full rounded-xl border-2 border-brand-300 bg-white px-4 py-3 text-base text-brand-950 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+  }
+
+  .vow-settings-field {
+    @apply rounded-xl border border-brand-200/80 bg-brand-50/40 p-3 sm:p-4;
+  }
+
+  .vow-settings-required {
+    @apply font-bold text-rose-600;
+  }
+
+  .vow-settings-choice {
+    @apply rounded-xl border-2 border-stone-200 bg-white px-3 py-2.5 text-left transition hover:border-brand-300;
+  }
+
+  .vow-settings-choice-active {
+    @apply border-brand-500 bg-brand-50 ring-2 ring-brand-200;
+  }
+
+  .vow-settings-wizard-body .vow-forwarding-setup button[type="button"]:not(.vow-settings-input):not(.vow-dash-btn-primary) {
+    @apply border-2;
   }
 
   .vow-settings-block {

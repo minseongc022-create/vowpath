@@ -37,12 +37,14 @@ type ForwardingSetupProps = {
   batchSave?: boolean;
   hideConfirmedBanner?: boolean;
   confirmDisabled?: boolean;
+  embeddedInGoLive?: boolean;
   initialScenario?: LegacyForwardingScenarioId;
   initialProvider?: string;
   onPreferencesChange?: (prefs: {
     scenario: "overflow";
     provider: ForwardingProviderId;
   }) => void;
+  onProgressChange?: (progress: { quizDone: boolean; phoneNumber: string | null }) => void;
 };
 
 export function ForwardingSetup({
@@ -51,8 +53,10 @@ export function ForwardingSetup({
   batchSave = false,
   hideConfirmedBanner = false,
   confirmDisabled = false,
+  embeddedInGoLive = false,
   initialProvider: rawInitialProvider = "effiroad_main",
   onPreferencesChange,
+  onProgressChange,
 }: ForwardingSetupProps) {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,6 +138,10 @@ export function ForwardingSetup({
     setForwardingVerified(false);
     setTestAttempted(false);
   }, [provider, onPreferencesChange]);
+
+  useEffect(() => {
+    onProgressChange?.({ quizDone, phoneNumber });
+  }, [onProgressChange, phoneNumber, quizDone]);
 
   const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "");
   const providerMeta = FORWARDING_PROVIDERS.find((p) => p.id === provider);
@@ -386,18 +394,20 @@ export function ForwardingSetup({
       </>
     ) : null;
 
+  const showTestSection = embeddedInGoLive ? quizDone : wizardStep === 2 && quizDone;
+
   return (
     <div className="vow-forwarding-setup space-y-2 text-slate-900 sm:space-y-4">
       <TrialForwardingBanner />
 
       <div className="vow-forwarding-sticky space-y-1.5 sm:space-y-2">
-        {wizardNav}
+        {!embeddedInGoLive ? wizardNav : null}
         {numberBlock}
       </div>
 
       {setupInstructions}
 
-      {wizardStep === 2 && quizDone ? (
+      {showTestSection ? (
         <>
           <ForwardingTestPanel
             provider={provider}
@@ -470,7 +480,7 @@ export function ForwardingSetup({
         </>
       ) : null}
 
-      <div className="vow-forwarding-nav flex flex-wrap gap-1.5 pt-0.5 sm:gap-2 sm:pt-1">
+      <div className={`vow-forwarding-nav flex flex-wrap gap-1.5 pt-0.5 sm:gap-2 sm:pt-1 ${embeddedInGoLive ? "hidden" : ""}`}>
         {wizardStep > 1 ? (
           <button
             type="button"
