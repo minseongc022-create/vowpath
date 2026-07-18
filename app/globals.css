@@ -1134,21 +1134,41 @@
     @apply text-brand-700;
   }
 
-  /* Settings page typography — larger, landing-aligned */
+  /* Settings page typography — landing-aligned */
   .vow-settings-eyebrow {
-    @apply text-sm font-semibold uppercase tracking-wider text-brand-800;
+    @apply text-sm font-bold uppercase tracking-wider text-brand-800;
   }
 
   .vow-settings-label {
-    @apply text-base font-semibold text-brand-950;
+    @apply text-base font-bold leading-snug text-brand-950;
   }
 
   .vow-settings-hint {
-    @apply text-base leading-relaxed text-stone-600;
+    @apply text-[15px] font-normal leading-relaxed text-stone-500;
   }
 
   .vow-settings-muted {
-    @apply text-base text-stone-500;
+    @apply text-base font-normal text-stone-500;
+  }
+
+  .vow-settings-user-label {
+    @apply flex items-center gap-2 text-[15px] font-medium leading-snug text-stone-800;
+  }
+
+  .vow-settings-guide {
+    @apply rounded-xl border-l-4 border-brand-600 bg-brand-50/70 px-3 py-2.5;
+  }
+
+  .vow-settings-guide-banner {
+    @apply rounded-xl border border-brand-200/80 bg-brand-50/60 font-semibold text-brand-950;
+  }
+
+  .vow-settings-user-zone {
+    @apply rounded-xl border border-stone-200 bg-white px-3 py-2.5 shadow-sm;
+  }
+
+  .vow-settings-panel {
+    @apply rounded-xl border border-brand-200/70 bg-white shadow-card;
   }
 
   .vow-settings-input {
@@ -1164,7 +1184,7 @@
   }
 
   .vow-settings-section {
-    @apply rounded-xl border border-stone-200 bg-stone-50/50 p-3 sm:p-4;
+    @apply rounded-xl border border-stone-200 bg-stone-50/50 p-2 sm:p-4;
   }
 
   .vow-settings-step-panel {
@@ -1210,7 +1230,7 @@
   }
 
   .vow-settings-block {
-    @apply text-base text-brand-900;
+    @apply text-[15px] font-normal text-brand-900;
   }
 
   .vow-settings-chip {
@@ -1392,12 +1412,12 @@
     }
 
     .vow-dash-mobile-header {
-      padding: 0.5rem 0.5rem;
+      padding: 0.5rem 0.375rem;
     }
 
     .vow-dash-main-scroll {
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+      padding-left: 0.375rem;
+      padding-right: 0.375rem;
       padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
     }
 
@@ -1406,22 +1426,49 @@
     }
 
     .vow-settings-page-body .sticky {
-      margin-left: -0.5rem;
-      margin-right: -0.5rem;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+      margin-left: -0.375rem;
+      margin-right: -0.375rem;
+      padding-left: 0.375rem;
+      padding-right: 0.375rem;
+    }
+
+    .vow-settings-section {
+      @apply border-0 bg-transparent p-0;
+    }
+
+    .vow-settings-panel {
+      @apply rounded-xl border border-brand-200/70 p-2.5 shadow-sm;
+    }
+
+    .vow-settings-user-zone {
+      @apply px-2.5 py-2;
+    }
+
+    .vow-settings-guide {
+      @apply px-2.5 py-2;
+    }
+
+    .vow-settings-wizard-body {
+      @apply px-1.5 py-1.5;
     }
 
     .vow-settings-eyebrow {
-      @apply text-xs tracking-wide;
+      @apply text-[11px] font-bold tracking-wide;
     }
 
     .vow-settings-label {
-      @apply text-sm;
+      @apply text-[15px] font-bold leading-snug;
+    }
+
+    .vow-settings-user-label {
+      @apply text-[15px] font-medium;
     }
 
     .vow-settings-hint,
-    .vow-settings-muted,
+    .vow-settings-muted {
+      @apply text-sm leading-snug text-stone-500;
+    }
+
     .vow-settings-block {
       @apply text-sm leading-snug;
     }

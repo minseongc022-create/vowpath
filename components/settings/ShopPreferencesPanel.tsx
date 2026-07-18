@@ -25,37 +25,27 @@ export function ShopPreferencesPanel({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <p className="rounded-xl border border-brand-200 bg-brand-50/70 px-3 py-2.5 text-sm leading-snug text-brand-950">
+      <p className="vow-settings-guide-banner px-2.5 py-2 text-sm leading-snug sm:px-3 sm:py-2.5">
         {copy.productSectionSubtitle}
       </p>
 
-      <div className="vow-settings-section">
-        <ShopNameEditor />
-      </div>
+      <ShopNameEditor />
 
-      <div className="vow-settings-section">{verticalSelector}</div>
+      {verticalSelector}
 
-      <div className="vow-settings-section">
-        <BookingSettingsEditor />
-      </div>
+      <BookingSettingsEditor />
 
-      <div className="vow-settings-section">
-        <TechDispatchSettings />
-      </div>
+      <TechDispatchSettings />
 
-      <div className="vow-settings-section">
-        <AgreementKeeperSettingsEditor />
-      </div>
+      <AgreementKeeperSettingsEditor />
 
-      <div className="vow-settings-section">
-        <SmsComplianceGuide />
-      </div>
+      <SmsComplianceGuide />
 
-      <div className="vow-settings-section">{zapierEditor}</div>
+      {zapierEditor}
 
-      <div className="vow-settings-section">{widgetCard}</div>
+      {widgetCard}
 
-      <div className="vow-settings-section">{reviewUrlEditor}</div>
+      {reviewUrlEditor}
     </div>
   );
 }

@@ -84,9 +84,9 @@ export function ShopNameEditor() {
   }
 
   return (
-    <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 shadow-sm sm:p-6">
-      <SettingsSectionHeader icon="🏪" title={copy.label} hint={copy.hint} className="mb-5" />
-      <label className="block">
+    <div className="vow-settings-block vow-settings-panel p-3 sm:p-5">
+      <SettingsSectionHeader icon="🏪" title={copy.label} hint={copy.hint} className="mb-4" />
+      <label className="vow-settings-user-zone block">
         <input
           type="text"
           value={name}
