@@ -546,19 +546,19 @@ export const legalPagesEn = {
       },
       {
         heading: "No guarantee (AS IS)",
-        body: 'Effiroad is provided "AS IS" and "AS AVAILABLE." We do not guarantee that inbound calls will be answered, forwarded, recorded, transcribed, classified, or dispatched at any particular time, speed, or accuracy. Outages, carrier issues, misconfigured call forwarding, third-party API failures, and incorrect AI intake may occur. You must verify forwarding with a test call and monitor live traffic. At signup you separately acknowledge our Service Limitations & Risk Acknowledgment, which applies for the entire period you use the service — not only during free trials.',
+        body: 'Effiroad is provided "AS IS" and "AS AVAILABLE." We do not guarantee that inbound calls will be answered, forwarded, recorded, transcribed, classified, or dispatched at any particular time, speed, or accuracy. Outages, carrier issues, misconfigured call forwarding, third-party API failures, and incorrect AI intake may occur. You must verify forwarding with a test call and monitor live traffic.',
       },
       {
         heading: "Your responsibility",
-        body: "You remain solely responsible for all dispatch, scheduling, pricing, safety, licensing, and customer communication decisions. Effiroad captures intake and sends notifications — it does not replace your judgment. Appointment times offered during phone intake or customer self-service are limited to your configured visit hours and crew availability; final dispatch and customer response decisions always remain with your company. Fire, sewage, gas smell, and other high-risk situations may require your explicit approval before dispatch, per your settings.",
+        body: "You remain solely responsible for all dispatch, scheduling, pricing, safety, licensing, and customer communication decisions. Effiroad captures intake and sends notifications — it does not replace your judgment. Fire, sewage, gas smell, and other high-risk situations may require your explicit approval before dispatch, per your settings.",
       },
       {
         heading: "Third-party services",
         body: "The service relies on third parties (phone carriers, Twilio, Retell, cloud hosting, SMS gateways). We are not liable for failures caused by those providers, your phone or forwarding settings, power or network outages, or configuration errors on your side.",
       },
       {
-        heading: "Free pilots, trials & paid use",
-        body: "Free trials and evaluation periods are best-effort only with no service-level agreement (SLA). The same limitations apply to paid subscriptions: Effiroad does not contractually guarantee call answer rates or minimum service quality. Either party may stop at any time. Pilot or trial access does not create a partnership, employment, or agency relationship.",
+        heading: "Free pilots & evaluations",
+        body: "Free trials and evaluation periods are best-effort only with no service-level agreement (SLA). Either party may stop at any time. Pilot access does not create a partnership, employment, or agency relationship.",
       },
       {
         heading: "Limitation of liability",

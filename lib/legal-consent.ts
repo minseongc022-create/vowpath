@@ -1,6 +1,8 @@
-/** Bump when Terms, Privacy, or service-limitations acknowledgment materially change. */
+/** Bump when Terms or Privacy materially change — stored on user record. */
 export const LEGAL_CONSENT_VERSION = "2026-08";
-export const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
+
+/** Keep in sync with SERVICE_LIMITATIONS_CONSENT_VERSION in service-limitations-consent.ts */
+const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
 
 export type StoredLegalConsent = {
   termsPrivacyAt: string;
@@ -49,7 +51,7 @@ export function parseLegalConsentBody(body: Record<string, unknown>): {
   if (!serviceLimitationsConsent) {
     return {
       ok: false,
-      error: "You must read and agree to the Service Limitations & Risk Acknowledgment.",
+      error: "You must read and agree to the Service Agreement Acknowledgment.",
     };
   }
 

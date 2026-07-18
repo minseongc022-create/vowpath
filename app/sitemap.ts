@@ -10,7 +10,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/hvac",
     ROUTES.privacy,
     ROUTES.terms,
-    ROUTES.serviceLimitations,
   ];
 
   return pages.map((path) => ({

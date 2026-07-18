@@ -13,7 +13,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "get_open_slots",
       description:
-        "Before confirming a visit time, fetch real open windows from the shop calendar (operating hours only). If the caller names a preferred day/time, pass preferredDate and preferredTime to check availability and crew capacity. Read options to the caller, then pass slotId into submit_intake.",
+        "Before confirming a visit time, fetch real open windows from the shop calendar. Read options to the caller, then pass slotId into submit_intake.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.getSlots,
@@ -24,16 +24,6 @@ export function buildRetellGeneralTools(base: string) {
             type: "string",
             description: "P1 emergency, P2 standard, P3 low urgency",
             enum: ["P1", "P2", "P3"],
-          },
-          preferredDate: {
-            type: "string",
-            description:
-              "When caller names a day: shop-local date YYYY-MM-DD to check that day",
-          },
-          preferredTime: {
-            type: "string",
-            description:
-              "When caller names a time: shop-local HH:MM (24h) to check crew availability",
           },
         },
       },

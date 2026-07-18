@@ -362,7 +362,7 @@ export function SignupForm() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
                   {serviceLimitationsConsentTitle}
                 </p>
-                <div className="mt-2 max-h-40 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
+                <div className="mt-2 max-h-48 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
                   <pre className="whitespace-pre-wrap font-sans">{serviceLimitationsConsentBody}</pre>
                 </div>
                 <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
@@ -373,16 +373,7 @@ export function SignupForm() {
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
                     required
                   />
-                  <span>
-                    {serviceLimitationsConsentCheckboxLabel}{" "}
-                    <Link
-                      href="/service-limitations"
-                      className="font-medium text-brand-600 underline"
-                      target="_blank"
-                    >
-                      Full text
-                    </Link>
-                  </span>
+                  <span>{serviceLimitationsConsentCheckboxLabel}</span>
                 </label>
               </div>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">
