@@ -314,22 +314,15 @@ export function DashboardShell({
       <div className="vow-dash-main">
 
         <header className="vow-dash-mobile-header">
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/logo-mark.png"
-              alt=""
-              width={32}
-              height={32}
-              className="h-8 w-8 shrink-0 rounded-lg"
-            />
+          <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
-              <p className="truncate text-[11px] font-bold tracking-[0.12em] text-brand-700">EFFIROAD</p>
+              <p className="truncate text-[11px] text-stone-500">Effiroad</p>
             </div>
           </div>
         </header>
 
-        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-3 py-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
+        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-2 py-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
           {children}
         </main>
 

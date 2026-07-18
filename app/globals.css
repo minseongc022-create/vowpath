@@ -775,7 +775,7 @@
     display: block;
     border-bottom: 1px solid rgb(235 227 214 / 0.6);
     background: rgb(248 246 242 / 0.95);
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.5rem;
     backdrop-filter: blur(4px);
   }
 
@@ -1392,11 +1392,24 @@
     }
 
     .vow-dash-mobile-header {
-      padding: 0.5rem 0.75rem;
+      padding: 0.5rem 0.5rem;
     }
 
     .vow-dash-main-scroll {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
       padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .vow-dash-settings {
+      max-width: none;
+    }
+
+    .vow-settings-page-body .sticky {
+      margin-left: -0.5rem;
+      margin-right: -0.5rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
     }
 
     .vow-settings-eyebrow {

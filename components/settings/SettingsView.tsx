@@ -493,7 +493,7 @@ function SettingsViewBody({
 
       <div
         data-tour-step="settings-save"
-        className="sticky top-0 z-30 -mx-3 flex items-start justify-between gap-3 border-b border-brand-200/80 bg-[#f8f6f2]/95 px-3 py-2.5 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:bg-white sm:px-4 sm:py-3 lg:static lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+        className="sticky top-0 z-30 -mx-2 flex items-start justify-between gap-3 border-b border-brand-200/80 bg-[#f8f6f2]/95 px-2 py-2.5 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:bg-white sm:px-4 sm:py-3 lg:static lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
       >
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wide text-brand-700 sm:text-xs">
