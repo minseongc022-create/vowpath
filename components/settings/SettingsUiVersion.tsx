@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Bump when settings UI changes so phones stuck on old JS bundles auto-refresh once. */
-export const SETTINGS_UI_VERSION = "wizard-v13-20260718-forwarding-quiz-ai";
+export const SETTINGS_UI_VERSION = "wizard-v14-20260718-locale-forwarding-fix";
 
 const STORAGE_KEY = "effiroad_settings_ui_version";
 
