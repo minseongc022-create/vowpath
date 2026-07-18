@@ -11,35 +11,67 @@
 
 ## Co-build partnership pitch (recommended)
 
-Use when you want to say: *we're building this **with** shop owners, not selling a finished box.*
+Use when you want to say: *we're building this **with** shop owners — early partner, not a sales pitch.*
 
-**Subject:** `[Shop name] — building this with shop owners (3-week pilot)`
+**Subject (pick one):**
+- `[Shop name] — after-hours calls`
+- `[First name], quick question about 2am jobs`
+- `[Shop name] — who picks up when your crew is busy?`
 
 ```
 Hi [First name],
 
-I'm reaching out because Effiroad isn't a finished product we're selling at you — we're building it *with* independent shops like [Shop name].
+Quick question: when a homeowner calls [Shop name] at 2am with a burst pipe, what happens if no one's free to pick up?
 
-What it is today: AI answers after-hours and overflow calls, captures loss details, and texts your crew — clear water can auto-dispatch; fire/Cat-3 waits for your 1/2 approval. You keep your number. No CRM required.
+I'm Min — running a small early-partner pilot with independent restoration shops. Effiroad answers after-hours calls, captures loss details, and texts your crew. Clear water can auto-dispatch; fire or sewage waits for your OK first. You keep your Google number. No CRM.
 
-What we're asking:
-• 3-week free pilot — I handle setup; you forward after-hours calls and use the dashboard.
-• Honest feedback — what's confusing, what's missing, what would make you stay.
-• No lock-in during the pilot — if it's not helping by week 2, stop. No invoice, no guilt trip.
+Offer for pilot shops:
+• 3-week free pilot — I handle setup (~10 min on your end)
+• No credit card — stop anytime if it's not a fit
+• Share feedback → lock in $129/mo for 5 years (regular $169/mo)
+• Your input shapes the mobile app we're building next
 
-If you stay after the pilot and share feedback, you get $129/mo for 5 years (regular price is $169/mo). That cohort also helps us prioritize the mobile app we're planning next — shops on the pilot list get first access.
-
-Happy to send a 2-min screen recording or jump on a quick call.
+Reply "VIDEO" for a 2-min screen recording or "TRY" to start the free pilot.
 
 — Min
 effiroad.com
 ```
 
-**SMS / LinkedIn DM (short):**
+**SMS / LinkedIn DM (short — easy reply):**
 
 ```
-Hi [First name] — building Effiroad with shop owners, not just for them. AI phone + dispatch for restoration/HVAC. 3-week free pilot, stop anytime if it's not a fit. Feedback → $129/mo locked for 5 years (vs $169). Also shapes our app roadmap. Worth 10 min? effiroad.com
+Hi [First name] — Min from Effiroad. When you're on a job and a 2am water call comes in, who answers?
+
+3-week free pilot for a few restoration shops — AI intake + crew texts, keep your number. No card, stop anytime.
+
+Reply VIDEO for a 2-min demo or TRY to start.
 ```
+
+**Day 3 bump (no reply):**
+
+```
+Hi [First name] — bumping this once.
+
+Still offering the 3-week free pilot for [Shop name] — after-hours AI intake + crew texts, you keep your number. No credit card, stop anytime.
+
+Reply "VIDEO" for a 2-min demo or "TRY" to start the free pilot.
+
+— Min
+```
+
+**Last touch:**
+
+```
+Hi [First name] — last note from me.
+
+If after-hours calls are already handled, ignore this. If it's still on the list, the pilot is free and takes ~10 min to set up.
+
+Reply "TRY" this week or "PASS" and I won't follow up again.
+
+— Min
+```
+
+> Full copy + reply keywords: `lib/outreach/partnership-pilot-copy.ts` → `partnershipPilotCopy`, `outreachReplyPrompts`, `outreachQuickSend`
 
 ---
 
