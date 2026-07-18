@@ -10,6 +10,11 @@ import { notifyZapierNewRequest } from "@/lib/zapier-webhook";
 import { formatCityState } from "@/lib/recent-bookings";
 import { initialRequestStatusAfterIntake } from "@/lib/booking-policy";
 import {
+  WIDGET_HOURLY_WINDOW_SEC,
+  WIDGET_MESSAGE_HOURLY_LIMIT,
+  WIDGET_TENANT_HOURLY_LIMIT,
+} from "@/lib/security/ai-limits";
+import {
   checkRateLimit,
   clientIpFromRequest,
   rateLimitKey,
@@ -47,12 +52,24 @@ export async function POST(request: Request) {
     const ip = clientIpFromRequest(request);
     const limited = await checkRateLimit({
       key: rateLimitKey("widget-message", `${userId}:${ip}`),
-      limit: 10,
-      windowSeconds: 3600,
+      limit: WIDGET_MESSAGE_HOURLY_LIMIT,
+      windowSeconds: WIDGET_HOURLY_WINDOW_SEC,
     });
     if (!limited.ok) {
       return NextResponse.json(
         { error: "Too many messages — please try again in a bit." },
+        { status: 429 },
+      );
+    }
+
+    const tenantLimited = await checkRateLimit({
+      key: rateLimitKey("widget-message:tenant", userId),
+      limit: WIDGET_TENANT_HOURLY_LIMIT,
+      windowSeconds: WIDGET_HOURLY_WINDOW_SEC,
+    });
+    if (!tenantLimited.ok) {
+      return NextResponse.json(
+        { error: "This shop's chat widget is temporarily unavailable." },
         { status: 429 },
       );
     }

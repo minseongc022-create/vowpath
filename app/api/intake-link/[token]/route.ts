@@ -9,7 +9,7 @@ import {
 import { requireLinkIntakeSession } from "@/lib/call-intake/link-intake-route-guard";
 import { saveIntakePhoto } from "@/lib/intake-photo-store";
 import { parseLinkUrgency } from "@/lib/link-intake-urgency";
-import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
+import { guardIntakeSubmitRoute, guardPublicIntakeRoute } from "@/lib/security/intake-guard";
 import { parseCustomerSmsConsent, parseCustomerMarketingSmsConsent, buildCustomerSmsConsentRecord } from "@/lib/legal-consent";
 import { withDistributedLock } from "@/lib/distributed-lock";
 
@@ -52,7 +52,7 @@ export async function POST(
   context: { params: Promise<{ token: string }> },
 ) {
   const { token } = await context.params;
-  const guard = await guardPublicIntakeRoute(request, token);
+  const guard = await guardIntakeSubmitRoute(request, token);
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }

@@ -5,6 +5,14 @@ import {
 } from "@/lib/forwarding-ai-help";
 import { normalizeForwardingProvider, type ForwardingProviderId } from "@/lib/forwarding-guides";
 import { resolveServerUiLocale } from "@/lib/locale";
+import {
+  FORWARDING_AI_BURST_LIMIT,
+  FORWARDING_AI_BURST_WINDOW_SEC,
+} from "@/lib/security/ai-limits";
+import {
+  finalizeAiAnswer,
+  guardAiUserInput,
+} from "@/lib/security/ai-route-guard";
 import { checkRateLimit, peekRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/session";
 import { getTenantTwilioPhone } from "@/lib/twilio-provision";
@@ -23,12 +31,26 @@ export async function POST(request: Request) {
     history?: { role?: string; text?: string }[];
   };
 
-  const question = String(body.question ?? "").trim();
-  if (!question || question.length > 500) {
-    return NextResponse.json({ error: "Question required (max 500 chars)" }, { status: 400 });
+  const locale = await resolveServerUiLocale();
+  const lang = locale === "ko" ? "ko" : locale === "es" ? "es" : "en";
+  const inputGuard = guardAiUserInput(String(body.question ?? ""), 500, lang);
+  if (!inputGuard.ok) {
+    return NextResponse.json(
+      { error: inputGuard.error, code: inputGuard.reason },
+      { status: inputGuard.status },
+    );
   }
 
   const provider = normalizeForwardingProvider(body.provider) as ForwardingProviderId;
+
+  const burst = await checkRateLimit({
+    key: rateLimitKey("forwarding-ai:burst", session.sub),
+    limit: FORWARDING_AI_BURST_LIMIT,
+    windowSeconds: FORWARDING_AI_BURST_WINDOW_SEC,
+  });
+  if (!burst.ok) {
+    return NextResponse.json({ error: "rate_limit", remaining: 0 }, { status: 429 });
+  }
 
   const rl = await checkRateLimit({
     key: rateLimitKey("forwarding-ai", session.sub),
@@ -49,7 +71,6 @@ export async function POST(request: Request) {
   }
 
   const effiroadNumber = (await getTenantTwilioPhone(session.sub)) ?? "";
-  const locale = await resolveServerUiLocale();
 
   const history = (body.history ?? [])
     .filter((h) => h?.role === "user" || h?.role === "assistant")
@@ -60,13 +81,15 @@ export async function POST(request: Request) {
     .slice(-6);
 
   try {
-    const answer = await answerForwardingHelpQuestion({
-      question,
-      provider,
-      effiroadNumber,
-      history,
-      locale,
-    });
+    const answer = finalizeAiAnswer(
+      await answerForwardingHelpQuestion({
+        question: inputGuard.text,
+        provider,
+        effiroadNumber,
+        history,
+        locale,
+      }),
+    );
 
     return NextResponse.json({
       ok: true,

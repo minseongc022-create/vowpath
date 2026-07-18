@@ -4,6 +4,7 @@ import {
   getForwardingGuideSteps,
 } from "./forwarding-guides";
 import type { UiLocale } from "./locale";
+import { AI_PRIVACY_SYSTEM_RULES } from "./security/ai-privacy";
 import { openAiTextCompletion, type ChatTurn } from "./openai-chat";
 
 export const FORWARDING_AI_DAILY_LIMIT = 50;
@@ -35,6 +36,7 @@ export function buildForwardingHelpSystemPrompt(
 RULES:
 - Give short, numbered steps the owner can do RIGHT NOW on their phone or admin portal.
 - Never guess carrier codes — only use the verified steps below.
+- ${AI_PRIVACY_SYSTEM_RULES}
 - If iPhone Settings → Call Forwarding is mentioned, warn NEVER to use it (forwards all calls).
 - Effiroad number to paste: ${effiroadNumber || "(not provisioned yet)"}
 - Current path: ${providerLabel}

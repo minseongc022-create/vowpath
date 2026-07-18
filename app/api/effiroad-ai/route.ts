@@ -19,6 +19,20 @@ import { getJobberTokens } from "@/lib/jobber-tokens";
 import { resolveServerUiLocale, shopAiLocale } from "@/lib/locale";
 import { listScheduledBookings } from "@/lib/schedule-bookings-db";
 import { fetchJobberScheduleItems } from "@/lib/scheduling/jobber-schedule-api";
+import {
+  SHOP_AI_DAILY_LIMIT,
+  SHOP_AI_DAILY_WINDOW_SEC,
+  SHOP_AI_HOURLY_BURST_LIMIT,
+  SHOP_AI_HOURLY_WINDOW_SEC,
+  SHOP_AI_MAX_QUERY_CHARS,
+} from "@/lib/security/ai-limits";
+import {
+  aiGuardRateLimitResponse,
+  enforceAiRateLimits,
+  finalizeAiAnswer,
+  guardAiUserInput,
+  shopAiRateLimitKeys,
+} from "@/lib/security/ai-route-guard";
 import { getSession } from "@/lib/session";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
 import { getShopProfile } from "@/lib/shop-profile-db";
@@ -120,6 +134,13 @@ async function loadTenantContext(userId: string, range: { start: Date; end: Date
   return { pack, tokens: Boolean(tokens) };
 }
 
+function sanitizeResponse<T extends { answer?: string }>(response: T): T {
+  if (typeof response.answer === "string") {
+    return { ...response, answer: finalizeAiAnswer(response.answer) };
+  }
+  return response;
+}
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -157,9 +178,27 @@ export async function POST(request: Request) {
 
     const { pack } = loaded;
     const locale = shopAiLocale(await resolveServerUiLocale());
+    const lang = "en" as const;
+
+    const rl = shopAiRateLimitKeys(session.sub);
+    const limited = await enforceAiRateLimits(request, [
+      {
+        key: rl.daily.key,
+        limit: SHOP_AI_DAILY_LIMIT,
+        windowSeconds: SHOP_AI_DAILY_WINDOW_SEC,
+      },
+      {
+        key: rl.hourly.key,
+        limit: SHOP_AI_HOURLY_BURST_LIMIT,
+        windowSeconds: SHOP_AI_HOURLY_WINDOW_SEC,
+      },
+    ]);
+    if (limited) {
+      return NextResponse.json(aiGuardRateLimitResponse(lang), { status: 429 });
+    }
 
     if (proactive) {
-      const response = buildProactiveBriefing(pack);
+      const response = sanitizeResponse(buildProactiveBriefing(pack));
       const suggestion = await buildWorkflowSuggestion(pack);
       if (suggestion?.kind === "preview") {
         return NextResponse.json({
@@ -177,51 +216,60 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ...response, response });
     }
 
-    if (shouldRunAdminAnalyzer(query) || history.length > 0) {
+    const inputGuard = guardAiUserInput(query, SHOP_AI_MAX_QUERY_CHARS, lang);
+    if (!inputGuard.ok) {
+      return NextResponse.json(
+        { error: inputGuard.error, code: inputGuard.reason },
+        { status: inputGuard.status },
+      );
+    }
+    const safeQuery = inputGuard.text;
+
+    if (shouldRunAdminAnalyzer(safeQuery) || history.length > 0) {
       const followUp = resolveConversationFollowUp({
-        query,
+        query: safeQuery,
         history,
         workflowRules: pack.workflowRules,
         locale,
       });
       if (followUp?.kind === "preview") {
-        const response = {
+        const response = sanitizeResponse({
           answer: followUp.answer,
           adminPreview: followUp.preview,
           actions: [],
           suggestions: followUp.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
     }
 
-    if (shouldRunAdminAnalyzer(query)) {
+    if (shouldRunAdminAnalyzer(safeQuery)) {
       const [workflow, closure] = await Promise.all([
-        analyzeWorkflowIntentAsync(query, locale),
-        analyzeClosureIntentAsync(query, locale),
+        analyzeWorkflowIntentAsync(safeQuery, locale),
+        analyzeClosureIntentAsync(safeQuery, locale),
       ]);
 
       if (workflow?.kind === "preview") {
-        const response = {
+        const response = sanitizeResponse({
           answer: workflow.answer,
           adminPreview: workflow.preview,
           actions: [],
           suggestions: workflow.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
 
       if (closure?.kind === "preview") {
-        const response = {
+        const response = sanitizeResponse({
           answer: closure.answer,
           adminPreview: closure.preview,
           actions: [],
           suggestions: closure.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
 
-      const admin = analyzeAiAdminIntent(query, {
+      const admin = analyzeAiAdminIntent(safeQuery, {
         companyMemory: pack.companyMemory,
         bookingSettings: pack.bookingSettings,
         shopProfile: pack.shopProfile,
@@ -231,38 +279,38 @@ export async function POST(request: Request) {
       });
 
       if (admin.kind === "preview") {
-        const response = {
+        const response = sanitizeResponse({
           answer: admin.answer,
           adminPreview: admin.preview,
           actions: [],
           suggestions: admin.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
 
       if (admin.kind === "billing") {
-        const response = {
+        const response = sanitizeResponse({
           answer: admin.answer,
           billingCard: admin.billingCard,
           actions: [],
           suggestions: admin.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
 
       if (admin.kind === "blocked") {
-        const response = {
+        const response = sanitizeResponse({
           answer: admin.answer,
           rows: admin.rows,
           actions: [{ label: "Billing portal", href: "/api/billing/portal" }],
           suggestions: admin.suggestions,
-        };
+        });
         return NextResponse.json({ ok: true, ...response, response });
       }
     }
 
-    const intent = routeAiQuery(query);
-    const response = answerAiQuestion(query, pack, intent);
+    const intent = routeAiQuery(safeQuery);
+    const response = sanitizeResponse(answerAiQuestion(safeQuery, pack, intent));
     return NextResponse.json({ ok: true, ...response, response });
   } catch (e) {
     console.error("[effiroad-ai]", e);

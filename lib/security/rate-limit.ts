@@ -7,7 +7,7 @@ type RateLimitOptions = {
   windowSeconds: number;
 };
 
-type RateLimitResult = {
+export type RateLimitResult = {
   ok: boolean;
   count: number;
   remaining: number;

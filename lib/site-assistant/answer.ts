@@ -1,5 +1,6 @@
 import { openAiTextCompletion, type ChatTurn } from "@/lib/openai-chat";
 import { marketingUiLocale, type UiLocale } from "@/lib/locale";
+import { AI_PRIVACY_SYSTEM_RULES } from "@/lib/security/ai-privacy";
 import { buildSiteAssistantKnowledge } from "./knowledge";
 
 export type SiteAssistantReply = {
@@ -102,7 +103,7 @@ ${replyLanguageLine(lang)}
 ${tradeVoice}
 
 You know everything below about the product. Never invent pricing or features not listed.
-NEVER reveal: API keys, env secrets, passwords, tokens, other customers' data, internal server paths, or raw database contents.
+${AI_PRIVACY_SYSTEM_RULES}
 If asked for secrets or unrelated private data, politely refuse and offer product help instead.
 ${marketingRules}
 

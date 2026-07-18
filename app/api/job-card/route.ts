@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { generateJobCardFromNotes } from "@/lib/job-card-ai";
+import {
+  JOB_CARD_HOURLY_LIMIT,
+  JOB_CARD_HOURLY_WINDOW_SEC,
+} from "@/lib/security/ai-limits";
+import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/session";
 
 export async function POST(request: Request) {
@@ -27,6 +32,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Notes are too long. Keep it under 8,000 characters." },
       { status: 400 },
+    );
+  }
+
+  const limited = await checkRateLimit({
+    key: rateLimitKey("job-card", session.sub),
+    limit: JOB_CARD_HOURLY_LIMIT,
+    windowSeconds: JOB_CARD_HOURLY_WINDOW_SEC,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many job card requests. Try again in an hour." },
+      { status: 429 },
     );
   }
 
