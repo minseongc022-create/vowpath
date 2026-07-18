@@ -223,7 +223,7 @@ export function BookingSettingsEditor() {
       <SettingsSectionHeader
         icon="📅"
         eyebrow={settingsPage.bookingPolicyTitle}
-        title="Booking & visit times"
+        title={settingsPage.bookingSectionTitle}
         hint={settingsPage.bookingPolicyDescription}
       />
 
@@ -470,62 +470,79 @@ export function BookingSettingsEditor() {
         </SettingsSubsection>
       ) : null}
 
-      <SettingsSubsection
-        icon="⛈️"
-        title={settingsPage.stormModeLabel}
-        hint={settingsPage.stormModeHint}
-      >
-        <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
-          <span className="vow-settings-label">{settingsPage.stormModeToggleLabel}</span>
-          <input
-            type="checkbox"
-            checked={settings.stormModeEnabled}
-            onChange={(e) => updateLocal({ stormModeEnabled: e.target.checked })}
-            className="h-5 w-5 rounded border-slate-300"
-          />
-        </label>
-      </SettingsSubsection>
+      <details className="rounded-xl border border-slate-200 bg-slate-50/40">
+        <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold text-brand-950 sm:px-4 sm:py-3">
+          {settingsPage.bookingAdvancedTitle}
+        </summary>
+        <div className="space-y-4 border-t border-slate-200 px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3">
+          <p className="text-xs leading-relaxed text-stone-600">{settingsPage.bookingAdvancedHint}</p>
 
-      <SettingsSubsection icon="📍" title={settingsPage.serviceAreaZipsLabel} hint={settingsPage.serviceAreaZipsHint}>
-        <input
-          type="text"
-          value={settings.serviceAreaZips.join(", ")}
-          placeholder={settingsPage.serviceAreaZipsPlaceholder}
-          onChange={(e) => {
-            const zips = e.target.value
-              .split(/[,\s]+/)
-              .map((z) => z.trim().slice(0, 5))
-              .filter((z) => /^\d{5}$/.test(z));
-            updateLocal({ serviceAreaZips: zips });
-          }}
-          className="vow-settings-input"
-        />
-      </SettingsSubsection>
+          <SettingsSubsection
+            icon="⛈️"
+            title={settingsPage.stormModeLabel}
+            hint={settingsPage.stormModeHint}
+          >
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
+              <span className="vow-settings-label">{settingsPage.stormModeToggleLabel}</span>
+              <input
+                type="checkbox"
+                checked={settings.stormModeEnabled}
+                onChange={(e) => updateLocal({ stormModeEnabled: e.target.checked })}
+                className="h-5 w-5 rounded border-slate-300"
+              />
+            </label>
+          </SettingsSubsection>
 
-      <SettingsSubsection
-        icon="🧪"
-        title={settingsPage.shadowModeLabel}
-        hint={settingsPage.shadowModeIntro}
-      >
-        <input
-          type="number"
-          min={0}
-          max={50}
-          value={settings.shadowModeRemaining}
-          onChange={(e) => updateLocal({ shadowModeRemaining: Number(e.target.value) })}
-          className="vow-settings-input max-w-xs"
-        />
-        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-          <li className="flex gap-2">
-            <span className="shrink-0" aria-hidden>🟢</span>
-            <span>{settingsPage.shadowModeLive}</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="shrink-0" aria-hidden>🟡</span>
-            <span>{settingsPage.shadowModePractice}</span>
-          </li>
-        </ul>
-      </SettingsSubsection>
+          <SettingsSubsection
+            icon="📍"
+            title={settingsPage.serviceAreaZipsLabel}
+            hint={settingsPage.serviceAreaZipsHint}
+          >
+            <input
+              type="text"
+              value={settings.serviceAreaZips.join(", ")}
+              placeholder={settingsPage.serviceAreaZipsPlaceholder}
+              onChange={(e) => {
+                const zips = e.target.value
+                  .split(/[,\s]+/)
+                  .map((z) => z.trim().slice(0, 5))
+                  .filter((z) => /^\d{5}$/.test(z));
+                updateLocal({ serviceAreaZips: zips });
+              }}
+              className="vow-settings-input"
+            />
+          </SettingsSubsection>
+
+          <SettingsSubsection
+            icon="🧪"
+            title={settingsPage.shadowModeLabel}
+            hint={settingsPage.shadowModeIntro}
+          >
+            <input
+              type="number"
+              min={0}
+              max={50}
+              value={settings.shadowModeRemaining}
+              onChange={(e) => updateLocal({ shadowModeRemaining: Number(e.target.value) })}
+              className="vow-settings-input max-w-xs"
+            />
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+              <li className="flex gap-2">
+                <span className="shrink-0" aria-hidden>
+                  🟢
+                </span>
+                <span>{settingsPage.shadowModeLive}</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0" aria-hidden>
+                  🟡
+                </span>
+                <span>{settingsPage.shadowModePractice}</span>
+              </li>
+            </ul>
+          </SettingsSubsection>
+        </div>
+      </details>
 
       {error ? <p className="text-base text-red-600">{error}</p> : null}
     </div>

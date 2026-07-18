@@ -9,16 +9,17 @@ export const settingsPageEn = {
   backDashboardLink: "← Dashboard",
   productSectionTitle: "How your shop runs",
   productSectionSubtitle:
-    "Shop name, dispatch rules, crew texts, and optional follow-ups. Your company name appears in every customer text and phone greeting.",
+    "Three things to set: your shop name, how jobs dispatch, and who gets crew texts. Tap Save (top right) when done.",
   goLiveSectionTitle: "Go live checklist",
   goLiveSectionSubtitle: "Follow the steps in order — then save once at the bottom.",
   progressHint: "Contact → Hours → Forwarding. Jobber is optional.",
-  scrollHint: "Company name → Dispatch → Crew → Follow-up → Go live",
+  scrollHint: "Shop name → Dispatch → Crew → Save",
   allDone:
     "You're live. Standard water losses auto-dispatch — you text back for fire, Cat-3, or unclear jobs.",
   ownerAlertsDescription:
     "Texts to your cell: booked visits (FYI), P1 urgent alerts, unclear intakes (1 / 2), or 9 to undo. Email is backup.",
-  bookingPolicyTitle: "Booking & schedule",
+  bookingPolicyTitle: "Dispatch & booking",
+  bookingSectionTitle: "When jobs go out",
   bookingSchedulingEnabledLabel: "Let customers pick a visit time",
   bookingSchedulingModeLabel: "What happens after they pick a time",
   ownerApprovalSmsLabel: "When to text me for approval",
@@ -27,21 +28,20 @@ export const settingsPageEn = {
   bookingLoadingLabel: "Loading...",
   bookingTryAgainLabel: "Try again",
   bookingPolicyDescription:
-    "Clear standard losses dispatch instantly. Fire, Cat-3, and fuzzy details wait for your text reply (1 = go, 2 = pass).",
-  smartAutoBookingTitle: "How dispatch works",
-  smartAutoBookingIntro: "One policy — Effiroad handles the rules below automatically.",
+    "Routine water jobs can go straight to crew. Fire, sewage, or unclear calls wait for your OK.",
+  smartAutoBookingTitle: "Auto-dispatch rules",
+  smartAutoBookingIntro: "You don't pick these case-by-case — Effiroad applies them on every call.",
   smartAutoBookingRules: [
-    "Clear standard water loss (name, address, loss type) → crew gets dispatched right away.",
-    "Fire, structure loss, or Cat-3 sewage → texts you to approve first.",
-    "Unclear intake → texts you 1 / 2 before anything is confirmed.",
-    "Changed your mind on an auto-dispatch? Reply 9 within the undo window below.",
+    "Clear water loss → crew text goes out.",
+    "Fire, Cat-3, or missing details → we text you first (reply 1 = go, 2 = pass).",
+    "Auto-booked by mistake? Reply 9 within the undo window below.",
   ] as const,
-  visitTimingTitle: "Appointment spacing",
-  visitTimingHint:
-    "How far apart visit times appear. Example: 2 hours → 8:00 AM, then 10:00 AM, then 12:00 PM.",
-  visitHoursTitle: "Customer booking hours",
-  visitHoursHint:
-    "When customers can pick a visit (Mon–Sat). This is not the same as AI phone answer hours — use split AM/PM blocks or one continuous shift.",
+  bookingAdvancedTitle: "Advanced (optional)",
+  bookingAdvancedHint: "Storm weeks, ZIP limits, and practice mode. Most shops skip this at first.",
+  visitTimingTitle: "Time between visits",
+  visitTimingHint: "How far apart slots show up — e.g. every 2 hours.",
+  visitHoursTitle: "Visit hours",
+  visitHoursHint: "When customers can book (Mon–Sat). Separate from your AI answer hours in Step 2.",
   visitHoursLayoutLabel: "Schedule style",
   visitHoursLayoutSplit: "Morning & afternoon",
   visitHoursLayoutContinuous: "One continuous block",
@@ -54,43 +54,36 @@ export const settingsPageEn = {
     `Example slots on the next open day: ${am} and ${pm}.`,
   visitHoursExampleContinuous: (range: string) =>
     `Example slots on the next open day: ${range} (back-to-back).`,
-  appointmentIntervalLabel: "Time between visits",
-  appointmentIntervalHint:
-    "How long each visit slot lasts. Booked times block the calendar; the next open slot starts after any buffer you set.",
+  appointmentIntervalLabel: "Slot length",
+  appointmentIntervalHint: "Each visit blocks this long on the calendar.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`
       : `Example: first visit at 8:00 AM → next at ${8 + hours}:00 AM (${hours}-hour spacing).`,
   appointmentIntervalPresets: ["1 hr", "1.5 hr", "2 hr", "3 hr"] as const,
-  travelMinutesLabel: "Drive time between jobs",
-  travelMinutesHint:
-    "Minutes after a visit ends before the tech can start the next stop. Added to wrap-up buffer when blocking slots.",
+  travelMinutesLabel: "Drive time",
+  travelMinutesHint: "Buffer between jobs so the same tech isn't double-booked.",
   travelMinutesFieldLabel: "Travel time (minutes)",
-  teamCapacityTitle: "Multiple crews at once (optional)",
-  teamCapacityHint:
-    "Leave at 1 for a single crew. Raise only if several technicians can take different jobs at the same clock time.",
+  teamCapacityTitle: "Multiple crews (optional)",
+  teamCapacityHint: "Leave at 1 unless several techs can run jobs at the same time.",
   maxConcurrentVisitsLabel: "Jobs at the same time",
   maxConcurrentVisitsHint:
     "How many visits your team can run in the same window. 3 crews: set 3.",
-  undoWindowLabel: "Undo auto-book (minutes)",
-  undoWindowHint:
-    "After a routine job auto-books, reply 9 within this many minutes to cancel it.",
-  shadowModeLabel: "Practice calls left",
-  shadowModeIntro:
-    "Practice with real calendar slot holds — same as live. Jobber stays off until you go live.",
-  shadowModeLive: "0 = Live - real calendar, customer texts, and Jobber.",
-  shadowModePractice:
-    "1+ = Practice - calendar slots held like live. SMS marked [TEST]. No Jobber writes. Drops by 1 per test call.",
-  stormModeLabel: "Storm surge mode",
-  stormModeHint:
-    "During hurricanes or heavy storm weeks — shorter voice prompts and reassurance that calls are queued. Turn off when volume is normal.",
+  undoWindowLabel: "Undo window (minutes)",
+  undoWindowHint: "After auto-book, reply 9 within this time to cancel.",
+  shadowModeLabel: "Practice mode",
+  shadowModeIntro: "Test calls without touching Jobber or sending real customer texts.",
+  shadowModeLive: "0 = Live — real texts, calendar, and Jobber.",
+  shadowModePractice: "1+ = Practice — slots held, SMS tagged [TEST], drops by 1 per test call.",
+  stormModeLabel: "Storm mode",
+  stormModeHint: "Shorter prompts when call volume spikes. Turn off when things calm down.",
   stormModeToggleLabel: "Storm mode on incoming calls",
-  onCallScheduleLabel: "On-call rotation",
-  onCallScheduleHint:
-    "Pick who gets the first crew dispatch text for each weekday. Overrides round-robin when set.",
+  onCallScheduleLabel: "On-call by day",
+  onCallScheduleHint: "Who gets the first crew text each weekday. Default = round-robin.",
   onCallWeekdayLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const,
   onCallNoneOption: "Round-robin (default)",
-  serviceAreaZipsLabel: "Service area ZIPs (optional)",
+  serviceAreaZipsLabel: "Service ZIPs",
+  serviceAreaZipsHint: "Only these ZIPs auto-dispatch. Leave blank for anywhere.",
   techDispatchTitle: "Crew assignment",
   techDispatchNav: "Crew assign",
   saveAllButton: "Save",
@@ -149,7 +142,7 @@ export const settingsPageEn = {
   shopNameNav: "Shop name",
   shopName: {
     label: "Shop name",
-    hint: "Used in texts and phone greetings — e.g. “Thanks for calling ABC Restoration.”",
+    hint: "Shows in every call greeting and customer text — e.g. “Thanks for calling ABC Restoration.”",
     placeholder: "ABC Restoration",
     save: "Save shop name",
     saving: "Saving…",
@@ -160,9 +153,9 @@ export const settingsPageEn = {
     required: "Enter your shop name.",
   },
   agreementKeeper: {
-    title: "Agreement Keeper",
+    title: "Maintenance plans (PM)",
     summary:
-      "After a job is marked complete, offer your maintenance plan by SMS to customers who opted in to marketing texts at intake. Track renewals and get reminded before contracts lapse.",
+      "After a job is done, text your PM offer to customers who opted in at intake. Optional — skip if you don't sell plans yet.",
     enabledLabel: "Enable Agreement Keeper",
     offerAfterComplete:
       "SMS maintenance plan offer when a job is marked complete (marketing opt-in required)",
@@ -174,6 +167,24 @@ export const settingsPageEn = {
     loading: "Loading…",
     saving: "Saving…",
     save: "Save PM settings",
+    saved: "Saved",
+  },
+  shopOptional: {
+    title: "Optional extras",
+    summary: "PM plans, Google reviews, SMS registration. Safe to skip for now.",
+    expandLabel: "Show",
+    smsTitle: "SMS registration (US)",
+    smsBody:
+      "Carriers require business SMS registration before high-volume texting. Effiroad sends through your Twilio number — register your shop once in Trust Hub.",
+    smsLink: "https://console.twilio.com/us1/develop/sms/trust-hub",
+    smsLinkLabel: "Open Twilio Trust Hub →",
+  },
+  googleReview: {
+    title: "Google review link",
+    hint: "Sent by SMS after job complete. Leave blank to skip.",
+    placeholder: "https://g.page/r/...",
+    invalidUrl: "Enter a valid https:// link.",
+    saving: "Saving…",
     saved: "Saved",
   },
   smsCompliance: {
@@ -191,8 +202,6 @@ export const settingsPageEn = {
     twilioLinkLabel: "Open Twilio Trust Hub",
     note: "Terms place A2P/10DLC registration on the shop. Contact support if texts fail with carrier error 30007 or similar.",
   },
-  serviceAreaZipsHint:
-    "ZIP codes your crews actually drive to — not one customer's address. Comma-separated. Leave blank to accept any area.",
   serviceAreaZipsPlaceholder: "78701, 78702, 78745",
   sectionSteps: {
     contact: "1",
