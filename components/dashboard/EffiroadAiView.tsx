@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppPage } from "@/components/ui/AppPage";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import type { EffiroadAiAction, EffiroadAiResponse } from "@/lib/effiroad-ai-query";
@@ -538,7 +539,7 @@ export function EffiroadAiView() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl flex-col gap-5">
+    <AppPage className="flex min-h-[calc(100vh-7rem)] flex-col gap-5">
       <header className="vow-dash-card flex gap-4 p-5 sm:p-6">
         <EffiroadAiMark size={56} shadow="md" />
         <div className="min-w-0 flex-1">
@@ -619,6 +620,6 @@ export function EffiroadAiView() {
           </button>
         </div>
       </form>
-    </div>
+    </AppPage>
   );
 }

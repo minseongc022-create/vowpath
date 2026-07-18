@@ -4,5 +4,5 @@ export const metadata = {
 };
 
 export default function IntakeLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <div className="vow-app-shell min-h-[100dvh]">{children}</div>;
 }

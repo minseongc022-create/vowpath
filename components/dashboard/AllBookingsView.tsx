@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppPage } from "@/components/ui/AppPage";
 import { RecentBookingsList } from "@/components/dashboard/RecentBookings";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 
@@ -10,7 +11,7 @@ export function AllBookingsContent({ variant = "light" }: { variant?: "light" | 
   const showLoading = loading && !hasLoaded && jobs.length === 0;
 
   return (
-    <div className="mx-auto max-w-[1400px]">
+    <AppPage width="wide">
       <Link
         href="/dashboard"
         className="text-sm font-medium text-brand-700 hover:text-brand-900 hover:underline"
@@ -32,6 +33,6 @@ export function AllBookingsContent({ variant = "light" }: { variant?: "light" | 
           variant={variant}
         />
       </div>
-    </div>
+    </AppPage>
   );
 }

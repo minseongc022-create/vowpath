@@ -380,13 +380,13 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
     return (
       <div className="flex min-h-[100dvh] flex-col bg-brand-50">
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-          <div className="mx-auto max-w-md px-4 py-4">
+          <div className="mx-auto max-w-md vow-app-px py-4">
             <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
             <p className="text-xs text-slate-500">{copy.slotStepTitle}</p>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-5">
+        <div className="flex-1 overflow-y-auto vow-app-px py-5">
           <div className="mx-auto max-w-md space-y-4">
             <p className="text-[15px] leading-relaxed text-slate-600">
               {copy.slotStepDescription}
@@ -460,7 +460,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
   return (
     <form onSubmit={handleFormNext} className="flex min-h-[100dvh] flex-col bg-brand-50">
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto max-w-md px-4 py-4">
+        <div className="mx-auto max-w-md vow-app-px py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-brand-700">{shopName}</p>
@@ -484,7 +484,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div className="flex-1 overflow-y-auto vow-app-px py-5">
         <div className="mx-auto max-w-md space-y-5">
           <div className="rounded-2xl border border-brand-200/60 bg-white px-4 py-3 shadow-sm">
             <p className="text-sm font-medium text-brand-800">{copy.formTrustBanner}</p>
