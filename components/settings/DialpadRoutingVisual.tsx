@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 
 const STEPS = [
   { title: "Main Line", detail: "Dialpad admin → Main Line" },
@@ -10,6 +10,7 @@ const STEPS = [
 
 /** Static light checklist — replaces dark animated mockup (hard to read on mobile). */
 export function DialpadRoutingVisual() {
+  const settingsPage = useSettingsPage();
   const v = settingsPage.forwardingDialpadVisual;
 
   return (

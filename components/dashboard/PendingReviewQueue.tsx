@@ -8,7 +8,7 @@ import {
   REQUEST_STATUS_LABELS,
   normalizeRequestStatus,
 } from "@/lib/booking-policy";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 import { buildAllRecentBookings } from "@/lib/recent-bookings";
 import type { JobberBookingRecord } from "@/lib/jobber-bookings";
@@ -31,6 +31,7 @@ export function PendingReviewQueue({
   requestStatuses,
   onStatusChange,
 }: Props) {
+  const dashboardUi = useDashboardUi();
   const copy = (
     dashboardUi as {
       pendingReview?: {

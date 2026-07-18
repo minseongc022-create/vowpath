@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import {
   DAY_OPTIONS,
   formatScheduleSentence,
@@ -27,6 +27,7 @@ export function ScheduleEditor({
   onAlwaysOnChange,
   compact = false,
 }: ScheduleEditorProps) {
+  const settingsPage = useSettingsPage();
   function updateRow(
     id: string,
     patch: Partial<Pick<ScheduleRow, "startHour" | "startMinute" | "endHour" | "endMinute">>,

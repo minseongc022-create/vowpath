@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import {
   formatQuizAnswerRecap,
@@ -16,6 +16,7 @@ type Props = {
 };
 
 export function ForwardingYourSetupCard({ provider, quizAnswers, onChangeSetup }: Props) {
+  const settingsPage = useSettingsPage();
   const q = settingsPage.forwardingQuiz;
   const summary: QuizPathSummaryCopy = getQuizPathSummary(
     provider,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 import {
   KR_PHONE_INPUT_PLACEHOLDER,
@@ -25,6 +25,7 @@ export function OwnerContactSetup({
   onSaved: (complete: boolean) => void;
   onValidChange?: (valid: boolean) => void;
 }) {
+  const settingsPage = useSettingsPage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");

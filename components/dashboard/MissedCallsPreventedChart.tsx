@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
 import { prepareMissedCallsChartData } from "@/lib/missed-calls-chart-series";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import {
   formatTrendTooltipValue,
   getTrendChartPlotValue,
@@ -249,6 +249,7 @@ function MultiSeriesLineChart({
   cfg: (typeof SIZE_CONFIG)[ChartSize];
   visible: TrendChartSeriesId[];
 }) {
+  const dashboardUi = useDashboardUi();
   const m = dashboardUi.missedCallsAnalytics;
   const [hovered, setHovered] = useState<number | null>(null);
   const chartW = cfg.width;
@@ -520,6 +521,7 @@ export function MissedCallsPreventedChart({
   /** Called when the (externally controlled) visible series selection should change */
   onVisibleChange?: (ids: string[]) => void;
 }) {
+  const dashboardUi = useDashboardUi();
   const m = dashboardUi.missedCallsAnalytics;
   const resolvedSize: ChartSize = compact ? (tall ? "home" : "compact") : size;
   const containerRef = useRef<HTMLDivElement>(null);

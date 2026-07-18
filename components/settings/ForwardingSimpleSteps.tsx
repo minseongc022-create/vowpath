@@ -1,12 +1,13 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 
 type Props = {
   steps: string[];
 };
 
 export function ForwardingSimpleSteps({ steps }: Props) {
+  const settingsPage = useSettingsPage();
   if (steps.length === 0) return null;
 
   return (

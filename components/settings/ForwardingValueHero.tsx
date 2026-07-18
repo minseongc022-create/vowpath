@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 
 type Props = {
   /** Hide long subtitle on small screens — bullets stay readable */
@@ -8,6 +8,7 @@ type Props = {
 };
 
 export function ForwardingValueHero({ dense = false }: Props) {
+  const settingsPage = useSettingsPage();
   const c = settingsPage.forwardingValueHero;
   const bullets: readonly string[] = c.bullets;
 

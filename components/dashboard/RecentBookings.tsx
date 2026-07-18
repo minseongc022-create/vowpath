@@ -15,7 +15,7 @@ import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { CallRecord } from "@/lib/operations-analytics";
 import type { JobberBookingRecord } from "@/lib/jobber-bookings";
 import type { RequestStatus } from "@/lib/booking-policy";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import type { JobCard } from "@/lib/types";
 
 type RecentBookingsProps = {
@@ -132,6 +132,7 @@ export function RecentBookings({
   subtitle,
   variant = "light",
 }: RecentBookingsProps) {
+  const dashboardUi = useDashboardUi();
   const rb = dashboardUi.recentBookings;
   const resolvedTitle = title ?? rb.title;
   const resolvedSubtitle = subtitle ?? rb.subtitle;

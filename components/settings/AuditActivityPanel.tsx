@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatAuditEventType } from "@/lib/audit-labels";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { TenantEvent } from "@/lib/tenant-events";
 
 function formatWhen(iso: string): string {
@@ -20,6 +20,7 @@ function formatWhen(iso: string): string {
 }
 
 export function AuditActivityPanel() {
+  const settingsPage = useSettingsPage();
   const [events, setEvents] = useState<TenantEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

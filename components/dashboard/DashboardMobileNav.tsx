@@ -11,6 +11,7 @@ import {
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
+import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
@@ -123,6 +124,9 @@ export function DashboardMobileNav({
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
           <p className="mb-2 text-center text-xs font-bold text-brand-950">All menus</p>
+          <div className="mb-3 flex justify-center">
+            <DashboardLocaleToggle />
+          </div>
           <div className="grid grid-cols-4 gap-2">
             {moreLinks.map((link) => {
               const active = link.match(pathname);

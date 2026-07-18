@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import { FORWARDING_PROVIDERS } from "@/lib/forwarding-guides";
 import {
@@ -54,6 +54,7 @@ function OptionButton({
 }
 
 export function ForwardingAllOptionsMenu({ selected, onSelect }: Props) {
+  const settingsPage = useSettingsPage();
   const copy = settingsPage.forwardingAllOptions;
   const dedicated = FORWARDING_PROVIDERS.find((p) => p.id === "effiroad_main");
   const googleVoice = FORWARDING_PROVIDERS.find((p) => p.id === "google_voice");

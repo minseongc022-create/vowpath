@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TenantEvent } from "@/lib/tenant-events";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 
 const SEEN_KEY = "effiroad:seen-sms-failures";
@@ -33,6 +33,7 @@ type SmsFailureAlertProps = {
 };
 
 export function SmsFailureAlert({ tenantEvents }: SmsFailureAlertProps) {
+  const dashboardUi = useDashboardUi();
   const seenRef = useRef<Set<string>>(loadSeen());
   const [active, setActive] = useState<TenantEvent | null>(null);
 

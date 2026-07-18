@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   isEnglishUiLocale,
+  isKoreanUiLocale,
   isSpanishUiLocale,
   persistUiLocale,
   readClientUiLocale,
@@ -43,6 +44,7 @@ type LocaleContextValue = {
   setLocale: (locale: UiLocale) => void;
   isEnglish: boolean;
   isSpanish: boolean;
+  isKorean: boolean;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -75,6 +77,7 @@ export function LocaleProvider({ initialLocale, children }: LocaleProviderProps)
       setLocale,
       isEnglish: isEnglishUiLocale(locale),
       isSpanish: isSpanishUiLocale(locale),
+      isKorean: isKoreanUiLocale(locale),
     }),
     [locale, setLocale],
   );

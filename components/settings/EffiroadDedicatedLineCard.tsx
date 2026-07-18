@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { formatUsPhoneNational } from "@/lib/phone-display";
 
 type Props = {
@@ -21,6 +21,7 @@ export function EffiroadDedicatedLineCard({
   onSwitchToDedicated,
   compact = false,
 }: Props) {
+  const settingsPage = useSettingsPage();
   const [copied, setCopied] = useState(false);
   const c = settingsPage.forwardingDedicatedLine;
   const isFallback = variant === "fallback";

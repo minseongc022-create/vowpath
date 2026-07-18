@@ -8,7 +8,7 @@ import {
   buildMissedCallsPreventedByPeriod,
   type MissedCallsPeriod,
 } from "@/lib/missed-calls-prevented";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import type { ShopState } from "@/lib/types";
 
 type MissedCallsPreventedKpiProps = {
@@ -22,6 +22,7 @@ export function MissedCallsPreventedKpi({
   shop,
   loading,
 }: MissedCallsPreventedKpiProps) {
+  const dashboardUi = useDashboardUi();
   const k = dashboardUi.missedCallsPrevented;
   const periods: { id: MissedCallsPeriod; label: string }[] = [
     { id: "today", label: k.today },

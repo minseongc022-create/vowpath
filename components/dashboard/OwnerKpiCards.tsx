@@ -1,7 +1,7 @@
 "use client";
 
 import type { MissedCallsDailyPoint } from "@/lib/missed-calls-analytics";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import type { KpiDrilldownId } from "@/lib/kpi-drilldown";
 import { displayOwnerKpiValue } from "@/lib/owner-dashboard-kpi";
 import {
@@ -48,6 +48,7 @@ function OwnerKpiCard({
   onToggle?: () => void;
   compact?: boolean;
 }) {
+  const dashboardUi = useDashboardUi();
   const hint = dashboardUi.kpiDrilldown.tapHint;
 
   const body = compact ? (
@@ -159,6 +160,7 @@ export function OwnerKpiCards({
   editMode = false,
   onToggle,
 }: OwnerKpiCardsProps) {
+  const dashboardUi = useDashboardUi();
   const totals = sumTrendSeriesTotals(daily);
   const cardSeries = editMode
     ? TREND_CHART_SERIES

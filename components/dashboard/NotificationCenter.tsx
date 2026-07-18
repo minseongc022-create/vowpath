@@ -15,7 +15,7 @@ import {
 } from "@/lib/notifications";
 import type { RequestStatus } from "@/lib/booking-policy";
 import type { TenantEvent } from "@/lib/tenant-events";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { safeDashboardFetch } from "@/lib/dashboard-fetch";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { JobCard } from "@/lib/types";
@@ -59,6 +59,7 @@ function NotificationRow({
   onToggleSelect?: (id: string) => void;
   nowMs: number;
 }) {
+  const dashboardUi = useDashboardUi();
   const n = dashboardUi.notifications;
   const content = (
     <>
@@ -158,6 +159,7 @@ function NotificationListBody({
   dismissingAll: boolean;
   nowMs: number;
 }) {
+  const dashboardUi = useDashboardUi();
   const n = dashboardUi.notifications;
   if (fetchError && items.length === 0) {
     return (
@@ -278,6 +280,7 @@ export function NotificationCenter({
   error,
   variant = "dropdown",
 }: NotificationCenterProps) {
+  const dashboardUi = useDashboardUi();
   const n = dashboardUi.notifications;
   const nowMs = useRelativeNow();
   const router = useRouter();

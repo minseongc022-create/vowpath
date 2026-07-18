@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 
 type BillingStatus = {
   entitled: boolean;
@@ -11,6 +11,7 @@ type BillingStatus = {
 };
 
 export function BillingStatusBanner({ transactionId }: { transactionId?: string }) {
+  const settingsPage = useSettingsPage();
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 

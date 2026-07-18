@@ -1,6 +1,6 @@
 "use client";
 
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import type {
   RequestVerificationItem,
   RequestVerificationStatus,
@@ -81,6 +81,7 @@ type VerificationStatusPanelProps = {
 };
 
 export function VerificationStatusPanel({ verification }: VerificationStatusPanelProps) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
 
   return (

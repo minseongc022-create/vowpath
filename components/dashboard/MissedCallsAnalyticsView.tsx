@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppPage } from "@/components/ui/AppPage";
 import { countWaitingCustomers } from "@/lib/booking-status-counts";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { ROUTES } from "@/lib/constants";
 import { parseDateInput } from "@/lib/dashboard-analytics";
 import {
@@ -41,6 +41,7 @@ function resolveRangeFromDateInputs(dateRange: DashboardDateRange) {
 }
 
 export function MissedCallsAnalyticsView({ variant = "light" }: { variant?: "light" | "dark" }) {
+  const dashboardUi = useDashboardUi();
   const m = dashboardUi.missedCallsAnalytics;
   const dark = variant === "dark";
   const card = dark ? "vow-dash-card" : "ops-card";

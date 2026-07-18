@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { getCarrierQuickActions } from "@/lib/forwarding-carrier-codes";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 
@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function ForwardingQuickActions({ provider, phoneNumber }: Props) {
+  const settingsPage = useSettingsPage();
   const actions = useMemo(
     () => getCarrierQuickActions(provider, phoneNumber),
     [provider, phoneNumber],

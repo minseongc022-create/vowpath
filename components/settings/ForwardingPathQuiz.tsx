@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import {
   googleVoiceOverflowRisk,
@@ -67,6 +67,7 @@ function quizProgressStep(
 }
 
 export function ForwardingPathQuiz({ onResolved, onManualPick }: Props) {
+  const settingsPage = useSettingsPage();
   const [answers, setAnswers] = useState<ForwardingQuizAnswers>({
     customerLine: null,
     cellCarrier: null,

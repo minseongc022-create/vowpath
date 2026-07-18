@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { notifyTenantEventsUpdated } from "@/lib/dashboard-data-client";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import {
   buildBookingDetail,
   canApprove,
@@ -68,6 +68,7 @@ type BookingDetailContentProps = {
 export function BookingDetailContent({
   bookingId,
 }: BookingDetailContentProps) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   const {
     jobs,
@@ -547,6 +548,7 @@ function BookingStatusConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   useEffect(() => {
     if (!action) return;
@@ -631,6 +633,7 @@ function RequestDecisionBar({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   const showActions = canApprove(status) || canReject(status);
 
@@ -693,6 +696,7 @@ function ActionBar({
   onScheduled: () => void;
   onCompleted: () => void;
 }) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[14rem]">
@@ -916,6 +920,7 @@ function DetailSkeleton() {
 }
 
 function ErrorPanel({ message }: { message: string }) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-10 text-center">
@@ -926,6 +931,7 @@ function ErrorPanel({ message }: { message: string }) {
 }
 
 function NotFoundPanel() {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   return (
     <div className="vow-dash-card mt-6 px-6 py-12 text-center">

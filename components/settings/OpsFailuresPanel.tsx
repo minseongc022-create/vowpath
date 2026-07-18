@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { OpsFailureRecord } from "@/lib/ops-failures";
 
 type CollapsedFailure = OpsFailureRecord & { repeatCount?: number };
@@ -39,6 +39,7 @@ function isTwilioSmsConfigError(row: CollapsedFailure): boolean {
 }
 
 export function OpsFailuresPanel() {
+  const settingsPage = useSettingsPage();
   const [failures, setFailures] = useState<CollapsedFailure[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

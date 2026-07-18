@@ -1,6 +1,6 @@
 "use client";
 
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { FORWARDING_PROVIDERS, type ForwardingProviderId } from "@/lib/forwarding-guides";
 import { getAlternateForwardingPaths } from "@/lib/forwarding-paths";
 
@@ -11,6 +11,7 @@ type Props = {
 };
 
 export function ForwardingAlternatePaths({ current, onSwitch, limit = 5 }: Props) {
+  const settingsPage = useSettingsPage();
   const a = settingsPage.forwardingAlternatePaths;
   const alternates = getAlternateForwardingPaths(current).slice(0, limit);
 
