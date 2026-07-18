@@ -1278,13 +1278,17 @@
   }
 
   .vow-settings-page-body {
-    padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
   }
 
   @media (min-width: 1024px) {
     .vow-settings-page-body {
       padding-bottom: 1rem;
     }
+  }
+
+  .vow-settings-save-bar-fixed {
+    display: none !important;
   }
 
   .vow-golive-nav {
@@ -1410,7 +1414,7 @@
     }
 
     .vow-settings-page-body {
-      padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     }
 
     .vow-golive-nav {

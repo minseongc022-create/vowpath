@@ -22,7 +22,7 @@ import {
   useSettingsSaveRegistration,
   useSettingsSaveStep,
 } from "@/components/settings/SettingsSaveContext";
-import { SettingsSaveBar } from "@/components/settings/SettingsSaveBar";
+import { SettingsSaveButton } from "@/components/settings/SettingsSaveButton";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { GuidedTour } from "@/components/shared/GuidedTour";
 import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
@@ -457,28 +457,41 @@ function SettingsViewBody({
   );
 
   return (
-    <div className="vow-settings-page-body space-y-4 sm:space-y-8">
+    <div className="vow-settings-page-body space-y-3 sm:space-y-6">
       <SettingsUiVersion />
+
+      <div
+        data-tour-step="settings-save"
+        className="sticky top-0 z-30 -mx-3 flex items-start justify-between gap-3 border-b border-brand-200/80 bg-[#f8f6f2]/95 px-3 py-2.5 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:bg-white sm:px-4 sm:py-3 lg:static lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-brand-700 sm:text-xs">
+            {settingsPage.badge}
+          </p>
+          <h1 className="text-lg font-bold text-brand-950 sm:text-2xl">{settingsPage.title}</h1>
+          <p className="mt-0.5 hidden text-sm text-stone-600 sm:block">{settingsPage.subtitle}</p>
+        </div>
+        <SettingsSaveButton
+          saving={saveBarSaving}
+          saved={saveBarSaved}
+          error={saveBarError}
+          onSave={() => void handleSaveAll()}
+        />
+      </div>
+
       {paidProp || transactionId ? (
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
 
-      <section id="go-live" className="scroll-mt-6 space-y-4 sm:space-y-5">
-        {!live ? (
-          <div className="rounded-2xl border-2 border-brand-400 bg-brand-600 px-4 py-3 text-center text-white shadow-md lg:hidden">
-            <p className="text-sm font-bold">{settingsPage.goLiveWelcome}</p>
-            <p className="mt-1 text-xs leading-snug text-brand-100">{settingsPage.goLiveWelcomeHint}</p>
-          </div>
-        ) : null}
-
-        <SettingsSectionHeader
-          icon="🚀"
-          title={settingsPage.goLiveSectionTitle}
-          hint={settingsPage.goLiveSectionSubtitle}
-          className="hidden rounded-xl border border-brand-200/80 bg-white p-3 shadow-card sm:rounded-2xl sm:p-6 lg:block"
+      <section id="go-live" className="scroll-mt-6 space-y-3">
+        <GoLiveWizard
+          steps={wizardSteps}
+          initialStepId={initialWizardStepId}
+          onBeforeContinue={handleBeforeContinue}
+          onStepChange={handleWizardStepChange}
         />
 
-        <div id="go-live-progress" className="scroll-mt-24 hidden sm:block">
+        <div id="go-live-progress" className="hidden lg:block">
           <GoLiveProgressCard
             requiredDone={requiredDone}
             requiredTotal={requiredTotal}
@@ -487,23 +500,22 @@ function SettingsViewBody({
           />
         </div>
 
-        <GoLiveWizard
-          steps={wizardSteps}
-          initialStepId={initialWizardStepId}
-          onBeforeContinue={handleBeforeContinue}
-          onStepChange={handleWizardStepChange}
-        />
+        {live ? (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-900 lg:hidden">
+            {settingsPage.allDone}
+          </p>
+        ) : null}
       </section>
 
-      {live ? null : (
+      {!live ? (
         <p className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-sm text-stone-600 lg:hidden">
           {settingsPage.goLiveWelcomeHint}
         </p>
-      )}
+      ) : null}
 
       <section
         id="product-settings"
-        className={`vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-5 shadow-sm sm:p-6 ${live ? "" : "hidden lg:block"}`}
+        className={`vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm sm:p-6 ${live ? "" : "hidden lg:block"}`}
       >
         <SettingsSectionHeader
           icon="⚙️"
@@ -550,15 +562,6 @@ function SettingsViewBody({
           </div>
         </div>
       </section>
-
-      <div data-tour-step="settings-save" className="scroll-mt-24">
-        <SettingsSaveBar
-          saving={saveBarSaving}
-          saved={saveBarSaved}
-          error={saveBarError}
-          onSave={() => void handleSaveAll()}
-        />
-      </div>
 
       <button
         type="button"
