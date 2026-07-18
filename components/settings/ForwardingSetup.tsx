@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage, useLocale } from "@/components/providers/LocaleProvider";
 import {
-  FORWARDING_TROUBLESHOOTING,
-  FORWARDING_TROUBLESHOOTING_FALLBACK,
-  FORWARDING_TROUBLESHOOTING_SWITCH_NOTE,
+  forwardingTroubleshooting,
+  forwardingTroubleshootingFallback,
+  forwardingTroubleshootingSwitchNote,
   isDirectEffiroadLineProvider,
   getForwardingGuideSteps,
   normalizeForwardingProvider,
@@ -60,6 +60,7 @@ export function ForwardingSetup({
   onProgressChange,
 }: ForwardingSetupProps) {
   const settingsPage = useSettingsPage();
+  const { locale } = useLocale();
   const hasSavedProvider = Boolean(rawInitialProvider?.trim());
   const initialNormalized = hasSavedProvider
     ? normalizeForwardingProvider(rawInitialProvider)
@@ -147,7 +148,10 @@ export function ForwardingSetup({
     onProgressChange?.({ quizDone: pathChosen, phoneNumber });
   }, [onProgressChange, phoneNumber, pathChosen]);
 
-  const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "");
+  const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "", locale);
+  const troubleshooting = forwardingTroubleshooting(provider, locale);
+  const troubleshootingSwitch = forwardingTroubleshootingSwitchNote(provider, locale);
+  const troubleshootingFallback = forwardingTroubleshootingFallback(locale);
   const directMain = isDirectEffiroadLineProvider(provider);
   const showGuide = pathChosen && !pickerOpen;
 
@@ -433,15 +437,15 @@ export function ForwardingSetup({
             {stuckOpen ? (
               <div className="space-y-3 border-t border-slate-200 px-4 py-4 sm:px-5">
                 <ol className="list-decimal space-y-2 pl-5 text-base leading-relaxed text-slate-700">
-                  {FORWARDING_TROUBLESHOOTING[provider].map((item) => (
+                  {troubleshooting.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ol>
                 <p className="text-base leading-relaxed text-slate-600">
-                  {FORWARDING_TROUBLESHOOTING_SWITCH_NOTE[provider]}
+                  {troubleshootingSwitch}
                 </p>
                 <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-base leading-relaxed text-emerald-900">
-                  {FORWARDING_TROUBLESHOOTING_FALLBACK}
+                  {troubleshootingFallback}
                 </p>
               </div>
             ) : null}

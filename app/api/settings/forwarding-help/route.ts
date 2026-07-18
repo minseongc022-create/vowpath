@@ -4,6 +4,7 @@ import {
   FORWARDING_AI_DAILY_LIMIT,
 } from "@/lib/forwarding-ai-help";
 import { normalizeForwardingProvider, type ForwardingProviderId } from "@/lib/forwarding-guides";
+import { resolveServerUiLocale } from "@/lib/locale";
 import { checkRateLimit, peekRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/session";
 import { getTenantTwilioPhone } from "@/lib/twilio-provision";
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
   }
 
   const effiroadNumber = (await getTenantTwilioPhone(session.sub)) ?? "";
+  const locale = await resolveServerUiLocale();
 
   const history = (body.history ?? [])
     .filter((h) => h?.role === "user" || h?.role === "assistant")
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
       provider,
       effiroadNumber,
       history,
+      locale,
     });
 
     return NextResponse.json({

@@ -187,136 +187,125 @@ export function getForwardingGuideSteps(
   const num = effiroadNumber || "(Effiroad 번호)";
   const tenDigit = num.replace(/\D/g, "").slice(-10) || "10자리";
   const e164 = tenDigit.length === 10 ? `+1${tenDigit}` : num;
+  const national =
+    tenDigit.length === 10
+      ? `(${tenDigit.slice(0, 3)}) ${tenDigit.slice(3, 6)}-${tenDigit.slice(6)}`
+      : num;
 
   if (provider === "effiroad_main") {
     return [
-      `Effiroad 번호 복사: ${e164}`,
-      "Google 비즈니스 프로필 → 연락처 → 전화 → Effiroad 번호 저장.",
-      "웹사이트·페이스북 헤더/푸터 번호 교체.",
-      "트럭·간판·명함 — 새 인쇄부터 Effiroad 번호.",
-      "Jobber(선택): Settings → Company phone.",
-      "Angi, Yelp 등 리스팅 전화번호 업데이트.",
-      "통신사 착신 코드 불필요.",
-      FORWARDING_AFTER_HOURS_NOTE,
-      `테스트: 다른 폰에서 ${e164} 로 직접 전화.`,
+      `위 초록색 박스에서 Effiroad 번호 ${national} 를 복사하세요.`,
+      "Google 비즈니스 프로필 → 프로필 수정 → 연락처 → 전화 → Effiroad 번호 붙여넣기 → 저장. (반영까지 24~48시간 걸릴 수 있습니다.)",
+      "웹사이트·페이스북·Nextdoor 등에 보이는 전화번호도 같은 Effiroad 번호로 바꾸세요.",
+      "트럭·간판·명함은 새로 인쇄할 때부터 Effiroad 번호를 쓰세요. 옛 번호는 개인 연락처에만 두면 됩니다.",
+      "Jobber를 쓰면 Settings → Company phone 도 Effiroad 번호로 맞추세요 (선택).",
+      "통신사 착신 코드(*71, **61* 등)는 필요 없습니다.",
+      `테스트: 다른 폰에서 ${national} 로 직접 전화 → Effiroad가 받으면 성공.`,
     ];
   }
 
   if (provider === "google_voice") {
     return [
-      "PC에서 https://voice.google.com/settings 로그인 (샵 GV 계정).",
-      "Calls 탭 — 전환 전 설정 (업계 검증):",
-      "  • Screen calls 끄기 (추가 안내 없이 Effiroad 연결).",
-      "  • “Show my Google Voice number as caller ID when forwarding” 끄기 (실제 발신자 번호 필요).",
-      "  • My Devices: 개인폰/태블릿 동시 울림 끄기.",
-      "Linked numbers → New linked number → Effiroad 번호 → Send code.",
-      `목적지: ${e164} (+1 포함).`,
-      "인증: 전화(가능하면 문자 아님) — Effiroad가 6자리 코드 수신하는지 테스트 단계에서 확인.",
-      "Calls → Linked numbers에서 Effiroad로 전환 ON. 목적지는 하나만.",
-      "한계: GV만으로 ‘휴대폰 먼저 울리고 20초 후 Effiroad’ 어려움 — AT&T/T-Mobile/Verizon **61*/*71 또는 Effiroad 메인 번호.",
-      "Jobber 방식(GV→전용 AI 번호) 사용 시: 수신 측 짧은 answer delay 권장.",
-      "테스트: GV 번호로 전화.",
+      "PC 브라우저에서 https://voice.google.com/settings 로그인 (샵 Google Voice 계정).",
+      "Calls 탭에서 먼저 끄기: Screen calls(추가 안내), “Show my Google Voice number as caller ID when forwarding”, My Devices 동시 울림.",
+      `Linked numbers → Add linked number → ${e164} (+1 포함) 입력 → 인증 코드 요청.`,
+      "인증은 **전화**로 받으세요(문자 아님). Effiroad가 Google 인증 전화를 받는지 아래 테스트 단계에서 확인합니다.",
+      "Calls → Linked numbers에서 Effiroad로 전환 ON. 목적지는 Effiroad 하나만.",
+      "중요: Google Voice만으로 ‘내 폰 먼저 ~20초 → Effiroad’ overflow는 거의 안 됩니다. 안정적이려면 AT&T/T-Mobile/Verizon **61*/*71 또는 Effiroad 전용번호를 쓰세요.",
+      "테스트: Google Voice 샵 번호로 전화. GV 경로가 불안정하면 위 통신사 경로로 바꾸세요.",
     ];
   }
 
   if (provider === "dialpad") {
     return [
-      "경로 A — ServiceTitan Phones Pro / Main Line (업계 검증):",
-      "https://dialpad.com/officesettings → Admin Settings → Main Line.",
-      "Business Hours & Call Routing → Edit Call Routing.",
-      "Fallback Options(또는 Other routing) → “To a team member, room phone, or external number”.",
-      `${e164} 입력 후 Enter — “Changes saved” 확인.`,
-      "Closed Hours Routing에도 동일 Effiroad 번호.",
-      "Main Line에 Fallback 없으면 Contact Center → 기본 센터 → 동일 단계.",
-      "경로 B — 사용자/Jobber Phone:",
-      "https://dialpad.com/app → Settings → Users → 샵 회선 → 미응답 시 → Forward to external.",
-      `Jobber: Settings → Phone → 미응답 → 외부 번호 ${e164}.`,
-      "경로 C — Department: Admin Settings → Departments → Call Routing → external.",
-      "발신자 번호 전달(caller ID pass-through) 켜기.",
-      "external number 비활성 시 Dialpad 지원에 forward-to-external 활성화 요청.",
-      "가게 번호로 테스트.",
+      "경로 A — ServiceTitan Phones Pro / Dialpad Main Line (가장 흔함):",
+      "1) https://dialpad.com/officesettings → Admin Settings → Main Line 선택.",
+      "2) Business Hours & Call Routing → Edit Call Routing.",
+      "3) Fallback Options(또는 Other routing) → “To a team member, room phone, or external number”.",
+      `4) ${e164} 입력 → Enter → 화면에 “Changes saved” 확인.`,
+      "5) Closed Hours Routing에도 **같은** Effiroad 번호를 넣으세요.",
+      "6) Main Line에 Fallback 메뉴가 없으면: Contact Center → 기본 센터 → 동일 단계.",
+      "경로 B — Jobber Phone / 개인 회선:",
+      "1) https://dialpad.com/app → Settings → Users → 샵 회선 → When unanswered → Forward to external.",
+      `2) ${e164} 저장. Jobber: Settings → Phone → 미응답 → 외부 번호.`,
+      "공통: **Always forward(전체 착신) 금지** — No answer / Fallback만. 발신자 번호 전달(Caller ID pass-through) 켜기.",
+      "테스트: **고객이 거는 샵 메인 번호**로 전화 → 받지 않고 ~20초 울리게 → Effiroad가 받으면 성공.",
     ];
   }
 
   if (provider === "att") {
     const code = `**61*1${tenDigit}*11*20#`;
-    const iphone10 = `*61*1${tenDigit}*11*10#`;
-    const unreachable = `*62*1${tenDigit}#`;
-    const busy = `*67*1${tenDigit}#`;
     const alt = `**61*1${tenDigit}#`;
     return [
-      "AT&T 샵 휴대폰 사용 (Cricket, Straight Talk 포함).",
-      "*21* 금지 — 조건부 코드만 사용.",
-      "기본 — 미응답 약 20초:",
-      `  ${code}`,
-      `실패 시: ${alt}`,
-      "iPhone/AT&T 대체 (업계 검증):",
-      `  10초: ${iphone10}`,
-      `  통화불가: ${unreachable}`,
-      `  통화중: ${busy}`,
-      "해제: ##61#, ##62#, ##67#",
-      "코드 실패: AT&T (800) 331-0500 — conditional call forwarding 요청.",
+      "고객 전화를 **실제로 받는 AT&T 샵 휴대폰**을 준비하세요 (Cricket·Straight Talk 포함). 다른 기기에서는 코드가 안 먹힐 수 있습니다.",
+      `아래 [코드 통화] 버튼을 탭하거나, 키패드에 ${code} 입력 후 **통화**를 누르세요.`,
+      "**절대 *21* 사용 금지** — 모든 전화가 즉시 넘어갑니다. **61* / *61* 조건부 코드만** 씁니다.",
+      "AT&T 확인음·짧은 안내·문자(SMS)를 기다리세요. 실패하면 아래 대체 코드를 시도합니다.",
+      `대체 코드: ${alt} (20초 타이머 없음)`,
+      "해제: ##61# (다시 켜려면 코드 재실행)",
+      "코드가 계속 실패: AT&T (800) 331-0500 — “conditional call forwarding / no-answer forwarding” 개통 요청.",
       FORWARDING_IPHONE_WARNING,
-      "가게 번호로 테스트.",
+      "테스트: 다른 폰에서 **샵 메인 번호**로 전화 → **받지 않고 ~20초** 울리게 → Effiroad가 받으면 성공.",
     ];
   }
 
   if (provider === "tmobile") {
     const code = `**61*1${tenDigit}**20#`;
     const alt = `**61*1${tenDigit}#`;
-    const busy = `*67*${tenDigit}#`;
-    const unreachable = `*62*${tenDigit}#`;
     return [
-      "T-Mobile 샵 휴대폰 (Metro, Mint 포함).",
-      "**21* 금지 — 조건부만.",
-      "기본 — 미응답 약 20초:",
-      `  ${code}`,
-      `실패 시: ${alt}`,
-      "선택 (통화중/통화불가):",
-      `  통화중: ${busy}`,
-      `  통화불가: ${unreachable}`,
-      "해제: ##61#, ##67#, ##62#, ##004#",
-    FORWARDING_IPHONE_WARNING,
-    "가게 번호로 테스트.",
+      "고객 전화를 **실제로 받는 T-Mobile 샵 휴대폰**을 준비하세요 (Metro·Mint 포함).",
+      `아래 [코드 통화] 버튼을 탭하거나, 키패드에 ${code} 입력 후 **통화**를 누르세요.`,
+      "**절대 **21* 사용 금지** — 전체 착신입니다. 미응답 조건부(**61*)만 사용.",
+      "T-Mobile 확인음·문자를 기다리세요. 실패하면 대체 코드를 시도합니다.",
+      `대체 코드: ${alt}`,
+      "선불 요금제는 코드가 막힐 수 있습니다 → T-Mobile 611에 “conditional forwarding” 개통 요청.",
+      "해제: ##61# 또는 ##004#",
+      FORWARDING_IPHONE_WARNING,
+      "테스트: 다른 폰에서 **샵 메인 번호**로 전화 → **받지 않고 ~20초** 울리게 → Effiroad가 받으면 성공.",
     ];
   }
 
   if (provider === "xfinity") {
     return [
-      `Xfinity 폰에서 *71${tenDigit} → 통화 (*72 금지).`,
-      "Xfinity 기기에서만 활성화 가능.",
+      "고객 전화를 **실제로 받는 Xfinity Mobile 샵 휴대폰**만 사용하세요. 웹·다른 기기에서는 *71 활성화가 안 됩니다.",
+      `키패드에 *71${tenDigit} 입력 → **통화** 버튼. (아래 [코드 통화] 버튼 사용 가능)`,
+      "**절대 *72 금지** — 모든 전화가 즉시 넘어갑니다.",
+      "Xfinity 확인음·안내를 기다린 뒤 테스트하세요.",
       "해제: *73",
-      "테스트: 샵 번호로 전화.",
+      "테스트: 다른 폰에서 **샵 메인 번호**로 전화 → 받지 않고 울리게 → Effiroad가 받으면 성공.",
+      "계속 실패하면 Effiroad 전용번호(착신 코드 없음)로 전환하세요.",
     ];
   }
 
   if (provider === "ringcentral") {
     return [
-      "RingCentral Admin → Call Handling → 순차 울림 5–8초.",
-      `미응답 시 external ${e164}.`,
-      "caller ID pass-through.",
-      "테스트: RingCentral 샵 번호로 전화.",
+      "RingCentral Admin Portal 로그인 → Phone System → 샵 회선(메인 번호) 선택.",
+      "Call Handling / Call Forwarding → **순차 울림(Sequential)** 5~8초 후 external number.",
+      `미응답 시 external에 ${e164} 입력. **Simultaneous(동시 울림) 금지.**`,
+      "Caller ID pass-through(발신자 번호 전달) 켜기.",
+      "테스트: RingCentral 샵 번호로 전화 → 받지 않고 → Effiroad가 받으면 성공.",
     ];
   }
 
   if (provider === "grasshopper") {
     return [
-      "grasshopper.com → Extensions → forwarding 추가.",
-      `${e164} — direct connect, caller ID on.`,
-      "테스트: Grasshopper 번호로 전화.",
+      "grasshopper.com 로그인 → Extensions → 메인 내선 선택.",
+      `Forwarding numbers → Add → ${e164} → **Direct connect** (press-1 스크리닝 끄기).`,
+      "Caller ID / pass-through 켜기.",
+      "테스트: Grasshopper 샵 번호로 전화 → Effiroad가 받으면 성공.",
     ];
   }
 
   return [
-    "방법 A — *71 (Verizon 공식, 업계 검증):",
-    `*71${tenDigit} → 통화. *72(전체 착신) 금지.`,
-    "해제: *73",
-    "방법 B — m.vzw.com/callforwarding → 미응답 시만.",
-    `목적지 ${e164}`,
-    "방법 C — My Verizon 앱 → 미응답 착신.",
+    "고객 전화를 **실제로 받는 Verizon 샵 휴대폰**을 준비하세요.",
+    `방법 A (권장): 아래 [*71 코드 통화] 버튼 탭 — 또는 키패드에 *71${tenDigit} 입력 후 **통화**.`,
+    "**절대 *72 금지** — 모든 전화가 즉시 넘어갑니다.",
+    "Verizon 확인음·안내를 기다리세요. 해제: *73",
+    `방법 B: m.vzw.com/callforwarding → **When unanswered / No answer only** → ${e164} 저장.`,
+    "방법 C: My Verizon 앱 → Account → Call Forwarding → 미응답 시만.",
     FORWARDING_IPHONE_WARNING,
-    "iPhone Live Voicemail 끄기.",
-    "25초 이상 울리게 테스트.",
+    "iPhone **Live Voicemail(실시간 음성 사서함)** 끄기: 설정 → 앱 → 전화.",
+    "테스트: 다른 폰에서 **샵 메인 번호**로 전화 → **받지 않고 20~25초** 울리게 → Effiroad가 받으면 성공.",
   ];
 }
 

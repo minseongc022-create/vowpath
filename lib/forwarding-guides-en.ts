@@ -221,83 +221,117 @@ export function getForwardingGuideSteps(
 
   if (provider === "effiroad_main") {
     return [
-      `Copy ${national} — use the Copy button above.`,
-      "Open Google Business Profile → Edit profile → Contact → Phone → paste → Save.",
-      "Put the same number on your website, Facebook, and new truck signs.",
+      `Copy ${national} using the button above.`,
+      "Google Business Profile → Edit profile → Contact → Phone → paste → Save. (May take 24–48 hours to show on Google.)",
+      "Update the same number on your website, Facebook, and other listings.",
+      "Use Effiroad on new truck signs and cards. Keep the old number in personal contacts until signage is updated.",
+      "Jobber (optional): Settings → Company phone → Effiroad number.",
+      "No carrier star codes (*71, **61*) needed.",
       `Test: call ${national} from another phone. Effiroad should answer.`,
     ];
   }
 
   if (provider === "google_voice") {
     return [
-      "On a computer, open voice.google.com/settings.",
-      "Turn OFF Screen calls. Turn OFF caller-ID masking when forwarding.",
-      `Add linked number → paste ${e164} → verify with a phone call.`,
-      "Turn forwarding ON. Test by calling your Google Voice number.",
+      "On a computer, open voice.google.com/settings (shop Google Voice account).",
+      "Calls tab — turn OFF: Screen calls, caller-ID masking when forwarding, and My Devices simultaneous ring.",
+      `Linked numbers → Add → paste ${e164} (+1 included) → request verification by phone (not SMS).`,
+      "Complete verification. Effiroad must receive Google's verification call during the test step below.",
+      "Turn forwarding ON to Effiroad only — one destination.",
+      "Important: Google Voice alone rarely supports ‘your phone rings ~20 sec → Effiroad’. For reliable overflow, use AT&T/T-Mobile/Verizon **61*/*71 or Effiroad dedicated number.",
+      "Test: call your Google Voice shop number. If unstable, switch to a carrier path above.",
     ];
   }
 
   if (provider === "dialpad") {
     return [
-      "Open dialpad.com/officesettings → Admin → Main Line.",
-      "Business Hours & Call Routing → Edit → Fallback → external number.",
-      `Paste ${e164} → Save. Repeat for Closed Hours if shown.`,
-      "Test: call your shop number. Do not answer. Effiroad should pick up.",
+      "Path A — ServiceTitan Phones Pro / Dialpad Main Line (most common):",
+      "1) dialpad.com/officesettings → Admin Settings → Main Line.",
+      "2) Business Hours & Call Routing → Edit Call Routing.",
+      "3) Fallback Options (or Other routing) → external number.",
+      `4) Paste ${e164} → Enter → confirm “Changes saved”.`,
+      "5) Repeat the same Effiroad number under Closed Hours Routing.",
+      "6) No Fallback on Main Line? Contact Center → default center → same steps.",
+      "Path B — Jobber Phone / user line:",
+      "1) dialpad.com/app → Settings → Users → shop line → When unanswered → Forward to external.",
+      `2) Paste ${e164}. In Jobber: Settings → Phone → unanswered → external.`,
+      "Never use Always forward — No answer / Fallback only. Enable caller ID pass-through.",
+      "Test: call your shop main number from another phone. Do not answer ~20 seconds. Effiroad should pick up.",
     ];
   }
 
   if (provider === "att") {
     const code = `**61*1${tenDigit}*11*20#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
-      "Use the AT&T phone that gets customer calls.",
-      `Tap Dial code below — or dial ${code} yourself.`,
-      "Wait for a success tone or text from AT&T.",
-      "Test: call your shop number from another phone. Let it ring ~20 seconds.",
+      "Use the AT&T shop cell phone that actually receives customer calls (Cricket, Straight Talk included).",
+      `Tap Dial code below — or dial ${code} on that phone → press Call.`,
+      "Never use *21* (forwards every call). Use **61* / *61* conditional codes only.",
+      "Wait for AT&T confirmation tone or text. If it fails, try the alternate code.",
+      `Alternate: ${alt}`,
+      "To turn off: ##61#",
+      "Still failing? Call AT&T (800) 331-0500 — ask for conditional / no-answer call forwarding.",
+      "Never use iPhone Settings → Phone → Call Forwarding (forwards all calls).",
+      "Test: call your shop main number from another phone. Do not answer ~20 seconds. Effiroad should pick up.",
     ];
   }
 
   if (provider === "tmobile") {
     const code = `**61*1${tenDigit}**20#`;
+    const alt = `**61*1${tenDigit}#`;
     return [
-      "Use the T-Mobile phone that gets customer calls.",
-      `Tap Dial code below — or dial ${code} yourself.`,
-      "Wait for a confirmation tone or text from T-Mobile.",
-      "Test: call your shop number from another phone. Do not answer.",
+      "Use the T-Mobile shop cell that receives customer calls (Metro, Mint included).",
+      `Tap Dial code below — or dial ${code} → press Call.`,
+      "Never use **21* (forwards every call). Use **61* no-answer codes only.",
+      "Wait for T-Mobile confirmation tone or text. If it fails, try alternate code.",
+      `Alternate: ${alt}`,
+      "Prepaid plans may block codes — call T-Mobile 611 for conditional forwarding.",
+      "To turn off: ##61# or ##004#",
+      "Never use iPhone Settings → Phone → Call Forwarding.",
+      "Test: call your shop main number. Do not answer ~20 seconds. Effiroad should pick up.",
     ];
   }
 
   if (provider === "xfinity") {
     return [
-      "Use the Xfinity Mobile phone that gets customer calls.",
-      `Dial *71${tenDigit} on that phone → press Call.`,
-      "Wait for confirmation. Do not use *72 (forwards every call).",
-      "Test: call your shop number from another phone. Let it ring.",
+      "Use the Xfinity Mobile shop phone only — *71 cannot be activated from web or another device.",
+      `Dial *71${tenDigit} on that phone → press Call (or tap Dial code below).`,
+      "Never use *72 (forwards every call).",
+      "Wait for confirmation, then test.",
+      "To turn off: *73",
+      "Test: call your shop main number. Do not answer. Effiroad should pick up.",
+      "Still stuck? Switch to Effiroad dedicated number (no star codes).",
     ];
   }
 
   if (provider === "ringcentral") {
     return [
-      "Open RingCentral Admin → Phone System → your shop user.",
-      "Call Handling → ring your cell first (~5–8 sec) → then external number.",
-      `Paste ${e164}. Choose Sequentially — not Simultaneously.`,
-      "Test: call your shop number. Do not answer.",
+      "RingCentral Admin → Phone System → your shop line.",
+      "Call Handling → Sequential ring 5–8 seconds → then external number.",
+      `Paste ${e164}. Not Simultaneous ring.`,
+      "Enable caller ID pass-through.",
+      "Test: call your RingCentral shop number. Do not answer. Effiroad should pick up.",
     ];
   }
 
   if (provider === "grasshopper") {
     return [
-      "Log in at grasshopper.com → Extensions → your main extension.",
-      "Add forwarding number → paste Effiroad number.",
-      "Pick direct connect — no press-1 screening. Save.",
-      "Test: call your Grasshopper number. Let it route to Effiroad.",
+      "grasshopper.com → Extensions → main extension.",
+      `Add forwarding number → ${e164} → Direct connect (no press-1 screening).`,
+      "Enable caller ID pass-through. Save.",
+      "Test: call your Grasshopper number. Effiroad should pick up.",
     ];
   }
 
   return [
-    "Use the Verizon phone that gets customer calls.",
-    `Tap Dial *71 below — or dial *71${tenDigit} on that phone.`,
-    "Wait for confirmation. Never use *72 (forwards every call).",
-    "Test: call your shop number from another phone. Let it ring ~25 seconds.",
+    "Use the Verizon shop cell phone that receives customer calls.",
+    `Method A (recommended): tap Dial *71 below — or dial *71${tenDigit} → press Call.`,
+    "Never use *72 (forwards every call). Wait for Verizon confirmation. Turn off: *73",
+    `Method B: m.vzw.com/callforwarding → When unanswered only → ${e164}.`,
+    "Method C: My Verizon app → Account → Call Forwarding → no-answer only.",
+    "Never use iPhone Settings → Phone → Call Forwarding.",
+    "Turn off iPhone Live Voicemail: Settings → Apps → Phone.",
+    "Test: call your shop main number. Do not answer 20–25 seconds. Effiroad should pick up.",
   ];
 }
 
