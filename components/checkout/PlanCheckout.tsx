@@ -82,6 +82,11 @@ export function PlanCheckout({
               >
                 {plan.usageLine}
               </p>
+              {"volumeGuide" in plan && plan.volumeGuide ? (
+                <p className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-xs leading-relaxed text-brand-950">
+                  {plan.volumeGuide}
+                </p>
+              ) : null}
 
               <ul className="mt-6 flex-1 space-y-2.5 border-t border-surface-border pt-6">
                 {plan.features.map((f) => (

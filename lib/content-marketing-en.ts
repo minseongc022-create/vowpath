@@ -1,6 +1,10 @@
 import { SITE } from "./constants";
 import { TRIAL_DAYS } from "./billing-cohort";
 import { getCheckoutCta } from "./marketing-constants";
+import {
+  planVolumeGuideEn,
+  pricingVolumeTipEn,
+} from "./plan-volume-guide";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -736,6 +740,7 @@ export const pricingEn = {
       price: SITE.liteBasePrice,
       period: "/mo",
       usageLine: `+ ${SITE.litePerBooking} per approved dispatch`,
+      volumeGuide: planVolumeGuideEn("lite"),
       features: [
         "Same intake and dispatch flow",
         "Custom forward hours",
@@ -753,6 +758,7 @@ export const pricingEn = {
       price: SITE.flexBasePrice,
       period: "/mo",
       usageLine: `+ ${SITE.flexPerBooking} per approved dispatch`,
+      volumeGuide: planVolumeGuideEn("flex"),
       features: [
         "Same intake and dispatch flow",
         "Custom forward hours",
@@ -770,6 +776,7 @@ export const pricingEn = {
       price: SITE.monthlyPrice,
       period: "/mo",
       usageLine: "No per-dispatch fees",
+      volumeGuide: planVolumeGuideEn("unlimited"),
       features: [
         "Unlimited forward windows",
         "Auto dispatch + crew text",
@@ -780,7 +787,7 @@ export const pricingEn = {
       cta: `${CHECKOUT_CTA} — Unlimited`,
     },
   ],
-  tip: `Fewer than 2 dispatches a month? Lite usually wins. Busy nights? Flex or Unlimited (${SITE.monthlyPrice}/mo).`,
+  tip: pricingVolumeTipEn(),
   footnote: "No charge for spam, wrong numbers, or jobs you cancel.",
   guarantees: [
     "30-day money-back guarantee",

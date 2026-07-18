@@ -88,6 +88,11 @@ export function Pricing() {
               >
                 {plan.usageLine}
               </p>
+              {"volumeGuide" in plan && plan.volumeGuide ? (
+                <p className="mt-3 rounded-lg border border-brand-200/80 bg-brand-50/80 px-3 py-2.5 text-xs leading-relaxed text-brand-900">
+                  {plan.volumeGuide}
+                </p>
+              ) : null}
 
               <ul className="mt-6 flex-1 space-y-2.5 border-t border-brand-200/80 pt-6">
                 {plan.features.map((f) => (

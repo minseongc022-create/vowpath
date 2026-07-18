@@ -1,6 +1,10 @@
 import { SITE } from "./constants";
 import { TRIAL_DAYS } from "./billing-cohort";
 import { getCheckoutCta } from "./marketing-constants";
+import {
+  planVolumeGuideEs,
+  pricingVolumeTipEs,
+} from "./plan-volume-guide";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -137,6 +141,7 @@ export const pricingEs = {
       price: SITE.liteBasePrice,
       period: "/mes",
       usageLine: `+ ${SITE.litePerBooking} por despacho aprobado`,
+      volumeGuide: planVolumeGuideEs("lite"),
       features: [
         "Mismo flujo de intake y despacho",
         "Horas de desvío personalizadas",
@@ -154,6 +159,7 @@ export const pricingEs = {
       price: SITE.flexBasePrice,
       period: "/mes",
       usageLine: `+ ${SITE.flexPerBooking} por despacho aprobado`,
+      volumeGuide: planVolumeGuideEs("flex"),
       features: [
         "Mismo flujo de intake y despacho",
         "Horas de desvío personalizadas",
@@ -171,6 +177,7 @@ export const pricingEs = {
       price: SITE.monthlyPrice,
       period: "/mes",
       usageLine: "Sin cargo por despacho",
+      volumeGuide: planVolumeGuideEs("unlimited"),
       features: [
         "Ventanas de desvío ilimitadas",
         "Auto-despacho + texto a cuadrilla",
@@ -181,7 +188,7 @@ export const pricingEs = {
       cta: `${CHECKOUT_CTA} — Unlimited`,
     },
   ],
-  tip: `¿Menos de 2 despachos al mes? Lite suele convenir. ¿Noches ocupadas? Flex o Unlimited (${SITE.monthlyPrice}).`,
+  tip: pricingVolumeTipEs(),
   footnote: "Sin cargo por spam, números equivocados o trabajos que canceles.",
   guarantees: [
     "Garantía de devolución 30 días",

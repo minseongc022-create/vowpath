@@ -1,4 +1,8 @@
 import { SITE, CHECKOUT_CTA } from "./constants";
+import {
+  planVolumeGuideKo,
+  pricingVolumeTipKo,
+} from "./plan-volume-guide";
 import { IS_BETA } from "./beta";
 import { pickLocaleCopy } from "@/lib/locale-merge";
 import { runtimeUiLocale, type UiLocale } from "./locale";
@@ -237,6 +241,7 @@ export const pricing = {
       price: SITE.liteBasePrice,
       period: "/월",
       usageLine: `+ 승인 예약 1건당 ${SITE.litePerBooking}`,
+      volumeGuide: planVolumeGuideKo("lite"),
       features: [
         "정액·Flex와 동일한 AI · 문자 승인 · Job Card",
         "맞춤 수신 시간대",
@@ -254,6 +259,7 @@ export const pricing = {
       price: SITE.flexBasePrice,
       period: "/월",
       usageLine: `+ 승인 예약 1건당 ${SITE.flexPerBooking}`,
+      volumeGuide: planVolumeGuideKo("flex"),
       features: [
         "정액과 동일한 AI · 문자 승인 · Job Card",
         "맞춤 수신 시간대",
@@ -271,6 +277,7 @@ export const pricing = {
       price: SITE.monthlyPrice,
       period: "/월",
       usageLine: "추가 건당 수수료 없음",
+      volumeGuide: planVolumeGuideKo("unlimited"),
       features: [
         "요일·시간대 무제한 스케줄",
         "설정 시간 내 AI 콜 무제한",
@@ -282,7 +289,7 @@ export const pricing = {
       cta: `${CHECKOUT_CTA} — 정액`,
     },
   ],
-  tip: `월 승인 예약 2건 미만이면 Lite, 9건 이상이면 정액(${SITE.monthlyPrice})이 보통 더 쌉니다.`,
+  tip: pricingVolumeTipKo(),
   footnote:
     "성과형: 기본료는 매월, 수수료는 업체가 문자·대시보드로 승인한 예약만 (스팸·취소 제외).",
 };
