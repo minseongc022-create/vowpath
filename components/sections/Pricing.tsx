@@ -13,7 +13,7 @@ export function Pricing() {
   const trialBadge =
     locale === "es"
       ? `Prueba gratis de ${TRIAL_DAYS} días — sin tarjeta`
-      : "14-day free trial included — no credit card required";
+      : `${TRIAL_DAYS}-day free trial included — no credit card required`;
   const breakEvenTitle = locale === "es" ? "Cuenta rápida" : "Break-even math";
   const breakEvenBody =
     locale === "es"

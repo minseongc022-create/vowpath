@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { betaCohortLockedPriceId, priceIdForPlan } from "@/lib/paddle-config";
+import {
+  betaCohortFlexLockedPriceId,
+  betaCohortLockedPriceId,
+  priceIdForPlan,
+} from "@/lib/paddle-config";
 import { paddleFetch } from "@/lib/paddle-client";
 import { listUsers, updateUserBilling } from "@/lib/users-db";
 
 /**
- * Daily: steps beta_feedback cohort from $129/mo to regular $189/mo after 5 years.
+ * Daily: steps beta_feedback cohort to regular pricing after 5 years.
+ * Unlimited → $169/mo. Flex → $49/mo base (usage stays on subscription charges).
  * Idempotent via betaCohortSteppedAt.
  */
 export async function GET(request: Request) {
@@ -24,14 +29,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const lockedPriceId = betaCohortLockedPriceId() ?? priceIdForPlan("unlimited");
-  if (!lockedPriceId) {
-    return NextResponse.json(
-      { error: "PADDLE_PRICE_ID_BETA_LOCKED or PADDLE_PRICE_ID_UNLIMITED not configured" },
-      { status: 503 },
-    );
-  }
-
   try {
     const now = Date.now();
     const users = await listUsers();
@@ -48,6 +45,17 @@ export async function GET(request: Request) {
     let stepped = 0;
     let failed = 0;
     for (const user of due) {
+      const plan = user.plan === "flex" ? "flex" : "unlimited";
+      const lockedPriceId =
+        plan === "flex"
+          ? betaCohortFlexLockedPriceId() ?? priceIdForPlan("flex")
+          : betaCohortLockedPriceId() ?? priceIdForPlan("unlimited");
+
+      if (!lockedPriceId) {
+        failed += 1;
+        continue;
+      }
+
       try {
         await paddleFetch(`/subscriptions/${user.paddleSubscriptionId}`, {
           method: "PATCH",

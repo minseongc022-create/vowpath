@@ -10,6 +10,9 @@ export const SITE = {
   monthlyPrice: "$169",
   flexBasePrice: "$49",
   flexPerBooking: "$11",
+  /** Founder feedback cohort — locked for 5 years after trial. */
+  betaFlexBasePrice: "$40",
+  betaFlexPerBooking: "$9",
   /** Trial-feedback cohort: $129/mo for 5 years, then regular $169/mo. */
   betaIntroPrice: "$129",
   betaLockedPrice: "$169",

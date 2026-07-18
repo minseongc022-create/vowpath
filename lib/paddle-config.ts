@@ -31,6 +31,26 @@ export function betaCohortLockedPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_LOCKED;
 }
 
+/** $40/mo Flex base — feedback cohort rate (falls back to standard Flex price). */
+export function betaCohortFlexIntroPriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_FLEX ?? process.env.PADDLE_PRICE_ID_FLEX;
+}
+
+/** $9/dispatch — feedback cohort Flex usage (falls back to standard usage price). */
+export function betaCohortFlexUsagePriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_FLEX_USAGE ?? process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+}
+
+/** $49/mo Flex base after 5-year feedback cohort ends. */
+export function betaCohortFlexLockedPriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_FLEX_LOCKED ?? process.env.PADDLE_PRICE_ID_FLEX;
+}
+
+/** $11/dispatch after 5-year feedback cohort ends. */
+export function betaCohortFlexLockedUsagePriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_FLEX_USAGE_LOCKED ?? process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+}
+
 export function isPaddleConfigured(plan: PlanId = "unlimited"): boolean {
   const key = process.env.PADDLE_API_KEY;
   const priceId = priceIdForPlan(plan);

@@ -30,7 +30,7 @@ export type UserRecord = {
   passwordChangedAt?: string;
   /** Terms + Privacy + service SMS consent at signup. */
   legalConsent?: StoredLegalConsent;
-  /** 14-day free trial from signup — checked by isEntitled() while subscriptionStatus is "trialing". */
+  /** Free trial from signup — checked by isEntitled() while subscriptionStatus is "trialing". */
   trialEndsAt?: string;
   feedbackText?: string;
   feedbackSubmittedAt?: string;

@@ -4,49 +4,40 @@ import { SITE } from "@/lib/constants";
 export const COBUILD_PILOT_WEEKS = 3;
 
 export const outreachReplyPrompts = {
-  video: `Reply VIDEO — I'll send a 2-min recording: caller → intake → crew text.`,
-  try: `Reply TRY — I'll configure [Shop name] this week. No credit card required.`,
+  video: `Reply VIDEO — I'll send a 2-min walkthrough.`,
+  try: `Reply TRY — start a ${COBUILD_PILOT_WEEKS}-week free run on [Shop name]. No credit card.`,
   pass: `Reply PASS — I'll close the file.`,
 } as const;
 
 /**
- * Final outreach copy — confident, restoration-specific, reply-ready.
+ * Outreach copy — warm, founder-to-owner, not salesy.
  * Personalize every send: [First name], [Shop name], [City], [State].
- * Optional: one line from their Google listing or reviews.
- *
- * Do NOT include internal roadmap, cohort mechanics, or slot counts in customer copy.
  */
-/** Appended to pilot outreach emails — limits implied warranty; not legal advice. */
 export const outreachPilotDisclaimer =
-  "Effiroad is a best-effort software tool. You remain responsible for all dispatch and customer decisions. No guaranteed call pickup or SLA during free evaluation. Reply PASS to opt out.";
+  "Effiroad is a best-effort tool — you stay in control of dispatch and customer decisions. No guaranteed pickup or SLA during the free run. Reply PASS to opt out.";
 
 export const partnershipPilotCopy = {
   emailSubjects: [
-    `[Shop name] — after-hours dispatch`,
-    `[First name] — who owns the 2am call?`,
-    `Quick ops question — [Shop name]`,
+    `Building this with shop owners in [State]`,
+    `[First name] — quick question about missed calls`,
+    `[Shop name] — after-hours calls while your crew is out`,
   ] as const,
 
-  emailSubject: `[Shop name] — after-hours dispatch`,
+  emailSubject: `Building this with shop owners in [State]`,
 
   emailBody: `Hi [First name],
 
-When a homeowner calls [Shop name] at 2am with a burst pipe — and your crew is already on a job — what happens in the first 60 seconds?
+I'm building Effiroad with independent restoration owners — and I'd like [Shop name] in the conversation if after-hours calls are still a gap for you.
 
-If the answer is voicemail or "call back in the morning," that job usually goes to whoever picks up next on Google.
+When your crew is already on a job and a homeowner calls at 2am, someone still has to answer. Voicemail usually means the next shop on Google gets the work.
 
-I'm Min, founder of Effiroad. We built an after-hours intake and dispatch layer specifically for independent restoration shops — not a generic answering service.
+That's what Effiroad handles: it answers as [Shop name], runs intake on the call, and texts your on-call crew on standard water jobs. Fire, sewage, or anything unclear waits on your OK first. Your Google number stays the same — no CRM swap.
 
-How it runs on a live call:
-• Greets as [Shop name]
-• Captures loss type, address, and insurance in about a minute
-• Standard water loss → texts your on-call crew to move
-• Fire, structure, or sewage → holds and texts you for approval before anything dispatches
-• Your published number stays the same. No CRM migration.
+Before you commit to anything, ${SITE.url} has a short interactive demo of the call flow. Tap through it — takes about a minute, no signup required.
 
-Answering services take a message. This captures the job and gets your crew moving while the caller is still on the line.
+I'm opening a ${COBUILD_PILOT_WEEKS}-week free run for a few shops in [City]/[State]. Self-serve setup with a step-by-step guide in the dashboard. I'm here by email/text if you get stuck. No credit card to start.
 
-I'm opening a ${COBUILD_PILOT_WEEKS}-week evaluation for shops in [City]/[State]. Self-serve setup — step-by-step guide in the dashboard. Email/text support if you get stuck. No credit card to start.
+We're also shipping a mobile app. I'd rather shape it with owners who actually run these calls than guess alone. Share honest feedback after the free run and you lock in founder pricing for ${SITE.betaDiscountYears} years — Flex ${SITE.betaFlexBasePrice}/mo + ${SITE.betaFlexPerBooking} per dispatch, or Unlimited ${SITE.betaIntroPrice}/mo.
 
 ${outreachReplyPrompts.video}
 ${outreachReplyPrompts.try}
@@ -57,49 +48,43 @@ ${outreachPilotDisclaimer}
 Effiroad
 ${SITE.url}`,
 
-  sms: `[First name] — Min, Effiroad.
+  sms: `Hi [First name] — Min, Effiroad.
 
-When a 2am water call hits [Shop name] and your crew is on a job — does someone answer and dispatch, or does it hit voicemail?
+Building after-hours call intake with restoration owners. When [Shop name]'s crew is on a job, does the phone still get answered?
 
-We built after-hours intake + crew texting for independent restoration shops. Answers as your shop. Standard water → crew text. Fire/sewage → your approval first. Same Google number.
+${SITE.url} has a 1-min interactive demo. ${COBUILD_PILOT_WEEKS}-week free run — self-serve setup, no card. Reply VIDEO or TRY.`,
 
-${COBUILD_PILOT_WEEKS}-week evaluation — self-serve guide in app. Reply VIDEO or TRY.`,
-
-  linkedInConnect: `[First name] — built Effiroad for independent restoration after-hours intake and crew dispatch. Would value connecting with an owner in [State].`,
+  linkedInConnect: `[First name] — building Effiroad for independent restoration after-hours intake. Would value connecting with an owner in [State].`,
 
   linkedInDm: `[First name] — thanks for connecting.
 
-Direct question: when overflow or after-hours calls hit [Shop name] while your crew is tied up, what's your process today?
+I'm building Effiroad with shop owners who still miss calls when the crew is tied up. It answers as your shop, runs intake, and texts your on-call crew — fire/sewage waits on you first.
 
-Effiroad answers as your shop, runs loss intake, and texts your on-call crew — with hold rules on fire and sewage. Same number. No CRM swap.
+${SITE.url} has a quick interactive demo if you want to see the flow before committing.
 
-Happy to send a 2-min recording of the full flow. Reply VIDEO if you want to see it, or TRY if you want it live on [Shop name] this week.
+Happy to set up a ${COBUILD_PILOT_WEEKS}-week free run on [Shop name]. Reply VIDEO or TRY.
 
 — Min`,
 
-  videoCoverNote: `[First name] — recording attached. Two minutes: caller → intake → crew text → your dashboard.
+  videoCoverNote: `[First name] — recording attached. Two minutes: caller → intake → crew text.
 
-If this matches how [Shop name] should handle after-hours, reply TRY and I'll get forwarding configured — about ten minutes on your side.
+If this matches how [Shop name] should handle after-hours, reply TRY — self-serve setup takes about ten minutes on your side.
 
-If not a fit, reply PASS.
+Not a fit? Reply PASS.
 
 — Min`,
 
   followUpNoReply: `[First name] — following up once.
 
-Still offering the ${COBUILD_PILOT_WEEKS}-week evaluation for [Shop name]: after-hours intake, crew texts, your number unchanged. I handle setup.
+Still have a ${COBUILD_PILOT_WEEKS}-week free run open for [Shop name]. ${SITE.url} has the interactive demo if you want to see the flow first.
 
-Reply VIDEO for the 2-min flow.
-Reply TRY to run it live this week.
-Reply PASS to close the file.
+Reply VIDEO · TRY · PASS
 
 — Min`,
 
-  followUpInterested: `[First name] — good.
+  followUpInterested: `[First name] — good to hear.
 
-Next step: a short setup call. I learn how [Shop name] routes after-hours today, configure Effiroad, and you test on real traffic for ${COBUILD_PILOT_WEEKS} weeks.
-
-Reply with two times that work for you this week, or say TRY and I'll send options.
+Reply TRY and I'll send the signup link + forwarding guide. Self-serve setup — no call needed. You can test on real traffic for ${COBUILD_PILOT_WEEKS} weeks free.
 
 — Min`,
 
@@ -107,7 +92,7 @@ Reply with two times that work for you this week, or say TRY and I'll send optio
 
 If after-hours is already covered at [Shop name], no action needed.
 
-If it's still a gap, reply TRY and I'll configure the evaluation. Reply PASS and I won't follow up again.
+If it's still a gap, reply TRY for the free run or PASS and I won't follow up again.
 
 — Min
 Effiroad`,
@@ -118,6 +103,9 @@ Effiroad`,
 2. Choose Restoration or HVAC
 3. Settings → Forwarding — follow the step-by-step guide for your carrier
 4. Run a test call (Settings shows the button)
+5. Try the interactive demo on the homepage anytime
+
+${COBUILD_PILOT_WEEKS}-week free run starts at signup — no credit card. After it ends, one line of feedback locks founder pricing for ${SITE.betaDiscountYears} years.
 
 Reply here if anything doesn't match your phone — we answer by email/text.
 
@@ -125,42 +113,31 @@ ${outreachPilotDisclaimer}
 
 — Min`,
 
-  /** After evaluation — transition to paid (no internal cohort details) */
-  postPilotTransition: `[First name] — your evaluation window wraps up [date].
+  postPilotTransition: `[First name] — your free run wraps up [date].
 
-If Effiroad is handling calls the way you want, we'll move you to a standard plan — details at ${SITE.url}/pricing.
+If Effiroad is handling calls the way you want, pick a plan at ${SITE.url}/pricing. Share feedback when prompted and founder pricing (Flex ${SITE.betaFlexBasePrice}/mo or ${SITE.betaIntroPrice}/mo Unlimited) locks for ${SITE.betaDiscountYears} years.
 
-If you want changes before committing, reply here and we'll adjust dispatch rules or timing first.
+Want changes first? Reply here and we'll adjust dispatch rules or timing.
 
 — Min`,
 
   emailBodyKo: `[First name]님, [Shop name]
 
-새벽 2시 파이프 터짐 전화 — 크루가 현장에 있을 때, 첫 60초에 누가 받고 출동까지 연결하나요?
+독립 복구 업체 오너분들과 함께 Effiroad를 만들고 있습니다. 야간·현장 중 부재중 전화가 아직 고민이시면 ${COBUILD_PILOT_WEEKS}주 무료로 같이 써보시면 좋겠습니다.
 
- voicemail이면 보통 Google 다음 업체로 갑니다.
+${SITE.url} 에서 1분 인터랙티브 데모로 자동 응대 흐름을 미리 볼 수 있습니다.
 
-Effiroad — 독립 복구 업체용 야간 intake + 크루 디스패치입니다.
-• [Shop name] 이름으로 응대
-• 손실 유형·주소·보험 ~1분 수집
-• 일반 누수 → 온콜 크루 문자
-• 화재·오염 → 업주 승인 후 진행
-• 공개 번호 유지, CRM 이전 없음
+답장: VIDEO / TRY / PASS
 
-${COBUILD_PILOT_WEEKS}주 evaluation — 세팅은 제가 처리 (~10분). 카드 없이 시작.
-
-답장: VIDEO (2분 영상) / TRY (이번 주 세팅) / PASS
-
-— Min
-${SITE.url}`,
+— Min`,
 
   sendChecklist: [
     "Fill [First name], [Shop name], [City], [State] — every send",
-    "Add one specific detail (review, service area, specialty) when possible",
+    "Send one at a time from helloeffiroad@gmail.com — no BCC",
     "Send Tue–Thu, 8–10am shop local time",
     "VIDEO reply → Loom within 1 hour",
-    "TRY reply → two concrete time slots same message",
-    "Never mention internal pricing cohorts, slot counts, or roadmap details",
+    "TRY reply → tryReplyTemplate (self-serve, no Zoom)",
+    "Mention site demo + 3-week free + founder pricing after feedback",
   ] as const,
 } as const;
 
