@@ -15,6 +15,7 @@ import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveWizard, type GoLiveWizardStep } from "@/components/settings/GoLiveWizard";
 import { GoLiveProgressCard } from "@/components/settings/GoLiveProgressCard";
+import { SettingsUiVersion } from "@/components/settings/SettingsUiVersion";
 import {
   SettingsSaveProvider,
   useSettingsSaveAll,
@@ -457,19 +458,27 @@ function SettingsViewBody({
 
   return (
     <div className="vow-settings-page-body space-y-4 sm:space-y-8">
+      <SettingsUiVersion />
       {paidProp || transactionId ? (
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
 
       <section id="go-live" className="scroll-mt-6 space-y-4 sm:space-y-5">
+        {!live ? (
+          <div className="rounded-2xl border-2 border-brand-400 bg-brand-600 px-4 py-3 text-center text-white shadow-md lg:hidden">
+            <p className="text-sm font-bold">{settingsPage.goLiveWelcome}</p>
+            <p className="mt-1 text-xs leading-snug text-brand-100">{settingsPage.goLiveWelcomeHint}</p>
+          </div>
+        ) : null}
+
         <SettingsSectionHeader
           icon="🚀"
           title={settingsPage.goLiveSectionTitle}
           hint={settingsPage.goLiveSectionSubtitle}
-          className="rounded-xl border border-brand-200/80 bg-white p-3 shadow-card sm:rounded-2xl sm:p-6"
+          className="hidden rounded-xl border border-brand-200/80 bg-white p-3 shadow-card sm:rounded-2xl sm:p-6 lg:block"
         />
 
-        <div id="go-live-progress" className="scroll-mt-24">
+        <div id="go-live-progress" className="scroll-mt-24 hidden sm:block">
           <GoLiveProgressCard
             requiredDone={requiredDone}
             requiredTotal={requiredTotal}
@@ -486,9 +495,15 @@ function SettingsViewBody({
         />
       </section>
 
+      {live ? null : (
+        <p className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-sm text-stone-600 lg:hidden">
+          {settingsPage.goLiveWelcomeHint}
+        </p>
+      )}
+
       <section
         id="product-settings"
-        className="vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-5 shadow-sm sm:p-6"
+        className={`vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-5 shadow-sm sm:p-6 ${live ? "" : "hidden lg:block"}`}
       >
         <SettingsSectionHeader
           icon="⚙️"

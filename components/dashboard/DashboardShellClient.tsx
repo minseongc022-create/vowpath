@@ -10,6 +10,7 @@ import { buildDashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SmsFailureAlert } from "@/components/dashboard/SmsFailureAlert";
 import { TrialGate } from "@/components/dashboard/TrialGate";
+import { HapticTouchProvider } from "@/components/providers/HapticTouchProvider";
 
 type DashboardShellClientProps = {
   children: React.ReactNode;
@@ -76,10 +77,12 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
   }, []);
 
   return (
-    <DashboardShell shopName={shopName} pendingReviewCount={pendingReviewCount} renewingAgreementsCount={renewingAgreementsCount}>
-      <TrialGate>{children}</TrialGate>
-      <SmsFailureAlert tenantEvents={tenantEvents} />
-    </DashboardShell>
+    <HapticTouchProvider>
+      <DashboardShell shopName={shopName} pendingReviewCount={pendingReviewCount} renewingAgreementsCount={renewingAgreementsCount}>
+        <TrialGate>{children}</TrialGate>
+        <SmsFailureAlert tenantEvents={tenantEvents} />
+      </DashboardShell>
+    </HapticTouchProvider>
   );
 }
 
