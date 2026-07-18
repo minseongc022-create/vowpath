@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SITE } from "@/lib/constants";
+import { DEFAULT_PLAN, SITE } from "@/lib/constants";
 import { trialHardCutoff } from "@/lib/billing-cohort";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
@@ -42,7 +42,7 @@ export function TrialForwardingBanner() {
           {graceLeft} day{graceLeft === 1 ? "" : "s"}.
         </p>
         <StartCheckoutButton
-          plan="unlimited"
+          plan={DEFAULT_PLAN}
           directCheckout
           className="mt-2 inline-block rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-red-500"
         >
@@ -56,8 +56,9 @@ export function TrialForwardingBanner() {
   return (
     <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
       Free trial: {daysLeft} day{daysLeft === 1 ? "" : "s"} left — phone & SMS included. After
-      trial: feedback unlocks {SITE.betaIntroPrice}/mo for {SITE.betaDiscountYears} years (regular{" "}
-      {SITE.monthlyPrice}/mo).
+      trial: one line of feedback unlocks founder pricing for {SITE.betaDiscountYears} years (
+      {SITE.betaIntroPrice}/mo Unlimited or {SITE.betaFlexBasePrice}/mo + {SITE.betaFlexPerBooking}{" "}
+      Flex).
     </div>
   );
 }

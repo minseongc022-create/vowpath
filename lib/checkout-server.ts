@@ -1,4 +1,4 @@
-import { ROUTES, type PlanId } from "@/lib/constants";
+import { DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
 import { paddleErrorToCode } from "@/lib/checkout-errors";
 import {
   allowCheckoutFallback,
@@ -30,7 +30,7 @@ export function appUrl(): string {
 }
 
 export function parsePlanId(value: unknown): PlanId {
-  return value === "flex" ? "flex" : "unlimited";
+  return value === "unlimited" ? "unlimited" : DEFAULT_PLAN;
 }
 
 type PaddleTransactionResponse = {

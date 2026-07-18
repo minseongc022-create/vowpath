@@ -12,7 +12,7 @@ export const OG_IMAGE_PATH = "/og-image.png";
 export const SITE_SEO = {
   title: "AI Dispatch & Answering for Restoration & HVAC Companies | EFFIROAD",
   description:
-    "Never lose a 2 AM water loss to voicemail. Effiroad answers 24/7, captures intake, and texts your crew — built for restoration & HVAC shops. 14-day free trial.",
+    `Never lose a 2 AM water loss to voicemail. Effiroad answers 24/7, captures intake, and texts your crew — built for restoration & HVAC shops. ${TRIAL_DAYS}-day free trial.`,
   ogTitle: "EFFIROAD | Never Lose an Emergency Job at 2 AM Again",
   ogDescription:
     "AI emergency intake and crew dispatch for independent restoration and HVAC companies. Live in ~10 minutes.",

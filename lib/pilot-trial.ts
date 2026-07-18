@@ -34,7 +34,7 @@ export async function hasInboundTwilioLine(userId: string): Promise<boolean> {
   }
 }
 
-/** Grant or extend a 30-day pilot trial (billing update only). */
+/** Grant or extend a pilot trial (billing update only). */
 async function grantPilotTrialBilling(userId: string): Promise<boolean> {
   const user = await findUserById(userId);
   if (!user) return false;
@@ -50,7 +50,7 @@ async function grantPilotTrialBilling(userId: string): Promise<boolean> {
   return true;
 }
 
-/** Grant or extend a 30-day pilot trial when the tenant has an inbound line. */
+/** Grant or extend a pilot trial when the tenant has an inbound line. */
 export async function ensurePilotTrial(userId: string): Promise<boolean> {
   const hasLine = await hasInboundTwilioLine(userId);
   if (!hasLine) return false;

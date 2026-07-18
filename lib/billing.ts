@@ -1,7 +1,11 @@
 import { IS_BETA } from "./beta";
 import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
-import { isValidPaddleEnvValue } from "./paddle-config";
+import {
+  betaCohortFlexLockedUsagePriceId,
+  betaCohortFlexUsagePriceId,
+  isValidPaddleEnvValue,
+} from "./paddle-config";
 import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
 
@@ -151,7 +155,15 @@ export async function fetchNextBillingDate(
 export async function recordFlexUsage(user: UserRecord): Promise<void> {
   const b = mergeUserBilling(user);
   if (b.plan !== "flex") return;
-  const priceId = process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+
+  const inFeedbackCohort =
+    user.discountCohort === "beta_feedback" && !user.betaCohortSteppedAt;
+  const priceId = inFeedbackCohort
+    ? betaCohortFlexUsagePriceId()
+    : user.discountCohort === "beta_feedback"
+      ? betaCohortFlexLockedUsagePriceId()
+      : process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+
   if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
 
   try {

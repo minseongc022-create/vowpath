@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import { betaCohortIntroPriceId } from "@/lib/paddle-config";
+import {
+  betaCohortFlexIntroPriceId,
+  betaCohortIntroPriceId,
+} from "@/lib/paddle-config";
 import { feedbackCohortPriceStepDate } from "@/lib/billing-cohort";
-import { createCheckoutSession } from "@/lib/checkout-server";
+import { createCheckoutSession, parsePlanId } from "@/lib/checkout-server";
 import { getSession } from "@/lib/session";
 import { findUserById, updateUserBilling } from "@/lib/users-db";
 
 const MAX_FEEDBACK_LENGTH = 2000;
 
 /**
- * Trial-ended user submits feedback → unlocks $129/mo for 5 years (vs $189 regular).
- * After 5 years, cron steps subscription to standard unlimited price.
+ * Trial-ended user submits feedback → unlocks founder pricing for 5 years:
+ * Unlimited $129/mo or Flex $40/mo + $9/dispatch (vs regular rates).
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
+  const plan = parsePlanId(body?.plan);
   if (!text) {
     return NextResponse.json({ error: "Feedback text required" }, { status: 400 });
   }
@@ -38,19 +42,23 @@ export async function POST(request: Request) {
     betaCohortPriceStepAt: priceStepAt.toISOString(),
   });
 
+  const priceIdOverride =
+    plan === "flex" ? betaCohortFlexIntroPriceId() : betaCohortIntroPriceId();
+
   try {
-    const checkout = await createCheckoutSession("unlimited", {
-      priceIdOverride: betaCohortIntroPriceId(),
+    const checkout = await createCheckoutSession(plan, {
+      priceIdOverride,
       cohort: "beta_feedback",
     });
     return NextResponse.json({
       transactionId: checkout.transactionId,
       url: checkout.url,
+      plan,
     });
   } catch (e) {
     console.error("[feedback/submit] checkout", e);
     return NextResponse.json(
-      { error: "체크아웃을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "Could not start checkout. Please try again shortly." },
       { status: 500 },
     );
   }
