@@ -25,6 +25,7 @@ import { EffiroadNumberBanner } from "@/components/settings/EffiroadNumberBanner
 import { ForwardingSimpleSteps } from "@/components/settings/ForwardingSimpleSteps";
 import { ForwardingValueHero } from "@/components/settings/ForwardingValueHero";
 import { ForwardingAllOptionsMenu } from "@/components/settings/ForwardingAllOptionsMenu";
+import { ForwardingAiHelpPanel } from "@/components/settings/ForwardingAiHelpPanel";
 import type { ForwardingSetupPathId } from "@/lib/forwarding-paths";
 import { pathForProvider } from "@/lib/forwarding-paths";
 import type { ForwardingQuizAnswers } from "@/lib/forwarding-quiz";
@@ -72,11 +73,14 @@ export function ForwardingSetup({
   );
   const [stuckOpen, setStuckOpen] = useState(false);
   const [moreHelpOpen, setMoreHelpOpen] = useState(true);
-  const [quizDone, setQuizDone] = useState(() => confirmed || hasSavedProvider);
+  /** User picked a path this session (or had one saved — for wizard continue). */
+  const [pathChosen, setPathChosen] = useState(hasSavedProvider);
+  /** Path picker (quiz / full list) — always open first in go-live wizard. */
+  const [pickerOpen, setPickerOpen] = useState(() => embeddedInGoLive || !hasSavedProvider);
   const [selectedPath, setSelectedPath] = useState<ForwardingSetupPathId | null>(() =>
     initialNormalized ? pathForProvider(initialNormalized) : null,
   );
-  const [wizardStep, setWizardStep] = useState(() => (confirmed ? 2 : 1));
+  const [wizardStep, setWizardStep] = useState(() => (confirmed && !embeddedInGoLive ? 2 : 1));
   const [forwardingVerified, setForwardingVerified] = useState(false);
   const [testAttempted, setTestAttempted] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<ForwardingQuizAnswers | null>(null);
@@ -139,16 +143,18 @@ export function ForwardingSetup({
   }, [provider, onPreferencesChange]);
 
   useEffect(() => {
-    onProgressChange?.({ quizDone, phoneNumber });
-  }, [onProgressChange, phoneNumber, quizDone]);
+    onProgressChange?.({ quizDone: pathChosen, phoneNumber });
+  }, [onProgressChange, phoneNumber, pathChosen]);
 
   const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "");
   const directMain = isDirectEffiroadLineProvider(provider);
+  const showGuide = pathChosen && !pickerOpen;
 
   function handlePathSelect(nextProvider: ForwardingProviderId, pathId: ForwardingSetupPathId) {
     setProvider(nextProvider);
     setSelectedPath(pathId);
-    setQuizDone(true);
+    setPathChosen(true);
+    setPickerOpen(false);
     setEntryMode(pathId === "quiz" ? "quiz" : "menu");
     setWizardStep(1);
   }
@@ -158,16 +164,15 @@ export function ForwardingSetup({
     handlePathSelect(nextProvider, "quiz");
   }
 
-  function restartQuiz() {
-    setQuizDone(false);
+  function openPickerFromStart() {
+    setPickerOpen(true);
     setQuizAnswers(null);
     setEntryMode("quiz");
-    setSelectedPath(null);
   }
 
   function openManualPicker() {
     setEntryMode("menu");
-    setQuizDone(false);
+    setPickerOpen(true);
   }
 
   function handleMenuSelect(nextProvider: ForwardingProviderId) {
@@ -178,7 +183,7 @@ export function ForwardingSetup({
     handlePathSelect("effiroad_main", "dedicated_line");
   }
 
-  const bannerMode = directMain && quizDone ? "dedicated" : "overflow";
+  const bannerMode = directMain && pathChosen ? "dedicated" : "overflow";
 
   const wizardNav = (
     <nav
@@ -188,7 +193,7 @@ export function ForwardingSetup({
       {WIZARD_STEPS.map((s) => {
         const active = wizardStep === s.n;
         const done = wizardStep > s.n;
-        const canJump = phoneNumber && (s.n === 1 || quizDone);
+        const canJump = phoneNumber && (s.n === 1 || pathChosen);
         return (
           <button
             key={s.n}
@@ -238,128 +243,134 @@ export function ForwardingSetup({
       </div>
     );
 
-  const setupInstructions =
-    wizardStep === 1 ? (
-      <>
-        {!quizDone ? (
-          <>
-            <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-snug text-brand-950 sm:text-base">
-              {settingsPage.forwardingSetupPrompt}
-            </p>
+  const pathPickerBlock = (
+    <div className="space-y-3 rounded-xl border-2 border-brand-300 bg-white p-3 sm:p-4">
+      <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-snug text-brand-950 sm:text-base">
+        {settingsPage.forwardingSetupPrompt}
+      </p>
 
-            <div className="flex gap-2">
-              {(["quiz", "menu"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setEntryMode(mode)}
-                  className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
-                    entryMode === mode
-                      ? "border-brand-500 bg-brand-50 text-brand-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-brand-300"
-                  }`}
-                >
-                  {settingsPage.forwardingModeTabs[mode]}
-                </button>
-              ))}
-            </div>
+      <div className="flex gap-2">
+        {(["quiz", "menu"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setEntryMode(mode)}
+            className={`flex-1 rounded-lg border-2 px-3 py-2.5 text-sm font-semibold transition ${
+              entryMode === mode
+                ? "border-brand-500 bg-brand-50 text-brand-900"
+                : "border-slate-200 bg-white text-slate-700 hover:border-brand-300"
+            }`}
+          >
+            {settingsPage.forwardingModeTabs[mode]}
+          </button>
+        ))}
+      </div>
 
-            {entryMode === "quiz" ? (
-              <ForwardingPathQuiz onResolved={handleQuizResolved} onManualPick={openManualPicker} />
-            ) : (
-              <ForwardingAllOptionsMenu selected={provider} onSelect={handleMenuSelect} />
-            )}
-          </>
-        ) : null}
+      {entryMode === "quiz" ? (
+        <ForwardingPathQuiz onResolved={handleQuizResolved} onManualPick={openManualPicker} />
+      ) : (
+        <ForwardingAllOptionsMenu selected={provider} onSelect={handleMenuSelect} />
+      )}
+    </div>
+  );
 
-        {quizDone ? (
-          <>
-            <ForwardingYourSetupCard
-              provider={provider}
-              quizAnswers={selectedPath === "quiz" ? quizAnswers : null}
-              onChangeSetup={restartQuiz}
+  const guideBlock = showGuide ? (
+    <>
+      {pathChosen && !pickerOpen ? (
+        <button
+          type="button"
+          onClick={openPickerFromStart}
+          className="w-full rounded-lg border border-brand-300 bg-brand-50 px-3 py-2.5 text-sm font-bold text-brand-800"
+        >
+          {settingsPage.forwardingRestartPicker}
+        </button>
+      ) : null}
+
+      <ForwardingYourSetupCard
+        provider={provider}
+        quizAnswers={selectedPath === "quiz" ? quizAnswers : null}
+        onChangeSetup={openPickerFromStart}
+      />
+
+      {provider === "verizon" && !directMain ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
+          {settingsPage.forwardingVerizonWarning}
+        </p>
+      ) : null}
+
+      {provider === "google_voice" && !directMain ? (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
+          {settingsPage.forwardingGoogleVoiceWarning}
+        </p>
+      ) : null}
+
+      {provider === "dialpad" && !directMain ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm leading-snug text-emerald-900">
+          {settingsPage.forwardingDialpadBanner}
+        </p>
+      ) : null}
+
+      {phoneNumber ? (
+        <div className="space-y-2.5">
+          <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
+          <ForwardingSimpleSteps steps={guideSteps} />
+        </div>
+      ) : null}
+
+      {directMain && phoneNumber ? (
+        <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
+      ) : null}
+
+      {!directMain && phoneNumber ? (
+        <EffiroadDedicatedLineCard
+          phoneNumber={phoneNumber}
+          variant="fallback"
+          compact
+          onSwitchToDedicated={switchToDedicatedLine}
+        />
+      ) : null}
+
+      <ForwardingAiHelpPanel provider={provider} />
+
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <button
+          type="button"
+          onClick={() => setMoreHelpOpen((open) => !open)}
+          aria-expanded={moreHelpOpen}
+          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-semibold text-slate-800 sm:px-4 sm:py-3 sm:text-base"
+        >
+          {settingsPage.forwardingMoreHelp}
+          <span
+            className={`text-slate-400 transition-transform ${moreHelpOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </button>
+        {moreHelpOpen ? (
+          <div className="space-y-2.5 border-t border-slate-200 px-3 py-3 sm:space-y-3 sm:px-4">
+            <ForwardingValueHero dense />
+            <ForwardingAlternatePaths
+              current={provider}
+              onSwitch={(id) =>
+                handlePathSelect(
+                  id,
+                  id === "effiroad_main" ? "dedicated_line" : pathForProvider(id),
+                )
+              }
             />
-
-            <ForwardingAllOptionsMenu selected={provider} onSelect={handleMenuSelect} />
-
-            {provider === "verizon" && !directMain ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
-                {settingsPage.forwardingVerizonWarning}
-              </p>
-            ) : null}
-
-            {provider === "google_voice" && !directMain ? (
-              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
-                {settingsPage.forwardingGoogleVoiceWarning}
-              </p>
-            ) : null}
-
-            {provider === "dialpad" && !directMain ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm leading-snug text-emerald-900">
-                {settingsPage.forwardingDialpadBanner}
-              </p>
-            ) : null}
-
+            {provider === "dialpad" && phoneNumber ? <DialpadRoutingVisual /> : null}
             {phoneNumber ? (
-              <div className="space-y-2.5">
-                <ForwardingOneTapSetup provider={provider} phoneNumber={phoneNumber} />
-                <ForwardingSimpleSteps steps={guideSteps} />
-              </div>
+              <ForwardingUnblockGuide provider={provider} effiroadNumber={phoneNumber} />
             ) : null}
-
-            {directMain && phoneNumber ? (
-              <EffiroadDedicatedLineCard phoneNumber={phoneNumber} variant="promo" compact />
-            ) : null}
-
-            {!directMain && phoneNumber ? (
-              <EffiroadDedicatedLineCard
-                phoneNumber={phoneNumber}
-                variant="fallback"
-                compact
-                onSwitchToDedicated={switchToDedicatedLine}
-              />
-            ) : null}
-
-            <div className="rounded-xl border border-slate-200 bg-white">
-              <button
-                type="button"
-                onClick={() => setMoreHelpOpen((open) => !open)}
-                aria-expanded={moreHelpOpen}
-                className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-semibold text-slate-800 sm:px-4 sm:py-3 sm:text-base"
-              >
-                {settingsPage.forwardingMoreHelp}
-                <span
-                  className={`text-slate-400 transition-transform ${moreHelpOpen ? "rotate-180" : ""}`}
-                  aria-hidden="true"
-                >
-                  ▾
-                </span>
-              </button>
-              {moreHelpOpen ? (
-                <div className="space-y-2.5 border-t border-slate-200 px-3 py-3 sm:space-y-3 sm:px-4">
-                  <ForwardingValueHero dense />
-                  <ForwardingAlternatePaths
-                    current={provider}
-                    onSwitch={(id) =>
-                      handlePathSelect(
-                        id,
-                        id === "effiroad_main" ? "dedicated_line" : pathForProvider(id),
-                      )
-                    }
-                  />
-                  {provider === "dialpad" && phoneNumber ? <DialpadRoutingVisual /> : null}
-                  {phoneNumber ? (
-                    <ForwardingUnblockGuide provider={provider} effiroadNumber={phoneNumber} />
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </>
+          </div>
         ) : null}
-      </>
-    ) : null;
+      </div>
+    </>
+  ) : null;
 
-  const showTestSection = embeddedInGoLive ? quizDone : wizardStep === 2 && quizDone;
+  const showSetupSection = embeddedInGoLive ? true : wizardStep === 1;
+  const showTestSection = embeddedInGoLive ? pathChosen && !pickerOpen : wizardStep === 2 && pathChosen;
 
   return (
     <div
@@ -367,23 +378,27 @@ export function ForwardingSetup({
     >
       {!embeddedInGoLive ? <TrialForwardingBanner /> : null}
 
-      <div
-        className={
-          embeddedInGoLive
-            ? "vow-settings-section space-y-2"
-            : "vow-forwarding-sticky space-y-1.5 sm:space-y-2"
-        }
-      >
-        {!embeddedInGoLive ? wizardNav : null}
-        {numberBlock}
-      </div>
+      {showSetupSection ? (
+        <div className="vow-settings-section space-y-3">
+          {pickerOpen ? pathPickerBlock : null}
+          {showGuide ? (
+            <p className="text-xs font-medium text-brand-800">{settingsPage.forwardingPathSelectedHint}</p>
+          ) : null}
+          {!pickerOpen ? numberBlock : null}
+          {guideBlock}
+        </div>
+      ) : null}
 
-      {setupInstructions ? (
-        <div className="vow-settings-section">{setupInstructions}</div>
+      {!embeddedInGoLive ? (
+        <div className="vow-forwarding-sticky space-y-1.5 sm:space-y-2">
+          {wizardNav}
+          {numberBlock}
+        </div>
       ) : null}
 
       {showTestSection ? (
         <div className="vow-settings-section space-y-3">
+          {pickerOpen ? null : numberBlock}
           <ForwardingTestPanel
             provider={provider}
             onVerified={() => setForwardingVerified(true)}
@@ -465,7 +480,7 @@ export function ForwardingSetup({
             ← Back
           </button>
         ) : null}
-        {wizardStep === 1 && quizDone && phoneNumber ? (
+        {wizardStep === 1 && pathChosen && !pickerOpen && phoneNumber ? (
           <button
             type="button"
             onClick={() => setWizardStep(2)}

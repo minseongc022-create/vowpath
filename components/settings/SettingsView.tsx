@@ -360,9 +360,11 @@ function SettingsViewBody({
           contactComplete && phoneProgress.quizDone && Boolean(phoneProgress.phoneNumber),
         continueHint: !contactComplete
           ? settingsPage.contactRequiredFirst
-          : !phoneProgress.quizDone || !phoneProgress.phoneNumber
-            ? settingsPage.wizardPhoneRequired
-            : undefined,
+          : !phoneProgress.quizDone
+            ? settingsPage.wizardPhonePickPath
+            : !phoneProgress.phoneNumber
+              ? settingsPage.wizardPhoneRequired
+              : undefined,
         content: (
           <>
             {!contactComplete ? (
