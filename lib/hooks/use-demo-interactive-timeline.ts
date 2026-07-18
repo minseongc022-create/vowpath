@@ -21,6 +21,7 @@ export function useDemoInteractiveTimeline({
   const [ownerSms, setOwnerSms] = useState<string | null>(null);
   const [crewSms, setCrewSms] = useState<string | null>(null);
   const [fyiSms, setFyiSms] = useState<string | null>(null);
+  const [customerSms, setCustomerSms] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [done, setDone] = useState(false);
@@ -38,6 +39,7 @@ export function useDemoInteractiveTimeline({
     setOwnerSms(null);
     setCrewSms(null);
     setFyiSms(null);
+    setCustomerSms(null);
     setSpeaking(false);
     setWaitingForClick(false);
     setDone(false);
@@ -100,6 +102,7 @@ export function useDemoInteractiveTimeline({
           if (step.kind === "sms") {
             if (step.variant === "crew") setCrewSms(step.text);
             else if (step.variant === "fyi") setFyiSms(step.text);
+            else if (step.variant === "customer") setCustomerSms(step.text);
             else setOwnerSms(step.text);
             i += 1;
             continue;
@@ -130,13 +133,16 @@ export function useDemoInteractiveTimeline({
     setCursor((c) => c + 1);
   }, []);
 
-  const handleMenuChoice = useCallback((option: { customerText?: string }) => {
-    if (option.customerText) {
-      setCustomerLines((prev) => [...prev, option.customerText!]);
-    }
-    setWaitingForClick(false);
-    setCursor((c) => c + 1);
-  }, []);
+  const handleMenuChoice = useCallback(
+    (option: { customerText?: string; jumpTo?: number }) => {
+      if (option.customerText) {
+        setCustomerLines((prev) => [...prev, option.customerText!]);
+      }
+      setWaitingForClick(false);
+      setCursor(option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1);
+    },
+    [],
+  );
 
   const handleOwnerAction = useCallback((systemText: string) => {
     setSystemLine(systemText);
@@ -158,6 +164,7 @@ export function useDemoInteractiveTimeline({
     ownerSms,
     crewSms,
     fyiSms,
+    customerSms,
     speaking,
     waitingForClick,
     done,

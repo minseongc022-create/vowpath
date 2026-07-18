@@ -41,7 +41,7 @@ function ActionPanel({
   onOwnerAction,
 }: {
   step: InteractiveStep | null;
-  onMenuChoice: (opt: { customerText?: string }) => void;
+  onMenuChoice: (opt: { customerText?: string; jumpTo?: number }) => void;
   onCustomerAction: (text: string) => void;
   onOwnerAction: (text: string) => void;
 }) {
@@ -112,6 +112,7 @@ export function DemoInteractiveCallScene({
     ownerSms,
     crewSms,
     fyiSms,
+    customerSms,
     speaking,
     waitingForClick,
     done,
@@ -202,6 +203,12 @@ export function DemoInteractiveCallScene({
         <div className="rounded-lg border border-sky-500/35 bg-sky-950/50 p-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-sky-300">Owner FYI</p>
           <p className="mt-1 text-[11px] leading-relaxed text-sky-100">{fyiSms}</p>
+        </div>
+      ) : null}
+      {customerSms ? (
+        <div className="rounded-lg border border-violet-500/40 bg-violet-950/50 p-2">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-violet-300">Customer SMS</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-violet-100">{customerSms}</p>
         </div>
       ) : null}
       {crewSms ? (
