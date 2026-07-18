@@ -6,7 +6,7 @@ import {
   type RequestTrustScore,
   type TrustScoreBand,
 } from "@/lib/request-trust-score";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 
 const BAND_STYLES: Record<
   TrustScoreBand,
@@ -39,7 +39,10 @@ type TrustScorePanelProps = {
   trust: RequestTrustScore;
 };
 
-function reassuranceCopy(trust: RequestTrustScore, t: typeof dashboardUi.bookingDetail): string {
+function reassuranceCopy(
+  trust: RequestTrustScore,
+  t: ReturnType<typeof useDashboardUi>["bookingDetail"],
+): string {
   if (!trust.hasLinkedCall) return t.trustNoCallGuide;
   if (trust.band === "high") return t.trustScoreHigh;
   if (isTrustScoreSufficient(trust.score)) return t.trustScoreSufficient;
@@ -47,6 +50,7 @@ function reassuranceCopy(trust: RequestTrustScore, t: typeof dashboardUi.booking
 }
 
 export function TrustScorePanel({ trust }: TrustScorePanelProps) {
+  const dashboardUi = useDashboardUi();
   const t = dashboardUi.bookingDetail;
   const sufficient = trust.hasLinkedCall && isTrustScoreSufficient(trust.score);
   const styles =

@@ -3,7 +3,8 @@ import { AppPage } from "@/components/ui/AppPage";
 import { Suspense } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
-import { settingsPage } from "@/lib/content";
+import { getSettingsPageCopy } from "@/lib/content";
+import { resolveServerUiLocale } from "@/lib/locale";
 
 export default async function DashboardSettingsPage({
   searchParams,
@@ -12,6 +13,8 @@ export default async function DashboardSettingsPage({
 }) {
   const params = await searchParams;
   const transactionId = params.transaction_id?.trim();
+  const locale = await resolveServerUiLocale();
+  const settingsPage = getSettingsPageCopy(locale);
 
   return (
     <AppPage width="fluid" className="vow-dash-settings pb-2">

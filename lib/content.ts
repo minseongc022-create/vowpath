@@ -1,6 +1,7 @@
 import { SITE, CHECKOUT_CTA } from "./constants";
 import { IS_BETA } from "./beta";
-import { isEnglishUi, runtimeUiLocale, type UiLocale } from "./locale";
+import { pickLocaleCopy } from "@/lib/locale-merge";
+import { runtimeUiLocale, type UiLocale } from "./locale";
 import {
   authPagesEn,
   buildDashboardUiEn,
@@ -598,6 +599,12 @@ const settingsPageKo = {
     errorGeneric: "답변을 가져오지 못했습니다. 잠시 후 다시 시도하세요.",
     fullAiHint: "일반 Shop AI는 착신전환 외 업무 질문용입니다.",
     fullAiLink: "Shop AI 열기",
+    quickQuestions: [
+      "테스트 전화가 실패했어요 — 뭐부터 확인하나요?",
+      "iPhone 착신전환 설정 써도 되나요?",
+      "Dialpad에서 어디를 눌러야 하나요?",
+      "*71 / **61* 코드가 안 먹혀요",
+    ],
   },
   forwardingRestartPicker: "← 처음부터 다시 고르기 (퀴즈 / 전체 목록)",
   forwardingPathSelectedHint: "경로를 골랐습니다. 아래 단계를 따라한 뒤 테스트하세요.",
@@ -878,7 +885,7 @@ const settingsPageKo = {
     "P1 긴급(난방/냉방/안전) → 항상 사장님 승인 대기.",
     "정보 불명확·신뢰도 낮음 → 1(승인)/2(거절) 문자 후 확정.",
     "자동 확정 후 마음 바뀌면 undo 시간 안에 9번 회신.",
-  ] as const,
+  ] as readonly string[],
   visitTimingTitle: "예약 간격",
   visitTimingHint:
     "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
@@ -1805,20 +1812,24 @@ const legalPagesKo = {
   },
 };
 
-export function getVowDashboardCopy(_locale: UiLocale) {
-  return vowDashboardEn;
+export function getVowDashboardCopy(locale: UiLocale): typeof vowDashboardEn {
+  return pickLocaleCopy(locale, vowDashboardKo, vowDashboardEn);
 }
 
-export function getDashboardPageCopy(_locale: UiLocale) {
-  return dashboardPageEn;
+export function getDashboardPageCopy(locale: UiLocale): typeof dashboardPageEn {
+  return pickLocaleCopy(locale, dashboardPageKo, dashboardPageEn);
 }
 
-export function getDashboardUiCopy(_locale: UiLocale) {
-  return buildDashboardUiEn(dashboardUiKo);
+export function getDashboardUiCopy(locale: UiLocale): ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>> {
+  const en = buildDashboardUiEn(dashboardUiKo);
+  if (locale === "ko") {
+    return pickLocaleCopy(locale, dashboardUiKo, en);
+  }
+  return en;
 }
 
-export function getSettingsPageCopy(_locale: UiLocale) {
-  return { ...settingsPageKo, ...settingsPageEn };
+export function getSettingsPageCopy(locale: UiLocale): typeof settingsPageEn & typeof settingsPageKo {
+  return pickLocaleCopy(locale, settingsPageKo, settingsPageEn);
 }
 
 /** @deprecated Prefer get*Copy(locale) or useSettingsPage() */

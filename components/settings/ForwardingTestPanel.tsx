@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { isDirectEffiroadLineProvider, type ForwardingProviderId } from "@/lib/forwarding-guides";
 
 type VerifyState = {
@@ -22,6 +22,7 @@ type Props = {
 };
 
 export function ForwardingTestPanel({ provider, onVerified, onTestStarted }: Props) {
+  const settingsPage = useSettingsPage();
   const [state, setState] = useState<VerifyState | null>(null);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -35,7 +35,7 @@ export const settingsPageEn = {
     "Clear water loss → crew text goes out.",
     "Fire, Cat-3, or missing details → we text you first (reply 1 = go, 2 = pass).",
     "Auto-booked by mistake? Reply 9 within the undo window below.",
-  ] as const,
+  ] as readonly string[],
   bookingAdvancedTitle: "Advanced (optional)",
   bookingAdvancedHint: "Storm weeks, ZIP limits, and practice mode. Most shops skip this at first.",
   visitTimingTitle: "Time between visits",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import {
   CELL_CARRIER_OPTIONS,
@@ -48,6 +48,7 @@ export function ForwardingPathPicker({
   selectedProvider = null,
   onChangePath,
 }: Props) {
+  const settingsPage = useSettingsPage();
   const p = settingsPage.forwardingPathPicker;
   const [subPick, setSubPick] = useState<ForwardingSetupPathId | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import { formatUsPhoneE164, formatUsPhoneNational } from "@/lib/phone-display";
 
 type Props = {
@@ -17,6 +17,7 @@ export function EffiroadNumberBanner({
   mode,
   layout = "card",
 }: Props) {
+  const settingsPage = useSettingsPage();
   const [copied, setCopied] = useState(false);
   const national = formatUsPhoneNational(phoneNumber);
   const e164 = formatUsPhoneE164(phoneNumber);

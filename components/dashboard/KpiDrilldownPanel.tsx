@@ -7,7 +7,7 @@ import { BookingStatusBadge } from "@/components/dashboard/BookingStatusBadge";
 import { PriorityBadge } from "@/components/dashboard/PriorityBadge";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 import { ROUTES } from "@/lib/constants";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 import { useRelativeNow } from "@/lib/hooks/use-relative-now";
 import type { KpiDrilldownId, KpiDrilldownItem } from "@/lib/kpi-drilldown";
 import {
@@ -25,17 +25,17 @@ type KpiDrilldownPanelProps = {
   onClose: () => void;
 };
 
-function panelTitle(id: KpiDrilldownId): string {
+function panelTitle(id: KpiDrilldownId, ui: ReturnType<typeof useDashboardUi>): string {
   if (id === "customerVerification") {
-    return dashboardUi.customerVerificationKpi.label;
+    return ui.customerVerificationKpi.label;
   }
   return trendSeriesDef(id).label;
 }
 
-function panelSubtitle(id: KpiDrilldownId, periodLabel: string): string {
-  if (id === "waitingCustomers") return dashboardUi.kpiDrilldown.waitingPeriod;
-  if (id === "customerVerification") return dashboardUi.customerVerificationKpi.periodLabel;
-  return dashboardUi.kpiDrilldown.periodSum(periodLabel);
+function panelSubtitle(id: KpiDrilldownId, periodLabel: string, ui: ReturnType<typeof useDashboardUi>): string {
+  if (id === "waitingCustomers") return ui.kpiDrilldown.waitingPeriod;
+  if (id === "customerVerification") return ui.customerVerificationKpi.periodLabel;
+  return ui.kpiDrilldown.periodSum(periodLabel);
 }
 
 function CallRow({
@@ -169,6 +169,7 @@ export function KpiDrilldownPanel({
   periodLabel,
   onClose,
 }: KpiDrilldownPanelProps) {
+  const dashboardUi = useDashboardUi();
   const copy = dashboardUi.kpiDrilldown;
   const nowMs = useRelativeNow();
 
@@ -188,8 +189,8 @@ export function KpiDrilldownPanel({
 
   if (!open || !kpiId || typeof document === "undefined") return null;
 
-  const title = panelTitle(kpiId);
-  const subtitle = panelSubtitle(kpiId, periodLabel);
+  const title = panelTitle(kpiId, dashboardUi);
+  const subtitle = panelSubtitle(kpiId, periodLabel, dashboardUi);
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex justify-end" role="presentation">

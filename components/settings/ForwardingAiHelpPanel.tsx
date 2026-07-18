@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 
@@ -11,14 +11,8 @@ type Props = {
   provider: ForwardingProviderId;
 };
 
-const QUICK_QUESTIONS = [
-  "테스트 전화가 실패했어요 — 뭐부터 확인하나요?",
-  "iPhone 착신전환 설정 써도 되나요?",
-  "Dialpad에서 어디를 눌러야 하나요?",
-  "*71 / **61* 코드가 안 먹혀요",
-] as const;
-
 export function ForwardingAiHelpPanel({ provider }: Props) {
+  const settingsPage = useSettingsPage();
   const copy = settingsPage.forwardingAiHelp;
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -120,7 +114,7 @@ export function ForwardingAiHelpPanel({ provider }: Props) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {QUICK_QUESTIONS.map((q) => (
+        {copy.quickQuestions.map((q) => (
           <button
             key={q}
             type="button"

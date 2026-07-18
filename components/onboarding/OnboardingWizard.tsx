@@ -8,7 +8,8 @@ import type { ShopVertical } from "@/lib/shop-vertical";
 import { normalizeShopVertical } from "@/lib/shop-vertical";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
-import { onboardingPage, settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { onboardingPage } from "@/lib/content";
 import { ROUTES, SITE } from "@/lib/constants";
 import {
   alwaysOnScheduleRow,
@@ -34,6 +35,7 @@ export function OnboardingWizard({
   paid: boolean;
   focus?: string;
 }) {
+  const settingsPage = useSettingsPage();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [shop, setShop] = useState<ShopState>(() => readShopState());

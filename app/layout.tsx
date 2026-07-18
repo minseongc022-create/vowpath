@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd, siteOrganizationJsonLd, siteWebSiteJsonLd } from "@/lib/site-metadata";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { EffiroadAssistantRoot } from "@/components/assistant/EffiroadAssistantRoot";
-import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
+import { marketingUiLocale, resolveServerUiLocale, uiLocaleHtmlLang } from "@/lib/locale";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,7 +33,7 @@ export default async function RootLayout({
   const iconV = SITE_ICON_VERSION;
 
   return (
-    <html lang={locale === "es" ? "es" : "en"} className={inter.variable} translate="no">
+    <html lang={uiLocaleHtmlLang(locale)} className={inter.variable} translate="no">
       <head>
         <link rel="icon" href={`/favicon.ico?v=${iconV}`} sizes="any" />
         <link rel="icon" href={`/favicon-32.png?v=${iconV}`} type="image/png" sizes="32x32" />

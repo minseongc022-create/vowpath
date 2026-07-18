@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { settingsPage } from "@/lib/content";
+import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import {
   FORWARDING_TROUBLESHOOTING,
   FORWARDING_TROUBLESHOOTING_FALLBACK,
@@ -59,6 +59,7 @@ export function ForwardingSetup({
   onPreferencesChange,
   onProgressChange,
 }: ForwardingSetupProps) {
+  const settingsPage = useSettingsPage();
   const hasSavedProvider = Boolean(rawInitialProvider?.trim());
   const initialNormalized = hasSavedProvider
     ? normalizeForwardingProvider(rawInitialProvider)
@@ -118,7 +119,7 @@ export function ForwardingSetup({
     } finally {
       setProvisioning(false);
     }
-  }, []);
+  }, [settingsPage.forwardingNumberProvisionFailed]);
 
   useEffect(() => {
     void (async () => {

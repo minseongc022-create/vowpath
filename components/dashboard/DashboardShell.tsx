@@ -27,6 +27,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
+import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle";
 import { SidebarAiLauncher } from "@/components/assistant/SidebarAiLauncher";
 import { ROUTES } from "@/lib/constants";
 import { useVowDashboard } from "@/components/providers/LocaleProvider";
@@ -285,6 +286,10 @@ export function DashboardShell({
 
 
 
+          <div className="mt-4 px-2">
+            <DashboardLocaleToggle className="w-full justify-center" />
+          </div>
+
           <div className="mt-4 flex items-center gap-3 border-t border-white/[0.06] pt-4">
 
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-sm font-bold text-slate-200">
@@ -319,6 +324,7 @@ export function DashboardShell({
               <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
               <p className="truncate text-[11px] text-stone-500">Effiroad</p>
             </div>
+            <DashboardLocaleToggle />
           </div>
         </header>
 

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Bump when settings UI changes so phones stuck on old JS bundles auto-refresh once. */
-export const SETTINGS_UI_VERSION = "wizard-v14-20260718-locale-forwarding-fix";
+export const SETTINGS_UI_VERSION = "wizard-v15-20260718-korean-locale";
 
 const STORAGE_KEY = "effiroad_settings_ui_version";
 

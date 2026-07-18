@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { BookingTrendPoint } from "@/lib/operations-analytics";
-import { dashboardUi } from "@/lib/content";
+import { useDashboardUi } from "@/components/providers/LocaleProvider";
 
 const CHART_WIDTH = 720;
 const CHART_HEIGHT = 252;
@@ -60,6 +60,7 @@ function CursorTooltip({
   point: BookingTrendPoint;
   cursor: CursorPoint;
 }) {
+  const dashboardUi = useDashboardUi();
   const maxLeft =
     typeof window !== "undefined" ? window.innerWidth - 220 : cursor.x + TOOLTIP_OFFSET;
   const maxTop =
@@ -112,14 +113,15 @@ function useCursorTooltip() {
   return { hovered, cursor, bindBar, clear: () => { setHovered(null); setCursor(null); } };
 }
 
-function granularityHint(data: BookingTrendPoint[]): string | null {
+function granularityHint(data: BookingTrendPoint[], ops: ReturnType<typeof useDashboardUi>["ops"]): string | null {
   const g = data[0]?.granularity;
-  if (g === "week") return dashboardUi.ops.trendWeeklyHint;
-  if (g === "month") return dashboardUi.ops.trendMonthlyHint;
+  if (g === "week") return ops.trendWeeklyHint;
+  if (g === "month") return ops.trendMonthlyHint;
   return null;
 }
 
 function LineTrendChart({ data }: { data: BookingTrendPoint[] }) {
+  const dashboardUi = useDashboardUi();
   const { hovered, cursor, bindBar } = useCursorTooltip();
   const innerW = CHART_WIDTH - PAD.l - PAD.r;
   const innerH = CHART_HEIGHT - PAD.t - PAD.b;
@@ -211,6 +213,7 @@ function LineTrendChart({ data }: { data: BookingTrendPoint[] }) {
 }
 
 function BarTrendChart({ data }: { data: BookingTrendPoint[] }) {
+  const dashboardUi = useDashboardUi();
   const { hovered, cursor, bindBar } = useCursorTooltip();
   const maxY = Math.max(1, ...data.map((d) => d.bookings));
   const labelIndices = pickAxisLabelIndices(data.length, Math.min(data.length, 8));
@@ -257,7 +260,8 @@ function BarTrendChart({ data }: { data: BookingTrendPoint[] }) {
 }
 
 export function BookingTrendChart({ data }: { data: BookingTrendPoint[] }) {
-  const hint = granularityHint(data);
+  const dashboardUi = useDashboardUi();
+  const hint = granularityHint(data, dashboardUi.ops);
   const isOverview = data[0]?.granularity === "week" || data[0]?.granularity === "month";
 
   return (

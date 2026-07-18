@@ -68,6 +68,8 @@ export const SETTINGS_PAGE_EN = {
   scheduleAlwaysOn: "Answer 24/7",
   scheduleAlwaysOnHint:
     "Effiroad handles every forwarded call around the clock. Match your forwarding rules to this.",
+  scheduleHourUnit: "hr",
+  scheduleMinuteUnit: "min",
   scheduleValidation: "Turn on 24/7 or pick at least one day in a time window.",
   scheduleConfirm: "Save hours",
   scheduleConfirmed: "Hours saved",
@@ -95,6 +97,10 @@ export const SETTINGS_PAGE_EN = {
   forwardingNumberLoading: "Retrieving your number…",
   forwardingNumberMissing:
     "Your Effiroad receive number has not been provisioned yet. Contact support or use the provisioning option below.",
+  forwardingNumberProvisioning: "Provisioning your dedicated number…",
+  forwardingNumberProvision: "Get my number",
+  forwardingNumberProvisionFailed:
+    "Could not provision your number. Check Twilio balance and account settings.",
   forwardingCopy: "Copy number",
   forwardingCopied: "Copied",
   forwardingCustomerNote:
@@ -149,6 +155,12 @@ export const SETTINGS_PAGE_EN = {
     errorGeneric: "Could not get an answer. Try again in a moment.",
     fullAiHint: "Shop AI is for general ops questions outside forwarding setup.",
     fullAiLink: "Open Shop AI",
+    quickQuestions: [
+      "Test call keeps failing — what should I check first?",
+      "Can I use iPhone call forwarding settings?",
+      "Where do I click in Dialpad?",
+      "*71 / **61* codes are not working",
+    ],
   },
   forwardingRestartPicker: "← Pick again from the start (quiz / full list)",
   forwardingPathSelectedHint: "Path selected — follow the steps below, then run the test call.",
