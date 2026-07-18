@@ -219,7 +219,7 @@ export function BookingSettingsEditor() {
   const continuousHours = isContinuousVisitWindows(settings);
 
   return (
-    <div className="vow-settings-block rounded-2xl border border-brand-200/70 bg-white p-5 shadow-card space-y-5 sm:p-6">
+    <div className="vow-settings-block vow-settings-panel space-y-4 p-3 sm:space-y-5 sm:p-5">
       <SettingsSectionHeader
         icon="📅"
         eyebrow={settingsPage.bookingPolicyTitle}
@@ -227,8 +227,8 @@ export function BookingSettingsEditor() {
         hint={settingsPage.bookingPolicyDescription}
       />
 
-      <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
-        <span className="flex items-center gap-2 vow-settings-label">
+      <label className="vow-settings-user-zone flex items-center justify-between gap-3 px-3 py-2.5">
+        <span className="vow-settings-user-label">
           <span aria-hidden>🗓️</span>
           {settingsPage.bookingSchedulingEnabledLabel}
         </span>
@@ -236,17 +236,17 @@ export function BookingSettingsEditor() {
           type="checkbox"
           checked={settings.schedulingEnabled}
           onChange={(e) => updateLocal({ schedulingEnabled: e.target.checked })}
-          className="h-5 w-5 rounded border-slate-300"
+          className="h-5 w-5 shrink-0 rounded border-slate-300"
         />
       </label>
 
-      <div className="rounded-xl border border-brand-200 bg-brand-50/60 p-4">
-        <p className="flex items-center gap-2 vow-settings-label">
+      <div className="vow-settings-guide">
+        <p className="vow-settings-label">
           <span aria-hidden>✨</span>
           {settingsPage.smartAutoBookingTitle}
         </p>
         <p className="vow-settings-hint mt-1">{settingsPage.smartAutoBookingIntro}</p>
-        <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-stone-700">
+        <ul className="mt-2.5 space-y-2 text-sm leading-relaxed text-stone-700">
           {settingsPage.smartAutoBookingRules.map((rule, i) => (
             <li key={rule} className="flex gap-2.5">
               <span className="shrink-0 text-base" aria-hidden>

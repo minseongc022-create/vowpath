@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Bump when settings UI changes so phones stuck on old JS bundles auto-refresh once. */
-export const SETTINGS_UI_VERSION = "wizard-v8-20260718-mobile-wide";
+export const SETTINGS_UI_VERSION = "wizard-v9-20260718-settings-density";
 
 const STORAGE_KEY = "effiroad_settings_ui_version";
 

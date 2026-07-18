@@ -31,7 +31,7 @@ export function SettingsSectionHeader({
           <h2 className="text-lg font-bold text-brand-950 sm:text-2xl">{title}</h2>
           {action}
         </div>
-        {hint ? <p className="vow-settings-hint mt-1 max-w-2xl sm:mt-2">{hint}</p> : null}
+        {hint ? <p className="vow-settings-hint mt-1 sm:mt-2">{hint}</p> : null}
       </div>
     </div>
   );
@@ -53,7 +53,7 @@ export function SettingsSubsection({
   className = "",
 }: SettingsSubsectionProps) {
   return (
-    <div className={`rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4 ${className}`}>
+    <div className={`vow-settings-user-zone ${className}`}>
       <div className="flex gap-3">
         {icon ? (
           <span

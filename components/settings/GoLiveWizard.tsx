@@ -92,7 +92,7 @@ export function GoLiveWizard({
       data-settings-wizard="v7"
       className="scroll-mt-20 space-y-3"
     >
-      <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-2 shadow-sm sm:p-4">
+      <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-1.5 shadow-sm sm:p-4">
         <p className="text-center text-sm font-bold text-brand-900 sm:text-base">
           {copy.wizardStepOf
             .replace("{current}", String(index + 1))
@@ -157,7 +157,7 @@ export function GoLiveWizard({
         id={step.id}
         className="vow-settings-step-panel scroll-mt-24 overflow-visible rounded-2xl border-2 border-brand-400 bg-white shadow-md"
       >
-        <header className="border-b-2 border-brand-100 bg-gradient-to-b from-brand-50 to-white px-4 py-4">
+        <header className="border-b-2 border-brand-100 bg-gradient-to-b from-brand-50 to-white px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex gap-3">
             {step.icon ? (
               <span
@@ -183,9 +183,9 @@ export function GoLiveWizard({
           ) : null}
         </header>
 
-        <div className="vow-settings-wizard-body px-3 py-3 sm:px-4 sm:py-4">{step.content}</div>
+        <div className="vow-settings-wizard-body px-2 py-2 sm:px-4 sm:py-4">{step.content}</div>
 
-        <footer className="flex flex-col gap-3 border-t-2 border-brand-100 bg-stone-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="flex flex-col gap-3 border-t-2 border-brand-100 bg-stone-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-4">
           <button
             type="button"
             disabled={index === 0}

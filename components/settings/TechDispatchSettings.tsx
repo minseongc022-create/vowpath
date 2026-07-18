@@ -164,23 +164,23 @@ export function TechDispatchSettings() {
   const activeTechs = settings.techs.filter((tech) => tech.active && tech.name.trim());
 
   return (
-    <div className="vow-settings-block rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
+    <div className="vow-settings-block vow-settings-panel p-3 sm:p-5">
       <SettingsSectionHeader
         icon="👷"
         eyebrow={t.badge}
         title={t.title}
         hint={t.body}
-        className="mb-5"
+        className="mb-4"
       />
 
-      <label className="flex items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
+      <label className="vow-settings-user-zone flex items-center gap-3 px-3 py-2.5">
         <input
           type="checkbox"
           checked={settings.enabled}
           onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
-          className="h-5 w-5 rounded border-stone-300"
+          className="h-5 w-5 shrink-0 rounded border-stone-300"
         />
-        <span className="vow-settings-label">{t.enable}</span>
+        <span className="vow-settings-user-label">{t.enable}</span>
       </label>
 
       {settings.enabled ? (

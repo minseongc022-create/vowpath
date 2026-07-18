@@ -322,7 +322,7 @@ export function DashboardShell({
           </div>
         </header>
 
-        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-2 py-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
+        <main className="vow-dash-main-scroll flex-1 bg-[#f8f6f2] px-1.5 py-2 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 lg:bg-transparent lg:px-8 lg:pb-8">
           {children}
         </main>
 

@@ -45,7 +45,7 @@ export function AgreementKeeperSettingsEditor() {
   }
 
   return (
-    <section id="agreements" className="vow-settings-block scroll-mt-24 rounded-xl border border-brand-200/70 bg-white p-5 sm:p-6">
+    <section id="agreements" className="vow-settings-block vow-settings-panel scroll-mt-24 p-3 sm:p-5">
       <SettingsSectionHeader
         icon="🛡️"
         title={copy.title}
