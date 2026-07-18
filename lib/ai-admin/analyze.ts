@@ -183,7 +183,7 @@ function planCard(plan: PlanId): AiAdminAnalysisResult {
       ],
       actions,
     },
-    suggestions: ["Compare Flex and Unlimited.", "What is my current plan?"],
+    suggestions: ["Compare Lite, Flex, and Unlimited.", "What is my current plan?"],
   };
 }
 
@@ -252,6 +252,10 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
 
   if (q.includes("flex plan") || q.includes("flex로")) {
     return planCard("flex");
+  }
+
+  if (q.includes("lite plan") || q.includes("lite")) {
+    return planCard("lite");
   }
 
   if (q.includes("next bill") || q.includes("다음 결제")) {

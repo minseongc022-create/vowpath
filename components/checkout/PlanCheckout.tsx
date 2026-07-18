@@ -20,14 +20,14 @@ export function PlanCheckout({
     : null;
 
   return (
-    <div className="mx-auto mt-10 max-w-4xl">
+    <div className="mx-auto mt-10 max-w-5xl">
       {bannerError ? (
         <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
           {bannerError}
         </p>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         {pricing.plans.map((plan) => {
           const isSelected = plan.id === selectedPlan;
           const payLabel = paddleReady
@@ -75,7 +75,9 @@ export function PlanCheckout({
               </div>
               <p
                 className={`mt-2 text-sm font-medium ${
-                  plan.id === "flex" ? "text-brand-700" : "text-slate-600"
+                  plan.id === "flex" || plan.id === "lite"
+                    ? "text-brand-700"
+                    : "text-slate-600"
                 }`}
               >
                 {plan.usageLine}

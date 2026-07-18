@@ -1,10 +1,14 @@
 import { IS_BETA } from "./beta";
 import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
+import { isPerDispatchPlan } from "./plan-pricing";
 import {
-  betaCohortFlexLockedUsagePriceId,
   betaCohortFlexUsagePriceId,
+  betaCohortLiteUsagePriceId,
+  betaCohortFlexLockedUsagePriceId,
+  betaCohortLiteLockedUsagePriceId,
   isValidPaddleEnvValue,
+  usagePriceIdForPlan,
 } from "./paddle-config";
 import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
@@ -85,7 +89,11 @@ export async function verifyTransaction(transactionId: string): Promise<{
       return { ok: false };
     }
 
-    const plan = (tx.custom_data?.plan === "flex" ? "flex" : "unlimited") as PlanId;
+    const planRaw = tx.custom_data?.plan;
+    const plan: PlanId =
+      planRaw === "flex" || planRaw === "lite" || planRaw === "unlimited"
+        ? planRaw
+        : "unlimited";
     let email: string | undefined;
     if (tx.customer_id) {
       try {
@@ -151,18 +159,23 @@ export async function fetchNextBillingDate(
   }
 }
 
-/** Flex plan per-booking overage — billed as a one-time charge on the next renewal. */
+/** Per-dispatch plan overage — billed on the next renewal. */
 export async function recordFlexUsage(user: UserRecord): Promise<void> {
   const b = mergeUserBilling(user);
-  if (b.plan !== "flex") return;
+  if (!isPerDispatchPlan(b.plan)) return;
 
   const inFeedbackCohort =
     user.discountCohort === "beta_feedback" && !user.betaCohortSteppedAt;
+  const stepped = user.discountCohort === "beta_feedback" && Boolean(user.betaCohortSteppedAt);
   const priceId = inFeedbackCohort
-    ? betaCohortFlexUsagePriceId()
-    : user.discountCohort === "beta_feedback"
-      ? betaCohortFlexLockedUsagePriceId()
-      : process.env.PADDLE_PRICE_ID_FLEX_USAGE;
+    ? b.plan === "flex"
+      ? betaCohortFlexUsagePriceId()
+      : betaCohortLiteUsagePriceId()
+    : stepped
+      ? b.plan === "flex"
+        ? betaCohortFlexLockedUsagePriceId()
+        : betaCohortLiteLockedUsagePriceId()
+      : usagePriceIdForPlan(b.plan);
 
   if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
 

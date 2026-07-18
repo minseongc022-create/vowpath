@@ -23,6 +23,8 @@ check("Paddle API key", Boolean(process.env.PADDLE_API_KEY?.startsWith("pdl_")),
 check("Paddle unlimited price", Boolean(process.env.PADDLE_PRICE_ID_UNLIMITED), "PADDLE_PRICE_ID_UNLIMITED");
 check("Paddle flex base", Boolean(process.env.PADDLE_PRICE_ID_FLEX), "PADDLE_PRICE_ID_FLEX");
 check("Paddle flex usage", Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE), "PADDLE_PRICE_ID_FLEX_USAGE");
+check("Paddle lite base", Boolean(process.env.PADDLE_PRICE_ID_LITE), "PADDLE_PRICE_ID_LITE");
+check("Paddle lite usage", Boolean(process.env.PADDLE_PRICE_ID_LITE_USAGE), "PADDLE_PRICE_ID_LITE_USAGE");
 check("Twilio creds", Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN), "TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN");
 check("Twilio webhook base", Boolean(process.env.TWILIO_WEBHOOK_BASE_URL?.startsWith("https://")), "TWILIO_WEBHOOK_BASE_URL=https://effiroad.com");
 check("OpenAI", Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-")), "OPENAI_API_KEY");

@@ -8,18 +8,22 @@ export const SITE = {
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
   monthlyPrice: "$169",
-  flexBasePrice: "$49",
+  flexBasePrice: "$75",
   flexPerBooking: "$11",
   /** Founder feedback cohort — locked for 5 years after trial. */
-  betaFlexBasePrice: "$40",
+  betaFlexBasePrice: "$69",
   betaFlexPerBooking: "$9",
+  liteBasePrice: "$42",
+  litePerBooking: "$30",
+  betaLiteBasePrice: "$39",
+  betaLitePerBooking: "$25",
   /** Trial-feedback cohort: $129/mo for 5 years, then regular $169/mo. */
   betaIntroPrice: "$129",
   betaLockedPrice: "$169",
   betaDiscountYears: 5,
 } as const;
 
-export type PlanId = "unlimited" | "flex";
+export type PlanId = "unlimited" | "flex" | "lite";
 
 /** Default checkout / trial-end plan — Flex fits most independent shops. */
 export const DEFAULT_PLAN: PlanId = "flex";

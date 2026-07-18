@@ -53,7 +53,17 @@ ok(
 ok(
   "Paddle flex usage",
   Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE),
-  "PADDLE_PRICE_ID_FLEX_USAGE — per-booking fee for flex plan",
+  "PADDLE_PRICE_ID_FLEX_USAGE — per-dispatch fee for Flex",
+);
+ok(
+  "Paddle lite base",
+  Boolean(process.env.PADDLE_PRICE_ID_LITE),
+  "PADDLE_PRICE_ID_LITE for Lite plan",
+);
+ok(
+  "Paddle lite usage",
+  Boolean(process.env.PADDLE_PRICE_ID_LITE_USAGE),
+  "PADDLE_PRICE_ID_LITE_USAGE — per-dispatch fee for Lite",
 );
 ok(
   "Twilio",

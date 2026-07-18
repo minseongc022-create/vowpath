@@ -720,7 +720,7 @@ export const signupFlowEn = {
 
 export const pricingEn = {
   title: "One water loss at 2 AM pays for the year",
-  subtitle: "Unlimited for busy shops and storm season. Flex when nights are quieter.",
+  subtitle: "Lite for quiet months. Flex when nights pick up. Unlimited for storm season.",
   compare: [
     { label: "AI phone + link intake", amount: "Included" },
     { label: "Shop analytics + Effiroad AI", amount: "Included" },
@@ -729,17 +729,34 @@ export const pricingEn = {
   ],
   plans: [
     {
+      id: "lite" as const,
+      name: "Lite",
+      badge: "Quiet months",
+      description: "Lower monthly base. Pay more only when you dispatch.",
+      price: SITE.liteBasePrice,
+      period: "/mo",
+      usageLine: `+ ${SITE.litePerBooking} per approved dispatch`,
+      features: [
+        "Same intake and dispatch flow",
+        "Custom forward hours",
+        "Best when nights are rare",
+        "CRM connect optional",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Lite`,
+    },
+    {
       id: "flex" as const,
       name: "Flex",
       badge: "Most popular",
-      description: "Pay per confirmed dispatch. Quiet months stay cheap.",
+      description: "Higher monthly base. Lower cost per confirmed dispatch.",
       price: SITE.flexBasePrice,
       period: "/mo",
       usageLine: `+ ${SITE.flexPerBooking} per approved dispatch`,
       features: [
         "Same intake and dispatch flow",
         "Custom forward hours",
-        "Per confirmed dispatch only",
+        "Lower per-dispatch fee than Lite",
         "CRM connect optional",
       ],
       recommended: true,
@@ -763,7 +780,7 @@ export const pricingEn = {
       cta: `${CHECKOUT_CTA} — Unlimited`,
     },
   ],
-  tip: `Confirming 9+ dispatches a month? Unlimited (${SITE.monthlyPrice}) usually wins.`,
+  tip: `Fewer than 2 dispatches a month? Lite usually wins. Busy nights? Flex or Unlimited (${SITE.monthlyPrice}/mo).`,
   footnote: "No charge for spam, wrong numbers, or jobs you cancel.",
   guarantees: [
     "30-day money-back guarantee",
@@ -775,7 +792,7 @@ export const pricingEn = {
 export const getStartedEn = {
   eyebrow: "Get started",
   title: "Put Effiroad on your emergency line",
-  subtitle: `For restoration and HVAC companies — Unlimited ${SITE.monthlyPrice}/mo or Flex ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking} per approved dispatch`,
+  subtitle: `For restoration and HVAC companies — Lite, Flex, or Unlimited. See plans at effiroad.com/#pricing`,
   canceledMessage: "Checkout canceled. Pick a plan below to try again.",
   checkoutError: "Couldn't start checkout. Try again or sign up to continue.",
   demoNotice: "Payments aren't live yet. Pick a plan and sign up to finish setup.",

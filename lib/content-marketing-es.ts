@@ -121,7 +121,7 @@ export const socialProofEs = {
 
 export const pricingEs = {
   title: "Una pérdida de agua a las 2 AM paga todo el año",
-  subtitle: "Ilimitado para noches pesadas y temporada de tormentas. Flex cuando hay menos volumen.",
+  subtitle: "Lite para meses tranquilos. Flex cuando sube el volumen. Ilimitado para temporada de tormentas.",
   compare: [
     { label: "Teléfono con IA + enlace SMS", amount: "Incluido" },
     { label: "Analítica + Effiroad AI", amount: "Incluido" },
@@ -130,17 +130,34 @@ export const pricingEs = {
   ],
   plans: [
     {
+      id: "lite" as const,
+      name: "Lite",
+      badge: "Meses tranquilos",
+      description: "Base mensual más baja. Pagas más solo cuando despachas.",
+      price: SITE.liteBasePrice,
+      period: "/mes",
+      usageLine: `+ ${SITE.litePerBooking} por despacho aprobado`,
+      features: [
+        "Mismo flujo de intake y despacho",
+        "Horas de desvío personalizadas",
+        "Ideal cuando hay pocas noches",
+        "Conexión CRM opcional",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Lite`,
+    },
+    {
       id: "flex" as const,
       name: "Flex",
       badge: "Más popular",
-      description: "Pagas por despacho confirmado. Meses tranquilos cuestan menos.",
+      description: "Base mensual más alta. Menor costo por despacho confirmado.",
       price: SITE.flexBasePrice,
       period: "/mes",
       usageLine: `+ ${SITE.flexPerBooking} por despacho aprobado`,
       features: [
         "Mismo flujo de intake y despacho",
         "Horas de desvío personalizadas",
-        "Solo por despacho confirmado",
+        "Tarifa por despacho más baja que Lite",
         "Conexión CRM opcional",
       ],
       recommended: true,
@@ -164,7 +181,7 @@ export const pricingEs = {
       cta: `${CHECKOUT_CTA} — Unlimited`,
     },
   ],
-  tip: `¿Confirmas 9+ despachos al mes? Unlimited (${SITE.monthlyPrice}) suele convenir más.`,
+  tip: `¿Menos de 2 despachos al mes? Lite suele convenir. ¿Noches ocupadas? Flex o Unlimited (${SITE.monthlyPrice}).`,
   footnote: "Sin cargo por spam, números equivocados o trabajos que canceles.",
   guarantees: [
     "Garantía de devolución 30 días",

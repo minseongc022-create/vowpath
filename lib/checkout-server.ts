@@ -1,4 +1,5 @@
 import { DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
+import { parsePlanIdFromQuery } from "@/lib/plan-pricing";
 import { paddleErrorToCode } from "@/lib/checkout-errors";
 import {
   allowCheckoutFallback,
@@ -30,7 +31,7 @@ export function appUrl(): string {
 }
 
 export function parsePlanId(value: unknown): PlanId {
-  return value === "unlimited" ? "unlimited" : DEFAULT_PLAN;
+  return parsePlanIdFromQuery(value);
 }
 
 type PaddleTransactionResponse = {

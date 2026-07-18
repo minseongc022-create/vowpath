@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 import { SITE, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
+import { founderRateLabel, founderRateShort, regularRateLabel } from "@/lib/plan-pricing";
 
 type BillingStatusResponse = {
   beta: boolean;
   entitled: boolean;
 };
+
+const PLAN_OPTIONS: { id: PlanId; title: string }[] = [
+  { id: "lite", title: "Lite" },
+  { id: "flex", title: "Flex" },
+  { id: "unlimited", title: "Unlimited" },
+];
 
 /**
  * Blocks the dashboard once a user's free trial has ended and they have no active
@@ -72,15 +79,8 @@ function TrialEndedCard() {
     }
   }
 
-  const founderRate =
-    plan === "flex"
-      ? `${SITE.betaFlexBasePrice}/mo + ${SITE.betaFlexPerBooking} per dispatch`
-      : `${SITE.betaIntroPrice}/mo`;
-
-  const regularRate =
-    plan === "flex"
-      ? `${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking} per dispatch`
-      : SITE.monthlyPrice + "/mo";
+  const founderRate = founderRateLabel(plan);
+  const regularRate = regularRateLabel(plan);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-brand-950/70 p-4 sm:items-center">
@@ -88,38 +88,31 @@ function TrialEndedCard() {
         <h2 className="text-xl font-bold text-slate-900">Your free trial has ended</h2>
         <p className="mt-2 text-sm text-slate-600">
           Share one line of feedback and lock in founder pricing for {SITE.betaDiscountYears}{" "}
-          years — then regular rates ({regularRate}).
+          years — then regular rates ({regularRate}). Full pricing is on{" "}
+          <a href="/#pricing" className="font-medium text-brand-600 underline">
+            effiroad.com
+          </a>
+          .
         </p>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setPlan("unlimited")}
-            className={`rounded-lg border-2 px-3 py-2.5 text-left text-sm transition ${
-              plan === "unlimited"
-                ? "border-brand-500 bg-brand-50 text-brand-900"
-                : "border-surface-border text-slate-700 hover:border-brand-300"
-            }`}
-          >
-            <span className="block font-semibold">Unlimited</span>
-            <span className="mt-0.5 block text-xs text-slate-600">
-              {SITE.betaIntroPrice}/mo · no per-dispatch fees
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPlan("flex")}
-            className={`rounded-lg border-2 px-3 py-2.5 text-left text-sm transition ${
-              plan === "flex"
-                ? "border-brand-500 bg-brand-50 text-brand-900"
-                : "border-surface-border text-slate-700 hover:border-brand-300"
-            }`}
-          >
-            <span className="block font-semibold">Flex</span>
-            <span className="mt-0.5 block text-xs text-slate-600">
-              {SITE.betaFlexBasePrice}/mo + {SITE.betaFlexPerBooking}/dispatch
-            </span>
-          </button>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {PLAN_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setPlan(option.id)}
+              className={`rounded-lg border-2 px-3 py-2.5 text-left text-sm transition ${
+                plan === option.id
+                  ? "border-brand-500 bg-brand-50 text-brand-900"
+                  : "border-surface-border text-slate-700 hover:border-brand-300"
+              }`}
+            >
+              <span className="block font-semibold">{option.title}</span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                {founderRateShort(option.id)}
+              </span>
+            </button>
+          ))}
         </div>
 
         <textarea
@@ -146,9 +139,7 @@ function TrialEndedCard() {
           directCheckout
           className="mt-3 block w-full text-center text-sm font-medium text-slate-500 transition hover:text-slate-700"
         >
-          {plan === "flex"
-            ? `No thanks, continue at ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking}/dispatch`
-            : `No thanks, continue at ${SITE.monthlyPrice}/mo`}
+          No thanks, continue at {regularRate}
         </StartCheckoutButton>
       </div>
     </div>

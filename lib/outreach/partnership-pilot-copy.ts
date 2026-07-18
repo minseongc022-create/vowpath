@@ -10,34 +10,35 @@ export const outreachReplyPrompts = {
 } as const;
 
 /**
- * Outreach copy — warm, founder-to-owner, not salesy.
+ * Outreach copy — warm, founder-to-owner, collaborative (not salesy).
  * Personalize every send: [First name], [Shop name], [City], [State].
+ * Do NOT quote dollar amounts in cold email — pricing lives on the site.
  */
 export const outreachPilotDisclaimer =
-  "Effiroad is a best-effort tool — you stay in control of dispatch and customer decisions. No guaranteed pickup or SLA during the free run. Reply PASS to opt out.";
+  "Effiroad is a best-effort tool — you stay in control of dispatch and customer decisions. No guaranteed pickup or SLA during the free run. Cancel anytime. Reply PASS to opt out.";
 
 export const partnershipPilotCopy = {
   emailSubjects: [
-    `Building this with shop owners in [State]`,
-    `[First name] — quick question about missed calls`,
-    `[Shop name] — after-hours calls while your crew is out`,
+    `Would love your take — building this with shop owners in [State]`,
+    `[First name] — after-hours calls at [Shop name]`,
+    `Quick question about missed calls in [City]`,
   ] as const,
 
-  emailSubject: `Building this with shop owners in [State]`,
+  emailSubject: `Would love your take — building this with shop owners in [State]`,
 
   emailBody: `Hi [First name],
 
-I'm building Effiroad with independent restoration owners — and I'd like [Shop name] in the conversation if after-hours calls are still a gap for you.
+I'm building Effiroad with independent restoration owners — and I'd love [Shop name]'s perspective if after-hours calls are still a gap.
 
-When your crew is already on a job and a homeowner calls at 2am, someone still has to answer. Voicemail usually means the next shop on Google gets the work.
+When your crew is on a job and a homeowner calls at 2am, someone still has to answer. Voicemail usually means the next shop on Google gets the work.
 
 That's what Effiroad handles: it answers as [Shop name], runs intake on the call, and texts your on-call crew on standard water jobs. Fire, sewage, or anything unclear waits on your OK first. Your Google number stays the same — no CRM swap.
 
-Before you commit to anything, ${SITE.url} has a short interactive demo of the call flow. Tap through it — takes about a minute, no signup required.
+Before anything else, ${SITE.url} has a short interactive demo of the call flow. Tap through it — about a minute, no signup.
 
-I'm opening a ${COBUILD_PILOT_WEEKS}-week free run for a few shops in [City]/[State]. Self-serve setup with a step-by-step guide in the dashboard. I'm here by email/text if you get stuck. No credit card to start.
+I'm opening a ${COBUILD_PILOT_WEEKS}-week free run for a few shops in [City]/[State]. Self-serve setup with a step-by-step guide in the dashboard. I'm here by email/text if you get stuck. No credit card to start. If it's not a fit, stop anytime — no contract.
 
-We're also shipping a mobile app. I'd rather shape it with owners who actually run these calls than guess alone. Share honest feedback after the free run and you lock in founder pricing for ${SITE.betaDiscountYears} years — Flex ${SITE.betaFlexBasePrice}/mo + ${SITE.betaFlexPerBooking} per dispatch, or Unlimited ${SITE.betaIntroPrice}/mo.
+We're also shipping a mobile app. I'd rather shape it with owners who actually run these calls than guess alone. Share honest feedback after the free run and we lock in founder pricing for ${SITE.betaDiscountYears} years — full plan details are on ${SITE.url}/#pricing.
 
 ${outreachReplyPrompts.video}
 ${outreachReplyPrompts.try}
@@ -52,7 +53,7 @@ ${SITE.url}`,
 
 Building after-hours call intake with restoration owners. When [Shop name]'s crew is on a job, does the phone still get answered?
 
-${SITE.url} has a 1-min interactive demo. ${COBUILD_PILOT_WEEKS}-week free run — self-serve setup, no card. Reply VIDEO or TRY.`,
+${SITE.url} has a 1-min interactive demo. ${COBUILD_PILOT_WEEKS}-week free run — self-serve, no card. Reply VIDEO or TRY.`,
 
   linkedInConnect: `[First name] — building Effiroad for independent restoration after-hours intake. Would value connecting with an owner in [State].`,
 
@@ -62,7 +63,7 @@ I'm building Effiroad with shop owners who still miss calls when the crew is tie
 
 ${SITE.url} has a quick interactive demo if you want to see the flow before committing.
 
-Happy to set up a ${COBUILD_PILOT_WEEKS}-week free run on [Shop name]. Reply VIDEO or TRY.
+Happy to set up a ${COBUILD_PILOT_WEEKS}-week free run on [Shop name]. No credit card. Stop anytime if it's not a fit.
 
 — Min`,
 
@@ -105,7 +106,7 @@ Effiroad`,
 4. Run a test call (Settings shows the button)
 5. Try the interactive demo on the homepage anytime
 
-${COBUILD_PILOT_WEEKS}-week free run starts at signup — no credit card. After it ends, one line of feedback locks founder pricing for ${SITE.betaDiscountYears} years.
+${COBUILD_PILOT_WEEKS}-week free run starts at signup — no credit card. After it ends, one line of feedback locks founder pricing for ${SITE.betaDiscountYears} years (see ${SITE.url}/#pricing).
 
 Reply here if anything doesn't match your phone — we answer by email/text.
 
@@ -115,7 +116,7 @@ ${outreachPilotDisclaimer}
 
   postPilotTransition: `[First name] — your free run wraps up [date].
 
-If Effiroad is handling calls the way you want, pick a plan at ${SITE.url}/pricing. Share feedback when prompted and founder pricing (Flex ${SITE.betaFlexBasePrice}/mo or ${SITE.betaIntroPrice}/mo Unlimited) locks for ${SITE.betaDiscountYears} years.
+If Effiroad is handling calls the way you want, pick a plan at ${SITE.url}/#pricing. Share feedback when prompted and founder pricing locks for ${SITE.betaDiscountYears} years.
 
 Want changes first? Reply here and we'll adjust dispatch rules or timing.
 
@@ -137,7 +138,7 @@ ${SITE.url} 에서 1분 인터랙티브 데모로 자동 응대 흐름을 미리
     "Send Tue–Thu, 8–10am shop local time",
     "VIDEO reply → Loom within 1 hour",
     "TRY reply → tryReplyTemplate (self-serve, no Zoom)",
-    "Mention site demo + 3-week free + founder pricing after feedback",
+    "No dollar amounts in cold email — point to site pricing + 5-year founder discount after feedback",
   ] as const,
 } as const;
 

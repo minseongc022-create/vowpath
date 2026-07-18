@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import type { PlanId } from "@/lib/constants";
+import { parsePlanIdFromQuery } from "@/lib/plan-pricing";
 import { paddleFetch } from "@/lib/paddle-client";
 import type { SubscriptionStatus } from "@/lib/billing";
 import {
@@ -44,7 +45,7 @@ function verifyPaddleSignature(
 }
 
 function planFromCustomData(customData: Record<string, unknown> | null | undefined): PlanId {
-  return customData?.plan === "flex" ? "flex" : "unlimited";
+  return parsePlanIdFromQuery(customData?.plan);
 }
 
 function mapStatus(paddleStatus: string): SubscriptionStatus {

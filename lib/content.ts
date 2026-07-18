@@ -230,17 +230,33 @@ export const pricing = {
   ],
   plans: [
     {
+      id: "lite" as const,
+      name: "Lite",
+      badge: "콜 적을 때",
+      description: "월 기본료 낮음. 실제 승인·디스패치할 때만 추가 과금.",
+      price: SITE.liteBasePrice,
+      period: "/월",
+      usageLine: `+ 승인 예약 1건당 ${SITE.litePerBooking}`,
+      features: [
+        "정액·Flex와 동일한 AI · 문자 승인 · Job Card",
+        "맞춤 수신 시간대",
+        "야간 콜이 드문 shop",
+        "Jobber 선택",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Lite`,
+    },
+    {
       id: "flex" as const,
       name: "성과형 Flex",
       badge: "가장 많이 선택",
-      description: "야간 콜이 적은 shop. 승인한 예약만 추가 과금.",
+      description: "월 기본료 높음. 건당 수수료는 Lite보다 낮음.",
       price: SITE.flexBasePrice,
       period: "/월",
       usageLine: `+ 승인 예약 1건당 ${SITE.flexPerBooking}`,
       features: [
         "정액과 동일한 AI · 문자 승인 · Job Card",
         "맞춤 수신 시간대",
-        "스마트 자동 예약",
         "월 기본료 + 확정 예약당 수수료",
         "콜만 받고 예약 0건 → 기본료만",
       ],
@@ -266,7 +282,7 @@ export const pricing = {
       cta: `${CHECKOUT_CTA} — 정액`,
     },
   ],
-  tip: `월 승인 예약 약 9건 이상이면 정액(${SITE.monthlyPrice})이 보통 더 쌉니다.`,
+  tip: `월 승인 예약 2건 미만이면 Lite, 9건 이상이면 정액(${SITE.monthlyPrice})이 보통 더 쌉니다.`,
   footnote:
     "성과형: 기본료는 매월, 수수료는 업체가 문자·대시보드로 승인한 예약만 (스팸·취소 제외).",
 };

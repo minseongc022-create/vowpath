@@ -56,9 +56,11 @@ export function TrialForwardingBanner() {
   return (
     <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
       Free trial: {daysLeft} day{daysLeft === 1 ? "" : "s"} left — phone & SMS included. After
-      trial: one line of feedback unlocks founder pricing for {SITE.betaDiscountYears} years (
-      {SITE.betaIntroPrice}/mo Unlimited or {SITE.betaFlexBasePrice}/mo + {SITE.betaFlexPerBooking}{" "}
-      Flex).
+      trial: one line of feedback unlocks founder pricing for {SITE.betaDiscountYears} years (see{" "}
+      <a href="/#pricing" className="font-semibold underline">
+        pricing on effiroad.com
+      </a>
+      ).
     </div>
   );
 }

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import {
-  betaCohortFlexLockedPriceId,
-  betaCohortLockedPriceId,
+  betaCohortLockedPriceIdForPlan,
   priceIdForPlan,
 } from "@/lib/paddle-config";
+import type { PlanId } from "@/lib/constants";
 import { paddleFetch } from "@/lib/paddle-client";
 import { listUsers, updateUserBilling } from "@/lib/users-db";
 
 /**
  * Daily: steps beta_feedback cohort to regular pricing after 5 years.
- * Unlimited → $169/mo. Flex → $49/mo base (usage stays on subscription charges).
+ * Unlimited → $169/mo. Flex → $75/mo. Lite → $42/mo (usage billed separately).
  * Idempotent via betaCohortSteppedAt.
  */
 export async function GET(request: Request) {
@@ -45,11 +45,12 @@ export async function GET(request: Request) {
     let stepped = 0;
     let failed = 0;
     for (const user of due) {
-      const plan = user.plan === "flex" ? "flex" : "unlimited";
+      const plan: PlanId =
+        user.plan === "flex" || user.plan === "lite" || user.plan === "unlimited"
+          ? user.plan
+          : "unlimited";
       const lockedPriceId =
-        plan === "flex"
-          ? betaCohortFlexLockedPriceId() ?? priceIdForPlan("flex")
-          : betaCohortLockedPriceId() ?? priceIdForPlan("unlimited");
+        betaCohortLockedPriceIdForPlan(plan) ?? priceIdForPlan(plan);
 
       if (!lockedPriceId) {
         failed += 1;

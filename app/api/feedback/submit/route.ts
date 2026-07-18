@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  betaCohortFlexIntroPriceId,
-  betaCohortIntroPriceId,
+  betaCohortIntroPriceIdForPlan,
 } from "@/lib/paddle-config";
 import { feedbackCohortPriceStepDate } from "@/lib/billing-cohort";
 import { createCheckoutSession, parsePlanId } from "@/lib/checkout-server";
@@ -11,8 +10,7 @@ import { findUserById, updateUserBilling } from "@/lib/users-db";
 const MAX_FEEDBACK_LENGTH = 2000;
 
 /**
- * Trial-ended user submits feedback → unlocks founder pricing for 5 years:
- * Unlimited $129/mo or Flex $40/mo + $9/dispatch (vs regular rates).
+ * Trial-ended user submits feedback → unlocks founder pricing for 5 years.
  */
 export async function POST(request: Request) {
   const session = await getSession();
@@ -42,8 +40,7 @@ export async function POST(request: Request) {
     betaCohortPriceStepAt: priceStepAt.toISOString(),
   });
 
-  const priceIdOverride =
-    plan === "flex" ? betaCohortFlexIntroPriceId() : betaCohortIntroPriceId();
+  const priceIdOverride = betaCohortIntroPriceIdForPlan(plan);
 
   try {
     const checkout = await createCheckoutSession(plan, {
