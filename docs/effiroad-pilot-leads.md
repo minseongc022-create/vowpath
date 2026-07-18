@@ -259,8 +259,9 @@ your on-call crew — so the job is locked in before they call someone else.
 No CRM needed. Keeps your same Google number.
 Gas smell / fire / sewage? Never auto-dispatched — you get a text first.
 
-I'm running a free 30-day pilot for 5 shops — I handle the setup myself.
-Only ask: if it works, a quick quote I can share anonymously.
+I'm running a free 30-day pilot for 5 shops — self-serve setup with a step-by-step dashboard guide. Email/text support if you get stuck.
+
+Effiroad is a best-effort tool; you remain responsible for all dispatch and customer decisions. Reply PASS to opt out.
 
 — Min
 effiroad.com
@@ -280,8 +281,10 @@ effiroad.com
 
 ## 답장 오면 바로 할 일
 
-1. 15분 Zoom 예약
-2. effiroad.com 가입 링크 + shop type 선택
-3. 콜 포워딩 같이 설정 (10분)
+1. **TRY** → 가입 링크 + 셀프서브 가이드 발송 (`partnershipPilotCopy.tryReplyTemplate`) — **Zoom/영어 통화 없음**
+2. effiroad.com 가입 + shop type 선택
+3. Settings → Forwarding 가이드 따라 착신전환
 4. 테스트콜: "basement flooding" / "no heat"
-5. 다음날 체크인
+5. 다음날 이메일/문자 체크인
+
+> 스팸 방지: [`docs/outreach-email-deliverability.md`](./outreach-email-deliverability.md)

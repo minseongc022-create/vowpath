@@ -538,11 +538,35 @@ export const legalPagesEn = {
   },
   terms: {
     title: "Terms of Service",
-    updated: "March 2026",
+    updated: "July 2026",
     sections: [
       {
         heading: "Service",
-        body: "Effiroad provides 24/7 emergency call intake, owner approval workflows, and crew dispatch for restoration companies. CRM integration is optional.",
+        body: "Effiroad provides after-hours and overflow call intake, owner approval workflows, and crew notification tools for independent restoration and HVAC shops. CRM integration is optional. The service is a software tool — not an emergency services provider, contractor, insurer, or answering service that guarantees human pickup.",
+      },
+      {
+        heading: "No guarantee (AS IS)",
+        body: 'Effiroad is provided "AS IS" and "AS AVAILABLE." We do not guarantee that inbound calls will be answered, forwarded, recorded, transcribed, classified, or dispatched at any particular time, speed, or accuracy. Outages, carrier issues, misconfigured call forwarding, third-party API failures, and incorrect AI intake may occur. You must verify forwarding with a test call and monitor live traffic.',
+      },
+      {
+        heading: "Your responsibility",
+        body: "You remain solely responsible for all dispatch, scheduling, pricing, safety, licensing, and customer communication decisions. Effiroad captures intake and sends notifications — it does not replace your judgment. Fire, sewage, gas smell, and other high-risk situations may require your explicit approval before dispatch, per your settings.",
+      },
+      {
+        heading: "Third-party services",
+        body: "The service relies on third parties (phone carriers, Twilio, Retell, cloud hosting, SMS gateways). We are not liable for failures caused by those providers, your phone or forwarding settings, power or network outages, or configuration errors on your side.",
+      },
+      {
+        heading: "Free pilots & evaluations",
+        body: "Free trials and evaluation periods are best-effort only with no service-level agreement (SLA). Either party may stop at any time. Pilot access does not create a partnership, employment, or agency relationship.",
+      },
+      {
+        heading: "Limitation of liability",
+        body: "To the maximum extent permitted by law, Effiroad's total liability for any claim arising from the service is limited to the fees you paid us in the twelve (12) months before the claim (or USD $100 if you are on a free trial and paid nothing). We are not liable for lost profits, lost jobs, missed calls, business interruption, property damage, or any indirect, incidental, special, or consequential damages — even if we were advised such damages were possible.",
+      },
+      {
+        heading: "Indemnification",
+        body: "You agree to indemnify and hold Effiroad harmless from claims, damages, and expenses (including reasonable legal fees) arising from your use of the service, your dispatch or business decisions, your customers, or your violation of these terms or applicable law.",
       },
       {
         heading: "Billing",
@@ -551,10 +575,6 @@ export const legalPagesEn = {
       {
         heading: "SMS & messaging",
         body: "You are responsible for obtaining consent before texting your customers. Effiroad provides intake consent checkboxes and STOP handling. You must register your business for A2P/10DLC messaging with your carrier as required.",
-      },
-      {
-        heading: "Liability",
-        body: "Emergency dispatch decisions remain with the shop owner. AI intake is a helper tool, not a guarantee of accuracy.",
       },
       {
         heading: "Contact",

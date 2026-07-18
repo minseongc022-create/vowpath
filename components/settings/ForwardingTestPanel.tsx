@@ -83,6 +83,9 @@ export function ForwardingTestPanel({ provider, onVerified, onTestStarted }: Pro
 
   return (
     <div className="space-y-2 sm:space-y-4">
+      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+        {settingsPage.forwardingServiceDisclaimer}
+      </p>
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 sm:p-4">
         <p className="text-sm font-semibold text-emerald-900">{settingsPage.forwardingTestTitle}</p>
         <p className="mt-1.5 text-sm leading-relaxed text-emerald-900/90">{testBody}</p>

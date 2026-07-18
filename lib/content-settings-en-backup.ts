@@ -390,6 +390,8 @@ export const SETTINGS_PAGE_EN = {
     "Test still failing after every step? Use your Effiroad dedicated number instead — no forwarding required.",
   forwardingStepsTitle: "Quick checklist",
   forwardingTestTitle: "Test call",
+  forwardingServiceDisclaimer:
+    "Effiroad does not guarantee that calls will always connect. Verify forwarding with a test call. You remain responsible for all dispatch and customer decisions.",
   forwardingTestBody:
     "Start test → call your shop main number from another phone → do not answer for 20–25 seconds. Success when Effiroad picks up.",
   forwardingTestBodyDirect:
