@@ -7,14 +7,38 @@ import {
   parseCustomerMarketingSmsConsent,
 } from "../../lib/legal-consent.ts";
 
-test("signup: terms + service SMS required", () => {
-  const fail = parseLegalConsentBody({ termsAccepted: false, smsServiceConsent: true });
-  assert.equal(fail.ok, false);
+test("signup: terms + service SMS + service limitations required", () => {
+  const failTerms = parseLegalConsentBody({
+    termsAccepted: false,
+    smsServiceConsent: true,
+    serviceLimitationsConsent: true,
+  });
+  assert.equal(failTerms.ok, false);
 
-  const ok = parseLegalConsentBody({ termsAccepted: true, smsServiceConsent: true });
+  const failSms = parseLegalConsentBody({
+    termsAccepted: true,
+    smsServiceConsent: false,
+    serviceLimitationsConsent: true,
+  });
+  assert.equal(failSms.ok, false);
+
+  const failLimits = parseLegalConsentBody({
+    termsAccepted: true,
+    smsServiceConsent: true,
+    serviceLimitationsConsent: false,
+  });
+  assert.equal(failLimits.ok, false);
+
+  const ok = parseLegalConsentBody({
+    termsAccepted: true,
+    smsServiceConsent: true,
+    serviceLimitationsConsent: true,
+  });
   assert.equal(ok.ok, true);
   if (ok.ok) {
-    assert.equal(ok.consent.legalVersion, "2026-07");
+    assert.equal(ok.consent.legalVersion, "2026-08");
+    assert.equal(ok.consent.serviceLimitationsVersion, "2026-08");
+    assert.ok(ok.consent.serviceLimitationsAt);
     assert.equal(ok.consent.marketingEmailAt, null);
   }
 });
@@ -23,6 +47,7 @@ test("signup: optional marketing opt-in stored when checked", () => {
   const ok = parseLegalConsentBody({
     termsAccepted: true,
     smsServiceConsent: true,
+    serviceLimitationsConsent: true,
     marketingEmailConsent: true,
     marketingSmsConsent: true,
   });

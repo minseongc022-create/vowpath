@@ -1772,7 +1772,7 @@ const authPagesKo = {
     consentTermsLabel: "이용약관 및 개인정보처리방침에 동의합니다 (필수).",
     consentSmsLabel:
       "등록한 휴대폰으로 서비스 관련 문자(인증번호, 신규 요청 알림, Reply 1/2) 수신에 동의합니다. 요금이 부과될 수 있으며 STOP으로 수신 거부할 수 있습니다 (필수).",
-    consentRequired: "아래 두 항목에 모두 동의해야 계속할 수 있습니다.",
+    consentRequired: "아래 세 항목에 모두 동의해야 계속할 수 있습니다.",
   },
 };
 

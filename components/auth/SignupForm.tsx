@@ -10,6 +10,11 @@ import {
   ownerSignupPhonePlaceholder,
 } from "@/lib/owner-phone-policy";
 import { normalizeShopVertical, type ShopVertical } from "@/lib/shop-vertical";
+import {
+  serviceLimitationsConsentBody,
+  serviceLimitationsConsentCheckboxLabel,
+  serviceLimitationsConsentTitle,
+} from "@/lib/service-limitations-consent";
 
 type Step = "details" | "verify";
 
@@ -42,11 +47,12 @@ export function SignupForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [smsServiceConsent, setSmsServiceConsent] = useState(false);
+  const [serviceLimitationsConsent, setServiceLimitationsConsent] = useState(false);
   const [marketingEmailConsent, setMarketingEmailConsent] = useState(false);
   const [marketingSmsConsent, setMarketingSmsConsent] = useState(false);
 
   const isSms = channel === "sms";
-  const consentOk = termsAccepted && smsServiceConsent;
+  const consentOk = termsAccepted && smsServiceConsent && serviceLimitationsConsent;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -97,6 +103,7 @@ export function SignupForm() {
           channel,
           termsAccepted: true,
           smsServiceConsent: true,
+          serviceLimitationsConsent: true,
           marketingEmailConsent,
           marketingSmsConsent,
         }),
@@ -351,6 +358,33 @@ export function SignupForm() {
                 />
                 <span>{p.consentSmsLabel}</span>
               </label>
+              <div className="rounded-lg border border-slate-300 bg-white p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  {serviceLimitationsConsentTitle}
+                </p>
+                <div className="mt-2 max-h-40 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
+                  <pre className="whitespace-pre-wrap font-sans">{serviceLimitationsConsentBody}</pre>
+                </div>
+                <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={serviceLimitationsConsent}
+                    onChange={(e) => setServiceLimitationsConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+                    required
+                  />
+                  <span>
+                    {serviceLimitationsConsentCheckboxLabel}{" "}
+                    <Link
+                      href="/service-limitations"
+                      className="font-medium text-brand-600 underline"
+                      target="_blank"
+                    >
+                      Full text
+                    </Link>
+                  </span>
+                </label>
+              </div>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">
                 <input
                   type="checkbox"

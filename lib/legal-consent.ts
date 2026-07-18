@@ -1,9 +1,13 @@
-/** Bump when Terms or Privacy materially change — stored on user record. */
-export const LEGAL_CONSENT_VERSION = "2026-07";
+/** Bump when Terms, Privacy, or service-limitations acknowledgment materially change. */
+export const LEGAL_CONSENT_VERSION = "2026-08";
+export const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
 
 export type StoredLegalConsent = {
   termsPrivacyAt: string;
   smsServiceAt: string;
+  /** Required — service limitations & no-SLA acknowledgment at signup. */
+  serviceLimitationsAt: string;
+  serviceLimitationsVersion: string;
   legalVersion: string;
   /** Optional Effiroad product updates by email. */
   marketingEmailAt?: string | null;
@@ -30,6 +34,8 @@ export function parseLegalConsentBody(body: Record<string, unknown>): {
   const termsAccepted = body.termsAccepted === true || body.termsAccepted === "1";
   const smsServiceConsent =
     body.smsServiceConsent === true || body.smsServiceConsent === "1";
+  const serviceLimitationsConsent =
+    body.serviceLimitationsConsent === true || body.serviceLimitationsConsent === "1";
 
   if (!termsAccepted) {
     return { ok: false, error: "You must agree to the Terms of Service and Privacy Policy." };
@@ -38,6 +44,12 @@ export function parseLegalConsentBody(body: Record<string, unknown>): {
     return {
       ok: false,
       error: "You must agree to receive service-related text messages at your mobile number.",
+    };
+  }
+  if (!serviceLimitationsConsent) {
+    return {
+      ok: false,
+      error: "You must read and agree to the Service Limitations & Risk Acknowledgment.",
     };
   }
 
@@ -50,6 +62,8 @@ export function parseLegalConsentBody(body: Record<string, unknown>): {
     consent: {
       termsPrivacyAt: now,
       smsServiceAt: now,
+      serviceLimitationsAt: now,
+      serviceLimitationsVersion: SERVICE_LIMITATIONS_CONSENT_VERSION,
       legalVersion: LEGAL_CONSENT_VERSION,
       marketingEmailAt: marketingEmail ? now : null,
       marketingSmsAt: marketingSms ? now : null,
