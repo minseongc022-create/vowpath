@@ -155,15 +155,36 @@ export function buildVerticalPageMetadata(
 }
 
 export function siteOrganizationJsonLd() {
-  const logoUrl = `${SITE.url}/logo-schema.png`;
+  const logoUrl = `${SITE.url}${iconUrl("/logo-schema.png")}`;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: SITE.name,
+    alternateName: ["Effiroad"],
     url: SITE.url,
     logo: logoUrl,
     email: SITE.contactEmail,
     description: SITE_SEO.description,
+  };
+}
+
+export function siteWebSiteJsonLd() {
+  const logoUrl = `${SITE.url}${iconUrl("/logo-schema.png")}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE.name,
+    alternateName: ["Effiroad"],
+    url: SITE.url,
+    inLanguage: "en-US",
+    publisher: {
+      "@type": "Organization",
+      name: SITE.name,
+      logo: {
+        "@type": "ImageObject",
+        url: logoUrl,
+      },
+    },
   };
 }
 
