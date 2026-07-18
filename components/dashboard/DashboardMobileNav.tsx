@@ -150,10 +150,10 @@ export function DashboardMobileNav({
       ) : null}
 
       <div
-        className="fixed inset-x-0 bottom-0 z-50 px-2 pb-[calc(0.4rem+env(safe-area-inset-bottom))] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 px-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] lg:hidden"
         aria-label="Mobile navigation"
       >
-        <div className="mx-auto flex max-w-lg items-end gap-1.5">
+        <div className="mx-auto flex w-full max-w-none items-end gap-1.5">
           <nav className="kb-floating-nav min-w-0 flex-1">
             <ul className="flex items-center justify-between px-0.5 py-0.5">
               {tabs.map((tab) => {

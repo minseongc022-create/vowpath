@@ -92,7 +92,7 @@ export function GoLiveWizard({
       data-settings-wizard="v7"
       className="scroll-mt-20 space-y-3"
     >
-      <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-3 shadow-sm sm:p-4">
+      <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-2 shadow-sm sm:p-4">
         <p className="text-center text-sm font-bold text-brand-900 sm:text-base">
           {copy.wizardStepOf
             .replace("{current}", String(index + 1))
@@ -183,7 +183,7 @@ export function GoLiveWizard({
           ) : null}
         </header>
 
-        <div className="vow-settings-wizard-body px-4 py-4">{step.content}</div>
+        <div className="vow-settings-wizard-body px-3 py-3 sm:px-4 sm:py-4">{step.content}</div>
 
         <footer className="flex flex-col gap-3 border-t-2 border-brand-100 bg-stone-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <button
