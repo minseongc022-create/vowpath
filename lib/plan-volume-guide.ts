@@ -94,11 +94,12 @@ export function pricingVolumeTipEs(): string {
 }
 
 export const PRICING_TRANSPARENCY_FOOTNOTE_EN =
-  "Included dispatch counts reset each billing month. Spam, wrong numbers, and jobs you cancel never count. We alert you at 80% and 100% of included dispatches before any overage posts — no surprise bills.";
+  "Unlike most services in this space, we don't do sudden surprise bills. Included dispatch counts reset each billing month. Spam, wrong numbers, and jobs you cancel never count. Dashboard alerts before any overage posts.";
 
 export const PRICING_GUARANTEES_EN = [
   "30-day money-back guarantee",
   "Cancel anytime — no contracts",
   "Usage alerts before overage charges",
   "No surprise bills",
+  "Predictable billing — not sudden charges",
 ] as const;

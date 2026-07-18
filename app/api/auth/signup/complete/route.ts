@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiErrorsEn } from "@/lib/api-errors-en";
 import { createSessionToken, sessionCookieOptions } from "@/lib/auth";
-import { alertCritical } from "@/lib/owner-alerts";
+import { notifyPlatformOwnerNewSignup } from "@/lib/platform-owner-notify";
 import { ownerSignupPhoneError } from "@/lib/owner-phone-policy";
 import { completeVerifiedSignup, normalizeSignupPhone } from "@/lib/signup-verify";
 import { deletePendingSignup, getPendingSignup } from "@/lib/signup-verify-store";
@@ -54,12 +54,14 @@ export async function POST(request: Request) {
     await deletePendingSignup(signupRequestId);
 
     try {
-      await alertCritical(
-        "new_signup",
-        `✅ New signup: ${user.shopName} just started their free trial!`,
-      );
+      await notifyPlatformOwnerNewSignup({
+        shopName: user.shopName,
+        email: user.email,
+        vertical,
+        userId: user.id,
+      });
     } catch (e) {
-      console.warn("[signup/complete] owner alert", e);
+      console.warn("[signup/complete] platform owner alert", e);
     }
 
     await initializeNewTenantShopSettings(user.id, vertical);
