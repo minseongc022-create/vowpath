@@ -5,9 +5,10 @@ export type DemoTabId = "overview" | "voice" | "link-intake" | "risk-hold";
 export type DemoTab = {
   id: DemoTabId;
   label: string;
-  mp4: string;
   hint: string;
-  recordSlug: string;
+  /** @deprecated Videos replaced by interactive demo — kept for record pipeline */
+  mp4?: string;
+  recordSlug?: string;
 };
 
 export const DEMO_VERTICAL_CONFIG: Record<
@@ -28,20 +29,11 @@ export const DEMO_VERTICAL_CONFIG: Record<
     tabs: [
       {
         id: "voice",
-        label: "2 AM emergency call",
-        mp4: "/videos/demo-voice.mp4",
-        hint: "Live demo — receptionist voice on the left · customer types on the right",
-        recordSlug: "voice",
-      },
-      {
-        id: "link-intake",
-        label: "Text link intake",
-        mp4: "/videos/demo-link-intake.mp4",
-        hint: "Press 2 → SMS form · ~1 min self-service · no phone tag",
-        recordSlug: "link-intake",
+        label: "Try the full call flow",
+        hint: "Interactive — tap through IVR, intake, owner SMS, and crew dispatch · production scripts",
       },
     ],
-    voiceFootnote: "Only the receptionist speaks on the call — customer replies appear as text chat.",
+    voiceFootnote: "Only the receptionist speaks on the call — you tap to play the customer's side.",
   },
   hvac: {
     headline: "See Effiroad in action",
@@ -52,16 +44,12 @@ export const DEMO_VERTICAL_CONFIG: Record<
       {
         id: "voice",
         label: "No-heat auto-dispatch",
-        mp4: "/videos/demo-voice-hvac.mp4",
-        hint: "Live demo — receptionist voice on the left · customer types on the right",
-        recordSlug: "voice",
+        hint: "Interactive — tap through menu, intake, and auto-dispatch",
       },
       {
         id: "risk-hold",
         label: "Gas smell hold",
-        mp4: "/videos/demo-risk-hold-hvac.mp4",
-        hint: "Live demo — safety hold · owner SMS 1 = dispatch · 2 = hold",
-        recordSlug: "risk-hold",
+        hint: "Interactive — safety hold · owner SMS 1 = dispatch · 2 = hold",
       },
     ],
     voiceFootnote: "Clear no-heat dispatches automatically. Gas smell never does.",

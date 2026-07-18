@@ -7,6 +7,7 @@ import { resolveShopDisplayName } from "../shop-display-name";
 import { smsTruncate } from "../sms-templates";
 import { findUserById } from "../users-db";
 import type { EstimateAnswers } from "./types";
+import { setPendingEstimateReply } from "../estimate-reply-store";
 
 export function estimateRequestSmsBody(params: {
   shopName?: string;
@@ -16,7 +17,7 @@ export function estimateRequestSmsBody(params: {
   const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.answers.name?.trim() || "Caller", 24);
   const phone = params.answers.callbackPhone?.trim() || "No callback number";
-  return `${shop} 📋 ESTIMATE REQUEST\n${name} — ${phone}\n${params.summary}`;
+  return `${shop} 📋 ESTIMATE REQUEST\n${name} — ${phone}\n${params.summary}\nReply with your message to send to customer, or call them directly.`;
 }
 
 /** Texts the shop owner a clean summary of a phone-collected estimate request.
@@ -55,4 +56,15 @@ export async function notifyOwnerEstimateRequest(params: {
       callSid: params.callSid,
     },
   });
+
+  const customerPhone = params.answers.callbackPhone?.trim();
+  if (customerPhone) {
+    await setPendingEstimateReply(params.userId, {
+      userId: params.userId,
+      callSid: params.callSid,
+      customerPhone,
+      customerName: params.answers.name?.trim() || "Customer",
+      createdAt: new Date().toISOString(),
+    });
+  }
 }

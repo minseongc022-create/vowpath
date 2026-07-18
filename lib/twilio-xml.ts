@@ -43,7 +43,7 @@ export function twimlSay(
       ? "Google.ko-KR-Chirp3-HD-Aoede"
       : language === "es-US"
         ? "Google.es-US-Chirp3-HD-Aoede"
-        : "Google.en-US-Chirp3-HD-Aoede";
+        : "Google.en-US-Chirp3-HD-Charon";
   return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
 }
 
@@ -82,7 +82,7 @@ export function twimlGatherMainMenu(
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}.`;
   const prompt = `${opening} To book service or report an emergency, press 1. For a free estimate, press 2.`;
-  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="15" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="15" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>`;
 }
 
 /** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */
