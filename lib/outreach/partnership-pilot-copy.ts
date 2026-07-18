@@ -16,6 +16,10 @@ export const outreachReplyPrompts = {
  *
  * Do NOT include internal roadmap, cohort mechanics, or slot counts in customer copy.
  */
+/** Appended to pilot outreach emails — limits implied warranty; not legal advice. */
+export const outreachPilotDisclaimer =
+  "Effiroad is a best-effort software tool. You remain responsible for all dispatch and customer decisions. No guaranteed call pickup or SLA during free evaluation. Reply PASS to opt out.";
+
 export const partnershipPilotCopy = {
   emailSubjects: [
     `[Shop name] — after-hours dispatch`,
@@ -42,10 +46,12 @@ How it runs on a live call:
 
 Answering services take a message. This captures the job and gets your crew moving while the caller is still on the line.
 
-I'm opening a ${COBUILD_PILOT_WEEKS}-week evaluation for shops in [City]/[State]. I handle configuration on my end — roughly ten minutes of yours. No credit card to start. Run it on real calls and decide off outcomes, not a slide deck.
+I'm opening a ${COBUILD_PILOT_WEEKS}-week evaluation for shops in [City]/[State]. Self-serve setup — step-by-step guide in the dashboard. Email/text support if you get stuck. No credit card to start.
 
 ${outreachReplyPrompts.video}
 ${outreachReplyPrompts.try}
+
+${outreachPilotDisclaimer}
 
 — Min
 Effiroad
@@ -57,7 +63,7 @@ When a 2am water call hits [Shop name] and your crew is on a job — does someon
 
 We built after-hours intake + crew texting for independent restoration shops. Answers as your shop. Standard water → crew text. Fire/sewage → your approval first. Same Google number.
 
-${COBUILD_PILOT_WEEKS}-week evaluation — I handle setup. Reply VIDEO or TRY.`,
+${COBUILD_PILOT_WEEKS}-week evaluation — self-serve guide in app. Reply VIDEO or TRY.`,
 
   linkedInConnect: `[First name] — built Effiroad for independent restoration after-hours intake and crew dispatch. Would value connecting with an owner in [State].`,
 
@@ -106,13 +112,16 @@ If it's still a gap, reply TRY and I'll configure the evaluation. Reply PASS and
 — Min
 Effiroad`,
 
-  tryReplyTemplate: `[First name] — let's lock it in.
+  tryReplyTemplate: `[First name] — here's how to start (no call needed):
 
-I can do setup:
-• [Day/time option 1]
-• [Day/time option 2]
+1. Sign up: ${SITE.url}/signup
+2. Choose Restoration or HVAC
+3. Settings → Forwarding — follow the step-by-step guide for your carrier
+4. Run a test call (Settings shows the button)
 
-Reply with either, or send what works for you. I'll need ~10 minutes and your after-hours routing preference.
+Reply here if anything doesn't match your phone — we answer by email/text.
+
+${outreachPilotDisclaimer}
 
 — Min`,
 

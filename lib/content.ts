@@ -831,6 +831,8 @@ const settingsPageKo = {
   forwardingCarrierCallLabel: "통신사 문의:",
   forwardingStepsTitle: "단계별 가이드 (순서대로)",
   forwardingTestTitle: "테스트 통화",
+  forwardingServiceDisclaimer:
+    "Effiroad는 통화가 항상 연결된다고 보장하지 않습니다. 테스트 통화로 착신전환을 확인하세요. 출동·고객 응대의 최종 책임은 업체에 있습니다.",
   forwardingOneTapTitle: "탭 또는 열기 — 완료에 체크",
   forwardingOneTapHint:
     "고객 전화를 받는 **그 휴대폰** 또는 컴퓨터에서 아래 버튼을 누르세요. *72·**21*·iPhone 설정 착신전환은 사용하지 마세요.",
@@ -1761,23 +1763,43 @@ const legalPagesKo = {
   },
   terms: {
     title: "이용약관",
-    updated: "2026년 3월",
+    updated: "2026년 7월",
     sections: [
       {
         heading: "서비스",
-        body: "Effiroad는 HVAC shop의 맞춤 시간대 inbound 콜을 처리하고 Jobber 등 FSM에 예약을 반영하는 운영 소프트웨어입니다.",
+        body: "Effiroad는 독립 복구·HVAC 업체를 위한 야간·오버플로우 전화 인테이크, 업주 승인, 크루 알림 소프트웨어입니다. 긴급 출동업체·보험사·사람이 반드시 받는다고 보장하는 콜센터가 아닙니다.",
+      },
+      {
+        heading: "보장 없음 (AS IS)",
+        body: '서비스는 "있는 그대로(AS IS)" 제공됩니다. 전화가 반드시 연결·녹음·분류·디스패치된다고 보장하지 않습니다. 통신사·착신전환 설정 오류·AI 오인식·장애가 발생할 수 있습니다. 테스트 통화로 착신전환을 확인하고 실제 트래픽을 모니터링해야 합니다.',
+      },
+      {
+        heading: "업체(고객) 책임",
+        body: "출동·일정·가격·안전·고객 응대의 최종 결정과 책임은 shop 오너에게 있습니다. Effiroad는 인테이크와 알림 도구일 뿐입니다.",
+      },
+      {
+        heading: "제3자 서비스",
+        body: "Twilio, Retell, 통신사, SMS 게이트웨이 등 제3자 장애 또는 shop 측 설정 오류로 인한 문제에 대해 Effiroad는 책임지지 않습니다.",
+      },
+      {
+        heading: "무료 파일럿",
+        body: "무료 평가 기간은 최선 노력(best-effort)이며 SLA가 없습니다. 언제든 중단할 수 있습니다.",
+      },
+      {
+        heading: "책임 한도",
+        body: "법이 허용하는 최대 범위에서, Effiroad의 총 배상 책임은 해당 클레임 발생 전 12개월간 지불한 요금(무료 체험만 사용한 경우 USD $100)을 초과하지 않습니다. 영업 손실·놓친 통화·간접 손해에 대해서는 책임지지 않습니다.",
+      },
+      {
+        heading: "면책(Indemnification)",
+        body: "shop은 서비스 사용, 출동 결정, 고객 분쟁으로 인해 Effiroad에 제기되는 청구로부터 Effiroad를 면책하고 보호하는 데 동의합니다.",
       },
       {
         heading: "요금·환불",
-        body: "구독 요금은 결제 시 안내된 플랜에 따릅니다. 파일럿 기간 환불 정책은 별도 안내를 따릅니다.",
+        body: "구독 요금은 결제 시 안내된 플랜에 따릅니다. 환불은 환불 정책 페이지를 참고하세요.",
       },
       {
         heading: "SMS·메시징",
-        body: "고객에게 문자를 보내기 전 동의를 받을 책임은 shop에 있습니다. Effiroad는 인테이크 동의 체크박스와 STOP 처리를 제공합니다. A2P/10DLC 등 통신사 규정 준수는 shop의 의무입니다.",
-      },
-      {
-        heading: "책임",
-        body: "긴급 상황의 최종 판단·dispatch는 shop 오너에게 있습니다. AI·자동 예약은 보조 도구이며 100% 정확성을 보장하지 않습니다.",
+        body: "고객 문자 동의·A2P/10DLC 준수는 shop의 책임입니다. Effiroad는 인테이크 동의 체크박스와 STOP 처리를 제공합니다.",
       },
       {
         heading: "문의",
