@@ -89,7 +89,7 @@ export function GoLiveWizard({
   return (
     <div
       id="go-live-wizard-top"
-      data-settings-wizard="v5"
+      data-settings-wizard="v6"
       className="scroll-mt-20 space-y-3"
     >
       <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-3 shadow-sm sm:p-4">
@@ -215,7 +215,7 @@ export function GoLiveWizard({
               {continuing ? copy.saveAllSaving : copy.wizardContinue}
             </button>
           ) : (
-            <p className="text-center text-sm text-stone-600 sm:text-right">{copy.saveAllHint}</p>
+            <p className="text-center text-sm text-stone-500 sm:text-right">{copy.wizardLastStepHint}</p>
           )}
         </footer>
       </section>
