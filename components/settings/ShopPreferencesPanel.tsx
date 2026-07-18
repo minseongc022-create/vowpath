@@ -1,25 +1,22 @@
 "use client";
 
-import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKeeperSettings";
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
-import { SmsComplianceGuide } from "@/components/settings/SmsComplianceGuide";
+import { ShopOptionalFollowUps } from "@/components/settings/ShopOptionalFollowUps";
 import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ReactNode } from "react";
 
 type ShopPreferencesPanelProps = {
   verticalSelector: ReactNode;
-  zapierEditor: ReactNode;
-  widgetCard: ReactNode;
-  reviewUrlEditor: ReactNode;
+  reviewUrl?: string;
+  onReviewUrlSaved: (url: string | undefined) => void;
 };
 
 export function ShopPreferencesPanel({
   verticalSelector,
-  zapierEditor,
-  widgetCard,
-  reviewUrlEditor,
+  reviewUrl,
+  onReviewUrlSaved,
 }: ShopPreferencesPanelProps) {
   const copy = useSettingsPage();
 
@@ -31,21 +28,13 @@ export function ShopPreferencesPanel({
 
       <ShopNameEditor />
 
-      {verticalSelector}
+      <div className="vow-settings-block vow-settings-panel p-3 sm:p-5">{verticalSelector}</div>
 
       <BookingSettingsEditor />
 
       <TechDispatchSettings />
 
-      <AgreementKeeperSettingsEditor />
-
-      <SmsComplianceGuide />
-
-      {zapierEditor}
-
-      {widgetCard}
-
-      {reviewUrlEditor}
+      <ShopOptionalFollowUps reviewUrl={reviewUrl} onReviewUrlSaved={onReviewUrlSaved} />
     </div>
   );
 }

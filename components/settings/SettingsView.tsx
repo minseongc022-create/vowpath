@@ -440,19 +440,8 @@ function SettingsViewBody({
                 onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
               />
             }
-            zapierEditor={
-              <ZapierWebhookEditor
-                webhookUrl={shop.zapierWebhookUrl}
-                onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
-              />
-            }
-            widgetCard={<WidgetEmbedCard />}
-            reviewUrlEditor={
-              <GoogleReviewUrlEditor
-                reviewUrl={shop.googleReviewUrl}
-                onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
-              />
-            }
+            reviewUrl={shop.googleReviewUrl}
+            onReviewUrlSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
           />
         ),
       },
@@ -598,9 +587,9 @@ function VerticalSelector({
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Trade vertical</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">Your trade</p>
       <p className="mb-3 text-xs text-slate-500">
-        Sets your AI dispatch rules, intake questions, and landing page.
+        Sets intake questions and dispatch rules. Most restoration shops leave the default.
       </p>
       <div className="flex flex-wrap gap-2">
         {/* Always include the shop's current vertical even if it's not in the visible
@@ -634,202 +623,6 @@ function VerticalSelector({
       ) : saved ? (
         <p className="mt-2 text-xs text-emerald-600">Saved</p>
       ) : null}
-    </div>
-  );
-}
-
-function GoogleReviewUrlEditor({
-  reviewUrl,
-  onSaved,
-}: {
-  reviewUrl?: string;
-  onSaved: (url: string | undefined) => void;
-}) {
-  const [draft, setDraft] = useState(reviewUrl ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSave() {
-    const trimmed = draft.trim();
-    if (trimmed && !/^https:\/\/.+/.test(trimmed)) {
-      setError("Enter a valid https:// link.");
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    setSaved(false);
-    try {
-      const res = await fetch("/api/shop/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ googleReviewUrl: trimmed }),
-      });
-      if (res.ok) {
-        onSaved(trimmed || undefined);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Google review link</p>
-      <p className="mb-3 text-xs text-slate-500">
-        After a job is marked complete, customers get an SMS with this link. Leave blank to skip review requests.
-      </p>
-      <input
-        type="url"
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          setError(null);
-        }}
-        onBlur={() => void handleSave()}
-        placeholder="https://g.page/r/..."
-        maxLength={300}
-        className="vow-settings-input"
-      />
-      {error ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
-      {saving ? (
-        <p className="mt-2 text-xs text-slate-500">Saving…</p>
-      ) : saved ? (
-        <p className="mt-2 text-xs text-emerald-600">Saved</p>
-      ) : null}
-    </div>
-  );
-}
-
-function ZapierWebhookEditor({
-  webhookUrl,
-  onSaved,
-}: {
-  webhookUrl?: string;
-  onSaved: (url: string | undefined) => void;
-}) {
-  const [draft, setDraft] = useState(webhookUrl ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSave() {
-    const trimmed = draft.trim();
-    if (trimmed && !/^https:\/\/hooks\.zapier\.com\/.+/.test(trimmed)) {
-      setError("Paste your Zapier Catch Hook URL (https://hooks.zapier.com/…).");
-      return;
-    }
-    setError(null);
-    setSaving(true);
-    setSaved(false);
-    try {
-      const res = await fetch("/api/shop/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zapierWebhookUrl: trimmed }),
-      });
-      if (res.ok) {
-        onSaved(trimmed || undefined);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Zapier webhook</p>
-      <p className="mb-3 text-xs text-slate-500">
-        In Zapier: create <strong>Webhooks by Zapier → Catch Hook</strong>, paste the URL here. New requests
-        will flow to ServiceTitan, Housecall Pro, Slack, or any tool you connect in Zapier.
-      </p>
-      <ol className="mb-3 list-decimal space-y-1 pl-4 text-xs text-stone-600">
-        <li>Zapier.com → Create Zap → Trigger: Catch Hook</li>
-        <li>Copy the hook URL → paste below → Save</li>
-        <li>Add your CRM/spreadsheet as the Zap action</li>
-      </ol>
-      <input
-        type="url"
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          setError(null);
-        }}
-        onBlur={() => void handleSave()}
-        placeholder="https://hooks.zapier.com/hooks/catch/..."
-        maxLength={300}
-        className="vow-settings-input"
-      />
-      {error ? <p className="mt-2 text-xs text-rose-700">{error}</p> : null}
-      {saving ? (
-        <p className="mt-2 text-xs text-slate-500">Saving…</p>
-      ) : saved ? (
-        <p className="mt-2 text-xs text-emerald-600">Saved</p>
-      ) : null}
-    </div>
-  );
-}
-
-function WidgetEmbedCard() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { userId?: string } | null) => {
-        if (!cancelled && d?.userId) setUserId(d.userId);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!userId) return null;
-
-  const widgetUrl = `${window.location.origin}/widget/${userId}`;
-  const embedCode = `<iframe src="${widgetUrl}" style="position:fixed;bottom:20px;right:20px;width:360px;height:520px;border:none;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:9999;" title="Chat"></iframe>`;
-
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Website chat widget</p>
-      <p className="mb-3 text-xs text-slate-500">
-        Same AI intake as your phone line — embed on your homepage. Copy the code below into your site HTML.
-      </p>
-      <textarea
-        readOnly
-        value={embedCode}
-        rows={3}
-        onFocus={(e) => e.currentTarget.select()}
-        className="vow-settings-input font-mono text-xs"
-      />
-      <div className="mt-2 flex gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard.writeText(embedCode);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-          className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
-        >
-          {copied ? "Copied!" : "Copy code"}
-        </button>
-        <a
-          href={widgetUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-50"
-        >
-          Preview
-        </a>
-      </div>
     </div>
   );
 }
