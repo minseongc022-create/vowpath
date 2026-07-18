@@ -1,14 +1,19 @@
 /** Subtle tap feedback on phones that support the Vibration API. */
-export function hapticTap(durationMs = 6) {
-  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+export function hapticTap(durationMs = 10) {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return false;
   try {
-    navigator.vibrate(durationMs);
+    return navigator.vibrate(durationMs);
   } catch {
-    // Some browsers block vibration outside user gestures.
+    return false;
   }
 }
 
 export function isCoarsePointerDevice() {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(pointer: coarse)").matches;
+}
+
+/** Call from click handlers when global touch listener may not fire (iOS). */
+export function hapticOnClick() {
+  hapticTap(12);
 }

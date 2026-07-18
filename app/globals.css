@@ -1172,7 +1172,20 @@
   }
 
   .vow-settings-step-tab {
-    @apply min-h-[3.25rem];
+    @apply min-h-[3.25rem] vow-haptic-tap;
+  }
+
+  .vow-haptic-tap {
+    @apply transition-transform duration-75 active:scale-[0.98];
+  }
+
+  @media (pointer: coarse) {
+    .vow-dash-btn-primary,
+    .vow-settings-step-tab,
+    .kb-floating-nav button,
+    .kb-nav-ai-btn {
+      @apply vow-haptic-tap;
+    }
   }
 
   .vow-forwarding-embedded .vow-forwarding-sticky {

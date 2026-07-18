@@ -89,7 +89,7 @@ export function GoLiveWizard({
   return (
     <div
       id="go-live-wizard-top"
-      data-settings-wizard="v6"
+      data-settings-wizard="v7"
       className="scroll-mt-20 space-y-3"
     >
       <div className="rounded-2xl border-2 border-brand-300 bg-brand-50/80 p-3 shadow-sm sm:p-4">

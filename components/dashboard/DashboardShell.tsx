@@ -314,10 +314,17 @@ export function DashboardShell({
       <div className="vow-dash-main">
 
         <header className="vow-dash-mobile-header">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo-mark.png"
+              alt=""
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 rounded-lg"
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
-              <p className="truncate text-[11px] text-stone-500">Effiroad</p>
+              <p className="truncate text-[11px] font-bold tracking-[0.12em] text-brand-700">EFFIROAD</p>
             </div>
           </div>
         </header>

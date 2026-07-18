@@ -7,11 +7,7 @@ import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
-import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
-import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
-import { AgreementKeeperSettingsEditor } from "@/components/settings/AgreementKeeperSettings";
-import { SmsComplianceGuide } from "@/components/settings/SmsComplianceGuide";
-import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
+import { ShopPreferencesPanel } from "@/components/settings/ShopPreferencesPanel";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveWizard, type GoLiveWizardStep } from "@/components/settings/GoLiveWizard";
 import { GoLiveProgressCard } from "@/components/settings/GoLiveProgressCard";
@@ -23,7 +19,6 @@ import {
   useSettingsSaveStep,
 } from "@/components/settings/SettingsSaveContext";
 import { SettingsSaveButton } from "@/components/settings/SettingsSaveButton";
-import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { GuidedTour } from "@/components/shared/GuidedTour";
 import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
@@ -64,6 +59,7 @@ const SECTION_SCROLL_IDS: Record<string, string> = {
   schedule: "go-live-schedule",
   phone: "go-live-phone",
   jobber: "go-live-jobber",
+  shop: "go-live-shop",
 };
 
 export function SettingsView({
@@ -427,6 +423,39 @@ function SettingsViewBody({
           />
         ),
       },
+      {
+        id: "go-live-shop",
+        label: settingsPage.goLiveNavShop,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.shop),
+        title: settingsPage.productSectionTitle,
+        description: settingsPage.productSectionSubtitle,
+        icon: "⚙️",
+        done: live,
+        canContinue: true,
+        content: (
+          <ShopPreferencesPanel
+            verticalSelector={
+              <VerticalSelector
+                vertical={shop.vertical ?? "restoration"}
+                onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
+              />
+            }
+            zapierEditor={
+              <ZapierWebhookEditor
+                webhookUrl={shop.zapierWebhookUrl}
+                onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
+              />
+            }
+            widgetCard={<WidgetEmbedCard />}
+            reviewUrlEditor={
+              <GoogleReviewUrlEditor
+                reviewUrl={shop.googleReviewUrl}
+                onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
+              />
+            }
+          />
+        ),
+      },
     ],
     [
       alwaysOn,
@@ -442,6 +471,7 @@ function SettingsViewBody({
       jobberItem.done,
       jobberLinked,
       jobberStepDone,
+      live,
       phoneItem.done,
       phoneProgress.phoneNumber,
       phoneProgress.quizDone,
@@ -449,6 +479,7 @@ function SettingsViewBody({
       rows,
       scheduleItem.done,
       settingsPage,
+      shop,
       shop.forwardingDone,
       shop.forwardingProvider,
       shop.forwardingScenario,
@@ -505,62 +536,6 @@ function SettingsViewBody({
             {settingsPage.allDone}
           </p>
         ) : null}
-      </section>
-
-      {!live ? (
-        <p className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-sm text-stone-600 lg:hidden">
-          {settingsPage.goLiveWelcomeHint}
-        </p>
-      ) : null}
-
-      <section
-        id="product-settings"
-        className={`vow-settings-step-panel scroll-mt-6 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm sm:p-6 ${live ? "" : "hidden lg:block"}`}
-      >
-        <SettingsSectionHeader
-          icon="⚙️"
-          title="Shop preferences"
-          hint="Booking rules, crew dispatch, and optional extras. Go-live steps above come first."
-          className="mb-6 border-b border-brand-100 pb-5"
-        />
-
-        <div className="space-y-8">
-          <div id="shop-name" className="scroll-mt-24">
-            <ShopNameEditor />
-          </div>
-          <div id="shop-vertical" className="scroll-mt-24">
-            <VerticalSelector
-              vertical={shop.vertical ?? "restoration"}
-              onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
-            />
-          </div>
-          <div id="booking-settings" className="scroll-mt-24">
-            <BookingSettingsEditor />
-          </div>
-          <section id="tech-dispatch" className="scroll-mt-24">
-            <TechDispatchSettings />
-          </section>
-          <AgreementKeeperSettingsEditor />
-          <SmsComplianceGuide />
-
-          <div id="integrations-zapier" className="scroll-mt-24 rounded-xl border border-brand-100 bg-brand-50/20 p-4 sm:p-5">
-            <ZapierWebhookEditor
-              webhookUrl={shop.zapierWebhookUrl}
-              onSaved={(url) => setShop((prev) => ({ ...prev, zapierWebhookUrl: url }))}
-            />
-          </div>
-
-          <div id="integrations-widget" className="scroll-mt-24 rounded-xl border border-brand-100 bg-brand-50/20 p-4 sm:p-5">
-            <WidgetEmbedCard />
-          </div>
-
-          <div className="scroll-mt-24">
-            <GoogleReviewUrlEditor
-              reviewUrl={shop.googleReviewUrl}
-              onSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
-            />
-          </div>
-        </div>
       </section>
 
       <button

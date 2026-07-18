@@ -99,11 +99,12 @@ export const settingsPageEn = {
   saveAllHint: "Change anything above, then save once here.",
   saveAllError: "Could not save everything. Check the fields and try again.",
   goLiveWelcome: "Go live in ~10 minutes",
-  goLiveWelcomeHint: "One step per page — fill required fields (*), then Save & continue. Save all settings at the bottom when done.",
+  goLiveWelcomeHint: "Steps 1→5. Fill each page, tap Next, then Save (top right) when done.",
   goLiveNavContact: "Contact",
   goLiveNavSchedule: "Hours",
   goLiveNavPhone: "Forwarding",
   goLiveNavJobber: "Jobber",
+  goLiveNavShop: "Shop setup",
   wizardStepOf: "Step {current} of {total}",
   wizardBack: "← Back",
   wizardContinue: "Next →",
@@ -198,6 +199,7 @@ export const settingsPageEn = {
     schedule: "2",
     phone: "3",
     jobber: "4",
+    shop: "5",
   } as const,
 };
 

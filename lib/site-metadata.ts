@@ -5,7 +5,7 @@ import type { UiLocale } from "@/lib/locale";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
 /** Cache-bust favicons and OG image after asset updates */
-export const SITE_ICON_VERSION = "24";
+export const SITE_ICON_VERSION = "25";
 
 export const OG_IMAGE_PATH = "/og-image.png";
 
