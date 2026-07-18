@@ -16,7 +16,6 @@ import {
 } from "@/lib/forwarding-quiz";
 
 type Props = {
-  initialProvider?: ForwardingProviderId;
   onResolved: (provider: ForwardingProviderId, answers: ForwardingQuizAnswers) => void;
   onManualPick?: () => void;
 };
@@ -67,13 +66,13 @@ function quizProgressStep(
   return { current: 3, total: 3 };
 }
 
-export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }: Props) {
-  const [answers, setAnswers] = useState<ForwardingQuizAnswers>(() => ({
-    customerLine: initialProvider === "effiroad_main" ? "unsure" : null,
+export function ForwardingPathQuiz({ onResolved, onManualPick }: Props) {
+  const [answers, setAnswers] = useState<ForwardingQuizAnswers>({
+    customerLine: null,
     cellCarrier: null,
     voipSystem: null,
-    setupGoal: initialProvider === "effiroad_main" ? "effiroad_main" : null,
-  }));
+    setupGoal: null,
+  });
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   const q = settingsPage.forwardingQuiz;
@@ -84,17 +83,30 @@ export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }
   const progress = quizProgressStep(step, answers.customerLine);
 
   function pickLine(line: QuizCustomerLine) {
+    if (line === "unsure") {
+      onManualPick?.();
+      return;
+    }
+
+    if (line === "effiroad_main") {
+      const next: ForwardingQuizAnswers = {
+        customerLine: line,
+        cellCarrier: null,
+        voipSystem: null,
+        setupGoal: "effiroad_main",
+      };
+      setAnswers(next);
+      onResolved("effiroad_main", next);
+      return;
+    }
+
     const next: ForwardingQuizAnswers = {
       customerLine: line,
       cellCarrier: null,
       voipSystem: null,
-      setupGoal: line === "unsure" ? "effiroad_main" : null,
+      setupGoal: null,
     };
     setAnswers(next);
-    if (line === "unsure") {
-      onResolved("effiroad_main", next);
-      return;
-    }
     if (line === "shop_cell" || line === "business_voip") {
       setStep(2);
       return;
@@ -149,12 +161,14 @@ export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }
             title={q.q1ShopCell}
             hint={q.q1ShopCellHint}
             onClick={() => pickLine("shop_cell")}
+            badge={settingsPage.forwardingRecommended}
           />
           <QuizOption
             selected={answers.customerLine === "business_voip"}
             title={q.q1BusinessVoip}
             hint={q.q1BusinessVoipHint}
             onClick={() => pickLine("business_voip")}
+            badge={settingsPage.forwardingRecommended}
           />
           <QuizOption
             selected={answers.customerLine === "google_voice"}
@@ -163,11 +177,17 @@ export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }
             onClick={() => pickLine("google_voice")}
           />
           <QuizOption
+            selected={answers.customerLine === "effiroad_main"}
+            title={q.q1Dedicated}
+            hint={q.q1DedicatedHint}
+            onClick={() => pickLine("effiroad_main")}
+            badge={settingsPage.forwardingRecommendedProvider}
+          />
+          <QuizOption
             selected={answers.customerLine === "unsure"}
             title={q.q1Unsure}
             hint={q.q1UnsureHint}
             onClick={() => pickLine("unsure")}
-            badge={settingsPage.forwardingRecommendedProvider}
           />
         </div>
       ) : null}
@@ -234,13 +254,13 @@ export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }
             title={q.q3Overflow}
             hint={q.q3OverflowHint}
             onClick={() => pickGoal("overflow")}
+            badge={settingsPage.forwardingRecommended}
           />
           <QuizOption
             selected={answers.setupGoal === "effiroad_main"}
             title={q.q3Dedicated}
             hint={q.q3DedicatedHint}
             onClick={() => pickGoal("effiroad_main")}
-            badge={settingsPage.forwardingRecommendedProvider}
           />
           <button
             type="button"
@@ -260,16 +280,6 @@ export function ForwardingPathQuiz({ initialProvider, onResolved, onManualPick }
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
           <p className="text-sm font-semibold text-emerald-900">{q.pathReady}</p>
         </div>
-      ) : null}
-
-      {onManualPick && step === 1 ? (
-        <button
-          type="button"
-          onClick={onManualPick}
-          className="w-full text-center text-sm font-semibold text-brand-700 underline"
-        >
-          {q.manualPickLink}
-        </button>
       ) : null}
     </div>
   );
