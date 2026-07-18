@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CHECKOUT_CTA, ROUTES, type PlanId } from "@/lib/constants";
+import { CHECKOUT_CTA, DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
 import { getStartedHref } from "@/lib/checkout-urls";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
@@ -25,7 +25,7 @@ type CheckoutButtonProps = {
 
 export function CheckoutButton({
   children = CHECKOUT_CTA,
-  plan = "unlimited",
+  plan = DEFAULT_PLAN,
   size = "md",
   variant = "primary",
   className = "",

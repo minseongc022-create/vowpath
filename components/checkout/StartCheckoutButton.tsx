@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ROUTES, type PlanId } from "@/lib/constants";
+import { DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
 import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { getStartedHref } from "@/lib/checkout-urls";
 import { startPlanCheckout } from "@/lib/paddle-checkout-client";
@@ -25,7 +25,7 @@ type Props = {
 };
 
 export function StartCheckoutButton({
-  plan = "unlimited",
+  plan = DEFAULT_PLAN,
   children,
   className = "",
   directCheckout = true,

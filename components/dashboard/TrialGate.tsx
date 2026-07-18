@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
-import { SITE, type PlanId } from "@/lib/constants";
+import { SITE, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
 
 type BillingStatusResponse = {
   beta: boolean;
@@ -35,7 +35,7 @@ export function TrialGate({ children }: { children: React.ReactNode }) {
 
 function TrialEndedCard() {
   const [feedback, setFeedback] = useState("");
-  const [plan, setPlan] = useState<PlanId>("unlimited");
+  const [plan, setPlan] = useState<PlanId>(DEFAULT_PLAN);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

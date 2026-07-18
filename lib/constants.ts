@@ -21,6 +21,9 @@ export const SITE = {
 
 export type PlanId = "unlimited" | "flex";
 
+/** Default checkout / trial-end plan — Flex fits most independent shops. */
+export const DEFAULT_PLAN: PlanId = "flex";
+
 export const ROUTES = {
   home: "/",
   login: "/login",
