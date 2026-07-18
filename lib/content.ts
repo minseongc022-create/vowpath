@@ -566,15 +566,16 @@ const settingsPageKo = {
   forwardingValueHero: {
     badge: "Effiroad가 다른 점",
     title: "샵 번호는 그대로. 놓치는 전화는 없게.",
-    subtitle: "착신전환이든 전용번호든 같은 자연스러운 음성·접수입니다.",
+    subtitle: "착신전환이든 전용번호든 같은 자연스러운 음성·접수·배차입니다.",
     bullets: [
-      "내 폰이 먼저 울립니다. ~20초 못 받으면 Effiroad가 받습니다.",
-      "일반 누수는 자동 배차. 긴급·불명홙한 건 문자로 승인 후 진행.",
-      "대기음악·복잡한 메뉴 없음 — 정중한 접수와 대기 중 배차.",
+      "고객은 **지금 쓰는 샵 번호**로 전화합니다. 내 폰이 먼저 ~20초 울리고, 못 받으면 Effiroad가 받습니다.",
+      "명확한 일반 누수(P2/P3)는 자동 배차. 화재·오수·정보 부족은 **사장님 문자(1=진행, 2=거절)** 후 진행.",
+      "복잡한 IVR 메뉴 없이 정중하게 접수하고, 대기 중 배차됩니다.",
     ] as const,
   },
   forwardingDoNowTitle: "지금 할 일",
-  forwardingDoNowHint: "한 단계씩. 탭하거나 붙여 넣은 뒤 완료에 체크하세요.",
+  forwardingDoNowHint:
+    "아래 순서대로 진행하세요. 고객 전화를 **실제로 받는 그 휴대폰**에서만 코드·앱 설정을 하세요. 각 단계 실행 후 ✓ 체크 → 맨 아래 **테스트 통화**.",
   forwardingMoreHelp: "추가 도움 (선택)",
   forwardingWizardSteps: {
     choosePath: "경로 선택",
@@ -832,7 +833,7 @@ const settingsPageKo = {
   forwardingTestTitle: "테스트 통화",
   forwardingOneTapTitle: "탭 또는 열기 — 완료에 체크",
   forwardingOneTapHint:
-    "고객 전화를 받는 휴대폰 또는 컴퓨터에서 아래 버튼을 사용하세요.",
+    "고객 전화를 받는 **그 휴대폰** 또는 컴퓨터에서 아래 버튼을 누르세요. *72·**21*·iPhone 설정 착신전환은 사용하지 마세요.",
   forwardingTapToActivate: "이 휴대폰에서 코드 통화",
   forwardingCopyNumber: "Effiroad 번호 복사",
   forwardingTurnOff: "이 규칙 끄기",
@@ -840,9 +841,9 @@ const settingsPageKo = {
   forwardingOneTapComplete: "설정 단계 완료. 테스트 통화로 이동하세요.",
   forwardingOneTapProgress: "각 단계 실행 후 체크 — 그다음 테스트.",
   forwardingTestBody:
-    "테스트 시작 후 다른 폰으로 샵 메인 번호에 전화하세요. 받지 않고 울리게 — Effiroad가 받으면 성공입니다.",
+    "테스트 시작 → **다른 폰**으로 **샵 메인 번호**에 전화 → **받지 않고 20~25초** 울리게 두세요. Effiroad가 받으면 성공입니다.",
   forwardingTestBodyDirect:
-    "테스트 시작 후 다른 폰으로 Effiroad 번호에 직접 전화하세요. 착신 설정 없이 응대 시간대로 받아야 합니다.",
+    "테스트 시작 → **다른 폰**으로 **Effiroad 번호**에 직접 전화하세요. 착신 코드 없이 Effiroad가 받아야 합니다.",
   forwardingVerifyCallEffiroad: "이 Effiroad 번호로 전화:",
   forwardingVerifyWaitingDirect: "대기 중 — 지금 Effiroad 번호로 전화하세요",
   forwardingVerifyStart: "착신전환 테스트 시작",

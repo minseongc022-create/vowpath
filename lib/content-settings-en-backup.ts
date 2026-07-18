@@ -130,7 +130,8 @@ export const SETTINGS_PAGE_EN = {
     ] as const,
   },
   forwardingDoNowTitle: "Do these steps now",
-  forwardingDoNowHint: "One step at a time. Check Done after each tap or paste.",
+  forwardingDoNowHint:
+    "Follow in order. Use the phone that actually receives customer calls. Check Done after each step → Test call below.",
   forwardingMoreHelp: "More help (optional)",
   forwardingWizardSteps: {
     choosePath: "Choose path",
@@ -390,9 +391,9 @@ export const SETTINGS_PAGE_EN = {
   forwardingStepsTitle: "Quick checklist",
   forwardingTestTitle: "Test call",
   forwardingTestBody:
-    "Tap Start test below, then call your main shop number from another phone. Let it ring without answering — we detect when Effiroad receives the forwarded call.",
+    "Start test → call your shop main number from another phone → do not answer for 20–25 seconds. Success when Effiroad picks up.",
   forwardingTestBodyDirect:
-    "Tap Start test below, then call your Effiroad number from another phone. No forwarding needed — Effiroad should answer per your Answer Hours.",
+    "Start test → call your Effiroad number directly from another phone. No forwarding codes — Effiroad should answer.",
   forwardingVerifyCallEffiroad: "Call this Effiroad number:",
   forwardingVerifyWaitingDirect: "Waiting — call your Effiroad number now from another phone",
   forwardingOneTapTitle: "Tap or open — then check Done",

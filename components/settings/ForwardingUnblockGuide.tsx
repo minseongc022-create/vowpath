@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage, useLocale } from "@/components/providers/LocaleProvider";
 import {
   FORWARDING_CARRIER_PHONES,
   getForwardingUnblockGuides,
@@ -15,7 +15,8 @@ type Props = {
 
 export function ForwardingUnblockGuide({ provider, effiroadNumber }: Props) {
   const settingsPage = useSettingsPage();
-  const guides = getForwardingUnblockGuides(provider, effiroadNumber);
+  const { locale } = useLocale();
+  const guides = getForwardingUnblockGuides(provider, effiroadNumber, locale);
   const [openId, setOpenId] = useState<string | null>(guides[0]?.id ?? null);
 
   const carrierPhone =

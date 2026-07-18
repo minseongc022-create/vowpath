@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage, useLocale } from "@/components/providers/LocaleProvider";
 import { getOrderedSetupActions } from "@/lib/forwarding-setup-flow";
 import type { ForwardingProviderId } from "@/lib/forwarding-guides";
 
@@ -16,9 +16,10 @@ function storageKey(provider: string) {
 
 export function ForwardingOneTapSetup({ provider, phoneNumber }: Props) {
   const settingsPage = useSettingsPage();
+  const { locale } = useLocale();
   const actions = useMemo(
-    () => getOrderedSetupActions(provider, phoneNumber),
-    [provider, phoneNumber],
+    () => getOrderedSetupActions(provider, phoneNumber, locale),
+    [provider, phoneNumber, locale],
   );
 
   const [done, setDone] = useState<Record<string, boolean>>({});
