@@ -6,7 +6,7 @@ import {
 import type { UiLocale } from "./locale";
 import { openAiTextCompletion, type ChatTurn } from "./openai-chat";
 
-export const FORWARDING_AI_DAILY_LIMIT = 8;
+export const FORWARDING_AI_DAILY_LIMIT = 50;
 
 export function buildForwardingHelpSystemPrompt(
   provider: ForwardingProviderId,

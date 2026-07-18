@@ -34,7 +34,7 @@ export type RetellBridgeParams = {
   callSid?: string;
   intro?: string;
   /** Set when caller chose a path on the Twilio DTMF menu before Retell. */
-  ivrPath?: "phone_booking" | "phone_estimate" | "";
+  ivrPath?: "phone_booking" | "phone_estimate" | "booking_choice" | "estimate_choice" | "";
   /** Add call recording + status callbacks (first inbound webhook). */
   includeInboundRecording?: boolean;
 };

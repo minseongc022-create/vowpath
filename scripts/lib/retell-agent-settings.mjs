@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "natural-male-v13-gentle-warm-2026-07-16";
+export const RETELL_PROMPT_VERSION = "natural-male-v14-tier2-choice-2026-07-18";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 

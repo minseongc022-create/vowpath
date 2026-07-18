@@ -102,6 +102,16 @@ export async function POST(request: Request) {
       });
     }
 
+    const { handleEstimateOwnerReply } = await import("@/lib/estimate-owner-reply");
+    const estimateRelay = await handleEstimateOwnerReply({ from, body });
+    if (estimateRelay.handled) {
+      const twiml = twimlResponse(twimlMessage(estimateRelay.replyBody));
+      return new NextResponse(twiml, {
+        status: 200,
+        headers: { "Content-Type": "text/xml" },
+      });
+    }
+
     return new NextResponse(twimlResponse(""), {
       status: 200,
       headers: { "Content-Type": "text/xml" },

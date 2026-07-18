@@ -5,6 +5,7 @@ export function buildRetellGeneralTools(base: string) {
     submitIntake: `${base}/api/retell/tools/submit-intake`,
     submitEstimate: `${base}/api/retell/tools/submit-estimate`,
     getSlots: `${base}/api/retell/tools/get-slots`,
+    sendLinkIntake: `${base}/api/retell/tools/send-link-intake`,
   };
 
   const generalTools = [
@@ -78,6 +79,26 @@ export function buildRetellGeneralTools(base: string) {
           callbackPhone: { type: "string" },
         },
         required: ["name", "address", "damageType"],
+      },
+    },
+    {
+      type: "custom",
+      name: "send_link_intake",
+      description:
+        "Caller chose to receive a text link instead of phone intake. Call when they want SMS/form/link for booking or estimate.",
+      speak_after_execution: true,
+      speak_during_execution: false,
+      url: urls.sendLinkIntake,
+      parameters: {
+        type: "object",
+        properties: {
+          purpose: {
+            type: "string",
+            description: "booking for service/emergency, estimate for free estimate",
+            enum: ["booking", "estimate"],
+          },
+        },
+        required: ["purpose"],
       },
     },
   ];
