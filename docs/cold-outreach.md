@@ -11,67 +11,15 @@
 
 ## Co-build partnership pitch (recommended)
 
-Use when you want to say: *we're building this **with** shop owners — early partner, not a sales pitch.*
+**Tone:** founder-direct, restoration-specific, honest scarcity — not a SaaS blast.
 
-**Subject (pick one):**
-- `[Shop name] — after-hours calls`
-- `[First name], quick question about 2am jobs`
-- `[Shop name] — who picks up when your crew is busy?`
+**Before send:** replace `[First name]`, `[Shop name]`, `[State]`; optional one line from their Google review.
 
-```
-Hi [First name],
+**Subject:** `[Shop name] — the 2am call`
 
-Quick question: when a homeowner calls [Shop name] at 2am with a burst pipe, what happens if no one's free to pick up?
+See full templates in `lib/outreach/partnership-pilot-copy.ts` — includes SMS, email, VIDEO cover note, TRY reply, and send checklist.
 
-I'm Min — running a small early-partner pilot with independent restoration shops. Effiroad answers after-hours calls, captures loss details, and texts your crew. Clear water can auto-dispatch; fire or sewage waits for your OK first. You keep your Google number. No CRM.
-
-Offer for pilot shops:
-• 3-week free pilot — I handle setup (~10 min on your end)
-• No credit card — stop anytime if it's not a fit
-• Share feedback → lock in $129/mo for 5 years (regular $169/mo)
-• Your input shapes the mobile app we're building next
-
-Reply "VIDEO" for a 2-min screen recording or "TRY" to start the free pilot.
-
-— Min
-effiroad.com
-```
-
-**SMS / LinkedIn DM (short — easy reply):**
-
-```
-Hi [First name] — Min from Effiroad. When you're on a job and a 2am water call comes in, who answers?
-
-3-week free pilot for a few restoration shops — AI intake + crew texts, keep your number. No card, stop anytime.
-
-Reply VIDEO for a 2-min demo or TRY to start.
-```
-
-**Day 3 bump (no reply):**
-
-```
-Hi [First name] — bumping this once.
-
-Still offering the 3-week free pilot for [Shop name] — after-hours AI intake + crew texts, you keep your number. No credit card, stop anytime.
-
-Reply "VIDEO" for a 2-min demo or "TRY" to start the free pilot.
-
-— Min
-```
-
-**Last touch:**
-
-```
-Hi [First name] — last note from me.
-
-If after-hours calls are already handled, ignore this. If it's still on the list, the pilot is free and takes ~10 min to set up.
-
-Reply "TRY" this week or "PASS" and I won't follow up again.
-
-— Min
-```
-
-> Full copy + reply keywords: `lib/outreach/partnership-pilot-copy.ts` → `partnershipPilotCopy`, `outreachReplyPrompts`, `outreachQuickSend`
+**Reply keywords:** `VIDEO` (2-min demo) · `TRY` (setup this week) · `PASS` (opt out)
 
 ---
 
