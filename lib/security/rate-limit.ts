@@ -94,6 +94,37 @@ export async function checkRateLimit({
   };
 }
 
+export async function peekRateLimit({
+  key,
+  limit,
+  windowSeconds,
+}: RateLimitOptions): Promise<RateLimitResult> {
+  const now = nowSeconds();
+  const resetAt = now + windowSeconds;
+
+  if (useKvStore()) {
+    const existing = await kv.get<{ count: number; resetAt: number }>(key);
+    const count = existing && existing.resetAt > now ? existing.count : 0;
+    const bucketReset = existing && existing.resetAt > now ? existing.resetAt : resetAt;
+    return {
+      ok: count < limit,
+      count,
+      remaining: Math.max(0, limit - count),
+      resetAt: bucketReset,
+    };
+  }
+
+  const existing = memoryBuckets.get(key);
+  const count = existing && existing.resetAt > now ? existing.count : 0;
+  const bucketReset = existing && existing.resetAt > now ? existing.resetAt : resetAt;
+  return {
+    ok: count < limit,
+    count,
+    remaining: Math.max(0, limit - count),
+    resetAt: bucketReset,
+  };
+}
+
 export async function resetRateLimit(key: string): Promise<void> {
   if (useKvStore()) {
     await kv.del(key);
