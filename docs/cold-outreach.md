@@ -9,17 +9,19 @@
 
 ---
 
-## Co-build partnership pitch (recommended)
+## Final outreach (send this)
 
-**Tone:** founder-direct, restoration-specific, honest scarcity — not a SaaS blast.
+**Voice:** operator-to-operator. Outcome-first. No begging, no internal details.
 
-**Before send:** replace `[First name]`, `[Shop name]`, `[State]`; optional one line from their Google review.
+**Personalize:** `[First name]` · `[Shop name]` · `[City]` · `[State]` · optional review/detail line
 
-**Subject:** `[Shop name] — the 2am call`
+**Subject:** `[Shop name] — after-hours dispatch`
 
-See full templates in `lib/outreach/partnership-pilot-copy.ts` — includes SMS, email, VIDEO cover note, TRY reply, and send checklist.
+**Replies:** `VIDEO` → 2-min Loom · `TRY` → setup this week · `PASS` → opt out
 
-**Reply keywords:** `VIDEO` (2-min demo) · `TRY` (setup this week) · `PASS` (opt out)
+Templates: `lib/outreach/partnership-pilot-copy.ts` → `partnershipPilotCopy`, `outreachQuickSend`
+
+**Before send:** read `sendChecklist` in that file (never mention internal cohorts, slot counts, or roadmap).
 
 ---
 
