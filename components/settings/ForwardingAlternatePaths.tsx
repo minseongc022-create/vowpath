@@ -10,11 +10,11 @@ type Props = {
   limit?: number;
 };
 
-export function ForwardingAlternatePaths({ current, onSwitch, limit = 3 }: Props) {
+export function ForwardingAlternatePaths({ current, onSwitch, limit = 5 }: Props) {
   const a = settingsPage.forwardingAlternatePaths;
   const alternates = getAlternateForwardingPaths(current).slice(0, limit);
 
-  if (current === "effiroad_main") return null;
+  if (alternates.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

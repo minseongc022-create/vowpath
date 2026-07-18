@@ -7,7 +7,6 @@ import {
   FORWARDING_TROUBLESHOOTING_FALLBACK,
   FORWARDING_TROUBLESHOOTING_SWITCH_NOTE,
   isDirectEffiroadLineProvider,
-  FORWARDING_PROVIDERS,
   getForwardingGuideSteps,
   normalizeForwardingProvider,
   type ForwardingProviderId,
@@ -17,7 +16,6 @@ import { ForwardingUnblockGuide } from "@/components/settings/ForwardingUnblockG
 import { ForwardingOneTapSetup } from "@/components/settings/ForwardingOneTapSetup";
 import { ForwardingTestPanel } from "@/components/settings/ForwardingTestPanel";
 import { TrialForwardingBanner } from "@/components/settings/TrialForwardingBanner";
-import { ForwardingPathPicker } from "@/components/settings/ForwardingPathPicker";
 import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
 import { ForwardingYourSetupCard } from "@/components/settings/ForwardingYourSetupCard";
 import { ForwardingAlternatePaths } from "@/components/settings/ForwardingAlternatePaths";
@@ -26,10 +24,12 @@ import { DialpadRoutingVisual } from "@/components/settings/DialpadRoutingVisual
 import { EffiroadNumberBanner } from "@/components/settings/EffiroadNumberBanner";
 import { ForwardingSimpleSteps } from "@/components/settings/ForwardingSimpleSteps";
 import { ForwardingValueHero } from "@/components/settings/ForwardingValueHero";
+import { ForwardingAllOptionsMenu } from "@/components/settings/ForwardingAllOptionsMenu";
 import type { ForwardingSetupPathId } from "@/lib/forwarding-paths";
+import { pathForProvider } from "@/lib/forwarding-paths";
 import type { ForwardingQuizAnswers } from "@/lib/forwarding-quiz";
 
-type SetupMode = "quiz" | "manual";
+type EntryMode = "quiz" | "menu";
 
 type ForwardingSetupProps = {
   confirmed: boolean;
@@ -39,7 +39,7 @@ type ForwardingSetupProps = {
   confirmDisabled?: boolean;
   embeddedInGoLive?: boolean;
   initialScenario?: LegacyForwardingScenarioId;
-  initialProvider?: string;
+  initialProvider?: string | null;
   onPreferencesChange?: (prefs: {
     scenario: "overflow";
     provider: ForwardingProviderId;
@@ -54,34 +54,33 @@ export function ForwardingSetup({
   hideConfirmedBanner = false,
   confirmDisabled = false,
   embeddedInGoLive = false,
-  initialProvider: rawInitialProvider = "effiroad_main",
+  initialProvider: rawInitialProvider,
   onPreferencesChange,
   onProgressChange,
 }: ForwardingSetupProps) {
+  const hasSavedProvider = Boolean(rawInitialProvider?.trim());
+  const initialNormalized = hasSavedProvider
+    ? normalizeForwardingProvider(rawInitialProvider)
+    : null;
+
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [provider, setProvider] = useState<ForwardingProviderId>(
-    normalizeForwardingProvider(rawInitialProvider),
+    initialNormalized ?? "dialpad",
   );
   const [stuckOpen, setStuckOpen] = useState(false);
-  const [moreHelpOpen, setMoreHelpOpen] = useState(!embeddedInGoLive);
-  const initialNormalized = normalizeForwardingProvider(rawInitialProvider);
-  const [quizDone, setQuizDone] = useState(
-    () => initialNormalized !== "effiroad_main" || confirmed,
-  );
+  const [moreHelpOpen, setMoreHelpOpen] = useState(true);
+  const [quizDone, setQuizDone] = useState(() => confirmed || hasSavedProvider);
   const [selectedPath, setSelectedPath] = useState<ForwardingSetupPathId | null>(() =>
-    initialNormalized === "effiroad_main" ? null : "quiz",
+    initialNormalized ? pathForProvider(initialNormalized) : null,
   );
   const [wizardStep, setWizardStep] = useState(() => (confirmed ? 2 : 1));
   const [forwardingVerified, setForwardingVerified] = useState(false);
-  const [showAllProviders, setShowAllProviders] = useState(false);
   const [testAttempted, setTestAttempted] = useState(false);
-  const initialSetupMode: SetupMode =
-    initialNormalized === "effiroad_main" && !confirmed ? "quiz" : "manual";
   const [quizAnswers, setQuizAnswers] = useState<ForwardingQuizAnswers | null>(null);
-  const [setupMode, setSetupMode] = useState<SetupMode>(initialSetupMode);
+  const [entryMode, setEntryMode] = useState<EntryMode>("quiz");
 
   const WIZARD_STEPS = [
     { n: 1, label: settingsPage.forwardingWizardSteps.setUp },
@@ -144,21 +143,13 @@ export function ForwardingSetup({
   }, [onProgressChange, phoneNumber, quizDone]);
 
   const guideSteps = getForwardingGuideSteps(provider, "overflow", phoneNumber ?? "");
-  const providerMeta = FORWARDING_PROVIDERS.find((p) => p.id === provider);
   const directMain = isDirectEffiroadLineProvider(provider);
-
-  const visibleProviders = showAllProviders
-    ? FORWARDING_PROVIDERS
-    : providerMeta
-      ? [providerMeta]
-      : FORWARDING_PROVIDERS;
 
   function handlePathSelect(nextProvider: ForwardingProviderId, pathId: ForwardingSetupPathId) {
     setProvider(nextProvider);
     setSelectedPath(pathId);
     setQuizDone(true);
-    setShowAllProviders(pathId === "quiz");
-    setSetupMode(pathId === "quiz" ? "quiz" : "manual");
+    setEntryMode(pathId === "quiz" ? "quiz" : "menu");
     setWizardStep(1);
   }
 
@@ -170,14 +161,17 @@ export function ForwardingSetup({
   function restartQuiz() {
     setQuizDone(false);
     setQuizAnswers(null);
-    setSetupMode("quiz");
+    setEntryMode("quiz");
     setSelectedPath(null);
-    setShowAllProviders(false);
   }
 
   function openManualPicker() {
-    setSetupMode("manual");
+    setEntryMode("menu");
     setQuizDone(false);
+  }
+
+  function handleMenuSelect(nextProvider: ForwardingProviderId) {
+    handlePathSelect(nextProvider, pathForProvider(nextProvider));
   }
 
   function switchToDedicatedLine() {
@@ -247,32 +241,34 @@ export function ForwardingSetup({
   const setupInstructions =
     wizardStep === 1 ? (
       <>
-        {!quizDone && setupMode === "quiz" ? (
+        {!quizDone ? (
           <>
             <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-snug text-brand-950 sm:text-base">
               {settingsPage.forwardingSetupPrompt}
             </p>
-            <ForwardingPathQuiz
-              initialProvider={provider}
-              onResolved={handleQuizResolved}
-              onManualPick={openManualPicker}
-            />
-          </>
-        ) : null}
 
-        {!quizDone && setupMode === "manual" ? (
-          <>
-            <p className="rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2.5 text-sm font-medium leading-snug text-brand-950 sm:text-base">
-              {settingsPage.forwardingPathPicker.subtitle}
-            </p>
-            <ForwardingPathPicker onSelect={handlePathSelect} />
-            <button
-              type="button"
-              onClick={restartQuiz}
-              className="w-full text-center text-sm font-semibold text-brand-700 underline"
-            >
-              {settingsPage.forwardingPathPicker.quizFallback}
-            </button>
+            <div className="flex gap-2">
+              {(["quiz", "menu"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setEntryMode(mode)}
+                  className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+                    entryMode === mode
+                      ? "border-brand-500 bg-brand-50 text-brand-900"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-brand-300"
+                  }`}
+                >
+                  {settingsPage.forwardingModeTabs[mode]}
+                </button>
+              ))}
+            </div>
+
+            {entryMode === "quiz" ? (
+              <ForwardingPathQuiz onResolved={handleQuizResolved} onManualPick={openManualPicker} />
+            ) : (
+              <ForwardingAllOptionsMenu selected={provider} onSelect={handleMenuSelect} />
+            )}
           </>
         ) : null}
 
@@ -284,11 +280,7 @@ export function ForwardingSetup({
               onChangeSetup={restartQuiz}
             />
 
-            <ForwardingPathPicker
-              selectedProvider={provider}
-              onChangePath={restartQuiz}
-              onSelect={handlePathSelect}
-            />
+            <ForwardingAllOptionsMenu selected={provider} onSelect={handleMenuSelect} />
 
             {provider === "verizon" && !directMain ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-snug text-amber-950">
@@ -346,42 +338,15 @@ export function ForwardingSetup({
               {moreHelpOpen ? (
                 <div className="space-y-2.5 border-t border-slate-200 px-3 py-3 sm:space-y-3 sm:px-4">
                   <ForwardingValueHero dense />
-                  {selectedPath && selectedPath !== "dedicated_line" ? (
-                    <ForwardingAlternatePaths
-                      current={provider}
-                      onSwitch={(id) =>
-                        handlePathSelect(
-                          id,
-                          id === "effiroad_main" ? "dedicated_line" : selectedPath,
-                        )
-                      }
-                    />
-                  ) : null}
-                  {!showAllProviders ? (
-                    <div>
-                      <p className="vow-settings-label">{settingsPage.forwardingProviderTitle}</p>
-                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {visibleProviders.map((item) => {
-                          const selected = provider === item.id;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => setProvider(item.id)}
-                              className={`min-h-[48px] rounded-xl border px-3 py-2.5 text-left ${
-                                selected
-                                  ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
-                                  : "border-slate-200 bg-white hover:border-slate-300"
-                              }`}
-                            >
-                              <span className="text-sm font-semibold text-slate-900 sm:text-base">{item.label}</span>
-                              <p className="mt-0.5 text-xs leading-snug text-stone-600 sm:text-sm">{item.hint}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
+                  <ForwardingAlternatePaths
+                    current={provider}
+                    onSwitch={(id) =>
+                      handlePathSelect(
+                        id,
+                        id === "effiroad_main" ? "dedicated_line" : pathForProvider(id),
+                      )
+                    }
+                  />
                   {provider === "dialpad" && phoneNumber ? <DialpadRoutingVisual /> : null}
                   {phoneNumber ? (
                     <ForwardingUnblockGuide provider={provider} effiroadNumber={phoneNumber} />

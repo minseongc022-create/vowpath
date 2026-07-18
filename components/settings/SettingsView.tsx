@@ -374,7 +374,7 @@ function SettingsViewBody({
               confirmed={shop.forwardingDone}
               confirmDisabled={!contactComplete}
               initialScenario={shop.forwardingScenario ?? "overflow"}
-              initialProvider={shop.forwardingProvider ?? "dialpad"}
+              initialProvider={shop.forwardingProvider}
               onPreferencesChange={setForwardingPrefs}
               onProgressChange={setPhoneProgress}
               batchSave

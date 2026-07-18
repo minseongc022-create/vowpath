@@ -22,7 +22,8 @@ export function formatQuizAnswerRecap(answers: ForwardingQuizAnswers): string | 
   if (answers.customerLine === "shop_cell") parts.push("Shop cell");
   else if (answers.customerLine === "business_voip") parts.push("Business phone system");
   else if (answers.customerLine === "google_voice") parts.push("Google Voice");
-  else if (answers.customerLine === "unsure") return "Simplest path — Effiroad dedicated number";
+  else if (answers.customerLine === "effiroad_main") parts.push("Effiroad dedicated number");
+  else if (answers.customerLine === "unsure") return null;
 
   if (answers.cellCarrier) {
     const labels: Record<string, string> = {
