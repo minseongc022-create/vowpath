@@ -2,7 +2,10 @@ import { SITE, CHECKOUT_CTA } from "./constants";
 import {
   planVolumeGuideKo,
   pricingVolumeTipKo,
+  PRICING_GUARANTEES_EN,
+  PRICING_TRANSPARENCY_FOOTNOTE_EN,
 } from "./plan-volume-guide";
+import { proUsageLine, scaleUsageLine } from "./plan-pricing";
 import { IS_BETA } from "./beta";
 import { pickLocaleCopy } from "@/lib/locale-merge";
 import { runtimeUiLocale, type UiLocale } from "./locale";
@@ -270,28 +273,44 @@ export const pricing = {
       cta: `${CHECKOUT_CTA} — 성과형`,
     },
     {
-      id: "unlimited" as const,
-      name: "정액 Unlimited",
-      badge: "콜 많을 때",
-      description: "설정한 시간대 콜·예약 무제한. 피크 시즌에 유리.",
-      price: SITE.monthlyPrice,
+      id: "pro" as const,
+      name: "Pro",
+      badge: "성장 shop",
+      description: "월 정액 + 포함 디스패치 한도. 초과는 사전 알림 후 과금.",
+      price: SITE.proPrice,
       period: "/월",
-      usageLine: "추가 건당 수수료 없음",
-      volumeGuide: planVolumeGuideKo("unlimited"),
+      usageLine: proUsageLine(false),
+      volumeGuide: planVolumeGuideKo("pro"),
       features: [
-        "요일·시간대 무제한 스케줄",
-        "설정 시간 내 AI 콜 무제한",
-        "문자 1/2 승인 · Job Card",
-        "긴급(P1) 즉시 SMS · Jobber 선택",
-        "월 요금만 — 예약 많아도 동일",
+        `월 ${SITE.proIncludedDispatches}건 디스패치 포함`,
+        "80%/100% 사용량 알림",
+        "자동 디스패치·예약",
+        "Jobber 선택",
       ],
       recommended: false,
-      cta: `${CHECKOUT_CTA} — 정액`,
+      cta: `${CHECKOUT_CTA} — Pro`,
+    },
+    {
+      id: "scale" as const,
+      name: "Scale",
+      badge: "피크 시즌",
+      description: "콜 많은 shop · 허리케인 시즌용 고볼륨 플랜.",
+      price: SITE.scalePrice,
+      period: "/월",
+      usageLine: scaleUsageLine(false),
+      volumeGuide: planVolumeGuideKo("scale"),
+      features: [
+        `월 ${SITE.scaleIncludedDispatches}건 포함`,
+        "Pro보다 낮은 초과 요금",
+        "동일 전화·SMS·스케줄링",
+        "Jobber 선택",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
   tip: pricingVolumeTipKo(),
-  footnote:
-    "성과형: 기본료는 매월, 수수료는 업체가 문자·대시보드로 승인한 예약만 (스팸·취소 제외).",
+  footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
 };
 
 export const faq = {

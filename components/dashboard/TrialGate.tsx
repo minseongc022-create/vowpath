@@ -12,15 +12,11 @@ type BillingStatusResponse = {
 };
 
 const PLAN_OPTIONS: { id: PlanId; title: string }[] = [
-  { id: "lite", title: "Lite" },
   { id: "flex", title: "Flex" },
-  { id: "unlimited", title: "Unlimited" },
+  { id: "pro", title: "Pro" },
+  { id: "scale", title: "Scale" },
 ];
 
-/**
- * Blocks the dashboard once a user's free trial has ended and they have no active
- * subscription. Feedback unlocks founder pricing for 5 years.
- */
 export function TrialGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<BillingStatusResponse | null>(null);
 
@@ -88,32 +84,35 @@ function TrialEndedCard() {
         <h2 className="text-xl font-bold text-slate-900">Your free trial has ended</h2>
         <p className="mt-2 text-sm text-slate-600">
           Share one line of feedback and lock in founder pricing for {SITE.betaDiscountYears}{" "}
-          years — then regular rates ({regularRate}). Full pricing is on{" "}
+          years — then regular rates ({regularRate}). Caps and overage rules at{" "}
           <a href="/#pricing" className="font-medium text-brand-600 underline">
-            effiroad.com
+            effiroad.com/#pricing
           </a>
           .
         </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           {PLAN_OPTIONS.map((option) => (
             <button
               key={option.id}
               type="button"
               onClick={() => setPlan(option.id)}
-              className={`rounded-lg border-2 px-3 py-2.5 text-left text-sm transition ${
+              className={`rounded-lg border-2 px-2 py-2.5 text-left text-sm transition ${
                 plan === option.id
                   ? "border-brand-500 bg-brand-50 text-brand-900"
                   : "border-surface-border text-slate-700 hover:border-brand-300"
               }`}
             >
               <span className="block font-semibold">{option.title}</span>
-              <span className="mt-0.5 block text-xs text-slate-600">
+              <span className="mt-0.5 block text-[11px] leading-snug text-slate-600">
                 {founderRateShort(option.id)}
               </span>
             </button>
           ))}
         </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Lite also available at checkout — best for very quiet months.
+        </p>
 
         <textarea
           value={feedback}

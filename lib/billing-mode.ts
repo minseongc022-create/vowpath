@@ -20,7 +20,7 @@ export function isPaidCheckoutEnabled(): boolean {
 
   const paddleLive =
     isValidPaddleEnvValue(process.env.PADDLE_API_KEY) &&
-    (isPaddleConfigured("unlimited") || isPaddleConfigured("flex"));
+    (isPaddleConfigured("pro") || isPaddleConfigured("flex"));
 
   if (paddleLive && process.env.VERCEL_ENV === "production") {
     return true;
@@ -47,7 +47,7 @@ export type CheckoutReadiness = {
 export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutReadiness {
   const issues: string[] = [];
   const paddleConfigured =
-    isPaddleConfigured("unlimited") || isPaddleConfigured("flex");
+    isPaddleConfigured("pro") || isPaddleConfigured("flex");
   const clientTokenConfigured = paddleClientTokenConfigured();
   const checkoutEnabled = isPaidCheckoutEnabled();
 

@@ -4,6 +4,7 @@ import {
   priceIdForPlan,
 } from "@/lib/paddle-config";
 import type { PlanId } from "@/lib/constants";
+import { normalizePlanId } from "@/lib/plan-pricing";
 import { paddleFetch } from "@/lib/paddle-client";
 import { listUsers, updateUserBilling } from "@/lib/users-db";
 
@@ -45,10 +46,7 @@ export async function GET(request: Request) {
     let stepped = 0;
     let failed = 0;
     for (const user of due) {
-      const plan: PlanId =
-        user.plan === "flex" || user.plan === "lite" || user.plan === "unlimited"
-          ? user.plan
-          : "unlimited";
+      const plan: PlanId = normalizePlanId(user.plan);
       const lockedPriceId =
         betaCohortLockedPriceIdForPlan(plan) ?? priceIdForPlan(plan);
 

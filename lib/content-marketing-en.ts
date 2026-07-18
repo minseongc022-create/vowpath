@@ -4,7 +4,10 @@ import { getCheckoutCta } from "./marketing-constants";
 import {
   planVolumeGuideEn,
   pricingVolumeTipEn,
+  PRICING_GUARANTEES_EN,
+  PRICING_TRANSPARENCY_FOOTNOTE_EN,
 } from "./plan-volume-guide";
+import { proUsageLine, scaleUsageLine } from "./plan-pricing";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -724,11 +727,11 @@ export const signupFlowEn = {
 
 export const pricingEn = {
   title: "One water loss at 2 AM pays for the year",
-  subtitle: "Lite for quiet months. Flex when nights pick up. Unlimited for storm season.",
+  subtitle: "Lite for quiet months. Flex when nights pick up. Pro or Scale when volume grows — transparent caps, no surprise bills.",
   compare: [
     { label: "AI phone + link intake", amount: "Included" },
-    { label: "Shop analytics + Effiroad AI", amount: "Included" },
-    { label: "Owner SMS (FYI + exceptions)", amount: "Included" },
+    { label: "Crew SMS dispatch + owner 1/2 hold", amount: "Included" },
+    { label: "Tech lanes + auto scheduling", amount: "Included" },
     { label: "CRM / Jobber sync", amount: "Optional", highlight: true },
   ],
   plans: [
@@ -742,10 +745,10 @@ export const pricingEn = {
       usageLine: `+ ${SITE.litePerBooking} per approved dispatch`,
       volumeGuide: planVolumeGuideEn("lite"),
       features: [
-        "Same intake and dispatch flow",
+        "AI phone + link intake",
+        "Crew SMS with 1/2 owner hold",
         "Custom forward hours",
-        "Best when nights are rare",
-        "CRM connect optional",
+        "CRM optional",
       ],
       recommended: false,
       cta: `${CHECKOUT_CTA} — Lite`,
@@ -760,40 +763,54 @@ export const pricingEn = {
       usageLine: `+ ${SITE.flexPerBooking} per approved dispatch`,
       volumeGuide: planVolumeGuideEn("flex"),
       features: [
-        "Same intake and dispatch flow",
-        "Custom forward hours",
-        "Lower per-dispatch fee than Lite",
-        "CRM connect optional",
+        "Same intake + dispatch as Pro",
+        "Tech-lane routing by crew size",
+        "Auto booking windows",
+        "CRM optional",
       ],
       recommended: true,
       cta: `${CHECKOUT_CTA} — Flex`,
     },
     {
-      id: "unlimited" as const,
-      name: "Unlimited",
-      badge: "Heavy volume",
-      description: "Heavy nights and storm season. Flat rate.",
-      price: SITE.monthlyPrice,
+      id: "pro" as const,
+      name: "Pro",
+      badge: "Growing shops",
+      description: "Flat monthly rate with a clear included dispatch cap.",
+      price: SITE.proPrice,
       period: "/mo",
-      usageLine: "No per-dispatch fees",
-      volumeGuide: planVolumeGuideEn("unlimited"),
+      usageLine: proUsageLine(false),
+      volumeGuide: planVolumeGuideEn("pro"),
       features: [
-        "Unlimited forward windows",
-        "Auto dispatch + crew text",
-        "Smart owner SMS exceptions",
-        "CRM connect optional",
+        `${SITE.proIncludedDispatches} dispatches/mo included`,
+        "Predictable overage — alerts first",
+        "Auto dispatch + scheduling",
+        "CRM optional",
       ],
       recommended: false,
-      cta: `${CHECKOUT_CTA} — Unlimited`,
+      cta: `${CHECKOUT_CTA} — Pro`,
+    },
+    {
+      id: "scale" as const,
+      name: "Scale",
+      badge: "Storm season",
+      description: "High-volume flat plan for busy nights and hurricane season.",
+      price: SITE.scalePrice,
+      period: "/mo",
+      usageLine: scaleUsageLine(false),
+      volumeGuide: planVolumeGuideEn("scale"),
+      features: [
+        `${SITE.scaleIncludedDispatches} dispatches/mo included`,
+        "Lower overage rate than Pro",
+        "Same phone + SMS + scheduling stack",
+        "CRM optional",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
   tip: pricingVolumeTipEn(),
-  footnote: "No charge for spam, wrong numbers, or jobs you cancel.",
-  guarantees: [
-    "30-day money-back guarantee",
-    "Cancel anytime — no contracts",
-    "No setup fees",
-  ] as const,
+  footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
+  guarantees: PRICING_GUARANTEES_EN,
 };
 
 export const getStartedEn = {

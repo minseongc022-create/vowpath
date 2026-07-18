@@ -1,15 +1,22 @@
 import { IS_BETA } from "./beta";
 import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
-import { isPerDispatchPlan } from "./plan-pricing";
+import { normalizePlanId } from "./plan-pricing";
+import type { CappedFlatPlanId } from "./dispatch-billing";
 import {
-  betaCohortFlexUsagePriceId,
-  betaCohortLiteUsagePriceId,
+  isCappedFlatPlan,
+  shouldBillDispatchOverage,
+} from "./dispatch-billing";
+import {
   betaCohortFlexLockedUsagePriceId,
+  betaCohortFlexUsagePriceId,
   betaCohortLiteLockedUsagePriceId,
+  betaCohortLiteUsagePriceId,
+  cappedOveragePriceIdForPlan,
   isValidPaddleEnvValue,
   usagePriceIdForPlan,
 } from "./paddle-config";
+import { isPerDispatchPlan } from "./plan-pricing";
 import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
 
@@ -89,11 +96,7 @@ export async function verifyTransaction(transactionId: string): Promise<{
       return { ok: false };
     }
 
-    const planRaw = tx.custom_data?.plan;
-    const plan: PlanId =
-      planRaw === "flex" || planRaw === "lite" || planRaw === "unlimited"
-        ? planRaw
-        : "unlimited";
+    const plan = normalizePlanId(tx.custom_data?.plan);
     let email: string | undefined;
     if (tx.customer_id) {
       try {
@@ -159,23 +162,40 @@ export async function fetchNextBillingDate(
   }
 }
 
-/** Per-dispatch plan overage — billed on the next renewal. */
+/** Per-dispatch billing — Flex/Lite always; Pro/Scale only beyond included monthly cap. */
 export async function recordFlexUsage(user: UserRecord): Promise<void> {
   const b = mergeUserBilling(user);
-  if (!isPerDispatchPlan(b.plan)) return;
+  if (!b.plan) return;
 
+  if (isPerDispatchPlan(b.plan)) {
+    await chargePerDispatchPlan(user, b.plan);
+    return;
+  }
+
+  if (isCappedFlatPlan(b.plan)) {
+    const monthKey = user.dispatchBillableMonth;
+    const count = user.monthlyDispatchCount ?? 0;
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const effectiveCount = monthKey === currentMonth ? count : 0;
+    if (!shouldBillDispatchOverage(b.plan, effectiveCount)) return;
+    await chargeCappedOverage(user, b.plan);
+  }
+}
+
+async function chargePerDispatchPlan(user: UserRecord, plan: "flex" | "lite") {
+  const b = mergeUserBilling(user);
   const inFeedbackCohort =
     user.discountCohort === "beta_feedback" && !user.betaCohortSteppedAt;
   const stepped = user.discountCohort === "beta_feedback" && Boolean(user.betaCohortSteppedAt);
   const priceId = inFeedbackCohort
-    ? b.plan === "flex"
+    ? plan === "flex"
       ? betaCohortFlexUsagePriceId()
       : betaCohortLiteUsagePriceId()
     : stepped
-      ? b.plan === "flex"
+      ? plan === "flex"
         ? betaCohortFlexLockedUsagePriceId()
         : betaCohortLiteLockedUsagePriceId()
-      : usagePriceIdForPlan(b.plan);
+      : usagePriceIdForPlan(plan);
 
   if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
 
@@ -188,6 +208,24 @@ export async function recordFlexUsage(user: UserRecord): Promise<void> {
       },
     });
   } catch (e) {
-    console.warn("[billing] flex usage charge", e);
+    console.warn("[billing] per-dispatch charge", e);
+  }
+}
+
+async function chargeCappedOverage(user: UserRecord, plan: CappedFlatPlanId) {
+  const b = mergeUserBilling(user);
+  const priceId = cappedOveragePriceIdForPlan(plan, user);
+  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
+
+  try {
+    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
+      method: "POST",
+      body: {
+        effective_from: "next_billing_period",
+        items: [{ price_id: priceId, quantity: 1 }],
+      },
+    });
+  } catch (e) {
+    console.warn("[billing] capped overage charge", e);
   }
 }

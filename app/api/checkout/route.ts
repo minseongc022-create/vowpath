@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isPaidCheckoutEnabled } from "@/lib/billing-mode";
-import { ROUTES, SITE } from "@/lib/constants";
+import { DEFAULT_PLAN, ROUTES, SITE } from "@/lib/constants";
 import {
   CheckoutUnavailableError,
   createCheckoutSession,
@@ -13,7 +13,7 @@ function planFromRequest(request: Request): ReturnType<typeof parsePlanId> {
   try {
     return parsePlanId(searchParams.get("plan"));
   } catch {
-    return "unlimited";
+    return DEFAULT_PLAN;
   }
 }
 
@@ -22,7 +22,7 @@ async function planFromBody(request: Request): Promise<ReturnType<typeof parsePl
     const body = await request.json();
     return parsePlanId(body?.plan);
   } catch {
-    return "unlimited";
+    return DEFAULT_PLAN;
   }
 }
 

@@ -25,6 +25,9 @@ export type UserRecord = {
   paddleSubscriptionId?: string;
   subscriptionStatus?: SubscriptionStatus;
   flexBillableCount?: number;
+  /** YYYY-MM bucket for Pro/Scale included dispatch counter */
+  dispatchBillableMonth?: string;
+  monthlyDispatchCount?: number;
   paidAt?: string;
   sessionVersion?: number;
   passwordChangedAt?: string;
@@ -297,6 +300,12 @@ export async function incrementFlexBillableCount(
   const store = await ensureStore();
   const user = store.users.find((u) => u.id === userId);
   if (!user) return undefined;
+  const monthKey = new Date().toISOString().slice(0, 7);
+  if (user.dispatchBillableMonth !== monthKey) {
+    user.dispatchBillableMonth = monthKey;
+    user.monthlyDispatchCount = 0;
+  }
+  user.monthlyDispatchCount = (user.monthlyDispatchCount ?? 0) + 1;
   user.flexBillableCount = (user.flexBillableCount ?? 0) + 1;
   await saveStore(store);
   return user;

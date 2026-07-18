@@ -239,15 +239,19 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
         })),
         actions: [
           { label: "Open Pricing", href: "/pricing", kind: "compare" },
-          { label: "Unlimited Checkout", href: "/api/checkout?plan=unlimited", kind: "checkout" },
+          { label: "Pro Checkout", href: "/api/checkout?plan=pro", kind: "checkout" },
         ],
       },
-      suggestions: ["Upgrade to Unlimited.", "What is my current plan?"],
+      suggestions: ["Upgrade to Pro or Scale.", "What is my current plan?"],
     };
   }
 
   if (q.includes("upgrade") || q.includes("업그레이드") || q.includes("pro") || q.includes("premium")) {
-    return planCard("unlimited");
+    return planCard("pro");
+  }
+
+  if (q.includes("scale plan") || q.includes("storm")) {
+    return planCard("scale");
   }
 
   if (q.includes("flex plan") || q.includes("flex로")) {

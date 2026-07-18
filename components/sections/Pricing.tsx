@@ -57,7 +57,7 @@ export function Pricing() {
           ))}
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-5xl gap-6 md:grid-cols-3">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {pricing.plans.map((plan) => (
             <article
               key={plan.id}
@@ -83,7 +83,9 @@ export function Pricing() {
                 className={`mt-2 text-sm font-medium ${
                   plan.id === "flex" || plan.id === "lite"
                     ? "text-brand-700"
-                    : "text-stone-700"
+                    : plan.id === "pro" || plan.id === "scale"
+                      ? "text-brand-800"
+                      : "text-stone-700"
                 }`}
               >
                 {plan.usageLine}

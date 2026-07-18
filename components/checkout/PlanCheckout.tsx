@@ -27,7 +27,7 @@ export function PlanCheckout({
         </p>
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {pricing.plans.map((plan) => {
           const isSelected = plan.id === selectedPlan;
           const payLabel = paddleReady

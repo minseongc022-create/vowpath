@@ -3,7 +3,7 @@ import { siteGetStarted, sitePricing } from "@/lib/site-content";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { isPaidCheckoutEnabled } from "@/lib/billing-mode";
 import { DEFAULT_PLAN, ROUTES } from "@/lib/constants";
-import { parsePlanIdFromQuery } from "@/lib/plan-pricing";
+import { normalizePlanId } from "@/lib/plan-pricing";
 import { isPaddleConfigured } from "@/lib/paddle-config";
 import { PlanCheckout } from "@/components/checkout/PlanCheckout";
 import { Container } from "@/components/ui/Container";
@@ -24,11 +24,12 @@ export default async function GetStartedPage({
   const params = await searchParams;
   const canceled = params.canceled === "1";
   const checkoutError = params.checkout_error;
-  const selectedPlan = parsePlanIdFromQuery(params.plan);
+  const selectedPlan = normalizePlanId(params.plan);
   const paddleReady =
-    isPaddleConfigured("unlimited") ||
+    isPaddleConfigured("pro") ||
     isPaddleConfigured("flex") ||
-    isPaddleConfigured("lite");
+    isPaddleConfigured("lite") ||
+    isPaddleConfigured("scale");
 
   const page = siteGetStarted;
   const pricing = sitePricing;

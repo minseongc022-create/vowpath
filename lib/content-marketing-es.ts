@@ -4,7 +4,10 @@ import { getCheckoutCta } from "./marketing-constants";
 import {
   planVolumeGuideEs,
   pricingVolumeTipEs,
+  PRICING_GUARANTEES_EN,
+  PRICING_TRANSPARENCY_FOOTNOTE_EN,
 } from "./plan-volume-guide";
+import { proUsageLine, scaleUsageLine } from "./plan-pricing";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -170,31 +173,45 @@ export const pricingEs = {
       cta: `${CHECKOUT_CTA} — Flex`,
     },
     {
-      id: "unlimited" as const,
-      name: "Unlimited",
-      badge: "Alto volumen",
-      description: "Noches pesadas y temporada de tormentas. Tarifa fija.",
-      price: SITE.monthlyPrice,
+      id: "pro" as const,
+      name: "Pro",
+      badge: "En crecimiento",
+      description: "Tarifa fija con un límite claro de despachos incluidos.",
+      price: SITE.proPrice,
       period: "/mes",
-      usageLine: "Sin cargo por despacho",
-      volumeGuide: planVolumeGuideEs("unlimited"),
+      usageLine: proUsageLine(false),
+      volumeGuide: planVolumeGuideEs("pro"),
       features: [
-        "Ventanas de desvío ilimitadas",
-        "Auto-despacho + texto a cuadrilla",
-        "SMS inteligente al dueño",
-        "Conexión CRM opcional",
+        `${SITE.proIncludedDispatches} despachos/mes incluidos`,
+        "Recargo predecible — alertas antes",
+        "Auto-despacho + agenda",
+        "CRM opcional",
       ],
       recommended: false,
-      cta: `${CHECKOUT_CTA} — Unlimited`,
+      cta: `${CHECKOUT_CTA} — Pro`,
+    },
+    {
+      id: "scale" as const,
+      name: "Scale",
+      badge: "Temporada alta",
+      description: "Plan de alto volumen para noches ocupadas.",
+      price: SITE.scalePrice,
+      period: "/mes",
+      usageLine: scaleUsageLine(false),
+      volumeGuide: planVolumeGuideEs("scale"),
+      features: [
+        `${SITE.scaleIncludedDispatches} despachos/mes incluidos`,
+        "Recargo más bajo que Pro",
+        "Mismo teléfono + SMS + agenda",
+        "CRM opcional",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
   tip: pricingVolumeTipEs(),
-  footnote: "Sin cargo por spam, números equivocados o trabajos que canceles.",
-  guarantees: [
-    "Garantía de devolución 30 días",
-    "Cancela cuando quieras — sin contrato",
-    "Sin costo de instalación",
-  ] as const,
+  footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
+  guarantees: PRICING_GUARANTEES_EN,
 };
 
 export const ctaEs = {

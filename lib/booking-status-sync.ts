@@ -21,7 +21,7 @@ import { notifyCustomerStatusChange } from "./customer-sms";
 import { recordRequestStatusChange } from "./record-tenant-events";
 import { getScheduledBooking, deleteScheduledBooking } from "./schedule-bookings-db";
 import { recordFlexUsage } from "./billing";
-import { isPerDispatchPlan } from "./plan-pricing";
+import { normalizePlanId, isCappedFlatPlan, isPerDispatchPlan } from "./plan-pricing";
 import { completeScheduledBookingAfterOwnerApprove } from "./scheduling/apply-schedule";
 import {
   findUserById,
@@ -272,7 +272,10 @@ export async function persistRequestStatusForBooking(
   if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
     try {
       const user = await findUserById(userId);
-      if (user && isPerDispatchPlan(user.plan)) {
+      if (
+        user &&
+        (isPerDispatchPlan(user.plan) || isCappedFlatPlan(user.plan))
+      ) {
         await incrementFlexBillableCount(userId);
         const updated = await findUserById(userId);
         if (updated) await recordFlexUsage(updated);
