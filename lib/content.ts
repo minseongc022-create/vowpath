@@ -1818,7 +1818,7 @@ export function getDashboardUiCopy(_locale: UiLocale) {
 }
 
 export function getSettingsPageCopy(_locale: UiLocale) {
-  return settingsPageEn;
+  return { ...settingsPageKo, ...settingsPageEn };
 }
 
 /** @deprecated Prefer get*Copy(locale) or useSettingsPage() */
