@@ -1,7 +1,8 @@
 import { SITE } from "@/lib/constants";
+import { TRIAL_DAYS } from "@/lib/billing-cohort";
 
-/** Public evaluation window referenced in outreach. */
-export const COBUILD_PILOT_WEEKS = 3;
+/** Matches signup trial in product — keep outreach aligned with billing-cohort.ts */
+export const OUTREACH_TRIAL_DAYS = TRIAL_DAYS;
 
 export const outreachReplyPrompts = {
   video: `Reply VIDEO — I'll send a 2-min recording: caller → intake → crew text.`,
@@ -10,11 +11,8 @@ export const outreachReplyPrompts = {
 } as const;
 
 /**
- * Final outreach copy — confident, restoration-specific, reply-ready.
- * Personalize every send: [First name], [Shop name], [City], [State].
- * Optional: one line from their Google listing or reviews.
- *
- * Do NOT include internal roadmap, cohort mechanics, or slot counts in customer copy.
+ * Outreach copy — fact-checked against product (loss-category dispatch, forwarding, trial).
+ * Personalize: [First name], [Shop name], [City], [State] + one detail from their listing.
  */
 export const partnershipPilotCopy = {
   emailSubjects: [
@@ -31,18 +29,18 @@ When a homeowner calls [Shop name] at 2am with a burst pipe — and your crew is
 
 If the answer is voicemail or "call back in the morning," that job usually goes to whoever picks up next on Google.
 
-I'm Min, founder of Effiroad. We built an after-hours intake and dispatch layer specifically for independent restoration shops — not a generic answering service.
+I'm Min, founder of Effiroad. We built an after-hours intake and dispatch layer for independent restoration shops — not a generic answering service.
 
 How it runs on a live call:
 • Greets as [Shop name]
-• Captures loss type, address, and insurance in about a minute
-• Standard water loss → texts your on-call crew to move
-• Fire, structure, or sewage → holds and texts you for approval before anything dispatches
-• Your published number stays the same. No CRM migration.
+• Captures loss type, address, and insurance details on the call
+• Clear standard water loss with complete info → texts your on-call crew to move
+• Fire, sewage, commercial, or unclear intake → texts you for approval first (reply 1 = go, 2 = pass)
+• Customers still dial your shop number — unanswered/after-hours calls forward to Effiroad. No CRM migration.
 
-Answering services take a message. This captures the job and gets your crew moving while the caller is still on the line.
+Answering services take a message. This runs intake and dispatch while the caller is still on the line.
 
-I'm opening a ${COBUILD_PILOT_WEEKS}-week evaluation for shops in [City]/[State]. I handle configuration on my end — roughly ten minutes of yours. No credit card to start. Run it on real calls and decide off outcomes, not a slide deck.
+${OUTREACH_TRIAL_DAYS}-day free trial for shops in [City]/[State]. I handle configuration — about ten minutes on your end. No credit card to start. Test on real calls and decide from outcomes.
 
 ${outreachReplyPrompts.video}
 ${outreachReplyPrompts.try}
@@ -55,25 +53,25 @@ ${SITE.url}`,
 
 When a 2am water call hits [Shop name] and your crew is on a job — does someone answer and dispatch, or does it hit voicemail?
 
-We built after-hours intake + crew texting for independent restoration shops. Answers as your shop. Standard water → crew text. Fire/sewage → your approval first. Same Google number.
+After-hours intake + crew texting for restoration shops. Answers as your shop. Clear water w/ complete info → crew text. Fire/sewage/unclear → your approval first. Your number forwards — customers still dial you.
 
-${COBUILD_PILOT_WEEKS}-week evaluation — I handle setup. Reply VIDEO or TRY.`,
+${OUTREACH_TRIAL_DAYS}-day free trial, no card. Reply VIDEO or TRY.`,
 
   linkedInConnect: `[First name] — built Effiroad for independent restoration after-hours intake and crew dispatch. Would value connecting with an owner in [State].`,
 
   linkedInDm: `[First name] — thanks for connecting.
 
-Direct question: when overflow or after-hours calls hit [Shop name] while your crew is tied up, what's your process today?
+When overflow or after-hours calls hit [Shop name] while your crew is tied up — what's your process today?
 
-Effiroad answers as your shop, runs loss intake, and texts your on-call crew — with hold rules on fire and sewage. Same number. No CRM swap.
+Effiroad answers as your shop, runs loss intake, and texts your on-call crew. Fire and sewage wait for your approval. Your shop number stays on Google — calls forward when you can't pick up.
 
-Happy to send a 2-min recording of the full flow. Reply VIDEO if you want to see it, or TRY if you want it live on [Shop name] this week.
+${OUTREACH_TRIAL_DAYS}-day free trial, no card. Reply VIDEO for a 2-min recording or TRY to go live this week.
 
 — Min`,
 
   videoCoverNote: `[First name] — recording attached. Two minutes: caller → intake → crew text → your dashboard.
 
-If this matches how [Shop name] should handle after-hours, reply TRY and I'll get forwarding configured — about ten minutes on your side.
+If this matches how [Shop name] should handle after-hours, reply TRY and I'll get call forwarding configured — about ten minutes on your side.
 
 If not a fit, reply PASS.
 
@@ -81,7 +79,7 @@ If not a fit, reply PASS.
 
   followUpNoReply: `[First name] — following up once.
 
-Still offering the ${COBUILD_PILOT_WEEKS}-week evaluation for [Shop name]: after-hours intake, crew texts, your number unchanged. I handle setup.
+Still offering a ${OUTREACH_TRIAL_DAYS}-day free trial for [Shop name]: after-hours intake, crew texts, call forwarding from your existing number. I handle setup.
 
 Reply VIDEO for the 2-min flow.
 Reply TRY to run it live this week.
@@ -91,9 +89,9 @@ Reply PASS to close the file.
 
   followUpInterested: `[First name] — good.
 
-Next step: a short setup call. I learn how [Shop name] routes after-hours today, configure Effiroad, and you test on real traffic for ${COBUILD_PILOT_WEEKS} weeks.
+Next step: a short setup call. I learn how [Shop name] routes after-hours today, configure forwarding, and you test on real traffic for ${OUTREACH_TRIAL_DAYS} days.
 
-Reply with two times that work for you this week, or say TRY and I'll send options.
+Reply with two times that work this week, or say TRY and I'll send options.
 
 — Min`,
 
@@ -101,7 +99,7 @@ Reply with two times that work for you this week, or say TRY and I'll send optio
 
 If after-hours is already covered at [Shop name], no action needed.
 
-If it's still a gap, reply TRY and I'll configure the evaluation. Reply PASS and I won't follow up again.
+If it's still a gap, reply TRY and I'll configure the trial. Reply PASS and I won't follow up again.
 
 — Min
 Effiroad`,
@@ -116,8 +114,7 @@ Reply with either, or send what works for you. I'll need ~10 minutes and your af
 
 — Min`,
 
-  /** After evaluation — transition to paid (no internal cohort details) */
-  postPilotTransition: `[First name] — your evaluation window wraps up [date].
+  postPilotTransition: `[First name] — your free trial ends [date].
 
 If Effiroad is handling calls the way you want, we'll move you to a standard plan — details at ${SITE.url}/pricing.
 
@@ -127,23 +124,32 @@ If you want changes before committing, reply here and we'll adjust dispatch rule
 
   emailBodyKo: `[First name]님, [Shop name]
 
-새벽 2시 파이프 터짐 전화 — 크루가 현장에 있을 때, 첫 60초에 누가 받고 출동까지 연결하나요?
+새벽 2시 파이프 터짐 — 크루가 현장에 있을 때, 첫 60초에 누가 받고 출동까지 연결하나요?
 
- voicemail이면 보통 Google 다음 업체로 갑니다.
-
-Effiroad — 독립 복구 업체용 야간 intake + 크루 디스패치입니다.
+Effiroad — 독립 복구 업체용 야간 intake + 크루 디스패치.
 • [Shop name] 이름으로 응대
-• 손실 유형·주소·보험 ~1분 수집
-• 일반 누수 → 온콜 크루 문자
-• 화재·오염 → 업주 승인 후 진행
-• 공개 번호 유지, CRM 이전 없음
+• 손실 유형·주소·보험 정보 수집
+• 명확한 일반 누수(정보 완비) → 온콜 크루 문자
+• 화재·오염·불명확 intake → 업주 승인 후 (1=go, 2=pass)
+• 고객은 기존 번호로 전화 → 못 받을 때 Effiroad로 forwarding. CRM 이전 없음
 
-${COBUILD_PILOT_WEEKS}주 evaluation — 세팅은 제가 처리 (~10분). 카드 없이 시작.
+${OUTREACH_TRIAL_DAYS}일 무료 trial. 세팅 ~10분. 카드 없음.
 
-답장: VIDEO (2분 영상) / TRY (이번 주 세팅) / PASS
+답장: VIDEO / TRY / PASS
 
 — Min
 ${SITE.url}`,
+
+  /** Factual claims verified in codebase — do not over-promise beyond this */
+  productFacts: {
+    trialDays: OUTREACH_TRIAL_DAYS,
+    noCreditCardAtSignup: true,
+    dispatchPolicy:
+      "Clear P1 water with complete intake → crew notified; fire/sewage_cat3/commercial/ambiguous → owner approval",
+    numberModel: "Shop number stays published; unanswered/after-hours calls forward to Effiroad",
+    setupMinutes: 10,
+    crmRequired: false,
+  } as const,
 
   sendChecklist: [
     "Fill [First name], [Shop name], [City], [State] — every send",
@@ -151,11 +157,11 @@ ${SITE.url}`,
     "Send Tue–Thu, 8–10am shop local time",
     "VIDEO reply → Loom within 1 hour",
     "TRY reply → two concrete time slots same message",
-    "Never mention internal pricing cohorts, slot counts, or roadmap details",
+    "Say 14-day trial (not 3 weeks) unless you manually extend in billing",
+    "Say call forwarding — not that the number itself changes",
   ] as const,
 } as const;
 
-/** Copy-paste blocks for phone / inbox */
 export const outreachQuickSend = {
   sms: partnershipPilotCopy.sms,
   email: partnershipPilotCopy.emailBody,
