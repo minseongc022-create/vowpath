@@ -1,5 +1,7 @@
 "use client";
 
+import { AppPage } from "@/components/ui/AppPage";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
@@ -159,7 +161,7 @@ export function AgreementsView() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <AppPage className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="vow-settings-eyebrow">{a.eyebrow}</p>
@@ -406,6 +408,6 @@ export function AgreementsView() {
           </div>
         </div>
       ) : null}
-    </div>
+    </AppPage>
   );
 }

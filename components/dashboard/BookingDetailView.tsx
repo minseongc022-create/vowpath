@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppPage } from "@/components/ui/AppPage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { notifyTenantEventsUpdated } from "@/lib/dashboard-data-client";
@@ -289,7 +290,7 @@ export function BookingDetailContent({
   const telHref = detail ? phoneTelHref(detail.phone) : null;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <AppPage width="narrow">
       <Link
         href="/dashboard/bookings"
         className="text-sm font-medium text-brand-300 transition hover:text-brand-200 hover:underline"
@@ -497,7 +498,7 @@ export function BookingDetailContent({
           </InfoCard>
         </div>
       )}
-    </div>
+    </AppPage>
   );
 }
 

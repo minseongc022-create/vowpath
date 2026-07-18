@@ -47,6 +47,7 @@ import {
 } from "@/components/dashboard/DashboardDateRangePicker";
 import { DashboardNewRequestButton } from "@/components/dashboard/DashboardNewRequestButton";
 import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
+import { AppPage } from "@/components/ui/AppPage";
 import { CollectedRevenuePanel } from "@/components/dashboard/CollectedRevenuePanel";
 import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
 import { GuidedTour } from "@/components/shared/GuidedTour";
@@ -224,7 +225,7 @@ export function DashboardHomeView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-3 sm:space-y-4">
+    <AppPage width="wide" className="space-y-3 sm:space-y-4">
       <header className="space-y-3">
         <div className="min-w-0">
           <h1 className="text-lg font-bold tracking-tight text-brand-950 sm:text-2xl">
@@ -375,6 +376,6 @@ export function DashboardHomeView() {
       </p>
 
       <GuidedTour steps={DASHBOARD_TOUR_STEPS} storageKey="effiroad_tour_v2" />
-    </div>
+    </AppPage>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { AppPage } from "@/components/ui/AppPage";
 import { countWaitingCustomers } from "@/lib/booking-status-counts";
 import { dashboardUi } from "@/lib/content";
 import { ROUTES } from "@/lib/constants";
@@ -110,7 +111,7 @@ export function MissedCallsAnalyticsView({ variant = "light" }: { variant?: "lig
   };
 
   return (
-    <div className="space-y-8">
+    <AppPage className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Link
@@ -225,6 +226,6 @@ export function MissedCallsAnalyticsView({ variant = "light" }: { variant?: "lig
           {m.howCalculatedBody}
         </p>
       </section>
-    </div>
+    </AppPage>
   );
 }

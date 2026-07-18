@@ -1,9 +1,45 @@
 # Effiroad Cold Outreach Playbook
 
 **Target:** Independent US water/fire/mold restoration shops, 1–10 crew, no CRM
-**Pilot offer:** 30-day free trial, you handle setup, get a testimonial in exchange
+**Pilot offer:** 3-week co-build pilot (free), feedback shapes product + app roadmap
 **Channels:** Cold email + LinkedIn DM
 **Cadence:** 20–30 touches/week × 8 weeks = 160–240 total
+
+> **Copy source of truth:** `lib/outreach/partnership-pilot-copy.ts` — import `partnershipPilotCopy` for SMS, email subject/body, follow-up, and Korean founder reference.
+
+---
+
+## Co-build partnership pitch (recommended)
+
+Use when you want to say: *we're building this **with** shop owners, not selling a finished box.*
+
+**Subject:** `[Shop name] — building this with shop owners (3-week pilot)`
+
+```
+Hi [First name],
+
+I'm reaching out because Effiroad isn't a finished product we're selling at you — we're building it *with* independent shops like [Shop name].
+
+What it is today: AI answers after-hours and overflow calls, captures loss details, and texts your crew — clear water can auto-dispatch; fire/Cat-3 waits for your 1/2 approval. You keep your number. No CRM required.
+
+What we're asking:
+• 3-week free pilot — I handle setup; you forward after-hours calls and use the dashboard.
+• Honest feedback — what's confusing, what's missing, what would make you stay.
+• No lock-in during the pilot — if it's not helping by week 2, stop. No invoice, no guilt trip.
+
+If you stay after the pilot and share feedback, you get $129/mo for 5 years (regular price is $169/mo). That cohort also helps us prioritize the mobile app we're planning next — shops on the pilot list get first access.
+
+Happy to send a 2-min screen recording or jump on a quick call.
+
+— Min
+effiroad.com
+```
+
+**SMS / LinkedIn DM (short):**
+
+```
+Hi [First name] — building Effiroad with shop owners, not just for them. AI phone + dispatch for restoration/HVAC. 3-week free pilot, stop anytime if it's not a fit. Feedback → $129/mo locked for 5 years (vs $169). Also shapes our app roadmap. Worth 10 min? effiroad.com
+```
 
 ---
 

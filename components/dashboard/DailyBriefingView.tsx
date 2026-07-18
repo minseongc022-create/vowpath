@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppPage } from "@/components/ui/AppPage";
 import { useEffect, useMemo, useState } from "react";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { buildDailyBriefing } from "@/lib/dashboard-briefing";
@@ -58,7 +59,7 @@ export function DailyBriefingView() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <AppPage className="flex flex-col gap-6">
       <section className="vow-dash-hero p-5 sm:p-7">
         <p className="text-sm font-semibold text-brand-800">{briefing.titleDate}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-brand-950 sm:text-4xl">
@@ -161,6 +162,6 @@ export function DailyBriefingView() {
           </div>
         </article>
       </section>
-    </div>
+    </AppPage>
   );
 }
