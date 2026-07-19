@@ -14,7 +14,7 @@
 | Owner 1/2 SMS approval | Yes — holds wait for reply | Auto-dispatches regardless |
 | Unverified address gate | Yes — never dispatches to unknown address | Not documented |
 | Multi-vertical (restoration + HVAC + plumbing…) | Yes | Restoration-focused |
-| Pricing | $199/mo unlimited or $49+$18/dispatch | Contact for pricing |
+| Pricing | From $29 Lite / $55+$8 Flex / $149 Pro | Contact for pricing |
 
 **Key wedge:** "Effiroad knows the difference between a water leak and a sewage backup, and between no heat and a gas smell. ServiceAgent dispatches everything."
 
@@ -26,7 +26,7 @@
 |---------|----------|---------------------------------|
 | Response time | AI answers in <2 rings | Human agent answers (ring time varies) |
 | 24/7 consistency | Yes — same quality every call | Depends on agent, shift, training |
-| Price | $199/mo | $800–2,000+/mo |
+| Price | $149/mo | $800–2,000+/mo |
 | Insurance-ready intake | Yes — captures carrier, claim #, water source | Varies by service |
 | Restoration triage knowledge | Yes — built-in loss category logic | Agent training required |
 | Owner SMS hold | Yes | Depends on service |

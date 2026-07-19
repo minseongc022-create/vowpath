@@ -5,6 +5,7 @@ import {
 } from "./confidence-config";
 import { formatCallbackForSpeech } from "./caller-id";
 import { extractIntakeFromSpeechForVertical } from "./extraction";
+import { resolveAiModelForShop } from "../plan-ai";
 import type {
   CallIntakeState,
   MandatoryVerifyField,
@@ -154,6 +155,7 @@ export async function runExtractionAfterCollect(
     state.vertical,
     transcriptForExtraction,
     state.menuPriority,
+    { model: await resolveAiModelForShop(state.userId) },
   );
 
   // Preserve fields already confirmed earlier in the call (e.g. a returning-customer

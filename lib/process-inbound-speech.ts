@@ -6,6 +6,7 @@ import { addJobRecord } from "./jobs-db";
 import { formatCityState } from "./recent-bookings";
 import { generateJobCardFromNotes } from "./job-card-ai";
 import type { GeneratedJobCard } from "./job-card-ai";
+import { resolveAiModelForShop } from "./plan-ai";
 import { buildSpeechNotes } from "./twilio-voice-flow";
 import type { JobPriority } from "./types";
 
@@ -26,9 +27,11 @@ export async function processInboundSpeech(
   menuPriority: JobPriority | null = null,
 ): Promise<InboundSpeechResult> {
   const notes = buildSpeechNotes(speech, menuPriority);
+  const model = await resolveAiModelForShop(userId);
   const card = await generateJobCardFromNotes(notes, {
     transcript: speech.trim(),
     menuPriority,
+    model,
   });
 
   const callLogId = crypto.randomUUID();

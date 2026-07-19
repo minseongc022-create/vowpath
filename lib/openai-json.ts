@@ -5,6 +5,8 @@ export async function openAiJsonCompletion<T>(params: {
   user: string;
   temperature?: number;
   timeoutMs?: number;
+  /** Override model (plan-tiered). Defaults to economy mini. */
+  model?: string;
   /** Optional shape check on the parsed JSON — return false/throw to reject a
    *  well-formed-but-wrong-shaped response instead of handing it to the caller as-is. */
   validate?: (value: unknown) => value is T;
@@ -24,7 +26,7 @@ export async function openAiJsonCompletion<T>(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+        model: params.model ?? process.env.OPENAI_MODEL_ECONOMY ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
         temperature: params.temperature ?? 0.1,
         response_format: { type: "json_object" },
         messages: [

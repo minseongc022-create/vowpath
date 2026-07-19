@@ -10,7 +10,7 @@ import { listUsers, updateUserBilling } from "@/lib/users-db";
 
 /**
  * Daily: steps beta_feedback cohort to regular pricing after 5 years.
- * Unlimited → $169/mo. Flex → $75/mo. Lite → $42/mo (usage billed separately).
+ * Pro → list Pro. Flex → list Flex. Lite → list Lite (usage billed separately).
  * Idempotent via betaCohortSteppedAt.
  */
 export async function GET(request: Request) {

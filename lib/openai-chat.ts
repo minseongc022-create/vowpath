@@ -6,6 +6,8 @@ export async function openAiTextCompletion(params: {
   messages: ChatTurn[];
   temperature?: number;
   timeoutMs?: number;
+  /** Override model (plan-tiered). Defaults to economy mini. */
+  model?: string;
 }): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
@@ -22,7 +24,7 @@ export async function openAiTextCompletion(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+        model: params.model ?? process.env.OPENAI_MODEL_ECONOMY ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
         temperature: params.temperature ?? 0.4,
         messages: params.messages,
       }),

@@ -68,12 +68,18 @@ export function parseGeneratedJobCard(raw: unknown): GeneratedJobCard {
 
 export async function generateJobCardFromNotes(
   notes: string,
-  options?: { transcript?: string; menuPriority?: JobPriority | null },
+  options?: { transcript?: string; menuPriority?: JobPriority | null; model?: string },
 ): Promise<GeneratedJobCard> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY_MISSING");
   }
+
+  const model =
+    options?.model ??
+    process.env.OPENAI_MODEL_ECONOMY ??
+    process.env.OPENAI_MODEL ??
+    "gpt-4o-mini";
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -82,7 +88,7 @@ export async function generateJobCardFromNotes(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+      model,
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [

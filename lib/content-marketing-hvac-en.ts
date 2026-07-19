@@ -94,12 +94,14 @@ export const hvacPricing = {
   title: "Simple pricing for HVAC shops",
   unlimited: {
     name: "Unlimited",
-    price: "$169/mo",
-    description: "Unlimited calls, dispatches, and SMS. No per-job fees.",
+    price: "$149/mo",
+    description: "20 dispatches · free estimates · Premium AI. Only approved jobs count.",
     features: [
       "24/7 AI phone intake",
+      "Free estimates (press 2) — never billed",
       "No-heat auto-dispatch",
       "Owner SMS with 1/2 hold",
+      "Only approved/scheduled jobs bill",
       "Dashboard + analytics",
       "Optional Jobber sync",
     ],
@@ -107,10 +109,11 @@ export const hvacPricing = {
   flex: {
     name: "Flex",
     price: `${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking}/dispatch`,
-    description: "Low base, pay per confirmed dispatch.",
+    description: "Low base · free estimates · pay only per approved dispatch.",
     features: [
       "Same intake and dispatch features",
-      "Billed per auto-confirmed job",
+      "Free estimates on every plan",
+      "Billed only when a job is approved/scheduled",
       "Cancel anytime",
     ],
   },
@@ -133,12 +136,16 @@ export const hvacFaq = [
     q: "How long does setup take?",
     a: "About 10 minutes: set your answer hours, forward your overflow, and configure your on-call tech. See the HVAC onboarding guide.",
   },
+  {
+    q: "Do estimate calls count toward my plan?",
+    a: "No. Press 2 estimate intakes are free on every plan. Only approved or scheduled emergency dispatches count toward included jobs or per-dispatch fees.",
+  },
 ];
 
 export const hvacSeoMeta = {
   title: "Effiroad for HVAC — AI Intake & Dispatch for HVAC Companies",
   description:
-    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. $169/mo, no CRM needed.",
+    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. From $149/mo Pro (Premium AI) or lower on Flex — no CRM needed.",
   ogTitle: "Effiroad — Never Lose a No-Heat Call at 2 AM",
   ogDescription:
     "AI-powered call intake and dispatch built for HVAC shops. No-heat auto-dispatch. Gas smell always held.",
@@ -384,7 +391,7 @@ export const comparisonHvac = {
     ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
     ["Missed call text-back", "60 sec SMS link", "Sometimes", "Callback later"],
     ["HVAC-specific intake", "Built in", "Partial", "Manual notes"],
-    ["Flat price", "$169/mo", "Usage / $600+", "$500–2K/mo"],
+    ["Flat price", "$149/mo", "Usage / $600+", "$500–2K/mo"],
     ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
     ["Go live", "~10 minutes", "Days", "Days + scripting"],
   ],
