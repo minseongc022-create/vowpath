@@ -37,7 +37,7 @@ export type UserRecord = {
   trialEndsAt?: string;
   feedbackText?: string;
   feedbackSubmittedAt?: string;
-  /** Set when the user gives trial-end feedback and unlocks the $129/mo intro rate. */
+  /** Set when the user gives trial-end feedback and unlocks the beta intro rate. */
   discountCohort?: "beta_feedback";
   /** When the cron in api/cron/beta-cohort-price-step should step their price 129 -> 159. */
   betaCohortPriceStepAt?: string;

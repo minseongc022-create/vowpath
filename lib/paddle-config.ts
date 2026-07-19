@@ -42,22 +42,22 @@ export function cappedOveragePriceIdForPlan(
   return process.env.PADDLE_PRICE_ID_SCALE_OVERAGE;
 }
 
-/** $129/mo Pro — feedback cohort for 5 years. */
+/** Beta-feedback Pro intro rate (see SITE.betaIntroPrice). */
 export function betaCohortIntroPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_INTRO;
 }
 
-/** $349/mo Scale — feedback cohort for 5 years. */
+/** Beta-feedback Scale intro rate (see SITE.betaScalePrice). */
 export function betaCohortScaleIntroPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_SCALE;
 }
 
-/** $169/mo Pro after 5-year feedback cohort ends. */
+/** List Pro after 5-year feedback cohort ends. */
 export function betaCohortLockedPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_LOCKED ?? process.env.PADDLE_PRICE_ID_PRO;
 }
 
-/** $369/mo Scale after cohort (same as list price). */
+/** List Scale after cohort (same as list price). */
 export function betaCohortScaleLockedPriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_SCALE;
 }

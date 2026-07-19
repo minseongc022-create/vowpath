@@ -80,11 +80,13 @@ export async function extractIntakeFromSpeechForVertical(
   vertical: ShopVertical,
   speech: string,
   menuPriority: JobPriority | null,
+  options?: { model?: string },
 ): Promise<IntakeExtractionResult> {
   return extractIntakeFromSpeechWithPrompt(
     buildExtractionPrompt(vertical),
     speech,
     menuPriority,
+    options,
   );
 }
 
@@ -157,17 +159,25 @@ function asOptionalBool(value: unknown): boolean | undefined {
 export async function extractIntakeFromSpeech(
   speech: string,
   menuPriority: JobPriority | null,
+  options?: { model?: string },
 ): Promise<IntakeExtractionResult> {
-  return extractIntakeFromSpeechWithPrompt(SYSTEM_PROMPT, speech, menuPriority);
+  return extractIntakeFromSpeechWithPrompt(SYSTEM_PROMPT, speech, menuPriority, options);
 }
 
 async function extractIntakeFromSpeechWithPrompt(
   systemPrompt: string,
   speech: string,
   menuPriority: JobPriority | null,
+  options?: { model?: string },
 ): Promise<IntakeExtractionResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
+
+  const model =
+    options?.model ??
+    process.env.OPENAI_MODEL_ECONOMY ??
+    process.env.OPENAI_MODEL ??
+    "gpt-4o-mini";
 
   const content = await withCircuitBreaker(
     () =>
@@ -185,7 +195,7 @@ async function extractIntakeFromSpeechWithPrompt(
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: process.env.OPENAI_MODEL ?? "gpt-4o",
+                model,
                 temperature: 0.1,
                 response_format: { type: "json_object" },
                 messages: [

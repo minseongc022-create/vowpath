@@ -7,31 +7,45 @@ export const SITE = {
   url: "https://effiroad.com",
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
-  monthlyPrice: "$169", // alias for Pro list price
-  flexBasePrice: "$75",
-  flexPerBooking: "$11",
+  /** Alias for Pro list price (break-even / marketing copy). */
+  monthlyPrice: "$149",
+  /**
+   * Pricing ladder (designed so upgrades feel obvious):
+   * Lite 0–2/mo · Flex ~3–11/mo · Pro ~12–32/mo · Scale 33+/mo
+   * Economy AI on Lite/Flex protects margin; Premium AI on Pro/Scale.
+   */
+  flexBasePrice: "$55",
+  flexPerBooking: "$8",
   /** Founder feedback cohort — locked for 5 years after trial. */
-  betaFlexBasePrice: "$69",
-  betaFlexPerBooking: "$9",
-  liteBasePrice: "$42",
-  litePerBooking: "$30",
-  betaLiteBasePrice: "$39",
-  betaLitePerBooking: "$25",
-  /** Pro (flat) — $169/mo with included dispatches, transparent overage beyond. */
-  proPrice: "$169",
+  betaFlexBasePrice: "$49",
+  betaFlexPerBooking: "$7",
+  liteBasePrice: "$29",
+  litePerBooking: "$18",
+  betaLiteBasePrice: "$25",
+  betaLitePerBooking: "$15",
+  /** Pro (flat) — included dispatches + transparent overage. */
+  proPrice: "$149",
   proIncludedDispatches: 20,
   proOverageMultiplier: 2,
-  /** Scale — high-volume flat plan. */
-  scalePrice: "$369",
+  /** Scale — high-volume flat plan (storm / busy shops). */
+  scalePrice: "$299",
   scaleIncludedDispatches: 50,
   scaleOverageMultiplier: 1.5,
   betaScaleOverageMultiplier: 1.2,
-  /** Internal COGS estimate per confirmed dispatch (Twilio + Retell + SMS + AI). */
+  /**
+   * COGS estimates per confirmed dispatch (Twilio + voice + SMS + AI).
+   * Economy = cheaper model stack (Lite/Flex). Premium = gpt-4o-class (Pro/Scale).
+   * `marginalDispatchCostUsd` stays as the premium alias for overage math defaults.
+   */
+  economyMarginalDispatchCostUsd: 3.5,
+  premiumMarginalDispatchCostUsd: 6,
   marginalDispatchCostUsd: 6,
-  /** Trial-feedback cohort: Pro $129/mo for 5 years, then regular $169/mo. */
-  betaIntroPrice: "$129",
-  betaScalePrice: "$349",
-  betaLockedPrice: "$169",
+  economyAiModel: "gpt-4o-mini",
+  premiumAiModel: "gpt-4o",
+  /** Trial-feedback cohort: Pro $119/mo for 5 years, then regular Pro. */
+  betaIntroPrice: "$119",
+  betaScalePrice: "$279",
+  betaLockedPrice: "$149",
   betaDiscountYears: 5,
 } as const;
 

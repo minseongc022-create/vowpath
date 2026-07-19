@@ -14,8 +14,9 @@ export function planVolumeBreakpoints() {
 
   const liteFlexCross = (flexBase - liteBase) / (litePer - flexPer);
   const flexProCross = (pro - flexBase) / flexPer;
-  const proScaleCross =
-    (scale - pro) / (SITE.marginalDispatchCostUsd * SITE.scaleOverageMultiplier);
+  /** Pro overage uses premium COGS × Pro multiplier when comparing to Scale flat. */
+  const proOverageRate = SITE.premiumMarginalDispatchCostUsd * SITE.proOverageMultiplier;
+  const proScaleCross = (scale - pro) / proOverageRate;
 
   const flexStarts = Math.ceil(liteFlexCross);
   const proStarts = Math.ceil(flexProCross);
@@ -80,17 +81,17 @@ export function planVolumeGuideKo(plan: GuidePlan): string {
 
 export function pricingVolumeTipEn(): string {
   const b = planVolumeBreakpoints();
-  return `Lite → quiet months. Flex → ${b.flexMin}–${b.flexMax}/mo. Pro → ${b.proMin}–${b.proMax}/mo (${SITE.proIncludedDispatches} included). Scale → ${b.scaleMin}+/mo. Dashboard alerts at 80% & 100% — no surprise overage bills.`;
+  return `Lite (Economy AI, quiet months) → Flex ${b.flexMin}–${b.flexMax}/mo → Pro ${b.proMin}–${b.proMax}/mo with Premium AI (${SITE.proIncludedDispatches} incl.) → Scale ${b.scaleMin}+/mo. Alerts at 80% & 100% — no surprise overage.`;
 }
 
 export function pricingVolumeTipKo(): string {
   const b = planVolumeBreakpoints();
-  return `Lite(적음) · Flex ${b.flexMin}–${b.flexMax}건 · Pro ${b.proMin}–${b.proMax}건 · Scale ${b.scaleMin}건+. 80%/100% 사용량 알림 — 예고 없는 청구 없음.`;
+  return `Lite(이코노미·적음) · Flex ${b.flexMin}–${b.flexMax}건 · Pro ${b.proMin}–${b.proMax}건(프리미엄 AI, ${SITE.proIncludedDispatches}건 포함) · Scale ${b.scaleMin}건+. 80%/100% 알림.`;
 }
 
 export function pricingVolumeTipEs(): string {
   const b = planVolumeBreakpoints();
-  return `Lite (meses tranquilos) · Flex ${b.flexMin}–${b.flexMax} · Pro ${b.proMin}–${b.proMax} · Scale ${b.scaleMin}+. Alertas al 80% y 100% — sin cargos sorpresa.`;
+  return `Lite (IA Economy) · Flex ${b.flexMin}–${b.flexMax} · Pro ${b.proMin}–${b.proMax} (IA Premium, ${SITE.proIncludedDispatches} incl.) · Scale ${b.scaleMin}+. Alertas 80%/100%.`;
 }
 
 export const PRICING_TRANSPARENCY_FOOTNOTE_EN =

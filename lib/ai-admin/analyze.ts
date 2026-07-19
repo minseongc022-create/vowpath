@@ -91,7 +91,7 @@ function blocked(answer: string, rows?: { label: string; value: string }[]): AiA
     rows,
     suggestions: [
       "Show my plan.",
-      "Compare Flex and Unlimited.",
+      "Compare Flex and Pro.",
       "Open billing portal.",
     ],
   };
@@ -183,7 +183,7 @@ function planCard(plan: PlanId): AiAdminAnalysisResult {
       ],
       actions,
     },
-    suggestions: ["Compare Lite, Flex, and Unlimited.", "What is my current plan?"],
+    suggestions: ["Compare Lite, Flex, Pro, and Scale.", "What is my current plan?"],
   };
 }
 
@@ -216,7 +216,7 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
           { label: "Open Billing Portal", kind: "portal" },
         ],
       },
-      suggestions: ["Compare Flex and Unlimited.", "Open billing portal."],
+      suggestions: ["Compare Flex and Pro.", "Open billing portal."],
     };
   }
 
@@ -229,7 +229,7 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
   if (q.includes("compare") || q.includes("차이")) {
     return {
       kind: "billing",
-      answer: "Effiroad currently has Flex and Unlimited plans.",
+      answer: "Effiroad has Lite, Flex, Pro, and Scale — Economy AI on Lite/Flex, Premium AI on Pro/Scale.",
       billingCard: {
         title: "Plan Comparison",
         description: sitePricing.tip,

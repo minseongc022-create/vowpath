@@ -1,4 +1,5 @@
 import { SITE, type PlanId } from "./constants";
+import { marginalCogsForPlan } from "./plan-ai";
 
 export type CappedFlatPlanId = "pro" | "scale";
 
@@ -24,7 +25,8 @@ export function overageUsdForUser(
   user: { discountCohort?: string; betaCohortSteppedAt?: string },
 ): number {
   const mult = overageMultiplierForUser(plan, user);
-  return Math.round(SITE.marginalDispatchCostUsd * mult * 100) / 100;
+  const cogs = marginalCogsForPlan(plan);
+  return Math.round(cogs * mult * 100) / 100;
 }
 
 export function formatOverageUsd(amount: number): string {
