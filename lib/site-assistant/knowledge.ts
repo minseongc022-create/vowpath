@@ -27,6 +27,7 @@ Effiroad (${SITE.url}) — AI answering service for US home-service shops (water
 
 PRICING:
 ${plans}
+Billing rule: Free estimates (press 2 / SMS estimate link) never bill. Only approved or scheduled emergency dispatches count toward included jobs or per-dispatch fees. Pending / held / declined / cancelled jobs do not bill.
 Trial: ${TRIAL_DAYS}-day free signup trial. Pilot shops with inbound line: ${PILOT_TRIAL_DAYS}-day pilot.
 
 HOW IT WORKS:

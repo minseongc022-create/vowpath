@@ -95,11 +95,13 @@ export const hvacPricing = {
   unlimited: {
     name: "Unlimited",
     price: "$149/mo",
-    description: "Unlimited calls, dispatches, and SMS. No per-job fees.",
+    description: "20 dispatches · free estimates · Premium AI. Only approved jobs count.",
     features: [
       "24/7 AI phone intake",
+      "Free estimates (press 2) — never billed",
       "No-heat auto-dispatch",
       "Owner SMS with 1/2 hold",
+      "Only approved/scheduled jobs bill",
       "Dashboard + analytics",
       "Optional Jobber sync",
     ],
@@ -107,10 +109,11 @@ export const hvacPricing = {
   flex: {
     name: "Flex",
     price: `${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking}/dispatch`,
-    description: "Low base, pay per confirmed dispatch.",
+    description: "Low base · free estimates · pay only per approved dispatch.",
     features: [
       "Same intake and dispatch features",
-      "Billed per auto-confirmed job",
+      "Free estimates on every plan",
+      "Billed only when a job is approved/scheduled",
       "Cancel anytime",
     ],
   },
@@ -132,6 +135,10 @@ export const hvacFaq = [
   {
     q: "How long does setup take?",
     a: "About 10 minutes: set your answer hours, forward your overflow, and configure your on-call tech. See the HVAC onboarding guide.",
+  },
+  {
+    q: "Do estimate calls count toward my plan?",
+    a: "No. Press 2 estimate intakes are free on every plan. Only approved or scheduled emergency dispatches count toward included jobs or per-dispatch fees.",
   },
 ];
 

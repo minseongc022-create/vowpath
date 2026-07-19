@@ -179,13 +179,13 @@ export const howItWorks = {
       step: "02",
       title: "전화 or 링크 접수",
       description:
-        "AI가 전화 접수와 링크 접수 중 선택을 안내합니다. 고객이 남긴 연락처·주소·증상을 요약해 둡니다.",
+        "메뉴 1번=긴급 접수·출동, 2번=무료 견적(건당 $0). AI가 연락처·주소·증상을 요약해 둡니다.",
     },
     {
       step: "03",
       title: "문자·이메일 승인",
       description:
-        "접수 내용이 업체 휴대폰 문자와 이메일로 옵니다. 1=승인, 2=거절. 승인 시 고객에게 확정 문자가 가고 Jobber에 자동 기록됩니다.",
+        "긴급 접수는 문자·이메일로 옵니다. 1=승인, 2=거절. 승인·스케줄 확정된 출동만 과금되고, 견적은 청구되지 않습니다.",
     },
   ],
 };
@@ -201,7 +201,8 @@ export const features = {
     },
     {
       title: "전화 · 링크 접수",
-      description: "통화 중 전화로 말하거나, 링크 폼으로 접수. 둘 다 같은 흐름으로 이어집니다.",
+      description:
+        "긴급(1번) 또는 무료 견적(2번·건당 $0). 전화·링크 폼 모두 같은 흐름으로 이어집니다.",
     },
     {
       title: "SMS · 이메일 알림",
@@ -209,7 +210,8 @@ export const features = {
     },
     {
       title: "1 / 2 승인",
-      description: "1=승인, 2=거절만 답하면 됩니다. 승인하면 고객에게 바로 확정 문자가 갑니다.",
+      description:
+        "1=승인, 2=거절. 승인·스케줄된 긴급 출동만 과금 — 견적·스팸·취소는 제외.",
     },
     {
       title: "야간·주말 스케줄",
@@ -226,14 +228,14 @@ export const features = {
 export const pricing = {
   title: "가격",
   subtitle:
-    "Lite·Flex는 이코노미 AI로 마진 맞춤. Pro·Scale은 프리미엄 AI + 할당량. 건수에 맞게 고르면 됩니다.",
+    "Lite/Flex는 승인한 긴급 출동만 건당 과금. 무료 견적 전화(메뉴 2번)는 모든 플랜에 포함 — 견적 건당 $0.",
   compare: [
     { label: "맞춤 수신 시간대", amount: "무제한 구간" },
-    { label: "문자 승인 + Job Card", amount: "포함" },
+    { label: "무료 견적 전화 (메뉴 2)", amount: "포함 — 건당 $0", highlight: true },
+    { label: "승인 출동 건당 과금", amount: "Lite / Flex만" },
     {
       label: "AI 품질",
       amount: "이코노미 → 프리미엄 (플랜별)",
-      highlight: true,
     },
   ],
   plans: [
@@ -241,16 +243,16 @@ export const pricing = {
       id: "lite" as const,
       name: "Lite",
       badge: "콜 적을 때",
-      description: "월 기본료 최저. 이코노미 AI. 실제 승인·디스패치할 때만 추가.",
+      description: "월 기본료 최저. 이코노미 AI. 출동 승인 시에만 추가 — 견적은 무료.",
       price: SITE.liteBasePrice,
       period: "/월",
-      usageLine: `+ 승인 예약 1건당 ${SITE.litePerBooking}`,
+      usageLine: `+ 승인 출동 1건당 ${SITE.litePerBooking} (견적 $0)`,
       volumeGuide: planVolumeGuideKo("lite"),
       features: [
-        "이코노미 AI 접수",
-        "문자 승인 · Job Card",
-        "맞춤 수신 시간대",
-        "Jobber 선택",
+        "무료 견적 전화 포함 ($0)",
+        "이코노미 AI 긴급 접수",
+        `출동 승인 시에만 +${SITE.litePerBooking}`,
+        "문자 승인 · Job Card · Jobber 선택",
       ],
       recommended: false,
       cta: `${CHECKOUT_CTA} — Lite`,
@@ -259,16 +261,16 @@ export const pricing = {
       id: "flex" as const,
       name: "성과형 Flex",
       badge: "가장 많이 선택",
-      description: "건당 단가 최적. Lite와 같은 이코노미 AI.",
+      description: "건당 단가 최적. 견적 무료 — 출동 승인할 때만 과금.",
       price: SITE.flexBasePrice,
       period: "/월",
-      usageLine: `+ 승인 예약 1건당 ${SITE.flexPerBooking}`,
+      usageLine: `+ 승인 출동 1건당 ${SITE.flexPerBooking} (견적 $0)`,
       volumeGuide: planVolumeGuideKo("flex"),
       features: [
+        "무료 견적 전화 포함 ($0)",
         "이코노미 AI 접수·디스패치 노트",
-        "Lite보다 낮은 건당",
-        "월 기본료 + 확정 예약당 수수료",
-        "콜만 받고 예약 0건 → 기본료만",
+        `Lite보다 낮은 건당 (${SITE.flexPerBooking})`,
+        "콜만 받고 승인 0건 → 기본료만",
       ],
       recommended: true,
       cta: `${CHECKOUT_CTA} — 성과형`,
@@ -277,16 +279,16 @@ export const pricing = {
       id: "pro" as const,
       name: "Pro",
       badge: "성장 shop",
-      description: "월 정액 + 프리미엄 AI. 포함 한도·초과 사전 알림.",
+      description: "월 정액 + 프리미엄 AI. 견적 무료. 긴급 출동만 한도에 포함.",
       price: SITE.proPrice,
       period: "/월",
       usageLine: proUsageLine(false),
       volumeGuide: planVolumeGuideKo("pro"),
       features: [
+        "무료 견적 전화 포함 ($0)",
         "프리미엄 AI 접수·Job Card",
-        `월 ${SITE.proIncludedDispatches}건 디스패치 포함`,
-        "80%/100% 사용량 알림",
-        "자동 디스패치·예약 · Jobber 선택",
+        `월 ${SITE.proIncludedDispatches}건 긴급 출동 포함`,
+        "80%/100% 알림 · Jobber 선택",
       ],
       recommended: false,
       cta: `${CHECKOUT_CTA} — Pro`,
@@ -295,16 +297,16 @@ export const pricing = {
       id: "scale" as const,
       name: "Scale",
       badge: "피크 시즌",
-      description: "프리미엄 AI + 고볼륨. 스톰 시즌 초과 요금 최저.",
+      description: "프리미엄 AI + 고볼륨. 견적 무료. 피크 초과 요금 최저.",
       price: SITE.scalePrice,
       period: "/월",
       usageLine: scaleUsageLine(false),
       volumeGuide: planVolumeGuideKo("scale"),
       features: [
-        "프리미엄 AI (Pro와 동일 스택)",
-        `월 ${SITE.scaleIncludedDispatches}건 포함`,
-        "Pro보다 낮은 초과 요금",
-        "피크·허리케인용 · Jobber 선택",
+        "무료 견적 전화 포함 ($0)",
+        "프리미엄 AI (Pro와 동일)",
+        `월 ${SITE.scaleIncludedDispatches}건 긴급 출동 포함`,
+        "Pro보다 낮은 초과 요금 · 피크용",
       ],
       recommended: false,
       cta: `${CHECKOUT_CTA} — Scale`,
@@ -312,11 +314,20 @@ export const pricing = {
   ],
   tip: pricingVolumeTipKo(),
   footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
+  guarantees: PRICING_GUARANTEES_EN,
 };
 
 export const faq = {
   title: "자주 묻는 질문",
   items: [
+    {
+      q: "견적 전화도 건당 받나요?",
+      a: "아니요. 무료 견적(메뉴 2번)은 모든 플랜에 포함이며 건당 $0입니다. Lite/Flex는 승인한 긴급 출동만 건당 과금하고, Pro/Scale 포함 한도에도 견적은 들어가지 않습니다.",
+    },
+    {
+      q: "성과형(Lite/Flex) 수수료는 언제 청구되나요?",
+      a: "업체가 문자·대시보드로 긴급 출동을 승인(또는 스케줄 확정)한 1건당만 과금됩니다. 통화만 있고 승인이 없으면 기본료만, 무료 견적·스팸·취소는 제외합니다.",
+    },
     {
       q: "번호 두 개 써야 하나요?",
       a: "아니요. 고객에게는 지금 쓰는 메인 번호 하나만 보입니다. 통신사·VoIP에서 안 받으면·통화중이면·야간·주말에만 Effiroad 번호로 착신전환합니다. Effiroad 번호는 설정용이지, 사이트에 새로 올리는 번호가 아닙니다.",

@@ -570,7 +570,7 @@ export const legalPagesEn = {
       },
       {
         heading: "Billing",
-        body: "Paid plans bill via Paddle. Flex plan charges per approved booking as described at checkout.",
+        body: "Paid plans bill via Paddle. Lite/Flex charge per approved or scheduled emergency dispatch as described at checkout. Free estimate calls (press 2) are never billed.",
       },
       {
         heading: "SMS & messaging",

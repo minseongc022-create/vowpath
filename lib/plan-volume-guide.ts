@@ -95,11 +95,11 @@ export function pricingVolumeTipEs(): string {
 }
 
 export const PRICING_TRANSPARENCY_FOOTNOTE_EN =
-  "Included dispatch counts reset each billing month. Spam, wrong numbers, and jobs you cancel never count. We alert you at 80% and 100% of included dispatches before any overage posts — no surprise bills.";
+  "Billable = approved/scheduled emergency dispatches only. Free estimate calls (press 2) never count toward Lite/Flex usage or Pro/Scale caps. Spam, wrong numbers, and jobs you cancel never count. We alert at 80% and 100% of included dispatches before any overage — no surprise bills.";
 
 export const PRICING_GUARANTEES_EN = [
   "30-day money-back guarantee",
   "Cancel anytime — no contracts",
+  "Free estimates on every plan",
   "Usage alerts before overage charges",
-  "No surprise bills",
 ] as const;
