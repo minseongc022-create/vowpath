@@ -7,6 +7,7 @@ export type PendingEstimateReply = {
   customerPhone: string;
   customerName: string;
   createdAt: string;
+  jobId?: string;
 };
 
 function kvKey(userId: string) {

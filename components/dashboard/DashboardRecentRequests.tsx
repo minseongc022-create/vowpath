@@ -90,7 +90,14 @@ export function DashboardRecentRequests({
                       </Link>
                     </td>
                     <td className="px-3 py-4">
-                      <p className="font-medium text-stone-800">{b.issueType}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="font-medium text-stone-800">{b.issueType}</p>
+                        {b.requestKind === "estimate" ? (
+                          <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800 ring-1 ring-sky-200">
+                            Estimate
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-0.5 line-clamp-1 text-xs text-stone-600">{b.cityState}</p>
                     </td>
                     <td className="px-3 py-4">

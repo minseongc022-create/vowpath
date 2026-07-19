@@ -7,6 +7,7 @@ import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { summarizeEstimateRequest } from "@/lib/estimate-intake/summarize";
 import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
+import { persistPhoneEstimateLead } from "@/lib/estimate-pipeline";
 import type { EstimateAnswers } from "@/lib/estimate-intake/types";
 
 function submittedKey(callId: string) {
@@ -26,11 +27,9 @@ async function claimFirstSubmission(callId: string): Promise<boolean> {
 
 /**
  * Retell custom-function endpoint for FREE ESTIMATE requests — distinct from
- * submit-intake (which books/dispatches a job). This never creates a booking
- * or dispatches anyone: it only collects the caller's project details and
- * forwards a clean summary to the shop owner by text, exactly like the
- * scripted phone-estimate flow in app/api/twilio/estimate/route.ts. The AI
- * does not calculate or quote a price — pricing stays with the shop.
+ * submit-intake (which books/dispatches a job). Collects project details, saves
+ * an estimate lead on the dashboard, and texts the shop owner. Never auto-
+ * dispatches and never bills. Pricing stays with the shop.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -102,11 +101,20 @@ export async function POST(request: Request) {
 
   try {
     const summary = await summarizeEstimateRequest(answers);
+    const { jobId } = await persistPhoneEstimateLead({
+      userId,
+      callSid: callId || `retell-${Date.now()}`,
+      from,
+      to,
+      answers,
+      summary,
+    });
     await notifyOwnerEstimateRequest({
       userId,
       callSid: callId || `retell-${Date.now()}`,
       answers,
       summary,
+      jobId,
     });
 
     return NextResponse.json({
