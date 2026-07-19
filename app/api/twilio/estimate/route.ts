@@ -27,6 +27,7 @@ import {
 } from "@/lib/estimate-intake/twiml";
 import { summarizeEstimateRequest } from "@/lib/estimate-intake/summarize";
 import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
+import { persistPhoneEstimateLead } from "@/lib/estimate-pipeline";
 import { logOperationFailure } from "@/lib/ops-failures";
 
 function twimlXml(body: string) {
@@ -119,13 +120,22 @@ export async function POST(request: Request) {
       return twimlXml(twimlEstimateLinkGoodbye(state.answers.name));
     }
 
-    // Phone channel — clean up the answers with GPT, then text the shop owner.
+    // Phone channel — persist estimate lead, then text the shop owner.
     const summary = await summarizeEstimateRequest(state.answers);
+    const { jobId } = await persistPhoneEstimateLead({
+      userId,
+      callSid,
+      from,
+      to,
+      answers: state.answers,
+      summary,
+    });
     await notifyOwnerEstimateRequest({
       userId,
       callSid,
       answers: state.answers,
       summary,
+      jobId,
     });
     return twimlXml(twimlEstimatePhoneGoodbye(state.answers.name));
   } catch (e) {

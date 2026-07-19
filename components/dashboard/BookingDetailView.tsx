@@ -837,42 +837,60 @@ function QuoteEstimateCard({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
-  async function handleSave() {
+  const isEstimate =
+    job.requestKind === "estimate" ||
+    /estimate|quote/i.test(job.arrivalWindow || job.symptom || "");
+
+  async function handleSave(sendToCustomer: boolean) {
     const dollars = Number(amount);
     if (!Number.isFinite(dollars) || dollars <= 0) {
       setError("Enter an amount.");
       return;
     }
     setError(null);
+    setOkMsg(null);
     setSaving(true);
     try {
       const res = await fetch("/api/jobs/quote", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: bookingId, quotedAmountCents: Math.round(dollars * 100) }),
+        body: JSON.stringify({
+          id: bookingId,
+          quotedAmountCents: Math.round(dollars * 100),
+          sendToCustomer,
+        }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; sentToCustomer?: boolean };
       if (!res.ok) {
         setError(data.error ?? "Could not save.");
         return;
       }
+      setOkMsg(
+        sendToCustomer
+          ? "Quote texted to customer. We’ll nudge them in 3 days if they haven’t booked."
+          : "Amount saved. Use “Send quote” when you’re ready to text the customer.",
+      );
       onSaved();
     } finally {
       setSaving(false);
     }
   }
 
+  const subtitle = job.quoteFollowUpSentAt
+    ? `Follow-up text sent ${new Date(job.quoteFollowUpSentAt).toLocaleDateString()}.`
+    : job.quoteSentToCustomerAt
+      ? `Quote texted ${new Date(job.quoteSentToCustomerAt).toLocaleDateString()} — auto follow-up in 3 days if still unbooked.`
+      : job.quotedAt
+        ? `Amount saved ${new Date(job.quotedAt).toLocaleDateString()} — not texted yet.`
+        : isEstimate
+          ? "Phone / link estimate lead. Enter your number, text it to the customer, then we chase the follow-up so it doesn’t die in your notes."
+          : "Enter an amount and text it to the customer. If they don’t book, we send one follow-up in 3 days.";
+
   return (
-    <InfoCard
-      title="Quote / estimate"
-      subtitle={
-        job.quotedAt
-          ? `Sent on ${new Date(job.quotedAt).toLocaleDateString()} — if the job is not booked, the customer gets an automatic follow-up text in 3 days.`
-          : "Enter an amount to send an automatic follow-up text in 3 days if the job is still not booked."
-      }
-    >
-      <div className="flex items-center gap-2 py-3">
+    <InfoCard title={isEstimate ? "Estimate pipeline" : "Quote / estimate"} subtitle={subtitle}>
+      <div className="flex flex-wrap items-center gap-2 py-3">
         <span className="text-sm text-stone-500">$</span>
         <input
           type="number"
@@ -881,6 +899,7 @@ function QuoteEstimateCard({
           onChange={(e) => {
             setAmount(e.target.value);
             setError(null);
+            setOkMsg(null);
           }}
           placeholder="4500"
           className="w-32 rounded-lg border border-brand-200 px-2 py-1.5 text-sm"
@@ -888,12 +907,21 @@ function QuoteEstimateCard({
         <button
           type="button"
           disabled={saving}
-          onClick={() => void handleSave()}
+          onClick={() => void handleSave(true)}
           className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Working…" : "Send quote"}
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void handleSave(false)}
+          className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-50 disabled:opacity-50"
+        >
+          Save only
         </button>
       </div>
+      {okMsg ? <p className="pb-3 text-xs text-emerald-800">{okMsg}</p> : null}
       {error ? <p className="pb-3 text-xs text-rose-700">{error}</p> : null}
     </InfoCard>
   );

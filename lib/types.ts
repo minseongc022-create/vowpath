@@ -25,9 +25,13 @@ export type JobCard = {
   arrivalWindow: string;
   status: RequestStatus;
   createdAt: string;
+  /** Free estimate lead vs emergency/service dispatch request. */
+  requestKind?: "estimate" | "service";
   /** Owner-entered quote/estimate amount, in cents. Drives the unbooked-quote follow-up. */
   quotedAmountCents?: number;
   quotedAt?: string;
+  /** When the quote amount was actually texted to the customer. */
+  quoteSentToCustomerAt?: string;
   quoteFollowUpSentAt?: string;
 };
 

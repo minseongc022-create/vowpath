@@ -23,6 +23,7 @@ import {
   smsAfterHoursCustomerBody,
   smsCustomerApprovedBody,
   smsCustomerQuoteFollowUpBody,
+  smsCustomerQuoteSentBody,
   smsCustomerRejectedBody,
   smsCustomerReviewRequestBody,
   smsOwnerIntakeAutoConfirmedBody,
@@ -224,6 +225,37 @@ export async function notifyCustomerReviewRequest(params: {
     operation: "customer_review_request",
     bookingId: params.bookingId,
   });
+}
+
+export async function notifyCustomerQuoteSent(params: {
+  userId: string;
+  bookingId: string;
+  phone?: string | null;
+  amountCents: number;
+  customerName?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const phone =
+    params.phone?.trim() ||
+    (await resolveBookingCustomerPhone(params.userId, params.bookingId));
+  if (!phone) {
+    console.info(`[customer-sms] skip quote_sent — no phone for ${params.bookingId}`);
+    return { ok: false, reason: "No customer phone on this estimate." };
+  }
+
+  const user = await findUserById(params.userId);
+  await sendCustomerSms({
+    userId: params.userId,
+    phone,
+    body: smsCustomerQuoteSentBody({
+      shopName: user?.shopName,
+      customerName: params.customerName,
+      amountCents: params.amountCents,
+    }),
+    dedupeId: `${params.bookingId}:quote_sent:${params.amountCents}`,
+    operation: "customer_quote_sent",
+    bookingId: params.bookingId,
+  });
+  return { ok: true };
 }
 
 export async function notifyCustomerQuoteFollowUp(params: {

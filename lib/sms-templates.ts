@@ -321,6 +321,22 @@ export function smsCustomerQuoteFollowUpBody(params: {
   return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.${smsCustomerOptOut()}`;
 }
 
+/** First outbound quote text after the shop decides on a dollar amount. */
+export function smsCustomerQuoteSentBody(params: {
+  shopName?: string;
+  customerName?: string;
+  amountCents: number;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = (params.customerName ?? "there").trim().split(/\s+/)[0] || "there";
+  const amount = (params.amountCents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+  return `${shop}: Hi ${first} — your estimate is ${amount}. Reply here with questions or to book a time. We're ready when you are.${smsCustomerOptOut()}`;
+}
+
 export function smsOwnerNoSlotBody(params: {
   shopName?: string;
   customerName: string;

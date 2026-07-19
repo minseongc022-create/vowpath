@@ -6,7 +6,7 @@ import { notifyCustomerQuoteFollowUp } from "@/lib/customer-sms";
 
 const FOLLOW_UP_AFTER_DAYS = 3;
 
-/** Daily: nudges customers who got a quote/estimate but haven't booked or completed N days later. */
+/** Daily: nudges customers who were texted a quote but haven't booked N days later. */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   const isDeployed = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
@@ -30,27 +30,30 @@ export async function GET(request: Request) {
 
     let checked = 0;
     let sent = 0;
+    let skippedNoConsent = 0;
     let failed = 0;
 
     for (const user of users) {
       const jobs = await listJobs(user.id);
-      const due = jobs.filter(
-        (j) =>
-          j.quotedAt &&
-          j.quotedAmountCents &&
+      const due = jobs.filter((j) => {
+        const sentAt = j.quoteSentToCustomerAt || j.quotedAt;
+        return (
+          Boolean(sentAt) &&
+          Boolean(j.quotedAmountCents) &&
           !j.quoteFollowUpSentAt &&
-          new Date(j.quotedAt).getTime() <= cutoff &&
+          new Date(sentAt!).getTime() <= cutoff &&
           j.status !== "completed" &&
-          j.status !== "scheduled",
-      );
+          j.status !== "scheduled" &&
+          j.status !== "rejected"
+        );
+      });
       checked += due.length;
 
       for (const job of due) {
         try {
           if (!(await hasCustomerMarketingSmsConsent(user.id, job.id))) {
-            await patchJobRecord(user.id, job.id, {
-              quoteFollowUpSentAt: new Date().toISOString(),
-            });
+            // Leave open — customer may opt in later. Do not burn the follow-up slot.
+            skippedNoConsent += 1;
             continue;
           }
           await notifyCustomerQuoteFollowUp({
@@ -69,7 +72,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, checked, sent, failed });
+    return NextResponse.json({ ok: true, checked, sent, skippedNoConsent, failed });
   } catch (e) {
     console.error("[cron/quote-follow-up]", e);
     return NextResponse.json(

@@ -36,6 +36,7 @@ import {
   createBookingReviewLinkSession,
   sendIntakeBookingConfirmation,
 } from "./booking-confirmation";
+import { ESTIMATE_ARRIVAL_WINDOW } from "../estimate-pipeline";
 
 export type FinalizeIntakeOptions = {
   intakeChannel?: IntakeChannel;
@@ -172,6 +173,9 @@ export async function finalizeVerifiedIntake(
     .catch((e) => console.warn("[finalize-intake] call quality score", e));
 
   try {
+    const estimateLead =
+      payload.priority === "P3" &&
+      /estimate|quote/i.test(payload.arrivalWindow || payload.symptom || "");
     await addJobRecord(userId, {
       priority: payload.priority,
       servicePriority: payload.servicePriority,
@@ -181,9 +185,12 @@ export async function finalizeVerifiedIntake(
       symptom: payload.symptom,
       customerName: payload.customerName,
       address: payload.address,
-      arrivalWindow: payload.arrivalWindow,
+      arrivalWindow: estimateLead
+        ? payload.arrivalWindow || ESTIMATE_ARRIVAL_WINDOW
+        : payload.arrivalWindow,
       status: initialRequestStatusAfterIntake(),
       sourceCallId: callLogId,
+      requestKind: estimateLead ? "estimate" : "service",
     });
   } catch (e) {
     await logOperationFailure({

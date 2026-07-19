@@ -5,8 +5,12 @@ import { findJobsToUpdateForBooking } from "@/lib/request-status-resolve";
 import type { CallRecord } from "@/lib/operations-analytics";
 import { getSession } from "@/lib/session";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
+import { notifyCustomerQuoteSent } from "@/lib/customer-sms";
 
-/** Owner records a quote/estimate amount on a job — starts the unbooked-quote follow-up clock. */
+/**
+ * Owner saves and optionally texts a quote/estimate amount.
+ * Sending to the customer starts the unbooked-quote follow-up clock.
+ */
 export async function PATCH(request: Request) {
   const forbidden = verifySameOriginRequest(request);
   if (forbidden) return forbidden;
@@ -20,6 +24,7 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const bookingId = String(body?.id ?? "").trim();
     const amountCents = Number(body?.quotedAmountCents);
+    const sendToCustomer = body?.sendToCustomer === true;
 
     if (!bookingId) {
       return NextResponse.json({ error: "Job id required" }, { status: 400 });
@@ -43,10 +48,34 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
+    const now = new Date().toISOString();
+    const cents = Math.round(amountCents);
+
+    if (sendToCustomer) {
+      const sent = await notifyCustomerQuoteSent({
+        userId: session.sub,
+        bookingId,
+        amountCents: cents,
+        customerName: job.customerName,
+      });
+      if (!sent.ok) {
+        return NextResponse.json(
+          { error: sent.reason ?? "Could not text the customer." },
+          { status: 400 },
+        );
+      }
+    }
+
     const saved = await patchJobRecord(session.sub, job.id, {
-      quotedAmountCents: Math.round(amountCents),
-      quotedAt: new Date().toISOString(),
+      quotedAmountCents: cents,
+      quotedAt: now,
       quoteFollowUpSentAt: undefined,
+      ...(sendToCustomer ? { quoteSentToCustomerAt: now } : {}),
+      ...(job.requestKind !== "service" &&
+      (job.requestKind === "estimate" ||
+        /estimate|quote/i.test(job.arrivalWindow || job.symptom || ""))
+        ? { requestKind: "estimate" as const }
+        : {}),
     });
 
     if (!saved) {
@@ -54,7 +83,11 @@ export async function PATCH(request: Request) {
     }
 
     const { userId: _u, ...publicJob } = saved;
-    return NextResponse.json({ ok: true, job: publicJob });
+    return NextResponse.json({
+      ok: true,
+      job: publicJob,
+      sentToCustomer: sendToCustomer,
+    });
   } catch (e) {
     console.error("[jobs/quote PATCH]", e);
     if (e instanceof Error && e.message === "KV_REQUIRED") {

@@ -43,6 +43,8 @@ export type RecentBooking = {
   arrivalWindow?: string;
   jobberJobId?: string;
   source: "job" | "jobber" | "call";
+  /** Free-estimate lead vs service/emergency. */
+  requestKind?: "estimate" | "service";
 };
 
 export function priorityToBadge(priority: JobPriority): BookingPriorityBadge {
@@ -133,10 +135,13 @@ function intakeCreatedAt(job: JobCard, calls: CallRecord[]): string {
 function jobToRecentBooking(job: JobCard, calls: CallRecord[] = []): RecentBooking {
   const source = job.id.startsWith("jobber-") ? "jobber" : "job";
   const pf = priorityFieldsFromJob(job);
+  const estimate =
+    job.requestKind === "estimate" ||
+    /estimate|quote/i.test(`${job.arrivalWindow ?? ""} ${job.symptom ?? ""}`);
   return {
     id: bookingIdForJob(job),
     customerName: localizeCustomerName(job.customerName || "Unknown customer"),
-    issueType: extractIssueType(job.symptom),
+    issueType: estimate ? "Estimate" : extractIssueType(job.symptom),
     cityState: formatCityState(job.address),
     priority: pf.priority,
     servicePriority: pf.servicePriority,
@@ -149,6 +154,7 @@ function jobToRecentBooking(job: JobCard, calls: CallRecord[] = []): RecentBooki
     arrivalWindow: job.arrivalWindow ? koArrival(job.arrivalWindow) : undefined,
     jobberJobId: job.jobberJobId,
     source,
+    requestKind: estimate ? "estimate" : job.requestKind ?? "service",
   };
 }
 
