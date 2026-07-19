@@ -1,5 +1,10 @@
 import { DEFAULT_PLAN, SITE, type PlanId } from "./constants";
-import { formatOverageUsd, overageUsdForUser } from "./dispatch-billing";
+
+/**
+ * Client-safe plan display helpers only.
+ * Do not import server modules (users-db / dispatch-billing) here —
+ * marketing content pulls this into the browser bundle.
+ */
 
 export function normalizePlanId(raw: unknown): PlanId {
   if (raw === "lite" || raw === "flex" || raw === "pro" || raw === "scale") return raw;
@@ -16,7 +21,9 @@ export function isPerDispatchPlan(plan: PlanId | undefined): plan is "flex" | "l
   return plan === "flex" || plan === "lite";
 }
 
-export { isCappedFlatPlan } from "./dispatch-billing";
+export function isCappedFlatPlan(plan: PlanId | undefined): plan is "pro" | "scale" {
+  return plan === "pro" || plan === "scale";
+}
 
 export function founderRateLabel(plan: PlanId): string {
   if (plan === "pro") return `${SITE.betaIntroPrice}/mo`;
@@ -49,9 +56,16 @@ export function founderRateShort(plan: PlanId): string {
   return `${SITE.betaLiteBasePrice}/mo + ${SITE.betaLitePerBooking}/dispatch`;
 }
 
+/** Pro/Scale always use premium COGS × plan multiplier (list copy; no DB). */
 export function cappedPlanOverageDisplay(plan: "pro" | "scale", founder = false): string {
-  const user = founder ? { discountCohort: "beta_feedback" as const } : {};
-  return formatOverageUsd(overageUsdForUser(plan, user));
+  const cogs = SITE.premiumMarginalDispatchCostUsd;
+  const mult =
+    plan === "pro"
+      ? SITE.proOverageMultiplier
+      : founder
+        ? SITE.betaScaleOverageMultiplier
+        : SITE.scaleOverageMultiplier;
+  return `$${Math.round(cogs * mult)}`;
 }
 
 export function proUsageLine(founder = false): string {

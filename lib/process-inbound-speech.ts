@@ -6,7 +6,7 @@ import { addJobRecord } from "./jobs-db";
 import { formatCityState } from "./recent-bookings";
 import { generateJobCardFromNotes } from "./job-card-ai";
 import type { GeneratedJobCard } from "./job-card-ai";
-import { resolveAiModelForShop } from "./plan-ai";
+import { resolveAiModelForShop } from "./plan-ai-shop";
 import { buildSpeechNotes } from "./twilio-voice-flow";
 import type { JobPriority } from "./types";
 

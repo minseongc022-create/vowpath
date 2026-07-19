@@ -5,7 +5,7 @@ import {
 } from "./confidence-config";
 import { formatCallbackForSpeech } from "./caller-id";
 import { extractIntakeFromSpeechForVertical } from "./extraction";
-import { resolveAiModelForShop } from "../plan-ai";
+import { resolveAiModelForShop } from "../plan-ai-shop";
 import type {
   CallIntakeState,
   MandatoryVerifyField,

@@ -7,7 +7,7 @@ import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { isRetellTenantEntitled } from "@/lib/retell-tenant-access";
 import { getShopVertical } from "@/lib/vertical-context";
 import { extractIntakeFromSpeechForVertical } from "@/lib/call-intake/extraction";
-import { resolveAiModelForShop } from "@/lib/plan-ai";
+import { resolveAiModelForShop } from "@/lib/plan-ai-shop";
 import { generateAiSummary } from "@/lib/call-intake/ai-summary";
 import { enrichRetellIntakeForFinalize } from "@/lib/call-intake/retell-verify";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
