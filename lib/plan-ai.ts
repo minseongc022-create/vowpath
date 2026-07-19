@@ -1,6 +1,5 @@
 import { SITE, type PlanId } from "./constants";
 import { normalizePlanId } from "./plan-pricing";
-import { findUserById } from "./users-db";
 
 /** Lite/Flex = economy models (protect margin). Pro/Scale = premium models. */
 export type AiTier = "economy" | "premium";
@@ -38,15 +37,4 @@ export function aiTierLabelKo(plan: PlanId | undefined): string {
 
 export function aiTierLabelEs(plan: PlanId | undefined): string {
   return aiTierForPlan(plan) === "premium" ? "IA Premium" : "IA Economy";
-}
-
-/** Resolve chat/JSON model from a shop (tenant) user id. Defaults to Flex/economy. */
-export async function resolveAiModelForShop(shopId: string | undefined | null): Promise<string> {
-  if (!shopId) return chatModelForPlan("flex");
-  try {
-    const user = await findUserById(shopId);
-    return chatModelForPlan(user?.plan);
-  } catch {
-    return chatModelForPlan("flex");
-  }
 }
