@@ -81,12 +81,12 @@ export function planVolumeGuideKo(plan: GuidePlan): string {
 
 export function pricingVolumeTipEn(): string {
   const b = planVolumeBreakpoints();
-  return `Lite (quiet months) → Flex ${b.flexMin}–${b.flexMax}/mo → Pro ${b.proMin}–${b.proMax}/mo (${SITE.proIncludedDispatches} incl.) → Scale ${b.scaleMin}+/mo. Premium AI on every plan. Alerts at 80% & 100% — no surprise overage.`;
+  return `Lite (quiet months) → Flex ${b.flexMin}–${b.flexMax}/mo → Pro ${b.proMin}–${b.proMax}/mo (${SITE.proIncludedDispatches} incl.) → Scale ${b.scaleMin}+/mo. Same intake + 1/2 holds on every plan. Alerts at 80% & 100% — no surprise overage.`;
 }
 
 export function pricingVolumeTipKo(): string {
   const b = planVolumeBreakpoints();
-  return `Lite(적음) · Flex ${b.flexMin}–${b.flexMax}건 · Pro ${b.proMin}–${b.proMax}건(${SITE.proIncludedDispatches}건 포함) · Scale ${b.scaleMin}건+. 모든 플랜 프리미엄 AI. 80%/100% 알림.`;
+  return `Lite(적음) · Flex ${b.flexMin}–${b.flexMax}건 · Pro ${b.proMin}–${b.proMax}건(${SITE.proIncludedDispatches}건 포함) · Scale ${b.scaleMin}건+. 모든 플랜 동일 접수·1/2 hold. 80%/100% 알림.`;
 }
 
 export function pricingVolumeTipEs(): string {

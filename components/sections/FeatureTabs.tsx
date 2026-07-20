@@ -24,14 +24,18 @@ const TABS: TabContent[] = [
     label: "Emergency Response",
     title: "Emergencies get triaged in seconds, not voicemail",
     description:
-      "When a caller mentions a flood, fire, or no-heat emergency, Effiroad recognizes the urgency immediately and moves straight into dispatch — no menu, no hold music.",
-    points: ["Auto-dispatch to the on-call crew", "Address & damage capture", "Instant crew notification by SMS"],
+      "Effiroad recognizes urgency and either auto-dispatches clear water / no-heat jobs — or holds fire, sewage, and gas-smell calls for your 1 / 2. No blind rolls on the jobs that matter.",
+    points: [
+      "Clear jobs → on-call crew SMS",
+      "Fire / Cat-3 / gas → owner 1 / 2 first",
+      "Natural voice + address capture",
+    ],
     mockup: {
       header: "Incoming · Priority 1",
       rows: [
         { label: "Issue", value: "Sewage backup, rising" },
         { label: "Address", value: "4821 Oak Dr, Austin TX" },
-        { label: "Status", value: "Crew dispatched", tone: "urgent" },
+        { label: "Status", value: "Owner hold — reply 1 / 2", tone: "urgent" },
       ],
     },
   },

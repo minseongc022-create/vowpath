@@ -8,37 +8,34 @@ export const SITE = {
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
   /** Alias for Pro list price (break-even / marketing copy). */
-  monthlyPrice: "$249",
+  monthlyPrice: "$299",
   /**
-   * Pricing ladder:
-   * Lite quiet · Flex mid · Pro/Scale capped flats.
-   * Rule: founder (sale) is always cheaper than list on every priced leg,
-   * and keeps ~50–60%+ gross margin at typical/cap usage (COGS $6/dispatch).
-   * Overage = prior overage fee × 1.8.
+   * Competitive vs OnCrew ($49/$149/$349 calls), ServiceAgent ($49/$119/$349), Jobber AI ($29).
+   * We bill approved emergency dispatches — not raw call minutes.
+   * Target ~40% gross margin at included/typical cap (COGS $6/dispatch).
+   * Founder (sale) always ≤ list on every priced leg.
    */
-  flexBasePrice: "$75",
-  flexPerBooking: "$16",
-  /** Founder Flex — always ≤ list; ~50–60%+ margin on 5–20 dispatch months. */
-  betaFlexBasePrice: "$55",
-  betaFlexPerBooking: "$12",
-  /** Lite list · quiet months (~0–2). Kept for Lite→Flex crossover. */
-  liteBasePrice: "$55",
-  litePerBooking: "$24",
-  /** Founder Lite — clear sale; $13/dispatch = 54% margin. */
-  betaLiteBasePrice: "$45",
+  /** Flex — mid shops; founder 10 dispatches ≈ $149 (OnCrew Pro band). */
+  flexBasePrice: "$69",
+  flexPerBooking: "$12",
+  betaFlexBasePrice: "$49",
+  betaFlexPerBooking: "$10",
+  /** Lite — quiet months; undercuts OnCrew Starter on base, usage-priced. */
+  liteBasePrice: "$39",
+  litePerBooking: "$18",
+  betaLiteBasePrice: "$35",
   betaLitePerBooking: "$13",
-  /** Pro list — 15 included · ~64% margin at cap. */
-  proPrice: "$249",
-  proIncludedDispatches: 15,
-  /** Overage = prior $12 × 1.8 → $22 (73% margin). */
-  proOverageMultiplier: 3.6,
-  /** Scale list — 30 included · ~60% margin at cap. */
-  scalePrice: "$449",
-  scaleIncludedDispatches: 30,
-  /** Overage = prior $9 × 1.8 → $16 (63% margin). */
-  scaleOverageMultiplier: 2.7,
-  /** Founder Scale overage = prior $7.20 × 1.8 → $13 (54% margin). */
-  betaScaleOverageMultiplier: 2.16,
+  /** Pro — 25 included · list ~40%+ at cap; founder hits ~40% at 25. */
+  proPrice: "$299",
+  proIncludedDispatches: 25,
+  /** Overage $15/dispatch (60% margin) — cheaper than prior $22, still healthy. */
+  proOverageMultiplier: 2.5,
+  /** Scale — storm / multi-crew · ~40 included at ~40% list margin. */
+  scalePrice: "$399",
+  scaleIncludedDispatches: 40,
+  /** Overage $12/dispatch (50% margin). */
+  scaleOverageMultiplier: 2,
+  betaScaleOverageMultiplier: 2,
   /**
    * COGS estimates per confirmed dispatch (Twilio + voice + SMS + AI).
    * Economy = legacy alias for COGS math. Premium = gpt-4o-class (all live plans).
@@ -49,11 +46,11 @@ export const SITE = {
   marginalDispatchCostUsd: 6,
   economyAiModel: "gpt-4o-mini",
   premiumAiModel: "gpt-4o",
-  /** Founder Pro — $50 under list · ~55% margin at 15 included. */
-  betaIntroPrice: "$199",
-  /** Founder Scale — $80 under list · ~51% margin at 30 included. */
-  betaScalePrice: "$369",
-  betaLockedPrice: "$249",
+  /** Founder Pro — $50 under list · ~40% margin at 25 included (COGS $150). */
+  betaIntroPrice: "$249",
+  /** Founder Scale — matches OnCrew Multi / SA Franchise band · 40 included. */
+  betaScalePrice: "$349",
+  betaLockedPrice: "$299",
   betaDiscountYears: 5,
 } as const;
 
