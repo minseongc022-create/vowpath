@@ -219,6 +219,7 @@ export default async function HvacPage() {
           </div>
         </section>
       </main>
+      <LegalLinksStrip />
       <Footer />
     </div>
   );
