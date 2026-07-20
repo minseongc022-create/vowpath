@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/layout/Header";
 
 import { Footer } from "@/components/layout/Footer";
+import { LegalLinksStrip } from "@/components/layout/LegalLinksStrip";
 
 import { BetaBanner } from "@/components/BetaBanner";
 
@@ -42,7 +43,8 @@ export default async function PricingPage() {
 
       </main>
 
-      <Footer />
+      <LegalLinksStrip />
+      <Footer sitePreview={Boolean(session)} />
 
     </div>
 

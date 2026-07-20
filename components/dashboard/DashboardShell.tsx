@@ -272,7 +272,7 @@ export function DashboardShell({
 
             <Link
 
-              href={`${ROUTES.home}#pricing`}
+              href={ROUTES.pricing}
 
               className="vow-dash-btn-primary mt-3 w-full text-center text-sm"
 
@@ -280,6 +280,13 @@ export function DashboardShell({
 
               {vowDashboard.upgrade.cta}
 
+            </Link>
+
+            <Link
+              href={ROUTES.site}
+              className="mt-2 block text-center text-[11px] text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
+            >
+              {vowDashboard.upgrade.viewLanding}
             </Link>
 
           </div>

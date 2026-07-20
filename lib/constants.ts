@@ -54,8 +54,15 @@ export type PlanId = "lite" | "flex" | "pro" | "scale";
 /** Default checkout / trial-end plan — Flex fits most independent shops. */
 export const DEFAULT_PLAN: PlanId = "flex";
 
+/** Query value that lets logged-in users open the public landing without bouncing to /dashboard. */
+export const MARKETING_SITE_VIEW = "site";
+
 export const ROUTES = {
   home: "/",
+  /** Logged-in preview of the marketing site (skips auth → dashboard redirect). */
+  site: `/?view=${MARKETING_SITE_VIEW}`,
+  /** Dedicated pricing page — reachable while logged in (unlike `/#pricing`). */
+  pricing: "/pricing",
   login: "/login",
   forgotPassword: "/forgot-password",
   signup: "/signup",

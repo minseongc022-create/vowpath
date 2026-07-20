@@ -259,6 +259,7 @@ export const vowDashboardEn = {
     title: "Upgrade plan",
     body: "Unlimited after-hours AI answering and text approvals.",
     cta: "View plans",
+    viewLanding: "View landing",
   },
   agreements: {
     eyebrow: "Agreement Keeper",

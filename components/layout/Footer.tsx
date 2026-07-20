@@ -7,10 +7,10 @@ import { SITE, ROUTES } from "@/lib/constants";
 import { getFooterLinks, getNavLinks } from "@/lib/nav-links";
 import { Container } from "@/components/ui/Container";
 
-export function Footer() {
+export function Footer({ sitePreview = false }: { sitePreview?: boolean }) {
   const { locale } = useLocale();
   const { footer: siteFooter } = useSiteContent();
-  const navLinks = getNavLinks(locale);
+  const navLinks = getNavLinks(locale, { sitePreview });
   const footerLinks = getFooterLinks(locale);
   const tagline = siteFooter?.tagline ?? SITE.tagline;
   const subline = siteFooter?.subline ?? "US water · fire · mold restoration · optional CRM · 24/7 intake";
@@ -20,7 +20,7 @@ export function Footer() {
       <Container className="py-14">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-sm">
-            <BrandLogo placement="site-footer" href={ROUTES.home} />
+            <BrandLogo placement="site-footer" href={sitePreview ? ROUTES.site : ROUTES.home} />
             <p className="mt-3 text-sm leading-relaxed text-stone-800">{tagline}</p>
             {siteFooter?.brandMeaning ? (
               <p className="mt-3 text-sm leading-relaxed text-stone-700">{siteFooter.brandMeaning}</p>

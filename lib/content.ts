@@ -1124,6 +1124,7 @@ const vowDashboardKo = {
     title: "플랜 업그레이드",
     body: "야간·주말 무제한 AI 수신과 문자 승인을 한 번에.",
     cta: "플랜 보기",
+    viewLanding: "랜딩 보기",
   },
   agreements: {
     eyebrow: "PM 계약 관리",

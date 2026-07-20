@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { ROUTES } from "@/lib/constants";
 
 type BillingStatus = {
   entitled: boolean;
@@ -23,7 +25,21 @@ export function BillingStatusBanner({ transactionId }: { transactionId?: string 
       .catch(() => setStatus(null));
   }, [transactionId]);
 
-  if (!status?.entitled) return null;
+  if (!status) return null;
+
+  if (!status.entitled) {
+    return (
+      <div className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
+        <p>Choose a plan anytime — see Lite, Flex, Pro, and Scale.</p>
+        <Link
+          href={ROUTES.pricing}
+          className="mt-2 inline-block font-semibold text-brand-800 underline hover:text-brand-950"
+        >
+          View plans
+        </Link>
+      </div>
+    );
+  }
 
   async function openPortal() {
     setPortalLoading(true);
@@ -47,16 +63,24 @@ export function BillingStatusBanner({ transactionId }: { transactionId?: string 
           ) : null}
         </p>
       ) : null}
-      {status.paddleCustomerId ? (
-        <button
-          type="button"
-          onClick={() => void openPortal()}
-          disabled={portalLoading}
-          className="mt-2 font-semibold text-emerald-800 underline hover:text-emerald-950 disabled:opacity-50"
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {status.paddleCustomerId ? (
+          <button
+            type="button"
+            onClick={() => void openPortal()}
+            disabled={portalLoading}
+            className="font-semibold text-emerald-800 underline hover:text-emerald-950 disabled:opacity-50"
+          >
+            {portalLoading ? "Opening…" : "Manage billing"}
+          </button>
+        ) : null}
+        <Link
+          href={ROUTES.pricing}
+          className="font-semibold text-emerald-800 underline hover:text-emerald-950"
         >
-          {portalLoading ? "Opening…" : "Manage billing"}
-        </button>
-      ) : null}
+          View plans
+        </Link>
+      </div>
     </div>
   );
 }
