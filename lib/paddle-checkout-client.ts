@@ -75,11 +75,13 @@ export async function createCheckoutSession(plan: PlanId): Promise<CheckoutApiOk
 
 export async function openPaddleCheckout(transactionId: string): Promise<void> {
   const { token, environment } = await fetchPaddleClientConfig();
+  const pwCustomerId = await resolvePwCustomerId();
 
   const { initializePaddle } = await import("@paddle/paddle-js");
   const paddle = await initializePaddle({
     token,
     environment,
+    ...(pwCustomerId ? { pwCustomer: { id: pwCustomerId } } : {}),
   });
   if (!paddle) {
     const err = new Error("Paddle.js failed to load");
@@ -94,6 +96,19 @@ export async function openPaddleCheckout(transactionId: string): Promise<void> {
       successUrl: `${origin}/dashboard/settings?transaction_id=${encodeURIComponent(transactionId)}`,
     },
   });
+}
+
+/** Paddle Retain — must be `ctm_…`, never email or our internal user id. */
+async function resolvePwCustomerId(): Promise<string | undefined> {
+  try {
+    const res = await fetch("/api/billing/status");
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { paddleCustomerId?: string | null };
+    const id = data.paddleCustomerId?.trim();
+    return id?.startsWith("ctm_") ? id : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function startPlanCheckout(plan: PlanId): Promise<void> {
