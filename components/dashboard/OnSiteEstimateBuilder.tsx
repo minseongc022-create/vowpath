@@ -38,7 +38,7 @@ function centsFromDollars(value: string): number {
 
 export function OnSiteEstimateBuilder({
   bookingId,
-  vertical,
+  vertical: verticalProp,
   onSaved,
 }: {
   bookingId: string;
@@ -53,6 +53,30 @@ export function OnSiteEstimateBuilder({
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<EstimateDocument | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [vertical, setVertical] = useState<ShopVertical | null | undefined>(verticalProp);
+
+  useEffect(() => {
+    if (verticalProp) {
+      setVertical(verticalProp);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/shop/profile");
+        const data = (await res.json()) as { profile?: { vertical?: string } };
+        if (!cancelled && data.profile?.vertical) {
+          const { normalizeShopVertical } = await import("@/lib/shop-vertical");
+          setVertical(normalizeShopVertical(data.profile.vertical));
+        }
+      } catch {
+        /* keep default restoration presets */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [verticalProp]);
 
   const presets = useMemo(() => presetsForVertical(vertical), [vertical]);
   const totals = useMemo(
