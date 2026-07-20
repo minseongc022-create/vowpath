@@ -229,7 +229,7 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
   if (q.includes("compare") || q.includes("차이")) {
     return {
       kind: "billing",
-      answer: "Effiroad has Lite, Flex, Pro, and Scale — Economy AI on Lite/Flex, Premium AI on Pro/Scale.",
+      answer: "Effiroad has Lite, Flex, Pro, and Scale — Premium AI on every plan. Lite/Flex bill per approved dispatch; Pro/Scale include monthly dispatch caps.",
       billingCard: {
         title: "Plan Comparison",
         description: sitePricing.tip,

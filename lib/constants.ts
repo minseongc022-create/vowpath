@@ -12,7 +12,7 @@ export const SITE = {
   /**
    * Pricing ladder (designed so upgrades feel obvious):
    * Lite 0–2/mo · Flex ~3–11/mo · Pro ~12–32/mo · Scale 33+/mo
-   * Economy AI on Lite/Flex protects margin; Premium AI on Pro/Scale.
+   * Premium AI on every plan — differentiation is volume & billing model.
    */
   flexBasePrice: "$55",
   flexPerBooking: "$8",
@@ -34,7 +34,7 @@ export const SITE = {
   betaScaleOverageMultiplier: 1.2,
   /**
    * COGS estimates per confirmed dispatch (Twilio + voice + SMS + AI).
-   * Economy = cheaper model stack (Lite/Flex). Premium = gpt-4o-class (Pro/Scale).
+   * Economy = legacy alias for COGS math. Premium = gpt-4o-class (all live plans).
    * `marginalDispatchCostUsd` stays as the premium alias for overage math defaults.
    */
   economyMarginalDispatchCostUsd: 3.5,

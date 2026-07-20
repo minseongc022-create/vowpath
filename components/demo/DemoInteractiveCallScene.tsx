@@ -121,11 +121,29 @@ export function DemoInteractiveCallScene({
     advanceWithCustomer,
     handleMenuChoice,
     handleOwnerAction,
+    unlockAudio,
+    audioUnlocked,
     reset,
   } = useDemoInteractiveTimeline({ steps, audioPrefix, enabled });
 
+  const showSoundPrompt = enabled && !audioUnlocked;
+
   const grid = (
-    <div className={`grid min-h-0 flex-1 grid-cols-2 gap-3 ${embedded ? "p-3 sm:gap-4 sm:p-4" : "gap-5 p-5 md:gap-6 md:p-8"}`}>
+    <div className="relative min-h-0 flex-1">
+      {showSoundPrompt ? (
+        <button
+          type="button"
+          onClick={unlockAudio}
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-2xl bg-black/70 px-4 text-center backdrop-blur-sm transition hover:bg-black/75"
+        >
+          <span className="text-2xl" aria-hidden>
+            🔊
+          </span>
+          <span className="text-sm font-semibold text-white">Tap to enable sound</span>
+          <span className="max-w-xs text-xs text-white/60">Browser requires a tap before AI voice can play</span>
+        </button>
+      ) : null}
+      <div className={`grid h-full min-h-0 grid-cols-2 gap-3 ${embedded ? "p-3 sm:gap-4 sm:p-4" : "gap-5 p-5 md:gap-6 md:p-8"}`}>
       <div className="flex min-h-0 flex-col items-center justify-center">
         <div className={`w-full overflow-hidden rounded-2xl border-4 border-slate-700 bg-black shadow-2xl ${embedded ? "max-w-none" : "max-w-xs"}`}>
           <div className={`bg-gradient-to-b from-brand-900/90 to-black text-center ${embedded ? "px-3 py-4" : "px-4 py-6"}`}>
@@ -188,6 +206,7 @@ export function DemoInteractiveCallScene({
           </button>
         ) : null}
       </div>
+    </div>
     </div>
   );
 
