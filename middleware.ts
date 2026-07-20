@@ -104,9 +104,19 @@ export async function middleware(request: NextRequest) {
       dest.search = request.nextUrl.search;
       return NextResponse.redirect(dest, 308);
     }
-    if (pathname === "/" || pathname === "/login") {
+    if (pathname === "/login") {
       const next = safeNextPath(request.nextUrl.searchParams.get("next"));
       return NextResponse.redirect(new URL(next ?? "/dashboard", request.url));
+    }
+    // Logged-in users normally land on the dashboard, but `?view=site` keeps the
+    // public landing (and #pricing) reachable from the in-app "View plans" links.
+    if (pathname === "/") {
+      if (request.nextUrl.searchParams.get("view") === "site") {
+        // allow through
+      } else {
+        const next = safeNextPath(request.nextUrl.searchParams.get("next"));
+        return NextResponse.redirect(new URL(next ?? "/dashboard", request.url));
+      }
     }
     if (pathname === "/signup" && !request.nextUrl.searchParams.has("invite")) {
       return NextResponse.redirect(new URL("/dashboard", request.url));

@@ -39,7 +39,8 @@ export function DashboardMobileNav({
   pendingReviewCount?: number;
 }) {
   const pathname = usePathname();
-  const v = useVowDashboard().nav;
+  const vowDashboard = useVowDashboard();
+  const v = vowDashboard.nav;
   const [moreOpen, setMoreOpen] = useState(false);
 
   const morePaths = [
@@ -149,6 +150,22 @@ export function DashboardMobileNav({
                 </Link>
               );
             })}
+          </div>
+          <div className="mt-3 flex flex-col items-center gap-2 border-t border-brand-100 pt-3">
+            <Link
+              href={ROUTES.pricing}
+              className="inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-brand-800 px-3 text-sm font-semibold text-white"
+              onClick={() => setMoreOpen(false)}
+            >
+              {vowDashboard.upgrade.cta}
+            </Link>
+            <Link
+              href={ROUTES.site}
+              className="text-[11px] font-medium text-stone-500 underline-offset-2 hover:text-stone-700 hover:underline"
+              onClick={() => setMoreOpen(false)}
+            >
+              {vowDashboard.upgrade.viewLanding}
+            </Link>
           </div>
         </div>
       ) : null}

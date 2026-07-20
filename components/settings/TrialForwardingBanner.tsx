@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_PLAN, SITE } from "@/lib/constants";
+import { DEFAULT_PLAN, ROUTES, SITE } from "@/lib/constants";
 import { trialHardCutoff } from "@/lib/billing-cohort";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
@@ -57,7 +57,7 @@ export function TrialForwardingBanner() {
     <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-950">
       Free trial: {daysLeft} day{daysLeft === 1 ? "" : "s"} left — phone & SMS included. After
       trial: one line of feedback unlocks founder pricing for {SITE.betaDiscountYears} years (see{" "}
-      <a href="/#pricing" className="font-semibold underline">
+      <a href={ROUTES.pricing} className="font-semibold underline">
         pricing on effiroad.com
       </a>
       ).

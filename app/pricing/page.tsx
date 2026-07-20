@@ -42,7 +42,7 @@ export default async function PricingPage() {
 
       </main>
 
-      <Footer />
+      <Footer sitePreview={Boolean(session)} />
 
     </div>
 
