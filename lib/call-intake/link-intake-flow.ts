@@ -26,6 +26,7 @@ import { finalizeVerifiedIntake } from "./finalize-intake";
 import { validateServiceAddress } from "./address-validation";
 import { generateAiSummary } from "./ai-summary";
 import { resolveCallbackFromCallerId } from "./caller-id";
+import { getShopVertical } from "../vertical-context.js";
 import type { FieldConfidence, VerifiedCallPayload } from "./types";
 import { MANDATORY_VERIFY_FIELDS } from "./types";
 import { inferLossCategoryFromText } from "../loss-category";
@@ -155,7 +156,10 @@ export async function submitLinkIntakeForm(params: {
     };
   }
 
-  const draft = buildLinkIntakeDraftFromForm(params);
+  const draft = buildLinkIntakeDraftFromForm({
+    ...params,
+    vertical: await getShopVertical(session!.userId),
+  });
   const selectedSlot = await resolveLinkIntakeSlot(
     session!.userId,
     params.urgency,

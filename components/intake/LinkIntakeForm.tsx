@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { clientFetch, clientFetchTimeoutMessage } from "@/lib/client-fetch";
 import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 import type { LinkIntakeCopy } from "@/lib/link-intake-copy";
-import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
+import { getLinkUrgencyOptions, type LinkUrgency } from "@/lib/link-intake-urgency";
 import type { SlotGridResult } from "@/lib/scheduling/slot-grid";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { LinkIntakeSubmissionPanel } from "@/components/intake/LinkIntakeSubmissionPanel";
@@ -173,6 +173,8 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
     if (step === "slots") return 100;
     return formProgress(customerName, addressValue, issueDescription, urgency);
   }, [step, customerName, addressValue, issueDescription, urgency]);
+
+  const urgencyOptions = useMemo(() => getLinkUrgencyOptions(vertical), [vertical]);
 
   function onPhotoChange(file: File | null) {
     setPhoto(file);
@@ -370,6 +372,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
       <LinkIntakeSubmissionPanel
         token={token}
         shopName={shopName}
+        vertical={vertical}
         initialBooking={submittedBooking}
         justSubmitted
       />
@@ -634,7 +637,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
               {copy.urgencyLabel} <span className="text-rose-500">*</span>
             </legend>
             <div className="space-y-2.5">
-              {LINK_URGENCY_OPTIONS.map((opt) => (
+              {urgencyOptions.map((opt) => (
                 <label
                   key={opt.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-4 shadow-sm transition active:scale-[0.99] ${

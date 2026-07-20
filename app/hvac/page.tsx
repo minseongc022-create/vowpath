@@ -152,7 +152,7 @@ export default async function HvacPage() {
               {hvacPricing.title}
             </h2>
             <div className="mt-8 grid gap-6 sm:grid-cols-2">
-              {[hvacPricing.unlimited, hvacPricing.flex].map((plan) => (
+              {[hvacPricing.pro, hvacPricing.flex].map((plan) => (
                 <div
                   key={plan.name}
                   className="rounded-xl border border-brand-200 bg-white p-6 shadow-sm"

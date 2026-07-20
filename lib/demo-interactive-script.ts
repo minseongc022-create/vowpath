@@ -100,7 +100,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
           id: "phone",
           label: "Handle on this call (urgent)",
           customerText:
-            "Water's flooding my basement — it's coming up through the floor drain.",
+            "Sewage is backing up in my basement — it's coming through the floor drain.",
           jumpTo: PHONE_START,
         },
       ],

@@ -6,6 +6,7 @@ import {
 } from "@/lib/security/ai-limits";
 import { checkRateLimit, rateLimitKey } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/session";
+import { getShopVertical } from "@/lib/vertical-context";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const card = await generateJobCardFromNotes(notes, { transcript: notes });
+    const vertical = await getShopVertical(session.sub);
+    const card = await generateJobCardFromNotes(notes, { transcript: notes, vertical });
     return NextResponse.json({ card });
   } catch (e) {
     const message = e instanceof Error ? e.message : "UNKNOWN";

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
-import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
+import { getLinkUrgencyOptions, type LinkUrgency } from "@/lib/link-intake-urgency";
+import type { ShopVertical } from "@/lib/shop-vertical";
 import type { LinkIntakeBookingView } from "@/lib/link-intake-portal";
 import { UsAddressField } from "@/components/intake/UsAddressField";
 import {
@@ -15,6 +16,7 @@ import {
 type LinkIntakeSubmissionPanelProps = {
   token: string;
   shopName: string;
+  vertical?: ShopVertical;
   initialBooking: LinkIntakeBookingView;
   /** First submit right now — show success hero */
   justSubmitted?: boolean;
@@ -41,6 +43,7 @@ function formFromBooking(booking: LinkIntakeBookingView) {
 export function LinkIntakeSubmissionPanel({
   token,
   shopName,
+  vertical = "restoration",
   initialBooking,
   justSubmitted = false,
   defaultCustomerName,
@@ -48,6 +51,7 @@ export function LinkIntakeSubmissionPanel({
   onBackToLookup,
 }: LinkIntakeSubmissionPanelProps) {
   const copy = useLinkIntakeCopy();
+  const urgencyOptions = getLinkUrgencyOptions(vertical);
   const [step, setStep] = useState<Step>("view");
   const [booking, setBooking] = useState(initialBooking);
   const [customerName, setCustomerName] = useState(
@@ -225,7 +229,7 @@ export function LinkIntakeSubmissionPanel({
                   {copy.urgencyLabel}
                 </legend>
                 <div className="space-y-2">
-                  {LINK_URGENCY_OPTIONS.map((opt) => (
+                  {urgencyOptions.map((opt) => (
                     <label
                       key={opt.id}
                       className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-4 py-3 ${
