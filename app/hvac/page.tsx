@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { LegalLinksStrip } from "@/components/layout/LegalLinksStrip";
 import { Hero } from "@/components/sections/Hero";
 import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { DemoSummary } from "@/components/sections/DemoSummary";
