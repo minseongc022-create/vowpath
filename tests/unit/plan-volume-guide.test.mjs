@@ -6,8 +6,8 @@ const LITE_BASE = 55;
 const LITE_PER = 24;
 const FLEX_BASE = 75;
 const FLEX_PER = 16;
-const PRO = 199;
-const SCALE = 369;
+const PRO = 249;
+const SCALE = 449;
 const PRO_INCLUDED = 15;
 const PREMIUM_COGS = 6;
 const PRO_OVERAGE_MULT = 3.6;
@@ -45,13 +45,13 @@ test("AI tier: Lite/Flex economy, Pro/Scale premium", () => {
 
 test("plan volume breakpoints encourage Flex then Pro then Scale", () => {
   const b = breakpoints();
-  // Lite $55+$24 · Flex $75+$16 · Pro $199/15 · Scale $369/30 · Pro overage $22
+  // Lite $55+$24 · Flex $75+$16 · Pro $249/15 · Scale $449/30 · Pro overage $22
   assert.ok(b.liteFlexCross > 2.4 && b.liteFlexCross < 2.6);
-  assert.ok(b.flexProCross > 7.7 && b.flexProCross < 7.8);
+  assert.ok(b.flexProCross > 10.8 && b.flexProCross < 11.0);
   assert.equal(b.liteMax, 2);
   assert.equal(b.flexMin, 3);
-  assert.equal(b.flexMax, 7);
-  assert.equal(b.proMin, 8);
-  assert.equal(b.scaleMin, 23);
-  assert.equal(b.proMax, 22);
+  assert.equal(b.flexMax, 10);
+  assert.equal(b.proMin, 11);
+  assert.equal(b.scaleMin, 25);
+  assert.equal(b.proMax, 24);
 });
