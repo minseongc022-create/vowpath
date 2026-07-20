@@ -512,35 +512,6 @@ export function BookingSettingsEditor() {
               className="vow-settings-input"
             />
           </SettingsSubsection>
-
-          <SettingsSubsection
-            icon="🧪"
-            title={settingsPage.shadowModeLabel}
-            hint={settingsPage.shadowModeIntro}
-          >
-            <input
-              type="number"
-              min={0}
-              max={50}
-              value={settings.shadowModeRemaining}
-              onChange={(e) => updateLocal({ shadowModeRemaining: Number(e.target.value) })}
-              className="vow-settings-input max-w-xs"
-            />
-            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-              <li className="flex gap-2">
-                <span className="shrink-0" aria-hidden>
-                  🟢
-                </span>
-                <span>{settingsPage.shadowModeLive}</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0" aria-hidden>
-                  🟡
-                </span>
-                <span>{settingsPage.shadowModePractice}</span>
-              </li>
-            </ul>
-          </SettingsSubsection>
         </div>
       </details>
 

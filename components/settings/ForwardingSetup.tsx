@@ -14,7 +14,7 @@ import {
 } from "@/lib/forwarding-guides";
 import { ForwardingUnblockGuide } from "@/components/settings/ForwardingUnblockGuide";
 import { ForwardingOneTapSetup } from "@/components/settings/ForwardingOneTapSetup";
-import { ForwardingTestPanel } from "@/components/settings/ForwardingTestPanel";
+import { TestModeToggle } from "@/components/settings/TestModeToggle";
 import { TrialForwardingBanner } from "@/components/settings/TrialForwardingBanner";
 import { ForwardingPathQuiz } from "@/components/settings/ForwardingPathQuiz";
 import { ForwardingYourSetupCard } from "@/components/settings/ForwardingYourSetupCard";
@@ -83,14 +83,12 @@ export function ForwardingSetup({
     initialNormalized ? pathForProvider(initialNormalized) : null,
   );
   const [wizardStep, setWizardStep] = useState(() => (confirmed && !embeddedInGoLive ? 2 : 1));
-  const [forwardingVerified, setForwardingVerified] = useState(false);
-  const [testAttempted, setTestAttempted] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<ForwardingQuizAnswers | null>(null);
   const [entryMode, setEntryMode] = useState<EntryMode>("quiz");
 
   const WIZARD_STEPS = [
     { n: 1, label: settingsPage.forwardingWizardSteps.setUp },
-    { n: 2, label: settingsPage.forwardingWizardSteps.testCall },
+    { n: 2, label: settingsPage.forwardingWizardSteps.testMode },
   ] as const;
 
   const loadPhoneStatus = useCallback(async () => {
@@ -140,8 +138,6 @@ export function ForwardingSetup({
 
   useEffect(() => {
     onPreferencesChange?.({ scenario: "overflow", provider });
-    setForwardingVerified(false);
-    setTestAttempted(false);
   }, [provider, onPreferencesChange]);
 
   useEffect(() => {
@@ -404,13 +400,12 @@ export function ForwardingSetup({
       {showTestSection ? (
         <div className="vow-settings-section space-y-3">
           {pickerOpen ? null : numberBlock}
-          <ForwardingTestPanel
-            provider={provider}
-            onVerified={() => setForwardingVerified(true)}
-            onTestStarted={() => setTestAttempted(true)}
-          />
+          <TestModeToggle compact />
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700">
+            {settingsPage.testModeForwardingHint}
+          </p>
 
-          {testAttempted && !forwardingVerified && !directMain && phoneNumber ? (
+          {!directMain && phoneNumber ? (
             <EffiroadDedicatedLineCard
               phoneNumber={phoneNumber}
               variant="fallback"
@@ -460,7 +455,7 @@ export function ForwardingSetup({
           ) : batchSave && embeddedInGoLive ? null : (
             <button
               type="button"
-              disabled={confirmDisabled || !phoneNumber || !forwardingVerified}
+              disabled={confirmDisabled || !phoneNumber}
               onClick={onConfirm}
               className="vow-dash-btn-primary w-full px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-3 sm:text-base"
             >
@@ -469,8 +464,6 @@ export function ForwardingSetup({
           )}
           {!phoneNumber && !loading ? (
             <p className="text-center text-xs text-slate-500">{settingsPage.forwardingConfirmBlocked}</p>
-          ) : !forwardingVerified && phoneNumber ? (
-            <p className="text-center text-xs text-amber-800">{settingsPage.forwardingVerifyRequired}</p>
           ) : null}
         </div>
       ) : null}
@@ -491,7 +484,7 @@ export function ForwardingSetup({
             onClick={() => setWizardStep(2)}
             className="min-h-9 flex-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white sm:min-h-[44px] sm:flex-none sm:px-4 sm:py-2.5 sm:text-base"
           >
-            Next → {settingsPage.forwardingWizardSteps.testCall}
+            Next → {settingsPage.forwardingWizardSteps.testMode}
           </button>
         ) : null}
       </div>

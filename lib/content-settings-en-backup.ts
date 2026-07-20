@@ -137,6 +137,7 @@ export const SETTINGS_PAGE_EN = {
     choosePath: "Choose path",
     setUp: "Set up forwarding",
     testCall: "Test call",
+    testMode: "Test mode",
   },
   forwardingSetupPrompt:
     "Pick the quiz (3 questions) or the full list below — verified forwarding paths only.",
