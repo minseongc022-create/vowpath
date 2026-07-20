@@ -7,6 +7,7 @@ import {
   IconBriefing,
   IconCalendar,
   IconDashboard,
+  IconDiamond,
   IconMissedCalls,
   IconRequests,
   IconSettings,
@@ -15,7 +16,9 @@ import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
-import { useVowDashboard } from "@/components/providers/LocaleProvider";
+import { useLocale, useVowDashboard } from "@/components/providers/LocaleProvider";
+import { useUserPlan } from "@/lib/hooks/use-user-plan";
+import { planNavCtaEn, planNavCtaKo } from "@/lib/plan-nav-label";
 
 type Tab = {
   href: string;
@@ -39,8 +42,11 @@ export function DashboardMobileNav({
   pendingReviewCount?: number;
 }) {
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const userPlan = useUserPlan();
   const vowDashboard = useVowDashboard();
   const v = vowDashboard.nav;
+  const planLabel = locale === "ko" ? planNavCtaKo(userPlan) : planNavCtaEn(userPlan);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const morePaths = [
@@ -104,6 +110,12 @@ export function DashboardMobileNav({
       icon: <IconSettings className="h-5 w-5" />,
       match: (p: string) => p.startsWith(ROUTES.settings),
     },
+    {
+      href: ROUTES.pricing,
+      label: planLabel,
+      icon: <IconDiamond className="h-5 w-5" />,
+      match: (p: string) => p.startsWith(ROUTES.pricing),
+    },
   ];
 
   return (
@@ -146,26 +158,12 @@ export function DashboardMobileNav({
                   >
                     {link.icon}
                   </span>
-                  <span className="text-[11px] font-semibold leading-tight text-stone-700">{link.label}</span>
+                  <span className="line-clamp-2 text-center text-[10px] font-semibold leading-tight text-stone-700">
+                    {link.label}
+                  </span>
                 </Link>
               );
             })}
-          </div>
-          <div className="mt-3 flex flex-col items-center gap-2 border-t border-brand-100 pt-3">
-            <Link
-              href={ROUTES.pricing}
-              className="inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-brand-800 px-3 text-sm font-semibold text-white"
-              onClick={() => setMoreOpen(false)}
-            >
-              {vowDashboard.upgrade.cta}
-            </Link>
-            <Link
-              href={ROUTES.site}
-              className="text-[11px] font-medium text-stone-500 underline-offset-2 hover:text-stone-700 hover:underline"
-              onClick={() => setMoreOpen(false)}
-            >
-              {vowDashboard.upgrade.viewLanding}
-            </Link>
           </div>
         </div>
       ) : null}

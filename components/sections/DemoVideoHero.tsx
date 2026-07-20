@@ -98,7 +98,7 @@ export function DemoVideoHero({ vertical = "restoration" }: DemoVideoHeroProps) 
         <div className="relative mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl sm:mt-8">
           <div
             key={`${vertical}-${active}-${liveKey}`}
-            className="aspect-video min-h-[360px] w-full sm:min-h-[420px]"
+            className="aspect-auto min-h-[520px] w-full sm:aspect-video sm:min-h-[420px]"
           >
             <DemoInteractiveCallScene
               embedded

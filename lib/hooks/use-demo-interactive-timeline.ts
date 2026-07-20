@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InteractiveStep } from "@/lib/demo-interactive-script";
+import { demoAudioPlayer, speakDemoFallback } from "@/lib/demo-audio-player";
 import { isDemoAudioUnlocked, unlockDemoAudio } from "@/lib/demo-audio-unlock";
 
 type UseDemoInteractiveTimelineOptions = {
@@ -27,12 +28,16 @@ export function useDemoInteractiveTimeline({
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [done, setDone] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(() => isDemoAudioUnlocked());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(audioUnlocked);
   const customerScrollRef = useRef<HTMLDivElement | null>(null);
   const runningRef = useRef(false);
 
+  useEffect(() => {
+    audioUnlockedRef.current = audioUnlocked;
+  }, [audioUnlocked]);
+
   const reset = useCallback(() => {
-    audioRef.current?.pause();
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     runningRef.current = false;
     setCursor(0);
     setCustomerLines([]);
@@ -47,36 +52,32 @@ export function useDemoInteractiveTimeline({
     setDone(false);
   }, []);
 
-  const ensureAudioUnlocked = useCallback(() => {
-    if (audioUnlocked) return true;
-    const ok = unlockDemoAudio();
-    if (ok) setAudioUnlocked(true);
-    return ok;
-  }, [audioUnlocked]);
+  const markUnlocked = useCallback(() => {
+    unlockDemoAudio();
+    audioUnlockedRef.current = true;
+    setAudioUnlocked(true);
+  }, []);
 
   const playAi = useCallback(
     async (text: string, audioIndex?: number) => {
       setAiLine(text);
       setSpeaking(true);
-      if (audioPrefix && audioIndex !== undefined && audioUnlocked) {
-        const audio = new Audio(`/demo-audio/${audioPrefix}-${audioIndex}.mp3`);
-        audioRef.current = audio;
-        try {
-          await audio.play();
-          await new Promise<void>((resolve) => {
-            audio.onended = () => resolve();
-            audio.onerror = () => resolve();
-            setTimeout(resolve, Math.max(text.length * 78, 2800));
-          });
-        } catch {
-          await new Promise((r) => setTimeout(r, Math.max(text.length * 78, 2800)));
+
+      if (audioUnlockedRef.current) {
+        let played = false;
+        if (audioPrefix && audioIndex !== undefined) {
+          played = await demoAudioPlayer.playMp3(`/demo-audio/${audioPrefix}-${audioIndex}.mp3`);
+        }
+        if (!played) {
+          await speakDemoFallback(text);
         }
       } else {
         await new Promise((r) => setTimeout(r, Math.max(text.length * 55, 1800)));
       }
+
       setSpeaking(false);
     },
-    [audioPrefix, audioUnlocked],
+    [audioPrefix],
   );
 
   const runAutoSteps = useCallback(
@@ -129,48 +130,49 @@ export function useDemoInteractiveTimeline({
 
   useEffect(() => {
     if (!enabled) {
-      audioRef.current?.pause();
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
       return;
     }
+    if (!audioUnlocked) return;
     if (waitingForClick || done) return;
     void runAutoSteps(cursor);
-  }, [enabled, cursor, waitingForClick, done, runAutoSteps]);
+  }, [enabled, audioUnlocked, cursor, waitingForClick, done, runAutoSteps]);
 
   const advanceWithCustomer = useCallback(
     (text: string) => {
-      ensureAudioUnlocked();
+      markUnlocked();
       setCustomerLines((prev) => [...prev, text]);
       setWaitingForClick(false);
       setCursor((c) => c + 1);
     },
-    [ensureAudioUnlocked],
+    [markUnlocked],
   );
 
   const handleMenuChoice = useCallback(
     (option: { customerText?: string; jumpTo?: number }) => {
-      ensureAudioUnlocked();
+      markUnlocked();
       if (option.customerText) {
         setCustomerLines((prev) => [...prev, option.customerText!]);
       }
       setWaitingForClick(false);
       setCursor(option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1);
     },
-    [ensureAudioUnlocked],
+    [markUnlocked],
   );
 
   const handleOwnerAction = useCallback(
     (systemText: string) => {
-      ensureAudioUnlocked();
+      markUnlocked();
       setSystemLine(systemText);
       setWaitingForClick(false);
       setCursor((c) => c + 1);
     },
-    [ensureAudioUnlocked],
+    [markUnlocked],
   );
 
   const unlockAudio = useCallback(() => {
-    ensureAudioUnlocked();
-  }, [ensureAudioUnlocked]);
+    markUnlocked();
+  }, [markUnlocked]);
 
   useEffect(() => {
     const el = customerScrollRef.current;
