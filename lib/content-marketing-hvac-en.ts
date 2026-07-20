@@ -15,10 +15,10 @@ export const hvacHero = {
   primaryCta: "Start free trial",
   secondaryCta: "See how it works",
   trustPills: [
-    "24/7 AI intake",
+    "High-quality natural voice",
     "No-heat auto-dispatch",
     "Gas smell always held",
-    "Instant owner SMS",
+    "Owner 1 / 2 + reply 9 undo",
   ] as const,
 };
 
@@ -95,14 +95,14 @@ export const hvacPricing = {
   pro: {
     name: "Pro",
     price: `${SITE.proPrice}/mo`,
-    description: "20 dispatches · free estimates · Premium AI on every plan. Only approved jobs count.",
+    description: `${SITE.proIncludedDispatches} dispatches/mo · free estimates · gas smell always held. Only approved jobs count.`,
     features: [
-      "24/7 AI phone intake",
+      "High-quality natural US voice",
       "Free estimates (press 2) — never billed",
       "No-heat auto-dispatch",
-      "Owner SMS with 1/2 hold",
+      "Gas / electrical → owner 1 / 2",
       "Only approved/scheduled jobs bill",
-      "Dashboard + analytics",
+      "No CRM required",
       "Optional Jobber sync",
     ],
   },
@@ -111,7 +111,7 @@ export const hvacPricing = {
     price: `${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking}/dispatch`,
     description: "Low base · free estimates · pay only per approved dispatch.",
     features: [
-      "Same intake and dispatch features",
+      "Same intake + owner holds as Pro",
       "Free estimates on every plan",
       "Billed only when a job is approved/scheduled",
       "Cancel anytime",
@@ -145,7 +145,7 @@ export const hvacFaq = [
 export const hvacSeoMeta = {
   title: "Effiroad for HVAC — AI Intake & Dispatch for HVAC Companies",
   description:
-    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. Premium AI on every plan — from ${SITE.proPrice}/mo Pro or lower on Flex — no CRM needed.",
+    "Effiroad answers every HVAC call 24/7 with a natural US voice, auto-dispatches verified no-heat emergencies, and holds gas smell for your 1 / 2. From ${SITE.proPrice}/mo Pro or Flex for lighter months — no CRM needed.",
   ogTitle: "Effiroad — Never Lose a No-Heat Call at 2 AM",
   ogDescription:
     "AI-powered call intake and dispatch built for HVAC shops. No-heat auto-dispatch. Gas smell always held.",
@@ -386,13 +386,13 @@ export const comparisonHvac = {
     "ServiceAgent auto-dispatches everything. Call centers take messages. Effiroad auto-dispatches clear no-heat/no-cool calls — and holds gas smell, electrical, and messy intakes so bad rolls don't slip through.",
   headers: ["", "Effiroad", "Generic AI call bots", "Human call centers"],
   rows: [
-    ["Clear no-heat auto-dispatch", "Yes — tech SMS + owner FYI", "Yes — blind auto", "No — message only"],
-    ["Hold gas smell / electrical", "Owner SMS 1 / 2", "Varies", "Script only"],
-    ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
-    ["SMS link intake", "Customer self-serve form", "Sometimes", "Callback later"],
+    ["Clear no-heat auto-dispatch", "Yes — tech SMS + owner FYI", "Often blind auto", "No — message only"],
+    ["Hold gas smell / electrical", "Hardcoded hold · reply 1 / 2", "Often blind auto", "Message / escalate"],
+    ["Reply 9 undo", "Yes", "Rare", "No"],
+    ["Call voice quality", "Natural US voice, every call", "Varies", "Human variance"],
     ["HVAC-specific intake", "Built in", "Partial", "Manual notes"],
-    ["Flat price", `${SITE.proPrice}/mo`, "Usage / $600+", "$500–2K/mo"],
-    ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
+    ["Works without CRM", "Yes — SMS + dashboard", "Often CRM-locked", "Separate tool"],
+    ["Pricing", `Flex from ${SITE.flexBasePrice} · Pro ${SITE.proPrice}`, "Credits / usage", "$300–2K/mo"],
     ["Go live", "~10 minutes", "Days", "Days + scripting"],
   ],
 };
