@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 /** Mirror list prices + AI COGS from lib/constants.ts / plan-volume-guide.ts */
-const LITE_BASE = 29;
-const LITE_PER = 18;
-const FLEX_BASE = 55;
-const FLEX_PER = 8;
-const PRO = 149;
-const SCALE = 299;
-const PRO_INCLUDED = 20;
+const LITE_BASE = 32;
+const LITE_PER = 20;
+const FLEX_BASE = 59;
+const FLEX_PER = 10;
+const PRO = 199;
+const SCALE = 369;
+const PRO_INCLUDED = 15;
 const PREMIUM_COGS = 6;
-const PRO_OVERAGE_MULT = 2;
+const PRO_OVERAGE_MULT = 3.6;
 
 function breakpoints() {
   const liteFlexCross = (FLEX_BASE - LITE_BASE) / (LITE_PER - FLEX_PER);
@@ -45,12 +45,12 @@ test("AI tier: Lite/Flex economy, Pro/Scale premium", () => {
 
 test("plan volume breakpoints encourage Flex then Pro then Scale", () => {
   const b = breakpoints();
-  assert.ok(b.liteFlexCross > 2.5 && b.liteFlexCross < 2.7);
-  assert.ok(b.flexProCross > 11.7 && b.flexProCross < 11.8);
+  assert.ok(b.liteFlexCross > 2.6 && b.liteFlexCross < 2.8);
+  assert.ok(b.flexProCross > 13.9 && b.flexProCross < 14.1);
   assert.equal(b.liteMax, 2);
   assert.equal(b.flexMin, 3);
-  assert.equal(b.flexMax, 11);
-  assert.equal(b.proMin, 12);
-  assert.equal(b.scaleMin, 33);
-  assert.equal(b.proMax, 32);
+  assert.equal(b.flexMax, 13);
+  assert.equal(b.proMin, 14);
+  assert.equal(b.scaleMin, 23);
+  assert.equal(b.proMax, 22);
 });
