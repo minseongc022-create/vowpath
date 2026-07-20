@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { LegalLinksStrip } from "@/components/layout/LegalLinksStrip";
 import { MARKETING_SITE_VIEW, ROUTES } from "@/lib/constants";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
@@ -50,6 +51,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <FAQ />
         <CTA />
       </main>
+      <LegalLinksStrip />
       <Footer sitePreview={sitePreview} />
     </div>
   );
