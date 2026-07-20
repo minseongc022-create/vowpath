@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { AppHeader } from "@/components/app/AppHeader";
 import { Container } from "@/components/ui/Container";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function ForgotPasswordPage() {
   return (
