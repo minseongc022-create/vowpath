@@ -135,21 +135,21 @@ export const pricingEs = {
     { label: "Teléfono con IA + enlace SMS", amount: "Incluido" },
     { label: "Presupuestos gratis (opción 2)", amount: "Incluido — $0 c/u", highlight: true },
     { label: "Pago por despacho aprobado", amount: "Solo Lite / Flex" },
-    { label: "Calidad de IA", amount: "Economy → Premium por plan" },
+    { label: "Calidad de IA", amount: "IA Premium en todos los planes" },
   ],
   plans: [
     {
       id: "lite" as const,
       name: "Lite",
       badge: "Meses tranquilos",
-      description: "Base más baja. IA Economy. Pagas solo al aprobar un despacho real — estimaciones gratis.",
+      description: "Base más baja. IA Premium. Pagas solo al aprobar un despacho real — estimaciones gratis.",
       price: SITE.liteBasePrice,
       period: "/mes",
       usageLine: `+ ${SITE.litePerBooking} por despacho aprobado (estimaciones $0)`,
       volumeGuide: planVolumeGuideEs("lite"),
       features: [
         "Llamadas de presupuesto gratis ($0)",
-        "Intake de emergencia con IA Economy",
+        "Intake de emergencia con IA Premium",
         `+ ${SITE.litePerBooking} solo al aprobar un despacho`,
         "SMS 1/2 al dueño · CRM opcional",
       ],
@@ -167,7 +167,7 @@ export const pricingEs = {
       volumeGuide: planVolumeGuideEs("flex"),
       features: [
         "Llamadas de presupuesto gratis ($0)",
-        "IA Economy + notas de despacho",
+        "IA Premium + notas de despacho",
         `Menor costo por despacho (${SITE.flexPerBooking}) que Lite`,
         "Rutas por técnico + agenda · CRM opcional",
       ],
@@ -203,7 +203,7 @@ export const pricingEs = {
       volumeGuide: planVolumeGuideEs("scale"),
       features: [
         "Llamadas de presupuesto gratis ($0)",
-        "IA Premium (igual que Pro)",
+        "IA Premium (en todos los planes)",
         `${SITE.scaleIncludedDispatches} despachos de emergencia/mes incluidos`,
         "Recargo más bajo que Pro · picos CAT",
       ],

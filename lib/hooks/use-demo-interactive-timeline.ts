@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InteractiveStep } from "@/lib/demo-interactive-script";
+import { isDemoAudioUnlocked, unlockDemoAudio } from "@/lib/demo-audio-unlock";
 
 type UseDemoInteractiveTimelineOptions = {
   steps: InteractiveStep[];
@@ -25,6 +26,7 @@ export function useDemoInteractiveTimeline({
   const [speaking, setSpeaking] = useState(false);
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [done, setDone] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(() => isDemoAudioUnlocked());
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const customerScrollRef = useRef<HTMLDivElement | null>(null);
   const runningRef = useRef(false);
@@ -45,11 +47,18 @@ export function useDemoInteractiveTimeline({
     setDone(false);
   }, []);
 
+  const ensureAudioUnlocked = useCallback(() => {
+    if (audioUnlocked) return true;
+    const ok = unlockDemoAudio();
+    if (ok) setAudioUnlocked(true);
+    return ok;
+  }, [audioUnlocked]);
+
   const playAi = useCallback(
     async (text: string, audioIndex?: number) => {
       setAiLine(text);
       setSpeaking(true);
-      if (audioPrefix && audioIndex !== undefined) {
+      if (audioPrefix && audioIndex !== undefined && audioUnlocked) {
         const audio = new Audio(`/demo-audio/${audioPrefix}-${audioIndex}.mp3`);
         audioRef.current = audio;
         try {
@@ -67,7 +76,7 @@ export function useDemoInteractiveTimeline({
       }
       setSpeaking(false);
     },
-    [audioPrefix],
+    [audioPrefix, audioUnlocked],
   );
 
   const runAutoSteps = useCallback(
@@ -127,28 +136,41 @@ export function useDemoInteractiveTimeline({
     void runAutoSteps(cursor);
   }, [enabled, cursor, waitingForClick, done, runAutoSteps]);
 
-  const advanceWithCustomer = useCallback((text: string) => {
-    setCustomerLines((prev) => [...prev, text]);
-    setWaitingForClick(false);
-    setCursor((c) => c + 1);
-  }, []);
+  const advanceWithCustomer = useCallback(
+    (text: string) => {
+      ensureAudioUnlocked();
+      setCustomerLines((prev) => [...prev, text]);
+      setWaitingForClick(false);
+      setCursor((c) => c + 1);
+    },
+    [ensureAudioUnlocked],
+  );
 
   const handleMenuChoice = useCallback(
     (option: { customerText?: string; jumpTo?: number }) => {
+      ensureAudioUnlocked();
       if (option.customerText) {
         setCustomerLines((prev) => [...prev, option.customerText!]);
       }
       setWaitingForClick(false);
       setCursor(option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1);
     },
-    [],
+    [ensureAudioUnlocked],
   );
 
-  const handleOwnerAction = useCallback((systemText: string) => {
-    setSystemLine(systemText);
-    setWaitingForClick(false);
-    setCursor((c) => c + 1);
-  }, []);
+  const handleOwnerAction = useCallback(
+    (systemText: string) => {
+      ensureAudioUnlocked();
+      setSystemLine(systemText);
+      setWaitingForClick(false);
+      setCursor((c) => c + 1);
+    },
+    [ensureAudioUnlocked],
+  );
+
+  const unlockAudio = useCallback(() => {
+    ensureAudioUnlocked();
+  }, [ensureAudioUnlocked]);
 
   useEffect(() => {
     const el = customerScrollRef.current;
@@ -173,6 +195,8 @@ export function useDemoInteractiveTimeline({
     advanceWithCustomer,
     handleMenuChoice,
     handleOwnerAction,
+    unlockAudio,
+    audioUnlocked,
     reset,
   };
 }

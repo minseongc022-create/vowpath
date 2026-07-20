@@ -111,6 +111,7 @@ export function DemoVideoHero({ vertical = "restoration" }: DemoVideoHeroProps) 
 
         <p className="mt-4 text-center text-xs text-white/45 sm:mt-6">
           {tab.hint}
+          <span className="mt-1 block text-white/40">Tap 🔊 in the demo to hear the AI voice.</span>
           {config.voiceFootnote ? (
             <span className="mt-1 block text-[#b59b78]">{config.voiceFootnote}</span>
           ) : null}

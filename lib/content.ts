@@ -235,7 +235,7 @@ export const pricing = {
     { label: "승인 출동 건당 과금", amount: "Lite / Flex만" },
     {
       label: "AI 품질",
-      amount: "이코노미 → 프리미엄 (플랜별)",
+      amount: "모든 플랜 프리미엄 AI",
     },
   ],
   plans: [
@@ -243,14 +243,14 @@ export const pricing = {
       id: "lite" as const,
       name: "Lite",
       badge: "콜 적을 때",
-      description: "월 기본료 최저. 이코노미 AI. 출동 승인 시에만 추가 — 견적은 무료.",
+      description: "월 기본료 최저. 프리미엄 AI. 출동 승인 시에만 추가 — 견적은 무료.",
       price: SITE.liteBasePrice,
       period: "/월",
       usageLine: `+ 승인 출동 1건당 ${SITE.litePerBooking} (견적 $0)`,
       volumeGuide: planVolumeGuideKo("lite"),
       features: [
         "무료 견적 전화 포함 ($0)",
-        "이코노미 AI 긴급 접수",
+        "프리미엄 AI 긴급 접수",
         `출동 승인 시에만 +${SITE.litePerBooking}`,
         "문자 승인 · Job Card · Jobber 선택",
       ],
@@ -268,7 +268,7 @@ export const pricing = {
       volumeGuide: planVolumeGuideKo("flex"),
       features: [
         "무료 견적 전화 포함 ($0)",
-        "이코노미 AI 접수·디스패치 노트",
+        "프리미엄 AI 접수·디스패치 노트",
         `Lite보다 낮은 건당 (${SITE.flexPerBooking})`,
         "콜만 받고 승인 0건 → 기본료만",
       ],
@@ -304,7 +304,7 @@ export const pricing = {
       volumeGuide: planVolumeGuideKo("scale"),
       features: [
         "무료 견적 전화 포함 ($0)",
-        "프리미엄 AI (Pro와 동일)",
+        "프리미엄 AI (모든 플랜 동일)",
         `월 ${SITE.scaleIncludedDispatches}건 긴급 출동 포함`,
         "Pro보다 낮은 초과 요금 · 피크용",
       ],
