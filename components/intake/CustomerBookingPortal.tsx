@@ -12,7 +12,7 @@ import {
   type UsAddressFieldValue,
 } from "@/lib/address/us-address";
 import type { SlotGridDay, SlotGridItem } from "@/lib/scheduling/slot-grid";
-import { LINK_URGENCY_OPTIONS, type LinkUrgency } from "@/lib/link-intake-urgency";
+import type { LinkUrgency } from "@/lib/link-intake-urgency";
 
 type Mode = "view" | "edit" | "reschedule" | "cancel";
 

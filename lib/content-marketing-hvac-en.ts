@@ -92,8 +92,8 @@ export const hvacHowItWorks = {
 
 export const hvacPricing = {
   title: "Simple pricing for HVAC shops",
-  unlimited: {
-    name: "Unlimited",
+  pro: {
+    name: "Pro",
     price: "$149/mo",
     description: "20 dispatches · free estimates · Premium AI on every plan. Only approved jobs count.",
     features: [
@@ -389,7 +389,7 @@ export const comparisonHvac = {
     ["Clear no-heat auto-dispatch", "Yes — tech SMS + owner FYI", "Yes — blind auto", "No — message only"],
     ["Hold gas smell / electrical", "Owner SMS 1 / 2", "Varies", "Script only"],
     ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
-    ["Missed call text-back", "60 sec SMS link", "Sometimes", "Callback later"],
+    ["SMS link intake", "Customer self-serve form", "Sometimes", "Callback later"],
     ["HVAC-specific intake", "Built in", "Partial", "Manual notes"],
     ["Flat price", "$149/mo", "Usage / $600+", "$500–2K/mo"],
     ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
@@ -468,7 +468,7 @@ export const trustRoiHvac = {
       hint: "Nights, weekends, peak season",
     },
     {
-      label: "Effiroad Unlimited",
+      label: "Effiroad Pro",
       value: SITE.monthlyPrice + "/mo",
       hint: "Or Flex from " + SITE.flexBasePrice + "/mo",
     },

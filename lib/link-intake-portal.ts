@@ -14,6 +14,7 @@ import { parseUsAddress } from "./parse-contact";
 import { formatCityState } from "./recent-bookings";
 import type { LinkIntakeSession } from "./call-intake/link-intake-store";
 import { notifyOwnerLinkIntakeUpdated } from "./link-intake-owner-notify";
+import { getShopVertical } from "./vertical-context.js";
 import { recordLinkIntakeCustomerUpdated } from "./record-tenant-events";
 
 export type LinkIntakeBookingView = {
@@ -187,11 +188,13 @@ export async function updateLinkIntakeBooking(params: {
 
   const address = addressCheck.formattedAddress ?? params.address.trim();
   const urgency = parseLinkUrgency(params.urgency) ?? "this_week";
+  const vertical = await getShopVertical(params.session.userId);
   const draft = buildLinkIntakeDraftFromForm({
     customerName: name,
     address,
     issueDescription: params.issueDescription,
     urgency,
+    vertical,
   });
 
   const parsed = parseUsAddress(address);

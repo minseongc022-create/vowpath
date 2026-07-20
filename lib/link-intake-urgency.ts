@@ -2,24 +2,72 @@ import type { JobPriority } from "./types";
 import { isEnglishUi } from "./locale";
 import { legacyToServicePriority } from "./service-priority";
 import { inferLossCategoryFromText } from "./loss-category";
+import type { ShopVertical } from "./shop-vertical";
 
 export type LinkUrgency = "today" | "this_week" | "estimate";
 
-const LINK_URGENCY_OPTIONS_EN: { id: LinkUrgency; label: string }[] = [
+type LinkUrgencyOption = { id: LinkUrgency; label: string };
+
+const RESTORATION_URGENCY_EN: LinkUrgencyOption[] = [
   { id: "today", label: "Emergency — active water, fire, mold, or sewage" },
   { id: "this_week", label: "This week — contained loss or assessment needed" },
   { id: "estimate", label: "Inspection / estimate / follow-up" },
 ];
 
-const LINK_URGENCY_OPTIONS_KO: { id: LinkUrgency; label: string }[] = [
+const HVAC_URGENCY_EN: LinkUrgencyOption[] = [
+  { id: "today", label: "Emergency — no heat, no cooling, or active leak" },
+  { id: "this_week", label: "This week — comfort issue or system not working right" },
+  { id: "estimate", label: "Maintenance / tune-up / estimate" },
+];
+
+const GENERAL_URGENCY_EN: LinkUrgencyOption[] = [
+  { id: "today", label: "Emergency — needs service today" },
+  { id: "this_week", label: "This week — not urgent but needs attention" },
+  { id: "estimate", label: "Estimate / consultation / follow-up" },
+];
+
+const RESTORATION_URGENCY_KO: LinkUrgencyOption[] = [
   { id: "today", label: "가능한 빨리 방문이 필요합니다." },
   { id: "this_week", label: "이번 주 안에 방문이 필요합니다." },
   { id: "estimate", label: "견적 또는 상담 문의입니다." },
 ];
 
-export const LINK_URGENCY_OPTIONS = isEnglishUi()
-  ? LINK_URGENCY_OPTIONS_EN
-  : LINK_URGENCY_OPTIONS_KO;
+const HVAC_URGENCY_KO: LinkUrgencyOption[] = [
+  { id: "today", label: "긴급 — 난방/냉방 불가 또는 누수" },
+  { id: "this_week", label: "이번 주 — 불편하지만 당장은 긴급하지 않음" },
+  { id: "estimate", label: "정기 점검 / 견적 문의" },
+];
+
+const GENERAL_URGENCY_KO: LinkUrgencyOption[] = RESTORATION_URGENCY_KO;
+
+function urgencyOptionsForVertical(vertical: ShopVertical, english: boolean): LinkUrgencyOption[] {
+  if (english) {
+    switch (vertical) {
+      case "hvac":
+        return HVAC_URGENCY_EN;
+      case "restoration":
+        return RESTORATION_URGENCY_EN;
+      default:
+        return GENERAL_URGENCY_EN;
+    }
+  }
+  switch (vertical) {
+    case "hvac":
+      return HVAC_URGENCY_KO;
+    case "restoration":
+      return RESTORATION_URGENCY_KO;
+    default:
+      return GENERAL_URGENCY_KO;
+  }
+}
+
+/** Vertical-aware urgency choices for SMS link intake forms. */
+export function getLinkUrgencyOptions(vertical: ShopVertical = "restoration"): LinkUrgencyOption[] {
+  return urgencyOptionsForVertical(vertical, isEnglishUi());
+}
+
+/** @deprecated Prefer getLinkUrgencyOptions(vertical) — defaults to restoration labels. */
+export const LINK_URGENCY_OPTIONS = getLinkUrgencyOptions("restoration");
 
 export function parseLinkUrgency(value: unknown): LinkUrgency | null {
   if (value === "today" || value === "this_week" || value === "estimate") {
@@ -59,7 +107,10 @@ export function buildLinkIntakeDraftFromForm(params: {
   insuranceClaimNumber?: string;
   waterSource?: string;
   activeLoss?: boolean;
+  vertical?: ShopVertical;
 }) {
+  const vertical = params.vertical ?? "restoration";
+  const urgencyOptions = getLinkUrgencyOptions(vertical);
   const priority = linkUrgencyToPriority(params.urgency);
   const issue = params.issueDescription.trim();
   const insuranceCarrier = params.insuranceCarrier?.trim() ?? "";
@@ -89,7 +140,7 @@ export function buildLinkIntakeDraftFromForm(params: {
       `Name: ${params.customerName.trim()}`,
       `Address: ${params.address.trim()}`,
       `Issue: ${issue}`,
-      `Urgency: ${LINK_URGENCY_OPTIONS.find((o) => o.id === params.urgency)?.label ?? params.urgency}`,
+      `Urgency: ${urgencyOptions.find((o) => o.id === params.urgency)?.label ?? params.urgency}`,
       ...insuranceLines,
     ].join("\n"),
     lossCategory: inferLossCategoryFromText(issue, issue),

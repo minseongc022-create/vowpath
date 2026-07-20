@@ -25,7 +25,7 @@ export const HVAC_GAS_AI_LINES = [
 ] as const;
 
 export const RESTORATION_CUSTOMER_TEXT = [
-  "Water's flooding my basement — it's coming up through the floor drain.",
+  "Sewage is backing up in my basement — it's coming through the floor drain.",
   "Mike Wilson.",
   "4821 Oak Drive, Austin, Texas.",
 ] as const;
@@ -89,7 +89,7 @@ export const HVAC_PHONE_TIMELINE: PhoneDemoPhase[] = [
   { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 1000 },
   {
     kind: "sms",
-    text: "AUTO-DISPATCH · Sarah Bennett · No heat P2 · Tech notified",
+    text: "AUTO-DISPATCH · Sarah Bennett · No heat P1 · Tech notified",
     delayMs: 900,
     variant: "fyi",
   },

@@ -239,7 +239,7 @@ export const approvalLoopEn = {
   edges: [
     "Restoration triage + intake",
     "Clear water loss dispatches fast",
-    "Fire, mold, or fuzzy details → your text",
+    "Fire, Cat-3, P1 mold, or fuzzy details → your text",
   ] as const,
 };
 
@@ -257,7 +257,7 @@ export const aboutEn = {
   pillars: [
     {
       label: "Efficiency",
-      meaning: "Auto-dispatch clear water losses. Text 1 / 2 when it's fire, mold, or Cat-3. Run ops from your phone.",
+      meaning: "Auto-dispatch clear water losses. Text 1 / 2 when it's fire, Cat-3, P1 mold, or unclear.",
     },
     {
       label: "Road",
@@ -544,7 +544,7 @@ export const trustRoiEn = {
       hint: "Nights, storms, weekends",
     },
     {
-      label: "Effiroad Unlimited",
+      label: "Effiroad Pro",
       value: SITE.monthlyPrice + "/mo",
       hint: "Or Flex from " + SITE.flexBasePrice + "/mo",
     },
@@ -630,9 +630,9 @@ export const howItWorksEn = {
 export const schedulingModesEn = {
   id: "scheduling",
   label: "Dispatch policy",
-  title: "Standard water dispatches fast. Fire, mold, and Cat-3 wait for you.",
+  title: "Standard water dispatches fast. Fire, Cat-3, and P1 mold wait for you.",
   subtitle:
-    "One smart policy — no manual switches. Clear water losses roll to on-call crew. Fire, sewage, and unclear intakes need your text: 1 = go, 2 = pass.",
+    "One smart policy — no manual switches. Clear water losses roll to on-call crew. Fire, sewage, P1 mold, and unclear intakes need your text: 1 = go, 2 = pass.",
   modes: [
     {
       id: "auto",
@@ -640,11 +640,12 @@ export const schedulingModesEn = {
       badge: "Built in" as string | null,
       tagline: "Fast when it's clear · you decide when it's not",
       description:
-        "Caller reports a standard water loss with complete info? Crew gets the text right away. Fire, Cat-3, or fuzzy address? You approve before anyone rolls.",
+        "Caller reports a standard water loss with complete info? Crew gets the text right away. Fire, Cat-3, P1 mold, or fuzzy address? You approve before anyone rolls.",
       details: [
         { label: "Standard water · clear info", value: "Auto dispatch" },
         { label: "Fire / structure loss", value: "Your 1 / 2 first" },
         { label: "Cat-3 / sewage", value: "Your 1 / 2 first" },
+        { label: "P1 mold", value: "Your 1 / 2 first" },
         { label: "Changed your mind", value: "Reply 9 to undo" },
       ],
       bestFor: "Owner-operators who want speed without blind dispatch on big losses",
@@ -903,33 +904,33 @@ export const faqEn = {
 
 export const agreementKeeperEn = {
   id: "agreement-keeper",
-  label: "Follow-up",
-  title: "Finish mitigation. Stay top of mind for rebuild.",
+  label: "Optional follow-up",
+  title: "Sell PM plans after the job — optional",
   subtitle:
-    "After a job completes, optional SMS keeps your company in front of the homeowner for reconstruction and referrals.",
+    "For shops that offer annual maintenance agreements. After a job completes, Effiroad can text a PM offer link to customers who opted in at intake.",
   steps: [
     {
       title: "Job completes",
-      description: "You mark mitigation done in dashboard.",
+      description: "You mark the job done in the dashboard.",
     },
     {
-      title: "SMS follow-up",
-      description: "Customer gets a link for rebuild estimate or referral request.",
+      title: "PM offer SMS",
+      description: "Customer gets a link to accept your maintenance plan (marketing opt-in required).",
     },
     {
-      title: "Pipeline view",
-      description: "See open rebuild opportunities in dashboard.",
+      title: "Agreement list",
+      description: "Track active PM contracts and renewal dates in the dashboard.",
     },
     {
-      title: "Reminder texts",
-      description: "Optional nudges before adjuster deadlines — no spreadsheet hunting.",
+      title: "Renewal reminders",
+      description: "Optional owner and customer nudges before renewal — no spreadsheet hunting.",
     },
   ],
   bullets: [
-    "Optional post-mitigation follow-up",
-    "Rebuild pipeline tracking",
-    "Owner reminders",
-    "Est. rebuild revenue on dashboard",
+    "Optional post-job PM offer",
+    "Maintenance agreement tracking",
+    "Renewal reminders",
+    "Tune-up schedule on dashboard",
   ] as const,
 };
 
