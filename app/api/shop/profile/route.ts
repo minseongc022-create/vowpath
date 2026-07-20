@@ -116,6 +116,27 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
       patch.shopTimezone = tz;
     }
   }
+  if (typeof body.businessAddress === "string") {
+    patch.businessAddress = body.businessAddress.trim().slice(0, 200) || undefined;
+  }
+  if (typeof body.licenseNumber === "string") {
+    patch.licenseNumber = body.licenseNumber.trim().slice(0, 80) || undefined;
+  }
+  if (typeof body.iicrcFirmNumber === "string") {
+    patch.iicrcFirmNumber = body.iicrcFirmNumber.trim().slice(0, 80) || undefined;
+  }
+  if (typeof body.defaultTaxRatePercent === "number" && Number.isFinite(body.defaultTaxRatePercent)) {
+    patch.defaultTaxRatePercent = Math.max(0, Math.min(30, body.defaultTaxRatePercent));
+  }
+  if (typeof body.estimateValidityDays === "number" && Number.isFinite(body.estimateValidityDays)) {
+    patch.estimateValidityDays = Math.max(1, Math.min(90, Math.round(body.estimateValidityDays)));
+  }
+  if (typeof body.estimateNotes === "string") {
+    patch.estimateNotes = body.estimateNotes.trim().slice(0, 2000) || undefined;
+  }
+  if (typeof body.estimateExclusions === "string") {
+    patch.estimateExclusions = body.estimateExclusions.trim().slice(0, 2000) || undefined;
+  }
 
   return patch;
 }

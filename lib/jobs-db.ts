@@ -117,6 +117,7 @@ export async function patchJobRecord(
       | "quoteSentToCustomerAt"
       | "quoteFollowUpSentAt"
       | "requestKind"
+      | "estimateDoc"
     >
   >,
 ): Promise<StoredJob | null> {

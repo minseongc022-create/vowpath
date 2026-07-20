@@ -5,6 +5,7 @@ import type {
 } from "./forwarding-guides";
 import type { PrioritySource, ServicePriority } from "./service-priority";
 import type { ShopVertical } from "./shop-vertical.js";
+import type { EstimateDocument } from "./estimate-document";
 
 export type JobPriority = "P1" | "P2" | "P3";
 
@@ -33,6 +34,8 @@ export type JobCard = {
   /** When the quote amount was actually texted to the customer. */
   quoteSentToCustomerAt?: string;
   quoteFollowUpSentAt?: string;
+  /** Full on-site / itemized estimate document. */
+  estimateDoc?: EstimateDocument;
 };
 
 export type { BookingMode, RequestStatus };
@@ -69,6 +72,20 @@ export type ShopState = {
   googleReviewUrl?: string;
   /** "Webhooks by Zapier" Catch Hook URL — every new request POSTs its details here. */
   zapierWebhookUrl?: string;
+  /** Business street address shown on printed/shared estimates. */
+  businessAddress?: string;
+  /** State contractor / restoration license # when required. */
+  licenseNumber?: string;
+  /** IICRC firm number (restoration shops). */
+  iicrcFirmNumber?: string;
+  /** Default sales tax % applied on new estimates (0–30). */
+  defaultTaxRatePercent?: number;
+  /** How many days a new estimate stays valid (default 14). */
+  estimateValidityDays?: number;
+  /** Default notes on new estimates. */
+  estimateNotes?: string;
+  /** Default exclusions on new estimates. */
+  estimateExclusions?: string;
 };
 
 export type { ShopVertical };

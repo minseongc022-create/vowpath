@@ -24,6 +24,7 @@ import {
   smsCustomerApprovedBody,
   smsCustomerQuoteFollowUpBody,
   smsCustomerQuoteSentBody,
+  smsCustomerEstimateDocumentBody,
   smsCustomerRejectedBody,
   smsCustomerReviewRequestBody,
   smsOwnerIntakeAutoConfirmedBody,
@@ -225,6 +226,40 @@ export async function notifyCustomerReviewRequest(params: {
     operation: "customer_review_request",
     bookingId: params.bookingId,
   });
+}
+
+export async function notifyCustomerEstimateDocument(params: {
+  userId: string;
+  bookingId: string;
+  phone?: string | null;
+  amountCents: number;
+  customerName?: string;
+  estimateNumber: string;
+  shareUrl: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const phone =
+    params.phone?.trim() ||
+    (await resolveBookingCustomerPhone(params.userId, params.bookingId));
+  if (!phone) {
+    return { ok: false, reason: "No customer phone on this estimate." };
+  }
+
+  const user = await findUserById(params.userId);
+  await sendCustomerSms({
+    userId: params.userId,
+    phone,
+    body: smsCustomerEstimateDocumentBody({
+      shopName: user?.shopName,
+      customerName: params.customerName,
+      amountCents: params.amountCents,
+      estimateNumber: params.estimateNumber,
+      shareUrl: params.shareUrl,
+    }),
+    dedupeId: `${params.bookingId}:estimate_doc:${params.estimateNumber}:${params.amountCents}`,
+    operation: "customer_estimate_document",
+    bookingId: params.bookingId,
+  });
+  return { ok: true };
 }
 
 export async function notifyCustomerQuoteSent(params: {
