@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
-import { SITE, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
+import { SITE, ROUTES, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
 import { founderRateLabel, founderRateShort, regularRateLabel } from "@/lib/plan-pricing";
 
 type BillingStatusResponse = {
@@ -85,7 +85,7 @@ function TrialEndedCard() {
         <p className="mt-2 text-sm text-slate-600">
           Share one line of feedback and lock in founder pricing for {SITE.betaDiscountYears}{" "}
           years — then regular rates ({regularRate}). Caps and overage rules at{" "}
-          <a href="/#pricing" className="font-medium text-brand-600 underline">
+          <a href={ROUTES.pricing} className="font-medium text-brand-600 underline">
             effiroad.com/#pricing
           </a>
           .

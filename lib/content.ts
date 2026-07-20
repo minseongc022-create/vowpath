@@ -635,6 +635,7 @@ const settingsPageKo = {
     choosePath: "경로 선택",
     setUp: "착신전환 설정",
     testCall: "테스트 통화",
+    testMode: "테스트 모드",
   },
   forwardingSetupPrompt:
     "아래에서 퀴즈(3문) 또는 전체 목록 중 편한 방법을 고르세요. 검증된 착신전환 경로만 표시합니다.",
@@ -982,13 +983,20 @@ const settingsPageKo = {
   undoWindowLabel: "자동 확정 취소 가능 시간 (분)",
   undoWindowHint:
     "바로 확정되면 사장님께 알림 문자가 갑니다. 이 시간 안에 9번 답장하면 확정을 취소하고 다시 검토할 수 있습니다.",
-  shadowModeLabel: "연습 모드 (남은 테스트 횟수)",
+  shadowModeLabel: "테스트 모드",
   shadowModeIntro:
-    "실전과 같은 캘린더·슬롯 차단으로 통화·접수를 연습합니다. Jobber만 빠집니다.",
-  shadowModeLive:
-    "0 — 실전: 고객이 고른 시간이 캘린더·문자·Jobber에 그대로 반영됩니다.",
-  shadowModePractice:
-    "1 이상 — 연습: 캘린더·슬롯은 실전처럼 막힘. SMS는 [TEST]. Jobber 기록만 꺼짐. 테스트 1번당 1씩 줄어듭니다.",
+    "실전과 같은 캘린더·슬롯으로 연습합니다. Jobber 기록과 실제 고객 문자는 꺼집니다.",
+  shadowModeLive: "꺼짐 — 실전: 실제 문자·캘린더·Jobber 반영",
+  shadowModePractice: "켜짐 — 연습: SMS에 [TEST], Jobber 기록 없음",
+  testModeTitle: "테스트 모드",
+  testModeIntro:
+    "실전처럼 통화·접수를 연습합니다. 고객 문자는 [TEST] 표시되고 Jobber는 꺼집니다. 라이브 전에 꺼 주세요.",
+  testModeOn: "테스트 모드 켜짐 — 아직 라이브 아님",
+  testModeOff: "라이브 — 실제 디스패치·고객 문자",
+  testModeLoading: "테스트 모드 불러오는 중…",
+  testModeSaveError: "테스트 모드를 저장하지 못했습니다. 다시 시도하세요.",
+  testModeForwardingHint:
+    "테스트 모드를 켠 뒤 다른 휴대폰으로 샵 번호에 전화하고 대시보드를 확인하세요. 준비되면 끄면 라이브입니다.",
   stormModeLabel: "폭풍·호우 surge 모드",
   stormModeHint:
     "허리케인·집중 호우 기간 — 전화 안내를 짧게 하고 대기 중임을 안내합니다. 평상시에는 끄세요.",
@@ -1124,6 +1132,7 @@ const vowDashboardKo = {
     title: "플랜 업그레이드",
     body: "야간·주말 무제한 AI 수신과 문자 승인을 한 번에.",
     cta: "플랜 보기",
+    viewLanding: "랜딩 보기",
   },
   agreements: {
     eyebrow: "PM 계약 관리",

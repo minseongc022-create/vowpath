@@ -50,7 +50,7 @@ export function RecoveryMetricsPanel({ dateRange, loading, compact = false }: Re
         </div>
         {showShadow ? (
           <p className="border-b border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-            Baseline period — {m?.shadowModeRemaining} practice left
+            Test mode is ON — SMS tagged [TEST]; not live yet
           </p>
         ) : null}
         <div className="grid grid-cols-2 gap-px bg-brand-100/60">
@@ -87,9 +87,8 @@ export function RecoveryMetricsPanel({ dateRange, loading, compact = false }: Re
 
       {showShadow ? (
         <div className="border-b border-amber-200/80 bg-amber-50/90 px-5 py-3 text-sm text-amber-950">
-          <strong>Baseline period:</strong> {m.shadowModeRemaining} practice booking
-          {m.shadowModeRemaining === 1 ? "" : "s"} left — calendar slots held like live; SMS marked [TEST]
-          ([TEST] prefix). Jobber and calendar writes stay off until practice ends.
+          <strong>Test mode is ON.</strong> Calendar slots behave like live; customer SMS are marked [TEST].
+          Jobber writes stay off until you turn test mode off in Settings.
         </div>
       ) : null}
 

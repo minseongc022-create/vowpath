@@ -9,7 +9,7 @@ import { isTenantAfterHours } from "../after-hours";
 import { extractZipFromAddress, isZipInServiceArea } from "../service-area";
 import { inferLossCategoryFromText } from "../loss-category";
 import { formatCityState } from "../recent-bookings";
-import { getShopBookingSettings, decrementShadowMode } from "../shop-settings-db";
+import { getShopBookingSettings } from "../shop-settings-db";
 import {
   getScheduledBooking,
   upsertScheduledBooking,
@@ -233,10 +233,6 @@ export async function applyCustomerChosenSchedule(
 
   const status: RequestStatus = needsApproval ? "pending_review" : "scheduled";
   await persistRequestStatusForBooking(params.userId, params.bookingId, status);
-
-  if (shadow) {
-    await decrementShadowMode(params.userId);
-  }
 
   if (needsApproval) {
     const sendSms =

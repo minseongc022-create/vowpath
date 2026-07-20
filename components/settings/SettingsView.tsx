@@ -7,6 +7,7 @@ import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
 import { BillingStatusBanner } from "@/components/settings/BillingStatusBanner";
+import { TestModeToggle } from "@/components/settings/TestModeToggle";
 import { ShopPreferencesPanel } from "@/components/settings/ShopPreferencesPanel";
 import { OwnerContactSetup } from "@/components/settings/OwnerContactSetup";
 import { GoLiveWizard, type GoLiveWizardStep } from "@/components/settings/GoLiveWizard";
@@ -504,6 +505,8 @@ function SettingsViewBody({
       {paidProp || transactionId ? (
         <BillingStatusBanner transactionId={transactionId} />
       ) : null}
+
+      <TestModeToggle />
 
       <section id="go-live" className="scroll-mt-6 space-y-3">
         <GoLiveWizard

@@ -75,6 +75,15 @@ export const settingsPageEn = {
   shadowModeIntro: "Test calls without touching Jobber or sending real customer texts.",
   shadowModeLive: "0 = Live — real texts, calendar, and Jobber.",
   shadowModePractice: "1+ = Practice — slots held, SMS tagged [TEST], drops by 1 per test call.",
+  testModeTitle: "Test mode",
+  testModeIntro:
+    "Practice calls like live. Customer SMS are tagged [TEST] and Jobber stays off until you switch to Live.",
+  testModeOn: "Test mode ON — not live yet",
+  testModeOff: "Live — real dispatches and customer texts",
+  testModeLoading: "Loading test mode…",
+  testModeSaveError: "Could not save test mode. Try again.",
+  testModeForwardingHint:
+    "Turn test mode ON, call your shop line from another phone, check the dashboard, then turn OFF when you are ready for live traffic.",
   stormModeLabel: "Storm mode",
   stormModeHint: "Shorter prompts when call volume spikes. Turn off when things calm down.",
   stormModeToggleLabel: "Storm mode on incoming calls",
@@ -259,6 +268,7 @@ export const vowDashboardEn = {
     title: "Upgrade plan",
     body: "Unlimited after-hours AI answering and text approvals.",
     cta: "View plans",
+    viewLanding: "View landing",
   },
   agreements: {
     eyebrow: "Agreement Keeper",

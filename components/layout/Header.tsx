@@ -18,7 +18,7 @@ type HeaderProps = {
 export function Header({ session }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const { locale } = useLocale();
-  const navLinks = getMarketingNavLinks(locale);
+  const navLinks = getMarketingNavLinks(locale, { sitePreview: Boolean(session) });
 
   useEffect(() => {
     if (!open) return;

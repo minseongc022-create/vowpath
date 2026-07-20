@@ -109,12 +109,12 @@ export const DEFAULT_SHOP_BOOKING_SETTINGS: ShopBookingSettings = {
   hybridAutoPriorities: DEFAULT_HYBRID_AUTO_PRIORITIES,
 };
 
-/** Safe defaults for a brand-new shop (14-day shadow baseline + hybrid). */
+/** Safe defaults for a brand-new shop — live by default; owner opts into test mode. */
 export function newTenantShopBookingSettings(): ShopBookingSettings {
   return mergeShopBookingSettings({
     schedulingMode: "auto",
     ownerApprovalSms: "p1_only",
-    shadowModeRemaining: NEW_TENANT_SHADOW_DAYS,
+    shadowModeRemaining: 0,
     measurementAlwaysOn: true,
     avgJobTicketUsd: 350,
     hybridAutoPriorities: [...DEFAULT_HYBRID_AUTO_PRIORITIES],

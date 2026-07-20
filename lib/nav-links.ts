@@ -2,22 +2,32 @@ import { ROUTES, SITE } from "./constants";
 import type { UiLocale } from "./locale";
 import { getSiteFooter, getSiteNav } from "./site-content-locale";
 
+/** Anchor on the marketing homepage — keeps `?view=site` when a logged-in user is previewing. */
+function marketingHash(hash: string, sitePreview: boolean): string {
+  return sitePreview ? `${ROUTES.site}#${hash}` : `/#${hash}`;
+}
+
 /** Primary marketing nav — keep the header scannable (max 4 links). */
-export function getMarketingNavLinks(locale: UiLocale = "en") {
+export function getMarketingNavLinks(
+  locale: UiLocale = "en",
+  opts?: { sitePreview?: boolean },
+) {
   const nav = getSiteNav(locale);
+  const sitePreview = Boolean(opts?.sitePreview);
   return [
-    { label: nav.features, href: "/#features" },
-    { label: nav.howItWorks, href: "/#how-it-works" },
-    { label: nav.pricing, href: "/#pricing" },
+    { label: nav.features, href: marketingHash("features", sitePreview) },
+    { label: nav.howItWorks, href: marketingHash("how-it-works", sitePreview) },
+    { label: nav.pricing, href: marketingHash("pricing", sitePreview) },
   ];
 }
 
 /** Footer can expose one extra anchor without crowding the header. */
-export function getNavLinks(locale: UiLocale = "en") {
+export function getNavLinks(locale: UiLocale = "en", opts?: { sitePreview?: boolean }) {
   const nav = getSiteNav(locale);
+  const sitePreview = Boolean(opts?.sitePreview);
   return [
-    ...getMarketingNavLinks(locale),
-    { label: nav.why, href: "/#about" },
+    ...getMarketingNavLinks(locale, opts),
+    { label: nav.why, href: marketingHash("about", sitePreview) },
   ];
 }
 
