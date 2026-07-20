@@ -337,6 +337,27 @@ export function smsCustomerQuoteSentBody(params: {
   return `${shop}: Hi ${first} — your estimate is ${amount}. Reply here with questions or to book a time. We're ready when you are.${smsCustomerOptOut()}`;
 }
 
+/** Itemized estimate document link (on-site / truck builder). */
+export function smsCustomerEstimateDocumentBody(params: {
+  shopName?: string;
+  customerName?: string;
+  amountCents: number;
+  estimateNumber: string;
+  shareUrl: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = (params.customerName ?? "there").trim().split(/\s+/)[0] || "there";
+  const amount = (params.amountCents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  });
+  return smsBodyWithUrl(
+    `${shop}: Hi ${first} — estimate ${params.estimateNumber} for ${amount} is ready. Open to review line items:`,
+    params.shareUrl,
+  );
+}
+
 export function smsOwnerNoSlotBody(params: {
   shopName?: string;
   customerName: string;

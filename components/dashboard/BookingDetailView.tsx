@@ -43,6 +43,7 @@ import { BookingTimelinePanel } from "@/components/dashboard/BookingTimelinePane
 import { CustomerCorrectionHistoryPanel } from "@/components/dashboard/CustomerCorrectionHistoryPanel";
 import { CustomerOnMyWayPanel } from "@/components/dashboard/CustomerOnMyWayPanel";
 import { CrewAssignPanel } from "@/components/dashboard/CrewAssignPanel";
+import { OnSiteEstimateBuilder } from "@/components/dashboard/OnSiteEstimateBuilder";
 import { toCustomerVerificationView } from "@/lib/customer-verification/labels";
 
 /** Overrides light gradient on .booking-detail-hero / .booking-detail-card */
@@ -401,7 +402,10 @@ export function BookingDetailContent({
               />
               <CustomerCorrectionHistoryPanel record={customerVerification} />
               {linkedJob ? (
-                <QuoteEstimateCard bookingId={decodedId} job={linkedJob} onSaved={refresh} />
+                <>
+                  <QuoteEstimateCard bookingId={decodedId} job={linkedJob} onSaved={refresh} />
+                  <OnSiteEstimateBuilder bookingId={decodedId} onSaved={refresh} />
+                </>
               ) : null}
             </div>
 
