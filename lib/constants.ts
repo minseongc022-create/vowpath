@@ -11,18 +11,20 @@ export const SITE = {
   monthlyPrice: "$199",
   /**
    * Pricing ladder (designed so upgrades feel obvious):
-   * Lite 0–2/mo · Flex ~3–13/mo · Pro ~14–22/mo · Scale 23+/mo
+   * Lite quiet months · Flex mid volume · Pro/Scale capped flats
    * Premium AI on every plan — differentiation is volume & billing model.
-   * Founder cohort: >50% gross margin at included cap (COGS $6/dispatch).
+   * Flex list is the public anchor; founder Flex is always cheaper base + per-dispatch
+   * and keeps ~50–60%+ gross margin on typical 5–20 dispatch months (COGS $6/dispatch).
    */
-  flexBasePrice: "$59",
-  flexPerBooking: "$10",
-  /** Founder feedback cohort — locked for 5 years after trial. */
-  betaFlexBasePrice: "$53",
-  betaFlexPerBooking: "$13",
-  liteBasePrice: "$32",
-  litePerBooking: "$20",
-  betaLiteBasePrice: "$28",
+  flexBasePrice: "$75",
+  flexPerBooking: "$16",
+  /** Founder feedback cohort — locked for 5 years after trial. Always ≤ list on both legs. */
+  betaFlexBasePrice: "$55",
+  betaFlexPerBooking: "$12",
+  /** Lite list kept above Flex crossover so quiet months stay on Lite (~0–2), Flex ~3–7. */
+  liteBasePrice: "$55",
+  litePerBooking: "$24",
+  betaLiteBasePrice: "$45",
   betaLitePerBooking: "$18",
   /** Pro (flat) — included dispatches + transparent overage. */
   proPrice: "$199",
