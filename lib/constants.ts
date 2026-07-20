@@ -8,30 +8,34 @@ export const SITE = {
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
   /** Alias for Pro list price (break-even / marketing copy). */
-  monthlyPrice: "$149",
+  monthlyPrice: "$199",
   /**
    * Pricing ladder (designed so upgrades feel obvious):
-   * Lite 0–2/mo · Flex ~3–11/mo · Pro ~12–32/mo · Scale 33+/mo
+   * Lite 0–2/mo · Flex ~3–13/mo · Pro ~14–22/mo · Scale 23+/mo
    * Premium AI on every plan — differentiation is volume & billing model.
+   * Founder cohort: >50% gross margin at included cap (COGS $6/dispatch).
    */
-  flexBasePrice: "$55",
-  flexPerBooking: "$8",
+  flexBasePrice: "$59",
+  flexPerBooking: "$10",
   /** Founder feedback cohort — locked for 5 years after trial. */
-  betaFlexBasePrice: "$49",
-  betaFlexPerBooking: "$7",
-  liteBasePrice: "$29",
-  litePerBooking: "$18",
-  betaLiteBasePrice: "$25",
-  betaLitePerBooking: "$15",
+  betaFlexBasePrice: "$53",
+  betaFlexPerBooking: "$13",
+  liteBasePrice: "$32",
+  litePerBooking: "$20",
+  betaLiteBasePrice: "$28",
+  betaLitePerBooking: "$18",
   /** Pro (flat) — included dispatches + transparent overage. */
-  proPrice: "$149",
-  proIncludedDispatches: 20,
-  proOverageMultiplier: 2,
+  proPrice: "$199",
+  proIncludedDispatches: 15,
+  /** Overage = prior $12/dispatch × 1.8 → $22 (72% gross margin on COGS $6). */
+  proOverageMultiplier: 3.6,
   /** Scale — high-volume flat plan (storm / busy shops). */
-  scalePrice: "$299",
-  scaleIncludedDispatches: 50,
-  scaleOverageMultiplier: 1.5,
-  betaScaleOverageMultiplier: 1.2,
+  scalePrice: "$369",
+  scaleIncludedDispatches: 30,
+  /** Overage = prior $9/dispatch × 1.8 → $16 (63% gross margin). */
+  scaleOverageMultiplier: 2.7,
+  /** Founder Scale overage = prior $7.20 × 1.8 → $13 (54% gross margin). */
+  betaScaleOverageMultiplier: 2.16,
   /**
    * COGS estimates per confirmed dispatch (Twilio + voice + SMS + AI).
    * Economy = legacy alias for COGS math. Premium = gpt-4o-class (all live plans).
@@ -42,10 +46,10 @@ export const SITE = {
   marginalDispatchCostUsd: 6,
   economyAiModel: "gpt-4o-mini",
   premiumAiModel: "gpt-4o",
-  /** Trial-feedback cohort: Pro $119/mo for 5 years, then regular Pro. */
-  betaIntroPrice: "$119",
-  betaScalePrice: "$279",
-  betaLockedPrice: "$149",
+  /** Trial-feedback cohort: Pro $181/mo for 5 years (>50% margin at 15 included), then list Pro. */
+  betaIntroPrice: "$181",
+  betaScalePrice: "$361",
+  betaLockedPrice: "$199",
   betaDiscountYears: 5,
 } as const;
 

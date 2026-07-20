@@ -94,7 +94,7 @@ export const hvacPricing = {
   title: "Simple pricing for HVAC shops",
   pro: {
     name: "Pro",
-    price: "$149/mo",
+    price: `${SITE.proPrice}/mo`,
     description: "20 dispatches · free estimates · Premium AI on every plan. Only approved jobs count.",
     features: [
       "24/7 AI phone intake",
@@ -145,7 +145,7 @@ export const hvacFaq = [
 export const hvacSeoMeta = {
   title: "Effiroad for HVAC — AI Intake & Dispatch for HVAC Companies",
   description:
-    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. Premium AI on every plan — from $149/mo Pro or lower on Flex — no CRM needed.",
+    "Effiroad answers every HVAC call 24/7, dispatches no-heat emergencies automatically the moment they're verified, and holds gas smell calls for owner approval. Premium AI on every plan — from ${SITE.proPrice}/mo Pro or lower on Flex — no CRM needed.",
   ogTitle: "Effiroad — Never Lose a No-Heat Call at 2 AM",
   ogDescription:
     "AI-powered call intake and dispatch built for HVAC shops. No-heat auto-dispatch. Gas smell always held.",
@@ -391,7 +391,7 @@ export const comparisonHvac = {
     ["Reply 9 undo auto-dispatch", "Yes", "Rare", "No"],
     ["SMS link intake", "Customer self-serve form", "Sometimes", "Callback later"],
     ["HVAC-specific intake", "Built in", "Partial", "Manual notes"],
-    ["Flat price", "$149/mo", "Usage / $600+", "$500–2K/mo"],
+    ["Flat price", `${SITE.proPrice}/mo`, "Usage / $600+", "$500–2K/mo"],
     ["Works without CRM", "Yes", "Jobber only", "Separate tool"],
     ["Go live", "~10 minutes", "Days", "Days + scripting"],
   ],
