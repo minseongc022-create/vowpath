@@ -17,8 +17,8 @@ export function Pricing() {
   const breakEvenTitle = locale === "es" ? "Cuenta rápida" : "Break-even math";
   const breakEvenBody =
     locale === "es"
-      ? "Trabajo promedio de mitigación por agua: $8,000. Una llamada salvada a las 2 AM paga ~40 meses de Pro."
-      : "Average water mitigation job: $8,000. One saved 2 AM call covers ~40 months of Pro.";
+      ? "Trabajo promedio de mitigación por agua: $8,000. Una llamada salvada a las 2 AM paga ~32 meses de Pro."
+      : "Average water mitigation job: $8,000. One saved 2 AM call covers ~32 months of Pro.";
   const breakEvenFoot =
     locale === "es"
       ? "¿Flex? Un despacho confirmado a $8K promedio = ~1,000× tu costo por despacho."
@@ -141,7 +141,7 @@ export function Pricing() {
             {locale === "en" ? (
               <>
                 Average water mitigation job: <strong className="text-brand-800">$8,000</strong>. One saved 2 AM call covers{" "}
-                <strong className="text-brand-800">~40 months</strong> of Pro.
+                <strong className="text-brand-800">~32 months</strong> of Pro.
               </>
             ) : (
               breakEvenBody
