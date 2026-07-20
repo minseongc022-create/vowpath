@@ -27,10 +27,13 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
+import { DashboardViewLandingFooter } from "@/components/dashboard/DashboardViewLandingFooter";
 import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle";
 import { SidebarAiLauncher } from "@/components/assistant/SidebarAiLauncher";
 import { ROUTES } from "@/lib/constants";
-import { useVowDashboard } from "@/components/providers/LocaleProvider";
+import { useLocale, useVowDashboard } from "@/components/providers/LocaleProvider";
+import { useUserPlan } from "@/lib/hooks/use-user-plan";
+import { planNavCtaEn, planNavCtaKo, planNavTitleEn, planNavTitleKo } from "@/lib/plan-nav-label";
 
 
 
@@ -95,8 +98,12 @@ export function DashboardShell({
 }: DashboardShellProps) {
 
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const userPlan = useUserPlan();
   const vowDashboard = useVowDashboard();
   const v = vowDashboard.nav;
+  const planTitle = locale === "ko" ? planNavTitleKo(userPlan) : planNavTitleEn(userPlan);
+  const planCta = locale === "ko" ? planNavCtaKo(userPlan) : planNavCtaEn(userPlan);
 
 
 
@@ -260,7 +267,7 @@ export function DashboardShell({
 
               <IconDiamond className="h-4 w-4" />
 
-              <p className="text-sm font-semibold text-white">{vowDashboard.upgrade.title}</p>
+              <p className="text-sm font-semibold text-white">{planTitle}</p>
 
             </div>
 
@@ -278,15 +285,8 @@ export function DashboardShell({
 
             >
 
-              {vowDashboard.upgrade.cta}
+              {planCta}
 
-            </Link>
-
-            <Link
-              href={ROUTES.site}
-              className="mt-2 block text-center text-[11px] text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
-            >
-              {vowDashboard.upgrade.viewLanding}
             </Link>
 
           </div>
@@ -337,6 +337,7 @@ export function DashboardShell({
 
         <main className="vow-dash-main-scroll vow-app-px flex-1 bg-[#f8f6f2] py-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:py-8 lg:bg-transparent lg:pb-8">
           {children}
+          <DashboardViewLandingFooter />
         </main>
 
         <DashboardMobileNav pendingReviewCount={pendingReviewCount} />
