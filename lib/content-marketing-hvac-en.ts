@@ -145,7 +145,7 @@ export const hvacFaq = [
 export const hvacSeoMeta = {
   title: "Effiroad for HVAC — AI Intake & Dispatch for HVAC Companies",
   description:
-    "Effiroad answers every HVAC call 24/7 with a natural US voice, auto-dispatches verified no-heat emergencies, and holds gas smell for your 1 / 2. From ${SITE.proPrice}/mo Pro or Flex for lighter months — no CRM needed.",
+    `Effiroad answers every HVAC call 24/7 with a natural US voice, auto-dispatches verified no-heat emergencies, and holds gas smell for your 1 / 2. From ${SITE.proPrice}/mo Pro or Flex for lighter months — no CRM needed.`,
   ogTitle: "Effiroad — Never Lose a No-Heat Call at 2 AM",
   ogDescription:
     "AI-powered call intake and dispatch built for HVAC shops. No-heat auto-dispatch. Gas smell always held.",
