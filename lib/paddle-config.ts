@@ -1,4 +1,4 @@
-import type { PlanId } from "@/lib/constants";
+import { ALL_PLAN_IDS, type PlanId } from "@/lib/constants";
 
 const PLACEHOLDER_MARKERS = ["xxxx", "change-me", "your_", "pri_xxxx", "pdl_xxxx"];
 
@@ -166,6 +166,12 @@ export function isPaddleConfigured(plan: PlanId = "pro"): boolean {
   const key = process.env.PADDLE_API_KEY;
   const priceId = priceIdForPlan(plan);
   return isValidPaddleEnvValue(key) && isValidPaddleEnvValue(priceId);
+}
+
+/** True when Paddle API key + at least one sellable plan price ID are configured. */
+export function isAnyPaddlePlanConfigured(): boolean {
+  if (!isValidPaddleEnvValue(process.env.PADDLE_API_KEY)) return false;
+  return ALL_PLAN_IDS.some((plan) => isValidPaddleEnvValue(priceIdForPlan(plan)));
 }
 
 export function allowCheckoutFallback(): boolean {

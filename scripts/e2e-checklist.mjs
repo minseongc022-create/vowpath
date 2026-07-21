@@ -25,6 +25,11 @@ check("Paddle flex base", Boolean(process.env.PADDLE_PRICE_ID_FLEX), "PADDLE_PRI
 check("Paddle flex usage", Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE), "PADDLE_PRICE_ID_FLEX_USAGE");
 check("Paddle lite base", Boolean(process.env.PADDLE_PRICE_ID_LITE), "PADDLE_PRICE_ID_LITE");
 check("Paddle lite usage", Boolean(process.env.PADDLE_PRICE_ID_LITE_USAGE), "PADDLE_PRICE_ID_LITE_USAGE");
+check("Paddle Pro base", Boolean(process.env.PADDLE_PRICE_ID_PRO || process.env.PADDLE_PRICE_ID_UNLIMITED), "PADDLE_PRICE_ID_PRO");
+check("Paddle Voice Starter", Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER), "PADDLE_PRICE_ID_VOICE_STARTER");
+check("Paddle Voice Starter overage", Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE), "PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE");
+check("Paddle Voice Pro", Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO), "PADDLE_PRICE_ID_VOICE_PRO");
+check("Paddle Voice Pro overage", Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO_OVERAGE), "PADDLE_PRICE_ID_VOICE_PRO_OVERAGE");
 check("Twilio creds", Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN), "TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN");
 check("Twilio webhook base", Boolean(process.env.TWILIO_WEBHOOK_BASE_URL?.startsWith("https://")), "TWILIO_WEBHOOK_BASE_URL=https://effiroad.com");
 check("OpenAI", Boolean(process.env.OPENAI_API_KEY?.startsWith("sk-")), "OPENAI_API_KEY");
