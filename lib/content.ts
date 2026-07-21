@@ -2,10 +2,15 @@ import { SITE, CHECKOUT_CTA } from "./constants";
 import {
   planVolumeGuideKo,
   pricingVolumeTipKo,
-  PRICING_GUARANTEES_EN,
-  PRICING_TRANSPARENCY_FOOTNOTE_EN,
+  PRICING_GUARANTEES_KO,
+  PRICING_TRANSPARENCY_FOOTNOTE_KO,
 } from "./plan-volume-guide";
-import { proUsageLine, scaleUsageLine } from "./plan-pricing";
+import {
+  proUsageLine,
+  scaleUsageLine,
+  voiceProUsageLine,
+  voiceStarterUsageLine,
+} from "./plan-pricing";
 import { IS_BETA } from "./beta";
 import { pickLocaleCopy } from "@/lib/locale-merge";
 import { runtimeUiLocale, type UiLocale } from "./locale";
@@ -228,11 +233,23 @@ export const features = {
 export const pricing = {
   title: "가격",
   subtitle:
-    "Lite/Flex는 승인한 긴급 출동만 건당 과금. 무료 견적 전화(메뉴 2번)는 모든 플랜에 포함 — 견적 건당 $0.",
+    "과금 방식을 고르세요: 승인 긴급 출동 건당, 또는 포함 통화 분(Voice). 무료 견적은 모든 플랜 $0. 라이브 에이전트 전환 추가 수수료 없음.",
+  billingTracks: {
+    dispatch: {
+      id: "dispatch" as const,
+      label: "승인 출동 건당",
+      hint: "실제 긴급 출동을 승인할 때만 과금 — 권장",
+    },
+    voice: {
+      id: "voice" as const,
+      label: "분당 과금",
+      hint: "포함 통화 분 + 공개 초과 요금 — 전환 수수료 없음",
+    },
+  },
   compare: [
     { label: "맞춤 수신 시간대", amount: "무제한 구간" },
     { label: "무료 견적 전화 (메뉴 2)", amount: "포함 — 건당 $0", highlight: true },
-    { label: "승인 출동 건당 과금", amount: "Lite / Flex만" },
+    { label: "과금 선택", amount: "출동 트랙 또는 Voice 분", highlight: true },
     {
       label: "AI 품질",
       amount: "모든 플랜 프리미엄 AI",
@@ -312,9 +329,49 @@ export const pricing = {
       cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
+  voicePlans: [
+    {
+      id: "voice_starter" as const,
+      name: "Voice Starter",
+      badge: "야간 콜 적을 때",
+      description:
+        "분당 과금 트랙. 포함 통화 분 + 공개 초과 요금 — 라이브 에이전트 전환 수수료 없음.",
+      price: SITE.voiceStarterPrice,
+      period: "/월",
+      usageLine: voiceStarterUsageLine(false),
+      volumeGuide: planVolumeGuideKo("voice_starter"),
+      features: [
+        "무료 견적 포함 ($0)",
+        `월 ${SITE.voiceStarterIncludedMinutes}분 포함`,
+        `이후 ${SITE.voiceStarterOveragePerMinute}/분 · 통화당 올림`,
+        "동일 1/2 hold · CRM 선택",
+      ],
+      recommended: true,
+      cta: `${CHECKOUT_CTA} — Voice Starter`,
+    },
+    {
+      id: "voice_pro" as const,
+      name: "Voice Pro",
+      badge: "야간·피크",
+      description:
+        "포함 분이 더 많은 분당 플랜. 출동 건당 대신 통화 분으로 맞추고 싶을 때.",
+      price: SITE.voiceProPrice,
+      period: "/월",
+      usageLine: voiceProUsageLine(false),
+      volumeGuide: planVolumeGuideKo("voice_pro"),
+      features: [
+        "무료 견적 포함 ($0)",
+        `월 ${SITE.voiceProIncludedMinutes}분 포함`,
+        `이후 ${SITE.voiceProOveragePerMinute}/분 · 초과 전 알림`,
+        "출동 플랜과 동일한 접수·hold",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Voice Pro`,
+    },
+  ],
   tip: pricingVolumeTipKo(),
-  footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
-  guarantees: PRICING_GUARANTEES_EN,
+  footnote: PRICING_TRANSPARENCY_FOOTNOTE_KO,
+  guarantees: PRICING_GUARANTEES_KO,
 };
 
 export const faq = {
@@ -322,11 +379,19 @@ export const faq = {
   items: [
     {
       q: "견적 전화도 건당 받나요?",
-      a: "아니요. 무료 견적(메뉴 2번)은 모든 플랜에 포함이며 건당 $0입니다. Lite/Flex는 승인한 긴급 출동만 건당 과금하고, Pro/Scale 포함 한도에도 견적은 들어가지 않습니다.",
+      a: "아니요. 무료 견적(메뉴 2번)은 모든 플랜에 포함이며 건당 $0입니다. 출동 과금·분당 Voice 모두 동일합니다.",
+    },
+    {
+      q: "출동 과금이랑 분당 과금, 뭐가 다른가요?",
+      a: "대부분 복구 shop은 출동 과금(Lite/Flex/Pro/Scale)이 맞습니다 — 긴급 출동 승인 시에만 냅니다. Voice Starter/Pro는 포함 통화 분 + 공개 초과 요금이 필요한 경우용이며, 라이브 에이전트 전환 수수료는 없습니다.",
     },
     {
       q: "성과형(Lite/Flex) 수수료는 언제 청구되나요?",
       a: "업체가 문자·대시보드로 긴급 출동을 승인(또는 스케줄 확정)한 1건당만 과금됩니다. 통화만 있고 승인이 없으면 기본료만, 무료 견적·스팸·취소는 제외합니다.",
+    },
+    {
+      q: "Voice 분당 플랜은 어떻게 되나요?",
+      a: `Voice Starter는 월 ${SITE.voiceStarterIncludedMinutes}분 포함 후 ${SITE.voiceStarterOveragePerMinute}/분, Voice Pro는 ${SITE.voiceProIncludedMinutes}분 후 ${SITE.voiceProOveragePerMinute}/분입니다. 통화당 올림. 접수·1/2 hold는 동일하고, Voice에서는 출동 승인으로 추가 과금하지 않습니다.`,
     },
     {
       q: "번호 두 개 써야 하나요?",

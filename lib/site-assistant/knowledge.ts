@@ -15,7 +15,10 @@ export function buildSiteAssistantKnowledge(locale: UiLocale = "en"): string {
     .map((s, i) => `${i + 1}. ${s.title}: ${s.description}`)
     .join("\n");
 
-  const plans = pricing.plans
+  const plans = [
+    ...pricing.plans,
+    ...("voicePlans" in pricing ? pricing.voicePlans : []),
+  ]
     .map(
       (p) =>
         `${p.name} — ${p.price}${p.period}${"usageLine" in p ? ` (${p.usageLine})` : ""}: ${p.description}`,
@@ -27,7 +30,7 @@ Effiroad (${SITE.url}) — AI answering service for US home-service shops (water
 
 PRICING:
 ${plans}
-Billing rule: Free estimates (press 2 / SMS estimate link) never bill. Only approved or scheduled emergency dispatches count toward included jobs or per-dispatch fees. Pending / held / declined / cancelled jobs do not bill.
+Billing tracks: (1) Dispatch — Lite/Flex/Pro/Scale: free estimates never bill; only approved or scheduled emergency dispatches count. (2) Voice minutes — Voice Starter / Voice Pro: included talk-minutes with published overage; each call rounds up to the next minute; dispatch approvals are not charged again on Voice plans. Pending / held / declined / cancelled jobs do not bill on the dispatch track.
 Trial: ${TRIAL_DAYS}-day free signup trial. Pilot shops with inbound line: ${PILOT_TRIAL_DAYS}-day pilot.
 
 HOW IT WORKS:

@@ -4,10 +4,15 @@ import { getCheckoutCta } from "./marketing-constants";
 import {
   planVolumeGuideEs,
   pricingVolumeTipEs,
-  PRICING_GUARANTEES_EN,
-  PRICING_TRANSPARENCY_FOOTNOTE_EN,
+  PRICING_GUARANTEES_ES,
+  PRICING_TRANSPARENCY_FOOTNOTE_ES,
 } from "./plan-volume-guide";
-import { proUsageLine, scaleUsageLine } from "./plan-pricing";
+import {
+  proUsageLine,
+  scaleUsageLine,
+  voiceProUsageLine,
+  voiceStarterUsageLine,
+} from "./plan-pricing";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -130,11 +135,23 @@ export const socialProofEs = {
 export const pricingEs = {
   title: "Una pérdida de agua a las 2 AM paga todo el año",
   subtitle:
-    "En Lite/Flex pagas por despacho de emergencia aprobado. Las llamadas de presupuesto gratis (opción 2) están incluidas en todos los planes — $0 por estimación.",
+    "Elige cómo pagar: por despacho de emergencia aprobado, o minutos de llamada incluidos. Presupuestos gratis en todos los planes. Sin cargos sorpresa por transferencia a agente.",
+  billingTracks: {
+    dispatch: {
+      id: "dispatch" as const,
+      label: "Por despacho aprobado",
+      hint: "Solo pagas cuando se aprueba un trabajo real — modelo recomendado",
+    },
+    voice: {
+      id: "voice" as const,
+      label: "Por minuto",
+      hint: "Minutos incluidos + exceso claro — sin fees de transferencia en vivo",
+    },
+  },
   compare: [
     { label: "Teléfono con IA + enlace SMS", amount: "Incluido" },
     { label: "Presupuestos gratis (opción 2)", amount: "Incluido — $0 c/u", highlight: true },
-    { label: "Pago por despacho aprobado", amount: "Solo Lite / Flex" },
+    { label: "Opción de cobro", amount: "Despacho o minutos Voice", highlight: true },
     { label: "Calidad de IA", amount: "IA Premium en todos los planes" },
   ],
   plans: [
@@ -211,9 +228,49 @@ export const pricingEs = {
       cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
+  voicePlans: [
+    {
+      id: "voice_starter" as const,
+      name: "Voice Starter",
+      badge: "Noches tranquilas",
+      description:
+        "Track por minuto para líneas más quietas. Minutos incluidos y exceso publicado — sin fees de agente en vivo.",
+      price: SITE.voiceStarterPrice,
+      period: "/mes",
+      usageLine: voiceStarterUsageLine(false),
+      volumeGuide: planVolumeGuideEs("voice_starter"),
+      features: [
+        "Presupuestos gratis ($0)",
+        `${SITE.voiceStarterIncludedMinutes} min/mes incluidos`,
+        `Luego ${SITE.voiceStarterOveragePerMinute}/min · redondeo por llamada`,
+        "Mismos holds 1 / 2 · sin CRM obligatorio",
+      ],
+      recommended: true,
+      cta: `${CHECKOUT_CTA} — Voice Starter`,
+    },
+    {
+      id: "voice_pro" as const,
+      name: "Voice Pro",
+      badge: "Noches ocupadas",
+      description:
+        "Más minutos incluidos para temporadas altas o quien prefiere minutos a despacho.",
+      price: SITE.voiceProPrice,
+      period: "/mes",
+      usageLine: voiceProUsageLine(false),
+      volumeGuide: planVolumeGuideEs("voice_pro"),
+      features: [
+        "Presupuestos gratis ($0)",
+        `${SITE.voiceProIncludedMinutes} min/mes incluidos`,
+        `Luego ${SITE.voiceProOveragePerMinute}/min · alertas antes del exceso`,
+        "Mismo intake + holds que planes de despacho",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Voice Pro`,
+    },
+  ],
   tip: pricingVolumeTipEs(),
-  footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
-  guarantees: PRICING_GUARANTEES_EN,
+  footnote: PRICING_TRANSPARENCY_FOOTNOTE_ES,
+  guarantees: PRICING_GUARANTEES_ES,
 };
 
 export const ctaEs = {
@@ -229,11 +286,19 @@ export const faqEs = {
   items: [
     {
       q: "¿Las llamadas de presupuesto cuestan extra?",
-      a: "No. El intake de presupuesto gratis (opción 2 del menú) está incluido en todos los planes a $0. Lite/Flex solo cobran por despacho de emergencia aprobado. Pro/Scale solo cuentan despachos de emergencia hacia el tope mensual — las estimaciones nunca.",
+      a: "No. El intake de presupuesto gratis (opción 2) está incluido en todos los planes a $0 — tanto en despacho como en minutos Voice.",
+    },
+    {
+      q: "¿Despacho o por minuto — cuál elijo?",
+      a: "La mayoría de talleres de restauración prefieren despacho (Lite/Flex/Pro/Scale): pagas al aprobar un trabajo. Elige Voice Starter o Voice Pro si quieres minutos incluidos al estilo contestador, con exceso publicado y sin fees de transferencia en vivo.",
     },
     {
       q: "¿Qué se factura en Flex o Lite?",
       a: "La base mensual, más una tarifa solo cuando apruebas o programas un despacho de emergencia. Spam, trabajos cancelados y presupuestos gratis no se facturan.",
+    },
+    {
+      q: "¿Cómo funcionan los planes Voice?",
+      a: `Voice Starter incluye ${SITE.voiceStarterIncludedMinutes} min/mes luego ${SITE.voiceStarterOveragePerMinute}/min; Voice Pro incluye ${SITE.voiceProIncludedMinutes} luego ${SITE.voiceProOveragePerMinute}/min. Cada llamada se redondea al minuto siguiente. Mismo intake y holds 1 / 2 — en Voice no se cobra de nuevo al aprobar el despacho.`,
     },
     {
       q: "¿Cambio mi número de teléfono?",
@@ -241,7 +306,7 @@ export const faqEs = {
     },
     {
       q: "¿En qué se diferencia de un servicio de contestación?",
-      a: "Los contestadores solo toman mensajes. Effiroad captura tipo de pérdida y dirección, despacha agua estándar y te manda 1 / 2 en fuego, Cat-3 o casos dudosos.",
+      a: "Los contestadores solo toman mensajes (y a menudo suman fees de transferencia). Effiroad captura tipo de pérdida y dirección, despacha agua estándar y te manda 1 / 2 en fuego, Cat-3 o casos dudosos — en cualquier track de cobro.",
     },
     {
       q: "¿Reemplaza Jobber o Xactimate?",

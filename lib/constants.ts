@@ -52,12 +52,39 @@ export const SITE = {
   betaScalePrice: "$349",
   betaLockedPrice: "$299",
   betaDiscountYears: 5,
+  /**
+   * Per-minute voice track (separate SKUs from dispatch billing).
+   * Competitive vs Rosie / Upfirst-style answering — included minutes + clear overage.
+   * No live-agent transfer fees; same AI intake + owner holds as dispatch plans.
+   */
+  voiceStarterPrice: "$49",
+  voiceStarterIncludedMinutes: 250,
+  /** List overage $/min beyond included (Twilio+AI COGS ~$0.10–0.15). */
+  voiceStarterOveragePerMinute: "$0.25",
+  betaVoiceStarterPrice: "$39",
+  betaVoiceStarterOveragePerMinute: "$0.22",
+  voiceProPrice: "$149",
+  voiceProIncludedMinutes: 1000,
+  voiceProOveragePerMinute: "$0.20",
+  betaVoiceProPrice: "$119",
+  betaVoiceProOveragePerMinute: "$0.18",
 } as const;
 
-export type PlanId = "lite" | "flex" | "pro" | "scale";
+/** Dispatch track: lite/flex/pro/scale · Voice track: voice_starter/voice_pro */
+export type PlanId =
+  | "lite"
+  | "flex"
+  | "pro"
+  | "scale"
+  | "voice_starter"
+  | "voice_pro";
 
 /** Default checkout / trial-end plan — Flex fits most independent shops. */
 export const DEFAULT_PLAN: PlanId = "flex";
+
+export const DISPATCH_PLAN_IDS = ["lite", "flex", "pro", "scale"] as const;
+export const VOICE_PLAN_IDS = ["voice_starter", "voice_pro"] as const;
+export const ALL_PLAN_IDS = [...DISPATCH_PLAN_IDS, ...VOICE_PLAN_IDS] as const;
 
 /** Query value that lets logged-in users open the public landing without bouncing to /dashboard. */
 export const MARKETING_SITE_VIEW = "site";

@@ -1,5 +1,9 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { siteGetStarted, sitePricing as pricing } from "@/lib/site-content";
 import type { PlanId } from "@/lib/constants";
+import { isPerMinutePlan } from "@/lib/plan-pricing";
 import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
@@ -8,6 +12,8 @@ type PlanCheckoutProps = {
   paddleReady: boolean;
   checkoutErrorCode?: string | null;
 };
+
+type BillingTrack = "dispatch" | "voice";
 
 export function PlanCheckout({
   selectedPlan,
@@ -19,6 +25,20 @@ export function PlanCheckout({
     ? checkoutErrorMessage(checkoutErrorCode)
     : null;
 
+  const initialTrack: BillingTrack = isPerMinutePlan(selectedPlan) ? "voice" : "dispatch";
+  const [track, setTrack] = useState<BillingTrack>(initialTrack);
+
+  const voicePlans = "voicePlans" in pricing ? pricing.voicePlans : [];
+  const tracks = "billingTracks" in pricing ? pricing.billingTracks : null;
+  const visiblePlans = useMemo(
+    () => (track === "voice" && voicePlans.length > 0 ? voicePlans : pricing.plans),
+    [track, voicePlans],
+  );
+  const gridClass =
+    visiblePlans.length <= 2
+      ? "grid gap-6 sm:grid-cols-2"
+      : "grid gap-6 sm:grid-cols-2 xl:grid-cols-4";
+
   return (
     <div className="mx-auto mt-10 max-w-5xl">
       {bannerError ? (
@@ -27,8 +47,36 @@ export function PlanCheckout({
         </p>
       ) : null}
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {pricing.plans.map((plan) => {
+      {tracks ? (
+        <div className="mb-8 flex flex-col items-center gap-2">
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setTrack("dispatch")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                track === "dispatch" ? "bg-slate-900 text-white" : "text-slate-700"
+              }`}
+            >
+              {tracks.dispatch.label}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTrack("voice")}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                track === "voice" ? "bg-slate-900 text-white" : "text-slate-700"
+              }`}
+            >
+              {tracks.voice.label}
+            </button>
+          </div>
+          <p className="max-w-md text-center text-xs text-slate-600">
+            {track === "dispatch" ? tracks.dispatch.hint : tracks.voice.hint}
+          </p>
+        </div>
+      ) : null}
+
+      <div className={gridClass}>
+        {visiblePlans.map((plan) => {
           const isSelected = plan.id === selectedPlan;
           const payLabel = paddleReady
             ? typeof page.payLabel === "function"
@@ -75,7 +123,7 @@ export function PlanCheckout({
               </div>
               <p
                 className={`mt-2 text-sm font-medium ${
-                  plan.id === "flex" || plan.id === "lite"
+                  plan.id === "flex" || plan.id === "lite" || isPerMinutePlan(plan.id)
                     ? "text-brand-700"
                     : "text-slate-600"
                 }`}

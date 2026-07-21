@@ -1,9 +1,10 @@
 import type { PlanId } from "./constants";
 import { normalizePlanId } from "./plan-pricing";
 
-/** Scale is the top tier — show "View plan" instead of upgrade CTA. */
+/** Scale / Voice Pro are top of their billing tracks — show "View plan" instead of upgrade. */
 export function isTopTierPlan(plan: PlanId | null | undefined): boolean {
-  return normalizePlanId(plan ?? undefined) === "scale";
+  const id = normalizePlanId(plan ?? undefined);
+  return id === "scale" || id === "voice_pro";
 }
 
 export function planNavTitleEn(plan: PlanId | null | undefined): string {

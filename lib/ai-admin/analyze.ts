@@ -165,7 +165,11 @@ function currentPlanRows(user: UserRecord, nextBillingDate?: string | null) {
 }
 
 function planCard(plan: PlanId): AiAdminAnalysisResult {
-  const target = sitePricing.plans.find((item) => item.id === plan) ?? sitePricing.plans[0];
+  const allPlans = [
+    ...sitePricing.plans,
+    ...("voicePlans" in sitePricing ? sitePricing.voicePlans : []),
+  ];
+  const target = allPlans.find((item) => item.id === plan) ?? sitePricing.plans[0];
   const actions: AiAdminBillingAction[] = [
     { label: `Open ${target.name} Checkout`, href: `/api/checkout?plan=${target.id}`, kind: "checkout" },
     { label: "Compare Plans", href: "/pricing", kind: "compare" },
@@ -183,7 +187,10 @@ function planCard(plan: PlanId): AiAdminAnalysisResult {
       ],
       actions,
     },
-    suggestions: ["Compare Lite, Flex, Pro, and Scale.", "What is my current plan?"],
+    suggestions: [
+      "Compare dispatch vs Voice minute plans.",
+      "What is my current plan?",
+    ],
   };
 }
 
@@ -227,13 +234,18 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
   }
 
   if (q.includes("compare") || q.includes("차이")) {
+    const allPlans = [
+      ...sitePricing.plans,
+      ...("voicePlans" in sitePricing ? sitePricing.voicePlans : []),
+    ];
     return {
       kind: "billing",
-      answer: "Effiroad has Lite, Flex, Pro, and Scale — Premium AI on every plan. Lite/Flex bill per approved dispatch; Pro/Scale include monthly dispatch caps.",
+      answer:
+        "Effiroad has two billing tracks: dispatch (Lite/Flex/Pro/Scale — pay on approved emergency jobs) and Voice minutes (Voice Starter / Voice Pro). Same Premium AI + owner 1/2 holds either way.",
       billingCard: {
         title: "Plan Comparison",
         description: sitePricing.tip,
-        rows: sitePricing.plans.map((plan) => ({
+        rows: allPlans.map((plan) => ({
           label: plan.name,
           value: `${plan.price}${plan.period} · ${plan.usageLine}`,
         })),
@@ -242,8 +254,21 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
           { label: "Pro Checkout", href: "/api/checkout?plan=pro", kind: "checkout" },
         ],
       },
-      suggestions: ["Upgrade to Pro or Scale.", "What is my current plan?"],
+      suggestions: ["Upgrade to Pro or Scale.", "What is Voice Starter?"],
     };
+  }
+
+  if (
+    q.includes("voice starter") ||
+    q.includes("per minute") ||
+    q.includes("분당") ||
+    q.includes("voice plan")
+  ) {
+    return planCard("voice_starter");
+  }
+
+  if (q.includes("voice pro")) {
+    return planCard("voice_pro");
   }
 
   if (q.includes("upgrade") || q.includes("업그레이드") || q.includes("pro") || q.includes("premium")) {
