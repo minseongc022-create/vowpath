@@ -6,9 +6,9 @@ export function checkoutErrorMessage(code: string | null | undefined): string {
     case "not_configured":
       return "Checkout is not configured yet. Pick a plan and sign up — we will enable billing shortly.";
     case "paddle_checkout_disabled":
-      return "Paddle checkout is still being activated on our account. Try again in a few hours or email support@effiroad.com.";
+      return "Paddle checkout is still being activated on our account. Try again in a few hours or email hello@effiroad.com.";
     case "missing_client_token":
-      return "Checkout overlay is not configured (missing Paddle client token). Email support@effiroad.com.";
+      return "Checkout overlay is not configured (missing Paddle client token). Email hello@effiroad.com.";
     case "missing_transaction":
       return "Could not create a checkout session. Please try again.";
     case "unavailable":

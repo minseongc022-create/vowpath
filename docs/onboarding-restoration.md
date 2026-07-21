@@ -74,5 +74,5 @@ Turn OFF when call volume is normal.
 
 ## Support
 
-- Email: support@effiroad.com
+- Email: hello@effiroad.com
 - Dispatch packet: **Dashboard → job → Export dispatch packet** (copy for DASH/Encircle)

@@ -177,7 +177,7 @@ export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId
 };
 
 export const FORWARDING_TROUBLESHOOTING_FALLBACK =
-  "support@effiroad.com — 통신사 이름과 함께 문의.";
+  "hello@effiroad.com — 통신사 이름과 함께 문의.";
 
 export function getForwardingGuideSteps(
   provider: ForwardingProviderId,

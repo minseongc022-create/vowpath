@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PhoneDemoPhase } from "@/lib/demo-phone-script";
+import { demoAudioPlayer, demoSpeechPause } from "@/lib/demo-audio-player";
 
 const CUSTOMER_TYPING_MS = 900;
 const CUSTOMER_HOLD_MS = 3200;
@@ -42,26 +43,47 @@ export function useDemoPhoneTimeline({
   const runGenerationRef = useRef(0);
   const customerScrollRef = useRef<HTMLDivElement | null>(null);
 
+  const stopLocalAudio = useCallback(() => {
+    const prev = audioRef.current;
+    if (!prev) return;
+    prev.onended = null;
+    prev.onerror = null;
+    prev.pause();
+    prev.currentTime = 0;
+  }, []);
+
   const playAi = useCallback(
     async (phase: AiVoicePhase, runId: number) => {
       setAiLine(phase.text);
       setSpeaking(true);
+
+      demoAudioPlayer.stop();
+      stopLocalAudio();
+
       const audio = new Audio(`/demo-audio/${audioPrefix}-${phase.audioIndex}.mp3`);
       audioRef.current = audio;
       try {
         await audio.play();
         await new Promise<void>((resolve) => {
-          audio.onended = () => resolve();
-          audio.onerror = () => resolve();
-          setTimeout(resolve, Math.max(phase.text.length * 78, 3800));
+          audio.onended = () => {
+            if (runGenerationRef.current === runId) resolve();
+          };
+          audio.onerror = () => {
+            if (runGenerationRef.current === runId) resolve();
+          };
+          setTimeout(() => {
+            if (runGenerationRef.current === runId) resolve();
+          }, Math.max(phase.text.length * 78, 3800));
         });
       } catch {
-        await new Promise((r) => setTimeout(r, Math.max(phase.text.length * 78, 3800)));
+        if (runGenerationRef.current === runId) {
+          await demoSpeechPause(phase.text);
+        }
       } finally {
         if (runGenerationRef.current === runId) setSpeaking(false);
       }
     },
-    [audioPrefix],
+    [audioPrefix, stopLocalAudio],
   );
 
   const resetScene = useCallback(() => {
@@ -78,7 +100,8 @@ export function useDemoPhoneTimeline({
 
   const run = useCallback(() => {
     const runId = ++runGenerationRef.current;
-    audioRef.current?.pause();
+    demoAudioPlayer.stop();
+    stopLocalAudio();
     resetScene();
 
     const isStale = () => runGenerationRef.current !== runId;
@@ -131,20 +154,22 @@ export function useDemoPhoneTimeline({
         resetScene();
       }
     })();
-  }, [loopDelayMs, playAi, recordMode, resetScene, stepIdxForPhase, timeline]);
+  }, [loopDelayMs, playAi, recordMode, resetScene, stepIdxForPhase, stopLocalAudio, timeline]);
 
   useEffect(() => {
     if (!enabled) {
       runGenerationRef.current += 1;
-      audioRef.current?.pause();
+      demoAudioPlayer.stop();
+      stopLocalAudio();
       return;
     }
     run();
     return () => {
       runGenerationRef.current += 1;
-      audioRef.current?.pause();
+      demoAudioPlayer.stop();
+      stopLocalAudio();
     };
-  }, [run, enabled]);
+  }, [run, enabled, stopLocalAudio]);
 
   useEffect(() => {
     const el = customerScrollRef.current;

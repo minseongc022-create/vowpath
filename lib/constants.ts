@@ -5,22 +5,21 @@ export const SITE = {
   name: "EFFIROAD",
   tagline: getSiteTagline(),
   url: "https://effiroad.com",
-  contactEmail: "support@effiroad.com",
-  supportEmail: "support@effiroad.com",
+  contactEmail: "hello@effiroad.com",
+  supportEmail: "hello@effiroad.com",
   /** Alias for Pro list price (break-even / marketing copy). */
   monthlyPrice: "$299",
   /**
-   * Competitive vs OnCrew ($49/$149/$349 calls), ServiceAgent ($49/$119/$349), Jobber AI ($29).
-   * We bill approved emergency dispatches — not raw call minutes.
+   * Dispatch billing — approved emergency dispatches, not raw call minutes.
    * Target ~40% gross margin at included/typical cap (COGS $6/dispatch).
    * Founder (sale) always ≤ list on every priced leg.
    */
-  /** Flex — mid shops; founder 10 dispatches ≈ $149 (OnCrew Pro band). */
+  /** Flex — mid shops; founder 10 dispatches ≈ $149 band. */
   flexBasePrice: "$69",
   flexPerBooking: "$12",
   betaFlexBasePrice: "$49",
   betaFlexPerBooking: "$10",
-  /** Lite — quiet months; undercuts OnCrew Starter on base, usage-priced. */
+  /** Lite — quiet months; lower base, usage-priced dispatches. */
   liteBasePrice: "$39",
   litePerBooking: "$18",
   betaLiteBasePrice: "$35",
@@ -48,7 +47,7 @@ export const SITE = {
   premiumAiModel: "gpt-4o",
   /** Founder Pro — $50 under list · ~40% margin at 25 included (COGS $150). */
   betaIntroPrice: "$249",
-  /** Founder Scale — matches OnCrew Multi / SA Franchise band · 40 included. */
+  /** Founder Scale — high-volume shops · 40 included dispatches. */
   betaScalePrice: "$349",
   betaLockedPrice: "$299",
   betaDiscountYears: 5,
