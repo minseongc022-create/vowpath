@@ -127,3 +127,14 @@ export function voiceProUsageLine(founder = false): string {
   const over = founder ? SITE.betaVoiceProOveragePerMinute : SITE.voiceProOveragePerMinute;
   return `${SITE.voiceProIncludedMinutes} min/mo included · then ${over}/min (ceil per call · alerts before overage)`;
 }
+
+export function planDisplayName(plan: PlanId | null | undefined): string {
+  const id = normalizePlanId(plan ?? undefined);
+  if (id === "voice_starter") return "Voice Starter";
+  if (id === "voice_pro") return "Voice Pro";
+  if (id === "lite") return "Lite";
+  if (id === "flex") return "Flex";
+  if (id === "pro") return "Pro";
+  if (id === "scale") return "Scale";
+  return "Flex";
+}

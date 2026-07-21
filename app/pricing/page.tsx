@@ -18,7 +18,7 @@ import { getSession } from "@/lib/session";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Effiroad plans for restoration companies — Lite, Flex, Pro, or Scale. AI voice, SMS, dispatch, and analytics included.",
+    "Effiroad plans for restoration companies — dispatch billing (Lite, Flex, Pro, Scale) or Voice per-minute plans. AI voice, SMS, and owner holds included.",
 };
 
 

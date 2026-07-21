@@ -67,6 +67,18 @@ export async function buildRetellBridgeTwiml(
       callSid: params.callSid,
     });
 
+    if (
+      params.callSid &&
+      (params.ivrPath === "estimate_choice" || params.ivrPath === "phone_estimate")
+    ) {
+      try {
+        const { markCallPathEstimate } = await import("./call-path-meter");
+        await markCallPathEstimate(params.callSid);
+      } catch (e) {
+        console.warn("[retell-bridge] mark estimate path", e);
+      }
+    }
+
     let dynamicVariables: Record<string, string> = {};
     if (userId) {
       try {

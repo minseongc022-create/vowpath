@@ -45,6 +45,8 @@ export async function POST(request: Request) {
   }
 
   if (digit === "2") {
+    const { markCallPathEstimate } = await import("@/lib/call-path-meter");
+    await markCallPathEstimate(callSid);
     return twimlXml(
       await buildRetellBridgeTwiml({ ...bridgeParams, ivrPath: "estimate_choice" }),
     );

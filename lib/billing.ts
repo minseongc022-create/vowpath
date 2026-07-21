@@ -26,6 +26,8 @@ import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
 import { incrementVoiceBillableMinutes } from "./users-db";
 import { claimVoiceCallBilling } from "./voice-meter-dedupe";
+import { isCallPathEstimate } from "./call-path-meter";
+import { maybeNotifyUsageCap } from "./usage-alerts";
 
 export type SubscriptionStatus =
   | "none"
@@ -184,8 +186,20 @@ export async function recordFlexUsage(user: UserRecord): Promise<void> {
     const count = user.monthlyDispatchCount ?? 0;
     const currentMonth = new Date().toISOString().slice(0, 7);
     const effectiveCount = monthKey === currentMonth ? count : 0;
-    if (!shouldBillDispatchOverage(b.plan, effectiveCount)) return;
+    if (!shouldBillDispatchOverage(b.plan, effectiveCount)) {
+      try {
+        await maybeNotifyUsageCap(user);
+      } catch (e) {
+        console.warn("[billing] dispatch usage alert", e);
+      }
+      return;
+    }
     await chargeCappedOverage(user, b.plan);
+    try {
+      await maybeNotifyUsageCap(user);
+    } catch (e) {
+      console.warn("[billing] dispatch usage alert", e);
+    }
   }
 }
 
@@ -262,7 +276,8 @@ async function chargeVoiceOverageMinutes(
 
 /**
  * Meter a completed inbound call for per-minute plans.
- * Idempotent per CallSid. Does nothing for dispatch-billing plans.
+ * Idempotent per CallSid. Skips free-estimate IVR (press 2).
+ * Does nothing for dispatch-billing plans.
  */
 export async function recordVoiceCallUsage(opts: {
   user: UserRecord;
@@ -271,6 +286,8 @@ export async function recordVoiceCallUsage(opts: {
 }): Promise<void> {
   const plan = normalizePlanId(opts.user.plan);
   if (!isPerMinutePlan(plan)) return;
+
+  if (await isCallPathEstimate(opts.callSid)) return;
 
   const minutes = billableMinutesFromDurationSec(opts.durationSec ?? 0);
   if (minutes <= 0) return;
@@ -284,5 +301,11 @@ export async function recordVoiceCallUsage(opts: {
   const overage = overageMinutesFromCall(plan, bumped.minutesBefore, minutes);
   if (overage > 0) {
     await chargeVoiceOverageMinutes(bumped.user, plan, overage);
+  }
+
+  try {
+    await maybeNotifyUsageCap(bumped.user);
+  } catch (e) {
+    console.warn("[billing] voice usage alert", e);
   }
 }

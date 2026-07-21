@@ -30,7 +30,7 @@ Effiroad (${SITE.url}) — AI answering service for US home-service shops (water
 
 PRICING:
 ${plans}
-Billing tracks: (1) Dispatch — Lite/Flex/Pro/Scale: free estimates never bill; only approved or scheduled emergency dispatches count. (2) Voice minutes — Voice Starter / Voice Pro: included talk-minutes with published overage; each call rounds up to the next minute; dispatch approvals are not charged again on Voice plans. Pending / held / declined / cancelled jobs do not bill on the dispatch track.
+Billing tracks: (1) Dispatch — Lite/Flex/Pro/Scale: free estimates never bill; only approved or scheduled emergency dispatches count. (2) Voice minutes — Voice Starter / Voice Pro: included talk-minutes with published overage; each call rounds up to the next minute; free estimate (press 2) calls do not count; dispatch approvals are not charged again on Voice plans. Pending / held / declined / cancelled jobs do not bill on the dispatch track. Usage SMS alerts fire once at 80% and 100% of included caps.
 Trial: ${TRIAL_DAYS}-day free signup trial. Pilot shops with inbound line: ${PILOT_TRIAL_DAYS}-day pilot.
 
 HOW IT WORKS:

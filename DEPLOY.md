@@ -24,10 +24,7 @@ Required:
 | `TWILIO_AUTH_TOKEN` | from Twilio console |
 | `TWILIO_WEBHOOK_BASE_URL` | `https://effiroad.com` |
 | `OPENAI_API_KEY` | `sk-...` |
-| `STRIPE_SECRET_KEY` | `sk_live_...` (use `sk_test_` for staging) |
-| `STRIPE_PRICE_ID_UNLIMITED` | `price_...` ($199/mo) |
-| `STRIPE_PRICE_ID_FLEX` | `price_...` ($49/mo base) |
-| `STRIPE_PRICE_ID_FLEX_USAGE` | `price_...` ($18/dispatch) |
+| `PADDLE_*` | See **[docs/CHECKOUT_LAUNCH.md](./docs/CHECKOUT_LAUNCH.md)** — Pro/Scale/Flex/Lite + Voice minute price IDs |
 | `RESEND_API_KEY` | `re_...` (password reset email) |
 | `CRON_SECRET` | random string (protects /api/cron/*) |
 | `NEXT_PUBLIC_BETA` | `false` |
