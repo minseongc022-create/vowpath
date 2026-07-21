@@ -151,8 +151,11 @@ export default async function HvacPage() {
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
               {hvacPricing.title}
             </h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2">
-              {[hvacPricing.pro, hvacPricing.flex].map((plan) => (
+            {"note" in hvacPricing && hvacPricing.note ? (
+              <p className="mt-2 text-sm text-slate-600">{hvacPricing.note}</p>
+            ) : null}
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[hvacPricing.pro, hvacPricing.flex, hvacPricing.voice].map((plan) => (
                 <div
                   key={plan.name}
                   className="rounded-xl border border-brand-200 bg-white p-6 shadow-sm"
@@ -181,6 +184,11 @@ export default async function HvacPage() {
                 </div>
               ))}
             </div>
+            <p className="mt-4 text-center text-sm text-slate-600">
+              <Link href="/#pricing" className="font-semibold text-brand-700 underline-offset-2 hover:underline">
+                Compare all plans — dispatch or per minute
+              </Link>
+            </p>
           </div>
         </section>
 
