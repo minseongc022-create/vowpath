@@ -3,31 +3,31 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "instant-link-twilio-v16-2026-07-21";
+export const RETELL_PROMPT_VERSION = "premium-reception-v18-2026-07-21";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Override in Vercel: RETELL_VOICE_ID=11labs-Brian */
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
+/** Warm, calm, slightly low US male — trust + reassurance (override: RETELL_VOICE_ID). */
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Daniel";
 
-/** Service / emergency booking — energetic, confident US male. */
+/** Service / emergency — calm confident receptionist, slightly warm-low tone. */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Brian",
   "Daniel",
   "Mark",
+  "George",
+  "Marcus",
+  "Brian",
   "Steve",
-  "Chris",
-  "Eric",
 ] as const;
 
-/** Free estimate — warmer, brighter, friendlier US male. */
+/** Free estimate — same trust tone; gently warm (not hyper-bright). */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Chris",
-  "Eric",
-  "Brian",
   "Daniel",
+  "Brian",
+  "Mark",
   "George",
+  "Marcus",
 ] as const;
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -83,7 +83,7 @@ function pickFromList(
   return RETELL_FALLBACK_MALE_VOICE_ID;
 }
 
-/** Pick an upbeat US English male voice for service / emergency intake. */
+/** Pick a warm, calm US English male voice for service / emergency intake. */
 export function pickNaturalReceptionistVoice(
   voices: RetellVoiceInfo[],
   options?: { explicitId?: string; currentVoiceId?: string },
@@ -91,7 +91,7 @@ export function pickNaturalReceptionistVoice(
   return pickFromList(voices, RETELL_BOOKING_PREFERRED_VOICE_NAMES, options);
 }
 
-/** Pick a warmer, brighter US English male voice for estimate intake. */
+/** Pick a warm US English male voice for estimate intake. */
 export function pickEstimateReceptionistVoice(
   voices: RetellVoiceInfo[],
   options?: {
@@ -134,36 +134,36 @@ function sharedAgentPatch(): Record<string, unknown> {
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.04,
+    interruption_sensitivity: 0.03,
     enable_backchannel: false,
-    reminder_trigger_ms: 12000,
+    reminder_trigger_ms: 14000,
     reminder_max_count: 1,
   };
 }
 
-/** Upbeat service / emergency intake agent. */
+/** Calm, confident service / emergency intake — comfortable pace, warm-low tone. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.93,
-    voice_speed: 1.02,
-    volume: 1.14,
-    responsiveness: 0.78,
+    voice_temperature: 0.92,
+    voice_speed: 0.95,
+    volume: 1.28,
+    responsiveness: 0.72,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Warmer, brighter free-estimate agent. */
+/** Estimate intake — same trust tone, gently warm. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.98,
-    voice_speed: 1.06,
-    volume: 1.18,
-    responsiveness: 0.82,
+    voice_temperature: 0.94,
+    voice_speed: 0.96,
+    volume: 1.28,
+    responsiveness: 0.74,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

@@ -1,33 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-function buildRetellOpeningLine(ivrPath) {
-  switch (ivrPath) {
-    case "booking_choice":
-      return (
-        "Great — thanks for calling {{shop_name}}! " +
-        "Would you like a quick text link, or handle it on this call?"
-      );
-    case "estimate_choice":
-      return (
-        "Awesome — I'd love to help with your free estimate at {{shop_name}}! " +
-        "Would you like a quick text link, or tell us about the project on this call?"
-      );
-    case "phone_booking":
-      return "I'm right here with you — let's get this handled. What's your name?";
-    case "phone_estimate":
-      return "Happy to help with your estimate! What's your name?";
-    default:
-      return (
-        "Hi — thanks for calling {{shop_name}}! " +
-        "Are you calling to book service or report an emergency, or for a free estimate?"
-      );
-  }
-}
-
-function isEstimateRetellPath(ivrPath) {
-  return ivrPath === "estimate_choice" || ivrPath === "phone_estimate";
-}
+import {
+  buildRetellOpeningLine,
+  isEstimateRetellPath,
+} from "../../lib/retell-opening-line.ts";
 
 function resolveRetellAgentIdForIvrPath(env, ivrPath) {
   const booking = env.RETELL_AGENT_ID?.trim() || "agent_booking_default";
@@ -43,6 +19,7 @@ test("buildRetellOpeningLine: booking_choice asks link vs phone", () => {
   assert.match(line, /text link/i);
   assert.match(line, /this call/i);
   assert.match(line, /\{\{shop_name\}\}/);
+  assert.match(line, /glad you reached/i);
 });
 
 test("buildRetellOpeningLine: estimate_choice uses estimate tone", () => {
@@ -55,6 +32,7 @@ test("buildRetellOpeningLine: phone_booking skips link question", () => {
   const line = buildRetellOpeningLine("phone_booking");
   assert.match(line, /name/i);
   assert.doesNotMatch(line, /text link/i);
+  assert.match(line, /right here with you/i);
 });
 
 test("isEstimateRetellPath", () => {

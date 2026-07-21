@@ -4,6 +4,7 @@ import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
 import { isUrgentCallerSpeech } from "@/lib/urgent-speech-bypass";
 import { isLinkIntentSpeech } from "@/lib/link-intent-speech";
+import { resolveMainMenuChoice } from "@/lib/ivr-channel-choice";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (digit === "2") {
+  if (digit === "2" || resolveMainMenuChoice(digit, speech) === "estimate") {
     const { markCallPathEstimate } = await import("@/lib/call-path-meter");
     await markCallPathEstimate(callSid);
     const estimateUrl = buildTwilioCallbackUrl("/api/twilio/estimate", {
@@ -108,8 +109,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // Press 1 (service/emergency) → Twilio link vs phone sub-menu (press 1 = link SMS now).
-  if (digit === "1") {
+  // Service/emergency (press 1 or say service/book/emergency) → link vs phone sub-menu.
+  if (digit === "1" || resolveMainMenuChoice(digit, speech) === "booking") {
     const channelUrl = buildTwilioCallbackUrl("/api/twilio/channel", {
       callSid,
       ...afterQ,

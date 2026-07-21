@@ -24,6 +24,9 @@ import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
 import { persistPhoneEstimateLead } from "@/lib/estimate-pipeline";
 import { logOperationFailure } from "@/lib/ops-failures";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
+import { resolveEstimateChannelChoice } from "@/lib/ivr-channel-choice";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
+import { twimlGatherEstimateMenu, twimlResponse } from "@/lib/twilio-xml";
 
 function twimlXml(body: string) {
   return new NextResponse(body, { headers: { "Content-Type": "text/xml" } });
@@ -63,8 +66,17 @@ export async function POST(request: Request) {
     let state = await getEstimateState(userId, callSid);
 
     if (!state) {
-      const channel = digit === "1" ? "phone" : "link";
-      if (channel === "phone" && isRetellConfigured()) {
+      const choice = resolveEstimateChannelChoice(digit, speech);
+
+      if (choice === "unclear") {
+        const estimateUrl = buildTwilioCallbackUrl("/api/twilio/estimate", {
+          callSid,
+          ...(afterHours ? { afterHours: "1" } : {}),
+        });
+        return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateUrl)));
+      }
+
+      if (choice === "phone" && isRetellConfigured()) {
         return twimlXml(
           await buildRetellBridgeTwiml({
             afterHours,
@@ -76,7 +88,7 @@ export async function POST(request: Request) {
         );
       }
 
-      // Text link (press 2) — send SMS immediately; no name/phone questions on the call.
+      // Text link — send SMS immediately; no name/phone questions on the call.
       const sent = await sendVoiceLinkIntakeSms({
         userId,
         callSid,
