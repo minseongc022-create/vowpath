@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { IS_BETA } from "@/lib/beta";
 import { isEntitled, mergeUserBilling, verifyTransaction } from "@/lib/billing";
+import { planDisplayName } from "@/lib/plan-pricing";
 import { getSession } from "@/lib/session";
+import { buildBillingUsageSummary } from "@/lib/usage-alerts";
 import { findUserById, updateUserBilling } from "@/lib/users-db";
 
 export async function GET(request: Request) {
@@ -33,12 +35,15 @@ export async function GET(request: Request) {
   }
 
   const billing = mergeUserBilling(user);
+  const usage = buildBillingUsageSummary(user);
   return NextResponse.json({
     beta: IS_BETA,
     entitled: isEntitled(user),
     plan: billing.plan ?? null,
+    planLabel: planDisplayName(billing.plan),
     subscriptionStatus: billing.subscriptionStatus ?? "none",
     flexBillableCount: billing.flexBillableCount ?? 0,
+    usage,
     paddleCustomerId: billing.paddleCustomerId ?? null,
     paidAt: billing.paidAt ?? null,
     trialEndsAt: billing.trialEndsAt ?? null,

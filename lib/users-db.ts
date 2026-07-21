@@ -32,6 +32,10 @@ export type UserRecord = {
   voiceBillableMonth?: string;
   /** Whole billable minutes used this month (ceil per call). */
   monthlyVoiceMinutes?: number;
+  /** YYYY-MM for one-shot 80%/100% usage SMS */
+  usageAlertMonth?: string;
+  usageAlert80Sent?: boolean;
+  usageAlert100Sent?: boolean;
   paidAt?: string;
   sessionVersion?: number;
   passwordChangedAt?: string;
@@ -267,6 +271,9 @@ export async function updateUserBilling(
     discountCohort?: "beta_feedback";
     betaCohortPriceStepAt?: string;
     betaCohortSteppedAt?: string;
+    usageAlertMonth?: string;
+    usageAlert80Sent?: boolean;
+    usageAlert100Sent?: boolean;
   },
 ): Promise<UserRecord | undefined> {
   const store = await ensureStore();

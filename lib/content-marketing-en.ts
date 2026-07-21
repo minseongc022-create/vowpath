@@ -901,7 +901,7 @@ export const faqEn = {
     },
     {
       q: "How do Voice minute plans work?",
-      a: `Voice Starter includes ${SITE.voiceStarterIncludedMinutes} minutes/mo then ${SITE.voiceStarterOveragePerMinute}/min; Voice Pro includes ${SITE.voiceProIncludedMinutes} then ${SITE.voiceProOveragePerMinute}/min. Each call rounds up to the next full minute. Same AI intake and owner 1 / 2 holds — dispatch approvals are not charged again on Voice plans.`,
+      a: `Voice Starter includes ${SITE.voiceStarterIncludedMinutes} minutes/mo then ${SITE.voiceStarterOveragePerMinute}/min; Voice Pro includes ${SITE.voiceProIncludedMinutes} then ${SITE.voiceProOveragePerMinute}/min. Each call rounds up to the next full minute. Free estimate (press 2) calls do not count toward included minutes. Same AI intake and owner 1 / 2 holds — dispatch approvals are not charged again on Voice plans.`,
     },
     {
       q: "Do I change my phone number?",

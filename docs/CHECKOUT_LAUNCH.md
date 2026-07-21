@@ -16,9 +16,18 @@ On **Vercel Production** with valid `PADDLE_API_KEY` + price IDs, paid checkout 
 |----------|----------|--------|
 | `PADDLE_ENV` | yes | `production` |
 | `PADDLE_API_KEY` | yes | `pdl_live_apikey_...` |
-| `PADDLE_PRICE_ID_UNLIMITED` | yes | live price |
-| `PADDLE_PRICE_ID_FLEX` | yes | live price |
-| `PADDLE_PRICE_ID_FLEX_USAGE` | yes | $11/ booking |
+| `PADDLE_PRICE_ID_PRO` | yes | $299/mo · 25 dispatches (or legacy `PADDLE_PRICE_ID_UNLIMITED`) |
+| `PADDLE_PRICE_ID_PRO_OVERAGE` | yes | $15/dispatch beyond Pro cap |
+| `PADDLE_PRICE_ID_SCALE` | yes | $399/mo · 40 dispatches |
+| `PADDLE_PRICE_ID_SCALE_OVERAGE` | yes | $12/dispatch beyond Scale cap |
+| `PADDLE_PRICE_ID_FLEX` | yes | $69/mo base |
+| `PADDLE_PRICE_ID_FLEX_USAGE` | yes | $12/approved dispatch |
+| `PADDLE_PRICE_ID_LITE` | yes | $39/mo base |
+| `PADDLE_PRICE_ID_LITE_USAGE` | yes | $18/approved dispatch |
+| `PADDLE_PRICE_ID_VOICE_STARTER` | for Voice track | $49/mo · 250 min |
+| `PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE` | for Voice track | $0.25/min |
+| `PADDLE_PRICE_ID_VOICE_PRO` | for Voice track | $149/mo · 1000 min |
+| `PADDLE_PRICE_ID_VOICE_PRO_OVERAGE` | for Voice track | $0.20/min |
 | `PADDLE_CLIENT_TOKEN` | yes* | Server runtime token for Paddle.js (preferred — no client rebuild) |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | yes* | Alternative; baked into client bundle on deploy |
 | `NEXT_PUBLIC_PADDLE_ENV` | yes | `production` |

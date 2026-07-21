@@ -580,7 +580,7 @@ export const legalPagesEn = {
       },
       {
         heading: "Billing",
-        body: "Paid plans bill via Paddle. Lite/Flex charge per approved or scheduled emergency dispatch as described at checkout. Free estimate calls (press 2) are never billed.",
+        body: "Paid plans bill via Paddle. Choose dispatch billing (Lite/Flex per approved emergency job; Pro/Scale with included caps) or Voice per-minute plans. Free estimate calls (press 2) are never billed. We SMS at 80% and 100% of included caps before overage.",
       },
       {
         heading: "SMS & messaging",

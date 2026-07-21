@@ -5,6 +5,8 @@ import type { ShopBookingSettings } from "../booking-settings";
 import type { ShopProfile } from "../shop-profile-db";
 import type { UserRecord } from "../users-db";
 import { mergeUserBilling } from "../billing";
+import { planDisplayName } from "../plan-pricing";
+import { buildBillingUsageSummary } from "../usage-alerts";
 import { composeAssistantReply } from "./compose";
 import { runtimeUiLocale, type UiLocale } from "../locale";
 import { isAdminMutationQuery } from "./router";
@@ -152,12 +154,34 @@ function extractArea(query: string): string | null {
 
 function currentPlanRows(user: UserRecord, nextBillingDate?: string | null) {
   const billing = mergeUserBilling(user);
+  const usage = buildBillingUsageSummary(user);
   const rows = [
-    { label: "Current Plan", value: billing.plan ?? "No paid plan" },
+    { label: "Current Plan", value: planDisplayName(billing.plan) },
     { label: "Subscription Status", value: billing.subscriptionStatus ?? "none" },
-    { label: "Approved Flex Usage", value: String(billing.flexBillableCount ?? 0) },
-    { label: "Paid At", value: billing.paidAt ? new Date(billing.paidAt).toLocaleDateString("en-US") : "No data" },
   ];
+  if (usage.track === "voice_minutes" && usage.included != null) {
+    rows.push({
+      label: "Talk minutes this month",
+      value: `${usage.used} / ${usage.included}${usage.percent != null ? ` (${usage.percent}%)` : ""}`,
+    });
+  } else if (usage.track === "dispatch_capped" && usage.included != null) {
+    rows.push({
+      label: "Dispatches this month",
+      value: `${usage.used} / ${usage.included}${usage.percent != null ? ` (${usage.percent}%)` : ""}`,
+    });
+  } else {
+    rows.push({
+      label: "Approved dispatches (lifetime counter)",
+      value: String(billing.flexBillableCount ?? 0),
+    });
+    if (usage.unit === "dispatches") {
+      rows.push({ label: "Dispatches this month", value: String(usage.used) });
+    }
+  }
+  rows.push({
+    label: "Paid At",
+    value: billing.paidAt ? new Date(billing.paidAt).toLocaleDateString("en-US") : "No data",
+  });
   if (nextBillingDate) {
     rows.push({ label: "Next Billing Date", value: nextBillingDate });
   }

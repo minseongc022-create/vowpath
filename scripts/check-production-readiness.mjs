@@ -66,6 +66,36 @@ ok(
   "PADDLE_PRICE_ID_LITE_USAGE — per-dispatch fee for Lite",
 );
 ok(
+  "Paddle Pro base",
+  Boolean(process.env.PADDLE_PRICE_ID_PRO || process.env.PADDLE_PRICE_ID_UNLIMITED),
+  "PADDLE_PRICE_ID_PRO (or legacy UNLIMITED)",
+);
+ok(
+  "Paddle Scale base",
+  Boolean(process.env.PADDLE_PRICE_ID_SCALE),
+  "PADDLE_PRICE_ID_SCALE",
+);
+ok(
+  "Paddle Voice Starter",
+  Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER),
+  "PADDLE_PRICE_ID_VOICE_STARTER — per-minute track",
+);
+ok(
+  "Paddle Voice Starter overage",
+  Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE),
+  "PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE — $/min beyond included",
+);
+ok(
+  "Paddle Voice Pro",
+  Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO),
+  "PADDLE_PRICE_ID_VOICE_PRO",
+);
+ok(
+  "Paddle Voice Pro overage",
+  Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO_OVERAGE),
+  "PADDLE_PRICE_ID_VOICE_PRO_OVERAGE",
+);
+ok(
   "Twilio",
   Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
   "TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN",
