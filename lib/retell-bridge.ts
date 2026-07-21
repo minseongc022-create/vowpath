@@ -23,6 +23,7 @@ import {
   buildRetellIntakeGuide,
   buildReturningCustomerHint,
 } from "./retell-intake-guide";
+import { buildRetellOpeningLine, type RetellIvrPath } from "./retell-opening-line";
 import { getShopProfile } from "./shop-profile-db";
 import { resolveShopTimezone } from "./shop-timezone";
 import { dateKeyInTimezone } from "./us-timezone";
@@ -102,6 +103,7 @@ export async function buildRetellBridgeTwiml(
             : "",
           custom_greeting: memory?.customGreeting ?? "",
           ivr_path: params.ivrPath ?? "",
+          opening_line: buildRetellOpeningLine((params.ivrPath ?? "") as RetellIvrPath),
           intake_guide: buildRetellIntakeGuide(vertical),
           returning_customer: buildReturningCustomerHint(
             pastMatch
@@ -123,6 +125,7 @@ export async function buildRetellBridgeTwiml(
       from: params.from,
       to: params.to,
       dynamicVariables,
+      ivrPath: params.ivrPath,
     });
     if (registered.ok) {
       console.log("[retell-bridge] SIP connect call_id=", registered.callId);

@@ -5,7 +5,9 @@ import {
 } from "./retell-agent-config.mjs";
 import {
   RETELL_PROMPT_VERSION,
-  buildRetellProductionAgentPatch,
+  buildRetellBookingAgentPatch,
+  buildRetellEstimateAgentPatch,
+  pickEstimateReceptionistVoice,
   pickNaturalReceptionistVoice,
 } from "./retell-agent-settings.mjs";
 
@@ -19,7 +21,8 @@ export async function runRetellSync(env = process.env) {
     return { ok: false, error: "RETELL_API_KEY not set" };
   }
 
-  const agentId = env.RETELL_AGENT_ID?.trim() || "agent_6e612965cf4b69f4312deee3f8";
+  const bookingAgentId = env.RETELL_AGENT_ID?.trim() || "agent_6e612965cf4b69f4312deee3f8";
+  let estimateAgentId = env.RETELL_ESTIMATE_AGENT_ID?.trim() || "";
   const llmId = env.RETELL_LLM_ID?.trim() || "llm_9e819a0687ea88f77b29f8de448d";
   const userId = env.TWILIO_DEFAULT_USER_ID?.trim();
   const base =
@@ -47,11 +50,17 @@ export async function runRetellSync(env = process.env) {
 
   const { generalTools, urls } = buildRetellGeneralTools(base);
 
-  const currentAgent = await retell(`/get-agent/${agentId}`);
+  const currentBookingAgent = await retell(`/get-agent/${bookingAgentId}`);
   const voices = await retell("/list-voices");
-  const voiceId = pickNaturalReceptionistVoice(voices, {
+  const bookingVoiceId = pickNaturalReceptionistVoice(voices, {
     explicitId: env.RETELL_VOICE_ID,
-    currentVoiceId: currentAgent.voice_id,
+    currentVoiceId: currentBookingAgent.voice_id,
+  });
+  const estimateVoiceId = pickEstimateReceptionistVoice(voices, {
+    explicitEstimateId: env.RETELL_ESTIMATE_VOICE_ID,
+    currentVoiceId: estimateAgentId
+      ? (await retell(`/get-agent/${estimateAgentId}`).catch(() => null))?.voice_id
+      : undefined,
   });
 
   await retell(`/update-retell-llm/${llmId}`, {
@@ -63,17 +72,39 @@ export async function runRetellSync(env = process.env) {
     }),
   });
 
-  await retell(`/update-agent/${agentId}`, {
+  await retell(`/update-agent/${bookingAgentId}`, {
     method: "PATCH",
-    body: JSON.stringify(buildRetellProductionAgentPatch(voiceId)),
+    body: JSON.stringify(buildRetellBookingAgentPatch(bookingVoiceId)),
   });
 
-  console.log("[retell:sync] voice_id →", voiceId);
+  if (!estimateAgentId) {
+    const created = await retell("/create-agent", {
+      method: "POST",
+      body: JSON.stringify({
+        response_engine: { type: "retell-llm", llm_id: llmId },
+        ...buildRetellEstimateAgentPatch(estimateVoiceId),
+      }),
+    });
+    estimateAgentId = created.agent_id;
+    console.log(
+      "[retell:sync] Created estimate agent →",
+      estimateAgentId,
+      "(set RETELL_ESTIMATE_AGENT_ID in Vercel env)",
+    );
+  } else {
+    await retell(`/update-agent/${estimateAgentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(buildRetellEstimateAgentPatch(estimateVoiceId)),
+    });
+  }
+
+  console.log("[retell:sync] booking voice_id →", bookingVoiceId);
+  console.log("[retell:sync] estimate voice_id →", estimateVoiceId);
 
   const list = await retell("/v2/list-phone-numbers?limit=100");
   const items = list.items ?? [];
   let phone = items.find((n) =>
-    (n.inbound_agents ?? []).some((a) => a.agent_id === agentId),
+    (n.inbound_agents ?? []).some((a) => a.agent_id === bookingAgentId),
   );
   if (!phone && items.length > 0) phone = items[0];
   if (!phone?.phone_number) {
@@ -84,7 +115,7 @@ export async function runRetellSync(env = process.env) {
   await retell(`/update-phone-number/${encodeURIComponent(e164)}`, {
     method: "PATCH",
     body: JSON.stringify({
-      inbound_agents: [{ agent_id: agentId, agent_version: "latest", weight: 1 }],
+      inbound_agents: [{ agent_id: bookingAgentId, agent_version: "latest", weight: 1 }],
       inbound_webhook_url: urls.inbound,
       nickname: "Effiroad inbound",
     }),
@@ -102,5 +133,16 @@ export async function runRetellSync(env = process.env) {
     }
   }
 
-  return { ok: true, phone: e164, agentId, llmId, base, urls, voiceId, promptVersion: RETELL_PROMPT_VERSION };
+  return {
+    ok: true,
+    phone: e164,
+    agentId: bookingAgentId,
+    estimateAgentId,
+    llmId,
+    base,
+    urls,
+    voiceId: bookingVoiceId,
+    estimateVoiceId,
+    promptVersion: RETELL_PROMPT_VERSION,
+  };
 }

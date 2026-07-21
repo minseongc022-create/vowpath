@@ -16,9 +16,11 @@ Customer → +1 (225) 529-1680 (Twilio)
 The agent collects intake on the phone — one question at a time, soft and clear. Text links are only via Twilio menu press 2, not mid-call.
 
 Example flow:
-- Caller presses 1 (service) → 1 (talk now)
-- AI: "I'm here with you. What's your name?"
-- Collects address, issue, read-back → `submit_intake`
+- Caller hears main menu (press 1 = service, press 2 = estimate)
+- Press 1 → Retell **booking agent** asks link vs phone (or sends link immediately if caller asks)
+- Press 2 → Retell **estimate agent** (warmer, brighter voice) asks link vs phone for free estimate
+- Link chosen → "Perfect — I'll text you a secure link right now" → SMS sent
+- Phone chosen → intake one question at a time → `submit_intake` or `submit_estimate`
 
 **Auto-sync:** On every Vercel production deploy, `postbuild-retell-sync.mjs` pushes the latest prompt and tools to Retell (when `RETELL_API_KEY` is set in Vercel).
 
@@ -36,7 +38,9 @@ Twilio sets **callerId** to your shop Twilio line when forwarding, so Retell too
 |----------|---------|----------|
 | `RETELL_API_KEY` | `key_...` | Yes |
 | `RETELL_FORWARD_NUMBER` | `+1762...` | Yes* |
-| `RETELL_AGENT_ID` | `agent_6e612965...` | Optional (has default) |
+| `RETELL_AGENT_ID` | `agent_6e612965...` | Booking/service agent (optional default) |
+| `RETELL_ESTIMATE_AGENT_ID` | `agent_...` | Estimate agent — warmer voice (auto-created on first sync if unset) |
+| `RETELL_ESTIMATE_VOICE_ID` | `11labs-Chris` | Optional estimate voice override |
 | `RETELL_LLM_ID` | `llm_9e819a06...` | Optional (has default) |
 
 \*If `RETELL_FORWARD_NUMBER` is omitted but `RETELL_API_KEY` is set, production auto-discovers the number from Retell's list-phone-numbers API.

@@ -93,8 +93,8 @@ export async function POST(request: Request) {
 
     const closing =
       purpose === "estimate"
-        ? "Perfect — I just texted you a link for your estimate request. Fill in a few details and the team will follow up. Thanks for calling!"
-        : "Perfect — I just texted you a link. Tap it, fill in a few details, and our team will take it from there. Thanks for calling!";
+        ? "Perfect — I just texted you a link for your free estimate! Fill in a few quick details and our team will follow up. Thanks so much for calling!"
+        : "Perfect — I just texted you a secure link! Tap it, fill in a few details, and our team will take it from there. Thanks for calling!";
 
     return NextResponse.json({ result: closing });
   } catch (e) {

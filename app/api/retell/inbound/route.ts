@@ -12,6 +12,7 @@ import {
   buildRetellIntakeGuide,
   buildReturningCustomerHint,
 } from "@/lib/retell-intake-guide";
+import { buildRetellOpeningLine } from "@/lib/retell-opening-line";
 
 /**
  * Retell's "Inbound Call Webhook" for an imported phone number — called
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
           closed_message: closedMessage,
           custom_greeting: memory?.customGreeting ?? "",
           ivr_path: "",
+          opening_line: buildRetellOpeningLine(""),
           intake_guide: buildRetellIntakeGuide(vertical),
           returning_customer: buildReturningCustomerHint(
             pastMatch

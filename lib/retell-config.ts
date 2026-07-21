@@ -11,6 +11,18 @@ export function getRetellAgentId(): string {
   return process.env.RETELL_AGENT_ID?.trim() || DEFAULT_AGENT_ID;
 }
 
+/** Separate Retell agent for estimate paths — warmer, brighter voice. */
+export function getRetellEstimateAgentId(): string | undefined {
+  return process.env.RETELL_ESTIMATE_AGENT_ID?.trim() || undefined;
+}
+
+export function resolveRetellAgentIdForIvrPath(ivrPath?: string): string {
+  if (ivrPath === "estimate_choice" || ivrPath === "phone_estimate") {
+    return getRetellEstimateAgentId() ?? getRetellAgentId();
+  }
+  return getRetellAgentId();
+}
+
 export function getRetellLlmId(): string {
   return process.env.RETELL_LLM_ID?.trim() || DEFAULT_LLM_ID;
 }
@@ -98,6 +110,8 @@ export type RegisterRetellCallParams = {
   from: string;
   to: string;
   dynamicVariables?: Record<string, string>;
+  /** Twilio menu path — selects estimate vs booking Retell agent voice. */
+  ivrPath?: string;
 };
 
 export type RegisterRetellCallResult =
@@ -113,8 +127,9 @@ export async function registerRetellInboundCall(
 
   const from = params.from.replace(/^whatsapp:/, "").trim();
   const to = params.to.trim();
+  const ivrPath = params.ivrPath ?? params.dynamicVariables?.ivr_path ?? "";
   const body: Record<string, unknown> = {
-    agent_id: getRetellAgentId(),
+    agent_id: resolveRetellAgentIdForIvrPath(ivrPath),
     agent_version: "latest",
     direction: "inbound",
   };
