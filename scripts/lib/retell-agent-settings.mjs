@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "upbeat-dual-voice-v15-2026-07-21";
+export const RETELL_PROMPT_VERSION = "instant-link-twilio-v16-2026-07-21";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 

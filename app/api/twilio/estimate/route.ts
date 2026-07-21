@@ -4,11 +4,6 @@ import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
 import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
 import { isRetellConfigured } from "@/lib/retell-config";
-import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
-import {
-  createLinkIntakeSession,
-  sendLinkIntakeSms,
-} from "@/lib/call-intake/link-intake-flow";
 import {
   deleteEstimateState,
   getEstimateState,
@@ -17,7 +12,6 @@ import {
 import {
   applyEstimateAnswer,
   isEstimateComplete,
-  newEstimateState,
 } from "@/lib/estimate-intake/flow";
 import {
   twimlEstimateLinkFailedGoodbye,
@@ -29,6 +23,7 @@ import { summarizeEstimateRequest } from "@/lib/estimate-intake/summarize";
 import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
 import { persistPhoneEstimateLead } from "@/lib/estimate-pipeline";
 import { logOperationFailure } from "@/lib/ops-failures";
+import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
 
 function twimlXml(body: string) {
   return new NextResponse(body, { headers: { "Content-Type": "text/xml" } });
@@ -80,9 +75,20 @@ export async function POST(request: Request) {
           }),
         );
       }
-      state = newEstimateState({ callSid, userId, from, to, channel, afterHours });
-      await saveEstimateState(state);
-      return twimlXml(twimlForEstimateState(state));
+
+      // Text link (press 2) — send SMS immediately; no name/phone questions on the call.
+      const sent = await sendVoiceLinkIntakeSms({
+        userId,
+        callSid,
+        from,
+        to,
+        menuPriority: "P3",
+      });
+      if (!sent.ok) {
+        console.warn("[twilio/estimate] link SMS failed:", sent.error, "to=", from);
+        return twimlXml(twimlEstimateLinkFailedGoodbye());
+      }
+      return twimlXml(twimlEstimateLinkGoodbye());
     }
 
     const previousPhase = state.phase;

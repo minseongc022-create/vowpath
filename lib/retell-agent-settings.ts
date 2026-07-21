@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "upbeat-dual-voice-v15-2026-07-21";
+export const RETELL_PROMPT_VERSION = "instant-link-twilio-v16-2026-07-21";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";

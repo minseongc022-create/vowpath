@@ -85,7 +85,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "send_link_intake",
       description:
-        "Caller chose to receive a text link instead of phone intake. Call when they want SMS/form/link for booking or estimate.",
+        "Caller wants a text link NOW. Call IMMEDIATELY when they say text/link/SMS/form/send me — do NOT ask name, address, or phone first.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.sendLinkIntake,
