@@ -92,6 +92,7 @@ export const hvacHowItWorks = {
 
 export const hvacPricing = {
   title: "Simple pricing for HVAC shops",
+  note: "Choose dispatch billing (recommended) or Voice minute plans on the pricing page.",
   pro: {
     name: "Pro",
     price: `${SITE.proPrice}/mo`,
@@ -115,6 +116,17 @@ export const hvacPricing = {
       "Free estimates on every plan",
       "Billed only when a job is approved/scheduled",
       "Cancel anytime",
+    ],
+  },
+  voice: {
+    name: "Voice Starter",
+    price: `${SITE.voiceStarterPrice}/mo · ${SITE.voiceStarterIncludedMinutes} min`,
+    description: `Per-minute option · then ${SITE.voiceStarterOveragePerMinute}/min · same holds, no live-agent transfer fees.`,
+    features: [
+      "Included talk-minutes + clear overage",
+      "Same AI intake + owner 1 / 2",
+      "Free estimates never billed",
+      "No CRM required",
     ],
   },
 };

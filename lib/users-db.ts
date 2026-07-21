@@ -28,6 +28,10 @@ export type UserRecord = {
   /** YYYY-MM bucket for Pro/Scale included dispatch counter */
   dispatchBillableMonth?: string;
   monthlyDispatchCount?: number;
+  /** YYYY-MM bucket for voice per-minute plans */
+  voiceBillableMonth?: string;
+  /** Whole billable minutes used this month (ceil per call). */
+  monthlyVoiceMinutes?: number;
   paidAt?: string;
   sessionVersion?: number;
   passwordChangedAt?: string;
@@ -309,4 +313,27 @@ export async function incrementFlexBillableCount(
   user.flexBillableCount = (user.flexBillableCount ?? 0) + 1;
   await saveStore(store);
   return user;
+}
+
+/**
+ * Add billable voice minutes for the current month.
+ * Returns `{ user, minutesBefore }` so callers can compute overage for this call.
+ */
+export async function incrementVoiceBillableMinutes(
+  userId: string,
+  minutes: number,
+): Promise<{ user: UserRecord; minutesBefore: number } | undefined> {
+  if (!Number.isFinite(minutes) || minutes <= 0) return undefined;
+  const store = await ensureStore();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user) return undefined;
+  const monthKey = new Date().toISOString().slice(0, 7);
+  if (user.voiceBillableMonth !== monthKey) {
+    user.voiceBillableMonth = monthKey;
+    user.monthlyVoiceMinutes = 0;
+  }
+  const minutesBefore = user.monthlyVoiceMinutes ?? 0;
+  user.monthlyVoiceMinutes = minutesBefore + Math.ceil(minutes);
+  await saveStore(store);
+  return { user, minutesBefore };
 }

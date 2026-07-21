@@ -1,12 +1,17 @@
 import { IS_BETA } from "./beta";
 import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
-import { normalizePlanId } from "./plan-pricing";
+import { normalizePlanId, isPerDispatchPlan, isPerMinutePlan } from "./plan-pricing";
 import type { CappedFlatPlanId } from "./dispatch-billing";
 import {
   isCappedFlatPlan,
   shouldBillDispatchOverage,
 } from "./dispatch-billing";
+import type { PerMinutePlanId } from "./voice-billing";
+import {
+  billableMinutesFromDurationSec,
+  overageMinutesFromCall,
+} from "./voice-billing";
 import {
   betaCohortFlexLockedUsagePriceId,
   betaCohortFlexUsagePriceId,
@@ -15,10 +20,12 @@ import {
   cappedOveragePriceIdForPlan,
   isValidPaddleEnvValue,
   usagePriceIdForPlan,
+  voiceOveragePriceIdForPlan,
 } from "./paddle-config";
-import { isPerDispatchPlan } from "./plan-pricing";
 import { paddleFetch } from "./paddle-client";
 import type { UserRecord } from "./users-db";
+import { incrementVoiceBillableMinutes } from "./users-db";
+import { claimVoiceCallBilling } from "./voice-meter-dedupe";
 
 export type SubscriptionStatus =
   | "none"
@@ -227,5 +234,55 @@ async function chargeCappedOverage(user: UserRecord, plan: CappedFlatPlanId) {
     });
   } catch (e) {
     console.warn("[billing] capped overage charge", e);
+  }
+}
+
+async function chargeVoiceOverageMinutes(
+  user: UserRecord,
+  plan: PerMinutePlanId,
+  quantity: number,
+) {
+  if (quantity <= 0) return;
+  const b = mergeUserBilling(user);
+  const priceId = voiceOveragePriceIdForPlan(plan, user);
+  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
+
+  try {
+    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
+      method: "POST",
+      body: {
+        effective_from: "next_billing_period",
+        items: [{ price_id: priceId, quantity }],
+      },
+    });
+  } catch (e) {
+    console.warn("[billing] voice overage charge", e);
+  }
+}
+
+/**
+ * Meter a completed inbound call for per-minute plans.
+ * Idempotent per CallSid. Does nothing for dispatch-billing plans.
+ */
+export async function recordVoiceCallUsage(opts: {
+  user: UserRecord;
+  callSid: string;
+  durationSec?: number;
+}): Promise<void> {
+  const plan = normalizePlanId(opts.user.plan);
+  if (!isPerMinutePlan(plan)) return;
+
+  const minutes = billableMinutesFromDurationSec(opts.durationSec ?? 0);
+  if (minutes <= 0) return;
+
+  const claim = await claimVoiceCallBilling(opts.user.id, opts.callSid);
+  if (claim === "already") return;
+
+  const bumped = await incrementVoiceBillableMinutes(opts.user.id, minutes);
+  if (!bumped) return;
+
+  const overage = overageMinutesFromCall(plan, bumped.minutesBefore, minutes);
+  if (overage > 0) {
+    await chargeVoiceOverageMinutes(bumped.user, plan, overage);
   }
 }

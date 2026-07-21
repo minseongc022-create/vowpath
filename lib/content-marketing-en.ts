@@ -7,7 +7,12 @@ import {
   PRICING_GUARANTEES_EN,
   PRICING_TRANSPARENCY_FOOTNOTE_EN,
 } from "./plan-volume-guide";
-import { proUsageLine, scaleUsageLine } from "./plan-pricing";
+import {
+  proUsageLine,
+  scaleUsageLine,
+  voiceProUsageLine,
+  voiceStarterUsageLine,
+} from "./plan-pricing";
 
 const CHECKOUT_CTA = getCheckoutCta();
 
@@ -41,8 +46,8 @@ export const quickFaqEn = {
     "The questions owners ask first — and how we're built differently from typical answering services and CRM add-ons.",
   items: [
     {
-      q: "Why Effiroad instead of a per-minute answering service?",
-      a: "Flat monthly price — no per-minute rounding, no surprise live-agent transfer fees. Same natural voice every call, not a rotating receptionist who rushes through a script.",
+      q: "Why Effiroad instead of a typical answering service?",
+      a: "Choose dispatch billing (pay when a job is approved) or transparent Voice minute plans — no surprise live-agent transfer fees, no CRM lock-in. Same natural voice and owner 1 / 2 holds either way.",
     },
     {
       q: "Does the AI actually sound human?",
@@ -62,7 +67,7 @@ export const quickFaqEn = {
     },
     {
       q: "What do contractors complain about elsewhere?",
-      a: "Bill shock, inconsistent agents, message-only on complex calls, and weeks of onboarding. Effiroad: transparent pricing, instant AI pickup, real dispatch, and ~10-minute go-live.",
+      a: "Bill shock from overages and add-ons, inconsistent agents, message-only on complex calls, CRM lock-in, and weeks of onboarding. Effiroad: pick dispatch or clear per-minute plans, instant AI pickup, real dispatch, ~10-minute go-live.",
     },
   ],
 } as const;
@@ -702,7 +707,7 @@ export const signupFlowEn = {
     {
       step: "01",
       title: "Choose a plan",
-      description: "Lite, Flex, Pro, or Scale. Paddle checkout.",
+      description: "Dispatch plans or Voice minute plans. Paddle checkout.",
       time: "1 min",
     },
     {
@@ -729,11 +734,23 @@ export const signupFlowEn = {
 export const pricingEn = {
   title: "One water loss at 2 AM pays for the year",
   subtitle:
-    "You only pay per approved emergency dispatch on Lite/Flex. Free estimate calls are included on every plan — no per-estimate fee.",
+    "Pick how you pay: per approved emergency dispatch, or included talk-minutes. Free estimate calls on every plan — no per-estimate fee. No live-agent transfer add-ons.",
+  billingTracks: {
+    dispatch: {
+      id: "dispatch" as const,
+      label: "Per approved dispatch",
+      hint: "Only bill when a real emergency job is approved — our recommended model",
+    },
+    voice: {
+      id: "voice" as const,
+      label: "Per minute",
+      hint: "Included talk-minutes + clear overage — like answering services, without transfer fees",
+    },
+  },
   compare: [
     { label: "AI phone + link intake", amount: "Included" },
     { label: "Free estimate calls (press 2)", amount: "Included — $0 each", highlight: true },
-    { label: "Pay per approved dispatch", amount: "Lite / Flex only" },
+    { label: "Billing choice", amount: "Dispatch track or Voice minutes", highlight: true },
     { label: "Owner control", amount: "1 / 2 hold + 9 undo on every plan", highlight: true },
   ],
   plans: [
@@ -795,7 +812,7 @@ export const pricingEn = {
       id: "scale" as const,
       name: "Scale",
       badge: "Storm season",
-      description: "High-volume nights without per-minute answering fees. Same quality intake and owner holds.",
+      description: "High-volume nights on dispatch billing. Same quality intake and owner holds.",
       price: SITE.scalePrice,
       period: "/mo",
       usageLine: scaleUsageLine(false),
@@ -810,6 +827,46 @@ export const pricingEn = {
       cta: `${CHECKOUT_CTA} — Scale`,
     },
   ],
+  voicePlans: [
+    {
+      id: "voice_starter" as const,
+      name: "Voice Starter",
+      badge: "Light after-hours",
+      description:
+        "Per-minute track for quieter lines. Included talk time, then a clear overage rate — no live-agent transfer fees.",
+      price: SITE.voiceStarterPrice,
+      period: "/mo",
+      usageLine: voiceStarterUsageLine(false),
+      volumeGuide: planVolumeGuideEn("voice_starter"),
+      features: [
+        "Free estimate calls included ($0)",
+        `${SITE.voiceStarterIncludedMinutes} talk-minutes/mo included`,
+        `Then ${SITE.voiceStarterOveragePerMinute}/min · rounded up per call`,
+        "Same 1 / 2 holds · no CRM required",
+      ],
+      recommended: true,
+      cta: `${CHECKOUT_CTA} — Voice Starter`,
+    },
+    {
+      id: "voice_pro" as const,
+      name: "Voice Pro",
+      badge: "Busy nights",
+      description:
+        "Higher included minutes for storm weeks and multi-crew shops that prefer minute billing over per-dispatch.",
+      price: SITE.voiceProPrice,
+      period: "/mo",
+      usageLine: voiceProUsageLine(false),
+      volumeGuide: planVolumeGuideEn("voice_pro"),
+      features: [
+        "Free estimate calls included ($0)",
+        `${SITE.voiceProIncludedMinutes} talk-minutes/mo included`,
+        `Then ${SITE.voiceProOveragePerMinute}/min · alerts before overage`,
+        "Same intake + owner holds as dispatch plans",
+      ],
+      recommended: false,
+      cta: `${CHECKOUT_CTA} — Voice Pro`,
+    },
+  ],
   tip: pricingVolumeTipEn(),
   footnote: PRICING_TRANSPARENCY_FOOTNOTE_EN,
   guarantees: PRICING_GUARANTEES_EN,
@@ -818,7 +875,7 @@ export const pricingEn = {
 export const getStartedEn = {
   eyebrow: "Get started",
   title: "Put Effiroad on your emergency line",
-  subtitle: `For restoration and HVAC companies — Lite, Flex, Pro, or Scale. See plans at effiroad.com/#pricing`,
+  subtitle: `For restoration and HVAC companies — dispatch plans or Voice minute plans. See effiroad.com/#pricing`,
   canceledMessage: "Checkout canceled. Pick a plan below to try again.",
   checkoutError: "Couldn't start checkout. Try again or sign up to continue.",
   demoNotice: "Payments aren't live yet. Pick a plan and sign up to finish setup.",
@@ -832,11 +889,19 @@ export const faqEn = {
   items: [
     {
       q: "Do estimate calls cost extra?",
-      a: "No. Free estimate intake (press 2 on the menu) is included on every plan at $0. Lite/Flex only charge per approved emergency dispatch. Pro/Scale only count emergency dispatches toward the monthly cap — estimates never do.",
+      a: "No. Free estimate intake (press 2 on the menu) is included on every plan at $0 — dispatch track and Voice minute track alike.",
+    },
+    {
+      q: "Dispatch billing or per-minute — which should I pick?",
+      a: "Most restoration shops prefer dispatch (Lite/Flex/Pro/Scale): you pay when an emergency job is approved, not for every talk minute. Choose Voice Starter or Voice Pro if you want answering-service-style included minutes with a published overage rate and no live-agent transfer fees.",
     },
     {
       q: "What am I billed for on Flex or Lite?",
       a: "The monthly base, plus a fee only when you approve or schedule an emergency dispatch. Missed spam, cancelled jobs, and free estimate requests are not billed.",
+    },
+    {
+      q: "How do Voice minute plans work?",
+      a: `Voice Starter includes ${SITE.voiceStarterIncludedMinutes} minutes/mo then ${SITE.voiceStarterOveragePerMinute}/min; Voice Pro includes ${SITE.voiceProIncludedMinutes} then ${SITE.voiceProOveragePerMinute}/min. Each call rounds up to the next full minute. Same AI intake and owner 1 / 2 holds — dispatch approvals are not charged again on Voice plans.`,
     },
     {
       q: "Do I change my phone number?",
@@ -844,7 +909,7 @@ export const faqEn = {
     },
     {
       q: "How is this different from an answering service?",
-      a: "Answering services take messages. Effiroad captures loss type and address, dispatches standard water jobs, and texts you 1 / 2 on fire, Cat-3, or unclear intakes.",
+      a: "Answering services take messages (and often add transfer/overage fees). Effiroad captures loss type and address, dispatches standard water jobs, and texts you 1 / 2 on fire, Cat-3, or unclear intakes — on either billing track.",
     },
     {
       q: "Does this replace Jobber or Xactimate?",

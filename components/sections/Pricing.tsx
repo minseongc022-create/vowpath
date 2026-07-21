@@ -1,15 +1,35 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale, useSiteContent } from "@/components/providers/LocaleProvider";
 import type { PlanId } from "@/lib/constants";
+import { isPerMinutePlan } from "@/lib/plan-pricing";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { TRIAL_DAYS } from "@/lib/billing-cohort";
 
+type BillingTrack = "dispatch" | "voice";
+
 export function Pricing() {
   const { locale } = useLocale();
   const { pricing } = useSiteContent();
+  const [track, setTrack] = useState<BillingTrack>("dispatch");
+
+  const tracks =
+    "billingTracks" in pricing && pricing.billingTracks
+      ? pricing.billingTracks
+      : null;
+  const voicePlans =
+    "voicePlans" in pricing && Array.isArray(pricing.voicePlans)
+      ? pricing.voicePlans
+      : [];
+  const visiblePlans = track === "voice" && voicePlans.length > 0 ? voicePlans : pricing.plans;
+  const gridClass =
+    visiblePlans.length <= 2
+      ? "mx-auto mt-10 grid max-w-3xl gap-6 sm:grid-cols-2"
+      : "mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-4";
+
   const trialBadge =
     locale === "es"
       ? `Prueba gratis de ${TRIAL_DAYS} días — sin tarjeta`
@@ -37,6 +57,46 @@ export function Pricing() {
           </span>
         </p>
 
+        {tracks ? (
+          <div className="mx-auto mt-8 flex max-w-xl flex-col items-center gap-3">
+            <div
+              className="inline-flex rounded-xl border border-brand-200 bg-white p-1 shadow-sm"
+              role="tablist"
+              aria-label={locale === "es" ? "Tipo de facturación" : "Billing model"}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={track === "dispatch"}
+                onClick={() => setTrack("dispatch")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  track === "dispatch"
+                    ? "bg-brand-900 text-white"
+                    : "text-stone-700 hover:bg-brand-50"
+                }`}
+              >
+                {tracks.dispatch.label}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={track === "voice"}
+                onClick={() => setTrack("voice")}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  track === "voice"
+                    ? "bg-brand-900 text-white"
+                    : "text-stone-700 hover:bg-brand-50"
+                }`}
+              >
+                {tracks.voice.label}
+              </button>
+            </div>
+            <p className="max-w-md text-center text-xs text-stone-600">
+              {track === "dispatch" ? tracks.dispatch.hint : tracks.voice.hint}
+            </p>
+          </div>
+        ) : null}
+
         <div className="vow-site-compare mx-auto mt-10 max-w-3xl">
           {pricing.compare.map((row) => (
             <div
@@ -57,8 +117,8 @@ export function Pricing() {
           ))}
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {pricing.plans.map((plan) => (
+        <div className={gridClass}>
+          {visiblePlans.map((plan) => (
             <article
               key={plan.id}
               className={
@@ -81,7 +141,9 @@ export function Pricing() {
               </div>
               <p
                 className={`mt-2 text-sm font-medium ${
-                  plan.id === "flex" || plan.id === "lite"
+                  plan.id === "flex" ||
+                  plan.id === "lite" ||
+                  isPerMinutePlan(plan.id as PlanId)
                     ? "text-brand-700"
                     : plan.id === "pro" || plan.id === "scale"
                       ? "text-brand-800"

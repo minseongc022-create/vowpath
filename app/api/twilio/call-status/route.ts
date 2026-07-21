@@ -5,6 +5,8 @@ import { trackCallOutcomeForAlert } from "@/lib/owner-alerts";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { isTenantProductEntitled } from "@/lib/tenant-product-access";
+import { findUserById } from "@/lib/users-db";
+import { recordVoiceCallUsage } from "@/lib/billing";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -62,6 +64,21 @@ export async function POST(request: Request) {
         await trackCallOutcomeForAlert({ userId, callSid, status });
       } catch (e) {
         console.warn("[call-status] owner alert tracking", e);
+      }
+    }
+
+    if (entitled && status === "completed") {
+      try {
+        const user = await findUserById(userId);
+        if (user) {
+          await recordVoiceCallUsage({
+            user,
+            callSid,
+            durationSec: Number.isFinite(durationSec) ? durationSec : undefined,
+          });
+        }
+      } catch (e) {
+        console.warn("[call-status] voice minute metering", e);
       }
     }
   }

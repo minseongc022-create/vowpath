@@ -15,6 +15,8 @@ const PLAN_OPTIONS: { id: PlanId; title: string }[] = [
   { id: "flex", title: "Flex" },
   { id: "pro", title: "Pro" },
   { id: "scale", title: "Scale" },
+  { id: "voice_starter", title: "Voice Starter" },
+  { id: "voice_pro", title: "Voice Pro" },
 ];
 
 export function TrialGate({ children }: { children: React.ReactNode }) {

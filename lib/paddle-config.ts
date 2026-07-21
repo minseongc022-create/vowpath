@@ -19,6 +19,8 @@ export function priceIdForPlan(plan: PlanId): string | undefined {
   if (plan === "flex") return process.env.PADDLE_PRICE_ID_FLEX;
   if (plan === "lite") return process.env.PADDLE_PRICE_ID_LITE;
   if (plan === "scale") return process.env.PADDLE_PRICE_ID_SCALE;
+  if (plan === "voice_starter") return process.env.PADDLE_PRICE_ID_VOICE_STARTER;
+  if (plan === "voice_pro") return process.env.PADDLE_PRICE_ID_VOICE_PRO;
   return process.env.PADDLE_PRICE_ID_PRO ?? process.env.PADDLE_PRICE_ID_UNLIMITED;
 }
 
@@ -26,6 +28,23 @@ export function usagePriceIdForPlan(plan: "flex" | "lite"): string | undefined {
   return plan === "flex"
     ? process.env.PADDLE_PRICE_ID_FLEX_USAGE
     : process.env.PADDLE_PRICE_ID_LITE_USAGE;
+}
+
+export function voiceOveragePriceIdForPlan(
+  plan: "voice_starter" | "voice_pro",
+  user?: { discountCohort?: string; betaCohortSteppedAt?: string },
+): string | undefined {
+  const founder = user?.discountCohort === "beta_feedback" && !user?.betaCohortSteppedAt;
+  if (plan === "voice_starter") {
+    if (founder && process.env.PADDLE_PRICE_ID_BETA_VOICE_STARTER_OVERAGE) {
+      return process.env.PADDLE_PRICE_ID_BETA_VOICE_STARTER_OVERAGE;
+    }
+    return process.env.PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE;
+  }
+  if (founder && process.env.PADDLE_PRICE_ID_BETA_VOICE_PRO_OVERAGE) {
+    return process.env.PADDLE_PRICE_ID_BETA_VOICE_PRO_OVERAGE;
+  }
+  return process.env.PADDLE_PRICE_ID_VOICE_PRO_OVERAGE;
 }
 
 export function cappedOveragePriceIdForPlan(
@@ -94,10 +113,33 @@ export function betaCohortLiteLockedUsagePriceId(): string | undefined {
   return process.env.PADDLE_PRICE_ID_BETA_LITE_USAGE_LOCKED ?? process.env.PADDLE_PRICE_ID_LITE_USAGE;
 }
 
+export function betaCohortVoiceStarterIntroPriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_VOICE_STARTER ?? process.env.PADDLE_PRICE_ID_VOICE_STARTER;
+}
+
+export function betaCohortVoiceProIntroPriceId(): string | undefined {
+  return process.env.PADDLE_PRICE_ID_BETA_VOICE_PRO ?? process.env.PADDLE_PRICE_ID_VOICE_PRO;
+}
+
+export function betaCohortVoiceStarterLockedPriceId(): string | undefined {
+  return (
+    process.env.PADDLE_PRICE_ID_BETA_VOICE_STARTER_LOCKED ??
+    process.env.PADDLE_PRICE_ID_VOICE_STARTER
+  );
+}
+
+export function betaCohortVoiceProLockedPriceId(): string | undefined {
+  return (
+    process.env.PADDLE_PRICE_ID_BETA_VOICE_PRO_LOCKED ?? process.env.PADDLE_PRICE_ID_VOICE_PRO
+  );
+}
+
 export function betaCohortIntroPriceIdForPlan(plan: PlanId): string | undefined {
   if (plan === "flex") return betaCohortFlexIntroPriceId();
   if (plan === "lite") return betaCohortLiteIntroPriceId();
   if (plan === "scale") return betaCohortScaleIntroPriceId();
+  if (plan === "voice_starter") return betaCohortVoiceStarterIntroPriceId();
+  if (plan === "voice_pro") return betaCohortVoiceProIntroPriceId();
   return betaCohortIntroPriceId();
 }
 
@@ -105,6 +147,8 @@ export function betaCohortLockedPriceIdForPlan(plan: PlanId): string | undefined
   if (plan === "flex") return betaCohortFlexLockedPriceId();
   if (plan === "lite") return betaCohortLiteLockedPriceId();
   if (plan === "scale") return betaCohortScaleLockedPriceId();
+  if (plan === "voice_starter") return betaCohortVoiceStarterLockedPriceId();
+  if (plan === "voice_pro") return betaCohortVoiceProLockedPriceId();
   return betaCohortLockedPriceId();
 }
 
