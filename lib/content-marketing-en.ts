@@ -405,8 +405,8 @@ export const comparisonEn = {
     ["Reply 9 undo", "Yes — reverse a bad auto-roll", "Rare", "No"],
     ["Call voice quality", "Natural US voice, every call", "Human variance or transfer fees", "Rigid scripted Q&A"],
     ["Works without CRM", "Yes — SMS + dashboard", "Yes", "Often CRM-locked"],
-    ["Pricing", `From ${SITE.flexBasePrice}/mo + dispatch · Pro ${SITE.proPrice}`, "Per-minute + transfer fees", "Add-on / $1K+ enterprise"],
-    ["Billable unit", "Approved emergency dispatch only", "Minutes / every call", "Seats + usage"],
+    ["Pricing", `Dispatch from ${SITE.flexBasePrice}/mo · Voice from ${SITE.voiceStarterPrice}/mo`, "Per-minute + transfer fees", "Add-on / $1K+ enterprise"],
+    ["Billable unit", "Approved dispatch OR included talk-minutes", "Minutes / every call", "Seats + usage"],
     ["Go live", "~10 minutes", "Days + scripting", "Days to weeks"],
   ],
 };

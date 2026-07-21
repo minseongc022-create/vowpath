@@ -4,17 +4,27 @@ import { useEffect, useState } from "react";
 import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 import { SITE, ROUTES, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
-import { founderRateLabel, founderRateShort, regularRateLabel } from "@/lib/plan-pricing";
+import {
+  founderRateLabel,
+  founderRateShort,
+  regularRateLabel,
+} from "@/lib/plan-pricing";
 
 type BillingStatusResponse = {
   beta: boolean;
   entitled: boolean;
 };
 
-const PLAN_OPTIONS: { id: PlanId; title: string }[] = [
+type BillingTrack = "dispatch" | "voice";
+
+const DISPATCH_OPTIONS: { id: PlanId; title: string }[] = [
+  { id: "lite", title: "Lite" },
   { id: "flex", title: "Flex" },
   { id: "pro", title: "Pro" },
   { id: "scale", title: "Scale" },
+];
+
+const VOICE_OPTIONS: { id: PlanId; title: string }[] = [
   { id: "voice_starter", title: "Voice Starter" },
   { id: "voice_pro", title: "Voice Pro" },
 ];
@@ -40,9 +50,17 @@ export function TrialGate({ children }: { children: React.ReactNode }) {
 
 function TrialEndedCard() {
   const [feedback, setFeedback] = useState("");
+  const [track, setTrack] = useState<BillingTrack>("dispatch");
   const [plan, setPlan] = useState<PlanId>(DEFAULT_PLAN);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const visibleOptions = track === "voice" ? VOICE_OPTIONS : DISPATCH_OPTIONS;
+
+  function selectTrack(next: BillingTrack) {
+    setTrack(next);
+    setPlan(next === "voice" ? "voice_starter" : DEFAULT_PLAN);
+  }
 
   async function handleUnlock() {
     if (!feedback.trim() || submitting) return;
@@ -93,8 +111,33 @@ function TrialEndedCard() {
           .
         </p>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {PLAN_OPTIONS.map((option) => (
+        <div className="mt-4 inline-flex rounded-lg border border-surface-border bg-slate-50 p-0.5">
+          <button
+            type="button"
+            onClick={() => selectTrack("dispatch")}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+              track === "dispatch" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+            }`}
+          >
+            Per dispatch
+          </button>
+          <button
+            type="button"
+            onClick={() => selectTrack("voice")}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+              track === "voice" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+            }`}
+          >
+            Per minute
+          </button>
+        </div>
+
+        <div
+          className={`mt-3 grid gap-2 ${
+            visibleOptions.length <= 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"
+          }`}
+        >
+          {visibleOptions.map((option) => (
             <button
               key={option.id}
               type="button"
@@ -112,9 +155,6 @@ function TrialEndedCard() {
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Lite also available at checkout — best for very quiet months.
-        </p>
 
         <textarea
           value={feedback}

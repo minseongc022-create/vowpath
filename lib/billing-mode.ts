@@ -2,7 +2,7 @@ import {
   resolvePaddleClientEnvironment,
   resolvePaddleClientToken,
 } from "./paddle-client-public";
-import { isPaddleConfigured, isValidPaddleEnvValue } from "./paddle-config";
+import { isAnyPaddlePlanConfigured, isValidPaddleEnvValue } from "./paddle-config";
 
 /** Build-time flag from NEXT_PUBLIC_BETA (baked into client bundle). */
 export function isPublicBetaBuild(): boolean {
@@ -19,8 +19,7 @@ export function isPaidCheckoutEnabled(): boolean {
   if (override === "false" || override === "0" || override === "no") return false;
 
   const paddleLive =
-    isValidPaddleEnvValue(process.env.PADDLE_API_KEY) &&
-    (isPaddleConfigured("pro") || isPaddleConfigured("flex"));
+    isValidPaddleEnvValue(process.env.PADDLE_API_KEY) && isAnyPaddlePlanConfigured();
 
   if (paddleLive && process.env.VERCEL_ENV === "production") {
     return true;
@@ -46,8 +45,7 @@ export type CheckoutReadiness = {
 
 export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutReadiness {
   const issues: string[] = [];
-  const paddleConfigured =
-    isPaddleConfigured("pro") || isPaddleConfigured("flex");
+  const paddleConfigured = isAnyPaddlePlanConfigured();
   const clientTokenConfigured = paddleClientTokenConfigured();
   const checkoutEnabled = isPaidCheckoutEnabled();
 
