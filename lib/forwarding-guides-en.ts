@@ -204,7 +204,7 @@ export const FORWARDING_TROUBLESHOOTING_SWITCH_NOTE: Record<ForwardingProviderId
 };
 
 export const FORWARDING_TROUBLESHOOTING_FALLBACK =
-  "Email support@effiroad.com with your carrier name — we will walk through live setup.";
+  "Email hello@effiroad.com with your carrier name — we will walk through live setup.";
 
 export function getForwardingGuideSteps(
   provider: ForwardingProviderId,

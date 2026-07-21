@@ -435,44 +435,6 @@ export const competitorWinEn = {
       body: "Same natural US voice every call — no rotating agents, no press-1 screening, no per-transfer surprise bills.",
     },
   ],
-  competitors: [
-    {
-      name: "AI + live-agent hybrids",
-      pains: [
-        "AI transfers to live agents without consent — extra charges",
-        "Billing surprises from add-ons and spam-call overages",
-        "Receptionist quality varies call to call",
-      ],
-      fix: "Flat monthly price. No live-agent transfer fees. Same AI voice and script every time. Test call built into setup.",
-    },
-    {
-      name: "Per-minute virtual receptionists",
-      pains: [
-        "Per-minute billing with 60-second rounding — hangups still bill",
-        "Bill shock in busy season from unpredictable usage",
-        "Inconsistent script following on live calls in reviews",
-      ],
-      fix: "No per-minute clock. Predictable flat rate. AI answers instantly — professional tone without hold music or bored agents.",
-    },
-    {
-      name: "CRM add-on AI receptionists",
-      pains: [
-        "Rigid form-style questions — 'a form with a voice'",
-        "Complex calls default to message-taking; business-name confusion",
-        "CRM-locked; extra monthly fee; forwarding setup still on you",
-      ],
-      fix: "Works with or without your CRM. Conversational intake tuned for trades. Three forwarding paths + dedicated number fallback (same quality).",
-    },
-    {
-      name: "Enterprise trade AI platforms",
-      pains: [
-        "Enterprise pricing ($1K–$3K/mo cited in reviews); multi-week onboarding",
-        "Platform-locked for full value; overkill for 1–15 crew shops",
-        "No public pricing; sales call required to compare",
-      ],
-      fix: "Transparent flat pricing for owner-operators. Go live in ~10 minutes. Optional CRM sync — no single platform required.",
-    },
-  ],
   footnote:
     "Based on patterns from public review sites, trade forums, and independent contractor comparisons (2024–2026). No endorsement implied.",
 };

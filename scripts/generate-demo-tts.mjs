@@ -114,6 +114,76 @@ const CLIPS = [
     file: "voice-hvac-gas-3.mp3",
     text: "Got it. I'm holding this as a safety call and texting the owner now, so they can decide the safest next step.",
   },
+  // Interactive demo — IVR + channel (same male voice, no browser TTS fallback)
+  {
+    file: "voice-ai-main-menu.mp3",
+    text: "Thank you for calling Ridgeline Restoration. To book service or report an emergency, press 1. For a free estimate, press 2.",
+  },
+  {
+    file: "voice-ai-channel.mp3",
+    text: "Would you like a quick text link, or handle it on this call?",
+  },
+  {
+    file: "voice-ai-link-close.mp3",
+    text: "Perfect — I'm texting you a secure link from Ridgeline Restoration. It takes about a minute on your phone.",
+  },
+  {
+    file: "voice-hvac-main-menu.mp3",
+    text: "Thank you for calling Comfort Air HVAC. To book service or report an emergency, press 1. For a free estimate, press 2.",
+  },
+  {
+    file: "voice-hvac-channel.mp3",
+    text: "Would you like a quick text link, or handle it on this call?",
+  },
+  {
+    file: "voice-hvac-link-close.mp3",
+    text: "Perfect — I'm texting you a secure link from Comfort Air HVAC. It takes about a minute on your phone.",
+  },
+  {
+    file: "voice-hvac-gas-main-menu.mp3",
+    text: "Thank you for calling Comfort Air HVAC. To book service or report an emergency, press 1. For a free estimate, press 2.",
+  },
+  // Estimate path — link vs phone (matches lib/retell-prompt.ts estimate_choice)
+  {
+    file: "voice-ai-estimate-channel.mp3",
+    text: "Would you like a quick text link, or tell us about the project on this call?",
+  },
+  {
+    file: "voice-ai-estimate-link-close.mp3",
+    text: "Perfect — I'm texting you a short estimate form from Ridgeline Restoration. It takes about a minute on your phone.",
+  },
+  {
+    file: "voice-ai-estimate-open.mp3",
+    text: "Happy to help with your estimate. What's your name?",
+  },
+  {
+    file: "voice-ai-estimate-address.mp3",
+    text: "Thanks, Jennifer. What's the property address for the estimate?",
+  },
+  {
+    file: "voice-ai-estimate-close.mp3",
+    text: "Got it — I've captured everything. Our team will follow up with next steps. You'll get a text confirmation shortly.",
+  },
+  {
+    file: "voice-hvac-estimate-channel.mp3",
+    text: "Would you like a quick text link, or tell us about the project on this call?",
+  },
+  {
+    file: "voice-hvac-estimate-link-close.mp3",
+    text: "Perfect — I'm texting you a short estimate form from Comfort Air HVAC. It takes about a minute on your phone.",
+  },
+  {
+    file: "voice-hvac-estimate-open.mp3",
+    text: "Happy to help with your estimate. What's your name?",
+  },
+  {
+    file: "voice-hvac-estimate-address.mp3",
+    text: "Thanks, David. What's the property address for the estimate?",
+  },
+  {
+    file: "voice-hvac-estimate-close.mp3",
+    text: "Got it — I've captured everything. Our team will follow up with next steps. You'll get a text confirmation shortly.",
+  },
   // HVAC overview
   {
     file: "overview-hvac-narr-0.mp3",

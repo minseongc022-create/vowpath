@@ -2,9 +2,23 @@
 class DemoAudioPlayer {
   private audio: HTMLAudioElement | null = null;
   private unlocked = false;
+  private playGeneration = 0;
 
   isUnlocked(): boolean {
     return this.unlocked;
+  }
+
+  /** Stop any in-flight MP3 immediately (prevents overlap). */
+  stop(): void {
+    this.playGeneration += 1;
+    if (typeof window !== "undefined") {
+      window.speechSynthesis?.cancel();
+    }
+    if (!this.audio) return;
+    this.audio.onended = null;
+    this.audio.onerror = null;
+    this.audio.pause();
+    this.audio.currentTime = 0;
   }
 
   /** Call synchronously inside a click/tap handler. */
@@ -30,7 +44,6 @@ class DemoAudioPlayer {
           this.unlocked = true;
         })
         .catch(() => {
-          /* Still mark unlocked — speech fallback may work */
           this.unlocked = true;
         });
     } else {
@@ -41,11 +54,14 @@ class DemoAudioPlayer {
 
   async playMp3(relativePath: string): Promise<boolean> {
     if (!this.unlocked || typeof window === "undefined") return false;
+    this.stop();
+
     if (!this.audio) {
       this.audio = new Audio();
       this.audio.preload = "auto";
     }
 
+    const generation = this.playGeneration;
     const audio = this.audio;
     audio.volume = 1;
     audio.src = relativePath;
@@ -53,10 +69,14 @@ class DemoAudioPlayer {
     try {
       await audio.play();
       await new Promise<void>((resolve) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
+        audio.onended = () => {
+          if (generation === this.playGeneration) resolve();
+        };
+        audio.onerror = () => {
+          if (generation === this.playGeneration) resolve();
+        };
       });
-      return true;
+      return generation === this.playGeneration;
     } catch {
       return false;
     }
@@ -65,18 +85,8 @@ class DemoAudioPlayer {
 
 export const demoAudioPlayer = new DemoAudioPlayer();
 
-export function speakDemoFallback(text: string): Promise<void> {
-  if (typeof window === "undefined" || !window.speechSynthesis) {
-    return new Promise((r) => setTimeout(r, Math.max(text.length * 55, 1800)));
-  }
-
-  return new Promise((resolve) => {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.speak(utterance);
-  });
+/** Timed silence when MP3 missing — never use browser TTS (avoids random female system voices). */
+export function demoSpeechPause(text: string): Promise<void> {
+  const ms = Math.max(text.length * 55, 1800);
+  return new Promise((r) => setTimeout(r, ms));
 }

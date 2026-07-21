@@ -43,8 +43,8 @@ function fallback(locale: UiLocale): SiteAssistantReply {
   return {
     answer:
       lang === "es"
-        ? "Ahora no puedo conectar. Visita effiroad.com/pricing o escribe a support@effiroad.com."
-        : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email support@effiroad.com.",
+        ? "Ahora no puedo conectar. Visita effiroad.com/pricing o escribe a hello@effiroad.com."
+        : "I'm having trouble connecting right now. Visit effiroad.com/pricing or email hello@effiroad.com.",
     suggestions: startersFor(lang),
   };
 }

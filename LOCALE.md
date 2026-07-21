@@ -3,7 +3,7 @@
 - **Marketing UI:** English default (`NEXT_PUBLIC_LOCALE=en`)
 - **Dashboard:** English + Korean toggle (cookie / localStorage)
 - **Target market:** US residential HVAC owner-operators
-- **Contact:** support@effiroad.com
+- **Contact:** hello@effiroad.com
 
 ## Stripe setup
 

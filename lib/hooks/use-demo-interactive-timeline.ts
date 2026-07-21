@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InteractiveStep } from "@/lib/demo-interactive-script";
-import { demoAudioPlayer, speakDemoFallback } from "@/lib/demo-audio-player";
+import { demoAudioPlayer, demoSpeechPause } from "@/lib/demo-audio-player";
 import { isDemoAudioUnlocked, unlockDemoAudio } from "@/lib/demo-audio-unlock";
 
 type UseDemoInteractiveTimelineOptions = {
@@ -37,7 +37,7 @@ export function useDemoInteractiveTimeline({
   }, [audioUnlocked]);
 
   const reset = useCallback(() => {
-    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    demoAudioPlayer.stop();
     runningRef.current = false;
     setCursor(0);
     setCustomerLines([]);
@@ -59,23 +59,33 @@ export function useDemoInteractiveTimeline({
   }, []);
 
   const playAi = useCallback(
-    async (text: string, audioIndex?: number) => {
+    async (text: string, audioIndex?: number, audioFile?: string) => {
       setAiLine(text);
       setSpeaking(true);
 
-      if (audioUnlockedRef.current) {
-        let played = false;
-        if (audioPrefix && audioIndex !== undefined) {
-          played = await demoAudioPlayer.playMp3(`/demo-audio/${audioPrefix}-${audioIndex}.mp3`);
-        }
-        if (!played) {
-          await speakDemoFallback(text);
-        }
-      } else {
-        await new Promise((r) => setTimeout(r, Math.max(text.length * 55, 1800)));
-      }
+      try {
+        if (audioUnlockedRef.current) {
+          let path: string | null = null;
+          if (audioFile) {
+            path = `/demo-audio/${audioFile}`;
+          } else if (audioPrefix && audioIndex !== undefined) {
+            path = `/demo-audio/${audioPrefix}-${audioIndex}.mp3`;
+          }
 
-      setSpeaking(false);
+          if (path) {
+            const played = await demoAudioPlayer.playMp3(path);
+            if (!played) {
+              await demoSpeechPause(text);
+            }
+          } else {
+            await demoSpeechPause(text);
+          }
+        } else {
+          await demoSpeechPause(text);
+        }
+      } finally {
+        setSpeaking(false);
+      }
     },
     [audioPrefix],
   );
@@ -104,7 +114,7 @@ export function useDemoInteractiveTimeline({
           }
 
           if (step.kind === "ai-voice") {
-            await playAi(step.text, step.audioIndex);
+            await playAi(step.text, step.audioIndex, step.audioFile);
             i += 1;
             continue;
           }
@@ -130,12 +140,16 @@ export function useDemoInteractiveTimeline({
 
   useEffect(() => {
     if (!enabled) {
-      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+      demoAudioPlayer.stop();
       return;
     }
     if (!audioUnlocked) return;
     if (waitingForClick || done) return;
     void runAutoSteps(cursor);
+    return () => {
+      demoAudioPlayer.stop();
+      runningRef.current = false;
+    };
   }, [enabled, audioUnlocked, cursor, waitingForClick, done, runAutoSteps]);
 
   const advanceWithCustomer = useCallback(

@@ -35,7 +35,7 @@ export const hvacProblem = {
 export const hvacDispatchPolicy = {
   title: "Smarter than blind auto-dispatch",
   description:
-    "ServiceAgent dispatches everything automatically. Effiroad knows the difference.",
+    "Blind auto-dispatch sends risky jobs to your crew. Effiroad holds gas smell, electrical, and messy intakes for your 1 / 2.",
   rows: [
     {
       scenario: "No heat / no cooling · verified address · clear intake",
@@ -395,7 +395,7 @@ export const comparisonHvac = {
   id: "comparison",
   title: "Why HVAC shops pick Effiroad",
   subtitle:
-    "ServiceAgent auto-dispatches everything. Call centers take messages. Effiroad auto-dispatches clear no-heat/no-cool calls — and holds gas smell, electrical, and messy intakes so bad rolls don't slip through.",
+    "Generic AI call bots auto-dispatch everything. Call centers take messages. Effiroad auto-dispatches clear no-heat/no-cool calls — and holds gas smell, electrical, and messy intakes so bad rolls don't slip through.",
   headers: ["", "Effiroad", "Generic AI call bots", "Human call centers"],
   rows: [
     ["Clear no-heat auto-dispatch", "Yes — tech SMS + owner FYI", "Often blind auto", "No — message only"],
