@@ -3,7 +3,7 @@ import { isEntitled, requiresEntitlement } from "./billing";
 import { getSession } from "./session";
 import { findUserById } from "./users-db";
 
-/** Gate paid APIs when Paddle is configured and not in beta. */
+/** Gate paid APIs when Lemon Squeezy is configured and not in beta. */
 export async function requireEntitledSession(): Promise<
   | { ok: true; userId: string }
   | { ok: false; response: NextResponse }

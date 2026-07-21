@@ -26,7 +26,7 @@ async function planFromBody(request: Request): Promise<ReturnType<typeof parsePl
   }
 }
 
-/** POST — create Paddle transaction; client opens Paddle.js overlay with transactionId. */
+/** POST — create Lemon Squeezy checkout; client redirects to checkout URL. */
 export async function POST(request: Request) {
   if (!isPaidCheckoutEnabled()) {
     return NextResponse.json(
@@ -38,11 +38,8 @@ export async function POST(request: Request) {
   const plan = await planFromBody(request);
   try {
     const session = await createCheckoutSession(plan);
-    if (!session.transactionId && session.url) {
-      return NextResponse.json({ url: session.url, transactionId: "" });
-    }
     return NextResponse.json({
-      transactionId: session.transactionId,
+      checkoutId: session.checkoutId,
       url: session.url,
     });
   } catch (e) {
@@ -60,7 +57,7 @@ export async function POST(request: Request) {
   }
 }
 
-/** Browser link — redirects to /pay?_ptxn=… or signup (legacy). */
+/** Browser link — redirects to Lemon Squeezy checkout or signup fallback. */
 export async function GET(request: Request) {
   if (!isPaidCheckoutEnabled()) {
     return NextResponse.redirect(new URL(ROUTES.signup, request.url));

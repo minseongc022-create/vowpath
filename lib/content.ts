@@ -93,7 +93,7 @@ export const signupFlow = {
   steps: [
     {
       step: "01",
-      title: "Paddle 결제",
+      title: "Lemon Squeezy 결제",
       description: `${SITE.monthlyPrice}/월. 결제 즉시 온보딩 화면으로 이동.`,
       time: "1분",
     },
@@ -454,7 +454,7 @@ export const cta = {
 export const getStartedPage = {
   eyebrow: "결제",
   title: "플랜 선택",
-  subtitle: `Paddle 안전 결제 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 예약당 ${SITE.flexPerBooking}`,
+  subtitle: `Lemon Squeezy 안전 결제 · 정액 ${SITE.monthlyPrice}/월 또는 성과형 ${SITE.flexBasePrice}/월 + 예약당 ${SITE.flexPerBooking}`,
   canceledMessage: "결제가 취소되었습니다. 아래에서 플랜을 다시 선택해 주세요.",
   checkoutError:
     "결제를 시작하지 못했습니다. 아래 버튼으로 다시 시도하거나 회원가입으로 진행해 주세요.",
@@ -1869,7 +1869,7 @@ const legalPagesKo = {
     sections: [
       {
         heading: "수집 항목",
-        body: "이메일, shop 이름, 결제 정보(Paddle), Jobber 연동 시 고객·예약 메타데이터, 통화 로그(연동 시).",
+        body: "이메일, shop 이름, 결제 정보(Lemon Squeezy), Jobber 연동 시 고객·예약 메타데이터, 통화 로그(연동 시).",
       },
       {
         heading: "이용 목적",
@@ -1945,7 +1945,7 @@ const legalPagesKo = {
       },
       {
         heading: "환불 요청 방법",
-        body: `계정에 등록된 이메일 주소로 ${SITE.supportEmail}에 상호명과 함께 문의해 주세요. 결제 대행사이자 판매자(Merchant of Record)인 Paddle을 통해 원 결제 수단으로 보통 영업일 기준 5~10일 내 처리됩니다.`,
+        body: `계정에 등록된 이메일 주소로 ${SITE.supportEmail}에 상호명과 함께 문의해 주세요. 결제 대행사이자 판매자(Merchant of Record)인 Lemon Squeezy를 통해 원 결제 수단으로 보통 영업일 기준 5~10일 내 처리됩니다.`,
       },
       {
         heading: "해지",

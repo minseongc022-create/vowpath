@@ -707,7 +707,7 @@ export const signupFlowEn = {
     {
       step: "01",
       title: "Choose a plan",
-      description: "Dispatch plans or Voice minute plans. Paddle checkout.",
+      description: "Dispatch plans or Voice minute plans. Lemon Squeezy checkout.",
       time: "1 min",
     },
     {

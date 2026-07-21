@@ -9,7 +9,7 @@ import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 
 type PlanCheckoutProps = {
   selectedPlan: PlanId;
-  paddleReady: boolean;
+  billingReady: boolean;
   checkoutErrorCode?: string | null;
 };
 
@@ -17,7 +17,7 @@ type BillingTrack = "dispatch" | "voice";
 
 export function PlanCheckout({
   selectedPlan,
-  paddleReady,
+  billingReady,
   checkoutErrorCode,
 }: PlanCheckoutProps) {
   const page = siteGetStarted;
@@ -78,7 +78,7 @@ export function PlanCheckout({
       <div className={gridClass}>
         {visiblePlans.map((plan) => {
           const isSelected = plan.id === selectedPlan;
-          const payLabel = paddleReady
+          const payLabel = billingReady
             ? typeof page.payLabel === "function"
               ? page.payLabel(plan.price, plan.period)
               : `Pay ${plan.price}${plan.period}`
@@ -148,7 +148,7 @@ export function PlanCheckout({
               </ul>
 
               <div className="mt-8">
-                {paddleReady ? (
+                {billingReady ? (
                   <StartCheckoutButton
                     plan={plan.id}
                     directCheckout

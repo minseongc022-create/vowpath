@@ -14,17 +14,17 @@ async function main() {
   const postRes = await fetch(`${base}/api/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan: "unlimited" }),
+    body: JSON.stringify({ plan: "flex" }),
   });
   const post = await postRes.json();
-  console.log("\n=== POST /api/checkout (unlimited) ===\n");
+  console.log("\n=== POST /api/checkout (flex) ===\n");
   console.log(JSON.stringify(post, null, 2));
 
   const ok =
     status.checkoutEnabled &&
-    (status.clientTokenConfigured || Boolean(status.paddleClientToken)) &&
-    status.paddleConfigured &&
-    (post.transactionId || post.code === "paddle_checkout_disabled");
+    status.billingConfigured &&
+    status.mode === "ready" &&
+    Boolean(post.url);
 
   console.log(ok ? "\n✓ Checkout pipeline reachable\n" : "\n✗ Checkout not fully ready — see issues above\n");
   process.exit(ok ? 0 : 1);

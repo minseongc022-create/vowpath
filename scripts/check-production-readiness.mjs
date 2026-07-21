@@ -28,72 +28,44 @@ ok(
   "Set NEXT_PUBLIC_BETA=false for paid launch",
 );
 ok(
-  "Paddle API key",
-  Boolean(process.env.PADDLE_API_KEY?.startsWith("pdl_")),
-  "PADDLE_API_KEY",
+  "Lemon Squeezy API key",
+  Boolean(process.env.LEMON_SQUEEZY_API_KEY?.trim()),
+  "LEMON_SQUEEZY_API_KEY",
 );
 ok(
-  "Paddle unlimited price",
-  Boolean(process.env.PADDLE_PRICE_ID_UNLIMITED),
-  "PADDLE_PRICE_ID_UNLIMITED",
+  "Lemon Squeezy store",
+  Boolean(process.env.LEMON_SQUEEZY_STORE_ID?.trim()),
+  "LEMON_SQUEEZY_STORE_ID",
 );
 ok(
-  "Paddle flex base",
-  Boolean(process.env.PADDLE_PRICE_ID_FLEX),
-  "PADDLE_PRICE_ID_FLEX for flex plan",
+  "Lemon Squeezy Flex base",
+  Boolean(process.env.LEMON_SQUEEZY_VARIANT_ID_FLEX),
+  "LEMON_SQUEEZY_VARIANT_ID_FLEX",
 );
 ok(
-  "Paddle client token",
-  Boolean(
-    process.env.PADDLE_CLIENT_TOKEN?.trim() ||
-      process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim(),
-  ),
-  "PADDLE_CLIENT_TOKEN or NEXT_PUBLIC_PADDLE_CLIENT_TOKEN",
+  "Lemon Squeezy Flex usage",
+  Boolean(process.env.LEMON_SQUEEZY_VARIANT_ID_FLEX_USAGE),
+  "LEMON_SQUEEZY_VARIANT_ID_FLEX_USAGE — per-dispatch fee",
 );
 ok(
-  "Paddle flex usage",
-  Boolean(process.env.PADDLE_PRICE_ID_FLEX_USAGE),
-  "PADDLE_PRICE_ID_FLEX_USAGE — per-dispatch fee for Flex",
+  "Lemon Squeezy Lite base",
+  Boolean(process.env.LEMON_SQUEEZY_VARIANT_ID_LITE),
+  "LEMON_SQUEEZY_VARIANT_ID_LITE",
 );
 ok(
-  "Paddle lite base",
-  Boolean(process.env.PADDLE_PRICE_ID_LITE),
-  "PADDLE_PRICE_ID_LITE for Lite plan",
+  "Lemon Squeezy Pro base",
+  Boolean(process.env.LEMON_SQUEEZY_VARIANT_ID_PRO),
+  "LEMON_SQUEEZY_VARIANT_ID_PRO",
 );
 ok(
-  "Paddle lite usage",
-  Boolean(process.env.PADDLE_PRICE_ID_LITE_USAGE),
-  "PADDLE_PRICE_ID_LITE_USAGE — per-dispatch fee for Lite",
+  "Lemon Squeezy Voice Starter",
+  Boolean(process.env.LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER),
+  "LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER",
 );
 ok(
-  "Paddle Pro base",
-  Boolean(process.env.PADDLE_PRICE_ID_PRO || process.env.PADDLE_PRICE_ID_UNLIMITED),
-  "PADDLE_PRICE_ID_PRO (or legacy UNLIMITED)",
-);
-ok(
-  "Paddle Scale base",
-  Boolean(process.env.PADDLE_PRICE_ID_SCALE),
-  "PADDLE_PRICE_ID_SCALE",
-);
-ok(
-  "Paddle Voice Starter",
-  Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER),
-  "PADDLE_PRICE_ID_VOICE_STARTER — per-minute track",
-);
-ok(
-  "Paddle Voice Starter overage",
-  Boolean(process.env.PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE),
-  "PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE — $/min beyond included",
-);
-ok(
-  "Paddle Voice Pro",
-  Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO),
-  "PADDLE_PRICE_ID_VOICE_PRO",
-);
-ok(
-  "Paddle Voice Pro overage",
-  Boolean(process.env.PADDLE_PRICE_ID_VOICE_PRO_OVERAGE),
-  "PADDLE_PRICE_ID_VOICE_PRO_OVERAGE",
+  "Lemon Squeezy webhook secret",
+  Boolean(process.env.LEMON_SQUEEZY_WEBHOOK_SECRET?.trim()),
+  "LEMON_SQUEEZY_WEBHOOK_SECRET",
 );
 ok(
   "Twilio",

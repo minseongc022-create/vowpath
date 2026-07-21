@@ -9,10 +9,19 @@ import { resolveServerUiLocale } from "@/lib/locale";
 export default async function DashboardSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ transaction_id?: string; section?: string }>;
+  searchParams: Promise<{
+    transaction_id?: string;
+    checkout?: string;
+    plan?: string;
+    subscription_id?: string;
+    section?: string;
+  }>;
 }) {
   const params = await searchParams;
-  const transactionId = params.transaction_id?.trim();
+  const checkoutSuccess =
+    params.checkout === "success" || Boolean(params.transaction_id?.trim());
+  const planHint = params.plan?.trim();
+  const subscriptionId = params.subscription_id?.trim();
   const locale = await resolveServerUiLocale();
   const settingsPage = getSettingsPageCopy(locale);
 
@@ -27,8 +36,10 @@ export default async function DashboardSettingsPage({
 
       <Suspense fallback={null}>
         <SettingsView
-          paid={Boolean(transactionId)}
-          transactionId={transactionId}
+          paid={checkoutSuccess}
+          checkoutSuccess={checkoutSuccess}
+          planHint={planHint}
+          subscriptionId={subscriptionId}
           section={params.section?.trim()}
         />
       </Suspense>

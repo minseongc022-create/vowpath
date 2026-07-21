@@ -24,7 +24,7 @@ Required:
 | `TWILIO_AUTH_TOKEN` | from Twilio console |
 | `TWILIO_WEBHOOK_BASE_URL` | `https://effiroad.com` |
 | `OPENAI_API_KEY` | `sk-...` |
-| `PADDLE_*` | See **[docs/CHECKOUT_LAUNCH.md](./docs/CHECKOUT_LAUNCH.md)** — Pro/Scale/Flex/Lite + Voice minute price IDs |
+| `LEMON_SQUEEZY_*` | See **[docs/CHECKOUT_LAUNCH.md](./docs/CHECKOUT_LAUNCH.md)** — Lite/Flex/Pro/Scale + Voice variants |
 | `RESEND_API_KEY` | `re_...` (password reset email) |
 | `CRON_SECRET` | random string (protects /api/cron/*) |
 | `NEXT_PUBLIC_BETA` | `false` |

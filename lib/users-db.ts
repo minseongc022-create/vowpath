@@ -21,6 +21,11 @@ export type UserRecord = {
   phone?: string;
   createdAt: string;
   plan?: PlanId;
+  /** Lemon Squeezy (primary billing) */
+  lsCustomerId?: string;
+  lsSubscriptionId?: string;
+  lsUsageItemId?: string;
+  /** @deprecated legacy Paddle ids — read-only fallback */
   paddleCustomerId?: string;
   paddleSubscriptionId?: string;
   subscriptionStatus?: SubscriptionStatus;
@@ -260,6 +265,9 @@ export async function updateUserBilling(
   userId: string,
   patch: {
     plan?: PlanId;
+    lsCustomerId?: string;
+    lsSubscriptionId?: string;
+    lsUsageItemId?: string;
     paddleCustomerId?: string;
     paddleSubscriptionId?: string;
     subscriptionStatus?: SubscriptionStatus;
@@ -289,6 +297,15 @@ export async function findUserByPaddleCustomerId(
 ): Promise<UserRecord | undefined> {
   const store = await ensureStore();
   return store.users.find((u) => u.paddleCustomerId === customerId);
+}
+
+export async function findUserByLsCustomerId(
+  customerId: string,
+): Promise<UserRecord | undefined> {
+  const store = await ensureStore();
+  return store.users.find(
+    (u) => u.lsCustomerId === customerId || u.paddleCustomerId === customerId,
+  );
 }
 
 export async function listUsers(): Promise<UserRecord[]> {

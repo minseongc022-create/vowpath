@@ -1,6 +1,6 @@
 import { SITE, ROUTES } from "@/lib/constants";
 
-/** Server-rendered legal links — Paddle domain review crawlers often miss client-only footers. */
+/** Server-rendered legal links — crawlers often miss client-only footers. */
 export function LegalLinksStrip() {
   const links = [
     { label: "Terms of Service", href: `${SITE.url}${ROUTES.terms}` },

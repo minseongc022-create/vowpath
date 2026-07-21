@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { isPaidCheckoutEnabled } from "@/lib/billing-mode";
 import { DEFAULT_PLAN, ROUTES } from "@/lib/constants";
 import { normalizePlanId } from "@/lib/plan-pricing";
-import { isAnyPaddlePlanConfigured } from "@/lib/paddle-config";
+import { isAnyLsPlanConfigured } from "@/lib/lemon-squeezy-config";
 import { PlanCheckout } from "@/components/checkout/PlanCheckout";
 import { Container } from "@/components/ui/Container";
 
@@ -25,7 +25,7 @@ export default async function GetStartedPage({
   const canceled = params.canceled === "1";
   const checkoutError = params.checkout_error;
   const selectedPlan = normalizePlanId(params.plan);
-  const paddleReady = isAnyPaddlePlanConfigured();
+  const billingReady = isAnyLsPlanConfigured();
 
   const page = siteGetStarted;
   const pricing = sitePricing;
@@ -52,7 +52,7 @@ export default async function GetStartedPage({
             </p>
           )}
 
-          {!paddleReady && (
+          {!billingReady && (
             <p className="mt-6 rounded-lg border border-surface-border bg-white px-4 py-3 text-sm text-slate-600">
               {page.demoNotice}
             </p>
@@ -61,7 +61,7 @@ export default async function GetStartedPage({
 
         <PlanCheckout
           selectedPlan={selectedPlan}
-          paddleReady={paddleReady}
+          billingReady={billingReady}
           checkoutErrorCode={checkoutError}
         />
 
