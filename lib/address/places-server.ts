@@ -13,6 +13,12 @@ export type PlaceLookupMeta = {
   errorMessage?: string;
 };
 
+type PlacesResult = {
+  predictions: PlacePrediction[];
+  status: string;
+  errorMessage?: string;
+};
+
 function googleMapsServerKey(): string | null {
   return (
     process.env.GOOGLE_MAPS_API_KEY?.trim() ||
@@ -60,7 +66,9 @@ function isPermissionDenied(status?: string, message?: string): boolean {
     s === "REQUEST_DENIED" ||
     s === "PERMISSION_DENIED" ||
     m.includes("referer") ||
-    m.includes("blocked")
+    m.includes("blocked") ||
+    m.includes("has not been used") ||
+    m.includes("is disabled")
   );
 }
 
@@ -77,7 +85,7 @@ async function fetchPredictionsPlacesNewOnce(
   key: string,
   input: string,
   referer: string,
-): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
+): Promise<PlacesResult> {
   const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
     headers: googleMapsRequestHeaders(referer, {
@@ -134,11 +142,8 @@ async function fetchPredictionsPlacesNewOnce(
   };
 }
 
-async function fetchPredictionsPlacesNew(
-  key: string,
-  input: string,
-): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
-  let last = { predictions: [] as PlacePrediction[], status: "UNKNOWN", errorMessage: undefined as string | undefined };
+async function fetchPredictionsPlacesNew(key: string, input: string): Promise<PlacesResult> {
+  let last: PlacesResult = { predictions: [], status: "UNKNOWN" };
   for (const referer of googleMapsRefererCandidates()) {
     last = await fetchPredictionsPlacesNewOnce(key, input, referer);
     if (last.predictions.length > 0) return last;
@@ -152,7 +157,7 @@ async function fetchPredictionsLegacyOnce(
   input: string,
   referer: string,
   types?: string,
-): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
+): Promise<PlacesResult> {
   const params = new URLSearchParams({
     input,
     key,
@@ -213,11 +218,8 @@ async function fetchPredictionsLegacyOnce(
   };
 }
 
-async function fetchPredictionsLegacy(
-  key: string,
-  input: string,
-): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
-  let last = { predictions: [] as PlacePrediction[], status: "UNKNOWN", errorMessage: undefined as string | undefined };
+async function fetchPredictionsLegacy(key: string, input: string): Promise<PlacesResult> {
+  let last: PlacesResult = { predictions: [], status: "UNKNOWN" };
 
   for (const referer of googleMapsRefererCandidates()) {
     last = await fetchPredictionsLegacyOnce(key, input, referer, "address");
@@ -243,14 +245,7 @@ export async function fetchPlacePredictions(
     return { predictions: [], meta: { source: "none", googleStatus: "NO_KEY" } };
   }
 
-  const neu = await fetchPredictionsPlacesNew(key, trimmed);
-  if (neu.predictions.length > 0) {
-    return {
-      predictions: neu.predictions,
-      meta: { source: "places_new", googleStatus: neu.status },
-    };
-  }
-
+  // Legacy first — this Google project has Places API (New) disabled.
   const legacy = await fetchPredictionsLegacy(key, trimmed);
   if (legacy.predictions.length > 0) {
     return {
@@ -259,14 +254,24 @@ export async function fetchPlacePredictions(
     };
   }
 
-  const googleStatus = neu.status !== "ZERO_RESULTS" ? neu.status : legacy.status;
-  const errorMessage = neu.errorMessage || legacy.errorMessage;
+  const neu = await fetchPredictionsPlacesNew(key, trimmed);
+  if (neu.predictions.length > 0) {
+    return {
+      predictions: neu.predictions,
+      meta: { source: "places_new", googleStatus: neu.status },
+    };
+  }
+
+  const preferLegacyMeta =
+    isPermissionDenied(neu.status, neu.errorMessage) || legacy.status !== "UNKNOWN";
   return {
     predictions: [],
     meta: {
-      source: neu.status === "OK" || neu.status === "ZERO_RESULTS" ? "places_new" : "places_legacy",
-      googleStatus,
-      errorMessage,
+      source: preferLegacyMeta ? "places_legacy" : "places_new",
+      googleStatus: preferLegacyMeta ? legacy.status : neu.status,
+      errorMessage: preferLegacyMeta
+        ? legacy.errorMessage || neu.errorMessage
+        : neu.errorMessage || legacy.errorMessage,
     },
   };
 }
@@ -278,38 +283,7 @@ export async function fetchPlaceDetails(
   const id = normalizePlaceId(placeId);
   if (!key || !id) return null;
 
-  for (const referer of googleMapsRefererCandidates()) {
-    try {
-      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`, {
-        headers: googleMapsRequestHeaders(referer, {
-          "X-Goog-Api-Key": key,
-          "X-Goog-FieldMask": "id,formattedAddress",
-        }),
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { id?: string; formattedAddress?: string };
-        if (data.formattedAddress) {
-          return {
-            formattedAddress: data.formattedAddress.trim(),
-            placeId: normalizePlaceId(data.id || id),
-          };
-        }
-      } else {
-        const err = (await res.json().catch(() => ({}))) as {
-          error?: { status?: string; message?: string };
-        };
-        if (!isPermissionDenied(err.error?.status, err.error?.message)) {
-          console.warn("[places-server] details(new)", err.error?.status, err.error?.message);
-          break;
-        }
-      }
-    } catch (e) {
-      console.warn("[places-server] details(new) failed", e);
-      break;
-    }
-  }
-
+  // Legacy details first (New Places API not enabled on this project).
   for (const referer of googleMapsRefererCandidates()) {
     const params = new URLSearchParams({
       place_id: id,
@@ -345,6 +319,38 @@ export async function fetchPlaceDetails(
       if (data.status && data.status !== "OK") {
         console.warn("[places-server] details", data.status, data.error_message);
       }
+      break;
+    }
+  }
+
+  for (const referer of googleMapsRefererCandidates()) {
+    try {
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`, {
+        headers: googleMapsRequestHeaders(referer, {
+          "X-Goog-Api-Key": key,
+          "X-Goog-FieldMask": "id,formattedAddress",
+        }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { id?: string; formattedAddress?: string };
+        if (data.formattedAddress) {
+          return {
+            formattedAddress: data.formattedAddress.trim(),
+            placeId: normalizePlaceId(data.id || id),
+          };
+        }
+      } else {
+        const err = (await res.json().catch(() => ({}))) as {
+          error?: { status?: string; message?: string };
+        };
+        if (!isPermissionDenied(err.error?.status, err.error?.message)) {
+          console.warn("[places-server] details(new)", err.error?.status, err.error?.message);
+          break;
+        }
+      }
+    } catch (e) {
+      console.warn("[places-server] details(new) failed", e);
       break;
     }
   }
