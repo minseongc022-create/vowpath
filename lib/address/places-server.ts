@@ -22,6 +22,48 @@ function googleMapsServerKey(): string | null {
   );
 }
 
+/**
+ * Many Vercel projects only have a browser key with HTTP-referrer restrictions.
+ * Server fetches send an empty referer → Google returns REQUEST_DENIED /
+ * PERMISSION_DENIED. Retry with production referers so the same key works.
+ */
+function googleMapsRefererCandidates(): string[] {
+  const configured = process.env.GOOGLE_MAPS_HTTP_REFERER?.trim();
+  const base = process.env.TWILIO_WEBHOOK_BASE_URL?.trim();
+  const candidates = [
+    configured,
+    base,
+    "https://effiroad.com/",
+    "https://link.effiroad.com/",
+    "https://www.effiroad.com/",
+  ]
+    .filter((v): v is string => Boolean(v))
+    .map((v) => (v.endsWith("/") ? v : `${v}/`));
+  return [...new Set(candidates)];
+}
+
+function googleMapsRequestHeaders(
+  referer: string,
+  extra?: Record<string, string>,
+): Record<string, string> {
+  return {
+    Referer: referer,
+    Origin: referer.replace(/\/$/, ""),
+    ...(extra ?? {}),
+  };
+}
+
+function isPermissionDenied(status?: string, message?: string): boolean {
+  const s = (status || "").toUpperCase();
+  const m = (message || "").toLowerCase();
+  return (
+    s === "REQUEST_DENIED" ||
+    s === "PERMISSION_DENIED" ||
+    m.includes("referer") ||
+    m.includes("blocked")
+  );
+}
+
 export function placesAutocompleteServerEnabled(): boolean {
   return Boolean(googleMapsServerKey());
 }
@@ -31,16 +73,17 @@ function normalizePlaceId(raw: string): string {
   return id.startsWith("places/") ? id.slice("places/".length) : id;
 }
 
-async function fetchPredictionsPlacesNew(
+async function fetchPredictionsPlacesNewOnce(
   key: string,
   input: string,
+  referer: string,
 ): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
   const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
-    headers: {
+    headers: googleMapsRequestHeaders(referer, {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": key,
-    },
+    }),
     body: JSON.stringify({
       input,
       includedRegionCodes: ["us"],
@@ -68,7 +111,7 @@ async function fetchPredictionsPlacesNew(
   if (!res.ok) {
     const status = data.error?.status || `HTTP_${res.status}`;
     const errorMessage = data.error?.message;
-    console.warn("[places-server] autocomplete(new)", status, errorMessage);
+    console.warn("[places-server] autocomplete(new)", status, errorMessage, referer);
     return { predictions: [], status, errorMessage };
   }
 
@@ -91,9 +134,24 @@ async function fetchPredictionsPlacesNew(
   };
 }
 
-async function fetchPredictionsLegacy(
+async function fetchPredictionsPlacesNew(
   key: string,
   input: string,
+): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
+  let last = { predictions: [] as PlacePrediction[], status: "UNKNOWN", errorMessage: undefined as string | undefined };
+  for (const referer of googleMapsRefererCandidates()) {
+    last = await fetchPredictionsPlacesNewOnce(key, input, referer);
+    if (last.predictions.length > 0) return last;
+    if (!isPermissionDenied(last.status, last.errorMessage)) return last;
+  }
+  return last;
+}
+
+async function fetchPredictionsLegacyOnce(
+  key: string,
+  input: string,
+  referer: string,
+  types?: string,
 ): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
   const params = new URLSearchParams({
     input,
@@ -101,66 +159,79 @@ async function fetchPredictionsLegacy(
     components: "country:us",
     language: "en",
   });
+  if (types) params.set("types", types);
 
-  async function requestWithTypes(types?: string) {
-    const p = new URLSearchParams(params);
-    if (types) p.set("types", types);
-    else p.delete("types");
+  const res = await fetch(
+    `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`,
+    {
+      headers: googleMapsRequestHeaders(referer),
+      signal: AbortSignal.timeout(8_000),
+    },
+  );
 
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json?${p.toString()}`,
-      { signal: AbortSignal.timeout(8_000) },
-    );
+  if (!res.ok) {
+    console.warn("[places-server] autocomplete HTTP", res.status);
+    return { predictions: [], status: `HTTP_${res.status}` };
+  }
 
-    if (!res.ok) {
-      console.warn("[places-server] autocomplete HTTP", res.status);
-      return { predictions: [] as PlacePrediction[], status: `HTTP_${res.status}` };
-    }
-
-    const data = (await res.json()) as {
-      status?: string;
-      predictions?: Array<{
-        place_id?: string;
-        description?: string;
-        structured_formatting?: {
-          main_text?: string;
-          secondary_text?: string;
-        };
-      }>;
-      error_message?: string;
-    };
-
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      console.warn("[places-server] autocomplete", data.status, data.error_message);
-      return {
-        predictions: [] as PlacePrediction[],
-        status: data.status || "UNKNOWN",
-        errorMessage: data.error_message,
+  const data = (await res.json()) as {
+    status?: string;
+    predictions?: Array<{
+      place_id?: string;
+      description?: string;
+      structured_formatting?: {
+        main_text?: string;
+        secondary_text?: string;
       };
-    }
+    }>;
+    error_message?: string;
+  };
 
-    const predictions = (data.predictions ?? [])
-      .filter((pred) => pred.place_id && pred.description)
-      .slice(0, 8)
-      .map((pred) => ({
-        placeId: pred.place_id!,
-        description: pred.description!.trim(),
-        mainText: pred.structured_formatting?.main_text?.trim() || pred.description!.trim(),
-        secondaryText: pred.structured_formatting?.secondary_text?.trim() || "",
-      }));
-
+  if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+    console.warn("[places-server] autocomplete", data.status, data.error_message, referer);
     return {
-      predictions,
-      status: data.status || (predictions.length ? "OK" : "ZERO_RESULTS"),
+      predictions: [],
+      status: data.status || "UNKNOWN",
       errorMessage: data.error_message,
     };
   }
 
-  let result = await requestWithTypes("address");
-  if (result.predictions.length === 0 && input.length >= 2 && result.status === "ZERO_RESULTS") {
-    result = await requestWithTypes(undefined);
+  const predictions = (data.predictions ?? [])
+    .filter((pred) => pred.place_id && pred.description)
+    .slice(0, 8)
+    .map((pred) => ({
+      placeId: pred.place_id!,
+      description: pred.description!.trim(),
+      mainText: pred.structured_formatting?.main_text?.trim() || pred.description!.trim(),
+      secondaryText: pred.structured_formatting?.secondary_text?.trim() || "",
+    }));
+
+  return {
+    predictions,
+    status: data.status || (predictions.length ? "OK" : "ZERO_RESULTS"),
+    errorMessage: data.error_message,
+  };
+}
+
+async function fetchPredictionsLegacy(
+  key: string,
+  input: string,
+): Promise<{ predictions: PlacePrediction[]; status: string; errorMessage?: string }> {
+  let last = { predictions: [] as PlacePrediction[], status: "UNKNOWN", errorMessage: undefined as string | undefined };
+
+  for (const referer of googleMapsRefererCandidates()) {
+    last = await fetchPredictionsLegacyOnce(key, input, referer, "address");
+    if (last.predictions.length > 0) return last;
+
+    if (last.status === "ZERO_RESULTS" && input.length >= 2) {
+      last = await fetchPredictionsLegacyOnce(key, input, referer, undefined);
+      if (last.predictions.length > 0) return last;
+    }
+
+    if (!isPermissionDenied(last.status, last.errorMessage)) return last;
   }
-  return result;
+
+  return last;
 }
 
 export async function fetchPlacePredictions(
@@ -172,7 +243,6 @@ export async function fetchPlacePredictions(
     return { predictions: [], meta: { source: "none", googleStatus: "NO_KEY" } };
   }
 
-  // Prefer Places API (New) — many projects only have this enabled now.
   const neu = await fetchPredictionsPlacesNew(key, trimmed);
   if (neu.predictions.length > 0) {
     return {
@@ -181,7 +251,6 @@ export async function fetchPlacePredictions(
     };
   }
 
-  // Fall back to legacy Autocomplete when New returns empty or isn't enabled.
   const legacy = await fetchPredictionsLegacy(key, trimmed);
   if (legacy.predictions.length > 0) {
     return {
@@ -209,61 +278,76 @@ export async function fetchPlaceDetails(
   const id = normalizePlaceId(placeId);
   if (!key || !id) return null;
 
-  // Places API (New) details
-  try {
-    const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`, {
-      headers: {
-        "X-Goog-Api-Key": key,
-        "X-Goog-FieldMask": "id,formattedAddress",
-      },
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { id?: string; formattedAddress?: string };
-      if (data.formattedAddress) {
-        return {
-          formattedAddress: data.formattedAddress.trim(),
-          placeId: normalizePlaceId(data.id || id),
+  for (const referer of googleMapsRefererCandidates()) {
+    try {
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`, {
+        headers: googleMapsRequestHeaders(referer, {
+          "X-Goog-Api-Key": key,
+          "X-Goog-FieldMask": "id,formattedAddress",
+        }),
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { id?: string; formattedAddress?: string };
+        if (data.formattedAddress) {
+          return {
+            formattedAddress: data.formattedAddress.trim(),
+            placeId: normalizePlaceId(data.id || id),
+          };
+        }
+      } else {
+        const err = (await res.json().catch(() => ({}))) as {
+          error?: { status?: string; message?: string };
         };
+        if (!isPermissionDenied(err.error?.status, err.error?.message)) {
+          console.warn("[places-server] details(new)", err.error?.status, err.error?.message);
+          break;
+        }
       }
-    } else {
-      const err = (await res.json().catch(() => ({}))) as { error?: { status?: string; message?: string } };
-      console.warn("[places-server] details(new)", err.error?.status, err.error?.message);
+    } catch (e) {
+      console.warn("[places-server] details(new) failed", e);
+      break;
     }
-  } catch (e) {
-    console.warn("[places-server] details(new) failed", e);
   }
 
-  // Legacy Place Details
-  const params = new URLSearchParams({
-    place_id: id,
-    key,
-    fields: "formatted_address,place_id",
-    language: "en",
-  });
+  for (const referer of googleMapsRefererCandidates()) {
+    const params = new URLSearchParams({
+      place_id: id,
+      key,
+      fields: "formatted_address,place_id",
+      language: "en",
+    });
 
-  const res = await fetch(
-    `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`,
-    { signal: AbortSignal.timeout(8_000) },
-  );
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`,
+      {
+        headers: googleMapsRequestHeaders(referer),
+        signal: AbortSignal.timeout(8_000),
+      },
+    );
 
-  if (!res.ok) return null;
+    if (!res.ok) continue;
 
-  const data = (await res.json()) as {
-    status?: string;
-    result?: { formatted_address?: string; place_id?: string };
-    error_message?: string;
-  };
+    const data = (await res.json()) as {
+      status?: string;
+      result?: { formatted_address?: string; place_id?: string };
+      error_message?: string;
+    };
 
-  if (data.status !== "OK" || !data.result?.formatted_address) {
-    if (data.status && data.status !== "OK") {
-      console.warn("[places-server] details", data.status, data.error_message);
+    if (data.status === "OK" && data.result?.formatted_address) {
+      return {
+        formattedAddress: data.result.formatted_address.trim(),
+        placeId: data.result.place_id ?? id,
+      };
     }
-    return null;
+
+    if (!isPermissionDenied(data.status, data.error_message)) {
+      if (data.status && data.status !== "OK") {
+        console.warn("[places-server] details", data.status, data.error_message);
+      }
+      break;
+    }
   }
 
-  return {
-    formattedAddress: data.result.formatted_address.trim(),
-    placeId: data.result.place_id ?? id,
-  };
+  return null;
 }
