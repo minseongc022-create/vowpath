@@ -65,27 +65,41 @@ const SECTION_SCROLL_IDS: Record<string, string> = {
 
 export function SettingsView({
   paid: paidProp,
-  transactionId,
+  checkoutSuccess,
+  planHint,
+  subscriptionId,
   section,
 }: {
   paid?: boolean;
-  transactionId?: string;
+  checkoutSuccess?: boolean;
+  planHint?: string;
+  subscriptionId?: string;
   section?: string;
 }) {
   return (
     <SettingsSaveProvider>
-      <SettingsViewBody paid={paidProp} transactionId={transactionId} section={section} />
+      <SettingsViewBody
+        paid={paidProp}
+        checkoutSuccess={checkoutSuccess}
+        planHint={planHint}
+        subscriptionId={subscriptionId}
+        section={section}
+      />
     </SettingsSaveProvider>
   );
 }
 
 function SettingsViewBody({
   paid: paidProp,
-  transactionId,
+  checkoutSuccess,
+  planHint,
+  subscriptionId,
   section,
 }: {
   paid?: boolean;
-  transactionId?: string;
+  checkoutSuccess?: boolean;
+  planHint?: string;
+  subscriptionId?: string;
   section?: string;
 }) {
   const settingsPage = useSettingsPage();
@@ -502,8 +516,12 @@ function SettingsViewBody({
         />
       </div>
 
-      {paidProp || transactionId ? (
-        <BillingStatusBanner transactionId={transactionId} />
+      {paidProp || checkoutSuccess ? (
+        <BillingStatusBanner
+          checkoutSuccess={checkoutSuccess}
+          planHint={planHint}
+          subscriptionId={subscriptionId}
+        />
       ) : null}
 
       <TestModeToggle />

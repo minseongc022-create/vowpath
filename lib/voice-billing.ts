@@ -41,7 +41,7 @@ export function shouldBillVoiceOverage(
   return monthlyBillableMinutes > includedMinutesForPlan(plan);
 }
 
-/** Minutes of this call that fall past the included cap (for Paddle quantity). */
+/** Minutes of this call that fall past the included cap (for usage billing quantity). */
 export function overageMinutesFromCall(
   plan: PerMinutePlanId,
   minutesBeforeCall: number,

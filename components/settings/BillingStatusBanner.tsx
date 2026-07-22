@@ -19,7 +19,8 @@ type BillingStatus = {
   plan: string | null;
   planLabel?: string;
   subscriptionStatus: string;
-  paddleCustomerId: string | null;
+  billingCustomerId: string | null;
+  hasBillingAccount?: boolean;
   usage?: UsageSummary;
 };
 
@@ -37,18 +38,30 @@ function usageLine(usage: UsageSummary | undefined): string | null {
   return null;
 }
 
-export function BillingStatusBanner({ transactionId }: { transactionId?: string }) {
+export function BillingStatusBanner({
+  checkoutSuccess,
+  planHint,
+  subscriptionId,
+}: {
+  checkoutSuccess?: boolean;
+  planHint?: string;
+  subscriptionId?: string;
+}) {
   const settingsPage = useSettingsPage();
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
-    const qs = transactionId ? `?transaction_id=${encodeURIComponent(transactionId)}` : "";
-    void fetch(`/api/billing/status${qs}`)
+    const qs = new URLSearchParams();
+    if (checkoutSuccess) qs.set("checkout", "success");
+    if (planHint) qs.set("plan", planHint);
+    if (subscriptionId) qs.set("subscription_id", subscriptionId);
+    const query = qs.toString();
+    void fetch(`/api/billing/status${query ? `?${query}` : ""}`)
       .then((r) => r.json())
       .then((data) => setStatus(data as BillingStatus))
       .catch(() => setStatus(null));
-  }, [transactionId]);
+  }, [checkoutSuccess, planHint, subscriptionId]);
 
   if (!status) return null;
 
@@ -108,7 +121,7 @@ export function BillingStatusBanner({ transactionId }: { transactionId?: string 
         </div>
       ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {status.paddleCustomerId ? (
+        {status.hasBillingAccount || status.billingCustomerId ? (
           <button
             type="button"
             onClick={() => void openPortal()}

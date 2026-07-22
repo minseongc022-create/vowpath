@@ -1,6 +1,6 @@
-# Effiroad checkout launch checklist
+# Effiroad checkout launch checklist (Lemon Squeezy)
 
-Run after merging checkout fixes:
+Run after merging billing changes:
 
 ```bash
 node scripts/verify-checkout-prod.mjs https://effiroad.com
@@ -8,44 +8,46 @@ node scripts/verify-checkout-prod.mjs https://effiroad.com
 
 ## Automatic (code)
 
-On **Vercel Production** with valid `PADDLE_API_KEY` + price IDs, paid checkout turns on even if `NEXT_PUBLIC_BETA=true` was baked into an old build. Override anytime with `BILLING_ENABLED=false`.
+On **Vercel Production** with valid `LEMON_SQUEEZY_API_KEY` + store + variant IDs, paid checkout turns on even if `NEXT_PUBLIC_BETA=true` was baked into an old build. Override anytime with `BILLING_ENABLED=false`.
+
+While **Lemon Squeezy store approval** is pending, leave variant env vars unset — the site stays on **Public beta** (`/signup` free). Voice metering and dispatch billing logic still run in-app; usage records to LS start once variants exist.
 
 ## Vercel env (Production)
 
 | Variable | Required | Notes |
 |----------|----------|--------|
-| `PADDLE_ENV` | yes | `production` |
-| `PADDLE_API_KEY` | yes | `pdl_live_apikey_...` |
-| `PADDLE_PRICE_ID_PRO` | yes | $299/mo · 25 dispatches (or legacy `PADDLE_PRICE_ID_UNLIMITED`) |
-| `PADDLE_PRICE_ID_PRO_OVERAGE` | yes | $15/dispatch beyond Pro cap |
-| `PADDLE_PRICE_ID_SCALE` | yes | $399/mo · 40 dispatches |
-| `PADDLE_PRICE_ID_SCALE_OVERAGE` | yes | $12/dispatch beyond Scale cap |
-| `PADDLE_PRICE_ID_FLEX` | yes | $69/mo base |
-| `PADDLE_PRICE_ID_FLEX_USAGE` | yes | $12/approved dispatch |
-| `PADDLE_PRICE_ID_LITE` | yes | $39/mo base |
-| `PADDLE_PRICE_ID_LITE_USAGE` | yes | $18/approved dispatch |
-| `PADDLE_PRICE_ID_VOICE_STARTER` | for Voice track | $49/mo · 250 min |
-| `PADDLE_PRICE_ID_VOICE_STARTER_OVERAGE` | for Voice track | $0.25/min |
-| `PADDLE_PRICE_ID_VOICE_PRO` | for Voice track | $149/mo · 1000 min |
-| `PADDLE_PRICE_ID_VOICE_PRO_OVERAGE` | for Voice track | $0.20/min |
-| `PADDLE_CLIENT_TOKEN` | yes* | Server runtime token for Paddle.js (preferred — no client rebuild) |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | yes* | Alternative; baked into client bundle on deploy |
-| `NEXT_PUBLIC_PADDLE_ENV` | yes | `production` |
-| `PADDLE_WEBHOOK_SECRET` | yes | webhook signature |
+| `LEMON_SQUEEZY_API_KEY` | yes | Settings → API |
+| `LEMON_SQUEEZY_STORE_ID` | yes | Settings → Stores → Copy ID |
+| `LEMON_SQUEEZY_WEBHOOK_SECRET` | yes | Webhooks → signing secret |
+| `LEMON_SQUEEZY_VARIANT_ID_LITE` | when live | $39/mo base |
+| `LEMON_SQUEEZY_VARIANT_ID_LITE_USAGE` | when live | $18/dispatch · usage billing |
+| `LEMON_SQUEEZY_VARIANT_ID_FLEX` | when live | $69/mo base |
+| `LEMON_SQUEEZY_VARIANT_ID_FLEX_USAGE` | when live | $12/dispatch · usage billing |
+| `LEMON_SQUEEZY_VARIANT_ID_PRO` | when live | $299/mo · 25 dispatches incl. |
+| `LEMON_SQUEEZY_VARIANT_ID_PRO_OVERAGE` | when live | $15/dispatch beyond cap |
+| `LEMON_SQUEEZY_VARIANT_ID_SCALE` | when live | $399/mo · 40 dispatches incl. |
+| `LEMON_SQUEEZY_VARIANT_ID_SCALE_OVERAGE` | when live | $12/dispatch beyond cap |
+| `LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER` | when live | $49/mo · 250 min |
+| `LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER_OVERAGE` | when live | $0.25/min |
+| `LEMON_SQUEEZY_VARIANT_ID_VOICE_PRO` | when live | $149/mo · 1000 min |
+| `LEMON_SQUEEZY_VARIANT_ID_VOICE_PRO_OVERAGE` | when live | $0.20/min |
 | `NEXT_PUBLIC_BETA` | optional | `false` on next deploy (or rely on auto-enable) |
 | `BILLING_ENABLED` | optional | `true` / `false` override |
 
-Redeploy after changing `NEXT_PUBLIC_*` variables. `PADDLE_CLIENT_TOKEN` takes effect on the next serverless invocation (no redeploy).
+Founder cohort variants (`LEMON_SQUEEZY_VARIANT_ID_BETA_*`) — add when you create founder-rate products.
 
-## Paddle dashboard
+## Lemon Squeezy dashboard (after approval)
 
-1. Complete seller verification.
-2. **Checkout → enabled** (fixes `transaction_checkout_not_enabled`).
-3. Default payment link: `https://effiroad.com/pay`
-4. Webhook: `https://effiroad.com/api/paddle/webhook`
+1. Create **subscription products** for each plan above (monthly).
+2. For dispatch usage (Lite/Flex) and overage (Pro/Scale/Voice): add **usage-based** variants — aggregation **Sum of usage during period**.
+3. Attach usage variants to subscriptions (multi-item checkout or add-on) so webhooks expose a usage `subscription_item` id.
+4. Webhook URL: `https://effiroad.com/api/lemon-squeezy/webhook`
+   - Events: `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_expired`, `subscription_payment_failed`
+5. Copy each variant ID → matching Vercel env → redeploy.
 
 ## Success criteria
 
-- `GET /api/checkout/status` → `"mode": "ready"` (or `paddle_checkout_disabled` until Paddle enables checkout)
-- Click Subscribe → Paddle overlay opens
-- After payment → `/dashboard/settings?transaction_id=...`
+- `GET /api/checkout/status` → `"mode": "ready"`
+- Click Subscribe → redirects to Lemon Squeezy checkout
+- After payment → `/dashboard/settings?checkout=success&plan=…`
+- Webhook updates `subscriptionStatus: active` on matching email

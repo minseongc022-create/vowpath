@@ -200,7 +200,7 @@ function planCard(plan: PlanId): AiAdminAnalysisResult {
   ];
   return {
     kind: "billing",
-    answer: `${target.name} checkout is handled by Paddle. I can open the official checkout page, but I cannot process payment inside chat.`,
+    answer: `${target.name} checkout is handled by Lemon Squeezy. I can open the official checkout page, but I cannot process payment inside chat.`,
     billingCard: {
       title: `${target.name} Plan`,
       description: target.description,
@@ -334,7 +334,7 @@ function billingAnalysis(q: string, context: AiAdminContext): AiAdminAnalysisRes
       };
     }
     return blocked(
-      "I couldn't load the next billing date. Please check the official Paddle billing portal.",
+      "I couldn't load the next billing date. Please check the Lemon Squeezy customer portal.",
       [{ label: "Portal", value: "Settings → Billing" }],
     );
   }

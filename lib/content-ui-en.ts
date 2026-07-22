@@ -514,7 +514,7 @@ export const legalPagesEn = {
     sections: [
       {
         heading: "Information we collect",
-        body: "Email, shop name, payment info (Paddle), Jobber metadata when connected, and call logs when intake is enabled.",
+        body: "Email, shop name, payment info (Lemon Squeezy), Jobber metadata when connected, and call logs when intake is enabled.",
       },
       {
         heading: "How we use it",
@@ -580,7 +580,7 @@ export const legalPagesEn = {
       },
       {
         heading: "Billing",
-        body: "Paid plans bill via Paddle. Choose dispatch billing (Lite/Flex per approved emergency job; Pro/Scale with included caps) or Voice per-minute plans. Free estimate calls (press 2) are never billed. We SMS at 80% and 100% of included caps before overage.",
+        body: "Paid plans bill via Lemon Squeezy. Choose dispatch billing (Lite/Flex per approved emergency job; Pro/Scale with included caps) or Voice per-minute plans. Free estimate calls (press 2) are never billed. We SMS at 80% and 100% of included caps before overage.",
       },
       {
         heading: "SMS & messaging",
@@ -602,7 +602,7 @@ export const legalPagesEn = {
       },
       {
         heading: "How to request a refund",
-        body: `Email ${SITE.supportEmail} from the address on your account with your business name. We process eligible refunds to your original payment method, typically within 5–10 business days via Paddle, our payment provider and Merchant of Record.`,
+        body: `Email ${SITE.supportEmail} from the address on your account with your business name. We process eligible refunds to your original payment method, typically within 5–10 business days via Lemon Squeezy, our payment provider and Merchant of Record.`,
       },
       {
         heading: "Cancellations",

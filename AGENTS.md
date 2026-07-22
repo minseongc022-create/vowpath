@@ -23,7 +23,7 @@ Validate before changing crons: `npm run check:cron`
 
 ## Stack
 
-Next.js 15 App Router, TypeScript, Tailwind, Twilio, Vercel KV, Paddle billing.
+Next.js 15 App Router, TypeScript, Tailwind, Twilio, Vercel KV, Lemon Squeezy billing.
 
 ## Branches
 

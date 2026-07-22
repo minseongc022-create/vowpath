@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { openPaddleCheckout } from "@/lib/paddle-checkout-client";
+import { startPlanCheckout } from "@/lib/checkout-client";
 import { StartCheckoutButton } from "@/components/checkout/StartCheckoutButton";
 import { SITE, ROUTES, type PlanId, DEFAULT_PLAN } from "@/lib/constants";
 import {
@@ -74,15 +74,10 @@ function TrialEndedCard() {
       });
       const data = (await res.json()) as {
         url?: string;
-        transactionId?: string;
         error?: string;
       };
       if (!res.ok) {
         throw new Error(data.error ?? "failed");
-      }
-      if (data.transactionId) {
-        await openPaddleCheckout(data.transactionId);
-        return;
       }
       if (data.url) {
         window.location.href = data.url;

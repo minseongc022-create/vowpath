@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createBillingPortalUrl, mergeUserBilling } from "@/lib/billing";
+import { billingSubscriptionId, createBillingPortalUrl, mergeUserBilling } from "@/lib/billing";
 import { getSession } from "@/lib/session";
 import { findUserById } from "@/lib/users-db";
 
@@ -13,12 +13,13 @@ export async function POST() {
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
-  const billing = mergeUserBilling(user);
-  if (!billing.paddleSubscriptionId) {
+
+  const subscriptionId = billingSubscriptionId(user);
+  if (!subscriptionId) {
     return NextResponse.json({ error: "No billing account" }, { status: 400 });
   }
 
-  const url = await createBillingPortalUrl(billing.paddleSubscriptionId);
+  const url = await createBillingPortalUrl(subscriptionId);
   if (!url) {
     return NextResponse.json({ error: "Portal unavailable" }, { status: 503 });
   }

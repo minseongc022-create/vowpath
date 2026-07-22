@@ -1,8 +1,5 @@
-import {
-  resolvePaddleClientEnvironment,
-  resolvePaddleClientToken,
-} from "./paddle-client-public";
-import { isAnyPaddlePlanConfigured, isValidPaddleEnvValue } from "./paddle-config";
+import type { PlanId } from "@/lib/constants";
+import { isAnyLsPlanConfigured, isValidLsEnvValue } from "@/lib/lemon-squeezy-config";
 
 /** Build-time flag from NEXT_PUBLIC_BETA (baked into client bundle). */
 export function isPublicBetaBuild(): boolean {
@@ -11,42 +8,32 @@ export function isPublicBetaBuild(): boolean {
 
 /**
  * Server runtime checkout gate.
- * Priority: BILLING_ENABLED override → production + Paddle configured → !NEXT_PUBLIC_BETA.
+ * Priority: BILLING_ENABLED override → production + LS configured → !NEXT_PUBLIC_BETA.
  */
 export function isPaidCheckoutEnabled(): boolean {
   const override = process.env.BILLING_ENABLED?.trim().toLowerCase();
   if (override === "true" || override === "1" || override === "yes") return true;
   if (override === "false" || override === "0" || override === "no") return false;
 
-  const paddleLive =
-    isValidPaddleEnvValue(process.env.PADDLE_API_KEY) && isAnyPaddlePlanConfigured();
+  const lsLive = isAnyLsPlanConfigured();
 
-  if (paddleLive && process.env.VERCEL_ENV === "production") {
+  if (lsLive && process.env.VERCEL_ENV === "production") {
     return true;
   }
 
   return !isPublicBetaBuild();
 }
 
-export function paddleClientTokenConfigured(): boolean {
-  return Boolean(resolvePaddleClientToken());
-}
-
 export type CheckoutReadiness = {
   checkoutEnabled: boolean;
-  mode: "beta" | "not_configured" | "paddle_checkout_disabled" | "ready";
-  paddleConfigured: boolean;
-  clientTokenConfigured: boolean;
-  /** Runtime Paddle.js token (public by design) when configured server-side. */
-  paddleClientToken?: string;
-  paddleEnvironment?: "production" | "sandbox";
+  mode: "beta" | "not_configured" | "ready";
+  billingConfigured: boolean;
   issues: string[];
 };
 
-export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutReadiness {
+export function getCheckoutReadiness(): CheckoutReadiness {
   const issues: string[] = [];
-  const paddleConfigured = isAnyPaddlePlanConfigured();
-  const clientTokenConfigured = paddleClientTokenConfigured();
+  const billingConfigured = isAnyLsPlanConfigured();
   const checkoutEnabled = isPaidCheckoutEnabled();
 
   if (!checkoutEnabled) {
@@ -56,68 +43,39 @@ export function getCheckoutReadiness(paddleErrorCode?: string | null): CheckoutR
     return {
       checkoutEnabled: false,
       mode: "beta",
-      paddleConfigured,
-      clientTokenConfigured,
+      billingConfigured,
       issues,
     };
   }
 
-  if (!paddleConfigured) {
-    issues.push("Paddle API key or price IDs are missing in server environment.");
+  if (!isValidLsEnvValue(process.env.LEMON_SQUEEZY_API_KEY)) {
+    issues.push("LEMON_SQUEEZY_API_KEY is missing in server environment.");
+  }
+  if (!isValidLsEnvValue(process.env.LEMON_SQUEEZY_STORE_ID)) {
+    issues.push("LEMON_SQUEEZY_STORE_ID is missing — copy from Lemon Squeezy Settings → Stores.");
+  }
+
+  if (!billingConfigured) {
+    issues.push(
+      "No plan variant IDs configured yet. Add LEMON_SQUEEZY_VARIANT_ID_* in Vercel after creating products in Lemon Squeezy.",
+    );
     return {
       checkoutEnabled: true,
       mode: "not_configured",
-      paddleConfigured: false,
-      clientTokenConfigured,
+      billingConfigured: false,
       issues,
     };
   }
 
-  if (!clientTokenConfigured) {
-    issues.push(
-      "Paddle client token is missing — set PADDLE_CLIENT_TOKEN or NEXT_PUBLIC_PADDLE_CLIENT_TOKEN in Vercel (Production).",
-    );
-  }
-
-  if (paddleErrorCode === "paddle_checkout_disabled") {
-    issues.push(
-      "Paddle seller onboarding is incomplete — enable Checkout in Paddle dashboard (transaction_checkout_not_enabled).",
-    );
-    return withPaddleClientPublic({
-      checkoutEnabled: true,
-      mode: "paddle_checkout_disabled",
-      paddleConfigured: true,
-      clientTokenConfigured,
-      issues,
-    });
-  }
-
-  if (!clientTokenConfigured) {
-    return {
-      checkoutEnabled: true,
-      mode: "not_configured",
-      paddleConfigured: true,
-      clientTokenConfigured: false,
-      issues,
-    };
-  }
-
-  return withPaddleClientPublic({
+  return {
     checkoutEnabled: true,
     mode: "ready",
-    paddleConfigured: true,
-    clientTokenConfigured: true,
+    billingConfigured: true,
     issues,
-  });
+  };
 }
 
-function withPaddleClientPublic(
-  base: Omit<CheckoutReadiness, "paddleClientToken" | "paddleEnvironment">,
-): CheckoutReadiness {
-  if (!base.clientTokenConfigured) return base;
-  return {
-    ...base,
-    paddleClientToken: resolvePaddleClientToken(),
-    paddleEnvironment: resolvePaddleClientEnvironment(),
-  };
+/** @deprecated use billingConfigured */
+export function isAnyPaddlePlanConfigured(): boolean {
+  return isAnyLsPlanConfigured();
 }

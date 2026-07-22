@@ -2,27 +2,27 @@ import { IS_BETA } from "./beta";
 import { trialHardCutoff } from "./billing-cohort";
 import type { PlanId } from "./constants";
 import { normalizePlanId, isPerDispatchPlan, isPerMinutePlan } from "./plan-pricing";
-import type { CappedFlatPlanId } from "./dispatch-billing";
 import {
   isCappedFlatPlan,
   shouldBillDispatchOverage,
 } from "./dispatch-billing";
-import type { PerMinutePlanId } from "./voice-billing";
 import {
   billableMinutesFromDurationSec,
   overageMinutesFromCall,
 } from "./voice-billing";
 import {
-  betaCohortFlexLockedUsagePriceId,
-  betaCohortFlexUsagePriceId,
-  betaCohortLiteLockedUsagePriceId,
-  betaCohortLiteUsagePriceId,
-  cappedOveragePriceIdForPlan,
-  isValidPaddleEnvValue,
-  usagePriceIdForPlan,
-  voiceOveragePriceIdForPlan,
-} from "./paddle-config";
-import { paddleFetch } from "./paddle-client";
+  betaCohortFlexUsageVariantId,
+  betaCohortLiteUsageVariantId,
+  isValidLsEnvValue,
+  planFromVariantId,
+  usageVariantIdForPlan,
+  usageVariantIdsForPlan,
+} from "./lemon-squeezy-config";
+import {
+  fetchSubscription,
+  listSubscriptionItems,
+  reportUsageIncrement,
+} from "./lemon-squeezy-client";
 import type { UserRecord } from "./users-db";
 import { incrementVoiceBillableMinutes } from "./users-db";
 import { claimVoiceCallBilling } from "./voice-meter-dedupe";
@@ -39,8 +39,10 @@ export type SubscriptionStatus =
 
 export type UserBilling = {
   plan?: PlanId;
-  paddleCustomerId?: string;
-  paddleSubscriptionId?: string;
+  lsCustomerId?: string;
+  lsSubscriptionId?: string;
+  /** Subscription item id for usage/overage reporting */
+  lsUsageItemId?: string;
   subscriptionStatus?: SubscriptionStatus;
   flexBillableCount?: number;
   paidAt?: string;
@@ -50,9 +52,21 @@ export function mergeUserBilling(user: UserRecord): UserRecord & UserBilling {
   return user as UserRecord & UserBilling;
 }
 
+function billingCustomerId(user: UserRecord): string | undefined {
+  return user.lsCustomerId ?? user.paddleCustomerId;
+}
+
+function billingSubscriptionId(user: UserRecord): string | undefined {
+  return user.lsSubscriptionId ?? user.paddleSubscriptionId;
+}
+
+function billingUsageItemId(user: UserRecord): string | undefined {
+  return user.lsUsageItemId;
+}
+
 /**
  * Product + phone/SMS access.
- * Beta: open. Paddle off (local dev): open. Production: active subscription or valid beta trial only.
+ * Beta: open. LS off (local dev): open. Production: active subscription or valid trial only.
  */
 export function isEntitled(user: UserRecord | undefined | null): boolean {
   if (!user) return false;
@@ -63,14 +77,10 @@ export function isEntitled(user: UserRecord | undefined | null): boolean {
   const status = b.subscriptionStatus ?? "none";
 
   if (status === "active") return true;
-
-  // Paddle past_due: keep access briefly while dunning (subscription still exists).
   if (status === "past_due") return true;
 
   if (status === "trialing") {
     if (!b.trialEndsAt) return false;
-    // Entitled through the trial AND the short grace window after it; hard-cut
-    // once the grace period lapses (unpaid = no access, no exceptions).
     return trialHardCutoff(b.trialEndsAt) > Date.now();
   }
 
@@ -78,96 +88,126 @@ export function isEntitled(user: UserRecord | undefined | null): boolean {
 }
 
 export function requiresEntitlement(): boolean {
-  return !IS_BETA && isValidPaddleEnvValue(process.env.PADDLE_API_KEY);
+  return !IS_BETA && isValidLsEnvValue(process.env.LEMON_SQUEEZY_API_KEY);
 }
 
-type PaddleTransactionDetail = {
-  status: string;
-  customer_id?: string;
-  subscription_id?: string;
-  custom_data?: Record<string, unknown> | null;
-};
+function mapLsStatus(status: string): SubscriptionStatus {
+  switch (status) {
+    case "active":
+    case "on_trial":
+      return status === "on_trial" ? "trialing" : "active";
+    case "past_due":
+    case "unpaid":
+      return "past_due";
+    case "paused":
+      return "paused";
+    case "cancelled":
+    case "expired":
+      return "canceled";
+    default:
+      return "past_due";
+  }
+}
 
-/** Confirms a Paddle transaction completed and resolves the buyer's plan/customer/subscription. */
-export async function verifyTransaction(transactionId: string): Promise<{
+/** Sync billing after redirect (webhook is primary). */
+export async function verifyCheckoutReturn(opts: {
+  subscriptionId?: string;
+  planHint?: PlanId;
+}): Promise<{
+  ok: boolean;
+  plan?: PlanId;
+  customerId?: string;
+  subscriptionId?: string;
+  email?: string;
+  usageItemId?: string;
+}> {
+  const subscriptionId = opts.subscriptionId?.trim();
+  if (!subscriptionId) return { ok: false };
+
+  const sub = await fetchSubscription(subscriptionId);
+  if (!sub) return { ok: false };
+
+  const status = sub.attributes.status;
+  if (status !== "active" && status !== "on_trial") {
+    return { ok: false };
+  }
+
+  const plan =
+    opts.planHint ??
+    planFromVariantId(String(sub.attributes.variant_id)) ??
+    normalizePlanId(undefined);
+  const usageItemId = await resolveUsageItemForPlan(subscriptionId, plan);
+
+  return {
+    ok: true,
+    plan,
+    customerId: String(sub.attributes.customer_id),
+    subscriptionId,
+    email: sub.attributes.user_email,
+    usageItemId,
+  };
+}
+
+async function resolveUsageItemForPlan(
+  subscriptionId: string,
+  plan: PlanId,
+): Promise<string | undefined> {
+  const items = await listSubscriptionItems(subscriptionId);
+  if (items.length === 0) return undefined;
+  const usageVariants = new Set(
+    [
+      ...usageVariantIdsForPlan(plan),
+    ],
+  );
+  for (const item of items) {
+    const variantId = item.variant_id != null ? String(item.variant_id) : "";
+    if (usageVariants.has(variantId)) return String(item.id);
+  }
+  return items.length > 1 ? String(items[items.length - 1].id) : undefined;
+}
+
+/** @deprecated Paddle transaction id — no-op for Lemon Squeezy */
+export async function verifyTransaction(_transactionId: string): Promise<{
   ok: boolean;
   plan?: PlanId;
   customerId?: string;
   subscriptionId?: string;
   email?: string;
 }> {
-  try {
-    const result = await paddleFetch<{ data: PaddleTransactionDetail }>(
-      `/transactions/${transactionId}`,
-    );
-    const tx = result.data;
-    if (tx.status !== "completed" && tx.status !== "paid") {
-      return { ok: false };
-    }
-
-    const plan = normalizePlanId(tx.custom_data?.plan);
-    let email: string | undefined;
-    if (tx.customer_id) {
-      try {
-        const customer = await paddleFetch<{ data: { email?: string } }>(
-          `/customers/${tx.customer_id}`,
-        );
-        email = customer.data?.email;
-      } catch (e) {
-        console.warn("[billing] customer lookup", e);
-      }
-    }
-
-    return {
-      ok: true,
-      plan,
-      customerId: tx.customer_id,
-      subscriptionId: tx.subscription_id,
-      email,
-    };
-  } catch (e) {
-    console.error("[billing] verify transaction", e);
-    return { ok: false };
-  }
+  return { ok: false };
 }
 
-/** Fetched fresh each call — Paddle's management_urls are short-lived tokens, never cache. */
-export async function createBillingPortalUrl(
-  subscriptionId: string,
-): Promise<string | null> {
-  try {
-    const result = await paddleFetch<{
-      data: { management_urls?: { update_payment_method?: string; cancel?: string } };
-    }>(`/subscriptions/${subscriptionId}`);
-    return (
-      result.data.management_urls?.update_payment_method ??
-      result.data.management_urls?.cancel ??
-      null
-    );
-  } catch (e) {
-    console.warn("[billing] portal url", e);
-    return null;
-  }
+export async function createBillingPortalUrl(subscriptionId: string): Promise<string | null> {
+  const sub = await fetchSubscription(subscriptionId);
+  return (
+    sub?.attributes.urls?.customer_portal ??
+    sub?.attributes.urls?.update_payment_method ??
+    null
+  );
 }
 
 export async function fetchNextBillingDate(
-  customerId: string | undefined,
+  subscriptionId: string | undefined,
 ): Promise<string | null> {
-  if (!customerId) return null;
+  if (!subscriptionId) return null;
+  const sub = await fetchSubscription(subscriptionId);
+  const renewsAt = sub?.attributes.renews_at;
+  if (!renewsAt) return null;
+  return new Date(renewsAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+async function chargeUsage(user: UserRecord, quantity: number): Promise<void> {
+  if (quantity <= 0) return;
+  const usageItemId = billingUsageItemId(user);
+  if (!usageItemId) return;
   try {
-    const result = await paddleFetch<{
-      data: Array<{ next_billed_at?: string; status: string }>;
-    }>(`/subscriptions?customer_id=${customerId}&status=active`);
-    const sub = result.data[0];
-    if (!sub?.next_billed_at) return null;
-    return new Date(sub.next_billed_at).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    await reportUsageIncrement(usageItemId, quantity);
   } catch (e) {
-    console.warn("[billing] next billing date", e);
-    return null;
+    console.warn("[billing] usage record", e);
   }
 }
 
@@ -194,7 +234,7 @@ export async function recordFlexUsage(user: UserRecord): Promise<void> {
       }
       return;
     }
-    await chargeCappedOverage(user, b.plan);
+    await chargeUsage(user, 1);
     try {
       await maybeNotifyUsageCap(user);
     } catch (e) {
@@ -205,80 +245,20 @@ export async function recordFlexUsage(user: UserRecord): Promise<void> {
 
 async function chargePerDispatchPlan(user: UserRecord, plan: "flex" | "lite") {
   const b = mergeUserBilling(user);
+  if (!billingSubscriptionId(user)) return;
+
   const inFeedbackCohort =
     user.discountCohort === "beta_feedback" && !user.betaCohortSteppedAt;
-  const stepped = user.discountCohort === "beta_feedback" && Boolean(user.betaCohortSteppedAt);
-  const priceId = inFeedbackCohort
+  const usageVariantConfigured = inFeedbackCohort
     ? plan === "flex"
-      ? betaCohortFlexUsagePriceId()
-      : betaCohortLiteUsagePriceId()
-    : stepped
-      ? plan === "flex"
-        ? betaCohortFlexLockedUsagePriceId()
-        : betaCohortLiteLockedUsagePriceId()
-      : usagePriceIdForPlan(plan);
+      ? betaCohortFlexUsageVariantId()
+      : betaCohortLiteUsageVariantId()
+    : usageVariantIdForPlan(plan);
 
-  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
-
-  try {
-    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
-      method: "POST",
-      body: {
-        effective_from: "next_billing_period",
-        items: [{ price_id: priceId, quantity: 1 }],
-      },
-    });
-  } catch (e) {
-    console.warn("[billing] per-dispatch charge", e);
-  }
+  if (!isValidLsEnvValue(usageVariantConfigured)) return;
+  await chargeUsage(user, 1);
 }
 
-async function chargeCappedOverage(user: UserRecord, plan: CappedFlatPlanId) {
-  const b = mergeUserBilling(user);
-  const priceId = cappedOveragePriceIdForPlan(plan, user);
-  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
-
-  try {
-    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
-      method: "POST",
-      body: {
-        effective_from: "next_billing_period",
-        items: [{ price_id: priceId, quantity: 1 }],
-      },
-    });
-  } catch (e) {
-    console.warn("[billing] capped overage charge", e);
-  }
-}
-
-async function chargeVoiceOverageMinutes(
-  user: UserRecord,
-  plan: PerMinutePlanId,
-  quantity: number,
-) {
-  if (quantity <= 0) return;
-  const b = mergeUserBilling(user);
-  const priceId = voiceOveragePriceIdForPlan(plan, user);
-  if (!isValidPaddleEnvValue(priceId) || !b.paddleSubscriptionId) return;
-
-  try {
-    await paddleFetch(`/subscriptions/${b.paddleSubscriptionId}/charge`, {
-      method: "POST",
-      body: {
-        effective_from: "next_billing_period",
-        items: [{ price_id: priceId, quantity }],
-      },
-    });
-  } catch (e) {
-    console.warn("[billing] voice overage charge", e);
-  }
-}
-
-/**
- * Meter a completed inbound call for per-minute plans.
- * Idempotent per CallSid. Skips free-estimate IVR (press 2).
- * Does nothing for dispatch-billing plans.
- */
 export async function recordVoiceCallUsage(opts: {
   user: UserRecord;
   callSid: string;
@@ -300,7 +280,7 @@ export async function recordVoiceCallUsage(opts: {
 
   const overage = overageMinutesFromCall(plan, bumped.minutesBefore, minutes);
   if (overage > 0) {
-    await chargeVoiceOverageMinutes(bumped.user, plan, overage);
+    await chargeUsage(bumped.user, overage);
   }
 
   try {
@@ -309,3 +289,5 @@ export async function recordVoiceCallUsage(opts: {
     console.warn("[billing] voice usage alert", e);
   }
 }
+
+export { mapLsStatus, billingCustomerId, billingSubscriptionId };

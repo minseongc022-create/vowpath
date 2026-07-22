@@ -5,7 +5,7 @@ import { analyzeClosureIntentAsync } from "@/lib/ai-admin/closure-intent";
 import { answerAiQuestion, buildProactiveBriefing } from "@/lib/ai-admin/answer";
 import { buildAiContextPack } from "@/lib/ai-admin/context-pack";
 import { routeAiQuery } from "@/lib/ai-admin/router";
-import { fetchNextBillingDate, mergeUserBilling } from "@/lib/billing";
+import { fetchNextBillingDate, mergeUserBilling, billingSubscriptionId } from "@/lib/billing";
 import { getBookingRequestStatuses } from "@/lib/booking-status";
 import { buildCalendarEvents } from "@/lib/calendar-events-server";
 import { listCallMemory } from "@/lib/call-memory";
@@ -110,7 +110,7 @@ async function loadTenantContext(userId: string, range: { start: Date; end: Date
   const calendarEvents = await buildCalendarEvents(userId, nativeSchedule, jobberSchedule);
 
   const billing = mergeUserBilling(user);
-  const nextBillingDate = await fetchNextBillingDate(billing.paddleCustomerId);
+  const nextBillingDate = await fetchNextBillingDate(billingSubscriptionId(user));
 
   const pack = buildAiContextPack({
     userId,

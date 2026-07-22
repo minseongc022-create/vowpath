@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
 import { checkoutErrorMessage } from "@/lib/checkout-errors";
 import { getStartedHref } from "@/lib/checkout-urls";
-import { startPlanCheckout } from "@/lib/paddle-checkout-client";
+import { startPlanCheckout } from "@/lib/checkout-client";
 
 type CheckoutStatus = {
   checkoutEnabled: boolean;

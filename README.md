@@ -5,7 +5,7 @@ AI phone + SMS intake, emergency triage, and crew dispatch for independent US wa
 ## Stack
 
 - Next.js 15 (App Router), TypeScript, Tailwind
-- Twilio (voice/SMS), OpenAI (intake extraction + triage), Vercel KV, Stripe
+- Twilio (voice/SMS), OpenAI (intake extraction + triage), Vercel KV, Lemon Squeezy billing
 
 ## Develop
 

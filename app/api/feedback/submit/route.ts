@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  betaCohortIntroPriceIdForPlan,
-} from "@/lib/paddle-config";
+  betaCohortIntroVariantIdForPlan,
+} from "@/lib/lemon-squeezy-config";
 import { feedbackCohortPriceStepDate } from "@/lib/billing-cohort";
 import { createCheckoutSession, parsePlanId } from "@/lib/checkout-server";
 import { getSession } from "@/lib/session";
@@ -40,15 +40,17 @@ export async function POST(request: Request) {
     betaCohortPriceStepAt: priceStepAt.toISOString(),
   });
 
-  const priceIdOverride = betaCohortIntroPriceIdForPlan(plan);
+  const variantIdOverride = betaCohortIntroVariantIdForPlan(plan);
 
   try {
     const checkout = await createCheckoutSession(plan, {
-      priceIdOverride,
+      variantIdOverride,
       cohort: "beta_feedback",
+      email: user.email,
+      name: user.shopName,
     });
     return NextResponse.json({
-      transactionId: checkout.transactionId,
+      checkoutId: checkout.checkoutId,
       url: checkout.url,
       plan,
     });

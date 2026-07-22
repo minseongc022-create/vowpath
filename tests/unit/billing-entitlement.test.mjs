@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-/** Mirror of lib/billing.ts isEntitled() for node unit tests (production Paddle on). */
+/** Mirror of lib/billing.ts isEntitled() for node unit tests (production LS on). */
 function isEntitled(user) {
   if (!user) return false;
   if (process.env.NEXT_PUBLIC_BETA === "true") return true;
-  const paddleKey = process.env.PADDLE_API_KEY?.trim();
-  if (!paddleKey || paddleKey.includes("replace")) return true;
+  const lsKey = process.env.LEMON_SQUEEZY_API_KEY?.trim();
+  if (!lsKey || lsKey.includes("replace")) return true;
 
   const status = user.subscriptionStatus ?? "none";
   if (status === "active") return true;
@@ -28,7 +28,7 @@ const baseUser = {
 
 test("isEntitled: none status is not entitled in production", () => {
   process.env.NEXT_PUBLIC_BETA = "false";
-  process.env.PADDLE_API_KEY = "test_paddle_key";
+  process.env.LEMON_SQUEEZY_API_KEY = "test_ls_key";
   assert.equal(isEntitled({ ...baseUser, subscriptionStatus: "none" }), false);
 });
 

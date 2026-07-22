@@ -91,7 +91,7 @@ Setup call 10분 순서:
 
 - [ ] Live intake 1건 (없으면: “이번 주 storm/비 없음” — owner에게 지인 테스트콜 1번 요청)
 - [ ] 한 줄 testimonial 이메일 OK 받기
-- [ ] 유료 전환: “한 job $8k, $169/mo” — **Paddle checkout 먼저 고친 뒤** 청구
+- [ ] 유료 전환: “한 job $8k, $169/mo” — **Lemon Squeezy checkout 먼저 고친 뒤** 청구
 
 ---
 
