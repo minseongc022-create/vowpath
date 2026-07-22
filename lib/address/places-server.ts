@@ -9,7 +9,7 @@ export type PlacePrediction = {
 
 export type PlaceLookupMeta = {
   googleStatus?: string;
-  source?: "places_new" | "places_legacy" | "none";
+  source?: "places_new" | "places_legacy" | "photon" | "none";
   errorMessage?: string;
 };
 
@@ -73,7 +73,8 @@ function isPermissionDenied(status?: string, message?: string): boolean {
 }
 
 export function placesAutocompleteServerEnabled(): boolean {
-  return Boolean(googleMapsServerKey());
+  // Photon fallback works without a Google key.
+  return true;
 }
 
 function normalizePlaceId(raw: string): string {
@@ -236,42 +237,183 @@ async function fetchPredictionsLegacy(key: string, input: string): Promise<Place
   return last;
 }
 
+/** Encode a ready-to-use US address so details can resolve without Google. */
+export function formatEncodedPlaceId(formattedAddress: string): string {
+  return `fmt:${encodeURIComponent(formattedAddress.trim())}`;
+}
+
+export function decodeFormatEncodedPlaceId(placeId: string): string | null {
+  if (!placeId.startsWith("fmt:")) return null;
+  try {
+    const decoded = decodeURIComponent(placeId.slice(4)).trim();
+    return decoded || null;
+  } catch {
+    return null;
+  }
+}
+
+function usStateAbbr(state: string | undefined): string {
+  if (!state) return "";
+  const raw = state.trim();
+  if (raw.length === 2) return raw.toUpperCase();
+  const map: Record<string, string> = {
+    alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+    colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+    hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA", kansas: "KS",
+    kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD", massachusetts: "MA",
+    michigan: "MI", minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT",
+    nebraska: "NE", nevada: "NV", "new hampshire": "NH", "new jersey": "NJ",
+    "new mexico": "NM", "new york": "NY", "north carolina": "NC", "north dakota": "ND",
+    ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA", "rhode island": "RI",
+    "south carolina": "SC", "south dakota": "SD", tennessee: "TN", texas: "TX",
+    utah: "UT", vermont: "VT", virginia: "VA", washington: "WA", "west virginia": "WV",
+    wisconsin: "WI", wyoming: "WY", "district of columbia": "DC",
+  };
+  return map[raw.toLowerCase()] || raw;
+}
+
+function composePhotonAddress(props: {
+  housenumber?: string;
+  street?: string;
+  name?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  countrycode?: string;
+}): string | null {
+  if ((props.countrycode || "").toUpperCase() !== "US") return null;
+  const line1 = [props.housenumber, props.street].filter(Boolean).join(" ").trim()
+    || (props.name || "").trim();
+  const city = (props.city || "").trim();
+  const state = usStateAbbr(props.state);
+  const zip = (props.postcode || "").trim();
+  if (!line1 || !city || !state) return null;
+  const cityStateZip = [city, [state, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return `${line1}, ${cityStateZip}, USA`;
+}
+
+/** OpenStreetMap Photon — works when Google Places key is browser-referrer-only. */
+async function fetchPredictionsPhoton(input: string): Promise<PlacesResult> {
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", input);
+  url.searchParams.set("limit", "8");
+  url.searchParams.set("lang", "en");
+  url.searchParams.set("osm_tag", ":!highway");
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      "User-Agent": "EffiroadAddressSearch/1.0 (https://effiroad.com; hello@effiroad.com)",
+      Accept: "application/json",
+    },
+    signal: AbortSignal.timeout(8_000),
+  });
+
+  if (!res.ok) {
+    console.warn("[places-server] photon HTTP", res.status);
+    return { predictions: [], status: `HTTP_${res.status}` };
+  }
+
+  const data = (await res.json()) as {
+    features?: Array<{
+      properties?: {
+        housenumber?: string;
+        street?: string;
+        name?: string;
+        city?: string;
+        state?: string;
+        postcode?: string;
+        countrycode?: string;
+        osm_type?: string;
+        osm_id?: number;
+      };
+    }>;
+  };
+
+  const seen = new Set<string>();
+  const predictions: PlacePrediction[] = [];
+  for (const feature of data.features ?? []) {
+    const props = feature.properties ?? {};
+    const formatted = composePhotonAddress(props);
+    if (!formatted || seen.has(formatted.toLowerCase())) continue;
+    seen.add(formatted.toLowerCase());
+    const mainText = [props.housenumber, props.street].filter(Boolean).join(" ").trim()
+      || props.name
+      || formatted;
+    const secondaryText = [props.city, usStateAbbr(props.state), props.postcode]
+      .filter(Boolean)
+      .join(", ");
+    predictions.push({
+      placeId: formatEncodedPlaceId(formatted),
+      description: formatted,
+      mainText,
+      secondaryText,
+    });
+    if (predictions.length >= 8) break;
+  }
+
+  return {
+    predictions,
+    status: predictions.length > 0 ? "OK" : "ZERO_RESULTS",
+  };
+}
+
 export async function fetchPlacePredictions(
   input: string,
 ): Promise<{ predictions: PlacePrediction[]; meta: PlaceLookupMeta }> {
   const key = googleMapsServerKey();
   const trimmed = input.trim();
-  if (!key || trimmed.length < 1) {
+  if (trimmed.length < 1) {
     return { predictions: [], meta: { source: "none", googleStatus: "NO_KEY" } };
   }
 
-  // Legacy first — this Google project has Places API (New) disabled.
-  const legacy = await fetchPredictionsLegacy(key, trimmed);
-  if (legacy.predictions.length > 0) {
+  let googleError: string | undefined;
+  let googleStatus: string | undefined;
+
+  if (key) {
+    // Legacy first — this Google project has Places API (New) disabled.
+    const legacy = await fetchPredictionsLegacy(key, trimmed);
+    if (legacy.predictions.length > 0) {
+      return {
+        predictions: legacy.predictions,
+        meta: { source: "places_legacy", googleStatus: legacy.status },
+      };
+    }
+
+    const neu = await fetchPredictionsPlacesNew(key, trimmed);
+    if (neu.predictions.length > 0) {
+      return {
+        predictions: neu.predictions,
+        meta: { source: "places_new", googleStatus: neu.status },
+      };
+    }
+
+    googleStatus = isPermissionDenied(neu.status, neu.errorMessage)
+      ? legacy.status
+      : neu.status !== "ZERO_RESULTS"
+        ? neu.status
+        : legacy.status;
+    googleError = legacy.errorMessage || neu.errorMessage;
+  }
+
+  // Browser-restricted Google keys cannot call Places from the server — use Photon.
+  const photon = await fetchPredictionsPhoton(trimmed);
+  if (photon.predictions.length > 0) {
     return {
-      predictions: legacy.predictions,
-      meta: { source: "places_legacy", googleStatus: legacy.status },
+      predictions: photon.predictions,
+      meta: {
+        source: "photon",
+        googleStatus: googleStatus || photon.status,
+        errorMessage: googleError,
+      },
     };
   }
 
-  const neu = await fetchPredictionsPlacesNew(key, trimmed);
-  if (neu.predictions.length > 0) {
-    return {
-      predictions: neu.predictions,
-      meta: { source: "places_new", googleStatus: neu.status },
-    };
-  }
-
-  const preferLegacyMeta =
-    isPermissionDenied(neu.status, neu.errorMessage) || legacy.status !== "UNKNOWN";
   return {
     predictions: [],
     meta: {
-      source: preferLegacyMeta ? "places_legacy" : "places_new",
-      googleStatus: preferLegacyMeta ? legacy.status : neu.status,
-      errorMessage: preferLegacyMeta
-        ? legacy.errorMessage || neu.errorMessage
-        : neu.errorMessage || legacy.errorMessage,
+      source: key ? "places_legacy" : "photon",
+      googleStatus: googleStatus || photon.status,
+      errorMessage: googleError || photon.errorMessage,
     },
   };
 }
@@ -279,6 +421,11 @@ export async function fetchPlacePredictions(
 export async function fetchPlaceDetails(
   placeId: string,
 ): Promise<{ formattedAddress: string; placeId: string } | null> {
+  const encoded = decodeFormatEncodedPlaceId(placeId);
+  if (encoded) {
+    return { formattedAddress: encoded, placeId };
+  }
+
   const key = googleMapsServerKey();
   const id = normalizePlaceId(placeId);
   if (!key || !id) return null;
