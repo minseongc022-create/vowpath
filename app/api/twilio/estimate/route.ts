@@ -24,6 +24,11 @@ import { notifyOwnerEstimateRequest } from "@/lib/estimate-intake/sms";
 import { persistPhoneEstimateLead } from "@/lib/estimate-pipeline";
 import { logOperationFailure } from "@/lib/ops-failures";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
+import {
+  createLinkIntakeSession,
+  sendLinkIntakeSms,
+} from "@/lib/call-intake/link-intake-flow";
+import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
 import { resolveEstimateChannelChoice } from "@/lib/ivr-channel-choice";
 import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { twimlGatherEstimateMenu, twimlResponse } from "@/lib/twilio-xml";
