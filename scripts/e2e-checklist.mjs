@@ -19,6 +19,7 @@ function check(name, pass, hint = "") {
 check("AUTH_SECRET", Boolean(process.env.AUTH_SECRET?.trim() && process.env.AUTH_SECRET.length >= 32), "32+ char random string");
 check("KV (Vercel)", Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN), "Attach Vercel KV in production");
 check("NEXT_PUBLIC_BETA=false", process.env.NEXT_PUBLIC_BETA !== "true", "Set NEXT_PUBLIC_BETA=false for paid launch");
+check("Paddle client token", Boolean(process.env.PADDLE_CLIENT_TOKEN?.trim() || process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim()), "PADDLE_CLIENT_TOKEN (or NEXT_PUBLIC_PADDLE_CLIENT_TOKEN)");
 check("Paddle API key", Boolean(process.env.PADDLE_API_KEY?.startsWith("pdl_")), "PADDLE_API_KEY");
 check("Paddle unlimited price", Boolean(process.env.PADDLE_PRICE_ID_UNLIMITED), "PADDLE_PRICE_ID_UNLIMITED");
 check("Paddle flex base", Boolean(process.env.PADDLE_PRICE_ID_FLEX), "PADDLE_PRICE_ID_FLEX");

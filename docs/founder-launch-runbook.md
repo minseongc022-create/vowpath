@@ -2,7 +2,7 @@
 
 One-time master checklist. Do these in order. Each step has: what / where / command / done criteria.
 
-**Legend:** 🖥️ = Vercel dashboard · 🟣 = Twilio console · 💳 = Stripe dashboard · 💻 = terminal
+**Legend:** 🖥️ = Vercel dashboard · 🟣 = Twilio console · 💳 = Paddle dashboard · 💻 = terminal
 
 ---
 
@@ -21,14 +21,15 @@ Set each variable for **Production** environment.
 | A5 | `TWILIO_AUTH_TOKEN` | From Twilio console (keep secret) | ☐ |
 | A6 | `TWILIO_WEBHOOK_BASE_URL` | `https://effiroad.com` (no trailing slash) | ☐ |
 | A7 | `OPENAI_API_KEY` | `sk-proj-...` | ☐ |
-| A8 | `STRIPE_SECRET_KEY` | `sk_live_...` (NOT test key) | ☐ |
-| A9 | `STRIPE_PRICE_ID_UNLIMITED` | `price_...` ($199/mo product) | ☐ |
-| A10 | `STRIPE_PRICE_ID_FLEX` | `price_...` ($49/mo base) | ☐ |
-| A11 | `STRIPE_PRICE_ID_FLEX_USAGE` | `price_...` ($18/dispatch metered) | ☐ |
+| A8 | `PADDLE_API_KEY` | `pdl_live_apikey_...` | ☐ |
+| A9 | `PADDLE_CLIENT_TOKEN` | Paddle client token (preferred over NEXT_PUBLIC_*) | ☐ |
+| A10 | `PADDLE_PRICE_ID_*` | All plan price IDs — see **[CHECKOUT_LAUNCH.md](./CHECKOUT_LAUNCH.md)** | ☐ |
+| A11 | `PADDLE_WEBHOOK_SECRET` | From Paddle webhook endpoint | ☐ |
 | A12 | `RESEND_API_KEY` | `re_...` (password reset emails) | ☐ |
 | A13 | `CRON_SECRET` | any random string ≥ 20 chars | ☐ |
 | A14 | `NEXT_PUBLIC_BETA` | `false` | ☐ |
 | A15 | `EMAIL_FROM` | `Effiroad <noreply@effiroad.com>` | ☐ |
+| A16 | `GOOGLE_MAPS_API_KEY` | **Server** key (IP / unrestricted) for Places — not a browser-referrer-only key | ☐ |
 
 **Do NOT set in production:**
 - `ALLOW_TWILIO_OWNER_ALERT` — leave unset
@@ -36,7 +37,7 @@ Set each variable for **Production** environment.
 
 After setting all variables → redeploy: Vercel → Deployments → Redeploy latest.
 
-**Done criteria:** `npm run check:prod` → all ✓
+**Done criteria:** `npm run check:prod` → all ✓ · `GET /api/checkout/status` → `"mode":"ready"`
 
 ---
 
@@ -57,22 +58,22 @@ After setting all variables → redeploy: Vercel → Deployments → Redeploy la
 
 ---
 
-## C. Stripe Live Setup
+## C. Paddle Live Checkout
+
+Full steps: **[CHECKOUT_LAUNCH.md](./CHECKOUT_LAUNCH.md)**
 
 | # | Action | Where | Done? |
 |---|--------|-------|-------|
-| C1 | Switch Stripe to Live mode | [dashboard.stripe.com](https://dashboard.stripe.com) → top-left toggle: Test → Live | ☐ |
-| C2 | Create Unlimited product | Products → Add product → "Effiroad Unlimited" → $199/mo recurring | ☐ |
-| C3 | Create Flex base product | Products → "Effiroad Flex" → $49/mo recurring | ☐ |
-| C4 | Create Flex usage product | Products → "Effiroad Flex Dispatch" → $18 one-time (or metered) | ☐ |
-| C5 | Copy price IDs to Vercel | Each product → copy `price_...` → set as A9/A10/A11 | ☐ |
-| C6 | Set up webhook | Stripe → Developers → Webhooks → Add endpoint → `https://effiroad.com/api/stripe/webhook` → events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` | ☐ |
-| C7 | Add webhook secret to Vercel | Copy signing secret → Vercel env → `STRIPE_WEBHOOK_SECRET` | ☐ |
-| C8 | Test live checkout | Open `/pricing` → click Unlimited → complete with real card → verify in Stripe dashboard → refund immediately | ☐ |
+| C1 | Complete seller verification | [paddle.com](https://vendors.paddle.com) | ☐ |
+| C2 | Enable Checkout | Paddle → Checkout → enabled (fixes `transaction_checkout_not_enabled`) | ☐ |
+| C3 | Create products + prices | Pro / Scale / Flex / Lite / Voice (+ overage/usage) | ☐ |
+| C4 | Copy price IDs to Vercel | Every `PADDLE_PRICE_ID_*` from CHECKOUT_LAUNCH.md | ☐ |
+| C5 | Set client token | Vercel → `PADDLE_CLIENT_TOKEN` | ☐ |
+| C6 | Webhook | `https://effiroad.com/api/paddle/webhook` → `PADDLE_WEBHOOK_SECRET` | ☐ |
+| C7 | Verify | `node scripts/verify-checkout-prod.mjs https://effiroad.com` → mode `ready` | ☐ |
+| C8 | Test live checkout | `/pricing` → Subscribe → complete → refund/cancel in Paddle | ☐ |
 
-**Refund a test charge:** Stripe Dashboard → Payments → find charge → Refund
-
-**Done criteria:** Test charge appears in Stripe Live, webhook fires (Vercel logs show `POST /api/stripe/webhook 200`)
+**Done criteria:** `GET /api/checkout/status` returns `"mode":"ready"` and Paddle overlay opens
 
 ---
 
