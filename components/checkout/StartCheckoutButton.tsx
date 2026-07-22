@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DEFAULT_PLAN, ROUTES, type PlanId } from "@/lib/constants";
+import { DEFAULT_PLAN, type PlanId } from "@/lib/constants";
 import { checkoutErrorMessage } from "@/lib/checkout-errors";
-import { getStartedHref } from "@/lib/checkout-urls";
+import { getStartedHref, signupHref } from "@/lib/checkout-urls";
 import { startPlanCheckout } from "@/lib/checkout-client";
 
 type CheckoutStatus = {
@@ -50,9 +50,10 @@ export function StartCheckoutButton({
     );
   }
 
+  // Beta / Lemon Squeezy not configured yet — keep the selected plan in the URL.
   if (!checkoutReady(status)) {
     return (
-      <Link href={ROUTES.signup} className={className}>
+      <Link href={signupHref(plan)} className={className}>
         {children}
       </Link>
     );

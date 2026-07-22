@@ -105,7 +105,7 @@ export const callExperienceEn = {
       "Weeks of onboarding and enterprise-only pricing",
     ],
     ours: [
-      "Flat monthly — predictable every storm season",
+      "Clear plans: dispatch billing or Voice per-minute — pick one, no surprise transfer fees",
       "Conversational intake tuned for water, fire, mold, HVAC",
       "Real dispatch on clear jobs — you approve the edge cases",
       "Go live in ~10 minutes — test call built into setup",
@@ -443,7 +443,7 @@ export const competitorWinEn = {
         "Billing surprises from add-ons and spam-call overages",
         "Receptionist quality varies call to call",
       ],
-      fix: "Flat monthly price. No live-agent transfer fees. Same AI voice and script every time. Test call built into setup.",
+      fix: "Clear published pricing — no live-agent transfer fees. Same AI voice every time. Test call built into setup.",
     },
     {
       name: "Per-minute virtual receptionists",
@@ -452,7 +452,7 @@ export const competitorWinEn = {
         "Bill shock in busy season from unpredictable usage",
         "Inconsistent script following on live calls in reviews",
       ],
-      fix: "No per-minute clock. Predictable flat rate. AI answers instantly — professional tone without hold music or bored agents.",
+      fix: "Dispatch plans bill per approved job — or Voice plans with clear included minutes. Instant AI answer, no hold music.",
     },
     {
       name: "CRM add-on AI receptionists",

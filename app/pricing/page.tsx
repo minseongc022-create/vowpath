@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: "Pricing",
   description:
     "Effiroad plans for restoration companies — dispatch billing (Lite, Flex, Pro, Scale) or Voice per-minute plans. AI voice, SMS, and owner holds included.",
+  alternates: {
+    canonical: "/pricing",
+  },
 };
 
 

@@ -19,6 +19,8 @@ class DemoAudioPlayer {
 
     this.audio.src = "/demo-audio/voice-ai-0.mp3";
     this.audio.volume = 0.001;
+    // Mark unlocked synchronously so the same user-gesture chain can playMp3 immediately.
+    this.unlocked = true;
     const playPromise = this.audio.play();
     if (playPromise) {
       void playPromise
@@ -27,14 +29,10 @@ class DemoAudioPlayer {
           this.audio.pause();
           this.audio.currentTime = 0;
           this.audio.volume = 1;
-          this.unlocked = true;
         })
         .catch(() => {
-          /* Still mark unlocked — speech fallback may work */
-          this.unlocked = true;
+          /* Keep unlocked — speech fallback may still work */
         });
-    } else {
-      this.unlocked = true;
     }
     return true;
   }

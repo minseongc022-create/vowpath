@@ -15,7 +15,7 @@ export function getMarketingNavLinks(
   const nav = getSiteNav(locale);
   const sitePreview = Boolean(opts?.sitePreview);
   return [
-    { label: nav.features, href: marketingHash("features", sitePreview) },
+    { label: nav.features, href: marketingHash("call-experience", sitePreview) },
     { label: nav.howItWorks, href: marketingHash("how-it-works", sitePreview) },
     { label: nav.pricing, href: marketingHash("pricing", sitePreview) },
   ];
@@ -27,7 +27,7 @@ export function getNavLinks(locale: UiLocale = "en", opts?: { sitePreview?: bool
   const sitePreview = Boolean(opts?.sitePreview);
   return [
     ...getMarketingNavLinks(locale, opts),
-    { label: nav.why, href: marketingHash("about", sitePreview) },
+    { label: nav.why, href: marketingHash("why-we-win", sitePreview) },
   ];
 }
 
