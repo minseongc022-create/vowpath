@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "premium-reception-v18-2026-07-21";
+export const RETELL_PROMPT_VERSION = "accurate-stt-v19-2026-07-22";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -115,26 +115,53 @@ function sharedAgentPatch(): Record<string, unknown> {
       "water damage",
       "water leak",
       "fire damage",
+      "smoke damage",
       "mold",
+      "black mold",
       "sewage",
+      "sewage backup",
       "basement",
+      "crawl space",
       "burst pipe",
+      "slab leak",
       "flood",
+      "flooding",
       "estimate",
       "emergency",
       "HVAC",
+      "AC",
+      "furnace",
+      "thermostat",
       "no heat",
       "no cool",
+      "not cooling",
+      "gas smell",
       "restoration",
       "mitigation",
       "text link",
       "SMS",
+      "insurance",
+      "callback",
+      "street",
+      "avenue",
+      "boulevard",
+      "drive",
+      "lane",
+      "court",
+      "circle",
+      "road",
+      "apartment",
+      "unit",
+      "suite",
     ],
-    denoising_mode: "noise-and-background-speech-cancellation",
+    // noise-cancellation: clears HVAC/traffic without distorting soft speech.
+    // background-speech cancel was cutting off "yes"/addresses and lowering STT accuracy.
+    denoising_mode: "noise-cancellation",
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.03,
+    // Allow callers to barge in and correct names/addresses (0.03 was too locked).
+    interruption_sensitivity: 0.32,
     enable_backchannel: false,
     reminder_trigger_ms: 14000,
     reminder_max_count: 1,

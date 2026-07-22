@@ -101,7 +101,7 @@ export function twimlGatherSpanishIntake(actionUrl: string): string {
   const prompt =
     "Por favor describa su emergencia o el servicio que necesita, incluyendo su nombre y dirección. " +
     "Le responderemos en breve.";
-  return `${twimlSay(prompt, "es-US")}<Gather input="speech" language="es-US" speechTimeout="auto" enhanced="true" timeout="20" action="${escapeXml(actionUrl)}" method="POST"></Gather>${twimlSay("No escuchamos su respuesta. Por favor intente de nuevo.", "es-US")}`;
+  return `${twimlSay(prompt, "es-US")}<Gather input="speech" language="es-US" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="20" action="${escapeXml(actionUrl)}" method="POST"></Gather>${twimlSay("No escuchamos su respuesta. Por favor intente de nuevo.", "es-US")}`;
 }
 
 export function twimlSpanishIntakeConfirmation(): string {
@@ -135,7 +135,7 @@ export function twimlGatherSpeechDetailed(
 ): string {
   const defaultFollowUp = voicePhoneIntakePromptForVertical(vertical);
   const prompt = followUp ?? defaultFollowUp;
-  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" hints="${escapeXml(buildSpeechHints(vertical))}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
+  return `${twimlSay(intro)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="20" hints="${escapeXml(buildSpeechHints(vertical))}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(prompt)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
 }
 
 export function twimlGatherSpeechField(
@@ -149,7 +149,7 @@ export function twimlGatherSpeechField(
   const hints = [buildSpeechHints(vertical), extraHints]
     .filter(Boolean)
     .join(", ");
-  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" hints="${escapeXml(hints)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(voiceGoAhead)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
+  return `${twimlSay(prompt)}<Gather input="speech" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="20" hints="${escapeXml(hints)}" language="en-US" action="${escapeXml(actionUrl)}" method="POST">${twimlSay(voiceGoAhead)}</Gather>${twimlSay(voiceGatherMissedSpeech)}`;
 }
 
 export function twimlGatherDtmfYesNo(actionUrl: string, prompt: string): string {

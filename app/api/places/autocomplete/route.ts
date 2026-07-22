@@ -20,7 +20,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const input = new URL(request.url).searchParams.get("input")?.trim() ?? "";  if (input.length < 1) {
+  const input = new URL(request.url).searchParams.get("input")?.trim() ?? "";
+  if (input.length < 1) {
     return NextResponse.json({ predictions: [], enabled: placesAutocompleteServerEnabled() });
   }
 
@@ -29,10 +30,20 @@ export async function GET(request: Request) {
   }
 
   try {
-    const predictions = await fetchPlacePredictions(input);
-    return NextResponse.json({ predictions, enabled: true });
+    const { predictions, meta } = await fetchPlacePredictions(input);
+    return NextResponse.json({
+      predictions,
+      enabled: true,
+      // Ops diagnostics — never includes the API key.
+      googleStatus: meta.googleStatus,
+      source: meta.source,
+      ...(meta.errorMessage ? { googleError: meta.errorMessage } : {}),
+    });
   } catch (e) {
     console.error("[places/autocomplete]", e);
-    return NextResponse.json({ predictions: [], enabled: true, error: "lookup_failed" }, { status: 502 });
+    return NextResponse.json(
+      { predictions: [], enabled: true, error: "lookup_failed" },
+      { status: 502 },
+    );
   }
 }

@@ -20,6 +20,8 @@ const portalPublicPrefixes = [
   "/api/intake-link/",
   "/api/correction/",
   "/api/agreement-offer/",
+  // Address autocomplete + details for link intake on link.effiroad.com
+  "/api/places/",
 ];
 
 function loginRedirect(request: NextRequest, nextPath?: string | null) {

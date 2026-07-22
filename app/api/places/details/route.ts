@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const placeId = new URL(request.url).searchParams.get("placeId")?.trim() ?? "";  if (!placeId) {
+  const placeId = new URL(request.url).searchParams.get("placeId")?.trim() ?? "";
+  if (!placeId) {
     return NextResponse.json({ error: "placeId required" }, { status: 400 });
   }
 
