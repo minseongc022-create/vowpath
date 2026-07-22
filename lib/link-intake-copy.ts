@@ -49,6 +49,8 @@ export const linkIntakePageCopy = {
   addressSearchError:
     "Search is slow right now — keep typing or switch to Type it in.",
   addressSearchRetry: "Try again",
+  addressSearchEmpty:
+    "No matches yet — try street + city, or switch to Type it in.",
   addressTabSearch: "Find my address",
   addressTabManual: "Type it in",
   addressUnitLabel: "Apt / unit / gate code (optional)",
@@ -210,6 +212,8 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   addressSearchReady: "Siga escribiendo — las coincidencias aparecen. ¡Toque una para confirmar!",
   addressSearchError: "La búsqueda está lenta — siga escribiendo o use Escribirla.",
   addressSearchRetry: "Intentar de nuevo",
+  addressSearchEmpty:
+    "Sin coincidencias — pruebe calle + ciudad, o use Escribirla.",
   addressTabSearch: "Buscar mi dirección",
   addressTabManual: "Escribirla",
   addressUnitLabel: "Apto / unidad / código de puerta (opcional)",

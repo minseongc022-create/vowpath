@@ -2,10 +2,10 @@ import type { JobPriority } from "./types";
 import type { ShopVertical } from "./shop-vertical";
 
 const HVAC_SPEECH_HINTS =
-  "no heat,no cool,not cooling,leak,gas smell,water leak,emergency,tonight,today,maintenance,tune up";
+  "no heat,no cool,not cooling,AC,furnace,thermostat,leak,gas smell,water leak,emergency,tonight,today,maintenance,tune up,street,avenue,apartment,unit";
 
 const RESTORATION_SPEECH_HINTS =
-  "water damage,flood,sewage,sewage backup,mold,black mold,fire damage,smoke damage,water in basement,burst pipe,insurance claim,deductible,emergency,tonight,today,address,phone number,callback";
+  "water damage,flood,flooding,sewage,sewage backup,mold,black mold,fire damage,smoke damage,water in basement,burst pipe,slab leak,insurance claim,deductible,emergency,tonight,today,address,phone number,callback,street,avenue,apartment,unit";
 
 /** Legacy default — kept for callers that haven't switched to buildSpeechHints yet. */
 export const SPEECH_HINTS = HVAC_SPEECH_HINTS;

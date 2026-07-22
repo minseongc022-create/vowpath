@@ -91,6 +91,18 @@ export function UsAddressField({
         `/api/places/autocomplete?input=${encodeURIComponent(trimmed)}`,
         { signal: controller.signal },
       );
+
+      // Portal hosts used to rewrite unknown /api/* to HTML — detect that.
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const clientResults = await loadFromClient();
+        if (controller.signal.aborted) return;
+        setPredictions(clientResults);
+        setSearchStatus(clientResults.length > 0 || googlePlacesEnabled() ? "ready" : "error");
+        setListOpen(clientResults.length > 0);
+        return;
+      }
+
       const data = (await res.json()) as {
         predictions?: Prediction[];
         enabled?: boolean;
@@ -100,11 +112,7 @@ export function UsAddressField({
 
       let next = data.predictions ?? [];
 
-      if (next.length === 0 && (data.enabled === false || !res.ok)) {
-        next = await loadFromClient();
-      }
-
-      if (next.length === 0 && res.ok && data.enabled !== false) {
+      if (next.length === 0) {
         next = await loadFromClient();
       }
 
@@ -505,7 +513,13 @@ export function UsAddressField({
         </div>
       ) : mode === "search" && query.trim() && !value.verified ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-          {copy.addressPickRequired}
+          {predictions.length > 0
+            ? copy.addressPickRequired
+            : searchStatus === "loading"
+              ? copy.addressSearchReady
+              : searchStatus === "error"
+                ? copy.addressSearchError
+                : copy.addressSearchEmpty}
         </p>
       ) : null}
     </div>
