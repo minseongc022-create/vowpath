@@ -2,7 +2,7 @@
 
 One-time master checklist. Do these in order. Each step has: what / where / command / done criteria.
 
-**Legend:** 🖥️ = Vercel dashboard · 🟣 = Twilio console · 💳 = Paddle dashboard · 💻 = terminal
+**Legend:** 🖥️ = Vercel dashboard · 🟣 = Twilio console · 💳 = Lemon Squeezy dashboard · 💻 = terminal
 
 ---
 
@@ -21,10 +21,10 @@ Set each variable for **Production** environment.
 | A5 | `TWILIO_AUTH_TOKEN` | From Twilio console (keep secret) | ☐ |
 | A6 | `TWILIO_WEBHOOK_BASE_URL` | `https://effiroad.com` (no trailing slash) | ☐ |
 | A7 | `OPENAI_API_KEY` | `sk-proj-...` | ☐ |
-| A8 | `PADDLE_API_KEY` | `pdl_live_apikey_...` | ☐ |
-| A9 | `PADDLE_CLIENT_TOKEN` | Paddle client token (preferred over NEXT_PUBLIC_*) | ☐ |
-| A10 | `PADDLE_PRICE_ID_*` | All plan price IDs — see **[CHECKOUT_LAUNCH.md](./CHECKOUT_LAUNCH.md)** | ☐ |
-| A11 | `PADDLE_WEBHOOK_SECRET` | From Paddle webhook endpoint | ☐ |
+| A8 | `LEMON_SQUEEZY_API_KEY` | Lemon Squeezy → Settings → API | ☐ |
+| A9 | `LEMON_SQUEEZY_STORE_ID` | Settings → Stores → Copy ID | ☐ |
+| A10 | `LEMON_SQUEEZY_VARIANT_ID_*` | All plan variant IDs — see **[CHECKOUT_LAUNCH.md](./CHECKOUT_LAUNCH.md)** | ☐ |
+| A11 | `LEMON_SQUEEZY_WEBHOOK_SECRET` | Webhooks → signing secret | ☐ |
 | A12 | `RESEND_API_KEY` | `re_...` (password reset emails) | ☐ |
 | A13 | `CRON_SECRET` | any random string ≥ 20 chars | ☐ |
 | A14 | `NEXT_PUBLIC_BETA` | `false` | ☐ |
@@ -58,22 +58,21 @@ After setting all variables → redeploy: Vercel → Deployments → Redeploy la
 
 ---
 
-## C. Paddle Live Checkout
+## C. Lemon Squeezy Live Checkout
 
 Full steps: **[CHECKOUT_LAUNCH.md](./CHECKOUT_LAUNCH.md)**
 
 | # | Action | Where | Done? |
 |---|--------|-------|-------|
-| C1 | Complete seller verification | [paddle.com](https://vendors.paddle.com) | ☐ |
-| C2 | Enable Checkout | Paddle → Checkout → enabled (fixes `transaction_checkout_not_enabled`) | ☐ |
-| C3 | Create products + prices | Pro / Scale / Flex / Lite / Voice (+ overage/usage) | ☐ |
-| C4 | Copy price IDs to Vercel | Every `PADDLE_PRICE_ID_*` from CHECKOUT_LAUNCH.md | ☐ |
-| C5 | Set client token | Vercel → `PADDLE_CLIENT_TOKEN` | ☐ |
-| C6 | Webhook | `https://effiroad.com/api/paddle/webhook` → `PADDLE_WEBHOOK_SECRET` | ☐ |
-| C7 | Verify | `node scripts/verify-checkout-prod.mjs https://effiroad.com` → mode `ready` | ☐ |
-| C8 | Test live checkout | `/pricing` → Subscribe → complete → refund/cancel in Paddle | ☐ |
+| C1 | Complete store approval | [Lemon Squeezy](https://app.lemonsqueezy.com) | ☐ |
+| C2 | Create subscription products + usage variants | Lite / Flex / Pro / Scale / Voice (+ usage/overage) | ☐ |
+| C3 | Copy variant IDs to Vercel | Every `LEMON_SQUEEZY_VARIANT_ID_*` from CHECKOUT_LAUNCH.md | ☐ |
+| C4 | Set API key + store id | `LEMON_SQUEEZY_API_KEY`, `LEMON_SQUEEZY_STORE_ID` | ☐ |
+| C5 | Webhook | `https://effiroad.com/api/lemon-squeezy/webhook` → `LEMON_SQUEEZY_WEBHOOK_SECRET` | ☐ |
+| C6 | Verify | `node scripts/verify-checkout-prod.mjs https://effiroad.com` → mode `ready` | ☐ |
+| C7 | Test live checkout | `/pricing` → Subscribe → Lemon Squeezy checkout → settings success | ☐ |
 
-**Done criteria:** `GET /api/checkout/status` returns `"mode":"ready"` and Paddle overlay opens
+**Done criteria:** `GET /api/checkout/status` returns `"mode":"ready"` and checkout redirects to Lemon Squeezy
 
 ---
 
@@ -164,6 +163,6 @@ npm run e2e:sms-flows
 | Vercel KV | $0 (256MB free) | Upgrade if > 5 shops |
 | Twilio (per call) | ~$0.015/min voice + $0.0079/SMS | ~$2-5/shop/month at low volume |
 | OpenAI (per call) | ~$0.01–0.05/call | gpt-4o-mini is cheap |
-| Stripe | 2.9% + $0.30 per transaction | Only charged on paid customers |
+| Lemon Squeezy (MoR) | Platform fee per LS pricing | Only charged on paid customers |
 | Resend | $0 (3,000 emails/mo free) | For OTP / password reset |
 | **Pilot phase (0 customers)** | **< $30/month** | Only Twilio + OpenAI usage |
