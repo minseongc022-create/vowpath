@@ -13,10 +13,11 @@ Run: `npm run check:prod`
 | AUTH_SECRET (32+ chars) | ☐ pass / ☐ fail | |
 | KV_REST_API_URL + TOKEN | ☐ pass / ☐ fail | Attach Vercel KV in dashboard |
 | NEXT_PUBLIC_BETA=false | ☐ pass / ☐ fail | Paid launch — no free signup |
-| STRIPE_SECRET_KEY (sk_live_) | ☐ pass / ☐ fail | |
-| STRIPE_PRICE_ID_UNLIMITED | ☐ pass / ☐ fail | |
-| STRIPE_PRICE_ID_FLEX | ☐ pass / ☐ fail | |
-| STRIPE_PRICE_ID_FLEX_USAGE | ☐ pass / ☐ fail | |
+| PADDLE_API_KEY (pdl_live_) | ☐ pass / ☐ fail | |
+| PADDLE_CLIENT_TOKEN | ☐ pass / ☐ fail | See docs/CHECKOUT_LAUNCH.md |
+| PADDLE_PRICE_ID_* (all plans) | ☐ pass / ☐ fail | Flex/Lite/Pro/Scale/Voice + usage |
+| PADDLE_WEBHOOK_SECRET | ☐ pass / ☐ fail | |
+| GOOGLE_MAPS_API_KEY (server) | ☐ pass / ☐ fail | Not browser-referrer-only |
 | TWILIO_ACCOUNT_SID + AUTH_TOKEN | ☐ pass / ☐ fail | |
 | TWILIO_WEBHOOK_BASE_URL | ☐ pass / ☐ fail | Must be `https://effiroad.com` |
 | OPENAI_API_KEY (sk-) | ☐ pass / ☐ fail | |
@@ -143,9 +144,9 @@ Expected: undo within 30-min window cancels dispatch + customer notified.
 
 ---
 
-## E. Stripe Live Check
+## E. Paddle Live Check
 
-1. Go to Stripe Dashboard → switch to **Live** mode
+1. Follow **docs/CHECKOUT_LAUNCH.md** — enable Paddle Checkout + set price IDs
 2. Confirm products exist: Unlimited ($199) + Flex ($49) + Flex usage ($18)
 3. Do a test checkout with a real card (Stripe lets you refund immediately):
    - `/pricing` → click Unlimited → complete checkout

@@ -203,7 +203,7 @@ export function UsAddressField({
           formatted: prediction.description,
           unit: value.unit,
           placeId: prediction.placeId,
-          verified: prediction.placeId.startsWith("fmt:") || Boolean(prediction.placeId),
+          verified: prediction.placeId.startsWith("fmt:"),
         });
         setQuery(prediction.description);
         setSearchStatus("ready");

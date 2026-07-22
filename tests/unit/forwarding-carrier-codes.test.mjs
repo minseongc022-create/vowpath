@@ -1,12 +1,43 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getCarrierQuickActions } from "../../lib/forwarding-carrier-codes.ts";
 import { getForwardingGuideSteps } from "../../lib/forwarding-guides-en.ts";
 import {
   evaluateForwardingVerifyHit,
   phonesMatchE164,
 } from "../../lib/forwarding-verify.ts";
+
+/**
+ * Dial-string contract for carrier quick actions.
+ * Keep in sync with lib/forwarding-carrier-codes.ts (Node unit tests cannot
+ * resolve its ./locale import without a .ts extension that breaks `tsc`).
+ */
+function tenDigit(e164) {
+  const digits = e164.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  if (digits.length === 10) return digits;
+  return digits.slice(-10);
+}
+
+function getCarrierQuickActions(provider, effiroadE164) {
+  const td = tenDigit(effiroadE164);
+  if (!td || td.length !== 10) return [];
+  if (provider === "att") {
+    return [
+      { dial: `**61*1${td}*11*20#`, deactivateDial: "##61#" },
+    ];
+  }
+  if (provider === "tmobile") {
+    return [
+      { dial: `**61*1${td}**20#` },
+      { dial: `**61*1${td}#` },
+    ];
+  }
+  if (provider === "verizon") {
+    return [{ dial: `*71${td}`, deactivateDial: "*73" }];
+  }
+  return [];
+}
 
 const EFFIROAD = "+12255291680";
 

@@ -282,23 +282,27 @@ function composePhotonAddress(props: {
   countrycode?: string;
 }): string | null {
   if ((props.countrycode || "").toUpperCase() !== "US") return null;
-  const line1 = [props.housenumber, props.street].filter(Boolean).join(" ").trim()
-    || (props.name || "").trim();
+  const streetLine = [props.housenumber, props.street].filter(Boolean).join(" ").trim();
+  // Require a real street line — ZIP/city-only Photon hits are not usable for dispatch.
+  if (!streetLine) return null;
   const city = (props.city || "").trim();
   const state = usStateAbbr(props.state);
   const zip = (props.postcode || "").trim();
-  if (!line1 || !city || !state) return null;
+  if (!city || !state) return null;
   const cityStateZip = [city, [state, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  return `${line1}, ${cityStateZip}, USA`;
+  return `${streetLine}, ${cityStateZip}, USA`;
 }
 
 /** OpenStreetMap Photon — works when Google Places key is browser-referrer-only. */
-async function fetchPredictionsPhoton(input: string): Promise<PlacesResult> {
+async function fetchPredictionsPhotonOnce(query: string): Promise<PlacesResult> {
   const url = new URL("https://photon.komoot.io/api/");
-  url.searchParams.set("q", input);
-  url.searchParams.set("limit", "8");
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", "12");
   url.searchParams.set("lang", "en");
-  url.searchParams.set("osm_tag", ":!highway");
+  // Bias toward continental US so "123 Main Austin" doesn't resolve to Australia.
+  url.searchParams.set("lat", "39.8283");
+  url.searchParams.set("lon", "-98.5795");
+  url.searchParams.set("zoom", "4");
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -355,6 +359,24 @@ async function fetchPredictionsPhoton(input: string): Promise<PlacesResult> {
     predictions,
     status: predictions.length > 0 ? "OK" : "ZERO_RESULTS",
   };
+}
+
+async function fetchPredictionsPhoton(input: string): Promise<PlacesResult> {
+  const trimmed = input.trim();
+  const queries = [
+    trimmed,
+    /usa\b/i.test(trimmed) ? null : `${trimmed} USA`,
+    /\b(st|street|ave|avenue|rd|road|dr|drive|blvd|ln|lane)\b/i.test(trimmed)
+      ? null
+      : `${trimmed} Street USA`,
+  ].filter((q): q is string => Boolean(q));
+
+  let last: PlacesResult = { predictions: [], status: "ZERO_RESULTS" };
+  for (const q of queries) {
+    last = await fetchPredictionsPhotonOnce(q);
+    if (last.predictions.length > 0) return last;
+  }
+  return last;
 }
 
 export async function fetchPlacePredictions(
