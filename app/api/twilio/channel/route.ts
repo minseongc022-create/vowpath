@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
 import { isRetellConfigured } from "@/lib/retell-config";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
-import { isLinkIntentSpeech, isPhoneIntentSpeech } from "@/lib/link-intent-speech";
-import { isUrgentCallerSpeech } from "@/lib/urgent-speech-bypass";
+import { resolveBookingChannelChoice } from "@/lib/ivr-channel-choice";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
-import { twimlResponse, twimlSay, twimlGatherSpeechDetailed } from "@/lib/twilio-xml";
+import { shopDisplayNameForUser, DEFAULT_SHOP_DISPLAY_NAME } from "@/lib/link-intake-brand";
+import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
+import {
+  twimlGatherChannelChoice,
+  twimlGatherSpeechDetailed,
+  twimlResponse,
+  twimlSay,
+} from "@/lib/twilio-xml";
 import {
   voiceLinkSmsFailed,
   voiceLinkSmsSent,
@@ -33,13 +40,27 @@ function legacyPhoneIntakeTwiml(afterHours: boolean, intro?: string) {
   );
 }
 
-function wantsLink(digit: string | null, speech: string): boolean {
-  if (digit === "1") return true;
-  if (digit === "2") return false;
-  if (isLinkIntentSpeech(speech)) return true;
-  if (isPhoneIntentSpeech(speech)) return false;
-  if (isUrgentCallerSpeech(speech)) return false;
-  return false;
+async function replayChannelMenuTwiml(
+  afterHours: boolean,
+  callSid: string,
+  to: string,
+  from: string,
+) {
+  const userId = await resolveTenantUserId({ to, from, callSid });
+  let shopName = DEFAULT_SHOP_DISPLAY_NAME;
+  let stormMode = false;
+  if (userId) {
+    shopName = await shopDisplayNameForUser(userId);
+    const settings = await getShopBookingSettings(userId);
+    stormMode = settings.stormModeEnabled;
+  }
+  const channelUrl = buildTwilioCallbackUrl("/api/twilio/channel", {
+    callSid,
+    ...(afterHours ? { afterHours: "1" } : {}),
+  });
+  return twimlResponse(
+    twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode),
+  );
 }
 
 export async function POST(request: Request) {
@@ -78,7 +99,13 @@ export async function POST(request: Request) {
     ivrPath: "phone_booking" as const,
   };
 
-  if (!wantsLink(digit, speech)) {
+  const choice = resolveBookingChannelChoice(digit, speech);
+
+  if (choice === "unclear") {
+    return twimlXml(await replayChannelMenuTwiml(afterHours, callSid, to, from));
+  }
+
+  if (choice === "phone") {
     if (isRetellConfigured()) {
       return twimlXml(await buildRetellBridgeTwiml(bridgeParams));
     }

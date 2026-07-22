@@ -8,19 +8,19 @@ export function channelChoiceVoicePrompt(shopName: string, afterHours = false): 
     return (
       `Hi — thank you for calling ${shop}. ` +
       afterHoursVoiceIntro(shop) +
-      ` Press 1 and we'll text you a quick link to report the loss — about a minute. ` +
-      `Press 2 to tell us what's going on right on this call. We're here to help.`
+      ` Say text link or press 1 for a quick form by text — about a minute. ` +
+      `Say talk on the phone or press 2 to tell us what's going on right on this call.`
     );
   }
   return (
     `Hi — thanks for calling ${shop}. ` +
-    `Press 1 and we'll text you a quick link to report what's going on. ` +
-    `Press 2 to walk us through it on this call. Whatever's easier — we've got you.`
+    `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
+    `Say talk on the phone or press 2, and we'll walk through it with you right here.`
   );
 }
 
 export function channelChoiceGatherHint(): string {
-  return "Press 1 for the text link, or press 2 to talk with us right here.";
+  return "Say text link or press 1. Say talk on the phone or press 2.";
 }
 
 export function smsLinkIntakeMessage(shopName: string, url: string): string {
