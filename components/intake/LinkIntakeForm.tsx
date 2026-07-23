@@ -575,14 +575,16 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
 
           {isHvac ? (
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-              <p className="text-sm font-semibold text-slate-800">System details (optional)</p>
+              <p className="text-sm font-semibold text-slate-800">{copy.hvacSystemSectionTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">{copy.hvacSystemTypeHint}</p>
               <div className="mt-3 space-y-4">
-                <Field label="System type">
+                <Field label={copy.hvacSystemTypeLabel}>
                   <input
                     value={waterSource}
                     onChange={(e) => setWaterSource(e.target.value)}
                     className={inputClass}
-                    placeholder="e.g. Gas furnace, heat pump, central AC"
+                    placeholder={copy.hvacSystemTypePlaceholder}
+                    autoComplete="off"
                   />
                 </Field>
                 <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 bg-white px-3 py-3">
@@ -592,7 +594,7 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
                     onChange={(e) => setActiveLoss(e.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700"
                   />
-                  <span className="text-sm leading-relaxed text-slate-700">No heat / no cool right now</span>
+                  <span className="text-sm leading-relaxed text-slate-700">{copy.hvacActiveIssueLabel}</span>
                 </label>
               </div>
             </div>
