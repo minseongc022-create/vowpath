@@ -21,8 +21,8 @@ test("pickNaturalReceptionistVoice ignores thin Brian env and current", () => {
       gender: "male",
     },
     {
-      voice_id: "11labs-Mark",
-      voice_name: "Mark",
+      voice_id: "11labs-Steve",
+      voice_name: "Steve",
       provider: "elevenlabs",
       accent: "American",
       gender: "male",
@@ -32,28 +32,13 @@ test("pickNaturalReceptionistVoice ignores thin Brian env and current", () => {
     explicitId: "11labs-Brian",
     currentVoiceId: "11labs-Brian",
   });
-  assert.equal(id, "11labs-Mark");
+  assert.equal(id, "11labs-Steve");
 });
 
-test("Bill preference does not pick Billy", () => {
-  const voices = [
-    {
-      voice_id: "11labs-Billy",
-      voice_name: "Billy",
-      provider: "elevenlabs",
-      accent: "American",
-      gender: "male",
-    },
-    {
-      voice_id: "11labs-Mark",
-      voice_name: "Mark",
-      provider: "elevenlabs",
-      accent: "American",
-      gender: "male",
-    },
-  ];
-  const id = pickNaturalReceptionistVoice(voices, {
-    currentVoiceId: "11labs-Billy",
-  });
-  assert.equal(id, "11labs-Mark");
+test("Billy is thin; Bill word-match does not apply", () => {
+  assert.equal(isThinRetellVoiceId("11labs-Billy"), true);
+});
+
+test("fallback is deep Steve", () => {
+  assert.equal(RETELL_FALLBACK_MALE_VOICE_ID, "11labs-Steve");
 });

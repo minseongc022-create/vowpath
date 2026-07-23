@@ -3,22 +3,22 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "masculine-voice-v22-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v24-2026-07-23";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Deep trustworthy US male — Mark (override: RETELL_VOICE_ID, non-thin only). */
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
+/** Deep trustworthy US male — Steve is available on Retell (Mark/Adam often missing). */
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
 /** Prefer these Retell voice IDs first (deep / grounded), then name matching. */
 export const RETELL_DEEP_MALE_VOICE_IDS = [
+  "11labs-Steve",
+  "11labs-Marcus",
+  "11labs-Daniel",
   "11labs-Mark",
   "11labs-Adam",
   "11labs-Clyde",
-  "11labs-Marcus",
-  "11labs-Steve",
-  "11labs-Daniel",
 ] as const;
 
 /**
@@ -31,27 +31,25 @@ export function isThinRetellVoiceId(voiceId: string | null | undefined): boolean
   return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
 }
 
-/** Service / emergency — deep, grounded US male (Mark / Bill / Adam first). */
+/** Service / emergency — deep, grounded US male. */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
+  "Steve",
+  "Marcus",
+  "Daniel",
   "Mark",
-  "Bill",
   "Adam",
   "Clyde",
-  "Marcus",
-  "Steve",
-  "Daniel",
   "George",
 ] as const;
 
 /** Free estimate — same deep trustworthy set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
+  "Steve",
+  "Marcus",
+  "Daniel",
   "Mark",
-  "Bill",
   "Adam",
   "Clyde",
-  "Marcus",
-  "Steve",
-  "Daniel",
 ] as const;
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -89,7 +87,21 @@ function pickFromList(
     explicitRaw && !isThinRetellVoiceId(explicitRaw) ? explicitRaw : undefined;
   if (explicit) return explicit;
 
-  const americanMales = (voices ?? []).filter(
+  const all = voices ?? [];
+
+  // Prefer known deep voice IDs even when accent metadata is incomplete.
+  for (const id of RETELL_DEEP_MALE_VOICE_IDS) {
+    const hit = all.find(
+      (v) =>
+        v.voice_id === id &&
+        isMale(v) &&
+        !isThinRetellVoiceId(v.voice_id) &&
+        (v.provider === "elevenlabs" || !v.provider),
+    );
+    if (hit) return hit.voice_id;
+  }
+
+  const americanMales = all.filter(
     (v) => isUsEnglishVoice(v) && isMale(v) && !isThinRetellVoiceId(v.voice_id),
   );
 
