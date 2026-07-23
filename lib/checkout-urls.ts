@@ -6,8 +6,11 @@ export function checkoutApiHref(plan: PlanId): string {
 }
 
 export function getStartedHref(plan: PlanId = DEFAULT_PLAN): string {
-  if (plan === "pro") return `${ROUTES.getStarted}?plan=pro`;
-  if (plan === "scale") return `${ROUTES.getStarted}?plan=scale`;
-  if (plan === "lite") return `${ROUTES.getStarted}?plan=lite`;
-  return ROUTES.getStarted;
+  const id = normalizePlanId(plan);
+  return `${ROUTES.getStarted}?plan=${id}`;
+}
+
+export function signupHref(plan: PlanId = DEFAULT_PLAN): string {
+  const id = normalizePlanId(plan);
+  return `${ROUTES.signup}?plan=${id}`;
 }

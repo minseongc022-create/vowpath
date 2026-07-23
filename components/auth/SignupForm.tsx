@@ -27,6 +27,7 @@ export function SignupForm() {
   const form = authPages.form;
 
   const verticalParam = searchParams.get("vertical");
+  const planParam = searchParams.get("plan")?.trim() || "";
   const vertical: ShopVertical = normalizeShopVertical(
     verticalParam ?? undefined,
   );
@@ -184,7 +185,12 @@ export function SignupForm() {
         return;
       }
 
-      router.push(data.redirect ?? ROUTES.settings);
+      const base = data.redirect ?? ROUTES.settings;
+      const next =
+        planParam && !base.includes("plan=")
+          ? `${base}${base.includes("?") ? "&" : "?"}plan=${encodeURIComponent(planParam)}`
+          : base;
+      router.push(next);
       router.refresh();
     } catch {
       setError(form.errorNetwork);
