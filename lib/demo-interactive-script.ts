@@ -9,10 +9,6 @@ import {
 export const PRODUCTION_MAIN_MENU =
   "Thank you for calling {shop}. To book service or report an emergency, press 1. For a free estimate, press 2.";
 
-/** Tier 2 conversational choice (matches lib/retell-prompt.ts booking_choice). */
-export const PRODUCTION_CHANNEL_CHOICE =
-  "Would you like a quick text link, or handle it on this call?";
-
 /** Sample customer link shown in interactive demo (not a live token). */
 export const DEMO_LINK_INTAKE_URL = "https://link.effiroad.com/r/demo";
 
@@ -59,9 +55,13 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
   return getRestorationInteractiveSteps();
 }
 
+/**
+ * Matches production IVR: one main-menu press → Retell (no second link-vs-phone keypad).
+ * Press 2 demo branch shows the SMS-link alternate (say "text link" on a live call).
+ */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  const PHONE_START = 5;
-  const LINK_START = 17;
+  // Indices: 0 system, 1 menu voice, 2 menu, 3… phone path; 14 = estimate/link branch
+  const LINK_START = 14;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -71,37 +71,19 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu — caller chooses",
+      prompt: "Main menu — caller chooses once",
       options: [
-        { id: "1", label: "Press 1 — Book / emergency", customerText: "[Pressed 1]" },
+        {
+          id: "1",
+          label: "Press 1 — Book / emergency",
+          customerText:
+            "Sewage is backing up in my basement — it's coming through the floor drain.",
+        },
         {
           id: "2",
           label: "Press 2 — Free estimate",
           customerText: "[Pressed 2 — estimate]",
           jumpTo: LINK_START,
-        },
-      ],
-    },
-    {
-      kind: "ai-voice",
-      text: PRODUCTION_CHANNEL_CHOICE,
-    },
-    {
-      kind: "menu",
-      prompt: "Link vs phone",
-      options: [
-        {
-          id: "link",
-          label: "Quick text link",
-          customerText: "Text me the link please.",
-          jumpTo: LINK_START,
-        },
-        {
-          id: "phone",
-          label: "Handle on this call (urgent)",
-          customerText:
-            "Sewage is backing up in my basement — it's coming through the floor drain.",
-          jumpTo: PHONE_START,
         },
       ],
     },
@@ -152,22 +134,22 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       audioIndex: 4,
     },
     { kind: "system", text: "Customer ETA text sent · Intake saved · Dispatched" },
+    // LINK_START = 14
     {
       kind: "ai-voice",
-      text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
+      text: `I'm glad you called — happy to help with your estimate. I can text you a short form from ${RESTORATION_SHOP} — about a minute on your phone.`,
     },
     {
       kind: "sms",
       text: `${RESTORATION_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
-    { kind: "system", text: "Link sent · Owner gets notified when the form is submitted" },
+    { kind: "system", text: "Estimate link sent · Owner gets notified when the form is submitted" },
   ];
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const PHONE_START = 5;
-  const LINK_START = 18;
+  const LINK_START = 14;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -177,36 +159,18 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu — caller chooses",
+      prompt: "Main menu — caller chooses once",
       options: [
-        { id: "1", label: "Press 1 — Book / emergency", customerText: "[Pressed 1]" },
+        {
+          id: "1",
+          label: "Press 1 — Book / emergency",
+          customerText: "Let's handle it on this call — no heat, fifty-eight degrees inside.",
+        },
         {
           id: "2",
           label: "Press 2 — Free estimate",
           customerText: "[Pressed 2 — estimate]",
           jumpTo: LINK_START,
-        },
-      ],
-    },
-    {
-      kind: "ai-voice",
-      text: PRODUCTION_CHANNEL_CHOICE,
-    },
-    {
-      kind: "menu",
-      prompt: "Link vs phone",
-      options: [
-        {
-          id: "link",
-          label: "Quick text link",
-          customerText: "I'd like the text link please.",
-          jumpTo: LINK_START,
-        },
-        {
-          id: "phone",
-          label: "Handle on this call",
-          customerText: "Let's handle it on this call — no heat, fifty-eight degrees inside.",
-          jumpTo: PHONE_START,
         },
       ],
     },
@@ -257,16 +221,17 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     { kind: "system", text: "Tech replied 1 · En route · ETA 28 min" },
     { kind: "system", text: "Customer ETA text sent · Intake saved · Auto-dispatched" },
+    // LINK_START = 14
     {
       kind: "ai-voice",
-      text: `Perfect — I'm texting you a secure link from ${HVAC_SHOP}. It takes about a minute on your phone.`,
+      text: `I'm glad you called — happy to help with your estimate. I can text you a short form from ${HVAC_SHOP} — about a minute on your phone.`,
     },
     {
       kind: "sms",
       text: `${HVAC_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
-    { kind: "system", text: "Link sent · Owner gets notified when the form is submitted" },
+    { kind: "system", text: "Estimate link sent · Owner gets notified when the form is submitted" },
   ];
 }
 
@@ -279,8 +244,14 @@ export function getGasHoldInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu",
-      options: [{ id: "1", label: "Press 1 — Book / emergency", customerText: "[Pressed 1]" }],
+      prompt: "Main menu — one press",
+      options: [
+        {
+          id: "1",
+          label: "Press 1 — Book / emergency",
+          customerText: "[Pressed 1]",
+        },
+      ],
     },
     {
       kind: "ai-voice",

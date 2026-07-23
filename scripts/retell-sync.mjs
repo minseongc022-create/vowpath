@@ -18,4 +18,4 @@ console.log("  Phone:", result.phone);
 console.log("  Agent:", result.agentId);
 console.log("  LLM:", result.llmId);
 console.log("  Voice:", result.voiceId);
-console.log("\nTest: call +1 (225) 529-1680 — AI explains options, offers link vs phone.");
+console.log("\nTest: call your shop line — main menu press 1 → AI intake (or say text link for SMS form).");

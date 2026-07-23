@@ -10,14 +10,14 @@ export type RetellIvrPath =
 export function buildRetellOpeningLine(ivrPath: RetellIvrPath): string {
   switch (ivrPath) {
     case "booking_choice":
+      // Legacy path — same as phone_booking (no link-vs-phone question).
       return (
-        "I'm glad you reached {{shop_name}} — I'm right here with you. " +
-        "Would you like a quick text link, or handle it on this call?"
+        "I'm glad you reached us — I'm right here with you. Take your time. What's your name?"
       );
     case "estimate_choice":
+      // Legacy path — same as phone_estimate.
       return (
-        "I'm glad you called {{shop_name}} — I'd be happy to help with your free estimate. " +
-        "Would you like a quick text link, or tell us about the project on this call?"
+        "I'm glad you called — happy to help with your estimate. What's your name?"
       );
     case "phone_booking":
       return (

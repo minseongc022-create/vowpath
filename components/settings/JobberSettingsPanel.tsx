@@ -13,16 +13,12 @@ export function JobberSettingsPanel({
   onStatusChange,
   connected,
   stepDone,
-  onConfirm,
   onSkip,
-  showConfirm,
 }: {
   onStatusChange: (connected: boolean, meta?: { freshConnect?: boolean }) => void;
   connected: boolean;
   stepDone: boolean;
-  onConfirm: () => void;
   onSkip: () => void;
-  showConfirm: boolean;
 }) {
   const settingsPage = useSettingsPage();
   const copy = settingsPage.jobberPanel;
@@ -83,15 +79,6 @@ export function JobberSettingsPanel({
 
       {stepDone ? null : (
         <div className="flex flex-col gap-2 sm:flex-row">
-          {showConfirm ? (
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="vow-dash-btn-primary flex-1 px-4 py-3.5 text-base"
-            >
-              {settingsPage.jobberConfirm}
-            </button>
-          ) : null}
           <button
             type="button"
             onClick={onSkip}

@@ -66,7 +66,7 @@ export function DemoLinkIntakeScene({ vertical = "restoration" }: { vertical?: D
       <div className="flex items-center justify-between border-b border-white/10 px-8 py-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">Text link intake</p>
-          <h1 className="text-xl font-bold md:text-2xl">Press 2 → choose purpose → send booking or estimate details</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Say “text link” at the menu → SMS form → submit details</h1>
         </div>
         <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[#b59b78]">
           Step {phaseIndex + 1} / {PHASES.length}
@@ -101,11 +101,11 @@ export function DemoLinkIntakeScene({ vertical = "restoration" }: { vertical?: D
 
             {phase === "menu" && (
               <div className="mt-6 space-y-2 text-sm">
-                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 1 — talk through service intake</p>
+                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 1 — service / emergency (AI on this call)</p>
+                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 2 — free estimate (AI on this call)</p>
                 <p className="animate-pulse rounded-xl bg-[#9a7f5e]/45 px-4 py-3 font-semibold text-[#f5f0e8] ring-2 ring-[#9a7f5e]">
-                  Press 2 — text me the request link ✓
+                  Say “text link” — SMS form ✓
                 </p>
-                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 3 — estimate / callback</p>
               </div>
             )}
 

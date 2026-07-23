@@ -14,18 +14,18 @@ function resolveRetellAgentIdForIvrPath(env, ivrPath) {
   return booking;
 }
 
-test("buildRetellOpeningLine: booking_choice asks link vs phone", () => {
+test("buildRetellOpeningLine: booking_choice matches phone intake (no link menu)", () => {
   const line = buildRetellOpeningLine("booking_choice");
-  assert.match(line, /text link/i);
-  assert.match(line, /this call/i);
-  assert.match(line, /\{\{shop_name\}\}/);
-  assert.match(line, /glad you reached/i);
+  assert.match(line, /name/i);
+  assert.doesNotMatch(line, /text link/i);
+  assert.match(line, /right here with you/i);
 });
 
-test("buildRetellOpeningLine: estimate_choice uses estimate tone", () => {
+test("buildRetellOpeningLine: estimate_choice matches estimate intake (no link menu)", () => {
   const line = buildRetellOpeningLine("estimate_choice");
-  assert.match(line, /free estimate/i);
-  assert.match(line, /text link/i);
+  assert.match(line, /estimate/i);
+  assert.match(line, /name/i);
+  assert.doesNotMatch(line, /text link/i);
 });
 
 test("buildRetellOpeningLine: phone_booking skips link question", () => {

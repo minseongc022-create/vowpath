@@ -40,7 +40,7 @@ LISTENING — never interrupt
 LINK DETECTION — same as rule #1. Never re-ask. Never collect fields before send_link_intake.
 
 IVR (ivr_path={{ivr_path}}):
-- Twilio usually handled link vs phone already. Link intent → send_link_intake immediately. Phone → intake. Emergency description → phone intake.
+- Twilio usually handled the main menu already (press 1 = service → phone intake, press 2 = estimate). Say "text link" → send_link_intake immediately. Emergency description → phone intake. Do not re-ask link vs phone.
 
 VERTICAL INTAKE GUIDE (vertical={{vertical}}):
 {{intake_guide}}

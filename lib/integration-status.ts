@@ -150,7 +150,7 @@ export function getIntegrationItems(
 
             : jobberLinked
 
-              ? "Jobber connected — confirm setup"
+              ? "Jobber account connected"
 
               : "Optional — for shops on Jobber",
 

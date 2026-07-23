@@ -5,7 +5,8 @@ import {
   resolveApprovalFromWorkflow,
 } from "./evaluate";
 import type { RuleEvaluationContext, WorkflowRule } from "./types";
-import { shouldOwnerApproveAfterCustomerSlotPick } from "../booking-settings";
+import { shouldOwnerApproveAfterCustomerSlotPickForVertical } from "../booking-settings";
+import type { ShopVertical } from "../shop-vertical";
 
 export type WorkflowSimulationResult = {
   bookingId: string;
@@ -21,6 +22,7 @@ export function simulateWorkflowForBooking(params: {
   rules: WorkflowRule[];
   booking: RecentBooking;
   bookingSettings: ShopBookingSettings;
+  vertical?: ShopVertical;
   ctxExtras?: Partial<RuleEvaluationContext>;
 }): WorkflowSimulationResult {
   const ctx: RuleEvaluationContext = {
@@ -37,8 +39,11 @@ export function simulateWorkflowForBooking(params: {
     ...params.ctxExtras,
   };
 
-  const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
+  const vertical = params.vertical ?? "restoration";
+  const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPickForVertical(vertical, {
     priority: params.booking.priority,
+    issueType: params.booking.issueType,
+    symptom: params.booking.issueType,
   });
 
   const decision = evaluateWorkflowRules(params.rules, ctx);
@@ -71,6 +76,7 @@ export function simulateWorkflowBatch(params: {
   rules: WorkflowRule[];
   bookings: RecentBooking[];
   bookingSettings: ShopBookingSettings;
+  vertical?: ShopVertical;
   limit?: number;
 }): WorkflowSimulationResult[] {
   return params.bookings

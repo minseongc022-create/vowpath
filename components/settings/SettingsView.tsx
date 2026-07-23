@@ -40,7 +40,6 @@ import {
 import {
   canSaveSchedule,
   markForwardingDone,
-  markJobberConfirmed,
   markJobberSkipped,
   saveSchedule,
 } from "@/lib/schedule-save";
@@ -248,13 +247,6 @@ function SettingsViewBody({
     if (confirmed.length > 0) setConfirmed([]);
   }
 
-  async function handleJobberConfirm() {
-    if (!jobberConnected) return;
-    const next = await markJobberConfirmed(shop);
-    setShop(next);
-    await refresh();
-  }
-
   async function handleJobberSkip() {
     const next = await markJobberSkipped(shop);
     setShop(next);
@@ -439,8 +431,6 @@ function SettingsViewBody({
           <JobberSettingsPanel
             connected={jobberConnected}
             stepDone={jobberStepDone}
-            showConfirm={jobberLinked && !jobberStepDone}
-            onConfirm={() => void handleJobberConfirm()}
             onSkip={() => void handleJobberSkip()}
             onStatusChange={(connected, meta) => {
               setJobberConnected(connected);
@@ -478,7 +468,6 @@ function SettingsViewBody({
       contactItem.done,
       contactValid,
       handleAlwaysOnChange,
-      handleJobberConfirm,
       handleJobberSkip,
       handleRowsChange,
       jobberConnected,
