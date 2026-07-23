@@ -66,7 +66,7 @@ export function DemoLinkIntakeScene({ vertical = "restoration" }: { vertical?: D
       <div className="flex items-center justify-between border-b border-white/10 px-8 py-5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">Text link intake</p>
-          <h1 className="text-xl font-bold md:text-2xl">Press 2 → choose purpose → send booking or estimate details</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Say “text link” at the menu → SMS form → submit details</h1>
         </div>
         <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[#b59b78]">
           Step {phaseIndex + 1} / {PHASES.length}
