@@ -2,19 +2,19 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "masculine-voice-v23-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v24-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
 export const RETELL_DEEP_MALE_VOICE_IDS = [
+  "11labs-Steve",
+  "11labs-Marcus",
+  "11labs-Daniel",
   "11labs-Mark",
   "11labs-Adam",
   "11labs-Clyde",
-  "11labs-Marcus",
-  "11labs-Steve",
-  "11labs-Daniel",
 ];
 
 const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan|billy/i;
@@ -25,25 +25,22 @@ export function isThinRetellVoiceId(voiceId) {
 
 /** Service / emergency — deep, grounded US male (Mark / Bill / Adam first). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
+  "Steve",
+  "Marcus",
+  "Daniel",
   "Mark",
-  "Bill",
   "Adam",
   "Clyde",
-  "Marcus",
-  "Steve",
-  "Daniel",
   "George",
 ];
 
-/** Free estimate — same deep trustworthy set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
+  "Steve",
+  "Marcus",
+  "Daniel",
   "Mark",
-  "Bill",
   "Adam",
   "Clyde",
-  "Marcus",
-  "Steve",
-  "Daniel",
 ];
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -69,7 +66,20 @@ function pickFromList(voices, preferredNames, options = {}) {
     explicitRaw && !isThinRetellVoiceId(explicitRaw) ? explicitRaw : undefined;
   if (explicit) return explicit;
 
-  const americanMales = (voices ?? []).filter(
+  const all = voices ?? [];
+
+  for (const id of RETELL_DEEP_MALE_VOICE_IDS) {
+    const hit = all.find(
+      (v) =>
+        v.voice_id === id &&
+        isMale(v) &&
+        !isThinRetellVoiceId(v.voice_id) &&
+        (v.provider === "elevenlabs" || !v.provider),
+    );
+    if (hit) return hit.voice_id;
+  }
+
+  const americanMales = all.filter(
     (v) => isUsEnglishVoice(v) && isMale(v) && !isThinRetellVoiceId(v.voice_id),
   );
 
