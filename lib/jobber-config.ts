@@ -70,9 +70,9 @@ function sanitizeRedirectUri(raw: string): string {
 }
 
 /**
- * OAuth redirect URI. Prefer explicit env, then canonical app URL (not request host),
- * so www vs apex never mismatches Jobber Developer Center.
- * Must exactly match Jobber Developer Center → OAuth Callback URL.
+ * OAuth redirect URI. Prefer explicit env (exact match after sanitize), then canonical apex.
+ * Jobber exact-matches this to Developer Center → OAuth Callback URL.
+ * Register BOTH apex + www when the Jobber UI allows multiple; we send apex by default.
  */
 export function getJobberRedirectUri(requestOrigin?: string): string {
   const explicit = sanitizeRedirectUri(process.env.JOBBER_REDIRECT_URI?.trim() || "");
@@ -84,10 +84,7 @@ export function getJobberRedirectUri(requestOrigin?: string): string {
       );
       return JOBBER_PRODUCTION_CALLBACK_URI;
     }
-    // Normalize www → apex for production effiroad hosts (Jobber exact-match).
-    if (isProductionRuntime() && isEffiroadProductionHost(explicit)) {
-      return JOBBER_PRODUCTION_CALLBACK_URI;
-    }
+    // Honor explicit production URL as-is (ops may have registered www-only or apex-only).
     return explicit;
   }
 
@@ -98,7 +95,12 @@ export function getJobberRedirectUri(requestOrigin?: string): string {
   }
 
   // Prefer env app URL over request origin (avoids www.effiroad.com vs effiroad.com mismatch).
-  if (envOrigin) return buildCallbackUrl(envOrigin);
+  if (envOrigin) {
+    if (isProductionRuntime() && isEffiroadProductionHost(envOrigin)) {
+      return JOBBER_PRODUCTION_CALLBACK_URI;
+    }
+    return buildCallbackUrl(envOrigin);
+  }
 
   if (requestOrigin) {
     const cleaned = sanitizeRedirectUri(requestOrigin);
@@ -109,6 +111,15 @@ export function getJobberRedirectUri(requestOrigin?: string): string {
   }
 
   return "";
+}
+
+/** URLs shops should paste into Jobber Developer Center (exact strings). */
+export function getJobberRecommendedCallbackUris(): string[] {
+  return [
+    JOBBER_PRODUCTION_CALLBACK_URI,
+    `https://www.effiroad.com${CALLBACK_PATH}`,
+    "http://localhost:3000/api/jobber/callback",
+  ];
 }
 
 /** True when redirect URI looks safe to send to Jobber (production). */

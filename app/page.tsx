@@ -11,9 +11,14 @@ import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { DemoSummary } from "@/components/sections/DemoSummary";
 import { SocialProof } from "@/components/sections/SocialProof";
 import { NumberChoice } from "@/components/sections/NumberChoice";
+import { ProductStack } from "@/components/sections/ProductStack";
+import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
 import { Comparison } from "@/components/sections/Comparison";
 import { WhyWeWin } from "@/components/sections/WhyWeWin";
+import { Differentiators } from "@/components/sections/Differentiators";
+import { Features } from "@/components/sections/Features";
 import { ApprovalLoop } from "@/components/sections/ApprovalLoop";
+import { JobberOptional } from "@/components/sections/JobberOptional";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
@@ -42,9 +47,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <DemoSummary />
         <SocialProof variant="trust" />
         <NumberChoice />
+        <ProductStack />
+        <MissedCallFlow />
         <Comparison />
         <WhyWeWin />
+        <Differentiators />
+        <Features />
         <ApprovalLoop />
+        <JobberOptional />
         <HowItWorks />
         <SocialProof />
         <Pricing />

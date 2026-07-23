@@ -23,51 +23,51 @@ export const heroEn = {
   headline: "Never miss another emergency job.",
   headlineAccent: "Answer. Dispatch. Document — around the clock.",
   brandLine:
-    "When your crew can't pick up, Effiroad answers like a trained receptionist — calm, polite, and thorough. Natural US voice, clear intake, then smart dispatch: clear water jobs roll to your on-call tech; fire, sewage, and unclear intakes wait for your text — reply 1 to send, 2 to pass.",
+    "When your crew can't pick up, Effiroad answers like a trained receptionist — clear cinematic US voice, calm and thorough. Then smart dispatch: clear jobs roll to your on-call tech; risky or unclear intakes wait for your text — reply 1 to send, 2 to pass.",
   subhead:
-    "Built for independent restoration and home-service shops. High-quality voice. Owner control on every risky job. No CRM required.",
-  trustLine: "1–15 crew shops · No CRM required",
+    "Built for independent restoration and home-service shops. Keep your main number or use a dedicated Effiroad line. Auto crew texts, live ETA map, owner control — no CRM required.",
+  trustLine: "1–15 crew shops · No CRM required · Forward or dedicated number",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "High-quality natural US voice",
-    "Owner 1 / 2 on fire & Cat-3",
-    "Hold unclear addresses — no blind roll",
-    "No CRM required — SMS + dashboard",
+    "Cinematic-clear US voice",
+    "Keep your number — or ours",
+    "Auto crew SMS + live ETA map",
+    "Owner 1 / 2 on risky jobs",
   ] as const,
 };
 
 export const quickFaqEn = {
   id: "quick-qa",
   label: "Quick answers",
-  title: "Why Effiroad — not another answering service",
+  title: "Why Effiroad beats typical answering services",
   subtitle:
-    "The questions owners ask first — and how we're built differently from typical answering services and CRM add-ons.",
+    "The questions owners ask first — and how we're built differently from hybrids, per-minute VRs, and CRM add-ons.",
   items: [
     {
       q: "Why Effiroad instead of a typical answering service?",
-      a: "Choose dispatch billing (pay when a job is approved) or transparent Voice minute plans — no surprise live-agent transfer fees, no CRM lock-in. Same natural voice and owner 1 / 2 holds either way.",
+      a: "We don't just take a message. Clear jobs auto-text your crew (accept/pass). Risky jobs wait for your 1 / 2. Customers get ETA SMS + a free live map — answering services rarely do any of that.",
     },
     {
       q: "Does the AI actually sound human?",
-      a: "Yes. Warm US voice, conversational pacing, and polite follow-ups — like a trained shop receptionist, not a rigid phone tree or form-with-a-voice.",
+      a: "Yes — cinematic-clear US voice, conversational pacing, polite follow-ups. Tuned for phone clarity so callers hear every word, not a muddy or robotic script.",
     },
     {
       q: "Will it collect complete job info before dispatch?",
-      a: "Address, loss type, urgency, and insurance details — verified on the call. Clear standard water jobs dispatch while they wait. Fire, Cat-3, and fuzzy details wait for your 1 / 2.",
+      a: "Address, issue type, urgency, and trade-specific notes (insurance for restoration, system details for HVAC) — verified on the call or SMS link. Clear jobs dispatch while they wait; edge cases wait for you.",
     },
     {
       q: "How is this different from a CRM add-on receptionist?",
-      a: "Conversational intake tuned for trades — not checkbox questions. Works with or without your CRM. Three forwarding paths plus a dedicated-number fallback when carriers block overflow.",
+      a: "Works with or without Jobber. Conversational intake by trade — not checkbox questions. Three forwarding paths plus a dedicated Effiroad number with the same AI quality.",
     },
     {
       q: "Do I have to change my phone number?",
-      a: "Usually no — forward unanswered calls from your existing line. If forwarding won't work on your carrier, use your Effiroad dedicated number — same AI quality, not a downgrade.",
+      a: "No. Keep your main number and forward busy/no-answer — or use your Effiroad dedicated number as the after-hours (or main) line. Same cinematic voice and dispatch either way; dedicated is recommended when carriers block overflow.",
     },
     {
       q: "What do contractors complain about elsewhere?",
-      a: "Bill shock from overages and add-ons, inconsistent agents, message-only on complex calls, CRM lock-in, and weeks of onboarding. Effiroad: pick dispatch or clear per-minute plans, instant AI pickup, real dispatch, ~10-minute go-live.",
+      a: "Bill shock, inconsistent agents, message-only on complex calls, CRM lock-in, weeks of onboarding. Effiroad: clear plans, instant AI pickup, real crew dispatch + live map, ~10-minute go-live.",
     },
   ],
 } as const;
@@ -75,13 +75,13 @@ export const quickFaqEn = {
 export const callExperienceEn = {
   id: "call-experience",
   label: "Phone experience",
-  title: "Sounds human. Collects everything. Dispatches right.",
+  title: "Sounds cinematic. Collects everything. Dispatches right.",
   subtitle:
-    "Homeowners in a panic don't want a form or hold music — they want someone calm who gets the address right and gets a tech rolling.",
+    "Homeowners in a panic don't want a form or hold music — they want someone clear and calm who gets the address right and gets a tech rolling.",
   points: [
     {
-      title: "Natural, human-like voice",
-      body: "Warm US tone with conversational pacing — not robotic menus or bored agents reading a script. Same professional voice on every call, 2 AM or 2 PM.",
+      title: "Cinematic-clear US voice",
+      body: "Phone-tuned clarity — not muddy, thin, or robotic. Same professional voice on every call, 2 AM or 2 PM.",
     },
     {
       title: "Polite, respectful intake",
@@ -89,11 +89,11 @@ export const callExperienceEn = {
     },
     {
       title: "Complete info before dispatch",
-      body: "Verified address, loss type, active leak status, and insurance-ready notes — captured on the call, not a vague \"we'll call you back.\"",
+      body: "Verified address, issue type, urgency, and trade-ready notes — captured on the call or SMS link, not a vague \"we'll call you back.\"",
     },
     {
       title: "Dispatch while they wait",
-      body: "Clear standard jobs roll to your crew with SMS. Fire, Cat-3, and unclear intakes ping you: 1 = go, 2 = pass — not blind auto-book or message-only.",
+      body: "Clear jobs text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
     },
   ],
   contrast: {
@@ -102,13 +102,13 @@ export const callExperienceEn = {
       "Per-minute billing and surprise transfer fees",
       "Rigid form-style questions — \"a form with a voice\"",
       "Complex calls default to message-taking only",
-      "Weeks of onboarding and enterprise-only pricing",
+      "No crew texting / no live customer map",
     ],
     ours: [
-      "Clear plans: dispatch billing or Voice per-minute — pick one, no surprise transfer fees",
-      "Conversational intake tuned for water, fire, mold, HVAC",
-      "Real dispatch on clear jobs — you approve the edge cases",
-      "Go live in ~10 minutes — test call built into setup",
+      "Clear plans: dispatch billing or Voice per-minute — no surprise transfer fees",
+      "Conversational intake tuned for restoration + HVAC",
+      "Real auto crew dispatch on clear jobs — you approve the edge cases",
+      "On-my-way SMS + free live ETA map (no app install)",
     ],
   },
 } as const;
@@ -326,43 +326,44 @@ export const revenueLeaksEn = {
 };
 
 export const differentiatorsEn = {
-  title: "What restoration companies get with Effiroad",
-  subtitle: "Dispatch speed — with loss triage and owner exceptions built in.",
+  id: "differentiators",
+  title: "What shops get with Effiroad — and competitors usually don't",
+  subtitle: "Real product features shipping today — not a message-taker with a fancy demo.",
   items: [
     {
-      title: "Auto-dispatch (default)",
+      title: "Keep your number — or use ours",
       description:
-        "Standard water losses with complete address and contact info dispatch to on-call crew — you get a heads-up, not a homework assignment.",
+        "Forward busy/no-answer from your main line, or make your Effiroad dedicated number the after-hours (or primary) line. Same AI quality either way; dedicated is recommended when carriers block overflow.",
     },
     {
-      title: "Fire / Cat-3 → your 1 / 2 first",
+      title: "Auto crew dispatch (accept / pass)",
       description:
-        "Structure fire, sewage backup, and large commercial losses trigger an urgent text. Reply 1 to dispatch or 2 to pass.",
+        "Clear jobs text your on-call techs in order. They reply 1 = yes, 2 = pass. No reply? We move to the next tech automatically.",
     },
     {
-      title: "Restoration intake — not a generic script",
+      title: "Live ETA map for homeowners",
       description:
-        "Water, fire, smoke, mold, sewage. Loss category and urgency captured before anyone rolls.",
+        "When a tech is on the way, the customer gets SMS with ETA plus a free live map link (browser GPS — no paid map API, no app install).",
     },
     {
-      title: "Hold unclear intakes",
+      title: "Trade-aware rules (restoration vs HVAC)",
       description:
-        "Bad address or vague loss details? Job waits for your 1 / 2 — competitors would have dispatched blind.",
+        "Water can auto-roll; fire/Cat-3 wait for you. HVAC: clear no-heat/no-cool can auto; gas smell or sparking always holds. Rules don't mix across trades.",
     },
     {
-      title: "Your number or ours — your call",
+      title: "Owner 1 / 2 + undo 9",
       description:
-        "Keep your company number and forward busy/no-answer calls to Effiroad, or use the dedicated number we give you as your main line. Either way you never miss a call.",
+        "Risky or unclear intakes ping your phone. Reply 1 to dispatch, 2 to pass, 9 to undo a bad auto-roll — competitors often book blind or only leave a message.",
     },
     {
-      title: "Optional CRM sync",
+      title: "SMS link intake",
       description:
-        "Confirmed jobs can sync to Jobber or your existing tool. Run on SMS + dashboard alone until you're ready.",
+        "Caller prefers text? They get a short form link — same triage, address verify, and dispatch path as the phone AI.",
     },
     {
-      title: "Your customer data, your company",
+      title: "Optional Jobber sync",
       description:
-        "Homeowner name, phone, address, and loss notes are stored exclusively in your dashboard — never sold, never shared, never pooled into a lead marketplace. Intake links expire after use.",
+        "Confirmed jobs can push to Jobber. Run on SMS + dashboard alone until you're ready — no CRM lock-in.",
     },
   ],
 };
@@ -397,16 +398,17 @@ export const comparisonEn = {
   id: "comparison",
   title: "Why shops pick Effiroad over typical alternatives",
   subtitle:
-    "Independent reviews flag billing surprises, rigid scripts, and weeks-long setup elsewhere. Effiroad is built for 1–15 crew shops that need accurate intake, friendly voice, and go-live in minutes — not enterprise sales calls.",
+    "Independent reviews flag billing surprises, rigid scripts, and weeks-long setup elsewhere. Effiroad ships cinematic voice, auto crew texting, live ETA map, and trade-aware holds — go live in minutes.",
   headers: ["", "Effiroad", "Typical answering service", "CRM add-on / enterprise AI"],
   rows: [
-    ["Fire / Cat-3 / unclear", "Owner SMS 1 / 2 — never blind", "Script / message only", "Often blind auto-book"],
-    ["Clear water auto-dispatch", "Crew SMS + owner FYI", "Callback later", "Calendar booking only"],
-    ["Reply 9 undo", "Yes — reverse a bad auto-roll", "Rare", "No"],
-    ["Call voice quality", "Natural US voice, every call", "Human variance or transfer fees", "Rigid scripted Q&A"],
+    ["Phone voice", "Cinematic-clear US AI every call", "Human variance or transfers", "Often rigid / form-like"],
+    ["Your number options", "Forward main line OR dedicated Effiroad #", "Usually their number only", "Depends on CRM"],
+    ["Crew auto-dispatch", "Round-robin SMS · 1=yes / 2=pass", "Callback / message only", "Calendar book or blind"],
+    ["Live ETA map", "Free customer map link on the way", "Rare", "Rare / paid add-on"],
+    ["Risky jobs", "Owner SMS 1 / 2 — never blind", "Script / message only", "Often blind auto-book"],
+    ["Trade-aware rules", "Restoration ≠ HVAC policies", "One generic script", "One generic script"],
     ["Works without CRM", "Yes — SMS + dashboard", "Yes", "Often CRM-locked"],
     ["Pricing", `Dispatch from ${SITE.flexBasePrice}/mo · Voice from ${SITE.voiceStarterPrice}/mo`, "Per-minute + transfer fees", "Add-on / $1K+ enterprise"],
-    ["Billable unit", "Approved dispatch OR included talk-minutes", "Minutes / every call", "Seats + usage"],
     ["Go live", "~10 minutes", "Days + scripting", "Days to weeks"],
   ],
 };
@@ -414,25 +416,25 @@ export const comparisonEn = {
 export const competitorWinEn = {
   id: "why-we-win",
   label: "What reviews say elsewhere",
-  title: "We fixed what contractors complain about",
+  title: "We fixed what contractors complain about — and shipped more",
   subtitle:
-    "Common pain points from public reviews and trade forums — and how Effiroad is built differently.",
+    "Common pain points from public reviews and trade forums — plus Effiroad advantages answering services and CRM bots usually lack.",
   pillars: [
     {
-      title: "Setup that finishes",
-      body: "Three forwarding paths with one-tap codes — and a dedicated-number fallback with the same AI quality when carriers block overflow.",
+      title: "Your number, your way",
+      body: "Keep the main line with forwarding — or run a dedicated Effiroad number with the same cinematic AI. Recommended dedicated path when carriers block overflow.",
     },
     {
-      title: "Accurate intake, not voicemail",
-      body: "Address, urgency, loss type, and insurance-ready notes — captured on the call, not a vague callback promise.",
+      title: "Auto crew + live map",
+      body: "Clear jobs text techs (1/2). On the way: homeowner gets ETA SMS + free live map — not just \"someone will call you back.\"",
     },
     {
-      title: "Dispatch while they wait",
-      body: "Clear jobs can roll to your crew with SMS. Fire, Cat-3, and fuzzy details wait for your 1 / 2 — not blind auto-book.",
+      title: "Trade-aware holds",
+      body: "Restoration and HVAC rules stay separate. Clear jobs can auto-roll; gas, fire, Cat-3, and fuzzy details wait for your 1 / 2.",
     },
     {
-      title: "Friendly, consistent voice",
-      body: "Same natural US voice every call — no rotating agents, no press-1 screening, no per-transfer surprise bills.",
+      title: "Cinematic-clear voice",
+      body: "Phone-tuned clarity every call — no rotating agents, no muddy TTS, no per-transfer surprise bills.",
     },
   ],
   competitors: [
@@ -443,34 +445,34 @@ export const competitorWinEn = {
         "Billing surprises from add-ons and spam-call overages",
         "Receptionist quality varies call to call",
       ],
-      fix: "Clear published pricing — no live-agent transfer fees. Same AI voice every time. Test call built into setup.",
+      fix: "Clear published pricing — no live-agent transfer fees. Same cinematic AI voice every time. Real crew dispatch + live map built in.",
     },
     {
       name: "Per-minute virtual receptionists",
       pains: [
         "Per-minute billing with 60-second rounding — hangups still bill",
-        "Bill shock in busy season from unpredictable usage",
-        "Inconsistent script following on live calls in reviews",
+        "Message-taking when the call gets complex",
+        "No auto tech texting or customer live map",
       ],
-      fix: "Dispatch plans bill per approved job — or Voice plans with clear included minutes. Instant AI answer, no hold music.",
+      fix: "Dispatch plans bill per approved job — or Voice plans with clear minutes. Instant AI answer, crew SMS, live ETA map.",
     },
     {
       name: "CRM add-on AI receptionists",
       pains: [
         "Rigid form-style questions — 'a form with a voice'",
-        "Complex calls default to message-taking; business-name confusion",
-        "CRM-locked; extra monthly fee; forwarding setup still on you",
+        "CRM-locked; forwarding still on you",
+        "Blind book or message-only on edge cases",
       ],
-      fix: "Works with or without your CRM. Conversational intake tuned for trades. Three forwarding paths + dedicated number fallback (same quality).",
+      fix: "Works with or without Jobber. Conversational trade intake. Owner 1/2 holds + dedicated-number fallback.",
     },
     {
       name: "Enterprise trade AI platforms",
       pains: [
-        "Enterprise pricing ($1K–$3K/mo cited in reviews); multi-week onboarding",
-        "Platform-locked for full value; overkill for 1–15 crew shops",
-        "No public pricing; sales call required to compare",
+        "Enterprise pricing; multi-week onboarding",
+        "Platform-locked for full value",
+        "Overkill for 1–15 crew shops",
       ],
-      fix: "Transparent flat pricing for owner-operators. Go live in ~10 minutes. Optional CRM sync — no single platform required.",
+      fix: "Transparent pricing for owner-operators. ~10-minute go-live. Optional CRM sync — no single platform required.",
     },
   ],
   footnote:
@@ -478,20 +480,39 @@ export const competitorWinEn = {
 };
 
 export const featuresEn = {
-  title: "Everything that ships today",
-  subtitle: "AI phone is the core. Analytics and Effiroad AI are built in — not upsells on a generic call bot.",
+  title: "Everything that ships today — and beats a message-taker",
+  subtitle:
+    "AI phone is the core. Auto crew dispatch, live ETA map, trade rules, and analytics are built in — not upsells on a generic call bot.",
   items: [
     {
       title: "AI phone + link intake",
       description:
-        "Forwarded calls and SMS intake links. Water / fire / mold triage, verified address, and insurance-ready notes.",
+        "Forwarded calls and SMS intake links. Trade-aware triage, verified address, and dispatch-ready notes.",
+      tag: "Core",
+    },
+    {
+      title: "Main number or dedicated line",
+      description:
+        "Keep your company number with forwarding — or use your Effiroad dedicated number. Same cinematic voice either way.",
       tag: "Core",
     },
     {
       title: "Smart dispatch + owner SMS",
       description:
-        "Clear standard losses can dispatch instantly. Fire, Cat-3, and unclear intakes ping you: 1 = go, 2 = pass, 9 = undo.",
+        "Clear jobs can auto-roll. Risky or unclear intakes ping you: 1 = go, 2 = pass, 9 = undo.",
       tag: "Core",
+    },
+    {
+      title: "Auto crew texting",
+      description:
+        "Round-robin / on-call SMS. Techs reply 1 = accept, 2 = pass. No reply? Next tech automatically.",
+      tag: "Included",
+    },
+    {
+      title: "Live ETA map",
+      description:
+        "Tech opens a GPS link; homeowner gets ETA SMS + free live map — no app install, no paid map fees.",
+      tag: "Included",
     },
     {
       title: "Shop analytics dashboard",
@@ -506,13 +527,7 @@ export const featuresEn = {
       tag: "Assistant",
     },
     {
-      title: "Crew dispatch + on my way",
-      description:
-        "Optional round-robin crew SMS on confirm. Tech replies with ETA — homeowner gets an on-the-way text.",
-      tag: "Included",
-    },
-    {
-      title: "Calendar · email · optional CRM",
+      title: "Calendar · email · optional Jobber",
       description:
         "Dashboard calendar, owner email backup, and optional Jobber sync — no double entry after a storm.",
       tag: "Included",

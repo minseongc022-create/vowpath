@@ -88,7 +88,7 @@ Jobber에 **Client** + **Request** 가 생성됩니다.
 |------|------|
 | 연결 버튼 비활성 | `JOBBER_CLIENT_ID` / `SECRET` 확인 |
 | `invalid_state` | 쿠키 차단 해제, 같은 브라우저에서 재시도 |
-| `redirect_uri` 오류 (isn't valid / 유효하지 않습니다) | Jobber Developer Center → **같은 Client ID** 앱의 OAuth Callback URL에 `https://effiroad.com/api/jobber/callback` 을 **공백·www 없이** 추가 후 저장. Vercel `JOBBER_REDIRECT_URI`도 동일 값으로. |
+| `redirect_uri` 오류 (isn't valid / 유효하지 않습니다) | Jobber Developer Center에서 **Vercel과 같은 Client ID** 앱을 연 뒤 OAuth Callback URL에 `https://effiroad.com/api/jobber/callback` 을 **공백 없이** 붙여넣고 **Save**. (칸이 하나뿐이면 localhost를 이 URL로 교체.) 설정 화면 체크박스 후 Connect. |
 | 배포 후 가입 안 됨 | Vercel Redis(KV) 연결 |
 | developer-sign-up 빨간 오류 | 이메일 중복 → 로그인/재설정 또는 새 이메일 / `api-support@getjobber.com` |
 | Trial 만료·Re-Authorize 불가 | Core 결제 말고 developer testing 전환 요청 |

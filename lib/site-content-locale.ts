@@ -102,16 +102,16 @@ export const demoSummaryEn = {
 } as const;
 
 export const numberChoiceEn = {
-  title: "Connect your line — forwarding first, dedicated as backup",
+  title: "Your main number — or a dedicated Effiroad line",
   subtitle:
-    "Most shops keep their Google number with overflow or VoIP routing. If your carrier blocks forwarding, switch to your Effiroad dedicated number — same AI voice and intake.",
+    "Both options get the same cinematic AI voice, intake, and auto dispatch. Keep your Google/shop number with forwarding, or publish your Effiroad dedicated number (recommended when carriers block overflow).",
   footer:
-    "Every path includes a built-in test call. Dedicated number is not a downgrade — same natural voice, polite intake, and dispatch. Use it when forwarding won't stick.",
+    "Every path includes a built-in test call. Dedicated is not a downgrade — same clarity, polite intake, crew SMS, and live ETA map.",
   options: [
     {
       id: "keep",
-      badge: "Start here",
-      title: "Keep your number (overflow / VoIP)",
+      badge: "Popular",
+      title: "Keep your main number",
       description:
         "Shop cell: one-tap AT&T, T-Mobile, Verizon, or Xfinity codes. Business phone: Dialpad, RingCentral, or Grasshopper unanswered routing. Your line rings first — Effiroad catches the miss.",
       points: [
@@ -122,13 +122,13 @@ export const numberChoiceEn = {
     },
     {
       id: "ours",
-      badge: "If forwarding fails",
-      title: "Effiroad dedicated number (same quality)",
+      badge: "Recommended if forwarding fails",
+      title: "Effiroad dedicated number",
       description:
-        "When overflow won't work on your plan, publish your Effiroad number on Google, website, and trucks. Same natural AI voice, same polite intake — customers call Effiroad directly.",
+        "Publish your Effiroad number on Google, website, and trucks. Same cinematic AI voice, same intake and dispatch — customers call Effiroad directly with zero carrier codes.",
       points: [
-        "Same call experience as forwarding — not a lesser option",
-        "Zero carrier codes — works on every plan",
+        "Same call quality as forwarding — not a lesser option",
+        "Works on every plan — no overflow blocks",
         "Copy number → update Google → test call",
       ],
     },
