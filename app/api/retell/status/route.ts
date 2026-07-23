@@ -108,7 +108,7 @@ export async function GET() {
       mainMenuEnglishOnly: mainMenuIsEnglishOnly(),
     },
     howToTest:
-      "Call your shop line → main menu → press 1 (service) → press 1 (phone) → dispatcher collects details.",
+      "Call your shop line → main menu → press 1 (service) → AI collects details. (Say “text link” at the menu for an SMS form instead.)",
     syncAgent: "GET /api/cron/retell-production-sync with CRON_SECRET",
   });
 }

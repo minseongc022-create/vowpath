@@ -84,8 +84,8 @@ export const SETTINGS_PAGE_EN = {
   jobberDescription:
     "Connect only if you already use Jobber. You can review and approve from texts and the dashboard without it. After you reply 1, approved jobs sync as Requests in Jobber.",
   jobberConnectedSummary: "Connected: {account}",
-  jobberConfirm: "Confirm connection",
-  jobberConfirmHint: "After OAuth connects, tap Confirm connection.",
+  jobberConfirm: "Connected",
+  jobberConfirmHint: "Connection saves automatically after you Allow Access in Jobber.",
   jobberConfirmed: "Jobber connection saved",
   jobberSkip: "Continue without Jobber",
   jobberSkippedNote: "Jobber is skipped. You can connect anytime from here.",

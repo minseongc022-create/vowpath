@@ -38,7 +38,7 @@ ${howSteps}
 
 KEY FEATURES:
 - Keep your existing phone number — forward unanswered/after-hours calls to Effiroad
-- AI phone menu: press 1 = service/emergency, press 2 = free estimate → SMS link intake
+- AI phone menu: press 1 = service/emergency → AI intake on the call; press 2 = free estimate → AI estimate intake (say "text link" at the menu for an SMS form instead)
 - Estimate pipeline: phone/link estimate leads land on the dashboard as Estimate (not billed). Owner texts a dollar quote from booking detail (“Send quote”); unbooked quotes get one SMS follow-up after 3 days when marketing SMS consent exists
 - On-site estimate builder (truck): itemized line items (labor/materials/equipment/fees), tax, insurance claim fields, license/IICRC on document, customer share link at /e/[token] with print-to-PDF
 - Auto-dispatch clear P1 jobs to on-call crew via SMS; owner approves exceptions (fire, Cat-3, unclear)

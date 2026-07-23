@@ -186,7 +186,7 @@ export const jobberConnectEn = {
     "I saved https://effiroad.com/api/jobber/callback on the matching Client ID app in Jobber Developer Center.",
 
   redirectConfirmHint:
-    "Check the box above after saving the Callback URL — then Connect Jobber will unlock.",
+    "Only needed if Connect fails — save the Callback URL above, then try Connect again.",
 
   oauthErrorRedirectLocalhost:
     "Production cannot use a localhost callback. Set JOBBER_REDIRECT_URI=https://effiroad.com/api/jobber/callback in Vercel, and register that same URL in Jobber Developer Center.",

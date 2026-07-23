@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import { getShopProfile } from "@/lib/shop-profile-db";
 import { getSession } from "@/lib/session";
 import { listWorkflowRules } from "@/lib/workflow-rules/store";
 import { simulateWorkflowBatch } from "@/lib/workflow-rules/simulate";
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
     const start = new Date();
     start.setDate(end.getDate() - days);
 
-    const [rules, calls, jobs, statuses, tokens, settings] = await Promise.all([
+    const [rules, calls, jobs, statuses, tokens, settings, profile] = await Promise.all([
       listWorkflowRules(session.sub),
       listCallLogs(session.sub, {
         start: start.toISOString().slice(0, 10),
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
       getBookingRequestStatuses(session.sub),
       getJobberTokens(session.sub),
       getShopBookingSettings(session.sub),
+      getShopProfile(session.sub),
     ]);
 
     const jobberBookings = tokens
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
       rules: activeRules,
       bookings,
       bookingSettings: settings,
+      vertical: profile.vertical ?? "restoration",
       limit: 40,
     }).filter((r) => r.matchedRules.length > 0);
 
