@@ -2,9 +2,10 @@ import type { GeneratedJobCard } from "../job-card-ai";
 import type { RequestStatus } from "../booking-policy";
 import type { SlotOffer } from "../booking-settings";
 import {
-  shouldOwnerApproveAfterCustomerSlotPick,
+  shouldOwnerApproveAfterCustomerSlotPickForVertical,
   shouldSendOwnerApprovalSms,
 } from "../booking-settings";
+import { getShopVertical } from "../vertical-context";
 import { isTenantAfterHours } from "../after-hours";
 import { extractZipFromAddress, isZipInServiceArea } from "../service-area";
 import { inferLossCategoryFromText } from "../loss-category";
@@ -118,7 +119,8 @@ export async function applyCustomerChosenSchedule(
   let confirmedSlot = slotCheck.slot;
 
   const lossCategory = inferLossCategoryFromText(params.card.symptom, params.card.symptom);
-  const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPick({
+  const vertical = await getShopVertical(params.userId);
+  const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPickForVertical(vertical, {
     priority: params.priority,
     confidenceMin: confidenceMin(params.confidence),
     lossCategory,
@@ -241,6 +243,7 @@ export async function applyCustomerChosenSchedule(
         settings.ownerApprovalSms,
         effectivePriority,
         confidenceMin(params.confidence),
+        lossCategory,
       );
     if (sendSms) {
       await notifyOwnerApprovalNeeded({
@@ -251,6 +254,7 @@ export async function applyCustomerChosenSchedule(
         window: confirmedSlot.label,
         priority: effectivePriority,
         ambiguous: confidenceMin(params.confidence) < 65,
+        address: params.card.address,
       });
     }
   } else {

@@ -234,6 +234,8 @@ export {
   AUTO_BOOK_CONFIDENCE_MIN,
   confidenceMinFromFields,
   resolveAutoBookDecision,
+  resolveAutoBookDecisionForVertical,
   shouldOwnerApproveAfterCustomerSlotPick,
+  shouldOwnerApproveAfterCustomerSlotPickForVertical,
   shouldSendOwnerApprovalSms,
 } from "./auto-book-policy";

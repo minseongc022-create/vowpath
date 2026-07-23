@@ -140,7 +140,9 @@ export function canCancelScheduled(status: string): boolean {
 }
 
 export function canMarkScheduled(status: string): boolean {
-  return normalizeRequestStatus(status) === "approved";
+  const s = normalizeRequestStatus(status);
+  // approved → scheduled (normal), or already scheduled (customer reschedule keep)
+  return s === "approved" || s === "scheduled";
 }
 
 export function canMarkCompleted(status: string): boolean {

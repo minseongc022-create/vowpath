@@ -180,16 +180,55 @@ export async function notifyCustomerOnMyWay(params: {
     return { ok: false, error: "No customer phone on file for this booking." };
   }
 
-  const body = smsCustomerOnMyWayBody({
+  let trackUrl: string | undefined;
+  try {
+    const { createOrGetVisitTrack } = await import("../visit-tracking/store");
+    const { buildCustomerTrackUrl, buildTechGoUrl } = await import("../visit-tracking/urls");
+    const session = await createOrGetVisitTrack({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      shopName,
+      customerName,
+      techName,
+      etaMinutes: params.etaMinutes,
+    });
+    trackUrl = buildCustomerTrackUrl(session.customerToken);
+
+    if (assignment?.assignedTechId) {
+      const settings = await (await import("./store")).getTechDispatchSettings(params.userId);
+      const tech = settings.techs.find((t) => t.id === assignment.assignedTechId);
+      if (tech?.phone) {
+        const goUrl = buildTechGoUrl(session.techToken);
+        const { smsStaffGoLinkBody } = await import("../sms-templates");
+        await sendSms(
+          tech.phone,
+          smsStaffGoLinkBody({ customerName, goUrl }),
+          "tech-go-link",
+          {
+            context: {
+              userId: params.userId,
+              operation: "tech_go_link",
+              bookingId: params.bookingId,
+            },
+          },
+        );
+      }
+    }
+  } catch (e) {
+    console.warn("[on-my-way] visit track", e);
+  }
+
+  const smsBodyBase = smsCustomerOnMyWayBody({
     shopName,
     customerName,
     techName,
     etaMinutes: params.etaMinutes,
+    trackUrl,
   });
 
   const bookingSettings = await getShopBookingSettings(params.userId);
   const practiceMode = isPracticeMode(bookingSettings);
-  const smsBody = practiceMode ? `Effiroad [TEST]: ${body}` : body;
+  const smsBody = practiceMode ? `Effiroad [TEST]: ${smsBodyBase}` : smsBodyBase;
 
   const result = await sendSms(phone, smsBody, "customer-on-my-way", {
     context: {
@@ -221,6 +260,37 @@ export async function promptTechOnMyWayAfterAccept(params: {
     customerName: params.customerName,
     dedupeSuffix: "staff_eta_after_tech_accept",
   });
+
+  try {
+    const user = await findUserById(params.userId);
+    const shopName = resolveShopDisplayName(user?.shopName);
+    const assignment = await getTechAssignment(params.userId, params.bookingId);
+    const { createOrGetVisitTrack } = await import("../visit-tracking/store");
+    const { buildTechGoUrl } = await import("../visit-tracking/urls");
+    const { smsStaffGoLinkBody } = await import("../sms-templates");
+    const session = await createOrGetVisitTrack({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      shopName,
+      customerName: params.customerName,
+      techName: assignment?.assignedTechName ?? "Technician",
+    });
+    const goUrl = buildTechGoUrl(session.techToken);
+    await sendSms(
+      params.techPhone,
+      smsStaffGoLinkBody({ customerName: params.customerName, goUrl }),
+      "tech-go-link-accept",
+      {
+        context: {
+          userId: params.userId,
+          operation: "tech_go_link",
+          bookingId: params.bookingId,
+        },
+      },
+    );
+  } catch (e) {
+    console.warn("[tech-dispatch] go link after accept", e);
+  }
 }
 
 export async function handleOnMyWaySmsReply(params: {
