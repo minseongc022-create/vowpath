@@ -174,10 +174,19 @@ export const jobberConnectEn = {
   redirectSetupCopy: "Copy URL",
 
   redirectSetupNote:
-    "Callback URL must match EXACTLY (no trailing space, no www). Use https://effiroad.com/api/jobber/callback on the same Client ID as Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
+    "Callback URL must match EXACTLY (no trailing space). Jobber often has only ONE callback field — replace localhost with the production URL for live connect. Open the app whose Client ID matches Vercel (shown below).",
 
   redirectSetupClientId:
     "Effiroad uses Jobber Client ID: {clientId} — add the Callback URL to that app in Developer Center.",
+
+  redirectAlsoRegister:
+    "If Jobber allows multiple callbacks, also add these (same Client ID):",
+
+  redirectConfirmCheckbox:
+    "I saved https://effiroad.com/api/jobber/callback on the matching Client ID app in Jobber Developer Center.",
+
+  redirectConfirmHint:
+    "Check the box above after saving the Callback URL — then Connect Jobber will unlock.",
 
   oauthErrorRedirectLocalhost:
     "Production cannot use a localhost callback. Set JOBBER_REDIRECT_URI=https://effiroad.com/api/jobber/callback in Vercel, and register that same URL in Jobber Developer Center.",

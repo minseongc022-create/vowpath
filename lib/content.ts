@@ -1714,9 +1714,13 @@ const jobberConnectKo = {
   redirectSetupCopied: "복사됨",
   redirectSetupCopy: "URL 복사",
   redirectSetupNote:
-    "Callback URL은 공백·www 없이 정확히 일치해야 합니다. 프로덕션은 https://effiroad.com/api/jobber/callback 을 Vercel Client ID와 같은 앱에 등록하세요. 로컬은 http://localhost:3000/api/jobber/callback 도 추가하세요.",
+    "Callback URL은 공백 없이 정확히 일치해야 합니다. Jobber는 보통 Callback URL 칸이 하나뿐이라, 라이브 연결 시 localhost를 프로덕션 URL로 바꿔 저장하세요. Vercel Client ID와 같은 앱을 여세요.",
   redirectSetupClientId:
     "Effiroad가 사용 중인 Jobber Client ID: {clientId} — Developer Center에서 이 ID가 보이는 앱에 Callback URL을 추가하세요.",
+  redirectAlsoRegister: "Callback을 여러 개 넣을 수 있으면 아래도 같은 Client ID 앱에 추가하세요:",
+  redirectConfirmCheckbox:
+    "Jobber Developer Center에서 같은 Client ID 앱에 https://effiroad.com/api/jobber/callback 을 저장했습니다.",
+  redirectConfirmHint: "Callback URL을 저장한 뒤 위 체크박스를 켜면 Jobber 연결 버튼이 활성화됩니다.",
   oauthErrorRedirectLocalhost:
     "프로덕션에서는 localhost 콜백을 쓸 수 없습니다. Vercel에 JOBBER_REDIRECT_URI=https://effiroad.com/api/jobber/callback 을 넣고, Jobber Developer Center에도 같은 URL을 등록하세요.",
   oauthErrorRedirectMissing:

@@ -3,30 +3,30 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "accurate-stt-v19-2026-07-22";
+export const RETELL_PROMPT_VERSION = "cinematic-voice-v20-2026-07-23";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-/** Warm, calm, slightly low US male — trust + reassurance (override: RETELL_VOICE_ID). */
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Daniel";
+/** Clear cinematic US male — prefer Brian for phone clarity (override: RETELL_VOICE_ID). */
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Brian";
 
-/** Service / emergency — calm confident receptionist, slightly warm-low tone. */
+/** Service / emergency — crisp, cinematic US male (Brian first for phone clarity). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Daniel",
-  "Mark",
-  "George",
-  "Marcus",
   "Brian",
+  "George",
+  "Mark",
+  "Daniel",
+  "Marcus",
   "Steve",
 ] as const;
 
-/** Free estimate — same trust tone; gently warm (not hyper-bright). */
+/** Free estimate — same crisp cinematic male set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Daniel",
   "Brian",
-  "Mark",
   "George",
+  "Mark",
+  "Daniel",
   "Marcus",
 ] as const;
 
@@ -157,40 +157,43 @@ function sharedAgentPatch(): Record<string, unknown> {
     // noise-cancellation: clears HVAC/traffic without distorting soft speech.
     // background-speech cancel was cutting off "yes"/addresses and lowering STT accuracy.
     denoising_mode: "noise-cancellation",
-    voice_model: "eleven_turbo_v2_5",
+    // multilingual_v2 = richer / clearer on telephony than turbo (less thin/"underwater").
+    voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
     // Allow callers to barge in and correct names/addresses (0.03 was too locked).
-    interruption_sensitivity: 0.32,
+    interruption_sensitivity: 0.28,
     enable_backchannel: false,
     reminder_trigger_ms: 14000,
     reminder_max_count: 1,
   };
 }
 
-/** Calm, confident service / emergency intake — comfortable pace, warm-low tone. */
+/** Crisp cinematic service / emergency intake — lower temp + volume for phone clarity. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.92,
-    voice_speed: 0.95,
-    volume: 1.28,
-    responsiveness: 0.72,
+    // High temperature sounded muddy/warbling on SIP; keep stable and clear.
+    voice_temperature: 0.52,
+    voice_speed: 0.92,
+    // 1.28 clipped on narrowband → "underwater"; keep near unity.
+    volume: 1.02,
+    responsiveness: 0.7,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same trust tone, gently warm. */
+/** Estimate intake — same cinematic clarity. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.94,
-    voice_speed: 0.96,
-    volume: 1.28,
-    responsiveness: 0.74,
+    voice_temperature: 0.55,
+    voice_speed: 0.93,
+    volume: 1.02,
+    responsiveness: 0.72,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

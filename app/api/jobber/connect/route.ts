@@ -3,6 +3,7 @@ import { buildJobberAuthorizeUrl } from "@/lib/jobber-oauth";
 import {
   getJobberOriginFromRequest,
   getJobberRedirectUri,
+  getJobberClientId,
   isJobberConfigured,
 } from "@/lib/jobber-config";
 import {
@@ -41,7 +42,12 @@ export async function GET(request: Request) {
   }
 
   // Log exact bytes so trailing-space mismatches are visible in Vercel logs.
-  console.info("[jobber/connect] redirect_uri", JSON.stringify(redirectUri));
+  console.info(
+    "[jobber/connect] redirect_uri",
+    JSON.stringify(redirectUri),
+    "client_id",
+    JSON.stringify(getJobberClientId()),
+  );
 
   const state = crypto.randomUUID();
   await clearJobberOAuthState();

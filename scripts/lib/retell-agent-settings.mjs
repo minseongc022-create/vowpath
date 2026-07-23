@@ -2,28 +2,28 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "accurate-stt-v19-2026-07-22";
+export const RETELL_PROMPT_VERSION = "cinematic-voice-v20-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Daniel";
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Brian";
 
-/** Service / emergency — calm confident receptionist, slightly warm-low tone. */
+/** Service / emergency — crisp, cinematic US male (Brian first for phone clarity). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Daniel",
-  "Mark",
-  "George",
-  "Marcus",
   "Brian",
+  "George",
+  "Mark",
+  "Daniel",
+  "Marcus",
   "Steve",
 ];
 
-/** Free estimate — same trust tone; gently warm (not hyper-bright). */
+/** Free estimate — same crisp cinematic male set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Daniel",
   "Brian",
-  "Mark",
   "George",
+  "Mark",
+  "Daniel",
   "Marcus",
 ];
 
@@ -128,39 +128,39 @@ function sharedAgentPatch() {
       "suite",
     ],
     denoising_mode: "noise-cancellation",
-    voice_model: "eleven_turbo_v2_5",
+    voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.32,
+    interruption_sensitivity: 0.28,
     enable_backchannel: false,
     reminder_trigger_ms: 14000,
     reminder_max_count: 1,
   };
 }
 
-/** Calm, confident service / emergency intake — comfortable pace, warm-low tone. */
+/** Crisp cinematic service / emergency intake — lower temp + volume for phone clarity. */
 export function buildRetellBookingAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.92,
-    voice_speed: 0.95,
-    volume: 1.28,
-    responsiveness: 0.72,
+    voice_temperature: 0.52,
+    voice_speed: 0.92,
+    volume: 1.02,
+    responsiveness: 0.7,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same trust tone, gently warm. */
+/** Estimate intake — same cinematic clarity. */
 export function buildRetellEstimateAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.94,
-    voice_speed: 0.96,
-    volume: 1.28,
-    responsiveness: 0.74,
+    voice_temperature: 0.55,
+    voice_speed: 0.93,
+    volume: 1.02,
+    responsiveness: 0.72,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

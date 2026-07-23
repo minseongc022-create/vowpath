@@ -43,7 +43,7 @@ export function twimlSay(
       ? "Google.ko-KR-Chirp3-HD-Aoede"
       : language === "es-US"
         ? "Google.es-US-Chirp3-HD-Aoede"
-        : "Google.en-US-Chirp3-HD-Charon";
+        : "Google.en-US-Chirp3-HD-Fenrir";
   return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
 }
 

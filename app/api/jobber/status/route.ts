@@ -6,7 +6,9 @@ import {
   getJobberClientId,
   getJobberOriginFromRequest,
   getJobberRedirectUri,
+  getJobberRecommendedCallbackUris,
   isJobberConfigured,
+  JOBBER_PRODUCTION_CALLBACK_URI,
 } from "@/lib/jobber-config";
 import { getSession } from "@/lib/session";
 
@@ -39,6 +41,8 @@ export async function GET(request: Request) {
     invoiceAccess = await probeJobberInvoiceAccess(session.sub);
   }
 
+  const clientId = getJobberClientId() || null;
+
   return NextResponse.json({
     configured,
     connected: Boolean(tokens),
@@ -48,7 +52,9 @@ export async function GET(request: Request) {
     accountPhone: tokens?.accountPhone ?? null,
     connectedAt: tokens?.updatedAt ?? null,
     redirectUri,
-    clientId: getJobberClientId() || null,
+    recommendedCallbackUris: getJobberRecommendedCallbackUris(),
+    productionCallbackUri: JOBBER_PRODUCTION_CALLBACK_URI,
+    clientId,
     developerPortalUrl: getJobberDeveloperPortalUrl(),
     invoiceAccess,
   });
