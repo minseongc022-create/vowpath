@@ -2,11 +2,20 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "masculine-voice-v22-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v23-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
+
+export const RETELL_DEEP_MALE_VOICE_IDS = [
+  "11labs-Mark",
+  "11labs-Adam",
+  "11labs-Clyde",
+  "11labs-Marcus",
+  "11labs-Steve",
+  "11labs-Daniel",
+];
 
 const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan|billy/i;
 
