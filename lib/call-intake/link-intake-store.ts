@@ -8,8 +8,10 @@ import type { JobPriority } from "../types";
 
 /** Time to submit the form on first visit */
 const NEW_INTAKE_TTL_SECONDS = 86_400;
-/** After submit: same link stays open for view / edit */
+/** After submit: same link stays open for view / pick-time / edit (convenient, still finite). */
 const LINK_ACCESS_TTL_SECONDS = 14 * 86_400;
+/** After job completed/cancelled: short grace, then link dies. */
+export const TERMINAL_LINK_TTL_SECONDS = 2 * 60 * 60;
 const DATA_DIR = path.join(process.cwd(), "data");
 const LINK_FILE = path.join(DATA_DIR, "link-intake-sessions.json");
 
@@ -177,4 +179,37 @@ export async function markLinkIntakeUsed(token: string): Promise<void> {
     customerPhone: session.customerPhone ?? session.from,
     customerName: session.customerName ?? "Customer",
   });
+}
+
+/**
+ * When a booking is completed or cancelled, shrink the portal link TTL.
+ * Pick-time links stay long until then; afterward the link expires soon.
+ */
+export async function shortenLinkIntakeSessionForTerminal(
+  token: string,
+): Promise<void> {
+  const session = await getLinkIntakeSession(token);
+  if (!session || isLinkIntakeSessionExpired(session)) return;
+
+  const now = Date.now();
+  const terminalExpires = now + TERMINAL_LINK_TTL_SECONDS * 1000;
+  const currentExpires = new Date(session.expiresAt).getTime();
+  const nextExpires = Math.min(currentExpires, terminalExpires);
+  const updated: LinkIntakeSession = {
+    ...session,
+    expiresAt: new Date(nextExpires).toISOString(),
+  };
+
+  const remainingSec = Math.max(
+    60,
+    Math.ceil((nextExpires - now) / 1000),
+  );
+  if (useKvStore()) {
+    await kv.set(kvKey(session.token), updated, { ex: remainingSec });
+    return;
+  }
+  if (process.env.VERCEL === "1") throw new Error("KV_REQUIRED");
+  const store = await readFileStore();
+  store.sessions[session.token] = updated;
+  await writeFileStore(store);
 }

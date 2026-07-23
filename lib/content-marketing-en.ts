@@ -535,7 +535,7 @@ export const featuresEn = {
     {
       title: "Update & reschedule links",
       description:
-        "Homeowners update details or reschedule from secure SMS links — private, expiring.",
+        "Homeowners update details or pick a time from private SMS links — secret tokens, expiring access, details redacted after the job.",
       tag: "Included",
     },
     {
@@ -675,22 +675,25 @@ export const schedulingModesEn = {
 
 export const dataTrustEn = {
   id: "data-trust",
-  label: "Your data",
-  title: "Customer and claim info stays with your company",
-  subtitle: "Private intake links. No lead resale. Optional sync to tools you already use.",
+  label: "Security & privacy",
+  title: "Built so customers trust the link — and you keep the data",
+  subtitle:
+    "Expiring private links, live-map access that ends with the job, and shop-owned records — no lead marketplace.",
   points: [
     {
-      title: "Company-owned records",
-      description: "Name, phone, address, and loss notes go to your dashboard — not a lead marketplace.",
-    },
-    {
-      title: "Private links",
-      description: "Intake links expire. Homeowners see only what they need to submit.",
-    },
-    {
-      title: "Works with your stack",
+      title: "Expiring private links",
       description:
-        "Optional Jobber sync when you connect. Effiroad fills the gap on missed emergency calls and intake.",
+        "Intake and pick-time links are secret and time-limited. After a job is done or cancelled, sensitive details drop off and the link expires soon.",
+    },
+    {
+      title: "Live map that locks down",
+      description:
+        "Customers see tech ETA only while the visit is active. When the tech arrives or the job closes, location sharing stops and the tracking link dies.",
+    },
+    {
+      title: "Your records, not ours to sell",
+      description:
+        "Name, phone, address, and call notes stay in your dashboard. Encrypted in transit. Never sold as leads.",
     },
   ],
   footnote: "See how we handle data in our",
@@ -704,7 +707,12 @@ export const socialProofEn = {
     { stat: "3 layers", label: "phone · analytics · AI" },
     { stat: "$8,000+", label: "one saved call can cover the year" },
   ],
-  badges: ["US water · fire · mold", "Same company number", "No CRM required"],
+  badges: [
+    "US water · fire · mold",
+    "Expiring private links",
+    "Live map ends with the job",
+    "No CRM required",
+  ],
   // No paying customers yet — do not add placeholder/fabricated testimonials here.
   // Add real ones (with permission) once shops are live on the platform.
   testimonials: [] as Array<{
@@ -977,6 +985,10 @@ export const faqEn = {
     {
       q: "Do you record calls? Who can access them?",
       a: "Calls are recorded for quality and compliance — useful for adjuster documentation. Only you and your team have access from the dashboard. Recordings are stored securely and are never shared or sold.",
+    },
+    {
+      q: "How secure are the customer links and live map?",
+      a: "Every SMS link uses a long secret token (not a guessable ID). Pick-time and booking links expire; after a job is completed or cancelled, personal details are hidden and the link closes soon. The live tech map only works while the visit is active — when the tech arrives or the job ends, location sharing stops and that link stops working.",
     },
   ],
 };

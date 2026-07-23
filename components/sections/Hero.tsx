@@ -49,7 +49,7 @@ export function Hero() {
   const demoHref = isHvac ? "/hvac#demo" : "/#demo";
   const guarantees = isEs
     ? ["Garantía 30 días", "Cifrado 256-bit", "Sin venta de datos · Cancela cuando quieras"]
-    : ["30-day money-back guarantee", "256-bit encrypted", "No data selling · Cancel anytime"];
+    : ["30-day money-back guarantee", "256-bit encrypted", "Expiring private links · No data selling"];
 
   return (
     <section className="vow-hero relative overflow-hidden">

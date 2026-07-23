@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   endVisitTrack,
   getVisitTrackByTechToken,
+  isVisitTrackExpired,
   markVisitTrackArrived,
   publicTrackSnapshot,
   updateVisitTrackLocation,
@@ -20,8 +21,11 @@ export async function GET(
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
     const session = await getVisitTrackByTechToken(token);
-    if (!session) {
-      return NextResponse.json({ error: "Link expired or invalid." }, { status: 404 });
+    if (!session || isVisitTrackExpired(session)) {
+      return NextResponse.json(
+        { error: "Link expired or invalid." },
+        { status: session ? 410 : 404 },
+      );
     }
     return NextResponse.json({
       ok: true,
@@ -46,6 +50,14 @@ export async function POST(
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
 
+    const existing = await getVisitTrackByTechToken(token);
+    if (!existing || isVisitTrackExpired(existing)) {
+      return NextResponse.json(
+        { error: "Link expired or invalid." },
+        { status: existing ? 410 : 404 },
+      );
+    }
+
     const body = (await request.json()) as {
       action?: string;
       lat?: number;
@@ -67,6 +79,13 @@ export async function POST(
       const session = await endVisitTrack(token);
       if (!session) return NextResponse.json({ error: "Invalid link." }, { status: 404 });
       return NextResponse.json({ ok: true, track: publicTrackSnapshot(session) });
+    }
+
+    if (existing.status === "ended" || existing.status === "arrived") {
+      return NextResponse.json(
+        { error: "Tracking already finished." },
+        { status: 409 },
+      );
     }
 
     const lat = Number(body.lat);

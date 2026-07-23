@@ -4,6 +4,7 @@ import { parseLegalConsentBody } from "@/lib/legal-consent";
 import { ownerSignupPhoneError } from "@/lib/owner-phone-policy";
 import { createAndSendSignupCode, normalizeSignupPhone } from "@/lib/signup-verify";
 import { isEmailDeliveryConfigured } from "@/lib/send-verification-code";
+import { passwordPolicyError } from "@/lib/password-policy";
 import {
   checkRateLimit,
   clientIpFromRequest,
@@ -40,8 +41,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: apiErrorsEn.invalidEmail }, { status: 400 });
     }
 
-    if (!password || password.length < 8) {
-      return NextResponse.json({ error: apiErrorsEn.passwordTooShort }, { status: 400 });
+    const policyError = passwordPolicyError(password);
+    if (policyError) {
+      return NextResponse.json({ error: policyError }, { status: 400 });
     }
 
     if (password !== passwordConfirm) {

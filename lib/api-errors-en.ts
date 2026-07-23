@@ -11,6 +11,8 @@ export const apiErrorsEn = {
   signupFailed: "Signup failed. Try again.",
   invalidEmail: "Enter a valid email address.",
   passwordTooShort: "Password must be at least 8 characters.",
+  passwordWeak:
+    "Use upper & lower case letters, a number, and a special character (!@#$…).",
   passwordMismatch: "Passwords do not match.",
   phoneRequiredSignup: "Enter your mobile number (used for request alerts and SMS approval).",
   codeSent: "If an account exists, we sent a code. Check your email or texts.",
