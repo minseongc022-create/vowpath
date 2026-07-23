@@ -139,7 +139,7 @@ export function DemoLinkIntakeScene({ vertical = "restoration" }: { vertical?: D
             <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">SMS to customer</p>
             <p className="mt-2 text-sm leading-relaxed text-emerald-50">
               {cfg.smsBrand}: Finish your request here. Choose booking, estimate, or callback:
-              <span className="mt-1 block font-medium text-emerald-300 underline">effiroad.com/r/abc123</span>
+              <span className="mt-1 block font-medium text-emerald-300 underline">link.effiroad.com/r/abc123</span>
             </p>
           </div>
 

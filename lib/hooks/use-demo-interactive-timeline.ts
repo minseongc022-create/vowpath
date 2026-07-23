@@ -25,6 +25,7 @@ export function useDemoInteractiveTimeline({
   const [fyiSms, setFyiSms] = useState<string | null>(null);
   const [customerSms, setCustomerSms] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [done, setDone] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(() => isDemoAudioUnlocked());
@@ -48,6 +49,7 @@ export function useDemoInteractiveTimeline({
     setFyiSms(null);
     setCustomerSms(null);
     setSpeaking(false);
+    setTransferring(false);
     setWaitingForClick(false);
     setDone(false);
   }, []);
@@ -56,6 +58,20 @@ export function useDemoInteractiveTimeline({
     unlockDemoAudio();
     audioUnlockedRef.current = true;
     setAudioUnlocked(true);
+  }, []);
+
+  const playTransferThenAdvance = useCallback(async (nextCursor: number | ((c: number) => number)) => {
+    setWaitingForClick(false);
+    setTransferring(true);
+    setAiLine(null);
+    setSpeaking(false);
+    if (audioUnlockedRef.current) {
+      await demoAudioPlayer.playTransferTone(1600);
+    } else {
+      await new Promise((r) => setTimeout(r, 900));
+    }
+    setTransferring(false);
+    setCursor(nextCursor);
   }, []);
 
   const playAi = useCallback(
@@ -134,18 +150,17 @@ export function useDemoInteractiveTimeline({
       return;
     }
     if (!audioUnlocked) return;
-    if (waitingForClick || done) return;
+    if (waitingForClick || done || transferring) return;
     void runAutoSteps(cursor);
-  }, [enabled, audioUnlocked, cursor, waitingForClick, done, runAutoSteps]);
+  }, [enabled, audioUnlocked, cursor, waitingForClick, done, transferring, runAutoSteps]);
 
   const advanceWithCustomer = useCallback(
     (text: string) => {
       markUnlocked();
       setCustomerLines((prev) => [...prev, text]);
-      setWaitingForClick(false);
-      setCursor((c) => c + 1);
+      void playTransferThenAdvance((c) => c + 1);
     },
-    [markUnlocked],
+    [markUnlocked, playTransferThenAdvance],
   );
 
   const handleMenuChoice = useCallback(
@@ -154,29 +169,28 @@ export function useDemoInteractiveTimeline({
       if (option.customerText) {
         setCustomerLines((prev) => [...prev, option.customerText!]);
       }
-      setWaitingForClick(false);
-      setCursor(option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1);
+      void playTransferThenAdvance(
+        option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1,
+      );
     },
-    [markUnlocked],
+    [markUnlocked, playTransferThenAdvance],
   );
 
   const handleOwnerAction = useCallback(
     (systemText: string) => {
       markUnlocked();
       setSystemLine(systemText);
-      setWaitingForClick(false);
-      setCursor((c) => c + 1);
+      void playTransferThenAdvance((c) => c + 1);
     },
-    [markUnlocked],
+    [markUnlocked, playTransferThenAdvance],
   );
 
   const unlockAudio = useCallback(() => {
     markUnlocked();
-    // Start first AI line inside the same user gesture so iOS/Safari actually plays audio.
-    if (!runningRef.current && !done) {
+    if (!runningRef.current && !done && !transferring) {
       void runAutoSteps(cursor);
     }
-  }, [markUnlocked, runAutoSteps, cursor, done]);
+  }, [markUnlocked, runAutoSteps, cursor, done, transferring]);
 
   useEffect(() => {
     const el = customerScrollRef.current;
@@ -194,6 +208,7 @@ export function useDemoInteractiveTimeline({
     fyiSms,
     customerSms,
     speaking,
+    transferring,
     waitingForClick,
     done,
     currentStep,

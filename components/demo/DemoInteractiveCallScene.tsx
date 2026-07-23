@@ -116,6 +116,7 @@ export function DemoInteractiveCallScene({
     fyiSms,
     customerSms,
     speaking,
+    transferring,
     waitingForClick,
     done,
     currentStep,
@@ -157,13 +158,22 @@ export function DemoInteractiveCallScene({
           <div className={`bg-gradient-to-b from-brand-900/90 to-black text-center ${embedded ? "px-3 py-4" : "px-4 py-6"}`}>
             <p className="text-[10px] uppercase tracking-widest text-white/40">Active call</p>
             <p className={`font-semibold ${embedded ? "mt-0.5 text-base" : "mt-1 text-lg"}`}>Effiroad</p>
-            <p className="text-[11px] text-emerald-400">Interactive · Tap to advance</p>
+            <p className={`text-[11px] ${transferring ? "animate-pulse text-amber-300" : "text-emerald-400"}`}>
+              {transferring ? "Connecting… ring" : "Interactive · Tap to advance"}
+            </p>
             <div className="mt-2">
-              <Waveform active={speaking} />
+              <Waveform active={speaking || transferring} />
             </div>
           </div>
           <div className={`bg-[#141210] px-3 py-3 ${embedded ? "min-h-[88px]" : "min-h-[150px] px-4 py-4"}`}>
-            {aiLine ? (
+            {transferring ? (
+              <div className="rounded-lg bg-amber-500/15 p-2.5 ring-1 ring-amber-400/40">
+                <p className="text-[9px] font-bold uppercase text-amber-200/90">Call transfer</p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-50/90 sm:text-sm">
+                  Ringing the next receptionist…
+                </p>
+              </div>
+            ) : aiLine ? (
               <div className="rounded-lg bg-[#9a7f5e]/25 p-2.5 ring-1 ring-[#9a7f5e]/50">
                 <p className="text-[9px] font-bold uppercase text-[#b59b78]">Receptionist</p>
                 <p className="mt-1 text-xs leading-relaxed text-[#f5f0e8] sm:text-sm">{aiLine}</p>
@@ -196,7 +206,7 @@ export function DemoInteractiveCallScene({
             ))
           )}
         </div>
-        {waitingForClick ? (
+        {waitingForClick && !transferring ? (
           <div className="min-w-0 shrink-0">
             <ActionPanel
               step={currentStep}
@@ -205,6 +215,11 @@ export function DemoInteractiveCallScene({
               onOwnerAction={handleOwnerAction}
             />
           </div>
+        ) : null}
+        {transferring ? (
+          <p className="mt-2 animate-pulse text-center text-[11px] font-medium text-amber-200/90">
+            ♪ Ringing — connecting you…
+          </p>
         ) : null}
         {done ? (
           <button

@@ -15,7 +15,7 @@ const STEPS = [
   },
   {
     title: "Run one test call",
-    body: "Hear the menu, try voice intake or press 2 for a text link.",
+    body: "Hear the menu: press 1 = service AI, press 2 = estimate AI. Or say “text link” for an SMS form.",
     detail: "Dashboard shows every call & recording",
   },
 ] as const;

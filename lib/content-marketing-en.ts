@@ -31,7 +31,7 @@ export const heroEn = {
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "Cinematic-clear US voice",
+    "Thick clear US male voice",
     "Keep your number — or ours",
     "Auto crew SMS + live ETA map",
     "Owner 1 / 2 on risky jobs",
@@ -51,7 +51,7 @@ export const quickFaqEn = {
     },
     {
       q: "Does the AI actually sound human?",
-      a: "Yes — cinematic-clear US voice, conversational pacing, polite follow-ups. Tuned for phone clarity so callers hear every word, not a muddy or robotic script.",
+      a: "Yes — thick, clear US male voice, natural pacing, polite follow-ups. Tuned for phone clarity so callers hear every word, not a muddy, thin, or robotic script.",
     },
     {
       q: "Will it collect complete job info before dispatch?",
@@ -80,12 +80,12 @@ export const callExperienceEn = {
     "Homeowners in a panic don't want a form or hold music — they want someone clear and calm who gets the address right and gets a tech rolling.",
   points: [
     {
-      title: "Cinematic-clear US voice",
-      body: "Phone-tuned clarity — not muddy, thin, or robotic. Same professional voice on every call, 2 AM or 2 PM.",
+      title: "Thick, clear US male voice",
+      body: "Phone-tuned masculine US voice — grounded and clear, not muddy, thin, or robotic. Same professional voice on every call, 2 AM or 2 PM.",
     },
     {
       title: "Polite, respectful intake",
-      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. No press-1 screening or abrupt transfers.",
+      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. Short main menu (1 = service, 2 = estimate) then straight to AI — no second keypad, no live-agent transfer fees.",
     },
     {
       title: "Complete info before dispatch",
@@ -127,7 +127,7 @@ export const productStackEn = {
       label: "AI phone layer",
       title: "Catch every emergency you miss on site",
       description:
-        "After-hours, storm surge, and no-answer overflow forward to Effiroad. Callers talk or tap a text link — loss type, address, insurance info, and how fast they need you.",
+        "After-hours, storm surge, and no-answer overflow forward to Effiroad. Short menu: press 1 = service AI, press 2 = estimate AI — or say “text link” for an SMS form. Loss type, address, and how fast they need you.",
       points: [
         "Same company number on Google",
         "Water / fire / mold / sewage triage",
@@ -373,7 +373,7 @@ export const jobberEn = {
   label: "Optional",
   title: "Already using Jobber or a CRM? Plug it in.",
   subtitle:
-    "No CRM is required. Most restoration shops run on texts and the dashboard. If Jobber is how you track jobs, connect once and stop retyping.",
+    "No CRM is required. Most restoration shops run on texts and the dashboard. If Jobber is how you track jobs: Connect → Jobber login → Allow Access — saved automatically, no extra Confirm step.",
   points: [
     {
       title: "No CRM? You're covered",
@@ -381,9 +381,9 @@ export const jobberEn = {
         "Owner SMS, email backup, Job Cards, and the Effiroad dashboard. Nothing else to buy or connect.",
     },
     {
-      title: "Confirmed jobs → your CRM",
+      title: "One-tap Jobber connect",
       description:
-        "When a loss confirms, the request lands in Jobber automatically. Customer, address, loss type — already filled in.",
+        "Settings → Connect Jobber → log in → Allow Access. Confirmed jobs push customer, address, and loss type into Jobber — no retyping.",
     },
     {
       title: "No re-typing",
@@ -401,7 +401,7 @@ export const comparisonEn = {
     "Independent reviews flag billing surprises, rigid scripts, and weeks-long setup elsewhere. Effiroad ships cinematic voice, auto crew texting, live ETA map, and trade-aware holds — go live in minutes.",
   headers: ["", "Effiroad", "Typical answering service", "CRM add-on / enterprise AI"],
   rows: [
-    ["Phone voice", "Cinematic-clear US AI every call", "Human variance or transfers", "Often rigid / form-like"],
+    ["Phone voice", "Thick clear US male AI every call", "Human variance or transfers", "Often rigid / form-like"],
     ["Your number options", "Forward main line OR dedicated Effiroad #", "Usually their number only", "Depends on CRM"],
     ["Crew auto-dispatch", "Round-robin SMS · 1=yes / 2=pass", "Callback / message only", "Calendar book or blind"],
     ["Live ETA map", "Free customer map link on the way", "Rare", "Rare / paid add-on"],
@@ -641,7 +641,7 @@ export const howItWorksEn = {
       step: "04",
       title: "Test call + dashboard",
       description:
-        "Press 1 = emergency intake/dispatch. Press 2 = free estimate ($0 — never billed). Only approved/scheduled emergency jobs count toward your plan.",
+        "Press 1 = emergency intake/dispatch (AI on the call). Press 2 = free estimate AI ($0 — never billed). Say “text link” for an SMS form. Only approved/scheduled emergency jobs count toward your dispatch plan.",
     },
   ],
 };

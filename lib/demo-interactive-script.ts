@@ -56,12 +56,16 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
 }
 
 /**
- * Matches production IVR: one main-menu press → Retell (no second link-vs-phone keypad).
- * Press 2 demo branch shows the SMS-link alternate (say "text link" on a live call).
+ * Matches production IVR:
+ * - Press 1 → service Retell on the call
+ * - Press 2 → estimate Retell on the call
+ * - Say “text link” → SMS form (link.effiroad.com)
+ * No second link-vs-phone keypad.
  */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  // Indices: 0 system, 1 menu voice, 2 menu, 3… phone path; 14 = estimate/link branch
-  const LINK_START = 14;
+  // 0 system, 1 menu voice, 2 menu, 3–13 phone, 14–18 estimate, 19–21 link
+  const ESTIMATE_START = 14;
+  const LINK_START = 19;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -71,18 +75,24 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu — caller chooses once",
+      prompt: "Main menu — one choice (matches live calls)",
       options: [
         {
           id: "1",
-          label: "Press 1 — Book / emergency",
+          label: "Press 1 — Book / emergency (AI on this call)",
           customerText:
             "Sewage is backing up in my basement — it's coming through the floor drain.",
         },
         {
           id: "2",
-          label: "Press 2 — Free estimate",
-          customerText: "[Pressed 2 — estimate]",
+          label: "Press 2 — Free estimate (AI on this call)",
+          customerText: "[Pressed 2 — free estimate]",
+          jumpTo: ESTIMATE_START,
+        },
+        {
+          id: "link",
+          label: "Say “text link” — SMS form",
+          customerText: "Text me the link please.",
           jumpTo: LINK_START,
         },
       ],
@@ -134,22 +144,47 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       audioIndex: 4,
     },
     { kind: "system", text: "Customer ETA text sent · Intake saved · Dispatched" },
-    // LINK_START = 14
+    // ESTIMATE_START = 14
     {
       kind: "ai-voice",
-      text: `I'm glad you called — happy to help with your estimate. I can text you a short form from ${RESTORATION_SHOP} — about a minute on your phone.`,
+      text: "I'm glad you called — happy to help with your estimate. What's your name?",
+    },
+    {
+      kind: "customer-action",
+      label: "Say your name",
+      customerText: "Jordan Lee.",
+    },
+    {
+      kind: "ai-voice",
+      text: "Thanks, Jordan. Tell me a bit about the project — what's going on at the property?",
+    },
+    {
+      kind: "customer-action",
+      label: "Describe the project",
+      customerText: "Basement water damage last week — need a written estimate for insurance.",
+    },
+    {
+      kind: "sms",
+      text: "ESTIMATE · Jordan Lee · Basement water · Reply from dashboard to send quote",
+      variant: "owner",
+    },
+    // LINK_START = 19
+    {
+      kind: "ai-voice",
+      text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
     },
     {
       kind: "sms",
       text: `${RESTORATION_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
-    { kind: "system", text: "Estimate link sent · Owner gets notified when the form is submitted" },
+    { kind: "system", text: "Link sent · Owner gets notified when the form is submitted" },
   ];
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const LINK_START = 14;
+  const ESTIMATE_START = 14;
+  const LINK_START = 19;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -159,17 +194,23 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu — caller chooses once",
+      prompt: "Main menu — one choice (matches live calls)",
       options: [
         {
           id: "1",
-          label: "Press 1 — Book / emergency",
+          label: "Press 1 — Book / emergency (AI on this call)",
           customerText: "Let's handle it on this call — no heat, fifty-eight degrees inside.",
         },
         {
           id: "2",
-          label: "Press 2 — Free estimate",
-          customerText: "[Pressed 2 — estimate]",
+          label: "Press 2 — Free estimate (AI on this call)",
+          customerText: "[Pressed 2 — free estimate]",
+          jumpTo: ESTIMATE_START,
+        },
+        {
+          id: "link",
+          label: "Say “text link” — SMS form",
+          customerText: "I'd like the text link please.",
           jumpTo: LINK_START,
         },
       ],
@@ -221,17 +262,41 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     { kind: "system", text: "Tech replied 1 · En route · ETA 28 min" },
     { kind: "system", text: "Customer ETA text sent · Intake saved · Auto-dispatched" },
-    // LINK_START = 14
+    // ESTIMATE_START = 14
     {
       kind: "ai-voice",
-      text: `I'm glad you called — happy to help with your estimate. I can text you a short form from ${HVAC_SHOP} — about a minute on your phone.`,
+      text: "I'm glad you called — happy to help with your estimate. What's your name?",
+    },
+    {
+      kind: "customer-action",
+      label: "Say your name",
+      customerText: "Chris Park.",
+    },
+    {
+      kind: "ai-voice",
+      text: "Thanks, Chris. What's the project — new system, replacement, or something else?",
+    },
+    {
+      kind: "customer-action",
+      label: "Describe the project",
+      customerText: "Replace a 15-year-old AC — want a free written quote.",
+    },
+    {
+      kind: "sms",
+      text: "ESTIMATE · Chris Park · AC replacement · Reply from dashboard to send quote",
+      variant: "owner",
+    },
+    // LINK_START = 19
+    {
+      kind: "ai-voice",
+      text: `Perfect — I'm texting you a secure link from ${HVAC_SHOP}. It takes about a minute on your phone.`,
     },
     {
       kind: "sms",
       text: `${HVAC_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
-    { kind: "system", text: "Estimate link sent · Owner gets notified when the form is submitted" },
+    { kind: "system", text: "Link sent · Owner gets notified when the form is submitted" },
   ];
 }
 
