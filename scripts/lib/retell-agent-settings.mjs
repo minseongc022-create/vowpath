@@ -2,19 +2,19 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "natural-pace-v25-2026-07-23";
+export const RETELL_PROMPT_VERSION = "thick-voice-one-tap-v26-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
 export const RETELL_DEEP_MALE_VOICE_IDS = [
-  "11labs-Steve",
   "11labs-Marcus",
+  "11labs-Clyde",
   "11labs-Daniel",
   "11labs-Mark",
   "11labs-Adam",
-  "11labs-Clyde",
+  "11labs-Steve",
 ];
 
 const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan|billy/i;
@@ -23,24 +23,24 @@ export function isThinRetellVoiceId(voiceId) {
   return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
 }
 
-/** Service / emergency — deep, grounded US male (Mark / Bill / Adam first). */
+/** Service / emergency — deep, grounded US male (heavier body first). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Steve",
   "Marcus",
+  "Clyde",
   "Daniel",
   "Mark",
   "Adam",
-  "Clyde",
+  "Steve",
   "George",
 ];
 
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Steve",
   "Marcus",
+  "Clyde",
   "Daniel",
   "Mark",
   "Adam",
-  "Clyde",
+  "Steve",
 ];
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -180,28 +180,28 @@ function sharedAgentPatch() {
   };
 }
 
-/** Deep masculine service / emergency intake — weight + calm pace. */
+/** Deep masculine service / emergency intake — thick body, US pace. */
 export function buildRetellBookingAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.62,
-    voice_speed: 1.0,
-    volume: 1.1,
+    voice_temperature: 0.5,
+    voice_speed: 0.94,
+    volume: 1.28,
     responsiveness: 0.68,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same deep masculine presence. */
+/** Estimate intake — same thick masculine presence. */
 export function buildRetellEstimateAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.64,
-    voice_speed: 1.0,
-    volume: 1.1,
+    voice_temperature: 0.52,
+    voice_speed: 0.94,
+    volume: 1.28,
     responsiveness: 0.7,
   };
   if (voiceId) patch.voice_id = voiceId;
