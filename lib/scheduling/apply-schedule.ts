@@ -3,12 +3,13 @@ import type { RequestStatus } from "../booking-policy";
 import type { SlotOffer } from "../booking-settings";
 import {
   shouldOwnerApproveAfterCustomerSlotPickForVertical,
-  shouldSendOwnerApprovalSms,
+  shouldSendOwnerApprovalSmsForVertical,
 } from "../booking-settings";
 import { getShopVertical } from "../vertical-context";
+import { isRestorationVertical } from "../shop-vertical";
 import { isTenantAfterHours } from "../after-hours";
 import { extractZipFromAddress, isZipInServiceArea } from "../service-area";
-import { inferLossCategoryFromText } from "../loss-category";
+import { inferLossCategoryFromText, normalizeLossCategory } from "../loss-category";
 import { formatCityState } from "../recent-bookings";
 import { getShopBookingSettings } from "../shop-settings-db";
 import {
@@ -118,8 +119,11 @@ export async function applyCustomerChosenSchedule(
   }
   let confirmedSlot = slotCheck.slot;
 
-  const lossCategory = inferLossCategoryFromText(params.card.symptom, params.card.symptom);
   const vertical = await getShopVertical(params.userId);
+  // Never run restoration water/fire/mold inference on HVAC (or other trades).
+  const lossCategory = isRestorationVertical(vertical)
+    ? inferLossCategoryFromText(params.card.symptom, params.card.symptom)
+    : normalizeLossCategory("other");
   const baseNeedsApproval = shouldOwnerApproveAfterCustomerSlotPickForVertical(vertical, {
     priority: params.priority,
     confidenceMin: confidenceMin(params.confidence),
@@ -239,12 +243,16 @@ export async function applyCustomerChosenSchedule(
   if (needsApproval) {
     const sendSms =
       workflowDecision.sendOwnerSms ??
-      shouldSendOwnerApprovalSms(
-        settings.ownerApprovalSms,
-        effectivePriority,
-        confidenceMin(params.confidence),
+      shouldSendOwnerApprovalSmsForVertical(vertical, settings.ownerApprovalSms, {
+        priority: effectivePriority,
+        confidenceMin: confidenceMin(params.confidence),
         lossCategory,
-      );
+        issueType: params.card.symptom,
+        symptom: params.card.symptom,
+        customerName: params.card.customerName,
+        address: params.card.address,
+        needsOwnerApproval: true,
+      });
     if (sendSms) {
       await notifyOwnerApprovalNeeded({
         userId: params.userId,

@@ -1,8 +1,9 @@
 import type { JobPriority } from "./types";
 import { isEnglishUi } from "./locale";
 import { legacyToServicePriority } from "./service-priority";
-import { inferLossCategoryFromText } from "./loss-category";
+import { inferLossCategoryFromText, normalizeLossCategory } from "./loss-category";
 import type { ShopVertical } from "./shop-vertical";
+import { isRestorationVertical } from "./shop-vertical";
 
 export type LinkUrgency = "today" | "this_week" | "estimate";
 
@@ -143,7 +144,9 @@ export function buildLinkIntakeDraftFromForm(params: {
       `Urgency: ${urgencyOptions.find((o) => o.id === params.urgency)?.label ?? params.urgency}`,
       ...insuranceLines,
     ].join("\n"),
-    lossCategory: inferLossCategoryFromText(issue, issue),
+    lossCategory: isRestorationVertical(vertical)
+      ? inferLossCategoryFromText(issue, issue)
+      : normalizeLossCategory("other"),
     insuranceCarrier: insuranceCarrier || undefined,
     insuranceClaimNumber: insuranceClaimNumber || undefined,
     waterSource: waterSource || undefined,

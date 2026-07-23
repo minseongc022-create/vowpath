@@ -5,15 +5,18 @@ import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
 import { ShopOptionalFollowUps } from "@/components/settings/ShopOptionalFollowUps";
 import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import type { ShopVertical } from "@/lib/shop-vertical";
 import type { ReactNode } from "react";
 
 type ShopPreferencesPanelProps = {
+  vertical: ShopVertical;
   verticalSelector: ReactNode;
   reviewUrl?: string;
   onReviewUrlSaved: (url: string | undefined) => void;
 };
 
 export function ShopPreferencesPanel({
+  vertical,
   verticalSelector,
   reviewUrl,
   onReviewUrlSaved,
@@ -26,11 +29,12 @@ export function ShopPreferencesPanel({
         {copy.productSectionSubtitle}
       </p>
 
-      <ShopNameEditor />
-
+      {/* Trade first — booking rules and intake options depend on it. */}
       <div className="vow-settings-block vow-settings-panel p-3 sm:p-5">{verticalSelector}</div>
 
-      <BookingSettingsEditor />
+      <ShopNameEditor />
+
+      <BookingSettingsEditor vertical={vertical} />
 
       <TechDispatchSettings />
 

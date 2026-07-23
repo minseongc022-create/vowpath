@@ -174,10 +174,22 @@ export const jobberConnectEn = {
   redirectSetupCopy: "Copy URL",
 
   redirectSetupNote:
-    "If you created a new EFFIROAD app, open the app whose Client ID matches Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
+    "Callback URL must match EXACTLY (no trailing space, no www). Use https://effiroad.com/api/jobber/callback on the same Client ID as Vercel. Also register http://localhost:3000/api/jobber/callback for local dev.",
 
   redirectSetupClientId:
     "Effiroad uses Jobber Client ID: {clientId} — add the Callback URL to that app in Developer Center.",
+
+  oauthErrorRedirectLocalhost:
+    "Production cannot use a localhost callback. Set JOBBER_REDIRECT_URI=https://effiroad.com/api/jobber/callback in Vercel, and register that same URL in Jobber Developer Center.",
+
+  oauthErrorRedirectMissing:
+    "Missing OAuth callback URL. Set JOBBER_REDIRECT_URI or NEXT_PUBLIC_APP_URL, then redeploy.",
+
+  oauthErrorNotConfigured:
+    "Jobber is not configured yet. Add JOBBER_CLIENT_ID and JOBBER_CLIENT_SECRET in Vercel env.",
+
+  oauthErrorGeneric:
+    "Jobber connection failed. Confirm the Callback URL below is saved on the matching Client ID in Jobber Developer Center, then try Connect again.",
 
   settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
 

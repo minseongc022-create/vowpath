@@ -50,6 +50,7 @@ export function JobberConnect({
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   const onStatusChangeRef = useRef(onStatusChange);
   onStatusChangeRef.current = onStatusChange;
 
@@ -91,6 +92,8 @@ export function JobberConnect({
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const err = params.get("jobber_error");
+    if (err) setOauthError(err);
     if (params.get("jobber") === "connected" || params.has("jobber_error")) {
       void load({ silent: true });
       params.delete("jobber");
@@ -100,6 +103,13 @@ export function JobberConnect({
       window.history.replaceState({}, "", next);
     }
   }, [load]);
+
+  function oauthErrorMessage(code: string): string {
+    if (code === "redirect_localhost") return copy.oauthErrorRedirectLocalhost;
+    if (code === "redirect_missing") return copy.oauthErrorRedirectMissing;
+    if (code === "not_configured") return copy.oauthErrorNotConfigured;
+    return copy.oauthErrorGeneric;
+  }
 
   async function handleDisconnect() {
     setDisconnecting(true);
@@ -144,6 +154,17 @@ export function JobberConnect({
 
   const content = (
     <>
+      {oauthError ? (
+        <div
+          className={`rounded-xl border border-rose-200 bg-rose-50 text-rose-950 ${
+            isSettings ? "mb-4 px-4 py-3 text-sm" : "mb-4 px-4 py-3 text-xs"
+          }`}
+        >
+          <p className="font-semibold">Jobber connection error</p>
+          <p className="mt-1 leading-relaxed">{oauthErrorMessage(oauthError)}</p>
+        </div>
+      ) : null}
+
       {!isSettings ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -231,6 +252,9 @@ export function JobberConnect({
           </div>
           <p className={`mt-2 text-amber-900/80 ${isSettings ? "text-sm" : "text-xs"}`}>
             {copy.redirectSetupNote}
+          </p>
+          <p className={`mt-2 font-medium text-amber-950 ${isSettings ? "text-sm" : "text-xs"}`}>
+            Exact production URL: https://effiroad.com/api/jobber/callback
           </p>
           {s.clientId ? (
             <p className={`mt-2 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>

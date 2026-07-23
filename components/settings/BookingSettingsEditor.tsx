@@ -22,16 +22,30 @@ import {
 } from "@/lib/booking-settings";
 import { clientFetch, clientFetchTimeoutMessage, redirectToLoginIfUnauthorized } from "@/lib/client-fetch";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import type { ShopVertical } from "@/lib/shop-vertical";
+import { isRestorationVertical } from "@/lib/shop-vertical";
+import {
+  getVerticalDispatchRuleLines,
+  getVerticalPolicyBlurb,
+} from "@/lib/vertical-config";
 
 const INTERVAL_PRESET_MINUTES = [60, 90, 120, 180] as const;
 
-export function BookingSettingsEditor() {
+export function BookingSettingsEditor({
+  vertical = "restoration",
+}: {
+  vertical?: ShopVertical;
+}) {
   const settingsPage = useSettingsPage();
   const [settings, setSettings] = useState<ShopBookingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intervalDraft, setIntervalDraft] = useState("120");
   const [showTeamCapacity, setShowTeamCapacity] = useState(false);
+
+  const dispatchRules = getVerticalDispatchRuleLines(vertical);
+  const policyBlurb = getVerticalPolicyBlurb(vertical);
+  const showStormMode = isRestorationVertical(vertical);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -228,7 +242,7 @@ export function BookingSettingsEditor() {
         icon="📅"
         eyebrow={settingsPage.bookingPolicyTitle}
         title={settingsPage.bookingSectionTitle}
-        hint={settingsPage.bookingPolicyDescription}
+        hint={policyBlurb}
       />
 
       <label className="vow-settings-user-zone flex items-center justify-between gap-3 px-3 py-2.5">
@@ -251,7 +265,7 @@ export function BookingSettingsEditor() {
         </p>
         <p className="vow-settings-hint mt-1">{settingsPage.smartAutoBookingIntro}</p>
         <ul className="mt-2.5 space-y-2 text-sm leading-relaxed text-stone-700">
-          {settingsPage.smartAutoBookingRules.map((rule, i) => (
+          {dispatchRules.map((rule, i) => (
             <li key={rule} className="flex gap-2.5">
               <span className="shrink-0 text-base" aria-hidden>
                 {BOOKING_RULE_ICONS[i] ?? "•"}
@@ -491,21 +505,23 @@ export function BookingSettingsEditor() {
         <div className="space-y-4 border-t border-slate-200 px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3">
           <p className="text-xs leading-relaxed text-stone-600">{settingsPage.bookingAdvancedHint}</p>
 
-          <SettingsSubsection
-            icon="⛈️"
-            title={settingsPage.stormModeLabel}
-            hint={settingsPage.stormModeHint}
-          >
-            <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
-              <span className="vow-settings-label">{settingsPage.stormModeToggleLabel}</span>
-              <input
-                type="checkbox"
-                checked={settings.stormModeEnabled}
-                onChange={(e) => updateLocal({ stormModeEnabled: e.target.checked })}
-                className="h-5 w-5 rounded border-slate-300"
-              />
-            </label>
-          </SettingsSubsection>
+          {showStormMode ? (
+            <SettingsSubsection
+              icon="⛈️"
+              title={settingsPage.stormModeLabel}
+              hint={settingsPage.stormModeHint}
+            >
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3">
+                <span className="vow-settings-label">{settingsPage.stormModeToggleLabel}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.stormModeEnabled}
+                  onChange={(e) => updateLocal({ stormModeEnabled: e.target.checked })}
+                  className="h-5 w-5 rounded border-slate-300"
+                />
+              </label>
+            </SettingsSubsection>
+          ) : null}
 
           <SettingsSubsection
             icon="📍"

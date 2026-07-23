@@ -1,5 +1,6 @@
 import {
   getJobberRedirectUri,
+  getJobberClientId,
   isJobberConfigured,
 } from "./jobber-config";
 
@@ -14,7 +15,7 @@ export type JobberTokenResponse = {
 };
 
 export function buildJobberAuthorizeUrl(state: string, redirectUri?: string): string {
-  const clientId = process.env.JOBBER_CLIENT_ID!.trim();
+  const clientId = getJobberClientId();
   const uri = redirectUri || getJobberRedirectUri();
   const params = new URLSearchParams({
     response_type: "code",
@@ -35,8 +36,8 @@ export async function exchangeJobberCode(
 
   const uri = redirectUri || getJobberRedirectUri();
   const body = new URLSearchParams({
-    client_id: process.env.JOBBER_CLIENT_ID!.trim(),
-    client_secret: process.env.JOBBER_CLIENT_SECRET!.trim(),
+    client_id: getJobberClientId(),
+    client_secret: (process.env.JOBBER_CLIENT_SECRET || "").replace(/[\s\u00a0\u200b\ufeff]+/g, ""),
     grant_type: "authorization_code",
     code,
     redirect_uri: uri,
@@ -66,8 +67,8 @@ export async function refreshJobberAccessToken(
   refreshToken: string,
 ): Promise<JobberTokenResponse> {
   const body = new URLSearchParams({
-    client_id: process.env.JOBBER_CLIENT_ID!.trim(),
-    client_secret: process.env.JOBBER_CLIENT_SECRET!.trim(),
+    client_id: getJobberClientId(),
+    client_secret: (process.env.JOBBER_CLIENT_SECRET || "").replace(/[\s\u00a0\u200b\ufeff]+/g, ""),
     grant_type: "refresh_token",
     refresh_token: refreshToken,
   });

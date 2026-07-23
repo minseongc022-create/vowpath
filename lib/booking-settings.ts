@@ -238,4 +238,5 @@ export {
   shouldOwnerApproveAfterCustomerSlotPick,
   shouldOwnerApproveAfterCustomerSlotPickForVertical,
   shouldSendOwnerApprovalSms,
+  shouldSendOwnerApprovalSmsForVertical,
 } from "./auto-book-policy";

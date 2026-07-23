@@ -31,6 +31,18 @@ export async function GET(request: Request) {
     );
   }
 
+  if (
+    process.env.NODE_ENV === "production" &&
+    /localhost|127\.0\.0\.1/i.test(redirectUri)
+  ) {
+    return NextResponse.redirect(
+      new URL(`${ROUTES.settings}?jobber_error=redirect_localhost&section=jobber`, request.url),
+    );
+  }
+
+  // Log exact bytes so trailing-space mismatches are visible in Vercel logs.
+  console.info("[jobber/connect] redirect_uri", JSON.stringify(redirectUri));
+
   const state = crypto.randomUUID();
   await clearJobberOAuthState();
   await setJobberOAuthState(state, redirectUri);

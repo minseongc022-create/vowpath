@@ -520,9 +520,9 @@ const settingsPageKo = {
   subtitle: "자동 예약 · 기사 배치 · PM 계약을 먼저 맞추고, 아래에서 라이브 체크리스트를 완료하세요.",
   badge: "연동",
   backDashboardLink: "← 대시보드로",
-  productSectionTitle: "샵 운영 설정",
+  productSectionTitle: "업체 종류 · 운영 설정",
   productSectionSubtitle:
-    "업체 이름·예약·기사 문자·PM 계약. 업체 이름은 고객 문자·전화 응대에 자동으로 들어갑니다.",
+    "먼저 업체 종류(복구 / HVAC)를 고르세요. 선택한 업종에 맞는 예약·자동 배차 규칙이 아래에 표시됩니다. 끝나면 오른쪽 위 저장을 누르세요.",
   goLiveSectionTitle: "라이브 체크리스트",
   goLiveSectionSubtitle: "순서대로만 따라오세요. 한 번 끝내면 문자 알림이 바로 시작됩니다.",
   goLiveWelcome: "10분이면 라이브!",
@@ -551,7 +551,7 @@ const settingsPageKo = {
     "결제가 완료되었습니다. 연락처·응대 시간·착신 전환을 마치면 문자 알림을 받기 시작합니다.",
   progressTitle: "필수 {total}단계 중 {done}단계 완료",
   progressSummary: "필수 {total}단계 중 {done}단계 완료",
-  progressHint: "연락처 → 응대 시간 → 착신 전환. Jobber는 선택.",
+  progressHint: "업체 종류 → 연락처 → 응대 시간 → 착신 전환. Jobber는 선택.",
   scrollHint: "업체명 → 예약 → 기사 → PM → 라이브",
   tocLabel: "바로가기",
   tocContact: "연락처",
@@ -1144,10 +1144,11 @@ const settingsPageKo = {
   liveBanner: "연락처·응대 시간·착신 전환을 마치면 전화 응대와 문자 알림이 시작됩니다",
   support: "문의: {email}",
   sectionSteps: {
-    contact: "1",
-    schedule: "2",
-    phone: "3",
-    jobber: "4",
+    shop: "1",
+    contact: "2",
+    schedule: "3",
+    phone: "4",
+    jobber: "5",
   } as const,
 };
 
@@ -1713,9 +1714,17 @@ const jobberConnectKo = {
   redirectSetupCopied: "복사됨",
   redirectSetupCopy: "URL 복사",
   redirectSetupNote:
-    "EFFIROAD 앱을 새로 만들었다면, Vercel에 등록된 Client ID와 같은 앱을 열어야 합니다. 로컬 개발용으로 http://localhost:3000/api/jobber/callback 도 함께 등록하세요.",
+    "Callback URL은 공백·www 없이 정확히 일치해야 합니다. 프로덕션은 https://effiroad.com/api/jobber/callback 을 Vercel Client ID와 같은 앱에 등록하세요. 로컬은 http://localhost:3000/api/jobber/callback 도 추가하세요.",
   redirectSetupClientId:
     "Effiroad가 사용 중인 Jobber Client ID: {clientId} — Developer Center에서 이 ID가 보이는 앱에 Callback URL을 추가하세요.",
+  oauthErrorRedirectLocalhost:
+    "프로덕션에서는 localhost 콜백을 쓸 수 없습니다. Vercel에 JOBBER_REDIRECT_URI=https://effiroad.com/api/jobber/callback 을 넣고, Jobber Developer Center에도 같은 URL을 등록하세요.",
+  oauthErrorRedirectMissing:
+    "OAuth 콜백 URL이 없습니다. JOBBER_REDIRECT_URI 또는 NEXT_PUBLIC_APP_URL을 설정한 뒤 재배포하세요.",
+  oauthErrorNotConfigured:
+    "Jobber가 아직 설정되지 않았습니다. Vercel에 JOBBER_CLIENT_ID / SECRET을 추가하세요.",
+  oauthErrorGeneric:
+    "Jobber 연결에 실패했습니다. 아래 Callback URL이 같은 Client ID 앱에 저장됐는지 확인한 뒤 다시 연결하세요.",
   settingsConnectedHint: "승인·확정된 예약이 Jobber 일정에 자동 반영됩니다.",
   invoiceAccessOk: "수금 매출: Jobber 인보이스 읽기 권한 정상.",
   invoiceAccessReconnect:

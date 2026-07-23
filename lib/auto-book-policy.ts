@@ -119,6 +119,32 @@ export function shouldSendOwnerApprovalSms(
   return false;
 }
 
+/** Prefer this — never re-decide HVAC holds with restoration water/fire rules. */
+export function shouldSendOwnerApprovalSmsForVertical(
+  vertical: ShopVertical,
+  level: "off" | "p1_only" | "all",
+  params: {
+    priority: JobPriority;
+    confidenceMin?: number;
+    lossCategory?: LossCategory | string | null;
+    issueType?: string | null;
+    symptom?: string | null;
+    customerName?: string | null;
+    address?: string | null;
+    inServiceArea?: boolean;
+    /** When already computed, skip re-decision and always notify. */
+    needsOwnerApproval?: boolean;
+  },
+): boolean {
+  if (params.needsOwnerApproval === true) return true;
+  const decision = resolveAutoBookDecisionForVertical(vertical, params);
+  if (decision.needsOwnerApproval) return true;
+  if (level === "off") return false;
+  if (decision.isUrgentAlert) return true;
+  if (level === "all") return true;
+  return false;
+}
+
 /**
  * Vertical-aware auto-book decision.
  * Restoration → existing resolveAutoBookDecision (regression-safe).
