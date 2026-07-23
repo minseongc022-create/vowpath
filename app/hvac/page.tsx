@@ -7,6 +7,7 @@ import { Hero } from "@/components/sections/Hero";
 import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { DemoSummary } from "@/components/sections/DemoSummary";
 import { SocialProof } from "@/components/sections/SocialProof";
+import { DataTrust } from "@/components/sections/DataTrust";
 import { Problem } from "@/components/sections/Problem";
 import { ProductStack } from "@/components/sections/ProductStack";
 import { MissedCallFlow } from "@/components/sections/MissedCallFlow";
@@ -65,6 +66,7 @@ export default async function HvacPage() {
         <DemoSummary vertical="hvac" />
 
         <SocialProof variant="trust" content={socialProofHvac} />
+        <DataTrust />
         <Problem content={problemHvac} />
         <ProductStack content={productStackHvac} />
         <MissedCallFlow content={missedCallFlowHvac} />
