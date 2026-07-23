@@ -101,11 +101,11 @@ export function DemoLinkIntakeScene({ vertical = "restoration" }: { vertical?: D
 
             {phase === "menu" && (
               <div className="mt-6 space-y-2 text-sm">
-                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 1 — talk through service intake</p>
+                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 1 — service / emergency (AI on this call)</p>
+                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 2 — free estimate (AI on this call)</p>
                 <p className="animate-pulse rounded-xl bg-[#9a7f5e]/45 px-4 py-3 font-semibold text-[#f5f0e8] ring-2 ring-[#9a7f5e]">
-                  Press 2 — text me the request link ✓
+                  Say “text link” — SMS form ✓
                 </p>
-                <p className="rounded-lg bg-white/5 px-3 py-2 text-white/50">Press 3 — estimate / callback</p>
               </div>
             )}
 
