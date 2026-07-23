@@ -100,10 +100,16 @@ export function smsCustomerBookingConfirmationBody(params: {
   arrivalWindow?: string;
   portalUrl: string;
   pendingShopReview?: boolean;
+  /** Phone intake with no verbal slot — ask customer to pick time on the portal. */
+  needsPickTime?: boolean;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
   const ref = params.requestNumber;
+  if (params.needsPickTime) {
+    const core = `${shop}: Hi ${first}! Request ${ref} received. Pick your visit time here:`;
+    return smsBodyWithUrl(core, params.portalUrl);
+  }
   const window = params.arrivalWindow?.trim() ? smsTruncate(params.arrivalWindow, 24) : "";
   const status = params.pendingShopReview
     ? "We're reviewing it now."

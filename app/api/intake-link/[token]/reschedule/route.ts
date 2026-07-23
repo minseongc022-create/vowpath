@@ -28,7 +28,10 @@ export async function POST(
 
     const view = await loadCustomerBookingPortalView({ session, token });
     if (!view?.canReschedule) {
-      return NextResponse.json({ error: "Reschedule is not available." }, { status: 400 });
+      return NextResponse.json(
+        { error: view?.needsSchedule === false ? "Reschedule is not available." : "Scheduling is not available." },
+        { status: 400 },
+      );
     }
 
     let slotId = "";

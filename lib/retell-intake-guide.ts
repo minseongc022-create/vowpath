@@ -38,7 +38,7 @@ export function buildRetellIntakeGuide(vertical: ShopVertical): string {
 
   lines.push(
     "READ-BACK — slowly: name, address, issue, urgency, active loss, insurance. Wait for yes.",
-    "SUBMIT — submit_intake once. Never quote prices or promise exact ETA.",
+    "SUBMIT — submit_intake once WITHOUT slotId. Tell them a text link will let them pick the visit time. Never quote prices or promise exact ETA.",
   );
 
   return lines.join("\n");

@@ -62,6 +62,7 @@ export async function sendIntakeBookingConfirmation(params: {
   arrivalWindow?: string;
   reviewToken: string;
   pendingShopReview?: boolean;
+  needsPickTime?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
   const phone = params.customerPhone?.trim();
   if (!phone) return { ok: false, error: "no_phone" };
@@ -78,6 +79,7 @@ export async function sendIntakeBookingConfirmation(params: {
     arrivalWindow: params.arrivalWindow,
     portalUrl,
     pendingShopReview: params.pendingShopReview,
+    needsPickTime: Boolean(params.needsPickTime),
   });
   body = withPracticeSmsPrefix(body, practiceMode);
 

@@ -40,7 +40,9 @@ export function CustomerBookingPortal({
 }) {
   const copy = useLinkIntakeCopy();
   const [booking, setBooking] = useState(initialBooking);
-  const [mode, setMode] = useState<Mode>("view");
+  const [mode, setMode] = useState<Mode>(
+    initialBooking.needsSchedule ? "reschedule" : "view",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -152,7 +154,11 @@ export function CustomerBookingPortal({
         return;
       }
       if (data.booking) setBooking(data.booking as CustomerBookingPortalView);
-      setNotice("Visit time updated! We'll see you then.");
+      setNotice(
+        (data.booking as CustomerBookingPortalView | undefined)?.needsSchedule === false
+          ? "Visit time booked! We'll see you then."
+          : "Visit time updated! We'll see you then.",
+      );
       setMode("view");
     } catch (err) {
       setError(
@@ -256,7 +262,11 @@ export function CustomerBookingPortal({
 
           {mode === "reschedule" ? (
             <div className="space-y-4">
-              <p className="text-sm text-slate-600">{copy.bookingRescheduleHint}</p>
+              <p className="text-sm text-slate-600">
+                {booking.needsSchedule
+                  ? "Pick an open visit window below — same calendar your shop uses for bookings."
+                  : copy.bookingRescheduleHint}
+              </p>
               <LinkIntakeSlotCalendar
                 days={gridDays}
                 selectedSlotId={selectedSlotId}
@@ -298,15 +308,21 @@ export function CustomerBookingPortal({
               onClick={() => void handleReschedule()}
               className="w-full rounded-2xl bg-brand-700 py-4 font-bold text-white disabled:opacity-50"
             >
-              {loading ? copy.portalSaving : copy.bookingConfirmTime}
+              {loading
+                ? copy.portalSaving
+                : booking.needsSchedule
+                  ? "Confirm visit time"
+                  : copy.bookingConfirmTime}
             </button>
-            <button
-              type="button"
-              onClick={() => { setError(null); setMode("view"); }}
-              className="w-full text-sm text-slate-500"
-            >
-              {copy.portalBackToView}
-            </button>
+            {booking.needsSchedule ? null : (
+              <button
+                type="button"
+                onClick={() => { setError(null); setMode("view"); }}
+                className="w-full text-sm text-slate-500"
+              >
+                {copy.portalBackToView}
+              </button>
+            )}
           </div>
         </div>
       ) : null}
@@ -316,7 +332,7 @@ export function CustomerBookingPortal({
           <div className="mx-auto max-w-md space-y-2">
             {booking.canReschedule ? (
               <button type="button" onClick={() => { setError(null); setMode("reschedule"); }} className="w-full rounded-2xl bg-brand-700 py-3.5 font-bold text-white">
-                {copy.bookingChangeTime}
+                {booking.needsSchedule ? "Pick visit time" : copy.bookingChangeTime}
               </button>
             ) : null}
             <button type="button" onClick={() => { setError(null); setMode("edit"); }} className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 font-semibold text-slate-800">
