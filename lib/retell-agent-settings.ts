@@ -11,6 +11,16 @@ export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 /** Deep trustworthy US male — Mark (override: RETELL_VOICE_ID, non-thin only). */
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
 
+/** Prefer these Retell voice IDs first (deep / grounded), then name matching. */
+export const RETELL_DEEP_MALE_VOICE_IDS = [
+  "11labs-Mark",
+  "11labs-Adam",
+  "11labs-Clyde",
+  "11labs-Marcus",
+  "11labs-Steve",
+  "11labs-Daniel",
+] as const;
+
 /**
  * Thin / bright voices that sound “mosquito-like” on phone — never keep these
  * even if RETELL_VOICE_ID or the live agent is set to them.
