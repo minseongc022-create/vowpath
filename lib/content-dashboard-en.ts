@@ -209,7 +209,7 @@ export const jobberConnectEn = {
 
   invoiceAccessError: "Invoice access check failed. Try reconnecting Jobber.",
 
-  settingsDisconnectedHint: "Connect with OAuth to sync requests and calendar events.",
+  settingsDisconnectedHint: "Tap Connect Jobber — authorize once and you're done.",
 
   push: "Send to Jobber",
 
