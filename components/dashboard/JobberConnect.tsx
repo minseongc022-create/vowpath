@@ -77,7 +77,9 @@ export function JobberConnect({
         void patchShopProfile({
           ...shop,
           jobberConnected: true,
-          jobberSetupConfirmed: freshConnect ? false : shop.jobberSetupConfirmed,
+          // Server already marks confirmed on OAuth success; keep local in sync.
+          jobberSetupConfirmed: true,
+          jobberSkipped: false,
         });
       }
     } catch {
@@ -222,9 +224,9 @@ export function JobberConnect({
         </p>
       )}
 
-      {s.configured && s.redirectUri && !s.connected ? (
+      {s.configured && s.redirectUri && !s.connected && oauthError ? (
         <details
-          open={Boolean(oauthError)}
+          open
           className={`rounded-xl border border-stone-200 bg-stone-50/80 ${
             isSettings ? "mt-4" : "mt-4"
           }`}
@@ -234,7 +236,7 @@ export function JobberConnect({
               isSettings ? "text-sm" : "text-xs"
             }`}
           >
-            {copy.redirectSetupTitle} (only if Connect fails)
+            {copy.redirectSetupTitle}
           </summary>
           <div className={`border-t border-stone-200 px-4 pb-4 pt-3 ${isSettings ? "text-sm" : "text-xs"}`}>
             <p className="text-stone-600">{copy.redirectSetupBody}</p>

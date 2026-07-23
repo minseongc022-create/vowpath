@@ -70,12 +70,33 @@ function sanitizeRedirectUri(raw: string): string {
 }
 
 /**
- * OAuth redirect URI. Prefer explicit env (exact match after sanitize), then canonical apex.
+ * OAuth redirect URI. Production Effiroad always sends the canonical apex callback
+ * so Jobber Developer Center only needs one exact URL (no www/apex drift, no env typos).
  * Jobber exact-matches this to Developer Center → OAuth Callback URL.
- * Register BOTH apex + www when the Jobber UI allows multiple; we send apex by default.
  */
 export function getJobberRedirectUri(requestOrigin?: string): string {
   const explicit = sanitizeRedirectUri(process.env.JOBBER_REDIRECT_URI?.trim() || "");
+
+  // Live Effiroad: always apex — never www, never localhost, never a mistyped env URL.
+  if (isProductionRuntime()) {
+    const envOrigin = resolveEnvOrigin();
+    if (
+      (envOrigin && isEffiroadProductionHost(envOrigin)) ||
+      (explicit && isEffiroadProductionHost(explicit)) ||
+      (requestOrigin && isEffiroadProductionHost(requestOrigin))
+    ) {
+      if (explicit && explicit !== JOBBER_PRODUCTION_CALLBACK_URI) {
+        console.warn(
+          "[jobber] overriding JOBBER_REDIRECT_URI to canonical apex",
+          JSON.stringify(explicit),
+          "→",
+          JOBBER_PRODUCTION_CALLBACK_URI,
+        );
+      }
+      return JOBBER_PRODUCTION_CALLBACK_URI;
+    }
+  }
+
   if (explicit) {
     if (isProductionRuntime() && /localhost|127\.0\.0\.1/i.test(explicit)) {
       console.error(
@@ -84,17 +105,10 @@ export function getJobberRedirectUri(requestOrigin?: string): string {
       );
       return JOBBER_PRODUCTION_CALLBACK_URI;
     }
-    // Honor explicit production URL as-is (ops may have registered www-only or apex-only).
     return explicit;
   }
 
-  // Production effiroad.com always uses the canonical apex callback.
   const envOrigin = resolveEnvOrigin();
-  if (isProductionRuntime() && envOrigin && isEffiroadProductionHost(envOrigin)) {
-    return JOBBER_PRODUCTION_CALLBACK_URI;
-  }
-
-  // Prefer env app URL over request origin (avoids www.effiroad.com vs effiroad.com mismatch).
   if (envOrigin) {
     if (isProductionRuntime() && isEffiroadProductionHost(envOrigin)) {
       return JOBBER_PRODUCTION_CALLBACK_URI;

@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "masculine-voice-v24-2026-07-23";
+export const RETELL_PROMPT_VERSION = "natural-pace-v25-2026-07-23";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -217,14 +217,14 @@ function sharedAgentPatch(): Record<string, unknown> {
   };
 }
 
-/** Deep masculine service / emergency intake — weight + calm pace. */
+/** Deep masculine service / emergency intake — natural US conversational pace. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    // Slight warmth without warble; slower = more grounded / less thin.
+    // Warmth without warble; 1.0 ≈ natural American speaking rate.
     voice_temperature: 0.62,
-    voice_speed: 0.88,
+    voice_speed: 1.0,
     volume: 1.1,
     responsiveness: 0.68,
   };
@@ -232,13 +232,13 @@ export function buildRetellBookingAgentPatch(voiceId?: string) {
   return patch;
 }
 
-/** Estimate intake — same deep masculine presence. */
+/** Estimate intake — same deep masculine presence, natural pace. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
     voice_temperature: 0.64,
-    voice_speed: 0.89,
+    voice_speed: 1.0,
     volume: 1.1,
     responsiveness: 0.7,
   };
