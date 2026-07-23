@@ -2,13 +2,13 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "masculine-voice-v21-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v22-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
 export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
 
-const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan/i;
+const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan|billy/i;
 
 export function isThinRetellVoiceId(voiceId) {
   return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
@@ -65,9 +65,16 @@ function pickFromList(voices, preferredNames, options = {}) {
   );
 
   for (const preferred of preferredNames) {
-    const hit = americanMales.find((v) =>
-      (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
-    );
+    const pref = preferred.toLowerCase();
+    const hit = americanMales.find((v) => {
+      const name = (v.voice_name || "").toLowerCase().trim();
+      return (
+        name === pref ||
+        name.startsWith(`${pref} `) ||
+        name.endsWith(` ${pref}`) ||
+        name.includes(` ${pref} `)
+      );
+    });
     if (hit) return hit.voice_id;
   }
 
