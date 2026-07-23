@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authPages } from "@/lib/content";
 import { ROUTES } from "@/lib/constants";
+import { evaluatePasswordPolicy } from "@/lib/password-policy";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 
 type Step = "request" | "verify" | "reset" | "done";
 
@@ -99,6 +101,13 @@ export function ForgotPasswordForm() {
 
     if (password !== passwordConfirm) {
       setError(authPages.form.passwordMismatch);
+      setLoading(false);
+      return;
+    }
+
+    const policy = evaluatePasswordPolicy(password);
+    if (!policy.ok) {
+      setError(policy.error ?? copy.errorGeneric);
       setLoading(false);
       return;
     }
@@ -287,6 +296,10 @@ export function ForgotPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-surface-border px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500"
+              />
+              <PasswordStrengthIndicator
+                password={password}
+                hint={authPages.signup.passwordHint}
               />
             </div>
             <div>

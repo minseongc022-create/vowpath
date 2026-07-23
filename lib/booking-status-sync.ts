@@ -301,26 +301,37 @@ export async function persistRequestStatusForBooking(
     }
   }
 
-  if (status === "completed") {
+  if (status === "completed" || status === "rejected") {
     try {
       await deleteScheduledBooking(userId, bookingId);
     } catch (e) {
-      console.warn("[booking-status-sync] clear schedule on complete", e);
+      console.warn("[booking-status-sync] clear schedule on terminal", e);
     }
+    try {
+      const { revokeVisitTrackForBooking } = await import("./visit-tracking/store");
+      await revokeVisitTrackForBooking(userId, bookingId);
+    } catch (e) {
+      console.warn("[booking-status-sync] revoke visit track", e);
+    }
+    try {
+      const { findPortalTokenForBooking } = await import("./customer-booking-portal");
+      const { shortenLinkIntakeSessionForTerminal } = await import(
+        "./call-intake/link-intake-store"
+      );
+      const token = await findPortalTokenForBooking(userId, bookingId);
+      if (token) await shortenLinkIntakeSessionForTerminal(token);
+    } catch (e) {
+      console.warn("[booking-status-sync] shorten portal link", e);
+    }
+  }
+
+  if (status === "completed") {
     try {
       const details = customerDetailsFromLogs(bookingId, callLogs, jobs);
       const { maybeOfferMaintenancePlan } = await import("./agreements/offer-flow");
       await maybeOfferMaintenancePlan(userId, bookingId, details);
     } catch (e) {
       console.warn("[booking-status-sync] agreement offer", e);
-    }
-  }
-
-  if (status === "rejected") {
-    try {
-      await deleteScheduledBooking(userId, bookingId);
-    } catch (e) {
-      console.warn("[booking-status-sync] clear schedule on reject", e);
     }
   }
 

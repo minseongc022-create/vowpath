@@ -142,13 +142,19 @@ function activeJobKey(userId: string, techId: string) {
   return `effiroad:tech-active:${userId}:${techId}`;
 }
 
+/** Default KV TTL for pending offers — covers max timeout (120m) + buffer. */
+const PENDING_OFFER_TTL_SEC = 2 * 60 * 60 + 5 * 60;
+
 export async function setTechPendingOffer(
   userId: string,
   techId: string,
   bookingId: string,
+  ttlSeconds = PENDING_OFFER_TTL_SEC,
 ): Promise<void> {
   if (useKvStore()) {
-    await kv.set(pendingOfferKey(userId, techId), bookingId);
+    await kv.set(pendingOfferKey(userId, techId), bookingId, {
+      ex: Math.max(60, Math.round(ttlSeconds)),
+    });
     return;
   }
   const all = await readJsonFile<Record<string, string>>(path.join(DATA_DIR, "tech-pending.json"));

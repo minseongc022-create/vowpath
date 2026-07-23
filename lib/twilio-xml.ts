@@ -1,6 +1,7 @@
 import { channelChoiceGatherHint, channelChoiceVoicePrompt } from "./link-intake-copy";
 import { buildSpeechHints } from "./twilio-voice-flow";
 import type { ShopVertical } from "./shop-vertical";
+import { twilioSayVoiceEnUs } from "./twilio-say-voice";
 import {
   voiceGatherMissedChoice,
   voiceGatherMissedDtmf,
@@ -9,6 +10,8 @@ import {
   voicePhoneIntakePromptForVertical,
   voiceStormSurgeIntro,
 } from "./voice-copy";
+
+export { twilioSayVoiceEnUs };
 
 /** Main menu is English-only (no Spanish option). */
 export function mainMenuIsEnglishOnly(): boolean {
@@ -43,7 +46,7 @@ export function twimlSay(
       ? "Google.ko-KR-Chirp3-HD-Aoede"
       : language === "es-US"
         ? "Google.es-US-Chirp3-HD-Aoede"
-        : "Google.en-US-Chirp3-HD-Fenrir";
+        : twilioSayVoiceEnUs();
   return `<Say voice="${voice}" language="${language}">${escapeXml(message)}</Say>`;
 }
 

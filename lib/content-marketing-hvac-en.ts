@@ -452,7 +452,7 @@ export const featuresHvac = {
     {
       title: "Update & reschedule links",
       description:
-        "Customers update details or reschedule from secure SMS links — private, expiring.",
+        "Customers update details or reschedule from secure SMS links — private, expiring, redacted after the job.",
       tag: "Included",
     },
     {

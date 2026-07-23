@@ -10,6 +10,8 @@ import {
   ownerSignupPhonePlaceholder,
 } from "@/lib/owner-phone-policy";
 import { normalizeShopVertical, type ShopVertical } from "@/lib/shop-vertical";
+import { evaluatePasswordPolicy } from "@/lib/password-policy";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import {
   serviceLimitationsConsentBody,
   serviceLimitationsConsentCheckboxLabel,
@@ -75,6 +77,13 @@ export function SignupForm() {
 
     if (password !== passwordConfirm) {
       setError(form.passwordMismatch);
+      setLoading(false);
+      return;
+    }
+
+    const policy = evaluatePasswordPolicy(password);
+    if (!policy.ok) {
+      setError(policy.error ?? form.errorGeneric);
       setLoading(false);
       return;
     }
@@ -263,7 +272,7 @@ export function SignupForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="hvac-input mt-1.5"
               />
-              <p className="mt-1 text-xs text-slate-500">{p.passwordHint}</p>
+              <PasswordStrengthIndicator password={password} hint={p.passwordHint} />
             </div>
 
             <div>

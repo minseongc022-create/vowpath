@@ -1,31 +1,16 @@
 import { randomBytes } from "crypto";
 import { kv } from "@vercel/kv";
 import { kvGetSafe } from "../kv-safe";
+import { publicTrackSnapshot } from "./public-snapshot";
+import type { VisitTrackSession, VisitTrackStatus } from "./types";
 
-export type VisitTrackStatus = "waiting" | "en_route" | "arrived" | "ended";
+export type { VisitTrackSession, VisitTrackStatus };
+export { publicTrackSnapshot };
 
-export type VisitTrackSession = {
-  id: string;
-  userId: string;
-  bookingId: string;
-  customerToken: string;
-  techToken: string;
-  shopName: string;
-  customerName: string;
-  techName: string;
-  status: VisitTrackStatus;
-  etaMinutes: number | null;
-  startedAt: string | null;
-  arrivedAt: string | null;
-  lat: number | null;
-  lng: number | null;
-  heading: number | null;
-  speedMps: number | null;
-  updatedAt: string;
-  expiresAt: string;
-};
-
+/** Active en-route sharing window. */
 const TTL_SEC = 60 * 60 * 12; // 12 hours
+/** After arrive/end: brief “visit complete” page, then tokens die. */
+export const VISIT_TRACK_TERMINAL_TTL_SEC = 15 * 60;
 
 function sessionKey(id: string) {
   return `visit-track:session:${id}`;
@@ -44,6 +29,31 @@ function newToken(): string {
   return randomBytes(18).toString("base64url");
 }
 
+function isTerminalStatus(status: VisitTrackStatus): boolean {
+  return status === "arrived" || status === "ended";
+}
+
+export function isVisitTrackExpired(session: VisitTrackSession | null): boolean {
+  if (!session) return true;
+  return new Date(session.expiresAt).getTime() <= Date.now();
+}
+
+async function persistSession(session: VisitTrackSession, ttlSec: number): Promise<void> {
+  await Promise.all([
+    kv.set(sessionKey(session.id), session, { ex: ttlSec }),
+    kv.set(customerTokenKey(session.customerToken), session.id, { ex: ttlSec }),
+    kv.set(techTokenKey(session.techToken), session.id, { ex: ttlSec }),
+    kv.set(bookingKey(session.userId, session.bookingId), session.id, { ex: ttlSec }),
+  ]);
+}
+
+function clearLiveLocation(session: VisitTrackSession): void {
+  session.lat = null;
+  session.lng = null;
+  session.heading = null;
+  session.speedMps = null;
+}
+
 export async function createOrGetVisitTrack(params: {
   userId: string;
   bookingId: string;
@@ -55,13 +65,13 @@ export async function createOrGetVisitTrack(params: {
   const existingId = await kvGetSafe<string>(bookingKey(params.userId, params.bookingId));
   if (existingId) {
     const existing = await kvGetSafe<VisitTrackSession>(sessionKey(existingId));
-    if (existing && new Date(existing.expiresAt).getTime() > Date.now()) {
+    if (existing && !isVisitTrackExpired(existing) && !isTerminalStatus(existing.status)) {
       if (params.etaMinutes != null) {
         existing.etaMinutes = params.etaMinutes;
         existing.status = existing.status === "waiting" ? "en_route" : existing.status;
         existing.startedAt = existing.startedAt ?? new Date().toISOString();
         existing.updatedAt = new Date().toISOString();
-        await kv.set(sessionKey(existing.id), existing, { ex: TTL_SEC });
+        await persistSession(existing, TTL_SEC);
       }
       return existing;
     }
@@ -93,13 +103,7 @@ export async function createOrGetVisitTrack(params: {
     expiresAt: expires.toISOString(),
   };
 
-  await Promise.all([
-    kv.set(sessionKey(id), session, { ex: TTL_SEC }),
-    kv.set(customerTokenKey(customerToken), id, { ex: TTL_SEC }),
-    kv.set(techTokenKey(techToken), id, { ex: TTL_SEC }),
-    kv.set(bookingKey(params.userId, params.bookingId), id, { ex: TTL_SEC }),
-  ]);
-
+  await persistSession(session, TTL_SEC);
   return session;
 }
 
@@ -128,8 +132,8 @@ export async function updateVisitTrackLocation(params: {
   etaMinutes?: number | null;
 }): Promise<VisitTrackSession | null> {
   const session = await getVisitTrackByTechToken(params.techToken);
-  if (!session) return null;
-  if (session.status === "ended" || session.status === "arrived") return session;
+  if (!session || isVisitTrackExpired(session)) return null;
+  if (isTerminalStatus(session.status)) return null;
 
   session.lat = params.lat;
   session.lng = params.lng;
@@ -145,41 +149,59 @@ export async function updateVisitTrackLocation(params: {
     session.startedAt = session.startedAt ?? new Date().toISOString();
   }
   session.updatedAt = new Date().toISOString();
-  await kv.set(sessionKey(session.id), session, { ex: TTL_SEC });
+  await persistSession(session, TTL_SEC);
   return session;
 }
 
 export async function markVisitTrackArrived(techToken: string): Promise<VisitTrackSession | null> {
   const session = await getVisitTrackByTechToken(techToken);
-  if (!session) return null;
+  if (!session || isVisitTrackExpired(session)) return null;
+  if (session.status === "ended") return session;
+
   session.status = "arrived";
   session.arrivedAt = new Date().toISOString();
   session.updatedAt = session.arrivedAt;
-  await kv.set(sessionKey(session.id), session, { ex: TTL_SEC });
+  // Stop broadcasting live coordinates once on site.
+  clearLiveLocation(session);
+  const expires = new Date(Date.now() + VISIT_TRACK_TERMINAL_TTL_SEC * 1000);
+  session.expiresAt = expires.toISOString();
+  await persistSession(session, VISIT_TRACK_TERMINAL_TTL_SEC);
   return session;
 }
 
 export async function endVisitTrack(techToken: string): Promise<VisitTrackSession | null> {
   const session = await getVisitTrackByTechToken(techToken);
-  if (!session) return null;
+  if (!session || isVisitTrackExpired(session)) return null;
+
   session.status = "ended";
   session.updatedAt = new Date().toISOString();
-  await kv.set(sessionKey(session.id), session, { ex: TTL_SEC });
+  clearLiveLocation(session);
+  const expires = new Date(Date.now() + VISIT_TRACK_TERMINAL_TTL_SEC * 1000);
+  session.expiresAt = expires.toISOString();
+  await persistSession(session, VISIT_TRACK_TERMINAL_TTL_SEC);
   return session;
 }
 
-export function publicTrackSnapshot(session: VisitTrackSession) {
-  return {
-    status: session.status,
-    shopName: session.shopName,
-    techName: session.techName,
-    customerName: session.customerName,
-    etaMinutes: session.etaMinutes,
-    lat: session.lat,
-    lng: session.lng,
-    heading: session.heading,
-    updatedAt: session.updatedAt,
-    startedAt: session.startedAt,
-    arrivedAt: session.arrivedAt,
-  };
+/**
+ * Hard revoke when the booking is completed/cancelled — tracking links 404 immediately.
+ * Keeps UX: no lingering map after the job is done.
+ */
+export async function revokeVisitTrackForBooking(
+  userId: string,
+  bookingId: string,
+): Promise<void> {
+  const id = await kvGetSafe<string>(bookingKey(userId, bookingId));
+  if (!id) return;
+  const session = await kvGetSafe<VisitTrackSession>(sessionKey(id));
+  const dels: Promise<unknown>[] = [
+    kv.del(sessionKey(id)),
+    kv.del(bookingKey(userId, bookingId)),
+  ];
+  if (session) {
+    dels.push(
+      kv.del(customerTokenKey(session.customerToken)),
+      kv.del(techTokenKey(session.techToken)),
+    );
+  }
+  await Promise.all(dels);
 }

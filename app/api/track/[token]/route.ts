@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getVisitTrackByCustomerToken,
+  isVisitTrackExpired,
   publicTrackSnapshot,
 } from "@/lib/visit-tracking/store";
 import { guardPublicIntakeRoute } from "@/lib/security/intake-guard";
@@ -18,11 +19,11 @@ export async function GET(
     }
 
     const session = await getVisitTrackByCustomerToken(token);
-    if (!session) {
-      return NextResponse.json({ error: "Tracking link expired or invalid." }, { status: 404 });
-    }
-    if (new Date(session.expiresAt).getTime() < Date.now()) {
-      return NextResponse.json({ error: "Tracking link expired." }, { status: 410 });
+    if (!session || isVisitTrackExpired(session)) {
+      return NextResponse.json(
+        { error: "Tracking link expired or invalid." },
+        { status: session ? 410 : 404 },
+      );
     }
 
     return NextResponse.json({

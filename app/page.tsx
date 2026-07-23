@@ -23,6 +23,7 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
+import { DataTrust } from "@/components/sections/DataTrust";
 
 type HomePageProps = {
   searchParams: Promise<{ view?: string }>;
@@ -46,6 +47,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <DemoVideoHero />
         <DemoSummary />
         <SocialProof variant="trust" />
+        <DataTrust />
         <NumberChoice />
         <ProductStack />
         <MissedCallFlow />

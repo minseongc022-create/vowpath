@@ -1843,7 +1843,7 @@ const authPagesKo = {
     shopPlaceholder: "예: Cool Air HVAC",
     emailLabel: "이메일",
     passwordLabel: "비밀번호",
-    passwordHint: "8자 이상",
+    passwordHint: "8자 이상 · 대소문자 · 숫자 · 특수문자 포함",
     phoneLabel: "휴대폰 번호",
     phoneLabelRequired: "휴대폰 번호 (필수)",
     phonePlaceholder: "(512) 555-0100",

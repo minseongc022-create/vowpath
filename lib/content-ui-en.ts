@@ -473,7 +473,8 @@ export const authPagesEn = {
     shopPlaceholder: "e.g. ABC Restoration",
     emailLabel: "Email",
     passwordLabel: "Password",
-    passwordHint: "8+ characters",
+    passwordHint:
+      "8+ characters with upper & lower case, a number, and a special character (!@#…)",
     phoneLabel: "Mobile number",
     phoneLabelRequired: "Mobile number (required)",
     phonePlaceholder: "(512) 555-0100",

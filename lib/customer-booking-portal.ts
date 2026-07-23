@@ -50,7 +50,7 @@ export async function loadCustomerBookingPortalView(params: {
   const status = resolveStatus(bookingId, statuses, "pending_review");
   const scheduled = await getScheduledBooking(params.session.userId, bookingId);
 
-  const base = callToLinkIntakeBookingView(call);
+  const baseView = callToLinkIntakeBookingView(call);
   const terminal = status === "rejected" || status === "completed";
   const hasScheduledSlot = Boolean(scheduled?.scheduledStartAt);
   // First-time schedule (phone intake without verbal slot) OR later reschedule.
@@ -69,8 +69,27 @@ export async function loadCustomerBookingPortalView(params: {
       ? "Not set yet — pick a visit window"
       : "Pending — we'll confirm your window soon");
 
+  // After the job is done/cancelled: keep request # + status, hide PII until link expires.
+  if (terminal) {
+    return {
+      ...baseView,
+      customerName: baseView.customerName ? "Customer" : "",
+      phone: "",
+      address: "",
+      issueType: "",
+      bookingId,
+      status,
+      statusLabel: REQUEST_STATUS_LABELS[status] ?? status,
+      arrivalWindow: status === "completed" ? "Visit complete" : "Cancelled",
+      portalToken: params.token,
+      canCancel,
+      canReschedule,
+      needsSchedule: false,
+    };
+  }
+
   return {
-    ...base,
+    ...baseView,
     bookingId,
     status,
     statusLabel: REQUEST_STATUS_LABELS[status] ?? status,

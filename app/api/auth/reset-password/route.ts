@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth-password";
 import { verifyPasswordResetToken } from "@/lib/auth-reset-token";
 import { updateUserPassword } from "@/lib/users-db";
 import { apiErrorsEn } from "@/lib/api-errors-en";
+import { passwordPolicyError } from "@/lib/password-policy";
 
 export async function POST(request: Request) {
   try {
@@ -19,11 +20,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: apiErrorsEn.passwordTooShort },
-        { status: 400 },
-      );
+    const policyError = passwordPolicyError(password);
+    if (policyError) {
+      return NextResponse.json({ error: policyError }, { status: 400 });
     }
 
     if (password !== confirm) {
