@@ -420,6 +420,7 @@ export async function finalizeVerifiedIntake(
         arrivalWindow: payload.arrivalWindow,
         reviewToken: reviewSession.token,
         pendingShopReview: finalRequestStatus !== "approved",
+        needsPickTime: !options.selectedSlot && !payload.arrivalWindow?.trim(),
       });
     } catch (e) {
       console.warn("[finalize-intake] customer booking confirmation sms", e);

@@ -20,6 +20,8 @@ export type CustomerBookingPortalView = LinkIntakeBookingView & {
   portalToken: string;
   canCancel: boolean;
   canReschedule: boolean;
+  /** True when the booking has no visit window yet — portal should open on the time picker. */
+  needsSchedule: boolean;
 };
 
 function resolveStatus(
@@ -49,19 +51,23 @@ export async function loadCustomerBookingPortalView(params: {
   const scheduled = await getScheduledBooking(params.session.userId, bookingId);
 
   const base = callToLinkIntakeBookingView(call);
-  const arrivalWindow =
-    scheduled?.arrivalWindowLabel?.trim() ||
-    call.arrivalWindow?.trim() ||
-    "Pending — we'll confirm your window soon";
-
   const terminal = status === "rejected" || status === "completed";
   const hasScheduledSlot = Boolean(scheduled?.scheduledStartAt);
+  // First-time schedule (phone intake without verbal slot) OR later reschedule.
   const canReschedule =
     !terminal &&
     (status === "scheduled" ||
       status === "approved" ||
-      (status === "pending_review" && hasScheduledSlot));
+      status === "pending_review");
+  const needsSchedule = canReschedule && !hasScheduledSlot;
   const canCancel = !terminal;
+
+  const arrivalWindow =
+    scheduled?.arrivalWindowLabel?.trim() ||
+    call.arrivalWindow?.trim() ||
+    (needsSchedule
+      ? "Not set yet — pick a visit window"
+      : "Pending — we'll confirm your window soon");
 
   return {
     ...base,
@@ -72,6 +78,7 @@ export async function loadCustomerBookingPortalView(params: {
     portalToken: params.token,
     canCancel,
     canReschedule,
+    needsSchedule,
   };
 }
 

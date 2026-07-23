@@ -13,7 +13,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "get_open_slots",
       description:
-        "Before confirming a visit time, fetch real open windows from the shop calendar. Read options to the caller, then pass slotId into submit_intake.",
+        "Optional legacy tool. Prefer NOT using on phone booking — after intake, submit_intake without slotId and the customer picks time via SMS link. Only call if the caller insists on locking a time verbally.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.getSlots,
@@ -54,7 +54,7 @@ export function buildRetellGeneralTools(base: string) {
           slotId: {
             type: "string",
             description:
-              "Required when scheduling a visit: slot id from get_open_slots after the caller picks a time",
+              "Usually omit — customer picks time via SMS portal link. Only set if you used get_open_slots and the caller picked a time on the call.",
           },
         },
         required: ["customerName", "address", "issueType"],
