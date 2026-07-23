@@ -87,8 +87,8 @@ export const demoSummaryEn = {
       body: "Keep your Google and truck line. Forward unanswered calls to Effiroad — customers never see a new number.",
     },
     {
-      title: "Voice or text link",
-      body: "Callers talk to AI on the phone, or press 2 for a one-minute SMS form. Name, address, and loss type captured either way.",
+      title: "Voice AI or text link",
+      body: "Press 1 for service/emergency or press 2 for a free estimate — both go straight to AI on the call. Prefer a form? Say “text link” at the main menu for a one-minute SMS form on link.effiroad.com.",
     },
     {
       title: "You stay in control",

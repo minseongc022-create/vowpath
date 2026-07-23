@@ -55,7 +55,7 @@ export const voicePhoneIntakeLinkFallbackSent =
   "The line's a little rough — no worries. I sent you a text with a link. Tap it when you can and our team will jump on it.";
 
 export const voicePhoneIntakeLinkFallbackFailed =
-  "I'm sorry — I'm having trouble on this call. If you can, hang up and call back, then press 2 for a text link. We appreciate your patience.";
+  "I'm sorry — I'm having trouble on this call. If you can, hang up and call back, then say text link at the menu for a form by SMS. We appreciate your patience.";
 
 /** Spoken when clear P1 water auto-dispatch is confirmed. */
 export const voiceDispatchConfirmed =

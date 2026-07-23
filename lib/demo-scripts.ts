@@ -77,7 +77,7 @@ export const ESTIMATE_DEMO: DemoStep[] = [
   },
   {
     role: "sms",
-    text: "Ridgeline: Hi! Thanks for calling! Finish here (~1 min): effiroad.com/r/…",
+    text: "Ridgeline: Hi! Thanks for calling! Finish here (~1 min): link.effiroad.com/r/…",
     delay: 1000,
   },
   { role: "system", text: "Estimate request logged · Owner notified", delay: 1800 },

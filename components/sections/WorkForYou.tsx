@@ -14,7 +14,7 @@ const POINTS = [
   {
     title: "Human When It Matters",
     description:
-      "Every dispatch and estimate lands in front of your team for the final call. The AI handles the phone — your crew still runs the business.",
+      "Clear jobs can auto-dispatch to crew SMS. Risky or unclear intakes wait for your text — reply 1 to send, 2 to pass. The AI handles the phone — you keep the judgment calls.",
   },
 ];
 
