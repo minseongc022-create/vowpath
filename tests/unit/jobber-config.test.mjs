@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-test("getJobberRedirectUri strips whitespace; honors explicit prod URL; blocks localhost", async () => {
+test("getJobberRedirectUri forces canonical apex on production Effiroad", async () => {
   const prev = {
     NODE_ENV: process.env.NODE_ENV,
     VERCEL_ENV: process.env.VERCEL_ENV,
@@ -20,8 +20,9 @@ test("getJobberRedirectUri strips whitespace; honors explicit prod URL; blocks l
   const { getJobberRedirectUri, getJobberClientId, JOBBER_PRODUCTION_CALLBACK_URI, getJobberRecommendedCallbackUris } =
     await import(`${modPath}?t=${Date.now()}`);
 
-  // Explicit www is honored (so ops can match whatever Jobber registered).
-  assert.equal(getJobberRedirectUri(), "https://www.effiroad.com/api/jobber/callback");
+  // www / env typos must not leak into authorize — always apex for live Effiroad.
+  assert.equal(getJobberRedirectUri(), JOBBER_PRODUCTION_CALLBACK_URI);
+  assert.equal(JOBBER_PRODUCTION_CALLBACK_URI, "https://effiroad.com/api/jobber/callback");
   assert.equal(getJobberClientId(), "961ac7e9-15c6-48bd-81ea-47c8afa40a7b");
 
   process.env.JOBBER_REDIRECT_URI = "http://localhost:3000/api/jobber/callback";

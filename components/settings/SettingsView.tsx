@@ -439,7 +439,7 @@ function SettingsViewBody({
           <JobberSettingsPanel
             connected={jobberConnected}
             stepDone={jobberStepDone}
-            showConfirm={jobberLinked}
+            showConfirm={jobberLinked && !jobberStepDone}
             onConfirm={() => void handleJobberConfirm()}
             onSkip={() => void handleJobberSkip()}
             onStatusChange={(connected, meta) => {
@@ -449,7 +449,14 @@ function SettingsViewBody({
                 setShop((prev) => ({
                   ...prev,
                   jobberConnected: true,
-                  jobberSetupConfirmed: false,
+                  jobberSetupConfirmed: true,
+                  jobberSkipped: false,
+                }));
+              } else if (connected) {
+                setShop((prev) => ({
+                  ...prev,
+                  jobberConnected: true,
+                  jobberSetupConfirmed: prev.jobberSetupConfirmed ?? true,
                 }));
               } else if (!connected) {
                 setJobberAccount(null);

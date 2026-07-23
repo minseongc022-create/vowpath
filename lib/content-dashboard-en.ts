@@ -198,7 +198,7 @@ export const jobberConnectEn = {
     "Jobber is not configured yet. Add JOBBER_CLIENT_ID and JOBBER_CLIENT_SECRET in Vercel env.",
 
   oauthErrorGeneric:
-    "Jobber connection failed. Confirm the Callback URL below is saved on the matching Client ID in Jobber Developer Center, then try Connect again.",
+    "Connection didn't finish. Tap Connect Jobber again — log in and press Allow Access.",
 
   settingsConnectedHint: "Approved and confirmed visits sync to your Jobber schedule automatically.",
 
@@ -209,7 +209,7 @@ export const jobberConnectEn = {
 
   invoiceAccessError: "Invoice access check failed. Try reconnecting Jobber.",
 
-  settingsDisconnectedHint: "Tap Connect Jobber — authorize once and you're done.",
+  settingsDisconnectedHint: "Press Connect → log in to Jobber → Allow Access. Done.",
 
   push: "Send to Jobber",
 

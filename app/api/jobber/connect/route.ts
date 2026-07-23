@@ -5,6 +5,7 @@ import {
   getJobberRedirectUri,
   getJobberClientId,
   isJobberConfigured,
+  JOBBER_PRODUCTION_CALLBACK_URI,
 } from "@/lib/jobber-config";
 import {
   clearJobberOAuthState,
@@ -25,6 +26,17 @@ export async function GET(request: Request) {
     );
   }
 
+  // Keep the shop on apex before Jobber round-trip so session cookies stay aligned
+  // with the canonical callback host (https://effiroad.com/...).
+  const url = new URL(request.url);
+  if (
+    process.env.NODE_ENV === "production" &&
+    url.hostname.toLowerCase() === "www.effiroad.com"
+  ) {
+    const apex = new URL(JOBBER_PRODUCTION_CALLBACK_URI);
+    return NextResponse.redirect(`https://${apex.hostname}/api/jobber/connect`);
+  }
+
   const redirectUri = getJobberRedirectUri(getJobberOriginFromRequest(request));
   if (!redirectUri) {
     return NextResponse.redirect(
@@ -41,17 +53,18 @@ export async function GET(request: Request) {
     );
   }
 
-  // Log exact bytes so trailing-space mismatches are visible in Vercel logs.
   console.info(
     "[jobber/connect] redirect_uri",
     JSON.stringify(redirectUri),
     "client_id",
     JSON.stringify(getJobberClientId()),
+    "user",
+    session.sub,
   );
 
   const state = crypto.randomUUID();
   await clearJobberOAuthState();
-  await setJobberOAuthState(state, redirectUri);
+  await setJobberOAuthState(state, redirectUri, session.sub);
 
   return NextResponse.redirect(buildJobberAuthorizeUrl(state, redirectUri));
 }

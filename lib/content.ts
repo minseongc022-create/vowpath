@@ -628,7 +628,7 @@ const settingsPageKo = {
     "연결하면 승인·자동 확정된 예약이 Jobber 일정에 자동으로 반영됩니다. 별도 일정 연동 설정은 필요 없습니다.",
   jobberConnectedSummary: "연결됨: {account}",
   jobberConfirm: "연결 확인",
-  jobberConfirmHint: "OAuth 연결 후 「연결 확인」을 눌러 주세요.",
+  jobberConfirmHint: "연결이 완료되면 자동으로 저장됩니다.",
   jobberConfirmed: "Jobber 연결이 저장되었습니다",
   jobberSkip: "Jobber 없이 계속",
   jobberSkippedNote: "Jobber를 건너뛰었습니다. 언제든 여기서 연결할 수 있습니다.",
@@ -1734,7 +1734,7 @@ const jobberConnectKo = {
   invoiceAccessReconnect:
     "수금 매출용 권한 갱신이 필요합니다. 연결 해제 후 다시 연결하세요.",
   invoiceAccessError: "인보이스 권한 확인 실패. Jobber 재연결을 시도하세요.",
-  settingsDisconnectedHint: "Jobber 연결만 누르면 됩니다. 한 번 승인하면 끝.",
+  settingsDisconnectedHint: "연결 → Jobber 로그인 → Allow Access. 끝.",
   push: "Jobber로 보내기",
   pushing: "Jobber 전송 중…",
   pushed: "Jobber에 생성됨",

@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "masculine-voice-v24-2026-07-23";
+export const RETELL_PROMPT_VERSION = "natural-pace-v25-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
@@ -186,7 +186,7 @@ export function buildRetellBookingAgentPatch(voiceId) {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
     voice_temperature: 0.62,
-    voice_speed: 0.88,
+    voice_speed: 1.0,
     volume: 1.1,
     responsiveness: 0.68,
   };
@@ -200,7 +200,7 @@ export function buildRetellEstimateAgentPatch(voiceId) {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
     voice_temperature: 0.64,
-    voice_speed: 0.89,
+    voice_speed: 1.0,
     volume: 1.1,
     responsiveness: 0.7,
   };

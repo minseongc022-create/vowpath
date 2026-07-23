@@ -123,16 +123,16 @@ export const settingsPageEn = {
   contactQuickTip: "New requests and approve/pass texts go to this phone. Reply 1 or 2 from the truck.",
   scheduleQuickTip: "Effiroad only answers during these windows. Keep daytime calls on your team.",
   phoneQuickTip: "Customers still dial your shop number — unanswered calls forward to Effiroad.",
-  jobberQuickTip: "Only if you use Jobber. You can run fully on SMS + dashboard without it.",
+  jobberQuickTip: "Connect → Jobber login → Allow Access. Optional if you don't use Jobber.",
   jobberScheduleAutoNote:
-    "Once connected, approved and auto-confirmed visits sync to your Jobber schedule — no extra calendar setup.",
+    "After you connect once, approved visits sync to Jobber automatically — nothing else to set up.",
   editLabel: "Edit",
   collapseLabel: "Done",
   jobberPanel: {
-    tagline: "Approved and confirmed visits sync to your Jobber schedule automatically.",
+    tagline: "One connect. Approved visits sync to Jobber on their own.",
     statusConnected: "Connected",
     statusOptional: "Optional",
-    connectTitle: "Connect your Jobber account",
+    connectTitle: "Connect Jobber",
     features: {
       requests: {
         title: "Auto-create Requests",
