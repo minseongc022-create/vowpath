@@ -18,7 +18,9 @@ Example flow:
 - Press 1 → Retell **booking agent** starts intake on the call
 - Press 2 → Retell **estimate agent** starts free-estimate intake
 - Say "text link" → SMS form sent, call ends
-- Phone intake → one question at a time → `submit_intake` or `submit_estimate`
+- Phone intake → one question at a time → `submit_intake` (no verbal time slots) → SMS link to pick visit time on the portal calendar
+- Estimate intake → `submit_estimate` → shop follow-up
+- Say "text link" → SMS form sent, call ends
 
 **Auto-sync:** On every Vercel production deploy, `postbuild-retell-sync.mjs` pushes the latest prompt and tools to Retell (when `RETELL_API_KEY` is set in Vercel).
 
