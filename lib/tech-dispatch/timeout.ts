@@ -3,6 +3,7 @@ import { listJobs } from "../jobs-db";
 import { listUsers } from "../users-db";
 import { getTechDispatchSettings, getTechAssignment, saveTechAssignment } from "./store";
 import { startTechAssignmentForBooking } from "./assign";
+import { effectiveOfferTimeoutMinutes } from "./policy";
 
 function offerTimedOut(offeredAt: string, timeoutMinutes: number): boolean {
   const ms = timeoutMinutes * 60 * 1000;
@@ -59,10 +60,10 @@ export async function processExpiredTechOffersForUser(userId: string): Promise<n
 
   for (const bookingId of bookingIds) {
     const assignment = await getTechAssignment(userId, bookingId);
-    const timeout =
-      assignment?.priority === "P1"
-        ? Math.min(5, settings.responseTimeoutMinutes)
-        : settings.responseTimeoutMinutes;
+    const timeout = effectiveOfferTimeoutMinutes(
+      settings.responseTimeoutMinutes,
+      assignment?.priority,
+    );
     if (await expireAndEscalateOffer(userId, bookingId, timeout)) {
       escalated += 1;
     }

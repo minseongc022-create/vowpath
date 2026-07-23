@@ -236,10 +236,26 @@ export async function persistRequestStatusForBooking(
     }
   }
 
-  if (effectiveStatus === "approved" || effectiveStatus === "scheduled") {
+  if (
+    effectiveStatus === "approved" ||
+    effectiveStatus === "scheduled" ||
+    effectiveStatus === "pending_review"
+  ) {
     try {
+      const { getTechDispatchSettings } = await import("./tech-dispatch/store");
+      const { shouldAutoStartTechDispatch } = await import("./tech-dispatch/policy");
       const { startTechAssignmentForBooking } = await import("./tech-dispatch/assign");
-      await startTechAssignmentForBooking(userId, bookingId);
+      const [dispatchSettings, scheduledSlot] = await Promise.all([
+        getTechDispatchSettings(userId),
+        getScheduledBooking(userId, bookingId),
+      ]);
+      if (
+        shouldAutoStartTechDispatch(dispatchSettings, effectiveStatus, {
+          hasScheduledSlot: Boolean(scheduledSlot),
+        })
+      ) {
+        await startTechAssignmentForBooking(userId, bookingId);
+      }
     } catch (e) {
       console.warn("[booking-status-sync] tech dispatch", e);
     }

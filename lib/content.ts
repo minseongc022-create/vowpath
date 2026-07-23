@@ -606,10 +606,10 @@ const settingsPageKo = {
   manageLink: "연동 설정 관리",
   scheduleTitle: "응대 시간",
   scheduleDescription:
-    "사무실이 비는 시간(퇴근 후, 주말, 점심 등)에 걸리는 전화를 Effiroad가 대신 받을 요일·시간을 정하세요. 예: 월–금 17:00~다음 날 08:00. 낮에도 항상 AI가 받게 하려면 「24시간 응대」를 켜세요.",
+    "사무실이 비는 시간(퇴근 후, 주말, 점심 등)에 걸리는 전화를 Effiroad가 대신 받을 요일·시간을 정하세요. 예: 월–금 17:00~다음 날 08:00. 낮에도 항상 AI가 받게 하려면 「24시간 응대」를 켜세요. Effiroad 번호 사용 시: 지정 시간 밖이면 가게 전화로 연결됩니다. 통신사 착신전환이면 시간 밖에도 AI가 받아 메모/예약을 남깁니다.",
   scheduleAlwaysOn: "24시간 응대",
   scheduleAlwaysOnHint:
-    "켜면 요일·시간과 관계없이 들어오는 전화를 모두 Effiroad가 받습니다. ③ 착신 전환도 24시간으로 맞추세요.",
+    "켜면 요일·시간과 관계없이 들어오는 전화를 모두 Effiroad가 받습니다. ③ 착신 전환도 24시간으로 맞추세요. 저장 전에는 창이 비어 있으면 AI가 받지 않습니다 — 시간대를 고른 뒤 저장하세요.",
   scheduleHourUnit: "시",
   scheduleMinuteUnit: "분",
   scheduleValidation: "24시간 응대를 켜거나, 시간대에 최소 하루를 선택하세요.",
@@ -1011,7 +1011,7 @@ const settingsPageKo = {
   ] as readonly string[],
   visitTimingTitle: "예약 간격",
   visitTimingHint:
-    "고객에게 보이는 방문 시간 간격입니다. 예: 2시간 → 8시, 10시, 12시… 순으로 열립니다.",
+    "고객에게 보이는 방문 시작 시각 간격입니다. 예: 2시간 → 8시, 10시, 12시… (이동 시간은 자동으로 반영됩니다).",
   visitHoursTitle: "고객 예약 시간대",
   visitHoursHint:
     "고객 방문 예약 시간대입니다 (월–토). AI 전화 응답 시간과는 별개입니다 — 오전·오후 블록 또는 하루 연속으로 설정하세요.",
@@ -1027,9 +1027,9 @@ const settingsPageKo = {
     `예: 다음 영업일 ${am}, ${pm} 슬롯이 보입니다.`,
   visitHoursExampleContinuous: (range: string) =>
     `예: 다음 영업일 ${range} 슬롯이 연속으로 보입니다.`,
-  appointmentIntervalLabel: "예약 간격",
+  appointmentIntervalLabel: "슬롯 간격 (고객에게 보이는 시작 시각)",
   appointmentIntervalHint:
-    "각 슬롯 길이입니다. 예약이 잡히면 그만큼 일정을 차지하고, 버퍼(간격) 후에만 다음 빈 시간이 열립니다.",
+    "예약을 이 간격으로 제안합니다. 작업 시간 + 이동 시간이 자동으로 맞춰져, 기사가 겹치지 않습니다.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `예: 8시 예약 → 다음은 ${8 + hours}시 ${minutes}분 (${hours}시간 ${minutes}분 간격).`
@@ -1037,7 +1037,7 @@ const settingsPageKo = {
   appointmentIntervalPresets: ["1시간", "1.5시간", "2시간", "3시간"] as const,
   travelMinutesLabel: "기사 이동 시간",
   travelMinutesHint:
-    "방문 종료 후 다음 집까지 이동·주차 시간입니다. 마무리 버퍼와 합쳐져 다음 빈 슬롯이 열립니다.",
+    "한 방문이 끝난 뒤 다음 집까지 이동·주차 시간입니다. 슬롯 간격을 바꾸지 않고 이동만 조정하면 작업 길이가 자동 보정됩니다.",
   travelMinutesFieldLabel: "이동 시간 (분)",
   teamCapacityTitle: "동시에 여러 팀 (선택)",
   teamCapacityHint:

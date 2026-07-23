@@ -8,8 +8,14 @@ import { resolveShopTimezone } from "./shop-timezone";
 export function shouldAnswerNow(profile: ShopProfile, now = new Date()): boolean {
   if (!profile.answerScheduleActive) return false;
   if (profile.scheduleAlwaysOn) return true;
-  const rows = parseRowsFromStored(profile.scheduleWindows);
-  if (rows.length === 0) return false;
+
+  const stored = Array.isArray(profile.scheduleWindows) ? profile.scheduleWindows : [];
+  // Active with no saved windows must not invent default overnight hours.
+  if (stored.length === 0) return false;
+
+  const rows = parseRowsFromStored(stored);
+  if (rows.some((row) => row.alwaysOn)) return true;
+
   const timeZone = resolveShopTimezone(profile);
   return isWithinAnyAiSchedule(now.toISOString(), rows, timeZone);
 }
