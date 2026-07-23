@@ -1734,7 +1734,7 @@ const jobberConnectKo = {
   invoiceAccessReconnect:
     "수금 매출용 권한 갱신이 필요합니다. 연결 해제 후 다시 연결하세요.",
   invoiceAccessError: "인보이스 권한 확인 실패. Jobber 재연결을 시도하세요.",
-  settingsDisconnectedHint: "OAuth로 연결하면 Request·일정이 자동 동기화됩니다.",
+  settingsDisconnectedHint: "Jobber 연결만 누르면 됩니다. 한 번 승인하면 끝.",
   push: "Jobber로 보내기",
   pushing: "Jobber 전송 중…",
   pushed: "Jobber에 생성됨",

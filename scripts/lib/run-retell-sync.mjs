@@ -56,6 +56,15 @@ export async function runRetellSync(env = process.env) {
     explicitId: env.RETELL_VOICE_ID,
     currentVoiceId: currentBookingAgent.voice_id,
   });
+  if (bookingVoiceId !== currentBookingAgent.voice_id) {
+    console.log(
+      "[retell:sync] voice",
+      currentBookingAgent.voice_id,
+      "→",
+      bookingVoiceId,
+      `(${RETELL_PROMPT_VERSION})`,
+    );
+  }
   const estimateVoiceId = pickEstimateReceptionistVoice(voices, {
     explicitEstimateId: env.RETELL_ESTIMATE_VOICE_ID,
     currentVoiceId: estimateAgentId

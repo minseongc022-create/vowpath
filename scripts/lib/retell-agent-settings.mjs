@@ -2,29 +2,39 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "cinematic-voice-v20-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v21-2026-07-23";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
-export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Brian";
+export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
 
-/** Service / emergency — crisp, cinematic US male (Brian first for phone clarity). */
+const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan/i;
+
+export function isThinRetellVoiceId(voiceId) {
+  return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
+}
+
+/** Service / emergency — deep, grounded US male (Mark / Bill / Adam first). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Brian",
-  "George",
   "Mark",
-  "Daniel",
+  "Bill",
+  "Adam",
+  "Clyde",
   "Marcus",
   "Steve",
+  "Daniel",
+  "George",
 ];
 
-/** Free estimate — same crisp cinematic male set. */
+/** Free estimate — same deep trustworthy set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Brian",
-  "George",
   "Mark",
-  "Daniel",
+  "Bill",
+  "Adam",
+  "Clyde",
   "Marcus",
+  "Steve",
+  "Daniel",
 ];
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -45,10 +55,14 @@ function isMale(v) {
 }
 
 function pickFromList(voices, preferredNames, options = {}) {
-  const explicit = options.explicitId?.trim();
+  const explicitRaw = options.explicitId?.trim();
+  const explicit =
+    explicitRaw && !isThinRetellVoiceId(explicitRaw) ? explicitRaw : undefined;
   if (explicit) return explicit;
 
-  const americanMales = (voices ?? []).filter((v) => isUsEnglishVoice(v) && isMale(v));
+  const americanMales = (voices ?? []).filter(
+    (v) => isUsEnglishVoice(v) && isMale(v) && !isThinRetellVoiceId(v.voice_id),
+  );
 
   for (const preferred of preferredNames) {
     const hit = americanMales.find((v) =>
@@ -60,9 +74,11 @@ function pickFromList(voices, preferredNames, options = {}) {
   if (americanMales[0]?.voice_id) return americanMales[0].voice_id;
 
   const current = options.currentVoiceId;
-  const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
-  if (current && currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
-    return current;
+  if (current && !isThinRetellVoiceId(current)) {
+    const currentVoice = (voices ?? []).find((v) => v.voice_id === current);
+    if (currentVoice && isMale(currentVoice) && isUsEnglishVoice(currentVoice)) {
+      return current;
+    }
   }
 
   return RETELL_FALLBACK_MALE_VOICE_ID;
@@ -138,29 +154,29 @@ function sharedAgentPatch() {
   };
 }
 
-/** Crisp cinematic service / emergency intake — lower temp + volume for phone clarity. */
+/** Deep masculine service / emergency intake — weight + calm pace. */
 export function buildRetellBookingAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.52,
-    voice_speed: 0.92,
-    volume: 1.02,
-    responsiveness: 0.7,
+    voice_temperature: 0.62,
+    voice_speed: 0.88,
+    volume: 1.1,
+    responsiveness: 0.68,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same cinematic clarity. */
+/** Estimate intake — same deep masculine presence. */
 export function buildRetellEstimateAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.55,
-    voice_speed: 0.93,
-    volume: 1.02,
-    responsiveness: 0.72,
+    voice_temperature: 0.64,
+    voice_speed: 0.89,
+    volume: 1.1,
+    responsiveness: 0.7,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

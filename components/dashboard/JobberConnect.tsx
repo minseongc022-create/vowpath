@@ -53,7 +53,6 @@ export function JobberConnect({
   const [disconnecting, setDisconnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
-  const [callbackSaved, setCallbackSaved] = useState(false);
   const onStatusChangeRef = useRef(onStatusChange);
   onStatusChangeRef.current = onStatusChange;
 
@@ -224,97 +223,50 @@ export function JobberConnect({
       )}
 
       {s.configured && s.redirectUri && !s.connected ? (
-        <div
-          className={`rounded-xl border-2 border-amber-400 bg-amber-50 shadow-sm ${
-            isSettings ? "mt-4 p-5" : "mt-4 p-4"
+        <details
+          open={Boolean(oauthError)}
+          className={`rounded-xl border border-stone-200 bg-stone-50/80 ${
+            isSettings ? "mt-4" : "mt-4"
           }`}
         >
-          <p className={`font-bold text-amber-950 ${isSettings ? "text-base" : "text-sm"}`}>
-            {copy.redirectSetupTitle}
-          </p>
-          <p className={`mt-1 text-amber-950/90 ${isSettings ? "text-sm" : "text-xs"}`}>
-            {copy.redirectSetupBody}
-          </p>
-          <ol
-            className={`mt-3 list-decimal space-y-2 pl-5 text-amber-950 ${
+          <summary
+            className={`cursor-pointer select-none px-4 py-3 font-medium text-stone-700 ${
               isSettings ? "text-sm" : "text-xs"
             }`}
           >
-            <li>
-              Open{" "}
-              {s.developerPortalUrl ? (
-                <a
-                  href={s.developerPortalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold underline"
-                >
-                  Jobber Developer Center
-                </a>
-              ) : (
-                "Jobber Developer Center"
-              )}{" "}
-              and select the app whose Client ID is{" "}
-              <code className="rounded bg-white px-1 font-mono text-[0.9em]">
-                {s.clientId ?? "…"}
+            {copy.redirectSetupTitle} (only if Connect fails)
+          </summary>
+          <div className={`border-t border-stone-200 px-4 pb-4 pt-3 ${isSettings ? "text-sm" : "text-xs"}`}>
+            <p className="text-stone-600">{copy.redirectSetupBody}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="flex-1 break-all rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-slate-800">
+                {s.redirectUri}
               </code>
-              .
-            </li>
-            <li>
-              Paste this <strong>exact</strong> OAuth Callback URL (no spaces, no extra slash), then{" "}
-              <strong>Save</strong>:
-            </li>
-          </ol>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code
-              className={`flex-1 break-all rounded-lg border border-amber-300 bg-white px-3 py-2 font-mono text-slate-900 ${
-                isSettings ? "text-sm" : "text-xs"
-              }`}
-            >
-              {s.redirectUri}
-            </code>
-            <button
-              type="button"
-              onClick={() => void handleCopyRedirect()}
-              className={`rounded-lg border border-amber-400 bg-white px-3 py-2 font-semibold text-amber-950 hover:bg-amber-100 ${
-                isSettings ? "text-sm" : "text-xs"
-              }`}
-            >
-              {copied ? copy.redirectSetupCopied : copy.redirectSetupCopy}
-            </button>
-          </div>
-          {(s.recommendedCallbackUris?.length ?? 0) > 0 ? (
-            <div className={`mt-3 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
-              <p className="font-semibold text-amber-950">{copy.redirectAlsoRegister}</p>
-              <ul className="mt-1 space-y-1 font-mono text-[0.9em]">
-                {s.recommendedCallbackUris!.map((uri) => (
-                  <li key={uri} className="break-all">
-                    {uri}
-                  </li>
-                ))}
-              </ul>
+              <button
+                type="button"
+                onClick={() => void handleCopyRedirect()}
+                className="rounded-lg border border-stone-300 bg-white px-3 py-2 font-semibold text-stone-800 hover:bg-stone-100"
+              >
+                {copied ? copy.redirectSetupCopied : copy.redirectSetupCopy}
+              </button>
             </div>
-          ) : null}
-          <p className={`mt-3 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
-            {copy.redirectSetupNote}
-          </p>
-          {s.clientId ? (
-            <p className={`mt-2 text-amber-900/90 ${isSettings ? "text-sm" : "text-xs"}`}>
-              {copy.redirectSetupClientId.replace("{clientId}", s.clientId)}
-            </p>
-          ) : null}
-          <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-amber-300 bg-white px-3 py-2.5">
-            <input
-              type="checkbox"
-              checked={callbackSaved}
-              onChange={(e) => setCallbackSaved(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400"
-            />
-            <span className={`font-medium text-amber-950 ${isSettings ? "text-sm" : "text-xs"}`}>
-              {copy.redirectConfirmCheckbox}
-            </span>
-          </label>
-        </div>
+            {s.clientId ? (
+              <p className="mt-2 text-stone-600">
+                {copy.redirectSetupClientId.replace("{clientId}", s.clientId)}
+              </p>
+            ) : null}
+            {s.developerPortalUrl ? (
+              <a
+                href={s.developerPortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex font-semibold text-brand-700 hover:underline"
+              >
+                {copy.redirectSetupLink} →
+              </a>
+            ) : null}
+          </div>
+        </details>
       ) : null}
 
       {s.connected ? (
@@ -398,17 +350,17 @@ export function JobberConnect({
       <div className={isSettings ? "mt-4 flex flex-wrap gap-3" : "mt-4 flex flex-wrap gap-3"}>
         {!s.connected ? (
           <a
-            href={s.configured && callbackSaved ? "/api/jobber/connect" : undefined}
+            href={s.configured ? "/api/jobber/connect" : undefined}
             className={`font-semibold ${
               isSettings ? "rounded-xl px-6 py-3.5 text-base" : "rounded-lg px-4 py-2 text-sm"
             } ${
-              s.configured && callbackSaved
+              s.configured
                 ? "hvac-btn-primary"
                 : "cursor-not-allowed bg-slate-200 text-slate-500"
             }`}
-            aria-disabled={!s.configured || !callbackSaved}
+            aria-disabled={!s.configured}
             onClick={(e) => {
-              if (!s.configured || !callbackSaved) e.preventDefault();
+              if (!s.configured) e.preventDefault();
             }}
           >
             {copy.connect}
@@ -426,12 +378,6 @@ export function JobberConnect({
           </button>
         )}
       </div>
-
-      {!s.connected && s.configured && !callbackSaved ? (
-        <p className={`mt-2 text-amber-800 ${isSettings ? "text-sm" : "text-xs"}`}>
-          {copy.redirectConfirmHint}
-        </p>
-      ) : null}
 
       {!s.configured ? (
         <p className={`mt-3 text-amber-800 ${isSettings ? "text-sm" : "text-xs"}`}>
