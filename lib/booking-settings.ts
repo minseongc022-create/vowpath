@@ -194,7 +194,7 @@ import { schedulingGapMinutes as computeSchedulingGapMinutes } from "./schedulin
 
 export { schedulingGapMinutes } from "./scheduling/scheduling-gap";
 
-/** Spacing between offered visit times (visit length + wrap-up + travel). */
+/** Spacing between offered visit starts (visit length + wrap-up + travel). */
 export function appointmentIntervalMinutes(
   settings: Pick<
     ShopBookingSettings,
@@ -204,9 +204,20 @@ export function appointmentIntervalMinutes(
   return Math.max(15, settings.defaultDurationMinutes + computeSchedulingGapMinutes(settings));
 }
 
-export function patchAppointmentInterval(intervalMinutes: number): Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes"> {
+/**
+ * Set how far apart customer-facing slot starts should be.
+ * Keeps travel time; puts the rest into visit length (buffer cleared so
+ * duration + travel === interval).
+ */
+export function patchAppointmentInterval(
+  intervalMinutes: number,
+  current?: Pick<ShopBookingSettings, "travelMinutes">,
+): Pick<ShopBookingSettings, "defaultDurationMinutes" | "slotBufferMinutes"> {
   const interval = Math.min(720, Math.max(15, Math.round(intervalMinutes)));
-  return { defaultDurationMinutes: interval, slotBufferMinutes: 0 };
+  const travel = normalizeTravelMinutes(current?.travelMinutes ?? DEFAULT_SHOP_BOOKING_SETTINGS.travelMinutes);
+  const travelUsed = Math.min(travel, Math.max(0, interval - 15));
+  const duration = Math.max(15, interval - travelUsed);
+  return { defaultDurationMinutes: duration, slotBufferMinutes: 0 };
 }
 
 export {

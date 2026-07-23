@@ -140,7 +140,9 @@ export async function startTechAssignmentForBooking(
     getShopBookingSettings(userId),
   ]);
   const practiceMode = isPracticeMode(bookingSettings);
-  if (!settings.enabled || !settings.assignOnApprove || !settings.techs.length) {
+  // assignOnApprove is enforced by callers via shouldAutoStartTechDispatch —
+  // never gate the offer runner itself (that made "off" kill all crew SMS).
+  if (!settings.enabled || !settings.techs.length) {
     return null;
   }
 
@@ -194,6 +196,19 @@ export async function startTechAssignmentForBooking(
     assignment.currentTechId = null;
     assignment.updatedAt = new Date().toISOString();
     await saveTechAssignment(assignment);
+    try {
+      const { notifyOwnerNoCrewAccepted } = await import("./owner-alert");
+      await notifyOwnerNoCrewAccepted({
+        userId,
+        bookingId,
+        customerName: ctx.customerName,
+        issue: ctx.issue,
+        window: ctx.window,
+        priority: ctx.priority,
+      });
+    } catch (e) {
+      console.warn("[tech-dispatch] owner no-crew alert", e);
+    }
     return assignment;
   }
 

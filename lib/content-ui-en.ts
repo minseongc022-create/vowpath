@@ -39,7 +39,8 @@ export const settingsPageEn = {
   bookingAdvancedTitle: "Advanced (optional)",
   bookingAdvancedHint: "Storm weeks, ZIP limits, and practice mode. Most shops skip this at first.",
   visitTimingTitle: "Time between visits",
-  visitTimingHint: "How far apart slots show up — e.g. every 2 hours.",
+  visitTimingHint:
+    "How far apart customer-facing start times appear — e.g. every 2 hours (drive time is folded in automatically).",
   visitHoursTitle: "Visit hours",
   visitHoursHint: "When customers can book (Mon–Sat). Separate from your AI answer hours in Step 2.",
   visitHoursLayoutLabel: "Schedule style",
@@ -54,15 +55,17 @@ export const settingsPageEn = {
     `Example slots on the next open day: ${am} and ${pm}.`,
   visitHoursExampleContinuous: (range: string) =>
     `Example slots on the next open day: ${range} (back-to-back).`,
-  appointmentIntervalLabel: "Slot length",
-  appointmentIntervalHint: "Each visit blocks this long on the calendar.",
+  appointmentIntervalLabel: "Slot spacing (start times customers see)",
+  appointmentIntervalHint:
+    "We offer visits this far apart. Visit length + drive time are balanced so the same tech isn't double-booked.",
   appointmentIntervalExample: (hours: number, minutes: number) =>
     minutes > 0
       ? `Example: first visit at 8:00 AM → next at ${8 + hours}:${String(minutes).padStart(2, "0")} AM (${hours}h ${minutes}m apart).`
       : `Example: first visit at 8:00 AM → next at ${8 + hours}:00 AM (${hours}-hour spacing).`,
   appointmentIntervalPresets: ["1 hr", "1.5 hr", "2 hr", "3 hr"] as const,
   travelMinutesLabel: "Drive time",
-  travelMinutesHint: "Buffer between jobs so the same tech isn't double-booked.",
+  travelMinutesHint:
+    "Time to drive and park between jobs. Changing drive time keeps your slot spacing — visit length adjusts automatically.",
   travelMinutesFieldLabel: "Travel time (minutes)",
   teamCapacityTitle: "Multiple crews (optional)",
   teamCapacityHint: "Leave at 1 unless several techs can run jobs at the same time.",

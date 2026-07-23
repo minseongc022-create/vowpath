@@ -127,7 +127,11 @@ export function BookingSettingsEditor() {
   function applyInterval(raw: string) {
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 15 || n > 720) return;
-    updateLocal(patchAppointmentInterval(n));
+    updateLocal(
+      patchAppointmentInterval(n, {
+        travelMinutes: settings?.travelMinutes ?? 30,
+      }),
+    );
   }
 
   function applyVisitWindows(
@@ -363,7 +367,11 @@ export function BookingSettingsEditor() {
                   type="button"
                   onClick={() => {
                     setIntervalDraft(String(minutes));
-                    updateLocal(patchAppointmentInterval(minutes));
+                    updateLocal(
+                      patchAppointmentInterval(minutes, {
+                        travelMinutes: settings.travelMinutes,
+                      }),
+                    );
                   }}
                   className={`vow-settings-chip ${
                     intervalMinutes === minutes
@@ -411,7 +419,13 @@ export function BookingSettingsEditor() {
                 onChange={(e) => {
                   const n = Number(e.target.value);
                   if (Number.isFinite(n) && n >= 0 && n <= 240) {
-                    updateLocal({ travelMinutes: n });
+                    const travelMinutes = n;
+                    // Keep the customer-facing slot spacing stable when drive time changes.
+                    updateLocal({
+                      travelMinutes,
+                      ...patchAppointmentInterval(intervalMinutes, { travelMinutes }),
+                    });
+                    setIntervalDraft(String(intervalMinutes));
                   }
                 }}
                 className="vow-settings-input mt-1"

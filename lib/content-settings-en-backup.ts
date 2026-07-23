@@ -64,10 +64,11 @@ export const SETTINGS_PAGE_EN = {
   statusPending: "Needs setup",
   manageLink: "Manage integrations",
   scheduleTitle: "Answer hours",
-  scheduleDescription: "Set the days and times Effiroad should pick up, or turn on 24/7.",
+  scheduleDescription:
+    "Pick days and times Effiroad should answer (e.g. Mon–Fri 5:00 PM → next day 8:00 AM), or turn on 24/7. Using an Effiroad number: outside those hours we ring your shop phone. Using carrier forwarding: AI still picks up outside hours and takes a soft intake / message. Save at least one window (or 24/7) — an empty schedule will not answer.",
   scheduleAlwaysOn: "Answer 24/7",
   scheduleAlwaysOnHint:
-    "Effiroad handles every forwarded call around the clock. Match your forwarding rules to this.",
+    "Effiroad answers every inbound call. Match step 3 forwarding to 24/7 as well.",
   scheduleHourUnit: "hr",
   scheduleMinuteUnit: "min",
   scheduleValidation: "Turn on 24/7 or pick at least one day in a time window.",
