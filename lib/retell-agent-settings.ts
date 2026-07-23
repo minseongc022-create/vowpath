@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "masculine-voice-v21-2026-07-23";
+export const RETELL_PROMPT_VERSION = "masculine-voice-v22-2026-07-23";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -15,7 +15,7 @@ export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Mark";
  * Thin / bright voices that sound “mosquito-like” on phone — never keep these
  * even if RETELL_VOICE_ID or the live agent is set to them.
  */
-const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan/i;
+const THIN_VOICE_RE = /brian|chris|josh|liam|harry|ethan|billy/i;
 
 export function isThinRetellVoiceId(voiceId: string | null | undefined): boolean {
   return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
@@ -84,9 +84,17 @@ function pickFromList(
   );
 
   for (const preferred of preferredNames) {
-    const hit = americanMales.find((v) =>
-      (v.voice_name || "").toLowerCase().includes(preferred.toLowerCase()),
-    );
+    const pref = preferred.toLowerCase();
+    const hit = americanMales.find((v) => {
+      const name = (v.voice_name || "").toLowerCase().trim();
+      // Word match only — "Bill" must not select "Billy".
+      return (
+        name === pref ||
+        name.startsWith(`${pref} `) ||
+        name.endsWith(` ${pref}`) ||
+        name.includes(` ${pref} `)
+      );
+    });
     if (hit) return hit.voice_id;
   }
 
