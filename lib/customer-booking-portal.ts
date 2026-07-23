@@ -189,9 +189,19 @@ export async function customerRescheduleBooking(params: {
     arrivalWindow: committed.slot.label,
   });
 
-  await persistRequestStatusForBooking(params.userId, params.bookingId, "scheduled", {
-    skipCustomerSms: true,
-  });
+  const { getRequestStatuses } = await import("./requests-db");
+  const { lookupStoredRequestStatus } = await import("./request-status-resolve");
+  const { normalizeRequestStatus } = await import("./booking-policy");
+  const statuses = await getRequestStatuses(params.userId);
+  const current = normalizeRequestStatus(
+    lookupStoredRequestStatus(params.bookingId, statuses) ?? "pending_review",
+  );
+  // Already on the calendar — only update the slot; do not re-fire approve/dispatch side effects.
+  if (current !== "scheduled") {
+    await persistRequestStatusForBooking(params.userId, params.bookingId, "scheduled", {
+      skipCustomerSms: true,
+    });
+  }
 
   const token = await findPortalTokenForBooking(params.userId, params.bookingId);
   const portalUrl = token ? buildBookingPortalUrl(token) : undefined;
@@ -206,6 +216,22 @@ export async function customerRescheduleBooking(params: {
       priority: call.priority ?? "P2",
       portalUrl,
       customerName: params.customerName,
+      dedupeKey: `${params.bookingId}:reschedule:${committed.slot.startAt}`,
+    });
+  } catch {
+    /* optional */
+  }
+
+  try {
+    const { notifyOwnerLinkIntakeUpdated } = await import("./link-intake-owner-notify");
+    await notifyOwnerLinkIntakeUpdated({
+      userId: params.userId,
+      bookingId: params.bookingId,
+      customerName: params.customerName,
+      issueType: `Rescheduled → ${committed.slot.label}`,
+      address: call.address ?? "",
+      cityState: "",
+      priority: call.priority ?? "P2",
     });
   } catch {
     /* optional */

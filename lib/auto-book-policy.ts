@@ -88,6 +88,23 @@ export function shouldOwnerApproveAfterCustomerSlotPick(params: {
   return resolveAutoBookDecision(params).needsOwnerApproval;
 }
 
+/** Vertical-aware: HVAC P1 no-heat can auto-book; gas/spark always holds. */
+export function shouldOwnerApproveAfterCustomerSlotPickForVertical(
+  vertical: ShopVertical,
+  params: {
+    priority: JobPriority;
+    confidenceMin?: number;
+    lossCategory?: LossCategory | string | null;
+    issueType?: string | null;
+    symptom?: string | null;
+    customerName?: string | null;
+    address?: string | null;
+    inServiceArea?: boolean;
+  },
+): boolean {
+  return resolveAutoBookDecisionForVertical(vertical, params).needsOwnerApproval;
+}
+
 export function shouldSendOwnerApprovalSms(
   level: "off" | "p1_only" | "all",
   priority: JobPriority,

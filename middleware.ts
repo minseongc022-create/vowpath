@@ -14,10 +14,13 @@ const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 /** Customer portal paths — safe on portal/app subdomains (no marketing homepage). */
 const portalPublicPrefixes = [
   "/r/",
+  "/t/",
+  "/go/",
   "/intake/",
   "/portal",
   "/agreement-offer/",
   "/api/intake-link/",
+  "/api/track/",
   "/api/correction/",
   "/api/agreement-offer/",
   // Address autocomplete + details for link intake on link.effiroad.com

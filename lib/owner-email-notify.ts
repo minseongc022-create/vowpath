@@ -117,6 +117,39 @@ export async function notifyOwnerNewRequestEmail(params: {
   });
 }
 
+/** Instant email when a booking needs owner 1/2 (same moment as SMS). */
+export async function notifyOwnerApprovalNeededEmail(params: {
+  userId: string;
+  bookingId: string;
+  customerName: string;
+  issueType: string;
+  priority: JobPriority;
+  window?: string;
+  address?: string;
+}): Promise<void> {
+  const user = await findUserById(params.userId);
+  const shop = resolveShopDisplayName(user?.shopName);
+  const tag = params.priority === "P1" ? "URGENT — needs your OK" : "Needs your OK";
+  const window = params.window?.trim() ? `\nWindow: ${params.window}` : "";
+  const addr = params.address?.trim() ? `\nAddress: ${params.address}` : "";
+
+  await sendOwnerEmailAlert({
+    userId: params.userId,
+    bookingId: params.bookingId,
+    subject: `${shop} · ${tag}`,
+    text:
+      `${shop} — reply needed\n\n` +
+      `Customer: ${params.customerName}\n` +
+      `Issue: ${params.issueType}${window}${addr}\n` +
+      `Priority: ${params.priority}\n\n` +
+      `SMS reply: 1 = Approve, 2 = Decline\n` +
+      `Dashboard: ${bookingDashboardUrl(params.bookingId)}\n\n` +
+      `${OWNER_EMAIL_BACKUP_NOTE}\n`,
+    dedupeId: `${params.bookingId}:owner_approval_email`,
+    operation: "owner_approval_needed_email",
+  });
+}
+
 export async function notifyOwnerCustomerVerifiedEmail(params: {
   userId: string;
   bookingId: string;

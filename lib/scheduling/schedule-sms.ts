@@ -85,6 +85,8 @@ export async function notifyCustomerScheduled(params: {
   customerName?: string;
   portalUrl?: string;
   practiceMode?: boolean;
+  /** Override SMS dedupe key (needed for reschedule confirmations). */
+  dedupeKey?: string;
 }) {
   const phone = params.phone?.trim();
   if (!phone) return;
@@ -105,7 +107,7 @@ export async function notifyCustomerScheduled(params: {
     userId: params.userId,
     phone,
     body,
-    dedupeId: `${params.bookingId}:scheduled`,
+    dedupeId: params.dedupeKey ?? `${params.bookingId}:scheduled`,
     operation: "customer_scheduled",
     bookingId: params.bookingId,
     practiceMode: params.practiceMode,
@@ -179,26 +181,50 @@ export async function notifyOwnerApprovalNeeded(params: {
   window: string;
   priority: JobPriority;
   ambiguous?: boolean;
+  address?: string;
 }) {
-  const ownerPhone = await resolveOwnerAlertPhone(params.userId);
-  if (!ownerPhone) return;
   const user = await findUserById(params.userId);
-  const body = smsOwnerApprovalNeededBody({
-    shopName: user?.shopName,
-    customerName: params.customerName,
-    issue: params.issue,
-    window: params.window,
-    priority: params.priority,
-    ambiguous: params.ambiguous,
-  });
-  await sendOwner({
-    userId: params.userId,
-    phone: ownerPhone,
-    body,
-    dedupeId: `${params.bookingId}:owner_approval`,
-    operation: "owner_approval_needed",
-    bookingId: params.bookingId,
-  });
+  const ownerPhone = await resolveOwnerAlertPhone(params.userId);
+
+  const tasks: Promise<unknown>[] = [];
+
+  if (ownerPhone) {
+    const body = smsOwnerApprovalNeededBody({
+      shopName: user?.shopName,
+      customerName: params.customerName,
+      issue: params.issue,
+      window: params.window,
+      priority: params.priority,
+      ambiguous: params.ambiguous,
+    });
+    tasks.push(
+      sendOwner({
+        userId: params.userId,
+        phone: ownerPhone,
+        body,
+        dedupeId: `${params.bookingId}:owner_approval`,
+        operation: "owner_approval_needed",
+        bookingId: params.bookingId,
+      }),
+    );
+  }
+
+  tasks.push(
+    (async () => {
+      const { notifyOwnerApprovalNeededEmail } = await import("../owner-email-notify");
+      await notifyOwnerApprovalNeededEmail({
+        userId: params.userId,
+        bookingId: params.bookingId,
+        customerName: params.customerName,
+        issueType: params.issue,
+        priority: params.priority,
+        address: params.address,
+        window: params.window,
+      });
+    })(),
+  );
+
+  await Promise.allSettled(tasks);
 }
 
 export async function notifyOwnerUrgentAutoBooked(params: {
