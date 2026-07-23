@@ -8,6 +8,7 @@
 |------|-----------|---------------|
 | **Tech dispatch timeout + escalation** | **Every 60 seconds** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/tech-dispatch` |
 | **Appointment reminder SMS** | **Every 60 seconds** (same call) | Same external cron as above |
+| **Pick-time link nudge** (customer forgot / missed SMS) | **Every 60 seconds** (same call) | Same — remind customer ~90m, escalate owner ~4h |
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
 

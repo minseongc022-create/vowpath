@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { processExpiredTechOffersAll } from "@/lib/tech-dispatch/timeout";
 import { processApptRemindersAll } from "@/lib/tech-dispatch/appointment-reminder";
+import { processPickTimeNudgesAll } from "@/lib/scheduling/pick-time-nudge";
 
 // Schedule: see CRON.md (source of truth — NOT vercel.json alone).
-// Production: cron-job.org hits this route every 60s (tech offer timeout + appt reminders).
+// Production: cron-job.org hits this route every 60s (tech offer timeout + appt reminders + pick-time nudges).
 // vercel.json lists 0 8 * * * as a daily backup only (Vercel Hobby blocks sub-daily crons).
 
 export async function GET(request: Request) {
@@ -24,11 +25,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [timeouts, reminders] = await Promise.all([
+    const [timeouts, reminders, pickTime] = await Promise.all([
       processExpiredTechOffersAll(),
       processApptRemindersAll(),
+      processPickTimeNudgesAll(),
     ]);
-    return NextResponse.json({ ok: true, timeouts, reminders });
+    return NextResponse.json({ ok: true, timeouts, reminders, pickTime });
   } catch (e) {
     console.error("[cron/tech-dispatch]", e);
     return NextResponse.json(

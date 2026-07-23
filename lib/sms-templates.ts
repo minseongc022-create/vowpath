@@ -120,6 +120,32 @@ export function smsCustomerBookingConfirmationBody(params: {
   return smsBodyWithUrl(core, params.portalUrl);
 }
 
+/** Reminder if customer never opened the pick-time link. */
+export function smsCustomerPickTimeReminderBody(params: {
+  shopName?: string;
+  customerName: string;
+  portalUrl: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const core = `${shop}: Hi ${first}! Reminder — pick your visit time so we can send a tech:`;
+  return smsBodyWithUrl(core, params.portalUrl);
+}
+
+/** Owner: customer still has not chosen a window. */
+export function smsOwnerPickTimeStaleBody(params: {
+  shopName?: string;
+  customerName: string;
+  issue: string;
+  phone?: string;
+}): string {
+  const shop = resolveShopDisplayName(params.shopName);
+  const name = smsTruncate(params.customerName, 16);
+  const issue = smsTruncate(params.issue, 22);
+  const phone = params.phone?.trim() ? ` ${smsTruncate(params.phone, 14)}` : "";
+  return `${shop}: ${name}${phone} still hasn't picked a visit time (${issue}). Call them or set a window in the dashboard.`;
+}
+
 export function smsCustomerScheduledBody(params: {
   shopName?: string;
   customerName: string;
