@@ -172,7 +172,11 @@ export function useDemoInteractiveTimeline({
 
   const unlockAudio = useCallback(() => {
     markUnlocked();
-  }, [markUnlocked]);
+    // Start first AI line inside the same user gesture so iOS/Safari actually plays audio.
+    if (!runningRef.current && !done) {
+      void runAutoSteps(cursor);
+    }
+  }, [markUnlocked, runAutoSteps, cursor, done]);
 
   useEffect(() => {
     const el = customerScrollRef.current;

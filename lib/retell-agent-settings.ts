@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "natural-pace-v25-2026-07-23";
+export const RETELL_PROMPT_VERSION = "thick-voice-one-tap-v26-2026-07-23";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -13,12 +13,12 @@ export const RETELL_FALLBACK_MALE_VOICE_ID = "11labs-Steve";
 
 /** Prefer these Retell voice IDs first (deep / grounded), then name matching. */
 export const RETELL_DEEP_MALE_VOICE_IDS = [
-  "11labs-Steve",
   "11labs-Marcus",
+  "11labs-Clyde",
   "11labs-Daniel",
   "11labs-Mark",
   "11labs-Adam",
-  "11labs-Clyde",
+  "11labs-Steve",
 ] as const;
 
 /**
@@ -31,25 +31,25 @@ export function isThinRetellVoiceId(voiceId: string | null | undefined): boolean
   return Boolean(voiceId && THIN_VOICE_RE.test(voiceId));
 }
 
-/** Service / emergency — deep, grounded US male. */
+/** Service / emergency — deep, grounded US male (heavier body first). */
 export const RETELL_BOOKING_PREFERRED_VOICE_NAMES = [
-  "Steve",
   "Marcus",
+  "Clyde",
   "Daniel",
   "Mark",
   "Adam",
-  "Clyde",
+  "Steve",
   "George",
 ] as const;
 
 /** Free estimate — same deep trustworthy set. */
 export const RETELL_ESTIMATE_PREFERRED_VOICE_NAMES = [
-  "Steve",
   "Marcus",
+  "Clyde",
   "Daniel",
   "Mark",
   "Adam",
-  "Clyde",
+  "Steve",
 ] as const;
 
 /** @deprecated use RETELL_BOOKING_PREFERRED_VOICE_NAMES */
@@ -217,29 +217,29 @@ function sharedAgentPatch(): Record<string, unknown> {
   };
 }
 
-/** Deep masculine service / emergency intake — natural US conversational pace. */
+/** Deep masculine service / emergency intake — thick body, US pace. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    // Warmth without warble; 1.0 ≈ natural American speaking rate.
-    voice_temperature: 0.62,
-    voice_speed: 1.0,
-    volume: 1.1,
+    // Lower temp = steadier / less thin; slight slowdown adds body without dragging.
+    voice_temperature: 0.5,
+    voice_speed: 0.94,
+    volume: 1.28,
     responsiveness: 0.68,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same deep masculine presence, natural pace. */
+/** Estimate intake — same thick masculine presence. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.64,
-    voice_speed: 1.0,
-    volume: 1.1,
+    voice_temperature: 0.52,
+    voice_speed: 0.94,
+    volume: 1.28,
     responsiveness: 0.7,
   };
   if (voiceId) patch.voice_id = voiceId;

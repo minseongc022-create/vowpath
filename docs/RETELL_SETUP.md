@@ -11,16 +11,14 @@ Customer → +1 (225) 529-1680 (Twilio)
          → tools: submit_intake | submit_estimate | get_open_slots
 ```
 
-**Default flow:** Twilio plays the main menu first (press 1 = service, press 2 = estimate), then connects to Retell when the caller chooses phone intake. Set `RETELL_SKIP_DTMF_MENU=true` to skip the menu and connect straight to Retell.
-
-The agent collects intake on the phone — one question at a time, soft and clear. Text links are only via Twilio menu press 2, not mid-call.
+**Default flow:** Twilio plays a short main menu (press 1 = service, press 2 = estimate), then connects straight to Retell — **no second keypad menu**. Say "text link" at the main menu to get an SMS form instead. Set `RETELL_SKIP_DTMF_MENU=true` to skip the main menu entirely.
 
 Example flow:
 - Caller hears main menu (press 1 = service, press 2 = estimate)
-- Press 1 → Retell **booking agent** asks link vs phone (or sends link immediately if caller asks)
-- Press 2 → Retell **estimate agent** (warmer, brighter voice) asks link vs phone for free estimate
-- Link chosen → "Perfect — I'll text you a secure link right now" → SMS sent
-- Phone chosen → intake one question at a time → `submit_intake` or `submit_estimate`
+- Press 1 → Retell **booking agent** starts intake on the call
+- Press 2 → Retell **estimate agent** starts free-estimate intake
+- Say "text link" → SMS form sent, call ends
+- Phone intake → one question at a time → `submit_intake` or `submit_estimate`
 
 **Auto-sync:** On every Vercel production deploy, `postbuild-retell-sync.mjs` pushes the latest prompt and tools to Retell (when `RETELL_API_KEY` is set in Vercel).
 
