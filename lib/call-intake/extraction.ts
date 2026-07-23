@@ -4,6 +4,7 @@ import { alertCritical } from "../owner-alerts";
 import { withCircuitBreaker, withRetry } from "../resilience";
 import type { JobPriority } from "../types";
 import type { ShopVertical } from "../shop-vertical.js";
+import { isRestorationVertical } from "../shop-vertical.js";
 import { getVerticalConfig } from "../vertical-config.js";
 import type { FieldConfidence, IntakeDraft } from "./types";
 
@@ -87,6 +88,7 @@ export async function extractIntakeFromSpeechForVertical(
     speech,
     menuPriority,
     options,
+    vertical,
   );
 }
 
@@ -161,7 +163,13 @@ export async function extractIntakeFromSpeech(
   menuPriority: JobPriority | null,
   options?: { model?: string },
 ): Promise<IntakeExtractionResult> {
-  return extractIntakeFromSpeechWithPrompt(SYSTEM_PROMPT, speech, menuPriority, options);
+  return extractIntakeFromSpeechWithPrompt(
+    SYSTEM_PROMPT,
+    speech,
+    menuPriority,
+    options,
+    "restoration",
+  );
 }
 
 async function extractIntakeFromSpeechWithPrompt(
@@ -169,6 +177,7 @@ async function extractIntakeFromSpeechWithPrompt(
   speech: string,
   menuPriority: JobPriority | null,
   options?: { model?: string },
+  vertical: ShopVertical = "restoration",
 ): Promise<IntakeExtractionResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
@@ -271,8 +280,11 @@ async function extractIntakeFromSpeechWithPrompt(
     urgency: asOptionalString(data.urgency),
   };
 
-  if (draft.lossCategory === "other") {
+  if (draft.lossCategory === "other" && isRestorationVertical(vertical)) {
     draft.lossCategory = inferLossCategoryFromText(draft.issueType, draft.symptom);
+  } else if (!isRestorationVertical(vertical)) {
+    // HVAC / other trades must not inherit water/fire/mold categories from symptom text.
+    draft.lossCategory = normalizeLossCategory("other");
   }
 
   draft = await applyPriorityAnalysisToDraft(speech.trim(), draft, menuPriority);

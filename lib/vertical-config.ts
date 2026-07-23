@@ -226,3 +226,37 @@ export const VERTICAL_CONFIGS: Record<ShopVertical, VerticalConfig> = {
 export function getVerticalConfig(vertical: ShopVertical): VerticalConfig {
   return VERTICAL_CONFIGS[vertical] ?? VERTICAL_CONFIGS.restoration;
 }
+
+/** Owner-facing auto-dispatch rules for Settings (never mix trades). */
+export function getVerticalDispatchRuleLines(vertical: ShopVertical): string[] {
+  if (vertical === "restoration") {
+    return [
+      "Clear water loss → crew text goes out.",
+      "Fire, sewage (Cat-3), or missing details → we text you first (reply 1 = go, 2 = pass).",
+      "Auto-booked by mistake? Reply 9 within the undo window below.",
+    ];
+  }
+  if (vertical === "hvac") {
+    return [
+      "Clear no-heat / no-cool → crew text goes out.",
+      "Gas smell, sparking, or unclear details → we text you first (reply 1 = go, 2 = pass).",
+      "Auto-booked by mistake? Reply 9 within the undo window below.",
+    ];
+  }
+  const cfg = getVerticalConfig(vertical);
+  return [
+    `Clear ${cfg.shortLabel.toLowerCase()} emergencies can auto-dispatch when address + details are solid.`,
+    "Safety holds (gas, sparking, etc.) always wait for your OK (reply 1 / 2).",
+    "Auto-booked by mistake? Reply 9 within the undo window below.",
+  ];
+}
+
+export function getVerticalPolicyBlurb(vertical: ShopVertical): string {
+  if (vertical === "restoration") {
+    return "Routine water jobs can go straight to crew. Fire, sewage, or unclear calls wait for your OK.";
+  }
+  if (vertical === "hvac") {
+    return "Clear no-heat / no-cool jobs can go straight to crew. Gas smell or sparking always waits for your OK.";
+  }
+  return "Clear jobs can auto-dispatch. Safety and unclear calls wait for your OK.";
+}

@@ -56,11 +56,11 @@ import { type ScheduleRow } from "@/lib/schedule-format";
 import { ScheduleEditor } from "@/components/onboarding/ScheduleEditor";
 
 const SECTION_SCROLL_IDS: Record<string, string> = {
+  shop: "go-live-shop",
   contact: "go-live-contact",
   schedule: "go-live-schedule",
   phone: "go-live-phone",
   jobber: "go-live-jobber",
-  shop: "go-live-shop",
 };
 
 export function SettingsView({
@@ -316,6 +316,29 @@ function SettingsViewBody({
   const wizardSteps: GoLiveWizardStep[] = useMemo(
     () => [
       {
+        id: "go-live-shop",
+        label: settingsPage.goLiveNavShop,
+        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.shop),
+        title: settingsPage.productSectionTitle,
+        description: settingsPage.productSectionSubtitle,
+        icon: "⚙️",
+        done: Boolean(shop.vertical),
+        canContinue: true,
+        content: (
+          <ShopPreferencesPanel
+            vertical={shop.vertical ?? "restoration"}
+            verticalSelector={
+              <VerticalSelector
+                vertical={shop.vertical ?? "restoration"}
+                onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
+              />
+            }
+            reviewUrl={shop.googleReviewUrl}
+            onReviewUrlSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
+          />
+        ),
+      },
+      {
         id: "go-live-contact",
         label: settingsPage.goLiveNavContact,
         stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.contact),
@@ -437,28 +460,6 @@ function SettingsViewBody({
                 }));
               }
             }}
-          />
-        ),
-      },
-      {
-        id: "go-live-shop",
-        label: settingsPage.goLiveNavShop,
-        stepLabel: settingsPage.stepPrefix(settingsPage.sectionSteps.shop),
-        title: settingsPage.productSectionTitle,
-        description: settingsPage.productSectionSubtitle,
-        icon: "⚙️",
-        done: live,
-        canContinue: true,
-        content: (
-          <ShopPreferencesPanel
-            verticalSelector={
-              <VerticalSelector
-                vertical={shop.vertical ?? "restoration"}
-                onSaved={(v) => setShop((prev) => ({ ...prev, vertical: v }))}
-              />
-            }
-            reviewUrl={shop.googleReviewUrl}
-            onReviewUrlSaved={(url) => setShop((prev) => ({ ...prev, googleReviewUrl: url }))}
           />
         ),
       },
@@ -588,6 +589,10 @@ function VerticalSelector({
   const [saved, setSaved] = useState(false);
   const [draft, setDraft] = useState<ShopVertical>(vertical);
 
+  useEffect(() => {
+    setDraft(vertical);
+  }, [vertical]);
+
   async function handleChange(v: ShopVertical) {
     setDraft(v);
     setSaving(true);
@@ -610,9 +615,9 @@ function VerticalSelector({
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">Your trade</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">1. What kind of shop are you?</p>
       <p className="mb-3 text-xs text-slate-500">
-        Sets intake questions and dispatch rules. Most restoration shops leave the default.
+        Pick your trade first — intake questions, auto-dispatch rules, and booking settings switch to match.
       </p>
       <div className="flex flex-wrap gap-2">
         {/* Always include the shop's current vertical even if it's not in the visible

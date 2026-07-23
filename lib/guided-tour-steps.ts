@@ -94,27 +94,35 @@ export function getSettingsTourSteps(): TourStep[] {
         target: "#integrations-hub",
       },
       {
+        id: "go-live-shop",
+        eyebrow: "Step 1 · Trade",
+        title: "⚙️ Pick your trade",
+        description:
+          "Restoration or HVAC first — intake questions and auto-dispatch rules switch to match. Then finish contact, hours, and forwarding.",
+        target: "#go-live-shop",
+      },
+      {
         id: "go-live-contact",
-        eyebrow: "Step 1 of 4 · Required",
+        eyebrow: "Step 2 · Required",
         title: "📱 Verify your contact",
         description:
-          "First, add the email and mobile number for new-request alerts. Steps 2 and 3 stay locked until this is saved.",
+          "Add the email and mobile number for new-request alerts. Later steps stay locked until this is saved.",
         target: "#go-live-contact",
       },
       {
         id: "go-live-schedule",
-        eyebrow: "Step 2 of 4 · Required",
+        eyebrow: "Step 3 · Required",
         title: "🕐 Set answer hours",
         description:
-          "Next, choose when Effiroad picks up — nights, weekends, or always-on. Match the hours you want AI instead of your phone.",
+          "Choose when Effiroad picks up — nights, weekends, or always-on. Match the hours you want AI instead of your phone.",
         target: "#go-live-schedule",
       },
       {
         id: "go-live-phone",
-        eyebrow: "Step 3 of 4 · Required",
+        eyebrow: "Step 4 · Required",
         title: "☎️ Connect call forwarding",
         description:
-          "Then get your Effiroad number and forward unanswered calls from your main line. Customers still dial your usual shop number.",
+          "Get your Effiroad number and forward unanswered calls from your main line. Customers still dial your usual shop number.",
         target: "#go-live-phone",
       },
       {

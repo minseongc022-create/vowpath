@@ -7,15 +7,15 @@ export const settingsPageEn = {
   subtitle: "Smart auto-dispatch, crew texts, and optional follow-ups — then one-time go-live steps.",
   badge: "Go live",
   backDashboardLink: "← Dashboard",
-  productSectionTitle: "How your shop runs",
+  productSectionTitle: "Your trade & how jobs run",
   productSectionSubtitle:
-    "Three things to set: your shop name, how jobs dispatch, and who gets crew texts. Tap Save (top right) when done.",
+    "Start with your trade (restoration or HVAC). Then set shop name, dispatch rules for that trade, and who gets crew texts. Tap Save (top right) when done.",
   goLiveSectionTitle: "Go live checklist",
   goLiveSectionSubtitle: "Follow the steps in order — then save once at the bottom.",
-  progressHint: "Contact → Hours → Forwarding. Jobber is optional.",
-  scrollHint: "Shop name → Dispatch → Crew → Save",
+  progressHint: "Trade → Contact → Hours → Forwarding. Jobber is optional.",
+  scrollHint: "Trade → Dispatch → Crew → Save",
   allDone:
-    "You're live. Standard water losses auto-dispatch — you text back for fire, Cat-3, or unclear jobs.",
+    "You're live. Clear jobs for your trade can auto-dispatch — safety holds and unclear calls wait for your OK.",
   ownerAlertsDescription:
     "Texts to your cell: booked visits (FYI), P1 urgent alerts, unclear intakes (1 / 2), or 9 to undo. Email is backup.",
   bookingPolicyTitle: "Dispatch & booking",
@@ -217,11 +217,11 @@ export const settingsPageEn = {
   },
   serviceAreaZipsPlaceholder: "78701, 78702, 78745",
   sectionSteps: {
-    contact: "1",
-    schedule: "2",
-    phone: "3",
-    jobber: "4",
-    shop: "5",
+    shop: "1",
+    contact: "2",
+    schedule: "3",
+    phone: "4",
+    jobber: "5",
   } as const,
 };
 

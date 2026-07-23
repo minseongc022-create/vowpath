@@ -29,7 +29,6 @@ import { resolveCallbackFromCallerId } from "./caller-id";
 import { getShopVertical } from "../vertical-context.js";
 import type { FieldConfidence, VerifiedCallPayload } from "./types";
 import { MANDATORY_VERIFY_FIELDS } from "./types";
-import { inferLossCategoryFromText } from "../loss-category";
 import { parseUsAddress } from "../parse-contact";
 
 const LINK_CONFIDENCE: FieldConfidence = {
@@ -247,7 +246,7 @@ export async function submitLinkIntakeForm(params: {
     verifiedFields: Object.fromEntries(
       MANDATORY_VERIFY_FIELDS.map((f) => [f, true]),
     ) as VerifiedCallPayload["verifiedFields"],
-    lossCategory: inferLossCategoryFromText(draft.issueType, draft.symptom),
+    lossCategory: draft.lossCategory,
     insuranceCarrier: draft.insuranceCarrier,
     insuranceClaimNumber: draft.insuranceClaimNumber,
     waterSource: draft.waterSource,
