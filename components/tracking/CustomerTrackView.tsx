@@ -190,7 +190,7 @@ export function CustomerTrackView({ token }: { token: string }) {
       ) : null}
 
       <p className="px-4 py-3 text-center text-[11px] text-stone-500">
-        Map © OpenStreetMap · Updates every few seconds · Link expires after the visit
+        Map © OpenStreetMap · Live only while en route · Ends when the visit finishes
       </p>
     </div>
   );
