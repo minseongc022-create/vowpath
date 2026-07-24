@@ -89,11 +89,11 @@ export const callExperienceEn = {
     },
     {
       title: "Complete info before dispatch",
-      body: "Verified address, issue type, urgency, and trade-ready notes — captured on the call, then a secure SMS to pick the visit window (no verbal calendar slots).",
+      body: "Name and issue on the call; address confirmed on a secure SMS link with typed/map search (not misheard street numbers). Then pick the visit window — no verbal calendar slots.",
     },
     {
       title: "Schedule, then roll the truck",
-      body: "Once the customer picks a time, clear jobs can schedule and text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
+      body: "Once address + time are confirmed, clear jobs can schedule and text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
     },
   ],
   contrast: {
@@ -403,6 +403,7 @@ export const comparisonEn = {
   rows: [
     ["Phone voice", "Thick clear US male AI every call", "Human variance or transfers", "Often rigid / form-like"],
     ["Your number options", "Forward main line OR dedicated Effiroad #", "Usually their number only", "Depends on CRM"],
+    ["Address accuracy", "Typed/map confirm on SMS link — not STT", "Often verbal / misheard", "Varies"],
     ["Crew auto-dispatch", "Round-robin SMS · 1=yes / 2=pass", "Callback / message only", "Calendar book or blind"],
     ["Live ETA map", "Free customer map link on the way", "Rare", "Rare / paid add-on"],
     ["Risky jobs", "Owner SMS 1 / 2 — never blind", "Script / message only", "Often blind auto-book"],
@@ -430,11 +431,11 @@ export const competitorWinEn = {
     },
     {
       title: "Trade-aware holds",
-      body: "Restoration and HVAC rules stay separate. Clear jobs can auto-roll; gas, fire, Cat-3, and fuzzy details wait for your 1 / 2.",
+      body: "Restoration and HVAC rules stay separate. Clear P1 water / no-heat can move after address+time confirm; gas, fire, Cat-3, P1 mold, commercial, and fuzzy details wait for your 1 / 2.",
     },
     {
-      title: "Cinematic-clear voice",
-      body: "Phone-tuned clarity every call — no rotating agents, no muddy TTS, no per-transfer surprise bills.",
+      title: "Address on the link",
+      body: "Phone STT mishears street numbers. Effiroad texts a secure typed/map address confirm + visit window — fewer wrong-truck rolls than pure verbal intake.",
     },
   ],
   competitors: [
@@ -989,6 +990,14 @@ export const faqEn = {
     {
       q: "How secure are the customer links and live map?",
       a: "Every SMS link uses a long secret token (not a guessable ID). Pick-time and booking links expire; after a job is completed or cancelled, personal details are hidden and the link closes soon. The live tech map only works while the visit is active — when the tech arrives or the job ends, location sharing stops and that link stops working.",
+    },
+    {
+      q: "When does restoration need my 1 / 2 approval?",
+      a: "Clear P1 water with solid name/issue confidence can move forward after the customer confirms address + visit time. Fire, Cat-3 sewage, commercial/multi-unit, P1 mold, low-confidence intake, or out-of-area always wait for your text: reply 1 to dispatch, 2 to pass. Reply 9 undoes an auto step. That risk split is intentional — blind auto-dispatch on fire/sewage is how shops get burned.",
+    },
+    {
+      q: "Why confirm address on a link instead of the phone?",
+      a: "Wrong-address rolls are one of the costliest failures in after-hours dispatch. Speech recognition mishears street numbers. Effiroad collects name and issue on the call, then texts a secure link where the homeowner types or map-searches the address and picks a visit window — same accuracy playbook top restoration dispatch stacks use.",
     },
   ],
 };

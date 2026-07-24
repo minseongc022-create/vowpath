@@ -12,6 +12,7 @@ import { generateAiSummary } from "@/lib/call-intake/ai-summary";
 import { enrichRetellIntakeForFinalize } from "@/lib/call-intake/retell-verify";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import { isTenantAfterHours } from "@/lib/after-hours";
+import { normalizePhoneIntakeAddress } from "@/lib/address/pending";
 import { resolveSlotById } from "@/lib/scheduling/validate-slot";
 
 function submittedKey(callId: string) {
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
 
   if (!transcriptSource.trim()) {
     return NextResponse.json({
-      result: "Sorry, I missed that — what's your name, the address, and what's going on?",
+      result: "Sorry, I missed that — what's your name, and what's going on?",
     });
   }
 
@@ -118,6 +119,8 @@ export async function POST(request: Request) {
       null,
       { model },
     );
+    // Prefer empty/pending address from phone — portal link confirms typed/map address.
+    draft.address = normalizePhoneIntakeAddress(args.address || draft.address);
     const afterHours = await isTenantAfterHours(userId);
     const aiSummary = generateAiSummary(draft, draft.priority);
 
@@ -130,6 +133,7 @@ export async function POST(request: Request) {
       from,
       aiSummary,
     });
+    payload.address = normalizePhoneIntakeAddress(payload.address);
 
     let selectedSlot = null;
     if (args.slotId?.trim()) {
@@ -155,9 +159,8 @@ export async function POST(request: Request) {
       });
     }
 
-    const closing = payload.verificationComplete
-      ? "Perfect — you're all set. I'll text you a secure link to pick your visit time. Our team's on it."
-      : "Thanks — I've got your info down. I'll text you a secure link to pick your visit time, and the shop will follow up shortly.";
+    const closing =
+      "Perfect — you're all set. I'll text you a secure link to confirm your address and pick your visit time. Our team's on it.";
 
     return NextResponse.json({ result: closing });
   } catch (e) {

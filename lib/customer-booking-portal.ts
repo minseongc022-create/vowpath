@@ -12,6 +12,7 @@ import type { LinkIntakeBookingView } from "./link-intake-portal";
 import { callToLinkIntakeBookingView } from "./link-intake-portal";
 import type { LinkUrgency } from "./link-intake-urgency";
 import { linkUrgencyToPriority } from "./link-intake-urgency";
+import { isAddressPending } from "./address/pending";
 
 export type CustomerBookingPortalView = LinkIntakeBookingView & {
   status: RequestStatus;
@@ -22,6 +23,8 @@ export type CustomerBookingPortalView = LinkIntakeBookingView & {
   canReschedule: boolean;
   /** True when the booking has no visit window yet — portal should open on the time picker. */
   needsSchedule: boolean;
+  /** True when phone intake deferred address to the SMS link. */
+  needsAddress: boolean;
 };
 
 function resolveStatus(
@@ -60,13 +63,16 @@ export async function loadCustomerBookingPortalView(params: {
       status === "approved" ||
       status === "pending_review");
   const needsSchedule = canReschedule && !hasScheduledSlot;
+  const needsAddress = !terminal && isAddressPending(baseView.address);
   const canCancel = !terminal;
 
   const arrivalWindow =
     scheduled?.arrivalWindowLabel?.trim() ||
     call.arrivalWindow?.trim() ||
     (needsSchedule
-      ? "Not set yet — pick a visit window"
+      ? needsAddress
+        ? "Confirm address & pick a visit window"
+        : "Not set yet — pick a visit window"
       : "Pending — we'll confirm your window soon");
 
   // After the job is done/cancelled: keep request # + status, hide PII until link expires.
@@ -85,6 +91,7 @@ export async function loadCustomerBookingPortalView(params: {
       canCancel,
       canReschedule,
       needsSchedule: false,
+      needsAddress: false,
     };
   }
 
@@ -98,6 +105,7 @@ export async function loadCustomerBookingPortalView(params: {
     canCancel,
     canReschedule,
     needsSchedule,
+    needsAddress,
   };
 }
 
@@ -165,6 +173,8 @@ export async function customerRescheduleBooking(params: {
   slotId: string;
   customerName: string;
   urgency?: LinkUrgency;
+  /** Required when phone intake deferred the street address to the portal. */
+  address?: string;
 }): Promise<
   | { ok: true; arrivalWindow: string }
   | { ok: false; error: string }
@@ -178,6 +188,30 @@ export async function customerRescheduleBooking(params: {
   const calls = await listCallLogs(params.userId);
   const call = calls.find((c) => c.id === params.callId);
   if (!call) return { ok: false, error: "Booking not found." };
+
+  const nextAddress = (params.address ?? call.address ?? "").trim();
+  if (isAddressPending(nextAddress)) {
+    return { ok: false, error: "Confirm your full service address first." };
+  }
+
+  if (params.address?.trim() && params.address.trim() !== (call.address ?? "").trim()) {
+    await patchCallLog(params.userId, params.callId, {
+      address: params.address.trim(),
+    });
+    try {
+      const jobs = await listJobs(params.userId);
+      const job = jobs.find((j) => j.id === params.bookingId || j.sourceCallId === params.callId);
+      if (job) {
+        const { upsertJobRecord } = await import("./jobs-db");
+        await upsertJobRecord(params.userId, {
+          ...job,
+          address: params.address.trim(),
+        });
+      }
+    } catch {
+      /* optional */
+    }
+  }
 
   const urgency = params.urgency ?? "this_week";
   const excludeBookingId = params.bookingId;

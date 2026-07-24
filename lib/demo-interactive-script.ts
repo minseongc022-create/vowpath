@@ -65,13 +65,13 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
 
 /**
  * Production flow:
- * Press 1/2 → Retell on this call · Say “text link” → SMS form
- * Phone intake → read-back → SMS pick-time → schedule → owner/crew → live map
+ * Press 1/2 → Retell · Say “text link” → SMS form
+ * Phone: name + issue (no verbal street address) → SMS confirm address + pick-time
+ * Then owner/crew → live map
  */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  // After phone path ends at index 19; estimate/link branches follow.
-  const ESTIMATE_START = 20;
-  const LINK_START = 25;
+  const ESTIMATE_START = 18;
+  const LINK_START = 23;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -106,7 +106,6 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
         },
       ],
     },
-    // Connected to Retell booking
     {
       kind: "ai-voice",
       text: RESTORATION_AI_LINES[1],
@@ -125,8 +124,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller gives full address",
-      customerText: "4821 Oak Drive, Austin, Texas.",
+      label: "Caller confirms read-back",
+      customerText: "Yes, that's right.",
       transition: "soft",
     },
     {
@@ -135,25 +134,14 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       audioIndex: 3,
     },
     {
-      kind: "customer-action",
-      label: "Caller confirms read-back",
-      customerText: "Yes, that's right.",
-      transition: "soft",
-    },
-    {
-      kind: "ai-voice",
-      text: RESTORATION_AI_LINES[4],
-      audioIndex: 4,
-    },
-    {
       kind: "sms",
-      text: `${RESTORATION_SHOP}: Hi Mike! Request A1B2C3 received. Pick your visit time here: ${DEMO_LINK_INTAKE_URL}`,
+      text: `${RESTORATION_SHOP}: Hi Mike! Request A1B2C3 received. Confirm address & pick visit time: ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
     {
       kind: "customer-action",
-      label: "Customer picks 8:00–10:00 AM on the portal",
-      customerText: "[Picked visit window: Today 8:00–10:00 AM]",
+      label: "Customer confirms address + picks 8:00–10:00 AM",
+      customerText: "[Confirmed 4821 Oak Dr, Austin TX · Today 8:00–10:00 AM]",
       transition: "sms",
     },
     { kind: "system", text: "Visit scheduled · Risky sewage job needs owner approval" },
@@ -197,7 +185,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 20
+    // ESTIMATE_START = 18
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -223,7 +211,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       text: "ESTIMATE · Jordan Lee · Basement water · Reply from dashboard to send quote",
       variant: "owner",
     },
-    // LINK_START = 25
+    // LINK_START = 23
     {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
@@ -238,8 +226,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 20;
-  const LINK_START = 25;
+  const ESTIMATE_START = 18;
+  const LINK_START = 23;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -302,8 +290,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller gives full address",
-      customerText: "904 Cedar Lane, Round Rock, Texas.",
+      label: "Caller confirms read-back",
+      customerText: "Yes, that's correct.",
       transition: "soft",
     },
     {
@@ -312,25 +300,14 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       audioIndex: 4,
     },
     {
-      kind: "customer-action",
-      label: "Caller confirms read-back",
-      customerText: "Yes, that's correct.",
-      transition: "soft",
-    },
-    {
-      kind: "ai-voice",
-      text: HVAC_AI_LINES[5],
-      audioIndex: 5,
-    },
-    {
       kind: "sms",
-      text: `${HVAC_SHOP}: Hi Sarah! Request D4E5F6 received. Pick your visit time here: ${DEMO_LINK_INTAKE_URL}`,
+      text: `${HVAC_SHOP}: Hi Sarah! Request D4E5F6 received. Confirm address & pick visit time: ${DEMO_LINK_INTAKE_URL}`,
       variant: "customer",
     },
     {
       kind: "customer-action",
-      label: "Customer picks 9:00–11:00 AM on the portal",
-      customerText: "[Picked visit window: Today 9:00–11:00 AM]",
+      label: "Customer confirms address + picks 9:00–11:00 AM",
+      customerText: "[Confirmed 904 Cedar Ln, Round Rock TX · Today 9:00–11:00 AM]",
       transition: "sms",
     },
     { kind: "system", text: "Clear no-heat · Auto-scheduled · Crew offered" },
@@ -360,7 +337,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 20
+    // ESTIMATE_START = 18
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -386,7 +363,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       text: "ESTIMATE · Chris Park · AC replacement · Reply from dashboard to send quote",
       variant: "owner",
     },
-    // LINK_START = 25
+    // LINK_START = 23
     {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${HVAC_SHOP}. It takes about a minute on your phone.`,
@@ -447,19 +424,8 @@ export function getGasHoldInteractiveSteps(): InteractiveStep[] {
       audioIndex: 2,
     },
     {
-      kind: "customer-action",
-      label: "Caller gives full address",
-      customerText: "1202 Maple Court, Round Rock. Everyone's out of the basement.",
-      transition: "soft",
-    },
-    {
-      kind: "ai-voice",
-      text: HVAC_GAS_AI_LINES[3],
-      audioIndex: 3,
-    },
-    {
       kind: "sms",
-      text: "GAS SMELL HOLD · Tom Reyes · 1202 Maple Ct · Reply 1 dispatch · 2 hold",
+      text: "GAS SMELL HOLD · Tom Reyes · Reply 1 dispatch · 2 hold",
       variant: "owner",
     },
     {

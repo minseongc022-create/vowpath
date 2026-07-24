@@ -92,7 +92,7 @@ export const demoSummaryEn = {
     },
     {
       title: "Pick-time, then dispatch",
-      body: "After phone intake, customers get an SMS to pick a visit window. Clear water / no-heat jobs can schedule and notify crew; fire, mold, gas smell, or anything unclear — you approve by text first. Then live ETA map.",
+      body: "After phone intake, customers get an SMS to confirm address (typed/map) and pick a visit window. Clear water / no-heat jobs can schedule and notify crew; fire, mold, gas smell, sewage Cat-3, or anything unclear — you approve by text first. Then live ETA map.",
     },
     {
       title: "Live in ~10 minutes",

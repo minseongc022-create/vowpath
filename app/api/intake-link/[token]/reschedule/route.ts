@@ -35,15 +35,24 @@ export async function POST(
     }
 
     let slotId = "";
+    let address = "";
     try {
       const body = await request.json();
       slotId = String(body?.slotId ?? "").trim();
+      address = String(body?.address ?? "").trim();
     } catch {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
     if (!slotId) {
       return NextResponse.json({ error: "Pick a visit time." }, { status: 400 });
+    }
+
+    if (view.needsAddress && !address) {
+      return NextResponse.json(
+        { error: "Confirm your full service address first." },
+        { status: 400 },
+      );
     }
 
     const result = await customerRescheduleBooking({
@@ -53,6 +62,7 @@ export async function POST(
       slotId,
       customerName: view.customerName,
       urgency: view.urgency,
+      address: address || undefined,
     });
 
     if (!result.ok) {

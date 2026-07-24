@@ -41,7 +41,7 @@ export function CustomerBookingPortal({
   const copy = useLinkIntakeCopy();
   const [booking, setBooking] = useState(initialBooking);
   const [mode, setMode] = useState<Mode>(
-    initialBooking.needsSchedule ? "reschedule" : "view",
+    initialBooking.needsSchedule || initialBooking.needsAddress ? "reschedule" : "view",
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +136,10 @@ export function CustomerBookingPortal({
   }
 
   async function handleReschedule() {
+    if (booking.needsAddress && !isUsAddressReady(addressValue)) {
+      setError(copy.addressPickRequired);
+      return;
+    }
     if (!selectedSlotId) {
       setError("Pick a visit time.");
       return;
@@ -146,7 +150,10 @@ export function CustomerBookingPortal({
       const res = await fetch(`/api/intake-link/${token}/reschedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotId: selectedSlotId }),
+        body: JSON.stringify({
+          slotId: selectedSlotId,
+          address: booking.needsAddress ? composeUsAddress(addressValue) : undefined,
+        }),
       });
       const data = await readJsonResponse(res);
       if (!res.ok) {
@@ -156,7 +163,7 @@ export function CustomerBookingPortal({
       if (data.booking) setBooking(data.booking as CustomerBookingPortalView);
       setNotice(
         (data.booking as CustomerBookingPortalView | undefined)?.needsSchedule === false
-          ? "Visit time booked! We'll see you then."
+          ? "Address saved and visit time booked! We'll see you then."
           : "Visit time updated! We'll see you then.",
       );
       setMode("view");
@@ -263,10 +270,21 @@ export function CustomerBookingPortal({
           {mode === "reschedule" ? (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">
-                {booking.needsSchedule
-                  ? "Pick an open visit window below — same calendar your shop uses for bookings."
-                  : copy.bookingRescheduleHint}
+                {booking.needsAddress
+                  ? "Confirm the service address (typed / map search — more accurate than phone), then pick a visit window."
+                  : booking.needsSchedule
+                    ? "Pick an open visit window below — same calendar your shop uses for bookings."
+                    : copy.bookingRescheduleHint}
               </p>
+              {booking.needsAddress ? (
+                <Field label={copy.addressLabel} required>
+                  <UsAddressField
+                    value={addressValue}
+                    onChange={setAddressValue}
+                    inputClassName={inputClass}
+                  />
+                </Field>
+              ) : null}
               <LinkIntakeSlotCalendar
                 days={gridDays}
                 selectedSlotId={selectedSlotId}
@@ -310,11 +328,13 @@ export function CustomerBookingPortal({
             >
               {loading
                 ? copy.portalSaving
-                : booking.needsSchedule
-                  ? "Confirm visit time"
-                  : copy.bookingConfirmTime}
+                : booking.needsAddress
+                  ? "Confirm address & visit time"
+                  : booking.needsSchedule
+                    ? "Confirm visit time"
+                    : copy.bookingConfirmTime}
             </button>
-            {booking.needsSchedule ? null : (
+            {booking.needsSchedule || booking.needsAddress ? null : (
               <button
                 type="button"
                 onClick={() => { setError(null); setMode("view"); }}
@@ -332,7 +352,11 @@ export function CustomerBookingPortal({
           <div className="mx-auto max-w-md space-y-2">
             {booking.canReschedule ? (
               <button type="button" onClick={() => { setError(null); setMode("reschedule"); }} className="w-full rounded-2xl bg-brand-700 py-3.5 font-bold text-white">
-                {booking.needsSchedule ? "Pick visit time" : copy.bookingChangeTime}
+                {booking.needsAddress
+                  ? "Confirm address & time"
+                  : booking.needsSchedule
+                    ? "Pick visit time"
+                    : copy.bookingChangeTime}
               </button>
             ) : null}
             <button type="button" onClick={() => { setError(null); setMode("edit"); }} className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 font-semibold text-slate-800">

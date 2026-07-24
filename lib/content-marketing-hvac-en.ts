@@ -152,6 +152,14 @@ export const hvacFaq = [
     q: "Do estimate calls count toward my plan?",
     a: "No. Press 2 estimate intakes are free on every plan. Only approved or scheduled emergency dispatches count toward included jobs or per-dispatch fees.",
   },
+  {
+    q: "When does HVAC auto-dispatch vs wait for me?",
+    a: "Clear P1 no-heat / no-cool with solid intake confidence can auto-schedule after the customer confirms address + visit time on the SMS link — then your on-call tech gets the crew SMS. Gas smell, sparking, electrical/CO concerns, low confidence, or fuzzy details always wait for your 1 / 2. Never blind-roll a safety call.",
+  },
+  {
+    q: "Why isn't the street address taken on the phone?",
+    a: "Misheard addresses are a top after-hours failure. Effiroad captures name and symptoms on the call, then texts a link where the homeowner types or map-searches the address and picks a window — fewer wrong-truck rolls.",
+  },
 ];
 
 export const hvacSeoMeta = {
@@ -541,7 +549,7 @@ export const demoSummaryHvac = {
     },
     {
       title: "No-heat after pick-time",
-      body: "Verified no-heat with name and address → SMS pick-time link → once they choose a window, on-call tech gets crew SMS. You get an FYI text + live map after accept.",
+      body: "Verified no-heat with name → SMS to confirm address + pick a window → once confirmed, on-call tech gets crew SMS. You get an FYI text + live map after accept.",
     },
     {
       title: "Gas smell = your call",
