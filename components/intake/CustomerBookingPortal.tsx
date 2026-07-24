@@ -57,6 +57,9 @@ export function CustomerBookingPortal({
   const [gridDays, setGridDays] = useState<SlotGridDay[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [slotMeta, setSlotMeta] = useState({ duration: 120, buffer: 0, capacity: 1 });
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [slotsReloadKey, setSlotsReloadKey] = useState(0);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/intake-link/${token}/booking`);
@@ -70,28 +73,44 @@ export function CustomerBookingPortal({
     if (mode !== "reschedule") return;
     let cancelled = false;
     setSelectedSlotId(null);
+    setSlotsLoading(true);
+    setSlotsError(null);
     (async () => {
-      const res = await fetch(
-        `/api/intake-link/${token}/slots?urgency=${booking.urgency}&excludeBookingId=${encodeURIComponent(booking.bookingId)}`,
-      );
-      if (!res.ok || cancelled) return;
-      const data = await res.json();
-      const days = data.grid?.days ?? [];
-      setGridDays(days);
-      setSlotMeta({
-        duration: data.durationMinutes ?? 120,
-        buffer: data.bufferMinutes ?? 0,
-        capacity: data.maxConcurrentVisits ?? 1,
-      });
-      const firstOpen = days
-        .flatMap((d: SlotGridDay) => d.slots)
-        .find((s: SlotGridItem) => s.status === "available");
-      if (!cancelled) setSelectedSlotId(firstOpen?.id ?? null);
+      try {
+        const res = await fetch(
+          `/api/intake-link/${token}/slots?urgency=${booking.urgency}&excludeBookingId=${encodeURIComponent(booking.bookingId)}`,
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          setGridDays([]);
+          setSlotsError("Couldn't load open windows. Try again, or call the company.");
+          return;
+        }
+        const data = await res.json();
+        const days = data.grid?.days ?? [];
+        setGridDays(days);
+        setSlotMeta({
+          duration: data.durationMinutes ?? 120,
+          buffer: data.bufferMinutes ?? 0,
+          capacity: data.maxConcurrentVisits ?? 1,
+        });
+        const firstOpen = days
+          .flatMap((d: SlotGridDay) => d.slots)
+          .find((s: SlotGridItem) => s.status === "available");
+        if (!cancelled) setSelectedSlotId(firstOpen?.id ?? null);
+      } catch {
+        if (!cancelled) {
+          setGridDays([]);
+          setSlotsError("Couldn't load open windows. Try again, or call the company.");
+        }
+      } finally {
+        if (!cancelled) setSlotsLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [mode, token, booking.urgency, booking.bookingId]);
+  }, [mode, token, booking.urgency, booking.bookingId, slotsReloadKey]);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -185,12 +204,12 @@ export function CustomerBookingPortal({
     setLoading(true);
     try {
       const res = await fetch(`/api/intake-link/${token}/cancel`, { method: "POST" });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok) {
-        setError(data.error ?? "Could not cancel.");
+        setError(String(data.error ?? "Could not cancel. Please try again or call the company."));
         return;
       }
-      if (data.booking) setBooking(data.booking);
+      if (data.booking) setBooking(data.booking as CustomerBookingPortalView);
       setNotice("Your visit was cancelled.");
       setMode("view");
     } catch (err) {
@@ -297,6 +316,9 @@ export function CustomerBookingPortal({
                 durationMinutes={slotMeta.duration}
                 bufferMinutes={slotMeta.buffer}
                 maxConcurrentVisits={slotMeta.capacity}
+                loading={slotsLoading}
+                error={slotsError}
+                onRetry={() => setSlotsReloadKey((k) => k + 1)}
               />
             </div>
           ) : null}

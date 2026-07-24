@@ -6,7 +6,7 @@ import {
   canReject,
   isPendingShopReview,
   normalizeRequestStatus,
-  REQUEST_STATUS_LABELS,
+  OWNER_REQUEST_STATUS_LABELS,
   type RequestStatus,
 } from "./booking-policy";
 import { lookupStoredRequestStatus } from "./request-status-resolve";
@@ -256,7 +256,7 @@ export function buildBookingDetail(
     phone: resolvePhone(booking, call, jobber),
     zipCode: resolveZip(booking.address),
     requestStatus,
-    requestStatusLabel: REQUEST_STATUS_LABELS[requestStatus],
+    requestStatusLabel: OWNER_REQUEST_STATUS_LABELS[requestStatus],
     bookingDateTime: formatBookingDateTime(booking.createdAt),
     transcript: call?.transcript?.trim() || null,
     recordingUrl: call?.recordingUrl ?? null,

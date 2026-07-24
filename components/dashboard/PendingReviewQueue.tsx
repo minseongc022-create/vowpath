@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { bookingShortRef } from "@/lib/booking-ref";
 import {
   isPendingShopReview,
-  REQUEST_STATUS_LABELS,
+  OWNER_REQUEST_STATUS_LABELS,
   normalizeRequestStatus,
 } from "@/lib/booking-policy";
 import { useDashboardUi } from "@/components/providers/LocaleProvider";
@@ -47,8 +47,11 @@ export function PendingReviewQueue({
   ).pendingReview;
 
   const title = copy?.title ?? "Pending approval";
-  const subtitle = copy?.subtitle ?? "Reply 1/2 by text or approve here";
+  const subtitle =
+    copy?.subtitle ??
+    "Text 1 REF to approve or 2 REF to decline. If only one is pending, 1 or 2 works.";
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
 
   const pending = useMemo(() => {
     const all = buildAllRecentBookings(
@@ -69,13 +72,26 @@ export function PendingReviewQueue({
   const updateStatus = useCallback(
     async (bookingId: string, status: "approved" | "rejected") => {
       setWorkingId(bookingId);
+      setRowError(null);
       try {
         const res = await fetch("/api/bookings/status", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: bookingId, status }),
         });
-        if (res.ok) onStatusChange?.();
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        if (!res.ok) {
+          setRowError(
+            data.error?.trim() ||
+              (status === "approved"
+                ? "Couldn't approve. Try again or open details."
+                : "Couldn't decline. Try again or open details."),
+          );
+          return;
+        }
+        onStatusChange?.();
+      } catch {
+        setRowError("Network error. Try again or open details.");
       } finally {
         setWorkingId(null);
       }
@@ -108,12 +124,17 @@ export function PendingReviewQueue({
           {pending.length}
         </span>
       </div>
+      {rowError ? (
+        <p className="border-b border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-800" role="alert">
+          {rowError}
+        </p>
+      ) : null}
       <ul className="divide-y divide-brand-100">
         {pending.map((b) => {
           const ref = bookingShortRef(b.id);
           const busy = workingId === b.id;
           const statusLabel =
-            REQUEST_STATUS_LABELS[
+            OWNER_REQUEST_STATUS_LABELS[
               normalizeRequestStatus(requestStatuses[b.id] ?? b.status)
             ];
           return (
@@ -130,6 +151,9 @@ export function PendingReviewQueue({
                 </p>
                 <p className="text-xs text-stone-600">
                   {b.issueType || "Service request"} · {statusLabel}
+                </p>
+                <p className="mt-1 font-mono text-[11px] text-stone-500">
+                  SMS: 1 {ref} · 2 {ref}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">

@@ -107,6 +107,11 @@ export function LinkIntakePortal({ token, shopName }: LinkIntakePortalProps) {
             </p>
           ) : null}
 
+          <p className="text-xs leading-relaxed text-slate-500">
+            Use the same name and mobile number from your call or booking text. Still stuck? Call the
+            company using the number you dialed.
+          </p>
+
           <button
             type="submit"
             disabled={loading}

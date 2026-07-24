@@ -156,11 +156,13 @@ export function CustomerTrackView({ token }: { token: string }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
           {track?.shopName ?? "Service visit"}
         </p>
-        <h1 className="mt-1 text-xl font-bold text-stone-900">Live arrival</h1>
+        <h1 className="mt-1 text-xl font-bold text-stone-900">
+          {track?.etaMinutes != null ? `ETA ~${track.etaMinutes} min` : "Live arrival"}
+        </h1>
         <p className="mt-1 text-sm text-stone-600">
           {track ? STATUS_COPY[track.status] : "Loading…"}
-          {track?.etaMinutes != null && track.status === "en_route"
-            ? ` · ~${track.etaMinutes} min`
+          {track?.etaMinutes != null && track.status === "en_route" && track.lat
+            ? ` · map updates live`
             : ""}
         </p>
         {track?.techName ? (
@@ -168,30 +170,49 @@ export function CustomerTrackView({ token }: { token: string }) {
         ) : null}
       </header>
 
-      <div className="relative min-h-[55vh] flex-1 bg-stone-200">
-        <div ref={mapRef} className="absolute inset-0 z-0" />
-        {!track?.lat ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-stone-100/90 px-6 text-center">
-            <p className="text-sm text-stone-600">
-              {track?.status === "arrived"
-                ? "Your technician has arrived."
-                : track?.status === "ended"
-                  ? "This visit is complete. Tracking has ended."
-                  : "Waiting for the technician to share their location…"}
-            </p>
+      {error && !track ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+          <p className="text-base font-semibold text-stone-900">
+            Tracking ended or this link expired
+          </p>
+          <p className="max-w-sm text-sm text-stone-600">
+            If you still need help, call the company using the number you dialed, or check your
+            booking confirmation text for your visit link.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="relative min-h-[55vh] flex-1 bg-stone-200">
+            <div ref={mapRef} className="absolute inset-0 z-0" />
+            {!track?.lat ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-stone-100/90 px-6 text-center">
+                <div className="space-y-2">
+                  {track?.etaMinutes != null ? (
+                    <p className="text-lg font-bold text-stone-900">~{track.etaMinutes} min away</p>
+                  ) : null}
+                  <p className="text-sm text-stone-600">
+                    {track?.status === "arrived"
+                      ? "Your technician has arrived."
+                      : track?.status === "ended"
+                        ? "This visit is complete. Tracking has ended."
+                        : "Map appears once the technician shares GPS. ETA updates stay available here."}
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
 
-      {error ? (
-        <p className="border-t border-rose-200 bg-rose-50 px-4 py-2 text-center text-sm text-rose-800">
-          {error}
-        </p>
-      ) : null}
+          {error ? (
+            <p className="border-t border-rose-200 bg-rose-50 px-4 py-2 text-center text-sm text-rose-800">
+              {error}
+            </p>
+          ) : null}
 
-      <p className="px-4 py-3 text-center text-[11px] text-stone-500">
-        Map © OpenStreetMap · Live only while en route · Ends when the visit finishes
-      </p>
+          <p className="px-4 py-3 text-center text-[11px] text-stone-500">
+            Map © OpenStreetMap · Live only while en route · Ends when the visit finishes
+          </p>
+        </>
+      )}
     </div>
   );
 }

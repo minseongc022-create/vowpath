@@ -128,7 +128,7 @@ export function smsCustomerPickTimeReminderBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
-  const core = `${shop}: Hi ${first}! Reminder — confirm your address and pick a visit time so we can send a tech:`;
+  const core = `${shop}: Hi ${first}! Reminder — confirm your address and pick a visit time so we can take the next step:`;
   return smsBodyWithUrl(core, params.portalUrl);
 }
 
@@ -224,7 +224,7 @@ export function smsCustomerOnMyWayBody(params: {
   const tech = smsTruncate(params.techName, 16);
   const core = `${shop}: Hi ${first}! ${tech} is on the way — ~${params.etaMinutes} min.`;
   if (params.trackUrl) {
-    return smsBodyWithUrl(`${core} Live map:`, params.trackUrl);
+    return smsBodyWithUrl(`${core} Track ETA:`, params.trackUrl);
   }
   return smsFitSingleSegment([`${core} Please keep the area clear.${smsCustomerOptOut()}`]);
 }

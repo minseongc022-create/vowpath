@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SlotGridDay, SlotGridItem } from "@/lib/scheduling/slot-grid";
 import { useLinkIntakeCopy } from "@/components/intake/LinkIntakeCopyContext";
 
@@ -11,6 +11,11 @@ type LinkIntakeSlotCalendarProps = {
   durationMinutes: number;
   bufferMinutes: number;
   maxConcurrentVisits: number;
+  /** When true, show loading instead of empty-state copy. */
+  loading?: boolean;
+  /** Load failure — shown with optional retry. */
+  error?: string | null;
+  onRetry?: () => void;
 };
 
 export function LinkIntakeSlotCalendar({
@@ -20,15 +25,57 @@ export function LinkIntakeSlotCalendar({
   durationMinutes,
   bufferMinutes,
   maxConcurrentVisits,
+  loading = false,
+  error = null,
+  onRetry,
 }: LinkIntakeSlotCalendarProps) {
   const copy = useLinkIntakeCopy();
   const firstWithOpen = days.find((d) => d.slots.some((s) => s.status === "available"));
   const [selectedDate, setSelectedDate] = useState(firstWithOpen?.date ?? days[0]?.date ?? "");
 
+  // Keep the visible day in sync when days load async or the selected slot is on another day.
+  useEffect(() => {
+    if (!days.length) {
+      setSelectedDate("");
+      return;
+    }
+    const selectedSlotDay = selectedSlotId
+      ? days.find((d) => d.slots.some((s) => s.id === selectedSlotId))?.date
+      : undefined;
+    const openDay = days.find((d) => d.slots.some((s) => s.status === "available"))?.date;
+    const fallback = openDay ?? days[0]?.date ?? "";
+    setSelectedDate((prev) => {
+      if (selectedSlotDay) return selectedSlotDay;
+      if (prev && days.some((d) => d.date === prev)) return prev;
+      return fallback;
+    });
+  }, [days, selectedSlotId]);
+
   const selectedDay = useMemo(
     () => days.find((d) => d.date === selectedDate) ?? days[0],
     [days, selectedDate],
   );
+
+  if (loading) {
+    return <p className="text-sm text-slate-500">Loading open windows…</p>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p className="text-sm text-amber-900">{error}</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-sm font-semibold text-brand-700 underline"
+          >
+            Try again
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   if (!days.length) {
     return <p className="text-sm text-slate-500">{copy.slotStepEmpty}</p>;
