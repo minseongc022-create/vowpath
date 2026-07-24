@@ -380,6 +380,18 @@ export function BookingDetailContent({
                   highlight={detail.phone !== "—"}
                 />
                 <InfoRow label={t.address} value={detail.address || "—"} />
+                {linkedCall?.addressConfirmation ? (
+                  <InfoRow
+                    label="Address confirm"
+                    value={
+                      linkedCall.addressConfirmation.status === "confirmed"
+                        ? "Confirmed by customer"
+                        : linkedCall.addressConfirmation.status === "pending_required"
+                          ? "Waiting on customer (required)"
+                          : "Heard on call — confirm on link"
+                    }
+                  />
+                ) : null}
                 <InfoRow label={t.cityState} value={detail.cityState} />
                 <InfoRow label={t.zip} value={detail.zipCode} />
               </InfoCard>

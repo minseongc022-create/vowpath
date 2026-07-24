@@ -246,6 +246,14 @@ export async function submitLinkIntakeForm(params: {
     verifiedFields: Object.fromEntries(
       MANDATORY_VERIFY_FIELDS.map((f) => [f, true]),
     ) as VerifiedCallPayload["verifiedFields"],
+    addressConfirmation: {
+      status: "confirmed",
+      spokenAddress: address,
+      addressConfidence: 100,
+      source: "sms_link",
+      confirmedAt: new Date().toISOString(),
+      confirmedAddress: address,
+    },
     lossCategory: draft.lossCategory,
     insuranceCarrier: draft.insuranceCarrier,
     insuranceClaimNumber: draft.insuranceClaimNumber,

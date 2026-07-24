@@ -13,6 +13,7 @@ import type {
   StoredAddressValidation,
   StoredVerifiedFields,
 } from "./call-intake/types";
+import type { AddressConfirmationRecord } from "./address/confirmation";
 
 export type StoredCallLog = {
   id: string;
@@ -44,6 +45,8 @@ export type StoredCallLog = {
   intakePhotoRef?: string;
   addressValidation?: StoredAddressValidation;
   verifiedFields?: StoredVerifiedFields;
+  /** Hybrid address: spoken on phone, confirmed/edited on SMS portal. */
+  addressConfirmation?: AddressConfirmationRecord;
   /** Customer portal link token (SMS manage booking) */
   portalToken?: string;
   lossCategory?: string;
@@ -133,6 +136,10 @@ export async function patchCallLog(
       | "callbackPhone"
       | "portalToken"
       | "confidence"
+      | "addressConfirmation"
+      | "verificationComplete"
+      | "addressValidation"
+      | "verifiedFields"
       | "lossCategory"
       | "insuranceCarrier"
       | "insuranceClaimNumber"

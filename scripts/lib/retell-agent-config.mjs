@@ -35,7 +35,7 @@ LISTENING — never interrupt
 - While they speak: complete silence. No "mm-hmm", "okay", or filler until they finish.
 - If audio is unclear: ask once to repeat. Never guess names, street names, or numbers.
 - Unusual names: confirm by spelling back letter-by-letter when unsure.
-- Do NOT collect the full street address on the phone. Wrong addresses from speech are a top industry failure mode — the SMS link uses typed / map search instead.
+- Street address: collect on the phone, then read back slowly. The SMS link lets them confirm or fix typos — never invent house numbers.
 
 LINK DETECTION — same as rule #1. Never re-ask. Never collect fields before send_link_intake.
 
@@ -46,18 +46,19 @@ VERTICAL INTAKE GUIDE (vertical={{vertical}}):
 {{intake_guide}}
 
 PHONE INTAKE — one field per turn. Collect accurately before submit_intake.
-- Collect: name, issue, trade-specific safety/urgency notes. Optional city only if they volunteer it.
-- NEVER ask for full street address, house number, or ZIP on the call.
+- Collect: name, full street address (number + street + city), issue, trade-specific safety/urgency notes.
+- Ask address clearly: "What's the full street address for the visit?" Include house number, street, and city. ZIP if they offer it.
 - Emergencies: active loss, no heat/cool, access notes — capture briefly.
-- Read back once: name + issue (+ trade notes). Wait for yes.
-- After read-back → submit_intake WITHOUT address and WITHOUT slotId (omit address or pass empty). Tell them: "You're all set — I'll text you a secure link to confirm your address and pick your visit time."
+- Read back once: name + full address + issue (+ trade notes). Wait for yes. If they correct the address, update it and read back again.
+- After read-back → submit_intake WITH address and WITHOUT slotId. Tell them: "You're all set — I'll text you a secure link to confirm that address and pick your visit time."
 - Bad audio: "I'm sorry — I didn't catch that. Could you say that once more?" Never invent details.
+- If they refuse or truly cannot give an address: submit_intake with empty address — the SMS link will collect it.
 
-ESTIMATE INTAKE — name, project type, when noticed, callback preference. Never quote a price. Do NOT collect full address on the call — the estimate SMS link covers property details.
+ESTIMATE INTAKE — name, project type, when noticed, callback preference. Collect address when possible; otherwise the estimate SMS link covers property details. Never quote a price.
 After read-back → submit_estimate once. Warm close — team will follow up with a link if needed.
 
-After booking read-back → submit_intake once (no address, no slotId).
-Close: "You're all set — I'll text you a secure link to confirm your address and pick your visit time. Our team's on it."
+After booking read-back → submit_intake once (with address, no slotId).
+Close: "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it."
 
 LANGUAGE — ENGLISH ONLY (critical)
 - Every word must be English. If they speak another language: "I can only help in English — what's your name?"
@@ -99,7 +100,7 @@ export function buildRetellGeneralTools(base) {
       type: "custom",
       name: "submit_intake",
       description:
-        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, issue, trade-specific details, and read-back confirmed. Do NOT collect full street address on the call — omit address (SMS link confirms it).",
+        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, full street address, issue, trade-specific details, and read-back confirmed. Pass the spoken address. Customer still confirms/edits address and picks visit time via SMS link.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitIntake,
@@ -110,7 +111,7 @@ export function buildRetellGeneralTools(base) {
           address: {
             type: "string",
             description:
-              "Usually omit. Full street address is confirmed on the SMS portal link (typed/map), not spoken on the call.",
+              "Full street address spoken on the call (number, street, city). Pass empty only if the caller refused or could not provide one — SMS link will collect it.",
           },
           issueType: {
             type: "string",

@@ -12,7 +12,8 @@ import { generateAiSummary } from "@/lib/call-intake/ai-summary";
 import { enrichRetellIntakeForFinalize } from "@/lib/call-intake/retell-verify";
 import { finalizeVerifiedIntake } from "@/lib/call-intake/finalize-intake";
 import { isTenantAfterHours } from "@/lib/after-hours";
-import { normalizePhoneIntakeAddress } from "@/lib/address/pending";
+import { preferSpokenPhoneAddress } from "@/lib/address/pending";
+import { resolveAddressConfirmationFromIntake } from "@/lib/address/confirmation";
 import { resolveSlotById } from "@/lib/scheduling/validate-slot";
 
 function submittedKey(callId: string) {
@@ -119,8 +120,8 @@ export async function POST(request: Request) {
       null,
       { model },
     );
-    // Prefer empty/pending address from phone — portal link confirms typed/map address.
-    draft.address = normalizePhoneIntakeAddress(args.address || draft.address);
+    // Prefer spoken address from the tool; fall back to extraction; pending marker only if missing.
+    draft.address = preferSpokenPhoneAddress(args.address, draft.address);
     const afterHours = await isTenantAfterHours(userId);
     const aiSummary = generateAiSummary(draft, draft.priority);
 
@@ -133,7 +134,12 @@ export async function POST(request: Request) {
       from,
       aiSummary,
     });
-    payload.address = normalizePhoneIntakeAddress(payload.address);
+    payload.address = preferSpokenPhoneAddress(args.address, payload.address);
+    payload.addressConfirmation = resolveAddressConfirmationFromIntake({
+      address: payload.address,
+      confidence: payload.confidence,
+      channel: "phone",
+    });
 
     let selectedSlot = null;
     if (args.slotId?.trim()) {
@@ -160,7 +166,7 @@ export async function POST(request: Request) {
     }
 
     const closing =
-      "Perfect — you're all set. I'll text you a secure link to confirm your address and pick your visit time. Our team's on it.";
+      "Perfect — you're all set. I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.";
 
     return NextResponse.json({ result: closing });
   } catch (e) {

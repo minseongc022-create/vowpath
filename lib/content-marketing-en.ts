@@ -89,7 +89,7 @@ export const callExperienceEn = {
     },
     {
       title: "Complete info before dispatch",
-      body: "Name and issue on the call; address confirmed on a secure SMS link with typed/map search (not misheard street numbers). Then pick the visit window — no verbal calendar slots.",
+      body: "Name, issue, and street address on the call (read back). Then a secure SMS link to confirm or fix the address with typed/map search and pick the visit window — no verbal calendar slots.",
     },
     {
       title: "Schedule, then roll the truck",
@@ -403,7 +403,7 @@ export const comparisonEn = {
   rows: [
     ["Phone voice", "Thick clear US male AI every call", "Human variance or transfers", "Often rigid / form-like"],
     ["Your number options", "Forward main line OR dedicated Effiroad #", "Usually their number only", "Depends on CRM"],
-    ["Address accuracy", "Typed/map confirm on SMS link — not STT", "Often verbal / misheard", "Varies"],
+    ["Address accuracy", "Spoken + SMS confirm/edit (typed/map)", "Often verbal / misheard", "Varies"],
     ["Crew auto-dispatch", "Round-robin SMS · 1=yes / 2=pass", "Callback / message only", "Calendar book or blind"],
     ["Live ETA map", "Free customer map link on the way", "Rare", "Rare / paid add-on"],
     ["Risky jobs", "Owner SMS 1 / 2 — never blind", "Script / message only", "Often blind auto-book"],
@@ -435,7 +435,7 @@ export const competitorWinEn = {
     },
     {
       title: "Address on the link",
-      body: "Phone STT mishears street numbers. Effiroad texts a secure typed/map address confirm + visit window — fewer wrong-truck rolls than pure verbal intake.",
+      body: "Phone STT can mishear street numbers. Effiroad collects and reads back the address on the call, then texts a secure typed/map confirm + visit window — so customers can fix typos before a truck rolls.",
     },
   ],
   competitors: [
@@ -996,8 +996,8 @@ export const faqEn = {
       a: "Clear P1 water with solid name/issue confidence can move forward after the customer confirms address + visit time. Fire, Cat-3 sewage, commercial/multi-unit, P1 mold, low-confidence intake, or out-of-area always wait for your text: reply 1 to dispatch, 2 to pass. Reply 9 undoes an auto step. That risk split is intentional — blind auto-dispatch on fire/sewage is how shops get burned.",
     },
     {
-      q: "Why confirm address on a link instead of the phone?",
-      a: "Wrong-address rolls are one of the costliest failures in after-hours dispatch. Speech recognition mishears street numbers. Effiroad collects name and issue on the call, then texts a secure link where the homeowner types or map-searches the address and picks a visit window — same accuracy playbook top restoration dispatch stacks use.",
+      q: "Why confirm address on a link after collecting it on the phone?",
+      a: "Wrong-address rolls are one of the costliest failures in after-hours dispatch. Speech recognition can mishear street numbers. Effiroad collects and reads back the address on the call, then texts a secure link where the homeowner confirms or edits with typed/map search and picks a visit window — fast on the phone, accurate before dispatch.",
     },
   ],
 };

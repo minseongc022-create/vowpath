@@ -13,6 +13,11 @@ import { callToLinkIntakeBookingView } from "./link-intake-portal";
 import type { LinkUrgency } from "./link-intake-urgency";
 import { linkUrgencyToPriority } from "./link-intake-urgency";
 import { isAddressPending } from "./address/pending";
+import {
+  markAddressConfirmed,
+  needsAddressConfirmationUi,
+  requiresAddressConfirmation,
+} from "./address/confirmation";
 
 export type CustomerBookingPortalView = LinkIntakeBookingView & {
   status: RequestStatus;
@@ -23,7 +28,10 @@ export type CustomerBookingPortalView = LinkIntakeBookingView & {
   canReschedule: boolean;
   /** True when the booking has no visit window yet — portal should open on the time picker. */
   needsSchedule: boolean;
-  /** True when phone intake deferred address to the SMS link. */
+  /**
+   * True when address must be collected or re-confirmed on the portal
+   * (missing, low confidence, or phone spoken address awaiting confirm).
+   */
   needsAddress: boolean;
 };
 
@@ -63,7 +71,9 @@ export async function loadCustomerBookingPortalView(params: {
       status === "approved" ||
       status === "pending_review");
   const needsSchedule = canReschedule && !hasScheduledSlot;
-  const needsAddress = !terminal && isAddressPending(baseView.address);
+  const needsAddress =
+    !terminal &&
+    needsAddressConfirmationUi(call.addressConfirmation, baseView.address);
   const canCancel = !terminal;
 
   const arrivalWindow =
@@ -173,7 +183,7 @@ export async function customerRescheduleBooking(params: {
   slotId: string;
   customerName: string;
   urgency?: LinkUrgency;
-  /** Required when phone intake deferred the street address to the portal. */
+  /** Spoken or edited address from the portal (required when confirmation still pending). */
   address?: string;
 }): Promise<
   | { ok: true; arrivalWindow: string }
@@ -194,10 +204,28 @@ export async function customerRescheduleBooking(params: {
     return { ok: false, error: "Confirm your full service address first." };
   }
 
-  if (params.address?.trim() && params.address.trim() !== (call.address ?? "").trim()) {
-    await patchCallLog(params.userId, params.callId, {
-      address: params.address.trim(),
-    });
+  // Low-confidence / missing phone addresses must be explicitly confirmed on the portal.
+  if (
+    requiresAddressConfirmation(call.addressConfirmation, call.address) &&
+    !params.address?.trim()
+  ) {
+    return { ok: false, error: "Confirm your full service address first." };
+  }
+
+  const addressConfirmation = markAddressConfirmed({
+    previous: call.addressConfirmation,
+    confirmedAddress: nextAddress,
+  });
+
+  const shouldPatchAddress =
+    Boolean(params.address?.trim()) || nextAddress !== (call.address ?? "").trim();
+
+  await patchCallLog(params.userId, params.callId, {
+    ...(shouldPatchAddress ? { address: nextAddress } : {}),
+    addressConfirmation,
+  });
+
+  if (shouldPatchAddress) {
     try {
       const jobs = await listJobs(params.userId);
       const job = jobs.find((j) => j.id === params.bookingId || j.sourceCallId === params.callId);
@@ -205,7 +233,7 @@ export async function customerRescheduleBooking(params: {
         const { upsertJobRecord } = await import("./jobs-db");
         await upsertJobRecord(params.userId, {
           ...job,
-          address: params.address.trim(),
+          address: nextAddress,
         });
       }
     } catch {
@@ -272,7 +300,7 @@ export async function customerRescheduleBooking(params: {
       bookingId: params.bookingId,
       phone: call.callbackPhone ?? call.from,
       window: committed.slot.label,
-      address: call.address ?? "",
+      address: nextAddress,
       priority: call.priority ?? "P2",
       portalUrl,
       customerName: params.customerName,
@@ -289,7 +317,7 @@ export async function customerRescheduleBooking(params: {
       bookingId: params.bookingId,
       customerName: params.customerName,
       issueType: `Rescheduled → ${committed.slot.label}`,
-      address: call.address ?? "",
+      address: nextAddress,
       cityState: "",
       priority: call.priority ?? "P2",
     });

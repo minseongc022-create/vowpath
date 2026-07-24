@@ -66,6 +66,7 @@ export function isAmbiguousIntakeFields(params: {
   if (params.address !== undefined && params.address !== null) {
     const address = params.address.trim();
     if (!address || address === "Unknown" || address.length < 8) return true;
+    if (/^pending/i.test(address)) return true;
   }
   return false;
 }

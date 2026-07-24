@@ -46,7 +46,7 @@ const DEMOS = {
   },
   "voice-hvac": {
     video: "demo-voice-hvac.mp4",
-    files: ["voice-hvac-0.mp3", "voice-hvac-1.mp3", "voice-hvac-2.mp3", "voice-hvac-3.mp3", "voice-hvac-4.mp3"],
+    files: ["voice-hvac-0.mp3", "voice-hvac-1.mp3", "voice-hvac-2.mp3", "voice-hvac-3.mp3", "voice-hvac-4.mp3", "voice-hvac-5.mp3"],
     startOffsetMs: 2200,
     gapsAfterClipMs: [3200, 2400, 2400, 3200],
     volume: 1.1,
