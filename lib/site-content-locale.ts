@@ -91,8 +91,8 @@ export const demoSummaryEn = {
       body: "Press 1 for service/emergency or press 2 for a free estimate — both go straight to AI on the call. Prefer a form? Say “text link” at the main menu for a one-minute SMS form on link.effiroad.com.",
     },
     {
-      title: "You stay in control",
-      body: "Clear water / no-heat jobs can notify your crew. Fire, mold, gas smell, or anything unclear — you approve by text first.",
+      title: "Pick-time, then dispatch",
+      body: "After phone intake, customers get an SMS to pick a visit window. Clear water / no-heat jobs can schedule and notify crew; fire, mold, gas smell, or anything unclear — you approve by text first. Then live ETA map.",
     },
     {
       title: "Live in ~10 minutes",

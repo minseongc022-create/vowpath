@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "pick-time-link-v27-2026-07-23";
+export const RETELL_PROMPT_VERSION = "listen-fast-v28-2026-07-24";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -203,6 +203,18 @@ function sharedAgentPatch(): Record<string, unknown> {
       "apartment",
       "unit",
       "suite",
+      "air conditioner",
+      "heat pump",
+      "water heater",
+      "leaking",
+      "ceiling",
+      "drywall",
+      "terrace",
+      "parkway",
+      "north",
+      "south",
+      "east",
+      "west",
     ],
     // noise-cancellation: clears HVAC/traffic without distorting soft speech.
     denoising_mode: "noise-cancellation",
@@ -212,35 +224,35 @@ function sharedAgentPatch(): Record<string, unknown> {
     enable_dynamic_responsiveness: false,
     interruption_sensitivity: 0.28,
     enable_backchannel: false,
-    reminder_trigger_ms: 14000,
+    reminder_trigger_ms: 12000,
     reminder_max_count: 1,
   };
 }
 
-/** Deep masculine service / emergency intake — thick body, US pace. */
+/** Deep masculine service / emergency intake — thick body, snappier turns. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
     // Lower temp = steadier / less thin; slight slowdown adds body without dragging.
     voice_temperature: 0.5,
-    voice_speed: 0.94,
+    voice_speed: 0.97,
     volume: 1.28,
-    responsiveness: 0.68,
+    responsiveness: 0.74,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same thick masculine presence. */
+/** Estimate intake — same thick masculine presence, slightly snappier. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
     voice_temperature: 0.52,
-    voice_speed: 0.94,
+    voice_speed: 0.97,
     volume: 1.28,
-    responsiveness: 0.7,
+    responsiveness: 0.76,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

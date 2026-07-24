@@ -23,28 +23,28 @@ export const DEMO_VERTICAL_CONFIG: Record<
 > = {
   restoration: {
     headline: "See Effiroad in action",
-    subhead: "Night, weekend & field missed calls → warm intake → risk-based dispatch",
+    subhead: "Night missed call → warm intake → pick-time SMS → risk-based dispatch → live map",
     identityLine:
-      "You're on a job or off the clock — Effiroad answers on the schedule you set. Clear P1 water can auto-dispatch; fire, mold & unclear jobs wait for your 1 / 2.",
+      "You're on a job or off the clock — Effiroad answers on your schedule. Phone intake ends with a pick-time link; clear jobs can schedule after the customer picks a window; fire, mold & unclear jobs wait for your 1 / 2.",
     tabs: [
       {
         id: "voice",
         label: "Try the full call flow",
-        hint: "Interactive — tap through IVR, intake, owner SMS, and crew dispatch · production scripts",
+        hint: "Interactive — menu → AI intake → pick-time SMS → owner/crew → live map · matches production",
       },
     ],
     voiceFootnote: "Only the receptionist speaks on the call — you tap to play the customer's side.",
   },
   hvac: {
     headline: "See Effiroad in action",
-    subhead: "No-heat auto-dispatch · gas smell safety hold · schedule you control",
+    subhead: "No-heat pick-time → auto-dispatch · gas smell safety hold · schedule you control",
     identityLine:
-      "Saturday 6 AM on another job? Effiroad picks up on your hours. Verified no-heat dispatches your on-call tech — gas smell always waits for your 1 / 2.",
+      "Saturday 6 AM on another job? Effiroad picks up on your hours. Verified no-heat schedules after the customer picks a time, then offers your on-call tech — gas smell always waits for your 1 / 2.",
     tabs: [
       {
         id: "voice",
-        label: "No-heat auto-dispatch",
-        hint: "Interactive — tap through menu, intake, and auto-dispatch",
+        label: "No-heat full flow",
+        hint: "Interactive — menu, intake, pick-time, auto-dispatch, live map",
       },
       {
         id: "risk-hold",
@@ -52,7 +52,7 @@ export const DEMO_VERTICAL_CONFIG: Record<
         hint: "Interactive — safety hold · owner SMS 1 = dispatch · 2 = hold",
       },
     ],
-    voiceFootnote: "Clear no-heat dispatches automatically. Gas smell never does.",
+    voiceFootnote: "Clear no-heat can auto-schedule after pick-time. Gas smell never auto-dispatches.",
   },
 };
 
@@ -79,8 +79,8 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
     },
     {
       icon: "📋",
-      title: "Smart intake & triage",
-      body: "Address, loss type, urgency scored. P1 water with clear info can auto-page your crew.",
+      title: "Intake + pick-time link",
+      body: "Name, address, issue on the call — then SMS to pick a visit window. No verbal calendar slots.",
       tag: "Smart intake",
     },
     {
@@ -99,8 +99,8 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
     },
     {
       icon: "🔥",
-      title: "No-heat = auto-dispatch",
-      body: "Verified no-heat / no-cool with name & address → on-call tech SMS instantly. Owner gets FYI.",
+      title: "No-heat after pick-time",
+      body: "Verified no-heat / no-cool with name & address → customer picks a window → on-call tech SMS. Owner gets FYI.",
       tag: "Speed on standard calls",
     },
     {
@@ -111,8 +111,8 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
     },
     {
       icon: "🚚",
-      title: "Crew dispatch built in",
-      body: "Tech gets job card by SMS — reply 1 to accept. Customer gets on-the-way text automatically.",
+      title: "Crew + live map",
+      body: "Tech accepts by SMS, replies ETA minutes, customer gets on-the-way text + live map automatically.",
       tag: "Not just a message",
     },
   ],

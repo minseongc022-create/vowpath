@@ -89,11 +89,11 @@ export const callExperienceEn = {
     },
     {
       title: "Complete info before dispatch",
-      body: "Verified address, issue type, urgency, and trade-ready notes — captured on the call or SMS link, not a vague \"we'll call you back.\"",
+      body: "Verified address, issue type, urgency, and trade-ready notes — captured on the call, then a secure SMS to pick the visit window (no verbal calendar slots).",
     },
     {
-      title: "Dispatch while they wait",
-      body: "Clear jobs text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
+      title: "Schedule, then roll the truck",
+      body: "Once the customer picks a time, clear jobs can schedule and text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
     },
   ],
   contrast: {

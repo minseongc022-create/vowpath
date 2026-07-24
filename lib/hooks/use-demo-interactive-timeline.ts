@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { InteractiveStep } from "@/lib/demo-interactive-script";
+import type {
+  DemoTransition,
+  InteractiveStep,
+} from "@/lib/demo-interactive-script";
 import { demoAudioPlayer, speakDemoFallback } from "@/lib/demo-audio-player";
 import { isDemoAudioUnlocked, unlockDemoAudio } from "@/lib/demo-audio-unlock";
 
@@ -9,6 +12,12 @@ type UseDemoInteractiveTimelineOptions = {
   steps: InteractiveStep[];
   audioPrefix?: string;
   enabled?: boolean;
+};
+
+const TRANSITION_COPY: Record<DemoTransition, string> = {
+  "retell-connect": "Connecting to AI receptionist…",
+  soft: "AI is listening…",
+  sms: "Sending text…",
 };
 
 export function useDemoInteractiveTimeline({
@@ -26,6 +35,7 @@ export function useDemoInteractiveTimeline({
   const [customerSms, setCustomerSms] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [transferring, setTransferring] = useState(false);
+  const [transitionKind, setTransitionKind] = useState<DemoTransition | null>(null);
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [done, setDone] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(() => isDemoAudioUnlocked());
@@ -50,6 +60,7 @@ export function useDemoInteractiveTimeline({
     setCustomerSms(null);
     setSpeaking(false);
     setTransferring(false);
+    setTransitionKind(null);
     setWaitingForClick(false);
     setDone(false);
   }, []);
@@ -60,19 +71,36 @@ export function useDemoInteractiveTimeline({
     setAudioUnlocked(true);
   }, []);
 
-  const playTransferThenAdvance = useCallback(async (nextCursor: number | ((c: number) => number)) => {
-    setWaitingForClick(false);
-    setTransferring(true);
-    setAiLine(null);
-    setSpeaking(false);
-    if (audioUnlockedRef.current) {
-      await demoAudioPlayer.playTransferTone(1600);
-    } else {
-      await new Promise((r) => setTimeout(r, 900));
-    }
-    setTransferring(false);
-    setCursor(nextCursor);
-  }, []);
+  const advanceWithTransition = useCallback(
+    async (
+      nextCursor: number | ((c: number) => number),
+      kind: DemoTransition = "soft",
+    ) => {
+      setWaitingForClick(false);
+      setTransferring(true);
+      setTransitionKind(kind);
+      setSpeaking(false);
+
+      if (kind === "retell-connect") {
+        setAiLine(null);
+        if (audioUnlockedRef.current) {
+          await demoAudioPlayer.playTransferTone(1400);
+        } else {
+          await new Promise((r) => setTimeout(r, 900));
+        }
+      } else if (kind === "sms") {
+        await new Promise((r) => setTimeout(r, 700));
+      } else {
+        // soft — AI thinking / listening beat (no fake transfer ring)
+        await new Promise((r) => setTimeout(r, 450));
+      }
+
+      setTransferring(false);
+      setTransitionKind(null);
+      setCursor(nextCursor);
+    },
+    [],
+  );
 
   const playAi = useCallback(
     async (text: string, audioIndex?: number) => {
@@ -88,7 +116,7 @@ export function useDemoInteractiveTimeline({
           await speakDemoFallback(text);
         }
       } else {
-        await new Promise((r) => setTimeout(r, Math.max(text.length * 55, 1800)));
+        await new Promise((r) => setTimeout(r, Math.max(text.length * 42, 1400)));
       }
 
       setSpeaking(false);
@@ -116,6 +144,7 @@ export function useDemoInteractiveTimeline({
           if (step.kind === "system") {
             setSystemLine(step.text);
             i += 1;
+            await new Promise((r) => setTimeout(r, 350));
             continue;
           }
 
@@ -131,6 +160,7 @@ export function useDemoInteractiveTimeline({
             else if (step.variant === "customer") setCustomerSms(step.text);
             else setOwnerSms(step.text);
             i += 1;
+            await new Promise((r) => setTimeout(r, 400));
             continue;
           }
         }
@@ -155,34 +185,39 @@ export function useDemoInteractiveTimeline({
   }, [enabled, audioUnlocked, cursor, waitingForClick, done, transferring, runAutoSteps]);
 
   const advanceWithCustomer = useCallback(
-    (text: string) => {
+    (text: string, transition: DemoTransition = "soft") => {
       markUnlocked();
       setCustomerLines((prev) => [...prev, text]);
-      void playTransferThenAdvance((c) => c + 1);
+      void advanceWithTransition((c) => c + 1, transition);
     },
-    [markUnlocked, playTransferThenAdvance],
+    [markUnlocked, advanceWithTransition],
   );
 
   const handleMenuChoice = useCallback(
-    (option: { customerText?: string; jumpTo?: number }) => {
+    (option: {
+      customerText?: string;
+      jumpTo?: number;
+      transition?: DemoTransition;
+    }) => {
       markUnlocked();
       if (option.customerText) {
         setCustomerLines((prev) => [...prev, option.customerText!]);
       }
-      void playTransferThenAdvance(
+      void advanceWithTransition(
         option.jumpTo !== undefined ? option.jumpTo : (c) => c + 1,
+        option.transition ?? "retell-connect",
       );
     },
-    [markUnlocked, playTransferThenAdvance],
+    [markUnlocked, advanceWithTransition],
   );
 
   const handleOwnerAction = useCallback(
-    (systemText: string) => {
+    (systemText: string, transition: DemoTransition = "sms") => {
       markUnlocked();
       setSystemLine(systemText);
-      void playTransferThenAdvance((c) => c + 1);
+      void advanceWithTransition((c) => c + 1, transition);
     },
-    [markUnlocked, playTransferThenAdvance],
+    [markUnlocked, advanceWithTransition],
   );
 
   const unlockAudio = useCallback(() => {
@@ -198,6 +233,7 @@ export function useDemoInteractiveTimeline({
   }, [customerLines]);
 
   const currentStep = steps[cursor] ?? null;
+  const transitionLabel = transitionKind ? TRANSITION_COPY[transitionKind] : null;
 
   return {
     customerLines,
@@ -209,6 +245,8 @@ export function useDemoInteractiveTimeline({
     customerSms,
     speaking,
     transferring,
+    transitionKind,
+    transitionLabel,
     waitingForClick,
     done,
     currentStep,

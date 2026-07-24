@@ -533,15 +533,15 @@ export const aboutHvac = {
 export const demoSummaryHvac = {
   title: "What you just saw — HVAC in plain English",
   subtitle:
-    "We answer when you're on a job or off the clock — on the schedule you set. No-heat rolls fast; gas smell waits for you.",
+    "We answer when you're on a job or off the clock — on the schedule you set. No-heat after pick-time; gas smell waits for you.",
   steps: [
     {
       title: "Schedule-based answering",
       body: "Set nights, weekends, storm weeks. Forward unanswered calls — your main number stays on the truck and Google.",
     },
     {
-      title: "No-heat auto-dispatch",
-      body: "Verified no-heat with name and address? On-call tech gets crew SMS instantly. You get an FYI text.",
+      title: "No-heat after pick-time",
+      body: "Verified no-heat with name and address → SMS pick-time link → once they choose a window, on-call tech gets crew SMS. You get an FYI text + live map after accept.",
     },
     {
       title: "Gas smell = your call",
