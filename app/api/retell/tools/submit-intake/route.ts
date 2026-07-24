@@ -156,8 +156,8 @@ export async function POST(request: Request) {
     }
 
     const closing = payload.verificationComplete
-      ? "Perfect — you're all set. I've got everything down and our team's getting on this. Hang in there — help is on the way."
-      : "Thanks — I've got your info down and the shop will confirm the details shortly. Someone will be in touch very soon.";
+      ? "Perfect — you're all set. I'll text you a secure link to pick your visit time. Our team's on it."
+      : "Thanks — I've got your info down. I'll text you a secure link to pick your visit time, and the shop will follow up shortly.";
 
     return NextResponse.json({ result: closing });
   } catch (e) {

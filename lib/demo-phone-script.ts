@@ -1,12 +1,15 @@
 import type { DemoVertical } from "./demo-vertical-config";
 
-/** Receptionist voice lines — warm US dispatcher; customer text only in demo. One question per turn. */
+/**
+ * Receptionist lines for interactive + timeline demos.
+ * Matches live pick-time-link Retell prompt (no verbal calendar slots).
+ */
 export const RESTORATION_AI_LINES = [
   "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
   "I'm really glad you called. We'll take care of this together. What's your name?",
   "Thanks, Mike. What's the full property address — street, city, and state?",
-  "A sewage backup can move fast. I'm marking this urgent and texting the owner for approval now.",
-  "You're all set, Mike. Jake accepted the job and is heading your way. You'll get his ETA by text in just a moment.",
+  "Just to confirm — Mike Wilson, 4821 Oak Drive, Austin, Texas, sewage backup in the basement. Is that right?",
+  "You're all set — I'll text you a secure link to pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_AI_LINES = [
@@ -14,7 +17,8 @@ export const HVAC_AI_LINES = [
   "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
   "Good — no gas smell. What's your name?",
   "Thanks, Sarah. What's the full service address?",
-  "Got it. That's a verified no-heat call, so I'm dispatching your on-call tech now. You'll get an ETA text shortly.",
+  "Just to confirm — Sarah Bennett, 904 Cedar Lane, Round Rock, no heat, kids home, no gas smell. Is that right?",
+  "You're all set — I'll text you a secure link to pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_GAS_AI_LINES = [
@@ -28,6 +32,7 @@ export const RESTORATION_CUSTOMER_TEXT = [
   "Sewage is backing up in my basement — it's coming through the floor drain.",
   "Mike Wilson.",
   "4821 Oak Drive, Austin, Texas.",
+  "Yes, that's right.",
 ] as const;
 
 export const HVAC_CUSTOMER_TEXT = [
@@ -35,6 +40,7 @@ export const HVAC_CUSTOMER_TEXT = [
   "No gas smell, no sparking.",
   "Sarah Bennett.",
   "904 Cedar Lane, Round Rock, Texas.",
+  "Yes, that's correct.",
 ] as const;
 
 export const HVAC_GAS_CUSTOMER_TEXT = [
@@ -47,79 +53,102 @@ export type PhoneDemoPhase =
   | { kind: "system"; text: string; delayMs: number }
   | { kind: "customer-text"; text: string; delayMs: number }
   | { kind: "ai-voice"; text: string; audioIndex: number; delayMs: number }
-  | { kind: "sms"; text: string; delayMs: number; variant?: "owner" | "crew" | "fyi" };
+  | { kind: "sms"; text: string; delayMs: number; variant?: "owner" | "crew" | "fyi" | "customer" };
 
+/** Auto-play timeline (recording / non-interactive). */
 export const RESTORATION_PHONE_TIMELINE: PhoneDemoPhase[] = [
-  { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job", delayMs: 900 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[0], audioIndex: 0, delayMs: 900 },
-  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[0], delayMs: 1300 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[1], audioIndex: 1, delayMs: 1000 },
-  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[1], delayMs: 1200 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[2], audioIndex: 2, delayMs: 1000 },
-  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[2], delayMs: 1400 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 1000 },
+  { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job", delayMs: 700 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[0], audioIndex: 0, delayMs: 700 },
+  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[0], delayMs: 1100 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[1], audioIndex: 1, delayMs: 800 },
+  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[1], delayMs: 900 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[2], audioIndex: 2, delayMs: 800 },
+  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[2], delayMs: 1100 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 800 },
+  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[3], delayMs: 900 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[4], audioIndex: 4, delayMs: 700 },
   {
     kind: "sms",
-    text: "NEW JOB · Mike Wilson · 4821 Oak Dr · Sewage backup · P1 · Reply 1 to dispatch · 2 pass",
-    delayMs: 1000,
+    text: "Ridgeline: Hi Mike! Request A1B2C3 received. Pick your visit time here: https://link.effiroad.com/r/demo",
+    delayMs: 900,
+    variant: "customer",
+  },
+  { kind: "system", text: "Customer picked 8:00–10:00 AM · Visit scheduled", delayMs: 1200 },
+  {
+    kind: "sms",
+    text: "NEW JOB · Mike Wilson · Sewage backup · P1 · Reply 1 to dispatch · 2 pass",
+    delayMs: 900,
     variant: "owner",
   },
-  { kind: "system", text: "Owner replied 1 · Dispatching crew", delayMs: 1500 },
+  { kind: "system", text: "Owner replied 1 · Dispatching crew", delayMs: 1100 },
   {
     kind: "sms",
-    text: "CREW · Jake M · 4821 Oak Dr · Sewage P1 · Reply 1 accept · 2 pass",
-    delayMs: 1000,
+    text: "Effiroad: P1 job — Mike Wilson, Sewage backup, Today 8-10. Reply 1=Accept 2=Pass. Ref A1B2C3",
+    delayMs: 900,
     variant: "crew",
   },
-  { kind: "system", text: "Tech replied 1 · En route · ETA 32 min", delayMs: 1700 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[4], audioIndex: 4, delayMs: 900 },
-  { kind: "system", text: "Customer ETA text sent · Intake saved · Dispatched", delayMs: 1800 },
+  { kind: "system", text: "Tech replied 1 · Asked for ETA minutes", delayMs: 1000 },
+  {
+    kind: "sms",
+    text: "Ridgeline: Hi Mike! Jake is on the way — ~30 min. Live map: https://link.effiroad.com/t/demo",
+    delayMs: 1000,
+    variant: "customer",
+  },
+  { kind: "system", text: "Live map link sent · Visit in progress", delayMs: 1400 },
 ];
 
 export const HVAC_PHONE_TIMELINE: PhoneDemoPhase[] = [
-  { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install", delayMs: 900 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[0], audioIndex: 0, delayMs: 900 },
-  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[0], delayMs: 1300 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[1], audioIndex: 1, delayMs: 1000 },
-  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[1], delayMs: 1200 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[2], audioIndex: 2, delayMs: 1000 },
-  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[2], delayMs: 1200 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[3], audioIndex: 3, delayMs: 1000 },
-  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[3], delayMs: 1300 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 1000 },
+  { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install", delayMs: 700 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[0], audioIndex: 0, delayMs: 700 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[0], delayMs: 1100 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[1], audioIndex: 1, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[1], delayMs: 900 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[2], audioIndex: 2, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[2], delayMs: 900 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[3], audioIndex: 3, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[3], delayMs: 1000 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[4], delayMs: 900 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[5], audioIndex: 5, delayMs: 700 },
   {
     kind: "sms",
-    text: "AUTO-DISPATCH · Sarah Bennett · No heat P1 · Tech notified",
+    text: "Comfort Air: Hi Sarah! Request D4E5F6 received. Pick your visit time here: https://link.effiroad.com/r/demo",
     delayMs: 900,
+    variant: "customer",
+  },
+  { kind: "system", text: "Customer picked 9:00–11:00 AM · Auto-scheduled", delayMs: 1100 },
+  {
+    kind: "sms",
+    text: "AUTO · Sarah Bennett · No heat · Window set · Tech notified",
+    delayMs: 800,
     variant: "fyi",
   },
   {
     kind: "sms",
-    text: "NEW JOB · Sarah Bennett · No heat · 904 Cedar Ln · Reply 1 accept",
+    text: "Effiroad: P2 job — Sarah Bennett, No heat, Today 9-11. Reply 1=Accept 2=Pass. Ref D4E5F6",
     delayMs: 900,
     variant: "crew",
   },
-  { kind: "system", text: "Tech replied 1 · En route · ETA 28 min", delayMs: 1700 },
-  { kind: "system", text: "Customer ETA text sent · Intake saved · Auto-dispatched", delayMs: 1800 },
+  { kind: "system", text: "Tech replied 1 · ETA 28 min · Live map sent", delayMs: 1400 },
 ];
 
 export const HVAC_GAS_HOLD_TIMELINE: PhoneDemoPhase[] = [
-  { kind: "system", text: "Incoming call · 9:18 PM · Gas smell reported", delayMs: 900 },
-  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[0], audioIndex: 0, delayMs: 900 },
-  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[0], delayMs: 1300 },
-  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[1], audioIndex: 1, delayMs: 1000 },
-  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[1], delayMs: 1200 },
-  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[2], audioIndex: 2, delayMs: 1000 },
-  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[2], delayMs: 1400 },
-  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[3], audioIndex: 3, delayMs: 1000 },
+  { kind: "system", text: "Incoming call · 9:18 PM · Gas smell reported", delayMs: 700 },
+  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[0], audioIndex: 0, delayMs: 700 },
+  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[0], delayMs: 1100 },
+  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[1], audioIndex: 1, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[1], delayMs: 900 },
+  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[2], audioIndex: 2, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_GAS_CUSTOMER_TEXT[2], delayMs: 1100 },
+  { kind: "ai-voice", text: HVAC_GAS_AI_LINES[3], audioIndex: 3, delayMs: 800 },
   {
     kind: "sms",
     text: "GAS SMELL HOLD · Tom Reyes · 1202 Maple Ct · Reply 1 dispatch · 2 hold",
-    delayMs: 1000,
+    delayMs: 900,
     variant: "owner",
   },
-  { kind: "system", text: "Owner replied 2 · Held — no crew sent", delayMs: 1700 },
-  { kind: "system", text: "Safety intake saved · Customer gets next-step text", delayMs: 1800 },
+  { kind: "system", text: "Owner replied 2 · Held — no crew sent", delayMs: 1300 },
+  { kind: "system", text: "Safety intake saved · Customer gets next-step text", delayMs: 1400 },
 ];
 
 export function getPhoneDemoTimeline(vertical: DemoVertical): PhoneDemoPhase[] {

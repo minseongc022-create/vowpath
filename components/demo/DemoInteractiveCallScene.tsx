@@ -5,6 +5,7 @@ import type { DemoVertical } from "@/lib/demo-vertical-config";
 import {
   getGasHoldInteractiveSteps,
   getInteractiveDemoSteps,
+  type DemoTransition,
   type InteractiveStep,
 } from "@/lib/demo-interactive-script";
 import {
@@ -41,9 +42,13 @@ function ActionPanel({
   onOwnerAction,
 }: {
   step: InteractiveStep | null;
-  onMenuChoice: (opt: { customerText?: string; jumpTo?: number }) => void;
-  onCustomerAction: (text: string) => void;
-  onOwnerAction: (text: string) => void;
+  onMenuChoice: (opt: {
+    customerText?: string;
+    jumpTo?: number;
+    transition?: DemoTransition;
+  }) => void;
+  onCustomerAction: (text: string, transition?: DemoTransition) => void;
+  onOwnerAction: (text: string, transition?: DemoTransition) => void;
 }) {
   if (!step) return null;
 
@@ -58,7 +63,7 @@ function ActionPanel({
             key={opt.id}
             type="button"
             onClick={() => onMenuChoice(opt)}
-            className="block w-full min-w-0 rounded-lg bg-sky-500/25 px-2 py-2 text-left text-[11px] font-semibold leading-snug text-white ring-1 ring-sky-400/40 transition hover:bg-sky-500/40 sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs"
+            className="block w-full min-w-0 rounded-lg bg-sky-500/25 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-1 ring-sky-400/40 transition hover:bg-sky-500/40 active:scale-[0.99] sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
           >
             {opt.label}
           </button>
@@ -71,8 +76,8 @@ function ActionPanel({
     return (
       <button
         type="button"
-        onClick={() => onCustomerAction(step.customerText)}
-        className="mt-2 block w-full min-w-0 rounded-lg bg-sky-500/30 px-2 py-2 text-left text-[11px] font-semibold leading-snug text-white ring-2 ring-sky-400/50 transition hover:bg-sky-500/45 sm:mt-3 sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs"
+        onClick={() => onCustomerAction(step.customerText, step.transition ?? "soft")}
+        className="mt-2 block w-full min-w-0 rounded-lg bg-sky-500/30 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-2 ring-sky-400/50 transition hover:bg-sky-500/45 active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
       >
         Tap: {step.label}
       </button>
@@ -80,13 +85,19 @@ function ActionPanel({
   }
 
   if (step.kind === "owner-action") {
+    const isTech = step.role === "tech";
     return (
       <button
         type="button"
-        onClick={() => onOwnerAction(step.systemText)}
-        className="mt-2 block w-full min-w-0 rounded-lg bg-emerald-500/25 px-2 py-2 text-left text-[11px] font-semibold leading-snug text-emerald-50 ring-2 ring-emerald-400/50 transition hover:bg-emerald-500/40 sm:mt-3 sm:rounded-xl sm:px-3 sm:py-2.5 sm:text-xs"
+        onClick={() => onOwnerAction(step.systemText, step.transition ?? "sms")}
+        className={`mt-2 block w-full min-w-0 rounded-lg px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug ring-2 transition active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs ${
+          isTech
+            ? "bg-amber-500/25 text-amber-50 ring-amber-400/50 hover:bg-amber-500/40"
+            : "bg-emerald-500/25 text-emerald-50 ring-emerald-400/50 hover:bg-emerald-500/40"
+        }`}
       >
-        Shop owner: {step.label}
+        {isTech ? "Tech: " : "Shop owner: "}
+        {step.label}
       </button>
     );
   }
@@ -117,6 +128,8 @@ export function DemoInteractiveCallScene({
     customerSms,
     speaking,
     transferring,
+    transitionKind,
+    transitionLabel,
     waitingForClick,
     done,
     currentStep,
@@ -130,6 +143,14 @@ export function DemoInteractiveCallScene({
   } = useDemoInteractiveTimeline({ steps, audioPrefix, enabled });
 
   const showSoundPrompt = enabled && !audioUnlocked;
+  const statusTone =
+    transitionKind === "retell-connect"
+      ? "animate-pulse text-amber-300"
+      : transitionKind === "sms"
+        ? "animate-pulse text-violet-300"
+        : transferring
+          ? "animate-pulse text-sky-300"
+          : "text-emerald-400";
 
   const grid = (
     <div className="relative min-h-0 flex-1">
@@ -158,19 +179,35 @@ export function DemoInteractiveCallScene({
           <div className={`bg-gradient-to-b from-brand-900/90 to-black text-center ${embedded ? "px-3 py-4" : "px-4 py-6"}`}>
             <p className="text-[10px] uppercase tracking-widest text-white/40">Active call</p>
             <p className={`font-semibold ${embedded ? "mt-0.5 text-base" : "mt-1 text-lg"}`}>Effiroad</p>
-            <p className={`text-[11px] ${transferring ? "animate-pulse text-amber-300" : "text-emerald-400"}`}>
-              {transferring ? "Connecting… ring" : "Interactive · Tap to advance"}
+            <p className={`text-[11px] ${statusTone}`}>
+              {transferring
+                ? transitionLabel ?? "Working…"
+                : "Interactive · Matches live product"}
             </p>
             <div className="mt-2">
               <Waveform active={speaking || transferring} />
             </div>
           </div>
           <div className={`bg-[#141210] px-3 py-3 ${embedded ? "min-h-[88px]" : "min-h-[150px] px-4 py-4"}`}>
-            {transferring ? (
+            {transferring && transitionKind === "retell-connect" ? (
               <div className="rounded-lg bg-amber-500/15 p-2.5 ring-1 ring-amber-400/40">
-                <p className="text-[9px] font-bold uppercase text-amber-200/90">Call transfer</p>
+                <p className="text-[9px] font-bold uppercase text-amber-200/90">Connect</p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-50/90 sm:text-sm">
-                  Ringing the next receptionist…
+                  Ringing into the AI receptionist…
+                </p>
+              </div>
+            ) : transferring && transitionKind === "sms" ? (
+              <div className="rounded-lg bg-violet-500/15 p-2.5 ring-1 ring-violet-400/40">
+                <p className="text-[9px] font-bold uppercase text-violet-200/90">SMS</p>
+                <p className="mt-1 text-xs leading-relaxed text-violet-50/90 sm:text-sm">
+                  Secure text on the way…
+                </p>
+              </div>
+            ) : transferring ? (
+              <div className="rounded-lg bg-sky-500/15 p-2.5 ring-1 ring-sky-400/40">
+                <p className="text-[9px] font-bold uppercase text-sky-200/90">Listening</p>
+                <p className="mt-1 text-xs leading-relaxed text-sky-50/90 sm:text-sm">
+                  AI heard you — responding…
                 </p>
               </div>
             ) : aiLine ? (
@@ -216,9 +253,9 @@ export function DemoInteractiveCallScene({
             />
           </div>
         ) : null}
-        {transferring ? (
-          <p className="mt-2 animate-pulse text-center text-[11px] font-medium text-amber-200/90">
-            ♪ Ringing — connecting you…
+        {transferring && transitionLabel ? (
+          <p className="mt-2 animate-pulse text-center text-[11px] font-medium text-white/70">
+            {transitionLabel}
           </p>
         ) : null}
         {done ? (
@@ -278,7 +315,9 @@ export function DemoInteractiveCallScene({
     <div className="flex h-full w-full flex-col bg-gradient-to-br from-[#0c0b0a] via-[#12100e] to-[#1a1612] text-white">
       <div className="border-b border-white/10 px-6 py-4 md:px-8 md:py-5">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b59b78]">Interactive demo</p>
-        <h1 className="text-lg font-bold md:text-2xl">Tap through the full call — production scripts</h1>
+        <h1 className="text-lg font-bold md:text-2xl">
+          Tap through the live flow — menu → pick-time → crew → map
+        </h1>
       </div>
       {grid}
       <div className="px-5 pb-5 md:px-8">{smsFooter}</div>
