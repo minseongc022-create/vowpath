@@ -32,7 +32,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "submit_intake",
       description:
-        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, address, issue, trade-specific details, and read-back confirmed.",
+        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, issue, trade-specific details, and read-back confirmed. Do NOT collect full street address on the call — omit address (SMS link confirms it).",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitIntake,
@@ -40,7 +40,11 @@ export function buildRetellGeneralTools(base: string) {
         type: "object",
         properties: {
           customerName: { type: "string", description: "Caller's full name" },
-          address: { type: "string", description: "Full service property address" },
+          address: {
+            type: "string",
+            description:
+              "Usually omit. Full street address is confirmed on the SMS portal link (typed/map), not spoken on the call.",
+          },
           issueType: {
             type: "string",
             description:
@@ -57,7 +61,7 @@ export function buildRetellGeneralTools(base: string) {
               "Usually omit — customer picks time via SMS portal link. Only set if you used get_open_slots and the caller picked a time on the call.",
           },
         },
-        required: ["customerName", "address", "issueType"],
+        required: ["customerName", "issueType"],
       },
     },
     {

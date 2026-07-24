@@ -11,8 +11,8 @@ export function buildRetellIntakeGuide(vertical: ShopVertical): string {
     `TRADE: ${cfg.label}`,
     "ORDER — one question per turn, soft and clear:",
     '1. Name — "What\'s your name?"',
-    '2. Address — "What\'s the full address — street, city, and state?" Missing piece only if incomplete.',
-    `3. Issue — "What\'s going on there?" (${cfg.issueExamples.slice(0, 3).join("; ")})`,
+    `2. Issue — "What\'s going on there?" (${cfg.issueExamples.slice(0, 3).join("; ")})`,
+    "3. Address — SKIP on the phone. Never ask street/number/ZIP. The SMS link confirms address with map search.",
   ];
 
   if (askOnCall.length > 0) {
@@ -37,8 +37,8 @@ export function buildRetellIntakeGuide(vertical: ShopVertical): string {
   }
 
   lines.push(
-    "READ-BACK — slowly: name, address, issue, urgency, active loss, insurance. Wait for yes.",
-    "SUBMIT — submit_intake once WITHOUT slotId. Tell them a text link will let them pick the visit time. Never quote prices or promise exact ETA.",
+    "READ-BACK — slowly: name, issue, urgency, active loss/insurance if known. Do NOT invent an address. Wait for yes.",
+    "SUBMIT — submit_intake once WITHOUT address and WITHOUT slotId. Tell them a text link will confirm address and pick the visit time. Never quote prices or promise exact ETA.",
   );
 
   return lines.join("\n");
@@ -50,5 +50,8 @@ export function buildReturningCustomerHint(
   if (!match) return "";
   const name = match.customerName.trim();
   const address = match.address.trim();
-  return `RETURNING CALLER — prior: ${name} at ${address}. Open warmly: "Welcome back — is this still for ${address}?" Same property → confirm name only; new property → fresh address.`;
+  if (!address || /^pending/i.test(address) || address === "Unknown") {
+    return `RETURNING CALLER — prior name: ${name}. Open warmly: "Welcome back — ${name}, right?" Then continue intake (address still confirmed on the SMS link).`;
+  }
+  return `RETURNING CALLER — prior: ${name} at ${address}. Open warmly: "Welcome back — is this still for ${address}?" Same property → confirm name only; new property → skip verbal address (SMS link).`;
 }

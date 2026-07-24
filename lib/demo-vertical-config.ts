@@ -25,12 +25,12 @@ export const DEMO_VERTICAL_CONFIG: Record<
     headline: "See Effiroad in action",
     subhead: "Night missed call → warm intake → pick-time SMS → risk-based dispatch → live map",
     identityLine:
-      "You're on a job or off the clock — Effiroad answers on your schedule. Phone intake ends with a pick-time link; clear jobs can schedule after the customer picks a window; fire, mold & unclear jobs wait for your 1 / 2.",
+      "You're on a job or off the clock — Effiroad answers on your schedule. Phone intake collects name + issue; address and visit time are confirmed on a secure SMS link. Clear jobs can schedule after that; fire, mold & unclear jobs wait for your 1 / 2.",
     tabs: [
       {
         id: "voice",
         label: "Try the full call flow",
-        hint: "Interactive — menu → AI intake → pick-time SMS → owner/crew → live map · matches production",
+        hint: "Interactive — menu → AI intake → address+pick-time SMS → owner/crew → live map · matches production",
       },
     ],
     voiceFootnote: "Only the receptionist speaks on the call — you tap to play the customer's side.",
@@ -39,12 +39,12 @@ export const DEMO_VERTICAL_CONFIG: Record<
     headline: "See Effiroad in action",
     subhead: "No-heat pick-time → auto-dispatch · gas smell safety hold · schedule you control",
     identityLine:
-      "Saturday 6 AM on another job? Effiroad picks up on your hours. Verified no-heat schedules after the customer picks a time, then offers your on-call tech — gas smell always waits for your 1 / 2.",
+      "Saturday 6 AM on another job? Effiroad picks up on your hours. Verified no-heat confirms address + time on SMS, then offers your on-call tech — gas smell always waits for your 1 / 2.",
     tabs: [
       {
         id: "voice",
         label: "No-heat full flow",
-        hint: "Interactive — menu, intake, pick-time, auto-dispatch, live map",
+        hint: "Interactive — menu, intake, address+pick-time, auto-dispatch, live map",
       },
       {
         id: "risk-hold",
@@ -79,8 +79,8 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
     },
     {
       icon: "📋",
-      title: "Intake + pick-time link",
-      body: "Name, address, issue on the call — then SMS to pick a visit window. No verbal calendar slots.",
+      title: "Intake + address link",
+      body: "Name and issue on the call — then SMS to confirm address (typed/map) and pick a visit window. No misheard street numbers.",
       tag: "Smart intake",
     },
     {
@@ -100,7 +100,7 @@ export const OVERVIEW_STEPS: Record<DemoVertical, OverviewStep[]> = {
     {
       icon: "🔥",
       title: "No-heat after pick-time",
-      body: "Verified no-heat / no-cool with name & address → customer picks a window → on-call tech SMS. Owner gets FYI.",
+      body: "Verified no-heat / no-cool with name → customer confirms address + window on SMS → on-call tech SMS. Owner gets FYI.",
       tag: "Speed on standard calls",
     },
     {

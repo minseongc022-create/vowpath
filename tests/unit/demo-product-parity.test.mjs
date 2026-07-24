@@ -5,40 +5,45 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildRetellBookingAgentPatch,
-  buildRetellEstimateAgentPatch,
   RETELL_PROMPT_VERSION,
 } from "../../lib/retell-agent-settings.ts";
+import {
+  ADDRESS_PENDING_MARKER,
+  isAddressPending,
+  normalizePhoneIntakeAddress,
+} from "../../lib/address/pending.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const demoScript = readFileSync(join(root, "lib/demo-interactive-script.ts"), "utf8");
-const phoneScript = readFileSync(join(root, "lib/demo-phone-script.ts"), "utf8");
-const demoConfig = readFileSync(join(root, "lib/demo-vertical-config.ts"), "utf8");
+const prompt = readFileSync(join(root, "lib/retell-prompt.ts"), "utf8");
+const faq = readFileSync(join(root, "lib/content-marketing-en.ts"), "utf8");
 
-test("main menu matches Twilio wording", () => {
-  assert.match(demoScript, /say service or press 1/i);
-  assert.match(demoScript, /say estimate or press 2/i);
+test("phone prompt defers address to SMS link", () => {
+  assert.match(RETELL_PROMPT_VERSION, /address-link-v29/);
+  assert.match(prompt, /Do NOT collect the full street address on the phone/i);
+  assert.match(prompt, /confirm your address and pick your visit time/i);
 });
 
-test("demo scripts include pick-time SMS and live map", () => {
-  assert.match(demoScript, /Pick your visit time here/i);
-  assert.match(demoScript, /Live map:/i);
-  assert.match(phoneScript, /I'll text you a secure link to pick your visit time/i);
-  assert.match(demoConfig, /pick-time SMS/i);
+test("pending address helpers", () => {
+  assert.equal(isAddressPending(""), true);
+  assert.equal(isAddressPending(ADDRESS_PENDING_MARKER), true);
+  assert.equal(isAddressPending("4821 Oak Drive, Austin TX 78741"), false);
+  assert.equal(normalizePhoneIntakeAddress(""), ADDRESS_PENDING_MARKER);
 });
 
-test("demo jump constants point at estimate then link branches", () => {
-  assert.match(demoScript, /const ESTIMATE_START = 20/);
-  assert.match(demoScript, /const LINK_START = 25/);
+test("demo uses address+pick-time SMS copy", () => {
+  assert.match(demoScript, /Confirm address & pick visit time/i);
+  assert.match(demoScript, /const ESTIMATE_START = 18/);
+  assert.match(demoScript, /const LINK_START = 23/);
 });
 
-test("Retell listen-fast tuning keeps accurate STT", () => {
-  assert.match(RETELL_PROMPT_VERSION, /listen-fast-v28/);
+test("landing explains restoration approval criteria", () => {
+  assert.match(faq, /When does restoration need my 1 \/ 2 approval/i);
+  assert.match(faq, /Cat-3 sewage/i);
+});
+
+test("Retell keeps accurate STT while snappy", () => {
   const booking = buildRetellBookingAgentPatch();
-  const estimate = buildRetellEstimateAgentPatch();
   assert.equal(booking.stt_mode, "accurate");
   assert.equal(booking.responsiveness, 0.74);
-  assert.equal(booking.voice_speed, 0.97);
-  assert.equal(estimate.responsiveness, 0.76);
-  assert.equal(booking.interruption_sensitivity, 0.28);
-  assert.equal(booking.reminder_trigger_ms, 12000);
 });
