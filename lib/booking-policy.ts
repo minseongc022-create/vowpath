@@ -46,9 +46,33 @@ const REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
   completed: "완료",
 };
 
+/** Customer-facing status labels (portal / SMS). */
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi()
   ? REQUEST_STATUS_LABELS_EN
   : REQUEST_STATUS_LABELS_KO;
+
+/** Shop dashboard / owner SMS — action-oriented, not customer cheer. */
+const OWNER_REQUEST_STATUS_LABELS_EN: Record<RequestStatus, string> = {
+  request_received: "Request received",
+  pending_review: "Needs your review",
+  approved: "Approved",
+  rejected: "Declined",
+  scheduled: "Scheduled",
+  completed: "Completed",
+};
+
+const OWNER_REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
+  request_received: "요청 접수",
+  pending_review: "업체 검토 필요",
+  approved: "승인됨",
+  rejected: "거절됨",
+  scheduled: "일정 확정",
+  completed: "완료",
+};
+
+export const OWNER_REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi()
+  ? OWNER_REQUEST_STATUS_LABELS_EN
+  : OWNER_REQUEST_STATUS_LABELS_KO;
 
 /** Twilio closing message — never imply appointment is confirmed. */
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =
@@ -140,9 +164,8 @@ export function canCancelScheduled(status: string): boolean {
 }
 
 export function canMarkScheduled(status: string): boolean {
-  const s = normalizeRequestStatus(status);
-  // approved → scheduled (normal), or already scheduled (customer reschedule keep)
-  return s === "approved" || s === "scheduled";
+  // Only promote approved → scheduled. Already-scheduled stays on "Mark completed".
+  return normalizeRequestStatus(status) === "approved";
 }
 
 export function canMarkCompleted(status: string): boolean {

@@ -726,7 +726,7 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       backToList: "← All requests",
       pendingReviewTitle: "Your review is needed",
       pendingReviewBody:
-        "This is a service request, not a confirmed visit. Approve or decline after reviewing. Do not tell the customer a visit is scheduled until you approve.",
+        "Not a confirmed visit yet. Approve or decline after reviewing. Approving may text the customer, offer the job to crew (if enabled), and sync Jobber when connected.",
       approvedBanner: "Approved",
       approvedBannerBody: "Status saved. You can update schedule or completion below.",
       rejectedBanner: "Declined",
@@ -737,7 +737,8 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       approve: "Approve",
       reject: "Decline",
       confirmApproveTitle: "Approve this request?",
-      confirmApproveBody: "The customer may receive a confirmation text.",
+      confirmApproveBody:
+        "Customer may get a confirmation text. If crew dispatch is on, a tech offer SMS may go out. Jobber syncs when connected.",
       confirmRejectTitle: "Decline this request?",
       confirmRejectBody: "The customer may receive a decline notice.",
       confirm: "Confirm",
@@ -912,7 +913,7 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
     },
     pendingReview: {
       title: "Pending approval",
-      subtitle: "Reply 1 or 2 by text, or approve here",
+      subtitle: "Text 1 REF to approve or 2 REF to decline. One pending? Just 1 or 2 works.",
       approve: "Approve",
       reject: "Decline",
       empty: "No requests waiting for review.",

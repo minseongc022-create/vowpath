@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TechAssignment, TechMember } from "@/lib/tech-dispatch/types";
 import { clientFetch, redirectToLoginIfUnauthorized } from "@/lib/client-fetch";
+import { ROUTES } from "@/lib/constants";
 
 const STATUS_LABELS: Record<TechAssignment["status"], string> = {
   offering: "Waiting for crew reply",
@@ -83,7 +84,21 @@ export function CrewAssignPanel({ bookingId }: CrewAssignPanelProps) {
   }
 
   if (!crew.length && !assignment) {
-    return null;
+    return (
+      <div className="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-4 space-y-2">
+        <p className="text-sm font-semibold text-brand-900">Crew assignment</p>
+        <p className="text-sm text-stone-700">No crew members set up yet.</p>
+        <p className="text-xs text-stone-600">
+          Add techs in Settings to text accept/pass offers from this booking.
+        </p>
+        <a
+          href={ROUTES.settings}
+          className="inline-block text-sm font-semibold text-brand-700 underline"
+        >
+          Add crew in Settings
+        </a>
+      </div>
+    );
   }
 
   const pending = assignment?.offers.find((o) => o.outcome === "pending");

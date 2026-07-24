@@ -63,17 +63,24 @@ export function DailyBriefingView() {
       <section className="vow-dash-hero p-5 sm:p-7">
         <p className="text-sm font-semibold text-brand-800">{briefing.titleDate}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-brand-950 sm:text-4xl">
-          Good Morning, {shopName}
+          Today&apos;s briefing — {shopName}
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-stone-600">
-          A 30-second briefing of actual calls, requests, approvals, and urgent items.
-          No revenue estimates.
+          Quick look at requests, approvals, and urgent items. Summary looks at yesterday; metrics
+          below are today so far.
         </p>
       </section>
 
       {error ? (
         <div className="vow-dash-card border-rose-200 bg-rose-50 p-4 text-base text-rose-800">
-          {error}
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-2 text-sm font-semibold text-rose-900 underline"
+          >
+            Retry
+          </button>
         </div>
       ) : null}
 

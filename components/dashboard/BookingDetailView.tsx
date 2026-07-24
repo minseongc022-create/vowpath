@@ -19,7 +19,7 @@ import {
 } from "@/lib/booking-detail";
 import {
   isPendingShopReview,
-  REQUEST_STATUS_LABELS,
+  OWNER_REQUEST_STATUS_LABELS,
   type RequestStatus,
 } from "@/lib/booking-policy";
 import {
@@ -124,7 +124,7 @@ export function BookingDetailContent({
       ...base,
       status: requestStatus,
       requestStatus,
-      requestStatusLabel: REQUEST_STATUS_LABELS[requestStatus],
+      requestStatusLabel: OWNER_REQUEST_STATUS_LABELS[requestStatus],
       needsShopReview: isPendingShopReview(requestStatus),
       priority: clientDetail?.priority ?? base.priority,
       arrivalWindow: clientDetail?.arrivalWindow ?? base.arrivalWindow,

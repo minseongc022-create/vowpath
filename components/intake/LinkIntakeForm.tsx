@@ -427,19 +427,25 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
                 {error}
               </p>
             ) : null}
-            <button
-              type="button"
-              onClick={() => void handleSlotConfirm()}
-              disabled={loading}
-              className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? copy.submitting : copy.slotStepConfirm}
-            </button>
+            {slotGrid?.days.some((d) => d.slots.some((s) => s.status === "available")) ? (
+              <button
+                type="button"
+                onClick={() => void handleSlotConfirm()}
+                disabled={loading || !selectedSlotId}
+                className="w-full rounded-2xl bg-brand-700 py-4 text-lg font-bold text-white shadow-lg shadow-brand-700/20 transition hover:bg-brand-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? copy.submitting : copy.slotStepConfirm}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void postIntake()}
               disabled={loading}
-              className="w-full rounded-xl border border-slate-200 py-3 text-sm font-medium text-slate-600"
+              className={`w-full rounded-xl py-3 text-sm font-medium ${
+                slotGrid?.days.some((d) => d.slots.some((s) => s.status === "available"))
+                  ? "border border-slate-200 text-slate-600"
+                  : "bg-brand-700 text-lg font-bold text-white shadow-lg shadow-brand-700/20"
+              }`}
             >
               {copy.slotStepSkip}
             </button>
@@ -719,6 +725,11 @@ export function LinkIntakeForm({ token, shopName, vertical = "restoration" }: Li
               className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
             >
               {error}
+            </p>
+          ) : null}
+          {!smsConsent ? (
+            <p className="text-center text-xs text-slate-500">
+              Check the required text-updates box above to continue.
             </p>
           ) : null}
           <button
