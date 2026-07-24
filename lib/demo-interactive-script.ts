@@ -66,12 +66,12 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
 /**
  * Production flow:
  * Press 1/2 → Retell · Say “text link” → SMS form
- * Phone: name + issue (no verbal street address) → SMS confirm address + pick-time
+ * Phone: name + address + issue (read-back) → SMS confirm/edit address + pick-time
  * Then owner/crew → live map
  */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 18;
-  const LINK_START = 23;
+  const ESTIMATE_START = 20;
+  const LINK_START = 25;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -124,14 +124,25 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller confirms read-back",
-      customerText: "Yes, that's right.",
+      label: "Caller says address",
+      customerText: "4821 Oak Drive, Austin.",
       transition: "soft",
     },
     {
       kind: "ai-voice",
       text: RESTORATION_AI_LINES[3],
       audioIndex: 3,
+    },
+    {
+      kind: "customer-action",
+      label: "Caller confirms read-back",
+      customerText: "Yes, that's right.",
+      transition: "soft",
+    },
+    {
+      kind: "ai-voice",
+      text: RESTORATION_AI_LINES[4],
+      audioIndex: 4,
     },
     {
       kind: "sms",
@@ -185,7 +196,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 18
+    // ESTIMATE_START = 20
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -211,7 +222,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       text: "ESTIMATE · Jordan Lee · Basement water · Reply from dashboard to send quote",
       variant: "owner",
     },
-    // LINK_START = 23
+    // LINK_START = 25
     {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
@@ -226,8 +237,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 18;
-  const LINK_START = 23;
+  const ESTIMATE_START = 20;
+  const LINK_START = 25;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -290,14 +301,25 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller confirms read-back",
-      customerText: "Yes, that's correct.",
+      label: "Caller says address",
+      customerText: "910 Cedar Lane.",
       transition: "soft",
     },
     {
       kind: "ai-voice",
       text: HVAC_AI_LINES[4],
       audioIndex: 4,
+    },
+    {
+      kind: "customer-action",
+      label: "Caller confirms read-back",
+      customerText: "Yes, that's correct.",
+      transition: "soft",
+    },
+    {
+      kind: "ai-voice",
+      text: HVAC_AI_LINES[5],
+      audioIndex: 5,
     },
     {
       kind: "sms",
@@ -337,7 +359,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 18
+    // ESTIMATE_START = 20
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -363,7 +385,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       text: "ESTIMATE · Chris Park · AC replacement · Reply from dashboard to send quote",
       variant: "owner",
     },
-    // LINK_START = 23
+    // LINK_START = 25
     {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${HVAC_SHOP}. It takes about a minute on your phone.`,

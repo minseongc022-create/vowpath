@@ -152,7 +152,9 @@ export function CustomerBookingPortal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slotId: selectedSlotId,
-          address: booking.needsAddress ? composeUsAddress(addressValue) : undefined,
+          address: isUsAddressReady(addressValue)
+            ? composeUsAddress(addressValue)
+            : undefined,
         }),
       });
       const data = await readJsonResponse(res);
@@ -163,7 +165,7 @@ export function CustomerBookingPortal({
       if (data.booking) setBooking(data.booking as CustomerBookingPortalView);
       setNotice(
         (data.booking as CustomerBookingPortalView | undefined)?.needsSchedule === false
-          ? "Address saved and visit time booked! We'll see you then."
+          ? "Address confirmed and visit time booked! We'll see you then."
           : "Visit time updated! We'll see you then.",
       );
       setMode("view");
@@ -271,7 +273,7 @@ export function CustomerBookingPortal({
             <div className="space-y-4">
               <p className="text-sm text-slate-600">
                 {booking.needsAddress
-                  ? "Confirm the service address (typed / map search — more accurate than phone), then pick a visit window."
+                  ? "Confirm or fix the address we heard on the phone (typed / map search), then pick a visit window."
                   : booking.needsSchedule
                     ? "Pick an open visit window below — same calendar your shop uses for bookings."
                     : copy.bookingRescheduleHint}

@@ -7,13 +7,19 @@ import type { TechDispatchSettings } from "./types";
  * - assignOnApprove ON (default): only after owner-approved / auto-scheduled.
  * - assignOnApprove OFF: also when a customer slot is already reserved while
  *   still pending_review — “text crew as soon as the job confirms.”
+ * - Always blocked while address confirmation is still required (hybrid UX).
  */
 export function shouldAutoStartTechDispatch(
   settings: Pick<TechDispatchSettings, "enabled" | "assignOnApprove">,
   status: RequestStatus,
-  opts?: { hasScheduledSlot?: boolean },
+  opts?: {
+    hasScheduledSlot?: boolean;
+    /** When true, customer has not confirmed a usable address yet. */
+    addressConfirmationRequired?: boolean;
+  },
 ): boolean {
   if (!settings.enabled) return false;
+  if (opts?.addressConfirmationRequired) return false;
   if (status === "approved" || status === "scheduled") return true;
   if (
     !settings.assignOnApprove &&

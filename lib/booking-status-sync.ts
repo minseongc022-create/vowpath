@@ -245,13 +245,19 @@ export async function persistRequestStatusForBooking(
       const { getTechDispatchSettings } = await import("./tech-dispatch/store");
       const { shouldAutoStartTechDispatch } = await import("./tech-dispatch/policy");
       const { startTechAssignmentForBooking } = await import("./tech-dispatch/assign");
+      const { requiresAddressConfirmation } = await import("./address/confirmation");
       const [dispatchSettings, scheduledSlot] = await Promise.all([
         getTechDispatchSettings(userId),
         getScheduledBooking(userId, bookingId),
       ]);
+      const callForAddress = callLogForBooking(bookingId, callLogs, jobs);
       if (
         shouldAutoStartTechDispatch(dispatchSettings, effectiveStatus, {
           hasScheduledSlot: Boolean(scheduledSlot),
+          addressConfirmationRequired: requiresAddressConfirmation(
+            callForAddress?.addressConfirmation,
+            callForAddress?.address,
+          ),
         })
       ) {
         await startTechAssignmentForBooking(userId, bookingId);

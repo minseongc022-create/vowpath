@@ -1,4 +1,5 @@
 import { addCallLog, patchCallLog } from "../call-logs";
+import { resolveAddressConfirmationFromIntake } from "../address/confirmation";
 import { scoreCallQuality } from "../call-quality-score";
 import { initialRequestStatusAfterIntake } from "../booking-policy";
 import type { SlotOffer } from "../booking-settings";
@@ -96,6 +97,13 @@ export async function finalizeVerifiedIntake(
   }
 
   const callLogId = crypto.randomUUID();
+  const addressConfirmation =
+    payload.addressConfirmation ??
+    resolveAddressConfirmationFromIntake({
+      address: payload.address,
+      confidence: payload.confidence,
+      channel,
+    });
   try {
     await addCallLog({
       id: callLogId,
@@ -124,6 +132,7 @@ export async function finalizeVerifiedIntake(
       intakePhotoRef: payload.intakePhotoRef,
       addressValidation: payload.addressValidation,
       verifiedFields: payload.verifiedFields,
+      addressConfirmation,
       lossCategory: payload.lossCategory,
       insuranceCarrier: payload.insuranceCarrier,
       insuranceClaimNumber: payload.insuranceClaimNumber,

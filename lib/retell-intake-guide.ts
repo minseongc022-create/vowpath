@@ -12,11 +12,11 @@ export function buildRetellIntakeGuide(vertical: ShopVertical): string {
     "ORDER — one question per turn, soft and clear:",
     '1. Name — "What\'s your name?"',
     `2. Issue — "What\'s going on there?" (${cfg.issueExamples.slice(0, 3).join("; ")})`,
-    "3. Address — SKIP on the phone. Never ask street/number/ZIP. The SMS link confirms address with map search.",
+    '3. Address — "What\'s the full street address for the visit?" (number, street, city; ZIP if offered). Read it back carefully.',
   ];
 
   if (askOnCall.length > 0) {
-    lines.push("TRADE-SPECIFIC — after issue, before read-back:");
+    lines.push("TRADE-SPECIFIC — after address, before read-back:");
     askOnCall.forEach((f, i) => {
       const prompt = f.askPrompt || f.label;
       lines.push(`${4 + i}. ${prompt}`);
@@ -37,8 +37,8 @@ export function buildRetellIntakeGuide(vertical: ShopVertical): string {
   }
 
   lines.push(
-    "READ-BACK — slowly: name, issue, urgency, active loss/insurance if known. Do NOT invent an address. Wait for yes.",
-    "SUBMIT — submit_intake once WITHOUT address and WITHOUT slotId. Tell them a text link will confirm address and pick the visit time. Never quote prices or promise exact ETA.",
+    "READ-BACK — slowly: name, full address, issue, urgency, active loss/insurance if known. Wait for yes. If they correct the address, update and read back again.",
+    "SUBMIT — submit_intake once WITH the spoken address and WITHOUT slotId. Tell them a text link will confirm/edit that address and pick the visit time. Never quote prices or promise exact ETA.",
   );
 
   return lines.join("\n");
@@ -51,7 +51,7 @@ export function buildReturningCustomerHint(
   const name = match.customerName.trim();
   const address = match.address.trim();
   if (!address || /^pending/i.test(address) || address === "Unknown") {
-    return `RETURNING CALLER — prior name: ${name}. Open warmly: "Welcome back — ${name}, right?" Then continue intake (address still confirmed on the SMS link).`;
+    return `RETURNING CALLER — prior name: ${name}. Open warmly: "Welcome back — ${name}, right?" Then continue intake and collect the full street address.`;
   }
-  return `RETURNING CALLER — prior: ${name} at ${address}. Open warmly: "Welcome back — is this still for ${address}?" Same property → confirm name only; new property → skip verbal address (SMS link).`;
+  return `RETURNING CALLER — prior: ${name} at ${address}. Open warmly: "Welcome back — is this still for ${address}?" Same property → confirm name + address briefly; new property → collect the new full address and read it back.`;
 }

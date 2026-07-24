@@ -55,6 +55,7 @@ export type CallRecord = {
   verificationComplete?: boolean;
   addressValidation?: StoredAddressValidation;
   verifiedFields?: StoredVerifiedFields;
+  addressConfirmation?: import("./address/confirmation").AddressConfirmationRecord;
   qualityScore?: number;
   qualityReasoning?: string;
   createdAt: string;

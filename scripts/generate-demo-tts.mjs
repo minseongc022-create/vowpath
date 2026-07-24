@@ -13,7 +13,7 @@ const EDGE_RATE = "-4%";
 const EDGE_PITCH = "+2Hz";
 
 const CLIPS = [
-  // Restoration voice call — one question per turn
+  // Restoration voice call — hybrid: name + address + read-back + SMS confirm
   {
     file: "voice-ai-0.mp3",
     text: "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
@@ -24,15 +24,15 @@ const CLIPS = [
   },
   {
     file: "voice-ai-2.mp3",
-    text: "Thanks, Mike. What's the full property address — street, city, and state?",
+    text: "Thanks, Mike. And what's the full street address for the visit?",
   },
   {
     file: "voice-ai-3.mp3",
-    text: "A sewage backup can move fast. I'm marking this urgent and texting the owner for approval now.",
+    text: "Got it — 4821 Oak Drive in Austin. Just to confirm — Mike Wilson, 4821 Oak Drive, Austin, sewage backup in the basement. Is that right?",
   },
   {
     file: "voice-ai-4.mp3",
-    text: "You're all set, Mike. Jake accepted the job and is heading your way. You'll get his ETA by text in just a moment.",
+    text: "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
   },
   // Restoration overview
   {
@@ -76,7 +76,7 @@ const CLIPS = [
     file: "link-narr-4.mp3",
     text: "From there, you can approve dispatch, schedule the visit, or call back with the full context already captured.",
   },
-  // HVAC no-heat voice call — one question per turn
+  // HVAC no-heat voice call — hybrid address + SMS confirm
   {
     file: "voice-hvac-0.mp3",
     text: "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
@@ -87,15 +87,19 @@ const CLIPS = [
   },
   {
     file: "voice-hvac-2.mp3",
-    text: "Good. No gas smell. What's your name?",
+    text: "Good — no gas smell. What's your name?",
   },
   {
     file: "voice-hvac-3.mp3",
-    text: "Thanks, Sarah. What's the full service address?",
+    text: "Thanks, Sarah. What's the full street address?",
   },
   {
     file: "voice-hvac-4.mp3",
-    text: "Got it. That's a verified no-heat call, so I'm dispatching your on-call tech now. You'll get an ETA text shortly.",
+    text: "Got it — 910 Cedar Lane. Just to confirm — Sarah Bennett, 910 Cedar Lane, no heat, kids home, no gas smell. Is that right?",
+  },
+  {
+    file: "voice-hvac-5.mp3",
+    text: "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
   },
   // HVAC gas smell hold
   {
@@ -108,11 +112,11 @@ const CLIPS = [
   },
   {
     file: "voice-hvac-gas-2.mp3",
-    text: "Thank you. What's the full property address?",
+    text: "Got it. I'm holding this as a safety call and texting the owner now — they'll confirm next steps. You'll also get a secure link to confirm the address.",
   },
   {
     file: "voice-hvac-gas-3.mp3",
-    text: "Got it. I'm holding this as a safety call and texting the owner now, so they can decide the safest next step.",
+    text: "Thank you. Stay safe — the owner has your info and will follow up.",
   },
   // HVAC overview
   {

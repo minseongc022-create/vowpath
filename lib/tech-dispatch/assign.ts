@@ -149,6 +149,27 @@ export async function startTechAssignmentForBooking(
   const ctx = await loadJobContext(userId, bookingId);
   if (!ctx) return null;
 
+  try {
+    const { requiresAddressConfirmation } = await import("../address/confirmation");
+    const calls = await listCallLogs(userId);
+    let call =
+      bookingId.startsWith("call-")
+        ? calls.find((c) => c.id === bookingId.slice(5))
+        : undefined;
+    if (!call) {
+      const jobs = await listJobs(userId);
+      const job = jobs.find((j) => j.id === bookingId);
+      if (job?.sourceCallId) {
+        call = calls.find((c) => c.id === job.sourceCallId);
+      }
+    }
+    if (requiresAddressConfirmation(call?.addressConfirmation, call?.address)) {
+      return null;
+    }
+  } catch {
+    /* best-effort gate */
+  }
+
   const scheduled = await getScheduledBooking(userId, bookingId);
 
   let assignment = await getTechAssignment(userId, bookingId);

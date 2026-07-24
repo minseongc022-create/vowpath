@@ -32,7 +32,7 @@ export function buildRetellGeneralTools(base: string) {
       type: "custom",
       name: "submit_intake",
       description:
-        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, issue, trade-specific details, and read-back confirmed. Do NOT collect full street address on the call — omit address (SMS link confirms it).",
+        "Caller is doing phone intake for an emergency/booking. Call ONCE after you have name, full street address, issue, trade-specific details, and read-back confirmed. Pass the spoken address. Customer still confirms/edits address and picks visit time via SMS link.",
       speak_after_execution: true,
       speak_during_execution: false,
       url: urls.submitIntake,
@@ -43,7 +43,7 @@ export function buildRetellGeneralTools(base: string) {
           address: {
             type: "string",
             description:
-              "Usually omit. Full street address is confirmed on the SMS portal link (typed/map), not spoken on the call.",
+              "Full street address spoken on the call (number, street, city). Pass empty only if the caller refused or could not provide one — SMS link will collect it.",
           },
           issueType: {
             type: "string",

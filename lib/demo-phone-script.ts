@@ -2,21 +2,23 @@ import type { DemoVertical } from "./demo-vertical-config";
 
 /**
  * Receptionist lines for interactive + timeline demos.
- * Matches live address-link Retell prompt (address + visit time on SMS portal).
+ * Matches live hybrid Retell prompt (verbal address + SMS confirm/edit + pick-time).
  */
 export const RESTORATION_AI_LINES = [
   "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
   "I'm really glad you called. We'll take care of this together. What's your name?",
-  "Thanks, Mike. Just to confirm — Mike Wilson, sewage backup in the basement. Is that right?",
-  "You're all set — I'll text you a secure link to confirm your address and pick your visit time. Our team's on it.",
+  "Thanks, Mike. And what's the full street address for the visit?",
+  "Got it — 4821 Oak Drive in Austin. Just to confirm — Mike Wilson, 4821 Oak Drive, Austin, sewage backup in the basement. Is that right?",
+  "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_AI_LINES = [
   "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
   "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
   "Good — no gas smell. What's your name?",
-  "Thanks, Sarah. Just to confirm — Sarah Bennett, no heat, kids home, no gas smell. Is that right?",
-  "You're all set — I'll text you a secure link to confirm your address and pick your visit time. Our team's on it.",
+  "Thanks, Sarah. What's the full street address?",
+  "Got it — 910 Cedar Lane. Just to confirm — Sarah Bennett, 910 Cedar Lane, no heat, kids home, no gas smell. Is that right?",
+  "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_GAS_AI_LINES = [
@@ -28,6 +30,7 @@ export const HVAC_GAS_AI_LINES = [
 export const RESTORATION_CUSTOMER_TEXT = [
   "Sewage is backing up in my basement — it's coming through the floor drain.",
   "Mike Wilson.",
+  "4821 Oak Drive, Austin.",
   "Yes, that's right.",
 ] as const;
 
@@ -35,6 +38,7 @@ export const HVAC_CUSTOMER_TEXT = [
   "No heat — it's fifty-eight degrees inside and we've got kids home.",
   "No gas smell, no sparking.",
   "Sarah Bennett.",
+  "910 Cedar Lane.",
   "Yes, that's correct.",
 ] as const;
 
@@ -58,7 +62,9 @@ export const RESTORATION_PHONE_TIMELINE: PhoneDemoPhase[] = [
   { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[1], delayMs: 900 },
   { kind: "ai-voice", text: RESTORATION_AI_LINES[2], audioIndex: 2, delayMs: 800 },
   { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[2], delayMs: 900 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 700 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 800 },
+  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[3], delayMs: 900 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[4], audioIndex: 4, delayMs: 700 },
   {
     kind: "sms",
     text: "Ridgeline: Hi Mike! Request A1B2C3 received. Confirm address & pick visit time: https://link.effiroad.com/r/demo",
@@ -99,7 +105,9 @@ export const HVAC_PHONE_TIMELINE: PhoneDemoPhase[] = [
   { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[2], delayMs: 900 },
   { kind: "ai-voice", text: HVAC_AI_LINES[3], audioIndex: 3, delayMs: 800 },
   { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[3], delayMs: 900 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 700 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 800 },
+  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[4], delayMs: 900 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[5], audioIndex: 5, delayMs: 700 },
   {
     kind: "sms",
     text: "Comfort Air: Hi Sarah! Request D4E5F6 received. Confirm address & pick visit time: https://link.effiroad.com/r/demo",

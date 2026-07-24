@@ -1,4 +1,4 @@
-/** Phone intake defers full address to the SMS portal (typed / Places, not STT). */
+/** Missing / unusable address — customer must confirm on the SMS portal. */
 
 export const ADDRESS_PENDING_MARKER = "Pending — confirm on link";
 
@@ -10,8 +10,22 @@ export function isAddressPending(address: string | null | undefined): boolean {
   return false;
 }
 
+/**
+ * Prefer a real spoken address when present; only fall back to the pending
+ * marker when the phone call did not capture a usable street address.
+ */
 export function normalizePhoneIntakeAddress(raw: string | null | undefined): string {
   const a = (raw ?? "").trim();
   if (isAddressPending(a)) return ADDRESS_PENDING_MARKER;
   return a;
+}
+
+/** Prefer tool/spoken address over transcript extraction when both exist. */
+export function preferSpokenPhoneAddress(
+  toolAddress: string | null | undefined,
+  extractedAddress: string | null | undefined,
+): string {
+  const spoken = (toolAddress ?? "").trim();
+  if (!isAddressPending(spoken)) return spoken;
+  return normalizePhoneIntakeAddress(extractedAddress);
 }

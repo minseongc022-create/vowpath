@@ -157,8 +157,8 @@ export const hvacFaq = [
     a: "Clear P1 no-heat / no-cool with solid intake confidence can auto-schedule after the customer confirms address + visit time on the SMS link — then your on-call tech gets the crew SMS. Gas smell, sparking, electrical/CO concerns, low confidence, or fuzzy details always wait for your 1 / 2. Never blind-roll a safety call.",
   },
   {
-    q: "Why isn't the street address taken on the phone?",
-    a: "Misheard addresses are a top after-hours failure. Effiroad captures name and symptoms on the call, then texts a link where the homeowner types or map-searches the address and picks a window — fewer wrong-truck rolls.",
+    q: "Why confirm the street address on a link after the phone call?",
+    a: "Misheard addresses are a top after-hours failure. Effiroad collects and reads back the address on the call, then texts a link where the homeowner confirms or edits with typed/map search and picks a window — fast on the phone, accurate before a truck rolls.",
   },
 ];
 

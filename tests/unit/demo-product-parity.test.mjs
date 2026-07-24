@@ -18,10 +18,11 @@ const demoScript = readFileSync(join(root, "lib/demo-interactive-script.ts"), "u
 const prompt = readFileSync(join(root, "lib/retell-prompt.ts"), "utf8");
 const faq = readFileSync(join(root, "lib/content-marketing-en.ts"), "utf8");
 
-test("phone prompt defers address to SMS link", () => {
-  assert.match(RETELL_PROMPT_VERSION, /address-link-v29/);
-  assert.match(prompt, /Do NOT collect the full street address on the phone/i);
-  assert.match(prompt, /confirm your address and pick your visit time/i);
+test("phone prompt collects verbal address then SMS confirm", () => {
+  assert.match(RETELL_PROMPT_VERSION, /hybrid-address-v30/);
+  assert.match(prompt, /Collect: name, full street address/i);
+  assert.match(prompt, /confirm that address and pick your visit time/i);
+  assert.doesNotMatch(prompt, /Do NOT collect the full street address on the phone/i);
 });
 
 test("pending address helpers", () => {
@@ -31,15 +32,17 @@ test("pending address helpers", () => {
   assert.equal(normalizePhoneIntakeAddress(""), ADDRESS_PENDING_MARKER);
 });
 
-test("demo uses address+pick-time SMS copy", () => {
+test("demo uses hybrid address + pick-time flow", () => {
   assert.match(demoScript, /Confirm address & pick visit time/i);
-  assert.match(demoScript, /const ESTIMATE_START = 18/);
-  assert.match(demoScript, /const LINK_START = 23/);
+  assert.match(demoScript, /Caller says address/);
+  assert.match(demoScript, /const ESTIMATE_START = 20/);
+  assert.match(demoScript, /const LINK_START = 25/);
 });
 
 test("landing explains restoration approval criteria", () => {
   assert.match(faq, /When does restoration need my 1 \/ 2 approval/i);
   assert.match(faq, /Cat-3 sewage/i);
+  assert.match(faq, /Why confirm address on a link after collecting it on the phone/i);
 });
 
 test("Retell keeps accurate STT while snappy", () => {

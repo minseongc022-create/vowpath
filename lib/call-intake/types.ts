@@ -128,6 +128,8 @@ export type VerifiedCallPayload = {
   verificationComplete: boolean;
   addressValidation?: CallIntakeState["addressValidation"];
   verifiedFields?: Partial<Record<MandatoryVerifyField, boolean>>;
+  /** Hybrid address confirmation state (phone → SMS portal). */
+  addressConfirmation?: import("../address/confirmation").AddressConfirmationRecord;
   intakePhotoRef?: string;
   lossCategory: LossCategory;
   insuranceCarrier?: string;

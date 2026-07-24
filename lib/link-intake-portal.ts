@@ -1,4 +1,5 @@
 import { listCallLogs, patchCallLog, type StoredCallLog } from "./call-logs";
+import { markAddressConfirmed } from "./address/confirmation";
 import { normalizeSmsPhone } from "./phone";
 import { listJobs, upsertJobRecord } from "./jobs-db";
 import { formatLinkRequestNumber } from "./link-intake-urgency";
@@ -239,6 +240,10 @@ export async function updateLinkIntakeBooking(params: {
     aiSummary,
     transcript,
     callbackPhone,
+    addressConfirmation: markAddressConfirmed({
+      previous: call.addressConfirmation,
+      confirmedAddress: address,
+    }),
   });
   if (!patched) {
     return { ok: false, error: "Could not save your update. Try again." };
