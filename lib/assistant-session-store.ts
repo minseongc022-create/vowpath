@@ -12,6 +12,8 @@ export type AssistantChatMessage =
       actions?: { label: string; href?: string }[];
     };
 
+export type AssistantScope = "shop" | "site";
+
 type AssistantSnapshot = {
   messages: AssistantChatMessage[];
   loading: boolean;
@@ -20,7 +22,10 @@ type AssistantSnapshot = {
   starters: string[];
 };
 
-const STORAGE_KEY = "effiroad-ai-chat-v3";
+const STORAGE_KEYS: Record<AssistantScope, string> = {
+  shop: "effiroad-ai-chat-shop-v1",
+  site: "effiroad-ai-chat-site-v1",
+};
 
 const defaultSnapshot = (): AssistantSnapshot => ({
   messages: [],
@@ -30,6 +35,7 @@ const defaultSnapshot = (): AssistantSnapshot => ({
   starters: [],
 });
 
+let activeScope: AssistantScope = "site";
 let snapshot: AssistantSnapshot = defaultSnapshot();
 const listeners = new Set<() => void>();
 
@@ -41,7 +47,7 @@ function persist() {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(
-      STORAGE_KEY,
+      STORAGE_KEYS[activeScope],
       JSON.stringify({
         messages: snapshot.messages,
         booted: snapshot.booted,
@@ -54,13 +60,13 @@ function persist() {
   }
 }
 
-export function hydrateAssistantStore() {
-  if (typeof window === "undefined") return;
+function loadScope(scope: AssistantScope): AssistantSnapshot {
+  if (typeof window === "undefined") return defaultSnapshot();
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    const raw = sessionStorage.getItem(STORAGE_KEYS[scope]);
+    if (!raw) return defaultSnapshot();
     const parsed = JSON.parse(raw) as Partial<AssistantSnapshot>;
-    snapshot = {
+    return {
       ...defaultSnapshot(),
       messages: parsed.messages ?? [],
       booted: Boolean(parsed.booted),
@@ -69,8 +75,24 @@ export function hydrateAssistantStore() {
       loading: false,
     };
   } catch {
-    snapshot = defaultSnapshot();
+    return defaultSnapshot();
   }
+}
+
+/** Hydrate (and switch) marketing vs shop chat so threads do not bleed across. */
+export function hydrateAssistantStore(scope: AssistantScope = "site") {
+  if (typeof window === "undefined") return;
+  if (scope !== activeScope) {
+    persist();
+    activeScope = scope;
+    inflight = 0;
+  }
+  snapshot = loadScope(scope);
+  emit();
+}
+
+export function getAssistantScope(): AssistantScope {
+  return activeScope;
 }
 
 export function subscribeAssistantStore(listener: () => void) {

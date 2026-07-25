@@ -125,8 +125,8 @@ export function EffiroadAssistantWidget() {
   }, [useShopAi, locale]);
 
   useEffect(() => {
-    hydrateAssistantStore();
-  }, []);
+    hydrateAssistantStore(useShopAi ? "shop" : "site");
+  }, [useShopAi]);
 
   useEffect(() => {
     if (!open) return;

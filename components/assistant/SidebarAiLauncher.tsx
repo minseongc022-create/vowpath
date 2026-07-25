@@ -27,7 +27,7 @@ export function SidebarAiLauncher() {
   const active = pathname.startsWith(ROUTES.ai);
 
   useEffect(() => {
-    hydrateAssistantStore();
+    hydrateAssistantStore("shop");
   }, []);
 
   function handleOpen() {

@@ -43,3 +43,40 @@ test("retell submit-intake prefers spoken tool args for core fields", () => {
   assert.match(src, /args\.issueType/);
   assert.match(src, /preferSpokenPhoneAddress/);
 });
+
+test("retell submit-intake returns closing speech before background finalize", () => {
+  const src = readFileSync(join(root, "app/api/retell/tools/submit-intake/route.ts"), "utf8");
+  assert.match(src, /after\s*\(/);
+  assert.match(src, /background finalize|finalizeVerifiedIntake/);
+  assert.match(src, /serviceAreaZips|isZipInServiceArea/);
+});
+
+test("tech dispatch timeout scans pending offers not all bookings", () => {
+  const src = readFileSync(join(root, "lib/tech-dispatch/timeout.ts"), "utf8");
+  assert.match(src, /listPendingOfferBookingIds/);
+  assert.equal(src.includes("listDispatchBookingIds(userId)"), false);
+});
+
+test("shop AI router does not treat short chatter as customer names", async () => {
+  const { routeAiQuery, looksLikePersonName } = await import("../../lib/ai-admin/router.ts");
+  assert.equal(routeAiQuery("ok thanks").kind, "general");
+  assert.equal(routeAiQuery("how many jobs today").kind, "general");
+  assert.equal(routeAiQuery("status please").kind, "general");
+  assert.equal(routeAiQuery("John Smith").kind, "customer");
+  assert.equal(routeAiQuery("find customer Jane Doe").kind, "customer");
+  assert.equal(looksLikePersonName("ok thanks"), false);
+  assert.equal(looksLikePersonName("John Smith"), true);
+});
+
+test("assistant session store separates shop vs site chat keys", () => {
+  const src = readFileSync(join(root, "lib/assistant-session-store.ts"), "utf8");
+  assert.match(src, /effiroad-ai-chat-shop-v1/);
+  assert.match(src, /effiroad-ai-chat-site-v1/);
+  assert.match(src, /AssistantScope/);
+});
+
+test("site assistant suggestions stay on stable starters", () => {
+  const src = readFileSync(join(root, "lib/site-assistant/answer.ts"), "utf8");
+  assert.match(src, /return startersFor\(lang\)/);
+  assert.equal(src.includes("fromAnswer.length >= 2"), false);
+});

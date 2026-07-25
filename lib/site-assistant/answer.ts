@@ -49,13 +49,9 @@ function fallback(locale: UiLocale): SiteAssistantReply {
   };
 }
 
-function parseSuggestions(text: string, lang: AssistantLang): string[] {
-  const lines = text
-    .split("\n")
-    .map((l) => l.replace(/^[-•*]\s*/, "").trim())
-    .filter(Boolean);
-  const fromAnswer = lines.filter((l) => l.length < 72).slice(0, 3);
-  return fromAnswer.length >= 2 ? fromAnswer : startersFor(lang);
+/** Keep chips as stable starters — scraping answer lines produced odd follow-ups. */
+function parseSuggestions(_text: string, lang: AssistantLang): string[] {
+  return startersFor(lang);
 }
 
 function replyLanguageLine(lang: AssistantLang): string {

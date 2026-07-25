@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
@@ -15,6 +15,13 @@ import { isTenantAfterHours } from "@/lib/after-hours";
 import { preferSpokenPhoneAddress } from "@/lib/address/pending";
 import { resolveAddressConfirmationFromIntake } from "@/lib/address/confirmation";
 import { resolveSlotById } from "@/lib/scheduling/validate-slot";
+import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import { findUserById } from "@/lib/users-db";
+import {
+  extractZipFromAddress,
+  isZipInServiceArea,
+  serviceAreaRejectMessage,
+} from "@/lib/service-area";
 
 function submittedKey(callId: string) {
   return `effiroad:retell-intake-submitted:${callId}`;
@@ -47,6 +54,9 @@ type RetellDynamicVars = {
 /**
  * Retell custom-function endpoint — runs full GPT extraction + address validation
  * + confidence scoring, matching the Twilio Gather intake pipeline.
+ *
+ * Closing speech returns as soon as extraction + service-area checks finish;
+ * SMS / booking / dispatch finalize in `after()` so the caller is not held on the line.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -167,20 +177,32 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await finalizeVerifiedIntake(userId, payload, {
-      intakeChannel: "phone",
-      afterHours,
-      selectedSlot,
-    });
-
-    if (result.serviceAreaRejected) {
-      return NextResponse.json({
-        result: result.rejectMessage || "We're not able to service that area, but thank you for calling.",
-      });
+    // Reject out-of-area before telling the caller they are all set.
+    const settings = await getShopBookingSettings(userId);
+    if (settings.serviceAreaZips.length > 0 && payload.address) {
+      const zip = extractZipFromAddress(payload.address);
+      if (!isZipInServiceArea(zip, settings.serviceAreaZips)) {
+        const user = await findUserById(userId);
+        return NextResponse.json({
+          result: serviceAreaRejectMessage(user?.shopName),
+        });
+      }
     }
 
     const closing =
       "Perfect — you're all set. I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.";
+
+    after(async () => {
+      try {
+        await finalizeVerifiedIntake(userId, payload, {
+          intakeChannel: "phone",
+          afterHours,
+          selectedSlot,
+        });
+      } catch (e) {
+        console.error("[retell/tools/submit-intake] background finalize", e);
+      }
+    });
 
     return NextResponse.json({ result: closing });
   } catch (e) {

@@ -183,6 +183,17 @@ export async function getTechPendingOffer(
   return all[`${userId}:${techId}`] ?? null;
 }
 
+/** Booking IDs with an active crew offer — cheap scan (techs only, not all calls/jobs). */
+export async function listPendingOfferBookingIds(userId: string): Promise<string[]> {
+  const settings = await getTechDispatchSettings(userId);
+  const ids = new Set<string>();
+  for (const tech of settings.techs) {
+    const bookingId = await getTechPendingOffer(userId, tech.id);
+    if (bookingId?.trim()) ids.add(bookingId.trim());
+  }
+  return [...ids];
+}
+
 export async function setTechActiveJob(
   userId: string,
   techId: string,

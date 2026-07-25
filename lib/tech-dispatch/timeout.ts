@@ -1,7 +1,12 @@
 import { listCallLogs } from "../call-logs";
 import { listJobs } from "../jobs-db";
 import { listUsers } from "../users-db";
-import { getTechDispatchSettings, getTechAssignment, saveTechAssignment } from "./store";
+import {
+  getTechDispatchSettings,
+  getTechAssignment,
+  listPendingOfferBookingIds,
+  saveTechAssignment,
+} from "./store";
 import { startTechAssignmentForBooking } from "./assign";
 import { effectiveOfferTimeoutMinutes } from "./policy";
 
@@ -55,7 +60,8 @@ export async function processExpiredTechOffersForUser(userId: string): Promise<n
   const settings = await getTechDispatchSettings(userId);
   if (!settings.enabled || !settings.techs.length) return 0;
 
-  const bookingIds = await listDispatchBookingIds(userId);
+  // Prefer pending-offer keys (O(techs)) over scanning every call/job every minute.
+  const bookingIds = await listPendingOfferBookingIds(userId);
   let escalated = 0;
 
   for (const bookingId of bookingIds) {

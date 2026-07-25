@@ -28,6 +28,69 @@ const STOP_WORDS = new Set([
   "이력",
 ]);
 
+/** Words that look like short queries, not people names. */
+const NON_NAME_TOKENS = new Set([
+  "ok",
+  "okay",
+  "thanks",
+  "thank",
+  "you",
+  "please",
+  "help",
+  "status",
+  "jobs",
+  "job",
+  "calls",
+  "call",
+  "today",
+  "tomorrow",
+  "yesterday",
+  "week",
+  "schedule",
+  "booking",
+  "bookings",
+  "pending",
+  "urgent",
+  "how",
+  "many",
+  "when",
+  "where",
+  "why",
+  "can",
+  "could",
+  "would",
+  "should",
+  "need",
+  "want",
+  "get",
+  "got",
+  "see",
+  "check",
+  "list",
+  "all",
+  "more",
+  "info",
+  "yes",
+  "no",
+  "sure",
+  "cool",
+  "great",
+  "good",
+  "fine",
+  "hello",
+  "hi",
+  "hey",
+  "settings",
+  "setup",
+  "dispatch",
+  "crew",
+  "tech",
+  "techs",
+  "pricing",
+  "trial",
+  "forwarding",
+]);
+
 function normalize(text: string): string {
   return text.toLowerCase().replace(/[?.,!]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -40,13 +103,41 @@ function isMutationIntent(q: string): boolean {
   );
 }
 
+/** True when the candidate is plausibly a person name, not ops chatter. */
+export function looksLikePersonName(candidate: string): boolean {
+  const parts = candidate
+    .trim()
+    .split(/\s+/)
+    .map((p) => p.replace(/^[^A-Za-z가-힣]+|[^A-Za-z가-힣'-]+$/g, ""))
+    .filter(Boolean);
+  if (parts.length < 1 || parts.length > 4) return false;
+  if (parts.some((p) => NON_NAME_TOKENS.has(p.toLowerCase()) || /\d/.test(p))) return false;
+
+  // Korean given/full names
+  if (parts.length === 1 && /^[가-힣]{2,4}$/.test(parts[0])) return true;
+  if (parts.every((p) => /^[가-힣]{1,4}$/.test(p)) && parts.join("").length >= 2) return true;
+
+  // Title Case English: "John Smith"
+  if (parts.every((p) => /^[A-Z][a-zA-Z'-]+$/.test(p))) return true;
+
+  // Lowercase multi-token names only when 2–3 alpha tokens and none are ops words
+  if (
+    parts.length >= 2 &&
+    parts.length <= 3 &&
+    parts.every((p) => /^[a-zA-Z][a-zA-Z'-]*$/.test(p) && p.length >= 2)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function extractCustomerName(query: string): string | null {
   const normalized = normalize(query);
 
   const patterns = [
     /(?:customer|profile|history|show|find|tell me about|who is|lookup)\s+(.+)$/i,
     /(?:고객|이력|찾아|보여)\s*[:\s]+(.+)$/i,
-    /^([a-z][a-z\s'-]{1,40})$/i,
     /([가-힣]{2,8})\s*(?:고객|님|씨)/,
   ];
 
@@ -65,10 +156,16 @@ function extractCustomerName(query: string): string | null {
     .filter((t) => t.length >= 2 && !STOP_WORDS.has(t));
   if (tokens.length >= 2 && tokens.length <= 4) {
     const candidate = tokens.join(" ");
-    if (!/\d{3,}/.test(candidate)) return candidate;
+    if (!/\d{3,}/.test(candidate) && looksLikePersonName(candidate)) return candidate;
   }
-  if (tokens.length === 1 && tokens[0].length >= 3 && !/\d/.test(tokens[0])) {
+  if (tokens.length === 1 && looksLikePersonName(tokens[0])) {
     return tokens[0];
+  }
+
+  // Bare Title Case name with no cue: "Mary Johnson"
+  const bare = query.trim();
+  if (looksLikePersonName(bare) && bare.split(/\s+/).length >= 2) {
+    return bare;
   }
 
   return null;
@@ -93,18 +190,8 @@ export function routeAiQuery(query: string): AiQueryIntent {
 
   if (!isMutationIntent(q)) {
     const customerName = extractCustomerName(raw);
-    if (
-      customerName &&
-      (q.includes("customer") ||
-        q.includes("profile") ||
-        q.includes("history") ||
-        q.includes("who") ||
-        q.includes("find") ||
-        q.includes("show") ||
-        q.includes("고객") ||
-        q.includes("이력") ||
-        /^[a-z가-힣][a-z가-힣\s'-]{1,30}$/i.test(raw.trim()))
-    ) {
+    // Always require a person-shaped name — cues alone must not route "find jobs" to customer.
+    if (customerName && looksLikePersonName(customerName)) {
       return { kind: "customer", name: customerName };
     }
   }
@@ -207,9 +294,9 @@ export function routeAiQuery(query: string): AiQueryIntent {
     return { kind: "urgent_calls" };
   }
 
-  const fallbackName = extractCustomerName(raw);
-  if (fallbackName && fallbackName.split(" ").length <= 3) {
-    return { kind: "customer", name: fallbackName };
+  // Bare person name only — do not route short ops phrases to customer lookup.
+  if (looksLikePersonName(raw) && raw.split(/\s+/).length >= 2) {
+    return { kind: "customer", name: raw };
   }
 
   return { kind: "general" };
