@@ -523,6 +523,25 @@ const settingsPageKo = {
   productSectionTitle: "업체 종류 · 운영 설정",
   productSectionSubtitle:
     "먼저 업체 종류(복구 / HVAC)를 고르세요. 선택한 업종에 맞는 예약·자동 배차 규칙이 아래에 표시됩니다. 끝나면 오른쪽 위 저장을 누르세요.",
+  bookingSectionTitle: "언제 기사에게 보내나요",
+  shopOptional: {
+    title: "선택 항목",
+    summary: "PM 계약, 구글 리뷰, SMS 등록. 지금은 건너뛰어도 됩니다.",
+    expandLabel: "펼치기",
+    smsTitle: "SMS 등록 (미국)",
+    smsBody:
+      "대량 문자 전에 통신사 사업자 SMS 등록이 필요합니다. Effiroad는 Twilio 번호로 보냅니다 — Trust Hub에서 한 번만 등록하세요.",
+    smsLink: "https://console.twilio.com/us1/develop/sms/trust-hub",
+    smsLinkLabel: "Twilio Trust Hub 열기 →",
+  },
+  googleReview: {
+    title: "구글 리뷰 링크",
+    hint: "작업 완료 후 문자로 보냅니다. 비우면 보내지 않습니다.",
+    placeholder: "https://g.page/r/...",
+    invalidUrl: "https:// 로 시작하는 유효한 링크를 입력하세요.",
+    saving: "저장 중…",
+    saved: "저장됨",
+  },
   goLiveSectionTitle: "라이브 체크리스트",
   goLiveSectionSubtitle: "순서대로만 따라오세요. 한 번 끝내면 문자 알림이 바로 시작됩니다.",
   goLiveWelcome: "10분이면 라이브!",
@@ -1160,7 +1179,7 @@ const vowDashboardKo = {
     requests: "요청 · 예약",
     calendar: "캘린더",
     missedCalls: "지켜낸 콜",
-    agreements: "PM 계약",
+    agreements: "유지보수 계약",
     settings: "샵 설정",
     shopTools: "샵 도구",
     allMenus: "전체 메뉴",
@@ -1215,8 +1234,14 @@ const vowDashboardKo = {
     importCsv: "CSV 가져오기",
     importing: "가져오는 중…",
     loading: "계약 불러오는 중…",
-    emptyTitle: "아직 PM 계약이 없습니다",
-    emptyBody: "작업 완료 시 자동 제안, CSV 가져오기, 또는 수동 추가로 시작하세요.",
+    emptyTitle: "아직 유지보수 계약이 없습니다",
+    emptyBody: "작업 완료 시 자동 제안, CSV 가져오기, 또는 아래에서 직접 추가해 시작하세요.",
+    emptyCta: "계약 추가",
+    statusActive: "활성",
+    statusDraft: "초안",
+    statusCancelled: "취소됨",
+    statusExpired: "만료",
+    statusPaused: "일시중지",
     colCustomer: "고객",
     colPlan: "플랜",
     colRenewal: "갱신일",
@@ -1388,9 +1413,9 @@ const dashboardUiKo = {
     conversion: "전환율",
     emergenciesP1: "긴급(P1)",
     emptyConnected:
-      "이번 달 서비스 요청이 아직 없습니다. 인바운드 콜과 Jobber 요청은 AI intake 후 여기에 표시됩니다.",
+      "이번 달 서비스 요청이 아직 없습니다. 인바운드 콜과 Jobber 요청은 AI 접수 후 여기에 표시됩니다.",
     emptyNotConnected:
-      "이번 달 요청이 아직 없습니다. Jobber를 연결하거나 콜 intake를 켜면 추적이 시작됩니다.",
+      "이번 달 요청이 아직 없습니다. Jobber를 연결하거나 전화 접수를 켜면 추적이 시작됩니다.",
   },
   recentBookings: {
     liveFeed: "실시간",
@@ -1398,9 +1423,10 @@ const dashboardUiKo = {
     subtitle: "최신 서비스 요청 — 최신순",
     viewAll: "전체 보기",
     couldntLoad: "예약을 불러오지 못했습니다",
-    emptyTitle: "아직 예약이 없습니다",
+    emptyTitle: "아직 요청이 없습니다",
     emptyBody:
-      "인바운드 콜이나 Jobber 요청이 들어오면 AI intake 후 여기에 표시됩니다.",
+      "전화가 들어오거나 Jobber 요청이 생기면 AI 접수 후 여기에 표시됩니다. 아직 라이브가 아니라면 설정에서 착신 전환을 완료하세요.",
+    emptyCta: "설정에서 라이브 시작",
   },
   smsFailureAlert: {
     title: "문자 전송 실패",
@@ -1892,7 +1918,13 @@ const authPagesKo = {
     consentTermsLabel: "이용약관 및 개인정보처리방침에 동의합니다 (필수).",
     consentSmsLabel:
       "등록한 휴대폰으로 서비스 관련 문자(인증번호, 신규 요청 알림, Reply 1/2) 수신에 동의합니다. 요금이 부과될 수 있으며 STOP으로 수신 거부할 수 있습니다 (필수).",
-    consentRequired: "아래 세 항목에 모두 동의해야 계속할 수 있습니다.",
+    consentMarketingEmailLabel: "선택 — Effiroad 제품 팁·업데이트를 이메일로 받기.",
+    consentMarketingSmsLabel:
+      "선택 — Effiroad 제품 팁·업데이트를 문자로 받기. 요금이 부과될 수 있으며 STOP으로 수신 거부할 수 있습니다.",
+    consentRequired: "아래 세 가지 필수 항목에 모두 동의해야 계속할 수 있습니다.",
+    consentLegalLegend: "약관 동의",
+    consentTermsLink: "이용약관",
+    consentPrivacyLink: "개인정보처리방침",
   },
 };
 
@@ -2044,8 +2076,8 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
 export function getAuthPagesCopy(locale: UiLocale) {
   return pickLocaleCopy(locale, authPagesKo, authPagesEn);
 }
-export function getLegalPagesCopy(_locale: UiLocale) {
-  return legalPagesEn;
+export function getLegalPagesCopy(locale: UiLocale) {
+  return pickLocaleCopy(locale, legalPagesKo, legalPagesEn);
 }
 export function getMessagingSetupCopy(_locale: UiLocale) {
   return messagingSetupEn;

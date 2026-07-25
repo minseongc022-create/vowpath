@@ -23,7 +23,7 @@ const emptyForm = {
   customerName: "",
   customerPhone: "",
   serviceAddress: "",
-  planName: "Annual HVAC Maintenance",
+  planName: "Annual maintenance",
   annualPriceCents: 19900,
   visitsPerYear: 2,
   startDate: new Date().toISOString().slice(0, 10),
@@ -43,6 +43,30 @@ function statusBadge(status: MaintenanceAgreement["status"]) {
     cancelled: "bg-rose-100 text-rose-800 ring-1 ring-rose-200",
   };
   return map[status] ?? map.draft;
+}
+
+function statusLabel(
+  status: MaintenanceAgreement["status"],
+  a: {
+    statusActive?: string;
+    statusDraft?: string;
+    statusCancelled?: string;
+    statusExpired?: string;
+    statusPaused?: string;
+  },
+): string {
+  switch (status) {
+    case "active":
+      return a.statusActive ?? "Active";
+    case "draft":
+      return a.statusDraft ?? "Draft";
+    case "cancelled":
+      return a.statusCancelled ?? "Cancelled";
+    case "expired":
+      return a.statusExpired ?? "Expired";
+    default:
+      return status;
+  }
 }
 
 export function AgreementsView() {
@@ -241,6 +265,13 @@ export function AgreementsView() {
           <div className="px-5 py-12 text-center">
             <p className="text-base font-semibold text-brand-950">{a.emptyTitle}</p>
             <p className="mt-2 text-base text-stone-600">{a.emptyBody}</p>
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="mt-4 inline-flex rounded-xl bg-brand-800 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-900"
+            >
+              {a.emptyCta ?? a.addButton}
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -276,7 +307,7 @@ export function AgreementsView() {
                       </td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>
-                          {row.status}
+                          {statusLabel(row.status, a)}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-brand-900">

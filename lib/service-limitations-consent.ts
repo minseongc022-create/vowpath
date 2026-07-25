@@ -7,6 +7,8 @@ export const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
 export const serviceLimitationsConsentTitle =
   "Service Agreement Acknowledgment";
 
+export const serviceLimitationsConsentTitleKo = "서비스 약관 확인";
+
 export const serviceLimitationsConsentBody = `EFFIROAD SERVICE AGREEMENT ACKNOWLEDGMENT
 Version ${SERVICE_LIMITATIONS_CONSENT_VERSION} · Effective upon account creation
 
@@ -40,5 +42,57 @@ This Acknowledgment supplements the Agreements and is incorporated by reference.
 
 By checking the box, you acknowledge that you have read this entire Acknowledgment, understand it, and agree to its terms.`;
 
+/** Korean summary for Korean UI — legal English body remains the binding text shown below. */
+export const serviceLimitationsConsentBodyKo = `EFFIROAD 서비스 약관 확인
+버전 ${SERVICE_LIMITATIONS_CONSENT_VERSION} · 계정 생성 시 효력 발생
+
+계정 만들기 전에 아래를 읽어 주세요.
+
+이 확인서는 Effiroad 이용약관·개인정보처리방침을 보완하는 법적 동의입니다. 아래 체크박스를 선택하면 (a) 전체를 읽고 이해했으며 (b) 이에 동의하고 (c) 만 18세 이상이며 가입하는 업체를 대표할 권한이 있음을 확인합니다.
+
+1. 서비스 성격
+Effiroad는 복구·HVAC 업체를 위한 야간·오버플로우 전화 접수, 업주 승인, 크루 알림, 선택적 일정 도구 소프트웨어입니다. 소프트웨어 도구일 뿐이며, 긴급출동업체·시공자·보험사·직접 현장에 사람을 보내는 콜센터가 아닙니다.
+
+2. 보증 없음
+법이 허용하는 최대 범위에서 서비스는 "있는 그대로" 제공되며, 중단 없음·오류 없음·보안·정확성을 보장하지 않습니다.
+
+3. 통화 처리 보장·SLA 없음
+모든 전화·문자·메시지가 특정 시간 안에 (또는 아예) 응답·처리된다고 보장하지 않습니다. SLA·가동률 약정은 없습니다.
+
+4. 업체 결정
+배차·일정·가격·안전·고객 응대 결정은 전적으로 업체의 책임입니다. AI 결과물은 참고용입니다.
+
+5. 책임 제한
+법이 허용하는 범위에서 Effiroad의 총 책임은 최근 12개월 납부액 또는 100달러 중 큰 쪽을 초과하지 않습니다.
+
+6. 면책
+서비스 이용, 업체 운영, 고객 응대, 약관 위반과 관련된 제3자 청구로부터 Effiroad를 면책합니다.
+
+7. 전자 동의
+체크박스 선택은 전자서명과 동일한 효력을 가집니다.
+
+8. 기타
+이 확인서는 약관의 일부입니다. 자세한 영문 전문이 법적 기준입니다.
+
+아래 박스를 체크하면 위 내용을 읽고 이해했으며 동의함을 확인합니다.`;
+
 export const serviceLimitationsConsentCheckboxLabel =
   "I have read the Service Agreement Acknowledgment above and agree to its terms (required).";
+
+export const serviceLimitationsConsentCheckboxLabelKo =
+  "위 서비스 약관 확인을 읽었으며 그 내용에 동의합니다 (필수).";
+
+export function getServiceLimitationsConsent(locale: "en" | "ko" | string) {
+  if (locale === "ko") {
+    return {
+      title: serviceLimitationsConsentTitleKo,
+      body: serviceLimitationsConsentBodyKo,
+      checkboxLabel: serviceLimitationsConsentCheckboxLabelKo,
+    };
+  }
+  return {
+    title: serviceLimitationsConsentTitle,
+    body: serviceLimitationsConsentBody,
+    checkboxLabel: serviceLimitationsConsentCheckboxLabel,
+  };
+}

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { VISIBLE_SHOP_VERTICALS, type ShopVertical } from "@/lib/shop-vertical";
+import { VISIBLE_SHOP_VERTICALS, shopVerticalLabel, type ShopVertical } from "@/lib/shop-vertical";
 import { getVerticalConfig } from "@/lib/vertical-config";
 import { JobberSettingsPanel } from "@/components/settings/JobberSettingsPanel";
 import { ForwardingSetup } from "@/components/settings/ForwardingSetup";
@@ -22,7 +22,7 @@ import {
 import { SettingsSaveButton } from "@/components/settings/SettingsSaveButton";
 import { GuidedTour } from "@/components/shared/GuidedTour";
 import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -581,6 +581,7 @@ function VerticalSelector({
   vertical: ShopVertical;
   onSaved: (v: ShopVertical) => void;
 }) {
+  const { locale, isEnglish } = useLocale();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [draft, setDraft] = useState<ShopVertical>(vertical);
@@ -611,9 +612,13 @@ function VerticalSelector({
 
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-brand-900">1. What kind of shop are you?</p>
+      <p className="mb-1.5 text-sm font-medium text-brand-900">
+        {isEnglish ? "1. What kind of shop are you?" : "1. 어떤 업체인가요?"}
+      </p>
       <p className="mb-3 text-xs text-slate-500">
-        Pick your trade first — intake questions, auto-dispatch rules, and booking settings switch to match.
+        {isEnglish
+          ? "Pick your trade first — intake questions, auto-dispatch rules, and booking settings switch to match."
+          : "먼저 업종을 고르세요. 접수 질문·자동 배차·예약 설정이 업종에 맞게 바뀝니다."}
       </p>
       <div className="flex flex-wrap gap-2">
         {/* Always include the shop's current vertical even if it's not in the visible
@@ -637,15 +642,15 @@ function VerticalSelector({
               }`}
             >
               <span>{cfg.icon}</span>
-              <span>{cfg.label}</span>
+              <span>{shopVerticalLabel(v, locale)}</span>
             </button>
           );
         })}
       </div>
       {saving ? (
-        <p className="mt-2 text-xs text-slate-500">Saving…</p>
+        <p className="mt-2 text-xs text-slate-500">{isEnglish ? "Saving…" : "저장 중…"}</p>
       ) : saved ? (
-        <p className="mt-2 text-xs text-emerald-600">Saved</p>
+        <p className="mt-2 text-xs text-emerald-600">{isEnglish ? "Saved" : "저장됨"}</p>
       ) : null}
     </div>
   );

@@ -70,6 +70,7 @@ export function BookingDetailContent({
   bookingId,
 }: BookingDetailContentProps) {
   const dashboardUi = useDashboardUi();
+  const { isEnglish } = useLocale();
   const t = dashboardUi.bookingDetail;
   const {
     jobs,
@@ -382,13 +383,19 @@ export function BookingDetailContent({
                 <InfoRow label={t.address} value={detail.address || "—"} />
                 {linkedCall?.addressConfirmation ? (
                   <InfoRow
-                    label="Address confirm"
+                    label={isEnglish ? "Address confirm" : "주소 확인"}
                     value={
                       linkedCall.addressConfirmation.status === "confirmed"
-                        ? "Confirmed by customer"
+                        ? isEnglish
+                          ? "Confirmed by customer"
+                          : "고객이 확인함"
                         : linkedCall.addressConfirmation.status === "pending_required"
-                          ? "Waiting on customer (required)"
-                          : "Heard on call — confirm on link"
+                          ? isEnglish
+                            ? "Waiting on customer (required)"
+                            : "고객 확인 대기 (필수)"
+                          : isEnglish
+                            ? "Heard on call — confirm on link"
+                            : "통화에서 들음 — 링크로 확인"
                     }
                   />
                 ) : null}

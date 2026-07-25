@@ -21,7 +21,7 @@ import {
   type ShopBookingSettings,
 } from "@/lib/booking-settings";
 import { clientFetch, clientFetchTimeoutMessage, redirectToLoginIfUnauthorized } from "@/lib/client-fetch";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
 import type { ShopVertical } from "@/lib/shop-vertical";
 import { isRestorationVertical } from "@/lib/shop-vertical";
 import {
@@ -37,14 +37,15 @@ export function BookingSettingsEditor({
   vertical?: ShopVertical;
 }) {
   const settingsPage = useSettingsPage();
+  const { locale } = useLocale();
   const [settings, setSettings] = useState<ShopBookingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [intervalDraft, setIntervalDraft] = useState("120");
   const [showTeamCapacity, setShowTeamCapacity] = useState(false);
 
-  const dispatchRules = getVerticalDispatchRuleLines(vertical);
-  const policyBlurb = getVerticalPolicyBlurb(vertical);
+  const dispatchRules = getVerticalDispatchRuleLines(vertical, locale);
+  const policyBlurb = getVerticalPolicyBlurb(vertical, locale);
   const showStormMode = isRestorationVertical(vertical);
 
   const load = useCallback(async () => {

@@ -228,35 +228,67 @@ export function getVerticalConfig(vertical: ShopVertical): VerticalConfig {
 }
 
 /** Owner-facing auto-dispatch rules for Settings (never mix trades). */
-export function getVerticalDispatchRuleLines(vertical: ShopVertical): string[] {
+export function getVerticalDispatchRuleLines(
+  vertical: ShopVertical,
+  locale: "en" | "ko" | string = "en",
+): string[] {
+  const ko = locale === "ko";
   if (vertical === "restoration") {
-    return [
-      "Clear water loss → crew text goes out.",
-      "Fire, sewage (Cat-3), or missing details → we text you first (reply 1 = go, 2 = pass).",
-      "Auto-booked by mistake? Reply 9 within the undo window below.",
-    ];
+    return ko
+      ? [
+          "명확한 수해 → 기사에게 바로 문자.",
+          "화재·오수(Cat-3)·정보 부족 → 먼저 사장님께 문자 (1=진행, 2=패스).",
+          "잘못 자동 확정됐다면? 아래 취소 가능 시간 안에 9를 답하세요.",
+        ]
+      : [
+          "Clear water loss → crew text goes out.",
+          "Fire, sewage (Cat-3), or missing details → we text you first (reply 1 = go, 2 = pass).",
+          "Auto-booked by mistake? Reply 9 within the undo window below.",
+        ];
   }
   if (vertical === "hvac") {
-    return [
-      "Clear no-heat / no-cool → crew text goes out.",
-      "Gas smell, sparking, or unclear details → we text you first (reply 1 = go, 2 = pass).",
-      "Auto-booked by mistake? Reply 9 within the undo window below.",
-    ];
+    return ko
+      ? [
+          "명확한 난방/냉방 중단 → 기사에게 바로 문자.",
+          "가스 냄새·스파크·정보 부족 → 먼저 사장님께 문자 (1=진행, 2=패스).",
+          "잘못 자동 확정됐다면? 아래 취소 가능 시간 안에 9를 답하세요.",
+        ]
+      : [
+          "Clear no-heat / no-cool → crew text goes out.",
+          "Gas smell, sparking, or unclear details → we text you first (reply 1 = go, 2 = pass).",
+          "Auto-booked by mistake? Reply 9 within the undo window below.",
+        ];
   }
   const cfg = getVerticalConfig(vertical);
-  return [
-    `Clear ${cfg.shortLabel.toLowerCase()} emergencies can auto-dispatch when address + details are solid.`,
-    "Safety holds (gas, sparking, etc.) always wait for your OK (reply 1 / 2).",
-    "Auto-booked by mistake? Reply 9 within the undo window below.",
-  ];
+  return ko
+    ? [
+        `주소·내용이 확실한 ${cfg.shortLabel} 긴급 건은 자동 배차될 수 있습니다.`,
+        "가스·스파크 등 안전 건은 항상 사장님 확인 후 진행합니다 (1 / 2).",
+        "잘못 자동 확정됐다면? 아래 취소 가능 시간 안에 9를 답하세요.",
+      ]
+    : [
+        `Clear ${cfg.shortLabel.toLowerCase()} emergencies can auto-dispatch when address + details are solid.`,
+        "Safety holds (gas, sparking, etc.) always wait for your OK (reply 1 / 2).",
+        "Auto-booked by mistake? Reply 9 within the undo window below.",
+      ];
 }
 
-export function getVerticalPolicyBlurb(vertical: ShopVertical): string {
+export function getVerticalPolicyBlurb(
+  vertical: ShopVertical,
+  locale: "en" | "ko" | string = "en",
+): string {
+  const ko = locale === "ko";
   if (vertical === "restoration") {
-    return "Routine water jobs can go straight to crew. Fire, sewage, or unclear calls wait for your OK.";
+    return ko
+      ? "일반적인 수해는 기사에게 바로 갈 수 있습니다. 화재·오수·불명확한 콜은 사장님 확인 후 진행합니다."
+      : "Routine water jobs can go straight to crew. Fire, sewage, or unclear calls wait for your OK.";
   }
   if (vertical === "hvac") {
-    return "Clear no-heat / no-cool jobs can go straight to crew. Gas smell or sparking always waits for your OK.";
+    return ko
+      ? "명확한 난방/냉방 중단은 기사에게 바로 갈 수 있습니다. 가스 냄새·스파크는 항상 사장님 확인 후 진행합니다."
+      : "Clear no-heat / no-cool jobs can go straight to crew. Gas smell or sparking always waits for your OK.";
   }
-  return "Clear jobs can auto-dispatch. Safety and unclear calls wait for your OK.";
+  return ko
+    ? "명확한 건은 자동 배차될 수 있습니다. 안전·불명확한 콜은 사장님 확인 후 진행합니다."
+    : "Clear jobs can auto-dispatch. Safety and unclear calls wait for your OK.";
 }

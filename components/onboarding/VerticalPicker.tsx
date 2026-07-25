@@ -10,7 +10,7 @@ const VERTICAL_ORDER: ShopVertical[] = VISIBLE_SHOP_VERTICALS;
 
 const TAGLINE_KO: Partial<Record<ShopVertical, string>> = {
   restoration: "새벽 긴급 콜도 빠짐없이 받고, 확인되면 바로 크루를 보냅니다.",
-  hvac: "난방 중단(no-heat) 콜은 확인되는 즉시 배차합니다.",
+  hvac: "난방·냉방 중단 콜은 확인되는 즉시 배차합니다.",
 };
 
 export function VerticalPicker({

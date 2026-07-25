@@ -12,11 +12,8 @@ import {
 import { normalizeShopVertical, type ShopVertical } from "@/lib/shop-vertical";
 import { evaluatePasswordPolicy } from "@/lib/password-policy";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
-import {
-  serviceLimitationsConsentBody,
-  serviceLimitationsConsentCheckboxLabel,
-  serviceLimitationsConsentTitle,
-} from "@/lib/service-limitations-consent";
+import { getServiceLimitationsConsent } from "@/lib/service-limitations-consent";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 type Step = "details" | "verify";
 
@@ -25,8 +22,10 @@ const RESEND_COOLDOWN_SEC = 60;
 export function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { locale } = useLocale();
   const p = authPages.signup;
   const form = authPages.form;
+  const limitations = getServiceLimitationsConsent(locale);
 
   const verticalParam = searchParams.get("vertical");
   const planParam = searchParams.get("plan")?.trim() || "";
@@ -343,7 +342,9 @@ export function SignupForm() {
             </div>
 
             <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <legend className="px-1 text-sm font-semibold text-slate-900">Legal agreements</legend>
+              <legend className="px-1 text-sm font-semibold text-slate-900">
+                {p.consentLegalLegend}
+              </legend>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
                 <input
                   type="checkbox"
@@ -355,11 +356,11 @@ export function SignupForm() {
                 <span>
                   {p.consentTermsLabel}{" "}
                   <Link href="/terms" className="font-medium text-brand-600 underline">
-                    Terms
+                    {p.consentTermsLink}
                   </Link>
                   {" · "}
                   <Link href="/privacy" className="font-medium text-brand-600 underline">
-                    Privacy
+                    {p.consentPrivacyLink}
                   </Link>
                 </span>
               </label>
@@ -375,10 +376,10 @@ export function SignupForm() {
               </label>
               <div className="rounded-lg border border-slate-300 bg-white p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  {serviceLimitationsConsentTitle}
+                  {limitations.title}
                 </p>
                 <div className="mt-2 max-h-48 overflow-y-auto rounded border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
-                  <pre className="whitespace-pre-wrap font-sans">{serviceLimitationsConsentBody}</pre>
+                  <pre className="whitespace-pre-wrap font-sans">{limitations.body}</pre>
                 </div>
                 <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-sm text-slate-800">
                   <input
@@ -388,7 +389,7 @@ export function SignupForm() {
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
                     required
                   />
-                  <span>{serviceLimitationsConsentCheckboxLabel}</span>
+                  <span>{limitations.checkboxLabel}</span>
                 </label>
               </div>
               <label className="flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">

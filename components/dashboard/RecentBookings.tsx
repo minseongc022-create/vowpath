@@ -201,6 +201,14 @@ export function RecentBookings({
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-12 text-center">
           <p className="font-semibold text-slate-900">{rb.emptyTitle}</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600">{rb.emptyBody}</p>
+          {"emptyCta" in rb && rb.emptyCta ? (
+            <Link
+              href="/dashboard/settings"
+              className="mt-4 inline-flex text-sm font-semibold text-brand-700 underline hover:text-brand-900"
+            >
+              {rb.emptyCta}
+            </Link>
+          ) : null}
         </div>
       ) : (
         <ul className="space-y-2">

@@ -292,6 +292,12 @@ export const vowDashboardEn = {
     loading: "Loading agreements…",
     emptyTitle: "No maintenance plans yet",
     emptyBody: "Mark a job complete to auto-offer a plan, import a CSV, or add one manually.",
+    emptyCta: "Add agreement",
+    statusActive: "Active",
+    statusDraft: "Draft",
+    statusCancelled: "Cancelled",
+    statusExpired: "Expired",
+    statusPaused: "Paused",
     colCustomer: "Customer",
     colPlan: "Plan",
     colRenewal: "Renewal",
@@ -531,6 +537,9 @@ export const authPagesEn = {
     consentMarketingSmsLabel:
       "Optional — send me Effiroad product tips and updates by text. Msg & data rates may apply. Reply STOP to opt out.",
     consentRequired: "Check all three required agreement boxes to continue.",
+    consentLegalLegend: "Legal agreements",
+    consentTermsLink: "Terms",
+    consentPrivacyLink: "Privacy",
   },
 };
 
@@ -679,8 +688,10 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       subtitle: "Latest service requests — newest first",
       viewAll: "View all",
       couldntLoad: "Couldn't load bookings",
-      emptyTitle: "No bookings yet",
-      emptyBody: "Inbound calls and requests appear here after AI intake.",
+      emptyTitle: "No requests yet",
+      emptyBody:
+        "Inbound calls and Jobber requests appear here after AI intake. If you're not live yet, finish call forwarding in Settings.",
+      emptyCta: "Start go-live in Settings",
     },
     smsFailureAlert: {
       title: "SMS delivery failed",
