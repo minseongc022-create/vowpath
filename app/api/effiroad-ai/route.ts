@@ -43,13 +43,15 @@ import {
   parseChatHistory,
   resolveConversationFollowUp,
 } from "@/lib/ai-admin/conversation-followup";
+import { generateShopAiReply } from "@/lib/ai-admin/generative";
 
 export const maxDuration = 25;
 
 function defaultRange() {
   const end = new Date();
   const start = new Date();
-  start.setFullYear(end.getFullYear() - 1);
+  // Chat context: last 90 days keeps answers fast without losing recent ops.
+  start.setDate(end.getDate() - 90);
   start.setHours(0, 0, 0, 0);
   return { start, end };
 }
@@ -310,6 +312,17 @@ export async function POST(request: Request) {
     }
 
     const intent = routeAiQuery(safeQuery);
+    if (intent.kind === "general" || intent.kind === "chitchat") {
+      const generative = await generateShopAiReply({
+        query: safeQuery,
+        pack,
+        history,
+      });
+      if (generative) {
+        const response = sanitizeResponse(generative);
+        return NextResponse.json({ ok: true, ...response, response });
+      }
+    }
     const response = sanitizeResponse(answerAiQuestion(safeQuery, pack, intent));
     return NextResponse.json({ ok: true, ...response, response });
   } catch (e) {

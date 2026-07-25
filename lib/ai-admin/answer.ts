@@ -463,20 +463,12 @@ function handleChitchat(pack: AiContextPack): EffiroadAiResponse {
   const loc = pack.locale;
   const name = pack.ownerName?.trim();
   return {
-    answer: composeAssistantReply({
-      locale: loc,
-      now: pack.now,
-      ownerName: pack.ownerName,
-      facts: {
-        headline: name
-          ? `Hi ${name}! I'm Effiroad AI — your in-app assistant.`
-          : "Hi there! I'm Effiroad AI — your in-app assistant.",
-        bullets: [
-          "Ask me where a setting lives, how dispatch works, or what's happening in your shop today.",
-          "I never share passwords, API keys, or other shops' private data.",
-        ],
-      },
-    }),
+    answer: [
+      name
+        ? `Hi ${name} — I'm Effiroad AI, your shop assistant.`
+        : "Hi — I'm Effiroad AI, your shop assistant.",
+      "Ask about pending approvals, today's calls, a customer name, or where a setting lives.",
+    ].join("\n\n"),
     actions: defaultActions(pack),
     suggestions: defaultSuggestions(loc),
   };

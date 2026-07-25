@@ -33,14 +33,13 @@ export default async function RootLayout({
   const iconV = SITE_ICON_VERSION;
 
   return (
-    <html lang={uiLocaleHtmlLang(locale)} className={inter.variable} translate="no">
+    <html lang={uiLocaleHtmlLang(locale)} className={inter.variable}>
       <head>
         <link rel="icon" href={`/favicon.ico?v=${iconV}`} sizes="any" />
         <link rel="icon" href={`/favicon-32.png?v=${iconV}`} type="image/png" sizes="32x32" />
         <link rel="icon" href={`/favicon-16.png?v=${iconV}`} type="image/png" sizes="16x16" />
         <link rel="apple-touch-icon" href={`/apple-touch-icon.png?v=${iconV}`} sizes="180x180" />
         <link rel="manifest" href={`/site.webmanifest?v=${iconV}`} />
-        <meta name="google" content="notranslate" />
         <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
         <link
           rel="stylesheet"

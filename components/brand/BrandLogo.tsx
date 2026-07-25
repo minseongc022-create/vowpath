@@ -163,6 +163,7 @@ export function BrandLogo({
       href={href}
       className={`vow-brand-logo group shrink-0 flex items-center ${className}`}
       aria-label={`${SITE.name} home`}
+      translate="no"
     >
       {mark}
       {(showName || showTagline) && (

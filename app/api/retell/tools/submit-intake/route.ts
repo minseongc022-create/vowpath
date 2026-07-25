@@ -120,8 +120,22 @@ export async function POST(request: Request) {
       null,
       { model },
     );
+    // Prefer live tool args from Retell (already spoken/confirmed on the call).
+    if (args.customerName?.trim()) {
+      draft.customerName = args.customerName.trim();
+      if (confidence) confidence.customerName = Math.max(confidence.customerName ?? 0, 94);
+    }
+    if (args.issueType?.trim()) {
+      draft.issueType = args.issueType.trim();
+      draft.symptom = draft.symptom || args.issueType.trim();
+      if (confidence) confidence.issueType = Math.max(confidence.issueType ?? 0, 92);
+    }
     // Prefer spoken address from the tool; fall back to extraction; pending marker only if missing.
     draft.address = preferSpokenPhoneAddress(args.address, draft.address);
+    if (args.address?.trim() && confidence) {
+      confidence.address = Math.max(confidence.address ?? 0, 90);
+      confidence.serviceLocation = Math.max(confidence.serviceLocation ?? 0, 88);
+    }
     const afterHours = await isTenantAfterHours(userId);
     const aiSummary = generateAiSummary(draft, draft.priority);
 

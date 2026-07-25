@@ -32,12 +32,13 @@ export function composeAssistantReply(params: {
   ownerName?: string;
   facts: ComposeFacts;
   includeGreeting?: boolean;
+  includeClosing?: boolean;
 }): string {
   const locale = params.locale ?? runtimeUiLocale();
   const now = params.now ?? new Date();
   const parts: string[] = [];
 
-  if (params.includeGreeting !== false) {
+  if (params.includeGreeting === true) {
     parts.push(greeting(locale, greetingPeriod(now), params.ownerName));
   }
 
@@ -55,7 +56,9 @@ export function composeAssistantReply(params: {
     );
   }
 
-  parts.push(closing(locale));
+  if (params.includeClosing === true) {
+    parts.push(closing(locale));
+  }
   return parts.join("\n\n");
 }
 
@@ -67,10 +70,7 @@ export function composeEmptyResult(params: {
   snapshotLines?: string[];
   suggestions?: string[];
 }): string {
-  const locale = params.locale ?? runtimeUiLocale();
-  const now = params.now ?? new Date();
   const lines = [
-    greeting(locale, greetingPeriod(now), params.ownerName),
     `I don't have any records for ${params.topic} yet.`,
   ];
 
@@ -81,7 +81,7 @@ export function composeEmptyResult(params: {
     );
   }
 
-  lines.push(closing(locale));
+  lines.push("Ask about pending approvals, today's calls, or a customer name and I'll dig in.");
   return lines.join("\n\n");
 }
 

@@ -228,11 +228,14 @@ export function EffiroadAssistantWidget() {
           body: JSON.stringify({ question: q, history: historyPayload }),
         });
         const data = (await res.json()) as Partial<EffiroadAiResponse> & { error?: string };
+        const fallback =
+          res.status === 429
+            ? "You're sending questions a bit fast — wait a few seconds and try again."
+            : res.status === 401
+              ? "Please sign in again to keep chatting."
+              : copy.errorLoad;
         pushAssistant({
-          text:
-            data.answer ??
-            data.error ??
-            (copy.errorLoad),
+          text: data.answer ?? data.error ?? fallback,
           suggestions: data.suggestions,
           actions: data.actions?.filter((a) => a.href).map((a) => ({ label: a.label, href: a.href })),
         });
@@ -243,8 +246,12 @@ export function EffiroadAssistantWidget() {
           body: JSON.stringify({ question: q, history: historyPayload, marketing: true }),
         });
         const data = (await res.json()) as { answer?: string; suggestions?: string[]; error?: string };
+        const fallback =
+          res.status === 429
+            ? "You're sending questions a bit fast — wait a few seconds and try again."
+            : copy.errorRetry;
         pushAssistant({
-          text: data.answer ?? data.error ?? copy.errorRetry,
+          text: data.answer ?? data.error ?? fallback,
           suggestions: data.suggestions,
         });
       }

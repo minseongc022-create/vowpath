@@ -18,7 +18,7 @@ const LABELS = {
 } as const;
 
 const linkClass =
-  "inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition";
+  "inline-flex min-h-[44px] items-center whitespace-normal sm:whitespace-nowrap rounded-lg px-3 text-sm font-medium transition";
 
 function showShopName(shopName: string): boolean {
   const n = shopName.trim().toLowerCase();

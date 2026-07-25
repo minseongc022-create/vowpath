@@ -20,10 +20,18 @@ async function fetchTwilioRecordingAudio(recordingUrl: string): Promise<Buffer |
   return Buffer.from(await res.arrayBuffer());
 }
 
+function addressLocked(callLog: {
+  addressConfirmation?: { status?: string } | null;
+}): boolean {
+  const status = callLog.addressConfirmation?.status;
+  return status === "confirmed" || status === "pending_required";
+}
+
 /**
  * Re-transcribes a completed call recording with Deepgram (higher accuracy than Twilio's
  * live Gather speech recognition), re-runs GPT extraction on the cleaner transcript, and
- * overwrites the call log with the improved result.
+ * patches the call log carefully — never overwriting customer-confirmed address or solid
+ * live fields with weaker post-call guesses.
  *
  * Best-effort only — never throws. The live call flow has already completed by the time
  * this runs, so failures here must never surface to the caller or affect the booking.
@@ -70,27 +78,53 @@ export async function retranscribeCallWithDeepgram(params: {
       null,
     );
 
-    await patchCallLog(userId, callLog.id, {
+    const lockAddress = addressLocked(callLog);
+    const liveConf = callLog.confidence;
+    const avg = (c?: { customerName?: number; address?: number; issueType?: number } | null) => {
+      if (!c) return 0;
+      const vals = [c.customerName, c.address, c.issueType].filter(
+        (n): n is number => typeof n === "number",
+      );
+      if (!vals.length) return 0;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    };
+    const betterOverall = !liveConf || avg(confidence) >= avg(liveConf);
+
+    const patch: Parameters<typeof patchCallLog>[2] = {
       deepgramTranscript: transcript,
-      customerName: draft.customerName,
-      address: draft.address,
-      serviceLocation: draft.serviceLocation,
-      issueType: draft.issueType,
-      symptom: draft.symptom,
-      priority: draft.priority,
-      servicePriority: draft.servicePriority,
-      priorityReasons: draft.priorityReasons,
-      prioritySource: draft.prioritySource,
-      arrivalWindow: draft.arrivalWindow,
-      dispatchNotes: draft.dispatchNotes,
-      jobberPasteBlock: draft.jobberPasteBlock,
-      lossCategory: draft.lossCategory,
-      insuranceCarrier: draft.insuranceCarrier,
-      insuranceClaimNumber: draft.insuranceClaimNumber,
-      waterSource: draft.waterSource,
-      activeLoss: draft.activeLoss,
-      confidence,
-    });
+    };
+
+    // Always keep the cleaner transcript; only upgrade fields when safer.
+    if (!lockAddress && betterOverall && draft.address?.trim()) {
+      patch.address = draft.address;
+      patch.serviceLocation = draft.serviceLocation;
+    }
+    if (betterOverall || !callLog.customerName?.trim()) {
+      if (draft.customerName?.trim()) patch.customerName = draft.customerName;
+    }
+    if (betterOverall || !callLog.issueType?.trim()) {
+      if (draft.issueType?.trim()) {
+        patch.issueType = draft.issueType;
+        patch.symptom = draft.symptom;
+      }
+    }
+    if (betterOverall) {
+      patch.priority = draft.priority;
+      patch.servicePriority = draft.servicePriority;
+      patch.priorityReasons = draft.priorityReasons;
+      patch.prioritySource = draft.prioritySource;
+      patch.arrivalWindow = draft.arrivalWindow;
+      patch.dispatchNotes = draft.dispatchNotes;
+      patch.jobberPasteBlock = draft.jobberPasteBlock;
+      patch.lossCategory = draft.lossCategory;
+      patch.insuranceCarrier = draft.insuranceCarrier;
+      patch.insuranceClaimNumber = draft.insuranceClaimNumber;
+      patch.waterSource = draft.waterSource;
+      patch.activeLoss = draft.activeLoss;
+      patch.confidence = confidence;
+    }
+
+    await patchCallLog(userId, callLog.id, patch);
   } catch (e) {
     await logOperationFailure({
       userId,

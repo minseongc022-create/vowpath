@@ -78,9 +78,21 @@ export function parseCustomerVerificationReply(
   body: string,
 ): CustomerVerificationResponse | null {
   const trimmed = body.trim();
-  const first = trimmed.split(/\s+/)[0]?.toUpperCase() ?? "";
-  if (/^(YES|Y|네|예)$/.test(first)) return "yes";
-  if (/^(NO|N|아니|아니요)$/.test(first)) return "no";
+  const first = trimmed.split(/\s+/)[0]?.toUpperCase().replace(/[^A-Z가-힣]/g, "") ?? "";
+  const normalized = trimmed.toUpperCase().replace(/[!.?]/g, "").trim();
+
+  if (
+    /^(YES|Y|YEAH|YEP|YUP|OK|OKAY|CORRECT|CONFIRMED|SI|SÍ|네|예|응|맞아)$/i.test(first) ||
+    /^(YES|YEAH|CORRECT|THAT'?S RIGHT|ALL GOOD)$/i.test(normalized)
+  ) {
+    return "yes";
+  }
+  if (
+    /^(NO|N|NOPE|WRONG|INCORRECT|아니|아니요|틀려|아님)$/i.test(first) ||
+    /^(NO|NOPE|NOT RIGHT|THAT'?S WRONG)$/i.test(normalized)
+  ) {
+    return "no";
+  }
   return null;
 }
 

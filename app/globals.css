@@ -35,6 +35,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Browser Translate wraps strings in <font> — keep layout from breaking. */
+  font {
+    vertical-align: inherit !important;
+  }
+
   body {
     @apply bg-white text-brand-950;
     width: 100%;
