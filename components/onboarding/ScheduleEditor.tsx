@@ -7,7 +7,7 @@ import {
   HOURS,
   MINUTES,
   pad,
-  SCHEDULE_ALWAYS_ON_LABEL,
+  getScheduleAlwaysOnLabel,
   type ScheduleRow,
 } from "@/lib/schedule-format";
 
@@ -86,7 +86,7 @@ export function ScheduleEditor({
           {alwaysOn ? (
             <>
               <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
-                {SCHEDULE_ALWAYS_ON_LABEL}
+                {getScheduleAlwaysOnLabel()}
               </p>
               <p className="mt-2 text-xs text-slate-500">{settingsPage.scheduleAlwaysOnHint}</p>
             </>

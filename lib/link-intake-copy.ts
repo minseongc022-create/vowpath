@@ -171,6 +171,7 @@ export const linkIntakePageCopy = {
   correctionDoneTitle: "Update sent",
   correctionDoneBody: "The company got your changes and will follow up during business hours.",
   correctionExpired: "This link expired or isn't valid anymore.",
+  tryAgain: "Try again",
   bookingPortalTitle: "Your service request",
   bookingStatusLabel: "Status",
   bookingTimeLabel: "Arrival window",
@@ -184,9 +185,9 @@ export const linkIntakePageCopy = {
   bookingCancelConfirmBody: "We'll let the company know. You can always call back if you still need help.",
   bookingCancelConfirmButton: "Yes, cancel my request",
   portalBackToView: "Back",
-  portalLandingTitle: "Report a loss",
+  portalLandingTitle: "Customer portal",
   portalLandingBody:
-    "Open the link from your text message to submit details or check your request status.",
+    "Open the personal link from your text message to submit details or check your request. This page alone can't load a booking.",
 } as const;
 
 /** Widen the `as const` literal string types to plain `string` so a
@@ -337,6 +338,7 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   correctionDoneTitle: "Cambios enviados",
   correctionDoneBody: "La empresa recibió sus cambios y dará seguimiento en horario laboral.",
   correctionExpired: "Este enlace expiró o ya no es válido.",
+  tryAgain: "Intentar de nuevo",
   bookingPortalTitle: "Su solicitud de servicio",
   bookingStatusLabel: "Estado",
   bookingTimeLabel: "Horario de llegada",
@@ -350,9 +352,9 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   bookingCancelConfirmBody: "Avisaremos a la empresa. Puede volver a llamar si aún necesita ayuda.",
   bookingCancelConfirmButton: "Sí, cancelar mi solicitud",
   portalBackToView: "Volver",
-  portalLandingTitle: "Reportar un daño",
+  portalLandingTitle: "Portal del cliente",
   portalLandingBody:
-    "Abra el enlace de su mensaje de texto para enviar detalles o revisar el estado de su solicitud.",
+    "Abra el enlace personal de su mensaje de texto para enviar detalles o revisar su solicitud. Esta página por sí sola no puede cargar una reserva.",
 };
 
 /** Pick the customer-facing intake copy for a locale. Unknown → English. */

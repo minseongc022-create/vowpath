@@ -10,9 +10,18 @@ export type ScheduleRow = {
   alwaysOn?: boolean;
 };
 
-export const SCHEDULE_ALWAYS_ON_LABEL = isEnglishUi()
-  ? "Effiroad answers calls 24/7"
-  : "24시간 Effiroad가 전화를 받습니다";
+export function getScheduleAlwaysOnLabel(): string {
+  return isEnglishUi()
+    ? "Effiroad answers calls 24/7"
+    : "24시간 Effiroad가 전화를 받습니다";
+}
+
+/** @deprecated Prefer getScheduleAlwaysOnLabel() — kept for call sites that read once per render. */
+export function scheduleAlwaysOnLabel(): string {
+  return getScheduleAlwaysOnLabel();
+}
+
+export const SCHEDULE_ALWAYS_ON_LABEL = "Effiroad answers calls 24/7";
 
 const DAY_OPTIONS_EN = [
   { id: 0, label: "Sun" },
@@ -34,7 +43,20 @@ const DAY_OPTIONS_KO = [
   { id: 6, label: "토" },
 ] as const;
 
-export const DAY_OPTIONS = isEnglishUi() ? DAY_OPTIONS_EN : DAY_OPTIONS_KO;
+export type DayOption = { readonly id: number; readonly label: string };
+
+export function getDayOptions(): readonly DayOption[] {
+  return isEnglishUi() ? DAY_OPTIONS_EN : DAY_OPTIONS_KO;
+}
+
+/** Prefer getDayOptions() — this alias follows the active UI locale at call time via Proxy. */
+export const DAY_OPTIONS: readonly DayOption[] = new Proxy([] as DayOption[], {
+  get(_target, prop, receiver) {
+    const opts = getDayOptions() as DayOption[];
+    const value = Reflect.get(opts, prop, receiver);
+    return typeof value === "function" ? value.bind(opts) : value;
+  },
+});
 
 export const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export const MINUTES = [0, 10, 20, 30, 40, 50];
@@ -60,7 +82,7 @@ export function isOvernight(row: ScheduleRow) {
 }
 
 export function formatScheduleSentence(row: ScheduleRow): string {
-  if (row.alwaysOn) return SCHEDULE_ALWAYS_ON_LABEL;
+  if (row.alwaysOn) return getScheduleAlwaysOnLabel();
   const days = dayText(row.days) || (isEnglishUi() ? "No days selected" : "요일 미선택");
   const start = formatTime(row.startHour, row.startMinute);
   const end = formatTime(row.endHour, row.endMinute);
@@ -111,7 +133,7 @@ export function alwaysOnScheduleRow(): ScheduleRow {
 export function alwaysOnWindow() {
   return {
     id: "always-on",
-    label: SCHEDULE_ALWAYS_ON_LABEL,
+    label: getScheduleAlwaysOnLabel(),
     value: JSON.stringify({ alwaysOn: true }),
   };
 }

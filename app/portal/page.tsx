@@ -1,8 +1,10 @@
-import { linkIntakePageCopy as copy } from "@/lib/link-intake-copy";
+import { getLinkIntakeCopy } from "@/lib/link-intake-copy";
+
+const copy = getLinkIntakeCopy("en");
 
 export const metadata = {
-  title: "Report a loss",
-  description: "Report water, fire, or mold damage — or check your request status",
+  title: "Customer portal",
+  description: "Open the link from your text message to report details or check your request",
 };
 
 export default function PortalHomePage() {

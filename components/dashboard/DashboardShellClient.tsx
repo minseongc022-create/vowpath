@@ -78,7 +78,12 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
 
   return (
     <HapticTouchProvider>
-      <DashboardShell shopName={shopName} pendingReviewCount={pendingReviewCount} renewingAgreementsCount={renewingAgreementsCount}>
+      <DashboardShell
+        shopName={shopName}
+        shopVertical={shop.vertical}
+        pendingReviewCount={pendingReviewCount}
+        renewingAgreementsCount={renewingAgreementsCount}
+      >
         <TrialGate>{children}</TrialGate>
         <SmsFailureAlert tenantEvents={tenantEvents} />
       </DashboardShell>

@@ -518,7 +518,7 @@ export const onboardingPage = {
 const settingsPageKo = {
   title: "샵 설정",
   subtitle: "자동 예약 · 기사 배치 · PM 계약을 먼저 맞추고, 아래에서 라이브 체크리스트를 완료하세요.",
-  badge: "연동",
+  badge: "설정",
   backDashboardLink: "← 대시보드로",
   productSectionTitle: "업체 종류 · 운영 설정",
   productSectionSubtitle:
@@ -1045,9 +1045,9 @@ const settingsPageKo = {
   maxConcurrentVisitsLabel: "같은 시간에 받을 수 있는 예약 (건)",
   maxConcurrentVisitsHint:
     "같은 시간대에 몇 건까지 받을지 정합니다. 예: 기사 3명이면 3까지 설정.",
-  undoWindowLabel: "자동 확정 취소 가능 시간 (분)",
+  undoWindowLabel: "자동 확정 후 취소 가능 시간 (분)",
   undoWindowHint:
-    "바로 확정되면 사장님께 알림 문자가 갑니다. 이 시간 안에 9번 답장하면 확정을 취소하고 다시 검토할 수 있습니다.",
+    "시스템이 예약을 바로 확정하면 사장님께 알림 문자가 갑니다. 이 시간 안에 문자로 9를 답하면 확정을 취소하고 다시 검토할 수 있습니다.",
   shadowModeLabel: "테스트 모드",
   shadowModeIntro:
     "실전과 같은 캘린더·슬롯으로 연습합니다. Jobber 기록과 실제 고객 문자는 꺼집니다.",
@@ -1062,15 +1062,15 @@ const settingsPageKo = {
   testModeSaveError: "테스트 모드를 저장하지 못했습니다. 다시 시도하세요.",
   testModeForwardingHint:
     "테스트 모드를 켠 뒤 다른 휴대폰으로 샵 번호에 전화하고 대시보드를 확인하세요. 준비되면 끄면 라이브입니다.",
-  stormModeLabel: "폭풍·호우 surge 모드",
+  stormModeLabel: "폭주·재해 모드 (전화 많을 때)",
   stormModeHint:
-    "허리케인·집중 호우 기간 — 전화 안내를 짧게 하고 대기 중임을 안내합니다. 평상시에는 끄세요.",
-  stormModeToggleLabel: "수신 전화 storm mode",
-  onCallScheduleLabel: "요일별 on-call",
+    "허리케인·집중 호우처럼 전화가 몰릴 때 켭니다. 안내를 짧게 하고 대기 중임을 알립니다. 평소에는 끄세요.",
+  stormModeToggleLabel: "폭주·재해 모드 켜기",
+  onCallScheduleLabel: "요일별 당직 기사",
   onCallScheduleHint:
-    "요일마다 첫 crew dispatch 문자를 받을 사람을 지정합니다. 비우면 round-robin.",
+    "요일마다 첫 출동 문자를 받을 기사를 지정합니다. 비우면 순서대로(라운드로빈) 보냅니다.",
   onCallWeekdayLabels: ["일", "월", "화", "수", "목", "금", "토"] as const,
-  onCallNoneOption: "Round-robin (기본)",
+  onCallNoneOption: "순서대로 (기본)",
   serviceAreaZipsLabel: "출장 가능 ZIP (선택)",
   serviceAreaZipsHint:
     "실제로 출장하는 ZIP 목록입니다 (고객 한 집 주소 아님). 쉼표로 구분. 비우면 전 지역 허용.",
@@ -1159,10 +1159,11 @@ const vowDashboardKo = {
     ai: "Effiroad AI",
     requests: "요청 · 예약",
     calendar: "캘린더",
-    missedCalls: "통계 분석",
+    missedCalls: "지켜낸 콜",
     agreements: "PM 계약",
-    settings: "연동 설정",
+    settings: "샵 설정",
     shopTools: "샵 도구",
+    allMenus: "전체 메뉴",
   },
   calendar: {
     title: "일정 캘린더",
@@ -1243,6 +1244,26 @@ const vowDashboardKo = {
     close: "← 닫기",
     cancelAgreement: "계약 취소",
     renewOneYear: "1년 갱신",
+  },
+  briefingPage: {
+    title: (shop: string) => `오늘의 브리핑 — ${shop}`,
+    subtitle:
+      "요청·승인·긴급 건을 빠르게 확인하세요. 요약은 어제 기준, 아래 지표는 오늘 현재입니다.",
+    aiSummary: "AI 요약",
+    refreshing: "새로고침 중…",
+    urgentTitle: "긴급 요청",
+    pendingTitle: "검토 대기",
+    viewAll: "전체 보기",
+    review: "검토하기",
+    retry: "다시 시도",
+    noUrgent: "긴급 요청이 없습니다.",
+    noPending: "검토 대기 요청이 없습니다.",
+    noRequestedTime: "희망 시간 없음",
+  },
+  bookingsList: {
+    back: "← 대시보드로",
+    title: "요청 · 예약",
+    subtitle: "들어온 요청과 승인 상태를 모두 확인합니다.",
   },
   header: {
     newRequest: "새 요청",
@@ -1428,7 +1449,7 @@ const dashboardUiKo = {
   },
   customerVerificationKpi: {
     label: "고객 확인 완료율",
-    shortHint: "Customer Verification Rate",
+    shortHint: "고객 확인율",
     periodLabel: "재확인 문자 응답 기준",
   },
   kpiDrilldown: {
@@ -1508,7 +1529,7 @@ const dashboardUiKo = {
     trustNoCall: "연결된 통화 없음 — 확인 데이터 부족으로 점수 산정",
     trustNoCallGuide:
       "통화가 연결되지 않아 점수를 매기기 어렵습니다. 고객 정보를 직접 확인한 뒤 처리해 주세요.",
-    customerVerificationTitle: "Customer Verification",
+    customerVerificationTitle: "고객 확인",
     customerVerificationNone:
       "고객 재확인 문자가 발송되지 않았습니다 (문자 링크 접수).",
     verificationTitle: "확인 상태",
@@ -1567,7 +1588,7 @@ const dashboardUiKo = {
     eyebrow: "가치 분석",
     title: "지켜낸 고객",
     subtitle:
-      "Customers captured by Effiroad during missed calls, after-hours, and unavailable periods.",
+      "부재중·야간·통화 불가 시간에 Effiroad가 대신 받아 지켜낸 고객입니다.",
     backToDashboard: "← 대시보드로",
     refresh: "새로고침",
     refreshing: "불러오는 중…",
@@ -1839,7 +1860,7 @@ const authPagesKo = {
     step2Label: "2. 인증번호",
     subtitle: "정보 입력 후 「인증번호 보내기」를 눌러 본인 확인을 시작하세요.",
     subtitleVerify: "인증번호 확인 후 「계정 만들기」를 눌러 가입을 완료하세요.",
-    shopLabel: "Shop 이름",
+    shopLabel: "업체 이름",
     shopPlaceholder: "예: Cool Air HVAC",
     emailLabel: "이메일",
     passwordLabel: "비밀번호",
@@ -2020,8 +2041,8 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
     return Reflect.get(getDashboardUiCopy(runtimeUiLocale()) as object, prop, receiver);
   },
 }) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
-export function getAuthPagesCopy(_locale: UiLocale) {
-  return authPagesEn;
+export function getAuthPagesCopy(locale: UiLocale) {
+  return pickLocaleCopy(locale, authPagesKo, authPagesEn);
 }
 export function getLegalPagesCopy(_locale: UiLocale) {
   return legalPagesEn;

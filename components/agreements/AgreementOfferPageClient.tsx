@@ -61,12 +61,15 @@ export function AgreementOfferPageClient({ token }: { token: string }) {
         <div className="max-w-md rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
           <h1 className="text-xl font-bold text-stone-900">Link expired</h1>
           <p className="mt-2 text-sm text-stone-600">
-            This maintenance plan offer is no longer available. Call your HVAC shop to enroll.
+            This maintenance plan offer is no longer available. Please call your service company to
+            enroll.
           </p>
         </div>
       </div>
     );
   }
+
+  const shopLabel = data.shopName?.trim() || "Your service team";
 
   if (data.used || done) {
     return (
@@ -74,7 +77,8 @@ export function AgreementOfferPageClient({ token }: { token: string }) {
         <div className="max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
           <h1 className="text-xl font-bold text-emerald-900">You&apos;re enrolled</h1>
           <p className="mt-2 text-sm text-stone-600">
-            {data.shopName ?? "Your HVAC team"} will reach out before your tune-ups. Check your texts for confirmation.
+            {shopLabel} will reach out before your scheduled visits. Check your texts for
+            confirmation.
           </p>
         </div>
       </div>
@@ -85,9 +89,11 @@ export function AgreementOfferPageClient({ token }: { token: string }) {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4 py-12">
       <div className="w-full max-w-lg rounded-2xl border border-brand-200/80 bg-white p-8 shadow-lg">
         <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
-          {data.shopName ?? "HVAC maintenance"}
+          {data.shopName?.trim() || "Maintenance plan"}
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-brand-950">Keep your system running year-round</h1>
+        <h1 className="mt-2 text-2xl font-bold text-brand-950">
+          Keep your system running year-round
+        </h1>
         <p className="mt-3 text-sm leading-relaxed text-stone-600">
           Hi {data.customerName} — enroll in <strong>{data.planName}</strong> for{" "}
           <strong>{data.annualPrice}/year</strong> ({data.visitsPerYear} visits).
@@ -96,7 +102,7 @@ export function AgreementOfferPageClient({ token }: { token: string }) {
         <ul className="mt-6 space-y-2 text-sm text-stone-700">
           <li className="flex gap-2">
             <span className="text-brand-600">✓</span>
-            Priority scheduling for tune-ups
+            Priority scheduling for maintenance visits
           </li>
           <li className="flex gap-2">
             <span className="text-brand-600">✓</span>
@@ -119,7 +125,8 @@ export function AgreementOfferPageClient({ token }: { token: string }) {
           {accepting ? "Enrolling…" : `Enroll — ${data.annualPrice}/yr`}
         </button>
         <p className="mt-4 text-center text-xs text-stone-500">
-          By enrolling you agree to annual maintenance visits. Your shop may contact you to schedule.
+          By enrolling you agree to annual maintenance visits. {shopLabel} may contact you to
+          schedule.
         </p>
       </div>
     </div>

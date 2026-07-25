@@ -38,6 +38,33 @@ export function normalizeShopVertical(value: unknown): ShopVertical {
   return "restoration";
 }
 
+const VERTICAL_LABEL_EN: Record<ShopVertical, string> = {
+  restoration: "Restoration",
+  hvac: "HVAC",
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  pest: "Pest control",
+  general: "Field service",
+};
+
+const VERTICAL_LABEL_KO: Record<ShopVertical, string> = {
+  restoration: "복구",
+  hvac: "HVAC",
+  plumbing: "배관",
+  electrical: "전기",
+  pest: "방제",
+  general: "현장 서비스",
+};
+
+/** Short trade label for sidebar / headers (locale-aware). */
+export function shopVerticalLabel(
+  vertical: ShopVertical | string | null | undefined,
+  locale: "en" | "ko" | string = "en",
+): string {
+  const v = normalizeShopVertical(vertical);
+  return locale === "ko" ? VERTICAL_LABEL_KO[v] : VERTICAL_LABEL_EN[v];
+}
+
 export function isRestorationVertical(vertical: ShopVertical): boolean {
   return vertical === "restoration";
 }

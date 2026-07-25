@@ -5,6 +5,7 @@ import { AppPage } from "@/components/ui/AppPage";
 import { useEffect, useMemo, useState } from "react";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { buildDailyBriefing } from "@/lib/dashboard-briefing";
+import { useLocale, useVowDashboard } from "@/components/providers/LocaleProvider";
 
 function MetricCard({
   label,
@@ -25,7 +26,9 @@ function MetricCard({
 }
 
 export function DailyBriefingView() {
-  const [shopName, setShopName] = useState("My shop");
+  const { locale, isEnglish } = useLocale();
+  const copy = useVowDashboard().briefingPage;
+  const [shopName, setShopName] = useState(isEnglish ? "My shop" : "내 샵");
   const {
     heroCalls,
     heroJobs,
@@ -41,11 +44,11 @@ export function DailyBriefingView() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { shopName?: string; email?: string } | null) => {
         if (d?.shopName?.trim()) setShopName(d.shopName.trim());
-        else if (d?.email) setShopName(d.email.split("@")[0] ?? "My shop");
+        else if (d?.email) setShopName(d.email.split("@")[0] ?? (isEnglish ? "My shop" : "내 샵"));
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, []);
+  }, [isEnglish]);
 
   const briefing = useMemo(
     () =>
@@ -54,8 +57,9 @@ export function DailyBriefingView() {
         jobs: heroJobs,
         jobberBookings: heroJobberBookings,
         requestStatuses,
+        locale: locale === "ko" ? "ko" : "en",
       }),
-    [heroCalls, heroJobs, heroJobberBookings, requestStatuses],
+    [heroCalls, heroJobs, heroJobberBookings, requestStatuses, locale],
   );
 
   return (
@@ -63,11 +67,10 @@ export function DailyBriefingView() {
       <section className="vow-dash-hero p-5 sm:p-7">
         <p className="text-sm font-semibold text-brand-800">{briefing.titleDate}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-brand-950 sm:text-4xl">
-          Today&apos;s briefing — {shopName}
+          {copy.title(shopName)}
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-stone-600">
-          Quick look at requests, approvals, and urgent items. Summary looks at yesterday; metrics
-          below are today so far.
+          {copy.subtitle}
         </p>
       </section>
 
@@ -79,7 +82,7 @@ export function DailyBriefingView() {
             onClick={() => window.location.reload()}
             className="mt-2 text-sm font-semibold text-rose-900 underline"
           >
-            Retry
+            {copy.retry}
           </button>
         </div>
       ) : null}
@@ -88,7 +91,7 @@ export function DailyBriefingView() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-brand-800">
-              AI Summary
+              {copy.aiSummary}
             </p>
             <div className="mt-4 space-y-2 text-base leading-relaxed text-stone-700">
               {briefing.summary.map((line) => (
@@ -98,7 +101,7 @@ export function DailyBriefingView() {
           </div>
           {loading ? (
             <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-800">
-              Refreshing…
+              {copy.refreshing}
             </span>
           ) : null}
         </div>
@@ -113,9 +116,9 @@ export function DailyBriefingView() {
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="vow-dash-card p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-brand-950">Urgent Requests</h2>
+            <h2 className="text-lg font-semibold text-brand-950">{copy.urgentTitle}</h2>
             <Link href="/dashboard/bookings" className="vow-dash-link">
-              View all
+              {copy.viewAll}
             </Link>
           </div>
           <div className="mt-4 space-y-3">
@@ -128,13 +131,13 @@ export function DailyBriefingView() {
                 >
                   <p className="font-semibold text-brand-950">{booking.customerName}</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    {booking.issueType} · {booking.arrivalWindow ?? "No requested time"}
+                    {booking.issueType} · {booking.arrivalWindow ?? copy.noRequestedTime}
                   </p>
                 </Link>
               ))
             ) : (
               <p className="rounded-2xl border border-brand-200/70 bg-stone-50/80 p-4 text-base text-stone-600">
-                No urgent requests found.
+                {copy.noUrgent}
               </p>
             )}
           </div>
@@ -142,9 +145,9 @@ export function DailyBriefingView() {
 
         <article className="vow-dash-card p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-brand-950">Pending Requests</h2>
+            <h2 className="text-lg font-semibold text-brand-950">{copy.pendingTitle}</h2>
             <Link href="/dashboard/bookings" className="vow-dash-link">
-              Review
+              {copy.review}
             </Link>
           </div>
           <div className="mt-4 space-y-3">
@@ -157,13 +160,13 @@ export function DailyBriefingView() {
                 >
                   <p className="font-semibold text-brand-950">{booking.customerName}</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    {booking.issueType} · {booking.arrivalWindow ?? "No requested time"}
+                    {booking.issueType} · {booking.arrivalWindow ?? copy.noRequestedTime}
                   </p>
                 </Link>
               ))
             ) : (
               <p className="rounded-2xl border border-brand-200/70 bg-stone-50/80 p-4 text-base text-stone-600">
-                No pending requests.
+                {copy.noPending}
               </p>
             )}
           </div>

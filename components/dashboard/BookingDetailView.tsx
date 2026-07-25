@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { notifyTenantEventsUpdated } from "@/lib/dashboard-data-client";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
-import { useDashboardUi } from "@/components/providers/LocaleProvider";
+import { useDashboardUi, useLocale } from "@/components/providers/LocaleProvider";
 import {
   buildBookingDetail,
   canApprove,
@@ -811,6 +811,7 @@ function CallQualityScorePanel({
   score: number;
   reasoning?: string;
 }) {
+  const { isEnglish } = useLocale();
   const tone =
     score >= 85
       ? "text-emerald-600 ring-emerald-200 bg-emerald-50"
@@ -822,7 +823,7 @@ function CallQualityScorePanel({
     <section className="booking-detail-card border-2 border-brand-100">
       <div className="px-5 py-5 sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          AI call handling score
+          {isEnglish ? "AI call handling score" : "AI 통화 처리 점수"}
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <p className="text-4xl font-bold tabular-nums tracking-tight text-brand-950">
@@ -830,7 +831,17 @@ function CallQualityScorePanel({
             <span className="text-lg font-semibold text-slate-500"> / 100</span>
           </p>
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${tone}`}>
-            {score >= 85 ? "Excellent" : score >= 65 ? "Good" : "Needs review"}
+            {score >= 85
+              ? isEnglish
+                ? "Excellent"
+                : "우수"
+              : score >= 65
+                ? isEnglish
+                  ? "Good"
+                  : "양호"
+                : isEnglish
+                  ? "Needs review"
+                  : "검토 필요"}
           </span>
         </div>
         {reasoning ? <p className="mt-3 text-sm text-stone-600">{reasoning}</p> : null}

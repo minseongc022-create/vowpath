@@ -15,9 +15,9 @@ const STATUS_LABELS_EN: Record<CustomerVerificationStatus, string> = {
 
 const STATUS_LABELS_KO: Record<CustomerVerificationStatus, string> = {
   pending_response: "확인 대기",
-  verified: "Verified",
-  needs_review: "Needs Review",
-  unverified: "Unverified",
+  verified: "확인 완료",
+  needs_review: "검토 필요",
+  unverified: "미확인",
 };
 
 const BADGE_LABELS_EN: Record<CustomerVerificationStatus, string> = {
@@ -34,8 +34,13 @@ const BADGE_LABELS_KO: Record<CustomerVerificationStatus, string> = {
   unverified: "확인 대기",
 };
 
-const STATUS_LABELS = isEnglishUi() ? STATUS_LABELS_EN : STATUS_LABELS_KO;
-const BADGE_LABELS = isEnglishUi() ? BADGE_LABELS_EN : BADGE_LABELS_KO;
+function statusLabels(): Record<CustomerVerificationStatus, string> {
+  return isEnglishUi() ? STATUS_LABELS_EN : STATUS_LABELS_KO;
+}
+
+function badgeLabels(): Record<CustomerVerificationStatus, string> {
+  return isEnglishUi() ? BADGE_LABELS_EN : BADGE_LABELS_KO;
+}
 
 const BADGE_TONE: Record<
   CustomerVerificationStatus,
@@ -60,8 +65,8 @@ export function toCustomerVerificationView(
   return {
     bookingId: record.bookingId,
     status: record.status,
-    statusLabel: STATUS_LABELS[record.status],
-    badgeLabel: BADGE_LABELS[record.status],
+    statusLabel: statusLabels()[record.status],
+    badgeLabel: badgeLabels()[record.status],
     badgeTone: BADGE_TONE[record.status],
     sentAt: record.sentAt,
     respondedAt: record.respondedAt ?? null,

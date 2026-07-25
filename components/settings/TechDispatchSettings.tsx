@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TechDispatchSettings, TechMember } from "@/lib/tech-dispatch/types";
-import { useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useSettingsPage, useLocale } from "@/components/providers/LocaleProvider";
 import { SettingsSectionHeader } from "@/components/settings/SettingsSectionHeader";
 import { useSettingsSaveRegistration } from "@/components/settings/SettingsSaveContext";
 import {
@@ -25,7 +25,7 @@ function emptyTech(): TechMember {
   };
 }
 
-const COPY = {
+const COPY_EN = {
   loading: "Loading crew settings...",
   loadError: "Could not load crew settings.",
   sessionError: "Your session expired. Please sign in again.",
@@ -53,9 +53,38 @@ const COPY = {
   saved: "Saved",
 } as const;
 
+const COPY_KO = {
+  loading: "기사 배치 설정을 불러오는 중…",
+  loadError: "기사 배치 설정을 불러오지 못했습니다.",
+  sessionError: "세션이 만료되었습니다. 다시 로그인해 주세요.",
+  retry: "다시 시도",
+  saveError: "저장하지 못했습니다.",
+  badge: "기사 문자",
+  title: "누구에게 출동 문자를 보낼까요?",
+  body: "작업이 준비되면 기사에게 한 명씩 문자를 보냅니다. 1=수락, 2=패스. 답이 없으면 다음 사람에게 자동으로 넘어갑니다.",
+  enable: "작업 준비되면 기사에게 문자 보내기",
+  p1Senior: "긴급(P1) — 시니어 기사만",
+  techsLabel: "기사 목록",
+  techsHint: "이름 + 휴대폰. 혼자 테스트하려면 본인 번호를 넣고 1로 답하면 됩니다.",
+  namePh: "이름",
+  phonePh: "(512) 555-0100",
+  senior: "시니어",
+  remove: "삭제",
+  addTech: "+ 기사 추가",
+  assignOnApprove: "내가 승인한 뒤에만 기사에게 문자",
+  responseTimeout: "답장 대기 시간 (분)",
+  responseTimeoutHint: "답이 없으면 다음 사람에게 갑니다. 긴급(P1)은 최대 5분 대기합니다.",
+  assignOnApproveHint:
+    "켜짐 = 승인 후에만 문자. 꺼짐 = 방문 슬롯이 잡히면 바로 문자 (아직 검토 중이어도).",
+  save: "기사 배치 저장",
+  saving: "저장 중…",
+  saved: "저장됨",
+} as const;
+
 export function TechDispatchSettings() {
   const settingsPage = useSettingsPage();
-  const t = COPY;
+  const { isEnglish } = useLocale();
+  const t = isEnglish ? COPY_EN : COPY_KO;
   const [settings, setSettings] = useState<TechDispatchSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

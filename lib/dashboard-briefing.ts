@@ -35,6 +35,8 @@ export type BriefingInput = {
   now?: Date;
   /** Which day KPI cards reflect. Dashboard uses today; morning SMS uses yesterday. */
   metricsFocus?: "today" | "yesterday";
+  /** Dashboard UI locale — defaults to English for SMS / server callers. */
+  locale?: "en" | "ko";
 };
 
 function startOfLocalDay(date: Date): Date {
@@ -64,17 +66,19 @@ function todayRange(now: Date) {
   return { start: startOfLocalDay(now), end: endOfLocalDay(now) };
 }
 
-function formatHourRange(hour: number | null): string {
-  if (hour === null) return "No data";
+function formatHourRange(hour: number | null, locale: "en" | "ko"): string {
+  if (hour === null) return locale === "ko" ? "데이터 없음" : "No data";
   const start = new Date();
   start.setHours(hour, 0, 0, 0);
   const end = new Date(start);
   end.setHours(hour + 1);
-  const fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric" });
+  const fmt = new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    hour: "numeric",
+  });
   return `${fmt.format(start)} – ${fmt.format(end)}`;
 }
 
-function mostCommonService(bookings: RecentBooking[]): string {
+function mostCommonService(bookings: RecentBooking[], locale: "en" | "ko"): string {
   const counts = new Map<string, number>();
   for (const booking of bookings) {
     const label = booking.issueType?.trim();
@@ -82,7 +86,7 @@ function mostCommonService(bookings: RecentBooking[]): string {
     counts.set(label, (counts.get(label) ?? 0) + 1);
   }
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  return top?.[0] ?? "No data";
+  return top?.[0] ?? (locale === "ko" ? "데이터 없음" : "No data");
 }
 
 function peakCallHour(calls: CallRecord[]): number | null {
@@ -109,6 +113,8 @@ function statusFor(booking: RecentBooking, statuses: Record<string, RequestStatu
 export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   const now = input.now ?? new Date();
   const metricsFocus = input.metricsFocus ?? "today";
+  const locale = input.locale ?? "en";
+  const ko = locale === "ko";
   const today = todayRange(now);
   const yesterday = yesterdayRange(now);
   const bookings = buildAllRecentBookings(
@@ -119,12 +125,15 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
   );
 
   const metricsRange = metricsFocus === "yesterday" ? yesterday : today;
-  const dayLabel = metricsFocus === "yesterday" ? "Yesterday's" : "Today's";
+  const dayLabel = ko
+    ? metricsFocus === "yesterday"
+      ? "어제"
+      : "오늘"
+    : metricsFocus === "yesterday"
+      ? "Yesterday's"
+      : "Today's";
+  const noData = ko ? "데이터 없음" : "No data";
 
-  const todayCalls = input.calls.filter((call) => isWithin(call.createdAt, today.start, today.end));
-  const todayBookings = bookings.filter((booking) =>
-    isWithin(booking.createdAt, today.start, today.end),
-  );
   const yesterdayCalls = input.calls.filter((call) =>
     isWithin(call.createdAt, yesterday.start, yesterday.end),
   );
@@ -154,13 +163,14 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     ...metricsBookings.filter(isUrgentBooking),
     ...metricsCalls.filter(isUrgentCall).map((call) => ({
       id: `call-${call.id}`,
-      customerName: call.customerName || call.from || "Unknown customer",
-      issueType: call.issueType || call.symptom || "Urgent request",
+      customerName:
+        call.customerName || call.from || (ko ? "고객 미상" : "Unknown customer"),
+      issueType: call.issueType || call.symptom || (ko ? "긴급 요청" : "Urgent request"),
       cityState: "—",
       priority: "P1" as const,
       servicePriority: "emergency" as const,
       priorityReasons: call.priorityReasons ?? [],
-      priorityBadge: "Emergency" as const,
+      priorityBadge: (ko ? "긴급" : "Emergency") as "Emergency",
       createdAt: call.createdAt,
       address: call.address ?? "—",
       status: "pending_review",
@@ -169,35 +179,69 @@ export function buildDailyBriefing(input: BriefingInput): DailyBriefing {
     })),
   ];
 
-  const yMostCommon = mostCommonService(yesterdayBookings);
-  const yPeak = formatHourRange(peakCallHour(yesterdayCalls));
+  const yMostCommon = mostCommonService(yesterdayBookings, locale);
+  const yPeak = formatHourRange(peakCallHour(yesterdayCalls), locale);
 
   return {
-    titleDate: now.toLocaleDateString("en-US", {
+    titleDate: now.toLocaleDateString(ko ? "ko-KR" : "en-US", {
       weekday: "long",
       month: "short",
       day: "numeric",
     }),
-    summary: [
-      `Yesterday you received ${yesterdayCalls.length} calls.`,
-      `${yesterdayBookings.length} booking requests were submitted.`,
-      yMostCommon === "No data"
-        ? "The most common issue is not available yet."
-        : `The most common issue was ${yMostCommon}.`,
-      yPeak === "No data"
-        ? "Your busiest time is not available yet."
-        : `Your busiest time was between ${yPeak}.`,
-    ],
-    metrics: [
-      { label: `${dayLabel} Calls`, value: String(metricsCalls.length) },
-      { label: "Pending Requests", value: String(pendingBookings.length) },
-      { label: "Approved Requests", value: String(approvedBookings.length) },
-      { label: "Declined Requests", value: String(declinedBookings.length) },
-      { label: "Most Requested Service", value: mostCommonService(metricsBookings) },
-      { label: "Peak Call Time", value: formatHourRange(peakCallHour(metricsCalls)) },
-      { label: "After Hours Calls", value: String(afterHoursCalls.length) },
-      { label: "Urgent Requests", value: String(urgentInMetrics.length) },
-    ],
+    summary: ko
+      ? [
+          `어제 전화 ${yesterdayCalls.length}통을 받았습니다.`,
+          `예약 요청 ${yesterdayBookings.length}건이 접수되었습니다.`,
+          yMostCommon === noData
+            ? "가장 많았던 요청 유형은 아직 없습니다."
+            : `가장 많았던 요청은 ${yMostCommon}입니다.`,
+          yPeak === noData
+            ? "가장 바쁜 시간대는 아직 없습니다."
+            : `가장 바쁜 시간대는 ${yPeak}입니다.`,
+        ]
+      : [
+          `Yesterday you received ${yesterdayCalls.length} calls.`,
+          `${yesterdayBookings.length} booking requests were submitted.`,
+          yMostCommon === noData
+            ? "The most common issue is not available yet."
+            : `The most common issue was ${yMostCommon}.`,
+          yPeak === noData
+            ? "Your busiest time is not available yet."
+            : `Your busiest time was between ${yPeak}.`,
+        ],
+    metrics: ko
+      ? [
+          { label: `${dayLabel} 통화`, value: String(metricsCalls.length) },
+          { label: "검토 대기", value: String(pendingBookings.length) },
+          { label: "승인된 요청", value: String(approvedBookings.length) },
+          { label: "거절된 요청", value: String(declinedBookings.length) },
+          {
+            label: "가장 많은 요청",
+            value: mostCommonService(metricsBookings, locale),
+          },
+          {
+            label: "피크 통화 시간",
+            value: formatHourRange(peakCallHour(metricsCalls), locale),
+          },
+          { label: "근무 외 통화", value: String(afterHoursCalls.length) },
+          { label: "긴급 요청", value: String(urgentInMetrics.length) },
+        ]
+      : [
+          { label: `${dayLabel} Calls`, value: String(metricsCalls.length) },
+          { label: "Pending Requests", value: String(pendingBookings.length) },
+          { label: "Approved Requests", value: String(approvedBookings.length) },
+          { label: "Declined Requests", value: String(declinedBookings.length) },
+          {
+            label: "Most Requested Service",
+            value: mostCommonService(metricsBookings, locale),
+          },
+          {
+            label: "Peak Call Time",
+            value: formatHourRange(peakCallHour(metricsCalls), locale),
+          },
+          { label: "After Hours Calls", value: String(afterHoursCalls.length) },
+          { label: "Urgent Requests", value: String(urgentInMetrics.length) },
+        ],
     urgentBookings: urgentBookings.slice(0, 8),
     pendingBookings: pendingBookings.slice(0, 8),
   };

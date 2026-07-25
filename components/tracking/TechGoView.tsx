@@ -16,12 +16,13 @@ export function TechGoView({ token }: { token: string }) {
   const [sharing, setSharing] = useState(false);
   const [eta, setEta] = useState(30);
   const watchId = useRef<number | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/track/tech/${encodeURIComponent(token)}`);
     const data = (await res.json()) as { ok?: boolean; track?: TrackSnapshot; error?: string };
     if (!res.ok || !data.track) {
-      setError(data.error ?? "Link expired.");
+      setError(data.error ?? "This link expired. Ask the shop for a new tracking link.");
       return;
     }
     setTrack(data.track);
@@ -37,8 +38,20 @@ export function TechGoView({ token }: { token: string }) {
       if (watchId.current != null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchId.current);
       }
+      void wakeLockRef.current?.release().catch(() => undefined);
+      wakeLockRef.current = null;
     };
   }, []);
+
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+      }
+    } catch {
+      // Optional — older browsers / denied permission.
+    }
+  }
 
   async function ping(lat: number, lng: number, heading?: number | null, speed?: number | null) {
     await fetch(`/api/track/tech/${encodeURIComponent(token)}`, {
@@ -58,10 +71,11 @@ export function TechGoView({ token }: { token: string }) {
   function startSharing() {
     setError(null);
     if (!navigator.geolocation) {
-      setError("This phone can't share GPS. Use a modern mobile browser.");
+      setError("This phone can't share GPS. Open this link in Chrome or Safari on your phone.");
       return;
     }
     setSharing(true);
+    void requestWakeLock();
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         void ping(
@@ -71,8 +85,13 @@ export function TechGoView({ token }: { token: string }) {
           pos.coords.speed,
         );
       },
-      () => {
-        setError("Location permission denied. Allow location, then tap Start again.");
+      (err) => {
+        const denied = err.code === err.PERMISSION_DENIED;
+        setError(
+          denied
+            ? "Location was blocked. Open phone Settings → allow Location for this browser, then tap Start again."
+            : "Couldn't get your location. Move somewhere with a clearer signal, then tap Start again.",
+        );
         setSharing(false);
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
@@ -84,6 +103,8 @@ export function TechGoView({ token }: { token: string }) {
       navigator.geolocation.clearWatch(watchId.current);
       watchId.current = null;
     }
+    void wakeLockRef.current?.release().catch(() => undefined);
+    wakeLockRef.current = null;
     setSharing(false);
   }
 
@@ -107,68 +128,88 @@ export function TechGoView({ token }: { token: string }) {
     await load();
   }
 
+  const status = track?.status ?? "";
+  const arrived = status === "arrived";
+  const ended = status === "ended" || status === "complete" || status === "completed";
+
   return (
     <div className="mx-auto min-h-[100dvh] max-w-md bg-stone-50 px-4 py-8">
       <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
         {track?.shopName ?? "Effiroad"}
       </p>
-      <h1 className="mt-2 text-2xl font-bold text-stone-900">Share live location</h1>
+      <h1 className="mt-2 text-2xl font-bold text-stone-900">
+        {ended ? "Tracking ended" : arrived ? "You've arrived" : "Share live location"}
+      </h1>
       <p className="mt-2 text-sm text-stone-600">
         Customer: <strong>{track?.customerName ?? "…"}</strong>
       </p>
-      <p className="mt-1 text-sm text-stone-600">
-        Keep this page open while driving. The customer sees your car on a free map link — no app
-        install.
-      </p>
+      {!ended ? (
+        <p className="mt-1 text-sm text-stone-600">
+          Keep this page open while driving — don&apos;t lock the screen. The customer sees your car
+          on a map link (no app install).
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-stone-600">
+          You can close this page. Start a new link from the shop if you need to share again.
+        </p>
+      )}
 
-      <label className="mt-6 block text-sm font-medium text-stone-800">
-        ETA (minutes)
-        <select
-          className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-base"
-          value={eta}
-          onChange={(e) => setEta(Number(e.target.value))}
-          disabled={sharing}
-        >
-          {[5, 10, 15, 20, 30, 45, 60].map((m) => (
-            <option key={m} value={m}>
-              {m} min
-            </option>
-          ))}
-        </select>
-      </label>
+      {!ended && !arrived ? (
+        <label className="mt-6 block text-sm font-medium text-stone-800">
+          ETA (minutes)
+          <select
+            className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-base"
+            value={eta}
+            onChange={(e) => setEta(Number(e.target.value))}
+            disabled={sharing}
+          >
+            {[5, 10, 15, 20, 30, 45, 60].map((m) => (
+              <option key={m} value={m}>
+                {m} min
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <div className="mt-6 space-y-3">
-        {!sharing ? (
+        {!ended && !arrived ? (
+          !sharing ? (
+            <button
+              type="button"
+              onClick={startSharing}
+              className="w-full rounded-2xl bg-brand-800 py-4 text-lg font-bold text-white"
+            >
+              Start — share my location
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopSharing}
+              className="w-full rounded-2xl border border-amber-400 bg-amber-50 py-4 text-lg font-bold text-amber-950"
+            >
+              Sharing… tap to pause
+            </button>
+          )
+        ) : null}
+        {!ended ? (
           <button
             type="button"
-            onClick={startSharing}
-            className="w-full rounded-2xl bg-brand-800 py-4 text-lg font-bold text-white"
+            onClick={() => void markArrived()}
+            className="w-full rounded-2xl border border-emerald-300 bg-emerald-50 py-3 text-base font-semibold text-emerald-900"
           >
-            Start — share my location
+            {arrived ? "Arrived ✓" : "I arrived"}
           </button>
-        ) : (
+        ) : null}
+        {!ended ? (
           <button
             type="button"
-            onClick={stopSharing}
-            className="w-full rounded-2xl border border-amber-400 bg-amber-50 py-4 text-lg font-bold text-amber-950"
+            onClick={() => void endTrack()}
+            className="w-full py-2 text-sm text-stone-500"
           >
-            Sharing… tap to pause
+            End tracking
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() => void markArrived()}
-          className="w-full rounded-2xl border border-emerald-300 bg-emerald-50 py-3 text-base font-semibold text-emerald-900"
-        >
-          I arrived
-        </button>
-        <button
-          type="button"
-          onClick={() => void endTrack()}
-          className="w-full py-2 text-sm text-stone-500"
-        >
-          End tracking
-        </button>
+        ) : null}
       </div>
 
       {error ? (
@@ -177,8 +218,14 @@ export function TechGoView({ token }: { token: string }) {
         </p>
       ) : null}
 
+      {sharing ? (
+        <p className="mt-4 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-900">
+          Location is sharing. Leave this tab open until you arrive.
+        </p>
+      ) : null}
+
       <p className="mt-8 text-center text-[11px] text-stone-500">
-        Uses your phone GPS in the browser. No Google Maps fees. Allow location when prompted.
+        Uses your phone GPS in the browser. Allow location when prompted.
       </p>
     </div>
   );

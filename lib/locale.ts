@@ -51,9 +51,13 @@ export function shopAiLocale(_locale: UiLocale = "en"): "en" {
   return "en";
 }
 
-/** Build-time / fallback when no cookie is available. */
+/**
+ * Runtime UI language check — uses cookie/localStorage on the client so the
+ * dashboard KO/EN toggle actually switches status labels, priorities, etc.
+ * On the server (no request cookies in this helper) falls back to env default.
+ */
 export function isEnglishUi(): boolean {
-  return isEnglishUiLocale(defaultUiLocale());
+  return isEnglishUiLocale(runtimeUiLocale());
 }
 
 export function isEnglishMarketing(): boolean {

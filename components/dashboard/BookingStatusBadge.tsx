@@ -3,6 +3,7 @@ import {
   isPendingShopReview,
   normalizeRequestStatus,
 } from "@/lib/booking-policy";
+import { isEnglishUi } from "@/lib/locale";
 
 type ListStatusKind = "review" | "approved";
 
@@ -15,11 +16,12 @@ export function bookingListStatusDisplay(
   status: string | undefined | null,
 ): { label: string; kind: ListStatusKind } | null {
   const s = normalizeRequestStatus(status ?? "pending_review");
+  const en = isEnglishUi();
   if (isPendingShopReview(s)) {
-    return { label: "Needs review", kind: "review" };
+    return { label: en ? "Needs review" : "검토 필요", kind: "review" };
   }
   if (isApprovedBooking(s)) {
-    return { label: "Approved", kind: "approved" };
+    return { label: en ? "Approved" : "승인됨", kind: "approved" };
   }
   return null;
 }

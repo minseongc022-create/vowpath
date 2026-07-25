@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  IconAgreements,
   IconBriefing,
   IconCalendar,
   IconDashboard,
@@ -38,8 +39,10 @@ function IconMenu({ className = "h-5 w-5" }: { className?: string }) {
 
 export function DashboardMobileNav({
   pendingReviewCount = 0,
+  renewingAgreementsCount = 0,
 }: {
   pendingReviewCount?: number;
+  renewingAgreementsCount?: number;
 }) {
   const pathname = usePathname();
   const { locale } = useLocale();
@@ -52,6 +55,7 @@ export function DashboardMobileNav({
   const morePaths = [
     ROUTES.missedCallsAnalytics,
     ROUTES.briefing,
+    ROUTES.agreements,
     ROUTES.settings,
   ];
   const moreActive = morePaths.some((p) => pathname.startsWith(p));
@@ -105,6 +109,13 @@ export function DashboardMobileNav({
       match: (p: string) => p.startsWith(ROUTES.briefing),
     },
     {
+      href: ROUTES.agreements,
+      label: v.agreements,
+      icon: <IconAgreements className="h-5 w-5" />,
+      match: (p: string) => p.startsWith(ROUTES.agreements),
+      badge: renewingAgreementsCount > 0 ? renewingAgreementsCount : undefined,
+    },
+    {
       href: ROUTES.settings,
       label: v.settings,
       icon: <IconSettings className="h-5 w-5" />,
@@ -118,13 +129,15 @@ export function DashboardMobileNav({
     },
   ];
 
+  const allMenusLabel = v.allMenus;
+
   return (
     <>
       {moreOpen ? (
         <button
           type="button"
           className="fixed inset-0 z-40 bg-brand-950/35 backdrop-blur-[1px] lg:hidden"
-          aria-label="Close menu"
+          aria-label={locale === "ko" ? "메뉴 닫기" : "Close menu"}
           onClick={() => setMoreOpen(false)}
         />
       ) : null}
@@ -133,10 +146,10 @@ export function DashboardMobileNav({
         <div
           className="kb-more-sheet fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(4.25rem+env(safe-area-inset-bottom))] pt-2 lg:hidden"
           role="dialog"
-          aria-label="All menu"
+          aria-label={allMenusLabel}
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200" aria-hidden />
-          <p className="mb-2 text-center text-xs font-bold text-brand-950">All menus</p>
+          <p className="mb-2 text-center text-xs font-bold text-brand-950">{allMenusLabel}</p>
           <div className="mb-3 flex justify-center">
             <DashboardLocaleToggle />
           </div>
@@ -148,7 +161,7 @@ export function DashboardMobileNav({
                   key={link.href}
                   href={link.href}
                   prefetch
-                  className={`kb-more-grid-item ${active ? "ring-2 ring-brand-400/60" : ""}`}
+                  className={`kb-more-grid-item relative ${active ? "ring-2 ring-brand-400/60" : ""}`}
                   onClick={() => setMoreOpen(false)}
                 >
                   <span
@@ -161,6 +174,11 @@ export function DashboardMobileNav({
                   <span className="line-clamp-2 text-center text-[10px] font-semibold leading-tight text-stone-700">
                     {link.label}
                   </span>
+                  {"badge" in link && link.badge ? (
+                    <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                      {link.badge > 9 ? "9+" : link.badge}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}
@@ -170,7 +188,7 @@ export function DashboardMobileNav({
 
       <div
         className="fixed inset-x-0 bottom-0 z-50 px-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] lg:hidden"
-        aria-label="Mobile navigation"
+        aria-label={locale === "ko" ? "모바일 메뉴" : "Mobile navigation"}
       >
         <div className="mx-auto flex w-full max-w-none items-end gap-1.5">
           <nav className="kb-floating-nav min-w-0 flex-1">
@@ -208,7 +226,7 @@ export function DashboardMobileNav({
                   type="button"
                   className={`kb-nav-all-btn ${moreOpen || moreActive ? "ring-2 ring-brand-300" : ""}`}
                   aria-expanded={moreOpen}
-                  aria-label="All menus"
+                  aria-label={allMenusLabel}
                   onClick={() => setMoreOpen((o) => !o)}
                 >
                   <IconMenu />

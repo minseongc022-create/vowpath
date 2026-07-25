@@ -16,9 +16,30 @@ const PRIORITY_DISPLAY_LABEL_KO: Record<JobPriority, PriorityDisplayLabel> = {
   P3: "정기",
 };
 
-export const PRIORITY_DISPLAY_LABEL: Record<JobPriority, PriorityDisplayLabel> = isEnglishUi()
-  ? PRIORITY_DISPLAY_LABEL_EN
-  : PRIORITY_DISPLAY_LABEL_KO;
+export function getPriorityDisplayLabels(): Record<JobPriority, PriorityDisplayLabel> {
+  return isEnglishUi() ? PRIORITY_DISPLAY_LABEL_EN : PRIORITY_DISPLAY_LABEL_KO;
+}
+
+/** Resolved at access time so the dashboard KO/EN toggle updates labels. */
+export const PRIORITY_DISPLAY_LABEL: Record<JobPriority, PriorityDisplayLabel> = new Proxy(
+  {} as Record<JobPriority, PriorityDisplayLabel>,
+  {
+    get(_target, prop: string | symbol) {
+      if (typeof prop !== "string") return undefined;
+      return getPriorityDisplayLabels()[prop as JobPriority];
+    },
+    ownKeys() {
+      return Reflect.ownKeys(getPriorityDisplayLabels());
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const labels = getPriorityDisplayLabels();
+      if (typeof prop === "string" && prop in labels) {
+        return { configurable: true, enumerable: true, value: labels[prop as JobPriority] };
+      }
+      return undefined;
+    },
+  },
+);
 
 export const PRIORITY_BADGE_CLASS: Record<JobPriority, string> = {
   P1: "bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30",

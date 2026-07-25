@@ -46,10 +46,30 @@ const REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
   completed: "완료",
 };
 
-/** Customer-facing status labels (portal / SMS). */
-export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi()
-  ? REQUEST_STATUS_LABELS_EN
-  : REQUEST_STATUS_LABELS_KO;
+/** Customer-facing status labels (portal / SMS). Resolved at access time for locale toggle. */
+export function getRequestStatusLabels(): Record<RequestStatus, string> {
+  return isEnglishUi() ? REQUEST_STATUS_LABELS_EN : REQUEST_STATUS_LABELS_KO;
+}
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = new Proxy(
+  {} as Record<RequestStatus, string>,
+  {
+    get(_target, prop: string | symbol) {
+      if (typeof prop !== "string") return undefined;
+      return getRequestStatusLabels()[prop as RequestStatus];
+    },
+    ownKeys() {
+      return Reflect.ownKeys(getRequestStatusLabels());
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const labels = getRequestStatusLabels();
+      if (typeof prop === "string" && prop in labels) {
+        return { configurable: true, enumerable: true, value: labels[prop as RequestStatus] };
+      }
+      return undefined;
+    },
+  },
+);
 
 /** Shop dashboard / owner SMS — action-oriented, not customer cheer. */
 const OWNER_REQUEST_STATUS_LABELS_EN: Record<RequestStatus, string> = {
@@ -70,9 +90,29 @@ const OWNER_REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
   completed: "완료",
 };
 
-export const OWNER_REQUEST_STATUS_LABELS: Record<RequestStatus, string> = isEnglishUi()
-  ? OWNER_REQUEST_STATUS_LABELS_EN
-  : OWNER_REQUEST_STATUS_LABELS_KO;
+export function getOwnerRequestStatusLabels(): Record<RequestStatus, string> {
+  return isEnglishUi() ? OWNER_REQUEST_STATUS_LABELS_EN : OWNER_REQUEST_STATUS_LABELS_KO;
+}
+
+export const OWNER_REQUEST_STATUS_LABELS: Record<RequestStatus, string> = new Proxy(
+  {} as Record<RequestStatus, string>,
+  {
+    get(_target, prop: string | symbol) {
+      if (typeof prop !== "string") return undefined;
+      return getOwnerRequestStatusLabels()[prop as RequestStatus];
+    },
+    ownKeys() {
+      return Reflect.ownKeys(getOwnerRequestStatusLabels());
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const labels = getOwnerRequestStatusLabels();
+      if (typeof prop === "string" && prop in labels) {
+        return { configurable: true, enumerable: true, value: labels[prop as RequestStatus] };
+      }
+      return undefined;
+    },
+  },
+);
 
 /** Twilio closing message — never imply appointment is confirmed. */
 export const CUSTOMER_REQUEST_RECEIVED_MESSAGE =

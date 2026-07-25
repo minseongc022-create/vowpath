@@ -72,8 +72,9 @@ export const settingsPageEn = {
   maxConcurrentVisitsLabel: "Jobs at the same time",
   maxConcurrentVisitsHint:
     "How many visits your team can run in the same window. 3 crews: set 3.",
-  undoWindowLabel: "Undo window (minutes)",
-  undoWindowHint: "After auto-book, reply 9 within this time to cancel.",
+  undoWindowLabel: "Cancel auto-book window (minutes)",
+  undoWindowHint:
+    "After Effiroad auto-confirms a visit, we text you. Reply 9 within this time to undo and review it yourself.",
   shadowModeLabel: "Practice mode",
   shadowModeIntro: "Test calls without touching Jobber or sending real customer texts.",
   shadowModeLive: "0 = Live — real texts, calendar, and Jobber.",
@@ -87,9 +88,10 @@ export const settingsPageEn = {
   testModeSaveError: "Could not save test mode. Try again.",
   testModeForwardingHint:
     "Turn test mode ON, call your shop line from another phone, check the dashboard, then turn OFF when you are ready for live traffic.",
-  stormModeLabel: "Storm mode",
-  stormModeHint: "Shorter prompts when call volume spikes. Turn off when things calm down.",
-  stormModeToggleLabel: "Storm mode on incoming calls",
+  stormModeLabel: "High-volume / storm mode",
+  stormModeHint:
+    "Turn on during storms or call spikes — shorter prompts and a “we’re busy” message. Turn off when things calm down.",
+  stormModeToggleLabel: "Enable high-volume mode on incoming calls",
   onCallScheduleLabel: "On-call by day",
   onCallScheduleHint: "Who gets the first crew text each weekday. Default = round-robin.",
   onCallWeekdayLabels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const,
@@ -232,10 +234,11 @@ export const vowDashboardEn = {
     ai: "Shop AI",
     requests: "Requests",
     calendar: "Calendar",
-    missedCalls: "Missed calls",
+    missedCalls: "Leads captured",
     agreements: "PM plans",
     settings: "Settings",
     shopTools: "Shop tools",
+    allMenus: "All menus",
   },
   calendar: {
     title: "Schedule calendar",
@@ -316,6 +319,26 @@ export const vowDashboardEn = {
     close: "← Close",
     cancelAgreement: "Cancel plan",
     renewOneYear: "Renew +1 year",
+  },
+  briefingPage: {
+    title: (shop: string) => `Today's briefing — ${shop}`,
+    subtitle:
+      "Quick look at requests, approvals, and urgent items. Summary looks at yesterday; metrics below are today so far.",
+    aiSummary: "AI Summary",
+    refreshing: "Refreshing…",
+    urgentTitle: "Urgent requests",
+    pendingTitle: "Pending requests",
+    viewAll: "View all",
+    review: "Review",
+    retry: "Retry",
+    noUrgent: "No urgent requests found.",
+    noPending: "No pending requests.",
+    noRequestedTime: "No requested time",
+  },
+  bookingsList: {
+    back: "← Back to dashboard",
+    title: "Requests",
+    subtitle: "View all inbound requests and approval status.",
   },
   header: {
     newRequest: "New request",

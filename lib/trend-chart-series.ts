@@ -186,7 +186,18 @@ const OWNER_KPI_SERIES_KO: TrendChartSeriesDef[] = [
 
 
 
-export const OWNER_KPI_SERIES = isEnglishUi() ? OWNER_KPI_SERIES_EN : OWNER_KPI_SERIES_KO;
+export function getOwnerKpiSeries(): TrendChartSeriesDef[] {
+  return isEnglishUi() ? OWNER_KPI_SERIES_EN : OWNER_KPI_SERIES_KO;
+}
+
+/** Prefer getOwnerKpiSeries() — Proxy follows the active UI locale at access time. */
+export const OWNER_KPI_SERIES: TrendChartSeriesDef[] = new Proxy([] as TrendChartSeriesDef[], {
+  get(_target, prop, receiver) {
+    const series = getOwnerKpiSeries();
+    const value = Reflect.get(series, prop, receiver);
+    return typeof value === "function" ? value.bind(series) : value;
+  },
+});
 
 
 
