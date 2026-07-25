@@ -1,5 +1,4 @@
 import type { JobPriority } from "./types";
-import { isEnglishUi } from "./locale";
 import { legacyToServicePriority } from "./service-priority";
 import { inferLossCategoryFromText, normalizeLossCategory } from "./loss-category";
 import type { ShopVertical } from "./shop-vertical";
@@ -62,9 +61,9 @@ function urgencyOptionsForVertical(vertical: ShopVertical, english: boolean): Li
   }
 }
 
-/** Vertical-aware urgency choices for SMS link intake forms. */
+/** US customer-facing urgency choices — always English (Spanish chrome is separate). */
 export function getLinkUrgencyOptions(vertical: ShopVertical = "restoration"): LinkUrgencyOption[] {
-  return urgencyOptionsForVertical(vertical, isEnglishUi());
+  return urgencyOptionsForVertical(vertical, true);
 }
 
 /** @deprecated Prefer getLinkUrgencyOptions(vertical) — defaults to restoration labels. */

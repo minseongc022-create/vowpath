@@ -37,6 +37,11 @@ const REQUEST_STATUS_LABELS_EN: Record<RequestStatus, string> = {
   completed: "Visit complete",
 };
 
+/** Always English — US customer portal / SMS / intake. Never follow shop KO toggle. */
+export function getCustomerRequestStatusLabels(): Record<RequestStatus, string> {
+  return REQUEST_STATUS_LABELS_EN;
+}
+
 const REQUEST_STATUS_LABELS_KO: Record<RequestStatus, string> = {
   request_received: "요청 접수",
   pending_review: "검토 대기",

@@ -12,8 +12,11 @@ import {
 import { normalizeShopVertical, type ShopVertical } from "@/lib/shop-vertical";
 import { evaluatePasswordPolicy } from "@/lib/password-policy";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
-import { getServiceLimitationsConsent } from "@/lib/service-limitations-consent";
-import { useLocale } from "@/components/providers/LocaleProvider";
+import {
+  serviceLimitationsConsentBody,
+  serviceLimitationsConsentCheckboxLabel,
+  serviceLimitationsConsentTitle,
+} from "@/lib/service-limitations-consent";
 
 type Step = "details" | "verify";
 
@@ -22,10 +25,13 @@ const RESEND_COOLDOWN_SEC = 60;
 export function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { locale } = useLocale();
   const p = authPages.signup;
   const form = authPages.form;
-  const limitations = getServiceLimitationsConsent(locale);
+  const limitations = {
+    title: serviceLimitationsConsentTitle,
+    body: serviceLimitationsConsentBody,
+    checkboxLabel: serviceLimitationsConsentCheckboxLabel,
+  };
 
   const verticalParam = searchParams.get("vertical");
   const planParam = searchParams.get("plan")?.trim() || "";

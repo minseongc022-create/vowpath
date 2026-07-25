@@ -2073,11 +2073,13 @@ export const dashboardUi = new Proxy(buildDashboardUiEn(dashboardUiKo), {
     return Reflect.get(getDashboardUiCopy(runtimeUiLocale()) as object, prop, receiver);
   },
 }) as ReturnType<typeof buildDashboardUiEn<typeof dashboardUiKo>>;
-export function getAuthPagesCopy(locale: UiLocale) {
-  return pickLocaleCopy(locale, authPagesKo, authPagesEn);
+export function getAuthPagesCopy(_locale: UiLocale) {
+  // US product — signup/login stay English for American shop owners.
+  return authPagesEn;
 }
-export function getLegalPagesCopy(locale: UiLocale) {
-  return pickLocaleCopy(locale, legalPagesKo, legalPagesEn);
+export function getLegalPagesCopy(_locale: UiLocale) {
+  // US product — legal pages stay English.
+  return legalPagesEn;
 }
 export function getMessagingSetupCopy(_locale: UiLocale) {
   return messagingSetupEn;

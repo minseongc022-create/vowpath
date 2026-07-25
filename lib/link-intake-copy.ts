@@ -185,9 +185,9 @@ export const linkIntakePageCopy = {
   bookingCancelConfirmBody: "We'll let the company know. You can always call back if you still need help.",
   bookingCancelConfirmButton: "Yes, cancel my request",
   portalBackToView: "Back",
-  portalLandingTitle: "Customer portal",
+  portalLandingTitle: "Report a loss",
   portalLandingBody:
-    "Open the personal link from your text message to submit details or check your request. This page alone can't load a booking.",
+    "Open the link from your text message to submit details or check your request status.",
 } as const;
 
 /** Widen the `as const` literal string types to plain `string` so a
@@ -352,9 +352,9 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   bookingCancelConfirmBody: "Avisaremos a la empresa. Puede volver a llamar si aún necesita ayuda.",
   bookingCancelConfirmButton: "Sí, cancelar mi solicitud",
   portalBackToView: "Volver",
-  portalLandingTitle: "Portal del cliente",
+  portalLandingTitle: "Reportar un daño",
   portalLandingBody:
-    "Abra el enlace personal de su mensaje de texto para enviar detalles o revisar su solicitud. Esta página por sí sola no puede cargar una reserva.",
+    "Abra el enlace de su mensaje de texto para enviar detalles o revisar el estado de su solicitud.",
 };
 
 /** Pick the customer-facing intake copy for a locale. Unknown → English. */

@@ -234,7 +234,7 @@ export const vowDashboardEn = {
     ai: "Shop AI",
     requests: "Requests",
     calendar: "Calendar",
-    missedCalls: "Leads captured",
+    missedCalls: "Missed calls",
     agreements: "PM plans",
     settings: "Settings",
     shopTools: "Shop tools",

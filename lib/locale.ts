@@ -86,14 +86,7 @@ export function readClientUiLocale(): UiLocale {
   const fromCookie = parseUiLocale(match?.[1]);
   if (fromCookie) return fromCookie;
 
-  // First visit on dashboard: prefer Korean browser if set
-  if (typeof navigator !== "undefined") {
-    const langs = [navigator.language, ...(navigator.languages ?? [])];
-    if (langs.some((l) => l?.toLowerCase().startsWith("ko"))) {
-      return "ko";
-    }
-  }
-
+  // US product default — English. Korean only after an explicit dashboard toggle.
   return defaultUiLocale();
 }
 

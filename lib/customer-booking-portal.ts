@@ -1,5 +1,5 @@
 import type { RequestStatus } from "./booking-policy";
-import { REQUEST_STATUS_LABELS } from "./booking-policy";
+import { getCustomerRequestStatusLabels } from "./booking-policy";
 import { listCallLogs, patchCallLog, type StoredCallLog } from "./call-logs";
 import { listJobs } from "./jobs-db";
 import { formatLinkRequestNumber } from "./link-intake-urgency";
@@ -95,7 +95,7 @@ export async function loadCustomerBookingPortalView(params: {
       issueType: "",
       bookingId,
       status,
-      statusLabel: REQUEST_STATUS_LABELS[status] ?? status,
+      statusLabel: getCustomerRequestStatusLabels()[status] ?? status,
       arrivalWindow: status === "completed" ? "Visit complete" : "Cancelled",
       portalToken: params.token,
       canCancel,
@@ -109,7 +109,7 @@ export async function loadCustomerBookingPortalView(params: {
     ...baseView,
     bookingId,
     status,
-    statusLabel: REQUEST_STATUS_LABELS[status] ?? status,
+    statusLabel: getCustomerRequestStatusLabels()[status] ?? status,
     arrivalWindow,
     portalToken: params.token,
     canCancel,

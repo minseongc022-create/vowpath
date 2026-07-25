@@ -3,7 +3,6 @@ import {
   canReject,
   isPendingShopReview,
   normalizeRequestStatus,
-  REQUEST_STATUS_LABELS,
   type RequestStatus,
 } from "./booking-policy";
 import { persistRequestStatusForBooking } from "./booking-status-sync";
@@ -13,6 +12,16 @@ import { normalizeSmsPhone } from "./phone";
 import { lookupStoredRequestStatus } from "./request-status-resolve";
 import { getRequestStatuses } from "./requests-db";
 import { getTwilioDefaultUserId } from "./twilio-config";
+
+/** Owner SMS is always US English for American shops. */
+const OWNER_SMS_STATUS_LABELS: Record<RequestStatus, string> = {
+  request_received: "Request received",
+  pending_review: "Needs your review",
+  approved: "Approved",
+  rejected: "Declined",
+  scheduled: "Scheduled",
+  completed: "Completed",
+};
 import {
   bookingIdMatchesRef,
   bookingShortRef,
@@ -372,13 +381,13 @@ export async function handleOwnerSmsReply(params: {
   if (action === "approve" && !canApprove(pending.status)) {
     return {
       handled: true,
-      replyBody: `${shop}: "${pending.customerName}" is already ${REQUEST_STATUS_LABELS[normalizeRequestStatus(pending.status)]}.`,
+      replyBody: `${shop}: "${pending.customerName}" is already ${OWNER_SMS_STATUS_LABELS[normalizeRequestStatus(pending.status)]}.`,
     };
   }
   if (action === "reject" && !canReject(pending.status)) {
     return {
       handled: true,
-      replyBody: `${shop}: "${pending.customerName}" cannot be rejected (current: ${REQUEST_STATUS_LABELS[normalizeRequestStatus(pending.status)]}).`,
+      replyBody: `${shop}: "${pending.customerName}" cannot be rejected (current: ${OWNER_SMS_STATUS_LABELS[normalizeRequestStatus(pending.status)]}).`,
     };
   }
 
@@ -404,7 +413,7 @@ export async function handleOwnerSmsReply(params: {
     }
   }
 
-  const label = REQUEST_STATUS_LABELS[nextStatus];
+  const label = OWNER_SMS_STATUS_LABELS[nextStatus];
   const sharedLine = await phonesShareCustomerLine(
     userId,
     pending.bookingId,
