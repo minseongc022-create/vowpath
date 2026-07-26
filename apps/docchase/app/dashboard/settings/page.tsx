@@ -49,7 +49,10 @@ export default function SettingsPage() {
     <DashboardShell officeName={state.profile.officeName}>
       <Toast message={toast} />
       <h1 className="font-display text-2xl font-medium text-ink sm:text-3xl">설정</h1>
-      <p className="mt-2 text-sm text-ink-muted">사무소 표시 정보와 데모 데이터를 관리합니다.</p>
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">
+        사무소 이름(알림톡 제목에 표시)과 연습 데이터를 관리합니다. 실제 발송은 솔라피·카카오 채널
+        연동 후 같은 「자료 요청하기」 버튼으로 나갑니다.
+      </p>
 
       <form onSubmit={saveProfile} className="mt-8 max-w-lg sc-card p-5">
         <label className="sc-label" htmlFor="office">

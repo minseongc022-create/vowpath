@@ -5,11 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { SITE } from "@/lib/site";
 
 const nav = [
-  { href: "/dashboard", label: "이번 달 마감" },
-  { href: "/dashboard/clients", label: "수임처" },
-  { href: "/dashboard/templates", label: "요청 문구" },
-  { href: "/dashboard/import", label: "가져오기" },
-  { href: "/dashboard/outreach", label: "연락 목록" },
+  { href: "/dashboard", label: "오늘 독촉" },
+  { href: "/dashboard/clients", label: "거래처" },
+  { href: "/dashboard/templates", label: "보낼 말" },
+  { href: "/dashboard/import", label: "명단 넣기" },
+  { href: "/dashboard/outreach", label: "영업 명단" },
   { href: "/dashboard/settings", label: "설정" },
 ];
 

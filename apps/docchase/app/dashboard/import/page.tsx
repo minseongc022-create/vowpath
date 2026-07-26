@@ -23,7 +23,7 @@ export default function ImportPage() {
     e.preventDefault();
     const parsed = parseClientsCsv(csv);
     if (!parsed.length) {
-      flash("가져올 행이 없습니다. 헤더와 데이터를 확인해 주세요.");
+      flash("가져올 줄이 없습니다. 첫 줄은 제목, 아래는 데이터여야 합니다.");
       return;
     }
     const clients: ClientAccount[] = parsed.map((row, i) => ({
@@ -33,23 +33,23 @@ export default function ImportPage() {
     }));
     const next = withActivity(
       { ...state!, clients: [...clients, ...state!.clients] },
-      `CSV에서 수임처 ${clients.length}곳을 가져왔습니다`,
+      `명단 ${clients.length}곳을 거래처에 넣었습니다`,
     );
-    commit(next, `${clients.length}곳을 추가했습니다`);
+    commit(next, `${clients.length}곳을 넣었어요`);
   }
 
   return (
     <DashboardShell officeName={state.profile.officeName}>
       <Toast message={toast} />
-      <h1 className="font-display text-2xl font-medium text-ink sm:text-3xl">목록 가져오기</h1>
-      <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-        엑셀에서 CSV로 저장한 뒤 붙여 넣으세요. 필요자료는{" "}
-        <code className="rounded bg-white px-1 text-xs">|</code> 로 구분합니다.
+      <h1 className="font-display text-2xl font-medium text-ink sm:text-3xl">명단 넣기</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
+        엑셀에 있던 거래처 명단을 CSV로 저장한 뒤 붙여 넣으면 됩니다.{" "}
+        <strong className="font-semibold text-ink">연락처 칸 = 알림톡 받을 휴대폰</strong>입니다.
       </p>
 
       <form onSubmit={onImport} className="mt-8 sc-card p-5">
         <label className="sc-label" htmlFor="csv">
-          CSV 내용
+          엑셀에서 복사한 CSV
         </label>
         <textarea
           id="csv"
@@ -57,12 +57,16 @@ export default function ImportPage() {
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
         />
+        <p className="mt-2 text-xs text-ink-muted">
+          제목 줄 예: 상호,담당자,연락처,필요자료,마감일 · 필요자료는{" "}
+          <code className="rounded bg-white px-1">통장사본|카드매출</code>처럼 | 로 구분
+        </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button type="submit" className="sc-btn-primary">
-            수임처에 추가
+            거래처에 넣기
           </button>
           <button type="button" className="sc-btn-secondary" onClick={() => setCsv(SAMPLE)}>
-            예시로 되돌리기
+            예시 다시 보기
           </button>
         </div>
       </form>
