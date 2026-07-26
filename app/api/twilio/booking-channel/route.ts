@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
-import { shopDisplayNameForUser } from "@/lib/link-intake-brand";
-import {
-  createLinkIntakeSession,
-  sendLinkIntakeSms,
-} from "@/lib/call-intake/link-intake-flow";
+import { isRetellConfigured } from "@/lib/retell-config";
+import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
+import { resolveBookingChannelChoice } from "@/lib/ivr-channel-choice";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
-import { twimlResponse, twimlSay } from "@/lib/twilio-xml";
+import { shopDisplayNameForUser, DEFAULT_SHOP_DISPLAY_NAME } from "@/lib/link-intake-brand";
+import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
+import { twimlGatherChannelChoice, twimlResponse, twimlSay } from "@/lib/twilio-xml";
 import { voiceLinkSmsFailed, voiceLinkSmsSent } from "@/lib/voice-copy";
 
 function twimlXml(body: string) {
@@ -16,9 +17,9 @@ function twimlXml(body: string) {
 }
 
 /**
- * Booking sub-menu handler (after the caller pressed 1 = "book service"):
- *   digit 1 (or default) → Retell conversational AI via SIP bridge
- *   digit 2 → text the caller a self-service booking link and hang up
+ * Legacy booking sub-menu (same rules as /api/twilio/channel):
+ *   press/say 1 or "text" → SMS link
+ *   press/say 2 or "phone" → Retell on this call
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   const to = form.get("To") ?? "unknown";
   const from = form.get("From") ?? "unknown";
   const digit = form.get("Digits");
+  const speech = (form.get("SpeechResult") ?? "").trim();
   const callSid = form.get("CallSid")?.trim() ?? url.searchParams.get("callSid") ?? "";
 
   const bridgeParams = {
@@ -43,12 +45,34 @@ export async function POST(request: Request) {
     return twimlXml(await buildRetellBridgeTwiml(bridgeParams));
   }
 
-  // 1 or default → talk to the Retell assistant now.
-  if (digit !== "2") {
+  const choice = resolveBookingChannelChoice(digit, speech);
+
+  if (choice === "unclear") {
+    const userId = await resolveTenantUserId({ to, from, callSid });
+    let shopName = DEFAULT_SHOP_DISPLAY_NAME;
+    let stormMode = false;
+    if (userId) {
+      shopName = await shopDisplayNameForUser(userId);
+      const settings = await getShopBookingSettings(userId);
+      stormMode = settings.stormModeEnabled;
+    }
+    const channelUrl = buildTwilioCallbackUrl("/api/twilio/booking-channel", {
+      callSid,
+      ...(afterHours ? { afterHours: "1" } : {}),
+    });
+    return twimlXml(
+      twimlResponse(
+        twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode, {
+          retry: true,
+        }),
+      ),
+    );
+  }
+
+  if (choice === "phone") {
     return twimlXml(await buildRetellBridgeTwiml(bridgeParams));
   }
 
-  // 2 → text a self-service booking link.
   if (!callSid) {
     console.error("[twilio/booking-channel] missing CallSid; to=", to);
     return twimlXml(
@@ -67,47 +91,16 @@ export async function POST(request: Request) {
   const blocked = await twilioBlockIfNotEntitled(userId, "voice", to);
   if (blocked) return blocked;
 
-  const callbackPhone = from.replace(/^whatsapp:/, "").trim();
-  if (!callbackPhone || callbackPhone === "unknown") {
-    return twimlXml(await buildRetellBridgeTwiml(bridgeParams));
-  }
-
-  try {
-    const shopName = await shopDisplayNameForUser(userId);
-    const session = await createLinkIntakeSession({
-      userId,
-      callSid,
-      from: callbackPhone,
-      to,
-      shopName,
-      menuPriority: null,
-    });
-
-    const sms = await sendLinkIntakeSms({
-      userId,
-      phone: callbackPhone,
-      token: session.token,
-    });
-
-    if (!sms.ok) {
-      console.warn(
-        "[twilio/booking-channel] link intake SMS failed:",
-        sms.error,
-        "to=",
-        callbackPhone,
-        "callSid=",
-        callSid,
-      );
+  const sent = await sendVoiceLinkIntakeSms({ userId, callSid, from, to });
+  if (!sent.ok) {
+    console.warn("[twilio/booking-channel] link intake SMS failed:", sent.error, "to=", from);
+    if (isRetellConfigured()) {
       return twimlXml(
         await buildRetellBridgeTwiml({ ...bridgeParams, intro: voiceLinkSmsFailed }),
       );
     }
-
-    return twimlXml(twimlResponse(twimlSay(voiceLinkSmsSent)));
-  } catch (e) {
-    console.error("[twilio/booking-channel]", e);
-    return twimlXml(
-      await buildRetellBridgeTwiml({ ...bridgeParams, intro: voiceLinkSmsFailed }),
-    );
+    return twimlXml(twimlResponse(twimlSay(voiceLinkSmsFailed)));
   }
+
+  return twimlXml(twimlResponse(twimlSay(voiceLinkSmsSent)));
 }

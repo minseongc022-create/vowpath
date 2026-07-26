@@ -8,19 +8,28 @@ export function channelChoiceVoicePrompt(shopName: string, afterHours = false): 
     return (
       `Hi — thank you for calling ${shop}. ` +
       afterHoursVoiceIntro(shop) +
-      ` Say text link or press 1 for a quick form by text — about a minute. ` +
-      `Say talk on the phone or press 2 to tell us what's going on right on this call.`
+      ` Would you like to continue on the phone, or by text with a quick link? ` +
+      `Just say phone or text — you can also press 2 for phone, or press 1 for text.`
     );
   }
   return (
     `Hi — thanks for calling ${shop}. ` +
-    `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
-    `Say talk on the phone or press 2, and we'll walk through it with you right here.`
+    `Would you like to continue on the phone, or by text with a quick link? ` +
+    `Just say phone or text — you can also press 2 for phone, or press 1 for text.`
+  );
+}
+
+/** Shorter re-ask when speech/DTMF was unclear — do not restart the full greeting. */
+export function channelChoiceRetryPrompt(): string {
+  return (
+    `Sorry — I didn't catch that. ` +
+    `Say phone to talk on this call, or say text for a link by SMS. ` +
+    `Or press 2 for phone, press 1 for text.`
   );
 }
 
 export function channelChoiceGatherHint(): string {
-  return "Say text link or press 1. Say talk on the phone or press 2.";
+  return "You can say phone or text whenever you're ready.";
 }
 
 export function smsLinkIntakeMessage(shopName: string, url: string): string {

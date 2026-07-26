@@ -19,10 +19,18 @@ test("main menu press 1 opens channel choice (phone vs text link) — never skip
   );
 });
 
-test("channel choice copy asks text link vs talk on phone", () => {
+test("channel choice copy asks phone vs text and allows speech", () => {
   const src = readFileSync(join(root, "lib/link-intake-copy.ts"), "utf8");
-  assert.match(src, /Say text link or press 1/);
-  assert.match(src, /Say talk on the phone or press 2/);
+  assert.match(src, /continue on the phone, or by text/i);
+  assert.match(src, /Just say phone or text/i);
+  assert.match(src, /channelChoiceRetryPrompt/);
+});
+
+test("channel Gather prioritizes speech and posts empty results", () => {
+  const src = readFileSync(join(root, "lib/twilio-xml.ts"), "utf8");
+  assert.match(src, /input="speech dtmf"/);
+  assert.match(src, /actionOnEmptyResult="true"/);
+  assert.match(src, /CHANNEL_SPEECH_HINTS/);
 });
 
 test("Retell TS and sync script voice patches stay aligned", () => {

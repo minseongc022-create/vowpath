@@ -109,25 +109,25 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       kind: "ai-voice",
       text:
         `Hi — thanks for calling ${RESTORATION_SHOP}. ` +
-        `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
-        `Say talk on the phone or press 2, and we'll walk through it with you right here.`,
+        `Would you like to continue on the phone, or by text with a quick link? ` +
+        `Just say phone or text — you can also press 2 for phone, or press 1 for text.`,
     },
     {
       kind: "menu",
-      prompt: "Service — phone AI or text link",
+      prompt: "Service — say phone or text (or press)",
       options: [
         {
           id: "ch-link",
-          label: "Press 1 / say text link — SMS form",
-          customerText: "Text link please.",
+          label: "Say “text” / press 1 — SMS form",
+          customerText: "Text please.",
           jumpTo: LINK_START,
           transition: "sms",
         },
         {
           id: "ch-phone",
-          label: "Press 2 / say talk on the phone — AI on this call",
+          label: "Say “phone” / press 2 — AI on this call",
           customerText:
-            "Sewage is backing up in my basement — it's coming through the floor drain.",
+            "Phone — sewage is backing up in my basement through the floor drain.",
           transition: "retell-connect",
         },
       ],
@@ -302,24 +302,24 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       kind: "ai-voice",
       text:
         `Hi — thanks for calling ${HVAC_SHOP}. ` +
-        `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
-        `Say talk on the phone or press 2, and we'll walk through it with you right here.`,
+        `Would you like to continue on the phone, or by text with a quick link? ` +
+        `Just say phone or text — you can also press 2 for phone, or press 1 for text.`,
     },
     {
       kind: "menu",
-      prompt: "Service — phone AI or text link",
+      prompt: "Service — say phone or text (or press)",
       options: [
         {
           id: "ch-link",
-          label: "Press 1 / say text link — SMS form",
-          customerText: "Text link please.",
+          label: "Say “text” / press 1 — SMS form",
+          customerText: "Text please.",
           jumpTo: LINK_START,
           transition: "sms",
         },
         {
           id: "ch-phone",
-          label: "Press 2 / say talk on the phone — AI on this call",
-          customerText: "No heat — it's fifty-eight degrees inside and we've got kids home.",
+          label: "Say “phone” / press 2 — AI on this call",
+          customerText: "Phone — no heat, fifty-eight degrees, kids home.",
           transition: "retell-connect",
         },
       ],

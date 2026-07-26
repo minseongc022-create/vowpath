@@ -37,7 +37,7 @@ test("demo uses hybrid address + pick-time flow", () => {
   assert.match(demoScript, /Caller says address/);
   assert.match(demoScript, /const ESTIMATE_START = 22/);
   assert.match(demoScript, /const LINK_START = 27/);
-  assert.match(demoScript, /Service — phone AI or text link/);
+  assert.match(demoScript, /Service — say phone or text/);
 });
 
 test("landing explains restoration approval criteria", () => {

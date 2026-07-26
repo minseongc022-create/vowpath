@@ -1,15 +1,25 @@
-import { channelChoiceGatherHint, channelChoiceVoicePrompt } from "./link-intake-copy";
+import {
+  channelChoiceGatherHint,
+  channelChoiceRetryPrompt,
+  channelChoiceVoicePrompt,
+} from "./link-intake-copy";
 import { buildSpeechHints } from "./twilio-voice-flow";
 import type { ShopVertical } from "./shop-vertical";
 import { twilioSayVoiceEnUs } from "./twilio-say-voice";
 import {
-  voiceGatherMissedChoice,
   voiceGatherMissedDtmf,
   voiceGatherMissedSpeech,
   voiceGoAhead,
   voicePhoneIntakePromptForVertical,
   voiceStormSurgeIntro,
 } from "./voice-copy";
+
+/** Shared Gather attrs: speech first, DTMF still works, empty result posts to action. */
+const CHANNEL_GATHER_ATTRS =
+  `input="speech dtmf" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="12" actionOnEmptyResult="true"`;
+
+const CHANNEL_SPEECH_HINTS =
+  "phone, text, text link, talk, talk on the phone, by phone, by text, SMS, form, link, call";
 
 export { twilioSayVoiceEnUs };
 
@@ -55,11 +65,20 @@ export function twimlGatherChannelChoice(
   shopName: string,
   afterHours = false,
   stormMode = false,
+  options?: { retry?: boolean },
 ): string {
-  const stormLine = stormMode ? `${twimlSay(voiceStormSurgeIntro)}` : "";
-  const prompt = channelChoiceVoicePrompt(shopName, afterHours);
+  const stormLine = stormMode && !options?.retry ? `${twimlSay(voiceStormSurgeIntro)}` : "";
+  const prompt = options?.retry
+    ? channelChoiceRetryPrompt()
+    : channelChoiceVoicePrompt(shopName, afterHours);
   const hint = channelChoiceGatherHint();
-  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="18" action="${escapeXml(actionUrl)}" method="POST" hints="text link, link, text, SMS, form, talk, phone, call">${twimlSay(hint)}</Gather>${twimlSay(voiceGatherMissedChoice)}`;
+  // actionOnEmptyResult: timeout still hits /channel so we can re-ask (no silent hangup).
+  return (
+    `${stormLine}${twimlSay(prompt)}` +
+    `<Gather ${CHANNEL_GATHER_ATTRS} action="${escapeXml(actionUrl)}" method="POST" hints="${CHANNEL_SPEECH_HINTS}">` +
+    `${twimlSay(hint)}</Gather>` +
+    `<Redirect method="POST">${escapeXml(actionUrl)}</Redirect>`
+  );
 }
 
 export function twimlGatherDtmfMenu(actionUrl: string): string {
@@ -85,15 +104,25 @@ export function twimlGatherMainMenu(
     ? customGreeting.trim()
     : `Thank you for calling ${shopName}.`;
   const prompt = `${opening} To book service or report an emergency, say service or press 1. For a free estimate, say estimate or press 2.`;
-  return `${stormLine}${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="18" action="${escapeXml(actionUrl)}" method="POST" hints="service, emergency, book, estimate, quote">${twimlSay("Say service or estimate, or press 1 or 2 — whenever you're ready.")}</Gather>`;
+  return (
+    `${stormLine}${twimlSay(prompt)}` +
+    `<Gather input="speech dtmf" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="12" actionOnEmptyResult="true" action="${escapeXml(actionUrl)}" method="POST" hints="service, emergency, book, estimate, quote, text link, phone, talk">` +
+    `${twimlSay("Say service or estimate, or press 1 or 2 — whenever you're ready.")}</Gather>` +
+    `<Redirect method="POST">${escapeXml(actionUrl)}</Redirect>`
+  );
 }
 
-/** Booking sub-menu: talk to the AI assistant now, or get a booking link by text. */
+/** Booking sub-menu — same mapping as live /api/twilio/channel: 1 = text · 2 = phone. */
 export function twimlGatherBookingChannel(actionUrl: string): string {
   const prompt =
-    "I'm here with you. To talk with us on this call, press 1. " +
-    "Or to get a quick form by text instead, press 2. Message and data rates may apply.";
-  return `${twimlSay(prompt)}<Gather input="dtmf" numDigits="1" timeout="12" enhanced="true" action="${escapeXml(actionUrl)}" method="POST">${twimlSay("Whenever you're ready.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+    "Would you like to continue on the phone, or by text with a quick link? " +
+    "Say phone or text — or press 2 for phone, press 1 for text.";
+  return (
+    `${twimlSay(prompt)}` +
+    `<Gather ${CHANNEL_GATHER_ATTRS} action="${escapeXml(actionUrl)}" method="POST" hints="${CHANNEL_SPEECH_HINTS}">` +
+    `${twimlSay(channelChoiceGatherHint())}</Gather>` +
+    `<Redirect method="POST">${escapeXml(actionUrl)}</Redirect>`
+  );
 }
 
 /**
@@ -118,9 +147,14 @@ export function twimlSpanishIntakeConfirmation(): string {
 export function twimlGatherEstimateMenu(actionUrl: string): string {
   const prompt =
     "We'd love to put together a free estimate. " +
-    "To tell us about your project on this call, say talk on the phone or press 1. " +
-    "Or to get a short form by text, say text link or press 2. Message and data rates may apply.";
-  return `${twimlSay(prompt)}<Gather input="dtmf speech" numDigits="1" speechTimeout="auto" speechModel="phone_call" enhanced="true" timeout="18" action="${escapeXml(actionUrl)}" method="POST" hints="text link, link, text, form, talk, phone, estimate">${twimlSay("Say text link or press 2, or say talk on the phone or press 1.")}</Gather>${twimlSay(voiceGatherMissedDtmf)}`;
+    `Would you like to continue on the phone, or by text with a quick link? ` +
+    `Say phone or text — or press 1 for phone, press 2 for text.`;
+  return (
+    `${twimlSay(prompt)}` +
+    `<Gather ${CHANNEL_GATHER_ATTRS} action="${escapeXml(actionUrl)}" method="POST" hints="${CHANNEL_SPEECH_HINTS}, estimate">` +
+    `${twimlSay(channelChoiceGatherHint())}</Gather>` +
+    `<Redirect method="POST">${escapeXml(actionUrl)}</Redirect>`
+  );
 }
 
 /** Phone-number capture: accepts spoken digits or keypad entry ending in #. Falls back

@@ -59,7 +59,9 @@ async function replayChannelMenuTwiml(
     ...(afterHours ? { afterHours: "1" } : {}),
   });
   return twimlResponse(
-    twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode),
+    twimlGatherChannelChoice(channelUrl, shopName, afterHours, stormMode, {
+      retry: true,
+    }),
   );
 }
 

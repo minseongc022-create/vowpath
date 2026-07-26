@@ -3,7 +3,7 @@ import { buildTwilioCallbackUrl } from "@/lib/twilio-callback-url";
 import { validateTwilioWebhook } from "@/lib/twilio-signature";
 import { buildRetellBridgeTwiml } from "@/lib/retell-bridge";
 import { isUrgentCallerSpeech } from "@/lib/urgent-speech-bypass";
-import { isLinkIntentSpeech } from "@/lib/link-intent-speech";
+import { isLinkIntentSpeech, isPhoneIntentSpeech } from "@/lib/link-intent-speech";
 import { resolveMainMenuChoice } from "@/lib/ivr-channel-choice";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
@@ -71,10 +71,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // Already said they want to talk on the phone → skip channel menu.
+  if (!digit && isPhoneIntentSpeech(speech)) {
+    return twimlXml(
+      await buildRetellBridgeTwiml({ ...bridgeParams, ivrPath: "phone_booking" }),
+    );
+  }
+
   const ctx = await resolveSubMenuContext(to, from, callSid);
 
-  // "Text me the link" at main menu → send immediately, no sub-menu.
-  if (isLinkIntentSpeech(speech) && ctx.userId && callSid) {
+  // "Text me the link" at main menu → send immediately.
+  // Do NOT treat bare "1"/"one" as link here — that is for the channel submenu.
+  if (isLinkIntentSpeech(speech, { allowDigitWords: false }) && ctx.userId && callSid) {
     const blocked = await twilioBlockIfNotEntitled(ctx.userId, "voice", to);
     if (blocked) return blocked;
     const sent = await sendVoiceLinkIntakeSms({

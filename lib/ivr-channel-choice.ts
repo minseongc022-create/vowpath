@@ -12,8 +12,9 @@ export function resolveBookingChannelChoice(
   if (digit === "2") return "phone";
 
   const said = (speech ?? "").trim();
-  if (isLinkIntentSpeech(said)) return "link";
+  // Digit-words ("one"/"two") allowed — this IS the channel keypad step.
   if (isPhoneIntentSpeech(said)) return "phone";
+  if (isLinkIntentSpeech(said, { allowDigitWords: true })) return "link";
   if (isUrgentCallerSpeech(said)) return "phone";
 
   return "unclear";
@@ -28,8 +29,8 @@ export function resolveEstimateChannelChoice(
   if (digit === "1") return "phone";
 
   const said = (speech ?? "").trim();
-  if (isLinkIntentSpeech(said)) return "link";
   if (isPhoneIntentSpeech(said)) return "phone";
+  if (isLinkIntentSpeech(said, { allowDigitWords: true })) return "link";
 
   return "unclear";
 }

@@ -11,8 +11,8 @@ function resolveBookingChannelChoice(digit, speech) {
   if (digit === "1") return "link";
   if (digit === "2") return "phone";
   const said = (speech ?? "").trim();
-  if (isLinkIntentSpeech(said)) return "link";
   if (isPhoneIntentSpeech(said)) return "phone";
+  if (isLinkIntentSpeech(said, { allowDigitWords: true })) return "link";
   if (isUrgentCallerSpeech(said)) return "phone";
   return "unclear";
 }
@@ -21,8 +21,8 @@ function resolveEstimateChannelChoice(digit, speech) {
   if (digit === "2") return "link";
   if (digit === "1") return "phone";
   const said = (speech ?? "").trim();
-  if (isLinkIntentSpeech(said)) return "link";
   if (isPhoneIntentSpeech(said)) return "phone";
+  if (isLinkIntentSpeech(said, { allowDigitWords: true })) return "link";
   return "unclear";
 }
 
@@ -55,11 +55,14 @@ test("resolveBookingChannelChoice: digit and speech for link", () => {
   assert.equal(resolveBookingChannelChoice("1", null), "link");
   assert.equal(resolveBookingChannelChoice(null, "text link please"), "link");
   assert.equal(resolveBookingChannelChoice(null, "text"), "link");
+  assert.equal(resolveBookingChannelChoice(null, "by text"), "link");
 });
 
 test("resolveBookingChannelChoice: digit and speech for phone", () => {
   assert.equal(resolveBookingChannelChoice("2", null), "phone");
   assert.equal(resolveBookingChannelChoice(null, "talk on the phone"), "phone");
+  assert.equal(resolveBookingChannelChoice(null, "phone"), "phone");
+  assert.equal(resolveBookingChannelChoice(null, "by phone"), "phone");
   assert.equal(resolveBookingChannelChoice(null, "I have water in my basement"), "phone");
 });
 
