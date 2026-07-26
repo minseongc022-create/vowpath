@@ -34,8 +34,14 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: [
+          "Pretendard Variable",
+          "Pretendard",
+          "var(--font-sans-fallback)",
+          "system-ui",
+          "sans-serif",
+        ],
+        display: ["var(--font-display)", "Noto Serif KR", "Georgia", "serif"],
       },
       boxShadow: {
         soft: "0 18px 50px -28px rgba(14, 26, 24, 0.45)",

@@ -1,18 +1,18 @@
-import type { Metadata } from "next";
-import { IBM_Plex_Sans_KR, IBM_Plex_Serif } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/site";
 
-const sans = IBM_Plex_Sans_KR({
+const sans = Noto_Sans_KR({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-sans",
+  variable: "--font-sans-fallback",
   display: "swap",
 });
 
-const display = IBM_Plex_Serif({
+const display = Noto_Serif_KR({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
@@ -27,9 +27,23 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#f3f5f1",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${sans.variable} ${display.variable}`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
       <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );

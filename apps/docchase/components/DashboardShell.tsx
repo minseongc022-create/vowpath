@@ -8,7 +8,7 @@ const nav = [
   { href: "/dashboard", label: "이번 달 마감" },
   { href: "/dashboard/clients", label: "수임처" },
   { href: "/dashboard/templates", label: "요청 문구" },
-  { href: "/dashboard/import", label: "CSV 가져오기" },
+  { href: "/dashboard/import", label: "목록 가져오기" },
 ];
 
 export function DashboardShell({
@@ -44,7 +44,7 @@ export function DashboardShell({
             나가기
           </button>
         </div>
-        <div className="sc-container flex gap-1 overflow-x-auto pb-3">
+        <div className="sc-container flex gap-1.5 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {nav.map((item) => {
             const active =
               item.href === "/dashboard"
@@ -54,7 +54,7 @@ export function DashboardShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                className={`whitespace-nowrap rounded-full px-3.5 py-2.5 text-sm font-medium transition active:scale-[0.98] ${
                   active
                     ? "bg-ink text-paper"
                     : "text-ink-muted hover:bg-white hover:text-ink"
