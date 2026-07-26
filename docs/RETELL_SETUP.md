@@ -11,16 +11,15 @@ Customer → +1 (225) 529-1680 (Twilio)
          → tools: submit_intake | submit_estimate | get_open_slots
 ```
 
-**Default flow:** Twilio plays a short main menu (press 1 = service, press 2 = estimate), then connects straight to Retell — **no second keypad menu**. Say "text link" at the main menu to get an SMS form instead. Set `RETELL_SKIP_DTMF_MENU=true` to skip the main menu entirely.
+**Default flow:** Twilio main menu → channel choice (phone AI vs text link) → Retell or SMS. Say "text link" at the main menu to skip straight to SMS. Set `RETELL_SKIP_DTMF_MENU=true` to skip menus entirely.
 
 Example flow:
 - Caller hears main menu (press 1 = service, press 2 = estimate)
-- Press 1 → Retell **booking agent** starts intake on the call
-- Press 2 → Retell **estimate agent** starts free-estimate intake
-- Say "text link" → SMS form sent, call ends
-- Phone intake → one question at a time → `submit_intake` (no verbal time slots) → SMS link to pick visit time on the portal calendar
+- Press 1 → **channel menu**: press/say 1 = text link · press/say 2 = talk on the phone (Retell booking agent)
+- Press 2 → **estimate channel**: press/say 1 = talk on phone · press/say 2 = text link
+- Say "text link" at main menu → SMS form sent, call ends
+- Phone intake → one question at a time → `submit_intake` (no verbal time slots) → SMS link to confirm address + pick visit time
 - Estimate intake → `submit_estimate` → shop follow-up
-- Say "text link" → SMS form sent, call ends
 
 **Auto-sync:** On every Vercel production deploy, `postbuild-retell-sync.mjs` pushes the latest prompt and tools to Retell (when `RETELL_API_KEY` is set in Vercel).
 
@@ -81,7 +80,7 @@ curl https://effiroad.com/api/retell/status
 
 Expect `ok: true` and `forwardNumberConfigured: true`.
 
-**Live test:** call your Effiroad number → hear main menu → press **1** (service) → press **1** (talk now) → professional dispatcher collects name, address, issue.
+**Live test:** call your Effiroad number → main menu → press **1** (service) → press **2** (talk on the phone) → AI collects name, address, issue. Or after press 1, press **1** for the SMS form.
 
 If Retell fails to connect, Twilio falls back to scripted speech intake automatically (`/api/twilio/dial-fallback`).
 

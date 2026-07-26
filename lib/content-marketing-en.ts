@@ -85,7 +85,7 @@ export const callExperienceEn = {
     },
     {
       title: "Polite, respectful intake",
-      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. Short main menu (1 = service, 2 = estimate) then straight to AI — no second keypad, no live-agent transfer fees.",
+      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. Main menu (1 = service, 2 = estimate), then choose talk on the phone or a text form — no live-agent transfer fees.",
     },
     {
       title: "Complete info before dispatch",
@@ -127,7 +127,7 @@ export const productStackEn = {
       label: "AI phone layer",
       title: "Catch every emergency you miss on site",
       description:
-        "After-hours, storm surge, and no-answer overflow forward to Effiroad. Short menu: press 1 = service AI, press 2 = estimate AI — or say “text link” for an SMS form. Loss type, address, and how fast they need you.",
+        "After-hours, storm surge, and no-answer overflow forward to Effiroad. Menu: press 1 = service (then phone AI or text link), press 2 = estimate (same choice) — or say “text link” for an SMS form. Loss type, address, and how fast they need you.",
       points: [
         "Same company number on Google",
         "Water / fire / mold / sewage triage",
@@ -642,7 +642,7 @@ export const howItWorksEn = {
       step: "04",
       title: "Test call + dashboard",
       description:
-        "Press 1 = emergency intake/dispatch (AI on the call). Press 2 = free estimate AI ($0 — never billed). Say “text link” for an SMS form. Only approved/scheduled emergency jobs count toward your dispatch plan.",
+        "Press 1 = service (then choose AI on the call or SMS form). Press 2 = free estimate ($0 — never billed; phone or text). Say “text link” at the main menu for SMS. Only approved/scheduled emergency jobs count toward your dispatch plan.",
     },
   ],
 };

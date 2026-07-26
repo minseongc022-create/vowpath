@@ -18,4 +18,4 @@ console.log("  Phone:", result.phone);
 console.log("  Agent:", result.agentId);
 console.log("  LLM:", result.llmId);
 console.log("  Voice:", result.voiceId);
-console.log("\nTest: call your shop line — main menu press 1 → AI intake (or say text link for SMS form).");
+console.log("\nTest: call your shop line — press 1 → press 2 for AI on the call (or press 1 for SMS form).");

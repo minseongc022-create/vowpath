@@ -65,13 +65,13 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
 
 /**
  * Production flow:
- * Press 1/2 → Retell · Say “text link” → SMS form
+ * Press 1 → phone vs text link · Press 2 → estimate channel · Say “text link” → SMS
  * Phone: name + address + issue (read-back) → SMS confirm/edit address + pick-time
  * Then owner/crew → live map
  */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 20;
-  const LINK_START = 25;
+  const ESTIMATE_START = 22;
+  const LINK_START = 27;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -85,14 +85,13 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       options: [
         {
           id: "1",
-          label: "Press 1 / say service — AI booking on this call",
-          customerText:
-            "Sewage is backing up in my basement — it's coming through the floor drain.",
-          transition: "retell-connect",
+          label: "Press 1 / say service — then phone or text link",
+          customerText: "[Pressed 1 — service]",
+          transition: "soft",
         },
         {
           id: "2",
-          label: "Press 2 / say estimate — AI estimate on this call",
+          label: "Press 2 / say estimate — then phone or text link",
           customerText: "[Pressed 2 — free estimate]",
           jumpTo: ESTIMATE_START,
           transition: "retell-connect",
@@ -103,6 +102,33 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
           customerText: "Text me the link please.",
           jumpTo: LINK_START,
           transition: "sms",
+        },
+      ],
+    },
+    {
+      kind: "ai-voice",
+      text:
+        `Hi — thanks for calling ${RESTORATION_SHOP}. ` +
+        `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
+        `Say talk on the phone or press 2, and we'll walk through it with you right here.`,
+    },
+    {
+      kind: "menu",
+      prompt: "Service — phone AI or text link",
+      options: [
+        {
+          id: "ch-link",
+          label: "Press 1 / say text link — SMS form",
+          customerText: "Text link please.",
+          jumpTo: LINK_START,
+          transition: "sms",
+        },
+        {
+          id: "ch-phone",
+          label: "Press 2 / say talk on the phone — AI on this call",
+          customerText:
+            "Sewage is backing up in my basement — it's coming through the floor drain.",
+          transition: "retell-connect",
         },
       ],
     },
@@ -196,7 +222,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 20
+    // ESTIMATE_START = 22
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -222,7 +248,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       text: "ESTIMATE · Jordan Lee · Basement water · Reply from dashboard to send quote",
       variant: "owner",
     },
-    // LINK_START = 25
+    // LINK_START = 27
     {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
@@ -237,8 +263,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 20;
-  const LINK_START = 25;
+  const ESTIMATE_START = 22;
+  const LINK_START = 27;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -252,13 +278,13 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       options: [
         {
           id: "1",
-          label: "Press 1 / say service — AI booking on this call",
-          customerText: "No heat — it's fifty-eight degrees inside and we've got kids home.",
-          transition: "retell-connect",
+          label: "Press 1 / say service — then phone or text link",
+          customerText: "[Pressed 1 — service]",
+          transition: "soft",
         },
         {
           id: "2",
-          label: "Press 2 / say estimate — AI estimate on this call",
+          label: "Press 2 / say estimate — then phone or text link",
           customerText: "[Pressed 2 — free estimate]",
           jumpTo: ESTIMATE_START,
           transition: "retell-connect",
@@ -269,6 +295,32 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
           customerText: "I'd like the text link please.",
           jumpTo: LINK_START,
           transition: "sms",
+        },
+      ],
+    },
+    {
+      kind: "ai-voice",
+      text:
+        `Hi — thanks for calling ${HVAC_SHOP}. ` +
+        `Say text link or press 1, and we'll text you a quick form — about a minute on your phone. ` +
+        `Say talk on the phone or press 2, and we'll walk through it with you right here.`,
+    },
+    {
+      kind: "menu",
+      prompt: "Service — phone AI or text link",
+      options: [
+        {
+          id: "ch-link",
+          label: "Press 1 / say text link — SMS form",
+          customerText: "Text link please.",
+          jumpTo: LINK_START,
+          transition: "sms",
+        },
+        {
+          id: "ch-phone",
+          label: "Press 2 / say talk on the phone — AI on this call",
+          customerText: "No heat — it's fifty-eight degrees inside and we've got kids home.",
+          transition: "retell-connect",
         },
       ],
     },
@@ -359,7 +411,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       kind: "system",
       text: "Live map active while en route · Ends when the visit finishes",
     },
-    // ESTIMATE_START = 20
+    // ESTIMATE_START = 22
     {
       kind: "ai-voice",
       text: "I'm glad you called — happy to help with your estimate. What's your name?",
@@ -408,12 +460,12 @@ export function getGasHoldInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "menu",
-      prompt: "Main menu — one press",
+      prompt: "Main menu — then phone or text",
       options: [
         {
           id: "1",
-          label: "Press 1 / say service — AI booking on this call",
-          customerText: "[Pressed 1]",
+          label: "Press 1 / say service — then talk on the phone",
+          customerText: "[Pressed 1 → 2 talk on phone]",
           transition: "retell-connect",
         },
       ],

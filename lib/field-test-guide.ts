@@ -51,7 +51,7 @@ export function buildFieldTestGuide(params: {
         id: "link_intake",
         title: "1. Book via SMS link",
         steps: [
-          `Call ${twilio} → press 1`,
+          `Call ${twilio} → press 1 (service) → press 1 (text link)`,
           `Customer phone ${FIELD_TEST_CUSTOMER.phone} receives link`,
           `Open link → name: ${FIELD_TEST_CUSTOMER.name}`,
           `Address: ${FIELD_TEST_CUSTOMER.address}`,

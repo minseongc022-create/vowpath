@@ -88,7 +88,7 @@ export const demoSummaryEn = {
     },
     {
       title: "Voice AI or text link",
-      body: "Press 1 for service/emergency or press 2 for a free estimate — both go straight to AI on the call. Prefer a form? Say “text link” at the main menu for a one-minute SMS form on link.effiroad.com.",
+      body: "Press 1 for service/emergency, then choose talk on the phone or a one-minute text form. Press 2 for a free estimate (same phone-or-text choice). Or say “text link” at the main menu for SMS on link.effiroad.com.",
     },
     {
       title: "Pick-time, then dispatch",

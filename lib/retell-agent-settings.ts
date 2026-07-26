@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "hybrid-address-v30-2026-07-24";
+export const RETELL_PROMPT_VERSION = "channel-menu-clear-voice-v31-2026-07-26";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -222,37 +222,38 @@ function sharedAgentPatch(): Record<string, unknown> {
     voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.28,
+    // Slightly higher = answers sooner when the caller finishes (still waits to hear them out).
+    interruption_sensitivity: 0.36,
     enable_backchannel: false,
-    reminder_trigger_ms: 12000,
+    reminder_trigger_ms: 10000,
     reminder_max_count: 1,
   };
 }
 
-/** Deep masculine service / emergency intake — thick body, snappier turns. */
+/** Deep masculine service / emergency — louder, clearer enunciation, snappy turns. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    // Lower temp = steadier / less thin; slight slowdown adds body without dragging.
-    voice_temperature: 0.5,
-    voice_speed: 0.97,
-    volume: 1.28,
-    responsiveness: 0.74,
+    // Lower temp = steadier / clearer; slower speed = more enunciated on phone.
+    voice_temperature: 0.42,
+    voice_speed: 0.9,
+    volume: 1.55,
+    responsiveness: 0.86,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same thick masculine presence, slightly snappier. */
+/** Estimate intake — same clear/loud presence, slightly snappier. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.52,
-    voice_speed: 0.97,
-    volume: 1.28,
-    responsiveness: 0.76,
+    voice_temperature: 0.44,
+    voice_speed: 0.9,
+    volume: 1.55,
+    responsiveness: 0.88,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

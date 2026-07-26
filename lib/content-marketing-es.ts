@@ -374,7 +374,7 @@ export const demoSummaryEs = {
     },
     {
       title: "Voz o enlace SMS",
-      body: "Pulsa 1 = servicio/emergencia o 2 = presupuesto gratis — ambos van directo a la IA en la llamada. ¿Prefiere formulario? Digan “text link” en el menú para un SMS de ~1 minuto en link.effiroad.com. Nombre, dirección y tipo de pérdida — por cualquier vía.",
+      body: "Pulsa 1 = servicio/emergencia (luego elija IA en la llamada o formulario por texto). Pulsa 2 = presupuesto gratis (misma elección). Digan “text link” en el menú principal para un SMS de ~1 minuto en link.effiroad.com. Nombre, dirección y tipo de pérdida — por cualquier vía.",
     },
     {
       title: "Tú sigues al mando",

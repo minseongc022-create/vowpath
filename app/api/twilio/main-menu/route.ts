@@ -8,7 +8,14 @@ import { resolveMainMenuChoice } from "@/lib/ivr-channel-choice";
 import { sendVoiceLinkIntakeSms } from "@/lib/call-intake/voice-link-sms";
 import { resolveTenantUserId } from "@/lib/tenant-routing";
 import { twilioBlockIfNotEntitled } from "@/lib/tenant-product-access";
-import { twimlResponse, twimlSay } from "@/lib/twilio-xml";
+import { shopDisplayNameForUser, DEFAULT_SHOP_DISPLAY_NAME } from "@/lib/link-intake-brand";
+import { getShopBookingSettings } from "@/lib/shop-settings-db";
+import {
+  twimlGatherChannelChoice,
+  twimlGatherEstimateMenu,
+  twimlResponse,
+  twimlSay,
+} from "@/lib/twilio-xml";
 import { voiceLinkSmsFailed, voiceLinkSmsSent } from "@/lib/voice-copy";
 
 function twimlXml(body: string) {
@@ -18,15 +25,20 @@ function twimlXml(body: string) {
 async function resolveSubMenuContext(to: string, from: string, callSid: string) {
   const userId = await resolveTenantUserId({ to, from, callSid });
   if (!userId) {
-    return { userId: null as string | null };
+    return { userId: null as string | null, shopName: DEFAULT_SHOP_DISPLAY_NAME, stormMode: false };
   }
-  return { userId };
+  const [shopName, settings] = await Promise.all([
+    shopDisplayNameForUser(userId),
+    getShopBookingSettings(userId),
+  ]);
+  return { userId, shopName, stormMode: settings.stormModeEnabled };
 }
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const url = new URL(request.url);
   const afterHours = url.searchParams.get("afterHours") === "1";
+  const afterQ = afterHours ? { afterHours: "1" as const } : {};
 
   const form = new URLSearchParams(rawBody);
   const digit = form.get("Digits");
@@ -84,18 +96,23 @@ export async function POST(request: Request) {
   if (digit === "2" || resolveMainMenuChoice(digit, speech) === "estimate") {
     const { markCallPathEstimate } = await import("@/lib/call-path-meter");
     await markCallPathEstimate(callSid);
-    // One press → estimate AI (no second "link vs phone" menu).
-    return twimlXml(
-      await buildRetellBridgeTwiml({ ...bridgeParams, ivrPath: "phone_estimate" }),
-    );
+    const estimateUrl = buildTwilioCallbackUrl("/api/twilio/estimate", {
+      callSid,
+      ...afterQ,
+    });
+    return twimlXml(twimlResponse(twimlGatherEstimateMenu(estimateUrl)));
   }
 
-  // Service/emergency (press 1 or say service/book/emergency) → Retell immediately.
-  // Second "press 1 for link / 2 for phone" menu removed — callers were tapping twice.
-  // Text link still available by saying "text link" at the main menu (above).
+  // Service/emergency → ask phone AI vs text link (do not skip this menu).
   if (digit === "1" || resolveMainMenuChoice(digit, speech) === "booking") {
+    const channelUrl = buildTwilioCallbackUrl("/api/twilio/channel", {
+      callSid,
+      ...afterQ,
+    });
     return twimlXml(
-      await buildRetellBridgeTwiml({ ...bridgeParams, ivrPath: "phone_booking" }),
+      twimlResponse(
+        twimlGatherChannelChoice(channelUrl, ctx.shopName, afterHours, ctx.stormMode),
+      ),
     );
   }
 

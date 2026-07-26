@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "address-link-v29-2026-07-24";
+export const RETELL_PROMPT_VERSION = "channel-menu-clear-voice-v31-2026-07-26";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
@@ -185,36 +185,36 @@ function sharedAgentPatch() {
     voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.28,
+    interruption_sensitivity: 0.36,
     enable_backchannel: false,
-    reminder_trigger_ms: 12000,
+    reminder_trigger_ms: 10000,
     reminder_max_count: 1,
   };
 }
 
-/** Deep masculine service / emergency intake — thick body, snappier turns. */
+/** Deep masculine service / emergency — louder, clearer enunciation, snappy turns. */
 export function buildRetellBookingAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.5,
-    voice_speed: 0.97,
-    volume: 1.28,
-    responsiveness: 0.74,
+    voice_temperature: 0.42,
+    voice_speed: 0.9,
+    volume: 1.55,
+    responsiveness: 0.86,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same thick masculine presence, slightly snappier. */
+/** Estimate intake — same clear/loud presence, slightly snappier. */
 export function buildRetellEstimateAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.52,
-    voice_speed: 0.97,
-    volume: 1.28,
-    responsiveness: 0.76,
+    voice_temperature: 0.44,
+    voice_speed: 0.9,
+    volume: 1.55,
+    responsiveness: 0.88,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

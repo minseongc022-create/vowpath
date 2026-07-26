@@ -206,7 +206,7 @@ export const productStackHvac = {
       label: "AI phone layer",
       title: "Catch every emergency you miss on the job",
       description:
-        "After-hours, overflow, and no-answer calls forward to Effiroad. Short menu: press 1 = service AI, press 2 = estimate AI — or say “text link” for an SMS form. Issue type, address, and how urgent it is.",
+        "After-hours, overflow, and no-answer calls forward to Effiroad. Menu: press 1 = service (then phone AI or text link), press 2 = estimate — or say “text link” for an SMS form. Issue type, address, and how urgent it is.",
       points: [
         "Same company number on Google",
         "No-heat / no-cool / gas smell triage",
