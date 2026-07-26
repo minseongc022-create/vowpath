@@ -33,8 +33,8 @@ export default function SignupPage() {
       <main className="sc-container flex min-h-[70vh] items-center py-12">
         <div className="mx-auto grid w-full max-w-4xl gap-10 lg:grid-cols-2 lg:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pine-700">시작</p>
-            <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            <p className="text-xs font-semibold tracking-[0.16em] text-pine-700">시작</p>
+            <h1 className="mt-3 font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
               데모 사무소로 {SITE.name}를 열어보세요.
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-ink-muted sm:text-base">

@@ -15,7 +15,7 @@ export type ClientAccount = {
   phone: string;
   email?: string;
   docs: DocKind[];
-  deadlineDay: number; // day of month
+  deadlineDay: number;
   status: ChaseStatus;
   lastSentAt?: string;
   submittedAt?: string;
@@ -30,10 +30,17 @@ export type OfficeProfile = {
   plan: "starter" | "standard" | "pro";
 };
 
+export type ActivityItem = {
+  id: string;
+  at: string;
+  message: string;
+};
+
 export type AppState = {
   profile: OfficeProfile;
   clients: ClientAccount[];
   monthLabel: string;
+  activity: ActivityItem[];
 };
 
 export const DOC_KINDS: DocKind[] = [

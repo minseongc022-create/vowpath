@@ -1,6 +1,6 @@
-import type { AppState, ClientAccount } from "./types";
+import type { ActivityItem, AppState, ClientAccount, DocKind } from "./types";
 
-const STORAGE_KEY = "suimcheck.v1";
+const STORAGE_KEY = "suimcheck.v2";
 
 function monthLabel(d = new Date()) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
@@ -90,6 +90,13 @@ export const DEMO_CLIENTS: ClientAccount[] = [
   },
 ];
 
+function pushActivity(list: ActivityItem[], message: string): ActivityItem[] {
+  return [
+    { id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, at: new Date().toISOString(), message },
+    ...list,
+  ].slice(0, 40);
+}
+
 export function createDemoState(): AppState {
   return {
     profile: {
@@ -101,19 +108,42 @@ export function createDemoState(): AppState {
     },
     clients: DEMO_CLIENTS,
     monthLabel: monthLabel(),
+    activity: [
+      {
+        id: "a0",
+        at: new Date().toISOString(),
+        message: "데모 사무소가 준비되었습니다. 미제출 수임처부터 요청해 보세요.",
+      },
+    ],
+  };
+}
+
+function migrate(raw: unknown): AppState {
+  const base = createDemoState();
+  if (!raw || typeof raw !== "object") return base;
+  const obj = raw as Partial<AppState> & { clients?: ClientAccount[] };
+  return {
+    ...base,
+    ...obj,
+    profile: { ...base.profile, ...(obj.profile || {}) },
+    clients: Array.isArray(obj.clients) ? obj.clients : base.clients,
+    monthLabel: obj.monthLabel || base.monthLabel,
+    activity: Array.isArray(obj.activity) ? obj.activity : base.activity,
   };
 }
 
 export function loadState(): AppState {
   if (typeof window === "undefined") return createDemoState();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem("suimcheck.v1");
     if (!raw) {
       const fresh = createDemoState();
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
     }
-    return JSON.parse(raw) as AppState;
+    const parsed = migrate(JSON.parse(raw));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    return parsed;
   } catch {
     return createDemoState();
   }
@@ -130,6 +160,37 @@ export function resetDemoState(): AppState {
   return fresh;
 }
 
+export function withActivity(state: AppState, message: string): AppState {
+  return { ...state, activity: pushActivity(state.activity || [], message) };
+}
+
+/** Simple CSV splitter that respects double quotes. */
+function splitCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (ch === "," && !inQuotes) {
+      out.push(cur.trim());
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+
 export function parseClientsCsv(text: string): Omit<ClientAccount, "id" | "status">[] {
   const lines = text
     .trim()
@@ -137,14 +198,13 @@ export function parseClientsCsv(text: string): Omit<ClientAccount, "id" | "statu
     .map((l) => l.trim())
     .filter(Boolean);
   if (lines.length < 2) return [];
-  const rows = lines.slice(1);
-  return rows.map((row) => {
-    const cols = row.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map((row) => {
+    const cols = splitCsvLine(row).map((c) => c.replace(/^"|"$/g, ""));
     const [name, contactName, phone, docsRaw, deadlineRaw] = cols;
     const docs = (docsRaw || "통장사본")
       .split("|")
       .map((d) => d.trim())
-      .filter(Boolean) as ClientAccount["docs"];
+      .filter(Boolean) as DocKind[];
     return {
       name: name || "이름없음",
       contactName: contactName || "담당자",
@@ -159,9 +219,15 @@ export function summarize(clients: ClientAccount[]) {
   const total = clients.length;
   const done = clients.filter((c) => c.status === "제출완료").length;
   const delayed = clients.filter((c) => c.status === "지연").length;
-  const inFlight = clients.filter((c) =>
-    c.status === "1차발송" || c.status === "2차발송" || c.status === "대기",
+  const inFlight = clients.filter(
+    (c) => c.status === "1차발송" || c.status === "2차발송" || c.status === "대기",
   ).length;
   const rate = total === 0 ? 0 : Math.round((done / total) * 100);
   return { total, done, delayed, inFlight, rate };
+}
+
+export function nextChaseStatus(status: ClientAccount["status"]): ClientAccount["status"] {
+  if (status === "대기" || status === "제출완료") return "1차발송";
+  if (status === "1차발송") return "2차발송";
+  return "지연";
 }
