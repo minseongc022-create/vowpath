@@ -34,6 +34,8 @@ export type JobCard = {
   /** When the quote amount was actually texted to the customer. */
   quoteSentToCustomerAt?: string;
   quoteFollowUpSentAt?: string;
+  /** Automated chase SMS timestamps (48h, 7d, 14d). Legacy: quoteFollowUpSentAt = first entry. */
+  quoteChaseSentAt?: string[];
   /** Full on-site / itemized estimate document. */
   estimateDoc?: EstimateDocument;
 };

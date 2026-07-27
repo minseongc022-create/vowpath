@@ -55,7 +55,7 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/revenue-sync` | `0 11 * * *` | Revenue sync |
 | `/api/cron/daily-summary` | `0 14 * * *` | Daily summary |
 | `/api/cron/beta-cohort-price-step` | `0 10 * * *` | Beta cohort pricing step |
-| `/api/cron/quote-follow-up` | `0 16 * * *` | Quote follow-up SMS |
+| `/api/cron/quote-follow-up` | `0 16 * * *` | Quote chase SMS (48h, 7d, 14d after quote sent) |
 
 ---
 

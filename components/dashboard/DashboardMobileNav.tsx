@@ -7,9 +7,11 @@ import {
   IconAgreements,
   IconBriefing,
   IconCalendar,
+  IconChase,
   IconDashboard,
   IconDiamond,
   IconMissedCalls,
+  IconQuotes,
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
@@ -40,9 +42,13 @@ function IconMenu({ className = "h-5 w-5" }: { className?: string }) {
 export function DashboardMobileNav({
   pendingReviewCount = 0,
   renewingAgreementsCount = 0,
+  openQuotesCount = 0,
+  chaseQueueCount = 0,
 }: {
   pendingReviewCount?: number;
   renewingAgreementsCount?: number;
+  openQuotesCount?: number;
+  chaseQueueCount?: number;
 }) {
   const pathname = usePathname();
   const { locale } = useLocale();
@@ -53,6 +59,8 @@ export function DashboardMobileNav({
   const [moreOpen, setMoreOpen] = useState(false);
 
   const morePaths = [
+    ROUTES.quotes,
+    ROUTES.chase,
     ROUTES.missedCallsAnalytics,
     ROUTES.briefing,
     ROUTES.agreements,
@@ -96,6 +104,20 @@ export function DashboardMobileNav({
   ];
 
   const moreLinks = [
+    {
+      href: ROUTES.quotes,
+      label: v.quotes,
+      icon: <IconQuotes className="h-5 w-5" />,
+      badge: openQuotesCount > 0 ? openQuotesCount : undefined,
+      match: (p: string) => p.startsWith(ROUTES.quotes),
+    },
+    {
+      href: ROUTES.chase,
+      label: v.chase,
+      icon: <IconChase className="h-5 w-5" />,
+      badge: chaseQueueCount > 0 ? chaseQueueCount : undefined,
+      match: (p: string) => p.startsWith(ROUTES.chase),
+    },
     {
       href: ROUTES.missedCallsAnalytics,
       label: v.missedCalls,

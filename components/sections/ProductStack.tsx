@@ -7,7 +7,24 @@ const tierStyles = {
   sub: "border-brand-200/80",
 } as const;
 
-export function ProductStack({ content = siteProductStack }: { content?: typeof siteProductStack }) {
+type ProductStackContent = {
+  id: string;
+  label: string;
+  title: string;
+  subtitle: string;
+  layers: Array<{
+    id: string;
+    tier: keyof typeof tierStyles;
+    badge: string | null;
+    label: string;
+    title: string;
+    description: string;
+    points: string[];
+  }>;
+  footnote: string;
+};
+
+export function ProductStack({ content = siteProductStack }: { content?: ProductStackContent }) {
   const s = content;
 
   return (

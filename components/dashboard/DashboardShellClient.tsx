@@ -7,6 +7,7 @@ import {
   useDashboardData,
 } from "@/lib/hooks/use-dashboard-data";
 import { buildDashboardHomeMetrics } from "@/lib/dashboard-home-metrics";
+import { isInChaseQueue, isOpenQuote } from "@/lib/quote-chase";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SmsFailureAlert } from "@/components/dashboard/SmsFailureAlert";
 import { TrialGate } from "@/components/dashboard/TrialGate";
@@ -63,6 +64,15 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
     return m.pendingReviewCount;
   }, [heroCalls, heroJobs, heroJobberBookings, shop, requestStatuses, jobberConnected]);
 
+  const openQuotesCount = useMemo(
+    () => heroJobs.filter(isOpenQuote).length,
+    [heroJobs],
+  );
+  const chaseQueueCount = useMemo(
+    () => heroJobs.filter(isInChaseQueue).length,
+    [heroJobs],
+  );
+
   const [renewingAgreementsCount, setRenewingAgreementsCount] = useState(0);
 
   useEffect(() => {
@@ -83,6 +93,8 @@ function DashboardShellInner({ children }: DashboardShellClientProps) {
         shopVertical={shop.vertical}
         pendingReviewCount={pendingReviewCount}
         renewingAgreementsCount={renewingAgreementsCount}
+        openQuotesCount={openQuotesCount}
+        chaseQueueCount={chaseQueueCount}
       >
         <TrialGate>{children}</TrialGate>
         <SmsFailureAlert tenantEvents={tenantEvents} />

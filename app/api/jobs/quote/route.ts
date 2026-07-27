@@ -70,6 +70,7 @@ export async function PATCH(request: Request) {
       quotedAmountCents: cents,
       quotedAt: now,
       quoteFollowUpSentAt: undefined,
+      quoteChaseSentAt: sendToCustomer ? [] : job.quoteChaseSentAt,
       ...(sendToCustomer ? { quoteSentToCustomerAt: now } : {}),
       ...(job.requestKind !== "service" &&
       (job.requestKind === "estimate" ||

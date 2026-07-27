@@ -116,6 +116,7 @@ export async function patchJobRecord(
       | "quotedAt"
       | "quoteSentToCustomerAt"
       | "quoteFollowUpSentAt"
+      | "quoteChaseSentAt"
       | "requestKind"
       | "estimateDoc"
     >

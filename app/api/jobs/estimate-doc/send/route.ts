@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       quotedAt: now,
       quoteSentToCustomerAt: now,
       quoteFollowUpSentAt: undefined,
+      quoteChaseSentAt: [],
       requestKind: "estimate",
     });
 

@@ -903,7 +903,7 @@ function QuoteEstimateCard({
       }
       setOkMsg(
         sendToCustomer
-          ? "Quote texted to customer. We’ll nudge them in 3 days if they haven’t booked."
+          ? "Quote texted to customer. Auto chase runs at 48h, 7d, and 14d if they haven’t booked."
           : "Amount saved. Use “Send quote” when you’re ready to text the customer.",
       );
       onSaved();
@@ -912,15 +912,16 @@ function QuoteEstimateCard({
     }
   }
 
-  const subtitle = job.quoteFollowUpSentAt
-    ? `Follow-up text sent ${new Date(job.quoteFollowUpSentAt).toLocaleDateString()}.`
+  const chaseCount = job.quoteChaseSentAt?.length ?? (job.quoteFollowUpSentAt ? 1 : 0);
+  const subtitle = chaseCount > 0
+    ? `${chaseCount} of 3 auto follow-ups sent — last ${new Date((job.quoteChaseSentAt?.[chaseCount - 1] ?? job.quoteFollowUpSentAt)!).toLocaleDateString()}.`
     : job.quoteSentToCustomerAt
-      ? `Quote texted ${new Date(job.quoteSentToCustomerAt).toLocaleDateString()} — auto follow-up in 3 days if still unbooked.`
+      ? `Quote texted ${new Date(job.quoteSentToCustomerAt).toLocaleDateString()} — auto chase at 48h, 7d, 14d if still unbooked.`
       : job.quotedAt
         ? `Amount saved ${new Date(job.quotedAt).toLocaleDateString()} — not texted yet.`
         : isEstimate
           ? "Phone / link estimate lead. Enter your number, text it to the customer, then we chase the follow-up so it doesn’t die in your notes."
-          : "Enter an amount and text it to the customer. If they don’t book, we send one follow-up in 3 days.";
+          : "Enter an amount and text it to the customer. Auto chase at 48h, 7d, and 14d if they don’t book.";
 
   return (
     <InfoCard title={isEstimate ? "Estimate pipeline" : "Quote / estimate"} subtitle={subtitle}>

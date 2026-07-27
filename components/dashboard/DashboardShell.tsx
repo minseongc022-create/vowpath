@@ -7,9 +7,11 @@ import {
   IconAgreements,
   IconBriefing,
   IconCalendar,
+  IconChase,
   IconDashboard,
   IconDiamond,
   IconMissedCalls,
+  IconQuotes,
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
@@ -36,6 +38,8 @@ type DashboardShellProps = {
   shopVertical?: ShopVertical | string | null;
   pendingReviewCount?: number;
   renewingAgreementsCount?: number;
+  openQuotesCount?: number;
+  chaseQueueCount?: number;
   children: React.ReactNode;
 };
 
@@ -53,6 +57,8 @@ export function DashboardShell({
   shopVertical,
   pendingReviewCount = 0,
   renewingAgreementsCount = 0,
+  openQuotesCount = 0,
+  chaseQueueCount = 0,
   children,
 }: DashboardShellProps) {
   const pathname = usePathname();
@@ -77,6 +83,20 @@ export function DashboardShell({
       match: (p) => p.startsWith(`${ROUTES.dashboard}/bookings`),
       badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
       icon: <IconRequests />,
+    },
+    {
+      href: ROUTES.quotes,
+      label: v.quotes,
+      match: (p) => p.startsWith(ROUTES.quotes),
+      badge: openQuotesCount > 0 ? openQuotesCount : undefined,
+      icon: <IconQuotes />,
+    },
+    {
+      href: ROUTES.chase,
+      label: v.chase,
+      match: (p) => p.startsWith(ROUTES.chase),
+      badge: chaseQueueCount > 0 ? chaseQueueCount : undefined,
+      icon: <IconChase />,
     },
     {
       href: ROUTES.calendar,
@@ -198,6 +218,8 @@ export function DashboardShell({
         <DashboardMobileNav
           pendingReviewCount={pendingReviewCount}
           renewingAgreementsCount={renewingAgreementsCount}
+          openQuotesCount={openQuotesCount}
+          chaseQueueCount={chaseQueueCount}
         />
       </div>
     </div>

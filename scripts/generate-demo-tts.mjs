@@ -7,10 +7,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Warm, gently bright American male — natural caring tone, not pitch-shifted. */
+/** Warm, gently bright American male — clear phone presence, not thin. */
 const EDGE_VOICE = "en-US-GuyNeural";
-const EDGE_RATE = "-4%";
-const EDGE_PITCH = "+2Hz";
+const EDGE_RATE = "-6%";
+const EDGE_PITCH = "+0Hz";
 
 const CLIPS = [
   // Restoration voice call — hybrid: name + address + read-back + SMS confirm
@@ -155,7 +155,7 @@ async function openAiTts(text, key) {
       model: "tts-1-hd",
       voice: "onyx",
       input: text,
-      speed: 1.0,
+      speed: 0.95,
     }),
   });
   if (!res.ok) throw new Error(await res.text());

@@ -298,6 +298,7 @@ export async function notifyCustomerQuoteFollowUp(params: {
   bookingId: string;
   phone?: string | null;
   amountCents: number;
+  stage?: number;
 }): Promise<void> {
   const phone =
     params.phone?.trim() ||
@@ -323,8 +324,9 @@ export async function notifyCustomerQuoteFollowUp(params: {
     body: smsCustomerQuoteFollowUpBody({
       shopName: user?.shopName,
       amountCents: params.amountCents,
+      stage: params.stage,
     }),
-    dedupeId: `${params.bookingId}:quote_follow_up`,
+    dedupeId: `${params.bookingId}:quote_follow_up:${params.stage ?? 0}`,
     operation: "customer_quote_follow_up",
     bookingId: params.bookingId,
   });

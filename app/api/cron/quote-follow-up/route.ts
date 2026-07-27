@@ -3,10 +3,14 @@ import { listJobs, patchJobRecord } from "@/lib/jobs-db";
 import { listUsers } from "@/lib/users-db";
 import { hasCustomerMarketingSmsConsent } from "@/lib/customer-marketing-consent";
 import { notifyCustomerQuoteFollowUp } from "@/lib/customer-sms";
+import {
+  isChaseDue,
+  nextChaseStageIndex,
+  quoteAmountCents,
+  quoteChaseSentStages,
+} from "@/lib/quote-chase";
 
-const FOLLOW_UP_AFTER_DAYS = 3;
-
-/** Daily: nudges customers who were texted a quote but haven't booked N days later. */
+/** Daily: multi-stage chase SMS for quotes sent but not booked (48h, 7d, 14d). */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   const isDeployed = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
@@ -25,8 +29,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cutoff = Date.now() - FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000;
     const users = await listUsers();
+    const now = Date.now();
 
     let checked = 0;
     let sent = 0;
@@ -35,34 +39,34 @@ export async function GET(request: Request) {
 
     for (const user of users) {
       const jobs = await listJobs(user.id);
-      const due = jobs.filter((j) => {
-        const sentAt = j.quoteSentToCustomerAt || j.quotedAt;
-        return (
-          Boolean(sentAt) &&
-          Boolean(j.quotedAmountCents) &&
-          !j.quoteFollowUpSentAt &&
-          new Date(sentAt!).getTime() <= cutoff &&
-          j.status !== "completed" &&
-          j.status !== "scheduled" &&
-          j.status !== "rejected"
-        );
-      });
+      const due = jobs.filter((j) => isChaseDue(j, now));
       checked += due.length;
 
       for (const job of due) {
         try {
+          const stageIndex = nextChaseStageIndex(job);
+          const amount = quoteAmountCents(job);
+          if (stageIndex == null || !amount) continue;
+
           if (!(await hasCustomerMarketingSmsConsent(user.id, job.id))) {
-            // Leave open — customer may opt in later. Do not burn the follow-up slot.
             skippedNoConsent += 1;
             continue;
           }
+
           await notifyCustomerQuoteFollowUp({
             userId: user.id,
             bookingId: job.id,
-            amountCents: job.quotedAmountCents!,
+            amountCents: amount,
+            stage: stageIndex,
           });
+
+          const sentAt = new Date().toISOString();
+          const prev = quoteChaseSentStages(job);
+          const nextChase = [...prev, sentAt];
+
           await patchJobRecord(user.id, job.id, {
-            quoteFollowUpSentAt: new Date().toISOString(),
+            quoteChaseSentAt: nextChase,
+            quoteFollowUpSentAt: job.quoteFollowUpSentAt ?? sentAt,
           });
           sent += 1;
         } catch (e) {

@@ -50,6 +50,7 @@ import { PendingReviewQueue } from "@/components/dashboard/PendingReviewQueue";
 import { AppPage } from "@/components/ui/AppPage";
 import { CollectedRevenuePanel } from "@/components/dashboard/CollectedRevenuePanel";
 import { RecoveryMetricsPanel } from "@/components/dashboard/RecoveryMetricsPanel";
+import { QuoteChasePromo } from "@/components/dashboard/QuoteChasePromo";
 import { GuidedTour } from "@/components/shared/GuidedTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/guided-tour-steps";
 
@@ -253,6 +254,8 @@ export function DashboardHomeView() {
           </div>
         </div>
       </header>
+
+      <QuoteChasePromo />
 
       {jobberError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">

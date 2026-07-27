@@ -19,7 +19,7 @@ const prompt = readFileSync(join(root, "lib/retell-prompt.ts"), "utf8");
 const faq = readFileSync(join(root, "lib/content-marketing-en.ts"), "utf8");
 
 test("phone prompt collects verbal address then SMS confirm", () => {
-  assert.match(RETELL_PROMPT_VERSION, /channel-menu-clear-voice-v31|hybrid-address/);
+  assert.match(RETELL_PROMPT_VERSION, /quote-chase-clear-voice-v32|channel-menu-clear-voice|hybrid-address/);
   assert.match(prompt, /Collect: name, full street address/i);
   assert.match(prompt, /confirm that address and pick your visit time/i);
   assert.doesNotMatch(prompt, /Do NOT collect the full street address on the phone/i);

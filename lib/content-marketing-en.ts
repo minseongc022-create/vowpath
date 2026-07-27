@@ -116,14 +116,14 @@ export const callExperienceEn = {
 export const productStackEn = {
   id: "product-stack",
   label: "What Effiroad is",
-  title: "One platform — three layers",
+  title: "Answer · Quote · Chase",
   subtitle:
-    "Answering services take a message. Effiroad captures the loss, triages urgency, alerts you when it matters, and gets a tech rolling — without voicemail roulette.",
+    "Answering services take a message. Effiroad answers the phone, helps you leave with a real quote on-site, and chases it until the customer books — without a second app.",
   layers: [
     {
       id: "phone",
       tier: "core" as const,
-      badge: "Main",
+      badge: "Answer",
       label: "AI phone layer",
       title: "Catch every emergency you miss on site",
       description:
@@ -136,38 +136,38 @@ export const productStackEn = {
       ],
     },
     {
-      id: "analytics",
-      tier: "sub" as const,
-      badge: null,
-      label: "AI analytics",
-      title: "See what almost went to the franchise",
+      id: "quote",
+      tier: "core" as const,
+      badge: "Quote",
+      label: "On-site estimates",
+      title: "Leave with a number, not a promise",
       description:
-        "Dashboard KPIs and missed-call prevention — know what would have hit voicemail and what turned into a booked emergency job.",
+        "Line-item estimates from the truck — labor, materials, photos, insurance fields. Text customers a branded share link before you pull away.",
       points: [
-        "Emergencies, pending dispatch, confirmations",
-        "Missed-call analytics page",
-        "Trend charts + drill-downs",
-        "Recovery estimates (not accounting)",
+        "HVAC + restoration presets",
+        "Mobile share page for homeowners",
+        "Quick dollar quote or full doc",
+        "Dashboard Quotes tab",
       ],
     },
     {
-      id: "assistant",
-      tier: "sub" as const,
-      badge: null,
-      label: "Effiroad AI",
-      title: "Your ops assistant in your pocket",
+      id: "chase",
+      tier: "core" as const,
+      badge: "Chase",
+      label: "Auto follow-up",
+      title: "We nudge until they book",
       description:
-        "Ask what came in overnight, what's waiting on your 1 / 2, or who's on the way — and change dispatch rules in plain English from the truck.",
+        "After you text a quote, Effiroad sends polite SMS at 48 hours, 7 days, and 14 days — so estimates don’t die in your notes app.",
       points: [
-        "Morning briefing on open",
-        "Pending approvals + Cat-3 flags",
-        "Guarded settings changes",
-        "Optional daily SMS briefing",
+        "Dedicated Chase queue",
+        "Opt-out compliant",
+        "Stops when scheduled",
+        "Works with press-2 leads",
       ],
     },
   ],
   footnote:
-    "Optional CRM sync, crew round-robin texts, and secure update/reschedule links are built in — connect what you use, skip what you don't.",
+    "Plus analytics, Shop AI, optional Jobber sync, crew round-robin, and live ETA maps — connect what you use, skip what you don’t.",
 };
 
 export const missedCallFlowEn = {

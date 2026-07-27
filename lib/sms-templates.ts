@@ -357,6 +357,7 @@ export function smsCustomerReviewRequestBody(params: {
 export function smsCustomerQuoteFollowUpBody(params: {
   shopName?: string;
   amountCents: number;
+  stage?: number;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const amount = (params.amountCents / 100).toLocaleString("en-US", {
@@ -364,6 +365,13 @@ export function smsCustomerQuoteFollowUpBody(params: {
     currency: "USD",
     maximumFractionDigits: 0,
   });
+  const stage = params.stage ?? 0;
+  if (stage === 1) {
+    return `${shop}: Still thinking about the ${amount} estimate? Happy to answer questions or find a time that works. Reply here anytime.${smsCustomerOptOut()}`;
+  }
+  if (stage === 2) {
+    return `${shop}: Quick check-in on your ${amount} estimate — we're here when you're ready to book or tweak the scope.${smsCustomerOptOut()}`;
+  }
   return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.${smsCustomerOptOut()}`;
 }
 

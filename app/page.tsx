@@ -24,6 +24,7 @@ import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
 import { DataTrust } from "@/components/sections/DataTrust";
+import { QuoteChaseSpotlight } from "@/components/sections/QuoteChaseSpotlight";
 
 type HomePageProps = {
   searchParams: Promise<{ view?: string }>;
@@ -42,6 +43,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <Header session={session} />
       <main className="flex-1 w-full min-w-0">
         <Hero />
+        <QuoteChaseSpotlight />
         <LandingQuickQA />
         <CallExperience />
         <DemoVideoHero />
