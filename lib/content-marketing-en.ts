@@ -19,19 +19,19 @@ const CHECKOUT_CTA = getCheckoutCta();
 /** Vertical-neutral — shown identically on every landing page above the vertical-specific
  *  sections below it. Keep this short: the pitch that's true for any home-service shop. */
 export const heroEn = {
-  badge: "The Road to Efficiency",
+  badge: "Phone → truck for restoration",
   headline: "Never miss another emergency job.",
-  headlineAccent: "Answer. Dispatch. Document — around the clock.",
+  headlineAccent: "Answer like your best night lead — then roll the crew.",
   brandLine:
-    "When your crew can't pick up, Effiroad answers like a trained receptionist — clear cinematic US voice, calm and thorough. Then smart dispatch: clear jobs roll to your on-call tech; risky or unclear intakes wait for your text — reply 1 to send, 2 to pass.",
+    "Effiroad is not a generic AI receptionist. When your crew can't pick up, it answers with a calm, clear US voice, captures the loss, and dispatches: clear water jobs text your on-call tech; fire, Cat-3, or fuzzy intakes wait for your text — reply 1 to send, 2 to pass. Homeowners get ETA SMS + a live map — no app.",
   subhead:
-    "Built for independent restoration and home-service shops. Keep your main number or use a dedicated Effiroad line. Auto crew texts, live ETA map, owner control — no CRM required.",
-  trustLine: "1–15 crew shops · No CRM required · Forward or dedicated number",
+    "Built for independent water / fire / mold shops (1–15 crew). Keep your Google number or use a dedicated Effiroad line. You stay in control; Effiroad never sleeps, never forgets a hold rule, and never leaves a panicked homeowner in voicemail.",
+  trustLine: "1–15 crew · No CRM required · Pay when a job is approved · Forward or dedicated number",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "Thick clear US male voice",
+    "Calm cinematic US voice",
     "Keep your number — or ours",
     "Auto crew SMS + live ETA map",
     "Owner 1 / 2 on risky jobs",
@@ -74,41 +74,41 @@ export const quickFaqEn = {
 
 export const callExperienceEn = {
   id: "call-experience",
-  label: "Phone experience",
-  title: "Sounds cinematic. Collects everything. Dispatches right.",
+  label: "Shop + homeowner",
+  title: "Better for your crew — and better for the person standing in water.",
   subtitle:
-    "Homeowners in a panic don't want a form or hold music — they want someone clear and calm who gets the address right and gets a tech rolling.",
+    "Owners stay in control without living on the phone. Homeowners get a calm, thorough intake and a live map when a tech is coming — not hold music, not “someone will call you back.”",
   points: [
     {
-      title: "Thick, clear US male voice",
-      body: "Phone-tuned masculine US voice — grounded and clear, not muddy, thin, or robotic. Same professional voice on every call, 2 AM or 2 PM.",
+      title: "For the shop: never tired at 2 AM",
+      body: "Same clear US voice every call. Clear water can auto-text your on-call tech. Fire, Cat-3, or fuzzy details wait for your 1 / 2 — a human night receptionist often books blind or only takes a message.",
     },
     {
-      title: "Polite, respectful intake",
-      body: "Listens first, asks one question at a time, and confirms details back — the way a good receptionist would. Main menu (1 = service, 2 = estimate), then choose talk on the phone or a text form — no live-agent transfer fees.",
+      title: "For the homeowner: calm when they're panicking",
+      body: "Listens first, one question at a time, reads the address back. Then a secure SMS link to confirm the pin and pick a window — no app install, no verbal calendar roulette.",
     },
     {
-      title: "Complete info before dispatch",
-      body: "Name, issue, and street address on the call (read back). Then a secure SMS link to confirm or fix the address with typed/map search and pick the visit window — no verbal calendar slots.",
+      title: "Complete info before a truck rolls",
+      body: "Name, loss type, urgency, address, insurance notes — verified on the call or link. Techs get a Job Card, not a voicemail transcript.",
     },
     {
-      title: "Schedule, then roll the truck",
-      body: "Once address + time are confirmed, clear jobs can schedule and text your crew (accept/pass). Risky or unclear intakes ping you: 1 = go, 2 = pass — then live ETA map for the homeowner.",
+      title: "Live ETA map — free, no app",
+      body: "Once a tech is on the way, the homeowner gets SMS + a browser map. Answering services almost never do this; a busy human often forgets.",
     },
   ],
   contrast: {
-    title: "What we fixed that reviews flag elsewhere",
+    title: "Why this beats a tired human or a message-only bot",
     theirs: [
-      "Per-minute billing and surprise transfer fees",
-      "Rigid form-style questions — \"a form with a voice\"",
-      "Complex calls default to message-taking only",
-      "No crew texting / no live customer map",
+      "Voicemail / “we'll call you back” while water rises",
+      "Night receptionist books blind or drops complex calls to a note",
+      "Per-minute billing and surprise live-agent transfer fees",
+      "No crew texting · no live customer map",
     ],
     ours: [
-      "Clear plans: dispatch billing or Voice per-minute — no surprise transfer fees",
-      "Conversational intake tuned for restoration + HVAC",
-      "Real auto crew dispatch on clear jobs — you approve the edge cases",
-      "On-my-way SMS + free live ETA map (no app install)",
+      "Instant answer · structured loss intake every time",
+      "Clear jobs dispatch; risky ones wait for your 1 / 2",
+      "Pay per approved dispatch (or clear Voice minutes) — no transfer fees",
+      "Auto crew SMS + free live ETA map for the homeowner",
     ],
   },
 } as const;
@@ -758,12 +758,12 @@ export const signupFlowEn = {
 export const pricingEn = {
   title: "One water loss at 2 AM pays for the year",
   subtitle:
-    "Pick how you pay: per approved emergency dispatch, or included talk-minutes. Free estimate calls on every plan — no per-estimate fee. No live-agent transfer add-ons.",
+    "Start from $29–$49/mo. You only pay per approved emergency dispatch on our recommended track — free estimate calls always. Built so independents can stay subscribed without bill shock, while one saved job still covers months of Flex or Pro.",
   billingTracks: {
     dispatch: {
       id: "dispatch" as const,
       label: "Per approved dispatch",
-      hint: "Only bill when a real emergency job is approved — our recommended model",
+      hint: "Recommended — only bill when a real emergency job is approved",
     },
     voice: {
       id: "voice" as const,
@@ -774,7 +774,7 @@ export const pricingEn = {
   compare: [
     { label: "AI phone + link intake", amount: "Included" },
     { label: "Free estimate calls (press 2)", amount: "Included — $0 each", highlight: true },
-    { label: "Billing choice", amount: "Dispatch track or Voice minutes", highlight: true },
+    { label: "Most shops start on", amount: `Flex ${SITE.flexBasePrice}/mo + ${SITE.flexPerBooking}/dispatch`, highlight: true },
     { label: "Owner control", amount: "1 / 2 hold + 9 undo on every plan", highlight: true },
   ],
   plans: [
@@ -800,7 +800,7 @@ export const pricingEn = {
       id: "flex" as const,
       name: "Flex",
       badge: "Most popular",
-      description: "Best for independents. Clear jobs auto-dispatch; risky ones wait for you. Pay when a job is approved.",
+      description: "Best for independents. Clear jobs auto-dispatch; risky ones wait for you. Typical shop: ~10 jobs ≈ $149/mo — still a fraction of one water loss.",
       price: SITE.flexBasePrice,
       period: "/mo",
       usageLine: `+ ${SITE.flexPerBooking} per approved dispatch (estimates $0)`,

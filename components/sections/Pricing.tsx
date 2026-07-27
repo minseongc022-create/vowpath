@@ -37,12 +37,12 @@ export function Pricing() {
   const breakEvenTitle = locale === "es" ? "Cuenta rápida" : "Break-even math";
   const breakEvenBody =
     locale === "es"
-      ? "Trabajo promedio de mitigación por agua: $8,000. Una llamada salvada a las 2 AM paga ~27 meses de Pro. Agua clara = auto; fuego/Cat-3 = tu 1/2."
-      : "Average water mitigation job: $8,000. One saved 2 AM call covers ~27 months of Pro. Clear water auto-dispatches; fire / Cat-3 wait for your 1 / 2.";
+      ? "Trabajo promedio de mitigación por agua: $8,000. Una llamada salvada a las 2 AM paga ~32 meses de Pro ($249). Agua clara = auto; fuego/Cat-3 = tu 1/2."
+      : "Average water mitigation job: $8,000. One saved 2 AM call covers ~32 months of Pro ($249). Clear water auto-dispatches; fire / Cat-3 wait for your 1 / 2.";
   const breakEvenFoot =
     locale === "es"
-      ? "¿Flex? Un despacho confirmado a $8K promedio = ~1,000× tu costo por despacho."
-      : "On Flex? One confirmed dispatch at $8K avg = ~1,000× your per-dispatch cost.";
+      ? "¿Flex? Un despacho confirmado a $8K promedio = ~800× tu costo por despacho."
+      : "On Flex? One confirmed dispatch at $8K avg ≈ 800× your $10 per-dispatch cost.";
 
   return (
     <section id="pricing" className="vow-site-section py-20 sm:py-24">

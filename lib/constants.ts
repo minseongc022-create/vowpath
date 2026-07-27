@@ -8,30 +8,32 @@ export const SITE = {
   contactEmail: "support@effiroad.com",
   supportEmail: "support@effiroad.com",
   /** Alias for Pro list price (break-even / marketing copy). */
-  monthlyPrice: "$299",
+  monthlyPrice: "$249",
   /**
-   * Competitive vs OnCrew ($49/$149/$349 calls), ServiceAgent ($49/$119/$349), Jobber AI ($29).
-   * We bill approved emergency dispatches — not raw call minutes.
-   * Target ~40% gross margin at included/typical cap (COGS $6/dispatch).
+   * Category: restoration phone→truck (not generic AI receptionist).
+   * vs Rosie (~$49 message/book), Smith hybrid (~$300+/mo), OnCrew call tiers.
+   * We bill approved emergency dispatches — shops only pay when a job is won.
+   * Target ≥40% gross at typical Flex volume / Pro included cap (COGS $6/dispatch).
    * Founder (sale) always ≤ list on every priced leg.
+   * 2026-07 retune: lower stickers so 1–8 crew shops start without fear; keep margin on usage.
    */
-  /** Flex — mid shops; founder 10 dispatches ≈ $149 (OnCrew Pro band). */
-  flexBasePrice: "$69",
-  flexPerBooking: "$12",
-  betaFlexBasePrice: "$49",
-  betaFlexPerBooking: "$10",
-  /** Lite — quiet months; undercuts OnCrew Starter on base, usage-priced. */
-  liteBasePrice: "$39",
-  litePerBooking: "$18",
-  betaLiteBasePrice: "$35",
-  betaLitePerBooking: "$13",
-  /** Pro — 25 included · list ~40%+ at cap; founder hits ~40% at 25. */
-  proPrice: "$299",
+  /** Flex — default independent shop; 10 dispatches ≈ $149 list (still ≪ one water job). */
+  flexBasePrice: "$49",
+  flexPerBooking: "$10",
+  betaFlexBasePrice: "$39",
+  betaFlexPerBooking: "$8",
+  /** Lite — quiet months; lowest base, higher per-dispatch. */
+  liteBasePrice: "$29",
+  litePerBooking: "$14",
+  betaLiteBasePrice: "$25",
+  betaLitePerBooking: "$11",
+  /** Pro — 25 included · list ~40% at cap ($249 − $150 COGS). */
+  proPrice: "$249",
   proIncludedDispatches: 25,
-  /** Overage $15/dispatch (60% margin) — cheaper than prior $22, still healthy. */
+  /** Overage $15/dispatch (60% margin on COGS). */
   proOverageMultiplier: 2.5,
-  /** Scale — storm / multi-crew · ~40 included at ~40% list margin. */
-  scalePrice: "$399",
+  /** Scale — storm / multi-crew · 40 included. */
+  scalePrice: "$349",
   scaleIncludedDispatches: 40,
   /** Overage $12/dispatch (50% margin). */
   scaleOverageMultiplier: 2,
@@ -46,11 +48,11 @@ export const SITE = {
   marginalDispatchCostUsd: 6,
   economyAiModel: "gpt-4o-mini",
   premiumAiModel: "gpt-4o",
-  /** Founder Pro — $50 under list · ~40% margin at 25 included (COGS $150). */
-  betaIntroPrice: "$249",
-  /** Founder Scale — matches OnCrew Multi / SA Franchise band · 40 included. */
-  betaScalePrice: "$349",
-  betaLockedPrice: "$299",
+  /** Founder Pro — under $200 sticker for early shops (margin builds on overage + retention). */
+  betaIntroPrice: "$199",
+  /** Founder Scale — storm shops still under Smith hybrid floor. */
+  betaScalePrice: "$289",
+  betaLockedPrice: "$249",
   betaDiscountYears: 5,
   /**
    * Per-minute voice track (separate SKUs from dispatch billing).
