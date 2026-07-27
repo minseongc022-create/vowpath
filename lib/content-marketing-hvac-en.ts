@@ -8,14 +8,14 @@ const CHECKOUT_CTA = getCheckoutCta();
  * Only contains claims backed by implemented features.
  */
 export const hvacHero = {
-  eyebrow: "Built for HVAC shops · 1–15 technicians",
+  eyebrow: "HVAC phone → truck · 1–15 technicians",
   headline: "Never lose a no-heat call at 2 AM again",
   subhead:
-    "Effiroad answers every call 24/7, qualifies the job, and dispatches your on-call tech automatically — the moment a no-heat emergency is verified. Gas smell? Always held for your approval.",
+    "Effiroad answers every call 24/7 with a calm US voice, qualifies the job, and rolls clear no-heat / no-cool to your on-call tech. Gas smell or sparking? Always held for your 1 / 2. Homeowners get ETA SMS + a live map — better than voicemail or a tired night receptionist.",
   primaryCta: "Start free trial",
   secondaryCta: "See how it works",
   trustPills: [
-    "High-quality natural voice",
+    "Calm natural US voice",
     "No-heat auto-dispatch",
     "Gas smell always held",
     "Owner 1 / 2 + reply 9 undo",
