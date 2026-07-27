@@ -1,0 +1,97 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Syne", system-ui, sans-serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+  font-family: var(--font-sans);
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(255, 255, 255, 0.07), transparent 55%),
+    radial-gradient(ellipse 40% 30% at 90% 20%, rgba(255, 255, 255, 0.03), transparent),
+    linear-gradient(180deg, #0a0a0b 0%, #0e0e10 100%);
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.chrome-text {
+  background: linear-gradient(180deg, #ffffff 0%, #c8c8d0 45%, #8a8a96 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.chrome-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#0a0a0b, #0a0a0b) padding-box,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.25))
+      border-box;
+}
+
+.glass {
+  @apply bg-white/[0.03] backdrop-blur-xl;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.8);
+}
+
+.shimmer-bar {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.08) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 6s linear infinite;
+}
+
+.btn-chrome {
+  @apply relative inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-ink-950 transition;
+  background: linear-gradient(180deg, #ffffff 0%, #d4d4dc 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 8px 24px -6px rgba(255, 255, 255, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn-chrome:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-white/10;
+}
+
+.input-dark {
+  @apply w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-ink-500 focus:border-white/30 focus:bg-white/[0.06];
+}
+
+.grid-noise {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
+}

@@ -27,12 +27,6 @@ export async function hasCustomerMarketingSmsConsent(
   userId: string,
   bookingId: string,
 ): Promise<boolean> {
-  const jobs = await listJobs(userId);
-  const job = jobs.find((j) => j.id === bookingId);
-  if (job?.productSource === "closeping" && job.closepingChaseConsentAt) {
-    return true;
-  }
-
   const call = await callLogForBookingId(userId, bookingId);
   return Boolean(call?.customerSmsConsent?.smsMarketingAt);
 }

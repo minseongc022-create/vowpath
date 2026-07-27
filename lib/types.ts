@@ -38,12 +38,6 @@ export type JobCard = {
   quoteChaseSentAt?: string[];
   /** Full on-site / itemized estimate document. */
   estimateDoc?: EstimateDocument;
-  /** Standalone ClosePing quote (not Effiroad dispatch intake). */
-  productSource?: "closeping" | "effiroad";
-  /** E.164 or normalized US phone for ClosePing SMS. */
-  customerPhone?: string;
-  /** Owner attested SMS consent when sending quote via ClosePing. */
-  closepingChaseConsentAt?: string;
 };
 
 export type { BookingMode, RequestStatus };

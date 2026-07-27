@@ -35,12 +35,6 @@ export async function resolveBookingCustomerPhone(
   }
 
   const job = jobs.find((j) => j.id === id);
-  if (job?.customerPhone?.trim()) {
-    return job.customerPhone.trim();
-  }
-  if (job?.estimateDoc?.customerPhone?.trim()) {
-    return job.estimateDoc.customerPhone.trim();
-  }
   if (job?.jobberJobId) {
     const callByJobber = calls.find((c) => c.jobberRequestId === job.jobberJobId);
     if (callByJobber) return phoneFromCall(callByJobber);
