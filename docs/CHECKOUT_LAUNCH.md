@@ -19,13 +19,13 @@ While **Lemon Squeezy store approval** is pending, leave variant env vars unset 
 | `LEMON_SQUEEZY_API_KEY` | yes | Settings → API |
 | `LEMON_SQUEEZY_STORE_ID` | yes | Settings → Stores → Copy ID |
 | `LEMON_SQUEEZY_WEBHOOK_SECRET` | yes | Webhooks → signing secret |
-| `LEMON_SQUEEZY_VARIANT_ID_LITE` | when live | $39/mo base |
-| `LEMON_SQUEEZY_VARIANT_ID_LITE_USAGE` | when live | $18/dispatch · usage billing |
-| `LEMON_SQUEEZY_VARIANT_ID_FLEX` | when live | $69/mo base |
-| `LEMON_SQUEEZY_VARIANT_ID_FLEX_USAGE` | when live | $12/dispatch · usage billing |
-| `LEMON_SQUEEZY_VARIANT_ID_PRO` | when live | $299/mo · 25 dispatches incl. |
+| `LEMON_SQUEEZY_VARIANT_ID_LITE` | when live | $29/mo base |
+| `LEMON_SQUEEZY_VARIANT_ID_LITE_USAGE` | when live | $14/dispatch · usage billing |
+| `LEMON_SQUEEZY_VARIANT_ID_FLEX` | when live | $49/mo base |
+| `LEMON_SQUEEZY_VARIANT_ID_FLEX_USAGE` | when live | $10/dispatch · usage billing |
+| `LEMON_SQUEEZY_VARIANT_ID_PRO` | when live | $249/mo · 25 dispatches incl. |
 | `LEMON_SQUEEZY_VARIANT_ID_PRO_OVERAGE` | when live | $15/dispatch beyond cap |
-| `LEMON_SQUEEZY_VARIANT_ID_SCALE` | when live | $399/mo · 40 dispatches incl. |
+| `LEMON_SQUEEZY_VARIANT_ID_SCALE` | when live | $349/mo · 40 dispatches incl. |
 | `LEMON_SQUEEZY_VARIANT_ID_SCALE_OVERAGE` | when live | $12/dispatch beyond cap |
 | `LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER` | when live | $49/mo · 250 min |
 | `LEMON_SQUEEZY_VARIANT_ID_VOICE_STARTER_OVERAGE` | when live | $0.25/min |
