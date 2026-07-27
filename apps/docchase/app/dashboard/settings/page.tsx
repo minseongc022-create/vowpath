@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Toast } from "@/components/Toast";
-import { resetDemoState, withActivity } from "@/lib/store";
+import { getPlan, PLANS, type PlanId } from "@/lib/plans";
+import { exportClientsCsv, resetDemoState, runAutoChasePass, withActivity } from "@/lib/store";
 import { useAppState } from "@/lib/useAppState";
 
 export default function SettingsPage() {
@@ -21,6 +22,8 @@ export default function SettingsPage() {
     return <div className="flex min-h-screen items-center justify-center text-sm text-ink-muted">불러오는 중…</div>;
   }
 
+  const plan = getPlan(state.profile.plan);
+
   function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     const next = withActivity(
@@ -37,9 +40,54 @@ export default function SettingsPage() {
     commit(next, "저장했습니다");
   }
 
+  function changePlan(id: PlanId) {
+    const p = getPlan(id);
+    const next = withActivity(
+      {
+        ...state!,
+        profile: { ...state!.profile, plan: id },
+        schedule: {
+          ...state!.schedule,
+          enabled: p.flags.autoSchedule ? state!.schedule.enabled || true : false,
+        },
+      },
+      `${p.name} 플랜으로 변경`,
+    );
+    commit(next, `${p.name}로 바꿨어요`);
+  }
+
+  function toggleSchedule() {
+    if (!state || !getPlan(state.profile.plan).flags.autoSchedule) return;
+    const next = {
+      ...state,
+      schedule: { ...state.schedule, enabled: !state.schedule.enabled },
+    };
+    commit(withActivity(next, `자동 독촉 ${next.schedule.enabled ? "켜짐" : "꺼짐"}`), "스케줄 저장");
+  }
+
+  function runAutoNow() {
+    if (!state || !plan.flags.autoSchedule) return;
+    const next = runAutoChasePass({ ...state, schedule: { ...state.schedule, enabled: true } });
+    commit(next, "자동 독촉을 한 번 돌렸어요");
+  }
+
+  function downloadReport() {
+    if (!state || !plan.flags.exportReport) return;
+    const csv = exportClientsCsv(state);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `수임체크_${state.monthLabel.replace(/\s/g, "")}_회수.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    commit(withActivity(state, "회수율 CSV를 내려받았습니다"), "CSV 저장");
+  }
+
   function resetAll() {
-    if (!window.confirm("데모 데이터를 처음 상태로 되돌릴까요?")) return;
-    const fresh = resetDemoState();
+    if (!state) return;
+    if (!window.confirm("데모를 처음 상태로 되돌릴까요?")) return;
+    const fresh = resetDemoState(state.profile.plan);
     commit(fresh, "데모를 초기화했습니다");
     setOfficeName(fresh.profile.officeName);
     setOwnerName(fresh.profile.ownerName);
@@ -49,39 +97,85 @@ export default function SettingsPage() {
     <DashboardShell officeName={state.profile.officeName}>
       <Toast message={toast} />
       <h1 className="font-display text-2xl font-medium text-ink sm:text-3xl">설정</h1>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">
-        사무소 이름(알림톡 제목에 표시)과 연습 데이터를 관리합니다. 실제 발송은 솔라피·카카오 채널
-        연동 후 같은 「자료 요청하기」 버튼으로 나갑니다.
+      <p className="mt-2 text-sm text-ink-muted">
+        플랜·자동 독촉·사무소 이름을 관리합니다. 실제 발송 연동 후에도 화면은 그대로입니다.
       </p>
 
+      <section id="plan" className="mt-8 scroll-mt-24">
+        <h2 className="text-sm font-semibold text-ink">플랜</h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          지금: {plan.name} · 거래처 {plan.clientsLimit}곳 · 알림 {plan.alimtalkIncluded}건/월
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {PLANS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => changePlan(p.id)}
+              className={`rounded-2xl border p-4 text-left ${
+                state.profile.plan === p.id
+                  ? "border-pine-600 bg-pine-50"
+                  : "border-paper-line bg-paper-card hover:border-pine-300"
+              }`}
+            >
+              <p className="text-sm font-semibold text-pine-700">{p.name}</p>
+              <p className="mt-1 font-display text-xl">{p.priceLabel}원</p>
+              <p className="mt-1 text-xs text-ink-muted">{p.audience}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <form onSubmit={saveProfile} className="mt-8 max-w-lg sc-card p-5">
-        <label className="sc-label" htmlFor="office">
+        <h2 className="text-sm font-semibold text-ink">사무소</h2>
+        <label className="sc-label mt-4" htmlFor="office">
           사무소명
         </label>
-        <input
-          id="office"
-          className="sc-input"
-          value={officeName}
-          onChange={(e) => setOfficeName(e.target.value)}
-        />
+        <input id="office" className="sc-input" value={officeName} onChange={(e) => setOfficeName(e.target.value)} />
         <label className="sc-label mt-4" htmlFor="owner">
           담당자
         </label>
-        <input
-          id="owner"
-          className="sc-input"
-          value={ownerName}
-          onChange={(e) => setOwnerName(e.target.value)}
-        />
-        <p className="mt-3 text-xs text-ink-muted">요금제: 스탠다드 (데모)</p>
+        <input id="owner" className="sc-input" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
         <button type="submit" className="sc-btn-primary mt-5 w-full sm:w-auto">
           저장
         </button>
       </form>
 
       <div className="mt-6 max-w-lg sc-card p-5">
+        <h2 className="text-sm font-semibold text-ink">자동 독촉 (D-7 / D-3 / D-1)</h2>
+        {plan.flags.autoSchedule ? (
+          <>
+            <p className="mt-2 text-sm text-ink-muted">마감일 기준으로 아직 안 낸 곳에만 자동으로 요청합니다.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" className="sc-btn-secondary" onClick={toggleSchedule}>
+                지금 {state.schedule.enabled ? "켜짐 — 끄기" : "꺼짐 — 켜기"}
+              </button>
+              <button type="button" className="sc-btn-primary" onClick={runAutoNow}>
+                지금 한 번 돌리기 (연습)
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-amber-ink">스탠다드 이상에서 사용할 수 있습니다.</p>
+        )}
+      </div>
+
+      <div className="mt-6 max-w-lg sc-card p-5">
+        <h2 className="text-sm font-semibold text-ink">회수율 리포트</h2>
+        {plan.flags.exportReport ? (
+          <>
+            <p className="mt-2 text-sm text-ink-muted">거래처·상태·파일 수를 CSV로 내려받습니다.</p>
+            <button type="button" className="sc-btn-secondary mt-4" onClick={downloadReport}>
+              CSV 내려받기
+            </button>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-amber-ink">스탠다드 이상에서 사용할 수 있습니다.</p>
+        )}
+      </div>
+
+      <div className="mt-6 max-w-lg sc-card p-5">
         <h2 className="text-sm font-semibold text-ink">데모 초기화</h2>
-        <p className="mt-2 text-sm text-ink-muted">수임처·활동 기록을 샘플 데이터로 되돌립니다.</p>
         <button type="button" className="sc-btn-secondary mt-4" onClick={resetAll}>
           데모 데이터 초기화
         </button>

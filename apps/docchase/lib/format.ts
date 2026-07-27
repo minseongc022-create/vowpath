@@ -15,7 +15,6 @@ export function statusClass(status: ChaseStatus): string {
   }
 }
 
-/** Short label clerks scan in a list */
 export function statusLabel(status: ChaseStatus): string {
   switch (status) {
     case "제출완료":
@@ -58,30 +57,36 @@ export function maskPhone(phone: string) {
   return phone;
 }
 
-/**
- * Real office flow: Alimtalk is sent to the client's mobile number.
- * Kakao delivers to the Kakao account linked to that phone.
- */
+export function formatBytes(n: number) {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)}KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export function alimtalkPreview(
   office: string,
   client: ClientAccount | { name: string; contactName: string; docs: string[] },
   month: string,
+  submitUrl?: string,
 ) {
   const who = client.contactName?.trim() || "담당자";
   const shop = client.name;
   const list = client.docs.map((d) => `· ${d}`).join("\n");
+  const linkBlock = submitUrl
+    ? `\n아래 링크로 자료만 올려 주시면 됩니다.\n${submitUrl}\n`
+    : "\n자료는 사무소로 전달해 주세요.\n";
   return `[${office}] ${month} 기장 자료 제출 안내
 
 안녕하세요, ${shop} ${who}님.
 저희 사무소 기장 마감을 위해 아래 자료 제출을 부탁드립니다.
 
 ${list}
-
+${linkBlock}
 이미 제출해 주셨다면 이 안내는 무시하셔도 됩니다.
-문의는 이 알림에 회신하시거나 사무소로 연락 주세요.
+문의는 사무소로 연락 주세요.
 
 ${office}`;
 }
 
 export const CHANNEL_HELP =
-  "문자는 카카오 알림톡으로 나갑니다. 거래처에 적어 둔 ‘휴대폰 번호’로 보내지며, 그 번호에 연결된 카카오톡으로 도착합니다. (개인 카톡·일반 문자가 아닙니다.)";
+  "문자는 카카오 알림톡으로 나갑니다. 거래처 ‘휴대폰 번호’로 보내며, 그 번호에 연결된 카카오톡으로 도착합니다. 스탠다드 이상에서는 알림 안에 제출 링크가 붙어, 가게 사장이 앱 설치 없이 파일만 올리면 됩니다.";

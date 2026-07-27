@@ -1,3 +1,5 @@
+import type { PlanId } from "./plans";
+
 export type DocKind =
   | "통장사본"
   | "카드매출"
@@ -7,6 +9,15 @@ export type DocKind =
   | "기타증빙";
 
 export type ChaseStatus = "대기" | "1차발송" | "2차발송" | "제출완료" | "지연";
+
+export type SubmittedFile = {
+  id: string;
+  name: string;
+  size: number;
+  dataUrl?: string;
+  uploadedAt: string;
+  docKind?: DocKind | "기타";
+};
 
 export type ClientAccount = {
   id: string;
@@ -20,6 +31,8 @@ export type ClientAccount = {
   lastSentAt?: string;
   submittedAt?: string;
   notes?: string;
+  submitToken: string;
+  files: SubmittedFile[];
 };
 
 export type OfficeProfile = {
@@ -27,7 +40,7 @@ export type OfficeProfile = {
   ownerName: string;
   email: string;
   phone: string;
-  plan: "starter" | "standard" | "pro";
+  plan: PlanId;
 };
 
 export type ActivityItem = {
@@ -36,11 +49,20 @@ export type ActivityItem = {
   message: string;
 };
 
+export type ScheduleSettings = {
+  enabled: boolean;
+  d7: boolean;
+  d3: boolean;
+  d1: boolean;
+};
+
 export type AppState = {
   profile: OfficeProfile;
   clients: ClientAccount[];
   monthLabel: string;
   activity: ActivityItem[];
+  schedule: ScheduleSettings;
+  messagesUsed: number;
 };
 
 export const DOC_KINDS: DocKind[] = [
@@ -59,3 +81,7 @@ export const STATUS_ORDER: ChaseStatus[] = [
   "대기",
   "제출완료",
 ];
+
+export function newSubmitToken() {
+  return `t_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+}

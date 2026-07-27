@@ -30,6 +30,29 @@ export function useAppState() {
     setState(loadState());
   }, [ready]);
 
+  // Pick up public /s/[token] uploads written in another tab (same browser demo)
+  useEffect(() => {
+    if (!ready) return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "suimcheck.v3" || e.key === "suimcheck.public.submissions.v1") {
+        setState(loadState());
+      }
+    };
+    const poll = window.setInterval(() => {
+      setState((prev) => {
+        const next = loadState();
+        if (!prev) return next;
+        if (JSON.stringify(prev.clients) === JSON.stringify(next.clients)) return prev;
+        return next;
+      });
+    }, 2500);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.clearInterval(poll);
+    };
+  }, [ready]);
+
   useEffect(() => {
     if (!toast) return;
     const t = window.setTimeout(() => setToast(null), 2400);
