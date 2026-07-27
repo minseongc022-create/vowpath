@@ -13,109 +13,118 @@ export type PlanDef = {
   blurb: string;
   highlight?: boolean;
   features: string[];
-  /** Feature flags */
   flags: {
     manualSend: boolean;
     bulkSend: boolean;
-    submitLink: boolean; // client upload link in Alimtalk
-    autoSchedule: boolean; // D-7 / D-3 / D-1
+    submitLink: boolean;
+    oneTapReply: boolean; // 이미냈어요 / 해당없음
+    callQueue: boolean; // 알림톡 후 전화 잔여 큐
+    autoSchedule: boolean;
     customTemplate: boolean;
     exportReport: boolean;
     multiStaff: boolean;
+    smsFailover: boolean;
   };
 };
 
 /**
- * Pricing: undercut "clerk replacement" psychology, not Clobe's free forever.
- * COGS mainly Alimtalk (~₩13). Include pack; overage ~₩20 keeps ~35%+ msg margin.
- * Subscription is mostly software gross margin.
+ * Sticker cheap · margin high
+ * - Alimtalk COGS ≈ ₩13/msg → packs sized so subscription >> COGS
+ * - Overage ₩29~39 keeps 55%+ message margin without looking "expensive"
+ * - Software gross on Standard ≈ ₩59k − (300×13) ≈ ₩55k (≈93%)
  */
 export const PLANS: PlanDef[] = [
   {
     id: "lite",
     name: "라이트",
     audience: "1인 · 소형 기장",
-    priceWon: 49000,
-    priceLabel: "49,000",
-    clientsLimit: 25,
-    alimtalkIncluded: 80,
-    overagePerMsgWon: 20,
+    priceWon: 29000,
+    priceLabel: "29,000",
+    clientsLimit: 30,
+    alimtalkIncluded: 100,
+    overagePerMsgWon: 39,
     staffSeats: 1,
-    blurb: "전화 독촉만 없애고 싶을 때",
+    blurb: "전화 독촉만 줄이고 싶을 때",
     features: [
-      "거래처 25곳",
-      "자료 요청·받았어요 현황판",
-      "알림톡 미리보기·수동 발송",
-      "월 알림톡 80건 포함",
-      "초과 건당 20원",
+      "거래처 30곳",
+      "제로앱 제출 링크",
+      "수임처 원탭 회신(이미냈어요)",
+      "알림톡 수동 발송 · 월 100건",
+      "초과 건당 39원",
     ],
     flags: {
       manualSend: true,
       bulkSend: false,
-      submitLink: false,
+      submitLink: true,
+      oneTapReply: true,
+      callQueue: true,
       autoSchedule: false,
       customTemplate: false,
       exportReport: false,
       multiStaff: false,
+      smsFailover: true,
     },
   },
   {
     id: "standard",
     name: "스탠다드",
-    audience: "소형~중형 (사무원 1명분)",
-    priceWon: 99000,
-    priceLabel: "99,000",
+    audience: "소형~중형 (가장 많음)",
+    priceWon: 59000,
+    priceLabel: "59,000",
     clientsLimit: 80,
-    alimtalkIncluded: 350,
-    overagePerMsgWon: 18,
+    alimtalkIncluded: 300,
+    overagePerMsgWon: 35,
     staffSeats: 2,
-    blurb: "가장 많이 쓰는 마감 운영",
+    blurb: "마감 지휘소 — 알림톡→원탭→전화큐",
     highlight: true,
     features: [
-      "거래처 80곳",
-      "알림톡 안 제출 링크(파일 받기)",
-      "D-7 · D-3 · D-1 자동 독촉",
-      "안 낸 곳 한꺼번에 보내기",
-      "월 알림톡 350건 포함 · 초과 18원",
-      "담당 2명",
+      "거래처 80곳 · 담당 2명",
+      "D-7/D-3/D-1 자동 독촉",
+      "안 낸 곳 한꺼번에 · 전화 잔여 큐",
+      "월 알림톡 300건 · 초과 35원",
+      "회수율 CSV",
     ],
     flags: {
       manualSend: true,
       bulkSend: true,
       submitLink: true,
+      oneTapReply: true,
+      callQueue: true,
       autoSchedule: true,
       customTemplate: false,
       exportReport: true,
       multiStaff: true,
+      smsFailover: true,
     },
   },
   {
     id: "pro",
     name: "프로",
-    audience: "중형~세무법인 팀",
-    priceWon: 179000,
-    priceLabel: "179,000",
-    clientsLimit: 250,
-    alimtalkIncluded: 1200,
-    overagePerMsgWon: 15,
+    audience: "팀·세무법인 소규모",
+    priceWon: 99000,
+    priceLabel: "99,000",
+    clientsLimit: 200,
+    alimtalkIncluded: 800,
+    overagePerMsgWon: 29,
     staffSeats: 5,
-    blurb: "다수 수임·마감 집중 사무소",
+    blurb: "다수 수임·마감 집중",
     features: [
-      "거래처 250곳",
-      "스탠다드 전체 +",
-      "거래처별 맞춤 문구",
-      "월간 회수율 리포트·CSV",
-      "월 알림톡 1,200건 · 초과 15원",
-      "담당 5명 · 우선 온보딩",
+      "거래처 200곳 · 담당 5명",
+      "스탠다드 전체 + 맞춤 문구",
+      "월 알림톡 800건 · 초과 29원",
+      "우선 온보딩·템플릿 심사 가이드",
     ],
     flags: {
       manualSend: true,
       bulkSend: true,
       submitLink: true,
+      oneTapReply: true,
+      callQueue: true,
       autoSchedule: true,
       customTemplate: true,
       exportReport: true,
       multiStaff: true,
+      smsFailover: true,
     },
   },
 ];
@@ -130,4 +139,9 @@ export function planAllows(planId: PlanId | undefined, flag: keyof PlanDef["flag
 
 export function clientsOverLimit(planId: PlanId | undefined, count: number): boolean {
   return count > getPlan(planId).clientsLimit;
+}
+
+/** Rough monthly COGS for included Alimtalk pack (₩13/msg). */
+export function planMsgCogsWon(plan: PlanDef, unitCost = 13) {
+  return plan.alimtalkIncluded * unitCost;
 }

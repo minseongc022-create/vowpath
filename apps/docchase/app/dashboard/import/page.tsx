@@ -7,7 +7,7 @@ import { Toast } from "@/components/Toast";
 import { getPlan } from "@/lib/plans";
 import { parseClientsCsv, withActivity } from "@/lib/store";
 import type { ClientAccount } from "@/lib/types";
-import { newSubmitToken } from "@/lib/types";
+import { newReplyToken, newSubmitToken } from "@/lib/types";
 import { useAppState } from "@/lib/useAppState";
 
 const SAMPLE = `상호,담당자,연락처,필요자료,마감일
@@ -42,6 +42,7 @@ export default function ImportPage() {
       id: `imp_${Date.now()}_${i}`,
       status: "대기",
       submitToken: newSubmitToken(),
+      replyToken: newReplyToken(),
       files: [],
     }));
     const next = withActivity(

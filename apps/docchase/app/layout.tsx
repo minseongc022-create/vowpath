@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: `%s · ${SITE.name}`,
   },
   description:
-    "소형 세무·기장 사무소를 위한 수임처 자료 요청 자동화. 전화·개인 카톡 독촉 대신 정보성 알림톡과 현황판으로 마감을 맞춥니다.",
+    "소형 세무소 마감 독촉 OS. 알림톡 → 원탭 회신 → 전화 잔여 큐. 수임처 앱 없이 마감을 닫습니다.",
   applicationName: SITE.name,
 };
 

@@ -6,6 +6,7 @@ import { SITE } from "@/lib/site";
 
 const nav = [
   { href: "/dashboard", label: "오늘 독촉" },
+  { href: "/dashboard/calls", label: "전화 잔여" },
   { href: "/dashboard/clients", label: "거래처" },
   { href: "/dashboard/templates", label: "보낼 말" },
   { href: "/dashboard/import", label: "명단 넣기" },

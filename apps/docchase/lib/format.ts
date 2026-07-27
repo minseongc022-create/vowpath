@@ -3,6 +3,7 @@ import type { ChaseStatus, ClientAccount } from "./types";
 export function statusClass(status: ChaseStatus): string {
   switch (status) {
     case "제출완료":
+    case "해당없음":
       return "bg-pine-100 text-pine-800";
     case "지연":
       return "bg-rose-soft text-rose-ink";
@@ -19,8 +20,10 @@ export function statusLabel(status: ChaseStatus): string {
   switch (status) {
     case "제출완료":
       return "자료 받음";
+    case "해당없음":
+      return "이번 달 해당없음";
     case "지연":
-      return "늦음 · 다시 필요";
+      return "늦음 · 전화 필요";
     case "2차발송":
       return "두 번 보냄";
     case "1차발송":
@@ -31,7 +34,7 @@ export function statusLabel(status: ChaseStatus): string {
 }
 
 export function sendStepLabel(status: ChaseStatus): string {
-  if (status === "대기" || status === "제출완료") return "1차 안내";
+  if (status === "대기" || status === "제출완료" || status === "해당없음") return "1차 안내";
   if (status === "1차발송") return "2차 독촉";
   return "지연 안내";
 }
@@ -68,25 +71,31 @@ export function alimtalkPreview(
   client: ClientAccount | { name: string; contactName: string; docs: string[] },
   month: string,
   submitUrl?: string,
+  replyUrl?: string,
 ) {
   const who = client.contactName?.trim() || "담당자";
   const shop = client.name;
   const list = client.docs.map((d) => `· ${d}`).join("\n");
   const linkBlock = submitUrl
-    ? `\n아래 링크로 자료만 올려 주시면 됩니다.\n${submitUrl}\n`
+    ? `\n자료 올리기: ${submitUrl}\n`
     : "\n자료는 사무소로 전달해 주세요.\n";
+  const replyBlock = replyUrl
+    ? `이미 냈거나 해당 없으면: ${replyUrl}\n`
+    : "";
   return `[${office}] ${month} 기장 자료 제출 안내
 
 안녕하세요, ${shop} ${who}님.
 저희 사무소 기장 마감을 위해 아래 자료 제출을 부탁드립니다.
 
 ${list}
-${linkBlock}
-이미 제출해 주셨다면 이 안내는 무시하셔도 됩니다.
+${linkBlock}${replyBlock}
 문의는 사무소로 연락 주세요.
 
 ${office}`;
 }
 
 export const CHANNEL_HELP =
-  "문자는 카카오 알림톡으로 나갑니다. 거래처 ‘휴대폰 번호’로 보내며, 그 번호에 연결된 카카오톡으로 도착합니다. 스탠다드 이상에서는 알림 안에 제출 링크가 붙어, 가게 사장이 앱 설치 없이 파일만 올리면 됩니다.";
+  "카카오 알림톡으로 나갑니다. 거래처 휴대폰 → 카톡. 링크 두 개: ①자료 올리기 ②이미냈어요/해당없음 원탭. 그래도 안 되면 ‘전화 잔여 큐’에만 남습니다.";
+
+export const WEDGE_ONE_LINER =
+  "클로브는 자동수집·기장 올인. 수임체크는 마감 독촉 OS — 알림톡 → 원탭 회신 → 남은 곳만 전화.";

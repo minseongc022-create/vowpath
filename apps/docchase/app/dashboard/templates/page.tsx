@@ -6,7 +6,7 @@ import { UpgradeHint } from "@/components/PlanUI";
 import { Toast } from "@/components/Toast";
 import { alimtalkPreview, CHANNEL_HELP } from "@/lib/format";
 import { planAllows } from "@/lib/plans";
-import { submitUrlFor } from "@/lib/store";
+import { replyUrlFor, submitUrlFor } from "@/lib/store";
 import { useAppState } from "@/lib/useAppState";
 
 export default function TemplatesPage() {
@@ -14,17 +14,19 @@ export default function TemplatesPage() {
 
   const sampleClient = useMemo(() => {
     if (!state) return null;
-    return state.clients.find((x) => x.status !== "제출완료") || state.clients[0] || null;
+    return state.clients.find((x) => x.status !== "제출완료" && x.status !== "해당없음") || state.clients[0] || null;
   }, [state]);
 
   const withLink = state ? planAllows(state.profile.plan, "submitLink") : false;
+  const withReply = state ? planAllows(state.profile.plan, "oneTapReply") : false;
   const custom = state ? planAllows(state.profile.plan, "customTemplate") : false;
 
   const sample = useMemo(() => {
     if (!state || !sampleClient) return "";
     const link = withLink ? submitUrlFor(sampleClient.submitToken) : undefined;
-    return alimtalkPreview(state.profile.officeName, sampleClient, state.monthLabel, link);
-  }, [state, sampleClient, withLink]);
+    const reply = withReply ? replyUrlFor(sampleClient.replyToken) : undefined;
+    return alimtalkPreview(state.profile.officeName, sampleClient, state.monthLabel, link, reply);
+  }, [state, sampleClient, withLink, withReply]);
 
   if (!ready || !state) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-ink-muted">불러오는 중…</div>;

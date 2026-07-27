@@ -1,18 +1,24 @@
 import { getPlan } from "./plans";
 import type { ActivityItem, AppState, ClientAccount, DocKind, SubmittedFile } from "./types";
-import { newSubmitToken } from "./types";
+import { isDoneStatus, newReplyToken, newSubmitToken } from "./types";
+import { shouldEnterCallQueue } from "./chase";
 
 const STORAGE_KEY = "suimcheck.v3";
 const PUBLIC_SUBMISSIONS_KEY = "suimcheck.public.submissions.v1";
+const PUBLIC_REPLIES_KEY = "suimcheck.public.replies.v1";
 
 function monthLabel(d = new Date()) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
 }
 
-function withToken(c: Omit<ClientAccount, "submitToken" | "files"> & Partial<Pick<ClientAccount, "submitToken" | "files">>): ClientAccount {
+function withToken(
+  c: Omit<ClientAccount, "submitToken" | "replyToken" | "files"> &
+    Partial<Pick<ClientAccount, "submitToken" | "replyToken" | "files">>,
+): ClientAccount {
   return {
     ...c,
     submitToken: c.submitToken || newSubmitToken(),
+    replyToken: c.replyToken || newReplyToken(),
     files: c.files || [],
   };
 }
@@ -29,6 +35,9 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     lastSentAt: "2026-07-22T09:10:00+09:00",
     notes: "지난달에도 D+2 제출",
     submitToken: "demo_hanbit",
+    replyToken: "demo_reply_hanbit",
+    inCallQueue: true,
+    assignee: "이서연",
   }),
   withToken({
     id: "c2",
@@ -40,6 +49,9 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     status: "2차발송",
     lastSentAt: "2026-07-24T14:02:00+09:00",
     submitToken: "demo_donghang",
+    replyToken: "demo_reply_donghang",
+    inCallQueue: true,
+    assignee: "이서연",
   }),
   withToken({
     id: "c3",
@@ -51,6 +63,8 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     status: "1차발송",
     lastSentAt: "2026-07-25T11:30:00+09:00",
     submitToken: "demo_mir",
+    replyToken: "demo_reply_mir",
+    assignee: "이서연",
   }),
   withToken({
     id: "c4",
@@ -63,6 +77,7 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     lastSentAt: "2026-07-20T10:00:00+09:00",
     submittedAt: "2026-07-23T16:40:00+09:00",
     submitToken: "demo_open",
+    replyToken: "demo_reply_open",
     files: [
       {
         id: "f1",
@@ -82,6 +97,7 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     deadlineDay: 12,
     status: "대기",
     submitToken: "demo_raon",
+    replyToken: "demo_reply_raon",
   }),
   withToken({
     id: "c6",
@@ -92,6 +108,7 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     deadlineDay: 15,
     status: "대기",
     submitToken: "demo_next",
+    replyToken: "demo_reply_next",
   }),
   withToken({
     id: "c7",
@@ -104,6 +121,7 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     submittedAt: "2026-07-21T09:15:00+09:00",
     lastSentAt: "2026-07-18T09:00:00+09:00",
     submitToken: "demo_cheong",
+    replyToken: "demo_reply_cheong",
   }),
   withToken({
     id: "c8",
@@ -115,6 +133,7 @@ export const DEMO_CLIENTS: ClientAccount[] = [
     status: "1차발송",
     lastSentAt: "2026-07-25T08:45:00+09:00",
     submitToken: "demo_space",
+    replyToken: "demo_reply_space",
   }),
 ];
 
@@ -133,6 +152,7 @@ export function createDemoState(plan: AppState["profile"]["plan"] = "standard"):
       email: "demo@suimcheck.kr",
       phone: "02-1234-5678",
       plan,
+      liveSend: false,
     },
     clients: DEMO_CLIENTS.map((c) => ({ ...c, files: [...(c.files || [])] })),
     monthLabel: monthLabel(),
@@ -140,7 +160,7 @@ export function createDemoState(plan: AppState["profile"]["plan"] = "standard"):
       {
         id: "a0",
         at: new Date().toISOString(),
-        message: `${getPlan(plan).name} 플랜으로 데모가 준비되었습니다. 안 낸 곳부터 자료 요청하세요.`,
+        message: `${getPlan(plan).name} · 알림톡→원탭 회신→전화 잔여 큐로 마감을 닫습니다.`,
       },
     ],
     schedule: { enabled: plan !== "lite", d7: true, d3: true, d1: true },
@@ -157,6 +177,7 @@ function migrate(raw: unknown): AppState {
         withToken({
           ...c,
           files: Array.isArray(c.files) ? c.files : [],
+          inCallQueue: c.inCallQueue ?? shouldEnterCallQueue(c as ClientAccount),
         }),
       )
     : base.clients;
@@ -167,6 +188,7 @@ function migrate(raw: unknown): AppState {
       ...base.profile,
       ...(obj.profile || {}),
       plan: (obj.profile?.plan as AppState["profile"]["plan"]) || "standard",
+      liveSend: obj.profile?.liveSend ?? false,
     },
     clients,
     monthLabel: obj.monthLabel || base.monthLabel,
@@ -191,6 +213,7 @@ export function loadState(): AppState {
     }
     let parsed = migrate(JSON.parse(raw));
     parsed = mergePublicFiles(parsed);
+    parsed = mergePublicReplies(parsed);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
     syncPublicDirectory(parsed);
     return parsed;
@@ -241,7 +264,9 @@ function splitCsvLine(line: string): string[] {
   return out;
 }
 
-export function parseClientsCsv(text: string): Omit<ClientAccount, "id" | "status" | "submitToken" | "files">[] {
+export function parseClientsCsv(
+  text: string,
+): Omit<ClientAccount, "id" | "status" | "submitToken" | "replyToken" | "files">[] {
   const lines = text
     .trim()
     .split(/\r?\n/)
@@ -250,7 +275,7 @@ export function parseClientsCsv(text: string): Omit<ClientAccount, "id" | "statu
   if (lines.length < 2) return [];
   return lines.slice(1).map((row) => {
     const cols = splitCsvLine(row).map((c) => c.replace(/^"|"$/g, ""));
-    const [name, contactName, phone, docsRaw, deadlineRaw] = cols;
+    const [name, contactName, phone, docsRaw, deadlineRaw, assignee] = cols;
     const docs = (docsRaw || "통장사본")
       .split("|")
       .map((d) => d.trim())
@@ -261,24 +286,26 @@ export function parseClientsCsv(text: string): Omit<ClientAccount, "id" | "statu
       phone: phone || "",
       docs: docs.length ? docs : ["통장사본"],
       deadlineDay: Math.min(28, Math.max(1, Number(deadlineRaw) || 10)),
+      assignee: assignee || undefined,
     };
   });
 }
 
 export function summarize(clients: ClientAccount[]) {
   const total = clients.length;
-  const done = clients.filter((c) => c.status === "제출완료").length;
+  const done = clients.filter((c) => isDoneStatus(c.status)).length;
   const delayed = clients.filter((c) => c.status === "지연").length;
   const inFlight = clients.filter(
     (c) => c.status === "1차발송" || c.status === "2차발송" || c.status === "대기",
   ).length;
   const withFiles = clients.filter((c) => (c.files?.length || 0) > 0).length;
+  const callQueue = clients.filter((c) => shouldEnterCallQueue(c)).length;
   const rate = total === 0 ? 0 : Math.round((done / total) * 100);
-  return { total, done, delayed, inFlight, withFiles, rate };
+  return { total, done, delayed, inFlight, withFiles, callQueue, rate };
 }
 
 export function nextChaseStatus(status: ClientAccount["status"]): ClientAccount["status"] {
-  if (status === "대기" || status === "제출완료") return "1차발송";
+  if (status === "대기" || status === "제출완료" || status === "해당없음") return "1차발송";
   if (status === "1차발송") return "2차발송";
   return "지연";
 }
@@ -288,15 +315,21 @@ export function submitUrlFor(token: string, origin?: string) {
   return `${base}/s/${token}`;
 }
 
-/** Public registry so /s/[token] works even without office session */
+export function replyUrlFor(token: string, origin?: string) {
+  const base = origin || (typeof window !== "undefined" ? window.location.origin : "https://suimcheck.kr");
+  return `${base}/r/${token}`;
+}
+
 export type PublicClientCard = {
   token: string;
+  replyToken: string;
   officeName: string;
   clientName: string;
   contactName: string;
   docs: DocKind[];
   monthLabel: string;
   files: SubmittedFile[];
+  clientReply?: "이미냈어요" | "해당없음" | null;
 };
 
 function mergePublicFiles(state: AppState): AppState {
@@ -318,6 +351,7 @@ function mergePublicFiles(state: AppState): AppState {
             files: card.files,
             status: "제출완료" as const,
             submittedAt: c.submittedAt || card.files[card.files.length - 1]?.uploadedAt,
+            inCallQueue: false,
           };
         }
         return c;
@@ -328,6 +362,7 @@ function mergePublicFiles(state: AppState): AppState {
         files: [...(c.files || []), ...incoming],
         status: "제출완료" as const,
         submittedAt: new Date().toISOString(),
+        inCallQueue: false,
       };
     });
     return changed ? { ...state, clients } : state;
@@ -336,12 +371,41 @@ function mergePublicFiles(state: AppState): AppState {
   }
 }
 
-/** Demo: run one auto-chase pass for clients past schedule markers */
+function mergePublicReplies(state: AppState): AppState {
+  try {
+    const raw = window.localStorage.getItem(PUBLIC_REPLIES_KEY);
+    if (!raw) return state;
+    const replies = JSON.parse(raw) as {
+      replyToken: string;
+      reply: "이미냈어요" | "해당없음";
+      at: string;
+    }[];
+    let changed = false;
+    const clients = state.clients.map((c) => {
+      const hit = replies.find((r) => r.replyToken === c.replyToken);
+      if (!hit) return c;
+      if (c.clientReply === hit.reply && isDoneStatus(c.status)) return c;
+      changed = true;
+      return {
+        ...c,
+        clientReply: hit.reply,
+        clientRepliedAt: hit.at,
+        status: hit.reply === "해당없음" ? ("해당없음" as const) : ("제출완료" as const),
+        submittedAt: hit.reply === "이미냈어요" ? hit.at : c.submittedAt,
+        inCallQueue: false,
+      };
+    });
+    return changed ? { ...state, clients } : state;
+  } catch {
+    return state;
+  }
+}
+
 export function runAutoChasePass(state: AppState): AppState {
   if (!state.schedule.enabled) return state;
   const today = new Date().getDate();
   const targets = state.clients.filter((c) => {
-    if (c.status === "제출완료" || !c.phone) return false;
+    if (isDoneStatus(c.status) || !c.phone) return false;
     const d = c.deadlineDay;
     return (
       (state.schedule.d7 && today === Math.max(1, d - 7)) ||
@@ -357,19 +421,21 @@ export function runAutoChasePass(state: AppState): AppState {
     messagesUsed: state.messagesUsed + targets.length,
     clients: state.clients.map((c) => {
       if (!targets.some((t) => t.id === c.id)) return c;
+      const status = nextChaseStatus(c.status);
       return {
         ...c,
-        status: nextChaseStatus(c.status),
+        status,
         lastSentAt: new Date().toISOString(),
+        inCallQueue: status === "지연" || status === "2차발송",
       };
     }),
   };
-  next = withActivity(next, `자동 독촉 ${targets.length}곳 발송 (연습)`);
+  next = withActivity(next, `자동 독촉 ${targets.length}곳 발송`);
   return next;
 }
 
 export function exportClientsCsv(state: AppState): string {
-  const header = "상호,담당자,연락처,상태,마감일,파일수,필요자료";
+  const header = "상호,담당자,연락처,상태,마감일,파일수,전화큐,담당,필요자료";
   const rows = state.clients.map((c) =>
     [
       `"${c.name.replace(/"/g, '""')}"`,
@@ -378,6 +444,8 @@ export function exportClientsCsv(state: AppState): string {
       c.status,
       c.deadlineDay,
       c.files?.length || 0,
+      shouldEnterCallQueue(c) ? "Y" : "",
+      c.assignee || "",
       `"${c.docs.join("|")}"`,
     ].join(","),
   );
@@ -388,12 +456,14 @@ export function syncPublicDirectory(state: AppState) {
   if (typeof window === "undefined") return;
   const cards: PublicClientCard[] = state.clients.map((c) => ({
     token: c.submitToken,
+    replyToken: c.replyToken,
     officeName: state.profile.officeName,
     clientName: c.name,
     contactName: c.contactName,
     docs: c.docs,
     monthLabel: state.monthLabel,
     files: c.files || [],
+    clientReply: c.clientReply || null,
   }));
   window.localStorage.setItem(PUBLIC_SUBMISSIONS_KEY, JSON.stringify(cards));
 }
@@ -403,13 +473,28 @@ export function loadPublicCard(token: string): PublicClientCard | null {
   try {
     const raw = window.localStorage.getItem(PUBLIC_SUBMISSIONS_KEY);
     if (!raw) {
-      // seed from demo defaults for shareable demo tokens
       const demo = createDemoState();
       syncPublicDirectory(demo);
       return loadPublicCard(token);
     }
     const list = JSON.parse(raw) as PublicClientCard[];
     return list.find((c) => c.token === token) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function loadPublicCardByReply(replyToken: string): PublicClientCard | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PUBLIC_SUBMISSIONS_KEY);
+    if (!raw) {
+      const demo = createDemoState();
+      syncPublicDirectory(demo);
+      return loadPublicCardByReply(replyToken);
+    }
+    const list = JSON.parse(raw) as PublicClientCard[];
+    return list.find((c) => c.replyToken === replyToken) || null;
   } catch {
     return null;
   }
@@ -424,7 +509,6 @@ export function savePublicUpload(token: string, file: SubmittedFile) {
   list[idx] = { ...list[idx], files: [...(list[idx].files || []), file] };
   window.localStorage.setItem(PUBLIC_SUBMISSIONS_KEY, JSON.stringify(list));
 
-  // also merge into office state if present
   try {
     const officeRaw = window.localStorage.getItem(STORAGE_KEY);
     if (!officeRaw) return;
@@ -436,6 +520,7 @@ export function savePublicUpload(token: string, file: SubmittedFile) {
         files: [...(c.files || []), file],
         status: "제출완료",
         submittedAt: new Date().toISOString(),
+        inCallQueue: false,
       };
     });
     state.activity = pushActivity(state.activity, `${list[idx].clientName}에서 자료를 제출했습니다`);
@@ -445,5 +530,48 @@ export function savePublicUpload(token: string, file: SubmittedFile) {
   }
 }
 
-// keep saveState syncing public dir — handled inside saveState()
+export function savePublicReply(replyToken: string, reply: "이미냈어요" | "해당없음") {
+  if (typeof window === "undefined") return;
+  const at = new Date().toISOString();
+  const raw = window.localStorage.getItem(PUBLIC_REPLIES_KEY);
+  const list: { replyToken: string; reply: "이미냈어요" | "해당없음"; at: string }[] = raw
+    ? JSON.parse(raw)
+    : [];
+  const idx = list.findIndex((r) => r.replyToken === replyToken);
+  const row = { replyToken, reply, at };
+  if (idx >= 0) list[idx] = row;
+  else list.push(row);
+  window.localStorage.setItem(PUBLIC_REPLIES_KEY, JSON.stringify(list));
 
+  const cardsRaw = window.localStorage.getItem(PUBLIC_SUBMISSIONS_KEY);
+  if (cardsRaw) {
+    const cards = JSON.parse(cardsRaw) as PublicClientCard[];
+    const i = cards.findIndex((c) => c.replyToken === replyToken);
+    if (i >= 0) {
+      cards[i] = { ...cards[i], clientReply: reply };
+      window.localStorage.setItem(PUBLIC_SUBMISSIONS_KEY, JSON.stringify(cards));
+    }
+  }
+
+  try {
+    const officeRaw = window.localStorage.getItem(STORAGE_KEY);
+    if (!officeRaw) return;
+    const state = migrate(JSON.parse(officeRaw));
+    const name = state.clients.find((c) => c.replyToken === replyToken)?.name || "거래처";
+    state.clients = state.clients.map((c) => {
+      if (c.replyToken !== replyToken) return c;
+      return {
+        ...c,
+        clientReply: reply,
+        clientRepliedAt: at,
+        status: reply === "해당없음" ? "해당없음" : "제출완료",
+        submittedAt: reply === "이미냈어요" ? at : c.submittedAt,
+        inCallQueue: false,
+      };
+    });
+    state.activity = pushActivity(state.activity, `${name} 원탭 회신: ${reply}`);
+    saveState(state);
+  } catch {
+    /* ignore */
+  }
+}

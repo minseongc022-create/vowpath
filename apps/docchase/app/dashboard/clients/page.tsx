@@ -6,9 +6,9 @@ import { PlanBadge, UpgradeHint } from "@/components/PlanUI";
 import { Toast } from "@/components/Toast";
 import { CHANNEL_HELP, statusClass, statusLabel } from "@/lib/format";
 import { getPlan } from "@/lib/plans";
-import { submitUrlFor, withActivity } from "@/lib/store";
+import { replyUrlFor, submitUrlFor, withActivity } from "@/lib/store";
 import type { ClientAccount, DocKind } from "@/lib/types";
-import { DOC_KINDS, newSubmitToken } from "@/lib/types";
+import { DOC_KINDS, newReplyToken, newSubmitToken } from "@/lib/types";
 import { useAppState } from "@/lib/useAppState";
 
 export default function ClientsPage() {
@@ -48,7 +48,9 @@ export default function ClientsPage() {
       docs: form.docs.length ? form.docs : ["통장사본"],
       status: "대기",
       submitToken: newSubmitToken(),
+      replyToken: newReplyToken(),
       files: [],
+      assignee: state!.profile.ownerName,
     };
     const next = withActivity(
       { ...state!, clients: [client, ...state!.clients] },
@@ -182,7 +184,17 @@ export default function ClientsPage() {
                       rel="noopener noreferrer"
                       className="mt-1 inline-block text-xs font-semibold text-pine-700"
                     >
-                      제출 링크 열기
+                      제출 링크
+                    </a>
+                  ) : null}
+                  {plan.flags.oneTapReply ? (
+                    <a
+                      href={replyUrlFor(c.replyToken)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 ml-2 inline-block text-xs font-semibold text-pine-700"
+                    >
+                      원탭 회신
                     </a>
                   ) : null}
                   <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass(c.status)}`}>

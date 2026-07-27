@@ -1,7 +1,7 @@
 export const SITE = {
   name: "수임체크",
   nameEn: "SuimCheck",
-  tagline: "수임처 앱 없이, 마감 자료를 끝까지 받아냅니다",
+  tagline: "알림톡 → 원탭 회신 → 남은 곳만 전화. 마감 독촉 OS",
   url: "https://suimcheck.kr",
   supportEmail: "hello@suimcheck.kr",
 } as const;

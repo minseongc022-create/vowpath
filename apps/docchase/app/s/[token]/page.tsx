@@ -73,7 +73,11 @@ export default function PublicSubmitPage() {
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {card.contactName}님, {card.monthLabel} 기장에 필요한 자료를 올려 주세요. 앱 설치·회원가입은
-          없습니다.
+          없습니다. 이미 냈다면{" "}
+          <a href={`/r/${card.replyToken}`} className="font-semibold text-pine-700 underline">
+            원탭 회신
+          </a>
+          을 눌러 주세요.
         </p>
 
         <div className="mt-6 sc-card p-4">

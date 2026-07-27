@@ -34,7 +34,7 @@ export function useAppState() {
   useEffect(() => {
     if (!ready) return;
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "suimcheck.v3" || e.key === "suimcheck.public.submissions.v1") {
+      if (e.key === "suimcheck.v3" || e.key === "suimcheck.public.submissions.v1" || e.key === "suimcheck.public.replies.v1") {
         setState(loadState());
       }
     };
