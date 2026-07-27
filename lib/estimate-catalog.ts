@@ -223,3 +223,112 @@ export function lineFromPreset(preset: EstimatePreset): EstimateLineItem {
     unitPriceCents: preset.defaultUnitPriceCents,
   });
 }
+
+export type EstimatePackage = {
+  id: string;
+  label: string;
+  subtitle: string;
+  presetIds: string[];
+};
+
+/** One-tap scopes shops already sell — same structure as ST / Jobber proposals. */
+export const HVAC_PROPOSAL_PACKAGES: EstimatePackage[] = [
+  {
+    id: "hvac-replace",
+    label: "AC / heat pump changeout",
+    subtitle: "Diagnostic + equipment + install + permit",
+    presetIds: [
+      "hvac-diag",
+      "hvac-condenser",
+      "hvac-coil",
+      "hvac-lineset",
+      "hvac-install-labor",
+      "hvac-startup",
+      "hvac-permit",
+      "hvac-disposal",
+    ],
+  },
+  {
+    id: "hvac-repair",
+    label: "Service call + repair",
+    subtitle: "Diagnostic + hourly labor",
+    presetIds: ["hvac-diag", "hvac-labor"],
+  },
+  {
+    id: "hvac-no-heat",
+    label: "No-heat / no-cool visit",
+    subtitle: "Diagnostic + 2 hrs labor",
+    presetIds: ["hvac-diag", "hvac-labor"],
+  },
+];
+
+export const RESTORATION_PROPOSAL_PACKAGES: EstimatePackage[] = [
+  {
+    id: "rest-water-day1",
+    label: "Water mitigation — Day 1",
+    subtitle: "Inspect + extract + dry equipment",
+    presetIds: [
+      "rest-inspect",
+      "rest-extract",
+      "rest-airmover",
+      "rest-dehu",
+      "rest-antimicrobial",
+    ],
+  },
+  {
+    id: "rest-sewage",
+    label: "Sewage / Category 3",
+    subtitle: "Inspect + containment + PPE allowance",
+    presetIds: ["rest-inspect", "rest-containment", "rest-afterhours", "rest-demo-drywall"],
+  },
+  {
+    id: "rest-packout",
+    label: "Pack-out scope",
+    subtitle: "Contents + labor",
+    presetIds: ["rest-inspect", "rest-packout"],
+  },
+];
+
+export function packagesForVertical(vertical?: ShopVertical | null): EstimatePackage[] {
+  return vertical === "hvac" ? HVAC_PROPOSAL_PACKAGES : RESTORATION_PROPOSAL_PACKAGES;
+}
+
+export function linesFromPackage(
+  pkg: EstimatePackage,
+  presets: EstimatePreset[],
+): EstimateLineItem[] {
+  const byId = new Map(presets.map((p) => [p.id, p]));
+  const lines: EstimateLineItem[] = [];
+  for (const id of pkg.presetIds) {
+    const preset = byId.get(id);
+    if (preset) lines.push(lineFromPreset(preset));
+  }
+  if (pkg.id === "hvac-no-heat") {
+    const labor = lines.find((l) => l.description.includes("service labor"));
+    if (labor) labor.qty = 2;
+  }
+  return lines;
+}
+
+/** First row on a blank worksheet — matches how techs start a paper quote. */
+export function starterLinesForVertical(
+  vertical?: ShopVertical | null,
+  opts?: { laborRateCents?: number },
+): EstimateLineItem[] {
+  const presets = presetsForVertical(vertical);
+  const laborRate = opts?.laborRateCents && opts.laborRateCents > 0 ? opts.laborRateCents : undefined;
+  if (vertical === "hvac") {
+    const diag = presets.find((p) => p.id === "hvac-diag");
+    const labor = presets.find((p) => p.id === "hvac-labor");
+    const lines: EstimateLineItem[] = [];
+    if (diag) lines.push(lineFromPreset(diag));
+    if (labor) {
+      const row = lineFromPreset(labor);
+      if (laborRate) row.unitPriceCents = laborRate;
+      lines.push(row);
+    }
+    return lines;
+  }
+  const inspect = presets.find((p) => p.id === "rest-inspect");
+  return inspect ? [lineFromPreset(inspect)] : [];
+}

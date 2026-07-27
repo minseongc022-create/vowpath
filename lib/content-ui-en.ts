@@ -355,7 +355,7 @@ export const vowDashboardEn = {
       "Estimate leads and on-site quotes you still need to finish or send — leave the truck with a number, not a promise.",
     chaseLink: "Chase queue",
     kpiOpen: "Open quotes",
-    tip: "Open a request → build line items on-site → text the customer a share link. Dollar quotes start the auto-chase clock.",
+    tip: "Open a request → use the field worksheet (like your ST proposal) or quick $ ballpark → text the customer. Chase runs automatically.",
     loading: "Loading quotes…",
     emptyTitle: "No open quotes",
     emptyBody: "Press-2 estimate calls and link intakes show up here until you send a quote.",

@@ -79,6 +79,7 @@ function sanitizeDoc(raw: EstimateDocument, existing?: EstimateDocument): Estima
     taxRatePercent,
     notes: raw.notes?.trim().slice(0, 2000) || undefined,
     exclusions: raw.exclusions?.trim().slice(0, 2000) || undefined,
+    paymentTerms: raw.paymentTerms?.trim().slice(0, 500) || undefined,
     shop: {
       shopName: String(raw.shop?.shopName || existing?.shop.shopName || "Shop").slice(0, 80),
       phone: raw.shop?.phone?.trim() || existing?.shop.phone,
@@ -180,6 +181,7 @@ export async function PATCH(request: Request) {
         defaultTaxRatePercent: estimate.taxRatePercent,
         estimateNotes: estimate.notes,
         estimateExclusions: estimate.exclusions,
+        estimatePaymentTerms: estimate.paymentTerms,
       });
     }
 

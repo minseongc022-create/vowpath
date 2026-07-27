@@ -88,6 +88,10 @@ export type ShopState = {
   estimateNotes?: string;
   /** Default exclusions on new estimates. */
   estimateExclusions?: string;
+  /** Default hourly labor rate on new line items (cents). */
+  defaultLaborRateCents?: number;
+  /** Printed payment terms (deposit, due date). */
+  estimatePaymentTerms?: string;
 };
 
 export type { ShopVertical };

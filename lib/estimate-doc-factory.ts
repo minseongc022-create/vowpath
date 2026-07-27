@@ -1,11 +1,13 @@
 import {
   DEFAULT_ESTIMATE_EXCLUSIONS,
   DEFAULT_ESTIMATE_NOTES,
+  DEFAULT_ESTIMATE_PAYMENT_TERMS,
   defaultValidUntil,
   makeEstimateNumber,
   type EstimateDocument,
   type EstimateShopSnapshot,
 } from "./estimate-document";
+import { starterLinesForVertical } from "./estimate-catalog";
 import { getShopProfile } from "./shop-profile-db";
 import { findUserById } from "./users-db";
 import { resolveBookingCustomerPhone } from "./booking-contact";
@@ -24,6 +26,7 @@ export async function buildDraftEstimateDoc(params: {
   const issuedAt = new Date().toISOString();
   const validityDays = profile.estimateValidityDays ?? 14;
   const taxRate = profile.defaultTaxRatePercent ?? 0;
+  const vertical = profile.vertical ?? "restoration";
 
   const shop: EstimateShopSnapshot = {
     shopName: user?.shopName?.trim() || "Your shop",
@@ -43,10 +46,13 @@ export async function buildDraftEstimateDoc(params: {
     customerPhone: phone || undefined,
     customerAddress: params.job.address || undefined,
     scopeSummary: params.job.symptom || undefined,
-    lineItems: [],
+    lineItems: starterLinesForVertical(vertical, {
+      laborRateCents: profile.defaultLaborRateCents,
+    }),
     taxRatePercent: taxRate,
     notes: profile.estimateNotes?.trim() || DEFAULT_ESTIMATE_NOTES,
     exclusions: profile.estimateExclusions?.trim() || DEFAULT_ESTIMATE_EXCLUSIONS,
+    paymentTerms: profile.estimatePaymentTerms?.trim() || DEFAULT_ESTIMATE_PAYMENT_TERMS,
     shop,
     status: "draft",
     updatedAt: issuedAt,

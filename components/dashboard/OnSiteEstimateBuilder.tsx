@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   categoryLabel,
+  computeCategorySubtotals,
   computeEstimateTotals,
+  estimateDocumentTitle,
   formatUsdFromCents,
+  lineTotalCents,
   newLineItem,
   unitLabel,
   type EstimateDocument,
@@ -12,7 +15,14 @@ import {
   type EstimateLineItem,
   type EstimateLineUnit,
 } from "@/lib/estimate-document";
-import { lineFromPreset, presetsForVertical, type EstimatePreset } from "@/lib/estimate-catalog";
+import {
+  lineFromPreset,
+  linesFromPackage,
+  packagesForVertical,
+  presetsForVertical,
+  type EstimatePackage,
+  type EstimatePreset,
+} from "@/lib/estimate-catalog";
 import type { ShopVertical } from "@/lib/shop-vertical";
 
 type Totals = ReturnType<typeof computeEstimateTotals>;
@@ -79,8 +89,14 @@ export function OnSiteEstimateBuilder({
   }, [verticalProp]);
 
   const presets = useMemo(() => presetsForVertical(vertical), [vertical]);
+  const packages = useMemo(() => packagesForVertical(vertical), [vertical]);
+  const docTitle = estimateDocumentTitle(vertical);
   const totals = useMemo(
     () => (estimate ? computeEstimateTotals(estimate) : null),
+    [estimate],
+  );
+  const categorySubtotals = useMemo(
+    () => (estimate ? computeCategorySubtotals(estimate.lineItems) : []),
     [estimate],
   );
 
@@ -134,6 +150,14 @@ export function OnSiteEstimateBuilder({
     );
   }
 
+  function applyPackage(pkg: EstimatePackage) {
+    setEstimate((prev) => {
+      if (!prev) return prev;
+      const added = linesFromPackage(pkg, presets);
+      return { ...prev, lineItems: [...prev.lineItems, ...added] };
+    });
+  }
+
   function removeLine(id: string) {
     setEstimate((prev) =>
       prev
@@ -166,7 +190,7 @@ export function OnSiteEstimateBuilder({
         return;
       }
       setEstimate(data.estimate);
-      setOkMsg("Estimate saved. Shop defaults (license, tax, notes) updated for next time.");
+      setOkMsg("Estimate saved. Shop defaults updated for your next worksheet.");
       onSaved?.();
     } finally {
       setSaving(false);
@@ -211,7 +235,7 @@ export function OnSiteEstimateBuilder({
       }
       if (data.estimate) setEstimate(data.estimate);
       if (data.shareUrl) setShareUrl(data.shareUrl);
-      setOkMsg("Estimate texted to customer with a review link.");
+      setOkMsg("Estimate texted — customer gets your branded proposal link. Chase starts automatically.");
       onSaved?.();
     } finally {
       setSending(false);
@@ -226,9 +250,9 @@ export function OnSiteEstimateBuilder({
         className="flex w-full items-center justify-between px-5 py-4 text-left"
       >
         <div>
-          <h3 className="text-sm font-semibold text-brand-950">On-site estimate builder</h3>
+          <h3 className="text-sm font-semibold text-brand-950">Field {docTitle.toLowerCase()} worksheet</h3>
           <p className="mt-0.5 text-xs text-stone-600">
-            Line items · tax · insurance fields · text a share link (truck-ready)
+            Same layout as your paper / ServiceTitan proposal — line items, tax, terms, customer signature block
           </p>
         </div>
         <span className="text-stone-400">{open ? "▴" : "▾"}</span>
@@ -396,7 +420,29 @@ export function OnSiteEstimateBuilder({
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-                  Quick-add common items
+                  Standard job packages
+                </p>
+                <p className="mt-0.5 text-[11px] text-stone-500">
+                  One tap adds the line items you usually put on a changeout or mitigation scope
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {packages.map((pkg) => (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => applyPackage(pkg)}
+                      className="rounded-xl border border-brand-200 bg-white px-3 py-2.5 text-left hover:border-brand-400 hover:bg-brand-50"
+                    >
+                      <p className="text-xs font-semibold text-brand-900">{pkg.label}</p>
+                      <p className="text-[11px] text-stone-500">{pkg.subtitle}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+                  Quick-add line items
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {presets.map((p) => (
@@ -413,9 +459,18 @@ export function OnSiteEstimateBuilder({
               </div>
 
               <div className="space-y-3">
+                {estimate.lineItems.length > 0 ? (
+                  <div className="hidden text-[10px] font-semibold uppercase tracking-wider text-stone-400 sm:grid sm:grid-cols-[1fr_56px_56px_72px_80px] sm:gap-2 sm:px-1">
+                    <span>Description</span>
+                    <span>Qty</span>
+                    <span>Unit</span>
+                    <span className="text-right">Rate</span>
+                    <span className="text-right">Amount</span>
+                  </div>
+                ) : null}
                 {estimate.lineItems.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-brand-200 px-3 py-4 text-center text-xs text-stone-500">
-                    No line items yet — tap a quick-add above or add a blank row.
+                    Tap a package above or add a line — your shop defaults are already loaded.
                   </p>
                 ) : null}
                 {estimate.lineItems.map((line) => (
@@ -438,7 +493,7 @@ export function OnSiteEstimateBuilder({
                         Remove
                       </button>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                       <select
                         value={line.category}
                         onChange={(e) =>
@@ -446,7 +501,7 @@ export function OnSiteEstimateBuilder({
                             category: e.target.value as EstimateLineCategory,
                           })
                         }
-                        className="rounded-lg border border-brand-200 px-2 py-1.5 text-xs"
+                        className="col-span-2 rounded-lg border border-brand-200 px-2 py-1.5 text-xs sm:col-span-1"
                       >
                         {CATEGORIES.map((c) => (
                           <option key={c} value={c}>
@@ -454,6 +509,17 @@ export function OnSiteEstimateBuilder({
                           </option>
                         ))}
                       </select>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={line.qty}
+                        onChange={(e) =>
+                          updateLine(line.id, { qty: Number(e.target.value) || 0 })
+                        }
+                        placeholder="Qty"
+                        className="rounded-lg border border-brand-200 px-2 py-1.5 text-xs"
+                      />
                       <select
                         value={line.unit}
                         onChange={(e) =>
@@ -471,17 +537,6 @@ export function OnSiteEstimateBuilder({
                         type="number"
                         min={0}
                         step={0.01}
-                        value={line.qty}
-                        onChange={(e) =>
-                          updateLine(line.id, { qty: Number(e.target.value) || 0 })
-                        }
-                        placeholder="Qty"
-                        className="rounded-lg border border-brand-200 px-2 py-1.5 text-xs"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
                         value={dollarsFromCents(line.unitPriceCents)}
                         onChange={(e) =>
                           updateLine(line.id, {
@@ -491,6 +546,9 @@ export function OnSiteEstimateBuilder({
                         placeholder="Rate $"
                         className="rounded-lg border border-brand-200 px-2 py-1.5 text-xs"
                       />
+                      <p className="col-span-2 flex items-center justify-end text-sm font-semibold tabular-nums text-brand-900 sm:col-span-1">
+                        {formatUsdFromCents(lineTotalCents(line))}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -504,8 +562,14 @@ export function OnSiteEstimateBuilder({
               </div>
 
               {totals ? (
-                <div className="ml-auto w-full max-w-xs space-y-1 rounded-xl bg-stone-50 px-3 py-3 text-sm">
-                  <div className="flex justify-between text-stone-600">
+                <div className="ml-auto w-full max-w-sm space-y-1 rounded-xl bg-stone-50 px-3 py-3 text-sm">
+                  {categorySubtotals.map((row) => (
+                    <div key={row.category} className="flex justify-between text-stone-600">
+                      <span>{row.label}</span>
+                      <span className="tabular-nums">{formatUsdFromCents(row.cents)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-stone-200 pt-1 text-stone-600">
                     <span>Subtotal</span>
                     <span className="tabular-nums">
                       {formatUsdFromCents(totals.subtotalCents)}
@@ -530,6 +594,16 @@ export function OnSiteEstimateBuilder({
               ) : null}
 
               <div className="grid gap-2 sm:grid-cols-2">
+                <Field label="Payment terms">
+                  <textarea
+                    value={estimate.paymentTerms ?? ""}
+                    onChange={(e) =>
+                      setEstimate({ ...estimate, paymentTerms: e.target.value })
+                    }
+                    rows={2}
+                    className="w-full rounded-lg border border-brand-200 px-2 py-1.5 text-xs"
+                  />
+                </Field>
                 <Field label="Notes">
                   <textarea
                     value={estimate.notes ?? ""}

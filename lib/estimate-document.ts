@@ -50,6 +50,8 @@ export type EstimateDocument = {
   taxRatePercent: number;
   notes?: string;
   exclusions?: string;
+  /** e.g. "50% deposit at scheduling; balance due on completion" */
+  paymentTerms?: string;
   shop: EstimateShopSnapshot;
   shareToken?: string;
   status: "draft" | "sent" | "accepted" | "declined";
@@ -89,6 +91,34 @@ export function computeEstimateTotals(doc: Pick<EstimateDocument, "lineItems" | 
   };
 }
 
+export type EstimateCategorySubtotal = {
+  category: EstimateLineCategory;
+  label: string;
+  cents: number;
+};
+
+/** Subtotals by Labor / Materials / Equipment — matches ServiceTitan & paper proposals. */
+export function computeCategorySubtotals(
+  lineItems: EstimateLineItem[],
+): EstimateCategorySubtotal[] {
+  const buckets = new Map<EstimateLineCategory, number>();
+  for (const line of lineItems) {
+    buckets.set(line.category, (buckets.get(line.category) ?? 0) + lineTotalCents(line));
+  }
+  const order: EstimateLineCategory[] = ["labor", "materials", "equipment", "fees", "other"];
+  return order
+    .filter((cat) => (buckets.get(cat) ?? 0) > 0)
+    .map((category) => ({
+      category,
+      label: categoryLabel(category),
+      cents: buckets.get(category) ?? 0,
+    }));
+}
+
+export function estimateDocumentTitle(vertical?: string | null): string {
+  return vertical === "hvac" ? "Proposal" : "Estimate";
+}
+
 export function formatUsdFromCents(cents: number): string {
   return (cents / 100).toLocaleString("en-US", {
     style: "currency",
@@ -117,6 +147,9 @@ export const DEFAULT_ESTIMATE_EXCLUSIONS =
 
 export const DEFAULT_ESTIMATE_NOTES =
   "This estimate is based on visible conditions at the time of inspection. Final invoicing may adjust for equipment days, moisture readings, and approved change orders.";
+
+export const DEFAULT_ESTIMATE_PAYMENT_TERMS =
+  "50% deposit due at scheduling; balance due upon completion. We accept card, check, and approved financing.";
 
 export function categoryLabel(cat: EstimateLineCategory): string {
   switch (cat) {

@@ -137,6 +137,12 @@ function patchFromBody(body: Record<string, unknown>): Partial<ShopProfile> {
   if (typeof body.estimateExclusions === "string") {
     patch.estimateExclusions = body.estimateExclusions.trim().slice(0, 2000) || undefined;
   }
+  if (typeof body.defaultLaborRateCents === "number" && Number.isFinite(body.defaultLaborRateCents)) {
+    patch.defaultLaborRateCents = Math.max(0, Math.round(body.defaultLaborRateCents));
+  }
+  if (typeof body.estimatePaymentTerms === "string") {
+    patch.estimatePaymentTerms = body.estimatePaymentTerms.trim().slice(0, 500) || undefined;
+  }
 
   return patch;
 }

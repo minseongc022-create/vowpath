@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   categoryLabel,
+  computeCategorySubtotals,
   computeEstimateTotals,
   formatUsdFromCents,
   lineTotalCents,
@@ -16,6 +17,8 @@ export function EstimateShareView({ token }: { token: string }) {
   const [estimate, setEstimate] = useState<EstimateDocument | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const categorySubtotals = estimate ? computeCategorySubtotals(estimate.lineItems) : [];
+  const docTitle = estimate?.shop.shopName ? "Proposal / Estimate" : "Estimate";
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +78,7 @@ export function EstimateShareView({ token }: { token: string }) {
       <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8 print:rounded-none print:border-0 print:shadow-none">
         <header className="border-b border-stone-200 pb-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-            Estimate {estimate.number}
+            {docTitle} {estimate.number}
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-stone-900">{estimate.shop.shopName}</h1>
           <div className="mt-2 space-y-0.5 text-sm text-stone-600">
@@ -160,7 +163,13 @@ export function EstimateShareView({ token }: { token: string }) {
         </div>
 
         <div className="mt-4 ml-auto w-full max-w-xs space-y-1 text-sm">
-          <div className="flex justify-between text-stone-600">
+          {categorySubtotals.map((row) => (
+            <div key={row.category} className="flex justify-between text-stone-600">
+              <span>{row.label}</span>
+              <span className="tabular-nums">{formatUsdFromCents(row.cents)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between border-t border-stone-100 pt-1 text-stone-600">
             <span>Subtotal</span>
             <span className="tabular-nums">{formatUsdFromCents(totals.subtotalCents)}</span>
           </div>
@@ -173,6 +182,15 @@ export function EstimateShareView({ token }: { token: string }) {
             <span className="tabular-nums">{formatUsdFromCents(totals.totalCents)}</span>
           </div>
         </div>
+
+        {estimate.paymentTerms ? (
+          <section className="mt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+              Payment terms
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-stone-700">{estimate.paymentTerms}</p>
+          </section>
+        ) : null}
 
         {estimate.notes ? (
           <section className="mt-6">

@@ -2,6 +2,7 @@
 
 import { BookingSettingsEditor } from "@/components/settings/BookingSettingsEditor";
 import { ShopNameEditor } from "@/components/settings/ShopNameEditor";
+import { EstimateDefaultsPanel } from "@/components/settings/EstimateDefaultsPanel";
 import { ShopOptionalFollowUps } from "@/components/settings/ShopOptionalFollowUps";
 import { TechDispatchSettings } from "@/components/settings/TechDispatchSettings";
 import { useSettingsPage } from "@/components/providers/LocaleProvider";
@@ -37,6 +38,8 @@ export function ShopPreferencesPanel({
       <BookingSettingsEditor vertical={vertical} />
 
       <TechDispatchSettings />
+
+      <EstimateDefaultsPanel />
 
       <ShopOptionalFollowUps reviewUrl={reviewUrl} onReviewUrlSaved={onReviewUrlSaved} />
     </div>

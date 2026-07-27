@@ -913,18 +913,24 @@ function QuoteEstimateCard({
   }
 
   const chaseCount = job.quoteChaseSentAt?.length ?? (job.quoteFollowUpSentAt ? 1 : 0);
-  const subtitle = chaseCount > 0
+  const statusSubtitle = chaseCount > 0
     ? `${chaseCount} of 3 auto follow-ups sent — last ${new Date((job.quoteChaseSentAt?.[chaseCount - 1] ?? job.quoteFollowUpSentAt)!).toLocaleDateString()}.`
     : job.quoteSentToCustomerAt
       ? `Quote texted ${new Date(job.quoteSentToCustomerAt).toLocaleDateString()} — auto chase at 48h, 7d, 14d if still unbooked.`
       : job.quotedAt
         ? `Amount saved ${new Date(job.quotedAt).toLocaleDateString()} — not texted yet.`
-        : isEstimate
-          ? "Phone / link estimate lead. Enter your number, text it to the customer, then we chase the follow-up so it doesn’t die in your notes."
-          : "Enter an amount and text it to the customer. Auto chase at 48h, 7d, and 14d if they don’t book.";
+        : "Enter an amount and text it to the customer. Auto chase at 48h, 7d, and 14d if they don’t book.";
+
+  const subtitle =
+    isEstimate && !job.quoteSentToCustomerAt && !job.quotedAt && chaseCount === 0
+      ? "Ballpark $ below, or open the worksheet for line items like your paper quote. Text either one — we chase until they book."
+      : statusSubtitle;
 
   return (
-    <InfoCard title={isEstimate ? "Estimate pipeline" : "Quote / estimate"} subtitle={subtitle}>
+    <InfoCard
+      title={isEstimate ? "Quick ballpark or full proposal" : "Quote / estimate"}
+      subtitle={subtitle}
+    >
       <div className="flex flex-wrap items-center gap-2 py-3">
         <span className="text-sm text-stone-500">$</span>
         <input
