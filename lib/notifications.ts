@@ -1,4 +1,5 @@
 import { dashboardUi } from "./content";
+import { friendlyJobberSyncBody } from "./jobber-sync-message";
 import { isPendingShopReview } from "./booking-policy";
 import type { RequestStatus } from "./booking-policy";
 import {
@@ -107,11 +108,13 @@ function tenantEventToNotificationType(
 function mapTenantEvent(event: TenantEvent): DashboardNotification | null {
   const type = tenantEventToNotificationType(event.type);
   if (!type) return null;
+  const body =
+    type === "jobber_sync_failed" ? friendlyJobberSyncBody(event.body) : event.body;
   return {
     id: `event-${event.id}`,
     type,
     title: event.title,
-    body: event.body,
+    body,
     createdAt: event.createdAt,
     href: event.href,
     urgency: event.urgency,
@@ -229,7 +232,7 @@ export function buildDashboardNotifications(
       id: "jobber-fail-active",
       type: "jobber_sync_failed",
       title: dashboardUi.notificationEvents.jobberFail,
-      body: jobberError,
+      body: friendlyJobberSyncBody(jobberError),
       createdAt: jobberSyncedAt ?? new Date().toISOString(),
       href: "/settings?section=jobber",
       urgency: "high",

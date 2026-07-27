@@ -7,7 +7,6 @@ import {
   IconAgreements,
   IconBriefing,
   IconCalendar,
-  IconChase,
   IconDashboard,
   IconDiamond,
   IconMissedCalls,
@@ -57,6 +56,9 @@ export function DashboardMobileNav({
   const v = vowDashboard.nav;
   const planLabel = locale === "ko" ? planNavCtaKo(userPlan) : planNavCtaEn(userPlan);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const quotesBadge =
+    openQuotesCount + chaseQueueCount > 0 ? openQuotesCount + chaseQueueCount : undefined;
 
   const morePaths = [
     ROUTES.quotes,
@@ -108,15 +110,8 @@ export function DashboardMobileNav({
       href: ROUTES.quotes,
       label: v.quotes,
       icon: <IconQuotes className="h-5 w-5" />,
-      badge: openQuotesCount > 0 ? openQuotesCount : undefined,
-      match: (p: string) => p.startsWith(ROUTES.quotes),
-    },
-    {
-      href: ROUTES.chase,
-      label: v.chase,
-      icon: <IconChase className="h-5 w-5" />,
-      badge: chaseQueueCount > 0 ? chaseQueueCount : undefined,
-      match: (p: string) => p.startsWith(ROUTES.chase),
+      badge: quotesBadge,
+      match: (p: string) => p.startsWith(ROUTES.quotes) || p.startsWith(ROUTES.chase),
     },
     {
       href: ROUTES.missedCallsAnalytics,

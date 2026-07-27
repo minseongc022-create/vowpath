@@ -1177,7 +1177,7 @@ const vowDashboardKo = {
     briefing: "오늘 브리핑",
     ai: "Effiroad AI",
     requests: "요청 · 예약",
-    quotes: "견적",
+    quotes: "견적 · 후속",
     chase: "후속",
     calendar: "캘린더",
     missedCalls: "지켜낸 콜",
@@ -1292,6 +1292,13 @@ const vowDashboardKo = {
     title: "요청 · 예약",
     subtitle: "들어온 요청과 승인 상태를 모두 확인합니다.",
   },
+  quotesHub: {
+    back: "← 대시보드로",
+    title: "견적 · 후속",
+    subtitle: "열린 견적과 자동 후속 문자를 한곳에서 관리합니다.",
+    tabOpen: "열린 견적",
+    tabChase: "후속",
+  },
   quotes: {
     back: "← 대시보드로",
     title: "견적",
@@ -1336,7 +1343,7 @@ const vowDashboardKo = {
     eyebrow: "견적 + 후속",
     title: "메모 앱에 묻히는 견적을 줄이세요",
     body: "현장에서 견적을 만들고, 트럭에서 문자로 보내고, 예약될 때까지 Effiroad가 따라갑니다.",
-    quotesCta: "견적 열기",
+    quotesCta: "견적 · 후속 열기",
     chaseCta: "후속 큐",
   },
   header: {
@@ -1635,6 +1642,10 @@ const dashboardUiKo = {
     callback: "고객 콜백 요청",
     voicemail: "새 음성메일",
     jobberFail: "Jobber 동기화 실패",
+    jobberFailBodyRevenue:
+      "수금(인보이스) 동기화 오류입니다. 통화와 작업 기록은 그대로입니다. 설정 → Jobber에서 연결을 확인해 주세요.",
+    jobberFailBodyDisconnected: "Jobber가 연결되지 않았습니다. 설정에서 다시 연결해 주세요.",
+    jobberFailBodyGeneric: "Jobber 동기화에 문제가 있습니다. 설정에서 연결 상태를 확인해 주세요.",
     p1Emergency: "P1 긴급",
     followUp: "후속 연락 요청",
     recordingReady: "녹음 준비됨",

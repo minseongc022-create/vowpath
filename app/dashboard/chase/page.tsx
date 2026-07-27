@@ -1,5 +1,6 @@
-import { ChaseQueueView } from "@/components/dashboard/ChaseQueueView";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/constants";
 
 export default function ChaseDashboardPage() {
-  return <ChaseQueueView />;
+  redirect(`${ROUTES.quotes}?tab=chase`);
 }

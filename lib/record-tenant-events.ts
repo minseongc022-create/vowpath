@@ -1,4 +1,5 @@
 import { dashboardUi } from "./content";
+import { friendlyJobberSyncBody } from "./jobber-sync-message";
 import type { RequestStatus } from "./booking-policy";
 import {
   isCallbackRequest,
@@ -73,7 +74,7 @@ export async function recordJobberSyncFailed(params: {
     userId: params.userId,
     type: "jobber_sync_failed",
     title: dashboardUi.notificationEvents.jobberFail,
-    body: params.message,
+    body: friendlyJobberSyncBody(params.message),
     href: "/settings?section=jobber",
     urgency: "high",
   });

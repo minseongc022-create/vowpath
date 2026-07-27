@@ -31,14 +31,7 @@ export function QuoteChasePromo() {
             className="inline-flex min-h-[44px] items-center rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
           >
             {copy.quotesCta}
-            {openCount > 0 ? ` (${openCount})` : ""}
-          </Link>
-          <Link
-            href={ROUTES.chase}
-            className="inline-flex min-h-[44px] items-center rounded-xl border border-brand-400 bg-white px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
-          >
-            {copy.chaseCta}
-            {chaseCount > 0 ? ` (${chaseCount})` : ""}
+            {openCount + chaseCount > 0 ? ` (${openCount + chaseCount})` : ""}
           </Link>
         </div>
       </div>

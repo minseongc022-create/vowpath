@@ -269,11 +269,17 @@
   }
 
   .notification-bell-btn {
-    @apply relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200/90 bg-white shadow-sm transition hover:border-brand-200 hover:bg-brand-50/30 hover:shadow-md;
+    @apply relative inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border-2 border-brand-600 bg-brand-700 shadow-md transition hover:border-brand-500 hover:bg-brand-600 hover:shadow-lg active:scale-[0.98];
+    color: #fff;
+  }
+
+  .notification-bell-btn svg {
+    color: currentColor;
   }
 
   .notification-bell-badge {
-    @apply absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white;
+    @apply absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold ring-2 ring-brand-700;
+    color: #fff;
   }
 
   .notification-dropdown {
@@ -1163,7 +1169,16 @@
   }
 
   .vow-dash-main .notification-bell-btn {
-    @apply border border-brand-200 bg-white text-brand-800 hover:border-brand-300 hover:bg-brand-50;
+    @apply border-2 border-brand-600 bg-brand-700 shadow-md hover:border-brand-500 hover:bg-brand-600;
+    color: #fff;
+  }
+
+  .vow-dash-main .notification-bell-btn svg {
+    color: currentColor;
+  }
+
+  .vow-dash-mobile-header .notification-bell-btn {
+    @apply h-10 w-10 min-h-[40px] min-w-[40px] shrink-0;
   }
 
   .vow-dash-main .notification-dropdown {
@@ -1190,9 +1205,7 @@
     @apply text-stone-500;
   }
 
-  .vow-dash-main .notification-bell-btn svg {
-    @apply text-brand-700;
-  }
+  /* legacy override removed — bell uses white icon on brand-700 */
 
   /* Settings page typography — landing-aligned */
   .vow-settings-eyebrow {

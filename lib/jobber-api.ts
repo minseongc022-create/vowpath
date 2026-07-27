@@ -533,6 +533,9 @@ type JobberInvoiceNode = {
   amounts?: {
     total?: unknown;
     paymentsTotal?: unknown;
+    /** Current Jobber GraphQL (2025+) */
+    invoiceBalance?: unknown;
+    /** Legacy field — some API versions */
     outstanding?: unknown;
   } | null;
   jobs?: { nodes: { id: string }[] } | null;
@@ -559,7 +562,7 @@ const INVOICES_QUERY = `
         amounts {
           total
           paymentsTotal
-          outstanding
+          invoiceBalance
         }
         jobs(first: 10) {
           nodes { id }
@@ -578,7 +581,9 @@ function normalizeInvoiceNode(node: JobberInvoiceNode): JobberInvoiceSnapshot {
     issuedDate: node.issuedDate ?? node.createdAt ?? undefined,
     collectedCents: parseJobberMoneyCents(node.amounts?.paymentsTotal),
     invoicedCents: parseJobberMoneyCents(node.amounts?.total),
-    outstandingCents: parseJobberMoneyCents(node.amounts?.outstanding),
+    outstandingCents: parseJobberMoneyCents(
+      node.amounts?.invoiceBalance ?? node.amounts?.outstanding,
+    ),
     jobberJobIds: node.jobs?.nodes.map((j) => j.id) ?? [],
     jobberWebUri: node.jobberWebUri ?? undefined,
   };

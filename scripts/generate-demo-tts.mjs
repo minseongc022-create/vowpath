@@ -1,16 +1,18 @@
 /**
- * Generate demo audio — warm gentle male US voice, one speaker, no overlap in mux.
+ * Generate demo audio — matches live Retell telephony voice (deep US male, deliberate pace).
  * Usage: npm run demo:tts
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-/** Warm, gently bright American male — clear phone presence, not thin. */
-const EDGE_VOICE = "en-US-GuyNeural";
-const EDGE_RATE = "-6%";
-const EDGE_PITCH = "+0Hz";
+import {
+  DEMO_EDGE_PITCH,
+  DEMO_EDGE_RATE,
+  DEMO_EDGE_VOICE,
+  DEMO_OPENAI_VOICE,
+  DEMO_VOICE_SPEED,
+} from "./lib/demo-voice-settings.mjs";
 
 const CLIPS = [
   // Restoration voice call — hybrid: name + address + read-back + SMS confirm
@@ -153,9 +155,9 @@ async function openAiTts(text, key) {
     },
     body: JSON.stringify({
       model: "tts-1-hd",
-      voice: "onyx",
+      voice: DEMO_OPENAI_VOICE,
       input: text,
-      speed: 0.95,
+      speed: DEMO_VOICE_SPEED,
     }),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -170,7 +172,7 @@ function edgeTts(text, outPath) {
         "-c",
         `import asyncio, edge_tts
 async def main():
-    c = edge_tts.Communicate(${JSON.stringify(text)}, ${JSON.stringify(EDGE_VOICE)}, rate=${JSON.stringify(EDGE_RATE)}, pitch=${JSON.stringify(EDGE_PITCH)})
+    c = edge_tts.Communicate(${JSON.stringify(text)}, ${JSON.stringify(DEMO_EDGE_VOICE)}, rate=${JSON.stringify(DEMO_EDGE_RATE)}, pitch=${JSON.stringify(DEMO_EDGE_PITCH)})
     await c.save(${JSON.stringify(outPath)})
 asyncio.run(main())`,
       ],
@@ -187,8 +189,8 @@ async function main() {
   const useOpenAi = key?.startsWith("sk-");
   console.log(
     useOpenAi
-      ? "[demo:tts] OpenAI onyx (deep male)"
-      : `[demo:tts] Edge TTS ${EDGE_VOICE} (${EDGE_RATE}, ${EDGE_PITCH})`,
+      ? `[demo:tts] OpenAI ${DEMO_OPENAI_VOICE} @ ${DEMO_VOICE_SPEED}x`
+      : `[demo:tts] Edge TTS ${DEMO_EDGE_VOICE} (${DEMO_EDGE_RATE}, ${DEMO_EDGE_PITCH})`,
   );
 
   for (const clip of CLIPS) {

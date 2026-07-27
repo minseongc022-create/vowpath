@@ -79,7 +79,7 @@ function ChaseRow({ job, labels }: { job: JobCard; labels: ReturnType<typeof use
   );
 }
 
-export function ChaseQueueView() {
+export function ChaseQueueView({ embedded = false }: { embedded?: boolean }) {
   const { jobs, loading, hasLoaded } = useDashboardData(null);
   const copy = useVowDashboard().chase;
   const queue = jobs.filter(isInChaseQueue);
@@ -91,28 +91,32 @@ export function ChaseQueueView() {
   });
   const showLoading = loading && !hasLoaded && jobs.length === 0;
 
-  return (
-    <AppPage width="wide">
-      <Link
-        href={ROUTES.dashboard}
-        className="text-sm font-medium text-brand-700 hover:text-brand-900 hover:underline"
-      >
-        {copy.back}
-      </Link>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-brand-950">{copy.title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-stone-600">{copy.subtitle}</p>
-        </div>
-        <Link
-          href={ROUTES.quotes}
-          className="inline-flex items-center justify-center rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
-        >
-          ← {copy.quotesLink}
-        </Link>
-      </div>
+  const body = (
+    <>
+      {!embedded ? (
+        <>
+          <Link
+            href={ROUTES.dashboard}
+            className="text-sm font-medium text-brand-700 hover:text-brand-900 hover:underline"
+          >
+            {copy.back}
+          </Link>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-brand-950">{copy.title}</h1>
+              <p className="mt-1 max-w-2xl text-sm text-stone-600">{copy.subtitle}</p>
+            </div>
+            <Link
+              href={ROUTES.quotes}
+              className="inline-flex items-center justify-center rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+            >
+              ← {copy.quotesLink}
+            </Link>
+          </div>
+        </>
+      ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className={`grid gap-4 sm:grid-cols-3 ${embedded ? "" : "mt-6"}`}>
         <div className="rounded-xl border border-brand-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{copy.kpiActive}</p>
           <p className="mt-1 text-3xl font-bold text-brand-950">{queue.length}</p>
@@ -126,7 +130,7 @@ export function ChaseQueueView() {
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className={embedded ? "mt-4" : "mt-8"}>
         {showLoading ? (
           <p className="text-sm text-stone-500">{copy.loading}</p>
         ) : queue.length === 0 ? (
@@ -142,6 +146,9 @@ export function ChaseQueueView() {
           </div>
         )}
       </div>
-    </AppPage>
+    </>
   );
+
+  if (embedded) return body;
+  return <AppPage width="wide">{body}</AppPage>;
 }

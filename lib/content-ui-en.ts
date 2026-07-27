@@ -233,7 +233,7 @@ export const vowDashboardEn = {
     briefing: "Daily Briefing",
     ai: "Shop AI",
     requests: "Requests",
-    quotes: "Quotes",
+    quotes: "Quotes & chase",
     chase: "Chase",
     calendar: "Calendar",
     missedCalls: "Missed calls",
@@ -348,6 +348,13 @@ export const vowDashboardEn = {
     title: "Requests",
     subtitle: "View all inbound requests and approval status.",
   },
+  quotesHub: {
+    back: "← Back to dashboard",
+    title: "Quotes & chase",
+    subtitle: "Open estimates and automated follow-up texts in one place.",
+    tabOpen: "Open quotes",
+    tabChase: "Chase",
+  },
   quotes: {
     back: "← Back to dashboard",
     title: "Quotes",
@@ -394,7 +401,7 @@ export const vowDashboardEn = {
     eyebrow: "Quote + Chase",
     title: "Stop losing estimates in your notes app",
     body: "Build the quote on-site, text it from the truck, and let Effiroad chase until they book.",
-    quotesCta: "Open quotes",
+    quotesCta: "Open quotes & chase",
     chaseCta: "Chase queue",
   },
   header: {
@@ -904,6 +911,10 @@ export function buildDashboardUiEn<T extends Record<string, unknown>>(ko: T): T 
       callback: "Callback requested",
       voicemail: "New voicemail",
       jobberFail: "Jobber sync failed",
+      jobberFailBodyRevenue:
+        "Collected revenue sync hit an error. Calls and jobs still work — check Settings → Jobber to reconnect.",
+      jobberFailBodyDisconnected: "Jobber is not connected. Reconnect in Settings to sync invoices.",
+      jobberFailBodyGeneric: "Jobber sync failed. Check your connection in Settings → Jobber.",
       p1Emergency: "P1 emergency",
       followUp: "Follow-up requested",
       recordingReady: "Recording ready",

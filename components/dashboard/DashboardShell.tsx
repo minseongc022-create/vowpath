@@ -7,7 +7,6 @@ import {
   IconAgreements,
   IconBriefing,
   IconCalendar,
-  IconChase,
   IconDashboard,
   IconDiamond,
   IconMissedCalls,
@@ -15,6 +14,7 @@ import {
   IconRequests,
   IconSettings,
 } from "@/components/dashboard/DashboardNavIcons";
+import { DashboardHeaderNotifications } from "@/components/dashboard/DashboardHeaderNotifications";
 import { DashboardMobileNav } from "@/components/dashboard/DashboardMobileNav";
 import { DashboardViewLandingFooter } from "@/components/dashboard/DashboardViewLandingFooter";
 import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle";
@@ -70,6 +70,9 @@ export function DashboardShell({
   const planCta = locale === "ko" ? planNavCtaKo(userPlan) : planNavCtaEn(userPlan);
   const verticalLine = `${shopVerticalLabel(shopVertical, locale)} · Effiroad`;
 
+  const quotesBadge =
+    openQuotesCount + chaseQueueCount > 0 ? openQuotesCount + chaseQueueCount : undefined;
+
   const nav: NavItem[] = [
     {
       href: ROUTES.dashboard,
@@ -87,16 +90,9 @@ export function DashboardShell({
     {
       href: ROUTES.quotes,
       label: v.quotes,
-      match: (p) => p.startsWith(ROUTES.quotes),
-      badge: openQuotesCount > 0 ? openQuotesCount : undefined,
+      match: (p) => p.startsWith(ROUTES.quotes) || p.startsWith(ROUTES.chase),
+      badge: quotesBadge,
       icon: <IconQuotes />,
-    },
-    {
-      href: ROUTES.chase,
-      label: v.chase,
-      match: (p) => p.startsWith(ROUTES.chase),
-      badge: chaseQueueCount > 0 ? chaseQueueCount : undefined,
-      icon: <IconChase />,
     },
     {
       href: ROUTES.calendar,
@@ -206,6 +202,7 @@ export function DashboardShell({
               <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
               <p className="truncate text-[11px] text-stone-500">{verticalLine}</p>
             </div>
+            <DashboardHeaderNotifications />
             <DashboardLocaleToggle />
           </div>
         </header>
