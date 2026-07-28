@@ -241,6 +241,7 @@ export const vowDashboardEn = {
     settings: "Settings",
     shopTools: "Shop tools",
     allMenus: "All menus",
+    signOut: "Sign out",
   },
   calendar: {
     title: "Schedule calendar",

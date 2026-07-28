@@ -21,8 +21,9 @@ import {
 } from "@/components/settings/SettingsSaveContext";
 import { SettingsSaveButton } from "@/components/settings/SettingsSaveButton";
 import { GuidedTour } from "@/components/shared/GuidedTour";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { getSettingsTourSteps } from "@/lib/guided-tour-steps";
-import { useLocale, useSettingsPage } from "@/components/providers/LocaleProvider";
+import { useLocale, useSettingsPage, useVowDashboard } from "@/components/providers/LocaleProvider";
 import { ROUTES, SITE } from "@/lib/constants";
 import { useShopState } from "@/lib/hooks/use-shop-state";
 import {
@@ -102,6 +103,8 @@ function SettingsViewBody({
   section?: string;
 }) {
   const settingsPage = useSettingsPage();
+  const vowDashboard = useVowDashboard();
+  const { locale } = useLocale();
   const settingsTourSteps = useMemo(() => getSettingsTourSteps(), []);
   const router = useRouter();
   const saveAll = useSettingsSaveAll();
@@ -554,6 +557,19 @@ function SettingsViewBody({
       >
         {settingsPage.backDashboard}
       </button>
+
+      <div className="rounded-2xl border border-brand-200 bg-white px-4 py-4">
+        <p className="text-sm font-semibold text-brand-950">{vowDashboard.nav.signOut}</p>
+        <p className="mt-1 text-xs text-stone-500">
+          {locale === "ko"
+            ? "이 기기에서 샵 계정 접속을 끝냅니다."
+            : "End this shop session on this device."}
+        </p>
+        <LogoutButton
+          className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-brand-300 bg-brand-50 px-4 text-sm font-semibold text-brand-900 hover:bg-brand-100 sm:w-auto"
+          label={vowDashboard.nav.signOut}
+        />
+      </div>
 
       <p className="text-center text-sm text-slate-500">
         {settingsPage.support.replace("{email}", SITE.supportEmail)}

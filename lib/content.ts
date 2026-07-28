@@ -1185,6 +1185,7 @@ const vowDashboardKo = {
     settings: "샵 설정",
     shopTools: "샵 도구",
     allMenus: "전체 메뉴",
+    signOut: "로그아웃",
   },
   calendar: {
     title: "일정 캘린더",

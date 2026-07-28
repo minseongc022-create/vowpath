@@ -190,7 +190,7 @@ export function DashboardShell({
               <p className="truncate text-sm font-semibold text-white">{shopName}</p>
               <p className="truncate text-xs text-slate-500">{verticalLine}</p>
             </div>
-            <LogoutButton className="!text-xs !text-slate-500 hover:!text-white" />
+            <LogoutButton className="shrink-0 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.08] hover:text-white" />
           </div>
         </div>
       </aside>
@@ -202,6 +202,7 @@ export function DashboardShell({
               <p className="truncate text-base font-bold text-brand-950">{shopName}</p>
               <p className="truncate text-[11px] text-stone-500">{verticalLine}</p>
             </div>
+            <LogoutButton className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg border border-brand-200 bg-white px-3 text-xs font-semibold text-stone-700 hover:bg-brand-50 hover:text-brand-900" />
             <DashboardHeaderNotifications />
             <DashboardLocaleToggle />
           </div>

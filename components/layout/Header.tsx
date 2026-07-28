@@ -10,6 +10,7 @@ import { Container } from "@/components/ui/Container";
 import { HeaderAuth, MobileHeaderAuth } from "@/components/layout/HeaderAuth";
 import { PublicLocaleToggle } from "@/components/layout/PublicLocaleToggle";
 import { VerticalSwitcher } from "@/components/layout/VerticalSwitcher";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 type HeaderProps = {
   session: { email: string; shopName: string } | null;
@@ -44,7 +45,9 @@ export function Header({ session }: HeaderProps) {
               >
                 Log in
               </Link>
-            ) : null}
+            ) : (
+              <LogoutButton className="inline-flex min-h-[44px] items-center rounded-lg px-2 text-sm font-semibold text-stone-700 hover:bg-brand-50 hover:text-brand-900 lg:hidden" />
+            )}
             <div className="hidden lg:block">
               <HeaderAuth session={session} />
             </div>

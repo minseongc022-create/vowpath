@@ -16,6 +16,7 @@ import {
 } from "@/components/dashboard/DashboardNavIcons";
 import { DashboardLocaleToggle } from "@/components/layout/DashboardLocaleToggle";
 import { EffiroadAiMark } from "@/components/brand/EffiroadAiMark";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { openEffiroadAssistant } from "@/lib/assistant-events";
 import { ROUTES } from "@/lib/constants";
 import { useLocale, useVowDashboard } from "@/components/providers/LocaleProvider";
@@ -200,6 +201,10 @@ export function DashboardMobileNav({
               );
             })}
           </div>
+          <LogoutButton
+            className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-xl border border-brand-200 bg-white text-sm font-semibold text-stone-700 hover:bg-brand-50"
+            label={v.signOut}
+          />
         </div>
       ) : null}
 
