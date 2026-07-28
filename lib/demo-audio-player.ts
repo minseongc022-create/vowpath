@@ -177,7 +177,7 @@ export function speakDemoFallback(text: string): Promise<void> {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 0.98;
+    utterance.rate = 1.0;
     utterance.volume = DEMO_PLAYBACK_VOLUME;
     const voices = window.speechSynthesis.getVoices();
     const male =

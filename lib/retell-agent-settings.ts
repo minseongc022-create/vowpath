@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "clear-fast-voice-v37-2026-07-28";
+export const RETELL_PROMPT_VERSION = "human-natural-voice-v38-2026-07-28";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -223,9 +223,9 @@ function sharedAgentPatch(): Record<string, unknown> {
     voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: true,
-    // Higher = end-of-utterance sooner so answers start faster.
-    interruption_sensitivity: 0.5,
-    enable_backchannel: false,
+    // Slightly lower = wait for natural pauses before the agent speaks.
+    interruption_sensitivity: 0.42,
+    enable_backchannel: true,
     reminder_trigger_ms: 8000,
     reminder_max_count: 1,
   };
@@ -236,10 +236,10 @@ export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.45,
-    voice_speed: 0.98,
+    voice_temperature: 0.58,
+    voice_speed: 1.0,
     volume: 1.05,
-    responsiveness: 1.0,
+    responsiveness: 0.98,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
@@ -250,10 +250,10 @@ export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.48,
-    voice_speed: 0.98,
+    voice_temperature: 0.6,
+    voice_speed: 1.0,
     volume: 1.05,
-    responsiveness: 1.0,
+    responsiveness: 0.98,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
