@@ -40,7 +40,7 @@ test("parseOnMyWayMinutes still accepts minute replies", () => {
 
 test("looksLikeOnMyWayAttempt covers departing and minutes", () => {
   assert.equal(looksLikeOnMyWayAttempt("departing"), true);
-  assert.equal(looksLikeOnMyWayAttempt("20"), true);
+  assert.equal(looksLikeOnMyWayAttempt("30"), true);
   assert.equal(looksLikeOnMyWayAttempt("hello"), false);
 });
 
