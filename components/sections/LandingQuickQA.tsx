@@ -8,11 +8,11 @@ export function LandingQuickQA() {
   const { quickFaq } = useSiteContent();
 
   return (
-    <section id={quickFaq.id} className="vow-site-section border-b border-brand-200/50 bg-white py-14 sm:py-16">
+    <section id={quickFaq.id} className="vow-site-section border-b border-brand-200/50 bg-white py-10 sm:py-14">
       <Container>
         <SectionHeading label={quickFaq.label} title={quickFaq.title} subtitle={quickFaq.subtitle} align="center" />
 
-        <div className="mx-auto mt-10 grid max-w-5xl gap-3 sm:grid-cols-2">
+        <div className="mx-auto mt-6 grid max-w-5xl gap-3 sm:mt-8 sm:grid-cols-2">
           {quickFaq.items.map((item) => (
             <details
               key={item.q}

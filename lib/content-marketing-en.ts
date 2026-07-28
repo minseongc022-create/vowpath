@@ -26,8 +26,8 @@ export const heroEn = {
   subhead: undefined,
   trustLine: "Keep your number · Pay when a job is approved",
   primaryCta: CHECKOUT_CTA,
-  secondaryCta: "See how it works",
-  secondaryCtaHref: "/#how-it-works",
+  secondaryCta: "See it in action",
+  secondaryCtaHref: "/#demo",
   heroBadges: [
     "Answers every missed call",
     "Owner 1 / 2 on risky jobs",
