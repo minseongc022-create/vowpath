@@ -8,10 +8,11 @@ import { Hero } from "@/components/sections/Hero";
 import { LandingQuickQA } from "@/components/sections/LandingQuickQA";
 import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { HowItWorks } from "@/components/sections/HowItWorks";
+import { ProductStack } from "@/components/sections/ProductStack";
+import { Features } from "@/components/sections/Features";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
 import { CTA } from "@/components/sections/CTA";
-import { QuoteChaseSpotlight } from "@/components/sections/QuoteChaseSpotlight";
 
 type HomePageProps = {
   searchParams: Promise<{ view?: string }>;
@@ -33,7 +34,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <LandingQuickQA />
         <DemoVideoHero />
         <HowItWorks />
-        <QuoteChaseSpotlight />
+        <ProductStack />
+        <Features />
         <Pricing />
         <FAQ />
         <CTA />

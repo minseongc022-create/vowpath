@@ -528,6 +528,18 @@ export const featuresEn = {
       tag: "Included",
     },
     {
+      title: "On-site estimates",
+      description:
+        "Line-item quotes from the truck — labor, materials, photos. Text a share link before you leave. Included with every plan.",
+      tag: "Included",
+    },
+    {
+      title: "Estimate follow-up SMS",
+      description:
+        "Quiet nudges at 48 hours, 7 days, and 14 days on open quotes. Chase queue in the dashboard — stops when they book.",
+      tag: "Included",
+    },
+    {
       title: "Call recordings + transcripts",
       description:
         "Review what was said on intake calls. Useful for adjusters and quality control.",
