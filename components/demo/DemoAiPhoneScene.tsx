@@ -58,6 +58,9 @@ function CustomerChatPanel({
   customerScrollRef: RefObject<HTMLDivElement | null>;
   compact?: boolean;
 }) {
+  const isPortalLine = (line: string) =>
+    /Today \d/.test(line) || line.includes(" TX") || line.includes("Round Rock");
+
   return (
     <div className={`flex min-h-0 flex-col ${compact ? "h-full" : "justify-center"}`}>
       <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300">
@@ -75,8 +78,17 @@ function CustomerChatPanel({
           customerLines.map((line, i) => (
             <div
               key={`${line}-${i}`}
-              className="ml-auto max-w-[98%] rounded-2xl rounded-tr-sm bg-sky-500/30 px-3 py-2.5 text-xs leading-relaxed text-white ring-1 ring-sky-300/40 sm:text-sm"
+              className={`ml-auto max-w-[98%] rounded-2xl rounded-tr-sm px-3 py-2.5 text-xs leading-relaxed text-white sm:text-sm ${
+                isPortalLine(line)
+                  ? "demo-portal-bubble border-2 font-semibold"
+                  : "bg-sky-500/30 ring-1 ring-sky-300/40"
+              }`}
             >
+              {isPortalLine(line) ? (
+                <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-emerald-100/90">
+                  {/Today \d/.test(line) ? "Visit time" : "Address on link"}
+                </span>
+              ) : null}
               {line}
             </div>
           ))
@@ -115,6 +127,7 @@ export function DemoAiPhoneScene({
     ownerSms,
     crewSms,
     fyiSms,
+    customerSms,
     speaking,
     typing,
     stepIdx,
@@ -194,6 +207,12 @@ export function DemoAiPhoneScene({
               <p className="mt-1 text-[11px] leading-relaxed text-sky-100">{fyiSms}</p>
             </div>
           ) : null}
+          {customerSms ? (
+            <div className="rounded-lg border border-violet-500/40 bg-violet-950/50 p-2">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-violet-300">Customer SMS</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-violet-100">{customerSms}</p>
+            </div>
+          ) : null}
           {crewSms ? (
             <div className="rounded-lg border border-amber-500/40 bg-amber-950/50 p-2">
               <p className="text-[9px] font-bold uppercase tracking-wider text-amber-300">Crew SMS</p>
@@ -244,6 +263,12 @@ export function DemoAiPhoneScene({
           <div className="mt-3 rounded-xl border border-sky-500/35 bg-sky-950/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-sky-300">Owner FYI</p>
             <p className="mt-1.5 text-xs leading-relaxed text-sky-100">{fyiSms}</p>
+          </div>
+        ) : null}
+        {customerSms ? (
+          <div className="mt-3 rounded-xl border border-violet-500/40 bg-violet-950/50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-300">Customer SMS</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-violet-100">{customerSms}</p>
           </div>
         ) : null}
         {crewSms ? (

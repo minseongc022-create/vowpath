@@ -35,10 +35,13 @@ test("pending address helpers", () => {
 test("demo uses hybrid address + pick-time flow", () => {
   assert.match(demoScript, /Request received - confirm:/i);
   assert.match(demoScript, /Caller says address/);
-  assert.match(demoScript, /const ESTIMATE_START = 22/);
+  assert.match(demoScript, /sms-sending/);
+  assert.match(demoScript, /Sending secure link by text/);
+  assert.match(demoScript, /const ESTIMATE_START = 23/);
   assert.match(demoScript, /Text DEPARTING/);
-  assert.match(demoScript, /const LINK_START = 27/);
+  assert.match(demoScript, /const LINK_START = 28/);
   assert.match(demoScript, /Service — say phone or text/);
+  assert.match(demoScript, /Today 8:00–10:00 AM/);
 });
 
 test("landing FAQ covers owner essentials", () => {

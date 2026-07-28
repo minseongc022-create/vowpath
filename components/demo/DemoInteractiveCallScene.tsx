@@ -53,10 +53,23 @@ function ActionPanel({
 }) {
   if (!step) return null;
 
+  const tapHint = (
+    <span className="mb-1.5 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200 sm:text-[11px]">
+      <span className="inline-block animate-bounce" aria-hidden>
+        👇
+      </span>
+      Tap to continue
+      <span className="inline-block animate-bounce" aria-hidden>
+        👇
+      </span>
+    </span>
+  );
+
   if (step.kind === "menu") {
     return (
-      <div className="mt-2 min-w-0 space-y-1.5 sm:mt-3 sm:space-y-2">
-        <p className="text-[9px] font-bold uppercase tracking-wide text-sky-300/80 sm:text-[10px] sm:tracking-wider">
+      <div className="mt-2 min-w-0 space-y-2 sm:mt-3 sm:space-y-2.5">
+        {tapHint}
+        <p className="text-center text-[10px] font-bold uppercase tracking-wide text-sky-200 sm:text-[11px] sm:tracking-wider">
           {step.prompt}
         </p>
         {step.options.map((opt) => (
@@ -67,7 +80,7 @@ function ActionPanel({
               unlockDemoAudio();
               onMenuChoice(opt);
             }}
-            className="block w-full min-w-0 rounded-lg bg-sky-500/25 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-1 ring-sky-400/40 transition hover:bg-sky-500/40 active:scale-[0.99] sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
+            className="demo-tap-cta block w-full min-w-0 rounded-xl border-2 border-sky-200/80 bg-gradient-to-r from-sky-400 to-sky-500 px-3 py-3.5 text-left text-xs font-bold leading-snug text-white ring-4 ring-sky-300/50 transition hover:from-sky-300 hover:to-sky-400 active:scale-[0.98] sm:rounded-2xl sm:px-4 sm:py-4 sm:text-sm"
           >
             {opt.label}
           </button>
@@ -77,38 +90,50 @@ function ActionPanel({
   }
 
   if (step.kind === "customer-action") {
+    const isPortal = step.customerText.includes("\n");
     return (
-      <button
-        type="button"
-        onClick={() => {
-          unlockDemoAudio();
-          onCustomerAction(step.customerText, step.transition ?? "soft");
-        }}
-        className="mt-2 block w-full min-w-0 rounded-lg bg-sky-500/30 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-2 ring-sky-400/50 transition hover:bg-sky-500/45 active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
-      >
-        Tap: {step.label}
-      </button>
+      <div className="mt-2 min-w-0 sm:mt-3">
+        {tapHint}
+        <button
+          type="button"
+          onClick={() => {
+            unlockDemoAudio();
+            onCustomerAction(step.customerText, step.transition ?? "soft");
+          }}
+          className="demo-tap-cta block w-full min-w-0 rounded-xl border-2 border-sky-100/90 bg-gradient-to-r from-sky-400 to-cyan-400 px-3 py-3.5 text-left text-xs font-bold leading-snug text-white ring-4 ring-sky-200/60 transition hover:from-sky-300 hover:to-cyan-300 active:scale-[0.98] sm:rounded-2xl sm:px-4 sm:py-4 sm:text-sm"
+        >
+          <span className="block text-[10px] font-extrabold uppercase tracking-wider text-sky-950/80">
+            {isPortal ? "On the booking link" : "Caller says"}
+          </span>
+          <span className="mt-1 block">{step.label}</span>
+        </button>
+      </div>
     );
   }
 
   if (step.kind === "owner-action") {
     const isTech = step.role === "tech";
     return (
-      <button
-        type="button"
-        onClick={() => {
-          unlockDemoAudio();
-          onOwnerAction(step.systemText, step.transition ?? "sms");
-        }}
-        className={`mt-2 block w-full min-w-0 rounded-lg px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug ring-2 transition active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs ${
-          isTech
-            ? "bg-amber-500/25 text-amber-50 ring-amber-400/50 hover:bg-amber-500/40"
-            : "bg-emerald-500/25 text-emerald-50 ring-emerald-400/50 hover:bg-emerald-500/40"
-        }`}
-      >
-        {isTech ? "Tech: " : "Shop owner: "}
-        {step.label}
-      </button>
+      <div className="mt-2 min-w-0 sm:mt-3">
+        {tapHint}
+        <button
+          type="button"
+          onClick={() => {
+            unlockDemoAudio();
+            onOwnerAction(step.systemText, step.transition ?? "sms");
+          }}
+          className={`demo-tap-cta block w-full min-w-0 rounded-xl border-2 px-3 py-3.5 text-left text-xs font-bold leading-snug ring-4 transition active:scale-[0.98] sm:rounded-2xl sm:px-4 sm:py-4 sm:text-sm ${
+            isTech
+              ? "demo-tap-cta-tech border-amber-100/90 bg-gradient-to-r from-amber-400 to-orange-400 text-amber-950 ring-amber-200/60 hover:from-amber-300 hover:to-orange-300"
+              : "demo-tap-cta-owner border-emerald-100/90 bg-gradient-to-r from-emerald-400 to-teal-400 text-emerald-950 ring-emerald-200/60 hover:from-emerald-300 hover:to-teal-300"
+          }`}
+        >
+          <span className="block text-[10px] font-extrabold uppercase tracking-wider opacity-80">
+            {isTech ? "Crew texts back" : "Shop owner replies"}
+          </span>
+          <span className="mt-1 block text-white drop-shadow-sm">{step.label}</span>
+        </button>
+      </div>
     );
   }
 
@@ -136,6 +161,8 @@ export function DemoInteractiveCallScene({
     crewSms,
     fyiSms,
     customerSms,
+    customerSmsSending,
+    smsSendingLabel,
     speaking,
     transferring,
     transitionKind,
@@ -161,6 +188,9 @@ export function DemoInteractiveCallScene({
         : transferring
           ? "animate-pulse text-sky-300"
           : "text-emerald-400";
+
+  const isPortalLine = (line: string) =>
+    /Today \d/.test(line) || line.includes(" TX") || line.includes("Round Rock");
 
   const grid = (
     <div className="relative min-h-0 flex-1">
@@ -199,7 +229,14 @@ export function DemoInteractiveCallScene({
             </div>
           </div>
           <div className={`bg-[#141210] px-3 py-3 ${embedded ? "min-h-[88px]" : "min-h-[150px] px-4 py-4"}`}>
-            {transferring && transitionKind === "retell-connect" ? (
+            {customerSmsSending ? (
+              <div className="animate-pulse rounded-lg bg-violet-500/15 p-2.5 ring-1 ring-violet-400/40">
+                <p className="text-[9px] font-bold uppercase text-violet-200/90">SMS</p>
+                <p className="mt-1 text-xs leading-relaxed text-violet-50/90 sm:text-sm">
+                  {smsSendingLabel ?? "Sending secure link by text…"}
+                </p>
+              </div>
+            ) : transferring && transitionKind === "retell-connect" ? (
               <div className="rounded-lg bg-amber-500/15 p-2.5 ring-1 ring-amber-400/40">
                 <p className="text-[9px] font-bold uppercase text-amber-200/90">Connect</p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-50/90 sm:text-sm">
@@ -246,8 +283,17 @@ export function DemoInteractiveCallScene({
             customerLines.map((line, i) => (
               <div
                 key={`${line}-${i}`}
-                className="ml-auto max-w-[98%] rounded-2xl rounded-tr-sm bg-sky-500/30 px-3 py-2.5 text-xs leading-relaxed text-white ring-1 ring-sky-300/40 sm:text-sm"
+                className={`ml-auto max-w-[98%] rounded-2xl rounded-tr-sm px-3 py-2.5 text-xs leading-relaxed text-white sm:text-sm ${
+                  isPortalLine(line)
+                    ? "demo-portal-bubble border-2 font-semibold"
+                    : "bg-sky-500/30 ring-1 ring-sky-300/40"
+                }`}
               >
+                {isPortalLine(line) ? (
+                  <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-emerald-100/90">
+                    {/Today \d/.test(line) ? "Visit time" : "Address on link"}
+                  </span>
+                ) : null}
                 {line}
               </div>
             ))
@@ -294,6 +340,14 @@ export function DemoInteractiveCallScene({
         <div className="rounded-lg border border-sky-500/35 bg-sky-950/50 p-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-sky-300">Owner FYI</p>
           <p className="mt-1 text-[11px] leading-relaxed text-sky-100">{fyiSms}</p>
+        </div>
+      ) : null}
+      {customerSmsSending ? (
+        <div className="animate-pulse rounded-lg border border-violet-500/50 bg-violet-950/40 p-2">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-violet-300">Customer SMS</p>
+          <p className="mt-1 text-[11px] font-medium text-violet-100">
+            {smsSendingLabel ?? "Sending secure link by text…"}
+          </p>
         </div>
       ) : null}
       {customerSms ? (

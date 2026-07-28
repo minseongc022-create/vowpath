@@ -45,6 +45,11 @@ export type InteractiveStep =
       transition?: DemoTransition;
     }
   | {
+      kind: "sms-sending";
+      /** Shown while the secure link text is in flight */
+      label?: string;
+    }
+  | {
       kind: "sms";
       text: string;
       variant: "owner" | "crew" | "fyi" | "customer";
@@ -74,8 +79,8 @@ export function getInteractiveDemoSteps(vertical: DemoVertical): InteractiveStep
  * Then owner/crew → live map
  */
 function getRestorationInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 22;
-  const LINK_START = 27;
+  const ESTIMATE_START = 23;
+  const LINK_START = 28;
 
   return [
     { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job" },
@@ -173,6 +178,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       text: RESTORATION_AI_LINES[3],
       audioIndex: 3,
     },
+    { kind: "sms-sending", label: "Sending secure link by text…" },
     {
       kind: "sms",
       text: `${RESTORATION_SHOP}: Hi Mike! Request received - confirm: https://effiroad.com/r/demo`,
@@ -180,8 +186,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Customer confirms address + picks 8:00–10:00 AM",
-      customerText: "[Confirmed 4821 Oak Dr, Austin TX · Today 8:00–10:00 AM]",
+      label: "Customer opens link — confirms address & picks visit time",
+      customerText: "4821 Oak Drive, Austin TX\nToday 8:00–10:00 AM",
       transition: "sms",
     },
     { kind: "system", text: "Visit scheduled · Risky sewage job needs owner approval" },
@@ -257,6 +263,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${RESTORATION_SHOP}. It takes about a minute on your phone.`,
     },
+    { kind: "sms-sending", label: "Sending secure link by text…" },
     {
       kind: "sms",
       text: `${RESTORATION_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
@@ -267,8 +274,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
 }
 
 function getHvacInteractiveSteps(): InteractiveStep[] {
-  const ESTIMATE_START = 22;
-  const LINK_START = 27;
+  const ESTIMATE_START = 23;
+  const LINK_START = 28;
 
   return [
     { kind: "system", text: "Incoming call · 6:42 AM Sat · Forwarded — owner is on an install" },
@@ -376,6 +383,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       text: HVAC_AI_LINES[4],
       audioIndex: 4,
     },
+    { kind: "sms-sending", label: "Sending secure link by text…" },
     {
       kind: "sms",
       text: `${HVAC_SHOP}: Hi Sarah! Request received - confirm: https://effiroad.com/r/demo`,
@@ -383,8 +391,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Customer confirms address + picks 9:00–11:00 AM",
-      customerText: "[Confirmed 904 Cedar Ln, Round Rock TX · Today 9:00–11:00 AM]",
+      label: "Customer opens link — confirms address & picks visit time",
+      customerText: "910 Cedar Lane, Round Rock TX\nToday 9:00–11:00 AM",
       transition: "sms",
     },
     { kind: "system", text: "Clear no-heat · Auto-scheduled · Crew offered" },
@@ -446,6 +454,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       kind: "ai-voice",
       text: `Perfect — I'm texting you a secure link from ${HVAC_SHOP}. It takes about a minute on your phone.`,
     },
+    { kind: "sms-sending", label: "Sending secure link by text…" },
     {
       kind: "sms",
       text: `${HVAC_SHOP}: Hi! Thanks for calling! Finish here (~1 min): ${DEMO_LINK_INTAKE_URL}`,
