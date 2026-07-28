@@ -41,7 +41,7 @@ test("customer SMS copy is short and action-first", () => {
   assert.match(sms, /We text when we leave/);
 });
 
-test("booking confirmation sends multi-part SMS when URL present", () => {
+test("booking confirmation sends combined link SMS", () => {
   assert.match(booking, /sendSmsMessages/);
   assert.match(booking, /smsCustomerBookingConfirmationMessages/);
 });
