@@ -78,6 +78,7 @@ export async function runRetellSync(env = process.env) {
       general_prompt: RETELL_PRODUCTION_PROMPT,
       begin_message: RETELL_PRODUCTION_BEGIN_MESSAGE,
       general_tools: generalTools,
+      model_high_priority: true,
     }),
   });
 

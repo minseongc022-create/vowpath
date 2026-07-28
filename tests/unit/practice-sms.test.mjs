@@ -16,9 +16,10 @@ test("withPracticeSmsPrefix unchanged when live", () => {
   );
 });
 
-test("withPracticeSmsPrefix does not double-prefix", () => {
+test("withPracticeSmsPrefix uses short TEST: when body has a URL", () => {
+  const url = "https://link.effiroad.com/r/a1b2c3d4e5f67890";
   assert.equal(
-    withPracticeSmsPrefix("Effiroad [TEST]: Already marked.", true),
-    "Effiroad [TEST]: Already marked.",
+    withPracticeSmsPrefix(`Shop: Open ${url}`, true),
+    `TEST: Shop: Open ${url}`,
   );
 });

@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "quote-chase-clear-voice-v32-2026-07-27";
+export const RETELL_PROMPT_VERSION = "clear-fast-voice-v33-2026-07-28";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -159,6 +159,7 @@ export function pickEstimateReceptionistVoice(
 function sharedAgentPatch(): Record<string, unknown> {
   return {
     language: "en-US",
+    // Accurate STT for addresses/names; pair with high responsiveness for ~1.5s turns.
     stt_mode: "accurate",
     vocab_specialization: "general",
     boosted_keywords: [
@@ -216,44 +217,43 @@ function sharedAgentPatch(): Record<string, unknown> {
       "east",
       "west",
     ],
-    // noise-cancellation: clears HVAC/traffic without distorting soft speech.
+    // Clears HVAC/traffic without crushing soft speech.
     denoising_mode: "noise-cancellation",
-    // multilingual_v2 = fuller body on telephony than turbo.
-    voice_model: "eleven_multilingual_v2",
+    // Turbo = clearer on phone + lower TTS latency than multilingual_v2.
+    voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    enable_dynamic_responsiveness: false,
-    // Slightly higher = answers sooner when the caller finishes (still waits to hear them out).
-    interruption_sensitivity: 0.36,
+    enable_dynamic_responsiveness: true,
+    // Higher = end-of-utterance sooner so answers start faster.
+    interruption_sensitivity: 0.5,
     enable_backchannel: false,
-    reminder_trigger_ms: 10000,
+    reminder_trigger_ms: 8000,
     reminder_max_count: 1,
   };
 }
 
-/** Deep masculine service / emergency — louder, clearer enunciation, snappy turns. */
+/** Clear / snappy service intake — volume kept below telephony clip. */
 export function buildRetellBookingAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    // Lower temp = steadier / clearer; slower speed = more enunciated on phone.
-    voice_temperature: 0.4,
-    voice_speed: 0.88,
-    volume: 1.65,
-    responsiveness: 0.86,
+    voice_temperature: 0.45,
+    voice_speed: 0.98,
+    volume: 1.2,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same clear/loud presence, slightly snappier. */
+/** Estimate intake — same clarity, slightly warmer. */
 export function buildRetellEstimateAgentPatch(voiceId?: string) {
   const patch: Record<string, unknown> = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.42,
-    voice_speed: 0.88,
-    volume: 1.65,
-    responsiveness: 0.88,
+    voice_temperature: 0.48,
+    voice_speed: 0.98,
+    volume: 1.2,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

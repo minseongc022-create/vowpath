@@ -36,12 +36,14 @@ test("channel Gather prioritizes speech and posts empty results", () => {
 test("Retell TS and sync script voice patches stay aligned", () => {
   const ts = readFileSync(join(root, "lib/retell-agent-settings.ts"), "utf8");
   const mjs = readFileSync(join(root, "scripts/lib/retell-agent-settings.mjs"), "utf8");
-  assert.match(ts, /quote-chase-clear-voice-v32/);
-  assert.match(mjs, /quote-chase-clear-voice-v32/);
-  assert.match(ts, /volume:\s*1\.65/);
-  assert.match(mjs, /volume:\s*1\.65/);
-  assert.match(ts, /voice_speed:\s*0\.88/);
-  assert.match(mjs, /voice_speed:\s*0\.88/);
-  assert.match(ts, /responsiveness:\s*0\.86/);
-  assert.match(mjs, /responsiveness:\s*0\.86/);
+  assert.match(ts, /clear-fast-voice-v33/);
+  assert.match(mjs, /clear-fast-voice-v33/);
+  assert.match(ts, /volume:\s*1\.2/);
+  assert.match(mjs, /volume:\s*1\.2/);
+  assert.match(ts, /voice_speed:\s*0\.98/);
+  assert.match(mjs, /voice_speed:\s*0\.98/);
+  assert.match(ts, /responsiveness:\s*1\.0/);
+  assert.match(mjs, /responsiveness:\s*1\.0/);
+  assert.match(ts, /eleven_turbo_v2_5/);
+  assert.match(mjs, /eleven_turbo_v2_5/);
 });

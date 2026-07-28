@@ -168,6 +168,9 @@ export const linkIntakePageCopy = {
   loadSubmissionFailed: "Couldn't load this link. Try again or call the company directly.",
   expiredTitle: "This link expired",
   expiredBody: "This link isn't active anymore. Call the company and we'll get you taken care of.",
+  incompleteLinkTitle: "Open the full link",
+  incompleteLinkBody:
+    "This looks like a cut-off text message. Go back to the SMS and tap the complete https://link.effiroad.com link — not a short code underneath.",
   unavailableTitle: "One moment…",
   unavailableBody:
     "We couldn't load your link right now. Wait a few seconds and tap the text message link again. Still stuck? Call the company and we'll help.",
@@ -335,6 +338,9 @@ export const linkIntakePageCopyEs: LinkIntakeCopy = {
   loadSubmissionFailed: "No se pudo cargar este enlace. Intente de nuevo o llame a la empresa directamente.",
   expiredTitle: "Este enlace expiró",
   expiredBody: "Este enlace ya no está activo. Llame a la empresa y le ayudaremos.",
+  incompleteLinkTitle: "Abra el enlace completo",
+  incompleteLinkBody:
+    "Parece un mensaje cortado. Vuelva al SMS y toque el enlace completo https://link.effiroad.com — no el código corto debajo.",
   unavailableTitle: "Un momento…",
   unavailableBody:
     "No pudimos cargar su enlace ahora. Espere unos segundos y vuelva a tocar el enlace del mensaje. ¿Sigue sin funcionar? Llame a la empresa.",

@@ -1,6 +1,7 @@
 import { buildBookingPortalUrl } from "../portal-url";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { formatLinkRequestNumber } from "../link-intake-urgency";
+import { generateLinkIntakeToken } from "../link-intake-token";
 import { sendSms } from "../send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
@@ -29,7 +30,8 @@ export async function createBookingReviewLinkSession(params: {
   customerPhone: string;
   customerName: string;
 }): Promise<LinkIntakeSession> {
-  const token = crypto.randomUUID().replace(/-/g, "");
+  // 16-char token keeps confirmation SMS (with URL) in one GSM segment.
+  const token = generateLinkIntakeToken();
   const now = new Date();
   const session: LinkIntakeSession = {
     token,

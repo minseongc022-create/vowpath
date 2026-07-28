@@ -152,5 +152,5 @@ export function formatTimeLabelInTimezone(
     const m = Number(minute);
     return m === 0 ? `${hour} ${dayPeriod}` : `${hour}:${minute} ${dayPeriod}`;
   };
-  return `${fmt(start)}–${fmt(end)}`;
+  return `${fmt(start)}-${fmt(end)}`;
 }

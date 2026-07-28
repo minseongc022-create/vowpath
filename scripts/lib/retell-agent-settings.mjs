@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "quote-chase-clear-voice-v32-2026-07-27";
+export const RETELL_PROMPT_VERSION = "clear-fast-voice-v33-2026-07-28";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
@@ -182,39 +182,39 @@ function sharedAgentPatch() {
       "west",
     ],
     denoising_mode: "noise-cancellation",
-    voice_model: "eleven_multilingual_v2",
+    voice_model: "eleven_turbo_v2_5",
     enable_dynamic_voice_speed: false,
-    enable_dynamic_responsiveness: false,
-    interruption_sensitivity: 0.36,
+    enable_dynamic_responsiveness: true,
+    interruption_sensitivity: 0.5,
     enable_backchannel: false,
-    reminder_trigger_ms: 10000,
+    reminder_trigger_ms: 8000,
     reminder_max_count: 1,
   };
 }
 
-/** Deep masculine service / emergency — louder, clearer enunciation, snappy turns. */
+/** Clear / snappy service intake — volume kept below telephony clip. */
 export function buildRetellBookingAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
-    voice_temperature: 0.4,
-    voice_speed: 0.88,
-    volume: 1.65,
-    responsiveness: 0.86,
+    voice_temperature: 0.45,
+    voice_speed: 0.98,
+    volume: 1.2,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
 }
 
-/** Estimate intake — same clear/loud presence, slightly snappier. */
+/** Estimate intake — same clarity, slightly warmer. */
 export function buildRetellEstimateAgentPatch(voiceId) {
   const patch = {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
-    voice_temperature: 0.42,
-    voice_speed: 0.88,
-    volume: 1.65,
-    responsiveness: 0.88,
+    voice_temperature: 0.48,
+    voice_speed: 0.98,
+    volume: 1.2,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

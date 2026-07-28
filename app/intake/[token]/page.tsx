@@ -15,6 +15,7 @@ import {
   isLinkIntakeTenantActive,
   loadLinkIntakeSession,
 } from "@/lib/link-intake-page";
+import { isLikelyTruncatedLinkToken } from "@/lib/link-intake-token";
 import { LinkIntakeInactivePage } from "@/components/intake/LinkIntakeInactivePage";
 
 export const dynamic = "force-dynamic";
@@ -74,11 +75,16 @@ export default async function LinkIntakePage({
   }
 
   if (!session || isLinkIntakeSessionExpired(session)) {
+    const truncated = !session && isLikelyTruncatedLinkToken(rawToken);
     return (
       <main className="flex min-h-[100dvh] items-center justify-center bg-brand-50 px-6">
         <div className="max-w-sm rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-sm">
-          <p className="text-lg font-semibold text-slate-900">{copy.expiredTitle}</p>
-          <p className="mt-3 text-sm leading-relaxed text-slate-600">{copy.expiredBody}</p>
+          <p className="text-lg font-semibold text-slate-900">
+            {truncated ? copy.incompleteLinkTitle : copy.expiredTitle}
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            {truncated ? copy.incompleteLinkBody : copy.expiredBody}
+          </p>
         </div>
       </main>
     );

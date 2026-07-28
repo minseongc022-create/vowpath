@@ -1,13 +1,28 @@
 /**
- * US restoration SMS copy — warm, professional, single-segment when possible (GSM ~160 chars).
+ * US restoration SMS copy - warm, professional, single-segment when possible (GSM ~160 chars).
  * BRAND RULE:
  *   - Customer-facing messages: use shop name only (resolveShopDisplayName)
  *   - Tech/staff-facing messages: prefix with "Effiroad" so they know the platform
+ *
+ * Carrier multipart SMS cuts around 153 GSM / 67 UCS-2 chars. Never let a URL
+ * straddle that cut - leftover hex fragments look like broken codes to customers.
  */
 
 import { resolveShopDisplayName } from "./shop-display-name";
 
 const GSM_SINGLE = 160;
+/** Real concat cut for multipart SMS (leave headroom under 160). */
+const GSM_CONCAT = 153;
+const UCS2_CONCAT = 67;
+
+/** Strip unicode punctuation that forces UCS-2 (70-char segments) and URL splits. */
+export function smsAsciiSafe(text: string): string {
+  return text
+    .replace(/[\u2013\u2014\u2015]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"');
+}
 
 function forcesUcs2Encoding(text: string): boolean {
   for (const ch of text) {
@@ -16,16 +31,36 @@ function forcesUcs2Encoding(text: string): boolean {
   return false;
 }
 
+function smsSegmentLimit(text: string): number {
+  return forcesUcs2Encoding(text) ? UCS2_CONCAT : GSM_CONCAT;
+}
+
+/**
+ * Keep the full URL intact in one SMS segment. Shrink the intro (never the URL).
+ */
 export function smsBodyWithUrl(intro: string, url: string, optOut = true): string {
-  const tail = optOut ? smsCustomerOptOut().trim() : "";
-  const body = tail ? `${intro.trim()} ${url} ${tail}` : `${intro.trim()} ${url}`;
-  const limit = forcesUcs2Encoding(body) ? 70 : 160;
-  if (body.length <= limit) return body;
-  if (tail && body.length > limit) {
-    const withoutOpt = `${intro.trim()} ${url}`;
-    if (withoutOpt.length <= limit * 2) return withoutOpt;
+  const cleanUrl = url.trim();
+  const opt = optOut ? smsCustomerOptOut().trim() : "";
+  let lead = smsAsciiSafe(intro).trim();
+
+  const build = (i: string, withOpt: boolean) =>
+    withOpt && opt ? `${i} ${cleanUrl} ${opt}` : `${i} ${cleanUrl}`;
+
+  let body = build(lead, true);
+  if (body.length <= smsSegmentLimit(body)) return body;
+
+  body = build(lead, false);
+  if (body.length <= smsSegmentLimit(body)) return body;
+
+  while (lead.length > 14) {
+    const next = lead.slice(0, Math.max(14, lead.length - 10)).replace(/\s+\S*$/, "").trim();
+    lead = /:$/.test(next) ? next : `${next.replace(/:$/, "")}:`;
+    body = build(lead, false);
+    if (body.length <= smsSegmentLimit(body)) return body;
   }
-  return `${intro.trim()} ${url}`;
+
+  const minimal = `Open: ${cleanUrl}`;
+  return minimal.length <= smsSegmentLimit(minimal) ? minimal : cleanUrl;
 }
 
 export function smsFirstName(fullName: string): string {
@@ -34,16 +69,24 @@ export function smsFirstName(fullName: string): string {
 }
 
 export function smsTruncate(text: string, max: number): string {
-  const t = text.trim();
+  const t = smsAsciiSafe(text).trim();
   if (t.length <= max) return t;
-  return `${t.slice(0, max - 1).trim()}…`;
+  return `${t.slice(0, Math.max(1, max - 3)).trim()}...`;
 }
 
 export function smsFitSingleSegment(parts: string[], max = GSM_SINGLE): string {
-  let msg = parts.filter(Boolean).join(" ");
+  const asciiParts = parts.map((p) => smsAsciiSafe(p)).filter(Boolean);
+  let msg = asciiParts.join(" ");
   if (msg.length <= max) return msg;
-  if (parts.length > 2) {
-    msg = smsFitSingleSegment([parts[0], parts[parts.length - 1]], max);
+  // Never truncate a URL - drop middle parts / opt-out first.
+  const urlPart = asciiParts.find((p) => /^https?:\/\//i.test(p));
+  if (urlPart) {
+    const withoutUrl = asciiParts.filter((p) => p !== urlPart && !/STOP/i.test(p));
+    const intro = withoutUrl.join(" ");
+    return smsBodyWithUrl(intro || "Open:", urlPart, false);
+  }
+  if (asciiParts.length > 2) {
+    msg = smsFitSingleSegment([asciiParts[0], asciiParts[asciiParts.length - 1]], max);
     if (msg.length <= max) return msg;
   }
   return smsTruncate(msg, max);
@@ -71,8 +114,8 @@ export function smsEtaMinutesLabel(): string {
 
 export function smsStaffEtaHint(): string {
   return (
-    `Effiroad: Heading out? Reply with minutes (${smsEtaMinutesLabel()}), e.g. 20. ` +
-    `We text the customer + share a live map link. Don't text them yourself.`
+    `Effiroad: Heading out? Reply minutes (${smsEtaMinutesLabel()}), e.g. 20. ` +
+    `We text the customer + live map. Don't text them yourself.`
   );
 }
 
@@ -82,22 +125,17 @@ export function smsStaffEtaHintShort(): string {
 
 export function smsStaffEtaInvalidReply(): string {
   return (
-    `Effiroad: To update ETA, reply to THIS text with minutes only (${smsEtaMinutesLabel()}). ` +
-    `Example: 20. We'll notify the customer — please don't text them directly.`
+    `Effiroad: Reply to THIS text with minutes only (${smsEtaMinutesLabel()}). ` +
+    `Example: 20. We'll notify the customer.`
   );
 }
 
 // ─── Customer-facing messages (shop name, no "Effiroad") ────────────────────
 
-/** Link intake — press 1 on call (GSM-7, single segment when possible). */
+/** Link intake - press 1 on call (GSM-7, single segment when possible). */
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
-  const shop = smsTruncate(resolveShopDisplayName(shopName), 24);
-  const intro = `${shop}: Hi! Thanks for calling! Finish here (~1 min):`;
-  const withOptOut = `${intro} ${url} Reply STOP to opt out.`;
-  if (withOptOut.length <= GSM_SINGLE) return withOptOut;
-  const compact = `${intro} ${url}`;
-  if (compact.length <= GSM_SINGLE) return compact;
-  return smsFitSingleSegment([intro, url, "Reply STOP to opt out."], GSM_SINGLE);
+  const shop = smsTruncate(resolveShopDisplayName(shopName), 20);
+  return smsBodyWithUrl(`${shop}: Hi! Thanks for calling! Finish here (~1 min):`, url);
 }
 
 /** After booking / request received */
@@ -109,24 +147,21 @@ export function smsCustomerBookingConfirmationBody(params: {
   arrivalWindow?: string;
   portalUrl: string;
   pendingShopReview?: boolean;
-  /** Phone intake — confirm address (typed/map) and pick visit time on the portal. */
+  /** Phone intake - confirm address (typed/map) and pick visit time on the portal. */
   needsPickTime?: boolean;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const first = smsFirstName(params.customerName);
+  const shop = smsTruncate(resolveShopDisplayName(params.shopName), 18);
+  const first = smsTruncate(smsFirstName(params.customerName), 12);
   const ref = params.requestNumber;
   if (params.needsPickTime) {
-    const core = `${shop}: Hi ${first}! Request ${ref} received. Confirm address & pick visit time:`;
-    return smsBodyWithUrl(core, params.portalUrl);
+    return smsBodyWithUrl(`${shop}: Hi ${first}! ${ref} - pick visit time:`, params.portalUrl);
   }
-  const window = params.arrivalWindow?.trim() ? smsTruncate(params.arrivalWindow, 24) : "";
   const status = params.pendingShopReview
-    ? "We're reviewing it now."
-    : window
-      ? `Window: ${window}.`
-      : "You're on the schedule.";
-  const core = `${shop}: Hi ${first}! Request ${ref} received. ${status} View/change:`;
-  return smsBodyWithUrl(core, params.portalUrl);
+    ? "In review."
+    : params.arrivalWindow?.trim()
+      ? `Booked ${smsTruncate(params.arrivalWindow, 16)}.`
+      : "Received.";
+  return smsBodyWithUrl(`${shop}: Hi ${first}! ${ref} ${status} Open:`, params.portalUrl);
 }
 
 /** Reminder if customer never opened the pick-time link. */
@@ -137,7 +172,7 @@ export function smsCustomerPickTimeReminderBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
-  const core = `${shop}: Hi ${first}! Reminder — confirm your address and pick a visit time so we can take the next step:`;
+  const core = `${shop}: Hi ${first}! Reminder - pick your visit time:`;
   return smsBodyWithUrl(core, params.portalUrl);
 }
 
@@ -173,14 +208,14 @@ export function smsCustomerScheduledBody(params: {
 export function smsCustomerIntakeAckBody(shopName: string | undefined, issue: string): string {
   const shop = resolveShopDisplayName(shopName);
   return smsFitSingleSegment([
-    `${shop}: Got it — ${smsTruncate(issue, 28)}. We'll confirm your window soon.${smsCustomerOptOut()}`,
+    `${shop}: Got it - ${smsTruncate(issue, 28)}. We'll confirm your window soon.${smsCustomerOptOut()}`,
   ]);
 }
 
 export function smsCustomerNoSlotBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
   return smsFitSingleSegment([
-    `${shop}: Request received. Calendar is full — we'll call within 2 hours to set a time.${smsCustomerOptOut()}`,
+    `${shop}: Request received. Calendar is full - we'll call within 2 hours to set a time.${smsCustomerOptOut()}`,
   ]);
 }
 
@@ -201,7 +236,7 @@ export function smsCustomerRejectedBody(shopName?: string): string {
 export function smsRequestReceivedBody(shopName?: string): string {
   const shop = resolveShopDisplayName(shopName);
   return smsFitSingleSegment([
-    `${shop}: Request received — we're reviewing it and will follow up shortly.${smsCustomerOptOut()}`,
+    `${shop}: Request received - we're reviewing it and will follow up shortly.${smsCustomerOptOut()}`,
   ]);
 }
 
@@ -219,7 +254,7 @@ export function smsRequestReceivedEsBody(shopName?: string): string {
   ]);
 }
 
-/** Customer — tech en route (optional live map link). */
+/** Customer - tech en route (optional live map link). */
 export function smsCustomerOnMyWayBody(params: {
   shopName?: string;
   customerName: string;
@@ -230,7 +265,7 @@ export function smsCustomerOnMyWayBody(params: {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
   const tech = smsTruncate(params.techName, 16);
-  const core = `${shop}: Hi ${first}! ${tech} is on the way — ~${params.etaMinutes} min.`;
+  const core = `${shop}: Hi ${first}! ${tech} is on the way - ~${params.etaMinutes} min.`;
   if (params.trackUrl) {
     return smsBodyWithUrl(`${core} Track ETA:`, params.trackUrl);
   }
@@ -253,7 +288,7 @@ export function smsCustomerVerificationBody(params: {
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   return smsFitSingleSegment([
-    `${shop}: Just to confirm — is this correct: "${smsTruncate(params.issueType, 24)}"? Reply YES or NO.${smsCustomerOptOut()}`,
+    `${shop}: Just to confirm - is this correct: "${smsTruncate(params.issueType, 24)}"? Reply YES or NO.${smsCustomerOptOut()}`,
   ]);
 }
 
@@ -267,7 +302,7 @@ export function smsMissedCallTextbackBody(params: {
 
 // ─── 30-minute appointment reminder ─────────────────────────────────────────
 
-/** To tech: 30 min before window — ask for ETA */
+/** To tech: 30 min before window - ask for ETA */
 export function smsApptReminderToTech(params: {
   customerName: string;
   window: string;
@@ -276,7 +311,7 @@ export function smsApptReminderToTech(params: {
   const name = smsTruncate(params.customerName, 18);
   const win = smsTruncate(params.window, 20);
   return (
-    `Effiroad: You have a job in ~30 min — ${name}, window ${win}. ` +
+    `Effiroad: You have a job in ~30 min - ${name}, window ${win}. ` +
     `How many minutes away are you? Reply with a number (e.g. 20). ` +
     `We'll let the customer know. Ref: ${params.bookingId.slice(-6)}`
   );
@@ -296,7 +331,7 @@ export function smsApptEtaToCustomer(params: {
   ]);
 }
 
-/** To customer: no ETA from tech — fallback */
+/** To customer: no ETA from tech - fallback */
 export function smsApptFallbackToCustomer(params: {
   shopName?: string;
   customerName: string;
@@ -307,7 +342,7 @@ export function smsApptFallbackToCustomer(params: {
   const first = smsFirstName(params.customerName);
   const win = smsTruncate(params.window, 20);
   return smsFitSingleSegment([
-    `${shop}: Hi ${first}! A reminder — your technician is scheduled for ${win} and will be on the way shortly. We'll keep you posted!${smsCustomerOptOut()}`,
+    `${shop}: Hi ${first}! A reminder - your technician is scheduled for ${win} and will be on the way shortly. We'll keep you posted!${smsCustomerOptOut()}`,
   ]);
 }
 
@@ -325,7 +360,7 @@ export function smsOwnerApprovalNeededBody(params: {
   const issue = smsTruncate(params.issue, 24);
   const window = smsTruncate(params.window, 20);
   const tag = params.ambiguous ? "CHECK" : params.priority === "P1" ? "URGENT" : "NEW";
-  return `${ownerLead(params.shopName)} ${tag}: ${name} — ${issue}. ${window}. Reply 1=Yes 2=No`;
+  return `${ownerLead(params.shopName)} ${tag}: ${name} - ${issue}. ${window}. Reply 1=Yes 2=No`;
 }
 
 export function smsOwnerScheduledFyiBody(params: {
@@ -375,9 +410,9 @@ export function smsCustomerQuoteFollowUpBody(params: {
     return `${shop}: Still thinking about the ${amount} estimate? Happy to answer questions or find a time that works. Reply here anytime.${smsCustomerOptOut()}`;
   }
   if (stage === 2) {
-    return `${shop}: Quick check-in on your ${amount} estimate — we're here when you're ready to book or tweak the scope.${smsCustomerOptOut()}`;
+    return `${shop}: Quick check-in on your ${amount} estimate - we're here when you're ready to book or tweak the scope.${smsCustomerOptOut()}`;
   }
-  return `${shop}: Just checking in on the ${amount} estimate we sent — happy to answer questions or get you booked whenever you're ready. Reply here anytime.${smsCustomerOptOut()}`;
+  return `${shop}: Just checking in on the ${amount} estimate we sent - happy to answer questions or get you booked whenever you're ready. Reply here anytime.${smsCustomerOptOut()}`;
 }
 
 /** First outbound quote text after the shop decides on a dollar amount. */
@@ -393,7 +428,7 @@ export function smsCustomerQuoteSentBody(params: {
     currency: "USD",
     maximumFractionDigits: 0,
   });
-  return `${shop}: Hi ${first} — your estimate is ${amount}. Reply here with questions or to book a time. We're ready when you are.${smsCustomerOptOut()}`;
+  return `${shop}: Hi ${first} - your estimate is ${amount}. Reply here with questions or to book a time. We're ready when you are.${smsCustomerOptOut()}`;
 }
 
 /** Itemized estimate document link (on-site / truck builder). */
@@ -412,7 +447,7 @@ export function smsCustomerEstimateDocumentBody(params: {
     maximumFractionDigits: 2,
   });
   return smsBodyWithUrl(
-    `${shop}: Hi ${first} — estimate ${params.estimateNumber} for ${amount} is ready. Open to review line items:`,
+    `${shop}: Hi ${first} - estimate ${params.estimateNumber} for ${amount} is ready. Open to review line items:`,
     params.shareUrl,
   );
 }
@@ -438,16 +473,16 @@ export function smsOwnerNewRequestBody(params: {
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 22);
   const place =
-    params.cityState?.trim() && params.cityState !== "—"
+    params.cityState?.trim() && params.cityState !== "-"
       ? ` · ${smsTruncate(params.cityState, 12)}`
       : "";
   const tag = params.priority === "P1" ? "P1 URGENT" : params.priority;
-  // P1 only — a phone number on every routine request would just be noise.
+  // P1 only - a phone number on every routine request would just be noise.
   const callLine =
     params.priority === "P1" && params.customerPhone?.trim()
       ? ` Call ${params.customerPhone.trim()}?`
       : "";
-  return `${ownerLead(params.shopName)} ${tag}: ${name} — ${issue}${place}.${callLine} Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
+  return `${ownerLead(params.shopName)} ${tag}: ${name} - ${issue}${place}.${callLine} Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
 }
 
 export function smsOwnerIntakeAutoConfirmedBody(params: {
@@ -462,12 +497,12 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 20);
   if (params.autoWaterDispatch) {
-    return `${ownerLead(params.shopName)} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo (${params.undoMinutes}m).`;
+    return `${ownerLead(params.shopName)} CREW DISPATCHED: ${name} - ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo (${params.undoMinutes}m).`;
   }
   if (params.urgent) {
-    return `${ownerLead(params.shopName)} P1 CONFIRMED: ${name} — ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+    return `${ownerLead(params.shopName)} P1 CONFIRMED: ${name} - ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
   }
-  return `${ownerLead(params.shopName)}: Confirmed — ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+  return `${ownerLead(params.shopName)}: Confirmed - ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
 }
 
 // ─── Tech dispatch offer (Effiroad platform, tech sees our name) ─────────────
@@ -482,7 +517,7 @@ export function smsTechDispatchOfferBody(params: {
 }): string {
   const pri = params.priority?.trim() ? `${params.priority} ` : "";
   return (
-    `Effiroad: ${pri}job — ${smsTruncate(params.customerName, 14)}, ` +
+    `Effiroad: ${pri}job - ${smsTruncate(params.customerName, 14)}, ` +
     `${smsTruncate(params.issue, 22)}, ${smsTruncate(params.window, 14)}. ` +
     `Reply 1=Accept 2=Pass. Ref ${params.ref}`
   );
@@ -494,5 +529,5 @@ export function smsTechOnMyWayAcceptedHint(params: {
   ref: string;
 }): string {
   const name = smsTruncate(params.customerName, 18);
-  return `Effiroad: Accepted — ${name} (${params.ref}). ${smsStaffEtaHintShort()}`;
+  return `Effiroad: Accepted - ${name} (${params.ref}). ${smsStaffEtaHintShort()}`;
 }
