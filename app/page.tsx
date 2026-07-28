@@ -43,7 +43,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <Header session={session} />
       <main className="flex-1 w-full min-w-0">
         <Hero />
-        <QuoteChaseSpotlight />
         <LandingQuickQA />
         <CallExperience />
         <DemoVideoHero />
@@ -52,6 +51,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <DataTrust />
         <NumberChoice />
         <ProductStack />
+        <QuoteChaseSpotlight />
         <MissedCallFlow />
         <Comparison />
         <WhyWeWin />

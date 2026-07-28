@@ -397,12 +397,12 @@ export const vowDashboardEn = {
     complete: "All nudges sent",
   },
   quoteChasePromo: {
-    aria: "Quote and chase",
-    eyebrow: "Quote + Chase",
-    title: "Stop losing estimates in your notes app",
-    body: "Build the quote on-site, text it from the truck, and let Effiroad chase until they book.",
-    quotesCta: "Open quotes & chase",
-    chaseCta: "Chase queue",
+    aria: "On-site quotes and estimate follow-up",
+    eyebrow: "Included",
+    title: "Quotes & follow-up (built in)",
+    body: "When you need them: build a quote on-site and optional SMS nudges. Phone answering stays the main job.",
+    quotesCta: "Open quotes",
+    chaseCta: "Follow-up queue",
   },
   header: {
     newRequest: "New request",

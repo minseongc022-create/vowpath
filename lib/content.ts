@@ -1339,11 +1339,11 @@ const vowDashboardKo = {
     complete: "후속 완료",
   },
   quoteChasePromo: {
-    aria: "견적 및 후속",
-    eyebrow: "견적 + 후속",
-    title: "메모 앱에 묻히는 견적을 줄이세요",
-    body: "현장에서 견적을 만들고, 트럭에서 문자로 보내고, 예약될 때까지 Effiroad가 따라갑니다.",
-    quotesCta: "견적 · 후속 열기",
+    aria: "견적 및 후속 (기본 포함)",
+    eyebrow: "기본 포함",
+    title: "견적 · 후속 (기본 기능)",
+    body: "필요할 때만: 현장 견적과 선택적 SMS 리마인드. 메인 기능은 전화 응대입니다.",
+    quotesCta: "견적 열기",
     chaseCta: "후속 큐",
   },
   header: {

@@ -16,7 +16,6 @@ export function getMarketingNavLinks(
   const sitePreview = Boolean(opts?.sitePreview);
   return [
     { label: nav.features, href: marketingHash("call-experience", sitePreview) },
-    { label: locale === "ko" ? "견적·후속" : "Quote + Chase", href: ROUTES.quoteLanding },
     { label: nav.howItWorks, href: marketingHash("how-it-works", sitePreview) },
     { label: nav.pricing, href: marketingHash("pricing", sitePreview) },
   ];

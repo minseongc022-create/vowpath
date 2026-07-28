@@ -116,15 +116,15 @@ export const callExperienceEn = {
 export const productStackEn = {
   id: "product-stack",
   label: "What Effiroad is",
-  title: "Answer · Quote · Chase",
+  title: "Phone answering first — everything else included",
   subtitle:
-    "Answering services take a message. Effiroad answers the phone, helps you leave with a real quote on-site, and chases it until the customer books — without a second app.",
+    "Effiroad’s job is to catch the call and get a truck moving. On-site quotes and estimate follow-up ship with your plan so you don’t need a second tool — they never outrank the phone.",
   layers: [
     {
       id: "phone",
       tier: "core" as const,
-      badge: "Answer",
-      label: "AI phone layer",
+      badge: "Main",
+      label: "AI phone + dispatch",
       title: "Catch every emergency you miss on site",
       description:
         "After-hours, storm surge, and no-answer overflow forward to Effiroad. Menu: press 1 = service (then phone AI or text link), press 2 = estimate (same choice) — or say “text link” for an SMS form. Loss type, address, and how fast they need you.",
@@ -137,12 +137,12 @@ export const productStackEn = {
     },
     {
       id: "quote",
-      tier: "core" as const,
-      badge: "Quote",
+      tier: "sub" as const,
+      badge: "Included",
       label: "On-site estimates",
-      title: "Leave with a number, not a promise",
+      title: "Leave with a number when you need one",
       description:
-        "Line-item estimates from the truck — labor, materials, photos, insurance fields. Text customers a branded share link before you pull away.",
+        "Built-in line-item estimates from the truck — labor, materials, photos. Text a share link before you pull away. Helpful after the call is won — not a separate product.",
       points: [
         "HVAC + restoration presets",
         "Mobile share page for homeowners",
@@ -152,14 +152,14 @@ export const productStackEn = {
     },
     {
       id: "chase",
-      tier: "core" as const,
-      badge: "Chase",
-      label: "Auto follow-up",
-      title: "We nudge until they book",
+      tier: "sub" as const,
+      badge: "Included",
+      label: "Estimate follow-up",
+      title: "Quiet SMS nudges on open quotes",
       description:
-        "After you text a quote, Effiroad sends polite SMS at 48 hours, 7 days, and 14 days — so estimates don’t die in your notes app.",
+        "After you text a quote, Effiroad can nudge at 48 hours, 7 days, and 14 days. Standard plan feature — secondary to answering the phone.",
       points: [
-        "Dedicated Chase queue",
+        "Chase queue in the dashboard",
         "Opt-out compliant",
         "Stops when scheduled",
         "Works with press-2 leads",
