@@ -34,9 +34,9 @@ test("pending queue surfaces approve errors and SMS ref commands", () => {
   assert.match(queue, /OWNER_REQUEST_STATUS_LABELS/);
 });
 
-test("SMS copy softens pick-time and track ETA", () => {
+test("SMS copy softens pick-time and track live map", () => {
   assert.match(sms, /so we can take the next step/);
-  assert.match(sms, /Track ETA:/);
+  assert.match(sms, /Track live:/);
   assert.doesNotMatch(sms, /Live map:/);
 });
 

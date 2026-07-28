@@ -70,11 +70,12 @@ export function buildFieldTestGuide(params: {
       },
       {
         id: "tech_accept_otw",
-        title: "3. Tech accepts + On my way",
+        title: "3. Tech accepts + Departing",
         steps: [
           `From YOUR phone (crew tech #): reply 1 to job offer`,
-          "Then reply 30 when heading out (or 5, 10, 15, 45, 60)",
-          `Customer ${FIELD_TEST_CUSTOMER.phone} gets ETA SMS (same as your customer test # if solo)`,
+          'Then text DEPARTING (or "on my way", "heading out", "leaving")',
+          `Customer ${FIELD_TEST_CUSTOMER.phone} gets on-the-way SMS + live map link`,
+          "Staff gets /go/ link — open it to share GPS (Kakao Taxi style)",
         ],
       },
       {
@@ -82,7 +83,7 @@ export function buildFieldTestGuide(params: {
         title: "4. Or notify from dashboard",
         steps: [
           "Open booking detail → Customer on the way",
-          "Tap 5 / 10 / 15 / 30 / 45 / 60 min — same customer SMS",
+          'Tap "Departing — notify customer" — same customer SMS + map',
         ],
       },
     ],
@@ -97,7 +98,7 @@ export function buildFieldTestGuide(params: {
     settings: {
       shopName: "Settings → Shop name (shows in SMS, not Effiroad)",
       visitHours: "Settings → Booking → Business hours for visits",
-      crew: "Settings → Crew: tech phone = STAFF line (not customer). Customer phone on booking = customer only. Same 010 for both? Use dashboard for ETA.",
+      crew: "Settings → Crew: tech phone = STAFF line (not customer). Customer phone on booking = customer only. Same 010 for both? Use dashboard Departing button.",
     },
   };
 }

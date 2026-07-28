@@ -61,15 +61,25 @@ export async function createOrGetVisitTrack(params: {
   customerName: string;
   techName: string;
   etaMinutes?: number | null;
+  /** Staff texted departing — show en route even before GPS. */
+  departed?: boolean;
 }): Promise<VisitTrackSession> {
+  const enRoute = params.departed === true || params.etaMinutes != null;
   const existingId = await kvGetSafe<string>(bookingKey(params.userId, params.bookingId));
   if (existingId) {
     const existing = await kvGetSafe<VisitTrackSession>(sessionKey(existingId));
     if (existing && !isVisitTrackExpired(existing) && !isTerminalStatus(existing.status)) {
+      let changed = false;
       if (params.etaMinutes != null) {
         existing.etaMinutes = params.etaMinutes;
-        existing.status = existing.status === "waiting" ? "en_route" : existing.status;
+        changed = true;
+      }
+      if (enRoute && existing.status === "waiting") {
+        existing.status = "en_route";
         existing.startedAt = existing.startedAt ?? new Date().toISOString();
+        changed = true;
+      }
+      if (changed) {
         existing.updatedAt = new Date().toISOString();
         await persistSession(existing, TTL_SEC);
       }
@@ -91,9 +101,9 @@ export async function createOrGetVisitTrack(params: {
     shopName: params.shopName,
     customerName: params.customerName,
     techName: params.techName,
-    status: params.etaMinutes != null ? "en_route" : "waiting",
+    status: enRoute ? "en_route" : "waiting",
     etaMinutes: params.etaMinutes ?? null,
-    startedAt: params.etaMinutes != null ? now.toISOString() : null,
+    startedAt: enRoute ? now.toISOString() : null,
     arrivedAt: null,
     lat: null,
     lng: null,

@@ -9,7 +9,6 @@ import { listScheduledBookings } from "../schedule-bookings-db";
 import {
   smsCustomerOnMyWayBody,
   smsStaffEtaInvalidReply,
-  SMS_ETA_MINUTE_OPTIONS,
 } from "../sms-templates";
 import { notifyStaffEtaInstructions } from "../staff-eta-notify";
 import { sendSms } from "../send-sms";
@@ -24,52 +23,21 @@ import {
   getTechAssignment,
   setTechActiveJob,
 } from "./store";
+import {
+  looksLikeOnMyWayAttempt,
+  parseDepartingPhrase,
+  parseOnMyWayMinutes,
+  type OnMyWayEtaMinutes,
+  ON_MY_WAY_ETA_OPTIONS,
+} from "./on-my-way-parse";
 
-export const ON_MY_WAY_ETA_OPTIONS = SMS_ETA_MINUTE_OPTIONS;
-export type OnMyWayEtaMinutes = (typeof SMS_ETA_MINUTE_OPTIONS)[number];
-
-function normalizeOtwBody(body: string): string {
-  let trimmed = body.trim();
-  // Common typo: 0tw30 (zero) instead of OTW30
-  trimmed = trimmed.replace(/^0(?=tw|mw\b)/i, "O");
-  return trimmed;
-}
-
-export function looksLikeOnMyWayAttempt(body: string): boolean {
-  const t = normalizeOtwBody(body);
-  if (parseOnMyWayMinutes(t) !== null) return true;
-  return /^(?:otw|omw|on\s*my\s*way|heading\s*out)\b/i.test(t);
-}
-
-export function parseOnMyWayMinutes(body: string): OnMyWayEtaMinutes | null {
-  const trimmed = normalizeOtwBody(body);
-
-  const patterns = [
-    /^OTW\s*(\d{1,2})$/i,
-    /^OMW\s*(\d{1,2})$/i,
-    /^(?:on\s*my\s*way|heading\s*out)\s*(\d{1,2})$/i,
-    /^(\d{1,2})\s*min(?:ute)?s?\s*(?:eta|away)?$/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match) {
-      const n = Number(match[1]);
-      if (ON_MY_WAY_ETA_OPTIONS.includes(n as OnMyWayEtaMinutes)) {
-        return n as OnMyWayEtaMinutes;
-      }
-    }
-  }
-
-  if (/^\d{1,2}$/.test(trimmed)) {
-    const n = Number(trimmed);
-    return ON_MY_WAY_ETA_OPTIONS.includes(n as OnMyWayEtaMinutes)
-      ? (n as OnMyWayEtaMinutes)
-      : null;
-  }
-
-  return null;
-}
+export {
+  looksLikeOnMyWayAttempt,
+  parseDepartingPhrase,
+  parseOnMyWayMinutes,
+  ON_MY_WAY_ETA_OPTIONS,
+  type OnMyWayEtaMinutes,
+};
 
 async function resolveCustomerPhone(
   userId: string,
@@ -154,10 +122,13 @@ async function findActiveVisitBooking(
 export async function notifyCustomerOnMyWay(params: {
   userId: string;
   bookingId: string;
-  etaMinutes: OnMyWayEtaMinutes;
+  etaMinutes?: OnMyWayEtaMinutes | null;
   techName?: string;
   customerName?: string;
   customerPhone?: string;
+  /** Staff line that triggered departing — gets the /go/ GPS link. */
+  staffPhone?: string;
+  departed?: boolean;
 }): Promise<{ ok: boolean; error?: string; customerPhone?: string }> {
   const user = await findUserById(params.userId);
   const shopName = resolveShopDisplayName(user?.shopName);
@@ -181,6 +152,7 @@ export async function notifyCustomerOnMyWay(params: {
   }
 
   let trackUrl: string | undefined;
+  const departed = params.departed === true || params.etaMinutes != null;
   try {
     const { createOrGetVisitTrack } = await import("../visit-tracking/store");
     const { buildCustomerTrackUrl, buildTechGoUrl } = await import("../visit-tracking/urls");
@@ -190,29 +162,32 @@ export async function notifyCustomerOnMyWay(params: {
       shopName,
       customerName,
       techName,
-      etaMinutes: params.etaMinutes,
+      etaMinutes: params.etaMinutes ?? null,
+      departed,
     });
     trackUrl = buildCustomerTrackUrl(session.customerToken);
 
-    if (assignment?.assignedTechId) {
-      const settings = await (await import("./store")).getTechDispatchSettings(params.userId);
-      const tech = settings.techs.find((t) => t.id === assignment.assignedTechId);
-      if (tech?.phone) {
-        const goUrl = buildTechGoUrl(session.techToken);
-        const { smsStaffGoLinkBody } = await import("../sms-templates");
-        await sendSms(
-          tech.phone,
-          smsStaffGoLinkBody({ customerName, goUrl }),
-          "tech-go-link",
-          {
-            context: {
-              userId: params.userId,
-              operation: "tech_go_link",
-              bookingId: params.bookingId,
-            },
+    const settings = await (await import("./store")).getTechDispatchSettings(params.userId);
+    const goRecipient =
+      params.staffPhone?.trim() ||
+      (assignment?.assignedTechId
+        ? settings.techs.find((t) => t.id === assignment.assignedTechId)?.phone
+        : null);
+    if (goRecipient) {
+      const goUrl = buildTechGoUrl(session.techToken);
+      const { smsStaffGoLinkBody } = await import("../sms-templates");
+      await sendSms(
+        goRecipient,
+        smsStaffGoLinkBody({ customerName, goUrl }),
+        "tech-go-link",
+        {
+          context: {
+            userId: params.userId,
+            operation: "tech_go_link",
+            bookingId: params.bookingId,
           },
-        );
-      }
+        },
+      );
     }
   } catch (e) {
     console.warn("[on-my-way] visit track", e);
@@ -298,8 +273,9 @@ export async function handleOnMyWaySmsReply(params: {
   fromPhone: string;
   body: string;
 }): Promise<{ handled: boolean; replyBody: string }> {
+  const departing = parseDepartingPhrase(params.body);
   const minutes = parseOnMyWayMinutes(params.body);
-  if (minutes === null) {
+  if (!departing && minutes === null) {
     if (looksLikeOnMyWayAttempt(params.body)) {
       return {
         handled: true,
@@ -353,23 +329,25 @@ export async function handleOnMyWaySmsReply(params: {
     return {
       handled: true,
       replyBody:
-        "Staff: accept or approve the visit first. Then reply 30 HERE (minutes away) — we text the customer.",
+        "Staff: approve the visit first. Then text DEPARTING — we notify the customer + live map.",
     };
   }
 
-  const user = await findUserById(params.userId);
-  const shopName = resolveShopDisplayName(user?.shopName);
-  const apptEtaSent = await handleApptEtaReply({
-    userId: params.userId,
-    bookingId,
-    etaMinutes: minutes,
-    shopName,
-  });
-  if (apptEtaSent) {
-    return {
-      handled: true,
-      replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
-    };
+  if (minutes !== null) {
+    const user = await findUserById(params.userId);
+    const shopName = resolveShopDisplayName(user?.shopName);
+    const apptEtaSent = await handleApptEtaReply({
+      userId: params.userId,
+      bookingId,
+      etaMinutes: minutes,
+      shopName,
+    });
+    if (apptEtaSent) {
+      return {
+        handled: true,
+        replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
+      };
+    }
   }
 
   const sent = await notifyCustomerOnMyWay({
@@ -378,6 +356,8 @@ export async function handleOnMyWaySmsReply(params: {
     etaMinutes: minutes,
     techName,
     customerName,
+    staffPhone: params.fromPhone,
+    departed: departing || minutes !== null,
   });
 
   if (!sent.ok) {
@@ -387,9 +367,17 @@ export async function handleOnMyWaySmsReply(params: {
     };
   }
 
+  if (minutes !== null) {
+    return {
+      handled: true,
+      replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
+    };
+  }
+
   return {
     handled: true,
-    replyBody: `Sent to customer — ETA ~${minutes} min. (You replied to the shop line; they got the text.)`,
+    replyBody:
+      "Sent to customer — on the way + live map. Open the GPS link we texted you to share location.",
   };
 }
 

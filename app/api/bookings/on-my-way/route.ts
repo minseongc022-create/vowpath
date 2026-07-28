@@ -20,30 +20,37 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       bookingId?: string;
       etaMinutes?: number;
+      departing?: boolean;
       techName?: string;
       customerName?: string;
       customerPhone?: string;
     };
 
     const bookingId = body.bookingId?.trim();
-    const etaMinutes = body.etaMinutes;
     if (!bookingId) {
       return NextResponse.json({ error: "bookingId required" }, { status: 400 });
     }
-    if (
-      typeof etaMinutes !== "number" ||
-      !ON_MY_WAY_ETA_OPTIONS.includes(etaMinutes as OnMyWayEtaMinutes)
-    ) {
-      return NextResponse.json(
-        { error: `etaMinutes must be one of: ${ON_MY_WAY_ETA_OPTIONS.join(", ")}` },
-        { status: 400 },
-      );
+
+    const departing = body.departing === true || body.etaMinutes == null;
+    let etaMinutes: OnMyWayEtaMinutes | null = null;
+    if (!departing) {
+      if (
+        typeof body.etaMinutes !== "number" ||
+        !ON_MY_WAY_ETA_OPTIONS.includes(body.etaMinutes as OnMyWayEtaMinutes)
+      ) {
+        return NextResponse.json(
+          { error: `etaMinutes must be one of: ${ON_MY_WAY_ETA_OPTIONS.join(", ")}` },
+          { status: 400 },
+        );
+      }
+      etaMinutes = body.etaMinutes as OnMyWayEtaMinutes;
     }
 
     const result = await notifyCustomerOnMyWay({
       userId: session.sub,
       bookingId,
-      etaMinutes: etaMinutes as OnMyWayEtaMinutes,
+      etaMinutes,
+      departed: departing,
       techName: body.techName,
       customerName: body.customerName,
       customerPhone: body.customerPhone,
@@ -56,6 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       customerPhone: result.customerPhone,
+      departing,
       etaMinutes,
     });
   } catch (e) {

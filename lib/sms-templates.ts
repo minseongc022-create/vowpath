@@ -114,20 +114,17 @@ export function smsEtaMinutesLabel(): string {
 
 export function smsStaffEtaHint(): string {
   return (
-    `Effiroad: Heading out? Reply minutes (${smsEtaMinutesLabel()}), e.g. 20. ` +
-    `We text the customer + live map. Don't text them yourself.`
+    `Effiroad: Leaving? Text DEPARTING. We text the customer + live map. ` +
+    `Don't text them yourself.`
   );
 }
 
 export function smsStaffEtaHintShort(): string {
-  return `Effiroad: Leaving? Reply minutes (${smsEtaMinutesLabel()}). We text the customer + live map.`;
+  return `Effiroad: Text DEPARTING when you leave. We text the customer + live map.`;
 }
 
 export function smsStaffEtaInvalidReply(): string {
-  return (
-    `Effiroad: Reply to THIS text with minutes only (${smsEtaMinutesLabel()}). ` +
-    `Example: 20. We'll notify the customer.`
-  );
+  return `Effiroad: Text DEPARTING when you leave. We notify the customer + live map.`;
 }
 
 // ─── Customer-facing messages (shop name, no "Effiroad") ────────────────────
@@ -259,15 +256,17 @@ export function smsCustomerOnMyWayBody(params: {
   shopName?: string;
   customerName: string;
   techName: string;
-  etaMinutes: number;
+  etaMinutes?: number | null;
   trackUrl?: string;
 }): string {
   const shop = resolveShopDisplayName(params.shopName);
   const first = smsFirstName(params.customerName);
   const tech = smsTruncate(params.techName, 16);
-  const core = `${shop}: Hi ${first}! ${tech} is on the way - ~${params.etaMinutes} min.`;
+  const etaPart =
+    params.etaMinutes != null ? ` - ~${params.etaMinutes} min` : "";
+  const core = `${shop}: Hi ${first}! ${tech} is on the way${etaPart}.`;
   if (params.trackUrl) {
-    return smsBodyWithUrl(`${core} Track ETA:`, params.trackUrl);
+    return smsBodyWithUrl(`${core} Track live:`, params.trackUrl);
   }
   return smsFitSingleSegment([`${core} Please keep the area clear.${smsCustomerOptOut()}`]);
 }
