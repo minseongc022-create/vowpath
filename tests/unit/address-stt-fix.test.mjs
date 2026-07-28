@@ -41,5 +41,5 @@ test("Retell STT settings favor accurate listening", async () => {
   assert.ok(Array.isArray(patch.boosted_keywords));
   assert.ok(patch.boosted_keywords.includes("street"));
   assert.ok(patch.boosted_keywords.includes("sewage backup"));
-  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v35|clear-fast-voice-v34|quote-chase-clear-voice-v32|channel-menu-clear-voice|hybrid-address|accurate-stt/);
+  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v36|clear-fast-voice-v35|clear-fast-voice-v34|quote-chase-clear-voice-v32|channel-menu-clear-voice|hybrid-address|accurate-stt/);
 });

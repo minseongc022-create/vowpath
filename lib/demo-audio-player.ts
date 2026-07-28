@@ -137,7 +137,7 @@ export function speakDemoFallback(text: string): Promise<void> {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 1.03;
+    utterance.rate = 1.1;
     const voices = window.speechSynthesis.getVoices();
     const male =
       voices.find((v) => v.lang.startsWith("en") && /male|guy|daniel|david|mark|james|aaron|fred|charon|onyx/i.test(v.name)) ??
