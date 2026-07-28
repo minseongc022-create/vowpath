@@ -2,7 +2,7 @@
  * Retell agent voice + interaction tuning — keep in sync with lib/retell-agent-settings.ts
  */
 
-export const RETELL_PROMPT_VERSION = "phone-clarity-v39-2026-07-28";
+export const RETELL_PROMPT_VERSION = "fast-listen-friendly-sms-v40-2026-07-28";
 
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
 
@@ -181,12 +181,12 @@ function sharedAgentPatch() {
       "east",
       "west",
     ],
-    denoising_mode: "noise-cancellation",
+    denoising_mode: "noise-and-background-speech-cancellation",
     // multilingual_v2 = higher-fidelity TTS that stays crisp on 8 kHz phone audio.
     voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: true,
-    interruption_sensitivity: 0.42,
+    interruption_sensitivity: 0.5,
     enable_backchannel: true,
     reminder_trigger_ms: 8000,
     reminder_max_count: 1,
@@ -201,7 +201,7 @@ export function buildRetellBookingAgentPatch(voiceId) {
     voice_temperature: 0.58,
     voice_speed: 1.0,
     volume: 1.2,
-    responsiveness: 0.98,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
@@ -215,7 +215,7 @@ export function buildRetellEstimateAgentPatch(voiceId) {
     voice_temperature: 0.6,
     voice_speed: 1.0,
     volume: 1.2,
-    responsiveness: 0.98,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
