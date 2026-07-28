@@ -15,25 +15,29 @@ import {
 } from "./lib/demo-voice-settings.mjs";
 
 const CLIPS = [
-  // Restoration voice call — hybrid: name + address + read-back + SMS confirm
+  // Restoration — Twilio menu + Retell phone intake
+  {
+    file: "voice-ai-main.mp3",
+    text: "Thank you for calling Ridgeline Restoration. To book service or report an emergency, say service or press 1. For a free estimate, say estimate or press 2.",
+  },
+  {
+    file: "voice-ai-channel.mp3",
+    text: "Hi — thanks for calling Ridgeline Restoration. Would you like to continue on the phone, or by text with a quick link? Just say phone or text — you can also press 2 for phone, or press 1 for text.",
+  },
   {
     file: "voice-ai-0.mp3",
-    text: "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
+    text: "Thanks for calling. I'm right here with you — what's your name?",
   },
   {
     file: "voice-ai-1.mp3",
-    text: "I'm really glad you called. We'll take care of this together. What's your name?",
+    text: "What's the full street address for the visit?",
   },
   {
     file: "voice-ai-2.mp3",
-    text: "Thanks, Mike. And what's the full street address for the visit?",
-  },
-  {
-    file: "voice-ai-3.mp3",
     text: "Got it — 4821 Oak Drive in Austin. Just to confirm — Mike Wilson, 4821 Oak Drive, Austin, sewage backup in the basement. Is that right?",
   },
   {
-    file: "voice-ai-4.mp3",
+    file: "voice-ai-3.mp3",
     text: "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
   },
   // Restoration overview
@@ -55,7 +59,7 @@ const CLIPS = [
   },
   {
     file: "overview-narr-4.mp3",
-    text: "When the tech accepts, the customer gets an ETA. So the job moves, even when you could not answer live.",
+    text: "When the tech texts departing, the customer gets a live map. So the job moves, even when you could not answer live.",
   },
   // Link intake (restoration)
   {
@@ -78,35 +82,39 @@ const CLIPS = [
     file: "link-narr-4.mp3",
     text: "From there, you can approve dispatch, schedule the visit, or call back with the full context already captured.",
   },
-  // HVAC no-heat voice call — hybrid address + SMS confirm
+  // HVAC
+  {
+    file: "voice-hvac-main.mp3",
+    text: "Thank you for calling Comfort Air HVAC. To book service or report an emergency, say service or press 1. For a free estimate, say estimate or press 2.",
+  },
+  {
+    file: "voice-hvac-channel.mp3",
+    text: "Hi — thanks for calling Comfort Air HVAC. Would you like to continue on the phone, or by text with a quick link? Just say phone or text — you can also press 2 for phone, or press 1 for text.",
+  },
   {
     file: "voice-hvac-0.mp3",
-    text: "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
+    text: "Comfort Air HVAC, thanks for calling. I'm right here with you — what's your name?",
   },
   {
     file: "voice-hvac-1.mp3",
-    text: "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
+    text: "Quick safety check — do you smell gas or hear any sparking?",
   },
   {
     file: "voice-hvac-2.mp3",
-    text: "Good — no gas smell. What's your name?",
+    text: "Good — no gas smell. What's the full street address for the visit?",
   },
   {
     file: "voice-hvac-3.mp3",
-    text: "Thanks, Sarah. What's the full street address?",
-  },
-  {
-    file: "voice-hvac-4.mp3",
     text: "Got it — 910 Cedar Lane. Just to confirm — Sarah Bennett, 910 Cedar Lane, no heat, kids home, no gas smell. Is that right?",
   },
   {
-    file: "voice-hvac-5.mp3",
+    file: "voice-hvac-4.mp3",
     text: "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
   },
   // HVAC gas smell hold
   {
     file: "voice-hvac-gas-0.mp3",
-    text: "Comfort Air HVAC, you've reached us. I'm here with you — tell me what's happening, and whether anyone feels sick.",
+    text: "Comfort Air HVAC, you've reached us. I'm right here with you — tell me what's happening, and whether anyone feels sick.",
   },
   {
     file: "voice-hvac-gas-1.mp3",
@@ -114,11 +122,7 @@ const CLIPS = [
   },
   {
     file: "voice-hvac-gas-2.mp3",
-    text: "Got it. I'm holding this as a safety call and texting the owner now — they'll confirm next steps. You'll also get a secure link to confirm the address.",
-  },
-  {
-    file: "voice-hvac-gas-3.mp3",
-    text: "Thank you. Stay safe — the owner has your info and will follow up.",
+    text: "Got it. I'm holding this as a safety call and texting the owner now — they'll confirm next steps. You'll also get a secure link for the address.",
   },
   // HVAC overview
   {
@@ -139,7 +143,7 @@ const CLIPS = [
   },
   {
     file: "overview-hvac-narr-4.mp3",
-    text: "When a tech accepts, the customer gets an ETA. Effiroad answers, triages, and dispatches without taking control away from you.",
+    text: "When a tech texts departing, the customer gets a live map. Effiroad answers, triages, and dispatches without taking control away from you.",
   },
 ];
 

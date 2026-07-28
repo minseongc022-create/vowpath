@@ -19,7 +19,7 @@ const prompt = readFileSync(join(root, "lib/retell-prompt.ts"), "utf8");
 const faq = readFileSync(join(root, "lib/content-marketing-en.ts"), "utf8");
 
 test("phone prompt collects verbal address then SMS confirm", () => {
-  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v33|quote-chase-clear-voice-v32|channel-menu-clear-voice|hybrid-address/);
+  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v34|clear-fast-voice-v33/);
   assert.match(prompt, /Collect: name, full street address/i);
   assert.match(prompt, /confirm that address and pick your visit time/i);
   assert.doesNotMatch(prompt, /Do NOT collect the full street address on the phone/i);
@@ -33,9 +33,10 @@ test("pending address helpers", () => {
 });
 
 test("demo uses hybrid address + pick-time flow", () => {
-  assert.match(demoScript, /Confirm address & pick visit time/i);
+  assert.match(demoScript, /Request received - confirm:/i);
   assert.match(demoScript, /Caller says address/);
   assert.match(demoScript, /const ESTIMATE_START = 22/);
+  assert.match(demoScript, /Text DEPARTING/);
   assert.match(demoScript, /const LINK_START = 27/);
   assert.match(demoScript, /Service — say phone or text/);
 });
@@ -50,7 +51,7 @@ test("Retell keeps accurate STT while clear and snappy", () => {
   const booking = buildRetellBookingAgentPatch();
   assert.equal(booking.stt_mode, "accurate");
   assert.ok(Number(booking.responsiveness) >= 0.95);
-  assert.ok(Number(booking.volume) <= 1.35);
+  assert.ok(Number(booking.volume) <= 1.1);
   assert.ok(Number(booking.voice_speed) >= 0.95);
   assert.equal(booking.voice_model, "eleven_turbo_v2_5");
 });

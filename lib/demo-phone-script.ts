@@ -1,31 +1,35 @@
 import type { DemoVertical } from "./demo-vertical-config";
+import { buildRetellOpeningLine } from "./retell-opening-line";
 
 /**
- * Receptionist lines for interactive + timeline demos.
- * Matches live hybrid Retell prompt (verbal address + SMS confirm/edit + pick-time).
+ * Receptionist lines — match live Twilio menu + Retell phone intake (lib/retell-prompt.ts).
  */
 export const RESTORATION_AI_LINES = [
-  "Hi, thanks for calling Ridgeline Restoration. I'm here with you — what's going on?",
-  "I'm really glad you called. We'll take care of this together. What's your name?",
-  "Thanks, Mike. And what's the full street address for the visit?",
+  buildRetellOpeningLine("phone_booking"),
+  "What's the full street address for the visit?",
   "Got it — 4821 Oak Drive in Austin. Just to confirm — Mike Wilson, 4821 Oak Drive, Austin, sewage backup in the basement. Is that right?",
   "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_AI_LINES = [
-  "Comfort Air HVAC, thanks for calling. I'm here to help — what's going on at the house?",
-  "I'm sorry you're dealing with that, especially this early. Quick safety check — do you smell gas or hear any sparking?",
-  "Good — no gas smell. What's your name?",
-  "Thanks, Sarah. What's the full street address?",
+  buildRetellOpeningLine("phone_booking").replace(
+    "Thanks for calling.",
+    "Comfort Air HVAC, thanks for calling.",
+  ),
+  "Quick safety check — do you smell gas or hear any sparking?",
+  "Good — no gas smell. What's the full street address for the visit?",
   "Got it — 910 Cedar Lane. Just to confirm — Sarah Bennett, 910 Cedar Lane, no heat, kids home, no gas smell. Is that right?",
   "You're all set — I'll text you a secure link to confirm that address and pick your visit time. Our team's on it.",
 ] as const;
 
 export const HVAC_GAS_AI_LINES = [
-  "Comfort Air HVAC, you've reached us. I'm here with you — tell me what's happening, and whether anyone feels sick.",
+  "Comfort Air HVAC, you've reached us. I'm right here with you — tell me what's happening, and whether anyone feels sick.",
   "I hear you. Gas smell is serious, so I'm not sending anyone blindly. What's your name?",
   "Got it. I'm holding this as a safety call and texting the owner now — they'll confirm next steps. You'll also get a secure link for the address.",
 ] as const;
+
+export const RESTORATION_CHANNEL_LINE =
+  "Hi — thanks for calling Ridgeline Restoration. Would you like to continue on the phone, or by text with a quick link? Just say phone or text — you can also press 2 for phone, or press 1 for text.";
 
 export const RESTORATION_CUSTOMER_TEXT = [
   "Sewage is backing up in my basement — it's coming through the floor drain.",
@@ -57,17 +61,15 @@ export type PhoneDemoPhase =
 export const RESTORATION_PHONE_TIMELINE: PhoneDemoPhase[] = [
   { kind: "system", text: "Incoming call · 2:14 AM · Forwarded — owner is on a job", delayMs: 700 },
   { kind: "ai-voice", text: RESTORATION_AI_LINES[0], audioIndex: 0, delayMs: 700 },
-  { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[0], delayMs: 1100 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[1], audioIndex: 1, delayMs: 800 },
   { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[1], delayMs: 900 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[2], audioIndex: 2, delayMs: 800 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[1], audioIndex: 1, delayMs: 800 },
   { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[2], delayMs: 900 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 800 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[2], audioIndex: 2, delayMs: 800 },
   { kind: "customer-text", text: RESTORATION_CUSTOMER_TEXT[3], delayMs: 900 },
-  { kind: "ai-voice", text: RESTORATION_AI_LINES[4], audioIndex: 4, delayMs: 700 },
+  { kind: "ai-voice", text: RESTORATION_AI_LINES[3], audioIndex: 3, delayMs: 700 },
   {
     kind: "sms",
-    text: "Ridgeline: Hi Mike! Request A1B2C3 received. Confirm address & pick visit time: https://link.effiroad.com/r/demo",
+    text: "Ridgeline: Hi Mike! Request received - confirm: https://effiroad.com/r/demo",
     delayMs: 900,
     variant: "customer",
   },
@@ -85,10 +87,10 @@ export const RESTORATION_PHONE_TIMELINE: PhoneDemoPhase[] = [
     delayMs: 900,
     variant: "crew",
   },
-  { kind: "system", text: "Tech replied 1 · Asked for ETA minutes", delayMs: 1000 },
+  { kind: "system", text: "Tech texted DEPARTING · Live map sent", delayMs: 1000 },
   {
     kind: "sms",
-    text: "Ridgeline: Hi Mike! Jake is on the way — ~30 min. Live map: https://link.effiroad.com/t/demo",
+    text: "Ridgeline: Hi Mike! Jake is on the way. Live map: https://effiroad.com/t/demo",
     delayMs: 1000,
     variant: "customer",
   },
@@ -105,12 +107,10 @@ export const HVAC_PHONE_TIMELINE: PhoneDemoPhase[] = [
   { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[2], delayMs: 900 },
   { kind: "ai-voice", text: HVAC_AI_LINES[3], audioIndex: 3, delayMs: 800 },
   { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[3], delayMs: 900 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 800 },
-  { kind: "customer-text", text: HVAC_CUSTOMER_TEXT[4], delayMs: 900 },
-  { kind: "ai-voice", text: HVAC_AI_LINES[5], audioIndex: 5, delayMs: 700 },
+  { kind: "ai-voice", text: HVAC_AI_LINES[4], audioIndex: 4, delayMs: 700 },
   {
     kind: "sms",
-    text: "Comfort Air: Hi Sarah! Request D4E5F6 received. Confirm address & pick visit time: https://link.effiroad.com/r/demo",
+    text: "Comfort Air: Hi Sarah! Request received - confirm: https://effiroad.com/r/demo",
     delayMs: 900,
     variant: "customer",
   },
@@ -127,7 +127,7 @@ export const HVAC_PHONE_TIMELINE: PhoneDemoPhase[] = [
     delayMs: 900,
     variant: "crew",
   },
-  { kind: "system", text: "Tech replied 1 · ETA 28 min · Live map sent", delayMs: 1400 },
+  { kind: "system", text: "Tech texted DEPARTING · Live map sent", delayMs: 1400 },
 ];
 
 export const HVAC_GAS_HOLD_TIMELINE: PhoneDemoPhase[] = [

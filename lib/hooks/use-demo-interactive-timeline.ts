@@ -103,13 +103,15 @@ export function useDemoInteractiveTimeline({
   );
 
   const playAi = useCallback(
-    async (text: string, audioIndex?: number) => {
+    async (text: string, audioIndex?: number, audioClip?: string) => {
       setAiLine(text);
       setSpeaking(true);
 
       if (audioUnlockedRef.current) {
         let played = false;
-        if (audioPrefix && audioIndex !== undefined) {
+        if (audioClip) {
+          played = await demoAudioPlayer.playMp3(`/demo-audio/${audioClip}`);
+        } else if (audioPrefix && audioIndex !== undefined) {
           played = await demoAudioPlayer.playMp3(`/demo-audio/${audioPrefix}-${audioIndex}.mp3`);
         }
         if (!played) {
@@ -149,7 +151,7 @@ export function useDemoInteractiveTimeline({
           }
 
           if (step.kind === "ai-voice") {
-            await playAi(step.text, step.audioIndex);
+            await playAi(step.text, step.audioIndex, step.audioClip);
             i += 1;
             continue;
           }
