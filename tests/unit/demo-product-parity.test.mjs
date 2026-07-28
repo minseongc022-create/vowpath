@@ -19,7 +19,7 @@ const prompt = readFileSync(join(root, "lib/retell-prompt.ts"), "utf8");
 const faq = readFileSync(join(root, "lib/content-marketing-en.ts"), "utf8");
 
 test("phone prompt collects verbal address then SMS confirm", () => {
-  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v36|clear-fast-voice-v35/);
+  assert.match(RETELL_PROMPT_VERSION, /clear-fast-voice-v37|clear-fast-voice-v36/);
   assert.match(prompt, /Collect: name, full street address/i);
   assert.match(prompt, /confirm that address and pick your visit time/i);
   assert.doesNotMatch(prompt, /Do NOT collect the full street address on the phone/i);
@@ -52,6 +52,7 @@ test("Retell keeps accurate STT while clear and snappy", () => {
   assert.equal(booking.stt_mode, "accurate");
   assert.ok(Number(booking.responsiveness) >= 0.95);
   assert.ok(Number(booking.volume) <= 1.1);
-  assert.ok(Number(booking.voice_speed) >= 1.08);
+  assert.ok(Number(booking.voice_speed) >= 0.95);
+  assert.ok(Number(booking.voice_speed) <= 1.0);
   assert.equal(booking.voice_model, "eleven_turbo_v2_5");
 });

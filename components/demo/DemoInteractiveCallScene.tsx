@@ -13,6 +13,7 @@ import {
   getVoiceAudioPrefix,
 } from "@/lib/demo-phone-script";
 import { useDemoInteractiveTimeline } from "@/lib/hooks/use-demo-interactive-timeline";
+import { unlockDemoAudio } from "@/lib/demo-audio-unlock";
 
 function Waveform({ active }: { active: boolean }) {
   return (
@@ -62,7 +63,10 @@ function ActionPanel({
           <button
             key={opt.id}
             type="button"
-            onClick={() => onMenuChoice(opt)}
+            onClick={() => {
+              unlockDemoAudio();
+              onMenuChoice(opt);
+            }}
             className="block w-full min-w-0 rounded-lg bg-sky-500/25 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-1 ring-sky-400/40 transition hover:bg-sky-500/40 active:scale-[0.99] sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
           >
             {opt.label}
@@ -76,7 +80,10 @@ function ActionPanel({
     return (
       <button
         type="button"
-        onClick={() => onCustomerAction(step.customerText, step.transition ?? "soft")}
+        onClick={() => {
+          unlockDemoAudio();
+          onCustomerAction(step.customerText, step.transition ?? "soft");
+        }}
         className="mt-2 block w-full min-w-0 rounded-lg bg-sky-500/30 px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug text-white ring-2 ring-sky-400/50 transition hover:bg-sky-500/45 active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs"
       >
         Tap: {step.label}
@@ -89,7 +96,10 @@ function ActionPanel({
     return (
       <button
         type="button"
-        onClick={() => onOwnerAction(step.systemText, step.transition ?? "sms")}
+        onClick={() => {
+          unlockDemoAudio();
+          onOwnerAction(step.systemText, step.transition ?? "sms");
+        }}
         className={`mt-2 block w-full min-w-0 rounded-lg px-2.5 py-2.5 text-left text-[11px] font-semibold leading-snug ring-2 transition active:scale-[0.99] sm:mt-3 sm:rounded-xl sm:px-3 sm:py-3 sm:text-xs ${
           isTech
             ? "bg-amber-500/25 text-amber-50 ring-amber-400/50 hover:bg-amber-500/40"

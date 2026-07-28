@@ -84,6 +84,7 @@ export function useDemoInteractiveTimeline({
       if (kind === "retell-connect") {
         setAiLine(null);
         if (audioUnlockedRef.current) {
+          await demoAudioPlayer.ensureReady();
           await demoAudioPlayer.playTransferTone(1400);
         } else {
           await new Promise((r) => setTimeout(r, 900));
