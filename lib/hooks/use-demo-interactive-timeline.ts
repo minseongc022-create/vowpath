@@ -17,7 +17,7 @@ type UseDemoInteractiveTimelineOptions = {
 const TRANSITION_COPY: Record<DemoTransition, string> = {
   "retell-connect": "Connecting to AI receptionist…",
   soft: "AI is listening…",
-  sms: "Sending text…",
+  sms: "Sending link by text…",
 };
 
 export function useDemoInteractiveTimeline({
@@ -33,6 +33,8 @@ export function useDemoInteractiveTimeline({
   const [crewSms, setCrewSms] = useState<string | null>(null);
   const [fyiSms, setFyiSms] = useState<string | null>(null);
   const [customerSms, setCustomerSms] = useState<string | null>(null);
+  const [customerSmsSending, setCustomerSmsSending] = useState(false);
+  const [smsSendingLabel, setSmsSendingLabel] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [transferring, setTransferring] = useState(false);
   const [transitionKind, setTransitionKind] = useState<DemoTransition | null>(null);
@@ -58,6 +60,8 @@ export function useDemoInteractiveTimeline({
     setCrewSms(null);
     setFyiSms(null);
     setCustomerSms(null);
+    setCustomerSmsSending(false);
+    setSmsSendingLabel(null);
     setSpeaking(false);
     setTransferring(false);
     setTransitionKind(null);
@@ -90,7 +94,7 @@ export function useDemoInteractiveTimeline({
           await new Promise((r) => setTimeout(r, 900));
         }
       } else if (kind === "sms") {
-        await new Promise((r) => setTimeout(r, 700));
+        await new Promise((r) => setTimeout(r, 900));
       } else {
         // soft — AI thinking / listening beat (no fake transfer ring)
         await new Promise((r) => setTimeout(r, 450));
@@ -157,6 +161,16 @@ export function useDemoInteractiveTimeline({
             continue;
           }
 
+          if (step.kind === "sms-sending") {
+            setCustomerSmsSending(true);
+            setSmsSendingLabel(step.label ?? "Sending secure link by text…");
+            i += 1;
+            await new Promise((r) => setTimeout(r, 1400));
+            setCustomerSmsSending(false);
+            setSmsSendingLabel(null);
+            continue;
+          }
+
           if (step.kind === "sms") {
             if (step.variant === "crew") setCrewSms(step.text);
             else if (step.variant === "fyi") setFyiSms(step.text);
@@ -190,7 +204,8 @@ export function useDemoInteractiveTimeline({
   const advanceWithCustomer = useCallback(
     (text: string, transition: DemoTransition = "soft") => {
       markUnlocked();
-      setCustomerLines((prev) => [...prev, text]);
+      const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+      setCustomerLines((prev) => [...prev, ...(lines.length > 0 ? lines : [text])]);
       void advanceWithTransition((c) => c + 1, transition);
     },
     [markUnlocked, advanceWithTransition],
@@ -246,6 +261,8 @@ export function useDemoInteractiveTimeline({
     crewSms,
     fyiSms,
     customerSms,
+    customerSmsSending,
+    smsSendingLabel,
     speaking,
     transferring,
     transitionKind,

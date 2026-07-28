@@ -34,6 +34,7 @@ export function useDemoPhoneTimeline({
   const [ownerSms, setOwnerSms] = useState<string | null>(null);
   const [crewSms, setCrewSms] = useState<string | null>(null);
   const [fyiSms, setFyiSms] = useState<string | null>(null);
+  const [customerSms, setCustomerSms] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [typing, setTyping] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -71,6 +72,7 @@ export function useDemoPhoneTimeline({
     setOwnerSms(null);
     setCrewSms(null);
     setFyiSms(null);
+    setCustomerSms(null);
     setSpeaking(false);
     setTyping(false);
     setStepIdx(0);
@@ -96,6 +98,7 @@ export function useDemoPhoneTimeline({
       if (phase.kind === "sms") {
         if (phase.variant === "crew") setCrewSms(phase.text);
         else if (phase.variant === "fyi") setFyiSms(phase.text);
+        else if (phase.variant === "customer") setCustomerSms(phase.text);
         else setOwnerSms(phase.text);
       }
 
@@ -158,6 +161,7 @@ export function useDemoPhoneTimeline({
     ownerSms,
     crewSms,
     fyiSms,
+    customerSms,
     speaking,
     typing,
     stepIdx,
