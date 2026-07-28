@@ -46,6 +46,7 @@ export async function GET(request: Request) {
         general_prompt: RETELL_PRODUCTION_PROMPT,
         begin_message: RETELL_PRODUCTION_BEGIN_MESSAGE,
         general_tools: generalTools,
+        model_high_priority: true,
       }),
     });
     if (!llmRes.ok) {
