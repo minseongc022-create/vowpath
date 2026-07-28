@@ -1,6 +1,9 @@
+import { DEMO_PLAYBACK_VOLUME } from "@/lib/demo-voice-settings";
+
 /** Shared HTMLAudioElement — iOS allows chained plays after one user gesture. */
 class DemoAudioPlayer {
   private audio: HTMLAudioElement | null = null;
+  private ringAudio: HTMLAudioElement | null = null;
   private unlocked = false;
   private audioCtx: AudioContext | null = null;
 
@@ -16,6 +19,21 @@ class DemoAudioPlayer {
     if (!AC) return null;
     if (!this.audioCtx) this.audioCtx = new AC();
     return this.audioCtx;
+  }
+
+  /** Resume Web Audio after autoplay policy or iOS suspend. */
+  async ensureReady(): Promise<boolean> {
+    if (!this.unlocked || typeof window === "undefined") return false;
+    const ctx = this.ensureAudioCtx();
+    if (!ctx) return false;
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        return false;
+      }
+    }
+    return ctx.state === "running";
   }
 
   /** Call synchronously inside a click/tap handler. */
@@ -41,7 +59,7 @@ class DemoAudioPlayer {
           if (!this.audio) return;
           this.audio.pause();
           this.audio.currentTime = 0;
-          this.audio.volume = 1;
+          this.audio.volume = DEMO_PLAYBACK_VOLUME;
         })
         .catch(() => {
           /* Keep unlocked — speech fallback may still work */
@@ -58,7 +76,7 @@ class DemoAudioPlayer {
     }
 
     const audio = this.audio;
-    audio.volume = 1;
+    audio.volume = DEMO_PLAYBACK_VOLUME;
     audio.src = relativePath;
 
     try {
@@ -74,8 +92,8 @@ class DemoAudioPlayer {
   }
 
   /**
-   * US-style ring cadence (440+480 Hz) — feels like the call is connecting
-   * to the next receptionist before the next AI line.
+   * US-style ring cadence (440+480 Hz) — plays when IVR hands off to AI receptionist.
+   * Uses pre-rendered MP3 first (reliable on mobile), Web Audio as backup.
    */
   async playTransferTone(totalMs = 1600): Promise<void> {
     if (!this.unlocked || typeof window === "undefined") {
@@ -83,17 +101,14 @@ class DemoAudioPlayer {
       return;
     }
 
+    const mp3Played = await this.playTransferToneMp3(totalMs);
+    if (mp3Played) return;
+
+    await this.ensureReady();
     const ctx = this.ensureAudioCtx();
-    if (!ctx) {
+    if (!ctx || ctx.state !== "running") {
       await new Promise((r) => setTimeout(r, totalMs));
       return;
-    }
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {
-        /* ignore */
-      }
     }
 
     const now = ctx.currentTime;
@@ -111,8 +126,8 @@ class DemoAudioPlayer {
         osc.type = "sine";
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.09, t + 0.04);
-        gain.gain.setValueAtTime(0.09, t + onDur - 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.16, t + 0.04);
+        gain.gain.setValueAtTime(0.16, t + onDur - 0.06);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + onDur);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -123,6 +138,31 @@ class DemoAudioPlayer {
     }
 
     await new Promise((r) => setTimeout(r, totalMs));
+  }
+
+  private async playTransferToneMp3(totalMs: number): Promise<boolean> {
+    if (!this.ringAudio) {
+      this.ringAudio = new Audio("/demo-audio/transfer-ring.mp3");
+      this.ringAudio.preload = "auto";
+    }
+    const ring = this.ringAudio;
+    ring.volume = 0.75;
+    ring.currentTime = 0;
+
+    try {
+      await ring.play();
+      await new Promise<void>((resolve) => {
+        const done = () => resolve();
+        ring.onended = done;
+        ring.onerror = done;
+        setTimeout(done, totalMs);
+      });
+      ring.pause();
+      ring.currentTime = 0;
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -137,7 +177,8 @@ export function speakDemoFallback(text: string): Promise<void> {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 1.1;
+    utterance.rate = 0.98;
+    utterance.volume = DEMO_PLAYBACK_VOLUME;
     const voices = window.speechSynthesis.getVoices();
     const male =
       voices.find((v) => v.lang.startsWith("en") && /male|guy|daniel|david|mark|james|aaron|fred|charon|onyx/i.test(v.name)) ??

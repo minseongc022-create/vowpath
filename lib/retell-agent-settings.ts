@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "clear-fast-voice-v36-2026-07-28";
+export const RETELL_PROMPT_VERSION = "clear-fast-voice-v37-2026-07-28";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -221,7 +221,7 @@ function sharedAgentPatch(): Record<string, unknown> {
     denoising_mode: "noise-cancellation",
     // Turbo = clearer on phone + lower TTS latency than multilingual_v2.
     voice_model: "eleven_turbo_v2_5",
-    enable_dynamic_voice_speed: true,
+    enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: true,
     // Higher = end-of-utterance sooner so answers start faster.
     interruption_sensitivity: 0.5,
@@ -237,7 +237,7 @@ export function buildRetellBookingAgentPatch(voiceId?: string) {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Booking Agent",
     voice_temperature: 0.45,
-    voice_speed: 1.1,
+    voice_speed: 0.98,
     volume: 1.05,
     responsiveness: 1.0,
   };
@@ -251,7 +251,7 @@ export function buildRetellEstimateAgentPatch(voiceId?: string) {
     ...sharedAgentPatch(),
     agent_name: "Effiroad Estimate Agent",
     voice_temperature: 0.48,
-    voice_speed: 1.1,
+    voice_speed: 0.98,
     volume: 1.05,
     responsiveness: 1.0,
   };
