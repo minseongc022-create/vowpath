@@ -5,6 +5,8 @@ import { LegalLinksStrip } from "@/components/layout/LegalLinksStrip";
 import { MARKETING_SITE_VIEW, ROUTES } from "@/lib/constants";
 import { getSession } from "@/lib/session";
 import { Hero } from "@/components/sections/Hero";
+import { LandingQuickQA } from "@/components/sections/LandingQuickQA";
+import { DemoVideoHero } from "@/components/sections/DemoVideoHero";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Pricing } from "@/components/sections/Pricing";
 import { FAQ } from "@/components/sections/FAQ";
@@ -28,6 +30,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <Header session={session} />
       <main className="flex-1 w-full min-w-0">
         <Hero />
+        <LandingQuickQA />
+        <DemoVideoHero />
         <HowItWorks />
         <QuoteChaseSpotlight />
         <Pricing />
