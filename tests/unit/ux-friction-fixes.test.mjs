@@ -34,10 +34,10 @@ test("pending queue surfaces approve errors and SMS ref commands", () => {
   assert.match(queue, /OWNER_REQUEST_STATUS_LABELS/);
 });
 
-test("SMS copy softens pick-time and track live map", () => {
-  assert.match(sms, /so we can take the next step/);
-  assert.match(sms, /Track live:/);
-  assert.doesNotMatch(sms, /Live map:/);
+test("SMS copy softens pick-time and live map link", () => {
+  assert.match(sms, /Pick visit time:/);
+  assert.match(sms, /Live map:/);
+  assert.match(sms, /buildSmsWithLink/);
 });
 
 test("tracking page has terminal expired state", () => {

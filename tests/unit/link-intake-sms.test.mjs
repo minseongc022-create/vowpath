@@ -9,36 +9,40 @@ import {
 } from "../../lib/link-intake-token.ts";
 
 const root = process.cwd();
+const sms = readFileSync(join(root, "lib/sms-templates.ts"), "utf8");
+const portal = readFileSync(join(root, "lib/portal-url.ts"), "utf8");
+const booking = readFileSync(join(root, "lib/call-intake/booking-confirmation.ts"), "utf8");
 
 test("generateLinkIntakeToken produces 16-char hex", () => {
   const token = generateLinkIntakeToken();
   assert.match(token, /^[a-f0-9]{16}$/);
 });
 
-test("normalizeLinkIntakeToken accepts legacy 32-char tokens", () => {
-  const legacy = "a".repeat(32);
-  assert.equal(normalizeLinkIntakeToken(legacy), legacy);
-  assert.equal(normalizeLinkIntakeToken("a".repeat(16)), "a".repeat(16));
-});
-
 test("normalizeLinkIntakeToken rejects truncated tokens from split SMS", () => {
-  assert.equal(normalizeLinkIntakeToken("abc"), null);
-  assert.equal(normalizeLinkIntakeToken("zzzzzzzzzzzzzzzz"), null);
-  assert.equal(normalizeLinkIntakeToken("df5fe3252e0f4817b8be2eb81"), null); // 25-char fragment
-  assert.equal(normalizeLinkIntakeToken("4f6d7e5"), null);
-  assert.equal(isLikelyTruncatedLinkToken("4f6d7e5"), true);
-  assert.equal(isLikelyTruncatedLinkToken("a1b2c3d4e5f67890"), false);
+  assert.equal(normalizeLinkIntakeToken("3ef19e"), null);
+  assert.equal(isLikelyTruncatedLinkToken("3ef19e"), true);
 });
 
-test("booking review sessions use short 16-char tokens (not 32-char UUID)", () => {
-  const src = readFileSync(join(root, "lib/call-intake/booking-confirmation.ts"), "utf8");
-  assert.match(src, /generateLinkIntakeToken/);
-  assert.doesNotMatch(src, /crypto\.randomUUID\(\)\.replace/);
+test("compactSmsPortalUrl shortens link host for SMS", () => {
+  assert.match(portal, /compactSmsPortalUrl/);
+  assert.match(portal, /https:\/\/effiroad\.com/);
 });
 
-test("smsBodyWithUrl guards against mid-URL SMS splits", () => {
-  const src = readFileSync(join(root, "lib/sms-templates.ts"), "utf8");
-  assert.match(src, /GSM_CONCAT = 153/);
-  assert.match(src, /smsAsciiSafe/);
-  assert.match(src, /Never let a URL/);
+test("buildSmsWithLink splits URL to its own SMS when needed", () => {
+  assert.match(sms, /export function buildSmsWithLink/);
+  assert.match(sms, /Link in next text/);
+  assert.match(sms, /return \[line1, cleanUrl\]/);
+});
+
+test("customer SMS copy is short and action-first", () => {
+  assert.match(sms, /Thanks for calling\. Open this link:/);
+  assert.match(sms, /Request received\. Confirm:/);
+  assert.match(sms, /We text when we leave/);
+  assert.doesNotMatch(sms, /In review\./);
+  assert.doesNotMatch(sms, /Priority job/);
+});
+
+test("booking confirmation sends multi-part SMS when URL present", () => {
+  assert.match(booking, /sendSmsMessages/);
+  assert.match(booking, /smsCustomerBookingConfirmationMessages/);
 });

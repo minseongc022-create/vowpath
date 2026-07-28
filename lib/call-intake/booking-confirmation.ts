@@ -2,10 +2,10 @@ import { buildBookingPortalUrl } from "../portal-url";
 import { resolveShopDisplayName } from "../link-intake-brand";
 import { formatLinkRequestNumber } from "../link-intake-urgency";
 import { generateLinkIntakeToken } from "../link-intake-token";
-import { sendSms } from "../send-sms";
+import { sendSmsMessages } from "../sms-link-delivery";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
-import { smsCustomerBookingConfirmationBody } from "../sms-templates";
+import { smsCustomerBookingConfirmationMessages } from "../sms-templates";
 import { withPracticeSmsPrefix } from "../practice-sms";
 import { getShopBookingSettings } from "../shop-settings-db";
 import { isPracticeMode } from "../data-truthfulness";
@@ -73,7 +73,7 @@ export async function sendIntakeBookingConfirmation(params: {
   const settings = await getShopBookingSettings(params.userId);
   const practiceMode = isPracticeMode(settings);
   const portalUrl = buildBookingPortalUrl(params.reviewToken);
-  let body = smsCustomerBookingConfirmationBody({
+  const messages = smsCustomerBookingConfirmationMessages({
     shopName: user?.shopName ?? "",
     requestNumber: formatLinkRequestNumber(params.callLogId),
     customerName: params.customerName,
@@ -82,15 +82,14 @@ export async function sendIntakeBookingConfirmation(params: {
     portalUrl,
     pendingShopReview: params.pendingShopReview,
     needsPickTime: Boolean(params.needsPickTime),
-  });
-  body = withPracticeSmsPrefix(body, practiceMode);
+  }).map((body) => withPracticeSmsPrefix(body, practiceMode));
 
   const dedupeId = `${params.bookingId}:booking_confirmation`;
   if (!(await shouldSendSmsOnce(params.userId, dedupeId))) {
     return { ok: true };
   }
 
-  const result = await sendSms(phone, body, "customer_booking_confirmation", {
+  const result = await sendSmsMessages(phone, messages, "customer_booking_confirmation", {
     usRecipientsOnly: false,
     context: {
       userId: params.userId,

@@ -40,6 +40,14 @@ export function buildBookingPortalUrl(token: string): string {
   return `${base}${path}`;
 }
 
+/** Shorter host for SMS (saves 5 chars vs link.effiroad.com). */
+export function compactSmsPortalUrl(url: string): string {
+  return url
+    .replace(/^https:\/\/link\.effiroad\.com/i, "https://effiroad.com")
+    .replace(/^https:\/\/link\.vowroad\.com/i, "https://effiroad.com")
+    .replace(/^https:\/\/book\.effiroad\.com/i, "https://effiroad.com");
+}
+
 /** @deprecated Use buildBookingPortalUrl */
 export function buildIntakeReviewUrl(token: string): string {
   return buildBookingPortalUrl(token);

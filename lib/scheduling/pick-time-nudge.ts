@@ -14,10 +14,11 @@ import { listUsers, findUserById } from "../users-db";
 import { resolveOwnerAlertPhone } from "../owner-alert-phone";
 import { buildBookingPortalUrl } from "../portal-url";
 import { sendSms } from "../send-sms";
+import { sendSmsMessages } from "../sms-link-delivery";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { setSmsReplyTarget } from "../sms-reply-context";
 import {
-  smsCustomerPickTimeReminderBody,
+  smsCustomerPickTimeReminderMessages,
   smsOwnerPickTimeStaleBody,
 } from "../sms-templates";
 import { withPracticeSmsPrefix } from "../practice-sms";
@@ -87,15 +88,12 @@ export async function processPickTimeNudgesForUser(userId: string): Promise<{
     if (age >= CUSTOMER_NUDGE_AFTER_MS && phone) {
       const dedupeId = `${bookingId}:pick_time_nudge`;
       if (await shouldSendSmsOnce(userId, dedupeId)) {
-        const body = withPracticeSmsPrefix(
-          smsCustomerPickTimeReminderBody({
-            shopName,
-            customerName,
-            portalUrl,
-          }),
-          practiceMode,
-        );
-        const result = await sendSms(phone, body, "customer_pick_time_nudge", {
+        const messages = smsCustomerPickTimeReminderMessages({
+          shopName,
+          customerName,
+          portalUrl,
+        }).map((part) => withPracticeSmsPrefix(part, practiceMode));
+        const result = await sendSmsMessages(phone, messages, "customer_pick_time_nudge", {
           context: { userId, operation: "customer_pick_time_nudge", bookingId },
         });
         if (result.ok) {

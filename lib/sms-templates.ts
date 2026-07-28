@@ -9,10 +9,12 @@
  */
 
 import { resolveShopDisplayName } from "./shop-display-name";
+import { compactSmsPortalUrl } from "./portal-url";
 
 const GSM_SINGLE = 160;
 /** Real concat cut for multipart SMS (leave headroom under 160). */
 const GSM_CONCAT = 153;
+/** Intl / UCS-2 segment — Korea +82 routes often use this even for ASCII. */
 const UCS2_CONCAT = 67;
 
 /** Strip unicode punctuation that forces UCS-2 (70-char segments) and URL splits. */
@@ -35,32 +37,58 @@ function smsSegmentLimit(text: string): number {
   return forcesUcs2Encoding(text) ? UCS2_CONCAT : GSM_CONCAT;
 }
 
+function smsShopShort(shopName?: string): string {
+  return smsTruncate(resolveShopDisplayName(shopName), 10);
+}
+
 /**
- * Keep the full URL intact in one SMS segment. Shrink the intro (never the URL).
+ * Build 1-2 SMS bodies so URLs are never cut mid-string (intl carriers).
+ * Part 2 is URL-only when needed.
  */
-export function smsBodyWithUrl(intro: string, url: string, optOut = true): string {
-  const cleanUrl = url.trim();
+export function buildSmsWithLink(intro: string, url: string, optOut = true): string[] {
+  const safeIntro = smsAsciiSafe(intro).trim();
+  const cleanUrl = compactSmsPortalUrl(url.trim());
   const opt = optOut ? smsCustomerOptOut().trim() : "";
-  let lead = smsAsciiSafe(intro).trim();
 
-  const build = (i: string, withOpt: boolean) =>
-    withOpt && opt ? `${i} ${cleanUrl} ${opt}` : `${i} ${cleanUrl}`;
-
-  let body = build(lead, true);
-  if (body.length <= smsSegmentLimit(body)) return body;
-
-  body = build(lead, false);
-  if (body.length <= smsSegmentLimit(body)) return body;
-
-  while (lead.length > 14) {
-    const next = lead.slice(0, Math.max(14, lead.length - 10)).replace(/\s+\S*$/, "").trim();
-    lead = /:$/.test(next) ? next : `${next.replace(/:$/, "")}:`;
-    body = build(lead, false);
+  const trySingle = (lead: string) => {
+    const body = opt ? `${lead} ${cleanUrl} ${opt}` : `${lead} ${cleanUrl}`;
     if (body.length <= smsSegmentLimit(body)) return body;
+    return null;
+  };
+
+  let single = trySingle(safeIntro);
+  if (single) return [single];
+
+  single = trySingle(shortenSmsIntro(safeIntro));
+  if (single) return [single];
+
+  let line1 = opt
+    ? `${shortenSmsIntro(safeIntro)} Link in next text. ${opt}`
+    : `${shortenSmsIntro(safeIntro)} Link in next text.`;
+  while (line1.length > smsSegmentLimit(line1) && line1.length > 28) {
+    line1 = line1.slice(0, -10).replace(/\s+\S*$/, "").trim();
+    if (opt && !/STOP/i.test(line1)) line1 = `${line1} ${opt}`;
   }
 
-  const minimal = `Open: ${cleanUrl}`;
-  return minimal.length <= smsSegmentLimit(minimal) ? minimal : cleanUrl;
+  return [line1, cleanUrl];
+}
+
+function shortenSmsIntro(intro: string): string {
+  return intro
+    .replace(/\s+Thanks for calling!\s*/gi, " ")
+    .replace(/\s+Finish here[^:]*:/gi, " Open:")
+    .replace(/\s+We'll text when the tech is on the way\.?/gi, "")
+    .replace(/\s+We text when we leave\.?/gi, "")
+    .replace(/\s+Priority job\.?/gi, "")
+    .replace(/\s+In review\.?/gi, "")
+    .trim();
+}
+
+/**
+ * @deprecated Prefer buildSmsWithLink + sendSmsMessages for delivery.
+ */
+export function smsBodyWithUrl(intro: string, url: string, optOut = true): string {
+  return buildSmsWithLink(intro, url, optOut).join(" ");
 }
 
 export function smsFirstName(fullName: string): string {
@@ -129,13 +157,42 @@ export function smsStaffEtaInvalidReply(): string {
 
 // ─── Customer-facing messages (shop name, no "Effiroad") ────────────────────
 
-/** Link intake - press 1 on call (GSM-7, single segment when possible). */
+/** Link intake - press 1 on call. */
+export function smsLinkIntakeMessages(shopName: string | undefined, url: string): string[] {
+  const shop = smsShopShort(shopName);
+  return buildSmsWithLink(`${shop}: Thanks for calling. Open this link:`, url);
+}
+
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
-  const shop = smsTruncate(resolveShopDisplayName(shopName), 20);
-  return smsBodyWithUrl(`${shop}: Hi! Thanks for calling! Finish here (~1 min):`, url);
+  return smsLinkIntakeMessages(shopName, url).join(" ");
 }
 
 /** After booking / request received */
+export function smsCustomerBookingConfirmationMessages(params: {
+  shopName?: string;
+  requestNumber: string;
+  customerName: string;
+  issueType: string;
+  arrivalWindow?: string;
+  portalUrl: string;
+  pendingShopReview?: boolean;
+  needsPickTime?: boolean;
+}): string[] {
+  const shop = smsShopShort(params.shopName);
+  const first = smsTruncate(smsFirstName(params.customerName), 12);
+  if (params.needsPickTime) {
+    return buildSmsWithLink(`${shop}: Hi ${first}! Pick visit time:`, params.portalUrl);
+  }
+  if (params.pendingShopReview) {
+    return buildSmsWithLink(`${shop}: Hi ${first}! Request received. Confirm:`, params.portalUrl);
+  }
+  const window = params.arrivalWindow?.trim()
+    ? smsTruncate(smsAsciiSafe(params.arrivalWindow), 14)
+    : "";
+  const status = window ? `Booked ${window}.` : "Request received.";
+  return buildSmsWithLink(`${shop}: Hi ${first}! ${status} Open:`, params.portalUrl);
+}
+
 export function smsCustomerBookingConfirmationBody(params: {
   shopName?: string;
   requestNumber: string;
@@ -144,33 +201,28 @@ export function smsCustomerBookingConfirmationBody(params: {
   arrivalWindow?: string;
   portalUrl: string;
   pendingShopReview?: boolean;
-  /** Phone intake - confirm address (typed/map) and pick visit time on the portal. */
   needsPickTime?: boolean;
 }): string {
-  const shop = smsTruncate(resolveShopDisplayName(params.shopName), 18);
-  const first = smsTruncate(smsFirstName(params.customerName), 12);
-  const ref = params.requestNumber;
-  if (params.needsPickTime) {
-    return smsBodyWithUrl(`${shop}: Hi ${first}! ${ref} - pick visit time:`, params.portalUrl);
-  }
-  const status = params.pendingShopReview
-    ? "In review."
-    : params.arrivalWindow?.trim()
-      ? `Booked ${smsTruncate(params.arrivalWindow, 16)}.`
-      : "Received.";
-  return smsBodyWithUrl(`${shop}: Hi ${first}! ${ref} ${status} Open:`, params.portalUrl);
+  return smsCustomerBookingConfirmationMessages(params).join(" ");
 }
 
 /** Reminder if customer never opened the pick-time link. */
+export function smsCustomerPickTimeReminderMessages(params: {
+  shopName?: string;
+  customerName: string;
+  portalUrl: string;
+}): string[] {
+  const shop = smsShopShort(params.shopName);
+  const first = smsFirstName(params.customerName);
+  return buildSmsWithLink(`${shop}: Hi ${first}! Pick visit time:`, params.portalUrl);
+}
+
 export function smsCustomerPickTimeReminderBody(params: {
   shopName?: string;
   customerName: string;
   portalUrl: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const first = smsFirstName(params.customerName);
-  const core = `${shop}: Hi ${first}! Reminder - pick your visit time:`;
-  return smsBodyWithUrl(core, params.portalUrl);
+  return smsCustomerPickTimeReminderMessages(params).join(" ");
 }
 
 /** Owner: customer still has not chosen a window. */
@@ -186,6 +238,24 @@ export function smsOwnerPickTimeStaleBody(params: {
   return `${ownerLead(params.shopName)}: ${name}${phone} still hasn't picked a visit time (${issue}). Call them or set a window in the dashboard.`;
 }
 
+export function smsCustomerScheduledMessages(params: {
+  shopName?: string;
+  customerName: string;
+  window: string;
+  portalUrl?: string;
+  priority?: string;
+}): string[] {
+  const shop = smsShopShort(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const window = smsTruncate(smsAsciiSafe(params.window), 18);
+  const urgent = params.priority === "P1" ? " Urgent." : "";
+  const core = `${shop}: Hi ${first}! Booked ${window}.${urgent} We text when we leave.`;
+  if (params.portalUrl) {
+    return buildSmsWithLink(`${core} Details:`, params.portalUrl);
+  }
+  return [smsFitSingleSegment([core + smsCustomerOptOut()])];
+}
+
 export function smsCustomerScheduledBody(params: {
   shopName?: string;
   customerName: string;
@@ -193,13 +263,7 @@ export function smsCustomerScheduledBody(params: {
   portalUrl?: string;
   priority?: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const first = smsFirstName(params.customerName);
-  const window = smsTruncate(params.window, 24);
-  const urgent = params.priority === "P1" ? " Priority job." : "";
-  const core = `${shop}: Hi ${first}! Booked for ${window}.${urgent} We'll text when the tech is on the way.`;
-  if (params.portalUrl) return smsBodyWithUrl(core, params.portalUrl);
-  return smsFitSingleSegment([core + smsCustomerOptOut()]);
+  return smsCustomerScheduledMessages(params).join(" ");
 }
 
 export function smsCustomerIntakeAckBody(shopName: string | undefined, issue: string): string {
@@ -252,6 +316,24 @@ export function smsRequestReceivedEsBody(shopName?: string): string {
 }
 
 /** Customer - tech en route (optional live map link). */
+export function smsCustomerOnMyWayMessages(params: {
+  shopName?: string;
+  customerName: string;
+  techName: string;
+  etaMinutes?: number | null;
+  trackUrl?: string;
+}): string[] {
+  const shop = smsShopShort(params.shopName);
+  const first = smsFirstName(params.customerName);
+  const tech = smsTruncate(params.techName, 14);
+  const etaPart = params.etaMinutes != null ? ` (~${params.etaMinutes} min)` : "";
+  const core = `${shop}: Hi ${first}! ${tech} is on the way${etaPart}.`;
+  if (params.trackUrl) {
+    return buildSmsWithLink(`${core} Live map:`, params.trackUrl);
+  }
+  return [smsFitSingleSegment([`${core} Please keep the area clear.${smsCustomerOptOut()}`])];
+}
+
 export function smsCustomerOnMyWayBody(params: {
   shopName?: string;
   customerName: string;
@@ -259,16 +341,7 @@ export function smsCustomerOnMyWayBody(params: {
   etaMinutes?: number | null;
   trackUrl?: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  const first = smsFirstName(params.customerName);
-  const tech = smsTruncate(params.techName, 16);
-  const etaPart =
-    params.etaMinutes != null ? ` - ~${params.etaMinutes} min` : "";
-  const core = `${shop}: Hi ${first}! ${tech} is on the way${etaPart}.`;
-  if (params.trackUrl) {
-    return smsBodyWithUrl(`${core} Track live:`, params.trackUrl);
-  }
-  return smsFitSingleSegment([`${core} Please keep the area clear.${smsCustomerOptOut()}`]);
+  return smsCustomerOnMyWayMessages(params).join(" ");
 }
 
 export function smsStaffGoLinkBody(params: {

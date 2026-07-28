@@ -7,11 +7,12 @@ import { lookupStoredRequestStatus } from "../request-status-resolve";
 import { getRequestStatuses } from "../requests-db";
 import { listScheduledBookings } from "../schedule-bookings-db";
 import {
-  smsCustomerOnMyWayBody,
+  smsCustomerOnMyWayMessages,
   smsStaffEtaInvalidReply,
 } from "../sms-templates";
 import { notifyStaffEtaInstructions } from "../staff-eta-notify";
 import { sendSms } from "../send-sms";
+import { sendSmsMessages } from "../sms-link-delivery";
 import { getSmsReplyTarget } from "../sms-reply-context";
 import { resolveOwnerUserIdFromSms } from "../owner-sms-reply";
 import { findUserById } from "../users-db";
@@ -193,7 +194,7 @@ export async function notifyCustomerOnMyWay(params: {
     console.warn("[on-my-way] visit track", e);
   }
 
-  const smsBodyBase = smsCustomerOnMyWayBody({
+  const smsMessages = smsCustomerOnMyWayMessages({
     shopName,
     customerName,
     techName,
@@ -203,9 +204,11 @@ export async function notifyCustomerOnMyWay(params: {
 
   const bookingSettings = await getShopBookingSettings(params.userId);
   const practiceMode = isPracticeMode(bookingSettings);
-  const smsBody = practiceMode ? `Effiroad [TEST]: ${smsBodyBase}` : smsBodyBase;
+  const messages = practiceMode
+    ? smsMessages.map((body) => `Effiroad [TEST]: ${body}`)
+    : smsMessages;
 
-  const result = await sendSms(phone, smsBody, "customer-on-my-way", {
+  const result = await sendSmsMessages(phone, messages, "customer-on-my-way", {
     context: {
       userId: params.userId,
       operation: "customer_on_my_way",

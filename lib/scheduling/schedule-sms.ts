@@ -1,4 +1,5 @@
 import { sendSms, type SmsSendContext } from "../send-sms";
+import { sendSmsMessages } from "../sms-link-delivery";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import { findUserById } from "../users-db";
 import { resolveOwnerAlertPhone } from "../owner-alert-phone";
@@ -7,7 +8,7 @@ import type { JobPriority } from "../types";
 import {
   smsCustomerIntakeAckBody,
   smsCustomerNoSlotBody,
-  smsCustomerScheduledBody,
+  smsCustomerScheduledMessages,
   smsOwnerApprovalNeededBody,
   smsOwnerNoSlotBody,
   smsOwnerScheduledFyiBody,
@@ -25,15 +26,16 @@ function smsCtx(userId: string, op: string, bookingId?: string): SmsSendContext 
 async function sendCustomer(params: {
   userId: string;
   phone: string;
-  body: string;
+  body: string | string[];
   dedupeId: string;
   operation: string;
   bookingId: string;
   practiceMode?: boolean;
 }) {
   if (!(await shouldSendSmsOnce(params.userId, params.dedupeId))) return;
-  const body = withPracticeSmsPrefix(params.body, params.practiceMode === true);
-  const result = await sendSms(params.phone, body, params.operation, {
+  const parts = Array.isArray(params.body) ? params.body : [params.body];
+  const messages = parts.map((part) => withPracticeSmsPrefix(part, params.practiceMode === true));
+  const result = await sendSmsMessages(params.phone, messages, params.operation, {
     context: smsCtx(params.userId, params.operation, params.bookingId),
   });
   if (result.ok) await markSmsSent(params.userId, params.dedupeId);
@@ -96,7 +98,7 @@ export async function notifyCustomerScheduled(params: {
     const token = await findPortalTokenForBooking(params.userId, params.bookingId);
     if (token) portalUrl = buildBookingPortalUrl(token);
   }
-  const body = smsCustomerScheduledBody({
+  const body = smsCustomerScheduledMessages({
     shopName: user?.shopName,
     customerName: params.customerName ?? "there",
     window: params.window,

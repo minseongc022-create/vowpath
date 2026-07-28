@@ -1,7 +1,7 @@
 import { generateLinkIntakeToken } from "../link-intake-token";
 import { buildLinkIntakeUrl as portalBuildLinkIntakeUrl } from "../portal-url";
-import { smsLinkIntakeBody as tplLinkIntakeSms } from "../sms-templates";
-import { sendSms } from "../send-sms";
+import { smsLinkIntakeMessages } from "../sms-templates";
+import { sendSmsMessages } from "../sms-link-delivery";
 import { findUserById } from "../users-db";
 import { markSmsSent, shouldSendSmsOnce } from "../sms-dedupe";
 import type { JobPriority } from "../types";
@@ -43,7 +43,7 @@ export function buildLinkIntakeUrl(token: string): string {
 }
 
 export function smsLinkIntakeBody(shopName: string, url: string): string {
-  return tplLinkIntakeSms(shopName, url);
+  return smsLinkIntakeMessages(shopName, url).join(" ");
 }
 
 export async function createLinkIntakeSession(params: {
@@ -80,7 +80,7 @@ export async function sendLinkIntakeSms(params: {
 }): Promise<{ ok: boolean; error?: string }> {
   const shopName = await shopDisplayNameForUser(params.userId);
   const url = buildLinkIntakeUrl(params.token);
-  const body = smsLinkIntakeBody(shopName, url);
+  const messages = smsLinkIntakeMessages(shopName, url);
   const dedupeId = `link-intake:${params.token}`;
 
   const allowed = await shouldSendSmsOnce(params.userId, dedupeId);
@@ -89,7 +89,7 @@ export async function sendLinkIntakeSms(params: {
   const session = await getLinkIntakeSession(params.token);
   const callSid = params.callSid ?? session?.callSid;
 
-  const result = await sendSms(params.phone, body, "link_intake", {
+  const result = await sendSmsMessages(params.phone, messages, "link_intake", {
     usRecipientsOnly: false,
     context: {
       userId: params.userId,

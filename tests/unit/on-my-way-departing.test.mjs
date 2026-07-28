@@ -44,8 +44,7 @@ test("looksLikeOnMyWayAttempt covers departing and minutes", () => {
   assert.equal(looksLikeOnMyWayAttempt("hello"), false);
 });
 
-test("sms templates use DEPARTING and Track live copy", () => {
+test("sms templates use DEPARTING and live map copy", () => {
   assert.match(sms, /Text DEPARTING/);
-  assert.match(sms, /Track live:/);
-  assert.doesNotMatch(sms, /Track ETA:/);
+  assert.match(sms, /Live map:/);
 });
