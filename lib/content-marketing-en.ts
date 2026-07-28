@@ -16,58 +16,46 @@ import {
 
 const CHECKOUT_CTA = getCheckoutCta();
 
-/** Vertical-neutral — shown identically on every landing page above the vertical-specific
- *  sections below it. Keep this short: the pitch that's true for any home-service shop. */
+/** Vertical-neutral — short pitch for any home-service shop. Mobile-first. */
 export const heroEn = {
-  badge: "Phone → truck for restoration",
+  badge: "Missed-call recovery for restoration",
   headline: "Never miss another emergency job.",
-  headlineAccent: "Answer like your best night lead — then roll the crew.",
+  headlineAccent: "We answer. You approve. Crew rolls.",
   brandLine:
-    "Effiroad is not a generic AI receptionist. When your crew can't pick up, it answers with a calm, clear US voice, captures the loss, and dispatches: clear water jobs text your on-call tech; fire, Cat-3, or fuzzy intakes wait for your text — reply 1 to send, 2 to pass. Homeowners get ETA SMS + a live map — no app.",
-  subhead:
-    "Built for independent water / fire / mold shops (1–15 crew). Keep your Google number or use a dedicated Effiroad line. You stay in control; Effiroad never sleeps, never forgets a hold rule, and never leaves a panicked homeowner in voicemail.",
-  trustLine: "1–15 crew · No CRM required · Pay when a job is approved · Forward or dedicated number",
+    "Missed or after-hours call → SMS link for the customer → you approve with 1 / 2 → crew gets the job.",
+  subhead: undefined,
+  trustLine: "Keep your number · Pay when a job is approved",
   primaryCta: CHECKOUT_CTA,
   secondaryCta: "See how it works",
   secondaryCtaHref: "/#how-it-works",
   heroBadges: [
-    "Calm cinematic US voice",
-    "Keep your number — or ours",
-    "Auto crew SMS + live ETA map",
+    "Answers every missed call",
     "Owner 1 / 2 on risky jobs",
+    "Crew SMS + live ETA map",
   ] as const,
 };
 
 export const quickFaqEn = {
   id: "quick-qa",
   label: "Quick answers",
-  title: "Why Effiroad beats typical answering services",
-  subtitle:
-    "The questions owners ask first — and how we're built differently from hybrids, per-minute VRs, and CRM add-ons.",
+  title: "What owners ask first",
+  subtitle: "Straight answers — no fluff.",
   items: [
     {
-      q: "Why Effiroad instead of a typical answering service?",
-      a: "We don't just take a message. Clear jobs auto-text your crew (accept/pass). Risky jobs wait for your 1 / 2. Customers get ETA SMS + a free live map — answering services rarely do any of that.",
+      q: "What does Effiroad do?",
+      a: "Catches missed and after-hours calls, takes job details, and texts your tech — or waits for your Approve (1) / Pass (2).",
     },
     {
-      q: "Does the AI actually sound human?",
-      a: "Yes — thick, clear US male voice, natural pacing, polite follow-ups. Tuned for phone clarity so callers hear every word, not a muddy, thin, or robotic script.",
+      q: "Do I change my number?",
+      a: "No. Forward busy/no-answer, or use a dedicated Effiroad line. Same Google number either way.",
     },
     {
-      q: "Will it collect complete job info before dispatch?",
-      a: "Address, issue type, urgency, and trade-specific notes (insurance for restoration, system details for HVAC) — verified on the call or SMS link. Clear jobs dispatch while they wait; edge cases wait for you.",
+      q: "What do I pay for?",
+      a: "Plans with clear pricing — pay per approved dispatch (or voice minutes). No surprise transfer fees.",
     },
     {
-      q: "How is this different from a CRM add-on receptionist?",
-      a: "Works with or without Jobber. Conversational intake by trade — not checkbox questions. Three forwarding paths plus a dedicated Effiroad number with the same AI quality.",
-    },
-    {
-      q: "Do I have to change my phone number?",
-      a: "No. Keep your main number and forward busy/no-answer — or use your Effiroad dedicated number as the after-hours (or main) line. Same cinematic voice and dispatch either way; dedicated is recommended when carriers block overflow.",
-    },
-    {
-      q: "What do contractors complain about elsewhere?",
-      a: "Bill shock, inconsistent agents, message-only on complex calls, CRM lock-in, weeks of onboarding. Effiroad: clear plans, instant AI pickup, real crew dispatch + live map, ~10-minute go-live.",
+      q: "How fast to go live?",
+      a: "About 10 minutes: signup, forward or dedicated number, test call. Quotes & estimate follow-up are included.",
     },
   ],
 } as const;
@@ -620,29 +608,23 @@ export const aiDispatcherEn = {
 
 export const howItWorksEn = {
   id: "how-it-works",
-  title: "Live tonight in ~10 minutes",
-  subtitle: "Pay → cell number → forward rules → test call → see a loss on your dashboard.",
+  title: "Live in ~10 minutes",
+  subtitle: "Sign up → set your alert phone → forward missed calls → test once.",
   steps: [
     {
       step: "01",
       title: "Your cell for alerts",
-      description: "FYI and exception texts hit this number. Email is backup only.",
+      description: "Owner texts (approve / reject / undo) hit this number only.",
     },
     {
       step: "02",
-      title: "When Effiroad answers",
-      description: "After hours, storm overflow, or no-answer — your hours, your rules.",
+      title: "Forward missed calls",
+      description: "Customers keep dialing your shop number. Busy / no answer → Effiroad.",
     },
     {
       step: "03",
-      title: "Forward the main line",
-      description: "Homeowners dial the same company number. Busy / no answer → Effiroad.",
-    },
-    {
-      step: "04",
-      title: "Test call + dashboard",
-      description:
-        "Press 1 = service (then choose AI on the call or SMS form). Press 2 = free estimate ($0 — never billed; phone or text). Say “text link” at the main menu for SMS. Only approved/scheduled emergency jobs count toward your dispatch plan.",
+      title: "Customer gets a link",
+      description: "They finish details by SMS. You approve with 1 / 2 — crew gets the job.",
     },
   ],
 };
@@ -912,92 +894,32 @@ export const faqEn = {
   title: "Owner questions",
   items: [
     {
-      q: "Do estimate calls cost extra?",
-      a: "No. Free estimate intake (press 2 on the menu) is included on every plan at $0 — dispatch track and Voice minute track alike.",
+      q: "What is Effiroad?",
+      a: "Missed-call phone answering for service shops. Customers get an SMS link to finish booking. Quotes and estimate nudges are included — not sold separately.",
     },
     {
-      q: "Dispatch billing or per-minute — which should I pick?",
-      a: "Most restoration shops prefer dispatch (Lite/Flex/Pro/Scale): you pay when an emergency job is approved, not for every talk minute. Choose Voice Starter or Voice Pro if you want answering-service-style included minutes with a published overage rate and no live-agent transfer fees.",
+      q: "How do customers book?",
+      a: "They call your shop. Missed or after-hours → SMS link → they pick a time. You approve by text (1 / 2) or in the dashboard.",
     },
     {
-      q: "What am I billed for on Flex or Lite?",
-      a: "The monthly base, plus a fee only when you approve or schedule an emergency dispatch. Missed spam, cancelled jobs, and free estimate requests are not billed.",
+      q: "Do I need an app?",
+      a: "No. Customers use the link. You use the dashboard or reply 1 / 2 on the owner SMS.",
     },
     {
-      q: "How do Voice minute plans work?",
-      a: `Voice Starter includes ${SITE.voiceStarterIncludedMinutes} minutes/mo then ${SITE.voiceStarterOveragePerMinute}/min; Voice Pro includes ${SITE.voiceProIncludedMinutes} then ${SITE.voiceProOveragePerMinute}/min. Each call rounds up to the next full minute. Free estimate (press 2) calls do not count toward included minutes. Same AI intake and owner 1 / 2 holds — dispatch approvals are not charged again on Voice plans.`,
+      q: "What am I billed for?",
+      a: "Monthly base plus a fee when you approve or schedule an emergency dispatch. Spam, cancelled jobs, and free estimate requests are not billed. Voice plans bill talk minutes instead.",
     },
     {
       q: "Do I change my phone number?",
-      a: "No. Same line on Google and your trucks. You forward unanswered calls behind the scenes.",
+      a: "No. Same line on Google and your trucks. Forward unanswered calls behind the scenes — or publish a dedicated Effiroad number.",
     },
     {
-      q: "How is this different from an answering service?",
-      a: "Answering services take messages (and often add transfer/overage fees). Effiroad captures loss type and address, dispatches standard water jobs, and texts you 1 / 2 on fire, Cat-3, or unclear intakes — on either billing track.",
+      q: "Quotes & estimate follow-up?",
+      a: "Included. After you send an estimate, Effiroad can nudge by SMS so jobs don't die in the inbox.",
     },
     {
-      q: "Does this replace Jobber or Xactimate?",
-      a: "No. Effiroad is the missed-call and intake layer. Your estimating and CRM tools stay. Jobber connect is optional.",
-    },
-    {
-      q: "What if the AI gets something wrong?",
-      a: "Unclear address or loss type? Dispatch waits for your 1 / 2. Already auto-dispatched? Reply 2 to cancel or 9 to undo. Tighten rules anytime in settings or ask Effiroad AI.",
-    },
-    {
-      q: "Does it actually book the job, or just take a message?",
-      a: "It books it. On a clear standard water loss, Effiroad captures the intake, dispatches your crew, and texts the homeowner a confirmation — no message for you to call back on. It only waits on your 1 / 2 for the cases that genuinely need a human call: fire, Cat-3, commercial, or anything it couldn't verify.",
-    },
-    {
-      q: "Why an AI instead of a live answering service?",
-      a: "A person picks up on ring three, on a good night — an AI picks up on ring one, every night, on the tenth simultaneous storm call as calmly as the first. It never mishears an address because it's 3 AM, and it applies your exact priority rules the same way every time. You still make every real judgment call by text; the AI just never lets a 2 AM emergency sit in voicemail while it decides.",
-    },
-    {
-      q: "Is this just an AI answering service?",
-      a: "No. You get emergency intake, crew dispatch texts, missed-call analytics, and Effiroad AI to ask what's happening and change rules from your phone.",
-    },
-    {
-      q: "Who answers during the day?",
-      a: "You do — same as today. Effiroad only picks up forwarded calls when you miss them or after hours.",
-    },
-    {
-      q: "Can it text my crew when a loss confirms?",
-      a: "Yes — optional round-robin on confirm: one tech at a time, reply 1=accept 2=pass. Add crew numbers in settings.",
-    },
-    {
-      q: "Does it handle insurance info?",
-      a: "Intake captures carrier name, claim number when provided, and loss details — ready for your Job Card and adjuster follow-up.",
-    },
-    {
-      q: "How fast to go live?",
-      a: "About 10 minutes: contact, on-call hours, forward, test call.",
-    },
-    {
-      q: "Who is this for?",
-      a: "US independent restoration — water, fire, mold — 1 to 15 crew companies losing after-hours and on-job emergency calls.",
-    },
-    {
-      q: "What happens during a storm surge when ten calls come in at once?",
-      a: "Effiroad handles simultaneous calls — each caller goes through intake independently. You get one SMS summary per confirmed loss, not ten texts at 2 AM. Standard water jobs dispatch automatically; anything requiring your judgment queues for your 1 / 2 reply.",
-    },
-    {
-      q: "Is there a risk-free way to try it?",
-      a: `Yes. Start with a ${TRIAL_DAYS}-day free trial — phone, SMS, and dispatch included, no credit card required. Every paid plan also includes a 30-day money-back guarantee. Cancel anytime — no contracts, no cancellation fees.`,
-    },
-    {
-      q: "Do you record calls? Who can access them?",
-      a: "Calls are recorded for quality and compliance — useful for adjuster documentation. Only you and your team have access from the dashboard. Recordings are stored securely and are never shared or sold.",
-    },
-    {
-      q: "How secure are the customer links and live map?",
-      a: "Every SMS link uses a long secret token (not a guessable ID). Pick-time and booking links expire; after a job is completed or cancelled, personal details are hidden and the link closes soon. The live tech map only works while the visit is active — when the tech arrives or the job ends, location sharing stops and that link stops working.",
-    },
-    {
-      q: "When does restoration need my 1 / 2 approval?",
-      a: "Clear P1 water with solid name/issue confidence can move forward after the customer confirms address + visit time. Fire, Cat-3 sewage, commercial/multi-unit, P1 mold, low-confidence intake, or out-of-area always wait for your text: reply 1 to dispatch, 2 to pass. Reply 9 undoes an auto step. That risk split is intentional — blind auto-dispatch on fire/sewage is how shops get burned.",
-    },
-    {
-      q: "Why confirm address on a link after collecting it on the phone?",
-      a: "Wrong-address rolls are one of the costliest failures in after-hours dispatch. Speech recognition can mishear street numbers. Effiroad collects and reads back the address on the call, then texts a secure link where the homeowner confirms or edits with typed/map search and picks a visit window — fast on the phone, accurate before dispatch.",
+      q: "Is there a risk-free way to try?",
+      a: `Yes. ${TRIAL_DAYS}-day free trial, then a 30-day money-back guarantee on paid plans. Cancel anytime.`,
     },
   ],
 };
@@ -1035,9 +957,9 @@ export const agreementKeeperEn = {
 };
 
 export const ctaEn = {
-  eyebrow: "Your line. Your dispatch. Your assistant.",
-  title: "Forward tonight. Wake up to captured losses.",
-  subtitle: "24/7 AI intake, crew dispatch, and Effiroad AI — one subscription for restoration owners who miss calls on the job.",
+  eyebrow: "Missed call → booked job",
+  title: "Forward tonight. Wake up to captured jobs.",
+  subtitle: "Phone answering first. Quotes & estimate follow-up included.",
   button: CHECKOUT_CTA,
 };
 

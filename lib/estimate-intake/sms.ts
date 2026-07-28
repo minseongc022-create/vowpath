@@ -4,7 +4,7 @@ import {
 } from "../owner-alert-phone";
 import { sendSms } from "../send-sms";
 import { resolveShopDisplayName } from "../shop-display-name";
-import { smsTruncate } from "../sms-templates";
+import { smsOwnerTag, smsTruncate } from "../sms-templates";
 import { findUserById } from "../users-db";
 import type { EstimateAnswers } from "./types";
 import { setPendingEstimateReply } from "../estimate-reply-store";
@@ -20,7 +20,7 @@ export function estimateRequestSmsBody(params: {
   const name = smsTruncate(params.answers.name?.trim() || "Caller", 24);
   const phone = params.answers.callbackPhone?.trim() || "No callback number";
   const dash = params.jobId ? `\nDashboard: ${estimateDashboardUrl(params.jobId)}` : "";
-  return `${shop} 📋 ESTIMATE REQUEST\n${name} — ${phone}\n${params.summary}${dash}\nReply with your message to text the customer — or open the dashboard to send a dollar quote.`;
+  return `${smsOwnerTag()} ${shop} ESTIMATE REQUEST\n${name} — ${phone}\n${params.summary}${dash}\nReply with your message to text the customer — or open the dashboard to send a dollar quote.`;
 }
 
 /** Texts the shop owner a clean summary of a phone-collected estimate request.

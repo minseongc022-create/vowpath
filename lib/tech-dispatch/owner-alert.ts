@@ -5,6 +5,7 @@ import { setSmsReplyTarget } from "../sms-reply-context";
 import { findUserById } from "../users-db";
 import { bookingShortRef } from "../booking-ref";
 import { resolveShopDisplayName } from "../link-intake-brand";
+import { smsOwnerTag } from "../sms-templates";
 
 /** Alert owner when every crew member passed / timed out on a job offer. */
 export async function notifyOwnerNoCrewAccepted(params: {
@@ -25,7 +26,7 @@ export async function notifyOwnerNoCrewAccepted(params: {
   const shop = resolveShopDisplayName(user?.shopName);
   const ref = bookingShortRef(params.bookingId);
   const body =
-    `${shop}: No crew accepted yet (${params.priority}). ` +
+    `${smsOwnerTag()} ${shop}: No crew accepted yet (${params.priority}). ` +
     `${params.customerName} · ${params.issue} · ${params.window}. ` +
     `Ref ${ref}. Assign manually in the dashboard or text a tech.`;
 

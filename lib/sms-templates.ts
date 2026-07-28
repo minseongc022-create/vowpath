@@ -53,6 +53,15 @@ export function smsCustomerOptOut(): string {
   return " Reply STOP to opt out.";
 }
 
+/** Owner-only prefix so shop alerts never look like customer texts (esp. same-phone tests). */
+export function smsOwnerTag(): string {
+  return "[SHOP]";
+}
+
+function ownerLead(shopName: string | undefined): string {
+  return `${smsOwnerTag()} ${smsTruncate(resolveShopDisplayName(shopName), 20)}`;
+}
+
 export const SMS_ETA_MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60] as const;
 export type SmsEtaMinutes = (typeof SMS_ETA_MINUTE_OPTIONS)[number];
 
@@ -139,11 +148,10 @@ export function smsOwnerPickTimeStaleBody(params: {
   issue: string;
   phone?: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 16);
   const issue = smsTruncate(params.issue, 22);
   const phone = params.phone?.trim() ? ` ${smsTruncate(params.phone, 14)}` : "";
-  return `${shop}: ${name}${phone} still hasn't picked a visit time (${issue}). Call them or set a window in the dashboard.`;
+  return `${ownerLead(params.shopName)}: ${name}${phone} still hasn't picked a visit time (${issue}). Call them or set a window in the dashboard.`;
 }
 
 export function smsCustomerScheduledBody(params: {
@@ -313,12 +321,11 @@ export function smsOwnerApprovalNeededBody(params: {
   priority: string;
   ambiguous?: boolean;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 16);
   const issue = smsTruncate(params.issue, 24);
   const window = smsTruncate(params.window, 20);
   const tag = params.ambiguous ? "CHECK" : params.priority === "P1" ? "URGENT" : "NEW";
-  return `${shop} ${tag}: ${name} — ${issue}. ${window}. Reply 1=Yes 2=No`;
+  return `${ownerLead(params.shopName)} ${tag}: ${name} — ${issue}. ${window}. Reply 1=Yes 2=No`;
 }
 
 export function smsOwnerScheduledFyiBody(params: {
@@ -328,8 +335,7 @@ export function smsOwnerScheduledFyiBody(params: {
   window: string;
   undoMinutes: number;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: Booked ${smsTruncate(params.customerName, 14)} · ${smsTruncate(params.window, 20)}. Reply 9 to undo (${params.undoMinutes}m).`;
+  return `${ownerLead(params.shopName)}: Booked ${smsTruncate(params.customerName, 14)} · ${smsTruncate(params.window, 20)}. Reply 9 to undo (${params.undoMinutes}m).`;
 }
 
 export function smsOwnerUrgentAutoBookedBody(params: {
@@ -339,8 +345,7 @@ export function smsOwnerUrgentAutoBookedBody(params: {
   window: string;
   undoMinutes: number;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop} URGENT booked: ${smsTruncate(params.customerName, 12)} · ${smsTruncate(params.window, 18)}. Reply 2=Cancel 9=Undo (${params.undoMinutes}m).`;
+  return `${ownerLead(params.shopName)} URGENT booked: ${smsTruncate(params.customerName, 12)} · ${smsTruncate(params.window, 18)}. Reply 2=Cancel 9=Undo (${params.undoMinutes}m).`;
 }
 
 export function smsCustomerReviewRequestBody(params: {
@@ -417,8 +422,7 @@ export function smsOwnerNoSlotBody(params: {
   customerName: string;
   issue: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
-  return `${shop}: No available slot for ${smsTruncate(params.customerName, 14)} (${smsTruncate(params.issue, 22)}). Please assign manually in the dashboard.`;
+  return `${ownerLead(params.shopName)}: No available slot for ${smsTruncate(params.customerName, 14)} (${smsTruncate(params.issue, 22)}). Please assign manually in the dashboard.`;
 }
 
 export function smsOwnerNewRequestBody(params: {
@@ -431,7 +435,6 @@ export function smsOwnerNewRequestBody(params: {
   ambiguous?: boolean;
   customerPhone?: string;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 22);
   const place =
@@ -444,7 +447,7 @@ export function smsOwnerNewRequestBody(params: {
     params.priority === "P1" && params.customerPhone?.trim()
       ? ` Call ${params.customerPhone.trim()}?`
       : "";
-  return `${shop} ${tag}: ${name} — ${issue}${place}.${callLine} Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
+  return `${ownerLead(params.shopName)} ${tag}: ${name} — ${issue}${place}.${callLine} Reply 1 ${params.ref}=Yes 2 ${params.ref}=No`;
 }
 
 export function smsOwnerIntakeAutoConfirmedBody(params: {
@@ -456,16 +459,15 @@ export function smsOwnerIntakeAutoConfirmedBody(params: {
   autoWaterDispatch?: boolean;
   undoMinutes: number;
 }): string {
-  const shop = resolveShopDisplayName(params.shopName);
   const name = smsTruncate(params.customerName, 14);
   const issue = smsTruncate(params.issue, 20);
   if (params.autoWaterDispatch) {
-    return `${shop} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo (${params.undoMinutes}m).`;
+    return `${ownerLead(params.shopName)} CREW DISPATCHED: ${name} — ${issue}. Ref ${params.ref}. Reply 9 ${params.ref}=Undo (${params.undoMinutes}m).`;
   }
   if (params.urgent) {
-    return `${shop} P1 CONFIRMED: ${name} — ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+    return `${ownerLead(params.shopName)} P1 CONFIRMED: ${name} — ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
   }
-  return `${shop}: Confirmed — ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
+  return `${ownerLead(params.shopName)}: Confirmed — ${name}, ${issue}. Ref ${params.ref}. Reply 2 ${params.ref}=Cancel.`;
 }
 
 // ─── Tech dispatch offer (Effiroad platform, tech sees our name) ─────────────

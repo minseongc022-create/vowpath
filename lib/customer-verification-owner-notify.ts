@@ -2,6 +2,7 @@ import { findUserById } from "./users-db";
 import { resolveShopDisplayName } from "./link-intake-brand";
 import { sendSms } from "./send-sms";
 import { markSmsSent, shouldSendSmsOnce } from "./sms-dedupe";
+import { smsOwnerTag } from "./sms-templates";
 import type { JobPriority } from "./types";
 import {
   notifyOwnerCustomerCorrectionEmail,
@@ -65,7 +66,7 @@ export function smsOwnerCustomerVerifiedBody(params: {
   const addr = params.address?.trim() ? `\nAddress: ${params.address}` : "";
   const tag = params.priority === "P1" ? "URGENT" : params.priority;
   return (
-    `${shop}: Customer confirmed phone intake (YES · ${tag}).\n` +
+    `${smsOwnerTag()} ${shop}: Customer confirmed phone intake (YES · ${tag}).\n` +
     `${name} — ${issue}${place}${addr}\n` +
     `Reply 1=Approve, 2=Reject when ready.`
   );
@@ -89,7 +90,7 @@ export function smsOwnerCustomerCorrectionBody(params: {
   const addr = params.address?.trim() ? `\nAddress: ${params.address}` : "";
   const tag = params.priority === "P1" ? "URGENT" : params.priority;
   return (
-    `${shop}: Customer corrected phone intake (NO · ${tag}).\n` +
+    `${smsOwnerTag()} ${shop}: Customer corrected phone intake (NO · ${tag}).\n` +
     `${name} — ${issue}${place}${addr}\n` +
     `Reply 1=Approve, 2=Reject when ready.`
   );
