@@ -168,9 +168,9 @@ export const linkIntakePageCopy = {
   loadSubmissionFailed: "Couldn't load this link. Try again or call the company directly.",
   expiredTitle: "This link expired",
   expiredBody: "This link isn't active anymore. Call the company and we'll get you taken care of.",
-  incompleteLinkTitle: "Open the link in your texts",
+  incompleteLinkTitle: "Open the full link",
   incompleteLinkBody:
-    "The booking link may be in the next text message. Go back to SMS and tap the full https://effiroad.com/... link. Do not use a short code by itself.",
+    "Go back to the text message and tap the full https://effiroad.com/... link at the start of the message.",
   unavailableTitle: "One moment…",
   unavailableBody:
     "We couldn't load your link right now. Wait a few seconds and tap the text message link again. Still stuck? Call the company and we'll help.",

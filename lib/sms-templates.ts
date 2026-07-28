@@ -42,35 +42,32 @@ function smsShopShort(shopName?: string): string {
 }
 
 /**
- * Build 1-2 SMS bodies so URLs are never cut mid-string (intl carriers).
- * Part 2 is URL-only when needed.
+ * One combined SMS with the URL first so carriers never split the link mid-token.
+ * Shrinks the intro tail until the full body fits one segment when possible.
  */
 export function buildSmsWithLink(intro: string, url: string, optOut = true): string[] {
-  const safeIntro = smsAsciiSafe(intro).trim();
   const cleanUrl = compactSmsPortalUrl(url.trim());
   const opt = optOut ? smsCustomerOptOut().trim() : "";
+  let lead = shortenSmsIntro(smsAsciiSafe(intro).trim());
 
-  const trySingle = (lead: string) => {
-    const body = opt ? `${lead} ${cleanUrl} ${opt}` : `${lead} ${cleanUrl}`;
-    if (body.length <= smsSegmentLimit(body)) return body;
-    return null;
+  const assemble = (tail: string, withOpt: boolean) => {
+    const suffix = withOpt && opt ? ` ${opt}` : "";
+    return `${cleanUrl} ${tail}${suffix}`.trim();
   };
 
-  let single = trySingle(safeIntro);
-  if (single) return [single];
+  const fits = (body: string) => body.length <= smsSegmentLimit(body);
 
-  single = trySingle(shortenSmsIntro(safeIntro));
-  if (single) return [single];
-
-  let line1 = opt
-    ? `${shortenSmsIntro(safeIntro)} Link in next text. ${opt}`
-    : `${shortenSmsIntro(safeIntro)} Link in next text.`;
-  while (line1.length > smsSegmentLimit(line1) && line1.length > 28) {
-    line1 = line1.slice(0, -10).replace(/\s+\S*$/, "").trim();
-    if (opt && !/STOP/i.test(line1)) line1 = `${line1} ${opt}`;
+  for (const withOpt of [true, false]) {
+    let tail = lead;
+    let body = assemble(tail, withOpt);
+    while (!fits(body) && tail.length > 6) {
+      tail = tail.slice(0, -6).replace(/\s+\S*$/, "").trim();
+      body = assemble(tail, withOpt);
+    }
+    if (fits(body)) return [body];
   }
 
-  return [line1, cleanUrl];
+  return [opt ? `${cleanUrl} ${opt}` : cleanUrl];
 }
 
 function shortenSmsIntro(intro: string): string {
@@ -160,7 +157,7 @@ export function smsStaffEtaInvalidReply(): string {
 /** Link intake - press 1 on call. */
 export function smsLinkIntakeMessages(shopName: string | undefined, url: string): string[] {
   const shop = smsShopShort(shopName);
-  return buildSmsWithLink(`${shop}: Thanks for calling. Open this link:`, url);
+  return buildSmsWithLink(`${shop}: Thanks for calling - finish booking:`, url);
 }
 
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
@@ -184,7 +181,7 @@ export function smsCustomerBookingConfirmationMessages(params: {
     return buildSmsWithLink(`${shop}: Hi ${first}! Pick visit time:`, params.portalUrl);
   }
   if (params.pendingShopReview) {
-    return buildSmsWithLink(`${shop}: Hi ${first}! Request received. Confirm:`, params.portalUrl);
+    return buildSmsWithLink(`${shop}: Hi ${first}! Request received - confirm:`, params.portalUrl);
   }
   const window = params.arrivalWindow?.trim()
     ? smsTruncate(smsAsciiSafe(params.arrivalWindow), 14)
