@@ -11,7 +11,7 @@ export function buildRetellOpeningLine(ivrPath: RetellIvrPath): string {
   switch (ivrPath) {
     case "booking_choice":
     case "phone_booking":
-      return "Thanks for calling. What's your name?";
+      return "Thanks for calling. I'm right here with you — what's your name?";
     case "estimate_choice":
     case "phone_estimate":
       return "Thanks for calling about an estimate. What's your name?";

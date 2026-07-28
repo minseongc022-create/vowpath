@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "clear-fast-voice-v33-2026-07-28";
+export const RETELL_PROMPT_VERSION = "clear-fast-voice-v34-2026-07-28";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -238,7 +238,7 @@ export function buildRetellBookingAgentPatch(voiceId?: string) {
     agent_name: "Effiroad Booking Agent",
     voice_temperature: 0.45,
     voice_speed: 0.98,
-    volume: 1.2,
+    volume: 1.05,
     responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
@@ -252,7 +252,7 @@ export function buildRetellEstimateAgentPatch(voiceId?: string) {
     agent_name: "Effiroad Estimate Agent",
     voice_temperature: 0.48,
     voice_speed: 0.98,
-    volume: 1.2,
+    volume: 1.05,
     responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;

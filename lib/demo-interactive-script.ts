@@ -1,8 +1,10 @@
 import type { DemoVertical } from "./demo-vertical-config";
+import { buildRetellOpeningLine } from "./retell-opening-line";
 import {
   HVAC_AI_LINES,
   HVAC_GAS_AI_LINES,
   RESTORATION_AI_LINES,
+  RESTORATION_CHANNEL_LINE,
 } from "./demo-phone-script";
 
 /** Matches live Twilio main menu (lib/twilio-xml.ts twimlGatherMainMenu). */
@@ -22,6 +24,8 @@ export type InteractiveStep =
       kind: "ai-voice";
       text: string;
       audioIndex?: number;
+      /** e.g. voice-ai-main.mp3 — Twilio menu lines not in the numbered Retell set */
+      audioClip?: string;
     }
   | {
       kind: "menu";
@@ -78,6 +82,7 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     {
       kind: "ai-voice",
       text: PRODUCTION_MAIN_MENU.replace("{shop}", RESTORATION_SHOP),
+      audioClip: "voice-ai-main.mp3",
     },
     {
       kind: "menu",
@@ -107,10 +112,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text:
-        `Hi — thanks for calling ${RESTORATION_SHOP}. ` +
-        `Would you like to continue on the phone, or by text with a quick link? ` +
-        `Just say phone or text — you can also press 2 for phone, or press 1 for text.`,
+      text: RESTORATION_CHANNEL_LINE,
+      audioClip: "voice-ai-channel.mp3",
     },
     {
       kind: "menu",
@@ -134,8 +137,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text: RESTORATION_AI_LINES[1],
-      audioIndex: 1,
+      text: RESTORATION_AI_LINES[0],
+      audioIndex: 0,
     },
     {
       kind: "customer-action",
@@ -145,8 +148,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text: RESTORATION_AI_LINES[2],
-      audioIndex: 2,
+      text: RESTORATION_AI_LINES[1],
+      audioIndex: 1,
     },
     {
       kind: "customer-action",
@@ -156,8 +159,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text: RESTORATION_AI_LINES[3],
-      audioIndex: 3,
+      text: RESTORATION_AI_LINES[2],
+      audioIndex: 2,
     },
     {
       kind: "customer-action",
@@ -167,12 +170,12 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text: RESTORATION_AI_LINES[4],
-      audioIndex: 4,
+      text: RESTORATION_AI_LINES[3],
+      audioIndex: 3,
     },
     {
       kind: "sms",
-      text: `${RESTORATION_SHOP}: Hi Mike! Request A1B2C3 received. Confirm address & pick visit time: ${DEMO_LINK_INTAKE_URL}`,
+      text: `${RESTORATION_SHOP}: Hi Mike! Request received - confirm: https://effiroad.com/r/demo`,
       variant: "customer",
     },
     {
@@ -202,20 +205,20 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     {
       kind: "owner-action",
       label: "Reply 1 — Accept job",
-      systemText: "Tech accepted · Reply ETA minutes for live map",
+      systemText: "Tech accepted · Text DEPARTING for live map",
       role: "tech",
       transition: "sms",
     },
     {
       kind: "owner-action",
-      label: "Reply 30 — On my way",
-      systemText: "ETA 30 min · Customer live map sent",
+      label: "Text DEPARTING — On my way",
+      systemText: "Departing · Customer live map sent",
       role: "tech",
       transition: "sms",
     },
     {
       kind: "sms",
-      text: `${RESTORATION_SHOP}: Hi Mike! Jake is on the way — ~30 min. Live map: ${DEMO_LIVE_MAP_URL}`,
+      text: `${RESTORATION_SHOP}: Hi Mike! Jake is on the way. Live map: https://effiroad.com/t/demo`,
       variant: "customer",
     },
     {
@@ -225,7 +228,8 @@ function getRestorationInteractiveSteps(): InteractiveStep[] {
     // ESTIMATE_START = 22
     {
       kind: "ai-voice",
-      text: "I'm glad you called — happy to help with your estimate. What's your name?",
+      text: buildRetellOpeningLine("phone_estimate"),
+      audioIndex: 0,
     },
     {
       kind: "customer-action",
@@ -271,6 +275,7 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     {
       kind: "ai-voice",
       text: PRODUCTION_MAIN_MENU.replace("{shop}", HVAC_SHOP),
+      audioClip: "voice-hvac-main.mp3",
     },
     {
       kind: "menu",
@@ -300,10 +305,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
-      text:
-        `Hi — thanks for calling ${HVAC_SHOP}. ` +
-        `Would you like to continue on the phone, or by text with a quick link? ` +
-        `Just say phone or text — you can also press 2 for phone, or press 1 for text.`,
+      text: RESTORATION_CHANNEL_LINE.replace("Ridgeline Restoration", HVAC_SHOP),
+      audioClip: "voice-hvac-channel.mp3",
     },
     {
       kind: "menu",
@@ -326,6 +329,17 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "ai-voice",
+      text: HVAC_AI_LINES[0],
+      audioIndex: 0,
+    },
+    {
+      kind: "customer-action",
+      label: "Caller says name",
+      customerText: "Sarah Bennett.",
+      transition: "soft",
+    },
+    {
+      kind: "ai-voice",
       text: HVAC_AI_LINES[1],
       audioIndex: 1,
     },
@@ -342,8 +356,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller says name",
-      customerText: "Sarah Bennett.",
+      label: "Caller says address",
+      customerText: "910 Cedar Lane.",
       transition: "soft",
     },
     {
@@ -353,8 +367,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "customer-action",
-      label: "Caller says address",
-      customerText: "910 Cedar Lane.",
+      label: "Caller confirms read-back",
+      customerText: "Yes, that's correct.",
       transition: "soft",
     },
     {
@@ -363,19 +377,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
       audioIndex: 4,
     },
     {
-      kind: "customer-action",
-      label: "Caller confirms read-back",
-      customerText: "Yes, that's correct.",
-      transition: "soft",
-    },
-    {
-      kind: "ai-voice",
-      text: HVAC_AI_LINES[5],
-      audioIndex: 5,
-    },
-    {
       kind: "sms",
-      text: `${HVAC_SHOP}: Hi Sarah! Request D4E5F6 received. Confirm address & pick visit time: ${DEMO_LINK_INTAKE_URL}`,
+      text: `${HVAC_SHOP}: Hi Sarah! Request received - confirm: https://effiroad.com/r/demo`,
       variant: "customer",
     },
     {
@@ -397,14 +400,14 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     },
     {
       kind: "owner-action",
-      label: "Reply 1 — Accept job",
-      systemText: "Tech accepted · ETA 28 min",
+      label: "Text DEPARTING — On my way",
+      systemText: "Departing · Customer live map sent",
       role: "tech",
       transition: "sms",
     },
     {
       kind: "sms",
-      text: `${HVAC_SHOP}: Hi Sarah! Alex is on the way — ~28 min. Live map: ${DEMO_LIVE_MAP_URL}`,
+      text: `${HVAC_SHOP}: Hi Sarah! Alex is on the way. Live map: https://effiroad.com/t/demo`,
       variant: "customer",
     },
     {
@@ -414,7 +417,8 @@ function getHvacInteractiveSteps(): InteractiveStep[] {
     // ESTIMATE_START = 22
     {
       kind: "ai-voice",
-      text: "I'm glad you called — happy to help with your estimate. What's your name?",
+      text: buildRetellOpeningLine("phone_estimate"),
+      audioIndex: 0,
     },
     {
       kind: "customer-action",
@@ -457,6 +461,7 @@ export function getGasHoldInteractiveSteps(): InteractiveStep[] {
     {
       kind: "ai-voice",
       text: PRODUCTION_MAIN_MENU.replace("{shop}", HVAC_SHOP),
+      audioClip: "voice-hvac-main.mp3",
     },
     {
       kind: "menu",
