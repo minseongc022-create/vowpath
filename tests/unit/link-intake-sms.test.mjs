@@ -39,7 +39,7 @@ test("customer SMS copy is short and action-first", () => {
   assert.match(sms, /Request received\. Confirm:/);
   assert.match(sms, /We text when we leave/);
   assert.doesNotMatch(sms, /In review\./);
-  assert.doesNotMatch(sms, /Priority job/);
+  assert.match(sms, / Urgent\./);
 });
 
 test("booking confirmation sends multi-part SMS when URL present", () => {
