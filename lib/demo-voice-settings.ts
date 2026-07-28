@@ -6,7 +6,7 @@
 /** Matches Retell `voice_speed` — natural conversational pace. */
 export const DEMO_VOICE_SPEED = 1.0;
 
-/** Demo MP3 playback gain (Retell telephony volume is 1.05; browser speakers clip louder). */
+/** Demo MP3 playback gain (Retell telephony volume is 1.2; browser speakers clip louder). */
 export const DEMO_PLAYBACK_VOLUME = 0.88;
 
 /** OpenAI TTS — closest built-in to Retell deep US male when ElevenLabs unavailable. */
