@@ -3,7 +3,7 @@
  */
 
 /** Bump when prompt/tone/voice changes — surfaced on /api/retell/status for sync verification. */
-export const RETELL_PROMPT_VERSION = "phone-clarity-v39-2026-07-28";
+export const RETELL_PROMPT_VERSION = "fast-listen-friendly-sms-v40-2026-07-28";
 
 /** Marker checked on /api/retell/status to verify live Retell LLM prompt synced. */
 export const RETELL_PROMPT_SYNC_MARKER = "ENGLISH ONLY (critical)";
@@ -159,7 +159,7 @@ export function pickEstimateReceptionistVoice(
 function sharedAgentPatch(): Record<string, unknown> {
   return {
     language: "en-US",
-    // Accurate STT for addresses/names; pair with high responsiveness for ~1.5s turns.
+    // Accurate STT for addresses/names; max responsiveness for snappy turns.
     stt_mode: "accurate",
     vocab_specialization: "general",
     boosted_keywords: [
@@ -217,15 +217,15 @@ function sharedAgentPatch(): Record<string, unknown> {
       "east",
       "west",
     ],
-    // Clears HVAC/traffic without crushing soft speech.
-    denoising_mode: "noise-cancellation",
+    // Stronger denoise for HVAC/traffic/background speech on cell calls.
+    denoising_mode: "noise-and-background-speech-cancellation",
     // multilingual_v2 = higher-fidelity TTS that stays crisp on 8 kHz phone audio.
     // (turbo/flash compress more and can sound muffled / “analog” on telephony.)
     voice_model: "eleven_multilingual_v2",
     enable_dynamic_voice_speed: false,
     enable_dynamic_responsiveness: true,
-    // Slightly lower = wait for natural pauses before the agent speaks.
-    interruption_sensitivity: 0.42,
+    // Slightly higher = end turn sooner so replies start faster (still waits for real pauses).
+    interruption_sensitivity: 0.5,
     enable_backchannel: true,
     reminder_trigger_ms: 8000,
     reminder_max_count: 1,
@@ -240,7 +240,7 @@ export function buildRetellBookingAgentPatch(voiceId?: string) {
     voice_temperature: 0.58,
     voice_speed: 1.0,
     volume: 1.2,
-    responsiveness: 0.98,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;
@@ -254,7 +254,7 @@ export function buildRetellEstimateAgentPatch(voiceId?: string) {
     voice_temperature: 0.6,
     voice_speed: 1.0,
     volume: 1.2,
-    responsiveness: 0.98,
+    responsiveness: 1.0,
   };
   if (voiceId) patch.voice_id = voiceId;
   return patch;

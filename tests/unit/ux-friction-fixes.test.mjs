@@ -35,7 +35,7 @@ test("pending queue surfaces approve errors and SMS ref commands", () => {
 });
 
 test("SMS copy softens pick-time and live map link", () => {
-  assert.match(sms, /Pick visit time:/);
+  assert.match(sms, /Pick a visit time here:/);
   assert.match(sms, /Live map:/);
   assert.match(sms, /buildSmsWithLink/);
 });

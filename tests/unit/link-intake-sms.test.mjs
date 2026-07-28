@@ -28,16 +28,16 @@ test("compactSmsPortalUrl shortens link host for SMS", () => {
   assert.match(portal, /https:\/\/effiroad\.com/);
 });
 
-test("buildSmsWithLink keeps one combined message with URL first", () => {
+test("buildSmsWithLink keeps friendly intro first with URL at end", () => {
   assert.match(sms, /export function buildSmsWithLink/);
-  assert.match(sms, /`\$\{cleanUrl\} \$\{tail\}/);
+  assert.match(sms, /`\$\{text\} \$\{cleanUrl\}/);
   assert.doesNotMatch(sms, /Link in next text/);
   assert.doesNotMatch(sms, /return \[line1, cleanUrl\]/);
 });
 
-test("customer SMS copy is short and action-first", () => {
-  assert.match(sms, /Thanks for calling - finish booking:/);
-  assert.match(sms, /Request received - confirm:/);
+test("customer SMS copy is warm and action-first", () => {
+  assert.match(sms, /Thanks for calling! Book here/);
+  assert.match(sms, /Request received - confirm here/);
   assert.match(sms, /We text when we leave/);
 });
 

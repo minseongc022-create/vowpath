@@ -42,32 +42,36 @@ function smsShopShort(shopName?: string): string {
 }
 
 /**
- * One combined SMS with the URL first so carriers never split the link mid-token.
- * Shrinks the intro tail until the full body fits one segment when possible.
+ * Customer SMS with portal link — friendly intro first, URL last (readable on phone).
+ * Shortens only the text after "ShopName:" so the business name never shows as "effiroa...".
  */
 export function buildSmsWithLink(intro: string, url: string, optOut = true): string[] {
   const cleanUrl = compactSmsPortalUrl(url.trim());
   const opt = optOut ? smsCustomerOptOut().trim() : "";
   let lead = shortenSmsIntro(smsAsciiSafe(intro).trim());
 
-  const assemble = (tail: string, withOpt: boolean) => {
+  const assemble = (text: string, withOpt: boolean) => {
     const suffix = withOpt && opt ? ` ${opt}` : "";
-    return `${cleanUrl} ${tail}${suffix}`.trim();
+    return `${text} ${cleanUrl}${suffix}`.trim();
   };
 
   const fits = (body: string) => body.length <= smsSegmentLimit(body);
+  const colonIdx = lead.indexOf(":");
+  const shopPrefix = colonIdx >= 0 ? lead.slice(0, colonIdx + 1) : "";
 
   for (const withOpt of [true, false]) {
-    let tail = lead;
-    let body = assemble(tail, withOpt);
-    while (!fits(body) && tail.length > 6) {
-      tail = tail.slice(0, -6).replace(/\s+\S*$/, "").trim();
-      body = assemble(tail, withOpt);
+    let bodyText = lead;
+    while (!fits(assemble(bodyText, withOpt)) && bodyText.length > shopPrefix.length + 6) {
+      const tail = bodyText.slice(shopPrefix.length).trim();
+      const shorter =
+        tail.length > 10 ? tail.slice(0, -10).replace(/\s+\S*$/, "").trim() : "";
+      bodyText = shorter ? `${shopPrefix} ${shorter}` : shopPrefix;
     }
-    if (fits(body)) return [body];
+    if (fits(assemble(bodyText, withOpt))) return [assemble(bodyText, withOpt)];
   }
 
-  return [opt ? `${cleanUrl} ${opt}` : cleanUrl];
+  const minimal = shopPrefix ? `${shopPrefix} Hi! Open:` : "Hi! Open:";
+  return [assemble(minimal, opt.length > 0)];
 }
 
 function shortenSmsIntro(intro: string): string {
@@ -157,7 +161,7 @@ export function smsStaffEtaInvalidReply(): string {
 /** Link intake - press 1 on call. */
 export function smsLinkIntakeMessages(shopName: string | undefined, url: string): string[] {
   const shop = smsShopShort(shopName);
-  return buildSmsWithLink(`${shop}: Thanks for calling - finish booking:`, url);
+  return buildSmsWithLink(`${shop}: Hi! Thanks for calling! Book here (~1 min):`, url);
 }
 
 export function smsLinkIntakeBody(shopName: string | undefined, url: string): string {
@@ -178,16 +182,16 @@ export function smsCustomerBookingConfirmationMessages(params: {
   const shop = smsShopShort(params.shopName);
   const first = smsTruncate(smsFirstName(params.customerName), 12);
   if (params.needsPickTime) {
-    return buildSmsWithLink(`${shop}: Hi ${first}! Pick visit time:`, params.portalUrl);
+    return buildSmsWithLink(`${shop}: Hi ${first}! Pick a visit time here:`, params.portalUrl);
   }
   if (params.pendingShopReview) {
-    return buildSmsWithLink(`${shop}: Hi ${first}! Request received - confirm:`, params.portalUrl);
+    return buildSmsWithLink(`${shop}: Hi ${first}! Request received - confirm here:`, params.portalUrl);
   }
   const window = params.arrivalWindow?.trim()
     ? smsTruncate(smsAsciiSafe(params.arrivalWindow), 14)
     : "";
   const status = window ? `Booked ${window}.` : "Request received.";
-  return buildSmsWithLink(`${shop}: Hi ${first}! ${status} Open:`, params.portalUrl);
+  return buildSmsWithLink(`${shop}: Hi ${first}! ${status} Details:`, params.portalUrl);
 }
 
 export function smsCustomerBookingConfirmationBody(params: {
@@ -211,7 +215,7 @@ export function smsCustomerPickTimeReminderMessages(params: {
 }): string[] {
   const shop = smsShopShort(params.shopName);
   const first = smsFirstName(params.customerName);
-  return buildSmsWithLink(`${shop}: Hi ${first}! Pick visit time:`, params.portalUrl);
+  return buildSmsWithLink(`${shop}: Hi ${first}! Pick a visit time here:`, params.portalUrl);
 }
 
 export function smsCustomerPickTimeReminderBody(params: {

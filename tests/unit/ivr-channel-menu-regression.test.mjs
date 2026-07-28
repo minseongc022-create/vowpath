@@ -36,8 +36,8 @@ test("channel Gather prioritizes speech and posts empty results", () => {
 test("Retell TS and sync script voice patches stay aligned", () => {
   const ts = readFileSync(join(root, "lib/retell-agent-settings.ts"), "utf8");
   const mjs = readFileSync(join(root, "scripts/lib/retell-agent-settings.mjs"), "utf8");
-  assert.match(ts, /phone-clarity-v39/);
-  assert.match(mjs, /phone-clarity-v39/);
+  assert.match(ts, /fast-listen-friendly-sms-v40/);
+  assert.match(mjs, /fast-listen-friendly-sms-v40/);
   assert.match(ts, /volume:\s*1\.2/);
   assert.match(mjs, /volume:\s*1\.2/);
   assert.match(ts, /voice_speed:\s*1\.0/);
@@ -46,8 +46,10 @@ test("Retell TS and sync script voice patches stay aligned", () => {
   assert.match(mjs, /voice_temperature:\s*0\.58/);
   assert.match(ts, /enable_backchannel:\s*true/);
   assert.match(mjs, /enable_backchannel:\s*true/);
-  assert.match(ts, /responsiveness:\s*0\.98/);
-  assert.match(mjs, /responsiveness:\s*0\.98/);
+  assert.match(ts, /responsiveness:\s*1\.0/);
+  assert.match(mjs, /responsiveness:\s*1\.0/);
+  assert.match(ts, /noise-and-background-speech-cancellation/);
+  assert.match(mjs, /noise-and-background-speech-cancellation/);
   assert.match(ts, /eleven_multilingual_v2/);
   assert.match(mjs, /eleven_multilingual_v2/);
 });
