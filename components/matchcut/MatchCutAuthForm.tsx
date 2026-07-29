@@ -45,7 +45,7 @@ export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-violet-500 focus:ring-2"
+            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
             placeholder="예: OO스토어"
           />
         </div>
@@ -57,7 +57,7 @@ export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-violet-500 focus:ring-2"
+          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
         />
       </div>
       <div>
@@ -68,14 +68,14 @@ export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-violet-500 focus:ring-2"
+          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+        className="w-full rounded-xl bg-trust-600 py-3 text-sm font-semibold text-white hover:bg-trust-700 disabled:opacity-60"
       >
         {loading ? "처리 중…" : mode === "signup" ? "무료 30크레딧 받고 시작" : "로그인"}
       </button>
@@ -83,14 +83,14 @@ export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" ? (
           <>
             이미 계정이 있나요?{" "}
-            <Link href={MATCHCUT_ROUTES.login} className="font-medium text-violet-600">
+            <Link href={MATCHCUT_ROUTES.login} className="font-medium text-trust-600">
               로그인
             </Link>
           </>
         ) : (
           <>
             계정이 없나요?{" "}
-            <Link href={MATCHCUT_ROUTES.signup} className="font-medium text-violet-600">
+            <Link href={MATCHCUT_ROUTES.signup} className="font-medium text-trust-600">
               가입하기
             </Link>
           </>

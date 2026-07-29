@@ -229,12 +229,12 @@ export function MatchCutStudio({
           <p className="text-sm text-slate-500">실사진 + URL → 옵션 매칭 → 상세컷</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-800">
+          <span className="rounded-full bg-trust-100 px-3 py-1 text-sm font-semibold text-trust-800">
             {credits.toLocaleString()} 크레딧
           </span>
           <Link
             href={MATCHCUT_ROUTES.credits}
-            className="text-sm font-medium text-violet-600 hover:underline"
+            className="text-sm font-medium text-trust-600 hover:underline"
           >
             충전
           </Link>
@@ -245,7 +245,7 @@ export function MatchCutStudio({
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-sm font-semibold">실제 상품 사진</h2>
-            <label className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-10 hover:border-violet-300">
+            <label className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-10 hover:border-trust-300">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="ref" className="max-h-56 rounded-lg object-contain" />
@@ -272,7 +272,7 @@ export function MatchCutStudio({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://detail.1688.com/offer/..."
-              className="mt-3 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-violet-500 focus:ring-2"
+              className="mt-3 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
             />
             <div className="mt-3 flex items-center gap-2 text-sm">
               <label>각도</label>
@@ -293,7 +293,7 @@ export function MatchCutStudio({
               <button
                 type="button"
                 onClick={runMatch}
-                className="mt-4 w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-700"
+                className="mt-4 w-full rounded-xl bg-trust-600 py-3 text-sm font-semibold text-white hover:bg-trust-700"
               >
                 스캔 + 매칭 (20 크레딧)
               </button>
@@ -325,13 +325,13 @@ export function MatchCutStudio({
                 onClick={() => setSelected(c)}
                 className={`rounded-xl border-2 p-2 text-left ${
                   selected?.imageUrl === c.imageUrl
-                    ? "border-violet-600 bg-violet-50"
+                    ? "border-trust-600 bg-trust-50"
                     : "border-slate-200"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={c.imageUrl} alt="" className="aspect-square w-full rounded-lg object-contain" />
-                <p className="mt-1 text-xs font-semibold text-violet-700">{c.score}%</p>
+                <p className="mt-1 text-xs font-semibold text-trust-700">{c.score}%</p>
                 <p className="line-clamp-2 text-xs text-slate-600">{c.reason}</p>
               </button>
             ))}
@@ -340,7 +340,7 @@ export function MatchCutStudio({
             type="button"
             onClick={runGenerate}
             disabled={!selected}
-            className="mt-4 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-4 rounded-xl bg-trust-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             상세컷 생성 ({maxAngles * 8} 크레딧)
           </button>
@@ -348,7 +348,7 @@ export function MatchCutStudio({
       )}
 
       {phase === "generating" && (
-        <p className="mt-10 text-center text-violet-800">상세컷 생성 중…</p>
+        <p className="mt-10 text-center text-trust-800">상세컷 생성 중…</p>
       )}
 
       {phase === "done" && (

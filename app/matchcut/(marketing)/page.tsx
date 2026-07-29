@@ -20,7 +20,7 @@ export default async function MatchCutLandingPage() {
       <MatchCutMarketingHeader session={session} />
       <section className="mx-auto max-w-6xl px-5 pb-20 pt-16 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-violet-600">
+          <p className="text-sm font-semibold uppercase tracking-widest text-trust-600">
             {matchCutHero.eyebrow}
           </p>
           <h1 className="mt-4 whitespace-pre-line text-4xl font-bold leading-tight text-slate-900 sm:text-5xl">
@@ -30,7 +30,7 @@ export default async function MatchCutLandingPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href={session ? MATCHCUT_ROUTES.app : MATCHCUT_ROUTES.signup}
-              className="rounded-xl bg-violet-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 hover:bg-violet-700"
+              className="rounded-xl bg-trust-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-trust-600/25 hover:bg-trust-700"
             >
               {matchCutHero.cta}
             </Link>
@@ -41,7 +41,7 @@ export default async function MatchCutLandingPage() {
               {matchCutHero.secondaryCta}
             </Link>
           </div>
-          <p className="mt-4 text-sm text-violet-700">
+          <p className="mt-4 text-sm text-trust-700">
             가입 즉시 {WELCOME_CREDITS}크레딧 · 1건 풀세트 {estimateRunCredits(3)}크레딧
           </p>
         </div>
@@ -51,7 +51,7 @@ export default async function MatchCutLandingPage() {
           <ul className="mt-4 space-y-3">
             {matchCutProblem.items.map((item) => (
               <li key={item} className="flex gap-3 text-slate-600">
-                <span className="text-violet-500">•</span>
+                <span className="text-trust-500">•</span>
                 {item}
               </li>
             ))}
@@ -64,9 +64,9 @@ export default async function MatchCutLandingPage() {
             {matchCutHow.map((step) => (
               <div
                 key={step.step}
-                className="rounded-2xl border border-violet-100 bg-gradient-to-b from-violet-50/80 to-white p-6"
+                className="rounded-2xl border border-trust-100 bg-gradient-to-b from-trust-50/80 to-white p-6"
               >
-                <span className="text-sm font-bold text-violet-600">{step.step}</span>
+                <span className="text-sm font-bold text-trust-600">{step.step}</span>
                 <h3 className="mt-2 text-lg font-bold">{step.title}</h3>
                 <p className="mt-2 text-sm text-slate-600">{step.body}</p>
               </div>

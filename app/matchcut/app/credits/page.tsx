@@ -13,7 +13,7 @@ export default async function MatchCutCreditsPage() {
 
   return (
     <MatchCutAppShell displayName={session.displayName} credits={credits.total}>
-      <div className="border-b border-slate-200 bg-violet-50/50 px-4 py-4 text-center text-sm">
+      <div className="border-b border-slate-200 bg-trust-50/50 px-4 py-4 text-center text-sm">
         보유: <strong>{credits.total}</strong> (구독 {credits.subscriptionCredits} + 영구{" "}
         {credits.permanentCredits})
       </div>

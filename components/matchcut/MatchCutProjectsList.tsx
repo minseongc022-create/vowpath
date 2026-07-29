@@ -54,7 +54,7 @@ export function MatchCutProjectsList() {
         </div>
         <Link
           href={MATCHCUT_ROUTES.app}
-          className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+          className="rounded-xl bg-trust-600 px-4 py-2 text-sm font-semibold text-white hover:bg-trust-700"
         >
           새 작업
         </Link>
@@ -68,7 +68,7 @@ export function MatchCutProjectsList() {
           <p className="text-slate-600">아직 프로젝트가 없습니다.</p>
           <Link
             href={MATCHCUT_ROUTES.app}
-            className="mt-4 inline-block text-sm font-semibold text-violet-600"
+            className="mt-4 inline-block text-sm font-semibold text-trust-600"
           >
             스튜디오에서 시작 →
           </Link>

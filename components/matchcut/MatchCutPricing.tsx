@@ -30,7 +30,7 @@ function PackCard({
   return (
     <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {pack.badge && (
-        <span className="absolute -top-3 right-4 rounded-full bg-violet-600 px-3 py-0.5 text-xs font-bold text-white">
+        <span className="absolute -top-3 right-4 rounded-full bg-trust-600 px-3 py-0.5 text-xs font-bold text-white">
           {pack.badge}
         </span>
       )}
@@ -53,7 +53,7 @@ function PackCard({
           type="button"
           disabled={loading || (pack.type === "topup" && !subscribed)}
           onClick={() => onBuy(pack.id)}
-          className="mt-6 w-full rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+          className="mt-6 w-full rounded-xl bg-trust-600 py-2.5 text-sm font-semibold text-white hover:bg-trust-700 disabled:opacity-50"
         >
           {pack.type === "topup" && !subscribed ? "구독 후 구매" : "충전하기"}
         </button>
@@ -105,23 +105,23 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
         </p>
       </div>
 
-      <div className="mt-10 rounded-2xl border border-violet-100 bg-violet-50/60 p-6">
-        <h2 className="font-semibold text-violet-900">크레딧 소모량</h2>
+      <div className="mt-10 rounded-2xl border border-trust-100 bg-trust-50/60 p-6">
+        <h2 className="font-semibold text-trust-900">크레딧 소모량</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3 text-sm">
           <div className="rounded-xl bg-white p-4">
             <p className="font-medium">옵션 매칭</p>
-            <p className="text-2xl font-bold text-violet-700">{CREDIT_COSTS.match}</p>
+            <p className="text-2xl font-bold text-trust-700">{CREDIT_COSTS.match}</p>
           </div>
           <div className="rounded-xl bg-white p-4">
             <p className="font-medium">AI 상세컷 1장</p>
-            <p className="text-2xl font-bold text-violet-700">{CREDIT_COSTS.angle}</p>
+            <p className="text-2xl font-bold text-trust-700">{CREDIT_COSTS.angle}</p>
           </div>
           <div className="rounded-xl bg-white p-4">
             <p className="font-medium">ZIP/HTML 내보내기</p>
             <p className="text-2xl font-bold text-emerald-600">무료</p>
           </div>
         </div>
-        <p className="mt-3 text-xs text-violet-800">
+        <p className="mt-3 text-xs text-trust-800">
           1건 풀세트 (매칭 + 컷 3장) = {estimateRunCredits(3)} 크레딧
         </p>
       </div>
@@ -165,7 +165,7 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
         <div className="mt-12 text-center">
           <Link
             href={MATCHCUT_ROUTES.signup}
-            className="inline-block rounded-xl bg-violet-600 px-8 py-3 font-semibold text-white hover:bg-violet-700"
+            className="inline-block rounded-xl bg-trust-600 px-8 py-3 font-semibold text-white hover:bg-trust-700"
           >
             무료 30크레딧으로 시작
           </Link>

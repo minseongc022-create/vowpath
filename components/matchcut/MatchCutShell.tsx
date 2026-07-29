@@ -7,12 +7,12 @@ import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
 export function MatchCutLogo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 font-bold tracking-tight ${className}`}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-sm text-white shadow-md shadow-violet-600/25">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-trust-600 to-trust-600 text-sm text-white shadow-md shadow-trust-600/25">
         M
       </span>
       <span>
         매칭컷
-        <span className="ml-1.5 text-xs font-medium text-violet-500">MatchCut</span>
+        <span className="ml-1.5 text-xs font-medium text-trust-500">MatchCut</span>
       </span>
     </span>
   );
@@ -24,16 +24,16 @@ export function MatchCutMarketingHeader({
   session?: { email: string; displayName?: string } | null;
 }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-violet-100/80 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-trust-100/80 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href={MATCHCUT_ROUTES.home}>
           <MatchCutLogo className="text-slate-900" />
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 sm:flex">
-          <a href="#how" className="hover:text-violet-700">
+          <a href="#how" className="hover:text-trust-700">
             사용법
           </a>
-          <Link href={MATCHCUT_ROUTES.pricing} className="hover:text-violet-700">
+          <Link href={MATCHCUT_ROUTES.pricing} className="hover:text-trust-700">
             요금제
           </Link>
         </nav>
@@ -41,7 +41,7 @@ export function MatchCutMarketingHeader({
           {session ? (
             <Link
               href={MATCHCUT_ROUTES.app}
-              className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+              className="rounded-xl bg-trust-600 px-4 py-2 text-sm font-semibold text-white hover:bg-trust-700"
             >
               스튜디오
             </Link>
@@ -49,13 +49,13 @@ export function MatchCutMarketingHeader({
             <>
               <Link
                 href={MATCHCUT_ROUTES.login}
-                className="hidden text-sm font-medium text-slate-600 hover:text-violet-700 sm:inline"
+                className="hidden text-sm font-medium text-slate-600 hover:text-trust-700 sm:inline"
               >
                 로그인
               </Link>
               <Link
                 href={MATCHCUT_ROUTES.signup}
-                className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                className="rounded-xl bg-trust-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-trust-700"
               >
                 무료 시작
               </Link>
@@ -90,8 +90,8 @@ export function MatchCutAppShell({
               href={MATCHCUT_ROUTES.app}
               className={
                 pathname === MATCHCUT_ROUTES.app
-                  ? "font-semibold text-violet-700"
-                  : "text-slate-600 hover:text-violet-700"
+                  ? "font-semibold text-trust-700"
+                  : "text-slate-600 hover:text-trust-700"
               }
             >
               스튜디오
@@ -100,8 +100,8 @@ export function MatchCutAppShell({
               href={MATCHCUT_ROUTES.projects}
               className={
                 pathname === MATCHCUT_ROUTES.projects
-                  ? "font-semibold text-violet-700"
-                  : "text-slate-600 hover:text-violet-700"
+                  ? "font-semibold text-trust-700"
+                  : "text-slate-600 hover:text-trust-700"
               }
             >
               프로젝트
@@ -110,8 +110,8 @@ export function MatchCutAppShell({
               href={MATCHCUT_ROUTES.credits}
               className={
                 pathname === MATCHCUT_ROUTES.credits
-                  ? "font-semibold text-violet-700"
-                  : "text-slate-600 hover:text-violet-700"
+                  ? "font-semibold text-trust-700"
+                  : "text-slate-600 hover:text-trust-700"
               }
             >
               크레딧
@@ -119,7 +119,7 @@ export function MatchCutAppShell({
           </nav>
           <div className="flex items-center gap-3">
             {typeof credits === "number" && (
-              <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+              <span className="rounded-full bg-trust-100 px-3 py-1 text-xs font-semibold text-trust-800">
                 {credits.toLocaleString()} 크레딧
               </span>
             )}

@@ -13,7 +13,7 @@ export default function MatchCutMarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50/40 via-white to-slate-50 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-trust-50/40 via-white to-slate-50 text-slate-900">
       {children}
     </div>
   );

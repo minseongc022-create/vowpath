@@ -42,6 +42,20 @@ const config: Config = {
           900: "#064e3b",
           950: "#022c22",
         },
+        /** MatchCut — trusted fintech-style blue (Toss-like, no brand assets) */
+        trust: {
+          50: "#eef4fe",
+          100: "#d6e8fd",
+          200: "#b3d4fb",
+          300: "#80b8f8",
+          400: "#4d9af5",
+          500: "#3182f6",
+          600: "#2272eb",
+          700: "#1b64da",
+          800: "#1854b8",
+          900: "#164696",
+          950: "#0f2d5c",
+        },
         warm: {
           50: "#faf6f1",
           100: "#f0e6d8",
