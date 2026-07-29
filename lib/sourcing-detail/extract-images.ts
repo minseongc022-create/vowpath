@@ -12,7 +12,7 @@ const CDN_HOST_HINTS = [
   "taobaocdn",
 ];
 
-function upgradeCdnUrl(url: string): string {
+export function upgradeCdnUrl(url: string): string {
   let u = url.replace(/\\u002F/g, "/").replace(/\\/g, "");
   // Prefer larger variants when Alibaba uses size suffixes.
   u = u.replace(/_\d+x\d+\.(jpg|jpeg|png|webp)/i, ".$1");
@@ -98,4 +98,111 @@ export function dedupeImages(images: ListingImage[]): ListingImage[] {
     out.push(img);
   }
   return out;
+}
+
+function dedupeSkus(skus: SkuOption[]): SkuOption[] {
+  const seen = new Set<string>();
+  return skus.filter((s) => {
+    const key = `${s.id}:${s.imageUrl ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** 1688 detail pages embed offer data in inline JSON / window context. */
+export function parse1688OfferData(html: string): {
+  title?: string;
+  images: ListingImage[];
+  skuOptions: SkuOption[];
+} {
+  const images: ListingImage[] = [];
+  const skuOptions: SkuOption[] = [];
+  let title: string | undefined;
+
+  const normalized = html.replace(/\\u002F/g, "/").replace(/\\"/g, '"');
+
+  const titlePatterns = [
+    /"subject"\s*:\s*"([^"]+)"/,
+    /"title"\s*:\s*"([^"]+)"/,
+    /"offerTitle"\s*:\s*"([^"]+)"/,
+    /"productTitle"\s*:\s*"([^"]+)"/,
+  ];
+  for (const re of titlePatterns) {
+    const m = normalized.match(re);
+    if (m?.[1] && m[1].length > 2) {
+      title = m[1];
+      break;
+    }
+  }
+
+  const galleryRes = [
+    /"imageList"\s*:\s*\[([\s\S]*?)\]/,
+    /"offerImgList"\s*:\s*\[([\s\S]*?)\]/,
+    /"images"\s*:\s*\[([\s\S]*?)\]/,
+    /"mainImage"\s*:\s*\{[^}]*"images"\s*:\s*\[([\s\S]*?)\]/,
+  ];
+  for (const re of galleryRes) {
+    const block = normalized.match(re)?.[1];
+    if (!block) continue;
+    for (const u of block.matchAll(/"(https?:[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi)) {
+      images.push({ url: upgradeCdnUrl(u[1]), source: "gallery" });
+    }
+  }
+
+  const skuBlockRe = /"skuMap"\s*:\s*(\{[\s\S]*?\})\s*[,}]/;
+  const skuBlock = normalized.match(skuBlockRe)?.[1];
+  if (skuBlock) {
+    for (const m of skuBlock.matchAll(
+      /"(\d+)"\s*:\s*\{[^}]*"(?:specAttrs|specId)"\s*:\s*"([^"]*)"[^}]*"(?:skuPic|pic|imageUrl)"\s*:\s*"(https?:[^"]+)"/gi,
+    )) {
+      skuOptions.push({
+        id: m[1],
+        label: m[2] || `SKU-${m[1]}`,
+        imageUrl: upgradeCdnUrl(m[3]),
+      });
+    }
+  }
+
+  for (const m of normalized.matchAll(
+    /"name"\s*:\s*"([^"]+)"[^}]*"value"\s*:\s*"([^"]+)"[^}]*"(?:imageUrl|picUrl|skuPic)"\s*:\s*"(https?:[^"]+)"/gi,
+  )) {
+    skuOptions.push({
+      id: `${m[1]}:${m[2]}`,
+      label: `${m[1]} — ${m[2]}`,
+      imageUrl: upgradeCdnUrl(m[3]),
+    });
+  }
+
+  for (const m of normalized.matchAll(
+    /"detailUrl"\s*:\s*"(https?:[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi,
+  )) {
+    images.push({ url: upgradeCdnUrl(m[1]), source: "detail" });
+  }
+
+  for (const m of normalized.matchAll(
+    /"(https?:\/\/(?:cbu01|img|gw)\.alicdn\.com[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi,
+  )) {
+    images.push({ url: upgradeCdnUrl(m[1]), source: "unknown" });
+  }
+
+  return {
+    title,
+    images: dedupeImages(images),
+    skuOptions: dedupeSkus(skuOptions),
+  };
+}
+
+export function to1688MobileUrl(desktopUrl: string): string | null {
+  try {
+    const u = new URL(desktopUrl);
+    if (!u.hostname.includes("1688.com")) return null;
+    const offerMatch = u.pathname.match(/offer\/(\d+)/);
+    if (offerMatch) {
+      return `https://m.1688.com/offer/${offerMatch[1]}.html`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

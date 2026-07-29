@@ -1,5 +1,6 @@
-import { SourcingTool } from "@/components/sourcing/SourcingTool";
+import { redirect } from "next/navigation";
+import { MATCHCUT } from "@/lib/matchcut/constants";
 
-export default function SourcingPage() {
-  return <SourcingTool />;
+export default function SourcingRedirectPage() {
+  redirect(MATCHCUT.routes.home);
 }
