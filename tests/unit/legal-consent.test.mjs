@@ -36,8 +36,8 @@ test("signup: terms + service SMS + service limitations required", () => {
   });
   assert.equal(ok.ok, true);
   if (ok.ok) {
-    assert.equal(ok.consent.legalVersion, "2026-08");
-    assert.equal(ok.consent.serviceLimitationsVersion, "2026-08");
+    assert.equal(ok.consent.legalVersion, "2026-09");
+    assert.equal(ok.consent.serviceLimitationsVersion, "2026-09");
     assert.ok(ok.consent.serviceLimitationsAt);
     assert.equal(ok.consent.marketingEmailAt, null);
   }

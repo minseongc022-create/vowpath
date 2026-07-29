@@ -2,7 +2,7 @@
  * B2B clickwrap acknowledgment — signup only. Stored with timestamp on user record.
  * Supplements Terms of Service and Privacy Policy (which you accept separately).
  */
-export const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
+export const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-09";
 
 export const serviceLimitationsConsentTitle =
   "Service Agreement Acknowledgment";
@@ -22,8 +22,10 @@ Effiroad provides cloud-based software for after-hours and overflow call intake,
 2. NO WARRANTIES
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITH ALL FAULTS. EFFIROAD AND ITS SUPPLIERS DISCLAIM ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. EFFIROAD DOES NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR ACCURATE.
 
-3. NO GUARANTEE OF CALL HANDLING; NO SLA
-Effiroad does not guarantee that any inbound call, voicemail, text message, or other communication will be answered, received, processed, recorded, transcribed, classified, routed, forwarded, or acted upon within any particular time, or at all. Missed, delayed, dropped, or misprocessed communications may occur due to carrier outages, misconfigured call forwarding, third-party platform failures, maintenance, software defects, or events beyond Effiroad's reasonable control. NO SERVICE LEVEL AGREEMENT (SLA), UPTIME COMMITMENT, OR MINIMUM PERFORMANCE STANDARD APPLIES AT ANY TIME — INCLUDING DURING FREE TRIALS, EVALUATION PERIODS, OR PAID SUBSCRIPTIONS.
+3. NO GUARANTEE OF CALL HANDLING; NO SLA; BETA PERIOD
+Effiroad does not guarantee that any inbound call, voicemail, text message, or other communication will be answered, received, processed, recorded, transcribed, classified, routed, forwarded, or acted upon within any particular time, or at all. Missed, delayed, dropped, or misprocessed communications may occur due to carrier outages, misconfigured call forwarding, third-party platform failures, maintenance, software defects, or events beyond Effiroad's reasonable control. NO SERVICE LEVEL AGREEMENT (SLA), UPTIME COMMITMENT, OR MINIMUM PERFORMANCE STANDARD APPLIES AT ANY TIME — INCLUDING DURING FREE TRIALS, EVALUATION PERIODS, BETA OR EARLY-ACCESS RELEASES, OR PAID SUBSCRIPTIONS.
+
+During any beta, pilot, or early-access period, the Service may change frequently, may contain errors, and may experience outages or incorrect call handling. You acknowledge that missed or failed call intake during beta is possible and that you remain responsible for monitoring your lines and serving your customers. To the maximum extent permitted by law, Effiroad is not liable for lost jobs, missed customers, or business losses arising from Service interruptions or errors during beta or evaluation periods.
 
 4. YOUR BUSINESS DECISIONS
 You remain solely responsible for all dispatch, scheduling, pricing, licensing, safety, emergency handling, and customer-communication decisions. Effiroad outputs (including AI intake, suggested appointment windows, and notifications) are informational only and do not replace your professional judgment. You are solely responsible for compliance with laws and regulations applicable to your trade and jurisdiction.
@@ -56,8 +58,8 @@ Effiroad는 복구·HVAC 업체를 위한 야간·오버플로우 전화 접수,
 2. 보증 없음
 법이 허용하는 최대 범위에서 서비스는 "있는 그대로" 제공되며, 중단 없음·오류 없음·보안·정확성을 보장하지 않습니다.
 
-3. 통화 처리 보장·SLA 없음
-모든 전화·문자·메시지가 특정 시간 안에 (또는 아예) 응답·처리된다고 보장하지 않습니다. SLA·가동률 약정은 없습니다.
+3. 통화 처리 보장·SLA·베타 기간 없음
+모든 전화·문자·메시지가 특정 시간 안에 (또는 아예) 응답·처리된다고 보장하지 않습니다. SLA·가동률 약정은 없습니다. 베타·파일럿·얼리 액세스 기간에는 기능 변경, 오류, 장애, 잘못된 통화 처리가 발생할 수 있습니다. 베타 중 놓친 통화·고객 유실 가능성을 인지하며, 회선 모니터링과 고객 응대 책임은 업체에 있습니다. 법이 허용하는 범위에서 베타·평가 기간 중 서비스 중단·오류로 인한 영업 손실·놓친 고객에 대해 Effiroad는 책임지지 않습니다.
 
 4. 업체 결정
 배차·일정·가격·안전·고객 응대 결정은 전적으로 업체의 책임입니다. AI 결과물은 참고용입니다.

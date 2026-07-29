@@ -1982,7 +1982,7 @@ const authPagesKo = {
     consentMarketingEmailLabel: "선택 — Effiroad 제품 팁·업데이트를 이메일로 받기.",
     consentMarketingSmsLabel:
       "선택 — Effiroad 제품 팁·업데이트를 문자로 받기. 요금이 부과될 수 있으며 STOP으로 수신 거부할 수 있습니다.",
-    consentRequired: "아래 세 가지 필수 항목에 모두 동의해야 계속할 수 있습니다.",
+    consentRequired: "아래 세 가지 필수 항목(이용약관, SMS, 서비스 약관 확인)에 모두 동의해야 계속할 수 있습니다.",
     consentLegalLegend: "약관 동의",
     consentTermsLink: "이용약관",
     consentPrivacyLink: "개인정보처리방침",
@@ -2047,6 +2047,10 @@ const legalPagesKo = {
       {
         heading: "면책(Indemnification)",
         body: "shop은 서비스 사용, 출동 결정, 고객 분쟁으로 인해 Effiroad에 제기되는 청구로부터 Effiroad를 면책하고 보호하는 데 동의합니다.",
+      },
+      {
+        heading: "베타·얼리 액세스",
+        body: "베타·파일럿·얼리 액세스 기간에는 기능이 자주 바뀌고, 장애나 잘못된 통화 처리가 발생할 수 있습니다. SLA는 없습니다. 회선 모니터링과 업무 결정 책임은 shop에 있습니다. 가입 시 동의하는 서비스 약관 확인 전문을 참고하세요.",
       },
       {
         heading: "요금·환불",
