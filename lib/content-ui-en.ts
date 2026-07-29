@@ -595,7 +595,7 @@ export const authPagesEn = {
       "Optional — send me Effiroad product tips and updates by email.",
     consentMarketingSmsLabel:
       "Optional — send me Effiroad product tips and updates by text. Msg & data rates may apply. Reply STOP to opt out.",
-    consentRequired: "Check all three required agreement boxes to continue.",
+    consentRequired: "Check all three required agreement boxes to continue (Terms, SMS, Service Acknowledgment).",
     consentLegalLegend: "Legal agreements",
     consentTermsLink: "Terms",
     consentPrivacyLink: "Privacy",
@@ -672,6 +672,10 @@ export const legalPagesEn = {
       {
         heading: "Indemnification",
         body: "You agree to indemnify and hold Effiroad harmless from claims, damages, and expenses (including reasonable legal fees) arising from your use of the service, your dispatch or business decisions, your customers, or your violation of these terms or applicable law.",
+      },
+      {
+        heading: "Beta & early access",
+        body: "During beta, pilot, or early-access periods, features may change and outages or incorrect call handling may occur. There is no SLA. You remain responsible for monitoring your phone lines and business decisions. See the Service Agreement Acknowledgment at signup for the full acknowledgment you accept when creating an account.",
       },
       {
         heading: "Billing",

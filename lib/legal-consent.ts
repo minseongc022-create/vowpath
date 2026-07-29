@@ -1,8 +1,8 @@
 /** Bump when Terms or Privacy materially change — stored on user record. */
-export const LEGAL_CONSENT_VERSION = "2026-08";
+export const LEGAL_CONSENT_VERSION = "2026-09";
 
 /** Keep in sync with SERVICE_LIMITATIONS_CONSENT_VERSION in service-limitations-consent.ts */
-const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-08";
+const SERVICE_LIMITATIONS_CONSENT_VERSION = "2026-09";
 
 export type StoredLegalConsent = {
   termsPrivacyAt: string;

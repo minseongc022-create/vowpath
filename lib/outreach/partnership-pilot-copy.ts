@@ -15,32 +15,29 @@ export const outreachReplyPrompts = {
  * Do NOT quote dollar amounts in cold email — pricing lives on the site.
  */
 export const outreachPilotDisclaimer =
-  "Effiroad is a best-effort tool — you stay in control of dispatch and customer decisions. No guaranteed pickup or SLA during the free run. Cancel anytime. Reply PASS to opt out.";
+  "Free try — no credit card. Stop anytime. Reply PASS and I won't follow up.";
 
 export const partnershipPilotCopy = {
   emailSubjects: [
-    `Would love your take — building this with shop owners in [State]`,
-    `[First name] — after-hours calls at [Shop name]`,
-    `Quick question about missed calls in [City]`,
+    `Quick favor — after-hours calls at [Shop name]`,
+    `[First name] — would love your feedback`,
+    `One-time free try for [Shop name]`,
   ] as const,
 
-  emailSubject: `Would love your take — building this with shop owners in [State]`,
+  emailSubject: `Quick favor — after-hours calls at [Shop name]`,
 
   emailBody: `Hi [First name],
 
-I'm building Effiroad with independent restoration owners — and I'd love [Shop name]'s perspective if after-hours calls are still a gap.
+I'm building Effiroad with independent restoration owners — and I'd love [Shop name]'s honest take if after-hours calls are still a gap.
 
 When your crew is on a job and a homeowner calls at 2am, someone still has to answer. Voicemail usually means the next shop on Google gets the work.
 
-That's what Effiroad handles: it answers as [Shop name], runs intake on the call, and texts your on-call crew on standard water jobs. Fire, sewage, or anything unclear waits on your OK first. Your Google number stays the same — no CRM swap.
+Effiroad answers as [Shop name], runs intake on the call, and texts your on-call crew on standard water jobs. Fire, sewage, or anything unclear waits on your OK first. Your Google number stays the same.
 
-Before anything else, ${SITE.url} has a short interactive demo of the call flow. Tap through it — about a minute, no signup.
+${SITE.url} has a 1-min interactive demo — tap through a sample call, no signup.
 
-I'm opening a ${COBUILD_PILOT_WEEKS}-week free run for a few shops in [City]/[State]. Self-serve setup with a step-by-step guide in the dashboard. I'm here by email/text if you get stuck. No credit card to start. If it's not a fit, stop anytime — no contract.
+I'm offering a one-time ${COBUILD_PILOT_WEEKS}-week free try to a few shops in [City], [State]. Self-serve setup (~10 min). I'm here by email/text if you get stuck. All I ask: try it on real traffic once and tell me what to fix.
 
-We're also shipping a mobile app. I'd rather shape it with owners who actually run these calls than guess alone. Share honest feedback after the free run and we lock in founder pricing for ${SITE.betaDiscountYears} years — full plan details are on ${SITE.url}/#pricing.
-
-${outreachReplyPrompts.video}
 ${outreachReplyPrompts.try}
 
 ${outreachPilotDisclaimer}
