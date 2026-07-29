@@ -124,6 +124,11 @@ export async function POST(request: Request) {
   const event = payload.meta?.event_name ?? "";
 
   try {
+    const { handleMatchCutLemonWebhook } = await import("@/lib/matchcut/webhook-handler");
+    if (await handleMatchCutLemonWebhook(payload)) {
+      return NextResponse.json({ received: true, product: "matchcut" });
+    }
+
     switch (event) {
       case "subscription_created":
       case "subscription_updated":

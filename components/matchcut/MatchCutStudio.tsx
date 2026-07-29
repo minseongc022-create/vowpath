@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MATCHCUT_API, MATCHCUT_ROUTES, estimateRunCredits } from "@/lib/matchcut/constants";
 import type {
@@ -64,6 +64,7 @@ export function MatchCutStudio({
   const [error, setError] = useState<string | null>(null);
   const [maxAngles, setMaxAngles] = useState(3);
 
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [listing, setListing] = useState<ScrapedListing | null>(null);
   const [match, setMatch] = useState<MatchResult | null>(null);
   const [selected, setSelected] = useState<MatchCandidate | null>(null);
@@ -71,6 +72,30 @@ export function MatchCutStudio({
   const [detailPageHtml, setDetailPageHtml] = useState("");
   const [exportPlatform, setExportPlatform] = useState<"coupang" | "smartstore" | "both">("both");
   const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("project");
+    if (!id) return;
+    void (async () => {
+      try {
+        const res = await fetch(`${MATCHCUT_API.projects}?id=${id}`);
+        const data = await res.json();
+        if (!res.ok || !data.project) return;
+        const p = data.project;
+        setProjectId(p.id);
+        setUrl(p.sourceUrl ?? "");
+        setListing(p.listing ?? null);
+        setMatch(p.match ?? null);
+        setSelected(p.selectedCandidate ?? p.match?.bestMatch ?? null);
+        setGeneratedAngles(p.generatedAngles ?? []);
+        setDetailPageHtml(p.detailPageHtml ?? "");
+        if (p.generatedAngles?.length) setPhase("done");
+        else if (p.match) setPhase("pick");
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, []);
 
   const runMatch = async () => {
     setError(null);
@@ -99,6 +124,7 @@ export function MatchCutStudio({
       setListing(data.listing);
       setMatch(data.match);
       setSelected(data.match.bestMatch);
+      setProjectId(data.projectId ?? null);
       if (data.credits) setCredits(data.credits.total);
       setPhase("pick");
     } catch (e) {
@@ -121,6 +147,7 @@ export function MatchCutStudio({
           referenceImageBase64: fileMeta.base64,
           referenceMime: fileMeta.mime,
           maxAngles,
+          projectId,
         }),
       });
       const data = await res.json();
@@ -159,11 +186,32 @@ export function MatchCutStudio({
       const res = await fetch(MATCHCUT_API.export, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform: exportPlatform, images: sources }),
+        body: JSON.stringify({
+          platform: exportPlatform,
+          images: sources,
+          detailHtml: detailPageHtml || undefined,
+          asZip: true,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      await downloadZip(data.files, `matchcut-${exportPlatform}.zip`);
+      if (data.zipBase64) {
+        const bytes = Uint8Array.from(atob(data.zipBase64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "application/zip" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = data.filename ?? `matchcut-${exportPlatform}.zip`;
+        a.click();
+      } else if (data.files) {
+        await downloadZip(data.files, `matchcut-${exportPlatform}.zip`);
+      }
+      if (projectId) {
+        await fetch(MATCHCUT_API.projects, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: projectId, status: "exported" }),
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "내보내기 실패");
     } finally {
@@ -337,7 +385,7 @@ export function MatchCutStudio({
               disabled={exporting}
               className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white"
             >
-              ZIP 내보내기 (무료)
+              {exporting ? "ZIP 생성 중…" : "마켓 업로드 ZIP (가이드 포함)"}
             </button>
             <button
               type="button"
@@ -352,6 +400,9 @@ export function MatchCutStudio({
             >
               HTML
             </button>
+            <Link href={MATCHCUT_ROUTES.projects} className="rounded-xl border px-5 py-2 text-sm">
+              프로젝트 목록
+            </Link>
           </div>
         </section>
       )}

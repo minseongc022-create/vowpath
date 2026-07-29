@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
-import { debitCredits } from "@/lib/matchcut/credits-store";
+import { debitCredits, getCreditBalance } from "@/lib/matchcut/credits-store";
 import { runMatchPhase } from "@/lib/sourcing-detail/pipeline";
 import { isSupportedListingUrl, normalizeListingUrl } from "@/lib/sourcing-detail/platforms";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
@@ -36,13 +36,25 @@ export async function POST(request: Request) {
       referenceMime,
     });
 
-    const { getCreditBalance } = await import("@/lib/matchcut/credits-store");
     const credits = await getCreditBalance(session.sub);
+
+    const { createProject } = await import("@/lib/matchcut/projects-store");
+    const project = await createProject({
+      userId: session.sub,
+      title: listing.title ?? "매칭 프로젝트",
+      sourceUrl: listing.url,
+      platform: listing.platform,
+      listing,
+      match,
+      selectedCandidate: match.bestMatch,
+      creditsUsed: CREDIT_COSTS.match,
+    });
 
     return NextResponse.json({
       ok: true,
       listing,
       match,
+      projectId: project.id,
       creditsDebited: CREDIT_COSTS.match,
       credits,
     });

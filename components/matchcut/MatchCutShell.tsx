@@ -97,6 +97,16 @@ export function MatchCutAppShell({
               스튜디오
             </Link>
             <Link
+              href={MATCHCUT_ROUTES.projects}
+              className={
+                pathname === MATCHCUT_ROUTES.projects
+                  ? "font-semibold text-violet-700"
+                  : "text-slate-600 hover:text-violet-700"
+              }
+            >
+              프로젝트
+            </Link>
+            <Link
               href={MATCHCUT_ROUTES.credits}
               className={
                 pathname === MATCHCUT_ROUTES.credits

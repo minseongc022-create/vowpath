@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exportImagesForMarkets } from "@/lib/sourcing-detail/market-export";
+import { buildMarketUploadZip } from "@/lib/matchcut/market-package";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 import type { MarketPlatform } from "@/lib/matchcut/constants";
 
@@ -9,11 +9,32 @@ export async function POST(request: Request) {
     const body = await request.json();
     const platform = (body.platform ?? "both") as MarketPlatform;
     const images = (body.images ?? []) as { name?: string; base64?: string; url?: string }[];
+    const detailHtml = body.detailHtml ? String(body.detailHtml) : undefined;
+    const asZip = body.asZip !== false;
 
     if (!Array.isArray(images) || images.length === 0) {
       return NextResponse.json({ error: "내보낼 이미지가 없습니다." }, { status: 400 });
     }
 
+    if (asZip) {
+      const pack = await buildMarketUploadZip({
+        platform,
+        detailHtml,
+        images: images.map((img, i) => ({
+          name: img.name ?? `image-${i + 1}`,
+          base64: img.base64,
+          url: img.url,
+        })),
+      });
+      return NextResponse.json({
+        ok: true,
+        zipBase64: pack.base64,
+        filename: pack.filename,
+        files: pack.files,
+      });
+    }
+
+    const { exportImagesForMarkets } = await import("@/lib/sourcing-detail/market-export");
     const files = await exportImagesForMarkets({
       platform,
       images: images.map((img, i) => ({
@@ -22,7 +43,6 @@ export async function POST(request: Request) {
         url: img.url,
       })),
     });
-
     return NextResponse.json({ ok: true, files });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "내보내기 실패";

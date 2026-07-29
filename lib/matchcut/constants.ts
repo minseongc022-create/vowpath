@@ -17,6 +17,7 @@ export const MATCHCUT_ROUTES = {
   login: "/matchcut/login",
   app: "/matchcut/app",
   credits: "/matchcut/app/credits",
+  projects: "/matchcut/app/projects",
 } as const;
 
 export const MATCHCUT_API = {
@@ -26,6 +27,7 @@ export const MATCHCUT_API = {
   me: "/api/matchcut/me",
   credits: "/api/matchcut/credits",
   checkout: "/api/matchcut/checkout",
+  projects: "/api/matchcut/projects",
   scan: "/api/matchcut/scan",
   match: "/api/matchcut/match",
   generate: "/api/matchcut/generate",

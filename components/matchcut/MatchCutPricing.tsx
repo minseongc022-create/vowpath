@@ -81,7 +81,14 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "결제 실패");
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
       setMessage(data.message ?? "충전 완료");
+      if (data.credits) {
+        // refresh soft
+      }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "오류");
     } finally {

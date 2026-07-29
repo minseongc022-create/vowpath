@@ -39,9 +39,25 @@ export async function POST(request: Request) {
 
     const credits = await getCreditBalance(session.sub);
 
+    const projectId = body.projectId ? String(body.projectId) : null;
+    if (projectId) {
+      const { updateProject } = await import("@/lib/matchcut/projects-store");
+      const existing = await import("@/lib/matchcut/projects-store").then((m) =>
+        m.getProject(session.sub, projectId),
+      );
+      await updateProject(session.sub, projectId, {
+        status: "generated",
+        selectedCandidate,
+        generatedAngles: result.generatedAngles,
+        detailPageHtml: result.detailPageHtml,
+        creditsUsed: (existing?.creditsUsed ?? 0) + angleCost,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       ...result,
+      projectId,
       creditsDebited: angleCost,
       credits,
     });
