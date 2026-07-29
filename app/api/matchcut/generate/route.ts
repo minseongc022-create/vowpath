@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { CREDIT_COSTS } from "@/lib/matchcut/constants";
+import { debitCredits, getCreditBalance } from "@/lib/matchcut/credits-store";
+import { requireMatchCutSession } from "@/lib/matchcut/session";
 import { runGeneratePhase } from "@/lib/sourcing-detail/pipeline";
 import type { MatchCandidate, MatchResult, ScrapedListing } from "@/lib/sourcing-detail/types";
 
@@ -6,6 +9,7 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
+    const session = await requireMatchCutSession();
     const body = await request.json();
     const listing = body.listing as ScrapedListing;
     const match = body.match as MatchResult;
@@ -21,6 +25,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "실제 상품 사진이 필요합니다." }, { status: 400 });
     }
 
+    const angleCost = CREDIT_COSTS.angle * maxAngles;
+    await debitCredits(session.sub, angleCost);
+
     const result = await runGeneratePhase({
       listing,
       match,
@@ -30,11 +37,25 @@ export async function POST(request: Request) {
       maxAngles,
     });
 
-    return NextResponse.json({ ok: true, ...result });
+    const credits = await getCreditBalance(session.sub);
+
+    return NextResponse.json({
+      ok: true,
+      ...result,
+      creditsDebited: angleCost,
+      credits,
+    });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "생성 실패" },
-      { status: 500 },
-    );
+    const msg = e instanceof Error ? e.message : "생성 실패";
+    if (msg === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+    }
+    if (msg === "INSUFFICIENT_CREDITS") {
+      return NextResponse.json(
+        { error: "크레딧이 부족합니다.", code: "INSUFFICIENT_CREDITS" },
+        { status: 402 },
+      );
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

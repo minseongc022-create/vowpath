@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { MATCHCUT } from "@/lib/matchcut/constants";
+import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
 
 export default function SourcingRedirectPage() {
-  redirect(MATCHCUT.routes.home);
+  redirect(MATCHCUT_ROUTES.home);
 }

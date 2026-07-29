@@ -6,10 +6,7 @@ export const metadata: Metadata = {
   description: MATCHCUT.description,
 };
 
-export default function MatchCutLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50/50 to-slate-50 text-slate-900">
-      {children}
-    </div>
-  );
+/** MatchCut root — no Effiroad chrome; marketing uses (marketing) group */
+export default function MatchCutRootLayout({ children }: { children: React.ReactNode }) {
+  return children;
 }

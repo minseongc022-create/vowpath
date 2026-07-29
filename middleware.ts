@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { clearSessionCookieOptions, SESSION_COOKIE, verifySessionToken } from "@/lib/auth-token";
 import {
+  MATCHCUT_SESSION_COOKIE,
+  verifyMatchCutSessionToken,
+} from "@/lib/matchcut/auth-token";
+import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
+import {
   buildCanonicalRedirectUrl,
   isDecommissionedHost,
   normalizeHostname,
@@ -79,6 +84,24 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const jwtSession = token ? await verifySessionToken(token) : null;
+
+  const matchcutToken = request.cookies.get(MATCHCUT_SESSION_COOKIE)?.value;
+  const matchcutSession = matchcutToken
+    ? await verifyMatchCutSessionToken(matchcutToken)
+    : null;
+
+  if (pathname.startsWith("/matchcut/app") && !matchcutSession) {
+    const login = new URL(MATCHCUT_ROUTES.login, request.url);
+    login.searchParams.set("next", pathname);
+    return NextResponse.redirect(login);
+  }
+
+  if (
+    matchcutSession &&
+    (pathname === MATCHCUT_ROUTES.login || pathname === MATCHCUT_ROUTES.signup)
+  ) {
+    return NextResponse.redirect(new URL(MATCHCUT_ROUTES.app, request.url));
+  }
 
   const isProtected = protectedPaths.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
