@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
-import { debitCredits, getCreditBalance } from "@/lib/matchcut/credits-store";
+import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 import { runGeneratePhase } from "@/lib/sourcing-detail/pipeline";
 import type { MatchCandidate, MatchResult, ScrapedListing } from "@/lib/sourcing-detail/types";
@@ -37,6 +37,12 @@ export async function POST(request: Request) {
       maxAngles,
     });
 
+    const failedCount = maxAngles - result.successCount;
+    const refundAmount = failedCount * CREDIT_COSTS.angle;
+    if (refundAmount > 0) {
+      await grantCredits(session.sub, refundAmount, "permanent");
+    }
+
     const credits = await getCreditBalance(session.sub);
 
     const projectId = body.projectId ? String(body.projectId) : null;
@@ -50,16 +56,36 @@ export async function POST(request: Request) {
         selectedCandidate,
         generatedAngles: result.generatedAngles,
         detailPageHtml: result.detailPageHtml,
-        creditsUsed: (existing?.creditsUsed ?? 0) + angleCost,
+        detailBundle: result.detailBundle,
+        creditsUsed: (existing?.creditsUsed ?? 0) + angleCost - refundAmount,
       });
+    }
+
+    const hasErrors = result.generatedAngles.some((a) => a.error && !a.imageBase64);
+    if (result.successCount === 0) {
+      return NextResponse.json(
+        {
+          error: "상세컷 생성에 실패했습니다. 크레딧은 전액 환불되었습니다.",
+          code: "GENERATION_FAILED",
+          generatedAngles: result.generatedAngles,
+          creditsRefunded: refundAmount,
+          credits,
+        },
+        { status: 422 },
+      );
     }
 
     return NextResponse.json({
       ok: true,
-      ...result,
+      generatedAngles: result.generatedAngles,
+      detailPageHtml: result.detailPageHtml,
+      detailBundle: result.detailBundle,
       projectId,
-      creditsDebited: angleCost,
+      creditsDebited: angleCost - refundAmount,
+      creditsRefunded: refundAmount,
       credits,
+      partialFailure: hasErrors,
+      successCount: result.successCount,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "생성 실패";

@@ -1,3 +1,5 @@
+import { verifyGeneratedImage } from "./vision-quality";
+import { countSuccessfulAngles } from "./angle-utils";
 import type { GeneratedAngle } from "./types";
 
 const ANGLE_SPECS: { angle: string; promptSuffix: string }[] = [
@@ -29,100 +31,159 @@ const ANGLE_SPECS: { angle: string; promptSuffix: string }[] = [
 ];
 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
+const MAX_RETRIES = 2;
+
+function buildPrompt(
+  productDescription: string,
+  promptSuffix: string,
+  retryHint?: string,
+): string {
+  const strict =
+    "CRITICAL: Keep IDENTICAL product — same exact color, shape, logos, hardware, pattern, and variant. Only change camera angle and lighting. Photorealistic studio shot.";
+  const hint = retryHint ? ` Fix previous issues: ${retryHint}.` : "";
+  return `${strict} Product: ${productDescription}. ${promptSuffix}.${hint} No watermark, no text, no collage.`;
+}
+
+async function callImageEdit(params: {
+  refDataUrl: string;
+  mime: string;
+  prompt: string;
+}): Promise<{ b64?: string; url?: string; error?: string }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
+
+  const form = new FormData();
+  const base64Data = params.refDataUrl.split(",")[1] ?? "";
+  const bytes = Buffer.from(base64Data, "base64");
+  const blob = new Blob([bytes], { type: params.mime });
+  form.append("image", blob, "reference.jpg");
+  form.append("prompt", params.prompt);
+  form.append("model", IMAGE_MODEL);
+  form.append("n", "1");
+  form.append("size", "1024x1024");
+
+  const res = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  if (!res.ok) {
+    const genRes = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODEL,
+        prompt: params.prompt,
+        n: 1,
+        size: "1024x1024",
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (!genRes.ok) {
+      return { error: `IMAGE_GEN_FAILED_${genRes.status}` };
+    }
+    const genData = (await genRes.json()) as {
+      data?: { b64_json?: string; url?: string }[];
+    };
+    const item = genData.data?.[0];
+    return { b64: item?.b64_json, url: item?.url };
+  }
+
+  const data = (await res.json()) as {
+    data?: { b64_json?: string; url?: string }[];
+  };
+  const item = data.data?.[0];
+  return { b64: item?.b64_json, url: item?.url };
+}
+
+async function resolveBase64(result: { b64?: string; url?: string }): Promise<string | null> {
+  if (result.b64) return result.b64;
+  if (!result.url) return null;
+  try {
+    const res = await fetch(result.url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer()).toString("base64");
+  } catch {
+    return null;
+  }
+}
 
 async function generateOneAngle(params: {
   productDescription: string;
   referenceImageBase64: string;
+  userReferenceBase64?: string;
   referenceMime?: string;
   angle: string;
   promptSuffix: string;
 }): Promise<GeneratedAngle> {
   const mime = params.referenceMime ?? "image/jpeg";
-  const refDataUrl = params.referenceImageBase64.startsWith("data:")
+  const refForEdit = params.referenceImageBase64.startsWith("data:")
     ? params.referenceImageBase64
     : `data:${mime};base64,${params.referenceImageBase64}`;
 
-  const prompt = `Recreate the EXACT same product as the reference image: ${params.productDescription}. ${params.promptSuffix}. Do not change color, shape, logos, or variant. Photorealistic, looks newly shot not copied collage.`;
+  const qualityRef = params.userReferenceBase64 ?? params.referenceImageBase64;
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
+  let lastError: string | undefined;
+  let retryHint: string | undefined;
 
-  try {
-    // Image edits API — reference-guided generation when supported.
-    const form = new FormData();
-    const base64Data = refDataUrl.split(",")[1] ?? "";
-    const bytes = Buffer.from(base64Data, "base64");
-    const blob = new Blob([bytes], { type: mime });
-    form.append("image", blob, "reference.jpg");
-    form.append("prompt", prompt);
-    form.append("model", IMAGE_MODEL);
-    form.append("n", "1");
-    form.append("size", "1024x1024");
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const prompt = buildPrompt(params.productDescription, params.promptSuffix, retryHint);
 
-    const res = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
-      signal: AbortSignal.timeout(90_000),
-    });
+    try {
+      const result = await callImageEdit({ refDataUrl: refForEdit, mime, prompt });
+      if (result.error) {
+        lastError = result.error;
+        continue;
+      }
 
-    if (!res.ok) {
-      // Fallback: generations with strong reference description.
-      const genRes = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: IMAGE_MODEL,
-          prompt: `Reference product (match exactly): ${params.productDescription}. ${params.promptSuffix}`,
-          n: 1,
-          size: "1024x1024",
-        }),
-        signal: AbortSignal.timeout(90_000),
+      const generatedB64 = await resolveBase64(result);
+      if (!generatedB64) {
+        lastError = "IMAGE_EMPTY";
+        continue;
+      }
+
+      const quality = await verifyGeneratedImage({
+        referenceImageBase64: qualityRef,
+        referenceMime: params.referenceMime,
+        generatedImageBase64: generatedB64,
+        productDescription: params.productDescription,
       });
-      if (!genRes.ok) {
+
+      if (quality.passed || attempt === MAX_RETRIES) {
         return {
           angle: params.angle,
           prompt,
-          error: `IMAGE_GEN_FAILED_${genRes.status}`,
+          imageBase64: generatedB64,
+          imageUrl: result.url,
+          qualityScore: quality.score,
+          retryCount: attempt,
+          ...(quality.passed ? {} : { error: quality.issues[0] ?? "QUALITY_BELOW_THRESHOLD" }),
         };
       }
-      const genData = (await genRes.json()) as {
-        data?: { b64_json?: string; url?: string }[];
-      };
-      const item = genData.data?.[0];
-      return {
-        angle: params.angle,
-        prompt,
-        imageBase64: item?.b64_json,
-        imageUrl: item?.url,
-      };
-    }
 
-    const data = (await res.json()) as {
-      data?: { b64_json?: string; url?: string }[];
-    };
-    const item = data.data?.[0];
-    return {
-      angle: params.angle,
-      prompt,
-      imageBase64: item?.b64_json,
-      imageUrl: item?.url,
-    };
-  } catch (e) {
-    return {
-      angle: params.angle,
-      prompt,
-      error: e instanceof Error ? e.message : "IMAGE_GEN_ERROR",
-    };
+      retryHint = quality.issues.join("; ") || "색상/형태 불일치";
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "IMAGE_GEN_ERROR";
+    }
   }
+
+  return {
+    angle: params.angle,
+    prompt: buildPrompt(params.productDescription, params.promptSuffix),
+    error: lastError ?? "IMAGE_GEN_FAILED",
+    retryCount: MAX_RETRIES,
+  };
 }
 
 export async function generateProductAngles(params: {
   productDescription: string;
   referenceImageBase64: string;
+  userReferenceBase64?: string;
   referenceMime?: string;
   maxAngles?: number;
 }): Promise<GeneratedAngle[]> {
@@ -133,6 +194,7 @@ export async function generateProductAngles(params: {
     const result = await generateOneAngle({
       productDescription: params.productDescription,
       referenceImageBase64: params.referenceImageBase64,
+      userReferenceBase64: params.userReferenceBase64,
       referenceMime: params.referenceMime,
       angle: spec.angle,
       promptSuffix: spec.promptSuffix,
@@ -142,3 +204,5 @@ export async function generateProductAngles(params: {
 
   return results;
 }
+
+export { countSuccessfulAngles } from "./angle-utils";

@@ -1,8 +1,11 @@
 import { scrapeListing } from "./fetch-listing";
 import { matchReferenceToListing } from "./vision-match";
-import { generateProductAngles } from "./vision-generate";
+import { generateProductAngles, countSuccessfulAngles } from "./vision-generate";
 import { buildDetailPageHtml } from "./detail-layout";
-import type { MatchCandidate, PipelineResult } from "./types";
+import { analyzeProduct } from "./product-analysis";
+import { researchCompetitors } from "./competitor-research";
+import { generateDetailCopy } from "./detail-copy";
+import type { DetailPageBundle, MatchCandidate, PipelineResult } from "./types";
 
 export async function runMatchPhase(params: {
   url: string;
@@ -34,6 +37,35 @@ async function fetchUrlAsBase64(url: string): Promise<string | null> {
   }
 }
 
+async function buildDetailBundle(params: {
+  referenceImageBase64: string;
+  referenceMime?: string;
+  listingTitle?: string;
+  referenceDescription?: string;
+  skuLabel?: string;
+}): Promise<DetailPageBundle> {
+  const analysis = await analyzeProduct({
+    referenceImageBase64: params.referenceImageBase64,
+    referenceMime: params.referenceMime,
+    title: params.listingTitle,
+    referenceDescription: params.referenceDescription,
+  });
+
+  const competitorInsight = await researchCompetitors({
+    analysis,
+    listingTitle: params.listingTitle,
+  });
+
+  const detailCopy = await generateDetailCopy({
+    analysis,
+    insights: competitorInsight,
+    skuLabel: params.skuLabel,
+    listingTitle: params.listingTitle,
+  });
+
+  return { productAnalysis: analysis, competitorInsight, detailCopy };
+}
+
 export async function runGeneratePhase(params: {
   listing: PipelineResult["listing"];
   match: PipelineResult["match"];
@@ -41,7 +73,11 @@ export async function runGeneratePhase(params: {
   referenceImageBase64: string;
   referenceMime?: string;
   maxAngles?: number;
-}): Promise<Pick<PipelineResult, "generatedAngles" | "detailPageHtml">> {
+}): Promise<
+  Pick<PipelineResult, "generatedAngles" | "detailPageHtml" | "detailBundle"> & {
+    successCount: number;
+  }
+> {
   const match = {
     ...params.match,
     bestMatch: params.selectedCandidate,
@@ -52,13 +88,29 @@ export async function runGeneratePhase(params: {
     params.listing.title ||
     "import product matching reference photo";
 
-  // Prefer listing matched image + user reference for generation fidelity
   const matchedB64 = await fetchUrlAsBase64(params.selectedCandidate.imageUrl);
   const refForGen = matchedB64 ?? params.referenceImageBase64;
 
+  const detailBundle = await buildDetailBundle({
+    referenceImageBase64: params.referenceImageBase64,
+    referenceMime: params.referenceMime,
+    listingTitle: params.listing.title,
+    referenceDescription: params.match.referenceDescription,
+    skuLabel: params.selectedCandidate.skuLabel,
+  });
+
+  const productDescription = [
+    detailBundle.productAnalysis.productNameKo,
+    description,
+    detailBundle.detailCopy.headline,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
   const generatedAngles = await generateProductAngles({
-    productDescription: description,
+    productDescription,
     referenceImageBase64: refForGen,
+    userReferenceBase64: params.referenceImageBase64,
     referenceMime: params.referenceMime,
     maxAngles: params.maxAngles ?? 3,
   });
@@ -67,9 +119,17 @@ export async function runGeneratePhase(params: {
     listing: params.listing,
     match,
     angles: generatedAngles,
+    analysis: detailBundle.productAnalysis,
+    copy: detailBundle.detailCopy,
+    insights: detailBundle.competitorInsight,
   });
 
-  return { generatedAngles, detailPageHtml };
+  return {
+    generatedAngles,
+    detailPageHtml,
+    detailBundle,
+    successCount: countSuccessfulAngles(generatedAngles),
+  };
 }
 
 export async function runSourcingPipeline(params: {
@@ -84,6 +144,7 @@ export async function runSourcingPipeline(params: {
 
   let generatedAngles: PipelineResult["generatedAngles"] = [];
   let detailPageHtml = buildDetailPageHtml({ listing, match, angles: [] });
+  let detailBundle: DetailPageBundle | undefined;
 
   if (params.generateAngles) {
     const candidate = params.selectedCandidate ?? match.bestMatch;
@@ -98,8 +159,11 @@ export async function runSourcingPipeline(params: {
       });
       generatedAngles = gen.generatedAngles;
       detailPageHtml = gen.detailPageHtml;
+      detailBundle = gen.detailBundle;
     }
   }
 
-  return { listing, match, generatedAngles, detailPageHtml };
+  return { listing, match, generatedAngles, detailPageHtml, detailBundle };
 }
+
+export { countSuccessfulAngles };

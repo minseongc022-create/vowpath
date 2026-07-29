@@ -4,7 +4,13 @@ import { randomUUID } from "crypto";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "../kv-config";
 import { kvGetSafe } from "../kv-safe";
-import type { GeneratedAngle, MatchCandidate, MatchResult, ScrapedListing } from "../sourcing-detail/types";
+import type {
+  DetailPageBundle,
+  GeneratedAngle,
+  MatchCandidate,
+  MatchResult,
+  ScrapedListing,
+} from "../sourcing-detail/types";
 
 const KV_PREFIX = "matchcut:projects:";
 
@@ -22,6 +28,7 @@ export type MatchCutProject = {
   selectedCandidate?: MatchCandidate | null;
   generatedAngles?: GeneratedAngle[];
   detailPageHtml?: string;
+  detailBundle?: DetailPageBundle;
   creditsUsed: number;
 };
 
@@ -118,6 +125,7 @@ export async function updateProject(
       | "selectedCandidate"
       | "generatedAngles"
       | "detailPageHtml"
+      | "detailBundle"
       | "creditsUsed"
       | "match"
       | "listing"

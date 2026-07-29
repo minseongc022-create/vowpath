@@ -5,7 +5,7 @@ import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
 
 export default function MatchCutSignupPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-trust-50 to-slate-50 px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F9FAFB] px-4 py-12">
       <Link href={MATCHCUT_ROUTES.home}>
         <MatchCutLogo className="text-slate-900" />
       </Link>

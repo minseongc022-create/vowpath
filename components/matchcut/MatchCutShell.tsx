@@ -7,7 +7,7 @@ import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
 export function MatchCutLogo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 font-bold tracking-tight ${className}`}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-trust-600 to-trust-600 text-sm text-white shadow-md shadow-trust-600/25">
+      <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-trust-500 text-sm font-bold text-white">
         M
       </span>
       <span>

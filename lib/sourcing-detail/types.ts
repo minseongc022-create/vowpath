@@ -42,6 +42,18 @@ export type GeneratedAngle = {
   imageUrl?: string;
   imageBase64?: string;
   error?: string;
+  qualityScore?: number;
+  retryCount?: number;
+};
+
+export type { ProductAnalysis, ProductCategory } from "./product-analysis";
+export type { CompetitorInsight, CompetitorProduct } from "./competitor-research";
+export type { DetailCopy } from "./detail-copy";
+
+export type DetailPageBundle = {
+  productAnalysis: import("./product-analysis").ProductAnalysis;
+  competitorInsight: import("./competitor-research").CompetitorInsight;
+  detailCopy: import("./detail-copy").DetailCopy;
 };
 
 export type PipelineResult = {
@@ -49,4 +61,5 @@ export type PipelineResult = {
   match: MatchResult;
   generatedAngles: GeneratedAngle[];
   detailPageHtml: string;
+  detailBundle?: DetailPageBundle;
 };

@@ -10,6 +10,8 @@ import {
   to1688MobileUrl,
 } from "../../lib/sourcing-detail/extract-images.ts";
 import { MARKET_SPECS } from "../../lib/matchcut/constants.ts";
+import { buildDetailPageHtml } from "../../lib/sourcing-detail/detail-layout.ts";
+import { countSuccessfulAngles } from "../../lib/sourcing-detail/angle-utils.ts";
 
 describe("matchcut constants", () => {
   it("defines coupang and smartstore specs", () => {
@@ -85,5 +87,71 @@ describe("sourcing-detail extract-images", () => {
   it("extracts sku options when present", () => {
     const skus = extractSkuOptionsFromHtml(sampleHtml);
     assert.ok(skus.length >= 0);
+  });
+});
+
+describe("detail-layout", () => {
+  it("builds HTML with copy and insights", () => {
+    const html = buildDetailPageHtml({
+      listing: {
+        platform: "1688",
+        url: "https://detail.1688.com/offer/1.html",
+        title: "테스트",
+        images: [],
+        skuOptions: [],
+        rawImageCount: 0,
+      },
+      match: {
+        bestMatch: { imageUrl: "https://example.com/a.jpg", score: 90, reason: "ok" },
+        candidates: [],
+        referenceDescription: "블랙 가방",
+      },
+      angles: [{ angle: "front", prompt: "p", imageBase64: "abc" }],
+      analysis: {
+        category: "fashion",
+        searchQuery: "크로스백",
+        productNameKo: "데일리 크로스백",
+        keyFeatures: ["가죽"],
+        targetAudience: "20대",
+        sellingPoints: ["가벼움"],
+        detailStyle: "premium",
+      },
+      copy: {
+        headline: "데일리 크로스백",
+        subheadline: "가볍고 튼튼",
+        hookParagraph: "매일 들기 좋습니다.",
+        featureBullets: ["가벼운 무게"],
+        specTable: [{ label: "소재", value: "PU" }],
+        trustBadges: ["빠른배송"],
+        faq: [{ q: "세탁?", a: "물걸레" }],
+        ctaLine: "지금 만나보세요",
+        seoKeywords: ["크로스백"],
+      },
+      insights: {
+        searchQuery: "크로스백",
+        source: "ai_category",
+        topProducts: [],
+        commonStrengths: ["가성비"],
+        recommendedAppeals: ["프리미엄 소재"],
+        suggestedSections: ["소재"],
+        copyTone: "신뢰",
+      },
+    });
+    assert.ok(html.includes("데일리 크로스백"));
+    assert.ok(html.includes("시장 인사이트"));
+    assert.ok(html.includes("data:image/png;base64,abc"));
+  });
+});
+
+describe("vision-generate helpers", () => {
+  it("counts successful angles", () => {
+    assert.equal(
+      countSuccessfulAngles([
+        { angle: "a", prompt: "p", imageBase64: "x" },
+        { angle: "b", prompt: "p", error: "fail" },
+        { angle: "c", prompt: "p", imageUrl: "https://x.com/1.png" },
+      ]),
+      2,
+    );
   });
 });

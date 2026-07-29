@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MATCHCUT_API, MATCHCUT_ROUTES, estimateRunCredits } from "@/lib/matchcut/constants";
 import type {
+  DetailPageBundle,
   GeneratedAngle,
   MatchCandidate,
   MatchResult,
@@ -70,6 +71,7 @@ export function MatchCutStudio({
   const [selected, setSelected] = useState<MatchCandidate | null>(null);
   const [generatedAngles, setGeneratedAngles] = useState<GeneratedAngle[]>([]);
   const [detailPageHtml, setDetailPageHtml] = useState("");
+  const [detailBundle, setDetailBundle] = useState<DetailPageBundle | null>(null);
   const [exportPlatform, setExportPlatform] = useState<"coupang" | "smartstore" | "both">("both");
   const [exporting, setExporting] = useState(false);
 
@@ -89,6 +91,7 @@ export function MatchCutStudio({
         setSelected(p.selectedCandidate ?? p.match?.bestMatch ?? null);
         setGeneratedAngles(p.generatedAngles ?? []);
         setDetailPageHtml(p.detailPageHtml ?? "");
+        setDetailBundle(p.detailBundle ?? null);
         if (p.generatedAngles?.length) setPhase("done");
         else if (p.match) setPhase("pick");
       } catch {
@@ -156,11 +159,21 @@ export function MatchCutStudio({
         setPhase("pick");
         return;
       }
+      if (res.status === 422) {
+        setError(data.error ?? "생성 실패 — 크레딧 환불됨");
+        if (data.credits) setCredits(data.credits.total);
+        setPhase("pick");
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "생성 실패");
 
       setGeneratedAngles(data.generatedAngles ?? []);
       setDetailPageHtml(data.detailPageHtml ?? "");
+      setDetailBundle(data.detailBundle ?? null);
       if (data.credits) setCredits(data.credits.total);
+      if (data.partialFailure) {
+        setError("일부 각도 생성에 실패했습니다. 실패분 크레딧은 환불되었습니다.");
+      }
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류");
@@ -353,6 +366,52 @@ export function MatchCutStudio({
 
       {phase === "done" && (
         <section className="mt-8 space-y-6">
+          {detailBundle && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h2 className="font-semibold text-slate-900">시장 분석 · 상세 카피</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                검색어 「{detailBundle.competitorInsight.searchQuery}」 ·{" "}
+                {detailBundle.competitorInsight.source === "naver_api"
+                  ? "네이버 쇼핑 상위 상품 분석"
+                  : "카테고리 베스트 프랙티스"}
+              </p>
+              <p className="mt-3 text-sm font-medium text-trust-800">
+                {detailBundle.detailCopy.headline}
+              </p>
+              <p className="text-sm text-slate-600">{detailBundle.detailCopy.subheadline}</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase text-slate-400">상위 셀러 강점</h3>
+                  <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    {detailBundle.competitorInsight.commonStrengths.map((s) => (
+                      <li key={s}>· {s}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold uppercase text-slate-400">우리 어필 포인트</h3>
+                  <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    {detailBundle.competitorInsight.recommendedAppeals.map((s) => (
+                      <li key={s}>· {s}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {detailBundle.competitorInsight.topProducts.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs font-semibold uppercase text-slate-400">참고 상위 상품</h3>
+                  <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                    {detailBundle.competitorInsight.topProducts.slice(0, 3).map((p) => (
+                      <li key={p.link ?? p.title} className="line-clamp-1">
+                        [{p.platform === "coupang" ? "쿠팡" : p.platform === "smartstore" ? "스마트스토어" : p.mallName}]{" "}
+                        {p.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {generatedAngles.map((a) => {
               const src = angleSrc(a);
@@ -362,9 +421,14 @@ export function MatchCutStudio({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={src} alt={a.angle} className="rounded-lg" />
                   ) : (
-                    <p className="text-red-500">{a.error}</p>
+                    <p className="text-red-500">{a.error ?? "생성 실패"}</p>
                   )}
-                  <p className="mt-1 text-center text-xs text-slate-500">{a.angle}</p>
+                  <p className="mt-1 text-center text-xs text-slate-500">
+                    {a.angle}
+                    {a.qualityScore != null && (
+                      <span className="ml-1 text-trust-600">· 품질 {a.qualityScore}%</span>
+                    )}
+                  </p>
                 </div>
               );
             })}
