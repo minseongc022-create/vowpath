@@ -18,7 +18,8 @@ export async function POST(request: Request) {
     const session = await requireMatchCutSession();
     userId = session.sub;
     const body = await request.json();
-    const url = normalizeListingUrl(String(body.url ?? ""));
+    const pasteText = String(body.url ?? "");
+    const url = normalizeListingUrl(pasteText);
     const referenceImageBase64 = String(body.referenceImageBase64 ?? "");
     const referenceMime = body.referenceMime ? String(body.referenceMime) : undefined;
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
 
     const { listing, match } = await runMatchPhase({
       url,
+      pasteText,
       referenceImageBase64,
       referenceMime,
     });
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
     const { createProject } = await import("@/lib/matchcut/projects-store");
     const project = await createProject({
       userId: session.sub,
-      title: listing.title ?? "매칭 프로젝트",
+      title: listing.titleKo || listing.title || "매칭 프로젝트",
       sourceUrl: listing.url,
       platform: listing.platform,
       listing,

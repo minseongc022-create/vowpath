@@ -13,13 +13,31 @@ export type SkuOption = {
   imageUrl?: string;
 };
 
+export type ListingAttribute = {
+  name: string;
+  value: string;
+};
+
 export type ScrapedListing = {
   platform: SourcingPlatform;
   url: string;
+  /** 원문 제목 (중문 등) */
   title?: string;
+  /** 공유 문구·셀러 입력 한국어 제목 */
+  titleKo?: string;
+  priceText?: string;
+  priceCny?: number;
+  moq?: string;
+  sellerName?: string;
+  attributes?: ListingAttribute[];
+  description?: string;
+  /** 셀러 메모 */
+  notes?: string;
   images: ListingImage[];
   skuOptions: SkuOption[];
   rawImageCount: number;
+  /** 자동 수집이 막혔거나 부정확할 때 안내 */
+  scrapeWarning?: string;
 };
 
 export type MatchCandidate = {

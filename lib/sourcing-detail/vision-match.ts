@@ -1,8 +1,11 @@
 import { openAiJsonCompletion } from "../openai-json";
+import { filterProductImages, isLikelyProductImage } from "./extract-images";
 import type { ListingImage, MatchCandidate, MatchResult, SkuOption } from "./types";
 
 const VISION_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o";
 const MAX_CANDIDATES = 24;
+/** Hide obviously-wrong chrome matches from the pick UI */
+const MIN_DISPLAY_SCORE = 35;
 
 type VisionMatchPayload = {
   referenceDescription: string;
@@ -17,12 +20,19 @@ type VisionMatchPayload = {
 async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; SourcingDetail/1.0)" },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Referer: "https://www.1688.com/",
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+      },
       signal: AbortSignal.timeout(12_000),
     });
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength < 1500) return null; // tiny placeholders
     const mime = res.headers.get("content-type") ?? "image/jpeg";
+    if (!mime.startsWith("image/")) return null;
     return `data:${mime};base64,${buf.toString("base64")}`;
   } catch {
     return null;
@@ -36,7 +46,12 @@ function buildCandidateList(
   const candidates: { index: number; imageUrl: string; skuId?: string; skuLabel?: string }[] = [];
   let idx = 0;
 
-  for (const sku of skuOptions) {
+  const cleanImages = filterProductImages(images);
+  const cleanSkus = skuOptions.filter(
+    (s) => s.imageUrl && isLikelyProductImage(s.imageUrl),
+  );
+
+  for (const sku of cleanSkus) {
     if (!sku.imageUrl) continue;
     candidates.push({
       index: idx++,
@@ -47,7 +62,13 @@ function buildCandidateList(
     if (candidates.length >= MAX_CANDIDATES) return candidates;
   }
 
-  for (const img of images) {
+  const ordered = [
+    ...cleanImages.filter((i) => i.source === "gallery" || i.source === "sku"),
+    ...cleanImages.filter((i) => i.source === "detail"),
+    ...cleanImages.filter((i) => i.source === "unknown"),
+  ];
+
+  for (const img of ordered) {
     if (candidates.some((c) => c.imageUrl === img.url)) continue;
     candidates.push({ index: idx++, imageUrl: img.url });
     if (candidates.length >= MAX_CANDIDATES) break;
@@ -73,7 +94,8 @@ export async function matchReferenceToListing(params: {
     return {
       bestMatch: null,
       candidates: [],
-      referenceDescription: "후보 이미지를 찾지 못했습니다.",
+      referenceDescription:
+        "후보 이미지를 찾지 못했습니다. 상품 사진을 추가한 뒤 다시 매칭하세요.",
     };
   }
 
@@ -89,11 +111,16 @@ export async function matchReferenceToListing(params: {
     )
     .join("\n");
 
-  const content: Array<{ type: string; text?: string; image_url?: { url: string; detail?: string } }> = [
+  const content: Array<{
+    type: string;
+    text?: string;
+    image_url?: { url: string; detail?: string };
+  }> = [
     {
       type: "text",
       text: `You are matching a seller's REAL product photo to images scraped from a Chinese wholesale listing (1688/Taobao).
-The listing gallery often shows WRONG variants (color, model, angle). Find the listing image that shows the SAME physical product as the reference photo.
+The listing gallery often shows WRONG variants (color, model, angle) and sometimes UI chrome. Find the listing image that shows the SAME physical product as the reference photo.
+Ignore logos, banners, factory photos, people-only shots, and unrelated products — score those under 20.
 
 Product title: ${params.title ?? "unknown"}
 
@@ -157,7 +184,6 @@ Include at least the top 5 candidates in rankings, sorted by score descending.`,
     payload = JSON.parse(raw) as VisionMatchPayload;
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") throw new Error("OPENAI_TIMEOUT");
-    // Fallback: text-only ranking via URLs when vision batch fails.
     payload = await openAiJsonCompletion<VisionMatchPayload>({
       system:
         "Rank listing image URLs against seller reference metadata. Return JSON with referenceDescription and rankings array.",
@@ -177,6 +203,7 @@ Include at least the top 5 candidates in rankings, sorted by score descending.`,
   for (const r of payload.rankings ?? []) {
     const c = candidates.find((x) => x.index === r.index);
     if (!c) continue;
+    if (!isLikelyProductImage(c.imageUrl)) continue;
     ranked.push({
       imageUrl: c.imageUrl,
       skuId: c.skuId,
@@ -187,9 +214,13 @@ Include at least the top 5 candidates in rankings, sorted by score descending.`,
   }
   ranked.sort((a, b) => b.score - a.score);
 
+  const display = ranked.filter((c) => c.score >= MIN_DISPLAY_SCORE);
+  const best = display[0] ?? ranked[0] ?? null;
+  const bestMatch = best && best.score >= MIN_DISPLAY_SCORE ? best : null;
+
   return {
-    bestMatch: ranked[0] ?? null,
-    candidates: ranked,
+    bestMatch,
+    candidates: display.length > 0 ? display : ranked.slice(0, 5),
     referenceDescription: payload.referenceDescription ?? "",
   };
 }

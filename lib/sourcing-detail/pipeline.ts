@@ -14,14 +14,15 @@ export async function runMatchPhase(params: {
   url: string;
   referenceImageBase64: string;
   referenceMime?: string;
+  pasteText?: string;
 }): Promise<Pick<PipelineResult, "listing" | "match">> {
-  const listing = await scrapeListing(params.url);
+  const listing = await scrapeListing(params.url, { pasteText: params.pasteText ?? params.url });
   const match = await matchReferenceToListing({
     referenceImageBase64: params.referenceImageBase64,
     referenceMime: params.referenceMime,
     images: listing.images,
     skuOptions: listing.skuOptions,
-    title: listing.title,
+    title: listing.titleKo ?? listing.title,
   });
   return { listing, match };
 }

@@ -15,6 +15,16 @@ const PLATFORM_PATTERNS: { platform: SourcingPlatform; patterns: RegExp[] }[] = 
   },
 ];
 
+/** 1688 공유 문구의 【상품명】 추출 */
+export function extractShareTitle(raw: string): string | undefined {
+  const m = String(raw ?? "").match(/【\s*([^】]+?)\s*】/);
+  const title = m?.[1]?.trim();
+  if (!title) return undefined;
+  // 너무 짧은 토큰/코드 제외
+  if (title.length < 2) return undefined;
+  return title;
+}
+
 /** Extract first http(s) URL from pasted share text (모바일 알리 공유 문구 등) */
 export function extractUrlFromPaste(raw: string): string | null {
   const text = String(raw ?? "").trim();

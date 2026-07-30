@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectPlatform, isSupportedListingUrl, normalizeListingUrl } from "../../lib/sourcing-detail/platforms.ts";
+import { detectPlatform, extractShareTitle, isSupportedListingUrl, normalizeListingUrl } from "../../lib/sourcing-detail/platforms.ts";
 import {
   extractImageUrlsFromHtml,
   extractSkuOptionsFromHtml,
@@ -9,6 +9,7 @@ import {
   parse1688OfferData,
   to1688MobileUrl,
   extract1688OfferId,
+  isLikelyProductImage,
 } from "../../lib/sourcing-detail/extract-images.ts";
 import { MARKET_SPECS } from "../../lib/matchcut/constants.ts";
 import { buildDetailPageHtml } from "../../lib/sourcing-detail/detail-layout.ts";
@@ -45,6 +46,34 @@ describe("sourcing-detail platforms", () => {
     assert.equal(url, "https://qr.1688.com/s/u5tTOli3");
     assert.equal(detectPlatform(url), "1688");
     assert.equal(isSupportedListingUrl(url), true);
+    assert.equal(extractShareTitle(paste), "자동차 보관함, 의자 등받이 걸이 가방");
+  });
+
+  it("rejects UI chrome image urls", () => {
+    assert.equal(
+      isLikelyProductImage("https://gw.alicdn.com/tfs/TB1kmqIsqNj0u4jSZFyXXXgMVXa-820-82.png"),
+      false,
+    );
+    assert.equal(
+      isLikelyProductImage(
+        "https://img.alicdn.com/imgextra/i4/O1CN01QJo1km27cEj2QEmJ8_!!6000000007817-2-tps-34-34.png",
+      ),
+      false,
+    );
+    assert.equal(
+      isLikelyProductImage("https://cbu01.alicdn.com/img/ibank/O1CN01f3jZp91Bs2j0pzhXp_!!0-0-cib.jpg"),
+      true,
+    );
+  });
+
+  it("ignores factory yellow-page html without target offerId", () => {
+    const html = `
+      "subject":"雨伞超轻伞"
+      "imageList":["https://cbu01.alicdn.com/img/ibank/O1CN_umbrella.jpg"]
+    `;
+    const parsed = parse1688OfferData(html, { offerId: "902274547361" });
+    assert.equal(parsed.images.length, 0);
+    assert.equal(parsed.title, undefined);
   });
 
   it("extracts offerId from qr and detail urls", () => {

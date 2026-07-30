@@ -47,6 +47,13 @@ function angleSrc(a: GeneratedAngle): string | null {
   return null;
 }
 
+function proxyListingImage(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+  if (url.startsWith("/")) return url;
+  return `${MATCHCUT_API.imageProxy}?url=${encodeURIComponent(url)}`;
+}
+
 async function downloadZip(
   files: { filename: string; base64: string }[],
   zipName: string,
@@ -103,6 +110,9 @@ export function MatchCutStudio({
   const [marketChannels, setMarketChannels] = useState<string[]>(["coupang", "smartstore"]);
   const [registering, setRegistering] = useState(false);
   const [registerResults, setRegisterResults] = useState<RegisterResult[]>([]);
+  const [rematching, setRematching] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
+  const [savingListing, setSavingListing] = useState(false);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("project");
@@ -163,6 +173,118 @@ export function MatchCutStudio({
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류");
     }
+  };
+
+  const patchListing = (patch: Partial<ScrapedListing>) => {
+    setListing((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const saveListingEdits = async (next?: ScrapedListing) => {
+    if (!projectId) return;
+    const payload = next ?? listing;
+    if (!payload) return;
+    setSavingListing(true);
+    try {
+      const res = await fetch(MATCHCUT_API.projects, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: projectId,
+          title: payload.titleKo || payload.title,
+          listing: payload,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "저장 실패");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "저장 실패");
+    } finally {
+      setSavingListing(false);
+    }
+  };
+
+  const addGalleryFiles = async (files: FileList | null) => {
+    if (!files?.length || !listing) return;
+    const added: ScrapedListing["images"] = [];
+    for (const f of Array.from(files)) {
+      const meta = await fileToBase64(f);
+      added.push({
+        url: `data:${meta.mime};base64,${meta.base64}`,
+        source: "gallery",
+      });
+    }
+    const next = {
+      ...listing,
+      images: [...listing.images, ...added],
+      scrapeWarning: undefined,
+    };
+    setListing(next);
+    await saveListingEdits(next);
+  };
+
+  const addGalleryUrl = async () => {
+    if (!listing) return;
+    const raw = galleryUrlInput.trim();
+    if (!raw) return;
+    const next = {
+      ...listing,
+      images: [...listing.images, { url: raw, source: "gallery" as const }],
+      scrapeWarning: undefined,
+    };
+    setListing(next);
+    setGalleryUrlInput("");
+    await saveListingEdits(next);
+  };
+
+  const removeGalleryImage = async (index: number) => {
+    if (!listing) return;
+    const next = {
+      ...listing,
+      images: listing.images.filter((_, i) => i !== index),
+    };
+    setListing(next);
+    if (selected && listing.images[index]?.url === selected.imageUrl) {
+      setSelected(null);
+    }
+    await saveListingEdits(next);
+  };
+
+  const runRematch = async () => {
+    if (!projectId || !listing || !fileMeta) return;
+    setRematching(true);
+    setError(null);
+    try {
+      const res = await fetch(MATCHCUT_API.rematch, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          listing,
+          referenceImageBase64: fileMeta.base64,
+          referenceMime: fileMeta.mime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "재매칭 실패");
+      setListing(data.listing);
+      setMatch(data.match);
+      setSelected(data.match.bestMatch);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "재매칭 실패");
+    } finally {
+      setRematching(false);
+    }
+  };
+
+  const useReferenceAsSelected = () => {
+    if (!fileMeta) return;
+    const imageUrl = `data:${fileMeta.mime};base64,${fileMeta.base64}`;
+    setSelected({
+      imageUrl,
+      score: 100,
+      reason: "실사진을 매칭 기준으로 사용",
+      skuLabel: "실사진",
+    });
   };
 
   const runGenerate = async () => {
@@ -496,43 +618,255 @@ export function MatchCutStudio({
         </p>
       )}
 
-      {phase === "pick" && match && (
-        <section className="mt-8">
-          <h2 className="font-semibold">매칭 후보 — 직접 선택</h2>
-          <p className="mt-1 text-sm text-slate-600">{match.referenceDescription}</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {match.candidates.map((c, i) => (
+      {phase === "pick" && listing && (
+        <section className="mt-8 space-y-6">
+          {listing.scrapeWarning && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              {listing.scrapeWarning}
+            </p>
+          )}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-slate-900">상품 정보</h2>
               <button
-                key={`${c.imageUrl}-${i}`}
                 type="button"
-                onClick={() => setSelected(c)}
-                className={`rounded-xl border-2 p-2 text-left ${
-                  selected?.imageUrl === c.imageUrl
-                    ? "border-trust-600 bg-trust-50"
-                    : "border-slate-200"
-                }`}
+                disabled={savingListing}
+                onClick={() => void saveListingEdits()}
+                className="rounded-lg border px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.imageUrl} alt="" className="aspect-square w-full rounded-lg object-contain" />
-                <p className="mt-1 text-xs font-semibold text-trust-700">{c.score}%</p>
-                <p className="line-clamp-2 text-xs text-slate-600">{c.reason}</p>
+                {savingListing ? "저장 중…" : "정보 저장"}
               </button>
-            ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">가져온 내용을 확인하고 수정·추가할 수 있습니다.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs text-slate-600 sm:col-span-2">
+                한국어 상품명
+                <input
+                  value={listing.titleKo ?? ""}
+                  onChange={(e) => patchListing({ titleKo: e.target.value })}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                  placeholder="예: 자동차 시트 수납 가방"
+                />
+              </label>
+              <label className="block text-xs text-slate-600 sm:col-span-2">
+                원문 제목
+                <input
+                  value={listing.title ?? ""}
+                  onChange={(e) => patchListing({ title: e.target.value })}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block text-xs text-slate-600">
+                가격
+                <input
+                  value={listing.priceText ?? ""}
+                  onChange={(e) => patchListing({ priceText: e.target.value })}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                  placeholder="¥19.9"
+                />
+              </label>
+              <label className="block text-xs text-slate-600">
+                최소주문(MOQ)
+                <input
+                  value={listing.moq ?? ""}
+                  onChange={(e) => patchListing({ moq: e.target.value })}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block text-xs text-slate-600 sm:col-span-2">
+                판매자/공장
+                <input
+                  value={listing.sellerName ?? ""}
+                  onChange={(e) => patchListing({ sellerName: e.target.value })}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block text-xs text-slate-600 sm:col-span-2">
+                설명 / 메모
+                <textarea
+                  value={listing.description ?? listing.notes ?? ""}
+                  onChange={(e) =>
+                    patchListing({ description: e.target.value, notes: e.target.value })
+                  }
+                  rows={3}
+                  className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+                  placeholder="옵션, 색상, 재질 등"
+                />
+              </label>
+            </div>
+            {(listing.attributes?.length ?? 0) > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-slate-600">속성</p>
+                <ul className="mt-2 space-y-2">
+                  {listing.attributes!.map((attr, i) => (
+                    <li key={`${attr.name}-${i}`} className="flex gap-2">
+                      <input
+                        value={attr.name}
+                        onChange={(e) => {
+                          const attributes = [...(listing.attributes ?? [])];
+                          attributes[i] = { ...attributes[i]!, name: e.target.value };
+                          patchListing({ attributes });
+                        }}
+                        className="w-1/3 rounded-lg border px-2 py-1.5 text-xs"
+                      />
+                      <input
+                        value={attr.value}
+                        onChange={(e) => {
+                          const attributes = [...(listing.attributes ?? [])];
+                          attributes[i] = { ...attributes[i]!, value: e.target.value };
+                          patchListing({ attributes });
+                        }}
+                        className="flex-1 rounded-lg border px-2 py-1.5 text-xs"
+                      />
+                      <button
+                        type="button"
+                        className="text-xs text-red-600"
+                        onClick={() =>
+                          patchListing({
+                            attributes: (listing.attributes ?? []).filter((_, j) => j !== i),
+                          })
+                        }
+                      >
+                        삭제
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              type="button"
+              className="mt-3 text-xs font-medium text-trust-700"
+              onClick={() =>
+                patchListing({
+                  attributes: [...(listing.attributes ?? []), { name: "", value: "" }],
+                })
+              }
+            >
+              + 속성 추가
+            </button>
+            <p className="mt-3 break-all text-[11px] text-slate-400">{listing.url}</p>
           </div>
-          <button
-            type="button"
-            onClick={runGenerate}
-            disabled={!selected}
-            className="mt-4 rounded-xl bg-trust-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            상세컷 {anglePack.label} + 썸네일 3장 ({genCost} 크레딧
-            {anglePack.listCredits > anglePack.credits
-              ? ` · 정가 ${anglePack.listCredits} → ${Math.round(
-                  (1 - anglePack.credits / anglePack.listCredits) * 100,
-                )}%↓`
-              : ""}
-            {anglePack.badge ? ` · ${anglePack.badge}` : ""})
-          </button>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="font-semibold text-slate-900">상품 갤러리</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              자동으로 가져온 사진 + 직접 추가한 사진으로 매칭합니다.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {listing.images.map((img, i) => (
+                <div key={`${img.url.slice(0, 48)}-${i}`} className="relative rounded-xl border p-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={proxyListingImage(img.url)}
+                    alt=""
+                    className="aspect-square w-full rounded-lg object-contain bg-slate-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void removeGalleryImage(i)}
+                    className="absolute right-2 top-2 rounded bg-white/90 px-2 py-0.5 text-[10px] font-medium text-red-600 shadow"
+                  >
+                    삭제
+                  </button>
+                </div>
+              ))}
+              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-500 hover:border-trust-300">
+                + 사진 추가
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => void addGalleryFiles(e.target.files)}
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={galleryUrlInput}
+                onChange={(e) => setGalleryUrlInput(e.target.value)}
+                placeholder="이미지 URL 붙여넣기"
+                className="flex-1 rounded-xl border px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => void addGalleryUrl()}
+                className="rounded-xl border px-4 py-2 text-sm font-medium"
+              >
+                URL 추가
+              </button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={rematching || listing.images.length === 0}
+                onClick={() => void runRematch()}
+                className="rounded-xl bg-trust-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {rematching ? "매칭 중…" : "갤러리로 다시 매칭 (무료)"}
+              </button>
+              <button
+                type="button"
+                onClick={useReferenceAsSelected}
+                className="rounded-xl border px-4 py-2.5 text-sm font-medium text-slate-700"
+              >
+                실사진을 기준으로 진행
+              </button>
+            </div>
+          </div>
+
+          {match && (
+            <div>
+              <h2 className="font-semibold">매칭 후보 — 직접 선택</h2>
+              <p className="mt-1 text-sm text-slate-600">{match.referenceDescription}</p>
+              {match.candidates.length === 0 ? (
+                <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  아직 매칭 후보가 없습니다. 갤러리에 상품 사진을 추가한 뒤 「다시 매칭」을 눌러 주세요.
+                  또는 「실사진을 기준으로 진행」할 수 있습니다.
+                </p>
+              ) : (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {match.candidates.map((c, i) => (
+                    <button
+                      key={`${c.imageUrl}-${i}`}
+                      type="button"
+                      onClick={() => setSelected(c)}
+                      className={`rounded-xl border-2 p-2 text-left ${
+                        selected?.imageUrl === c.imageUrl
+                          ? "border-trust-600 bg-trust-50"
+                          : "border-slate-200"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={proxyListingImage(c.imageUrl)}
+                        alt=""
+                        className="aspect-square w-full rounded-lg object-contain bg-slate-50"
+                      />
+                      <p className="mt-1 text-xs font-semibold text-trust-700">{c.score}%</p>
+                      <p className="line-clamp-2 text-xs text-slate-600">{c.reason}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={runGenerate}
+                disabled={!selected}
+                className="mt-4 rounded-xl bg-trust-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                상세컷 {anglePack.label} + 썸네일 3장 ({genCost} 크레딧
+                {anglePack.listCredits > anglePack.credits
+                  ? ` · 정가 ${anglePack.listCredits} → ${Math.round(
+                      (1 - anglePack.credits / anglePack.listCredits) * 100,
+                    )}%↓`
+                  : ""}
+                {anglePack.badge ? ` · ${anglePack.badge}` : ""})
+              </button>
+            </div>
+          )}
         </section>
       )}
 
