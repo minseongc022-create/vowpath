@@ -10,6 +10,7 @@ import {
   to1688MobileUrl,
   extract1688OfferId,
   isLikelyProductImage,
+  upgradeCdnUrl,
 } from "../../lib/sourcing-detail/extract-images.ts";
 import { MARKET_SPECS } from "../../lib/matchcut/constants.ts";
 import { buildDetailPageHtml } from "../../lib/sourcing-detail/detail-layout.ts";
@@ -74,6 +75,13 @@ describe("sourcing-detail platforms", () => {
     const parsed = parse1688OfferData(html, { offerId: "902274547361" });
     assert.equal(parsed.images.length, 0);
     assert.equal(parsed.title, undefined);
+  });
+
+  it("upgrades jina webp image urls", () => {
+    assert.equal(
+      upgradeCdnUrl("https://cbu01.alicdn.com/img/ibank/O1CN01test_!!1-0-cib.jpg_.webp"),
+      "https://cbu01.alicdn.com/img/ibank/O1CN01test_!!1-0-cib.jpg",
+    );
   });
 
   it("extracts offerId from qr and detail urls", () => {

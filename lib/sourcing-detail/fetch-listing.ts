@@ -11,6 +11,7 @@ import {
   to1688MobileUrl,
   toListingImages,
 } from "./extract-images";
+import { fetch1688ViaJina } from "./jina-1688";
 import type { ScrapedListing } from "./types";
 
 const USER_AGENT =
@@ -249,6 +250,28 @@ export async function scrapeListing(
   listing.images = filterProductImages(listing.images);
   listing.titleKo = listing.titleKo ?? shareTitle;
   if (!listing.title && shareTitle) listing.title = shareTitle;
+
+  // Cloud IPs are often geo-blocked by 1688 — fall back to Jina reader mirror.
+  if (platform === "1688" && offerId && listing.images.length === 0) {
+    const viaJina = await fetch1688ViaJina(offerId);
+    if (viaJina && viaJina.images.length > 0) {
+      listing = {
+        ...listing,
+        url: viaJina.sourceUrl || listing.url,
+        title: viaJina.title ?? listing.title,
+        titleKo: listing.titleKo ?? shareTitle,
+        priceText: viaJina.priceText ?? listing.priceText,
+        priceCny: viaJina.priceCny ?? listing.priceCny,
+        attributes:
+          viaJina.attributes.length > 0 ? viaJina.attributes : listing.attributes,
+        images: filterProductImages(viaJina.images),
+        rawImageCount: viaJina.images.length,
+        scrapeWarning: undefined,
+      };
+      if (!listing.title && shareTitle) listing.title = shareTitle;
+      return listing;
+    }
+  }
 
   if (listing.images.length === 0) {
     listing.scrapeWarning = blocked

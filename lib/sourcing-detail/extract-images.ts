@@ -20,6 +20,10 @@ export function upgradeCdnUrl(url: string): string {
   u = u.replace(/_\d+x\d+\.(jpg|jpeg|png|webp)/i, ".$1");
   u = u.replace(/\.sum\.(jpg|jpeg|png|webp)/i, ".$1");
   u = u.replace(/_Q\d+\.(jpg|jpeg|png|webp)/i, ".$1");
+  u = u.replace(/\.jpg_\.webp$/i, ".jpg");
+  u = u.replace(/\.png_\.webp$/i, ".png");
+  u = u.replace(/_sum\.jpg$/i, ".jpg");
+  u = u.replace(/_\.webp$/i, "");
   return u;
 }
 
