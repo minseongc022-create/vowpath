@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CREDIT_COSTS } from "@/lib/matchcut/constants";
+import { getAnglePackage } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 import { runGeneratePhase } from "@/lib/sourcing-detail/pipeline";
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     const referenceMime = body.referenceMime ? String(body.referenceMime) : undefined;
     const maxAngles = Math.min(5, Math.max(1, Number(body.maxAngles ?? 3)));
     const withThumbnails = body.withThumbnails !== false;
+    const pack = getAnglePackage(maxAngles);
 
     if (!listing || !match || !selectedCandidate) {
       return NextResponse.json({ error: "매칭 데이터가 필요합니다." }, { status: 400 });
@@ -28,9 +29,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "실제 상품 사진이 필요합니다." }, { status: 400 });
     }
 
-    const angleCost = CREDIT_COSTS.angle * maxAngles;
-    const thumbCost = withThumbnails ? CREDIT_COSTS.thumbnail * THUMBNAIL_COUNT : 0;
-    const totalCost = angleCost + thumbCost;
+    // Package price includes 3 thumbnails — 혜자 체감 / 마진 확보
+    const totalCost = pack.credits;
     await debitCredits(session.sub, totalCost);
 
     const result = await runGeneratePhase({
@@ -43,12 +43,16 @@ export async function POST(request: Request) {
       generateThumbnails: withThumbnails,
     });
 
-    const failedAngles = maxAngles - result.successCount;
-    const failedThumbs = withThumbnails
-      ? THUMBNAIL_COUNT - result.thumbnailSuccessCount
-      : 0;
+    // Proportional refund for failed outputs
+    const expectedUnits = maxAngles + (withThumbnails ? THUMBNAIL_COUNT : 0);
+    const successUnits =
+      result.successCount + (withThumbnails ? result.thumbnailSuccessCount : 0);
+    const failedUnits = Math.max(0, expectedUnits - successUnits);
     const refundAmount =
-      failedAngles * CREDIT_COSTS.angle + failedThumbs * CREDIT_COSTS.thumbnail;
+      expectedUnits > 0
+        ? Math.round((failedUnits / expectedUnits) * totalCost)
+        : totalCost;
+
     if (refundAmount > 0) {
       await grantCredits(session.sub, refundAmount, "permanent");
     }
@@ -93,6 +97,7 @@ export async function POST(request: Request) {
       detailPageHtml: result.detailPageHtml,
       detailBundle: result.detailBundle,
       projectId,
+      pack,
       creditsDebited: totalCost - refundAmount,
       creditsRefunded: refundAmount,
       credits,

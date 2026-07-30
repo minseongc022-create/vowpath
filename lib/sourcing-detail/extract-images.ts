@@ -194,15 +194,30 @@ export function parse1688OfferData(html: string): {
 }
 
 export function to1688MobileUrl(desktopUrl: string): string | null {
-  try {
-    const u = new URL(desktopUrl);
-    if (!u.hostname.includes("1688.com")) return null;
-    const offerMatch = u.pathname.match(/offer\/(\d+)/);
-    if (offerMatch) {
-      return `https://m.1688.com/offer/${offerMatch[1]}.html`;
-    }
-    return null;
-  } catch {
-    return null;
+  const offerId = extract1688OfferId(desktopUrl);
+  return offerId ? `https://m.1688.com/offer/${offerId}.html` : null;
+}
+
+/** Extract numeric offerId from detail/mobile/qr/share URLs or paste text */
+export function extract1688OfferId(raw: string): string | null {
+  const text = String(raw ?? "");
+  const patterns = [
+    /offer\/(\d{6,})/i,
+    /[?&]offerId=(\d{6,})/i,
+    /offerId["'\s:=]+(\d{6,})/i,
+    /[?&]id=(\d{6,})(?:\.html)?/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m?.[1]) return m[1];
   }
+  return null;
+}
+
+export function to1688FactoryCardUrl(offerId: string): string {
+  return `https://sale.1688.com/factory/card.html?offerId=${offerId}`;
+}
+
+export function to1688DetailUrl(offerId: string): string {
+  return `https://detail.1688.com/offer/${offerId}.html`;
 }

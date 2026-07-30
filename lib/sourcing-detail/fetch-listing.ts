@@ -1,9 +1,12 @@
 import { detectPlatform, normalizeListingUrl } from "./platforms";
 import {
   dedupeImages,
+  extract1688OfferId,
   extractImageUrlsFromHtml,
   extractSkuOptionsFromHtml,
   parse1688OfferData,
+  to1688DetailUrl,
+  to1688FactoryCardUrl,
   to1688MobileUrl,
   toListingImages,
 } from "./extract-images";
@@ -22,8 +25,10 @@ function extractTitle(html: string): string | undefined {
   if (og?.[1]) return decodeHtmlEntities(og[1].trim());
 
   const title = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (title?.[1]) return decodeHtmlEntities(title[1].trim());
-
+  if (title?.[1]) {
+    const t = decodeHtmlEntities(title[1].trim());
+    if (!/访问被拒绝|denied|403/i.test(t)) return t;
+  }
   return undefined;
 }
 
@@ -45,6 +50,7 @@ async function fetchHtml(url: string, mobile = false): Promise<string> {
         "User-Agent": mobile ? MOBILE_UA : USER_AGENT,
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        Referer: "https://www.1688.com/",
       },
       signal: controller.signal,
       redirect: "follow",
@@ -58,23 +64,11 @@ async function fetchHtml(url: string, mobile = false): Promise<string> {
   }
 }
 
-async function fetchHtmlWithPlaywright(url: string): Promise<string | null> {
+async function fetchHtmlSafe(url: string, mobile = false): Promise<string> {
   try {
-    const { chromium } = await import("playwright");
-    const browser = await chromium.launch({ headless: true });
-    try {
-      const page = await browser.newPage({
-        userAgent: USER_AGENT,
-        locale: "zh-CN",
-      });
-      await page.goto(url, { waitUntil: "networkidle", timeout: FETCH_TIMEOUT_MS });
-      await page.waitForTimeout(2000);
-      return await page.content();
-    } finally {
-      await browser.close();
-    }
+    return await fetchHtml(url, mobile);
   } catch {
-    return null;
+    return "";
   }
 }
 
@@ -103,75 +97,94 @@ function merge1688Parse(html: string, base: ScrapedListing): ScrapedListing {
   };
 }
 
-async function resolveRedirectUrl(url: string): Promise<string> {
-  // qr.1688.com / short links → follow to real detail page
-  if (!/qr\.1688\.com|s\.click\.|u\.1688\.com/i.test(url)) return url;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12_000);
-    try {
-      const res = await fetch(url, {
-        method: "GET",
-        redirect: "follow",
-        headers: { "User-Agent": MOBILE_UA, Accept: "text/html,*/*" },
-        signal: controller.signal,
-      });
-      if (res.url && res.url !== url) return res.url;
-      // Some pages embed offerId / detail link in HTML
-      const html = await res.text();
-      const detail =
-        html.match(/https?:\/\/detail\.1688\.com\/offer\/\d+\.html/i)?.[0] ??
-        html.match(/https?:\/\/m\.1688\.com\/offer\/\d+\.html/i)?.[0];
-      if (detail) return detail;
-      const offerId = html.match(/offerId["'\s:=]+(\d{6,})/i)?.[1];
-      if (offerId) return `https://detail.1688.com/offer/${offerId}.html`;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    /* keep original */
+async function resolve1688OfferId(url: string): Promise<{ offerId: string | null; htmlHint: string }> {
+  let offerId = extract1688OfferId(url);
+  if (offerId) return { offerId, htmlHint: "" };
+
+  if (!/qr\.1688\.com|s\.click\.|u\.1688\.com/i.test(url)) {
+    return { offerId: null, htmlHint: "" };
   }
-  return url;
+
+  try {
+    const html = await fetchHtml(url, true);
+    offerId = extract1688OfferId(html) ?? extract1688OfferId(url);
+    return { offerId, htmlHint: html };
+  } catch {
+    return { offerId: null, htmlHint: "" };
+  }
 }
 
 export async function scrapeListing(url: string): Promise<ScrapedListing> {
-  const normalized = await resolveRedirectUrl(normalizeListingUrl(url));
-  const platform = detectPlatform(normalized);
+  const normalizedInput = normalizeListingUrl(url);
+  const platform = detectPlatform(normalizedInput);
 
-  let html = await fetchHtml(normalized);
-  let imageUrls = extractImageUrlsFromHtml(html);
+  let canonicalUrl = normalizedInput;
+  let htmlParts: string[] = [];
+  let imageUrls: string[] = [];
 
-  // 1688: try mobile page (often richer JSON for SKU images)
-  if (platform === "1688" && imageUrls.length < 5) {
-    const mobileUrl = to1688MobileUrl(normalized);
-    if (mobileUrl) {
+  if (platform === "1688") {
+    const { offerId, htmlHint } = await resolve1688OfferId(normalizedInput);
+    if (htmlHint) htmlParts.push(htmlHint);
+
+    if (offerId) {
+      canonicalUrl = to1688DetailUrl(offerId);
+
+      // Primary: factory card page often returns gallery even when detail is geo-blocked
+      const cardHtml = await fetchHtmlSafe(to1688FactoryCardUrl(offerId));
+      if (cardHtml) {
+        htmlParts.push(cardHtml);
+        imageUrls = [...imageUrls, ...extractImageUrlsFromHtml(cardHtml)];
+      }
+
+      // Secondary: mobile + desktop shells (sometimes still have JSON)
+      const mobileHtml = await fetchHtmlSafe(to1688MobileUrl(canonicalUrl) ?? "", true);
+      if (mobileHtml) {
+        htmlParts.push(mobileHtml);
+        imageUrls = [...imageUrls, ...extractImageUrlsFromHtml(mobileHtml)];
+      }
+      const deskHtml = await fetchHtmlSafe(canonicalUrl);
+      if (deskHtml) {
+        htmlParts.push(deskHtml);
+        imageUrls = [...imageUrls, ...extractImageUrlsFromHtml(deskHtml)];
+      }
+    } else {
+      const html = await fetchHtmlSafe(normalizedInput);
+      htmlParts.push(html);
+      imageUrls = extractImageUrlsFromHtml(html);
+    }
+  } else {
+    const html = await fetchHtml(normalizedInput);
+    htmlParts.push(html);
+    imageUrls = extractImageUrlsFromHtml(html);
+
+    if (imageUrls.length < 3) {
       try {
-        const mobileHtml = await fetchHtml(mobileUrl, true);
-        imageUrls = [...new Set([...imageUrls, ...extractImageUrlsFromHtml(mobileHtml)])];
-        html = `${html}\n<!-- mobile -->\n${mobileHtml}`;
+        const { chromium } = await import("playwright");
+        const browser = await chromium.launch({ headless: true });
+        try {
+          const page = await browser.newPage({ userAgent: USER_AGENT, locale: "zh-CN" });
+          await page.goto(normalizedInput, { waitUntil: "domcontentloaded", timeout: FETCH_TIMEOUT_MS });
+          await page.waitForTimeout(2500);
+          const pw = await page.content();
+          htmlParts.push(pw);
+          imageUrls = [...imageUrls, ...extractImageUrlsFromHtml(pw)];
+        } finally {
+          await browser.close();
+        }
       } catch {
-        /* mobile fallback optional */
+        /* optional */
       }
     }
   }
 
-  if (imageUrls.length < 3) {
-    const playwrightHtml = await fetchHtmlWithPlaywright(normalized);
-    if (playwrightHtml) {
-      html = `${html}\n<!-- pw -->\n${playwrightHtml}`;
-      imageUrls = extractImageUrlsFromHtml(html);
-    }
-  }
-
+  const html = htmlParts.join("\n<!-- part -->\n");
   const skuOptions = extractSkuOptionsFromHtml(html);
-  const skuImages = skuOptions
-    .map((s) => s.imageUrl)
-    .filter((u): u is string => Boolean(u));
-
+  const skuImages = skuOptions.map((s) => s.imageUrl).filter((u): u is string => Boolean(u));
   const allUrls = [...imageUrls, ...skuImages];
+
   let listing: ScrapedListing = {
     platform,
-    url: normalized,
+    url: canonicalUrl,
     title: extractTitle(html),
     images: dedupeImages(toListingImages(allUrls)).slice(0, 80),
     skuOptions,
@@ -180,6 +193,12 @@ export async function scrapeListing(url: string): Promise<ScrapedListing> {
 
   if (platform === "1688") {
     listing = merge1688Parse(html, listing);
+  }
+
+  if (listing.images.length === 0) {
+    throw new Error(
+      "LISTING_IMAGES_EMPTY — 1688 상품 이미지를 가져오지 못했습니다. 잠시 후 다시 시도하거나 detail.1688.com 상품 링크를 직접 넣어 주세요.",
+    );
   }
 
   return listing;

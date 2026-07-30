@@ -8,6 +8,7 @@ import {
   toListingImages,
   parse1688OfferData,
   to1688MobileUrl,
+  extract1688OfferId,
 } from "../../lib/sourcing-detail/extract-images.ts";
 import { MARKET_SPECS } from "../../lib/matchcut/constants.ts";
 import { buildDetailPageHtml } from "../../lib/sourcing-detail/detail-layout.ts";
@@ -44,6 +45,17 @@ describe("sourcing-detail platforms", () => {
     assert.equal(url, "https://qr.1688.com/s/u5tTOli3");
     assert.equal(detectPlatform(url), "1688");
     assert.equal(isSupportedListingUrl(url), true);
+  });
+
+  it("extracts offerId from qr and detail urls", () => {
+    assert.equal(
+      extract1688OfferId("https://detail.1688.com/offer/902274547361.html"),
+      "902274547361",
+    );
+    assert.equal(
+      extract1688OfferId("https://sale.1688.com/factory/card.html?offerId=902274547361"),
+      "902274547361",
+    );
   });
 });
 

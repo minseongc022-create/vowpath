@@ -45,8 +45,11 @@ export const MATCHCUT_API = {
 export const CREDIT_COSTS = {
   /** URL 스캔 + 실사진 비전 매칭 (프로젝트 개설에 해당) */
   match: 20,
-  /** AI 상세컷 1장 */
-  angle: 8,
+  /**
+   * @deprecated use ANGLE_PACKAGES — kept for fix/ad unit economics
+   * 상세컷 단가 참고치 (패키지 할인 전)
+   */
+  angle: 12,
   /** 이상한 컷 AI 수정 1회 */
   fixAngle: 6,
   /** 경쟁가·마진 추천 */
@@ -55,14 +58,45 @@ export const CREDIT_COSTS = {
   marketRegister: 8,
   /** 마케팅 광고카드 1장 */
   adCard: 12,
-  /** 마켓 썸네일 1장 (상세 생성 시 3장) */
+  /** 마켓 썸네일 1장 — 패키지에 포함되어 체감 혜자 */
   thumbnail: 5,
   /** ZIP/HTML 내보내기 — 업계 관행상 무료 */
   export: 0,
 } as const;
 
+/**
+ * 상세컷 패키지 (썸네일 3장 포함).
+ * listCredits = 단가 합산 정가 느낌, credits = 실제 차감 (볼륨 할인 → 혜자 체감).
+ * API 원가 대비 여유 마진 확보 (이미지 생성 고원가 가정).
+ */
+export const ANGLE_PACKAGES = [
+  { angles: 1, credits: 24, listCredits: 36, label: "1장", badge: null as string | null },
+  { angles: 2, credits: 36, listCredits: 54, label: "2장", badge: null },
+  { angles: 3, credits: 45, listCredits: 72, label: "3장", badge: "인기" },
+  { angles: 4, credits: 52, listCredits: 90, label: "4장", badge: null },
+  { angles: 5, credits: 56, listCredits: 108, label: "5장", badge: "혜자" },
+] as const;
+
+export type AnglePackage = (typeof ANGLE_PACKAGES)[number];
+
+export function getAnglePackage(angles: number): AnglePackage {
+  const n = Math.min(5, Math.max(1, Math.round(angles)));
+  return ANGLE_PACKAGES.find((p) => p.angles === n) ?? ANGLE_PACKAGES[2]!;
+}
+
+/** 매칭만 */
+export function estimateMatchCredits(): number {
+  return CREDIT_COSTS.match;
+}
+
+/** 매칭 + 상세컷 패키지(썸네일 포함) */
 export function estimateRunCredits(maxAngles: number): number {
-  return CREDIT_COSTS.match + CREDIT_COSTS.angle * maxAngles;
+  return CREDIT_COSTS.match + getAnglePackage(maxAngles).credits;
+}
+
+/** 생성 단계만 (이미 매칭 후) */
+export function estimateGenerateCredits(maxAngles: number): number {
+  return getAnglePackage(maxAngles).credits;
 }
 
 export type CreditPackId =

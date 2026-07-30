@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  ANGLE_PACKAGES,
   CREDIT_COSTS,
   MATCHCUT_API,
   MATCHCUT_ROUTES,
+  estimateGenerateCredits,
   estimateRunCredits,
+  getAnglePackage,
 } from "@/lib/matchcut/constants";
 import type { PricingRecommendation } from "@/lib/matchcut/pricing-calc";
 import type { RegisterResult } from "@/lib/matchcut/markets/types";
@@ -389,10 +392,10 @@ export function MatchCutStudio({
     }
   };
 
+  const anglePack = getAnglePackage(maxAngles);
   const estCost =
-    phase === "input"
-      ? estimateRunCredits(maxAngles) + CREDIT_COSTS.thumbnail * 3
-      : null;
+    phase === "input" ? estimateRunCredits(maxAngles) : null;
+  const genCost = estimateGenerateCredits(maxAngles);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -447,19 +450,25 @@ export function MatchCutStudio({
               placeholder="1688 공유 문구 붙여넣기 또는 https://detail.1688.com/offer/..."
               className="mt-3 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
             />
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              <label>각도</label>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <label className="text-slate-600">상세컷</label>
               <select
                 value={maxAngles}
                 onChange={(e) => setMaxAngles(Number(e.target.value))}
                 className="rounded-lg border px-2 py-1"
               >
-                <option value={1}>1장</option>
-                <option value={3}>3장</option>
-                <option value={5}>5장</option>
+                {ANGLE_PACKAGES.map((p) => (
+                  <option key={p.angles} value={p.angles}>
+                    {p.label}
+                    {p.badge ? ` · ${p.badge}` : ""} — {p.credits}크레딧
+                    {p.listCredits > p.credits ? ` (정가 ${p.listCredits})` : ""}
+                  </option>
+                ))}
               </select>
               {estCost && (
-                <span className="text-slate-500">예상 {estCost} 크레딧/건</span>
+                <span className="text-slate-500">
+                  매칭+생성 예상 {estCost} · 썸네일 3장 포함
+                </span>
               )}
             </div>
             {phase === "input" && (
@@ -515,8 +524,13 @@ export function MatchCutStudio({
             disabled={!selected}
             className="mt-4 rounded-xl bg-trust-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            상세컷 + 썸네일 3장 ({maxAngles * CREDIT_COSTS.angle + CREDIT_COSTS.thumbnail * 3}{" "}
-            크레딧)
+            상세컷 {anglePack.label} + 썸네일 3장 ({genCost} 크레딧
+            {anglePack.listCredits > anglePack.credits
+              ? ` · 정가 ${anglePack.listCredits} → ${Math.round(
+                  (1 - anglePack.credits / anglePack.listCredits) * 100,
+                )}%↓`
+              : ""}
+            {anglePack.badge ? ` · ${anglePack.badge}` : ""})
           </button>
         </section>
       )}
