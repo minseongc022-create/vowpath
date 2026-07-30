@@ -103,8 +103,39 @@ function merge1688Parse(html: string, base: ScrapedListing): ScrapedListing {
   };
 }
 
+async function resolveRedirectUrl(url: string): Promise<string> {
+  // qr.1688.com / short links → follow to real detail page
+  if (!/qr\.1688\.com|s\.click\.|u\.1688\.com/i.test(url)) return url;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12_000);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        headers: { "User-Agent": MOBILE_UA, Accept: "text/html,*/*" },
+        signal: controller.signal,
+      });
+      if (res.url && res.url !== url) return res.url;
+      // Some pages embed offerId / detail link in HTML
+      const html = await res.text();
+      const detail =
+        html.match(/https?:\/\/detail\.1688\.com\/offer\/\d+\.html/i)?.[0] ??
+        html.match(/https?:\/\/m\.1688\.com\/offer\/\d+\.html/i)?.[0];
+      if (detail) return detail;
+      const offerId = html.match(/offerId["'\s:=]+(\d{6,})/i)?.[1];
+      if (offerId) return `https://detail.1688.com/offer/${offerId}.html`;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    /* keep original */
+  }
+  return url;
+}
+
 export async function scrapeListing(url: string): Promise<ScrapedListing> {
-  const normalized = normalizeListingUrl(url);
+  const normalized = await resolveRedirectUrl(normalizeListingUrl(url));
   const platform = detectPlatform(normalized);
 
   let html = await fetchHtml(normalized);

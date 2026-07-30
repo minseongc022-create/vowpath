@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { detectPlatform, isSupportedListingUrl } from "../../lib/sourcing-detail/platforms.ts";
+import { detectPlatform, isSupportedListingUrl, normalizeListingUrl } from "../../lib/sourcing-detail/platforms.ts";
 import {
   extractImageUrlsFromHtml,
   extractSkuOptionsFromHtml,
@@ -35,6 +35,15 @@ describe("sourcing-detail platforms", () => {
   it("rejects unknown hosts", () => {
     assert.equal(isSupportedListingUrl("https://example.com"), false);
     assert.equal(isSupportedListingUrl("https://detail.1688.com/x"), true);
+  });
+
+  it("extracts URL from 1688 mobile share paste", () => {
+    const paste =
+      "【자동차 보관함, 의자 등받이 걸이 가방】复制￥qS3RxkY00maat￥,打开【手机阿里】查看：https://qr.1688.com/s/u5tTOli3 CZ3504";
+    const url = normalizeListingUrl(paste);
+    assert.equal(url, "https://qr.1688.com/s/u5tTOli3");
+    assert.equal(detectPlatform(url), "1688");
+    assert.equal(isSupportedListingUrl(url), true);
   });
 });
 

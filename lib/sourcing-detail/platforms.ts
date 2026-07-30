@@ -3,7 +3,7 @@ import type { SourcingPlatform } from "./types";
 const PLATFORM_PATTERNS: { platform: SourcingPlatform; patterns: RegExp[] }[] = [
   {
     platform: "1688",
-    patterns: [/1688\.com/i, /detail\.1688\.com/i],
+    patterns: [/1688\.com/i, /detail\.1688\.com/i, /qr\.1688\.com/i, /m\.1688\.com/i],
   },
   {
     platform: "taobao",
@@ -15,6 +15,25 @@ const PLATFORM_PATTERNS: { platform: SourcingPlatform; patterns: RegExp[] }[] = 
   },
 ];
 
+/** Extract first http(s) URL from pasted share text (모바일 알리 공유 문구 등) */
+export function extractUrlFromPaste(raw: string): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text) return null;
+
+  // Prefer known marketplace hosts
+  const preferred =
+    text.match(
+      /https?:\/\/(?:[\w.-]+\.)?(?:1688|taobao|tmall|aliexpress)\.com\/[^\s<>"']+/i,
+    ) ?? text.match(/https?:\/\/[^\s<>"']+/i);
+
+  if (!preferred) return null;
+
+  let url = preferred[0]!;
+  // Trim trailing punctuation / fullwidth junk common in share pastes
+  url = url.replace(/[)\]】>,，。．\s]+$/g, "");
+  return url;
+}
+
 export function detectPlatform(url: string): SourcingPlatform {
   for (const { platform, patterns } of PLATFORM_PATTERNS) {
     if (patterns.some((p) => p.test(url))) return platform;
@@ -22,13 +41,29 @@ export function detectPlatform(url: string): SourcingPlatform {
   return "unknown";
 }
 
-export function normalizeListingUrl(url: string): string {
-  const trimmed = url.trim();
+/**
+ * Accepts either a clean URL or a mobile share paste that contains a URL.
+ * Example 1688 share:
+ * 【상품명】复制￥xxx￥...查看：https://qr.1688.com/s/xxxxx
+ */
+export function normalizeListingUrl(raw: string): string {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return "";
+
+  // Direct URL
   try {
-    const parsed = new URL(trimmed);
-    return parsed.toString();
+    return new URL(trimmed).toString();
   } catch {
-    return trimmed;
+    /* fall through — maybe share paste */
+  }
+
+  const extracted = extractUrlFromPaste(trimmed);
+  if (!extracted) return "";
+
+  try {
+    return new URL(extracted).toString();
+  } catch {
+    return extracted;
   }
 }
 

@@ -444,7 +444,7 @@ export function MatchCutStudio({
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://detail.1688.com/offer/..."
+              placeholder="1688 공유 문구 붙여넣기 또는 https://detail.1688.com/offer/..."
               className="mt-3 w-full rounded-xl border px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
             />
             <div className="mt-3 flex items-center gap-2 text-sm">
