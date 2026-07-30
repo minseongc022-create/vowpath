@@ -53,7 +53,7 @@ export const MATCHCUT_API = {
 
 /** Paid packs — listed for floor computation (may be cheaper than policy floor). */
 const SELLABLE_PACKS_FOR_FLOOR = [
-  { id: "pack_150", credits: 310, priceKrw: 19900 },
+  { id: "pack_150", credits: 330, priceKrw: 19900 },
   { id: "pack_500", credits: 550, priceKrw: 49900 },
   { id: "sub_starter", credits: 220, priceKrw: 17900 },
   { id: "sub_pro", credits: 400, priceKrw: 49900 },
@@ -182,7 +182,7 @@ export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "pack_150",
     name: "셀러 팩",
-    credits: 310,
+    credits: 330,
     priceKrw: 19900,
     type: "permanent",
     badge: "인기",
