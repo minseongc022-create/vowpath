@@ -5,6 +5,8 @@
 
 export const MIN_GROSS_MARGIN_RATE = 0.3;
 export const PAYMENT_FEE_RATE = 0.05;
+/** Policy floor — generous pack credits don't lower per-action pricing. */
+export const POLICY_FLOOR_CREDIT_KRW = 95;
 /** Safety buffer on worst-case API estimates (retries, QA, vision) */
 export const API_COST_BUFFER = 1.2;
 

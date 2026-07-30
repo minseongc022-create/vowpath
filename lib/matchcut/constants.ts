@@ -3,6 +3,7 @@
 import {
   floorCreditKrw,
   minCreditsForMargin,
+  POLICY_FLOOR_CREDIT_KRW,
   worstGeneratePackageApiKrw,
   WORST_API_COST_KRW,
 } from "./economics.ts";
@@ -50,17 +51,20 @@ export const MATCHCUT_API = {
   imageProxy: "/api/matchcut/image-proxy",
 } as const;
 
-/** Paid packs — used to compute worst-case margin floor (cheapest KRW/credit). */
+/** Paid packs — listed for floor computation (may be cheaper than policy floor). */
 const SELLABLE_PACKS_FOR_FLOOR = [
-  { id: "pack_150", credits: 150, priceKrw: 19900 },
-  { id: "pack_500", credits: 500, priceKrw: 49900 },
-  { id: "sub_starter", credits: 120, priceKrw: 17900 },
+  { id: "pack_150", credits: 310, priceKrw: 19900 },
+  { id: "pack_500", credits: 550, priceKrw: 49900 },
+  { id: "sub_starter", credits: 220, priceKrw: 17900 },
   { id: "sub_pro", credits: 400, priceKrw: 49900 },
   { id: "sub_business", credits: 1000, priceKrw: 119900 },
   { id: "topup_50", credits: 50, priceKrw: 5900 },
 ] as const;
 
-const FLOOR_CREDIT_KRW = floorCreditKrw([...SELLABLE_PACKS_FOR_FLOOR]);
+const FLOOR_CREDIT_KRW = Math.max(
+  floorCreditKrw([...SELLABLE_PACKS_FOR_FLOOR]),
+  POLICY_FLOOR_CREDIT_KRW,
+);
 
 function marginSafeCredits(apiCostKrw: number): number {
   return minCreditsForMargin(apiCostKrw, FLOOR_CREDIT_KRW);
@@ -178,19 +182,19 @@ export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "pack_150",
     name: "셀러 팩",
-    credits: 150,
+    credits: 310,
     priceKrw: 19900,
     type: "permanent",
     badge: "인기",
-    description: "영구 보관 · 완성 약 1~2건",
+    description: "영구 보관 · 완성 3건",
   },
   {
     id: "pack_500",
     name: "파워 팩",
-    credits: 500,
+    credits: 550,
     priceKrw: 49900,
     type: "permanent",
-    description: "영구 보관 · 완성 약 4~5건",
+    description: "영구 보관 · 완성 약 5건",
   },
 ];
 
@@ -198,10 +202,10 @@ export const SUBSCRIPTION_PLANS: CreditPack[] = [
   {
     id: "sub_starter",
     name: "스타터",
-    credits: 120,
+    credits: 220,
     priceKrw: 17900,
     type: "subscription",
-    description: "월 120크레딧 · 매월 초기화",
+    description: "월 220크레딧 · 완성 약 2건",
   },
   {
     id: "sub_pro",

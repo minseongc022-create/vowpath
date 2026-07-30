@@ -17,6 +17,7 @@ import {
   assertMarginFloor,
   floorCreditKrw,
   grossMarginRate,
+  POLICY_FLOOR_CREDIT_KRW,
   worstGeneratePackageApiKrw,
   WORST_API_COST_KRW,
 } from "../../lib/matchcut/economics.ts";
@@ -24,8 +25,8 @@ import {
 const ALL_PACKS = [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK];
 
 describe("matchcut credits economics", () => {
-  it("floor credit KRW matches cheapest paid pack", () => {
-    assert.equal(FLOOR_CREDIT_KRW, floorCreditKrw(ALL_PACKS));
+  it("floor credit KRW uses policy minimum", () => {
+    assert.equal(FLOOR_CREDIT_KRW, Math.max(floorCreditKrw(ALL_PACKS), POLICY_FLOOR_CREDIT_KRW));
   });
 
   it("offers 1 through 5 angle packages", () => {
@@ -92,11 +93,18 @@ describe("matchcut credits economics", () => {
     });
   });
 
-  it("pack_500 supports multiple full runs", () => {
-    const pack = packById("pack_500");
+  it("pack_150 supports at least 3 full runs", () => {
+    const pack = packById("pack_150");
     assert.ok(pack);
     const runs = Math.floor(pack.credits / estimateRunCredits(3));
     assert.ok(runs >= 3);
+  });
+
+  it("pack_500 supports at least 5 full runs", () => {
+    const pack = packById("pack_500");
+    assert.ok(pack);
+    const runs = Math.floor(pack.credits / estimateRunCredits(3));
+    assert.ok(runs >= 5);
   });
 
   it("gross margin helper matches expectations", () => {
