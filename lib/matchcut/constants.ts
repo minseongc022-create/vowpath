@@ -1,9 +1,11 @@
 /** 매칭컷 (MatchCut) — 해외 소싱 셀러용 실사진·URL 옵션 매칭 + 상세컷 */
 
 import {
+  assertPackWorstCaseMargin,
   floorCreditKrw,
   minCreditsForMargin,
   POLICY_FLOOR_CREDIT_KRW,
+  standardPagesInPack,
   worstFullPageApiKrw,
   worstGeneratePackageApiKrw,
   worstStandardPageApiKrw,
@@ -53,13 +55,20 @@ export const MATCHCUT_API = {
   imageProxy: "/api/matchcut/image-proxy",
 } as const;
 
+/** Target standard-page counts — pack credits sized to hit these at worst-case API margin. */
+const SELLER_PACK_STANDARD_PAGES = 20;
+const POWER_PACK_STANDARD_PAGES = 50;
+const SUB_STARTER_STANDARD_PAGES = 18;
+const SUB_PRO_STANDARD_PAGES = 50;
+const SUB_BUSINESS_STANDARD_PAGES = 120;
+
 /** Paid packs — listed for floor computation (may be cheaper than policy floor). */
 const SELLABLE_PACKS_FOR_FLOOR = [
-  { id: "pack_150", credits: 1100, priceKrw: 19900 },
-  { id: "pack_500", credits: 2800, priceKrw: 49900 },
-  { id: "sub_starter", credits: 550, priceKrw: 17900 },
-  { id: "sub_pro", credits: 1100, priceKrw: 49900 },
-  { id: "sub_business", credits: 3300, priceKrw: 119900 },
+  { id: "pack_150", credits: 240, priceKrw: 19900 },
+  { id: "pack_500", credits: 600, priceKrw: 49900 },
+  { id: "sub_starter", credits: 216, priceKrw: 17900 },
+  { id: "sub_pro", credits: 600, priceKrw: 49900 },
+  { id: "sub_business", credits: 1440, priceKrw: 119900 },
   { id: "topup_50", credits: 50, priceKrw: 5900 },
 ] as const;
 
@@ -98,41 +107,40 @@ export const CREDIT_COSTS = {
 /**
  * 상세컷 패키지 (썸네일 3장 포함).
  * listCredits = 단가 합산 정가 느낌, credits = 실제 차감 (볼륨 할인 → 혜자 체감).
- * Credits sized for ≥30% gross margin on cheapest pack at worst-case API usage.
  */
 export const ANGLE_PACKAGES = [
   {
     angles: 1,
     credits: marginSafeCredits(worstGeneratePackageApiKrw(1)),
-    listCredits: 36,
+    listCredits: 14,
     label: "1장",
     badge: null as string | null,
   },
   {
     angles: 2,
     credits: marginSafeCredits(worstGeneratePackageApiKrw(2)),
-    listCredits: 52,
+    listCredits: 20,
     label: "2장",
     badge: null,
   },
   {
     angles: 3,
     credits: marginSafeCredits(worstGeneratePackageApiKrw(3)),
-    listCredits: 68,
+    listCredits: 26,
     label: "3장",
     badge: "인기",
   },
   {
     angles: 4,
     credits: marginSafeCredits(worstGeneratePackageApiKrw(4)),
-    listCredits: 84,
+    listCredits: 32,
     label: "4장",
     badge: null,
   },
   {
     angles: 5,
     credits: marginSafeCredits(worstGeneratePackageApiKrw(5)),
-    listCredits: 100,
+    listCredits: 38,
     label: "5장",
     badge: "혜자",
   },
@@ -170,6 +178,12 @@ export function estimateGenerateCredits(maxAngles: number): number {
   return getAnglePackage(maxAngles).credits;
 }
 
+const STANDARD_PAGE_CREDITS = estimateStandardPageCredits();
+
+function packCreditsForPages(pages: number): number {
+  return pages * STANDARD_PAGE_CREDITS;
+}
+
 export type CreditPackId =
   | "welcome"
   | "pack_150"
@@ -189,24 +203,24 @@ export type CreditPack = {
   description: string;
 };
 
-/** 사용자-facing 가격 — 크레딧 단가 하한 확보 (마진 30%+ 목표) */
+/** 사용자-facing 가격 — worst-case API·전액 사용 시에도 마진 30%+ */
 export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "pack_150",
     name: "셀러 팩",
-    credits: 1100,
+    credits: packCreditsForPages(SELLER_PACK_STANDARD_PAGES),
     priceKrw: 19900,
     type: "permanent",
     badge: "인기",
-    description: "영구 보관 · 상세페이지 37건+",
+    description: `영구 보관 · 상세페이지 약 ${SELLER_PACK_STANDARD_PAGES}건`,
   },
   {
     id: "pack_500",
     name: "파워 팩",
-    credits: 2800,
+    credits: packCreditsForPages(POWER_PACK_STANDARD_PAGES),
     priceKrw: 49900,
     type: "permanent",
-    description: "영구 보관 · 상세페이지 96건+",
+    description: `영구 보관 · 상세페이지 약 ${POWER_PACK_STANDARD_PAGES}건`,
   },
 ];
 
@@ -214,27 +228,27 @@ export const SUBSCRIPTION_PLANS: CreditPack[] = [
   {
     id: "sub_starter",
     name: "스타터",
-    credits: 550,
+    credits: packCreditsForPages(SUB_STARTER_STANDARD_PAGES),
     priceKrw: 17900,
     type: "subscription",
-    description: "월 550크레딧 · 상세페이지 약 18건",
+    description: `월 ${packCreditsForPages(SUB_STARTER_STANDARD_PAGES)}크레딧 · 상세페이지 약 ${SUB_STARTER_STANDARD_PAGES}건`,
   },
   {
     id: "sub_pro",
     name: "프로",
-    credits: 1100,
+    credits: packCreditsForPages(SUB_PRO_STANDARD_PAGES),
     priceKrw: 49900,
     type: "subscription",
     badge: "추천",
-    description: "월 1,100크레딧 · 상세페이지 37건+",
+    description: `월 ${packCreditsForPages(SUB_PRO_STANDARD_PAGES)}크레딧 · 상세페이지 약 ${SUB_PRO_STANDARD_PAGES}건`,
   },
   {
     id: "sub_business",
     name: "비즈니스",
-    credits: 3300,
+    credits: packCreditsForPages(SUB_BUSINESS_STANDARD_PAGES),
     priceKrw: 119900,
     type: "subscription",
-    description: "월 3,300크레딧 · 상세페이지 113건+",
+    description: `월 ${packCreditsForPages(SUB_BUSINESS_STANDARD_PAGES)}크레딧 · 상세페이지 약 ${SUB_BUSINESS_STANDARD_PAGES}건`,
   },
 ];
 
@@ -306,6 +320,16 @@ export const MARKET_SPECS: Record<"coupang" | "smartstore", MarketImageSpec[]> =
 
 export function packById(id: string): CreditPack | undefined {
   return [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK].find((p) => p.id === id);
+}
+
+export function standardPagesForPack(pack: CreditPack): number {
+  return standardPagesInPack(pack, STANDARD_PAGE_CREDITS);
+}
+
+/** Startup guard — every sellable pack must stay profitable at worst-case full use. */
+for (const pack of [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK]) {
+  if (pack.type === "topup") continue;
+  assertPackWorstCaseMargin({ pack, creditsPerStandardPage: STANDARD_PAGE_CREDITS });
 }
 
 export { FLOOR_CREDIT_KRW };

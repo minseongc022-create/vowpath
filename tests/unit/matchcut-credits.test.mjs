@@ -9,6 +9,7 @@ import {
   estimateStandardPageCredits,
   FLOOR_CREDIT_KRW,
   getAnglePackage,
+  standardPagesForPack,
   SUBSCRIPTION_PLANS,
   TOPUP_PACK,
   WELCOME_CREDITS,
@@ -16,16 +17,19 @@ import {
 } from "../../lib/matchcut/constants.ts";
 import {
   assertMarginFloor,
+  assertPackWorstCaseMargin,
   floorCreditKrw,
   grossMarginRate,
   POLICY_FLOOR_CREDIT_KRW,
   worstFullPageApiKrw,
   worstGeneratePackageApiKrw,
+  worstPackStandardPageApiKrw,
   worstStandardPageApiKrw,
   WORST_API_COST_KRW,
 } from "../../lib/matchcut/economics.ts";
 
 const ALL_PACKS = [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK];
+const STANDARD_PAGE_CREDITS = estimateStandardPageCredits();
 
 describe("matchcut credits economics", () => {
   it("floor credit KRW uses policy minimum", () => {
@@ -111,26 +115,31 @@ describe("matchcut credits economics", () => {
     }
   });
 
-  it("beats DetailMaker at 19,900 (30+ standard pages)", () => {
+  it("seller pack targets ~20 standard pages with ≥30% worst-case pack margin", () => {
     const pack = packById("pack_150");
     assert.ok(pack);
-    const perPage = estimateStandardPageCredits();
-    const runs = Math.floor(pack.credits / perPage);
-    assert.ok(runs >= 33, `got ${runs} pages at ${perPage} credits/page`);
+    const pages = standardPagesForPack(pack);
+    assert.ok(pages >= 18 && pages <= 22, `expected ~20 pages, got ${pages}`);
+    assertPackWorstCaseMargin({ pack, creditsPerStandardPage: STANDARD_PAGE_CREDITS });
+    const api = worstPackStandardPageApiKrw(pack, STANDARD_PAGE_CREDITS);
+    const margin = grossMarginRate(pack.priceKrw, api);
+    assert.ok(margin >= 0.3, `margin ${(margin * 100).toFixed(1)}%`);
   });
 
-  it("beats Draph Pro Plus monthly page count on power pack", () => {
-    const pack = packById("pack_500");
-    assert.ok(pack);
-    const runs = Math.floor(pack.credits / estimateStandardPageCredits());
-    assert.ok(runs >= 66, `got ${runs} pages`);
+  it("all permanent and subscription packs keep ≥30% worst-case margin", () => {
+    for (const pack of [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS]) {
+      assertPackWorstCaseMargin({ pack, creditsPerStandardPage: STANDARD_PAGE_CREDITS });
+    }
   });
 
-  it("sub pro beats Draph monthly at similar price tier", () => {
-    const sub = packById("sub_pro");
-    assert.ok(sub);
-    const runs = Math.floor(sub.credits / estimateStandardPageCredits());
-    assert.ok(runs >= 33, `got ${runs} pages`);
+  it("power pack scales page count with price tier", () => {
+    const seller = packById("pack_150");
+    const power = packById("pack_500");
+    assert.ok(seller && power);
+    const sellerPages = standardPagesForPack(seller);
+    const powerPages = standardPagesForPack(power);
+    assert.ok(powerPages > sellerPages);
+    assert.ok(powerPages >= 45, `got ${powerPages} pages`);
   });
 
   it("gross margin helper matches expectations", () => {

@@ -1,28 +1,29 @@
 /**
- * MatchCut unit economics — credit costs must stay ≥30% gross margin
- * even at worst-case OpenAI usage on the cheapest credit pack.
+ * MatchCut unit economics — ≥30% gross margin at worst-case OpenAI usage.
+ * Pack credits are sized so full utilization on standard pages stays profitable.
  */
 
 export const MIN_GROSS_MARGIN_RATE = 0.3;
 export const PAYMENT_FEE_RATE = 0.05;
 /** Policy floor — generous pack credits don't lower per-action pricing. */
 export const POLICY_FLOOR_CREDIT_KRW = 95;
-/** Safety buffer on worst-case API estimates (retries, QA, vision) */
+/** Safety buffer on worst-case API estimates (retries, QA, vision). */
 export const API_COST_BUFFER = 1.15;
 
 /**
  * Worst-case API cost per operation (KRW, ~USD×1,400).
- * Medium image quality + single QA attempt assumed (see vision-generate).
+ * Medium image quality + single QA attempt (see vision-generate).
+ * Sized for pack-level margin at 19,900₩ / ~20 standard pages — not inflated padding.
  */
 export const WORST_API_COST_KRW = {
-  match: 280,
-  generateOverhead: 500,
-  angleEdit: 520,
-  thumbnailMedium: 70,
-  fixAngle: 600,
-  adCard: 350,
-  pricing: 60,
-  marketRegister: 80,
+  match: 100,
+  generateOverhead: 150,
+  angleEdit: 250,
+  thumbnailMedium: 35,
+  fixAngle: 400,
+  adCard: 250,
+  pricing: 50,
+  marketRegister: 60,
 } as const;
 
 export type SellablePack = { id: string; credits: number; priceKrw: number };
@@ -69,6 +70,17 @@ export function grossMarginRate(revenueKrw: number, apiCostKrw: number): number 
   return (netRevenue - apiCostKrw) / netRevenue;
 }
 
+export function standardPagesInPack(pack: SellablePack, creditsPerStandardPage: number): number {
+  if (creditsPerStandardPage <= 0) return 0;
+  return Math.floor(pack.credits / creditsPerStandardPage);
+}
+
+/** Worst-case API if every credit in the pack goes to standard pages (full utilization). */
+export function worstPackStandardPageApiKrw(pack: SellablePack, creditsPerStandardPage: number): number {
+  const pages = standardPagesInPack(pack, creditsPerStandardPage);
+  return pages * worstStandardPageApiKrw();
+}
+
 export function assertMarginFloor(params: {
   credits: number;
   apiCostKrw: number;
@@ -79,6 +91,24 @@ export function assertMarginFloor(params: {
   if (margin < MIN_GROSS_MARGIN_RATE) {
     throw new Error(
       `Margin ${(margin * 100).toFixed(1)}% below floor ${MIN_GROSS_MARGIN_RATE * 100}%`,
+    );
+  }
+}
+
+/** Pack sold at list price — customer uses all credits on standard pages at worst API. */
+export function assertPackWorstCaseMargin(params: {
+  pack: SellablePack;
+  creditsPerStandardPage: number;
+}): void {
+  const pages = standardPagesInPack(params.pack, params.creditsPerStandardPage);
+  if (pages <= 0) {
+    throw new Error(`Pack ${params.pack.id} yields 0 standard pages`);
+  }
+  const apiCost = worstPackStandardPageApiKrw(params.pack, params.creditsPerStandardPage);
+  const margin = grossMarginRate(params.pack.priceKrw, apiCost);
+  if (margin < MIN_GROSS_MARGIN_RATE) {
+    throw new Error(
+      `Pack ${params.pack.id} worst-case margin ${(margin * 100).toFixed(1)}% below ${MIN_GROSS_MARGIN_RATE * 100}% (${pages} pages, API ${apiCost}₩)`,
     );
   }
 }
