@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MATCHCUT_API, MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
+import { MATCHCUT_API, MATCHCUT_ROUTES, WELCOME_CREDITS } from "@/lib/matchcut/constants";
 
 export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
@@ -77,7 +77,7 @@ export function MatchCutAuthForm({ mode }: { mode: "login" | "signup" }) {
         disabled={loading}
         className="w-full rounded-xl bg-trust-600 py-3 text-sm font-semibold text-white hover:bg-trust-700 disabled:opacity-60"
       >
-        {loading ? "처리 중…" : mode === "signup" ? "무료 30크레딧 받고 시작" : "로그인"}
+        {loading ? "처리 중…" : mode === "signup" ? `무료 ${WELCOME_CREDITS}크레딧 받고 시작` : "로그인"}
       </button>
       <p className="text-center text-sm text-slate-500">
         {mode === "signup" ? (
