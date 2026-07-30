@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "../kv-config";
 import { kvGetSafe } from "../kv-safe";
+import type { ListingThumbnail } from "../sourcing-detail/thumbnail-generate";
 import type {
   DetailPageBundle,
   GeneratedAngle,
@@ -27,6 +28,7 @@ export type MatchCutProject = {
   match?: MatchResult;
   selectedCandidate?: MatchCandidate | null;
   generatedAngles?: GeneratedAngle[];
+  thumbnails?: ListingThumbnail[];
   detailPageHtml?: string;
   detailBundle?: DetailPageBundle;
   creditsUsed: number;
@@ -124,6 +126,7 @@ export async function updateProject(
       | "status"
       | "selectedCandidate"
       | "generatedAngles"
+      | "thumbnails"
       | "detailPageHtml"
       | "detailBundle"
       | "creditsUsed"

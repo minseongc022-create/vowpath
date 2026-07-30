@@ -57,12 +57,14 @@ export type DetailPageBundle = {
   productAnalysis: import("./product-analysis").ProductAnalysis;
   competitorInsight: import("./competitor-research").CompetitorInsight;
   detailCopy: import("./detail-copy").DetailCopy;
+  designToolkit?: import("./design-toolkit").DesignToolkit;
 };
 
 export type PipelineResult = {
   listing: ScrapedListing;
   match: MatchResult;
   generatedAngles: GeneratedAngle[];
+  thumbnails?: import("./thumbnail-generate").ListingThumbnail[];
   detailPageHtml: string;
   detailBundle?: DetailPageBundle;
 };

@@ -10,6 +10,7 @@ import {
 } from "@/lib/matchcut/constants";
 import type { PricingRecommendation } from "@/lib/matchcut/pricing-calc";
 import type { RegisterResult } from "@/lib/matchcut/markets/types";
+import type { ListingThumbnail } from "@/lib/sourcing-detail/thumbnail-generate";
 import type {
   DetailPageBundle,
   GeneratedAngle,
@@ -77,6 +78,7 @@ export function MatchCutStudio({
   const [match, setMatch] = useState<MatchResult | null>(null);
   const [selected, setSelected] = useState<MatchCandidate | null>(null);
   const [generatedAngles, setGeneratedAngles] = useState<GeneratedAngle[]>([]);
+  const [thumbnails, setThumbnails] = useState<ListingThumbnail[]>([]);
   const [detailPageHtml, setDetailPageHtml] = useState("");
   const [detailBundle, setDetailBundle] = useState<DetailPageBundle | null>(null);
   const [exportPlatform, setExportPlatform] = useState<"coupang" | "smartstore" | "both">("both");
@@ -114,6 +116,7 @@ export function MatchCutStudio({
         setMatch(p.match ?? null);
         setSelected(p.selectedCandidate ?? p.match?.bestMatch ?? null);
         setGeneratedAngles(p.generatedAngles ?? []);
+        setThumbnails(p.thumbnails ?? []);
         setDetailPageHtml(p.detailPageHtml ?? "");
         setDetailBundle(p.detailBundle ?? null);
         if (p.generatedAngles?.length) setPhase("done");
@@ -192,6 +195,7 @@ export function MatchCutStudio({
       if (!res.ok) throw new Error(data.error ?? "생성 실패");
 
       setGeneratedAngles(data.generatedAngles ?? []);
+      setThumbnails(data.thumbnails ?? []);
       setDetailPageHtml(data.detailPageHtml ?? "");
       setDetailBundle(data.detailBundle ?? null);
       if (data.credits) setCredits(data.credits.total);
@@ -337,6 +341,9 @@ export function MatchCutStudio({
       const sources: { name: string; base64?: string; url?: string }[] = [];
       if (fileMeta) sources.push({ name: "reference", base64: fileMeta.base64 });
       if (selected?.imageUrl) sources.push({ name: "matched", url: selected.imageUrl });
+      for (const t of thumbnails) {
+        if (t.imageBase64) sources.push({ name: `thumb-${t.concept}`, base64: t.imageBase64 });
+      }
       for (const a of generatedAngles) {
         const src = angleSrc(a);
         if (!src) continue;
@@ -382,7 +389,10 @@ export function MatchCutStudio({
     }
   };
 
-  const estCost = phase === "input" ? estimateRunCredits(maxAngles) : null;
+  const estCost =
+    phase === "input"
+      ? estimateRunCredits(maxAngles) + CREDIT_COSTS.thumbnail * 3
+      : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -505,7 +515,8 @@ export function MatchCutStudio({
             disabled={!selected}
             className="mt-4 rounded-xl bg-trust-600 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            상세컷 생성 ({maxAngles * 8} 크레딧)
+            상세컷 + 썸네일 3장 ({maxAngles * CREDIT_COSTS.angle + CREDIT_COSTS.thumbnail * 3}{" "}
+            크레딧)
           </button>
         </section>
       )}
@@ -514,7 +525,7 @@ export function MatchCutStudio({
         <div className="mt-10 text-center">
           <p className="text-trust-800 font-medium">상세컷 생성 중…</p>
           <p className="mt-1 text-sm text-slate-500">
-            실사진 디자인·디테일 고정 → 각도만 변경 → 원본일치 검증
+            실사진 고정 → 상세컷 · 썸네일 3종 · 전문 카피 · 카테고리 디자인툴
           </p>
         </div>
       )}
@@ -529,11 +540,19 @@ export function MatchCutStudio({
                 {detailBundle.competitorInsight.source === "naver_api"
                   ? "네이버 쇼핑 상위 상품 분석"
                   : "카테고리 베스트 프랙티스"}
+                {detailBundle.designToolkit
+                  ? ` · 디자인툴 ${detailBundle.designToolkit.label}`
+                  : ""}
               </p>
               <p className="mt-3 text-sm font-medium text-trust-800">
                 {detailBundle.detailCopy.headline}
               </p>
               <p className="text-sm text-slate-600">{detailBundle.detailCopy.subheadline}</p>
+              {detailBundle.detailCopy.storyParagraph && (
+                <p className="mt-2 text-sm text-slate-500">
+                  {detailBundle.detailCopy.storyParagraph}
+                </p>
+              )}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                   <h3 className="text-xs font-semibold uppercase text-slate-400">상위 셀러 강점</h3>
@@ -567,6 +586,34 @@ export function MatchCutStudio({
               )}
             </div>
           )}
+          {thumbnails.length > 0 && (
+            <div>
+              <h2 className="font-semibold">마켓 썸네일 3종</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                경쟁 툴이 잘 안 해주는 대표 썸네일 — 검색 그리드용
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {thumbnails.map((t) => (
+                  <div key={t.concept} className="rounded-xl border bg-white p-2">
+                    {t.imageBase64 ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`data:image/png;base64,${t.imageBase64}`}
+                        alt={t.label}
+                        className="aspect-square w-full rounded-lg object-cover"
+                      />
+                    ) : (
+                      <p className="p-4 text-xs text-red-500">{t.error}</p>
+                    )}
+                    <p className="mt-1 text-center text-xs text-slate-600">
+                      {t.label} · {t.headline}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {generatedAngles.map((a) => {
               const src = angleSrc(a);

@@ -53,8 +53,10 @@ export const CREDIT_COSTS = {
   pricing: 4,
   /** 마켓 자동등록(채널당) */
   marketRegister: 8,
-  /** 광고카드 1장 */
+  /** 마케팅 광고카드 1장 */
   adCard: 12,
+  /** 마켓 썸네일 1장 (상세 생성 시 3장) */
+  thumbnail: 5,
   /** ZIP/HTML 내보내기 — 업계 관행상 무료 */
   export: 0,
 } as const;

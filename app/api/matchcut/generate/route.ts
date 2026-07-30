@@ -7,6 +7,8 @@ import type { MatchCandidate, MatchResult, ScrapedListing } from "@/lib/sourcing
 
 export const maxDuration = 300;
 
+const THUMBNAIL_COUNT = 3;
+
 export async function POST(request: Request) {
   try {
     const session = await requireMatchCutSession();
@@ -17,6 +19,7 @@ export async function POST(request: Request) {
     const referenceImageBase64 = String(body.referenceImageBase64 ?? "");
     const referenceMime = body.referenceMime ? String(body.referenceMime) : undefined;
     const maxAngles = Math.min(5, Math.max(1, Number(body.maxAngles ?? 3)));
+    const withThumbnails = body.withThumbnails !== false;
 
     if (!listing || !match || !selectedCandidate) {
       return NextResponse.json({ error: "매칭 데이터가 필요합니다." }, { status: 400 });
@@ -26,7 +29,9 @@ export async function POST(request: Request) {
     }
 
     const angleCost = CREDIT_COSTS.angle * maxAngles;
-    await debitCredits(session.sub, angleCost);
+    const thumbCost = withThumbnails ? CREDIT_COSTS.thumbnail * THUMBNAIL_COUNT : 0;
+    const totalCost = angleCost + thumbCost;
+    await debitCredits(session.sub, totalCost);
 
     const result = await runGeneratePhase({
       listing,
@@ -35,10 +40,15 @@ export async function POST(request: Request) {
       referenceImageBase64,
       referenceMime,
       maxAngles,
+      generateThumbnails: withThumbnails,
     });
 
-    const failedCount = maxAngles - result.successCount;
-    const refundAmount = failedCount * CREDIT_COSTS.angle;
+    const failedAngles = maxAngles - result.successCount;
+    const failedThumbs = withThumbnails
+      ? THUMBNAIL_COUNT - result.thumbnailSuccessCount
+      : 0;
+    const refundAmount =
+      failedAngles * CREDIT_COSTS.angle + failedThumbs * CREDIT_COSTS.thumbnail;
     if (refundAmount > 0) {
       await grantCredits(session.sub, refundAmount, "permanent");
     }
@@ -47,28 +57,26 @@ export async function POST(request: Request) {
 
     const projectId = body.projectId ? String(body.projectId) : null;
     if (projectId) {
-      const { updateProject } = await import("@/lib/matchcut/projects-store");
-      const existing = await import("@/lib/matchcut/projects-store").then((m) =>
-        m.getProject(session.sub, projectId),
-      );
+      const { updateProject, getProject } = await import("@/lib/matchcut/projects-store");
+      const existing = await getProject(session.sub, projectId);
       await updateProject(session.sub, projectId, {
         status: "generated",
         selectedCandidate,
         generatedAngles: result.generatedAngles,
+        thumbnails: result.thumbnails,
         detailPageHtml: result.detailPageHtml,
         detailBundle: result.detailBundle,
-        creditsUsed: (existing?.creditsUsed ?? 0) + angleCost - refundAmount,
+        creditsUsed: (existing?.creditsUsed ?? 0) + totalCost - refundAmount,
       });
     }
 
-    const hardFail = result.generatedAngles.some((a) => !a.imageBase64 && !a.imageUrl);
-    const needsFixCount = result.generatedAngles.filter((a) => a.needsFix).length;
     if (result.successCount === 0) {
       return NextResponse.json(
         {
           error: "상세컷 생성에 실패했습니다. 크레딧은 전액 환불되었습니다.",
           code: "GENERATION_FAILED",
           generatedAngles: result.generatedAngles,
+          thumbnails: result.thumbnails,
           creditsRefunded: refundAmount,
           credits,
         },
@@ -76,18 +84,21 @@ export async function POST(request: Request) {
       );
     }
 
+    const needsFixCount = result.generatedAngles.filter((a) => a.needsFix).length;
+
     return NextResponse.json({
       ok: true,
       generatedAngles: result.generatedAngles,
+      thumbnails: result.thumbnails,
       detailPageHtml: result.detailPageHtml,
       detailBundle: result.detailBundle,
       projectId,
-      creditsDebited: angleCost - refundAmount,
+      creditsDebited: totalCost - refundAmount,
       creditsRefunded: refundAmount,
       credits,
-      partialFailure: hardFail,
       needsFixCount,
       successCount: result.successCount,
+      thumbnailSuccessCount: result.thumbnailSuccessCount,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "생성 실패";

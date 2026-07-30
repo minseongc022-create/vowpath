@@ -6,6 +6,8 @@ import { analyzeProduct } from "./product-analysis";
 import { researchCompetitors } from "./competitor-research";
 import { generateDetailCopy } from "./detail-copy";
 import { extractProductIdentity } from "./product-identity";
+import { resolveDesignToolkit } from "./design-toolkit";
+import { generateListingThumbnails } from "./thumbnail-generate";
 import type { DetailPageBundle, MatchCandidate, PipelineResult } from "./types";
 
 export async function runMatchPhase(params: {
@@ -57,14 +59,17 @@ async function buildDetailBundle(params: {
     listingTitle: params.listingTitle,
   });
 
+  const designToolkit = resolveDesignToolkit(analysis);
+
   const detailCopy = await generateDetailCopy({
     analysis,
     insights: competitorInsight,
+    toolkit: designToolkit,
     skuLabel: params.skuLabel,
     listingTitle: params.listingTitle,
   });
 
-  return { productAnalysis: analysis, competitorInsight, detailCopy };
+  return { productAnalysis: analysis, competitorInsight, detailCopy, designToolkit };
 }
 
 export async function runGeneratePhase(params: {
@@ -74,9 +79,11 @@ export async function runGeneratePhase(params: {
   referenceImageBase64: string;
   referenceMime?: string;
   maxAngles?: number;
+  generateThumbnails?: boolean;
 }): Promise<
-  Pick<PipelineResult, "generatedAngles" | "detailPageHtml" | "detailBundle"> & {
+  Pick<PipelineResult, "generatedAngles" | "thumbnails" | "detailPageHtml" | "detailBundle"> & {
     successCount: number;
+    thumbnailSuccessCount: number;
   }
 > {
   const match = {
@@ -89,7 +96,6 @@ export async function runGeneratePhase(params: {
     params.listing.title ||
     "import product matching reference photo";
 
-  // Listing image is SECONDARY only — seller real photo is ground truth for design
   const listingImageBase64 = await fetchUrlAsBase64(params.selectedCandidate.imageUrl);
 
   const [detailBundle, identity] = await Promise.all([
@@ -124,6 +130,21 @@ export async function runGeneratePhase(params: {
     maxAngles: params.maxAngles ?? 3,
   });
 
+  let thumbnails: PipelineResult["thumbnails"] = [];
+  if (params.generateThumbnails !== false) {
+    thumbnails = await generateListingThumbnails({
+      analysis: detailBundle.productAnalysis,
+      identity,
+      productImageBase64: params.referenceImageBase64,
+      productMime: params.referenceMime,
+      sellingPoints: [
+        ...detailBundle.productAnalysis.sellingPoints,
+        ...detailBundle.detailCopy.featureBullets.slice(0, 3),
+      ],
+      count: 3,
+    });
+  }
+
   const detailPageHtml = buildDetailPageHtml({
     listing: params.listing,
     match,
@@ -131,13 +152,17 @@ export async function runGeneratePhase(params: {
     analysis: detailBundle.productAnalysis,
     copy: detailBundle.detailCopy,
     insights: detailBundle.competitorInsight,
+    thumbnails,
+    toolkit: detailBundle.designToolkit,
   });
 
   return {
     generatedAngles,
+    thumbnails,
     detailPageHtml,
     detailBundle,
     successCount: countSuccessfulAngles(generatedAngles),
+    thumbnailSuccessCount: (thumbnails ?? []).filter((t) => t.imageBase64).length,
   };
 }
 
@@ -152,6 +177,7 @@ export async function runSourcingPipeline(params: {
   const { listing, match } = await runMatchPhase(params);
 
   let generatedAngles: PipelineResult["generatedAngles"] = [];
+  let thumbnails: PipelineResult["thumbnails"] = [];
   let detailPageHtml = buildDetailPageHtml({ listing, match, angles: [] });
   let detailBundle: DetailPageBundle | undefined;
 
@@ -167,12 +193,13 @@ export async function runSourcingPipeline(params: {
         maxAngles: params.maxAngles,
       });
       generatedAngles = gen.generatedAngles;
+      thumbnails = gen.thumbnails;
       detailPageHtml = gen.detailPageHtml;
       detailBundle = gen.detailBundle;
     }
   }
 
-  return { listing, match, generatedAngles, detailPageHtml, detailBundle };
+  return { listing, match, generatedAngles, thumbnails, detailPageHtml, detailBundle };
 }
 
 export { countSuccessfulAngles };

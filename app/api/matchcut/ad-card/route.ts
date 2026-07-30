@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AD_CARD_SPECS, generateAdCards } from "@/lib/matchcut/ad-card";
+import { AD_CARD_STYLES, generateAdCards } from "@/lib/matchcut/ad-card";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
@@ -9,7 +9,7 @@ export const maxDuration = 300;
 export async function GET() {
   try {
     await requireMatchCutSession();
-    return NextResponse.json({ ok: true, specs: AD_CARD_SPECS });
+    return NextResponse.json({ ok: true, styles: AD_CARD_STYLES });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "오류";
     if (msg === "UNAUTHORIZED") {
@@ -30,7 +30,11 @@ export async function POST(request: Request) {
       ? body.sellingPoints.map(String)
       : [];
     const priceKrw = body.priceKrw != null ? Number(body.priceKrw) : undefined;
-    const specIds = Array.isArray(body.specIds) ? body.specIds.map(String) : undefined;
+    const styleIds = Array.isArray(body.styleIds)
+      ? body.styleIds.map(String)
+      : Array.isArray(body.specIds)
+        ? body.specIds.map(String)
+        : undefined;
 
     if (!productName || !productImageBase64) {
       return NextResponse.json(
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const count = specIds?.length || 2;
+    const count = styleIds?.length || 3;
     const cost = CREDIT_COSTS.adCard * count;
     await debitCredits(session.sub, cost);
 
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
       productMime,
       sellingPoints,
       priceKrw,
-      specIds,
+      styleIds,
     });
 
     const failed = cards.filter((c) => !c.imageBase64).length;

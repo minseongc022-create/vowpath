@@ -1,12 +1,15 @@
 import { openAiJsonCompletion } from "../openai-json";
 import type { CompetitorInsight } from "./competitor-research";
+import type { DesignToolkit } from "./design-toolkit";
 import type { ProductAnalysis } from "./product-analysis";
 
 export type DetailCopy = {
   headline: string;
   subheadline: string;
   hookParagraph: string;
+  storyParagraph: string;
   featureBullets: string[];
+  benefitSections: { title: string; body: string }[];
   specTable: { label: string; value: string }[];
   trustBadges: string[];
   faq: { q: string; a: string }[];
@@ -19,6 +22,7 @@ type CopyPayload = DetailCopy;
 export async function generateDetailCopy(params: {
   analysis: ProductAnalysis;
   insights: CompetitorInsight;
+  toolkit: DesignToolkit;
   skuLabel?: string;
   listingTitle?: string;
 }): Promise<DetailCopy> {
@@ -28,56 +32,65 @@ export async function generateDetailCopy(params: {
     .join("\n- ");
 
   const payload = await openAiJsonCompletion<CopyPayload>({
-    system: `You write professional Korean product detail page copy for Coupang and Naver Smart Store.
-Rules:
-- Natural Korean only — no awkward machine translation
-- No false claims (KC, medical, "국내 1위" unless given)
+    system: `You are a senior Korean e-commerce copywriter for Coupang / Smart Store detail pages.
+Write like a premium agency brief — professional, refined, never awkward machine Korean.
+Design toolkit mood: ${params.toolkit.label} — ${params.toolkit.moodNote}
+detailStyle: ${params.analysis.detailStyle}
+
+Hard rules:
+- Native Korean only
+- No false claims (KC, medical, 국내 1위) unless provided
 - No competitor brand names
-- Short punchy headlines, scannable bullets
-- Match detailStyle: ${params.analysis.detailStyle}`,
+- Sound expensive and trustworthy, not spammy
+- Specific to THIS product category and features`,
     user: `Product: ${params.analysis.productNameKo}
 Category: ${params.analysis.category}
-SKU/option: ${params.skuLabel ?? "단일"}
+SKU: ${params.skuLabel ?? "단일"}
 Source title: ${params.listingTitle ?? ""}
-Target: ${params.analysis.targetAudience}
+Audience: ${params.analysis.targetAudience}
 Features: ${params.analysis.keyFeatures.join(", ")}
+Selling points: ${params.analysis.sellingPoints.join(", ")}
 
-Competitor strengths to match or beat:
+Competitor strengths:
 ${params.insights.commonStrengths.join("\n")}
 
-Our recommended appeals:
+Our appeals:
 ${params.insights.recommendedAppeals.join("\n")}
 
-Tone: ${params.insights.copyTone}
+Tone guide: ${params.insights.copyTone}
 
-Top competitor titles (reference only, do not copy):
+Competitor titles (do not copy):
 - ${competitorTitles || "없음"}
 
 Return JSON:
 {
-  "headline": "메인 헤드라인 1줄",
-  "subheadline": "서브 1줄",
-  "hookParagraph": "2-3 sentences — why buy now",
-  "featureBullets": ["5-7 benefit bullets with ✓ prefix optional"],
-  "specTable": [{"label":"소재","value":"..."}, ... 4-6 rows],
-  "trustBadges": ["3-4 badges like 빠른배송, 품질검수, A/S 안내 등 — factual only"],
-  "faq": [{"q":"...","a":"..."}, ... 3 items],
-  "ctaLine": "short closing CTA",
-  "seoKeywords": ["5-8 Korean keywords"]
+  "headline": "고급스러운 메인 헤드라인",
+  "subheadline": "세련된 서브카피",
+  "hookParagraph": "오프닝 2~3문장 — 왜 이 상품인지",
+  "storyParagraph": "브랜드/사용 스토리 톤 2~3문장 (과장 없이)",
+  "featureBullets": ["6~8개 혜택 불릿 — 구체적"],
+  "benefitSections": [{"title":"섹션 제목","body":"2문장"}, ... 3 items],
+  "specTable": [{"label":"...","value":"..."}, ... 5~7],
+  "trustBadges": ["사실만 — 검수/배송/포장 등 3~4"],
+  "faq": [{"q":"...","a":"..."}, ... 3~4],
+  "ctaLine": "클로징 CTA",
+  "seoKeywords": ["5~10 한국어 키워드"]
 }`,
-    temperature: 0.35,
-    timeoutMs: 35_000,
+    temperature: 0.4,
+    timeoutMs: 40_000,
   });
 
   return {
     headline: payload.headline?.trim() || params.analysis.productNameKo,
     subheadline: payload.subheadline?.trim() || "",
     hookParagraph: payload.hookParagraph?.trim() || "",
+    storyParagraph: payload.storyParagraph?.trim() || "",
     featureBullets: payload.featureBullets?.slice(0, 8) ?? [],
+    benefitSections: payload.benefitSections?.slice(0, 4) ?? [],
     specTable: payload.specTable?.slice(0, 8) ?? [],
     trustBadges: payload.trustBadges?.slice(0, 5) ?? [],
     faq: payload.faq?.slice(0, 4) ?? [],
-    ctaLine: payload.ctaLine?.trim() || "지금 바로 만나보세요.",
+    ctaLine: payload.ctaLine?.trim() || "지금 바로 확인해보세요.",
     seoKeywords: payload.seoKeywords?.slice(0, 10) ?? [],
   };
 }

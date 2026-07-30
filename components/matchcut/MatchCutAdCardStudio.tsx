@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AD_CARD_SPECS } from "@/lib/matchcut/ad-card-specs";
+import { useState } from "react";
+import { AD_CARD_STYLES } from "@/lib/matchcut/ad-card-specs";
 import { CREDIT_COSTS, MATCHCUT_API } from "@/lib/matchcut/constants";
 
 type GeneratedAdCard = {
-  specId: string;
+  styleId: string;
   label: string;
-  width: number;
-  height: number;
   copy: { headline: string; subcopy: string; cta: string; badge?: string };
   imageBase64?: string;
   error?: string;
@@ -38,14 +36,14 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
   const [points, setPoints] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [fileMeta, setFileMeta] = useState<{ base64: string; mime: string } | null>(null);
-  const [selected, setSelected] = useState<string[]>(["coupang_square", "naver_square"]);
+  const [selected, setSelected] = useState<string[]>([
+    "benefit_hero",
+    "lifestyle_mood",
+    "editorial_premium",
+  ]);
   const [cards, setCards] = useState<GeneratedAdCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    /* keep specs in sync if server adds more — local constant is enough for UI */
-  }, []);
 
   const toggle = (id: string) => {
     setSelected((prev) =>
@@ -60,7 +58,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
       return;
     }
     if (!selected.length) {
-      setError("광고카드 규격을 하나 이상 선택하세요.");
+      setError("광고카드 스타일을 하나 이상 선택하세요.");
       return;
     }
     setLoading(true);
@@ -77,7 +75,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
             .map((s) => s.trim())
             .filter(Boolean),
           priceKrw: priceKrw ? Number(priceKrw) : undefined,
-          specIds: selected,
+          styleIds: selected,
         }),
       });
       const data = await res.json();
@@ -103,7 +101,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
         <div>
           <h1 className="text-xl font-bold text-slate-900">광고카드 메이커</h1>
           <p className="text-sm text-slate-500">
-            쿠팡·네이버·메타·카카오용 고퀄리티 광고 소재를 만듭니다
+            마케팅용 크리에이티브 — 상위 셀러 광고카드 톤을 벤치하고 더 고급스럽게
           </p>
         </div>
         <span className="rounded-full bg-trust-100 px-3 py-1 text-sm font-semibold text-trust-800">
@@ -135,7 +133,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
           </label>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
           <div>
             <label className="text-sm font-semibold">상품명</label>
             <input
@@ -156,7 +154,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
             />
           </div>
           <div>
-            <label className="text-sm font-semibold">어필 포인트 (쉼표/줄바꿈)</label>
+            <label className="text-sm font-semibold">어필 포인트</label>
             <textarea
               value={points}
               onChange={(e) => setPoints(e.target.value)}
@@ -169,9 +167,12 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
       </div>
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-semibold">규격 선택</h2>
+        <h2 className="text-sm font-semibold">크리에이티브 스타일</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          플랫폼 규격이 아니라 마케팅 컨셉입니다. 원하는 톤만 고르면 됩니다.
+        </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {AD_CARD_SPECS.map((s) => (
+          {AD_CARD_STYLES.map((s) => (
             <label
               key={s.id}
               className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 text-sm ${
@@ -185,9 +186,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
               />
               <span>
                 <span className="font-medium">{s.label}</span>
-                <span className="block text-xs text-slate-500">
-                  {s.width}×{s.height} · {s.purpose}
-                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">{s.description}</span>
               </span>
             </label>
           ))}
@@ -207,9 +206,9 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
       )}
 
       {cards.length > 0 && (
-        <section className="mt-8 grid gap-4 sm:grid-cols-2">
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((c) => (
-            <div key={c.specId} className="rounded-2xl border bg-white p-4">
+            <div key={c.styleId} className="rounded-2xl border bg-white p-4">
               <p className="text-sm font-semibold">{c.label}</p>
               <p className="text-xs text-slate-500">
                 {c.copy.headline} · {c.copy.cta}
@@ -227,7 +226,7 @@ export function MatchCutAdCardStudio({ initialCredits }: { initialCredits: numbe
               {c.imageBase64 && (
                 <a
                   href={`data:image/png;base64,${c.imageBase64}`}
-                  download={`ad-${c.specId}.png`}
+                  download={`ad-${c.styleId}.png`}
                   className="mt-3 inline-block text-sm font-medium text-trust-600 hover:underline"
                 >
                   PNG 다운로드

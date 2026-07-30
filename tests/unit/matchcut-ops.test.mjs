@@ -1,8 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { calcPricing, MARKET_FEE_PROFILES } from "../../lib/matchcut/pricing-calc.ts";
-import { AD_CARD_SPECS } from "../../lib/matchcut/ad-card-specs.ts";
+import { AD_CARD_STYLES } from "../../lib/matchcut/ad-card-specs.ts";
 import { getMarketConnectionStatuses } from "../../lib/matchcut/markets/types.ts";
+import { resolveDesignToolkit } from "../../lib/sourcing-detail/design-toolkit.ts";
 
 describe("matchcut pricing", () => {
   it("recommends price above break-even with margin", () => {
@@ -20,10 +21,39 @@ describe("matchcut pricing", () => {
   });
 });
 
-describe("ad-card specs", () => {
-  it("includes coupang and naver sizes", () => {
-    assert.ok(AD_CARD_SPECS.some((s) => s.id === "coupang_square"));
-    assert.ok(AD_CARD_SPECS.some((s) => s.id === "naver_square"));
+describe("ad-card styles", () => {
+  it("uses marketing concepts not platform specs", () => {
+    assert.ok(AD_CARD_STYLES.some((s) => s.id === "benefit_hero"));
+    assert.ok(AD_CARD_STYLES.some((s) => s.id === "editorial_premium"));
+    assert.equal(
+      AD_CARD_STYLES.some((s) => "width" in s),
+      false,
+    );
+  });
+});
+
+describe("design toolkit", () => {
+  it("picks category-matched toolkit", () => {
+    const beauty = resolveDesignToolkit({
+      category: "beauty",
+      searchQuery: "세럼",
+      productNameKo: "세럼",
+      keyFeatures: [],
+      targetAudience: "",
+      sellingPoints: [],
+      detailStyle: "premium",
+    });
+    assert.equal(beauty.id, "glow");
+    const fashion = resolveDesignToolkit({
+      category: "fashion",
+      searchQuery: "가방",
+      productNameKo: "가방",
+      keyFeatures: [],
+      targetAudience: "",
+      sellingPoints: [],
+      detailStyle: "premium",
+    });
+    assert.equal(fashion.id, "atelier");
   });
 });
 

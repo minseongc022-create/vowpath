@@ -121,7 +121,9 @@ describe("detail-layout", () => {
         headline: "데일리 크로스백",
         subheadline: "가볍고 튼튼",
         hookParagraph: "매일 들기 좋습니다.",
+        storyParagraph: "도시 일상에 맞춘 미니멀 실루엣.",
         featureBullets: ["가벼운 무게"],
+        benefitSections: [{ title: "휴대성", body: "하루 종일 부담 없이." }],
         specTable: [{ label: "소재", value: "PU" }],
         trustBadges: ["빠른배송"],
         faq: [{ q: "세탁?", a: "물걸레" }],
@@ -137,9 +139,29 @@ describe("detail-layout", () => {
         suggestedSections: ["소재"],
         copyTone: "신뢰",
       },
+      thumbnails: [
+        { concept: "clean_click", label: "클린 클릭", headline: "데일리백", imageBase64: "thumb" },
+      ],
+      toolkit: {
+        id: "atelier",
+        label: "아틀리에",
+        fontStack: "sans-serif",
+        bg: "#f6f4f1",
+        surface: "#fff",
+        text: "#111",
+        muted: "#666",
+        accent: "#111",
+        accentSoft: "#eee",
+        heroGradient: "linear-gradient(#111,#333)",
+        radius: "4px",
+        sectionTitleStyle: "font-weight:700;",
+        featureStyle: "numbered",
+        moodNote: "패션",
+      },
     });
     assert.ok(html.includes("데일리 크로스백"));
-    assert.ok(html.includes("시장 인사이트"));
+    assert.ok(html.includes("마켓 썸네일"));
+    assert.ok(html.includes("아틀리에"));
     assert.ok(html.includes("data:image/png;base64,abc"));
   });
 });
