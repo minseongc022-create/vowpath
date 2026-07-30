@@ -32,7 +32,7 @@ const ANGLE_SPECS: { angle: string; promptSuffix: string }[] = [
 ];
 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
 const INPUT_FIDELITY = process.env.OPENAI_IMAGE_INPUT_FIDELITY ?? "high";
 const IMAGE_QUALITY = process.env.OPENAI_IMAGE_QUALITY ?? "high";
 

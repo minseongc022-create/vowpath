@@ -3,14 +3,31 @@ import assert from "node:assert/strict";
 import {
   ANGLE_PACKAGES,
   CREDIT_COSTS,
+  CREDIT_PACKS,
   estimateGenerateCredits,
   estimateRunCredits,
+  FLOOR_CREDIT_KRW,
   getAnglePackage,
+  SUBSCRIPTION_PLANS,
+  TOPUP_PACK,
   WELCOME_CREDITS,
   packById,
 } from "../../lib/matchcut/constants.ts";
+import {
+  assertMarginFloor,
+  floorCreditKrw,
+  grossMarginRate,
+  worstGeneratePackageApiKrw,
+  WORST_API_COST_KRW,
+} from "../../lib/matchcut/economics.ts";
+
+const ALL_PACKS = [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK];
 
 describe("matchcut credits economics", () => {
+  it("floor credit KRW matches cheapest paid pack", () => {
+    assert.equal(FLOOR_CREDIT_KRW, floorCreditKrw(ALL_PACKS));
+  });
+
   it("offers 1 through 5 angle packages", () => {
     assert.deepEqual(
       ANGLE_PACKAGES.map((p) => p.angles),
@@ -24,25 +41,66 @@ describe("matchcut credits economics", () => {
     }
     const one = getAnglePackage(1);
     const five = getAnglePackage(5);
-    // 5장 단가가 1장보다 확실히 싸야 혜자
     assert.ok(five.credits / 5 < one.credits / 1);
   });
 
   it("full run credit estimate uses packages", () => {
     assert.equal(estimateRunCredits(3), CREDIT_COSTS.match + estimateGenerateCredits(3));
-    assert.equal(estimateGenerateCredits(5), 56);
   });
 
-  it("welcome credits allow match trial", () => {
+  it("welcome credits allow match trial only", () => {
+    assert.equal(WELCOME_CREDITS, CREDIT_COSTS.match);
     assert.ok(WELCOME_CREDITS >= CREDIT_COSTS.match);
   });
 
-  it("pack pricing keeps margin room on 3-angle run", () => {
-    const pack = packById("pack_150");
+  it("every operation keeps ≥50% gross margin at floor credit price", () => {
+    const floor = FLOOR_CREDIT_KRW;
+
+    assertMarginFloor({
+      credits: CREDIT_COSTS.match,
+      apiCostKrw: WORST_API_COST_KRW.match,
+      floorKrwPerCredit: floor,
+    });
+
+    assertMarginFloor({
+      credits: CREDIT_COSTS.fixAngle,
+      apiCostKrw: WORST_API_COST_KRW.fixAngle,
+      floorKrwPerCredit: floor,
+    });
+
+    assertMarginFloor({
+      credits: CREDIT_COSTS.adCard,
+      apiCostKrw: WORST_API_COST_KRW.adCard,
+      floorKrwPerCredit: floor,
+    });
+
+    for (const pkg of ANGLE_PACKAGES) {
+      assertMarginFloor({
+        credits: pkg.credits,
+        apiCostKrw: worstGeneratePackageApiKrw(pkg.angles),
+        floorKrwPerCredit: floor,
+      });
+    }
+
+    const runCredits = estimateRunCredits(3);
+    const runApi =
+      WORST_API_COST_KRW.match + worstGeneratePackageApiKrw(3);
+    assertMarginFloor({
+      credits: runCredits,
+      apiCostKrw: runApi,
+      floorKrwPerCredit: floor,
+    });
+  });
+
+  it("pack_500 supports multiple full runs", () => {
+    const pack = packById("pack_500");
     assert.ok(pack);
-    const perCredit = pack.priceKrw / pack.credits;
-    const runCost = estimateRunCredits(3) * perCredit;
-    // 고객 체감 저렴 + 원가 여유: 팩의 절반 이하로 1런
-    assert.ok(runCost < pack.priceKrw * 0.55);
+    const runs = Math.floor(pack.credits / estimateRunCredits(3));
+    assert.ok(runs >= 3);
+  });
+
+  it("gross margin helper matches expectations", () => {
+    const margin = grossMarginRate(10000, 2000);
+    assert.ok(margin >= 0.5);
   });
 });

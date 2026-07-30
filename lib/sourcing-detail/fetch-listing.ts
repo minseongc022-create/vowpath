@@ -11,7 +11,10 @@ import {
   to1688MobileUrl,
   toListingImages,
 } from "./extract-images";
-import { fetch1688ViaJina } from "./jina-1688";
+import {
+  fetch1688ViaJina,
+  shouldPreferJina1688,
+} from "./jina-1688";
 import type { ScrapedListing } from "./types";
 
 const USER_AGENT =
@@ -156,6 +159,8 @@ export async function scrapeListing(
   let offerId: string | null = null;
   let blocked = false;
 
+  let jinaPromise: Promise<Awaited<ReturnType<typeof fetch1688ViaJina>> | null> | null = null;
+
   if (platform === "1688") {
     const resolved = await resolve1688OfferId(normalizedInput);
     offerId = resolved.offerId;
@@ -163,6 +168,8 @@ export async function scrapeListing(
 
     if (offerId) {
       canonicalUrl = to1688DetailUrl(offerId);
+      // Overseas / cloud IPs are blocked by 1688 — always fetch Jina in parallel.
+      jinaPromise = fetch1688ViaJina(offerId);
 
       // Detail + mobile first (real offer pages). Factory card often serves unrelated
       // company yellow pages when cloud IPs are blocked — only use if offerId appears.
@@ -251,10 +258,22 @@ export async function scrapeListing(
   listing.titleKo = listing.titleKo ?? shareTitle;
   if (!listing.title && shareTitle) listing.title = shareTitle;
 
-  // Cloud IPs are often geo-blocked by 1688 — fall back to Jina reader mirror.
-  if (platform === "1688" && offerId && listing.images.length === 0) {
-    const viaJina = await fetch1688ViaJina(offerId);
-    if (viaJina && viaJina.images.length > 0) {
+  if (platform === "1688" && offerId && jinaPromise) {
+    const viaJina = await jinaPromise;
+    const preferJina =
+      viaJina &&
+      viaJina.images.length > 0 &&
+      shouldPreferJina1688({ blocked, images: listing.images });
+
+    if (viaJina && (preferJina || listing.images.length === 0)) {
+      const mergedImages = filterProductImages(
+        dedupeImages([
+          ...(preferJina ? viaJina.images : []),
+          ...listing.images,
+          ...viaJina.images,
+        ]),
+      ).slice(0, 60);
+
       listing = {
         ...listing,
         url: viaJina.sourceUrl || listing.url,
@@ -264,12 +283,12 @@ export async function scrapeListing(
         priceCny: viaJina.priceCny ?? listing.priceCny,
         attributes:
           viaJina.attributes.length > 0 ? viaJina.attributes : listing.attributes,
-        images: filterProductImages(viaJina.images),
-        rawImageCount: viaJina.images.length,
+        images: mergedImages,
+        rawImageCount: mergedImages.length,
         scrapeWarning: undefined,
       };
       if (!listing.title && shareTitle) listing.title = shareTitle;
-      return listing;
+      if (mergedImages.length > 0) return listing;
     }
   }
 

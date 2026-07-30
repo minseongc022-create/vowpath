@@ -58,7 +58,7 @@ async function editThumb(params: {
   form.append("model", IMAGE_MODEL);
   form.append("n", "1");
   form.append("size", "1024x1024");
-  form.append("quality", process.env.OPENAI_IMAGE_QUALITY ?? "high");
+  form.append("quality", process.env.OPENAI_THUMB_QUALITY ?? "medium");
   if (!(process.env.OPENAI_IMAGE_MODEL ?? "").includes("gpt-image-2")) {
     form.append("input_fidelity", "high");
   }
