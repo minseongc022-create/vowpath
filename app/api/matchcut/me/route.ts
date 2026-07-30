@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCreditBalance } from "@/lib/matchcut/credits-store";
+import { isOpenAiConfigured } from "@/lib/matchcut/openai-config";
 import { getMatchCutSession } from "@/lib/matchcut/session";
 import { findMatchCutUserById } from "@/lib/matchcut/users-db";
 
@@ -13,6 +14,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const credits = await getCreditBalance(user.id);
+  const openaiConfigured = await isOpenAiConfigured();
   return NextResponse.json({
     ok: true,
     user: {
@@ -21,5 +23,6 @@ export async function GET() {
       displayName: user.displayName,
     },
     credits,
+    openaiConfigured,
   });
 }

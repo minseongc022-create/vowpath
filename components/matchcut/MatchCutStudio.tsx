@@ -75,6 +75,9 @@ export function MatchCutStudio({
   const [phase, setPhase] = useState<Phase>("input");
   const [error, setError] = useState<string | null>(null);
   const [maxAngles, setMaxAngles] = useState(3);
+  const [openaiConfigured, setOpenaiConfigured] = useState<boolean | null>(null);
+  const [openaiKeyInput, setOpenaiKeyInput] = useState("");
+  const [openaiSaving, setOpenaiSaving] = useState(false);
 
   const [projectId, setProjectId] = useState<string | null>(null);
   const [listing, setListing] = useState<ScrapedListing | null>(null);
@@ -105,6 +108,18 @@ export function MatchCutStudio({
   const [registerResults, setRegisterResults] = useState<RegisterResult[]>([]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(MATCHCUT_API.openaiSettings);
+        const data = await res.json();
+        if (res.ok) setOpenaiConfigured(Boolean(data.configured));
+      } catch {
+        setOpenaiConfigured(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("project");
     if (!id) return;
     void (async () => {
@@ -130,8 +145,33 @@ export function MatchCutStudio({
     })();
   }, []);
 
+  const saveOpenaiKey = async () => {
+    setOpenaiSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(MATCHCUT_API.openaiSettings, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: openaiKeyInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "키 저장 실패");
+      setOpenaiConfigured(true);
+      setOpenaiKeyInput("");
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "키 저장 실패");
+    } finally {
+      setOpenaiSaving(false);
+    }
+  };
+
   const runMatch = async () => {
     setError(null);
+    if (openaiConfigured === false) {
+      setError("OpenAI API 키를 먼저 저장해 주세요.");
+      return;
+    }
     if (!url.trim() || !fileMeta) {
       setError("사진과 URL을 모두 입력하세요.");
       return;
@@ -151,6 +191,9 @@ export function MatchCutStudio({
       if (res.status === 402) {
         setError("크레딧이 부족합니다.");
         return;
+      }
+      if (data.code === "OPENAI_API_KEY_MISSING") {
+        setOpenaiConfigured(false);
       }
       if (!res.ok) throw new Error(data.error ?? "매칭 실패");
 
@@ -417,6 +460,34 @@ export function MatchCutStudio({
         </div>
       </div>
 
+      {openaiConfigured === false && (
+        <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-sm font-semibold text-amber-950">OpenAI API 키 필요</h2>
+          <p className="mt-1 text-sm text-amber-900/80">
+            매칭·상세컷 생성을 위해 OpenAI 키(sk-…)가 필요합니다. 저장 후 바로 스캔할 수 있습니다.
+            키는 이 서버에만 저장되며 화면에 다시 표시되지 않습니다.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="password"
+              autoComplete="off"
+              value={openaiKeyInput}
+              onChange={(e) => setOpenaiKeyInput(e.target.value)}
+              placeholder="sk-…"
+              className="w-full flex-1 rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm outline-none ring-trust-500 focus:ring-2"
+            />
+            <button
+              type="button"
+              disabled={openaiSaving || !openaiKeyInput.trim()}
+              onClick={() => void saveOpenaiKey()}
+              className="rounded-xl bg-trust-600 px-4 py-3 text-sm font-semibold text-white hover:bg-trust-700 disabled:opacity-50"
+            >
+              {openaiSaving ? "확인 중…" : "키 저장"}
+            </button>
+          </div>
+        </section>
+      )}
+
       {(phase === "input" || phase === "pick") && (
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -444,7 +515,8 @@ export function MatchCutStudio({
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-sm font-semibold">소싱 URL</h2>
             <input
-              type="url"
+              type="text"
+              inputMode="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="1688 공유 문구 붙여넣기 또는 https://detail.1688.com/offer/..."
@@ -487,7 +559,7 @@ export function MatchCutStudio({
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}{" "}
-          {error.includes("크레딧") && (
+          {(error.includes("크레딧이 부족") || error.includes("요금제에서 충전")) && (
             <Link href={MATCHCUT_ROUTES.credits} className="font-semibold underline">
               충전하기
             </Link>

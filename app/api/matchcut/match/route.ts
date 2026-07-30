@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
+import {
+  ensureOpenAiApiKeyLoaded,
+  matchCutOpenAiErrorMessage,
+} from "@/lib/matchcut/openai-config";
 import { runMatchPhase } from "@/lib/sourcing-detail/pipeline";
 import { isSupportedListingUrl, normalizeListingUrl } from "@/lib/sourcing-detail/platforms";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
@@ -32,6 +36,17 @@ export async function POST(request: Request) {
     }
     if (!referenceImageBase64) {
       return NextResponse.json({ error: "실제 상품 사진이 필요합니다." }, { status: 400 });
+    }
+
+    const apiKey = await ensureOpenAiApiKeyLoaded();
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: matchCutOpenAiErrorMessage("OPENAI_API_KEY_MISSING"),
+          code: "OPENAI_API_KEY_MISSING",
+        },
+        { status: 503 },
+      );
     }
 
     await debitCredits(session.sub, CREDIT_COSTS.match);
@@ -84,9 +99,11 @@ export async function POST(request: Request) {
       );
     }
     const credits = userId ? await getCreditBalance(userId).catch(() => null) : null;
+    const friendly = msg.startsWith("OPENAI_") ? matchCutOpenAiErrorMessage(msg) : msg;
     return NextResponse.json(
       {
-        error: debited ? `${msg} (실패분 크레딧은 환불되었습니다)` : msg,
+        error: debited ? `${friendly} (실패분 크레딧은 환불되었습니다)` : friendly,
+        code: msg,
         credits,
       },
       { status: 500 },

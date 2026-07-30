@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
+import {
+  ensureOpenAiApiKeyLoaded,
+  matchCutOpenAiErrorMessage,
+} from "@/lib/matchcut/openai-config";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 import { fixProductAngle } from "@/lib/sourcing-detail/vision-generate";
 
@@ -33,6 +37,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "AI에게 어떻게 고칠지 적어 주세요." },
         { status: 400 },
+      );
+    }
+
+    const apiKey = await ensureOpenAiApiKeyLoaded();
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: matchCutOpenAiErrorMessage("OPENAI_API_KEY_MISSING"),
+          code: "OPENAI_API_KEY_MISSING",
+        },
+        { status: 503 },
       );
     }
 

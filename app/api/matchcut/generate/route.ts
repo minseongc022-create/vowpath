@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAnglePackage } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
+import {
+  ensureOpenAiApiKeyLoaded,
+  matchCutOpenAiErrorMessage,
+} from "@/lib/matchcut/openai-config";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 import { runGeneratePhase } from "@/lib/sourcing-detail/pipeline";
 import type { MatchCandidate, MatchResult, ScrapedListing } from "@/lib/sourcing-detail/types";
@@ -27,6 +31,17 @@ export async function POST(request: Request) {
     }
     if (!referenceImageBase64) {
       return NextResponse.json({ error: "실제 상품 사진이 필요합니다." }, { status: 400 });
+    }
+
+    const apiKey = await ensureOpenAiApiKeyLoaded();
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: matchCutOpenAiErrorMessage("OPENAI_API_KEY_MISSING"),
+          code: "OPENAI_API_KEY_MISSING",
+        },
+        { status: 503 },
+      );
     }
 
     // Package price includes 3 thumbnails — 혜자 체감 / 마진 확보

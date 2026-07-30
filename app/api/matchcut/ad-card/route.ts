@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { AD_CARD_STYLES, generateAdCards } from "@/lib/matchcut/ad-card";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
 import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
+import {
+  ensureOpenAiApiKeyLoaded,
+  matchCutOpenAiErrorMessage,
+} from "@/lib/matchcut/openai-config";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 
 export const maxDuration = 300;
@@ -40,6 +44,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "상품명과 상품 사진이 필요합니다." },
         { status: 400 },
+      );
+    }
+
+    const apiKey = await ensureOpenAiApiKeyLoaded();
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error: matchCutOpenAiErrorMessage("OPENAI_API_KEY_MISSING"),
+          code: "OPENAI_API_KEY_MISSING",
+        },
+        { status: 503 },
       );
     }
 
