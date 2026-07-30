@@ -4,7 +4,6 @@ import type { CreditPackId } from "./constants";
 import { MATCHCUT_ROUTES, packById } from "./constants";
 
 const VARIANT_ENV: Record<string, string | undefined> = {
-  pack_60: process.env.LEMON_SQUEEZY_VARIANT_ID_MATCHCUT_PACK_60,
   pack_150: process.env.LEMON_SQUEEZY_VARIANT_ID_MATCHCUT_PACK_150,
   pack_500: process.env.LEMON_SQUEEZY_VARIANT_ID_MATCHCUT_PACK_500,
   sub_starter: process.env.LEMON_SQUEEZY_VARIANT_ID_MATCHCUT_SUB_STARTER,

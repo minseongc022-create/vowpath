@@ -1,9 +1,9 @@
 /**
- * MatchCut unit economics — credit costs must stay ≥50% gross margin
+ * MatchCut unit economics — credit costs must stay ≥30% gross margin
  * even at worst-case OpenAI usage on the cheapest credit pack.
  */
 
-export const MIN_GROSS_MARGIN_RATE = 0.5;
+export const MIN_GROSS_MARGIN_RATE = 0.3;
 export const PAYMENT_FEE_RATE = 0.05;
 /** Safety buffer on worst-case API estimates (retries, QA, vision) */
 export const API_COST_BUFFER = 1.2;

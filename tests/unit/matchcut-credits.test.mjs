@@ -53,7 +53,7 @@ describe("matchcut credits economics", () => {
     assert.ok(WELCOME_CREDITS >= CREDIT_COSTS.match);
   });
 
-  it("every operation keeps ≥50% gross margin at floor credit price", () => {
+  it("every operation keeps ≥30% gross margin at floor credit price", () => {
     const floor = FLOOR_CREDIT_KRW;
 
     assertMarginFloor({

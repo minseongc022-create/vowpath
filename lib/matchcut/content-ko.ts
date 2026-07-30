@@ -53,7 +53,7 @@ export const matchCutFeatures = [
 export const matchCutPricingFaq = [
   {
     q: "크레딧은 어떻게 차감되나요?",
-    a: "옵션 매칭 24크레딧, AI 상세컷은 패키지(1~5장·썸네일 3장 포함). ZIP·HTML보내기는 무료입니다.",
+    a: "옵션 매칭 20크레딧, AI 상세컷은 패키지(1~5장·썸네일 3장 포함). ZIP·HTML보내기는 무료입니다.",
   },
   {
     q: "구독 크레딧과 단건 크레딧 차이는?",

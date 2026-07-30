@@ -7,6 +7,7 @@ import {
   CREDIT_PACKS,
   SUBSCRIPTION_PLANS,
   TOPUP_PACK,
+  WELCOME_CREDITS,
   estimateRunCredits,
   type CreditPack,
 } from "@/lib/matchcut/constants";
@@ -136,7 +137,7 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
 
       <h2 className="mt-14 text-xl font-bold text-slate-900">단건 크레딧</h2>
       <p className="mt-1 text-sm text-slate-500">영구 보관 · 만료 없음</p>
-      <div className="mt-6 grid gap-6 md:grid-cols-3">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
         {CREDIT_PACKS.map((p) => (
           <PackCard key={p.id} pack={p} onBuy={buy} loading={loading === p.id} />
         ))}
@@ -167,7 +168,7 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
             href={MATCHCUT_ROUTES.signup}
             className="inline-block rounded-xl bg-trust-600 px-8 py-3 font-semibold text-white hover:bg-trust-700"
           >
-            무료 30크레딧으로 시작
+            무료 {WELCOME_CREDITS}크레딧으로 시작
           </Link>
         </div>
       )}
