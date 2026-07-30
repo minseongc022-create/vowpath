@@ -8,7 +8,8 @@ import {
   SUBSCRIPTION_PLANS,
   TOPUP_PACK,
   WELCOME_CREDITS,
-  estimateRunCredits,
+  estimateFullPageCredits,
+  estimateStandardPageCredits,
   type CreditPack,
 } from "@/lib/matchcut/constants";
 import { MATCHCUT_ROUTES } from "@/lib/matchcut/constants";
@@ -26,7 +27,7 @@ function PackCard({
   subscribed?: boolean;
 }) {
   const perCredit = Math.round(pack.priceKrw / pack.credits);
-  const runs = Math.floor(pack.credits / estimateRunCredits(3));
+  const pages = Math.floor(pack.credits / estimateStandardPageCredits());
 
   return (
     <div className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -47,7 +48,7 @@ function PackCard({
       <ul className="mt-4 space-y-2 text-sm text-slate-600">
         <li>{pack.credits.toLocaleString()} 크레딧</li>
         <li>크레딧당 약 {perCredit}원</li>
-        <li>소싱 약 {runs}건 (매칭+컷3 기준)</li>
+        <li>상세페이지 약 {pages}건 (매칭+컷1+썸네일)</li>
       </ul>
       {onBuy && (
         <button
@@ -123,7 +124,8 @@ export function MatchCutPricingPage({ session }: { session?: boolean }) {
           </div>
         </div>
         <p className="mt-3 text-xs text-trust-800">
-          1건 풀세트 (매칭 + 컷 3장) = {estimateRunCredits(3)} 크레딧
+          상세페이지 1건 (매칭 + 컷 1장 + 썸네일) = {estimateStandardPageCredits()} 크레딧 · 풀세트
+          3컷 = {estimateFullPageCredits()} 크레딧
         </p>
       </div>
 

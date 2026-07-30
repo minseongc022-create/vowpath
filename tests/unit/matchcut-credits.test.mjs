@@ -4,8 +4,9 @@ import {
   ANGLE_PACKAGES,
   CREDIT_COSTS,
   CREDIT_PACKS,
+  estimateFullPageCredits,
   estimateGenerateCredits,
-  estimateRunCredits,
+  estimateStandardPageCredits,
   FLOOR_CREDIT_KRW,
   getAnglePackage,
   SUBSCRIPTION_PLANS,
@@ -18,7 +19,9 @@ import {
   floorCreditKrw,
   grossMarginRate,
   POLICY_FLOOR_CREDIT_KRW,
+  worstFullPageApiKrw,
   worstGeneratePackageApiKrw,
+  worstStandardPageApiKrw,
   WORST_API_COST_KRW,
 } from "../../lib/matchcut/economics.ts";
 
@@ -26,7 +29,10 @@ const ALL_PACKS = [...CREDIT_PACKS, ...SUBSCRIPTION_PLANS, TOPUP_PACK];
 
 describe("matchcut credits economics", () => {
   it("floor credit KRW uses policy minimum", () => {
-    assert.equal(FLOOR_CREDIT_KRW, Math.max(floorCreditKrw(ALL_PACKS), POLICY_FLOOR_CREDIT_KRW));
+    assert.equal(
+      FLOOR_CREDIT_KRW,
+      Math.max(floorCreditKrw(ALL_PACKS), POLICY_FLOOR_CREDIT_KRW),
+    );
   });
 
   it("offers 1 through 5 angle packages", () => {
@@ -45,13 +51,22 @@ describe("matchcut credits economics", () => {
     assert.ok(five.credits / 5 < one.credits / 1);
   });
 
-  it("full run credit estimate uses packages", () => {
-    assert.equal(estimateRunCredits(3), CREDIT_COSTS.match + estimateGenerateCredits(3));
+  it("standard page estimate uses 1-angle package", () => {
+    assert.equal(
+      estimateStandardPageCredits(),
+      CREDIT_COSTS.match + estimateGenerateCredits(1),
+    );
   });
 
-  it("welcome credits allow match trial only", () => {
+  it("full page estimate uses 3-angle package", () => {
+    assert.equal(
+      estimateFullPageCredits(),
+      CREDIT_COSTS.match + estimateGenerateCredits(3),
+    );
+  });
+
+  it("welcome credits allow match trial", () => {
     assert.equal(WELCOME_CREDITS, CREDIT_COSTS.match);
-    assert.ok(WELCOME_CREDITS >= CREDIT_COSTS.match);
   });
 
   it("every operation keeps ≥30% gross margin at floor credit price", () => {
@@ -60,6 +75,18 @@ describe("matchcut credits economics", () => {
     assertMarginFloor({
       credits: CREDIT_COSTS.match,
       apiCostKrw: WORST_API_COST_KRW.match,
+      floorKrwPerCredit: floor,
+    });
+
+    assertMarginFloor({
+      credits: estimateStandardPageCredits(),
+      apiCostKrw: worstStandardPageApiKrw(),
+      floorKrwPerCredit: floor,
+    });
+
+    assertMarginFloor({
+      credits: estimateFullPageCredits(),
+      apiCostKrw: worstFullPageApiKrw(3),
       floorKrwPerCredit: floor,
     });
 
@@ -82,29 +109,28 @@ describe("matchcut credits economics", () => {
         floorKrwPerCredit: floor,
       });
     }
-
-    const runCredits = estimateRunCredits(3);
-    const runApi =
-      WORST_API_COST_KRW.match + worstGeneratePackageApiKrw(3);
-    assertMarginFloor({
-      credits: runCredits,
-      apiCostKrw: runApi,
-      floorKrwPerCredit: floor,
-    });
   });
 
-  it("pack_150 supports at least 3 full runs", () => {
+  it("beats DetailMaker at 19,900 (30+ standard pages)", () => {
     const pack = packById("pack_150");
     assert.ok(pack);
-    const runs = Math.floor(pack.credits / estimateRunCredits(3));
-    assert.ok(runs >= 3);
+    const perPage = estimateStandardPageCredits();
+    const runs = Math.floor(pack.credits / perPage);
+    assert.ok(runs >= 33, `got ${runs} pages at ${perPage} credits/page`);
   });
 
-  it("pack_500 supports at least 5 full runs", () => {
+  it("beats Draph Pro Plus monthly page count on power pack", () => {
     const pack = packById("pack_500");
     assert.ok(pack);
-    const runs = Math.floor(pack.credits / estimateRunCredits(3));
-    assert.ok(runs >= 5);
+    const runs = Math.floor(pack.credits / estimateStandardPageCredits());
+    assert.ok(runs >= 66, `got ${runs} pages`);
+  });
+
+  it("sub pro beats Draph monthly at similar price tier", () => {
+    const sub = packById("sub_pro");
+    assert.ok(sub);
+    const runs = Math.floor(sub.credits / estimateStandardPageCredits());
+    assert.ok(runs >= 33, `got ${runs} pages`);
   });
 
   it("gross margin helper matches expectations", () => {

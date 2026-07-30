@@ -8,18 +8,21 @@ export const PAYMENT_FEE_RATE = 0.05;
 /** Policy floor — generous pack credits don't lower per-action pricing. */
 export const POLICY_FLOOR_CREDIT_KRW = 95;
 /** Safety buffer on worst-case API estimates (retries, QA, vision) */
-export const API_COST_BUFFER = 1.2;
+export const API_COST_BUFFER = 1.15;
 
-/** Worst-case API cost per operation (KRW, ~USD×1,400) */
+/**
+ * Worst-case API cost per operation (KRW, ~USD×1,400).
+ * Medium image quality + single QA attempt assumed (see vision-generate).
+ */
 export const WORST_API_COST_KRW = {
-  match: 450,
-  generateOverhead: 900,
-  angleHighEdit: 1100,
-  thumbnailMedium: 120,
-  fixAngle: 950,
-  adCard: 550,
-  pricing: 80,
-  marketRegister: 100,
+  match: 280,
+  generateOverhead: 500,
+  angleEdit: 520,
+  thumbnailMedium: 70,
+  fixAngle: 600,
+  adCard: 350,
+  pricing: 60,
+  marketRegister: 80,
 } as const;
 
 export type SellablePack = { id: string; credits: number; priceKrw: number };
@@ -47,9 +50,17 @@ export function worstGeneratePackageApiKrw(angles: number, withThumbnails = true
   const thumbs = withThumbnails ? 3 : 0;
   return (
     WORST_API_COST_KRW.generateOverhead +
-    n * WORST_API_COST_KRW.angleHighEdit +
+    n * WORST_API_COST_KRW.angleEdit +
     thumbs * WORST_API_COST_KRW.thumbnailMedium
   );
+}
+
+export function worstStandardPageApiKrw(): number {
+  return WORST_API_COST_KRW.match + worstGeneratePackageApiKrw(1);
+}
+
+export function worstFullPageApiKrw(angles = 3): number {
+  return WORST_API_COST_KRW.match + worstGeneratePackageApiKrw(angles);
 }
 
 export function grossMarginRate(revenueKrw: number, apiCostKrw: number): number {
