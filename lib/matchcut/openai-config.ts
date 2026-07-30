@@ -98,17 +98,17 @@ export async function validateOpenAiApiKey(apiKey: string): Promise<{ ok: true }
 export function matchCutOpenAiErrorMessage(code: string): string {
   switch (code) {
     case "OPENAI_API_KEY_MISSING":
-      return "OpenAI API 키가 없습니다. 아래에 sk- 키를 저장한 뒤 다시 스캔하세요.";
+      return "AI 기능을 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.";
     case "OPENAI_INVALID_KEY":
-      return "OpenAI API 키가 올바르지 않습니다. 키를 다시 확인해 주세요.";
+      return "AI 서비스 인증에 실패했습니다. 운영자에게 문의해 주세요.";
     case "OPENAI_INSUFFICIENT_QUOTA":
-      return "OpenAI 사용량/결제 한도에 도달했습니다. OpenAI 계정을 확인해 주세요.";
+      return "AI 사용량이 일시적으로 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.";
     case "OPENAI_TIMEOUT":
-      return "OpenAI 응답이 지연되었습니다. 잠시 후 다시 시도해 주세요.";
+      return "AI 응답이 지연되었습니다. 잠시 후 다시 시도해 주세요.";
     case "OPENAI_REQUEST_FAILED":
-      return "OpenAI 요청에 실패했습니다. 네트워크 또는 키 권한을 확인해 주세요.";
+      return "AI 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.";
     case "OPENAI_KEY_INVALID_FORMAT":
-      return "OpenAI 키 형식이 아닙니다. sk- 로 시작하는 키를 입력하세요.";
+      return "API 키 형식이 올바르지 않습니다.";
     default:
       return code;
   }

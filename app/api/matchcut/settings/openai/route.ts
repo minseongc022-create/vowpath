@@ -9,7 +9,23 @@ import {
 } from "@/lib/matchcut/openai-config";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
 
-export async function GET() {
+/**
+ * Operator-only. Customers never see this in the UI.
+ * Requires header: x-matchcut-openai-admin: <MATCHCUT_OPENAI_ADMIN_SECRET>
+ * If the secret env is unset, writes are disabled (404).
+ */
+function requireOpenAiAdmin(request: Request): string | null {
+  const expected = process.env.MATCHCUT_OPENAI_ADMIN_SECRET?.trim();
+  if (!expected) return null;
+  const got = request.headers.get("x-matchcut-openai-admin")?.trim();
+  if (!got || got !== expected) return null;
+  return expected;
+}
+
+export async function GET(request: Request) {
+  if (!requireOpenAiAdmin(request)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     await requireMatchCutSession();
     const configured = await isOpenAiConfigured();
@@ -29,6 +45,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!requireOpenAiAdmin(request)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     const session = await requireMatchCutSession();
     const body = await request.json();
@@ -51,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       configured: true,
-      message: "OpenAI 키가 저장되었습니다. 이제 스캔 + 매칭을 다시 눌러 주세요.",
+      message: "OpenAI 키가 저장되었습니다.",
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "저장 실패";
@@ -65,7 +84,10 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  if (!requireOpenAiAdmin(request)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     await requireMatchCutSession();
     await clearOpenAiApiKey();

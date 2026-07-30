@@ -39,7 +39,6 @@ export const MATCHCUT_API = {
   marketsStatus: "/api/matchcut/markets/status",
   marketsRegister: "/api/matchcut/markets/register",
   adCard: "/api/matchcut/ad-card",
-  openaiSettings: "/api/matchcut/settings/openai",
 } as const;
 
 /** 크리에이지식: 구독 크레딧(월 초기화) + 단건 크레딧(영구) */
