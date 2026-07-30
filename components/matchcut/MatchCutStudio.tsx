@@ -361,7 +361,12 @@ export function MatchCutStudio({
       )}
 
       {phase === "generating" && (
-        <p className="mt-10 text-center text-trust-800">상세컷 생성 중…</p>
+        <div className="mt-10 text-center">
+          <p className="text-trust-800 font-medium">상세컷 생성 중…</p>
+          <p className="mt-1 text-sm text-slate-500">
+            실사진 디자인·디테일 고정 → 각도만 변경 → 원본일치 검증
+          </p>
+        </div>
       )}
 
       {phase === "done" && (
@@ -426,7 +431,13 @@ export function MatchCutStudio({
                   <p className="mt-1 text-center text-xs text-slate-500">
                     {a.angle}
                     {a.qualityScore != null && (
-                      <span className="ml-1 text-trust-600">· 품질 {a.qualityScore}%</span>
+                      <span
+                        className={`ml-1 ${
+                          a.qualityScore >= 88 ? "text-trust-600" : "text-amber-600"
+                        }`}
+                      >
+                        · 원본일치 {a.qualityScore}%
+                      </span>
                     )}
                   </p>
                 </div>

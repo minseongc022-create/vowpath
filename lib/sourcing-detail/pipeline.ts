@@ -5,6 +5,7 @@ import { buildDetailPageHtml } from "./detail-layout";
 import { analyzeProduct } from "./product-analysis";
 import { researchCompetitors } from "./competitor-research";
 import { generateDetailCopy } from "./detail-copy";
+import { extractProductIdentity } from "./product-identity";
 import type { DetailPageBundle, MatchCandidate, PipelineResult } from "./types";
 
 export async function runMatchPhase(params: {
@@ -88,30 +89,38 @@ export async function runGeneratePhase(params: {
     params.listing.title ||
     "import product matching reference photo";
 
-  const matchedB64 = await fetchUrlAsBase64(params.selectedCandidate.imageUrl);
-  const refForGen = matchedB64 ?? params.referenceImageBase64;
+  // Listing image is SECONDARY only — seller real photo is ground truth for design
+  const listingImageBase64 = await fetchUrlAsBase64(params.selectedCandidate.imageUrl);
 
-  const detailBundle = await buildDetailBundle({
-    referenceImageBase64: params.referenceImageBase64,
-    referenceMime: params.referenceMime,
-    listingTitle: params.listing.title,
-    referenceDescription: params.match.referenceDescription,
-    skuLabel: params.selectedCandidate.skuLabel,
-  });
+  const [detailBundle, identity] = await Promise.all([
+    buildDetailBundle({
+      referenceImageBase64: params.referenceImageBase64,
+      referenceMime: params.referenceMime,
+      listingTitle: params.listing.title,
+      referenceDescription: params.match.referenceDescription,
+      skuLabel: params.selectedCandidate.skuLabel,
+    }),
+    extractProductIdentity({
+      referenceImageBase64: params.referenceImageBase64,
+      referenceMime: params.referenceMime,
+      referenceDescription: params.match.referenceDescription,
+    }),
+  ]);
 
   const productDescription = [
     detailBundle.productAnalysis.productNameKo,
+    identity.summaryKo,
     description,
-    detailBundle.detailCopy.headline,
   ]
     .filter(Boolean)
     .join(" — ");
 
   const generatedAngles = await generateProductAngles({
+    identity,
     productDescription,
-    referenceImageBase64: refForGen,
     userReferenceBase64: params.referenceImageBase64,
-    referenceMime: params.referenceMime,
+    userReferenceMime: params.referenceMime,
+    listingImageBase64: listingImageBase64 ?? undefined,
     maxAngles: params.maxAngles ?? 3,
   });
 

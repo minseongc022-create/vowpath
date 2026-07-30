@@ -1,62 +1,167 @@
 import { verifyGeneratedImage } from "./vision-quality";
 import { countSuccessfulAngles } from "./angle-utils";
+import { identityLockPrompt, type ProductIdentity } from "./product-identity";
 import type { GeneratedAngle } from "./types";
 
 const ANGLE_SPECS: { angle: string; promptSuffix: string }[] = [
   {
     angle: "front",
     promptSuffix:
-      "straight-on front view, centered product, soft studio lighting, pure white background, ecommerce product photography, sharp focus, no watermark",
+      "Change ONLY camera to straight-on front view. Soft studio lighting, pure white background, ecommerce product photography, sharp focus.",
   },
   {
     angle: "45-degree",
     promptSuffix:
-      "45-degree angle hero shot, subtle shadow, clean white background, professional product photo, high detail, no text overlay",
+      "Change ONLY camera to a 45-degree hero angle. Subtle shadow, clean white background, professional product photo.",
   },
   {
     angle: "side",
     promptSuffix:
-      "perfect side profile view, studio lighting, minimal shadow, white background, crisp commercial product image",
+      "Change ONLY camera to a perfect side profile. Studio lighting, minimal shadow, white background.",
   },
   {
     angle: "detail",
     promptSuffix:
-      "close-up detail shot showing material texture and key features, macro product photography, white background",
+      "Change ONLY camera to a close-up of the same product's real material/hardware details already visible — do not invent new features. White background.",
   },
   {
     angle: "lifestyle",
     promptSuffix:
-      "clean lifestyle context — minimal modern surface, natural soft daylight, product unchanged, premium catalog style",
+      "Keep the EXACT same product; place on a minimal modern surface with soft daylight. Do not alter the product itself.",
   },
 ];
 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 3;
+const INPUT_FIDELITY = process.env.OPENAI_IMAGE_INPUT_FIDELITY ?? "high";
+const IMAGE_QUALITY = process.env.OPENAI_IMAGE_QUALITY ?? "high";
 
-function buildPrompt(
-  productDescription: string,
-  promptSuffix: string,
-  retryHint?: string,
-): string {
-  const strict =
-    "CRITICAL: Keep IDENTICAL product — same exact color, shape, logos, hardware, pattern, and variant. Only change camera angle and lighting. Photorealistic studio shot.";
-  const hint = retryHint ? ` Fix previous issues: ${retryHint}.` : "";
-  return `${strict} Product: ${productDescription}. ${promptSuffix}.${hint} No watermark, no text, no collage.`;
+function buildPrompt(params: {
+  identity: ProductIdentity;
+  productDescription: string;
+  promptSuffix: string;
+  retryHint?: string;
+}): string {
+  const lock = identityLockPrompt(params.identity);
+  const hint = params.retryHint
+    ? ` PREVIOUS OUTPUT FAILED QA — fix: ${params.retryHint}.`
+    : "";
+
+  return [
+    "TASK: Rephotograph the SAME physical product from a different camera angle.",
+    "FORBIDDEN: redesign, recolor, restyle, invent logos, invent patterns, invent hardware, invent internal parts, change variant.",
+    "ALLOWED: camera angle, framing, studio lighting, clean background.",
+    `IDENTITY LOCK: ${lock}`,
+    `Product label: ${params.productDescription}`,
+    params.promptSuffix,
+    "Photorealistic. No watermark, no text overlay, no collage, no collage edges.",
+    hint,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
+function toBytes(base64OrDataUrl: string): { bytes: Buffer; mime: string } {
+  if (base64OrDataUrl.startsWith("data:")) {
+    const match = /^data:([^;]+);base64,(.+)$/.exec(base64OrDataUrl);
+    if (!match) throw new Error("INVALID_DATA_URL");
+    return { bytes: Buffer.from(match[2], "base64"), mime: match[1] };
+  }
+  return { bytes: Buffer.from(base64OrDataUrl, "base64"), mime: "image/jpeg" };
+}
+
+/**
+ * Image edits with high input fidelity.
+ * First image = seller real photo (ground truth). Optional second = matched listing SKU.
+ * Never falls back to text-only generations (those invent product details).
+ */
 async function callImageEdit(params: {
-  refDataUrl: string;
-  mime: string;
+  primaryImageBase64: string;
+  primaryMime?: string;
+  secondaryImageBase64?: string;
+  secondaryMime?: string;
   prompt: string;
 }): Promise<{ b64?: string; url?: string; error?: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY_MISSING");
 
   const form = new FormData();
-  const base64Data = params.refDataUrl.split(",")[1] ?? "";
-  const bytes = Buffer.from(base64Data, "base64");
-  const blob = new Blob([bytes], { type: params.mime });
-  form.append("image", blob, "reference.jpg");
+  const primary = toBytes(
+    params.primaryImageBase64.startsWith("data:")
+      ? params.primaryImageBase64
+      : `data:${params.primaryMime ?? "image/jpeg"};base64,${params.primaryImageBase64}`,
+  );
+  form.append(
+    "image",
+    new Blob([new Uint8Array(primary.bytes)], { type: primary.mime }),
+    "seller-real.jpg",
+  );
+
+  if (params.secondaryImageBase64) {
+    const secondary = toBytes(
+      params.secondaryImageBase64.startsWith("data:")
+        ? params.secondaryImageBase64
+        : `data:${params.secondaryMime ?? "image/jpeg"};base64,${params.secondaryImageBase64}`,
+    );
+    form.append(
+      "image",
+      new Blob([new Uint8Array(secondary.bytes)], { type: secondary.mime }),
+      "listing-match.jpg",
+    );
+  }
+
+  form.append("prompt", params.prompt);
+  form.append("model", IMAGE_MODEL);
+  form.append("n", "1");
+  form.append("size", "1024x1024");
+  form.append("quality", IMAGE_QUALITY);
+  // Preserves logos/faces/fine details from input images (gpt-image-1 / 1.5)
+  if (!IMAGE_MODEL.includes("gpt-image-2")) {
+    form.append("input_fidelity", INPUT_FIDELITY);
+  }
+
+  const res = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!res.ok) {
+    // Retry once without optional params some accounts reject
+    if (res.status === 400) {
+      return callImageEditLegacy(params);
+    }
+    return { error: `IMAGE_EDIT_FAILED_${res.status}` };
+  }
+
+  const data = (await res.json()) as {
+    data?: { b64_json?: string; url?: string }[];
+  };
+  const item = data.data?.[0];
+  return { b64: item?.b64_json, url: item?.url };
+}
+
+/** Fallback edit without quality/input_fidelity if the account rejects them */
+async function callImageEditLegacy(params: {
+  primaryImageBase64: string;
+  primaryMime?: string;
+  secondaryImageBase64?: string;
+  secondaryMime?: string;
+  prompt: string;
+}): Promise<{ b64?: string; url?: string; error?: string }> {
+  const apiKey = process.env.OPENAI_API_KEY!;
+  const form = new FormData();
+  const primary = toBytes(
+    params.primaryImageBase64.startsWith("data:")
+      ? params.primaryImageBase64
+      : `data:${params.primaryMime ?? "image/jpeg"};base64,${params.primaryImageBase64}`,
+  );
+  form.append(
+    "image",
+    new Blob([new Uint8Array(primary.bytes)], { type: primary.mime }),
+    "seller-real.jpg",
+  );
   form.append("prompt", params.prompt);
   form.append("model", IMAGE_MODEL);
   form.append("n", "1");
@@ -66,32 +171,11 @@ async function callImageEdit(params: {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
     body: form,
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!res.ok) {
-    const genRes = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        prompt: params.prompt,
-        n: 1,
-        size: "1024x1024",
-      }),
-      signal: AbortSignal.timeout(90_000),
-    });
-    if (!genRes.ok) {
-      return { error: `IMAGE_GEN_FAILED_${genRes.status}` };
-    }
-    const genData = (await genRes.json()) as {
-      data?: { b64_json?: string; url?: string }[];
-    };
-    const item = genData.data?.[0];
-    return { b64: item?.b64_json, url: item?.url };
+    return { error: `IMAGE_EDIT_FAILED_${res.status}` };
   }
 
   const data = (await res.json()) as {
@@ -114,30 +198,42 @@ async function resolveBase64(result: { b64?: string; url?: string }): Promise<st
 }
 
 async function generateOneAngle(params: {
+  identity: ProductIdentity;
   productDescription: string;
-  referenceImageBase64: string;
-  userReferenceBase64?: string;
-  referenceMime?: string;
+  /** Seller real photo — ground truth */
+  userReferenceBase64: string;
+  userReferenceMime?: string;
+  /** Matched listing SKU image — secondary reference only */
+  listingImageBase64?: string;
   angle: string;
   promptSuffix: string;
 }): Promise<GeneratedAngle> {
-  const mime = params.referenceMime ?? "image/jpeg";
-  const refForEdit = params.referenceImageBase64.startsWith("data:")
-    ? params.referenceImageBase64
-    : `data:${mime};base64,${params.referenceImageBase64}`;
-
-  const qualityRef = params.userReferenceBase64 ?? params.referenceImageBase64;
-
   let lastError: string | undefined;
   let retryHint: string | undefined;
+  let bestRejected: { b64: string; score: number; issues: string[] } | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const prompt = buildPrompt(params.productDescription, params.promptSuffix, retryHint);
+    const prompt = buildPrompt({
+      identity: params.identity,
+      productDescription: params.productDescription,
+      promptSuffix: params.promptSuffix,
+      retryHint,
+    });
 
     try {
-      const result = await callImageEdit({ refDataUrl: refForEdit, mime, prompt });
+      const result = await callImageEdit({
+        primaryImageBase64: params.userReferenceBase64,
+        primaryMime: params.userReferenceMime,
+        secondaryImageBase64: params.listingImageBase64,
+        prompt,
+      });
+
       if (result.error) {
         lastError = result.error;
+        // If dual-ref failed, retry with user photo only
+        if (params.listingImageBase64 && attempt === 0) {
+          retryHint = "use seller photo only; preserve every design detail";
+        }
         continue;
       }
 
@@ -148,13 +244,14 @@ async function generateOneAngle(params: {
       }
 
       const quality = await verifyGeneratedImage({
-        referenceImageBase64: qualityRef,
-        referenceMime: params.referenceMime,
+        referenceImageBase64: params.userReferenceBase64,
+        referenceMime: params.userReferenceMime,
         generatedImageBase64: generatedB64,
         productDescription: params.productDescription,
+        mustPreserve: params.identity.mustPreserve,
       });
 
-      if (quality.passed || attempt === MAX_RETRIES) {
+      if (quality.passed) {
         return {
           angle: params.angle,
           prompt,
@@ -162,29 +259,44 @@ async function generateOneAngle(params: {
           imageUrl: result.url,
           qualityScore: quality.score,
           retryCount: attempt,
-          ...(quality.passed ? {} : { error: quality.issues[0] ?? "QUALITY_BELOW_THRESHOLD" }),
         };
       }
 
-      retryHint = quality.issues.join("; ") || "색상/형태 불일치";
+      if (!bestRejected || quality.score > bestRejected.score) {
+        bestRejected = {
+          b64: generatedB64,
+          score: quality.score,
+          issues: quality.issues,
+        };
+      }
+
+      lastError = quality.issues[0] ?? "FIDELITY_REJECTED";
+      retryHint = quality.issues.join("; ") || "색상·로고·패턴·하드웨어·내부 디테일 원본과 불일치";
     } catch (e) {
       lastError = e instanceof Error ? e.message : "IMAGE_GEN_ERROR";
     }
   }
 
+  // Never ship a drifted product image — return error only (credits refund)
   return {
     angle: params.angle,
-    prompt: buildPrompt(params.productDescription, params.promptSuffix),
-    error: lastError ?? "IMAGE_GEN_FAILED",
+    prompt: buildPrompt({
+      identity: params.identity,
+      productDescription: params.productDescription,
+      promptSuffix: params.promptSuffix,
+    }),
+    error: lastError ?? "FIDELITY_REJECTED",
+    qualityScore: bestRejected?.score,
     retryCount: MAX_RETRIES,
   };
 }
 
 export async function generateProductAngles(params: {
+  identity: ProductIdentity;
   productDescription: string;
-  referenceImageBase64: string;
-  userReferenceBase64?: string;
-  referenceMime?: string;
+  userReferenceBase64: string;
+  userReferenceMime?: string;
+  listingImageBase64?: string;
   maxAngles?: number;
 }): Promise<GeneratedAngle[]> {
   const specs = ANGLE_SPECS.slice(0, params.maxAngles ?? ANGLE_SPECS.length);
@@ -192,10 +304,11 @@ export async function generateProductAngles(params: {
 
   for (const spec of specs) {
     const result = await generateOneAngle({
+      identity: params.identity,
       productDescription: params.productDescription,
-      referenceImageBase64: params.referenceImageBase64,
       userReferenceBase64: params.userReferenceBase64,
-      referenceMime: params.referenceMime,
+      userReferenceMime: params.userReferenceMime,
+      listingImageBase64: params.listingImageBase64,
       angle: spec.angle,
       promptSuffix: spec.promptSuffix,
     });

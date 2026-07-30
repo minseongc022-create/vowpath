@@ -12,6 +12,7 @@ import {
 import { MARKET_SPECS } from "../../lib/matchcut/constants.ts";
 import { buildDetailPageHtml } from "../../lib/sourcing-detail/detail-layout.ts";
 import { countSuccessfulAngles } from "../../lib/sourcing-detail/angle-utils.ts";
+import { identityLockPrompt } from "../../lib/sourcing-detail/product-identity.ts";
 
 describe("matchcut constants", () => {
   it("defines coupang and smartstore specs", () => {
@@ -144,14 +145,35 @@ describe("detail-layout", () => {
 });
 
 describe("vision-generate helpers", () => {
-  it("counts successful angles", () => {
+  it("counts only fidelity-passed angles", () => {
     assert.equal(
       countSuccessfulAngles([
         { angle: "a", prompt: "p", imageBase64: "x" },
         { angle: "b", prompt: "p", error: "fail" },
         { angle: "c", prompt: "p", imageUrl: "https://x.com/1.png" },
+        { angle: "d", prompt: "p", imageBase64: "y", error: "FIDELITY_REJECTED" },
       ]),
       2,
     );
+  });
+});
+
+describe("product-identity", () => {
+  it("builds lock prompt with must-preserve details", () => {
+    const lock = identityLockPrompt({
+      lockPromptEn: "matte black bottle with white logo",
+      summaryKo: "블랙 보틀",
+      color: "matte black",
+      shape: "cylinder",
+      material: "steel",
+      logosText: ["ACME"],
+      patterns: [],
+      hardware: ["silver cap"],
+      internalDetails: ["double wall"],
+      mustPreserve: ["white ACME logo", "silver screw cap"],
+    });
+    assert.ok(lock.includes("matte black bottle"));
+    assert.ok(lock.includes("NON-NEGOTIABLE"));
+    assert.ok(lock.includes("white ACME logo"));
   });
 });

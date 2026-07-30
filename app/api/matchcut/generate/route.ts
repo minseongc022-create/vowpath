@@ -65,8 +65,9 @@ export async function POST(request: Request) {
     if (result.successCount === 0) {
       return NextResponse.json(
         {
-          error: "상세컷 생성에 실패했습니다. 크레딧은 전액 환불되었습니다.",
-          code: "GENERATION_FAILED",
+          error:
+            "원본과 디자인이 충분히 일치하는 컷을 만들지 못했습니다. 크레딧은 전액 환불되었습니다. 더 선명한 실사진으로 다시 시도해 주세요.",
+          code: "FIDELITY_FAILED",
           generatedAngles: result.generatedAngles,
           creditsRefunded: refundAmount,
           credits,
