@@ -4,7 +4,7 @@ import {
   MatchCutMarketingHeader,
 } from "@/components/matchcut/MatchCutShell";
 import { getMatchCutSession } from "@/lib/matchcut/session";
-import { MATCHCUT_ROUTES, WELCOME_CREDITS, estimateRunCredits } from "@/lib/matchcut/constants";
+import { MATCHCUT_ROUTES, WELCOME_CREDITS, estimateStandardPageCredits, packById } from "@/lib/matchcut/constants";
 import {
   matchCutFeatures,
   matchCutHero,
@@ -14,6 +14,12 @@ import {
 
 export default async function MatchCutLandingPage() {
   const session = await getMatchCutSession();
+
+  const sellerPack = packById("pack_150");
+  const pagesPerSellerPack =
+    sellerPack
+      ? Math.floor(sellerPack.credits / estimateStandardPageCredits())
+      : 0;
 
   return (
     <>
@@ -42,7 +48,7 @@ export default async function MatchCutLandingPage() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-trust-700">
-            가입 즉시 {WELCOME_CREDITS}크레딧 · 1건 풀세트 {estimateRunCredits(3)}크레딧
+            가입 즉시 {WELCOME_CREDITS}크레딧 · 셀러팩 19,900원에 상세페이지 {pagesPerSellerPack}건+
           </p>
         </div>
 
