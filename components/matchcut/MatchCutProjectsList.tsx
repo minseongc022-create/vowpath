@@ -37,6 +37,23 @@ export function MatchCutProjectsList() {
 
   useEffect(() => {
     void load();
+    const t = window.setInterval(() => {
+      void (async () => {
+        try {
+          const res = await fetch(MATCHCUT_API.projects);
+          const data = await res.json();
+          if (!res.ok) return;
+          const next = (data.projects ?? []) as ProjectRow[];
+          setProjects(next);
+          if (!next.some((p) => p.status === "generating")) {
+            /* keep interval; cheap */
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+    }, 5000);
+    return () => window.clearInterval(t);
   }, []);
 
   const remove = async (id: string) => {
@@ -85,8 +102,14 @@ export function MatchCutProjectsList() {
               <p className="truncate font-semibold text-slate-900">{p.title}</p>
               <p className="mt-1 truncate text-xs text-slate-500">{p.sourceUrl}</p>
               <p className="mt-2 text-xs text-slate-500">
-                {p.platform ?? "—"} · {p.status} · {p.creditsUsed}크레딧 ·{" "}
-                {new Date(p.updatedAt).toLocaleString("ko-KR")}
+                {p.platform ?? "—"} ·{" "}
+                {p.status === "generating"
+                  ? "상세컷 생성 중"
+                  : p.status === "generated"
+                    ? "생성 완료"
+                    : p.status}
+                {" · "}
+                {p.creditsUsed}크레딧 · {new Date(p.updatedAt).toLocaleString("ko-KR")}
                 {p.hasAngles ? " · 상세컷 있음" : ""}
               </p>
             </div>

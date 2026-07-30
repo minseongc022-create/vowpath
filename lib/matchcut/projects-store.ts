@@ -23,7 +23,7 @@ export type MatchCutProject = {
   title: string;
   sourceUrl: string;
   platform?: string;
-  status: "matched" | "generated" | "exported";
+  status: "matched" | "generating" | "generated" | "exported";
   listing?: ScrapedListing;
   match?: MatchResult;
   selectedCandidate?: MatchCandidate | null;
@@ -32,6 +32,7 @@ export type MatchCutProject = {
   detailPageHtml?: string;
   detailBundle?: DetailPageBundle;
   creditsUsed: number;
+  generateJobId?: string | null;
 };
 
 type FileStore = Record<string, MatchCutProject[]>;
@@ -132,6 +133,7 @@ export async function updateProject(
       | "creditsUsed"
       | "match"
       | "listing"
+      | "generateJobId"
     >
   >,
 ): Promise<MatchCutProject | null> {

@@ -113,6 +113,8 @@ export function MatchCutStudio({
   const [rematching, setRematching] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
   const [savingListing, setSavingListing] = useState(false);
+  const [generateJobId, setGenerateJobId] = useState<string | null>(null);
+  const [generateProgress, setGenerateProgress] = useState("queued");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("project");
@@ -132,13 +134,70 @@ export function MatchCutStudio({
         setThumbnails(p.thumbnails ?? []);
         setDetailPageHtml(p.detailPageHtml ?? "");
         setDetailBundle(p.detailBundle ?? null);
-        if (p.generatedAngles?.length) setPhase("done");
+        if (p.status === "generating" && p.generateJobId) {
+          setGenerateJobId(p.generateJobId);
+          setGenerateProgress("running");
+          setPhase("generating");
+        } else if (p.generatedAngles?.length) setPhase("done");
         else if (p.match) setPhase("pick");
       } catch {
         /* ignore */
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("matchcut:generateJobId");
+    if (stored && !generateJobId && phase === "input") {
+      setGenerateJobId(stored);
+      setPhase("generating");
+      setGenerateProgress("running");
+    }
+  }, [generateJobId, phase]);
+
+  useEffect(() => {
+    if (!generateJobId || phase !== "generating") return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(`${MATCHCUT_API.generate}?jobId=${generateJobId}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) throw new Error(data.error ?? "상태 조회 실패");
+        setGenerateProgress(data.status ?? data.job?.status ?? "running");
+        if (data.credits) setCredits(data.credits.total);
+        if (data.status === "done" || data.job?.status === "done") {
+          setGeneratedAngles(data.generatedAngles ?? []);
+          setThumbnails(data.thumbnails ?? []);
+          setDetailPageHtml(data.detailPageHtml ?? "");
+          setDetailBundle(data.detailBundle ?? null);
+          if (data.needsFixCount > 0) {
+            setError(
+              `${data.needsFixCount}장에 이상한 부분이 있을 수 있습니다. 사진을 눌러 AI에게 고쳐달라고 하세요.`,
+            );
+          }
+          sessionStorage.removeItem("matchcut:generateJobId");
+          setGenerateJobId(null);
+          setPhase("done");
+          return;
+        }
+        if (data.status === "failed" || data.job?.status === "failed") {
+          setError(data.error ?? data.job?.error ?? "생성 실패");
+          sessionStorage.removeItem("matchcut:generateJobId");
+          setGenerateJobId(null);
+          setPhase("pick");
+        }
+      } catch {
+        /* keep polling — background job continues on server */
+      }
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [generateJobId, phase]);
 
   const runMatch = async () => {
     setError(null);
@@ -291,6 +350,7 @@ export function MatchCutStudio({
     if (!listing || !match || !selected || !fileMeta) return;
     setPhase("generating");
     setError(null);
+    setGenerateProgress("queued");
     try {
       const res = await fetch(MATCHCUT_API.generate, {
         method: "POST",
@@ -311,30 +371,18 @@ export function MatchCutStudio({
         setPhase("pick");
         return;
       }
-      if (res.status === 422) {
-        setError(data.error ?? "생성 실패 — 크레딧 환불됨");
-        if (data.credits) setCredits(data.credits.total);
-        setPhase("pick");
-        return;
-      }
-      if (!res.ok) throw new Error(data.error ?? "생성 실패");
+      if (!res.ok) throw new Error(data.error ?? "생성 시작 실패");
 
-      setGeneratedAngles(data.generatedAngles ?? []);
-      setThumbnails(data.thumbnails ?? []);
-      setDetailPageHtml(data.detailPageHtml ?? "");
-      setDetailBundle(data.detailBundle ?? null);
       if (data.credits) setCredits(data.credits.total);
-      if (data.needsFixCount > 0) {
-        setError(
-          `${data.needsFixCount}장에 이상한 부분이 있을 수 있습니다. 사진을 눌러 AI에게 고쳐달라고 하세요.`,
-        );
-      } else if (data.partialFailure) {
-        setError("일부 각도 생성에 실패했습니다. 실패분 크레딧은 환불되었습니다.");
-      }
-      setPhase("done");
+      const jobId = String(data.jobId ?? "");
+      if (!jobId) throw new Error("작업 ID가 없습니다.");
+      setGenerateJobId(jobId);
+      sessionStorage.setItem("matchcut:generateJobId", jobId);
+      setGenerateProgress(data.status ?? "queued");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "오류");
+      setError(e instanceof Error ? e.message : "생성 실패");
       setPhase("pick");
+      setGenerateJobId(null);
     }
   };
 
@@ -520,19 +568,21 @@ export function MatchCutStudio({
   const genCost = estimateGenerateCredits(maxAngles);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">소싱 스튜디오</h1>
-          <p className="text-sm text-slate-500">실사진 + URL → 옵션 매칭 → 상세컷</p>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+      <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-slate-900 sm:text-xl">소싱 스튜디오</h1>
+          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+            실사진 + URL → 옵션 매칭 → 상세컷
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-trust-100 px-3 py-1 text-sm font-semibold text-trust-800">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="rounded-full bg-trust-100 px-3 py-1 text-xs font-semibold text-trust-800 sm:text-sm">
             {credits.toLocaleString()} 크레딧
           </span>
           <Link
             href={MATCHCUT_ROUTES.credits}
-            className="text-sm font-medium text-trust-600 hover:underline"
+            className="text-xs font-medium text-trust-600 hover:underline sm:text-sm"
           >
             충전
           </Link>
@@ -762,6 +812,9 @@ export function MatchCutStudio({
                     src={proxyListingImage(img.url)}
                     alt=""
                     className="aspect-square w-full rounded-lg object-contain bg-slate-50"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.opacity = "0.35";
+                    }}
                   />
                   <button
                     type="button"
@@ -844,6 +897,9 @@ export function MatchCutStudio({
                         src={proxyListingImage(c.imageUrl)}
                         alt=""
                         className="aspect-square w-full rounded-lg object-contain bg-slate-50"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.opacity = "0.35";
+                        }}
                       />
                       <p className="mt-1 text-xs font-semibold text-trust-700">{c.score}%</p>
                       <p className="line-clamp-2 text-xs text-slate-600">{c.reason}</p>
@@ -871,11 +927,30 @@ export function MatchCutStudio({
       )}
 
       {phase === "generating" && (
-        <div className="mt-10 text-center">
-          <p className="text-trust-800 font-medium">상세컷 생성 중…</p>
-          <p className="mt-1 text-sm text-slate-500">
-            실사진 고정 → 상세컷 · 썸네일 3종 · 전문 카피 · 카테고리 디자인툴
+        <div className="mt-10 rounded-2xl border border-trust-100 bg-white px-5 py-10 text-center">
+          <p className="font-medium text-trust-800">상세컷 생성 중…</p>
+          <p className="mt-2 text-sm text-slate-600">
+            상태:{" "}
+            {generateProgress === "queued"
+              ? "대기열"
+              : generateProgress === "running"
+                ? "생성 중"
+                : generateProgress}
           </p>
+          <p className="mt-3 text-sm text-slate-500">
+            서버에서 계속 진행됩니다. 창을 닫거나 다른 앱으로 나가도 멈추지 않습니다.
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            나중에 프로젝트에서 결과를 확인할 수 있습니다.
+          </p>
+          {projectId && (
+            <Link
+              href={`${MATCHCUT_ROUTES.projects}`}
+              className="mt-5 inline-block text-sm font-medium text-trust-600 underline"
+            >
+              프로젝트 목록으로
+            </Link>
+          )}
         </div>
       )}
 
