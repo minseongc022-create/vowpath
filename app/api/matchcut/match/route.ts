@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { CREDIT_COSTS } from "@/lib/matchcut/constants";
-import { debitCredits, getCreditBalance } from "@/lib/matchcut/credits-store";
+import { debitCredits, getCreditBalance, grantCredits } from "@/lib/matchcut/credits-store";
 import { runMatchPhase } from "@/lib/sourcing-detail/pipeline";
 import { isSupportedListingUrl, normalizeListingUrl } from "@/lib/sourcing-detail/platforms";
 import { requireMatchCutSession } from "@/lib/matchcut/session";
@@ -8,15 +8,21 @@ import { requireMatchCutSession } from "@/lib/matchcut/session";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  let debited = false;
+  let userId: string | null = null;
   try {
     const session = await requireMatchCutSession();
+    userId = session.sub;
     const body = await request.json();
     const url = normalizeListingUrl(String(body.url ?? ""));
     const referenceImageBase64 = String(body.referenceImageBase64 ?? "");
     const referenceMime = body.referenceMime ? String(body.referenceMime) : undefined;
 
     if (!url) {
-      return NextResponse.json({ error: "URL이 필요합니다." }, { status: 400 });
+      return NextResponse.json(
+        { error: "1688/타오바오 URL을 입력하세요. (상품명 텍스트가 아니라 링크)" },
+        { status: 400 },
+      );
     }
     if (!isSupportedListingUrl(url)) {
       return NextResponse.json(
@@ -29,6 +35,7 @@ export async function POST(request: Request) {
     }
 
     await debitCredits(session.sub, CREDIT_COSTS.match);
+    debited = true;
 
     const { listing, match } = await runMatchPhase({
       url,
@@ -60,6 +67,13 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "매칭 실패";
+    if (debited && userId && msg !== "INSUFFICIENT_CREDITS") {
+      try {
+        await grantCredits(userId, CREDIT_COSTS.match, "permanent");
+      } catch {
+        /* ignore refund failure */
+      }
+    }
     if (msg === "UNAUTHORIZED") {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
@@ -69,6 +83,13 @@ export async function POST(request: Request) {
         { status: 402 },
       );
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const credits = userId ? await getCreditBalance(userId).catch(() => null) : null;
+    return NextResponse.json(
+      {
+        error: debited ? `${msg} (실패분 크레딧은 환불되었습니다)` : msg,
+        credits,
+      },
+      { status: 500 },
+    );
   }
 }
