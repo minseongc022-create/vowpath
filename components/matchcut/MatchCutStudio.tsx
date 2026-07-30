@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MATCHCUT_API, MATCHCUT_ROUTES, estimateRunCredits } from "@/lib/matchcut/constants";
+import {
+  CREDIT_COSTS,
+  MATCHCUT_API,
+  MATCHCUT_ROUTES,
+  estimateRunCredits,
+} from "@/lib/matchcut/constants";
+import type { PricingRecommendation } from "@/lib/matchcut/pricing-calc";
+import type { RegisterResult } from "@/lib/matchcut/markets/types";
 import type {
   DetailPageBundle,
   GeneratedAngle,
@@ -74,6 +81,23 @@ export function MatchCutStudio({
   const [detailBundle, setDetailBundle] = useState<DetailPageBundle | null>(null);
   const [exportPlatform, setExportPlatform] = useState<"coupang" | "smartstore" | "both">("both");
   const [exporting, setExporting] = useState(false);
+
+  const [fixTarget, setFixTarget] = useState<GeneratedAngle | null>(null);
+  const [fixInstruction, setFixInstruction] = useState(
+    "원본 실사진과 디자인·로고·색·내부 디테일을 완전히 같게 고쳐주세요. 각도만 유지.",
+  );
+  const [fixing, setFixing] = useState(false);
+
+  const [costKrw, setCostKrw] = useState("");
+  const [fulfillmentKrw, setFulfillmentKrw] = useState("3000");
+  const [targetMargin, setTargetMargin] = useState("25");
+  const [priceMarket, setPriceMarket] = useState("coupang");
+  const [pricing, setPricing] = useState<PricingRecommendation | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+
+  const [marketChannels, setMarketChannels] = useState<string[]>(["coupang", "smartstore"]);
+  const [registering, setRegistering] = useState(false);
+  const [registerResults, setRegisterResults] = useState<RegisterResult[]>([]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("project");
@@ -171,13 +195,139 @@ export function MatchCutStudio({
       setDetailPageHtml(data.detailPageHtml ?? "");
       setDetailBundle(data.detailBundle ?? null);
       if (data.credits) setCredits(data.credits.total);
-      if (data.partialFailure) {
+      if (data.needsFixCount > 0) {
+        setError(
+          `${data.needsFixCount}장에 이상한 부분이 있을 수 있습니다. 사진을 눌러 AI에게 고쳐달라고 하세요.`,
+        );
+      } else if (data.partialFailure) {
         setError("일부 각도 생성에 실패했습니다. 실패분 크레딧은 환불되었습니다.");
       }
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류");
       setPhase("pick");
+    }
+  };
+
+  const runFix = async () => {
+    if (!fixTarget || !fileMeta) return;
+    const broken =
+      fixTarget.imageBase64 ||
+      (fixTarget.imageUrl ? fixTarget.imageUrl.split(",").pop() : null);
+    if (!broken && !fixTarget.imageBase64) {
+      setError("수정할 이미지가 없습니다.");
+      return;
+    }
+    setFixing(true);
+    setError(null);
+    try {
+      const brokenB64 = fixTarget.imageBase64
+        ? fixTarget.imageBase64
+        : "";
+      if (!brokenB64) {
+        setError("이미지 데이터가 없어 수정할 수 없습니다. 다시 생성해 주세요.");
+        return;
+      }
+      const res = await fetch(MATCHCUT_API.fixAngle, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          angle: fixTarget.angle,
+          userInstruction: fixInstruction,
+          referenceImageBase64: fileMeta.base64,
+          referenceMime: fileMeta.mime,
+          brokenImageBase64: brokenB64,
+          productDescription: detailBundle?.detailCopy.headline ?? match?.referenceDescription,
+          projectId,
+        }),
+      });
+      const data = await res.json();
+      if (res.status === 402) {
+        setError("크레딧이 부족합니다.");
+        return;
+      }
+      if (!res.ok) throw new Error(data.error ?? "수정 실패");
+      const fixed = data.angle as GeneratedAngle;
+      setGeneratedAngles((prev) => prev.map((a) => (a.angle === fixed.angle ? fixed : a)));
+      if (data.credits) setCredits(data.credits.total);
+      setFixTarget(null);
+      if (fixed.needsFix) {
+        setError("아직 완벽하지 않습니다. 지시를 더 구체적으로 적어 다시 고쳐보세요.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "수정 실패");
+    } finally {
+      setFixing(false);
+    }
+  };
+
+  const runPricing = async () => {
+    setPricingLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(MATCHCUT_API.pricing, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          costKrw: Number(costKrw),
+          fulfillmentKrw: Number(fulfillmentKrw || 0),
+          targetMarginRate: Number(targetMargin) / 100,
+          marketId: priceMarket,
+          searchQuery: detailBundle?.competitorInsight.searchQuery,
+          productName: detailBundle?.productAnalysis.productNameKo,
+        }),
+      });
+      const data = await res.json();
+      if (res.status === 402) {
+        setError("크레딧이 부족합니다.");
+        return;
+      }
+      if (!res.ok) throw new Error(data.error ?? "가격 분석 실패");
+      setPricing(data.pricing);
+      if (data.credits) setCredits(data.credits.total);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "가격 분석 실패");
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const runMarketRegister = async () => {
+    setRegistering(true);
+    setError(null);
+    try {
+      const imagesBase64: string[] = [];
+      if (fileMeta) imagesBase64.push(fileMeta.base64);
+      for (const a of generatedAngles) {
+        if (a.imageBase64) imagesBase64.push(a.imageBase64);
+      }
+      const res = await fetch(MATCHCUT_API.marketsRegister, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channels: marketChannels,
+          title:
+            detailBundle?.detailCopy.headline ||
+            detailBundle?.productAnalysis.productNameKo ||
+            listing?.title ||
+            "상품",
+          salePrice: pricing?.recommendedPriceKrw || Number(costKrw) * 2 || 19900,
+          detailHtml: detailPageHtml,
+          imagesBase64: imagesBase64.slice(0, 8),
+        }),
+      });
+      const data = await res.json();
+      if (res.status === 402) {
+        setError("크레딧이 부족합니다.");
+        return;
+      }
+      if (!res.ok) throw new Error(data.error ?? "등록 실패");
+      setRegisterResults(data.results ?? []);
+      if (data.credits) setCredits(data.credits.total);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "등록 실패");
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -421,7 +571,14 @@ export function MatchCutStudio({
             {generatedAngles.map((a) => {
               const src = angleSrc(a);
               return (
-                <div key={a.angle} className="rounded-xl border bg-white p-3">
+                <button
+                  key={a.angle}
+                  type="button"
+                  onClick={() => src && setFixTarget(a)}
+                  className={`rounded-xl border bg-white p-3 text-left ${
+                    a.needsFix ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200"
+                  }`}
+                >
                   {src ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={src} alt={a.angle} className="rounded-lg" />
@@ -440,10 +597,148 @@ export function MatchCutStudio({
                       </span>
                     )}
                   </p>
-                </div>
+                  {src && (
+                    <p className="mt-1 text-center text-xs font-medium text-trust-600">
+                      {a.needsFix ? "이상함 → AI에게 고치기" : "클릭해서 AI 수정"}
+                    </p>
+                  )}
+                  {a.issues?.[0] && (
+                    <p className="mt-1 line-clamp-2 text-center text-[11px] text-amber-700">
+                      {a.issues[0]}
+                    </p>
+                  )}
+                </button>
               );
             })}
           </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="font-semibold">경쟁가 · 마진 추천</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              상위 경쟁 상품 가격을 보고 추천 판매가·예상 마진을 계산합니다 ({CREDIT_COSTS.pricing}{" "}
+              크레딧)
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              <input
+                type="number"
+                value={costKrw}
+                onChange={(e) => setCostKrw(e.target.value)}
+                placeholder="원가(원)"
+                className="rounded-lg border px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={fulfillmentKrw}
+                onChange={(e) => setFulfillmentKrw(e.target.value)}
+                placeholder="출고비"
+                className="rounded-lg border px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={targetMargin}
+                onChange={(e) => setTargetMargin(e.target.value)}
+                placeholder="목표마진%"
+                className="rounded-lg border px-3 py-2 text-sm"
+              />
+              <select
+                value={priceMarket}
+                onChange={(e) => setPriceMarket(e.target.value)}
+                className="rounded-lg border px-3 py-2 text-sm"
+              >
+                <option value="coupang">쿠팡</option>
+                <option value="smartstore">스마트스토어</option>
+                <option value="elevenst">11번가</option>
+                <option value="gmarket">G마켓</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={runPricing}
+              disabled={pricingLoading || !costKrw}
+              className="mt-3 rounded-xl bg-trust-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {pricingLoading ? "분석 중…" : "추천가 계산"}
+            </button>
+            {pricing && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+                <div className="rounded-xl bg-trust-50 p-3">
+                  <p className="text-xs text-trust-700">추천 판매가</p>
+                  <p className="text-lg font-bold text-trust-900">
+                    {pricing.recommendedPriceKrw.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">예상 순이익</p>
+                  <p className="text-lg font-bold">
+                    {pricing.estimatedNetKrw.toLocaleString()}원
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    마진 {(pricing.estimatedMarginRate * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500">경쟁 중앙값</p>
+                  <p className="text-lg font-bold">
+                    {pricing.competitorMedian
+                      ? `${pricing.competitorMedian.toLocaleString()}원`
+                      : "데이터 없음"}
+                  </p>
+                </div>
+                <p className="sm:col-span-3 text-xs text-slate-600">{pricing.rationale}</p>
+                <p className="sm:col-span-3 text-xs text-slate-500">
+                  공격 {pricing.priceBand.aggressive.toLocaleString()} · 균형{" "}
+                  {pricing.priceBand.balanced.toLocaleString()} · 프리미엄{" "}
+                  {pricing.priceBand.premium.toLocaleString()} · 손익분기{" "}
+                  {pricing.breakEvenPriceKrw.toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="font-semibold">마켓 자동 등록</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              API 연결 시 바로 등록, 없으면 드래프트 JSON · 채널당 {CREDIT_COSTS.marketRegister}{" "}
+              크레딧 ·{" "}
+              <Link href={MATCHCUT_ROUTES.markets} className="text-trust-600 underline">
+                연동 상태
+              </Link>
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3 text-sm">
+              {["coupang", "smartstore", "elevenst", "gmarket"].map((id) => (
+                <label key={id} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={marketChannels.includes(id)}
+                    onChange={() =>
+                      setMarketChannels((prev) =>
+                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+                      )
+                    }
+                  />
+                  {id}
+                </label>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={runMarketRegister}
+              disabled={registering || !marketChannels.length}
+              className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {registering ? "등록 중…" : "선택 마켓에 등록 / 드래프트"}
+            </button>
+            {registerResults.length > 0 && (
+              <ul className="mt-3 space-y-2 text-sm">
+                {registerResults.map((r) => (
+                  <li key={r.channel} className="rounded-lg bg-slate-50 px-3 py-2">
+                    <span className="font-medium">{r.channel}</span> · {r.status} — {r.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-3">
             <select
               value={exportPlatform}
@@ -475,11 +770,67 @@ export function MatchCutStudio({
             >
               HTML
             </button>
+            <Link
+              href={MATCHCUT_ROUTES.adCard}
+              className="rounded-xl border border-trust-200 bg-trust-50 px-5 py-2 text-sm font-medium text-trust-800"
+            >
+              광고카드 만들기
+            </Link>
             <Link href={MATCHCUT_ROUTES.projects} className="rounded-xl border px-5 py-2 text-sm">
               프로젝트 목록
             </Link>
           </div>
         </section>
+      )}
+
+      {fixTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="font-semibold text-slate-900">AI에게 고치기 · {fixTarget.angle}</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              이상한 부분 / 바꾸고 싶은 점을 알려주세요. 실사진 디자인은 유지합니다. (
+              {CREDIT_COSTS.fixAngle} 크레딧)
+            </p>
+            {angleSrc(fixTarget) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={angleSrc(fixTarget)!}
+                alt="fix"
+                className="mt-3 max-h-48 w-full rounded-xl object-contain"
+              />
+            )}
+            {fixTarget.issues && fixTarget.issues.length > 0 && (
+              <ul className="mt-2 list-disc pl-5 text-xs text-amber-700">
+                {fixTarget.issues.map((i) => (
+                  <li key={i}>{i}</li>
+                ))}
+              </ul>
+            )}
+            <textarea
+              value={fixInstruction}
+              onChange={(e) => setFixInstruction(e.target.value)}
+              rows={4}
+              className="mt-3 w-full rounded-xl border px-3 py-2 text-sm"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setFixTarget(null)}
+                className="rounded-xl border px-4 py-2 text-sm"
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={runFix}
+                disabled={fixing}
+                className="rounded-xl bg-trust-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {fixing ? "고치는 중…" : "AI에게 고쳐달라고 하기"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

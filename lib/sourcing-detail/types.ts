@@ -42,6 +42,9 @@ export type GeneratedAngle = {
   imageUrl?: string;
   imageBase64?: string;
   error?: string;
+  /** QA failed but image still exported — user can AI-fix */
+  needsFix?: boolean;
+  issues?: string[];
   qualityScore?: number;
   retryCount?: number;
 };

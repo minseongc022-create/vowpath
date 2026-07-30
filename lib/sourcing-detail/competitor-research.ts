@@ -43,7 +43,7 @@ function detectPlatform(mallName: string): CompetitorProduct["platform"] {
   return "other";
 }
 
-async function searchNaverShopping(query: string): Promise<CompetitorProduct[]> {
+export async function searchNaverShopping(query: string): Promise<CompetitorProduct[]> {
   const clientId = process.env.NAVER_CLIENT_ID?.trim();
   const clientSecret = process.env.NAVER_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) return [];

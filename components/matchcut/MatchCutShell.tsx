@@ -85,7 +85,7 @@ export function MatchCutAppShell({
           <Link href={MATCHCUT_ROUTES.app}>
             <MatchCutLogo className="text-base text-slate-900" />
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
             <Link
               href={MATCHCUT_ROUTES.app}
               className={
@@ -95,6 +95,26 @@ export function MatchCutAppShell({
               }
             >
               스튜디오
+            </Link>
+            <Link
+              href={MATCHCUT_ROUTES.adCard}
+              className={
+                pathname === MATCHCUT_ROUTES.adCard
+                  ? "font-semibold text-trust-700"
+                  : "text-slate-600 hover:text-trust-700"
+              }
+            >
+              광고카드
+            </Link>
+            <Link
+              href={MATCHCUT_ROUTES.markets}
+              className={
+                pathname === MATCHCUT_ROUTES.markets
+                  ? "font-semibold text-trust-700"
+                  : "text-slate-600 hover:text-trust-700"
+              }
+            >
+              마켓등록
             </Link>
             <Link
               href={MATCHCUT_ROUTES.projects}

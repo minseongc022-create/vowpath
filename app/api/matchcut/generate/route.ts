@@ -61,13 +61,13 @@ export async function POST(request: Request) {
       });
     }
 
-    const hasErrors = result.generatedAngles.some((a) => a.error && !a.imageBase64);
+    const hardFail = result.generatedAngles.some((a) => !a.imageBase64 && !a.imageUrl);
+    const needsFixCount = result.generatedAngles.filter((a) => a.needsFix).length;
     if (result.successCount === 0) {
       return NextResponse.json(
         {
-          error:
-            "원본과 디자인이 충분히 일치하는 컷을 만들지 못했습니다. 크레딧은 전액 환불되었습니다. 더 선명한 실사진으로 다시 시도해 주세요.",
-          code: "FIDELITY_FAILED",
+          error: "상세컷 생성에 실패했습니다. 크레딧은 전액 환불되었습니다.",
+          code: "GENERATION_FAILED",
           generatedAngles: result.generatedAngles,
           creditsRefunded: refundAmount,
           credits,
@@ -85,7 +85,8 @@ export async function POST(request: Request) {
       creditsDebited: angleCost - refundAmount,
       creditsRefunded: refundAmount,
       credits,
-      partialFailure: hasErrors,
+      partialFailure: hardFail,
+      needsFixCount,
       successCount: result.successCount,
     });
   } catch (e) {

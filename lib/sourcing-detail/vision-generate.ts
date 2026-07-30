@@ -277,7 +277,24 @@ async function generateOneAngle(params: {
     }
   }
 
-  // Never ship a drifted product image — return error only (credits refund)
+  // Ship best attempt even if QA failed — studio "AI로 고치기" can repair
+  if (bestRejected) {
+    return {
+      angle: params.angle,
+      prompt: buildPrompt({
+        identity: params.identity,
+        productDescription: params.productDescription,
+        promptSuffix: params.promptSuffix,
+      }),
+      imageBase64: bestRejected.b64,
+      needsFix: true,
+      issues: bestRejected.issues,
+      error: lastError ?? "FIDELITY_NEEDS_FIX",
+      qualityScore: bestRejected.score,
+      retryCount: MAX_RETRIES,
+    };
+  }
+
   return {
     angle: params.angle,
     prompt: buildPrompt({
@@ -285,8 +302,7 @@ async function generateOneAngle(params: {
       productDescription: params.productDescription,
       promptSuffix: params.promptSuffix,
     }),
-    error: lastError ?? "FIDELITY_REJECTED",
-    qualityScore: bestRejected?.score,
+    error: lastError ?? "IMAGE_GEN_FAILED",
     retryCount: MAX_RETRIES,
   };
 }
@@ -316,6 +332,67 @@ export async function generateProductAngles(params: {
   }
 
   return results;
+}
+
+/**
+ * User-driven AI repair: keep seller photo as ground truth, fix the weird angle image.
+ */
+export async function fixProductAngle(params: {
+  userReferenceBase64: string;
+  userReferenceMime?: string;
+  brokenImageBase64: string;
+  angle: string;
+  userInstruction: string;
+  productDescription?: string;
+  mustPreserve?: string[];
+}): Promise<GeneratedAngle> {
+  const instruction = params.userInstruction.trim() || "원본 상품과 디자인을 완전히 같게 고쳐주세요";
+  const prompt = [
+    "Fix this product photo so it matches the seller REFERENCE product exactly.",
+    "Keep the requested camera angle. Correct wrong color, logos, patterns, hardware, and invented details.",
+    `User request (Korean OK): ${instruction}`,
+    params.productDescription ? `Product: ${params.productDescription}` : "",
+    params.mustPreserve?.length ? `Must preserve: ${params.mustPreserve.join("; ")}` : "",
+    "Photorealistic ecommerce photo, white background unless lifestyle angle. No watermark.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const result = await callImageEdit({
+    primaryImageBase64: params.userReferenceBase64,
+    primaryMime: params.userReferenceMime,
+    secondaryImageBase64: params.brokenImageBase64,
+    prompt,
+  });
+
+  if (result.error) {
+    return { angle: params.angle, prompt, error: result.error, needsFix: true };
+  }
+
+  const generatedB64 = await resolveBase64(result);
+  if (!generatedB64) {
+    return { angle: params.angle, prompt, error: "IMAGE_EMPTY", needsFix: true };
+  }
+
+  const quality = await verifyGeneratedImage({
+    referenceImageBase64: params.userReferenceBase64,
+    referenceMime: params.userReferenceMime,
+    generatedImageBase64: generatedB64,
+    productDescription: params.productDescription ?? instruction,
+    mustPreserve: params.mustPreserve,
+  });
+
+  return {
+    angle: params.angle,
+    prompt,
+    imageBase64: generatedB64,
+    imageUrl: result.url,
+    qualityScore: quality.score,
+    needsFix: !quality.passed,
+    issues: quality.issues,
+    error: quality.passed ? undefined : quality.issues[0] ?? "FIDELITY_NEEDS_FIX",
+    retryCount: 0,
+  };
 }
 
 export { countSuccessfulAngles } from "./angle-utils";

@@ -18,6 +18,8 @@ export const MATCHCUT_ROUTES = {
   app: "/matchcut/app",
   credits: "/matchcut/app/credits",
   projects: "/matchcut/app/projects",
+  adCard: "/matchcut/app/ad-card",
+  markets: "/matchcut/app/markets",
 } as const;
 
 export const MATCHCUT_API = {
@@ -32,6 +34,11 @@ export const MATCHCUT_API = {
   match: "/api/matchcut/match",
   generate: "/api/matchcut/generate",
   export: "/api/matchcut/export",
+  fixAngle: "/api/matchcut/fix-angle",
+  pricing: "/api/matchcut/pricing",
+  marketsStatus: "/api/matchcut/markets/status",
+  marketsRegister: "/api/matchcut/markets/register",
+  adCard: "/api/matchcut/ad-card",
 } as const;
 
 /** 크리에이지식: 구독 크레딧(월 초기화) + 단건 크레딧(영구) */
@@ -40,6 +47,14 @@ export const CREDIT_COSTS = {
   match: 20,
   /** AI 상세컷 1장 */
   angle: 8,
+  /** 이상한 컷 AI 수정 1회 */
+  fixAngle: 6,
+  /** 경쟁가·마진 추천 */
+  pricing: 4,
+  /** 마켓 자동등록(채널당) */
+  marketRegister: 8,
+  /** 광고카드 1장 */
+  adCard: 12,
   /** ZIP/HTML 내보내기 — 업계 관행상 무료 */
   export: 0,
 } as const;

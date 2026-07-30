@@ -145,15 +145,15 @@ describe("detail-layout", () => {
 });
 
 describe("vision-generate helpers", () => {
-  it("counts only fidelity-passed angles", () => {
+  it("counts exportable angles including needsFix", () => {
     assert.equal(
       countSuccessfulAngles([
         { angle: "a", prompt: "p", imageBase64: "x" },
         { angle: "b", prompt: "p", error: "fail" },
         { angle: "c", prompt: "p", imageUrl: "https://x.com/1.png" },
-        { angle: "d", prompt: "p", imageBase64: "y", error: "FIDELITY_REJECTED" },
+        { angle: "d", prompt: "p", imageBase64: "y", needsFix: true, error: "FIDELITY_NEEDS_FIX" },
       ]),
-      2,
+      3,
     );
   });
 });
