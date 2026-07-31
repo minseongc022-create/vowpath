@@ -275,6 +275,18 @@ class ExecutionEngine:
                     self.mode,
                     "Live trading blocked. Set ORACLE_LIVE_TRADING=1 explicitly.",
                 )
+            # Hard cap live / first-session notional
+            from oracle.execution.live_setup import live_max_notional
+
+            max_n = live_max_notional()
+            notional = abs(sizing.suggested_shares_delta * price)
+            if notional > max_n + 1e-6:
+                scale = max_n / notional
+                sizing.suggested_shares_delta *= scale
+                sizing.dollar_delta *= scale
+                sizing.rationale += f" | CAP notional→${max_n:.2f}"
+                logger.warning("Capped order notional to $%.2f for safety", max_n)
+
             try:
                 fill = self.broker.submit_market_order(
                     BrokerOrder(
@@ -312,6 +324,12 @@ class ExecutionEngine:
                     client_order_id=client_order_id,
                 )
             )
+            try:
+                from oracle.execution.sync import sync_portfolio_from_broker
+
+                sync_portfolio_from_broker(self.broker)
+            except Exception:
+                logger.exception("portfolio sync after broker fill failed")
             return ExecutionResult(
                 True,
                 self.mode,
@@ -395,6 +413,14 @@ class ExecutionEngine:
         client_order_id = row.get("client_order_id") or f"oracle-j{entry_id}"
 
         if self.broker is not None:
+            # Cap planned confirms too
+            from oracle.execution.live_setup import live_max_notional
+
+            max_n = live_max_notional()
+            notional = abs(shares * price)
+            if price > 0 and notional > max_n + 1e-6:
+                shares = (max_n / price) * (1 if shares > 0 else -1)
+                logger.warning("Capped confirm notional to $%.2f", max_n)
             try:
                 fill = self.broker.submit_market_order(
                     BrokerOrder(symbol=row["symbol"], qty=shares, side="buy" if shares > 0 else "sell", client_order_id=client_order_id)
@@ -403,6 +429,12 @@ class ExecutionEngine:
                 self.journal.update_status(entry_id, "rejected")
                 return ExecutionResult(False, self.mode, f"Broker error: {exc}", journal_id=entry_id)
             self.journal.update_status(entry_id, "filled")
+            try:
+                from oracle.execution.sync import sync_portfolio_from_broker
+
+                sync_portfolio_from_broker(self.broker)
+            except Exception:
+                logger.exception("portfolio sync after confirm failed")
             return ExecutionResult(True, self.mode, f"Broker filled {fill.order_id}", journal_id=entry_id, order_id=fill.order_id)
 
         try:

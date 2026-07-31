@@ -2,6 +2,13 @@
 {% block title %}거래{% endblock %}
 {% block subtitle %}승인 · 체결{% endblock %}
 {% block content %}
+{% if live_trading %}
+<section class="card danger-soft">
+  <p class="warn-text">실거래 무장 상태 · 승인 시 실제 돈이 나갑니다. 확인란에 LIVE 입력 필수.</p>
+  <p class="card-desc">주문당 최대 ${{ "%.0f"|format(broker.max_notional) }}</p>
+</section>
+{% endif %}
+
 <section class="card">
   <div class="card-head">
     <div>
@@ -12,11 +19,22 @@
   <form method="post" action="/actions/plan_trades">
     <button class="btn btn-primary btn-block" type="submit">① 매매 계획 만들기</button>
   </form>
+
+  {% if broker.configured %}
+  <form method="post" action="/actions/first_money_order" class="stack" style="margin-top:10px">
+    <div class="bt-form">
+      <input class="field" name="symbol" value="SPY" placeholder="심볼" />
+      <input class="field" name="notional" value="{{ broker.first_notional|int }}" type="number" min="5" max="{{ broker.max_notional|int }}" step="1" placeholder="금액$" />
+      <button class="btn btn-soft" type="submit">첫 소액 주문</button>
+    </div>
+    <p class="card-desc">브로커로 나갈 소액 주문을 대기열에 넣습니다. 승인 전까지는 체결되지 않습니다.</p>
+  </form>
+  {% endif %}
+
   {% if not live_trading %}
   <form method="post" action="/actions/practice_order" style="margin-top:8px">
-    <button class="btn btn-ghost btn-block" type="submit">연습 주문 1건 만들기 (모의)</button>
+    <button class="btn btn-ghost btn-block" type="submit">로컬 연습 주문 1건</button>
   </form>
-  <p class="card-desc" style="margin-top:8px">시장이 관망일 때도 승인→체결 경로를 먼저 확인할 수 있습니다.</p>
   {% endif %}
 </section>
 
@@ -31,29 +49,33 @@
       <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
       <div class="todo-sub">
         {{ "%.4f"|format(p.shares) }}주 · 기준가 ${{ "%.2f"|format(p.price) }}
+        · 약 ${{ "%.2f"|format(p.shares * p.price) }}
         {% if p.client_order_id %}<br/><span class="mono">{{ p.client_order_id }}</span>{% endif %}
       </div>
       <div class="todo-sub">{{ p.rationale }}</div>
     </div>
-    <div class="todo-actions" style="width:100%">
-      <form method="post" action="/actions/approve" style="flex:1">
+    <div class="todo-actions" style="width:100%;flex-direction:column;gap:8px">
+      <form method="post" action="/actions/approve" style="width:100%">
         <input type="hidden" name="entry_id" value="{{ p.id }}" />
+        {% if live_trading %}
+        <input class="field" name="live_confirm" placeholder="실거래면 LIVE 입력" autocomplete="off" style="margin-bottom:8px" />
+        {% endif %}
         <button class="btn btn-primary btn-block" type="submit">승인하고 체결</button>
       </form>
-      <form method="post" action="/actions/reject" style="flex:1">
+      <form method="post" action="/actions/reject" style="width:100%">
         <input type="hidden" name="entry_id" value="{{ p.id }}" />
         <button class="btn btn-ghost btn-block" type="submit">거절</button>
       </form>
     </div>
   </div>
   {% endfor %}
-  {% if pending_count > 1 %}
+  {% if pending_count > 1 and not live_trading %}
   <form method="post" action="/actions/approve_all" style="margin-top:12px">
     <button class="btn btn-soft btn-block" type="submit">대기 건 모두 승인</button>
   </form>
   {% endif %}
   {% else %}
-  <p class="todo-empty">승인 대기 주문이 없습니다.<br/>위에서 매매 계획을 먼저 만드세요.</p>
+  <p class="todo-empty">승인 대기 주문이 없습니다.</p>
   {% endif %}
 </section>
 
@@ -76,11 +98,10 @@
 <section class="card">
   <div class="card-head"><h2 class="card-title">실전 전 확인</h2></div>
   <ul class="checklist">
-    <li>기본은 <strong>모의투자</strong>입니다. ({{ broker.mode_ko }})</li>
-    <li>리스크 매니저가 거부하면 Buy/Add는 실행되지 않습니다.</li>
-    <li>긴급정지가 켜지면 신규 매수가 막힙니다.</li>
-    <li>실계좌는 설정에서 키·플래그를 확인한 뒤에만.</li>
+    <li>현재 모드: <strong>{{ broker.mode_ko }}</strong></li>
+    <li>리스크 거부 / 긴급정지 / 주문 한도가 항상 적용됩니다.</li>
+    <li>실거래는 설정에서 무장 + 여기서 LIVE 확인이 필요합니다.</li>
   </ul>
-  <a class="btn btn-soft btn-block" href="/settings">설정 확인하기</a>
+  <a class="btn btn-soft btn-block" href="/settings">설정 · 브로커 연결</a>
 </section>
 {% endblock %}

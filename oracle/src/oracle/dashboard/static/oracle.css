@@ -276,6 +276,16 @@ button, input, select {
   width: 100%;
   color: var(--ink);
 }
+.field-label {
+  display: block;
+  margin: 10px 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.stack .field { margin-bottom: 4px; }
+.stack .btn { margin-top: 12px; }
+
 .bt-result {
   background: #f8fafc;
   border-radius: 16px;

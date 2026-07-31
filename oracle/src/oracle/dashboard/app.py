@@ -24,7 +24,9 @@ from oracle.data.calendar import calendar_as_dicts
 from oracle.data.macro import macro_as_dict
 from oracle.data.news import aggregate_market_headlines
 from oracle.execution import ExecutionEngine, KillSwitch, estimate_day_pnl_pct, get_broker
-from oracle.execution.alpaca import alpaca_configured
+from oracle.execution.alpaca import PAPER_URL, LIVE_URL, AlpacaBroker, alpaca_configured
+from oracle.execution.live_setup import first_trade_notional, live_armed, live_max_notional, upsert_env
+from oracle.execution.sync import sync_portfolio_from_broker
 from oracle.llm.brain import brain_health
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
@@ -205,11 +207,12 @@ def _job_view(job: dict) -> dict:
 
 
 def _broker_status() -> dict:
-    live = os.getenv("ORACLE_LIVE_TRADING", "").strip().lower() in {"1", "true", "yes"}
+    live = live_armed()
     configured = alpaca_configured()
     account = None
     err = None
     mode = "local_paper"
+    base_url = os.getenv("ALPACA_BASE_URL", PAPER_URL)
     if configured:
         try:
             broker = get_broker()
@@ -222,8 +225,12 @@ def _broker_status() -> dict:
                     "day_pnl_pct": account_obj.day_pnl_pct,
                     "positions": account_obj.positions,
                 }
-                base = getattr(broker, "base_url", "")
+                base = getattr(broker, "base_url", base_url)
                 mode = "alpaca_live" if live and "paper" not in str(base) else "alpaca_paper"
+                if "paper" not in str(base) and not live:
+                    mode = "alpaca_paper"  # live URL but not armed → treat cautiously
+                    if "api.alpaca.markets" in str(base) and "paper" not in str(base):
+                        mode = "alpaca_live_unarmed"
         except Exception as exc:
             err = str(exc)
             mode = "alpaca_error"
@@ -234,12 +241,16 @@ def _broker_status() -> dict:
             "local_paper": "로컬 페이퍼",
             "alpaca_paper": "Alpaca 페이퍼",
             "alpaca_live": "Alpaca 실계좌",
+            "alpaca_live_unarmed": "실계좌 URL · 무장 해제",
             "alpaca_error": "브로커 연결 오류",
         }.get(mode, mode),
         "live_flag": live,
         "account": account,
         "error": err,
-        "ready_for_money": configured and mode == "alpaca_paper",
+        "ready_for_money": configured and mode in {"alpaca_paper", "alpaca_live"},
+        "max_notional": live_max_notional(),
+        "first_notional": first_trade_notional(),
+        "base_url": base_url,
     }
 
 
@@ -523,8 +534,18 @@ def plan_trades(_: None = Depends(require_auth)):
 
 
 @app.post("/actions/approve")
-def approve_trade(entry_id: int = Form(...), _: None = Depends(require_auth)):
-    result = ExecutionEngine(require_confirm=False).confirm_journal_entry(entry_id)
+def approve_trade(
+    entry_id: int = Form(...),
+    live_confirm: str = Form(""),
+    _: None = Depends(require_auth),
+):
+    engine = ExecutionEngine(require_confirm=False)
+    if engine.mode == "alpaca_live" or (
+        live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL)
+    ):
+        if live_confirm.strip().upper() != "LIVE":
+            return _flash("/trades", "실거래 승인 실패 · 확인란에 LIVE 를 입력하세요")
+    result = engine.confirm_journal_entry(entry_id)
     msg = "체결 완료" if result.accepted else f"실패 · {result.message}"
     return _flash("/trades", msg)
 
@@ -537,6 +558,8 @@ def reject_trade(entry_id: int = Form(...), _: None = Depends(require_auth)):
 
 @app.post("/actions/approve_all")
 def approve_all(_: None = Depends(require_auth)):
+    if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL):
+        return _flash("/trades", "실거래에서는 일괄 승인이 금지됩니다 · 한 건씩 LIVE 확인 후 승인")
     engine = ExecutionEngine(require_confirm=False)
     planned = TradeJournal().list_recent(limit=100, status="planned")
     ok = fail = 0
@@ -549,16 +572,152 @@ def approve_all(_: None = Depends(require_auth)):
     return _flash("/trades", f"승인 {ok}건 · 실패 {fail}건")
 
 
+@app.post("/actions/broker_connect")
+def broker_connect(
+    api_key: str = Form(...),
+    secret_key: str = Form(...),
+    account_type: str = Form("paper"),
+    max_notional: str = Form("75"),
+    _: None = Depends(require_auth),
+):
+    api_key = api_key.strip()
+    secret_key = secret_key.strip()
+    if len(api_key) < 8 or len(secret_key) < 8:
+        return _flash("/settings", "API 키가 너무 짧습니다")
+    is_live = account_type.strip().lower() == "live"
+    base = LIVE_URL if is_live else PAPER_URL
+    try:
+        max_n = float(max_notional or "75")
+    except ValueError:
+        max_n = 75.0
+    max_n = max(5.0, min(max_n, 500.0))
+
+    # Probe before saving
+    try:
+        probe = AlpacaBroker(api_key=api_key, secret_key=secret_key, base_url=base)
+        acct = probe.get_account()
+    except Exception as exc:
+        return _flash("/settings", f"브로커 연결 실패 · {exc}")
+
+    updates = {
+        "ORACLE_BROKER": "alpaca",
+        "ALPACA_API_KEY": api_key,
+        "ALPACA_SECRET_KEY": secret_key,
+        "ALPACA_BASE_URL": base,
+        "ORACLE_LIVE_MAX_NOTIONAL": str(max_n),
+        "ORACLE_FIRST_TRADE_NOTIONAL": str(min(25.0, max_n)),
+        # Never auto-arm live just by connecting; require explicit arm
+        "ORACLE_LIVE_TRADING": "1" if is_live else "0",
+    }
+    if is_live:
+        # Still require arm step for live URL — keep disarmed until user types LIVE
+        updates["ORACLE_LIVE_TRADING"] = "0"
+    upsert_env(updates)
+
+    try:
+        sync_portfolio_from_broker(probe)
+    except Exception:
+        pass
+
+    if is_live:
+        return _flash(
+            "/settings",
+            f"실계좌 키 연결됨 · Equity ${acct.equity:,.2f} · 아래에서 LIVE 무장 필요",
+        )
+    return _flash(
+        "/settings",
+        f"Alpaca Paper 연결됨 · Equity ${acct.equity:,.2f} · 소액 주문 한도 ${max_n:.0f}",
+    )
+
+
+@app.post("/actions/arm_live")
+def arm_live(confirm: str = Form(...), _: None = Depends(require_auth)):
+    if confirm.strip().upper() != "LIVE":
+        return _flash("/settings", "무장 실패 · 확인란에 LIVE 를 정확히 입력하세요")
+    if not alpaca_configured():
+        return _flash("/settings", "먼저 브로커 키를 연결하세요")
+    base = os.getenv("ALPACA_BASE_URL", PAPER_URL)
+    if "paper" in base:
+        return _flash(
+            "/settings",
+            "Paper 계정으로는 실거래 무장 불가 · 위에서 계정 유형을 실계좌로 다시 연결하세요",
+        )
+    upsert_env({"ORACLE_LIVE_TRADING": "1"})
+    try:
+        broker = AlpacaBroker()
+        acct = broker.get_account()
+        sync_portfolio_from_broker(broker)
+    except Exception as exc:
+        upsert_env({"ORACLE_LIVE_TRADING": "0"})
+        return _flash("/settings", f"실계좌 무장 실패 · {exc}")
+    return _flash(
+        "/settings",
+        f"⚠ 실거래 무장 완료 · Equity ${acct.equity:,.2f} · 주문당 최대 ${live_max_notional():.0f}",
+    )
+
+
+@app.post("/actions/disarm_live")
+def disarm_live(_: None = Depends(require_auth)):
+    upsert_env({"ORACLE_LIVE_TRADING": "0", "ALPACA_BASE_URL": PAPER_URL})
+    return _flash("/settings", "실거래 무장 해제 · Paper URL로 복귀")
+
+
+@app.post("/actions/sync_broker")
+def sync_broker(_: None = Depends(require_auth)):
+    broker = get_broker()
+    if broker is None:
+        return _flash("/settings", "연결된 브로커가 없습니다")
+    try:
+        state = sync_portfolio_from_broker(broker)
+        return _flash("/holdings", f"브로커 동기화 완료 · 현금 ${state.cash:,.2f} · {len(state.positions)}종목")
+    except Exception as exc:
+        return _flash("/settings", f"동기화 실패 · {exc}")
+
+
+@app.post("/actions/first_money_order")
+def first_money_order(
+    symbol: str = Form("SPY"),
+    notional: str = Form(""),
+    _: None = Depends(require_auth),
+):
+    """Queue a tiny first broker order (paper or live) for human approve."""
+    if not alpaca_configured() or get_broker() is None:
+        return _flash("/trades", "먼저 설정에서 Alpaca를 연결하세요")
+    symbol = (symbol or "SPY").upper().strip()
+    try:
+        dollars = float(notional) if notional.strip() else first_trade_notional()
+    except ValueError:
+        dollars = first_trade_notional()
+    dollars = max(5.0, min(dollars, live_max_notional()))
+
+    # Price for share estimate
+    from oracle.data.market import fetch_snapshot
+
+    price = float(fetch_snapshot(symbol).price)
+    shares = dollars / price if price else 0.0
+    mode = "실거래" if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", "") else "브로커페이퍼"
+    jid = TradeJournal().add(
+        JournalEntry(
+            ts=now_iso(),
+            symbol=symbol,
+            action="Buy",
+            shares=shares,
+            price=price,
+            rationale=f"첫 실전 소액 주문 · ${dollars:.2f} · {mode} · 승인 시 브로커 시장가",
+            status="planned",
+            client_order_id=f"first-{uuid.uuid4().hex[:10]}",
+        )
+    )
+    return _flash("/trades", f"첫 소액 주문 #{jid} 준비 · ${dollars:.2f} {symbol} · 승인하면 브로커로 나갑니다")
+
+
 @app.post("/actions/practice_order")
 def practice_order(_: None = Depends(require_auth)):
-    """Create one tiny planned order so the approve UX can be verified (paper only)."""
-    live = os.getenv("ORACLE_LIVE_TRADING", "").strip().lower() in {"1", "true", "yes"}
-    if live:
-        return _flash("/trades", "실거래 모드에서는 연습 주문을 만들 수 없습니다")
+    """Create one tiny planned order so the approve UX can be verified (local paper only)."""
+    if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL):
+        return _flash("/trades", "실거래 모드에서는 로컬 연습 주문을 만들 수 없습니다")
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
-    symbol = (settings.symbols[0] if settings.symbols else "SPY").upper()
-    # Prefer a known liquid symbol for smoke tests
     symbol = "SPY"
     price = 100.0
     for p in portfolio.positions:
@@ -572,7 +731,7 @@ def practice_order(_: None = Depends(require_auth)):
             action="Buy",
             shares=1.0,
             price=price,
-            rationale="연습 주문 — 승인 버튼·체결 경로 확인용 (모의)",
+            rationale="연습 주문 — 승인 버튼·체결 경로 확인용 (로컬 모의)",
             status="planned",
             client_order_id=f"practice-{uuid.uuid4().hex[:10]}",
         )
