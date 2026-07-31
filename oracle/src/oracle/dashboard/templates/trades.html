@@ -12,6 +12,12 @@
   <form method="post" action="/actions/plan_trades">
     <button class="btn btn-primary btn-block" type="submit">① 매매 계획 만들기</button>
   </form>
+  {% if not live_trading %}
+  <form method="post" action="/actions/practice_order" style="margin-top:8px">
+    <button class="btn btn-ghost btn-block" type="submit">연습 주문 1건 만들기 (모의)</button>
+  </form>
+  <p class="card-desc" style="margin-top:8px">시장이 관망일 때도 승인→체결 경로를 먼저 확인할 수 있습니다.</p>
+  {% endif %}
 </section>
 
 <section class="card">

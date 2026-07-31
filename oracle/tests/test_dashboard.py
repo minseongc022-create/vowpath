@@ -60,3 +60,22 @@ def test_plan_trades_starts_job():
     r = client.post("/actions/plan_trades", follow_redirects=False)
     assert r.status_code == 303
     assert r.headers["location"].startswith("/job/")
+
+
+def test_practice_order_and_approve():
+    client = TestClient(app)
+    # ensure kill switch off for buy approve
+    client.post("/actions/kill", data={"active": "0"}, follow_redirects=False)
+    r = client.post("/actions/practice_order", follow_redirects=False)
+    assert r.status_code == 303
+    assert "/trades" in r.headers["location"]
+    page = client.get("/trades")
+    assert "연습 주문" in page.text or "승인하고 체결" in page.text
+    import re
+
+    m = re.search(r'name="entry_id" value="(\d+)"', page.text)
+    assert m, "expected planned entry on trades page"
+    eid = m.group(1)
+    r2 = client.post("/actions/approve", data={"entry_id": eid}, follow_redirects=False)
+    assert r2.status_code == 303
+    assert "flash=" in r2.headers["location"]

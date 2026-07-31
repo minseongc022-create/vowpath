@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import uuid
 from pathlib import Path
 from urllib.parse import quote
 
@@ -25,7 +26,7 @@ from oracle.data.news import aggregate_market_headlines
 from oracle.execution import ExecutionEngine, KillSwitch, estimate_day_pnl_pct, get_broker
 from oracle.execution.alpaca import alpaca_configured
 from oracle.orchestration import OraclePipeline
-from oracle.portfolio.journal import TradeJournal
+from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.store import DecisionStore, load_portfolio
 
 APP_DIR = Path(__file__).resolve().parent
@@ -544,6 +545,37 @@ def approve_all(_: None = Depends(require_auth)):
         else:
             fail += 1
     return _flash("/trades", f"승인 {ok}건 · 실패 {fail}건")
+
+
+@app.post("/actions/practice_order")
+def practice_order(_: None = Depends(require_auth)):
+    """Create one tiny planned order so the approve UX can be verified (paper only)."""
+    live = os.getenv("ORACLE_LIVE_TRADING", "").strip().lower() in {"1", "true", "yes"}
+    if live:
+        return _flash("/trades", "실거래 모드에서는 연습 주문을 만들 수 없습니다")
+    settings = get_settings()
+    portfolio = load_portfolio(settings.portfolio_path)
+    symbol = (settings.symbols[0] if settings.symbols else "SPY").upper()
+    # Prefer a known liquid symbol for smoke tests
+    symbol = "SPY"
+    price = 100.0
+    for p in portfolio.positions:
+        if p.symbol == symbol and p.market_price:
+            price = float(p.market_price)
+            break
+    jid = TradeJournal().add(
+        JournalEntry(
+            ts=now_iso(),
+            symbol=symbol,
+            action="Buy",
+            shares=1.0,
+            price=price,
+            rationale="연습 주문 — 승인 버튼·체결 경로 확인용 (모의)",
+            status="planned",
+            client_order_id=f"practice-{uuid.uuid4().hex[:10]}",
+        )
+    )
+    return _flash("/trades", f"연습 주문 #{jid} 준비됨 · 승인하면 모의 체결됩니다")
 
 
 @app.post("/actions/kill")
