@@ -1,64 +1,46 @@
 # Project Oracle — Architecture
 
-Risk-first personal AI hedge fund OS. Solo-developer friendly: one process, YAML + SQLite, optional APIs.
+Risk-first personal AI hedge fund OS. **v1.1.0**
 
-## Status: v1.0.0 — full operator stack shipped
+## Capability matrix
 
 | Layer | Status |
 |-------|--------|
 | 8 agents + Risk veto + Decision | Done |
-| Parquet OHLCV cache | Done |
-| Macro / rates / FX / commodities proxies | Done |
-| FRED (optional key) | Done |
-| Event calendar YAML | Done |
-| SEC filing hints + EDGAR links | Done |
-| Sentiment: news + Stocktwits + Reddit optional | Done |
-| Backtest: SMA, oracle_lite, portfolio + full metrics | Done |
-| Vol-target sizing | Done |
-| Paper journal + confirm execution + kill switch | Done |
-| Daily report + Telegram/email notify | Done |
-| FastAPI/HTMX dashboard | Done |
-| 24h scheduler daemon | Done |
-| Docker Compose (run / dashboard / scheduler) | Done |
-| Live broker adapter | Stub only (gated) |
+| Parquet cache (`cache_hours`) | Done |
+| Macro / FRED optional | Done |
+| SEC EDGAR submissions | Done |
+| Stocktwits + Reddit optional | Done |
+| Walk-forward OOS + buy&hold excess | Done |
+| Vol sizing + journal + confirm | Done |
+| Local paper + Alpaca adapter | Done |
+| Kill switch + day PnL estimate | Done |
+| Dashboard + auth + approve/backtest | Done |
+| 24h scheduler + notify | Done |
+| Live trading | Gated (`ORACLE_LIVE_TRADING=1`) |
 
-## Non-negotiables
+## Execution modes
 
-| Principle | Implementation |
-|-----------|----------------|
-| Data > intuition | `Evidence[]` + score + confidence |
-| No certainty | confidence ∈ (0, 1) |
-| Risk > return | `RiskManager.veto()` + kill switch |
-| Inaction valid | `Do Nothing` / `Hold` |
-| Auditability | `oracle.db` + `journal.db` + markdown reports |
-| Backtest gate | `oracle backtest` before size/execute |
+1. **paper** (default) — mutates `portfolio.yaml`, costs applied  
+2. **alpaca_paper** — when Alpaca keys set and paper base URL  
+3. **alpaca_live** — only if `ORACLE_LIVE_TRADING=1` and non-paper URL  
 
-## Layout
+Human confirm is required unless `--confirm` / dashboard Approve.
+
+## Operator loop
 
 ```
-oracle/
-├── config/           settings, portfolio, calendar
-├── src/oracle/
-│   ├── agents/       8 specialists
-│   ├── data/         market cache, macro, news, social, sec, calendar
-│   ├── portfolio/    store, sizing, journal
-│   ├── execution/    paper fill + kill switch
-│   ├── backtest/     metrics + strategies
-│   ├── reports/      daily markdown
-│   ├── notify/       telegram / email
-│   ├── dashboard/    FastAPI UI
-│   └── orchestration pipeline + 24h scheduler
-└── tests/
+oracle run --report
+oracle backtest --strategy walk_forward --symbol <TICKER>
+oracle execute                 # plans fills
+oracle serve                   # approve / reject / kill
+oracle schedule --poll 3600    # 24h
 ```
 
-## What to do next (operator, not more scaffolding)
+## Safety
 
-1. Replace placeholder dates in `config/calendar.yaml` with real FOMC/CPI/earnings.
-2. Add `FRED_API_KEY` for official macro series.
-3. Run `oracle backtest --strategy oracle_lite` on every symbol you might size.
-4. Use `oracle execute` only in paper mode until a real broker adapter is written.
-5. Keep `ORACLE_LIVE_TRADING=0` until you accept operational risk.
-
-## Live trading (intentionally incomplete)
-
-`ExecutionEngine` refuses live orders unless `ORACLE_LIVE_TRADING=1` **and** a broker SDK is integrated. That is the correct default for capital preservation.
+- Risk veto blocks Buy/Add  
+- Kill switch (manual + max daily loss)  
+- Confidence coverage penalty  
+- Idempotent `client_order_id` in journal  
+- Oversell / cash guards on paper fills  

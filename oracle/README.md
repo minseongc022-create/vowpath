@@ -1,10 +1,8 @@
 # Project Oracle
 
-Personal multi-agent AI asset management system (risk-first).
+Personal multi-agent AI asset management system (risk-first). **v1.1.0**
 
-**Not a chatbot.** Eight specialist agents collaborate; Risk Manager can veto Buy/Add; every conclusion carries evidence + confidence.
-
-Version **1.0.0** — full operator stack: research → decide → size → paper-execute → dashboard → 24h schedule.
+Not a chatbot. Eight specialist agents collaborate; Risk Manager can veto Buy/Add; every conclusion carries evidence + confidence.
 
 ---
 
@@ -17,17 +15,19 @@ pip install -r requirements-dev.txt && pip install -e .
 cp config/portfolio.example.yaml config/portfolio.yaml
 cp .env.example .env
 
-oracle status
-oracle run --symbols SPY,AAPL,MSFT --report
-oracle backtest --strategy oracle_lite --symbol SPY
-oracle serve --port 8080          # dashboard http://localhost:8080
+oracle run --symbols SPY,AAPL --report
+oracle backtest --strategy walk_forward --symbol SPY
+oracle serve --port 8080
 ```
 
-Docker (pipeline + dashboard + 24h scheduler):
+Optional Alpaca paper:
 
 ```bash
-cd oracle
-docker compose up --build dashboard scheduler
+# .env
+ALPACA_API_KEY=...
+ALPACA_SECRET_KEY=...
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
+ORACLE_BROKER=auto
 ```
 
 ---
@@ -36,45 +36,29 @@ docker compose up --build dashboard scheduler
 
 | Command | Purpose |
 |---------|---------|
-| `oracle run --report` | Multi-agent pipeline + optional markdown report |
-| `oracle report --notify` | Report + Telegram/email if configured |
-| `oracle backtest --strategy oracle_lite` | CAGR / Sharpe / MDD / win rate / Calmar |
-| `oracle backtest --portfolio` | Multi-asset oracle_lite book |
-| `oracle size --symbol AAPL` | Vol-target share delta |
-| `oracle execute --confirm` | Paper fill (human confirm required) |
-| `oracle journal` | Trade journal |
-| `oracle schedule --poll 3600` | 24h pre/open/post sessions |
-| `oracle serve` | Operator dashboard |
+| `oracle run --report` | Multi-agent pipeline |
+| `oracle backtest --strategy walk_forward` | OOS walk-forward vs buy&hold |
+| `oracle backtest --strategy oracle_lite` | Full metrics backtest |
+| `oracle size --symbol AAPL` | Vol-target sizing |
+| `oracle execute` | Queue planned fills (confirm required) |
+| `oracle approve --id N` | Approve planned journal fill |
+| `oracle kill` / `oracle kill --off` | Kill switch |
+| `oracle serve` | Dashboard (approve / backtest / kill) |
+| `oracle schedule` | 24h pre/open/post daemon |
 
 ---
 
-## Architecture (what is built)
+## v1.1 upgrades
 
-```
-Data (yfinance parquet cache, macro, FRED*, news, Stocktwits, Reddit*, calendar, SEC hints)
-   → 8 Agents → Risk veto → Decision
-   → Sizing → Paper execution (live gated)
-   → SQLite audit + journal + daily report + notify
-   → FastAPI/HTMX dashboard
-   → schedule daemon
-```
+- Alpaca paper/live broker adapter (gated)
+- Walk-forward OOS backtests + saved reports
+- Dashboard: trade approve/reject, kill switch, backtest sparkline
+- Optional dashboard basic auth
+- Real SEC EDGAR submissions adapter
+- Coverage-adjusted agent confidence
+- Paper fill hardening (oversell/cash/costs/idempotency)
+- Day PnL estimate for kill switch
 
-\* Optional API keys in `.env`.
+Live trading still requires explicit `ORACLE_LIVE_TRADING=1`.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for principles and extension points.
-
----
-
-## Mandate encoded in code
-
-1. Confidence always ∈ (0, 1) — never “certain”
-2. Risk veto blocks Buy/Add
-3. Near-zero edge → Do Nothing / Hold
-4. Kill switch + max daily loss halt new risk
-5. Live broker orders disabled until explicitly enabled **and** adapter configured
-
----
-
-## Disclaimer
-
-Decision-support for personal research. Not regulated advice. Paper trading is default. Past backtests do not imply future results.
+See [ARCHITECTURE.md](./ARCHITECTURE.md).
