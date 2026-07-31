@@ -25,6 +25,11 @@ from oracle.data.macro import macro_as_dict
 from oracle.data.news import aggregate_market_headlines
 from oracle.execution import ExecutionEngine, KillSwitch, estimate_day_pnl_pct, get_broker
 from oracle.execution.alpaca import PAPER_URL, LIVE_URL, AlpacaBroker, alpaca_configured
+from oracle.execution.autopilot import enabled as autopilot_enabled
+from oracle.execution.autopilot import set_enabled as autopilot_set
+from oracle.execution.autopilot import start_background as autopilot_start
+from oracle.execution.autopilot import status as autopilot_status
+from oracle.execution.autopilot import run_once as autopilot_run_once
 from oracle.execution.live_setup import first_trade_notional, live_armed, live_max_notional, upsert_env
 from oracle.execution.sync import sync_portfolio_from_broker
 from oracle.llm.brain import brain_health
@@ -72,8 +77,15 @@ ACTIONABLE = {"Buy", "Add", "Reduce", "Sell"}
 
 
 def _flash(path: str, msg: str) -> RedirectResponse:
+    # Preserve/add hash for auto-scroll targets
+    hash_part = ""
+    if "#" in path:
+        path, hash_part = path.split("#", 1)
+        hash_part = "#" + hash_part
+    elif path.startswith("/trades"):
+        hash_part = "#pending-approvals"
     sep = "&" if "?" in path else "?"
-    return RedirectResponse(url=f"{path}{sep}flash={quote(msg)}", status_code=303)
+    return RedirectResponse(url=f"{path}{sep}flash={quote(msg)}{hash_part}", status_code=303)
 
 
 def _tone(action: str) -> str:
@@ -399,6 +411,8 @@ def _context(
         "broker": broker,
         "live_trading": broker["live_flag"],
         "llm": brain_health(),
+        "autopilot": autopilot_status().__dict__,
+        "scroll_to": None,
         "auth_enabled": bool(
             os.getenv("ORACLE_DASHBOARD_USER", "").strip()
             or os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()
@@ -526,7 +540,7 @@ def plan_trades(_: None = Depends(require_auth)):
         return {
             "message": f"검토할 주문 {queued}건 준비됨",
             "queued": queued,
-            "redirect": "/trades",
+            "redirect": "/trades#pending-approvals",
         }
 
     job_id = start_job("plan_trades", _work, message="주문 후보 생성 중…")
@@ -737,6 +751,41 @@ def practice_order(_: None = Depends(require_auth)):
     return _flash("/trades", f"연습 주문 #{jid} 준비됨 · 승인하면 모의 체결됩니다")
 
 
+@app.post("/actions/autopilot")
+def autopilot_toggle(
+    enabled: str = Form(...),
+    allow_live: str = Form("0"),
+    _: None = Depends(require_auth),
+):
+    on = enabled.strip() in {"1", "true", "on"}
+    live_ok = allow_live.strip() in {"1", "true", "on"}
+    if on and live_ok and not live_armed():
+        return _flash("/settings", "실거래 자율매매는 먼저 LIVE 무장이 필요합니다")
+    autopilot_set(on, allow_live=live_ok and on)
+    autopilot_start()
+    if on:
+        return _flash("/trades#autopilot-panel", "자율매매 ON · AI가 뉴스·지표로 판단 후 소액 실행")
+    return _flash("/trades#autopilot-panel", "자율매매 OFF")
+
+
+@app.post("/actions/autopilot_now")
+def autopilot_now(_: None = Depends(require_auth)):
+    if not autopilot_enabled():
+        autopilot_set(True, allow_live=False)
+        autopilot_start()
+
+    def _work(_job_id: str):
+        out = autopilot_run_once()
+        return {
+            "message": out.get("message") or "자율매매 사이클 완료",
+            "redirect": "/trades#pending-approvals",
+            **{k: v for k, v in out.items() if k != "message"},
+        }
+
+    job_id = start_job("autopilot", _work, message="AI 자율매매 판단 중…")
+    return RedirectResponse(url=f"/job/{job_id}", status_code=303)
+
+
 @app.post("/actions/kill")
 def set_kill(active: str = Form(...), _: None = Depends(require_auth)):
     ks = KillSwitch()
@@ -823,4 +872,15 @@ def api_run(_: None = Depends(require_auth)):
 
 
 def create_app() -> FastAPI:
+    try:
+        autopilot_start()
+    except Exception:
+        pass
     return app
+
+
+# Start autopilot watcher when module loads under uvicorn
+try:
+    autopilot_start()
+except Exception:
+    pass

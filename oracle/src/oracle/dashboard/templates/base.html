@@ -7,7 +7,7 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="/static/oracle.css" />
 </head>
-<body>
+<body {% if pending_count %}data-scroll="pending-approvals"{% elif scroll_to %}data-scroll="{{ scroll_to }}"{% endif %}>
   <div class="shell">
     <header class="topbar">
       <div class="brand-wrap">
@@ -25,7 +25,7 @@
     </header>
 
     {% if flash %}
-    <div class="flash">{{ flash }}</div>
+    <div class="flash" id="flash">{{ flash }}</div>
     {% endif %}
 
     <main>
@@ -39,7 +39,7 @@
       <a class="tab {% if active == 'holdings' %}on{% endif %}" href="/holdings">
         <span class="ico">◫</span><span>보유</span>
       </a>
-      <a class="tab {% if active == 'trades' %}on{% endif %}" href="/trades">
+      <a class="tab {% if active == 'trades' %}on{% endif %}" href="/trades{% if pending_count %}#pending-approvals{% endif %}">
         <span class="ico">⇄</span><span>거래{% if pending_count %}<i class="dot">{{ pending_count }}</i>{% endif %}</span>
       </a>
       <a class="tab {% if active == 'decisions' %}on{% endif %}" href="/decisions">
@@ -50,6 +50,7 @@
       </a>
     </nav>
   </div>
+  <script src="/static/oracle.js"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

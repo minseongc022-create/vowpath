@@ -28,9 +28,15 @@
     const r = await fetch("/api/job/{{ job.id }}");
     const j = await r.json();
     if (j.status === "done") {
-      const next = j.redirect || "/";
+      let next = j.redirect || "/";
+      let hash = "";
+      const hi = next.indexOf("#");
+      if (hi >= 0) {
+        hash = next.slice(hi);
+        next = next.slice(0, hi);
+      }
       const q = new URLSearchParams({ flash: j.message || "완료" });
-      location.href = next + (next.includes("?") ? "&" : "?") + q.toString();
+      location.href = next + (next.includes("?") ? "&" : "?") + q.toString() + hash;
       return;
     }
     if (j.status === "error") {

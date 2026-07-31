@@ -37,19 +37,19 @@
   </div>
 </section>
 
-<section class="card">
+<section class="card" id="action-cta">
   <div class="card-head">
     <div>
       <h2 class="card-title">오늘 할 일</h2>
-      <p class="card-desc">승인 {{ pending_count }}건 · 추천 행동 {{ actionable_count }}건</p>
+      <p class="card-desc">승인 {{ pending_count }}건 · 추천 행동 {{ actionable_count }}건 · 자율 {{ "ON" if autopilot.enabled else "OFF" }}</p>
     </div>
   </div>
   <div class="quick">
-    <form method="post" action="/actions/plan_trades">
-      <button class="btn btn-primary btn-block" type="submit">매매 계획 만들기</button>
+    <form method="post" action="/actions/autopilot_now">
+      <button class="btn btn-primary btn-block" type="submit">AI 자율 판단</button>
     </form>
-    <form method="post" action="/actions/run">
-      <button class="btn btn-soft btn-block" type="submit">시장 다시 분석</button>
+    <form method="post" action="/actions/plan_trades">
+      <button class="btn btn-soft btn-block" type="submit">매매 계획 만들기</button>
     </form>
   </div>
   {% if planned %}
@@ -59,7 +59,7 @@
       <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
       <div class="todo-sub">{{ "%.2f"|format(p.shares) }}주 · ${{ "%.2f"|format(p.price) }} · {{ p.rationale[:60] }}{% if p.rationale|length > 60 %}…{% endif %}</div>
     </div>
-    <a class="btn btn-sm btn-primary" href="/trades">처리</a>
+    <a class="btn btn-sm btn-primary" href="/trades#pending-approvals">처리</a>
   </div>
   {% endfor %}
   {% elif actionable %}
@@ -73,7 +73,7 @@
   </div>
   {% endfor %}
   {% else %}
-  <p class="todo-empty">지금은 관망이 맞습니다.<br/>위에서 분석을 돌리면 할 일이 생깁니다.</p>
+  <p class="todo-empty">지금은 관망이 맞습니다.<br/>AI 자율 판단을 눌러보세요.</p>
   {% endif %}
 </section>
 

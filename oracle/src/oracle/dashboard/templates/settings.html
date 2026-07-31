@@ -70,6 +70,12 @@
 {% endif %}
 
 <section class="card">
+  <div class="card-head"><h2 class="card-title">AI 자율매매</h2></div>
+  <p class="card-desc">상태: <strong>{{ "ON" if autopilot.enabled else "OFF" }}</strong> · {{ autopilot.last_message or "대기" }}</p>
+  <a class="btn btn-soft btn-block" href="/trades#autopilot-panel">거래 탭에서 켜기/실행</a>
+</section>
+
+<section class="card">
   <div class="card-head"><h2 class="card-title">AI 두뇌</h2></div>
   {% if llm.available %}
   <p class="ok-text">✓ {{ llm.mode_ko }}</p>
