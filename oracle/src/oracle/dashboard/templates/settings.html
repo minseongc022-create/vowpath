@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}설정{% endblock %}
+{% block subtitle %}브로커 · 안전장치{% endblock %}
+{% block content %}
+<section class="card {% if live_trading %}danger-soft{% endif %}">
+  <div class="card-head"><h2 class="card-title">거래 모드</h2></div>
+  <p class="mode-big {% if live_trading %}up{% endif %}">
+    {% if live_trading %}⚠ 실거래 플래그 ON{% else %}모의투자 (안전){% endif %}
+  </p>
+  <p class="card-desc">브로커 모드: <strong>{{ broker.mode_ko }}</strong></p>
+  {% if live_trading %}
+  <p class="warn-text">실제 돈이 움직일 수 있습니다. 승인 버튼만 누르고, 긴급정지 위치를 확인하세요.</p>
+  {% else %}
+  <p class="card-desc">오늘은 Alpaca Paper로 먼저 연습하는 것을 권장합니다.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">브로커 상태</h2></div>
+  {% if broker.configured and not broker.error %}
+  <p class="ok-text">✓ Alpaca 키 설정됨 · {{ broker.mode_ko }}</p>
+  {% if broker.account %}
+  <div class="list-row"><div class="left">Equity</div><strong>${{ "{:,.2f}".format(broker.account.equity) }}</strong></div>
+  <div class="list-row"><div class="left">Cash</div><strong>${{ "{:,.2f}".format(broker.account.cash) }}</strong></div>
+  <div class="list-row"><div class="left">Buying power</div><strong>${{ "{:,.2f}".format(broker.account.buying_power) }}</strong></div>
+  {% endif %}
+  {% elif broker.error %}
+  <p class="bad-text">연결 오류: {{ broker.error }}</p>
+  {% else %}
+  <p class="card-desc">로컬 페이퍼 모드입니다. Alpaca 키를 넣으면 외부 브로커로 연결됩니다.</p>
+  {% endif %}
+  {% if broker.ready_for_money %}
+  <p class="ok-text">Paper 브로커 준비됨 · 소액부터 승인하세요.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">긴급정지</h2></div>
+  <p class="card-desc">
+    {% if kill_switch.active %}현재 <strong class="up">정지 중</strong> — 신규 매수 불가
+    {% else %}정상 가동 중{% endif %}
+  </p>
+  <form method="post" action="/actions/kill" class="quick">
+    {% if kill_switch.active %}
+    <input type="hidden" name="active" value="0" />
+    <button class="btn btn-soft btn-block" type="submit">긴급정지 해제</button>
+    {% else %}
+    <input type="hidden" name="active" value="1" />
+    <button class="btn btn-danger btn-block" type="submit">긴급정지 ON</button>
+    {% endif %}
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">오늘 실전 체크리스트</h2></div>
+  <ol class="steps">
+    <li>Alpaca 계정 생성 (paper 먼저)</li>
+    <li><code>oracle/.env</code>에 API 키 입력</li>
+    <li>이 화면에서 브로커 연결 확인</li>
+    <li>홈 → 매매 계획 → 거래에서 <strong>한 건만</strong> 승인</li>
+    <li>실거래는 <code>ORACLE_LIVE_TRADING=1</code> 후에만</li>
+  </ol>
+  <pre class="code"># oracle/.env 예시
+ORACLE_BROKER=alpaca
+ALPACA_API_KEY=...
+ALPACA_SECRET_KEY=...
+ALPACA_PAPER=1
+# ORACLE_LIVE_TRADING=0   ← 기본 유지 권장</pre>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">시스템</h2></div>
+  <div class="list-row"><div class="left">대시보드 인증</div><strong>{{ "켜짐" if auth_enabled else "꺼짐 (공개)" }}</strong></div>
+  <div class="list-row"><div class="left">심볼</div><strong>{{ symbols|join(', ') }}</strong></div>
+  <div class="list-row"><div class="left">버전</div><strong>v{{ version }}</strong></div>
+</section>
+{% endblock %}

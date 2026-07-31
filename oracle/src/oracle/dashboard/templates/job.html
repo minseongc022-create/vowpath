@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}처리 중{% endblock %}
+{% block subtitle %}백그라운드 작업{% endblock %}
+{% block header_action %}{% endblock %}
+{% block content %}
+<section class="card center-panel">
+  {% if job.status == "queued" or job.status == "running" %}
+  <div class="spinner" aria-hidden="true"></div>
+  <h2 class="job-title">{{ job_label }}</h2>
+  <p class="card-desc">{{ job.message or "잠시만 기다려 주세요…" }}</p>
+  <p class="card-desc">완료되면 자동으로 이동합니다.</p>
+  {% elif job.status == "done" %}
+  <h2 class="job-title ok-text">완료</h2>
+  <p>{{ job.message }}</p>
+  <a class="btn btn-primary btn-block" href="{{ job_redirect }}">결과 보기</a>
+  {% else %}
+  <h2 class="job-title bad-text">실패</h2>
+  <p>{{ job_error or job.message }}</p>
+  <a class="btn btn-soft btn-block" href="/">홈으로</a>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+{% if job.status == "queued" or job.status == "running" %}
+<script>
+(async function poll() {
+  try {
+    const r = await fetch("/api/job/{{ job.id }}");
+    const j = await r.json();
+    if (j.status === "done") {
+      const next = j.redirect || "/";
+      const q = new URLSearchParams({ flash: j.message || "완료" });
+      location.href = next + (next.includes("?") ? "&" : "?") + q.toString();
+      return;
+    }
+    if (j.status === "error") {
+      location.href = "/?flash=" + encodeURIComponent(j.error || j.message || "실패");
+      return;
+    }
+  } catch (e) {}
+  setTimeout(poll, 1200);
+})();
+</script>
+{% endif %}
+{% endblock %}

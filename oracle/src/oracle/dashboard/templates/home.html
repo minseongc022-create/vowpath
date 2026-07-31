@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}홈{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-label">내 총자산</div>
+  <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
+  <div class="hero-meta">
+    {% if return_pct >= 0 %}
+    <span class="pill pill-up">장부 +{{ "%.2f"|format(return_pct * 100) }}%</span>
+    {% else %}
+    <span class="pill pill-down">장부 {{ "%.2f"|format(return_pct * 100) }}%</span>
+    {% endif %}
+    {% if day_pnl_pct >= 0 %}
+    <span class="pill pill-up">오늘 +{{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
+    {% else %}
+    <span class="pill pill-down">오늘 {{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
+    {% endif %}
+    <span class="cash-line">현금 ${{ "{:,.0f}".format(cash) }} · {{ "%.0f"|format(cash_pct * 100) }}%</span>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <div class="k">시장 위험</div>
+    <div class="v">{{ risk_label }}</div>
+    <div class="hint">점수 {{ "%.2f"|format(risk_score) }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">AI 신뢰도</div>
+    <div class="v">{{ "%.0f"|format(avg_confidence * 100) }}%</div>
+    <div class="hint">확실하지 않음</div>
+  </div>
+  <div class="stat">
+    <div class="k">거래 모드</div>
+    <div class="v {% if live_trading %}up{% endif %}">{{ broker.mode_ko }}</div>
+    <div class="hint">{{ "실계좌 주의" if live_trading else "모의투자" }}</div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">오늘 할 일</h2>
+      <p class="card-desc">승인 {{ pending_count }}건 · 추천 행동 {{ actionable_count }}건</p>
+    </div>
+  </div>
+  <div class="quick">
+    <form method="post" action="/actions/plan_trades">
+      <button class="btn btn-primary btn-block" type="submit">매매 계획 만들기</button>
+    </form>
+    <form method="post" action="/actions/run">
+      <button class="btn btn-soft btn-block" type="submit">시장 다시 분석</button>
+    </form>
+  </div>
+  {% if planned %}
+  {% for p in planned[:3] %}
+  <div class="todo-item">
+    <div class="todo-main">
+      <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
+      <div class="todo-sub">{{ "%.2f"|format(p.shares) }}주 · ${{ "%.2f"|format(p.price) }} · {{ p.rationale[:60] }}{% if p.rationale|length > 60 %}…{% endif %}</div>
+    </div>
+    <a class="btn btn-sm btn-primary" href="/trades">처리</a>
+  </div>
+  {% endfor %}
+  {% elif actionable %}
+  {% for d in actionable[:3] %}
+  <div class="todo-item">
+    <div class="todo-main">
+      <div class="todo-sym">{{ d.symbol }} · {{ d.action_ko }}</div>
+      <div class="todo-sub">{{ d.rationale_short }}</div>
+    </div>
+    <span class="badge badge-{{ d.tone }}">{{ d.action_ko }}</span>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">지금은 관망이 맞습니다.<br/>위에서 분석을 돌리면 할 일이 생깁니다.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2 class="card-title">내 종목</h2>
+    <a class="link" href="/holdings">전체</a>
+  </div>
+  {% if positions %}
+  {% for p in positions[:4] %}
+  <div class="holding">
+    <div class="holding-left">
+      <div class="holding-sym">
+        {{ p.symbol }}
+        <span class="badge badge-{{ p.tone }}">{{ p.action_ko }}</span>
+      </div>
+      <div class="holding-meta">{{ "%.2f"|format(p.shares) }}주 · 비중 {{ "%.1f"|format(p.weight * 100) }}%</div>
+    </div>
+    <div class="holding-right">
+      <div class="holding-value">${{ "{:,.0f}".format(p.value) }}</div>
+      <div class="holding-pnl {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
+        {% if p.pnl_pct >= 0 %}+{% endif %}{{ "%.2f"|format(p.pnl_pct * 100) }}%
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">보유 종목이 없습니다.</p>
+  {% endif %}
+</section>
+
+{% if headlines or macro.levels_ko %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">시장 한눈에</h2></div>
+  {% if macro.levels_ko %}
+  <div class="chips">
+    {% for lv in macro.levels_ko[:6] %}
+    <span class="chip">{{ lv.label }} {{ "%.1f"|format(lv.value) }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if headlines %}
+  <ul class="news">
+    {% for n in headlines[:4] %}
+    <li>
+      {% if n.link %}<a href="{{ n.link }}" target="_blank" rel="noopener">{{ n.title[:88] }}</a>
+      {% else %}{{ n.title[:88] }}{% endif %}
+      <small>{{ n.publisher }}</small>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">빠른 이동</h2></div>
+  <div class="quick-links">
+    <a class="ql" href="/trades">거래·승인 →</a>
+    <a class="ql" href="/decisions">판단·백테스트 →</a>
+    <a class="ql" href="/settings">설정·브로커 →</a>
+  </div>
+</section>
+{% endblock %}

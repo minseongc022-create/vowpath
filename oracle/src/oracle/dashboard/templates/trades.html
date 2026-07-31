@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}거래{% endblock %}
+{% block subtitle %}승인 · 체결{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">매매 실행</h2>
+      <p class="card-desc">분석 → 리스크 심사 → 승인 대기 주문서</p>
+    </div>
+  </div>
+  <form method="post" action="/actions/plan_trades">
+    <button class="btn btn-primary btn-block" type="submit">① 매매 계획 만들기</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2 class="card-title">승인 대기 {{ pending_count }}건</h2>
+  </div>
+  {% if planned %}
+  {% for p in planned %}
+  <div class="todo-item" style="align-items:flex-start;flex-direction:column;gap:10px">
+    <div class="todo-main" style="width:100%">
+      <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
+      <div class="todo-sub">
+        {{ "%.4f"|format(p.shares) }}주 · 기준가 ${{ "%.2f"|format(p.price) }}
+        {% if p.client_order_id %}<br/><span class="mono">{{ p.client_order_id }}</span>{% endif %}
+      </div>
+      <div class="todo-sub">{{ p.rationale }}</div>
+    </div>
+    <div class="todo-actions" style="width:100%">
+      <form method="post" action="/actions/approve" style="flex:1">
+        <input type="hidden" name="entry_id" value="{{ p.id }}" />
+        <button class="btn btn-primary btn-block" type="submit">승인하고 체결</button>
+      </form>
+      <form method="post" action="/actions/reject" style="flex:1">
+        <input type="hidden" name="entry_id" value="{{ p.id }}" />
+        <button class="btn btn-ghost btn-block" type="submit">거절</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% if pending_count > 1 %}
+  <form method="post" action="/actions/approve_all" style="margin-top:12px">
+    <button class="btn btn-soft btn-block" type="submit">대기 건 모두 승인</button>
+  </form>
+  {% endif %}
+  {% else %}
+  <p class="todo-empty">승인 대기 주문이 없습니다.<br/>위에서 매매 계획을 먼저 만드세요.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">체결 · 기록</h2></div>
+  {% if journal %}
+  {% for j in journal %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }} · {{ "%.4f"|format(j.shares) }}주 @ ${{ "%.2f"|format(j.price) }} · {{ j.ts[:16]|replace('T',' ') }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 기록이 없습니다.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">실전 전 확인</h2></div>
+  <ul class="checklist">
+    <li>기본은 <strong>모의투자</strong>입니다. ({{ broker.mode_ko }})</li>
+    <li>리스크 매니저가 거부하면 Buy/Add는 실행되지 않습니다.</li>
+    <li>긴급정지가 켜지면 신규 매수가 막힙니다.</li>
+    <li>실계좌는 설정에서 키·플래그를 확인한 뒤에만.</li>
+  </ul>
+  <a class="btn btn-soft btn-block" href="/settings">설정 확인하기</a>
+</section>
+{% endblock %}
