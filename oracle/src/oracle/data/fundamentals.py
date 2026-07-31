@@ -46,10 +46,10 @@ def _f(info: dict[str, Any], key: str) -> float | None:
 def fetch_fundamentals(symbol: str) -> FundamentalSnapshot:
     try:
         info = yf.Ticker(symbol).info or {}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise DataUnavailableError(f"Fundamentals unavailable for {symbol}: {exc}") from exc
 
-    if not info or info.get("quoteType") in (None,) and not info.get("regularMarketPrice"):
+    if not info or (info.get("quoteType") in (None,) and not info.get("regularMarketPrice")):
         # ETFs and some tickers still have partial info — allow thin payloads
         logger.info("Thin fundamental payload for %s", symbol)
 

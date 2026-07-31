@@ -66,7 +66,6 @@ def render_daily_report(result: PipelineResult) -> str:
     lines += ["", "## Rationale detail", ""]
     for d in result.decisions:
         if d.action.value in ("Hold", "Do Nothing") and abs(d.composite_score) < 0.2:
-            # keep report readable — short form for quiet names
             lines.append(f"### {d.symbol} — {d.action.value} (conf={d.confidence:.2f})")
             lines.append("")
             lines.append(d.rationale.split("\n")[0])
@@ -79,12 +78,27 @@ def render_daily_report(result: PipelineResult) -> str:
         lines.append("```")
         lines.append("")
 
+    from oracle.data.calendar import upcoming_events
+
+    lines += ["", "## Upcoming events", ""]
+    events = upcoming_events(days=14)
+    if events:
+        for e in events:
+            lines.append(
+                f"- **{e.date}** [{e.importance}] {e.title} ({e.category}) "
+                f"— {', '.join(e.symbols) if e.symbols else 'market'}"
+            )
+    else:
+        lines.append("- No events in `config/calendar.yaml` for the next 14 days.")
+
     lines += [
+        "",
         "## Watch next",
         "",
-        "- Re-run pre-market and post-market sessions.",
-        "- Backtest any new rule before sizing capital (`oracle backtest --symbol SPY`).",
-        "- Phase 2: wire FRED/SEC/social feeds; do not invent missing data.",
+        "- Re-run pre-market / market_open / post-market (`oracle schedule`).",
+        "- Backtest before sizing: `oracle backtest --strategy oracle_lite --symbol SPY`.",
+        "- Paper execute only with confirm: `oracle execute --confirm`.",
+        "- Dashboard: `oracle serve` → http://localhost:8080",
         "",
         "---",
         f"_Project Oracle v{settings.version} — probabilistic decision support, not a guarantee._",

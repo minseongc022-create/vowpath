@@ -18,10 +18,11 @@ COPY config ./config
 COPY src ./src
 RUN pip install -e .
 
-RUN cp config/portfolio.example.yaml config/portfolio.yaml \
-    && mkdir -p /app/data/reports /app/data/logs
+RUN cp -n config/portfolio.example.yaml config/portfolio.yaml 2>/dev/null || true \
+    && mkdir -p /app/data/reports /app/data/logs /app/data/cache
 
 VOLUME ["/app/data", "/app/config"]
 
+EXPOSE 8080
 ENTRYPOINT ["oracle"]
 CMD ["run", "--report"]

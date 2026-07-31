@@ -1,9 +1,9 @@
-"""Market price data via yfinance (free, no API key for MVP)."""
+"""Market price data via yfinance + parquet disk cache."""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC
 from functools import lru_cache
 
 import numpy as np
@@ -12,17 +12,17 @@ import yfinance as yf
 
 from oracle.core.exceptions import DataUnavailableError
 from oracle.core.types import MarketSnapshot
+from oracle.data.cache import load_cached, save_cache
 
 logger = logging.getLogger("oracle.data.market")
 
 
-def fetch_history(symbol: str, days: int = 365) -> pd.DataFrame:
-    """Return OHLCV history with DatetimeIndex. Raises if empty."""
+def _fetch_history_remote(symbol: str, days: int = 365) -> pd.DataFrame:
     period = f"{max(days, 30)}d"
     try:
         ticker = yf.Ticker(symbol)
         df = ticker.history(period=period, auto_adjust=True)
-    except Exception as exc:  # noqa: BLE001 — network/provider failures
+    except Exception as exc:
         raise DataUnavailableError(f"Failed to fetch history for {symbol}: {exc}") from exc
 
     if df is None or df.empty:
@@ -30,13 +30,23 @@ def fetch_history(symbol: str, days: int = 365) -> pd.DataFrame:
 
     df = df.rename(columns=str.lower)
     required = {"open", "high", "low", "close", "volume"}
-    missing = required - set(df.columns.str.lower())
+    cols = {c.lower() for c in df.columns}
+    missing = required - cols
     if missing:
-        # yfinance already lowercased via rename; re-check
-        cols = {c.lower() for c in df.columns}
-        missing = required - cols
-        if missing:
-            raise DataUnavailableError(f"{symbol} missing columns: {missing}")
+        raise DataUnavailableError(f"{symbol} missing columns: {missing}")
+    keep = [c for c in ["open", "high", "low", "close", "volume"] if c in df.columns]
+    return df[keep]
+
+
+def fetch_history(symbol: str, days: int = 365, use_cache: bool = True) -> pd.DataFrame:
+    """Return OHLCV history with DatetimeIndex. Raises if empty."""
+    if use_cache:
+        cached = load_cached(symbol)
+        if cached is not None and len(cached) >= min(days, 40):
+            return cached.tail(max(days, 30)) if len(cached) > days else cached
+    df = _fetch_history_remote(symbol, days=days)
+    if use_cache:
+        save_cache(symbol, df)
     return df
 
 
@@ -48,7 +58,7 @@ def fetch_snapshot(symbol: str) -> MarketSnapshot:
     volume = float(hist["volume"].iloc[-1]) if "volume" in hist.columns else None
     as_of = hist.index[-1].to_pydatetime()
     if as_of.tzinfo is None:
-        as_of = as_of.replace(tzinfo=timezone.utc)
+        as_of = as_of.replace(tzinfo=UTC)
     return MarketSnapshot(
         symbol=symbol,
         price=close,
@@ -89,7 +99,7 @@ def correlation(a: str, b: str, days: int = 180) -> float:
 
 @lru_cache(maxsize=64)
 def cached_history(symbol: str, days: int = 365) -> pd.DataFrame:
-    """Process-local cache to avoid hammering Yahoo during one pipeline run."""
+    """Process-local cache (also uses disk parquet via fetch_history)."""
     return fetch_history(symbol, days=days)
 
 
@@ -98,7 +108,6 @@ def clear_market_cache() -> None:
 
 
 def index_overview(symbols: list[str] | None = None) -> dict[str, float]:
-    """Short-horizon % change for major indices / watchlist."""
     symbols = symbols or ["SPY", "QQQ", "IWM", "TLT", "GLD", "^VIX"]
     out: dict[str, float] = {}
     for s in symbols:

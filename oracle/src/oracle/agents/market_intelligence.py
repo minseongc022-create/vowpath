@@ -1,4 +1,4 @@
-"""Market Intelligence Agent — macro / news / index regime summary."""
+"""Market Intelligence Agent — macro / news / calendar / filings / index regime."""
 
 from __future__ import annotations
 
@@ -6,8 +6,11 @@ import logging
 
 from oracle.agents.base import opinion
 from oracle.core.types import AgentName, Evidence, PortfolioState
+from oracle.data.calendar import events_for_symbol
+from oracle.data.macro import fetch_macro_snapshot
 from oracle.data.market import index_overview
 from oracle.data.news import aggregate_market_headlines
+from oracle.data.sec import filing_hints
 
 logger = logging.getLogger("oracle.agents.market_intelligence")
 
@@ -22,13 +25,15 @@ class MarketIntelligenceAgent:
         held = symbol in portfolio.held_symbols()
         overview = index_overview(self.watchlist)
         headlines = aggregate_market_headlines([symbol, "SPY"], per_symbol=4)
+        macro = fetch_macro_snapshot()
+        events = events_for_symbol(symbol, days=14)
+        filings = filing_hints(symbol, limit=4)
 
         evidence: list[Evidence] = []
         score_parts: list[float] = []
 
         spy = overview.get("SPY")
         if spy is not None:
-            # daily move scaled softly into [-1, 1]
             part = max(-1.0, min(1.0, spy / 2.0))
             score_parts.append(part)
             evidence.append(
@@ -42,7 +47,6 @@ class MarketIntelligenceAgent:
 
         vix = overview.get("^VIX")
         if vix is not None:
-            # rising VIX is risk-off
             part = max(-1.0, min(1.0, -vix / 5.0))
             score_parts.append(part)
             evidence.append(
@@ -54,21 +58,59 @@ class MarketIntelligenceAgent:
                 )
             )
 
-        tlt = overview.get("TLT")
-        if tlt is not None and spy is not None:
-            # risk-on if equities up and bonds not strongly bid
-            part = max(-1.0, min(1.0, (spy - tlt) / 3.0))
-            score_parts.append(part * 0.5)
+        if "vix" in macro.levels:
+            lvl = macro.levels["vix"]
+            if lvl >= 25:
+                score_parts.append(-0.35)
             evidence.append(
                 Evidence(
-                    claim=f"Equity-bond day spread SPY-TLT={spy - tlt:.2f}pp",
-                    metric="spy_tlt_spread",
-                    value=spy - tlt,
-                    source="yfinance",
+                    claim=f"VIX level {lvl:.1f}",
+                    metric="vix_level",
+                    value=lvl,
+                    source="macro",
                 )
             )
 
-        for h in headlines[:5]:
+        if "us_10y" in macro.day_change_pct:
+            ychg = macro.day_change_pct["us_10y"]
+            score_parts.append(max(-1.0, min(1.0, -ychg / 5.0)) * 0.4)
+            evidence.append(
+                Evidence(
+                    claim=f"10Y yield day change {ychg:+.2f}%",
+                    metric="us10y_chg",
+                    value=ychg,
+                    source="macro",
+                )
+            )
+
+        for note in macro.notes[:3]:
+            evidence.append(
+                Evidence(claim=note, metric="macro_note", value=None, source="macro")
+            )
+
+        for ev in events[:3]:
+            evidence.append(
+                Evidence(
+                    claim=f"{ev.date}: {ev.title} [{ev.importance}]",
+                    metric="calendar",
+                    value=ev.category,
+                    source="calendar.yaml",
+                )
+            )
+            if ev.importance == "high" and ev.category in {"fomc", "cpi"}:
+                score_parts.append(-0.1)  # event risk → slightly defensive
+
+        for f in filings[:3]:
+            evidence.append(
+                Evidence(
+                    claim=f.title,
+                    metric=f.kind,
+                    value=None,
+                    source=f.link or "sec/news",
+                )
+            )
+
+        for h in headlines[:4]:
             evidence.append(
                 Evidence(
                     claim=h.title,
@@ -78,7 +120,6 @@ class MarketIntelligenceAgent:
                 )
             )
 
-        # Keyword tilt from headlines (deterministic, not LLM "gut feel")
         bullish_kw = ("beat", "surge", "rally", "upgrade", "growth", "record")
         bearish_kw = ("miss", "cut", "downgrade", "lawsuit", "probe", "recession", "war")
         text = " ".join(h.title.lower() for h in headlines)
@@ -97,19 +138,26 @@ class MarketIntelligenceAgent:
             )
 
         score = sum(score_parts) / len(score_parts) if score_parts else 0.0
-        conf = 0.4 + 0.1 * min(len(score_parts), 4)
+        conf = 0.4 + 0.08 * min(len(score_parts), 5)
         summary = (
-            f"Market regime signals for {symbol}: "
-            f"indices={overview}; headline_count={len(headlines)}. "
-            "Interpretation is probabilistic, not certain."
+            f"Market intelligence for {symbol}: indices={overview}; "
+            f"macro_notes={len(macro.notes)}; events={len(events)}. Probabilistic only."
         )
         return opinion(
             AgentName.MARKET_INTELLIGENCE,
             symbol,
             score,
-            min(conf, 0.75),
+            min(conf, 0.78),
             summary,
             evidence,
             held,
-            metadata={"overview": overview, "headline_count": len(headlines)},
+            metadata={
+                "overview": overview,
+                "macro": {
+                    "levels": macro.levels,
+                    "fred": macro.fred,
+                    "notes": macro.notes,
+                },
+                "events": [e.title for e in events],
+            },
         )

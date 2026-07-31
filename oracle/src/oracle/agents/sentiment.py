@@ -1,7 +1,4 @@
-"""Sentiment Agent — news headline polarity (deterministic lexicon MVP).
-
-Phase 2: Reddit / X / Stocktwits APIs. Until then we refuse to invent social buzz.
-"""
+"""Sentiment Agent — headlines + Stocktwits + optional Reddit."""
 
 from __future__ import annotations
 
@@ -11,6 +8,7 @@ import re
 from oracle.agents.base import opinion
 from oracle.core.types import AgentName, Evidence, PortfolioState
 from oracle.data.news import fetch_symbol_news
+from oracle.data.social import social_sentiment_score
 
 logger = logging.getLogger("oracle.agents.sentiment")
 
@@ -65,25 +63,7 @@ class SentimentAgent:
         held = symbol in portfolio.held_symbols()
         headlines = fetch_symbol_news(symbol, limit=12)
         evidence: list[Evidence] = []
-
-        if not headlines:
-            return opinion(
-                AgentName.SENTIMENT,
-                symbol,
-                0.0,
-                0.3,
-                "No recent headlines available; social feeds not connected in MVP. Neutral.",
-                [
-                    Evidence(
-                        claim="Empty news set; social APIs deferred to Phase 2",
-                        source="oracle.sentiment",
-                        metric="coverage",
-                        value=0,
-                    )
-                ],
-                held,
-                metadata={"phase2": ["reddit", "x", "stocktwits"]},
-            )
+        parts: list[float] = []
 
         bull = bear = 0
         for h in headlines:
@@ -100,43 +80,76 @@ class SentimentAgent:
                     source=h.link or "yfinance.news",
                 )
             )
-
         total = bull + bear
-        if total == 0:
-            score = 0.0
-            extreme = False
-        else:
-            score = (bull - bear) / total
-            extreme = abs(score) >= 0.7 and total >= 4
+        if total:
+            headline_score = (bull - bear) / total
+            parts.append(headline_score * 0.45)
+            evidence.append(
+                Evidence(
+                    claim=f"Headline lexicon bull={bull} bear={bear}",
+                    metric="headline_tilt",
+                    value=headline_score,
+                    source="oracle.sentiment",
+                )
+            )
 
-        # Extreme optimism/fear flag — fade extremes slightly in score metadata
-        if extreme and score > 0:
-            adj = score * 0.7  # crowded optimism → less bullish confidence in actionability
-            note = "Excess optimism detected — treat breakouts cautiously."
-        elif extreme and score < 0:
-            adj = score * 0.7
-            note = "Excess fear detected — forced selling risk; not an automatic buy."
+        social_score, social_meta = social_sentiment_score(symbol)
+        if social_meta.get("coverage", 0) > 0:
+            adj = social_score * 0.5
+            if social_meta.get("extreme"):
+                adj *= 0.7
+                note = "Extreme social crowd — fade confidence."
+            else:
+                note = "Social coverage present."
+            parts.append(adj)
+            evidence.append(
+                Evidence(
+                    claim=f"Social score={social_score:+.2f} ({note})",
+                    metric="social_score",
+                    value=social_score,
+                    source="stocktwits+reddit",
+                )
+            )
         else:
-            adj = score * 0.5  # headlines are noisy
-            note = "Sentiment within normal range."
+            evidence.append(
+                Evidence(
+                    claim="No social coverage (Stocktwits empty / Reddit creds missing)",
+                    metric="social_coverage",
+                    value=0,
+                    source="oracle.sentiment",
+                )
+            )
 
-        conf = min(0.7, 0.35 + 0.05 * min(len(headlines), 8) + (0.1 if total >= 3 else 0))
+        if not parts:
+            return opinion(
+                AgentName.SENTIMENT,
+                symbol,
+                0.0,
+                0.3,
+                "No sentiment inputs — neutral.",
+                evidence,
+                held,
+                metadata={"phase": "news+social"},
+            )
+
+        score = sum(parts) / len(parts)
+        conf = min(
+            0.75,
+            0.35
+            + 0.04 * min(len(headlines), 8)
+            + 0.02 * min(int(social_meta.get("coverage", 0)), 10),
+        )
         summary = (
-            f"Headline lexicon sentiment for {symbol}: bull_hits={bull}, bear_hits={bear}. {note} "
-            "Lexicon methods are coarse; not a substitute for primary research."
+            f"Sentiment for {symbol}: headline_tilt + social. "
+            f"score={score:+.2f}. Lexicon/social methods are noisy — not certainty."
         )
         return opinion(
             AgentName.SENTIMENT,
             symbol,
-            adj,
+            score,
             conf,
             summary,
-            evidence[:8],
+            evidence[:10],
             held,
-            metadata={
-                "bull_hits": bull,
-                "bear_hits": bear,
-                "extreme": extreme,
-                "headline_count": len(headlines),
-            },
+            metadata={"bull_hits": bull, "bear_hits": bear, "social": social_meta},
         )

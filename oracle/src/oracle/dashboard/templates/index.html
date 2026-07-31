@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Oracle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/oracle.css" />
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div>
+        <p class="brand">Project Oracle</p>
+        <p class="sub">Risk-first multi-agent desk · v{{ version }}</p>
+      </div>
+      <div class="actions">
+        <form hx-post="/api/run" hx-swap="none" hx-on::after-request="window.location.reload()">
+          <button type="submit">Run pipeline</button>
+        </form>
+        <a class="ghost" href="/api/status">JSON</a>
+      </div>
+    </header>
+
+    <section class="hero-metrics">
+      <div>
+        <span class="label">Equity</span>
+        <strong>${{ "%.2f"|format(equity) }}</strong>
+      </div>
+      <div>
+        <span class="label">Book return</span>
+        <strong>{{ "%.2f"|format(return_pct * 100) }}%</strong>
+      </div>
+      <div>
+        <span class="label">Cash</span>
+        <strong>${{ "%.2f"|format(cash) }}</strong>
+      </div>
+      <div>
+        <span class="label">AI confidence (avg)</span>
+        <strong>{{ "%.2f"|format(avg_confidence) }}</strong>
+      </div>
+      <div>
+        <span class="label">Kill switch</span>
+        <strong class="{{ 'bad' if kill_switch.active else 'ok' }}">{{ 'ACTIVE' if kill_switch.active else 'off' }}</strong>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section>
+        <h2>Portfolio</h2>
+        <table>
+          <thead>
+            <tr><th>Symbol</th><th>Shares</th><th>Price</th><th>Weight</th><th>PnL</th></tr>
+          </thead>
+          <tbody>
+            {% for p in positions %}
+            <tr>
+              <td>{{ p.symbol }}</td>
+              <td>{{ "%.2f"|format(p.shares) }}</td>
+              <td>{{ "%.2f"|format(p.price or 0) }}</td>
+              <td>{{ "%.1f"|format(p.weight * 100) }}%</td>
+              <td>{{ "%.1f"|format((p.pnl_pct or 0) * 100) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Recent decisions</h2>
+        <table>
+          <thead>
+            <tr><th>Symbol</th><th>Action</th><th>Conf</th><th>Score</th><th>When</th></tr>
+          </thead>
+          <tbody>
+            {% for d in decisions[:15] %}
+            <tr>
+              <td>{{ d.symbol }}</td>
+              <td>{{ d.action }}</td>
+              <td>{{ "%.2f"|format(d.confidence) }}</td>
+              <td>{{ "%+.3f"|format(d.composite_score) }}</td>
+              <td>{{ d.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Market risk / macro</h2>
+        <ul class="notes">
+          {% for n in macro.notes %}
+          <li>{{ n }}</li>
+          {% else %}
+          <li>No macro notes.</li>
+          {% endfor %}
+        </ul>
+        <div class="chips">
+          {% for k,v in macro.levels.items() %}
+          <span>{{ k }}: {{ "%.2f"|format(v) }}</span>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section>
+        <h2>Economic calendar</h2>
+        <table>
+          <thead><tr><th>Date</th><th>Event</th><th>Imp</th></tr></thead>
+          <tbody>
+            {% for e in calendar %}
+            <tr>
+              <td>{{ e.date }}</td>
+              <td>{{ e.title }}</td>
+              <td>{{ e.importance }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">Edit config/calendar.yaml</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>News</h2>
+        <ul class="news">
+          {% for h in headlines %}
+          <li>
+            {% if h.link %}<a href="{{ h.link }}" target="_blank" rel="noopener">{{ h.title }}</a>
+            {% else %}{{ h.title }}{% endif %}
+            <small>{{ h.publisher or '' }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section>
+        <h2>Paper journal</h2>
+        <table>
+          <thead><tr><th>Symbol</th><th>Action</th><th>Shares</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for j in journal %}
+            <tr>
+              <td>{{ j.symbol }}</td>
+              <td>{{ j.action }}</td>
+              <td>{{ "%.2f"|format(j.shares) }}</td>
+              <td>{{ j.status }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No journal entries yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="logs">
+      <h2>Realtime log (tail)</h2>
+      <pre>{% for line in logs %}{{ line }}
+{% else %}No log file yet — run `oracle run` first.{% endfor %}</pre>
+    </section>
+
+    <footer>
+      Mandate: risk minimization &gt; return maximization. No statement here is certain. Inaction is valid.
+    </footer>
+  </div>
+</body>
+</html>

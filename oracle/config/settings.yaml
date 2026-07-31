@@ -1,13 +1,12 @@
-# Project Oracle — MVP settings
+# Project Oracle — full stack settings
 # Risk minimization > return maximization
 
 system:
   name: Project Oracle
-  version: "0.1.0"
+  version: "1.0.0"
   timezone: America/New_York
 
 universe:
-  # MVP watchlist — expand later
   symbols:
     - SPY
     - QQQ
@@ -26,9 +25,8 @@ universe:
 market_data:
   history_days: 365
   benchmark: SPY
+  cache_hours: 6
 
-# Agent weights for Decision Agent (before Risk veto)
-# Must sum to ~1.0 for interpretability
 agent_weights:
   market_intelligence: 0.10
   fundamental: 0.20
@@ -37,23 +35,24 @@ agent_weights:
   sentiment: 0.10
   portfolio_manager: 0.20
 
-# Risk Manager hard limits — these override all other agents
 risk:
-  max_position_pct: 0.15          # single name max weight
-  max_sector_pct: 0.35            # soft check when sector known
-  max_portfolio_volatility: 0.25  # annualized
-  max_drawdown_halt: 0.12         # halt new buys if MDD from peak exceeds
-  min_cash_pct: 0.10              # always keep cash buffer
-  max_correlation_cluster: 0.85   # reject add if corr to existing > this
-  atr_stop_multiple: 2.0          # suggested stop distance
-  veto_confidence_floor: 0.55     # risk veto applies when risk conf >= this
+  max_position_pct: 0.15
+  max_sector_pct: 0.35
+  max_portfolio_volatility: 0.25
+  max_drawdown_halt: 0.12
+  min_cash_pct: 0.10
+  max_correlation_cluster: 0.85
+  atr_stop_multiple: 2.0
+  veto_confidence_floor: 0.55
 
 decision:
   buy_threshold: 0.55
   add_threshold: 0.45
   reduce_threshold: -0.35
   sell_threshold: -0.55
-  # Scores between reduce and add → Hold or Do Nothing
+
+sizing:
+  target_vol: 0.10
 
 reporting:
   output_dir: ./data/reports
@@ -63,3 +62,8 @@ backtest:
   initial_cash: 100000
   commission_bps: 5
   slippage_bps: 5
+
+execution:
+  mode: paper
+  require_confirm: true
+  max_daily_loss_pct: 0.03

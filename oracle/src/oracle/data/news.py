@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import yfinance as yf
 
@@ -27,7 +27,7 @@ def fetch_symbol_news(symbol: str, limit: int = 8) -> list[Headline]:
     headlines: list[Headline] = []
     try:
         items = yf.Ticker(symbol).news or []
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("news fetch failed for %s: %s", symbol, exc)
         return headlines
 
@@ -47,7 +47,7 @@ def fetch_symbol_news(symbol: str, limit: int = 8) -> list[Headline]:
 
         published_at = None
         if isinstance(pub, (int, float)):
-            published_at = datetime.fromtimestamp(pub, tz=timezone.utc)
+            published_at = datetime.fromtimestamp(pub, tz=UTC)
         elif isinstance(pub, str):
             try:
                 published_at = datetime.fromisoformat(pub.replace("Z", "+00:00"))

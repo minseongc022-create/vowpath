@@ -1,4 +1,4 @@
-"""CLI entrypoint: oracle run | report | backtest | status."""
+"""CLI: run | report | backtest | status | serve | schedule | execute | journal | size."""
 
 from __future__ import annotations
 
@@ -11,14 +11,20 @@ from rich.console import Console
 from rich.table import Table
 
 from oracle import __version__
-from oracle.backtest import run_sma_backtest
+from oracle.backtest import run_oracle_lite_backtest, run_portfolio_backtest, run_sma_backtest
 from oracle.config import get_settings
 from oracle.logging_setup import setup_logging
-from oracle.orchestration import OraclePipeline, infer_session
+from oracle.orchestration import OraclePipeline, infer_session, run_forever
+from oracle.portfolio.journal import TradeJournal
+from oracle.portfolio.sizing import size_decision
 from oracle.portfolio.store import DecisionStore, load_portfolio
 from oracle.reports import write_daily_report
 
 console = Console()
+
+
+def _add_log_level(sp: argparse.ArgumentParser) -> None:
+    sp.add_argument("--log-level", default="INFO")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -26,8 +32,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     setup_logging(level=args.log_level, log_dir=Path(settings.data_dir) / "logs")
     session = args.session or infer_session(tz_name=settings.timezone)
     symbols = [s.strip().upper() for s in args.symbols.split(",")] if args.symbols else None
-    pipeline = OraclePipeline(settings)
-    result = pipeline.run(session=session, symbols=symbols)
+    result = OraclePipeline(settings).run(session=session, symbols=symbols)
 
     table = Table(title=f"Project Oracle — {session} ({result.run_id})")
     table.add_column("Symbol")
@@ -50,6 +55,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.report:
         path = write_daily_report(result)
         console.print(f"Report written: {path}")
+        if args.notify:
+            from oracle.notify import notify_report
+
+            console.print(notify_report(path))
 
     if args.json:
         print(result.model_dump_json(indent=2))
@@ -60,33 +69,56 @@ def cmd_report(args: argparse.Namespace) -> int:
     settings = get_settings()
     setup_logging(level=args.log_level, log_dir=Path(settings.data_dir) / "logs")
     session = args.session or infer_session(tz_name=settings.timezone)
-    pipeline = OraclePipeline(settings)
-    result = pipeline.run(session=session)
+    result = OraclePipeline(settings).run(session=session)
     path = write_daily_report(result)
     console.print(f"Daily report: {path}")
+    if args.notify:
+        from oracle.notify import notify_report
+
+        console.print(notify_report(path))
     return 0
 
 
 def cmd_backtest(args: argparse.Namespace) -> int:
     settings = get_settings()
     setup_logging(level=args.log_level)
-    result = run_sma_backtest(
-        symbol=args.symbol.upper(),
-        days=args.days,
-        fast=args.fast,
-        slow=args.slow,
-        commission_bps=settings.commission_bps,
-        slippage_bps=settings.slippage_bps,
-    )
+    if args.portfolio:
+        symbols = [s.strip().upper() for s in (args.symbols or ",".join(settings.symbols[:5])).split(",")]
+        result = run_portfolio_backtest(
+            symbols,
+            days=args.days,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
+    elif args.strategy == "oracle_lite":
+        result = run_oracle_lite_backtest(
+            args.symbol.upper(),
+            days=args.days,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
+    else:
+        result = run_sma_backtest(
+            symbol=args.symbol.upper(),
+            days=args.days,
+            fast=args.fast,
+            slow=args.slow,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
     console.print(
-        f"[bold]SMA({args.fast}/{args.slow}) backtest — {result.symbol}[/bold]\n"
+        f"[bold]{result.strategy} — {result.symbol}[/bold]\n"
         f"Total return: {result.total_return:.1%}\n"
-        f"Ann. return:  {result.ann_return:.1%}\n"
+        f"CAGR:         {result.cagr:.1%}\n"
         f"Sharpe:       {result.sharpe:.2f}\n"
+        f"Sortino:      {result.sortino:.2f}\n"
         f"Max DD:       {result.max_drawdown:.1%}\n"
         f"Win rate:     {result.win_rate:.1%}\n"
+        f"Profit factor:{result.profit_factor:.2f}\n"
+        f"Vol:          {result.volatility:.1%}\n"
+        f"Calmar:       {result.calmar:.2f}\n"
         f"Trades:       {result.n_trades}\n"
-        "Note: past performance does not imply future results."
+        "Past performance does not imply future results."
     )
     return 0
 
@@ -111,19 +143,73 @@ def cmd_status(args: argparse.Namespace) -> int:
             f"{portfolio.weight(p.symbol):.1%}",
         )
     console.print(table)
-
     db = Path(settings.data_dir) / "oracle.db"
     if db.exists():
-        store = DecisionStore(db)
-        recent = store.recent_decisions(limit=10)
+        recent = DecisionStore(db).recent_decisions(limit=10)
         if recent:
-            console.print("Recent decisions:")
             console.print(json.dumps(recent, indent=2))
     return 0
 
 
-def _add_log_level(sp: argparse.ArgumentParser) -> None:
-    sp.add_argument("--log-level", default="INFO")
+def cmd_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    setup_logging(level=args.log_level)
+    uvicorn.run(
+        "oracle.dashboard.app:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+    )
+    return 0
+
+
+def cmd_schedule(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    setup_logging(level=args.log_level, log_dir=Path(settings.data_dir) / "logs")
+    console.print(f"Starting 24h scheduler poll={args.poll}s")
+    run_forever(poll_seconds=args.poll)
+    return 0
+
+
+def cmd_execute(args: argparse.Namespace) -> int:
+    from oracle.execution import ExecutionEngine
+
+    settings = get_settings()
+    setup_logging(level=args.log_level, log_dir=Path(settings.data_dir) / "logs")
+    symbols = [s.strip().upper() for s in args.symbols.split(",")] if args.symbols else settings.symbols
+    result = OraclePipeline(settings).run(session="ad_hoc", symbols=symbols)
+    engine = ExecutionEngine(require_confirm=not args.confirm)
+    portfolio = load_portfolio(settings.portfolio_path)
+    for d in result.decisions:
+        if d.action.value in ("Hold", "Do Nothing") and not args.all:
+            continue
+        out = engine.execute_decision(d, portfolio=portfolio, confirm=args.confirm)
+        console.print(f"{d.symbol} {d.action.value}: {out.message} (accepted={out.accepted})")
+        if out.accepted and out.mode == "paper":
+            portfolio = load_portfolio(settings.portfolio_path)
+    return 0
+
+
+def cmd_journal(args: argparse.Namespace) -> int:
+    rows = TradeJournal().list_recent(limit=args.limit)
+    console.print(json.dumps(rows, indent=2))
+    return 0
+
+
+def cmd_size(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    setup_logging(level=args.log_level)
+    symbols = [args.symbol.upper()]
+    result = OraclePipeline(settings).run(session="ad_hoc", symbols=symbols)
+    portfolio = load_portfolio(settings.portfolio_path)
+    for d in result.decisions:
+        rec = size_decision(d, portfolio)
+        console.print(
+            f"{rec.symbol} {rec.action.value}: Δshares={rec.suggested_shares_delta:+.4f} "
+            f"Δ$={rec.dollar_delta:+,.2f} target_w={rec.target_weight:.1%}\n{rec.rationale}"
+        )
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -137,27 +223,61 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run multi-agent pipeline")
     _add_log_level(run)
     run.add_argument("--session", choices=["pre_market", "market_open", "post_market", "ad_hoc"])
-    run.add_argument("--symbols", help="Comma-separated subset, e.g. SPY,AAPL")
-    run.add_argument("--report", action="store_true", help="Also write daily markdown report")
-    run.add_argument("--json", action="store_true", help="Print full JSON result")
+    run.add_argument("--symbols", help="Comma-separated subset")
+    run.add_argument("--report", action="store_true")
+    run.add_argument("--notify", action="store_true")
+    run.add_argument("--json", action="store_true")
     run.set_defaults(func=cmd_run)
 
-    rep = sub.add_parser("report", help="Run pipeline and write daily report")
+    rep = sub.add_parser("report", help="Run pipeline + daily report")
     _add_log_level(rep)
     rep.add_argument("--session", choices=["pre_market", "market_open", "post_market", "ad_hoc"])
+    rep.add_argument("--notify", action="store_true")
     rep.set_defaults(func=cmd_report)
 
-    bt = sub.add_parser("backtest", help="SMA crossover sanity backtest")
+    bt = sub.add_parser("backtest", help="Backtest strategies")
     _add_log_level(bt)
     bt.add_argument("--symbol", default="SPY")
+    bt.add_argument("--symbols", help="For --portfolio mode")
     bt.add_argument("--days", type=int, default=500)
     bt.add_argument("--fast", type=int, default=20)
     bt.add_argument("--slow", type=int, default=50)
+    bt.add_argument("--strategy", choices=["sma", "oracle_lite"], default="sma")
+    bt.add_argument("--portfolio", action="store_true", help="Multi-asset oracle_lite portfolio")
     bt.set_defaults(func=cmd_backtest)
 
-    st = sub.add_parser("status", help="Show portfolio + recent decisions")
+    st = sub.add_parser("status", help="Portfolio + recent decisions")
     _add_log_level(st)
     st.set_defaults(func=cmd_status)
+
+    serve = sub.add_parser("serve", help="Start operator dashboard")
+    _add_log_level(serve)
+    serve.add_argument("--host", default="0.0.0.0")
+    serve.add_argument("--port", type=int, default=8080)
+    serve.add_argument("--reload", action="store_true")
+    serve.set_defaults(func=cmd_serve)
+
+    sched = sub.add_parser("schedule", help="24h session daemon")
+    _add_log_level(sched)
+    sched.add_argument("--poll", type=int, default=3600)
+    sched.set_defaults(func=cmd_schedule)
+
+    ex = sub.add_parser("execute", help="Paper/live execution with human confirm")
+    _add_log_level(ex)
+    ex.add_argument("--symbols")
+    ex.add_argument("--confirm", action="store_true", help="Approve planned fills")
+    ex.add_argument("--all", action="store_true", help="Include Hold/Do Nothing in journal")
+    ex.set_defaults(func=cmd_execute)
+
+    jn = sub.add_parser("journal", help="Show paper trade journal")
+    _add_log_level(jn)
+    jn.add_argument("--limit", type=int, default=30)
+    jn.set_defaults(func=cmd_journal)
+
+    sz = sub.add_parser("size", help="Vol-target size recommendation for one symbol")
+    _add_log_level(sz)
+    sz.add_argument("--symbol", required=True)
+    sz.set_defaults(func=cmd_size)
     return p
 
 
