@@ -1,0 +1,9 @@
+services:
+  oracle:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    env_file:
+      - .env
+    command: ["run", "--report"]

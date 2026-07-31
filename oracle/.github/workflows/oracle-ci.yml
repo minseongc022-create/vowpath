@@ -1,0 +1,35 @@
+name: Oracle CI
+
+on:
+  push:
+    paths:
+      - "oracle/**"
+      - ".github/workflows/oracle-ci.yml"
+  pull_request:
+    paths:
+      - "oracle/**"
+      - ".github/workflows/oracle-ci.yml"
+
+defaults:
+  run:
+    working-directory: oracle
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: oracle/requirements-dev.txt
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+      - name: Lint
+        run: ruff check src tests
+      - name: Unit tests
+        run: pytest -q --cov=oracle --cov-report=term-missing
