@@ -1,25 +1,30 @@
-"""FastAPI operator dashboard — equity, risk, decisions, calendar, news, logs."""
+"""FastAPI operator dashboard — auth, approve trades, backtest, kill switch."""
 
 from __future__ import annotations
 
+import os
+import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from oracle import __version__
+from oracle.backtest import run_oracle_lite_backtest, run_walk_forward, write_walk_forward_report
 from oracle.config import get_settings
 from oracle.data.calendar import calendar_as_dicts
 from oracle.data.macro import macro_as_dict
 from oracle.data.news import aggregate_market_headlines
-from oracle.execution import KillSwitch
+from oracle.execution import ExecutionEngine, KillSwitch, estimate_day_pnl_pct
 from oracle.portfolio.journal import TradeJournal
 from oracle.portfolio.store import DecisionStore, load_portfolio
 
 APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+security = HTTPBasic(auto_error=False)
 
 app = FastAPI(title="Project Oracle", version=__version__)
 static_dir = APP_DIR / "static"
@@ -27,21 +32,45 @@ static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
-def _context() -> dict:
+def require_auth(
+    credentials: HTTPBasicCredentials | None = Depends(security),
+) -> None:
+    user = os.getenv("ORACLE_DASHBOARD_USER", "").strip()
+    password = os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()
+    if not user and not password:
+        return  # auth disabled for local solo use
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Auth required",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    ok_user = secrets.compare_digest(credentials.username, user)
+    ok_pass = secrets.compare_digest(credentials.password, password)
+    if not (ok_user and ok_pass):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
+def _context(backtest: dict | None = None, flash: str | None = None) -> dict:
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
     store = DecisionStore(Path(settings.data_dir) / "oracle.db")
     decisions = store.recent_decisions(limit=40)
-    journal = TradeJournal().list_recent(limit=20)
+    journal = TradeJournal()
+    planned = journal.list_recent(limit=20, status="planned")
+    recent_journal = journal.list_recent(limit=20)
     headlines = aggregate_market_headlines(settings.symbols[:6], per_symbol=2)
-    ks = KillSwitch().check(0.0)
+    day_pnl = estimate_day_pnl_pct(portfolio)
+    ks = KillSwitch().check(day_pnl)
     equity = portfolio.equity()
     cost_basis = portfolio.cash + sum(p.shares * p.avg_cost for p in portfolio.positions)
     ret = (equity / cost_basis - 1.0) if cost_basis > 0 else 0.0
     rows = []
     for p in portfolio.positions:
-        mv = p.market_value or 0.0
-        pnl = p.unrealized_pnl_pct
         rows.append(
             {
                 "symbol": p.symbol,
@@ -49,14 +78,12 @@ def _context() -> dict:
                 "avg_cost": p.avg_cost,
                 "price": p.market_price,
                 "weight": portfolio.weight(p.symbol),
-                "pnl_pct": pnl,
-                "value": mv,
+                "pnl_pct": p.unrealized_pnl_pct,
+                "value": p.market_value or 0.0,
             }
         )
     avg_conf = (
-        sum(float(d.get("confidence") or 0) for d in decisions) / len(decisions)
-        if decisions
-        else 0.0
+        sum(float(d.get("confidence") or 0) for d in decisions) / len(decisions) if decisions else 0.0
     )
     log_path = Path(settings.data_dir) / "logs" / "oracle.log"
     logs = []
@@ -67,37 +94,127 @@ def _context() -> dict:
         "equity": equity,
         "cash": portfolio.cash,
         "return_pct": ret,
+        "day_pnl_pct": day_pnl,
         "positions": rows,
         "decisions": decisions,
-        "journal": journal,
+        "journal": recent_journal,
+        "planned": planned,
         "calendar": calendar_as_dicts(21),
         "macro": macro_as_dict(),
-        "headlines": [{"title": h.title, "publisher": h.publisher, "link": h.link} for h in headlines[:12]],
+        "headlines": [
+            {"title": h.title, "publisher": h.publisher, "link": h.link} for h in headlines[:12]
+        ],
         "avg_confidence": avg_conf,
-        "kill_switch": ks,
+        "kill_switch": {
+            "active": ks.active,
+            "reason": ks.reason,
+            "max_daily_loss_pct": ks.max_daily_loss_pct,
+            "day_pnl_pct": ks.day_pnl_pct,
+        },
         "logs": logs,
         "symbols": settings.symbols,
+        "backtest": backtest,
+        "flash": flash,
+        "auth_enabled": bool(
+            os.getenv("ORACLE_DASHBOARD_USER", "").strip()
+            or os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()
+        ),
     }
 
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    ctx = _context()
-    ctx["request"] = request
-    return templates.TemplateResponse("index.html", ctx)
+def home(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
+    ctx = _context(flash=flash)
+    return templates.TemplateResponse(request, "index.html", ctx)
 
 
 @app.get("/api/status")
-def api_status():
+def api_status(_: None = Depends(require_auth)):
     return JSONResponse(_context())
 
 
 @app.post("/api/run")
-def api_run():
+def api_run(_: None = Depends(require_auth)):
     from oracle.orchestration import run_session_once
 
     run_id = run_session_once(write_report=True)
     return {"ok": True, "run_id": run_id}
+
+
+@app.post("/actions/approve")
+def approve_trade(entry_id: int = Form(...), _: None = Depends(require_auth)):
+    result = ExecutionEngine(require_confirm=False).confirm_journal_entry(entry_id)
+    return RedirectResponse(url=f"/?flash={result.message}", status_code=303)
+
+
+@app.post("/actions/reject")
+def reject_trade(entry_id: int = Form(...), _: None = Depends(require_auth)):
+    result = ExecutionEngine().reject_journal_entry(entry_id)
+    return RedirectResponse(url=f"/?flash={result.message}", status_code=303)
+
+
+@app.post("/actions/kill")
+def set_kill(active: str = Form(...), _: None = Depends(require_auth)):
+    ks = KillSwitch()
+    if active == "1":
+        ks.engage()
+        msg = "Kill switch ENGAGED"
+    else:
+        ks.release()
+        msg = "Kill switch released"
+    return RedirectResponse(url=f"/?flash={msg}", status_code=303)
+
+
+@app.post("/actions/backtest")
+def run_bt(
+    request: Request,
+    symbol: str = Form("SPY"),
+    mode: str = Form("oracle_lite"),
+    _: None = Depends(require_auth),
+):
+    symbol = symbol.upper().strip()
+    settings = get_settings()
+    if mode == "walk_forward":
+        wf = run_walk_forward(
+            symbol,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
+        path = write_walk_forward_report(wf)
+        backtest = {
+            "mode": "walk_forward",
+            "symbol": symbol,
+            "oos_return": wf.oos_total_return,
+            "oos_sharpe": wf.oos_sharpe,
+            "oos_mdd": wf.oos_max_drawdown,
+            "benchmark": wf.benchmark_total_return,
+            "excess": wf.excess_return,
+            "folds": wf.n_folds,
+            "report": path,
+            "equity_curve": wf.equity_curve,
+        }
+    else:
+        bt = run_oracle_lite_backtest(
+            symbol,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
+        backtest = {
+            "mode": "oracle_lite",
+            "symbol": symbol,
+            "oos_return": bt.total_return,
+            "oos_sharpe": bt.sharpe,
+            "oos_mdd": bt.max_drawdown,
+            "benchmark": None,
+            "excess": None,
+            "folds": None,
+            "report": None,
+            "equity_curve": bt.equity_curve,
+            "cagr": bt.cagr,
+            "win_rate": bt.win_rate,
+        }
+    ctx = _context(backtest=backtest, flash=f"Backtest complete for {symbol}")
+    return templates.TemplateResponse(request, "index.html", ctx)
 
 
 def create_app() -> FastAPI:

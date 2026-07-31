@@ -28,7 +28,12 @@ def _cache_path(symbol: str) -> Path:
     return _cache_dir() / f"{safe}.parquet"
 
 
-def load_cached(symbol: str, max_age_hours: float = 6.0) -> pd.DataFrame | None:
+def load_cached(symbol: str, max_age_hours: float | None = None) -> pd.DataFrame | None:
+    if max_age_hours is None:
+        try:
+            max_age_hours = float(get_settings().cache_hours)
+        except Exception:
+            max_age_hours = 6.0
     path = _cache_path(symbol)
     if not path.exists():
         return None

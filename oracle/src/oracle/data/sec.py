@@ -1,13 +1,20 @@
-"""SEC / filing awareness via yfinance + optional EDGAR search links."""
+"""SEC EDGAR submissions adapter (free, User-Agent required)."""
 
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
+from functools import lru_cache
 
-import yfinance as yf
+import httpx
 
 logger = logging.getLogger("oracle.data.sec")
+
+SEC_UA = os.getenv(
+    "SEC_USER_AGENT",
+    "ProjectOracle research bot contact@example.com",
+)
 
 
 @dataclass
@@ -16,39 +23,78 @@ class FilingHint:
     title: str
     kind: str  # earnings | filing | other
     link: str | None = None
+    filed_at: str | None = None
+    form: str | None = None
 
 
-def filing_hints(symbol: str, limit: int = 6) -> list[FilingHint]:
-    """Best-effort: scan Yahoo news for filing/earnings language."""
-    hints: list[FilingHint] = []
+@lru_cache(maxsize=1)
+def _ticker_cik_map() -> dict[str, str]:
+    url = "https://www.sec.gov/files/company_tickers.json"
     try:
-        items = yf.Ticker(symbol).news or []
+        with httpx.Client(timeout=30.0, headers={"User-Agent": SEC_UA}) as client:
+            r = client.get(url)
+            r.raise_for_status()
+            data = r.json()
+        out: dict[str, str] = {}
+        for row in data.values():
+            ticker = str(row.get("ticker", "")).upper()
+            cik = str(int(row.get("cik_str")))
+            if ticker:
+                out[ticker] = cik.zfill(10)
+        return out
     except Exception as exc:
-        logger.debug("sec/news failed %s: %s", symbol, exc)
-        return hints
+        logger.warning("SEC ticker map failed: %s", exc)
+        return {}
 
-    keys_filing = ("8-k", "10-k", "10-q", "sec", "filing", "form 4")
-    keys_earn = ("earnings", "eps", "guidance", "results")
-    for item in items[:20]:
-        content = item.get("content") if isinstance(item.get("content"), dict) else None
-        if content:
-            title = (content.get("title") or "").strip()
-            link = (content.get("canonicalUrl") or {}).get("url")
-        else:
-            title = (item.get("title") or "").strip()
-            link = item.get("link")
-        low = title.lower()
-        if any(k in low for k in keys_filing):
-            kind = "filing"
-        elif any(k in low for k in keys_earn):
-            kind = "earnings"
-        else:
-            continue
-        hints.append(FilingHint(symbol=symbol, title=title, kind=kind, link=link))
-        if len(hints) >= limit:
-            break
 
-    # Always expose EDGAR search deep-link for operator follow-up
+def _submissions(cik: str) -> dict:
+    url = f"https://data.sec.gov/submissions/CIK{cik}.json"
+    with httpx.Client(timeout=30.0, headers={"User-Agent": SEC_UA}) as client:
+        r = client.get(url)
+        r.raise_for_status()
+        return r.json()
+
+
+def filing_hints(symbol: str, limit: int = 8) -> list[FilingHint]:
+    """Prefer real EDGAR recent filings; fall back to EDGAR search link."""
+    symbol = symbol.upper()
+    hints: list[FilingHint] = []
+    cik_map = _ticker_cik_map()
+    cik = cik_map.get(symbol)
+    if cik:
+        try:
+            data = _submissions(cik)
+            recent = data.get("filings", {}).get("recent", {})
+            forms = recent.get("form") or []
+            dates = recent.get("filingDate") or []
+            accessions = recent.get("accessionNumber") or []
+            primaries = recent.get("primaryDocument") or []
+            for i, form in enumerate(forms[: max(limit * 3, 20)]):
+                form_u = str(form).upper()
+                if form_u not in {"8-K", "10-K", "10-Q", "4", "S-1", "13F-HR"} and not form_u.startswith("8-K"):
+                    continue
+                filed = dates[i] if i < len(dates) else None
+                acc = (accessions[i] if i < len(accessions) else "").replace("-", "")
+                doc = primaries[i] if i < len(primaries) else ""
+                link = None
+                if acc and doc:
+                    link = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc}/{doc}"
+                kind = "earnings" if form_u in {"10-K", "10-Q"} else "filing"
+                hints.append(
+                    FilingHint(
+                        symbol=symbol,
+                        title=f"SEC {form_u} filed {filed}",
+                        kind=kind,
+                        link=link,
+                        filed_at=filed,
+                        form=form_u,
+                    )
+                )
+                if len(hints) >= limit:
+                    break
+        except Exception as exc:
+            logger.warning("SEC submissions failed for %s: %s", symbol, exc)
+
     hints.append(
         FilingHint(
             symbol=symbol,

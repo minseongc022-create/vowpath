@@ -35,11 +35,12 @@ class DecisionConfig(BaseModel):
 
 class Settings(BaseModel):
     system_name: str = "Project Oracle"
-    version: str = "0.1.0"
+    version: str = "1.1.0"
     timezone: str = "America/New_York"
     symbols: list[str] = Field(default_factory=list)
     history_days: int = 365
     benchmark: str = "SPY"
+    cache_hours: float = 6.0
     agent_weights: dict[str, float] = Field(default_factory=dict)
     risk: RiskConfig = Field(default_factory=RiskConfig)
     decision: DecisionConfig = Field(default_factory=DecisionConfig)
@@ -111,6 +112,7 @@ def get_settings() -> Settings:
         symbols=list(universe.get("symbols", [])),
         history_days=int(market.get("history_days", 365)),
         benchmark=str(market.get("benchmark", "SPY")),
+        cache_hours=float(market.get("cache_hours", 6.0)),
         agent_weights=dict(raw.get("agent_weights", {})),
         risk=RiskConfig(**raw.get("risk", {})),
         decision=DecisionConfig(**raw.get("decision", {})),

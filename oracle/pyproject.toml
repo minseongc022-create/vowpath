@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-oracle"
-version = "1.0.0"
+version = "1.1.0"
 description = "Project Oracle — personal multi-agent AI asset management system"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -51,7 +51,8 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-ignore = ["E501", "UP042", "SIM108"]
+ignore = ["E501", "UP042", "SIM108", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["SIM117"]
+"src/oracle/dashboard/app.py" = ["B008"]

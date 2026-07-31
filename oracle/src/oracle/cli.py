@@ -11,7 +11,13 @@ from rich.console import Console
 from rich.table import Table
 
 from oracle import __version__
-from oracle.backtest import run_oracle_lite_backtest, run_portfolio_backtest, run_sma_backtest
+from oracle.backtest import (
+    run_oracle_lite_backtest,
+    run_portfolio_backtest,
+    run_sma_backtest,
+    run_walk_forward,
+    write_walk_forward_report,
+)
 from oracle.config import get_settings
 from oracle.logging_setup import setup_logging
 from oracle.orchestration import OraclePipeline, infer_session, run_forever
@@ -90,7 +96,39 @@ def cmd_backtest(args: argparse.Namespace) -> int:
             commission_bps=settings.commission_bps,
             slippage_bps=settings.slippage_bps,
         )
-    elif args.strategy == "oracle_lite":
+        console.print(
+            f"[bold]{result.strategy} — {result.symbol}[/bold]\n"
+            f"Total return: {result.total_return:.1%}\n"
+            f"CAGR:         {result.cagr:.1%}\n"
+            f"Sharpe:       {result.sharpe:.2f}\n"
+            f"Max DD:       {result.max_drawdown:.1%}\n"
+            f"Win rate:     {result.win_rate:.1%}\n"
+            f"Trades:       {result.n_trades}"
+        )
+        return 0
+
+    if args.strategy == "walk_forward":
+        wf = run_walk_forward(
+            args.symbol.upper(),
+            days=args.days,
+            commission_bps=settings.commission_bps,
+            slippage_bps=settings.slippage_bps,
+        )
+        path = write_walk_forward_report(wf)
+        console.print(
+            f"[bold]walk_forward — {wf.symbol}[/bold]\n"
+            f"Folds:        {wf.n_folds}\n"
+            f"OOS return:   {wf.oos_total_return:.1%}\n"
+            f"OOS CAGR:     {wf.oos_cagr:.1%}\n"
+            f"OOS Sharpe:   {wf.oos_sharpe:.2f}\n"
+            f"OOS Max DD:   {wf.oos_max_drawdown:.1%}\n"
+            f"Buy&hold:     {wf.benchmark_total_return:.1%}\n"
+            f"Excess:       {wf.excess_return:.1%}\n"
+            f"Report:       {path}"
+        )
+        return 0
+
+    if args.strategy == "oracle_lite":
         result = run_oracle_lite_backtest(
             args.symbol.upper(),
             days=args.days,
@@ -120,6 +158,32 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         f"Trades:       {result.n_trades}\n"
         "Past performance does not imply future results."
     )
+    return 0
+
+
+def cmd_approve(args: argparse.Namespace) -> int:
+    from oracle.execution import ExecutionEngine
+
+    setup_logging(level=args.log_level)
+    engine = ExecutionEngine(require_confirm=False)
+    if args.reject:
+        out = engine.reject_journal_entry(args.id)
+    else:
+        out = engine.confirm_journal_entry(args.id)
+    console.print(f"{out.message} (accepted={out.accepted})")
+    return 0 if out.accepted else 1
+
+
+def cmd_kill(args: argparse.Namespace) -> int:
+    from oracle.execution import KillSwitch
+
+    ks = KillSwitch()
+    if args.off:
+        ks.release()
+        console.print("Kill switch released")
+    else:
+        ks.engage()
+        console.print("Kill switch ENGAGED")
     return 0
 
 
@@ -242,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     bt.add_argument("--days", type=int, default=500)
     bt.add_argument("--fast", type=int, default=20)
     bt.add_argument("--slow", type=int, default=50)
-    bt.add_argument("--strategy", choices=["sma", "oracle_lite"], default="sma")
+    bt.add_argument("--strategy", choices=["sma", "oracle_lite", "walk_forward"], default="sma")
     bt.add_argument("--portfolio", action="store_true", help="Multi-asset oracle_lite portfolio")
     bt.set_defaults(func=cmd_backtest)
 
@@ -278,6 +342,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add_log_level(sz)
     sz.add_argument("--symbol", required=True)
     sz.set_defaults(func=cmd_size)
+
+    ap = sub.add_parser("approve", help="Approve or reject a planned journal entry")
+    _add_log_level(ap)
+    ap.add_argument("--id", type=int, required=True)
+    ap.add_argument("--reject", action="store_true")
+    ap.set_defaults(func=cmd_approve)
+
+    kill = sub.add_parser("kill", help="Engage/release kill switch")
+    _add_log_level(kill)
+    kill.add_argument("--off", action="store_true", help="Release kill switch")
+    kill.set_defaults(func=cmd_kill)
     return p
 
 

@@ -14,7 +14,7 @@
     <header class="top">
       <div>
         <p class="brand">Project Oracle</p>
-        <p class="sub">Risk-first multi-agent desk · v{{ version }}</p>
+        <p class="sub">Risk-first multi-agent desk · v{{ version }}{% if auth_enabled %} · auth on{% endif %}</p>
       </div>
       <div class="actions">
         <form hx-post="/api/run" hx-swap="none" hx-on::after-request="window.location.reload()">
@@ -23,6 +23,10 @@
         <a class="ghost" href="/api/status">JSON</a>
       </div>
     </header>
+
+    {% if flash %}
+    <div class="flash">{{ flash }}</div>
+    {% endif %}
 
     <section class="hero-metrics">
       <div>
@@ -34,16 +38,25 @@
         <strong>{{ "%.2f"|format(return_pct * 100) }}%</strong>
       </div>
       <div>
-        <span class="label">Cash</span>
-        <strong>${{ "%.2f"|format(cash) }}</strong>
+        <span class="label">Day PnL (est.)</span>
+        <strong class="{{ 'bad' if day_pnl_pct < 0 else 'ok' }}">{{ "%.2f"|format(day_pnl_pct * 100) }}%</strong>
       </div>
       <div>
-        <span class="label">AI confidence (avg)</span>
+        <span class="label">AI confidence</span>
         <strong>{{ "%.2f"|format(avg_confidence) }}</strong>
       </div>
       <div>
         <span class="label">Kill switch</span>
         <strong class="{{ 'bad' if kill_switch.active else 'ok' }}">{{ 'ACTIVE' if kill_switch.active else 'off' }}</strong>
+        <form method="post" action="/actions/kill" class="inline">
+          {% if kill_switch.active %}
+          <input type="hidden" name="active" value="0" />
+          <button type="submit" class="tiny">Release</button>
+          {% else %}
+          <input type="hidden" name="active" value="1" />
+          <button type="submit" class="tiny danger">Engage</button>
+          {% endif %}
+        </form>
       </div>
     </section>
 
@@ -69,6 +82,37 @@
       </section>
 
       <section>
+        <h2>Pending approvals</h2>
+        {% if planned %}
+        <table>
+          <thead><tr><th>ID</th><th>Symbol</th><th>Action</th><th>Shares</th><th></th></tr></thead>
+          <tbody>
+            {% for j in planned %}
+            <tr>
+              <td>{{ j.id }}</td>
+              <td>{{ j.symbol }}</td>
+              <td>{{ j.action }}</td>
+              <td>{{ "%.2f"|format(j.shares) }}</td>
+              <td class="row-actions">
+                <form method="post" action="/actions/approve">
+                  <input type="hidden" name="entry_id" value="{{ j.id }}" />
+                  <button type="submit" class="tiny">Approve</button>
+                </form>
+                <form method="post" action="/actions/reject">
+                  <input type="hidden" name="entry_id" value="{{ j.id }}" />
+                  <button type="submit" class="tiny danger">Reject</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="muted">No planned trades awaiting confirm.</p>
+        {% endif %}
+      </section>
+
+      <section>
         <h2>Recent decisions</h2>
         <table>
           <thead>
@@ -86,6 +130,36 @@
             {% endfor %}
           </tbody>
         </table>
+      </section>
+
+      <section>
+        <h2>Backtest</h2>
+        <form method="post" action="/actions/backtest" class="bt-form">
+          <input name="symbol" value="SPY" placeholder="Symbol" />
+          <select name="mode">
+            <option value="oracle_lite">oracle_lite</option>
+            <option value="walk_forward">walk_forward OOS</option>
+          </select>
+          <button type="submit">Run</button>
+        </form>
+        {% if backtest %}
+        <div class="bt-result">
+          <p><strong>{{ backtest.mode }}</strong> · {{ backtest.symbol }}</p>
+          <p>Return {{ "%.1f"|format(backtest.oos_return * 100) }}% · Sharpe {{ "%.2f"|format(backtest.oos_sharpe) }} · MDD {{ "%.1f"|format(backtest.oos_mdd * 100) }}%</p>
+          {% if backtest.excess is not none %}
+          <p>B&amp;H {{ "%.1f"|format(backtest.benchmark * 100) }}% · Excess {{ "%.1f"|format(backtest.excess * 100) }}% · Folds {{ backtest.folds }}</p>
+          {% endif %}
+          {% if backtest.equity_curve %}
+          <div class="spark" title="equity curve">
+            {% set mx = backtest.equity_curve|max %}
+            {% set mn = backtest.equity_curve|min %}
+            {% for v in backtest.equity_curve %}
+            <i style="height: {{ ((v - mn) / ((mx - mn) if mx != mn else 1) * 100)|round }}%"></i>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
       </section>
 
       <section>
@@ -136,7 +210,7 @@
       </section>
 
       <section>
-        <h2>Paper journal</h2>
+        <h2>Journal</h2>
         <table>
           <thead><tr><th>Symbol</th><th>Action</th><th>Shares</th><th>Status</th></tr></thead>
           <tbody>
@@ -163,6 +237,7 @@
 
     <footer>
       Mandate: risk minimization &gt; return maximization. No statement here is certain. Inaction is valid.
+      Live broker orders require ORACLE_LIVE_TRADING=1 + Alpaca credentials.
     </footer>
   </div>
 </body>

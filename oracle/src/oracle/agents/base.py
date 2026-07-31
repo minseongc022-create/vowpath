@@ -40,6 +40,22 @@ def conf_from_agreement(parts: list[float], base: float = 0.45) -> float:
     return clamp(conf, 0.05, 0.92)
 
 
+def coverage_adjusted_confidence(
+    base_confidence: float,
+    n_evidence: int,
+    expected_evidence: int = 4,
+    stale: bool = False,
+) -> float:
+    """Penalize thin or stale coverage. Never approaches certainty."""
+    coverage = min(1.0, n_evidence / max(expected_evidence, 1))
+    conf = base_confidence * (0.55 + 0.45 * coverage)
+    if stale:
+        conf *= 0.75
+    if n_evidence == 0:
+        conf = min(conf, 0.25)
+    return clamp(conf, 0.05, 0.90)
+
+
 def opinion(
     agent,
     symbol: str,
@@ -51,6 +67,13 @@ def opinion(
     metadata: dict | None = None,
 ) -> AgentOpinion:
     score = clamp(score)
+    meta = metadata or {}
+    confidence = coverage_adjusted_confidence(
+        confidence,
+        n_evidence=len(evidence),
+        expected_evidence=int(meta.get("expected_evidence", 4)),
+        stale=bool(meta.get("stale", False)),
+    )
     confidence = clamp(confidence, 0.01, 0.99)
     return AgentOpinion(
         agent=agent,
@@ -61,5 +84,5 @@ def opinion(
         summary=summary,
         evidence=evidence,
         suggested_action=score_to_action(score, held),
-        metadata=metadata or {},
+        metadata=meta,
     )

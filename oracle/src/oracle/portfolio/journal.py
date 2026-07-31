@@ -1,4 +1,4 @@
-"""Paper trade journal — record planned vs filled decisions."""
+"""Paper trade journal — planned / filled / rejected with idempotency keys."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ class JournalEntry:
     run_id: str | None = None
     status: str = "planned"  # planned | filled | cancelled | rejected
     pnl_pct: float | None = None
+    client_order_id: str | None = None
 
 
 class TradeJournal:
@@ -51,18 +52,29 @@ class TradeJournal:
                     run_id TEXT,
                     status TEXT NOT NULL,
                     pnl_pct REAL,
-                    payload TEXT
+                    payload TEXT,
+                    client_order_id TEXT
                 )
                 """
             )
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(journal)").fetchall()}
+            if "client_order_id" not in cols:
+                conn.execute("ALTER TABLE journal ADD COLUMN client_order_id TEXT")
 
     def add(self, entry: JournalEntry) -> int:
         with self._connect() as conn:
+            if entry.client_order_id:
+                existing = conn.execute(
+                    "SELECT id FROM journal WHERE client_order_id=? LIMIT 1",
+                    (entry.client_order_id,),
+                ).fetchone()
+                if existing:
+                    return int(existing["id"])
             cur = conn.execute(
                 """
                 INSERT INTO journal
-                (ts, symbol, action, shares, price, rationale, run_id, status, pnl_pct, payload)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (ts, symbol, action, shares, price, rationale, run_id, status, pnl_pct, payload, client_order_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     entry.ts,
@@ -75,15 +87,27 @@ class TradeJournal:
                     entry.status,
                     entry.pnl_pct,
                     json.dumps(asdict(entry)),
+                    entry.client_order_id,
                 ),
             )
             return int(cur.lastrowid)
 
-    def list_recent(self, limit: int = 50) -> list[dict]:
+    def get(self, entry_id: int) -> dict | None:
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM journal ORDER BY id DESC LIMIT ?", (limit,)
-            ).fetchall()
+            row = conn.execute("SELECT * FROM journal WHERE id=?", (entry_id,)).fetchone()
+        return dict(row) if row else None
+
+    def list_recent(self, limit: int = 50, status: str | None = None) -> list[dict]:
+        with self._connect() as conn:
+            if status:
+                rows = conn.execute(
+                    "SELECT * FROM journal WHERE status=? ORDER BY id DESC LIMIT ?",
+                    (status, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM journal ORDER BY id DESC LIMIT ?", (limit,)
+                ).fetchall()
         return [dict(r) for r in rows]
 
     def update_status(self, entry_id: int, status: str) -> None:
