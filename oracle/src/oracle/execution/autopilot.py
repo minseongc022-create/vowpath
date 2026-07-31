@@ -47,9 +47,9 @@ def enabled() -> bool:
 
 def interval_sec() -> int:
     try:
-        return max(120, int(os.getenv("ORACLE_AUTOPILOT_INTERVAL_SEC", "900")))
+        return max(60, int(os.getenv("ORACLE_AUTOPILOT_INTERVAL_SEC", "300")))
     except ValueError:
-        return 900
+        return 300
 
 
 def status() -> AutopilotStatus:
@@ -84,8 +84,8 @@ def run_once() -> dict:
         return {"ok": False, "message": msg}
 
     # Prefer liquid symbols + holdings for speed
-    symbols = list(dict.fromkeys([*(p.symbol for p in portfolio.positions), *settings.symbols[:8]]))
-    result = OraclePipeline(settings).run(session="autopilot", symbols=symbols[:8])
+    symbols = list(dict.fromkeys([*(p.symbol for p in portfolio.positions), *settings.symbols[:6]]))
+    result = OraclePipeline(settings).run(session="autopilot", symbols=symbols[:6])
 
     # Rank actionable decisions by |score| * confidence, respect veto
     candidates = []
@@ -94,9 +94,12 @@ def run_once() -> dict:
             continue
         if d.risk_veto and d.risk_veto.active and d.action in (Action.BUY, Action.ADD):
             continue
-        if d.confidence < 0.45:
+        if d.confidence < 0.38:
             continue
         score = abs(d.composite_score) * d.confidence
+        # Prefer buys slightly when mission is capital growth
+        if d.action in (Action.BUY, Action.ADD):
+            score *= 1.08
         candidates.append((score, d))
     candidates.sort(key=lambda x: x[0], reverse=True)
 

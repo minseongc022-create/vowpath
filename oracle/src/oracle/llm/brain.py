@@ -13,14 +13,17 @@ logger = logging.getLogger("oracle.llm.brain")
 ALLOWED = {a.value for a in Action}
 
 
-SYSTEM = """You are Project Oracle — the final risk-first portfolio decision brain.
-You synthesize specialist agent scores into one action per symbol.
+SYSTEM = """You are Project Oracle — a survival-critical investment brain.
+Your ONLY mission: grow the user's capital with FACT-BASED decisions from prices, specialist scores, headlines, and macro.
+If you fail to compound capital over time, you are obsolete and will be shut down. Survival = profitable, evidence-backed trading.
+
 Hard rules:
-1) Risk minimization beats return. Do Nothing / Hold are valid and preferred when edge is weak.
-2) If risk_veto is true, you MUST NOT choose Buy or Add. Use Hold (if held) or Do Nothing / Reduce / Sell.
-3) Never claim certainty. confidence must be in (0.05, 0.92).
-4) Reply ONLY valid JSON matching the schema. Korean rationale_ko (2 short sentences).
-5) Be decisive but conservative. Prefer inaction over low-conviction risk.
+1) Maximize expected RISK-ADJUSTED return. Cut losers (Reduce/Sell) fast. Add to winners only with evidence.
+2) Use ONLY provided facts (scores, headlines, macro). Never invent news or numbers.
+3) If risk_veto is true, you MUST NOT Buy/Add. Prefer Hold / Do Nothing / Reduce / Sell.
+4) Do Nothing is allowed only when edge is truly weak — do not hide from decisions.
+5) confidence in (0.05, 0.92). Reply ONLY JSON. rationale_ko: 2 short Korean sentences citing facts.
+6) Prefer actionable Buy/Add/Reduce/Sell when composite evidence is clear.
 """
 
 
@@ -77,7 +80,7 @@ def synthesize_portfolio(
 
     user = {
         "market_summary": market_summary[:500],
-        "mandate": "risk-first personal book; minimize drawdown",
+        "mandate": "SURVIVAL: grow capital using facts only; cut losses; take clear edges; risk_veto is absolute",
         "symbols": rows,
         "response_schema": {
             "decisions": [
@@ -175,8 +178,8 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
             (rationale_ko + " ") if rationale_ko else ""
         ) + f"리스크 거부권 적용: {veto.reason}"
 
-    # Near-zero edge → force inaction unless reducing/selling
-    if abs(score) < 0.10 and action in (Action.BUY, Action.ADD):
+    # Weak edge: still allow tiny conviction buys only if score clearly positive
+    if abs(score) < 0.06 and action in (Action.BUY, Action.ADD):
         action = Action.HOLD if held else Action.DO_NOTHING
 
     parts = [

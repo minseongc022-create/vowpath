@@ -19,6 +19,8 @@ from oracle.agents.risk_manager import RiskManagerAgent
 from oracle.backtest import run_oracle_lite_backtest, run_walk_forward, write_walk_forward_report
 from oracle.config import get_settings
 from oracle.core.types import Action
+from oracle.dashboard.cache import clear as cache_clear
+from oracle.dashboard.cache import get_or_set
 from oracle.dashboard.jobs import JobStore, start_job
 from oracle.data.calendar import calendar_as_dicts
 from oracle.data.macro import macro_as_dict
@@ -218,52 +220,57 @@ def _job_view(job: dict) -> dict:
     }
 
 
-def _broker_status() -> dict:
-    live = live_armed()
-    configured = alpaca_configured()
-    account = None
-    err = None
-    mode = "local_paper"
-    base_url = os.getenv("ALPACA_BASE_URL", PAPER_URL)
-    if configured:
-        try:
-            broker = get_broker()
-            if broker is not None:
-                account_obj = broker.get_account()
-                account = {
-                    "equity": account_obj.equity,
-                    "cash": account_obj.cash,
-                    "buying_power": account_obj.buying_power,
-                    "day_pnl_pct": account_obj.day_pnl_pct,
-                    "positions": account_obj.positions,
-                }
-                base = getattr(broker, "base_url", base_url)
-                mode = "alpaca_live" if live and "paper" not in str(base) else "alpaca_paper"
-                if "paper" not in str(base) and not live:
-                    mode = "alpaca_paper"  # live URL but not armed → treat cautiously
-                    if "api.alpaca.markets" in str(base) and "paper" not in str(base):
+def _broker_status(*, probe: bool = True) -> dict:
+    def _build(do_probe: bool) -> dict:
+        live = live_armed()
+        configured = alpaca_configured()
+        account = None
+        err = None
+        mode = "local_paper"
+        base_url = os.getenv("ALPACA_BASE_URL", PAPER_URL)
+        if configured and do_probe:
+            try:
+                broker = get_broker()
+                if broker is not None:
+                    account_obj = broker.get_account()
+                    account = {
+                        "equity": account_obj.equity,
+                        "cash": account_obj.cash,
+                        "buying_power": account_obj.buying_power,
+                        "day_pnl_pct": account_obj.day_pnl_pct,
+                        "positions": account_obj.positions,
+                    }
+                    base = getattr(broker, "base_url", base_url)
+                    mode = "alpaca_live" if live and "paper" not in str(base) else "alpaca_paper"
+                    if "paper" not in str(base) and not live:
                         mode = "alpaca_live_unarmed"
-        except Exception as exc:
-            err = str(exc)
-            mode = "alpaca_error"
-    return {
-        "configured": configured,
-        "mode": mode,
-        "mode_ko": {
-            "local_paper": "로컬 페이퍼",
-            "alpaca_paper": "Alpaca 페이퍼",
-            "alpaca_live": "Alpaca 실계좌",
-            "alpaca_live_unarmed": "실계좌 URL · 무장 해제",
-            "alpaca_error": "브로커 연결 오류",
-        }.get(mode, mode),
-        "live_flag": live,
-        "account": account,
-        "error": err,
-        "ready_for_money": configured and mode in {"alpaca_paper", "alpaca_live"},
-        "max_notional": live_max_notional(),
-        "first_notional": first_trade_notional(),
-        "base_url": base_url,
-    }
+            except Exception as exc:
+                err = str(exc)
+                mode = "alpaca_error"
+        elif configured:
+            mode = "alpaca_live" if live and "paper" not in base_url else "alpaca_paper"
+        return {
+            "configured": configured,
+            "mode": mode,
+            "mode_ko": {
+                "local_paper": "로컬 페이퍼",
+                "alpaca_paper": "Alpaca 페이퍼",
+                "alpaca_live": "Alpaca 실계좌",
+                "alpaca_live_unarmed": "실계좌 URL · 무장 해제",
+                "alpaca_error": "브로커 연결 오류",
+            }.get(mode, mode),
+            "live_flag": live,
+            "account": account,
+            "error": err,
+            "ready_for_money": configured and mode in {"alpaca_paper", "alpaca_live"},
+            "max_notional": live_max_notional(),
+            "first_notional": first_trade_notional(),
+            "base_url": base_url,
+        }
+
+    if not probe:
+        return _build(False)
+    return get_or_set("broker_status", 20.0, lambda: _build(True))
 
 
 def _context(
@@ -271,16 +278,18 @@ def _context(
     active: str = "home",
     flash: str | None = None,
     backtest: dict | None = None,
+    light: bool = False,
 ) -> dict:
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
     store = DecisionStore(Path(settings.data_dir) / "oracle.db")
-    decisions_raw = store.recent_decisions(limit=50)
+    decisions_raw = store.recent_decisions(limit=20 if light else 50)
     journal = TradeJournal()
-    planned = journal.list_recent(limit=30, status="planned")
-    recent_journal = journal.list_recent(limit=30)
+    planned = journal.list_recent(limit=20 if light else 30, status="planned")
+    recent_journal = journal.list_recent(limit=15 if light else 30)
     day_pnl = estimate_day_pnl_pct(portfolio)
     ks = KillSwitch().check(day_pnl)
+    # Risk eval is CPU-light; keep it
     risk_score, _ = RiskManagerAgent().evaluate_portfolio(portfolio)
     equity = portfolio.equity()
     cost_basis = portfolio.cash + sum(p.shares * p.avg_cost for p in portfolio.positions)
@@ -334,45 +343,52 @@ def _context(
         else 0.0
     )
 
-    headlines = []
-    try:
-        headlines = [
-            {"title": h.title, "publisher": h.publisher, "link": h.link}
-            for h in aggregate_market_headlines(settings.symbols[:5], per_symbol=2)[:8]
-        ]
-    except Exception:
-        headlines = []
-
+    headlines: list = []
     macro = {"notes_ko": [], "levels_ko": []}
-    try:
-        macro = _localize_macro(macro_as_dict())
-    except Exception:
-        pass
-
-    report_path = Path(settings.report_output_dir)
-    if not report_path.is_absolute():
-        report_path = Path.cwd() / report_path
     latest_report = ""
-    latest_file = report_path / "latest.md"
-    if latest_file.exists():
-        latest_report = latest_file.read_text(encoding="utf-8", errors="ignore")[:1500]
+    logs: list = []
+    calendar = []
+    if not light and active in {"home", "decisions"}:
+        def _headlines():
+            try:
+                return [
+                    {"title": h.title, "publisher": h.publisher, "link": h.link}
+                    for h in aggregate_market_headlines(settings.symbols[:4], per_symbol=1)[:6]
+                ]
+            except Exception:
+                return []
 
-    log_path = Path(settings.data_dir) / "logs" / "oracle.log"
-    logs = (
-        log_path.read_text(encoding="utf-8", errors="ignore").splitlines()[-40:]
-        if log_path.exists()
-        else []
-    )
+        headlines = get_or_set("headlines", 180.0, _headlines)
 
-    if backtest is None:
-        backtest = _load_latest_backtest()
+        def _macro():
+            try:
+                return _localize_macro(macro_as_dict())
+            except Exception:
+                return {"notes_ko": [], "levels_ko": []}
+
+        macro = get_or_set("macro", 300.0, _macro)
+        calendar = calendar_as_dicts(14)
+
+    if not light and active == "decisions":
+        report_path = Path(settings.report_output_dir)
+        if not report_path.is_absolute():
+            report_path = Path.cwd() / report_path
+        latest_file = report_path / "latest.md"
+        if latest_file.exists():
+            latest_report = latest_file.read_text(encoding="utf-8", errors="ignore")[:1200]
+        if backtest is None:
+            backtest = _load_latest_backtest()
+
     if backtest and "mode_ko" not in backtest:
         backtest = {
             **backtest,
             "mode_ko": "워크포워드" if backtest.get("mode") == "walk_forward" else "빠른 검증",
         }
 
-    broker = _broker_status()
+    # Probe broker only on settings/home; elsewhere use fast env-only status
+    broker = _broker_status(probe=(active in {"settings", "home"} and not light))
+    llm = get_or_set("llm_health", 30.0, brain_health)
+
     return {
         "version": __version__,
         "active": active,
@@ -386,13 +402,17 @@ def _context(
         "decisions": decisions[:30],
         "actionable": actionable[:10],
         "journal": [
-            {**j, "action_ko": ACTION_KO.get(j["action"], j["action"]), "status_ko": STATUS_KO.get(j["status"], j["status"])}
+            {
+                **j,
+                "action_ko": ACTION_KO.get(j["action"], j["action"]),
+                "status_ko": STATUS_KO.get(j["status"], j["status"]),
+            }
             for j in recent_journal
         ],
         "planned": [
             {**j, "action_ko": ACTION_KO.get(j["action"], j["action"])} for j in planned
         ],
-        "calendar": calendar_as_dicts(21),
+        "calendar": calendar,
         "macro": macro,
         "headlines": headlines,
         "avg_confidence": avg_conf,
@@ -410,7 +430,7 @@ def _context(
         "actionable_count": len(actionable),
         "broker": broker,
         "live_trading": broker["live_flag"],
-        "llm": brain_health(),
+        "llm": llm,
         "autopilot": autopilot_status().__dict__,
         "scroll_to": None,
         "auth_enabled": bool(
@@ -427,27 +447,27 @@ def _render(request: Request, name: str, **kwargs):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "home.html", active="home", flash=flash)
+    return _render(request, "home.html", active="home", flash=flash, light=False)
 
 
 @app.get("/holdings", response_class=HTMLResponse)
 def holdings(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "holdings.html", active="holdings", flash=flash)
+    return _render(request, "holdings.html", active="holdings", flash=flash, light=True)
 
 
 @app.get("/trades", response_class=HTMLResponse)
 def trades(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "trades.html", active="trades", flash=flash)
+    return _render(request, "trades.html", active="trades", flash=flash, light=True)
 
 
 @app.get("/decisions", response_class=HTMLResponse)
 def decisions(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "decisions.html", active="decisions", flash=flash)
+    return _render(request, "decisions.html", active="decisions", flash=flash, light=False)
 
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "settings.html", active="settings", flash=flash)
+    return _render(request, "settings.html", active="settings", flash=flash, light=False)
 
 
 @app.get("/job/{job_id}", response_class=HTMLResponse)
@@ -625,6 +645,8 @@ def broker_connect(
         "ORACLE_LIVE_TRADING": "0",
     }
     upsert_env(updates)
+    cache_clear("broker")
+    cache_clear("llm")
 
     try:
         sync_portfolio_from_broker(probe)

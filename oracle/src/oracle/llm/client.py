@@ -42,7 +42,7 @@ def configured_providers() -> list[dict[str, str]]:
     providers: list[dict[str, str]] = []
 
     ollama_host = _env("ORACLE_OLLAMA_HOST", "http://127.0.0.1:11434")
-    ollama_model = _env("ORACLE_LLM_MODEL", "qwen2.5:7b-instruct")
+    ollama_model = _env("ORACLE_LLM_MODEL", "qwen2.5:3b-instruct")
     providers.append(
         {
             "name": "ollama",

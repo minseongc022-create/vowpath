@@ -46,10 +46,10 @@ risk:
   veto_confidence_floor: 0.55
 
 decision:
-  buy_threshold: 0.55
-  add_threshold: 0.45
-  reduce_threshold: -0.35
-  sell_threshold: -0.55
+  buy_threshold: 0.42
+  add_threshold: 0.32
+  reduce_threshold: -0.28
+  sell_threshold: -0.45
 
 sizing:
   target_vol: 0.10

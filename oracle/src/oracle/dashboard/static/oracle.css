@@ -276,18 +276,59 @@ button, input, select {
   width: 100%;
   color: var(--ink);
 }
-.pulse-focus {
-  outline: 2px solid var(--blue);
-  outline-offset: 4px;
-  animation: pulseGlow 1.2s ease-in-out 2;
+# Busy overlay — instant button feel
+#nav-busy {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  place-items: center;
+  background: rgba(242, 244, 246, 0.72);
+  backdrop-filter: blur(6px);
 }
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(49,130,246,0.0); }
-  50% { box-shadow: 0 0 0 8px rgba(49,130,246,0.15); }
+#nav-busy.on { display: grid; }
+.busy-card {
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px 28px;
+  box-shadow: 0 12px 40px rgba(25,31,40,.12);
+  text-align: center;
+  min-width: 160px;
 }
-#pending-approvals, #action-cta, #autopilot-panel {
-  scroll-margin-top: 18px;
-  scroll-margin-bottom: 100px;
+.busy-card p {
+  margin: 12px 0 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink2);
+}
+.btn.is-loading { opacity: 0.7; pointer-events: none; }
+
+/* Toss-cleaner tweaks */
+.shell {
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(49,130,246,0.08), transparent 60%),
+    var(--bg);
+}
+.hero {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+  border: 1px solid rgba(229,232,235,0.8);
+}
+.hero-equity { letter-spacing: -0.05em; }
+.card {
+  border: 1px solid rgba(229,232,235,0.7);
+}
+.tabbar {
+  box-shadow: 0 -8px 24px rgba(25,31,40,0.04);
+}
+.btn-primary {
+  box-shadow: 0 6px 16px rgba(49,130,246,0.28);
+}
+.flash {
+  animation: flashIn .25s ease;
+}
+@keyframes flashIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
 }
 
 .stack .field { margin-bottom: 4px; }
