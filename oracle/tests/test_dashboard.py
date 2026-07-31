@@ -12,6 +12,8 @@ def test_dashboard_home_no_auth():
     r = client.get("/")
     assert r.status_code == 200
     assert "Project Oracle" in r.text
+    assert "포트폴리오" in r.text
+    assert "총자산" in r.text
 
 
 def test_dashboard_status_json():

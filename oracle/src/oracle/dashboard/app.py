@@ -26,10 +26,65 @@ APP_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 security = HTTPBasic(auto_error=False)
 
-app = FastAPI(title="Project Oracle", version=__version__)
+app = FastAPI(title="프로젝트 오라클", version=__version__)
 static_dir = APP_DIR / "static"
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+ACTION_KO = {
+    "Buy": "매수",
+    "Add": "추가매수",
+    "Hold": "보유",
+    "Reduce": "축소",
+    "Sell": "매도",
+    "Do Nothing": "관망",
+}
+STATUS_KO = {
+    "planned": "대기",
+    "filled": "체결",
+    "cancelled": "취소",
+    "rejected": "거부",
+}
+IMPORTANCE_KO = {
+    "high": "높음",
+    "medium": "보통",
+    "low": "낮음",
+}
+MACRO_LABEL_KO = {
+    "us_10y": "미 10년물",
+    "us_2y": "단기금리",
+    "dxy": "달러지수",
+    "eurusd": "유로/달러",
+    "usdjpy": "달러/엔",
+    "wti": "서부텍사스유",
+    "gold": "금",
+    "copper": "구리",
+    "vix": "VIX",
+    "hy_spread_proxy": "하이일드(HYG)",
+}
+
+
+def _localize_macro(macro: dict) -> dict:
+    notes_ko: list[str] = []
+    for note in macro.get("notes") or []:
+        text = note
+        text = text.replace("FRED_API_KEY not set — using market proxies only", "FRED_API_KEY 없음 — 시장 프록시만 사용")
+        text = text.replace("VIX elevated at", "VIX 높음:")
+        text = text.replace("— risk-off bias", "— 위험회피 편향")
+        text = text.replace("VIX subdued at", "VIX 낮음:")
+        text = text.replace("— complacency risk", "— 안주 위험")
+        text = text.replace("10Y yield day move", "10년물 금리 일간변동")
+        text = text.replace("— rates volatility", "— 금리 변동성")
+        text = text.replace("USD firming (DXY up) — pressure on risk assets / EM", "달러 강세(DXY↑) — 위험자산·신흥국 압력")
+        notes_ko.append(text)
+    levels_ko = [
+        {"label": MACRO_LABEL_KO.get(k, k), "value": v}
+        for k, v in (macro.get("levels") or {}).items()
+    ]
+    out = dict(macro)
+    out["notes_ko"] = notes_ko
+    out["levels_ko"] = levels_ko
+    return out
 
 
 def require_auth(
@@ -38,11 +93,11 @@ def require_auth(
     user = os.getenv("ORACLE_DASHBOARD_USER", "").strip()
     password = os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()
     if not user and not password:
-        return  # auth disabled for local solo use
+        return
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Auth required",
+            detail="인증이 필요합니다",
             headers={"WWW-Authenticate": "Basic"},
         )
     ok_user = secrets.compare_digest(credentials.username, user)
@@ -50,7 +105,7 @@ def require_auth(
     if not (ok_user and ok_pass):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail="인증 정보가 올바르지 않습니다",
             headers={"WWW-Authenticate": "Basic"},
         )
 
@@ -89,6 +144,11 @@ def _context(backtest: dict | None = None, flash: str | None = None) -> dict:
     logs = []
     if log_path.exists():
         logs = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()[-40:]
+    if backtest and "mode_ko" not in backtest:
+        backtest = {
+            **backtest,
+            "mode_ko": "워크포워드" if backtest.get("mode") == "walk_forward" else "오라클 라이트",
+        }
     return {
         "version": __version__,
         "equity": equity,
@@ -100,7 +160,7 @@ def _context(backtest: dict | None = None, flash: str | None = None) -> dict:
         "journal": recent_journal,
         "planned": planned,
         "calendar": calendar_as_dicts(21),
-        "macro": macro_as_dict(),
+        "macro": _localize_macro(macro_as_dict()),
         "headlines": [
             {"title": h.title, "publisher": h.publisher, "link": h.link} for h in headlines[:12]
         ],
@@ -119,6 +179,9 @@ def _context(backtest: dict | None = None, flash: str | None = None) -> dict:
             os.getenv("ORACLE_DASHBOARD_USER", "").strip()
             or os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()
         ),
+        "action_ko": ACTION_KO,
+        "status_ko": STATUS_KO,
+        "importance_ko": IMPORTANCE_KO,
     }
 
 
@@ -158,10 +221,10 @@ def set_kill(active: str = Form(...), _: None = Depends(require_auth)):
     ks = KillSwitch()
     if active == "1":
         ks.engage()
-        msg = "Kill switch ENGAGED"
+        msg = "킬 스위치가 가동되었습니다"
     else:
         ks.release()
-        msg = "Kill switch released"
+        msg = "킬 스위치가 해제되었습니다"
     return RedirectResponse(url=f"/?flash={msg}", status_code=303)
 
 
@@ -183,6 +246,7 @@ def run_bt(
         path = write_walk_forward_report(wf)
         backtest = {
             "mode": "walk_forward",
+            "mode_ko": "워크포워드",
             "symbol": symbol,
             "oos_return": wf.oos_total_return,
             "oos_sharpe": wf.oos_sharpe,
@@ -201,6 +265,7 @@ def run_bt(
         )
         backtest = {
             "mode": "oracle_lite",
+            "mode_ko": "오라클 라이트",
             "symbol": symbol,
             "oos_return": bt.total_return,
             "oos_sharpe": bt.sharpe,
@@ -213,7 +278,7 @@ def run_bt(
             "cagr": bt.cagr,
             "win_rate": bt.win_rate,
         }
-    ctx = _context(backtest=backtest, flash=f"Backtest complete for {symbol}")
+    ctx = _context(backtest=backtest, flash=f"{symbol} 백테스트 완료")
     return templates.TemplateResponse(request, "index.html", ctx)
 
 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project Oracle</title>
+  <title>프로젝트 오라클</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/oracle.css" />
@@ -14,11 +14,11 @@
     <header class="top">
       <div>
         <p class="brand">Project Oracle</p>
-        <p class="sub">Risk-first multi-agent desk · v{{ version }}{% if auth_enabled %} · auth on{% endif %}</p>
+        <p class="sub">리스크 우선 멀티에이전트 자산운용 데스크 · v{{ version }}{% if auth_enabled %} · 인증 켜짐{% endif %}</p>
       </div>
       <div class="actions">
         <form hx-post="/api/run" hx-swap="none" hx-on::after-request="window.location.reload()">
-          <button type="submit">Run pipeline</button>
+          <button type="submit">파이프라인 실행</button>
         </form>
         <a class="ghost" href="/api/status">JSON</a>
       </div>
@@ -30,31 +30,31 @@
 
     <section class="hero-metrics">
       <div>
-        <span class="label">Equity</span>
+        <span class="label">총자산</span>
         <strong>${{ "%.2f"|format(equity) }}</strong>
       </div>
       <div>
-        <span class="label">Book return</span>
+        <span class="label">장부 수익률</span>
         <strong>{{ "%.2f"|format(return_pct * 100) }}%</strong>
       </div>
       <div>
-        <span class="label">Day PnL (est.)</span>
+        <span class="label">당일 손익(추정)</span>
         <strong class="{{ 'bad' if day_pnl_pct < 0 else 'ok' }}">{{ "%.2f"|format(day_pnl_pct * 100) }}%</strong>
       </div>
       <div>
-        <span class="label">AI confidence</span>
+        <span class="label">AI 신뢰도</span>
         <strong>{{ "%.2f"|format(avg_confidence) }}</strong>
       </div>
       <div>
-        <span class="label">Kill switch</span>
-        <strong class="{{ 'bad' if kill_switch.active else 'ok' }}">{{ 'ACTIVE' if kill_switch.active else 'off' }}</strong>
+        <span class="label">킬 스위치</span>
+        <strong class="{{ 'bad' if kill_switch.active else 'ok' }}">{{ '작동 중' if kill_switch.active else '해제' }}</strong>
         <form method="post" action="/actions/kill" class="inline">
           {% if kill_switch.active %}
           <input type="hidden" name="active" value="0" />
-          <button type="submit" class="tiny">Release</button>
+          <button type="submit" class="tiny">해제</button>
           {% else %}
           <input type="hidden" name="active" value="1" />
-          <button type="submit" class="tiny danger">Engage</button>
+          <button type="submit" class="tiny danger">가동</button>
           {% endif %}
         </form>
       </div>
@@ -62,10 +62,10 @@
 
     <div class="grid">
       <section>
-        <h2>Portfolio</h2>
+        <h2>포트폴리오</h2>
         <table>
           <thead>
-            <tr><th>Symbol</th><th>Shares</th><th>Price</th><th>Weight</th><th>PnL</th></tr>
+            <tr><th>종목</th><th>수량</th><th>가격</th><th>비중</th><th>손익</th></tr>
           </thead>
           <tbody>
             {% for p in positions %}
@@ -82,25 +82,25 @@
       </section>
 
       <section>
-        <h2>Pending approvals</h2>
+        <h2>승인 대기</h2>
         {% if planned %}
         <table>
-          <thead><tr><th>ID</th><th>Symbol</th><th>Action</th><th>Shares</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>종목</th><th>행동</th><th>수량</th><th></th></tr></thead>
           <tbody>
             {% for j in planned %}
             <tr>
               <td>{{ j.id }}</td>
               <td>{{ j.symbol }}</td>
-              <td>{{ j.action }}</td>
+              <td>{{ action_ko.get(j.action, j.action) }}</td>
               <td>{{ "%.2f"|format(j.shares) }}</td>
               <td class="row-actions">
                 <form method="post" action="/actions/approve">
                   <input type="hidden" name="entry_id" value="{{ j.id }}" />
-                  <button type="submit" class="tiny">Approve</button>
+                  <button type="submit" class="tiny">승인</button>
                 </form>
                 <form method="post" action="/actions/reject">
                   <input type="hidden" name="entry_id" value="{{ j.id }}" />
-                  <button type="submit" class="tiny danger">Reject</button>
+                  <button type="submit" class="tiny danger">거부</button>
                 </form>
               </td>
             </tr>
@@ -108,21 +108,21 @@
           </tbody>
         </table>
         {% else %}
-        <p class="muted">No planned trades awaiting confirm.</p>
+        <p class="muted">승인 대기 중인 거래가 없습니다.</p>
         {% endif %}
       </section>
 
       <section>
-        <h2>Recent decisions</h2>
+        <h2>최근 결정</h2>
         <table>
           <thead>
-            <tr><th>Symbol</th><th>Action</th><th>Conf</th><th>Score</th><th>When</th></tr>
+            <tr><th>종목</th><th>행동</th><th>신뢰도</th><th>점수</th><th>시각</th></tr>
           </thead>
           <tbody>
             {% for d in decisions[:15] %}
             <tr>
               <td>{{ d.symbol }}</td>
-              <td>{{ d.action }}</td>
+              <td>{{ action_ko.get(d.action, d.action) }}</td>
               <td>{{ "%.2f"|format(d.confidence) }}</td>
               <td>{{ "%+.3f"|format(d.composite_score) }}</td>
               <td>{{ d.created_at }}</td>
@@ -133,24 +133,24 @@
       </section>
 
       <section>
-        <h2>Backtest</h2>
+        <h2>백테스트</h2>
         <form method="post" action="/actions/backtest" class="bt-form">
-          <input name="symbol" value="SPY" placeholder="Symbol" />
+          <input name="symbol" value="SPY" placeholder="종목 코드" />
           <select name="mode">
-            <option value="oracle_lite">oracle_lite</option>
-            <option value="walk_forward">walk_forward OOS</option>
+            <option value="oracle_lite">오라클 라이트</option>
+            <option value="walk_forward">워크포워드(표본외)</option>
           </select>
-          <button type="submit">Run</button>
+          <button type="submit">실행</button>
         </form>
         {% if backtest %}
         <div class="bt-result">
-          <p><strong>{{ backtest.mode }}</strong> · {{ backtest.symbol }}</p>
-          <p>Return {{ "%.1f"|format(backtest.oos_return * 100) }}% · Sharpe {{ "%.2f"|format(backtest.oos_sharpe) }} · MDD {{ "%.1f"|format(backtest.oos_mdd * 100) }}%</p>
+          <p><strong>{{ backtest.mode_ko }}</strong> · {{ backtest.symbol }}</p>
+          <p>수익률 {{ "%.1f"|format(backtest.oos_return * 100) }}% · 샤프 {{ "%.2f"|format(backtest.oos_sharpe) }} · 최대낙폭 {{ "%.1f"|format(backtest.oos_mdd * 100) }}%</p>
           {% if backtest.excess is not none %}
-          <p>B&amp;H {{ "%.1f"|format(backtest.benchmark * 100) }}% · Excess {{ "%.1f"|format(backtest.excess * 100) }}% · Folds {{ backtest.folds }}</p>
+          <p>단순보유 {{ "%.1f"|format(backtest.benchmark * 100) }}% · 초과수익 {{ "%.1f"|format(backtest.excess * 100) }}% · 폴드 {{ backtest.folds }}</p>
           {% endif %}
           {% if backtest.equity_curve %}
-          <div class="spark" title="equity curve">
+          <div class="spark" title="자산곡선">
             {% set mx = backtest.equity_curve|max %}
             {% set mn = backtest.equity_curve|min %}
             {% for v in backtest.equity_curve %}
@@ -163,41 +163,41 @@
       </section>
 
       <section>
-        <h2>Market risk / macro</h2>
+        <h2>시장 리스크 / 매크로</h2>
         <ul class="notes">
-          {% for n in macro.notes %}
+          {% for n in macro.notes_ko %}
           <li>{{ n }}</li>
           {% else %}
-          <li>No macro notes.</li>
+          <li>매크로 노트가 없습니다.</li>
           {% endfor %}
         </ul>
         <div class="chips">
-          {% for k,v in macro.levels.items() %}
-          <span>{{ k }}: {{ "%.2f"|format(v) }}</span>
+          {% for item in macro.levels_ko %}
+          <span>{{ item.label }}: {{ "%.2f"|format(item.value) }}</span>
           {% endfor %}
         </div>
       </section>
 
       <section>
-        <h2>Economic calendar</h2>
+        <h2>경제 캘린더</h2>
         <table>
-          <thead><tr><th>Date</th><th>Event</th><th>Imp</th></tr></thead>
+          <thead><tr><th>날짜</th><th>이벤트</th><th>중요도</th></tr></thead>
           <tbody>
             {% for e in calendar %}
             <tr>
               <td>{{ e.date }}</td>
               <td>{{ e.title }}</td>
-              <td>{{ e.importance }}</td>
+              <td>{{ importance_ko.get(e.importance, e.importance) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="3">Edit config/calendar.yaml</td></tr>
+            <tr><td colspan="3">config/calendar.yaml 을 편집하세요</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>News</h2>
+        <h2>뉴스</h2>
         <ul class="news">
           {% for h in headlines %}
           <li>
@@ -210,19 +210,19 @@
       </section>
 
       <section>
-        <h2>Journal</h2>
+        <h2>거래 일지</h2>
         <table>
-          <thead><tr><th>Symbol</th><th>Action</th><th>Shares</th><th>Status</th></tr></thead>
+          <thead><tr><th>종목</th><th>행동</th><th>수량</th><th>상태</th></tr></thead>
           <tbody>
             {% for j in journal %}
             <tr>
               <td>{{ j.symbol }}</td>
-              <td>{{ j.action }}</td>
+              <td>{{ action_ko.get(j.action, j.action) }}</td>
               <td>{{ "%.2f"|format(j.shares) }}</td>
-              <td>{{ j.status }}</td>
+              <td>{{ status_ko.get(j.status, j.status) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="4">No journal entries yet</td></tr>
+            <tr><td colspan="4">아직 일지 기록이 없습니다</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -230,14 +230,14 @@
     </div>
 
     <section class="logs">
-      <h2>Realtime log (tail)</h2>
+      <h2>실시간 로그 (최근)</h2>
       <pre>{% for line in logs %}{{ line }}
-{% else %}No log file yet — run `oracle run` first.{% endfor %}</pre>
+{% else %}로그 파일이 없습니다. 먼저 `oracle run` 을 실행하세요.{% endfor %}</pre>
     </section>
 
     <footer>
-      Mandate: risk minimization &gt; return maximization. No statement here is certain. Inaction is valid.
-      Live broker orders require ORACLE_LIVE_TRADING=1 + Alpaca credentials.
+      원칙: 수익률보다 리스크 최소화가 우선입니다. 어떤 판단도 확실하지 않으며, 아무것도 하지 않는 것도 유효한 결정입니다.
+      실계좌 주문은 ORACLE_LIVE_TRADING=1 과 브로커 자격이 필요합니다.
     </footer>
   </div>
 </body>
