@@ -53,14 +53,16 @@ def live_armed() -> bool:
 
 
 def live_max_notional() -> float:
+    """Default ~₩20,000 hard cap while starting small."""
     try:
-        return float(os.getenv("ORACLE_LIVE_MAX_NOTIONAL", "75"))
+        return float(os.getenv("ORACLE_LIVE_MAX_NOTIONAL", "15"))
     except ValueError:
-        return 75.0
+        return 15.0
 
 
 def first_trade_notional() -> float:
+    """Default ~₩10,000 first ticket (~$8)."""
     try:
-        return float(os.getenv("ORACLE_FIRST_TRADE_NOTIONAL", "25"))
+        return float(os.getenv("ORACLE_FIRST_TRADE_NOTIONAL", "8"))
     except ValueError:
-        return 25.0
+        return 8.0

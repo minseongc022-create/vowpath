@@ -577,7 +577,7 @@ def broker_connect(
     api_key: str = Form(...),
     secret_key: str = Form(...),
     account_type: str = Form("paper"),
-    max_notional: str = Form("75"),
+    max_notional: str = Form("15"),
     _: None = Depends(require_auth),
 ):
     api_key = api_key.strip()
@@ -587,10 +587,11 @@ def broker_connect(
     is_live = account_type.strip().lower() == "live"
     base = LIVE_URL if is_live else PAPER_URL
     try:
-        max_n = float(max_notional or "75")
+        max_n = float(max_notional or "15")
     except ValueError:
-        max_n = 75.0
+        max_n = 15.0
     max_n = max(5.0, min(max_n, 500.0))
+    first_n = min(8.0, max_n)
 
     # Probe before saving
     try:
@@ -605,13 +606,10 @@ def broker_connect(
         "ALPACA_SECRET_KEY": secret_key,
         "ALPACA_BASE_URL": base,
         "ORACLE_LIVE_MAX_NOTIONAL": str(max_n),
-        "ORACLE_FIRST_TRADE_NOTIONAL": str(min(25.0, max_n)),
+        "ORACLE_FIRST_TRADE_NOTIONAL": str(first_n),
         # Never auto-arm live just by connecting; require explicit arm
-        "ORACLE_LIVE_TRADING": "1" if is_live else "0",
+        "ORACLE_LIVE_TRADING": "0",
     }
-    if is_live:
-        # Still require arm step for live URL — keep disarmed until user types LIVE
-        updates["ORACLE_LIVE_TRADING"] = "0"
     upsert_env(updates)
 
     try:
@@ -688,7 +686,7 @@ def first_money_order(
         dollars = float(notional) if notional.strip() else first_trade_notional()
     except ValueError:
         dollars = first_trade_notional()
-    dollars = max(5.0, min(dollars, live_max_notional()))
+    dollars = max(1.0, min(dollars, live_max_notional()))
 
     # Price for share estimate
     from oracle.data.market import fetch_snapshot
