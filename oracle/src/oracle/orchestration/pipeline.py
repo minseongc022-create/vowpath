@@ -20,13 +20,14 @@ from oracle.config import Settings, get_settings
 from oracle.core.types import AgentOpinion, PipelineResult
 from oracle.data.market import clear_market_cache, index_overview
 from oracle.data.news import aggregate_market_headlines
+from oracle.llm.brain import synthesize_portfolio
 from oracle.portfolio.store import DecisionStore, load_portfolio
 
 logger = logging.getLogger("oracle.orchestration")
 
 
 class OraclePipeline:
-    """Runs specialist agents → Risk veto → Decision for each symbol."""
+    """Runs specialist agents → Risk veto → Decision → LLM brain for each book."""
 
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
@@ -68,7 +69,7 @@ class OraclePipeline:
             decision = self.decision.decide(symbol, opinions, veto, portfolio)
             decisions.append(decision)
             logger.info(
-                "%s → %s (score=%+.3f conf=%.2f veto=%s)",
+                "%s draft → %s (score=%+.3f conf=%.2f veto=%s)",
                 symbol,
                 decision.action.value,
                 decision.composite_score,
@@ -80,6 +81,37 @@ class OraclePipeline:
         headlines = aggregate_market_headlines(symbols[:5], per_symbol=2)
         top_news = "; ".join(h.title for h in headlines[:5]) or "No headlines"
         market_summary = f"Index day moves: {overview}. Notable headlines: {top_news}"
+
+        held = set(portfolio.held_symbols())
+        decisions, llm_meta = synthesize_portfolio(
+            decisions,
+            market_summary=market_summary,
+            held_symbols=held,
+        )
+        if llm_meta.get("used"):
+            logger.info(
+                "Oracle Brain LLM applied provider=%s model=%s latency_ms=%s note=%s",
+                llm_meta.get("provider_used"),
+                llm_meta.get("model_used"),
+                llm_meta.get("latency_ms"),
+                (llm_meta.get("desk_note_ko") or "")[:120],
+            )
+            if llm_meta.get("desk_note_ko"):
+                market_summary = f"{market_summary} | Brain: {llm_meta['desk_note_ko']}"
+        else:
+            logger.warning(
+                "Oracle Brain LLM skipped: %s",
+                llm_meta.get("error") or llm_meta.get("reason"),
+            )
+
+        for d in decisions:
+            logger.info(
+                "%s final → %s (score=%+.3f conf=%.2f)",
+                d.symbol,
+                d.action.value,
+                d.composite_score,
+                d.confidence,
+            )
 
         port_risk, _ = self.risk.evaluate_portfolio(portfolio)
         result = PipelineResult(
@@ -100,5 +132,10 @@ class OraclePipeline:
             portfolio_risk_score=port_risk,
             decisions=decisions,
         )
-        logger.info("Pipeline complete run_id=%s equity=%.2f risk=%.2f", run_id, portfolio.equity(), port_risk)
+        logger.info(
+            "Pipeline complete run_id=%s equity=%.2f risk=%.2f",
+            run_id,
+            portfolio.equity(),
+            port_risk,
+        )
         return result

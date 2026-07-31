@@ -31,9 +31,9 @@
     <div class="hint">확실하지 않음</div>
   </div>
   <div class="stat">
-    <div class="k">거래 모드</div>
-    <div class="v {% if live_trading %}up{% endif %}">{{ broker.mode_ko }}</div>
-    <div class="hint">{{ "실계좌 주의" if live_trading else "모의투자" }}</div>
+    <div class="k">AI 두뇌</div>
+    <div class="v">{{ "ON" if llm.available else "OFF" }}</div>
+    <div class="hint">{{ llm.provider if llm.available else "대기" }}</div>
   </div>
 </section>
 

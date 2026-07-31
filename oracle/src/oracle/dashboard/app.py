@@ -25,6 +25,7 @@ from oracle.data.macro import macro_as_dict
 from oracle.data.news import aggregate_market_headlines
 from oracle.execution import ExecutionEngine, KillSwitch, estimate_day_pnl_pct, get_broker
 from oracle.execution.alpaca import alpaca_configured
+from oracle.llm.brain import brain_health
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.store import DecisionStore, load_portfolio
@@ -386,6 +387,7 @@ def _context(
         "actionable_count": len(actionable),
         "broker": broker,
         "live_trading": broker["live_flag"],
+        "llm": brain_health(),
         "auth_enabled": bool(
             os.getenv("ORACLE_DASHBOARD_USER", "").strip()
             or os.getenv("ORACLE_DASHBOARD_PASSWORD", "").strip()

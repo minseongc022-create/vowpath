@@ -35,6 +35,19 @@
 </section>
 
 <section class="card">
+  <div class="card-head"><h2 class="card-title">AI 두뇌</h2></div>
+  {% if llm.available %}
+  <p class="ok-text">✓ {{ llm.mode_ko }}</p>
+  <div class="list-row"><div class="left">Provider</div><strong>{{ llm.provider }}</strong></div>
+  <div class="list-row"><div class="left">Model</div><strong>{{ llm.model }}</strong></div>
+  <p class="card-desc">{{ llm.detail }} · 전문 에이전트 점수를 최종 종합하고, 리스크 거부권은 유지합니다.</p>
+  {% else %}
+  <p class="bad-text">AI 두뇌 미연결</p>
+  <p class="card-desc">{{ llm.detail }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
   <div class="card-head"><h2 class="card-title">긴급정지</h2></div>
   <p class="card-desc">
     {% if kill_switch.active %}현재 <strong class="up">정지 중</strong> — 신규 매수 불가
