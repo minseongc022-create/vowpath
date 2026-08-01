@@ -29,6 +29,7 @@ from oracle.orchestration import OraclePipeline
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.picker import (
     rank_decisions_for_trade,
+    scalp_exit_from_holdings,
     screen_short_and_long,
     screen_universe,
     top_picks_summary,
@@ -227,13 +228,19 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     if short_picks:
         prog(
-            "단타 TOP "
-            + " · ".join(f"{p.symbol}({p.short_score:+.2f})" for p in short_picks[:4])
+            "단타(눌림매수) TOP "
+            + " · ".join(f"{p.symbol}(dip {p.dip_score:.2f})" for p in short_picks[:4])
         )
     if long_picks:
         prog(
             "장타 TOP "
             + " · ".join(f"{p.symbol}({p.long_score:+.2f})" for p in long_picks[:4])
+        )
+    rip_exits = scalp_exit_from_holdings(set(portfolio.held_symbols()))
+    if rip_exits:
+        prog(
+            "단타(익절매도) "
+            + " · ".join(f"{p.symbol}(rip {p.rip_score:.2f})" for p in rip_exits[:3])
         )
 
     held = list(portfolio.held_symbols())
@@ -256,6 +263,26 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
+    # 단타 익절: 보유가 급등(rip)하면 AI Hold여도 매도 후보로 승격
+    if rip_exits and (
+        best_sell is None
+        or (rip_exits[0].rip_score >= 0.05 and best_sell.symbol != rip_exits[0].symbol)
+    ):
+        from oracle.core.types import DecisionResult as DR
+        from oracle.core.types import RiskVeto
+
+        top_rip = rip_exits[0]
+        best_sell = DR(
+            symbol=top_rip.symbol,
+            action=Action.SELL if top_rip.rip_score >= 0.07 else Action.REDUCE,
+            confidence=0.58,
+            composite_score=-min(0.7, top_rip.rip_score * 2),
+            rationale=f"단타 익절 · sell-the-rip · {', '.join(top_rip.reasons)}",
+            agent_opinions=[],
+            risk_veto=RiskVeto(active=False, reason="scalp_exit", confidence=0.55),
+        )
+        prog(f"단타 익절 승격 · {top_rip.symbol} rip={top_rip.rip_score:.2f}")
+
     # Near/at goal → prefer sell/reduce, shrink or skip buys
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
     near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
@@ -266,12 +293,12 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         prog("목표 근접/달성 · 공격 매수 축소, 약한 종목 정리 우선")
     elif far_from_goal:
         max_n = min(live_max_notional(), first_trade_notional() * 1.5)
-        prog("목표까지 여유 · 강한 종목 소액 집중")
+        prog("목표까지 여유 · 단타 눌림·장타 추세 소액 집중")
 
     msgs: list[str] = []
     executed = 0
 
-    prog("③ 매수·매도 후보 선택")
+    prog("③ 매수·매도 후보 선택 (단타=싸게사고비싸게팔기)")
     if best_sell:
         prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
     if best_buy and not (near_goal or reached):

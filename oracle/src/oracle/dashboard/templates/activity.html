@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}활동{% endblock %}
+{% block subtitle %}AI 매수·매도 · 그래프{% endblock %}
+{% block content %}
+<section class="card" id="live-status">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">지금 AI가 하는 일</h2>
+      <p class="card-desc" id="act-msg">{{ autopilot.last_message or "대기 중" }}</p>
+    </div>
+    <span class="chip {% if autopilot.busy %}chip-ok{% elif autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="act-chip">
+      {% if autopilot.busy %}실행중{% elif autopilot.enabled %}ON{% else %}OFF{% endif %}
+    </span>
+  </div>
+  <div class="live-log" id="act-log" aria-live="polite">
+    {% for line in autopilot.logs[-12:] %}
+    <div class="live-log-line">{{ line.text }}</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">가격 그래프</h2>
+      <p class="card-desc">최근 거래 종목 · 초록=매수 · 빨강=매도</p>
+    </div>
+  </div>
+  <div class="chart-tabs" id="chart-syms">
+    {% for s in chart_symbols %}
+    <button type="button" class="chip chip-btn {% if s == chart_symbol %}chip-ok{% endif %}" data-sym="{{ s }}">{{ s }}</button>
+    {% endfor %}
+  </div>
+  <div class="chart-wrap">
+    <canvas id="price-chart" height="220"></canvas>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">자산 흐름</h2>
+      <p class="card-desc">체결 기록으로 본 누적 매매 흐름</p>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="flow-chart" height="160"></canvas>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">매매 기록</h2></div>
+  {% if journal %}
+  {% for j in journal %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">
+        {{ j.status_ko }} · {{ "%.4f"|format(j.shares) }}주 @ ${{ "%.2f"|format(j.price) }}
+        · {{ j.ts[:16]|replace('T',' ') }}
+      </div>
+      {% if j.rationale %}
+      <div class="desc">{{ j.rationale[:120] }}{% if j.rationale|length > 120 %}…{% endif %}</div>
+      {% endif %}
+    </div>
+    <strong class="{% if j.action in ['Buy','Add'] %}up{% else %}down{% endif %}">
+      {% if j.action in ['Buy','Add'] %}+{% else %}-{% endif %}${{ "%.2f"|format((j.shares * j.price)|abs) }}
+    </strong>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 매매 기록이 없습니다.<br/>AI자동에서 한 번 돌려보세요.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  let priceChart = null;
+  let flowChart = null;
+  let currentSym = {{ (chart_symbol or "SPY")|tojson }};
+
+  function renderPrice(data) {
+    const ctx = document.getElementById("price-chart");
+    if (!ctx) return;
+    const labels = data.labels || [];
+    const prices = data.prices || [];
+    const buyPts = data.buy_points || labels.map(() => null);
+    const sellPts = data.sell_points || labels.map(() => null);
+    if (priceChart) priceChart.destroy();
+    priceChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: (data.symbol || "") + " 가격",
+            data: prices,
+            borderColor: "#3182f6",
+            backgroundColor: "rgba(49,130,246,0.08)",
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            borderWidth: 2,
+            spanGaps: true,
+          },
+          {
+            label: "매수",
+            data: buyPts,
+            showLine: false,
+            pointRadius: 6,
+            pointBackgroundColor: "#00a878",
+            borderColor: "#00a878",
+            spanGaps: false,
+          },
+          {
+            label: "매도",
+            data: sellPts,
+            showLine: false,
+            pointRadius: 6,
+            pointBackgroundColor: "#f04452",
+            borderColor: "#f04452",
+            spanGaps: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: true, labels: { boxWidth: 10 } } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 6, color: "#8b95a1" }, grid: { display: false } },
+          y: { ticks: { color: "#8b95a1" }, grid: { color: "#f0f2f4" } },
+        },
+      },
+    });
+  }
+
+  function renderFlow(data) {
+    const ctx = document.getElementById("flow-chart");
+    if (!ctx) return;
+    if (flowChart) flowChart.destroy();
+    flowChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: data.labels || [],
+        datasets: [{
+          label: "매매 금액($)",
+          data: data.values || [],
+          backgroundColor: (data.values || []).map(v => v >= 0 ? "rgba(0,168,120,0.55)" : "rgba(240,68,82,0.55)"),
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8, color: "#8b95a1" }, grid: { display: false } },
+          y: { ticks: { color: "#8b95a1" }, grid: { color: "#f0f2f4" } },
+        },
+      },
+    });
+  }
+
+  async function loadChart(sym) {
+    currentSym = sym;
+    document.querySelectorAll("#chart-syms .chip-btn").forEach(b => {
+      b.classList.toggle("chip-ok", b.dataset.sym === sym);
+    });
+    const r = await fetch("/api/chart/" + encodeURIComponent(sym));
+    if (!r.ok) return;
+    renderPrice(await r.json());
+  }
+
+  async function loadFlow() {
+    const r = await fetch("/api/activity/flow");
+    if (!r.ok) return;
+    renderFlow(await r.json());
+  }
+
+  async function pollLive() {
+    try {
+      const r = await fetch("/api/autopilot");
+      const j = await r.json();
+      const msg = document.getElementById("act-msg");
+      const chip = document.getElementById("act-chip");
+      const log = document.getElementById("act-log");
+      if (msg) msg.textContent = j.last_message || "대기 중";
+      if (chip) {
+        chip.textContent = j.busy ? "실행중" : (j.enabled ? "ON" : "OFF");
+        chip.className = "chip " + (j.busy || j.enabled ? "chip-ok" : "chip-danger");
+      }
+      if (log && Array.isArray(j.logs)) {
+        log.innerHTML = j.logs.slice(-16).map(x => '<div class="live-log-line">' + (x.text || "") + "</div>").join("");
+        log.scrollTop = log.scrollHeight;
+      }
+    } catch (e) {}
+    setTimeout(pollLive, 2000);
+  }
+
+  document.querySelectorAll("#chart-syms .chip-btn").forEach(b => {
+    b.addEventListener("click", () => loadChart(b.dataset.sym));
+  });
+
+  loadChart(currentSym);
+  loadFlow();
+  pollLive();
+})();
+</script>
+{% endblock %}

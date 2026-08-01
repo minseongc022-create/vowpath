@@ -293,6 +293,8 @@ def _context(
     backtest: dict | None = None,
     light: bool = False,
     watch_job_id: str | None = None,
+    chart_symbol: str | None = None,
+    chart_symbols: list | None = None,
 ) -> dict:
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
@@ -456,6 +458,8 @@ def _context(
         "llm": llm,
         "autopilot": autopilot_status().__dict__,
         "watch_job_id": watch_job_id,
+        "chart_symbol": chart_symbol or "SPY",
+        "chart_symbols": chart_symbols or ["SPY"],
         "scroll_to": None,
         "auth_enabled": bool(
             os.getenv("ORACLE_DASHBOARD_USER", "").strip()
@@ -489,6 +493,91 @@ def ai_page(
         light=True,
         watch_job_id=(watch or "").strip() or None,
     )
+
+
+@app.get("/activity", response_class=HTMLResponse)
+def activity_page(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
+    journal = TradeJournal().list_recent(limit=40)
+    chart_symbols: list[str] = []
+    for row in journal:
+        sym = str(row.get("symbol") or "").upper()
+        if sym and sym not in chart_symbols:
+            chart_symbols.append(sym)
+        if len(chart_symbols) >= 6:
+            break
+    if "SPY" not in chart_symbols:
+        chart_symbols.append("SPY")
+    return _render(
+        request,
+        "activity.html",
+        active="activity",
+        flash=flash,
+        light=True,
+        chart_symbol=chart_symbols[0] if chart_symbols else "SPY",
+        chart_symbols=chart_symbols,
+    )
+
+
+@app.get("/api/chart/{symbol}")
+def api_chart(symbol: str, days: int = 60, _: None = Depends(require_auth)):
+    from oracle.data.market import fetch_history
+
+    symbol = symbol.upper().strip()
+    days = max(20, min(int(days or 60), 180))
+    try:
+        hist = fetch_history(symbol, days=days)
+        closes = hist["close"].dropna()
+    except Exception as exc:
+        raise HTTPException(404, f"chart unavailable: {exc}") from exc
+    labels = [str(i.date()) if hasattr(i, "date") else str(i)[:10] for i in closes.index]
+    prices = [round(float(x), 4) for x in closes.tolist()]
+    buy_points = [None] * len(labels)
+    sell_points = [None] * len(labels)
+    label_idx = {lab: i for i, lab in enumerate(labels)}
+    for row in TradeJournal().list_recent(limit=80):
+        if str(row.get("symbol") or "").upper() != symbol:
+            continue
+        if row.get("status") not in {"filled", "submitted"}:
+            continue
+        ts = str(row.get("ts") or "")[:10]
+        idx = label_idx.get(ts)
+        if idx is None and labels:
+            # snap to nearest last bar if trade date outside window
+            idx = len(labels) - 1
+        if idx is None:
+            continue
+        px = float(row.get("price") or prices[idx] or 0)
+        action = str(row.get("action") or "")
+        if action in {"Buy", "Add"}:
+            buy_points[idx] = px
+        elif action in {"Sell", "Reduce"}:
+            sell_points[idx] = px
+    return JSONResponse(
+        {
+            "symbol": symbol,
+            "labels": labels,
+            "prices": prices,
+            "buy_points": buy_points,
+            "sell_points": sell_points,
+        }
+    )
+
+
+@app.get("/api/activity/flow")
+def api_activity_flow(_: None = Depends(require_auth)):
+    rows = list(reversed(TradeJournal().list_recent(limit=30)))
+    labels: list[str] = []
+    values: list[float] = []
+    for row in rows:
+        if row.get("status") not in {"filled", "submitted"}:
+            continue
+        action = str(row.get("action") or "")
+        notional = abs(float(row.get("shares") or 0) * float(row.get("price") or 0))
+        if notional <= 0:
+            continue
+        labels.append(f"{str(row.get('symbol'))} {str(row.get('ts') or '')[5:10]}")
+        values.append(notional if action in {"Buy", "Add"} else -notional)
+    return JSONResponse({"labels": labels[-20:], "values": values[-20:]})
 
 
 @app.get("/holdings", response_class=HTMLResponse)

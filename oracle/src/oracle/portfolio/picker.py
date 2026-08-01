@@ -32,6 +32,8 @@ class PickScore:
     mom_60: float = 0.0
     short_score: float = 0.0
     long_score: float = 0.0
+    dip_score: float = 0.0  # buy-the-dip (단타 매수)
+    rip_score: float = 0.0  # sell-the-rip (단타 매도)
     horizon: str = "swing"  # short | long | swing
 
 
@@ -74,25 +76,44 @@ def _moms(symbol: str) -> tuple[float, float, float, float]:
 def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScore:
     m5, m20, m60, vol = _moms(sym)
     rs5, rs20, rs60 = m5 - spy5, m20 - spy20, m60 - spy60
-    # Short: 5d + 20d burst, vol-aware
-    short = 0.55 * m5 + 0.30 * rs5 + 0.15 * m20
-    short = short / max(vol / 0.25, 0.7)
+    pullback = 0.0
+    bounce = 0.0
+    try:
+        close = cached_history(sym, days=120)["close"].dropna()
+        if len(close) >= 20:
+            px = float(close.iloc[-1])
+            hi20 = float(close.tail(20).max())
+            lo20 = float(close.tail(20).min())
+            pullback = px / hi20 - 1.0  # <0 when dipped from highs
+            bounce = px / lo20 - 1.0
+    except Exception:
+        pass
+
+    # 단타 BUY: 싸게(고점 대비 눌림) 담고, 반등 여지 있을 때
+    dip = max(-pullback, 0.0) * 0.55 + max(-m5, 0.0) * 0.25 + max(rs20, -0.05) * 0.20
+    if pullback > -0.012:  # 거의 안 빠졌으면 단타 매수 점수 낮춤
+        dip *= 0.25
+    # 단타 SELL: 올랐을 때(고점 근접·5일 급등) 빼기
+    rip = max(m5, 0.0) * 0.45 + max(pullback + 0.01, 0.0) * 0.35 + max(bounce - 0.06, 0.0) * 0.20
+
+    mom_short = (0.55 * m5 + 0.30 * rs5 + 0.15 * m20) / max(vol / 0.25, 0.7)
+    # short_score ranks BUY candidates → dip-first scalp
+    short = 0.75 * dip + 0.25 * max(mom_short, 0.0)
     # Long: 60d trend + 20d confirmation
     long = 0.55 * m60 + 0.25 * rs60 + 0.20 * m20
     long = long / max(vol / 0.22, 0.75)
-    # Blended screen for overall ranking
-    blend = 0.45 * short + 0.55 * long
-    if abs(short) >= abs(long) and short > 0.02:
+    blend = 0.50 * short + 0.50 * long
+    if dip >= 0.025 or (short > 0.02 and dip > long):
         horizon = "short"
     elif long > 0.03:
         horizon = "long"
     else:
         horizon = "swing"
     reasons = [
-        f"단타(5d) {m5:+.1%}",
-        f"중기(20d) {m20:+.1%}",
-        f"장타(60d) {m60:+.1%}",
-        f"SPY대비20d {rs20:+.1%}",
+        f"눌림(고점대비) {pullback:+.1%}",
+        f"단타매수점수 {dip:.2f}",
+        f"단타매도점수 {rip:.2f}",
+        f"5일 {m5:+.1%} · 60일 {m60:+.1%}",
         f"성향 {('단타' if horizon=='short' else '장타' if horizon=='long' else '스윙')}",
     ]
     return PickScore(
@@ -106,6 +127,8 @@ def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScor
         mom_60=m60,
         short_score=float(short),
         long_score=float(long),
+        dip_score=float(dip),
+        rip_score=float(rip),
         horizon=horizon,
     )
 
@@ -148,10 +171,24 @@ def screen_short_and_long(
         all_picks.append(_score_symbol(sym, spy5, spy20, spy60))
         if on_progress and (i % 20 == 0 or i == n):
             on_progress(f"탐색 {i}/{n} · 단타·장타 점수 계산")
-    by_short = sorted(all_picks, key=lambda p: p.short_score, reverse=True)
+    by_short = sorted(all_picks, key=lambda p: p.dip_score, reverse=True)
     by_long = sorted(all_picks, key=lambda p: p.long_score, reverse=True)
     by_blend = sorted(all_picks, key=lambda p: p.screen_score, reverse=True)
     return by_short[:limit_short], by_long[:limit_long], by_blend[: max(limit_short, limit_long)]
+
+
+def scalp_exit_from_holdings(held: set[str], *, min_rip: float = 0.04) -> list[PickScore]:
+    """Holdings that spiked → take-profit / sell-the-rip candidates."""
+    if not held:
+        return []
+    spy5, spy20, spy60, _ = _moms("SPY")
+    out: list[PickScore] = []
+    for sym in held:
+        p = _score_symbol(sym, spy5, spy20, spy60)
+        if p.rip_score >= min_rip:
+            out.append(p)
+    out.sort(key=lambda p: p.rip_score, reverse=True)
+    return out
 
 
 def rank_decisions_for_trade(

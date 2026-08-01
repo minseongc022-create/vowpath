@@ -115,6 +115,18 @@ button, input, select {
 .money-cell .v { font-size: 1.2rem; font-weight: 800; margin-top: 4px; letter-spacing: -0.03em; }
 
 .ai-hero { overflow: hidden; }
+.chart-wrap {
+  margin-top: 8px;
+  background: #fafbfc;
+  border-radius: 16px;
+  padding: 10px 8px 4px;
+}
+.chart-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
 .ai-top {
   display: flex;
   align-items: flex-start;

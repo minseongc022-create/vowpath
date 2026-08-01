@@ -15,7 +15,23 @@ def test_money_page_has_cash_and_holdings():
     assert "현금 · 충전" in r.text
     assert "투자한 종목" in r.text
     assert 'href="/ai"' in r.text
+    assert 'href="/activity"' in r.text
     assert 'href="/settings"' in r.text
+
+
+def test_activity_page_has_charts():
+    client = TestClient(app)
+    r = client.get("/activity")
+    assert r.status_code == 200
+    assert "가격 그래프" in r.text
+    assert "매매 기록" in r.text
+    assert "price-chart" in r.text
+    r2 = client.get("/api/chart/SPY")
+    assert r2.status_code == 200
+    data = r2.json()
+    assert "labels" in data and "prices" in data
+    r3 = client.get("/api/activity/flow")
+    assert r3.status_code == 200
 
 
 def test_ai_page_has_goal_and_one_button():
