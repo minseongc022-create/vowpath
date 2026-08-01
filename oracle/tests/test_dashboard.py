@@ -22,9 +22,9 @@ def test_ai_page_has_goal_and_one_button():
     client = TestClient(app)
     r = client.get("/ai")
     assert r.status_code == 200
-    assert "목표까지 불려줘" in r.text
-    assert "AI가 알아서 매수·매도 시작" in r.text
-    assert "내 목표 자산" in r.text
+    assert "AI 투자" in r.text
+    assert "지금 투자 시작" in r.text
+    assert "목표 자산" in r.text
     assert 'href="/"' in r.text
 
 

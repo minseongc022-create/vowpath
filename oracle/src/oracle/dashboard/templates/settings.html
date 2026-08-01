@@ -82,6 +82,14 @@
   {% else %}
   <p class="bad-text">AI 미연결</p>
   {% endif %}
-  <p class="card-desc">자동: {{ "ON" if autopilot.enabled else "OFF" }} · 한도 ${{ "%.0f"|format(broker.max_notional) }}</p>
+  <p class="card-desc">자동: {{ "ON" if autopilot.enabled else "OFF" }} · 한도 ${{ "%.0f"|format(broker.max_notional) }} · 승인 없음</p>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">기록 초기화</h2></div>
+  <p class="card-desc">가짜 투자 기록을 지우고 Alpaca Paper 잔고로 맞춥니다.</p>
+  <form method="post" action="/actions/reset_paper" data-no-overlay="1">
+    <button class="btn btn-ghost btn-block" type="submit">기록 지우고 Paper로 다시 시작</button>
+  </form>
 </section>
 {% endblock %}

@@ -3,118 +3,89 @@
 {% block subtitle %}목표까지 알아서 매수·매도{% endblock %}
 {% block content %}
 <section class="card ai-hero" id="ai-panel">
-  <div class="card-head">
+  <div class="ai-top">
     <div>
-      <h2 class="card-title">목표까지 불려줘</h2>
-      <p class="card-desc">AI가 종목을 찾고, 상황·리스크를 보고, 소액으로 자동 매수·매도합니다.</p>
+      <h2 class="card-title">AI 투자</h2>
+      <p class="card-desc">승인 없이 알아서 찾고 · 사고 · 팝니다.</p>
     </div>
-    <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="ap-chip">
-      {% if autopilot.busy or watch_job_id %}실행중{% elif autopilot.enabled %}ON{% else %}OFF{% endif %}
-    </span>
+    <form method="post" action="/actions/autopilot" data-no-overlay="1" class="auto-toggle">
+      {% if autopilot.enabled %}
+      <input type="hidden" name="enabled" value="0" />
+      <button class="chip chip-ok chip-btn" type="submit" id="ap-chip">ON</button>
+      {% else %}
+      <input type="hidden" name="enabled" value="1" />
+      <button class="chip chip-danger chip-btn" type="submit" id="ap-chip">OFF</button>
+      {% endif %}
+    </form>
   </div>
 
-  <form method="post" action="/actions/set_goal" class="goal-form" id="goal-form" data-no-overlay="1">
-    <label class="field-label">내 목표 자산 (USD)</label>
-    <div class="goal-row">
-      <input class="field" type="number" name="goal" min="1" step="1"
-             value="{{ (goal.goal|int) if goal.set else ((equity * 1.2)|int) }}"
-             placeholder="예: 100" required />
-      <button class="btn btn-soft" type="submit">저장</button>
-    </div>
+  <form method="post" action="/actions/autopilot_now" id="run-form" class="run-form"
+        data-no-overlay="1" data-hide-self="1"
+        {% if watch_job_id or autopilot.busy %}hidden{% endif %}>
+    <button class="btn btn-primary btn-block btn-run" type="submit" id="run-btn">
+      지금 투자 시작
+    </button>
   </form>
-  {% if goal.set %}
-  <div class="goal-bar-wrap" style="margin-top:12px">
-    <div class="goal-bar-meta">
-      <span>현재 ${{ "{:,.2f}".format(equity) }} → 목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
-      <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
-    </div>
-    <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
-  </div>
-  {% endif %}
 
   <div class="live-panel" id="ap-live" {% if not watch_job_id and not autopilot.busy %}hidden{% endif %}>
     <div class="live-panel-head">
       <span class="spinner spinner-sm" aria-hidden="true"></span>
-      <strong>AI가 일하는 중</strong>
+      <strong>AI 진행</strong>
     </div>
-    <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "준비 중…" }}</p>
+    <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "시작…" }}</p>
     <div class="live-log" id="ap-live-log" aria-live="polite"></div>
-    <p class="card-desc">창을 나가도 서버에서 계속됩니다.</p>
   </div>
 
-  <form method="post" action="/actions/autopilot_now" id="run-form" data-no-overlay="1" data-hide-self="1"
-        {% if watch_job_id or autopilot.busy %}hidden{% endif %}>
-    <button class="btn btn-primary btn-block btn-xl" type="submit" id="run-btn">
-      AI가 알아서 매수·매도 시작
-    </button>
-  </form>
-
-  {% if not watch_job_id and not autopilot.busy %}
-  <p class="card-desc" style="margin-top:10px" id="ap-last">
-    {% if autopilot.last_message %}최근: {{ autopilot.last_message }}{% else %}버튼을 누르면 전 과정을 보여줍니다.{% endif %}
-  </p>
-  {% endif %}
-
-  {% if autopilot.picks %}
-  <div class="picks" style="margin-top:14px">
-    <p class="card-desc" style="margin-bottom:6px"><strong>지금 눈에 띄는 종목</strong></p>
-    {% for p in autopilot.picks[:4] %}
-    <div class="list-row pick-row">
-      <div class="left">
-        <div class="title">{{ p.symbol }}</div>
-        <div class="desc">20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%</div>
+  <div class="goal-box">
+    <form method="post" action="/actions/set_goal" id="goal-form" data-no-overlay="1">
+      <div class="goal-row">
+        <div class="goal-field">
+          <label class="field-label">목표 자산 ($)</label>
+          <input class="field" type="number" name="goal" min="1" step="1"
+                 value="{{ suggested_goal }}"
+                 required />
+        </div>
+        <button class="btn btn-soft goal-save" type="submit">저장</button>
       </div>
-      <strong>{{ "%.2f"|format(p.screen_score) }}</strong>
+    </form>
+    {% if goal.set %}
+    <div class="goal-bar-wrap">
+      <div class="goal-bar-meta">
+        <span>${{ "{:,.0f}".format(equity) }} / ${{ "{:,.0f}".format(goal.goal) }}</span>
+        <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
+      </div>
+      <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
+      {% if goal.reached %}
+      <p class="card-desc">목표 달성 · 더 높이려면 위에서 목표를 올려주세요.</p>
+      {% endif %}
     </div>
-    {% endfor %}
+    {% endif %}
   </div>
+
+  {% if not watch_job_id and not autopilot.busy and autopilot.last_message %}
+  <p class="card-desc status-line" id="ap-last">{{ autopilot.last_message }}</p>
   {% endif %}
 </section>
 
+{% if autopilot.picks %}
 <section class="card">
   <div class="card-head">
-    <div>
-      <h2 class="card-title">자동 모드</h2>
-      <p class="card-desc">켜두면 약 {{ autopilot.interval_sec }}초마다 서버가 혼자 돌아갑니다. 폰 꺼도 OK.</p>
-    </div>
+    <h2 class="card-title">관심 종목</h2>
   </div>
-  {% if autopilot.enabled %}
-  <form method="post" action="/actions/autopilot" data-no-overlay="1">
-    <input type="hidden" name="enabled" value="0" />
-    <button class="btn btn-ghost btn-block" type="submit">자동 끄기</button>
-  </form>
-  {% else %}
-  <form method="post" action="/actions/autopilot" data-no-overlay="1">
-    <input type="hidden" name="enabled" value="1" />
-    <button class="btn btn-soft btn-block" type="submit">자동 켜기</button>
-  </form>
-  {% endif %}
-</section>
-
-{% if planned %}
-<section class="card" id="pending-approvals">
-  <div class="card-head"><h2 class="card-title">승인 필요 {{ pending_count }}건</h2></div>
-  <p class="card-desc">실거래/대기 주문만 여기서 확인합니다. Paper 자동은 바로 체결됩니다.</p>
-  {% for p in planned[:5] %}
-  <div class="todo-item" style="flex-direction:column;align-items:stretch;gap:8px">
-    <div>
-      <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
-      <div class="todo-sub">{{ "%.4f"|format(p.shares) }}주 · 약 ${{ "%.2f"|format((p.shares * p.price)|abs) }}</div>
+  {% for p in autopilot.picks[:4] %}
+  <div class="list-row pick-row">
+    <div class="left">
+      <div class="title">{{ p.symbol }}</div>
+      <div class="desc">20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%</div>
     </div>
-    <form method="post" action="/actions/approve" data-no-overlay="1">
-      <input type="hidden" name="entry_id" value="{{ p.id }}" />
-      {% if live_trading %}
-      <input class="field" name="live_confirm" placeholder="LIVE 입력" style="margin-bottom:8px" />
-      {% endif %}
-      <button class="btn btn-primary btn-block" type="submit">승인</button>
-    </form>
+    <strong class="pick-score">{{ "%.2f"|format(p.screen_score) }}</strong>
   </div>
   {% endfor %}
 </section>
 {% endif %}
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">최근 기록</h2></div>
+  <div class="card-head"><h2 class="card-title">최근 투자</h2></div>
   {% if journal %}
   {% for j in journal[:8] %}
   <div class="list-row">
@@ -142,16 +113,9 @@
   let seen = 0;
   let doneReload = false;
 
-  function hideRun() {
-    if (runForm) runForm.hidden = true;
-  }
-  function showRun() {
-    if (runForm) runForm.hidden = false;
-  }
-  function showPanel() {
-    if (panel) panel.hidden = false;
-    hideRun();
-  }
+  function hideRun() { if (runForm) runForm.hidden = true; }
+  function showRun() { if (runForm) runForm.hidden = false; }
+  function showPanel() { if (panel) panel.hidden = false; hideRun(); }
   function addLogs(logs) {
     if (!logEl || !Array.isArray(logs)) return;
     if (logs.length < seen) { logEl.innerHTML = ""; seen = 0; }
@@ -173,17 +137,14 @@
       if (!r.ok) return;
       const j = await r.json();
       if (msgEl && j.message) msgEl.textContent = j.message;
-      if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); }
+      if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); chip.classList.remove("chip-danger"); }
       addLogs(j.logs || []);
       if (j.status === "done" || j.status === "error") {
         if (doneReload) return;
         doneReload = true;
-        if (chip) chip.textContent = "ON";
         showRun();
         const flash = encodeURIComponent(j.message || "완료");
-        setTimeout(function () {
-          location.href = "/ai?flash=" + flash;
-        }, 800);
+        setTimeout(function () { location.href = "/ai?flash=" + flash; }, 700);
         return;
       }
     } catch (e) {}
@@ -215,7 +176,6 @@
       if (msgEl) msgEl.textContent = "시작…";
     });
   }
-
   if (watchId) pollJob();
   else pollAutopilot();
 })();

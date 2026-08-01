@@ -207,10 +207,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             f"{gprog['pct']*100:.0f}% · {gprog['label']}"
         )
         if gprog["reached"]:
-            msg = f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 공격 매수 중단"
-            _set_last(msg, picks=top_picks_summary(limit=5))
-            prog(msg)
-            return {"ok": True, "message": msg, "picks": _last.get("picks") or [], "goal_reached": True}
+            prog(f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
 
     prog("① 전 종목 스크리닝 · 오를 후보 찾는 중…")
     screened = screen_universe(limit=8)
@@ -232,13 +229,14 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
-    # Near goal → prefer sell/reduce, shrink buy size
+    # Near/at goal → prefer sell/reduce, shrink or skip buys
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
     near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
+    reached = bool(gprog.get("reached"))
     far_from_goal = bool(gprog["set"] and gprog["pct"] < 0.5)
-    if near_goal:
+    if reached or near_goal:
         max_n = min(max_n, first_trade_notional())
-        prog("목표 근접 · 공격 매수 축소, 약한 종목 정리 우선")
+        prog("목표 근접/달성 · 공격 매수 축소, 약한 종목 정리 우선")
     elif far_from_goal:
         max_n = min(live_max_notional(), first_trade_notional() * 1.5)
         prog("목표까지 여유 · 강한 종목 소액 집중")
@@ -249,10 +247,10 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     prog("③ 매수·매도 후보 선택")
     if best_sell:
         prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
-    if best_buy and not near_goal:
+    if best_buy and not (near_goal or reached):
         prog(f"매수 후보 {best_buy.symbol} · {best_buy.action.value} · conf={best_buy.confidence:.2f}")
-    elif best_buy and near_goal:
-        prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 근접")
+    elif best_buy and (near_goal or reached):
+        prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 근접/달성")
         best_buy = None
 
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):

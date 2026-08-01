@@ -402,6 +402,11 @@ def _context(
     broker = _broker_status(probe=(active in {"settings", "money", "home"} and not light))
     llm = get_or_set("llm_health", 30.0, brain_health)
     goal = goal_progress(equity)
+    # Suggest a goal ABOVE current equity so AI keeps working
+    if goal["set"] and not goal["reached"]:
+        suggested_goal = int(goal["goal"])
+    else:
+        suggested_goal = max(int(equity * 1.15) + 1, int(equity) + 50, 100)
 
     return {
         "version": __version__,
@@ -413,6 +418,7 @@ def _context(
         "return_pct": ret,
         "day_pnl_pct": day_pnl,
         "goal": goal,
+        "suggested_goal": suggested_goal,
         "charge_url": _charge_url(),
         "positions": rows,
         "decisions": decisions[:30],
@@ -603,18 +609,18 @@ def plan_trades(_: None = Depends(require_auth)):
 
     def _work(_job_id: str):
         result = OraclePipeline(settings).run(session="ad_hoc", symbols=settings.symbols[:8])
-        engine = ExecutionEngine(require_confirm=True)
+        engine = ExecutionEngine(require_confirm=False)
         portfolio = load_portfolio(settings.portfolio_path)
-        queued = 0
+        filled = 0
         for d in result.decisions:
             if d.action in (Action.HOLD, Action.DO_NOTHING):
                 continue
-            out = engine.execute_decision(d, portfolio=portfolio, confirm=False)
-            if out.journal_id and not out.accepted:
-                queued += 1
+            out = engine.execute_decision(d, portfolio=portfolio, confirm=True)
+            if out.accepted:
+                filled += 1
         return {
-            "message": f"검토할 주문 {queued}건 준비됨",
-            "queued": queued,
+            "message": f"AI 주문 {filled}건 체결 (승인 없음)",
+            "filled": filled,
             "redirect": "/ai",
         }
 
@@ -855,6 +861,61 @@ def set_goal(goal: str = Form(...), _: None = Depends(require_auth)):
         return _flash("/ai", "목표는 $1 이상이어야 합니다")
     saved = set_goal_equity(amount)
     return _flash("/ai", f"목표 ${saved:,.0f} 저장 · AI가 여기까지 불립니다")
+
+
+@app.post("/actions/reset_paper")
+def reset_paper(_: None = Depends(require_auth)):
+    """Wipe local fake history and resync from Alpaca Paper."""
+    settings = get_settings()
+    data = Path(settings.data_dir)
+    for name in ("journal.db", "jobs.db"):
+        p = data / name
+        if p.exists():
+            p.unlink()
+    # Clear decision runs table if present
+    odb = data / "oracle.db"
+    if odb.exists():
+        import sqlite3
+
+        with sqlite3.connect(odb) as conn:
+            for table in ("runs", "decisions", "agent_opinions"):
+                try:
+                    conn.execute(f"DELETE FROM {table}")
+                except Exception:
+                    pass
+
+    broker = get_broker()
+    if broker is not None:
+        try:
+            state = sync_portfolio_from_broker(broker)
+            equity = float(state.equity())
+        except Exception as exc:
+            return _flash("/settings", f"초기화 실패 · 브로커 동기화 오류: {exc}")
+    else:
+        import yaml
+        from oracle.config import resolve_path
+        from oracle.core.types import PortfolioState
+
+        state = PortfolioState(cash=10000.0, currency="USD", positions=[], targets={})
+        dest = resolve_path(settings.portfolio_path)
+        dest.write_text(
+            yaml.safe_dump(
+                {"cash": 10000.0, "currency": "USD", "positions": [], "targets": {}},
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        equity = 10000.0
+
+    # Goal above current so AI keeps buying toward it
+    goal_amt = max(equity * 1.15, equity + 50.0, 100.0)
+    set_goal_equity(goal_amt)
+    upsert_env({"ORACLE_AUTOPILOT": "1", "ORACLE_LIVE_TRADING": "0"})
+    cache_clear()
+    return _flash(
+        "/ai",
+        f"기록 초기화 완료 · Paper 자산 ${equity:,.2f} · 목표 ${goal_amt:,.0f}",
+    )
 
 
 @app.post("/actions/autopilot_now")

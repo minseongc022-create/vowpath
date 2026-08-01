@@ -176,7 +176,14 @@ def get_broker() -> Broker | None:
 
 
 class ExecutionEngine:
-    def __init__(self, require_confirm: bool = True, broker: Broker | None = None) -> None:
+    def __init__(self, require_confirm: bool | None = None, broker: Broker | None = None) -> None:
+        # Default: no human approval — AI executes end-to-end (Paper/Live caps still apply).
+        if require_confirm is None:
+            require_confirm = os.getenv("ORACLE_REQUIRE_CONFIRM", "").strip().lower() in {
+                "1",
+                "true",
+                "yes",
+            }
         self.require_confirm = require_confirm
         self.kill = KillSwitch(max_daily_loss_pct=float(os.getenv("ORACLE_MAX_DAILY_LOSS", "0.03")))
         self.journal = TradeJournal()

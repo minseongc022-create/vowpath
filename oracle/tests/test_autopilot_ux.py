@@ -14,7 +14,7 @@ def test_ai_page_has_live_targets():
     assert r.status_code == 200
     assert 'id="ai-panel"' in r.text
     assert "ap-live-log" in r.text
-    assert "AI가 알아서 매수·매도 시작" in r.text
+    assert "지금 투자 시작" in r.text
     assert "/static/oracle.js" in r.text
 
 
