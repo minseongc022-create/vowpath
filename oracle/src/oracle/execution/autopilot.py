@@ -18,7 +18,13 @@ from oracle.config import get_settings
 from oracle.core.types import Action, DecisionResult
 from oracle.data.market import fetch_snapshot
 from oracle.execution.engine import ExecutionEngine, KillSwitch, estimate_day_pnl_pct
-from oracle.execution.live_setup import first_trade_notional, live_armed, live_max_notional, upsert_env
+from oracle.execution.live_setup import (
+    first_trade_notional,
+    goal_progress,
+    live_armed,
+    live_max_notional,
+    upsert_env,
+)
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.picker import rank_decisions_for_trade, screen_universe, top_picks_summary
@@ -193,18 +199,31 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         prog(msg)
         return {"ok": False, "message": msg}
 
-    prog("① 오를 종목 스크리닝 중…")
-    screened = screen_universe(limit=6)
+    equity = float(portfolio.equity())
+    gprog = goal_progress(equity)
+    if gprog["set"]:
+        prog(
+            f"목표 ${gprog['goal']:,.0f} · 현재 ${equity:,.2f} · "
+            f"{gprog['pct']*100:.0f}% · {gprog['label']}"
+        )
+        if gprog["reached"]:
+            msg = f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 공격 매수 중단"
+            _set_last(msg, picks=top_picks_summary(limit=5))
+            prog(msg)
+            return {"ok": True, "message": msg, "picks": _last.get("picks") or [], "goal_reached": True}
+
+    prog("① 전 종목 스크리닝 · 오를 후보 찾는 중…")
+    screened = screen_universe(limit=8)
     picks_view = top_picks_summary(limit=5)
     _last["picks"] = picks_view
-    top_syms = [p.symbol for p in screened[:5]]
+    top_syms = [p.symbol for p in screened[:6]]
     if top_syms:
         prog("TOP " + " · ".join(f"{p.symbol}({p.screen_score:+.2f})" for p in screened[:5]))
     held = list(portfolio.held_symbols())
-    # Keep shortlist small for speed (browser UX + LLM)
-    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:2]]))[:6]
+    # Shortlist: holdings + hottest names
+    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:2]]))[:7]
 
-    prog(f"② AI 파이프라인 · {', '.join(symbols)}")
+    prog(f"② AI가 상황·주문·리스크 전부 판단 · {', '.join(symbols)}")
     result = OraclePipeline(settings).run(
         session="autopilot",
         symbols=symbols,
@@ -213,20 +232,33 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
+    # Near goal → prefer sell/reduce, shrink buy size
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
+    near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
+    far_from_goal = bool(gprog["set"] and gprog["pct"] < 0.5)
+    if near_goal:
+        max_n = min(max_n, first_trade_notional())
+        prog("목표 근접 · 공격 매수 축소, 약한 종목 정리 우선")
+    elif far_from_goal:
+        max_n = min(live_max_notional(), first_trade_notional() * 1.5)
+        prog("목표까지 여유 · 강한 종목 소액 집중")
+
     msgs: list[str] = []
     executed = 0
 
     prog("③ 매수·매도 후보 선택")
     if best_sell:
         prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
-    if best_buy:
+    if best_buy and not near_goal:
         prog(f"매수 후보 {best_buy.symbol} · {best_buy.action.value} · conf={best_buy.confidence:.2f}")
+    elif best_buy and near_goal:
+        prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 근접")
+        best_buy = None
 
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
         if dec is None:
             continue
-        prog(f"④ 주문 실행 · {label} {dec.symbol}")
+        prog(f"④ 실제 주문 실행 · {label} {dec.symbol}")
         out = _execute_decision(dec, max_n=max_n)
         msgs.append(f"[{label}] {out['message']}")
         prog(out["message"])
@@ -235,7 +267,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if executed >= 2:
             break
 
-    if not msgs:
+    if not msgs and not near_goal:
         if screened and screened[0].screen_score > 0.04:
             from oracle.core.types import DecisionResult as DR
             from oracle.core.types import RiskVeto
@@ -264,6 +296,8 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     if not msgs:
         msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"
+        if near_goal:
+            msg = "목표 근접 · 관망 유지 (무리한 매수 안 함)"
         _set_last(msg, picks=picks_view)
         return {"ok": True, "message": msg, "run_id": result.run_id, "picks": picks_view}
 

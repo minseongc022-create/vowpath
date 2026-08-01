@@ -32,7 +32,14 @@ from oracle.execution.autopilot import set_enabled as autopilot_set
 from oracle.execution.autopilot import start_background as autopilot_start
 from oracle.execution.autopilot import status as autopilot_status
 from oracle.execution.autopilot import run_once as autopilot_run_once
-from oracle.execution.live_setup import first_trade_notional, live_armed, live_max_notional, upsert_env
+from oracle.execution.live_setup import (
+    first_trade_notional,
+    goal_progress,
+    live_armed,
+    live_max_notional,
+    set_goal_equity,
+    upsert_env,
+)
 from oracle.execution.sync import sync_portfolio_from_broker
 from oracle.llm.brain import brain_health
 from oracle.orchestration import OraclePipeline
@@ -79,15 +86,18 @@ ACTIONABLE = {"Buy", "Add", "Reduce", "Sell"}
 
 
 def _flash(path: str, msg: str) -> RedirectResponse:
-    # Preserve/add hash for auto-scroll targets
     hash_part = ""
     if "#" in path:
         path, hash_part = path.split("#", 1)
         hash_part = "#" + hash_part
-    elif path.startswith("/trades"):
-        hash_part = "#pending-approvals"
     sep = "&" if "?" in path else "?"
     return RedirectResponse(url=f"{path}{sep}flash={quote(msg)}{hash_part}", status_code=303)
+
+
+def _charge_url() -> str:
+    if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", "paper"):
+        return "https://app.alpaca.markets/brokerage/dashboard/overview"
+    return "https://app.alpaca.markets/paper/dashboard/overview"
 
 
 def _tone(action: str) -> str:
@@ -388,9 +398,10 @@ def _context(
             "mode_ko": "워크포워드" if backtest.get("mode") == "walk_forward" else "빠른 검증",
         }
 
-    # Probe broker only on settings/home; elsewhere use fast env-only status
-    broker = _broker_status(probe=(active in {"settings", "home"} and not light))
+    # Probe broker on money/settings pages for cash/charge accuracy
+    broker = _broker_status(probe=(active in {"settings", "money", "home"} and not light))
     llm = get_or_set("llm_health", 30.0, brain_health)
+    goal = goal_progress(equity)
 
     return {
         "version": __version__,
@@ -401,6 +412,8 @@ def _context(
         "cash_pct": (portfolio.cash / equity) if equity else 0.0,
         "return_pct": ret,
         "day_pnl_pct": day_pnl,
+        "goal": goal,
+        "charge_url": _charge_url(),
         "positions": rows,
         "decisions": decisions[:30],
         "actionable": actionable[:10],
@@ -451,16 +464,11 @@ def _render(request: Request, name: str, **kwargs):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "home.html", active="home", flash=flash, light=False)
+    return _render(request, "home.html", active="money", flash=flash, light=False)
 
 
-@app.get("/holdings", response_class=HTMLResponse)
-def holdings(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "holdings.html", active="holdings", flash=flash, light=True)
-
-
-@app.get("/trades", response_class=HTMLResponse)
-def trades(
+@app.get("/ai", response_class=HTMLResponse)
+def ai_page(
     request: Request,
     flash: str | None = None,
     watch: str | None = None,
@@ -468,17 +476,28 @@ def trades(
 ):
     return _render(
         request,
-        "trades.html",
-        active="trades",
+        "ai.html",
+        active="ai",
         flash=flash,
         light=True,
         watch_job_id=(watch or "").strip() or None,
     )
 
 
+@app.get("/holdings", response_class=HTMLResponse)
+def holdings_redirect():
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/trades", response_class=HTMLResponse)
+def trades_redirect(watch: str | None = None):
+    q = f"?watch={watch}" if watch else ""
+    return RedirectResponse(url=f"/ai{q}", status_code=303)
+
+
 @app.get("/decisions", response_class=HTMLResponse)
-def decisions(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "decisions.html", active="decisions", flash=flash, light=False)
+def decisions_redirect():
+    return RedirectResponse(url="/ai", status_code=303)
 
 
 @app.get("/settings", response_class=HTMLResponse)
@@ -596,7 +615,7 @@ def plan_trades(_: None = Depends(require_auth)):
         return {
             "message": f"검토할 주문 {queued}건 준비됨",
             "queued": queued,
-            "redirect": "/trades#pending-approvals",
+            "redirect": "/ai",
         }
 
     job_id = start_job("plan_trades", _work, message="주문 후보 생성 중…")
@@ -614,22 +633,22 @@ def approve_trade(
         live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL)
     ):
         if live_confirm.strip().upper() != "LIVE":
-            return _flash("/trades", "실거래 승인 실패 · 확인란에 LIVE 를 입력하세요")
+            return _flash("/ai", "실거래 승인 실패 · 확인란에 LIVE 를 입력하세요")
     result = engine.confirm_journal_entry(entry_id)
     msg = "체결 완료" if result.accepted else f"실패 · {result.message}"
-    return _flash("/trades", msg)
+    return _flash("/ai", msg)
 
 
 @app.post("/actions/reject")
 def reject_trade(entry_id: int = Form(...), _: None = Depends(require_auth)):
     result = ExecutionEngine().reject_journal_entry(entry_id)
-    return _flash("/trades", "주문을 거절했습니다" if result.accepted else result.message)
+    return _flash("/ai", "주문을 거절했습니다" if result.accepted else result.message)
 
 
 @app.post("/actions/approve_all")
 def approve_all(_: None = Depends(require_auth)):
     if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL):
-        return _flash("/trades", "실거래에서는 일괄 승인이 금지됩니다 · 한 건씩 LIVE 확인 후 승인")
+        return _flash("/ai", "실거래에서는 일괄 승인이 금지됩니다 · 한 건씩 LIVE 확인 후 승인")
     engine = ExecutionEngine(require_confirm=False)
     planned = TradeJournal().list_recent(limit=100, status="planned")
     ok = fail = 0
@@ -639,7 +658,7 @@ def approve_all(_: None = Depends(require_auth)):
             ok += 1
         else:
             fail += 1
-    return _flash("/trades", f"승인 {ok}건 · 실패 {fail}건")
+    return _flash("/ai", f"승인 {ok}건 · 실패 {fail}건")
 
 
 @app.post("/actions/broker_connect")
@@ -739,7 +758,7 @@ def sync_broker(_: None = Depends(require_auth)):
         return _flash("/settings", "연결된 브로커가 없습니다")
     try:
         state = sync_portfolio_from_broker(broker)
-        return _flash("/holdings", f"브로커 동기화 완료 · 현금 ${state.cash:,.2f} · {len(state.positions)}종목")
+        return _flash("/", f"브로커 동기화 완료 · 현금 ${state.cash:,.2f} · {len(state.positions)}종목")
     except Exception as exc:
         return _flash("/settings", f"동기화 실패 · {exc}")
 
@@ -752,7 +771,7 @@ def first_money_order(
 ):
     """Queue a tiny first broker order (paper or live) for human approve."""
     if not alpaca_configured() or get_broker() is None:
-        return _flash("/trades", "먼저 설정에서 Alpaca를 연결하세요")
+        return _flash("/ai", "먼저 설정에서 Alpaca를 연결하세요")
     symbol = (symbol or "SPY").upper().strip()
     try:
         dollars = float(notional) if notional.strip() else first_trade_notional()
@@ -778,14 +797,14 @@ def first_money_order(
             client_order_id=f"first-{uuid.uuid4().hex[:10]}",
         )
     )
-    return _flash("/trades", f"첫 소액 주문 #{jid} 준비 · ${dollars:.2f} {symbol} · 승인하면 브로커로 나갑니다")
+    return _flash("/ai", f"첫 소액 주문 #{jid} 준비 · ${dollars:.2f} {symbol} · 승인하면 브로커로 나갑니다")
 
 
 @app.post("/actions/practice_order")
 def practice_order(_: None = Depends(require_auth)):
     """Create one tiny planned order so the approve UX can be verified (local paper only)."""
     if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", PAPER_URL):
-        return _flash("/trades", "실거래 모드에서는 로컬 연습 주문을 만들 수 없습니다")
+        return _flash("/ai", "실거래 모드에서는 로컬 연습 주문을 만들 수 없습니다")
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
     symbol = "SPY"
@@ -806,7 +825,7 @@ def practice_order(_: None = Depends(require_auth)):
             client_order_id=f"practice-{uuid.uuid4().hex[:10]}",
         )
     )
-    return _flash("/trades", f"연습 주문 #{jid} 준비됨 · 승인하면 모의 체결됩니다")
+    return _flash("/ai", f"연습 주문 #{jid} 준비됨 · 승인하면 모의 체결됩니다")
 
 
 @app.post("/actions/autopilot")
@@ -822,8 +841,20 @@ def autopilot_toggle(
     autopilot_set(on, allow_live=live_ok and on)
     autopilot_start()
     if on:
-        return _flash("/trades#autopilot-panel", "자율매매 ON · AI가 뉴스·지표로 판단 후 소액 실행")
-    return _flash("/trades#autopilot-panel", "자율매매 OFF")
+        return _flash("/ai", "자동 ON · 창 꺼도 목표까지 서버가 계속 굴립니다")
+    return _flash("/ai", "자동 OFF")
+
+
+@app.post("/actions/set_goal")
+def set_goal(goal: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        amount = float(goal)
+    except ValueError:
+        return _flash("/ai", "목표 금액이 올바르지 않습니다")
+    if amount < 1:
+        return _flash("/ai", "목표는 $1 이상이어야 합니다")
+    saved = set_goal_equity(amount)
+    return _flash("/ai", f"목표 ${saved:,.0f} 저장 · AI가 여기까지 불립니다")
 
 
 @app.post("/actions/autopilot_now")
@@ -840,14 +871,13 @@ def autopilot_now(_: None = Depends(require_auth)):
 
         out = autopilot_run_once(on_progress=prog)
         return {
-            "message": out.get("message") or "자율매매 사이클 완료",
-            "redirect": "/trades#autopilot-panel",
+            "message": out.get("message") or "완료",
+            "redirect": "/ai",
             **{k: v for k, v in out.items() if k != "message"},
         }
 
-    job_id = start_job("autopilot", _work, message="① 오를 종목 스크리닝 시작…")
-    # Stay on trades with live log — don't trap on blank spinner page
-    return RedirectResponse(url=f"/trades?watch={job_id}#autopilot-panel", status_code=303)
+    job_id = start_job("autopilot", _work, message="목표·종목·리스크 파악 시작…")
+    return RedirectResponse(url=f"/ai?watch={job_id}", status_code=303)
 
 
 @app.post("/actions/kill")

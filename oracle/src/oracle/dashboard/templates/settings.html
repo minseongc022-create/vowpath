@@ -1,122 +1,87 @@
 {% extends "base.html" %}
 {% block title %}설정{% endblock %}
-{% block subtitle %}브로커 · 실전 연결{% endblock %}
+{% block subtitle %}계좌 · 안전장치{% endblock %}
 {% block content %}
 <section class="card {% if live_trading %}danger-soft{% endif %}">
-  <div class="card-head"><h2 class="card-title">거래 모드</h2></div>
-  <p class="mode-big {% if live_trading %}up{% endif %}">
-    {% if live_trading %}⚠ 실거래 무장 ON{% else %}안전 모드 (미무장){% endif %}
-  </p>
-  <p class="card-desc">브로커: <strong>{{ broker.mode_ko }}</strong> · 주문 한도 ${{ "%.0f"|format(broker.max_notional) }} (약 ₩{{ "{:,.0f}".format(broker.max_notional * 1350) }})</p>
-  {% if live_trading %}
-  <p class="warn-text">실제 돈이 움직입니다. 거래 탭에서 승인 시 LIVE 입력 필수.</p>
-  <form method="post" action="/actions/disarm_live">
-    <button class="btn btn-danger btn-block" type="submit">실거래 무장 해제</button>
-  </form>
+  <div class="card-head"><h2 class="card-title">계좌 연결</h2></div>
+  <p class="card-desc">Alpaca에 돈을 넣고, 여기서 키만 연결하면 AI가 주문합니다.</p>
+  {% if broker.configured and not broker.error %}
+  <p class="ok-text">✓ 연결됨 · {{ broker.mode_ko }}</p>
+  {% if broker.account %}
+  <div class="list-row"><div class="left">총자산</div><strong>${{ "{:,.2f}".format(broker.account.equity) }}</strong></div>
+  <div class="list-row"><div class="left">현금</div><strong>${{ "{:,.2f}".format(broker.account.cash) }}</strong></div>
   {% endif %}
-</section>
+  {% elif broker.error %}
+  <p class="bad-text">연결 오류: {{ broker.error }}</p>
+  {% else %}
+  <p class="card-desc">아직 연결 안 됨</p>
+  {% endif %}
 
-<section class="card">
-  <div class="card-head"><h2 class="card-title">① 브로커 연결 (Alpaca)</h2></div>
-  <p class="card-desc">키를 저장하고 계좌를 검증합니다. 실계좌는 연결만 하고, 무장(②)은 따로 합니다.</p>
-  <form method="post" action="/actions/broker_connect" class="stack">
+  <form method="post" action="/actions/broker_connect" class="stack" style="margin-top:12px" data-no-overlay="1">
     <label class="field-label">API Key</label>
     <input class="field" type="password" name="api_key" placeholder="Alpaca API Key" required autocomplete="off" />
     <label class="field-label">Secret Key</label>
     <input class="field" type="password" name="secret_key" placeholder="Alpaca Secret Key" required autocomplete="off" />
-    <label class="field-label">계정 유형</label>
+    <label class="field-label">계정</label>
     <select class="field" name="account_type">
-      <option value="paper" selected>Paper (가상현금 · 먼저 추천)</option>
-      <option value="live">Live (실계좌 · 진짜 돈)</option>
+      <option value="paper" selected>Paper (연습 · 추천)</option>
+      <option value="live">Live (진짜 돈)</option>
     </select>
-    <label class="field-label">주문당 최대 금액 (USD) · 1만원≈$8</label>
+    <label class="field-label">한 번에 쓸 최대 금액 ($)</label>
     <input class="field" type="number" name="max_notional" value="{{ broker.max_notional|int }}" min="5" max="500" step="1" />
-    <button class="btn btn-primary btn-block" type="submit">연결하고 검증</button>
+    <button class="btn btn-primary btn-block" type="submit">연결</button>
   </form>
   <p class="card-desc" style="margin-top:10px">
-    키 발급: <a href="https://app.alpaca.markets/paper/dashboard/overview" target="_blank" rel="noopener">Paper</a>
-    · <a href="https://app.alpaca.markets/brokerage/dashboard/overview" target="_blank" rel="noopener">Live</a>
+    <a class="link" href="https://app.alpaca.markets/paper/dashboard/overview" target="_blank" rel="noopener">Paper 열기</a>
+    ·
+    <a class="link" href="https://app.alpaca.markets/brokerage/dashboard/overview" target="_blank" rel="noopener">Live 열기</a>
   </p>
-</section>
-
-<section class="card">
-  <div class="card-head"><h2 class="card-title">브로커 상태</h2></div>
-  {% if broker.configured and not broker.error %}
-  <p class="ok-text">✓ 연결됨 · {{ broker.mode_ko }}</p>
-  {% if broker.account %}
-  <div class="list-row"><div class="left">Equity</div><strong>${{ "{:,.2f}".format(broker.account.equity) }}</strong></div>
-  <div class="list-row"><div class="left">Cash</div><strong>${{ "{:,.2f}".format(broker.account.cash) }}</strong></div>
-  <div class="list-row"><div class="left">Buying power</div><strong>${{ "{:,.2f}".format(broker.account.buying_power) }}</strong></div>
-  {% endif %}
-  <form method="post" action="/actions/sync_broker" style="margin-top:10px">
-    <button class="btn btn-soft btn-block" type="submit">계좌 → 보유 동기화</button>
-  </form>
-  {% elif broker.error %}
-  <p class="bad-text">연결 오류: {{ broker.error }}</p>
-  {% else %}
-  <p class="card-desc">아직 브로커 미연결 · 위에서 키를 넣으세요.</p>
-  {% endif %}
 </section>
 
 {% if broker.configured and not live_trading %}
 <section class="card danger-soft">
-  <div class="card-head"><h2 class="card-title">② 실거래 무장</h2></div>
-  <p class="card-desc">실계좌로 연결한 뒤에만 가능합니다. 확인란에 <strong>LIVE</strong> 를 입력하세요.</p>
-  <form method="post" action="/actions/arm_live" class="stack">
+  <div class="card-head"><h2 class="card-title">실거래 무장</h2></div>
+  <p class="card-desc">진짜 돈으로 돌리려면 아래에 <strong>LIVE</strong> 입력</p>
+  <form method="post" action="/actions/arm_live" class="stack" data-no-overlay="1">
     <input class="field" name="confirm" placeholder="LIVE" autocomplete="off" required />
-    <button class="btn btn-danger btn-block" type="submit">실거래 무장</button>
+    <button class="btn btn-danger btn-block" type="submit">실거래 켜기</button>
+  </form>
+</section>
+{% endif %}
+
+{% if live_trading %}
+<section class="card danger-soft">
+  <p class="warn-text">실거래 무장 중 · 실제 돈이 움직입니다.</p>
+  <form method="post" action="/actions/disarm_live" data-no-overlay="1">
+    <button class="btn btn-danger btn-block" type="submit">실거래 끄기</button>
   </form>
 </section>
 {% endif %}
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">AI 자율매매</h2></div>
-  <p class="card-desc">상태: <strong>{{ "ON" if autopilot.enabled else "OFF" }}</strong> · {{ autopilot.last_message or "대기" }}</p>
-  <a class="btn btn-soft btn-block" href="/trades#autopilot-panel">거래 탭에서 켜기/실행</a>
-</section>
-
-<section class="card">
-  <div class="card-head"><h2 class="card-title">AI 두뇌</h2></div>
-  {% if llm.available %}
-  <p class="ok-text">✓ {{ llm.mode_ko }}</p>
-  <div class="list-row"><div class="left">Provider</div><strong>{{ llm.provider }}</strong></div>
-  <div class="list-row"><div class="left">Model</div><strong>{{ llm.model }}</strong></div>
-  {% else %}
-  <p class="bad-text">AI 두뇌 미연결</p>
-  {% endif %}
-</section>
-
-<section class="card">
   <div class="card-head"><h2 class="card-title">긴급정지</h2></div>
   <p class="card-desc">
-    {% if kill_switch.active %}현재 <strong class="up">정지 중</strong> — 신규 매수 불가
-    {% else %}정상 가동 중{% endif %}
+    {% if kill_switch.active %}지금 <strong class="up">정지</strong> — 신규 매수 불가
+    {% else %}정상{% endif %}
   </p>
-  <form method="post" action="/actions/kill" class="quick">
+  <form method="post" action="/actions/kill" data-no-overlay="1">
     {% if kill_switch.active %}
     <input type="hidden" name="active" value="0" />
-    <button class="btn btn-soft btn-block" type="submit">긴급정지 해제</button>
+    <button class="btn btn-soft btn-block" type="submit">정지 해제</button>
     {% else %}
     <input type="hidden" name="active" value="1" />
-    <button class="btn btn-danger btn-block" type="submit">긴급정지 ON</button>
+    <button class="btn btn-danger btn-block" type="submit">긴급정지</button>
     {% endif %}
   </form>
 </section>
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">오늘 실전 순서</h2></div>
-  <ol class="steps">
-    <li>Alpaca 가입 → Paper 키 발급 → 여기 연결</li>
-    <li>거래 → 첫 소액 주문($8≈1만원) → 승인</li>
-    <li>Live 계좌 개설·입금($10 이상) → Live 키로 다시 연결</li>
-    <li>② 실거래 무장 (LIVE 입력)</li>
-    <li>거래에서 $8 한 건 · LIVE 입력 후 승인</li>
-  </ol>
-</section>
-
-<section class="card">
-  <div class="card-head"><h2 class="card-title">시스템</h2></div>
-  <div class="list-row"><div class="left">대시보드 인증</div><strong>{{ "켜짐" if auth_enabled else "꺼짐 (공개)" }}</strong></div>
-  <div class="list-row"><div class="left">버전</div><strong>v{{ version }}</strong></div>
+  <div class="card-head"><h2 class="card-title">AI 상태</h2></div>
+  {% if llm.available %}
+  <p class="ok-text">✓ {{ llm.mode_ko }} · {{ llm.provider }}</p>
+  {% else %}
+  <p class="bad-text">AI 미연결</p>
+  {% endif %}
+  <p class="card-desc">자동: {{ "ON" if autopilot.enabled else "OFF" }} · 한도 ${{ "%.0f"|format(broker.max_notional) }}</p>
 </section>
 {% endblock %}

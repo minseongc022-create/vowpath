@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}홈{% endblock %}
+{% block title %}자산{% endblock %}
+{% block subtitle %}돈 · 충전 · 투자종목{% endblock %}
 {% block content %}
-<section class="hero">
+<section class="hero money-hero">
   <div class="hero-label">내 총자산</div>
   <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
   <div class="hero-meta">
@@ -15,139 +16,91 @@
     {% else %}
     <span class="pill pill-down">오늘 {{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
     {% endif %}
-    <span class="cash-line">현금 ${{ "{:,.0f}".format(cash) }} · {{ "%.0f"|format(cash_pct * 100) }}%</span>
   </div>
-</section>
-
-<section class="stats">
-  <div class="stat">
-    <div class="k">시장 위험</div>
-    <div class="v">{{ risk_label }}</div>
-    <div class="hint">점수 {{ "%.2f"|format(risk_score) }}</div>
-  </div>
-  <div class="stat">
-    <div class="k">AI 신뢰도</div>
-    <div class="v">{{ "%.0f"|format(avg_confidence * 100) }}%</div>
-    <div class="hint">확실하지 않음</div>
-  </div>
-  <div class="stat">
-    <div class="k">AI 두뇌</div>
-    <div class="v">{{ "ON" if llm.available else "OFF" }}</div>
-    <div class="hint">{{ llm.provider if llm.available else "대기" }}</div>
-  </div>
-</section>
-
-<section class="card" id="action-cta">
-  <div class="card-head">
-    <div>
-      <h2 class="card-title">오늘 할 일</h2>
-      <p class="card-desc">승인 {{ pending_count }}건 · 추천 {{ actionable_count }}건 · 자율 {{ "ON" if autopilot.enabled else "OFF" }} · 무료 AI</p>
+  {% if goal.set %}
+  <div class="goal-bar-wrap">
+    <div class="goal-bar-meta">
+      <span>목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
+      <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
     </div>
+    <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
+    <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
   </div>
-  {% if autopilot.picks %}
-  <div class="picks" style="margin-bottom:10px">
-    {% for p in autopilot.picks[:3] %}
-    <div class="todo-item">
-      <div class="todo-main">
-        <div class="todo-sym">↑ {{ p.symbol }}</div>
-        <div class="todo-sub">모멘텀 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%</div>
-      </div>
-      <span class="badge badge-buy">스크리닝</span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  <div class="quick">
-    <form method="post" action="/actions/autopilot_now">
-      <button class="btn btn-primary btn-block" type="submit">AI가 골라서 매수·매도</button>
-    </form>
-    <form method="post" action="/actions/plan_trades">
-      <button class="btn btn-soft btn-block" type="submit">매매 계획 만들기</button>
-    </form>
-  </div>
-  {% if planned %}
-  {% for p in planned[:3] %}
-  <div class="todo-item">
-    <div class="todo-main">
-      <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
-      <div class="todo-sub">{{ "%.2f"|format(p.shares) }}주 · ${{ "%.2f"|format(p.price) }} · {{ p.rationale[:60] }}{% if p.rationale|length > 60 %}…{% endif %}</div>
-    </div>
-    <a class="btn btn-sm btn-primary" href="/trades#pending-approvals">처리</a>
-  </div>
-  {% endfor %}
-  {% elif actionable %}
-  {% for d in actionable[:3] %}
-  <div class="todo-item">
-    <div class="todo-main">
-      <div class="todo-sym">{{ d.symbol }} · {{ d.action_ko }}</div>
-      <div class="todo-sub">{{ d.rationale_short }}</div>
-    </div>
-    <span class="badge badge-{{ d.tone }}">{{ d.action_ko }}</span>
-  </div>
-  {% endfor %}
   {% else %}
-  <p class="todo-empty">지금은 관망이 맞습니다.<br/>AI 자율 판단을 눌러보세요.</p>
+  <p class="card-desc" style="margin-top:12px">목표가 없어요. <a class="link" href="/ai">AI자동</a>에서 설정하세요.</p>
   {% endif %}
 </section>
 
 <section class="card">
   <div class="card-head">
-    <h2 class="card-title">내 종목</h2>
-    <a class="link" href="/holdings">전체</a>
+    <div>
+      <h2 class="card-title">현금 · 충전</h2>
+      <p class="card-desc">쓸 수 있는 돈과 충전 위치</p>
+    </div>
+  </div>
+  <div class="money-grid">
+    <div class="money-cell">
+      <div class="k">현금</div>
+      <div class="v">${{ "{:,.2f}".format(cash) }}</div>
+    </div>
+    <div class="money-cell">
+      <div class="k">구매력</div>
+      <div class="v">${{ "{:,.2f}".format(broker.account.buying_power if broker.account else cash) }}</div>
+    </div>
+  </div>
+  <p class="card-desc" style="margin:10px 0">모드: <strong>{{ broker.mode_ko }}</strong>
+    {% if broker.configured %} · 연결됨{% else %} · 미연결{% endif %}
+  </p>
+  {% if broker.configured %}
+  <a class="btn btn-soft btn-block" href="{{ charge_url }}" target="_blank" rel="noopener">충전 / 입금하러 가기 (Alpaca)</a>
+  <form method="post" action="/actions/sync_broker" style="margin-top:8px" data-no-overlay="1">
+    <button class="btn btn-ghost btn-block" type="submit">잔고 새로고침</button>
+  </form>
+  {% else %}
+  <a class="btn btn-primary btn-block" href="/settings">설정에서 계좌 연결</a>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">투자한 종목</h2>
+      <p class="card-desc">{{ positions|length }}개 · 한눈에</p>
+    </div>
+    <a class="btn btn-sm btn-soft" href="/ai">AI로 굴리기</a>
   </div>
   {% if positions %}
-  {% for p in positions[:4] %}
-  <div class="holding">
-    <div class="holding-left">
-      <div class="holding-sym">
-        {{ p.symbol }}
-        <span class="badge badge-{{ p.tone }}">{{ p.action_ko }}</span>
-      </div>
-      <div class="holding-meta">{{ "%.2f"|format(p.shares) }}주 · 비중 {{ "%.1f"|format(p.weight * 100) }}%</div>
+  {% for p in positions %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ p.symbol }}</div>
+      <div class="desc">{{ "%.4f"|format(p.shares) }}주 · 평단 ${{ "%.2f"|format(p.avg_cost) }}</div>
     </div>
-    <div class="holding-right">
-      <div class="holding-value">${{ "{:,.0f}".format(p.value) }}</div>
-      <div class="holding-pnl {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
-        {% if p.pnl_pct >= 0 %}+{% endif %}{{ "%.2f"|format(p.pnl_pct * 100) }}%
+    <div class="right-col">
+      <strong>${{ "{:,.2f}".format(p.value) }}</strong>
+      <div class="desc {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
+        {{ "%+.1f"|format(p.pnl_pct * 100) }}%
       </div>
     </div>
   </div>
   {% endfor %}
   {% else %}
-  <p class="todo-empty">보유 종목이 없습니다.</p>
+  <p class="todo-empty">아직 보유 종목이 없어요.<br/>AI자동에서 한 번 돌려보세요.</p>
   {% endif %}
 </section>
 
-{% if headlines or macro.levels_ko %}
+{% if journal %}
 <section class="card">
-  <div class="card-head"><h2 class="card-title">시장 한눈에</h2></div>
-  {% if macro.levels_ko %}
-  <div class="chips">
-    {% for lv in macro.levels_ko[:6] %}
-    <span class="chip">{{ lv.label }} {{ "%.1f"|format(lv.value) }}</span>
-    {% endfor %}
+  <div class="card-head"><h2 class="card-title">최근 체결</h2></div>
+  {% for j in journal[:5] %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }} · {{ j.ts[:16]|replace('T',' ') }}</div>
+    </div>
+    <strong>${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
   </div>
-  {% endif %}
-  {% if headlines %}
-  <ul class="news">
-    {% for n in headlines[:4] %}
-    <li>
-      {% if n.link %}<a href="{{ n.link }}" target="_blank" rel="noopener">{{ n.title[:88] }}</a>
-      {% else %}{{ n.title[:88] }}{% endif %}
-      <small>{{ n.publisher }}</small>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
+  {% endfor %}
 </section>
 {% endif %}
-
-<section class="card">
-  <div class="card-head"><h2 class="card-title">빠른 이동</h2></div>
-  <div class="quick-links">
-    <a class="ql" href="/trades">거래·승인 →</a>
-    <a class="ql" href="/decisions">판단·백테스트 →</a>
-    <a class="ql" href="/settings">설정·브로커 →</a>
-  </div>
-</section>
 {% endblock %}

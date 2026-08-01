@@ -14,7 +14,7 @@
     {% endfor %}
   </div>
   <p class="card-desc">서버에서 돌아가는 중 · 창을 나가도 매수/매도는 계속됩니다.</p>
-  <a class="btn btn-soft btn-block" href="/trades?watch={{ job.id }}#autopilot-panel">거래 화면에서 보기 · 나가기</a>
+  <a class="btn btn-soft btn-block" href="/ai?watch={{ job.id }}">AI화면에서 보기 · 나가기</a>
   {% elif job.status == "done" %}
   <h2 class="job-title ok-text">완료</h2>
   <p id="job-msg">{{ job.message }}</p>

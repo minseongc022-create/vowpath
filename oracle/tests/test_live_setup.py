@@ -24,7 +24,7 @@ def test_settings_has_broker_form():
     client = TestClient(app)
     r = client.get("/settings")
     assert r.status_code == 200
-    assert "브로커 연결" in r.text
+    assert "계좌 연결" in r.text
     assert 'action="/actions/broker_connect"' in r.text
 
 

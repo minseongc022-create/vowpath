@@ -66,3 +66,48 @@ def first_trade_notional() -> float:
         return float(os.getenv("ORACLE_FIRST_TRADE_NOTIONAL", "8"))
     except ValueError:
         return 8.0
+
+
+def goal_equity() -> float | None:
+    """User target equity in USD. None = not set."""
+    raw = os.getenv("ORACLE_GOAL_EQUITY", "").strip()
+    if not raw:
+        return None
+    try:
+        val = float(raw)
+    except ValueError:
+        return None
+    return val if val > 0 else None
+
+
+def set_goal_equity(amount: float) -> float:
+    amount = max(1.0, float(amount))
+    upsert_env({"ORACLE_GOAL_EQUITY": f"{amount:.2f}"})
+    return amount
+
+
+def goal_progress(equity: float) -> dict:
+    """Progress toward user goal for dashboard."""
+    goal = goal_equity()
+    if not goal:
+        return {
+            "set": False,
+            "goal": None,
+            "equity": float(equity),
+            "pct": 0.0,
+            "remaining": None,
+            "reached": False,
+            "label": "목표 미설정",
+        }
+    pct = min(1.0, max(0.0, float(equity) / goal)) if goal else 0.0
+    remaining = max(0.0, goal - float(equity))
+    reached = float(equity) >= goal
+    return {
+        "set": True,
+        "goal": goal,
+        "equity": float(equity),
+        "pct": pct,
+        "remaining": remaining,
+        "reached": reached,
+        "label": "목표 달성!" if reached else f"목표까지 ${remaining:,.2f}",
+    }

@@ -1,4 +1,4 @@
-"""Autopilot + scroll UX smoke tests."""
+"""Autopilot + simplified AI UX smoke tests."""
 
 from __future__ import annotations
 
@@ -8,15 +8,13 @@ from oracle.dashboard.app import app
 from oracle.execution import autopilot as ap
 
 
-def test_trades_has_scroll_targets():
+def test_ai_page_has_live_targets():
     client = TestClient(app)
-    r = client.get("/trades")
+    r = client.get("/ai")
     assert r.status_code == 200
-    assert 'id="pending-approvals"' in r.text
-    assert 'id="action-cta"' in r.text
-    assert 'id="autopilot-panel"' in r.text
-    assert "골라서 매수" in r.text
+    assert 'id="ai-panel"' in r.text
     assert "ap-live-log" in r.text
+    assert "AI가 알아서 매수·매도 시작" in r.text
     assert "/static/oracle.js" in r.text
 
 
@@ -28,10 +26,10 @@ def test_autopilot_toggle_off(monkeypatch, tmp_path):
     client = TestClient(app)
     r = client.post("/actions/autopilot", data={"enabled": "0"}, follow_redirects=False)
     assert r.status_code == 303
-    assert "trades" in r.headers["location"]
+    assert "/ai" in r.headers["location"]
 
 
-def test_autopilot_now_redirects_to_trades_watch(monkeypatch, tmp_path):
+def test_autopilot_now_redirects_to_ai_watch(monkeypatch, tmp_path):
     env = tmp_path / ".env"
     env.write_text("ORACLE_AUTOPILOT=1\n", encoding="utf-8")
     monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
@@ -42,8 +40,7 @@ def test_autopilot_now_redirects_to_trades_watch(monkeypatch, tmp_path):
     r = client.post("/actions/autopilot_now", follow_redirects=False)
     assert r.status_code == 303
     loc = r.headers["location"]
-    assert loc.startswith("/trades?watch=")
-    assert "autopilot-panel" in loc
+    assert loc.startswith("/ai?watch=")
 
 
 def test_job_api_includes_logs(tmp_path, monkeypatch):

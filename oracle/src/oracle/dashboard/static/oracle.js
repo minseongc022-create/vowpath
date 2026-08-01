@@ -1,11 +1,11 @@
-/* Oracle dashboard — instant feedback + auto-scroll */
+/* Oracle dashboard — light feedback, no spam overlays */
 (function () {
   function ensureOverlay() {
     var el = document.getElementById("nav-busy");
     if (el) return el;
     el = document.createElement("div");
     el.id = "nav-busy";
-    el.innerHTML = '<div class="busy-card"><div class="spinner"></div><p>바로 처리 중…</p></div>';
+    el.innerHTML = '<div class="busy-card"><div class="spinner"></div><p>처리 중…</p></div>';
     document.body.appendChild(el);
     return el;
   }
@@ -17,60 +17,37 @@
     el.classList.add("on");
   }
 
-  function scrollToTarget() {
-    var hash = (location.hash || "").replace("#", "");
-    var prefer =
-      hash ||
-      (document.body.getAttribute("data-scroll") || "") ||
-      (document.querySelector("[data-autoscroll]") &&
-        document.querySelector("[data-autoscroll]").getAttribute("data-autoscroll"));
-
-    var el = null;
-    if (prefer) el = document.getElementById(prefer);
-    if (!el && document.querySelector(".flash")) el = document.getElementById("pending-approvals");
-    if (!el) el = document.getElementById("action-cta");
-    if (!el) return;
-
-    requestAnimationFrame(function () {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("pulse-focus");
-      var btn = el.querySelector("button.btn-primary, .btn.btn-primary");
-      if (btn) {
-        try { btn.focus({ preventScroll: true }); } catch (e) {}
-      }
-    });
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
-    scrollToTarget();
-
-    // Instant tap feedback on every form POST
     document.querySelectorAll("form[method='post']").forEach(function (form) {
       form.addEventListener("submit", function () {
         if (form.dataset.busy === "1") return;
         form.dataset.busy = "1";
+
         var btn = form.querySelector("button[type='submit'], button:not([type])");
+        if (form.dataset.hideSelf === "1" || (btn && btn.dataset.hideWhile === "1")) {
+          form.hidden = true;
+          if (btn) btn.disabled = true;
+          return; // page-specific live UI handles the rest
+        }
+
         if (btn) {
           btn.disabled = true;
           btn.classList.add("is-loading");
         }
+
+        if (form.dataset.noOverlay === "1") return;
         var label = (btn && btn.textContent) || "";
         showBusy(label.trim() ? label.trim() + "…" : "처리 중…");
       });
     });
 
-    // Instant feel on tab links
-    document.querySelectorAll("a.tab, a.ql, a.btn").forEach(function (a) {
+    document.querySelectorAll("a.tab").forEach(function (a) {
       a.addEventListener("click", function () {
         if (a.getAttribute("href") && a.getAttribute("href").charAt(0) === "/") {
-          showBusy("이동 중…");
+          // tiny soft feedback only for tab switches
+          a.classList.add("is-loading");
         }
       });
     });
   });
-
-  window.addEventListener("hashchange", scrollToTarget);
-  if (document.querySelector(".flash") && document.getElementById("pending-approvals")) {
-    if (!location.hash) location.hash = "pending-approvals";
-  }
 })();

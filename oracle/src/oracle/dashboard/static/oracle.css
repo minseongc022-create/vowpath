@@ -85,6 +85,59 @@ button, input, select {
 .btn-success { background: var(--green-soft); color: var(--green); }
 .btn-block { width: 100%; }
 .btn-sm { padding: 8px 12px; font-size: 0.82rem; border-radius: 12px; }
+.btn-xl { padding: 18px 16px; font-size: 1.05rem; border-radius: 18px; font-weight: 800; }
+.btn.is-loading, .tab.is-loading { opacity: 0.55; pointer-events: none; }
+.link { color: var(--blue); font-weight: 700; }
+.right-col { text-align: right; }
+.up { color: var(--red); }
+.down { color: var(--blue); }
+
+.money-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+.money-cell {
+  background: #f7f8fa;
+  border-radius: 16px;
+  padding: 14px;
+}
+.money-cell .k { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+.money-cell .v { font-size: 1.2rem; font-weight: 800; margin-top: 4px; letter-spacing: -0.03em; }
+
+.goal-form { margin-top: 8px; }
+.goal-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.goal-bar-wrap { margin-top: 14px; }
+.goal-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.goal-bar {
+  height: 10px;
+  background: #eef1f4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.goal-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #3182f6, #00a878);
+  border-radius: 999px;
+}
+.ai-hero { overflow: hidden; }
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink2);
+  margin: 8px 0 6px;
+}
+.stack { display: grid; gap: 4px; }
 .icon-btn {
   width: 40px;
   height: 40px;
@@ -107,12 +160,16 @@ button, input, select {
 }
 
 .hero {
-  background: var(--card);
+  background:
+    radial-gradient(120% 80% at 10% 0%, rgba(49,130,246,0.12), transparent 55%),
+    radial-gradient(90% 70% at 100% 20%, rgba(0,168,120,0.10), transparent 50%),
+    var(--card);
   border-radius: 28px;
   padding: 24px 22px 20px;
   box-shadow: var(--shadow);
   margin-bottom: 12px;
 }
+.money-hero { margin-bottom: 14px; }
 .hero-label { color: var(--muted); font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
 .hero-equity {
   font-size: clamp(2rem, 7vw, 2.6rem);
