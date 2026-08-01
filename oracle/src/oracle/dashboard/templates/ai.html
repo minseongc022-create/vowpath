@@ -67,16 +67,23 @@
   {% endif %}
 </section>
 
-{% if autopilot.picks %}
+  {% if autopilot.picks %}
 <section class="card">
   <div class="card-head">
-    <h2 class="card-title">관심 종목</h2>
+    <div>
+      <h2 class="card-title">탐색 결과</h2>
+      <p class="card-desc">전 유니버스 스캔 후 단타·장타 상위</p>
+    </div>
   </div>
-  {% for p in autopilot.picks[:4] %}
+  {% for p in autopilot.picks[:6] %}
   <div class="list-row pick-row">
     <div class="left">
-      <div class="title">{{ p.symbol }}</div>
-      <div class="desc">20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%</div>
+      <div class="title">{{ p.symbol }} · {% if p.horizon == 'short' %}단타{% elif p.horizon == 'long' %}장타{% else %}스윙{% endif %}</div>
+      <div class="desc">
+        5일 {{ "%+.1f"|format((p.mom_5 or 0) * 100) }}% ·
+        20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% ·
+        60일 {{ "%+.1f"|format((p.mom_60 or 0) * 100) }}%
+      </div>
     </div>
     <strong class="pick-score">{{ "%.2f"|format(p.screen_score) }}</strong>
   </div>

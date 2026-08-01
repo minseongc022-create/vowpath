@@ -24,13 +24,20 @@ def _dec(
     )
 
 
+def test_load_trade_universe_is_broad():
+    uni = pk.load_trade_universe()
+    assert "SPY" in uni
+    assert "NVDA" in uni
+    assert len(uni) >= 80
+
+
 def test_rank_promotes_strong_hold_to_buy(monkeypatch):
     monkeypatch.setattr(
         pk,
         "screen_universe",
         lambda *a, **k: [
-            pk.PickScore("NVDA", 0.08, 0.12, 0.05, 0.3, ["hot"]),
-            pk.PickScore("WEAK", -0.05, -0.08, -0.04, 0.4, ["cold"]),
+            pk.PickScore("NVDA", 0.08, 0.12, 0.05, 0.3, ["hot"], short_score=0.1, long_score=0.05),
+            pk.PickScore("WEAK", -0.05, -0.08, -0.04, 0.4, ["cold"], short_score=-0.05, long_score=-0.04),
         ],
     )
     buy, sell = pk.rank_decisions_for_trade(

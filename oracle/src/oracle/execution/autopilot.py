@@ -27,7 +27,12 @@ from oracle.execution.live_setup import (
 )
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
-from oracle.portfolio.picker import rank_decisions_for_trade, screen_universe, top_picks_summary
+from oracle.portfolio.picker import (
+    rank_decisions_for_trade,
+    screen_short_and_long,
+    screen_universe,
+    top_picks_summary,
+)
 from oracle.portfolio.store import load_portfolio
 
 logger = logging.getLogger("oracle.autopilot")
@@ -211,18 +216,38 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if gprog["reached"]:
             prog(f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
 
-    prog("① 전 종목 스크리닝 · 오를 후보 찾는 중…")
-    screened = screen_universe(limit=8)
-    picks_view = top_picks_summary(limit=5)
+    short_picks, long_picks, blend_picks = screen_short_and_long(
+        limit_short=6,
+        limit_long=6,
+        on_progress=prog,
+    )
+    picks_view = top_picks_summary(limit=8)
     _last["picks"] = picks_view
-    top_syms = [p.symbol for p in screened[:6]]
-    if top_syms:
-        prog("TOP " + " · ".join(f"{p.symbol}({p.screen_score:+.2f})" for p in screened[:5]))
-    held = list(portfolio.held_symbols())
-    # Shortlist: holdings + hottest names
-    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:2]]))[:7]
+    screened = blend_picks or screen_universe(limit=8)
 
-    prog(f"② AI가 상황·주문·리스크 전부 판단 · {', '.join(symbols)}")
+    if short_picks:
+        prog(
+            "단타 TOP "
+            + " · ".join(f"{p.symbol}({p.short_score:+.2f})" for p in short_picks[:4])
+        )
+    if long_picks:
+        prog(
+            "장타 TOP "
+            + " · ".join(f"{p.symbol}({p.long_score:+.2f})" for p in long_picks[:4])
+        )
+
+    held = list(portfolio.held_symbols())
+    # Deep AI on holdings + best short + best long (breadth without analyzing 100 names in LLM)
+    top_syms = list(
+        dict.fromkeys(
+            [p.symbol for p in short_picks[:4]]
+            + [p.symbol for p in long_picks[:4]]
+            + [p.symbol for p in blend_picks[:3]]
+        )
+    )
+    symbols = list(dict.fromkeys([*held, *top_syms]))[:10]
+
+    prog(f"② 심층 AI · 단타+장타 후보 {len(symbols)}종목 · {', '.join(symbols)}")
     result = OraclePipeline(settings).run(
         session="autopilot",
         symbols=symbols,
@@ -267,32 +292,42 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if executed >= 2:
             break
 
-    if not msgs and not near_goal:
-        if screened and screened[0].screen_score > 0.04:
-            from oracle.core.types import DecisionResult as DR
-            from oracle.core.types import RiskVeto
-            from oracle.agents.risk_manager import RiskManagerAgent
+    if not msgs and not (near_goal or reached):
+        # Fallback: take strongest short then strongest long from screen
+        from oracle.core.types import DecisionResult as DR
+        from oracle.core.types import RiskVeto
+        from oracle.agents.risk_manager import RiskManagerAgent
 
-            top = screened[0]
+        for tag, bucket, thresh in (
+            ("단타", short_picks, 0.03),
+            ("장타", long_picks, 0.04),
+        ):
+            if executed >= 2:
+                break
+            if not bucket:
+                continue
+            top = bucket[0]
+            score = top.short_score if tag == "단타" else top.long_score
+            if score < thresh:
+                continue
             fake = DR(
                 symbol=top.symbol,
                 action=Action.BUY,
                 confidence=0.55,
-                composite_score=min(0.6, top.screen_score * 2),
-                rationale=f"SCREEN fallback · {', '.join(top.reasons)}",
+                composite_score=min(0.65, score * 2),
+                rationale=f"SCREEN {tag} · {', '.join(top.reasons)}",
                 agent_opinions=[],
                 risk_veto=RiskVeto(active=False, reason="screen", confidence=0.5),
             )
             veto = RiskManagerAgent().veto(top.symbol, portfolio)
-            if not veto.active:
-                prog(f"스크린 폴백 매수 · {top.symbol}")
-                out = _execute_decision(fake, max_n=max_n)
-                msgs.append(f"[SCREEN] {out['message']}")
-                prog(out["message"])
-                executed += int(bool(out.get("ok")))
-            else:
-                msgs.append(f"[SCREEN] {top.symbol} 리스크거부로 스킵")
-                prog(msgs[-1])
+            if veto.active:
+                prog(f"[SCREEN {tag}] {top.symbol} 리스크거부로 스킵")
+                continue
+            prog(f"스크린 폴백 · {tag} 매수 {top.symbol}")
+            out = _execute_decision(fake, max_n=max_n)
+            msgs.append(f"[SCREEN {tag}] {out['message']}")
+            prog(out["message"])
+            executed += int(bool(out.get("ok")))
 
     if not msgs:
         msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"

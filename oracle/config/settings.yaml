@@ -7,6 +7,7 @@ system:
   timezone: America/New_York
 
 universe:
+  # Core seed list; full scan uses config/universe_liquid.yaml (100+ liquid names)
   symbols:
     - SPY
     - QQQ
@@ -17,8 +18,11 @@ universe:
     - AMZN
     - NVDA
     - META
+    - TSLA
     - JPM
     - XOM
+    - AMD
+    - AVGO
     - GLD
     - TLT
 
