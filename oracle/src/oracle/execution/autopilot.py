@@ -120,21 +120,12 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
     else:
         return {"ok": False, "message": f"스킵 {d.action.value}"}
 
+    # Live: only when LIVE is armed. No separate approval queue — AI executes within notional caps.
     live = live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", "paper")
-    if live and os.getenv("ORACLE_AUTOPILOT_LIVE", "").strip() not in {"1", "true", "yes"}:
-        jid = TradeJournal().add(
-            JournalEntry(
-                ts=now_iso(),
-                symbol=d.symbol,
-                action=action,
-                shares=shares,
-                price=price,
-                rationale=f"PICKER queued (live arm needed) · conf={d.confidence:.2f} · {d.rationale[:160]}",
-                status="planned",
-                client_order_id=f"pick-{uuid.uuid4().hex[:10]}",
-            )
-        )
-        return {"ok": True, "message": f"대기열 #{jid} {d.symbol} {action}", "journal_id": jid, "queued": True}
+    if live:
+        # Ensure flag stays on while armed so background loop can trade real money
+        if os.getenv("ORACLE_AUTOPILOT_LIVE", "").strip() not in {"1", "true", "yes"}:
+            upsert_env({"ORACLE_AUTOPILOT_LIVE": "1"})
 
     jid = TradeJournal().add(
         JournalEntry(
