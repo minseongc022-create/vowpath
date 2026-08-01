@@ -848,10 +848,15 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                     f"버핏 예외 · 강한 눌림 단타만 소액 허용 · 한도 ${max_n:,.2f} · "
                     f"점수 {verdict.score:+.2f}"
                 )
-        elif verdict.owner_quality >= 0.55 and mode in {"hunt", "panic"}:
+        elif verdict.buy_ok:
+            # Conviction sizing from owner desk (1.0 / 0.7 / 0.35)
+            hint = float(getattr(verdict, "size_hint", 0.7) or 0.7)
+            if hint > 0:
+                max_n = min(max_n, max(max_n * hint, first_trade_notional() * 0.25))
             prog(
-                f"버핏 우량 · {best_buy.symbol} 사업품질 {verdict.owner_quality:.0%} · "
-                f"안전마진 {verdict.margin_of_safety:.0%}"
+                f"버핏 우량 · {best_buy.symbol} 품질 {verdict.owner_quality:.0%} · "
+                f"안전마진 {verdict.margin_of_safety:.0%} · 확신비중 {hint:.0%} · "
+                f"한도 ${max_n:,.2f}"
             )
     _last["buffett"] = buffett_desk
 

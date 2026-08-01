@@ -10,10 +10,11 @@ from oracle.investing.buffett import BUFFETT_PRINCIPLES, evaluate_buffett, princ
 
 
 def test_principles_catalog_nonempty():
-    assert len(BUFFETT_PRINCIPLES) >= 8
+    assert len(BUFFETT_PRINCIPLES) >= 16
     rows = principles_as_dicts()
     assert rows[0]["title_ko"]
-    assert "원문" not in rows[0]["rule_ko"]
+    ids = {p["id"] for p in rows}
+    assert {"cash_machine", "opportunity_cost", "avoid_speculation"} <= ids
 
 
 def test_evaluate_rejects_weak_levered_name():
