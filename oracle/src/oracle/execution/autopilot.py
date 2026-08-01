@@ -181,7 +181,7 @@ def _push_log(msg: str, *, kind: str = "autopilot", persist_activity: bool = Tru
         logs[-1] = {"ts": ts, "clock": clock, "text": msg}
     else:
         logs.append({"ts": ts, "clock": clock, "text": msg})
-    _last["logs"] = logs[-48:]
+    _last["logs"] = logs[-100:]
     _last["message"] = msg
     _last["ts"] = ts
     # Skip persisting heartbeat spam; keep in live panel only

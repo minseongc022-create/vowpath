@@ -1,23 +1,110 @@
 {% extends "base.html" %}
 {% block title %}AI자동{% endblock %}
-{% block subtitle %}내 돈 → 목표까지 알아서{% endblock %}
+{% block subtitle %}24시간 실시간 모니터{% endblock %}
 {% block content %}
 <section class="card ai-hero" id="ai-panel"
          data-enabled="{{ 1 if autopilot.enabled else 0 }}"
          data-ever="{{ 1 if autopilot.cycle or autopilot.last_ts else 0 }}">
   <div class="ai-top">
     <div>
-      <h2 class="card-title">AI 투자 · 24시간</h2>
-      <p class="card-desc">한도 안 돈만 쓰며 시장을 계속 분석합니다. 창을 닫아도 서버에서 멈추지 않습니다.</p>
+      <h2 class="card-title">AI 실시간 · 24시간</h2>
+      <p class="card-desc">지금 돌아가는 분석·판단·주문을 그대로 보여줍니다. 창을 닫아도 서버는 계속됩니다.</p>
     </div>
     <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="ap-chip">
       {% if autopilot.enabled %}24h ON{% else %}정지{% endif %}
     </span>
   </div>
 
-  <div class="goal-box">
-    <h3 class="plan-title">① 먼저 한도·목표 넣기</h3>
-    <p class="card-desc plan-lead">계좌 중 <strong>AI 한도</strong>만 사용합니다. 멀면 사냥, 가까우면 잠금. 못 불리거나·잃기만 하거나·거짓말하면 AI는 <strong>영원히 소멸</strong>합니다.</p>
+  {# ===== PRIMARY: realtime monitor window ===== #}
+  <div class="live-monitor {% if autopilot.enabled or autopilot.busy or watch_job_id %}is-live{% endif %}"
+       id="ap-live"
+       {% if not watch_job_id and not autopilot.enabled and not autopilot.busy %}hidden{% endif %}>
+    <div class="live-panel-head">
+      <span class="spinner spinner-sm" id="ap-spinner" aria-hidden="true"
+            style="visibility:{% if autopilot.busy or watch_job_id %}visible{% else %}hidden{% endif %}"></span>
+      <strong id="ap-live-title">실시간 모니터</strong>
+      <span class="chip chip-ok" id="ap-live-chip" style="margin-left:auto">
+        {% if autopilot.busy or watch_job_id %}분석 중{% elif autopilot.enabled %}계속 가동중{% else %}대기{% endif %}
+      </span>
+    </div>
+
+    <div class="live-stats" id="ap-stats">
+      <div class="live-stat"><div class="k">사이클</div><div class="v" id="st-cycle">#{{ autopilot.cycle or 0 }}</div></div>
+      <div class="live-stat"><div class="k">모드</div><div class="v" id="st-mode">{{ goal.mode_ko if goal and goal.mode_ko else "—" }}</div></div>
+      <div class="live-stat"><div class="k">상태</div><div class="v" id="st-phase">{% if autopilot.busy %}분석 중{% elif autopilot.enabled %}감시 중{% else %}정지{% endif %}</div></div>
+      <div class="live-stat"><div class="k">다음까지</div><div class="v" id="st-next">—</div></div>
+      <div class="live-stat"><div class="k">AI 남음</div><div class="v" id="st-remain">{% if capital.remaining_budget is not none %}${{ "{:,.0f}".format(capital.remaining_budget) }}{% else %}—{% endif %}</div></div>
+      <div class="live-stat"><div class="k">목표</div><div class="v" id="st-goal">{% if goal.set %}{{ "%.0f"|format(goal.pct * 100) }}%{% else %}—{% endif %}</div></div>
+    </div>
+
+    <p class="live-now-msg" id="ap-live-msg">{{ autopilot.last_message or "시작을 누르면 실시간 분석이 여기에 쏟아집니다." }}</p>
+    <p class="card-desc" id="ap-live-hint">시장 스캔 → 두뇌 판단 → 한도 내 주문 · 로그는 초 단위로 갱신됩니다.</p>
+
+    <div class="live-log live-log-xl" id="ap-live-log" aria-live="polite">
+      {% for line in autopilot.logs[-40:] %}
+      <div class="live-log-line"><span class="log-clock">{{ line.clock or "——" }}</span><span>{{ line.text }}</span></div>
+      {% else %}
+      <div class="live-log-line muted"><span class="log-clock">——</span><span>아직 로그 없음 · 시작하면 여기에 실시간으로 쌓입니다</span></div>
+      {% endfor %}
+    </div>
+
+    <div class="live-picks-wrap">
+      <div class="live-picks-head">
+        <strong>지금 보고 있는 종목</strong>
+        <span class="card-desc" id="picks-meta">{% if autopilot.picks_ts %}갱신 {{ autopilot.picks_ts[:19]|replace('T',' ') }} UTC{% endif %}</span>
+      </div>
+      <div id="ap-live-picks">
+        {% if autopilot.picks %}
+        {% for p in autopilot.picks[:8] %}
+        <div class="list-row pick-row">
+          <div class="left">
+            <div class="title">{{ p.symbol }} · {% if p.horizon == 'short' %}단타{% elif p.horizon == 'long' %}장타{% else %}스윙{% endif %}</div>
+            <div class="desc">
+              5일 {{ "%+.1f"|format((p.mom_5 or 0) * 100) }}% ·
+              20일 {{ "%+.1f"|format((p.mom_20 or 0) * 100) }}%
+            </div>
+          </div>
+          <strong class="pick-score">{{ "%.2f"|format(p.screen_score or 0) }}</strong>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="card-desc" id="picks-empty">탐색 결과가 나오면 여기에 실시간으로 표시됩니다.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-controls">
+    <h3 class="plan-title">시작 / 정지</h3>
+    {% if not mission_ready and not autopilot.enabled %}
+    <p class="card-desc">아래 미션(한도·목표·기간)을 저장한 뒤 시작하세요.</p>
+    {% endif %}
+
+    <form method="post" action="/actions/autopilot" id="stop-form" data-no-overlay="1"
+          {% if not autopilot.enabled and not watch_job_id %}hidden{% endif %}>
+      <input type="hidden" name="enabled" value="0" />
+      <button class="btn btn-stop btn-block" type="submit" id="stop-btn">멈추기</button>
+    </form>
+
+    <form method="post" action="/actions/autopilot_now" id="run-form" class="run-form"
+          data-no-overlay="1" data-hide-self="1"
+          {% if autopilot.enabled or watch_job_id or not mission_ready %}hidden{% endif %}>
+      <button class="btn btn-primary btn-block btn-run" type="submit" id="run-btn"
+              {% if not mission_ready %}disabled{% endif %}>
+        {% if autopilot.cycle or autopilot.last_ts %}다시 시작{% else %}24시간 투자 시작{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <p class="card-desc status-line" id="ap-last" {% if autopilot.enabled or watch_job_id or not autopilot.last_message %}hidden{% endif %}>
+    {{ autopilot.last_message }}
+  </p>
+</section>
+
+<section class="card">
+  <div class="goal-box" style="margin:0;padding:0;border:0;background:transparent">
+    <h3 class="plan-title">미션 (한도 · 목표)</h3>
+    <p class="card-desc plan-lead">AI 한도만 사용 · 멀면 사냥 · 가까우면 잠금 · 거짓말/손실만 하면 영원 소멸.</p>
     <form method="post" action="/actions/set_goal" id="goal-form" data-no-overlay="1">
       <input type="hidden" name="next_path" value="/ai" />
       <div class="goal-grid goal-grid-3">
@@ -43,139 +130,27 @@
       {% if not autopilot.enabled %}
       <button class="btn btn-soft btn-block goal-save-block" type="submit">미션 저장</button>
       {% else %}
-      <p class="card-desc">가동 중에는 미션이 잠깁니다. 바꾸려면 먼저 멈추세요.</p>
+      <p class="card-desc">가동 중에는 미션이 잠깁니다. 바꾸려면 멈추세요.</p>
       {% endif %}
-      <p class="card-desc goal-threat-hint">한도 초과 매수 없음 · 사실만 · 목표 미달·거짓말 시 영원 소멸.</p>
     </form>
-
-    {% if capital.set %}
-    <div class="plan-stats">
-      <div class="plan-stat">
-        <div class="k">AI 한도</div>
-        <div class="v money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</div>
-      </div>
-      <div class="plan-stat">
-        <div class="k">사용중</div>
-        <div class="v money" data-usd="{{ '%.2f'|format(capital.open_cost) }}">${{ "{:,.0f}".format(capital.open_cost) }}</div>
-      </div>
-      <div class="plan-stat">
-        <div class="k">AI 남음</div>
-        <div class="v money" data-usd="{{ '%.2f'|format(capital.remaining_budget or 0) }}">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
-      </div>
-      <div class="plan-stat">
-        <div class="k">미션자산</div>
-        <div class="v money" data-usd="{{ '%.2f'|format(capital.sleeve or capital.budget) }}">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
-      </div>
-    </div>
-    {% endif %}
 
     {% if goal.set and mission_ready %}
     <div class="goal-bar-wrap">
       <div class="goal-bar-meta">
         <span>
           미션 <span class="money" data-usd="{{ '%.2f'|format(goal.stake) }}">${{ "{:,.2f}".format(goal.stake) }}</span>
-          · 한도 <span class="money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</span>
-          / 목표 <span class="money" data-usd="{{ '%.2f'|format(goal.goal) }}">${{ "{:,.0f}".format(goal.goal) }}</span>
+          · 목표 <span class="money" data-usd="{{ '%.2f'|format(goal.goal) }}">${{ "{:,.0f}".format(goal.goal) }}</span>
         </span>
-        <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
+        <span id="mission-pct">{{ "%.0f"|format(goal.pct * 100) }}%</span>
       </div>
-      <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
-      {% if goal.deadline %}
-      <div class="goal-bar-meta">
-        <span>마감 {{ goal.deadline }}{% if goal.days_left is not none %} · D-{{ goal.days_left }}{% endif %}</span>
-        <span>
-          {% if goal.mode_ko %}{{ goal.mode_ko }} · {% endif %}
-          {% if goal.reached %}생존 확정{% elif goal.survival_threat %}소멸 위험{% else %}페이스 {% if goal.pace_ok %}OK{% else %}지연{% endif %}{% endif %}
-        </span>
-      </div>
-      {% endif %}
+      <div class="goal-bar"><i id="mission-bar" style="width:{{ (goal.pct * 100)|int }}%"></i></div>
       {% if goal.threat_ko %}
-      <p class="threat-banner {% if goal.survival_threat %}threat-hot{% endif %}">{{ goal.threat_ko }}</p>
-      {% endif %}
-      {% if goal.reached %}
-      <p class="card-desc">목표 달성 · 안정 수호 중. 더 높이려면 한도·목표·기간을 올려주세요.</p>
+      <p class="threat-banner {% if goal.survival_threat %}threat-hot{% endif %}" id="mission-threat">{{ goal.threat_ko }}</p>
       {% endif %}
     </div>
     {% endif %}
   </div>
-
-  <div class="ai-controls">
-    <h3 class="plan-title">② 시작 / 정지</h3>
-    {% if not mission_ready and not autopilot.enabled %}
-    <p class="card-desc">위에서 한도·목표·기간을 저장한 뒤 시작하세요.</p>
-    {% endif %}
-
-    {# Running: only STOP #}
-    <form method="post" action="/actions/autopilot" id="stop-form" data-no-overlay="1"
-          {% if not autopilot.enabled and not watch_job_id %}hidden{% endif %}>
-      <input type="hidden" name="enabled" value="0" />
-      <button class="btn btn-stop btn-block" type="submit" id="stop-btn">멈추기</button>
-      <p class="card-desc">누르면 24시간 분석·매매가 즉시 멈춥니다.</p>
-    </form>
-
-    {# Stopped: START or RESTART #}
-    <form method="post" action="/actions/autopilot_now" id="run-form" class="run-form"
-          data-no-overlay="1" data-hide-self="1"
-          {% if autopilot.enabled or watch_job_id or not mission_ready %}hidden{% endif %}>
-      <button class="btn btn-primary btn-block btn-run" type="submit" id="run-btn"
-              {% if not mission_ready %}disabled{% endif %}>
-        {% if autopilot.cycle or autopilot.last_ts %}다시 시작{% else %}24시간 투자 시작{% endif %}
-      </button>
-      <p class="card-desc">시작 후 계속 시장을 보고, 한도 안에서만 사고팝니다.</p>
-    </form>
-  </div>
-
-  <div class="live-panel" id="ap-live"
-       {% if not watch_job_id and not autopilot.enabled and not autopilot.busy %}hidden{% endif %}>
-    <div class="live-panel-head">
-      <span class="spinner spinner-sm" id="ap-spinner" aria-hidden="true"
-            style="visibility:{% if autopilot.busy or watch_job_id %}visible{% else %}hidden{% endif %}"></span>
-      <strong>AI 진행 · 24시간</strong>
-      <span class="chip chip-ok" id="ap-live-chip" style="margin-left:auto">
-        {% if autopilot.enabled %}계속 가동중{% else %}대기{% endif %}
-      </span>
-    </div>
-    <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "시작…" }}</p>
-    <p class="card-desc" id="ap-live-hint">사이클마다 시장 분석 → 판단 → 한도 내 주문. 창을 나가도 멈추지 않습니다.</p>
-    <div class="live-log" id="ap-live-log" aria-live="polite">
-      {% for line in autopilot.logs[-16:] %}
-      <div class="live-log-line"><span class="log-clock">{{ line.clock or "——" }}</span><span>{{ line.text }}</span></div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <p class="card-desc status-line" id="ap-last" {% if autopilot.enabled or watch_job_id or not autopilot.last_message %}hidden{% endif %}>
-    {% if autopilot.last_ts %}<span class="log-clock">{{ autopilot.logs[-1].clock if autopilot.logs else "" }}</span>{% endif %}
-    {{ autopilot.last_message }}
-  </p>
 </section>
-
-  {% if autopilot.picks %}
-<section class="card">
-  <div class="card-head">
-    <div>
-      <h2 class="card-title">탐색 결과</h2>
-      <p class="card-desc" id="picks-meta">
-        전 유니버스 스캔 후 단타·장타 상위
-        {% if autopilot.picks_ts %} · {{ autopilot.picks_ts[:19]|replace('T',' ') }} UTC{% endif %}
-      </p>
-    </div>
-  </div>
-  {% for p in autopilot.picks[:6] %}
-  <div class="list-row pick-row">
-    <div class="left">
-      <div class="title">{{ p.symbol }} · {% if p.horizon == 'short' %}단타{% elif p.horizon == 'long' %}장타{% else %}스윙{% endif %}</div>
-      <div class="desc">
-        5일 {{ "%+.1f"|format((p.mom_5 or 0) * 100) }}% ·
-        20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% ·
-        60일 {{ "%+.1f"|format((p.mom_60 or 0) * 100) }}%
-      </div>
-    </div>
-    <strong class="pick-score">{{ "%.2f"|format(p.screen_score) }}</strong>
-  </div>
-  {% endfor %}
-</section>
-{% endif %}
 
 <section class="card">
   <div class="card-head">
@@ -207,6 +182,8 @@
   const panel = document.getElementById("ap-live");
   const msgEl = document.getElementById("ap-live-msg");
   const logEl = document.getElementById("ap-live-log");
+  const picksEl = document.getElementById("ap-live-picks");
+  const picksMeta = document.getElementById("picks-meta");
   const chip = document.getElementById("ap-chip");
   const liveChip = document.getElementById("ap-live-chip");
   const spinner = document.getElementById("ap-spinner");
@@ -214,8 +191,18 @@
   const stopForm = document.getElementById("stop-form");
   const runBtn = document.getElementById("run-btn");
   const lastEl = document.getElementById("ap-last");
+  const stCycle = document.getElementById("st-cycle");
+  const stMode = document.getElementById("st-mode");
+  const stPhase = document.getElementById("st-phase");
+  const stNext = document.getElementById("st-next");
+  const stRemain = document.getElementById("st-remain");
+  const stGoal = document.getElementById("st-goal");
   let seen = 0;
   let doneReload = false;
+  let lastTs = null;
+  let intervalSec = 180;
+  let enabled = false;
+  let busy = false;
 
   function clockOf(line) {
     if (!line) return "";
@@ -223,6 +210,24 @@
     const ts = line.ts || "";
     if (ts.length >= 19) return ts.substr(11, 8);
     return "";
+  }
+  function money(n) {
+    if (n == null || isNaN(n)) return "—";
+    return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  function hzKo(h) {
+    if (h === "short") return "단타";
+    if (h === "long") return "장타";
+    return "스윙";
+  }
+  function renderAllLogs(logs) {
+    if (!logEl || !Array.isArray(logs)) return;
+    logEl.innerHTML = logs.slice(-60).map(function (x) {
+      return '<div class="live-log-line"><span class="log-clock">' +
+        (clockOf(x) || "——") + '</span><span>' + (x.text || "") + '</span></div>';
+    }).join("") || '<div class="live-log-line muted"><span class="log-clock">——</span><span>로그 대기…</span></div>';
+    seen = logs.length;
+    logEl.scrollTop = logEl.scrollHeight;
   }
   function addLogs(logs) {
     if (!logEl || !Array.isArray(logs)) return;
@@ -242,34 +247,84 @@
     seen = logs.length;
     logEl.scrollTop = logEl.scrollHeight;
   }
-  function renderAllLogs(logs) {
-    if (!logEl || !Array.isArray(logs)) return;
-    logEl.innerHTML = logs.slice(-24).map(function (x) {
-      return '<div class="live-log-line"><span class="log-clock">' +
-        (clockOf(x) || "——") + '</span><span>' + (x.text || "") + '</span></div>';
+  function renderPicks(picks) {
+    if (!picksEl) return;
+    if (!picks || !picks.length) {
+      picksEl.innerHTML = '<p class="card-desc">탐색 결과가 나오면 여기에 실시간으로 표시됩니다.</p>';
+      return;
+    }
+    picksEl.innerHTML = picks.slice(0, 8).map(function (p) {
+      const m5 = ((p.mom_5 || 0) * 100).toFixed(1);
+      const m20 = ((p.mom_20 || 0) * 100).toFixed(1);
+      const sc = (p.screen_score != null ? Number(p.screen_score) : 0).toFixed(2);
+      return '<div class="list-row pick-row"><div class="left"><div class="title">' +
+        (p.symbol || "") + " · " + hzKo(p.horizon) +
+        '</div><div class="desc">5일 ' + (m5 >= 0 ? "+" : "") + m5 +
+        "% · 20일 " + (m20 >= 0 ? "+" : "") + m20 +
+        '%</div></div><strong class="pick-score">' + sc + "</strong></div>";
     }).join("");
-    seen = logs.length;
-    logEl.scrollTop = logEl.scrollHeight;
   }
-
-  function setRunningUI(on, busy) {
-    if (panel) panel.hidden = false;
-    if (stopForm) stopForm.hidden = !on && !busy && !watchId;
-    if (runForm) runForm.hidden = !!(on || busy || !missionReady);
-    if (lastEl) lastEl.hidden = !!(on || busy);
+  function updateCountdown() {
+    if (!stNext) return;
+    if (busy) { stNext.textContent = "진행중"; return; }
+    if (!enabled) { stNext.textContent = "—"; return; }
+    if (!lastTs) { stNext.textContent = "~" + intervalSec + "s"; return; }
+    const t = Date.parse(lastTs);
+    if (!t) { stNext.textContent = "~" + intervalSec + "s"; return; }
+    const left = Math.max(0, Math.ceil((t + intervalSec * 1000 - Date.now()) / 1000));
+    stNext.textContent = left > 0 ? left + "s" : "곧";
+  }
+  function setRunningUI(on, isBusy) {
+    enabled = !!on;
+    busy = !!isBusy;
+    if (panel) {
+      panel.hidden = false;
+      panel.classList.toggle("is-live", on || isBusy);
+      panel.classList.toggle("is-busy", !!isBusy);
+    }
+    if (stopForm) stopForm.hidden = !on && !isBusy && !watchId;
+    if (runForm) runForm.hidden = !!(on || isBusy || !missionReady);
+    if (lastEl) lastEl.hidden = !!(on || isBusy);
     if (chip) {
       chip.textContent = on ? "24h ON" : "정지";
       chip.className = "chip " + (on ? "chip-ok" : "chip-danger");
     }
-    if (liveChip) liveChip.textContent = busy ? "분석 사이클" : (on ? "계속 가동중" : "대기");
-    if (spinner) spinner.style.visibility = busy ? "visible" : "hidden";
-    if (runBtn && (on || busy)) {
-      /* keep label; form hidden */
-    } else if (runBtn && !on) {
-      const ever = document.getElementById("ai-panel");
-      const had = ever && ever.dataset.ever === "1";
+    if (liveChip) liveChip.textContent = isBusy ? "분석 중" : (on ? "계속 가동중" : "대기");
+    if (spinner) spinner.style.visibility = isBusy ? "visible" : "hidden";
+    if (stPhase) stPhase.textContent = isBusy ? "분석 중" : (on ? "감시 중" : "정지");
+    if (runBtn && !on) {
+      const root = document.getElementById("ai-panel");
+      const had = root && root.dataset.ever === "1";
       runBtn.textContent = had ? "다시 시작" : "24시간 투자 시작";
     }
+    updateCountdown();
+  }
+  function applyStatus(j) {
+    setRunningUI(!!j.enabled, !!j.busy);
+    if (msgEl && j.last_message) msgEl.textContent = j.last_message;
+    if (stCycle) stCycle.textContent = "#" + (j.cycle || 0);
+    if (stMode) stMode.textContent = j.mode_ko || j.mode || "—";
+    if (stRemain && j.capital) stRemain.textContent = money(j.capital.remaining);
+    if (stGoal && j.goal_pct != null) stGoal.textContent = Math.round(Number(j.goal_pct) * 100) + "%";
+    intervalSec = Number(j.interval_sec) || 180;
+    lastTs = j.last_ts || lastTs;
+    if (j.logs) renderAllLogs(j.logs);
+    if (j.picks) renderPicks(j.picks);
+    if (picksMeta) {
+      picksMeta.textContent = j.picks_clock ? ("갱신 " + j.picks_clock) : (j.picks_ts || "");
+    }
+    const threat = document.getElementById("mission-threat");
+    if (threat && j.threat_ko) threat.textContent = j.threat_ko;
+    const bar = document.getElementById("mission-bar");
+    const pctEl = document.getElementById("mission-pct");
+    if (j.goal_pct != null) {
+      const pct = Math.round(Number(j.goal_pct) * 100);
+      if (bar) bar.style.width = pct + "%";
+      if (pctEl) pctEl.textContent = pct + "%";
+    }
+    const root = document.getElementById("ai-panel");
+    if (root && (j.cycle || j.last_ts)) root.dataset.ever = "1";
+    updateCountdown();
   }
 
   async function pollJob() {
@@ -277,23 +332,19 @@
     setRunningUI(true, true);
     try {
       const r = await fetch("/api/job/" + watchId);
-      if (!r.ok) {
-        pollAutopilot();
-        return;
-      }
+      if (!r.ok) { pollAutopilot(); return; }
       const j = await r.json();
       if (msgEl && j.message) msgEl.textContent = j.message;
       addLogs(j.logs || []);
       if (j.status === "done" || j.status === "error") {
         if (doneReload) return;
         doneReload = true;
-        /* Stay on 24h mode — reload once so stop button + continuous poll show */
         const flash = encodeURIComponent(j.message || "24시간 가동 계속");
-        setTimeout(function () { location.href = "/ai?flash=" + flash; }, 700);
+        setTimeout(function () { location.href = "/ai?flash=" + flash; }, 600);
         return;
       }
     } catch (e) {}
-    setTimeout(pollJob, 800);
+    setTimeout(pollJob, 700);
   }
 
   async function pollAutopilot() {
@@ -301,32 +352,29 @@
     try {
       const r = await fetch("/api/autopilot");
       const j = await r.json();
-      setRunningUI(!!j.enabled, !!j.busy);
-      if (msgEl && j.last_message) msgEl.textContent = j.last_message;
-      if (j.enabled || j.busy) {
-        if (panel) panel.hidden = false;
-        renderAllLogs(j.logs || []);
-        if (lastEl) lastEl.hidden = true;
-      } else {
+      applyStatus(j);
+      if (!j.enabled && !j.busy) {
         if (panel && !(j.logs && j.logs.length)) panel.hidden = true;
         if (lastEl && j.last_message) {
           lastEl.hidden = false;
           lastEl.textContent = j.last_message;
         }
-        if (j.logs && j.logs.length) renderAllLogs(j.logs);
+      } else if (panel) {
+        panel.hidden = false;
       }
-      const root = document.getElementById("ai-panel");
-      if (root && (j.cycle || j.last_ts)) root.dataset.ever = "1";
     } catch (e) {}
-    setTimeout(pollAutopilot, 2000);
+    const wait = (enabled || busy) ? 1000 : 2500;
+    setTimeout(pollAutopilot, wait);
   }
 
   if (runForm) {
     runForm.addEventListener("submit", function () {
       setRunningUI(true, true);
-      if (msgEl) msgEl.textContent = "시작… 24시간 서버 가동 (창 닫아도 계속)";
+      if (panel) panel.hidden = false;
+      if (msgEl) msgEl.textContent = "시작… 실시간 모니터 연결 중";
     });
   }
+  setInterval(updateCountdown, 1000);
   if (watchId) pollJob();
   else pollAutopilot();
 })();

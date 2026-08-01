@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import secrets
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -724,7 +725,22 @@ def api_job(job_id: str, _: None = Depends(require_auth)):
 
 @app.get("/api/autopilot")
 def api_autopilot(_: None = Depends(require_auth)):
+    """Realtime 24h monitor payload for the AI page live window."""
     st = autopilot_status()
+    settings = get_settings()
+    portfolio = load_portfolio(settings.portfolio_path)
+    plan = capital_plan(portfolio, cash=float(portfolio.cash))
+    sleeve = sleeve_equity(portfolio)
+    gprog = goal_progress(float(portfolio.equity()), sleeve=sleeve)
+    if st.busy:
+        phase = "analyzing"
+        phase_ko = "지금 시장 분석·판단 중"
+    elif st.enabled:
+        phase = "watching"
+        phase_ko = "대기 · 다음 사이클 준비"
+    else:
+        phase = "stopped"
+        phase_ko = "정지됨"
     return JSONResponse(
         {
             "enabled": st.enabled,
@@ -735,12 +751,27 @@ def api_autopilot(_: None = Depends(require_auth)):
             "last_clock": format_clock(st.last_ts, with_date=True),
             "last_message": st.last_message,
             "last_ok": st.last_ok,
-            "picks": st.picks,
+            "picks": st.picks[:10],
             "picks_ts": st.picks_ts,
             "picks_clock": format_clock(st.picks_ts, with_date=True),
-            "logs": st.logs[-32:],
+            "logs": st.logs[-60:],
             "cycle": st.cycle,
-            "server_note": "창을 닫아도 서버 자율매매는 계속됩니다",
+            "phase": phase,
+            "phase_ko": phase_ko,
+            "mode": gprog.get("mode"),
+            "mode_ko": gprog.get("mode_ko"),
+            "urgency": gprog.get("urgency"),
+            "goal_pct": gprog.get("pct"),
+            "goal_label": gprog.get("label"),
+            "threat_ko": gprog.get("threat_ko"),
+            "capital": {
+                "budget": plan.get("budget"),
+                "remaining": plan.get("remaining_budget"),
+                "open_cost": plan.get("open_cost"),
+                "sleeve": plan.get("sleeve"),
+            },
+            "server_note": "24시간 실시간 · 창을 닫아도 서버에서 계속됩니다",
+            "now_iso": datetime.now(UTC).isoformat(),
         }
     )
 

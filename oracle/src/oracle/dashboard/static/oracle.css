@@ -842,19 +842,60 @@ button, input, select {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.live-panel {
+.live-panel, .live-monitor {
   text-align: left;
   background: #f7f8fa;
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 18px;
+  padding: 14px 14px 12px;
   margin: 10px 0 14px;
+  border: 1px solid var(--line);
+}
+.live-monitor.is-live {
+  background: linear-gradient(180deg, #f3f8ff 0%, #f7f8fa 48%);
+  border-color: #d7e6ff;
+}
+.live-monitor.is-busy {
+  box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.18);
 }
 .live-panel-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+.live-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.live-stat {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+}
+.live-stat .k {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.live-stat .v {
   font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  word-break: keep-all;
+}
+.live-now-msg {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
 }
 .job-msg { font-weight: 600; color: var(--ink); }
 .live-log {
@@ -869,14 +910,42 @@ button, input, select {
   font-size: 0.8rem;
   line-height: 1.45;
 }
+.live-log-xl {
+  max-height: min(52vh, 420px);
+  min-height: 220px;
+  font-size: 0.84rem;
+}
 .job-live .live-log { max-height: 280px; }
 .live-log-line {
-  padding: 4px 0;
+  padding: 5px 0;
   color: var(--ink2);
   border-bottom: 1px solid #f0f2f4;
+  display: flex;
+  gap: 8px;
 }
 .live-log-line:last-child { border-bottom: none; }
-.live-log-new { color: var(--ink); font-weight: 600; }
+.live-log-line.muted { color: var(--muted); }
+.live-log-new { color: var(--ink); font-weight: 600; animation: liveFlash 0.8s ease; }
+@keyframes liveFlash {
+  from { background: #e8f2ff; }
+  to { background: transparent; }
+}
+.live-picks-wrap {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.live-picks-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+@media (max-width: 560px) {
+  .live-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .news { list-style: none; margin: 12px 0 0; padding: 0; }
 .news li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 0.88rem; }

@@ -20,6 +20,8 @@ def test_ai_page_has_live_targets(monkeypatch):
     assert r.status_code == 200
     assert 'id="ai-panel"' in r.text
     assert "ap-live-log" in r.text
+    assert "실시간 모니터" in r.text
+    assert "st-cycle" in r.text
     assert "24시간 투자 시작" in r.text or "다시 시작" in r.text
     assert "멈추기" in r.text
     assert "/static/oracle.js" in r.text
