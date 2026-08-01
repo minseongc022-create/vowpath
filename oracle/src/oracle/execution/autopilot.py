@@ -57,6 +57,10 @@ _last: dict = {
     "logs": [],
     "cycle": 0,
     "picks_ts": None,
+    "stage": "stopped",  # analyzing | investing | watching | stopped
+    "stage_ko": "정지",
+    "situation": "아직 시작 전입니다.",
+    "last_action": "",
 }
 _STATE_NAME = "autopilot_state.json"
 
@@ -76,6 +80,50 @@ class AutopilotStatus:
     logs: list
     picks_ts: str | None = None
     cycle: int = 0
+    stage: str = "stopped"
+    stage_ko: str = "정지"
+    situation: str = ""
+    last_action: str = ""
+
+
+def us_equity_session() -> dict:
+    """Rough US cash-equity session (EDT/EST approx via UTC)."""
+    now = datetime.now(UTC)
+    # US Eastern ≈ UTC-4 (EDT) Mar–Nov; UTC-5 otherwise — use -4 for summer bias
+    # Regular: Mon–Fri 13:30–20:00 UTC (EDT)
+    weekday = now.weekday()  # 0=Mon
+    minutes = now.hour * 60 + now.minute
+    open_m, close_m = 13 * 60 + 30, 20 * 60
+    if weekday >= 5:
+        return {
+            "open": False,
+            "label": "주말 · 미국 정규장 휴장",
+            "hint": "장은 닫혀 있어도 분석은 계속하고, 주문은 브로커/페이퍼 규칙에 따릅니다.",
+        }
+    if open_m <= minutes < close_m:
+        return {
+            "open": True,
+            "label": "미국 정규장 개장중",
+            "hint": "실시간 체결 가능한 시간대입니다.",
+        }
+    return {
+        "open": False,
+        "label": "미국 정규장 휴장(장전/장후)",
+        "hint": "분석은 계속 · 주문은 대기/제한될 수 있습니다.",
+    }
+
+
+def _set_stage(stage: str, situation: str | None = None) -> None:
+    ko = {
+        "analyzing": "분석중",
+        "investing": "투자중",
+        "watching": "대기중",
+        "stopped": "정지",
+    }.get(stage, stage)
+    _last["stage"] = stage
+    _last["stage_ko"] = ko
+    if situation is not None:
+        _last["situation"] = situation
 
 
 def enabled() -> bool:
@@ -108,6 +156,10 @@ def _persist_state() -> None:
             "logs": list(_last.get("logs") or [])[-40:],
             "cycle": int(_last.get("cycle") or 0),
             "picks_ts": _last.get("picks_ts"),
+            "stage": _last.get("stage"),
+            "stage_ko": _last.get("stage_ko"),
+            "situation": _last.get("situation"),
+            "last_action": _last.get("last_action"),
             # never persist busy=true across restarts
             "busy": False,
         }
@@ -134,6 +186,10 @@ def _load_state() -> None:
                     "logs": list(data.get("logs") or [])[-40:],
                     "cycle": int(data.get("cycle") or 0),
                     "picks_ts": data.get("picks_ts"),
+                    "stage": data.get("stage") or _last.get("stage"),
+                    "stage_ko": data.get("stage_ko") or _last.get("stage_ko"),
+                    "situation": data.get("situation") or _last.get("situation"),
+                    "last_action": data.get("last_action") or _last.get("last_action"),
                     "busy": False,
                 }
             )
@@ -157,6 +213,17 @@ def status() -> AutopilotStatus:
                     "text": text,
                 }
             )
+    stage = str(_last.get("stage") or ("analyzing" if _last.get("busy") else ("watching" if enabled() else "stopped")))
+    if _last.get("busy") and stage not in {"analyzing", "investing"}:
+        stage = "analyzing"
+    if not enabled() and not _last.get("busy"):
+        stage = "stopped"
+    ko = {
+        "analyzing": "분석중",
+        "investing": "투자중",
+        "watching": "대기중",
+        "stopped": "정지",
+    }.get(stage, str(_last.get("stage_ko") or stage))
     return AutopilotStatus(
         enabled=enabled(),
         running=_thread is not None and _thread.is_alive(),
@@ -169,6 +236,10 @@ def status() -> AutopilotStatus:
         logs=logs,
         picks_ts=_last.get("picks_ts"),
         cycle=int(_last.get("cycle") or 0),
+        stage=stage,
+        stage_ko=ko,
+        situation=str(_last.get("situation") or ""),
+        last_action=str(_last.get("last_action") or ""),
     )
 
 
@@ -345,10 +416,19 @@ def run_once(on_progress: ProgressFn | None = None) -> dict:
                 logger.debug("progress callback failed", exc_info=True)
 
     _last["busy"] = True
+    _set_stage("analyzing", "사이클 시작 · 시장 분석 준비")
     try:
         return _run_once_locked(prog)
     finally:
         _last["busy"] = False
+        if enabled():
+            sess = us_equity_session()
+            _set_stage(
+                "watching",
+                f"다음 사이클 대기 · {sess['label']} · {_last.get('last_action') or '직전 결과 유지'}",
+            )
+        else:
+            _set_stage("stopped", "사용자가 멈춤")
         _cycle_lock.release()
 
 
@@ -360,6 +440,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     if ks.active:
         msg = f"긴급정지로 스킵 · {ks.reason}"
         _set_last(msg, ok=False)
+        _set_stage("watching", msg)
         prog(msg)
         return {"ok": False, "message": msg}
 
@@ -367,10 +448,16 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     sleeve = sleeve_equity(portfolio)
     plan = capital_plan(portfolio, cash=float(portfolio.cash))
     gprog = goal_progress(equity, sleeve=sleeve)
+    session = us_equity_session()
     cycle = int(_last.get("cycle") or 0) + 1
     _last["cycle"] = cycle
     urgency = float(gprog.get("urgency") or 0.0)
     mode = str(gprog.get("mode") or "hunt")
+    _set_stage(
+        "analyzing",
+        f"사이클 #{cycle} 분석중 · 모드 {gprog.get('mode_ko') or mode} · {session['label']}",
+    )
+    prog(f"장 상태 · {session['label']} · {session['hint']}")
     # Deep brain every 3rd cycle, or when survival pressure is high
     deep = (
         (cycle % 3 == 0)
@@ -475,7 +562,17 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         fast_llm=not deep,
         deep_llm=deep,
     )
-    best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
+    huntish = mode in {"hunt", "panic"} or urgency >= 0.55
+    best_buy, best_sell = rank_decisions_for_trade(
+        result.decisions,
+        held=set(held),
+        aggressive=huntish,
+    )
+    prog(
+        f"AI 후보 정리 · 매수={'있음 '+best_buy.symbol if best_buy else '없음'} · "
+        f"매도={'있음 '+best_sell.symbol if best_sell else '없음'}"
+        + (" · 사냥(공격 기준)" if huntish else "")
+    )
 
     # 단타 익절: 보유가 급등(rip)하면 AI Hold여도 매도 후보로 승격
     if rip_exits and (
@@ -542,6 +639,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     msgs: list[str] = []
     executed = 0
+    skip_reasons: list[str] = []
 
     prog("③ 매수·매도 후보 선택 (단타=싸게사고비싸게팔기)")
     if best_sell:
@@ -550,44 +648,58 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         prog(f"매수 후보 {best_buy.symbol} · {best_buy.action.value} · conf={best_buy.confidence:.2f}")
     elif best_buy:
         prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 달성")
+        skip_reasons.append("목표 달성으로 신규 매수 보류")
         best_buy = None
+    if not best_buy and not best_sell:
+        skip_reasons.append("AI가 고확신 매수/매도 후보를 못 뽑음")
 
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
         if dec is None:
             continue
+        _set_stage(
+            "investing",
+            f"투자중 · {label} {dec.symbol} 주문 실행 · 한도 ${max_n:,.2f}",
+        )
         prog(f"④ 실제 주문 실행 · {label} {dec.symbol}")
         out = _execute_decision(dec, max_n=max_n)
         msgs.append(f"[{label}] {out['message']}")
         prog(out["message"])
         if out.get("ok"):
             executed += 1
+            _last["last_action"] = f"{label} {dec.symbol} 성공"
+        else:
+            skip_reasons.append(f"{label} {dec.symbol} 실패/스킵 · {out.get('message')}")
         if executed >= 2:
             break
 
     # Screen fallback buys only in hunt/panic — never in lock/won
-    if not msgs and mode in {"hunt", "panic"} and not reached:
+    if not msgs and mode in {"hunt", "panic"} and not reached and remain > 0.5:
         from oracle.core.types import DecisionResult as DR
         from oracle.core.types import RiskVeto
         from oracle.agents.risk_manager import RiskManagerAgent
 
+        _set_stage("investing", "투자중 · 스크린 폴백으로 단타/장타 집행 시도")
+        prog("사냥 폴백 · 스크린 상위 종목으로 한도 내 매수 시도")
         max_fills = 4 if urgency >= 0.7 or mode == "panic" else 3
         for tag, bucket, thresh in (
-            ("단타", short_picks, 0.015 if urgency >= 0.55 else 0.025),
-            ("장타", long_picks, 0.06 if urgency >= 0.7 else 0.05),
+            ("단타", short_picks, 0.008 if huntish else 0.02),
+            ("장타", long_picks, 0.035 if huntish else 0.05),
         ):
             if executed >= max_fills:
                 break
             if not bucket:
+                skip_reasons.append(f"{tag} 스크린 후보 없음")
                 continue
             top = bucket[0]
             score = top.short_score if tag == "단타" else top.long_score
             if score < thresh:
+                skip_reasons.append(f"{tag} 상위 {top.symbol} 점수 {score:.3f} < {thresh}")
                 continue
             fake = DR(
                 symbol=top.symbol,
                 action=Action.BUY,
                 confidence=0.55,
-                composite_score=min(0.65, score * 2),
+                composite_score=min(0.65, max(score * 2, 0.2)),
                 rationale=f"SCREEN {tag} · {', '.join(top.reasons)}",
                 agent_opinions=[],
                 risk_veto=RiskVeto(active=False, reason="screen", confidence=0.5),
@@ -595,23 +707,35 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             veto = RiskManagerAgent().veto(top.symbol, portfolio)
             if veto.active:
                 prog(f"[SCREEN {tag}] {top.symbol} 리스크거부로 스킵")
+                skip_reasons.append(f"{top.symbol} 리스크거부")
                 continue
-            prog(f"스크린 폴백 · {tag} 매수 {top.symbol}")
+            prog(f"스크린 폴백 · {tag} 매수 {top.symbol} (score={score:.3f})")
             out = _execute_decision(fake, max_n=max_n)
             msgs.append(f"[SCREEN {tag}] {out['message']}")
             prog(out["message"])
-            executed += int(bool(out.get("ok")))
+            if out.get("ok"):
+                executed += 1
+                _last["last_action"] = f"SCREEN {tag} {top.symbol}"
+            else:
+                skip_reasons.append(out.get("message") or f"{top.symbol} 주문 실패")
 
     if not msgs:
-        msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"
+        why = " · ".join(skip_reasons[:4]) if skip_reasons else "강한 매수/매도 엣지 없음"
+        msg = f"관망 · {why}"
         if mode == "lock" or near_goal:
-            msg = "잠금/근접 · 무리한 매수 없이 이익 보호"
+            msg = f"잠금/근접 관망 · 이익 보호 · {why}"
         elif mode == "won" or reached:
-            msg = "목표 달성 · 안정 수호 중"
+            msg = "목표 달성 · 안정 수호 중 (신규 매수 없음)"
+        if not session.get("open"):
+            msg += f" · {session['label']}"
+        _last["last_action"] = msg
+        _set_stage("watching", f"대기중 · {msg}")
         _set_last(msg, picks=picks_view)
         return {"ok": True, "message": msg, "run_id": result.run_id, "picks": picks_view}
 
     msg = " · ".join(msgs)
+    _last["last_action"] = msg
+    _set_stage("investing" if executed else "watching", f"투자 결과 · {msg}")
     _set_last(msg, ok=executed > 0, picks=picks_view)
     return {
         "ok": executed > 0,
@@ -680,8 +804,10 @@ def set_enabled(on: bool, *, allow_live: bool = False) -> None:
     upsert_env(updates)
     if on:
         start_background()
+        _set_stage("watching", "24시간 ON · 곧 분석 사이클이 시작됩니다")
         _set_last("24시간 ON · AI 한도만 · 시장 분석·매매 계속 (창 꺼도 유지)")
         _push_log("24시간 자율투자 시작 · 멈추기 전까지 사이클 반복")
     else:
+        _set_stage("stopped", "정지 · 다시 시작을 눌러야 재개")
         _set_last("정지됨 · 다시 시작 버튼을 눌러야 재개")
         _push_log("사용자가 멈춤 · 24시간 루프 대기")

@@ -732,15 +732,17 @@ def api_autopilot(_: None = Depends(require_auth)):
     plan = capital_plan(portfolio, cash=float(portfolio.cash))
     sleeve = sleeve_equity(portfolio)
     gprog = goal_progress(float(portfolio.equity()), sleeve=sleeve)
-    if st.busy:
-        phase = "analyzing"
-        phase_ko = "지금 시장 분석·판단 중"
-    elif st.enabled:
-        phase = "watching"
-        phase_ko = "대기 · 다음 사이클 준비"
-    else:
-        phase = "stopped"
-        phase_ko = "정지됨"
+    from oracle.execution.autopilot import us_equity_session
+
+    sess = us_equity_session()
+    stage = st.stage or ("analyzing" if st.busy else ("watching" if st.enabled else "stopped"))
+    stage_ko = st.stage_ko or {
+        "analyzing": "분석중",
+        "investing": "투자중",
+        "watching": "대기중",
+        "stopped": "정지",
+    }.get(stage, stage)
+    situation = st.situation or st.last_message or stage_ko
     return JSONResponse(
         {
             "enabled": st.enabled,
@@ -751,19 +753,24 @@ def api_autopilot(_: None = Depends(require_auth)):
             "last_clock": format_clock(st.last_ts, with_date=True),
             "last_message": st.last_message,
             "last_ok": st.last_ok,
+            "last_action": st.last_action,
             "picks": st.picks[:10],
             "picks_ts": st.picks_ts,
             "picks_clock": format_clock(st.picks_ts, with_date=True),
             "logs": st.logs[-60:],
             "cycle": st.cycle,
-            "phase": phase,
-            "phase_ko": phase_ko,
+            "stage": stage,
+            "stage_ko": stage_ko,
+            "situation": situation,
+            "phase": stage,
+            "phase_ko": stage_ko,
             "mode": gprog.get("mode"),
             "mode_ko": gprog.get("mode_ko"),
             "urgency": gprog.get("urgency"),
             "goal_pct": gprog.get("pct"),
             "goal_label": gprog.get("label"),
             "threat_ko": gprog.get("threat_ko"),
+            "market": sess,
             "capital": {
                 "budget": plan.get("budget"),
                 "remaining": plan.get("remaining_budget"),

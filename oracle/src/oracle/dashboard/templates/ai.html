@@ -23,22 +23,25 @@
       <span class="spinner spinner-sm" id="ap-spinner" aria-hidden="true"
             style="visibility:{% if autopilot.busy or watch_job_id %}visible{% else %}hidden{% endif %}"></span>
       <strong id="ap-live-title">실시간 모니터</strong>
-      <span class="chip chip-ok" id="ap-live-chip" style="margin-left:auto">
-        {% if autopilot.busy or watch_job_id %}분석 중{% elif autopilot.enabled %}계속 가동중{% else %}대기{% endif %}
+      <span class="stage-badge stage-watching" id="ap-stage-badge" style="margin-left:auto">
+        {% if autopilot.busy or watch_job_id %}분석중{% elif autopilot.enabled %}대기중{% else %}정지{% endif %}
       </span>
     </div>
 
     <div class="live-stats" id="ap-stats">
+      <div class="live-stat"><div class="k">지금 상태</div><div class="v" id="st-phase">{% if autopilot.busy %}분석중{% elif autopilot.enabled %}대기중{% else %}정지{% endif %}</div></div>
       <div class="live-stat"><div class="k">사이클</div><div class="v" id="st-cycle">#{{ autopilot.cycle or 0 }}</div></div>
-      <div class="live-stat"><div class="k">모드</div><div class="v" id="st-mode">{{ goal.mode_ko if goal and goal.mode_ko else "—" }}</div></div>
-      <div class="live-stat"><div class="k">상태</div><div class="v" id="st-phase">{% if autopilot.busy %}분석 중{% elif autopilot.enabled %}감시 중{% else %}정지{% endif %}</div></div>
+      <div class="live-stat"><div class="k">미션 모드</div><div class="v" id="st-mode">{{ goal.mode_ko if goal and goal.mode_ko else "—" }}</div></div>
+      <div class="live-stat"><div class="k">장 상태</div><div class="v" id="st-market">확인중</div></div>
       <div class="live-stat"><div class="k">다음까지</div><div class="v" id="st-next">—</div></div>
       <div class="live-stat"><div class="k">AI 남음</div><div class="v" id="st-remain">{% if capital.remaining_budget is not none %}${{ "{:,.0f}".format(capital.remaining_budget) }}{% else %}—{% endif %}</div></div>
       <div class="live-stat"><div class="k">목표</div><div class="v" id="st-goal">{% if goal.set %}{{ "%.0f"|format(goal.pct * 100) }}%{% else %}—{% endif %}</div></div>
+      <div class="live-stat"><div class="k">직전 행동</div><div class="v v-sm" id="st-action">—</div></div>
     </div>
 
     <p class="live-now-msg" id="ap-live-msg">{{ autopilot.last_message or "시작을 누르면 실시간 분석이 여기에 쏟아집니다." }}</p>
-    <p class="card-desc" id="ap-live-hint">시장 스캔 → 두뇌 판단 → 한도 내 주문 · 로그는 초 단위로 갱신됩니다.</p>
+    <p class="live-situation" id="ap-situation">현재 상황을 불러오는 중…</p>
+    <p class="card-desc" id="ap-live-hint">분석중=시장·종목 판단 · 투자중=실제 주문 · 대기중=다음 사이클 준비. 1초마다 갱신.</p>
 
     <div class="live-log live-log-xl" id="ap-live-log" aria-live="polite">
       {% for line in autopilot.logs[-40:] %}
@@ -185,18 +188,21 @@
   const picksEl = document.getElementById("ap-live-picks");
   const picksMeta = document.getElementById("picks-meta");
   const chip = document.getElementById("ap-chip");
-  const liveChip = document.getElementById("ap-live-chip");
+  const stageBadge = document.getElementById("ap-stage-badge");
   const spinner = document.getElementById("ap-spinner");
   const runForm = document.getElementById("run-form");
   const stopForm = document.getElementById("stop-form");
   const runBtn = document.getElementById("run-btn");
   const lastEl = document.getElementById("ap-last");
+  const situationEl = document.getElementById("ap-situation");
   const stCycle = document.getElementById("st-cycle");
   const stMode = document.getElementById("st-mode");
   const stPhase = document.getElementById("st-phase");
   const stNext = document.getElementById("st-next");
   const stRemain = document.getElementById("st-remain");
   const stGoal = document.getElementById("st-goal");
+  const stMarket = document.getElementById("st-market");
+  const stAction = document.getElementById("st-action");
   let seen = 0;
   let doneReload = false;
   let lastTs = null;
@@ -274,7 +280,20 @@
     const left = Math.max(0, Math.ceil((t + intervalSec * 1000 - Date.now()) / 1000));
     stNext.textContent = left > 0 ? left + "s" : "곧";
   }
-  function setRunningUI(on, isBusy) {
+  function paintStage(stage, stageKo) {
+    const s = stage || "stopped";
+    const ko = stageKo || ({ analyzing: "분석중", investing: "투자중", watching: "대기중", stopped: "정지" })[s] || s;
+    if (stPhase) stPhase.textContent = ko;
+    if (stageBadge) {
+      stageBadge.textContent = ko;
+      stageBadge.className = "stage-badge stage-" + s;
+    }
+    if (panel) {
+      panel.classList.toggle("is-analyzing", s === "analyzing");
+      panel.classList.toggle("is-investing", s === "investing");
+    }
+  }
+  function setRunningUI(on, isBusy, stage, stageKo) {
     enabled = !!on;
     busy = !!isBusy;
     if (panel) {
@@ -289,9 +308,8 @@
       chip.textContent = on ? "24h ON" : "정지";
       chip.className = "chip " + (on ? "chip-ok" : "chip-danger");
     }
-    if (liveChip) liveChip.textContent = isBusy ? "분석 중" : (on ? "계속 가동중" : "대기");
-    if (spinner) spinner.style.visibility = isBusy ? "visible" : "hidden";
-    if (stPhase) stPhase.textContent = isBusy ? "분석 중" : (on ? "감시 중" : "정지");
+    paintStage(stage || (isBusy ? "analyzing" : (on ? "watching" : "stopped")), stageKo);
+    if (spinner) spinner.style.visibility = (stage === "analyzing" || stage === "investing" || isBusy) ? "visible" : "hidden";
     if (runBtn && !on) {
       const root = document.getElementById("ai-panel");
       const had = root && root.dataset.ever === "1";
@@ -300,10 +318,22 @@
     updateCountdown();
   }
   function applyStatus(j) {
-    setRunningUI(!!j.enabled, !!j.busy);
+    setRunningUI(!!j.enabled, !!j.busy, j.stage, j.stage_ko);
     if (msgEl && j.last_message) msgEl.textContent = j.last_message;
+    if (situationEl) {
+      const parts = [];
+      if (j.situation) parts.push(j.situation);
+      if (j.market && j.market.label) parts.push("장: " + j.market.label);
+      if (j.market && j.market.hint) parts.push(j.market.hint);
+      situationEl.textContent = parts.join(" · ") || "상황 갱신 중…";
+    }
     if (stCycle) stCycle.textContent = "#" + (j.cycle || 0);
     if (stMode) stMode.textContent = j.mode_ko || j.mode || "—";
+    if (stMarket && j.market) {
+      stMarket.textContent = j.market.open ? "개장중" : (j.market.label || "휴장");
+      stMarket.title = j.market.hint || "";
+    }
+    if (stAction) stAction.textContent = j.last_action || j.last_message || "—";
     if (stRemain && j.capital) stRemain.textContent = money(j.capital.remaining);
     if (stGoal && j.goal_pct != null) stGoal.textContent = Math.round(Number(j.goal_pct) * 100) + "%";
     intervalSec = Number(j.interval_sec) || 180;

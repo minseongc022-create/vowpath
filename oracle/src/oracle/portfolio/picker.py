@@ -195,16 +195,24 @@ def rank_decisions_for_trade(
     decisions: list[DecisionResult],
     *,
     held: set[str],
+    aggressive: bool = False,
 ) -> tuple[DecisionResult | None, DecisionResult | None]:
-    """Return (best_buy, best_sell) from AI decisions + screen boost."""
+    """Return (best_buy, best_sell) from AI decisions + screen boost.
+
+    aggressive=True (hunt mode): lower conf/score bars so more actionable trades surface.
+    """
     screen = {p.symbol: p for p in screen_universe(limit=40)}
     buy_cands: list[tuple[float, DecisionResult]] = []
     sell_cands: list[tuple[float, DecisionResult]] = []
+    min_conf = 0.28 if aggressive else 0.36
+    promote_score = 0.12 if aggressive else 0.22
+    promote_conf = 0.38 if aggressive else 0.45
+    sell_score = -0.12 if aggressive else -0.18
 
     for d in decisions:
         if d.risk_veto and d.risk_veto.active and d.action in (Action.BUY, Action.ADD):
             continue
-        if d.confidence < 0.36:
+        if d.confidence < min_conf:
             continue
         sc = screen.get(d.symbol)
         boost = sc.screen_score if sc else 0.0
@@ -213,14 +221,16 @@ def rank_decisions_for_trade(
             boost += 0.15 * max(sc.short_score, sc.long_score)
         edge = d.composite_score * d.confidence
 
-        if d.action in (Action.BUY, Action.ADD) or (d.composite_score > 0.22 and d.confidence >= 0.45):
+        if d.action in (Action.BUY, Action.ADD) or (
+            d.composite_score > promote_score and d.confidence >= promote_conf
+        ):
             if d.risk_veto and d.risk_veto.active:
                 continue
             rank = edge + 0.35 * boost + (0.05 if d.symbol not in held else 0.0)
             buy_cands.append((rank, d))
 
         if d.symbol in held and (
-            d.action in (Action.REDUCE, Action.SELL) or d.composite_score < -0.18
+            d.action in (Action.REDUCE, Action.SELL) or d.composite_score < sell_score
         ):
             rank = (-edge) + (0.2 if (sc and sc.screen_score < 0) else 0.0)
             sell_cands.append((rank, d))
@@ -232,7 +242,9 @@ def rank_decisions_for_trade(
     best_sell = sell_cands[0][1] if sell_cands else None
 
     if best_buy and best_buy.action not in (Action.BUY, Action.ADD):
-        if best_buy.composite_score >= 0.22 and not (best_buy.risk_veto and best_buy.risk_veto.active):
+        if best_buy.composite_score >= promote_score and not (
+            best_buy.risk_veto and best_buy.risk_veto.active
+        ):
             hz = screen.get(best_buy.symbol)
             tag = f" [{hz.horizon}]" if hz else ""
             best_buy = best_buy.model_copy(
@@ -243,7 +255,7 @@ def rank_decisions_for_trade(
                 }
             )
     if best_sell and best_sell.action not in (Action.REDUCE, Action.SELL):
-        if best_sell.composite_score <= -0.18:
+        if best_sell.composite_score <= sell_score:
             best_sell = best_sell.model_copy(
                 update={
                     "action": Action.SELL if best_sell.composite_score <= -0.4 else Action.REDUCE,

@@ -857,6 +857,40 @@ button, input, select {
 .live-monitor.is-busy {
   box-shadow: 0 0 0 2px rgba(49, 130, 246, 0.18);
 }
+.live-monitor.is-analyzing {
+  border-color: #9ec5ff;
+}
+.live-monitor.is-investing {
+  border-color: #7dd3a7;
+  background: linear-gradient(180deg, #eefbf3 0%, #f7f8fa 55%);
+}
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.stage-analyzing { background: #dbeafe; color: #1d4ed8; }
+.stage-investing { background: #d1fae5; color: #047857; }
+.stage-watching { background: #e5e7eb; color: #374151; }
+.stage-stopped { background: #fee2e2; color: #b91c1c; }
+.live-situation {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink2);
+  line-height: 1.45;
+}
+.live-stat .v-sm {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
 .live-panel-head {
   display: flex;
   align-items: center;
