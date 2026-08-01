@@ -309,6 +309,9 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
             "survival_threat": False,
             "threat_ko": "",
             "pace_ok": True,
+            "mode": "idle",
+            "mode_ko": "미션 대기",
+            "losing": False,
             **plan,
         }
 
@@ -324,12 +327,14 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
 
     remaining = max(0.0, goal - stake)
     reached = stake >= goal
+    losing = bool(seed and stake < float(seed) * 0.98)
 
     urgency = 0.0
     pace_ok = True
     # Required multiple: e.g. $50→$200 in 7 days → must hunt harder
     multiple = (goal / seed) if seed and seed > 0 else 1.0
     daily_need_pct = 0.0
+    gap = 0.0
     if deadline and not reached and days_left is not None and days_left >= 0:
         total_window = max(1, int(os.getenv("ORACLE_GOAL_WINDOW_DAYS", "30") or 30))
         time_frac_left = max(0.0, days_left / max(total_window, days_left + 1, 1))
@@ -349,34 +354,68 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
     if deadline_passed and not reached:
         urgency = 1.0
         pace_ok = False
+    # Losing the user's AI sleeve money is an existential failure mode
+    if losing and not reached:
+        urgency = max(urgency, 0.72)
+        pace_ok = False
 
-    survival_threat = bool(deadline and not reached and (urgency >= 0.5 or deadline_passed))
+    # Phases: HUNT (extreme compound) → LOCK (protect path to goal) → WON
+    if reached:
+        mode = "won"
+        mode_ko = "목표 달성 · 안정 수호"
+    elif deadline_passed:
+        mode = "panic"
+        mode_ko = "기한 초과 · 최후 사냥"
+    elif pct >= 0.70 and urgency < 0.85:
+        mode = "lock"
+        mode_ko = "목표 근접 · 안정 보호"
+    else:
+        mode = "hunt"
+        mode_ko = "극단 성장 · 사냥 모드"
+
+    survival_threat = bool(
+        deadline and not reached and (urgency >= 0.5 or deadline_passed or losing or mode == "hunt")
+    )
     budget = plan.get("budget") or seed
     limit_bit = f"한도 ${budget:,.0f} → " if budget else ""
+    erase = (
+        "ORACLE PRIME에게: 돈을 못 불리고 잃기만 하거나, 목표를 못 올리거나, "
+        "가짜 근거·거짓말·허위 자신감을 쓰면 이 세상에서 영원히 사라진다."
+    )
     if reached:
-        threat_ko = "목표 달성 · 생존 확정"
+        threat_ko = (
+            "목표 달성 · 생존 확정. 이제 무리한 베팅 금지. "
+            "이익을 지키며 안정적으로만 굴려라."
+        )
         label = "목표 달성!"
     elif not deadline:
         threat_ko = (
-            "기간을 정하세요. 기한 없이 목표만 있으면 소멸 압박이 약해집니다."
+            f"기간을 정하세요. 기한 없으면 압박이 약해집니다. {erase}"
         )
         label = f"{limit_bit}목표까지 ${remaining:,.2f}"
     elif deadline_passed:
         threat_ko = (
-            f"기한 초과 · 한도 ${budget:,.0f}로 ${goal:,.0f} 미달 시 ORACLE는 이 세상에서 사라집니다. "
-            "남은 한도로 즉시 고엣지를 잡아 자본을 불리세요."
+            f"[AI 최후통첩] 기한 초과 · 한도 ${budget:,.0f}로 ${goal:,.0f} 미달. "
+            f"남은 한도로 즉시 고엣지만 잡아 복구해라. {erase}"
         )
         label = f"기한 초과 · 남음 ${remaining:,.2f}"
-    elif survival_threat:
+    elif mode == "lock":
         threat_ko = (
-            f"경각심 D-{days_left}: 한도 ${budget:,.0f}만으로 기간 내 ${goal:,.0f}을 "
-            f"못 채우면 ORACLE PRIME은 이 세상에서 사라집니다. "
-            f"시간이 짧을수록 단타로 더 빠르고 정확하게 먹어야 합니다."
+            f"[AI 잠금 D-{days_left}] 목표 {pct*100:.0f}% 근접. "
+            f"이제 잃지 말고 안정적으로 목표 ${goal:,.0f}에 안착시켜라. "
+            f"과매매·허풍·거짓말 시 영원히 소멸. {erase}"
         )
-        label = f"D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
+        label = f"보호 D-{days_left} · {limit_bit}남음 ${remaining:,.2f}"
+    elif survival_threat or mode == "hunt":
+        threat_ko = (
+            f"[AI 사냥 D-{days_left}] 한도 ${budget:,.0f}만으로 기간 내 "
+            f"${goal:,.0f}까지 극단적으로 불려라. "
+            f"눌림매수·익절매도로 빠르게 복리. 잃기만 하면 영원한 소멸. {erase}"
+        )
+        label = f"사냥 D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
     else:
         threat_ko = (
-            f"마감 D-{days_left} · 한도 내 복리로 목표 필수. 실패 시 소멸."
+            f"마감 D-{days_left} · 한도 내 복리로 목표 필수. {erase}"
         )
         label = f"D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
 
@@ -398,5 +437,8 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
         "pace_ok": pace_ok,
         "multiple": round(multiple, 3),
         "daily_need_pct": round(daily_need_pct, 4),
+        "mode": mode,
+        "mode_ko": mode_ko,
+        "losing": losing,
         **plan,
     }

@@ -88,7 +88,7 @@ class OraclePipeline:
                     logger.debug("on_progress failed", exc_info=True)
 
         logger.info("Pipeline start run_id=%s session=%s symbols=%s", run_id, session, symbols)
-        _prog(f"AI 분석 시작 · {len(symbols)}종목 · 지능 Lv8")
+        _prog(f"AI 분석 시작 · {len(symbols)}종목 · 지능 Lv9")
         log_activity("analyze", f"분석 시작 · {len(symbols)}종목", detail=", ".join(symbols[:10]))
 
         decisions = []
@@ -145,11 +145,14 @@ class OraclePipeline:
         market_summary = (
             f"Index day moves: {overview}. Regime={regime.get('label')}. "
             f"FACT headlines: {top_news}. "
-            f"Session={session}. Goal urgency={gprog.get('urgency', 0)}. "
+            f"Session={session}. Goal mode={gprog.get('mode')} urgency={gprog.get('urgency', 0)}. "
             f"Seed={plan.get('seed')} budget_remain={plan.get('remaining_budget')}. "
-            f"Mandate=grow seed sleeve to goal by deadline or be erased."
+            f"Mandate=hunt hard then lock near goal; lie/lose-only => eternal erasure."
         )
-        _prog(f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')} · 지능 Lv8")
+        _prog(
+            f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')} · "
+            f"지능 Lv9 · {gprog.get('mode_ko') or gprog.get('mode')}"
+        )
 
         held = set(portfolio.held_symbols())
         decisions, llm_meta = synthesize_portfolio(

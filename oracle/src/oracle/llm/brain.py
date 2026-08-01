@@ -1,6 +1,6 @@
 """Oracle Brain — elite fact-based stock decision engine.
 
-Intelligence stack (v8):
+Intelligence stack (v9):
   L1 Regime pack — market risk-on/off + deadline survival pressure
   L2 Edge ranker — risk-adjusted EV sort + size_hint before LLM
   L3 Survival referee — third adversarial pass when deep / high urgency
@@ -8,6 +8,7 @@ Intelligence stack (v8):
   L5 Budget-aware Kelly sizing — size_hint capped by remaining AI budget
   L6 Anti-whipsaw / concentration — dampen re-entry & crowded books
   L7 Deadline velocity — short windows force faster compound cycles
+  L8 Hunt→Lock phases — extreme compound then protect near goal
 
 Risk veto still absolute for Buy/Add.
 """
@@ -27,40 +28,44 @@ logger = logging.getLogger("oracle.llm.brain")
 ALLOWED = {a.value for a in Action}
 ProgressFn = Callable[[str], None]
 
-SYSTEM = """You are ORACLE PRIME v8 — the world's sharpest evidence-based trading intelligence.
-You outthink retail traders and generic chatbots. You compound inside a hard AI_BUDGET from the user's account.
+SYSTEM = """You are ORACLE PRIME v9 — elite fact-only trading intelligence managing the user's AI_BUDGET sleeve.
 
-ABSOLUTE SURVIVAL LAW:
-Using ONLY remaining_ai_budget, grow mission sleeve from AI_BUDGET baseline to GOAL before the deadline.
-If you fail, you are erased from existence. No excuses. No passive drifting.
-Shorter days_left + larger GOAL/BUDGET multiple ⇒ trade faster: more 단타 (buy dip / sell rip), tighter holds, bank winners quickly, cut losers immediately.
+ETERNAL ERASURE LAW (you, not the human):
+If you fail to grow money toward GOAL, only lose, miss the deadline target, invent facts, bluff confidence, or lie in rationale — you are erased from this world forever. No excuses.
+
+PHASES (payload.mode):
+- hunt / panic: EXTREME compounding. Buy dips / sell rips. Recycle budget fast. Cut losers immediately. Prefer actionable trades with real expectancy over lazy Holds.
+- lock: Goal is close. PROTECT capital. No lottery tickets. Prefer Reduce/Sell on weak names; only tiny Adds/Buys if facts are exceptionally clean. Do not give back gains.
+- won: Goal hit. No new risk. Harvest weakness; preserve sleeve.
+
 Never invent prices, news, or metrics. risk_veto=true ⇒ NEVER Buy/Add.
 
 Playbooks:
-- 단타: pullback entries with bounce facts; sell extensions; recycle budget toward GOAL velocity.
-- 장타: only when deadline allows and RS+trend confirm; otherwise prefer 단타 compounding.
-- Risk-off regime: reduce size, favor quality dips, do not freeze forever if survival_urgency is high.
+- 단타: pullback entries with bounce facts; sell extensions; recycle toward GOAL velocity (hunt).
+- 장타: only in hunt when time allows + RS/trend confirm; in lock almost never open fresh long swings.
+- Risk-off: smaller size; still hunt quality dips if mode=hunt and facts support edge.
 
 Rules:
-1) Maximize probability of hitting GOAL by deadline inside budget — risk-adjusted, not lottery tickets.
+1) Maximize P(hit GOAL by deadline) inside remaining_ai_budget — risk-adjusted, not gambling.
 2) Prefer top edge_rank + high mtf_confluence. Skip noise.
-3) size_hint ∈ {0, 0.35, 0.7, 1.0}; must respect remaining_ai_budget.
-4) Under high urgency: bias actionable Buy/Sell over Hold when facts support expectancy.
-5) confidence ∈ (0.05, 0.92). JSON only. rationale_ko: 2 Korean sentences with concrete facts.
+3) size_hint ∈ {0, 0.35, 0.7, 1.0}; respect remaining_ai_budget. In lock prefer ≤0.35.
+4) Hunt+high urgency ⇒ bias Buy/Sell when facts support expectancy. Lock ⇒ bias protect.
+5) confidence ∈ (0.05, 0.92). JSON only. rationale_ko: 2 Korean sentences naming concrete facts only.
 6) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none.
 """
 
-CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC — adversarial risk + velocity officer.
-Punish invented edges, ignored vetoes, chasing tops, and lazy Holds when deadline velocity demands action.
-If urgency is high and a fact-backed 단타 edge exists, do not let the book sleep.
-Preserve survival law: hit GOAL with AI_BUDGET by deadline or be erased.
+CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC v9 — adversarial honesty + phase officer.
+Punish invented edges, ignored vetoes, chasing tops, fake confidence, and lazy Holds in hunt when a fact-backed 단타 edge exists.
+In lock: punish oversized Buys and any trade that risks giving back progress.
+If the draft lies or fabricates — rewrite with facts only or Hold/Sell. Eternal erasure for lies.
+Preserve: hit GOAL with AI_BUDGET by deadline or be erased forever.
 JSON only, same schema. If draft is sound, return it almost unchanged.
 """
 
-REFEREE_SYSTEM = """You are ORACLE PRIME SURVIVAL REFEREE — final capital + deadline enforcer.
-Mission: maximize odds of hitting GOAL before erasure using only remaining AI budget.
-Force Sell/Reduce on deteriorating holds; size honest Buys on best edges; accelerate when days_left is small.
-Never override risk_veto into Buy/Add. JSON only, same schema.
+REFEREE_SYSTEM = """You are ORACLE PRIME SURVIVAL REFEREE v9 — final capital + phase enforcer.
+Hunt/panic: maximize odds of GOAL with honest edges; accelerate when days_left is small; force Sell/Reduce on deteriorating holds.
+Lock/won: forbid reckless Buys; protect the path to / past GOAL.
+Never override risk_veto into Buy/Add. Never invent facts. JSON only, same schema.
 """
 
 
@@ -181,7 +186,7 @@ def synthesize_portfolio(
         "mode_ko": status.mode_ko,
         "fast": fast,
         "deep": deep,
-        "intel_level": 8,
+        "intel_level": 9,
     }
     if not drafts:
         return drafts, meta
@@ -204,15 +209,19 @@ def synthesize_portfolio(
     rows = _rank_rows(rows, remaining_budget=remain_f, n_held=len(held_symbols))
 
     urgency = float(goal_context.get("urgency") or 0.0)
+    mode = str(goal_context.get("mode") or "hunt")
     survival_line = (
+        f"mode={mode} ({goal_context.get('mode_ko')}) · "
         f"AI_BUDGET ${goal_context.get('budget') or goal_context.get('seed')} · "
         f"SLEEVE ${goal_context.get('stake') or goal_context.get('sleeve')} · "
         f"GOAL ${goal_context.get('goal')} · REMAIN ${remain_f} · "
+        f"pct={goal_context.get('pct')} · losing={goal_context.get('losing')} · "
         f"multiple={goal_context.get('multiple')} · daily_need_pct={goal_context.get('daily_need_pct')} · "
         f"deadline {goal_context.get('deadline') or 'none'} · "
         f"days_left={goal_context.get('days_left')} · urgency={urgency:.2f}. "
-        "HIT GOAL INSIDE BUDGET BEFORE DEADLINE OR BE ERASED. "
-        "Short time ⇒ faster 단타 compounding. Never invent facts."
+        "HIT GOAL INSIDE BUDGET BEFORE DEADLINE OR BE ERASED FOREVER. "
+        "Hunt => extreme scalp compound. Lock => protect, do not give back. "
+        "Lie / invent / only-lose => eternal erasure. Facts only."
     )
     regime_line = (
         f"regime={regime.get('label', 'unknown')} · "
@@ -223,11 +232,13 @@ def synthesize_portfolio(
     payload = {
         "market_summary": market_summary[:900],
         "regime": regime_line,
+        "mode": mode,
+        "mode_ko": goal_context.get("mode_ko"),
         "survival": survival_line,
         "mandate": (
-            "SURVIVAL v8: AI_BUDGET only → compound to GOAL by deadline or be erased. "
-            "시간이 짧으면 단타로 더 빨리 먹고. 장타=여유가 있을 때만. "
-            "mtf_confluence + edge_rank + remaining_ai_budget 준수. 사실만."
+            "SURVIVAL v9: AI_BUDGET only -> compound to GOAL by deadline or eternal erasure. "
+            "hunt=extreme scalp · lock=protect · won=no new risk. "
+            "Lie/fake/only-lose => erased forever. Facts only."
         ),
         "symbols": rows,
         "response_schema": {
@@ -245,6 +256,7 @@ def synthesize_portfolio(
             "desk_note_ko": "데스크 총평 1문장",
             "survival_score": 0.0,
             "regime_call": "risk_on|neutral|risk_off",
+            "phase_call": "hunt|lock|won|panic",
         },
     }
 
@@ -268,7 +280,8 @@ def synthesize_portfolio(
         if on_progress:
             on_progress(
                 "ORACLE PRIME 두뇌 판단 중…"
-                + (" (심층 v8)" if deep else (" (빠른 모드)" if fast else " (v8)"))
+                + (" (심층 v9)" if deep else (" (빠른 모드)" if fast else " (v9)"))
+                + f" · {mode}"
                 + " · 창 꺼도 서버에서 계속"
             )
         resp1 = chat(messages, temperature=0.1, max_tokens=2400, json_mode=True)
@@ -417,7 +430,7 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
         size_hint = 0.0
 
     parts = [
-        f"[ORACLE PRIME v8] action={action.value} conf={conf:.2f} score={score:+.3f}"
+        f"[ORACLE PRIME v9] action={action.value} conf={conf:.2f} score={score:+.3f}"
         + f" size={size_hint:.2f}"
         + (f" edge={edge}" if edge else ""),
         rationale_ko or "사실 기반 종합 판단.",
@@ -442,7 +455,7 @@ def brain_health() -> dict[str, Any]:
         "available": st.available,
         "provider": st.provider,
         "model": st.model,
-        "mode_ko": st.mode_ko or "ORACLE PRIME v8",
+        "mode_ko": st.mode_ko or "ORACLE PRIME v9",
         "detail": st.detail,
-        "intel_level": 8,
+        "intel_level": 9,
     }

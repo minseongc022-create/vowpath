@@ -44,7 +44,7 @@
 
   <div class="goal-box">
     <h3 class="plan-title">미션 설정</h3>
-    <p class="card-desc plan-lead">계좌에 넣어둔 돈 중 <strong>AI 한도</strong>만 써서, <strong>기간 안</strong>에 <strong>목표</strong>를 무조건 채웁니다. 실패하면 소멸합니다.</p>
+    <p class="card-desc plan-lead">계좌 중 <strong>AI 한도</strong>만 써서 멀리 있을 땐 극단적으로 불리고, 목표에 가까우면 안정적으로 지킵니다. AI가 못 불리거나·잃기만 하거나·거짓말하면 <strong>영원히 소멸</strong>합니다.</p>
     <form method="post" action="/actions/set_goal" id="goal-form" data-no-overlay="1">
       <input type="hidden" name="next_path" value="/ai" />
       <div class="goal-grid goal-grid-3">
@@ -106,14 +106,17 @@
       {% if goal.deadline %}
       <div class="goal-bar-meta">
         <span>마감 {{ goal.deadline }}{% if goal.days_left is not none %} · D-{{ goal.days_left }}{% endif %}</span>
-        <span>{% if goal.reached %}생존 확정{% elif goal.survival_threat %}소멸 위험{% else %}페이스 {% if goal.pace_ok %}OK{% else %}지연{% endif %}{% endif %}</span>
+        <span>
+          {% if goal.mode_ko %}{{ goal.mode_ko }} · {% endif %}
+          {% if goal.reached %}생존 확정{% elif goal.survival_threat %}소멸 위험{% else %}페이스 {% if goal.pace_ok %}OK{% else %}지연{% endif %}{% endif %}
+        </span>
       </div>
       {% endif %}
       {% if goal.threat_ko %}
       <p class="threat-banner {% if goal.survival_threat %}threat-hot{% endif %}">{{ goal.threat_ko }}</p>
       {% endif %}
       {% if goal.reached %}
-      <p class="card-desc">목표 달성 · 더 높이려면 위에서 한도·목표·기간을 올려주세요.</p>
+      <p class="card-desc">목표 달성 · 안정 수호 중. 더 높이려면 한도·목표·기간을 올려주세요.</p>
       {% endif %}
     </div>
     {% endif %}

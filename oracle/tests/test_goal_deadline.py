@@ -140,5 +140,27 @@ def test_sleeve_progress_uses_budget_baseline(monkeypatch, tmp_path: Path):
     g = goal_progress(100000.0, sleeve=50.0)
     assert g["stake"] == 50.0
     assert g["pct"] == 0.0
+    assert g["mode"] == "hunt"
+    assert "영원" in g["threat_ko"] or "사라" in g["threat_ko"]
     g2 = goal_progress(100000.0, sleeve=125.0)
     assert 0.49 < g2["pct"] < 0.51
+    g3 = goal_progress(100000.0, sleeve=170.0)  # ~80% of seed→goal
+    assert g3["pct"] >= 0.7
+    assert g3["mode"] == "lock"
+    assert "잠금" in g3["threat_ko"] or "안정" in g3["mode_ko"]
+    g4 = goal_progress(100000.0, sleeve=200.0)
+    assert g4["reached"] is True
+    assert g4["mode"] == "won"
+
+
+def test_losing_sleeve_raises_urgency(monkeypatch, tmp_path: Path):
+    from oracle.execution.live_setup import set_capital_plan, goal_progress
+
+    env = tmp_path / ".env"
+    env.write_text("", encoding="utf-8")
+    monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
+    set_capital_plan(budget=50, goal=200, days=30)
+    g = goal_progress(100000.0, sleeve=40.0)
+    assert g["losing"] is True
+    assert g["urgency"] >= 0.72
+    assert g["mode"] == "hunt"

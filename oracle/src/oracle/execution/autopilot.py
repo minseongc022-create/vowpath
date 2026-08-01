@@ -369,19 +369,29 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     cycle = int(_last.get("cycle") or 0) + 1
     _last["cycle"] = cycle
     urgency = float(gprog.get("urgency") or 0.0)
+    mode = str(gprog.get("mode") or "hunt")
     # Deep brain every 3rd cycle, or when survival pressure is high
-    deep = (cycle % 3 == 0) or urgency >= 0.55 or bool(gprog.get("deadline_passed"))
+    deep = (
+        (cycle % 3 == 0)
+        or urgency >= 0.55
+        or bool(gprog.get("deadline_passed"))
+        or mode in {"hunt", "panic"}
+        or bool(gprog.get("losing"))
+    )
 
     if plan.get("set"):
         prog(
             f"AI한도 ${plan['budget']:,.0f} · 사용중 ${plan['open_cost']:,.0f} · "
             f"남음 ${plan['remaining_budget']:,.0f} · 슬리브 ${plan['sleeve']:,.2f}"
         )
-        if urgency >= 0.55:
+        prog(f"모드 {gprog.get('mode_ko') or mode} · urgency={urgency:.2f}")
+        if mode in {"hunt", "panic"} or urgency >= 0.55:
             prog(
-                f"시간 압박 ON · urgency={urgency:.2f} · multiple={gprog.get('multiple')} · "
-                "단타 위주로 더 빨리 목표를 채웁니다"
+                f"사냥 압박 ON · multiple={gprog.get('multiple')} · "
+                "극단 단타로 빠르게 불립니다 (잃기만 하면 AI 영원 소멸)"
             )
+        elif mode == "lock":
+            prog("잠금 모드 · 목표 근접 · 잃지 말고 안정적으로 안착")
     else:
         prog("AI 한도·목표·기간 미설정 · 자산/AI자동에서 저장하세요")
 
@@ -393,12 +403,16 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         )
         if gprog.get("threat_ko"):
             prog(gprog["threat_ko"])
-        if gprog["reached"]:
-            prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
+        if gprog["reached"] or mode == "won":
+            prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수 중단 · 약한 종목만 정리")
 
-    # Under deadline pressure: favor 단타 breadth; relax long if time is short
-    lim_short = 8 if urgency >= 0.55 else 6
-    lim_long = 3 if urgency >= 0.7 else 6
+    # Hunt: wide 단타 net. Lock: narrow new risk, still scan exits.
+    if mode in {"hunt", "panic"} or urgency >= 0.55:
+        lim_short, lim_long = 10, 3
+    elif mode == "lock":
+        lim_short, lim_long = 4, 2
+    else:
+        lim_short, lim_long = 6, 6
     prog(f"① 탐색 시작 · 사이클 #{cycle}" + (" · 심층지능 ON" if deep else " · 빠른 모드"))
     short_picks, long_picks, blend_picks = screen_short_and_long(
         limit_short=lim_short,
@@ -485,28 +499,45 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     # Ticket size: hard broker caps ∩ AI remaining budget (user-assigned sleeve)
     remain = float(plan.get("remaining_budget") if plan.get("remaining_budget") is not None else live_max_notional())
     hard = min(live_max_notional(), max(remain, 0.0), float(portfolio.cash))
-    # Per-order default ~25–40% of remaining budget so one name doesn't eat the whole sleeve
-    budget_slice = max(1.0, remain * (0.4 if urgency >= 0.55 else 0.28))
+    # Per-order sizing by phase: hunt concentrates firepower; lock stays small
+    if mode in {"hunt", "panic"} or urgency >= 0.55:
+        budget_slice = max(1.0, remain * (0.55 if urgency >= 0.75 or mode == "panic" else 0.42))
+    elif mode == "lock":
+        budget_slice = max(1.0, remain * 0.12)
+    else:
+        budget_slice = max(1.0, remain * 0.28)
     max_n = min(hard, max(first_trade_notional(), budget_slice), first_trade_notional() * 2.5)
     if ai_budget() is not None:
         max_n = min(max_n, hard)
         prog(f"주문 한도 ${max_n:,.2f} (AI 잔여한도 ${remain:,.2f})")
 
-    near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
-    reached = bool(gprog.get("reached"))
-    far_from_goal = bool(gprog["set"] and gprog["pct"] < 0.5)
+    near_goal = bool(gprog["set"] and (gprog["pct"] >= 0.7 or mode == "lock"))
+    reached = bool(gprog.get("reached") or mode == "won")
+    far_from_goal = bool(gprog["set"] and gprog["pct"] < 0.5 and mode == "hunt")
     if remain <= 0.5 and not (best_sell):
         prog("AI 사용 한도 소진 · 매수 중단 · 보유 정리/익절만 검토")
         best_buy = None
-    if reached or near_goal:
-        max_n = min(max_n, first_trade_notional())
-        prog("목표 근접/달성 · 공격 매수 축소, 약한 종목 정리 우선")
-    elif urgency >= 0.55:
-        max_n = min(hard, first_trade_notional() * (1.75 if urgency >= 0.75 else 1.5), max(remain * 0.5, 1.0))
-        prog(f"생존 압박 urgency={urgency:.2f} · 고엣지 종목에 집중 집행 (한도 내)")
+    if reached:
+        max_n = min(max_n, first_trade_notional() * 0.5)
+        prog("목표 달성 · 신규 매수 금지 · 약한 종목 정리만")
+        best_buy = None
+    elif mode == "lock" or near_goal:
+        max_n = min(max_n, first_trade_notional() * 0.75)
+        prog("잠금/근접 · 공격 매수 축소 · 이익 보호 우선")
+        # Lock: only keep buys with very high confidence
+        if best_buy and float(getattr(best_buy, "confidence", 0) or 0) < 0.72:
+            prog(f"매수 후보 {best_buy.symbol} 보류 · 잠금 모드 고확신만")
+            best_buy = None
+    elif mode in {"hunt", "panic"} or urgency >= 0.55:
+        max_n = min(
+            hard,
+            first_trade_notional() * (2.0 if urgency >= 0.75 or mode == "panic" else 1.75),
+            max(remain * 0.55, 1.0),
+        )
+        prog(f"사냥 모드 urgency={urgency:.2f} · 고엣지 집중 집행 (한도 내)")
     elif far_from_goal:
-        max_n = min(hard, first_trade_notional() * 1.5, max(remain * 0.35, 1.0))
-        prog("목표까지 여유 · 단타 눌림·장타 추세 소액 집중")
+        max_n = min(hard, first_trade_notional() * 1.6, max(remain * 0.4, 1.0))
+        prog("목표까지 멀음 · 단타 눌림 집중")
 
     msgs: list[str] = []
     executed = 0
@@ -514,10 +545,10 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     prog("③ 매수·매도 후보 선택 (단타=싸게사고비싸게팔기)")
     if best_sell:
         prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
-    if best_buy and not (near_goal or reached):
+    if best_buy and not reached and mode != "won":
         prog(f"매수 후보 {best_buy.symbol} · {best_buy.action.value} · conf={best_buy.confidence:.2f}")
-    elif best_buy and (near_goal or reached):
-        prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 근접/달성")
+    elif best_buy:
+        prog(f"매수 후보 {best_buy.symbol} 보류 · 목표 달성")
         best_buy = None
 
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
@@ -532,16 +563,16 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if executed >= 2:
             break
 
-    if not msgs and not (near_goal or reached):
-        # Fallback: take strongest short then strongest long from screen
+    # Screen fallback buys only in hunt/panic — never in lock/won
+    if not msgs and mode in {"hunt", "panic"} and not reached:
         from oracle.core.types import DecisionResult as DR
         from oracle.core.types import RiskVeto
         from oracle.agents.risk_manager import RiskManagerAgent
 
-        max_fills = 3 if urgency >= 0.7 else 2
+        max_fills = 4 if urgency >= 0.7 or mode == "panic" else 3
         for tag, bucket, thresh in (
-            ("단타", short_picks, 0.02 if urgency >= 0.55 else 0.03),
-            ("장타", long_picks, 0.05 if urgency >= 0.7 else 0.04),
+            ("단타", short_picks, 0.015 if urgency >= 0.55 else 0.025),
+            ("장타", long_picks, 0.06 if urgency >= 0.7 else 0.05),
         ):
             if executed >= max_fills:
                 break
@@ -572,8 +603,10 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     if not msgs:
         msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"
-        if near_goal:
-            msg = "목표 근접 · 관망 유지 (무리한 매수 안 함)"
+        if mode == "lock" or near_goal:
+            msg = "잠금/근접 · 무리한 매수 없이 이익 보호"
+        elif mode == "won" or reached:
+            msg = "목표 달성 · 안정 수호 중"
         _set_last(msg, picks=picks_view)
         return {"ok": True, "message": msg, "run_id": result.run_id, "picks": picks_view}
 
@@ -589,16 +622,21 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
 
 def _wait_sec_for_pressure() -> int:
-    """Shorter cycles when deadline velocity is high."""
+    """Hunt faster; lock slower (protect)."""
     base = interval_sec()
     try:
         portfolio = load_portfolio(get_settings().portfolio_path)
         g = goal_progress(float(portfolio.equity()), sleeve=sleeve_equity(portfolio))
         u = float(g.get("urgency") or 0.0)
-        if g.get("deadline_passed") or u >= 0.85:
+        mode = str(g.get("mode") or "")
+        if mode == "won":
+            return max(base, base * 2)
+        if mode == "lock":
+            return max(base, int(base * 1.25))
+        if g.get("deadline_passed") or mode == "panic" or u >= 0.85 or g.get("losing"):
             return max(60, base // 4)
-        if u >= 0.55:
-            return max(90, base // 2)
+        if mode == "hunt" or u >= 0.55:
+            return max(75, base // 2)
     except Exception:
         pass
     return base
