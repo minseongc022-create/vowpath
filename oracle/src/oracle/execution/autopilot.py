@@ -44,7 +44,6 @@ from oracle.portfolio.picker import (
     rank_decisions_for_trade,
     scalp_exit_from_holdings,
     screen_short_and_long,
-    screen_universe,
     top_picks_summary,
 )
 from oracle.portfolio.store import load_portfolio
@@ -497,41 +496,38 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     prog(f"장 상태 · {session['label']} · {session['hint']}")
     if prep_mode:
-        prog(
-            "준비 모드 ON · 주문은 개장까지 보류 · "
-            "뉴스·유니버스·심층 두뇌로 개장 직전 워치리스트를 만듭니다"
-        )
+        prog("준비 모드 · 주문 보류 · 광역·심층 분석으로 개장 워치리스트만 갱신")
+    else:
+        prog("개장 모드 · 광역 스캔 + 심층 두뇌 후 한도 내 집행")
 
-    # ⓪ Continuous news: pull universe + holdings, surface brand-new material headlines
-    from oracle.portfolio.picker import load_trade_universe
-
+    # ⓪ News: radar thread already sweeps the universe; cycle only refreshes
+    # holdings/macro lightly (avoids double Yahoo hammering) then drains fresh queue.
     held_early = list(portfolio.held_symbols())
-    news_syms = list(
-        dict.fromkeys([*held_early, *load_trade_universe()[: (50 if prep_mode else 28)], "SPY", "QQQ"])
-    )
-    prog(f"⓪ 뉴스 레이더 · {len(news_syms)}종목+매크로 수집")
+    light_news = list(dict.fromkeys([*held_early, "SPY", "QQQ"]))[:12]
+    prog(f"⓪ 뉴스 큐 소모 · 보유/매크로 보강 {len(light_news)}종목")
     try:
         news_result = poll_and_ingest(
-            news_syms,
-            per_symbol=7 if prep_mode else 5,
+            light_news,
+            per_symbol=6,
             include_macro=True,
         )
     except Exception as exc:
         logger.exception("news ingest failed")
         news_result = {"fetched": 0, "new": 0, "material": 0, "fresh": [], "material_fresh": []}
-        prog(f"뉴스 수집 실패 · {exc} · 가격 분석은 계속")
-    fresh_rows = NewsStore().take_fresh(limit=16 if prep_mode else 10, min_material=0.12)
+        prog(f"뉴스 보강 실패 · {exc} · 레이더 큐로 계속")
+    fresh_rows = NewsStore().take_fresh(limit=16, min_material=0.12)
     material_n = int(news_result.get("material") or 0)
     new_n = int(news_result.get("new") or 0)
+    radar = radar_status()
     _last["news"] = {
-        **radar_status(),
+        **radar,
         "cycle_new": new_n,
         "cycle_material": material_n,
         "fresh_titles": [r.get("title") for r in fresh_rows[:6]],
     }
     prog(
-        f"뉴스 · 신규 {new_n} · 중요 {material_n} · "
-        f"이번 사이클 분석 큐 {len(fresh_rows)}"
+        f"뉴스 · 사이클신규 {new_n} · 중요 {material_n} · "
+        f"분석큐 {len(fresh_rows)} · 레이더누적 {radar.get('total', 0)}"
     )
     news_priority = []
     for row in fresh_rows:
@@ -553,16 +549,8 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         except Exception:
             pass
 
-    # Deep brain: always on closed market / fresh news / hunt pressure
-    deep = (
-        prep_mode
-        or bool(fresh_rows)
-        or (cycle % 3 == 0)
-        or urgency >= 0.55
-        or bool(gprog.get("deadline_passed"))
-        or mode in {"hunt", "panic"}
-        or bool(gprog.get("losing"))
-    )
+    # Always deep on autopilot — shallow "fast" path missed edges and caused empty holds.
+    deep = True
 
     if plan.get("set"):
         prog(
@@ -576,7 +564,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                 "극단 단타로 빠르게 불립니다 (잃기만 하면 AI 영원 소멸)"
             )
         elif mode == "lock":
-            prog("잠금 모드 · 목표 근접 · 잃지 말고 안정적으로 안착")
+            prog("잠금 모드 · 목표 근접 · 넓게 보되 주문만 작게")
     else:
         prog("AI 한도·목표·기간 미설정 · 자산/AI자동에서 저장하세요")
 
@@ -591,34 +579,22 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if gprog["reached"] or mode == "won":
             prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수 중단 · 약한 종목만 정리")
 
-    # Hunt: wide 단타 net. Prep/closed: widest research net.
-    if prep_mode:
-        lim_short, lim_long = 14, 8
-    elif mode in {"hunt", "panic"} or urgency >= 0.55:
-        lim_short, lim_long = 10, 3
-    elif mode == "lock":
-        lim_short, lim_long = 4, 2
-    else:
-        lim_short, lim_long = 6, 6
-    prog(
-        f"① 탐색 시작 · 사이클 #{cycle}"
-        + (" · 심층지능 ON" if deep else " · 빠른 모드")
-        + (" · 휴장 광역 스캔" if prep_mode else "")
-    )
+    # Always wide screen — narrowing in lock only hid exits/edges; size gates risk instead.
+    lim_short, lim_long = 14, 8
+    prog(f"① 광역 탐색 · 사이클 #{cycle} · 심층지능 ON · 단타{lim_short}/장타{lim_long}")
     short_picks, long_picks, blend_picks = screen_short_and_long(
         limit_short=lim_short,
         limit_long=lim_long,
         on_progress=prog,
     )
-    picks_view = top_picks_summary(limit=12 if prep_mode else 8)
+    picks_view = top_picks_summary(limit=12)
     _last["picks"] = picks_view
     _last["picks_ts"] = datetime.now(UTC).isoformat()
-    screened = blend_picks or screen_universe(limit=12 if prep_mode else 8)
     try:
         ActivityLog().add(
             "screen",
             f"탐색 완료 · 단타 {len(short_picks)} · 장타 {len(long_picks)}"
-            + (" · 준비모드" if prep_mode else ""),
+            + (" · 준비모드" if prep_mode else " · 개장광역"),
             detail=" · ".join(
                 f"{p.get('symbol')}({p.get('horizon')})" for p in picks_view[:6]
             ),
@@ -645,8 +621,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         )
 
     held = list(portfolio.held_symbols())
-    # Deep AI: holdings + screen tops + news-priority names (wider when preparing)
-    top_n = 6 if prep_mode else 4
+    top_n = 6
     top_syms = list(
         dict.fromkeys(
             news_priority
@@ -655,16 +630,14 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             + [p.symbol for p in blend_picks[:4]]
         )
     )
-    sym_cap = 16 if prep_mode else (12 if fresh_rows else 10)
-    symbols = list(dict.fromkeys([*held, *top_syms]))[:sym_cap]
+    symbols = list(dict.fromkeys([*held, *top_syms]))[:16]
 
     pipe_session = "weekend_prep" if prep_mode and datetime.now(UTC).weekday() >= 5 else (
         "closed_prep" if prep_mode else "autopilot"
     )
     prog(
-        f"② 심층 AI · 후보 {len(symbols)}종목 · {', '.join(symbols)}"
-        + (" · 3패스 두뇌" if deep else "")
-        + (f" · 세션 {pipe_session}" if prep_mode else "")
+        f"② 심층 AI · 후보 {len(symbols)}종목 · {', '.join(symbols)} · 3패스 두뇌"
+        + (f" · {pipe_session}" if prep_mode else "")
     )
     if fresh_rows:
         prog(f"뉴스 FACT · {research_digest(limit=6)[:280]}")
@@ -672,8 +645,8 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         session=pipe_session,
         symbols=symbols,
         on_progress=prog,
-        fast_llm=not deep,
-        deep_llm=deep,
+        fast_llm=False,
+        deep_llm=True,
     )
     huntish = mode in {"hunt", "panic"} or urgency >= 0.55
     best_buy, best_sell = rank_decisions_for_trade(
@@ -735,9 +708,9 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     elif mode == "lock" or near_goal:
         max_n = min(max_n, first_trade_notional() * 0.75)
         prog("잠금/근접 · 공격 매수 축소 · 이익 보호 우선")
-        # Lock: only keep buys with very high confidence
-        if best_buy and float(getattr(best_buy, "confidence", 0) or 0) < 0.72:
-            prog(f"매수 후보 {best_buy.symbol} 보류 · 잠금 모드 고확신만")
+        # Lock: shrink tickets above; don't zero-out decent buys (0.72 was empty-hold trap)
+        if best_buy and float(getattr(best_buy, "confidence", 0) or 0) < 0.48:
+            prog(f"매수 후보 {best_buy.symbol} 보류 · 잠금 모드 확신 부족")
             best_buy = None
     elif mode in {"hunt", "panic"} or urgency >= 0.55:
         max_n = min(

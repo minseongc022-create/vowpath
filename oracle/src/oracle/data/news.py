@@ -433,7 +433,7 @@ def start_news_poller(
 
             settings = get_settings()
             held = list(load_portfolio(settings.portfolio_path).held_symbols())
-            uni = load_trade_universe()[:40]
+            uni = load_trade_universe()[:60]
             return list(dict.fromkeys([*held, *uni, "SPY", "QQQ"]))
         except Exception:
             return ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META"]
