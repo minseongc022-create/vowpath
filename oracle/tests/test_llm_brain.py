@@ -47,7 +47,7 @@ def test_brain_health_shape():
     assert "available" in h
     assert "provider" in h
     assert "model" in h
-    assert h.get("intel_level", 0) >= 7
+    assert h.get("intel_level", 0) >= 8
 
 
 def test_synthesize_respects_risk_veto(monkeypatch):

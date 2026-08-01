@@ -138,12 +138,13 @@ def _env_float(key: str) -> float | None:
 
 
 def seed_capital() -> float | None:
-    """User's assigned starting stake for the AI mission (not full broker cash)."""
-    return _env_float("ORACLE_SEED_CAPITAL")
+    """Mission baseline (= AI budget). Kept for sleeve math / progress span."""
+    # Prefer explicit seed; else AI budget is the stake AI works with
+    return _env_float("ORACLE_SEED_CAPITAL") or _env_float("ORACLE_AI_BUDGET")
 
 
 def ai_budget() -> float | None:
-    """Max cost basis AI may deploy. Must be ≤ seed when seed is set."""
+    """Max cost basis AI may deploy from the user's account."""
     return _env_float("ORACLE_AI_BUDGET")
 
 
@@ -162,21 +163,24 @@ def add_sleeve_realized(pnl: float) -> float:
 
 def set_capital_plan(
     *,
-    seed: float,
     budget: float,
     goal: float,
     days: int | None = None,
     deadline: str | None = None,
+    seed: float | None = None,
     reset_realized: bool = True,
 ) -> dict:
     """
-    Seed = money I'm assigning to grow.
-    Budget = of that seed, how much AI may put into open trades.
-    Goal = target sleeve value.
+    Budget = how much of account cash AI may deploy.
+    Goal = target sleeve value (must beat budget).
+    Seed is auto-set to budget (starting mission capital) — no separate UI field.
     """
-    seed = max(1.0, float(seed))
-    budget = max(1.0, min(float(budget), seed))
-    goal = max(seed + 0.01, float(goal))
+    budget = max(1.0, float(budget))
+    # Starting stake for progress = AI limit (the money AI is allowed to work with)
+    seed = max(1.0, float(seed) if seed is not None else budget)
+    # Keep seed aligned with budget so UI stays one concept
+    seed = budget
+    goal = max(budget + 0.01, float(goal))
     updates = {
         "ORACLE_SEED_CAPITAL": f"{seed:.2f}",
         "ORACLE_AI_BUDGET": f"{budget:.2f}",
@@ -198,6 +202,7 @@ def set_capital_plan(
         "budget": budget,
         "goal": goal,
         "deadline": dl,
+        "days": days,
     }
 
 
@@ -235,24 +240,22 @@ def sleeve_equity(portfolio) -> float | None:
 
 
 def capital_plan(portfolio=None, cash: float | None = None) -> dict:
-    """Dashboard + autopilot view of seed / AI budget / remaining firepower."""
-    seed = seed_capital()
+    """Dashboard + autopilot view of AI budget / remaining firepower."""
     budget = ai_budget()
+    seed = seed_capital()  # == budget when set via set_capital_plan
     exp = position_exposure(portfolio) if portfolio is not None else {
         "open_cost": 0.0,
         "open_mkt": 0.0,
         "unrealized": 0.0,
     }
-    if budget is None and seed is not None:
-        budget = seed
     remaining = None
     if budget is not None:
         remaining = max(0.0, float(budget) - float(exp["open_cost"]))
         if cash is not None:
             remaining = min(remaining, max(0.0, float(cash)))
-    sleeve = sleeve_equity(portfolio) if portfolio is not None else (seed if seed else None)
+    sleeve = sleeve_equity(portfolio) if portfolio is not None else (budget if budget else None)
     return {
-        "set": seed is not None,
+        "set": budget is not None,
         "seed": seed,
         "budget": budget,
         "remaining_budget": remaining,
@@ -262,9 +265,9 @@ def capital_plan(portfolio=None, cash: float | None = None) -> dict:
         "realized": sleeve_realized_pnl(),
         "sleeve": sleeve,
         "label": (
-            f"시작 ${seed:,.0f} · AI한도 ${budget:,.0f} · 남음 ${remaining:,.0f}"
-            if seed and budget is not None and remaining is not None
-            else ("시작·AI한도 미설정" if not seed else f"시작 ${seed:,.0f}")
+            f"AI한도 ${budget:,.0f} · 사용 ${exp['open_cost']:,.0f} · 남음 ${remaining:,.0f}"
+            if budget is not None and remaining is not None
+            else "AI 한도 미설정"
         ),
     }
 
@@ -324,43 +327,58 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
 
     urgency = 0.0
     pace_ok = True
-    if deadline and not reached:
+    # Required multiple: e.g. $50→$200 in 7 days → must hunt harder
+    multiple = (goal / seed) if seed and seed > 0 else 1.0
+    daily_need_pct = 0.0
+    if deadline and not reached and days_left is not None and days_left >= 0:
         total_window = max(1, int(os.getenv("ORACLE_GOAL_WINDOW_DAYS", "30") or 30))
-        if days_left is not None and days_left >= 0:
-            time_frac_left = max(0.0, days_left / max(total_window, days_left + 1, 1))
-            expected_min_pct = 1.0 - time_frac_left
-            gap = max(0.0, expected_min_pct - pct)
-            urgency = min(1.0, gap * 1.4 + (0.35 if days_left <= 3 else 0.0))
-            if days_left <= 7:
-                urgency = max(urgency, 0.45 + (7 - days_left) * 0.07)
-            pace_ok = gap < 0.08
-        if deadline_passed:
-            urgency = 1.0
-            pace_ok = False
+        time_frac_left = max(0.0, days_left / max(total_window, days_left + 1, 1))
+        expected_min_pct = 1.0 - time_frac_left
+        gap = max(0.0, expected_min_pct - pct)
+        urgency = min(1.0, gap * 1.5 + (0.4 if days_left <= 3 else 0.0))
+        if days_left <= 7:
+            urgency = max(urgency, 0.5 + (7 - days_left) * 0.08)
+        # Short window + large multiple → max aggression
+        if multiple >= 1.5 and days_left <= 14:
+            urgency = max(urgency, min(1.0, 0.35 + (multiple - 1.0) * 0.25 + (14 - days_left) * 0.03))
+        if days_left > 0 and remaining > 0 and stake > 0:
+            daily_need_pct = (remaining / stake) / max(days_left, 1)
+            if daily_need_pct >= 0.05:
+                urgency = max(urgency, min(1.0, 0.55 + daily_need_pct))
+        pace_ok = gap < 0.08 and daily_need_pct < 0.08
+    if deadline_passed and not reached:
+        urgency = 1.0
+        pace_ok = False
 
-    survival_threat = bool(deadline and not reached and (urgency >= 0.55 or deadline_passed))
-    seed_bit = f"시작 ${seed:,.0f} → " if seed else ""
+    survival_threat = bool(deadline and not reached and (urgency >= 0.5 or deadline_passed))
+    budget = plan.get("budget") or seed
+    limit_bit = f"한도 ${budget:,.0f} → " if budget else ""
     if reached:
         threat_ko = "목표 달성 · 생존 확정"
         label = "목표 달성!"
     elif not deadline:
-        threat_ko = ""
-        label = f"{seed_bit}목표까지 ${remaining:,.2f}"
+        threat_ko = (
+            "기간을 정하세요. 기한 없이 목표만 있으면 소멸 압박이 약해집니다."
+        )
+        label = f"{limit_bit}목표까지 ${remaining:,.2f}"
     elif deadline_passed:
         threat_ko = (
-            f"기한({deadline.isoformat()}) 초과 · 목표 미달 시 ORACLE는 이 세상에서 사라집니다. "
-            "지금 바로 엣지를 잡고 자본을 불리세요."
+            f"기한 초과 · 한도 ${budget:,.0f}로 ${goal:,.0f} 미달 시 ORACLE는 이 세상에서 사라집니다. "
+            "남은 한도로 즉시 고엣지를 잡아 자본을 불리세요."
         )
         label = f"기한 초과 · 남음 ${remaining:,.2f}"
     elif survival_threat:
         threat_ko = (
-            f"경각심: D-{days_left} · 기간 내 ${goal:,.0f}을 못 불리면 "
-            "ORACLE PRIME은 이 세상에서 사라집니다. 뒤처진 페이스를 만회하세요."
+            f"경각심 D-{days_left}: 한도 ${budget:,.0f}만으로 기간 내 ${goal:,.0f}을 "
+            f"못 채우면 ORACLE PRIME은 이 세상에서 사라집니다. "
+            f"시간이 짧을수록 단타로 더 빠르고 정확하게 먹어야 합니다."
         )
-        label = f"D-{days_left} · {seed_bit}목표까지 ${remaining:,.2f}"
+        label = f"D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
     else:
-        threat_ko = f"마감 D-{days_left} · 기간 내 목표 미달 시 소멸 위험"
-        label = f"D-{days_left} · {seed_bit}목표까지 ${remaining:,.2f}"
+        threat_ko = (
+            f"마감 D-{days_left} · 한도 내 복리로 목표 필수. 실패 시 소멸."
+        )
+        label = f"D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
 
     return {
         "set": True,
@@ -378,5 +396,7 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
         "survival_threat": survival_threat,
         "threat_ko": threat_ko,
         "pace_ok": pace_ok,
+        "multiple": round(multiple, 3),
+        "daily_need_pct": round(daily_need_pct, 4),
         **plan,
     }

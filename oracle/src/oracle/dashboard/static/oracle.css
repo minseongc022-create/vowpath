@@ -167,6 +167,12 @@ button, input, select {
   gap: 10px;
   margin-bottom: 10px;
 }
+.goal-grid-3 {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 560px) {
+  .goal-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+}
 .goal-save-block { margin-top: 4px; }
 .plan-stats {
   display: grid;

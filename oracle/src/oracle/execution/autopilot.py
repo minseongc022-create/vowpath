@@ -374,12 +374,16 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     if plan.get("set"):
         prog(
-            f"내 돈 시작 ${plan['seed']:,.0f} · AI한도 ${plan['budget']:,.0f} · "
-            f"사용중 ${plan['open_cost']:,.0f} · 남음 ${plan['remaining_budget']:,.0f} · "
-            f"슬리브 ${plan['sleeve']:,.2f}"
+            f"AI한도 ${plan['budget']:,.0f} · 사용중 ${plan['open_cost']:,.0f} · "
+            f"남음 ${plan['remaining_budget']:,.0f} · 슬리브 ${plan['sleeve']:,.2f}"
         )
-    elif not seed_capital():
-        prog("시작금·AI한도 미설정 · AI자동에서 '내가 넣을 돈 / AI가 쓸 한도 / 목표'를 저장하세요")
+        if urgency >= 0.55:
+            prog(
+                f"시간 압박 ON · urgency={urgency:.2f} · multiple={gprog.get('multiple')} · "
+                "단타 위주로 더 빨리 목표를 채웁니다"
+            )
+    else:
+        prog("AI 한도·목표·기간 미설정 · 자산/AI자동에서 저장하세요")
 
     if gprog["set"]:
         stake = float(gprog.get("stake") or equity)
@@ -392,10 +396,13 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if gprog["reached"]:
             prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
 
+    # Under deadline pressure: favor 단타 breadth; relax long if time is short
+    lim_short = 8 if urgency >= 0.55 else 6
+    lim_long = 3 if urgency >= 0.7 else 6
     prog(f"① 탐색 시작 · 사이클 #{cycle}" + (" · 심층지능 ON" if deep else " · 빠른 모드"))
     short_picks, long_picks, blend_picks = screen_short_and_long(
-        limit_short=6,
-        limit_long=6,
+        limit_short=lim_short,
+        limit_long=lim_long,
         on_progress=prog,
     )
     picks_view = top_picks_summary(limit=8)
@@ -531,11 +538,12 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         from oracle.core.types import RiskVeto
         from oracle.agents.risk_manager import RiskManagerAgent
 
+        max_fills = 3 if urgency >= 0.7 else 2
         for tag, bucket, thresh in (
-            ("단타", short_picks, 0.03),
-            ("장타", long_picks, 0.04),
+            ("단타", short_picks, 0.02 if urgency >= 0.55 else 0.03),
+            ("장타", long_picks, 0.05 if urgency >= 0.7 else 0.04),
         ):
-            if executed >= 2:
+            if executed >= max_fills:
                 break
             if not bucket:
                 continue
@@ -580,9 +588,25 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     }
 
 
+def _wait_sec_for_pressure() -> int:
+    """Shorter cycles when deadline velocity is high."""
+    base = interval_sec()
+    try:
+        portfolio = load_portfolio(get_settings().portfolio_path)
+        g = goal_progress(float(portfolio.equity()), sleeve=sleeve_equity(portfolio))
+        u = float(g.get("urgency") or 0.0)
+        if g.get("deadline_passed") or u >= 0.85:
+            return max(60, base // 4)
+        if u >= 0.55:
+            return max(90, base // 2)
+    except Exception:
+        pass
+    return base
+
+
 def _loop() -> None:
     logger.info("Autopilot loop start interval=%ss (browser-independent)", interval_sec())
-    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 계속 동작)")
+    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 계속 · 압박 시 더 빠름)")
     time.sleep(3)
     while not _stop.is_set():
         if enabled():
@@ -591,11 +615,8 @@ def _loop() -> None:
             except Exception as exc:
                 logger.exception("autopilot cycle failed")
                 _set_last(f"오류 · {exc}", ok=False)
-        else:
-            _stop.wait(interval_sec())
-            continue
-        # Always wait full interval between cycles (browser closed OK)
-        _stop.wait(interval_sec())
+        wait = _wait_sec_for_pressure() if enabled() else interval_sec()
+        _stop.wait(wait)
     logger.info("Autopilot loop stopped")
 
 

@@ -12,8 +12,9 @@ def test_money_page_has_cash_and_holdings():
     r = client.get("/")
     assert r.status_code == 200
     assert "계좌 총자산" in r.text
-    assert "AI 미션 자금" in r.text
+    assert "AI 미션" in r.text
     assert "AI가 쓸 한도" in r.text
+    assert "내가 넣을 돈" not in r.text
     assert "현금 · 충전" in r.text
     assert "투자한 종목" in r.text
     assert 'href="/ai"' in r.text
@@ -45,7 +46,7 @@ def test_ai_page_has_goal_and_one_button():
     assert "목표 금액" in r.text
     assert "기간 (일)" in r.text
     assert "AI가 쓸 한도" in r.text
-    assert "내가 넣을 돈" in r.text
+    assert "내가 넣을 돈" not in r.text
     assert 'href="/"' in r.text
 
 
@@ -73,10 +74,16 @@ def test_set_goal(monkeypatch, tmp_path):
     env.write_text("", encoding="utf-8")
     monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
     client = TestClient(app)
-    r = client.post("/actions/set_goal", data={"goal": "150"}, follow_redirects=False)
+    r = client.post(
+        "/actions/set_goal",
+        data={"budget": "50", "goal": "150", "days": "30"},
+        follow_redirects=False,
+    )
     assert r.status_code == 303
     assert "/ai" in r.headers["location"]
-    assert "ORACLE_GOAL_EQUITY=150.00" in env.read_text(encoding="utf-8")
+    text = env.read_text(encoding="utf-8")
+    assert "ORACLE_GOAL_EQUITY=150.00" in text
+    assert "ORACLE_AI_BUDGET=50.00" in text
 
 
 def test_kill_switch_toggle():

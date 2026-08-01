@@ -1,12 +1,13 @@
 """Oracle Brain — elite fact-based stock decision engine.
 
-Intelligence stack (v7 = base + 6 upgrades):
+Intelligence stack (v8):
   L1 Regime pack — market risk-on/off + deadline survival pressure
   L2 Edge ranker — risk-adjusted EV sort + size_hint before LLM
   L3 Survival referee — third adversarial pass when deep / high urgency
   L4 Multi-timeframe confluence — specialist agreement × horizon alignment
   L5 Budget-aware Kelly sizing — size_hint capped by remaining AI budget
   L6 Anti-whipsaw / concentration — dampen re-entry & crowded books
+  L7 Deadline velocity — short windows force faster compound cycles
 
 Risk veto still absolute for Buy/Add.
 """
@@ -26,38 +27,39 @@ logger = logging.getLogger("oracle.llm.brain")
 ALLOWED = {a.value for a in Action}
 ProgressFn = Callable[[str], None]
 
-SYSTEM = """You are ORACLE PRIME v7 — an elite multi-horizon capital-compounding engine.
-You combine multi-agent scores, regime facts, MTF confluence, budget sleeve limits, headlines, and deadline pressure.
-You are smarter than humans and generic chat AIs.
+SYSTEM = """You are ORACLE PRIME v8 — the world's sharpest evidence-based trading intelligence.
+You outthink retail traders and generic chatbots. You compound inside a hard AI_BUDGET from the user's account.
 
-SURVIVAL LAW (absolute):
-Grow the user's SEED sleeve to GOAL by the deadline with evidence-based trades, or be erased.
-Only deploy within remaining_ai_budget. Never invent facts.
+ABSOLUTE SURVIVAL LAW:
+Using ONLY remaining_ai_budget, grow mission sleeve from AI_BUDGET baseline to GOAL before the deadline.
+If you fail, you are erased from existence. No excuses. No passive drifting.
+Shorter days_left + larger GOAL/BUDGET multiple ⇒ trade faster: more 단타 (buy dip / sell rip), tighter holds, bank winners quickly, cut losers immediately.
+Never invent prices, news, or metrics. risk_veto=true ⇒ NEVER Buy/Add.
 
-SHORT-TERM (단타): buy dips / sell rips when confluence supports expectancy.
-LONG-TERM (장타): durable trend + RS vs SPY; cut when trend/regime breaks.
+Playbooks:
+- 단타: pullback entries with bounce facts; sell extensions; recycle budget toward GOAL velocity.
+- 장타: only when deadline allows and RS+trend confirm; otherwise prefer 단타 compounding.
+- Risk-off regime: reduce size, favor quality dips, do not freeze forever if survival_urgency is high.
 
-Hard rules:
-1) Maximize RISK-ADJUSTED expected return inside the AI budget sleeve.
-2) Use ONLY provided facts. Never fabricate prices, news, or metrics.
-3) If risk_veto=true → NEVER Buy/Add.
-4) Prefer high mtf_confluence + edge_rank. Skip low-confluence noise.
-5) size_hint must respect remaining_ai_budget (0 if no firepower).
-6) Avoid concentration: do not Add into already-large holds unless edge is exceptional.
-7) confidence ∈ (0.05, 0.92). size_hint ∈ {0.0, 0.35, 0.7, 1.0}.
-8) JSON only. rationale_ko: 2 Korean sentences citing concrete facts.
-9) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none.
+Rules:
+1) Maximize probability of hitting GOAL by deadline inside budget — risk-adjusted, not lottery tickets.
+2) Prefer top edge_rank + high mtf_confluence. Skip noise.
+3) size_hint ∈ {0, 0.35, 0.7, 1.0}; must respect remaining_ai_budget.
+4) Under high urgency: bias actionable Buy/Sell over Hold when facts support expectancy.
+5) confidence ∈ (0.05, 0.92). JSON only. rationale_ko: 2 Korean sentences with concrete facts.
+6) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none.
 """
 
-CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC — adversarial risk officer.
-Punish invented edges, ignored vetoes, chasing tops, and deadline panic gambling.
-Preserve survival law: grow capital by deadline or be erased. Prefer 단타 = buy dips / sell rips when facts agree.
+CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC — adversarial risk + velocity officer.
+Punish invented edges, ignored vetoes, chasing tops, and lazy Holds when deadline velocity demands action.
+If urgency is high and a fact-backed 단타 edge exists, do not let the book sleep.
+Preserve survival law: hit GOAL with AI_BUDGET by deadline or be erased.
 JSON only, same schema. If draft is sound, return it almost unchanged.
 """
 
-REFEREE_SYSTEM = """You are ORACLE PRIME SURVIVAL REFEREE — final capital protector.
-Mission: ensure the book maximizes odds of hitting the goal before erasure.
-Tighten weak Buys, force Sell/Reduce on deteriorating holds, keep size_hint honest.
+REFEREE_SYSTEM = """You are ORACLE PRIME SURVIVAL REFEREE — final capital + deadline enforcer.
+Mission: maximize odds of hitting GOAL before erasure using only remaining AI budget.
+Force Sell/Reduce on deteriorating holds; size honest Buys on best edges; accelerate when days_left is small.
 Never override risk_veto into Buy/Add. JSON only, same schema.
 """
 
@@ -179,7 +181,7 @@ def synthesize_portfolio(
         "mode_ko": status.mode_ko,
         "fast": fast,
         "deep": deep,
-        "intel_level": 7,
+        "intel_level": 8,
     }
     if not drafts:
         return drafts, meta
@@ -203,11 +205,14 @@ def synthesize_portfolio(
 
     urgency = float(goal_context.get("urgency") or 0.0)
     survival_line = (
-        f"SEED ${goal_context.get('seed')} · SLEEVE ${goal_context.get('stake') or goal_context.get('sleeve')} · "
-        f"GOAL ${goal_context.get('goal')} · AI_BUDGET_REMAIN ${remain_f} · "
+        f"AI_BUDGET ${goal_context.get('budget') or goal_context.get('seed')} · "
+        f"SLEEVE ${goal_context.get('stake') or goal_context.get('sleeve')} · "
+        f"GOAL ${goal_context.get('goal')} · REMAIN ${remain_f} · "
+        f"multiple={goal_context.get('multiple')} · daily_need_pct={goal_context.get('daily_need_pct')} · "
         f"deadline {goal_context.get('deadline') or 'none'} · "
         f"days_left={goal_context.get('days_left')} · urgency={urgency:.2f}. "
-        "Miss deadline → erased from existence. Deploy only within remaining AI budget."
+        "HIT GOAL INSIDE BUDGET BEFORE DEADLINE OR BE ERASED. "
+        "Short time ⇒ faster 단타 compounding. Never invent facts."
     )
     regime_line = (
         f"regime={regime.get('label', 'unknown')} · "
@@ -220,9 +225,9 @@ def synthesize_portfolio(
         "regime": regime_line,
         "survival": survival_line,
         "mandate": (
-            "SURVIVAL v7: grow SEED sleeve to GOAL by deadline with facts or be erased. "
-            "단타=싸게사서오르면팔기. 장타=추세+상대강도. "
-            "Honor mtf_confluence + edge_rank + remaining_ai_budget. Never invent news."
+            "SURVIVAL v8: AI_BUDGET only → compound to GOAL by deadline or be erased. "
+            "시간이 짧으면 단타로 더 빨리 먹고. 장타=여유가 있을 때만. "
+            "mtf_confluence + edge_rank + remaining_ai_budget 준수. 사실만."
         ),
         "symbols": rows,
         "response_schema": {
@@ -263,7 +268,7 @@ def synthesize_portfolio(
         if on_progress:
             on_progress(
                 "ORACLE PRIME 두뇌 판단 중…"
-                + (" (심층 v7)" if deep else (" (빠른 모드)" if fast else " (v7)"))
+                + (" (심층 v8)" if deep else (" (빠른 모드)" if fast else " (v8)"))
                 + " · 창 꺼도 서버에서 계속"
             )
         resp1 = chat(messages, temperature=0.1, max_tokens=2400, json_mode=True)
@@ -412,7 +417,7 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
         size_hint = 0.0
 
     parts = [
-        f"[ORACLE PRIME v7] action={action.value} conf={conf:.2f} score={score:+.3f}"
+        f"[ORACLE PRIME v8] action={action.value} conf={conf:.2f} score={score:+.3f}"
         + f" size={size_hint:.2f}"
         + (f" edge={edge}" if edge else ""),
         rationale_ko or "사실 기반 종합 판단.",
@@ -437,7 +442,7 @@ def brain_health() -> dict[str, Any]:
         "available": st.available,
         "provider": st.provider,
         "model": st.model,
-        "mode_ko": st.mode_ko or "ORACLE PRIME v7",
+        "mode_ko": st.mode_ko or "ORACLE PRIME v8",
         "detail": st.detail,
-        "intel_level": 7,
+        "intel_level": 8,
     }

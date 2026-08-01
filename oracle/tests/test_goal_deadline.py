@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from oracle.dashboard.app import app
-from oracle.execution.live_setup import goal_progress, set_goal, upsert_env
+from oracle.execution.live_setup import goal_progress
 from oracle.portfolio.activity_log import ActivityLog, format_clock
 
 
@@ -19,12 +19,13 @@ def test_set_goal_with_days(monkeypatch, tmp_path: Path):
     client = TestClient(app)
     r = client.post(
         "/actions/set_goal",
-        data={"goal": "200000", "days": "14"},
+        data={"budget": "1000", "goal": "2000", "days": "14"},
         follow_redirects=False,
     )
     assert r.status_code == 303
     text = env.read_text(encoding="utf-8")
-    assert "ORACLE_GOAL_EQUITY=200000.00" in text
+    assert "ORACLE_GOAL_EQUITY=2000.00" in text
+    assert "ORACLE_AI_BUDGET=1000.00" in text
     assert "ORACLE_GOAL_DEADLINE=" in text
 
 
@@ -46,11 +47,15 @@ def test_goal_progress_deadline_threat(monkeypatch, tmp_path: Path):
 
 
 def test_set_goal_helper(monkeypatch, tmp_path: Path):
+    from oracle.execution.live_setup import set_capital_plan
+
     env = tmp_path / ".env"
     env.write_text("", encoding="utf-8")
     monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
-    out = set_goal(500.0, days=7)
+    out = set_capital_plan(budget=100.0, goal=500.0, days=7)
+    assert out["budget"] == 100.0
     assert out["goal"] == 500.0
+    assert out["seed"] == 100.0  # auto = budget
     assert out["deadline"]
     assert "ORACLE_GOAL_DEADLINE=" in env.read_text(encoding="utf-8")
 
@@ -84,6 +89,7 @@ def test_ai_page_has_deadline_field():
     assert "기간 (일)" in r.text
     assert "소멸" in r.text
     assert "AI가 쓸 한도" in r.text
+    assert "내가 넣을 돈" not in r.text
 
 
 def test_activity_feed_api():
@@ -100,39 +106,39 @@ def test_set_capital_plan_mission(monkeypatch, tmp_path: Path):
     client = TestClient(app)
     r = client.post(
         "/actions/set_goal",
-        data={"seed": "10", "budget": "5", "goal": "20", "days": "30"},
+        data={"budget": "50", "goal": "200", "days": "30"},
         follow_redirects=False,
     )
     assert r.status_code == 303
     text = env.read_text(encoding="utf-8")
-    assert "ORACLE_SEED_CAPITAL=10.00" in text
-    assert "ORACLE_AI_BUDGET=5.00" in text
-    assert "ORACLE_GOAL_EQUITY=20.00" in text
+    assert "ORACLE_AI_BUDGET=50.00" in text
+    assert "ORACLE_SEED_CAPITAL=50.00" in text  # auto = budget
+    assert "ORACLE_GOAL_EQUITY=200.00" in text
 
 
-def test_budget_cannot_exceed_seed(monkeypatch, tmp_path: Path):
+def test_goal_must_exceed_budget(monkeypatch, tmp_path: Path):
     env = tmp_path / ".env"
     env.write_text("", encoding="utf-8")
     monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
     client = TestClient(app)
     r = client.post(
         "/actions/set_goal",
-        data={"seed": "10", "budget": "50", "goal": "20", "days": "7"},
+        data={"budget": "50", "goal": "20", "days": "7"},
         follow_redirects=False,
     )
     assert r.status_code == 303
     assert "flash=" in r.headers["location"]
 
 
-def test_sleeve_progress_uses_seed(monkeypatch, tmp_path: Path):
+def test_sleeve_progress_uses_budget_baseline(monkeypatch, tmp_path: Path):
     from oracle.execution.live_setup import set_capital_plan, goal_progress
 
     env = tmp_path / ".env"
     env.write_text("", encoding="utf-8")
     monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
-    set_capital_plan(seed=100, budget=50, goal=200, days=30)
-    g = goal_progress(100000.0, sleeve=100.0)
-    assert g["stake"] == 100.0
+    set_capital_plan(budget=50, goal=200, days=30)
+    g = goal_progress(100000.0, sleeve=50.0)
+    assert g["stake"] == 50.0
     assert g["pct"] == 0.0
-    g2 = goal_progress(100000.0, sleeve=150.0)
+    g2 = goal_progress(100000.0, sleeve=125.0)
     assert 0.49 < g2["pct"] < 0.51
