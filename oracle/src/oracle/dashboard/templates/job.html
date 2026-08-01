@@ -68,7 +68,7 @@
         return;
       }
       if (j.status === "error") {
-        location.href = "/trades?flash=" + encodeURIComponent(j.error || j.message || "실패");
+        location.href = "/ai?flash=" + encodeURIComponent(j.error || j.message || "실패");
         return;
       }
     } catch (e) {}
