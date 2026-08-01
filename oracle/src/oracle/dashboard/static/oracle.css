@@ -374,12 +374,26 @@ button, input, select {
   margin-bottom: 8px;
 }
 .hero-label-row .hero-label { margin-bottom: 0; }
-.hero-actions {
+.hero-charge-row {
+  margin-top: 12px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
 }
+.btn-charge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 0;
+  line-height: 1.2;
+}
+.btn-charge:active { opacity: 0.9; }
 .header-actions {
   display: flex;
   align-items: center;

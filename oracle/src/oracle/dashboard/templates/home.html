@@ -5,20 +5,20 @@
 <section class="hero money-hero">
   <div class="hero-label-row">
     <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
-    <div class="hero-actions">
-      {% if broker.configured %}
-      <a class="btn btn-sm btn-soft" href="{{ charge_url }}" target="_blank" rel="noopener">충전</a>
-      {% else %}
-      <a class="btn btn-sm btn-soft" href="/settings">계좌 연결</a>
-      {% endif %}
-      <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
-           data-rate="{{ fx.usdkrw if fx else 1380 }}">
-        <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
-        <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
-      </div>
+    <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
+         data-rate="{{ fx.usdkrw if fx else 1380 }}">
+      <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
+      <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
     </div>
   </div>
   <div class="hero-equity money" data-usd="{{ '%.2f'|format(equity) }}" data-money="equity">${{ "{:,.2f}".format(equity) }}</div>
+  <div class="hero-charge-row">
+    {% if broker.configured %}
+    <a class="btn btn-charge" href="{{ charge_url }}" target="_blank" rel="noopener">충전하기</a>
+    {% else %}
+    <a class="btn btn-charge" href="/settings">계좌 연결</a>
+    {% endif %}
+  </div>
   <p class="card-desc fx-hint" id="fx-hint">{{ fx.label_ko if fx else "" }} · 버튼을 누르면 원/달러로 바꿔 봅니다</p>
   <div class="hero-meta">
     {% if return_pct >= 0 %}
