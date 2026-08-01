@@ -3,6 +3,9 @@
 DNS는 **Porkbun**에 둡니다. 루트 `vowroad.com`은 Effiroad용으로 그대로 두고,  
 Oracle만 서브도메인으로 붙입니다.
 
+**집 PC 없이·무료·상시 운영 전체 순서**는  
+→ **[FREE_ALWAYS_ON.md](./FREE_ALWAYS_ON.md)**
+
 최종 주소: **https://oracle.vowroad.com**
 
 ## Porkbun에서 할 일 (휴대폰 기준)
