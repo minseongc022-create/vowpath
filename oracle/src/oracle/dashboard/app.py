@@ -1014,11 +1014,16 @@ def autopilot_toggle(
     live_ok = allow_live.strip() in {"1", "true", "on"}
     if on and live_ok and not live_armed():
         return _flash("/settings", "실거래 자율매매는 먼저 LIVE 무장이 필요합니다")
+    if on:
+        plan = capital_plan()
+        g = goal_progress(0.0)
+        if not (plan.get("set") and g.get("set")):
+            return _flash("/ai", "먼저 AI 한도·목표·기간을 저장하세요")
     autopilot_set(on, allow_live=live_ok and on)
     autopilot_start()
     if on:
-        return _flash("/ai", "자동 ON · 창 꺼도 목표까지 서버가 계속 굴립니다")
-    return _flash("/ai", "자동 OFF")
+        return _flash("/ai", "24시간 ON · 한도 안만 쓰며 시장 분석·매매 계속")
+    return _flash("/ai", "멈춤 · 다시 시작하려면 버튼을 누르세요")
 
 
 @app.post("/actions/set_goal")
@@ -1142,9 +1147,15 @@ def reset_paper(_: None = Depends(require_auth)):
 
 @app.post("/actions/autopilot_now")
 def autopilot_now(_: None = Depends(require_auth)):
+    """Start / restart 24h autopilot (requires mission). First cycle runs as a job."""
+    plan = capital_plan()
+    g = goal_progress(float(plan.get("sleeve") or plan.get("budget") or 0.0))
+    if not (plan.get("set") and g.get("set")):
+        return _flash("/ai", "먼저 한도·목표·기간을 저장한 뒤 시작하세요")
+
     if not autopilot_enabled():
         autopilot_set(True, allow_live=False)
-        autopilot_start()
+    autopilot_start()
 
     store = JobStore()
 
@@ -1152,14 +1163,16 @@ def autopilot_now(_: None = Depends(require_auth)):
         def prog(msg: str) -> None:
             store.append_log(job_id, msg)
 
+        prog("24시간 가동 시작 · AI 한도만 사용 · 창 꺼도 계속")
         out = autopilot_run_once(on_progress=prog)
+        prog("첫 사이클 완료 · 서버 루프가 이어서 시장을 계속 봅니다")
         return {
-            "message": out.get("message") or "완료",
+            "message": out.get("message") or "24시간 가동 중",
             "redirect": "/ai",
             **{k: v for k, v in out.items() if k != "message"},
         }
 
-    job_id = start_job("autopilot", _work, message="목표·종목·리스크 파악 시작…")
+    job_id = start_job("autopilot", _work, message="24시간 투자 시작 · 시장 분석…")
     return RedirectResponse(url=f"/ai?watch={job_id}", status_code=303)
 
 

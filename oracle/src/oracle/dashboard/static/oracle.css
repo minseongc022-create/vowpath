@@ -85,6 +85,16 @@ button, input, select {
 .btn-success { background: var(--green-soft); color: var(--green); }
 .btn-block { width: 100%; }
 .btn-sm { padding: 8px 12px; font-size: 0.82rem; border-radius: 12px; }
+.btn-stop {
+  background: var(--red);
+  color: #fff;
+  font-weight: 800;
+  padding: 16px 18px;
+  border-radius: 16px;
+}
+.btn-stop:active { opacity: 0.92; }
+.ai-controls { margin-top: 18px; }
+.ai-controls .plan-title { margin-bottom: 8px; }
 .btn-run {
   margin: 16px 0 4px;
   padding: 16px 18px;

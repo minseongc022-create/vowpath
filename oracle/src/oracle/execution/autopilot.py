@@ -83,10 +83,11 @@ def enabled() -> bool:
 
 
 def interval_sec() -> int:
+    """Default 3 minutes — 24h continuous market watch (hunt mode shortens further)."""
     try:
-        return max(60, int(os.getenv("ORACLE_AUTOPILOT_INTERVAL_SEC", "300")))
+        return max(60, int(os.getenv("ORACLE_AUTOPILOT_INTERVAL_SEC", "180")))
     except ValueError:
-        return 300
+        return 180
 
 
 def _state_path():
@@ -679,6 +680,8 @@ def set_enabled(on: bool, *, allow_live: bool = False) -> None:
     upsert_env(updates)
     if on:
         start_background()
-        _set_last("자율매매 ON · 서버에서 창 꺼도 매수/매도 계속")
+        _set_last("24시간 ON · AI 한도만 · 시장 분석·매매 계속 (창 꺼도 유지)")
+        _push_log("24시간 자율투자 시작 · 멈추기 전까지 사이클 반복")
     else:
-        _set_last("자율매매 OFF")
+        _set_last("정지됨 · 다시 시작 버튼을 눌러야 재개")
+        _push_log("사용자가 멈춤 · 24시간 루프 대기")

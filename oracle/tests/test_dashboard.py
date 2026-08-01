@@ -43,7 +43,8 @@ def test_ai_page_has_goal_and_one_button():
     r = client.get("/ai")
     assert r.status_code == 200
     assert "AI 투자" in r.text
-    assert "지금 투자 시작" in r.text
+    assert "24시간 투자 시작" in r.text or "다시 시작" in r.text
+    assert "멈추기" in r.text
     assert "목표 금액" in r.text
     assert "기간 (일)" in r.text
     assert "AI가 쓸 한도" in r.text
