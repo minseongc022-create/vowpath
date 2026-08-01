@@ -1,93 +1,84 @@
-# Oracle 개인 도메인 연결 (`oracle.vowroad.com`)
+# Oracle ↔ Porkbun (`oracle.vowroad.com`)
 
-`vowroad.com` 루트는 Effiroad(Vercel) 리다이렉트용으로 이미 쓰입니다.  
-Oracle(주식 AI)은 **서브도메인**을 씁니다.
+DNS는 **Porkbun**에 둡니다. 루트 `vowroad.com`은 Effiroad용으로 그대로 두고,  
+Oracle만 서브도메인으로 붙입니다.
 
-권장 주소: **https://oracle.vowroad.com**
+최종 주소: **https://oracle.vowroad.com**
 
-## 왜 서브도메인인가
+## Porkbun에서 할 일 (휴대폰 기준)
 
-| 호스트 | 용도 |
-|--------|------|
-| `vowroad.com` / `www` | Effiroad로 리다이렉트 (건드리지 않음) |
-| `oracle.vowroad.com` | Project Oracle 대시보드 (개인용) |
+1. [porkbun.com](https://porkbun.com) 로그인 → **Domain Management**
+2. **vowroad.com** 줄에서 **DNS** 버튼
+3. **Add Record** (또는 레코드 추가)
+4. 아래처럼 입력:
 
-## 준비물
+| 항목 | 값 |
+|------|-----|
+| Type | `CNAME` |
+| Host | `oracle` |
+| Answer / Content | `<TUNNEL_ID>.cfargotunnel.com` |
+| TTL | `600` (또는 Auto) |
 
-1. Porkbun에서 `vowroad.com` DNS 편집 권한 (이미 있음)
-2. [Cloudflare](https://dash.cloudflare.com) 무료 계정
-3. Oracle이 돌아가는 서버(지금 Cursor VM 또는 본인 PC/VPS)에서 `cloudflared`
+저장하면 주소는 `oracle.vowroad.com` 이 됩니다.  
+(`www` / `@` 는 건드리지 마세요 — Effiroad 리다이렉트용)
 
-## A. Cloudflare Named Tunnel (주소 고정 · 추천)
+> `TUNNEL_ID` 는 Cloudflare Named Tunnel을 만들면 나오는 UUID입니다.  
+> 예: `a1b2c3d4-....cfargotunnel.com`
 
-### 1) 터널 만들기 (서버에서)
+## 서버 쪽 (Cloudflare Named Tunnel)
+
+Porkbun은 DNS만 담당합니다. HTTPS 연결은 Cloudflare 터널이 합니다.  
+(네임서버를 Cloudflare로 옮길 필요 없음)
+
+### 1회 설정
 
 ```bash
-cloudflared tunnel login          # 브라우저에서 Cloudflare 로그인
+cloudflared tunnel login                 # Cloudflare 무료 계정으로 로그인
 cloudflared tunnel create oracle
-cloudflared tunnel route dns oracle oracle.vowroad.com
-```
+# 출력된 TUNNEL_ID 를 Porkbun CNAME Answer 에 넣기:
+#   Host=oracle  Answer=<TUNNEL_ID>.cfargotunnel.com
 
-`~/.cloudflared/<TUNNEL_ID>.json` 이 생깁니다.
-
-### 2) 설정 파일 예 (`~/.cloudflared/config.yml`)
-
-```yaml
+cat > ~/.cloudflared/config.yml <<EOF
 tunnel: <TUNNEL_ID>
-credentials-file: /home/YOU/.cloudflared/<TUNNEL_ID>.json
-
+credentials-file: $HOME/.cloudflared/<TUNNEL_ID>.json
 ingress:
   - hostname: oracle.vowroad.com
     service: http://127.0.0.1:8080
   - service: http_status:404
+EOF
 ```
 
-### 3) 실행
+### 상시 실행
 
 ```bash
-# Oracle 앱
-cd /path/to/oracle && PYTHONPATH=src python3 -m oracle.cli serve --host 127.0.0.1 --port 8080
+# 앱
+cd oracle && PYTHONPATH=src python3 -m oracle.cli serve --host 127.0.0.1 --port 8080
 
-# 터널 (상시)
+# 터널
 cloudflared tunnel run oracle
 ```
 
-### 4) Porkbun DNS
+## 임시 (터널 UUID 아직 없을 때)
 
-Cloudflare가 도메인을 네임서버로 쓰는 경우: CF에서만 CNAME이 잡히면 됩니다.
+Porkbun URL Forward로 잠깐 연결 가능:
 
-Porkbun 네임서버를 유지하는 경우:
+1. vowroad.com → **DNS** (또는 URL Forwarding)
+2. Host `oracle` → Forward to  
+   `https://extended-meanwhile-undertake-bedroom.trycloudflare.com`
+3. 단점: trycloudflare 주소가 바뀌면 Forward도 다시 고쳐야 함
 
-1. Porkbun → `vowroad.com` → **DNS**
-2. 레코드 추가:
-   - **Type:** `CNAME`
-   - **Host:** `oracle`
-   - **Answer:** `<TUNNEL_ID>.cfargotunnel.com`
-   - **TTL:** 600
-3. 저장 후 5~30분 대기
+고정이 필요하면 Named Tunnel + CNAME이 정답입니다.
 
-`cloudflared tunnel route dns` 를 쓰면 Cloudflare 쪽 DNS에 자동 추가됩니다.  
-도메인 네임서버가 Porkbun이면, 위 CNAME을 Porkbun에 직접 넣어야 합니다.
-
-## B. 잠깐만 (임시 trycloudflare)
-
-`*.trycloudflare.com` 은 재시작마다 주소가 바뀌고 자주 끊깁니다.  
-도메인 고정 전에는 임시로만 쓰세요.
-
-## 나만 쓰기 (필수)
-
-`.env`:
+## 로그인 (나만 쓰기)
 
 ```bash
 ORACLE_DASHBOARD_USER=minseong
-ORACLE_DASHBOARD_PASSWORD=강한비밀번호
+ORACLE_DASHBOARD_PASSWORD=...
 ```
-
-브라우저에서 로그인 창이 뜨면 본인만 접속합니다.
 
 ## 확인
 
 ```bash
 curl -I https://oracle.vowroad.com
-# 401(로그인 필요) 또는 200 이면 연결 성공
+# 401 또는 200 → OK
 ```
