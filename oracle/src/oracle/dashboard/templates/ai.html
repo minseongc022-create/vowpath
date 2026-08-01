@@ -33,6 +33,7 @@
       <div class="live-stat"><div class="k">사이클</div><div class="v" id="st-cycle">#{{ autopilot.cycle or 0 }}</div></div>
       <div class="live-stat"><div class="k">미션 모드</div><div class="v" id="st-mode">{{ goal.mode_ko if goal and goal.mode_ko else "—" }}</div></div>
       <div class="live-stat"><div class="k">장 상태</div><div class="v" id="st-market">확인중</div></div>
+      <div class="live-stat"><div class="k">뉴스</div><div class="v" id="st-news">—</div></div>
       <div class="live-stat"><div class="k">다음까지</div><div class="v" id="st-next">—</div></div>
       <div class="live-stat"><div class="k">AI 남음</div><div class="v" id="st-remain">{% if capital.remaining_budget is not none %}${{ "{:,.0f}".format(capital.remaining_budget) }}{% else %}—{% endif %}</div></div>
       <div class="live-stat"><div class="k">목표</div><div class="v" id="st-goal">{% if goal.set %}{{ "%.0f"|format(goal.pct * 100) }}%{% else %}—{% endif %}</div></div>
@@ -41,7 +42,8 @@
 
     <p class="live-now-msg" id="ap-live-msg">{{ autopilot.last_message or "시작을 누르면 실시간 분석이 여기에 쏟아집니다." }}</p>
     <p class="live-situation" id="ap-situation">현재 상황을 불러오는 중…</p>
-    <p class="card-desc" id="ap-live-hint">분석중=시장·종목 판단 · 투자중=실제 주문 · 대기중=다음 사이클 준비. 1초마다 갱신.</p>
+    <p class="card-desc" id="ap-live-hint">분석중=시장·종목 판단 · 준비중=휴장·뉴스·워치리스트 · 투자중=실제 주문 · 대기중=다음 사이클. 뉴스 레이더는 상시 수집.</p>
+    <div class="live-watchlist" id="ap-watchlist" hidden></div>
 
     <div class="live-log live-log-xl" id="ap-live-log" aria-live="polite">
       {% for line in autopilot.logs[-40:] %}
@@ -195,6 +197,8 @@
   const runBtn = document.getElementById("run-btn");
   const lastEl = document.getElementById("ap-last");
   const situationEl = document.getElementById("ap-situation");
+  const stNews = document.getElementById("st-news");
+  const watchEl = document.getElementById("ap-watchlist");
   const stCycle = document.getElementById("st-cycle");
   const stMode = document.getElementById("st-mode");
   const stPhase = document.getElementById("st-phase");
@@ -282,16 +286,28 @@
   }
   function paintStage(stage, stageKo) {
     const s = stage || "stopped";
-    const ko = stageKo || ({ analyzing: "분석중", investing: "투자중", watching: "대기중", stopped: "정지" })[s] || s;
+    const ko = stageKo || ({ analyzing: "분석중", investing: "투자중", preparing: "준비중", watching: "대기중", stopped: "정지" })[s] || s;
     if (stPhase) stPhase.textContent = ko;
     if (stageBadge) {
       stageBadge.textContent = ko;
       stageBadge.className = "stage-badge stage-" + s;
     }
     if (panel) {
-      panel.classList.toggle("is-analyzing", s === "analyzing");
+      panel.classList.toggle("is-analyzing", s === "analyzing" || s === "preparing");
       panel.classList.toggle("is-investing", s === "investing");
+      panel.classList.toggle("is-preparing", s === "preparing");
     }
+  }
+  function renderWatchlist(items) {
+    if (!watchEl) return;
+    const arr = items || [];
+    if (!arr.length) { watchEl.hidden = true; watchEl.innerHTML = ""; return; }
+    watchEl.hidden = false;
+    watchEl.innerHTML = "<strong>개장 대비 워치리스트</strong>" + arr.slice(0, 8).map(function (w) {
+      return '<div class="watch-row"><span class="watch-side">' + (w.side || "WATCH") +
+        '</span> <strong>' + (w.symbol || "?") + '</strong> <span class="card-desc">' +
+        (w.rationale || "") + '</span></div>';
+    }).join("");
   }
   function setRunningUI(on, isBusy, stage, stageKo) {
     enabled = !!on;
@@ -309,7 +325,7 @@
       chip.className = "chip " + (on ? "chip-ok" : "chip-danger");
     }
     paintStage(stage || (isBusy ? "analyzing" : (on ? "watching" : "stopped")), stageKo);
-    if (spinner) spinner.style.visibility = (stage === "analyzing" || stage === "investing" || isBusy) ? "visible" : "hidden";
+    if (spinner) spinner.style.visibility = (stage === "analyzing" || stage === "investing" || stage === "preparing" || isBusy) ? "visible" : "hidden";
     if (runBtn && !on) {
       const root = document.getElementById("ai-panel");
       const had = root && root.dataset.ever === "1";
@@ -325,6 +341,7 @@
       if (j.situation) parts.push(j.situation);
       if (j.market && j.market.label) parts.push("장: " + j.market.label);
       if (j.market && j.market.hint) parts.push(j.market.hint);
+      if (j.prep_mode) parts.push("휴장·준비모드(주문 보류)");
       situationEl.textContent = parts.join(" · ") || "상황 갱신 중…";
     }
     if (stCycle) stCycle.textContent = "#" + (j.cycle || 0);
@@ -333,9 +350,18 @@
       stMarket.textContent = j.market.open ? "개장중" : (j.market.label || "휴장");
       stMarket.title = j.market.hint || "";
     }
+    if (stNews) {
+      const n = j.news || {};
+      const pending = n.material_pending != null ? n.material_pending : (n.cycle_material || 0);
+      const total = n.total != null ? n.total : "—";
+      stNews.textContent = "중요대기 " + pending + " / 누적 " + total;
+      const titles = (n.fresh_titles || []).filter(Boolean);
+      stNews.title = titles.length ? titles.join(" | ") : (n.last_poll && n.last_poll.message) || "";
+    }
     if (stAction) stAction.textContent = j.last_action || j.last_message || "—";
     if (stRemain && j.capital) stRemain.textContent = money(j.capital.remaining);
     if (stGoal && j.goal_pct != null) stGoal.textContent = Math.round(Number(j.goal_pct) * 100) + "%";
+    renderWatchlist(j.watchlist);
     intervalSec = Number(j.interval_sec) || 180;
     lastTs = j.last_ts || lastTs;
     if (j.logs) renderAllLogs(j.logs);

@@ -133,21 +133,38 @@ class OraclePipeline:
             "budget": plan.get("budget"),
             "sleeve": plan.get("sleeve"),
         }
-        headlines = aggregate_market_headlines(symbols[:6], per_symbol=3)
-        # Richer fact pack for ORACLE PRIME
+        headlines = aggregate_market_headlines(symbols[:8], per_symbol=4)
+        # Richer fact pack for ORACLE PRIME — live fetch + persistent radar digest
         news_bits = []
         for h in headlines[:12]:
             bit = h.title.strip()
             if h.publisher:
                 bit = f"[{h.publisher}] {bit}"
+            if h.symbol:
+                bit = f"{h.symbol}: {bit}"
             news_bits.append(bit)
+        try:
+            from oracle.data.news import research_digest
+
+            stored = research_digest(limit=8)
+            if stored and stored != "No stored headlines yet":
+                news_bits.append(f"RADAR: {stored}")
+        except Exception:
+            pass
         top_news = " | ".join(news_bits) or "No headlines"
+        prep_note = ""
+        if session in {"weekend_prep", "closed_prep"}:
+            prep_note = (
+                " PREP MODE: cash session closed — deepen research, build open-ready "
+                "watchlist, do not assume fills until RTH."
+            )
         market_summary = (
             f"Index day moves: {overview}. Regime={regime.get('label')}. "
             f"FACT headlines: {top_news}. "
             f"Session={session}. Goal mode={gprog.get('mode')} urgency={gprog.get('urgency', 0)}. "
             f"Seed={plan.get('seed')} budget_remain={plan.get('remaining_budget')}. "
             f"Mandate=hunt hard then lock near goal; lie/lose-only => eternal erasure."
+            f"{prep_note}"
         )
         _prog(
             f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')} · "

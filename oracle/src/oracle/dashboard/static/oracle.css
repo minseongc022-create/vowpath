@@ -877,8 +877,26 @@ button, input, select {
 }
 .stage-analyzing { background: #dbeafe; color: #1d4ed8; }
 .stage-investing { background: #d1fae5; color: #047857; }
+.stage-preparing { background: #fef3c7; color: #b45309; }
 .stage-watching { background: #e5e7eb; color: #374151; }
 .stage-stopped { background: #fee2e2; color: #b91c1c; }
+.live-monitor.is-preparing { border-color: rgba(180, 83, 9, 0.35); }
+.live-watchlist {
+  margin: 0.6rem 0 0.4rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(180, 83, 9, 0.06);
+  border: 1px solid rgba(180, 83, 9, 0.18);
+}
+.live-watchlist strong { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; }
+.watch-row { font-size: 0.82rem; padding: 0.2rem 0; line-height: 1.35; }
+.watch-side {
+  display: inline-block;
+  min-width: 3.2rem;
+  font-weight: 700;
+  color: #b45309;
+  font-size: 0.72rem;
+}
 .live-situation {
   margin: 0 0 8px;
   font-size: 0.88rem;

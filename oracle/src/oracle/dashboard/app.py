@@ -739,10 +739,12 @@ def api_autopilot(_: None = Depends(require_auth)):
     stage_ko = st.stage_ko or {
         "analyzing": "분석중",
         "investing": "투자중",
+        "preparing": "준비중",
         "watching": "대기중",
         "stopped": "정지",
     }.get(stage, stage)
     situation = st.situation or st.last_message or stage_ko
+    news = st.news or {}
     return JSONResponse(
         {
             "enabled": st.enabled,
@@ -764,6 +766,9 @@ def api_autopilot(_: None = Depends(require_auth)):
             "situation": situation,
             "phase": stage,
             "phase_ko": stage_ko,
+            "prep_mode": bool(st.prep_mode or not sess.get("open")),
+            "watchlist": list(st.watchlist or [])[:10],
+            "news": news,
             "mode": gprog.get("mode"),
             "mode_ko": gprog.get("mode_ko"),
             "urgency": gprog.get("urgency"),
@@ -777,7 +782,7 @@ def api_autopilot(_: None = Depends(require_auth)):
                 "open_cost": plan.get("open_cost"),
                 "sleeve": plan.get("sleeve"),
             },
-            "server_note": "24시간 실시간 · 창을 닫아도 서버에서 계속됩니다",
+            "server_note": "24시간 실시간 · 뉴스 레이더+분석 · 휴장은 준비모드 · 창 닫아도 계속",
             "now_iso": datetime.now(UTC).isoformat(),
         }
     )
@@ -1124,7 +1129,14 @@ def reset_paper(_: None = Depends(require_auth)):
 
     settings = get_settings()
     data = Path(settings.data_dir)
-    for name in ("journal.db", "jobs.db", "oracle.db", "activity.db", "autopilot_state.json"):
+    for name in (
+        "journal.db",
+        "jobs.db",
+        "oracle.db",
+        "activity.db",
+        "news.db",
+        "autopilot_state.json",
+    ):
         p = data / name
         if p.exists():
             p.unlink()

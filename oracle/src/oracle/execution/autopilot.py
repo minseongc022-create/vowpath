@@ -17,6 +17,13 @@ from typing import Callable
 from oracle.config import get_settings
 from oracle.core.types import Action, DecisionResult
 from oracle.data.market import fetch_snapshot
+from oracle.data.news import (
+    NewsStore,
+    poll_and_ingest,
+    radar_status,
+    research_digest,
+    start_news_poller,
+)
 from oracle.execution.engine import ExecutionEngine, KillSwitch, estimate_day_pnl_pct
 from oracle.execution.live_setup import (
     add_sleeve_realized,
@@ -57,10 +64,13 @@ _last: dict = {
     "logs": [],
     "cycle": 0,
     "picks_ts": None,
-    "stage": "stopped",  # analyzing | investing | watching | stopped
+    "stage": "stopped",  # analyzing | investing | preparing | watching | stopped
     "stage_ko": "정지",
     "situation": "아직 시작 전입니다.",
     "last_action": "",
+    "prep_mode": False,
+    "news": {},
+    "watchlist": [],
 }
 _STATE_NAME = "autopilot_state.json"
 
@@ -84,6 +94,9 @@ class AutopilotStatus:
     stage_ko: str = "정지"
     situation: str = ""
     last_action: str = ""
+    prep_mode: bool = False
+    news: dict | None = None
+    watchlist: list | None = None
 
 
 def us_equity_session() -> dict:
@@ -117,6 +130,7 @@ def _set_stage(stage: str, situation: str | None = None) -> None:
     ko = {
         "analyzing": "분석중",
         "investing": "투자중",
+        "preparing": "준비중",
         "watching": "대기중",
         "stopped": "정지",
     }.get(stage, stage)
@@ -160,6 +174,9 @@ def _persist_state() -> None:
             "stage_ko": _last.get("stage_ko"),
             "situation": _last.get("situation"),
             "last_action": _last.get("last_action"),
+            "prep_mode": bool(_last.get("prep_mode")),
+            "news": _last.get("news") or {},
+            "watchlist": list(_last.get("watchlist") or [])[:12],
             # never persist busy=true across restarts
             "busy": False,
         }
@@ -190,6 +207,9 @@ def _load_state() -> None:
                     "stage_ko": data.get("stage_ko") or _last.get("stage_ko"),
                     "situation": data.get("situation") or _last.get("situation"),
                     "last_action": data.get("last_action") or _last.get("last_action"),
+                    "prep_mode": bool(data.get("prep_mode")),
+                    "news": data.get("news") or {},
+                    "watchlist": list(data.get("watchlist") or [])[:12],
                     "busy": False,
                 }
             )
@@ -214,13 +234,14 @@ def status() -> AutopilotStatus:
                 }
             )
     stage = str(_last.get("stage") or ("analyzing" if _last.get("busy") else ("watching" if enabled() else "stopped")))
-    if _last.get("busy") and stage not in {"analyzing", "investing"}:
-        stage = "analyzing"
+    if _last.get("busy") and stage not in {"analyzing", "investing", "preparing"}:
+        stage = "preparing" if _last.get("prep_mode") else "analyzing"
     if not enabled() and not _last.get("busy"):
         stage = "stopped"
     ko = {
         "analyzing": "분석중",
         "investing": "투자중",
+        "preparing": "준비중",
         "watching": "대기중",
         "stopped": "정지",
     }.get(stage, str(_last.get("stage_ko") or stage))
@@ -240,6 +261,9 @@ def status() -> AutopilotStatus:
         stage_ko=ko,
         situation=str(_last.get("situation") or ""),
         last_action=str(_last.get("last_action") or ""),
+        prep_mode=bool(_last.get("prep_mode")),
+        news=dict(_last.get("news") or radar_status()),
+        watchlist=list(_last.get("watchlist") or []),
     )
 
 
@@ -423,10 +447,18 @@ def run_once(on_progress: ProgressFn | None = None) -> dict:
         _last["busy"] = False
         if enabled():
             sess = us_equity_session()
-            _set_stage(
-                "watching",
-                f"다음 사이클 대기 · {sess['label']} · {_last.get('last_action') or '직전 결과 유지'}",
-            )
+            if not sess.get("open"):
+                _set_stage(
+                    "preparing",
+                    f"휴장 준비 대기 · {sess['label']} · "
+                    f"{_last.get('last_action') or '워치리스트·뉴스 유지'} · "
+                    "레이더는 계속 수집",
+                )
+            else:
+                _set_stage(
+                    "watching",
+                    f"다음 사이클 대기 · {sess['label']} · {_last.get('last_action') or '직전 결과 유지'}",
+                )
         else:
             _set_stage("stopped", "사용자가 멈춤")
         _cycle_lock.release()
@@ -449,18 +481,83 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     plan = capital_plan(portfolio, cash=float(portfolio.cash))
     gprog = goal_progress(equity, sleeve=sleeve)
     session = us_equity_session()
+    prep_mode = not bool(session.get("open"))
+    _last["prep_mode"] = prep_mode
     cycle = int(_last.get("cycle") or 0) + 1
     _last["cycle"] = cycle
     urgency = float(gprog.get("urgency") or 0.0)
     mode = str(gprog.get("mode") or "hunt")
+    stage0 = "preparing" if prep_mode else "analyzing"
     _set_stage(
-        "analyzing",
-        f"사이클 #{cycle} 분석중 · 모드 {gprog.get('mode_ko') or mode} · {session['label']}",
+        stage0,
+        (
+            f"사이클 #{cycle} {'장 휴장 준비중' if prep_mode else '분석중'} · "
+            f"모드 {gprog.get('mode_ko') or mode} · {session['label']}"
+        ),
     )
     prog(f"장 상태 · {session['label']} · {session['hint']}")
-    # Deep brain every 3rd cycle, or when survival pressure is high
+    if prep_mode:
+        prog(
+            "준비 모드 ON · 주문은 개장까지 보류 · "
+            "뉴스·유니버스·심층 두뇌로 개장 직전 워치리스트를 만듭니다"
+        )
+
+    # ⓪ Continuous news: pull universe + holdings, surface brand-new material headlines
+    from oracle.portfolio.picker import load_trade_universe
+
+    held_early = list(portfolio.held_symbols())
+    news_syms = list(
+        dict.fromkeys([*held_early, *load_trade_universe()[: (50 if prep_mode else 28)], "SPY", "QQQ"])
+    )
+    prog(f"⓪ 뉴스 레이더 · {len(news_syms)}종목+매크로 수집")
+    try:
+        news_result = poll_and_ingest(
+            news_syms,
+            per_symbol=7 if prep_mode else 5,
+            include_macro=True,
+        )
+    except Exception as exc:
+        logger.exception("news ingest failed")
+        news_result = {"fetched": 0, "new": 0, "material": 0, "fresh": [], "material_fresh": []}
+        prog(f"뉴스 수집 실패 · {exc} · 가격 분석은 계속")
+    fresh_rows = NewsStore().take_fresh(limit=16 if prep_mode else 10, min_material=0.12)
+    material_n = int(news_result.get("material") or 0)
+    new_n = int(news_result.get("new") or 0)
+    _last["news"] = {
+        **radar_status(),
+        "cycle_new": new_n,
+        "cycle_material": material_n,
+        "fresh_titles": [r.get("title") for r in fresh_rows[:6]],
+    }
+    prog(
+        f"뉴스 · 신규 {new_n} · 중요 {material_n} · "
+        f"이번 사이클 분석 큐 {len(fresh_rows)}"
+    )
+    news_priority = []
+    for row in fresh_rows:
+        sym = (row.get("symbol") or "").upper()
+        if sym and sym not in {"MACRO", "SPY", "QQQ", "IWM", "^VIX"}:
+            news_priority.append(sym)
+        title = (row.get("title") or "")[:90]
+        if title:
+            prog(f"속보 · [{sym or 'MACRO'}] {title}")
+    news_priority = list(dict.fromkeys(news_priority))[:8]
+    if fresh_rows:
+        try:
+            ActivityLog().add(
+                "news",
+                f"신규·중요 뉴스 {len(fresh_rows)}건 분석 큐",
+                detail=" · ".join((r.get("title") or "")[:60] for r in fresh_rows[:4]),
+                meta={"fresh": fresh_rows[:8], "cycle": cycle},
+            )
+        except Exception:
+            pass
+
+    # Deep brain: always on closed market / fresh news / hunt pressure
     deep = (
-        (cycle % 3 == 0)
+        prep_mode
+        or bool(fresh_rows)
+        or (cycle % 3 == 0)
         or urgency >= 0.55
         or bool(gprog.get("deadline_passed"))
         or mode in {"hunt", "panic"}
@@ -494,31 +591,38 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if gprog["reached"] or mode == "won":
             prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수 중단 · 약한 종목만 정리")
 
-    # Hunt: wide 단타 net. Lock: narrow new risk, still scan exits.
-    if mode in {"hunt", "panic"} or urgency >= 0.55:
+    # Hunt: wide 단타 net. Prep/closed: widest research net.
+    if prep_mode:
+        lim_short, lim_long = 14, 8
+    elif mode in {"hunt", "panic"} or urgency >= 0.55:
         lim_short, lim_long = 10, 3
     elif mode == "lock":
         lim_short, lim_long = 4, 2
     else:
         lim_short, lim_long = 6, 6
-    prog(f"① 탐색 시작 · 사이클 #{cycle}" + (" · 심층지능 ON" if deep else " · 빠른 모드"))
+    prog(
+        f"① 탐색 시작 · 사이클 #{cycle}"
+        + (" · 심층지능 ON" if deep else " · 빠른 모드")
+        + (" · 휴장 광역 스캔" if prep_mode else "")
+    )
     short_picks, long_picks, blend_picks = screen_short_and_long(
         limit_short=lim_short,
         limit_long=lim_long,
         on_progress=prog,
     )
-    picks_view = top_picks_summary(limit=8)
+    picks_view = top_picks_summary(limit=12 if prep_mode else 8)
     _last["picks"] = picks_view
     _last["picks_ts"] = datetime.now(UTC).isoformat()
-    screened = blend_picks or screen_universe(limit=8)
+    screened = blend_picks or screen_universe(limit=12 if prep_mode else 8)
     try:
         ActivityLog().add(
             "screen",
-            f"탐색 완료 · 단타 {len(short_picks)} · 장타 {len(long_picks)}",
+            f"탐색 완료 · 단타 {len(short_picks)} · 장타 {len(long_picks)}"
+            + (" · 준비모드" if prep_mode else ""),
             detail=" · ".join(
                 f"{p.get('symbol')}({p.get('horizon')})" for p in picks_view[:6]
             ),
-            meta={"picks": picks_view[:8], "cycle": cycle},
+            meta={"picks": picks_view[:8], "cycle": cycle, "prep": prep_mode},
         )
     except Exception:
         pass
@@ -541,22 +645,31 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         )
 
     held = list(portfolio.held_symbols())
-    # Deep AI on holdings + best short + best long (breadth without analyzing 100 names in LLM)
+    # Deep AI: holdings + screen tops + news-priority names (wider when preparing)
+    top_n = 6 if prep_mode else 4
     top_syms = list(
         dict.fromkeys(
-            [p.symbol for p in short_picks[:4]]
-            + [p.symbol for p in long_picks[:4]]
-            + [p.symbol for p in blend_picks[:3]]
+            news_priority
+            + [p.symbol for p in short_picks[:top_n]]
+            + [p.symbol for p in long_picks[:top_n]]
+            + [p.symbol for p in blend_picks[:4]]
         )
     )
-    symbols = list(dict.fromkeys([*held, *top_syms]))[:10]
+    sym_cap = 16 if prep_mode else (12 if fresh_rows else 10)
+    symbols = list(dict.fromkeys([*held, *top_syms]))[:sym_cap]
 
-    prog(
-        f"② 심층 AI · 단타+장타 후보 {len(symbols)}종목 · {', '.join(symbols)}"
-        + (" · 3패스 두뇌" if deep else "")
+    pipe_session = "weekend_prep" if prep_mode and datetime.now(UTC).weekday() >= 5 else (
+        "closed_prep" if prep_mode else "autopilot"
     )
+    prog(
+        f"② 심층 AI · 후보 {len(symbols)}종목 · {', '.join(symbols)}"
+        + (" · 3패스 두뇌" if deep else "")
+        + (f" · 세션 {pipe_session}" if prep_mode else "")
+    )
+    if fresh_rows:
+        prog(f"뉴스 FACT · {research_digest(limit=6)[:280]}")
     result = OraclePipeline(settings).run(
-        session="autopilot",
+        session=pipe_session,
         symbols=symbols,
         on_progress=prog,
         fast_llm=not deep,
@@ -641,6 +754,39 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     executed = 0
     skip_reasons: list[str] = []
 
+    # Build open-ready watchlist (always; critical when prep_mode)
+    watchlist: list[dict] = []
+    if best_buy:
+        watchlist.append(
+            {
+                "symbol": best_buy.symbol,
+                "side": "BUY",
+                "confidence": float(best_buy.confidence or 0),
+                "rationale": (best_buy.rationale or "")[:160],
+            }
+        )
+    if best_sell:
+        watchlist.append(
+            {
+                "symbol": best_sell.symbol,
+                "side": best_sell.action.value,
+                "confidence": float(best_sell.confidence or 0),
+                "rationale": (best_sell.rationale or "")[:160],
+            }
+        )
+    for p in (short_picks[:3] + long_picks[:2]):
+        if any(w["symbol"] == p.symbol for w in watchlist):
+            continue
+        watchlist.append(
+            {
+                "symbol": p.symbol,
+                "side": "WATCH",
+                "confidence": float(getattr(p, "short_score", 0) or getattr(p, "long_score", 0) or 0),
+                "rationale": ", ".join((p.reasons or [])[:3])[:160],
+            }
+        )
+    _last["watchlist"] = watchlist[:10]
+
     prog("③ 매수·매도 후보 선택 (단타=싸게사고비싸게팔기)")
     if best_sell:
         prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
@@ -652,6 +798,41 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         best_buy = None
     if not best_buy and not best_sell:
         skip_reasons.append("AI가 고확신 매수/매도 후보를 못 뽑음")
+
+    # Closed market / weekend: research only — no new orders until cash session opens
+    if prep_mode:
+        ready = " · ".join(
+            f"{w['side']} {w['symbol']}" for w in watchlist[:5]
+        ) or "워치리스트 갱신 중"
+        digest = research_digest(limit=4)
+        msg = (
+            f"장 휴장 준비 완료 · 개장 대기 주문 없음 · "
+            f"준비 {ready} · 뉴스 {new_n}/{material_n}"
+        )
+        prog(f"④ 주문 보류 · {session['label']} · 개장 시 바로 집행할 계획 저장")
+        prog(f"워치리스트 · {ready}")
+        if digest:
+            prog(f"뉴스 브리핑 · {digest[:220]}")
+        _last["last_action"] = msg
+        _set_stage("preparing", f"준비중 · {msg}")
+        _set_last(msg, picks=picks_view)
+        try:
+            ActivityLog().add(
+                "prep",
+                "휴장 준비 사이클 완료",
+                detail=msg,
+                meta={"watchlist": watchlist[:8], "cycle": cycle, "news": _last.get("news")},
+            )
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "message": msg,
+            "run_id": result.run_id,
+            "picks": picks_view,
+            "prep": True,
+            "watchlist": watchlist,
+        }
 
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
         if dec is None:
@@ -672,7 +853,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if executed >= 2:
             break
 
-    # Screen fallback buys only in hunt/panic — never in lock/won
+    # Screen fallback buys only in hunt/panic — never in lock/won / prep
     if not msgs and mode in {"hunt", "panic"} and not reached and remain > 0.5:
         from oracle.core.types import DecisionResult as DR
         from oracle.core.types import RiskVeto
@@ -747,13 +928,26 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
 
 def _wait_sec_for_pressure() -> int:
-    """Hunt faster; lock slower (protect)."""
+    """Hunt faster; lock slower; closed-market prep keeps researching (not idle)."""
     base = interval_sec()
     try:
+        sess = us_equity_session()
         portfolio = load_portfolio(get_settings().portfolio_path)
         g = goal_progress(float(portfolio.equity()), sleeve=sleeve_equity(portfolio))
         u = float(g.get("urgency") or 0.0)
         mode = str(g.get("mode") or "")
+        # Fresh material news → wake up sooner even between cycles
+        try:
+            pending = int((radar_status() or {}).get("material_pending") or 0)
+        except Exception:
+            pending = 0
+        if pending >= 3:
+            return max(45, base // 3)
+        if not sess.get("open"):
+            # Weekend / after-hours: keep deep prep rolling, slightly calmer than hunt panic
+            if mode == "won":
+                return max(base, int(base * 1.5))
+            return max(90, int(base * 0.85))
         if mode == "won":
             return max(base, base * 2)
         if mode == "lock":
@@ -767,9 +961,33 @@ def _wait_sec_for_pressure() -> int:
     return base
 
 
+def _on_radar_fresh(fresh: list) -> None:
+    """Callback from news poller — surface ASAP without waiting for next trade tick."""
+    if not fresh:
+        return
+    titles = []
+    for h in fresh[:4]:
+        sym = getattr(h, "symbol", None) or "?"
+        titles.append(f"[{sym}] {(getattr(h, 'title', '') or '')[:70]}")
+    line = "속보 레이더 · " + " · ".join(titles)
+    try:
+        _push_log(line, kind="news")
+        _last["news"] = radar_status()
+        if not _last.get("busy"):
+            _set_stage(
+                "preparing" if not us_equity_session().get("open") else "analyzing",
+                f"신규 뉴스 {len(fresh)}건 수신 · 다음 사이클에서 즉시 심층 분석",
+            )
+    except Exception:
+        logger.debug("radar fresh log failed", exc_info=True)
+
+
 def _loop() -> None:
     logger.info("Autopilot loop start interval=%ss (browser-independent)", interval_sec())
-    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 계속 · 압박 시 더 빠름)")
+    _push_log(
+        f"서버 자율루프 시작 · {interval_sec()}초마다 "
+        f"(뉴스 레이더 병행 · 휴장은 준비모드 · 창 꺼도 계속)"
+    )
     time.sleep(3)
     while not _stop.is_set():
         if enabled():
@@ -787,12 +1005,14 @@ def start_background() -> None:
     global _thread
     with _lock:
         if _thread and _thread.is_alive():
+            start_news_poller(interval_sec=45, on_fresh=_on_radar_fresh)
             return
         _stop.clear()
         _load_state()
         _thread = threading.Thread(target=_loop, daemon=True, name="oracle-autopilot")
         _thread.start()
-        logger.info("Autopilot background thread launched (survives browser close)")
+        start_news_poller(interval_sec=45, on_fresh=_on_radar_fresh)
+        logger.info("Autopilot + news radar launched (survives browser close)")
 
 
 def set_enabled(on: bool, *, allow_live: bool = False) -> None:
@@ -804,9 +1024,14 @@ def set_enabled(on: bool, *, allow_live: bool = False) -> None:
     upsert_env(updates)
     if on:
         start_background()
-        _set_stage("watching", "24시간 ON · 곧 분석 사이클이 시작됩니다")
-        _set_last("24시간 ON · AI 한도만 · 시장 분석·매매 계속 (창 꺼도 유지)")
-        _push_log("24시간 자율투자 시작 · 멈추기 전까지 사이클 반복")
+        sess = us_equity_session()
+        if sess.get("open"):
+            _set_stage("watching", "24시간 ON · 뉴스 레이더+분석 사이클 시작")
+            _set_last("24시간 ON · 뉴스·분석·매매 계속 (창 꺼도 유지)")
+        else:
+            _set_stage("preparing", f"24시간 ON · {sess['label']} · 개장까지 준비·뉴스 분석")
+            _set_last(f"24시간 ON · 휴장 준비모드 · {sess['label']}")
+        _push_log("24시간 자율투자/준비 시작 · 뉴스 레이더 상시 · 멈추기 전까지 반복")
     else:
         _set_stage("stopped", "정지 · 다시 시작을 눌러야 재개")
         _set_last("정지됨 · 다시 시작 버튼을 눌러야 재개")
