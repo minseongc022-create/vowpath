@@ -866,56 +866,68 @@ def set_goal(goal: str = Form(...), _: None = Depends(require_auth)):
 
 @app.post("/actions/reset_paper")
 def reset_paper(_: None = Depends(require_auth)):
-    """Wipe local fake history and resync from Alpaca Paper."""
+    """Wipe ALL fake local state + cancel paper orders; clean cash-only portfolio."""
+    import shutil
+
+    import yaml
+    from oracle.config import resolve_path
+
     settings = get_settings()
     data = Path(settings.data_dir)
-    for name in ("journal.db", "jobs.db"):
+    for name in ("journal.db", "jobs.db", "oracle.db"):
         p = data / name
         if p.exists():
             p.unlink()
-    # Clear decision runs table if present
-    odb = data / "oracle.db"
-    if odb.exists():
-        import sqlite3
+    for sub in ("cache", "reports", "logs"):
+        d = data / sub
+        if d.exists():
+            shutil.rmtree(d, ignore_errors=True)
+            d.mkdir(parents=True, exist_ok=True)
 
-        with sqlite3.connect(odb) as conn:
-            for table in ("runs", "decisions", "agent_opinions"):
-                try:
-                    conn.execute(f"DELETE FROM {table}")
-                except Exception:
-                    pass
-
+    equity = 0.0
     broker = get_broker()
     if broker is not None:
         try:
-            state = sync_portfolio_from_broker(broker)
-            equity = float(state.equity())
-        except Exception as exc:
-            return _flash("/settings", f"초기화 실패 · 브로커 동기화 오류: {exc}")
-    else:
-        import yaml
-        from oracle.config import resolve_path
-        from oracle.core.types import PortfolioState
+            # Cancel open paper orders + attempt close-all (fills when market open)
+            if hasattr(broker, "cancel_all"):
+                try:
+                    broker.cancel_all()
+                except Exception:
+                    pass
+            import httpx
 
-        state = PortfolioState(cash=10000.0, currency="USD", positions=[], targets={})
-        dest = resolve_path(settings.portfolio_path)
-        dest.write_text(
-            yaml.safe_dump(
-                {"cash": 10000.0, "currency": "USD", "positions": [], "targets": {}},
-                sort_keys=False,
-            ),
-            encoding="utf-8",
-        )
+            base = os.getenv("ALPACA_BASE_URL", PAPER_URL).rstrip("/")
+            headers = {
+                "APCA-API-KEY-ID": os.getenv("ALPACA_API_KEY", ""),
+                "APCA-API-SECRET-KEY": os.getenv("ALPACA_SECRET_KEY", ""),
+            }
+            with httpx.Client(timeout=30.0, trust_env=False) as client:
+                client.delete(f"{base}/v2/orders", headers=headers)
+                client.delete(f"{base}/v2/positions", headers=headers)
+            acct = broker.get_account()
+            equity = float(acct.equity)
+        except Exception as exc:
+            return _flash("/settings", f"초기화 실패 · {exc}")
+    else:
         equity = 10000.0
 
-    # Goal above current so AI keeps buying toward it
-    goal_amt = max(equity * 1.15, equity + 50.0, 100.0)
+    # Local clean slate: no holdings, cash = paper equity
+    dest = resolve_path(settings.portfolio_path)
+    dest.write_text(
+        yaml.safe_dump(
+            {"cash": round(equity, 2), "currency": "USD", "positions": [], "targets": {}},
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    goal_amt = max(equity * 1.1, equity + 100.0, 100.0)
     set_goal_equity(goal_amt)
-    upsert_env({"ORACLE_AUTOPILOT": "1", "ORACLE_LIVE_TRADING": "0"})
+    upsert_env({"ORACLE_AUTOPILOT": "1", "ORACLE_LIVE_TRADING": "0", "ORACLE_REQUIRE_CONFIRM": "0"})
     cache_clear()
     return _flash(
-        "/ai",
-        f"기록 초기화 완료 · Paper 자산 ${equity:,.2f} · 목표 ${goal_amt:,.0f}",
+        "/",
+        f"가짜 전부 삭제 · Paper 현금 ${equity:,.2f} · 보유 0 · 목표 ${goal_amt:,.0f}",
     )
 
 

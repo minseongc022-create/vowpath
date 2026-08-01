@@ -86,10 +86,10 @@
 </section>
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">기록 초기화</h2></div>
-  <p class="card-desc">가짜 투자 기록을 지우고 Alpaca Paper 잔고로 맞춥니다.</p>
+  <div class="card-head"><h2 class="card-title">가짜 전부 삭제</h2></div>
+  <p class="card-desc">기록·보유·주문 후보를 지우고 Paper를 현금만 있는 상태로 맞춥니다.</p>
   <form method="post" action="/actions/reset_paper" data-no-overlay="1">
-    <button class="btn btn-ghost btn-block" type="submit">기록 지우고 Paper로 다시 시작</button>
+    <button class="btn btn-danger btn-block" type="submit">가짜 전부 지우기</button>
   </form>
 </section>
 {% endblock %}

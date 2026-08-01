@@ -3,7 +3,7 @@
 {% block subtitle %}돈 · 충전 · 투자종목{% endblock %}
 {% block content %}
 <section class="hero money-hero">
-  <div class="hero-label">내 총자산</div>
+  <div class="hero-label">내 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
   <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
   <div class="hero-meta">
     {% if return_pct >= 0 %}

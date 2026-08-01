@@ -1,14 +1,4 @@
-cash: 99961.98
+cash: 100000.2
 currency: USD
-positions:
-- symbol: SPY
-  shares: 0.051159
-  avg_cost: 743.119061
-  market_price: 747.03
-targets:
-  SPY: 0.25
-  QQQ: 0.15
-  AAPL: 0.1
-  MSFT: 0.1
-  GLD: 0.1
-  TLT: 0.1
+positions: []
+targets: {}
