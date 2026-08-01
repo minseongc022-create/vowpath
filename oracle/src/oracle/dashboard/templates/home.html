@@ -17,7 +17,7 @@
     <span class="pill pill-down">오늘 {{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
     {% endif %}
   </div>
-  {% if capital.set and goal.set %}
+  {% if mission_ready %}
   <div class="goal-bar-wrap">
     <div class="goal-bar-meta">
       <span>미션 ${{ "{:,.2f}".format(goal.stake) }} · 시작 ${{ "{:,.0f}".format(capital.seed) }} → 목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
@@ -26,54 +26,73 @@
     <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
     <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
   </div>
-  {% elif goal.set %}
-  <div class="goal-bar-wrap">
-    <div class="goal-bar-meta">
-      <span>목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
-      <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
-    </div>
-    <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
-    <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
-  </div>
+  {% elif goal.set and goal.misleading %}
+  <p class="threat-banner" style="margin-top:12px">목표가 계좌 전체에 묶여 이상해 보입니다. 아래 미션에서 <strong>시작금 · AI한도 · 목표</strong>를 다시 저장하세요.</p>
   {% else %}
-  <p class="card-desc" style="margin-top:12px">미션이 없어요. <a class="link" href="/ai">AI자동</a>에서 시작·한도·목표를 설정하세요.</p>
+  <p class="card-desc" style="margin-top:12px">AI가 쓸 시작금·한도가 아직 없습니다. 아래에서 미션을 저장하세요.</p>
   {% endif %}
 </section>
 
-{% if capital.set %}
-<section class="card">
+<section class="card" id="mission-card">
   <div class="card-head">
     <div>
       <h2 class="card-title">AI 미션 자금</h2>
-      <p class="card-desc">계좌 전체와 별개 · AI는 이 한도만 사용</p>
+      <p class="card-desc">계좌 $100,000과 별개 · 여기 적은 금액만 AI가 씁니다</p>
     </div>
-    <a class="btn btn-sm btn-soft" href="/ai">수정</a>
   </div>
-  <div class="money-grid money-grid-4">
-    <div class="money-cell">
-      <div class="k">시작 금액</div>
+  <form method="post" action="/actions/set_goal" data-no-overlay="1">
+    <input type="hidden" name="next_path" value="/" />
+    <div class="goal-grid">
+      <div class="goal-field">
+        <label class="field-label">① 내가 넣을 돈 ($)</label>
+        <input class="field" type="number" name="seed" min="1" step="1"
+               value="{{ capital.seed|int if capital.seed else suggested_seed }}" required />
+      </div>
+      <div class="goal-field">
+        <label class="field-label">② AI가 쓸 한도 ($)</label>
+        <input class="field" type="number" name="budget" min="1" step="1"
+               value="{{ capital.budget|int if capital.budget else suggested_budget }}" required />
+      </div>
+      <div class="goal-field">
+        <label class="field-label">③ 목표 금액 ($)</label>
+        <input class="field" type="number" name="goal" min="1" step="1"
+               value="{{ suggested_goal }}" required />
+      </div>
+      <div class="goal-field">
+        <label class="field-label">④ 기간 (일)</label>
+        <input class="field" type="number" name="days" min="1" step="1"
+               value="{% if goal.days_left is not none and goal.days_left >= 0 and mission_ready %}{{ goal.days_left }}{% else %}30{% endif %}" />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">미션 저장</button>
+    <p class="card-desc" style="margin-top:8px">예: 시작 10 · AI한도 5 · 목표 20 · 30일</p>
+  </form>
+  {% if capital.set %}
+  <div class="plan-stats" style="margin-top:14px">
+    <div class="plan-stat">
+      <div class="k">시작</div>
       <div class="v">${{ "{:,.0f}".format(capital.seed) }}</div>
     </div>
-    <div class="money-cell">
-      <div class="k">AI 사용 한도</div>
+    <div class="plan-stat">
+      <div class="k">AI 한도</div>
       <div class="v">${{ "{:,.0f}".format(capital.budget) }}</div>
     </div>
-    <div class="money-cell">
-      <div class="k">사용 중</div>
+    <div class="plan-stat">
+      <div class="k">사용중</div>
       <div class="v">${{ "{:,.0f}".format(capital.open_cost) }}</div>
     </div>
-    <div class="money-cell">
-      <div class="k">AI 남은 한도</div>
+    <div class="plan-stat">
+      <div class="k">AI 남음</div>
       <div class="v">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
     </div>
   </div>
   <p class="card-desc" style="margin-top:10px">
     미션 자산 ${{ "{:,.2f}".format(capital.sleeve or capital.seed) }}
-    · 평가손익 {{ "%+.2f"|format(capital.unrealized) }}
+    · 평가 {{ "%+.2f"|format(capital.unrealized) }}
     · 실현 {{ "%+.2f"|format(capital.realized) }}
   </p>
+  {% endif %}
 </section>
-{% endif %}
 
 <section class="card">
   <div class="card-head">
@@ -109,7 +128,7 @@
   <div class="card-head">
     <div>
       <h2 class="card-title">투자한 종목</h2>
-      <p class="card-desc">{{ positions|length }}개 · 한눈에</p>
+      <p class="card-desc">{{ positions|length }}개 · 브로커 동기화</p>
     </div>
     <a class="btn btn-sm btn-soft" href="/ai">AI로 굴리기</a>
   </div>
@@ -145,6 +164,11 @@
     <strong>${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
   </div>
   {% endfor %}
+</section>
+{% elif pending_count %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">대기 주문</h2></div>
+  <p class="card-desc">연습/미체결 대기 {{ pending_count }}건 · 보유 종목에는 아직 반영되지 않습니다.</p>
 </section>
 {% endif %}
 {% endblock %}

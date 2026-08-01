@@ -291,6 +291,21 @@ def _broker_status(*, probe: bool = True) -> dict:
     return get_or_set("broker_status", 20.0, lambda: _build(True))
 
 
+def _maybe_sync_portfolio():
+    """Keep local YAML in sync with Alpaca so holdings match reality."""
+
+    def _sync():
+        broker = get_broker()
+        if broker is None:
+            raise RuntimeError("broker not configured")
+        return sync_portfolio_from_broker(broker)
+
+    try:
+        return get_or_set("portfolio_broker_sync", 45.0, _sync)
+    except Exception:
+        return None
+
+
 def _context(
     *,
     active: str = "home",
@@ -302,12 +317,26 @@ def _context(
     chart_symbols: list | None = None,
 ) -> dict:
     settings = get_settings()
-    portfolio = load_portfolio(settings.portfolio_path)
+    # Money / AI pages: pull real broker holdings so UI isn't empty while Alpaca has positions
+    if active in {"money", "home", "ai", "activity"}:
+        synced = _maybe_sync_portfolio()
+        portfolio = synced if synced is not None else load_portfolio(settings.portfolio_path)
+    else:
+        portfolio = load_portfolio(settings.portfolio_path)
     store = DecisionStore(Path(settings.data_dir) / "oracle.db")
     decisions_raw = store.recent_decisions(limit=20 if light else 50)
     journal = TradeJournal()
     planned = journal.list_recent(limit=20 if light else 30, status="planned")
-    recent_journal = journal.list_recent(limit=15 if light else 30)
+    # Prefer real fills for "최근 체결"; fall back to non-planned if none
+    recent_journal = [
+        j
+        for j in journal.list_recent(limit=40)
+        if j.get("status") in {"filled", "submitted"}
+    ][: (15 if light else 30)]
+    if not recent_journal:
+        recent_journal = [
+            j for j in journal.list_recent(limit=15 if light else 30) if j.get("status") != "planned"
+        ]
     day_pnl = estimate_day_pnl_pct(portfolio)
     ks = KillSwitch().check(day_pnl)
     # Risk eval is CPU-light; keep it
@@ -412,6 +441,16 @@ def _context(
     plan = capital_plan(portfolio, cash=float(portfolio.cash))
     sleeve = sleeve_equity(portfolio)
     goal = goal_progress(equity, sleeve=sleeve)
+    # Without a seed sleeve, full-account goal % is misleading (e.g. $100k / $1.1M = 9%)
+    goal_display = dict(goal)
+    if goal.get("set") and not plan.get("set"):
+        goal_display = {
+            **goal,
+            "pct": 0.0,
+            "stake": None,
+            "label": "시작금·AI한도 미설정 · 아래에서 미션을 저장하세요",
+            "misleading": True,
+        }
     # Suggest seed/budget/goal for the mission form (not full paper $100k)
     if plan.get("seed"):
         suggested_seed = int(plan["seed"])
@@ -420,8 +459,13 @@ def _context(
     if plan.get("budget"):
         suggested_budget = int(plan["budget"])
     else:
-        suggested_budget = max(5, suggested_seed // 2)
-    if goal["set"] and not goal["reached"]:
+        suggested_budget = max(5, min(suggested_seed, suggested_seed // 2 or 5))
+    if goal["set"] and not goal["reached"] and plan.get("set"):
+        suggested_goal = int(goal["goal"])
+    elif goal["set"] and not plan.get("set") and float(goal.get("goal") or 0) > equity * 1.2:
+        # Absurd leftover goal from old setup — suggest a sane mission instead
+        suggested_goal = max(int(suggested_seed * 2), suggested_seed + 20, 50)
+    elif goal["set"] and not goal["reached"]:
         suggested_goal = int(goal["goal"])
     else:
         suggested_goal = max(int(suggested_seed * 2), suggested_seed + 20, 50)
@@ -435,11 +479,13 @@ def _context(
         "cash_pct": (portfolio.cash / equity) if equity else 0.0,
         "return_pct": ret,
         "day_pnl_pct": day_pnl,
-        "goal": goal,
+        "goal": goal_display,
+        "goal_raw": goal,
         "capital": plan,
         "suggested_seed": suggested_seed,
         "suggested_budget": suggested_budget,
         "suggested_goal": suggested_goal,
+        "mission_ready": bool(plan.get("set") and goal.get("set")),
         "charge_url": _charge_url(),
         "positions": rows,
         "decisions": decisions[:30],
@@ -884,6 +930,7 @@ def sync_broker(_: None = Depends(require_auth)):
     if broker is None:
         return _flash("/settings", "연결된 브로커가 없습니다")
     try:
+        cache_clear()
         state = sync_portfolio_from_broker(broker)
         return _flash("/", f"브로커 동기화 완료 · 현금 ${state.cash:,.2f} · {len(state.positions)}종목")
     except Exception as exc:
@@ -979,14 +1026,22 @@ def set_goal_action(
     budget: str = Form(""),
     days: str = Form(""),
     deadline: str = Form(""),
+    next_path: str = Form("/ai"),
     _: None = Depends(require_auth),
 ):
+    dest = "/ai"
+    if (next_path or "").strip() in {"/", "/ai", "/activity", "/settings"}:
+        dest = (next_path or "/ai").strip()
+
+    def _fail(msg: str):
+        return _flash(dest, msg)
+
     try:
         amount = float(goal)
     except ValueError:
-        return _flash("/ai", "목표 금액이 올바르지 않습니다")
+        return _fail("목표 금액이 올바르지 않습니다")
     if amount < 1:
-        return _flash("/ai", "목표는 $1 이상이어야 합니다")
+        return _fail("목표는 $1 이상이어야 합니다")
 
     days_i: int | None = None
     raw_days = (days or "").strip()
@@ -994,9 +1049,9 @@ def set_goal_action(
         try:
             days_i = int(float(raw_days))
         except ValueError:
-            return _flash("/ai", "기간(일)이 올바르지 않습니다")
+            return _fail("기간(일)이 올바르지 않습니다")
         if days_i < 1:
-            return _flash("/ai", "기간은 1일 이상이어야 합니다")
+            return _fail("기간은 1일 이상이어야 합니다")
 
     dl = (deadline or "").strip() or None
     seed_raw = (seed or "").strip()
@@ -1008,15 +1063,15 @@ def set_goal_action(
             seed_v = float(seed_raw) if seed_raw else amount * 0.5
             budget_v = float(budget_raw) if budget_raw else seed_v * 0.5
         except ValueError:
-            return _flash("/ai", "시작 금액 / AI 한도가 올바르지 않습니다")
+            return _fail("시작 금액 / AI 한도가 올바르지 않습니다")
         if seed_v < 1:
-            return _flash("/ai", "시작 금액은 $1 이상이어야 합니다")
+            return _fail("시작 금액은 $1 이상이어야 합니다")
         if budget_v < 1:
-            return _flash("/ai", "AI 사용 한도는 $1 이상이어야 합니다")
+            return _fail("AI 사용 한도는 $1 이상이어야 합니다")
         if budget_v > seed_v:
-            return _flash("/ai", "AI 한도는 시작 금액을 넘을 수 없습니다")
+            return _fail("AI 한도는 시작 금액을 넘을 수 없습니다")
         if amount <= seed_v:
-            return _flash("/ai", "목표는 시작 금액보다 커야 합니다")
+            return _fail("목표는 시작 금액보다 커야 합니다")
         try:
             saved = set_capital_plan(
                 seed=seed_v,
@@ -1026,29 +1081,31 @@ def set_goal_action(
                 deadline=dl,
             )
         except ValueError:
-            return _flash("/ai", "마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
+            return _fail("마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
+        cache_clear()
         msg = (
             f"시작 ${saved['seed']:,.0f} · AI한도 ${saved['budget']:,.0f} · "
             f"목표 ${saved['goal']:,.0f}"
         )
         if saved.get("deadline"):
             msg += f" · 마감 {saved['deadline']} · 소멸 경각심 ON"
-        return _flash("/ai", msg)
+        return _flash(dest, msg)
 
     if dl:
         try:
             saved = set_goal(amount, deadline=dl)
         except ValueError:
-            return _flash("/ai", "마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
+            return _fail("마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
     else:
         saved = set_goal(amount, days=days_i)
     upsert_env({"ORACLE_GOAL_WINDOW_DAYS": str(days_i or 30)})
+    cache_clear()
     msg = f"목표 ${saved['goal']:,.0f}"
     if saved.get("deadline"):
         msg += f" · 마감 {saved['deadline']} · 못 불리면 소멸 경각심 ON"
     else:
         msg += " 저장 · AI가 여기까지 불립니다"
-    return _flash("/ai", msg)
+    return _flash(dest, msg)
 
 
 @app.post("/actions/reset_paper")

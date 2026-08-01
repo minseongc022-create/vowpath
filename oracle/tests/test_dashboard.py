@@ -12,6 +12,8 @@ def test_money_page_has_cash_and_holdings():
     r = client.get("/")
     assert r.status_code == 200
     assert "계좌 총자산" in r.text
+    assert "AI 미션 자금" in r.text
+    assert "AI가 쓸 한도" in r.text
     assert "현금 · 충전" in r.text
     assert "투자한 종목" in r.text
     assert 'href="/ai"' in r.text
