@@ -33,12 +33,15 @@ from oracle.execution.autopilot import start_background as autopilot_start
 from oracle.execution.autopilot import status as autopilot_status
 from oracle.execution.autopilot import run_once as autopilot_run_once
 from oracle.execution.live_setup import (
+    capital_plan,
     first_trade_notional,
     goal_progress,
     live_armed,
     live_max_notional,
+    set_capital_plan,
     set_goal,
     set_goal_equity,
+    sleeve_equity,
     upsert_env,
 )
 from oracle.execution.sync import sync_portfolio_from_broker
@@ -406,12 +409,22 @@ def _context(
     # Probe broker on money/settings pages for cash/charge accuracy
     broker = _broker_status(probe=(active in {"settings", "money", "home"} and not light))
     llm = get_or_set("llm_health", 30.0, brain_health)
-    goal = goal_progress(equity)
-    # Suggest a goal ABOVE current equity so AI keeps working
+    plan = capital_plan(portfolio, cash=float(portfolio.cash))
+    sleeve = sleeve_equity(portfolio)
+    goal = goal_progress(equity, sleeve=sleeve)
+    # Suggest seed/budget/goal for the mission form (not full paper $100k)
+    if plan.get("seed"):
+        suggested_seed = int(plan["seed"])
+    else:
+        suggested_seed = min(100, max(10, int(min(portfolio.cash, equity) * 0.01) or 10))
+    if plan.get("budget"):
+        suggested_budget = int(plan["budget"])
+    else:
+        suggested_budget = max(5, suggested_seed // 2)
     if goal["set"] and not goal["reached"]:
         suggested_goal = int(goal["goal"])
     else:
-        suggested_goal = max(int(equity * 1.15) + 1, int(equity) + 50, 100)
+        suggested_goal = max(int(suggested_seed * 2), suggested_seed + 20, 50)
 
     return {
         "version": __version__,
@@ -423,6 +436,9 @@ def _context(
         "return_pct": ret,
         "day_pnl_pct": day_pnl,
         "goal": goal,
+        "capital": plan,
+        "suggested_seed": suggested_seed,
+        "suggested_budget": suggested_budget,
         "suggested_goal": suggested_goal,
         "charge_url": _charge_url(),
         "positions": rows,
@@ -959,6 +975,8 @@ def autopilot_toggle(
 @app.post("/actions/set_goal")
 def set_goal_action(
     goal: str = Form(...),
+    seed: str = Form(""),
+    budget: str = Form(""),
     days: str = Form(""),
     deadline: str = Form(""),
     _: None = Depends(require_auth),
@@ -969,22 +987,60 @@ def set_goal_action(
         return _flash("/ai", "목표 금액이 올바르지 않습니다")
     if amount < 1:
         return _flash("/ai", "목표는 $1 이상이어야 합니다")
+
     days_i: int | None = None
-    dl = (deadline or "").strip()
+    raw_days = (days or "").strip()
+    if raw_days:
+        try:
+            days_i = int(float(raw_days))
+        except ValueError:
+            return _flash("/ai", "기간(일)이 올바르지 않습니다")
+        if days_i < 1:
+            return _flash("/ai", "기간은 1일 이상이어야 합니다")
+
+    dl = (deadline or "").strip() or None
+    seed_raw = (seed or "").strip()
+    budget_raw = (budget or "").strip()
+
+    # Full capital plan when seed/budget provided; else goal-only (legacy)
+    if seed_raw or budget_raw:
+        try:
+            seed_v = float(seed_raw) if seed_raw else amount * 0.5
+            budget_v = float(budget_raw) if budget_raw else seed_v * 0.5
+        except ValueError:
+            return _flash("/ai", "시작 금액 / AI 한도가 올바르지 않습니다")
+        if seed_v < 1:
+            return _flash("/ai", "시작 금액은 $1 이상이어야 합니다")
+        if budget_v < 1:
+            return _flash("/ai", "AI 사용 한도는 $1 이상이어야 합니다")
+        if budget_v > seed_v:
+            return _flash("/ai", "AI 한도는 시작 금액을 넘을 수 없습니다")
+        if amount <= seed_v:
+            return _flash("/ai", "목표는 시작 금액보다 커야 합니다")
+        try:
+            saved = set_capital_plan(
+                seed=seed_v,
+                budget=budget_v,
+                goal=amount,
+                days=days_i,
+                deadline=dl,
+            )
+        except ValueError:
+            return _flash("/ai", "마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
+        msg = (
+            f"시작 ${saved['seed']:,.0f} · AI한도 ${saved['budget']:,.0f} · "
+            f"목표 ${saved['goal']:,.0f}"
+        )
+        if saved.get("deadline"):
+            msg += f" · 마감 {saved['deadline']} · 소멸 경각심 ON"
+        return _flash("/ai", msg)
+
     if dl:
         try:
             saved = set_goal(amount, deadline=dl)
         except ValueError:
             return _flash("/ai", "마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
     else:
-        raw_days = (days or "").strip()
-        if raw_days:
-            try:
-                days_i = int(float(raw_days))
-            except ValueError:
-                return _flash("/ai", "기간(일)이 올바르지 않습니다")
-            if days_i < 1:
-                return _flash("/ai", "기간은 1일 이상이어야 합니다")
         saved = set_goal(amount, days=days_i)
     upsert_env({"ORACLE_GOAL_WINDOW_DAYS": str(days_i or 30)})
     msg = f"목표 ${saved['goal']:,.0f}"
@@ -1052,8 +1108,11 @@ def reset_paper(_: None = Depends(require_auth)):
         encoding="utf-8",
     )
 
-    goal_amt = max(equity * 1.1, equity + 100.0, 100.0)
-    set_goal(goal_amt, days=30)
+    # Fresh mission: small seed/budget so AI doesn't treat full paper $100k as "my money"
+    seed_amt = min(100.0, max(10.0, round(equity * 0.001, 2) or 10.0))
+    budget_amt = max(5.0, round(seed_amt * 0.5, 2))
+    goal_amt = max(seed_amt * 2.0, seed_amt + 20.0, 50.0)
+    set_capital_plan(seed=seed_amt, budget=budget_amt, goal=goal_amt, days=30)
     upsert_env({"ORACLE_AUTOPILOT": "1", "ORACLE_LIVE_TRADING": "0", "ORACLE_REQUIRE_CONFIRM": "0"})
     cache_clear()
     return _flash(

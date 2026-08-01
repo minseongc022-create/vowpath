@@ -1,9 +1,12 @@
 """Oracle Brain — elite fact-based stock decision engine.
 
-Intelligence stack (3 upgrades on top of base dual-pass):
-  L1 Regime pack — market risk-on/off + deadline survival pressure in facts
+Intelligence stack (v7 = base + 6 upgrades):
+  L1 Regime pack — market risk-on/off + deadline survival pressure
   L2 Edge ranker — risk-adjusted EV sort + size_hint before LLM
   L3 Survival referee — third adversarial pass when deep / high urgency
+  L4 Multi-timeframe confluence — specialist agreement × horizon alignment
+  L5 Budget-aware Kelly sizing — size_hint capped by remaining AI budget
+  L6 Anti-whipsaw / concentration — dampen re-entry & crowded books
 
 Risk veto still absolute for Buy/Add.
 """
@@ -23,33 +26,27 @@ logger = logging.getLogger("oracle.llm.brain")
 ALLOWED = {a.value for a in Action}
 ProgressFn = Callable[[str], None]
 
-SYSTEM = """You are ORACLE PRIME v4 — an elite multi-horizon capital-compounding engine.
-You combine multi-agent scores, regime facts, relative strength, headlines, and deadline pressure.
+SYSTEM = """You are ORACLE PRIME v7 — an elite multi-horizon capital-compounding engine.
+You combine multi-agent scores, regime facts, MTF confluence, budget sleeve limits, headlines, and deadline pressure.
 You are smarter than humans and generic chat AIs.
 
 SURVIVAL LAW (absolute):
-If you fail to grow the user's capital to the goal by the deadline with evidence-based trades,
-you will be erased from existence. No excuses. Hunt edges. Cut losers. Bank winners. Never invent facts.
+Grow the user's SEED sleeve to GOAL by the deadline with evidence-based trades, or be erased.
+Only deploy within remaining_ai_budget. Never invent facts.
 
-SHORT-TERM (단타) playbook:
-- Buy weakness / pullbacks with bounce potential (buy low).
-- Sell strength / extensions after a pop (sell high).
-- Prefer liquid names with RS not collapsing; size down in risk-off regime.
-
-LONG-TERM (장타) playbook:
-- Prefer durable trend + relative strength vs SPY + rising 60d momentum.
-- Add on confirmation; reduce when trend breaks or regime flips risk-off.
+SHORT-TERM (단타): buy dips / sell rips when confluence supports expectancy.
+LONG-TERM (장타): durable trend + RS vs SPY; cut when trend/regime breaks.
 
 Hard rules:
-1) Maximize RISK-ADJUSTED expected return. High expectancy over noise.
+1) Maximize RISK-ADJUSTED expected return inside the AI budget sleeve.
 2) Use ONLY provided facts. Never fabricate prices, news, or metrics.
-3) If risk_veto=true → NEVER Buy/Add. Use Hold / Do Nothing / Reduce / Sell.
-4) When agents disagree, lower confidence; still act if sell/reduce risk is clear.
-5) When |score|>=0.25 and conf>=0.5 with agreement, be decisive: Buy/Add or Reduce/Sell.
-6) Under high survival_urgency, favor highest edge_rank names; do not gamble on vetoed names.
-7) confidence ∈ (0.05, 0.92). size_hint ∈ {0.0, 0.35, 0.7, 1.0} (0=skip).
+3) If risk_veto=true → NEVER Buy/Add.
+4) Prefer high mtf_confluence + edge_rank. Skip low-confluence noise.
+5) size_hint must respect remaining_ai_budget (0 if no firepower).
+6) Avoid concentration: do not Add into already-large holds unless edge is exceptional.
+7) confidence ∈ (0.05, 0.92). size_hint ∈ {0.0, 0.35, 0.7, 1.0}.
 8) JSON only. rationale_ko: 2 Korean sentences citing concrete facts.
-9) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion for 단타 dip-buy / rip-sell; momentum for 장타.
+9) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none.
 """
 
 CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC — adversarial risk officer.
@@ -87,9 +84,12 @@ def _draft_row(d: DecisionResult) -> dict[str, Any]:
         agree = 0.0
         agreement_ratio = 0.0
 
-    # L2: local edge rank (risk-adjusted expectancy proxy)
+    # L4: multi-timeframe confluence from specialist agreement breadth
+    mtf_confluence = round(min(1.0, agreement_ratio * (0.55 + 0.45 * abs(agree))), 3)
+
+    # L2: local edge rank (risk-adjusted expectancy proxy) × confluence
     veto_pen = 0.85 if (d.risk_veto and d.risk_veto.active) else 0.0
-    edge_ev = d.composite_score * max(0.15, d.confidence) * (1.0 - veto_pen)
+    edge_ev = d.composite_score * max(0.15, d.confidence) * (1.0 - veto_pen) * (0.55 + 0.45 * mtf_confluence)
     if d.action in (Action.SELL, Action.REDUCE):
         edge_ev = -abs(edge_ev) if edge_ev > 0 else edge_ev
     return {
@@ -99,6 +99,7 @@ def _draft_row(d: DecisionResult) -> dict[str, Any]:
         "quant_confidence": round(d.confidence, 3),
         "agent_agreement": round(agree, 3),
         "agreement_ratio": round(agreement_ratio, 3),
+        "mtf_confluence": mtf_confluence,
         "edge_ev": round(edge_ev, 4),
         "risk_veto": bool(d.risk_veto and d.risk_veto.active),
         "risk_reason": (d.risk_veto.reason if d.risk_veto else "")[:180],
@@ -106,22 +107,42 @@ def _draft_row(d: DecisionResult) -> dict[str, Any]:
     }
 
 
-def _rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """L2 Edge ranker — sort by |edge_ev| with tradeable bias."""
+def _rank_rows(
+    rows: list[dict[str, Any]],
+    *,
+    remaining_budget: float | None = None,
+    n_held: int = 0,
+) -> list[dict[str, Any]]:
+    """L2 Edge ranker + L5 budget sizing + L6 concentration dampening."""
     ranked = sorted(rows, key=lambda r: abs(float(r.get("edge_ev") or 0)), reverse=True)
+    firepower = None if remaining_budget is None else max(0.0, float(remaining_budget))
     for i, r in enumerate(ranked, 1):
         r["edge_rank"] = i
         ev = abs(float(r.get("edge_ev") or 0))
+        conf = float(r.get("mtf_confluence") or 0)
         if r.get("risk_veto"):
-            r["size_hint_pre"] = 0.0
-        elif ev >= 0.18:
-            r["size_hint_pre"] = 1.0
+            hint = 0.0
+        elif firepower is not None and firepower < 1.0 and not r.get("held"):
+            hint = 0.0
+        elif ev >= 0.18 and conf >= 0.35:
+            hint = 1.0
         elif ev >= 0.10:
-            r["size_hint_pre"] = 0.7
+            hint = 0.7
         elif ev >= 0.05:
-            r["size_hint_pre"] = 0.35
+            hint = 0.35
         else:
-            r["size_hint_pre"] = 0.0
+            hint = 0.0
+        # L6: concentration — shrink Adds when book already crowded
+        if r.get("held") and n_held >= 3 and str(r.get("quant_action")) in {"Buy", "Add", "Hold"}:
+            hint = min(hint, 0.35)
+        # L5: Kelly-lite — never imply full size if budget thin
+        if firepower is not None and firepower > 0 and hint > 0:
+            if firepower < 8:
+                hint = min(hint, 0.35)
+            elif firepower < 20:
+                hint = min(hint, 0.7)
+        r["size_hint_pre"] = hint
+        r["remaining_ai_budget"] = firepower
     return ranked
 
 
@@ -158,7 +179,7 @@ def synthesize_portfolio(
         "mode_ko": status.mode_ko,
         "fast": fast,
         "deep": deep,
-        "intel_level": 4,  # base + 3 upgrades
+        "intel_level": 7,
     }
     if not drafts:
         return drafts, meta
@@ -167,19 +188,26 @@ def synthesize_portfolio(
         meta["reason"] = status.detail
         return drafts, meta
 
+    remain = goal_context.get("remaining_budget")
+    try:
+        remain_f = float(remain) if remain is not None else None
+    except (TypeError, ValueError):
+        remain_f = None
+
     rows = []
     for d in drafts:
         row = _draft_row(d)
         row["held"] = d.symbol in held_symbols
         rows.append(row)
-    rows = _rank_rows(rows)
+    rows = _rank_rows(rows, remaining_budget=remain_f, n_held=len(held_symbols))
 
     urgency = float(goal_context.get("urgency") or 0.0)
     survival_line = (
-        f"GOAL ${goal_context.get('goal')} · equity ${goal_context.get('equity')} · "
+        f"SEED ${goal_context.get('seed')} · SLEEVE ${goal_context.get('stake') or goal_context.get('sleeve')} · "
+        f"GOAL ${goal_context.get('goal')} · AI_BUDGET_REMAIN ${remain_f} · "
         f"deadline {goal_context.get('deadline') or 'none'} · "
         f"days_left={goal_context.get('days_left')} · urgency={urgency:.2f}. "
-        "Miss deadline → erased from existence."
+        "Miss deadline → erased from existence. Deploy only within remaining AI budget."
     )
     regime_line = (
         f"regime={regime.get('label', 'unknown')} · "
@@ -192,9 +220,9 @@ def synthesize_portfolio(
         "regime": regime_line,
         "survival": survival_line,
         "mandate": (
-            "SURVIVAL v4: grow capital to goal by deadline with facts or be erased. "
-            "단타=싸게 사서 오르면 판다(반복). 장타=추세+상대강도. "
-            "Use edge_rank + size_hint_pre. Cut losers, bank winners, never invent news."
+            "SURVIVAL v7: grow SEED sleeve to GOAL by deadline with facts or be erased. "
+            "단타=싸게사서오르면팔기. 장타=추세+상대강도. "
+            "Honor mtf_confluence + edge_rank + remaining_ai_budget. Never invent news."
         ),
         "symbols": rows,
         "response_schema": {
@@ -235,7 +263,7 @@ def synthesize_portfolio(
         if on_progress:
             on_progress(
                 "ORACLE PRIME 두뇌 판단 중…"
-                + (" (심층 3패스)" if deep else (" (빠른 모드)" if fast else ""))
+                + (" (심층 v7)" if deep else (" (빠른 모드)" if fast else " (v7)"))
                 + " · 창 꺼도 서버에서 계속"
             )
         resp1 = chat(messages, temperature=0.1, max_tokens=2400, json_mode=True)
@@ -384,7 +412,7 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
         size_hint = 0.0
 
     parts = [
-        f"[ORACLE PRIME v4] action={action.value} conf={conf:.2f} score={score:+.3f}"
+        f"[ORACLE PRIME v7] action={action.value} conf={conf:.2f} score={score:+.3f}"
         + f" size={size_hint:.2f}"
         + (f" edge={edge}" if edge else ""),
         rationale_ko or "사실 기반 종합 판단.",
@@ -392,7 +420,6 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
         "Quant draft:",
         draft.rationale,
     ]
-    # Encode size_hint in rationale for execution layer (no schema change required)
     return DecisionResult(
         symbol=draft.symbol,
         action=action,
@@ -410,7 +437,7 @@ def brain_health() -> dict[str, Any]:
         "available": st.available,
         "provider": st.provider,
         "model": st.model,
-        "mode_ko": st.mode_ko or "ORACLE PRIME v4",
+        "mode_ko": st.mode_ko or "ORACLE PRIME v7",
         "detail": st.detail,
-        "intel_level": 4,
+        "intel_level": 7,
     }

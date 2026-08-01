@@ -19,10 +19,15 @@ from oracle.core.types import Action, DecisionResult
 from oracle.data.market import fetch_snapshot
 from oracle.execution.engine import ExecutionEngine, KillSwitch, estimate_day_pnl_pct
 from oracle.execution.live_setup import (
+    add_sleeve_realized,
+    ai_budget,
+    capital_plan,
     first_trade_notional,
     goal_progress,
     live_armed,
     live_max_notional,
+    seed_capital,
+    sleeve_equity,
     upsert_env,
 )
 from oracle.orchestration import OraclePipeline
@@ -199,12 +204,47 @@ def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
     _persist_state()
 
 
+def _recently_sold(symbol: str, *, hours: float = 6.0) -> bool:
+    """L6 anti-whipsaw: avoid re-buying a name sold very recently."""
+    try:
+        from datetime import timedelta
+
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
+        for row in TradeJournal().list_recent(limit=40):
+            if str(row.get("symbol") or "").upper() != symbol.upper():
+                continue
+            if str(row.get("action") or "") not in {"Sell", "Reduce"}:
+                continue
+            if str(row.get("status") or "") not in {"filled", "submitted"}:
+                continue
+            ts = str(row.get("ts") or "")
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=UTC)
+                if dt >= cutoff:
+                    return True
+            except Exception:
+                continue
+    except Exception:
+        return False
+    return False
+
+
 def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
     engine = ExecutionEngine(require_confirm=False)
     price = float(fetch_snapshot(d.symbol).price)
     portfolio = load_portfolio(get_settings().portfolio_path)
+    avg_cost = 0.0
 
     if d.action in (Action.BUY, Action.ADD):
+        if max_n <= 0.5:
+            return {"ok": False, "message": f"{d.symbol} AI 한도 소진 · 매수 스킵"}
+        if _recently_sold(d.symbol):
+            return {
+                "ok": False,
+                "message": f"{d.symbol} 최근 매도 후 재매수 쿨다운 (휩쏘 방지)",
+            }
         shares = max_n / price if price else 0.0
         action = d.action.value
     elif d.action in (Action.REDUCE, Action.SELL):
@@ -212,6 +252,7 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
         for p in portfolio.positions:
             if p.symbol == d.symbol:
                 held = float(p.shares)
+                avg_cost = float(p.avg_cost or 0)
                 break
         if held <= 0:
             return {"ok": False, "message": f"{d.symbol} 매도 신호·보유없음"}
@@ -259,6 +300,12 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
     kind = "체결" if ("filled" in (out.message or "").lower() or "Broker filled" in (out.message or "")) else (
         "접수" if out.accepted else "실패"
     )
+    # Sleeve realized PnL on sells (seed mission accounting)
+    if out.accepted and shares < 0 and avg_cost > 0:
+        try:
+            add_sleeve_realized(abs(shares) * (price - avg_cost))
+        except Exception:
+            logger.debug("sleeve realized update failed", exc_info=True)
     msg = f"{kind} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}"
     try:
         log_activity(
@@ -316,22 +363,34 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         return {"ok": False, "message": msg}
 
     equity = float(portfolio.equity())
-    gprog = goal_progress(equity)
+    sleeve = sleeve_equity(portfolio)
+    plan = capital_plan(portfolio, cash=float(portfolio.cash))
+    gprog = goal_progress(equity, sleeve=sleeve)
     cycle = int(_last.get("cycle") or 0) + 1
     _last["cycle"] = cycle
     urgency = float(gprog.get("urgency") or 0.0)
     # Deep brain every 3rd cycle, or when survival pressure is high
     deep = (cycle % 3 == 0) or urgency >= 0.55 or bool(gprog.get("deadline_passed"))
 
-    if gprog["set"]:
+    if plan.get("set"):
         prog(
-            f"목표 ${gprog['goal']:,.0f} · 현재 ${equity:,.2f} · "
+            f"내 돈 시작 ${plan['seed']:,.0f} · AI한도 ${plan['budget']:,.0f} · "
+            f"사용중 ${plan['open_cost']:,.0f} · 남음 ${plan['remaining_budget']:,.0f} · "
+            f"슬리브 ${plan['sleeve']:,.2f}"
+        )
+    elif not seed_capital():
+        prog("시작금·AI한도 미설정 · AI자동에서 '내가 넣을 돈 / AI가 쓸 한도 / 목표'를 저장하세요")
+
+    if gprog["set"]:
+        stake = float(gprog.get("stake") or equity)
+        prog(
+            f"목표 ${gprog['goal']:,.0f} · 미션자산 ${stake:,.2f} · "
             f"{gprog['pct']*100:.0f}% · {gprog['label']}"
         )
         if gprog.get("threat_ko"):
             prog(gprog["threat_ko"])
         if gprog["reached"]:
-            prog(f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
+            prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
 
     prog(f"① 탐색 시작 · 사이클 #{cycle}" + (" · 심층지능 ON" if deep else " · 빠른 모드"))
     short_picks, long_picks, blend_picks = screen_short_and_long(
@@ -416,20 +475,30 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         )
         prog(f"단타 익절 승격 · {top_rip.symbol} rip={top_rip.rip_score:.2f}")
 
-    # Near/at goal → prefer sell/reduce, shrink or skip buys
-    # Behind deadline → slightly larger tickets within hard caps (still capped)
-    max_n = min(live_max_notional(), first_trade_notional() * 1.25)
+    # Ticket size: hard broker caps ∩ AI remaining budget (user-assigned sleeve)
+    remain = float(plan.get("remaining_budget") if plan.get("remaining_budget") is not None else live_max_notional())
+    hard = min(live_max_notional(), max(remain, 0.0), float(portfolio.cash))
+    # Per-order default ~25–40% of remaining budget so one name doesn't eat the whole sleeve
+    budget_slice = max(1.0, remain * (0.4 if urgency >= 0.55 else 0.28))
+    max_n = min(hard, max(first_trade_notional(), budget_slice), first_trade_notional() * 2.5)
+    if ai_budget() is not None:
+        max_n = min(max_n, hard)
+        prog(f"주문 한도 ${max_n:,.2f} (AI 잔여한도 ${remain:,.2f})")
+
     near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
     reached = bool(gprog.get("reached"))
     far_from_goal = bool(gprog["set"] and gprog["pct"] < 0.5)
+    if remain <= 0.5 and not (best_sell):
+        prog("AI 사용 한도 소진 · 매수 중단 · 보유 정리/익절만 검토")
+        best_buy = None
     if reached or near_goal:
         max_n = min(max_n, first_trade_notional())
         prog("목표 근접/달성 · 공격 매수 축소, 약한 종목 정리 우선")
     elif urgency >= 0.55:
-        max_n = min(live_max_notional(), first_trade_notional() * (1.75 if urgency >= 0.75 else 1.5))
+        max_n = min(hard, first_trade_notional() * (1.75 if urgency >= 0.75 else 1.5), max(remain * 0.5, 1.0))
         prog(f"생존 압박 urgency={urgency:.2f} · 고엣지 종목에 집중 집행 (한도 내)")
     elif far_from_goal:
-        max_n = min(live_max_notional(), first_trade_notional() * 1.5)
+        max_n = min(hard, first_trade_notional() * 1.5, max(remain * 0.35, 1.0))
         prog("목표까지 여유 · 단타 눌림·장타 추세 소액 집중")
 
     msgs: list[str] = []

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}자산{% endblock %}
-{% block subtitle %}돈 · 충전 · 투자종목{% endblock %}
+{% block subtitle %}돈 · 미션 · 투자종목{% endblock %}
 {% block content %}
 <section class="hero money-hero">
-  <div class="hero-label">내 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
+  <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
   <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
   <div class="hero-meta">
     {% if return_pct >= 0 %}
@@ -17,7 +17,16 @@
     <span class="pill pill-down">오늘 {{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
     {% endif %}
   </div>
-  {% if goal.set %}
+  {% if capital.set and goal.set %}
+  <div class="goal-bar-wrap">
+    <div class="goal-bar-meta">
+      <span>미션 ${{ "{:,.2f}".format(goal.stake) }} · 시작 ${{ "{:,.0f}".format(capital.seed) }} → 목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
+      <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
+    </div>
+    <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
+    <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
+  </div>
+  {% elif goal.set %}
   <div class="goal-bar-wrap">
     <div class="goal-bar-meta">
       <span>목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
@@ -27,15 +36,50 @@
     <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
   </div>
   {% else %}
-  <p class="card-desc" style="margin-top:12px">목표가 없어요. <a class="link" href="/ai">AI자동</a>에서 설정하세요.</p>
+  <p class="card-desc" style="margin-top:12px">미션이 없어요. <a class="link" href="/ai">AI자동</a>에서 시작·한도·목표를 설정하세요.</p>
   {% endif %}
 </section>
+
+{% if capital.set %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">AI 미션 자금</h2>
+      <p class="card-desc">계좌 전체와 별개 · AI는 이 한도만 사용</p>
+    </div>
+    <a class="btn btn-sm btn-soft" href="/ai">수정</a>
+  </div>
+  <div class="money-grid money-grid-4">
+    <div class="money-cell">
+      <div class="k">시작 금액</div>
+      <div class="v">${{ "{:,.0f}".format(capital.seed) }}</div>
+    </div>
+    <div class="money-cell">
+      <div class="k">AI 사용 한도</div>
+      <div class="v">${{ "{:,.0f}".format(capital.budget) }}</div>
+    </div>
+    <div class="money-cell">
+      <div class="k">사용 중</div>
+      <div class="v">${{ "{:,.0f}".format(capital.open_cost) }}</div>
+    </div>
+    <div class="money-cell">
+      <div class="k">AI 남은 한도</div>
+      <div class="v">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
+    </div>
+  </div>
+  <p class="card-desc" style="margin-top:10px">
+    미션 자산 ${{ "{:,.2f}".format(capital.sleeve or capital.seed) }}
+    · 평가손익 {{ "%+.2f"|format(capital.unrealized) }}
+    · 실현 {{ "%+.2f"|format(capital.realized) }}
+  </p>
+</section>
+{% endif %}
 
 <section class="card">
   <div class="card-head">
     <div>
       <h2 class="card-title">현금 · 충전</h2>
-      <p class="card-desc">쓸 수 있는 돈과 충전 위치</p>
+      <p class="card-desc">브로커 계좌 잔고 (AI 한도와는 별개)</p>
     </div>
   </div>
   <div class="money-grid">
@@ -95,8 +139,8 @@
   {% for j in journal[:5] %}
   <div class="list-row">
     <div class="left">
-      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
-      <div class="desc">{{ j.status_ko }} · {{ j.ts[:16]|replace('T',' ') }}</div>
+      <div class="title"><span class="log-clock">{{ j.clock }}</span> {{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }}</div>
     </div>
     <strong>${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
   </div>

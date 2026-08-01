@@ -11,7 +11,7 @@ def test_money_page_has_cash_and_holdings():
     client = TestClient(app)
     r = client.get("/")
     assert r.status_code == 200
-    assert "내 총자산" in r.text
+    assert "계좌 총자산" in r.text
     assert "현금 · 충전" in r.text
     assert "투자한 종목" in r.text
     assert 'href="/ai"' in r.text
@@ -40,8 +40,10 @@ def test_ai_page_has_goal_and_one_button():
     assert r.status_code == 200
     assert "AI 투자" in r.text
     assert "지금 투자 시작" in r.text
-    assert "목표 자산" in r.text
+    assert "목표 금액" in r.text
     assert "기간 (일)" in r.text
+    assert "AI가 쓸 한도" in r.text
+    assert "내가 넣을 돈" in r.text
     assert 'href="/"' in r.text
 
 

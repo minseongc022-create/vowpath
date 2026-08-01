@@ -20,7 +20,7 @@ from oracle.config import Settings, get_settings
 from oracle.core.types import AgentOpinion, PipelineResult
 from oracle.data.market import clear_market_cache, index_overview
 from oracle.data.news import aggregate_market_headlines
-from oracle.execution.live_setup import goal_progress
+from oracle.execution.live_setup import capital_plan, goal_progress, sleeve_equity
 from oracle.llm.brain import synthesize_portfolio
 from oracle.portfolio.activity_log import log_activity
 from oracle.portfolio.store import DecisionStore, load_portfolio
@@ -88,7 +88,7 @@ class OraclePipeline:
                     logger.debug("on_progress failed", exc_info=True)
 
         logger.info("Pipeline start run_id=%s session=%s symbols=%s", run_id, session, symbols)
-        _prog(f"AI 분석 시작 · {len(symbols)}종목 · 지능 Lv4")
+        _prog(f"AI 분석 시작 · {len(symbols)}종목 · 지능 Lv7")
         log_activity("analyze", f"분석 시작 · {len(symbols)}종목", detail=", ".join(symbols[:10]))
 
         decisions = []
@@ -124,7 +124,15 @@ class OraclePipeline:
 
         overview = index_overview()
         regime = _build_regime(overview)
-        gprog = goal_progress(float(portfolio.equity()))
+        plan = capital_plan(portfolio, cash=float(portfolio.cash))
+        sleeve = sleeve_equity(portfolio)
+        gprog = goal_progress(float(portfolio.equity()), sleeve=sleeve)
+        gprog = {
+            **gprog,
+            "remaining_budget": plan.get("remaining_budget"),
+            "budget": plan.get("budget"),
+            "sleeve": plan.get("sleeve"),
+        }
         headlines = aggregate_market_headlines(symbols[:6], per_symbol=3)
         # Richer fact pack for ORACLE PRIME
         news_bits = []
@@ -138,9 +146,10 @@ class OraclePipeline:
             f"Index day moves: {overview}. Regime={regime.get('label')}. "
             f"FACT headlines: {top_news}. "
             f"Session={session}. Goal urgency={gprog.get('urgency', 0)}. "
-            f"Mandate=grow capital by deadline or be erased."
+            f"Seed={plan.get('seed')} budget_remain={plan.get('remaining_budget')}. "
+            f"Mandate=grow seed sleeve to goal by deadline or be erased."
         )
-        _prog(f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')}")
+        _prog(f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')} · 지능 Lv7")
 
         held = set(portfolio.held_symbols())
         decisions, llm_meta = synthesize_portfolio(

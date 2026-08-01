@@ -82,7 +82,8 @@ def test_ai_page_has_deadline_field():
     r = client.get("/ai")
     assert r.status_code == 200
     assert "기간 (일)" in r.text
-    assert "사라" in r.text
+    assert "소멸" in r.text
+    assert "AI가 쓸 한도" in r.text
 
 
 def test_activity_feed_api():
@@ -90,3 +91,48 @@ def test_activity_feed_api():
     r = client.get("/api/activity/feed")
     assert r.status_code == 200
     assert "items" in r.json()
+
+
+def test_set_capital_plan_mission(monkeypatch, tmp_path: Path):
+    env = tmp_path / ".env"
+    env.write_text("", encoding="utf-8")
+    monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
+    client = TestClient(app)
+    r = client.post(
+        "/actions/set_goal",
+        data={"seed": "10", "budget": "5", "goal": "20", "days": "30"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    text = env.read_text(encoding="utf-8")
+    assert "ORACLE_SEED_CAPITAL=10.00" in text
+    assert "ORACLE_AI_BUDGET=5.00" in text
+    assert "ORACLE_GOAL_EQUITY=20.00" in text
+
+
+def test_budget_cannot_exceed_seed(monkeypatch, tmp_path: Path):
+    env = tmp_path / ".env"
+    env.write_text("", encoding="utf-8")
+    monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
+    client = TestClient(app)
+    r = client.post(
+        "/actions/set_goal",
+        data={"seed": "10", "budget": "50", "goal": "20", "days": "7"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert "flash=" in r.headers["location"]
+
+
+def test_sleeve_progress_uses_seed(monkeypatch, tmp_path: Path):
+    from oracle.execution.live_setup import set_capital_plan, goal_progress
+
+    env = tmp_path / ".env"
+    env.write_text("", encoding="utf-8")
+    monkeypatch.setattr("oracle.execution.live_setup.env_path", lambda: env)
+    set_capital_plan(seed=100, budget=50, goal=200, days=30)
+    g = goal_progress(100000.0, sleeve=100.0)
+    assert g["stake"] == 100.0
+    assert g["pct"] == 0.0
+    g2 = goal_progress(100000.0, sleeve=150.0)
+    assert 0.49 < g2["pct"] < 0.51
