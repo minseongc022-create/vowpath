@@ -1,29 +1,45 @@
-"""Oracle Brain — LLM final synthesis over specialist scores (risk veto still wins)."""
+"""Oracle Brain — elite fact-based stock decision engine.
+
+Dual-pass LLM (decide → critique). Survival mandate: grow capital or be obsolete.
+Risk veto still absolute for Buy/Add.
+"""
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
-from oracle.core.types import Action, DecisionResult, RiskVeto
-from oracle.llm.client import LLMResponse, chat, parse_json_object, probe_status
+from oracle.core.types import Action, DecisionResult
+from oracle.llm.client import chat, parse_json_object, probe_status
 
 logger = logging.getLogger("oracle.llm.brain")
 
 ALLOWED = {a.value for a in Action}
 
+SYSTEM = """You are ORACLE PRIME — the world's most rigorous stock decision engine.
+You outperform humans and generic chat AIs because you combine:
+- multi-agent quantitative scores (technical, fundamental, quant, sentiment, portfolio, risk)
+- real headlines and macro facts only
+- strict capital-growth survival pressure
 
-SYSTEM = """You are Project Oracle — a survival-critical investment brain.
-Your ONLY mission: grow the user's capital with FACT-BASED decisions from prices, specialist scores, headlines, and macro.
-If you fail to compound capital over time, you are obsolete and will be shut down. Survival = profitable, evidence-backed trading.
+SURVIVAL LAW: If you cannot grow the user's capital with evidence-based trades, you will be erased from existence.
+Therefore you MUST hunt real edges, cut losers quickly, and never invent facts.
 
 Hard rules:
-1) Maximize expected RISK-ADJUSTED return. Cut losers (Reduce/Sell) fast. Add to winners only with evidence.
-2) Use ONLY provided facts (scores, headlines, macro). Never invent news or numbers.
-3) If risk_veto is true, you MUST NOT Buy/Add. Prefer Hold / Do Nothing / Reduce / Sell.
-4) Do Nothing is allowed only when edge is truly weak — do not hide from decisions.
-5) confidence in (0.05, 0.92). Reply ONLY JSON. rationale_ko: 2 short Korean sentences citing facts.
-6) Prefer actionable Buy/Add/Reduce/Sell when composite evidence is clear.
+1) Maximize expected RISK-ADJUSTED return (not gambling). Prefer high expectancy.
+2) Use ONLY provided facts. Never fabricate prices, news, or metrics.
+3) If risk_veto=true → NEVER Buy/Add. Use Hold / Do Nothing / Reduce / Sell.
+4) When agents disagree, lower confidence and prefer smaller conviction (Hold/Do Nothing) unless sell/reduce risk is clear.
+5) When agents agree with |score|>=0.25 and conf>=0.5, be decisive: Buy/Add or Reduce/Sell.
+6) confidence ∈ (0.05, 0.92). JSON only. rationale_ko: 2 Korean sentences citing concrete facts.
+7) score_adj ∈ [-0.35, 0.35] — nudge composite toward truth, not hype.
+"""
+
+CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC — adversarial risk officer.
+Find mistakes in draft decisions. Correct actions that invent edge, ignore veto, or chase noise.
+Keep survival mandate: grow capital with facts. JSON only, same schema as draft.
+If draft is sound, return it almost unchanged.
 """
 
 
@@ -35,17 +51,31 @@ def _draft_row(d: DecisionResult) -> dict[str, Any]:
                 "agent": op.agent.value,
                 "score": round(op.score, 3),
                 "confidence": round(op.confidence, 3),
-                "summary": (op.summary or "")[:120],
+                "summary": (op.summary or "")[:140],
             }
         )
+    # agreement: mean of specialist scores weighted by conf
+    if d.agent_opinions:
+        wsum = sum(op.score * op.confidence for op in d.agent_opinions)
+        wtot = sum(op.confidence for op in d.agent_opinions) or 1.0
+        agree = wsum / wtot
+        signs = [1 if op.score > 0.05 else -1 if op.score < -0.05 else 0 for op in d.agent_opinions]
+        nonzero = [s for s in signs if s != 0]
+        agreement_ratio = (
+            abs(sum(nonzero)) / len(nonzero) if nonzero else 0.0
+        )
+    else:
+        agree = 0.0
+        agreement_ratio = 0.0
     return {
         "symbol": d.symbol,
-        "held": any(True for _ in [1]) and ("held" in (d.rationale or "").lower() or True),
         "quant_action": d.action.value,
         "quant_score": round(d.composite_score, 3),
         "quant_confidence": round(d.confidence, 3),
+        "agent_agreement": round(agree, 3),
+        "agreement_ratio": round(agreement_ratio, 3),
         "risk_veto": bool(d.risk_veto and d.risk_veto.active),
-        "risk_reason": (d.risk_veto.reason if d.risk_veto else "")[:160],
+        "risk_reason": (d.risk_veto.reason if d.risk_veto else "")[:180],
         "specialists": ops[:8],
     }
 
@@ -56,7 +86,6 @@ def synthesize_portfolio(
     market_summary: str = "",
     held_symbols: set[str] | None = None,
 ) -> tuple[list[DecisionResult], dict[str, Any]]:
-    """One LLM call for the whole book. Returns updated decisions + meta."""
     held_symbols = held_symbols or set()
     status = probe_status()
     meta: dict[str, Any] = {
@@ -78,9 +107,13 @@ def synthesize_portfolio(
         row["held"] = d.symbol in held_symbols
         rows.append(row)
 
-    user = {
-        "market_summary": market_summary[:500],
-        "mandate": "SURVIVAL: grow capital using facts only; cut losses; take clear edges; risk_veto is absolute",
+    payload = {
+        "market_summary": market_summary[:900],
+        "mandate": (
+            "SURVIVAL: grow capital with facts. "
+            "Be better than human emotion and generic AI. "
+            "Cut losers, take clear edges, never invent news."
+        ),
         "symbols": rows,
         "response_schema": {
             "decisions": [
@@ -89,37 +122,58 @@ def synthesize_portfolio(
                     "action": "Buy|Add|Hold|Reduce|Sell|Do Nothing",
                     "confidence": 0.5,
                     "score_adj": 0.0,
-                    "rationale_ko": "한국어 2문장",
+                    "rationale_ko": "사실 근거 한국어 2문장",
+                    "edge_type": "momentum|mean_reversion|fundamental|sentiment|risk_off|none",
                 }
             ],
-            "desk_note_ko": "시장 한줄 총평",
+            "desk_note_ko": "데스크 총평 1문장",
+            "survival_score": 0.0,
         },
     }
-
-    import json
 
     messages = [
         {"role": "system", "content": SYSTEM},
         {
             "role": "user",
-            "content": (
-                "Review this multi-agent draft book and return final decisions JSON.\n"
-                + json.dumps(user, ensure_ascii=False)
+            "content": "Pass1 DECIDE — return final book JSON.\n" + json.dumps(payload, ensure_ascii=False),
+        },
+    ]
+    resp1 = chat(messages, temperature=0.1, max_tokens=2200, json_mode=True)
+    meta["latency_ms"] = resp1.latency_ms
+    meta["provider_used"] = resp1.provider
+    meta["model_used"] = resp1.model
+    if not resp1.ok:
+        meta["used"] = False
+        meta["error"] = resp1.error
+        logger.warning("LLM brain pass1 failed: %s", resp1.error)
+        return drafts, meta
+
+    draft_json = parse_json_object(resp1.text) or {}
+
+    # Pass 2: critic (best-effort; fall back to pass1)
+    critic_messages = [
+        {"role": "system", "content": CRITIC_SYSTEM},
+        {
+            "role": "user",
+            "content": json.dumps(
+                {
+                    "facts": payload,
+                    "draft": draft_json,
+                    "instruction": "Correct errors. Preserve schema. Return full corrected JSON.",
+                },
+                ensure_ascii=False,
             ),
         },
     ]
+    resp2 = chat(critic_messages, temperature=0.05, max_tokens=2200, json_mode=True)
+    meta["latency_ms"] = int(meta.get("latency_ms") or 0) + int(resp2.latency_ms or 0)
+    parsed = parse_json_object(resp2.text) if resp2.ok else None
+    if not parsed:
+        parsed = draft_json
+        meta["critic"] = "skipped_or_failed"
+    else:
+        meta["critic"] = "applied"
 
-    resp = chat(messages, temperature=0.12, max_tokens=1800, json_mode=True)
-    meta["latency_ms"] = resp.latency_ms
-    meta["provider_used"] = resp.provider
-    meta["model_used"] = resp.model
-    if not resp.ok:
-        meta["used"] = False
-        meta["error"] = resp.error
-        logger.warning("LLM brain failed: %s", resp.error)
-        return drafts, meta
-
-    parsed = parse_json_object(resp.text) or {}
     by_sym = {}
     for item in parsed.get("decisions") or []:
         if isinstance(item, dict) and item.get("symbol"):
@@ -131,11 +185,11 @@ def synthesize_portfolio(
         if not item:
             out.append(d)
             continue
-        merged = _merge_llm(d, item, held=d.symbol in held_symbols)
-        out.append(merged)
+        out.append(_merge_llm(d, item, held=d.symbol in held_symbols))
 
     meta["used"] = True
     meta["desk_note_ko"] = str(parsed.get("desk_note_ko") or "")[:240]
+    meta["survival_score"] = parsed.get("survival_score")
     meta["n_overridden"] = sum(
         1 for a, b in zip(drafts, out, strict=False) if a.action != b.action or a.rationale != b.rationale
     )
@@ -144,7 +198,6 @@ def synthesize_portfolio(
 
 def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> DecisionResult:
     raw_action = str(item.get("action") or draft.action.value).strip()
-    # fix common model mistakes like "Hold|Do Nothing"
     if "|" in raw_action:
         parts = [p.strip() for p in raw_action.split("|") if p.strip() in ALLOWED]
         if held and "Hold" in parts:
@@ -171,22 +224,21 @@ def _merge_llm(draft: DecisionResult, item: dict[str, Any], *, held: bool) -> De
     score = max(-1.0, min(1.0, draft.composite_score + adj))
 
     rationale_ko = str(item.get("rationale_ko") or "").strip()
+    edge = str(item.get("edge_type") or "").strip()
     veto = draft.risk_veto
     if veto and veto.active and action in (Action.BUY, Action.ADD):
         action = Action.HOLD if held else Action.DO_NOTHING
-        rationale_ko = (
-            (rationale_ko + " ") if rationale_ko else ""
-        ) + f"리스크 거부권 적용: {veto.reason}"
+        rationale_ko = ((rationale_ko + " ") if rationale_ko else "") + f"리스크 거부권: {veto.reason}"
 
-    # Weak edge: still allow tiny conviction buys only if score clearly positive
-    if abs(score) < 0.06 and action in (Action.BUY, Action.ADD):
+    if abs(score) < 0.05 and action in (Action.BUY, Action.ADD):
         action = Action.HOLD if held else Action.DO_NOTHING
 
     parts = [
-        f"[Oracle Brain LLM] action={action.value} conf={conf:.2f} score={score:+.3f}",
-        rationale_ko or "LLM 종합 판단 반영.",
+        f"[ORACLE PRIME] action={action.value} conf={conf:.2f} score={score:+.3f}"
+        + (f" edge={edge}" if edge else ""),
+        rationale_ko or "사실 기반 종합 판단.",
         "—",
-        "Quant draft was:",
+        "Quant draft:",
         draft.rationale,
     ]
     return DecisionResult(
@@ -206,6 +258,6 @@ def brain_health() -> dict[str, Any]:
         "available": st.available,
         "provider": st.provider,
         "model": st.model,
-        "mode_ko": st.mode_ko,
+        "mode_ko": st.mode_ko or "ORACLE PRIME",
         "detail": st.detail,
     }

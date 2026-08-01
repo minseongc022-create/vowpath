@@ -42,7 +42,8 @@ def configured_providers() -> list[dict[str, str]]:
     providers: list[dict[str, str]] = []
 
     ollama_host = _env("ORACLE_OLLAMA_HOST", "http://127.0.0.1:11434")
-    ollama_model = _env("ORACLE_LLM_MODEL", "qwen2.5:3b-instruct")
+    # Prefer quality model for trading decisions (7B). Override with ORACLE_LLM_MODEL.
+    ollama_model = _env("ORACLE_LLM_MODEL", "qwen2.5:7b-instruct")
     providers.append(
         {
             "name": "ollama",
@@ -126,8 +127,8 @@ def probe_status() -> LLMStatus:
                     True,
                     "ollama",
                     p["model"],
-                    "로컬 최고급 무료 AI (Ollama)",
-                    f"모델 {p['model']} · 월 비용 ₩0",
+                    "ORACLE PRIME · 로컬 최고급 AI",
+                    f"모델 {p['model']} · 이중검증 · 월 ₩0",
                 )
             # lightweight models list / noop for cloud
             return LLMStatus(

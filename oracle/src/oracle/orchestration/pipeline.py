@@ -78,9 +78,20 @@ class OraclePipeline:
             )
 
         overview = index_overview()
-        headlines = aggregate_market_headlines(symbols[:5], per_symbol=2)
-        top_news = "; ".join(h.title for h in headlines[:5]) or "No headlines"
-        market_summary = f"Index day moves: {overview}. Notable headlines: {top_news}"
+        headlines = aggregate_market_headlines(symbols[:6], per_symbol=3)
+        # Richer fact pack for ORACLE PRIME
+        news_bits = []
+        for h in headlines[:12]:
+            bit = h.title.strip()
+            if h.publisher:
+                bit = f"[{h.publisher}] {bit}"
+            news_bits.append(bit)
+        top_news = " | ".join(news_bits) or "No headlines"
+        market_summary = (
+            f"Index day moves: {overview}. "
+            f"FACT headlines: {top_news}. "
+            f"Session={session}. Mandate=grow capital with evidence or be obsolete."
+        )
 
         held = set(portfolio.held_symbols())
         decisions, llm_meta = synthesize_portfolio(
