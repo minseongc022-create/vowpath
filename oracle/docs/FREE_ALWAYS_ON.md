@@ -1,5 +1,9 @@
 # 집 PC 없이 · 무료 · 과금/해킹 최소화 설정
 
+> **실제 진행 중 (권장):** Contabo VPS(~월 €5.50) 경로 →  
+> **[CONTABO_SETUP.md](./CONTABO_SETUP.md)**  
+> 아래 Oracle Cloud Always Free는 Tokyo 품절이 잦아 백업 옵션으로만 두세요.
+
 목표: **집 컴퓨터 OFF** 상태에서도 Oracle이 계속 돌고,  
 폰/PC에서 `https://oracle.vowroad.com` 으로만 접속.
 
