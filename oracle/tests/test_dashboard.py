@@ -41,6 +41,7 @@ def test_ai_page_has_goal_and_one_button():
     assert "AI 투자" in r.text
     assert "지금 투자 시작" in r.text
     assert "목표 자산" in r.text
+    assert "기간 (일)" in r.text
     assert 'href="/"' in r.text
 
 

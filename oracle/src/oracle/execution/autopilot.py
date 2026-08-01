@@ -26,6 +26,7 @@ from oracle.execution.live_setup import (
     upsert_env,
 )
 from oracle.orchestration import OraclePipeline
+from oracle.portfolio.activity_log import ActivityLog, format_clock, log_activity
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.picker import (
     rank_decisions_for_trade,
@@ -42,7 +43,17 @@ _lock = threading.Lock()
 _cycle_lock = threading.Lock()
 _thread: threading.Thread | None = None
 _stop = threading.Event()
-_last: dict = {"ts": None, "message": "대기", "ok": True, "picks": [], "busy": False, "logs": []}
+_last: dict = {
+    "ts": None,
+    "message": "대기",
+    "ok": True,
+    "picks": [],
+    "busy": False,
+    "logs": [],
+    "cycle": 0,
+    "picks_ts": None,
+}
+_STATE_NAME = "autopilot_state.json"
 
 ProgressFn = Callable[[str], None]
 
@@ -58,6 +69,8 @@ class AutopilotStatus:
     last_ok: bool
     picks: list
     logs: list
+    picks_ts: str | None = None
+    cycle: int = 0
 
 
 def enabled() -> bool:
@@ -71,7 +84,73 @@ def interval_sec() -> int:
         return 300
 
 
+def _state_path():
+    from pathlib import Path
+
+    return Path(get_settings().data_dir) / _STATE_NAME
+
+
+def _persist_state() -> None:
+    try:
+        path = _state_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "ts": _last.get("ts"),
+            "message": _last.get("message"),
+            "ok": _last.get("ok", True),
+            "picks": _last.get("picks") or [],
+            "logs": list(_last.get("logs") or [])[-40:],
+            "cycle": int(_last.get("cycle") or 0),
+            "picks_ts": _last.get("picks_ts"),
+            # never persist busy=true across restarts
+            "busy": False,
+        }
+        path.write_text(__import__("json").dumps(payload, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        logger.debug("persist autopilot state failed", exc_info=True)
+
+
+def _load_state() -> None:
+    try:
+        path = _state_path()
+        if not path.exists():
+            return
+        import json
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            _last.update(
+                {
+                    "ts": data.get("ts"),
+                    "message": data.get("message") or _last.get("message"),
+                    "ok": bool(data.get("ok", True)),
+                    "picks": list(data.get("picks") or []),
+                    "logs": list(data.get("logs") or [])[-40:],
+                    "cycle": int(data.get("cycle") or 0),
+                    "picks_ts": data.get("picks_ts"),
+                    "busy": False,
+                }
+            )
+    except Exception:
+        logger.debug("load autopilot state failed", exc_info=True)
+
+
+_load_state()
+
+
 def status() -> AutopilotStatus:
+    logs = []
+    for line in list(_last.get("logs") or []):
+        if isinstance(line, dict):
+            ts = line.get("ts")
+            text = line.get("text") or ""
+            logs.append(
+                {
+                    "ts": ts,
+                    "clock": line.get("clock") or format_clock(ts),
+                    "text": text,
+                }
+            )
     return AutopilotStatus(
         enabled=enabled(),
         running=_thread is not None and _thread.is_alive(),
@@ -81,16 +160,32 @@ def status() -> AutopilotStatus:
         last_message=str(_last.get("message") or ""),
         last_ok=bool(_last.get("ok", True)),
         picks=list(_last.get("picks") or []),
-        logs=list(_last.get("logs") or []),
+        logs=logs,
+        picks_ts=_last.get("picks_ts"),
+        cycle=int(_last.get("cycle") or 0),
     )
 
 
-def _push_log(msg: str) -> None:
+def _push_log(msg: str, *, kind: str = "autopilot", persist_activity: bool = True) -> None:
+    ts = datetime.now(UTC).isoformat()
+    clock = format_clock(ts)
     logs = list(_last.get("logs") or [])
-    logs.append({"ts": datetime.now(UTC).isoformat(), "text": msg})
-    _last["logs"] = logs[-40:]
+    # de-dupe identical consecutive lines
+    if logs and logs[-1].get("text") == msg:
+        logs[-1] = {"ts": ts, "clock": clock, "text": msg}
+    else:
+        logs.append({"ts": ts, "clock": clock, "text": msg})
+    _last["logs"] = logs[-48:]
     _last["message"] = msg
-    _last["ts"] = datetime.now(UTC).isoformat()
+    _last["ts"] = ts
+    # Skip persisting heartbeat spam; keep in live panel only
+    is_hb = "계속 계산 중" in msg or "스크리닝" in msg or msg.startswith("탐색 ")
+    if persist_activity and not is_hb:
+        try:
+            log_activity(kind, msg)
+        except Exception:
+            logger.debug("activity log failed", exc_info=True)
+    _persist_state()
 
 
 def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
@@ -99,7 +194,9 @@ def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
     _last["ok"] = ok
     if picks is not None:
         _last["picks"] = picks
+        _last["picks_ts"] = _last["ts"]
     _push_log(msg)
+    _persist_state()
 
 
 def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
@@ -162,9 +259,20 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
     kind = "체결" if ("filled" in (out.message or "").lower() or "Broker filled" in (out.message or "")) else (
         "접수" if out.accepted else "실패"
     )
+    msg = f"{kind} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}"
+    try:
+        log_activity(
+            "trade",
+            msg,
+            detail=(d.rationale or "")[:240],
+            symbol=d.symbol,
+            meta={"action": action, "shares": shares, "price": price, "journal_id": jid},
+        )
+    except Exception:
+        pass
     return {
         "ok": out.accepted,
-        "message": f"{kind} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}",
+        "message": msg,
         "journal_id": jid,
     }
 
@@ -209,14 +317,23 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
     equity = float(portfolio.equity())
     gprog = goal_progress(equity)
+    cycle = int(_last.get("cycle") or 0) + 1
+    _last["cycle"] = cycle
+    urgency = float(gprog.get("urgency") or 0.0)
+    # Deep brain every 3rd cycle, or when survival pressure is high
+    deep = (cycle % 3 == 0) or urgency >= 0.55 or bool(gprog.get("deadline_passed"))
+
     if gprog["set"]:
         prog(
             f"목표 ${gprog['goal']:,.0f} · 현재 ${equity:,.2f} · "
             f"{gprog['pct']*100:.0f}% · {gprog['label']}"
         )
+        if gprog.get("threat_ko"):
+            prog(gprog["threat_ko"])
         if gprog["reached"]:
             prog(f"목표 달성 · ${equity:,.2f} ≥ ${gprog['goal']:,.0f} · 매수만 멈추고 약한 종목은 정리")
 
+    prog(f"① 탐색 시작 · 사이클 #{cycle}" + (" · 심층지능 ON" if deep else " · 빠른 모드"))
     short_picks, long_picks, blend_picks = screen_short_and_long(
         limit_short=6,
         limit_long=6,
@@ -224,7 +341,19 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     picks_view = top_picks_summary(limit=8)
     _last["picks"] = picks_view
+    _last["picks_ts"] = datetime.now(UTC).isoformat()
     screened = blend_picks or screen_universe(limit=8)
+    try:
+        ActivityLog().add(
+            "screen",
+            f"탐색 완료 · 단타 {len(short_picks)} · 장타 {len(long_picks)}",
+            detail=" · ".join(
+                f"{p.get('symbol')}({p.get('horizon')})" for p in picks_view[:6]
+            ),
+            meta={"picks": picks_view[:8], "cycle": cycle},
+        )
+    except Exception:
+        pass
 
     if short_picks:
         prog(
@@ -254,12 +383,16 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     symbols = list(dict.fromkeys([*held, *top_syms]))[:10]
 
-    prog(f"② 심층 AI · 단타+장타 후보 {len(symbols)}종목 · {', '.join(symbols)}")
+    prog(
+        f"② 심층 AI · 단타+장타 후보 {len(symbols)}종목 · {', '.join(symbols)}"
+        + (" · 3패스 두뇌" if deep else "")
+    )
     result = OraclePipeline(settings).run(
         session="autopilot",
         symbols=symbols,
         on_progress=prog,
-        fast_llm=True,
+        fast_llm=not deep,
+        deep_llm=deep,
     )
     best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
@@ -284,6 +417,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         prog(f"단타 익절 승격 · {top_rip.symbol} rip={top_rip.rip_score:.2f}")
 
     # Near/at goal → prefer sell/reduce, shrink or skip buys
+    # Behind deadline → slightly larger tickets within hard caps (still capped)
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
     near_goal = bool(gprog["set"] and gprog["pct"] >= 0.9)
     reached = bool(gprog.get("reached"))
@@ -291,6 +425,9 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     if reached or near_goal:
         max_n = min(max_n, first_trade_notional())
         prog("목표 근접/달성 · 공격 매수 축소, 약한 종목 정리 우선")
+    elif urgency >= 0.55:
+        max_n = min(live_max_notional(), first_trade_notional() * (1.75 if urgency >= 0.75 else 1.5))
+        prog(f"생존 압박 urgency={urgency:.2f} · 고엣지 종목에 집중 집행 (한도 내)")
     elif far_from_goal:
         max_n = min(live_max_notional(), first_trade_notional() * 1.5)
         prog("목표까지 여유 · 단타 눌림·장타 추세 소액 집중")
@@ -376,7 +513,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
 
 def _loop() -> None:
     logger.info("Autopilot loop start interval=%ss (browser-independent)", interval_sec())
-    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 동작)")
+    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 계속 동작)")
     time.sleep(3)
     while not _stop.is_set():
         if enabled():
@@ -385,6 +522,10 @@ def _loop() -> None:
             except Exception as exc:
                 logger.exception("autopilot cycle failed")
                 _set_last(f"오류 · {exc}", ok=False)
+        else:
+            _stop.wait(interval_sec())
+            continue
+        # Always wait full interval between cycles (browser closed OK)
         _stop.wait(interval_sec())
     logger.info("Autopilot loop stopped")
 
@@ -395,8 +536,10 @@ def start_background() -> None:
         if _thread and _thread.is_alive():
             return
         _stop.clear()
+        _load_state()
         _thread = threading.Thread(target=_loop, daemon=True, name="oracle-autopilot")
         _thread.start()
+        logger.info("Autopilot background thread launched (survives browser close)")
 
 
 def set_enabled(on: bool, *, allow_live: bool = False) -> None:

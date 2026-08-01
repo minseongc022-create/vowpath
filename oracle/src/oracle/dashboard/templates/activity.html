@@ -1,20 +1,62 @@
 {% extends "base.html" %}
 {% block title %}활동{% endblock %}
-{% block subtitle %}AI 매수·매도 · 그래프{% endblock %}
+{% block subtitle %}시·분·초 · AI가 한 일{% endblock %}
 {% block content %}
 <section class="card" id="live-status">
   <div class="card-head">
     <div>
       <h2 class="card-title">지금 AI가 하는 일</h2>
       <p class="card-desc" id="act-msg">{{ autopilot.last_message or "대기 중" }}</p>
+      <p class="card-desc" id="act-server-note">창을 닫아도 서버 자율매매는 계속됩니다.</p>
     </div>
     <span class="chip {% if autopilot.busy %}chip-ok{% elif autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="act-chip">
       {% if autopilot.busy %}실행중{% elif autopilot.enabled %}ON{% else %}OFF{% endif %}
     </span>
   </div>
-  <div class="live-log" id="act-log" aria-live="polite">
-    {% for line in autopilot.logs[-12:] %}
-    <div class="live-log-line">{{ line.text }}</div>
+  <div class="timeline" id="act-live-timeline" aria-live="polite">
+    {% for line in autopilot.logs[-14:] %}
+    <div class="timeline-row">
+      <time class="log-clock">{{ line.clock or "——" }}</time>
+      <div class="timeline-body">
+        <div class="timeline-title">{{ line.text }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">활동 타임라인</h2>
+      <p class="card-desc">탐색 · 두뇌 판단 · 매수/매도 · 시·분·초</p>
+    </div>
+  </div>
+  <div class="kind-filters" id="kind-filters">
+    <button type="button" class="chip chip-btn chip-ok" data-kind="all">전체</button>
+    <button type="button" class="chip chip-btn" data-kind="screen">탐색</button>
+    <button type="button" class="chip chip-btn" data-kind="brain">두뇌</button>
+    <button type="button" class="chip chip-btn" data-kind="trade">매매</button>
+    <button type="button" class="chip chip-btn" data-kind="autopilot">자동</button>
+  </div>
+  <div class="timeline timeline-main" id="act-feed">
+    {% for item in activity_feed[:40] %}
+    <div class="timeline-row" data-kind="{{ item.kind }}">
+      <time class="log-clock" title="{{ item.clock_full }}">{{ item.clock }}</time>
+      <div class="timeline-body">
+        <div class="timeline-meta">
+          <span class="kind-pill kind-{{ item.kind }}">{{ item.kind }}</span>
+          {% if item.symbol %}<span class="sym-pill">{{ item.symbol }}</span>{% endif %}
+          <span class="muted-clock">{{ item.clock_full }}</span>
+        </div>
+        <div class="timeline-title">{{ item.title }}</div>
+        {% if item.detail %}
+        <div class="timeline-detail">{{ item.detail[:160] }}{% if item.detail|length > 160 %}…{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p class="todo-empty" id="feed-empty">아직 활동이 없습니다. AI자동에서 투자를 시작해 보세요.</p>
     {% endfor %}
   </div>
 </section>
@@ -49,15 +91,19 @@
 </section>
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">매매 기록</h2></div>
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">매매 기록</h2>
+      <p class="card-desc">시·분·초 · 종목 · 금액</p>
+    </div>
+  </div>
   {% if journal %}
   {% for j in journal %}
   <div class="list-row">
     <div class="left">
-      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="title"><span class="log-clock">{{ j.clock }}</span> {{ j.symbol }} · {{ j.action_ko }}</div>
       <div class="desc">
         {{ j.status_ko }} · {{ "%.4f"|format(j.shares) }}주 @ ${{ "%.2f"|format(j.price) }}
-        · {{ j.ts[:16]|replace('T',' ') }}
       </div>
       {% if j.rationale %}
       <div class="desc">{{ j.rationale[:120] }}{% if j.rationale|length > 120 %}…{% endif %}</div>
@@ -81,6 +127,14 @@
   let priceChart = null;
   let flowChart = null;
   let currentSym = {{ (chart_symbol or "SPY")|tojson }};
+  let kindFilter = "all";
+
+  function clockOf(line) {
+    if (!line) return "——";
+    if (line.clock) return line.clock;
+    const ts = line.ts || "";
+    return ts.length >= 19 ? ts.substr(11, 8) : "——";
+  }
 
   function renderPrice(data) {
     const ctx = document.getElementById("price-chart");
@@ -163,6 +217,39 @@
     });
   }
 
+  function applyKindFilter() {
+    document.querySelectorAll("#act-feed .timeline-row").forEach(function (row) {
+      const k = row.dataset.kind || "";
+      row.hidden = !(kindFilter === "all" || k === kindFilter || k.indexOf(kindFilter) === 0);
+    });
+  }
+
+  function renderFeed(items) {
+    const feed = document.getElementById("act-feed");
+    if (!feed || !Array.isArray(items)) return;
+    if (!items.length) {
+      feed.innerHTML = '<p class="todo-empty">아직 활동이 없습니다.</p>';
+      return;
+    }
+    feed.innerHTML = items.map(function (item) {
+      return (
+        '<div class="timeline-row" data-kind="' + (item.kind || "") + '">' +
+          '<time class="log-clock" title="' + (item.clock_full || "") + '">' + (item.clock || "——") + '</time>' +
+          '<div class="timeline-body">' +
+            '<div class="timeline-meta">' +
+              '<span class="kind-pill kind-' + (item.kind || "info") + '">' + (item.kind || "") + '</span>' +
+              (item.symbol ? '<span class="sym-pill">' + item.symbol + '</span>' : '') +
+              '<span class="muted-clock">' + (item.clock_full || "") + '</span>' +
+            '</div>' +
+            '<div class="timeline-title">' + (item.title || "") + '</div>' +
+            (item.detail ? '<div class="timeline-detail">' + String(item.detail).slice(0, 160) + '</div>' : '') +
+          '</div>' +
+        '</div>'
+      );
+    }).join("");
+    applyKindFilter();
+  }
+
   async function loadChart(sym) {
     currentSym = sym;
     document.querySelectorAll("#chart-syms .chip-btn").forEach(b => {
@@ -185,27 +272,50 @@
       const j = await r.json();
       const msg = document.getElementById("act-msg");
       const chip = document.getElementById("act-chip");
-      const log = document.getElementById("act-log");
+      const live = document.getElementById("act-live-timeline");
       if (msg) msg.textContent = j.last_message || "대기 중";
       if (chip) {
         chip.textContent = j.busy ? "실행중" : (j.enabled ? "ON" : "OFF");
         chip.className = "chip " + (j.busy || j.enabled ? "chip-ok" : "chip-danger");
       }
-      if (log && Array.isArray(j.logs)) {
-        log.innerHTML = j.logs.slice(-16).map(x => '<div class="live-log-line">' + (x.text || "") + "</div>").join("");
-        log.scrollTop = log.scrollHeight;
+      if (live && Array.isArray(j.logs)) {
+        live.innerHTML = j.logs.slice(-16).map(function (x) {
+          return '<div class="timeline-row"><time class="log-clock">' + clockOf(x) +
+            '</time><div class="timeline-body"><div class="timeline-title">' +
+            (x.text || "") + '</div></div></div>';
+        }).join("");
       }
     } catch (e) {}
     setTimeout(pollLive, 2000);
   }
 
+  async function pollFeed() {
+    try {
+      const r = await fetch("/api/activity/feed?limit=60");
+      if (r.ok) {
+        const j = await r.json();
+        renderFeed(j.items || []);
+      }
+    } catch (e) {}
+    setTimeout(pollFeed, 4000);
+  }
+
   document.querySelectorAll("#chart-syms .chip-btn").forEach(b => {
     b.addEventListener("click", () => loadChart(b.dataset.sym));
+  });
+  document.querySelectorAll("#kind-filters .chip-btn").forEach(b => {
+    b.addEventListener("click", function () {
+      kindFilter = b.dataset.kind || "all";
+      document.querySelectorAll("#kind-filters .chip-btn").forEach(x => x.classList.remove("chip-ok"));
+      b.classList.add("chip-ok");
+      applyKindFilter();
+    });
   });
 
   loadChart(currentSym);
   loadFlow();
   pollLive();
+  pollFeed();
 })();
 </script>
 {% endblock %}

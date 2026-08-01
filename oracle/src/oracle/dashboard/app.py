@@ -37,12 +37,14 @@ from oracle.execution.live_setup import (
     goal_progress,
     live_armed,
     live_max_notional,
+    set_goal,
     set_goal_equity,
     upsert_env,
 )
 from oracle.execution.sync import sync_portfolio_from_broker
 from oracle.llm.brain import brain_health
 from oracle.orchestration import OraclePipeline
+from oracle.portfolio.activity_log import ActivityLog, format_clock
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
 from oracle.portfolio.store import DecisionStore, load_portfolio
 
@@ -431,9 +433,11 @@ def _context(
                 **j,
                 "action_ko": ACTION_KO.get(j["action"], j["action"]),
                 "status_ko": STATUS_KO.get(j["status"], j["status"]),
+                "clock": format_clock(j.get("ts"), with_date=True),
             }
             for j in recent_journal
         ],
+        "activity_feed": ActivityLog().recent(limit=60),
         "planned": [
             {**j, "action_ko": ACTION_KO.get(j["action"], j["action"])} for j in planned
         ],
@@ -664,12 +668,23 @@ def api_autopilot(_: None = Depends(require_auth)):
             "busy": st.busy,
             "interval_sec": st.interval_sec,
             "last_ts": st.last_ts,
+            "last_clock": format_clock(st.last_ts, with_date=True),
             "last_message": st.last_message,
             "last_ok": st.last_ok,
             "picks": st.picks,
-            "logs": st.logs[-24:],
+            "picks_ts": st.picks_ts,
+            "picks_clock": format_clock(st.picks_ts, with_date=True),
+            "logs": st.logs[-32:],
+            "cycle": st.cycle,
+            "server_note": "창을 닫아도 서버 자율매매는 계속됩니다",
         }
     )
+
+
+@app.get("/api/activity/feed")
+def api_activity_feed(limit: int = 80, _: None = Depends(require_auth)):
+    limit = max(1, min(int(limit or 80), 200))
+    return JSONResponse({"items": ActivityLog().recent(limit=limit)})
 
 
 @app.post("/actions/run")
@@ -942,15 +957,42 @@ def autopilot_toggle(
 
 
 @app.post("/actions/set_goal")
-def set_goal(goal: str = Form(...), _: None = Depends(require_auth)):
+def set_goal_action(
+    goal: str = Form(...),
+    days: str = Form(""),
+    deadline: str = Form(""),
+    _: None = Depends(require_auth),
+):
     try:
         amount = float(goal)
     except ValueError:
         return _flash("/ai", "목표 금액이 올바르지 않습니다")
     if amount < 1:
         return _flash("/ai", "목표는 $1 이상이어야 합니다")
-    saved = set_goal_equity(amount)
-    return _flash("/ai", f"목표 ${saved:,.0f} 저장 · AI가 여기까지 불립니다")
+    days_i: int | None = None
+    dl = (deadline or "").strip()
+    if dl:
+        try:
+            saved = set_goal(amount, deadline=dl)
+        except ValueError:
+            return _flash("/ai", "마감일 형식이 올바르지 않습니다 (YYYY-MM-DD)")
+    else:
+        raw_days = (days or "").strip()
+        if raw_days:
+            try:
+                days_i = int(float(raw_days))
+            except ValueError:
+                return _flash("/ai", "기간(일)이 올바르지 않습니다")
+            if days_i < 1:
+                return _flash("/ai", "기간은 1일 이상이어야 합니다")
+        saved = set_goal(amount, days=days_i)
+    upsert_env({"ORACLE_GOAL_WINDOW_DAYS": str(days_i or 30)})
+    msg = f"목표 ${saved['goal']:,.0f}"
+    if saved.get("deadline"):
+        msg += f" · 마감 {saved['deadline']} · 못 불리면 소멸 경각심 ON"
+    else:
+        msg += " 저장 · AI가 여기까지 불립니다"
+    return _flash("/ai", msg)
 
 
 @app.post("/actions/reset_paper")
@@ -963,7 +1005,7 @@ def reset_paper(_: None = Depends(require_auth)):
 
     settings = get_settings()
     data = Path(settings.data_dir)
-    for name in ("journal.db", "jobs.db", "oracle.db"):
+    for name in ("journal.db", "jobs.db", "oracle.db", "activity.db", "autopilot_state.json"):
         p = data / name
         if p.exists():
             p.unlink()
@@ -1011,7 +1053,7 @@ def reset_paper(_: None = Depends(require_auth)):
     )
 
     goal_amt = max(equity * 1.1, equity + 100.0, 100.0)
-    set_goal_equity(goal_amt)
+    set_goal(goal_amt, days=30)
     upsert_env({"ORACLE_AUTOPILOT": "1", "ORACLE_LIVE_TRADING": "0", "ORACLE_REQUIRE_CONFIRM": "0"})
     cache_clear()
     return _flash(

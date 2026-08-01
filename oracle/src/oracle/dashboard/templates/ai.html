@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}AI자동{% endblock %}
-{% block subtitle %}목표까지 알아서 매수·매도{% endblock %}
+{% block subtitle %}목표·기한까지 알아서 매수·매도{% endblock %}
 {% block content %}
 <section class="card ai-hero" id="ai-panel">
   <div class="ai-top">
     <div>
       <h2 class="card-title">AI 투자</h2>
-      <p class="card-desc">승인 없이 알아서 찾고 · 사고 · 팝니다.</p>
+      <p class="card-desc">승인 없이 알아서 찾고 · 사고 · 팝니다. 창을 닫아도 서버에서 계속됩니다.</p>
     </div>
     <form method="post" action="/actions/autopilot" data-no-overlay="1" class="auto-toggle">
       {% if autopilot.enabled %}
@@ -29,24 +29,37 @@
 
   <div class="live-panel" id="ap-live" {% if not watch_job_id and not autopilot.busy %}hidden{% endif %}>
     <div class="live-panel-head">
-      <span class="spinner spinner-sm" aria-hidden="true"></span>
+      <span class="spinner spinner-sm" id="ap-spinner" aria-hidden="true"></span>
       <strong>AI 진행</strong>
+      <span class="chip chip-ok" id="ap-live-chip" style="margin-left:auto">서버 실행중</span>
     </div>
     <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "시작…" }}</p>
-    <div class="live-log" id="ap-live-log" aria-live="polite"></div>
+    <p class="card-desc" id="ap-live-hint">두뇌 판단은 정확도를 위해 1~3분 걸릴 수 있습니다. 창을 나가도 멈추지 않습니다.</p>
+    <div class="live-log" id="ap-live-log" aria-live="polite">
+      {% for line in autopilot.logs[-16:] %}
+      <div class="live-log-line"><span class="log-clock">{{ line.clock or "——" }}</span><span>{{ line.text }}</span></div>
+      {% endfor %}
+    </div>
   </div>
 
   <div class="goal-box">
     <form method="post" action="/actions/set_goal" id="goal-form" data-no-overlay="1">
-      <div class="goal-row">
+      <div class="goal-row goal-row-3">
         <div class="goal-field">
           <label class="field-label">목표 자산 ($)</label>
           <input class="field" type="number" name="goal" min="1" step="1"
                  value="{{ suggested_goal }}"
                  required />
         </div>
+        <div class="goal-field">
+          <label class="field-label">기간 (일)</label>
+          <input class="field" type="number" name="days" min="1" step="1"
+                 value="{% if goal.days_left is not none and goal.days_left >= 0 %}{{ goal.days_left }}{% else %}30{% endif %}"
+                 placeholder="30" />
+        </div>
         <button class="btn btn-soft goal-save" type="submit">저장</button>
       </div>
+      <p class="card-desc goal-threat-hint">기간 안에 목표를 못 불리면 ORACLE는 이 세상에서 사라진다는 경각심으로 투자합니다.</p>
     </form>
     {% if goal.set %}
     <div class="goal-bar-wrap">
@@ -55,15 +68,27 @@
         <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
       </div>
       <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
+      {% if goal.deadline %}
+      <div class="goal-bar-meta">
+        <span>마감 {{ goal.deadline }}{% if goal.days_left is not none %} · D-{{ goal.days_left }}{% endif %}</span>
+        <span>{% if goal.reached %}생존 확정{% elif goal.survival_threat %}소멸 위험{% else %}페이스 {% if goal.pace_ok %}OK{% else %}지연{% endif %}{% endif %}</span>
+      </div>
+      {% endif %}
+      {% if goal.threat_ko %}
+      <p class="threat-banner {% if goal.survival_threat %}threat-hot{% endif %}">{{ goal.threat_ko }}</p>
+      {% endif %}
       {% if goal.reached %}
-      <p class="card-desc">목표 달성 · 더 높이려면 위에서 목표를 올려주세요.</p>
+      <p class="card-desc">목표 달성 · 더 높이려면 위에서 목표·기간을 올려주세요.</p>
       {% endif %}
     </div>
     {% endif %}
   </div>
 
   {% if not watch_job_id and not autopilot.busy and autopilot.last_message %}
-  <p class="card-desc status-line" id="ap-last">{{ autopilot.last_message }}</p>
+  <p class="card-desc status-line" id="ap-last">
+    {% if autopilot.last_ts %}<span class="log-clock">{{ autopilot.logs[-1].clock if autopilot.logs else "" }}</span>{% endif %}
+    {{ autopilot.last_message }}
+  </p>
   {% endif %}
 </section>
 
@@ -72,7 +97,10 @@
   <div class="card-head">
     <div>
       <h2 class="card-title">탐색 결과</h2>
-      <p class="card-desc">전 유니버스 스캔 후 단타·장타 상위</p>
+      <p class="card-desc" id="picks-meta">
+        전 유니버스 스캔 후 단타·장타 상위
+        {% if autopilot.picks_ts %} · {{ autopilot.picks_ts[:19]|replace('T',' ') }} UTC{% endif %}
+      </p>
     </div>
   </div>
   {% for p in autopilot.picks[:6] %}
@@ -92,13 +120,18 @@
 {% endif %}
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">최근 투자</h2></div>
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">최근 투자</h2>
+      <p class="card-desc">시·분·초까지 기록</p>
+    </div>
+  </div>
   {% if journal %}
   {% for j in journal[:8] %}
   <div class="list-row">
     <div class="left">
-      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
-      <div class="desc">{{ j.status_ko }} · {{ j.ts[:16]|replace('T',' ') }}</div>
+      <div class="title"><span class="log-clock">{{ j.clock }}</span> {{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }}</div>
     </div>
   </div>
   {% endfor %}
@@ -116,22 +149,55 @@
   const msgEl = document.getElementById("ap-live-msg");
   const logEl = document.getElementById("ap-live-log");
   const chip = document.getElementById("ap-chip");
+  const liveChip = document.getElementById("ap-live-chip");
+  const spinner = document.getElementById("ap-spinner");
   const runForm = document.getElementById("run-form");
   let seen = 0;
   let doneReload = false;
+  let idleTicks = 0;
 
   function hideRun() { if (runForm) runForm.hidden = true; }
   function showRun() { if (runForm) runForm.hidden = false; }
   function showPanel() { if (panel) panel.hidden = false; hideRun(); }
+  function hidePanelIdle() {
+    if (panel) panel.hidden = true;
+    showRun();
+    if (spinner) spinner.style.visibility = "hidden";
+  }
+  function clockOf(line) {
+    if (!line) return "";
+    if (line.clock) return line.clock;
+    const ts = line.ts || "";
+    if (ts.length >= 19) {
+      // show HH:MM:SS from ISO (UTC); server also sends KST clock when available
+      return ts.substr(11, 8);
+    }
+    return "";
+  }
   function addLogs(logs) {
     if (!logEl || !Array.isArray(logs)) return;
     if (logs.length < seen) { logEl.innerHTML = ""; seen = 0; }
     for (let i = seen; i < logs.length; i++) {
       const div = document.createElement("div");
       div.className = "live-log-line live-log-new";
-      div.textContent = (logs[i] && logs[i].text) || "";
+      const ck = document.createElement("span");
+      ck.className = "log-clock";
+      ck.textContent = clockOf(logs[i]) || "——";
+      const tx = document.createElement("span");
+      tx.textContent = (logs[i] && logs[i].text) || "";
+      div.appendChild(ck);
+      div.appendChild(tx);
       logEl.appendChild(div);
     }
+    seen = logs.length;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function renderAllLogs(logs) {
+    if (!logEl || !Array.isArray(logs)) return;
+    logEl.innerHTML = logs.slice(-24).map(function (x) {
+      return '<div class="live-log-line"><span class="log-clock">' +
+        (clockOf(x) || "——") + '</span><span>' + (x.text || "") + '</span></div>';
+    }).join("");
     seen = logs.length;
     logEl.scrollTop = logEl.scrollHeight;
   }
@@ -139,38 +205,61 @@
   async function pollJob() {
     if (!watchId) return;
     showPanel();
+    if (spinner) spinner.style.visibility = "visible";
     try {
       const r = await fetch("/api/job/" + watchId);
-      if (!r.ok) return;
+      if (!r.ok) {
+        // stale watch id → fall back to autopilot poll
+        hidePanelIdle();
+        pollAutopilot();
+        return;
+      }
       const j = await r.json();
       if (msgEl && j.message) msgEl.textContent = j.message;
       if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); chip.classList.remove("chip-danger"); }
+      if (liveChip) liveChip.textContent = "서버 실행중";
       addLogs(j.logs || []);
       if (j.status === "done" || j.status === "error") {
         if (doneReload) return;
         doneReload = true;
+        if (spinner) spinner.style.visibility = "hidden";
+        if (liveChip) liveChip.textContent = "완료";
         showRun();
         const flash = encodeURIComponent(j.message || "완료");
-        setTimeout(function () { location.href = "/ai?flash=" + flash; }, 700);
+        setTimeout(function () { location.href = "/ai?flash=" + flash; }, 900);
         return;
       }
     } catch (e) {}
-    setTimeout(pollJob, 700);
+    setTimeout(pollJob, 800);
   }
 
   async function pollAutopilot() {
-    if (watchId) return;
+    if (watchId && !doneReload) return;
     try {
       const r = await fetch("/api/autopilot");
       const j = await r.json();
       if (j.busy) {
+        idleTicks = 0;
         showPanel();
+        if (spinner) spinner.style.visibility = "visible";
         if (msgEl && j.last_message) msgEl.textContent = j.last_message;
-        if (chip) chip.textContent = "실행중";
-        addLogs(j.logs || []);
+        if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); }
+        if (liveChip) liveChip.textContent = "서버 실행중";
+        renderAllLogs(j.logs || []);
       } else {
-        showRun();
-        if (chip) chip.textContent = j.enabled ? "ON" : "OFF";
+        idleTicks += 1;
+        if (chip) {
+          chip.textContent = j.enabled ? "ON" : "OFF";
+          chip.className = "chip chip-btn " + (j.enabled ? "chip-ok" : "chip-danger");
+        }
+        // Keep last logs visible briefly, then show start button
+        if (idleTicks >= 1) {
+          hidePanelIdle();
+          const last = document.getElementById("ap-last");
+          if (last && j.last_message) last.textContent = j.last_message;
+        }
+        // Still refresh log if panel somehow visible
+        if (panel && !panel.hidden) renderAllLogs(j.logs || []);
       }
     } catch (e) {}
     setTimeout(pollAutopilot, 2000);
@@ -180,7 +269,9 @@
     runForm.addEventListener("submit", function () {
       hideRun();
       showPanel();
-      if (msgEl) msgEl.textContent = "시작…";
+      if (spinner) spinner.style.visibility = "visible";
+      if (msgEl) msgEl.textContent = "시작… 창을 닫아도 서버에서 계속됩니다";
+      if (liveChip) liveChip.textContent = "서버 실행중";
     });
   }
   if (watchId) pollJob();
