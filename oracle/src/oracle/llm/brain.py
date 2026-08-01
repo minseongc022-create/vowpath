@@ -85,6 +85,7 @@ def synthesize_portfolio(
     *,
     market_summary: str = "",
     held_symbols: set[str] | None = None,
+    fast: bool = False,
 ) -> tuple[list[DecisionResult], dict[str, Any]]:
     held_symbols = held_symbols or set()
     status = probe_status()
@@ -93,6 +94,7 @@ def synthesize_portfolio(
         "provider": status.provider,
         "model": status.model,
         "mode_ko": status.mode_ko,
+        "fast": fast,
     }
     if not drafts:
         return drafts, meta
@@ -150,29 +152,33 @@ def synthesize_portfolio(
 
     draft_json = parse_json_object(resp1.text) or {}
 
-    # Pass 2: critic (best-effort; fall back to pass1)
-    critic_messages = [
-        {"role": "system", "content": CRITIC_SYSTEM},
-        {
-            "role": "user",
-            "content": json.dumps(
-                {
-                    "facts": payload,
-                    "draft": draft_json,
-                    "instruction": "Correct errors. Preserve schema. Return full corrected JSON.",
-                },
-                ensure_ascii=False,
-            ),
-        },
-    ]
-    resp2 = chat(critic_messages, temperature=0.05, max_tokens=2200, json_mode=True)
-    meta["latency_ms"] = int(meta.get("latency_ms") or 0) + int(resp2.latency_ms or 0)
-    parsed = parse_json_object(resp2.text) if resp2.ok else None
-    if not parsed:
+    # Pass 2: critic (skip in fast/autopilot mode — ~half the LLM wait)
+    if fast:
         parsed = draft_json
-        meta["critic"] = "skipped_or_failed"
+        meta["critic"] = "skipped_fast"
     else:
-        meta["critic"] = "applied"
+        critic_messages = [
+            {"role": "system", "content": CRITIC_SYSTEM},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "facts": payload,
+                        "draft": draft_json,
+                        "instruction": "Correct errors. Preserve schema. Return full corrected JSON.",
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+        resp2 = chat(critic_messages, temperature=0.05, max_tokens=2200, json_mode=True)
+        meta["latency_ms"] = int(meta.get("latency_ms") or 0) + int(resp2.latency_ms or 0)
+        parsed = parse_json_object(resp2.text) if resp2.ok else None
+        if not parsed:
+            parsed = draft_json
+            meta["critic"] = "skipped_or_failed"
+        else:
+            meta["critic"] = "applied"
 
     by_sym = {}
     for item in parsed.get("decisions") or []:

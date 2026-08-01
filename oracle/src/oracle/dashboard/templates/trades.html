@@ -13,14 +13,25 @@
   <div class="card-head">
     <div>
       <h2 class="card-title">AI 자율매매</h2>
-      <p class="card-desc">모멘텀·상대강도·뉴스로 오를 종목 매수 · 약한 보유 매도 · 무료 로컬 AI · 소액($8≈1만원)</p>
+      <p class="card-desc">창 꺼도 서버가 {{ autopilot.interval_sec }}초마다 알아서 매수·매도 · 무료 로컬 AI · 소액($8≈1만원)</p>
     </div>
-    <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}">
-      {{ "ON" if autopilot.enabled else "OFF" }}
+    <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="ap-chip">
+      {% if autopilot.busy %}실행중{% elif autopilot.enabled %}ON{% else %}OFF{% endif %}
     </span>
   </div>
-  {% if autopilot.last_message %}
-  <p class="card-desc">최근: {{ autopilot.last_message }}{% if autopilot.last_ts %} · {{ autopilot.last_ts[:16]|replace('T',' ') }}{% endif %}</p>
+
+  <div class="live-panel" id="ap-live" {% if not watch_job_id and not autopilot.busy %}hidden{% endif %}>
+    <div class="live-panel-head">
+      <span class="spinner spinner-sm" aria-hidden="true"></span>
+      <strong id="ap-live-title">실행 로그</strong>
+    </div>
+    <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "준비 중…" }}</p>
+    <div class="live-log" id="ap-live-log" aria-live="polite"></div>
+    <p class="card-desc">나가도 괜찮아요. 서버에서 계속 돌아갑니다.</p>
+  </div>
+
+  {% if autopilot.last_message and not watch_job_id %}
+  <p class="card-desc" id="ap-last">최근: {{ autopilot.last_message }}{% if autopilot.last_ts %} · {{ autopilot.last_ts[:16]|replace('T',' ') }}{% endif %}</p>
   {% endif %}
   {% if autopilot.picks %}
   <div class="picks" id="ai-picks">
@@ -52,7 +63,7 @@
     <button class="btn btn-soft btn-block" type="submit">자율매매 켜기 (Paper/한도 내)</button>
   </form>
   {% endif %}
-  <p class="card-desc" style="margin-top:8px">주기 {{ autopilot.interval_sec }}초 · 긴급정지·리스크거부·주문한도 적용 · Paper는 자동 체결</p>
+  <p class="card-desc" style="margin-top:8px">긴급정지·리스크거부·주문한도 적용 · Paper는 자동 체결</p>
 </section>
 
 <section class="card" id="action-cta" data-autoscroll="action-cta">
@@ -152,4 +163,83 @@
   </ul>
   <a class="btn btn-soft btn-block" href="/settings">설정 · 브로커 연결</a>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const watchId = {{ (watch_job_id or "")|tojson }};
+  const panel = document.getElementById("ap-live");
+  const msgEl = document.getElementById("ap-live-msg");
+  const logEl = document.getElementById("ap-live-log");
+  const chip = document.getElementById("ap-chip");
+  let seen = 0;
+  let doneReload = false;
+
+  function showPanel() {
+    if (panel) panel.hidden = false;
+  }
+
+  function addLogs(logs) {
+    if (!logEl || !Array.isArray(logs)) return;
+    if (logs.length < seen) {
+      logEl.innerHTML = "";
+      seen = 0;
+    }
+    for (let i = seen; i < logs.length; i++) {
+      const div = document.createElement("div");
+      div.className = "live-log-line live-log-new";
+      div.textContent = (logs[i] && logs[i].text) || "";
+      logEl.appendChild(div);
+    }
+    seen = logs.length;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function pollJob() {
+    if (!watchId) return;
+    showPanel();
+    try {
+      const r = await fetch("/api/job/" + watchId);
+      if (!r.ok) return;
+      const j = await r.json();
+      if (msgEl && j.message) msgEl.textContent = j.message;
+      if (chip) {
+        chip.textContent = (j.status === "running" || j.status === "queued") ? "실행중" : chip.textContent;
+        chip.classList.add("chip-ok");
+      }
+      addLogs(j.logs || []);
+      if (j.status === "done" || j.status === "error") {
+        if (doneReload) return;
+        doneReload = true;
+        const flash = encodeURIComponent(j.message || (j.status === "done" ? "완료" : "실패"));
+        setTimeout(function () {
+          location.href = "/trades?flash=" + flash + "#autopilot-panel";
+        }, 900);
+        return;
+      }
+    } catch (e) {}
+    setTimeout(pollJob, 700);
+  }
+
+  async function pollAutopilot() {
+    if (watchId) return;
+    try {
+      const r = await fetch("/api/autopilot");
+      const j = await r.json();
+      if (j.busy) {
+        showPanel();
+        if (msgEl && j.last_message) msgEl.textContent = j.last_message;
+        if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); }
+        addLogs(j.logs || []);
+      } else if (chip && j.enabled) {
+        chip.textContent = "ON";
+      }
+    } catch (e) {}
+    setTimeout(pollAutopilot, 2000);
+  }
+
+  if (watchId) pollJob();
+  else pollAutopilot();
+})();
+</script>
 {% endblock %}

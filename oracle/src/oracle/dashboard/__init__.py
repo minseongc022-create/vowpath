@@ -1,5 +1,9 @@
-"""Dashboard package."""
+"""Dashboard package.
 
-from oracle.dashboard.app import app, create_app
+Note: do NOT bind the FastAPI instance to package attribute ``app``.
+That would shadow the ``oracle.dashboard.app`` submodule and break imports.
+"""
 
-__all__ = ["app", "create_app"]
+from oracle.dashboard.app import create_app
+
+__all__ = ["create_app"]

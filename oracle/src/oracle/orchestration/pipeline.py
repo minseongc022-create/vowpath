@@ -40,16 +40,35 @@ class OraclePipeline:
         self.risk = RiskManagerAgent()
         self.decision = DecisionAgent(self.settings)
 
-    def run(self, session: str = "ad_hoc", symbols: list[str] | None = None) -> PipelineResult:
+    def run(
+        self,
+        session: str = "ad_hoc",
+        symbols: list[str] | None = None,
+        *,
+        on_progress=None,
+        fast_llm: bool | None = None,
+    ) -> PipelineResult:
         clear_market_cache()
         run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
         portfolio = load_portfolio(self.settings.portfolio_path)
         symbols = symbols or self.settings.symbols
+        if fast_llm is None:
+            fast_llm = session == "autopilot"
+
+        def _prog(msg: str) -> None:
+            if on_progress:
+                try:
+                    on_progress(msg)
+                except Exception:
+                    logger.debug("on_progress failed", exc_info=True)
+
         logger.info("Pipeline start run_id=%s session=%s symbols=%s", run_id, session, symbols)
+        _prog(f"AI 분석 시작 · {len(symbols)}종목")
 
         decisions = []
-        for symbol in symbols:
+        for i, symbol in enumerate(symbols, 1):
             logger.info("Analyzing %s", symbol)
+            _prog(f"지표 분석 {i}/{len(symbols)} · {symbol}")
             opinions: list[AgentOpinion] = []
             for agent in (
                 self.market_intel,
@@ -94,10 +113,12 @@ class OraclePipeline:
         )
 
         held = set(portfolio.held_symbols())
+        _prog("ORACLE PRIME 두뇌 판단 중…" + (" (빠른 모드)" if fast_llm else ""))
         decisions, llm_meta = synthesize_portfolio(
             decisions,
             market_summary=market_summary,
             held_symbols=held,
+            fast=bool(fast_llm),
         )
         if llm_meta.get("used"):
             logger.info(
@@ -107,6 +128,8 @@ class OraclePipeline:
                 llm_meta.get("latency_ms"),
                 (llm_meta.get("desk_note_ko") or "")[:120],
             )
+            note = (llm_meta.get("desk_note_ko") or "")[:80]
+            _prog(f"AI 판단 완료 · {llm_meta.get('latency_ms', '?')}ms" + (f" · {note}" if note else ""))
             if llm_meta.get("desk_note_ko"):
                 market_summary = f"{market_summary} | Brain: {llm_meta['desk_note_ko']}"
         else:
@@ -114,6 +137,7 @@ class OraclePipeline:
                 "Oracle Brain LLM skipped: %s",
                 llm_meta.get("error") or llm_meta.get("reason"),
             )
+            _prog("AI 두뇌 생략 · 정량 신호로 진행")
 
         for d in decisions:
             logger.info(

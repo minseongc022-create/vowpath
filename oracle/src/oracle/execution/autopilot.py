@@ -1,4 +1,7 @@
-"""Autopilot — pick rising names to buy, weak holdings to sell (capped, free AI)."""
+"""Autopilot — pick rising names to buy, weak holdings to sell (capped, free AI).
+
+Runs in a server background thread — browser can be closed.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +12,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Callable
 
 from oracle.config import get_settings
 from oracle.core.types import Action, DecisionResult
@@ -23,20 +27,25 @@ from oracle.portfolio.store import load_portfolio
 logger = logging.getLogger("oracle.autopilot")
 
 _lock = threading.Lock()
+_cycle_lock = threading.Lock()
 _thread: threading.Thread | None = None
 _stop = threading.Event()
-_last: dict = {"ts": None, "message": "대기", "ok": True, "picks": []}
+_last: dict = {"ts": None, "message": "대기", "ok": True, "picks": [], "busy": False, "logs": []}
+
+ProgressFn = Callable[[str], None]
 
 
 @dataclass
 class AutopilotStatus:
     enabled: bool
     running: bool
+    busy: bool
     interval_sec: int
     last_ts: str | None
     last_message: str
     last_ok: bool
     picks: list
+    logs: list
 
 
 def enabled() -> bool:
@@ -54,12 +63,22 @@ def status() -> AutopilotStatus:
     return AutopilotStatus(
         enabled=enabled(),
         running=_thread is not None and _thread.is_alive(),
+        busy=bool(_last.get("busy")),
         interval_sec=interval_sec(),
         last_ts=_last.get("ts"),
         last_message=str(_last.get("message") or ""),
         last_ok=bool(_last.get("ok", True)),
         picks=list(_last.get("picks") or []),
+        logs=list(_last.get("logs") or []),
     )
+
+
+def _push_log(msg: str) -> None:
+    logs = list(_last.get("logs") or [])
+    logs.append({"ts": datetime.now(UTC).isoformat(), "text": msg})
+    _last["logs"] = logs[-40:]
+    _last["message"] = msg
+    _last["ts"] = datetime.now(UTC).isoformat()
 
 
 def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
@@ -68,6 +87,7 @@ def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
     _last["ok"] = ok
     if picks is not None:
         _last["picks"] = picks
+    _push_log(msg)
 
 
 def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
@@ -86,7 +106,6 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
                 break
         if held <= 0:
             return {"ok": False, "message": f"{d.symbol} 매도 신호·보유없음"}
-        # Sell: REDUCE half of cap/holding; SELL up to cap
         qty = min(held, max_n / price if price else held)
         if d.action == Action.REDUCE:
             qty = min(held * 0.5, qty)
@@ -136,11 +155,34 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
     }
 
 
-def run_once() -> dict:
+def run_once(on_progress: ProgressFn | None = None) -> dict:
     """Screen → AI decide → buy strongest / sell weakest (max 2 fills)."""
     if not enabled():
         return {"ok": False, "message": "자율매매 OFF"}
 
+    if not _cycle_lock.acquire(blocking=False):
+        msg = "이미 자율매매 사이클 진행 중 · 브라우저 꺼도 서버에서 계속됩니다"
+        if on_progress:
+            on_progress(msg)
+        return {"ok": False, "message": msg, "busy": True}
+
+    def prog(msg: str) -> None:
+        _push_log(msg)
+        if on_progress:
+            try:
+                on_progress(msg)
+            except Exception:
+                logger.debug("progress callback failed", exc_info=True)
+
+    _last["busy"] = True
+    try:
+        return _run_once_locked(prog)
+    finally:
+        _last["busy"] = False
+        _cycle_lock.release()
+
+
+def _run_once_locked(prog: ProgressFn) -> dict:
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
     day_pnl = estimate_day_pnl_pct(portfolio)
@@ -148,40 +190,56 @@ def run_once() -> dict:
     if ks.active:
         msg = f"긴급정지로 스킵 · {ks.reason}"
         _set_last(msg, ok=False)
+        prog(msg)
         return {"ok": False, "message": msg}
 
-    # 1) Fast screen: top momentum/RS names
-    screened = screen_universe(limit=8)
+    prog("① 오를 종목 스크리닝 중…")
+    screened = screen_universe(limit=6)
     picks_view = top_picks_summary(limit=5)
-    top_syms = [p.symbol for p in screened[:6]]
+    _last["picks"] = picks_view
+    top_syms = [p.symbol for p in screened[:5]]
+    if top_syms:
+        prog("TOP " + " · ".join(f"{p.symbol}({p.screen_score:+.2f})" for p in screened[:5]))
     held = list(portfolio.held_symbols())
-    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:4]]))[:10]
+    # Keep shortlist small for speed (browser UX + LLM)
+    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:2]]))[:6]
 
-    # 2) Full AI pipeline on shortlist
-    result = OraclePipeline(settings).run(session="autopilot", symbols=symbols)
+    prog(f"② AI 파이프라인 · {', '.join(symbols)}")
+    result = OraclePipeline(settings).run(
+        session="autopilot",
+        symbols=symbols,
+        on_progress=prog,
+        fast_llm=True,
+    )
     best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
     msgs: list[str] = []
     executed = 0
 
-    # Prefer sell weak first (free cash / risk), then buy strong
+    prog("③ 매수·매도 후보 선택")
+    if best_sell:
+        prog(f"매도 후보 {best_sell.symbol} · {best_sell.action.value} · conf={best_sell.confidence:.2f}")
+    if best_buy:
+        prog(f"매수 후보 {best_buy.symbol} · {best_buy.action.value} · conf={best_buy.confidence:.2f}")
+
     for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
         if dec is None:
             continue
+        prog(f"④ 주문 실행 · {label} {dec.symbol}")
         out = _execute_decision(dec, max_n=max_n)
         msgs.append(f"[{label}] {out['message']}")
+        prog(out["message"])
         if out.get("ok"):
             executed += 1
-        # one of each max
         if executed >= 2:
             break
 
     if not msgs:
-        # fallback: if AI quiet but screen very strong, queue tiny buy on #1
         if screened and screened[0].screen_score > 0.04:
             from oracle.core.types import DecisionResult as DR
             from oracle.core.types import RiskVeto
+            from oracle.agents.risk_manager import RiskManagerAgent
 
             top = screened[0]
             fake = DR(
@@ -193,16 +251,16 @@ def run_once() -> dict:
                 agent_opinions=[],
                 risk_veto=RiskVeto(active=False, reason="screen", confidence=0.5),
             )
-            # still run risk veto
-            from oracle.agents.risk_manager import RiskManagerAgent
-
             veto = RiskManagerAgent().veto(top.symbol, portfolio)
             if not veto.active:
+                prog(f"스크린 폴백 매수 · {top.symbol}")
                 out = _execute_decision(fake, max_n=max_n)
                 msgs.append(f"[SCREEN] {out['message']}")
+                prog(out["message"])
                 executed += int(bool(out.get("ok")))
             else:
                 msgs.append(f"[SCREEN] {top.symbol} 리스크거부로 스킵")
+                prog(msgs[-1])
 
     if not msgs:
         msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"
@@ -221,7 +279,8 @@ def run_once() -> dict:
 
 
 def _loop() -> None:
-    logger.info("Autopilot loop start interval=%ss", interval_sec())
+    logger.info("Autopilot loop start interval=%ss (browser-independent)", interval_sec())
+    _push_log(f"서버 자율매매 루프 시작 · {interval_sec()}초마다 (창 꺼도 동작)")
     time.sleep(3)
     while not _stop.is_set():
         if enabled():
@@ -253,6 +312,6 @@ def set_enabled(on: bool, *, allow_live: bool = False) -> None:
     upsert_env(updates)
     if on:
         start_background()
-        _set_last("자율매매 ON · 오를 종목 매수 / 약한 종목 매도")
+        _set_last("자율매매 ON · 서버에서 창 꺼도 매수/매도 계속")
     else:
         _set_last("자율매매 OFF")

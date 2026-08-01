@@ -210,9 +210,11 @@ def _job_view(job: dict) -> dict:
     redirect = payload.get("redirect") or "/"
     # strip flash query from stored redirect when presenting a button target
     redirect_clean = redirect.split("?")[0] if isinstance(redirect, str) else "/"
+    logs = payload.get("logs") if isinstance(payload.get("logs"), list) else []
     return {
         **job,
         "payload": payload,
+        "logs": logs,
         "redirect": redirect_clean,
         "error": payload.get("error") or (job.get("message") if job.get("status") == "error" else None),
         "label": JOB_LABELS.get(job.get("kind", ""), job.get("kind", "작업")),
@@ -279,6 +281,7 @@ def _context(
     flash: str | None = None,
     backtest: dict | None = None,
     light: bool = False,
+    watch_job_id: str | None = None,
 ) -> dict:
     settings = get_settings()
     portfolio = load_portfolio(settings.portfolio_path)
@@ -432,6 +435,7 @@ def _context(
         "live_trading": broker["live_flag"],
         "llm": llm,
         "autopilot": autopilot_status().__dict__,
+        "watch_job_id": watch_job_id,
         "scroll_to": None,
         "auth_enabled": bool(
             os.getenv("ORACLE_DASHBOARD_USER", "").strip()
@@ -456,8 +460,20 @@ def holdings(request: Request, flash: str | None = None, _: None = Depends(requi
 
 
 @app.get("/trades", response_class=HTMLResponse)
-def trades(request: Request, flash: str | None = None, _: None = Depends(require_auth)):
-    return _render(request, "trades.html", active="trades", flash=flash, light=True)
+def trades(
+    request: Request,
+    flash: str | None = None,
+    watch: str | None = None,
+    _: None = Depends(require_auth),
+):
+    return _render(
+        request,
+        "trades.html",
+        active="trades",
+        flash=flash,
+        light=True,
+        watch_job_id=(watch or "").strip() or None,
+    )
 
 
 @app.get("/decisions", response_class=HTMLResponse)
@@ -507,6 +523,7 @@ def api_job(job_id: str, _: None = Depends(require_auth)):
         bt = dict(payload["backtest"])
         bt.pop("equity_curve", None)
         payload["backtest"] = bt
+    logs = view.get("logs") or payload.get("logs") or []
     return JSONResponse(
         {
             "id": view["id"],
@@ -516,7 +533,26 @@ def api_job(job_id: str, _: None = Depends(require_auth)):
             "label": view["label"],
             "redirect": view["redirect"],
             "error": view["error"],
+            "logs": logs,
             "payload": payload,
+        }
+    )
+
+
+@app.get("/api/autopilot")
+def api_autopilot(_: None = Depends(require_auth)):
+    st = autopilot_status()
+    return JSONResponse(
+        {
+            "enabled": st.enabled,
+            "running": st.running,
+            "busy": st.busy,
+            "interval_sec": st.interval_sec,
+            "last_ts": st.last_ts,
+            "last_message": st.last_message,
+            "last_ok": st.last_ok,
+            "picks": st.picks,
+            "logs": st.logs[-24:],
         }
     )
 
@@ -796,16 +832,22 @@ def autopilot_now(_: None = Depends(require_auth)):
         autopilot_set(True, allow_live=False)
         autopilot_start()
 
-    def _work(_job_id: str):
-        out = autopilot_run_once()
+    store = JobStore()
+
+    def _work(job_id: str):
+        def prog(msg: str) -> None:
+            store.append_log(job_id, msg)
+
+        out = autopilot_run_once(on_progress=prog)
         return {
             "message": out.get("message") or "자율매매 사이클 완료",
-            "redirect": "/trades#pending-approvals",
+            "redirect": "/trades#autopilot-panel",
             **{k: v for k, v in out.items() if k != "message"},
         }
 
-    job_id = start_job("autopilot", _work, message="AI 자율매매 판단 중…")
-    return RedirectResponse(url=f"/job/{job_id}", status_code=303)
+    job_id = start_job("autopilot", _work, message="① 오를 종목 스크리닝 시작…")
+    # Stay on trades with live log — don't trap on blank spinner page
+    return RedirectResponse(url=f"/trades?watch={job_id}#autopilot-panel", status_code=303)
 
 
 @app.post("/actions/kill")
