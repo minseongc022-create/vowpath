@@ -374,6 +374,12 @@ button, input, select {
   margin-bottom: 8px;
 }
 .hero-label-row .hero-label { margin-bottom: 0; }
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .header-actions {
   display: flex;
   align-items: center;

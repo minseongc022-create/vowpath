@@ -5,10 +5,17 @@
 <section class="hero money-hero">
   <div class="hero-label-row">
     <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
-    <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
-         data-rate="{{ fx.usdkrw if fx else 1380 }}">
-      <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
-      <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
+    <div class="hero-actions">
+      {% if broker.configured %}
+      <a class="btn btn-sm btn-soft" href="{{ charge_url }}" target="_blank" rel="noopener">충전</a>
+      {% else %}
+      <a class="btn btn-sm btn-soft" href="/settings">계좌 연결</a>
+      {% endif %}
+      <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
+           data-rate="{{ fx.usdkrw if fx else 1380 }}">
+        <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
+        <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
+      </div>
     </div>
   </div>
   <div class="hero-equity money" data-usd="{{ '%.2f'|format(equity) }}" data-money="equity">${{ "{:,.2f}".format(equity) }}</div>
@@ -97,36 +104,6 @@
     평가 <span class="money" data-usd="{{ '%.2f'|format(capital.unrealized) }}" data-signed="1">${{ "%+.2f"|format(capital.unrealized) }}</span>
     · 실현 <span class="money" data-usd="{{ '%.2f'|format(capital.realized) }}" data-signed="1">${{ "%+.2f"|format(capital.realized) }}</span>
   </p>
-  {% endif %}
-</section>
-
-<section class="card">
-  <div class="card-head">
-    <div>
-      <h2 class="card-title">현금 · 충전</h2>
-      <p class="card-desc">브로커 계좌 잔고 (AI 한도와는 별개)</p>
-    </div>
-  </div>
-  <div class="money-grid">
-    <div class="money-cell">
-      <div class="k">현금</div>
-      <div class="v money" data-usd="{{ '%.2f'|format(cash) }}">${{ "{:,.2f}".format(cash) }}</div>
-    </div>
-    <div class="money-cell">
-      <div class="k">구매력</div>
-      <div class="v money" data-usd="{{ '%.2f'|format(broker.account.buying_power if broker.account else cash) }}">${{ "{:,.2f}".format(broker.account.buying_power if broker.account else cash) }}</div>
-    </div>
-  </div>
-  <p class="card-desc" style="margin:10px 0">모드: <strong>{{ broker.mode_ko }}</strong>
-    {% if broker.configured %} · 연결됨{% else %} · 미연결{% endif %}
-  </p>
-  {% if broker.configured %}
-  <a class="btn btn-soft btn-block" href="{{ charge_url }}" target="_blank" rel="noopener">충전 / 입금하러 가기 (Alpaca)</a>
-  <form method="post" action="/actions/sync_broker" style="margin-top:8px" data-no-overlay="1">
-    <button class="btn btn-ghost btn-block" type="submit">잔고 새로고침</button>
-  </form>
-  {% else %}
-  <a class="btn btn-primary btn-block" href="/settings">설정에서 계좌 연결</a>
   {% endif %}
 </section>
 

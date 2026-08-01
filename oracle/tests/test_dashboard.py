@@ -15,7 +15,8 @@ def test_money_page_has_cash_and_holdings():
     assert "AI 미션" in r.text
     assert "AI가 쓸 한도" in r.text
     assert "내가 넣을 돈" not in r.text
-    assert "현금 · 충전" in r.text
+    assert "현금 · 충전" not in r.text
+    assert "충전" in r.text
     assert "투자한 종목" in r.text
     assert 'href="/ai"' in r.text
     assert 'href="/activity"' in r.text
