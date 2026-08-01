@@ -229,6 +229,18 @@ class RiskManagerAgent:
             except Exception as exc:
                 logger.debug("cluster correlation unavailable: %s", exc)
 
+        # Earnings blackout — hard fact gate for new risk
+        if symbol not in portfolio.held_symbols():
+            try:
+                from oracle.data.earnings import earnings_blackout
+
+                blocked, why = earnings_blackout(symbol, days=1)
+                if blocked:
+                    reasons.append(why)
+                    confidence = max(confidence, 0.85)
+            except Exception as exc:
+                logger.debug("earnings blackout check failed: %s", exc)
+
         active = bool(reasons) and confidence >= settings.risk.veto_confidence_floor
         reason = "; ".join(reasons) if reasons else "No hard risk breach detected"
         return RiskVeto(

@@ -35,6 +35,11 @@ class PickScore:
     dip_score: float = 0.0  # buy-the-dip (단타 매수)
     rip_score: float = 0.0  # sell-the-rip (단타 매도)
     horizon: str = "swing"  # short | long | swing
+    adv_dollar: float = 0.0  # 20d average dollar volume
+    rvol: float = 1.0  # last vol / 20d avg vol
+    gap_pct: float = 0.0
+    tradeable: bool = True
+    skip_reason: str = ""
 
 
 def load_trade_universe() -> list[str]:
@@ -73,35 +78,70 @@ def _moms(symbol: str) -> tuple[float, float, float, float]:
         return 0.0, 0.0, 0.0, 0.25
 
 
-def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScore:
-    m5, m20, m60, vol = _moms(sym)
-    rs5, rs20, rs60 = m5 - spy5, m20 - spy20, m60 - spy60
-    pullback = 0.0
-    bounce = 0.0
+def _ohlcv_facts(sym: str) -> tuple[float, float, float, float, float]:
+    """Return pullback, bounce, adv_dollar, rvol, gap_pct from OHLCV facts."""
+    pullback = bounce = 0.0
+    adv_dollar = 0.0
+    rvol = 1.0
+    gap_pct = 0.0
     try:
-        close = cached_history(sym, days=120)["close"].dropna()
+        df = cached_history(sym, days=120)
+        close = df["close"].dropna()
         if len(close) >= 20:
             px = float(close.iloc[-1])
             hi20 = float(close.tail(20).max())
             lo20 = float(close.tail(20).min())
-            pullback = px / hi20 - 1.0  # <0 when dipped from highs
+            pullback = px / hi20 - 1.0
             bounce = px / lo20 - 1.0
+        if "volume" in df.columns and len(df) >= 21:
+            dollar = (df["close"] * df["volume"]).dropna()
+            if len(dollar) >= 20:
+                adv_dollar = float(dollar.tail(20).mean())
+            vol = df["volume"].dropna()
+            v20 = float(vol.tail(20).mean()) if len(vol) >= 20 else 0.0
+            vlast = float(vol.iloc[-1]) if len(vol) else 0.0
+            rvol = (vlast / v20) if v20 > 0 else 1.0
+        if "open" in df.columns and len(close) >= 2:
+            prev = float(close.iloc[-2])
+            op = float(df["open"].dropna().iloc[-1])
+            if prev > 0:
+                gap_pct = op / prev - 1.0
     except Exception:
         pass
+    return pullback, bounce, adv_dollar, rvol, gap_pct
+
+
+# Minimum 20d ADV$ for new entries (indexes exempt)
+_MIN_ADV_DOLLAR = 25_000_000.0
+
+
+def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScore:
+    m5, m20, m60, vol = _moms(sym)
+    rs5, rs20, rs60 = m5 - spy5, m20 - spy20, m60 - spy60
+    pullback, bounce, adv_dollar, rvol, gap_pct = _ohlcv_facts(sym)
 
     # 단타 BUY: 싸게(고점 대비 눌림) 담고, 반등 여지 있을 때
     dip = max(-pullback, 0.0) * 0.55 + max(-m5, 0.0) * 0.25 + max(rs20, -0.05) * 0.20
     if pullback > -0.012:  # 거의 안 빠졌으면 단타 매수 점수 낮춤
         dip *= 0.25
+    # Chase filter: already extended / at highs → kill dip score
+    if pullback > -0.008 and m5 > 0.04:
+        dip *= 0.1
+    # Relative volume confirms dip interest
+    if rvol >= 1.2 and dip > 0:
+        dip *= 1.15
+    elif rvol < 0.7:
+        dip *= 0.65
     # 단타 SELL: 올랐을 때(고점 근접·5일 급등) 빼기
     rip = max(m5, 0.0) * 0.45 + max(pullback + 0.01, 0.0) * 0.35 + max(bounce - 0.06, 0.0) * 0.20
 
     mom_short = (0.55 * m5 + 0.30 * rs5 + 0.15 * m20) / max(vol / 0.25, 0.7)
-    # short_score ranks BUY candidates → dip-first scalp
     short = 0.75 * dip + 0.25 * max(mom_short, 0.0)
-    # Long: 60d trend + 20d confirmation
     long = 0.55 * m60 + 0.25 * rs60 + 0.20 * m20
     long = long / max(vol / 0.22, 0.75)
+    # Don't promote "long" that is already pinned to 20d highs
+    if pullback > -0.01:
+        long *= 0.45
     blend = 0.50 * short + 0.50 * long
     if dip >= 0.025 or (short > 0.02 and dip > long):
         horizon = "short"
@@ -109,13 +149,27 @@ def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScor
         horizon = "long"
     else:
         horizon = "swing"
+
+    tradeable = True
+    skip_reason = ""
+    if sym.upper() not in {"SPY", "QQQ", "IWM", "DIA"} and adv_dollar > 0:
+        if adv_dollar < _MIN_ADV_DOLLAR:
+            tradeable = False
+            skip_reason = f"유동성부족 ADV${adv_dollar/1e6:.1f}M<{_MIN_ADV_DOLLAR/1e6:.0f}M"
+            short = dip = blend = -1.0
+            long = min(long, 0.0)
+
     reasons = [
         f"눌림(고점대비) {pullback:+.1%}",
         f"단타매수점수 {dip:.2f}",
         f"단타매도점수 {rip:.2f}",
         f"5일 {m5:+.1%} · 60일 {m60:+.1%}",
+        f"RVOL {rvol:.2f} · ADV ${adv_dollar/1e6:.0f}M" if adv_dollar else f"RVOL {rvol:.2f}",
+        f"갭 {gap_pct:+.1%}",
         f"성향 {('단타' if horizon=='short' else '장타' if horizon=='long' else '스윙')}",
     ]
+    if skip_reason:
+        reasons.insert(0, skip_reason)
     return PickScore(
         symbol=sym,
         screen_score=float(blend),
@@ -130,6 +184,11 @@ def _score_symbol(sym: str, spy5: float, spy20: float, spy60: float) -> PickScor
         dip_score=float(dip),
         rip_score=float(rip),
         horizon=horizon,
+        adv_dollar=float(adv_dollar),
+        rvol=float(rvol),
+        gap_pct=float(gap_pct),
+        tradeable=tradeable,
+        skip_reason=skip_reason,
     )
 
 
@@ -171,9 +230,11 @@ def screen_short_and_long(
         all_picks.append(_score_symbol(sym, spy5, spy20, spy60))
         if on_progress and (i % 20 == 0 or i == n):
             on_progress(f"탐색 {i}/{n} · 단타·장타 점수 계산")
-    by_short = sorted(all_picks, key=lambda p: p.dip_score, reverse=True)
-    by_long = sorted(all_picks, key=lambda p: p.long_score, reverse=True)
-    by_blend = sorted(all_picks, key=lambda p: p.screen_score, reverse=True)
+    tradeable = [p for p in all_picks if p.tradeable]
+    pool = tradeable or all_picks
+    by_short = sorted(pool, key=lambda p: p.dip_score, reverse=True)
+    by_long = sorted(pool, key=lambda p: p.long_score, reverse=True)
+    by_blend = sorted(pool, key=lambda p: p.screen_score, reverse=True)
     return by_short[:limit_short], by_long[:limit_long], by_blend[: max(limit_short, limit_long)]
 
 

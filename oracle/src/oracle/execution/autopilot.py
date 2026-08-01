@@ -40,12 +40,14 @@ from oracle.execution.live_setup import (
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.activity_log import ActivityLog, format_clock, log_activity
 from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
+from oracle.data.regime import build_regime
 from oracle.portfolio.picker import (
     rank_decisions_for_trade,
     scalp_exit_from_holdings,
     screen_short_and_long,
     top_picks_summary,
 )
+from oracle.portfolio.stops import atr_stop_exits
 from oracle.portfolio.store import load_portfolio
 
 logger = logging.getLogger("oracle.autopilot")
@@ -99,7 +101,11 @@ class AutopilotStatus:
 
 
 def us_equity_session() -> dict:
-    """Rough US cash-equity session (EDT/EST approx via UTC)."""
+    """Rough US cash-equity session (EDT/EST approx via UTC).
+
+    buy_ok=False in first ~15m (open auction noise) and last ~30m (late chase).
+    Stops/sells remain allowed whenever open=True.
+    """
     now = datetime.now(UTC)
     # US Eastern ≈ UTC-4 (EDT) Mar–Nov; UTC-5 otherwise — use -4 for summer bias
     # Regular: Mon–Fri 13:30–20:00 UTC (EDT)
@@ -109,17 +115,35 @@ def us_equity_session() -> dict:
     if weekday >= 5:
         return {
             "open": False,
+            "buy_ok": False,
+            "minutes_since_open": None,
+            "minutes_to_close": None,
             "label": "주말 · 미국 정규장 휴장",
             "hint": "장은 닫혀 있어도 분석은 계속하고, 주문은 브로커/페이퍼 규칙에 따릅니다.",
         }
     if open_m <= minutes < close_m:
+        since = minutes - open_m
+        to_close = close_m - minutes
+        buy_ok = since >= 15 and to_close >= 30
+        hint = "실시간 체결 가능한 시간대입니다."
+        if not buy_ok:
+            hint = (
+                "개장 직후/마감 직전 · 신규 매수 제한(노이즈·추격 방지) · "
+                "손절·익절 매도는 가능"
+            )
         return {
             "open": True,
-            "label": "미국 정규장 개장중",
-            "hint": "실시간 체결 가능한 시간대입니다.",
+            "buy_ok": buy_ok,
+            "minutes_since_open": since,
+            "minutes_to_close": to_close,
+            "label": "미국 정규장 개장중" + ("" if buy_ok else " · 매수창 외"),
+            "hint": hint,
         }
     return {
         "open": False,
+        "buy_ok": False,
+        "minutes_since_open": None,
+        "minutes_to_close": None,
         "label": "미국 정규장 휴장(장전/장후)",
         "hint": "분석은 계속 · 주문은 대기/제한될 수 있습니다.",
     }
@@ -327,20 +351,40 @@ def _recently_sold(symbol: str, *, hours: float = 6.0) -> bool:
 
 
 def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
+    from oracle.data.earnings import earnings_blackout
+    from oracle.portfolio.sizing import vol_target_weight
+
     engine = ExecutionEngine(require_confirm=False)
     price = float(fetch_snapshot(d.symbol).price)
     portfolio = load_portfolio(get_settings().portfolio_path)
     avg_cost = 0.0
+    sess = us_equity_session()
 
     if d.action in (Action.BUY, Action.ADD):
         if max_n <= 0.5:
             return {"ok": False, "message": f"{d.symbol} AI 한도 소진 · 매수 스킵"}
+        if sess.get("open") and not sess.get("buy_ok", True):
+            return {
+                "ok": False,
+                "message": f"{d.symbol} 매수창 외(개장직후/마감직전) · 신규매수 스킵",
+            }
         if _recently_sold(d.symbol):
             return {
                 "ok": False,
                 "message": f"{d.symbol} 최근 매도 후 재매수 쿨다운 (휩쏘 방지)",
             }
-        shares = max_n / price if price else 0.0
+        blocked, why = earnings_blackout(d.symbol, days=1)
+        if blocked:
+            return {"ok": False, "message": f"{d.symbol} {why} · 매수 스킵"}
+        # Vol-target $ size ∩ hard notional cap (high-vol names get smaller tickets)
+        equity = max(float(portfolio.equity()), 1.0)
+        vt_dollar = vol_target_weight(d.symbol, target_vol=0.10) * equity
+        ticket = min(float(max_n), max(vt_dollar, 1.0))
+        # Never exceed remaining cash
+        ticket = min(ticket, max(float(portfolio.cash), 0.0))
+        shares = ticket / price if price else 0.0
+        if shares * price < 1.0:
+            return {"ok": False, "message": f"{d.symbol} 주문금액 과소 · 스킵"}
         action = d.action.value
     elif d.action in (Action.REDUCE, Action.SELL):
         held = 0.0
@@ -648,11 +692,25 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         fast_llm=False,
         deep_llm=True,
     )
+    regime = build_regime()
+    prog(
+        f"레짐 FACT · {regime.get('label')} · VIX레벨 {regime.get('vix_level')} · "
+        f"SPY일 {regime.get('spy_day'):+.2f}% · QQQ일 {regime.get('qqq_day'):+.2f}%"
+    )
+
+    # ATR / hard% stops beat AI Hold — cut losers with price facts
+    stop_exits = atr_stop_exits(portfolio)
+    if stop_exits:
+        prog(
+            "ATR/하드 손절 발동 · "
+            + " · ".join(f"{d.symbol}:{d.action.value}" for d in stop_exits[:4])
+        )
+
     huntish = mode in {"hunt", "panic"} or urgency >= 0.55
     best_buy, best_sell = rank_decisions_for_trade(
         result.decisions,
         held=set(held),
-        aggressive=huntish,
+        aggressive=huntish and not regime.get("risk_off"),
     )
     prog(
         f"AI 후보 정리 · 매수={'있음 '+best_buy.symbol if best_buy else '없음'} · "
@@ -660,8 +718,13 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         + (" · 사냥(공격 기준)" if huntish else "")
     )
 
-    # 단타 익절: 보유가 급등(rip)하면 AI Hold여도 매도 후보로 승격
-    if rip_exits and (
+    # Stops override weak AI holds on the same name
+    if stop_exits:
+        best_sell = stop_exits[0]
+        prog(f"손절 우선 · {best_sell.symbol} · {best_sell.rationale[:120]}")
+
+    # 단타 익절: 보유가 급등(rip)하면 AI Hold여도 매도 후보로 승격 (stops already set)
+    if not stop_exits and rip_exits and (
         best_sell is None
         or (rip_exits[0].rip_score >= 0.05 and best_sell.symbol != rip_exits[0].symbol)
     ):
@@ -691,6 +754,12 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     else:
         budget_slice = max(1.0, remain * 0.28)
     max_n = min(hard, max(first_trade_notional(), budget_slice), first_trade_notional() * 2.5)
+    if regime.get("risk_off"):
+        max_n = min(max_n, first_trade_notional() * 0.55)
+        prog("리스크오프(VIX/지수 FACT) · 주문 한도 축소 · 스크린 폴백 매수 금지")
+        if best_buy and float(getattr(best_buy, "confidence", 0) or 0) < 0.62:
+            prog(f"매수 {best_buy.symbol} 보류 · risk_off에서 고확신만")
+            best_buy = None
     if ai_budget() is not None:
         max_n = min(max_n, hard)
         prog(f"주문 한도 ${max_n:,.2f} (AI 잔여한도 ${remain:,.2f})")
@@ -713,15 +782,17 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             prog(f"매수 후보 {best_buy.symbol} 보류 · 잠금 모드 확신 부족")
             best_buy = None
     elif mode in {"hunt", "panic"} or urgency >= 0.55:
-        max_n = min(
-            hard,
-            first_trade_notional() * (2.0 if urgency >= 0.75 or mode == "panic" else 1.75),
-            max(remain * 0.55, 1.0),
-        )
-        prog(f"사냥 모드 urgency={urgency:.2f} · 고엣지 집중 집행 (한도 내)")
+        # Do NOT size up just because sleeve is losing — that was revenge-trade anti-edge
+        mult = 1.5 if mode == "panic" else 1.35
+        max_n = min(hard, first_trade_notional() * mult, max(remain * 0.4, 1.0))
+        prog(f"사냥 모드 urgency={urgency:.2f} · 한도 내 집행(손실복구 오버사이즈 금지)")
     elif far_from_goal:
-        max_n = min(hard, first_trade_notional() * 1.6, max(remain * 0.4, 1.0))
+        max_n = min(hard, first_trade_notional() * 1.35, max(remain * 0.35, 1.0))
         prog("목표까지 멀음 · 단타 눌림 집중")
+
+    if session.get("open") and not session.get("buy_ok", True) and best_buy:
+        prog(f"매수창 외 · {best_buy.symbol} 신규매수 보류 (손절/익절만)")
+        best_buy = None
 
     msgs: list[str] = []
     executed = 0
@@ -826,18 +897,26 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         if executed >= 2:
             break
 
-    # Screen fallback buys only in hunt/panic — never in lock/won / prep
-    if not msgs and mode in {"hunt", "panic"} and not reached and remain > 0.5:
+    # Screen fallback: only hunt, never risk_off / buy_window_closed / illiquid / weak dip
+    if (
+        not msgs
+        and mode in {"hunt", "panic"}
+        and not reached
+        and remain > 0.5
+        and not regime.get("risk_off")
+        and session.get("buy_ok", True)
+    ):
         from oracle.core.types import DecisionResult as DR
         from oracle.core.types import RiskVeto
         from oracle.agents.risk_manager import RiskManagerAgent
+        from oracle.data.earnings import earnings_blackout
 
-        _set_stage("investing", "투자중 · 스크린 폴백으로 단타/장타 집행 시도")
-        prog("사냥 폴백 · 스크린 상위 종목으로 한도 내 매수 시도")
-        max_fills = 4 if urgency >= 0.7 or mode == "panic" else 3
+        _set_stage("investing", "투자중 · 스크린 폴백(사실필터 통과분만)")
+        prog("사냥 폴백 · ADV$/RVOL/눌림 기준 통과 종목만")
+        max_fills = 2
         for tag, bucket, thresh in (
-            ("단타", short_picks, 0.008 if huntish else 0.02),
-            ("장타", long_picks, 0.035 if huntish else 0.05),
+            ("단타", short_picks, 0.028),  # was 0.008 — revenge-trade anti-edge
+            ("장타", long_picks, 0.045),
         ):
             if executed >= max_fills:
                 break
@@ -845,9 +924,19 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                 skip_reasons.append(f"{tag} 스크린 후보 없음")
                 continue
             top = bucket[0]
-            score = top.short_score if tag == "단타" else top.long_score
+            score = top.dip_score if tag == "단타" else top.long_score
             if score < thresh:
                 skip_reasons.append(f"{tag} 상위 {top.symbol} 점수 {score:.3f} < {thresh}")
+                continue
+            if not getattr(top, "tradeable", True):
+                skip_reasons.append(f"{top.symbol} {getattr(top, 'skip_reason', '비거래')}")
+                continue
+            if float(getattr(top, "rvol", 1.0) or 0) < 0.9 and tag == "단타":
+                skip_reasons.append(f"{top.symbol} RVOL {top.rvol:.2f}<0.9")
+                continue
+            blocked, why = earnings_blackout(top.symbol, days=1)
+            if blocked:
+                skip_reasons.append(why)
                 continue
             fake = DR(
                 symbol=top.symbol,
@@ -863,7 +952,10 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                 prog(f"[SCREEN {tag}] {top.symbol} 리스크거부로 스킵")
                 skip_reasons.append(f"{top.symbol} 리스크거부")
                 continue
-            prog(f"스크린 폴백 · {tag} 매수 {top.symbol} (score={score:.3f})")
+            prog(
+                f"스크린 폴백 · {tag} 매수 {top.symbol} "
+                f"(score={score:.3f} rvol={getattr(top,'rvol',0):.2f})"
+            )
             out = _execute_decision(fake, max_n=max_n)
             msgs.append(f"[SCREEN {tag}] {out['message']}")
             prog(out["message"])

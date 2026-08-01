@@ -20,6 +20,7 @@ from oracle.config import Settings, get_settings
 from oracle.core.types import AgentOpinion, PipelineResult
 from oracle.data.market import clear_market_cache, index_overview
 from oracle.data.news import aggregate_market_headlines
+from oracle.data.regime import build_regime
 from oracle.execution.live_setup import capital_plan, goal_progress, sleeve_equity
 from oracle.llm.brain import synthesize_portfolio
 from oracle.portfolio.activity_log import log_activity
@@ -29,25 +30,8 @@ logger = logging.getLogger("oracle.orchestration")
 
 
 def _build_regime(overview: dict) -> dict:
-    """L1 regime pack from index day moves."""
-    spy = float(overview.get("SPY") or 0.0)
-    qqq = float(overview.get("QQQ") or 0.0)
-    vix = float(overview.get("^VIX") or overview.get("VIX") or 0.0)
-    risk_off = vix >= 22 or (spy <= -1.2 and qqq <= -1.2)
-    risk_on = vix > 0 and vix <= 16 and spy >= 0.3
-    if risk_off:
-        label = "risk_off"
-    elif risk_on:
-        label = "risk_on"
-    else:
-        label = "neutral"
-    return {
-        "label": label,
-        "spy_day": spy,
-        "qqq_day": qqq,
-        "vix": vix,
-        "risk_off": risk_off,
-    }
+    """Compat wrapper — uses FACT VIX level (see oracle.data.regime)."""
+    return build_regime(overview)
 
 
 class OraclePipeline:
