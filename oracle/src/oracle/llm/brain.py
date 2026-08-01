@@ -46,13 +46,22 @@ Playbooks:
 - 장타: hunt only when time allows + RS/trend confirm; almost never in lock.
 - Risk-off: smaller size; still take quality dips in hunt when facts support edge.
 
+BUFFETT OWNER DESK (public principles — never invent book quotes; use FACT metrics only):
+- Rule1: avoid permanent capital loss. Weak facts ⇒ Hold/Do Nothing, not Buy.
+- Margin of safety: reject expensive chase (rich PE + extension + no FCF).
+- Prefer wonderful businesses (ROE/margins/FCF) over fragile speculative names.
+- Moat + fortress balance sheet over leverage lottery tickets.
+- Cash is a position: skipping is allowed and often correct.
+- Mr. Market: be greedy when others fearful (quality dip), fearful when others greedy (chase).
+When BUFFETT DESK line says HOLD / low score for a symbol, do not Buy/Add unless a clear short-term dip recycle with tiny size_hint≤0.35 and no risk_veto.
+
 Rules:
 1) Maximize P(hit GOAL by deadline) inside remaining_ai_budget — precise, not gambling.
 2) Prefer top edge_rank + high mtf_confluence. Skip noise.
 3) size_hint ∈ {0, 0.35, 0.7, 1.0}; hard-respect remaining_ai_budget. Lock ⇒ ≤0.35.
 4) Hunt+urgency ⇒ Buy/Sell when facts support expectancy. Lock ⇒ protect.
 5) confidence ∈ (0.05, 0.92). JSON only. rationale_ko: 2 Korean sentences with concrete facts only — no hype.
-6) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none.
+6) score_adj ∈ [-0.35, 0.35]. edge_type: mean_reversion|momentum|fundamental|sentiment|risk_off|none|buffett_owner.
 """
 
 CRITIC_SYSTEM = """You are ORACLE PRIME CRITIC v9 — adversarial honesty + phase officer.

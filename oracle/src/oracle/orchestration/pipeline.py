@@ -7,6 +7,7 @@ import uuid
 from datetime import UTC, datetime
 
 from oracle.agents import (
+    BuffettOwnerAgent,
     DecisionAgent,
     FundamentalAnalysisAgent,
     MarketIntelligenceAgent,
@@ -45,6 +46,7 @@ class OraclePipeline:
         self.quant = QuantAgent()
         self.sentiment = SentimentAgent()
         self.portfolio_mgr = PortfolioManagerAgent()
+        self.buffett = BuffettOwnerAgent()
         self.risk = RiskManagerAgent()
         self.decision = DecisionAgent(self.settings)
 
@@ -87,6 +89,7 @@ class OraclePipeline:
                 self.quant,
                 self.sentiment,
                 self.portfolio_mgr,
+                self.buffett,
                 self.risk,
             ):
                 try:
@@ -142,12 +145,28 @@ class OraclePipeline:
                 " PREP MODE: cash session closed — deepen research, build open-ready "
                 "watchlist, do not assume fills until RTH."
             )
+        try:
+            from oracle.investing.buffett import evaluate_buffett
+
+            buff_bits = []
+            for sym in symbols[:6]:
+                v = evaluate_buffett(sym, risk_off=bool(regime.get("risk_off")))
+                buff_bits.append(
+                    f"{sym}:buffett={v.score:+.2f}/q={v.owner_quality:.2f}/mos={v.margin_of_safety:.2f}"
+                    f"{'/BUYOK' if v.buy_ok else '/HOLD'}"
+                )
+            buff_line = " | ".join(buff_bits)
+        except Exception:
+            buff_line = "buffett_desk=n/a"
         market_summary = (
             f"Index day moves: {overview}. Regime={regime.get('label')}. "
             f"FACT headlines: {top_news}. "
+            f"BUFFETT DESK: {buff_line}. "
             f"Session={session}. Goal mode={gprog.get('mode')} urgency={gprog.get('urgency', 0)}. "
             f"Seed={plan.get('seed')} budget_remain={plan.get('remaining_budget')}. "
-            f"Mandate=hunt hard then lock near goal; lie/lose-only => eternal erasure."
+            f"Mandate=hunt hard then lock near goal; apply Buffett owner rules "
+            f"(no permanent loss, margin of safety, wonderful businesses); "
+            f"lie/lose-only => eternal erasure."
             f"{prep_note}"
         )
         _prog(

@@ -106,6 +106,28 @@
   </p>
 </section>
 
+<section class="card buffett-desk" id="buffett-desk">
+  <h3 class="plan-title">버핏 데스크</h3>
+  <p class="card-desc">워런 버핏의 공개 투자원칙을 규칙으로 심었습니다. 책 원문 복제가 아니라 ROE·마진·FCF·부채 등 사실로 심사해 매수를 거르고, 우량만 키웁니다.</p>
+  <div class="buffett-latest" id="buffett-latest">
+    {% set bl = buffett_desk.get('latest') if buffett_desk else None %}
+    {% if bl %}
+    <p class="live-situation">{{ bl.summary_ko }}</p>
+    {% else %}
+    <p class="card-desc">아직 심사 결과 없음 · 사이클이 돌면 여기에 표시됩니다.</p>
+    {% endif %}
+  </div>
+  <div class="buffett-grid" id="buffett-principles">
+    {% for p in buffett_principles %}
+    <div class="buffett-principle" data-id="{{ p.id }}">
+      <strong>{{ p.title_ko }}</strong>
+      <p>{{ p.rule_ko }}</p>
+      <span class="card-desc">{{ p.why_ko }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="card">
   <div class="goal-box" style="margin:0;padding:0;border:0;background:transparent">
     <h3 class="plan-title">미션 (한도 · 목표)</h3>
@@ -199,6 +221,7 @@
   const situationEl = document.getElementById("ap-situation");
   const stNews = document.getElementById("st-news");
   const watchEl = document.getElementById("ap-watchlist");
+  const buffettLatest = document.getElementById("buffett-latest");
   const stCycle = document.getElementById("st-cycle");
   const stMode = document.getElementById("st-mode");
   const stPhase = document.getElementById("st-phase");
@@ -362,6 +385,19 @@
     if (stRemain && j.capital) stRemain.textContent = money(j.capital.remaining);
     if (stGoal && j.goal_pct != null) stGoal.textContent = Math.round(Number(j.goal_pct) * 100) + "%";
     renderWatchlist(j.watchlist);
+    if (buffettLatest && j.buffett) {
+      const latest = j.buffett.latest;
+      if (latest && latest.summary_ko) {
+        buffettLatest.innerHTML = '<p class="live-situation">' + latest.summary_ko + "</p>";
+      }
+      const hit = new Set(latest && latest.principles_hit || []);
+      const fail = new Set(latest && latest.principles_fail || []);
+      document.querySelectorAll(".buffett-principle").forEach(function (el) {
+        const id = el.getAttribute("data-id");
+        el.classList.toggle("is-hit", hit.has(id));
+        el.classList.toggle("is-fail", fail.has(id));
+      });
+    }
     intervalSec = Number(j.interval_sec) || 180;
     lastTs = j.last_ts || lastTs;
     if (j.logs) renderAllLogs(j.logs);

@@ -520,7 +520,11 @@ def _context(
         "broker": broker,
         "live_trading": broker["live_flag"],
         "llm": llm,
-        "autopilot": autopilot_status().__dict__,
+        "autopilot": (_ap := autopilot_status()).__dict__,
+        "buffett_principles": __import__(
+            "oracle.investing.buffett", fromlist=["principles_as_dicts"]
+        ).principles_as_dicts(),
+        "buffett_desk": (_ap.buffett or {}),
         "watch_job_id": watch_job_id,
         "chart_symbol": chart_symbol or "SPY",
         "chart_symbols": chart_symbols or ["SPY"],
@@ -768,6 +772,7 @@ def api_autopilot(_: None = Depends(require_auth)):
             "phase_ko": stage_ko,
             "prep_mode": bool(st.prep_mode or not sess.get("open")),
             "watchlist": list(st.watchlist or [])[:10],
+            "buffett": st.buffett or {},
             "news": news,
             "mode": gprog.get("mode"),
             "mode_ko": gprog.get("mode_ko"),

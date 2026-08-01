@@ -72,6 +72,7 @@ _last: dict = {
     "prep_mode": False,
     "news": {},
     "watchlist": [],
+    "buffett": {},
 }
 _STATE_NAME = "autopilot_state.json"
 
@@ -98,6 +99,7 @@ class AutopilotStatus:
     prep_mode: bool = False
     news: dict | None = None
     watchlist: list | None = None
+    buffett: dict | None = None
 
 
 def us_equity_session() -> dict:
@@ -200,6 +202,7 @@ def _persist_state() -> None:
             "prep_mode": bool(_last.get("prep_mode")),
             "news": _last.get("news") or {},
             "watchlist": list(_last.get("watchlist") or [])[:12],
+            "buffett": _last.get("buffett") or {},
             # never persist busy=true across restarts
             "busy": False,
         }
@@ -233,6 +236,7 @@ def _load_state() -> None:
                     "prep_mode": bool(data.get("prep_mode")),
                     "news": data.get("news") or {},
                     "watchlist": list(data.get("watchlist") or [])[:12],
+                    "buffett": data.get("buffett") or {},
                     "busy": False,
                 }
             )
@@ -287,6 +291,7 @@ def status() -> AutopilotStatus:
         prep_mode=bool(_last.get("prep_mode")),
         news=dict(_last.get("news") or radar_status()),
         watchlist=list(_last.get("watchlist") or []),
+        buffett=dict(_last.get("buffett") or {}),
     )
 
 
@@ -798,6 +803,58 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     executed = 0
     skip_reasons: list[str] = []
 
+    # Buffett Owner Desk — public principles as FACT gate (not book text)
+    from oracle.investing.buffett import evaluate_buffett, principles_as_dicts
+
+    buffett_desk = {
+        "principles": principles_as_dicts(),
+        "latest": None,
+        "note_ko": "공개 투자원칙을 규칙으로 구현 · 책 원문 복제 아님",
+    }
+    if best_buy:
+        pick_meta = next(
+            (p for p in (short_picks + long_picks + blend_picks) if p.symbol == best_buy.symbol),
+            None,
+        )
+        chase = bool(
+            pick_meta
+            and float(getattr(pick_meta, "mom_5", 0) or 0) > 0.05
+            and float(getattr(pick_meta, "dip_score", 0) or 0) < 0.015
+        )
+        verdict = evaluate_buffett(
+            best_buy.symbol,
+            chase=chase,
+            risk_off=bool(regime.get("risk_off")),
+        )
+        buffett_desk["latest"] = verdict.as_dict()
+        prog(f"버핏 데스크 · {verdict.summary_ko}")
+        dip = float(getattr(pick_meta, "dip_score", 0) or 0) if pick_meta else 0.0
+        is_scalp = bool(pick_meta and pick_meta.horizon == "short" and dip >= 0.028)
+        if not verdict.buy_ok:
+            hard_fail = any(
+                x in (verdict.principles_fail or [])
+                for x in ("fortress_balance", "no_permanent_loss", "circle_of_competence")
+            )
+            if hard_fail or verdict.score < -0.2 or mode in {"lock", "won"} or not is_scalp:
+                prog(
+                    f"버핏 게이트 · {best_buy.symbol} 매수 거절 · "
+                    f"실패원칙 {','.join(verdict.principles_fail[:3]) or '안전마진/품질'}"
+                )
+                skip_reasons.append(f"버핏 거절 {best_buy.symbol}")
+                best_buy = None
+            else:
+                max_n = min(max_n, first_trade_notional() * 0.35)
+                prog(
+                    f"버핏 예외 · 강한 눌림 단타만 소액 허용 · 한도 ${max_n:,.2f} · "
+                    f"점수 {verdict.score:+.2f}"
+                )
+        elif verdict.owner_quality >= 0.55 and mode in {"hunt", "panic"}:
+            prog(
+                f"버핏 우량 · {best_buy.symbol} 사업품질 {verdict.owner_quality:.0%} · "
+                f"안전마진 {verdict.margin_of_safety:.0%}"
+            )
+    _last["buffett"] = buffett_desk
+
     # Build open-ready watchlist (always; critical when prep_mode)
     watchlist: list[dict] = []
     if best_buy:
@@ -938,6 +995,11 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             if blocked:
                 skip_reasons.append(why)
                 continue
+            if tag == "장타":
+                bv = evaluate_buffett(top.symbol, risk_off=bool(regime.get("risk_off")))
+                if not bv.buy_ok:
+                    skip_reasons.append(f"{top.symbol} 버핏장타거절")
+                    continue
             fake = DR(
                 symbol=top.symbol,
                 action=Action.BUY,

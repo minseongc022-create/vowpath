@@ -32,12 +32,13 @@ market_data:
   cache_hours: 6
 
 agent_weights:
-  market_intelligence: 0.10
-  fundamental: 0.20
-  technical: 0.20
-  quant: 0.20
-  sentiment: 0.10
-  portfolio_manager: 0.20
+  market_intelligence: 0.08
+  fundamental: 0.16
+  technical: 0.14
+  quant: 0.14
+  sentiment: 0.08
+  portfolio_manager: 0.14
+  buffett: 0.26
 
 risk:
   max_position_pct: 0.15

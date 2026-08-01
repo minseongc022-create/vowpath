@@ -34,6 +34,7 @@ class AgentName(StrEnum):
     SENTIMENT = "sentiment"
     PORTFOLIO_MANAGER = "portfolio_manager"
     RISK_MANAGER = "risk_manager"
+    BUFFETT = "buffett"
     DECISION = "decision"
 
 
