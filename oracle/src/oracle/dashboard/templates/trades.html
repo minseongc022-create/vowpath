@@ -13,7 +13,7 @@
   <div class="card-head">
     <div>
       <h2 class="card-title">AI 자율매매</h2>
-      <p class="card-desc">뉴스·지표·리스크를 보고 소액($8≈1만원)으로 알아서 매수/매도</p>
+      <p class="card-desc">모멘텀·상대강도·뉴스로 오를 종목 매수 · 약한 보유 매도 · 무료 로컬 AI · 소액($8≈1만원)</p>
     </div>
     <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}">
       {{ "ON" if autopilot.enabled else "OFF" }}
@@ -22,8 +22,24 @@
   {% if autopilot.last_message %}
   <p class="card-desc">최근: {{ autopilot.last_message }}{% if autopilot.last_ts %} · {{ autopilot.last_ts[:16]|replace('T',' ') }}{% endif %}</p>
   {% endif %}
+  {% if autopilot.picks %}
+  <div class="picks" id="ai-picks">
+    <p class="card-desc" style="margin-bottom:6px"><strong>AI 스크리닝 TOP</strong></p>
+    {% for p in autopilot.picks[:5] %}
+    <div class="list-row pick-row">
+      <div class="left">
+        <div class="title">{{ p.symbol }} · 점수 {{ "%.2f"|format(p.screen_score) }}</div>
+        <div class="desc">
+          {% if p.price %}${{ "%.2f"|format(p.price) }} · {% endif %}
+          20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <form method="post" action="/actions/autopilot_now" style="margin-bottom:8px">
-    <button class="btn btn-primary btn-block" type="submit">지금 AI가 판단·실행</button>
+    <button class="btn btn-primary btn-block" type="submit">지금 AI가 골라서 매수·매도</button>
   </form>
   {% if autopilot.enabled %}
   <form method="post" action="/actions/autopilot">
@@ -36,7 +52,7 @@
     <button class="btn btn-soft btn-block" type="submit">자율매매 켜기 (Paper/한도 내)</button>
   </form>
   {% endif %}
-  <p class="card-desc" style="margin-top:8px">주기 {{ autopilot.interval_sec }}초 · 긴급정지·리스크거부·주문한도 적용</p>
+  <p class="card-desc" style="margin-top:8px">주기 {{ autopilot.interval_sec }}초 · 긴급정지·리스크거부·주문한도 적용 · Paper는 자동 체결</p>
 </section>
 
 <section class="card" id="action-cta" data-autoscroll="action-cta">

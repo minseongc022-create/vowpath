@@ -15,6 +15,7 @@ def test_trades_has_scroll_targets():
     assert 'id="pending-approvals"' in r.text
     assert 'id="action-cta"' in r.text
     assert 'id="autopilot-panel"' in r.text
+    assert "골라서 매수" in r.text
     assert "/static/oracle.js" in r.text
 
 

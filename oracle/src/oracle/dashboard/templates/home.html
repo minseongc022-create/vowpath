@@ -41,12 +41,25 @@
   <div class="card-head">
     <div>
       <h2 class="card-title">오늘 할 일</h2>
-      <p class="card-desc">승인 {{ pending_count }}건 · 추천 행동 {{ actionable_count }}건 · 자율 {{ "ON" if autopilot.enabled else "OFF" }}</p>
+      <p class="card-desc">승인 {{ pending_count }}건 · 추천 {{ actionable_count }}건 · 자율 {{ "ON" if autopilot.enabled else "OFF" }} · 무료 AI</p>
     </div>
   </div>
+  {% if autopilot.picks %}
+  <div class="picks" style="margin-bottom:10px">
+    {% for p in autopilot.picks[:3] %}
+    <div class="todo-item">
+      <div class="todo-main">
+        <div class="todo-sym">↑ {{ p.symbol }}</div>
+        <div class="todo-sub">모멘텀 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%</div>
+      </div>
+      <span class="badge badge-buy">스크리닝</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="quick">
     <form method="post" action="/actions/autopilot_now">
-      <button class="btn btn-primary btn-block" type="submit">AI 자율 판단</button>
+      <button class="btn btn-primary btn-block" type="submit">AI가 골라서 매수·매도</button>
     </form>
     <form method="post" action="/actions/plan_trades">
       <button class="btn btn-soft btn-block" type="submit">매매 계획 만들기</button>

@@ -4,7 +4,7 @@ positions:
 - symbol: SPY
   shares: 0.051159
   avg_cost: 743.119061
-  market_price: 744.46
+  market_price: 747.03
 targets:
   SPY: 0.25
   QQQ: 0.15

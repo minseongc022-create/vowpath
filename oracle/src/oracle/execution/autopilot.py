@@ -1,11 +1,4 @@
-"""Autopilot — AI analyzes news/agents and executes within hard caps.
-
-Safety:
-- Kill switch / risk veto still apply
-- Per-order notional cap (ORACLE_LIVE_MAX_NOTIONAL / first trade size)
-- Max one actionable fill per cycle
-- Live requires ORACLE_AUTOPILOT=1 and live armed; paper/broker paper allowed when enabled
-"""
+"""Autopilot — pick rising names to buy, weak holdings to sell (capped, free AI)."""
 
 from __future__ import annotations
 
@@ -13,14 +6,18 @@ import logging
 import os
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from oracle.config import get_settings
-from oracle.core.types import Action
+from oracle.core.types import Action, DecisionResult
+from oracle.data.market import fetch_snapshot
 from oracle.execution.engine import ExecutionEngine, KillSwitch, estimate_day_pnl_pct
 from oracle.execution.live_setup import first_trade_notional, live_armed, live_max_notional, upsert_env
 from oracle.orchestration import OraclePipeline
+from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
+from oracle.portfolio.picker import rank_decisions_for_trade, screen_universe, top_picks_summary
 from oracle.portfolio.store import load_portfolio
 
 logger = logging.getLogger("oracle.autopilot")
@@ -28,7 +25,7 @@ logger = logging.getLogger("oracle.autopilot")
 _lock = threading.Lock()
 _thread: threading.Thread | None = None
 _stop = threading.Event()
-_last: dict = {"ts": None, "message": "대기", "ok": True}
+_last: dict = {"ts": None, "message": "대기", "ok": True, "picks": []}
 
 
 @dataclass
@@ -39,6 +36,7 @@ class AutopilotStatus:
     last_ts: str | None
     last_message: str
     last_ok: bool
+    picks: list
 
 
 def enabled() -> bool:
@@ -60,17 +58,86 @@ def status() -> AutopilotStatus:
         last_ts=_last.get("ts"),
         last_message=str(_last.get("message") or ""),
         last_ok=bool(_last.get("ok", True)),
+        picks=list(_last.get("picks") or []),
     )
 
 
-def _set_last(msg: str, ok: bool = True) -> None:
+def _set_last(msg: str, ok: bool = True, picks: list | None = None) -> None:
     _last["ts"] = datetime.now(UTC).isoformat()
     _last["message"] = msg
     _last["ok"] = ok
+    if picks is not None:
+        _last["picks"] = picks
+
+
+def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
+    engine = ExecutionEngine(require_confirm=False)
+    price = float(fetch_snapshot(d.symbol).price)
+    portfolio = load_portfolio(get_settings().portfolio_path)
+
+    if d.action in (Action.BUY, Action.ADD):
+        shares = max_n / price if price else 0.0
+        action = d.action.value
+    elif d.action in (Action.REDUCE, Action.SELL):
+        held = 0.0
+        for p in portfolio.positions:
+            if p.symbol == d.symbol:
+                held = float(p.shares)
+                break
+        if held <= 0:
+            return {"ok": False, "message": f"{d.symbol} 매도 신호·보유없음"}
+        # Sell: REDUCE half of cap/holding; SELL up to cap
+        qty = min(held, max_n / price if price else held)
+        if d.action == Action.REDUCE:
+            qty = min(held * 0.5, qty)
+        shares = -qty
+        action = d.action.value
+    else:
+        return {"ok": False, "message": f"스킵 {d.action.value}"}
+
+    live = live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", "paper")
+    if live and os.getenv("ORACLE_AUTOPILOT_LIVE", "").strip() not in {"1", "true", "yes"}:
+        jid = TradeJournal().add(
+            JournalEntry(
+                ts=now_iso(),
+                symbol=d.symbol,
+                action=action,
+                shares=shares,
+                price=price,
+                rationale=f"PICKER queued (live arm needed) · conf={d.confidence:.2f} · {d.rationale[:160]}",
+                status="planned",
+                client_order_id=f"pick-{uuid.uuid4().hex[:10]}",
+            )
+        )
+        return {"ok": True, "message": f"대기열 #{jid} {d.symbol} {action}", "journal_id": jid, "queued": True}
+
+    jid = TradeJournal().add(
+        JournalEntry(
+            ts=now_iso(),
+            symbol=d.symbol,
+            action=action,
+            shares=shares,
+            price=price,
+            rationale=(
+                f"SMART PICK · {action} · conf={d.confidence:.2f} score={d.composite_score:+.2f} · "
+                f"{d.rationale[:160]}"
+            ),
+            status="planned",
+            client_order_id=f"pick-{uuid.uuid4().hex[:10]}",
+        )
+    )
+    out = engine.confirm_journal_entry(jid)
+    return {
+        "ok": out.accepted,
+        "message": (
+            f"{'체결' if out.accepted else '실패'} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}"
+        ),
+        "journal_id": jid,
+    }
 
 
 def run_once() -> dict:
-    """One autopilot cycle: analyze → pick best action → execute capped size."""
+    """Screen → AI decide → buy strongest / sell weakest (max 2 fills)."""
     if not enabled():
         return {"ok": False, "message": "자율매매 OFF"}
 
@@ -83,108 +150,78 @@ def run_once() -> dict:
         _set_last(msg, ok=False)
         return {"ok": False, "message": msg}
 
-    # Prefer liquid symbols + holdings for speed
-    symbols = list(dict.fromkeys([*(p.symbol for p in portfolio.positions), *settings.symbols[:6]]))
-    result = OraclePipeline(settings).run(session="autopilot", symbols=symbols[:6])
+    # 1) Fast screen: top momentum/RS names
+    screened = screen_universe(limit=8)
+    picks_view = top_picks_summary(limit=5)
+    top_syms = [p.symbol for p in screened[:6]]
+    held = list(portfolio.held_symbols())
+    symbols = list(dict.fromkeys([*held, *top_syms, *settings.symbols[:4]]))[:10]
 
-    # Rank actionable decisions by |score| * confidence, respect veto
-    candidates = []
-    for d in result.decisions:
-        if d.action in (Action.HOLD, Action.DO_NOTHING):
-            continue
-        if d.risk_veto and d.risk_veto.active and d.action in (Action.BUY, Action.ADD):
-            continue
-        if d.confidence < 0.38:
-            continue
-        score = abs(d.composite_score) * d.confidence
-        # Prefer buys slightly when mission is capital growth
-        if d.action in (Action.BUY, Action.ADD):
-            score *= 1.08
-        candidates.append((score, d))
-    candidates.sort(key=lambda x: x[0], reverse=True)
+    # 2) Full AI pipeline on shortlist
+    result = OraclePipeline(settings).run(session="autopilot", symbols=symbols)
+    best_buy, best_sell = rank_decisions_for_trade(result.decisions, held=set(held))
 
-    if not candidates:
-        msg = "AI 판단: 지금은 관망 (실행할 엣지 없음)"
-        _set_last(msg)
-        return {"ok": True, "message": msg, "run_id": result.run_id}
-
-    _, best = candidates[0]
-    # Cap size via env first-trade notional for autopilot buys
     max_n = min(live_max_notional(), first_trade_notional() * 1.25)
-    engine = ExecutionEngine(require_confirm=False)
+    msgs: list[str] = []
+    executed = 0
 
-    # Force small notional for buy/add by cloning decision through journal path
-    from oracle.data.market import fetch_snapshot
-    from oracle.portfolio.journal import JournalEntry, TradeJournal, now_iso
-    import uuid
+    # Prefer sell weak first (free cash / risk), then buy strong
+    for label, dec in (("SELL", best_sell), ("BUY", best_buy)):
+        if dec is None:
+            continue
+        out = _execute_decision(dec, max_n=max_n)
+        msgs.append(f"[{label}] {out['message']}")
+        if out.get("ok"):
+            executed += 1
+        # one of each max
+        if executed >= 2:
+            break
 
-    price = float(fetch_snapshot(best.symbol).price)
-    if best.action in (Action.BUY, Action.ADD):
-        shares = max_n / price if price else 0.0
-        side_positive = True
-    elif best.action in (Action.REDUCE, Action.SELL):
-        held = 0.0
-        for p in portfolio.positions:
-            if p.symbol == best.symbol:
-                held = float(p.shares)
-                break
-        if held <= 0:
-            msg = f"{best.symbol} 매도 신호지만 보유 없음 · 스킵"
-            _set_last(msg)
-            return {"ok": True, "message": msg, "run_id": result.run_id}
-        # sell up to max_n notional or all
-        shares = -min(held, max_n / price if price else held)
-        side_positive = False
-    else:
-        msg = f"미지원 액션 {best.action.value}"
-        _set_last(msg, ok=False)
-        return {"ok": False, "message": msg}
+    if not msgs:
+        # fallback: if AI quiet but screen very strong, queue tiny buy on #1
+        if screened and screened[0].screen_score > 0.04:
+            from oracle.core.types import DecisionResult as DR
+            from oracle.core.types import RiskVeto
 
-    # Live autopilot still allowed only if live armed; engine caps apply
-    if live_armed() and "paper" not in os.getenv("ALPACA_BASE_URL", "paper"):
-        if os.getenv("ORACLE_AUTOPILOT_LIVE", "").strip() not in {"1", "true", "yes"}:
-            msg = "실거래 자율매매는 ORACLE_AUTOPILOT_LIVE=1 필요 · 주문만 대기열에 넣음"
-            jid = TradeJournal().add(
-                JournalEntry(
-                    ts=now_iso(),
-                    symbol=best.symbol,
-                    action=best.action.value,
-                    shares=shares,
-                    price=price,
-                    rationale=f"AUTOPILOT queued (live confirm needed) · {best.rationale[:200]}",
-                    status="planned",
-                    client_order_id=f"auto-{uuid.uuid4().hex[:10]}",
-                )
+            top = screened[0]
+            fake = DR(
+                symbol=top.symbol,
+                action=Action.BUY,
+                confidence=0.55,
+                composite_score=min(0.6, top.screen_score * 2),
+                rationale=f"SCREEN fallback · {', '.join(top.reasons)}",
+                agent_opinions=[],
+                risk_veto=RiskVeto(active=False, reason="screen", confidence=0.5),
             )
-            _set_last(f"{msg} · journal #{jid}")
-            return {"ok": True, "message": _last["message"], "run_id": result.run_id, "journal_id": jid}
+            # still run risk veto
+            from oracle.agents.risk_manager import RiskManagerAgent
 
-    jid = TradeJournal().add(
-        JournalEntry(
-            ts=now_iso(),
-            symbol=best.symbol,
-            action=best.action.value,
-            shares=shares,
-            price=price,
-            rationale=f"AUTOPILOT · AI {best.action.value} · conf={best.confidence:.2f} · {best.rationale[:180]}",
-            status="planned",
-            client_order_id=f"auto-{uuid.uuid4().hex[:10]}",
-        )
-    )
-    out = engine.confirm_journal_entry(jid)
-    msg = (
-        f"자율매매 체결 · {best.symbol} {best.action.value} "
-        f"${abs(shares * price):.2f} · {out.message}"
-        if out.accepted
-        else f"자율매매 실패 · {out.message}"
-    )
-    _set_last(msg, ok=out.accepted)
-    return {"ok": out.accepted, "message": msg, "run_id": result.run_id, "journal_id": jid}
+            veto = RiskManagerAgent().veto(top.symbol, portfolio)
+            if not veto.active:
+                out = _execute_decision(fake, max_n=max_n)
+                msgs.append(f"[SCREEN] {out['message']}")
+                executed += int(bool(out.get("ok")))
+            else:
+                msgs.append(f"[SCREEN] {top.symbol} 리스크거부로 스킵")
+
+    if not msgs:
+        msg = "AI 판단: 지금은 관망 (강한 매수/매도 엣지 없음)"
+        _set_last(msg, picks=picks_view)
+        return {"ok": True, "message": msg, "run_id": result.run_id, "picks": picks_view}
+
+    msg = " · ".join(msgs)
+    _set_last(msg, ok=executed > 0, picks=picks_view)
+    return {
+        "ok": executed > 0,
+        "message": msg,
+        "run_id": result.run_id,
+        "picks": picks_view,
+        "executed": executed,
+    }
 
 
 def _loop() -> None:
     logger.info("Autopilot loop start interval=%ss", interval_sec())
-    # small delay so server finishes boot
     time.sleep(3)
     while not _stop.is_set():
         if enabled():
@@ -216,6 +253,6 @@ def set_enabled(on: bool, *, allow_live: bool = False) -> None:
     upsert_env(updates)
     if on:
         start_background()
-        _set_last("자율매매 ON · 다음 사이클에서 AI가 판단·실행")
+        _set_last("자율매매 ON · 오를 종목 매수 / 약한 종목 매도")
     else:
         _set_last("자율매매 OFF")
