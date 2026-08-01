@@ -72,7 +72,9 @@ class AlpacaBroker:
     def _delete(self, path: str) -> None:
         with httpx.Client(timeout=30.0, trust_env=False) as client:
             r = client.delete(f"{self.base_url}{path}", headers=self._headers())
-            r.raise_for_status()
+            # Alpaca cancel-all often returns 207 multi-status
+            if r.status_code >= 400:
+                r.raise_for_status()
 
     def get_account(self) -> BrokerAccount:
         acct = self._get("/v2/account")
@@ -123,14 +125,25 @@ class AlpacaBroker:
         data = self._post("/v2/orders", payload)
         order_id = str(data.get("id") or client_id)
         data = self._wait_fill(order_id, data)
-        filled_qty = float(data.get("filled_qty") or 0) or qty
+        status = str(data.get("status") or "submitted")
+        filled_qty = float(data.get("filled_qty") or 0)
         filled_avg = float(data.get("filled_avg_price") or 0)
+        # Outside market hours Alpaca may leave market orders as accepted — not a fill
+        if status not in {"filled", "partially_filled"} or filled_qty <= 0:
+            return BrokerFill(
+                symbol=order.symbol.upper(),
+                qty=qty if side == "buy" else -qty,
+                price=filled_avg or 0.0,
+                order_id=order_id,
+                status=status if status else "accepted",
+                raw=data,
+            )
         return BrokerFill(
             symbol=order.symbol.upper(),
             qty=filled_qty if side == "buy" else -filled_qty,
             price=filled_avg,
             order_id=order_id,
-            status=str(data.get("status") or "submitted"),
+            status=status,
             raw=data,
         )
 
@@ -151,14 +164,24 @@ class AlpacaBroker:
         data = self._post("/v2/orders", payload)
         order_id = str(data.get("id") or client_id)
         data = self._wait_fill(order_id, data)
+        status = str(data.get("status") or "submitted")
         filled_qty = float(data.get("filled_qty") or 0)
         filled_avg = float(data.get("filled_avg_price") or 0)
+        if status not in {"filled", "partially_filled"} or filled_qty <= 0:
+            return BrokerFill(
+                symbol=symbol.upper(),
+                qty=0.0,
+                price=0.0,
+                order_id=order_id,
+                status=status if status else "accepted",
+                raw=data,
+            )
         return BrokerFill(
             symbol=symbol.upper(),
             qty=filled_qty,
             price=filled_avg,
             order_id=order_id,
-            status=str(data.get("status") or "submitted"),
+            status=status,
             raw=data,
         )
 
@@ -170,6 +193,17 @@ class AlpacaBroker:
             data = self._get(f"/v2/orders/{order_id}")
             status = str(data.get("status") or "")
         return data
+
+    def list_open_orders(self) -> list[dict]:
+        try:
+            rows = self._get("/v2/orders?status=open&limit=50")
+        except Exception:
+            return []
+        return rows if isinstance(rows, list) else []
+
+    def has_open_order(self, symbol: str) -> bool:
+        sym = symbol.upper()
+        return any(str(o.get("symbol", "")).upper() == sym for o in self.list_open_orders())
 
     def cancel_all(self) -> None:
         self._delete("/v2/orders")

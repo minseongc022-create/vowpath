@@ -65,6 +65,7 @@ ACTION_KO = {
 }
 STATUS_KO = {
     "planned": "대기",
+    "submitted": "접수(장중체결)",
     "filled": "체결",
     "cancelled": "취소",
     "rejected": "거부",

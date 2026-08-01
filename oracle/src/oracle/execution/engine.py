@@ -318,29 +318,35 @@ class ExecutionEngine:
                 )
                 return ExecutionResult(False, self.mode, f"Broker error: {exc}", journal_id=jid)
 
-            fill_price = fill.price or price
+            really_filled = fill.status in {"filled", "partially_filled"} and abs(float(fill.qty or 0)) > 0
+            fill_price = (fill.price or price) if really_filled else price
+            fill_qty = float(fill.qty) if really_filled else sizing.suggested_shares_delta
             jid = self.journal.add(
                 JournalEntry(
                     ts=now_iso(),
                     symbol=decision.symbol,
                     action=decision.action.value,
-                    shares=fill.qty,
+                    shares=fill_qty,
                     price=fill_price,
                     rationale=sizing.rationale + f" | BROKER {fill.status}",
-                    status="filled" if fill.status in {"filled", "partially_filled", "accepted", "new", "submitted"} else fill.status,
+                    status="filled" if really_filled else "submitted",
                     client_order_id=client_order_id,
                 )
             )
-            try:
-                from oracle.execution.sync import sync_portfolio_from_broker
+            if really_filled:
+                try:
+                    from oracle.execution.sync import sync_portfolio_from_broker
 
-                sync_portfolio_from_broker(self.broker)
-            except Exception:
-                logger.exception("portfolio sync after broker fill failed")
+                    sync_portfolio_from_broker(self.broker)
+                except Exception:
+                    logger.exception("portfolio sync after broker fill failed")
+                msg = f"Broker filled {fill.order_id}"
+            else:
+                msg = f"주문 접수 · 장 열리면 체결 ({fill.status}) {fill.order_id}"
             return ExecutionResult(
                 True,
                 self.mode,
-                f"Broker order {fill.order_id} status={fill.status}",
+                msg,
                 journal_id=jid,
                 order_id=fill.order_id,
             )
@@ -429,20 +435,39 @@ class ExecutionEngine:
                 shares = (max_n / price) * (1 if shares > 0 else -1)
                 logger.warning("Capped confirm notional to $%.2f", max_n)
             try:
+                # Skip duplicate open orders for same symbol (weekend backlog)
+                has_open = getattr(self.broker, "has_open_order", None)
+                if callable(has_open) and has_open(row["symbol"]):
+                    self.journal.update_status(entry_id, "submitted")
+                    return ExecutionResult(
+                        True,
+                        self.mode,
+                        f"{row['symbol']} 미체결 주문 있음 · 중복 주문 안 함",
+                        journal_id=entry_id,
+                    )
                 fill = self.broker.submit_market_order(
                     BrokerOrder(symbol=row["symbol"], qty=shares, side="buy" if shares > 0 else "sell", client_order_id=client_order_id)
                 )
             except Exception as exc:
                 self.journal.update_status(entry_id, "rejected")
                 return ExecutionResult(False, self.mode, f"Broker error: {exc}", journal_id=entry_id)
-            self.journal.update_status(entry_id, "filled")
-            try:
-                from oracle.execution.sync import sync_portfolio_from_broker
+            really_filled = fill.status in {"filled", "partially_filled"} and abs(float(fill.qty or 0)) > 0
+            self.journal.update_status(entry_id, "filled" if really_filled else "submitted")
+            if really_filled:
+                try:
+                    from oracle.execution.sync import sync_portfolio_from_broker
 
-                sync_portfolio_from_broker(self.broker)
-            except Exception:
-                logger.exception("portfolio sync after confirm failed")
-            return ExecutionResult(True, self.mode, f"Broker filled {fill.order_id}", journal_id=entry_id, order_id=fill.order_id)
+                    sync_portfolio_from_broker(self.broker)
+                except Exception:
+                    logger.exception("portfolio sync after confirm failed")
+                return ExecutionResult(True, self.mode, f"Broker filled {fill.order_id}", journal_id=entry_id, order_id=fill.order_id)
+            return ExecutionResult(
+                True,
+                self.mode,
+                f"주문 접수 · 장 열리면 체결 ({fill.status}) {fill.order_id}",
+                journal_id=entry_id,
+                order_id=fill.order_id,
+            )
 
         try:
             new_state = apply_paper_fill(portfolio, row["symbol"], shares, price)

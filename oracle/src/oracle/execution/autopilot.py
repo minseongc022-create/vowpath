@@ -151,12 +151,23 @@ def _execute_decision(d: DecisionResult, *, max_n: float) -> dict:
             client_order_id=f"pick-{uuid.uuid4().hex[:10]}",
         )
     )
+    # Avoid stacking weekend/open orders
+    broker = engine.broker
+    if broker is not None and hasattr(broker, "has_open_order") and broker.has_open_order(d.symbol):
+        return {
+            "ok": True,
+            "message": f"{d.symbol} 미체결 주문 있음 · 중복 스킵",
+            "journal_id": jid,
+            "queued": True,
+        }
+
     out = engine.confirm_journal_entry(jid)
+    kind = "체결" if ("filled" in (out.message or "").lower() or "Broker filled" in (out.message or "")) else (
+        "접수" if out.accepted else "실패"
+    )
     return {
         "ok": out.accepted,
-        "message": (
-            f"{'체결' if out.accepted else '실패'} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}"
-        ),
+        "message": f"{kind} {d.symbol} {action} ${abs(shares * price):.2f} · {out.message}",
         "journal_id": jid,
     }
 
