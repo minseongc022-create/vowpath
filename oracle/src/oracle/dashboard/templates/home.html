@@ -3,8 +3,16 @@
 {% block subtitle %}돈 · 미션 · 투자종목{% endblock %}
 {% block content %}
 <section class="hero money-hero">
-  <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
-  <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
+  <div class="hero-label-row">
+    <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
+    <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
+         data-rate="{{ fx.usdkrw if fx else 1380 }}">
+      <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
+      <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
+    </div>
+  </div>
+  <div class="hero-equity money" data-usd="{{ '%.2f'|format(equity) }}" data-money="equity">${{ "{:,.2f}".format(equity) }}</div>
+  <p class="card-desc fx-hint" id="fx-hint">{{ fx.label_ko if fx else "" }} · 버튼을 누르면 원/달러로 바꿔 봅니다</p>
   <div class="hero-meta">
     {% if return_pct >= 0 %}
     <span class="pill pill-up">장부 +{{ "%.2f"|format(return_pct * 100) }}%</span>
@@ -20,7 +28,11 @@
   {% if mission_ready %}
   <div class="goal-bar-wrap">
     <div class="goal-bar-meta">
-      <span>미션 ${{ "{:,.2f}".format(goal.stake) }} · 한도 ${{ "{:,.0f}".format(capital.budget) }} → 목표 ${{ "{:,.0f}".format(goal.goal) }}</span>
+      <span>
+        미션 <span class="money" data-usd="{{ '%.2f'|format(goal.stake) }}">${{ "{:,.2f}".format(goal.stake) }}</span>
+        · 한도 <span class="money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</span>
+        → 목표 <span class="money" data-usd="{{ '%.2f'|format(goal.goal) }}">${{ "{:,.0f}".format(goal.goal) }}</span>
+      </span>
       <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
     </div>
     <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
@@ -66,24 +78,24 @@
   <div class="plan-stats" style="margin-top:14px">
     <div class="plan-stat">
       <div class="k">AI 한도</div>
-      <div class="v">${{ "{:,.0f}".format(capital.budget) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</div>
     </div>
     <div class="plan-stat">
       <div class="k">사용중</div>
-      <div class="v">${{ "{:,.0f}".format(capital.open_cost) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.open_cost) }}">${{ "{:,.0f}".format(capital.open_cost) }}</div>
     </div>
     <div class="plan-stat">
       <div class="k">AI 남음</div>
-      <div class="v">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.remaining_budget or 0) }}">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
     </div>
     <div class="plan-stat">
       <div class="k">미션자산</div>
-      <div class="v">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.sleeve or capital.budget) }}">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
     </div>
   </div>
   <p class="card-desc" style="margin-top:10px">
-    평가 {{ "%+.2f"|format(capital.unrealized) }}
-    · 실현 {{ "%+.2f"|format(capital.realized) }}
+    평가 <span class="money" data-usd="{{ '%.2f'|format(capital.unrealized) }}" data-signed="1">${{ "%+.2f"|format(capital.unrealized) }}</span>
+    · 실현 <span class="money" data-usd="{{ '%.2f'|format(capital.realized) }}" data-signed="1">${{ "%+.2f"|format(capital.realized) }}</span>
   </p>
   {% endif %}
 </section>
@@ -98,11 +110,11 @@
   <div class="money-grid">
     <div class="money-cell">
       <div class="k">현금</div>
-      <div class="v">${{ "{:,.2f}".format(cash) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(cash) }}">${{ "{:,.2f}".format(cash) }}</div>
     </div>
     <div class="money-cell">
       <div class="k">구매력</div>
-      <div class="v">${{ "{:,.2f}".format(broker.account.buying_power if broker.account else cash) }}</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(broker.account.buying_power if broker.account else cash) }}">${{ "{:,.2f}".format(broker.account.buying_power if broker.account else cash) }}</div>
     </div>
   </div>
   <p class="card-desc" style="margin:10px 0">모드: <strong>{{ broker.mode_ko }}</strong>
@@ -134,7 +146,7 @@
       <div class="desc">{{ "%.4f"|format(p.shares) }}주 · 평단 ${{ "%.2f"|format(p.avg_cost) }}</div>
     </div>
     <div class="right-col">
-      <strong>${{ "{:,.2f}".format(p.value) }}</strong>
+      <strong class="money" data-usd="{{ '%.2f'|format(p.value) }}">${{ "{:,.2f}".format(p.value) }}</strong>
       <div class="desc {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
         {{ "%+.1f"|format(p.pnl_pct * 100) }}%
       </div>
@@ -155,7 +167,7 @@
       <div class="title"><span class="log-clock">{{ j.clock }}</span> {{ j.symbol }} · {{ j.action_ko }}</div>
       <div class="desc">{{ j.status_ko }}</div>
     </div>
-    <strong>${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
+    <strong class="money" data-usd="{{ '%.2f'|format((j.shares * j.price)|abs) }}">${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
   </div>
   {% endfor %}
 </section>

@@ -366,6 +366,45 @@ button, input, select {
 }
 .money-hero { margin-bottom: 14px; }
 .hero-label { color: var(--muted); font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+.hero-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.hero-label-row .hero-label { margin-bottom: 0; }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fx-toggle {
+  display: inline-flex;
+  background: #eef1f4;
+  border-radius: 999px;
+  padding: 2px;
+  gap: 2px;
+}
+.fx-btn {
+  border: 0;
+  background: transparent;
+  color: #6b7684;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1;
+}
+.fx-btn.on {
+  background: #fff;
+  color: #191f28;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.fx-toggle-hero .fx-btn { padding: 7px 12px; font-size: 0.8rem; }
+.fx-hint { margin: 6px 0 0; font-size: 0.78rem; }
 .hero-equity {
   font-size: clamp(2rem, 7vw, 2.6rem);
   font-weight: 800;

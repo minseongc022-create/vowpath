@@ -75,19 +75,19 @@
     <div class="plan-stats">
       <div class="plan-stat">
         <div class="k">AI 한도</div>
-        <div class="v">${{ "{:,.0f}".format(capital.budget) }}</div>
+        <div class="v money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</div>
       </div>
       <div class="plan-stat">
         <div class="k">사용중</div>
-        <div class="v">${{ "{:,.0f}".format(capital.open_cost) }}</div>
+        <div class="v money" data-usd="{{ '%.2f'|format(capital.open_cost) }}">${{ "{:,.0f}".format(capital.open_cost) }}</div>
       </div>
       <div class="plan-stat">
         <div class="k">AI 남음</div>
-        <div class="v">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
+        <div class="v money" data-usd="{{ '%.2f'|format(capital.remaining_budget or 0) }}">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
       </div>
       <div class="plan-stat">
         <div class="k">미션자산</div>
-        <div class="v">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
+        <div class="v money" data-usd="{{ '%.2f'|format(capital.sleeve or capital.budget) }}">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
       </div>
     </div>
     {% endif %}
@@ -96,9 +96,9 @@
     <div class="goal-bar-wrap">
       <div class="goal-bar-meta">
         <span>
-          미션 ${{ "{:,.2f}".format(goal.stake) }}
-          · 한도 ${{ "{:,.0f}".format(capital.budget) }}
-          / 목표 ${{ "{:,.0f}".format(goal.goal) }}
+          미션 <span class="money" data-usd="{{ '%.2f'|format(goal.stake) }}">${{ "{:,.2f}".format(goal.stake) }}</span>
+          · 한도 <span class="money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</span>
+          / 목표 <span class="money" data-usd="{{ '%.2f'|format(goal.goal) }}">${{ "{:,.0f}".format(goal.goal) }}</span>
         </span>
         <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
       </div>

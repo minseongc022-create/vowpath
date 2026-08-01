@@ -45,6 +45,7 @@ from oracle.execution.live_setup import (
     upsert_env,
 )
 from oracle.execution.sync import sync_portfolio_from_broker
+from oracle.data.fx import fx_snapshot
 from oracle.llm.brain import brain_health
 from oracle.orchestration import OraclePipeline
 from oracle.portfolio.activity_log import ActivityLog, format_clock
@@ -438,6 +439,7 @@ def _context(
     # Probe broker on money/settings pages for cash/charge accuracy
     broker = _broker_status(probe=(active in {"settings", "money", "home"} and not light))
     llm = get_or_set("llm_health", 30.0, brain_health)
+    fx = get_or_set("fx_usdkrw", 300.0, fx_snapshot)
     plan = capital_plan(portfolio, cash=float(portfolio.cash))
     sleeve = sleeve_equity(portfolio)
     goal = goal_progress(equity, sleeve=sleeve)
@@ -480,6 +482,7 @@ def _context(
         "suggested_budget": suggested_budget,
         "suggested_goal": suggested_goal,
         "mission_ready": bool(plan.get("set") and goal.get("set")),
+        "fx": fx,
         "charge_url": _charge_url(),
         "positions": rows,
         "decisions": decisions[:30],
@@ -684,6 +687,11 @@ def job_page(request: Request, job_id: str, _: None = Depends(require_auth)):
 @app.get("/api/status")
 def api_status(_: None = Depends(require_auth)):
     return JSONResponse(_context())
+
+
+@app.get("/api/fx")
+def api_fx(_: None = Depends(require_auth)):
+    return JSONResponse(get_or_set("fx_usdkrw", 300.0, fx_snapshot))
 
 
 @app.get("/api/job/{job_id}")

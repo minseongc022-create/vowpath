@@ -18,9 +18,16 @@
         </div>
       </div>
       {% block header_action %}
-      <span class="chip {% if kill_switch.active %}chip-danger{% else %}chip-ok{% endif %}">
-        {% if kill_switch.active %}정지{% elif autopilot.enabled %}자동{% else %}대기{% endif %}
-      </span>
+      <div class="header-actions">
+        <div class="fx-toggle" id="fx-toggle" role="group" aria-label="통화 전환"
+             data-rate="{{ fx.usdkrw if fx else 1380 }}">
+          <button type="button" class="fx-btn on" data-ccy="USD">$</button>
+          <button type="button" class="fx-btn" data-ccy="KRW">₩</button>
+        </div>
+        <span class="chip {% if kill_switch.active %}chip-danger{% else %}chip-ok{% endif %}">
+          {% if kill_switch.active %}정지{% elif autopilot.enabled %}자동{% else %}대기{% endif %}
+        </span>
+      </div>
       {% endblock %}
     </header>
 
