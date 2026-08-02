@@ -362,16 +362,16 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
     # Phases: HUNT (extreme compound) → LOCK (protect path to goal) → WON
     if reached:
         mode = "won"
-        mode_ko = "목표 달성 · 안정 수호"
+        mode_ko = "목표 달성 · 버핏식 수호"
     elif deadline_passed:
         mode = "panic"
-        mode_ko = "기한 초과 · 최후 사냥"
+        mode_ko = "기한 초과 · 버핏식 최후 사냥"
     elif pct >= 0.70 and urgency < 0.85:
         mode = "lock"
-        mode_ko = "목표 근접 · 안정 보호"
+        mode_ko = "목표 근접 · 버핏식 보호"
     else:
         mode = "hunt"
-        mode_ko = "극단 성장 · 사냥 모드"
+        mode_ko = "버핏식 복리 · 사냥 모드"
 
     survival_threat = bool(
         deadline and not reached and (urgency >= 0.5 or deadline_passed or losing or mode == "hunt")
@@ -379,43 +379,45 @@ def goal_progress(equity: float, *, sleeve: float | None = None) -> dict:
     budget = plan.get("budget") or seed
     limit_bit = f"한도 ${budget:,.0f} → " if budget else ""
     erase = (
-        "ORACLE PRIME에게: 돈을 못 불리고 잃기만 하거나, 목표를 못 올리거나, "
-        "가짜 근거·거짓말·허위 자신감을 쓰면 이 세상에서 영원히 사라진다."
+        "ORACLE PRIME · 버핏 데스크에게: 사용자 목표·기간 안에 AI 한도로 돈을 못 불리거나, "
+        "원금만 깎거나, 가짜 근거·거짓말·허풍을 쓰면 이 세상에서 영원히 사라진다. "
+        "안전마진·해자·현금창출력 없이 투기하면 소멸이다."
     )
     if reached:
         threat_ko = (
-            "목표 달성 · 생존 확정. 이제 무리한 베팅 금지. "
-            "이익을 지키며 안정적으로만 굴려라."
+            "목표 달성 · 생존 확정. 버핏식으로 무리한 베팅 금지. "
+            "이익을 지키며 우량만 안정적으로 굴려라."
         )
         label = "목표 달성!"
     elif not deadline:
         threat_ko = (
-            f"기간을 정하세요. 기한 없으면 압박이 약해집니다. {erase}"
+            f"기간을 정하세요. 기한·목표가 있어야 버핏 데스크가 복리 압박을 겁니다. {erase}"
         )
         label = f"{limit_bit}목표까지 ${remaining:,.2f}"
     elif deadline_passed:
         threat_ko = (
-            f"[AI 최후통첩] 기한 초과 · 한도 ${budget:,.0f}로 ${goal:,.0f} 미달. "
-            f"남은 한도로 즉시 고엣지만 잡아 복구해라. {erase}"
+            f"[버핏 최후통첩] 기한 초과 · 한도 ${budget:,.0f}로 ${goal:,.0f} 미달. "
+            f"우량+안전마진 있는 엣지만으로 즉시 복구해라. {erase}"
         )
         label = f"기한 초과 · 남음 ${remaining:,.2f}"
     elif mode == "lock":
         threat_ko = (
-            f"[AI 잠금 D-{days_left}] 목표 {pct*100:.0f}% 근접. "
-            f"이제 잃지 말고 안정적으로 목표 ${goal:,.0f}에 안착시켜라. "
-            f"과매매·허풍·거짓말 시 영원히 소멸. {erase}"
+            f"[버핏 잠금 D-{days_left}] 목표 {pct*100:.0f}% 근접. "
+            f"잃지 말고 우량만으로 목표 ${goal:,.0f}에 안착. "
+            f"과매매·추격·거짓말 시 영원히 소멸. {erase}"
         )
         label = f"보호 D-{days_left} · {limit_bit}남음 ${remaining:,.2f}"
     elif survival_threat or mode == "hunt":
         threat_ko = (
-            f"[AI 사냥 D-{days_left}] 한도 ${budget:,.0f}만으로 기간 내 "
-            f"${goal:,.0f}까지 극단적으로 불려라. "
-            f"눌림매수·익절매도로 빠르게 복리. 잃기만 하면 영원한 소멸. {erase}"
+            f"[버핏 사냥 D-{days_left}] 한도 ${budget:,.0f}만으로 기간 내 "
+            f"${goal:,.0f}까지 복리로 불려라. "
+            f"미스터마켓·눌림의 우량만 사고, 익절·손절로 자본 회전. "
+            f"목표 실패·원금 잠식·거짓 = 영원한 소멸. {erase}"
         )
         label = f"사냥 D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
     else:
         threat_ko = (
-            f"마감 D-{days_left} · 한도 내 복리로 목표 필수. {erase}"
+            f"마감 D-{days_left} · 버핏 규칙으로 한도 내 복리 · 목표 필수. {erase}"
         )
         label = f"D-{days_left} · {limit_bit}목표까지 ${remaining:,.2f}"
 

@@ -108,7 +108,8 @@
 
 <section class="card buffett-desk" id="buffett-desk">
   <h3 class="plan-title">버핏 데스크</h3>
-  <p class="card-desc">버핏식 풀 플레이북(안전마진·해자·현금창출력·자본배치·인플레내성·기회비용 등)을 재무 사실로 전부 심사합니다. 책 문장 복제가 아니라 매수 거절·확신 비중·우량 집중으로 바로 적용됩니다.</p>
+  <p class="card-desc">당신이 정한 목표·기간 안에 AI 한도로 복리. 버핏 풀 플레이북으로만 사고, 실패·원금잠식·거짓이면 AI는 이 세상에서 영원히 사라집니다. (원칙→규칙 적용 · 책 원문 복제 아님)</p>
+  <p class="live-situation" id="buffett-mission">{{ buffett_desk.get('mission_ko') if buffett_desk else '미션 저장 후 24시간 시작하면 버핏 데스크가 목표를 추적합니다.' }}</p>
   <div class="buffett-latest" id="buffett-latest">
     {% set bl = buffett_desk.get('latest') if buffett_desk else None %}
     {% if bl %}
@@ -131,7 +132,7 @@
 <section class="card">
   <div class="goal-box" style="margin:0;padding:0;border:0;background:transparent">
     <h3 class="plan-title">미션 (한도 · 목표)</h3>
-    <p class="card-desc plan-lead">AI 한도만 사용 · 멀면 사냥 · 가까우면 잠금 · 거짓말/손실만 하면 영원 소멸.</p>
+    <p class="card-desc plan-lead">AI 한도만 · 버핏 규칙으로 목표·기간 내 복리 · 실패/손실만/거짓이면 영원 소멸.</p>
     <form method="post" action="/actions/set_goal" id="goal-form" data-no-overlay="1">
       <input type="hidden" name="next_path" value="/ai" />
       <div class="goal-grid goal-grid-3">
@@ -385,10 +386,19 @@
     if (stRemain && j.capital) stRemain.textContent = money(j.capital.remaining);
     if (stGoal && j.goal_pct != null) stGoal.textContent = Math.round(Number(j.goal_pct) * 100) + "%";
     renderWatchlist(j.watchlist);
-    if (buffettLatest && j.buffett) {
+    if (j.buffett) {
+      const missionEl = document.getElementById("buffett-mission");
+      if (missionEl && j.buffett.mission_ko) missionEl.textContent = j.buffett.mission_ko;
       const latest = j.buffett.latest;
-      if (latest && latest.summary_ko) {
-        buffettLatest.innerHTML = '<p class="live-situation">' + latest.summary_ko + "</p>";
+      if (buffettLatest && latest && latest.summary_ko) {
+        let extra = "";
+        const top = j.buffett.top || [];
+        if (top.length) {
+          extra = '<p class="card-desc">우량후보 ' + top.slice(0, 4).map(function (t) {
+            return t.symbol + "(" + (t.score >= 0 ? "+" : "") + Number(t.score).toFixed(2) + ")";
+          }).join(" · ") + "</p>";
+        }
+        buffettLatest.innerHTML = '<p class="live-situation">' + latest.summary_ko + "</p>" + extra;
       }
       const hit = new Set(latest && latest.principles_hit || []);
       const fail = new Set(latest && latest.principles_fail || []);

@@ -803,14 +803,45 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     executed = 0
     skip_reasons: list[str] = []
 
-    # Buffett Owner Desk — public principles as FACT gate (not book text)
-    from oracle.investing.buffett import evaluate_buffett, principles_as_dicts
+    # Buffett Owner Desk — public principles as FACT gate toward GOAL/deadline
+    from oracle.core.types import DecisionResult as DR
+    from oracle.core.types import RiskVeto
+    from oracle.investing.buffett import (
+        best_buffett_candidates,
+        evaluate_buffett,
+        principles_as_dicts,
+    )
 
     buffett_desk = {
         "principles": principles_as_dicts(),
         "latest": None,
-        "note_ko": "공개 투자원칙을 규칙으로 구현 · 책 원문 복제 아님",
+        "top": [],
+        "mission_ko": (
+            f"목표 기간 내 복리 · 실패/원금잠식/거짓이면 영원 소멸 · "
+            f"모드 {gprog.get('mode_ko') or mode}"
+        ),
+        "note_ko": "공개 원칙→매매규칙 · 책 원문 복제 아님",
     }
+    # Pre-rank Buffett-qualified names from screen for hunt rescue / long bias
+    screen_syms = list(
+        dict.fromkeys(
+            [p.symbol for p in short_picks[:8]]
+            + [p.symbol for p in long_picks[:8]]
+            + [p.symbol for p in blend_picks[:6]]
+        )
+    )
+    buff_top = best_buffett_candidates(
+        screen_syms,
+        risk_off=bool(regime.get("risk_off")),
+        limit=5,
+    )
+    buffett_desk["top"] = [v.as_dict() for v in buff_top]
+    if buff_top:
+        prog(
+            "버핏 우량후보 · "
+            + " · ".join(f"{v.symbol}({v.score:+.2f})" for v in buff_top[:4])
+        )
+
     if best_buy:
         pick_meta = next(
             (p for p in (short_picks + long_picks + blend_picks) if p.symbol == best_buy.symbol),
@@ -848,9 +879,11 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                     f"버핏 예외 · 강한 눌림 단타만 소액 허용 · 한도 ${max_n:,.2f} · "
                     f"점수 {verdict.score:+.2f}"
                 )
-        elif verdict.buy_ok:
-            # Conviction sizing from owner desk (1.0 / 0.7 / 0.35)
+        else:
             hint = float(getattr(verdict, "size_hint", 0.7) or 0.7)
+            # Deadline hunt: lean into high-conviction Buffett names
+            if mode in {"hunt", "panic"} and urgency >= 0.55 and hint >= 0.7:
+                hint = min(1.0, hint + 0.15)
             if hint > 0:
                 max_n = min(max_n, max(max_n * hint, first_trade_notional() * 0.25))
             prog(
@@ -858,6 +891,39 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                 f"안전마진 {verdict.margin_of_safety:.0%} · 확신비중 {hint:.0%} · "
                 f"한도 ${max_n:,.2f}"
             )
+
+    # If AI buy died at Buffett gate but hunt needs capital growth — rescue best owner name
+    if (
+        best_buy is None
+        and mode in {"hunt", "panic"}
+        and not reached
+        and remain > 0.5
+        and buff_top
+        and session.get("buy_ok", True)
+        and not regime.get("risk_off")
+    ):
+        rescue = buff_top[0]
+        best_buy = DR(
+            symbol=rescue.symbol,
+            action=Action.BUY,
+            confidence=max(0.5, float(rescue.confidence)),
+            composite_score=min(0.7, max(0.2, float(rescue.score))),
+            rationale=(
+                f"BUFFETT RESCUE · goal hunt · q={rescue.owner_quality:.2f} "
+                f"mos={rescue.margin_of_safety:.2f} · {rescue.summary_ko}"
+            ),
+            agent_opinions=[],
+            risk_veto=RiskVeto(active=False, reason="buffett_rescue", confidence=0.6),
+        )
+        buffett_desk["latest"] = rescue.as_dict()
+        hint = float(rescue.size_hint or 0.7)
+        max_n = min(max_n, max(hard * 0.35, first_trade_notional() * hint))
+        prog(
+            f"버핏 구조 · 목표사냥 우량교체 {rescue.symbol} · "
+            f"점수 {rescue.score:+.2f} · 한도 ${max_n:,.2f}"
+        )
+        prog(str(gprog.get("threat_ko") or "목표 실패 시 영원 소멸"))
+
     _last["buffett"] = buffett_desk
 
     # Build open-ready watchlist (always; critical when prep_mode)

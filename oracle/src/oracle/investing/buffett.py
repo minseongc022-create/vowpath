@@ -194,6 +194,25 @@ def principles_as_dicts() -> list[dict[str, str]]:
     ]
 
 
+def best_buffett_candidates(
+    symbols: list[str],
+    *,
+    risk_off: bool = False,
+    limit: int = 5,
+) -> list[BuffettVerdict]:
+    """Rank symbols by owner score for goal-seeking hunt."""
+    out: list[BuffettVerdict] = []
+    for sym in symbols:
+        try:
+            v = evaluate_buffett(sym, risk_off=risk_off)
+        except Exception:
+            continue
+        if v.buy_ok:
+            out.append(v)
+    out.sort(key=lambda v: (v.score, v.owner_quality, v.margin_of_safety), reverse=True)
+    return out[:limit]
+
+
 def _norm_de(dte: float | None) -> float | None:
     if dte is None:
         return None
