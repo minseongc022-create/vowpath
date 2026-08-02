@@ -1,0 +1,12 @@
+# Economic / earnings calendar — FACT dates only (verify before relying).
+# Do not add unverified placeholders: they hard-block buys via earnings blackout.
+#
+# Example:
+# events:
+#   - date: 2026-08-12
+#     title: AAPL FY Q3 earnings
+#     category: earnings
+#     symbols: [AAPL]
+#     importance: high
+#     notes: Confirm on investor.apple.com
+events: []

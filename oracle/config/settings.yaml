@@ -1,0 +1,74 @@
+# Project Oracle — full stack settings
+# Risk minimization > return maximization
+
+system:
+  name: Project Oracle
+  version: "1.2.0"
+  timezone: America/New_York
+
+universe:
+  # Core seed list; full scan uses config/universe_liquid.yaml (100+ liquid names)
+  symbols:
+    - SPY
+    - QQQ
+    - IWM
+    - AAPL
+    - MSFT
+    - GOOGL
+    - AMZN
+    - NVDA
+    - META
+    - TSLA
+    - JPM
+    - XOM
+    - AMD
+    - AVGO
+    - GLD
+    - TLT
+
+market_data:
+  history_days: 365
+  benchmark: SPY
+  cache_hours: 6
+
+agent_weights:
+  market_intelligence: 0.08
+  fundamental: 0.16
+  technical: 0.14
+  quant: 0.14
+  sentiment: 0.08
+  portfolio_manager: 0.14
+  buffett: 0.26
+
+risk:
+  max_position_pct: 0.15
+  max_sector_pct: 0.35
+  max_portfolio_volatility: 0.25
+  max_drawdown_halt: 0.12
+  min_cash_pct: 0.10
+  max_correlation_cluster: 0.85
+  atr_stop_multiple: 2.0
+  veto_confidence_floor: 0.55
+
+decision:
+  buy_threshold: 0.42
+  add_threshold: 0.32
+  reduce_threshold: -0.28
+  sell_threshold: -0.45
+
+sizing:
+  target_vol: 0.10
+
+reporting:
+  output_dir: ./data/reports
+  include_agent_details: true
+
+backtest:
+  initial_cash: 100000
+  commission_bps: 5
+  slippage_bps: 5
+
+execution:
+  mode: paper
+  require_confirm: true
+  max_daily_loss_pct: 0.03

@@ -1,0 +1,29 @@
+services:
+  oracle:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    env_file:
+      - .env
+    command: ["run", "--report"]
+
+  dashboard:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    env_file:
+      - .env
+    command: ["serve", "--host", "0.0.0.0", "--port", "8080"]
+
+  scheduler:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    env_file:
+      - .env
+    command: ["schedule", "--poll", "3600"]

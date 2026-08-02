@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}자산{% endblock %}
+{% block subtitle %}돈 · 미션 · 투자종목{% endblock %}
+{% block content %}
+<section class="hero money-hero">
+  <div class="hero-label-row">
+    <div class="hero-label">계좌 총자산 · {% if live_trading %}실거래{% else %}Paper 가상{% endif %}</div>
+    <div class="fx-toggle fx-toggle-hero" id="fx-toggle-hero" role="group" aria-label="통화 전환"
+         data-rate="{{ fx.usdkrw if fx else 1380 }}">
+      <button type="button" class="fx-btn on" data-ccy="USD">달러 $</button>
+      <button type="button" class="fx-btn" data-ccy="KRW">원화 ₩</button>
+    </div>
+  </div>
+  <div class="hero-equity money" data-usd="{{ '%.2f'|format(equity) }}" data-money="equity">${{ "{:,.2f}".format(equity) }}</div>
+  <div class="hero-charge-row">
+    {% if broker.configured %}
+    <a class="btn btn-charge" href="{{ charge_url }}" target="_blank" rel="noopener">충전하기</a>
+    {% else %}
+    <a class="btn btn-charge" href="/settings">계좌 연결</a>
+    {% endif %}
+  </div>
+  <p class="card-desc fx-hint" id="fx-hint">{{ fx.label_ko if fx else "" }} · 버튼을 누르면 원/달러로 바꿔 봅니다</p>
+  <div class="hero-meta">
+    {% if return_pct >= 0 %}
+    <span class="pill pill-up">장부 +{{ "%.2f"|format(return_pct * 100) }}%</span>
+    {% else %}
+    <span class="pill pill-down">장부 {{ "%.2f"|format(return_pct * 100) }}%</span>
+    {% endif %}
+    {% if day_pnl_pct >= 0 %}
+    <span class="pill pill-up">오늘 +{{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
+    {% else %}
+    <span class="pill pill-down">오늘 {{ "%.2f"|format(day_pnl_pct * 100) }}%</span>
+    {% endif %}
+  </div>
+  {% if mission_ready %}
+  <div class="goal-bar-wrap">
+    <div class="goal-bar-meta">
+      <span>
+        미션 <span class="money" data-usd="{{ '%.2f'|format(goal.stake) }}">${{ "{:,.2f}".format(goal.stake) }}</span>
+        · 한도 <span class="money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</span>
+        → 목표 <span class="money" data-usd="{{ '%.2f'|format(goal.goal) }}">${{ "{:,.0f}".format(goal.goal) }}</span>
+      </span>
+      <span>{{ "%.0f"|format(goal.pct * 100) }}%</span>
+    </div>
+    <div class="goal-bar"><i style="width:{{ (goal.pct * 100)|int }}%"></i></div>
+    <p class="card-desc" style="margin-top:8px">{{ goal.label }}</p>
+  </div>
+  {% elif goal.set and goal.misleading %}
+  <p class="threat-banner" style="margin-top:12px">아래에서 <strong>AI 한도 · 목표 · 기간</strong>을 저장하세요. 기간 안에 못 채우면 AI는 소멸합니다.</p>
+  {% else %}
+  <p class="card-desc" style="margin-top:12px">AI 한도·목표·기간을 아래에서 정하세요.</p>
+  {% endif %}
+</section>
+
+<section class="card" id="mission-card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">AI 미션</h2>
+      <p class="card-desc">계좌 잔고 중 AI가 쓸 한도만 정하면 됩니다. 기간 안에 목표를 무조건 채웁니다.</p>
+    </div>
+  </div>
+  <form method="post" action="/actions/set_goal" data-no-overlay="1">
+    <input type="hidden" name="next_path" value="/" />
+    <div class="goal-grid goal-grid-3">
+      <div class="goal-field">
+        <label class="field-label">① AI가 쓸 한도 ($)</label>
+        <input class="field" type="number" name="budget" min="1" step="1"
+               value="{{ capital.budget|int if capital.budget else suggested_budget }}" required />
+      </div>
+      <div class="goal-field">
+        <label class="field-label">② 목표 금액 ($)</label>
+        <input class="field" type="number" name="goal" min="1" step="1"
+               value="{{ suggested_goal }}" required />
+      </div>
+      <div class="goal-field">
+        <label class="field-label">③ 기간 (일)</label>
+        <input class="field" type="number" name="days" min="1" step="1"
+               value="{% if goal.days_left is not none and goal.days_left >= 0 and mission_ready %}{{ goal.days_left }}{% else %}30{% endif %}" required />
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">미션 저장</button>
+    <p class="card-desc" style="margin-top:8px">예: 한도 50 · 목표 200 · 30일 — 멀면 사냥(극단 단타), 가까우면 잠금(안정). AI가 못 불리거나 거짓말하면 영원 소멸.</p>
+  </form>
+  {% if capital.set %}
+  <div class="plan-stats" style="margin-top:14px">
+    <div class="plan-stat">
+      <div class="k">AI 한도</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.budget) }}">${{ "{:,.0f}".format(capital.budget) }}</div>
+    </div>
+    <div class="plan-stat">
+      <div class="k">사용중</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.open_cost) }}">${{ "{:,.0f}".format(capital.open_cost) }}</div>
+    </div>
+    <div class="plan-stat">
+      <div class="k">AI 남음</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.remaining_budget or 0) }}">${{ "{:,.0f}".format(capital.remaining_budget or 0) }}</div>
+    </div>
+    <div class="plan-stat">
+      <div class="k">미션자산</div>
+      <div class="v money" data-usd="{{ '%.2f'|format(capital.sleeve or capital.budget) }}">${{ "{:,.0f}".format(capital.sleeve or capital.budget) }}</div>
+    </div>
+  </div>
+  <p class="card-desc" style="margin-top:10px">
+    평가 <span class="money" data-usd="{{ '%.2f'|format(capital.unrealized) }}" data-signed="1">${{ "%+.2f"|format(capital.unrealized) }}</span>
+    · 실현 <span class="money" data-usd="{{ '%.2f'|format(capital.realized) }}" data-signed="1">${{ "%+.2f"|format(capital.realized) }}</span>
+  </p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">투자한 종목</h2>
+      <p class="card-desc">{{ positions|length }}개 · 브로커 동기화</p>
+    </div>
+    <a class="btn btn-sm btn-soft" href="/ai">AI로 굴리기</a>
+  </div>
+  {% if positions %}
+  {% for p in positions %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ p.symbol }}</div>
+      <div class="desc">{{ "%.4f"|format(p.shares) }}주 · 평단 ${{ "%.2f"|format(p.avg_cost) }}</div>
+    </div>
+    <div class="right-col">
+      <strong class="money" data-usd="{{ '%.2f'|format(p.value) }}">${{ "{:,.2f}".format(p.value) }}</strong>
+      <div class="desc {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
+        {{ "%+.1f"|format(p.pnl_pct * 100) }}%
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 보유 종목이 없어요.<br/>AI자동에서 한 번 돌려보세요.</p>
+  {% endif %}
+</section>
+
+{% if journal %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">최근 체결</h2></div>
+  {% for j in journal[:5] %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title"><span class="log-clock">{{ j.clock }}</span> {{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }}</div>
+    </div>
+    <strong class="money" data-usd="{{ '%.2f'|format((j.shares * j.price)|abs) }}">${{ "%.2f"|format((j.shares * j.price)|abs) }}</strong>
+  </div>
+  {% endfor %}
+</section>
+{% elif pending_count %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">대기 주문</h2></div>
+  <p class="card-desc">연습/미체결 대기 {{ pending_count }}건 · 보유 종목에는 아직 반영되지 않습니다.</p>
+</section>
+{% endif %}
+{% endblock %}
