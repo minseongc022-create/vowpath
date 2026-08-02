@@ -698,9 +698,14 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         deep_llm=True,
     )
     regime = build_regime()
+    # Mr. Market fear: index down but not VIX meltdown → buy quality dips
+    vix_lv = float(regime.get("vix_level") or 0)
+    spy_day = float(regime.get("spy_day") or 0)
+    market_fear = bool(spy_day <= -1.0 and (vix_lv <= 0 or vix_lv < 32))
     prog(
         f"레짐 FACT · {regime.get('label')} · VIX레벨 {regime.get('vix_level')} · "
-        f"SPY일 {regime.get('spy_day'):+.2f}% · QQQ일 {regime.get('qqq_day'):+.2f}%"
+        f"SPY일 {spy_day:+.2f}% · QQQ일 {regime.get('qqq_day'):+.2f}%"
+        + (" · 미스터마켓 공포창" if market_fear else "")
     )
 
     # ATR / hard% stops beat AI Hold — cut losers with price facts
@@ -711,11 +716,23 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             + " · ".join(f"{d.symbol}:{d.action.value}" for d in stop_exits[:4])
         )
 
+    from oracle.investing.buffett import review_holdings
+
+    prune_sells, protect_syms = review_holdings(portfolio)
+    if prune_sells:
+        prog(
+            "버핏 정리(기회비용) · "
+            + " · ".join(f"{d.symbol}:{d.action.value}" for d in prune_sells[:4])
+        )
+    if protect_syms:
+        prog("버핏 장기보호 · " + ", ".join(sorted(protect_syms)[:6]))
+
     huntish = mode in {"hunt", "panic"} or urgency >= 0.55
+    # Fear window: still allow aggressive ranking for quality dips
     best_buy, best_sell = rank_decisions_for_trade(
         result.decisions,
         held=set(held),
-        aggressive=huntish and not regime.get("risk_off"),
+        aggressive=huntish and (market_fear or not regime.get("risk_off")),
     )
     prog(
         f"AI 후보 정리 · 매수={'있음 '+best_buy.symbol if best_buy else '없음'} · "
@@ -727,6 +744,12 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     if stop_exits:
         best_sell = stop_exits[0]
         prog(f"손절 우선 · {best_sell.symbol} · {best_sell.rationale[:120]}")
+    elif prune_sells and (
+        best_sell is None or best_sell.symbol == prune_sells[0].symbol
+        or float(getattr(best_sell, "confidence", 0) or 0) < 0.6
+    ):
+        best_sell = prune_sells[0]
+        prog(f"버핏 정리 우선 · {best_sell.symbol} · {best_sell.rationale[:120]}")
 
     # 단타 익절: 보유가 급등(rip)하면 AI Hold여도 매도 후보로 승격 (stops already set)
     if not stop_exits and rip_exits and (
@@ -737,16 +760,33 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         from oracle.core.types import RiskVeto
 
         top_rip = rip_exits[0]
-        best_sell = DR(
-            symbol=top_rip.symbol,
-            action=Action.SELL if top_rip.rip_score >= 0.07 else Action.REDUCE,
-            confidence=0.58,
-            composite_score=-min(0.7, top_rip.rip_score * 2),
-            rationale=f"단타 익절 · sell-the-rip · {', '.join(top_rip.reasons)}",
-            agent_opinions=[],
-            risk_veto=RiskVeto(active=False, reason="scalp_exit", confidence=0.55),
-        )
-        prog(f"단타 익절 승격 · {top_rip.symbol} rip={top_rip.rip_score:.2f}")
+        # Don't rip-sell protected compounders on mild extension
+        if top_rip.symbol in protect_syms and top_rip.rip_score < 0.09:
+            prog(f"버핏 보호 · {top_rip.symbol} 약한 익절신호 무시(장기우량)")
+        else:
+            best_sell = DR(
+                symbol=top_rip.symbol,
+                action=Action.SELL if top_rip.rip_score >= 0.07 else Action.REDUCE,
+                confidence=0.58,
+                composite_score=-min(0.7, top_rip.rip_score * 2),
+                rationale=f"단타 익절 · sell-the-rip · {', '.join(top_rip.reasons)}",
+                agent_opinions=[],
+                risk_veto=RiskVeto(active=False, reason="scalp_exit", confidence=0.55),
+            )
+            prog(f"단타 익절 승격 · {top_rip.symbol} rip={top_rip.rip_score:.2f}")
+
+    # Protect wonderful businesses from weak AI sells (stops/prunes already handled)
+    if (
+        best_sell
+        and best_sell.symbol in protect_syms
+        and not stop_exits
+        and not (prune_sells and best_sell.symbol == prune_sells[0].symbol)
+        and "sell-the-rip" not in (best_sell.rationale or "")
+        and "BUFFETT PRUNE" not in (best_sell.rationale or "")
+        and float(getattr(best_sell, "confidence", 0) or 0) < 0.7
+    ):
+        prog(f"버핏 보호 · {best_sell.symbol} 약한 매도신호 무시(우량 장기보유)")
+        best_sell = None
 
     # Ticket size: hard broker caps ∩ AI remaining budget (user-assigned sleeve)
     remain = float(plan.get("remaining_budget") if plan.get("remaining_budget") is not None else live_max_notional())
@@ -759,12 +799,15 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     else:
         budget_slice = max(1.0, remain * 0.28)
     max_n = min(hard, max(first_trade_notional(), budget_slice), first_trade_notional() * 2.5)
-    if regime.get("risk_off"):
+    if regime.get("risk_off") and not market_fear:
         max_n = min(max_n, first_trade_notional() * 0.55)
         prog("리스크오프(VIX/지수 FACT) · 주문 한도 축소 · 스크린 폴백 매수 금지")
         if best_buy and float(getattr(best_buy, "confidence", 0) or 0) < 0.62:
             prog(f"매수 {best_buy.symbol} 보류 · risk_off에서 고확신만")
             best_buy = None
+    elif market_fear:
+        prog("미스터마켓 공포 · 우량 할인 매수 우선 · 쓰레기 추격 금지")
+        max_n = min(hard, max(max_n, first_trade_notional() * 1.1))
     if ai_budget() is not None:
         max_n = min(max_n, hard)
         prog(f"주문 한도 ${max_n:,.2f} (AI 잔여한도 ${remain:,.2f})")
@@ -816,11 +859,14 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         "principles": principles_as_dicts(),
         "latest": None,
         "top": [],
+        "market_fear": market_fear,
+        "protect": sorted(protect_syms),
         "mission_ko": (
             f"목표 기간 내 복리 · 실패/원금잠식/거짓이면 영원 소멸 · "
             f"모드 {gprog.get('mode_ko') or mode}"
+            + (" · 공포창 우량매수" if market_fear else "")
         ),
-        "note_ko": "공개 원칙→매매규칙 · 책 원문 복제 아님",
+        "note_ko": "이득 규칙만 적용 · 우량보호·쓰레기정리·공포할인·확신집중",
     }
     # Pre-rank Buffett-qualified names from screen for hunt rescue / long bias
     screen_syms = list(
@@ -832,7 +878,8 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     )
     buff_top = best_buffett_candidates(
         screen_syms,
-        risk_off=bool(regime.get("risk_off")),
+        risk_off=bool(regime.get("risk_off")) and not market_fear,
+        market_fear=market_fear,
         limit=5,
     )
     buffett_desk["top"] = [v.as_dict() for v in buff_top]
@@ -855,7 +902,8 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         verdict = evaluate_buffett(
             best_buy.symbol,
             chase=chase,
-            risk_off=bool(regime.get("risk_off")),
+            risk_off=bool(regime.get("risk_off")) and not market_fear,
+            market_fear=market_fear,
         )
         buffett_desk["latest"] = verdict.as_dict()
         prog(f"버핏 데스크 · {verdict.summary_ko}")
@@ -900,7 +948,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         and remain > 0.5
         and buff_top
         and session.get("buy_ok", True)
-        and not regime.get("risk_off")
+        and (market_fear or not regime.get("risk_off"))
     ):
         rescue = buff_top[0]
         best_buy = DR(
@@ -1031,7 +1079,7 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         and mode in {"hunt", "panic"}
         and not reached
         and remain > 0.5
-        and not regime.get("risk_off")
+        and (market_fear or not regime.get("risk_off"))
         and session.get("buy_ok", True)
     ):
         from oracle.core.types import DecisionResult as DR
@@ -1067,7 +1115,11 @@ def _run_once_locked(prog: ProgressFn) -> dict:
                 skip_reasons.append(why)
                 continue
             if tag == "장타":
-                bv = evaluate_buffett(top.symbol, risk_off=bool(regime.get("risk_off")))
+                bv = evaluate_buffett(
+                    top.symbol,
+                    risk_off=bool(regime.get("risk_off")) and not market_fear,
+                    market_fear=market_fear,
+                )
                 if not bv.buy_ok:
                     skip_reasons.append(f"{top.symbol} 버핏장타거절")
                     continue

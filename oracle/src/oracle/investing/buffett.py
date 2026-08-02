@@ -198,19 +198,74 @@ def best_buffett_candidates(
     symbols: list[str],
     *,
     risk_off: bool = False,
+    market_fear: bool = False,
     limit: int = 5,
 ) -> list[BuffettVerdict]:
     """Rank symbols by owner score for goal-seeking hunt."""
     out: list[BuffettVerdict] = []
     for sym in symbols:
         try:
-            v = evaluate_buffett(sym, risk_off=risk_off)
+            v = evaluate_buffett(sym, risk_off=risk_off, market_fear=market_fear)
         except Exception:
             continue
         if v.buy_ok:
             out.append(v)
     out.sort(key=lambda v: (v.score, v.owner_quality, v.margin_of_safety), reverse=True)
     return out[:limit]
+
+
+def review_holdings(portfolio) -> tuple[list, set[str]]:
+    """Opportunity-cost prune + long-hold protect.
+
+    Returns (prune_decisions, protect_symbols).
+    - Prune: low-quality / permanent-loss-risk holdings → Sell/Reduce
+    - Protect: wonderful businesses → block noisy sells (stops/rips still win)
+    """
+    from oracle.core.types import Action, DecisionResult, RiskVeto
+
+    prune: list[DecisionResult] = []
+    protect: set[str] = set()
+    for pos in getattr(portfolio, "positions", []) or []:
+        sym = getattr(pos, "symbol", None)
+        if not sym or float(getattr(pos, "shares", 0) or 0) <= 0:
+            continue
+        try:
+            v = evaluate_buffett(sym)
+        except Exception:
+            continue
+        pnl = getattr(pos, "unrealized_pnl_pct", None)
+        try:
+            pnl_f = float(pnl) if pnl is not None else None
+        except (TypeError, ValueError):
+            pnl_f = None
+
+        # Protect compounders: high quality + not broken
+        if v.owner_quality >= 0.55 and v.score >= 0.08 and "fortress_balance" not in v.principles_fail:
+            protect.add(sym.upper())
+
+        # Prune junk / opportunity-cost capital traps
+        junk = v.score <= -0.15 or (
+            v.owner_quality < 0.35 and "moat" in v.principles_fail
+        )
+        bleeding = pnl_f is not None and pnl_f <= -0.04
+        if junk and (bleeding or v.score <= -0.25):
+            deep = v.score <= -0.3 or (pnl_f is not None and pnl_f <= -0.08)
+            prune.append(
+                DecisionResult(
+                    symbol=sym.upper(),
+                    action=Action.SELL if deep else Action.REDUCE,
+                    confidence=0.62,
+                    composite_score=-0.5,
+                    rationale=(
+                        f"BUFFETT PRUNE · 기회비용 · q={v.owner_quality:.2f} "
+                        f"score={v.score:+.2f} · {v.summary_ko}"
+                    ),
+                    agent_opinions=[],
+                    risk_veto=RiskVeto(active=False, reason="buffett_prune", confidence=0.65),
+                )
+            )
+    prune.sort(key=lambda d: d.composite_score)
+    return prune, protect
 
 
 def _norm_de(dte: float | None) -> float | None:
@@ -229,8 +284,12 @@ def evaluate_buffett(
     fundamentals: FundamentalSnapshot | None = None,
     chase: bool = False,
     risk_off: bool = False,
+    market_fear: bool = False,
 ) -> BuffettVerdict:
-    """Score symbol against the full owner playbook using FACT fundamentals."""
+    """Score symbol against the full owner playbook using FACT fundamentals.
+
+    market_fear=True (index down, not meltdown): Mr. Market — prefer quality dips.
+    """
     sym = symbol.upper()
     checks: list[CheckResult] = []
 
@@ -505,7 +564,20 @@ def evaluate_buffett(
             CheckResult("avoid_speculation", "투기 금지", False, -0.35, "확장·추격 구간")
         )
         mos_parts.append(-0.45)
-    if risk_off:
+    # Fear ≠ always sit in cash: for quality names, fear is a buy window
+    if market_fear and not chase:
+        checks.append(
+            CheckResult(
+                "mr_market",
+                "미스터 마켓",
+                True,
+                0.35,
+                "시장 공포 · 우량 할인 매수 창",
+            )
+        )
+        mos_parts.append(0.3)
+        quality.append(0.15)
+    elif risk_off and not market_fear:
         checks.append(
             CheckResult("temperament", "기질", True, 0.15, "리스크오프 · 조급 매수 금지")
         )
@@ -638,7 +710,21 @@ def evaluate_buffett(
         and covered >= 4
         and "circle_of_competence" not in fail
     )
-    if risk_off:
+    if market_fear and not chase:
+        # Fear window: quality with any reasonable score may buy
+        buy_ok = (
+            owner_quality >= 0.5
+            and score >= 0.05
+            and covered >= 3
+            and "fortress_balance" not in fail
+        ) or buy_ok
+        if buy_ok and owner_quality >= 0.55:
+            size_hint_boost = 0.15
+        else:
+            size_hint_boost = 0.0
+    else:
+        size_hint_boost = 0.0
+    if risk_off and not market_fear:
         buy_ok = buy_ok and score >= 0.28 and mos >= 0.5
 
     # Conviction sizing hint for autopilot
@@ -650,6 +736,8 @@ def evaluate_buffett(
         size_hint = 0.7
     else:
         size_hint = 0.35
+    if size_hint > 0 and size_hint_boost:
+        size_hint = min(1.0, size_hint + size_hint_boost)
 
     summary = (
         f"{sym} 버핏 풀플레이북 · 점수 {score:+.2f} · 사업품질 {owner_quality:.0%} · "

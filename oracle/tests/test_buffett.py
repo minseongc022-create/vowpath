@@ -73,3 +73,49 @@ def test_buffett_agent_emits_opinion(monkeypatch):
     op = BuffettOwnerAgent().analyze("AAPL", PortfolioState(cash=10_000, positions=[]))
     assert op.agent == AgentName.BUFFETT
     assert op.score == 0.3
+
+
+def test_market_fear_boosts_quality_buy():
+    f = FundamentalSnapshot(
+        symbol="QUAL",
+        trailing_pe=22.0,
+        profit_margins=0.18,
+        operating_margins=0.16,
+        revenue_growth=0.10,
+        free_cashflow=5e9,
+        market_cap=1e11,
+        debt_to_equity=50.0,
+        return_on_equity=0.20,
+        current_ratio=1.8,
+        sector="Consumer",
+    )
+    calm = evaluate_buffett("QUAL", fundamentals=f)
+    fear = evaluate_buffett("QUAL", fundamentals=f, market_fear=True)
+    assert fear.buy_ok is True
+    assert fear.score >= calm.score - 0.05
+    assert fear.size_hint >= calm.size_hint
+
+
+def test_review_holdings_prunes_junk(monkeypatch):
+    from oracle.core.types import PortfolioPosition, PortfolioState
+    from oracle.investing import buffett as bb
+
+    weak = FundamentalSnapshot(
+        symbol="JUNK",
+        trailing_pe=60.0,
+        profit_margins=0.01,
+        free_cashflow=-1e8,
+        market_cap=2e9,
+        debt_to_equity=300.0,
+        return_on_equity=0.02,
+    )
+    monkeypatch.setattr(bb, "fetch_fundamentals", lambda s: weak)
+    port = PortfolioState(
+        cash=1000,
+        positions=[
+            PortfolioPosition(symbol="JUNK", shares=10, avg_cost=20, market_price=16)
+        ],
+    )
+    prune, protect = bb.review_holdings(port)
+    assert prune and prune[0].symbol == "JUNK"
+    assert "JUNK" not in protect
