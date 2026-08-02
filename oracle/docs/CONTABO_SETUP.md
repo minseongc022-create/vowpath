@@ -3,46 +3,41 @@
 월 ~€5.50 Cloud VPS 4 (8GB) 기준.  
 집 PC OFF · `https://oracle.vowroad.com` · 페이퍼 매매.
 
+**초간단 체크리스트:** [YOU_DO_THIS_NOW.md](./YOU_DO_THIS_NOW.md)
+
 관련: [DOMAIN_SETUP.md](./DOMAIN_SETUP.md)
 
 ---
 
-## 당신 할 일 (서버 메일 오기 전에도 가능)
+## 당신 할 일 (최소)
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com) **Free** 가입 (유료 플랜 X)  
-2. Alpaca **paper** API 키 준비  
-3. Contabo 메일에서 **IP / 사용자 / 비밀번호** 저장  
-4. (선택) [console.groq.com](https://console.groq.com) 무료 키 — Ollama 백업용
+1. Contabo 메일에서 **서버 IP만** 복사 → 채팅에 붙이기 (**비밀번호는 채팅에 금지**)  
+2. 제가 주는 `ssh` 한 줄 실행 → 비밀번호는 터미널에만 입력  
+3. 서버 안에서 아래 **한 줄** 실행:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/minseongc022-create/vowpath/cursor/project-oracle-mvp-ccfb/oracle/scripts/first_boot_oracle.sh | bash
+```
+
+(대시보드 비번·Alpaca 키는 질문이 나오면 짧게 입력)
+
+미리 준비하면 좋은 것: Cloudflare Free, Alpaca paper 키.
 
 ---
 
-## 서버 준비되면 (SSH)
+## 서버 준비되면 (SSH) — 수동
 
 ```bash
-ssh 사용자@서버IP
+ssh root@서버IP
 ```
 
-그다음 **한 번에** (코드가 깃허브에 있을 때):
+부트스트랩만:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/minseongc022-create/vowpath/cursor/project-oracle-mvp-ccfb/oracle/scripts/bootstrap_contabo.sh | bash
 ```
 
-또는 저장소 clone 후:
-
-```bash
-cd vowpath/oracle
-bash scripts/bootstrap_contabo.sh
-```
-
 스크립트가 하는 일: 패키지 · Ollama · Oracle · systemd(`oracle`, `ollama`) · `cloudflared` 설치.
-
-`.env`는 직접 채워야 합니다:
-
-```bash
-nano ~/vowpath/oracle/.env
-sudo systemctl restart oracle
-```
 
 ---
 
