@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Example overnight runner.
+# Overnight: 3 platform posts + notification
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 mkdir -p data
 export MOCK_LLM="${MOCK_LLM:-0}"
-npm run nightly -- --count "${POSTS_PER_BRAND:-1}" >> data/cron.log 2>&1
+npm run generate-all >> data/cron.log 2>&1

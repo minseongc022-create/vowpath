@@ -62,7 +62,11 @@ ${payload.body}
     try {
       await fetch(`https://ntfy.sh/${ntfy}`, {
         method: "POST",
-        headers: { Title: payload.title, Tags: "white_check_mark" },
+        headers: {
+          Title: "Content Autopilot done",
+          Tags: "white_check_mark",
+          "Content-Type": "text/plain; charset=utf-8",
+        },
         body: payload.body,
       });
       log("info", "ntfy notification sent");

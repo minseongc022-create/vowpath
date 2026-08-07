@@ -34,6 +34,20 @@ async function main() {
     return;
   }
 
+  if (cmd === "setup") {
+    const { bootstrapAll } = await import("../setup/bootstrap.ts");
+    await bootstrapAll();
+    return;
+  }
+
+  if (cmd === "test-connections") {
+    const { testAllConnections } = await import("../connections/test.ts");
+    applyConnectionsToEnv();
+    const results = await testAllConnections();
+    console.log(results.map((r) => `${r.platform}: ${r.ok ? "OK" : "FAIL"} — ${r.detail}`).join("\n"));
+    return;
+  }
+
   if (cmd === "dry-run") {
     process.env.MOCK_LLM = process.env.MOCK_LLM || "1";
     process.env.PUBLISH_MODE = "filesystem";
@@ -115,9 +129,11 @@ function printHelp() {
   console.log(`content-autopilot
 
 Commands:
+  setup                      .env 생성 + 3플랫폼 생성 + 알림 (첫 실행)
   list-brands
-  dashboard                  Local UI to connect WordPress/Blogger/Naver (http://127.0.0.1:3847)
+  dashboard                  Local UI — LLM/플랫폼/생성 한곳에서 (http://127.0.0.1:3847)
   connections                Show saved platform connections
+  test-connections           Test WordPress/Blogger/Naver connections
   dry-run [--brand <id>]       Offline mock pipeline + quality gate
   produce --brand <id>       Real LLM produce + publish (needs LLM_API_KEY)
   generate-all               3 platforms (Naver/WP/Blogger) — 1 post each + notification

@@ -18,14 +18,21 @@ An overnight pipeline that:
 - A Naver→Google bait / traffic-manipulation kit
 - A gossip/news-scrape spam farm
 
-## Quick start
+## Quick start (전부 한 번에)
 
 ```bash
 cd content-autopilot
+chmod +x scripts/setup-all.sh
+./scripts/setup-all.sh          # .env + 3플랫폼 생성 + 알림
+npm run dashboard               # http://127.0.0.1:3847 — API키/플랫폼/생성
+```
+
+또는:
+
+```bash
 npm install
-cp .env.example .env
-npm test
-npm run dry-run -- --brand personal-naver
+npm run setup
+npm run dashboard
 ```
 
 ### Connect platforms (local dashboard)
