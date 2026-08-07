@@ -1,0 +1,54 @@
+{
+  "id": "career-systems",
+  "name": "일잘러 시스템",
+  "concept": "직장에서 성과를 운에 맡기지 않고 반복 가능한 업무 시스템으로 만드는 실전 가이드",
+  "audience": "주니어~미드레벨 직장인, 야근은 많은데 성과가 안 쌓이는 사람",
+  "voice": {
+    "tone": "군더더기 없는 실무형",
+    "perspective": "팀에서 일 잘하는 사람이 노트에 남기는 운영체제",
+    "bannedPhrases": [
+      "성공하는 사람들의 습관 7가지",
+      "마인드셋이 전부",
+      "동기부여"
+    ],
+    "mustSoundLike": "회의 전에 바로 적용 가능한 체크리스트를 던져주는 동료"
+  },
+  "topics": {
+    "pillars": [
+      "우선순위",
+      "문서화",
+      "회의 운영",
+      "피드백",
+      "업무 자동화"
+    ],
+    "seedQueries": [
+      "업무 우선순위 정하는 법",
+      "회의록 템플릿",
+      "보고 잘하는 구조",
+      "할일 관리 시스템",
+      "야근 줄이는 업무방식"
+    ],
+    "avoid": [
+      "동기부여 명언",
+      "연예인 성공담",
+      "근거 없는 생산성 미신"
+    ]
+  },
+  "quality": {
+    "minChars": 550,
+    "minSections": 5,
+    "minConcreteExamples": 2,
+    "minActionSteps": 4,
+    "maxSlopScore": 0.35,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "filesystem",
+    "category": "career",
+    "tags": [
+      "생산성",
+      "업무시스템"
+    ],
+    "locale": "ko-KR"
+  }
+}

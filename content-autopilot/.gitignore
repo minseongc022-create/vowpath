@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+data/output/
+data/runs/
+data/cron.log
+*.log

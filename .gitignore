@@ -8,3 +8,8 @@ data/*.json
 *.tsbuildinfo
 .vercel
 .env*
+
+content-autopilot/node_modules/
+content-autopilot/dist/
+content-autopilot/data/
+content-autopilot/.env
