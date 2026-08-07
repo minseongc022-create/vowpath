@@ -1,0 +1,42 @@
+{
+  "id": "personal-blogger",
+  "name": "Google Blogger (개인)",
+  "concept": "비개발자도 이해하는 기술·디지털 개념을 사실 기반으로 풀어쓰는 블로그",
+  "audience": "IT 용어는 자주 듣지만 개념 설명은 어려운 직장인·기획자",
+  "voice": {
+    "tone": "친절하지만 가볍지 않은 설명 톤",
+    "perspective": "기술을 번역해주는 실무 해설가",
+    "bannedPhrases": ["꿀팁 대방출", "충격 반전", "속보", "클릭하지 마세요"],
+    "mustSoundLike": "비유와 예시로 개념을 끝까지 끌고 가는 선생님"
+  },
+  "topics": {
+    "pillars": ["API", "데이터", "보안 기초", "클라우드", "자동화"],
+    "seedQueries": [
+      "API가 뭔지 쉽게",
+      "데이터베이스 개념 정리",
+      "JWT 인증 기초",
+      "클라우드 비유 설명",
+      "노코드 연동 주의점"
+    ],
+    "avoid": ["연예", "정치", "허위 기사", "불법 해킹"]
+  },
+  "quality": {
+    "minChars": 2000,
+    "minSections": 6,
+    "minConcreteExamples": 3,
+    "minActionSteps": 5,
+    "maxSlopScore": 0.32,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "blogger",
+    "category": "technology",
+    "tags": ["기술해설", "API", "디지털"],
+    "locale": "ko-KR"
+  },
+  "safety": {
+    "requireFactualOnly": true,
+    "allowClickbaitTitle": true,
+    "blockUnverifiedStats": true
+  }
+}

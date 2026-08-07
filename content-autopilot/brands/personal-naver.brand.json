@@ -1,0 +1,42 @@
+{
+  "id": "personal-naver",
+  "name": "네이버 블로그 (개인)",
+  "concept": "직장인 월급·현금흐름을 사실 기반으로 정리하는 실용 블로그",
+  "audience": "월급으로 생활비·저축 구조를 바꾸고 싶은 20~30대 직장인",
+  "voice": {
+    "tone": "솔직하고 실무적인 톤",
+    "perspective": "직접 통장 구조를 실험해본 직장인의 메모",
+    "bannedPhrases": ["꿀팁 대방출", "무조건 수익", "속보", "단독", "충격 반전"],
+    "mustSoundLike": "과장 없이 숫자와 구조를 설명하는 선배"
+  },
+  "topics": {
+    "pillars": ["월급 관리", "현금흐름", "통장 분리", "자동이체", "지출 점검"],
+    "seedQueries": [
+      "통장 쪼개기 실전",
+      "월급 관리 자동이체",
+      "생활비 통장 분리",
+      "구독 정리 체크리스트",
+      "비상금 얼마나 모을까"
+    ],
+    "avoid": ["연예", "가십", "정치", "허위 속보", "특정 종목 추천"]
+  },
+  "quality": {
+    "minChars": 2000,
+    "minSections": 6,
+    "minConcreteExamples": 3,
+    "minActionSteps": 5,
+    "maxSlopScore": 0.32,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "naver",
+    "category": "재테크",
+    "tags": ["월급", "현금흐름", "통장관리"],
+    "locale": "ko-KR"
+  },
+  "safety": {
+    "requireFactualOnly": true,
+    "allowClickbaitTitle": true,
+    "blockUnverifiedStats": true
+  }
+}

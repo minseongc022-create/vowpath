@@ -1,0 +1,37 @@
+{
+  "id": "finance-salary",
+  "name": "월급구조연구소",
+  "concept": "직장인 월급 현금흐름과 자산 구조를 실전으로 정리하는 미디어",
+  "audience": "월급 200~400만 원대 직장인, 부업 전 현금구멍부터 막고 싶은 사람",
+  "voice": {
+    "tone": "직설적이고 차분한 실무 톤",
+    "perspective": "재무설계사 흉내가 아니라, 직접 월급 구조 실험해본 사람의 메모",
+    "bannedPhrases": ["꿀팁 대방출", "부자되는 법 총정리", "지금 안 보면 후회", "무조건 수익"],
+    "mustSoundLike": "과장 없는 선임이 후배에게 통장 구조를 알려주는 느낌"
+  },
+  "topics": {
+    "pillars": ["월급 관리", "현금흐름", "자동이체", "비상금", "지출 구조"],
+    "seedQueries": [
+      "통장 쪼개기 방법",
+      "월급 관리 예산",
+      "고정비 줄이기 체크리스트",
+      "비상금 얼마나",
+      "부업 전 저축 구조"
+    ],
+    "avoid": ["연예", "가십", "정치 선동", "코인 단타 추천", "특정 종목 매수 추천"]
+  },
+  "quality": {
+    "minChars": 800,
+    "minSections": 5,
+    "minConcreteExamples": 2,
+    "minActionSteps": 4,
+    "maxSlopScore": 0.35,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "filesystem",
+    "category": "finance",
+    "tags": ["월급", "현금흐름", "예산"],
+    "locale": "ko-KR"
+  }
+}

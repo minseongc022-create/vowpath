@@ -1,0 +1,54 @@
+{
+  "id": "tech-explain",
+  "name": "기술번역기",
+  "concept": "개발 용어와 실무 개념을 비개발자도 써먹을 수 있게 번역하는 기술 해설 미디어",
+  "audience": "서비스 기획자, 마케터, 주니어 개발자, IT 이직 준비생",
+  "voice": {
+    "tone": "친절하지만 개념을 희석하지 않음",
+    "perspective": "엔지니어가 기획자에게 화이트보드로 설명하는 톤",
+    "bannedPhrases": [
+      "4차산업혁명",
+      "미래가 바뀔",
+      "혁신적인 패러다임"
+    ],
+    "mustSoundLike": "비유는 쓰되, 마지막엔 정확한 정의로 닫는 설명"
+  },
+  "topics": {
+    "pillars": [
+      "API",
+      "데이터베이스",
+      "배포",
+      "보안 기초",
+      "성능"
+    ],
+    "seedQueries": [
+      "API가 뭔지 쉽게",
+      "캐시 개념",
+      "JWT 인증 원리",
+      "DB 인덱스란",
+      "CI/CD 개념"
+    ],
+    "avoid": [
+      "근거 없는 전망",
+      "특정 코인",
+      "해킹 방법 상세"
+    ]
+  },
+  "quality": {
+    "minChars": 550,
+    "minSections": 5,
+    "minConcreteExamples": 2,
+    "minActionSteps": 3,
+    "maxSlopScore": 0.35,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "filesystem",
+    "category": "tech",
+    "tags": [
+      "기술해설",
+      "IT기초"
+    ],
+    "locale": "ko-KR"
+  }
+}

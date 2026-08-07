@@ -1,0 +1,29 @@
+{
+  "name": "content-autopilot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Concept-matched, quality-gated long-form blog autopilot (WordPress / Blogger)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/cli/run.js",
+    "dev": "node --experimental-strip-types src/cli/run.ts",
+    "nightly": "node --experimental-strip-types src/cli/run.ts nightly",
+    "produce": "node --experimental-strip-types src/cli/run.ts produce",
+    "dry-run": "node --experimental-strip-types src/cli/run.ts dry-run",
+    "generate-all": "node --experimental-strip-types src/cli/run.ts generate-all",
+    "dashboard": "node --experimental-strip-types src/cli/run.ts dashboard",
+    "connections": "node --experimental-strip-types src/cli/run.ts connections",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
