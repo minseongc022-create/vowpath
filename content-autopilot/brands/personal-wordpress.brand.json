@@ -1,0 +1,42 @@
+{
+  "id": "personal-wordpress",
+  "name": "WordPress (개인)",
+  "concept": "일잘러를 위한 우선순위·업무 시스템을 사실 기반으로 정리하는 블로그",
+  "audience": "야근은 많은데 성과가 안 보이는 직장인, 업무 구조를 바꾸고 싶은 사람",
+  "voice": {
+    "tone": "차분하고 직설적인 실무 톤",
+    "perspective": "팀에서 우선순위 시스템을 직접 적용해본 실무자",
+    "bannedPhrases": ["꿀팁 대방출", "지금 안 보면 후회", "속보", "99%가 모르는"],
+    "mustSoundLike": "회의실에서 바로 쓸 수 있는 조언을 주는 동료"
+  },
+  "topics": {
+    "pillars": ["우선순위", "업무 시스템", "회의", "문서화", "집중"],
+    "seedQueries": [
+      "업무 우선순위 정하는 법",
+      "WIP 제한 방법",
+      "회의 줄이기 실전",
+      "MIT 업무 관리",
+      "야근 줄이는 업무 구조"
+    ],
+    "avoid": ["연예", "정치", "허위 뉴스", "특정 회사 비방"]
+  },
+  "quality": {
+    "minChars": 2000,
+    "minSections": 6,
+    "minConcreteExamples": 3,
+    "minActionSteps": 5,
+    "maxSlopScore": 0.32,
+    "requireOriginalTake": true
+  },
+  "publishing": {
+    "platform": "wordpress",
+    "category": "productivity",
+    "tags": ["업무", "우선순위", "생산성"],
+    "locale": "ko-KR"
+  },
+  "safety": {
+    "requireFactualOnly": true,
+    "allowClickbaitTitle": true,
+    "blockUnverifiedStats": true
+  }
+}

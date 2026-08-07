@@ -2,7 +2,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadAllBrands, loadBrand, loadEnvFile, ROOT } from "../config/load.ts";
-import { produceOne, runNightly } from "../pipeline/produce.ts";
+import { produceOne, runGenerateAll, runNightly } from "../pipeline/produce.ts";
+import { buildNotifyPayload, notifyComplete } from "../notify/index.ts";
+import { applyConnectionsToEnv, connectionSummary } from "../connections/store.ts";
 import { log } from "../lib/utils.ts";
 
 loadEnvFile();
@@ -16,17 +18,27 @@ async function main() {
   }
 
   if (cmd === "list-brands") {
-    console.log(loadAllBrands().map((b) => `${b.id}\t${b.name}\t${b.concept}`).join("\n"));
+    console.log(loadAllBrands().map((b) => `${b.id}\t${b.name}\t${b.publishing.platform}`).join("\n"));
+    return;
+  }
+
+  if (cmd === "dashboard") {
+    const { startDashboard } = await import("../web/server.ts");
+    startDashboard();
+    return;
+  }
+
+  if (cmd === "connections") {
+    const c = applyConnectionsToEnv();
+    console.log(connectionSummary(c));
     return;
   }
 
   if (cmd === "dry-run") {
     process.env.MOCK_LLM = process.env.MOCK_LLM || "1";
     process.env.PUBLISH_MODE = "filesystem";
-    const brandId = flag(rest, "--brand") || "finance-salary";
-    if (!brandId) throw new Error("No brands found");
+    const brandId = flag(rest, "--brand") || "personal-naver";
     const brand = loadBrand(brandId);
-    // Soften quality for mock length variance? Keep real gate — mock article should pass finance brand.
     const result = await produceOne(brand, { publish: true, maxAttempts: 2 });
     const summaryDir = join(ROOT, "data", "runs");
     mkdirSync(summaryDir, { recursive: true });
@@ -49,10 +61,25 @@ async function main() {
     return;
   }
 
+  if (cmd === "generate-all") {
+    process.env.MOCK_LLM = process.env.MOCK_LLM || (!process.env.LLM_API_KEY ? "1" : "0");
+    const results = await runGenerateAll();
+    const payload = buildNotifyPayload(results);
+    await notifyComplete(payload);
+    const summaryDir = join(ROOT, "data", "runs");
+    mkdirSync(summaryDir, { recursive: true });
+    const path = join(summaryDir, `generate-all-${Date.now()}.json`);
+    writeFileSync(path, JSON.stringify(results, null, 2));
+    log("info", `Generate-all complete → ${path}`);
+    return;
+  }
+
   if (cmd === "nightly") {
     const brands = loadAllBrands();
     const n = Number(process.env.POSTS_PER_BRAND || flag(rest, "--count") || 1);
     const results = await runNightly(brands, n);
+    const payload = buildNotifyPayload(results);
+    await notifyComplete(payload);
     const summaryDir = join(ROOT, "data", "runs");
     mkdirSync(summaryDir, { recursive: true });
     const path = join(summaryDir, `nightly-${Date.now()}.json`);
@@ -66,8 +93,8 @@ async function main() {
           published: r.published,
         })),
         null,
-        2
-      )
+        2,
+      ),
     );
     log("info", `Nightly complete → ${path}`);
     return;
@@ -89,9 +116,12 @@ function printHelp() {
 
 Commands:
   list-brands
-  dry-run [--brand <id>]     Offline mock pipeline + quality gate + filesystem save
+  dashboard                  Local UI to connect WordPress/Blogger/Naver (http://127.0.0.1:3847)
+  connections                Show saved platform connections
+  dry-run [--brand <id>]       Offline mock pipeline + quality gate
   produce --brand <id>       Real LLM produce + publish (needs LLM_API_KEY)
-  nightly [--count N]        All brands, overnight batch
+  generate-all               3 platforms (Naver/WP/Blogger) — 1 post each + notification
+  nightly [--count N]        All brands batch + notification
 
 Env: see .env.example
 `);

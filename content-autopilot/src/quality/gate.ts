@@ -1,4 +1,6 @@
 import type { ArticleDraft, Brand, QualityReport } from "../config/types.ts";
+import { passesFactualGate } from "./factual.ts";
+import { platformSafetyScore } from "./safety.ts";
 
 const SLOP_PHRASES = [
   "이번 포스팅에서는",
@@ -84,6 +86,20 @@ export function evaluateQuality(brand: Brand, article: ArticleDraft): QualityRep
     id: "no_deceptive_bait",
     ok: !deceptive,
     detail: deceptive ? "deceptive bait language" : "ok",
+  });
+
+  const factual = passesFactualGate(article.title, md, brand.safety?.blockUnverifiedStats ?? true);
+  checks.push({
+    id: "factual_only",
+    ok: factual.ok,
+    detail: factual.detail,
+  });
+
+  const safety = platformSafetyScore(article.title, md);
+  checks.push({
+    id: "platform_safety",
+    ok: safety.ok,
+    detail: `score=${safety.score.toFixed(2)} issues=${safety.issues.join(",") || "none"}`,
   });
 
   const passed = checks.every((c) => c.ok);

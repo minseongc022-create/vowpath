@@ -11,6 +11,9 @@
     "nightly": "node --experimental-strip-types src/cli/run.ts nightly",
     "produce": "node --experimental-strip-types src/cli/run.ts produce",
     "dry-run": "node --experimental-strip-types src/cli/run.ts dry-run",
+    "generate-all": "node --experimental-strip-types src/cli/run.ts generate-all",
+    "dashboard": "node --experimental-strip-types src/cli/run.ts dashboard",
+    "connections": "node --experimental-strip-types src/cli/run.ts connections",
     "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "engines": {

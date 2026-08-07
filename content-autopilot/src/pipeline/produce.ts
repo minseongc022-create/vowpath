@@ -1,12 +1,16 @@
 import type { Brand, ProduceResult } from "../config/types.ts";
+import { applyConnectionsToEnv } from "../connections/store.ts";
+import { loadBrand } from "../config/load.ts";
 import { selectTopics } from "../topics/selector.ts";
 import { buildResearchBrief } from "../writers/research.ts";
 import { humanizeDraft, writeLongForm } from "../writers/draft.ts";
+import { factCheckDraft } from "../writers/factcheck.ts";
 import { evaluateQuality } from "../quality/gate.ts";
 import { publishArticle } from "../publishers/index.ts";
 import { log } from "../lib/utils.ts";
 
 export async function produceOne(brand: Brand, opts?: { publish?: boolean; maxAttempts?: number }): Promise<ProduceResult> {
+  applyConnectionsToEnv();
   const maxAttempts = opts?.maxAttempts ?? 3;
   const topics = await selectTopics(brand, 4);
   let lastError: Error | null = null;
@@ -18,6 +22,7 @@ export async function produceOne(brand: Brand, opts?: { publish?: boolean; maxAt
       const brief = await buildResearchBrief(brand, topic);
       let article = await writeLongForm(brand, brief);
       article = await humanizeDraft(brand, article);
+      article = await factCheckDraft(brand, article);
       let quality = evaluateQuality(brand, article);
 
       // One repair pass if failed
@@ -31,6 +36,7 @@ export async function produceOne(brand: Brand, opts?: { publish?: boolean; maxAt
           ],
         });
         article = await humanizeDraft(brand, article);
+        article = await factCheckDraft(brand, article);
         quality = evaluateQuality(brand, article);
       }
 
@@ -58,6 +64,12 @@ export async function produceOne(brand: Brand, opts?: { publish?: boolean; maxAt
   }
 
   throw lastError || new Error(`Failed to produce article for ${brand.id}`);
+}
+
+export async function runGenerateAll(): Promise<ProduceResult[]> {
+  const ids = ["personal-naver", "personal-wordpress", "personal-blogger"];
+  const brands = ids.map((id) => loadBrand(id));
+  return runNightly(brands, 1);
 }
 
 export async function runNightly(brands: Brand[], postsPerBrand = 1): Promise<ProduceResult[]> {

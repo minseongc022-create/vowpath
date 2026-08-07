@@ -115,3 +115,19 @@ test("quality gate accepts solid practical article", () => {
 test("slugify works for korean titles", () => {
   assert.ok(slugify("월급 관리 가이드 2026").length > 0);
 });
+
+test("factual gate blocks fabricated news patterns", async () => {
+  const { passesFactualGate } = await import("../src/quality/factual.ts");
+  const bad = passesFactualGate("속보: 정부 발표에 따르면", "단독: 확인됐습니다", true);
+  assert.equal(bad.ok, false);
+  const ok = passesFactualGate("월급 통장 구조", "예를 들어 통장을 나누면 경계가 생긴다", true);
+  assert.equal(ok.ok, true);
+});
+
+test("platform safety catches duplicate paragraphs", async () => {
+  const { platformSafetyScore } = await import("../src/quality/safety.ts");
+  const para =
+    "이 문단은 중복 검사에 걸리도록 첫 팔십자를 동일하게 유지하면서 충분히 길게 작성합니다. 예를 들어 같은 내용을 두 번 반복하면 스팸 신호로 분류될 수 있습니다.";
+  const dup = platformSafetyScore("제목", `${para}\n\n${para}`);
+  assert.equal(dup.ok, false);
+});

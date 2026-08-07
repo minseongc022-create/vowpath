@@ -25,12 +25,47 @@ export const BrandSchema = z.object({
     requireOriginalTake: z.boolean().default(true),
   }),
   publishing: z.object({
-    platform: z.enum(["wordpress", "blogger", "filesystem"]).default("filesystem"),
+    platform: z.enum(["wordpress", "blogger", "naver", "filesystem"]).default("filesystem"),
     category: z.string().optional(),
     tags: z.array(z.string()).default([]),
     locale: z.string().default("ko-KR"),
   }),
+  safety: z
+    .object({
+      requireFactualOnly: z.boolean().default(true),
+      allowClickbaitTitle: z.boolean().default(true),
+      blockUnverifiedStats: z.boolean().default(true),
+    })
+    .default({}),
 });
+
+export const PlatformConnectionSchema = z.object({
+  wordpress: z
+    .object({
+      baseUrl: z.string().optional(),
+      username: z.string().optional(),
+      appPassword: z.string().optional(),
+      connectedAt: z.string().optional(),
+    })
+    .optional(),
+  blogger: z
+    .object({
+      blogId: z.string().optional(),
+      accessToken: z.string().optional(),
+      connectedAt: z.string().optional(),
+    })
+    .optional(),
+  naver: z
+    .object({
+      blogUrl: z.string().optional(),
+      blogId: z.string().optional(),
+      note: z.string().optional(),
+      connectedAt: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type PlatformConnections = z.infer<typeof PlatformConnectionSchema>;
 
 export type Brand = z.infer<typeof BrandSchema>;
 

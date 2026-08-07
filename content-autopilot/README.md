@@ -1,6 +1,6 @@
 # Content Autopilot
 
-Concept-matched long-form blog engine with quality gates.
+Concept-matched long-form blog engine with factual + quality gates.
 
 ## What this is
 
@@ -8,17 +8,15 @@ An overnight pipeline that:
 
 1. Picks topics that match each brand concept
 2. Builds a research brief (no copyrighted news dumps)
-3. Writes long-form Korean drafts in brand voice
-4. Humanizes + runs a **quality gate** (rejects AI slop / deceptive bait)
-5. Publishes to filesystem, WordPress, or Blogger
+3. Writes **2000+ character** Korean drafts in brand voice
+4. Humanizes → **fact-check pass** → **quality gate** (slop / deceptive bait / fabrication)
+5. Publishes to **Naver (HTML export)**, WordPress, or Blogger
 
 ## What this is not
 
 - A guarantee of ₩10M/month AdSense revenue
 - A Naver→Google bait / traffic-manipulation kit
 - A gossip/news-scrape spam farm
-
-Revenue depends on niche, distribution, policy risk, and months of compounding assets. Software cannot force ad income.
 
 ## Quick start
 
@@ -27,47 +25,69 @@ cd content-autopilot
 npm install
 cp .env.example .env
 npm test
-npm run dry-run -- --brand finance-salary
+npm run dry-run -- --brand personal-naver
 ```
 
-Real LLM:
+### Connect platforms (local dashboard)
 
 ```bash
-# .env
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4.1-mini
-PUBLISH_MODE=draft
-npm run produce -- --brand finance-salary
-npm run nightly
+npm run dashboard
+# → http://127.0.0.1:3847
+# WordPress / Blogger credentials saved to data/connections.json
+# Naver: HTML export (no official post API)
 ```
 
-## Brands
+### Generate all 3 platforms + notification
 
-Edit / add JSON in `brands/*.brand.json`:
+```bash
+# Offline mock (no API key):
+MOCK_LLM=1 npm run generate-all
 
-- concept, audience, voice
-- topic pillars / avoid list
-- quality thresholds
-- publish platform
-
-## Cron (sleep mode)
-
-```cron
-0 3 * * * cd /path/to/content-autopilot && npm run nightly >> data/cron.log 2>&1
+# Real LLM:
+LLM_API_KEY=sk-... npm run generate-all
 ```
+
+Notification lands in `data/inbox/latest.json`. Optional: `NOTIFY_WEBHOOK_URL` or `NTFY_TOPIC` in `.env`.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `generate-all` | Naver + WordPress + Blogger — 1 post each + notify |
+| `dashboard` | Web UI to save platform connections |
+| `dry-run` | Offline mock pipeline |
+| `produce --brand <id>` | Single brand with real LLM |
+| `nightly` | All brands batch |
+
+## Platform brands
+
+| ID | Platform |
+|----|----------|
+| `personal-naver` | Naver — HTML export for paste |
+| `personal-wordpress` | WordPress draft (needs credentials) |
+| `personal-blogger` | Blogger draft (needs OAuth token) |
+
+Without credentials, WordPress/Blogger fall back to filesystem output under `data/output/`.
 
 ## Publish targets
 
-| Mode | Env |
-|------|-----|
-| filesystem (default/dev) | `PUBLISH_MODE=filesystem` |
-| WordPress draft/publish | `WP_BASE_URL`, `WP_USERNAME`, `WP_APP_PASSWORD` |
-| Blogger | `BLOGGER_BLOG_ID`, `BLOGGER_ACCESS_TOKEN` |
+| Platform | How |
+|----------|-----|
+| Naver | `data/naver-export/` HTML + markdown |
+| WordPress | REST API draft/publish |
+| Blogger | API draft/publish |
+| filesystem | `data/output/` (dev fallback) |
+
+## Safety rules (built-in)
+
+- **Factual only**: blocks 속보/단독/허위 통계 패턴
+- **Platform safe**: duplicate paragraphs, keyword stuffing, shouting titles
+- **Clickbait titles OK** if body stays honest
 
 ## Architecture
 
 ```
 Brand config → Topic selector → Research brief
-    → Long-form writer → Humanize → Quality gate
-    → (retry if fail) → Publisher
+    → Long-form writer → Humanize → Fact-check
+    → Quality gate → (retry if fail) → Publisher → Notify
 ```
