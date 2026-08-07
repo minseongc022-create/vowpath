@@ -35,14 +35,19 @@ npm run setup
 npm run dashboard
 ```
 
-### Connect platforms (local dashboard)
+### Connect platforms (phone-friendly PWA)
 
 ```bash
-npm run dashboard
-# → http://127.0.0.1:3847
-# WordPress / Blogger credentials saved to data/connections.json
-# Naver: HTML export (no official post API)
+npm run phone
+# PC 터미널에 나오는 "폰: http://192.168.x.x:3847" 주소로 접속
+# Safari/Chrome → 홈 화면에 추가 → 앱처럼 사용
 ```
+
+**폰에서 하는 일**
+- 🏠 홈 → **3개 플랫폼 전부 생성** (큰 버튼)
+- 🔔 **폰 알림 켜기** → ntfy 앱 자동 연결
+- 🔗 연결 → 네이버 ID / WordPress / Blogger
+- ⚙️ 설정 → LLM API 키
 
 ### Generate all 3 platforms + notification
 
@@ -61,7 +66,7 @@ Notification lands in `data/inbox/latest.json`. Optional: `NOTIFY_WEBHOOK_URL` o
 | Command | Description |
 |---------|-------------|
 | `generate-all` | Naver + WordPress + Blogger — 1 post each + notify |
-| `dashboard` | Web UI to save platform connections |
+| `phone` / `dashboard` | Mobile PWA UI (Wi‑Fi 접속 + 홈 화면 추가) |
 | `dry-run` | Offline mock pipeline |
 | `produce --brand <id>` | Single brand with real LLM |
 | `nightly` | All brands batch |

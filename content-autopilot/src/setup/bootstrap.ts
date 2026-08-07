@@ -50,15 +50,15 @@ export async function bootstrapAll(): Promise<void> {
 ========================================
 ✅ Content Autopilot 초기 설정 완료
 ========================================
-대시보드:  npm run dashboard  →  http://127.0.0.1:${process.env.DASHBOARD_PORT || 3847}
+대시보드:  npm run phone  →  폰에서 Wi‑Fi 주소로 접속 (홈 화면 추가)
 
-다음 단계 (대시보드에서):
-  1) LLM API 키 저장
-  2) WordPress / Google Blogger / 네이버 ID 연결
-  3) [3개 플랫폼 전부 생성] 클릭
+다음 단계 (폰 또는 PC):
+  1) 설정 탭 → LLM API 키 저장
+  2) 연결 탭 → WordPress / Blogger / 네이버
+  3) 홈 → [3개 플랫폼 전부 생성]
 
 알림 (ntfy): https://ntfy.sh/${topic}
-  → 폰 ntfy 앱에서 위 토픽 구독
+  → ntfy 앱 설치 후 [폰 알림 켜기] 또는 토픽 구독
 
 생성된 글: data/inbox/latest.json
 ========================================

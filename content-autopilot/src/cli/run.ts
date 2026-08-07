@@ -131,7 +131,8 @@ function printHelp() {
 Commands:
   setup                      .env 생성 + 3플랫폼 생성 + 알림 (첫 실행)
   list-brands
-  dashboard                  Local UI — LLM/플랫폼/생성 한곳에서 (http://127.0.0.1:3847)
+  dashboard                  Mobile PWA — LLM/플랫폼/생성 (npm run phone)
+  phone                      dashboard 와 동일 (폰용 별칭)
   connections                Show saved platform connections
   test-connections           Test WordPress/Blogger/Naver connections
   dry-run [--brand <id>]       Offline mock pipeline + quality gate
