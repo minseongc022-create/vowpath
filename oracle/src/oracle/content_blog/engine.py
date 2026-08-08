@@ -299,7 +299,8 @@ Hard rules:
             temperature=0.5,
             max_tokens=5500,
             json_mode=False,
-            timeout=35.0,
+            # Keep UI lively: fail over to streamed template writing quickly
+            timeout=12.0 if on_progress else 35.0,
         )
         if not resp.ok or not (resp.text or "").strip():
             logger.warning("LLM blog fallback mock: %s", resp.error)
