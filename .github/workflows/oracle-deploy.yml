@@ -1,0 +1,41 @@
+# Deploy Oracle dashboard (incl. /blog) to Contabo when SSH secret is present.
+name: Oracle Contabo deploy
+
+on:
+  push:
+    branches:
+      - cursor/content-autopilot-engine-42ff
+      - main
+    paths:
+      - "oracle/**"
+      - ".github/workflows/oracle-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_DEPLOY_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.ORACLE_DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.ORACLE_DEPLOY_SSH_USER }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "ORACLE_DEPLOY_SSH_PRIVATE_KEY missing — skip deploy"
+            exit 0
+          fi
+          HOST="${SSH_HOST:-169.58.109.86}"
+          USER="${SSH_USER:-root}"
+          install -m 600 /dev/null /tmp/oracle_deploy_key
+          printf '%s\n' "$SSH_KEY" > /tmp/oracle_deploy_key
+          ssh -i /tmp/oracle_deploy_key \
+            -o StrictHostKeyChecking=accept-new \
+            -o IdentitiesOnly=yes \
+            "$USER@$HOST" \
+            "export ORACLE_REPO_BRANCH='$BRANCH'; curl -fsSL https://raw.githubusercontent.com/minseongc022-create/vowpath/$BRANCH/oracle/scripts/deploy_update.sh | bash"
+          rm -f /tmp/oracle_deploy_key
