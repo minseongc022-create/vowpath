@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}보유{% endblock %}
+{% block subtitle %}보유 자산{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-label">내 총자산</div>
+  <div class="hero-equity">${{ "{:,.2f}".format(equity) }}</div>
+  <div class="hero-meta">
+    <span class="cash-line">현금 ${{ "{:,.2f}".format(cash) }} · {{ "%.0f"|format(cash_pct * 100) }}%</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">내 종목</h2></div>
+  {% if positions %}
+  {% for p in positions %}
+  <div class="holding">
+    <div class="holding-left">
+      <div class="holding-sym">
+        {{ p.symbol }}
+        <span class="badge badge-{{ p.tone }}">{{ p.action_ko }}</span>
+      </div>
+      <div class="holding-meta">
+        {{ "%.4f"|format(p.shares) }}주 · 평단 ${{ "%.2f"|format(p.avg_cost) }} · 현재 ${{ "%.2f"|format(p.price or 0) }}
+      </div>
+    </div>
+    <div class="holding-right">
+      <div class="holding-value">${{ "{:,.2f}".format(p.value) }}</div>
+      <div class="holding-pnl {% if p.pnl_pct >= 0 %}up{% else %}down{% endif %}">
+        {% if p.pnl_pct >= 0 %}+{% endif %}{{ "%.2f"|format(p.pnl_pct * 100) }}%
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 보유 종목이 없습니다.</p>
+  <a class="btn btn-primary btn-block" href="/trades">거래로 이동</a>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}처리 중{% endblock %}
+{% block subtitle %}백그라운드 작업{% endblock %}
+{% block header_action %}{% endblock %}
+{% block content %}
+<section class="card center-panel job-live">
+  {% if job.status == "queued" or job.status == "running" %}
+  <div class="spinner" aria-hidden="true"></div>
+  <h2 class="job-title" id="job-label">{{ job_label }}</h2>
+  <p class="card-desc job-msg" id="job-msg">{{ job.message or "잠시만 기다려 주세요…" }}</p>
+  <div class="live-log" id="job-log" aria-live="polite">
+    {% for line in job.logs or [] %}
+    <div class="live-log-line">{{ line.text }}</div>
+    {% endfor %}
+  </div>
+  <p class="card-desc">서버에서 돌아가는 중 · 창을 나가도 매수/매도는 계속됩니다.</p>
+  <a class="btn btn-soft btn-block" href="/ai?watch={{ job.id }}">AI화면에서 보기 · 나가기</a>
+  {% elif job.status == "done" %}
+  <h2 class="job-title ok-text">완료</h2>
+  <p id="job-msg">{{ job.message }}</p>
+  <div class="live-log">
+    {% for line in job.logs or [] %}
+    <div class="live-log-line">{{ line.text }}</div>
+    {% endfor %}
+  </div>
+  <a class="btn btn-primary btn-block" href="{{ job_redirect }}">결과 보기</a>
+  {% else %}
+  <h2 class="job-title bad-text">실패</h2>
+  <p>{{ job_error or job.message }}</p>
+  <a class="btn btn-soft btn-block" href="/">홈으로</a>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+{% if job.status == "queued" or job.status == "running" %}
+<script>
+(function () {
+  const msgEl = document.getElementById("job-msg");
+  const logEl = document.getElementById("job-log");
+  let seen = {{ (job.logs or [])|length }};
+
+  function renderLogs(logs) {
+    if (!logEl || !Array.isArray(logs)) return;
+    if (logs.length < seen) seen = 0;
+    for (let i = seen; i < logs.length; i++) {
+      const div = document.createElement("div");
+      div.className = "live-log-line live-log-new";
+      div.textContent = logs[i].text || "";
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    seen = logs.length;
+  }
+
+  async function poll() {
+    try {
+      const r = await fetch("/api/job/{{ job.id }}");
+      const j = await r.json();
+      if (msgEl && j.message) msgEl.textContent = j.message;
+      renderLogs(j.logs || (j.payload && j.payload.logs) || []);
+      if (j.status === "done") {
+        let next = j.redirect || "/trades";
+        let hash = "";
+        const hi = next.indexOf("#");
+        if (hi >= 0) { hash = next.slice(hi); next = next.slice(0, hi); }
+        const q = new URLSearchParams({ flash: j.message || "완료" });
+        location.href = next + (next.includes("?") ? "&" : "?") + q.toString() + hash;
+        return;
+      }
+      if (j.status === "error") {
+        location.href = "/ai?flash=" + encodeURIComponent(j.error || j.message || "실패");
+        return;
+      }
+    } catch (e) {}
+    setTimeout(poll, 700);
+  }
+  poll();
+})();
+</script>
+{% endif %}
+{% endblock %}

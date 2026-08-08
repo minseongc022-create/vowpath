@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}거래{% endblock %}
+{% block subtitle %}승인 · 체결{% endblock %}
+{% block content %}
+{% if live_trading %}
+<section class="card danger-soft">
+  <p class="warn-text">실거래 무장 상태 · 승인 시 실제 돈이 나갑니다. 확인란에 LIVE 입력 필수.</p>
+  <p class="card-desc">주문당 최대 ${{ "%.0f"|format(broker.max_notional) }} · 첫 주문 기본 ${{ "%.0f"|format(broker.first_notional) }} (약 1만원)</p>
+</section>
+{% endif %}
+
+<section class="card" id="autopilot-panel">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">AI 자율매매</h2>
+      <p class="card-desc">창 꺼도 서버가 {{ autopilot.interval_sec }}초마다 알아서 매수·매도 · 무료 로컬 AI · 소액($8≈1만원)</p>
+    </div>
+    <span class="chip {% if autopilot.enabled %}chip-ok{% else %}chip-danger{% endif %}" id="ap-chip">
+      {% if autopilot.busy %}실행중{% elif autopilot.enabled %}ON{% else %}OFF{% endif %}
+    </span>
+  </div>
+
+  <div class="live-panel" id="ap-live" {% if not watch_job_id and not autopilot.busy %}hidden{% endif %}>
+    <div class="live-panel-head">
+      <span class="spinner spinner-sm" aria-hidden="true"></span>
+      <strong id="ap-live-title">실행 로그</strong>
+    </div>
+    <p class="card-desc job-msg" id="ap-live-msg">{{ autopilot.last_message or "준비 중…" }}</p>
+    <div class="live-log" id="ap-live-log" aria-live="polite"></div>
+    <p class="card-desc">나가도 괜찮아요. 서버에서 계속 돌아갑니다.</p>
+  </div>
+
+  {% if autopilot.last_message and not watch_job_id %}
+  <p class="card-desc" id="ap-last">최근: {{ autopilot.last_message }}{% if autopilot.last_ts %} · {{ autopilot.last_ts[:16]|replace('T',' ') }}{% endif %}</p>
+  {% endif %}
+  {% if autopilot.picks %}
+  <div class="picks" id="ai-picks">
+    <p class="card-desc" style="margin-bottom:6px"><strong>AI 스크리닝 TOP</strong></p>
+    {% for p in autopilot.picks[:5] %}
+    <div class="list-row pick-row">
+      <div class="left">
+        <div class="title">{{ p.symbol }} · 점수 {{ "%.2f"|format(p.screen_score) }}</div>
+        <div class="desc">
+          {% if p.price %}${{ "%.2f"|format(p.price) }} · {% endif %}
+          20일 {{ "%+.1f"|format(p.mom_20 * 100) }}% · SPY대비 {{ "%+.1f"|format(p.rs_spy * 100) }}%
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <form method="post" action="/actions/autopilot_now" style="margin-bottom:8px">
+    <button class="btn btn-primary btn-block" type="submit">지금 AI가 골라서 매수·매도</button>
+  </form>
+  {% if autopilot.enabled %}
+  <form method="post" action="/actions/autopilot">
+    <input type="hidden" name="enabled" value="0" />
+    <button class="btn btn-ghost btn-block" type="submit">자율매매 끄기</button>
+  </form>
+  {% else %}
+  <form method="post" action="/actions/autopilot">
+    <input type="hidden" name="enabled" value="1" />
+    <button class="btn btn-soft btn-block" type="submit">자율매매 켜기 (Paper/한도 내)</button>
+  </form>
+  {% endif %}
+  <p class="card-desc" style="margin-top:8px">긴급정지·리스크거부·주문한도 적용 · Paper는 자동 체결</p>
+</section>
+
+<section class="card" id="action-cta" data-autoscroll="action-cta">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">매매 실행</h2>
+      <p class="card-desc">기본 첫 주문 ${{ "%.0f"|format(broker.first_notional) }} ≈ ₩10,000</p>
+    </div>
+  </div>
+  <form method="post" action="/actions/plan_trades">
+    <button class="btn btn-primary btn-block" type="submit">① 매매 계획 만들기</button>
+  </form>
+
+  {% if broker.configured %}
+  <form method="post" action="/actions/first_money_order" class="stack" style="margin-top:10px">
+    <div class="bt-form">
+      <input class="field" name="symbol" value="SPY" placeholder="심볼" />
+      <input class="field" name="notional" value="{{ broker.first_notional|int }}" type="number" min="1" max="{{ broker.max_notional|int }}" step="1" placeholder="금액$" />
+      <button class="btn btn-soft" type="submit">1만원 소액 주문</button>
+    </div>
+    <p class="card-desc">$8(약 1만원)짜리 주문을 대기열에 넣습니다. 승인 전까지 체결 안 됩니다.</p>
+  </form>
+  {% else %}
+  <p class="card-desc" style="margin-top:10px">먼저 <a class="link" href="/settings">설정</a>에서 Alpaca를 연결하세요.</p>
+  {% endif %}
+
+  {% if not live_trading %}
+  <form method="post" action="/actions/practice_order" style="margin-top:8px">
+    <button class="btn btn-ghost btn-block" type="submit">로컬 연습 주문 1건</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card" id="pending-approvals" {% if pending_count %}data-autoscroll="pending-approvals"{% endif %}>
+  <div class="card-head">
+    <h2 class="card-title">승인 대기 {{ pending_count }}건</h2>
+  </div>
+  {% if planned %}
+  {% for p in planned %}
+  <div class="todo-item" style="align-items:flex-start;flex-direction:column;gap:10px">
+    <div class="todo-main" style="width:100%">
+      <div class="todo-sym">{{ p.symbol }} · {{ p.action_ko }}</div>
+      <div class="todo-sub">
+        {{ "%.4f"|format(p.shares) }}주 · 기준가 ${{ "%.2f"|format(p.price) }}
+        · 약 ${{ "%.2f"|format(p.shares * p.price) }}
+        {% if p.client_order_id %}<br/><span class="mono">{{ p.client_order_id }}</span>{% endif %}
+      </div>
+      <div class="todo-sub">{{ p.rationale }}</div>
+    </div>
+    <div class="todo-actions" style="width:100%;flex-direction:column;gap:8px">
+      <form method="post" action="/actions/approve" style="width:100%">
+        <input type="hidden" name="entry_id" value="{{ p.id }}" />
+        {% if live_trading %}
+        <input class="field" name="live_confirm" placeholder="실거래면 LIVE 입력" autocomplete="off" style="margin-bottom:8px" />
+        {% endif %}
+        <button class="btn btn-primary btn-block" type="submit">승인하고 체결</button>
+      </form>
+      <form method="post" action="/actions/reject" style="width:100%">
+        <input type="hidden" name="entry_id" value="{{ p.id }}" />
+        <button class="btn btn-ghost btn-block" type="submit">거절</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  {% if pending_count > 1 and not live_trading %}
+  <form method="post" action="/actions/approve_all" style="margin-top:12px">
+    <button class="btn btn-soft btn-block" type="submit">대기 건 모두 승인</button>
+  </form>
+  {% endif %}
+  {% else %}
+  <p class="todo-empty">승인 대기 주문이 없습니다.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">체결 · 기록</h2></div>
+  {% if journal %}
+  {% for j in journal %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">{{ j.symbol }} · {{ j.action_ko }}</div>
+      <div class="desc">{{ j.status_ko }} · {{ "%.4f"|format(j.shares) }}주 @ ${{ "%.2f"|format(j.price) }} · {{ j.ts[:16]|replace('T',' ') }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 기록이 없습니다.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">실전 전 확인</h2></div>
+  <ul class="checklist">
+    <li>현재 모드: <strong>{{ broker.mode_ko }}</strong></li>
+    <li>리스크 거부 / 긴급정지 / 주문 한도가 항상 적용됩니다.</li>
+    <li>실거래는 설정에서 무장 + 여기서 LIVE 확인이 필요합니다.</li>
+  </ul>
+  <a class="btn btn-soft btn-block" href="/settings">설정 · 브로커 연결</a>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const watchId = {{ (watch_job_id or "")|tojson }};
+  const panel = document.getElementById("ap-live");
+  const msgEl = document.getElementById("ap-live-msg");
+  const logEl = document.getElementById("ap-live-log");
+  const chip = document.getElementById("ap-chip");
+  let seen = 0;
+  let doneReload = false;
+
+  function showPanel() {
+    if (panel) panel.hidden = false;
+  }
+
+  function addLogs(logs) {
+    if (!logEl || !Array.isArray(logs)) return;
+    if (logs.length < seen) {
+      logEl.innerHTML = "";
+      seen = 0;
+    }
+    for (let i = seen; i < logs.length; i++) {
+      const div = document.createElement("div");
+      div.className = "live-log-line live-log-new";
+      div.textContent = (logs[i] && logs[i].text) || "";
+      logEl.appendChild(div);
+    }
+    seen = logs.length;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function pollJob() {
+    if (!watchId) return;
+    showPanel();
+    try {
+      const r = await fetch("/api/job/" + watchId);
+      if (!r.ok) return;
+      const j = await r.json();
+      if (msgEl && j.message) msgEl.textContent = j.message;
+      if (chip) {
+        chip.textContent = (j.status === "running" || j.status === "queued") ? "실행중" : chip.textContent;
+        chip.classList.add("chip-ok");
+      }
+      addLogs(j.logs || []);
+      if (j.status === "done" || j.status === "error") {
+        if (doneReload) return;
+        doneReload = true;
+        const flash = encodeURIComponent(j.message || (j.status === "done" ? "완료" : "실패"));
+        setTimeout(function () {
+          location.href = "/trades?flash=" + flash + "#autopilot-panel";
+        }, 900);
+        return;
+      }
+    } catch (e) {}
+    setTimeout(pollJob, 700);
+  }
+
+  async function pollAutopilot() {
+    if (watchId) return;
+    try {
+      const r = await fetch("/api/autopilot");
+      const j = await r.json();
+      if (j.busy) {
+        showPanel();
+        if (msgEl && j.last_message) msgEl.textContent = j.last_message;
+        if (chip) { chip.textContent = "실행중"; chip.classList.add("chip-ok"); }
+        addLogs(j.logs || []);
+      } else if (chip && j.enabled) {
+        chip.textContent = "ON";
+      }
+    } catch (e) {}
+    setTimeout(pollAutopilot, 2000);
+  }
+
+  if (watchId) pollJob();
+  else pollAutopilot();
+})();
+</script>
+{% endblock %}

@@ -56,7 +56,6 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/daily-summary` | `0 14 * * *` | Daily summary |
 | `/api/cron/beta-cohort-price-step` | `0 10 * * *` | Beta cohort pricing step |
 | `/api/cron/quote-follow-up` | `0 16 * * *` | Quote chase SMS (48h, 7d, 14d after quote sent) |
-| `/api/cron/content-autopilot` | `0 18 * * *` | Personal blog autopilot (Naver/WP/Blogger) — phone UI at `/autopilot` |
 
 ---
 

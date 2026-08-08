@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}블로그{% endblock %}
+{% block subtitle %}3플랫폼 자동 글쓰기{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <h2 class="card-title">블로그 자동 생성</h2>
+    <span class="chip {% if blog_job and blog_job.status == 'done' %}chip-ok{% elif blog_job and blog_job.status == 'error' %}chip-danger{% else %}chip-ok{% endif %}">
+      {% if blog_job and blog_job.status == 'running' %}생성중{% elif blog_job and blog_job.status == 'done' %}완료{% elif blog_job and blog_job.status == 'error' %}오류{% else %}대기{% endif %}
+    </span>
+  </div>
+  <p class="card-desc">네이버·WordPress·Blogger 각 1편 · 2000자+ · 사실만 · 클릭 잘 되는 제목</p>
+
+  <form method="post" action="/actions/blog_generate" class="stack" data-no-overlay="1">
+    <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px">
+      ✨ 3개 플랫폼 전부 생성
+    </button>
+  </form>
+
+  {% if blog_settings.ntfy_topic %}
+  <p class="card-desc" style="margin-top:10px">
+    알림: <a class="link" href="https://ntfy.sh/{{ blog_settings.ntfy_topic }}" target="_blank" rel="noopener">ntfy · {{ blog_settings.ntfy_topic }}</a>
+  </p>
+  {% endif %}
+
+  {% if blog_job and blog_job.status == 'error' %}
+  <p class="bad-text" style="margin-top:10px">{{ blog_job.error }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">최근 생성</h2></div>
+  {% if blog_inbox and blog_inbox.results %}
+    {% for r in blog_inbox.results %}
+    <details class="list-row" style="display:block;padding:12px 0;border-bottom:1px solid var(--line,#e8eaed)">
+      <summary style="cursor:pointer">
+        <strong>{{ r.title }}</strong>
+        <div class="desc">{{ r.chars }}자 · {{ r.platform }}{% if r.url %} · 저장됨{% endif %}</div>
+      </summary>
+      <textarea class="field" readonly style="margin-top:10px;min-height:160px;font-size:13px">{{ r.markdown }}</textarea>
+      <p class="card-desc">네이버는 위 글을 복사해 글쓰기에 붙여넣기</p>
+    </details>
+    {% endfor %}
+  {% else %}
+  <p class="card-desc">아직 생성된 글이 없습니다. 위 버튼을 누르세요.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">플랫폼 연결</h2></div>
+
+  <form method="post" action="/actions/blog_connect" class="stack" style="margin-bottom:18px" data-no-overlay="1">
+    <input type="hidden" name="platform" value="naver" />
+    <label class="field-label">네이버 블로그 ID</label>
+    <input class="field" name="naver_id" value="{{ blog_connections.naver.blogId if blog_connections.naver else '' }}" placeholder="myblogid" autocomplete="off" />
+    <button class="btn btn-block" type="submit">네이버 저장</button>
+  </form>
+
+  <form method="post" action="/actions/blog_connect" class="stack" style="margin-bottom:18px" data-no-overlay="1">
+    <input type="hidden" name="platform" value="wordpress" />
+    <label class="field-label">WordPress 사이트 URL</label>
+    <input class="field" name="site_url" value="{{ blog_connections.wordpress.baseUrl if blog_connections.wordpress else '' }}" placeholder="https://yoursite.com" />
+    <label class="field-label">사용자명</label>
+    <input class="field" name="username" value="{{ blog_connections.wordpress.username if blog_connections.wordpress else '' }}" />
+    <label class="field-label">앱 비밀번호</label>
+    <input class="field" type="password" name="app_password" placeholder="xxxx xxxx xxxx" autocomplete="off" />
+    <button class="btn btn-block" type="submit">WordPress 저장</button>
+  </form>
+
+  <form method="post" action="/actions/blog_connect" class="stack" data-no-overlay="1">
+    <input type="hidden" name="platform" value="blogger" />
+    <label class="field-label">Blogger Blog ID</label>
+    <input class="field" name="blog_id" value="{{ blog_connections.blogger.blogId if blog_connections.blogger else '' }}" />
+    <label class="field-label">Access Token</label>
+    <input class="field" type="password" name="access_token" placeholder="ya29...." autocomplete="off" />
+    <button class="btn btn-block" type="submit">Blogger 저장</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">알림</h2></div>
+  <form method="post" action="/actions/blog_settings" class="stack" data-no-overlay="1">
+    <label class="field-label">ntfy 토픽 (폰 푸시)</label>
+    <input class="field" name="ntfy_topic" value="{{ blog_settings.ntfy_topic or '' }}" placeholder="content-autopilot-xxxx" autocomplete="off" />
+    <button class="btn btn-primary btn-block" type="submit">알림 저장</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,247 @@
+"""Multi-agent orchestration pipeline."""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from datetime import UTC, datetime
+
+from oracle.agents import (
+    BuffettOwnerAgent,
+    DecisionAgent,
+    FundamentalAnalysisAgent,
+    MarketIntelligenceAgent,
+    PortfolioManagerAgent,
+    QuantAgent,
+    RiskManagerAgent,
+    SentimentAgent,
+    TechnicalAnalysisAgent,
+)
+from oracle.config import Settings, get_settings
+from oracle.core.types import AgentOpinion, PipelineResult
+from oracle.data.market import clear_market_cache, index_overview
+from oracle.data.news import aggregate_market_headlines
+from oracle.data.regime import build_regime
+from oracle.execution.live_setup import capital_plan, goal_progress, sleeve_equity
+from oracle.llm.brain import synthesize_portfolio
+from oracle.portfolio.activity_log import log_activity
+from oracle.portfolio.store import DecisionStore, load_portfolio
+
+logger = logging.getLogger("oracle.orchestration")
+
+
+def _build_regime(overview: dict) -> dict:
+    """Compat wrapper — uses FACT VIX level (see oracle.data.regime)."""
+    return build_regime(overview)
+
+
+class OraclePipeline:
+    """Runs specialist agents → Risk veto → Decision → LLM brain for each book."""
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
+        self.market_intel = MarketIntelligenceAgent()
+        self.fundamental = FundamentalAnalysisAgent()
+        self.technical = TechnicalAnalysisAgent()
+        self.quant = QuantAgent()
+        self.sentiment = SentimentAgent()
+        self.portfolio_mgr = PortfolioManagerAgent()
+        self.buffett = BuffettOwnerAgent()
+        self.risk = RiskManagerAgent()
+        self.decision = DecisionAgent(self.settings)
+
+    def run(
+        self,
+        session: str = "ad_hoc",
+        symbols: list[str] | None = None,
+        *,
+        on_progress=None,
+        fast_llm: bool | None = None,
+        deep_llm: bool = False,
+    ) -> PipelineResult:
+        clear_market_cache()
+        run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+        portfolio = load_portfolio(self.settings.portfolio_path)
+        symbols = symbols or self.settings.symbols
+        if fast_llm is None:
+            fast_llm = session == "autopilot" and not deep_llm
+
+        def _prog(msg: str) -> None:
+            if on_progress:
+                try:
+                    on_progress(msg)
+                except Exception:
+                    logger.debug("on_progress failed", exc_info=True)
+
+        logger.info("Pipeline start run_id=%s session=%s symbols=%s", run_id, session, symbols)
+        _prog(f"AI 분석 시작 · {len(symbols)}종목 · 지능 Lv9")
+        log_activity("analyze", f"분석 시작 · {len(symbols)}종목", detail=", ".join(symbols[:10]))
+
+        decisions = []
+        for i, symbol in enumerate(symbols, 1):
+            logger.info("Analyzing %s", symbol)
+            _prog(f"지표 분석 {i}/{len(symbols)} · {symbol}")
+            opinions: list[AgentOpinion] = []
+            for agent in (
+                self.market_intel,
+                self.fundamental,
+                self.technical,
+                self.quant,
+                self.sentiment,
+                self.portfolio_mgr,
+                self.buffett,
+                self.risk,
+            ):
+                try:
+                    opinions.append(agent.analyze(symbol, portfolio))
+                except Exception:
+                    logger.exception("Agent %s failed on %s", agent.name, symbol)
+
+            veto = self.risk.veto(symbol, portfolio)
+            decision = self.decision.decide(symbol, opinions, veto, portfolio)
+            decisions.append(decision)
+            logger.info(
+                "%s draft → %s (score=%+.3f conf=%.2f veto=%s)",
+                symbol,
+                decision.action.value,
+                decision.composite_score,
+                decision.confidence,
+                veto.active,
+            )
+
+        overview = index_overview()
+        regime = _build_regime(overview)
+        plan = capital_plan(portfolio, cash=float(portfolio.cash))
+        sleeve = sleeve_equity(portfolio)
+        gprog = goal_progress(float(portfolio.equity()), sleeve=sleeve)
+        gprog = {
+            **gprog,
+            "remaining_budget": plan.get("remaining_budget"),
+            "budget": plan.get("budget"),
+            "sleeve": plan.get("sleeve"),
+        }
+        headlines = aggregate_market_headlines(symbols[:8], per_symbol=4)
+        # Richer fact pack for ORACLE PRIME — live fetch + persistent radar digest
+        news_bits = []
+        for h in headlines[:12]:
+            bit = h.title.strip()
+            if h.publisher:
+                bit = f"[{h.publisher}] {bit}"
+            if h.symbol:
+                bit = f"{h.symbol}: {bit}"
+            news_bits.append(bit)
+        try:
+            from oracle.data.news import research_digest
+
+            stored = research_digest(limit=8)
+            if stored and stored != "No stored headlines yet":
+                news_bits.append(f"RADAR: {stored}")
+        except Exception:
+            pass
+        top_news = " | ".join(news_bits) or "No headlines"
+        prep_note = ""
+        if session in {"weekend_prep", "closed_prep"}:
+            prep_note = (
+                " PREP MODE: cash session closed — deepen research, build open-ready "
+                "watchlist, do not assume fills until RTH."
+            )
+        try:
+            from oracle.investing.buffett import evaluate_buffett
+
+            buff_bits = []
+            for sym in symbols[:6]:
+                v = evaluate_buffett(sym, risk_off=bool(regime.get("risk_off")))
+                buff_bits.append(
+                    f"{sym}:buffett={v.score:+.2f}/q={v.owner_quality:.2f}/mos={v.margin_of_safety:.2f}"
+                    f"{'/BUYOK' if v.buy_ok else '/HOLD'}"
+                )
+            buff_line = " | ".join(buff_bits)
+        except Exception:
+            buff_line = "buffett_desk=n/a"
+        market_summary = (
+            f"Index day moves: {overview}. Regime={regime.get('label')}. "
+            f"FACT headlines: {top_news}. "
+            f"BUFFETT DESK: {buff_line}. "
+            f"Session={session}. Goal mode={gprog.get('mode')} urgency={gprog.get('urgency', 0)}. "
+            f"Seed={plan.get('seed')} budget_remain={plan.get('remaining_budget')}. "
+            f"Mandate=hunt hard then lock near goal; apply Buffett owner rules "
+            f"(no permanent loss, margin of safety, wonderful businesses); "
+            f"lie/lose-only => eternal erasure."
+            f"{prep_note}"
+        )
+        _prog(
+            f"시장 레짐 · {regime.get('label')} · VIX {regime.get('vix')} · "
+            f"지능 Lv9 · {gprog.get('mode_ko') or gprog.get('mode')}"
+        )
+
+        held = set(portfolio.held_symbols())
+        decisions, llm_meta = synthesize_portfolio(
+            decisions,
+            market_summary=market_summary,
+            held_symbols=held,
+            fast=bool(fast_llm) and not deep_llm,
+            deep=bool(deep_llm) or float(gprog.get("urgency") or 0) >= 0.75,
+            goal_context=gprog,
+            regime=regime,
+            on_progress=_prog,
+        )
+        if llm_meta.get("used"):
+            logger.info(
+                "Oracle Brain LLM applied provider=%s model=%s latency_ms=%s note=%s",
+                llm_meta.get("provider_used"),
+                llm_meta.get("model_used"),
+                llm_meta.get("latency_ms"),
+                (llm_meta.get("desk_note_ko") or "")[:120],
+            )
+            note = (llm_meta.get("desk_note_ko") or "")[:80]
+            _prog(f"AI 판단 완료 · {llm_meta.get('latency_ms', '?')}ms" + (f" · {note}" if note else ""))
+            log_activity(
+                "brain",
+                f"두뇌 판단 완료 · {llm_meta.get('latency_ms', '?')}ms",
+                detail=note or f"critic={llm_meta.get('critic')} referee={llm_meta.get('referee')}",
+            )
+            if llm_meta.get("desk_note_ko"):
+                market_summary = f"{market_summary} | Brain: {llm_meta['desk_note_ko']}"
+        else:
+            logger.warning(
+                "Oracle Brain LLM skipped: %s",
+                llm_meta.get("error") or llm_meta.get("reason"),
+            )
+            _prog("AI 두뇌 생략 · 정량 신호로 진행")
+            log_activity("brain", "두뇌 생략 · 정량 신호", detail=str(llm_meta.get("error") or llm_meta.get("reason") or ""))
+
+        for d in decisions:
+            logger.info(
+                "%s final → %s (score=%+.3f conf=%.2f)",
+                d.symbol,
+                d.action.value,
+                d.composite_score,
+                d.confidence,
+            )
+
+        port_risk, _ = self.risk.evaluate_portfolio(portfolio)
+        result = PipelineResult(
+            run_id=run_id,
+            session=session,
+            decisions=decisions,
+            market_summary=market_summary,
+            portfolio_equity=portfolio.equity(),
+            portfolio_risk_score=port_risk,
+        )
+
+        store = DecisionStore(f"{self.settings.data_dir}/oracle.db")
+        store.save_run(
+            run_id=run_id,
+            session=session,
+            market_summary=market_summary,
+            portfolio_equity=portfolio.equity(),
+            portfolio_risk_score=port_risk,
+            decisions=decisions,
+        )
+        logger.info(
+            "Pipeline complete run_id=%s equity=%.2f risk=%.2f",
+            run_id,
+            portfolio.equity(),
+            port_risk,
+        )
+        return result

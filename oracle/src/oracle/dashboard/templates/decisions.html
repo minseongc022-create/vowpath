@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}판단{% endblock %}
+{% block subtitle %}분석 · 백테스트{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h2 class="card-title">분석 실행</h2>
+      <p class="card-desc">오래 걸리는 작업은 백그라운드에서 돌고, 끝나면 이 화면으로 돌아옵니다.</p>
+    </div>
+  </div>
+  <div class="quick">
+    <form method="post" action="/actions/run">
+      <button class="btn btn-primary btn-block" type="submit">시장 다시 분석</button>
+    </form>
+    <form method="post" action="/actions/backtest">
+      <input type="hidden" name="symbol" value="SPY" />
+      <input type="hidden" name="mode" value="oracle_lite" />
+      <button class="btn btn-soft btn-block" type="submit">빠른 백테스트</button>
+    </form>
+  </div>
+  <form method="post" action="/actions/backtest" class="bt-form" style="margin-top:10px">
+    <input class="field" name="symbol" value="SPY" placeholder="심볼" />
+    <select class="field" name="mode">
+      <option value="oracle_lite">빠른 검증</option>
+      <option value="walk_forward">워크포워드</option>
+    </select>
+    <button class="btn btn-ghost" type="submit">실행</button>
+  </form>
+</section>
+
+{% if backtest %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">백테스트 · {{ backtest.mode_ko }} · {{ backtest.symbol }}</h2></div>
+  <div class="bt-result">
+    <p>수익률 {{ "%.2f"|format((backtest.oos_return or 0) * 100) }}%</p>
+    <p>Sharpe {{ "%.2f"|format(backtest.oos_sharpe or 0) }} · MDD {{ "%.1f"|format((backtest.oos_mdd or 0) * 100) }}%</p>
+    {% if backtest.cagr is defined and backtest.cagr is not none %}
+    <p>CAGR {{ "%.1f"|format(backtest.cagr * 100) }}% · 승률 {{ "%.0f"|format((backtest.win_rate or 0) * 100) }}%</p>
+    {% endif %}
+    {% if backtest.benchmark is not none %}
+    <p>벤치 {{ "%.2f"|format(backtest.benchmark * 100) }}% · 초과 {{ "%.2f"|format((backtest.excess or 0) * 100) }}%</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2 class="card-title">최근 판단</h2></div>
+  {% if decisions %}
+  {% for d in decisions %}
+  <div class="list-row">
+    <div class="left">
+      <div class="title">
+        {{ d.symbol }}
+        <span class="badge badge-{{ d.tone }}">{{ d.action_ko }}</span>
+      </div>
+      <div class="desc">{{ d.rationale_short }} · {{ (d.created_at or '')[:16]|replace('T',' ') }}</div>
+    </div>
+    <div class="right muted">확신 {{ "%.0f"|format((d.confidence or 0) * 100) }}%</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="todo-empty">아직 판단 기록이 없습니다. 위에서 분석을 실행하세요.</p>
+  {% endif %}
+</section>
+
+{% if latest_report %}
+<section class="card">
+  <div class="card-head"><h2 class="card-title">최신 리포트</h2></div>
+  <pre class="report-box">{{ latest_report }}</pre>
+</section>
+{% endif %}
+{% endblock %}

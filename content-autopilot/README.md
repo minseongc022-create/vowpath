@@ -37,22 +37,15 @@ npm run dashboard
 
 ### Connect platforms (phone-friendly PWA)
 
-```bash
-npm run phone:public
-# → 터미널에 https://xxxx.trycloudflare.com 주소 + PIN 출력
-# → 폰 데이터로 접속 → PIN 입력 → 홈 화면에 추가
-```
+## Where this lives now
 
-**폰에서 하는 일**
-- 🏠 홈 → **3개 플랫폼 전부 생성** (큰 버튼)
-- 🔔 **폰 알림 켜기** → ntfy 앱 자동 연결
-- 🔗 연결 → 네이버 ID / WordPress / Blogger
-- ⚙️ 설정 → LLM API 키
+**Production UI:** Oracle dashboard → **블로그** tab  
+`https://oracle.vowroad.com/blog`
 
-| 상황 | 명령 |
-|------|------|
-| 집 Wi‑Fi | `npm run phone` |
-| **밖 / 모바일 데이터** | `npm run phone:public` |
+(Not Effiroad. The Next.js `/autopilot` experiment was removed.)
+
+This `content-autopilot/` folder remains a local Node CLI helper if you want offline `npm run phone:public`.
+
 
 ### Generate all 3 platforms + notification
 

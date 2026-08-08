@@ -24,13 +24,7 @@
     { "path": "/api/cron/revenue-sync", "schedule": "0 11 * * *", "utcHour": 11 },
     { "path": "/api/cron/daily-summary", "schedule": "0 14 * * *", "utcHour": 14 },
     { "path": "/api/cron/beta-cohort-price-step", "schedule": "0 10 * * *", "utcHour": 10 },
-    { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 },
-    {
-      "path": "/api/cron/content-autopilot",
-      "schedule": "0 18 * * *",
-      "utcHour": 18,
-      "note": "Personal blog autopilot — 3 platforms nightly (no PC required). Auth: CRON_SECRET or AUTOPILOT_CRON_SECRET."
-    }
+    { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 }
   ],
   "manualOrPostbuildCrons": [
     {

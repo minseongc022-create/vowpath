@@ -3,37 +3,67 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.effiroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.effiroad.com"
+        }
+      ],
       "destination": "https://effiroad.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "vowroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "vowroad.com"
+        }
+      ],
       "destination": "https://effiroad.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.vowroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vowroad.com"
+        }
+      ],
       "destination": "https://effiroad.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "link.vowroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "link.vowroad.com"
+        }
+      ],
       "destination": "https://link.effiroad.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "book.vowroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "book.vowroad.com"
+        }
+      ],
       "destination": "https://link.effiroad.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "go.vowroad.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "go.vowroad.com"
+        }
+      ],
       "destination": "https://go.effiroad.com/:path*",
       "permanent": true
     }
@@ -70,10 +100,6 @@
     {
       "path": "/api/cron/quote-follow-up",
       "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/content-autopilot",
-      "schedule": "0 18 * * *"
     }
   ]
 }

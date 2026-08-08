@@ -1,0 +1,26 @@
+# Copy to portfolio.yaml and edit for your holdings.
+# Paper portfolio used by MVP until broker integration.
+
+cash: 50000.0
+currency: USD
+
+positions:
+  - symbol: SPY
+    shares: 50
+    avg_cost: 480.0
+  - symbol: AAPL
+    shares: 30
+    avg_cost: 190.0
+  - symbol: MSFT
+    shares: 20
+    avg_cost: 400.0
+
+# Target allocation (weights sum to <= 1.0; remainder is cash)
+targets:
+  SPY: 0.25
+  QQQ: 0.15
+  AAPL: 0.10
+  MSFT: 0.10
+  GLD: 0.10
+  TLT: 0.10
+  # cash buffer implied by risk.min_cash_pct
