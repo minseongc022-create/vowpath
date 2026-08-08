@@ -242,15 +242,19 @@ export function getMobileHtml(): string {
     async function loadNetwork() {
       const r = await fetch('/api/network');
       const j = await r.json();
-      const here = location.origin;
-      let html = '<p><a class="link" href="'+here+'">'+here+'</a></p>';
-      if (j.lan?.length) {
-        html += j.lan.map(u => '<p><a class="link" href="'+u+'">'+u+'</a></p>').join('');
-        const phoneUrl = j.lan[0];
-        $('#qrBox').innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(phoneUrl)+'"/><p class="muted">QR 스캔 → 폰 브라우저</p>';
-      } else {
-        $('#qrBox').innerHTML = '<p class="muted">Wi‑Fi IP 없음 (모바일 데이터만 사용 중?)</p>';
+      let html = '';
+      if (j.public) {
+        html += '<p><strong>🌐 데이터용 (밖에서도)</strong><br/><a class="link" href="'+j.public+'">'+j.public+'</a></p>';
+        $('#qrBox').innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(j.public)+'"/><p class="muted">QR → 폰 (데이터 OK)</p>';
       }
+      if (j.lan?.length) {
+        html += '<p class="muted">같은 Wi‑Fi</p>' + j.lan.map(u => '<p><a class="link" href="'+u+'">'+u+'</a></p>').join('');
+        if (!j.public) {
+          $('#qrBox').innerHTML = '<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(j.lan[0])+'"/><p class="muted">QR 스캔 (Wi‑Fi)</p>';
+        }
+      }
+      html += '<p class="muted">PC: '+j.local+'</p>';
+      if (!j.public) html += '<p class="muted">밖에서도: PC에서 <code>npm run phone:public</code></p>';
       $('#lanUrls').innerHTML = html;
     }
 

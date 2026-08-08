@@ -22,9 +22,16 @@ async function main() {
     return;
   }
 
-  if (cmd === "dashboard") {
+  if (cmd === "dashboard" || cmd === "phone") {
+    const pub = rest.includes("--public") || process.env.PUBLIC_TUNNEL === "1";
     const { startDashboard } = await import("../web/server.ts");
-    startDashboard();
+    await startDashboard({ public: pub });
+    return;
+  }
+
+  if (cmd === "phone:public" || cmd === "public") {
+    const { startDashboard } = await import("../web/server.ts");
+    await startDashboard({ public: true });
     return;
   }
 
@@ -131,8 +138,9 @@ function printHelp() {
 Commands:
   setup                      .env 생성 + 3플랫폼 생성 + 알림 (첫 실행)
   list-brands
-  dashboard                  Mobile PWA — LLM/플랫폼/생성 (npm run phone)
-  phone                      dashboard 와 동일 (폰용 별칭)
+  dashboard / phone          Mobile PWA (Wi‑Fi)
+  phone:public               공개 HTTPS 터널 — 밖·모바일 데이터 접속
+  public                     phone:public 과 동일
   connections                Show saved platform connections
   test-connections           Test WordPress/Blogger/Naver connections
   dry-run [--brand <id>]       Offline mock pipeline + quality gate

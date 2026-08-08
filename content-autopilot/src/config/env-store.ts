@@ -14,6 +14,10 @@ export type EnvConfig = {
   NTFY_TOPIC?: string;
   NOTIFY_WEBHOOK_URL?: string;
   PUBLISH_MODE?: string;
+  DASHBOARD_PIN?: string;
+  DASHBOARD_PORT?: string;
+  DASHBOARD_HOST?: string;
+  PUBLIC_URL?: string;
 };
 
 export function readEnvConfig(): EnvConfig {
@@ -81,7 +85,10 @@ export function writeEnvConfig(updates: Record<string, string>): void {
     "OUTPUT_DIR",
     "NOTIFY_WEBHOOK_URL",
     "NTFY_TOPIC",
+    "DASHBOARD_PIN",
     "DASHBOARD_PORT",
+    "DASHBOARD_HOST",
+    "PUBLIC_URL",
   ];
 
   for (const key of ordered) {

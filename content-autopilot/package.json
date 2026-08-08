@@ -14,7 +14,8 @@
     "generate-all": "node --experimental-strip-types src/cli/run.ts generate-all",
     "setup": "node --experimental-strip-types src/cli/run.ts setup",
     "dashboard": "node --experimental-strip-types src/cli/run.ts dashboard",
-    "phone": "node --experimental-strip-types src/cli/run.ts dashboard",
+    "phone": "node --experimental-strip-types src/cli/run.ts phone",
+    "phone:public": "PUBLIC_TUNNEL=1 node --experimental-strip-types src/cli/run.ts phone --public",
     "connections": "node --experimental-strip-types src/cli/run.ts connections",
     "test-connections": "node --experimental-strip-types src/cli/run.ts test-connections",
     "test": "node --experimental-strip-types --test tests/*.test.mjs"

@@ -27,6 +27,7 @@ Required:
 | `LEMON_SQUEEZY_*` | See **[docs/CHECKOUT_LAUNCH.md](./docs/CHECKOUT_LAUNCH.md)** — Lite/Flex/Pro/Scale + Voice variants |
 | `RESEND_API_KEY` | `re_...` (password reset email) |
 | `CRON_SECRET` | random string (protects /api/cron/*) |
+| `AUTOPILOT_PIN` | 6-digit PIN for phone UI at `/autopilot` (no PC needed) |
 | `NEXT_PUBLIC_BETA` | `false` |
 
 ## 2b. Cron (read CRON.md)
