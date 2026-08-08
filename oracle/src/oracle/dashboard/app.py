@@ -775,12 +775,20 @@ def api_blog_cover(name: str, _: None = Depends(require_auth)):
 
     # prevent path traversal
     safe = Path(name).name
-    if not safe.endswith(".svg") or ".." in name or "/" in name or "\\" in name:
+    low = safe.lower()
+    if ".." in name or "/" in name or "\\" in name:
+        raise HTTPException(status_code=404, detail="Not Found")
+    if not (low.endswith(".svg") or low.endswith(".jpg") or low.endswith(".jpeg") or low.endswith(".png")):
         raise HTTPException(status_code=404, detail="Not Found")
     path = blog_store._root() / "covers" / safe  # noqa: SLF001
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Not Found")
-    return FileResponse(path, media_type="image/svg+xml")
+    media = "image/svg+xml"
+    if low.endswith(".png"):
+        media = "image/png"
+    elif low.endswith(".jpg") or low.endswith(".jpeg"):
+        media = "image/jpeg"
+    return FileResponse(path, media_type=media)
 
 
 @app.post("/actions/blog_connect")

@@ -10,10 +10,11 @@ import httpx
 
 from oracle.content_blog import store
 from oracle.content_blog.covers import make_chart_svg, make_cover_svg, make_section_svg
+from oracle.content_blog.images import make_article_images
+from oracle.content_blog.issues import pick_issue_topic
 from oracle.content_blog.social import build_social_copies
-from oracle.content_blog.titles import make_click_title
-from oracle.content_blog.topics import Topic, topics_for
-from oracle.content_blog.trends import TrendSnapshot, pick_best_keyword, sparkline_values
+from oracle.content_blog.topics import Topic
+from oracle.content_blog.trends import TrendSnapshot, build_snapshot, sparkline_values
 from oracle.llm.client import chat as llm_chat
 
 logger = logging.getLogger("oracle.content_blog")
@@ -76,41 +77,25 @@ def quality_ok(title: str, md: str, min_chars: int, keyword: str) -> tuple[bool,
     return True, "ok"
 
 
-def pick_topic(platform: str) -> tuple[Topic, TrendSnapshot, list[str]]:
-    """Pick topic using live KR search demand + high-CPC bank."""
-    pool = topics_for(platform)
+def pick_topic(platform: str) -> tuple[Topic, TrendSnapshot, list[str], dict]:
+    """Pick from live issues/search first; keep CPC bank as fallback."""
     used_titles = set(store.load_settings().get("used_titles") or [])
     used_kw = set(store.load_settings().get("used_keywords") or [])
-    candidates = list(dict.fromkeys([t.keyword for t in pool]))
-    best_kw, _score, snap = pick_best_keyword(candidates, used_kw | used_titles)
-    # Prefer unused title for that keyword
-    matches = [t for t in pool if t.keyword == best_kw and t.title not in used_titles]
-    if not matches:
-        matches = [t for t in pool if t.keyword == best_kw] or [
-            t for t in pool if t.title not in used_titles
-        ] or pool
-    topic = matches[0]
-    # Click-maximizing professional title
-    topic = Topic(
-        title=make_click_title(topic.keyword, topic.title, topic.search_intent),
-        keyword=topic.keyword,
-        secondary=topic.secondary,
-        search_intent=topic.search_intent,
-        outline=topic.outline,
-        cpc_tier=topic.cpc_tier,
-    )
-    related = []
-    reasons = []
-    try:
-        raw = store._read("trends.json", {})  # noqa: SLF001
-        related = list((raw.get("related") or {}).get(topic.keyword) or [])[:8]
-        reasons = list((raw.get("reasons") or {}).get(topic.keyword) or [])[:4]
-    except Exception:
-        related = []
-        reasons = []
-    if reasons:
-        snap.notes = reasons + list(snap.notes or [])
-    return topic, snap, related
+    topic, issue = pick_issue_topic(platform, used_titles | used_kw)
+    related = list(issue.get("related") or topic.secondary)[:8]
+    # Snapshot for charts: score THIS topic's related searches as interest bars
+    chart_keys = [topic.keyword] + [r for r in related if r != topic.keyword][:5]
+    snap = build_snapshot(chart_keys)
+    notes = [
+        f"실시간 소스:{issue.get('source', 'live')}",
+        f"관심점수:{int(issue.get('score') or 0)}",
+    ]
+    if issue.get("news"):
+        notes.append("뉴스 헤드라인 교차확인")
+    if issue.get("commercial"):
+        notes.append(f"관련검색 실용의도 {issue.get('commercial')}건")
+    snap.notes = notes + list(snap.notes or [])
+    return topic, snap, related, issue
 
 
 def remember_title(title: str, keyword: str = "") -> None:
@@ -260,6 +245,7 @@ def write_article(
     *,
     trend_note: str = "",
     related: list[str] | None = None,
+    fact_bits: str = "",
     on_progress=None,
 ) -> tuple[str, str, int]:
     system = f"""You are a senior Korean SEO blog editor writing HIGH-QUALITY long-form posts.
@@ -272,6 +258,8 @@ Hard rules:
 - Secondary: {', '.join(topic.secondary)}.
 - FACTS ONLY: no fake news, no invented statistics, no "속보/단독", no guaranteed returns.
 - Early section must mention why this topic has search demand now (use provided trend note; do not invent % numbers).
+- FACT CHECK: separate verified facts vs unknown/rumors; never invent events, scores, quotes.
+- If news headlines are provided, paraphrase carefully as '보도된 내용/확인 중' when uncertain.
 - Include an SEO summary section near the end with search intent.
 - Audience: {brand.audience}
 - Concept: {brand.concept}
@@ -282,7 +270,8 @@ Hard rules:
         f"Keyword: {topic.keyword}\n"
         f"Search intent: {topic.search_intent}\n"
         f"Related searches: {', '.join(related or topic.secondary)}\n"
-        f"Trend note: {trend_note or '고단가·검색의도 키워드'}\n"
+        f"Trend note: {trend_note or '실시간 검색 이슈'}\n"
+        f"News headlines (verify carefully, do not invent beyond them): {fact_bits}\n"
         f"Outline promise: {topic.outline}\n"
         f"Write the full article now."
     )
@@ -401,34 +390,49 @@ def publish_article(
 
     cover_dir = store._root() / "covers"  # noqa: SLF001
     stem = f"{brand.id}-{meta['slug'][:40]}"
-    cover_path = cover_dir / f"{stem}.svg"
-    chart_path = cover_dir / f"{stem}-chart.svg"
-    mid_path = cover_dir / f"{stem}-mid.svg"
 
     chart_vals = sparkline_values(snap, topic.keyword) if snap else []
     trend_note = ""
     if snap and snap.notes:
-        trend_note = snap.notes[0]
+        trend_note = " · ".join(snap.notes[:3])[:180]
     if snap and snap.realtime:
         top = ", ".join(x["keyword"] for x in snap.realtime[:5] if x.get("keyword"))
-        if top:
-            trend_note = (trend_note + f" · 실시간 TOP: {top}")[:160]
+        if top and "실시간" not in trend_note:
+            trend_note = (trend_note + f" · 실시간 TOP: {top}")[:200]
 
-    make_cover_svg(
-        title,
-        topic.keyword,
-        cover_path,
-        chart=chart_vals[:6] or None,
-        trend_note=trend_note or "실시간 검색 신호 반영",
+    # Prefer AI situational images (ChatGPT/Gemini-like). SVG fallback if gen fails.
+    ai_imgs = make_article_images(
+        title=title, keyword=topic.keyword, out_dir=cover_dir, stem=stem
     )
+    cover_path = ai_imgs.get("cover")
+    mid_path = ai_imgs.get("mid")
+    scene_path = ai_imgs.get("scene")
+    chart_path = cover_dir / f"{stem}-chart.svg"
     if chart_vals:
-        make_chart_svg(chart_vals, topic.keyword, chart_path, title="지금 검색 관심도 비교")
-    make_section_svg(
-        topic.outline[0] if topic.outline else f"{topic.keyword} 핵심",
-        topic.keyword,
-        mid_path,
-        subtitle="본문 중간 · 실무 포인트 시각화",
-    )
+        make_chart_svg(
+            chart_vals,
+            topic.keyword,
+            chart_path,
+            title=f"{topic.keyword} 관련 검색 관심도",
+        )
+
+    if not cover_path:
+        cover_path = cover_dir / f"{stem}.svg"
+        make_cover_svg(
+            title,
+            topic.keyword,
+            cover_path,
+            chart=chart_vals[:6] or None,
+            trend_note=trend_note or "실시간 검색 신호 반영",
+        )
+    if not mid_path:
+        mid_path = cover_dir / f"{stem}-mid.svg"
+        make_section_svg(
+            topic.outline[0] if topic.outline else f"{topic.keyword} 핵심",
+            topic.keyword,
+            mid_path,
+            subtitle="본문 중간 · 상황 일러스트",
+        )
 
     cover_url = f"/api/blog/cover/{cover_path.name}"
 
@@ -446,6 +450,7 @@ def publish_article(
         "coverUrl": cover_url,
         "chartUrl": f"/api/blog/cover/{chart_path.name}" if chart_path.exists() else None,
         "midImageUrl": f"/api/blog/cover/{mid_path.name}",
+        "sceneImageUrl": f"/api/blog/cover/{scene_path.name}" if scene_path else None,
         "trendNote": trend_note,
         "relatedSearches": related or [],
         "url": None,
@@ -454,27 +459,45 @@ def publish_article(
         "social": {},
     }
 
+    def _img_figure(path, caption: str) -> str:
+        if path.suffix.lower() == ".svg":
+            return _svg_figure(path, caption)
+        url = f"/api/blog/cover/{path.name}"
+        # For remote CMS we also embed as hosted URL when possible; local path used in export note
+        try:
+            import base64
+
+            raw = path.read_bytes()
+            mime = "image/jpeg" if path.suffix.lower() in {".jpg", ".jpeg"} else "image/png"
+            b64 = base64.b64encode(raw).decode("ascii")
+            src = f"data:{mime};base64,{b64}"
+        except Exception:
+            src = url
+        return (
+            f'<figure style="margin:1.25rem 0;padding:0">'
+            f'<img src="{src}" alt="{_esc(caption)}" style="width:100%;height:auto;border-radius:12px"/>'
+            f'<figcaption style="font-size:12px;opacity:.7;margin-top:6px">'
+            f"{_esc(caption)}</figcaption></figure>\n"
+        )
+
     body_html = markdown_to_html(md, cover_url=None)
-    # Insert mid image after first H2 block for professional layout
+    mid_fig = _img_figure(mid_path, f"상황 일러스트 · {topic.keyword} · 얼굴 없는 AI 생성")
     parts = body_html.split("<h2>", 2)
     if len(parts) >= 3:
-        body_html = (
-            parts[0]
-            + "<h2>"
-            + parts[1]
-            + _svg_figure(mid_path, f"섹션 이미지 · {topic.keyword}")
-            + "<h2>"
-            + parts[2]
-        )
+        body_html = parts[0] + "<h2>" + parts[1] + mid_fig + "<h2>" + parts[2]
     else:
-        body_html = body_html + _svg_figure(mid_path, f"섹션 이미지 · {topic.keyword}")
+        body_html = body_html + mid_fig
 
     html_with_note = (
-        _svg_figure(cover_path, f"커버 · {topic.keyword} · 저작권 프리")
+        _img_figure(cover_path, f"커버 일러스트 · {topic.keyword}")
         + (
-            _svg_figure(chart_path, "검색 관심도 차트 · 실시간 합성 데이터")
-            if chart_path.exists()
-            else ""
+            _img_figure(scene_path, "검색·궁금증 상황 이미지")
+            if scene_path
+            else (
+                _svg_figure(chart_path, "관련 검색 관심도")
+                if chart_path.exists()
+                else ""
+            )
         )
         + body_html
     )
@@ -596,24 +619,23 @@ def generate_all(*, live: bool = True, on_progress=None) -> dict:
     store.save_job(job)
     results: list[dict] = []
     try:
-        prog("실시간 검색·트렌드 수집 중…", step="trends")
+        prog("실시간 검색·이슈·관련검색·뉴스 헤드라인 수집/교차확인 중…", step="trends")
         for idx, brand in enumerate(BRANDS, start=1):
             prog(
-                f"({idx}/{len(BRANDS)}) {brand.name} 주제 고르는 중…",
+                f"({idx}/{len(BRANDS)}) {brand.name} · 지금 사람들이 뭘 찾는지 분석 중…",
                 platform=brand.platform,
                 step="pick",
             )
-            topic, snap, related = pick_topic(brand.platform)
-            reasons = []
-            try:
-                raw = store._read("trends.json", {})  # noqa: SLF001
-                reasons = list((raw.get("reasons") or {}).get(topic.keyword) or [])
-            except Exception:
-                reasons = []
-            trend_note = " / ".join(reasons[:3]) if reasons else (snap.notes[0] if snap.notes else "")
+            topic, snap, related, issue = pick_topic(brand.platform)
+            trend_note = " · ".join(snap.notes[:3]) if snap.notes else "실시간 이슈"
+            fact_bits = " | ".join((issue.get("news") or [])[:4])
             prog(
                 f"[{brand.name}] 주제 확정: {topic.keyword} — {topic.title[:36]}",
-                draftPreview=f"# {topic.title}\n\n키워드: {topic.keyword}\n관련: {', '.join(related[:5])}",
+                draftPreview=(
+                    f"# {topic.title}\n\n키워드: {topic.keyword}\n"
+                    f"관련검색: {', '.join(related[:5])}\n"
+                    f"팩트체크 참고: {fact_bits or '(관련검색 기반)'}"
+                ),
                 platform=brand.platform,
                 step="topic",
             )
@@ -622,6 +644,7 @@ def generate_all(*, live: bool = True, on_progress=None) -> dict:
                 topic,
                 trend_note=trend_note,
                 related=related,
+                fact_bits=fact_bits,
                 on_progress=prog,
             )
             ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
@@ -642,7 +665,7 @@ def generate_all(*, live: bool = True, on_progress=None) -> dict:
                 raise RuntimeError(f"Quality gate failed for {brand.id}: {detail}")
             remember_title(topic.title, topic.keyword)
             prog(
-                f"[{brand.name}] 이미지·SNS·발행 준비 중… ({chars}자)",
+                f"[{brand.name}] AI 상황 일러스트 생성 + SNS·발행 준비… ({chars}자)",
                 draftPreview=md[-1400:],
                 platform=brand.platform,
                 step="publish",
