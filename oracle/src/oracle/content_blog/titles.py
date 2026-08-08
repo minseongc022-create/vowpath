@@ -29,8 +29,10 @@ def _template_title(keyword: str, angle: str) -> str:
     return t
 
 
-def make_click_title(keyword: str, angle: str, search_intent: str = "") -> str:
+def make_click_title(keyword: str, angle: str, search_intent: str = "", *, use_llm: bool = False) -> str:
     base = _template_title(keyword, angle)
+    if not use_llm:
+        return base
     try:
         resp = llm_chat(
             [
@@ -55,6 +57,7 @@ def make_click_title(keyword: str, angle: str, search_intent: str = "") -> str:
             temperature=0.7,
             max_tokens=80,
             json_mode=False,
+            timeout=12.0,
         )
         if resp.ok and (resp.text or "").strip():
             title = resp.text.strip().splitlines()[0].strip().strip('"“”')

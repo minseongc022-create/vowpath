@@ -100,11 +100,16 @@ def pick_topic(platform: str) -> tuple[Topic, TrendSnapshot, list[str]]:
         cpc_tier=topic.cpc_tier,
     )
     related = []
+    reasons = []
     try:
         raw = store._read("trends.json", {})  # noqa: SLF001
         related = list((raw.get("related") or {}).get(topic.keyword) or [])[:8]
+        reasons = list((raw.get("reasons") or {}).get(topic.keyword) or [])[:4]
     except Exception:
         related = []
+        reasons = []
+    if reasons:
+        snap.notes = reasons + list(snap.notes or [])
     return topic, snap, related
 
 
@@ -214,6 +219,7 @@ Hard rules:
             temperature=0.5,
             max_tokens=5500,
             json_mode=False,
+            timeout=35.0,
         )
         if not resp.ok or not (resp.text or "").strip():
             logger.warning("LLM blog fallback mock: %s", resp.error)
@@ -465,7 +471,7 @@ def publish_article(
         url=public_url,
         platform=brand.platform,
         related=related,
-        polish=True,
+        polish=False,
     )
     return article
 

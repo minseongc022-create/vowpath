@@ -150,6 +150,7 @@ def chat(
     temperature: float = 0.15,
     max_tokens: int = 1200,
     json_mode: bool = True,
+    timeout: float | None = None,
 ) -> LLMResponse:
     last_err = "no providers"
     for p in configured_providers():
@@ -169,7 +170,8 @@ def chat(
                 }
                 if json_mode:
                     payload["format"] = "json"
-                with httpx.Client(trust_env=False, timeout=180.0) as client:
+                ollama_timeout = 180.0 if timeout is None else float(timeout)
+                with httpx.Client(trust_env=False, timeout=ollama_timeout) as client:
                     r = client.post(f"{host}/api/chat", json=payload)
                     r.raise_for_status()
                     data = r.json()
@@ -195,7 +197,8 @@ def chat(
             }
             if json_mode:
                 body["response_format"] = {"type": "json_object"}
-            with httpx.Client(trust_env=False, timeout=90.0) as client:
+            cloud_timeout = 90.0 if timeout is None else float(timeout)
+            with httpx.Client(trust_env=False, timeout=cloud_timeout) as client:
                 r = client.post(f"{p['base_url']}/chat/completions", headers=headers, json=body)
                 r.raise_for_status()
                 data = r.json()

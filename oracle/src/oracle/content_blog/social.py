@@ -101,6 +101,7 @@ def _llm_polish(platform: str, draft: str, title: str, keyword: str) -> str | No
             temperature=0.7,
             max_tokens=700,
             json_mode=False,
+            timeout=15.0,
         )
         if resp.ok and (resp.text or "").strip():
             return _clean_slang(resp.text.strip())
@@ -116,7 +117,7 @@ def build_social_copies(
     url: str | None,
     platform: str,
     related: list[str] | None = None,
-    polish: bool = True,
+    polish: bool = False,
 ) -> dict[str, str]:
     link = url or "(블로그 링크 붙여넣기)"
     threads = _rule_threads(title, keyword, link, related)
