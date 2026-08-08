@@ -32,6 +32,7 @@ class BrokerAccount:
     buying_power: float
     day_pnl_pct: float
     positions: dict[str, float]  # symbol -> qty
+    status: str | None = None
 
 
 @runtime_checkable

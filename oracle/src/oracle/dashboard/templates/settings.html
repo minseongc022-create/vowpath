@@ -6,10 +6,16 @@
   <div class="card-head"><h2 class="card-title">계좌 연결</h2></div>
   <p class="card-desc">Alpaca에 돈을 넣고, 여기서 키만 연결하면 AI가 주문합니다.</p>
   {% if broker.configured and not broker.error %}
-  <p class="ok-text">✓ 연결됨 · {{ broker.mode_ko }}</p>
+  <p class="ok-text">✓ 연결됨 · {{ broker.mode_ko }}{% if broker.account_status %} · {{ broker.account_status }}{% endif %}</p>
   {% if broker.account %}
   <div class="list-row"><div class="left">총자산</div><strong>${{ "{:,.2f}".format(broker.account.equity) }}</strong></div>
   <div class="list-row"><div class="left">현금</div><strong>${{ "{:,.2f}".format(broker.account.cash) }}</strong></div>
+  {% if broker.account.equity < 5 %}
+  <p class="warn-text" style="margin-top:10px">실계좌 잔고가 $0에 가깝습니다. Alpaca Live에 입금하기 전에는 주문이 나갈 수 없습니다. 스캔·분석은 24시간 계속됩니다.</p>
+  {% endif %}
+  {% endif %}
+  {% if not live_trading and broker.mode == 'alpaca_live_unarmed' %}
+  <p class="card-desc" style="margin-top:8px">키는 Live URL로 연결됨 · 아래 <strong>실거래 무장</strong>을 켜야 실제 주문이 가능합니다.</p>
   {% endif %}
   {% elif broker.error %}
   <p class="bad-text">연결 오류: {{ broker.error }}</p>
@@ -24,8 +30,8 @@
     <input class="field" type="password" name="secret_key" placeholder="Alpaca Secret Key" required autocomplete="off" />
     <label class="field-label">계정</label>
     <select class="field" name="account_type">
-      <option value="paper" selected>Paper (연습 · 추천)</option>
-      <option value="live">Live (진짜 돈)</option>
+      <option value="paper" {% if 'paper' in (broker.base_url or '') %}selected{% endif %}>Paper (연습)</option>
+      <option value="live" {% if 'paper' not in (broker.base_url or 'paper') %}selected{% endif %}>Live (진짜 돈)</option>
     </select>
     <label class="field-label">한 번에 쓸 최대 금액 ($)</label>
     <input class="field" type="number" name="max_notional" value="{{ broker.max_notional|int }}" min="5" max="500" step="1" />

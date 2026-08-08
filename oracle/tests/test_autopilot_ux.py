@@ -27,6 +27,19 @@ def test_ai_page_has_live_targets(monkeypatch):
     assert "/static/oracle.js" in r.text
 
 
+def test_tabbar_four_columns(monkeypatch):
+    _no_auth(monkeypatch)
+    client = TestClient(app)
+    r = client.get("/ai")
+    assert r.status_code == 200
+    assert 'class="tabbar"' in r.text
+    assert r.text.count('class="tab ') + r.text.count('class="tab on"') >= 4
+    css = client.get("/static/oracle.css")
+    assert css.status_code == 200
+    assert "repeat(4," in css.text
+    assert "repeat(5," not in css.text
+
+
 def test_autopilot_toggle_off(monkeypatch, tmp_path):
     _no_auth(monkeypatch)
     env = tmp_path / ".env"

@@ -78,6 +78,7 @@ class AlpacaBroker:
 
     def get_account(self) -> BrokerAccount:
         acct = self._get("/v2/account")
+        self._last_account_raw = acct if isinstance(acct, dict) else {}
         positions_raw = self._get("/v2/positions")
         positions = {p["symbol"]: float(p["qty"]) for p in positions_raw}
         equity = float(acct.get("equity") or 0)
@@ -89,7 +90,13 @@ class AlpacaBroker:
             buying_power=float(acct.get("buying_power") or 0),
             day_pnl_pct=day_pnl_pct,
             positions=positions,
+            status=str(acct.get("status") or "") or None,
         )
+
+    def raw_account_status(self) -> str | None:
+        raw = getattr(self, "_last_account_raw", None) or {}
+        status = str(raw.get("status") or "").strip()
+        return status or None
 
     def get_positions_detailed(self) -> list[dict[str, Any]]:
         rows = self._get("/v2/positions")

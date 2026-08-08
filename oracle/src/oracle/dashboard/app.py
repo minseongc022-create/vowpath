@@ -245,6 +245,7 @@ def _broker_status(*, probe: bool = True) -> dict:
         live = live_armed()
         configured = alpaca_configured()
         account = None
+        account_status = None
         err = None
         mode = "local_paper"
         base_url = os.getenv("ALPACA_BASE_URL", PAPER_URL)
@@ -260,6 +261,9 @@ def _broker_status(*, probe: bool = True) -> dict:
                         "day_pnl_pct": account_obj.day_pnl_pct,
                         "positions": account_obj.positions,
                     }
+                    account_status = getattr(account_obj, "status", None)
+                    if not account_status and hasattr(broker, "raw_account_status"):
+                        account_status = broker.raw_account_status()
                     base = getattr(broker, "base_url", base_url)
                     mode = "alpaca_live" if live and "paper" not in str(base) else "alpaca_paper"
                     if "paper" not in str(base) and not live:
@@ -268,7 +272,10 @@ def _broker_status(*, probe: bool = True) -> dict:
                 err = str(exc)
                 mode = "alpaca_error"
         elif configured:
-            mode = "alpaca_live" if live and "paper" not in base_url else "alpaca_paper"
+            if "paper" not in base_url:
+                mode = "alpaca_live" if live else "alpaca_live_unarmed"
+            else:
+                mode = "alpaca_paper"
         return {
             "configured": configured,
             "mode": mode,
@@ -281,6 +288,8 @@ def _broker_status(*, probe: bool = True) -> dict:
             }.get(mode, mode),
             "live_flag": live,
             "account": account,
+            "account_status": account_status,
+            "unfunded": bool(account and float(account.get("equity") or 0) < 5),
             "error": err,
             "ready_for_money": configured and mode in {"alpaca_paper", "alpaca_live"},
             "max_notional": live_max_notional(),

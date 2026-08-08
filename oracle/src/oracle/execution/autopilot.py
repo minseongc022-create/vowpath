@@ -530,7 +530,9 @@ def _run_once_locked(prog: ProgressFn) -> dict:
     gprog = goal_progress(equity, sleeve=sleeve)
     session = us_equity_session()
     prep_mode = not bool(session.get("open"))
+    unfunded = equity < 5.0
     _last["prep_mode"] = prep_mode
+    _last["unfunded"] = unfunded
     cycle = int(_last.get("cycle") or 0) + 1
     _last["cycle"] = cycle
     urgency = float(gprog.get("urgency") or 0.0)
@@ -541,11 +543,17 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         (
             f"사이클 #{cycle} {'장 휴장 준비중' if prep_mode else '분석중'} · "
             f"모드 {gprog.get('mode_ko') or mode} · {session['label']}"
+            + (" · 입금필요" if unfunded else "")
         ),
     )
     prog(f"장 상태 · {session['label']} · {session['hint']}")
+    if unfunded:
+        prog(
+            "실계좌/포트 잔고 부족 · 주문 불가 · "
+            "전 유니버스 스캔·버핏 심층 분석·워치리스트는 24시간 계속"
+        )
     if prep_mode:
-        prog("준비 모드 · 주문 보류 · 광역·심층 분석으로 개장 워치리스트만 갱신")
+        prog("준비 모드 · 주문 보류 · 광역·심층 분석으로 개장 워치리스트 갱신")
     else:
         prog("개장 모드 · 광역 스캔 + 심층 두뇌 후 한도 내 집행")
 
@@ -629,7 +637,11 @@ def _run_once_locked(prog: ProgressFn) -> dict:
             prog(f"목표 달성 · ${stake:,.2f} ≥ ${gprog['goal']:,.0f} · 매수 중단 · 약한 종목만 정리")
 
     # Always wide screen — narrowing in lock only hid exits/edges; size gates risk instead.
-    lim_short, lim_long = 14, 8
+    # Hunt/prep: cast a wider net so we never idle on a tiny shortlist.
+    if mode in {"hunt", "panic"} or urgency >= 0.55 or prep_mode:
+        lim_short, lim_long = 18, 12
+    else:
+        lim_short, lim_long = 14, 8
     prog(f"① 광역 탐색 · 사이클 #{cycle} · 심층지능 ON · 단타{lim_short}/장타{lim_long}")
     short_picks, long_picks, blend_picks = screen_short_and_long(
         limit_short=lim_short,
@@ -670,16 +682,17 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         )
 
     held = list(portfolio.held_symbols())
-    top_n = 6
+    top_n = 8 if (mode in {"hunt", "panic"} or urgency >= 0.55 or prep_mode) else 6
+    deep_cap = 22 if (mode in {"hunt", "panic"} or prep_mode) else 16
     top_syms = list(
         dict.fromkeys(
             news_priority
             + [p.symbol for p in short_picks[:top_n]]
             + [p.symbol for p in long_picks[:top_n]]
-            + [p.symbol for p in blend_picks[:4]]
+            + [p.symbol for p in blend_picks[:6]]
         )
     )
-    symbols = list(dict.fromkeys([*held, *top_syms]))[:16]
+    symbols = list(dict.fromkeys([*held, *top_syms]))[:deep_cap]
 
     pipe_session = "weekend_prep" if prep_mode and datetime.now(UTC).weekday() >= 5 else (
         "closed_prep" if prep_mode else "autopilot"
@@ -1020,16 +1033,25 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         skip_reasons.append("AI가 고확신 매수/매도 후보를 못 뽑음")
 
     # Closed market / weekend: research only — no new orders until cash session opens
-    if prep_mode:
+    if prep_mode or unfunded:
         ready = " · ".join(
             f"{w['side']} {w['symbol']}" for w in watchlist[:5]
         ) or "워치리스트 갱신 중"
         digest = research_digest(limit=4)
-        msg = (
-            f"장 휴장 준비 완료 · 개장 대기 주문 없음 · "
-            f"준비 {ready} · 뉴스 {new_n}/{material_n}"
-        )
-        prog(f"④ 주문 보류 · {session['label']} · 개장 시 바로 집행할 계획 저장")
+        if unfunded and not prep_mode:
+            msg = (
+                f"입금 대기 · 주문 보류 · 스캔 계속 · "
+                f"준비 {ready} · 뉴스 {new_n}/{material_n}"
+            )
+            prog("④ 주문 보류 · 실계좌 잔고 부족 · 입금 후 LIVE 무장 시 집행")
+        else:
+            msg = (
+                f"장 휴장 준비 완료 · 개장 대기 주문 없음 · "
+                f"준비 {ready} · 뉴스 {new_n}/{material_n}"
+            )
+            if unfunded:
+                msg += " · 입금필요"
+            prog(f"④ 주문 보류 · {session['label']} · 개장 시 바로 집행할 계획 저장")
         prog(f"워치리스트 · {ready}")
         if digest:
             prog(f"뉴스 브리핑 · {digest[:220]}")
@@ -1039,9 +1061,14 @@ def _run_once_locked(prog: ProgressFn) -> dict:
         try:
             ActivityLog().add(
                 "prep",
-                "휴장 준비 사이클 완료",
+                "입금 대기 사이클 완료" if unfunded and not prep_mode else "휴장 준비 사이클 완료",
                 detail=msg,
-                meta={"watchlist": watchlist[:8], "cycle": cycle, "news": _last.get("news")},
+                meta={
+                    "watchlist": watchlist[:8],
+                    "cycle": cycle,
+                    "news": _last.get("news"),
+                    "unfunded": unfunded,
+                },
             )
         except Exception:
             pass
