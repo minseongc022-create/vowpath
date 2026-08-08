@@ -9,7 +9,7 @@
       {% if blog_job and blog_job.status == 'running' %}생성중{% elif blog_job and blog_job.status == 'done' %}완료{% elif blog_job and blog_job.status == 'error' %}오류{% else %}대기{% endif %}
     </span>
   </div>
-  <p class="card-desc">네이버·WP·Blogger 각 1편 · 2200자+ · 사실만 · 커버 SVG · Threads/인스타 문구 포함. WP·Blogger는 연결되면 바로 발행, 네이버는 붙여넣기 팩.</p>
+  <p class="card-desc">실시간 검색(Signal·구글 급상승·네이버 관련검색)으로 고단가 주제 선정 · 2200자+ · 차트/커버 이미지 · Threads(친근)·인스타(전문) 복사. WP·Blogger는 연결 시 즉시 발행.</p>
 
   <form method="post" action="/actions/blog_generate" class="stack" data-no-overlay="1">
     <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px">
@@ -38,8 +38,20 @@
         {{ r.chars }}자 · {{ r.keyword }} · {{ r.platform }}
         {% if r.published %} · <span class="chip chip-ok">발행됨</span>{% else %} · 저장/내보내기{% endif %}
       </div>
+      {% if r.trendNote %}
+      <p class="card-desc" style="margin-top:6px">트렌드: {{ r.trendNote }}</p>
+      {% endif %}
+      {% if r.relatedSearches %}
+      <p class="card-desc">관련검색: {{ r.relatedSearches[:5]|join(' · ') }}</p>
+      {% endif %}
       {% if r.coverUrl %}
       <img src="{{ r.coverUrl }}" alt="cover" style="width:100%;max-width:420px;margin-top:10px;border-radius:8px;display:block" />
+      {% endif %}
+      {% if r.chartUrl %}
+      <img src="{{ r.chartUrl }}" alt="chart" style="width:100%;max-width:420px;margin-top:8px;border-radius:8px;display:block" />
+      {% endif %}
+      {% if r.midImageUrl %}
+      <img src="{{ r.midImageUrl }}" alt="section" style="width:100%;max-width:420px;margin-top:8px;border-radius:8px;display:block" />
       {% endif %}
       {% if r.url %}
       <p class="card-desc" style="margin-top:8px">

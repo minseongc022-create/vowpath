@@ -9,9 +9,11 @@ from dataclasses import dataclass
 import httpx
 
 from oracle.content_blog import store
-from oracle.content_blog.covers import make_cover_svg
+from oracle.content_blog.covers import make_chart_svg, make_cover_svg, make_section_svg
 from oracle.content_blog.social import build_social_copies
+from oracle.content_blog.titles import make_click_title
 from oracle.content_blog.topics import Topic, topics_for
+from oracle.content_blog.trends import TrendSnapshot, pick_best_keyword, sparkline_values
 from oracle.llm.client import chat as llm_chat
 
 logger = logging.getLogger("oracle.content_blog")
@@ -74,35 +76,62 @@ def quality_ok(title: str, md: str, min_chars: int, keyword: str) -> tuple[bool,
     return True, "ok"
 
 
-def pick_topic(platform: str) -> Topic:
-    import random
-
+def pick_topic(platform: str) -> tuple[Topic, TrendSnapshot, list[str]]:
+    """Pick topic using live KR search demand + high-CPC bank."""
     pool = topics_for(platform)
-    used = set(store.load_settings().get("used_titles") or [])
-    fresh = [t for t in pool if t.title not in used]
-    choice = random.choice(fresh or pool)
-    return choice
+    used_titles = set(store.load_settings().get("used_titles") or [])
+    used_kw = set(store.load_settings().get("used_keywords") or [])
+    candidates = list(dict.fromkeys([t.keyword for t in pool]))
+    best_kw, _score, snap = pick_best_keyword(candidates, used_kw | used_titles)
+    # Prefer unused title for that keyword
+    matches = [t for t in pool if t.keyword == best_kw and t.title not in used_titles]
+    if not matches:
+        matches = [t for t in pool if t.keyword == best_kw] or [
+            t for t in pool if t.title not in used_titles
+        ] or pool
+    topic = matches[0]
+    # Click-maximizing professional title
+    topic = Topic(
+        title=make_click_title(topic.keyword, topic.title, topic.search_intent),
+        keyword=topic.keyword,
+        secondary=topic.secondary,
+        search_intent=topic.search_intent,
+        outline=topic.outline,
+        cpc_tier=topic.cpc_tier,
+    )
+    related = []
+    try:
+        raw = store._read("trends.json", {})  # noqa: SLF001
+        related = list((raw.get("related") or {}).get(topic.keyword) or [])[:8]
+    except Exception:
+        related = []
+    return topic, snap, related
 
 
-def remember_title(title: str) -> None:
+def remember_title(title: str, keyword: str = "") -> None:
     s = store.load_settings()
     used = list(s.get("used_titles") or [])
     used.append(title)
     s["used_titles"] = used[-80:]
+    if keyword:
+        uk = list(s.get("used_keywords") or [])
+        uk.append(keyword)
+        s["used_keywords"] = uk[-40:]
     store.save_settings(s)
 
 
-def _mock_article(brand: Brand, topic: Topic) -> tuple[str, str, int]:
+def _mock_article(brand: Brand, topic: Topic, trend_note: str = "") -> tuple[str, str, int]:
     kw = topic.keyword
     title = topic.title
     secs = topic.outline or ["문제", "원인", "방법", "예시", "착각", "체크리스트"]
+    tn = trend_note or "실시간 검색·관련검색 신호를 반영한 고관심 주제"
     parts = [
         f"# {title}\n",
         f"**핵심 키워드:** {kw}\n",
         f"{brand.audience}가 '{kw}'를 검색할 때 실제로 막히는 지점만 골라 정리합니다. "
         f"과장된 수익·허위 수치 없이, 바로 점검할 수 있는 순서 중심입니다.\n",
         f"## {kw}, 왜 지금 정리해야 하나\n",
-        f"검색 의도는 보통 '{topic.search_intent}'입니다. 예를 들어 조건·서류·순서를 모르면 "
+        f"{tn}. 검색 의도는 보통 '{topic.search_intent}'입니다. 예를 들어 조건·서류·순서를 모르면 "
         f"같은 실수를 반복합니다. 실제로 기본 구조만 잡아도 판단 속도가 달라집니다.\n",
     ]
     for i, s in enumerate(secs):
@@ -148,26 +177,34 @@ def _mock_article(brand: Brand, topic: Topic) -> tuple[str, str, int]:
     return title, md, count_chars(md)
 
 
-def write_article(brand: Brand, topic: Topic) -> tuple[str, str, int]:
+def write_article(
+    brand: Brand,
+    topic: Topic,
+    *,
+    trend_note: str = "",
+    related: list[str] | None = None,
+) -> tuple[str, str, int]:
     system = f"""You are a senior Korean SEO blog editor writing HIGH-QUALITY long-form posts.
 
 Hard rules:
-- Korean only. Start with # title (use the given title angle; may tighten wording but keep promise).
+- Korean only. Start with exact H1: # {topic.title}
 - Min {brand.min_chars} characters excluding spaces.
 - At least 7 ## sections, concrete examples (예를 들어/가령/실제로), numbered + bullet checklists.
-- Primary keyword "{topic.keyword}" in title H2s naturally (no stuffing).
+- Primary keyword "{topic.keyword}" in H2s naturally (no stuffing).
 - Secondary: {', '.join(topic.secondary)}.
 - FACTS ONLY: no fake news, no invented statistics, no "속보/단독", no guaranteed returns.
-- Compelling but honest click title — curiosity OK, deception NOT OK.
+- Early section must mention why this topic has search demand now (use provided trend note; do not invent % numbers).
 - Include an SEO summary section near the end with search intent.
 - Audience: {brand.audience}
 - Concept: {brand.concept}
 - Output markdown only."""
 
     user = (
-        f"Title angle: {topic.title}\n"
+        f"Title (keep): {topic.title}\n"
         f"Keyword: {topic.keyword}\n"
         f"Search intent: {topic.search_intent}\n"
+        f"Related searches: {', '.join(related or topic.secondary)}\n"
+        f"Trend note: {trend_note or '고단가·검색의도 키워드'}\n"
         f"Outline promise: {topic.outline}\n"
         f"Write the full article now."
     )
@@ -180,14 +217,16 @@ Hard rules:
         )
         if not resp.ok or not (resp.text or "").strip():
             logger.warning("LLM blog fallback mock: %s", resp.error)
-            return _mock_article(brand, topic)
+            return _mock_article(brand, topic, trend_note)
         md = resp.text.strip()
-        t = re.search(r"^#\s+(.+)$", md, flags=re.M)
-        final_title = t.group(1).strip() if t else topic.title
-        return final_title, md, count_chars(md)
+        # Force approved click title as H1
+        md = re.sub(r"^#\s+.+$", f"# {topic.title}", md, count=1, flags=re.M)
+        if not md.lstrip().startswith("#"):
+            md = f"# {topic.title}\n\n" + md
+        return topic.title, md, count_chars(md)
     except Exception as e:
         logger.warning("LLM blog write failed: %s", e)
-        return _mock_article(brand, topic)
+        return _mock_article(brand, topic, trend_note)
 
 
 def markdown_to_html(md: str, cover_url: str | None = None) -> str:
@@ -236,6 +275,20 @@ def seo_meta(title: str, keyword: str, md: str, secondary: list[str] | None = No
     }
 
 
+def _svg_figure(path, caption: str) -> str:
+    try:
+        svg_raw = path.read_text(encoding="utf-8")
+        svg_embed = re.sub(r"<\?xml[^?]*\?>\s*", "", svg_raw).strip()
+        return (
+            f'<figure style="margin:1.25rem 0;padding:0">'
+            f"{svg_embed}"
+            f'<figcaption style="font-size:12px;opacity:.7;margin-top:6px">'
+            f"{_esc(caption)}</figcaption></figure>\n"
+        )
+    except Exception:
+        return ""
+
+
 def publish_article(
     brand: Brand,
     topic: Topic,
@@ -244,15 +297,44 @@ def publish_article(
     chars: int,
     *,
     live: bool = True,
+    snap: TrendSnapshot | None = None,
+    related: list[str] | None = None,
 ) -> dict:
     conns = store.load_connections()
     created = store.now_iso()
     meta = seo_meta(title, topic.keyword, md, topic.secondary)
 
     cover_dir = store._root() / "covers"  # noqa: SLF001
-    cover_path = cover_dir / f"{brand.id}-{meta['slug'][:40]}.svg"
-    make_cover_svg(title, topic.keyword, cover_path)
-    # served via /api/blog/cover/{name} 
+    stem = f"{brand.id}-{meta['slug'][:40]}"
+    cover_path = cover_dir / f"{stem}.svg"
+    chart_path = cover_dir / f"{stem}-chart.svg"
+    mid_path = cover_dir / f"{stem}-mid.svg"
+
+    chart_vals = sparkline_values(snap, topic.keyword) if snap else []
+    trend_note = ""
+    if snap and snap.notes:
+        trend_note = snap.notes[0]
+    if snap and snap.realtime:
+        top = ", ".join(x["keyword"] for x in snap.realtime[:5] if x.get("keyword"))
+        if top:
+            trend_note = (trend_note + f" · 실시간 TOP: {top}")[:160]
+
+    make_cover_svg(
+        title,
+        topic.keyword,
+        cover_path,
+        chart=chart_vals[:6] or None,
+        trend_note=trend_note or "실시간 검색 신호 반영",
+    )
+    if chart_vals:
+        make_chart_svg(chart_vals, topic.keyword, chart_path, title="지금 검색 관심도 비교")
+    make_section_svg(
+        topic.outline[0] if topic.outline else f"{topic.keyword} 핵심",
+        topic.keyword,
+        mid_path,
+        subtitle="본문 중간 · 실무 포인트 시각화",
+    )
+
     cover_url = f"/api/blog/cover/{cover_path.name}"
 
     article: dict = {
@@ -267,26 +349,40 @@ def publish_article(
         "slug": meta["slug"],
         "coverPath": str(cover_path),
         "coverUrl": cover_url,
+        "chartUrl": f"/api/blog/cover/{chart_path.name}" if chart_path.exists() else None,
+        "midImageUrl": f"/api/blog/cover/{mid_path.name}",
+        "trendNote": trend_note,
+        "relatedSearches": related or [],
         "url": None,
         "published": False,
         "createdAt": created,
         "social": {},
     }
 
-    # Embed copyright-safe SVG cover inline so WP/Blogger posts show an image
-    # without stock-photo licenses or external hosting.
-    try:
-        svg_raw = cover_path.read_text(encoding="utf-8")
-        # strip XML declaration for HTML embed
-        svg_embed = re.sub(r"<\?xml[^?]*\?>\s*", "", svg_raw).strip()
-        cover_block = (
-            f'<figure style="margin:0 0 1.25rem 0">{svg_embed}'
-            f"<figcaption style=\"font-size:12px;opacity:.7\">"
-            f"커버 · 자체 생성(저작권 프리) · {topic.keyword}</figcaption></figure>\n"
+    body_html = markdown_to_html(md, cover_url=None)
+    # Insert mid image after first H2 block for professional layout
+    parts = body_html.split("<h2>", 2)
+    if len(parts) >= 3:
+        body_html = (
+            parts[0]
+            + "<h2>"
+            + parts[1]
+            + _svg_figure(mid_path, f"섹션 이미지 · {topic.keyword}")
+            + "<h2>"
+            + parts[2]
         )
-    except Exception:
-        cover_block = f"<p><em>키워드: {topic.keyword}</em></p>\n"
-    html_with_note = cover_block + markdown_to_html(md, cover_url=None)
+    else:
+        body_html = body_html + _svg_figure(mid_path, f"섹션 이미지 · {topic.keyword}")
+
+    html_with_note = (
+        _svg_figure(cover_path, f"커버 · {topic.keyword} · 저작권 프리")
+        + (
+            _svg_figure(chart_path, "검색 관심도 차트 · 실시간 합성 데이터")
+            if chart_path.exists()
+            else ""
+        )
+        + body_html
+    )
 
     if brand.platform == "wordpress":
         wp = conns.get("wordpress") or {}
@@ -362,21 +458,15 @@ def publish_article(
         if nid:
             article["naverBlog"] = f"https://blog.naver.com/{nid}"
 
+    public_url = article.get("url") if article.get("published") else article.get("url")
     article["social"] = build_social_copies(
         title=title,
         keyword=topic.keyword,
-        url=article.get("url") if article.get("published") else article.get("url"),
+        url=public_url,
         platform=brand.platform,
+        related=related,
+        polish=True,
     )
-    # Prefer public URL in social if published
-    if article.get("published") and article.get("url"):
-        article["social"] = build_social_copies(
-            title=title,
-            keyword=topic.keyword,
-            url=article["url"],
-            platform=brand.platform,
-        )
-
     return article
 
 
@@ -405,17 +495,26 @@ def generate_all(*, live: bool = True) -> dict:
     results: list[dict] = []
     try:
         for brand in BRANDS:
-            topic = pick_topic(brand.platform)
-            title, md, chars = write_article(brand, topic)
+            topic, snap, related = pick_topic(brand.platform)
+            reasons = []
+            try:
+                raw = store._read("trends.json", {})  # noqa: SLF001
+                reasons = list((raw.get("reasons") or {}).get(topic.keyword) or [])
+            except Exception:
+                reasons = []
+            trend_note = " / ".join(reasons[:3]) if reasons else (snap.notes[0] if snap.notes else "")
+            title, md, chars = write_article(
+                brand, topic, trend_note=trend_note, related=related
+            )
             ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
             if not ok:
                 logger.info("retry write %s: %s", brand.id, detail)
-                title, md, chars = write_article(brand, topic)
+                title, md, chars = write_article(
+                    brand, topic, trend_note=trend_note, related=related
+                )
                 ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
             if not ok:
-                # last resort mock must pass quality gate
-                title, md, chars = _mock_article(brand, topic)
-                # pad hard if still short (edge topics)
+                title, md, chars = _mock_article(brand, topic, trend_note)
                 while count_chars(md) < brand.min_chars:
                     md += (
                         f"\n\n'{topic.keyword}' 추가 점검: 조건, 비용, 일정, 대안을 "
@@ -425,9 +524,18 @@ def generate_all(*, live: bool = True) -> dict:
                 ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
             if not ok:
                 raise RuntimeError(f"Quality gate failed for {brand.id}: {detail}")
-            remember_title(topic.title)
+            remember_title(topic.title, topic.keyword)
             results.append(
-                publish_article(brand, topic, title, md, chars, live=live)
+                publish_article(
+                    brand,
+                    topic,
+                    title,
+                    md,
+                    chars,
+                    live=live,
+                    snap=snap,
+                    related=related,
+                )
             )
 
         body_lines = []
