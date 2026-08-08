@@ -180,6 +180,8 @@ JOB_LABELS = {
     "analyze": "시장 분석",
     "plan_trades": "매매 계획",
     "backtest": "백테스트",
+    "autopilot": "AI 자동매매",
+    "blog": "블로그 생성",
 }
 
 
@@ -708,17 +710,61 @@ def blog_page(request: Request, flash: str | None = None, _: None = Depends(requ
 
 @app.post("/actions/blog_generate")
 def blog_generate(_: None = Depends(require_auth)):
+    from oracle.content_blog import store as blog_store
     from oracle.content_blog.engine import generate_all
 
-    job = generate_all(live=True)
-    if job.get("status") == "done":
-        n = len(job.get("results") or [])
-        published = sum(1 for r in (job.get("results") or []) if r.get("published"))
-        return _flash(
-            "/blog",
-            f"{n}편 완료 · 자동발행 {published} · SNS 문구는 아래에서 복사",
-        )
-    return _flash("/blog", f"생성 실패: {job.get('error', 'unknown')}")
+    # Avoid stacking parallel generates
+    cur = blog_store.load_job() or {}
+    if cur.get("status") == "running":
+        watch = cur.get("dashboardJobId")
+        if watch and JobStore().get(watch):
+            return RedirectResponse(url=f"/job/{watch}", status_code=303)
+        return _flash("/blog", "이미 생성 중입니다. 잠시만 기다려 주세요.")
+
+    def _work(job_id: str):
+        store = JobStore()
+
+        def on_progress(message: str, **extra) -> None:
+            store.append_log(job_id, message, status="running")
+            if extra:
+                # live draft / step for job page + blog status API
+                store.update(job_id, payload=extra)
+                snap = blog_store.load_job() or {}
+                snap.update(
+                    {
+                        "status": "running",
+                        "message": message,
+                        "dashboardJobId": job_id,
+                        "draftPreview": extra.get("draftPreview") or snap.get("draftPreview"),
+                        "step": extra.get("step") or snap.get("step"),
+                        "platform": extra.get("platform") or snap.get("platform"),
+                    }
+                )
+                blog_store.save_job(snap)
+
+        result = generate_all(live=True, on_progress=on_progress)
+        n = len(result.get("results") or [])
+        published = sum(1 for r in (result.get("results") or []) if r.get("published"))
+        if result.get("status") != "done":
+            raise RuntimeError(result.get("error") or "블로그 생성 실패")
+        return {
+            "message": f"{n}편 완료 · 자동발행 {published} · SNS 문구는 아래에서 복사",
+            "redirect": "/blog",
+            "results": result.get("results") or [],
+            "draftPreview": "",
+        }
+
+    job_id = start_job("blog", _work, message="블로그 생성 시작… 실시간 검색 보는 중")
+    blog_store.save_job(
+        {
+            "id": job_id,
+            "status": "running",
+            "dashboardJobId": job_id,
+            "startedAt": blog_store.now_iso(),
+            "message": "블로그 생성 시작…",
+        }
+    )
+    return RedirectResponse(url=f"/job/{job_id}", status_code=303)
 
 
 @app.get("/api/blog/cover/{name}")

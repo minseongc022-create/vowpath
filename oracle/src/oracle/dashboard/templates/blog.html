@@ -11,11 +11,17 @@
   </div>
   <p class="card-desc">실시간 검색(Signal·구글 급상승·네이버 관련검색)으로 고단가 주제 선정 · 2200자+ · 차트/커버 이미지 · Threads(친근)·인스타(전문) 복사. WP·Blogger는 연결 시 즉시 발행.</p>
 
-  <form method="post" action="/actions/blog_generate" class="stack" data-no-overlay="1">
-    <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px">
-      3플랫폼 생성 + 발행
+  <form method="post" action="/actions/blog_generate" class="stack">
+    <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px"
+      {% if blog_job and blog_job.status == 'running' %}disabled{% endif %}>
+      {% if blog_job and blog_job.status == 'running' %}생성 중… 진행 화면으로{% else %}3플랫폼 생성 + 발행{% endif %}
     </button>
   </form>
+  {% if blog_job and blog_job.status == 'running' and blog_job.dashboardJobId %}
+  <p class="card-desc" style="margin-top:10px">
+    <a class="link" href="/job/{{ blog_job.dashboardJobId }}">실시간 작성 화면 열기 →</a>
+  </p>
+  {% endif %}
 
   {% if blog_settings.ntfy_topic %}
   <p class="card-desc" style="margin-top:10px">

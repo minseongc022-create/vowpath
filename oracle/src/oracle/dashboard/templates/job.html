@@ -13,8 +13,13 @@
     <div class="live-log-line">{{ line.text }}</div>
     {% endfor %}
   </div>
-  <p class="card-desc">서버에서 돌아가는 중 · 창을 나가도 매수/매도는 계속됩니다.</p>
+  <pre id="job-draft" class="field" style="margin-top:12px;min-height:160px;max-height:42vh;overflow:auto;white-space:pre-wrap;font-size:13px;display:{% if payload and payload.draftPreview %}block{% else %}none{% endif %}">{{ (payload.draftPreview if payload else '') or '' }}</pre>
+  <p class="card-desc">{% if job.kind == 'blog' %}글이 써지는 대로 아래에 실시간으로 표시됩니다.{% else %}서버에서 돌아가는 중 · 창을 나가도 매수/매도는 계속됩니다.{% endif %}</p>
+  {% if job.kind == 'blog' %}
+  <a class="btn btn-soft btn-block" href="/blog">블로그 화면으로</a>
+  {% else %}
   <a class="btn btn-soft btn-block" href="/ai?watch={{ job.id }}">AI화면에서 보기 · 나가기</a>
+  {% endif %}
   {% elif job.status == "done" %}
   <h2 class="job-title ok-text">완료</h2>
   <p id="job-msg">{{ job.message }}</p>
@@ -52,14 +57,23 @@
     seen = logs.length;
   }
 
+  const draftEl = document.getElementById("job-draft");
+  const isBlog = {{ 'true' if job.kind == 'blog' else 'false' }};
+
   async function poll() {
     try {
       const r = await fetch("/api/job/{{ job.id }}");
       const j = await r.json();
       if (msgEl && j.message) msgEl.textContent = j.message;
       renderLogs(j.logs || (j.payload && j.payload.logs) || []);
+      const draft = (j.payload && j.payload.draftPreview) || j.draftPreview || "";
+      if (draftEl && draft) {
+        draftEl.style.display = "block";
+        draftEl.textContent = draft;
+        draftEl.scrollTop = draftEl.scrollHeight;
+      }
       if (j.status === "done") {
-        let next = j.redirect || "/trades";
+        let next = j.redirect || (isBlog ? "/blog" : "/trades");
         let hash = "";
         const hi = next.indexOf("#");
         if (hi >= 0) { hash = next.slice(hi); next = next.slice(0, hi); }
@@ -68,11 +82,11 @@
         return;
       }
       if (j.status === "error") {
-        location.href = "/ai?flash=" + encodeURIComponent(j.error || j.message || "실패");
+        location.href = (isBlog ? "/blog" : "/ai") + "?flash=" + encodeURIComponent(j.error || j.message || "실패");
         return;
       }
     } catch (e) {}
-    setTimeout(poll, 700);
+    setTimeout(poll, 500);
   }
   poll();
 })();

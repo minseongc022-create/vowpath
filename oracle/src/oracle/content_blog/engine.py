@@ -125,53 +125,93 @@ def remember_title(title: str, keyword: str = "") -> None:
     store.save_settings(s)
 
 
-def _mock_article(brand: Brand, topic: Topic, trend_note: str = "") -> tuple[str, str, int]:
+def _mock_article(
+    brand: Brand,
+    topic: Topic,
+    trend_note: str = "",
+    *,
+    on_progress=None,
+) -> tuple[str, str, int]:
+    import time
+
     kw = topic.keyword
     title = topic.title
     secs = topic.outline or ["문제", "원인", "방법", "예시", "착각", "체크리스트"]
     tn = trend_note or "실시간 검색·관련검색 신호를 반영한 고관심 주제"
-    parts = [
-        f"# {title}\n",
-        f"**핵심 키워드:** {kw}\n",
+    parts: list[str] = []
+
+    def _emit(chunk: str, step: str) -> None:
+        parts.append(chunk)
+        md_now = "\n".join(parts)
+        if on_progress:
+            on_progress(
+                step,
+                draftPreview=md_now[-1200:],
+                platform=brand.platform,
+                step=step,
+                chars=count_chars(md_now),
+            )
+            time.sleep(0.15)
+
+    _emit(f"# {title}\n", f"[{brand.name}] 제목 작성…")
+    _emit(f"**핵심 키워드:** {kw}\n", f"[{brand.name}] 키워드 넣는 중…")
+    _emit(
         f"{brand.audience}가 '{kw}'를 검색할 때 실제로 막히는 지점만 골라 정리합니다. "
         f"과장된 수익·허위 수치 없이, 바로 점검할 수 있는 순서 중심입니다.\n",
-        f"## {kw}, 왜 지금 정리해야 하나\n",
+        f"[{brand.name}] 서론 쓰는 중…",
+    )
+    _emit(f"## {kw}, 왜 지금 정리해야 하나\n", f"[{brand.name}] 섹션: 왜 지금")
+    _emit(
         f"{tn}. 검색 의도는 보통 '{topic.search_intent}'입니다. 예를 들어 조건·서류·순서를 모르면 "
         f"같은 실수를 반복합니다. 실제로 기본 구조만 잡아도 판단 속도가 달라집니다.\n",
-    ]
+        f"[{brand.name}] 본문 확장 중… ({count_chars(chr(10).join(parts))}자)",
+    )
     for i, s in enumerate(secs):
-        parts.append(f"## {s}\n")
-        parts.append(
+        _emit(f"## {s}\n", f"[{brand.name}] 쓰는 중: {s}")
+        _emit(
             f"{kw} 맥락에서 '{s}'는 빼놓기 쉬운 구간입니다. 가령 관련 서류·숫자·기한을 "
             f"한 페이지로 적어두면 다음에 다시 검색할 필요가 줄어듭니다. "
-            f"예를 들어 체크 항목을 3개만 정해도 실행률이 올라갑니다.\n"
+            f"예를 들어 체크 항목을 3개만 정해도 실행률이 올라갑니다.\n",
+            f"[{brand.name}] {s} 문단 완료 · {count_chars(chr(10).join(parts))}자",
         )
         if i == 0:
-            parts.append(
+            _emit(
                 "1. 목표를 한 줄로 쓴다\n"
                 "2. 필요한 서류/데이터를 모은다\n"
                 "3. 비교 기준을 숫자로 정한다\n"
                 "4. 실행 날짜를 캘린더에 넣는다\n"
-                "5. 一周 뒤 결과만 점검한다\n"
+                "5. 일주일 뒤 결과만 점검한다\n",
+                f"[{brand.name}] 체크리스트 넣는 중…",
             )
-    parts += [
-        "## 자주 하는 착각\n",
-        f"'{kw}는 한 번에 끝난다'는 착각이 비용을 키웁니다. 반대로, 작은 점검을 반복하는 쪽이 "
-        f"리스크가 낮습니다. 프레임을 '완료'가 아니라 '운영'으로 바꾸세요.\n",
-        "## 실행 체크리스트\n",
-        f"- {kw} 관련 현재 상태 메모\n- 비교할 옵션 2개 이상\n- 필요 서류 목록\n"
-        f"- 오늘 할 일 1개\n- 다음 점검일\n",
-        "## SEO·검색 안实用 요약\n",
-        f"이 글의 검색 핵심은 '{kw}'입니다. 보조 키워드: {', '.join(topic.secondary)}. "
-        f"제목과 본문에 의도를 맞춰, 허위 통계 없이 체크리스트로 끝냅니다.\n",
-        "## 마무리\n",
-        f"{brand.concept} 관점에서, 오늘은 '{kw}' 점검 한 줄만 실행하면 충분합니다.\n",
-    ]
+    for label, body in [
+        (
+            "자주 하는 착각",
+            f"'{kw}는 한 번에 끝난다'는 착각이 비용을 키웁니다. 반대로, 작은 점검을 반복하는 쪽이 "
+            f"리스크가 낮습니다. 프레임을 '완료'가 아니라 '운영'으로 바꾸세요.\n",
+        ),
+        (
+            "실행 체크리스트",
+            f"- {kw} 관련 현재 상태 메모\n- 비교할 옵션 2개 이상\n- 필요 서류 목록\n"
+            f"- 오늘 할 일 1개\n- 다음 점검일\n",
+        ),
+        (
+            "SEO·검색 요약",
+            f"이 글의 검색 핵심은 '{kw}'입니다. 보조 키워드: {', '.join(topic.secondary)}. "
+            f"제목과 본문에 의도를 맞춰, 허위 통계 없이 체크리스트로 끝냅니다.\n",
+        ),
+        (
+            "마무리",
+            f"{brand.concept} 관점에서, 오늘은 '{kw}' 점검 한 줄만 실행하면 충분합니다.\n",
+        ),
+    ]:
+        _emit(f"## {label}\n", f"[{brand.name}] 섹션: {label}")
+        _emit(body, f"[{brand.name}] {label} 작성… {count_chars(chr(10).join(parts))}자")
+
     md = "\n".join(parts)
     n = 0
     while count_chars(md) < brand.min_chars + 80:
         n += 1
-        md += (
+        extra = (
             f"\n## 보충 메모 {n}: {kw}\n\n"
             f"추가로 '{kw}'를 볼 때는 조건·비용·일정·리스크를 같은 표에 놓아보세요. "
             f"예를 들어 옵션 A/B를 나란히 쓰면 감정적 선택이 줄어듭니다. "
@@ -179,7 +219,39 @@ def _mock_article(brand: Brand, topic: Topic, trend_note: str = "") -> tuple[str
             f"실제로 한 줄 메모 → 비교표 → 실행일 순서로만 잡아도 '{kw}' 관련 재검색이 줄어듭니다. "
             f"핵심은 완벽한 결론이 아니라, 오늘 검증 가능한 한 걸음입니다.\n"
         )
+        md += extra
+        if on_progress:
+            on_progress(
+                f"[{brand.name}] 분량 채우는 중… {count_chars(md)}자",
+                draftPreview=md[-1200:],
+                platform=brand.platform,
+                chars=count_chars(md),
+            )
+            time.sleep(0.08)
     return title, md, count_chars(md)
+
+
+def _reveal_draft(md: str, brand: Brand, on_progress) -> None:
+    """Push finished markdown in section chunks so the UI feels live."""
+    import time
+
+    if not on_progress:
+        return
+    chunks = re.split(r"(?=^##\s+)", md, flags=re.M)
+    acc = ""
+    for i, ch in enumerate(chunks):
+        if not ch.strip():
+            continue
+        acc += ch if acc.endswith("\n") or not acc else "\n" + ch
+        head = re.search(r"^##\s+(.+)$", ch, flags=re.M)
+        label = head.group(1).strip() if head else ("제목" if i == 0 else "본문")
+        on_progress(
+            f"[{brand.name}] 화면에 쓰는 중: {label} · {count_chars(acc)}자",
+            draftPreview=acc[-1400:],
+            platform=brand.platform,
+            chars=count_chars(acc),
+        )
+        time.sleep(0.12)
 
 
 def write_article(
@@ -188,6 +260,7 @@ def write_article(
     *,
     trend_note: str = "",
     related: list[str] | None = None,
+    on_progress=None,
 ) -> tuple[str, str, int]:
     system = f"""You are a senior Korean SEO blog editor writing HIGH-QUALITY long-form posts.
 
@@ -213,6 +286,13 @@ Hard rules:
         f"Outline promise: {topic.outline}\n"
         f"Write the full article now."
     )
+    if on_progress:
+        on_progress(
+            f"[{brand.name}] AI 초안 요청 중… ({topic.keyword})",
+            draftPreview=f"# {topic.title}\n\n(작성 시작…)",
+            platform=brand.platform,
+            step="llm",
+        )
     try:
         resp = llm_chat(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -223,16 +303,24 @@ Hard rules:
         )
         if not resp.ok or not (resp.text or "").strip():
             logger.warning("LLM blog fallback mock: %s", resp.error)
-            return _mock_article(brand, topic, trend_note)
+            if on_progress:
+                on_progress(
+                    f"[{brand.name}] AI 대기 길어져 실무 템플릿으로 이어서 작성…",
+                    platform=brand.platform,
+                )
+            return _mock_article(brand, topic, trend_note, on_progress=on_progress)
         md = resp.text.strip()
         # Force approved click title as H1
         md = re.sub(r"^#\s+.+$", f"# {topic.title}", md, count=1, flags=re.M)
         if not md.lstrip().startswith("#"):
             md = f"# {topic.title}\n\n" + md
+        _reveal_draft(md, brand, on_progress)
         return topic.title, md, count_chars(md)
     except Exception as e:
         logger.warning("LLM blog write failed: %s", e)
-        return _mock_article(brand, topic, trend_note)
+        if on_progress:
+            on_progress(f"[{brand.name}] AI 오류 → 템플릿 작성으로 전환", platform=brand.platform)
+        return _mock_article(brand, topic, trend_note, on_progress=on_progress)
 
 
 def markdown_to_html(md: str, cover_url: str | None = None) -> str:
@@ -495,12 +583,25 @@ def notify_done(body: str) -> None:
         logger.warning("ntfy failed: %s", e)
 
 
-def generate_all(*, live: bool = True) -> dict:
+def generate_all(*, live: bool = True, on_progress=None) -> dict:
+    def prog(msg: str, **extra) -> None:
+        if on_progress:
+            try:
+                on_progress(msg, **extra)
+            except Exception as e:
+                logger.debug("on_progress failed: %s", e)
+
     job = {"id": store.now_iso(), "status": "running", "startedAt": store.now_iso(), "live": live}
     store.save_job(job)
     results: list[dict] = []
     try:
-        for brand in BRANDS:
+        prog("실시간 검색·트렌드 수집 중…", step="trends")
+        for idx, brand in enumerate(BRANDS, start=1):
+            prog(
+                f"({idx}/{len(BRANDS)}) {brand.name} 주제 고르는 중…",
+                platform=brand.platform,
+                step="pick",
+            )
             topic, snap, related = pick_topic(brand.platform)
             reasons = []
             try:
@@ -509,18 +610,26 @@ def generate_all(*, live: bool = True) -> dict:
             except Exception:
                 reasons = []
             trend_note = " / ".join(reasons[:3]) if reasons else (snap.notes[0] if snap.notes else "")
+            prog(
+                f"[{brand.name}] 주제 확정: {topic.keyword} — {topic.title[:36]}",
+                draftPreview=f"# {topic.title}\n\n키워드: {topic.keyword}\n관련: {', '.join(related[:5])}",
+                platform=brand.platform,
+                step="topic",
+            )
             title, md, chars = write_article(
-                brand, topic, trend_note=trend_note, related=related
+                brand,
+                topic,
+                trend_note=trend_note,
+                related=related,
+                on_progress=prog,
             )
             ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
             if not ok:
-                logger.info("retry write %s: %s", brand.id, detail)
-                title, md, chars = write_article(
-                    brand, topic, trend_note=trend_note, related=related
+                logger.info("quality fallback mock %s: %s", brand.id, detail)
+                prog(f"[{brand.name}] 품질 보완 재작성… ({detail})")
+                title, md, chars = _mock_article(
+                    brand, topic, trend_note, on_progress=prog
                 )
-                ok, detail = quality_ok(title, md, brand.min_chars, topic.keyword)
-            if not ok:
-                title, md, chars = _mock_article(brand, topic, trend_note)
                 while count_chars(md) < brand.min_chars:
                     md += (
                         f"\n\n'{topic.keyword}' 추가 점검: 조건, 비용, 일정, 대안을 "
@@ -531,17 +640,29 @@ def generate_all(*, live: bool = True) -> dict:
             if not ok:
                 raise RuntimeError(f"Quality gate failed for {brand.id}: {detail}")
             remember_title(topic.title, topic.keyword)
-            results.append(
-                publish_article(
-                    brand,
-                    topic,
-                    title,
-                    md,
-                    chars,
-                    live=live,
-                    snap=snap,
-                    related=related,
-                )
+            prog(
+                f"[{brand.name}] 이미지·SNS·발행 준비 중… ({chars}자)",
+                draftPreview=md[-1400:],
+                platform=brand.platform,
+                step="publish",
+            )
+            article = publish_article(
+                brand,
+                topic,
+                title,
+                md,
+                chars,
+                live=live,
+                snap=snap,
+                related=related,
+            )
+            results.append(article)
+            flag = "발행" if article.get("published") else "저장"
+            prog(
+                f"[{brand.name}] 완료 · {flag} · {chars}자",
+                draftPreview=md[:1400],
+                platform=brand.platform,
+                step="done_one",
             )
 
         body_lines = []
@@ -561,8 +682,10 @@ def generate_all(*, live: bool = True) -> dict:
         notify_done(inbox["body"])
         job.update({"status": "done", "finishedAt": store.now_iso(), "results": results})
         store.save_job(job)
+        prog(f"전체 완료 · {len(results)}편", step="done", draftPreview="")
         return job
     except Exception as e:
         job.update({"status": "error", "finishedAt": store.now_iso(), "error": str(e)})
         store.save_job(job)
+        prog(f"실패: {e}", step="error")
         return job
