@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block title %}블로그{% endblock %}
-{% block subtitle %}3플랫폼 자동 글쓰기{% endblock %}
+{% block subtitle %}고단가 키워드 · 생성→발행→SNS{% endblock %}
 {% block content %}
 <section class="card">
   <div class="card-head">
-    <h2 class="card-title">블로그 자동 생성</h2>
+    <h2 class="card-title">한 번에 만들기</h2>
     <span class="chip {% if blog_job and blog_job.status == 'done' %}chip-ok{% elif blog_job and blog_job.status == 'error' %}chip-danger{% else %}chip-ok{% endif %}">
       {% if blog_job and blog_job.status == 'running' %}생성중{% elif blog_job and blog_job.status == 'done' %}완료{% elif blog_job and blog_job.status == 'error' %}오류{% else %}대기{% endif %}
     </span>
   </div>
-  <p class="card-desc">네이버·WordPress·Blogger 각 1편 · 2000자+ · 사실만 · 클릭 잘 되는 제목</p>
+  <p class="card-desc">네이버·WP·Blogger 각 1편 · 2200자+ · 사실만 · 커버 SVG · Threads/인스타 문구 포함. WP·Blogger는 연결되면 바로 발행, 네이버는 붙여넣기 팩.</p>
 
   <form method="post" action="/actions/blog_generate" class="stack" data-no-overlay="1">
     <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px">
-      ✨ 3개 플랫폼 전부 생성
+      3플랫폼 생성 + 발행
     </button>
   </form>
 
@@ -29,17 +29,54 @@
 </section>
 
 <section class="card">
-  <div class="card-head"><h2 class="card-title">최근 생성</h2></div>
+  <div class="card-head"><h2 class="card-title">최근 글 · 유입 문구</h2></div>
   {% if blog_inbox and blog_inbox.results %}
     {% for r in blog_inbox.results %}
-    <details class="list-row" style="display:block;padding:12px 0;border-bottom:1px solid var(--line,#e8eaed)">
-      <summary style="cursor:pointer">
-        <strong>{{ r.title }}</strong>
-        <div class="desc">{{ r.chars }}자 · {{ r.platform }}{% if r.url %} · 저장됨{% endif %}</div>
-      </summary>
-      <textarea class="field" readonly style="margin-top:10px;min-height:160px;font-size:13px">{{ r.markdown }}</textarea>
-      <p class="card-desc">네이버는 위 글을 복사해 글쓰기에 붙여넣기</p>
-    </details>
+    <article class="list-row" style="display:block;padding:14px 0;border-bottom:1px solid var(--line,#e8eaed)">
+      <strong>{{ r.title }}</strong>
+      <div class="desc" style="margin-top:4px">
+        {{ r.chars }}자 · {{ r.keyword }} · {{ r.platform }}
+        {% if r.published %} · <span class="chip chip-ok">발행됨</span>{% else %} · 저장/내보내기{% endif %}
+      </div>
+      {% if r.coverUrl %}
+      <img src="{{ r.coverUrl }}" alt="cover" style="width:100%;max-width:420px;margin-top:10px;border-radius:8px;display:block" />
+      {% endif %}
+      {% if r.url %}
+      <p class="card-desc" style="margin-top:8px">
+        {% if r.published %}
+        <a class="link" href="{{ r.url }}" target="_blank" rel="noopener">발행 링크 열기</a>
+        {% elif r.platform == 'naver-export' %}
+        <a class="link" href="{{ r.naverBlog or 'https://blog.naver.com' }}" target="_blank" rel="noopener">네이버 글쓰기 열기</a>
+        · HTML 내보내기 완료 (아래 본문 복사)
+        {% else %}
+        로컬 저장 · 연결 정보를 넣으면 다음부터 자동 발행
+        {% endif %}
+      </p>
+      {% endif %}
+      {% if r.publishError %}
+      <p class="bad-text">발행 오류: {{ r.publishError }}</p>
+      {% endif %}
+
+      <div style="margin-top:12px;display:grid;gap:8px">
+        <label class="field-label">Threads 유입글</label>
+        <textarea id="th-{{ loop.index }}" class="field" readonly style="min-height:110px;font-size:13px">{{ r.social.threads if r.social else '' }}</textarea>
+        <button type="button" class="btn btn-block" onclick="copyField('th-{{ loop.index }}', this)">Threads 복사</button>
+
+        <label class="field-label">인스타 캡션</label>
+        <textarea id="ig-{{ loop.index }}" class="field" readonly style="min-height:120px;font-size:13px">{{ r.social.instagram if r.social else '' }}</textarea>
+        <button type="button" class="btn btn-block" onclick="copyField('ig-{{ loop.index }}', this)">인스타 복사</button>
+
+        <label class="field-label">짧은 훅 (스토리/릴스)</label>
+        <textarea id="hk-{{ loop.index }}" class="field" readonly style="min-height:48px;font-size:13px">{{ r.social.hook if r.social else '' }}</textarea>
+        <button type="button" class="btn btn-block" onclick="copyField('hk-{{ loop.index }}', this)">훅 복사</button>
+
+        <details style="margin-top:4px">
+          <summary style="cursor:pointer" class="card-desc">본문 마크다운 / 메타설명</summary>
+          <p class="card-desc">메타: {{ r.metaDescription or '' }}</p>
+          <textarea class="field" readonly style="margin-top:8px;min-height:160px;font-size:13px">{{ r.markdown }}</textarea>
+        </details>
+      </div>
+    </article>
     {% endfor %}
   {% else %}
   <p class="card-desc">아직 생성된 글이 없습니다. 위 버튼을 누르세요.</p>
@@ -48,6 +85,7 @@
 
 <section class="card">
   <div class="card-head"><h2 class="card-title">플랫폼 연결</h2></div>
+  <p class="card-desc">WordPress·Blogger 저장 후 버튼을 누르면 초안이 아니라 바로 발행됩니다. 네이버는 공식 API가 없어 HTML/본문 복사로 올립니다.</p>
 
   <form method="post" action="/actions/blog_connect" class="stack" style="margin-bottom:18px" data-no-overlay="1">
     <input type="hidden" name="platform" value="naver" />
@@ -85,4 +123,28 @@
     <button class="btn btn-primary btn-block" type="submit">알림 저장</button>
   </form>
 </section>
+
+<script>
+function copyField(id, btn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var text = el.value;
+  function done() {
+    var prev = btn.textContent;
+    btn.textContent = "복사됨 ✓";
+    setTimeout(function () { btn.textContent = prev; }, 1500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function () {
+      el.select();
+      document.execCommand("copy");
+      done();
+    });
+  } else {
+    el.select();
+    document.execCommand("copy");
+    done();
+  }
+}
+</script>
 {% endblock %}

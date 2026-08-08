@@ -710,11 +710,31 @@ def blog_page(request: Request, flash: str | None = None, _: None = Depends(requ
 def blog_generate(_: None = Depends(require_auth)):
     from oracle.content_blog.engine import generate_all
 
-    job = generate_all()
+    job = generate_all(live=True)
     if job.get("status") == "done":
         n = len(job.get("results") or [])
-        return _flash("/blog", f"{n}편 생성 완료 · 아래/알림에서 확인")
+        published = sum(1 for r in (job.get("results") or []) if r.get("published"))
+        return _flash(
+            "/blog",
+            f"{n}편 완료 · 자동발행 {published} · SNS 문구는 아래에서 복사",
+        )
     return _flash("/blog", f"생성 실패: {job.get('error', 'unknown')}")
+
+
+@app.get("/api/blog/cover/{name}")
+def api_blog_cover(name: str, _: None = Depends(require_auth)):
+    from fastapi.responses import FileResponse
+
+    from oracle.content_blog import store as blog_store
+
+    # prevent path traversal
+    safe = Path(name).name
+    if not safe.endswith(".svg") or ".." in name or "/" in name or "\\" in name:
+        raise HTTPException(status_code=404, detail="Not Found")
+    path = blog_store._root() / "covers" / safe  # noqa: SLF001
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Not Found")
+    return FileResponse(path, media_type="image/svg+xml")
 
 
 @app.post("/actions/blog_connect")
