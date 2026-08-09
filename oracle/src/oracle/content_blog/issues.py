@@ -73,12 +73,12 @@ def _angle_title(keyword: str, related: list[str]) -> str:
     import random
 
     base = random.choice(CLICK_ANGLES).format(kw=keyword)
-    # Prefer related commercial/curiosity query in title if short
+    # Keep primary keyword visible; related only as curiosity hook
     for r in related:
-        if keyword in r and 4 < len(r) <= 24 and r != keyword:
-            return f"{r} — 지금 검색 많은 이유와 확인된 포인트"
+        if keyword in r and r != keyword and 4 < len(r) <= 22:
+            base = f"{keyword}, '{r}'까지 검색하는 사람들이 놓치는 포인트"
+            break
     return make_click_title(keyword, base, search_intent=f"{keyword} 이슈·검색 의도")
-
 
 def live_issue_candidates(limit: int = 12) -> list[dict]:
     """Merge Signal realtime + Google daily into scored issue list."""
@@ -92,11 +92,13 @@ def live_issue_candidates(limit: int = 12) -> list[dict]:
         if not _safe(kw) or kw in seen:
             continue
         seen.add(kw)
+        rank = int(s.get("rank") or 99)
         rows.append(
             {
                 "keyword": kw,
-                "rank": int(s.get("rank") or 99),
-                "trafficScore": max(0, 120 - int(s.get("rank") or 99) * 8),
+                "rank": rank,
+                # Prefer Korea realtime board strongly
+                "trafficScore": max(0, 400 - rank * 25),
                 "source": "signal",
             }
         )
@@ -109,7 +111,7 @@ def live_issue_candidates(limit: int = 12) -> list[dict]:
             {
                 "keyword": kw,
                 "rank": 50,
-                "trafficScore": int(g.get("trafficScore") or 80),
+                "trafficScore": min(int(g.get("trafficScore") or 80), 180),
                 "source": "google-trends",
             }
         )
