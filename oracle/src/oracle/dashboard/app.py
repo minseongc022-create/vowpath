@@ -725,28 +725,50 @@ def blog_generate(_: None = Depends(require_auth)):
         store = JobStore()
 
         def on_progress(message: str, **extra) -> None:
-            store.append_log(job_id, message, status="running")
+            step = str(extra.get("step") or "")
+            st = "error" if step == "error" else ("done" if step == "done" else "running")
+            store.append_log(job_id, message, status=st if st != "done" else "running")
+            # live draft / step for job page + blog status API
             if extra:
-                # live draft / step for job page + blog status API
                 store.update(job_id, payload=extra)
-                snap = blog_store.load_job() or {}
-                snap.update(
-                    {
-                        "status": "running",
-                        "message": message,
-                        "dashboardJobId": job_id,
-                        "draftPreview": extra.get("draftPreview") or snap.get("draftPreview"),
-                        "step": extra.get("step") or snap.get("step"),
-                        "platform": extra.get("platform") or snap.get("platform"),
-                    }
-                )
-                blog_store.save_job(snap)
+            snap = blog_store.load_job() or {}
+            snap.update(
+                {
+                    "status": st,
+                    "message": message,
+                    "dashboardJobId": job_id,
+                    "draftPreview": extra.get("draftPreview")
+                    if "draftPreview" in extra
+                    else snap.get("draftPreview"),
+                    "step": extra.get("step") or snap.get("step"),
+                    "platform": extra.get("platform") or snap.get("platform"),
+                }
+            )
+            blog_store.save_job(snap)
 
         result = generate_all(live=True, on_progress=on_progress)
         n = len(result.get("results") or [])
         published = sum(1 for r in (result.get("results") or []) if r.get("published"))
         if result.get("status") != "done":
+            blog_store.save_job(
+                {
+                    **(blog_store.load_job() or {}),
+                    "status": "error",
+                    "error": result.get("error") or "블로그 생성 실패",
+                    "dashboardJobId": job_id,
+                }
+            )
             raise RuntimeError(result.get("error") or "블로그 생성 실패")
+        blog_store.save_job(
+            {
+                **(blog_store.load_job() or {}),
+                "status": "done",
+                "message": f"{n}편 완료 · 자동발행 {published}",
+                "dashboardJobId": job_id,
+                "finishedAt": blog_store.now_iso(),
+                "results": result.get("results") or [],
+            }
+        )
         return {
             "message": f"{n}편 완료 · 자동발행 {published} · SNS 문구는 아래에서 복사",
             "redirect": "/blog",
