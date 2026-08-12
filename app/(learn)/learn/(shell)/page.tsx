@@ -22,16 +22,16 @@ export default function LearnHomePage() {
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
           <Link
-            href="/learn/courses/ai-fundamentals/lessons/intro"
+            href="/learn/library"
             className="inline-flex h-13 min-h-[52px] items-center justify-center rounded-2xl bg-learn-primary px-8 text-base font-semibold text-white shadow-learn-sm transition-all hover:bg-learn-primary-hover active:scale-[0.98]"
           >
-            무료로 체험하기
+            저장소 열기
           </Link>
           <Link
-            href="/learn/login"
+            href="/learn/courses/ai-fundamentals/lessons/intro"
             className="inline-flex h-13 min-h-[52px] items-center justify-center rounded-2xl border border-learn-border bg-learn-surface px-8 text-base font-semibold text-learn-ink transition-all hover:bg-learn-muted active:scale-[0.98]"
           >
-            로그인
+            강의 체험
           </Link>
         </div>
       </section>
@@ -39,6 +39,11 @@ export default function LearnHomePage() {
       {/* Feature cards */}
       <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[
+          {
+            title: "AI 자료 소화 엔진",
+            desc: "YouTube·PDF·유료 강의 텍스트를 청크 단위로 완벽 처리. 자막 누락 없는 전체 스크립트.",
+            emoji: "🧠",
+          },
           {
             title: "YouTube형 레이아웃",
             desc: "영상·자료는 중앙, 마인드맵·커리큘럼은 우측. iPad 가로 모드 최적화.",

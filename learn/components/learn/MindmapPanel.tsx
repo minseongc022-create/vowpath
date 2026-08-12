@@ -1,14 +1,14 @@
-import type { DemoMindmapNode } from "@/learn/lib/demo-data";
+import type { MindmapTreeNode } from "@/learn/types/material";
 
 type MindmapPanelProps = {
-  nodes: DemoMindmapNode[];
+  nodes: MindmapTreeNode[];
 };
 
 function MindmapNodeView({
   node,
   depth = 0,
 }: {
-  node: DemoMindmapNode;
+  node: MindmapTreeNode;
   depth?: number;
 }) {
   return (

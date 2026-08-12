@@ -4,6 +4,7 @@
 alter publication supabase_realtime add table learn_notes;
 alter publication supabase_realtime add table learn_planner_items;
 alter publication supabase_realtime add table learn_progress;
+alter publication supabase_realtime add table learn_materials;
 
 -- Row Level Security (enable after Supabase Auth integration)
 -- alter table learn_notes enable row level security;

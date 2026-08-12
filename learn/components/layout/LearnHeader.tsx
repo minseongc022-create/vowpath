@@ -17,6 +17,7 @@ export async function LearnHeader() {
 
       <nav className="hidden md:flex items-center gap-1">
         {[
+          { href: "/learn/library", label: "저장소" },
           { href: "/learn/courses", label: "강의" },
           { href: "/learn/planner", label: "플래너" },
           { href: "/learn/notes", label: "필기" },

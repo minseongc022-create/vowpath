@@ -28,6 +28,7 @@ model User {
   plannerItems     PlannerItem[]
   learningProgress LearningProgress[]
   mindmapNodes     MindmapNode[]
+  materials        LearningMaterial[]
 
   @@map("learn_users")
 }
@@ -190,4 +191,82 @@ model LearningProgress {
   @@unique([userId, lessonId])
   @@index([userId, courseId])
   @@map("learn_progress")
+}
+
+// ─── AI Ingestion Engine — personal learning library ─────────────────────────
+
+enum MaterialType {
+  YOUTUBE
+  PDF
+  TEXT
+  NOTE
+}
+
+enum MaterialStatus {
+  PENDING
+  EXTRACTING
+  CHUNKING
+  TRANSCRIBING
+  ANALYZING
+  READY
+  FAILED
+}
+
+model LearningMaterial {
+  id             String         @id @default(cuid())
+  userId         String
+  type           MaterialType
+  status         MaterialStatus @default(PENDING)
+  title          String
+  sourceUrl      String?
+  sourceLabel    String?
+  rawText        String?        @db.Text
+  fullTranscript String?        @db.Text
+  searchableText String?        @db.Text
+  errorMessage   String?
+  tags           String[]       @default([])
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks   MaterialChunk[]
+  analysis MaterialAnalysis?
+
+  @@index([userId, updatedAt])
+  @@index([userId, status])
+  @@map("learn_materials")
+}
+
+model MaterialChunk {
+  id             String   @id @default(cuid())
+  materialId     String
+  chunkIndex     Int
+  startSec       Float?
+  endSec         Float?
+  rawContent     String   @db.Text
+  cleanedContent String?  @db.Text
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  material LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, chunkIndex])
+  @@index([materialId])
+  @@map("learn_material_chunks")
+}
+
+model MaterialAnalysis {
+  id          String   @id @default(cuid())
+  materialId  String   @unique
+  summary     String   @db.Text
+  keyPoints   Json
+  keywords    Json
+  mindmapTree Json
+  analyzedAt  DateTime @default(now())
+
+  material LearningMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@map("learn_material_analysis")
 }

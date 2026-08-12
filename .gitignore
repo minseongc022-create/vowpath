@@ -4,6 +4,7 @@ out
 .env*.local
 .env.vercel*
 data/*.json
+.data/
 .cursor/
 *.tsbuildinfo
 .vercel
