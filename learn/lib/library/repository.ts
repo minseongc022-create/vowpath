@@ -13,6 +13,8 @@ export const DEMO_USER_ID = "demo-user";
 export function resolveUserId(sessionUserId?: string | null): string {
   if (sessionUserId) return sessionUserId;
   if (process.env.NEXT_PUBLIC_AUTH_DEMO === "true") return DEMO_USER_ID;
+  // Lane Learn public beta: guest file-store until OAuth is required in production.
+  if (process.env.LEARN_REQUIRE_AUTH !== "true") return DEMO_USER_ID;
   throw new Error("UNAUTHORIZED");
 }
 

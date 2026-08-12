@@ -8,6 +8,7 @@ import {
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
+import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -34,20 +35,32 @@ function loginRedirect(request: NextRequest, nextPath?: string | null) {
   return NextResponse.redirect(login);
 }
 
+function learnShellResponse(request: NextRequest, rewritePath?: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "learn");
+  if (rewritePath) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewritePath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") ?? "";
+  const hostname = normalizeHostname(host);
+
+  // learn.effiroad.com → Lane only (no Effiroad dispatch chrome or auth gates).
+  if (isLearnHost(hostname)) {
+    const internal = learnInternalPath(pathname);
+    return learnShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
+  }
 
   // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
   if (pathname.startsWith("/learn")) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "learn");
-    return NextResponse.next({
-      request: { headers: requestHeaders },
-    });
+    return learnShellResponse(request);
   }
-
-  const host = request.headers.get("host") ?? "";
-  const hostname = normalizeHostname(host);
 
   if (isDecommissionedHost(hostname)) {
     if (pathname === "/robots.txt") {
