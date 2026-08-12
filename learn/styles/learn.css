@@ -1,0 +1,76 @@
+.learn-theme {
+  --learn-bg: #f4f6f8;
+  --learn-surface: #ffffff;
+  --learn-muted: #f0f2f5;
+  --learn-ink: #191f28;
+  --learn-ink-muted: #6b7684;
+  --learn-ink-subtle: #adb5bd;
+  --learn-primary: #3182f6;
+  --learn-primary-hover: #1b64da;
+  --learn-accent: #00c471;
+  --learn-border: #e5e8eb;
+  --learn-sidebar: #fafbfc;
+  --learn-shadow-sm: 0 1px 3px rgb(25 31 40 / 0.06);
+  --learn-shadow-md: 0 4px 20px rgb(25 31 40 / 0.08);
+  --learn-shadow-lg: 0 8px 32px rgb(25 31 40 / 0.12);
+  --learn-radius: 16px;
+  --learn-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.learn-theme {
+  background: var(--learn-bg);
+  color: var(--learn-ink);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.learn-theme ::selection {
+  background: #dbeafe;
+  color: var(--learn-ink);
+}
+
+.learn-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d6db transparent;
+}
+
+.learn-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.learn-scroll::-webkit-scrollbar-thumb {
+  background: #d1d6db;
+  border-radius: 999px;
+}
+
+@keyframes learn-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.learn-animate-in {
+  animation: learn-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes learn-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+}
+
+.learn-live-dot {
+  animation: learn-pulse-dot 1.5s ease-in-out infinite;
+}

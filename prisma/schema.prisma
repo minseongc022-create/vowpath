@@ -1,0 +1,193 @@
+// EFFIROAD Learn — isolated from the legacy phone/dispatch product.
+// PostgreSQL via Supabase; Prisma for type-safe queries + migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Auth (NextAuth) ─────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  notes            Note[]
+  plannerItems     PlannerItem[]
+  learningProgress LearningProgress[]
+  mindmapNodes     MindmapNode[]
+
+  @@map("learn_users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("learn_accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learn_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("learn_verification_tokens")
+}
+
+// ─── Curriculum ──────────────────────────────────────────────────────────────
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  thumbnail   String?
+  published   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons          Lesson[]
+  mindmapNodes     MindmapNode[]
+  learningProgress LearningProgress[]
+
+  @@map("learn_courses")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  slug        String
+  title       String
+  description String?
+  videoUrl    String?
+  durationSec Int      @default(0)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course           Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes            Note[]
+  mindmapNodes     MindmapNode[]
+  learningProgress LearningProgress[]
+
+  @@unique([courseId, slug])
+  @@map("learn_lessons")
+}
+
+// ─── Learning records (realtime-synced) ──────────────────────────────────────
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String?
+  title     String   @default("새 필기")
+  content   String   @default("") @db.Text
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([userId, updatedAt])
+  @@map("learn_notes")
+}
+
+model PlannerItem {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  priority    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dueDate])
+  @@map("learn_planner_items")
+}
+
+model MindmapNode {
+  id        String   @id @default(cuid())
+  userId    String?
+  courseId  String?
+  lessonId  String?
+  parentId  String?
+  label     String
+  summary   String?  @db.Text
+  x         Float    @default(0)
+  y         Float    @default(0)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson   Lesson?       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  parent   MindmapNode?  @relation("MindmapTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MindmapNode[] @relation("MindmapTree")
+
+  @@index([courseId, lessonId])
+  @@map("learn_mindmap_nodes")
+}
+
+model LearningProgress {
+  id             String   @id @default(cuid())
+  userId         String
+  courseId       String
+  lessonId       String
+  watchedSec     Int      @default(0)
+  completed      Boolean  @default(false)
+  lastAccessedAt DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, courseId])
+  @@map("learn_progress")
+}

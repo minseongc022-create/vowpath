@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 
 const EffiroadAssistantWidget = dynamic(
   () =>
@@ -10,7 +11,11 @@ const EffiroadAssistantWidget = dynamic(
   { ssr: false },
 );
 
-/** Global floating Effiroad AI — landing, auth, dashboard, settings. */
+/** Global floating Effiroad AI — hidden on /learn (separate education product). */
 export function EffiroadAssistantRoot() {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/learn")) {
+    return null;
+  }
   return <EffiroadAssistantWidget />;
 }
