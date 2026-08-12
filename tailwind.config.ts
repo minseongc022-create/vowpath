@@ -5,10 +5,24 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./learn/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
+        learn: {
+          bg: "#f4f6f8",
+          surface: "#ffffff",
+          muted: "#f0f2f5",
+          ink: "#191f28",
+          "ink-muted": "#6b7684",
+          "ink-subtle": "#adb5bd",
+          primary: "#3182f6",
+          "primary-hover": "#1b64da",
+          accent: "#00c471",
+          border: "#e5e8eb",
+          sidebar: "#fafbfc",
+        },
         brand: {
           50: "#faf8f5",
           100: "#f5f0e8",
@@ -53,6 +67,9 @@ const config: Config = {
         },
       },
       boxShadow: {
+        "learn-sm": "0 1px 3px rgb(25 31 40 / 0.06)",
+        "learn-md": "0 4px 20px rgb(25 31 40 / 0.08)",
+        "learn-lg": "0 8px 32px rgb(25 31 40 / 0.12)",
         card: "0 1px 2px 0 rgb(61 50 40 / 0.04), 0 4px 16px -2px rgb(61 50 40 / 0.08)",
         "card-hover":
           "0 12px 32px -6px rgb(61 50 40 / 0.1), 0 6px 12px -6px rgb(61 50 40 / 0.06)",
