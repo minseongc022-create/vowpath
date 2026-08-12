@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -46,24 +46,26 @@ export function InteractiveMindmapFlow({
   onAnnotationsChange,
 }: Props) {
   const sync = useMindmapSyncOptional();
-  const base = useMemo(() => mindmapTreeToFlow(tree), [tree]);
+  const syncRef = useRef(sync);
+  syncRef.current = sync;
+  const nodesRef = useRef<Node[]>([]);
 
+  const base = useMemo(() => mindmapTreeToFlow(tree), [tree]);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(base.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(base.edges);
+  nodesRef.current = nodes;
 
-  const handleNodeClick = useCallback(
-    (nodeId: string) => {
-      const node = treeFlat(tree).find((n) => n.id === nodeId);
-      if (!node) return;
-      sync?.selectNode(
-        nodeId,
-        node.anchor?.startSec,
-        node.anchor?.lineId,
-      );
-    },
-    [sync, tree],
-  );
+  const handleNodeClick = useCallback((nodeId: string) => {
+    const node = treeFlat(tree).find((n) => n.id === nodeId);
+    if (!node) return;
+    syncRef.current?.selectNode(
+      nodeId,
+      node.anchor?.startSec,
+      node.anchor?.lineId,
+    );
+  }, [tree]);
 
+  // Rebuild graph when tree or annotations change
   useEffect(() => {
     const { nodes: n, edges: e } = mindmapTreeToFlow(tree);
     const noteNodes = annotations.map((a) => stickyToFlowNote(a));
@@ -81,20 +83,29 @@ export function InteractiveMindmapFlow({
     });
     setNodes([...enriched, ...noteNodes]);
     setEdges(e);
-  }, [
-    tree,
-    annotations,
-    sync?.activeNodeId,
-    sync?.selectedNodeId,
-    handleNodeClick,
-    setNodes,
-    setEdges,
-  ]);
+  }, [tree, annotations, handleNodeClick, setNodes, setEdges]);
+
+  // Highlight active/selected nodes without full rebuild
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== "concept") return n;
+        const d = n.data as ConceptNodeData;
+        const isActive = sync?.activeNodeId === d.nodeId;
+        const isSelected = sync?.selectedNodeId === d.nodeId;
+        if (d.isActive === isActive && d.isSelected === isSelected) return n;
+        return {
+          ...n,
+          data: { ...d, isActive, isSelected, onNodeClick: handleNodeClick },
+        };
+      }),
+    );
+  }, [sync?.activeNodeId, sync?.selectedNodeId, handleNodeClick, setNodes]);
 
   const saveNote = useCallback(
     async (id: string, content: string) => {
       if (!materialId) return;
-      const noteNode = nodes.find((n) => n.id === `note-${id}`);
+      const noteNode = nodesRef.current.find((n) => n.id === `note-${id}`);
       await fetch(`/learn/api/mindmap/${materialId}/annotations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -107,7 +118,7 @@ export function InteractiveMindmapFlow({
       });
       onAnnotationsChange?.();
     },
-    [materialId, nodes, onAnnotationsChange],
+    [materialId, onAnnotationsChange],
   );
 
   const deleteNote = useCallback(
@@ -121,24 +132,27 @@ export function InteractiveMindmapFlow({
     [materialId, onAnnotationsChange],
   );
 
+  const saveNoteRef = useRef(saveNote);
+  const deleteNoteRef = useRef(deleteNote);
+  saveNoteRef.current = saveNote;
+  deleteNoteRef.current = deleteNote;
+
   useEffect(() => {
     setNodes((nds) =>
       nds.map((n) => {
-        if (n.type === "stickyNote") {
-          const d = n.data as { annotationId: string; content: string; color: string };
-          return {
-            ...n,
-            data: {
-              ...d,
-              onChange: saveNote,
-              onDelete: deleteNote,
-            },
-          };
-        }
-        return n;
+        if (n.type !== "stickyNote") return n;
+        const d = n.data as { annotationId: string; content: string; color: string };
+        return {
+          ...n,
+          data: {
+            ...d,
+            onChange: (id: string, content: string) => saveNoteRef.current(id, content),
+            onDelete: (id: string) => deleteNoteRef.current(id),
+          },
+        };
       }),
     );
-  }, [saveNote, deleteNote, setNodes]);
+  }, [annotations, setNodes]);
 
   const onNodeDragStop = useCallback(
     async (_: unknown, node: Node) => {

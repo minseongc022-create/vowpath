@@ -76,6 +76,12 @@ export function MaterialDetailClient({
             </a>
           )}
           <Link
+            href={`/learn/study/${material.id}`}
+            className="rounded-full bg-learn-primary px-3 py-1 text-xs font-semibold text-white"
+          >
+            학습 시작 →
+          </Link>
+          <Link
             href={`/learn/library/${material.id}/mindmap`}
             className="rounded-full bg-learn-primary/10 px-3 py-1 text-xs font-semibold text-learn-primary"
           >

@@ -75,7 +75,7 @@ export function LibraryUploadForm() {
       if (!res.ok) throw new Error(data.error ?? "업로드 실패");
 
       if (data.id) {
-        router.push(`/learn/library/${data.id}`);
+        router.push(`/learn/study/${data.id}`);
         router.refresh();
       }
     } catch (e) {

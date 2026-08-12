@@ -13,7 +13,6 @@ import type { TranscriptLine } from "@/learn/lib/mindmap/transcript-parse";
 import { findNodeAtTime } from "@/learn/lib/mindmap/anchors";
 
 type MindmapSyncContextValue = {
-  currentTimeSec: number;
   activeNodeId: string | null;
   selectedNodeId: string | null;
   transcriptLines: TranscriptLine[];
@@ -35,18 +34,16 @@ export function MindmapSyncProvider({
   mindmapTree: MindmapTreeNode[];
   transcriptLines: TranscriptLine[];
 }) {
-  const [currentTimeSec, setCurrentTimeSecRaw] = useState(0);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const seekRef = useRef<((sec: number) => void) | null>(null);
   const scrollTranscriptRef = useRef<((lineId: string) => void) | null>(null);
-
-  const activeNodeId = useMemo(
-    () => findNodeAtTime(mindmapTree, currentTimeSec),
-    [mindmapTree, currentTimeSec],
-  );
+  const mindmapTreeRef = useRef(mindmapTree);
+  mindmapTreeRef.current = mindmapTree;
 
   const setCurrentTimeSec = useCallback((t: number) => {
-    setCurrentTimeSecRaw(t);
+    const next = findNodeAtTime(mindmapTreeRef.current, t);
+    setActiveNodeId((prev) => (prev === next ? prev : next));
   }, []);
 
   const selectNode = useCallback(
@@ -54,7 +51,8 @@ export function MindmapSyncProvider({
       setSelectedNodeId(nodeId);
       if (startSec !== undefined) {
         seekRef.current?.(startSec);
-        setCurrentTimeSecRaw(startSec);
+        const next = findNodeAtTime(mindmapTreeRef.current, startSec);
+        setActiveNodeId(next);
       }
       if (lineId) {
         scrollTranscriptRef.current?.(lineId);
@@ -65,7 +63,6 @@ export function MindmapSyncProvider({
 
   const value = useMemo(
     () => ({
-      currentTimeSec,
       activeNodeId,
       selectedNodeId,
       transcriptLines,
@@ -76,7 +73,6 @@ export function MindmapSyncProvider({
       scrollTranscriptRef,
     }),
     [
-      currentTimeSec,
       activeNodeId,
       selectedNodeId,
       transcriptLines,

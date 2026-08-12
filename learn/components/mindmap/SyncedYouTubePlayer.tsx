@@ -51,6 +51,8 @@ function loadYouTubeApi(): Promise<void> {
   return ytApiPromise;
 }
 
+const TIME_SYNC_MS = 300;
+
 type Props = {
   youtubeUrl: string;
   className?: string;
@@ -63,6 +65,7 @@ export function SyncedYouTubePlayer({ youtubeUrl, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<InstanceType<NonNullable<typeof window.YT>["Player"]> | null>(null);
   const rafRef = useRef<number>(0);
+  const lastSyncRef = useRef(0);
   const domId = useId().replace(/:/g, "");
 
   const videoId = extractYouTubeVideoId(youtubeUrl);
@@ -85,20 +88,26 @@ export function SyncedYouTubePlayer({ youtubeUrl, className }: Props) {
         },
         events: {
           onReady: () => {
-            syncRef.current?.seekRef && (syncRef.current.seekRef.current = (sec: number) => {
-              playerRef.current?.seekTo(sec, true);
-            });
+            if (syncRef.current?.seekRef) {
+              syncRef.current.seekRef.current = (sec: number) => {
+                playerRef.current?.seekTo(sec, true);
+              };
+            }
           },
         },
       });
 
       const tick = () => {
         if (playerRef.current && syncRef.current) {
-          try {
-            const t = playerRef.current.getCurrentTime();
-            if (Number.isFinite(t)) syncRef.current.setCurrentTimeSec(t);
-          } catch {
-            // player not ready
+          const now = performance.now();
+          if (now - lastSyncRef.current >= TIME_SYNC_MS) {
+            lastSyncRef.current = now;
+            try {
+              const t = playerRef.current.getCurrentTime();
+              if (Number.isFinite(t)) syncRef.current.setCurrentTimeSec(t);
+            } catch {
+              // player not ready
+            }
           }
         }
         rafRef.current = requestAnimationFrame(tick);

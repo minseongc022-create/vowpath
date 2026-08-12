@@ -1,102 +1,78 @@
 import Link from "next/link";
-import { Card } from "@/learn/components/ui/Card";
-import { DEMO_COURSES } from "@/learn/lib/demo-data";
+import { QuickStartForm } from "@/learn/components/study/QuickStartForm";
+import { getLearnSession } from "@/learn/lib/auth";
+import { listMaterials, resolveUserId } from "@/learn/lib/library/repository";
 
-export default function LearnHomePage() {
+export default async function LearnHomePage() {
+  const session = await getLearnSession();
+  const userId = resolveUserId(session?.user?.id);
+  const recent = (await listMaterials(userId)).slice(0, 3);
+
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 md:py-12 learn-animate-in">
-      {/* Hero */}
-      <section className="mb-12 text-center md:text-left">
-        <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-learn-primary">
-          <span className="learn-live-dot h-1.5 w-1.5 rounded-full bg-learn-primary" />
-          AI 초밀착 학습 에이전트
-        </p>
-        <h1 className="text-3xl font-bold leading-tight tracking-tight text-learn-ink md:text-5xl">
-          모든 기기에서,
+    <main className="mx-auto max-w-lg px-4 py-8 pb-28 learn-animate-in">
+      <section className="mb-8 text-center">
+        <p className="mb-2 text-sm font-semibold text-learn-primary">EFFIROAD Learn</p>
+        <h1 className="text-2xl font-bold leading-tight text-learn-ink">
+          영상 넣고
           <br />
-          <span className="text-learn-primary">가장 편한</span> 학습
+          바로 학습 시작
         </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-learn-ink-muted md:text-lg">
-          iPad 가로 모드도 완벽하게. 영상은 중앙에, 마인드맵과 커리큘럼은 우측에 —
-          Class101의 불편함을 해결한 YouTube형 레이아웃.
+        <p className="mt-2 text-sm text-learn-ink-muted">
+          AI 요약 · 마인드맵 · 퀴즈 · 오답노트까지 한 번에
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
-          <Link
-            href="/learn/library"
-            className="inline-flex h-13 min-h-[52px] items-center justify-center rounded-2xl bg-learn-primary px-8 text-base font-semibold text-white shadow-learn-sm transition-all hover:bg-learn-primary-hover active:scale-[0.98]"
-          >
-            저장소 열기
-          </Link>
-          <Link
-            href="/learn/courses/ai-fundamentals/lessons/intro"
-            className="inline-flex h-13 min-h-[52px] items-center justify-center rounded-2xl border border-learn-border bg-learn-surface px-8 text-base font-semibold text-learn-ink transition-all hover:bg-learn-muted active:scale-[0.98]"
-          >
-            강의 체험
-          </Link>
-        </div>
       </section>
 
-      {/* Feature cards */}
-      <section className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[
-          {
-            title: "AI 자료 소화 엔진",
-            desc: "YouTube·PDF·유료 강의 텍스트를 청크 단위로 완벽 처리. 자막 누락 없는 전체 스크립트.",
-            emoji: "🧠",
-          },
-          {
-            title: "YouTube형 레이아웃",
-            desc: "영상·자료는 중앙, 마인드맵·커리큘럼은 우측. iPad 가로 모드 최적화.",
-            emoji: "📺",
-          },
-          {
-            title: "실시간 동기화",
-            desc: "Supabase + Prisma로 필기·플래너가 모든 기기에서 즉시 동기화.",
-            emoji: "⚡",
-          },
-          {
-            title: "한 번의 로그인",
-            desc: "카카오·구글 소셜 로그인으로 폰·패드·PC 동일 경험.",
-            emoji: "🔐",
-          },
-        ].map((f) => (
-          <Card key={f.title} className="p-5">
-            <span className="text-2xl">{f.emoji}</span>
-            <h3 className="mt-3 text-base font-bold text-learn-ink">{f.title}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-learn-ink-muted">{f.desc}</p>
-          </Card>
-        ))}
+      <QuickStartForm />
+
+      <section className="mt-8 grid grid-cols-2 gap-3">
+        <Link
+          href="/learn/calendar"
+          className="flex flex-col items-center rounded-2xl border border-learn-border bg-learn-surface p-4 shadow-learn-sm active:scale-[0.98] transition-transform"
+        >
+          <span className="text-2xl">📅</span>
+          <span className="mt-2 text-sm font-bold text-learn-ink">오늘 학습</span>
+          <span className="text-[11px] text-learn-ink-muted">캘린더</span>
+        </Link>
+        <Link
+          href="/learn/wrong-notes"
+          className="flex flex-col items-center rounded-2xl border border-learn-border bg-learn-surface p-4 shadow-learn-sm active:scale-[0.98] transition-transform"
+        >
+          <span className="text-2xl">📝</span>
+          <span className="mt-2 text-sm font-bold text-learn-ink">오답노트</span>
+          <span className="text-[11px] text-learn-ink-muted">틀린 문제 복습</span>
+        </Link>
       </section>
 
-      {/* Course preview */}
-      <section>
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-xl font-bold text-learn-ink">인기 강의</h2>
-          <Link href="/learn/courses" className="text-sm font-medium text-learn-primary">
-            전체 보기 →
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {DEMO_COURSES.map((course) => (
-            <Link key={course.id} href={`/learn/courses/${course.slug}`}>
-              <Card hover className="overflow-hidden">
-                <div className="aspect-[16/9] bg-gradient-to-br from-learn-primary/20 to-learn-primary/5 flex items-center justify-center">
-                  <span className="text-4xl">🎓</span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-learn-ink">{course.title}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-learn-ink-muted">
-                    {course.description}
-                  </p>
-                  <p className="mt-2 text-xs text-learn-ink-subtle">
-                    {course.lessons.length}강
-                  </p>
-                </div>
-              </Card>
+      {recent.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-learn-ink">최근 학습</h2>
+            <Link href="/learn/library" className="text-xs font-medium text-learn-primary">
+              전체 →
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="space-y-2">
+            {recent.map((m) => (
+              <Link
+                key={m.id}
+                href={`/learn/study/${m.id}`}
+                className="flex items-center gap-3 rounded-2xl border border-learn-border bg-learn-surface px-4 py-3 active:scale-[0.99] transition-transform"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-learn-primary/10 text-lg">
+                  {m.type === "YOUTUBE" ? "▶️" : "📄"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-learn-ink">{m.title}</p>
+                  <p className="text-[11px] text-learn-ink-muted">
+                    {m.status === "READY" ? "학습 가능" : "분석 중…"}
+                  </p>
+                </div>
+                <span className="text-learn-primary text-sm">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
