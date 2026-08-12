@@ -41,7 +41,7 @@ export function VideoStage({ lesson, courseTitle, youtubeUrl }: VideoStageProps)
               <p className="text-sm font-medium text-white/70">{courseTitle}</p>
               <p className="mt-1 text-lg font-bold text-white">{lesson.title}</p>
               <p className="mt-2 text-sm text-white/50">
-                저장소 탭에서 YouTube URL을 연결하세요 · {formatDuration(lesson.durationSec)}
+                저장소 탭에서 강의 링크를 연결하세요 · {formatDuration(lesson.durationSec)}
               </p>
             </div>
           </div>

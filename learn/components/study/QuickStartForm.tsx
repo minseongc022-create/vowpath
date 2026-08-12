@@ -43,7 +43,7 @@ export function QuickStartForm() {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="YouTube 링크 붙여넣기"
+          placeholder="강의 링크 붙여넣기"
           className="h-14 w-full rounded-xl px-4 text-base outline-none placeholder:text-learn-ink-subtle"
           disabled={loading}
         />

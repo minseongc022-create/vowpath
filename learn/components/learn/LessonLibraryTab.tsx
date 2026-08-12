@@ -90,11 +90,11 @@ export function LessonLibraryTab({
   return (
     <div className="learn-scroll flex-1 overflow-y-auto p-4 space-y-4">
       <div>
-        <h3 className="text-sm font-bold text-learn-ink mb-2">YouTube AI 소화</h3>
+        <h3 className="text-sm font-bold text-learn-ink mb-2">강의 AI 소화</h3>
         <input
           value={youtubeUrl}
           onChange={(e) => setYoutubeUrl(e.target.value)}
-          placeholder="YouTube URL"
+          placeholder="강의 링크 붙여넣기"
           className="mb-2 h-10 w-full rounded-xl border border-learn-border px-3 text-sm outline-none focus:border-learn-primary/50"
         />
         <Button

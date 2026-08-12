@@ -10,7 +10,7 @@ const DEMO_NOTES: NoteRecord[] = [
   {
     id: "demo-note-1",
     title: "AI 학습 에이전트 핵심",
-    content: "- YouTube형 레이아웃\n- 실시간 마인드맵\n- Supabase 동기화",
+    content: "- 영상 강의형 레이아웃\n- 실시간 마인드맵\n- Supabase 동기화",
     updatedAt: new Date().toISOString(),
   },
 ];

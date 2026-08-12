@@ -92,7 +92,7 @@ export function MindmapDashboard({
               <SyncedYouTubePlayer youtubeUrl={ytUrl!} />
             ) : leftTab === "video" ? (
               <div className="flex h-48 items-center justify-center rounded-xl bg-learn-muted text-sm text-learn-ink-muted">
-                YouTube URL을 연결하면 영상-마인드맵 싱크가 활성화됩니다
+                강의 링크를 연결하면 영상-마인드맵 싱크가 활성화됩니다
               </div>
             ) : (
               <SyncedTranscript />
