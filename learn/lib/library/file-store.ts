@@ -93,7 +93,7 @@ export async function fileStoreSetStatus(
 }
 
 function defaultTitle(input: CreateMaterialInput): string {
-  if (input.type === "YOUTUBE") return "YouTube 강의";
+  if (input.type === "YOUTUBE") return "영상 강의";
   if (input.type === "PDF") return "PDF 자료";
   if (input.type === "NOTE") return "내 필기";
   return "학습 자료";

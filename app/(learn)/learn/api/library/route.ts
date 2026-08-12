@@ -73,7 +73,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const msg = e instanceof Error ? e.message : "CREATE_FAILED";
-    return NextResponse.json({ error: msg }, { status: 400 });
+    const friendly: Record<string, string> = {
+      INVALID_YOUTUBE_URL: "올바른 강의 링크를 입력해 주세요.",
+    };
+    return NextResponse.json({ error: friendly[msg] ?? msg }, { status: 400 });
   }
 }
 

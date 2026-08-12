@@ -89,13 +89,13 @@ export function LibraryUploadForm() {
     <div className="rounded-2xl border border-learn-border bg-learn-surface p-4 md:p-6 shadow-learn-sm">
       <h2 className="mb-1 text-lg font-bold text-learn-ink">자료 추가</h2>
       <p className="mb-4 text-sm text-learn-ink-muted">
-        YouTube, PDF, 외부 유료 강의 텍스트 — AI가 즉시 소화합니다
+        강의 링크, PDF, 외부 유료 강의 텍스트 — AI가 즉시 소화합니다
       </p>
 
       <div className="mb-4 flex gap-1 rounded-xl bg-learn-muted p-1">
         {(
           [
-            { id: "youtube" as Tab, label: "YouTube" },
+            { id: "youtube" as Tab, label: "강의 링크" },
             { id: "text" as Tab, label: "텍스트/필기" },
             { id: "pdf" as Tab, label: "PDF" },
           ] as const
@@ -142,7 +142,7 @@ export function LibraryUploadForm() {
           <input
             value={youtubeUrl}
             onChange={(e) => setYoutubeUrl(e.target.value)}
-            placeholder="https://youtube.com/watch?v=..."
+            placeholder="강의 링크 붙여넣기"
             className="h-12 w-full rounded-xl border border-learn-border px-4 text-sm outline-none focus:border-learn-primary/50"
           />
           <textarea

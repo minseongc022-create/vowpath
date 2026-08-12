@@ -93,7 +93,7 @@ export const DEMO_MINDMAP: DemoMindmapNode[] = [
     children: [
       {
         id: "layout",
-        label: "YouTube형 레이아웃",
+        label: "영상 강의형 레이아웃",
         summary: "영상 중앙 + 사이드바",
         children: [
           { id: "video", label: "영상/자료 영역" },
