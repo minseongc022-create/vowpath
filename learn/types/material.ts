@@ -9,11 +9,35 @@ export type MaterialStatus =
   | "READY"
   | "FAILED";
 
+export type MindmapAnchor = {
+  startSec?: number;
+  endSec?: number;
+  /** Transcript line id for scroll-into-view */
+  lineId?: string;
+  /** Exact snippet matched in transcript */
+  snippet?: string;
+  charOffset?: number;
+};
+
 export type MindmapTreeNode = {
   id: string;
   label: string;
   summary?: string;
+  anchor?: MindmapAnchor;
   children?: MindmapTreeNode[];
+};
+
+export type MindmapAnnotation = {
+  id: string;
+  materialId: string;
+  userId?: string;
+  linkedNodeId?: string | null;
+  x: number;
+  y: number;
+  content: string;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type MaterialChunkRecord = {

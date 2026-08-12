@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { MaterialRecord, MindmapTreeNode } from "@/learn/types/material";
-import { MindmapPanel } from "@/learn/components/learn/MindmapPanel";
+import type { MaterialRecord } from "@/learn/types/material";
 import { KeySummaryPanel } from "@/learn/components/learn/KeySummaryPanel";
+import { MindmapDashboard } from "@/learn/components/mindmap/MindmapDashboard";
 import { Button } from "@/learn/components/ui/Button";
 import Link from "next/link";
 
@@ -49,9 +49,6 @@ export function MaterialDetailClient({
     }
   }
 
-  const mindmapNodes: MindmapTreeNode[] =
-    material.analysis?.mindmapTree ?? [];
-
   return (
     <div className="learn-animate-in">
       <header className="mb-6">
@@ -62,7 +59,7 @@ export function MaterialDetailClient({
           ← 내 저장소
         </Link>
         <h1 className="text-2xl font-bold text-learn-ink">{material.title}</h1>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-2 items-center">
           {material.sourceLabel && (
             <span className="rounded-full bg-learn-muted px-3 py-1 text-xs font-medium text-learn-ink-muted">
               {material.sourceLabel}
@@ -78,6 +75,12 @@ export function MaterialDetailClient({
               원본 링크 ↗
             </a>
           )}
+          <Link
+            href={`/learn/library/${material.id}/mindmap`}
+            className="rounded-full bg-learn-primary/10 px-3 py-1 text-xs font-semibold text-learn-primary"
+          >
+            마인드맵 대시보드 →
+          </Link>
         </div>
       </header>
 
@@ -146,14 +149,8 @@ export function MaterialDetailClient({
       )}
 
       {activeTab === "mindmap" && (
-        <section className="rounded-2xl border border-learn-border bg-learn-surface overflow-hidden min-h-[320px]">
-          {mindmapNodes.length > 0 ? (
-            <MindmapPanel nodes={mindmapNodes} />
-          ) : (
-            <p className="p-8 text-center text-sm text-learn-ink-muted">
-              마인드맵 생성 중…
-            </p>
-          )}
+        <section className="overflow-hidden rounded-2xl border border-learn-border bg-learn-surface min-h-[480px]">
+          <MindmapDashboard material={material} />
         </section>
       )}
 

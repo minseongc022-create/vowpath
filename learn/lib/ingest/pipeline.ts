@@ -18,6 +18,8 @@ import {
   demoAnalysis,
   isOpenAiConfigured,
 } from "@/learn/lib/ingest/analyzer";
+import { enrichMindmapAnchors } from "@/learn/lib/mindmap/anchors";
+import { parseTranscript } from "@/learn/lib/mindmap/transcript-parse";
 import {
   getMaterial,
   updateMaterial,
@@ -159,6 +161,12 @@ export async function runMaterialIngestion(
       ? await analyzeMaterialContent(fullTranscript, material.title)
       : demoAnalysis(material.title, fullTranscript);
 
+    const transcriptLines = parseTranscript(timestamped);
+    analysisResult.mindmapTree = enrichMindmapAnchors(
+      analysisResult.mindmapTree,
+      transcriptLines,
+    );
+
     const analysis: MaterialAnalysisRecord = {
       ...analysisResult,
       analyzedAt: new Date().toISOString(),
@@ -226,6 +234,9 @@ export async function appendMaterialText(
   const analysisResult = useAi
     ? await analyzeMaterialContent(combined, material.title)
     : demoAnalysis(material.title, combined);
+
+  const lines = parseTranscript(combined);
+  analysisResult.mindmapTree = enrichMindmapAnchors(analysisResult.mindmapTree, lines);
 
   await updateMaterial(userId, materialId, {
     status: "READY",

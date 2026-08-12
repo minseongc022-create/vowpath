@@ -269,7 +269,10 @@ function mapPrismaMaterial(row: NonNullable<PrismaMaterial>): MaterialRecord {
     analysis: row.analysis
       ? {
           summary: row.analysis.summary,
-          sections: (row.analysis.sections as MaterialAnalysisRecord["sections"]) ?? [],
+          sections:
+            (row.analysis.sections as MaterialAnalysisRecord["sections"])?.length
+              ? (row.analysis.sections as MaterialAnalysisRecord["sections"])
+              : buildSectionsFromKeyPoints(row.analysis.keyPoints as string[]),
           keyPoints: row.analysis.keyPoints as string[],
           keywords: row.analysis.keywords as string[],
           mindmapTree: row.analysis.mindmapTree as MaterialAnalysisRecord["mindmapTree"],
@@ -284,4 +287,9 @@ function mapPrismaMaterial(row: NonNullable<PrismaMaterial>): MaterialRecord {
         }
       : undefined,
   };
+}
+
+function buildSectionsFromKeyPoints(points: string[]): MaterialAnalysisRecord["sections"] {
+  if (!points?.length) return [];
+  return [{ title: "핵심 내용", points }];
 }
