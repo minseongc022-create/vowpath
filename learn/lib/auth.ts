@@ -24,6 +24,11 @@ const providers = [
 ];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret:
+    process.env.AUTH_SECRET ??
+    (process.env.NEXT_PUBLIC_AUTH_DEMO === "true"
+      ? "effiroad-learn-demo-secret"
+      : undefined),
   basePath: "/learn/api/auth",
   adapter: isDatabaseConfigured() ? PrismaAdapter(prisma) : undefined,
   providers,
@@ -60,5 +65,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 export async function getLearnSession() {
-  return auth();
+  try {
+    return await auth();
+  } catch {
+    return null;
+  }
 }
