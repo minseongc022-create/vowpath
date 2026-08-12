@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
+import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -7,17 +8,15 @@ export async function GET() {
   const openaiReady = isLearnOpenAiReady();
   return NextResponse.json({
     ok: openaiReady,
-    learn: true,
+    product: LEARN_BRAND.productId,
+    brand: LEARN_BRAND.name,
+    isolated: true,
     timestamp: new Date().toISOString(),
-    openai: {
-      configured: openaiReady,
-      model: process.env.OPENAI_MODEL_ECONOMY ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-    },
+    openai: { configured: openaiReady },
     features: {
       ingest: openaiReady,
       quiz: openaiReady,
       tutor: openaiReady,
-      whisper: openaiReady,
     },
   });
 }
