@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:closeping": "npm --prefix closeping run dev",
+    "build:closeping": "npm --prefix closeping run build",
     "dev:clean": "node scripts/dev-clean.mjs",
     "dev:kill": "powershell -ExecutionPolicy Bypass -File scripts/kill-dev-ports.ps1",
     "build": "next build",

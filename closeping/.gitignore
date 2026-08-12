@@ -1,0 +1,6 @@
+# ClosePing — independent of Effiroad
+.vercel
+.next
+node_modules
+data/*.json
+.env*.local
