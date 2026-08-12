@@ -37,7 +37,7 @@ const TABS: { id: SidebarTab; label: string }[] = [
 ];
 
 export function LessonViewer(props: LessonViewerProps) {
-  const { activeMaterial, ready } = useLessonMaterial(props.initialMaterials);
+  const { activeMaterial, ready } = useLessonMaterial(props.initialMaterials ?? []);
 
   if (ready && activeMaterial) {
     return <SyncedLessonViewer {...props} activeMaterial={activeMaterial} />;
@@ -100,7 +100,7 @@ function SyncedLessonViewer({
         course={course}
         lesson={lesson}
         userId={userId}
-        initialMaterials={initialMaterials}
+        initialMaterials={initialMaterials ?? []}
         activeMaterial={activeMaterial}
         mindmapTree={mindmapTree}
         youtubeUrl={youtubeUrl}
@@ -131,7 +131,7 @@ function BasicLessonViewer({
       course={course}
       lesson={lesson}
       userId={userId}
-      initialMaterials={initialMaterials}
+      initialMaterials={initialMaterials ?? []}
       activeMaterial={activeMaterial}
       mindmapTree={mindmapTree}
       youtubeUrl={youtubeUrl}

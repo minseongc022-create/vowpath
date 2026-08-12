@@ -39,5 +39,6 @@ declare module "@distube/ytdl-core" {
   function getInfo(url: string): Promise<{
     videoDetails: { lengthSeconds: string; title: string };
   }>;
-  default function ytdl(url: string, options?: ytdl.downloadOptions): Readable;
+  function ytdl(url: string, options?: ytdl.downloadOptions): Readable;
+  export default ytdl;
 }

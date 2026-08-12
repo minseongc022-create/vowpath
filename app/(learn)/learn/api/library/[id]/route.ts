@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: Props) {
         url: material.sourceUrl,
         pastedTranscript: body.pastedTranscript,
       }).catch(() => undefined);
-    } else if (material.rawText || material.fullTranscript) {
+    } else if (material.fullTranscript) {
       void runMaterialIngestion(userId, id).catch(() => undefined);
     }
 

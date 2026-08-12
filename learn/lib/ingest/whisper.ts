@@ -117,7 +117,7 @@ async function callWhisper(
   const form = new FormData();
   form.append(
     "file",
-    new Blob([buffer], { type: "audio/webm" }),
+    new Blob([new Uint8Array(buffer)], { type: "audio/webm" }),
     filename,
   );
   form.append("model", process.env.OPENAI_WHISPER_MODEL ?? "whisper-1");

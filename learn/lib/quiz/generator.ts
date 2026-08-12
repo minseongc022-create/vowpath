@@ -1,6 +1,6 @@
 import { openAiJsonCompletion } from "@/lib/openai-json";
 import type { MaterialAnalysisRecord, MindmapTreeNode } from "@/learn/types/material";
-import type { QuizQuestion, QuizSet } from "@/learn/types/quiz";
+import type { QuizQuestion, QuizQuestionType, QuizSet } from "@/learn/types/quiz";
 import { resolveEvidenceAnchor } from "@/learn/lib/quiz/evidence";
 import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
 import { parseTranscript } from "@/learn/lib/mindmap/transcript-parse";
@@ -81,7 +81,8 @@ export async function generateQuizWithOpenAI(
     const questions: QuizQuestion[] = (result.questions ?? [])
       .slice(0, maxQuestions)
       .map((q, i) => {
-        const type = q.type === "short_answer" ? "short_answer" : "multiple_choice";
+        const type: QuizQuestionType =
+          q.type === "short_answer" ? "short_answer" : "multiple_choice";
         const evidence = resolveEvidenceAnchor(
           q.evidenceQuote ?? q.explanation ?? "",
           transcriptLines,

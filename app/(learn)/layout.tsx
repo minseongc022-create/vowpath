@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "@/learn/styles/learn.css";
 import { LearnAuthProvider } from "@/learn/components/providers/LearnAuthProvider";
-import { LearnHeader } from "@/learn/components/layout/LearnHeader";
-import { LearnBottomNav } from "@/learn/components/layout/LearnBottomNav";
 
 export const metadata: Metadata = {
   title: {
@@ -34,5 +32,3 @@ export default function LearnRootLayout({
     </div>
   );
 }
-
-export { LearnHeader, LearnBottomNav };

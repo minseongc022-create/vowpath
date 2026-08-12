@@ -74,6 +74,7 @@ export type MaterialRecord = {
   linkedCourse?: string | null;
   linkedLesson?: string | null;
   fullTranscript?: string | null;
+  rawText?: string | null;
   errorMessage?: string | null;
   tags: string[];
   createdAt: string;

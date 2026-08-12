@@ -1,4 +1,5 @@
-import { LearnBottomNav, LearnHeader } from "../../layout";
+import { LearnHeader } from "@/learn/components/layout/LearnHeader";
+import { LearnBottomNav } from "@/learn/components/layout/LearnBottomNav";
 
 export default function LearnShellLayout({
   children,
