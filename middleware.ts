@@ -37,9 +37,13 @@ function loginRedirect(request: NextRequest, nextPath?: string | null) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // EFFIROAD Learn — isolated education platform; skip legacy HVAC session rules.
+  // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
   if (pathname.startsWith("/learn")) {
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "learn");
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   const host = request.headers.get("host") ?? "";

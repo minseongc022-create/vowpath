@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import { SITE_ICON_VERSION, buildSiteMetadata, siteJsonLd, siteFaqJsonLd, siteOrganizationJsonLd, siteWebSiteJsonLd } from "@/lib/site-metadata";
-import { LocaleProvider } from "@/components/providers/LocaleProvider";
-import { EffiroadAssistantRoot } from "@/components/assistant/EffiroadAssistantRoot";
-import { marketingUiLocale, resolveServerUiLocale, uiLocaleHtmlLang } from "@/lib/locale";
-import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-});
+import { headers } from "next/headers";
+import { PlatformShell } from "@/components/layout/PlatformShell";
+import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell";
+import { buildSiteMetadata } from "@/lib/site-metadata";
+import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
+import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const h = await headers();
+  if (h.get("x-app-shell") === "learn") {
+    return {
+      title: { default: LEARN_BRAND.name, template: `%s · ${LEARN_BRAND.name}` },
+      description: LEARN_BRAND.tagline,
+      robots: { index: false, follow: false },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -26,48 +28,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const locale = await resolveServerUiLocale();
-  const iconV = SITE_ICON_VERSION;
-
-  return (
-    <html lang={uiLocaleHtmlLang(locale)} className={inter.variable}>
-      <head>
-        <link rel="icon" href={`/favicon.ico?v=${iconV}`} sizes="any" />
-        <link rel="icon" href={`/favicon-32.png?v=${iconV}`} type="image/png" sizes="32x32" />
-        <link rel="icon" href={`/favicon-16.png?v=${iconV}`} type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href={`/apple-touch-icon.png?v=${iconV}`} sizes="180x180" />
-        <link rel="manifest" href={`/site.webmanifest?v=${iconV}`} />
-        <meta name="google-site-verification" content="6i-sr0bUxG3eyTX3Ou63jOTDemIS_RztmmoaZ3VWPIg" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-        />
-      </head>
-      <body className="w-full min-w-0 overflow-x-hidden font-sans antialiased">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteOrganizationJsonLd()) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteWebSiteJsonLd()) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteFaqJsonLd()) }}
-        />
-        <LocaleProvider initialLocale={locale}>
-          {children}
-          <EffiroadAssistantRoot />
-        </LocaleProvider>
-      </body>
-    </html>
-  );
+}: Readonly<{ children: React.ReactNode }>) {
+  const h = await headers();
+  if (h.get("x-app-shell") === "learn") {
+    return <LearnPlatformShell>{children}</LearnPlatformShell>;
+  }
+  return <PlatformShell>{children}</PlatformShell>;
 }

@@ -1,4 +1,4 @@
-import { openAiJsonCompletion } from "@/lib/openai-json";
+import { learnOpenAiJsonCompletion } from "@/learn/lib/openai/json";
 import { splitTextIntoChunks } from "@/learn/lib/ingest/chunker";
 import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
 import type { MindmapTreeNode } from "@/learn/types/material";
@@ -39,8 +39,8 @@ export async function analyzeMaterialContent(
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]!;
-    const result = await openAiJsonCompletion<ChunkAnalysisJson>({
-      system: `EFFIROAD 학습 AI. 강의/PDF/텍스트에서 **중요한 내용을 빠짐없이** 추출하세요.
+    const result = await learnOpenAiJsonCompletion<ChunkAnalysisJson>({
+      system: `Lane Learn AI. 강의/PDF/텍스트에서 **중요한 내용을 빠짐없이** 추출하세요.
 규칙:
 - 구구절절 장문 금지. 짧은 bullet만 (한 줄 40자 내외)
 - 사소한 인사·잡담·반복은 생략, **학습에 필요한 개념·정의·공식·예시·주의점은 전부** 포함
@@ -72,7 +72,7 @@ export async function analyzeMaterialContent(
     ([t, pts]) => ({ title: t, points: [...pts] }),
   );
 
-  const final = await openAiJsonCompletion<MergeAnalysisJson>({
+  const final = await learnOpenAiJsonCompletion<MergeAnalysisJson>({
     system: `학습 자료의 추출 결과를 정리합니다. 내용을 **삭제하지 말고** 중복만 제거·병합하세요.
 JSON:
 {
@@ -108,7 +108,7 @@ export async function refineTranscriptChunk(
   chunkText: string,
   context?: { prevTail?: string; nextHead?: string },
 ): Promise<string> {
-  const result = await openAiJsonCompletion<{ refined?: string }>({
+  const result = await learnOpenAiJsonCompletion<{ refined?: string }>({
     system: `한/영 강의 스크립트를 교정합니다. 누락·깨진 문장·자막 gap을 복원하세요.
 요약·축약 금지. JSON: { "refined": "..." }`,
     user: [

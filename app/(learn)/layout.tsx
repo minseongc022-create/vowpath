@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import "@/learn/styles/learn.css";
 import { LearnAuthProvider } from "@/learn/components/providers/LearnAuthProvider";
+import { LEARN_BRAND, learnPageTitle } from "@/learn/lib/brand";
 
 export const metadata: Metadata = {
   title: {
-    default: "EFFIROAD — AI 초밀착 학습",
-    template: "%s · EFFIROAD",
+    default: LEARN_BRAND.name,
+    template: `%s · ${LEARN_BRAND.name}`,
   },
-  description:
-    "AI 학습 에이전트가 실시간으로 커리큘럼을 조정합니다. iPad 가로 모드까지 완벽한 YouTube형 학습 경험.",
-  robots: { index: true, follow: true },
+  description: LEARN_BRAND.tagline,
+  robots: { index: false, follow: false },
+  applicationName: LEARN_BRAND.name,
 };
 
 export const viewport: Viewport = {
@@ -25,10 +26,10 @@ export default function LearnRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="learn-theme">
-      <LearnAuthProvider>
-        {children}
-      </LearnAuthProvider>
+    <div className="learn-theme min-h-dvh">
+      <LearnAuthProvider>{children}</LearnAuthProvider>
     </div>
   );
 }
+
+export { learnPageTitle };

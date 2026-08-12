@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Kakao from "next-auth/providers/kakao";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma, isDatabaseConfigured } from "@/learn/lib/db";
+import { getLearnAuthSecret } from "@/learn/lib/openai-config";
 
 const providers = [
   ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -24,11 +25,7 @@ const providers = [
 ];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret:
-    process.env.AUTH_SECRET ??
-    (process.env.NEXT_PUBLIC_AUTH_DEMO === "true"
-      ? "effiroad-learn-demo-secret"
-      : undefined),
+  secret: getLearnAuthSecret(),
   basePath: "/learn/api/auth",
   adapter: isDatabaseConfigured() ? PrismaAdapter(prisma) : undefined,
   providers,

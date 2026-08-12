@@ -1,4 +1,4 @@
-import { openAiJsonCompletion } from "@/lib/openai-json";
+import { learnOpenAiJsonCompletion } from "@/learn/lib/openai/json";
 import type { MaterialAnalysisRecord, MindmapTreeNode } from "@/learn/types/material";
 import type { QuizQuestion, QuizQuestionType, QuizSet } from "@/learn/types/quiz";
 import { resolveEvidenceAnchor } from "@/learn/lib/quiz/evidence";
@@ -52,8 +52,8 @@ export async function generateQuizWithOpenAI(
   const mindmapTree = enrichMindmapAnchors(analysis.mindmapTree ?? [], transcriptLines);
 
   try {
-    const result = await openAiJsonCompletion<AiQuizJson>({
-      system: `EFFIROAD Learn 퀴즈 AI. 사용자가 업로드한 학습 자료 **내용만**으로 문제를 만드세요.
+    const result = await learnOpenAiJsonCompletion<AiQuizJson>({
+      system: `Lane Learn 퀴즈 AI. 사용자가 업로드한 학습 자료 **내용만**으로 문제를 만드세요.
 규칙:
 - 외부 지식·추측 금지. 자료에 없는 내용 출제 금지
 - 객관식(multiple_choice) 4지선다 + 단답형(short_answer) 혼합

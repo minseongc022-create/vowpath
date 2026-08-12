@@ -7,6 +7,7 @@
     "dev:clean": "node scripts/dev-clean.mjs",
     "dev:kill": "powershell -ExecutionPolicy Bypass -File scripts/kill-dev-ports.ps1",
     "build": "next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "postinstall": "prisma generate",
     "postbuild": "node scripts/postbuild-migrate-kv.mjs && node scripts/postbuild-retell-sync.mjs",
     "start": "next start",

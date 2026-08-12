@@ -2,6 +2,7 @@ import Link from "next/link";
 import { QuickStartForm } from "@/learn/components/study/QuickStartForm";
 import { getLearnSession } from "@/learn/lib/auth";
 import { listMaterials, resolveUserId } from "@/learn/lib/library/repository";
+import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export default async function LearnHomePage() {
   const session = await getLearnSession();
@@ -11,11 +12,9 @@ export default async function LearnHomePage() {
   return (
     <main className="mx-auto max-w-lg px-4 py-8 pb-28 learn-animate-in">
       <section className="mb-8 text-center">
-        <p className="mb-2 text-sm font-semibold text-learn-primary">EFFIROAD Learn</p>
+        <p className="mb-2 text-sm font-semibold text-learn-primary">{LEARN_BRAND.name}</p>
         <h1 className="text-2xl font-bold leading-tight text-learn-ink">
-          영상 넣고
-          <br />
-          바로 학습 시작
+          {LEARN_BRAND.tagline}
         </h1>
         <p className="mt-2 text-sm text-learn-ink-muted">
           AI 요약 · 마인드맵 · 퀴즈 · 오답노트까지 한 번에

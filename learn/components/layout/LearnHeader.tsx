@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLearnSession } from "@/learn/lib/auth";
+import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export async function LearnHeader() {
   const session = await getLearnSession();
@@ -8,10 +9,10 @@ export async function LearnHeader() {
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-learn-border bg-learn-surface/90 px-4 backdrop-blur-lg md:px-6">
       <Link href="/learn" className="flex items-center gap-2 shrink-0">
         <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-learn-primary text-sm font-bold text-white">
-          E
+          L
         </span>
         <span className="text-base font-bold tracking-tight text-learn-ink">
-          EFFIROAD
+          {LEARN_BRAND.name}
         </span>
       </Link>
 
