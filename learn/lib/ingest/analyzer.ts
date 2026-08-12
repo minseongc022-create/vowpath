@@ -1,5 +1,6 @@
 import { openAiJsonCompletion } from "@/lib/openai-json";
 import { splitTextIntoChunks } from "@/learn/lib/ingest/chunker";
+import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
 import type { MindmapTreeNode } from "@/learn/types/material";
 
 export type AnalysisSection = {
@@ -210,5 +211,5 @@ function normalizeMindmapTree(
 }
 
 export function isOpenAiConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY?.trim());
+  return isLearnOpenAiReady();
 }

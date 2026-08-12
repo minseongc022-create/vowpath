@@ -2,6 +2,7 @@ import { openAiJsonCompletion } from "@/lib/openai-json";
 import type { MaterialAnalysisRecord, MindmapTreeNode } from "@/learn/types/material";
 import type { QuizQuestion, QuizSet } from "@/learn/types/quiz";
 import { resolveEvidenceAnchor } from "@/learn/lib/quiz/evidence";
+import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
 import { parseTranscript } from "@/learn/lib/mindmap/transcript-parse";
 import { enrichMindmapAnchors } from "@/learn/lib/mindmap/anchors";
 
@@ -208,7 +209,7 @@ export async function generateQuiz(
   analysis: MaterialAnalysisRecord,
   fullTranscript?: string | null,
 ): Promise<QuizSet> {
-  if (process.env.OPENAI_API_KEY) {
+  if (isLearnOpenAiReady()) {
     return generateQuizWithOpenAI(materialId, title, analysis, fullTranscript);
   }
   return generateQuizFallback(materialId, title, analysis, fullTranscript);
