@@ -23,13 +23,18 @@ export async function listMaterials(userId: string): Promise<MaterialRecord[]> {
     return fileStore.fileStoreList(userId);
   }
 
-  const rows = await prisma.learningMaterial.findMany({
-    where: { userId },
-    include: { analysis: true, chunks: { orderBy: { chunkIndex: "asc" } } },
-    orderBy: { updatedAt: "desc" },
-  });
+  try {
+    const rows = await prisma.learningMaterial.findMany({
+      where: { userId },
+      include: { analysis: true, chunks: { orderBy: { chunkIndex: "asc" } } },
+      orderBy: { updatedAt: "desc" },
+    });
 
-  return rows.map(mapPrismaMaterial);
+    return rows.map(mapPrismaMaterial);
+  } catch (err) {
+    console.error("[learn] listMaterials prisma failed, using file store", err);
+    return fileStore.fileStoreList(userId);
+  }
 }
 
 export async function getMaterial(

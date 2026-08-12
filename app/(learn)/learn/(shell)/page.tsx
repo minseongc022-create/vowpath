@@ -6,8 +6,13 @@ import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export default async function LearnHomePage() {
   const session = await getLearnSession();
-  const userId = resolveUserId(session?.user?.id);
-  const recent = (await listMaterials(userId)).slice(0, 3);
+  let recent: Awaited<ReturnType<typeof listMaterials>> = [];
+  try {
+    const userId = resolveUserId(session?.user?.id);
+    recent = (await listMaterials(userId)).slice(0, 3);
+  } catch {
+    recent = [];
+  }
 
   return (
     <main className="mx-auto max-w-lg px-4 py-8 pb-28 learn-animate-in">

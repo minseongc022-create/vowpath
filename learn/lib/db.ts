@@ -14,6 +14,7 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
+/** Learn DB only — never auto-use Effiroad dispatch DATABASE_URL. */
 export function isDatabaseConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL?.trim());
+  return Boolean(process.env.LEARN_DATABASE_URL?.trim());
 }
