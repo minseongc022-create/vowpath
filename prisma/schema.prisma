@@ -225,6 +225,8 @@ model LearningMaterial {
   searchableText String?        @db.Text
   errorMessage   String?
   tags           String[]       @default([])
+  linkedCourse   String?
+  linkedLesson   String?
   metadata       Json?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -261,6 +263,7 @@ model MaterialAnalysis {
   id          String   @id @default(cuid())
   materialId  String   @unique
   summary     String   @db.Text
+  sections    Json     @default("[]")
   keyPoints   Json
   keywords    Json
   mindmapTree Json

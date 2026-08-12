@@ -9,6 +9,7 @@ import {
   fetchYouTubeTitle,
   extractYouTubeVideoId,
 } from "@/learn/lib/ingest/youtube";
+import { transcribeYouTubeWithWhisper } from "@/learn/lib/ingest/whisper";
 import { extractPdfText } from "@/learn/lib/ingest/pdf";
 import { stitchChunkTexts, buildTimestampedScript } from "@/learn/lib/ingest/stitcher";
 import {
@@ -53,8 +54,18 @@ export async function runMaterialIngestion(
       if (source.pastedTranscript?.trim()) {
         rawText = source.pastedTranscript.trim();
       } else {
-        segments = await fetchYouTubeTranscript(videoId);
-        rawText = segmentsToText(segments);
+        try {
+          segments = await fetchYouTubeTranscript(videoId);
+          rawText = segmentsToText(segments);
+        } catch {
+          // Whisper fallback — no captions available
+          if (!isOpenAiConfigured()) {
+            throw new Error("YOUTUBE_TRANSCRIPT_UNAVAILABLE");
+          }
+          await setStatus(userId, materialId, "TRANSCRIBING");
+          segments = await transcribeYouTubeWithWhisper(videoId);
+          rawText = segmentsToText(segments);
+        }
       }
     } else if (source?.type === "PDF") {
       rawText = await extractPdfText(source.buffer);
@@ -179,7 +190,10 @@ async function setStatus(
 function humanizeError(code: string): string {
   const map: Record<string, string> = {
     YOUTUBE_TRANSCRIPT_UNAVAILABLE:
-      "YouTube 자막을 가져올 수 없습니다. 자막이 없거나 비공개일 수 있습니다. 텍스트를 직접 붙여넣어 주세요.",
+      "YouTube 자막을 가져올 수 없습니다. OpenAI 키가 있으면 Whisper 자동 전사를 시도합니다. 텍스트 붙여넣기도 가능합니다.",
+    WHISPER_FAILED_400: "Whisper 전사 실패. 영상이 너무 길거나 오디오를 가져올 수 없습니다.",
+    WHISPER_EMPTY: "Whisper 전사 결과가 비어 있습니다.",
+    YOUTUBE_AUDIO_TIMEOUT: "YouTube 오디오 다운로드 시간 초과.",
     INVALID_YOUTUBE_URL: "올바른 YouTube URL을 입력해 주세요.",
     EMPTY_CONTENT: "분석할 내용이 없습니다.",
     OPENAI_API_KEY_MISSING:

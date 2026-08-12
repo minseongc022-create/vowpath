@@ -26,8 +26,14 @@ export type MaterialChunkRecord = {
   status: string;
 };
 
+export type AnalysisSection = {
+  title: string;
+  points: string[];
+};
+
 export type MaterialAnalysisRecord = {
   summary: string;
+  sections: AnalysisSection[];
   keyPoints: string[];
   keywords: string[];
   mindmapTree: MindmapTreeNode[];
@@ -41,6 +47,8 @@ export type MaterialRecord = {
   title: string;
   sourceUrl?: string | null;
   sourceLabel?: string | null;
+  linkedCourse?: string | null;
+  linkedLesson?: string | null;
   fullTranscript?: string | null;
   errorMessage?: string | null;
   tags: string[];
@@ -62,6 +70,8 @@ export type CreateMaterialInput = {
   sourceLabel?: string;
   text?: string;
   tags?: string[];
+  linkedCourse?: string;
+  linkedLesson?: string;
 };
 
 export type IngestProgressEvent = {

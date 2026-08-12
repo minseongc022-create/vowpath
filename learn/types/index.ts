@@ -1,4 +1,4 @@
-export type SidebarTab = "mindmap" | "curriculum" | "notes";
+export type SidebarTab = "mindmap" | "summary" | "curriculum" | "notes" | "library";
 
 export type NoteRecord = {
   id: string;

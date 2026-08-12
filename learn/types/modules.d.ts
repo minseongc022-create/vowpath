@@ -23,3 +23,21 @@ declare module "youtube-transcript" {
     ): Promise<TranscriptItem[]>;
   }
 }
+
+declare module "@distube/ytdl-core" {
+  import { Readable } from "node:stream";
+
+  namespace ytdl {
+    interface downloadOptions {
+      quality?: string;
+      filter?: string;
+      range?: { start?: number; end?: number };
+    }
+  }
+
+  function validateURL(url: string): boolean;
+  function getInfo(url: string): Promise<{
+    videoDetails: { lengthSeconds: string; title: string };
+  }>;
+  default function ytdl(url: string, options?: ytdl.downloadOptions): Readable;
+}

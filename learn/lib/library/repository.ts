@@ -62,6 +62,8 @@ export async function createMaterial(
       sourceUrl: input.sourceUrl,
       sourceLabel: input.sourceLabel,
       rawText: input.text,
+      linkedCourse: input.linkedCourse,
+      linkedLesson: input.linkedLesson,
       tags: input.tags ?? [],
       status: "PENDING",
     },
@@ -81,6 +83,8 @@ export async function updateMaterial(
     fullTranscript?: string;
     searchableText?: string;
     errorMessage?: string | null;
+    linkedCourse?: string | null;
+    linkedLesson?: string | null;
     analysis?: MaterialAnalysisRecord;
     chunks?: MaterialRecord["chunks"];
   },
@@ -107,6 +111,7 @@ export async function updateMaterial(
       create: {
         materialId: id,
         summary: analysis.summary,
+        sections: analysis.sections,
         keyPoints: analysis.keyPoints,
         keywords: analysis.keywords,
         mindmapTree: analysis.mindmapTree,
@@ -114,6 +119,7 @@ export async function updateMaterial(
       },
       update: {
         summary: analysis.summary,
+        sections: analysis.sections,
         keyPoints: analysis.keyPoints,
         keywords: analysis.keywords,
         mindmapTree: analysis.mindmapTree,
@@ -168,6 +174,42 @@ export async function searchMaterials(
   return rows.map(mapPrismaMaterial);
 }
 
+export async function getMaterialsForLesson(
+  userId: string,
+  courseSlug: string,
+  lessonSlug: string,
+): Promise<MaterialRecord[]> {
+  if (!isDatabaseConfigured()) {
+    return fileStore.fileStoreForLesson(userId, courseSlug, lessonSlug);
+  }
+
+  const rows = await prisma.learningMaterial.findMany({
+    where: { userId, linkedCourse: courseSlug, linkedLesson: lessonSlug },
+    include: { analysis: true, chunks: { orderBy: { chunkIndex: "asc" } } },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return rows.map(mapPrismaMaterial);
+}
+
+export async function linkMaterialToLesson(
+  userId: string,
+  materialId: string,
+  courseSlug: string,
+  lessonSlug: string,
+): Promise<MaterialRecord | null> {
+  if (!isDatabaseConfigured()) {
+    return fileStore.fileStoreLinkLesson(userId, materialId, courseSlug, lessonSlug);
+  }
+
+  await prisma.learningMaterial.updateMany({
+    where: { id: materialId, userId },
+    data: { linkedCourse: courseSlug, linkedLesson: lessonSlug },
+  });
+
+  return getMaterial(userId, materialId);
+}
+
 function defaultTitle(input: CreateMaterialInput): string {
   if (input.type === "YOUTUBE") return "YouTube 강의";
   if (input.type === "PDF") return "PDF 자료";
@@ -180,6 +222,7 @@ type PrismaMaterial = Awaited<
 > & {
   analysis?: {
     summary: string;
+    sections: unknown;
     keyPoints: unknown;
     keywords: unknown;
     mindmapTree: unknown;
@@ -207,6 +250,8 @@ function mapPrismaMaterial(row: NonNullable<PrismaMaterial>): MaterialRecord {
     title: row!.title,
     sourceUrl: row!.sourceUrl,
     sourceLabel: row!.sourceLabel,
+    linkedCourse: row!.linkedCourse,
+    linkedLesson: row!.linkedLesson,
     fullTranscript: row!.fullTranscript,
     errorMessage: row!.errorMessage,
     tags: row!.tags ?? [],
@@ -224,6 +269,7 @@ function mapPrismaMaterial(row: NonNullable<PrismaMaterial>): MaterialRecord {
     analysis: row.analysis
       ? {
           summary: row.analysis.summary,
+          sections: (row.analysis.sections as MaterialAnalysisRecord["sections"]) ?? [],
           keyPoints: row.analysis.keyPoints as string[],
           keywords: row.analysis.keywords as string[],
           mindmapTree: row.analysis.mindmapTree as MaterialAnalysisRecord["mindmapTree"],

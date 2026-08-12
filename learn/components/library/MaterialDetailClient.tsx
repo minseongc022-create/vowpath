@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MaterialRecord, MindmapTreeNode } from "@/learn/types/material";
 import { MindmapPanel } from "@/learn/components/learn/MindmapPanel";
+import { KeySummaryPanel } from "@/learn/components/learn/KeySummaryPanel";
 import { Button } from "@/learn/components/ui/Button";
 import Link from "next/link";
 
@@ -119,38 +120,12 @@ export function MaterialDetailClient({
       </div>
 
       {activeTab === "summary" && material.analysis && (
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-learn-border bg-learn-surface p-5">
-            <h2 className="mb-2 text-sm font-bold text-learn-ink">핵심 요약</h2>
-            <p className="text-sm leading-relaxed text-learn-ink-muted whitespace-pre-wrap">
-              {material.analysis.summary}
-            </p>
-          </div>
-          {material.analysis.keyPoints.length > 0 && (
-            <div className="rounded-2xl border border-learn-border bg-learn-surface p-5">
-              <h2 className="mb-3 text-sm font-bold text-learn-ink">핵심 포인트</h2>
-              <ul className="space-y-2">
-                {material.analysis.keyPoints.map((p, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-learn-ink-muted">
-                    <span className="font-bold text-learn-primary">{i + 1}.</span>
-                    {p}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {material.analysis.keywords.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {material.analysis.keywords.map((kw) => (
-                <span
-                  key={kw}
-                  className="rounded-full bg-learn-primary/10 px-3 py-1 text-xs font-medium text-learn-primary"
-                >
-                  {kw}
-                </span>
-              ))}
-            </div>
-          )}
+        <section>
+          <KeySummaryPanel
+            summary={material.analysis.summary}
+            sections={material.analysis.sections ?? []}
+            keywords={material.analysis.keywords}
+          />
         </section>
       )}
 

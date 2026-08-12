@@ -45,9 +45,15 @@ export async function POST(request: Request) {
       text?: string;
       pastedTranscript?: string;
       async?: boolean;
+      linkedCourse?: string;
+      linkedLesson?: string;
     };
 
-    const material = await createMaterial(userId, body);
+    const material = await createMaterial(userId, {
+      ...body,
+      linkedCourse: body.linkedCourse,
+      linkedLesson: body.linkedLesson,
+    });
 
     const ingestSource = buildIngestSource(body);
     if (ingestSource) {

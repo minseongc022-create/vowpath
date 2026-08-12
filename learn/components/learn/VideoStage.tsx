@@ -1,17 +1,29 @@
 import type { DemoLesson } from "@/learn/lib/demo-data";
 import { formatDuration } from "@/learn/lib/demo-data";
+import { extractYouTubeVideoId } from "@/learn/lib/ingest/youtube";
 
 type VideoStageProps = {
   lesson: DemoLesson;
   courseTitle: string;
+  youtubeUrl?: string | null;
 };
 
-export function VideoStage({ lesson, courseTitle }: VideoStageProps) {
+export function VideoStage({ lesson, courseTitle, youtubeUrl }: VideoStageProps) {
+  const ytId = youtubeUrl ? extractYouTubeVideoId(youtubeUrl) : null;
+  const embedUrl = ytId ? `https://www.youtube.com/embed/${ytId}?rel=0` : null;
+
   return (
     <div className="learn-animate-in">
-      {/* 16:9 video area — optimized for iPad landscape */}
       <div className="relative aspect-video w-full overflow-hidden rounded-none bg-learn-ink md:rounded-2xl">
-        {lesson.videoUrl ? (
+        {embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={lesson.title}
+            className="h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : lesson.videoUrl ? (
           <video
             src={lesson.videoUrl}
             controls
@@ -29,14 +41,13 @@ export function VideoStage({ lesson, courseTitle }: VideoStageProps) {
               <p className="text-sm font-medium text-white/70">{courseTitle}</p>
               <p className="mt-1 text-lg font-bold text-white">{lesson.title}</p>
               <p className="mt-2 text-sm text-white/50">
-                영상 준비 중 · {formatDuration(lesson.durationSec)}
+                저장소 탭에서 YouTube URL을 연결하세요 · {formatDuration(lesson.durationSec)}
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Lesson meta below video */}
       <div className="px-4 py-4 md:px-0 md:py-5">
         <h1 className="text-lg font-bold leading-snug text-learn-ink md:text-xl">
           {lesson.title}

@@ -55,6 +55,8 @@ export async function fileStoreCreate(
     title: input.title || defaultTitle(input),
     sourceUrl: input.sourceUrl ?? null,
     sourceLabel: input.sourceLabel ?? null,
+    linkedCourse: input.linkedCourse ?? null,
+    linkedLesson: input.linkedLesson ?? null,
     tags: input.tags ?? [],
     createdAt: now,
     updatedAt: now,
@@ -108,6 +110,34 @@ export async function fileStoreSearch(
       m.title.toLowerCase().includes(q) ||
       m.fullTranscript?.toLowerCase().includes(q) ||
       m.analysis?.summary.toLowerCase().includes(q) ||
+      m.analysis?.sections?.some(
+        (s) =>
+          s.title.toLowerCase().includes(q) ||
+          s.points.some((p) => p.toLowerCase().includes(q)),
+      ) ||
       m.tags.some((t) => t.toLowerCase().includes(q)),
   );
+}
+
+export async function fileStoreForLesson(
+  userId: string,
+  courseSlug: string,
+  lessonSlug: string,
+): Promise<MaterialRecord[]> {
+  const all = await fileStoreList(userId);
+  return all.filter(
+    (m) => m.linkedCourse === courseSlug && m.linkedLesson === lessonSlug,
+  );
+}
+
+export async function fileStoreLinkLesson(
+  userId: string,
+  materialId: string,
+  courseSlug: string,
+  lessonSlug: string,
+): Promise<MaterialRecord | null> {
+  return fileStoreUpdate(userId, materialId, {
+    linkedCourse: courseSlug,
+    linkedLesson: lessonSlug,
+  });
 }
