@@ -33,11 +33,12 @@ async function saveStore(userId: string, store: ActivityStore): Promise<void> {
 export async function getOrCreateQuizSet(
   userId: string,
   materialId: string,
-  factory: () => QuizSet,
+  factory: () => QuizSet | Promise<QuizSet>,
+  forceRegenerate = false,
 ): Promise<QuizSet> {
   const store = await loadStore(userId);
-  if (store.quizSets[materialId]) return store.quizSets[materialId]!;
-  const quiz = factory();
+  if (!forceRegenerate && store.quizSets[materialId]) return store.quizSets[materialId]!;
+  const quiz = await factory();
   store.quizSets[materialId] = quiz;
   await saveStore(userId, store);
   return quiz;
@@ -71,7 +72,13 @@ export async function saveQuizAttempt(
 
 export async function listWrongAnswers(userId: string): Promise<WrongAnswerRecord[]> {
   const store = await loadStore(userId);
-  return store.wrongAnswers.filter((w) => !w.resolved);
+  return store.wrongAnswers
+    .filter((w) => !w.resolved)
+    .map((w) => ({
+      ...w,
+      type: w.type ?? "multiple_choice",
+      evidence: w.evidence ?? { snippet: w.explanation },
+    }));
 }
 
 export async function resolveWrongAnswer(

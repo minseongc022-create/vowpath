@@ -10,12 +10,15 @@ import { SyncedYouTubePlayer } from "@/learn/components/mindmap/SyncedYouTubePla
 import { SyncedTranscript } from "@/learn/components/mindmap/SyncedTranscript";
 import { extractYouTubeVideoId } from "@/learn/lib/ingest/youtube";
 import Link from "next/link";
+import type { QuizEvidence } from "@/learn/types/quiz";
+import { EvidenceSeeker } from "@/learn/components/study/EvidenceBacktrack";
 
 type Props = {
   material: MaterialRecord;
   compact?: boolean;
   youtubeUrl?: string | null;
   fallbackTree?: MindmapTreeNode[];
+  seekTarget?: QuizEvidence | null;
 };
 
 export function MindmapDashboard({
@@ -23,6 +26,7 @@ export function MindmapDashboard({
   compact = false,
   youtubeUrl,
   fallbackTree = [],
+  seekTarget = null,
 }: Props) {
   const [annotations, setAnnotations] = useState<MindmapAnnotation[]>([]);
   const [leftTab, setLeftTab] = useState<"video" | "script">("video");
@@ -140,6 +144,7 @@ export function MindmapDashboard({
 
   return (
     <MindmapSyncProvider mindmapTree={mindmapTree} transcriptLines={transcriptLines}>
+      <EvidenceSeeker target={seekTarget} />
       {inner}
     </MindmapSyncProvider>
   );

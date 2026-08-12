@@ -1,10 +1,23 @@
+export type QuizQuestionType = "multiple_choice" | "short_answer";
+
+export type QuizEvidence = {
+  snippet: string;
+  startSec?: number;
+  lineId?: string;
+  nodeId?: string;
+  sectionTitle?: string;
+};
+
 export type QuizQuestion = {
   id: string;
+  type: QuizQuestionType;
   question: string;
-  options: string[];
-  correctIndex: number;
+  options?: string[];
+  correctIndex?: number;
+  correctAnswer?: string;
   explanation: string;
   sectionTitle?: string;
+  evidence: QuizEvidence;
 };
 
 export type QuizSet = {
@@ -12,11 +25,14 @@ export type QuizSet = {
   title: string;
   questions: QuizQuestion[];
   generatedAt: string;
+  source: "openai" | "fallback";
 };
 
 export type QuizAnswer = {
   questionId: string;
-  selectedIndex: number;
+  type: QuizQuestionType;
+  selectedIndex?: number;
+  textAnswer?: string;
   correct: boolean;
 };
 
@@ -36,20 +52,29 @@ export type WrongAnswerRecord = {
   materialTitle: string;
   questionId: string;
   question: string;
-  options: string[];
-  correctIndex: number;
-  selectedIndex: number;
+  type: QuizQuestionType;
+  options?: string[];
+  correctIndex?: number;
+  correctAnswer?: string;
+  selectedIndex?: number;
+  textAnswer?: string;
   explanation: string;
+  evidence: QuizEvidence;
   createdAt: string;
   resolved: boolean;
 };
 
 export type DailyActivity = {
-  date: string; // YYYY-MM-DD
+  date: string;
   materialIds: string[];
   materialTitles: string[];
   quizAttempts: number;
   avgScore: number | null;
   totalQuestions: number;
   correctCount: number;
+};
+
+export type TutorMessage = {
+  role: "user" | "assistant";
+  content: string;
 };

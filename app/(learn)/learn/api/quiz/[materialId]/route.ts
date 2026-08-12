@@ -1,21 +1,23 @@
 import { NextResponse } from "next/server";
 import { getLearnSession } from "@/learn/lib/auth";
 import { getMaterial, resolveUserId } from "@/learn/lib/library/repository";
-import { generateQuizFromAnalysis } from "@/learn/lib/quiz/generator";
+import { generateQuiz } from "@/learn/lib/quiz/generator";
+import { gradeShortAnswer } from "@/learn/lib/quiz/evidence";
 import {
   getOrCreateQuizSet,
   saveQuizAttempt,
 } from "@/learn/lib/activity/file-store";
-import type { QuizAnswer } from "@/learn/types/quiz";
+import type { QuizAnswer, QuizQuestion } from "@/learn/types/quiz";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ materialId: string }> },
 ) {
   try {
     const session = await getLearnSession();
     const userId = resolveUserId(session?.user?.id);
     const { materialId } = await params;
+    const regenerate = new URL(request.url).searchParams.get("regenerate") === "1";
 
     const material = await getMaterial(userId, materialId);
     if (!material) {
@@ -25,8 +27,17 @@ export async function GET(
       return NextResponse.json({ error: "NOT_READY" }, { status: 400 });
     }
 
-    const quiz = await getOrCreateQuizSet(userId, materialId, () =>
-      generateQuizFromAnalysis(materialId, material.title, material.analysis!),
+    const quiz = await getOrCreateQuizSet(
+      userId,
+      materialId,
+      () =>
+        generateQuiz(
+          materialId,
+          material.title,
+          material.analysis!,
+          material.fullTranscript,
+        ),
+      regenerate,
     );
 
     return NextResponse.json(quiz);
@@ -51,21 +62,33 @@ export async function POST(
     }
 
     const quiz = await getOrCreateQuizSet(userId, materialId, () =>
-      generateQuizFromAnalysis(materialId, material.title, material.analysis!),
+      generateQuiz(
+        materialId,
+        material.title,
+        material.analysis!,
+        material.fullTranscript,
+      ),
     );
 
-    const score = body.answers.filter((a) => a.correct).length;
+    const graded = body.answers.map((a) => {
+      const q = quiz.questions.find((x) => x.id === a.questionId);
+      if (!q) return a;
+      const correct = gradeAnswer(q, a);
+      return { ...a, correct };
+    });
+
+    const score = graded.filter((a) => a.correct).length;
     const attempt = {
       id: `attempt-${Date.now()}`,
       materialId,
       materialTitle: material.title,
       score,
       total: quiz.questions.length,
-      answers: body.answers,
+      answers: graded,
       completedAt: new Date().toISOString(),
     };
 
-    const wrongOnes = body.answers
+    const wrongOnes = graded
       .filter((a) => !a.correct)
       .map((a) => {
         const q = quiz.questions.find((x) => x.id === a.questionId)!;
@@ -74,10 +97,14 @@ export async function POST(
           materialTitle: material.title,
           questionId: a.questionId,
           question: q.question,
+          type: q.type,
           options: q.options,
           correctIndex: q.correctIndex,
+          correctAnswer: q.correctAnswer,
           selectedIndex: a.selectedIndex,
+          textAnswer: a.textAnswer,
           explanation: q.explanation,
+          evidence: q.evidence,
         };
       });
 
@@ -89,8 +116,16 @@ export async function POST(
       score,
       total: quiz.questions.length,
       percent: Math.round((score / quiz.questions.length) * 100),
+      graded,
     });
   } catch {
     return NextResponse.json({ error: "FAILED" }, { status: 500 });
   }
+}
+
+function gradeAnswer(q: QuizQuestion, a: QuizAnswer): boolean {
+  if (q.type === "short_answer") {
+    return gradeShortAnswer(a.textAnswer ?? "", q.correctAnswer ?? "");
+  }
+  return a.selectedIndex === q.correctIndex;
 }

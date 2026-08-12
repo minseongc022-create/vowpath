@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { MaterialRecord } from "@/learn/types/material";
-import type { QuizQuestion, QuizSet } from "@/learn/types/quiz";
+import type { QuizAnswer, QuizEvidence, QuizSet } from "@/learn/types/quiz";
+import { gradeShortAnswer } from "@/learn/lib/quiz/evidence";
 import { MindmapDashboard } from "@/learn/components/mindmap/MindmapDashboard";
 import { KeySummaryPanel } from "@/learn/components/learn/KeySummaryPanel";
+import { LearnTutorChat } from "@/learn/components/study/LearnTutorChat";
+import { BacktrackButton } from "@/learn/components/study/EvidenceBacktrack";
 import { Button } from "@/learn/components/ui/Button";
 import Link from "next/link";
 
-type Step = "loading" | "processing" | "learn" | "quiz" | "result";
+type Step = "processing" | "learn" | "quiz" | "result";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "준비 중",
@@ -20,16 +23,26 @@ const STATUS_LABEL: Record<string, string> = {
   FAILED: "실패",
 };
 
-export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
+export function StudyFlowClient({
+  initial,
+  initialSeek,
+}: {
+  initial: MaterialRecord;
+  initialSeek?: QuizEvidence | null;
+}) {
   const [material, setMaterial] = useState(initial);
-  const [step, setStep] = useState<Step>(
-    initial.status === "READY" ? "learn" : "processing",
-  );
+  const [step, setStep] = useState<Step>(initial.status === "READY" ? "learn" : "processing");
   const [tab, setTab] = useState<"mindmap" | "summary">("mindmap");
   const [quiz, setQuiz] = useState<QuizSet | null>(null);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [result, setResult] = useState<{ score: number; total: number; percent: number } | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
+  const [seekTarget, setSeekTarget] = useState<QuizEvidence | null>(initialSeek ?? null);
+  const [seekTick, setSeekTick] = useState(initialSeek ? 1 : 0);
+  const [result, setResult] = useState<{
+    score: number;
+    total: number;
+    percent: number;
+    wrongCount: number;
+  } | null>(null);
 
   const poll = useCallback(async () => {
     const res = await fetch(`/learn/api/library/${material.id}`);
@@ -37,7 +50,6 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
       const data = (await res.json()) as MaterialRecord;
       setMaterial(data);
       if (data.status === "READY") setStep("learn");
-      if (data.status === "FAILED") setStep("processing");
     }
   }, [material.id]);
 
@@ -61,13 +73,15 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
     return () => clearInterval(t);
   }, [material.status, poll]);
 
-  async function startQuiz() {
+  async function startQuiz(regenerate = false) {
     setQuizLoading(true);
     try {
-      const res = await fetch(`/learn/api/quiz/${material.id}`);
+      const url = regenerate
+        ? `/learn/api/quiz/${material.id}?regenerate=1`
+        : `/learn/api/quiz/${material.id}`;
+      const res = await fetch(url);
       if (res.ok) {
         setQuiz(await res.json());
-        setAnswers({});
         setStep("quiz");
       }
     } finally {
@@ -75,23 +89,11 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
     }
   }
 
-  async function submitQuiz() {
-    if (!quiz) return;
-    const payload = quiz.questions.map((q) => ({
-      questionId: q.id,
-      selectedIndex: answers[q.id] ?? -1,
-      correct: answers[q.id] === q.correctIndex,
-    }));
-    const res = await fetch(`/learn/api/quiz/${material.id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers: payload }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setResult({ score: data.score, total: data.total, percent: data.percent });
-      setStep("result");
-    }
+  function handleBacktrack(evidence: QuizEvidence) {
+    setSeekTarget(evidence);
+    setSeekTick((t) => t + 1);
+    setStep("learn");
+    setTab("mindmap");
   }
 
   if (step === "processing") {
@@ -109,9 +111,7 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
         <p className="mt-2 text-sm text-learn-ink-muted">
           {STATUS_LABEL[material.status] ?? "처리 중"}
         </p>
-        {material.status === "FAILED" ? (
-          <p className="mt-4 text-sm text-red-600">{material.errorMessage ?? "처리 실패"}</p>
-        ) : (
+        {material.status !== "FAILED" && (
           <div className="mt-6 w-full max-w-xs">
             <div className="h-2 overflow-hidden rounded-full bg-learn-muted">
               <div
@@ -128,12 +128,25 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
 
   if (step === "quiz" && quiz) {
     return (
-      <QuizStep
+      <QuizFlow
         quiz={quiz}
-        answers={answers}
-        onSelect={(qid, idx) => setAnswers((a) => ({ ...a, [qid]: idx }))}
-        onSubmit={() => void submitQuiz()}
         onBack={() => setStep("learn")}
+        onBacktrack={handleBacktrack}
+        onComplete={(graded, score, total) => {
+          const percent = Math.round((score / total) * 100);
+          setResult({
+            score,
+            total,
+            percent,
+            wrongCount: total - score,
+          });
+          setStep("result");
+          void fetch(`/learn/api/quiz/${material.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers: graded }),
+          });
+        }}
       />
     );
   }
@@ -142,30 +155,36 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
     return (
       <div className="px-4 py-8 learn-animate-in">
         <div className="mx-auto max-w-md text-center">
-          <div className="mb-4 text-5xl">{result.percent >= 80 ? "🎉" : result.percent >= 60 ? "👍" : "📚"}</div>
+          <div className="mb-4 text-5xl">
+            {result.percent >= 80 ? "🎉" : result.percent >= 60 ? "👍" : "📚"}
+          </div>
           <h1 className="text-2xl font-bold text-learn-ink">
             {result.score} / {result.total} 정답
           </h1>
           <p className="mt-1 text-lg font-semibold text-learn-primary">{result.percent}%</p>
           <p className="mt-3 text-sm text-learn-ink-muted">
-            {result.percent >= 80
-              ? "완벽해요! 오늘 학습 완료"
-              : "틀린 문제는 오답노트에 저장됐어요"}
+            {result.wrongCount > 0
+              ? "틀린 문제는 오답노트에 저장됐어요 · 근거 위치로 바로 복습 가능"
+              : "완벽해요! 오늘 학습 완료"}
           </p>
           <div className="mt-8 flex flex-col gap-3">
-            {result.percent < 80 && (
+            {result.wrongCount > 0 && (
               <Link href="/learn/wrong-notes">
-                <Button size="lg" className="w-full">오답노트 보기</Button>
+                <Button size="lg" className="w-full">오답노트 · 근거 역추적</Button>
               </Link>
             )}
+            <Button size="lg" variant="secondary" className="w-full" onClick={() => void startQuiz(true)}>
+              새 문제 더 풀기 (무제한)
+            </Button>
             <Link href="/learn/calendar">
-              <Button size="lg" variant="secondary" className="w-full">오늘 학습 기록</Button>
+              <Button size="lg" variant="ghost" className="w-full">오늘 학습 기록</Button>
             </Link>
             <Button size="lg" variant="ghost" className="w-full" onClick={() => setStep("learn")}>
               다시 학습하기
             </Button>
           </div>
         </div>
+        <LearnTutorChat materialId={material.id} materialTitle={material.title} />
       </div>
     );
   }
@@ -203,7 +222,12 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
 
       {tab === "mindmap" ? (
         <div className="h-[calc(100dvh-8.5rem)]">
-          <MindmapDashboard material={material} compact />
+          <MindmapDashboard
+            key={seekTick}
+            material={material}
+            compact
+            seekTarget={seekTarget}
+          />
         </div>
       ) : (
         <div className="px-4 py-4">
@@ -219,76 +243,195 @@ export function StudyFlowClient({ initial }: { initial: MaterialRecord }) {
         </div>
       )}
 
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-learn-border bg-learn-surface/95 backdrop-blur-lg p-4" style={{ paddingBottom: "max(1rem, var(--learn-safe-bottom))" }}>
-        <Button size="lg" className="w-full" onClick={() => void startQuiz()} disabled={quizLoading || !material.analysis}>
-          {quizLoading ? "퀴즈 준비 중…" : "학습 완료 · 문제 풀기 →"}
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 border-t border-learn-border bg-learn-surface/95 backdrop-blur-lg p-4"
+        style={{ paddingBottom: "max(1rem, var(--learn-safe-bottom))" }}
+      >
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => void startQuiz()}
+          disabled={quizLoading || !material.analysis}
+        >
+          {quizLoading ? "AI 문제 생성 중…" : "학습 완료 · AI 문제 풀기 →"}
         </Button>
       </div>
+
+      <LearnTutorChat materialId={material.id} materialTitle={material.title} />
     </div>
   );
 }
 
-function QuizStep({
+function QuizFlow({
   quiz,
-  answers,
-  onSelect,
-  onSubmit,
   onBack,
+  onBacktrack,
+  onComplete,
 }: {
   quiz: QuizSet;
-  answers: Record<string, number>;
-  onSelect: (qid: string, idx: number) => void;
-  onSubmit: () => void;
   onBack: () => void;
+  onBacktrack: (evidence: QuizEvidence) => void;
+  onComplete: (graded: QuizAnswer[], score: number, total: number) => void;
 }) {
-  const allAnswered = quiz.questions.every((q) => answers[q.id] !== undefined);
   const [current, setCurrent] = useState(0);
+  const [mcAnswer, setMcAnswer] = useState<number | undefined>();
+  const [textAnswer, setTextAnswer] = useState("");
+  const [revealed, setRevealed] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [allAnswers, setAllAnswers] = useState<QuizAnswer[]>([]);
+
   const q = quiz.questions[current]!;
 
+  function checkAnswer() {
+    let correct = false;
+    if (q.type === "short_answer") {
+      correct = gradeShortAnswer(textAnswer, q.correctAnswer ?? "");
+    } else {
+      correct = mcAnswer === q.correctIndex;
+    }
+    setIsCorrect(correct);
+    setRevealed(true);
+    const answer: QuizAnswer = {
+      questionId: q.id,
+      type: q.type,
+      selectedIndex: mcAnswer,
+      textAnswer: q.type === "short_answer" ? textAnswer : undefined,
+      correct,
+    };
+    setAllAnswers((prev) => [...prev, answer]);
+  }
+
+  function finishQuiz(answers: QuizAnswer[]) {
+    const score = answers.filter((a) => a.correct).length;
+    onComplete(answers, score, quiz.questions.length);
+  }
+
+  function nextQuestion() {
+    if (current < quiz.questions.length - 1) {
+      setCurrent((c) => c + 1);
+      setMcAnswer(undefined);
+      setTextAnswer("");
+      setRevealed(false);
+    } else {
+      setAllAnswers((prev) => {
+        finishQuiz(prev);
+        return prev;
+      });
+    }
+  }
+
+  const canCheck =
+    q.type === "short_answer" ? textAnswer.trim().length > 0 : mcAnswer !== undefined;
+
   return (
-    <div className="px-4 py-6 pb-28 learn-animate-in">
+    <div className="px-4 py-6 pb-32 learn-animate-in">
       <div className="mb-4 flex items-center justify-between">
         <button type="button" onClick={onBack} className="text-sm text-learn-ink-muted">← 돌아가기</button>
-        <span className="text-xs font-bold text-learn-primary">
-          {current + 1} / {quiz.questions.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {quiz.source === "openai" && (
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-learn-primary">AI 출제</span>
+          )}
+          <span className="text-xs font-bold text-learn-primary">
+            {current + 1} / {quiz.questions.length}
+          </span>
+        </div>
       </div>
 
-      <h2 className="text-lg font-bold leading-snug text-learn-ink">{q.question}</h2>
-      {q.sectionTitle && (
-        <p className="mt-1 text-xs text-learn-ink-subtle">{q.sectionTitle}</p>
-      )}
-
-      <div className="mt-6 flex flex-col gap-3">
-        {q.options.map((opt, i) => (
-          <button
+      <div className="mb-2 flex gap-1">
+        {quiz.questions.map((_, i) => (
+          <div
             key={i}
-            type="button"
-            onClick={() => onSelect(q.id, i)}
-            className={`rounded-2xl border px-4 py-4 text-left text-sm font-medium transition-all active:scale-[0.98] ${
-              answers[q.id] === i
-                ? "border-learn-primary bg-learn-primary/10 text-learn-ink"
-                : "border-learn-border bg-learn-surface text-learn-ink hover:border-learn-primary/40"
+            className={`h-1 flex-1 rounded-full ${
+              i < current ? "bg-learn-primary" : i === current ? "bg-learn-primary/50" : "bg-learn-muted"
             }`}
-          >
-            {opt}
-          </button>
+          />
         ))}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-learn-border bg-learn-surface p-4" style={{ paddingBottom: "max(1rem, var(--learn-safe-bottom))" }}>
-        {current < quiz.questions.length - 1 ? (
-          <Button
-            size="lg"
-            className="w-full"
-            disabled={answers[q.id] === undefined}
-            onClick={() => setCurrent((c) => c + 1)}
+      <p className="mb-1 text-[11px] font-semibold text-learn-ink-subtle">
+        {q.type === "short_answer" ? "단답형" : "객관식"}
+        {q.sectionTitle && ` · ${q.sectionTitle}`}
+      </p>
+      <h2 className="text-lg font-bold leading-snug text-learn-ink">{q.question}</h2>
+
+      {!revealed && q.type === "multiple_choice" && (
+        <div className="mt-6 flex flex-col gap-3">
+          {q.options?.map((opt, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setMcAnswer(i)}
+              className={`rounded-2xl border px-4 py-4 text-left text-sm font-medium transition-all active:scale-[0.98] ${
+                mcAnswer === i
+                  ? "border-learn-primary bg-learn-primary/10 text-learn-ink"
+                  : "border-learn-border bg-learn-surface text-learn-ink"
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!revealed && q.type === "short_answer" && (
+        <div className="mt-6">
+          <input
+            value={textAnswer}
+            onChange={(e) => setTextAnswer(e.target.value)}
+            placeholder="정답을 입력하세요"
+            className="h-14 w-full rounded-2xl border border-learn-border px-4 text-base outline-none focus:border-learn-primary/50"
+            onKeyDown={(e) => e.key === "Enter" && canCheck && checkAnswer()}
+          />
+        </div>
+      )}
+
+      {revealed && (
+        <div className="mt-6 space-y-4 learn-animate-in">
+          <div
+            className={`rounded-2xl p-4 ${
+              isCorrect ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+            }`}
           >
-            다음 문제
+            <p className={`text-base font-bold ${isCorrect ? "text-green-800" : "text-red-800"}`}>
+              {isCorrect ? "정답이에요! 🎉" : "아쉬워요, 틀렸어요"}
+            </p>
+            {!isCorrect && q.type === "multiple_choice" && (
+              <p className="mt-2 text-sm text-red-700">
+                정답: {q.options?.[q.correctIndex ?? 0]}
+              </p>
+            )}
+            {!isCorrect && q.type === "short_answer" && (
+              <p className="mt-2 text-sm text-red-700">정답: {q.correctAnswer}</p>
+            )}
+            <p className="mt-2 text-sm leading-relaxed text-learn-ink-muted">{q.explanation}</p>
+          </div>
+
+          {q.evidence.snippet && (
+            <div className="rounded-2xl border border-learn-border bg-learn-muted/50 p-4">
+              <p className="text-[11px] font-bold text-learn-primary mb-1">📎 자료 근거</p>
+              <p className="text-xs leading-relaxed text-learn-ink-muted italic">
+                &ldquo;{q.evidence.snippet}&rdquo;
+              </p>
+            </div>
+          )}
+
+          {!isCorrect && (
+            <BacktrackButton evidence={q.evidence} onBacktrack={onBacktrack} />
+          )}
+        </div>
+      )}
+
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 border-t border-learn-border bg-learn-surface p-4"
+        style={{ paddingBottom: "max(1rem, var(--learn-safe-bottom))" }}
+      >
+        {!revealed ? (
+          <Button size="lg" className="w-full" disabled={!canCheck} onClick={checkAnswer}>
+            정답 확인
           </Button>
         ) : (
-          <Button size="lg" className="w-full" disabled={!allAnswered} onClick={onSubmit}>
-            결과 확인
+          <Button size="lg" className="w-full" onClick={nextQuestion}>
+            {current < quiz.questions.length - 1 ? "다음 문제" : "결과 보기"}
           </Button>
         )}
       </div>
