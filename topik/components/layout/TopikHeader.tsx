@@ -40,6 +40,8 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
     };
   }, [menuOpen]);
 
+  if (pathname.includes("/session")) return null;
+
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-learn-border bg-learn-surface/95 backdrop-blur-md">
