@@ -1,110 +1,125 @@
-/** Fill-in-blank vocabulary drills — Korean target, native hint */
+/** Vocabulary — Vietnamese meaning → pick Korean (TOPIK-focused, not English fill-blank) */
 
 export type VocabDrill = {
   id: string;
   level: number;
-  hintVi: string;
-  hintEn: string;
-  sentenceKo: string;
-  blank: string;
-  source?: string;
+  meaningVi: string;
+  meaningEn: string;
+  wordKo: string;
+  romanization: string;
+  exampleKo: string;
+  exampleVi: string;
+  options: string[];
+  correctIndex: number;
+  /** Common mistake for Vietnamese learners */
+  vnTip?: string;
   isNew?: boolean;
 };
 
 export const VOCAB_DRILLS: VocabDrill[] = [
   {
     id: "v1",
-    level: 2,
-    hintVi: "Bạn có thể làm gì cho tôi?",
-    hintEn: "What can you do for me?",
-    sentenceKo: "나를 위해 뭘 ____ 줄 수 있어?",
-    blank: "해",
-    source: "K-drama",
+    level: 1,
+    meaningVi: "xin chào (lịch sự)",
+    meaningEn: "hello (formal)",
+    wordKo: "안녕하세요",
+    romanization: "annyeonghaseyo",
+    exampleKo: "안녕하세요, 만나서 반갑습니다.",
+    exampleVi: "Xin chào, rất vui được gặp bạn.",
+    options: ["안녕하세요", "안녕", "잘 지내요?", "처음 뵙겠습니다"],
+    correctIndex: 0,
+    vnTip: "Người Việt hay nói quá ngắn «안녕» với người lớn — dùng «안녕하세요».",
     isNew: true,
   },
   {
     id: "v2",
     level: 2,
-    hintVi: "Hôm nay thời tiết thế nào?",
-    hintEn: "How's the weather today?",
-    sentenceKo: "오늘 날씨가 ____?",
-    blank: "어때요",
-    source: "TOPIK I",
+    meaningVi: "cảm ơn",
+    meaningEn: "thank you",
+    wordKo: "감사합니다",
+    romanization: "gamsahamnida",
+    exampleKo: "도와주셔서 감사합니다.",
+    exampleVi: "Cảm ơn vì đã giúp tôi.",
+    options: ["감사합니다", "고마워요", "미안합니다", "수고하세요"],
+    correctIndex: 0,
+    vnTip: "«고마워요» thân mật; trong lớp/thi TOPIK ưu tiên «감사합니다».",
   },
   {
     id: "v3",
-    level: 3,
-    hintVi: "Tôi đã ăn cơm rồi.",
-    hintEn: "I already ate.",
-    sentenceKo: "저는 벌써 밥을 ____.",
-    blank: "먹었어요",
-    source: "Daily life",
+    level: 2,
+    meaningVi: "xin lỗi",
+    meaningEn: "sorry / excuse me",
+    wordKo: "죄송합니다",
+    romanization: "joesonghamnida",
+    exampleKo: "늦어서 죄송합니다.",
+    exampleVi: "Xin lỗi vì đến muộn.",
+    options: ["죄송합니다", "괜찮아요", "실례합니다", "고맙습니다"],
+    correctIndex: 0,
   },
   {
     id: "v4",
     level: 3,
-    hintVi: "Bạn có rảnh tối nay không?",
-    hintEn: "Are you free tonight?",
-    sentenceKo: "오늘 저녁에 ____?",
-    blank: "시간 있어요",
-    source: "Conversation",
+    meaningVi: "đi / đến",
+    meaningEn: "to go",
+    wordKo: "가다",
+    romanization: "gada",
+    exampleKo: "학교에 갑니다.",
+    exampleVi: "Tôi đi đến trường.",
+    options: ["가다", "오다", "이다", "있다"],
+    correctIndex: 0,
+    vnTip: "Đuôi «-다» là dạng từ điển — trong câu lịch sự dùng «갑니다».",
   },
   {
     id: "v5",
-    level: 4,
-    hintVi: "Tôi nghĩ việc đó quan trọng.",
-    hintEn: "I think that's important.",
-    sentenceKo: "그 일이 중요하다고 ____.",
-    blank: "생각해요",
-    source: "TOPIK II",
+    level: 3,
+    meaningVi: "ăn",
+    meaningEn: "to eat",
+    wordKo: "먹다",
+    romanization: "meokda",
+    exampleKo: "밥을 먹었어요.",
+    exampleVi: "Tôi đã ăn cơm.",
+    options: ["먹다", "마시다", "자다", "보다"],
+    correctIndex: 0,
   },
   {
     id: "v6",
-    level: 2,
-    hintVi: "Xin lỗi, tôi đến muộn.",
-    hintEn: "Sorry I'm late.",
-    sentenceKo: "늦어서 ____.",
-    blank: "죄송합니다",
-    source: "Politeness",
+    level: 4,
+    meaningVi: "quan trọng",
+    meaningEn: "important",
+    wordKo: "중요하다",
+    romanization: "jungyohada",
+    exampleKo: "한국어 공부가 중요해요.",
+    exampleVi: "Học tiếng Hàn rất quan trọng.",
+    options: ["중요하다", "재미있다", "어렵다", "필요하다"],
+    correctIndex: 0,
   },
   {
     id: "v7",
-    level: 3,
-    hintVi: "Bạn học tiếng Hàn bao lâu rồi?",
-    hintEn: "How long have you studied Korean?",
-    sentenceKo: "한국어를 ____ 공부했어요?",
-    blank: "얼마나",
-    source: "TOPIK prep",
+    level: 2,
+    meaningVi: "bao nhiêu tiền?",
+    meaningEn: "how much?",
+    wordKo: "얼마예요?",
+    romanization: "eolmayeyo?",
+    exampleKo: "이거 얼마예요?",
+    exampleVi: "Cái này bao nhiêu tiền?",
+    options: ["얼마예요?", "어디예요?", "뭐예요?", "몇 시예요?"],
+    correctIndex: 0,
   },
   {
     id: "v8",
-    level: 4,
-    hintVi: "Tôi muốn đi du lịch Hàn Quốc.",
-    hintEn: "I want to travel to Korea.",
-    sentenceKo: "한국으로 여행 ____.",
-    blank: "가고 싶어요",
-    source: "Travel",
-  },
-  {
-    id: "v9",
-    level: 2,
-    hintVi: "Cái này bao nhiêu tiền?",
-    hintEn: "How much is this?",
-    sentenceKo: "이거 ____?",
-    blank: "얼마예요",
-    source: "Shopping",
-  },
-  {
-    id: "v10",
     level: 3,
-    hintVi: "Tôi không hiểu.",
-    hintEn: "I don't understand.",
-    sentenceKo: "____.",
-    blank: "잘 모르겠어요",
-    source: "Classroom",
+    meaningVi: "tôi không hiểu",
+    meaningEn: "I don't understand",
+    wordKo: "잘 모르겠어요",
+    romanization: "jal moreugesseoyo",
+    exampleKo: "죄송하지만 잘 모르겠어요.",
+    exampleVi: "Xin lỗi nhưng tôi không hiểu rõ.",
+    options: ["잘 모르겠어요", "알겠어요", "괜찮아요", "기다려요"],
+    correctIndex: 0,
+    vnTip: "Cụm «잘 모르겠어요» lịch sự hơn «몰라요» trong lớp học.",
   },
 ];
 
-export function getVocabDrills(limit = 10): VocabDrill[] {
+export function getVocabDrills(limit = 8): VocabDrill[] {
   return VOCAB_DRILLS.slice(0, limit);
 }

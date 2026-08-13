@@ -6,10 +6,10 @@ import { cn } from "@/learn/lib/utils";
 import { useTopikStrings } from "@/topik/components/i18n/TopikLocaleProvider";
 import {
   IconHome,
-  IconLeague,
-  IconPremium,
+  IconReview,
   IconStats,
   IconStudy,
+  IconGear,
 } from "@/topik/components/ui/TopikIcons";
 
 export function TopikBottomNav() {
@@ -20,18 +20,8 @@ export function TopikBottomNav() {
   if (pathname.includes("/session")) return null;
 
   const NAV = [
-    {
-      href: "/topik",
-      label: t.nav.home,
-      Icon: IconHome,
-      match: (p: string) => p === "/topik",
-    },
-    {
-      href: "/topik/stats",
-      label: t.nav.stats,
-      Icon: IconStats,
-      match: (p: string) => p.startsWith("/topik/stats"),
-    },
+    { href: "/topik", label: t.nav.home, Icon: IconHome, match: (p: string) => p === "/topik" },
+    { href: "/topik/stats", label: t.nav.stats, Icon: IconStats, match: (p: string) => p.startsWith("/topik/stats") },
     {
       href: "/topik/study",
       label: t.nav.studyHub,
@@ -39,29 +29,22 @@ export function TopikBottomNav() {
       match: (p: string) =>
         p.startsWith("/topik/study") ||
         p.startsWith("/topik/vocab") ||
-        p.startsWith("/topik/conversation") ||
         p.startsWith("/topik/grammar") ||
         p.startsWith("/topik/expression") ||
         p.startsWith("/topik/listening") ||
-        p.startsWith("/topik/speaking") ||
-        p.startsWith("/topik/writing") ||
-        p.startsWith("/topik/practice") ||
-        p.startsWith("/topik/mock-exam") ||
-        p.startsWith("/topik/lessons") ||
-        p.startsWith("/topik/review") ||
-        p.startsWith("/topik/wrong-notes"),
+        p.startsWith("/topik/conversation"),
     },
     {
-      href: "/topik/league",
-      label: t.nav.league,
-      Icon: IconLeague,
-      match: (p: string) => p.startsWith("/topik/league"),
+      href: "/topik/review",
+      label: t.nav.review,
+      Icon: IconReview,
+      match: (p: string) => p.startsWith("/topik/review") || p.startsWith("/topik/wrong-notes"),
     },
     {
-      href: "/topik/premium",
-      label: t.nav.premium,
-      Icon: IconPremium,
-      match: (p: string) => p.startsWith("/topik/premium"),
+      href: "/topik/settings",
+      label: t.modes.settings,
+      Icon: IconGear,
+      match: (p: string) => p.startsWith("/topik/settings"),
     },
   ];
 

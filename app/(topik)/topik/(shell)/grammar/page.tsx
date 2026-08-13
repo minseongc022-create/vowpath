@@ -1,5 +1,5 @@
-import { ModeLanding } from "@/topik/components/modes/ModeLanding";
+import { SkillLanding } from "@/topik/components/modes/SkillLanding";
 
 export default function GrammarPage() {
-  return <ModeLanding mode="grammar" sessionHref="/topik/grammar/session" />;
+  return <SkillLanding skillId="grammar" />;
 }
