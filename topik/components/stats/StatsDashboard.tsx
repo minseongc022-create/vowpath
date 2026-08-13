@@ -13,10 +13,10 @@ export function StatsDashboard({ streak, targetLevel, dueCards, mastered, total 
   const masteryPct = total > 0 ? Math.round((mastered / total) * 100) : 0;
 
   const stats = [
-    { label: vi.stats.streak, value: `${streak}`, unit: vi.home.days, color: "var(--topik-gold)", pct: Math.min(streak * 10, 100) },
+    { label: vi.stats.streak, value: `${streak}`, unit: vi.home.days, color: "var(--topik-streak)", pct: Math.min(streak * 10, 100) },
     { label: vi.stats.targetLevel, value: `TOPIK ${targetLevel}`, unit: "", color: "var(--learn-primary)", pct: (targetLevel / 6) * 100 },
     { label: vi.stats.srsMastered, value: `${mastered}`, unit: `/ ${total}`, color: "var(--learn-accent)", pct: masteryPct },
-    { label: vi.stats.dueToday, value: `${dueCards}`, unit: vi.stats.cards, color: "var(--topik-coral)", pct: total > 0 ? Math.min((dueCards / total) * 100, 100) : 0 },
+    { label: vi.stats.dueToday, value: `${dueCards}`, unit: vi.stats.cards, color: "var(--learn-primary)", pct: total > 0 ? Math.min((dueCards / total) * 100, 100) : 0 },
   ];
 
   return (
@@ -27,7 +27,7 @@ export function StatsDashboard({ streak, targetLevel, dueCards, mastered, total 
         <p className="mt-1 text-sm text-learn-ink-muted">{vi.stats.overviewHint}</p>
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="topik-stats-grid grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="topik-card p-4">
             <p className="text-[11px] font-semibold text-learn-ink-muted">{s.label}</p>

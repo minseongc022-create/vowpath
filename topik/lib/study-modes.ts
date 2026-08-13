@@ -1,4 +1,4 @@
-/** Study mode registry — single source for icons, links, copy (Malhaeboka 전체학습 pattern) */
+/** TOPIK study mode registry */
 
 import { vi } from "@/topik/lib/i18n/vi";
 
@@ -35,18 +35,18 @@ export const STUDY_MODES: StudyMode[] = [
     tint: "coral",
   },
   {
-    id: "practice",
-    href: "/topik/practice",
-    title: vi.home.practiceTitle,
-    desc: vi.home.practiceDesc,
-    tint: "mint",
-  },
-  {
     id: "mock-exam",
     href: "/topik/mock-exam",
     title: vi.home.mockExamTitle,
     desc: vi.home.mockExamDesc,
     tint: "blue",
+  },
+  {
+    id: "practice",
+    href: "/topik/practice",
+    title: vi.home.practiceTitle,
+    desc: vi.home.practiceDesc,
+    tint: "mint",
   },
   {
     id: "lessons",
@@ -71,7 +71,6 @@ export const STUDY_MODES: StudyMode[] = [
   },
 ];
 
-/** Home screen favorites (Malhaeboka 즐겨찾기 grid) */
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
   "speaking",
   "mock-exam",

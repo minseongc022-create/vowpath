@@ -40,12 +40,10 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
     };
   }, [menuOpen]);
 
-  if (pathname.includes("/session")) return null;
-
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-learn-border bg-learn-surface/95 backdrop-blur-md">
-        <div className="topik-page flex h-12 items-center justify-between !py-0">
+      <header className="sticky top-0 z-30 border-b border-learn-border bg-learn-surface/95 backdrop-blur-md topik-header-bar">
+        <div className="topik-page flex h-14 items-center justify-between !py-0">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -61,7 +59,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
 
           <div className="flex items-center gap-1.5">
             {streak > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-[var(--topik-gold-soft)] px-2 py-1 text-xs font-semibold text-[var(--topik-gold)]">
+              <span className="topik-streak-badge">
                 <IconFlame />
                 {streak}
               </span>
@@ -93,7 +91,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
                   href={mode.href}
                   className={cn(
                     "topik-mode-row",
-                    pathname.startsWith(mode.href) && "bg-[var(--topik-primary-soft)]",
+                    pathname.startsWith(mode.href) && "bg-[var(--topik-soft)]",
                   )}
                 >
                   <StudyModeIcon id={mode.id} tint={mode.tint} />
