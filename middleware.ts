@@ -46,6 +46,12 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function topikShellResponse(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "topik");
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
@@ -60,6 +66,11 @@ export async function middleware(request: NextRequest) {
   // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
   if (pathname.startsWith("/learn")) {
     return learnShellResponse(request);
+  }
+
+  // TOPIK Master VN — isolated from Effiroad marketing shell and floating AI widget.
+  if (pathname.startsWith("/topik")) {
+    return topikShellResponse(request);
   }
 
   if (isDecommissionedHost(hostname)) {

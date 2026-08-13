@@ -11,10 +11,10 @@ const EffiroadAssistantWidget = dynamic(
   { ssr: false },
 );
 
-/** Global floating Effiroad AI — hidden on /learn (separate education product). */
+/** Global floating Effiroad AI — hidden on /learn and /topik (separate products). */
 export function EffiroadAssistantRoot() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/learn")) {
+  if (pathname?.startsWith("/learn") || pathname?.startsWith("/topik")) {
     return null;
   }
   return <EffiroadAssistantWidget />;
