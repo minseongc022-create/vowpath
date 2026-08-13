@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Cloudflare / localtunnel — allow mobile testing against `next dev`
+  allowedDevOrigins: ["*.trycloudflare.com", "*.loca.lt"],
   outputFileTracingRoot: path.join(__dirname),
   async headers() {
     return [
@@ -14,8 +16,27 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // HanPro /topik — cache HTML at CDN; client state is localStorage
       {
-        source: "/((?!_next/static|_next/image|videos|demo-audio|favicon.ico).*)",
+        source: "/topik",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/topik/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/((?!_next/static|_next/image|topik|videos|demo-audio|favicon.ico).*)",
         headers: [
           {
             key: "Cache-Control",

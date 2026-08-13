@@ -1,40 +1,12 @@
-import type { Metadata, Viewport } from "next";
-import "@/learn/styles/learn.css";
-import "@/topik/styles/topik.css";
-import { LearnAuthProvider } from "@/learn/components/providers/LearnAuthProvider";
-import { TOPIK_BRAND, topikPageTitle } from "@/topik/lib/brand";
+import { TopikStoreProvider } from "@/topik/components/providers/TopikStoreProvider";
 
-export const metadata: Metadata = {
-  title: {
-    default: TOPIK_BRAND.name,
-    template: `%s · ${TOPIK_BRAND.name}`,
-  },
-  description: TOPIK_BRAND.tagline,
-  applicationName: TOPIK_BRAND.name,
-  openGraph: {
-    title: TOPIK_BRAND.name,
-    description: TOPIK_BRAND.tagline,
-    locale: "vi_VN",
-  },
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
-  themeColor: "#e8344e",
-};
+/** Must stay dynamic so middleware `x-app-shell: topik` picks TopikPlatformShell (not Effiroad). */
+export const dynamic = "force-dynamic";
 
 export default function TopikRootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="learn-theme topik-theme min-h-dvh">
-      <LearnAuthProvider>{children}</LearnAuthProvider>
-    </div>
-  );
+  return <TopikStoreProvider>{children}</TopikStoreProvider>;
 }
-
-export { topikPageTitle };

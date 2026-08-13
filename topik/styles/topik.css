@@ -1,7 +1,52 @@
-.learn-theme.topik-theme {
-  --learn-primary: #e8344e;
-  --learn-primary-hover: #c6283f;
-  --learn-accent: #003478;
+.topik-theme {
+  --topik-bg: #f7f8fa;
+  --topik-surface: #ffffff;
+  --topik-muted: #eef0f4;
+  --topik-ink: #1a1d26;
+  --topik-ink-muted: #6b7280;
+  --topik-ink-subtle: #9ca3af;
+  --topik-primary: #e8344e;
+  --topik-primary-hover: #d42a42;
+  --topik-primary-soft: rgba(232, 52, 78, 0.1);
+  --topik-accent: #003478;
+  --topik-accent-soft: rgba(0, 52, 120, 0.08);
+  --topik-success: #00a86b;
+  --topik-border: #e8eaef;
+  --topik-shadow-sm: 0 1px 2px rgb(26 29 38 / 0.04);
+  --topik-shadow-md: 0 8px 24px rgb(26 29 38 / 0.08);
+  --topik-shadow-lg: 0 16px 48px rgb(26 29 38 / 0.12);
+  --topik-radius: 16px;
+  --topik-radius-lg: 20px;
+  --topik-safe-bottom: env(safe-area-inset-bottom, 0px);
+  font-family: var(--font-be-vietnam, "Be Vietnam Pro"), system-ui, -apple-system, sans-serif;
+  background: var(--topik-bg);
+  color: var(--topik-ink);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+.topik-theme ::selection {
+  background: #fde8ec;
+  color: var(--topik-ink);
+}
+
+.topik-gradient-header {
+  background: linear-gradient(135deg, #e8344e 0%, #c6283f 50%, #003478 100%);
+}
+
+.topik-card {
+  border-radius: var(--topik-radius);
+  border: 1px solid var(--topik-border);
+  background: var(--topik-surface);
+  box-shadow: var(--topik-shadow-sm);
+}
+
+.topik-card-elevated {
+  border-radius: var(--topik-radius-lg);
+  border: 1px solid var(--topik-border);
+  background: var(--topik-surface);
+  box-shadow: var(--topik-shadow-md);
 }
 
 .topik-badge {
@@ -11,31 +56,129 @@
   padding: 0.125rem 0.5rem;
   font-size: 0.625rem;
   font-weight: 700;
-  background: color-mix(in srgb, var(--learn-primary) 12%, white);
-  color: var(--learn-primary);
+  background: var(--topik-primary-soft);
+  color: var(--topik-primary);
   border-radius: 9999px;
 }
 
-.topik-card {
-  border-radius: var(--learn-radius);
-  border: 1px solid var(--learn-border);
-  background: var(--learn-surface);
-  box-shadow: var(--learn-shadow-sm);
+.topik-btn-primary {
+  width: 100%;
+  border-radius: var(--topik-radius);
+  background: var(--topik-primary);
+  color: white;
+  font-weight: 700;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  box-shadow: var(--topik-shadow-md);
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
-.topik-score-ring {
-  background: conic-gradient(
-    var(--learn-primary) calc(var(--pct) * 1%),
-    var(--learn-muted) 0
-  );
-  border-radius: 50%;
+.topik-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-@keyframes topik-flip {
-  from { transform: rotateY(0deg); }
-  to { transform: rotateY(180deg); }
+.topik-btn-primary:disabled {
+  opacity: 0.5;
+}
+
+.topik-input {
+  width: 100%;
+  border-radius: var(--topik-radius);
+  border: 1px solid var(--topik-border);
+  background: var(--topik-surface);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--topik-ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.topik-input:focus {
+  border-color: var(--topik-primary);
+  box-shadow: 0 0 0 3px var(--topik-primary-soft);
+}
+
+.topik-textarea {
+  width: 100%;
+  border-radius: var(--topik-radius);
+  border: 1px solid var(--topik-border);
+  background: var(--topik-surface);
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: var(--topik-ink);
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+}
+
+.topik-textarea:focus {
+  border-color: var(--topik-primary);
+  box-shadow: 0 0 0 3px var(--topik-primary-soft);
+}
+
+@keyframes topik-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.topik-animate-in {
+  animation: topik-fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes topik-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.topik-skeleton {
+  background: linear-gradient(90deg, var(--topik-muted) 25%, #f5f6f8 50%, var(--topik-muted) 75%);
+  background-size: 200% 100%;
+  animation: topik-shimmer 1.2s infinite;
+  border-radius: var(--topik-radius);
+}
+
+.topik-nav {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 40;
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--topik-border);
+  padding-bottom: var(--topik-safe-bottom);
+}
+
+.topik-nav-item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.5rem 0;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--topik-ink-muted);
+  transition: color 0.15s ease;
+}
+
+.topik-nav-item.active {
+  color: var(--topik-primary);
+}
+
+.topik-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .topik-flip {
-  animation: topik-flip 0.4s ease;
+  animation: topik-fade-up 0.3s ease;
 }

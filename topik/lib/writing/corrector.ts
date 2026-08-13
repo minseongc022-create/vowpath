@@ -1,5 +1,5 @@
-import { learnOpenAiJsonCompletion } from "@/learn/lib/openai/json";
-import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
+import { topikOpenAiJsonCompletion } from "@/topik/lib/openai/json";
+import { isTopikOpenAiReady } from "@/topik/lib/openai/config";
 import { WRITING_PROMPTS } from "@/topik/lib/writing/prompts";
 import type {
   WritingCorrectionRequest,
@@ -71,7 +71,7 @@ export async function correctWriting(
 ): Promise<WritingCorrectionResult> {
   const meta = WRITING_PROMPTS[req.taskType];
 
-  if (!isLearnOpenAiReady()) {
+  if (!isTopikOpenAiReady()) {
     return demoCorrection(req);
   }
 
@@ -83,7 +83,7 @@ export async function correctWriting(
   };
 
   try {
-    const result = await learnOpenAiJsonCompletion<AiWritingJson>({
+    const result = await topikOpenAiJsonCompletion<AiWritingJson>({
       system: `You are a certified TOPIK writing examiner. Grade the student's Korean writing strictly by official TOPIK criteria.
 Task: ${rubricByTask[req.taskType]}
 Max score: ${meta.maxScore}

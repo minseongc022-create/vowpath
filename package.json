@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "tunnel": "npx --yes localtunnel --port 3000",
+    "tunnel:cf": "cloudflared tunnel --url http://localhost:3000",
     "twilio:webhook": "node scripts/twilio-setup-webhook.mjs",
     "twilio:register": "node scripts/register-twilio-all.mjs",
     "twilio:check": "node scripts/check-twilio-webhooks.mjs",

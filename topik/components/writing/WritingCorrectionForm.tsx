@@ -5,10 +5,12 @@ import type { WritingTaskType, WritingCorrectionResult } from "@/topik/types";
 import { WRITING_PROMPTS } from "@/topik/lib/writing/prompts";
 import { vi } from "@/topik/lib/i18n/vi";
 import { WritingResult } from "@/topik/components/writing/WritingResult";
+import { useTopikStore } from "@/topik/components/providers/TopikStoreProvider";
 
 const TASK_TYPES: WritingTaskType[] = ["51", "52", "53", "54"];
 
 export function WritingCorrectionForm() {
+  const { incrementWriting } = useTopikStore();
   const [taskType, setTaskType] = useState<WritingTaskType>("53");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,7 @@ export function WritingCorrectionForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!answer.trim()) return;
+    if (!answer.trim() || loading) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -34,8 +36,10 @@ export function WritingCorrectionForm() {
           wordLimit: prompt.wordLimit,
         }),
       });
-      if (!res.ok) throw new Error("FAILED");
-      setResult(await res.json());
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "FAILED");
+      setResult(data);
+      incrementWriting();
     } catch {
       setError(vi.common.error);
     } finally {
@@ -56,9 +60,9 @@ export function WritingCorrectionForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 learn-animate-in">
+    <form onSubmit={handleSubmit} className="space-y-4 topik-animate-in">
       <div>
-        <label className="mb-2 block text-xs font-bold text-learn-ink-muted uppercase tracking-wide">
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[var(--topik-ink-muted)]">
           {vi.writing.taskType}
         </label>
         <div className="grid grid-cols-2 gap-2">
@@ -67,10 +71,10 @@ export function WritingCorrectionForm() {
               key={t}
               type="button"
               onClick={() => setTaskType(t)}
-              className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition-all active:scale-[0.98] ${
+              className={`rounded-[var(--topik-radius)] border px-3 py-2.5 text-left text-xs font-semibold transition-all active:scale-[0.98] ${
                 taskType === t
-                  ? "border-learn-primary bg-learn-primary/10 text-learn-primary"
-                  : "border-learn-border bg-learn-surface text-learn-ink"
+                  ? "border-[var(--topik-primary)] bg-[var(--topik-primary-soft)] text-[var(--topik-primary)]"
+                  : "border-[var(--topik-border)] bg-[var(--topik-surface)]"
               }`}
             >
               {vi.writing.tasks[t]}
@@ -80,36 +84,31 @@ export function WritingCorrectionForm() {
       </div>
 
       <div className="topik-card p-4">
-        <p className="text-xs font-bold text-learn-ink-muted mb-1">{vi.writing.prompt}</p>
-        <p className="text-sm text-learn-ink whitespace-pre-wrap leading-relaxed">{prompt.promptVi}</p>
-        <p className="mt-2 text-xs text-learn-ink-subtle whitespace-pre-wrap">{prompt.prompt}</p>
+        <p className="text-[11px] font-bold text-[var(--topik-ink-muted)] mb-1">{vi.writing.prompt}</p>
+        <p className="text-sm leading-relaxed">{prompt.promptVi}</p>
       </div>
 
       <div>
-        <label className="mb-2 block text-xs font-bold text-learn-ink-muted uppercase tracking-wide">
+        <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[var(--topik-ink-muted)]">
           {vi.writing.yourAnswer}
         </label>
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          rows={taskType === "54" ? 12 : taskType === "53" ? 8 : 4}
-          placeholder="한국어로 답을 작성하세요..."
-          className="w-full rounded-2xl border border-learn-border bg-learn-surface px-4 py-3 text-sm text-learn-ink placeholder:text-learn-ink-subtle focus:border-learn-primary focus:outline-none focus:ring-2 focus:ring-learn-primary/20 resize-none"
+          rows={taskType === "54" ? 10 : taskType === "53" ? 7 : 4}
+          placeholder="Viết câu trả lời bằng tiếng Hàn..."
+          className="topik-textarea"
         />
         {prompt.wordLimit && (
-          <p className="mt-1 text-[11px] text-learn-ink-muted">
+          <p className="mt-1 text-[11px] text-[var(--topik-ink-muted)]">
             {answer.replace(/\s/g, "").length} / {prompt.wordLimit} ký tự
           </p>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-[var(--topik-primary)]">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading || !answer.trim()}
-        className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white shadow-learn-md active:scale-[0.98] transition-transform disabled:opacity-50"
-      >
+      <button type="submit" disabled={loading || !answer.trim()} className="topik-btn-primary">
         {loading ? vi.writing.submitting : vi.writing.submit}
       </button>
     </form>

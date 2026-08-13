@@ -9,7 +9,7 @@ export default function TopikShellLayout({
   return (
     <>
       <TopikHeader />
-      <div className="pb-[calc(3.5rem+var(--learn-safe-bottom))]">
+      <div className="pb-[calc(3.5rem+var(--topik-safe-bottom))]">
         {children}
       </div>
       <TopikBottomNav />

@@ -1,8 +1,8 @@
+/** Standalone HanPro product — not Effiroad, not Lane Learn. */
 export const TOPIK_BRAND = {
-  name: process.env.NEXT_PUBLIC_TOPIK_BRAND_NAME ?? "TOPIK Master VN",
-  tagline: "Học tiếng Hàn · Chinh phục TOPIK",
-  taglineEn: "Learn Korean · Pass TOPIK",
-  productId: "topik-master-vn",
+  name: process.env.NEXT_PUBLIC_TOPIK_BRAND_NAME ?? "HanPro",
+  tagline: "Học tiếng Hàn thông minh · Đậu TOPIK nhanh hơn",
+  productId: "hanpro-vn",
 } as const;
 
 export function topikPageTitle(page?: string): string {
