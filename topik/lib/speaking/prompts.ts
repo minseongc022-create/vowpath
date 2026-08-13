@@ -1,12 +1,15 @@
 import type { SpeakingScenario } from "@/topik/types";
 
-/** TOPIK IBT / EPS speaking scenarios tuned for Vietnamese learners */
+/**
+ * TOPIK IBT Speaking — 6 official task types (original prompts, not copied from past exams).
+ * @see https://www.topik.go.kr/usr/cmm/topikSpeaking.do
+ */
 export const SPEAKING_SCENARIOS: SpeakingScenario[] = [
   {
     id: "self-intro",
-    titleVi: "Giới thiệu bản thân",
+    titleVi: "유형 1 — Giới thiệu bản thân",
     promptKo: "안녕하세요. 이름, 나이, 고향, 취미를 포함해서 자기소개를 해 보세요. (30초~1분)",
-    promptVi: "Xin chào. Hãy giới thiệu bản thân gồm tên, tuổi, quê quán và sở thích (30 giây–1 phút).",
+    promptVi: "IBT dạng 1: Giới thiệu tên, tuổi, quê quán, sở thích (30 giây–1 phút).",
     sampleAnswerKo:
       "안녕하세요. 저는 응웬민입니다. 베트남 하노이에서 왔고, 스물다섯 살입니다. 취미는 한국 드라마 보기입니다.",
     level: 2,
@@ -18,22 +21,22 @@ export const SPEAKING_SCENARIOS: SpeakingScenario[] = [
   },
   {
     id: "hometown",
-    titleVi: "Giới thiệu quê hương",
-    promptKo: "고향에 대해 설명해 보세요. 어디에 있고, 무엇이 유명한지 말해 주세요.",
-    promptVi: "Hãy giới thiệu quê hương của bạn: ở đâu và nổi tiếng vì điều gì.",
+    titleVi: "유형 2 — Mô tả tranh / tình huống",
+    promptKo: "그림을 보고 무엇이 일어나고 있는지 설명해 보세요.",
+    promptVi: "IBT dạng 2: Mô tả tranh — nói những gì đang diễn ra trong hình.",
     sampleAnswerKo:
-      "제 고향은 호치민입니다. 베트남 남부에 있고, 음식과 커피로 유명합니다.",
+      "사진에는 사람들이 공원에서 운동하고 있습니다. 아이들은 자전거를 타고 있고, 할아버지는 산책하고 있습니다.",
     level: 3,
     hintsVi: [
-      "Dùng -에 있어요 / -로 유명해요",
-      "Tránh bỏ 받침 ở cuối âm tiết",
+      "Dùng -고 있습니다 cho hành động đang diễn ra",
+      "Mô tả từng chi tiết trong tranh",
     ],
   },
   {
     id: "restaurant",
-    titleVi: "Gọi món ở nhà hàng",
+    titleVi: "유형 3 — Hội thoại / đặt hàng",
     promptKo: "한국 식당에서 음식을 주문하는 상황입니다. 메뉴를 고르고 주문해 보세요.",
-    promptVi: "Tình huống gọi món tại nhà hàng Hàn. Chọn món và đặt hàng.",
+    promptVi: "IBT dạng 3: Tình huống gọi món tại nhà hàng Hàn — chọn món và đặt hàng.",
     sampleAnswerKo:
       "저기요, 비빔밥 하나랑 김치찌개 주세요. 맵지 않게 해 주세요.",
     level: 2,
@@ -44,28 +47,41 @@ export const SPEAKING_SCENARIOS: SpeakingScenario[] = [
   },
   {
     id: "job-eps",
-    titleVi: "EPS — Phỏng vấn làm việc",
+    titleVi: "유형 4 — Trả lời câu hỏi",
     promptKo: "한국에서 일하고 싶은 이유와 본인의 강점을 말해 보세요.",
-    promptVi: "EPS: Nói lý do muốn làm việc tại Hàn Quốc và điểm mạnh của bạn.",
+    promptVi: "IBT dạng 4: Trả lời câu hỏi — lý do muốn làm việc tại Hàn và điểm mạnh.",
     sampleAnswerKo:
       "한국에서 일하고 싶은 이유는 경험을 쌓고 가족을 돕고 싶어서입니다. 저는 성실하고 책임감이 강합니다.",
     level: 3,
     hintsVi: [
       "-고 싶어서 / -려고 합니다 cho mục đích",
-      "EPS hay hỏi về kinh nghiệm và thái độ",
+      "Trả lời đủ 2 phần: lý do + điểm mạnh",
     ],
   },
   {
     id: "topik-interview",
-    titleVi: "TOPIK IBT — Nói theo chủ đề",
+    titleVi: "유형 5 — Nói theo chủ đề",
     promptKo: "환경 보호의 중요성에 대해 1분 동안 말해 보세요.",
-    promptVi: "TOPIK IBT: Nói về tầm quan trọng của bảo vệ môi trường trong 1 phút.",
+    promptVi: "IBT dạng 5: Nói về tầm quan trọng bảo vệ môi trường trong 1 phút.",
     sampleAnswerKo:
       "환경 보호는 매우 중요합니다. 플라스틱을 줄이고 대중교통을 이용해야 합니다. 모두가 함께 노력해야 합니다.",
     level: 4,
     hintsVi: [
-      "Cấu trúc: 주장 → lý do → kết luận",
+      "Cấu trúc: quan điểm → 2 lý do → kết luận",
       "Dùng -아/어야 합니다, -고 있습니다",
+    ],
+  },
+  {
+    id: "topik-presentation",
+    titleVi: "유형 6 — Thuyết trình ngắn",
+    promptKo: "한국어를 배우는 좋은 방법 세 가지를 소개해 보세요. (1~2분)",
+    promptVi: "IBT dạng 6: Thuyết trình ngắn — giới thiệu 3 cách học tiếng Hàn hiệu quả (1–2 phút).",
+    sampleAnswerKo:
+      "첫째, 매일 조금씩 공부하는 것이 중요합니다. 둘째, 한국 드라마나 뉴스를 보면서 듣기 실력을 키울 수 있습니다. 셋째, 한국 친구와 대화 연습을 하면 좋습니다.",
+    level: 5,
+    hintsVi: [
+      "Dùng 첫째, 둘째, 셋째 để liệt kê",
+      "Mỗi ý nói 2–3 câu, kết thúc bằng tóm tắt",
     ],
   },
 ];

@@ -36,11 +36,14 @@ export type GrammarPoint = {
   exampleVi: string;
 };
 
+export type TopikExamSection = "listening" | "reading" | "writing" | "grammar" | "vocabulary";
+
 export type TopikQuizQuestion = {
   id: string;
   level: TopikLevel;
   type: "multiple_choice" | "short_answer";
   category: LessonCategory;
+  examSection?: TopikExamSection;
   question: string;
   questionVi?: string;
   options?: string[];
@@ -49,6 +52,9 @@ export type TopikQuizQuestion = {
   explanation: string;
   explanationVi: string;
   passage?: string;
+  /** Original listening dialogue — shown after answering (not copied from past papers) */
+  listeningScript?: string;
+  listeningScriptVi?: string;
 };
 
 export type WritingTaskType = "51" | "52" | "53" | "54";
@@ -125,7 +131,8 @@ export type SpeakingScenarioId =
   | "hometown"
   | "restaurant"
   | "job-eps"
-  | "topik-interview";
+  | "topik-interview"
+  | "topik-presentation";
 
 export type SpeakingScenario = {
   id: SpeakingScenarioId;

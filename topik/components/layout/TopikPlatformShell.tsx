@@ -10,14 +10,14 @@ export function TopikPlatformShell({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
         <meta name="application-name" content={TOPIK_BRAND.name} />
         <style>{`
           :root {
-            --topik-font-body: "Nunito", system-ui, sans-serif;
-            --topik-font-ko: "Noto Sans KR", "Nunito", sans-serif;
+            --topik-font-body: "Varela Round", "Nunito", system-ui, sans-serif;
+            --topik-font-ko: "Noto Sans KR", "Varela Round", sans-serif;
           }
         `}</style>
       </head>

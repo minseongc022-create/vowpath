@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
+import { getQuestionSection, ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { vi } from "@/topik/lib/i18n/vi";
 
 type Phase = "setup" | "exam" | "result";
@@ -23,6 +24,7 @@ export function MockExamClient() {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [selected, setSelected] = useState<number | null>(null);
+  const [showScript, setShowScript] = useState(false);
   const [timeLeft, setTimeLeft] = useState(DURATION_SEC);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [result, setResult] = useState<ExamResult | null>(null);
@@ -74,6 +76,7 @@ export function MockExamClient() {
     setIdx(0);
     setAnswers({});
     setSelected(null);
+    setShowScript(false);
     setTimeLeft(DURATION_SEC);
     setStartedAt(Date.now());
     setPhase("exam");
@@ -81,6 +84,7 @@ export function MockExamClient() {
   }
 
   const q = questions[idx];
+  const currentSection = q ? getQuestionSection(q) : "";
 
   function handleNext() {
     if (!q || selected === null) return;
@@ -91,38 +95,45 @@ export function MockExamClient() {
       return;
     }
     setIdx((i) => i + 1);
+    setShowScript(false);
     const nextQ = questions[idx + 1];
-    setSelected(typeof nextAnswers[nextQ?.id ?? ""] === "number" ? (nextAnswers[nextQ!.id] as number) : null);
+    setSelected(
+      typeof nextAnswers[nextQ?.id ?? ""] === "number"
+        ? (nextAnswers[nextQ!.id] as number)
+        : null,
+    );
   }
 
   if (phase === "setup") {
     return (
-      <div className="space-y-4 topik-animate-in">
-        <div className="topik-card p-4">
-          <p className="text-sm text-learn-ink-muted">{vi.mockExam.subtitle}</p>
-          <ul className="mt-3 space-y-1 text-xs text-learn-ink">
-            <li>• 10 câu trắc nghiệm TOPIK IBT</li>
-            <li>• Đồng hồ đếm ngược 20 phút</li>
-            <li>• Tự động lưu điểm cao nhất</li>
+      <div className="topik-quiz-shell topik-animate-in">
+        <div className="topik-card topik-card-pad">
+          <p className="topik-page-subtitle">{vi.mockExam.subtitle}</p>
+          <ul className="topik-setup-list">
+            <li>10 câu · 3 nghe + 4 đọc + 3 ngữ pháp/từ vựng</li>
+            <li>Đồng hồ 20 phút · giao diện IBT</li>
+            <li>Script nghe + giải thích tiếng Việt</li>
+            <li>Tự động lưu điểm cao nhất</li>
+            <li>Không quảng cáo · không paywall</li>
           </ul>
         </div>
-        <div>
-          <label className="text-xs font-bold text-learn-ink-muted">{vi.mockExam.level}</label>
-          <select
-            value={level}
-            onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
-            className="mt-1 w-full rounded-xl border border-learn-border px-3 py-2 text-sm"
-          >
-            {[1, 2, 3, 4, 5, 6].map((l) => (
-              <option key={l} value={l}>TOPIK {l}</option>
-            ))}
-          </select>
-        </div>
+        <label className="topik-field-label">{vi.mockExam.level}</label>
+        <select
+          value={level}
+          onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
+          className="topik-select"
+        >
+          {[1, 2, 3, 4, 5, 6].map((l) => (
+            <option key={l} value={l}>
+              TOPIK {l}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => void startExam()}
           disabled={loading}
-          className="w-full rounded-2xl bg-learn-accent py-3.5 text-sm font-bold text-white"
+          className="topik-btn topik-btn-accent topik-btn-lg"
         >
           {loading ? vi.common.loading : vi.mockExam.start}
         </button>
@@ -133,11 +144,11 @@ export function MockExamClient() {
   if (phase === "result" && result) {
     const pct = Math.round((result.score / result.maxScore) * 100);
     return (
-      <div className="space-y-4 topik-animate-in text-center">
-        <div className="topik-card p-6">
-          <p className="text-xs font-bold uppercase text-learn-ink-muted">{vi.mockExam.result}</p>
-          <p className="mt-2 text-5xl font-bold text-learn-primary">{pct}%</p>
-          <p className="mt-2 text-sm text-learn-ink">
+      <div className="topik-quiz-shell topik-animate-in text-center">
+        <div className="topik-card topik-card-pad">
+          <p className="topik-section-title">{vi.mockExam.result}</p>
+          <p className="topik-result-score">{pct}%</p>
+          <p className="topik-result-hint">
             {vi.mockExam.correct}: {result.correct}/{result.total} · {result.score}/{result.maxScore} đ
           </p>
         </div>
@@ -147,7 +158,7 @@ export function MockExamClient() {
             setPhase("setup");
             setResult(null);
           }}
-          className="w-full topik-btn topik-btn-primary topik-btn-md"
+          className="topik-btn topik-btn-primary topik-btn-lg"
         >
           {vi.mockExam.retry}
         </button>
@@ -161,34 +172,51 @@ export function MockExamClient() {
   const secs = timeLeft % 60;
 
   return (
-    <div className="space-y-4 topik-animate-in">
-      <div className="flex items-center justify-between topik-card px-4 py-3">
-        <span className="text-xs font-bold text-learn-ink-muted">
+    <div className="topik-quiz-shell topik-animate-in">
+      <div className="topik-exam-bar">
+        <span className="topik-exam-section">{ibtSectionLabel(currentSection)}</span>
+        <span className="topik-exam-progress">
           {vi.mockExam.question} {idx + 1}/{questions.length}
         </span>
-        <span className={`text-sm font-mono font-bold ${timeLeft < 120 ? "text-red-600" : "text-learn-accent"}`}>
-          {vi.mockExam.timeLeft}: {mins}:{secs.toString().padStart(2, "0")}
+        <span className={`topik-exam-timer ${timeLeft < 120 ? "topik-exam-timer-warn" : ""}`}>
+          {mins}:{secs.toString().padStart(2, "0")}
         </span>
       </div>
 
-      <div className="topik-card p-4">
-        <span className="topik-badge mb-2">IBT · TOPIK {q.level}</span>
-        {q.passage && (
-          <p className="mb-3 text-sm text-learn-ink-muted leading-relaxed border-l-2 border-learn-primary pl-3">
-            {q.passage}
-          </p>
+      <div className="topik-card topik-card-pad">
+        <span className="topik-badge">IBT · TOPIK {q.level}</span>
+        {q.category === "listening" && q.listeningScript && (
+          <div className="topik-listening-block">
+            <p className="topik-listening-hint">{vi.listening.playHint}</p>
+            <button
+              type="button"
+              onClick={() => setShowScript((s) => !s)}
+              className="topik-btn topik-btn-outline topik-btn-sm"
+            >
+              {showScript ? vi.listening.hideScript : vi.listening.showScript}
+            </button>
+            {showScript && (
+              <div className="topik-script-box font-ko">
+                <p className="topik-script-ko">{q.listeningScript}</p>
+                {q.listeningScriptVi && (
+                  <p className="topik-script-vi">{q.listeningScriptVi}</p>
+                )}
+              </div>
+            )}
+          </div>
         )}
-        <p className="text-sm font-medium text-learn-ink">{q.question}</p>
-        {q.questionVi && <p className="mt-1 text-xs text-learn-ink-muted">{q.questionVi}</p>}
+        {q.passage && <p className="topik-passage font-ko">{q.passage}</p>}
+        <p className="topik-question-ko font-ko">{q.question}</p>
+        {q.questionVi && <p className="topik-question-vi">{q.questionVi}</p>}
       </div>
 
-      <div className="space-y-2">
+      <div className="topik-option-list">
         {q.options?.map((opt, i) => (
           <button
             key={opt}
             type="button"
             onClick={() => setSelected(i)}
-          className={`topik-option ${selected === i ? "topik-option-selected font-semibold" : ""}`}
+            className={`topik-option ${selected === i ? "topik-option-selected" : ""}`}
           >
             {i + 1}. {opt}
           </button>
@@ -199,7 +227,7 @@ export function MockExamClient() {
         type="button"
         onClick={handleNext}
         disabled={selected === null || loading}
-        className="w-full topik-btn topik-btn-primary topik-btn-lg disabled:opacity-50"
+        className="topik-btn topik-btn-primary topik-btn-lg"
       >
         {idx + 1 >= questions.length ? vi.mockExam.finish : vi.mockExam.next}
       </button>

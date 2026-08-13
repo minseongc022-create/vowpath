@@ -1,4 +1,7 @@
-import { TOPIK_QUIZ_BANK } from "@/topik/lib/quiz/questions";
+import {
+  getQuestionsBySection,
+  TOPIK_QUIZ_BANK,
+} from "@/topik/lib/quiz/questions";
 import type { MockExamConfig, TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
 export const IBT_MOCK_CONFIG: MockExamConfig = {
@@ -7,20 +10,27 @@ export const IBT_MOCK_CONFIG: MockExamConfig = {
   sections: ["listening", "reading", "writing"],
 };
 
+/** IBT mini mock: 3 listening + 5 reading + 2 grammar (10 total) */
 export function buildMockExamQuestions(level: TopikLevel, count = 10): TopikQuizQuestion[] {
-  const pool = TOPIK_QUIZ_BANK.filter((q) => q.level <= level);
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const listening = getQuestionsBySection(level, "listening", 3);
+  const reading = getQuestionsBySection(level, "reading", 4);
+  const grammar = getQuestionsBySection(level, "grammar", 2);
+  const vocab = getQuestionsBySection(level, "vocabulary", 1);
 
-  if (selected.length >= count) return selected;
+  let selected = [...listening, ...reading, ...grammar, ...vocab];
 
-  const fallback = TOPIK_QUIZ_BANK.filter((q) => !selected.some((s) => s.id === q.id));
-  while (selected.length < count && fallback.length > 0) {
-    const pick = fallback.shift()!;
-    selected.push(pick);
+  if (selected.length < count) {
+    const used = new Set(selected.map((q) => q.id));
+    const fallback = TOPIK_QUIZ_BANK.filter(
+      (q) => q.level <= level && !used.has(q.id),
+    ).sort(() => Math.random() - 0.5);
+    for (const q of fallback) {
+      if (selected.length >= count) break;
+      selected.push(q);
+    }
   }
 
-  return selected;
+  return selected.slice(0, count);
 }
 
 export function getMockExamQuestionsByIds(ids: string[]): TopikQuizQuestion[] {
@@ -59,7 +69,15 @@ export function ibtSectionLabel(section: string): string {
       return "Đọc (Reading)";
     case "writing":
       return "Viết (Writing)";
+    case "grammar":
+      return "Ngữ pháp";
+    case "vocabulary":
+      return "Từ vựng";
     default:
       return section;
   }
+}
+
+export function getQuestionSection(q: TopikQuizQuestion): string {
+  return q.examSection ?? q.category;
 }

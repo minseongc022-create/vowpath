@@ -95,8 +95,20 @@ export function WritingCorrectionForm() {
           className="topik-textarea"
         />
         {prompt.wordLimit && (
-          <p className="mt-1 text-[11px] text-learn-ink-muted">
-            {answer.replace(/\s/g, "").length} / {prompt.wordLimit} ký tự
+          <p
+            className={`topik-char-count ${
+              prompt.minChars &&
+              answer.replace(/\s/g, "").length >= prompt.minChars &&
+              answer.replace(/\s/g, "").length <= prompt.wordLimit
+                ? "topik-char-count-ok"
+                : prompt.minChars && answer.replace(/\s/g, "").length > 0
+                  ? "topik-char-count-warn"
+                  : ""
+            }`}
+          >
+            {answer.replace(/\s/g, "").length}
+            {prompt.minChars ? ` / ${prompt.minChars}–${prompt.wordLimit}` : ` / ${prompt.wordLimit}`} ký tự
+            {taskType === "53" && " · IBT 2025"}
           </p>
         )}
       </div>

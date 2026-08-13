@@ -45,9 +45,9 @@ export const vi = {
     speakingTitle: "Luyện nói IBT + AI",
     speakingDesc: "Sửa lỗi phát âm đặc thù người Việt",
     mockExamTitle: "Thi thử IBT",
-    mockExamDesc: "Mô phỏng giao diện thi thật · 20 phút",
+    mockExamDesc: "3 nghe + 4 đọc · 20 phút · không quảng cáo",
     practiceTitle: "Luyện đề TOPIK",
-    practiceDesc: "Đọc hiểu · Ngữ pháp · Từ vựng",
+    practiceDesc: "Nghe script · Đọc hiểu · Ngữ pháp · Từ vựng",
     lessonsTitle: "Video bài học",
     lessonsDesc: "Video chọn lọc + từ vựng + ngữ pháp",
     reviewTitle: "Ôn tập lặp lại",
@@ -88,7 +88,7 @@ export const vi = {
     tasks: {
       "51": "Câu 51 — Điền từ vào ô trống (10 điểm)",
       "52": "Câu 52 — Viết câu hoàn chỉnh (10 điểm)",
-      "53": "Câu 53 — Viết đoạn văn ngắn (30 điểm)",
+      "53": "Câu 53 — Luận ngắn IBT (400–500 ký tự · 30 điểm)",
       "54": "Câu 54 — Viết luận (50 điểm)",
     },
   },
@@ -190,6 +190,17 @@ export const vi = {
   studyHub: {
     title: "Học tập",
     subtitle: "Luyện nói · Chấm bài · Thi thử · Ôn SRS — tất cả cho TOPIK",
+  },
+  official: {
+    title: "Tài liệu TOPIK chính thức",
+    subtitle: "Liên kết trực tiếp topik.go.kr — đề thi thật, luyện nói IBT (hợp pháp, miễn phí)",
+    openExternal: "Mở trang chính thức",
+  },
+  listening: {
+    playHint: "Đọc script nghe (mô phỏng — không có file âm thanh bản quyền)",
+    showScript: "Xem script nghe",
+    hideScript: "Ẩn script",
+    scriptLabel: "Script nghe",
   },
   common: {
     loading: "Đang tải…",
