@@ -1,10 +1,12 @@
 import { TOPIK_QUESTION_BANK } from "@/topik/lib/quiz/question-bank";
 import { TOPIK_QUESTION_BANK_EXTRA } from "@/topik/lib/quiz/question-bank-extra";
+import { TOPIK_QUESTION_BANK_EXPANDED } from "@/topik/lib/quiz/question-bank-expanded";
 import type { TopikExamSection, TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
 export const TOPIK_QUIZ_BANK: TopikQuizQuestion[] = [
   ...TOPIK_QUESTION_BANK,
   ...TOPIK_QUESTION_BANK_EXTRA,
+  ...TOPIK_QUESTION_BANK_EXPANDED,
 ];
 
 export function getQuestions(params: {

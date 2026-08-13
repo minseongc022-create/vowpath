@@ -7,6 +7,8 @@ import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { getQuestionSection, ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
 import { vi } from "@/topik/lib/i18n/vi";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 type Phase = "setup" | "exam" | "result";
 
@@ -112,6 +114,7 @@ export function MockExamClient() {
 
   const q = questions[idx];
   const currentSection = q ? getQuestionSection(q) : "";
+  const isExamPhase = phase === "exam";
 
   function handleNext() {
     if (!q || selected === null) return;
@@ -187,6 +190,7 @@ export function MockExamClient() {
         >
           {loading ? vi.common.loading : vi.mockExam.start}
         </button>
+        <StudyModeHint />
       </div>
     );
   }
@@ -223,6 +227,9 @@ export function MockExamClient() {
 
   return (
     <div className="topik-quiz-shell topik-animate-in">
+      <p className="topik-exam-mode-banner" role="status">
+        🔒 {vi.korean.examModeOff}
+      </p>
       <div className="topik-exam-bar">
         <span className="topik-exam-section">{ibtSectionLabel(currentSection)}</span>
         <span className="topik-exam-progress">
@@ -245,18 +252,26 @@ export function MockExamClient() {
               {showScript ? vi.listening.hideScript : vi.listening.showScript}
             </button>
             {showScript && (
-              <div className="topik-script-box font-ko">
-                <p className="topik-script-ko">{q.listeningScript}</p>
-                {q.listeningScriptVi && (
+              <div className="topik-script-box">
+                <p className="topik-script-ko">
+                  <KoreanStudyText text={q.listeningScript} studyMode={!isExamPhase} />
+                </p>
+                {!isExamPhase && q.listeningScriptVi && (
                   <p className="topik-script-vi">{q.listeningScriptVi}</p>
                 )}
               </div>
             )}
           </div>
         )}
-        {q.passage && <p className="topik-passage font-ko">{q.passage}</p>}
-        <p className="topik-question-ko font-ko">{q.question}</p>
-        {q.questionVi && <p className="topik-question-vi">{q.questionVi}</p>}
+        {q.passage && (
+          <p className="topik-passage">
+            <KoreanStudyText text={q.passage} studyMode={false} />
+          </p>
+        )}
+        <p className="topik-question-ko">
+          <KoreanStudyText text={q.question} studyMode={false} />
+        </p>
+        {!isExamPhase && q.questionVi && <p className="topik-question-vi">{q.questionVi}</p>}
       </div>
 
       <div className="topik-option-list">

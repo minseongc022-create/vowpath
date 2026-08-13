@@ -64,7 +64,22 @@ export function buildStudyJourney(input: Input): StudyJourney {
     });
   }
 
-  // 3. Placement if never done
+  // 3b. Vocab drill — built-in dictionary + TTS (no external lookup)
+  const today = new Date().toISOString().slice(0, 10);
+  const doneToday = progress.dailyStepsDone?.[today] ?? [];
+  if (!doneToday.includes("vocab")) {
+    steps.push({
+      id: "vocab",
+      order: order++,
+      titleVi: "Sổ từ vựng TOPIK",
+      descVi: "Chạm từ → nghĩa tiếng Việt + phát âm",
+      href: "/topik/vocab",
+      status: "upcoming",
+      whyVi: "Học từ trong app — không cần tra từ điển ngoài",
+    });
+  }
+
+  // 4. Placement if never done
   if (!progress.placementLevel) {
     steps.push({
       id: "placement",
@@ -192,6 +207,13 @@ function focusToStep(
         status: "upcoming",
       };
     case "vocab":
+      return {
+        id: "vocab",
+        titleVi: "Sổ từ vựng TOPIK",
+        descVi: "Chạm từ → nghĩa + phát âm",
+        href: "/topik/vocab",
+        status: "upcoming",
+      };
     case "grammar":
     default:
       if ((progress.bestTypingCpm ?? 0) < 30 && progress.targetLevel >= 3) {
@@ -260,6 +282,7 @@ function isStepDone(
   if (id === "srs" && dueCards === 0 && (progress.reviewSessions ?? 0) > 0) return true;
   if (id === "wrong" && wrongCount === 0) return true;
   if (id === "placement" && progress.placementLevel) return true;
+  if (id === "vocab" && doneToday.includes("vocab")) return true;
 
   return false;
 }

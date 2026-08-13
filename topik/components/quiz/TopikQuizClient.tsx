@@ -6,6 +6,8 @@ import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 const CATEGORIES = [
   { value: "", label: vi.practice.all },
@@ -41,7 +43,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
 
   const loadQuestions = useCallback(async (lv: TopikLevel, cat: string) => {
     setLoading(true);
-    const params = new URLSearchParams({ level: String(lv), limit: "10" });
+    const params = new URLSearchParams({ level: String(lv), limit: "15" });
     if (cat) params.set("category", cat);
     const res = await fetch(`/topik/api/quiz?${params}`);
     const data = (await res.json()) as TopikQuizQuestion[];
@@ -143,6 +145,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
 
   return (
     <div className="topik-quiz-shell topik-animate-in">
+      <StudyModeHint />
       <div className="topik-quiz-filters">
         <select
           value={level}
@@ -186,9 +189,11 @@ export function TopikQuizClient({ initialLevel }: Props) {
               {showScript ? vi.listening.hideScript : vi.listening.showScript}
             </button>
             {showScript && (
-              <div className="topik-script-box font-ko">
+              <div className="topik-script-box">
                 <p className="topik-script-label">{vi.listening.scriptLabel}</p>
-                <p className="topik-script-ko">{q.listeningScript}</p>
+                <p className="topik-script-ko">
+                  <KoreanStudyText text={q.listeningScript} studyMode />
+                </p>
                 {q.listeningScriptVi && (
                   <p className="topik-script-vi">{q.listeningScriptVi}</p>
                 )}
@@ -197,10 +202,14 @@ export function TopikQuizClient({ initialLevel }: Props) {
           </div>
         )}
         {q.passage && (
-          <p className="topik-passage font-ko">{q.passage}</p>
+          <p className="topik-passage">
+            <KoreanStudyText text={q.passage} studyMode />
+          </p>
         )}
         <p className="topik-question-vi">{q.questionVi ?? q.question}</p>
-        <p className="topik-question-ko font-ko">{q.question}</p>
+        <p className="topik-question-ko">
+          <KoreanStudyText text={q.question} studyMode />
+        </p>
       </div>
 
       {q.type === "multiple_choice" && q.options && (
@@ -245,9 +254,11 @@ export function TopikQuizClient({ initialLevel }: Props) {
           </p>
           <p className="topik-feedback-text">{q.explanationVi}</p>
           {q.listeningScript && (
-            <div className="topik-script-box font-ko mt-3">
+            <div className="topik-script-box mt-3">
               <p className="topik-script-label">{vi.listening.scriptLabel}</p>
-              <p className="topik-script-ko">{q.listeningScript}</p>
+              <p className="topik-script-ko">
+                <KoreanStudyText text={q.listeningScript} studyMode />
+              </p>
               {q.listeningScriptVi && (
                 <p className="topik-script-vi">{q.listeningScriptVi}</p>
               )}

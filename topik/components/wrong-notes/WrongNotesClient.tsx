@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { WrongRecord } from "@/topik/lib/store/file-store";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconInbox } from "@/topik/components/ui/TopikIcons";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 export function WrongNotesClient({ initial }: { initial: WrongRecord[] }) {
   const [items, setItems] = useState(initial);
@@ -28,10 +30,16 @@ export function WrongNotesClient({ initial }: { initial: WrongRecord[] }) {
 
   return (
     <div className="space-y-3">
+      <StudyModeHint />
       {items.map((w) => (
         <div key={w.id} className="topik-card p-4">
           <span className="topik-badge">TOPIK {w.level}</span>
-          <p className="mt-2 text-sm font-semibold text-learn-ink">{w.questionVi ?? w.question}</p>
+          <p className="mt-2 text-sm font-semibold text-learn-ink">
+            <KoreanStudyText text={w.question} studyMode />
+          </p>
+          {w.questionVi && (
+            <p className="mt-1 text-xs text-learn-ink-muted">{w.questionVi}</p>
+          )}
           <p className="mt-1 text-xs text-learn-ink-muted">{w.explanationVi}</p>
           <button
             type="button"

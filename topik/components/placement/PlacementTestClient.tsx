@@ -6,6 +6,7 @@ import { PLACEMENT_TEST } from "@/topik/lib/quiz/placement-test";
 import { estimateLevelFromPlacement } from "@/topik/lib/journey/study-journey";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 
 type Phase = "intro" | "test" | "result";
 
@@ -93,6 +94,9 @@ export function PlacementTestClient() {
 
   return (
     <div className="topik-quiz-shell topik-animate-in">
+      <p className="topik-exam-mode-banner" role="status">
+        🔒 {vi.korean.examModeOff}
+      </p>
       <div className="topik-exam-bar">
         <span className="topik-exam-progress">
           {vi.placement.question} {idx + 1}/{PLACEMENT_TEST.length}
@@ -102,11 +106,16 @@ export function PlacementTestClient() {
       <div className="topik-card topik-card-pad">
         {q.listeningScript && (
           <div className="topik-script-box font-ko mb-3">
-            <p className="topik-script-ko">{q.listeningScript}</p>
-            {q.listeningScriptVi && <p className="topik-script-vi">{q.listeningScriptVi}</p>}
+            <p className="topik-script-ko">
+              <KoreanStudyText text={q.listeningScript} studyMode={false} />
+            </p>
           </div>
         )}
-        {q.passage && <p className="topik-passage font-ko">{q.passage}</p>}
+        {q.passage && (
+          <p className="topik-passage font-ko">
+            <KoreanStudyText text={q.passage} studyMode={false} />
+          </p>
+        )}
         <p className="topik-question-vi">{q.questionVi ?? q.question}</p>
       </div>
 

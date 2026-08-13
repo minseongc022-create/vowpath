@@ -1221,3 +1221,130 @@
   color: var(--learn-ink-subtle);
   font-size: 0.8125rem;
 }
+
+/* ── Korean tap-to-translate (study mode) ── */
+.topik-study-hint {
+  margin: 0 0 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 999px;
+  background: var(--topik-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--learn-primary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.topik-exam-mode-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 999px;
+  background: var(--topik-warn-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--topik-streak);
+  text-align: center;
+}
+
+.topik-korean-text {
+  line-height: 1.65;
+}
+
+.topik-korean-word {
+  display: inline;
+  padding: 0 0.125rem;
+  margin: 0 0.0625rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgb(61 107 138 / 0.35);
+  text-underline-offset: 0.2em;
+  transition: background 0.15s, color 0.15s;
+}
+
+.topik-korean-word:hover,
+.topik-korean-word:focus-visible {
+  background: var(--topik-soft);
+  color: var(--learn-primary);
+  outline: none;
+}
+
+.topik-word-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.topik-word-popup {
+  position: fixed;
+  z-index: 100;
+  min-width: 10rem;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.875rem 1rem;
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+  box-shadow: var(--learn-shadow-lg);
+}
+
+.topik-word-popup-ko {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--learn-ink);
+}
+
+.topik-word-popup-roman {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--learn-ink-subtle);
+}
+
+.topik-word-popup-vi {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--learn-primary);
+  line-height: 1.45;
+}
+
+.topik-word-popup-example {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--learn-border);
+  font-size: 0.8125rem;
+  color: var(--learn-ink-muted);
+  line-height: 1.5;
+}
+
+.topik-word-popup-speak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--learn-border);
+  border-radius: 999px;
+  background: var(--learn-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--learn-ink);
+  cursor: pointer;
+}
+
+.topik-word-popup-speak:hover {
+  background: var(--topik-soft);
+  color: var(--learn-primary);
+}
+
+.topik-vocab-front {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--learn-ink);
+}

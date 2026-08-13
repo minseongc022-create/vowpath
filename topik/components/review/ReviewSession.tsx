@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { SrsCard } from "@/topik/types";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle, IconChevronRight, IconInbox } from "@/topik/components/ui/TopikIcons";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 type Quality = 0 | 1 | 3 | 5;
 
@@ -95,6 +97,7 @@ export function ReviewSession() {
 
   return (
     <div className="space-y-4 topik-animate-in">
+      <StudyModeHint />
       <div className="flex justify-between text-xs font-bold text-learn-ink-muted">
         <span>{vi.review.dueToday}: {stats.due}</span>
         <span>{idx + 1} / {cards.length}</span>
@@ -108,7 +111,9 @@ export function ReviewSession() {
         {!flipped ? (
           <>
             <span className="text-xs font-bold text-learn-ink-muted mb-2 uppercase">{card.kind}</span>
-            <p className="text-2xl font-bold text-learn-ink">{card.front}</p>
+            <p className="text-2xl font-bold text-learn-ink">
+              <KoreanStudyText text={card.front} studyMode />
+            </p>
             <p className="mt-4 text-xs text-learn-primary">{vi.review.showAnswer}</p>
           </>
         ) : (

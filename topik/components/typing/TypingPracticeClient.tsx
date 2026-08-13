@@ -12,6 +12,8 @@ import {
 } from "@/topik/lib/typing/prompts";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle, IconKeyboard } from "@/topik/components/ui/TopikIcons";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 type Phase = "setup" | "typing" | "result";
 
@@ -180,6 +182,7 @@ export function TypingPracticeClient() {
 
   return (
     <div className="topik-quiz-shell topik-animate-in">
+      <StudyModeHint />
       <div className="topik-exam-bar">
         <span className="topik-exam-section">{vi.typing.prompt} {idx + 1}/{prompts.length}</span>
         <span className={`topik-exam-timer ${liveCpm >= IBT_TYPING_MIN_CPM ? "" : "topik-exam-timer-warn"}`}>
@@ -189,7 +192,9 @@ export function TypingPracticeClient() {
 
       <div className="topik-card topik-card-pad">
         <span className="topik-badge">{current.kind === "essay" ? "IBT Q53" : current.kind}</span>
-        <p className="topik-passage font-ko mt-3">{current.korean}</p>
+        <p className="topik-passage font-ko mt-3">
+          <KoreanStudyText text={current.korean} studyMode />
+        </p>
         <p className="topik-question-vi mt-2">{current.hintVi}</p>
         <p className="topik-char-count mt-2">
           {typedChars} / {targetChars} {vi.typing.chars}

@@ -6,6 +6,7 @@ export type StudyModeId =
   | "speaking"
   | "writing"
   | "typing"
+  | "vocab"
   | "practice"
   | "mock-exam"
   | "lessons"
@@ -50,6 +51,13 @@ export const STUDY_MODES: StudyMode[] = [
     tint: "blue",
   },
   {
+    id: "vocab",
+    href: "/topik/vocab",
+    title: vi.vocab.title,
+    desc: vi.vocab.subtitle,
+    tint: "mint",
+  },
+  {
     id: "practice",
     href: "/topik/practice",
     title: vi.home.practiceTitle,
@@ -81,11 +89,11 @@ export const STUDY_MODES: StudyMode[] = [
 
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
   "mock-exam",
+  "vocab",
   "typing",
   "speaking",
   "writing",
   "practice",
-  "lessons",
 ];
 
 export function getStudyMode(id: StudyModeId): StudyMode {

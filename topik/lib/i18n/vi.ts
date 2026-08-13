@@ -257,6 +257,17 @@ export const vi = {
     back: "Quay lại",
     free: "Miễn phí",
   },
+  korean: {
+    tapHint: "Chạm từ tiếng Hàn để xem nghĩa tiếng Việt và nghe phát âm",
+    noDefinition: "Chạm 🔊 để nghe phát âm — thêm vào sổ từ vựng khi ôn SRS",
+    listenAgain: "Nghe lại",
+    examModeOff: "Chế độ thi — không gợi ý, không phát âm",
+  },
+  vocab: {
+    title: "Sổ từ vựng TOPIK",
+    subtitle: "từ trong app — chạm để nghe, không cần tra ngoài",
+    sessionDone: "Hoàn thành phiên từ vựng",
+  },
 } as const;
 
 export type ViStrings = typeof vi;

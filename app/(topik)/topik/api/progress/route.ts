@@ -48,6 +48,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (body.action === "complete-vocab") {
+      await markJourneyStep(userId, "vocab");
+      return NextResponse.json({ ok: true });
+    }
+
     if (body.action === "set-target" && body.targetLevel) {
       const progress = await updateProgress(userId, { targetLevel: body.targetLevel });
       return NextResponse.json(progress);

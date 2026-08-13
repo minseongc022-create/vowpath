@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { TopikLesson } from "@/topik/types";
 import { vi } from "@/topik/lib/i18n/vi";
+import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 function youtubeEmbedUrl(url?: string): string | null {
   if (!url) return null;
@@ -45,6 +47,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
 
   return (
     <div className="space-y-4 topik-animate-in">
+      <StudyModeHint />
       <div>
         <span className="topik-badge">TOPIK {lesson.level}</span>
         <h1 className="mt-2 text-lg font-bold text-learn-ink">{lesson.titleVi}</h1>
@@ -100,7 +103,9 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
             <div key={v.id} className="topik-card p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-base font-bold text-learn-ink">{v.korean}</p>
+                  <p className="text-base font-bold text-learn-ink">
+                    <KoreanStudyText text={v.korean} studyMode />
+                  </p>
                   {v.romanization && (
                     <p className="text-xs text-learn-ink-subtle">{v.romanization}</p>
                   )}
@@ -109,7 +114,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
               </div>
               {v.example && (
                 <p className="mt-2 text-xs text-learn-ink-muted border-t border-learn-border pt-2">
-                  {v.example}
+                  <KoreanStudyText text={v.example} studyMode />
                   {v.exampleVi && <span className="block mt-0.5 text-learn-ink-subtle">{v.exampleVi}</span>}
                 </p>
               )}
@@ -122,9 +127,13 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
         <div className="space-y-2">
           {lesson.grammarPoints.map((g) => (
             <div key={g.id} className="topik-card p-4">
-              <p className="text-sm font-bold text-learn-accent">{g.pattern}</p>
+              <p className="text-sm font-bold text-learn-accent">
+                <KoreanStudyText text={g.pattern} studyMode />
+              </p>
               <p className="text-xs text-learn-ink-muted mt-1">{g.meaningVi}</p>
-              <p className="mt-2 text-sm text-learn-ink">{g.example}</p>
+              <p className="mt-2 text-sm text-learn-ink">
+                <KoreanStudyText text={g.example} studyMode />
+              </p>
               <p className="text-xs text-learn-ink-subtle">{g.exampleVi}</p>
             </div>
           ))}
