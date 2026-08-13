@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Cloudflare / localtunnel — allow mobile testing against `next dev`
+  allowedDevOrigins: ["*.trycloudflare.com", "*.loca.lt"],
   outputFileTracingRoot: path.join(__dirname),
   async headers() {
     return [
