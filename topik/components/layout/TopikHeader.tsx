@@ -109,6 +109,3 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
     </>
   );
 }
-
-/** Re-export nav icons for bottom bar */
-export { IconHome, IconStats, IconStudy, IconBook, IconReview };
