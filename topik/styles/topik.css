@@ -1,29 +1,35 @@
 /* TOPIK Master VN — Malhaeboka-inspired soft premium design system */
 
 .learn-theme.topik-theme {
-  --learn-bg: #f5f6fb;
-  --learn-surface: #ffffff;
-  --learn-muted: #eef0f8;
-  --learn-ink: #2d3142;
-  --learn-ink-muted: #7b8199;
-  --learn-ink-subtle: #b4b9cc;
-  --learn-primary: #6c5ce7;
-  --learn-primary-hover: #5a4bd1;
-  --learn-accent: #00b894;
-  --learn-border: #e8eaf4;
-  --learn-shadow-sm: 0 2px 8px rgb(108 92 231 / 0.06);
-  --learn-shadow-md: 0 8px 24px rgb(108 92 231 / 0.1);
-  --learn-shadow-lg: 0 16px 40px rgb(108 92 231 / 0.12);
+  /* Warm cream base — easy on eyes in tropical VN, less blue-light strain */
+  --learn-bg: #faf7f2;
+  --learn-surface: #fffcf9;
+  --learn-muted: #f3ede6;
+  --learn-ink: #3d3530;
+  --learn-ink-muted: #7a726a;
+  --learn-ink-subtle: #b5aea6;
+  /* Đỏ may mắn — soft Vietnamese red, not harsh flag red */
+  --learn-primary: #c94c55;
+  --learn-primary-hover: #b03d46;
+  /* Ngọc bích — calming jade green, growth & luck */
+  --learn-accent: #2a9d8f;
+  --learn-border: #ebe4dc;
+  --learn-shadow-sm: 0 2px 8px rgb(61 53 48 / 0.06);
+  --learn-shadow-md: 0 8px 24px rgb(61 53 48 / 0.08);
+  --learn-shadow-lg: 0 16px 40px rgb(61 53 48 / 0.1);
   --learn-radius: 20px;
 
-  --topik-coral: #ff7675;
-  --topik-coral-soft: #fff0f0;
-  --topik-blue: #74b9ff;
-  --topik-blue-soft: #eef6ff;
-  --topik-mint: #55efc4;
-  --topik-mint-soft: #eafff8;
-  --topik-purple-soft: #f0edff;
-  --topik-yellow-soft: #fff9e6;
+  --topik-gold: #d4a017;
+  --topik-gold-soft: #fef6e8;
+  --topik-primary-soft: #fdeef0;
+  --topik-purple-soft: var(--topik-primary-soft);
+  --topik-coral: #d97070;
+  --topik-coral-soft: #fdf0f0;
+  --topik-blue: #5b9bd5;
+  --topik-blue-soft: #eef4fa;
+  --topik-mint: #3dbda8;
+  --topik-mint-soft: #e8f5f3;
+  --topik-yellow-soft: var(--topik-gold-soft);
   --topik-radius-pill: 9999px;
   --topik-radius-xl: 24px;
   --topik-nav-height: 3.75rem;
@@ -42,6 +48,11 @@
 .topik-scroll::-webkit-scrollbar-thumb {
   background: #d1d6db;
   border-radius: 999px;
+}
+
+.learn-theme.topik-theme ::selection {
+  background: #fdeef0;
+  color: var(--learn-ink);
 }
 
 .learn-theme.topik-theme h1,
@@ -90,9 +101,9 @@
 }
 
 .topik-btn-primary {
-  background: linear-gradient(135deg, var(--learn-primary) 0%, #8b7cf0 100%);
+  background: linear-gradient(135deg, var(--learn-primary) 0%, #d97070 100%);
   color: white;
-  box-shadow: 0 4px 16px rgb(108 92 231 / 0.35);
+  box-shadow: 0 4px 16px rgb(201 76 85 / 0.28);
 }
 
 .topik-btn-primary:disabled {
@@ -116,9 +127,9 @@
 }
 
 .topik-btn-accent {
-  background: linear-gradient(135deg, var(--learn-accent) 0%, #00d2a0 100%);
+  background: linear-gradient(135deg, var(--learn-accent) 0%, #3dbda8 100%);
   color: white;
-  box-shadow: 0 4px 16px rgb(0 184 148 / 0.3);
+  box-shadow: 0 4px 16px rgb(42 157 143 / 0.28);
 }
 
 .topik-btn-lg {
@@ -140,10 +151,10 @@
 /* ── Hero CTA (오늘의 학습 style) ── */
 .topik-hero-cta {
   border-radius: var(--topik-radius-xl);
-  background: linear-gradient(145deg, var(--learn-primary) 0%, #9b8cf5 55%, #b4a7ff 100%);
+  background: linear-gradient(145deg, var(--learn-primary) 0%, #d97070 50%, #e8a855 100%);
   color: white;
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 12px 32px rgb(108 92 231 / 0.35);
+  box-shadow: 0 12px 32px rgb(201 76 85 / 0.28);
   transition: transform 0.2s ease;
 }
 
@@ -159,7 +170,7 @@
   padding: 0.25rem 0.625rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  background: var(--topik-purple-soft);
+  background: var(--topik-primary-soft);
   color: var(--learn-primary);
   border-radius: var(--topik-radius-pill);
 }
@@ -180,7 +191,7 @@
 
 .topik-pill-active {
   border-color: var(--learn-primary);
-  background: var(--topik-purple-soft);
+  background: var(--topik-primary-soft);
   color: var(--learn-primary);
 }
 
@@ -252,7 +263,7 @@
 .topik-progress-fill {
   height: 100%;
   border-radius: var(--topik-radius-pill);
-  background: linear-gradient(90deg, var(--learn-primary), #a29bfe);
+  background: linear-gradient(90deg, var(--learn-primary), #d97070);
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -281,12 +292,12 @@
   display: flex;
   align-items: stretch;
   height: var(--topik-nav-height);
-  background: rgb(255 255 255 / 0.92);
+  background: rgb(255 252 249 / 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: var(--topik-radius-xl);
-  border: 1px solid rgb(232 234 244 / 0.8);
-  box-shadow: 0 4px 24px rgb(45 49 66 / 0.08), 0 1px 3px rgb(45 49 66 / 0.04);
+  border: 1px solid rgb(235 228 220 / 0.9);
+  box-shadow: 0 4px 24px rgb(61 53 48 / 0.07), 0 1px 3px rgb(61 53 48 / 0.04);
 }
 
 .topik-nav-item {
@@ -391,7 +402,7 @@
 
 .topik-option-selected {
   border-color: var(--learn-primary);
-  background: var(--topik-purple-soft);
+  background: var(--topik-primary-soft);
 }
 
 .topik-option-correct {

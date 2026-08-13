@@ -13,7 +13,7 @@ export function StatsDashboard({ streak, targetLevel, dueCards, mastered, total 
   const masteryPct = total > 0 ? Math.round((mastered / total) * 100) : 0;
 
   const stats = [
-    { label: vi.stats.streak, value: `${streak}`, unit: vi.home.days, color: "#f39c12", pct: Math.min(streak * 10, 100) },
+    { label: vi.stats.streak, value: `${streak}`, unit: vi.home.days, color: "var(--topik-gold)", pct: Math.min(streak * 10, 100) },
     { label: vi.stats.targetLevel, value: `TOPIK ${targetLevel}`, unit: "", color: "var(--learn-primary)", pct: (targetLevel / 6) * 100 },
     { label: vi.stats.srsMastered, value: `${mastered}`, unit: `/ ${total}`, color: "var(--learn-accent)", pct: masteryPct },
     { label: vi.stats.dueToday, value: `${dueCards}`, unit: vi.stats.cards, color: "var(--topik-coral)", pct: total > 0 ? Math.min((dueCards / total) * 100, 100) : 0 },

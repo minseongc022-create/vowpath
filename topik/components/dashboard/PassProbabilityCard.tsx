@@ -14,7 +14,7 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
 
   return (
     <section className="topik-card-soft mb-5 overflow-hidden topik-animate-in">
-      <div className="relative bg-gradient-to-br from-learn-primary/90 via-[#8b7cf0] to-[#a29bfe] p-5 text-white">
+      <div className="relative bg-gradient-to-br from-learn-primary via-[#d97070] to-[#e8a855] p-5 text-white">
         <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
         <p className="text-xs font-semibold opacity-90">{vi.home.passProbability}</p>
         <div className="mt-2 flex items-end gap-2">

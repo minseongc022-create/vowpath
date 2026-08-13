@@ -8,7 +8,7 @@ const STUDY_MODES = [
     title: vi.home.speakingTitle,
     desc: vi.home.speakingDesc,
     emoji: "🎤",
-    bg: "bg-[var(--topik-purple-soft)]",
+    bg: "bg-[var(--topik-primary-soft)]",
   },
   {
     href: "/topik/writing",
@@ -43,7 +43,7 @@ const STUDY_MODES = [
     title: vi.home.reviewTitle,
     desc: vi.home.reviewDesc,
     emoji: "🔄",
-    bg: "bg-[var(--topik-purple-soft)]",
+    bg: "bg-[var(--topik-primary-soft)]",
   },
   {
     href: "/topik/wrong-notes",

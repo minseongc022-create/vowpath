@@ -55,7 +55,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
           </button>
 
           <Link href="/topik" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-learn-primary to-[#a29bfe] text-sm font-bold text-white shadow-md">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-learn-primary to-[#d97070] text-sm font-bold text-white shadow-md">
               T
             </span>
             <span className="text-sm font-semibold text-learn-ink">{TOPIK_BRAND.name}</span>
@@ -63,7 +63,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
 
           <div className="flex items-center gap-1.5">
             {streak > 0 && (
-              <span className="flex items-center gap-0.5 rounded-full bg-[var(--topik-yellow-soft)] px-2 py-1 text-xs font-semibold text-[#f39c12]">
+              <span className="flex items-center gap-0.5 rounded-full bg-[var(--topik-gold-soft)] px-2 py-1 text-xs font-semibold text-[var(--topik-gold)]">
                 🔥 {streak}
               </span>
             )}
@@ -95,7 +95,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
                   href={link.href}
                   className={cn(
                     "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors active:bg-learn-muted",
-                    pathname.startsWith(link.href) ? "bg-[var(--topik-purple-soft)] text-learn-primary" : "text-learn-ink",
+                    pathname.startsWith(link.href) ? "bg-[var(--topik-primary-soft)] text-learn-primary" : "text-learn-ink",
                   )}
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-learn-muted text-lg">
