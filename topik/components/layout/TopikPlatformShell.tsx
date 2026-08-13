@@ -13,7 +13,7 @@ export function TopikPlatformShell({ children }: { children: React.ReactNode }) 
         />
         <meta name="application-name" content={TOPIK_BRAND.name} />
       </head>
-      <body className="min-h-dvh bg-learn-bg font-sans antialiased text-learn-ink learn-theme topik-theme">
+      <body className="min-h-dvh bg-learn-bg font-sans antialiased text-learn-ink learn-theme topik-theme topik-scroll">
         {children}
       </body>
     </html>

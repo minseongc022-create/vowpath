@@ -1,34 +1,351 @@
+/* TOPIK Master VN — Malhaeboka-inspired soft premium design system */
+
 .learn-theme.topik-theme {
-  --learn-primary: #e8344e;
-  --learn-primary-hover: #c6283f;
-  --learn-accent: #003478;
+  --learn-bg: #f5f6fb;
+  --learn-surface: #ffffff;
+  --learn-muted: #eef0f8;
+  --learn-ink: #2d3142;
+  --learn-ink-muted: #7b8199;
+  --learn-ink-subtle: #b4b9cc;
+  --learn-primary: #6c5ce7;
+  --learn-primary-hover: #5a4bd1;
+  --learn-accent: #00b894;
+  --learn-border: #e8eaf4;
+  --learn-shadow-sm: 0 2px 8px rgb(108 92 231 / 0.06);
+  --learn-shadow-md: 0 8px 24px rgb(108 92 231 / 0.1);
+  --learn-shadow-lg: 0 16px 40px rgb(108 92 231 / 0.12);
+  --learn-radius: 20px;
+
+  --topik-coral: #ff7675;
+  --topik-coral-soft: #fff0f0;
+  --topik-blue: #74b9ff;
+  --topik-blue-soft: #eef6ff;
+  --topik-mint: #55efc4;
+  --topik-mint-soft: #eafff8;
+  --topik-purple-soft: #f0edff;
+  --topik-yellow-soft: #fff9e6;
+  --topik-radius-pill: 9999px;
+  --topik-radius-xl: 24px;
+  --topik-nav-height: 3.75rem;
+
+  font-feature-settings: "ss01", "ss02";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d6db transparent;
 }
 
-.topik-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.625rem;
+.topik-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.topik-scroll::-webkit-scrollbar-thumb {
+  background: #d1d6db;
+  border-radius: 999px;
+}
+
+.learn-theme.topik-theme h1,
+.learn-theme.topik-theme h2,
+.learn-theme.topik-theme h3 {
   font-weight: 700;
-  background: color-mix(in srgb, var(--learn-primary) 12%, white);
-  color: var(--learn-primary);
-  border-radius: 9999px;
+  letter-spacing: -0.02em;
 }
 
+/* ── Cards ── */
 .topik-card {
   border-radius: var(--learn-radius);
   border: 1px solid var(--learn-border);
   background: var(--learn-surface);
   box-shadow: var(--learn-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.topik-card-soft {
+  border-radius: var(--learn-radius);
+  background: var(--learn-surface);
+  box-shadow: var(--learn-shadow-sm);
+  border: none;
+}
+
+.topik-card-interactive:active {
+  transform: scale(0.98);
+}
+
+/* ── Buttons (Malhaeboka: soft, rounded, generous) ── */
+.topik-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--topik-radius-pill);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topik-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.topik-btn-primary {
+  background: linear-gradient(135deg, var(--learn-primary) 0%, #8b7cf0 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgb(108 92 231 / 0.35);
+}
+
+.topik-btn-primary:disabled {
+  opacity: 0.45;
+}
+
+.topik-btn-secondary {
+  background: var(--learn-muted);
+  color: var(--learn-ink);
+}
+
+.topik-btn-outline {
+  background: var(--learn-surface);
+  color: var(--learn-primary);
+  border: 1.5px solid color-mix(in srgb, var(--learn-primary) 25%, white);
+}
+
+.topik-btn-ghost {
+  background: transparent;
+  color: var(--learn-ink-muted);
+}
+
+.topik-btn-accent {
+  background: linear-gradient(135deg, var(--learn-accent) 0%, #00d2a0 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgb(0 184 148 / 0.3);
+}
+
+.topik-btn-lg {
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.topik-btn-md {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+.topik-btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+}
+
+/* ── Hero CTA (오늘의 학습 style) ── */
+.topik-hero-cta {
+  border-radius: var(--topik-radius-xl);
+  background: linear-gradient(145deg, var(--learn-primary) 0%, #9b8cf5 55%, #b4a7ff 100%);
+  color: white;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 12px 32px rgb(108 92 231 / 0.35);
+  transition: transform 0.2s ease;
+}
+
+.topik-hero-cta:active {
+  transform: scale(0.98);
+}
+
+/* ── Badges & pills ── */
+.topik-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--topik-purple-soft);
+  color: var(--learn-primary);
+  border-radius: var(--topik-radius-pill);
+}
+
+.topik-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--topik-radius-pill);
+  border: 1.5px solid var(--learn-border);
+  background: var(--learn-surface);
+  color: var(--learn-ink-muted);
+  transition: all 0.15s ease;
+}
+
+.topik-pill-active {
+  border-color: var(--learn-primary);
+  background: var(--topik-purple-soft);
+  color: var(--learn-primary);
+}
+
+/* ── Icon boxes (mode grid) ── */
+.topik-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 16px;
+  font-size: 1.375rem;
+  flex-shrink: 0;
+}
+
+/* ── Inputs ── */
+.topik-input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1.5px solid var(--learn-border);
+  background: var(--learn-muted);
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  color: var(--learn-ink);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.topik-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--learn-primary) 40%, white);
+  background: var(--learn-surface);
+}
+
+.topik-textarea {
+  width: 100%;
+  border-radius: 16px;
+  border: 1.5px solid var(--learn-border);
+  background: var(--learn-muted);
+  padding: 0.875rem 1rem;
+  font-size: 0.9375rem;
+  color: var(--learn-ink);
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.topik-textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--learn-primary) 40%, white);
+  background: var(--learn-surface);
+}
+
+/* ── Progress & scores ── */
 .topik-score-ring {
   background: conic-gradient(
     var(--learn-primary) calc(var(--pct) * 1%),
     var(--learn-muted) 0
   );
   border-radius: 50%;
+}
+
+.topik-progress-bar {
+  height: 8px;
+  border-radius: var(--topik-radius-pill);
+  background: var(--learn-muted);
+  overflow: hidden;
+}
+
+.topik-progress-fill {
+  height: 100%;
+  border-radius: var(--topik-radius-pill);
+  background: linear-gradient(90deg, var(--learn-primary), #a29bfe);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Section titles ── */
+.topik-section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--learn-ink-muted);
+  letter-spacing: 0.01em;
+}
+
+/* ── Bottom nav (Malhaeboka floating pill style) ── */
+.topik-nav-bar {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 40;
+  padding-bottom: var(--learn-safe-bottom);
+  pointer-events: none;
+}
+
+.topik-nav-inner {
+  pointer-events: auto;
+  margin: 0 auto 0.5rem;
+  max-width: 28rem;
+  display: flex;
+  align-items: stretch;
+  height: var(--topik-nav-height);
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--topik-radius-xl);
+  border: 1px solid rgb(232 234 244 / 0.8);
+  box-shadow: 0 4px 24px rgb(45 49 66 / 0.08), 0 1px 3px rgb(45 49 66 / 0.04);
+}
+
+.topik-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--learn-ink-subtle);
+  transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topik-nav-item-active {
+  color: var(--learn-primary);
+}
+
+.topik-nav-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--learn-primary);
+  margin-top: 1px;
+}
+
+/* ── Side menu overlay ── */
+.topik-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(45 49 66 / 0.4);
+  backdrop-filter: blur(4px);
+  animation: topik-fade-in 0.2s ease;
+}
+
+.topik-menu-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 51;
+  width: min(18rem, 85vw);
+  background: var(--learn-surface);
+  box-shadow: 4px 0 32px rgb(45 49 66 / 0.12);
+  animation: topik-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+@keyframes topik-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes topik-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes topik-flip {
@@ -38,4 +355,93 @@
 
 .topik-flip {
   animation: topik-flip 0.4s ease;
+}
+
+@keyframes topik-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.topik-animate-in {
+  animation: topik-scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Quiz option cards ── */
+.topik-option {
+  width: 100%;
+  text-align: left;
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
+  border: 1.5px solid var(--learn-border);
+  background: var(--learn-surface);
+  font-size: 0.9375rem;
+  color: var(--learn-ink);
+  transition: all 0.15s ease;
+}
+
+.topik-option:active {
+  transform: scale(0.98);
+}
+
+.topik-option-selected {
+  border-color: var(--learn-primary);
+  background: var(--topik-purple-soft);
+}
+
+.topik-option-correct {
+  border-color: var(--learn-accent);
+  background: var(--topik-mint-soft);
+}
+
+.topik-option-wrong {
+  border-color: var(--topik-coral);
+  background: var(--topik-coral-soft);
+}
+
+/* ── Stat bars ── */
+.topik-stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topik-stat-bar-track {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--topik-radius-pill);
+  background: var(--learn-muted);
+  overflow: hidden;
+}
+
+.topik-stat-bar-fill {
+  height: 100%;
+  border-radius: var(--topik-radius-pill);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Page shell ── */
+.topik-page {
+  margin-inline: auto;
+  max-width: 28rem;
+  padding: 1rem 1rem 2rem;
+}
+
+.topik-page-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--learn-ink);
+  letter-spacing: -0.02em;
+}
+
+.topik-page-subtitle {
+  margin-top: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--learn-ink-muted);
+  line-height: 1.5;
 }

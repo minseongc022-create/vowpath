@@ -56,7 +56,7 @@ export function WritingCorrectionForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 learn-animate-in">
+    <form onSubmit={handleSubmit} className="space-y-4 topik-animate-in">
       <div>
         <label className="mb-2 block text-xs font-bold text-learn-ink-muted uppercase tracking-wide">
           {vi.writing.taskType}
@@ -67,10 +67,8 @@ export function WritingCorrectionForm() {
               key={t}
               type="button"
               onClick={() => setTaskType(t)}
-              className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition-all active:scale-[0.98] ${
-                taskType === t
-                  ? "border-learn-primary bg-learn-primary/10 text-learn-primary"
-                  : "border-learn-border bg-learn-surface text-learn-ink"
+              className={`topik-pill text-left !rounded-2xl !py-2.5 ${
+                taskType === t ? "topik-pill-active" : ""
               }`}
             >
               {vi.writing.tasks[t]}
@@ -94,7 +92,7 @@ export function WritingCorrectionForm() {
           onChange={(e) => setAnswer(e.target.value)}
           rows={taskType === "54" ? 12 : taskType === "53" ? 8 : 4}
           placeholder="한국어로 답을 작성하세요..."
-          className="w-full rounded-2xl border border-learn-border bg-learn-surface px-4 py-3 text-sm text-learn-ink placeholder:text-learn-ink-subtle focus:border-learn-primary focus:outline-none focus:ring-2 focus:ring-learn-primary/20 resize-none"
+          className="topik-textarea"
         />
         {prompt.wordLimit && (
           <p className="mt-1 text-[11px] text-learn-ink-muted">
@@ -108,7 +106,7 @@ export function WritingCorrectionForm() {
       <button
         type="submit"
         disabled={loading || !answer.trim()}
-        className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white shadow-learn-md active:scale-[0.98] transition-transform disabled:opacity-50"
+        className="w-full topik-btn topik-btn-primary topik-btn-lg shadow-learn-md active:scale-[0.98] transition-transform disabled:opacity-50"
       >
         {loading ? vi.writing.submitting : vi.writing.submit}
       </button>
