@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { SrsCard, UserProgress, TopikLevel } from "@/topik/types";
+import type { MockExamResult, SrsCard, UserProgress, TopikLevel } from "@/topik/types";
 
 const DATA_DIR = join(process.cwd(), ".data", "topik");
 
@@ -9,6 +9,8 @@ type TopikStore = {
   progress: UserProgress;
   wrongAnswers: WrongRecord[];
   writingCount: number;
+  planStartDate?: string;
+  mockExamResults: MockExamResult[];
 };
 
 export type WrongRecord = {
@@ -34,15 +36,28 @@ const DEFAULT_PROGRESS: UserProgress = {
   writingCount: 0,
   quizAttempts: 0,
   reviewSessions: 0,
+  speakingCount: 0,
+  mockExamCount: 0,
 };
+
+function normalizeStore(raw: Partial<TopikStore>): TopikStore {
+  return {
+    srsCards: raw.srsCards ?? [],
+    progress: { ...DEFAULT_PROGRESS, ...raw.progress },
+    wrongAnswers: raw.wrongAnswers ?? [],
+    writingCount: raw.writingCount ?? raw.progress?.writingCount ?? 0,
+    planStartDate: raw.planStartDate,
+    mockExamResults: raw.mockExamResults ?? [],
+  };
+}
 
 async function loadStore(userId: string): Promise<TopikStore> {
   try {
     await mkdir(DATA_DIR, { recursive: true });
     const raw = await readFile(join(DATA_DIR, `${userId}.json`), "utf8");
-    return JSON.parse(raw) as TopikStore;
+    return normalizeStore(JSON.parse(raw) as Partial<TopikStore>);
   } catch {
-    return { srsCards: [], progress: { ...DEFAULT_PROGRESS }, wrongAnswers: [], writingCount: 0 };
+    return normalizeStore({});
   }
 }
 
@@ -281,4 +296,59 @@ export async function getSrsStats(userId: string): Promise<{
   const due = store.srsCards.filter((c) => c.nextReviewAt <= now).length;
   const mastered = store.srsCards.filter((c) => c.repetitions >= 3 && c.interval >= 7).length;
   return { due, total: store.srsCards.length, mastered };
+}
+
+export async function incrementSpeakingCount(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  store.progress.speakingCount++;
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress.speakingCount;
+}
+
+export async function saveMockExamResult(
+  userId: string,
+  result: Omit<MockExamResult, "id" | "completedAt">,
+): Promise<MockExamResult> {
+  const store = await loadStore(userId);
+  const entry: MockExamResult = {
+    ...result,
+    id: `mock-${Date.now()}`,
+    completedAt: todayIso(),
+  };
+  store.mockExamResults.unshift(entry);
+  store.progress.mockExamCount++;
+  const pct = Math.round((result.score / result.maxScore) * 100);
+  if (!store.progress.bestMockScore || pct > store.progress.bestMockScore) {
+    store.progress.bestMockScore = pct;
+  }
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return entry;
+}
+
+export async function getMockExamResults(userId: string): Promise<MockExamResult[]> {
+  const store = await loadStore(userId);
+  return store.mockExamResults.slice(0, 10);
+}
+
+export async function getPlanStartDate(userId: string): Promise<string> {
+  const store = await loadStore(userId);
+  if (!store.planStartDate) {
+    store.planStartDate = new Date().toISOString().slice(0, 10);
+    await saveStore(userId, store);
+  }
+  return store.planStartDate;
+}
+
+export async function setExamDate(userId: string, examDate: string): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  store.progress.examDate = examDate;
+  await saveStore(userId, store);
+  return store.progress;
+}
+
+export async function countUnresolvedWrong(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  return store.wrongAnswers.filter((w) => !w.resolved).length;
 }
