@@ -1,5 +1,5 @@
-import { ModeLanding } from "@/topik/components/modes/ModeLanding";
+import { SkillLanding } from "@/topik/components/modes/SkillLanding";
 
 export default function ListeningPage() {
-  return <ModeLanding mode="listening" sessionHref="/topik/listening/session" />;
+  return <SkillLanding skillId="listening" />;
 }

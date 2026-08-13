@@ -1,5 +1,5 @@
-import { ModeLanding } from "@/topik/components/modes/ModeLanding";
+import { SkillLanding } from "@/topik/components/modes/SkillLanding";
 
 export default function VocabPage() {
-  return <ModeLanding mode="vocab" sessionHref="/topik/vocab/session" />;
+  return <SkillLanding skillId="vocab" />;
 }

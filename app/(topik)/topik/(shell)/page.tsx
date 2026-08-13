@@ -1,8 +1,10 @@
-import { MalhaebokaHomeClient } from "@/topik/components/home/MalhaebokaHomeClient";
-import { computePassProbability } from "@/topik/lib/analytics/pass-probability";
+import { TopikHomeClient } from "@/topik/components/home/TopikHomeClient";
+import { computePassProbability, recommendedStudyDays } from "@/topik/lib/analytics/pass-probability";
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
+import { buildStudyPlan, getTodayPlan } from "@/topik/lib/study-plan/roadmap";
 import {
   countUnresolvedWrong,
+  getPlanStartDate,
   getProgress,
   getSrsStats,
   resolveTopikUserId,
@@ -12,10 +14,11 @@ import { getLearnSession } from "@/learn/lib/auth";
 export default async function TopikHomePage() {
   const session = await getLearnSession();
   const userId = resolveTopikUserId(session?.user?.id);
-  const [stats, progress, wrongCount] = await Promise.all([
+  const [stats, progress, wrongCount, planStart] = await Promise.all([
     getSrsStats(userId),
     getProgress(userId),
     countUnresolvedWrong(userId),
+    getPlanStartDate(userId),
   ]);
 
   const report = computePassProbability({
@@ -27,15 +30,21 @@ export default async function TopikHomePage() {
     lessonTotal: TOPIK_CURRICULUM.length,
   });
 
-  const weeklyQuestions = stats.mastered + wrongCount;
-  const weeklyMinutes = Math.round(weeklyQuestions * 1.5);
+  const planDays = recommendedStudyDays(report.daysToExam);
+  const plan = buildStudyPlan(progress.targetLevel, planDays);
+  const todayPlan = getTodayPlan(plan, planStart);
+  const todayHref = stats.due > 0 ? "/topik/review" : "/topik/vocab/session";
 
   return (
-    <MalhaebokaHomeClient
+    <TopikHomeClient
       streak={progress.streak}
       report={report}
-      weeklyMinutes={weeklyMinutes}
-      weeklyQuestions={weeklyQuestions}
+      todayPlan={todayPlan}
+      planDay={todayPlan?.day ?? 1}
+      planDays={planDays}
+      dueCards={stats.due}
+      todayHref={todayHref}
+      firstTask={todayPlan?.tasksVi[0]}
     />
   );
 }

@@ -1,118 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { useTopikStrings } from "@/topik/components/i18n/TopikLocaleProvider";
-import { LEARNING_MODES, STUDY_HUB_MODES } from "@/topik/lib/learning-modes";
+import { useSearchParams } from "next/navigation";
+import { useTopikLocale } from "@/topik/components/i18n/TopikLocaleProvider";
+import { TOPIK_SKILLS, type SkillId } from "@/topik/lib/skills";
 import { STUDY_MODES } from "@/topik/lib/study-modes";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
-import {
-  IconChevronRight,
-  IconGrammar,
-  IconHeadphones,
-  IconMic,
-  IconNotebook,
-  IconPerson,
-  IconSparkle,
-  IconChat,
-  StudyModeIcon,
-} from "@/topik/components/ui/TopikIcons";
+import { IconChevronRight, StudyModeIcon } from "@/topik/components/ui/TopikIcons";
 import { cn } from "@/learn/lib/utils";
 
-const MODE_ICON_MAP = {
-  vocab: IconPerson,
-  conversation: IconChat,
-  grammar: IconGrammar,
-  expression: IconSparkle,
-  listening: IconHeadphones,
-} as const;
+const SKILL_LABELS: Record<SkillId, "vocabShort" | "grammarShort" | "conversationShort" | "expressionShort" | "listeningShort"> = {
+  vocab: "vocabShort",
+  grammar: "grammarShort",
+  conversation: "conversationShort",
+  expression: "expressionShort",
+  listening: "listeningShort",
+};
 
 function StudyHubInner() {
-  const t = useTopikStrings();
-  const pathname = usePathname();
+  const { locale, t } = useTopikLocale();
   const params = useSearchParams();
-  const activeMode = params.get("mode") ?? "vocab";
-
-  const modeLabels: Record<string, string> = {
-    vocab: t.modes.vocabShort,
-    conversation: t.modes.conversationShort,
-    grammar: t.modes.grammarShort,
-    expression: t.modes.expressionShort,
-    listening: t.modes.listeningShort,
-  };
-
-  const active = STUDY_HUB_MODES.find((m) => m.id === activeMode) ?? STUDY_HUB_MODES[0]!;
-  const ModeIcon = MODE_ICON_MAP[active.id as keyof typeof MODE_ICON_MAP] ?? IconPerson;
-
-  const secondaryItems = [
-    { href: "/topik/review", label: t.studyHub.mySentences, icon: IconSparkle, tint: "coral" },
-    { href: "/topik/wrong-notes", label: t.studyHub.myWrongNotes, icon: IconNotebook, tint: "mint" },
-    { href: "/topik/review", label: t.studyHub.learnedVocab, icon: IconGrammar, tint: "blue" },
-    { href: "/topik/review", label: t.studyHub.myWordbook, icon: IconNotebook, tint: "primary" },
-    { href: "/topik/speaking", label: t.studyHub.aiQa, icon: IconMic, tint: "gold" },
-  ];
+  const activeId = (params.get("skill") as SkillId) ?? "vocab";
+  const active = TOPIK_SKILLS.find((s) => s.id === activeId) ?? TOPIK_SKILLS[0]!;
 
   return (
     <div className="topik-animate-in">
-      <TopikPageHeader title={t.studyHub.title} />
+      <TopikPageHeader title={t.studyHub.title} subtitle="5 kỹ năng + công cụ TOPIK" />
 
-      <p className="topik-section-title mb-2">{t.studyHub.modeSection}</p>
       <div className="topik-mode-chips mb-4">
-        {STUDY_HUB_MODES.map((mode) => (
+        {TOPIK_SKILLS.map((skill) => (
           <Link
-            key={mode.id}
-            href={`/topik/study?mode=${mode.id}`}
-            className={cn("topik-mode-chip", active.id === mode.id && "topik-mode-chip-active")}
+            key={skill.id}
+            href={`/topik/study?skill=${skill.id}`}
+            className={cn("topik-mode-chip", active.id === skill.id && "topik-mode-chip-active")}
           >
-            {modeLabels[mode.id]}
+            {t.modes[SKILL_LABELS[skill.id]]}
           </Link>
         ))}
       </div>
 
-      <Link href={active.href} className="topik-study-hero mb-4">
-        <div>
-          <p className="text-lg font-bold text-white">{t.modes[active.id as keyof typeof t.modes]}</p>
-          <p className="mt-1 flex items-center gap-1 text-xs text-white/80">
-            {t.studyHub.dailyGoalItems.replace("{n}", "10")}
-          </p>
-        </div>
-        <span className="topik-study-play">
-          <ModeIcon className="text-white" size={28} />
-        </span>
-      </Link>
-
-      <div className="topik-mode-list mb-6">
-        {secondaryItems.map((item) => (
-          <Link key={item.label} href={item.href} className="topik-mode-row">
-            <span className={`topik-mode-icon topik-mode-icon-${item.tint}`}>
-              <item.icon size={20} />
-            </span>
-            <span className="flex-1 text-sm font-medium text-learn-ink">{item.label}</span>
-            <IconChevronRight className="text-learn-ink-subtle" />
-          </Link>
-        ))}
-      </div>
-
-      <p className="topik-section-title mb-2">{t.studyHub.other}</p>
-      <div className="topik-mode-list mb-6">
-        <Link href="/topik/speaking" className="topik-mode-row">
-          <span className="topik-mode-icon topik-mode-icon-primary">
-            <IconMic size={20} />
-          </span>
-          <span className="flex-1 text-sm font-medium">{t.studyHub.pronunciation}</span>
-          <IconChevronRight className="text-learn-ink-subtle" />
+      <div className="topik-card mb-5 p-4">
+        <p className="text-base font-bold text-learn-ink">
+          {t.modes[active.id as keyof typeof t.modes]}
+        </p>
+        <p className="mt-1 text-xs text-learn-ink-muted">
+          {locale === "vi" ? active.focusVi : active.focusEn}
+        </p>
+        <Link href={active.sessionHref} className="topik-btn topik-btn-primary topik-btn-md mt-4 w-full">
+          {t.home.todayMode}
         </Link>
       </div>
 
-      <p className="topik-section-title mb-2">TOPIK</p>
+      <p className="topik-section-title mb-2">Công cụ TOPIK</p>
       <div className="topik-mode-list">
-        {STUDY_MODES.slice(0, 4).map((mode) => (
-          <Link
-            key={mode.id}
-            href={mode.href}
-            className={cn("topik-mode-row", pathname.startsWith(mode.href) && "bg-[var(--topik-primary-soft)]")}
-          >
+        {STUDY_MODES.map((mode) => (
+          <Link key={mode.id} href={mode.href} className="topik-mode-row">
             <StudyModeIcon id={mode.id} tint={mode.tint} compact />
             <span className="flex-1 text-sm font-medium">{mode.title}</span>
             <IconChevronRight className="text-learn-ink-subtle" />
@@ -125,7 +68,7 @@ function StudyHubInner() {
 
 export function StudyHubClient() {
   return (
-    <Suspense fallback={<p className="text-learn-ink-muted">…</p>}>
+    <Suspense fallback={null}>
       <StudyHubInner />
     </Suspense>
   );
