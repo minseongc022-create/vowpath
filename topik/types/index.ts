@@ -110,8 +110,83 @@ export type UserProgress = {
   targetLevel: TopikLevel;
   streak: number;
   lastStudyDate?: string;
+  examDate?: string;
   lessons: Record<string, LessonProgress>;
   writingCount: number;
   quizAttempts: number;
   reviewSessions: number;
+  speakingCount: number;
+  mockExamCount: number;
+  bestMockScore?: number;
+};
+
+export type SpeakingScenarioId =
+  | "self-intro"
+  | "hometown"
+  | "restaurant"
+  | "job-eps"
+  | "topik-interview";
+
+export type SpeakingScenario = {
+  id: SpeakingScenarioId;
+  titleVi: string;
+  promptKo: string;
+  promptVi: string;
+  sampleAnswerKo: string;
+  level: TopikLevel;
+  hintsVi: string[];
+};
+
+export type SpeakingEvaluation = {
+  scenarioId: SpeakingScenarioId;
+  transcript: string;
+  pronunciationScore: number;
+  grammarScore: number;
+  fluencyScore: number;
+  overallScore: number;
+  vietnameseErrors: VietnameseErrorFlag[];
+  feedbackVi: string;
+  improvedAnswerKo: string;
+  source: "openai" | "demo";
+};
+
+export type VietnameseErrorFlag = {
+  pattern: string;
+  detected: boolean;
+  explanationVi: string;
+  tipVi: string;
+};
+
+export type PassProbabilityReport = {
+  probability: number;
+  level: TopikLevel;
+  daysToExam: number | null;
+  strengthsVi: string[];
+  gapsVi: string[];
+  dailyPlanVi: string[];
+};
+
+export type StudyPlanDay = {
+  day: number;
+  tasksVi: string[];
+  focus: "vocab" | "grammar" | "reading" | "listening" | "writing" | "speaking" | "mock";
+};
+
+export type MockExamSection = "listening" | "reading" | "writing";
+
+export type MockExamConfig = {
+  level: TopikLevel;
+  durationMin: number;
+  sections: MockExamSection[];
+};
+
+export type MockExamResult = {
+  id: string;
+  level: TopikLevel;
+  score: number;
+  maxScore: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationSec: number;
+  completedAt: string;
 };

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "@/learn/styles/learn.css";
 import "@/topik/styles/topik.css";
 import { LearnAuthProvider } from "@/learn/components/providers/LearnAuthProvider";
-import { TOPIK_BRAND, topikPageTitle } from "@/topik/lib/brand";
+import { TOPIK_BRAND } from "@/topik/lib/brand";
 
 export const metadata: Metadata = {
   title: {
@@ -36,5 +36,3 @@ export default function TopikRootLayout({
     </div>
   );
 }
-
-export { topikPageTitle };

@@ -26,9 +26,11 @@ export function WritingResult({
             style={{ width: `${pct}%` }}
           />
         </div>
-        {result.source === "demo" && (
+        {result.source === "openai" ? (
+          <p className="mt-2 text-[11px] text-green-700">✓ AI chấm điểm TOPIK (OpenAI)</p>
+        ) : (
           <p className="mt-2 text-[11px] text-learn-ink-subtle">
-            Demo mode — set OPENAI_API_KEY for full AI grading
+            Demo mode — cần OPENAI_API_KEY trên server
           </p>
         )}
       </div>

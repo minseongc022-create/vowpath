@@ -1,5 +1,5 @@
 import { learnOpenAiJsonCompletion } from "@/learn/lib/openai/json";
-import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
+import { isLearnOpenAiReady, getTopikWritingModel } from "@/topik/lib/openai-config";
 import { WRITING_PROMPTS } from "@/topik/lib/writing/prompts";
 import type {
   WritingCorrectionRequest,
@@ -115,6 +115,7 @@ ${req.answer}
 ${req.wordLimit ? `Word/char limit: ${req.wordLimit}` : ""}`,
       temperature: 0.2,
       timeoutMs: 60_000,
+      model: getTopikWritingModel(),
     });
 
     const sentenceCorrections: SentenceCorrection[] = (result.sentenceCorrections ?? [])

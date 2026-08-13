@@ -6,11 +6,32 @@ import { cn } from "@/learn/lib/utils";
 import { vi } from "@/topik/lib/i18n/vi";
 
 const NAV = [
-  { href: "/topik", label: vi.nav.home, match: (p: string) => p === "/topik" },
-  { href: "/topik/lessons", label: vi.nav.lessons, match: (p: string) => p.startsWith("/topik/lessons") },
-  { href: "/topik/writing", label: vi.nav.writing, match: (p: string) => p.startsWith("/topik/writing") },
-  { href: "/topik/practice", label: vi.nav.practice, match: (p: string) => p.startsWith("/topik/practice") },
-  { href: "/topik/review", label: vi.nav.review, match: (p: string) => p.startsWith("/topik/review") },
+  { href: "/topik", label: vi.nav.home, icon: "🏠", match: (p: string) => p === "/topik" },
+  {
+    href: "/topik/speaking",
+    label: vi.nav.speaking,
+    icon: "🎤",
+    match: (p: string) => p.startsWith("/topik/speaking"),
+  },
+  {
+    href: "/topik/practice",
+    label: vi.nav.practice,
+    icon: "📝",
+    match: (p: string) => p.startsWith("/topik/practice") || p.startsWith("/topik/mock-exam"),
+  },
+  {
+    href: "/topik/lessons",
+    label: vi.nav.lessons,
+    icon: "📚",
+    match: (p: string) => p.startsWith("/topik/lessons"),
+  },
+  {
+    href: "/topik/review",
+    label: vi.nav.review,
+    icon: "🔄",
+    match: (p: string) =>
+      p.startsWith("/topik/review") || p.startsWith("/topik/writing") || p.startsWith("/topik/wrong-notes"),
+  },
 ];
 
 export function TopikBottomNav() {
@@ -34,13 +55,7 @@ export function TopikBottomNav() {
                 active ? "text-learn-primary" : "text-learn-ink-muted",
               )}
             >
-              <span className="text-base leading-none">
-                {item.href === "/topik" && "🏠"}
-                {item.href === "/topik/lessons" && "📚"}
-                {item.href === "/topik/writing" && "✍️"}
-                {item.href === "/topik/practice" && "📝"}
-                {item.href === "/topik/review" && "🔄"}
-              </span>
+              <span className="text-base leading-none">{item.icon}</span>
               {item.label}
             </Link>
           );
