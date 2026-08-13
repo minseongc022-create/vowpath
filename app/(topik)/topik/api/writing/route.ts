@@ -19,7 +19,11 @@ export async function POST(request: Request) {
       answer: body.answer.trim(),
       wordLimit: body.wordLimit,
     });
-    await incrementWritingCount(userId);
+    try {
+      await incrementWritingCount(userId);
+    } catch {
+      /* progress optional on serverless */
+    }
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "FAILED" }, { status: 500 });

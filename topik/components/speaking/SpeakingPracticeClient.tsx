@@ -37,23 +37,75 @@ export function SpeakingPracticeClient() {
   const [scenarioId, setScenarioId] = useState<SpeakingScenarioId>("self-intro");
   const [transcript, setTranscript] = useState("");
   const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SpeakingEvaluation | null>(null);
   const [speechOk, setSpeechOk] = useState(true);
+  const [whisperOk, setWhisperOk] = useState(false);
   const recognitionRef = useRef<InstanceType<SpeechRecognitionCtor> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const scenario = SPEAKING_SCENARIOS.find((s) => s.id === scenarioId)!;
 
   useEffect(() => {
     setSpeechOk(!!getSpeechRecognition());
+    void fetch("/topik/api/status")
+      .then((r) => r.json())
+      .then((d: { openai?: { ready?: boolean } }) => setWhisperOk(Boolean(d.openai?.ready)))
+      .catch(() => setWhisperOk(false));
   }, []);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback(async () => {
     recognitionRef.current?.stop();
-    setRecording(false);
+    recognitionRef.current = null;
+
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    } else {
+      setRecording(false);
+    }
   }, []);
 
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback(async () => {
+    audioChunksRef.current = [];
+    setTranscript("");
+
+    if (whisperOk && typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        recorder.ondataavailable = (ev) => {
+          if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+        };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          setRecording(false);
+          const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          if (blob.size < 100) return;
+          setTranscribing(true);
+          try {
+            const form = new FormData();
+            form.append("audio", blob, "speech.webm");
+            const res = await fetch("/topik/api/speaking/transcribe", { method: "POST", body: form });
+            if (res.ok) {
+              const data = (await res.json()) as { transcript?: string };
+              if (data.transcript) setTranscript(data.transcript);
+            }
+          } finally {
+            setTranscribing(false);
+          }
+        };
+        recorder.start();
+        setRecording(true);
+        return;
+      } catch {
+        /* fall through to Web Speech */
+      }
+    }
+
     const SR = getSpeechRecognition();
     if (!SR) {
       setSpeechOk(false);
@@ -74,7 +126,7 @@ export function SpeakingPracticeClient() {
     recognitionRef.current = rec;
     rec.start();
     setRecording(true);
-  }, []);
+  }, [whisperOk]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -193,23 +245,27 @@ export function SpeakingPracticeClient() {
           className="mt-1 w-full rounded-2xl border border-learn-border px-4 py-3 text-sm"
           placeholder={scenario.sampleAnswerKo}
         />
-        {!speechOk && (
+        {!speechOk && !whisperOk && (
           <p className="mt-1 text-xs text-orange-600">{vi.speaking.speechUnsupported}</p>
         )}
-        {speechOk && (
+        {whisperOk && (
+          <p className="mt-1 text-xs text-green-700">Whisper AI · phát hiện giọng nói chính xác</p>
+        )}
+        {(speechOk || whisperOk) && (
           <div className="mt-2 flex gap-2">
             {!recording ? (
               <button
                 type="button"
-                onClick={startRecording}
-                className="rounded-xl border border-learn-primary px-4 py-2 text-xs font-bold text-learn-primary"
+                onClick={() => void startRecording()}
+                disabled={transcribing}
+                className="rounded-xl border border-learn-primary px-4 py-2 text-xs font-bold text-learn-primary disabled:opacity-50"
               >
-                🎤 {vi.speaking.record}
+                🎤 {transcribing ? vi.common.loading : vi.speaking.record}
               </button>
             ) : (
               <button
                 type="button"
-                onClick={stopRecording}
+                onClick={() => void stopRecording()}
                 className="rounded-xl bg-red-500 px-4 py-2 text-xs font-bold text-white animate-pulse"
               >
                 ⏹ {vi.speaking.stop}

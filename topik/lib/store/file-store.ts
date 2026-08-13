@@ -62,8 +62,12 @@ async function loadStore(userId: string): Promise<TopikStore> {
 }
 
 async function saveStore(userId: string, store: TopikStore): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(join(DATA_DIR, `${userId}.json`), JSON.stringify(store, null, 2));
+  try {
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(join(DATA_DIR, `${userId}.json`), JSON.stringify(store, null, 2));
+  } catch {
+    // Vercel serverless: /tmp or .data may be read-only — AI grading still works
+  }
 }
 
 export function resolveTopikUserId(sessionUserId?: string | null): string {

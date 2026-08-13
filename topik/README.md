@@ -11,7 +11,18 @@ npm run dev
 
 브라우저: [http://localhost:3000/topik](http://localhost:3000/topik)
 
-`OPENAI_API_KEY` 설정 시 쓰기·말하기 AI 첨삭이 실제 TOPIK 채점 기준으로 동작합니다. 없으면 demo 모드.
+`OPENAI_API_KEY` 설정 시 쓰기·말하기 AI 첨삭 + Whisper 음성 인식이 동작합니다. Vercel/Effiroad에 이미 설정돼 있으면 배포 후 자동 적용.
+
+```bash
+# 로컬 키 확인
+npm run topik:verify-openai
+
+# AI 상태 API
+curl http://localhost:3000/topik/api/status
+```
+
+모델 기본값: 쓰기 `gpt-4o`, 말하기 `gpt-4o-mini`, Whisper `whisper-1`  
+환경 변수로 변경: `TOPIK_OPENAI_MODEL_WRITING`, `TOPIK_OPENAI_MODEL_SPEAKING`
 
 ## 핵심 기능
 

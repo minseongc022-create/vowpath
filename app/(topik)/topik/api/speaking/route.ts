@@ -21,7 +21,11 @@ export async function POST(request: Request) {
     const session = await getLearnSession();
     const userId = resolveTopikUserId(session?.user?.id);
     const result = await evaluateSpeaking(body.scenarioId, body.transcript.trim());
-    await incrementSpeakingCount(userId);
+    try {
+      await incrementSpeakingCount(userId);
+    } catch {
+      /* progress optional on serverless */
+    }
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ error: "FAILED" }, { status: 500 });

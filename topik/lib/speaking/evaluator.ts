@@ -1,5 +1,5 @@
 import { learnOpenAiJsonCompletion } from "@/learn/lib/openai/json";
-import { isLearnOpenAiReady } from "@/learn/lib/openai-config";
+import { isLearnOpenAiReady, getTopikSpeakingModel } from "@/topik/lib/openai-config";
 import { getSpeakingScenario } from "@/topik/lib/speaking/prompts";
 import { detectVietnameseErrors } from "@/topik/lib/speaking/vietnamese-errors";
 import type { SpeakingEvaluation, SpeakingScenarioId } from "@/topik/types";
@@ -92,6 +92,7 @@ ${trimmed}
 Heuristic Vietnamese error flags: ${errorHints || "none"}`,
       temperature: 0.2,
       timeoutMs: 45_000,
+      model: getTopikSpeakingModel(),
     });
 
     return {
