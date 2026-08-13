@@ -1,7 +1,5 @@
-import {
-  getQuestionsBySection,
-  TOPIK_QUIZ_BANK,
-} from "@/topik/lib/quiz/questions";
+import { buildMockByTier, type MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
+import { TOPIK_QUIZ_BANK } from "@/topik/lib/quiz/questions";
 import type { MockExamConfig, TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
 export const IBT_MOCK_CONFIG: MockExamConfig = {
@@ -10,28 +8,12 @@ export const IBT_MOCK_CONFIG: MockExamConfig = {
   sections: ["listening", "reading", "writing"],
 };
 
-/** IBT mini mock: 3 listening + 5 reading + 2 grammar (10 total) */
+/** @deprecated use buildMockByTier */
 export function buildMockExamQuestions(level: TopikLevel, count = 10): TopikQuizQuestion[] {
-  const listening = getQuestionsBySection(level, "listening", 3);
-  const reading = getQuestionsBySection(level, "reading", 4);
-  const grammar = getQuestionsBySection(level, "grammar", 2);
-  const vocab = getQuestionsBySection(level, "vocabulary", 1);
-
-  let selected = [...listening, ...reading, ...grammar, ...vocab];
-
-  if (selected.length < count) {
-    const used = new Set(selected.map((q) => q.id));
-    const fallback = TOPIK_QUIZ_BANK.filter(
-      (q) => q.level <= level && !used.has(q.id),
-    ).sort(() => Math.random() - 0.5);
-    for (const q of fallback) {
-      if (selected.length >= count) break;
-      selected.push(q);
-    }
-  }
-
-  return selected.slice(0, count);
+  return buildMockByTier("topik-ibt", level, count);
 }
+
+export { buildMockByTier };
 
 export function getMockExamQuestionsByIds(ids: string[]): TopikQuizQuestion[] {
   return ids

@@ -6,6 +6,7 @@ import {
   saveWrongAnswer,
   resolveWrongAnswer,
   resolveTopikUserId,
+  markJourneyStep,
 } from "@/topik/lib/store/file-store";
 import { getLearnSession } from "@/learn/lib/auth";
 import type { TopikLevel } from "@/topik/types";
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
 
     if (body.action === "complete-lesson" && body.lessonId) {
       await markLessonComplete(userId, body.lessonId);
+      await markJourneyStep(userId, "practice");
       return NextResponse.json({ ok: true });
     }
 

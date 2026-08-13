@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { vi } from "@/topik/lib/i18n/vi";
@@ -19,8 +20,14 @@ type Props = {
 };
 
 export function TopikQuizClient({ initialLevel }: Props) {
-  const [level, setLevel] = useState<TopikLevel>(initialLevel ?? 1);
-  const [category, setCategory] = useState("");
+  const searchParams = useSearchParams();
+  const urlLevel = searchParams.get("level");
+  const urlCategory = searchParams.get("category");
+
+  const [level, setLevel] = useState<TopikLevel>(
+    urlLevel ? (Number(urlLevel) as TopikLevel) : (initialLevel ?? 1),
+  );
+  const [category, setCategory] = useState(urlCategory ?? "");
   const [questions, setQuestions] = useState<TopikQuizQuestion[]>([]);
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);

@@ -1,6 +1,7 @@
 import { HomeDashboard } from "@/topik/components/home/HomeDashboard";
 import { computePassProbability, recommendedStudyDays } from "@/topik/lib/analytics/pass-probability";
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
+import { buildStudyJourney } from "@/topik/lib/journey/study-journey";
 import { buildStudyPlan, getTodayPlan } from "@/topik/lib/study-plan/roadmap";
 import {
   countUnresolvedWrong,
@@ -34,8 +35,13 @@ export default async function TopikHomePage() {
   const plan = buildStudyPlan(progress.targetLevel, planDays);
   const todayPlan = getTodayPlan(plan, planStart);
 
-  const todayHref =
-    stats.due > 0 ? "/topik/review" : todayPlan?.focus === "speaking" ? "/topik/speaking" : "/topik/practice";
+  const journey = buildStudyJourney({
+    progress,
+    dueCards: stats.due,
+    wrongCount,
+    todayFocus: todayPlan?.focus,
+    report,
+  });
 
   return (
     <HomeDashboard
@@ -45,11 +51,9 @@ export default async function TopikHomePage() {
       todayPlan={todayPlan}
       planDay={todayPlan?.day ?? 1}
       planDays={planDays}
-      dueCards={stats.due}
       srsTotal={stats.total}
       srsMastered={stats.mastered}
-      todayHref={todayHref}
-      firstTask={todayPlan?.tasksVi[0]}
+      journey={journey}
     />
   );
 }

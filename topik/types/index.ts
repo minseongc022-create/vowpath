@@ -128,6 +128,11 @@ export type UserProgress = {
   typingCount: number;
   bestTypingCpm?: number;
   bestMockScore?: number;
+  /** Diagnostic test result */
+  placementLevel?: TopikLevel;
+  /** Daily guided steps — date → step ids completed */
+  dailyStepsDone?: Record<string, string[]>;
+  dailyGoalCompleted?: number;
 };
 
 export type SpeakingScenarioId =

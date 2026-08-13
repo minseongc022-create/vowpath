@@ -191,6 +191,7 @@ export const vi = {
     retry: "Thi lại",
     backHome: "Về trang chủ",
     level: "Cấp độ",
+    examType: "Loại thi",
   },
   stats: {
     title: "Thống kê học tập",
@@ -213,7 +214,30 @@ export const vi = {
   },
   studyHub: {
     title: "Học tập",
-    subtitle: "Luyện nói · Chấm bài · Thi thử · Ôn SRS — tất cả cho TOPIK",
+    subtitle: "TOPIK I · II · IBT · EPS — lộ trình tự động, không quảng cáo",
+    allModes: "Tất cả chế độ",
+    whyUs: "Học từ app hàng đầu — tránh điểm yếu của họ",
+  },
+  journey: {
+    title: "Lộ trình hôm nay",
+    nextStep: "Bước tiếp theo",
+    dailyGoal: "mục tiêu ngày",
+  },
+  placement: {
+    title: "Kiểm tra trình độ TOPIK",
+    subtitle: "8 câu nhanh — biết cấp độ và điểm yếu (miễn phí)",
+    start: "Bắt đầu kiểm tra",
+    question: "Câu",
+    next: "Tiếp",
+    finish: "Xem kết quả",
+    result: "Trình độ ước lượng",
+    resultHint: "Lộ trình học đã được cập nhật",
+    backHome: "Về trang chủ",
+    startPractice: "Luyện đề ngay",
+  },
+  exams: {
+    title: "Các kỳ thi tiếng Hàn",
+    sectionDrills: "Luyện theo kỹ năng",
   },
   official: {
     title: "Tài liệu TOPIK chính thức",

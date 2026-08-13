@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
+import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { getQuestionSection, ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
+import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
 import { vi } from "@/topik/lib/i18n/vi";
 
 type Phase = "setup" | "exam" | "result";
@@ -17,8 +20,26 @@ type ExamResult = {
 
 const DURATION_SEC = 20 * 60;
 
+const TIERS: { id: MockExamTier; label: string }[] = [
+  { id: "topik-i", label: "TOPIK I" },
+  { id: "topik-ii", label: "TOPIK II" },
+  { id: "topik-ibt", label: "IBT" },
+  { id: "eps-topik", label: "EPS" },
+];
+
+function parseTier(raw: string | null): MockExamTier {
+  if (raw === "topik-i" || raw === "topik-ii" || raw === "topik-ibt" || raw === "eps-topik") {
+    return raw;
+  }
+  return "topik-ibt";
+}
+
 export function MockExamClient() {
+  const searchParams = useSearchParams();
+  const initialTier = parseTier(searchParams.get("tier"));
+
   const [phase, setPhase] = useState<Phase>("setup");
+  const [tier, setTier] = useState<MockExamTier>(initialTier);
   const [level, setLevel] = useState<TopikLevel>(3);
   const [questions, setQuestions] = useState<TopikQuizQuestion[]>([]);
   const [idx, setIdx] = useState(0);
@@ -29,6 +50,11 @@ export function MockExamClient() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setTier(initialTier);
+    if (initialTier === "topik-i") setLevel(2);
+  }, [initialTier]);
 
   const finishExam = useCallback(
     async (finalAnswers: Record<string, number | string>) => {
@@ -41,6 +67,7 @@ export function MockExamClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             level,
+            tier,
             answers: finalAnswers,
             questionIds: questions.map((x) => x.id),
             durationSec,
@@ -53,7 +80,7 @@ export function MockExamClient() {
         setLoading(false);
       }
     },
-    [level, questions, startedAt],
+    [level, tier, questions, startedAt],
   );
 
   useEffect(() => {
@@ -70,7 +97,7 @@ export function MockExamClient() {
 
   async function startExam() {
     setLoading(true);
-    const res = await fetch(`/topik/api/mock-exam?level=${level}`);
+    const res = await fetch(`/topik/api/mock-exam?level=${level}&tier=${tier}`);
     const data = (await res.json()) as TopikQuizQuestion[];
     setQuestions(data);
     setIdx(0);
@@ -109,26 +136,49 @@ export function MockExamClient() {
       <div className="topik-quiz-shell topik-animate-in">
         <div className="topik-card topik-card-pad">
           <p className="topik-page-subtitle">{vi.mockExam.subtitle}</p>
+          <p className="topik-badge mt-2">{tierLabelVi(tier)}</p>
           <ul className="topik-setup-list">
-            <li>10 câu · 3 nghe + 4 đọc + 3 ngữ pháp/từ vựng</li>
-            <li>Đồng hồ 20 phút · giao diện IBT</li>
+            <li>10 câu · nghe + đọc + ngữ pháp</li>
+            <li>Đồng hồ 20 phút · không quảng cáo</li>
             <li>Script nghe + giải thích tiếng Việt</li>
-            <li>Tự động lưu điểm cao nhất</li>
-            <li>Không quảng cáo · không paywall</li>
+            <li>Lưu điểm cao nhất</li>
           </ul>
         </div>
-        <label className="topik-field-label">{vi.mockExam.level}</label>
-        <select
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
-          className="topik-select"
-        >
-          {[1, 2, 3, 4, 5, 6].map((l) => (
-            <option key={l} value={l}>
-              TOPIK {l}
-            </option>
+
+        <label className="topik-field-label">{vi.mockExam.examType}</label>
+        <div className="topik-pill-row">
+          {TIERS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => {
+                setTier(t.id);
+                if (t.id === "topik-i") setLevel(2);
+              }}
+              className={`topik-pill ${tier === t.id ? "topik-pill-active" : ""}`}
+            >
+              {t.label}
+            </button>
           ))}
-        </select>
+        </div>
+
+        {tier !== "topik-i" && tier !== "eps-topik" && (
+          <>
+            <label className="topik-field-label">{vi.mockExam.level}</label>
+            <select
+              value={level}
+              onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
+              className="topik-select"
+            >
+              {[1, 2, 3, 4, 5, 6].map((l) => (
+                <option key={l} value={l}>
+                  TOPIK {l}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
         <button
           type="button"
           onClick={() => void startExam()}
@@ -149,7 +199,7 @@ export function MockExamClient() {
           <p className="topik-section-title">{vi.mockExam.result}</p>
           <p className="topik-result-score">{pct}%</p>
           <p className="topik-result-hint">
-            {vi.mockExam.correct}: {result.correct}/{result.total} · {result.score}/{result.maxScore} đ
+            {vi.mockExam.correct}: {result.correct}/{result.total} · {tierLabelVi(tier)}
           </p>
         </div>
         <button
@@ -184,10 +234,9 @@ export function MockExamClient() {
       </div>
 
       <div className="topik-card topik-card-pad">
-        <span className="topik-badge">IBT · TOPIK {q.level}</span>
+        <span className="topik-badge">{tierLabelVi(tier)} · TOPIK {q.level}</span>
         {q.category === "listening" && q.listeningScript && (
           <div className="topik-listening-block">
-            <p className="topik-listening-hint">{vi.listening.playHint}</p>
             <button
               type="button"
               onClick={() => setShowScript((s) => !s)}

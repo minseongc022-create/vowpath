@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { vi } from "@/topik/lib/i18n/vi";
 import { getStudyMode } from "@/topik/lib/study-modes";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
@@ -13,7 +14,9 @@ export default function PracticePage() {
       <div className="topik-mode-list mb-5">
         <TopikModeRow mode={mockMode} />
       </div>
-      <TopikQuizClient />
+      <Suspense fallback={<p className="topik-loading">{vi.common.loading}</p>}>
+        <TopikQuizClient />
+      </Suspense>
     </main>
   );
 }

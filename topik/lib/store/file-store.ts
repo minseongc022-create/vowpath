@@ -367,6 +367,41 @@ export async function setExamDate(userId: string, examDate: string): Promise<Use
   return store.progress;
 }
 
+export async function savePlacementResult(
+  userId: string,
+  level: TopikLevel,
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  store.progress.placementLevel = level;
+  if (level > store.progress.targetLevel) {
+    store.progress.targetLevel = level;
+  }
+  appendJourneyStep(store, "placement");
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
+}
+
+function appendJourneyStep(store: TopikStore, stepId: string): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const done = store.progress.dailyStepsDone ?? {};
+  const todaySteps = done[today] ?? [];
+  if (!todaySteps.includes(stepId)) {
+    todaySteps.push(stepId);
+    done[today] = todaySteps;
+    store.progress.dailyStepsDone = done;
+    store.progress.dailyGoalCompleted = todaySteps.length;
+  }
+}
+
+export async function markJourneyStep(userId: string, stepId: string): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  appendJourneyStep(store, stepId);
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
+}
+
 export async function countUnresolvedWrong(userId: string): Promise<number> {
   const store = await loadStore(userId);
   return store.wrongAnswers.filter((w) => !w.resolved).length;

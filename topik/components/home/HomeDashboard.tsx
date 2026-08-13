@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { TodayStudyHero } from "@/topik/components/home/TodayStudyHero";
+import { StudyJourneyCard } from "@/topik/components/home/StudyJourneyCard";
 import { StudyModeGrid } from "@/topik/components/home/StudyModeGrid";
 import { OfficialResourcesCard } from "@/topik/components/home/OfficialResourcesCard";
 import { PassProbabilitySection } from "@/topik/components/dashboard/PassProbabilitySection";
 import { StudyPlanCard } from "@/topik/components/dashboard/StudyPlanCard";
 import { vi } from "@/topik/lib/i18n/vi";
 import type { PassProbabilityReport, StudyPlanDay } from "@/topik/types";
+import type { StudyJourney } from "@/topik/lib/journey/study-journey";
 
 type Props = {
   streak: number;
@@ -16,14 +17,12 @@ type Props = {
   todayPlan: StudyPlanDay | null;
   planDay: number;
   planDays: number;
-  dueCards: number;
   srsTotal: number;
   srsMastered: number;
-  todayHref: string;
-  firstTask?: string;
+  journey: StudyJourney;
 };
 
-/** TOPIK Master home — pass probability, daily plan, core study modes */
+/** TOPIK Master home — guided journey, pass probability, study modes */
 export function HomeDashboard({
   streak,
   targetLevel,
@@ -31,11 +30,9 @@ export function HomeDashboard({
   todayPlan,
   planDay,
   planDays,
-  dueCards,
   srsTotal,
   srsMastered,
-  todayHref,
-  firstTask,
+  journey,
 }: Props) {
   return (
     <main className="topik-page topik-animate-in">
@@ -44,7 +41,7 @@ export function HomeDashboard({
         <p className="topik-home-subtitle">{vi.home.subtitle}</p>
       </header>
 
-      <TodayStudyHero href={todayHref} dueCards={dueCards} firstTask={firstTask} />
+      <StudyJourneyCard journey={journey} />
 
       <div className="topik-home-stats">
         <div className="topik-stat-chip">

@@ -44,6 +44,13 @@ export const OFFICIAL_TOPIK_RESOURCES: OfficialResource[] = [
     url: "https://www.topik.go.kr/usr/cmm/topikInfo.do",
     badge: "IBT",
   },
+  {
+    id: "eps-portal",
+    titleVi: "EPS-TOPIK (lao động Hàn Quốc)",
+    descVi: "Thông tin thi EPS — nghe + đọc, 70 phút",
+    url: "https://www.topik.go.kr/usr/cmm/topikInfo.do",
+    badge: "EPS",
+  },
 ];
 
 export const COMMUNITY_TIPS_VI = [
