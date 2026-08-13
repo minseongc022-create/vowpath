@@ -18,7 +18,7 @@
   --topik-radius: 16px;
   --topik-radius-lg: 20px;
   --topik-safe-bottom: env(safe-area-inset-bottom, 0px);
-  font-family: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-be-vietnam, "Be Vietnam Pro"), system-ui, -apple-system, sans-serif;
   background: var(--topik-bg);
   color: var(--topik-ink);
   min-height: 100dvh;

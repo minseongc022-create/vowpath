@@ -6,27 +6,10 @@ import { TOPIK_BRAND } from "@/topik/lib/brand";
 import { useTopikStore } from "@/topik/components/providers/TopikStoreProvider";
 
 export function TopikHomeClient() {
-  const { ready, progress, srsStats } = useTopikStore();
-
-  if (!ready) {
-    return (
-      <main className="mx-auto max-w-lg px-4 py-6 pb-8">
-        <div className="topik-skeleton h-32 mb-4" />
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="topik-skeleton h-20" />
-          <div className="topik-skeleton h-20" />
-        </div>
-        <div className="space-y-3">
-          <div className="topik-skeleton h-16" />
-          <div className="topik-skeleton h-16" />
-          <div className="topik-skeleton h-16" />
-        </div>
-      </main>
-    );
-  }
+  const { progress, srsStats } = useTopikStore();
 
   return (
-    <main className="mx-auto max-w-lg px-4 pb-8 topik-animate-in">
+    <main className="mx-auto max-w-lg px-4 pb-8">
       <section className="topik-gradient-header -mx-4 px-4 pt-6 pb-8 rounded-b-[28px] text-white mb-6">
         <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wide">
           {vi.home.heroBadge}

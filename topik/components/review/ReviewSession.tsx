@@ -6,17 +6,13 @@ import { vi } from "@/topik/lib/i18n/vi";
 import { useTopikStore } from "@/topik/components/providers/TopikStoreProvider";
 
 export function ReviewSession() {
-  const { ready, dueCards, srsStats, reviewCard } = useTopikStore();
+  const { dueCards, srsStats, reviewCard } = useTopikStore();
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
   const [reviewed, setReviewed] = useState(0);
 
   const cards = dueCards.length > 0 ? dueCards : [];
-
-  if (!ready) {
-    return <div className="topik-skeleton h-48" />;
-  }
 
   if (cards.length === 0) {
     return (

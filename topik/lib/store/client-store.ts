@@ -5,6 +5,17 @@ import type { WrongRecord } from "@/topik/lib/store/types";
 
 const STORAGE_KEY = "hanpro-vn-store-v1";
 
+const listeners = new Set<() => void>();
+
+export function subscribeTopikStore(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notifyTopikStore(): void {
+  listeners.forEach((l) => l());
+}
+
 type Store = {
   progress: UserProgress;
   srsCards: SrsCard[];
@@ -43,6 +54,15 @@ function loadStore(): Store {
 
 function saveStore(store: Store): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  notifyTopikStore();
+}
+
+export function getTopikStoreSnapshot(): Store {
+  return loadStore();
+}
+
+export function getTopikStoreServerSnapshot(): Store {
+  return defaultStore();
 }
 
 function todayIso(): string {
