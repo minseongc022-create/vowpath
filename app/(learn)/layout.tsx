@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@/learn/styles/learn.css";
 import { LearnAuthProvider } from "@/learn/components/providers/LearnAuthProvider";
-import { LEARN_BRAND, learnPageTitle } from "@/learn/lib/brand";
+import { LEARN_BRAND } from "@/learn/lib/brand";
 
 export const metadata: Metadata = {
   title: {
@@ -31,5 +31,3 @@ export default function LearnRootLayout({
     </div>
   );
 }
-
-export { learnPageTitle };
