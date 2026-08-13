@@ -34,6 +34,9 @@ export function buildStudyPlan(
     if (d % 7 === 0) {
       tasksVi.push("Thi thử IBT mini (20 phút) + xem lại sổ sai sót");
     }
+    if (d % 3 === 0) {
+      tasksVi.push("Luyện gõ tiếng Hàn 10 phút (mục tiêu 30+ ký tự/phút)");
+    }
     if (d === totalDays) {
       tasksVi.push(`Mục tiêu: sẵn sàng thi TOPIK ${targetLevel}`);
     }
@@ -71,7 +74,7 @@ function baseTasks(
     case "speaking":
       return [`${label}: 1 kịch bản`, "Ghi âm + AI chấm", "Sửa lỗi phát âm người Việt"];
     case "writing":
-      return [`${label}: bài 53 hoặc 54`, "Nộp chấm AI", "So sánh với bài mẫu"];
+      return [`${label}: bài 53 hoặc 54`, "Nộp chấm AI", "Luyện gõ 10 phút trước khi viết"];
     case "mock":
       return [`${label}: 20 phút`, "Phân tích điểm yếu", "Ôn lại câu sai"];
   }

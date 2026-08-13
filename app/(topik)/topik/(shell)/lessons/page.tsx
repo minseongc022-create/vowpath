@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { vi } from "@/topik/lib/i18n/vi";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
-import { getAllLevels, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
+import { getAllLevels, getCuratedVideoCount, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
 import { IconGrammar, IconReading, IconVocab, IconPen } from "@/topik/components/ui/TopikIcons";
 import type { TopikLevel, LessonCategory } from "@/topik/types";
 
@@ -26,7 +26,7 @@ export default function LessonsIndexPage() {
     <main className="topik-page">
       <TopikPageHeader
         title={vi.lessons.title}
-        subtitle="Video + từ vựng + ngữ pháp · Lộ trình TOPIK 1→6"
+        subtitle={`${getCuratedVideoCount()} video YouTube · TTMIK · Billy Korean · Seemile · ${vi.lessons.curatedNote}`}
       />
 
       <section className="mb-6">

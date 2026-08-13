@@ -14,6 +14,8 @@ export type TopikLesson = {
   category: LessonCategory;
   durationMin: number;
   videoUrl?: string;
+  /** YouTube channel name for attribution */
+  channelName?: string;
   vocabulary: VocabItem[];
   grammarPoints: GrammarPoint[];
   sortOrder: number;
@@ -123,6 +125,8 @@ export type UserProgress = {
   reviewSessions: number;
   speakingCount: number;
   mockExamCount: number;
+  typingCount: number;
+  bestTypingCpm?: number;
   bestMockScore?: number;
 };
 

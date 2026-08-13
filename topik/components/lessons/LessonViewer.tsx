@@ -49,6 +49,11 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
         <span className="topik-badge">TOPIK {lesson.level}</span>
         <h1 className="mt-2 text-lg font-bold text-learn-ink">{lesson.titleVi}</h1>
         <p className="text-xs text-learn-ink-muted">{lesson.title}</p>
+        {lesson.channelName && (
+          <p className="text-xs text-learn-ink-subtle mt-1">
+            {vi.lessons.channel}: {lesson.channelName}
+          </p>
+        )}
       </div>
 
       <div className="flex gap-1 rounded-xl bg-learn-muted p-1">

@@ -38,6 +38,7 @@ const DEFAULT_PROGRESS: UserProgress = {
   reviewSessions: 0,
   speakingCount: 0,
   mockExamCount: 0,
+  typingCount: 0,
 };
 
 function normalizeStore(raw: Partial<TopikStore>): TopikStore {
@@ -308,6 +309,20 @@ export async function incrementSpeakingCount(userId: string): Promise<number> {
   await touchStreak(store);
   await saveStore(userId, store);
   return store.progress.speakingCount;
+}
+
+export async function saveTypingSession(
+  userId: string,
+  session: { cpm: number; accuracy: number; promptCount: number },
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  store.progress.typingCount++;
+  if (!store.progress.bestTypingCpm || session.cpm > store.progress.bestTypingCpm) {
+    store.progress.bestTypingCpm = session.cpm;
+  }
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
 }
 
 export async function saveMockExamResult(

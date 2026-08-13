@@ -31,6 +31,7 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
   score += lessonRate * 15;
   score += Math.min(progress.writingCount * 2.5, 12);
   score += Math.min(progress.speakingCount * 2, 10);
+  score += Math.min((progress.bestTypingCpm ?? 0) / 4, 8);
   score += Math.min(progress.streak * 1.5, 9);
   score += Math.min((progress.bestMockScore ?? 0) / 10, 12);
   score += Math.min(progress.reviewSessions, 8);
@@ -50,8 +51,11 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
   if (srsRate >= 0.4) strengthsVi.push("Từ vựng SRS đã thuộc khá nhiều");
   if (progress.writingCount >= 3) strengthsVi.push("Đã luyện chấm bài viết nhiều lần");
   if (progress.speakingCount >= 2) strengthsVi.push("Đã luyện nói — điểm mạnh so với đối thủ");
+  if ((progress.bestTypingCpm ?? 0) >= 30) strengthsVi.push("Tốc độ gõ IBT đạt mục tiêu (30+ ký tự/phút)");
 
   if (progress.speakingCount < 2) gapsVi.push("Luyện nói IBT — kỹ năng yếu nhất của người Việt");
+  if ((progress.bestTypingCpm ?? 0) < 30 && progress.typingCount < 3)
+    gapsVi.push("Luyện gõ tiếng Hàn — IBT viết trên màn hình cần 30–40 ký tự/phút");
   if (progress.writingCount < 2) gapsVi.push("Chưa đủ bài viết TOPIK 53–54");
   if (srsDue > 10) gapsVi.push(`${srsDue} thẻ SRS cần ôn hôm nay`);
   if (!progress.bestMockScore) gapsVi.push("Chưa làm thi thử IBT — làm ngay để biết điểm thật");
@@ -90,6 +94,7 @@ function buildDailyPlan(
 
   if (progress.writingCount < 5) {
     plan.push("Viết và chấm 1 bài TOPIK 53 hoặc 54");
+    plan.push("Luyện gõ tiếng Hàn 10 phút trước khi viết");
   }
 
   plan.push("Làm 10 câu luyện đề theo cấp mục tiêu");

@@ -5,6 +5,7 @@ import { vi } from "@/topik/lib/i18n/vi";
 export type StudyModeId =
   | "speaking"
   | "writing"
+  | "typing"
   | "practice"
   | "mock-exam"
   | "lessons"
@@ -33,6 +34,13 @@ export const STUDY_MODES: StudyMode[] = [
     title: vi.home.writingTitle,
     desc: vi.home.writingDesc,
     tint: "coral",
+  },
+  {
+    id: "typing",
+    href: "/topik/typing",
+    title: vi.home.typingTitle,
+    desc: vi.home.typingDesc,
+    tint: "gold",
   },
   {
     id: "mock-exam",
@@ -72,12 +80,12 @@ export const STUDY_MODES: StudyMode[] = [
 ];
 
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
-  "speaking",
   "mock-exam",
+  "typing",
+  "speaking",
   "writing",
   "practice",
   "lessons",
-  "review",
 ];
 
 export function getStudyMode(id: StudyModeId): StudyMode {

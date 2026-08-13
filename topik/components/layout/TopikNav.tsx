@@ -24,7 +24,8 @@ const NAV = [
       p.startsWith("/topik/speaking") ||
       p.startsWith("/topik/writing") ||
       p.startsWith("/topik/practice") ||
-      p.startsWith("/topik/mock-exam"),
+      p.startsWith("/topik/mock-exam") ||
+      p.startsWith("/topik/typing"),
   },
   {
     href: "/topik/lessons",
