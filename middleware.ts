@@ -38,6 +38,7 @@ function loginRedirect(request: NextRequest, nextPath?: string | null) {
 function learnShellResponse(request: NextRequest, rewritePath?: string) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-app-shell", "learn");
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
   if (rewritePath) {
     const url = request.nextUrl.clone();
     url.pathname = rewritePath;
@@ -49,6 +50,7 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
 function topikShellResponse(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-app-shell", "topik");
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
