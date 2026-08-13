@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { EffiroadAssistantRoot } from "@/components/assistant/EffiroadAssistantRoot";
 import { resolveServerUiLocale, uiLocaleHtmlLang } from "@/lib/locale";
+import { shouldShowEffiroadAssistant } from "@/lib/shell-route";
 import { SITE_ICON_VERSION, siteJsonLd, siteFaqJsonLd, siteOrganizationJsonLd, siteWebSiteJsonLd } from "@/lib/site-metadata";
 import "@/app/globals.css";
 
@@ -11,10 +12,11 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-/** Effiroad phone/dispatch product shell — never used for /learn routes. */
+/** Effiroad phone/dispatch product shell — never used for /learn or /topik routes. */
 export async function PlatformShell({ children }: { children: React.ReactNode }) {
   const locale = await resolveServerUiLocale();
   const iconV = SITE_ICON_VERSION;
+  const showAssistant = await shouldShowEffiroadAssistant();
 
   return (
     <html lang={uiLocaleHtmlLang(locale)} className={inter.variable} suppressHydrationWarning>
@@ -49,7 +51,7 @@ export async function PlatformShell({ children }: { children: React.ReactNode })
         />
         <LocaleProvider initialLocale={locale}>
           {children}
-          <EffiroadAssistantRoot />
+          {showAssistant ? <EffiroadAssistantRoot /> : null}
         </LocaleProvider>
       </body>
     </html>

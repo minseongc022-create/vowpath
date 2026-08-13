@@ -271,6 +271,8 @@ export function EffiroadAssistantWidget() {
   }
 
   const hidden =
+    pathname.startsWith("/learn") ||
+    pathname.startsWith("/topik") ||
     pathname.startsWith("/widget/") ||
     pathname.startsWith("/demo/record") ||
     pathname.startsWith("/intake/") ||

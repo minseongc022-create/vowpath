@@ -1,27 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { PlatformShell } from "@/components/layout/PlatformShell";
 import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell";
 import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
+import { getAppShell } from "@/lib/shell-route";
 import { LEARN_BRAND } from "@/learn/lib/brand";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
-  const h = await headers();
-  if (h.get("x-app-shell") === "learn") {
+  const shell = await getAppShell();
+  if (shell === "learn") {
     return {
       title: { default: LEARN_BRAND.name, template: `%s · ${LEARN_BRAND.name}` },
       description: LEARN_BRAND.tagline,
       robots: { index: false, follow: false },
     };
   }
-  if (h.get("x-app-shell") === "topik") {
+  if (shell === "topik") {
     return {
       title: { default: TOPIK_BRAND.name, template: `%s · ${TOPIK_BRAND.name}` },
       description: TOPIK_BRAND.tagline,
       applicationName: TOPIK_BRAND.name,
+      robots: { index: true, follow: true },
       openGraph: {
         title: TOPIK_BRAND.name,
         description: TOPIK_BRAND.tagline,
@@ -43,11 +46,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const h = await headers();
-  if (h.get("x-app-shell") === "learn") {
+  const shell = await getAppShell();
+  if (shell === "learn") {
     return <LearnPlatformShell>{children}</LearnPlatformShell>;
   }
-  if (h.get("x-app-shell") === "topik") {
+  if (shell === "topik") {
     return <TopikPlatformShell>{children}</TopikPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
