@@ -7,12 +7,11 @@ type Props = {
   srsMastered?: number;
 };
 
-/** Malhaeboka home favorites — 2-col grid with line icons */
 export function StudyModeGrid({ srsTotal, srsMastered }: Props) {
   return (
-    <section className="mb-5">
-      <p className="topik-section-title mb-3">{vi.home.quickActions}</p>
-      <div className="grid grid-cols-2 gap-2.5">
+    <section className="topik-mode-grid-section">
+      <p className="topik-section-title">{vi.home.quickActions}</p>
+      <div className="topik-mode-grid">
         {HOME_FAVORITE_MODES.map((id) => {
           const mode = getStudyMode(id);
           const extra =

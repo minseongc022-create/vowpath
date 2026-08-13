@@ -189,7 +189,7 @@ export const vi = {
   },
   studyHub: {
     title: "Học tập",
-    subtitle: "Chọn chế độ phù hợp — mỗi kỹ năng đều quan trọng cho TOPIK",
+    subtitle: "Luyện nói · Chấm bài · Thi thử · Ôn SRS — tất cả cho TOPIK",
   },
   common: {
     loading: "Đang tải…",

@@ -1,4 +1,4 @@
-import { TopikHomeClient } from "@/topik/components/home/TopikHomeClient";
+import { HomeDashboard } from "@/topik/components/home/HomeDashboard";
 import { computePassProbability, recommendedStudyDays } from "@/topik/lib/analytics/pass-probability";
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
 import { buildStudyPlan, getTodayPlan } from "@/topik/lib/study-plan/roadmap";
@@ -33,16 +33,21 @@ export default async function TopikHomePage() {
   const planDays = recommendedStudyDays(report.daysToExam);
   const plan = buildStudyPlan(progress.targetLevel, planDays);
   const todayPlan = getTodayPlan(plan, planStart);
-  const todayHref = stats.due > 0 ? "/topik/review" : "/topik/vocab/session";
+
+  const todayHref =
+    stats.due > 0 ? "/topik/review" : todayPlan?.focus === "speaking" ? "/topik/speaking" : "/topik/practice";
 
   return (
-    <TopikHomeClient
+    <HomeDashboard
       streak={progress.streak}
+      targetLevel={progress.targetLevel}
       report={report}
       todayPlan={todayPlan}
       planDay={todayPlan?.day ?? 1}
       planDays={planDays}
       dueCards={stats.due}
+      srsTotal={stats.total}
+      srsMastered={stats.mastered}
       todayHref={todayHref}
       firstTask={todayPlan?.tasksVi[0]}
     />

@@ -8,29 +8,24 @@ type Props = {
   firstTask?: string;
 };
 
-/** Malhaeboka "오늘의 학습" — full-width primary CTA */
 export function TodayStudyHero({ href, dueCards, firstTask }: Props) {
   return (
-    <Link href={href} className="topik-hero-cta mb-4 block">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium opacity-90">{vi.home.todayStudy}</p>
-          <p className="mt-1 text-lg font-bold tracking-tight">
-            {dueCards > 0 ? vi.home.startReview : vi.home.continueStudy}
-          </p>
-          {firstTask && (
-            <p className="mt-1 text-xs opacity-80 line-clamp-1">{firstTask}</p>
-          )}
-        </div>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-          <IconChevronRight className="text-white" />
-        </span>
-      </div>
-      {dueCards > 0 && (
-        <p className="mt-3 text-xs font-semibold opacity-90">
-          {dueCards} {vi.home.cardsDue}
+    <Link href={href} className="topik-today-hero">
+      <div className="topik-today-hero-body">
+        <p className="topik-today-hero-label">{vi.home.todayStudy}</p>
+        <p className="topik-today-hero-title">
+          {dueCards > 0 ? vi.home.startReview : vi.home.continueStudy}
         </p>
-      )}
+        {firstTask && <p className="topik-today-hero-task">{firstTask}</p>}
+        {dueCards > 0 && (
+          <p className="topik-today-hero-meta">
+            {dueCards} {vi.home.cardsDue}
+          </p>
+        )}
+      </div>
+      <span className="topik-today-hero-action" aria-hidden>
+        <IconChevronRight className="text-white" />
+      </span>
     </Link>
   );
 }

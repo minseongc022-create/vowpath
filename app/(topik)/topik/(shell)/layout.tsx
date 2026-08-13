@@ -1,6 +1,4 @@
-import { TopikLocaleProvider } from "@/topik/components/i18n/TopikLocaleProvider";
-import { TopikHeader } from "@/topik/components/layout/TopikHeader";
-import { TopikBottomNav } from "@/topik/components/layout/TopikBottomNav";
+import { TopikAppChrome } from "@/topik/components/layout/TopikAppChrome";
 import { getProgress, resolveTopikUserId } from "@/topik/lib/store/file-store";
 import { getLearnSession } from "@/learn/lib/auth";
 
@@ -14,12 +12,8 @@ export default async function TopikShellLayout({
   const progress = await getProgress(userId);
 
   return (
-    <TopikLocaleProvider>
-      <TopikHeader streak={progress.streak} targetLevel={progress.targetLevel} />
-      <div className="pb-[calc(var(--topik-nav-height)+1rem+var(--learn-safe-bottom))]">
-        {children}
-      </div>
-      <TopikBottomNav />
-    </TopikLocaleProvider>
+    <TopikAppChrome streak={progress.streak} targetLevel={progress.targetLevel}>
+      {children}
+    </TopikAppChrome>
   );
 }
