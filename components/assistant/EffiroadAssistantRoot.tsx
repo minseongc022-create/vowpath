@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+import { isIsolatedProductPath } from "@/lib/isolated-product-path";
 
 const EffiroadAssistantWidget = dynamic(
   () =>
@@ -11,10 +12,10 @@ const EffiroadAssistantWidget = dynamic(
   { ssr: false },
 );
 
-/** Global floating Effiroad AI — hidden on /learn (separate education product). */
+/** Global floating Effiroad AI — hidden on isolated products (/learn, /topik). */
 export function EffiroadAssistantRoot() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/learn")) {
+  if (isIsolatedProductPath(pathname)) {
     return null;
   }
   return <EffiroadAssistantWidget />;
