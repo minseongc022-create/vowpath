@@ -2,8 +2,6 @@ import Link from "next/link";
 import { vi } from "@/topik/lib/i18n/vi";
 import { WrongNotesClient } from "@/topik/components/wrong-notes/WrongNotesClient";
 
-export const dynamic = "force-static";
-
 export default function WrongNotesPage() {
   return (
     <main className="mx-auto max-w-lg px-4 py-6 topik-animate-in">

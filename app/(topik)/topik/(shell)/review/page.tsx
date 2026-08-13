@@ -1,8 +1,6 @@
 import { vi } from "@/topik/lib/i18n/vi";
 import { ReviewSession } from "@/topik/components/review/ReviewSession";
 
-export const dynamic = "force-static";
-
 export default function ReviewPage() {
   return (
     <main className="mx-auto max-w-lg px-4 py-6 topik-animate-in">

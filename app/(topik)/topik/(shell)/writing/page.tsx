@@ -16,8 +16,6 @@ const WritingCorrectionForm = nextDynamic(
   },
 );
 
-export const dynamic = "force-static";
-
 export default function WritingPage() {
   return (
     <main className="mx-auto max-w-lg px-4 py-6">

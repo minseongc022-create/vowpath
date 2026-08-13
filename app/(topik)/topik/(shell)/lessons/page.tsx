@@ -3,8 +3,6 @@ import { vi } from "@/topik/lib/i18n/vi";
 import { getAllLevels, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
 import type { TopikLevel } from "@/topik/types";
 
-export const dynamic = "force-static";
-
 export default function LessonsIndexPage() {
   const levels = getAllLevels();
 
