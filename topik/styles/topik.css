@@ -1,0 +1,41 @@
+.learn-theme.topik-theme {
+  --learn-primary: #e8344e;
+  --learn-primary-hover: #c6283f;
+  --learn-accent: #003478;
+}
+
+.topik-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--learn-primary) 12%, white);
+  color: var(--learn-primary);
+  border-radius: 9999px;
+}
+
+.topik-card {
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+  box-shadow: var(--learn-shadow-sm);
+}
+
+.topik-score-ring {
+  background: conic-gradient(
+    var(--learn-primary) calc(var(--pct) * 1%),
+    var(--learn-muted) 0
+  );
+  border-radius: 50%;
+}
+
+@keyframes topik-flip {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(180deg); }
+}
+
+.topik-flip {
+  animation: topik-flip 0.4s ease;
+}
