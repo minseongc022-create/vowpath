@@ -256,7 +256,7 @@ export function SpeakingPracticeClient() {
                 disabled={transcribing}
                 className="topik-btn topik-btn-outline topik-btn-sm"
               >
-                🎤 {transcribing ? vi.common.loading : vi.speaking.record}
+                {transcribing ? vi.common.loading : vi.speaking.record}
               </button>
             ) : (
               <button

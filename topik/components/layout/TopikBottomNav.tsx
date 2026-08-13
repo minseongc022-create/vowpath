@@ -57,7 +57,7 @@ export function TopikBottomNav() {
 
   return (
     <div className="topik-nav-bar">
-      <nav className="topik-nav-inner mx-4" aria-label={vi.nav.main}>
+      <nav className="topik-nav-inner" aria-label={vi.nav.main}>
         {NAV.map((item) => {
           const active = item.match(pathname);
           return (

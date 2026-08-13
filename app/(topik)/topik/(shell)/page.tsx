@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { vi } from "@/topik/lib/i18n/vi";
-import { TOPIK_BRAND } from "@/topik/lib/brand";
 import {
   getSrsStats,
   getProgress,
@@ -46,52 +45,31 @@ export default async function TopikHomePage() {
 
   return (
     <main className="topik-page topik-animate-in">
-      <section className="mb-4">
-        <p className="text-sm font-medium text-learn-primary">{TOPIK_BRAND.name}</p>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-learn-ink">
-          {vi.home.greeting}
-        </h1>
-        <p className="mt-1.5 text-sm text-learn-ink-muted leading-relaxed">
-          {vi.home.subtitle}
-        </p>
-      </section>
-
       <TodayStudyHero href={todayHref} dueCards={stats.due} firstTask={firstTask} />
 
-      <PassProbabilitySection report={report} />
-
-      <StudyPlanCard today={todayPlan} planDay={planDayIndex} totalDays={planDays} />
-
-      <section className="mb-5 grid grid-cols-2 gap-3">
-        <div className="topik-card p-4">
+      <section className="mb-4 grid grid-cols-2 gap-2.5">
+        <div className="topik-stat-chip">
           <p className="topik-section-title">{vi.home.targetLevel}</p>
-          <p className="mt-1 text-2xl font-bold text-learn-primary">TOPIK {progress.targetLevel}</p>
+          <p className="mt-0.5 text-xl font-bold text-learn-primary">TOPIK {progress.targetLevel}</p>
         </div>
-        <div className="topik-card p-4">
+        <div className="topik-stat-chip">
           <p className="topik-section-title">{vi.home.streak}</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--topik-gold)]">
-            {progress.streak}{" "}
-            <span className="text-sm font-medium text-learn-ink-muted">{vi.home.days}</span>
+          <p className="mt-0.5 text-xl font-bold text-[var(--topik-gold)]">
+            {progress.streak}
+            <span className="ml-0.5 text-sm font-medium text-learn-ink-muted">{vi.home.days}</span>
           </p>
         </div>
       </section>
 
-      {stats.due > 0 && (
-        <Link
-          href="/topik/review"
-          className="topik-btn topik-btn-accent topik-btn-lg mb-5 flex items-center justify-between !rounded-2xl"
-        >
-          <div className="text-left">
-            <p className="text-sm font-semibold">{vi.home.startReview}</p>
-            <p className="text-xs opacity-90">
-              {stats.due} {vi.home.cardsDue}
-            </p>
-          </div>
-          <span className="text-xl opacity-80">→</span>
-        </Link>
-      )}
+      <StudyPlanCard today={todayPlan} planDay={planDayIndex} totalDays={planDays} />
+
+      <PassProbabilitySection report={report} />
 
       <StudyModeGrid srsTotal={stats.total} srsMastered={stats.mastered} />
+
+      <Link href="/topik/study" className="topik-btn topik-btn-outline topik-btn-md mt-2 w-full">
+        {vi.stats.allModes}
+      </Link>
     </main>
   );
 }

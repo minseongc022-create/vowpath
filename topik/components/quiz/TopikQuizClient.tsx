@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { vi } from "@/topik/lib/i18n/vi";
+import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 
 type Props = {
   initialLevel?: TopikLevel;
@@ -95,8 +96,8 @@ export function TopikQuizClient({ initialLevel }: Props) {
   if (finished) {
     return (
       <div className="topik-card p-6 text-center topik-animate-in">
-        <p className="text-4xl mb-2">🎉</p>
-        <p className="text-lg font-bold text-learn-ink">{vi.practice.score}</p>
+        <IconCheckCircle className="mx-auto text-learn-primary" size={48} />
+        <p className="mt-3 text-lg font-semibold text-learn-ink">{vi.practice.score}</p>
         <p className="text-3xl font-bold text-learn-primary mt-1">
           {score} / {questions.length}
         </p>
