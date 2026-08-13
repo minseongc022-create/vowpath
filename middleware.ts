@@ -9,6 +9,7 @@ import {
 import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
+import { isTopikHost, topikInternalPath } from "@/topik/lib/topik-host";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -46,10 +47,31 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function topikShellResponse(request: NextRequest, rewritePath?: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "topik");
+  if (rewritePath) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewritePath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const hostname = normalizeHostname(host);
+
+  // HanPro TOPIK VN — fully isolated; skip Effiroad dispatch middleware entirely.
+  if (isTopikHost(hostname)) {
+    const internal = topikInternalPath(pathname);
+    return topikShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
+  }
+
+  if (pathname.startsWith("/topik")) {
+    return topikShellResponse(request);
+  }
 
   // learn.effiroad.com → Lane only (no Effiroad dispatch chrome or auth gates).
   if (isLearnHost(hostname)) {

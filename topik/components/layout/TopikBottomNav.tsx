@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/learn/lib/utils";
+import { cn } from "@/topik/lib/utils";
 import { vi } from "@/topik/lib/i18n/vi";
 
 const NAV = [
-  { href: "/topik", label: vi.nav.home, match: (p: string) => p === "/topik" },
-  { href: "/topik/lessons", label: vi.nav.lessons, match: (p: string) => p.startsWith("/topik/lessons") },
-  { href: "/topik/writing", label: vi.nav.writing, match: (p: string) => p.startsWith("/topik/writing") },
-  { href: "/topik/practice", label: vi.nav.practice, match: (p: string) => p.startsWith("/topik/practice") },
-  { href: "/topik/review", label: vi.nav.review, match: (p: string) => p.startsWith("/topik/review") },
+  { href: "/topik", label: vi.nav.home, icon: "🏠", match: (p: string) => p === "/topik" },
+  { href: "/topik/lessons", label: vi.nav.lessons, icon: "📚", match: (p: string) => p.startsWith("/topik/lessons") },
+  { href: "/topik/writing", label: vi.nav.writing, icon: "✍️", match: (p: string) => p.startsWith("/topik/writing") },
+  { href: "/topik/practice", label: vi.nav.practice, icon: "📝", match: (p: string) => p.startsWith("/topik/practice") },
+  { href: "/topik/review", label: vi.nav.review, icon: "🔄", match: (p: string) => p.startsWith("/topik/review") },
 ];
 
 export function TopikBottomNav() {
@@ -18,29 +18,18 @@ export function TopikBottomNav() {
   if (pathname.match(/\/topik\/lessons\/[^/]+\/[^/]+/)) return null;
 
   return (
-    <nav
-      className="fixed bottom-0 inset-x-0 z-40 bg-learn-surface/95 backdrop-blur-lg border-t border-learn-border"
-      style={{ paddingBottom: "var(--learn-safe-bottom)" }}
-    >
-      <div className="flex items-stretch justify-around h-14 max-w-lg mx-auto">
+    <nav className="topik-nav">
+      <div className="mx-auto flex h-14 max-w-lg items-stretch">
         {NAV.map((item) => {
           const active = item.match(pathname);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-0.5 text-[9px] font-semibold transition-colors active:scale-95 px-0.5",
-                active ? "text-learn-primary" : "text-learn-ink-muted",
-              )}
+              prefetch
+              className={cn("topik-nav-item", active && "active")}
             >
-              <span className="text-base leading-none">
-                {item.href === "/topik" && "🏠"}
-                {item.href === "/topik/lessons" && "📚"}
-                {item.href === "/topik/writing" && "✍️"}
-                {item.href === "/topik/practice" && "📝"}
-                {item.href === "/topik/review" && "🔄"}
-              </span>
+              <span className="text-lg leading-none">{item.icon}</span>
               {item.label}
             </Link>
           );
