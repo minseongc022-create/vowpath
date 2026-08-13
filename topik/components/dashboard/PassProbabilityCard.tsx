@@ -13,14 +13,18 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
   const [examDate, setExamDate] = useState("");
 
   return (
-    <section className="topik-card mb-6 overflow-hidden">
-      <div className="bg-gradient-to-br from-learn-primary to-learn-primary-hover p-5 text-white">
-        <p className="text-xs font-bold uppercase opacity-90">{vi.home.passProbability}</p>
-        <div className="mt-2 flex items-end gap-3">
-          <p className="text-4xl font-black">{report.probability}%</p>
-          <p className="pb-1 text-sm opacity-90">TOPIK {report.level}</p>
+    <section className="topik-card-soft mb-5 overflow-hidden topik-animate-in">
+      <div className="relative bg-gradient-to-br from-learn-primary/90 via-[#8b7cf0] to-[#a29bfe] p-5 text-white">
+        <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
+        <p className="text-xs font-semibold opacity-90">{vi.home.passProbability}</p>
+        <div className="mt-2 flex items-end gap-2">
+          <p className="text-4xl font-bold tracking-tight">{report.probability}%</p>
+          <p className="pb-1 text-sm font-medium opacity-90">TOPIK {report.level}</p>
         </div>
-        <p className="mt-1 text-xs opacity-80">{vi.home.passProbabilityHint}</p>
+        <div className="topik-progress-bar mt-3 bg-white/20">
+          <div className="topik-progress-fill bg-white/90" style={{ width: `${report.probability}%` }} />
+        </div>
+        <p className="mt-2 text-xs opacity-80 leading-relaxed">{vi.home.passProbabilityHint}</p>
         {report.daysToExam !== null && (
           <p className="mt-2 text-sm font-semibold">
             {vi.home.daysToExam} {report.daysToExam} {vi.home.examDays}
@@ -28,20 +32,20 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
         )}
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-4">
         {onSetExamDate && (
           <div className="flex gap-2">
             <input
               type="date"
               value={examDate}
               onChange={(e) => setExamDate(e.target.value)}
-              className="flex-1 rounded-xl border border-learn-border px-3 py-2 text-sm"
+              className="topik-input flex-1 !py-2.5 text-sm"
             />
             <button
               type="button"
               disabled={!examDate}
               onClick={() => examDate && onSetExamDate(examDate)}
-              className="rounded-xl bg-learn-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
+              className="topik-btn topik-btn-accent topik-btn-sm shrink-0"
             >
               {vi.home.setExamDate}
             </button>
@@ -50,10 +54,13 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
 
         {report.strengthsVi.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-learn-ink-muted mb-1">{vi.home.strengths}</p>
-            <ul className="space-y-1">
+            <p className="topik-section-title mb-2">{vi.home.strengths}</p>
+            <ul className="space-y-1.5">
               {report.strengthsVi.map((s) => (
-                <li key={s} className="text-xs text-green-700">✓ {s}</li>
+                <li key={s} className="flex gap-2 text-xs text-learn-accent">
+                  <span className="shrink-0">✓</span>
+                  <span>{s}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -61,10 +68,13 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
 
         {report.gapsVi.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-learn-ink-muted mb-1">{vi.home.gaps}</p>
-            <ul className="space-y-1">
+            <p className="topik-section-title mb-2">{vi.home.gaps}</p>
+            <ul className="space-y-1.5">
               {report.gapsVi.slice(0, 4).map((g) => (
-                <li key={g} className="text-xs text-orange-700">→ {g}</li>
+                <li key={g} className="flex gap-2 text-xs text-[var(--topik-coral)]">
+                  <span className="shrink-0">→</span>
+                  <span>{g}</span>
+                </li>
               ))}
             </ul>
           </div>

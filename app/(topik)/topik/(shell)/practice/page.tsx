@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { vi } from "@/topik/lib/i18n/vi";
+import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { TopikQuizClient } from "@/topik/components/quiz/TopikQuizClient";
 
 export default function PracticePage() {
   return (
-    <main className="mx-auto max-w-lg px-4 py-6 learn-animate-in">
-      <h1 className="text-xl font-black text-learn-ink">{vi.practice.title}</h1>
-      <p className="mt-1 mb-4 text-sm text-learn-ink-muted">{vi.practice.subtitle}</p>
+    <main className="topik-page">
+      <TopikPageHeader title={vi.practice.title} subtitle={vi.practice.subtitle} />
       <Link
         href="/topik/mock-exam"
-        className="mb-6 block rounded-2xl bg-learn-accent/10 border border-learn-accent/20 p-4 active:scale-[0.99] transition-transform"
+        className="topik-card topik-card-interactive mb-5 flex items-center gap-4 p-4 bg-[var(--topik-blue-soft)]"
       >
-        <p className="text-sm font-bold text-learn-accent">{vi.home.mockExamTitle}</p>
-        <p className="text-xs text-learn-ink-muted mt-0.5">{vi.home.mockExamDesc}</p>
+        <span className="topik-icon-box bg-white text-xl">🖥️</span>
+        <div>
+          <p className="text-sm font-semibold text-learn-ink">{vi.home.mockExamTitle}</p>
+          <p className="text-xs text-learn-ink-muted mt-0.5">{vi.home.mockExamDesc}</p>
+        </div>
       </Link>
       <TopikQuizClient />
     </main>

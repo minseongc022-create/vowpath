@@ -13,10 +13,10 @@ export function WritingResult({
   const pct = Math.round((result.estimatedScore / result.maxScore) * 100);
 
   return (
-    <div className="space-y-4 learn-animate-in">
+    <div className="space-y-4 topik-animate-in">
       <div className="topik-card p-6 text-center">
         <p className="text-xs font-bold text-learn-ink-muted uppercase">{vi.writing.score}</p>
-        <p className="mt-1 text-4xl font-black text-learn-primary">
+        <p className="mt-1 text-4xl font-bold text-learn-primary">
           {result.estimatedScore}
           <span className="text-lg text-learn-ink-muted font-medium"> / {result.maxScore}</span>
         </p>

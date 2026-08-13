@@ -151,7 +151,7 @@ export function SpeakingPracticeClient() {
 
   if (result) {
     return (
-      <div className="space-y-4 learn-animate-in">
+      <div className="space-y-4 topik-animate-in">
         <div className="grid grid-cols-2 gap-3">
           <ScoreBox label={vi.speaking.pronunciation} value={result.pronunciationScore} />
           <ScoreBox label={vi.speaking.grammar} value={result.grammarScore} />
@@ -191,7 +191,7 @@ export function SpeakingPracticeClient() {
             setResult(null);
             setTranscript("");
           }}
-          className="w-full rounded-2xl bg-learn-primary py-3 text-sm font-bold text-white"
+          className="w-full topik-btn topik-btn-primary topik-btn-md"
         >
           {vi.speaking.tryAgain}
         </button>
@@ -200,9 +200,9 @@ export function SpeakingPracticeClient() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 learn-animate-in">
+    <form onSubmit={handleSubmit} className="space-y-4 topik-animate-in">
       <div>
-        <p className="text-xs font-bold text-learn-ink-muted mb-2">{vi.speaking.selectScenario}</p>
+        <p className="topik-section-title mb-2">{vi.speaking.selectScenario}</p>
         <div className="flex flex-wrap gap-2">
           {SPEAKING_SCENARIOS.map((s) => (
             <button
@@ -212,11 +212,7 @@ export function SpeakingPracticeClient() {
                 setScenarioId(s.id);
                 setTranscript("");
               }}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
-                scenarioId === s.id
-                  ? "bg-learn-primary text-white border-learn-primary"
-                  : "border-learn-border text-learn-ink-muted"
-              }`}
+              className={`topik-pill ${scenarioId === s.id ? "topik-pill-active" : ""}`}
             >
               {s.titleVi}
             </button>
@@ -237,12 +233,12 @@ export function SpeakingPracticeClient() {
       </div>
 
       <div>
-        <label className="text-xs font-bold text-learn-ink-muted">{vi.speaking.yourAnswer}</label>
+        <label className="topik-section-title">{vi.speaking.yourAnswer}</label>
         <textarea
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           rows={5}
-          className="mt-1 w-full rounded-2xl border border-learn-border px-4 py-3 text-sm"
+          className="topik-textarea mt-2"
           placeholder={scenario.sampleAnswerKo}
         />
         {!speechOk && !whisperOk && (
@@ -258,7 +254,7 @@ export function SpeakingPracticeClient() {
                 type="button"
                 onClick={() => void startRecording()}
                 disabled={transcribing}
-                className="rounded-xl border border-learn-primary px-4 py-2 text-xs font-bold text-learn-primary disabled:opacity-50"
+                className="topik-btn topik-btn-outline topik-btn-sm"
               >
                 🎤 {transcribing ? vi.common.loading : vi.speaking.record}
               </button>
@@ -278,7 +274,7 @@ export function SpeakingPracticeClient() {
       <button
         type="submit"
         disabled={loading || !transcript.trim()}
-        className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white disabled:opacity-50"
+        className="w-full topik-btn topik-btn-primary topik-btn-lg disabled:opacity-50"
       >
         {loading ? vi.speaking.submitting : vi.speaking.submit}
       </button>
@@ -298,7 +294,7 @@ function ScoreBox({
   return (
     <div className={`topik-card p-3 text-center ${highlight ? "ring-2 ring-learn-primary" : ""}`}>
       <p className="text-[10px] font-bold uppercase text-learn-ink-muted">{label}</p>
-      <p className="text-2xl font-black text-learn-primary">{value}</p>
+      <p className="text-2xl font-bold text-learn-primary">{value}</p>
     </div>
   );
 }

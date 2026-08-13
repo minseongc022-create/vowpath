@@ -71,7 +71,7 @@ export function ReviewSession() {
 
   if (done) {
     return (
-      <div className="topik-card p-6 text-center learn-animate-in">
+      <div className="topik-card p-6 text-center topik-animate-in">
         <p className="text-4xl mb-2">✅</p>
         <p className="text-lg font-bold text-learn-ink">{vi.review.sessionComplete}</p>
         <p className="text-sm text-learn-ink-muted mt-1">
@@ -80,7 +80,7 @@ export function ReviewSession() {
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-4 w-full rounded-2xl bg-learn-primary py-3 text-sm font-bold text-white"
+          className="mt-4 w-full topik-btn topik-btn-primary topik-btn-md"
         >
           {vi.common.retry}
         </button>
@@ -91,7 +91,7 @@ export function ReviewSession() {
   const card = cards[idx]!;
 
   return (
-    <div className="space-y-4 learn-animate-in">
+    <div className="space-y-4 topik-animate-in">
       <div className="flex justify-between text-xs font-bold text-learn-ink-muted">
         <span>{vi.review.dueToday}: {stats.due}</span>
         <span>{idx + 1} / {cards.length}</span>

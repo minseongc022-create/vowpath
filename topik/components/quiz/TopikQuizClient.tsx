@@ -94,10 +94,10 @@ export function TopikQuizClient({ initialLevel }: Props) {
 
   if (finished) {
     return (
-      <div className="topik-card p-6 text-center learn-animate-in">
+      <div className="topik-card p-6 text-center topik-animate-in">
         <p className="text-4xl mb-2">🎉</p>
         <p className="text-lg font-bold text-learn-ink">{vi.practice.score}</p>
-        <p className="text-3xl font-black text-learn-primary mt-1">
+        <p className="text-3xl font-bold text-learn-primary mt-1">
           {score} / {questions.length}
         </p>
         <p className="text-sm text-learn-ink-muted mt-2">
@@ -106,7 +106,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
         <button
           type="button"
           onClick={() => void loadQuestions(level)}
-          className="mt-4 w-full rounded-2xl bg-learn-primary py-3 text-sm font-bold text-white"
+          className="mt-4 w-full topik-btn topik-btn-primary topik-btn-md"
         >
           {vi.common.retry}
         </button>
@@ -117,7 +117,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
   if (!q) return null;
 
   return (
-    <div className="space-y-4 learn-animate-in">
+    <div className="space-y-4 topik-animate-in">
       <div className="flex items-center justify-between">
         <select
           value={level}
@@ -149,14 +149,14 @@ export function TopikQuizClient({ initialLevel }: Props) {
               type="button"
               disabled={showResult}
               onClick={() => setSelected(i)}
-              className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all active:scale-[0.99] ${
+              className={`topik-option font-medium ${
                 showResult && i === q.correctIndex
-                  ? "border-green-500 bg-green-50 text-green-800"
+                  ? "topik-option-correct"
                   : showResult && i === selected && i !== q.correctIndex
-                    ? "border-red-400 bg-red-50 text-red-800"
+                    ? "topik-option-wrong"
                     : selected === i
-                      ? "border-learn-primary bg-learn-primary/10 text-learn-primary"
-                      : "border-learn-border bg-learn-surface text-learn-ink"
+                      ? "topik-option-selected"
+                      : ""
               }`}
             >
               {opt}
@@ -172,7 +172,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
           onChange={(e) => setTextAnswer(e.target.value)}
           disabled={showResult}
           placeholder="Nhập câu trả lời..."
-          className="w-full rounded-2xl border border-learn-border bg-learn-surface px-4 py-3 text-sm"
+          className="topik-input"
         />
       )}
 
@@ -190,7 +190,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
           type="button"
           onClick={handleSubmit}
           disabled={q.type === "multiple_choice" ? selected === null : !textAnswer.trim()}
-          className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white disabled:opacity-50"
+          className="w-full topik-btn topik-btn-primary topik-btn-lg disabled:opacity-50"
         >
           {vi.practice.submit}
         </button>
@@ -198,7 +198,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
         <button
           type="button"
           onClick={handleNext}
-          className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white"
+          className="w-full topik-btn topik-btn-primary topik-btn-lg"
         >
           {idx + 1 >= questions.length ? vi.practice.score : vi.practice.next}
         </button>

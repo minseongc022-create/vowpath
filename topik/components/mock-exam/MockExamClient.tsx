@@ -97,7 +97,7 @@ export function MockExamClient() {
 
   if (phase === "setup") {
     return (
-      <div className="space-y-4 learn-animate-in">
+      <div className="space-y-4 topik-animate-in">
         <div className="topik-card p-4">
           <p className="text-sm text-learn-ink-muted">{vi.mockExam.subtitle}</p>
           <ul className="mt-3 space-y-1 text-xs text-learn-ink">
@@ -133,10 +133,10 @@ export function MockExamClient() {
   if (phase === "result" && result) {
     const pct = Math.round((result.score / result.maxScore) * 100);
     return (
-      <div className="space-y-4 learn-animate-in text-center">
+      <div className="space-y-4 topik-animate-in text-center">
         <div className="topik-card p-6">
           <p className="text-xs font-bold uppercase text-learn-ink-muted">{vi.mockExam.result}</p>
-          <p className="mt-2 text-5xl font-black text-learn-primary">{pct}%</p>
+          <p className="mt-2 text-5xl font-bold text-learn-primary">{pct}%</p>
           <p className="mt-2 text-sm text-learn-ink">
             {vi.mockExam.correct}: {result.correct}/{result.total} · {result.score}/{result.maxScore} đ
           </p>
@@ -147,7 +147,7 @@ export function MockExamClient() {
             setPhase("setup");
             setResult(null);
           }}
-          className="w-full rounded-2xl bg-learn-primary py-3 text-sm font-bold text-white"
+          className="w-full topik-btn topik-btn-primary topik-btn-md"
         >
           {vi.mockExam.retry}
         </button>
@@ -161,7 +161,7 @@ export function MockExamClient() {
   const secs = timeLeft % 60;
 
   return (
-    <div className="space-y-4 learn-animate-in">
+    <div className="space-y-4 topik-animate-in">
       <div className="flex items-center justify-between topik-card px-4 py-3">
         <span className="text-xs font-bold text-learn-ink-muted">
           {vi.mockExam.question} {idx + 1}/{questions.length}
@@ -188,11 +188,7 @@ export function MockExamClient() {
             key={opt}
             type="button"
             onClick={() => setSelected(i)}
-            className={`w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
-              selected === i
-                ? "border-learn-primary bg-learn-primary/5 font-semibold"
-                : "border-learn-border"
-            }`}
+          className={`topik-option ${selected === i ? "topik-option-selected font-semibold" : ""}`}
           >
             {i + 1}. {opt}
           </button>
@@ -203,7 +199,7 @@ export function MockExamClient() {
         type="button"
         onClick={handleNext}
         disabled={selected === null || loading}
-        className="w-full rounded-2xl bg-learn-primary py-3.5 text-sm font-bold text-white disabled:opacity-50"
+        className="w-full topik-btn topik-btn-primary topik-btn-lg disabled:opacity-50"
       >
         {idx + 1 >= questions.length ? vi.mockExam.finish : vi.mockExam.next}
       </button>

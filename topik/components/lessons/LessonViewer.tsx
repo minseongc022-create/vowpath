@@ -44,7 +44,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
   }
 
   return (
-    <div className="space-y-4 learn-animate-in">
+    <div className="space-y-4 topik-animate-in">
       <div>
         <span className="topik-badge">TOPIK {lesson.level}</span>
         <h1 className="mt-2 text-lg font-bold text-learn-ink">{lesson.titleVi}</h1>
