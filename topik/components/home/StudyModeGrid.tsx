@@ -16,7 +16,7 @@ const MODES: Mode[] = [
     title: vi.home.speakingTitle,
     desc: vi.home.speakingDesc,
     emoji: "🎤",
-    bgClass: "bg-[var(--topik-purple-soft)]",
+    bgClass: "bg-[var(--topik-primary-soft)]",
     featured: true,
   },
   {
@@ -52,7 +52,7 @@ const MODES: Mode[] = [
     title: vi.home.reviewTitle,
     desc: vi.home.reviewDesc,
     emoji: "🔄",
-    bgClass: "bg-[var(--topik-purple-soft)]",
+    bgClass: "bg-[var(--topik-primary-soft)]",
   },
 ];
 

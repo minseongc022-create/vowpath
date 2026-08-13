@@ -21,7 +21,7 @@ export function StudyPlanCard({ today, planDay, totalDays }: Props) {
       <ul className="space-y-2.5">
         {today.tasksVi.map((task, i) => (
           <li key={task} className="flex items-start gap-2.5 text-sm text-learn-ink">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--topik-purple-soft)] text-[10px] font-bold text-learn-primary">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--topik-primary-soft)] text-[10px] font-bold text-learn-primary">
               {i + 1}
             </span>
             <span className="leading-relaxed">{task}</span>

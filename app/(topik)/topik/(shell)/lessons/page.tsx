@@ -39,7 +39,7 @@ function LevelBlock({ level }: { level: TopikLevel }) {
   const lessons = getLessonsByLevel(level);
   return (
     <div className="topik-card-soft overflow-hidden">
-      <div className="bg-[var(--topik-purple-soft)] px-4 py-2.5">
+      <div className="bg-[var(--topik-primary-soft)] px-4 py-2.5">
         <p className="text-sm font-semibold text-learn-primary">{vi.lessons.level} {level}</p>
       </div>
       <div className="divide-y divide-learn-border">

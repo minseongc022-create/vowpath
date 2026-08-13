@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#e8344e",
+  themeColor: "#c94c55",
 };
 
 export default function TopikRootLayout({

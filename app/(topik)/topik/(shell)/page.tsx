@@ -69,7 +69,7 @@ export default async function TopikHomePage() {
         </div>
         <div className="topik-card p-4">
           <p className="topik-section-title">{vi.home.streak}</p>
-          <p className="mt-1 text-2xl font-bold text-[#f39c12]">
+          <p className="mt-1 text-2xl font-bold text-[var(--topik-gold)]">
             {progress.streak}{" "}
             <span className="text-sm font-medium text-learn-ink-muted">{vi.home.days}</span>
           </p>
