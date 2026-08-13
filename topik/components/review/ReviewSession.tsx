@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { SrsCard } from "@/topik/types";
 import { vi } from "@/topik/lib/i18n/vi";
+import { IconCheckCircle, IconChevronRight, IconInbox } from "@/topik/components/ui/TopikIcons";
 
 type Quality = 0 | 1 | 3 | 5;
 
@@ -59,12 +61,13 @@ export function ReviewSession() {
 
   if (cards.length === 0) {
     return (
-      <div className="topik-card p-8 text-center">
-        <p className="text-4xl mb-3">📭</p>
-        <p className="text-sm text-learn-ink-muted">{vi.review.empty}</p>
-        <a href="/topik/lessons" className="mt-4 inline-block text-sm font-bold text-learn-primary">
-          → {vi.nav.lessons}
-        </a>
+      <div className="topik-empty-state topik-card p-8 text-center">
+        <IconInbox className="mx-auto text-learn-ink-subtle" />
+        <p className="mt-3 text-sm text-learn-ink-muted">{vi.review.empty}</p>
+        <Link href="/topik/lessons" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-learn-primary">
+          {vi.nav.lessons}
+          <IconChevronRight />
+        </Link>
       </div>
     );
   }
@@ -72,8 +75,8 @@ export function ReviewSession() {
   if (done) {
     return (
       <div className="topik-card p-6 text-center topik-animate-in">
-        <p className="text-4xl mb-2">✅</p>
-        <p className="text-lg font-bold text-learn-ink">{vi.review.sessionComplete}</p>
+        <IconCheckCircle className="mx-auto text-learn-accent" />
+        <p className="mt-3 text-lg font-bold text-learn-ink">{vi.review.sessionComplete}</p>
         <p className="text-sm text-learn-ink-muted mt-1">
           {reviewed} {vi.review.cardsReviewed}
         </p>

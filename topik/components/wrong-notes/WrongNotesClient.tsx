@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { WrongRecord } from "@/topik/lib/store/file-store";
 import { vi } from "@/topik/lib/i18n/vi";
+import { IconInbox } from "@/topik/components/ui/TopikIcons";
 
 export function WrongNotesClient({ initial }: { initial: WrongRecord[] }) {
   const [items, setItems] = useState(initial);
@@ -18,9 +19,9 @@ export function WrongNotesClient({ initial }: { initial: WrongRecord[] }) {
 
   if (items.length === 0) {
     return (
-      <div className="topik-card p-8 text-center">
-        <p className="text-4xl mb-2">✨</p>
-        <p className="text-sm text-learn-ink-muted">{vi.wrongNotes.empty}</p>
+      <div className="topik-empty-state topik-card p-8 text-center">
+        <IconInbox className="mx-auto text-learn-ink-subtle" />
+        <p className="mt-3 text-sm text-learn-ink-muted">{vi.wrongNotes.empty}</p>
       </div>
     );
   }

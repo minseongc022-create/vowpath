@@ -275,29 +275,118 @@
   letter-spacing: 0.01em;
 }
 
-/* ── Bottom nav (Malhaeboka floating pill style) ── */
+/* ── Mode icons (line style in soft tint circle) ── */
+.topik-mode-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 14px;
+  flex-shrink: 0;
+  color: var(--learn-primary);
+}
+
+.topik-mode-icon-sm {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 12px;
+}
+
+.topik-mode-icon-primary {
+  background: var(--topik-primary-soft);
+  color: var(--learn-primary);
+}
+
+.topik-mode-icon-coral {
+  background: var(--topik-coral-soft);
+  color: var(--topik-coral);
+}
+
+.topik-mode-icon-mint {
+  background: var(--topik-mint-soft);
+  color: var(--learn-accent);
+}
+
+.topik-mode-icon-blue {
+  background: var(--topik-blue-soft);
+  color: var(--topik-blue);
+}
+
+.topik-mode-icon-gold {
+  background: var(--topik-gold-soft);
+  color: var(--topik-gold);
+}
+
+.topik-stat-chip {
+  padding: 0.875rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+}
+
+.topik-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1rem;
+  background: var(--learn-surface);
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topik-mode-row:active {
+  background: var(--learn-muted);
+}
+
+.topik-mode-row + .topik-mode-row {
+  border-top: 1px solid var(--learn-border);
+}
+
+.topik-mode-list {
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  overflow: hidden;
+  background: var(--learn-surface);
+  box-shadow: var(--learn-shadow-sm);
+}
+
+/* Home favorites tile */
+.topik-mode-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+  box-shadow: var(--learn-shadow-sm);
+  transition: transform 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topik-mode-tile:active {
+  transform: scale(0.98);
+  background: var(--learn-muted);
+}
+
+/* ── Bottom nav (Malhaeboka flat tab bar) ── */
 .topik-nav-bar {
   position: fixed;
   bottom: 0;
   inset-inline: 0;
   z-index: 40;
   padding-bottom: var(--learn-safe-bottom);
-  pointer-events: none;
+  background: var(--learn-surface);
+  border-top: 1px solid var(--learn-border);
+  box-shadow: 0 -2px 12px rgb(61 53 48 / 0.04);
 }
 
 .topik-nav-inner {
-  pointer-events: auto;
-  margin: 0 auto 0.5rem;
-  max-width: 28rem;
   display: flex;
   align-items: stretch;
   height: var(--topik-nav-height);
-  background: rgb(255 252 249 / 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--topik-radius-xl);
-  border: 1px solid rgb(235 228 220 / 0.9);
-  box-shadow: 0 4px 24px rgb(61 53 48 / 0.07), 0 1px 3px rgb(61 53 48 / 0.04);
+  max-width: 28rem;
+  margin-inline: auto;
 }
 
 .topik-nav-item {
@@ -306,7 +395,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.125rem;
+  gap: 0.1875rem;
   font-size: 0.625rem;
   font-weight: 600;
   color: var(--learn-ink-subtle);
@@ -323,7 +412,6 @@
   height: 4px;
   border-radius: 50%;
   background: var(--learn-primary);
-  margin-top: 1px;
 }
 
 /* ── Side menu overlay ── */

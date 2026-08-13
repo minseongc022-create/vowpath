@@ -2,7 +2,22 @@ import Link from "next/link";
 import { vi } from "@/topik/lib/i18n/vi";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { getAllLevels, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
-import type { TopikLevel } from "@/topik/types";
+import { IconGrammar, IconReading, IconVocab, IconPen } from "@/topik/components/ui/TopikIcons";
+import type { TopikLevel, LessonCategory } from "@/topik/types";
+
+function LessonCategoryIcon({ category }: { category: LessonCategory }) {
+  const iconClass = "text-learn-primary";
+  switch (category) {
+    case "writing":
+      return <IconPen className={iconClass} size={18} />;
+    case "reading":
+      return <IconReading className={iconClass} size={18} />;
+    case "vocabulary":
+      return <IconVocab className={iconClass} size={18} />;
+    default:
+      return <IconGrammar className={iconClass} size={18} />;
+  }
+}
 
 export default function LessonsIndexPage() {
   const levels = getAllLevels();
@@ -38,28 +53,25 @@ export default function LessonsIndexPage() {
 function LevelBlock({ level }: { level: TopikLevel }) {
   const lessons = getLessonsByLevel(level);
   return (
-    <div className="topik-card-soft overflow-hidden">
+    <div className="topik-mode-list">
       <div className="bg-[var(--topik-primary-soft)] px-4 py-2.5">
         <p className="text-sm font-semibold text-learn-primary">{vi.lessons.level} {level}</p>
       </div>
-      <div className="divide-y divide-learn-border">
-        {lessons.map((lesson) => (
-          <Link
-            key={lesson.id}
-            href={`/topik/lessons/${level}/${lesson.id}`}
-            className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-learn-muted/40"
-          >
-            <span className="topik-icon-box bg-learn-muted text-lg !w-10 !h-10 !rounded-xl">
-              {lesson.category === "writing" ? "✍️" : lesson.category === "reading" ? "📖" : lesson.category === "vocabulary" ? "📖" : "📐"}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-learn-ink truncate">{lesson.titleVi}</p>
-              <p className="text-[11px] text-learn-ink-muted">{lesson.durationMin} {vi.lessons.minutes}</p>
-            </div>
-            <span className="text-learn-primary text-sm opacity-60">›</span>
-          </Link>
-        ))}
-      </div>
+      {lessons.map((lesson) => (
+        <Link
+          key={lesson.id}
+          href={`/topik/lessons/${level}/${lesson.id}`}
+          className="topik-mode-row"
+        >
+          <span className="topik-mode-icon topik-mode-icon-primary topik-mode-icon-sm">
+            <LessonCategoryIcon category={lesson.category} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-learn-ink truncate">{lesson.titleVi}</p>
+            <p className="text-[11px] text-learn-ink-muted">{lesson.durationMin} {vi.lessons.minutes}</p>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

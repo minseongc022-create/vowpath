@@ -5,17 +5,20 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/learn/lib/utils";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
+import { STUDY_MODES } from "@/topik/lib/study-modes";
 import { vi } from "@/topik/lib/i18n/vi";
-import { IconClose, IconMenu } from "@/topik/components/ui/TopikIcons";
-
-const MENU_LINKS = [
-  { href: "/topik/speaking", label: vi.nav.speaking, emoji: "🎤" },
-  { href: "/topik/writing", label: vi.nav.writing, emoji: "✍️" },
-  { href: "/topik/mock-exam", label: vi.nav.mockExam, emoji: "🖥️" },
-  { href: "/topik/practice", label: vi.nav.practice, emoji: "📝" },
-  { href: "/topik/wrong-notes", label: vi.nav.wrongNotes, emoji: "📋" },
-  { href: "/topik/stats", label: vi.nav.stats, emoji: "📊" },
-];
+import {
+  IconBook,
+  IconChevronRight,
+  IconClose,
+  IconFlame,
+  IconHome,
+  IconMenu,
+  IconReview,
+  IconStats,
+  IconStudy,
+  StudyModeIcon,
+} from "@/topik/components/ui/TopikIcons";
 
 type Props = {
   streak?: number;
@@ -31,11 +34,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
   }, [pathname]);
 
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -43,28 +42,26 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-learn-bg/80 backdrop-blur-xl">
-        <div className="topik-page flex h-14 items-center justify-between !py-0">
+      <header className="sticky top-0 z-30 border-b border-learn-border bg-learn-surface/95 backdrop-blur-md">
+        <div className="topik-page flex h-12 items-center justify-between !py-0">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-learn-ink-muted transition-colors active:bg-learn-muted"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-learn-ink-muted active:bg-learn-muted"
             aria-label={vi.menu.open}
           >
             <IconMenu />
           </button>
 
-          <Link href="/topik" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-learn-primary to-[#d97070] text-sm font-bold text-white shadow-md">
-              T
-            </span>
-            <span className="text-sm font-semibold text-learn-ink">{TOPIK_BRAND.name}</span>
+          <Link href="/topik" className="text-sm font-semibold text-learn-ink">
+            {TOPIK_BRAND.name}
           </Link>
 
           <div className="flex items-center gap-1.5">
             {streak > 0 && (
-              <span className="flex items-center gap-0.5 rounded-full bg-[var(--topik-gold-soft)] px-2 py-1 text-xs font-semibold text-[var(--topik-gold)]">
-                🔥 {streak}
+              <span className="flex items-center gap-1 rounded-full bg-[var(--topik-gold-soft)] px-2 py-1 text-xs font-semibold text-[var(--topik-gold)]">
+                <IconFlame />
+                {streak}
               </span>
             )}
             <span className="topik-badge">TOPIK {targetLevel}</span>
@@ -87,21 +84,19 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
                 <IconClose />
               </button>
             </div>
-            <div className="px-3 py-3">
-              <p className="px-3 pb-2 text-xs font-semibold text-learn-ink-subtle">{vi.menu.allModes}</p>
-              {MENU_LINKS.map((link) => (
+            <div className="topik-mode-list mx-3 my-3 !border-0 !shadow-none">
+              {STUDY_MODES.map((mode) => (
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  key={mode.href}
+                  href={mode.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors active:bg-learn-muted",
-                    pathname.startsWith(link.href) ? "bg-[var(--topik-primary-soft)] text-learn-primary" : "text-learn-ink",
+                    "topik-mode-row",
+                    pathname.startsWith(mode.href) && "bg-[var(--topik-primary-soft)]",
                   )}
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-learn-muted text-lg">
-                    {link.emoji}
-                  </span>
-                  {link.label}
+                  <StudyModeIcon id={mode.id} tint={mode.tint} />
+                  <span className="flex-1 text-sm font-medium text-learn-ink">{mode.title}</span>
+                  <IconChevronRight className="text-learn-ink-subtle" />
                 </Link>
               ))}
             </div>
@@ -114,3 +109,6 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
     </>
   );
 }
+
+/** Re-export nav icons for bottom bar */
+export { IconHome, IconStats, IconStudy, IconBook, IconReview };
