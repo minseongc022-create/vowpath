@@ -8,10 +8,10 @@ import { GIU_STRINGS } from "@/giu/lib/strings";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
-const PAYMENT_OPTIONS: { id: GiuPaymentMethod; label: string }[] = [
-  { id: "momo", label: "MoMo (VNPay)" },
-  { id: "vietqr", label: "VietQR / Chuyển khoản" },
-  { id: "card", label: "Thẻ quốc tế" },
+const PAYMENT_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
+  { id: "vietqr", label: "VietQR", sub: "Chuyển khoản nhanh" },
+  { id: "momo", label: "MoMo", sub: "Ví MoMo qua VNPay" },
+  { id: "card", label: "Thẻ", sub: "Thẻ quốc tế" },
 ];
 
 export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceVnd: number }) {
@@ -66,28 +66,21 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
 
   if (authLoading) {
     return (
-      <div className="rounded-2xl border border-giu-border bg-white p-6 text-center text-sm text-giu-muted">
-        Đang tải...
-      </div>
+      <div className="giu-card text-center text-sm text-giu-muted">Đang tải...</div>
     );
   }
 
   if (!account) {
     return (
-      <div className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-        <h3 className="text-lg font-semibold text-giu-ink">{GIU_STRINGS.payCta}</h3>
-        <p className="text-sm text-giu-muted">
-          Đăng nhập để thanh toán an toàn · {formatVnd(salePriceVnd)} · nhận mã ngay sau khi trả.
-        </p>
-        <Link
-          href={`/giu/dang-nhap?next=/giu/hop/${boxId}`}
-          className="block w-full rounded-xl bg-giu-accent py-3 text-center text-sm font-semibold text-white"
-        >
+      <div className="giu-card space-y-4">
+        <p className="text-2xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
+        <p className="text-sm text-giu-muted">{GIU_STRINGS.payCta}</p>
+        <Link href={`/giu/dang-nhap?next=/giu/hop/${boxId}`} className="giu-btn-primary block text-center">
           Đăng nhập
         </Link>
         <Link
           href={`/giu/dang-ky?next=/giu/hop/${boxId}`}
-          className="block w-full rounded-xl border border-giu-border py-3 text-center text-sm font-semibold text-giu-primary"
+          className="giu-btn-secondary block text-center"
         >
           Tạo tài khoản
         </Link>
@@ -97,67 +90,64 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
 
   if (successCode && reservationId) {
     return (
-      <div className="space-y-4 rounded-2xl border-2 border-giu-primary bg-white p-6 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-giu-primary">
-          Thanh toán thành công
-        </p>
-        <p className="font-mono text-4xl font-extrabold tracking-widest text-giu-ink">{successCode}</p>
-        <p className="text-sm text-giu-muted">Mã giải cứu — SMS cũng đã gửi tới SĐT của bạn</p>
-        <Link
-          href={`/giu/dat/${reservationId}`}
-          className="inline-block rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
-        >
-          Xem chi tiết →
+      <div className="giu-card space-y-4 text-center">
+        <span className="giu-badge-safe">Thanh toán thành công</span>
+        <p className="font-mono text-4xl font-extrabold tracking-[0.2em] text-giu-ink">{successCode}</p>
+        <p className="text-sm text-giu-muted">Mã giải cứu · SMS đã gửi</p>
+        <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
+          Xem chi tiết
         </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h3 className="text-lg font-semibold text-giu-ink">{GIU_STRINGS.escrowTitle}</h3>
-      <p className="text-sm text-giu-muted">
-        Xin chào <strong>{account.name}</strong> · <strong>{formatVnd(salePriceVnd)}</strong>
-      </p>
+    <form onSubmit={submit} className="giu-card space-y-5">
+      <div>
+        <p className="text-sm text-giu-muted">Thanh toán</p>
+        <p className="mt-1 text-3xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
+      </div>
 
-      <div className="rounded-xl border border-giu-primary/20 bg-giu-primary/5 px-3 py-2 text-xs text-giu-primary">
-        {GIU_STRINGS.escrowDesc}
+      <div className="giu-info-banner">
+        <p className="font-semibold text-giu-primary">{GIU_STRINGS.escrowTitle}</p>
+        <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
       </div>
 
       <div>
-        <p className="text-sm font-medium text-giu-ink">Phương thức thanh toán</p>
-        <div className="mt-2 grid gap-2">
-          {PAYMENT_OPTIONS.map((opt) => (
-            <label
-              key={opt.id}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm ${
-                paymentMethod === opt.id
-                  ? "border-giu-primary bg-giu-primary/5"
-                  : "border-giu-border"
-              }`}
-            >
-              <input
-                type="radio"
-                name="payment"
-                value={opt.id}
-                checked={paymentMethod === opt.id}
-                onChange={() => setPaymentMethod(opt.id)}
-              />
-              {opt.label}
-            </label>
-          ))}
+        <p className="giu-label">Phương thức</p>
+        <div className="space-y-2">
+          {PAYMENT_OPTIONS.map((opt) => {
+            const selected = paymentMethod === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setPaymentMethod(opt.id)}
+                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition ${
+                  selected
+                    ? "bg-giu-primary-soft ring-2 ring-giu-primary"
+                    : "bg-giu-bg ring-1 ring-giu-border"
+                }`}
+              >
+                <span>
+                  <span className="block font-semibold text-giu-ink">{opt.label}</span>
+                  <span className="block text-xs text-giu-muted">{opt.sub}</span>
+                </span>
+                {selected ? (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-giu-primary text-xs text-white">
+                    ✓
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-giu-accent py-3 text-sm font-semibold text-white hover:bg-giu-accent-hover disabled:opacity-60"
-      >
-        {loading
-          ? "Đang chuyển thanh toán..."
-          : `${GIU_STRINGS.payCta} · ${formatVnd(salePriceVnd)}`}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+
+      <button type="submit" disabled={loading} className="giu-btn-primary">
+        {loading ? "Đang chuyển..." : GIU_STRINGS.payCta}
       </button>
     </form>
   );

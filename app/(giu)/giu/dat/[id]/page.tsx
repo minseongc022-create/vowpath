@@ -23,66 +23,57 @@ export default async function GiuReservationPage({ params }: Props) {
   ]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-16 text-center">
+    <div className="giu-page space-y-5 text-center">
       {pending ? (
-        <>
-          <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">
-            Chờ thanh toán
+        <div className="giu-card space-y-3">
+          <span className="giu-badge-safe bg-amber-50 text-amber-700">Chờ thanh toán</span>
+          <p className="text-sm text-giu-muted">
+            Hoàn tất thanh toán VNPay để nhận mã. Nếu đã trả, tải lại trang sau vài giây.
           </p>
-          <p className="mt-4 text-giu-muted">
-            Hoàn tất thanh toán VNPay để nhận mã giải cứu. Nếu đã trả, tải lại trang sau vài giây.
-          </p>
-        </>
+        </div>
       ) : paid ? (
-        <>
-          <p className="text-sm font-semibold uppercase tracking-wide text-giu-primary">
-            Mã giải cứu của bạn
-          </p>
-          <p className="mt-4 font-mono text-5xl font-extrabold tracking-widest text-giu-ink">
+        <div className="giu-card space-y-4">
+          <span className="giu-badge-safe">Mã giải cứu</span>
+          <p className="font-mono text-5xl font-extrabold tracking-[0.18em] text-giu-ink">
             {reservation.code}
           </p>
-          <p className="mt-2 text-giu-muted">Đọc mã này tại quán để nhận hộp</p>
-          <p className="mt-1 text-sm font-medium text-green-700">✓ Đã thanh toán · SMS đã gửi</p>
+          <p className="text-sm text-giu-muted">Đọc mã này tại quán để nhận hộp</p>
+          <p className="text-sm font-medium text-giu-accent">✓ Đã thanh toán · SMS đã gửi</p>
           {held ? (
-            <p className="mt-2 rounded-xl bg-giu-primary/5 px-3 py-2 text-xs text-giu-primary">
-              {GIU_STRINGS.escrowDesc}
-            </p>
+            <div className="giu-info-banner text-left text-sm">{GIU_STRINGS.escrowDesc}</div>
           ) : released ? (
-            <p className="mt-2 text-xs text-giu-muted">Đã lấy hàng · quán đã nhận tiền</p>
+            <p className="text-xs text-giu-muted">Đã lấy hàng · quán đã nhận tiền</p>
           ) : null}
-        </>
+        </div>
       ) : (
-        <p className="text-giu-muted">Thanh toán không thành công hoặc đã hủy.</p>
+        <div className="giu-card text-sm text-giu-muted">Thanh toán không thành công hoặc đã hủy.</div>
       )}
 
-      <div className="mt-8 rounded-2xl border border-giu-border bg-white p-6 text-left">
+      <div className="giu-card space-y-3 text-left">
         {merchant ? (
           <>
             <p className="font-semibold text-giu-ink">{merchant.name}</p>
             <p className="text-sm text-giu-muted">{merchant.address}</p>
           </>
         ) : null}
-        {box ? <p className="mt-2 text-sm">{box.title}</p> : null}
-        <p className="mt-4 text-lg font-bold text-giu-primary">
-          {formatVnd(reservation.totalVnd)}
-        </p>
+        {box ? <p className="text-sm text-giu-ink">{box.title}</p> : null}
+        <div className="giu-divider" />
+        <div className="flex items-center justify-between">
+          <span className="text-giu-muted">Tổng</span>
+          <span className="text-xl font-bold text-giu-ink">{formatVnd(reservation.totalVnd)}</span>
+        </div>
         {box ? (
-          <p className="mt-1 text-sm text-giu-muted">
+          <p className="text-sm text-giu-muted">
             Lấy: {formatPickupWindow(box.pickupStart, box.pickupEnd)}
           </p>
         ) : null}
-        <p className="mt-2 text-xs text-giu-muted">
-          Thanh toán: {reservation.paymentStatus} · {reservation.status}
-        </p>
       </div>
 
       {paid && reservation.status === "giu_cho" ? (
-        <div className="mt-6">
-          <CancelReservationButton reservationId={reservation.id} />
-        </div>
+        <CancelReservationButton reservationId={reservation.id} />
       ) : null}
 
-      <Link href="/giu/hop" className="mt-8 inline-block text-sm font-semibold text-giu-primary">
+      <Link href="/giu/hop" className="inline-block text-sm font-semibold text-giu-primary">
         Săn thêm hộp →
       </Link>
     </div>

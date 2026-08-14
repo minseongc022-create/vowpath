@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { BoxCard } from "@/giu/components/BoxCard";
 import { BoxFilters } from "@/giu/components/BoxFilters";
 import { listBoxes, listMerchants } from "@/giu/lib/store";
+import { GIU_STRINGS } from "@/giu/lib/strings";
 
 type Props = {
   searchParams: Promise<{ district?: string; category?: string }>;
@@ -20,18 +21,18 @@ export default async function GiuBoxesPage({ searchParams }: Props) {
   const merchantMap = new Map(merchants.map((m) => [m.id, m]));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-giu-ink">Săn hộp giải cứu</h1>
-      <p className="mt-2 text-giu-muted">Giờ vàng 19h–21h · Quận 1, 3, 7, 10, Bình Thạnh, Phú Nhuận</p>
+    <div className="giu-page">
+      <h1 className="giu-section-title">{GIU_STRINGS.navBoxes}</h1>
+      <p className="giu-section-sub">{GIU_STRINGS.goldenHour}</p>
 
-      <div className="mt-6">
+      <div className="mt-5">
         <Suspense fallback={null}>
           <BoxFilters />
         </Suspense>
       </div>
 
       {boxes.length > 0 ? (
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-5 space-y-3">
           {boxes.map((box) => {
             const merchant = merchantMap.get(box.merchantId);
             if (!merchant) return null;
@@ -39,9 +40,9 @@ export default async function GiuBoxesPage({ searchParams }: Props) {
           })}
         </div>
       ) : (
-        <p className="mt-12 text-center text-giu-muted">
+        <div className="giu-card mt-8 text-center text-sm text-giu-muted">
           Chưa có hộp phù hợp. Thử đổi bộ lọc hoặc quay lại sau 19h.
-        </p>
+        </div>
       )}
     </div>
   );

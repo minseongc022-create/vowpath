@@ -84,7 +84,7 @@ export function MerchantPanelClient() {
 
   if (!account || account.role !== "merchant" || !merchant) {
     return (
-      <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-giu-border bg-white p-6 text-center">
+      <div className="mx-auto max-w-md space-y-4 giu-card text-center">
         <h2 className="text-lg font-semibold">Quản lý quán</h2>
         <p className="text-sm text-giu-muted">Đăng nhập bằng email quán để đăng hộp và xác nhận đơn.</p>
         <Link
@@ -102,7 +102,7 @@ export function MerchantPanelClient() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-giu-border bg-white p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 giu-card">
         <div>
           <h1 className="text-xl font-bold">{merchant.name}</h1>
           <p className="text-sm text-giu-muted">{merchant.address}</p>
@@ -135,9 +135,9 @@ export function MerchantPanelClient() {
         </button>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
 
-      <section className="rounded-2xl border border-giu-border bg-white p-6">
+      <section className="giu-card">
         <h2 className="font-semibold">Đăng hộp mới — mọi loại món ăn</h2>
         <p className="mt-1 text-sm text-giu-muted">
           Bánh, cơm, phở, trà sữa… miễn còn tươi đến giờ khách lấy là được.
@@ -147,11 +147,11 @@ export function MerchantPanelClient() {
             name="title"
             required
             placeholder="Tên hộp *"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm sm:col-span-2"
+            className="giu-input sm:col-span-2"
           />
           <select
             name="category"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm sm:col-span-2"
+            className="giu-input sm:col-span-2"
             defaultValue={merchant.category}
           >
             {GIu_CATEGORIES.map((c) => (
@@ -163,13 +163,13 @@ export function MerchantPanelClient() {
           <input
             name="description"
             placeholder="Mô tả (tuỳ chọn)"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm sm:col-span-2"
+            className="giu-input sm:col-span-2"
           />
           <input
             name="freshnessNote"
             placeholder="Cam kết độ tươi (tuỳ chọn)"
             defaultValue="Giữ tươi cho đến khi khách đến lấy trong khung giờ."
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm sm:col-span-2"
+            className="giu-input sm:col-span-2"
           />
           <input
             name="originalPriceVnd"
@@ -177,7 +177,7 @@ export function MerchantPanelClient() {
             type="number"
             min={10000}
             placeholder="Giá gốc (VND) *"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm"
+            className="giu-input"
           />
           <input
             name="salePriceVnd"
@@ -185,7 +185,7 @@ export function MerchantPanelClient() {
             type="number"
             min={5000}
             placeholder="Giá giải cứu (VND) *"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm"
+            className="giu-input"
           />
           <input
             name="quantityTotal"
@@ -195,11 +195,11 @@ export function MerchantPanelClient() {
             max={50}
             defaultValue={5}
             placeholder="Số hộp *"
-            className="rounded-xl border border-giu-border px-3 py-2 text-sm"
+            className="giu-input"
           />
           <button
             type="submit"
-            className="rounded-xl bg-giu-accent py-2 text-sm font-semibold text-white sm:col-span-2"
+            className="giu-btn-primary py-3 sm:col-span-2"
           >
             Đăng hộp
           </button>
@@ -210,7 +210,7 @@ export function MerchantPanelClient() {
         <h2 className="font-semibold">Hộp của quán ({boxes.length})</h2>
         <ul className="mt-4 space-y-3">
           {boxes.map((box) => (
-            <li key={box.id} className="rounded-xl border border-giu-border bg-white p-4">
+            <li key={box.id} className="giu-card-flat ring-1 ring-giu-border p-4">
               <p className="font-medium">{box.title}</p>
               <p className="text-sm text-giu-muted">
                 {formatVnd(box.salePriceVnd)} · Còn {box.quantityLeft}/{box.quantityTotal} · {box.status}
@@ -230,7 +230,7 @@ export function MerchantPanelClient() {
         <h2 className="font-semibold">Đơn đã thanh toán ({reservations.length})</h2>
         <ul className="mt-4 space-y-3">
           {reservations.slice(0, 20).map((r) => (
-            <li key={r.id} className="rounded-xl border border-giu-border bg-white p-4">
+            <li key={r.id} className="giu-card-flat ring-1 ring-giu-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-mono text-lg font-bold text-giu-primary">{r.code}</p>
@@ -250,7 +250,7 @@ export function MerchantPanelClient() {
                   <button
                     type="button"
                     onClick={() => markPickedUp(r.id)}
-                    className="rounded-lg bg-giu-primary px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
                   >
                     Đã lấy ✓
                   </button>

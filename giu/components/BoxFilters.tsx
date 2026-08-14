@@ -18,32 +18,52 @@ export function BoxFilters() {
     router.push(q ? `/giu/hop?${q}` : "/giu/hop");
   }
 
+  function chipClass(active: boolean): string {
+    return active
+      ? "bg-giu-primary text-white"
+      : "bg-giu-surface text-giu-muted ring-1 ring-giu-border";
+  }
+
   return (
-    <div className="flex flex-wrap gap-3">
-      <select
-        value={district}
-        onChange={(e) => update("district", e.target.value)}
-        className="rounded-xl border border-giu-border bg-white px-3 py-2 text-sm"
-      >
-        <option value="">Tất cả quận</option>
+    <div className="space-y-3">
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => update("district", "")}
+          className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!district)}`}
+        >
+          Tất cả quận
+        </button>
         {GIu_DISTRICTS.map((d) => (
-          <option key={d.id} value={d.id}>
+          <button
+            key={d.id}
+            type="button"
+            onClick={() => update("district", d.id)}
+            className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(district === d.id)}`}
+          >
             {d.label}
-          </option>
+          </button>
         ))}
-      </select>
-      <select
-        value={category}
-        onChange={(e) => update("category", e.target.value)}
-        className="rounded-xl border border-giu-border bg-white px-3 py-2 text-sm"
-      >
-        <option value="">Tất cả loại</option>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => update("category", "")}
+          className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!category)}`}
+        >
+          Tất cả
+        </button>
         {GIu_CATEGORIES.map((c) => (
-          <option key={c.id} value={c.id}>
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => update("category", c.id)}
+            className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(category === c.id)}`}
+          >
             {c.emoji} {c.label}
-          </option>
+          </button>
         ))}
-      </select>
+      </div>
     </div>
   );
 }

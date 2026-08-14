@@ -12,35 +12,21 @@ export function BoxCard({ box, merchant }: Props) {
   const discount = formatDiscount(box.originalPriceVnd, box.salePriceVnd);
 
   return (
-    <Link
-      href={`/giu/hop/${box.id}`}
-      className="group block rounded-2xl border border-giu-border bg-white p-5 shadow-sm transition hover:border-giu-primary/30 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{getCategoryEmoji(box.category)}</span>
-          <div>
-            <p className="font-semibold text-giu-ink group-hover:text-giu-primary">{box.title}</p>
-            <p className="text-sm text-giu-muted">{merchant.name}</p>
-          </div>
+    <Link href={`/giu/hop/${box.id}`} className="giu-list-row shadow-giu-sm block">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-giu-bg text-2xl">
+        {getCategoryEmoji(box.category)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate font-semibold text-giu-ink">{box.title}</p>
+          <span className="giu-badge-sale shrink-0">{discount}</span>
         </div>
-        <span className="shrink-0 rounded-full bg-giu-accent/10 px-2.5 py-1 text-xs font-bold text-giu-accent">
-          {discount}
-        </span>
-      </div>
-
-      {box.description ? (
-        <p className="mt-3 line-clamp-2 text-sm text-giu-muted">{box.description}</p>
-      ) : null}
-
-      <div className="mt-4 flex items-end justify-between gap-2">
-        <div>
-          <p className="text-lg font-bold text-giu-primary">{formatVnd(box.salePriceVnd)}</p>
-          <p className="text-xs text-giu-muted line-through">{formatVnd(box.originalPriceVnd)}</p>
-        </div>
-        <div className="text-right text-xs text-giu-muted">
-          <p>Còn {box.quantityLeft} hộp</p>
-          <p>{formatPickupWindow(box.pickupStart, box.pickupEnd)}</p>
+        <p className="mt-0.5 truncate text-sm text-giu-muted">{merchant.name}</p>
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <p className="text-lg font-bold text-giu-ink">{formatVnd(box.salePriceVnd)}</p>
+          <p className="text-right text-xs text-giu-muted">
+            Còn {box.quantityLeft} · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+          </p>
         </div>
       </div>
     </Link>

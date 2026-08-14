@@ -7,26 +7,25 @@ export function MerchantCard({ merchant }: { merchant: GiuMerchant }) {
   return (
     <Link
       href={`/giu/cua-hang/panel?phone=${encodeURIComponent(merchant.phone)}`}
-      className="block rounded-2xl border border-giu-border bg-white p-5 shadow-sm transition hover:border-giu-primary/30"
+      className="giu-list-row shadow-giu-sm block"
     >
-      <div className="flex items-start gap-3">
-        <span className="text-2xl">{getCategoryEmoji(merchant.category)}</span>
-        <div>
-          <p className="font-semibold text-giu-ink">{merchant.name}</p>
-          <p className="text-sm text-giu-muted">
-            {getCategoryLabel(merchant.category)} · {getDistrictLabel(merchant.district)}
-          </p>
-          <p className="mt-1 text-xs text-giu-muted">{merchant.address}</p>
-          <p className="mt-2 text-xs">
-            {merchant.verified ? (
-              <span className="text-giu-primary">✓ Đã xác minh</span>
-            ) : (
-              <span className="text-amber-700">Chờ xác minh</span>
-            )}
-            {" · "}
-            {merchant.rescuedBoxes} hộp đã giải cứu
-          </p>
-        </div>
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-giu-bg text-2xl">
+        {getCategoryEmoji(merchant.category)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold text-giu-ink">{merchant.name}</p>
+        <p className="text-sm text-giu-muted">
+          {getCategoryLabel(merchant.category)} · {getDistrictLabel(merchant.district)}
+        </p>
+        <p className="mt-1 text-xs text-giu-muted">
+          {merchant.verified ? (
+            <span className="text-giu-primary">✓ Verified</span>
+          ) : (
+            <span className="text-giu-gold">Chờ xác minh</span>
+          )}
+          {" · "}
+          {merchant.rescuedBoxes} hộp
+        </p>
       </div>
     </Link>
   );
