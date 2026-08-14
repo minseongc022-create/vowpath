@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PassProbabilityReport } from "@/topik/types";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type Props = {
   report: PassProbabilityReport;
@@ -10,6 +10,8 @@ type Props = {
 };
 
 export function PassProbabilityCard({ report, onSetExamDate }: Props) {
+  const vi = useTopikVi();
+
   const [examDate, setExamDate] = useState("");
 
   return (

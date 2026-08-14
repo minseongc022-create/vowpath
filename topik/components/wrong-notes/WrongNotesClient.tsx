@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { WrongRecord } from "@/topik/lib/store/file-store";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle, IconInbox } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
@@ -14,6 +14,8 @@ function isDrillable(item: WrongRecord): boolean {
 }
 
 export function WrongNotesClient({ initial }: { initial: WrongRecord[] }) {
+  const vi = useTopikVi();
+
   const [items, setItems] = useState(initial);
   const [inDrill, setInDrill] = useState(false);
   const [drillItems, setDrillItems] = useState<WrongRecord[]>([]);

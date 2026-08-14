@@ -1,7 +1,11 @@
+"use client";
+
 import { OFFICIAL_TOPIK_RESOURCES, COMMUNITY_TIPS_VI } from "@/topik/lib/official-resources";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 export function OfficialResourcesCard() {
+  const vi = useTopikVi();
+
   return (
     <section className="topik-official-section">
       <p className="topik-section-title">{vi.official.title}</p>

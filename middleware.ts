@@ -47,11 +47,64 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
-function topikShellResponse(request: NextRequest) {
+const TOPIK_LOCALE_COOKIE = "topik-locale";
+
+function topikShellResponse(request: NextRequest, locale?: "ko" | "vi") {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-app-shell", "topik");
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  if (locale) requestHeaders.set("x-topik-locale", locale);
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  if (locale) {
+    res.cookies.set(TOPIK_LOCALE_COOKIE, locale, {
+      path: "/topik",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+  return res;
+}
+
+function handleTopikLocale(request: NextRequest): NextResponse | null {
+  const { pathname, searchParams } = request.nextUrl;
+  const lang = searchParams.get("lang") ?? searchParams.get("locale");
+
+  if (lang === "ko" || lang === "vi") {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("lang");
+    url.searchParams.delete("locale");
+    const res = NextResponse.redirect(url);
+    res.cookies.set(TOPIK_LOCALE_COOKIE, lang, {
+      path: "/topik",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return res;
+  }
+
+  if (pathname === "/topik/ko" || pathname.startsWith("/topik/ko/")) {
+    const rest = pathname.slice("/topik/ko".length) || "";
+    const url = request.nextUrl.clone();
+    url.pathname = `/topik${rest}`;
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "topik");
+    requestHeaders.set("x-pathname", url.pathname);
+    requestHeaders.set("x-topik-locale", "ko");
+    const res = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    res.cookies.set(TOPIK_LOCALE_COOKIE, "ko", {
+      path: "/topik",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return res;
+  }
+
+  const cookieLocale = request.cookies.get(TOPIK_LOCALE_COOKIE)?.value;
+  if (cookieLocale === "ko" || cookieLocale === "vi") {
+    return topikShellResponse(request, cookieLocale);
+  }
+
+  return null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -72,6 +125,8 @@ export async function middleware(request: NextRequest) {
 
   // TOPIK Master VN — isolated from Effiroad marketing shell and floating AI widget.
   if (pathname.startsWith("/topik")) {
+    const localeHandled = handleTopikLocale(request);
+    if (localeHandled) return localeHandled;
     return topikShellResponse(request);
   }
 

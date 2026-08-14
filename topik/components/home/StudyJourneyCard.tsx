@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import type { StudyJourney } from "@/topik/lib/journey/study-journey";
 import { IconChevronRight } from "@/topik/components/ui/TopikIcons";
 
@@ -10,6 +10,8 @@ type Props = {
 };
 
 export function StudyJourneyCard({ journey }: Props) {
+  const vi = useTopikVi();
+
   const { steps, currentStep, dailyCompleted, dailyTotal, confidenceVi } = journey;
 
   return (

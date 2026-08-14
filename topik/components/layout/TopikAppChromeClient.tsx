@@ -1,7 +1,7 @@
 "use client";
 
 import { TOPIK_BRAND } from "@/topik/lib/brand";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { TopikBottomNav, TopikSidebarNav } from "@/topik/components/layout/TopikNav";
 import { TopikHeader } from "@/topik/components/layout/TopikHeader";
 import { useTopikFocus, TopikFocusBar } from "@/topik/components/focus/TopikFocusProvider";
@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function TopikAppChromeClient({ children, streak, targetLevel }: Props) {
+  const vi = useTopikVi();
+
   const { isFocused } = useTopikFocus();
 
   if (isFocused) {

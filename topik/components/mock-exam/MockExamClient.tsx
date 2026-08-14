@@ -9,7 +9,7 @@ import type { MockExamAnswer } from "@/topik/lib/mock-exam/ibt-exam";
 import { getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
 import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
@@ -46,6 +46,8 @@ function parseTier(raw: string | null): MockExamTier {
 }
 
 export function MockExamClient() {
+  const vi = useTopikVi();
+
   const searchParams = useSearchParams();
   const initialTier = parseTier(searchParams.get("tier"));
 

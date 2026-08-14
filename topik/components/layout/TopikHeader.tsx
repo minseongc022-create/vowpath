@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/learn/lib/utils";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
-import { STUDY_MODES } from "@/topik/lib/study-modes";
-import { vi } from "@/topik/lib/i18n/vi";
+import { getStudyModes } from "@/topik/lib/study-modes";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import {
   IconBook,
   IconChevronRight,
@@ -26,6 +26,9 @@ type Props = {
 };
 
 export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
+  const vi = useTopikVi();
+  const studyModes = useMemo(() => getStudyModes(vi), [vi]);
+
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -85,7 +88,7 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
               </button>
             </div>
             <div className="topik-mode-list mx-3 my-3 !border-0 !shadow-none">
-              {STUDY_MODES.map((mode) => (
+              {studyModes.map((mode) => (
                 <Link
                   key={mode.href}
                   href={mode.href}

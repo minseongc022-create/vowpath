@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TopikLevel } from "@/topik/types";
+import type { ViStrings } from "@/topik/lib/i18n/strings";
 import {
   calcTypingCpm,
   countKoreanChars,
@@ -10,21 +11,26 @@ import {
   IBT_TYPING_TARGET_CPM,
   type TypingPrompt,
 } from "@/topik/lib/typing/prompts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle, IconKeyboard } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 
 type Phase = "setup" | "typing" | "result";
 
-const KINDS = [
-  { value: "", label: vi.typing.allKinds },
-  { value: "phrase", label: vi.typing.phrase },
-  { value: "sentence", label: vi.typing.sentence },
-  { value: "essay", label: vi.typing.essay },
-] as const;
+function getKinds(vi: ViStrings) {
+  return [
+    { value: "", label: vi.typing.allKinds },
+    { value: "phrase", label: vi.typing.phrase },
+    { value: "sentence", label: vi.typing.sentence },
+    { value: "essay", label: vi.typing.essay },
+  ] as const;
+}
 
 export function TypingPracticeClient() {
+  const vi = useTopikVi();
+  const kinds = useMemo(() => getKinds(vi), [vi]);
+
   const [level, setLevel] = useState<TopikLevel>(3);
   const [kind, setKind] = useState<string>("");
   const [phase, setPhase] = useState<Phase>("setup");
@@ -137,7 +143,7 @@ export function TypingPracticeClient() {
           ))}
         </select>
         <div className="topik-pill-row">
-          {KINDS.map((k) => (
+          {kinds.map((k) => (
             <button
               key={k.value}
               type="button"

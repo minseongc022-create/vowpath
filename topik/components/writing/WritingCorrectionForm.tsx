@@ -3,12 +3,14 @@
 import { useState } from "react";
 import type { WritingTaskType, WritingCorrectionResult } from "@/topik/types";
 import { WRITING_PROMPTS } from "@/topik/lib/writing/prompts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { WritingResult } from "@/topik/components/writing/WritingResult";
 
 const TASK_TYPES: WritingTaskType[] = ["51", "52", "53", "54"];
 
 export function WritingCorrectionForm() {
+  const vi = useTopikVi();
+
   const [taskType, setTaskType] = useState<WritingTaskType>("53");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);

@@ -1,8 +1,9 @@
 import { PlacementTestClient } from "@/topik/components/placement/PlacementTestClient";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
-import { vi } from "@/topik/lib/i18n/vi";
+import { getUiStrings } from "@/topik/lib/i18n/server-strings";
 
-export default function PlacementPage() {
+export default async function PlacementPage() {
+  const vi = await getUiStrings();
   return (
     <main className="topik-page">
       <TopikPageHeader title={vi.placement.title} subtitle={vi.placement.subtitle} />

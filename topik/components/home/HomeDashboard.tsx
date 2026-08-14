@@ -7,7 +7,7 @@ import { StudyModeGrid } from "@/topik/components/home/StudyModeGrid";
 import { OfficialResourcesCard } from "@/topik/components/home/OfficialResourcesCard";
 import { PassProbabilitySection } from "@/topik/components/dashboard/PassProbabilitySection";
 import { StudyPlanCard } from "@/topik/components/dashboard/StudyPlanCard";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import type { PassProbabilityReport, StudyPlanDay, TopikLevel } from "@/topik/types";
 import type { StudyJourney } from "@/topik/lib/journey/study-journey";
 
@@ -37,6 +37,7 @@ export function HomeDashboard({
   journey,
   sectionStats,
 }: Props) {
+  const vi = useTopikVi();
   return (
     <main className="topik-page topik-animate-in">
       <header className="topik-home-header lg:hidden">

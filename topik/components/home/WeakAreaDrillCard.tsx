@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { TopikLevel } from "@/topik/types";
 import { getDrillRecommendations } from "@/topik/lib/quiz/recommend-drill";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type Props = {
   sectionStats?: Record<string, { correct: number; total: number }>;
@@ -11,6 +11,8 @@ type Props = {
 };
 
 export function WeakAreaDrillCard({ sectionStats, targetLevel }: Props) {
+  const vi = useTopikVi();
+
   if (!sectionStats || Object.keys(sectionStats).length === 0) return null;
 
   const recommendations = getDrillRecommendations(sectionStats);

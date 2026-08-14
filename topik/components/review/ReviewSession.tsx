@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { SrsCard } from "@/topik/types";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle, IconChevronRight, IconInbox } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
@@ -11,6 +11,8 @@ import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 type Quality = 0 | 1 | 3 | 5;
 
 export function ReviewSession() {
+  const vi = useTopikVi();
+
   const [cards, setCards] = useState<SrsCard[]>([]);
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);

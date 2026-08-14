@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { WeeklyActivity } from "@/topik/lib/analytics/weekly-activity";
 import { WEEKLY_TARGETS, weeklyPct } from "@/topik/lib/analytics/weekly-activity";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type Props = {
   streak: number;
@@ -26,6 +26,7 @@ export function StatsDashboard({
   mockExamCount,
   bestMockScore,
 }: Props) {
+  const vi = useTopikVi();
   const masteryPct = total > 0 ? Math.round((mastered / total) * 100) : 0;
 
   const stats = [

@@ -10,16 +10,18 @@ import {
   getSrsStats,
   resolveTopikUserId,
 } from "@/topik/lib/store/file-store";
+import { getRequestTopikLocale } from "@/topik/lib/i18n/request-locale";
 import { getLearnSession } from "@/learn/lib/auth";
 
 export default async function TopikHomePage() {
   const session = await getLearnSession();
   const userId = resolveTopikUserId(session?.user?.id);
-  const [stats, progress, wrongCount, planStart] = await Promise.all([
+  const [stats, progress, wrongCount, planStart, locale] = await Promise.all([
     getSrsStats(userId),
     getProgress(userId),
     countUnresolvedWrong(userId),
     getPlanStartDate(userId),
+    getRequestTopikLocale(),
   ]);
 
   const report = computePassProbability({
@@ -29,6 +31,7 @@ export default async function TopikHomePage() {
     srsDue: stats.due,
     wrongUnresolved: wrongCount,
     lessonTotal: TOPIK_CURRICULUM.length,
+    locale,
   });
 
   const planDays = recommendedStudyDays(report.daysToExam);

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lookupWord, tokenizeKoreanText, getDisplayMeaning, getDisplayRomanization, getDisplayExample, type DictEntry } from "@/topik/lib/korean/dictionary";
 import { speakKorean, stopKoreanSpeech, preloadKoreanVoices } from "@/topik/lib/korean/tts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconSpeaker } from "@/topik/components/ui/TopikIcons";
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
 };
 
 export function KoreanStudyText({ text, studyMode = true, className = "" }: Props) {
+  const vi = useTopikVi();
+
   const [popup, setPopup] = useState<{ entry: DictEntry | null; word: string; x: number; y: number } | null>(
     null,
   );
@@ -97,6 +99,7 @@ function WordPopup({
   y: number;
   onClose: () => void;
 }) {
+  const vi = useTopikVi();
   return (
     <>
       <button type="button" className="topik-word-popup-backdrop" onClick={onClose} aria-label={vi.common.back} />

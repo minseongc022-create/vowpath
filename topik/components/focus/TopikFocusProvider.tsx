@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { stopKoreanSpeech } from "@/topik/lib/korean/tts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type FocusState = {
   active: boolean;
@@ -27,6 +27,7 @@ type FocusContextValue = {
 const FocusContext = createContext<FocusContextValue | null>(null);
 
 export function TopikFocusProvider({ children }: { children: React.ReactNode }) {
+
   const router = useRouter();
   const [state, setState] = useState<FocusState>({ active: false });
 
@@ -88,6 +89,7 @@ export function useTopikFocus(): FocusContextValue {
 
 /** Sticky bar — exit only, shown during exam/study focus */
 export function TopikFocusBar() {
+  const vi = useTopikVi();
   const { isFocused, title, subtitle, progress, exitFocus } = useTopikFocus();
   if (!isFocused) return null;
 

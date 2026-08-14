@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SpeakingEvaluation, SpeakingScenarioId } from "@/topik/types";
 import { SPEAKING_SCENARIOS } from "@/topik/lib/speaking/prompts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type SpeechRecognitionEvent = {
   results: SpeechRecognitionResultList;
@@ -34,6 +34,8 @@ function getSpeechRecognition(): SpeechRecognitionCtor | null {
 }
 
 export function SpeakingPracticeClient() {
+  const vi = useTopikVi();
+
   const [scenarioId, setScenarioId] = useState<SpeakingScenarioId>("self-intro");
   const [transcript, setTranscript] = useState("");
   const [recording, setRecording] = useState(false);

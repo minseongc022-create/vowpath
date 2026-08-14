@@ -1,6 +1,6 @@
 /** TOPIK study mode registry */
 
-import { vi } from "@/topik/lib/i18n/vi";
+import type { ViStrings } from "@/topik/lib/i18n/strings";
 
 export type StudyModeId =
   | "speaking"
@@ -22,7 +22,8 @@ export type StudyMode = {
   tint: "primary" | "coral" | "mint" | "blue" | "gold";
 };
 
-export const STUDY_MODES: StudyMode[] = [
+export function getStudyModes(vi: ViStrings): StudyMode[] {
+  return [
   {
     id: "speaking",
     href: "/topik/speaking",
@@ -93,7 +94,8 @@ export const STUDY_MODES: StudyMode[] = [
     desc: vi.wrongNotes.desc,
     tint: "coral",
   },
-];
+  ];
+}
 
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
   "mock-exam",
@@ -105,6 +107,6 @@ export const HOME_FAVORITE_MODES: StudyModeId[] = [
   "practice",
 ];
 
-export function getStudyMode(id: StudyModeId): StudyMode {
-  return STUDY_MODES.find((m) => m.id === id)!;
+export function getStudyMode(id: StudyModeId, vi: ViStrings): StudyMode {
+  return getStudyModes(vi).find((m) => m.id === id)!;
 }

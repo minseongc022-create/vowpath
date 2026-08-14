@@ -1,4 +1,4 @@
-import { vi } from "@/topik/lib/i18n/vi";
+import { getUiStrings } from "@/topik/lib/i18n/server-strings";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { StatsDashboard } from "@/topik/components/stats/StatsDashboard";
 import {
@@ -10,6 +10,7 @@ import { computeWeeklyActivity } from "@/topik/lib/analytics/weekly-activity";
 import { getLearnSession } from "@/learn/lib/auth";
 
 export default async function TopikStatsPage() {
+  const vi = await getUiStrings();
   const session = await getLearnSession();
   const userId = resolveTopikUserId(session?.user?.id);
   const [stats, progress] = await Promise.all([

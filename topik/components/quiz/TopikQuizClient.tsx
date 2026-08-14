@@ -6,9 +6,8 @@ import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
 import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi, useIsKoLocale } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { quizListeningScriptVi } from "@/topik/lib/i18n/content-locale";
-import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
@@ -16,20 +15,27 @@ import { SentenceOrderInput } from "@/topik/components/quiz/SentenceOrderInput";
 import { QuizProgressBar } from "@/topik/components/quiz/QuizProgressBar";
 import { QuizFeedbackPanel } from "@/topik/components/quiz/QuizFeedbackPanel";
 import { QuizResultSummary } from "@/topik/components/quiz/QuizResultSummary";
+import type { ViStrings } from "@/topik/lib/i18n/strings";
 
-const CATEGORIES = [
-  { value: "", label: vi.practice.all },
-  { value: "listening", label: vi.practice.categories.listening },
-  { value: "reading", label: vi.practice.categories.reading },
-  { value: "grammar", label: vi.practice.categories.grammar },
-  { value: "vocabulary", label: vi.practice.categories.vocabulary },
-];
+function getCategories(vi: ViStrings) {
+  return [
+    { value: "", label: vi.practice.all },
+    { value: "listening", label: vi.practice.categories.listening },
+    { value: "reading", label: vi.practice.categories.reading },
+    { value: "grammar", label: vi.practice.categories.grammar },
+    { value: "vocabulary", label: vi.practice.categories.vocabulary },
+  ];
+}
 
 type Props = {
   initialLevel?: TopikLevel;
 };
 
 export function TopikQuizClient({ initialLevel }: Props) {
+  const vi = useTopikVi();
+  const isKo = useIsKoLocale();
+  const categories = useMemo(() => getCategories(vi), [vi]);
+
   const searchParams = useSearchParams();
   const urlLevel = searchParams.get("level");
   const urlCategory = searchParams.get("category");
@@ -209,7 +215,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
               ))}
             </select>
             <div className="topik-pill-row">
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <button
                   key={c.value}
                   type="button"
@@ -291,7 +297,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
         <p className="topik-question-ko">
           <KoreanStudyText text={q.question} studyMode />
         </p>
-        {!isKoLocale() && q.questionVi && (
+        {!isKo && q.questionVi && (
           <p className="topik-question-vi">{q.questionVi}</p>
         )}
       </div>

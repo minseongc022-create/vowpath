@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TopikLesson } from "@/topik/types";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { lessonDescription, lessonTitle } from "@/topik/lib/i18n/content-locale";
 import { getDisplayMeaning } from "@/topik/lib/korean/dictionary";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
@@ -26,6 +26,8 @@ function youtubeWatchUrl(url?: string): string | null {
 }
 
 export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
+  const vi = useTopikVi();
+
   const [tab, setTab] = useState<"video" | "vocab" | "grammar">("video");
   const [completed, setCompleted] = useState(false);
   const [addedSrs, setAddedSrs] = useState(false);

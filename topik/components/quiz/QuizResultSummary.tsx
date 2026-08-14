@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { SessionStats } from "@/topik/lib/quiz/check-answer";
 import { getDrillRecommendations } from "@/topik/lib/quiz/recommend-drill";
 import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 
 type Props = {
@@ -24,6 +24,7 @@ export function QuizResultSummary({
   homeHref = "/topik",
   level,
 }: Props) {
+  const vi = useTopikVi();
   const pct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
   const sections = Object.entries(stats.bySection).filter(([, v]) => v.total > 0);
   const recommendations = getDrillRecommendations(stats.bySection);

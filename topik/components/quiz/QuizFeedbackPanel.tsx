@@ -3,7 +3,7 @@
 import type { TopikQuizQuestion } from "@/topik/types";
 import { getCorrectAnswerText } from "@/topik/lib/quiz/check-answer";
 import { quizExplanationText } from "@/topik/lib/i18n/content-locale";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
 };
 
 export function QuizFeedbackPanel({ question, correct, attempts = 1, listeningScript }: Props) {
+  const vi = useTopikVi();
+
   const correctText = getCorrectAnswerText(question);
 
   return (

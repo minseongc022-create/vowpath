@@ -1,7 +1,7 @@
 "use client";
 
 import type { WritingCorrectionResult } from "@/topik/types";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 export function WritingResult({
   result,
@@ -10,6 +10,7 @@ export function WritingResult({
   result: WritingCorrectionResult;
   onRetry: () => void;
 }) {
+  const vi = useTopikVi();
   const pct = Math.round((result.estimatedScore / result.maxScore) * 100);
 
   return (

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { preloadKoreanVoices, speakKorean, stopKoreanSpeech } from "@/topik/lib/korean/tts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconSpeaker } from "@/topik/components/ui/TopikIcons";
 
 type Props = {
@@ -21,11 +21,13 @@ export function cleanListeningScript(script: string): string {
 }
 
 export function ListeningAudioPlayer({
+
   script,
   autoPlay = true,
   maxPlays = 2,
   className = "",
 }: Props) {
+  const vi = useTopikVi();
   const [playing, setPlaying] = useState(false);
   const [playCount, setPlayCount] = useState(0);
   const lastScript = useRef("");

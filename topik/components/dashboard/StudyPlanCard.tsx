@@ -1,5 +1,7 @@
+"use client";
+
 import type { StudyPlanDay } from "@/topik/types";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type Props = {
   today: StudyPlanDay | null;
@@ -8,6 +10,7 @@ type Props = {
 };
 
 export function StudyPlanCard({ today, planDay, totalDays }: Props) {
+  const vi = useTopikVi();
   if (!today) return null;
 
   return (

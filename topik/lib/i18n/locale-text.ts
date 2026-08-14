@@ -9,6 +9,7 @@ export function getUiLocale(): TopikUiLocale {
 }
 
 /** Pick Vietnamese or Korean UI string */
-export function l(vi: string, ko: string): string {
-  return isKoLocale() ? ko : vi;
+export function l(vi: string, ko: string, locale?: TopikUiLocale): string {
+  const loc = locale ?? TOPIK_UI_LOCALE;
+  return loc === "ko" ? ko : vi;
 }

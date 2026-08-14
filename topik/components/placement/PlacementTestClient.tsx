@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PLACEMENT_TEST } from "@/topik/lib/quiz/placement-test";
 import { estimateLevelFromPlacement } from "@/topik/lib/journey/study-journey";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { quizQuestionText } from "@/topik/lib/i18n/content-locale";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
@@ -14,6 +14,8 @@ import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 type Phase = "intro" | "test" | "result";
 
 export function PlacementTestClient() {
+  const vi = useTopikVi();
+
   const [phase, setPhase] = useState<Phase>("intro");
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);

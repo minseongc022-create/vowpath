@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 
 type Props = {
   fragments: string[];
@@ -35,6 +35,7 @@ export function SentenceOrderInput({
   value,
   onChange,
 }: Props) {
+  const vi = useTopikVi();
   const [pool, setPool] = useState<number[]>(() => shuffleIndices(fragments.length, correctOrder));
 
   const isComplete = value.length === fragments.length;

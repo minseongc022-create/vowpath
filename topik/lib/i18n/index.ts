@@ -1,6 +1,7 @@
 import { TOPIK_UI_LOCALE } from "@/topik/lib/i18n/locale";
-import { ko } from "@/topik/lib/i18n/ko-strings";
-import { viStrings } from "@/topik/lib/i18n/vi-strings";
+import { stringsForLocale, type ViStrings } from "@/topik/lib/i18n/strings";
 
-export const vi = TOPIK_UI_LOCALE === "ko" ? ko : viStrings;
-export type ViStrings = typeof vi;
+export { stringsForLocale, type ViStrings } from "@/topik/lib/i18n/strings";
+
+/** Legacy — use getUiStrings() from server-strings in Server Components */
+export const vi = stringsForLocale(TOPIK_UI_LOCALE);

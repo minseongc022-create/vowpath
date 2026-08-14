@@ -5,10 +5,12 @@ import { getAllDictionaryEntries, getDisplayMeaning, getDisplayExample, type Dic
 import { speakKorean } from "@/topik/lib/korean/tts";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconCheckCircle, IconSpeaker } from "@/topik/components/ui/TopikIcons";
 
 export function VocabDrillClient() {
+  const vi = useTopikVi();
+
   const [entries, setEntries] = useState<DictEntry[]>([]);
   const [idx, setIdx] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);

@@ -1,12 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { vi } from "@/topik/lib/i18n/vi";
-import { STUDY_MODES } from "@/topik/lib/study-modes";
+import { useMemo } from "react";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
+import { getStudyModes } from "@/topik/lib/study-modes";
 import { EXAM_CATALOG, SECTION_DRILLS, COMPETITOR_ADVANTAGES_VI } from "@/topik/lib/exams/catalog";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { TopikModeRow } from "@/topik/components/ui/TopikModeRow";
 
 /** All TOPIK study modes + exam catalog + competitor-inspired advantages */
 export function StudyHubClient() {
+  const vi = useTopikVi();
+  const studyModes = useMemo(() => getStudyModes(vi), [vi]);
+
   return (
     <div className="topik-animate-in space-y-6">
       <TopikPageHeader title={vi.studyHub.title} subtitle={vi.studyHub.subtitle} />
@@ -45,7 +51,7 @@ export function StudyHubClient() {
       <section>
         <p className="topik-section-title">{vi.studyHub.allModes}</p>
         <div className="topik-mode-list topik-study-hub-list">
-          {STUDY_MODES.map((mode) => (
+          {studyModes.map((mode) => (
             <TopikModeRow key={mode.id} mode={mode} />
           ))}
         </div>
@@ -58,7 +64,7 @@ export function StudyHubClient() {
             <li key={a.from}>
               <strong>{a.from}</strong> — {a.take}
               {a.avoid !== "—" && (
-                <span className="topik-advantages-avoid"> · Tránh: {a.avoid}</span>
+                <span className="block text-xs text-learn-ink-muted mt-0.5">✗ {a.avoid}</span>
               )}
             </li>
           ))}

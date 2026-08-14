@@ -7,8 +7,7 @@ import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-e
 import { DRILL_TYPES, getDrillPreview, type DrillType } from "@/topik/lib/quiz/drill";
 import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
-import { vi } from "@/topik/lib/i18n/vi";
-import { isKoLocale } from "@/topik/lib/i18n/locale-text";
+import { useTopikVi, useIsKoLocale } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
@@ -22,6 +21,9 @@ type Props = {
 };
 
 export function IbtDrillClient({ initialLevel }: Props) {
+  const vi = useTopikVi();
+  const isKo = useIsKoLocale();
+
   const searchParams = useSearchParams();
   const urlType = searchParams.get("type") as DrillType | null;
   const urlLevel = searchParams.get("level");
@@ -280,7 +282,7 @@ export function IbtDrillClient({ initialLevel }: Props) {
         <p className="topik-question-ko">
           <KoreanStudyText text={q.question} studyMode />
         </p>
-        {!isKoLocale() && q.questionVi && (
+        {!isKo && q.questionVi && (
           <p className="topik-question-vi">{q.questionVi}</p>
         )}
       </div>
