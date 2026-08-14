@@ -180,16 +180,36 @@ export function buildAcademyDailyClass(input: {
       kind: "lesson",
       labelVi: `Bài học: ${nextLesson.titleVi}`,
       labelKo: `수업: ${nextLesson.title}`,
-      descVi: l(
-        `${nextLesson.durationMin} phút video + từ vựng + ngữ pháp`,
-        `${nextLesson.durationMin}분 영상 + 어휘 + 문법`,
-      ),
-      descKo: l(
-        `${nextLesson.durationMin} phút video + từ vựng + ngữ pháp`,
-        `${nextLesson.durationMin}분 영상 + 어휘 + 문법`,
-      ),
+      descVi: `${nextLesson.durationMin} phút video + từ vựng + ngữ pháp`,
+      descKo: `${nextLesson.durationMin}분 영상 + 어휘 + 문법`,
       href: `/topik/lessons/${nextLesson.level}/${nextLesson.id}`,
       durationMin: nextLesson.durationMin,
+    });
+  }
+
+  if (dueCards > 0) {
+    tasks.push({
+      id: "review",
+      kind: "review",
+      labelVi: `Ôn SRS (${dueCards} thẻ)`,
+      labelKo: `SRS 복습 (${dueCards}장)`,
+      descVi: "Ôn đúng lúc — nhớ từ vựng lâu",
+      descKo: "적시 반복 — 어휘 장기 기억",
+      href: "/topik/review",
+      durationMin: Math.min(15, Math.max(5, dueCards)),
+    });
+  }
+
+  if (focus === "vocab" || phase === "foundation") {
+    tasks.push({
+      id: "vocab",
+      kind: "practice",
+      labelVi: "Sổ từ vựng TOPIK",
+      labelKo: "TOPIK 단어장",
+      descVi: "Chạm từ → nghĩa + phát âm",
+      descKo: "단어 탭 → 뜻 + 발음",
+      href: "/topik/vocab",
+      durationMin: 10,
     });
   }
 
@@ -197,63 +217,85 @@ export function buildAcademyDailyClass(input: {
   tasks.push({
     id: "drill",
     kind: "drill",
-    labelVi: weakHref
-      ? l("Drill điểm yếu (chẩn đoán)", "약점 드릴 (진단 기반)")
-      : l(`Drill ${focusLabels.vi}`, `${focusLabels.ko} 드릴`),
-    labelKo: weakHref
-      ? l("Drill điểm yếu (chẩn đoán)", "약점 드릴 (진단 기반)")
-      : l(`Drill ${focusLabels.vi}`, `${focusLabels.ko} 드릴`),
-    descVi: l("10 câu IBT · khó hơn đề thật một chút", "IBT 10문항 · 실전보다 약간 어렵게"),
-    descKo: l("10 câu IBT · khó hơn đề thật một chút", "IBT 10문항 · 실전보다 약간 어렵게"),
+    labelVi: weakHref ? "Drill điểm yếu (chẩn đoán)" : `Drill ${focusLabels.vi}`,
+    labelKo: weakHref ? "약점 드릴 (진단 기반)" : `${focusLabels.ko} 드릴`,
+    descVi: "10 câu IBT · khó hơn đề thật một chút",
+    descKo: "IBT 10문항 · 실전보다 약간 어렵게",
     href: weakHref ?? focusDrillHref(focus, level),
     durationMin: 15,
   });
 
+  if (phase !== "foundation" && (planDay % 4 === 0 || focus === "reading")) {
+    tasks.push({
+      id: "order-drill",
+      kind: "drill",
+      labelVi: "Sắp xếp câu IBT",
+      labelKo: "IBT 문장 배열",
+      descVi: "Dạng kéo-thả thi máy",
+      descKo: "IBT 배열형 드릴",
+      href: `/topik/drill?type=order&level=${level}`,
+      durationMin: 10,
+    });
+  }
+
   tasks.push({
     id: "practice",
     kind: "practice",
-    labelVi: l("Luyện đề theo cấp", "급수별 문제 풀이"),
-    labelKo: l("Luyện đề theo cấp", "급수별 문제 풀이"),
-    descVi: l(`TOPIK ${level} · trắc nghiệm có giải thích`, `TOPIK ${level} · 해설 포함`),
-    descKo: l(`TOPIK ${level} · trắc nghiệm có giải thích`, `TOPIK ${level} · 해설 포함`),
+    labelVi: "Luyện đề theo cấp",
+    labelKo: "급수별 문제 풀이",
+    descVi: `TOPIK ${level} · trắc nghiệm có giải thích`,
+    descKo: `TOPIK ${level} · 해설 포함`,
     href: `/topik/practice?level=${level}`,
     durationMin: 20,
   });
 
-  if (focus === "speaking" || (planDay % 7 === 3 && level >= 3)) {
+  if (level >= 3 && (focus === "writing" || planDay % 3 === 0 || (progress.bestTypingCpm ?? 0) < 30)) {
+    tasks.push({
+      id: "typing",
+      kind: "typing",
+      labelVi: "Luyện gõ tiếng Hàn (IBT)",
+      labelKo: "한국어 타이핑 (IBT)",
+      descVi: "Mục tiêu 30+ ký tự/phút",
+      descKo: "목표 30+타/분",
+      href: "/topik/typing",
+      durationMin: 10,
+    });
+  }
+
+  if (focus === "speaking" || level >= 3) {
     tasks.push({
       id: "speaking",
       kind: "speaking",
-      labelVi: l("Luyện nói IBT + AI chấm", "IBT 말하기 + AI 채점"),
-      labelKo: l("Luyện nói IBT + AI chấm", "IBT 말하기 + AI 채점"),
-      descVi: l("Sửa lỗi phát âm người Việt", "베트남 학습자 발음 교정"),
-      descKo: l("Sửa lỗi phát âm người Việt", "베트남 학습자 발음 교정"),
+      labelVi: "Luyện nói IBT + AI chấm",
+      labelKo: "IBT 말하기 + AI 채점",
+      descVi: "Sửa lỗi phát âm người Việt",
+      descKo: "베트남 학습자 발음 교정",
       href: "/topik/speaking",
       durationMin: 10,
     });
   }
 
-  if (focus === "writing" || (planDay % 7 === 5 && level >= 3)) {
+  if (focus === "writing" || level >= 4) {
     tasks.push({
       id: "writing",
       kind: "writing",
-      labelVi: l("Chấm bài viết Q51–54", "쓰기 51–54번 채점"),
-      labelKo: l("Chấm bài viết Q51–54", "쓰기 51–54번 채점"),
-      descVi: l("Tiêu chí thi thật · AI + demo", "실전 기준 · AI 채점"),
-      descKo: l("Tiêu chí thi thật · AI + demo", "실전 기준 · AI 채점"),
+      labelVi: "Chấm bài viết Q51–54",
+      labelKo: "쓰기 51–54번 채점",
+      descVi: "Tiêu chí thi thật · AI chấm",
+      descKo: "실전 기준 · AI 채점",
       href: "/topik/writing",
       durationMin: 15,
     });
   }
 
-  if (planDay % 7 === 0 || focus === "mock") {
+  if (planDay % 7 === 0 || focus === "mock" || phase === "sprint") {
     tasks.push({
       id: "mock",
       kind: "mock",
-      labelVi: l("Thi thử mini TOPIK", "TOPIK 미니 모의고사"),
-      labelKo: l("Thi thử mini TOPIK", "TOPIK 미니 모의고사"),
-      descVi: l("20 phút · đồng hồ · chấm tự động", "20분 · 타이머 · 자동 채점"),
-      descKo: l("20 phút · đồng hồ · chấm tự động", "20분 · 타이머 · 자동 채점"),
+      labelVi: "Thi thử mini TOPIK",
+      labelKo: "TOPIK 미니 모의고사",
+      descVi: "20 phút · đồng hồ · chấm tự động",
+      descKo: "20분 · 타이머 · 자동 채점",
       href: `/topik/mock-exam?tier=${tierForLevel(level)}`,
       durationMin: 20,
     });
@@ -263,40 +305,26 @@ export function buildAcademyDailyClass(input: {
     tasks.push({
       id: "wrong",
       kind: "wrong",
-      labelVi: l(`Sửa ${wrongCount} câu sai`, `오답 ${wrongCount}문항`),
-      labelKo: l(`Sửa ${wrongCount} câu sai`, `오답 ${wrongCount}문항`),
-      descVi: l("Như buổi chữa bài ở học viện", "학원 오답 노트와 동일"),
-      descKo: l("Như buổi chữa bài ở học viện", "학원 오답 노트와 동일"),
+      labelVi: `Sửa ${wrongCount} câu sai`,
+      labelKo: `오답 ${wrongCount}문항`,
+      descVi: "Ghi chú lỗi — ôn đến khi thuộc",
+      descKo: "오답 정리 — 맞출 때까지",
       href: "/topik/wrong-notes",
       durationMin: 10,
-    });
-  }
-
-  if (dueCards >= 8) {
-    tasks.push({
-      id: "review",
-      kind: "review",
-      labelVi: l(`Ôn SRS (${dueCards} thẻ)`, `SRS 복습 (${dueCards}장)`),
-      labelKo: l(`Ôn SRS (${dueCards} thẻ)`, `SRS 복습 (${dueCards}장)`),
-      descVi: l("Ôn đúng lúc — nhớ lâu hơn", "적시 반복 — 오래 기억"),
-      descKo: l("Ôn đúng lúc — nhớ lâu hơn", "적시 반복 — 오래 기억"),
-      href: "/topik/review",
-      durationMin: 8,
     });
   }
 
   let coachVi: string;
   let coachKo: string;
   if (report.probability >= 70) {
-    coachVi = `Khả năng đậu ${report.probability}% — duy trì lịch lớp hôm nay là đủ.`;
-    coachKo = `합격 가능성 ${report.probability}% — 오늘 수업만 따라가면 됩니다.`;
+    coachVi = `Khả năng đậu ${report.probability}% — làm đủ các bước dưới đây.`;
+    coachKo = `합격 가능성 ${report.probability}% — 아래 단계를 완료하세요.`;
   } else if (report.daysToExam !== null && report.daysToExam <= 21) {
-    coachVi = `Còn ${report.daysToExam} ngày — ưu tiên thi thử + sửa lỗi như lớp luyện thi cấp tốc.`;
-    coachKo = `${report.daysToExam}일 남음 — 모의고사 + 오답 우선 (종합반 모드).`;
+    coachVi = `Còn ${report.daysToExam} ngày — ưu tiên mock + sửa lỗi + drill yếu.`;
+    coachKo = `${report.daysToExam}일 남음 — 모의고사 + 오답 + 약점 드릴 우선.`;
   } else {
-    coachVi =
-      "Làm đủ các bước dưới đây ≈ 1 buổi học viện (45–60 phút) — miễn phí, không cần di chuyển.";
-    coachKo = "아래 단계 완료 ≈ 학원 1회(45–60분) — 무료, 이동 불필요.";
+    coachVi = "Làm lần lượt từ trên xuống — đủ 1 buổi học TOPIK (45–60 phút).";
+    coachKo = "위에서 순서대로 — TOPIK 1회 수업 분량(45–60분).";
   }
 
   return {

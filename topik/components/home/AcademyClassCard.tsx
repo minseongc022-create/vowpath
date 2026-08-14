@@ -18,7 +18,7 @@ const KIND_LABEL: Record<string, { vi: string; ko: string }> = {
   wrong: { vi: "Chữa bài", ko: "오답" },
   speaking: { vi: "Nói", ko: "말하기" },
   writing: { vi: "Viết", ko: "쓰기" },
-  typing: { vi: "Gõ", ko: "타이핑" },
+  typing: { vi: "Gõ IBT", ko: "타이핑" },
   review: { vi: "SRS", ko: "SRS" },
 };
 

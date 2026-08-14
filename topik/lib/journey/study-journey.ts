@@ -1,4 +1,5 @@
 import type { PassProbabilityReport, StudyPlanDay, TopikLevel, UserProgress } from "@/topik/types";
+import { getNextIncompleteLesson } from "@/topik/lib/curriculum/lessons";
 import { estimateLevelFromScore } from "@/topik/lib/quiz/placement-scoring";
 import { l } from "@/topik/lib/i18n/locale-text";
 
@@ -31,11 +32,14 @@ type Input = {
   report: PassProbabilityReport;
 };
 
-/** Core exam-prep path only — placement → wrong notes → drill → practice → mock */
+/** Full learning path — diagnostic → lesson → review → skills → mock */
 export function buildStudyJourney(input: Input): StudyJourney {
-  const { progress, wrongCount, report, todayFocus } = input;
+  const { progress, wrongCount, report, todayFocus, dueCards } = input;
   const steps: JourneyStep[] = [];
   let order = 1;
+  const level = progress.targetLevel;
+  const today = new Date().toISOString().slice(0, 10);
+  const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
   if (!progress.placementLevel) {
     steps.push({
@@ -46,6 +50,30 @@ export function buildStudyJourney(input: Input): StudyJourney {
       href: "/topik/placement",
       status: "upcoming",
       whyVi: l("Làm trước khi luyện — tránh học sai hướng", "연습 전 진단 — 방향 오류 방지"),
+    });
+  }
+
+  const nextLesson = getNextIncompleteLesson(progress);
+  if (nextLesson) {
+    steps.push({
+      id: "lesson",
+      order: order++,
+      titleVi: l("Video bài học", "영상 수업"),
+      descVi: nextLesson.titleVi,
+      href: `/topik/lessons/${nextLesson.level}/${nextLesson.id}`,
+      status: "upcoming",
+      whyVi: l("Nền tảng ngữ pháp & từ vựng", "문법·어휘 기초"),
+    });
+  }
+
+  if (dueCards > 0) {
+    steps.push({
+      id: "srs",
+      order: order++,
+      titleVi: l("Ôn SRS", "SRS 복습"),
+      descVi: l(`${dueCards} thẻ đến hạn`, `복습 ${dueCards}장`),
+      href: "/topik/review",
+      status: "upcoming",
     });
   }
 
@@ -60,9 +88,6 @@ export function buildStudyJourney(input: Input): StudyJourney {
       whyVi: l("Học từ lỗi nhanh hơn làm đề mới mù quáng", "오답 학습이 무분별한 새 문제보다 빠름"),
     });
   }
-
-  const today = new Date().toISOString().slice(0, 10);
-  const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
   if (!doneToday.includes("drill")) {
     const weakSection = pickWeakSection(progress, todayFocus);
@@ -83,7 +108,51 @@ export function buildStudyJourney(input: Input): StudyJourney {
       order: order++,
       titleVi: l("Luyện đề TOPIK", "TOPIK 문제 풀이"),
       descVi: l("Trắc nghiệm theo cấp mục tiêu", "목표 급수 맞춤 객관식"),
-      href: `/topik/practice?level=${progress.targetLevel}`,
+      href: `/topik/practice?level=${level}`,
+      status: "upcoming",
+    });
+  }
+
+  if (todayFocus === "vocab" || todayFocus === "grammar") {
+    steps.push({
+      id: "vocab",
+      order: order++,
+      titleVi: l("Sổ từ vựng", "단어장"),
+      descVi: l("TOPIK từ theo cấp", "급수별 TOPIK 어휘"),
+      href: "/topik/vocab",
+      status: "upcoming",
+    });
+  }
+
+  if (todayFocus === "speaking" || level >= 3) {
+    steps.push({
+      id: "speaking",
+      order: order++,
+      titleVi: l("Luyện nói IBT", "IBT 말하기"),
+      descVi: l("AI chấm + sửa phát âm", "AI 채점 + 발음"),
+      href: "/topik/speaking",
+      status: "upcoming",
+    });
+  }
+
+  if (todayFocus === "writing" || level >= 4) {
+    steps.push({
+      id: "writing",
+      order: order++,
+      titleVi: l("Chấm bài viết", "쓰기 채점"),
+      descVi: l("Q51–54", "51–54번"),
+      href: "/topik/writing",
+      status: "upcoming",
+    });
+  }
+
+  if (level >= 3 && ((progress.bestTypingCpm ?? 0) < 30 || todayFocus === "writing")) {
+    steps.push({
+      id: "typing",
+      order: order++,
+      titleVi: l("Luyện gõ IBT", "IBT 타이핑"),
+      descVi: l("30+ ký tự/phút", "30+타/분"),
+      href: "/topik/typing",
       status: "upcoming",
     });
   }
@@ -108,11 +177,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
   }
 
   const dailyCompleted = progress.dailyGoalCompleted ?? 0;
-  const dailyTotal = Math.min(steps.length, 4);
+  const dailyTotal = Math.min(steps.length, 6);
 
   let foundCurrent = false;
   for (const step of steps) {
-    if (isStepDone(step.id, progress, wrongCount)) {
+    if (isStepDone(step.id, progress, wrongCount, dueCards)) {
       step.status = "done";
     } else if (!foundCurrent) {
       step.status = "current";
@@ -129,7 +198,7 @@ export function buildStudyJourney(input: Input): StudyJourney {
   const currentStep = steps.find((s) => s.status === "current") ?? steps[0]!;
 
   return {
-    steps: steps.slice(0, 5),
+    steps: steps.slice(0, 6),
     currentStep,
     dailyCompleted: Math.min(dailyCompleted, dailyTotal),
     dailyTotal,
@@ -178,13 +247,23 @@ function pickWeakSection(
   };
 }
 
-function isStepDone(id: string, progress: UserProgress, wrongCount: number): boolean {
+function isStepDone(
+  id: string,
+  progress: UserProgress,
+  wrongCount: number,
+  dueCards: number,
+): boolean {
   const today = new Date().toISOString().slice(0, 10);
   const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
   if (doneToday.includes(id)) return true;
   if (id === "wrong" && wrongCount === 0) return true;
   if (id === "placement" && progress.placementLevel) return true;
+  if (id === "srs" && dueCards === 0) return true;
+  if (id === "lesson") {
+    const next = getNextIncompleteLesson(progress);
+    if (!next) return true;
+  }
   if (id === "drill" && doneToday.includes("drill")) return true;
   if (id === "practice" && doneToday.includes("practice")) return true;
 

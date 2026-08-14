@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/learn/lib/utils";
 import { TOPIK_BRAND } from "@/topik/lib/brand";
-import { getCoreStudyModes } from "@/topik/lib/study-modes";
+import { getEducationStudyModes } from "@/topik/lib/study-modes";
 import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import {
   IconChevronRight,
@@ -22,7 +22,7 @@ type Props = {
 
 export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
   const vi = useTopikVi();
-  const studyModes = useMemo(() => getCoreStudyModes(vi), [vi]);
+  const studyModes = useMemo(() => getEducationStudyModes(vi), [vi]);
 
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,6 +92,30 @@ export function TopikHeader({ streak = 0, targetLevel = 2 }: Props) {
               >
                 <StudyModeIcon id="practice" tint="primary" />
                 <span className="flex-1 text-sm font-medium text-learn-ink">{vi.placement.title}</span>
+                <IconChevronRight className="text-learn-ink-subtle" />
+              </Link>
+              <Link
+                href="/topik/roadmap"
+                className={cn(
+                  "topik-mode-row",
+                  pathname.startsWith("/topik/roadmap") && "bg-[var(--topik-soft)]",
+                )}
+              >
+                <StudyModeIcon id="lessons" tint="gold" />
+                <span className="flex-1 text-sm font-medium text-learn-ink">
+                  {vi.academy.roadmapTitle}
+                </span>
+                <IconChevronRight className="text-learn-ink-subtle" />
+              </Link>
+              <Link
+                href="/topik/stats"
+                className={cn(
+                  "topik-mode-row",
+                  pathname.startsWith("/topik/stats") && "bg-[var(--topik-soft)]",
+                )}
+              >
+                <StudyModeIcon id="practice" tint="mint" />
+                <span className="flex-1 text-sm font-medium text-learn-ink">{vi.nav.stats}</span>
                 <IconChevronRight className="text-learn-ink-subtle" />
               </Link>
               {studyModes.map((mode) => (

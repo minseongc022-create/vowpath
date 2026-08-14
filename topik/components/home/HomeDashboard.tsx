@@ -1,13 +1,14 @@
 "use client";
 
-import { AcademyHeroSection } from "@/topik/components/home/AcademyHeroSection";
+import { AcademyProgressHero } from "@/topik/components/home/AcademyProgressHero";
 import { AcademyClassCard } from "@/topik/components/home/AcademyClassCard";
 import { AcademyWeeklyCoach } from "@/topik/components/home/AcademyWeeklyCoach";
-import { AcademyCompareSection } from "@/topik/components/home/AcademyCompareSection";
+import { CoreSkillsGrid } from "@/topik/components/home/CoreSkillsGrid";
+import { OfficialResourcesCard } from "@/topik/components/home/OfficialResourcesCard";
 import { StudyJourneyCard } from "@/topik/components/home/StudyJourneyCard";
 import { WeakAreaDrillCard } from "@/topik/components/home/WeakAreaDrillCard";
-import { StudyModeGrid } from "@/topik/components/home/StudyModeGrid";
 import { PassProbabilitySection } from "@/topik/components/dashboard/PassProbabilitySection";
+import Link from "next/link";
 import { useTopikVi, useIsKoLocale } from "@/topik/lib/i18n/TopikLocaleProvider";
 import type { AcademyDailyClass } from "@/topik/lib/academy/academy-program";
 import type { WeeklyActivity } from "@/topik/lib/analytics/weekly-activity";
@@ -21,10 +22,13 @@ type Props = {
   journey: StudyJourney;
   dailyClass: AcademyDailyClass;
   weekly: WeeklyActivity;
+  lessonsDone: number;
+  lessonsTotal: number;
+  placementDone: boolean;
   sectionStats?: Record<string, { correct: number; total: number }>;
 };
 
-/** TOPIK home — online academy: daily class, coach, vs hagwon positioning */
+/** TOPIK home — full learning stack: class schedule + all core skills */
 export function HomeDashboard({
   streak,
   targetLevel,
@@ -32,6 +36,9 @@ export function HomeDashboard({
   journey,
   dailyClass,
   weekly,
+  lessonsDone,
+  lessonsTotal,
+  placementDone,
   sectionStats,
 }: Props) {
   const vi = useTopikVi();
@@ -44,15 +51,33 @@ export function HomeDashboard({
         <p className="topik-home-subtitle">{vi.home.subtitle}</p>
       </header>
 
-      <AcademyHeroSection />
+      <AcademyProgressHero
+        planDay={dailyClass.planDay}
+        totalDays={dailyClass.totalDays}
+        phaseTitleVi={dailyClass.phaseTitleVi}
+        phaseTitleKo={dailyClass.phaseTitleKo}
+        lessonsDone={lessonsDone}
+        lessonsTotal={lessonsTotal}
+        daysToExam={report.daysToExam}
+      />
+
+      {!placementDone && (
+        <Link href="/topik/placement" className="topik-today-hero mb-4">
+          <div className="topik-today-hero-body">
+            <p className="topik-today-hero-label">{vi.placement.bannerLabel}</p>
+            <p className="topik-today-hero-title">{vi.placement.title}</p>
+            <p className="topik-today-hero-task">{vi.placement.bannerDesc}</p>
+          </div>
+        </Link>
+      )}
 
       <AcademyClassCard dailyClass={dailyClass} />
 
       <StudyJourneyCard journey={journey} />
 
-      <AcademyWeeklyCoach weekly={weekly} />
-
       <WeakAreaDrillCard sectionStats={sectionStats} targetLevel={targetLevel as TopikLevel} />
+
+      <AcademyWeeklyCoach weekly={weekly} />
 
       <div className="topik-home-stats">
         <div className="topik-stat-chip">
@@ -68,7 +93,7 @@ export function HomeDashboard({
         </div>
       </div>
 
-      <StudyModeGrid />
+      <CoreSkillsGrid />
 
       <PassProbabilitySection report={report} />
 
@@ -87,7 +112,7 @@ export function HomeDashboard({
         </section>
       )}
 
-      <AcademyCompareSection />
+      <OfficialResourcesCard />
     </main>
   );
 }

@@ -104,6 +104,28 @@ export const CORE_STUDY_MODE_IDS: StudyModeId[] = [
   "wrong-notes",
 ];
 
+/** Every mode that directly supports TOPIK learning */
+export const EDUCATION_CORE_MODE_IDS: StudyModeId[] = [
+  "lessons",
+  "vocab",
+  "review",
+  "drill",
+  "practice",
+  "mock-exam",
+  "wrong-notes",
+  "speaking",
+  "writing",
+  "typing",
+];
+
+export type EducationSectionId = "learn" | "exam" | "ibt";
+
+export const EDUCATION_MODE_SECTIONS: { id: EducationSectionId; modes: StudyModeId[] }[] = [
+  { id: "learn", modes: ["lessons", "vocab", "review"] },
+  { id: "exam", modes: ["drill", "practice", "mock-exam", "wrong-notes"] },
+  { id: "ibt", modes: ["speaking", "writing", "typing"] },
+];
+
 /** Shown on home quick grid — core exam prep only */
 export const CORE_HOME_MODES: StudyModeId[] = CORE_STUDY_MODE_IDS;
 
@@ -112,6 +134,13 @@ export const HOME_FAVORITE_MODES: StudyModeId[] = CORE_HOME_MODES;
 export function getCoreStudyModes(vi: ViStrings): StudyMode[] {
   const ids = new Set(CORE_STUDY_MODE_IDS);
   return getStudyModes(vi).filter((m) => ids.has(m.id));
+}
+
+export function getEducationStudyModes(vi: ViStrings): StudyMode[] {
+  const order = new Map(EDUCATION_CORE_MODE_IDS.map((id, i) => [id, i]));
+  return getStudyModes(vi)
+    .filter((m) => order.has(m.id))
+    .sort((a, b) => (order.get(a.id)! - order.get(b.id)!));
 }
 
 export function getStudyMode(id: StudyModeId, vi: ViStrings): StudyMode {

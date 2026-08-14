@@ -41,6 +41,9 @@ export default async function TopikHomePage() {
   const todayPlan = getTodayPlan(plan, planStart);
   const planDay = todayPlan?.day ?? 1;
 
+  const lessonsDone = Object.values(progress.lessons).filter((l) => l.completed).length;
+  const lessonsTotal = TOPIK_CURRICULUM.length;
+
   const journey = buildStudyJourney({
     progress,
     dueCards: stats.due,
@@ -69,6 +72,9 @@ export default async function TopikHomePage() {
       journey={journey}
       dailyClass={dailyClass}
       weekly={weekly}
+      lessonsDone={lessonsDone}
+      lessonsTotal={lessonsTotal}
+      placementDone={Boolean(progress.placementLevel)}
       sectionStats={progress.sectionStats}
     />
   );
