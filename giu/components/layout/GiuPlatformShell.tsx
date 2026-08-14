@@ -3,7 +3,7 @@ import { GIU_STRINGS } from "@/giu/lib/strings";
 
 export function GiuPlatformShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

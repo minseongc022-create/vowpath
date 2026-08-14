@@ -26,7 +26,7 @@ export function CancelReservationButton({ reservationId }: { reservationId: stri
       disabled={loading}
       className="text-sm text-giu-muted underline hover:text-giu-ink"
     >
-      {loading ? "Đang hủy..." : "Hủy giữ chỗ — nhường suất cho người khác"}
+      {loading ? "취소 중..." : "예약 취소 — 다른 사람에게 양보"}
     </button>
   );
 }

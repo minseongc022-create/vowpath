@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return NextResponse.json(
     {
-      error: "Vui lòng đăng ký qua form mới (email + mật khẩu) tại /cua-hang",
+      error: "새 가입 폼(이메일 + 비밀번호)을 이용해 주세요: /cua-hang",
     },
     { status: 410 },
   );

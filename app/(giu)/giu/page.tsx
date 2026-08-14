@@ -37,9 +37,9 @@ export default async function GiuHomePage() {
 
       <section className="grid grid-cols-2 gap-2">
         {[
-          { value: stats.rescuedBoxes.toLocaleString("vi-VN"), label: GIU_STRINGS.statsBoxes },
+          { value: stats.rescuedBoxes.toLocaleString("ko-KR"), label: GIU_STRINGS.statsBoxes },
           { value: formatVnd(stats.savedVnd), label: GIU_STRINGS.statsSaved },
-          { value: String(stats.openBoxes), label: "hộp đang mở" },
+          { value: String(stats.openBoxes), label: "열린 박스" },
           { value: `${stats.merchants}+`, label: GIU_STRINGS.statsMerchants },
         ].map((item) => (
           <div key={item.label} className="giu-card-flat ring-1 ring-giu-border">
@@ -57,11 +57,11 @@ export default async function GiuHomePage() {
       <section>
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h2 className="giu-section-title">Đang mở giải cứu</h2>
-            <p className="giu-section-sub">{stats.openBoxes} hộp gần bạn</p>
+            <h2 className="giu-section-title">지금 구출 가능</h2>
+            <p className="giu-section-sub">근처 {stats.openBoxes}개 박스</p>
           </div>
           <Link href="/giu/hop" className="text-sm font-semibold text-giu-primary">
-            Xem tất cả →
+            전체 보기 →
           </Link>
         </div>
 

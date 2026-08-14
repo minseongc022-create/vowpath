@@ -28,14 +28,14 @@ export function MerchantLoginForm() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Đăng nhập thất bại");
+        setError(data.error ?? "로그인에 실패했습니다");
         return;
       }
       await refresh();
       router.push("/giu/cua-hang/panel");
       router.refresh();
     } catch {
-      setError("Không kết nối được. Thử lại nhé.");
+      setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -43,23 +43,23 @@ export function MerchantLoginForm() {
 
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
-      <h2 className="text-xl font-bold text-giu-ink">Đăng nhập quán</h2>
+      <h2 className="text-xl font-bold text-giu-ink">가게 로그인</h2>
       <div>
-        <label className="giu-label">Email</label>
+        <label className="giu-label">이메일</label>
         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="giu-input" />
       </div>
       <div>
-        <label className="giu-label">Mật khẩu</label>
+        <label className="giu-label">비밀번호</label>
         <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="giu-input" />
       </div>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "Đang đăng nhập..." : "Vào panel"}
+        {loading ? "로그인 중..." : "패널로 이동"}
       </button>
       <p className="text-center text-sm text-giu-muted">
-        Chưa có quán?{" "}
+        가게가 없으신가요?{" "}
         <Link href="/giu/cua-hang" className="font-semibold text-giu-primary">
-          Đăng ký quán
+          가게 등록
         </Link>
       </p>
     </form>
@@ -95,14 +95,14 @@ export function MerchantSignupForm() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Có lỗi xảy ra");
+        setError(data.error ?? "오류가 발생했습니다");
         return;
       }
       await refresh();
       router.push("/giu/cua-hang/panel");
       router.refresh();
     } catch {
-      setError("Không kết nối được. Thử lại nhé.");
+      setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -110,21 +110,21 @@ export function MerchantSignupForm() {
 
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
-      <h2 className="text-xl font-bold text-giu-ink">Đăng ký quán</h2>
+      <h2 className="text-xl font-bold text-giu-ink">가게 등록</h2>
       <div>
-        <label className="giu-label">Tên quán *</label>
+        <label className="giu-label">가게 이름 *</label>
         <input name="name" required className="giu-input" />
       </div>
       <div>
-        <label className="giu-label">Email đăng nhập *</label>
+        <label className="giu-label">로그인 이메일 *</label>
         <input name="email" required type="email" className="giu-input" />
       </div>
       <div>
-        <label className="giu-label">Mật khẩu * (tối thiểu 6 ký tự)</label>
+        <label className="giu-label">비밀번호 * (최소 6자)</label>
         <input name="password" required type="password" minLength={6} className="giu-input" />
       </div>
       <div>
-        <label className="giu-label">Loại hình *</label>
+        <label className="giu-label">업종 *</label>
         <select name="category" required className="giu-input">
           {GIu_CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
@@ -134,7 +134,7 @@ export function MerchantSignupForm() {
         </select>
       </div>
       <div>
-        <label className="giu-label">Quận *</label>
+        <label className="giu-label">구(군) *</label>
         <select name="district" required className="giu-input">
           {GIu_DISTRICTS.map((d) => (
             <option key={d.id} value={d.id}>
@@ -144,25 +144,25 @@ export function MerchantSignupForm() {
         </select>
       </div>
       <div>
-        <label className="giu-label">Địa chỉ quán *</label>
-        <input name="address" required className="giu-input" placeholder="Số nhà, đường, quận" />
+        <label className="giu-label">가게 주소 *</label>
+        <input name="address" required className="giu-input" placeholder="번지, 거리, 구" />
       </div>
       <div>
-        <label className="giu-label">SĐT *</label>
+        <label className="giu-label">전화번호 *</label>
         <input name="phone" required type="tel" className="giu-input" placeholder="0901234567" />
       </div>
       <div>
-        <label className="giu-label">Zalo (tuỳ chọn)</label>
+        <label className="giu-label">Zalo (선택)</label>
         <input name="zalo" type="tel" className="giu-input" />
       </div>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "Đang đăng ký..." : "Đăng quán & vào panel"}
+        {loading ? "등록 중..." : "가게 등록 & 패널 이동"}
       </button>
       <p className="text-center text-sm text-giu-muted">
-        Đã có quán?{" "}
+        이미 가게가 있으신가요?{" "}
         <Link href="/giu/cua-hang/dang-nhap" className="font-semibold text-giu-primary">
-          Đăng nhập
+          로그인
         </Link>
       </p>
     </form>

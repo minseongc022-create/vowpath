@@ -39,7 +39,7 @@ export function GiuHeader() {
               href="/giu/dang-nhap"
               className="rounded-full bg-giu-bg px-3 py-1.5 text-xs font-semibold text-giu-ink"
             >
-              Đăng nhập
+              로그인
             </Link>
           ) : null}
         </div>

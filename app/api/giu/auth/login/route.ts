@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Email hoặc mật khẩu không đúng" }, { status: 400 });
+      return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다" }, { status: 400 });
     }
     const result = await loginAccount(parsed.data);
     if ("error" in result) {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
     const { account } = result;
     if (parsed.data.role && account.role !== parsed.data.role) {
-      return NextResponse.json({ error: "Tài khoản không đúng loại đăng nhập" }, { status: 401 });
+      return NextResponse.json({ error: "로그인 유형과 맞지 않는 계정입니다" }, { status: 401 });
     }
     const merchant =
       account.role === "merchant"
@@ -54,6 +54,6 @@ export async function POST(request: Request) {
     response.cookies.set(giuSessionCookieOptions(token));
     return response;
   } catch {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

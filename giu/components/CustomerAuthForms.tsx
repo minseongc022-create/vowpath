@@ -26,14 +26,14 @@ export function CustomerLoginForm() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Đăng nhập thất bại");
+        setError(data.error ?? "로그인에 실패했습니다");
         return;
       }
       await refresh();
       router.push("/giu/hop");
       router.refresh();
     } catch {
-      setError("Không kết nối được. Thử lại nhé.");
+      setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -41,9 +41,9 @@ export function CustomerLoginForm() {
 
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
-      <h2 className="text-xl font-bold text-giu-ink">Đăng nhập</h2>
+      <h2 className="text-xl font-bold text-giu-ink">로그인</h2>
       <div>
-        <label className="giu-label">Email</label>
+        <label className="giu-label">이메일</label>
         <input
           required
           type="email"
@@ -53,7 +53,7 @@ export function CustomerLoginForm() {
         />
       </div>
       <div>
-        <label className="giu-label">Mật khẩu</label>
+        <label className="giu-label">비밀번호</label>
         <input
           required
           type="password"
@@ -65,12 +65,12 @@ export function CustomerLoginForm() {
       </div>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+        {loading ? "로그인 중..." : "로그인"}
       </button>
       <p className="text-center text-sm text-giu-muted">
-        Chưa có tài khoản?{" "}
+        계정이 없으신가요?{" "}
         <Link href="/giu/dang-ky" className="font-semibold text-giu-primary">
-          Đăng ký
+          회원가입
         </Link>
       </p>
     </form>
@@ -100,14 +100,14 @@ export function CustomerRegisterForm() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Đăng ký thất bại");
+        setError(data.error ?? "회원가입에 실패했습니다");
         return;
       }
       await refresh();
       router.push("/giu/hop");
       router.refresh();
     } catch {
-      setError("Không kết nối được. Thử lại nhé.");
+      setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -115,14 +115,14 @@ export function CustomerRegisterForm() {
 
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
-      <h2 className="text-xl font-bold text-giu-ink">Tạo tài khoản</h2>
-      <p className="text-sm text-giu-muted">Thanh toán an toàn · nhận mã giải cứu ngay sau khi trả.</p>
+      <h2 className="text-xl font-bold text-giu-ink">계정 만들기</h2>
+      <p className="text-sm text-giu-muted">안전 결제 · 결제 후 바로 구출 코드를 받습니다.</p>
       <div>
-        <label className="giu-label">Tên</label>
+        <label className="giu-label">이름</label>
         <input required value={name} onChange={(e) => setName(e.target.value)} className="giu-input" />
       </div>
       <div>
-        <label className="giu-label">Email</label>
+        <label className="giu-label">이메일</label>
         <input
           required
           type="email"
@@ -132,7 +132,7 @@ export function CustomerRegisterForm() {
         />
       </div>
       <div>
-        <label className="giu-label">Số điện thoại</label>
+        <label className="giu-label">전화번호</label>
         <input
           required
           type="tel"
@@ -142,7 +142,7 @@ export function CustomerRegisterForm() {
         />
       </div>
       <div>
-        <label className="giu-label">Mật khẩu (tối thiểu 6 ký tự)</label>
+        <label className="giu-label">비밀번호 (최소 6자)</label>
         <input
           required
           type="password"
@@ -154,12 +154,12 @@ export function CustomerRegisterForm() {
       </div>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "Đang đăng ký..." : "Đăng ký"}
+        {loading ? "가입 중..." : "회원가입"}
       </button>
       <p className="text-center text-sm text-giu-muted">
-        Đã có tài khoản?{" "}
+        이미 계정이 있으신가요?{" "}
         <Link href="/giu/dang-nhap" className="font-semibold text-giu-primary">
-          Đăng nhập
+          로그인
         </Link>
       </p>
     </form>

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const session = await getGiuSessionFromRequest(request);
     if (!session || session.role !== "customer") {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để giải cứu và thanh toán" },
+        { error: "구출 및 결제를 위해 로그인해 주세요" },
         { status: 401 },
       );
     }
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" },
+        { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" },
         { status: 400 },
       );
     }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         buildVnpayPaymentUrl({
           amountVnd: totalVnd,
           txnRef: reservation.id,
-          orderInfo: `Giu giai cuu ${reservation.code}`,
+          orderInfo: `Giu 구출 ${reservation.code}`,
           ipAddr: ip,
           returnUrl: `${origin}/api/giu/payments/vnpay/return`,
         }),
@@ -112,6 +112,6 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

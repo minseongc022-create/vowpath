@@ -5,14 +5,14 @@ export const GIu_CATEGORIES: {
   label: string;
   emoji: string;
 }[] = [
-  { id: "banh_mi", label: "Bánh mì", emoji: "🥖" },
-  { id: "bakery", label: "Tiệm bánh", emoji: "🥐" },
-  { id: "cafe", label: "Cà phê", emoji: "☕" },
-  { id: "tra_sua", label: "Trà sữa", emoji: "🧋" },
-  { id: "nha_hang", label: "Nhà hàng", emoji: "🍜" },
-  { id: "tap_hoa", label: "Tạp hóa", emoji: "🏪" },
-  { id: "hoa", label: "Hoa tươi", emoji: "💐" },
-  { id: "khac", label: "Món khác", emoji: "🍱" },
+  { id: "banh_mi", label: "반미", emoji: "🥖" },
+  { id: "bakery", label: "베이커리", emoji: "🥐" },
+  { id: "cafe", label: "카페", emoji: "☕" },
+  { id: "tra_sua", label: "버블티", emoji: "🧋" },
+  { id: "nha_hang", label: "식당", emoji: "🍜" },
+  { id: "tap_hoa", label: "편의점", emoji: "🏪" },
+  { id: "hoa", label: "꽃", emoji: "💐" },
+  { id: "khac", label: "기타", emoji: "🍱" },
 ];
 
 export function getCategoryLabel(id: GiuCategory): string {

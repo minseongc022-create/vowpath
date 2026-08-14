@@ -41,7 +41,7 @@ export default async function GiuBoxesPage({ searchParams }: Props) {
         </div>
       ) : (
         <div className="giu-card mt-8 text-center text-sm text-giu-muted">
-          Chưa có hộp phù hợp. Thử đổi bộ lọc hoặc quay lại sau 19h.
+          조건에 맞는 박스가 없습니다. 필터를 바꾸거나 19시 이후에 다시 확인해 주세요.
         </div>
       )}
     </div>

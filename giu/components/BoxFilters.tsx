@@ -32,7 +32,7 @@ export function BoxFilters() {
           onClick={() => update("district", "")}
           className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!district)}`}
         >
-          Tất cả quận
+          전체 구
         </button>
         {GIu_DISTRICTS.map((d) => (
           <button
@@ -51,7 +51,7 @@ export function BoxFilters() {
           onClick={() => update("category", "")}
           className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!category)}`}
         >
-          Tất cả
+          전체
         </button>
         {GIu_CATEGORIES.map((c) => (
           <button

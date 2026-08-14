@@ -25,7 +25,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   return (
     <div className="giu-page space-y-5">
       <Link href="/giu/hop" className="inline-flex text-sm font-semibold text-giu-primary">
-        ← Quay lại
+        ← 돌아가기
       </Link>
 
       <div className="giu-card space-y-4">
@@ -56,10 +56,10 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
         <div className="space-y-0 text-sm">
           {[
-            ["Ngày lấy", formatPickupDate(box.pickupStart)],
-            ["Khung giờ", formatPickupWindow(box.pickupStart, box.pickupEnd)],
-            ["Còn lại", `${box.quantityLeft} hộp`],
-            ["Địa chỉ", merchant.address],
+            ["픽업 날짜", formatPickupDate(box.pickupStart)],
+            ["픽업 시간", formatPickupWindow(box.pickupStart, box.pickupEnd)],
+            ["남은 수량", `${box.quantityLeft}개`],
+            ["주소", merchant.address],
           ].map(([label, value], i) => (
             <div key={label} className={`flex justify-between py-3 ${i > 0 ? "border-t border-giu-border" : ""}`}>
               <span className="text-giu-muted">{label}</span>
@@ -71,10 +71,10 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
       {soldOut ? (
         <div className="giu-card text-center">
-          <p className="font-semibold text-giu-ink">Hộp đã hết</p>
-          <p className="mt-2 text-sm text-giu-muted">Quay lại sau 19h hoặc chọn hộp khác.</p>
+          <p className="font-semibold text-giu-ink">박스 매진</p>
+          <p className="mt-2 text-sm text-giu-muted">19시 이후에 다시 오거나 다른 박스를 선택하세요.</p>
           <Link href="/giu/hop" className="giu-btn-primary mt-4 block text-center">
-            Xem hộp khác
+            다른 박스 보기
           </Link>
         </div>
       ) : (

@@ -25,7 +25,7 @@ export function BoxCard({ box, merchant }: Props) {
         <div className="mt-2 flex items-end justify-between gap-2">
           <p className="text-lg font-bold text-giu-ink">{formatVnd(box.salePriceVnd)}</p>
           <p className="text-right text-xs text-giu-muted">
-            Còn {box.quantityLeft} · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+            남은 {box.quantityLeft}개 · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
           </p>
         </div>
       </div>

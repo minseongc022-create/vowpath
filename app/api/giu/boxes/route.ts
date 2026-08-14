@@ -7,7 +7,7 @@ import { createBox, getMerchant, listBoxes, defaultPickupWindow } from "@/giu/li
 const createSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().max(500).optional(),
-  category: z.string().refine(isGiuCategory, "Loại hình không hợp lệ").optional(),
+  category: z.string().refine(isGiuCategory, "업종이 올바르지 않습니다").optional(),
   originalPriceVnd: z.number().int().min(10000),
   salePriceVnd: z.number().int().min(5000),
   quantityTotal: z.number().int().min(1).max(50),
@@ -31,24 +31,24 @@ export async function POST(request: Request) {
   try {
     const session = await getGiuSessionFromRequest(request);
     if (!session || session.role !== "merchant" || !session.merchantId) {
-      return NextResponse.json({ error: "Vui lòng đăng nhập quán" }, { status: 401 });
+      return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
 
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" },
+        { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" },
         { status: 400 },
       );
     }
 
     const merchant = await getMerchant(session.merchantId);
     if (!merchant) {
-      return NextResponse.json({ error: "Quán không tồn tại" }, { status: 404 });
+      return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
     }
     if (parsed.data.salePriceVnd >= parsed.data.originalPriceVnd) {
-      return NextResponse.json({ error: "Giá giải cứu phải thấp hơn giá gốc" }, { status: 400 });
+      return NextResponse.json({ error: "구출 가격은 정가보다 낮아야 합니다" }, { status: 400 });
     }
 
     const window = defaultPickupWindow();
@@ -65,10 +65,10 @@ export async function POST(request: Request) {
       expiresAt: parsed.data.expiresAt ?? window.expires,
       freshnessNote:
         parsed.data.freshnessNote ??
-        "Quán cam kết giữ độ tươi cho đến khi khách đến lấy trong khung giờ.",
+        "픽업 시간까지 신선하게 보관합니다.",
     });
     return NextResponse.json({ box }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

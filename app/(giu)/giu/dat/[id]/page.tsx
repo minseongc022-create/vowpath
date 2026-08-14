@@ -26,27 +26,27 @@ export default async function GiuReservationPage({ params }: Props) {
     <div className="giu-page space-y-5 text-center">
       {pending ? (
         <div className="giu-card space-y-3">
-          <span className="giu-badge-safe bg-amber-50 text-amber-700">Chờ thanh toán</span>
+          <span className="giu-badge-safe bg-amber-50 text-amber-700">결제 대기</span>
           <p className="text-sm text-giu-muted">
-            Hoàn tất thanh toán VNPay để nhận mã. Nếu đã trả, tải lại trang sau vài giây.
+            VNPay 결제를 완료하면 코드를 받을 수 있습니다. 이미 결제했다면 잠시 후 새로고침하세요.
           </p>
         </div>
       ) : paid ? (
         <div className="giu-card space-y-4">
-          <span className="giu-badge-safe">Mã giải cứu</span>
+          <span className="giu-badge-safe">구출 코드</span>
           <p className="font-mono text-5xl font-extrabold tracking-[0.18em] text-giu-ink">
             {reservation.code}
           </p>
-          <p className="text-sm text-giu-muted">Đọc mã này tại quán để nhận hộp</p>
-          <p className="text-sm font-medium text-giu-accent">✓ Đã thanh toán · SMS đã gửi</p>
+          <p className="text-sm text-giu-muted">가게에서 이 코드를 보여주고 박스를 받으세요</p>
+          <p className="text-sm font-medium text-giu-accent">✓ 결제 완료 · SMS 발송됨</p>
           {held ? (
             <div className="giu-info-banner text-left text-sm">{GIU_STRINGS.escrowDesc}</div>
           ) : released ? (
-            <p className="text-xs text-giu-muted">Đã lấy hàng · quán đã nhận tiền</p>
+            <p className="text-xs text-giu-muted">픽업 완료 · 가게에 정산됨</p>
           ) : null}
         </div>
       ) : (
-        <div className="giu-card text-sm text-giu-muted">Thanh toán không thành công hoặc đã hủy.</div>
+        <div className="giu-card text-sm text-giu-muted">결제 실패 또는 취소되었습니다.</div>
       )}
 
       <div className="giu-card space-y-3 text-left">
@@ -59,12 +59,12 @@ export default async function GiuReservationPage({ params }: Props) {
         {box ? <p className="text-sm text-giu-ink">{box.title}</p> : null}
         <div className="giu-divider" />
         <div className="flex items-center justify-between">
-          <span className="text-giu-muted">Tổng</span>
+          <span className="text-giu-muted">합계</span>
           <span className="text-xl font-bold text-giu-ink">{formatVnd(reservation.totalVnd)}</span>
         </div>
         {box ? (
           <p className="text-sm text-giu-muted">
-            Lấy: {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+            픽업: {formatPickupWindow(box.pickupStart, box.pickupEnd)}
           </p>
         ) : null}
       </div>
@@ -74,7 +74,7 @@ export default async function GiuReservationPage({ params }: Props) {
       ) : null}
 
       <Link href="/giu/hop" className="inline-block text-sm font-semibold text-giu-primary">
-        Săn thêm hộp →
+        더 찾아보기 →
       </Link>
     </div>
   );
