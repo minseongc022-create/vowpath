@@ -6,6 +6,7 @@ import { PLACEMENT_TEST } from "@/topik/lib/quiz/placement-test";
 import { estimateLevelFromPlacement } from "@/topik/lib/journey/study-journey";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
+import { quizQuestionText } from "@/topik/lib/i18n/content-locale";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 
 type Phase = "intro" | "test" | "result";
@@ -51,10 +52,10 @@ export function PlacementTestClient() {
         <div className="topik-card topik-card-pad">
           <p className="topik-page-subtitle">{vi.placement.subtitle}</p>
           <ul className="topik-setup-list">
-            <li>8 câu — nghe, đọc, ngữ pháp, từ vựng</li>
-            <li>Ước lượng cấp TOPIK 1–4</li>
-            <li>Tự động đề xuất lộ trình học</li>
-            <li>Miễn phí · không quảng cáo</li>
+            <li>{vi.placement.intro1}</li>
+            <li>{vi.placement.intro2}</li>
+            <li>{vi.placement.intro3}</li>
+            <li>{vi.placement.intro4}</li>
           </ul>
         </div>
         <button
@@ -116,7 +117,7 @@ export function PlacementTestClient() {
             <KoreanStudyText text={q.passage} studyMode={false} />
           </p>
         )}
-        <p className="topik-question-vi">{q.questionVi ?? q.question}</p>
+        <p className="topik-question-vi">{quizQuestionText(q)}</p>
       </div>
 
       <div className="topik-option-list">

@@ -7,6 +7,7 @@ import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { getQuestionSection, ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
 import { vi } from "@/topik/lib/i18n/vi";
+import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
@@ -271,7 +272,9 @@ export function MockExamClient() {
         <p className="topik-question-ko">
           <KoreanStudyText text={q.question} studyMode={false} />
         </p>
-        {!isExamPhase && q.questionVi && <p className="topik-question-vi">{q.questionVi}</p>}
+        {!isExamPhase && !isKoLocale() && q.questionVi && (
+          <p className="topik-question-vi">{q.questionVi}</p>
+        )}
       </div>
 
       <div className="topik-option-list">

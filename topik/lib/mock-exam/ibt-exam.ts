@@ -43,18 +43,20 @@ export function scoreMockExam(
   return { correct, total, score, maxScore };
 }
 
+import { l } from "@/topik/lib/i18n/locale-text";
+
 export function ibtSectionLabel(section: string): string {
   switch (section) {
     case "listening":
-      return "Nghe (Listening)";
+      return l("Nghe (Listening)", "듣기 (Listening)");
     case "reading":
-      return "Đọc (Reading)";
+      return l("Đọc (Reading)", "읽기 (Reading)");
     case "writing":
-      return "Viết (Writing)";
+      return l("Viết (Writing)", "쓰기 (Writing)");
     case "grammar":
-      return "Ngữ pháp";
+      return l("Ngữ pháp", "문법");
     case "vocabulary":
-      return "Từ vựng";
+      return l("Từ vựng", "어휘");
     default:
       return section;
   }

@@ -1,4 +1,5 @@
 import type { PassProbabilityReport, StudyPlanDay, TopikLevel, UserProgress } from "@/topik/types";
+import { l } from "@/topik/lib/i18n/locale-text";
 
 export type JourneyStepStatus = "done" | "current" | "upcoming";
 
@@ -43,11 +44,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
     steps.push({
       id: "srs",
       order: order++,
-      titleVi: "Ôn tập SRS",
-      descVi: `${dueCards} thẻ đến hạn — nhớ lâu, quên chậm`,
+      titleVi: l("Ôn tập SRS", "SRS 복습"),
+      descVi: l(`${dueCards} thẻ đến hạn — nhớ lâu, quên chậm`, `복습 ${dueCards}장 — 오래 기억`),
       href: "/topik/review",
       status: "upcoming",
-      whyVi: "Lặp lại đúng lúc giúp nhớ từ vựng lâu hơn 80%",
+      whyVi: l("Lặp lại đúng lúc giúp nhớ từ vựng lâu hơn 80%", "적시 반복으로 어휘 기억 80% 향상"),
     });
   }
 
@@ -56,11 +57,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
     steps.push({
       id: "wrong",
       order: order++,
-      titleVi: "Sửa câu sai",
-      descVi: `${wrongCount} câu chưa thuộc — ôn đến khi đúng`,
+      titleVi: l("Sửa câu sai", "오답 수정"),
+      descVi: l(`${wrongCount} câu chưa thuộc — ôn đến khi đúng`, `미암기 ${wrongCount}문항 — 맞출 때까지`),
       href: "/topik/wrong-notes",
       status: "upcoming",
-      whyVi: "Học từ lỗi nhanh hơn làm đề mới mù quáng",
+      whyVi: l("Học từ lỗi nhanh hơn làm đề mới mù quáng", "오답 학습이 무분별한 새 문제보다 빠름"),
     });
   }
 
@@ -71,11 +72,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
     steps.push({
       id: "vocab",
       order: order++,
-      titleVi: "Sổ từ vựng TOPIK",
-      descVi: "Chạm từ → nghĩa tiếng Việt + phát âm",
+      titleVi: l("Sổ từ vựng TOPIK", "TOPIK 단어장"),
+      descVi: l("Chạm từ → nghĩa tiếng Việt + phát âm", "단어 탭 → 뜻 + 발음"),
       href: "/topik/vocab",
       status: "upcoming",
-      whyVi: "Học từ trong app — không cần tra từ điển ngoài",
+      whyVi: l("Học từ trong app — không cần tra từ điển ngoài", "앱 내 단어 — 외부 사전 불필요"),
     });
   }
 
@@ -84,11 +85,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
     steps.push({
       id: "placement",
       order: order++,
-      titleVi: "Kiểm tra trình độ",
-      descVi: "8 câu nhanh — biết điểm yếu ngay",
+      titleVi: l("Kiểm tra trình độ", "레벨 테스트"),
+      descVi: l("8 câu nhanh — biết điểm yếu ngay", "8문항 빠른 진단"),
       href: "/topik/placement",
       status: "upcoming",
-      whyVi: "Migii có entrance test — chúng ta cũng có, miễn phí",
+      whyVi: l("Migii có entrance test — chúng ta cũng có, miễn phí", "Migii 입학 테스트 — 우리도 무료"),
     });
   }
 
@@ -103,11 +104,11 @@ export function buildStudyJourney(input: Input): StudyJourney {
   steps.push({
     id: "section-drill",
     order: order++,
-    titleVi: `Luyện ${weakSection.labelVi}`,
+    titleVi: l(`Luyện ${weakSection.labelVi}`, `${weakSection.labelVi} 연습`),
     descVi: weakSection.descVi,
     href: weakSection.href,
     status: "upcoming",
-    whyVi: "Luyện theo điểm yếu — cách Migii/Duolingo adaptive",
+    whyVi: l("Luyện theo điểm yếu — cách Migii/Duolingo adaptive", "약점 맞춤 — Migii/Duolingo 방식"),
   });
 
   // 6. Mock exam (Migii strength — we add no paywall)
@@ -120,11 +121,13 @@ export function buildStudyJourney(input: Input): StudyJourney {
     steps.push({
       id: "mock",
       order: order++,
-      titleVi: progress.targetLevel <= 2 ? "Thi thử TOPIK I" : "Thi thử TOPIK II / IBT",
-      descVi: "20 phút · đồng hồ · chấm điểm tự động",
+      titleVi: progress.targetLevel <= 2
+        ? l("Thi thử TOPIK I", "TOPIK I 모의고사")
+        : l("Thi thử TOPIK II / IBT", "TOPIK II / IBT 모의고사"),
+      descVi: l("20 phút · đồng hồ · chấm điểm tự động", "20분 · 타이머 · 자동 채점"),
       href: `/topik/mock-exam?tier=${tier}`,
       status: "upcoming",
-      whyVi: "Thi thử sát thật — tự tin trước ngày thi",
+      whyVi: l("Thi thử sát thật — tự tin trước ngày thi", "실전 같은 모의고사"),
     });
   }
 
@@ -169,48 +172,48 @@ function focusToStep(
     case "speaking":
       return {
         id: "speaking",
-        titleVi: "Luyện nói IBT",
-        descVi: "6 dạng bài nói · AI chấm + sửa lỗi người Việt",
+        titleVi: l("Luyện nói IBT", "IBT 말하기"),
+        descVi: l("6 dạng bài nói · AI chấm + sửa lỗi người Việt", "말하기 6유형 · AI 채점"),
         href: "/topik/speaking",
         status: "upcoming",
       };
     case "writing":
       return {
         id: "writing",
-        titleVi: "Chấm bài viết TOPIK",
-        descVi: "Q51–54 · tiêu chí thi thật",
+        titleVi: l("Chấm bài viết TOPIK", "TOPIK 쓰기 채점"),
+        descVi: l("Q51–54 · tiêu chí thi thật", "51–54번 · 실전 기준"),
         href: "/topik/writing",
         status: "upcoming",
       };
     case "listening":
       return {
         id: "listening",
-        titleVi: "Luyện nghe + script",
-        descVi: "Script tiếng Việt · không như app lỗi audio",
+        titleVi: l("Luyện nghe + script", "듣기 + 스크립트"),
+        descVi: l("Script tiếng Việt · không như app lỗi audio", "스크립트 제공 · 오디오 버그 없음"),
         href: "/topik/practice?category=listening",
         status: "upcoming",
       };
     case "reading":
       return {
         id: "reading",
-        titleVi: "Luyện đọc hiểu",
-        descVi: "Đoạn văn TOPIK + giải thích",
+        titleVi: l("Luyện đọc hiểu", "독해 연습"),
+        descVi: l("Đoạn văn TOPIK + giải thích", "TOPIK 지문 + 해설"),
         href: "/topik/practice?category=reading",
         status: "upcoming",
       };
     case "mock":
       return {
         id: "mock-focus",
-        titleVi: "Thi thử mini",
-        descVi: "20 phút · lưu điểm cao nhất",
+        titleVi: l("Thi thử mini", "미니 모의고사"),
+        descVi: l("20 phút · lưu điểm cao nhất", "20분 · 최고 점수 저장"),
         href: "/topik/mock-exam",
         status: "upcoming",
       };
     case "vocab":
       return {
         id: "vocab",
-        titleVi: "Sổ từ vựng TOPIK",
-        descVi: "Chạm từ → nghĩa + phát âm",
+        titleVi: l("Sổ từ vựng TOPIK", "TOPIK 단어장"),
+        descVi: l("Chạm từ → nghĩa + phát âm", "단어 탭 → 뜻 + 발음"),
         href: "/topik/vocab",
         status: "upcoming",
       };
@@ -219,16 +222,16 @@ function focusToStep(
       if ((progress.bestTypingCpm ?? 0) < 30 && progress.targetLevel >= 3) {
         return {
           id: "typing",
-          titleVi: "Luyện gõ tiếng Hàn",
-          descVi: "Mục tiêu 30+ ký tự/phút cho IBT",
+          titleVi: l("Luyện gõ tiếng Hàn", "한국어 타이핑"),
+          descVi: l("Mục tiêu 30+ ký tự/phút cho IBT", "IBT 목표 30+타/분"),
           href: "/topik/typing",
           status: "upcoming",
         };
       }
       return {
         id: "practice",
-        titleVi: "Luyện đề TOPIK",
-        descVi: "Trắc nghiệm theo cấp mục tiêu",
+        titleVi: l("Luyện đề TOPIK", "TOPIK 문제 풀이"),
+        descVi: l("Trắc nghiệm theo cấp mục tiêu", "목표 급수 맞춤 객관식"),
         href: `/topik/practice?level=${progress.targetLevel}`,
         status: "upcoming",
       };
@@ -239,31 +242,30 @@ function pickWeakSection(
   report: PassProbabilityReport,
   progress: UserProgress,
 ): { labelVi: string; descVi: string; href: string } {
-  const gaps = report.gapsVi.join(" ").toLowerCase();
-  if (gaps.includes("nói") || progress.speakingCount < 2) {
+  if (progress.speakingCount < 2) {
     return {
-      labelVi: "nói IBT",
-      descVi: "Điểm yếu phổ biến của người Việt",
+      labelVi: l("nói IBT", "IBT 말하기"),
+      descVi: l("Điểm yếu phổ biến của người Việt", "베트남 학습자 흔한 약점"),
       href: "/topik/speaking",
     };
   }
-  if (gaps.includes("viết") || gaps.includes("gõ") || progress.writingCount < 2) {
+  if (progress.writingCount < 2 || (progress.bestTypingCpm ?? 0) < 30) {
     return {
-      labelVi: "viết & gõ",
-      descVi: "IBT viết trên màn hình",
+      labelVi: l("viết & gõ", "쓰기 & 타이핑"),
+      descVi: l("IBT viết trên màn hình", "IBT 화면 쓰기"),
       href: "/topik/typing",
     };
   }
-  if (gaps.includes("thi thử") || !progress.bestMockScore) {
+  if (!progress.bestMockScore) {
     return {
-      labelVi: "thi thử",
-      descVi: "Chưa có điểm mock — làm ngay",
+      labelVi: l("thi thử", "모의고사"),
+      descVi: l("Chưa có điểm mock — làm ngay", "모의 점수 없음 — 지금 하기"),
       href: "/topik/mock-exam",
     };
   }
   return {
-    labelVi: "nghe",
-    descVi: "Script + đáp án tiếng Việt",
+    labelVi: l("nghe", "듣기"),
+    descVi: l("Script + đáp án tiếng Việt", "스크립트 + 해설"),
     href: "/topik/practice?category=listening",
   };
 }
@@ -289,12 +291,21 @@ function isStepDone(
 
 function buildConfidenceMessage(report: PassProbabilityReport, progress: UserProgress): string {
   if (report.probability >= 70) {
-    return `Khả năng đậu ${report.probability}% — duy trì lộ trình, bạn sẽ sẵn sàng thi TOPIK ${progress.targetLevel}!`;
+    return l(
+      `Khả năng đậu ${report.probability}% — duy trì lộ trình, bạn sẽ sẵn sàng thi TOPIK ${progress.targetLevel}!`,
+      `합격 가능성 ${report.probability}% — 로드맵 유지하면 TOPIK ${progress.targetLevel} 준비 완료!`,
+    );
   }
   if (report.probability >= 50) {
-    return `Đang tiến bộ (${report.probability}%) — làm đủ 5 bước hôm nay, điểm sẽ tăng nhanh.`;
+    return l(
+      `Đang tiến bộ (${report.probability}%) — làm đủ 5 bước hôm nay, điểm sẽ tăng nhanh.`,
+      `진행 중 (${report.probability}%) — 오늘 5단계 완료하면 점수 빠르게 상승.`,
+    );
   }
-  return `Bắt đầu từ bước 1 — mỗi ngày 5 bước nhỏ, vài tuần nữa bạn sẽ thấy khác biệt rõ.`;
+  return l(
+    `Bắt đầu từ bước 1 — mỗi ngày 5 bước nhỏ, vài tuần nữa bạn sẽ thấy khác biệt rõ.`,
+    `1단계부터 시작 — 매일 5개 작은 단계, 몇 주 후 확실한 변화.`,
+  );
 }
 
 export function estimateLevelFromPlacement(correct: number, total: number): TopikLevel {

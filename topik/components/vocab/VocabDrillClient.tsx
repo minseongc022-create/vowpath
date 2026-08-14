@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAllDictionaryEntries, type DictEntry } from "@/topik/lib/korean/dictionary";
+import { getAllDictionaryEntries, getDisplayMeaning, type DictEntry } from "@/topik/lib/korean/dictionary";
 import { speakKorean } from "@/topik/lib/korean/tts";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { vi } from "@/topik/lib/i18n/vi";
@@ -87,7 +87,9 @@ export function VocabDrillClient() {
 
         {showAnswer ? (
           <div className="mt-4">
-            <p className="text-xl font-bold text-learn-primary">{current.vietnamese}</p>
+            <p className="text-xl font-bold text-learn-primary">
+              {getDisplayMeaning(current, vi.korean.noDefinition)}
+            </p>
             {current.example && (
               <p className="mt-2 text-sm text-learn-ink-muted">
                 <KoreanStudyText text={current.example} studyMode />

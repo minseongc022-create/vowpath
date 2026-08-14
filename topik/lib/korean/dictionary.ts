@@ -1,4 +1,5 @@
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
+import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 
 export type DictEntry = {
   korean: string;
@@ -150,6 +151,17 @@ export function getAllDictionaryEntries(): DictEntry[] {
 
 export function getDictionarySize(): number {
   return DICT.size;
+}
+
+/** Word meaning for popup / vocab drill */
+export function getDisplayMeaning(entry: DictEntry | null, noDefinition: string): string {
+  if (!entry) return noDefinition;
+  if (isKoLocale()) {
+    return entry.romanization
+      ? `${entry.korean} · [${entry.romanization}] · TOPIK ${entry.level ?? "?"}급`
+      : `${entry.korean} · TOPIK ${entry.level ?? "?"}급`;
+  }
+  return entry.vietnamese;
 }
 
 /** Split Korean text into tappable tokens (space-separated + bracket words) */

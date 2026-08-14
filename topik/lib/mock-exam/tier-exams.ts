@@ -76,12 +76,14 @@ function dedupeAndFill(
   return out.slice(0, count);
 }
 
+import { l } from "@/topik/lib/i18n/locale-text";
+
 export function tierLabelVi(tier: MockExamTier): string {
   switch (tier) {
     case "topik-i":
-      return "TOPIK I (cấp 1–2)";
+      return l("TOPIK I (cấp 1–2)", "TOPIK I (1–2급)");
     case "topik-ii":
-      return "TOPIK II (cấp 3–6)";
+      return l("TOPIK II (cấp 3–6)", "TOPIK II (3–6급)");
     case "topik-ibt":
       return "TOPIK IBT";
     case "eps-topik":

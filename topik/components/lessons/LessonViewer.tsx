@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { TopikLesson } from "@/topik/types";
 import { vi } from "@/topik/lib/i18n/vi";
+import { lessonDescription, lessonTitle } from "@/topik/lib/i18n/content-locale";
+import { getDisplayMeaning } from "@/topik/lib/korean/dictionary";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
@@ -50,7 +52,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
       <StudyModeHint />
       <div>
         <span className="topik-badge">TOPIK {lesson.level}</span>
-        <h1 className="mt-2 text-lg font-bold text-learn-ink">{lesson.titleVi}</h1>
+        <h1 className="mt-2 text-lg font-bold text-learn-ink">{lessonTitle(lesson)}</h1>
         <p className="text-xs text-learn-ink-muted">{lesson.title}</p>
         {lesson.channelName && (
           <p className="text-xs text-learn-ink-subtle mt-1">
@@ -69,7 +71,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
               tab === t ? "bg-learn-surface text-learn-primary shadow-learn-sm" : "text-learn-ink-muted"
             }`}
           >
-            {t === "video" && "▶ Video"}
+            {t === "video" && vi.lessons.videoTab}
             {t === "vocab" && vi.lessons.vocabulary}
             {t === "grammar" && vi.lessons.grammar}
           </button>
@@ -82,7 +84,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-black">
               <iframe
                 src={embed}
-                title={lesson.titleVi}
+                title={lessonTitle(lesson)}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="absolute inset-0 h-full w-full"
@@ -90,10 +92,10 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
             </div>
           ) : (
             <div className="aspect-video rounded-2xl bg-learn-muted flex items-center justify-center">
-              <p className="text-sm text-learn-ink-muted">Video coming soon</p>
+              <p className="text-sm text-learn-ink-muted">{vi.lessons.videoSoon}</p>
             </div>
           )}
-          <p className="mt-3 text-sm text-learn-ink-muted leading-relaxed">{lesson.descriptionVi}</p>
+          <p className="mt-3 text-sm text-learn-ink-muted leading-relaxed">{lessonDescription(lesson)}</p>
         </div>
       )}
 
@@ -110,7 +112,9 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
                     <p className="text-xs text-learn-ink-subtle">{v.romanization}</p>
                   )}
                 </div>
-                <p className="text-sm font-semibold text-learn-primary">{v.vietnamese}</p>
+                <p className="text-sm font-semibold text-learn-primary">
+                  {getDisplayMeaning({ korean: v.korean, vietnamese: v.vietnamese, romanization: v.romanization, level: lesson.level }, vi.korean.noDefinition)}
+                </p>
               </div>
               {v.example && (
                 <p className="mt-2 text-xs text-learn-ink-muted border-t border-learn-border pt-2">

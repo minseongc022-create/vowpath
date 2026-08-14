@@ -1,4 +1,5 @@
 import type { PassProbabilityReport, TopikLevel, UserProgress } from "@/topik/types";
+import { l } from "@/topik/lib/i18n/locale-text";
 
 type AnalyticsInput = {
   progress: UserProgress;
@@ -47,25 +48,31 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
   const strengthsVi: string[] = [];
   const gapsVi: string[] = [];
 
-  if (progress.streak >= 3) strengthsVi.push(`Chuỗi học ${progress.streak} ngày — duy trì tốt!`);
-  if (srsRate >= 0.4) strengthsVi.push("Từ vựng SRS đã thuộc khá nhiều");
-  if (progress.writingCount >= 3) strengthsVi.push("Đã luyện chấm bài viết nhiều lần");
-  if (progress.speakingCount >= 2) strengthsVi.push("Đã luyện nói — điểm mạnh so với đối thủ");
-  if ((progress.bestTypingCpm ?? 0) >= 30) strengthsVi.push("Tốc độ gõ IBT đạt mục tiêu (30+ ký tự/phút)");
+  if (progress.streak >= 3)
+    strengthsVi.push(l(`Chuỗi học ${progress.streak} ngày — duy trì tốt!`, `연속 ${progress.streak}일 학습 — 잘하고 있어요!`));
+  if (srsRate >= 0.4) strengthsVi.push(l("Từ vựng SRS đã thuộc khá nhiều", "SRS 어휘 많이 암기함"));
+  if (progress.writingCount >= 3) strengthsVi.push(l("Đã luyện chấm bài viết nhiều lần", "쓰기 채점 여러 번 연습"));
+  if (progress.speakingCount >= 2) strengthsVi.push(l("Đã luyện nói — điểm mạnh so với đối thủ", "말하기 연습 — 경쟁 대비 강점"));
+  if ((progress.bestTypingCpm ?? 0) >= 30)
+    strengthsVi.push(l("Tốc độ gõ IBT đạt mục tiêu (30+ ký tự/phút)", "IBT 타이핑 목표 달성 (30+타/분)"));
 
-  if (progress.speakingCount < 2) gapsVi.push("Luyện nói IBT — kỹ năng yếu nhất của người Việt");
+  if (progress.speakingCount < 2)
+    gapsVi.push(l("Luyện nói IBT — kỹ năng yếu nhất của người Việt", "IBT 말하기 — 베트남 학습자 최대 약점"));
   if ((progress.bestTypingCpm ?? 0) < 30 && progress.typingCount < 3)
-    gapsVi.push("Luyện gõ tiếng Hàn — IBT viết trên màn hình cần 30–40 ký tự/phút");
-  if (progress.writingCount < 2) gapsVi.push("Chưa đủ bài viết TOPIK 53–54");
-  if (srsDue > 10) gapsVi.push(`${srsDue} thẻ SRS cần ôn hôm nay`);
-  if (!progress.bestMockScore) gapsVi.push("Chưa làm thi thử IBT — làm ngay để biết điểm thật");
-  if (wrongUnresolved > 5) gapsVi.push(`${wrongUnresolved} câu sai chưa thuộc`);
+    gapsVi.push(l("Luyện gõ tiếng Hàn — IBT viết trên màn hình cần 30–40 ký tự/phút", "한국어 타이핑 — IBT 화면 쓰기 30–40타/분"));
+  if (progress.writingCount < 2) gapsVi.push(l("Chưa đủ bài viết TOPIK 53–54", "TOPIK 53–54번 쓰기 부족"));
+  if (srsDue > 10) gapsVi.push(l(`${srsDue} thẻ SRS cần ôn hôm nay`, `오늘 SRS 복습 ${srsDue}장`));
+  if (!progress.bestMockScore) gapsVi.push(l("Chưa làm thi thử IBT — làm ngay để biết điểm thật", "IBT 모의고사 미응시 — 지금 점수 확인"));
+  if (wrongUnresolved > 5) gapsVi.push(l(`${wrongUnresolved} câu sai chưa thuộc`, `미암기 오답 ${wrongUnresolved}문항`));
 
   const dailyPlanVi = buildDailyPlan(progress, gapsVi, daysToExam);
 
   if (probability < threshold) {
     gapsVi.unshift(
-      `Cần thêm ~${threshold - probability}% để đạt mục tiêu TOPIK ${progress.targetLevel}`,
+      l(
+        `Cần thêm ~${threshold - probability}% để đạt mục tiêu TOPIK ${progress.targetLevel}`,
+        `TOPIK ${progress.targetLevel} 목표까지 ~${threshold - probability}% 더 필요`,
+      ),
     );
   }
 
@@ -84,26 +91,26 @@ function buildDailyPlan(
   gaps: string[],
   daysToExam: number | null,
 ): string[] {
-  const plan: string[] = ["Ôn SRS 10–15 phút (ưu tiên thẻ đến hạn)"];
+  const plan: string[] = [l("Ôn SRS 10–15 phút (ưu tiên thẻ đến hạn)", "SRS 10–15분 (복습 카드 우선)")];
 
-  if (gaps.some((g) => g.includes("nói"))) {
-    plan.push("Luyện nói 1 kịch bản IBT (5 phút)");
+  if (progress.speakingCount < 2) {
+    plan.push(l("Luyện nói 1 kịch bản IBT (5 phút)", "IBT 말하기 1시나리오 (5분)"));
   } else {
-    plan.push("Luyện nói 1 kịch bản (duy trì)");
+    plan.push(l("Luyện nói 1 kịch bản (duy trì)", "말하기 1시나리오 (유지)"));
   }
 
   if (progress.writingCount < 5) {
-    plan.push("Viết và chấm 1 bài TOPIK 53 hoặc 54");
-    plan.push("Luyện gõ tiếng Hàn 10 phút trước khi viết");
+    plan.push(l("Viết và chấm 1 bài TOPIK 53 hoặc 54", "TOPIK 53 또는 54번 쓰기·채점"));
+    plan.push(l("Luyện gõ tiếng Hàn 10 phút trước khi viết", "쓰기 전 한국어 타이핑 10분"));
   }
 
-  plan.push("Làm 10 câu luyện đề theo cấp mục tiêu");
+  plan.push(l("Làm 10 câu luyện đề theo cấp mục tiêu", "목표 급수 문제 10문항"));
 
   if (!progress.bestMockScore || (daysToExam !== null && daysToExam <= 30)) {
-    plan.push("Thi thử IBT 20 phút (cuối tuần)");
+    plan.push(l("Thi thử IBT 20 phút (cuối tuần)", "IBT 모의고사 20분 (주말)"));
   }
 
-  plan.push("Xem 1 video bài học + thêm từ vào SRS");
+  plan.push(l("Xem 1 video bài học + thêm từ vào SRS", "레슨 영상 1개 + SRS 단어 추가"));
 
   return plan.slice(0, 5);
 }

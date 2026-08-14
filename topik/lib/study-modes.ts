@@ -82,7 +82,7 @@ export const STUDY_MODES: StudyMode[] = [
     id: "wrong-notes",
     href: "/topik/wrong-notes",
     title: vi.nav.wrongNotes,
-    desc: "Theo dõi câu sai · ôn lại cho đến khi thuộc",
+    desc: vi.wrongNotes.desc,
     tint: "coral",
   },
 ];

@@ -5,16 +5,21 @@ import { useSearchParams } from "next/navigation";
 import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { vi } from "@/topik/lib/i18n/vi";
+import {
+  quizExplanationText,
+  quizListeningScriptVi,
+} from "@/topik/lib/i18n/content-locale";
+import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
 const CATEGORIES = [
   { value: "", label: vi.practice.all },
-  { value: "listening", label: "Nghe" },
-  { value: "reading", label: "Đọc" },
-  { value: "grammar", label: "Ngữ pháp" },
-  { value: "vocabulary", label: "Từ vựng" },
+  { value: "listening", label: vi.practice.categories.listening },
+  { value: "reading", label: vi.practice.categories.reading },
+  { value: "grammar", label: vi.practice.categories.grammar },
+  { value: "vocabulary", label: vi.practice.categories.vocabulary },
 ];
 
 type Props = {
@@ -194,8 +199,8 @@ export function TopikQuizClient({ initialLevel }: Props) {
                 <p className="topik-script-ko">
                   <KoreanStudyText text={q.listeningScript} studyMode />
                 </p>
-                {q.listeningScriptVi && (
-                  <p className="topik-script-vi">{q.listeningScriptVi}</p>
+                {quizListeningScriptVi(q) && (
+                  <p className="topik-script-vi">{quizListeningScriptVi(q)}</p>
                 )}
               </div>
             )}
@@ -206,10 +211,12 @@ export function TopikQuizClient({ initialLevel }: Props) {
             <KoreanStudyText text={q.passage} studyMode />
           </p>
         )}
-        <p className="topik-question-vi">{q.questionVi ?? q.question}</p>
         <p className="topik-question-ko">
           <KoreanStudyText text={q.question} studyMode />
         </p>
+        {!isKoLocale() && q.questionVi && (
+          <p className="topik-question-vi">{q.questionVi}</p>
+        )}
       </div>
 
       {q.type === "multiple_choice" && q.options && (
@@ -242,7 +249,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
           value={textAnswer}
           onChange={(e) => setTextAnswer(e.target.value)}
           disabled={showResult}
-          placeholder="Nhập câu trả lời..."
+          placeholder={vi.practice.answerPlaceholder}
           className="topik-input"
         />
       )}
@@ -252,7 +259,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
           <p className="topik-feedback-title">
             {correct ? `✓ ${vi.practice.correct}` : `✗ ${vi.practice.wrong}`}
           </p>
-          <p className="topik-feedback-text">{q.explanationVi}</p>
+          <p className="topik-feedback-text">{quizExplanationText(q)}</p>
           {q.listeningScript && (
             <div className="topik-script-box mt-3">
               <p className="topik-script-label">{vi.listening.scriptLabel}</p>

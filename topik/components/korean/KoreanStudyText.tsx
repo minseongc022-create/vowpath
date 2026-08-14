@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lookupWord, tokenizeKoreanText, type DictEntry } from "@/topik/lib/korean/dictionary";
+import { lookupWord, tokenizeKoreanText, getDisplayMeaning, type DictEntry } from "@/topik/lib/korean/dictionary";
 import { speakKorean, stopKoreanSpeech, preloadKoreanVoices } from "@/topik/lib/korean/tts";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconSpeaker } from "@/topik/components/ui/TopikIcons";
@@ -114,7 +114,7 @@ function WordPopup({
           <p className="topik-word-popup-roman">{entry.romanization}</p>
         )}
         <p className="topik-word-popup-vi">
-          {entry?.vietnamese ?? vi.korean.noDefinition}
+          {getDisplayMeaning(entry, vi.korean.noDefinition)}
         </p>
         {entry?.example && (
           <p className="topik-word-popup-example font-ko">{entry.example}</p>

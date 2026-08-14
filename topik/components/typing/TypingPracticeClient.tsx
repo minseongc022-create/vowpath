@@ -109,10 +109,10 @@ export function TypingPracticeClient() {
           <IconKeyboard className="mx-auto text-learn-primary" size={48} />
           <p className="topik-page-subtitle mt-3">{vi.typing.subtitle}</p>
           <ul className="topik-setup-list text-left mt-4">
-            <li>Mục tiêu IBT: {IBT_TYPING_MIN_CPM}–{IBT_TYPING_TARGET_CPM} ký tự/phút</li>
-            <li>5 câu luyện tập mỗi phiên</li>
-            <li>Cụm từ → câu → đoạn luận IBT</li>
-            <li>Lưu tốc độ cao nhất</li>
+            <li>{vi.typing.intro1}</li>
+            <li>{vi.typing.intro2}</li>
+            <li>{vi.typing.intro3}</li>
+            <li>{vi.typing.intro4}</li>
           </ul>
         </div>
         <label className="topik-field-label">{vi.typing.level}</label>
