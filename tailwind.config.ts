@@ -7,10 +7,22 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./learn/**/*.{js,ts,jsx,tsx,mdx}",
     "./topik/**/*.{js,ts,jsx,tsx,mdx}",
+    "./mano/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
+        mano: {
+          bg: "#f8faf9",
+          surface: "#f0f4f3",
+          ink: "#0f172a",
+          muted: "#64748b",
+          border: "#e2e8f0",
+          primary: "#0d9488",
+          "primary-hover": "#0f766e",
+          accent: "#ea580c",
+          "accent-hover": "#c2410c",
+        },
         learn: {
           bg: "#f4f6f8",
           surface: "#ffffff",

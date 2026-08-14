@@ -128,6 +128,14 @@ export async function middleware(request: NextRequest) {
     return topikShellResponse(request);
   }
 
+  // Mano — home services marketplace (Guadalajara), isolated product shell.
+  if (pathname.startsWith("/mano")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "mano");
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (isDecommissionedHost(hostname)) {
     if (pathname === "/robots.txt") {
       return new NextResponse("User-agent: *\nDisallow: /\n", {

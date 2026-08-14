@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { PlatformShell } from "@/components/layout/PlatformShell";
 import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell";
 import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell";
+import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
+import { MANO_BRAND } from "@/mano/lib/brand";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import { getAppShell } from "@/lib/shell-route";
@@ -32,6 +34,19 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
+  if (shell === "mano") {
+    return {
+      title: { default: MANO_BRAND.name, template: `%s · ${MANO_BRAND.name}` },
+      description: MANO_BRAND.tagline,
+      applicationName: MANO_BRAND.name,
+      robots: { index: true, follow: true },
+      openGraph: {
+        title: MANO_BRAND.name,
+        description: MANO_BRAND.tagline,
+        locale: "es_MX",
+      },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -52,6 +67,9 @@ export default async function RootLayout({
   }
   if (shell === "topik") {
     return <TopikPlatformShell>{children}</TopikPlatformShell>;
+  }
+  if (shell === "mano") {
+    return <ManoPlatformShell>{children}</ManoPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }

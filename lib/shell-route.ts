@@ -1,21 +1,26 @@
 import { headers } from "next/headers";
 
-export type AppShell = "learn" | "topik" | "effiroad";
+export type AppShell = "learn" | "topik" | "mano" | "effiroad";
 
 /** Resolve product shell from middleware tags, with pathname fallback. */
 export async function getAppShell(): Promise<AppShell> {
   const h = await headers();
   const tagged = h.get("x-app-shell");
-  if (tagged === "learn" || tagged === "topik") return tagged;
+  if (tagged === "learn" || tagged === "topik" || tagged === "mano") return tagged;
 
   const path = h.get("x-pathname") ?? "";
   if (path.startsWith("/learn")) return "learn";
   if (path.startsWith("/topik")) return "topik";
+  if (path.startsWith("/mano")) return "mano";
   return "effiroad";
 }
 
 export function isIsolatedProductPath(pathname: string): boolean {
-  return pathname.startsWith("/learn") || pathname.startsWith("/topik");
+  return (
+    pathname.startsWith("/learn") ||
+    pathname.startsWith("/topik") ||
+    pathname.startsWith("/mano")
+  );
 }
 
 export async function shouldShowEffiroadAssistant(): Promise<boolean> {
