@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatVnd } from "@/giu/lib/format";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 import { GIU_STRINGS } from "@/giu/lib/strings";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
@@ -75,14 +76,11 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
       <div className="giu-card space-y-4">
         <p className="text-2xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
         <p className="text-sm text-giu-muted">{GIU_STRINGS.payCta}</p>
-        <Link href={`/giu/dang-nhap?next=/giu/hop/${boxId}`} className="giu-btn-primary block text-center">
-          로그인
-        </Link>
         <Link
-          href={`/giu/dang-ky?next=/giu/hop/${boxId}`}
-          className="giu-btn-secondary block text-center"
+          href={`${GIU_ROUTES.auth}?role=customer&next=${encodeURIComponent(`/giu/hop/${boxId}`)}`}
+          className="giu-btn-primary block text-center"
         >
-          계정 만들기
+          로그인 / 회원가입
         </Link>
       </div>
     );

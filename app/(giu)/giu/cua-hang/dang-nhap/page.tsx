@@ -1,10 +1,6 @@
-import { MerchantLoginForm } from "@/giu/components/MerchantAuthForms";
+import { redirect } from "next/navigation";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 
-export default function GiuMerchantLoginPage() {
-  return (
-    <div className="giu-page">
-      <h1 className="giu-section-title mb-5">가게 로그인</h1>
-      <MerchantLoginForm />
-    </div>
-  );
+export default function GiuMerchantLoginRedirect() {
+  redirect(`${GIU_ROUTES.auth}?role=merchant`);
 }

@@ -1,10 +1,6 @@
-import { CustomerRegisterForm } from "@/giu/components/CustomerAuthForms";
+import { redirect } from "next/navigation";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 
-export default function GiuRegisterPage() {
-  return (
-    <div className="giu-page">
-      <h1 className="giu-section-title mb-5">계정 만들기</h1>
-      <CustomerRegisterForm />
-    </div>
-  );
+export default function GiuRegisterRedirect() {
+  redirect(`${GIU_ROUTES.auth}?mode=signup`);
 }
