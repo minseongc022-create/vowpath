@@ -26,8 +26,8 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           if [ -z "$SSH_KEY" ]; then
-            echo "ORACLE_DEPLOY_SSH_PRIVATE_KEY missing — skip deploy"
-            exit 0
+            echo "::error::ORACLE_DEPLOY_SSH_PRIVATE_KEY missing — deploy skipped. Run oracle/scripts/setup_github_deploy_key.sh"
+            exit 1
           fi
           HOST="${SSH_HOST:-169.58.109.86}"
           USER="${SSH_USER:-root}"

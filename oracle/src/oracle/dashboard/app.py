@@ -884,6 +884,45 @@ def blog_settings(
     return _flash("/blog", msg)
 
 
+@app.post("/actions/server_deploy")
+def server_deploy(_: None = Depends(require_auth)):
+    """Pull latest Oracle code on this VPS and restart the service (dashboard-auth)."""
+    import subprocess
+
+    branch = os.getenv("ORACLE_REPO_BRANCH", "cursor/content-autopilot-engine-42ff").strip()
+    url = (
+        f"https://raw.githubusercontent.com/minseongc022-create/vowpath/"
+        f"{branch}/oracle/scripts/deploy_update.sh"
+    )
+
+    def _work(job_id: str):
+        store = JobStore()
+
+        def prog(msg: str) -> None:
+            store.append_log(job_id, msg, status="running")
+
+        prog(f"배포 시작 · branch={branch}")
+        try:
+            proc = subprocess.run(
+                ["bash", "-c", f"curl -fsSL '{url}' | bash"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+            tail = (proc.stdout or "")[-2000:]
+            if proc.returncode != 0:
+                err = (proc.stderr or proc.stdout or "deploy failed")[-500:]
+                raise RuntimeError(err)
+            prog(tail.splitlines()[-1] if tail else "배포 완료")
+            return {"message": "서버 배포 완료 · oracle 재시작됨", "redirect": "/blog"}
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("배포 시간 초과 (5분)") from None
+
+    job_id = start_job("deploy", _work, message="서버 코드 업데이트 중…")
+    return RedirectResponse(url=f"/job/{job_id}", status_code=303)
+
+
 @app.get("/api/blog/status")
 def api_blog_status(_: None = Depends(require_auth)):
     from oracle.content_blog import store as blog_store
