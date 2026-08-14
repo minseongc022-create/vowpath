@@ -43,7 +43,14 @@ def save_connections(data: dict) -> dict:
 
 
 def load_settings() -> dict:
-    return _read("settings.json", {})
+    defaults = {
+        "auto_enabled": True,
+        "auto_interval_sec": 7200,
+    }
+    cur = _read("settings.json", {})
+    if not isinstance(cur, dict):
+        cur = {}
+    return {**defaults, **cur}
 
 
 def save_settings(patch: dict) -> dict:

@@ -9,12 +9,10 @@ from dataclasses import dataclass
 import httpx
 
 from oracle.content_blog import store
-from oracle.content_blog.covers import make_chart_svg, make_cover_svg, make_section_svg
-from oracle.content_blog.images import make_article_images
 from oracle.content_blog.issues import pick_issue_topic
 from oracle.content_blog.social import build_social_copies
 from oracle.content_blog.topics import Topic
-from oracle.content_blog.trends import TrendSnapshot, build_snapshot, sparkline_values
+from oracle.content_blog.trends import TrendSnapshot, build_snapshot
 from oracle.llm.client import chat as llm_chat
 
 logger = logging.getLogger("oracle.content_blog")
@@ -359,20 +357,6 @@ def seo_meta(title: str, keyword: str, md: str, secondary: list[str] | None = No
     }
 
 
-def _svg_figure(path, caption: str) -> str:
-    try:
-        svg_raw = path.read_text(encoding="utf-8")
-        svg_embed = re.sub(r"<\?xml[^?]*\?>\s*", "", svg_raw).strip()
-        return (
-            f'<figure style="margin:1.25rem 0;padding:0">'
-            f"{svg_embed}"
-            f'<figcaption style="font-size:12px;opacity:.7;margin-top:6px">'
-            f"{_esc(caption)}</figcaption></figure>\n"
-        )
-    except Exception:
-        return ""
-
-
 def publish_article(
     brand: Brand,
     topic: Topic,
@@ -388,10 +372,6 @@ def publish_article(
     created = store.now_iso()
     meta = seo_meta(title, topic.keyword, md, topic.secondary)
 
-    cover_dir = store._root() / "covers"  # noqa: SLF001
-    stem = f"{brand.id}-{meta['slug'][:40]}"
-
-    chart_vals = sparkline_values(snap, topic.keyword) if snap else []
     trend_note = ""
     if snap and snap.notes:
         trend_note = " · ".join(snap.notes[:3])[:180]
@@ -400,41 +380,7 @@ def publish_article(
         if top and "실시간" not in trend_note:
             trend_note = (trend_note + f" · 실시간 TOP: {top}")[:200]
 
-    # Prefer AI situational images (ChatGPT/Gemini-like). SVG fallback if gen fails.
-    ai_imgs = make_article_images(
-        title=title, keyword=topic.keyword, out_dir=cover_dir, stem=stem
-    )
-    cover_path = ai_imgs.get("cover")
-    mid_path = ai_imgs.get("mid")
-    scene_path = ai_imgs.get("scene")
-    chart_path = cover_dir / f"{stem}-chart.svg"
-    if chart_vals:
-        make_chart_svg(
-            chart_vals,
-            topic.keyword,
-            chart_path,
-            title=f"{topic.keyword} 관련 검색 관심도",
-        )
-
-    if not cover_path:
-        cover_path = cover_dir / f"{stem}.svg"
-        make_cover_svg(
-            title,
-            topic.keyword,
-            cover_path,
-            chart=chart_vals[:6] or None,
-            trend_note=trend_note or "실시간 검색 신호 반영",
-        )
-    if not mid_path:
-        mid_path = cover_dir / f"{stem}-mid.svg"
-        make_section_svg(
-            topic.outline[0] if topic.outline else f"{topic.keyword} 핵심",
-            topic.keyword,
-            mid_path,
-            subtitle="본문 중간 · 상황 일러스트",
-        )
-
-    cover_url = f"/api/blog/cover/{cover_path.name}"
+    html_body = markdown_to_html(md)
 
     article: dict = {
         "brandId": brand.id,
@@ -446,11 +392,6 @@ def publish_article(
         "secondary": topic.secondary,
         "metaDescription": meta["metaDescription"],
         "slug": meta["slug"],
-        "coverPath": str(cover_path),
-        "coverUrl": cover_url,
-        "chartUrl": f"/api/blog/cover/{chart_path.name}" if chart_path.exists() else None,
-        "midImageUrl": f"/api/blog/cover/{mid_path.name}",
-        "sceneImageUrl": f"/api/blog/cover/{scene_path.name}" if scene_path else None,
         "trendNote": trend_note,
         "relatedSearches": related or [],
         "url": None,
@@ -458,49 +399,6 @@ def publish_article(
         "createdAt": created,
         "social": {},
     }
-
-    def _img_figure(path, caption: str) -> str:
-        if path.suffix.lower() == ".svg":
-            return _svg_figure(path, caption)
-        url = f"/api/blog/cover/{path.name}"
-        # For remote CMS we also embed as hosted URL when possible; local path used in export note
-        try:
-            import base64
-
-            raw = path.read_bytes()
-            mime = "image/jpeg" if path.suffix.lower() in {".jpg", ".jpeg"} else "image/png"
-            b64 = base64.b64encode(raw).decode("ascii")
-            src = f"data:{mime};base64,{b64}"
-        except Exception:
-            src = url
-        return (
-            f'<figure style="margin:1.25rem 0;padding:0">'
-            f'<img src="{src}" alt="{_esc(caption)}" style="width:100%;height:auto;border-radius:12px"/>'
-            f'<figcaption style="font-size:12px;opacity:.7;margin-top:6px">'
-            f"{_esc(caption)}</figcaption></figure>\n"
-        )
-
-    body_html = markdown_to_html(md, cover_url=None)
-    mid_fig = _img_figure(mid_path, f"상황 일러스트 · {topic.keyword} · 얼굴 없는 AI 생성")
-    parts = body_html.split("<h2>", 2)
-    if len(parts) >= 3:
-        body_html = parts[0] + "<h2>" + parts[1] + mid_fig + "<h2>" + parts[2]
-    else:
-        body_html = body_html + mid_fig
-
-    html_with_note = (
-        _img_figure(cover_path, f"커버 일러스트 · {topic.keyword}")
-        + (
-            _img_figure(scene_path, "검색·궁금증 상황 이미지")
-            if scene_path
-            else (
-                _svg_figure(chart_path, "관련 검색 관심도")
-                if chart_path.exists()
-                else ""
-            )
-        )
-        + body_html
-    )
 
     if brand.platform == "wordpress":
         wp = conns.get("wordpress") or {}
@@ -512,7 +410,7 @@ def publish_article(
                     auth=(wp["username"], wp["appPassword"]),
                     json={
                         "title": title,
-                        "content": html_with_note,
+                        "content": html_body,
                         "status": status,
                         "excerpt": meta["metaDescription"],
                         "slug": meta["slug"],
@@ -543,7 +441,7 @@ def publish_article(
                     json={
                         "kind": "blogger#post",
                         "title": title,
-                        "content": html_with_note,
+                        "content": html_body,
                         "labels": [topic.keyword, "실무", "체크리스트"],
                     },
                     timeout=45,
@@ -569,7 +467,7 @@ def publish_article(
         md_path = out / f"{stamp}.md"
         html_path = out / f"{stamp}.html"
         md_path.write_text(md, encoding="utf-8")
-        html_path.write_text(html_with_note, encoding="utf-8")
+        html_path.write_text(html_body, encoding="utf-8")
         article["url"] = str(html_path)
         article["naverWriteHint"] = "네이버 블로그 글쓰기 → HTML/본문 붙여넣기 후 발행"
         nid = (conns.get("naver") or {}).get("blogId")
@@ -665,7 +563,7 @@ def generate_all(*, live: bool = True, on_progress=None) -> dict:
                 raise RuntimeError(f"Quality gate failed for {brand.id}: {detail}")
             remember_title(topic.title, topic.keyword)
             prog(
-                f"[{brand.name}] AI 상황 일러스트 생성 + SNS·발행 준비… ({chars}자)",
+                f"[{brand.name}] SNS·발행 준비… ({chars}자)",
                 draftPreview=md[-1400:],
                 platform=brand.platform,
                 step="publish",

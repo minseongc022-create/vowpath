@@ -4,12 +4,35 @@
 {% block content %}
 <section class="card">
   <div class="card-head">
+    <h2 class="card-title">자동 발행</h2>
+    <span class="chip {% if blog_settings.auto_enabled %}chip-ok{% else %}chip-danger{% endif %}">
+      {% if blog_settings.auto_enabled %}2시간마다 ON{% else %}OFF{% endif %}
+    </span>
+  </div>
+  <p class="card-desc">서버가 {{ (blog_settings.auto_interval_sec or 7200) // 3600 }}시간마다 실시간 이슈 글 3편을 자동 생성합니다. 이미지 없이 텍스트만 · 애드센스 준비용.</p>
+  {% if blog_autopilot and blog_autopilot.last_message %}
+  <p class="card-desc">최근 자동: {{ blog_autopilot.last_message }}{% if blog_autopilot.last_run_at %} · {{ blog_autopilot.last_run_at[:16]|replace('T',' ') }}{% endif %}</p>
+  {% endif %}
+  <form method="post" action="/actions/blog_settings" class="stack" data-no-overlay="1">
+    <input type="hidden" name="auto_settings" value="1" />
+    <label class="field-label" style="display:flex;align-items:center;gap:8px">
+      <input type="hidden" name="auto_enabled" value="0" />
+      <input type="checkbox" name="auto_enabled" value="1" {% if blog_settings.auto_enabled %}checked{% endif %} />
+      2시간마다 자동 생성 (서버 재시작 후에도 유지)
+    </label>
+    <input type="hidden" name="auto_interval_sec" value="{{ blog_settings.auto_interval_sec or 7200 }}" />
+    <button class="btn btn-block" type="submit">자동 설정 저장</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
     <h2 class="card-title">한 번에 만들기</h2>
     <span class="chip {% if blog_job and blog_job.status == 'done' %}chip-ok{% elif blog_job and blog_job.status == 'error' %}chip-danger{% else %}chip-ok{% endif %}">
       {% if blog_job and blog_job.status == 'running' %}생성중{% elif blog_job and blog_job.status == 'done' %}완료{% elif blog_job and blog_job.status == 'error' %}오류{% else %}대기{% endif %}
     </span>
   </div>
-  <p class="card-desc">실시간 이슈·검색·뉴스를 교차 확인한 뒤 팩트 중심으로 정리 · 클릭형 제목 · AI 상황형 일러스트(얼굴 없음) · Threads/인스타 문구. WP·Blogger는 연결 시 즉시 발행.</p>
+  <p class="card-desc">실시간 이슈·검색·뉴스를 교차 확인한 뒤 팩트 중심으로 정리 · 클릭형 제목 · Threads/인스타 문구. WP·Blogger는 연결 시 즉시 발행.</p>
 
   <form method="post" action="/actions/blog_generate" class="stack">
     <button class="btn btn-primary btn-block" type="submit" style="font-size:1.05rem;padding:16px"
@@ -49,18 +72,6 @@
       {% endif %}
       {% if r.relatedSearches %}
       <p class="card-desc">관련검색: {{ r.relatedSearches[:5]|join(' · ') }}</p>
-      {% endif %}
-      {% if r.coverUrl %}
-      <img src="{{ r.coverUrl }}" alt="cover" style="width:100%;max-width:420px;margin-top:10px;border-radius:8px;display:block" />
-      {% endif %}
-      {% if r.sceneImageUrl %}
-      <img src="{{ r.sceneImageUrl }}" alt="scene" style="width:100%;max-width:420px;margin-top:8px;border-radius:8px;display:block" />
-      {% endif %}
-      {% if r.midImageUrl %}
-      <img src="{{ r.midImageUrl }}" alt="section" style="width:100%;max-width:420px;margin-top:8px;border-radius:8px;display:block" />
-      {% endif %}
-      {% if r.chartUrl %}
-      <img src="{{ r.chartUrl }}" alt="chart" style="width:100%;max-width:420px;margin-top:8px;border-radius:8px;display:block" />
       {% endif %}
       {% if r.url %}
       <p class="card-desc" style="margin-top:8px">

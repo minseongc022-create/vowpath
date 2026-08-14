@@ -33,6 +33,8 @@ from oracle.execution.autopilot import set_enabled as autopilot_set
 from oracle.execution.autopilot import start_background as autopilot_start
 from oracle.execution.autopilot import status as autopilot_status
 from oracle.execution.autopilot import run_once as autopilot_run_once
+from oracle.content_blog.scheduler import start_background as blog_autopilot_start
+from oracle.content_blog.scheduler import status as blog_autopilot_status
 from oracle.execution.live_setup import (
     capital_plan,
     first_trade_notional,
@@ -705,6 +707,7 @@ def blog_page(request: Request, flash: str | None = None, _: None = Depends(requ
         blog_job=blog_store.load_job(),
         blog_connections=blog_store.load_connections(),
         blog_settings=blog_store.load_settings(),
+        blog_autopilot=blog_autopilot_status().__dict__,
     )
 
 
@@ -856,13 +859,29 @@ def blog_connect(
 
 @app.post("/actions/blog_settings")
 def blog_settings(
-    ntfy_topic: str = Form(""),
+    ntfy_topic: str | None = Form(default=None),
+    auto_settings: str = Form(""),
+    auto_enabled: str = Form("0"),
+    auto_interval_sec: str = Form("7200"),
     _: None = Depends(require_auth),
 ):
     from oracle.content_blog import store as blog_store
 
-    blog_store.save_settings({"ntfy_topic": ntfy_topic.strip()})
-    return _flash("/blog", "알림 설정 저장됨")
+    patch: dict = {}
+    if ntfy_topic is not None:
+        patch["ntfy_topic"] = ntfy_topic.strip()
+    if auto_settings.strip() == "1":
+        patch["auto_enabled"] = auto_enabled.strip() in {"1", "true", "on", "yes"}
+        try:
+            patch["auto_interval_sec"] = max(300, int(auto_interval_sec or "7200"))
+        except ValueError:
+            patch["auto_interval_sec"] = 7200
+    blog_store.save_settings(patch)
+    if auto_settings.strip() == "1":
+        msg = "자동 발행 " + ("ON · 2시간마다" if patch.get("auto_enabled") else "OFF")
+    else:
+        msg = "알림 설정 저장됨"
+    return _flash("/blog", msg)
 
 
 @app.get("/api/blog/status")
@@ -874,6 +893,7 @@ def api_blog_status(_: None = Depends(require_auth)):
         "job": blog_store.load_job(),
         "connections": blog_store.load_connections(),
         "settings": blog_store.load_settings(),
+        "autopilot": blog_autopilot_status().__dict__,
     }
 
 
@@ -1529,11 +1549,19 @@ def create_app() -> FastAPI:
         autopilot_start()
     except Exception:
         pass
+    try:
+        blog_autopilot_start()
+    except Exception:
+        pass
     return app
 
 
 # Start autopilot watcher when module loads under uvicorn
 try:
     autopilot_start()
+except Exception:
+    pass
+try:
+    blog_autopilot_start()
 except Exception:
     pass
