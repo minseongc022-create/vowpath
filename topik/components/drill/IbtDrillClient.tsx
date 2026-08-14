@@ -1,19 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
-import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
-import { DRILL_TYPES, type DrillType } from "@/topik/lib/quiz/drill";
-import { checkQuizAnswer } from "@/topik/lib/quiz/check-answer";
+import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
+import { DRILL_TYPES, getDrillPreview, type DrillType } from "@/topik/lib/quiz/drill";
+import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
-import { quizExplanationText } from "@/topik/lib/i18n/content-locale";
 import { isKoLocale } from "@/topik/lib/i18n/locale-text";
-import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
 import { SentenceOrderInput } from "@/topik/components/quiz/SentenceOrderInput";
+import { QuizProgressBar } from "@/topik/components/quiz/QuizProgressBar";
+import { QuizFeedbackPanel } from "@/topik/components/quiz/QuizFeedbackPanel";
+import { QuizResultSummary } from "@/topik/components/quiz/QuizResultSummary";
 
 type Props = {
   initialLevel?: TopikLevel;
@@ -29,26 +30,35 @@ export function IbtDrillClient({ initialLevel }: Props) {
   );
   const [drillType, setDrillType] = useState<DrillType>(urlType ?? "listening");
   const [questions, setQuestions] = useState<TopikQuizQuestion[]>([]);
+  const [preview, setPreview] = useState<ReturnType<typeof getDrillPreview> | null>(null);
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
   const [order, setOrder] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [correct, setCorrect] = useState<boolean | null>(null);
+  const [attempts, setAttempts] = useState(0);
   const [score, setScore] = useState(0);
+  const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+  const [firstTryMisses, setFirstTryMisses] = useState(0);
+  const [bySection, setBySection] = useState<SessionStats["bySection"]>({});
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inSession, setInSession] = useState(false);
   const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
-  const loadQuestions = useCallback(async (type: DrillType, lv: TopikLevel) => {
+  const drillMeta = DRILL_TYPES.find((d) => d.id === drillType);
+
+  const loadPreview = useCallback((type: DrillType, lv: TopikLevel) => {
     setLoading(true);
-    const params = new URLSearchParams({ type, level: String(lv) });
-    const res = await fetch(`/topik/api/drill?${params}`);
-    const data = (await res.json()) as TopikQuizQuestion[];
-    setQuestions(data);
+    const p = getDrillPreview(type, lv);
+    setPreview(p);
+    setQuestions(p.questions);
     setIdx(0);
     setScore(0);
+    setFirstTryCorrect(0);
+    setFirstTryMisses(0);
+    setBySection({});
     setFinished(false);
     setShowResult(false);
     setInSession(false);
@@ -57,8 +67,8 @@ export function IbtDrillClient({ initialLevel }: Props) {
 
   useEffect(() => {
     if (inSession) return;
-    void loadQuestions(drillType, level);
-  }, [drillType, level, inSession, loadQuestions]);
+    loadPreview(drillType, level);
+  }, [drillType, level, inSession, loadPreview]);
 
   useEffect(() => {
     if (inSession && !finished && questions.length > 0) {
@@ -71,9 +81,17 @@ export function IbtDrillClient({ initialLevel }: Props) {
   }, [finished, leaveFocus]);
 
   const q = questions[idx];
-  const drillMeta = DRILL_TYPES.find((d) => d.id === drillType);
+
+  function resetAnswer() {
+    setSelected(null);
+    setTextAnswer("");
+    setOrder([]);
+    setShowResult(false);
+    setCorrect(null);
+  }
 
   function startSession() {
+    if (!preview?.hasEnough) return;
     enterFocus({
       title: vi.drill.title,
       subtitle: drillMeta?.titleVi ?? drillType,
@@ -82,16 +100,12 @@ export function IbtDrillClient({ initialLevel }: Props) {
     setInSession(true);
     setIdx(0);
     setScore(0);
+    setFirstTryCorrect(0);
+    setFirstTryMisses(0);
+    setBySection({});
     setFinished(false);
     resetAnswer();
-  }
-
-  function resetAnswer() {
-    setSelected(null);
-    setTextAnswer("");
-    setOrder([]);
-    setShowResult(false);
-    setCorrect(null);
+    setAttempts(0);
   }
 
   async function saveWrong() {
@@ -115,14 +129,32 @@ export function IbtDrillClient({ initialLevel }: Props) {
     });
   }
 
+  async function completeDrill() {
+    await fetch("/topik/api/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete-drill" }),
+    });
+  }
+
   async function handleSubmit() {
     if (!q) return;
+    const nextAttempts = attempts + 1;
+    setAttempts(nextAttempts);
     const isCorrect = checkQuizAnswer(q, { selectedIndex: selected, textAnswer, order });
     setCorrect(isCorrect);
     setShowResult(true);
+
     if (isCorrect) {
       setScore((s) => s + 1);
-    } else {
+      if (nextAttempts === 1) setFirstTryCorrect((n) => n + 1);
+      const section = getQuestionSection(q);
+      setBySection((prev) => {
+        const sec = prev[section] ?? { correct: 0, total: 0 };
+        return { ...prev, [section]: { correct: sec.correct + 1, total: sec.total + 1 } };
+      });
+    } else if (nextAttempts === 1) {
+      setFirstTryMisses((n) => n + 1);
       await saveWrong();
     }
   }
@@ -134,18 +166,20 @@ export function IbtDrillClient({ initialLevel }: Props) {
   function handleNext() {
     if (idx + 1 >= questions.length) {
       setFinished(true);
+      void completeDrill();
       return;
     }
     setIdx((i) => i + 1);
     resetAnswer();
+    setAttempts(0);
   }
 
-  const canSubmit =
-    q?.type === "multiple_choice"
-      ? selected !== null
-      : q?.type === "sentence_order"
-        ? order.length === (q.fragments?.length ?? 0)
-        : !!textAnswer.trim();
+  const canSubmit = useMemo(() => {
+    if (!q) return false;
+    if (q.type === "multiple_choice") return selected !== null;
+    if (q.type === "sentence_order") return order.length === (q.fragments?.length ?? 0);
+    return !!textAnswer.trim();
+  }, [q, selected, order, textAnswer]);
 
   if (loading && !inSession) {
     return <p className="topik-loading">{vi.common.loading}</p>;
@@ -180,11 +214,24 @@ export function IbtDrillClient({ initialLevel }: Props) {
               </button>
             ))}
           </div>
+          {preview && (
+            <div className="topik-drill-preview mt-4">
+              <p className="topik-drill-preview-title">{vi.drill.previewTitle}</p>
+              <p className="topik-drill-preview-meta">
+                {vi.drill.questionCount.replace("{n}", String(preview.count))}
+                {" · "}
+                {vi.drill.estimatedMin.replace("{n}", String(preview.estimatedMin))}
+              </p>
+              {!preview.hasEnough && (
+                <p className="topik-drill-preview-warn">{vi.drill.insufficient}</p>
+              )}
+            </div>
+          )}
         </div>
         <button
           type="button"
           onClick={startSession}
-          disabled={questions.length === 0}
+          disabled={!preview?.hasEnough}
           className="topik-btn topik-btn-accent topik-btn-lg"
         >
           {vi.drill.start}
@@ -194,31 +241,30 @@ export function IbtDrillClient({ initialLevel }: Props) {
   }
 
   if (finished) {
+    const sessionStats: SessionStats = {
+      total: questions.length,
+      correct: score,
+      wrong: firstTryMisses,
+      firstTryCorrect,
+      bySection,
+    };
     return (
-      <div className="topik-card topik-card-pad text-center topik-animate-in">
-        <IconCheckCircle className="mx-auto text-learn-primary" size={52} />
-        <p className="topik-result-label">{vi.drill.result}</p>
-        <p className="topik-result-score">
-          {score} / {questions.length}
-        </p>
-        <p className="topik-result-hint">{Math.round((score / questions.length) * 100)}%</p>
-        <button
-          type="button"
-          onClick={() => void loadQuestions(drillType, level)}
-          className="topik-btn topik-btn-primary topik-btn-lg mt-4"
-        >
-          {vi.common.retry}
-        </button>
-      </div>
+      <QuizResultSummary
+        title={vi.drill.result}
+        stats={sessionStats}
+        onRetry={() => loadPreview(drillType, level)}
+        homeHref="/topik/drill"
+      />
     );
   }
 
   if (!q) return null;
 
-  const section = q.examSection ?? q.category;
+  const section = getQuestionSection(q);
 
   return (
     <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
+      <QuizProgressBar current={idx + 1} total={questions.length} />
       <div className="topik-card topik-card-pad">
         <span className="topik-badge">
           {ibtSectionLabel(section)} · {idx + 1}/{questions.length}
@@ -243,12 +289,13 @@ export function IbtDrillClient({ initialLevel }: Props) {
 
       {q.type === "sentence_order" && q.fragments && (
         <SentenceOrderInput
+          key={q.id}
           fragments={q.fragments}
+          correctOrder={q.correctOrder}
           value={order}
           onChange={setOrder}
           disabled={showResult}
           showResult={showResult}
-          correctOrder={q.correctOrder}
         />
       )}
 
@@ -277,12 +324,7 @@ export function IbtDrillClient({ initialLevel }: Props) {
       )}
 
       {showResult && (
-        <div className={`topik-feedback ${correct ? "topik-feedback-ok" : "topik-feedback-no"}`}>
-          <p className="topik-feedback-title">
-            {correct ? `✓ ${vi.practice.correct}` : `✗ ${vi.practice.wrong}`}
-          </p>
-          <p className="topik-feedback-text">{quizExplanationText(q)}</p>
-        </div>
+        <QuizFeedbackPanel question={q} correct={!!correct} attempts={attempts} />
       )}
 
       {!showResult ? (

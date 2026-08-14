@@ -1,21 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
-import { ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
-import { checkQuizAnswer } from "@/topik/lib/quiz/check-answer";
+import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
+import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
-import {
-  quizExplanationText,
-  quizListeningScriptVi,
-} from "@/topik/lib/i18n/content-locale";
+import { quizListeningScriptVi } from "@/topik/lib/i18n/content-locale";
 import { isKoLocale } from "@/topik/lib/i18n/locale-text";
-import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
 import { SentenceOrderInput } from "@/topik/components/quiz/SentenceOrderInput";
+import { QuizProgressBar } from "@/topik/components/quiz/QuizProgressBar";
+import { QuizFeedbackPanel } from "@/topik/components/quiz/QuizFeedbackPanel";
+import { QuizResultSummary } from "@/topik/components/quiz/QuizResultSummary";
 
 const CATEGORIES = [
   { value: "", label: vi.practice.all },
@@ -46,7 +45,11 @@ export function TopikQuizClient({ initialLevel }: Props) {
   const [showResult, setShowResult] = useState(false);
   const [showScript, setShowScript] = useState(false);
   const [correct, setCorrect] = useState<boolean | null>(null);
+  const [attempts, setAttempts] = useState(0);
   const [score, setScore] = useState(0);
+  const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+  const [firstTryMisses, setFirstTryMisses] = useState(0);
+  const [bySection, setBySection] = useState<SessionStats["bySection"]>({});
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inSession, setInSession] = useState(false);
@@ -61,6 +64,9 @@ export function TopikQuizClient({ initialLevel }: Props) {
     setQuestions(data);
     setIdx(0);
     setScore(0);
+    setFirstTryCorrect(0);
+    setFirstTryMisses(0);
+    setBySection({});
     setFinished(false);
     setShowResult(false);
     setShowScript(false);
@@ -91,9 +97,13 @@ export function TopikQuizClient({ initialLevel }: Props) {
     setInSession(true);
     setIdx(0);
     setScore(0);
+    setFirstTryCorrect(0);
+    setFirstTryMisses(0);
+    setBySection({});
     setFinished(false);
     setShowResult(false);
     setShowScript(false);
+    setAttempts(0);
   }
 
   const q = questions[idx];
@@ -107,36 +117,54 @@ export function TopikQuizClient({ initialLevel }: Props) {
     setCorrect(null);
   }
 
-  function checkAnswer(): boolean {
-    if (!q) return false;
-    return checkQuizAnswer(q, { selectedIndex: selected, textAnswer, order });
+  async function saveWrong() {
+    if (!q) return;
+    await fetch("/topik/api/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "wrong",
+        questionId: q.id,
+        question: q.question,
+        questionVi: q.questionVi,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        correctAnswer: q.correctAnswer,
+        selectedIndex: selected ?? undefined,
+        textAnswer: textAnswer || undefined,
+        explanationVi: q.explanationVi,
+        level: q.level,
+      }),
+    });
+  }
+
+  async function completePractice() {
+    await fetch("/topik/api/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete-practice" }),
+    });
   }
 
   async function handleSubmit() {
     if (!q) return;
-    const isCorrect = checkAnswer();
+    const nextAttempts = attempts + 1;
+    setAttempts(nextAttempts);
+    const isCorrect = checkQuizAnswer(q, { selectedIndex: selected, textAnswer, order });
     setCorrect(isCorrect);
     setShowResult(true);
-    if (isCorrect) setScore((s) => s + 1);
 
-    if (!isCorrect) {
-      await fetch("/topik/api/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "wrong",
-          questionId: q.id,
-          question: q.question,
-          questionVi: q.questionVi,
-          options: q.options,
-          correctIndex: q.correctIndex,
-          correctAnswer: q.correctAnswer,
-          selectedIndex: selected ?? undefined,
-          textAnswer: textAnswer || undefined,
-          explanationVi: q.explanationVi,
-          level: q.level,
-        }),
+    if (isCorrect) {
+      setScore((s) => s + 1);
+      if (nextAttempts === 1) setFirstTryCorrect((n) => n + 1);
+      const section = getQuestionSection(q);
+      setBySection((prev) => {
+        const sec = prev[section] ?? { correct: 0, total: 0 };
+        return { ...prev, [section]: { correct: sec.correct + 1, total: sec.total + 1 } };
       });
+    } else if (nextAttempts === 1) {
+      setFirstTryMisses((n) => n + 1);
+      await saveWrong();
     }
   }
 
@@ -147,18 +175,20 @@ export function TopikQuizClient({ initialLevel }: Props) {
   function handleNext() {
     if (idx + 1 >= questions.length) {
       setFinished(true);
+      void completePractice();
       return;
     }
     setIdx((i) => i + 1);
     resetAnswer();
+    setAttempts(0);
   }
 
-  const canSubmit =
-    q?.type === "multiple_choice"
-      ? selected !== null
-      : q?.type === "sentence_order"
-        ? order.length === (q.fragments?.length ?? 0)
-        : !!textAnswer.trim();
+  const canSubmit = useMemo(() => {
+    if (!q) return false;
+    if (q.type === "multiple_choice") return selected !== null;
+    if (q.type === "sentence_order") return order.length === (q.fragments?.length ?? 0);
+    return !!textAnswer.trim();
+  }, [q, selected, order, textAnswer]);
 
   if (loading) {
     return <p className="topik-loading">{vi.common.loading}</p>;
@@ -194,6 +224,9 @@ export function TopikQuizClient({ initialLevel }: Props) {
               ))}
             </div>
           </div>
+          <p className="topik-drill-preview-meta mt-3">
+            {vi.drill.questionCount.replace("{n}", String(questions.length))}
+          </p>
         </div>
         <button type="button" onClick={startSession} className="topik-btn topik-btn-accent topik-btn-lg">
           {vi.practice.start}
@@ -203,35 +236,33 @@ export function TopikQuizClient({ initialLevel }: Props) {
   }
 
   if (finished) {
+    const sessionStats: SessionStats = {
+      total: questions.length,
+      correct: score,
+      wrong: firstTryMisses,
+      firstTryCorrect,
+      bySection,
+    };
     return (
-      <div className="topik-card topik-card-pad text-center topik-animate-in">
-        <IconCheckCircle className="mx-auto text-learn-primary" size={52} />
-        <p className="topik-result-label">{vi.practice.score}</p>
-        <p className="topik-result-score">
-          {score} / {questions.length}
-        </p>
-        <p className="topik-result-hint">
-          {Math.round((score / questions.length) * 100)}%
-        </p>
-        <button
-          type="button"
-          onClick={() => void loadQuestions(level, category)}
-          className="topik-btn topik-btn-primary topik-btn-lg mt-4"
-        >
-          {vi.common.retry}
-        </button>
-      </div>
+      <QuizResultSummary
+        title={vi.practice.score}
+        stats={sessionStats}
+        onRetry={() => void loadQuestions(level, category)}
+      />
     );
   }
 
   if (!q) return null;
 
-  const section = q.examSection ?? q.category;
+  const section = getQuestionSection(q);
 
   return (
     <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
+      <QuizProgressBar current={idx + 1} total={questions.length} />
       <div className="topik-card topik-card-pad">
-        <span className="topik-badge">{ibtSectionLabel(section)} · {idx + 1}/{questions.length}</span>
+        <span className="topik-badge">
+          {ibtSectionLabel(section)} · {idx + 1}/{questions.length}
+        </span>
         {q.category === "listening" && q.listeningScript && !showResult && (
           <div className="topik-listening-block">
             <ListeningAudioPlayer script={q.listeningScript} autoPlay maxPlays={3} />
@@ -271,11 +302,11 @@ export function TopikQuizClient({ initialLevel }: Props) {
         <SentenceOrderInput
           key={q.id}
           fragments={q.fragments}
+          correctOrder={q.correctOrder}
           value={order}
           onChange={setOrder}
           disabled={showResult}
           showResult={showResult}
-          correctOrder={q.correctOrder}
         />
       )}
 
@@ -315,29 +346,30 @@ export function TopikQuizClient({ initialLevel }: Props) {
       )}
 
       {showResult && (
-        <div className={`topik-feedback ${correct ? "topik-feedback-ok" : "topik-feedback-no"}`}>
-          <p className="topik-feedback-title">
-            {correct ? `✓ ${vi.practice.correct}` : `✗ ${vi.practice.wrong}`}
-          </p>
-          <p className="topik-feedback-text">{quizExplanationText(q)}</p>
-          {q.listeningScript && (
-            <div className="topik-script-box mt-3">
-              <p className="topik-script-label">{vi.listening.scriptLabel}</p>
-              <p className="topik-script-ko">
-                <KoreanStudyText text={q.listeningScript} studyMode />
-              </p>
-              {q.listeningScriptVi && (
-                <p className="topik-script-vi">{q.listeningScriptVi}</p>
-              )}
-            </div>
-          )}
-        </div>
+        <QuizFeedbackPanel
+          question={q}
+          correct={!!correct}
+          attempts={attempts}
+          listeningScript={
+            q.listeningScript ? (
+              <div className="topik-script-box mt-3">
+                <p className="topik-script-label">{vi.listening.scriptLabel}</p>
+                <p className="topik-script-ko">
+                  <KoreanStudyText text={q.listeningScript} studyMode />
+                </p>
+                {q.listeningScriptVi && (
+                  <p className="topik-script-vi">{q.listeningScriptVi}</p>
+                )}
+              </div>
+            ) : undefined
+          }
+        />
       )}
 
       {!showResult ? (
         <button
           type="button"
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={!canSubmit}
           className="topik-btn topik-btn-primary topik-btn-lg"
         >

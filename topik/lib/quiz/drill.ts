@@ -1,6 +1,7 @@
 import { TOPIK_IBT_ORDER_BANK } from "@/topik/lib/quiz/question-bank-ibt-order";
 import { TOPIK_QUIZ_BANK } from "@/topik/lib/quiz/questions";
 import type { TopikExamSection, TopikLevel, TopikQuizQuestion } from "@/topik/types";
+import { l } from "@/topik/lib/i18n/locale-text";
 
 export type DrillType = "listening" | "reading" | "order" | "mixed";
 
@@ -12,7 +13,13 @@ export type DrillConfig = {
   section?: TopikExamSection;
 };
 
-import { l } from "@/topik/lib/i18n/locale-text";
+export type DrillPreview = {
+  questions: TopikQuizQuestion[];
+  count: number;
+  target: number;
+  hasEnough: boolean;
+  estimatedMin: number;
+};
 
 export const DRILL_TYPES: DrillConfig[] = [
   {
@@ -52,30 +59,56 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
+function poolBySection(level: TopikLevel, section: TopikExamSection): TopikQuizQuestion[] {
+  return TOPIK_QUIZ_BANK.filter(
+    (q) =>
+      q.type !== "sentence_order" &&
+      q.level <= level &&
+      (q.examSection === section || q.category === section),
+  );
+}
+
+function takeUnique(pool: TopikQuizQuestion[], count: number): TopikQuizQuestion[] {
+  const shuffled = shuffle(pool);
+  const seen = new Set<string>();
+  const out: TopikQuizQuestion[] = [];
+  for (const q of shuffled) {
+    if (seen.has(q.id)) continue;
+    seen.add(q.id);
+    out.push(q);
+    if (out.length >= count) break;
+  }
+  return out;
+}
+
 export function buildDrillQuestions(type: DrillType, level: TopikLevel): TopikQuizQuestion[] {
   if (type === "order") {
     const pool = TOPIK_IBT_ORDER_BANK.filter((q) => q.level <= level);
-    return shuffle(pool).slice(0, 5);
+    return takeUnique(pool, 5);
   }
 
   if (type === "mixed") {
-    const listening = shuffle(
-      TOPIK_QUIZ_BANK.filter(
-        (q) => q.level <= level && (q.examSection === "listening" || q.category === "listening"),
-      ),
-    ).slice(0, 5);
-    const reading = shuffle(
-      TOPIK_QUIZ_BANK.filter(
-        (q) => q.level <= level && (q.examSection === "reading" || q.category === "reading"),
-      ),
-    ).slice(0, 5);
+    const listening = takeUnique(poolBySection(level, "listening"), 5);
+    const reading = takeUnique(poolBySection(level, "reading"), 5);
     return shuffle([...listening, ...reading]);
   }
 
   const config = DRILL_TYPES.find((d) => d.id === type);
   const section = config?.section ?? "listening";
-  const pool = TOPIK_QUIZ_BANK.filter(
-    (q) => q.level <= level && (q.examSection === section || q.category === section),
-  );
-  return shuffle(pool).slice(0, config?.count ?? 10);
+  return takeUnique(poolBySection(level, section), config?.count ?? 10);
+}
+
+export function getDrillPreview(type: DrillType, level: TopikLevel): DrillPreview {
+  const questions = buildDrillQuestions(type, level);
+  const config = DRILL_TYPES.find((d) => d.id === type);
+  const target = config?.count ?? 10;
+  const minRequired = type === "order" ? 3 : Math.min(target, 5);
+
+  return {
+    questions,
+    count: questions.length,
+    target,
+    hasEnough: questions.length >= minRequired,
+    estimatedMin: Math.max(1, Math.ceil(questions.length * 0.75)),
+  };
 }

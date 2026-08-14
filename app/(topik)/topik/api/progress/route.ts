@@ -53,6 +53,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (body.action === "complete-drill") {
+      const progress = await markJourneyStep(userId, "drill");
+      return NextResponse.json(progress);
+    }
+
+    if (body.action === "complete-practice") {
+      const progress = await markJourneyStep(userId, "practice");
+      return NextResponse.json(progress);
+    }
+
     if (body.action === "set-target" && body.targetLevel) {
       const progress = await updateProgress(userId, { targetLevel: body.targetLevel });
       return NextResponse.json(progress);

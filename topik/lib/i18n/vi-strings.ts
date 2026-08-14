@@ -171,6 +171,8 @@ export const viStrings = {
     startDrill: "Bắt đầu ôn tập tập trung",
     drillProgress: "Ôn câu sai",
     drillDone: "Hoàn thành ôn câu sai!",
+    drillOnlyMc: "Chỉ ôn tập tập trung được câu trắc nghiệm",
+    yourAnswer: "Bạn đã chọn",
     desc: "Theo dõi câu sai · ôn lại cho đến khi thuộc",
   },
   speaking: {
@@ -271,6 +273,18 @@ export const viStrings = {
     result: "Kết quả drill",
     orderHint: "Chạm các câu bên dưới để sắp xếp đúng thứ tự",
     resetOrder: "Sắp xếp lại",
+    moveUp: "Lên",
+    moveDown: "Xuống",
+    previewTitle: "Xem trước phiên",
+    questionCount: "{n} câu",
+    estimatedMin: "Khoảng {n} phút",
+    insufficient: "Không đủ câu cho cấp này. Hãy thử cấp thấp hơn.",
+  },
+  quiz: {
+    correctAnswer: "Đáp án đúng",
+    attemptCount: "Lần thử thứ {n}",
+    firstTryCorrect: "Đúng ngay lần đầu {n}/{total}",
+    sectionBreakdown: "Kết quả theo kỹ năng",
   },
   official: {
     title: "Tài liệu TOPIK chính thức",

@@ -171,6 +171,8 @@ export const ko = {
     startDrill: "집중 복습 시작",
     drillProgress: "오답 복습",
     drillDone: "오답 복습 완료!",
+    drillOnlyMc: "객관식 오답만 집중 복습 가능합니다",
+    yourAnswer: "내가 고른 답",
     desc: "틀린 문제 추적 · 맞출 때까지 복습",
   },
   speaking: {
@@ -271,6 +273,18 @@ export const ko = {
     result: "드릴 결과",
     orderHint: "아래 문장을 탭해서 순서대로 배열하세요",
     resetOrder: "다시 배열",
+    moveUp: "위로",
+    moveDown: "아래로",
+    previewTitle: "세션 미리보기",
+    questionCount: "{n}문항",
+    estimatedMin: "약 {n}분",
+    insufficient: "이 급수에 맞는 문제가 부족합니다. 급수를 낮춰 보세요.",
+  },
+  quiz: {
+    correctAnswer: "정답",
+    attemptCount: "{n}번째 시도",
+    firstTryCorrect: "첫 시도 정답 {n}/{total}",
+    sectionBreakdown: "영역별 결과",
   },
   official: {
     title: "공식 TOPIK 자료",
