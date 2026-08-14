@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 import { formatReservationStatus, formatVnd } from "@/giu/lib/format";
 import type { GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
@@ -36,8 +37,8 @@ export function MyReservationsLookup() {
     return (
       <div className="giu-card space-y-4 text-center">
         <p className="text-sm text-giu-muted">로그인하면 결제한 구출 코드를 볼 수 있습니다.</p>
-        <Link href="/giu/dang-nhap" className="giu-btn-primary block text-center">
-          로그인
+        <Link href={GIU_ROUTES.auth} className="giu-btn-primary block text-center">
+          로그인 / 회원가입
         </Link>
       </div>
     );

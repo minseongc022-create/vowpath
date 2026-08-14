@@ -1,10 +1,6 @@
-import { CustomerLoginForm } from "@/giu/components/CustomerAuthForms";
+import { redirect } from "next/navigation";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 
-export default function GiuLoginPage() {
-  return (
-    <div className="giu-page">
-      <h1 className="giu-section-title mb-5">로그인</h1>
-      <CustomerLoginForm />
-    </div>
-  );
+export default function GiuLoginRedirect() {
+  redirect(GIU_ROUTES.auth);
 }
