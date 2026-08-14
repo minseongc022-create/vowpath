@@ -135,6 +135,14 @@ export async function middleware(request: NextRequest) {
 
   // giucuu.com → Giu only (food rescue HCMC), isolated from Effiroad.
   if (isGiuHost(hostname)) {
+    // Never rewrite/redirect static assets — avoids broken CSS on www vs apex.
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/favicon") ||
+      pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|txt|xml|json|webmanifest)$/)
+    ) {
+      return NextResponse.next();
+    }
     const publicPath = giuPublicRedirectPath(pathname);
     if (publicPath !== null) {
       const url = request.nextUrl.clone();

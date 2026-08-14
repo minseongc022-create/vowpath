@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
   if (shell === "giu") {
     const origin = await resolveGiuPublicOrigin();
     return {
-      metadataBase: new URL(origin),
+      // No metadataBase — setting apex URL while users visit www breaks /_next/static CSS.
       title: { default: GIU_BRAND.fullName, template: `%s · ${GIU_BRAND.name}` },
       description: GIU_BRAND.tagline,
       applicationName: GIU_BRAND.name,
