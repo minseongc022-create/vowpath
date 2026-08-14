@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
+import { createGiuLsCheckout } from "@/giu/lib/lemon-squeezy-giu";
+import { giuPaymentStatus } from "@/giu/lib/payments";
 import {
   buildVnpayPaymentUrl,
   clientIpFromRequest,
   isGiuPaymentDemo,
-  isVnpayConfigured,
 } from "@/giu/lib/vnpay";
-import { initiateReservationPayment, listReservations } from "@/giu/lib/store";
+import { getBox, initiateReservationPayment, listReservations } from "@/giu/lib/store";
 
 const createSchema = z.object({
   boxId: z.string().min(1),
   quantity: z.number().int().min(1).max(5).optional(),
-  paymentMethod: z.enum(["momo", "vietqr", "card"]),
+  paymentMethod: z.enum(["momo", "vietqr", "card"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       customerId: session.sub,
       customerName: session.name,
       customerPhone: session.phone,
-      paymentMethod: parsed.data.paymentMethod,
+      paymentMethod: parsed.data.paymentMethod ?? "card",
       quantity: parsed.data.quantity,
       paymentUrlBuilder: (reservation, totalVnd) =>
         buildVnpayPaymentUrl({
@@ -88,6 +89,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    const paymentMeta = giuPaymentStatus();
+
     if (result.mode === "demo") {
       return NextResponse.json(
         {
@@ -95,8 +98,37 @@ export async function POST(request: Request) {
           id: result.reservation.id,
           code: result.reservation.code,
           reservation: result.reservation,
-          paymentConfigured: isVnpayConfigured(),
+          payment: paymentMeta,
           demo: isGiuPaymentDemo(),
+        },
+        { status: 201 },
+      );
+    }
+
+    if (result.mode === "lemon_squeezy") {
+      const box = (await getBox(result.box.id)) ?? result.box;
+      const amountUsdCents = result.reservation.chargeAmountUsdCents;
+      if (!amountUsdCents) {
+        return NextResponse.json({ error: "결제 금액을 계산할 수 없습니다" }, { status: 500 });
+      }
+
+      const checkout = await createGiuLsCheckout({
+        reservationId: result.reservation.id,
+        code: result.reservation.code,
+        boxTitle: box.title,
+        amountVnd: result.reservation.totalVnd,
+        amountUsdCents,
+        customerEmail: session.email,
+        customerName: session.name,
+      });
+
+      return NextResponse.json(
+        {
+          mode: "lemon_squeezy",
+          id: result.reservation.id,
+          paymentUrl: checkout.url,
+          reservation: result.reservation,
+          payment: paymentMeta,
         },
         { status: 201 },
       );
@@ -108,10 +140,12 @@ export async function POST(request: Request) {
         id: result.reservation.id,
         paymentUrl: result.paymentUrl,
         reservation: result.reservation,
+        payment: paymentMeta,
       },
       { status: 201 },
     );
-  } catch {
+  } catch (e) {
+    console.error("[giu/reservations] POST failed", e);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

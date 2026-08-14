@@ -1,6 +1,6 @@
 # Giu (giucuu.com) — production setup
 
-Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, VNPay, optional Twilio SMS.
+Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, **Lemon Squeezy** (default live payments), optional VNPay, optional Twilio SMS.
 
 ## Required env (Vercel)
 
@@ -12,27 +12,43 @@ Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, VNPay, opt
 | `NEXT_PUBLIC_GIU_HOST` | `giucuu.com` |
 | `CRON_SECRET` | Same as Effiroad — external cron auth |
 
-## VNPay (real payments)
+## Lemon Squeezy — live online payments (Korean solo OK)
 
-When both are set, checkout redirects to VNPay sandbox/production:
+**Recommended.** MoR — no Vietnamese business entity required. See **[GIU_LEMON_SQUEEZY.md](./GIU_LEMON_SQUEEZY.md)** for full checklist.
+
+| Variable | Purpose |
+|----------|---------|
+| `LEMON_SQUEEZY_API_KEY` | Settings → API |
+| `LEMON_SQUEEZY_STORE_ID` | Settings → Stores |
+| `LEMON_SQUEEZY_VARIANT_ID_GIU` | One-time product variant for rescue boxes |
+| `GIU_LEMON_SQUEEZY_WEBHOOK_SECRET` | Giu webhook signing secret (or reuse `LEMON_SQUEEZY_WEBHOOK_SECRET`) |
+| `GIU_VND_PER_USD` | Optional — VND→USD for checkout (default `25000`) |
+| `GIU_PAYMENT_PROVIDER` | Optional — `lemon_squeezy` to force |
+
+**Giu webhook URL:** `https://www.giucuu.com/api/giu/payments/lemon-squeezy/webhook`  
+**Event:** `order_created`
+
+**Auto priority:** Lemon Squeezy → VNPay → demo.
+
+### Demo mode (before LS keys)
+
+- Omit `LEMON_SQUEEZY_VARIANT_ID_GIU` → instant fake payment
+- Set `GIU_PAYMENT_DEMO=0` when testing live keys
+
+## VNPay (optional — Vietnam business only)
 
 | Variable | Example |
 |----------|---------|
-| `VNPAY_TMN_CODE` | Merchant terminal code from VNPay |
-| `VNPAY_HASH_SECRET` | Hash secret from VNPay |
-| `VNPAY_URL` | Optional — default sandbox `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` |
+| `VNPAY_TMN_CODE` | Merchant terminal code |
+| `VNPAY_HASH_SECRET` | Hash secret |
+| `VNPAY_URL` | Optional sandbox default |
 
-**VNPay merchant portal — register URLs:**
+Register in VNPay portal:
 
-- Return URL: `https://www.giucuu.com/api/giu/payments/vnpay/return`
-- IPN URL: `https://www.giucuu.com/api/giu/payments/vnpay/ipn`
+- Return: `https://www.giucuu.com/api/giu/payments/vnpay/return`
+- IPN: `https://www.giucuu.com/api/giu/payments/vnpay/ipn`
 
-MoMo / VietQR / card in the UI all route through VNPay.
-
-### Demo mode (local / before VNPay keys)
-
-- Omit `VNPAY_*` → instant demo payment (same as `GIU_PAYMENT_DEMO=1`)
-- Set `GIU_PAYMENT_DEMO=0` to force VNPay-only (fails if keys missing)
+Set `GIU_PAYMENT_PROVIDER=vnpay` to prefer VNPay over Lemon Squeezy.
 
 ## SMS pickup codes (optional)
 
@@ -63,21 +79,19 @@ See `CRON.md` and `config/cron.schedule.json`.
 
 After **3 successful pickups** (`da_lay`), merchant gets `verified: true` automatically.
 
-## Escrow (Thanh toán an toàn)
+## Escrow
 
-Payment flow for HCMC launch:
-
-1. Customer pays via VNPay → `settlementStatus: held`
-2. Customer picks up with code → merchant taps **Đã lấy** → `settlementStatus: released`
+1. Customer pays via Lemon Squeezy (or VNPay) → `settlementStatus: held`
+2. Customer picks up with code → merchant confirms → `settlementStatus: released`
 3. Cancel before pickup → `settlementStatus: refunded`
 
-This is the same trust model planned for Korea later; **production focus is Vietnam only** for now.
+In-app status only — not automatic bank payout to merchants.
 
 ## Launch checklist
 
-1. Deploy from `main` (VN-only product at giucuu.com)
+1. Deploy from `main`
 2. Vercel KV + env vars above
-3. VNPay sandbox test transaction end-to-end
+3. Lemon Squeezy store approved + test checkout end-to-end
 4. cron-job.org → `giu-reservation-expiry` every 60s
-5. Onboard 5–20 real bakeries (Quận 1·3·7) via Zalo
-6. Target: **30+ successful pickups/week** in HCMC before any Korea expansion
+5. Swap to live LS keys after approval
+6. Onboard HCMC merchants via Zalo
