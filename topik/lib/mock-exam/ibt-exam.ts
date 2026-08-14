@@ -1,3 +1,4 @@
+import { buildMockByTier, type MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { TOPIK_QUIZ_BANK } from "@/topik/lib/quiz/questions";
 import type { MockExamConfig, TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
@@ -7,21 +8,12 @@ export const IBT_MOCK_CONFIG: MockExamConfig = {
   sections: ["listening", "reading", "writing"],
 };
 
+/** @deprecated use buildMockByTier */
 export function buildMockExamQuestions(level: TopikLevel, count = 10): TopikQuizQuestion[] {
-  const pool = TOPIK_QUIZ_BANK.filter((q) => q.level <= level);
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
-
-  if (selected.length >= count) return selected;
-
-  const fallback = TOPIK_QUIZ_BANK.filter((q) => !selected.some((s) => s.id === q.id));
-  while (selected.length < count && fallback.length > 0) {
-    const pick = fallback.shift()!;
-    selected.push(pick);
-  }
-
-  return selected;
+  return buildMockByTier("topik-ibt", level, count);
 }
+
+export { buildMockByTier };
 
 export function getMockExamQuestionsByIds(ids: string[]): TopikQuizQuestion[] {
   return ids
@@ -29,9 +21,11 @@ export function getMockExamQuestionsByIds(ids: string[]): TopikQuizQuestion[] {
     .filter((q): q is TopikQuizQuestion => !!q);
 }
 
+export type MockExamAnswer = number | string | number[];
+
 export function scoreMockExam(
   questions: TopikQuizQuestion[],
-  answers: Record<string, number | string>,
+  answers: Record<string, MockExamAnswer>,
 ): { correct: number; total: number; score: number; maxScore: number } {
   let correct = 0;
   for (const q of questions) {
@@ -39,6 +33,10 @@ export function scoreMockExam(
     if (ans === undefined) continue;
     if (q.type === "multiple_choice") {
       if (ans === q.correctIndex) correct++;
+    } else if (q.type === "sentence_order") {
+      const given = Array.isArray(ans) ? (ans as number[]) : [];
+      const expected = q.correctOrder ?? [];
+      if (given.length === expected.length && given.every((v, i) => v === expected[i])) correct++;
     } else {
       const normalized = String(ans).trim().toLowerCase();
       const expected = (q.correctAnswer ?? "").trim().toLowerCase();
@@ -51,15 +49,25 @@ export function scoreMockExam(
   return { correct, total, score, maxScore };
 }
 
+import { l } from "@/topik/lib/i18n/locale-text";
+
 export function ibtSectionLabel(section: string): string {
   switch (section) {
     case "listening":
-      return "Nghe (Listening)";
+      return l("Nghe (Listening)", "듣기 (Listening)");
     case "reading":
-      return "Đọc (Reading)";
+      return l("Đọc (Reading)", "읽기 (Reading)");
     case "writing":
-      return "Viết (Writing)";
+      return l("Viết (Writing)", "쓰기 (Writing)");
+    case "grammar":
+      return l("Ngữ pháp", "문법");
+    case "vocabulary":
+      return l("Từ vựng", "어휘");
     default:
       return section;
   }
+}
+
+export function getQuestionSection(q: TopikQuizQuestion): string {
+  return q.examSection ?? q.category;
 }

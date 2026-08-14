@@ -21,8 +21,8 @@ export function TopikModeTile({ mode, extra }: { mode: StudyMode; extra?: string
   return (
     <Link href={mode.href} className="topik-mode-tile">
       <StudyModeIcon id={mode.id} tint={mode.tint} compact />
-      <p className="mt-2.5 text-sm font-semibold text-learn-ink leading-snug">{mode.title}</p>
-      <p className="mt-0.5 text-[11px] text-learn-ink-muted leading-relaxed line-clamp-2">
+      <p className="topik-mode-tile-title">{mode.title}</p>
+      <p className="topik-mode-tile-desc">
         {mode.desc}
         {extra ? ` · ${extra}` : ""}
       </p>

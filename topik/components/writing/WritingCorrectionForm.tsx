@@ -3,12 +3,14 @@
 import { useState } from "react";
 import type { WritingTaskType, WritingCorrectionResult } from "@/topik/types";
 import { WRITING_PROMPTS } from "@/topik/lib/writing/prompts";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { WritingResult } from "@/topik/components/writing/WritingResult";
 
 const TASK_TYPES: WritingTaskType[] = ["51", "52", "53", "54"];
 
 export function WritingCorrectionForm() {
+  const vi = useTopikVi();
+
   const [taskType, setTaskType] = useState<WritingTaskType>("53");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
@@ -95,8 +97,20 @@ export function WritingCorrectionForm() {
           className="topik-textarea"
         />
         {prompt.wordLimit && (
-          <p className="mt-1 text-[11px] text-learn-ink-muted">
-            {answer.replace(/\s/g, "").length} / {prompt.wordLimit} ký tự
+          <p
+            className={`topik-char-count ${
+              prompt.minChars &&
+              answer.replace(/\s/g, "").length >= prompt.minChars &&
+              answer.replace(/\s/g, "").length <= prompt.wordLimit
+                ? "topik-char-count-ok"
+                : prompt.minChars && answer.replace(/\s/g, "").length > 0
+                  ? "topik-char-count-warn"
+                  : ""
+            }`}
+          >
+            {answer.replace(/\s/g, "").length}
+            {prompt.minChars ? ` / ${prompt.minChars}–${prompt.wordLimit}` : ` / ${prompt.wordLimit}`} ký tự
+            {taskType === "53" && " · IBT 2025"}
           </p>
         )}
       </div>

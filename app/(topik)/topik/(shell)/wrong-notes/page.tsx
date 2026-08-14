@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { vi } from "@/topik/lib/i18n/vi";
+import { getUiStrings } from "@/topik/lib/i18n/server-strings";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { listWrongAnswers, resolveTopikUserId } from "@/topik/lib/store/file-store";
 import { getLearnSession } from "@/learn/lib/auth";
 import { WrongNotesClient } from "@/topik/components/wrong-notes/WrongNotesClient";
 
 export default async function WrongNotesPage() {
+  const vi = await getUiStrings();
   const session = await getLearnSession();
   const userId = resolveTopikUserId(session?.user?.id);
   const wrongs = await listWrongAnswers(userId);

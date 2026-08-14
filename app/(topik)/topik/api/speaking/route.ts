@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { evaluateSpeaking } from "@/topik/lib/speaking/evaluator";
-import { incrementSpeakingCount, resolveTopikUserId } from "@/topik/lib/store/file-store";
+import {
+  getSpeakingUsageThisMonth,
+  incrementSpeakingUsage,
+  markJourneyStep,
+  resolveTopikUserId,
+} from "@/topik/lib/store/file-store";
+import { canUseSpeaking } from "@/topik/lib/billing/topik-plan";
 import { getLearnSession } from "@/learn/lib/auth";
 import type { SpeakingScenarioId } from "@/topik/types";
 import { getSpeakingScenario } from "@/topik/lib/speaking/prompts";
@@ -20,9 +26,15 @@ export async function POST(request: Request) {
 
     const session = await getLearnSession();
     const userId = resolveTopikUserId(session?.user?.id);
+    const used = await getSpeakingUsageThisMonth(userId);
+    if (!canUseSpeaking(used)) {
+      return NextResponse.json({ error: "LIMIT", remaining: 0 }, { status: 429 });
+    }
+
     const result = await evaluateSpeaking(body.scenarioId, body.transcript.trim());
     try {
-      await incrementSpeakingCount(userId);
+      await incrementSpeakingUsage(userId);
+      await markJourneyStep(userId, "speaking");
     } catch {
       /* progress optional on serverless */
     }

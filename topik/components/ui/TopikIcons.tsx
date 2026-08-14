@@ -311,7 +311,10 @@ export function IconRecord({ className, size = 18 }: IconProps) {
 const MODE_ICONS: Record<StudyModeId, React.ComponentType<IconProps>> = {
   speaking: IconMic,
   writing: IconPen,
+  typing: IconKeyboard,
+  vocab: IconVocab,
   practice: IconClipboard,
+  drill: IconReading,
   "mock-exam": IconMonitor,
   lessons: IconBooks,
   review: IconReview,

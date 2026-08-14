@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { vi } from "@/topik/lib/i18n/vi";
+import { getUiStrings } from "@/topik/lib/i18n/server-strings";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
-import { getAllLevels, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
+import { getAllLevels, getCuratedVideoCount, getLessonsByLevel, tierForLevel } from "@/topik/lib/curriculum/lessons";
 import { IconGrammar, IconReading, IconVocab, IconPen } from "@/topik/components/ui/TopikIcons";
 import type { TopikLevel, LessonCategory } from "@/topik/types";
+import type { ViStrings } from "@/topik/lib/i18n/strings";
 
 function LessonCategoryIcon({ category }: { category: LessonCategory }) {
   const iconClass = "text-learn-primary";
@@ -19,21 +20,22 @@ function LessonCategoryIcon({ category }: { category: LessonCategory }) {
   }
 }
 
-export default function LessonsIndexPage() {
+export default async function LessonsIndexPage() {
+  const vi = await getUiStrings();
   const levels = getAllLevels();
 
   return (
     <main className="topik-page">
       <TopikPageHeader
         title={vi.lessons.title}
-        subtitle="Video + từ vựng + ngữ pháp · Lộ trình TOPIK 1→6"
+        subtitle={`${getCuratedVideoCount()} video YouTube · TTMIK · Billy Korean · Seemile · ${vi.lessons.curatedNote}`}
       />
 
       <section className="mb-6">
         <p className="topik-section-title mb-3">{vi.lessons.topikI}</p>
         <div className="space-y-3">
           {levels.filter((l) => tierForLevel(l) === "topik-i").map((level) => (
-            <LevelBlock key={level} level={level} />
+            <LevelBlock key={level} level={level} vi={vi} />
           ))}
         </div>
       </section>
@@ -42,7 +44,7 @@ export default function LessonsIndexPage() {
         <p className="topik-section-title mb-3">{vi.lessons.topikII}</p>
         <div className="space-y-3">
           {levels.filter((l) => tierForLevel(l) === "topik-ii").map((level) => (
-            <LevelBlock key={level} level={level} />
+            <LevelBlock key={level} level={level} vi={vi} />
           ))}
         </div>
       </section>
@@ -50,7 +52,7 @@ export default function LessonsIndexPage() {
   );
 }
 
-function LevelBlock({ level }: { level: TopikLevel }) {
+function LevelBlock({ level, vi }: { level: TopikLevel; vi: ViStrings }) {
   const lessons = getLessonsByLevel(level);
   return (
     <div className="topik-mode-list">

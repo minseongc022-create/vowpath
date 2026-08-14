@@ -1,11 +1,13 @@
-import { vi } from "@/topik/lib/i18n/vi";
+import { Suspense } from "react";
+import { getUiStrings } from "@/topik/lib/i18n/server-strings";
 import { getStudyMode } from "@/topik/lib/study-modes";
 import { TopikPageHeader } from "@/topik/components/ui/TopikPageHeader";
 import { TopikModeRow } from "@/topik/components/ui/TopikModeRow";
 import { TopikQuizClient } from "@/topik/components/quiz/TopikQuizClient";
 
-export default function PracticePage() {
-  const mockMode = getStudyMode("mock-exam");
+export default async function PracticePage() {
+  const vi = await getUiStrings();
+  const mockMode = getStudyMode("mock-exam", vi);
 
   return (
     <main className="topik-page">
@@ -13,7 +15,9 @@ export default function PracticePage() {
       <div className="topik-mode-list mb-5">
         <TopikModeRow mode={mockMode} />
       </div>
-      <TopikQuizClient />
+      <Suspense fallback={<p className="topik-loading">{vi.common.loading}</p>}>
+        <TopikQuizClient />
+      </Suspense>
     </main>
   );
 }

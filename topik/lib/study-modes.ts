@@ -1,11 +1,14 @@
 /** TOPIK study mode registry */
 
-import { vi } from "@/topik/lib/i18n/vi";
+import type { ViStrings } from "@/topik/lib/i18n/strings";
 
 export type StudyModeId =
   | "speaking"
   | "writing"
+  | "typing"
+  | "vocab"
   | "practice"
+  | "drill"
   | "mock-exam"
   | "lessons"
   | "review"
@@ -19,7 +22,8 @@ export type StudyMode = {
   tint: "primary" | "coral" | "mint" | "blue" | "gold";
 };
 
-export const STUDY_MODES: StudyMode[] = [
+export function getStudyModes(vi: ViStrings): StudyMode[] {
+  return [
   {
     id: "speaking",
     href: "/topik/speaking",
@@ -35,11 +39,32 @@ export const STUDY_MODES: StudyMode[] = [
     tint: "coral",
   },
   {
+    id: "typing",
+    href: "/topik/typing",
+    title: vi.home.typingTitle,
+    desc: vi.home.typingDesc,
+    tint: "gold",
+  },
+  {
     id: "mock-exam",
     href: "/topik/mock-exam",
     title: vi.home.mockExamTitle,
     desc: vi.home.mockExamDesc,
     tint: "blue",
+  },
+  {
+    id: "drill",
+    href: "/topik/drill",
+    title: vi.drill.title,
+    desc: vi.drill.pageSubtitle,
+    tint: "blue",
+  },
+  {
+    id: "vocab",
+    href: "/topik/vocab",
+    title: vi.vocab.title,
+    desc: vi.vocab.subtitle,
+    tint: "mint",
   },
   {
     id: "practice",
@@ -66,20 +91,22 @@ export const STUDY_MODES: StudyMode[] = [
     id: "wrong-notes",
     href: "/topik/wrong-notes",
     title: vi.nav.wrongNotes,
-    desc: "Theo dõi câu sai · ôn lại cho đến khi thuộc",
+    desc: vi.wrongNotes.desc,
     tint: "coral",
   },
-];
+  ];
+}
 
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
-  "speaking",
   "mock-exam",
+  "drill",
+  "vocab",
+  "typing",
+  "speaking",
   "writing",
   "practice",
-  "lessons",
-  "review",
 ];
 
-export function getStudyMode(id: StudyModeId): StudyMode {
-  return STUDY_MODES.find((m) => m.id === id)!;
+export function getStudyMode(id: StudyModeId, vi: ViStrings): StudyMode {
+  return getStudyModes(vi).find((m) => m.id === id)!;
 }

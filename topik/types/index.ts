@@ -14,6 +14,8 @@ export type TopikLesson = {
   category: LessonCategory;
   durationMin: number;
   videoUrl?: string;
+  /** YouTube channel name for attribution */
+  channelName?: string;
   vocabulary: VocabItem[];
   grammarPoints: GrammarPoint[];
   sortOrder: number;
@@ -36,19 +38,29 @@ export type GrammarPoint = {
   exampleVi: string;
 };
 
+export type TopikExamSection = "listening" | "reading" | "writing" | "grammar" | "vocabulary";
+
 export type TopikQuizQuestion = {
   id: string;
   level: TopikLevel;
-  type: "multiple_choice" | "short_answer";
+  type: "multiple_choice" | "short_answer" | "sentence_order";
   category: LessonCategory;
+  examSection?: TopikExamSection;
   question: string;
   questionVi?: string;
   options?: string[];
   correctIndex?: number;
   correctAnswer?: string;
+  /** IBT sentence-order: shuffled fragments shown to the user */
+  fragments?: string[];
+  /** IBT sentence-order: indices into `fragments` for the correct order */
+  correctOrder?: number[];
   explanation: string;
   explanationVi: string;
   passage?: string;
+  /** Original listening dialogue — shown after answering (not copied from past papers) */
+  listeningScript?: string;
+  listeningScriptVi?: string;
 };
 
 export type WritingTaskType = "51" | "52" | "53" | "54";
@@ -117,7 +129,19 @@ export type UserProgress = {
   reviewSessions: number;
   speakingCount: number;
   mockExamCount: number;
+  typingCount: number;
+  bestTypingCpm?: number;
   bestMockScore?: number;
+  /** Diagnostic test result */
+  placementLevel?: TopikLevel;
+  /** Daily guided steps — date → step ids completed */
+  dailyStepsDone?: Record<string, string[]>;
+  dailyGoalCompleted?: number;
+  /** Rolling section accuracy from quiz/drill/mock sessions */
+  sectionStats?: Record<string, { correct: number; total: number }>;
+  /** Monthly AI usage — YYYY-MM → count */
+  writingUsageMonth?: Record<string, number>;
+  speakingUsageMonth?: Record<string, number>;
 };
 
 export type SpeakingScenarioId =
@@ -125,7 +149,8 @@ export type SpeakingScenarioId =
   | "hometown"
   | "restaurant"
   | "job-eps"
-  | "topik-interview";
+  | "topik-interview"
+  | "topik-presentation";
 
 export type SpeakingScenario = {
   id: SpeakingScenarioId;
@@ -157,12 +182,19 @@ export type VietnameseErrorFlag = {
   tipVi: string;
 };
 
+export type PassProbabilityGapLink = {
+  text: string;
+  href: string;
+};
+
 export type PassProbabilityReport = {
   probability: number;
   level: TopikLevel;
   daysToExam: number | null;
   strengthsVi: string[];
   gapsVi: string[];
+  /** Actionable drill links aligned with gapsVi (same order where possible) */
+  gapLinks?: PassProbabilityGapLink[];
   dailyPlanVi: string[];
 };
 

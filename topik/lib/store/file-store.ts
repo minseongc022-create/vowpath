@@ -38,6 +38,7 @@ const DEFAULT_PROGRESS: UserProgress = {
   reviewSessions: 0,
   speakingCount: 0,
   mockExamCount: 0,
+  typingCount: 0,
 };
 
 function normalizeStore(raw: Partial<TopikStore>): TopikStore {
@@ -310,6 +311,20 @@ export async function incrementSpeakingCount(userId: string): Promise<number> {
   return store.progress.speakingCount;
 }
 
+export async function saveTypingSession(
+  userId: string,
+  session: { cpm: number; accuracy: number; promptCount: number },
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  store.progress.typingCount++;
+  if (!store.progress.bestTypingCpm || session.cpm > store.progress.bestTypingCpm) {
+    store.progress.bestTypingCpm = session.cpm;
+  }
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
+}
+
 export async function saveMockExamResult(
   userId: string,
   result: Omit<MockExamResult, "id" | "completedAt">,
@@ -352,7 +367,98 @@ export async function setExamDate(userId: string, examDate: string): Promise<Use
   return store.progress;
 }
 
+export async function savePlacementResult(
+  userId: string,
+  level: TopikLevel,
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  store.progress.placementLevel = level;
+  if (level > store.progress.targetLevel) {
+    store.progress.targetLevel = level;
+  }
+  appendJourneyStep(store, "placement");
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
+}
+
+function appendJourneyStep(store: TopikStore, stepId: string): void {
+  const today = new Date().toISOString().slice(0, 10);
+  const done = store.progress.dailyStepsDone ?? {};
+  const todaySteps = done[today] ?? [];
+  if (!todaySteps.includes(stepId)) {
+    todaySteps.push(stepId);
+    done[today] = todaySteps;
+    store.progress.dailyStepsDone = done;
+    store.progress.dailyGoalCompleted = todaySteps.length;
+  }
+}
+
+export async function markJourneyStep(userId: string, stepId: string): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  appendJourneyStep(store, stepId);
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return store.progress;
+}
+
 export async function countUnresolvedWrong(userId: string): Promise<number> {
   const store = await loadStore(userId);
   return store.wrongAnswers.filter((w) => !w.resolved).length;
+}
+
+function monthKey(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+export async function mergeSectionStats(
+  userId: string,
+  delta: Record<string, { correct: number; total: number }>,
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  const stats = { ...(store.progress.sectionStats ?? {}) };
+  for (const [section, { correct, total }] of Object.entries(delta)) {
+    const prev = stats[section] ?? { correct: 0, total: 0 };
+    stats[section] = { correct: prev.correct + correct, total: prev.total + total };
+  }
+  store.progress.sectionStats = stats;
+  await saveStore(userId, store);
+  return store.progress;
+}
+
+export async function getWritingUsageThisMonth(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  return store.progress.writingUsageMonth?.[key] ?? store.writingCount;
+}
+
+export async function incrementWritingUsage(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  const usage = store.progress.writingUsageMonth ?? {};
+  usage[key] = (usage[key] ?? 0) + 1;
+  store.progress.writingUsageMonth = usage;
+  store.writingCount++;
+  store.progress.writingCount = store.writingCount;
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return usage[key]!;
+}
+
+export async function getSpeakingUsageThisMonth(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  return store.progress.speakingUsageMonth?.[key] ?? 0;
+}
+
+export async function incrementSpeakingUsage(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  const usage = store.progress.speakingUsageMonth ?? {};
+  usage[key] = (usage[key] ?? 0) + 1;
+  store.progress.speakingUsageMonth = usage;
+  store.progress.speakingCount++;
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return usage[key]!;
 }

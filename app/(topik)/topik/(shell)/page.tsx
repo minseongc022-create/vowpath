@@ -1,6 +1,7 @@
 import { HomeDashboard } from "@/topik/components/home/HomeDashboard";
 import { computePassProbability, recommendedStudyDays } from "@/topik/lib/analytics/pass-probability";
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
+import { buildStudyJourney } from "@/topik/lib/journey/study-journey";
 import { buildStudyPlan, getTodayPlan } from "@/topik/lib/study-plan/roadmap";
 import {
   countUnresolvedWrong,
@@ -9,16 +10,18 @@ import {
   getSrsStats,
   resolveTopikUserId,
 } from "@/topik/lib/store/file-store";
+import { getRequestTopikLocale } from "@/topik/lib/i18n/request-locale";
 import { getLearnSession } from "@/learn/lib/auth";
 
 export default async function TopikHomePage() {
   const session = await getLearnSession();
   const userId = resolveTopikUserId(session?.user?.id);
-  const [stats, progress, wrongCount, planStart] = await Promise.all([
+  const [stats, progress, wrongCount, planStart, locale] = await Promise.all([
     getSrsStats(userId),
     getProgress(userId),
     countUnresolvedWrong(userId),
     getPlanStartDate(userId),
+    getRequestTopikLocale(),
   ]);
 
   const report = computePassProbability({
@@ -28,14 +31,20 @@ export default async function TopikHomePage() {
     srsDue: stats.due,
     wrongUnresolved: wrongCount,
     lessonTotal: TOPIK_CURRICULUM.length,
+    locale,
   });
 
   const planDays = recommendedStudyDays(report.daysToExam);
   const plan = buildStudyPlan(progress.targetLevel, planDays);
   const todayPlan = getTodayPlan(plan, planStart);
 
-  const todayHref =
-    stats.due > 0 ? "/topik/review" : todayPlan?.focus === "speaking" ? "/topik/speaking" : "/topik/practice";
+  const journey = buildStudyJourney({
+    progress,
+    dueCards: stats.due,
+    wrongCount,
+    todayFocus: todayPlan?.focus,
+    report,
+  });
 
   return (
     <HomeDashboard
@@ -45,11 +54,10 @@ export default async function TopikHomePage() {
       todayPlan={todayPlan}
       planDay={todayPlan?.day ?? 1}
       planDays={planDays}
-      dueCards={stats.due}
       srsTotal={stats.total}
       srsMastered={stats.mastered}
-      todayHref={todayHref}
-      firstTask={todayPlan?.tasksVi[0]}
+      journey={journey}
+      sectionStats={progress.sectionStats}
     />
   );
 }

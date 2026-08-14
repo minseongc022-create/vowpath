@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { vi } from "@/topik/lib/i18n/vi";
+import { useTopikVi } from "@/topik/lib/i18n/TopikLocaleProvider";
 import { IconChevronRight } from "@/topik/components/ui/TopikIcons";
 
 type Props = {
@@ -9,6 +11,8 @@ type Props = {
 };
 
 export function TodayStudyHero({ href, dueCards, firstTask }: Props) {
+  const vi = useTopikVi();
+
   return (
     <Link href={href} className="topik-today-hero">
       <div className="topik-today-hero-body">
