@@ -29,29 +29,26 @@ export function WaitlistForm({ district }: { district?: string }) {
 
   if (done) {
     return (
-      <p className="rounded-xl bg-giu-primary/10 px-4 py-3 text-sm text-giu-primary">
+      <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-accent">
         ✓ Đã ghi nhận! Tụi mình nhắn bạn khi có hộp gần đây.
       </p>
     );
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+    <form onSubmit={submit} className="space-y-2">
       <input
         required
         type="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         placeholder="SĐT của bạn"
-        className="flex-1 rounded-xl border border-giu-border px-3 py-2 text-sm"
+        className="giu-input"
       />
-      <button
-        type="submit"
-        className="rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
-      >
+      <button type="submit" className="giu-btn-primary">
         Báo tôi nhé
       </button>
-      {error ? <p className="text-sm text-red-600 sm:col-span-2">{error}</p> : null}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
     </form>
   );
 }

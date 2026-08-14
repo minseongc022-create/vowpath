@@ -40,36 +40,32 @@ export function CustomerLoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h2 className="text-lg font-semibold">Đăng nhập</h2>
+    <form onSubmit={submit} className="giu-card space-y-4">
+      <h2 className="text-xl font-bold text-giu-ink">Đăng nhập</h2>
       <div>
-        <label className="block text-sm font-medium">Email</label>
+        <label className="giu-label">Email</label>
         <input
           required
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
+          className="giu-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium">Mật khẩu</label>
+        <label className="giu-label">Mật khẩu</label>
         <input
           required
           type="password"
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
+          className="giu-input"
         />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-giu-accent py-3 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {loading ? "Đang đăng nhập..." : "Đăng nhập →"}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+      <button type="submit" disabled={loading} className="giu-btn-primary">
+        {loading ? "Đang đăng nhập..." : "Đăng nhập"}
       </button>
       <p className="text-center text-sm text-giu-muted">
         Chưa có tài khoản?{" "}
@@ -118,56 +114,47 @@ export function CustomerRegisterForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h2 className="text-lg font-semibold">Tạo tài khoản</h2>
-      <p className="text-sm text-giu-muted">Thanh toán trước, nhận mã giải cứu ngay sau khi đặt.</p>
+    <form onSubmit={submit} className="giu-card space-y-4">
+      <h2 className="text-xl font-bold text-giu-ink">Tạo tài khoản</h2>
+      <p className="text-sm text-giu-muted">Thanh toán an toàn · nhận mã giải cứu ngay sau khi trả.</p>
       <div>
-        <label className="block text-sm font-medium">Tên</label>
-        <input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
+        <label className="giu-label">Tên</label>
+        <input required value={name} onChange={(e) => setName(e.target.value)} className="giu-input" />
       </div>
       <div>
-        <label className="block text-sm font-medium">Email</label>
+        <label className="giu-label">Email</label>
         <input
           required
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
+          className="giu-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium">Số điện thoại</label>
+        <label className="giu-label">Số điện thoại</label>
         <input
           required
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
+          className="giu-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium">Mật khẩu (tối thiểu 6 ký tự)</label>
+        <label className="giu-label">Mật khẩu (tối thiểu 6 ký tự)</label>
         <input
           required
           type="password"
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
+          className="giu-input"
         />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-giu-accent py-3 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {loading ? "Đang đăng ký..." : "Đăng ký →"}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+      <button type="submit" disabled={loading} className="giu-btn-primary">
+        {loading ? "Đang đăng ký..." : "Đăng ký"}
       </button>
       <p className="text-center text-sm text-giu-muted">
         Đã có tài khoản?{" "}

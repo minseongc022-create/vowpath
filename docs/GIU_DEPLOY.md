@@ -63,10 +63,21 @@ See `CRON.md` and `config/cron.schedule.json`.
 
 After **3 successful pickups** (`da_lay`), merchant gets `verified: true` automatically.
 
+## Escrow (Thanh toán an toàn)
+
+Payment flow for HCMC launch:
+
+1. Customer pays via VNPay → `settlementStatus: held`
+2. Customer picks up with code → merchant taps **Đã lấy** → `settlementStatus: released`
+3. Cancel before pickup → `settlementStatus: refunded`
+
+This is the same trust model planned for Korea later; **production focus is Vietnam only** for now.
+
 ## Launch checklist
 
-1. Merge `cursor/giu-auth-payment-43d7` → deploy
+1. Deploy from `main` (VN-only product at giucuu.com)
 2. Vercel KV + env vars above
 3. VNPay sandbox test transaction end-to-end
 4. cron-job.org → `giu-reservation-expiry` every 60s
 5. Onboard 5–20 real bakeries (Quận 1·3·7) via Zalo
+6. Target: **30+ successful pickups/week** in HCMC before any Korea expansion

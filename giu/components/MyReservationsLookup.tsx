@@ -34,12 +34,9 @@ export function MyReservationsLookup() {
 
   if (!account) {
     return (
-      <div className="space-y-4 rounded-2xl border border-giu-border bg-white p-6 text-center">
+      <div className="giu-card space-y-4 text-center">
         <p className="text-sm text-giu-muted">Đăng nhập để xem mã giải cứu đã thanh toán.</p>
-        <Link
-          href="/giu/dang-nhap"
-          className="inline-block rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
-        >
+        <Link href="/giu/dang-nhap" className="giu-btn-primary block text-center">
           Đăng nhập
         </Link>
       </div>
@@ -52,12 +49,12 @@ export function MyReservationsLookup() {
 
   if (list.length === 0) {
     return (
-      <p className="text-sm text-giu-muted">
+      <div className="giu-card text-center text-sm text-giu-muted">
         Chưa có đơn giải cứu nào.{" "}
         <Link href="/giu/hop" className="font-semibold text-giu-primary">
           Săn hộp ngay →
         </Link>
-      </p>
+      </div>
     );
   }
 
@@ -65,14 +62,14 @@ export function MyReservationsLookup() {
     <ul className="space-y-3">
       {list.map((r) => (
         <li key={r.id}>
-          <Link
-            href={`/giu/dat/${r.id}`}
-            className="block rounded-xl border border-giu-border bg-white p-4 hover:border-giu-primary/30"
-          >
-            <p className="font-mono text-xl font-bold text-giu-primary">{r.code}</p>
-            <p className="text-sm text-giu-muted">
-              {formatVnd(r.totalVnd)} · {r.paymentStatus} · {r.status}
-            </p>
+          <Link href={`/giu/dat/${r.id}`} className="giu-list-row shadow-giu-sm block">
+            <div className="flex-1">
+              <p className="font-mono text-xl font-bold text-giu-primary">{r.code}</p>
+              <p className="mt-1 text-sm text-giu-muted">
+                {formatVnd(r.totalVnd)} · {r.status}
+              </p>
+            </div>
+            <span className="text-giu-muted">→</span>
           </Link>
         </li>
       ))}

@@ -42,35 +42,19 @@ export function MerchantLoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h2 className="text-lg font-semibold">Đăng nhập quán</h2>
+    <form onSubmit={submit} className="giu-card space-y-4">
+      <h2 className="text-xl font-bold text-giu-ink">Đăng nhập quán</h2>
       <div>
-        <label className="block text-sm font-medium">Email</label>
-        <input
-          required
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
+        <label className="giu-label">Email</label>
+        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="giu-input" />
       </div>
       <div>
-        <label className="block text-sm font-medium">Mật khẩu</label>
-        <input
-          required
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
+        <label className="giu-label">Mật khẩu</label>
+        <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="giu-input" />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-giu-primary py-3 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {loading ? "Đang đăng nhập..." : "Vào panel →"}
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+      <button type="submit" disabled={loading} className="giu-btn-primary">
+        {loading ? "Đang đăng nhập..." : "Vào panel"}
       </button>
       <p className="text-center text-sm text-giu-muted">
         Chưa có quán?{" "}
@@ -125,89 +109,55 @@ export function MerchantSignupForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h2 className="text-lg font-semibold">Đăng ký quán</h2>
+    <form onSubmit={submit} className="giu-card space-y-4">
+      <h2 className="text-xl font-bold text-giu-ink">Đăng ký quán</h2>
       <div>
-        <label className="block text-sm font-medium">Tên quán *</label>
-        <input
-          name="name"
-          required
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
+        <label className="giu-label">Tên quán *</label>
+        <input name="name" required className="giu-input" />
       </div>
       <div>
-        <label className="block text-sm font-medium">Email đăng nhập *</label>
-        <input
-          name="email"
-          required
-          type="email"
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
+        <label className="giu-label">Email đăng nhập *</label>
+        <input name="email" required type="email" className="giu-input" />
       </div>
       <div>
-        <label className="block text-sm font-medium">Mật khẩu * (tối thiểu 6 ký tự)</label>
-        <input
-          name="password"
-          required
-          type="password"
-          minLength={6}
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-        />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium">Loại hình *</label>
-          <select name="category" required className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm">
-            {GIu_CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.emoji} {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Quận *</label>
-          <select name="district" required className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm">
-            {GIu_DISTRICTS.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label className="giu-label">Mật khẩu * (tối thiểu 6 ký tự)</label>
+        <input name="password" required type="password" minLength={6} className="giu-input" />
       </div>
       <div>
-        <label className="block text-sm font-medium">Địa chỉ quán *</label>
-        <input
-          name="address"
-          required
-          className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-          placeholder="Số nhà, đường, quận"
-        />
+        <label className="giu-label">Loại hình *</label>
+        <select name="category" required className="giu-input">
+          {GIu_CATEGORIES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.emoji} {c.label}
+            </option>
+          ))}
+        </select>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="block text-sm font-medium">SĐT *</label>
-          <input
-            name="phone"
-            required
-            type="tel"
-            className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm"
-            placeholder="0901234567"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Zalo (tuỳ chọn)</label>
-          <input name="zalo" type="tel" className="mt-1 w-full rounded-xl border border-giu-border px-3 py-2 text-sm" />
-        </div>
+      <div>
+        <label className="giu-label">Quận *</label>
+        <select name="district" required className="giu-input">
+          {GIu_DISTRICTS.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-giu-primary py-3 text-sm font-semibold text-white hover:bg-giu-primary-hover disabled:opacity-60"
-      >
-        {loading ? "Đang đăng ký..." : "Đăng quán & vào panel →"}
+      <div>
+        <label className="giu-label">Địa chỉ quán *</label>
+        <input name="address" required className="giu-input" placeholder="Số nhà, đường, quận" />
+      </div>
+      <div>
+        <label className="giu-label">SĐT *</label>
+        <input name="phone" required type="tel" className="giu-input" placeholder="0901234567" />
+      </div>
+      <div>
+        <label className="giu-label">Zalo (tuỳ chọn)</label>
+        <input name="zalo" type="tel" className="giu-input" />
+      </div>
+      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+      <button type="submit" disabled={loading} className="giu-btn-primary">
+        {loading ? "Đang đăng ký..." : "Đăng quán & vào panel"}
       </button>
       <p className="text-center text-sm text-giu-muted">
         Đã có quán?{" "}
