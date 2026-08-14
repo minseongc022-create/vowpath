@@ -1,5 +1,7 @@
 import { HomeDashboard } from "@/topik/components/home/HomeDashboard";
+import { buildAcademyDailyClass } from "@/topik/lib/academy/academy-program";
 import { computePassProbability, recommendedStudyDays } from "@/topik/lib/analytics/pass-probability";
+import { computeWeeklyActivity } from "@/topik/lib/analytics/weekly-activity";
 import { TOPIK_CURRICULUM } from "@/topik/lib/curriculum/lessons";
 import { buildStudyJourney } from "@/topik/lib/journey/study-journey";
 import { buildStudyPlan, getTodayPlan } from "@/topik/lib/study-plan/roadmap";
@@ -37,6 +39,7 @@ export default async function TopikHomePage() {
   const planDays = recommendedStudyDays(report.daysToExam);
   const plan = buildStudyPlan(progress.targetLevel, planDays);
   const todayPlan = getTodayPlan(plan, planStart);
+  const planDay = todayPlan?.day ?? 1;
 
   const journey = buildStudyJourney({
     progress,
@@ -46,14 +49,27 @@ export default async function TopikHomePage() {
     report,
   });
 
+  const dailyClass = buildAcademyDailyClass({
+    progress,
+    todayPlan,
+    planDay,
+    totalDays: planDays,
+    report,
+    wrongCount,
+    dueCards: stats.due,
+  });
+
+  const weekly = computeWeeklyActivity(progress);
+
   return (
     <HomeDashboard
       streak={progress.streak}
       targetLevel={progress.targetLevel}
       report={report}
       journey={journey}
+      dailyClass={dailyClass}
+      weekly={weekly}
       sectionStats={progress.sectionStats}
-      placementDone={Boolean(progress.placementLevel)}
     />
   );
 }

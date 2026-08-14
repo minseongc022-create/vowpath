@@ -33,7 +33,7 @@ type Input = {
 
 /** Core exam-prep path only — placement → wrong notes → drill → practice → mock */
 export function buildStudyJourney(input: Input): StudyJourney {
-  const { progress, wrongCount, report } = input;
+  const { progress, wrongCount, report, todayFocus } = input;
   const steps: JourneyStep[] = [];
   let order = 1;
 
@@ -65,7 +65,7 @@ export function buildStudyJourney(input: Input): StudyJourney {
   const doneToday = progress.dailyStepsDone?.[today] ?? [];
 
   if (!doneToday.includes("drill")) {
-    const weakSection = pickWeakSection(progress);
+    const weakSection = pickWeakSection(progress, todayFocus);
     steps.push({
       id: "drill",
       order: order++,
@@ -137,25 +137,33 @@ export function buildStudyJourney(input: Input): StudyJourney {
   };
 }
 
-function pickWeakSection(progress: UserProgress): { labelVi: string; descVi: string; href: string } {
-  const gaps = progress.placementGaps ?? [];
+function pickWeakSection(
+  progress: UserProgress,
+  todayFocus?: StudyPlanDay["focus"],
+): { labelVi: string; descVi: string; href: string } {
   const level = progress.targetLevel;
+  const gaps = progress.placementGaps ?? [];
 
-  if (gaps.includes("listening")) {
+  if (todayFocus === "listening" || gaps.includes("listening")) {
     return {
       labelVi: l("nghe IBT", "IBT 듣기"),
       descVi: l("10 câu nghe · script tiếng Việt", "듣기 10문항 · 스크립트"),
       href: `/topik/drill?type=listening&level=${level}`,
     };
   }
-  if (gaps.includes("reading")) {
+  if (todayFocus === "reading" || gaps.includes("reading")) {
     return {
       labelVi: l("đọc IBT", "IBT 독해"),
       descVi: l("10 câu đọc hiểu", "독해 10문항"),
       href: `/topik/drill?type=reading&level=${level}`,
     };
   }
-  if (gaps.includes("vocabulary") || gaps.includes("grammar")) {
+  if (
+    todayFocus === "grammar" ||
+    todayFocus === "vocab" ||
+    gaps.includes("grammar") ||
+    gaps.includes("vocabulary")
+  ) {
     return {
       labelVi: l("ngữ pháp & từ", "문법 & 어휘"),
       descVi: l("Mini set hỗn hợp", "혼합 미니 세트"),
