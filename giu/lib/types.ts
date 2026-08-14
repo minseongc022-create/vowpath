@@ -91,6 +91,8 @@ export type GiuReservation = {
   customerPhone: string;
   quantity: number;
   totalVnd: number;
+  /** Lemon Squeezy checkout amount (USD cents) when using custom_price. */
+  chargeAmountUsdCents?: number;
   platformFeeVnd: number;
   paymentStatus: GiuPaymentStatus;
   paymentMethod?: GiuPaymentMethod;

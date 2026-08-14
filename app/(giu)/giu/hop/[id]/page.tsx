@@ -9,6 +9,7 @@ import {
   formatPickupWindow,
   formatVnd,
 } from "@/giu/lib/format";
+import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -21,6 +22,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   if (!merchant) notFound();
 
   const soldOut = box.status !== "mo" || box.quantityLeft <= 0;
+  const checkoutBackend = resolveGiuPaymentBackend();
 
   return (
     <div className="giu-page space-y-5">
@@ -78,7 +80,11 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           </Link>
         </div>
       ) : (
-        <ReserveForm boxId={box.id} salePriceVnd={box.salePriceVnd} />
+        <ReserveForm
+          boxId={box.id}
+          salePriceVnd={box.salePriceVnd}
+          checkoutBackend={checkoutBackend}
+        />
       )}
     </div>
   );

@@ -21,7 +21,8 @@ import type {
 } from "./types";
 import { notifyPickupCode } from "./notify";
 import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
-import { isGiuPaymentDemo } from "./vnpay";
+import { resolveGiuPaymentBackend } from "./payments";
+import { vndToUsdCents } from "./lemon-squeezy-giu";
 import {
   SEED_BOXES,
   SEED_CO2_KG,
@@ -483,6 +484,11 @@ export type InitiateReservationResult =
       box: GiuBox;
       paymentUrl: string;
     }
+  | {
+      mode: "lemon_squeezy";
+      reservation: GiuReservation;
+      box: GiuBox;
+    }
   | { error: string };
 
 export async function initiateReservationPayment(input: {
@@ -505,6 +511,9 @@ export async function initiateReservationPayment(input: {
 
   const totalVnd = box.salePriceVnd * qty;
   const platformFeeVnd = Math.round(totalVnd * GIU_BRAND.commissionRate);
+  const backend = resolveGiuPaymentBackend();
+  const chargeAmountUsdCents =
+    backend === "lemon_squeezy" ? vndToUsdCents(totalVnd) : undefined;
   const paymentExpiresAt = new Date(
     Date.now() + PAYMENT_HOLD_MINUTES * 60 * 1000,
   ).toISOString();
@@ -519,6 +528,7 @@ export async function initiateReservationPayment(input: {
     customerPhone: input.customerPhone,
     quantity: qty,
     totalVnd,
+    chargeAmountUsdCents,
     platformFeeVnd,
     paymentStatus: "pending",
     paymentMethod: input.paymentMethod,
@@ -535,7 +545,7 @@ export async function initiateReservationPayment(input: {
   store.reservations.unshift(reservation);
   await saveStore(store);
 
-  if (isGiuPaymentDemo()) {
+  if (backend === "demo") {
     const confirmed = await confirmReservationPayment(
       reservation.id,
       `demo_${randomBytes(4).toString("hex")}`,
@@ -547,6 +557,10 @@ export async function initiateReservationPayment(input: {
       reservation: confirmed,
       box: updatedBox ?? box,
     };
+  }
+
+  if (backend === "lemon_squeezy") {
+    return { mode: "lemon_squeezy", reservation, box };
   }
 
   const paymentUrl = input.paymentUrlBuilder(reservation, totalVnd);
