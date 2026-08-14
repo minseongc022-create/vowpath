@@ -4,25 +4,38 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatVnd } from "@/giu/lib/format";
+import type { GiuPaymentBackend } from "@/giu/lib/payments";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { GIU_STRINGS } from "@/giu/lib/strings";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
-const PAYMENT_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
+const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
   { id: "vietqr", label: "VietQR", sub: "빠른 계좌이체" },
-  { id: "momo", label: "MoMo", sub: "MoMo 지갑 (VNPay)" },
+  { id: "momo", label: "MoMo", sub: "MoMo 지갑" },
   { id: "card", label: "카드", sub: "국제 카드" },
 ];
 
-export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceVnd: number }) {
+export function ReserveForm({
+  boxId,
+  salePriceVnd,
+  checkoutBackend = "demo",
+}: {
+  boxId: string;
+  salePriceVnd: number;
+  checkoutBackend?: GiuPaymentBackend;
+}) {
   const router = useRouter();
   const { account, loading: authLoading } = useGiuAuth();
-  const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("vietqr");
+  const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("card");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successCode, setSuccessCode] = useState<string | null>(null);
   const [reservationId, setReservationId] = useState<string | null>(null);
+
+  const useStripeCheckout = checkoutBackend === "stripe";
+  const useVnpayCheckout = checkoutBackend === "vnpay";
+  const showVnpayMethods = useVnpayCheckout;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +47,10 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ boxId, paymentMethod }),
+        body: JSON.stringify({
+          boxId,
+          paymentMethod: showVnpayMethods ? paymentMethod : "card",
+        }),
       });
       const data = (await res.json()) as {
         id?: string;
@@ -48,12 +64,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         return;
       }
 
-      if (data.mode === "vnpay" && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-        return;
-      }
-
-      if (data.mode === "stripe" && data.paymentUrl) {
+      if ((data.mode === "vnpay" || data.mode === "stripe") && data.paymentUrl) {
         window.location.href = data.paymentUrl;
         return;
       }
@@ -104,11 +115,22 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
     );
   }
 
+  const payLabel = loading
+    ? "이동 중..."
+    : useStripeCheckout
+      ? "카드로 결제하기"
+      : useVnpayCheckout
+        ? GIU_STRINGS.payCta
+        : GIU_STRINGS.payCta;
+
   return (
     <form onSubmit={submit} className="giu-card space-y-5">
       <div>
         <p className="text-sm text-giu-muted">결제</p>
         <p className="mt-1 text-3xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
+        {useStripeCheckout ? (
+          <p className="mt-1 text-xs text-giu-muted">Visa · Mastercard · 국제 카드 (Stripe)</p>
+        ) : null}
       </div>
 
       <div className="giu-info-banner">
@@ -116,41 +138,43 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
       </div>
 
-      <div>
-        <p className="giu-label">결제 수단</p>
-        <div className="space-y-2">
-          {PAYMENT_OPTIONS.map((opt) => {
-            const selected = paymentMethod === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setPaymentMethod(opt.id)}
-                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition ${
-                  selected
-                    ? "bg-giu-primary-soft ring-2 ring-giu-primary"
-                    : "bg-giu-bg ring-1 ring-giu-border"
-                }`}
-              >
-                <span>
-                  <span className="block font-semibold text-giu-ink">{opt.label}</span>
-                  <span className="block text-xs text-giu-muted">{opt.sub}</span>
-                </span>
-                {selected ? (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-giu-primary text-xs text-white">
-                    ✓
+      {showVnpayMethods ? (
+        <div>
+          <p className="giu-label">결제 수단</p>
+          <div className="space-y-2">
+            {VNPAY_OPTIONS.map((opt) => {
+              const selected = paymentMethod === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setPaymentMethod(opt.id)}
+                  className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition ${
+                    selected
+                      ? "bg-giu-primary-soft ring-2 ring-giu-primary"
+                      : "bg-giu-bg ring-1 ring-giu-border"
+                  }`}
+                >
+                  <span>
+                    <span className="block font-semibold text-giu-ink">{opt.label}</span>
+                    <span className="block text-xs text-giu-muted">{opt.sub}</span>
                   </span>
-                ) : null}
-              </button>
-            );
-          })}
+                  {selected ? (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-giu-primary text-xs text-white">
+                      ✓
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
 
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "이동 중..." : GIU_STRINGS.payCta}
+        {payLabel}
       </button>
     </form>
   );

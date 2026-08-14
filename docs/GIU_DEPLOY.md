@@ -1,6 +1,6 @@
 # Giu (giucuu.com) — production setup
 
-Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, VNPay, optional Twilio SMS.
+Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, **Stripe** (default live payments), optional VNPay, optional Twilio SMS.
 
 ## Required env (Vercel)
 
@@ -12,61 +12,64 @@ Food rescue marketplace for HCMC. Stack: Next.js on Vercel, KV store, VNPay, opt
 | `NEXT_PUBLIC_GIU_HOST` | `giucuu.com` |
 | `CRON_SECRET` | Same as Effiroad — external cron auth |
 
-## Real payments (pick one)
+## Stripe — live online payments (Korean solo OK)
 
-Giu supports **two live backends**. You only need **one** — no Vietnamese business required for Stripe.
+**Recommended.** No Vietnamese business entity required.
 
-| Backend | Who can sign up | Best for |
-|---------|-----------------|----------|
-| **Stripe** (recommended for Korean solo) | [stripe.com](https://stripe.com) — individual or sole prop in Korea | Visa/Mastercard from Vietnam + global cards; settles to your KR bank |
-| **VNPay** | Vietnamese registered business only | MoMo, VietQR, local VN wallets |
+### 1. Stripe account
 
-**Auto priority:** Stripe if `STRIPE_SECRET_KEY` is set, else VNPay if `VNPAY_*` is set, else demo.
+1. Register at [dashboard.stripe.com/register](https://dashboard.stripe.com/register) — Korea, individual or sole prop.
+2. Start in **test mode** (`sk_test_…`), then switch to live after one test checkout.
 
-Override with `GIU_PAYMENT_PROVIDER=stripe` or `vnpay`.
-
-### Stripe — Korean solo operator (no VN entity)
-
-1. Create a Stripe account at [dashboard.stripe.com/register](https://dashboard.stripe.com/register) (Korea, individual OK).
-2. Vercel Production env:
+### 2. Vercel env (Production)
 
 | Variable | Purpose |
 |----------|---------|
-| `STRIPE_SECRET_KEY` | Dashboard → Developers → API keys → Secret key (`sk_live_…` or `sk_test_…`) |
-| `STRIPE_WEBHOOK_SECRET` | Webhook signing secret (see below) |
-| `GIU_PAYMENT_DEMO` | `0` or unset once keys are set |
+| `STRIPE_SECRET_KEY` | Developers → API keys → Secret key |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signing secret (step 3) |
+| `GIU_PAYMENT_DEMO` | Unset or `0` when keys are set |
 
-3. **Webhook** (Dashboard → Developers → Webhooks → Add endpoint):
+Optional: `GIU_PAYMENT_PROVIDER=stripe` to force Stripe when multiple backends are configured.
+
+### 3. Stripe webhook
+
+Dashboard → Developers → Webhooks → Add endpoint:
 
 - URL: `https://www.giucuu.com/api/giu/payments/stripe/webhook`
-- Events: `checkout.session.completed`
+- Event: `checkout.session.completed`
 - Copy signing secret → `STRIPE_WEBHOOK_SECRET`
 
-4. Test with Stripe **test mode** keys first (`sk_test_…`), then swap to live.
+### 4. Redeploy & verify
 
-Customers pay in **VND** on Stripe Checkout (international cards). MoMo/VietQR labels in the UI still work as checkout entry points but settlement goes through Stripe when it is the active backend.
+1. Redeploy Vercel after env changes.
+2. Open a box on giucuu.com → **카드로 결제하기** → Stripe Checkout opens (not instant demo code).
+3. Test card: `4242 4242 4242 4242`, any future expiry, any CVC.
 
-### VNPay (Vietnam business only)
+Customers pay in **VND** on Stripe Checkout (Visa / Mastercard / international cards). Settlement goes to your **Korean Stripe balance** (converted from VND).
 
-When both are set, checkout redirects to VNPay sandbox/production:
+### Demo mode (before Stripe keys)
+
+- Omit `STRIPE_SECRET_KEY` → instant fake payment (`GIU_PAYMENT_DEMO=1` also forces demo).
+- Set `GIU_PAYMENT_DEMO=0` to disable demo when testing live keys.
+
+## VNPay (optional — Vietnam business only)
+
+Use only if you have a **Vietnamese registered merchant** (MoMo / VietQR / local wallets).
 
 | Variable | Example |
 |----------|---------|
-| `VNPAY_TMN_CODE` | Merchant terminal code from VNPay |
-| `VNPAY_HASH_SECRET` | Hash secret from VNPay |
-| `VNPAY_URL` | Optional — default sandbox `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html` |
+| `VNPAY_TMN_CODE` | Merchant terminal code |
+| `VNPAY_HASH_SECRET` | Hash secret |
+| `VNPAY_URL` | Optional sandbox default |
 
-**VNPay merchant portal — register URLs:**
+Register in VNPay portal:
 
-- Return URL: `https://www.giucuu.com/api/giu/payments/vnpay/return`
-- IPN URL: `https://www.giucuu.com/api/giu/payments/vnpay/ipn`
+- Return: `https://www.giucuu.com/api/giu/payments/vnpay/return`
+- IPN: `https://www.giucuu.com/api/giu/payments/vnpay/ipn`
 
-MoMo / VietQR / card in the UI all route through VNPay.
+Set `GIU_PAYMENT_PROVIDER=vnpay` to prefer VNPay over Stripe.
 
-### Demo mode (local / before VNPay keys)
-
-- Omit `VNPAY_*` → instant demo payment (same as `GIU_PAYMENT_DEMO=1`)
-- Set `GIU_PAYMENT_DEMO=0` to force VNPay-only (fails if keys missing)
+**Auto priority when unset:** Stripe → VNPay → demo.
 
 ## SMS pickup codes (optional)
 
@@ -101,17 +104,17 @@ After **3 successful pickups** (`da_lay`), merchant gets `verified: true` automa
 
 Payment flow for HCMC launch:
 
-1. Customer pays via VNPay → `settlementStatus: held`
+1. Customer pays via Stripe (or VNPay) → `settlementStatus: held`
 2. Customer picks up with code → merchant taps **Đã lấy** → `settlementStatus: released`
 3. Cancel before pickup → `settlementStatus: refunded`
 
-This is the same trust model planned for Korea later; **production focus is Vietnam only** for now.
+In-app status only — **not** automatic bank payout to merchants.
 
 ## Launch checklist
 
 1. Deploy from `main` (VN-only product at giucuu.com)
 2. Vercel KV + env vars above
-3. VNPay sandbox test transaction end-to-end
+3. **Stripe test checkout** end-to-end
 4. cron-job.org → `giu-reservation-expiry` every 60s
-5. Onboard 5–20 real bakeries (Quận 1·3·7) via Zalo
-6. Target: **30+ successful pickups/week** in HCMC before any Korea expansion
+5. Swap Stripe to live keys
+6. Onboard 5–20 real bakeries (Quận 1·3·7) via Zalo
