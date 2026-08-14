@@ -137,6 +137,11 @@ export type UserProgress = {
   /** Daily guided steps — date → step ids completed */
   dailyStepsDone?: Record<string, string[]>;
   dailyGoalCompleted?: number;
+  /** Rolling section accuracy from quiz/drill/mock sessions */
+  sectionStats?: Record<string, { correct: number; total: number }>;
+  /** Monthly AI usage — YYYY-MM → count */
+  writingUsageMonth?: Record<string, number>;
+  speakingUsageMonth?: Record<string, number>;
 };
 
 export type SpeakingScenarioId =
@@ -177,12 +182,19 @@ export type VietnameseErrorFlag = {
   tipVi: string;
 };
 
+export type PassProbabilityGapLink = {
+  text: string;
+  href: string;
+};
+
 export type PassProbabilityReport = {
   probability: number;
   level: TopikLevel;
   daysToExam: number | null;
   strengthsVi: string[];
   gapsVi: string[];
+  /** Actionable drill links aligned with gapsVi (same order where possible) */
+  gapLinks?: PassProbabilityGapLink[];
   dailyPlanVi: string[];
 };
 

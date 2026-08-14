@@ -70,10 +70,16 @@ export function PassProbabilityCard({ report, onSetExamDate }: Props) {
           <div>
             <p className="topik-section-title mb-2">{vi.home.gaps}</p>
             <ul className="space-y-1.5">
-              {report.gapsVi.slice(0, 4).map((g) => (
-                <li key={g} className="flex gap-2 text-xs text-[var(--topik-coral)]">
+              {(report.gapLinks?.length ? report.gapLinks : report.gapsVi.slice(0, 4).map((g) => ({ text: g, href: "" }))).slice(0, 4).map((g) => (
+                <li key={g.text} className="flex gap-2 text-xs text-[var(--topik-coral)]">
                   <span className="shrink-0">→</span>
-                  <span>{g}</span>
+                  {g.href ? (
+                    <a href={g.href} className="underline-offset-2 hover:underline">
+                      {g.text}
+                    </a>
+                  ) : (
+                    <span>{g.text}</span>
+                  )}
                 </li>
               ))}
             </ul>

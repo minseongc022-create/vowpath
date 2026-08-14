@@ -5,50 +5,65 @@ import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
 export type MockExamTier = ExamTierId;
 
+/** Question counts per tier — closer to real mini-exam length */
+export const MOCK_QUESTION_COUNTS: Record<MockExamTier, number> = {
+  "topik-i": 15,
+  "topik-ii": 20,
+  "topik-ibt": 20,
+  "eps-topik": 15,
+};
+
+export function mockQuestionCount(tier: MockExamTier): number {
+  return MOCK_QUESTION_COUNTS[tier] ?? 15;
+}
+
 /** TOPIK I mini: listening + reading, levels 1-2 only */
-export function buildTopikIMock(count = 10): TopikQuizQuestion[] {
-  const listening = getQuestionsBySection(2, "listening", 4);
-  const reading = getQuestionsBySection(2, "reading", 3);
-  const vocab = getQuestionsBySection(2, "vocabulary", 2);
-  const grammar = getQuestionsBySection(2, "grammar", 1);
+export function buildTopikIMock(count = mockQuestionCount("topik-i")): TopikQuizQuestion[] {
+  const listening = getQuestionsBySection(2, "listening", Math.ceil(count * 0.35));
+  const reading = getQuestionsBySection(2, "reading", Math.ceil(count * 0.35));
+  const vocab = getQuestionsBySection(2, "vocabulary", Math.ceil(count * 0.2));
+  const grammar = getQuestionsBySection(2, "grammar", Math.max(1, Math.ceil(count * 0.1)));
   return dedupeAndFill([...listening, ...reading, ...vocab, ...grammar], 2, count);
 }
 
 /** TOPIK II mini: listening + reading + grammar, up to target level */
-export function buildTopikIIMock(level: TopikLevel, count = 10): TopikQuizQuestion[] {
-  const listening = getQuestionsBySection(level, "listening", 3);
-  const reading = getQuestionsBySection(level, "reading", 4);
-  const grammar = getQuestionsBySection(level, "grammar", 2);
-  const vocab = getQuestionsBySection(level, "vocabulary", 1);
+export function buildTopikIIMock(level: TopikLevel, count = mockQuestionCount("topik-ii")): TopikQuizQuestion[] {
+  const listening = getQuestionsBySection(level, "listening", Math.ceil(count * 0.3));
+  const reading = getQuestionsBySection(level, "reading", Math.ceil(count * 0.35));
+  const grammar = getQuestionsBySection(level, "grammar", Math.ceil(count * 0.2));
+  const vocab = getQuestionsBySection(level, "vocabulary", Math.max(1, Math.ceil(count * 0.15)));
   return dedupeAndFill([...listening, ...reading, ...grammar, ...vocab], level, count);
 }
 
 /** IBT mini — listening + reading + sentence order + grammar */
-export function buildIbtMock(level: TopikLevel, count = 10): TopikQuizQuestion[] {
-  const listening = getQuestionsBySection(level, "listening", 3);
-  const reading = getQuestionsBySection(level, "reading", 3);
+export function buildIbtMock(level: TopikLevel, count = mockQuestionCount("topik-ibt")): TopikQuizQuestion[] {
+  const listening = getQuestionsBySection(level, "listening", Math.ceil(count * 0.3));
+  const reading = getQuestionsBySection(level, "reading", Math.ceil(count * 0.3));
+  const orderCount = Math.max(2, Math.ceil(count * 0.2));
   const orderPool = TOPIK_IBT_ORDER_BANK.filter((q) => q.level <= level);
-  const order = [...orderPool].sort(() => Math.random() - 0.5).slice(0, 2);
-  const grammar = getQuestionsBySection(level, "grammar", 1);
-  return dedupeAndFill([...listening, ...reading, ...order, ...grammar], level, count);
+  const order = [...orderPool].sort(() => Math.random() - 0.5).slice(0, orderCount);
+  const grammar = getQuestionsBySection(level, "grammar", Math.max(1, Math.ceil(count * 0.1)));
+  const vocab = getQuestionsBySection(level, "vocabulary", Math.max(1, Math.ceil(count * 0.1)));
+  return dedupeAndFill([...listening, ...reading, ...order, ...grammar, ...vocab], level, count);
 }
 
 export function buildMockByTier(
   tier: MockExamTier,
   level: TopikLevel,
-  count = 10,
+  count?: number,
 ): TopikQuizQuestion[] {
+  const n = count ?? mockQuestionCount(tier);
   switch (tier) {
     case "topik-i":
-      return buildTopikIMock(count);
+      return buildTopikIMock(n);
     case "topik-ii":
-      return buildTopikIIMock(level, count);
+      return buildTopikIIMock(level, n);
     case "topik-ibt":
-      return buildIbtMock(level, count);
+      return buildIbtMock(level, n);
     case "eps-topik":
-      return buildTopikIMock(count);
+      return buildTopikIMock(n);
     default:
-      return buildTopikIIMock(level, count);
+      return buildTopikIIMock(level, n);
   }
 }
 

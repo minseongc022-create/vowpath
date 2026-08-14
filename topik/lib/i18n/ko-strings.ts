@@ -231,6 +231,8 @@ export const ko = {
     writingSessions: "쓰기 채점",
     quizSessions: "문제 풀이",
     lessonsCompleted: "레슨",
+    mockExams: "모의고사",
+    bestScore: "최고 점수",
     startReview: "지금 복습",
     allModes: "모든 모드",
   },

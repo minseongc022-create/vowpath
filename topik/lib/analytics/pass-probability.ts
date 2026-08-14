@@ -1,5 +1,6 @@
-import type { PassProbabilityReport, TopikLevel, UserProgress } from "@/topik/types";
+import type { PassProbabilityGapLink, PassProbabilityReport, TopikLevel, UserProgress } from "@/topik/types";
 import { l } from "@/topik/lib/i18n/locale-text";
+import { getDrillRecommendations } from "@/topik/lib/quiz/recommend-drill";
 
 type AnalyticsInput = {
   progress: UserProgress;
@@ -47,6 +48,12 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
 
   const strengthsVi: string[] = [];
   const gapsVi: string[] = [];
+  const gapLinks: PassProbabilityGapLink[] = [];
+
+  function addGap(text: string, href: string) {
+    gapsVi.push(text);
+    gapLinks.push({ text, href });
+  }
 
   if (progress.streak >= 3)
     strengthsVi.push(l(`Chuỗi học ${progress.streak} ngày — duy trì tốt!`, `연속 ${progress.streak}일 학습 — 잘하고 있어요!`));
@@ -57,23 +64,45 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
     strengthsVi.push(l("Tốc độ gõ IBT đạt mục tiêu (30+ ký tự/phút)", "IBT 타이핑 목표 달성 (30+타/분)"));
 
   if (progress.speakingCount < 2)
-    gapsVi.push(l("Luyện nói IBT — kỹ năng yếu nhất của người Việt", "IBT 말하기 — 베트남 학습자 최대 약점"));
+    addGap(
+      l("Luyện nói IBT — kỹ năng yếu nhất của người Việt", "IBT 말하기 — 베트남 학습자 최대 약점"),
+      "/topik/speaking",
+    );
   if ((progress.bestTypingCpm ?? 0) < 30 && progress.typingCount < 3)
-    gapsVi.push(l("Luyện gõ tiếng Hàn — IBT viết trên màn hình cần 30–40 ký tự/phút", "한국어 타이핑 — IBT 화면 쓰기 30–40타/분"));
-  if (progress.writingCount < 2) gapsVi.push(l("Chưa đủ bài viết TOPIK 53–54", "TOPIK 53–54번 쓰기 부족"));
-  if (srsDue > 10) gapsVi.push(l(`${srsDue} thẻ SRS cần ôn hôm nay`, `오늘 SRS 복습 ${srsDue}장`));
-  if (!progress.bestMockScore) gapsVi.push(l("Chưa làm thi thử IBT — làm ngay để biết điểm thật", "IBT 모의고사 미응시 — 지금 점수 확인"));
-  if (wrongUnresolved > 5) gapsVi.push(l(`${wrongUnresolved} câu sai chưa thuộc`, `미암기 오답 ${wrongUnresolved}문항`));
+    addGap(
+      l("Luyện gõ tiếng Hàn — IBT viết trên màn hình cần 30–40 ký tự/phút", "한국어 타이핑 — IBT 화면 쓰기 30–40타/분"),
+      "/topik/typing",
+    );
+  if (progress.writingCount < 2)
+    addGap(l("Chưa đủ bài viết TOPIK 53–54", "TOPIK 53–54번 쓰기 부족"), "/topik/writing");
+  if (srsDue > 10)
+    addGap(l(`${srsDue} thẻ SRS cần ôn hôm nay`, `오늘 SRS 복습 ${srsDue}장`), "/topik/review");
+  if (!progress.bestMockScore)
+    addGap(
+      l("Chưa làm thi thử IBT — làm ngay để biết điểm thật", "IBT 모의고사 미응시 — 지금 점수 확인"),
+      "/topik/mock-exam",
+    );
+  if (wrongUnresolved > 5)
+    addGap(l(`${wrongUnresolved} câu sai chưa thuộc`, `미암기 오답 ${wrongUnresolved}문항`), "/topik/wrong-notes");
+
+  const sectionRecs = getDrillRecommendations(progress.sectionStats ?? {}, 0.65);
+  for (const rec of sectionRecs.slice(0, 2)) {
+    if (gapLinks.some((g) => g.href === rec.href)) continue;
+    addGap(rec.reason, `${rec.href}&level=${progress.targetLevel}`);
+  }
 
   const dailyPlanVi = buildDailyPlan(progress, gapsVi, daysToExam);
 
   if (probability < threshold) {
-    gapsVi.unshift(
-      l(
-        `Cần thêm ~${threshold - probability}% để đạt mục tiêu TOPIK ${progress.targetLevel}`,
-        `TOPIK ${progress.targetLevel} 목표까지 ~${threshold - probability}% 더 필요`,
-      ),
+    const gapText = l(
+      `Cần thêm ~${threshold - probability}% để đạt mục tiêu TOPIK ${progress.targetLevel}`,
+      `TOPIK ${progress.targetLevel} 목표까지 ~${threshold - probability}% 더 필요`,
     );
+    gapsVi.unshift(gapText);
+    gapLinks.unshift({
+      text: gapText,
+      href: `/topik/drill?type=mixed&level=${progress.targetLevel}`,
+    });
   }
 
   return {
@@ -82,6 +111,7 @@ export function computePassProbability(input: AnalyticsInput): PassProbabilityRe
     daysToExam,
     strengthsVi,
     gapsVi,
+    gapLinks: gapLinks.slice(0, 6),
     dailyPlanVi,
   };
 }

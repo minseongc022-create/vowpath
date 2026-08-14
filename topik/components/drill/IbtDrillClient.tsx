@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
 import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
 import { DRILL_TYPES, getDrillPreview, type DrillType } from "@/topik/lib/quiz/drill";
+import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
 import { isKoLocale } from "@/topik/lib/i18n/locale-text";
@@ -130,11 +131,7 @@ export function IbtDrillClient({ initialLevel }: Props) {
   }
 
   async function completeDrill() {
-    await fetch("/topik/api/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "complete-drill" }),
-    });
+    await postSessionComplete("complete-drill", bySection);
   }
 
   async function handleSubmit() {

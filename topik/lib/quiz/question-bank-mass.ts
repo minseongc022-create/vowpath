@@ -1,4 +1,5 @@
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
+import { MASS_BANK_LEVELS_2_TO_6 } from "@/topik/lib/quiz/question-bank-mass-levels";
 
 type ListeningSeed = {
   script: string;
@@ -97,21 +98,4 @@ const LEVEL_1_BANK: TopikQuizQuestion[] = [
   reading(1, 20, { passage: "TOPIK 시험을 준비합니다.", question: "무엇을 준비합니까?", questionVi: "Chuẩn bị gì?", options: ["TOPIK", "운동", "요리", "여행"], correctIndex: 0, explanationVi: "TOPIK." }),
 ];
 
-function cloneForLevel(q: TopikQuizQuestion, level: TopikLevel): TopikQuizQuestion {
-  const suffix = q.category === "listening" ? "l" : "r";
-  const num = q.id.split("-").pop() ?? "01";
-  return {
-    ...q,
-    id: `mass-l${level}-${suffix}-${num}`,
-    level,
-    passage: q.passage ? `${q.passage} (TOPIK ${level})` : undefined,
-  };
-}
-
-export const TOPIK_MASS_BANK: TopikQuizQuestion[] = [...LEVEL_1_BANK];
-
-for (let level = 2 as TopikLevel; level <= 6; level++) {
-  for (const q of LEVEL_1_BANK) {
-    TOPIK_MASS_BANK.push(cloneForLevel(q, level));
-  }
-}
+export const TOPIK_MASS_BANK: TopikQuizQuestion[] = [...LEVEL_1_BANK, ...MASS_BANK_LEVELS_2_TO_6];

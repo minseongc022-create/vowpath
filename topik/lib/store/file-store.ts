@@ -406,3 +406,59 @@ export async function countUnresolvedWrong(userId: string): Promise<number> {
   const store = await loadStore(userId);
   return store.wrongAnswers.filter((w) => !w.resolved).length;
 }
+
+function monthKey(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+export async function mergeSectionStats(
+  userId: string,
+  delta: Record<string, { correct: number; total: number }>,
+): Promise<UserProgress> {
+  const store = await loadStore(userId);
+  const stats = { ...(store.progress.sectionStats ?? {}) };
+  for (const [section, { correct, total }] of Object.entries(delta)) {
+    const prev = stats[section] ?? { correct: 0, total: 0 };
+    stats[section] = { correct: prev.correct + correct, total: prev.total + total };
+  }
+  store.progress.sectionStats = stats;
+  await saveStore(userId, store);
+  return store.progress;
+}
+
+export async function getWritingUsageThisMonth(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  return store.progress.writingUsageMonth?.[key] ?? store.writingCount;
+}
+
+export async function incrementWritingUsage(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  const usage = store.progress.writingUsageMonth ?? {};
+  usage[key] = (usage[key] ?? 0) + 1;
+  store.progress.writingUsageMonth = usage;
+  store.writingCount++;
+  store.progress.writingCount = store.writingCount;
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return usage[key]!;
+}
+
+export async function getSpeakingUsageThisMonth(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  return store.progress.speakingUsageMonth?.[key] ?? 0;
+}
+
+export async function incrementSpeakingUsage(userId: string): Promise<number> {
+  const store = await loadStore(userId);
+  const key = monthKey();
+  const usage = store.progress.speakingUsageMonth ?? {};
+  usage[key] = (usage[key] ?? 0) + 1;
+  store.progress.speakingUsageMonth = usage;
+  store.progress.speakingCount++;
+  await touchStreak(store);
+  await saveStore(userId, store);
+  return usage[key]!;
+}

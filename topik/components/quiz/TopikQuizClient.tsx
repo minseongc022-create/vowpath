@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { TopikQuizQuestion, TopikLevel } from "@/topik/types";
 import { ibtSectionLabel, getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
+import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
 import { quizListeningScriptVi } from "@/topik/lib/i18n/content-locale";
@@ -139,11 +140,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
   }
 
   async function completePractice() {
-    await fetch("/topik/api/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "complete-practice" }),
-    });
+    await postSessionComplete("complete-practice", bySection);
   }
 
   async function handleSubmit() {

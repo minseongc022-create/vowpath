@@ -231,6 +231,8 @@ export const viStrings = {
     writingSessions: "Chấm bài viết",
     quizSessions: "Luyện đề",
     lessonsCompleted: "Bài học",
+    mockExams: "Thi thử",
+    bestScore: "Điểm cao nhất",
     startReview: "Ôn tập ngay",
     allModes: "Tất cả chế độ",
   },

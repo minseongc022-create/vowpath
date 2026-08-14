@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { correctWriting } from "@/topik/lib/writing/corrector";
-import { incrementWritingCount, resolveTopikUserId } from "@/topik/lib/store/file-store";
+import {
+  getWritingUsageThisMonth,
+  incrementWritingUsage,
+  markJourneyStep,
+  resolveTopikUserId,
+} from "@/topik/lib/store/file-store";
+import { canUseWriting, writingRemaining } from "@/topik/lib/billing/topik-plan";
 import { getLearnSession } from "@/learn/lib/auth";
 import type { WritingCorrectionRequest } from "@/topik/types";
 
@@ -13,6 +19,14 @@ export async function POST(request: Request) {
 
     const session = await getLearnSession();
     const userId = resolveTopikUserId(session?.user?.id);
+    const used = await getWritingUsageThisMonth(userId);
+    if (!canUseWriting(used)) {
+      return NextResponse.json(
+        { error: "LIMIT", remaining: 0, limit: writingRemaining(used) },
+        { status: 429 },
+      );
+    }
+
     const result = await correctWriting({
       taskType: body.taskType,
       prompt: body.prompt ?? "",
@@ -20,7 +34,8 @@ export async function POST(request: Request) {
       wordLimit: body.wordLimit,
     });
     try {
-      await incrementWritingCount(userId);
+      await incrementWritingUsage(userId);
+      await markJourneyStep(userId, "writing");
     } catch {
       /* progress optional on serverless */
     }

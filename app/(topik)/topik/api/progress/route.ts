@@ -7,6 +7,7 @@ import {
   resolveWrongAnswer,
   resolveTopikUserId,
   markJourneyStep,
+  mergeSectionStats,
 } from "@/topik/lib/store/file-store";
 import { getLearnSession } from "@/learn/lib/auth";
 import type { TopikLevel } from "@/topik/types";
@@ -40,7 +41,16 @@ export async function POST(request: Request) {
       textAnswer?: string;
       explanationVi?: string;
       level?: TopikLevel;
+      sectionStats?: Record<string, { correct: number; total: number }>;
     };
+
+    async function completeWithStats(stepId: string) {
+      await markJourneyStep(userId, stepId);
+      if (body.sectionStats && Object.keys(body.sectionStats).length > 0) {
+        return mergeSectionStats(userId, body.sectionStats);
+      }
+      return getProgress(userId);
+    }
 
     if (body.action === "complete-lesson" && body.lessonId) {
       await markLessonComplete(userId, body.lessonId);
@@ -54,12 +64,17 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "complete-drill") {
-      const progress = await markJourneyStep(userId, "drill");
+      const progress = await completeWithStats("drill");
       return NextResponse.json(progress);
     }
 
     if (body.action === "complete-practice") {
-      const progress = await markJourneyStep(userId, "practice");
+      const progress = await completeWithStats("practice");
+      return NextResponse.json(progress);
+    }
+
+    if (body.action === "complete-mock") {
+      const progress = await completeWithStats("mock");
       return NextResponse.json(progress);
     }
 

@@ -54,6 +54,7 @@ export default async function TopikHomePage() {
       srsTotal={stats.total}
       srsMastered={stats.mastered}
       journey={journey}
+      sectionStats={progress.sectionStats}
     />
   );
 }

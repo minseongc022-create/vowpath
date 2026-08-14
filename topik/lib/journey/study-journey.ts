@@ -203,7 +203,7 @@ function focusToStep(
         id: "listening",
         titleVi: l("Luyện nghe + script", "듣기 + 스크립트"),
         descVi: l("Script tiếng Việt · không như app lỗi audio", "스크립트 제공 · 오디오 버그 없음"),
-        href: "/topik/practice?category=listening",
+        href: `/topik/drill?type=listening&level=${progress.targetLevel}`,
         status: "upcoming",
       };
     case "reading":
@@ -211,7 +211,7 @@ function focusToStep(
         id: "reading",
         titleVi: l("Luyện đọc hiểu", "독해 연습"),
         descVi: l("Đoạn văn TOPIK + giải thích", "TOPIK 지문 + 해설"),
-        href: "/topik/practice?category=reading",
+        href: `/topik/drill?type=reading&level=${progress.targetLevel}`,
         status: "upcoming",
       };
     case "mock":
@@ -279,7 +279,7 @@ function pickWeakSection(
   return {
     labelVi: l("nghe", "듣기"),
     descVi: l("Script + đáp án tiếng Việt", "스크립트 + 해설"),
-    href: "/topik/practice?category=listening",
+    href: `/topik/drill?type=listening&level=${progress.targetLevel}`,
   };
 }
 

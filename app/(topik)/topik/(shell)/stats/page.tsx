@@ -6,6 +6,7 @@ import {
   getProgress,
   resolveTopikUserId,
 } from "@/topik/lib/store/file-store";
+import { computeWeeklyActivity } from "@/topik/lib/analytics/weekly-activity";
 import { getLearnSession } from "@/learn/lib/auth";
 
 export default async function TopikStatsPage() {
@@ -15,6 +16,7 @@ export default async function TopikStatsPage() {
     getSrsStats(userId),
     getProgress(userId),
   ]);
+  const weekly = computeWeeklyActivity(progress);
 
   return (
     <main className="topik-page">
@@ -25,6 +27,9 @@ export default async function TopikStatsPage() {
         dueCards={stats.due}
         mastered={stats.mastered}
         total={stats.total}
+        weekly={weekly}
+        mockExamCount={progress.mockExamCount}
+        bestMockScore={progress.bestMockScore}
       />
     </main>
   );

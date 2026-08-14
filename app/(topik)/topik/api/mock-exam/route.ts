@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const level = Number(searchParams.get("level") ?? "3") as TopikLevel;
   const tier = parseTier(searchParams.get("tier"));
-  const questions = buildMockByTier(tier, level, 10);
+  const questions = buildMockByTier(tier, level);
   return NextResponse.json(questions);
 }
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const questions =
       body.questionIds?.length
         ? getMockExamQuestionsByIds(body.questionIds)
-        : buildMockByTier(tier, level, 10);
+        : buildMockByTier(tier, level);
     const scored = scoreMockExam(questions, answers);
 
     const session = await getLearnSession();

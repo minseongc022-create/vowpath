@@ -7,6 +7,7 @@ import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
 import type { MockExamAnswer } from "@/topik/lib/mock-exam/ibt-exam";
 import { getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
+import { postSessionComplete } from "@/topik/lib/quiz/session-complete";
 import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
@@ -93,12 +94,13 @@ export function MockExamClient() {
         });
         const data = (await res.json()) as ExamResult;
         void data;
+        await postSessionComplete("complete-mock", bySection);
         setPhase("result");
       } finally {
         setLoading(false);
       }
     },
-    [level, tier, questions, startedAt],
+    [level, tier, questions, startedAt, bySection],
   );
 
   useEffect(() => {
