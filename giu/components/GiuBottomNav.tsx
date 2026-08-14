@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GiuNavIcon, type GiuNavIconName } from "@/giu/components/icons/GiuNavIcons";
 import { GIU_STRINGS } from "@/giu/lib/strings";
 
-const TABS = [
-  { href: "/giu", label: GIU_STRINGS.navHome, icon: "🏠", exact: true },
-  { href: "/giu/hop", label: GIU_STRINGS.navBoxes, icon: "📦", exact: false },
-  { href: "/giu/ma-cua-toi", label: GIU_STRINGS.navMy, icon: "🎫", exact: false },
-  { href: "/giu/cua-hang", label: GIU_STRINGS.navMerchants, icon: "🏪", exact: false },
-] as const;
+const TABS: { href: string; label: string; icon: GiuNavIconName; exact: boolean }[] = [
+  { href: "/giu", label: GIU_STRINGS.navHome, icon: "home", exact: true },
+  { href: "/giu/hop", label: GIU_STRINGS.navBoxes, icon: "box", exact: false },
+  { href: "/giu/ma-cua-toi", label: GIU_STRINGS.navMy, icon: "ticket", exact: false },
+  { href: "/giu/cua-hang", label: GIU_STRINGS.navMerchants, icon: "store", exact: false },
+];
 
 function isActive(pathname: string, href: string, exact: boolean): boolean {
   if (exact) return pathname === href || pathname === `${href}/`;
@@ -28,11 +29,12 @@ export function GiuBottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition ${
+              className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition ${
                 active ? "text-giu-primary" : "text-giu-muted"
               }`}
+              aria-current={active ? "page" : undefined}
             >
-              <span className="text-xl leading-none">{tab.icon}</span>
+              <GiuNavIcon name={tab.icon} active={active} />
               <span className="truncate">{tab.label}</span>
             </Link>
           );
