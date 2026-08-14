@@ -127,8 +127,8 @@ export default async function GiuHomePage() {
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {[
               { title: GIU_STRINGS.trustSave, desc: GIU_STRINGS.trustSaveDesc },
+              { title: GIU_STRINGS.trustEscrow, desc: GIU_STRINGS.trustEscrowDesc },
               { title: GIU_STRINGS.trustLocal, desc: GIU_STRINGS.trustLocalDesc },
-              { title: GIU_STRINGS.trustFree, desc: GIU_STRINGS.trustFreeDesc },
             ].map((item) => (
               <div key={item.title}>
                 <h3 className="font-semibold">{item.title}</h3>

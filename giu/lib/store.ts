@@ -83,6 +83,9 @@ function migrateReservation(reservation: GiuReservation): GiuReservation {
       reservation.platformFeeVnd ??
       Math.round(reservation.totalVnd * GIU_BRAND.commissionRate),
     paymentExpiresAt: reservation.paymentExpiresAt,
+    settlementStatus:
+      reservation.settlementStatus ??
+      (reservation.paymentStatus === "paid" ? "held" : undefined),
   };
 }
 
@@ -412,6 +415,7 @@ export async function confirmReservationPayment(
   res.paymentId = paymentId;
   res.paidAt = new Date().toISOString();
   res.status = "giu_cho";
+  res.settlementStatus = "held";
   res.expiresAt = new Date(Date.now() + PICKUP_HOLD_MINUTES * 60 * 1000).toISOString();
   res.paymentExpiresAt = undefined;
 
@@ -627,6 +631,10 @@ export async function updateReservationStatus(
       merchant.rescuedBoxes += res.quantity;
       maybeAutoVerifyMerchant(store, merchant.id);
     }
+    if (res.paymentStatus === "paid" && res.settlementStatus === "held") {
+      res.settlementStatus = "released";
+      res.settledAt = new Date().toISOString();
+    }
   }
   await saveStore(store);
   return res;
@@ -642,8 +650,12 @@ export async function cancelReservation(id: string): Promise<GiuReservation | nu
     await releaseBoxQuantity(store, res.boxId, res.quantity);
   }
   res.status = "huy";
-  if (res.paymentStatus === "paid") res.paymentStatus = "refunded";
-  else if (res.paymentStatus === "pending") res.paymentStatus = "failed";
+  if (res.paymentStatus === "paid") {
+    res.paymentStatus = "refunded";
+    res.settlementStatus = "refunded";
+  } else if (res.paymentStatus === "pending") {
+    res.paymentStatus = "failed";
+  }
   await saveStore(store);
   return res;
 }

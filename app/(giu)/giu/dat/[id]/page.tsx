@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { GIU_STRINGS } from "@/giu/lib/strings";
 import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -13,6 +14,8 @@ export default async function GiuReservationPage({ params }: Props) {
 
   const paid = reservation.paymentStatus === "paid";
   const pending = reservation.paymentStatus === "pending";
+  const held = reservation.settlementStatus === "held";
+  const released = reservation.settlementStatus === "released";
 
   const [box, merchant] = await Promise.all([
     getBox(reservation.boxId),
@@ -40,6 +43,13 @@ export default async function GiuReservationPage({ params }: Props) {
           </p>
           <p className="mt-2 text-giu-muted">Đọc mã này tại quán để nhận hộp</p>
           <p className="mt-1 text-sm font-medium text-green-700">✓ Đã thanh toán · SMS đã gửi</p>
+          {held ? (
+            <p className="mt-2 rounded-xl bg-giu-primary/5 px-3 py-2 text-xs text-giu-primary">
+              {GIU_STRINGS.escrowDesc}
+            </p>
+          ) : released ? (
+            <p className="mt-2 text-xs text-giu-muted">Đã lấy hàng · quán đã nhận tiền</p>
+          ) : null}
         </>
       ) : (
         <p className="text-giu-muted">Thanh toán không thành công hoặc đã hủy.</p>

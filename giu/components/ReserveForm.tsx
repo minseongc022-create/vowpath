@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatVnd } from "@/giu/lib/format";
+import { GIU_STRINGS } from "@/giu/lib/strings";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
@@ -74,9 +75,9 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
   if (!account) {
     return (
       <div className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-        <h3 className="text-lg font-semibold text-giu-ink">Thanh toán & nhận mã</h3>
+        <h3 className="text-lg font-semibold text-giu-ink">{GIU_STRINGS.payCta}</h3>
         <p className="text-sm text-giu-muted">
-          Đăng nhập để thanh toán qua VNPay · {formatVnd(salePriceVnd)} · nhận mã ngay sau khi trả.
+          Đăng nhập để thanh toán an toàn · {formatVnd(salePriceVnd)} · nhận mã ngay sau khi trả.
         </p>
         <Link
           href={`/giu/dang-nhap?next=/giu/hop/${boxId}`}
@@ -114,11 +115,14 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h3 className="text-lg font-semibold text-giu-ink">Thanh toán VNPay & giải cứu</h3>
+      <h3 className="text-lg font-semibold text-giu-ink">{GIU_STRINGS.escrowTitle}</h3>
       <p className="text-sm text-giu-muted">
-        Xin chào <strong>{account.name}</strong> ·{" "}
-        <strong>{formatVnd(salePriceVnd)}</strong> · thanh toán xong nhận mã + SMS
+        Xin chào <strong>{account.name}</strong> · <strong>{formatVnd(salePriceVnd)}</strong>
       </p>
+
+      <div className="rounded-xl border border-giu-primary/20 bg-giu-primary/5 px-3 py-2 text-xs text-giu-primary">
+        {GIU_STRINGS.escrowDesc}
+      </div>
 
       <div>
         <p className="text-sm font-medium text-giu-ink">Phương thức thanh toán</p>
@@ -145,18 +149,15 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         </div>
       </div>
 
-      <p className="rounded-xl bg-giu-surface px-3 py-2 text-xs text-giu-muted">
-        Quán cam kết giữ độ tươi đến giờ bạn lấy. Mọi loại món đều được — thanh toán qua VNPay an
-        toàn, quán nhận tiền trước nên yên tâm giao hàng.
-      </p>
-
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       <button
         type="submit"
         disabled={loading}
         className="w-full rounded-xl bg-giu-accent py-3 text-sm font-semibold text-white hover:bg-giu-accent-hover disabled:opacity-60"
       >
-        {loading ? "Đang chuyển VNPay..." : `Thanh toán ${formatVnd(salePriceVnd)} →`}
+        {loading
+          ? "Đang chuyển thanh toán..."
+          : `${GIU_STRINGS.payCta} · ${formatVnd(salePriceVnd)}`}
       </button>
     </form>
   );

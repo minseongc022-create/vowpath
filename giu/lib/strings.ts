@@ -11,8 +11,9 @@ export const GIU_STRINGS = {
   howItWorks: "Giải cứu trong 3 bước",
   step1Title: "Săn",
   step1Desc: "Tối mở Giu, xem các hộp giảm 50–70% quanh bạn.",
-  step2Title: "Thanh toán",
-  step2Desc: "Đăng nhập, thanh toán trước — nhận mã giải cứu ngay lập tức.",
+  step2Title: "Thanh toán an toàn",
+  step2Desc:
+    "Thanh toán qua Giu — tiền được giữ an toàn. Quán xác nhận bạn đã lấy hàng thì quán mới nhận tiền.",
   step3Title: "Lấy & khoe",
   step3Desc: "Tới quán trước giờ đóng, đọc mã, nhận hộp.",
   statsBoxes: "hộp đã giải cứu",
@@ -28,6 +29,13 @@ export const GIU_STRINGS = {
   trustLocalDesc: "Chỉ Quận 1, 3, 7, 10, Bình Thạnh, Phú Nhuận — mở rộng dần.",
   trustFree: "Đăng quán miễn phí",
   trustFreeDesc: "Quán chỉ trả phí khi có giao dịch thành công (12%).",
+  trustEscrow: "Thanh toán an toàn Giu",
+  trustEscrowDesc:
+    "Tiền Giu giữ hộ — quán xác nhận lấy hàng xong mới chuyển. Giống 당근 안심결제.",
+  escrowTitle: "Thanh toán an toàn Giu",
+  escrowDesc:
+    "Tiền được Giu giữ an toàn. Quán xác nhận bạn đã lấy hàng → tiền mới chuyển cho quán.",
+  payCta: "Thanh toán an toàn & nhận mã",
   navHome: "Trang chủ",
   navBoxes: "Săn hộp",
   navMerchants: "Quán",

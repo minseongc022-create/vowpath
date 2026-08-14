@@ -119,7 +119,8 @@ export function MerchantPanelClient() {
             )}
           </p>
           <p className="mt-1 text-xs text-giu-muted">
-            Khách đã thanh toán trước — bạn chỉ cần xác nhận mã khi họ tới lấy.
+            Khách đã thanh toán — Giu giữ tiền an toàn. Bạn xác nhận mã khi họ tới lấy → tiền mới chuyển
+            cho quán.
           </p>
         </div>
         <button
@@ -238,6 +239,11 @@ export function MerchantPanelClient() {
                   </p>
                   <p className="text-sm text-giu-muted">
                     {formatVnd(r.totalVnd)} · {r.paymentStatus} · {r.status}
+                    {r.settlementStatus === "held"
+                      ? " · chờ chuyển tiền"
+                      : r.settlementStatus === "released"
+                        ? " · đã chuyển tiền"
+                        : ""}
                   </p>
                 </div>
                 {r.status === "giu_cho" && r.paymentStatus === "paid" ? (

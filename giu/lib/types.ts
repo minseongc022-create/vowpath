@@ -25,6 +25,9 @@ export type GiuReservationStatus = "giu_cho" | "da_lay" | "het_han" | "huy";
 
 export type GiuPaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
+/** Escrow: held until merchant confirms pickup. */
+export type GiuSettlementStatus = "held" | "released" | "refunded";
+
 export type GiuPaymentMethod = "momo" | "vietqr" | "card";
 
 export type GiuAccountRole = "customer" | "merchant";
@@ -94,6 +97,8 @@ export type GiuReservation = {
   paymentId?: string;
   paidAt?: string;
   paymentExpiresAt?: string;
+  settlementStatus?: GiuSettlementStatus;
+  settledAt?: string;
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;
