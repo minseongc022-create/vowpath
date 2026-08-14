@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { kv } from "@vercel/kv";
+import { kvGetSafe } from "@/lib/kv-safe";
 import type {
   GiuBox,
   GiuBoxStatus,
@@ -21,6 +23,13 @@ import {
 
 const DATA_DIR = join(process.cwd(), ".data", "giu");
 const STORE_FILE = join(DATA_DIR, "store.json");
+const KV_STORE_KEY = "giu:store:v1";
+
+function kvConfigured(): boolean {
+  return Boolean(
+    process.env.KV_REST_API_URL?.trim() && process.env.KV_REST_API_TOKEN?.trim(),
+  );
+}
 
 function newId(prefix: string): string {
   return `${prefix}_${randomBytes(8).toString("hex")}`;
@@ -50,6 +59,14 @@ function normalizeStore(raw: Partial<GiuStore>): GiuStore {
 }
 
 async function loadStore(): Promise<GiuStore> {
+  if (kvConfigured()) {
+    const raw = await kvGetSafe<GiuStore>(KV_STORE_KEY);
+    if (raw) return normalizeStore(raw);
+    const store = defaultStore();
+    await saveStore(store);
+    return store;
+  }
+
   try {
     await mkdir(DATA_DIR, { recursive: true });
     const raw = await readFile(STORE_FILE, "utf8");
@@ -62,6 +79,11 @@ async function loadStore(): Promise<GiuStore> {
 }
 
 async function saveStore(store: GiuStore): Promise<void> {
+  if (kvConfigured()) {
+    await kv.set(KV_STORE_KEY, store);
+    return;
+  }
+
   try {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(STORE_FILE, JSON.stringify(store, null, 2));

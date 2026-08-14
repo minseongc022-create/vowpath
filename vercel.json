@@ -37,12 +37,6 @@
       "destination": "https://go.effiroad.com/:path*",
       "permanent": true
     },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.giucuu.com" }],
-      "destination": "https://giucuu.com/:path*",
-      "permanent": true
-    }
   ],
   "crons": [
     {
