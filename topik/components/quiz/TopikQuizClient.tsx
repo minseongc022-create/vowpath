@@ -247,6 +247,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
       <QuizResultSummary
         title={vi.practice.score}
         stats={sessionStats}
+        level={level}
         onRetry={() => void loadQuestions(level, category)}
       />
     );

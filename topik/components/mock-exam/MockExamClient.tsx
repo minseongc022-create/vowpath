@@ -1,15 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
 import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
 import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
+import type { MockExamAnswer } from "@/topik/lib/mock-exam/ibt-exam";
+import { getQuestionSection } from "@/topik/lib/mock-exam/ibt-exam";
+import { checkQuizAnswer, type SessionStats } from "@/topik/lib/quiz/check-answer";
 import { vi } from "@/topik/lib/i18n/vi";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
+import { SentenceOrderInput } from "@/topik/components/quiz/SentenceOrderInput";
+import { QuizProgressBar } from "@/topik/components/quiz/QuizProgressBar";
+import { QuizFeedbackPanel } from "@/topik/components/quiz/QuizFeedbackPanel";
+import { QuizResultSummary } from "@/topik/components/quiz/QuizResultSummary";
 
 type Phase = "setup" | "exam" | "result";
 
@@ -46,11 +53,19 @@ export function MockExamClient() {
   const [level, setLevel] = useState<TopikLevel>(3);
   const [questions, setQuestions] = useState<TopikQuizQuestion[]>([]);
   const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, number | string>>({});
+  const [answers, setAnswers] = useState<Record<string, MockExamAnswer>>({});
   const [selected, setSelected] = useState<number | null>(null);
+  const [textAnswer, setTextAnswer] = useState("");
+  const [order, setOrder] = useState<number[]>([]);
+  const [showResult, setShowResult] = useState(false);
+  const [correct, setCorrect] = useState<boolean | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [score, setScore] = useState(0);
+  const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+  const [firstTryMisses, setFirstTryMisses] = useState(0);
+  const [bySection, setBySection] = useState<SessionStats["bySection"]>({});
   const [timeLeft, setTimeLeft] = useState(DURATION_SEC);
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(false);
   const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
@@ -60,7 +75,7 @@ export function MockExamClient() {
   }, [initialTier]);
 
   const finishExam = useCallback(
-    async (finalAnswers: Record<string, number | string>) => {
+    async (finalAnswers: Record<string, MockExamAnswer>) => {
       if (!startedAt) return;
       setLoading(true);
       const durationSec = Math.round((Date.now() - startedAt) / 1000);
@@ -77,7 +92,7 @@ export function MockExamClient() {
           }),
         });
         const data = (await res.json()) as ExamResult;
-        setResult(data);
+        void data;
         setPhase("result");
       } finally {
         setLoading(false);
@@ -93,10 +108,10 @@ export function MockExamClient() {
   }, [phase, timeLeft]);
 
   useEffect(() => {
-    if (phase === "exam" && timeLeft <= 0) {
+    if (phase === "exam" && timeLeft <= 0 && questions.length > 0) {
       void finishExam(answers);
     }
-  }, [phase, timeLeft, finishExam, answers]);
+  }, [phase, timeLeft, finishExam, answers, questions.length]);
 
   useEffect(() => {
     if (phase === "exam") {
@@ -123,7 +138,11 @@ export function MockExamClient() {
     setQuestions(data);
     setIdx(0);
     setAnswers({});
-    setSelected(null);
+    setScore(0);
+    setFirstTryCorrect(0);
+    setFirstTryMisses(0);
+    setBySection({});
+    resetAnswer();
     setTimeLeft(DURATION_SEC);
     setStartedAt(Date.now());
     setPhase("exam");
@@ -132,22 +151,88 @@ export function MockExamClient() {
 
   const q = questions[idx];
 
+  function resetAnswer() {
+    setSelected(null);
+    setTextAnswer("");
+    setOrder([]);
+    setShowResult(false);
+    setCorrect(null);
+    setAttempts(0);
+  }
+
+  async function saveWrong() {
+    if (!q) return;
+    await fetch("/topik/api/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "wrong",
+        questionId: q.id,
+        question: q.question,
+        questionVi: q.questionVi,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        correctAnswer: q.correctAnswer,
+        selectedIndex: selected ?? undefined,
+        textAnswer: textAnswer || undefined,
+        explanationVi: q.explanationVi,
+        level: q.level,
+      }),
+    });
+  }
+
+  function storeAnswer(): MockExamAnswer {
+    if (!q) return "";
+    if (q.type === "multiple_choice") return selected ?? 0;
+    if (q.type === "sentence_order") return [...order];
+    return textAnswer;
+  }
+
+  async function handleSubmit() {
+    if (!q) return;
+    const nextAttempts = attempts + 1;
+    setAttempts(nextAttempts);
+    const isCorrect = checkQuizAnswer(q, { selectedIndex: selected, textAnswer, order });
+    setCorrect(isCorrect);
+    setShowResult(true);
+
+    if (isCorrect) {
+      setScore((s) => s + 1);
+      if (nextAttempts === 1) setFirstTryCorrect((n) => n + 1);
+      const section = getQuestionSection(q);
+      setBySection((prev) => {
+        const sec = prev[section] ?? { correct: 0, total: 0 };
+        return { ...prev, [section]: { correct: sec.correct + 1, total: sec.total + 1 } };
+      });
+    } else if (nextAttempts === 1) {
+      setFirstTryMisses((n) => n + 1);
+      await saveWrong();
+    }
+  }
+
+  function handleRetry() {
+    resetAnswer();
+  }
+
   function handleNext() {
-    if (!q || selected === null) return;
-    const nextAnswers = { ...answers, [q.id]: selected };
+    if (!q) return;
+    const nextAnswers = { ...answers, [q.id]: storeAnswer() };
     setAnswers(nextAnswers);
+
     if (idx + 1 >= questions.length) {
       void finishExam(nextAnswers);
       return;
     }
     setIdx((i) => i + 1);
-    const nextQ = questions[idx + 1];
-    setSelected(
-      typeof nextAnswers[nextQ?.id ?? ""] === "number"
-        ? (nextAnswers[nextQ!.id] as number)
-        : null,
-    );
+    resetAnswer();
   }
+
+  const canSubmit = useMemo(() => {
+    if (!q) return false;
+    if (q.type === "multiple_choice") return selected !== null;
+    if (q.type === "sentence_order") return order.length === (q.fragments?.length ?? 0);
+    return !!textAnswer.trim();
+  }, [q, selected, order, textAnswer]);
 
   if (phase === "setup") {
     return (
@@ -156,10 +241,9 @@ export function MockExamClient() {
           <p className="topik-page-subtitle">{vi.mockExam.subtitle}</p>
           <p className="topik-badge mt-2">{tierLabelVi(tier)}</p>
           <ul className="topik-setup-list">
-            <li>10 câu · nghe + đọc + ngữ pháp</li>
-            <li>Đồng hồ 20 phút · không quảng cáo</li>
-            <li>Script nghe + giải thích tiếng Việt</li>
-            <li>Lưu điểm cao nhất</li>
+            <li>{vi.drill.questionCount.replace("{n}", "10")} · {vi.mockExam.section}</li>
+            <li>{tier === "topik-ibt" ? vi.drill.orderHint : vi.practice.subtitle}</li>
+            <li>{vi.drill.estimatedMin.replace("{n}", "20")}</li>
           </ul>
         </div>
 
@@ -210,28 +294,22 @@ export function MockExamClient() {
     );
   }
 
-  if (phase === "result" && result) {
-    const pct = Math.round((result.score / result.maxScore) * 100);
+  if (phase === "result") {
+    const sessionStats: SessionStats = {
+      total: questions.length,
+      correct: score,
+      wrong: firstTryMisses,
+      firstTryCorrect,
+      bySection,
+    };
     return (
-      <div className="topik-quiz-shell topik-animate-in text-center">
-        <div className="topik-card topik-card-pad">
-          <p className="topik-section-title">{vi.mockExam.result}</p>
-          <p className="topik-result-score">{pct}%</p>
-          <p className="topik-result-hint">
-            {vi.mockExam.correct}: {result.correct}/{result.total} · {tierLabelVi(tier)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setPhase("setup");
-            setResult(null);
-          }}
-          className="topik-btn topik-btn-primary topik-btn-lg"
-        >
-          {vi.mockExam.retry}
-        </button>
-      </div>
+      <QuizResultSummary
+        title={vi.mockExam.result}
+        stats={sessionStats}
+        level={level}
+        onRetry={() => setPhase("setup")}
+        homeHref="/topik/mock-exam"
+      />
     );
   }
 
@@ -242,15 +320,18 @@ export function MockExamClient() {
 
   return (
     <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
+      <QuizProgressBar current={idx + 1} total={questions.length} />
       <div className="topik-card topik-card-pad">
         <div className="topik-focus-meta">
           <span className={`topik-focus-timer ${timeLeft < 120 ? "topik-focus-timer-warn" : ""}`}>
             {mins}:{secs.toString().padStart(2, "0")}
           </span>
         </div>
-        <span className="topik-badge">{tierLabelVi(tier)} · TOPIK {q.level}</span>
-        {q.category === "listening" && q.listeningScript && (
-          <div className="topik-listening-block">
+        <span className="topik-badge">
+          {tierLabelVi(tier)} · TOPIK {q.level} · {idx + 1}/{questions.length}
+        </span>
+        {q.category === "listening" && q.listeningScript && !showResult && (
+          <div className="topik-listening-block mt-3">
             <ListeningAudioPlayer script={q.listeningScript} autoPlay maxPlays={2} />
           </div>
         )}
@@ -264,27 +345,80 @@ export function MockExamClient() {
         </p>
       </div>
 
-      <div className="topik-option-list">
-        {q.options?.map((opt, i) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setSelected(i)}
-            className={`topik-option ${selected === i ? "topik-option-selected" : ""}`}
-          >
-            {i + 1}. {opt}
-          </button>
-        ))}
-      </div>
+      {q.type === "sentence_order" && q.fragments && (
+        <SentenceOrderInput
+          key={q.id}
+          fragments={q.fragments}
+          correctOrder={q.correctOrder}
+          value={order}
+          onChange={setOrder}
+          disabled={showResult}
+          showResult={showResult}
+        />
+      )}
 
-      <button
-        type="button"
-        onClick={handleNext}
-        disabled={selected === null || loading}
-        className="topik-btn topik-btn-primary topik-btn-lg"
-      >
-        {idx + 1 >= questions.length ? vi.mockExam.finish : vi.mockExam.next}
-      </button>
+      {q.type === "multiple_choice" && q.options && (
+        <div className="topik-option-list">
+          {q.options.map((opt, i) => (
+            <button
+              key={opt}
+              type="button"
+              disabled={showResult}
+              onClick={() => setSelected(i)}
+              className={`topik-option ${
+                showResult && i === q.correctIndex
+                  ? "topik-option-correct"
+                  : showResult && i === selected && i !== q.correctIndex
+                    ? "topik-option-wrong"
+                    : selected === i
+                      ? "topik-option-selected"
+                      : ""
+              }`}
+            >
+              {i + 1}. {opt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {q.type === "short_answer" && (
+        <input
+          type="text"
+          value={textAnswer}
+          onChange={(e) => setTextAnswer(e.target.value)}
+          disabled={showResult}
+          placeholder={vi.practice.answerPlaceholder}
+          className="topik-input"
+        />
+      )}
+
+      {showResult && (
+        <QuizFeedbackPanel question={q} correct={!!correct} attempts={attempts} />
+      )}
+
+      {!showResult ? (
+        <button
+          type="button"
+          onClick={() => void handleSubmit()}
+          disabled={!canSubmit || loading}
+          className="topik-btn topik-btn-primary topik-btn-lg"
+        >
+          {vi.practice.submit}
+        </button>
+      ) : correct ? (
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={loading}
+          className="topik-btn topik-btn-primary topik-btn-lg"
+        >
+          {idx + 1 >= questions.length ? vi.mockExam.finish : vi.mockExam.next}
+        </button>
+      ) : (
+        <button type="button" onClick={handleRetry} className="topik-btn topik-btn-accent topik-btn-lg">
+          {vi.practice.tryAgain}
+        </button>
+      )}
     </div>
   );
 }

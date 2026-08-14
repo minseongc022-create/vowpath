@@ -285,6 +285,9 @@ export const ko = {
     attemptCount: "{n}번째 시도",
     firstTryCorrect: "첫 시도 정답 {n}/{total}",
     sectionBreakdown: "영역별 결과",
+    weakAreaTitle: "약점 영역 — 추천 드릴",
+    weakAreaHint: "아래 연습으로 보완하세요",
+    startDrill: "추천 드릴 시작",
   },
   official: {
     title: "공식 TOPIK 자료",

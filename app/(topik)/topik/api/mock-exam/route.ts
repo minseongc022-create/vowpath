@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       level?: TopikLevel;
       tier?: MockExamTier;
-      answers?: Record<string, number | string>;
+      answers?: Record<string, number | string | number[]>;
       questionIds?: string[];
       durationSec?: number;
     };

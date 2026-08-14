@@ -21,9 +21,11 @@ export function getMockExamQuestionsByIds(ids: string[]): TopikQuizQuestion[] {
     .filter((q): q is TopikQuizQuestion => !!q);
 }
 
+export type MockExamAnswer = number | string | number[];
+
 export function scoreMockExam(
   questions: TopikQuizQuestion[],
-  answers: Record<string, number | string>,
+  answers: Record<string, MockExamAnswer>,
 ): { correct: number; total: number; score: number; maxScore: number } {
   let correct = 0;
   for (const q of questions) {

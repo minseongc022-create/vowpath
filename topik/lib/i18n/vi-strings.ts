@@ -285,6 +285,9 @@ export const viStrings = {
     attemptCount: "Lần thử thứ {n}",
     firstTryCorrect: "Đúng ngay lần đầu {n}/{total}",
     sectionBreakdown: "Kết quả theo kỹ năng",
+    weakAreaTitle: "Điểm yếu — drill đề xuất",
+    weakAreaHint: "Luyện thêm ở đây để cải thiện",
+    startDrill: "Bắt đầu drill đề xuất",
   },
   official: {
     title: "Tài liệu TOPIK chính thức",

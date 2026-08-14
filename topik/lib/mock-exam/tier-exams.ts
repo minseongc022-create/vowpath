@@ -1,4 +1,5 @@
 import { TOPIK_QUIZ_BANK, getQuestionsBySection } from "@/topik/lib/quiz/questions";
+import { TOPIK_IBT_ORDER_BANK } from "@/topik/lib/quiz/question-bank-ibt-order";
 import type { ExamTierId } from "@/topik/lib/exams/catalog";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
 
@@ -22,15 +23,14 @@ export function buildTopikIIMock(level: TopikLevel, count = 10): TopikQuizQuesti
   return dedupeAndFill([...listening, ...reading, ...grammar, ...vocab], level, count);
 }
 
-/** IBT mini — re-export structure from ibt-exam */
+/** IBT mini — listening + reading + sentence order + grammar */
 export function buildIbtMock(level: TopikLevel, count = 10): TopikQuizQuestion[] {
   const listening = getQuestionsBySection(level, "listening", 3);
-  const reading = getQuestionsBySection(level, "reading", 4);
-  const grammar = getQuestionsBySection(level, "grammar", 2);
-  const writing = TOPIK_QUIZ_BANK.filter(
-    (q) => q.category === "writing" && q.level <= level,
-  ).slice(0, 1);
-  return dedupeAndFill([...listening, ...reading, ...grammar, ...writing], level, count);
+  const reading = getQuestionsBySection(level, "reading", 3);
+  const orderPool = TOPIK_IBT_ORDER_BANK.filter((q) => q.level <= level);
+  const order = [...orderPool].sort(() => Math.random() - 0.5).slice(0, 2);
+  const grammar = getQuestionsBySection(level, "grammar", 1);
+  return dedupeAndFill([...listening, ...reading, ...order, ...grammar], level, count);
 }
 
 export function buildMockByTier(

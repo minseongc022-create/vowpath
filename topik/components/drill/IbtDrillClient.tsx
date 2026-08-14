@@ -252,6 +252,7 @@ export function IbtDrillClient({ initialLevel }: Props) {
       <QuizResultSummary
         title={vi.drill.result}
         stats={sessionStats}
+        level={level}
         onRetry={() => loadPreview(drillType, level)}
         homeHref="/topik/drill"
       />
