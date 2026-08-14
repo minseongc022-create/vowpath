@@ -8,6 +8,7 @@ const config: Config = {
     "./learn/**/*.{js,ts,jsx,tsx,mdx}",
     "./topik/**/*.{js,ts,jsx,tsx,mdx}",
     "./mano/**/*.{js,ts,jsx,tsx,mdx}",
+    "./giu/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -22,6 +23,18 @@ const config: Config = {
           "primary-hover": "#0f766e",
           accent: "#ea580c",
           "accent-hover": "#c2410c",
+        },
+        giu: {
+          bg: "#fefdf8",
+          surface: "#f5f3eb",
+          ink: "#1a1f16",
+          muted: "#5c6652",
+          border: "#e3e8dc",
+          primary: "#2d6a4f",
+          "primary-hover": "#1b4332",
+          accent: "#e85d04",
+          "accent-hover": "#d00000",
+          gold: "#ffb703",
         },
         learn: {
           bg: "#f4f6f8",

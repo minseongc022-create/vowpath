@@ -136,6 +136,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
+  // Giu — food rescue marketplace (HCMC), isolated product shell.
+  if (pathname.startsWith("/giu")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "giu");
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (isDecommissionedHost(hostname)) {
     if (pathname === "/robots.txt") {
       return new NextResponse("User-agent: *\nDisallow: /\n", {

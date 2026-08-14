@@ -3,7 +3,9 @@ import { PlatformShell } from "@/components/layout/PlatformShell";
 import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell";
 import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell";
 import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
+import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { MANO_BRAND } from "@/mano/lib/brand";
+import { GIU_BRAND } from "@/giu/lib/brand";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import { getAppShell } from "@/lib/shell-route";
@@ -47,6 +49,19 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
+  if (shell === "giu") {
+    return {
+      title: { default: GIU_BRAND.fullName, template: `%s · ${GIU_BRAND.name}` },
+      description: GIU_BRAND.tagline,
+      applicationName: GIU_BRAND.name,
+      robots: { index: true, follow: true },
+      openGraph: {
+        title: GIU_BRAND.fullName,
+        description: GIU_BRAND.tagline,
+        locale: "vi_VN",
+      },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -70,6 +85,9 @@ export default async function RootLayout({
   }
   if (shell === "mano") {
     return <ManoPlatformShell>{children}</ManoPlatformShell>;
+  }
+  if (shell === "giu") {
+    return <GiuPlatformShell>{children}</GiuPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }
