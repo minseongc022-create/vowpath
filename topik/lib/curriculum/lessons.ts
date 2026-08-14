@@ -15,7 +15,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Học đọc viết bảng chữ cái Hàn Quốc từ con số 0",
     category: "grammar",
     durationMin: 35,
-    videoUrl: "https://www.youtube.com/watch?v=sAj02Ry3Pos",
+    videoUrl: "https://www.youtube.com/watch?v=uNDf0V06m0w",
     channelName: "Talk To Me In Korean",
     sortOrder: 1,
     vocabulary: [
@@ -36,7 +36,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Bài học đầu tiên TTMIK — chào hỏi cơ bản",
     category: "vocabulary",
     durationMin: 15,
-    videoUrl: "https://www.youtube.com/watch?v=CdZM4qHkbwo",
+    videoUrl: "https://www.youtube.com/watch?v=sM27wmZRMuQ",
     channelName: "Talk To Me In Korean",
     sortOrder: 2,
     vocabulary: [
@@ -77,7 +77,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Trợ từ quan trọng nhất cho TOPIK I",
     category: "grammar",
     durationMin: 12,
-    videoUrl: "https://www.youtube.com/watch?v=fCxLNrlEG7I",
+    videoUrl: "https://www.youtube.com/watch?v=fCxLNRLntc0",
     channelName: "Talk To Me In Korean",
     sortOrder: 4,
     vocabulary: [
@@ -98,7 +98,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Cách chia động từ quá khứ",
     category: "grammar",
     durationMin: 10,
-    videoUrl: "https://www.youtube.com/watch?v=FQP3_k0GEe4",
+    videoUrl: "https://www.youtube.com/watch?v=XoEn8qk8CJo",
     channelName: "Talk To Me In Korean",
     sortOrder: 5,
     vocabulary: [
@@ -118,7 +118,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Luyện nghe cơ bản cho kỳ thi tiếng Hàn",
     category: "listening",
     durationMin: 15,
-    videoUrl: "https://www.youtube.com/watch?v=7l5USF8O5eo",
+    videoUrl: "https://www.youtube.com/watch?v=x6H4E5ujJZY",
     channelName: "GO! Billy Korean",
     sortOrder: 6,
     vocabulary: [
@@ -137,8 +137,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Liên từ nối câu quan trọng cho TOPIK II",
     category: "grammar",
     durationMin: 18,
-    videoUrl: "https://www.youtube.com/watch?v=0p8NWKsZ_3c",
-    channelName: "Talk To Me In Korean",
+    videoUrl: "https://www.youtube.com/watch?v=nIxwtYfTD1Q",
+    channelName: "GO! Billy Korean",
     sortOrder: 7,
     vocabulary: [
       { id: "v20", korean: "그러나", romanization: "geureona", vietnamese: "Tuy nhiên", example: "열심히 공부했지만, 시험에 떨어졌어요.", exampleVi: "Dù học chăm nhưng thi trượt." },
@@ -158,7 +158,7 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Tổng quan luyện thi TOPIK",
     category: "reading",
     durationMin: 20,
-    videoUrl: "https://www.youtube.com/watch?v=pkh3YFCAMYo",
+    videoUrl: "https://www.youtube.com/watch?v=5qEoJOjJ1T4",
     channelName: "Seemile Korean",
     sortOrder: 8,
     vocabulary: [
@@ -178,8 +178,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Luyện điền từ và viết câu hoàn chỉnh",
     category: "writing",
     durationMin: 25,
-    videoUrl: "https://www.youtube.com/watch?v=RmN9pQ2sT4U",
-    channelName: "Seemile Korean",
+    videoUrl: "https://www.youtube.com/watch?v=SoP8Pmf_8Hs",
+    channelName: "Sunny's Korean Class",
     sortOrder: 9,
     vocabulary: [
       { id: "v26", korean: "반면에", romanization: "banmyeone", vietnamese: "Trong khi / Ngược lại", example: "A는 좋은 반면에 B는 나쁘다.", exampleVi: "A tốt trong khi B xấu." },
@@ -197,8 +197,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Viết IBT trên màn hình — mẹo tốc độ gõ 30–40 ký tự/phút",
     category: "writing",
     durationMin: 15,
-    videoUrl: "https://www.youtube.com/watch?v=SnO0qR3tU5V",
-    channelName: "Seemile Korean",
+    videoUrl: "https://www.youtube.com/watch?v=Fesazz22ZZM",
+    channelName: "Korean Essay",
     sortOrder: 10,
     vocabulary: [
       { id: "v28", korean: "견해", romanization: "gyeonhae", vietnamese: "Quan điểm", example: "저의 견해로는 ~", exampleVi: "Theo quan điểm của tôi ~" },
@@ -218,8 +218,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Mẫu ngữ pháp nâng cao cho TOPIK 5-6",
     category: "grammar",
     durationMin: 22,
-    videoUrl: "https://www.youtube.com/watch?v=TpP1rU4vV6W",
-    channelName: "Talk To Me In Korean",
+    videoUrl: "https://www.youtube.com/watch?v=56Ekqt44hfo",
+    channelName: "Min's KLC",
     sortOrder: 11,
     vocabulary: [
       { id: "v30", korean: "마련이다", romanization: "maryeonida", vietnamese: "Đương nhiên", example: "실패할 수도 있는 마련이다.", exampleVi: "Đương nhiên có thể thất bại." },
@@ -237,8 +237,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Chiến lược tổng ôn và thi TOPIK 6",
     category: "reading",
     durationMin: 30,
-    videoUrl: "https://www.youtube.com/watch?v=UqQ2sW5wW7X",
-    channelName: "Seemile Korean",
+    videoUrl: "https://www.youtube.com/watch?v=U0-czen0NEc",
+    channelName: "아이굴 쌤",
     sortOrder: 12,
     vocabulary: [
       { id: "v32", korean: "종합", romanization: "jonghap", vietnamese: "Tổng hợp", example: "종합적으로 판단하면 ~", exampleVi: "Xét tổng thể thì ~" },
@@ -256,8 +256,8 @@ export const TOPIK_CURRICULUM: TopikLesson[] = [
     descriptionVi: "Tổng quan 6 dạng bài nói IBT",
     category: "listening",
     durationMin: 18,
-    videoUrl: "https://www.youtube.com/watch?v=HjK8mN2pQ3R",
-    channelName: "Seemile Korean",
+    videoUrl: "https://www.youtube.com/watch?v=brZtLq-IS3A",
+    channelName: "masterTOPIK",
     sortOrder: 13,
     vocabulary: [
       { id: "v33", korean: "발표", romanization: "balpyo", vietnamese: "Thuyết trình", example: "1분 동안 발표하세요.", exampleVi: "Thuyết trình trong 1 phút." },

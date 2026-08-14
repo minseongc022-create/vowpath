@@ -8,10 +8,21 @@ import { getDisplayMeaning } from "@/topik/lib/korean/dictionary";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
 
-function youtubeEmbedUrl(url?: string): string | null {
+function youtubeVideoId(url?: string): string | null {
   if (!url) return null;
-  const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m?.[1] ?? null;
+}
+
+function youtubeEmbedUrl(url?: string): string | null {
+  const id = youtubeVideoId(url);
+  if (!id) return null;
+  return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1`;
+}
+
+function youtubeWatchUrl(url?: string): string | null {
+  const id = youtubeVideoId(url);
+  return id ? `https://www.youtube.com/watch?v=${id}` : null;
 }
 
 export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
@@ -19,6 +30,7 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
   const [completed, setCompleted] = useState(false);
   const [addedSrs, setAddedSrs] = useState(false);
   const embed = youtubeEmbedUrl(lesson.videoUrl);
+  const watchUrl = youtubeWatchUrl(lesson.videoUrl);
 
   async function markComplete() {
     await fetch("/topik/api/progress", {
@@ -81,14 +93,30 @@ export function LessonViewer({ lesson }: { lesson: TopikLesson }) {
       {tab === "video" && (
         <div>
           {embed ? (
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black">
-              <iframe
-                src={embed}
-                title={lessonTitle(lesson)}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 h-full w-full"
-              />
+            <div>
+              <div className="relative aspect-video rounded-2xl overflow-hidden bg-black">
+                <iframe
+                  src={embed}
+                  title={lessonTitle(lesson)}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full border-0"
+                />
+              </div>
+              {watchUrl && (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-learn-ink-subtle">{vi.lessons.embedBlocked}</p>
+                  <a
+                    href={watchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="topik-btn topik-btn-outline topik-btn-sm"
+                  >
+                    {vi.lessons.openOnYoutube}
+                  </a>
+                </div>
+              )}
             </div>
           ) : (
             <div className="aspect-video rounded-2xl bg-learn-muted flex items-center justify-center">

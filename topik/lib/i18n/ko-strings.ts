@@ -72,6 +72,8 @@ export const ko = {
     curatedNote: "YouTube 공개 영상 — 링크만 제공, 재업로드 없음",
     videoTab: "▶ 영상",
     videoSoon: "영상 준비 중",
+    openOnYoutube: "YouTube에서 보기",
+    embedBlocked: "앱에서 재생이 안 되면 YouTube에서 직접 열어주세요.",
   },
   typing: {
     title: "IBT 한국어 타이핑",

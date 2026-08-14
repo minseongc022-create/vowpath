@@ -72,6 +72,8 @@ export const viStrings = {
     curatedNote: "Video công khai trên YouTube — chúng tôi chỉ liên kết, không tải lại",
     videoTab: "▶ Video",
     videoSoon: "Video sắp có",
+    openOnYoutube: "Xem trên YouTube",
+    embedBlocked: "Nếu không phát được trong app, hãy mở trực tiếp trên YouTube.",
   },
   typing: {
     title: "Luyện gõ tiếng Hàn IBT",
