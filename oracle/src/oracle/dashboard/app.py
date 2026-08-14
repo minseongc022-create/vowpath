@@ -796,8 +796,10 @@ def api_autopilot(_: None = Depends(require_auth)):
                 "open_cost": plan.get("open_cost"),
                 "sleeve": plan.get("sleeve"),
             },
-            "server_note": "24시간 실시간 · 뉴스 레이더+분석 · 휴장은 준비모드 · 창 닫아도 계속",
+            "server_note": "24시간 실시간 · NYSE 날짜/장세션 기준 · 휴장·장전은 준비모드 · 창 닫아도 계속",
             "now_iso": datetime.now(UTC).isoformat(),
+            "now_ny": sess.get("ny_date"),
+            "now_ny_weekday_ko": sess.get("ny_weekday_ko"),
         }
     )
 
