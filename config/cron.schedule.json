@@ -14,6 +14,18 @@
         "Nudge customers who never opened the pick-time link; escalate to owner"
       ],
       "note": "Do NOT add * * * * * for this path in vercel.json — Hobby deploys fail (see commit 69f0d15)."
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/giu-reservation-expiry",
+      "intervalSeconds": 60,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": [
+        "Expire unpaid Giu reservations after 15 minutes and release box inventory",
+        "Mark paid pickup holds as het_han after expiry"
+      ],
+      "note": "Giu (giucuu.com) food rescue — configure at cron-job.org alongside tech-dispatch."
     }
   ],
   "vercelCrons": [
@@ -30,6 +42,10 @@
     {
       "path": "/api/cron/tech-offer-escalation",
       "note": "Timeouts only (no appointment reminders). Alternative external target; NOT in vercel.json."
+    },
+    {
+      "path": "/api/cron/giu-reservation-expiry",
+      "note": "Giu unpaid reservation expiry — use external 60s cron (see externalCrons); daily backup optional"
     },
     {
       "path": "/api/cron/retell-production-sync",

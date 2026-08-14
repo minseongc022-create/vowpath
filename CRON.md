@@ -66,6 +66,7 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/retell-production-sync` | Postbuild + manual (`docs/RETELL_SETUP.md`) |
 | `/api/cron/ensure-pilot-trials` | One-off backfill after deploy |
 | `/api/cron/tech-offer-escalation` | Optional external 60s target (timeouts only) |
+| `/api/cron/giu-reservation-expiry` | **Every 60s** via cron-job.org — Giu unpaid reservation expiry (`docs/GIU_DEPLOY.md`) |
 
 All require `CRON_SECRET` in production (`Authorization: Bearer …` or `x-cron-secret` header).
 

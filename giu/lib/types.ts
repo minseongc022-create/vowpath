@@ -91,7 +91,9 @@ export type GiuReservation = {
   platformFeeVnd: number;
   paymentStatus: GiuPaymentStatus;
   paymentMethod?: GiuPaymentMethod;
+  paymentId?: string;
   paidAt?: string;
+  paymentExpiresAt?: string;
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;

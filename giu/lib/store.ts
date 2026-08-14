@@ -19,7 +19,9 @@ import type {
   GiuStore,
   GiuWaitlistEntry,
 } from "./types";
-import { defaultPickupWindow, slugify } from "./format";
+import { notifyPickupCode } from "./notify";
+import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
+import { isGiuPaymentDemo } from "./vnpay";
 import {
   SEED_BOXES,
   SEED_CO2_KG,
@@ -80,6 +82,7 @@ function migrateReservation(reservation: GiuReservation): GiuReservation {
     platformFeeVnd:
       reservation.platformFeeVnd ??
       Math.round(reservation.totalVnd * GIU_BRAND.commissionRate),
+    paymentExpiresAt: reservation.paymentExpiresAt,
   };
 }
 
@@ -369,24 +372,124 @@ export async function createBox(
   return box;
 }
 
-async function processPayment(
-  method: GiuPaymentMethod,
-  amountVnd: number,
-): Promise<{ ok: true; paymentId: string } | { ok: false; error: string }> {
-  if (amountVnd < 5000) return { ok: false, error: "Số tiền không hợp lệ" };
-  // MVP: instant success. Production hooks MoMo / VNPay / Stripe here.
-  void method;
-  return { ok: true, paymentId: `pay_${randomBytes(6).toString("hex")}` };
+const PAYMENT_HOLD_MINUTES = 15;
+const PICKUP_HOLD_MINUTES = 60;
+const AUTO_VERIFY_PICKUPS = 3;
+
+function maybeAutoVerifyMerchant(store: GiuStore, merchantId: string): void {
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (merchant && !merchant.verified && merchant.rescuedBoxes >= AUTO_VERIFY_PICKUPS) {
+    merchant.verified = true;
+  }
 }
 
-export async function createPaidReservation(input: {
+async function releaseBoxQuantity(store: GiuStore, boxId: string, qty: number): Promise<void> {
+  const box = store.boxes.find((b) => b.id === boxId);
+  if (!box) return;
+  box.quantityLeft += qty;
+  if (box.status === "het" && box.quantityLeft > 0) box.status = "mo";
+}
+
+async function holdBoxQuantity(store: GiuStore, box: GiuBox, qty: number): Promise<boolean> {
+  if (box.status !== "mo" || box.quantityLeft < qty) return false;
+  box.quantityLeft -= qty;
+  if (box.quantityLeft <= 0) box.status = "het";
+  return true;
+}
+
+export async function confirmReservationPayment(
+  reservationId: string,
+  paymentId: string,
+): Promise<GiuReservation | null> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === reservationId);
+  if (!res || res.paymentStatus !== "pending") return null;
+  if (res.paymentExpiresAt && new Date(res.paymentExpiresAt).getTime() < Date.now()) {
+    return null;
+  }
+
+  res.paymentStatus = "paid";
+  res.paymentId = paymentId;
+  res.paidAt = new Date().toISOString();
+  res.status = "giu_cho";
+  res.expiresAt = new Date(Date.now() + PICKUP_HOLD_MINUTES * 60 * 1000).toISOString();
+  res.paymentExpiresAt = undefined;
+
+  await saveStore(store);
+
+  const [box, merchant] = [
+    store.boxes.find((b) => b.id === res.boxId),
+    store.merchants.find((m) => m.id === res.merchantId),
+  ];
+  if (box && merchant) {
+    await notifyPickupCode({
+      phone: res.customerPhone,
+      code: res.code,
+      merchantName: merchant.name,
+      totalVnd: res.totalVnd,
+      pickupWindow: formatPickupWindow(box.pickupStart, box.pickupEnd),
+    });
+  }
+
+  return res;
+}
+
+export async function expireStaleGiuReservations(): Promise<{
+  expiredPayments: number;
+  expiredPickups: number;
+}> {
+  const store = await loadStore();
+  const now = Date.now();
+  let expiredPayments = 0;
+  let expiredPickups = 0;
+
+  for (const res of store.reservations) {
+    if (res.paymentStatus === "pending" && res.status === "giu_cho") {
+      const deadline = res.paymentExpiresAt ?? res.expiresAt;
+      if (new Date(deadline).getTime() < now) {
+        res.paymentStatus = "failed";
+        res.status = "huy";
+        await releaseBoxQuantity(store, res.boxId, res.quantity);
+        expiredPayments++;
+      }
+    } else if (res.paymentStatus === "paid" && res.status === "giu_cho") {
+      if (new Date(res.expiresAt).getTime() < now) {
+        res.status = "het_han";
+        expiredPickups++;
+      }
+    }
+  }
+
+  if (expiredPayments > 0 || expiredPickups > 0) {
+    await saveStore(store);
+  }
+
+  return { expiredPayments, expiredPickups };
+}
+
+export type InitiateReservationResult =
+  | {
+      mode: "demo";
+      reservation: GiuReservation;
+      box: GiuBox;
+    }
+  | {
+      mode: "vnpay";
+      reservation: GiuReservation;
+      box: GiuBox;
+      paymentUrl: string;
+    }
+  | { error: string };
+
+export async function initiateReservationPayment(input: {
   boxId: string;
   customerId: string;
   customerName: string;
   customerPhone: string;
   paymentMethod: GiuPaymentMethod;
   quantity?: number;
-}): Promise<{ reservation: GiuReservation; box: GiuBox } | { error: string }> {
+  paymentUrlBuilder: (reservation: GiuReservation, totalVnd: number) => string;
+}): Promise<InitiateReservationResult> {
   const store = await loadStore();
   const box = store.boxes.find((b) => b.id === input.boxId);
   if (!box) return { error: "Không tìm thấy hộp" };
@@ -397,12 +500,10 @@ export async function createPaidReservation(input: {
   if (qty > box.quantityLeft) return { error: "Không đủ số lượng" };
 
   const totalVnd = box.salePriceVnd * qty;
-  const payment = await processPayment(input.paymentMethod, totalVnd);
-  if (!payment.ok) return { error: payment.error };
-
-  const holdMinutes = 60;
-  const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000).toISOString();
   const platformFeeVnd = Math.round(totalVnd * GIU_BRAND.commissionRate);
+  const paymentExpiresAt = new Date(
+    Date.now() + PAYMENT_HOLD_MINUTES * 60 * 1000,
+  ).toISOString();
 
   const reservation: GiuReservation = {
     id: newId("res"),
@@ -415,20 +516,54 @@ export async function createPaidReservation(input: {
     quantity: qty,
     totalVnd,
     platformFeeVnd,
-    paymentStatus: "paid",
+    paymentStatus: "pending",
     paymentMethod: input.paymentMethod,
-    paidAt: new Date().toISOString(),
     status: "giu_cho",
+    paymentExpiresAt,
     createdAt: new Date().toISOString(),
-    expiresAt,
+    expiresAt: paymentExpiresAt,
   };
 
-  box.quantityLeft -= qty;
-  if (box.quantityLeft <= 0) box.status = "het";
+  if (!(await holdBoxQuantity(store, box, qty))) {
+    return { error: "Không đủ số lượng" };
+  }
 
   store.reservations.unshift(reservation);
   await saveStore(store);
-  return { reservation, box };
+
+  if (isGiuPaymentDemo()) {
+    const confirmed = await confirmReservationPayment(
+      reservation.id,
+      `demo_${randomBytes(4).toString("hex")}`,
+    );
+    if (!confirmed) return { error: "Không thể xác nhận thanh toán" };
+    const updatedBox = (await loadStore()).boxes.find((b) => b.id === box.id);
+    return {
+      mode: "demo",
+      reservation: confirmed,
+      box: updatedBox ?? box,
+    };
+  }
+
+  const paymentUrl = input.paymentUrlBuilder(reservation, totalVnd);
+  return { mode: "vnpay", reservation, box, paymentUrl };
+}
+
+/** @deprecated Use initiateReservationPayment */
+export async function createPaidReservation(input: {
+  boxId: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: GiuPaymentMethod;
+  quantity?: number;
+}): Promise<{ reservation: GiuReservation; box: GiuBox } | { error: string }> {
+  const result = await initiateReservationPayment({
+    ...input,
+    paymentUrlBuilder: () => "",
+  });
+  if ("error" in result) return { error: result.error };
+  return { reservation: result.reservation, box: result.box };
 }
 
 /** @deprecated Use createPaidReservation with auth */
@@ -488,7 +623,10 @@ export async function updateReservationStatus(
   res.status = status;
   if (status === "da_lay") {
     const merchant = store.merchants.find((m) => m.id === res.merchantId);
-    if (merchant) merchant.rescuedBoxes += res.quantity;
+    if (merchant) {
+      merchant.rescuedBoxes += res.quantity;
+      maybeAutoVerifyMerchant(store, merchant.id);
+    }
   }
   await saveStore(store);
   return res;
@@ -498,13 +636,14 @@ export async function cancelReservation(id: string): Promise<GiuReservation | nu
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === id);
   if (!res || res.status !== "giu_cho") return null;
-  const box = store.boxes.find((b) => b.id === res.boxId);
-  if (box) {
-    box.quantityLeft += res.quantity;
-    if (box.status === "het" && box.quantityLeft > 0) box.status = "mo";
+  if (res.paymentStatus === "pending") {
+    await releaseBoxQuantity(store, res.boxId, res.quantity);
+  } else if (res.paymentStatus === "paid") {
+    await releaseBoxQuantity(store, res.boxId, res.quantity);
   }
   res.status = "huy";
   if (res.paymentStatus === "paid") res.paymentStatus = "refunded";
+  else if (res.paymentStatus === "pending") res.paymentStatus = "failed";
   await saveStore(store);
   return res;
 }

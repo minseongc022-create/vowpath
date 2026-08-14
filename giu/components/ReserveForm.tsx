@@ -8,15 +8,15 @@ import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
 const PAYMENT_OPTIONS: { id: GiuPaymentMethod; label: string }[] = [
-  { id: "momo", label: "MoMo" },
-  { id: "vietqr", label: "VietQR" },
+  { id: "momo", label: "MoMo (VNPay)" },
+  { id: "vietqr", label: "VietQR / Chuyển khoản" },
   { id: "card", label: "Thẻ quốc tế" },
 ];
 
 export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceVnd: number }) {
   const router = useRouter();
   const { account, loading: authLoading } = useGiuAuth();
-  const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("momo");
+  const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("vietqr");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successCode, setSuccessCode] = useState<string | null>(null);
@@ -34,11 +34,23 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         credentials: "include",
         body: JSON.stringify({ boxId, paymentMethod }),
       });
-      const data = (await res.json()) as { id?: string; code?: string; error?: string };
+      const data = (await res.json()) as {
+        id?: string;
+        code?: string;
+        paymentUrl?: string;
+        mode?: string;
+        error?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Có lỗi xảy ra");
         return;
       }
+
+      if (data.mode === "vnpay" && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
       if (data.code && data.id) {
         setSuccessCode(data.code);
         setReservationId(data.id);
@@ -64,7 +76,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
       <div className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
         <h3 className="text-lg font-semibold text-giu-ink">Thanh toán & nhận mã</h3>
         <p className="text-sm text-giu-muted">
-          Đăng nhập để thanh toán trước · {formatVnd(salePriceVnd)} · nhận mã giải cứu ngay.
+          Đăng nhập để thanh toán qua VNPay · {formatVnd(salePriceVnd)} · nhận mã ngay sau khi trả.
         </p>
         <Link
           href={`/giu/dang-nhap?next=/giu/hop/${boxId}`}
@@ -89,7 +101,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
           Thanh toán thành công
         </p>
         <p className="font-mono text-4xl font-extrabold tracking-widest text-giu-ink">{successCode}</p>
-        <p className="text-sm text-giu-muted">Mã giải cứu — đọc tại quán để nhận hộp</p>
+        <p className="text-sm text-giu-muted">Mã giải cứu — SMS cũng đã gửi tới SĐT của bạn</p>
         <Link
           href={`/giu/dat/${reservationId}`}
           className="inline-block rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
@@ -102,10 +114,10 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-2xl border border-giu-border bg-white p-6">
-      <h3 className="text-lg font-semibold text-giu-ink">Thanh toán & giải cứu</h3>
+      <h3 className="text-lg font-semibold text-giu-ink">Thanh toán VNPay & giải cứu</h3>
       <p className="text-sm text-giu-muted">
-        Xin chào <strong>{account.name}</strong> · Thanh toán trước, nhận mã ngay ·{" "}
-        <strong>{formatVnd(salePriceVnd)}</strong>
+        Xin chào <strong>{account.name}</strong> ·{" "}
+        <strong>{formatVnd(salePriceVnd)}</strong> · thanh toán xong nhận mã + SMS
       </p>
 
       <div>
@@ -134,8 +146,8 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
       </div>
 
       <p className="rounded-xl bg-giu-surface px-3 py-2 text-xs text-giu-muted">
-        Quán cam kết giữ độ tươi cho đến khi bạn đến lấy trong khung giờ. Mọi loại món ăn đều có thể
-        đăng — miễn là còn ngon khi bạn tới.
+        Quán cam kết giữ độ tươi đến giờ bạn lấy. Mọi loại món đều được — thanh toán qua VNPay an
+        toàn, quán nhận tiền trước nên yên tâm giao hàng.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -144,7 +156,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         disabled={loading}
         className="w-full rounded-xl bg-giu-accent py-3 text-sm font-semibold text-white hover:bg-giu-accent-hover disabled:opacity-60"
       >
-        {loading ? "Đang thanh toán..." : `Thanh toán ${formatVnd(salePriceVnd)} & nhận mã →`}
+        {loading ? "Đang chuyển VNPay..." : `Thanh toán ${formatVnd(salePriceVnd)} →`}
       </button>
     </form>
   );

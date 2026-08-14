@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
-import { createPaidReservation, listReservations } from "@/giu/lib/store";
+import {
+  buildVnpayPaymentUrl,
+  clientIpFromRequest,
+  isGiuPaymentDemo,
+  isVnpayConfigured,
+} from "@/giu/lib/vnpay";
+import { initiateReservationPayment, listReservations } from "@/giu/lib/store";
 
 const createSchema = z.object({
   boxId: z.string().min(1),
@@ -57,23 +64,49 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await createPaidReservation({
+    const origin = getGiuPublicOrigin();
+    const ip = clientIpFromRequest(request);
+
+    const result = await initiateReservationPayment({
       boxId: parsed.data.boxId,
       customerId: session.sub,
       customerName: session.name,
       customerPhone: session.phone,
       paymentMethod: parsed.data.paymentMethod,
       quantity: parsed.data.quantity,
+      paymentUrlBuilder: (reservation, totalVnd) =>
+        buildVnpayPaymentUrl({
+          amountVnd: totalVnd,
+          txnRef: reservation.id,
+          orderInfo: `Giu giai cuu ${reservation.code}`,
+          ipAddr: ip,
+          returnUrl: `${origin}/api/giu/payments/vnpay/return`,
+        }),
     });
 
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    if (result.mode === "demo") {
+      return NextResponse.json(
+        {
+          mode: "demo",
+          id: result.reservation.id,
+          code: result.reservation.code,
+          reservation: result.reservation,
+          paymentConfigured: isVnpayConfigured(),
+          demo: isGiuPaymentDemo(),
+        },
+        { status: 201 },
+      );
+    }
+
     return NextResponse.json(
       {
+        mode: "vnpay",
         id: result.reservation.id,
-        code: result.reservation.code,
+        paymentUrl: result.paymentUrl,
         reservation: result.reservation,
       },
       { status: 201 },
