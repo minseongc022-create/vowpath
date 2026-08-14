@@ -8,13 +8,7 @@ export function isVnpayConfigured(): boolean {
   );
 }
 
-/** Instant success when demo flag set or VNPay env missing (local dev). */
-export function isGiuPaymentDemo(): boolean {
-  const flag = process.env.GIU_PAYMENT_DEMO?.trim().toLowerCase();
-  if (flag === "1" || flag === "true" || flag === "yes") return true;
-  if (flag === "0" || flag === "false" || flag === "no") return false;
-  return !isVnpayConfigured();
-}
+export { isGiuPaymentDemo, resolveGiuPaymentBackend } from "./payments";
 
 function vnpaySecret(): string {
   return process.env.VNPAY_HASH_SECRET?.trim() ?? "";
