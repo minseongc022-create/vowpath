@@ -263,10 +263,18 @@ export const ko = {
     openExternal: "공식 페이지 열기",
   },
   listening: {
-    playHint: "듣기 스크립트 읽기 (시뮬레이션 — 저작권 오디오 없음)",
+    playHint: "듣기 스크립트 (TTS 재생 — 저작권 오디오 대체)",
+    playHintShort: "문항 진입 시 자동 재생 · 버튼으로 다시 듣기",
+    replay: "다시 듣기",
+    playing: "재생 중…",
+    playsLeft: "남은 재생",
+    noMorePlays: "재생 횟수 소진",
     showScript: "듣기 스크립트 보기",
     hideScript: "스크립트 숨기기",
     scriptLabel: "듣기 스크립트",
+  },
+  focus: {
+    exit: "나가기",
   },
   common: {
     loading: "로딩 중…",

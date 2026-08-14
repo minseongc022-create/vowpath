@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PLACEMENT_TEST } from "@/topik/lib/quiz/placement-test";
 import { estimateLevelFromPlacement } from "@/topik/lib/journey/study-journey";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { quizQuestionText } from "@/topik/lib/i18n/content-locale";
+import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
+import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 
 type Phase = "intro" | "test" | "result";
@@ -18,6 +20,21 @@ export function PlacementTestClient() {
   const [correct, setCorrect] = useState(0);
   const [estimatedLevel, setEstimatedLevel] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
+
+  useEffect(() => {
+    if (phase === "test") {
+      enterFocus({ title: vi.placement.title, exitHref: "/topik/placement" });
+    } else {
+      leaveFocus();
+    }
+  }, [phase, enterFocus, leaveFocus]);
+
+  useEffect(() => {
+    if (phase === "test") {
+      setFocusProgress(`${idx + 1}/${PLACEMENT_TEST.length}`);
+    }
+  }, [phase, idx, setFocusProgress]);
 
   const q = PLACEMENT_TEST[idx];
 
@@ -94,22 +111,11 @@ export function PlacementTestClient() {
   if (!q) return null;
 
   return (
-    <div className="topik-quiz-shell topik-animate-in">
-      <p className="topik-exam-mode-banner" role="status">
-        🔒 {vi.korean.examModeOff}
-      </p>
-      <div className="topik-exam-bar">
-        <span className="topik-exam-progress">
-          {vi.placement.question} {idx + 1}/{PLACEMENT_TEST.length}
-        </span>
-      </div>
-
+    <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
       <div className="topik-card topik-card-pad">
         {q.listeningScript && (
-          <div className="topik-script-box font-ko mb-3">
-            <p className="topik-script-ko">
-              <KoreanStudyText text={q.listeningScript} studyMode={false} />
-            </p>
+          <div className="topik-listening-block mb-3">
+            <ListeningAudioPlayer script={q.listeningScript} autoPlay maxPlays={2} />
           </div>
         )}
         {q.passage && (

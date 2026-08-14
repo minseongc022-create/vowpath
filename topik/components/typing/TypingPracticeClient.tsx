@@ -13,7 +13,7 @@ import {
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle, IconKeyboard } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
-import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
+import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 
 type Phase = "setup" | "typing" | "result";
 
@@ -34,6 +34,7 @@ export function TypingPracticeClient() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [results, setResults] = useState<{ cpm: number; accuracy: number }[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
   const current = prompts[idx];
 
@@ -45,7 +46,14 @@ export function TypingPracticeClient() {
     setResults([]);
     setStartedAt(null);
     setPhase("typing");
-  }, [level, kind]);
+    enterFocus({ title: vi.typing.title, exitHref: "/topik/typing" });
+  }, [level, kind, enterFocus]);
+
+  useEffect(() => {
+    if (phase === "typing" && prompts.length > 0) {
+      setFocusProgress(`${idx + 1}/${prompts.length}`);
+    }
+  }, [phase, idx, prompts.length, setFocusProgress]);
 
   useEffect(() => {
     if (phase === "typing") {
@@ -87,6 +95,7 @@ export function TypingPracticeClient() {
         body: JSON.stringify({ cpm: avgCpm, accuracy: avgAcc, count: nextResults.length }),
       });
       setPhase("result");
+      leaveFocus();
       return;
     }
 
@@ -181,16 +190,13 @@ export function TypingPracticeClient() {
   const progress = Math.min(100, Math.round((typedChars / targetChars) * 100));
 
   return (
-    <div className="topik-quiz-shell topik-animate-in">
-      <StudyModeHint />
-      <div className="topik-exam-bar">
-        <span className="topik-exam-section">{vi.typing.prompt} {idx + 1}/{prompts.length}</span>
-        <span className={`topik-exam-timer ${liveCpm >= IBT_TYPING_MIN_CPM ? "" : "topik-exam-timer-warn"}`}>
-          {liveCpm} {vi.typing.cpmShort}
-        </span>
-      </div>
-
+    <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
       <div className="topik-card topik-card-pad">
+        <div className="topik-focus-meta">
+          <span className={`topik-focus-timer ${liveCpm >= IBT_TYPING_MIN_CPM ? "" : "topik-focus-timer-warn"}`}>
+            {liveCpm} {vi.typing.cpmShort}
+          </span>
+        </div>
         <span className="topik-badge">{current.kind === "essay" ? "IBT Q53" : current.kind}</span>
         <p className="topik-passage font-ko mt-3">
           <KoreanStudyText text={current.korean} studyMode />

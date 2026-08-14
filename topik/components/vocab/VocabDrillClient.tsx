@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAllDictionaryEntries, getDisplayMeaning, type DictEntry } from "@/topik/lib/korean/dictionary";
+import { getAllDictionaryEntries, getDisplayMeaning, getDisplayExample, type DictEntry } from "@/topik/lib/korean/dictionary";
 import { speakKorean } from "@/topik/lib/korean/tts";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
+import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
 import { vi } from "@/topik/lib/i18n/vi";
 import { IconCheckCircle, IconSpeaker } from "@/topik/components/ui/TopikIcons";
 
@@ -13,6 +14,8 @@ export function VocabDrillClient() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [known, setKnown] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [started, setStarted] = useState(false);
+  const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
   const load = useCallback(() => {
     const all = getAllDictionaryEntries();
@@ -22,13 +25,27 @@ export function VocabDrillClient() {
     setShowAnswer(false);
     setKnown(0);
     setFinished(false);
+    setStarted(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const current = entries[idx];
+  useEffect(() => {
+    if (started && !finished && entries.length > 0) {
+      setFocusProgress(`${idx + 1}/${entries.length}`);
+    }
+  }, [started, finished, idx, entries.length, setFocusProgress]);
+
+  useEffect(() => {
+    if (finished) leaveFocus();
+  }, [finished, leaveFocus]);
+
+  function beginDrill() {
+    enterFocus({ title: vi.vocab.title, exitHref: "/topik/vocab" });
+    setStarted(true);
+  }
 
   async function handleKnown(knew: boolean) {
     if (knew) setKnown((k) => k + 1);
@@ -64,10 +81,26 @@ export function VocabDrillClient() {
     );
   }
 
+  const current = entries[idx];
+
   if (!current) return null;
 
+  if (!started && entries.length > 0) {
+    return (
+      <div className="topik-quiz-shell topik-animate-in">
+        <div className="topik-card topik-card-pad text-center">
+          <p className="topik-page-subtitle">{vi.vocab.subtitle}</p>
+          <p className="topik-result-hint mt-2">20 {vi.review.cardsReviewed}</p>
+        </div>
+        <button type="button" onClick={beginDrill} className="topik-btn topik-btn-accent topik-btn-lg">
+          {vi.practice.start}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="topik-quiz-shell topik-animate-in">
+    <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
       <p className="topik-study-hint">{vi.korean.tapHint}</p>
       <div className="topik-card topik-card-pad text-center">
         <span className="topik-badge">
@@ -93,6 +126,11 @@ export function VocabDrillClient() {
             {current.example && (
               <p className="mt-2 text-sm text-learn-ink-muted">
                 <KoreanStudyText text={current.example} studyMode />
+              </p>
+            )}
+            {getDisplayExample(current) && (
+              <p className="mt-1 text-sm font-semibold text-learn-primary">
+                {getDisplayExample(current)}
               </p>
             )}
           </div>

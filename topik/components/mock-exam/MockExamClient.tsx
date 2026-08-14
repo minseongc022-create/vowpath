@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { TopikLevel, TopikQuizQuestion } from "@/topik/types";
 import type { MockExamTier } from "@/topik/lib/mock-exam/tier-exams";
-import { getQuestionSection, ibtSectionLabel } from "@/topik/lib/mock-exam/ibt-exam";
 import { tierLabelVi } from "@/topik/lib/mock-exam/tier-exams";
 import { vi } from "@/topik/lib/i18n/vi";
-import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
 import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
+import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
+import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
 
 type Phase = "setup" | "exam" | "result";
 
@@ -48,11 +48,11 @@ export function MockExamClient() {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [selected, setSelected] = useState<number | null>(null);
-  const [showScript, setShowScript] = useState(false);
   const [timeLeft, setTimeLeft] = useState(DURATION_SEC);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
   useEffect(() => {
     setTier(initialTier);
@@ -98,6 +98,24 @@ export function MockExamClient() {
     }
   }, [phase, timeLeft, finishExam, answers]);
 
+  useEffect(() => {
+    if (phase === "exam") {
+      enterFocus({
+        title: vi.mockExam.title,
+        subtitle: tierLabelVi(tier),
+        exitHref: "/topik/mock-exam",
+      });
+    } else {
+      leaveFocus();
+    }
+  }, [phase, enterFocus, leaveFocus, tier]);
+
+  useEffect(() => {
+    if (phase === "exam" && questions.length > 0) {
+      setFocusProgress(`${idx + 1}/${questions.length}`);
+    }
+  }, [phase, idx, questions.length, setFocusProgress]);
+
   async function startExam() {
     setLoading(true);
     const res = await fetch(`/topik/api/mock-exam?level=${level}&tier=${tier}`);
@@ -106,7 +124,6 @@ export function MockExamClient() {
     setIdx(0);
     setAnswers({});
     setSelected(null);
-    setShowScript(false);
     setTimeLeft(DURATION_SEC);
     setStartedAt(Date.now());
     setPhase("exam");
@@ -114,8 +131,6 @@ export function MockExamClient() {
   }
 
   const q = questions[idx];
-  const currentSection = q ? getQuestionSection(q) : "";
-  const isExamPhase = phase === "exam";
 
   function handleNext() {
     if (!q || selected === null) return;
@@ -126,7 +141,6 @@ export function MockExamClient() {
       return;
     }
     setIdx((i) => i + 1);
-    setShowScript(false);
     const nextQ = questions[idx + 1];
     setSelected(
       typeof nextAnswers[nextQ?.id ?? ""] === "number"
@@ -227,41 +241,17 @@ export function MockExamClient() {
   const secs = timeLeft % 60;
 
   return (
-    <div className="topik-quiz-shell topik-animate-in">
-      <p className="topik-exam-mode-banner" role="status">
-        🔒 {vi.korean.examModeOff}
-      </p>
-      <div className="topik-exam-bar">
-        <span className="topik-exam-section">{ibtSectionLabel(currentSection)}</span>
-        <span className="topik-exam-progress">
-          {vi.mockExam.question} {idx + 1}/{questions.length}
-        </span>
-        <span className={`topik-exam-timer ${timeLeft < 120 ? "topik-exam-timer-warn" : ""}`}>
-          {mins}:{secs.toString().padStart(2, "0")}
-        </span>
-      </div>
-
+    <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
       <div className="topik-card topik-card-pad">
+        <div className="topik-focus-meta">
+          <span className={`topik-focus-timer ${timeLeft < 120 ? "topik-focus-timer-warn" : ""}`}>
+            {mins}:{secs.toString().padStart(2, "0")}
+          </span>
+        </div>
         <span className="topik-badge">{tierLabelVi(tier)} · TOPIK {q.level}</span>
         {q.category === "listening" && q.listeningScript && (
           <div className="topik-listening-block">
-            <button
-              type="button"
-              onClick={() => setShowScript((s) => !s)}
-              className="topik-btn topik-btn-outline topik-btn-sm"
-            >
-              {showScript ? vi.listening.hideScript : vi.listening.showScript}
-            </button>
-            {showScript && (
-              <div className="topik-script-box">
-                <p className="topik-script-ko">
-                  <KoreanStudyText text={q.listeningScript} studyMode={!isExamPhase} />
-                </p>
-                {!isExamPhase && q.listeningScriptVi && (
-                  <p className="topik-script-vi">{q.listeningScriptVi}</p>
-                )}
-              </div>
-            )}
+            <ListeningAudioPlayer script={q.listeningScript} autoPlay maxPlays={2} />
           </div>
         )}
         {q.passage && (
@@ -272,9 +262,6 @@ export function MockExamClient() {
         <p className="topik-question-ko">
           <KoreanStudyText text={q.question} studyMode={false} />
         </p>
-        {!isExamPhase && !isKoLocale() && q.questionVi && (
-          <p className="topik-question-vi">{q.questionVi}</p>
-        )}
       </div>
 
       <div className="topik-option-list">

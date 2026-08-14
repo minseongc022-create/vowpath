@@ -1,4 +1,5 @@
-import { TopikAppChrome } from "@/topik/components/layout/TopikAppChrome";
+import { TopikAppChromeClient } from "@/topik/components/layout/TopikAppChromeClient";
+import { TopikFocusProvider } from "@/topik/components/focus/TopikFocusProvider";
 import { getProgress, resolveTopikUserId } from "@/topik/lib/store/file-store";
 import { getLearnSession } from "@/learn/lib/auth";
 
@@ -12,8 +13,10 @@ export default async function TopikShellLayout({
   const progress = await getProgress(userId);
 
   return (
-    <TopikAppChrome streak={progress.streak} targetLevel={progress.targetLevel}>
-      {children}
-    </TopikAppChrome>
+    <TopikFocusProvider>
+      <TopikAppChromeClient streak={progress.streak} targetLevel={progress.targetLevel}>
+        {children}
+      </TopikAppChromeClient>
+    </TopikFocusProvider>
   );
 }

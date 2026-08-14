@@ -4,6 +4,8 @@ import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 export type DictEntry = {
   korean: string;
   vietnamese: string;
+  /** Korean gloss for dev UI / KO locale */
+  meaningKo?: string;
   romanization?: string;
   example?: string;
   exampleVi?: string;
@@ -14,16 +16,16 @@ const DICT = new Map<string, DictEntry>();
 
 /** Core TOPIK vocabulary — app-native content for self-sufficient study */
 const CORE_VOCAB: DictEntry[] = [
-  { korean: "물", vietnamese: "Nước", romanization: "mul", level: 1 },
-  { korean: "학교", vietnamese: "Trường học", romanization: "hakgyo", level: 1 },
-  { korean: "학생", vietnamese: "Học sinh", romanization: "haksaeng", level: 1 },
-  { korean: "선생님", vietnamese: "Giáo viên", romanization: "seonsaengnim", level: 1 },
-  { korean: "친구", vietnamese: "Bạn bè", romanization: "chingu", level: 1 },
-  { korean: "집", vietnamese: "Nhà", romanization: "jip", level: 1 },
-  { korean: "음식", vietnamese: "Thức ăn", romanization: "eumsik", level: 1 },
-  { korean: "공부", vietnamese: "Học tập", romanization: "gongbu", level: 1 },
-  { korean: "시험", vietnamese: "Kỳ thi", romanization: "siheom", level: 2 },
-  { korean: "합격", vietnamese: "Đậu (kỳ thi)", romanization: "hapgyeok", level: 2 },
+  { korean: "물", vietnamese: "Nước", meaningKo: "물, 액체", romanization: "mul", level: 1 },
+  { korean: "학교", vietnamese: "Trường học", meaningKo: "학교", romanization: "hakgyo", level: 1 },
+  { korean: "학생", vietnamese: "Học sinh", meaningKo: "학생", romanization: "haksaeng", level: 1 },
+  { korean: "선생님", vietnamese: "Giáo viên", meaningKo: "선생님", romanization: "seonsaengnim", level: 1 },
+  { korean: "친구", vietnamese: "Bạn bè", meaningKo: "친구", romanization: "chingu", level: 1 },
+  { korean: "집", vietnamese: "Nhà", meaningKo: "집", romanization: "jip", level: 1 },
+  { korean: "음식", vietnamese: "Thức ăn", meaningKo: "음식", romanization: "eumsik", level: 1 },
+  { korean: "공부", vietnamese: "Học tập", meaningKo: "공부, 학습", romanization: "gongbu", level: 1 },
+  { korean: "시험", vietnamese: "Kỳ thi", meaningKo: "시험", romanization: "siheom", level: 2 },
+  { korean: "합격", vietnamese: "Đậu (kỳ thi)", meaningKo: "합격", romanization: "hapgyeok", level: 2 },
   { korean: "베트남", vietnamese: "Việt Nam", romanization: "beteunam", level: 1 },
   { korean: "한국", vietnamese: "Hàn Quốc", romanization: "hanguk", level: 1 },
   { korean: "한국어", vietnamese: "Tiếng Hàn", romanization: "hangugeo", level: 1 },
@@ -153,15 +155,26 @@ export function getDictionarySize(): number {
   return DICT.size;
 }
 
-/** Word meaning for popup / vocab drill */
+/** Word meaning in learner's locale language (primary) */
 export function getDisplayMeaning(entry: DictEntry | null, noDefinition: string): string {
   if (!entry) return noDefinition;
   if (isKoLocale()) {
-    return entry.romanization
-      ? `${entry.korean} · [${entry.romanization}] · TOPIK ${entry.level ?? "?"}급`
-      : `${entry.korean} · TOPIK ${entry.level ?? "?"}급`;
+    if (entry.meaningKo) return entry.meaningKo;
+    return entry.vietnamese;
   }
   return entry.vietnamese;
+}
+
+/** Romanization — secondary hint only */
+export function getDisplayRomanization(entry: DictEntry | null): string | undefined {
+  return entry?.romanization;
+}
+
+/** Example sentence translation in learner locale */
+export function getDisplayExample(entry: DictEntry | null): string | undefined {
+  if (!entry) return undefined;
+  if (isKoLocale()) return entry.example;
+  return entry.exampleVi ?? entry.example;
 }
 
 /** Split Korean text into tappable tokens (space-separated + bracket words) */

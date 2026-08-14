@@ -12,7 +12,8 @@ import {
 import { isKoLocale } from "@/topik/lib/i18n/locale-text";
 import { IconCheckCircle } from "@/topik/components/ui/TopikIcons";
 import { KoreanStudyText } from "@/topik/components/korean/KoreanStudyText";
-import { StudyModeHint } from "@/topik/components/korean/StudyModeHint";
+import { useTopikFocus } from "@/topik/components/focus/TopikFocusProvider";
+import { ListeningAudioPlayer } from "@/topik/components/listening/ListeningAudioPlayer";
 
 const CATEGORIES = [
   { value: "", label: vi.practice.all },
@@ -45,6 +46,8 @@ export function TopikQuizClient({ initialLevel }: Props) {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [inSession, setInSession] = useState(false);
+  const { enterFocus, leaveFocus, setFocusProgress } = useTopikFocus();
 
   const loadQuestions = useCallback(async (lv: TopikLevel, cat: string) => {
     setLoading(true);
@@ -58,12 +61,37 @@ export function TopikQuizClient({ initialLevel }: Props) {
     setFinished(false);
     setShowResult(false);
     setShowScript(false);
+    setInSession(false);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     void loadQuestions(level, category);
   }, [level, category, loadQuestions]);
+
+  useEffect(() => {
+    if (inSession && !finished && questions.length > 0) {
+      setFocusProgress(`${idx + 1}/${questions.length}`);
+    }
+  }, [inSession, finished, idx, questions.length, setFocusProgress]);
+
+  useEffect(() => {
+    if (finished) leaveFocus();
+  }, [finished, leaveFocus]);
+
+  function startSession() {
+    enterFocus({
+      title: vi.practice.title,
+      subtitle: `TOPIK ${level}`,
+      exitHref: "/topik/practice",
+    });
+    setInSession(true);
+    setIdx(0);
+    setScore(0);
+    setFinished(false);
+    setShowResult(false);
+    setShowScript(false);
+  }
 
   const q = questions[idx];
 
@@ -122,6 +150,44 @@ export function TopikQuizClient({ initialLevel }: Props) {
     return <p className="topik-loading">{vi.common.loading}</p>;
   }
 
+  if (!inSession && questions.length > 0) {
+    return (
+      <div className="topik-quiz-shell topik-animate-in">
+        <div className="topik-card topik-card-pad">
+          <p className="topik-page-subtitle">{vi.practice.subtitle}</p>
+          <div className="topik-quiz-filters mt-4">
+            <select
+              value={level}
+              onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
+              className="topik-select"
+            >
+              {[1, 2, 3, 4, 5, 6].map((l) => (
+                <option key={l} value={l}>
+                  TOPIK {l}
+                </option>
+              ))}
+            </select>
+            <div className="topik-pill-row">
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setCategory(c.value)}
+                  className={`topik-pill ${category === c.value ? "topik-pill-active" : ""}`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button type="button" onClick={startSession} className="topik-btn topik-btn-accent topik-btn-lg">
+          {vi.practice.start}
+        </button>
+      </div>
+    );
+  }
+
   if (finished) {
     return (
       <div className="topik-card topik-card-pad text-center topik-animate-in">
@@ -131,7 +197,7 @@ export function TopikQuizClient({ initialLevel }: Props) {
           {score} / {questions.length}
         </p>
         <p className="topik-result-hint">
-          {Math.round((score / questions.length) * 100)}% — Câu sai đã thêm vào ôn tập SRS
+          {Math.round((score / questions.length) * 100)}%
         </p>
         <button
           type="button"
@@ -149,53 +215,21 @@ export function TopikQuizClient({ initialLevel }: Props) {
   const section = q.examSection ?? q.category;
 
   return (
-    <div className="topik-quiz-shell topik-animate-in">
-      <StudyModeHint />
-      <div className="topik-quiz-filters">
-        <select
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value) as TopikLevel)}
-          className="topik-select"
-          aria-label={vi.practice.filterLevel}
-        >
-          {[1, 2, 3, 4, 5, 6].map((l) => (
-            <option key={l} value={l}>
-              TOPIK {l}
-            </option>
-          ))}
-        </select>
-        <div className="topik-pill-row">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              onClick={() => setCategory(c.value)}
-              className={`topik-pill ${category === c.value ? "topik-pill-active" : ""}`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <span className="topik-quiz-progress">
-          {idx + 1} / {questions.length}
-        </span>
-      </div>
-
+    <div className="topik-quiz-shell topik-quiz-shell--focus topik-animate-in">
       <div className="topik-card topik-card-pad">
-        <span className="topik-badge">{ibtSectionLabel(section)}</span>
+        <span className="topik-badge">{ibtSectionLabel(section)} · {idx + 1}/{questions.length}</span>
         {q.category === "listening" && q.listeningScript && !showResult && (
           <div className="topik-listening-block">
-            <p className="topik-listening-hint">{vi.listening.playHint}</p>
+            <ListeningAudioPlayer script={q.listeningScript} autoPlay maxPlays={3} />
             <button
               type="button"
               onClick={() => setShowScript((s) => !s)}
-              className="topik-btn topik-btn-outline topik-btn-sm"
+              className="topik-btn topik-btn-outline topik-btn-sm mt-3"
             >
               {showScript ? vi.listening.hideScript : vi.listening.showScript}
             </button>
             {showScript && (
-              <div className="topik-script-box">
-                <p className="topik-script-label">{vi.listening.scriptLabel}</p>
+              <div className="topik-script-box mt-3">
                 <p className="topik-script-ko">
                   <KoreanStudyText text={q.listeningScript} studyMode />
                 </p>

@@ -264,9 +264,17 @@ export const viStrings = {
   },
   listening: {
     playHint: "Đọc script nghe (mô phỏng — không có file âm thanh bản quyền)",
+    playHintShort: "Nhấn để nghe · tự động phát khi vào câu",
+    replay: "Nghe lại",
+    playing: "Đang phát…",
+    playsLeft: "Lượt nghe còn",
+    noMorePlays: "Hết lượt nghe",
     showScript: "Xem script nghe",
     hideScript: "Ẩn script",
     scriptLabel: "Script nghe",
+  },
+  focus: {
+    exit: "Thoát",
   },
   common: {
     loading: "Đang tải…",
