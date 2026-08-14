@@ -8,6 +8,7 @@ export type StudyModeId =
   | "typing"
   | "vocab"
   | "practice"
+  | "drill"
   | "mock-exam"
   | "lessons"
   | "review"
@@ -51,6 +52,13 @@ export const STUDY_MODES: StudyMode[] = [
     tint: "blue",
   },
   {
+    id: "drill",
+    href: "/topik/drill",
+    title: vi.drill.title,
+    desc: vi.drill.pageSubtitle,
+    tint: "blue",
+  },
+  {
     id: "vocab",
     href: "/topik/vocab",
     title: vi.vocab.title,
@@ -89,6 +97,7 @@ export const STUDY_MODES: StudyMode[] = [
 
 export const HOME_FAVORITE_MODES: StudyModeId[] = [
   "mock-exam",
+  "drill",
   "vocab",
   "typing",
   "speaking",

@@ -65,9 +65,22 @@ export function buildStudyJourney(input: Input): StudyJourney {
     });
   }
 
-  // 3b. Vocab drill — built-in dictionary + TTS (no external lookup)
+  // IBT type drill — TOPIK Coach-style mini sets
   const today = new Date().toISOString().slice(0, 10);
   const doneToday = progress.dailyStepsDone?.[today] ?? [];
+  if (!doneToday.includes("drill")) {
+    steps.push({
+      id: "drill",
+      order: order++,
+      titleVi: l("Drill IBT theo dạng", "IBT 유형별 드릴"),
+      descVi: l("10 câu nghe/đọc · sắp xếp câu IBT", "듣기/읽기 10문항 · 문장 배열"),
+      href: "/topik/drill?type=mixed",
+      status: "upcoming",
+      whyVi: l("TOPIK Coach: luyện nhanh theo dạng — không quảng cáo", "TOPIK Coach: 유형별 빠른 연습 — 광고 없음"),
+    });
+  }
+
+  // 3b. Vocab drill — built-in dictionary + TTS (no external lookup)
   if (!doneToday.includes("vocab")) {
     steps.push({
       id: "vocab",
@@ -285,6 +298,7 @@ function isStepDone(
   if (id === "wrong" && wrongCount === 0) return true;
   if (id === "placement" && progress.placementLevel) return true;
   if (id === "vocab" && doneToday.includes("vocab")) return true;
+  if (id === "drill" && doneToday.includes("drill")) return true;
 
   return false;
 }

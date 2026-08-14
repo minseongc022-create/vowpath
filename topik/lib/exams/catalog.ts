@@ -85,13 +85,25 @@ export const SECTION_DRILLS = [
     id: "listening",
     titleVi: l("Luyện nghe", "듣기 연습"),
     descVi: l("Script + giải thích tiếng Việt", "스크립트 + 한국어 해설"),
-    href: "/topik/practice?category=listening",
+    href: "/topik/drill?type=listening",
   },
   {
     id: "reading",
     titleVi: l("Luyện đọc", "읽기 연습"),
     descVi: l("Đoạn văn TOPIK II", "TOPIK II 지문"),
-    href: "/topik/practice?category=reading",
+    href: "/topik/drill?type=reading",
+  },
+  {
+    id: "ibt-order",
+    titleVi: l("Sắp xếp câu IBT", "IBT 문장 배열"),
+    descVi: l("Dạng kéo-thả thi máy", "IBT 배열형 드릴"),
+    href: "/topik/drill?type=order",
+  },
+  {
+    id: "ibt-mini",
+    titleVi: l("Mini set IBT", "IBT 미니 세트"),
+    descVi: l("5 nghe + 5 đọc", "듣기 5 + 읽기 5"),
+    href: "/topik/drill?type=mixed",
   },
   {
     id: "grammar",

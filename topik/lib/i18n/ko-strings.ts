@@ -135,6 +135,7 @@ export const ko = {
     score: "결과",
     reviewWrong: "오답 보기",
     addWrongToSrs: "오답을 복습에 추가",
+    tryAgain: "다시 풀기",
     filterLevel: "급수",
     filterCategory: "유형",
     all: "전체",
@@ -167,6 +168,9 @@ export const ko = {
     empty: "오답이 없습니다. 문제 풀이를 하면 기록됩니다!",
     resolved: "암기 완료",
     review: "다시 복습",
+    startDrill: "집중 복습 시작",
+    drillProgress: "오답 복습",
+    drillDone: "오답 복습 완료!",
     desc: "틀린 문제 추적 · 맞출 때까지 복습",
   },
   speaking: {
@@ -258,6 +262,15 @@ export const ko = {
   exams: {
     title: "한국어 시험",
     sectionDrills: "영역별 연습",
+  },
+  drill: {
+    title: "IBT 유형별 드릴",
+    pageSubtitle: "TOPIK Coach 스타일 · 듣기/읽기/문장배열 미니 세트",
+    subtitle: "유형과 급수를 선택하세요",
+    start: "드릴 시작",
+    result: "드릴 결과",
+    orderHint: "아래 문장을 탭해서 순서대로 배열하세요",
+    resetOrder: "다시 배열",
   },
   official: {
     title: "공식 TOPIK 자료",

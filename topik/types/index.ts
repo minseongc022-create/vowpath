@@ -43,7 +43,7 @@ export type TopikExamSection = "listening" | "reading" | "writing" | "grammar" |
 export type TopikQuizQuestion = {
   id: string;
   level: TopikLevel;
-  type: "multiple_choice" | "short_answer";
+  type: "multiple_choice" | "short_answer" | "sentence_order";
   category: LessonCategory;
   examSection?: TopikExamSection;
   question: string;
@@ -51,6 +51,10 @@ export type TopikQuizQuestion = {
   options?: string[];
   correctIndex?: number;
   correctAnswer?: string;
+  /** IBT sentence-order: shuffled fragments shown to the user */
+  fragments?: string[];
+  /** IBT sentence-order: indices into `fragments` for the correct order */
+  correctOrder?: number[];
   explanation: string;
   explanationVi: string;
   passage?: string;

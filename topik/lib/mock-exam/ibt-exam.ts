@@ -31,6 +31,10 @@ export function scoreMockExam(
     if (ans === undefined) continue;
     if (q.type === "multiple_choice") {
       if (ans === q.correctIndex) correct++;
+    } else if (q.type === "sentence_order") {
+      const given = Array.isArray(ans) ? (ans as number[]) : [];
+      const expected = q.correctOrder ?? [];
+      if (given.length === expected.length && given.every((v, i) => v === expected[i])) correct++;
     } else {
       const normalized = String(ans).trim().toLowerCase();
       const expected = (q.correctAnswer ?? "").trim().toLowerCase();

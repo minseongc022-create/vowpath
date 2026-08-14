@@ -24,6 +24,7 @@ const NAV = [
       p.startsWith("/topik/speaking") ||
       p.startsWith("/topik/writing") ||
       p.startsWith("/topik/practice") ||
+      p.startsWith("/topik/drill") ||
       p.startsWith("/topik/mock-exam") ||
       p.startsWith("/topik/typing") ||
       p.startsWith("/topik/vocab") ||

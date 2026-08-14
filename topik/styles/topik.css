@@ -1540,3 +1540,114 @@
   color: var(--learn-primary);
   line-height: 1.45;
 }
+
+/* IBT drill picker */
+.topik-drill-grid {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.topik-drill-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.topik-drill-card-active {
+  border-color: var(--learn-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--learn-primary) 25%, transparent);
+}
+
+.topik-drill-card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--learn-ink);
+}
+
+.topik-drill-card-desc {
+  font-size: 0.8125rem;
+  color: var(--learn-ink-muted);
+}
+
+/* IBT sentence order */
+.topik-order-input {
+  margin-top: 0.75rem;
+}
+
+.topik-order-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--learn-ink-muted);
+  margin-bottom: 0.5rem;
+}
+
+.topik-order-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topik-order-slot {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-radius: var(--learn-radius);
+  border: 1px dashed var(--learn-border);
+  background: var(--topik-soft);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.topik-order-slot-empty {
+  color: var(--learn-ink-subtle);
+  font-weight: 700;
+}
+
+.topik-order-slot-correct {
+  border-style: solid;
+  border-color: var(--learn-accent);
+  background: color-mix(in srgb, var(--learn-accent) 8%, white);
+}
+
+.topik-order-slot-wrong {
+  border-style: solid;
+  border-color: #c75050;
+  background: color-mix(in srgb, #c75050 8%, white);
+}
+
+.topik-order-pool {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.topik-order-chip {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-radius: var(--learn-radius);
+  border: 1px solid var(--learn-border);
+  background: var(--learn-surface);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  transition: border-color 0.15s ease;
+}
+
+.topik-order-chip:hover:not(:disabled) {
+  border-color: var(--learn-primary);
+}
+
+.topik-order-chip:disabled {
+  opacity: 0.55;
+}
+

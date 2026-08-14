@@ -314,6 +314,7 @@ const MODE_ICONS: Record<StudyModeId, React.ComponentType<IconProps>> = {
   typing: IconKeyboard,
   vocab: IconVocab,
   practice: IconClipboard,
+  drill: IconReading,
   "mock-exam": IconMonitor,
   lessons: IconBooks,
   review: IconReview,

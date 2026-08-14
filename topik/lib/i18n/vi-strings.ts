@@ -135,6 +135,7 @@ export const viStrings = {
     score: "Kết quả",
     reviewWrong: "Xem câu sai",
     addWrongToSrs: "Thêm câu sai vào ôn tập",
+    tryAgain: "Làm lại",
     filterLevel: "Cấp độ",
     filterCategory: "Loại",
     all: "Tất cả",
@@ -167,6 +168,9 @@ export const viStrings = {
     empty: "Chưa có câu sai. Làm bài luyện tập để ghi nhận!",
     resolved: "Đã thuộc",
     review: "Ôn lại",
+    startDrill: "Bắt đầu ôn tập tập trung",
+    drillProgress: "Ôn câu sai",
+    drillDone: "Hoàn thành ôn câu sai!",
     desc: "Theo dõi câu sai · ôn lại cho đến khi thuộc",
   },
   speaking: {
@@ -258,6 +262,15 @@ export const viStrings = {
   exams: {
     title: "Các kỳ thi tiếng Hàn",
     sectionDrills: "Luyện theo kỹ năng",
+  },
+  drill: {
+    title: "Drill IBT theo dạng",
+    pageSubtitle: "Kiểu TOPIK Coach · mini set nghe/đọc/sắp câu",
+    subtitle: "Chọn dạng và cấp độ",
+    start: "Bắt đầu drill",
+    result: "Kết quả drill",
+    orderHint: "Chạm các câu bên dưới để sắp xếp đúng thứ tự",
+    resetOrder: "Sắp xếp lại",
   },
   official: {
     title: "Tài liệu TOPIK chính thức",
