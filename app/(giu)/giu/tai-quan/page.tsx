@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PrintButton } from "@/giu/components/PrintButton";
 import { GIU_STRINGS } from "@/giu/lib/strings";
-import { GIU_SALES_URLS } from "@/giu/lib/urls";
+import { resolveGiuPublicOrigin } from "@/giu/lib/giu-host-server";
+import { giuPublicUrl } from "@/giu/lib/urls";
 
 export const metadata: Metadata = {
   title: "Hướng dẫn quán đối tác",
   description: "Đăng quán miễn phí — giải cứu đồ thừa cuối ngày với Giu",
 };
 
-export default function GiuMerchantFlyerPage() {
-  const signup = GIU_SALES_URLS.merchantSignup();
-  const panel = GIU_SALES_URLS.merchantPanel();
+export default async function GiuMerchantFlyerPage() {
+  const origin = await resolveGiuPublicOrigin();
+  const signup = giuPublicUrl("/cua-hang", origin);
+  const panel = giuPublicUrl("/cua-hang/panel", origin);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 print:py-6">

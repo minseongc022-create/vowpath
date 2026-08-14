@@ -5,21 +5,28 @@ import {
   GIU_OBJECTIONS,
   GIU_TARGET_DISTRICTS,
   GIU_WEEK_ONE_PLAN,
-  GIU_ZALO_TEMPLATES,
+  type SalesTemplate,
 } from "@/giu/lib/sales-playbook";
-import { GIU_SALES_URLS } from "@/giu/lib/urls";
+import { giuSalesUrls } from "@/giu/lib/urls";
 
-export function SalesPlaybookClient() {
+type Props = {
+  origin: string;
+  templates: SalesTemplate[];
+};
+
+export function SalesPlaybookClient({ origin, templates }: Props) {
+  const urls = giuSalesUrls(origin);
+
   return (
     <div className="space-y-12">
       <section className="rounded-2xl border border-giu-accent/30 bg-giu-accent/5 p-6">
         <h2 className="text-lg font-bold text-giu-ink">🔗 Link gửi khách / quán</h2>
         <p className="mt-1 text-sm text-giu-muted">한국어: Zalo·DM에 아래 링크 복사해서 붙여넣기</p>
         <div className="mt-4 space-y-3">
-          <CopyLink href={GIU_SALES_URLS.merchantSignup()} />
-          <CopyLink href={GIU_SALES_URLS.boxes()} />
-          <CopyLink href={GIU_SALES_URLS.merchantPanel()} />
-          <CopyLink href={GIU_SALES_URLS.merchantFlyer()} />
+          <CopyLink href={urls.merchantSignup()} />
+          <CopyLink href={urls.boxes()} />
+          <CopyLink href={urls.merchantPanel()} />
+          <CopyLink href={urls.merchantFlyer()} />
         </div>
       </section>
 
@@ -63,7 +70,7 @@ export function SalesPlaybookClient() {
 
       <section className="space-y-8">
         <h2 className="text-lg font-bold text-giu-ink">💬 Mẫu Zalo / DM</h2>
-        {GIU_ZALO_TEMPLATES.map((t) => (
+        {templates.map((t) => (
           <div key={t.id}>
             <h3 className="font-semibold text-giu-ink">{t.titleVi}</h3>
             <p className="text-xs text-giu-muted">{t.titleKo}</p>

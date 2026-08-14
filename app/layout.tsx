@@ -6,7 +6,7 @@ import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
-import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
+import { resolveGiuPublicOrigin } from "@/giu/lib/giu-host-server";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import { getAppShell } from "@/lib/shell-route";
@@ -51,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
   if (shell === "giu") {
-    const origin = getGiuPublicOrigin();
+    const origin = await resolveGiuPublicOrigin();
     return {
       metadataBase: new URL(origin),
       title: { default: GIU_BRAND.fullName, template: `%s · ${GIU_BRAND.name}` },

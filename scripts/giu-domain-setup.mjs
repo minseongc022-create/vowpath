@@ -256,7 +256,7 @@ async function main() {
       if (await linkVercelDomain(name)) ok++;
     }
     total += 2;
-    if (await ensureVercelEnv("NEXT_PUBLIC_GIU_URL", `https://${DOMAIN}`)) ok++;
+    if (await ensureVercelEnv("NEXT_PUBLIC_GIU_URL", `https://www.${DOMAIN}`)) ok++;
     if (await ensureVercelEnv("NEXT_PUBLIC_GIU_HOST", DOMAIN)) ok++;
   } else {
     console.log("○ Skip Vercel — set VERCEL_TOKEN + VERCEL_PROJECT_ID");
