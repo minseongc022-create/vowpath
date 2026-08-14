@@ -1,4 +1,5 @@
 import { TOPIK_IBT_ORDER_BANK } from "@/topik/lib/quiz/question-bank-ibt-order";
+import { selectHarderQuestions } from "@/topik/lib/quiz/difficulty-calibration";
 import { TOPIK_QUIZ_BANK } from "@/topik/lib/quiz/questions";
 import type { TopikExamSection, TopikLevel, TopikQuizQuestion } from "@/topik/types";
 import { l } from "@/topik/lib/i18n/locale-text";
@@ -60,42 +61,38 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function poolBySection(level: TopikLevel, section: TopikExamSection): TopikQuizQuestion[] {
+  const maxLevel = Math.min(6, level + 1) as TopikLevel;
   return TOPIK_QUIZ_BANK.filter(
     (q) =>
       q.type !== "sentence_order" &&
-      q.level <= level &&
+      q.level >= Math.max(1, level - 1) &&
+      q.level <= maxLevel &&
       (q.examSection === section || q.category === section),
   );
 }
 
-function takeUnique(pool: TopikQuizQuestion[], count: number): TopikQuizQuestion[] {
-  const shuffled = shuffle(pool);
-  const seen = new Set<string>();
-  const out: TopikQuizQuestion[] = [];
-  for (const q of shuffled) {
-    if (seen.has(q.id)) continue;
-    seen.add(q.id);
-    out.push(q);
-    if (out.length >= count) break;
-  }
-  return out;
+function takeUnique(pool: TopikQuizQuestion[], count: number, level: TopikLevel): TopikQuizQuestion[] {
+  return selectHarderQuestions(pool, level, count);
 }
 
 export function buildDrillQuestions(type: DrillType, level: TopikLevel): TopikQuizQuestion[] {
   if (type === "order") {
-    const pool = TOPIK_IBT_ORDER_BANK.filter((q) => q.level <= level);
-    return takeUnique(pool, 5);
+    const maxLevel = Math.min(6, level + 1) as TopikLevel;
+    const pool = TOPIK_IBT_ORDER_BANK.filter(
+      (q) => q.level >= Math.max(1, level - 1) && q.level <= maxLevel,
+    );
+    return takeUnique(pool, 5, level);
   }
 
   if (type === "mixed") {
-    const listening = takeUnique(poolBySection(level, "listening"), 5);
-    const reading = takeUnique(poolBySection(level, "reading"), 5);
+    const listening = takeUnique(poolBySection(level, "listening"), 5, level);
+    const reading = takeUnique(poolBySection(level, "reading"), 5, level);
     return shuffle([...listening, ...reading]);
   }
 
   const config = DRILL_TYPES.find((d) => d.id === type);
   const section = config?.section ?? "listening";
-  return takeUnique(poolBySection(level, section), config?.count ?? 10);
+  return takeUnique(poolBySection(level, section), config?.count ?? 10, level);
 }
 
 export function getDrillPreview(type: DrillType, level: TopikLevel): DrillPreview {

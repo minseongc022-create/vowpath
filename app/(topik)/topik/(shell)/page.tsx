@@ -51,13 +51,9 @@ export default async function TopikHomePage() {
       streak={progress.streak}
       targetLevel={progress.targetLevel}
       report={report}
-      todayPlan={todayPlan}
-      planDay={todayPlan?.day ?? 1}
-      planDays={planDays}
-      srsTotal={stats.total}
-      srsMastered={stats.mastered}
       journey={journey}
       sectionStats={progress.sectionStats}
+      placementDone={Boolean(progress.placementLevel)}
     />
   );
 }
