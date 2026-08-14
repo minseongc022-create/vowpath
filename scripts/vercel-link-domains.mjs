@@ -17,6 +17,8 @@ const token = process.env.VERCEL_TOKEN?.trim();
 const projectId = process.env.VERCEL_PROJECT_ID?.trim();
 const teamId = process.env.VERCEL_TEAM_ID?.trim();
 
+const GIU_DOMAIN = (process.env.GIU_DOMAIN || "giucuu.com").trim().toLowerCase();
+
 const DOMAINS = [
   "www.effiroad.com",
   "vowroad.com",
@@ -24,6 +26,8 @@ const DOMAINS = [
   "link.vowroad.com",
   "book.vowroad.com",
   "go.vowroad.com",
+  GIU_DOMAIN,
+  `www.${GIU_DOMAIN}`,
 ];
 
 async function api(path, method = "GET", body) {

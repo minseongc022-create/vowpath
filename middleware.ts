@@ -8,6 +8,11 @@ import {
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
+import {
+  giuInternalPath,
+  giuPublicRedirectPath,
+  isGiuHost,
+} from "@/giu/lib/giu-host";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
@@ -48,6 +53,18 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
 }
 
 const TOPIK_LOCALE_COOKIE = "topik-locale";
+
+function giuShellResponse(request: NextRequest, rewritePath?: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "giu");
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+  if (rewritePath) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewritePath;
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
 
 function topikShellResponse(request: NextRequest, locale?: "ko" | "vi") {
   const requestHeaders = new Headers(request.headers);
@@ -116,6 +133,21 @@ export async function middleware(request: NextRequest) {
     return learnShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
   }
 
+  // giucuu.com → Giu only (food rescue HCMC), isolated from Effiroad.
+  if (isGiuHost(hostname)) {
+    const publicPath = giuPublicRedirectPath(pathname);
+    if (publicPath !== null) {
+      const url = request.nextUrl.clone();
+      url.pathname = publicPath;
+      return NextResponse.redirect(url, 308);
+    }
+    const internal = giuInternalPath(pathname);
+    if (internal === null) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+    return giuShellResponse(request, internal === pathname ? undefined : internal);
+  }
+
   // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
   if (pathname.startsWith("/learn")) {
     return learnShellResponse(request);
@@ -138,10 +170,7 @@ export async function middleware(request: NextRequest) {
 
   // Giu — food rescue marketplace (HCMC), isolated product shell.
   if (pathname.startsWith("/giu")) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "giu");
-    requestHeaders.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return giuShellResponse(request);
   }
 
   if (isDecommissionedHost(hostname)) {

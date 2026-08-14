@@ -6,6 +6,7 @@ import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
+import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
 import { buildSiteMetadata } from "@/lib/site-metadata";
 import { marketingUiLocale, resolveServerUiLocale } from "@/lib/locale";
 import { getAppShell } from "@/lib/shell-route";
@@ -50,7 +51,9 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
   if (shell === "giu") {
+    const origin = getGiuPublicOrigin();
     return {
+      metadataBase: new URL(origin),
       title: { default: GIU_BRAND.fullName, template: `%s · ${GIU_BRAND.name}` },
       description: GIU_BRAND.tagline,
       applicationName: GIU_BRAND.name,
@@ -59,6 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
         title: GIU_BRAND.fullName,
         description: GIU_BRAND.tagline,
         locale: "vi_VN",
+        url: origin,
       },
     };
   }
