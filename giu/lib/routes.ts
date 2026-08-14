@@ -1,5 +1,5 @@
 export const GIU_ROUTES = {
-  auth: "/giu/auth",
+  auth: "/giu/dang-ky",
   customer: {
     home: "/giu/hop",
     boxes: "/giu/hop",
@@ -19,9 +19,10 @@ export function isGiuAuthPath(pathname: string): boolean {
   return (
     pathname === GIU_ROUTES.auth ||
     pathname.startsWith(`${GIU_ROUTES.auth}/`) ||
+    pathname === "/giu/auth" ||
+    pathname.startsWith("/giu/auth/") ||
     pathname === "/giu/dang-nhap" ||
-    pathname === "/giu/dang-ky" ||
-    pathname === "/giu/cua-hang/dang-nhap"
+    pathname === "/giu/dang-ky"
   );
 }
 
