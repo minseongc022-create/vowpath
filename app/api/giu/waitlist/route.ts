@@ -5,7 +5,7 @@ import { isGiuDistrict } from "@/giu/lib/districts";
 
 const schema = z.object({
   phone: z.string().min(8).max(20),
-  district: z.string().refine((v) => !v || isGiuDistrict(v), "Quận không hợp lệ").optional(),
+  district: z.string().refine((v) => !v || isGiuDistrict(v), "구(군) 값이 올바르지 않습니다").optional(),
 });
 
 export async function POST(request: Request) {
@@ -14,13 +14,13 @@ export async function POST(request: Request) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "SĐT không hợp lệ" },
+        { error: parsed.error.issues[0]?.message ?? "전화번호가 올바르지 않습니다" },
         { status: 400 },
       );
     }
     const entry = await addWaitlist(parsed.data.phone, parsed.data.district);
     return NextResponse.json({ entry }, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

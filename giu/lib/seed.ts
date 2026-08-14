@@ -189,8 +189,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_001",
     merchantId: "mer_seed_001",
-    title: "Hộp bánh mì mix cuối ngày",
-    description: "3–4 ổ bánh mì assorted, còn nóng",
+    title: "마감 반미 믹스 박스",
+    description: "반미 3~4개, 아직 따뜻함",
     category: "banh_mi",
     originalPriceVnd: 120000,
     salePriceVnd: 45000,
@@ -205,8 +205,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_002",
     merchantId: "mer_seed_002",
-    title: "Surprise bag bánh ngọt + cà phê",
-    description: "Bánh croissant, muffin, voucher cà phê",
+    title: "디저트 + 커피 서프라이즈 백",
+    description: "크루아상, 머핀, 커피 쿠폰",
     category: "cafe",
     originalPriceVnd: 180000,
     salePriceVnd: 65000,
@@ -221,8 +221,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_003",
     merchantId: "mer_seed_003",
-    title: "Bánh mì ngọt & bánh kem dư",
-    description: "4–6 món bánh assorted",
+    title: "단팥빵 & 케이크 서프라이즈",
+    description: "베이커리 4~6개 믹스",
     category: "bakery",
     originalPriceVnd: 150000,
     salePriceVnd: 55000,
@@ -237,8 +237,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_004",
     merchantId: "mer_seed_004",
-    title: "Trà sữa & topping dư",
-    description: "2 ly trà sữa size L + topping",
+    title: "버블티 & 토핑 서프라이즈",
+    description: "L사이즈 2잔 + 토핑",
     category: "tra_sua",
     originalPriceVnd: 110000,
     salePriceVnd: 40000,
@@ -253,8 +253,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_005",
     merchantId: "mer_seed_005",
-    title: "Pizza slice surprise",
-    description: "3–4 miếng pizza assorted",
+    title: "피자 슬라이스 서프라이즈",
+    description: "피자 3~4조각 믹스",
     category: "nha_hang",
     originalPriceVnd: 200000,
     salePriceVnd: 75000,
@@ -269,8 +269,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_006",
     merchantId: "mer_seed_006",
-    title: "Hàng cận date — snack & nước",
-    description: "5–8 món snack, nước uống assorted",
+    title: "유통기한 임박 — 스낵 & 음료",
+    description: "스낵·음료 5~8개 믹스",
     category: "tap_hoa",
     originalPriceVnd: 90000,
     salePriceVnd: 35000,
@@ -285,7 +285,7 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_007",
     merchantId: "mer_seed_007",
-    title: "Bánh tươi cuối ngày",
+    title: "마감 신선 빵",
     category: "bakery",
     originalPriceVnd: 80000,
     salePriceVnd: 30000,
@@ -300,7 +300,7 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_008",
     merchantId: "mer_seed_008",
-    title: "Bánh ngọt Highlands",
+    title: "하이랜드 디저트",
     category: "cafe",
     originalPriceVnd: 100000,
     salePriceVnd: 38000,
@@ -315,8 +315,8 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_009",
     merchantId: "mer_seed_009",
-    title: "Hoa tươi cuối ngày",
-    description: "Bó hoa assorted, còn tươi",
+    title: "마감 신선 꽃",
+    description: "꽃다발 믹스, 아직 신선함",
     category: "hoa",
     originalPriceVnd: 250000,
     salePriceVnd: 85000,
@@ -331,7 +331,7 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_010",
     merchantId: "mer_seed_010",
-    title: "Bánh mì thịt nguội mix",
+    title: "햄 반미 믹스",
     category: "banh_mi",
     originalPriceVnd: 100000,
     salePriceVnd: 40000,
@@ -346,7 +346,7 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_011",
     merchantId: "mer_seed_011",
-    title: "Pastry & sandwich bag",
+    title: "페이스트리 & 샌드위치 백",
     category: "cafe",
     originalPriceVnd: 160000,
     salePriceVnd: 60000,
@@ -361,7 +361,7 @@ export const SEED_BOXES: GiuBox[] = [
   {
     id: "box_seed_012",
     merchantId: "mer_seed_012",
-    title: "Onigiri & bento dư",
+    title: "오니기리 & 도시락 서프라이즈",
     category: "tap_hoa",
     originalPriceVnd: 70000,
     salePriceVnd: 28000,

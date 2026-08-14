@@ -159,11 +159,11 @@ export async function registerCustomer(input: {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
   if (store.accounts.some((a) => a.email === email)) {
-    return { error: "Email đã được đăng ký" };
+    return { error: "이미 등록된 이메일입니다" };
   }
   const phone = normalizePhone(input.phone);
   if (store.accounts.some((a) => a.phone === phone)) {
-    return { error: "Số điện thoại đã được đăng ký" };
+    return { error: "이미 등록된 전화번호입니다" };
   }
   const account: GiuAccount = {
     id: newId("acc"),
@@ -194,14 +194,14 @@ export async function registerMerchantAccount(input: {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
   if (store.accounts.some((a) => a.email === email)) {
-    return { error: "Email đã được đăng ký" };
+    return { error: "이미 등록된 이메일입니다" };
   }
   const phone = normalizePhone(input.phone);
   if (store.accounts.some((a) => a.phone === phone)) {
-    return { error: "Số điện thoại đã được đăng ký" };
+    return { error: "이미 등록된 전화번호입니다" };
   }
   if (store.merchants.some((m) => normalizePhone(m.phone) === phone)) {
-    return { error: "Quán với SĐT này đã tồn tại — hãy đăng nhập" };
+    return { error: "이 전화번호의 가게가 이미 있습니다 — 로그인하세요" };
   }
 
   const account: GiuAccount = {
@@ -253,12 +253,12 @@ export async function loginAccount(input: {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
   const account = store.accounts.find((a) => a.email === email);
-  if (!account) return { error: "Email hoặc mật khẩu không đúng" };
+  if (!account) return { error: "이메일 또는 비밀번호가 올바르지 않습니다" };
   if (input.role && account.role !== input.role) {
-    return { error: "Tài khoản không đúng loại đăng nhập" };
+    return { error: "로그인 유형과 맞지 않는 계정입니다" };
   }
   const ok = await verifyPassword(input.password, account.passwordHash);
-  if (!ok) return { error: "Email hoặc mật khẩu không đúng" };
+  if (!ok) return { error: "이메일 또는 비밀번호가 올바르지 않습니다" };
   return { account };
 }
 
@@ -496,12 +496,12 @@ export async function initiateReservationPayment(input: {
 }): Promise<InitiateReservationResult> {
   const store = await loadStore();
   const box = store.boxes.find((b) => b.id === input.boxId);
-  if (!box) return { error: "Không tìm thấy hộp" };
-  if (box.status !== "mo" || box.quantityLeft <= 0) return { error: "Hộp đã hết" };
-  if (new Date(box.expiresAt).getTime() < Date.now()) return { error: "Hộp đã hết hạn" };
+  if (!box) return { error: "박스를 찾을 수 없습니다" };
+  if (box.status !== "mo" || box.quantityLeft <= 0) return { error: "박스가 매진되었습니다" };
+  if (new Date(box.expiresAt).getTime() < Date.now()) return { error: "박스가 만료되었습니다" };
 
   const qty = input.quantity ?? 1;
-  if (qty > box.quantityLeft) return { error: "Không đủ số lượng" };
+  if (qty > box.quantityLeft) return { error: "수량이 부족합니다" };
 
   const totalVnd = box.salePriceVnd * qty;
   const platformFeeVnd = Math.round(totalVnd * GIU_BRAND.commissionRate);
@@ -529,7 +529,7 @@ export async function initiateReservationPayment(input: {
   };
 
   if (!(await holdBoxQuantity(store, box, qty))) {
-    return { error: "Không đủ số lượng" };
+    return { error: "수량이 부족합니다" };
   }
 
   store.reservations.unshift(reservation);
@@ -540,7 +540,7 @@ export async function initiateReservationPayment(input: {
       reservation.id,
       `demo_${randomBytes(4).toString("hex")}`,
     );
-    if (!confirmed) return { error: "Không thể xác nhận thanh toán" };
+    if (!confirmed) return { error: "결제를 확인할 수 없습니다" };
     const updatedBox = (await loadStore()).boxes.find((b) => b.id === box.id);
     return {
       mode: "demo",

@@ -21,10 +21,10 @@ export function MerchantCard({ merchant }: { merchant: GiuMerchant }) {
           {merchant.verified ? (
             <span className="text-giu-primary">✓ Verified</span>
           ) : (
-            <span className="text-giu-gold">Chờ xác minh</span>
+            <span className="text-giu-gold">인증 대기</span>
           )}
           {" · "}
-          {merchant.rescuedBoxes} hộp
+          {merchant.rescuedBoxes}박스
         </p>
       </div>
     </Link>

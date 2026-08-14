@@ -9,9 +9,9 @@ import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
 const PAYMENT_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
-  { id: "vietqr", label: "VietQR", sub: "Chuyển khoản nhanh" },
-  { id: "momo", label: "MoMo", sub: "Ví MoMo qua VNPay" },
-  { id: "card", label: "Thẻ", sub: "Thẻ quốc tế" },
+  { id: "vietqr", label: "VietQR", sub: "빠른 계좌이체" },
+  { id: "momo", label: "MoMo", sub: "MoMo 지갑 (VNPay)" },
+  { id: "card", label: "카드", sub: "국제 카드" },
 ];
 
 export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceVnd: number }) {
@@ -43,7 +43,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         error?: string;
       };
       if (!res.ok) {
-        setError(data.error ?? "Có lỗi xảy ra");
+        setError(data.error ?? "오류가 발생했습니다");
         return;
       }
 
@@ -58,7 +58,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         router.refresh();
       }
     } catch {
-      setError("Không kết nối được. Thử lại nhé.");
+      setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
 
   if (authLoading) {
     return (
-      <div className="giu-card text-center text-sm text-giu-muted">Đang tải...</div>
+      <div className="giu-card text-center text-sm text-giu-muted">불러오는 중...</div>
     );
   }
 
@@ -76,13 +76,13 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         <p className="text-2xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
         <p className="text-sm text-giu-muted">{GIU_STRINGS.payCta}</p>
         <Link href={`/giu/dang-nhap?next=/giu/hop/${boxId}`} className="giu-btn-primary block text-center">
-          Đăng nhập
+          로그인
         </Link>
         <Link
           href={`/giu/dang-ky?next=/giu/hop/${boxId}`}
           className="giu-btn-secondary block text-center"
         >
-          Tạo tài khoản
+          계정 만들기
         </Link>
       </div>
     );
@@ -91,11 +91,11 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
   if (successCode && reservationId) {
     return (
       <div className="giu-card space-y-4 text-center">
-        <span className="giu-badge-safe">Thanh toán thành công</span>
+        <span className="giu-badge-safe">결제 완료</span>
         <p className="font-mono text-4xl font-extrabold tracking-[0.2em] text-giu-ink">{successCode}</p>
-        <p className="text-sm text-giu-muted">Mã giải cứu · SMS đã gửi</p>
+        <p className="text-sm text-giu-muted">구출 코드 · SMS 발송됨</p>
         <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
-          Xem chi tiết
+          상세 보기
         </Link>
       </div>
     );
@@ -104,7 +104,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
   return (
     <form onSubmit={submit} className="giu-card space-y-5">
       <div>
-        <p className="text-sm text-giu-muted">Thanh toán</p>
+        <p className="text-sm text-giu-muted">결제</p>
         <p className="mt-1 text-3xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
       </div>
 
@@ -114,7 +114,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
       </div>
 
       <div>
-        <p className="giu-label">Phương thức</p>
+        <p className="giu-label">결제 수단</p>
         <div className="space-y-2">
           {PAYMENT_OPTIONS.map((opt) => {
             const selected = paymentMethod === opt.id;
@@ -147,7 +147,7 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
 
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "Đang chuyển..." : GIU_STRINGS.payCta}
+        {loading ? "이동 중..." : GIU_STRINGS.payCta}
       </button>
     </form>
   );

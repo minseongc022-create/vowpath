@@ -61,7 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
       openGraph: {
         title: GIU_BRAND.fullName,
         description: GIU_BRAND.tagline,
-        locale: "vi_VN",
+        locale: "ko_KR",
         url: origin,
       },
     };

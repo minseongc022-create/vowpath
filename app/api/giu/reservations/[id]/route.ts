@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: Props) {
   const { id } = await params;
   const reservation = await getReservation(id);
   if (!reservation) {
-    return NextResponse.json({ error: "Không tìm thấy" }, { status: 404 });
+    return NextResponse.json({ error: "찾을 수 없습니다" }, { status: 404 });
   }
 
   const session = await getGiuSessionFromRequest(request);
@@ -38,14 +38,14 @@ export async function PATCH(request: Request, { params }: Props) {
     const { id } = await params;
     const reservation = await getReservation(id);
     if (!reservation) {
-      return NextResponse.json({ error: "Không tìm thấy" }, { status: 404 });
+      return NextResponse.json({ error: "찾을 수 없습니다" }, { status: 404 });
     }
 
     const session = await getGiuSessionFromRequest(request);
     const body = await request.json();
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Trạng thái không hợp lệ" }, { status: 400 });
+      return NextResponse.json({ error: "상태값이 올바르지 않습니다" }, { status: 400 });
     }
 
     const status = parsed.data.status as GiuReservationStatus;
@@ -64,10 +64,10 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     if (!updated) {
-      return NextResponse.json({ error: "Không tìm thấy hoặc không thể cập nhật" }, { status: 404 });
+      return NextResponse.json({ error: "찾을 수 없거나 업데이트할 수 없습니다" }, { status: 404 });
     }
     return NextResponse.json({ reservation: updated });
   } catch {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

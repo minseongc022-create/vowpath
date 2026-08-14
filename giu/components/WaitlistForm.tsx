@@ -18,19 +18,19 @@ export function WaitlistForm({ district }: { district?: string }) {
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "Có lỗi");
+        setError(data.error ?? "오류가 발생했습니다");
         return;
       }
       setDone(true);
     } catch {
-      setError("Không gửi được. Thử lại nhé.");
+      setError("전송할 수 없습니다. 다시 시도해 주세요.");
     }
   }
 
   if (done) {
     return (
       <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-accent">
-        ✓ Đã ghi nhận! Tụi mình nhắn bạn khi có hộp gần đây.
+        ✓ 등록 완료! 근처에 박스가 생기면 알려드릴게요.
       </p>
     );
   }
@@ -42,11 +42,11 @@ export function WaitlistForm({ district }: { district?: string }) {
         type="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        placeholder="SĐT của bạn"
+        placeholder="전화번호"
         className="giu-input"
       />
       <button type="submit" className="giu-btn-primary">
-        Báo tôi nhé
+        알림 받기
       </button>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
     </form>

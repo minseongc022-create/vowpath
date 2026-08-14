@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { formatVnd } from "@/giu/lib/format";
+import { formatReservationStatus, formatVnd } from "@/giu/lib/format";
 import type { GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
@@ -29,30 +29,30 @@ export function MyReservationsLookup() {
   }, [account, load]);
 
   if (authLoading) {
-    return <p className="text-sm text-giu-muted">Đang tải...</p>;
+    return <p className="text-sm text-giu-muted">불러오는 중...</p>;
   }
 
   if (!account) {
     return (
       <div className="giu-card space-y-4 text-center">
-        <p className="text-sm text-giu-muted">Đăng nhập để xem mã giải cứu đã thanh toán.</p>
+        <p className="text-sm text-giu-muted">로그인하면 결제한 구출 코드를 볼 수 있습니다.</p>
         <Link href="/giu/dang-nhap" className="giu-btn-primary block text-center">
-          Đăng nhập
+          로그인
         </Link>
       </div>
     );
   }
 
   if (loading) {
-    return <p className="text-sm text-giu-muted">Đang tải đơn...</p>;
+    return <p className="text-sm text-giu-muted">주문 불러오는 중...</p>;
   }
 
   if (list.length === 0) {
     return (
       <div className="giu-card text-center text-sm text-giu-muted">
-        Chưa có đơn giải cứu nào.{" "}
+        구출 주문이 없습니다.{" "}
         <Link href="/giu/hop" className="font-semibold text-giu-primary">
-          Săn hộp ngay →
+          박스 찾기 →
         </Link>
       </div>
     );
@@ -66,7 +66,7 @@ export function MyReservationsLookup() {
             <div className="flex-1">
               <p className="font-mono text-xl font-bold text-giu-primary">{r.code}</p>
               <p className="mt-1 text-sm text-giu-muted">
-                {formatVnd(r.totalVnd)} · {r.status}
+                {formatVnd(r.totalVnd)} · {formatReservationStatus(r.status)}
               </p>
             </div>
             <span className="text-giu-muted">→</span>

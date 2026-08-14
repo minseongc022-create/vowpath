@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GIu_CATEGORIES } from "@/giu/lib/categories";
-import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { formatBoxStatus, formatPaymentStatus, formatPickupWindow, formatReservationStatus, formatVnd } from "@/giu/lib/format";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
@@ -25,7 +25,7 @@ export function MerchantPanelClient() {
         fetch(`/api/giu/reservations?merchantId=${merchantId}`, { credentials: "include" }),
       ]);
       if (bRes.status === 401 || rRes.status === 401) {
-        setError("Phiên đăng nhập hết hạn.");
+        setError("로그인 세션이 만료되었습니다.");
         return;
       }
       const bData = (await bRes.json()) as { boxes: GiuBox[] };
@@ -33,7 +33,7 @@ export function MerchantPanelClient() {
       setBoxes(bData.boxes ?? []);
       setReservations(rData.reservations ?? []);
     } catch {
-      setError("Không tải được dữ liệu.");
+      setError("데이터를 불러올 수 없습니다.");
     } finally {
       setLoading(false);
     }
@@ -79,22 +79,22 @@ export function MerchantPanelClient() {
   }
 
   if (authLoading || (loading && !merchant)) {
-    return <p className="text-giu-muted">Đang tải...</p>;
+    return <p className="text-giu-muted">불러오는 중...</p>;
   }
 
   if (!account || account.role !== "merchant" || !merchant) {
     return (
       <div className="mx-auto max-w-md space-y-4 giu-card text-center">
-        <h2 className="text-lg font-semibold">Quản lý quán</h2>
-        <p className="text-sm text-giu-muted">Đăng nhập bằng email quán để đăng hộp và xác nhận đơn.</p>
+        <h2 className="text-lg font-semibold">가게 관리</h2>
+        <p className="text-sm text-giu-muted">가게 이메일로 로그인해 박스를 등록하고 주문을 확인하세요.</p>
         <Link
           href="/giu/cua-hang/dang-nhap"
           className="inline-block w-full rounded-xl bg-giu-primary py-2.5 text-sm font-semibold text-white"
         >
-          Đăng nhập quán
+          가게 로그인
         </Link>
         <Link href="/giu/cua-hang" className="text-sm font-semibold text-giu-primary">
-          Đăng ký quán mới →
+          새 가게 등록 →
         </Link>
       </div>
     );
@@ -107,20 +107,19 @@ export function MerchantPanelClient() {
           <h1 className="text-xl font-bold">{merchant.name}</h1>
           <p className="text-sm text-giu-muted">{merchant.address}</p>
           <p className="mt-2 text-sm">
-            Đã giải cứu: <strong>{merchant.rescuedBoxes}</strong> hộp
+            구출 완료: <strong>{merchant.rescuedBoxes}</strong>박스
             {merchant.verified ? (
               <span className="ml-2 rounded-full bg-giu-primary/10 px-2 py-0.5 text-xs text-giu-primary">
-                ✓ Verified
+                ✓ 인증됨
               </span>
             ) : (
               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                Chờ xác minh
+                인증 대기
               </span>
             )}
           </p>
           <p className="mt-1 text-xs text-giu-muted">
-            Khách đã thanh toán — Giu giữ tiền an toàn. Bạn xác nhận mã khi họ tới lấy → tiền mới chuyển
-            cho quán.
+            고객 결제 완료 — Giu가 금액을 보관합니다. 픽업 시 코드 확인 → 가게에 정산됩니다.
           </p>
         </div>
         <button
@@ -131,22 +130,22 @@ export function MerchantPanelClient() {
           }}
           className="text-sm text-giu-muted hover:text-giu-ink"
         >
-          Đăng xuất
+          로그아웃
         </button>
       </div>
 
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
 
       <section className="giu-card">
-        <h2 className="font-semibold">Đăng hộp mới — mọi loại món ăn</h2>
+        <h2 className="font-semibold">새 박스 등록 — 모든 음식 가능</h2>
         <p className="mt-1 text-sm text-giu-muted">
-          Bánh, cơm, phở, trà sữa… miễn còn tươi đến giờ khách lấy là được.
+          빵, 밥, 쌀국수, 버블티… 픽업 시간까지 신선하면 OK.
         </p>
         <form onSubmit={createBox} className="mt-4 grid gap-3 sm:grid-cols-2">
           <input
             name="title"
             required
-            placeholder="Tên hộp *"
+            placeholder="박스 이름 *"
             className="giu-input sm:col-span-2"
           />
           <select
@@ -162,13 +161,13 @@ export function MerchantPanelClient() {
           </select>
           <input
             name="description"
-            placeholder="Mô tả (tuỳ chọn)"
+            placeholder="설명 (선택)"
             className="giu-input sm:col-span-2"
           />
           <input
             name="freshnessNote"
-            placeholder="Cam kết độ tươi (tuỳ chọn)"
-            defaultValue="Giữ tươi cho đến khi khách đến lấy trong khung giờ."
+            placeholder="신선도 약속 (선택)"
+            defaultValue="픽업 시간까지 신선하게 보관합니다."
             className="giu-input sm:col-span-2"
           />
           <input
@@ -176,7 +175,7 @@ export function MerchantPanelClient() {
             required
             type="number"
             min={10000}
-            placeholder="Giá gốc (VND) *"
+            placeholder="정가 (VND) *"
             className="giu-input"
           />
           <input
@@ -184,7 +183,7 @@ export function MerchantPanelClient() {
             required
             type="number"
             min={5000}
-            placeholder="Giá giải cứu (VND) *"
+            placeholder="구출 가격 (VND) *"
             className="giu-input"
           />
           <input
@@ -194,26 +193,26 @@ export function MerchantPanelClient() {
             min={1}
             max={50}
             defaultValue={5}
-            placeholder="Số hộp *"
+            placeholder="수량 *"
             className="giu-input"
           />
           <button
             type="submit"
             className="giu-btn-primary py-3 sm:col-span-2"
           >
-            Đăng hộp
+            박스 등록
           </button>
         </form>
       </section>
 
       <section>
-        <h2 className="font-semibold">Hộp của quán ({boxes.length})</h2>
+        <h2 className="font-semibold">가게 박스 ({boxes.length})</h2>
         <ul className="mt-4 space-y-3">
           {boxes.map((box) => (
             <li key={box.id} className="giu-card-flat ring-1 ring-giu-border p-4">
               <p className="font-medium">{box.title}</p>
               <p className="text-sm text-giu-muted">
-                {formatVnd(box.salePriceVnd)} · Còn {box.quantityLeft}/{box.quantityTotal} · {box.status}
+                {formatVnd(box.salePriceVnd)} · 남은 {box.quantityLeft}/{box.quantityTotal} · {formatBoxStatus(box.status)}
               </p>
               <p className="text-xs text-giu-muted">
                 {formatPickupWindow(box.pickupStart, box.pickupEnd)}
@@ -227,7 +226,7 @@ export function MerchantPanelClient() {
       </section>
 
       <section>
-        <h2 className="font-semibold">Đơn đã thanh toán ({reservations.length})</h2>
+        <h2 className="font-semibold">결제 완료 주문 ({reservations.length})</h2>
         <ul className="mt-4 space-y-3">
           {reservations.slice(0, 20).map((r) => (
             <li key={r.id} className="giu-card-flat ring-1 ring-giu-border p-4">
@@ -238,11 +237,11 @@ export function MerchantPanelClient() {
                     {r.customerName} · {r.customerPhone}
                   </p>
                   <p className="text-sm text-giu-muted">
-                    {formatVnd(r.totalVnd)} · {r.paymentStatus} · {r.status}
+                    {formatVnd(r.totalVnd)} · {formatPaymentStatus(r.paymentStatus)} · {formatReservationStatus(r.status)}
                     {r.settlementStatus === "held"
-                      ? " · chờ chuyển tiền"
+                      ? " · 정산 대기"
                       : r.settlementStatus === "released"
-                        ? " · đã chuyển tiền"
+                        ? " · 정산 완료"
                         : ""}
                   </p>
                 </div>
@@ -252,7 +251,7 @@ export function MerchantPanelClient() {
                     onClick={() => markPickedUp(r.id)}
                     className="rounded-xl bg-giu-primary px-4 py-2 text-sm font-semibold text-white"
                   >
-                    Đã lấy ✓
+                    픽업 완료 ✓
                   </button>
                 ) : null}
               </div>

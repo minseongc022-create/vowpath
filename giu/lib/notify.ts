@@ -45,11 +45,11 @@ export async function notifyPickupCode(input: {
   totalVnd: number;
   pickupWindow: string;
 }): Promise<void> {
-  const amount = new Intl.NumberFormat("vi-VN").format(input.totalVnd);
+  const amount = new Intl.NumberFormat("ko-KR").format(input.totalVnd);
   const body =
-    `[Giu] Ma giai cuu: ${input.code}\n` +
-    `${input.merchantName} · ${amount}d\n` +
-    `Lay: ${input.pickupWindow}\n` +
+    `[Giu] 구출 코드: ${input.code}\n` +
+    `${input.merchantName} · ${amount}₫\n` +
+    `픽업: ${input.pickupWindow}\n` +
     `giucuu.com/ma-cua-toi`;
   await sendGiuPickupSms(input.phone, body);
 }
