@@ -86,11 +86,9 @@ function handleTopikLocale(request: NextRequest): NextResponse | null {
     const rest = pathname.slice("/topik/ko".length) || "";
     const url = request.nextUrl.clone();
     url.pathname = `/topik${rest}`;
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "topik");
-    requestHeaders.set("x-pathname", url.pathname);
-    requestHeaders.set("x-topik-locale", "ko");
-    const res = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    url.searchParams.delete("lang");
+    url.searchParams.delete("locale");
+    const res = NextResponse.redirect(url, 307);
     res.cookies.set(TOPIK_LOCALE_COOKIE, "ko", {
       path: "/topik",
       maxAge: 60 * 60 * 24 * 365,
