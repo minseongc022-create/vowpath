@@ -102,52 +102,121 @@ class AutopilotStatus:
     buffett: dict | None = None
 
 
-def us_equity_session() -> dict:
-    """Rough US cash-equity session (EDT/EST approx via UTC).
+def us_equity_session(now_utc: datetime | None = None) -> dict:
+    """US cash-equity RTH using America/New_York (handles EDT/EST + weekday correctly).
 
     buy_ok=False in first ~15m (open auction noise) and last ~30m (late chase).
     Stops/sells remain allowed whenever open=True.
     """
-    now = datetime.now(UTC)
-    # US Eastern ≈ UTC-4 (EDT) Mar–Nov; UTC-5 otherwise — use -4 for summer bias
-    # Regular: Mon–Fri 13:30–20:00 UTC (EDT)
-    weekday = now.weekday()  # 0=Mon
-    minutes = now.hour * 60 + now.minute
-    open_m, close_m = 13 * 60 + 30, 20 * 60
+    from zoneinfo import ZoneInfo
+
+    et = ZoneInfo("America/New_York")
+    kr = ZoneInfo("Asia/Seoul")
+    now_u = now_utc or datetime.now(UTC)
+    if now_u.tzinfo is None:
+        now_u = now_u.replace(tzinfo=UTC)
+    now_ny = now_u.astimezone(et)
+    now_kr = now_u.astimezone(kr)
+
+    day_ko = ["월", "화", "수", "목", "금", "토", "일"][now_ny.weekday()]
+    ny_clock = now_ny.strftime("%Y-%m-%d %H:%M")
+    kr_clock = now_kr.strftime("%H:%M")
+    date_bit = f"{day_ko}요일 {ny_clock} ET · 한국 {kr_clock}"
+
+    # Sparse major US cash-equity holidays (YYYY-MM-DD). Expand as needed.
+    holidays = {
+        "2026-01-01",
+        "2026-01-19",
+        "2026-02-16",
+        "2026-04-03",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-09-07",
+        "2026-11-26",
+        "2026-12-25",
+    }
+    ymd = now_ny.strftime("%Y-%m-%d")
+    weekday = now_ny.weekday()  # 0=Mon … 6=Sun, in New York
+    minutes = now_ny.hour * 60 + now_ny.minute
+    open_m, close_m = 9 * 60 + 30, 16 * 60
+
+    base = {
+        "ny_date": ymd,
+        "ny_weekday": weekday,
+        "ny_weekday_ko": f"{day_ko}요일",
+        "ny_time": now_ny.strftime("%H:%M"),
+        "kr_time": now_kr.strftime("%H:%M"),
+        "tz": "America/New_York",
+    }
+
     if weekday >= 5:
         return {
+            **base,
             "open": False,
             "buy_ok": False,
+            "phase": "weekend",
             "minutes_since_open": None,
             "minutes_to_close": None,
-            "label": "주말 · 미국 정규장 휴장",
-            "hint": "장은 닫혀 있어도 분석은 계속하고, 주문은 브로커/페이퍼 규칙에 따릅니다.",
+            "label": f"주말 휴장 · {date_bit}",
+            "hint": "토·일은 미국 정규장 휴장 · 스캔/분석만 계속 · 주문은 월요일 개장 후",
+        }
+    if ymd in holidays:
+        return {
+            **base,
+            "open": False,
+            "buy_ok": False,
+            "phase": "holiday",
+            "minutes_since_open": None,
+            "minutes_to_close": None,
+            "label": f"미국 휴장일 · {date_bit}",
+            "hint": "공휴일 · 스캔은 계속 · 다음 개장일에 주문",
         }
     if open_m <= minutes < close_m:
         since = minutes - open_m
         to_close = close_m - minutes
         buy_ok = since >= 15 and to_close >= 30
-        hint = "실시간 체결 가능한 시간대입니다."
-        if not buy_ok:
-            hint = (
-                "개장 직후/마감 직전 · 신규 매수 제한(노이즈·추격 방지) · "
-                "손절·익절 매도는 가능"
-            )
+        phase = "rth" if buy_ok else ("open_auction" if since < 15 else "late_session")
+        hint = f"정규장 · 매수 가능 · 마감까지 {to_close}분"
+        if not buy_ok and since < 15:
+            hint = "개장 직후 15분 · 신규 매수 제한(노이즈) · 손절·익절 매도는 가능"
+        elif not buy_ok:
+            hint = "마감 30분 전 · 신규 매수 제한(추격 방지) · 손절·익절 매도는 가능"
         return {
+            **base,
             "open": True,
             "buy_ok": buy_ok,
+            "phase": phase,
             "minutes_since_open": since,
             "minutes_to_close": to_close,
-            "label": "미국 정규장 개장중" + ("" if buy_ok else " · 매수창 외"),
+            "label": (
+                f"정규장 개장중 · {date_bit}"
+                if buy_ok
+                else f"정규장 · 매수창 외 · {date_bit}"
+            ),
             "hint": hint,
         }
+    if minutes < open_m:
+        mins_to_open = open_m - minutes
+        return {
+            **base,
+            "open": False,
+            "buy_ok": False,
+            "phase": "premarket",
+            "minutes_since_open": None,
+            "minutes_to_close": None,
+            "label": f"장전 · 개장 {mins_to_open}분 전 · {date_bit}",
+            "hint": "금요일/평일 장전 · 스캔·워치리스트 준비 · 09:30 ET 개장 후 주문",
+        }
     return {
+        **base,
         "open": False,
         "buy_ok": False,
+        "phase": "afterhours",
         "minutes_since_open": None,
         "minutes_to_close": None,
-        "label": "미국 정규장 휴장(장전/장후)",
-        "hint": "분석은 계속 · 주문은 대기/제한될 수 있습니다.",
+        "label": f"장후 휴장 · {date_bit}",
+        "hint": "정규장 종료(16:00 ET) · 스캔은 계속 · 다음 개장에 주문",
     }
 
 

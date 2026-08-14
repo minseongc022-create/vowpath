@@ -101,3 +101,43 @@ def test_us_session_has_buy_ok_keys():
     s = us_equity_session()
     assert "buy_ok" in s
     assert "open" in s
+    assert "ny_weekday_ko" in s
+    assert "phase" in s
+
+
+def test_us_session_friday_premarket_not_weekend():
+    from datetime import datetime, timezone
+
+    from oracle.execution.autopilot import us_equity_session
+
+    # Friday 2026-08-14 05:20 UTC = 01:20 ET Friday → premarket, NOT weekend
+    s = us_equity_session(datetime(2026, 8, 14, 5, 20, tzinfo=timezone.utc))
+    assert s["open"] is False
+    assert s["phase"] == "premarket"
+    assert s["ny_weekday_ko"] == "금요일"
+    assert "주말" not in s["label"]
+    assert "금요일" in s["label"]
+
+
+def test_us_session_friday_rth_open():
+    from datetime import datetime, timezone
+
+    from oracle.execution.autopilot import us_equity_session
+
+    # Friday 2026-08-14 15:00 UTC = 11:00 ET Friday → RTH open, buy_ok
+    s = us_equity_session(datetime(2026, 8, 14, 15, 0, tzinfo=timezone.utc))
+    assert s["open"] is True
+    assert s["buy_ok"] is True
+    assert s["phase"] == "rth"
+    assert "금요일" in s["label"]
+
+
+def test_us_session_saturday_weekend():
+    from datetime import datetime, timezone
+
+    from oracle.execution.autopilot import us_equity_session
+
+    s = us_equity_session(datetime(2026, 8, 8, 15, 0, tzinfo=timezone.utc))
+    assert s["open"] is False
+    assert s["phase"] == "weekend"
+    assert "주말" in s["label"]

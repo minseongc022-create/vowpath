@@ -371,8 +371,10 @@
     if (stCycle) stCycle.textContent = "#" + (j.cycle || 0);
     if (stMode) stMode.textContent = j.mode_ko || j.mode || "—";
     if (stMarket && j.market) {
-      stMarket.textContent = j.market.open ? "개장중" : (j.market.label || "휴장");
-      stMarket.title = j.market.hint || "";
+      stMarket.textContent = j.market.label || (j.market.open ? "개장중" : "휴장");
+      stMarket.title = [j.market.hint, j.market.ny_date, j.market.phase]
+        .filter(Boolean)
+        .join(" · ");
     }
     if (stNews) {
       const n = j.news || {};
