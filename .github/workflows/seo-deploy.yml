@@ -48,5 +48,20 @@ jobs:
           fi
           node scripts/porkbun-vowroad-forward.mjs
 
+      - name: Giu giucuu.com → Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          GIU_DOMAIN: giucuu.com
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Skip Giu domain — add Vercel secrets"
+            exit 0
+          fi
+          node scripts/giu-domain-setup.mjs
+
       - name: Verify redirects
         run: node scripts/seo-post-deploy.mjs

@@ -60,6 +60,49 @@ function isRootName(name) {
   return !name || name === "@" || name === DOMAIN;
 }
 
+function isWwwName(name) {
+  return name === "www" || name === `www.${DOMAIN}`;
+}
+
+async function clearPorkbunUrlForwards() {
+  const result = await porkbun(`/domain/getUrlForwarding/${DOMAIN}`);
+  if (result.status !== "SUCCESS") {
+    console.log(`○ ${DOMAIN} URL forwards:`, result.message ?? "none");
+    return true;
+  }
+
+  const forwards = result.forwards ?? [];
+  if (!forwards.length) {
+    console.log(`✓ ${DOMAIN} — no URL forwards`);
+    return true;
+  }
+
+  let ok = true;
+  for (const fwd of forwards) {
+    const id = fwd.id ?? fwd.record_id;
+    if (!id) continue;
+    const label = fwd.subdomain ? `${fwd.subdomain}.${DOMAIN}` : DOMAIN;
+    const del = await porkbun(`/domain/deleteUrlForward/${DOMAIN}/${id}`);
+    if (del.status === "SUCCESS") {
+      console.log(`✓ removed URL forward ${label} → ${fwd.location ?? "?"}`);
+    } else {
+      console.log(`✗ remove URL forward ${label}:`, del.message ?? del);
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+async function deletePorkbunRecord(record) {
+  const del = await porkbun(`/dns/delete/${DOMAIN}/${record.id}`);
+  if (del.status === "SUCCESS") {
+    console.log(`✓ deleted ${record.type} ${record.name || "@"} id=${record.id}`);
+    return true;
+  }
+  console.log(`✗ delete ${record.type} id=${record.id}:`, del.message ?? del);
+  return false;
+}
+
 async function linkVercelDomain(name) {
   const { ok, status, json } = await vercelApi(`/v10/projects/${projectId}/domains`, "POST", {
     name,
@@ -107,12 +150,8 @@ async function ensurePorkbunApex() {
   const conflicting = rootRecords.filter((r) =>
     ["A", "CNAME", "ALIAS"].includes(r.type),
   );
-  if (conflicting.length) {
-    console.log(`✗ ${DOMAIN} root has conflicting records — remove in Porkbun first:`);
-    for (const r of conflicting) {
-      console.log(`    ${r.type} id=${r.id} content=${r.content}`);
-    }
-    return false;
+  for (const r of conflicting) {
+    if (!(await deletePorkbunRecord(r))) return false;
   }
 
   const create = await porkbun(`/dns/create/${DOMAIN}`, {
@@ -144,7 +183,7 @@ async function ensurePorkbunWww() {
   if (result.status !== "SUCCESS") return false;
 
   const wwwHost = `www.${DOMAIN}`;
-  const records = (result.records ?? []).filter((r) => r.name === wwwHost || r.name === "www");
+  const records = (result.records ?? []).filter((r) => isWwwName(r.name));
 
   const cname = records.find(
     (r) =>
@@ -154,6 +193,11 @@ async function ensurePorkbunWww() {
   if (cname) {
     console.log(`✓ ${wwwHost} CNAME → ${VERCEL_CNAME} (id ${cname.id})`);
     return true;
+  }
+
+  const conflicting = records.filter((r) => ["A", "CNAME", "ALIAS"].includes(r.type));
+  for (const r of conflicting) {
+    if (!(await deletePorkbunRecord(r))) return false;
   }
 
   const create = await porkbun(`/dns/create/${DOMAIN}`, {
@@ -169,6 +213,37 @@ async function ensurePorkbunWww() {
   return false;
 }
 
+async function ensureVercelEnv(key, value) {
+  const qs = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
+  const list = await vercelApi(`/v10/projects/${projectId}/env${qs}`);
+  if (list.ok && Array.isArray(list.json?.envs)) {
+    const existing = list.json.envs.find((e) => e.key === key);
+    if (existing?.id) {
+      const { ok, json } = await vercelApi(
+        `/v10/projects/${projectId}/env/${existing.id}${qs}`,
+        "DELETE",
+      );
+      if (!ok) {
+        console.log(`✗ Vercel env delete ${key}:`, json?.error?.message ?? json);
+        return false;
+      }
+    }
+  }
+
+  const { ok, json } = await vercelApi(`/v10/projects/${projectId}/env${qs}`, "POST", {
+    key,
+    value,
+    type: "plain",
+    target: ["production", "preview", "development"],
+  });
+  if (ok) {
+    console.log(`✓ Vercel env ${key}=${value}`);
+    return true;
+  }
+  console.log(`✗ Vercel env ${key}:`, json?.error?.message ?? json);
+  return false;
+}
+
 async function main() {
   console.log(`\n=== Giu domain setup (${DOMAIN}) ===\n`);
 
@@ -180,12 +255,16 @@ async function main() {
       total++;
       if (await linkVercelDomain(name)) ok++;
     }
+    total += 2;
+    if (await ensureVercelEnv("NEXT_PUBLIC_GIU_URL", `https://${DOMAIN}`)) ok++;
+    if (await ensureVercelEnv("NEXT_PUBLIC_GIU_HOST", DOMAIN)) ok++;
   } else {
     console.log("○ Skip Vercel — set VERCEL_TOKEN + VERCEL_PROJECT_ID");
   }
 
   if (apiKey && secretKey) {
-    total += 2;
+    total += 3;
+    if (await clearPorkbunUrlForwards()) ok++;
     if (await ensurePorkbunApex()) ok++;
     if (await ensurePorkbunWww()) ok++;
   } else {
