@@ -53,6 +53,11 @@ export function ReserveForm({ boxId, salePriceVnd }: { boxId: string; salePriceV
         return;
       }
 
+      if (data.mode === "stripe" && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
       if (data.code && data.id) {
         setSuccessCode(data.code);
         setReservationId(data.id);

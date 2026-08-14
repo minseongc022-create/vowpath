@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
+import { giuPaymentStatus } from "@/giu/lib/payments";
+import { createGiuStripeCheckout } from "@/giu/lib/stripe";
 import {
   buildVnpayPaymentUrl,
   clientIpFromRequest,
   isGiuPaymentDemo,
-  isVnpayConfigured,
 } from "@/giu/lib/vnpay";
-import { initiateReservationPayment, listReservations } from "@/giu/lib/store";
+import { getBox, initiateReservationPayment, listReservations } from "@/giu/lib/store";
 
 const createSchema = z.object({
   boxId: z.string().min(1),
@@ -88,6 +89,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    const paymentMeta = giuPaymentStatus();
+
     if (result.mode === "demo") {
       return NextResponse.json(
         {
@@ -95,8 +98,32 @@ export async function POST(request: Request) {
           id: result.reservation.id,
           code: result.reservation.code,
           reservation: result.reservation,
-          paymentConfigured: isVnpayConfigured(),
+          payment: paymentMeta,
           demo: isGiuPaymentDemo(),
+        },
+        { status: 201 },
+      );
+    }
+
+    if (result.mode === "stripe") {
+      const box = (await getBox(result.box.id)) ?? result.box;
+      const checkout = await createGiuStripeCheckout({
+        reservationId: result.reservation.id,
+        code: result.reservation.code,
+        boxTitle: box.title,
+        amountVnd: result.reservation.totalVnd,
+        customerEmail: session.email,
+        successUrl: `${origin}/api/giu/payments/stripe/return?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${origin}/hop?pay=cancelled&ref=${result.reservation.id}`,
+      });
+
+      return NextResponse.json(
+        {
+          mode: "stripe",
+          id: result.reservation.id,
+          paymentUrl: checkout.url,
+          reservation: result.reservation,
+          payment: paymentMeta,
         },
         { status: 201 },
       );
@@ -108,10 +135,12 @@ export async function POST(request: Request) {
         id: result.reservation.id,
         paymentUrl: result.paymentUrl,
         reservation: result.reservation,
+        payment: paymentMeta,
       },
       { status: 201 },
     );
-  } catch {
+  } catch (e) {
+    console.error("[giu/reservations] POST failed", e);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

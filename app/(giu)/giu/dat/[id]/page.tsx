@@ -28,7 +28,7 @@ export default async function GiuReservationPage({ params }: Props) {
         <div className="giu-card space-y-3">
           <span className="giu-badge-safe bg-amber-50 text-amber-700">결제 대기</span>
           <p className="text-sm text-giu-muted">
-            VNPay 결제를 완료하면 코드를 받을 수 있습니다. 이미 결제했다면 잠시 후 새로고침하세요.
+            결제를 완료하면 코드를 받을 수 있습니다. 이미 결제했다면 잠시 후 새로고침하세요.
           </p>
         </div>
       ) : paid ? (

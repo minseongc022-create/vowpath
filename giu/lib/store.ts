@@ -21,7 +21,7 @@ import type {
 } from "./types";
 import { notifyPickupCode } from "./notify";
 import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
-import { isGiuPaymentDemo } from "./vnpay";
+import { resolveGiuPaymentBackend } from "./payments";
 import {
   SEED_BOXES,
   SEED_CO2_KG,
@@ -483,6 +483,11 @@ export type InitiateReservationResult =
       box: GiuBox;
       paymentUrl: string;
     }
+  | {
+      mode: "stripe";
+      reservation: GiuReservation;
+      box: GiuBox;
+    }
   | { error: string };
 
 export async function initiateReservationPayment(input: {
@@ -535,7 +540,9 @@ export async function initiateReservationPayment(input: {
   store.reservations.unshift(reservation);
   await saveStore(store);
 
-  if (isGiuPaymentDemo()) {
+  const backend = resolveGiuPaymentBackend();
+
+  if (backend === "demo") {
     const confirmed = await confirmReservationPayment(
       reservation.id,
       `demo_${randomBytes(4).toString("hex")}`,
@@ -547,6 +554,10 @@ export async function initiateReservationPayment(input: {
       reservation: confirmed,
       box: updatedBox ?? box,
     };
+  }
+
+  if (backend === "stripe") {
+    return { mode: "stripe", reservation, box };
   }
 
   const paymentUrl = input.paymentUrlBuilder(reservation, totalVnd);
