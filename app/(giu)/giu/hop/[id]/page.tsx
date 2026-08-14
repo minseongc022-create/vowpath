@@ -42,6 +42,12 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             <p className="mt-4 text-giu-muted">{box.description}</p>
           ) : null}
 
+          {box.freshnessNote ? (
+            <p className="mt-3 rounded-xl bg-giu-surface px-3 py-2 text-sm text-giu-primary">
+              {box.freshnessNote}
+            </p>
+          ) : null}
+
           <div className="mt-6 flex items-baseline gap-3">
             <span className="text-3xl font-bold text-giu-primary">
               {formatVnd(box.salePriceVnd)}

@@ -3,7 +3,7 @@ import type { GiuBox, GiuMerchant } from "./types";
 
 const { start, end, expires } = defaultPickupWindow();
 
-export const SEED_MERCHANTS: GiuMerchant[] = [
+const SEED_MERCHANTS_RAW: Omit<GiuMerchant, "accountId" | "market">[] = [
   {
     id: "mer_seed_001",
     name: "Bánh Mì Huynh Hoa",
@@ -178,6 +178,12 @@ export const SEED_MERCHANTS: GiuMerchant[] = [
     createdAt: "2025-09-22T08:00:00.000Z",
   },
 ];
+
+export const SEED_MERCHANTS: GiuMerchant[] = SEED_MERCHANTS_RAW.map((m) => ({
+  ...m,
+  accountId: `acc_${m.id}`,
+  market: "vn" as const,
+}));
 
 export const SEED_BOXES: GiuBox[] = [
   {

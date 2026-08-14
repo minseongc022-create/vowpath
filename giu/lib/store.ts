@@ -3,10 +3,17 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { kv } from "@vercel/kv";
 import { kvGetSafe } from "@/lib/kv-safe";
+import { hashPassword, verifyPassword } from "@/lib/auth-password";
+import { GIU_BRAND } from "./brand";
 import type {
+  GiuAccount,
+  GiuAccountRole,
   GiuBox,
   GiuBoxStatus,
+  GiuCategory,
+  GiuMarket,
   GiuMerchant,
+  GiuPaymentMethod,
   GiuReservation,
   GiuReservationStatus,
   GiuStore,
@@ -39,22 +46,51 @@ function reservationCode(): string {
   return randomBytes(3).toString("hex").toUpperCase();
 }
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/\s/g, "");
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 function defaultStore(): GiuStore {
   return {
     merchants: [...SEED_MERCHANTS],
     boxes: [...SEED_BOXES],
     reservations: [],
     waitlist: [],
+    accounts: [],
+  };
+}
+
+function migrateMerchant(merchant: GiuMerchant): GiuMerchant {
+  return {
+    ...merchant,
+    accountId: merchant.accountId ?? `acc_legacy_${merchant.id}`,
+    market: merchant.market ?? "vn",
+  };
+}
+
+function migrateReservation(reservation: GiuReservation): GiuReservation {
+  return {
+    ...reservation,
+    customerId: reservation.customerId ?? "legacy",
+    paymentStatus: reservation.paymentStatus ?? "paid",
+    platformFeeVnd:
+      reservation.platformFeeVnd ??
+      Math.round(reservation.totalVnd * GIU_BRAND.commissionRate),
   };
 }
 
 function normalizeStore(raw: Partial<GiuStore>): GiuStore {
   const base = defaultStore();
   return {
-    merchants: raw.merchants?.length ? raw.merchants : base.merchants,
+    merchants: (raw.merchants?.length ? raw.merchants : base.merchants).map(migrateMerchant),
     boxes: raw.boxes?.length ? raw.boxes : base.boxes,
-    reservations: raw.reservations ?? [],
+    reservations: (raw.reservations ?? []).map(migrateReservation),
     waitlist: raw.waitlist ?? [],
+    accounts: raw.accounts ?? [],
   };
 }
 
@@ -96,6 +132,130 @@ export async function getGiuStore(): Promise<GiuStore> {
   return loadStore();
 }
 
+export async function getAccountById(id: string): Promise<GiuAccount | null> {
+  const store = await loadStore();
+  return store.accounts.find((a) => a.id === id) ?? null;
+}
+
+export async function getAccountByEmail(email: string): Promise<GiuAccount | null> {
+  const store = await loadStore();
+  const normalized = normalizeEmail(email);
+  return store.accounts.find((a) => a.email === normalized) ?? null;
+}
+
+export async function registerCustomer(input: {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  market?: GiuMarket;
+}): Promise<{ account: GiuAccount } | { error: string }> {
+  const store = await loadStore();
+  const email = normalizeEmail(input.email);
+  if (store.accounts.some((a) => a.email === email)) {
+    return { error: "Email đã được đăng ký" };
+  }
+  const phone = normalizePhone(input.phone);
+  if (store.accounts.some((a) => a.phone === phone)) {
+    return { error: "Số điện thoại đã được đăng ký" };
+  }
+  const account: GiuAccount = {
+    id: newId("acc"),
+    role: "customer",
+    email,
+    phone,
+    passwordHash: await hashPassword(input.password),
+    name: input.name.trim(),
+    market: input.market ?? "vn",
+    createdAt: new Date().toISOString(),
+  };
+  store.accounts.unshift(account);
+  await saveStore(store);
+  return { account };
+}
+
+export async function registerMerchantAccount(input: {
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  category: GiuMerchant["category"];
+  district: GiuMerchant["district"];
+  address: string;
+  zalo?: string;
+  market?: GiuMarket;
+}): Promise<{ account: GiuAccount; merchant: GiuMerchant } | { error: string }> {
+  const store = await loadStore();
+  const email = normalizeEmail(input.email);
+  if (store.accounts.some((a) => a.email === email)) {
+    return { error: "Email đã được đăng ký" };
+  }
+  const phone = normalizePhone(input.phone);
+  if (store.accounts.some((a) => a.phone === phone)) {
+    return { error: "Số điện thoại đã được đăng ký" };
+  }
+  if (store.merchants.some((m) => normalizePhone(m.phone) === phone)) {
+    return { error: "Quán với SĐT này đã tồn tại — hãy đăng nhập" };
+  }
+
+  const account: GiuAccount = {
+    id: newId("acc"),
+    role: "merchant",
+    email,
+    phone,
+    passwordHash: await hashPassword(input.password),
+    name: input.name.trim(),
+    market: input.market ?? "vn",
+    createdAt: new Date().toISOString(),
+  };
+
+  let slug = slugify(input.name);
+  if (store.merchants.some((m) => m.slug === slug)) {
+    slug = `${slug}-${randomBytes(2).toString("hex")}`;
+  }
+
+  const merchant: GiuMerchant = {
+    id: newId("mer"),
+    accountId: account.id,
+    name: input.name.trim(),
+    slug,
+    category: input.category,
+    district: input.district,
+    address: input.address.trim(),
+    phone,
+    zalo: input.zalo?.trim(),
+    verified: false,
+    rating: 0,
+    reviewCount: 0,
+    rescuedBoxes: 0,
+    market: input.market ?? "vn",
+    createdAt: new Date().toISOString(),
+  };
+
+  account.merchantId = merchant.id;
+  store.accounts.unshift(account);
+  store.merchants.unshift(merchant);
+  await saveStore(store);
+  return { account, merchant };
+}
+
+export async function loginAccount(input: {
+  email: string;
+  password: string;
+  role?: GiuAccountRole;
+}): Promise<{ account: GiuAccount } | { error: string }> {
+  const store = await loadStore();
+  const email = normalizeEmail(input.email);
+  const account = store.accounts.find((a) => a.email === email);
+  if (!account) return { error: "Email hoặc mật khẩu không đúng" };
+  if (input.role && account.role !== input.role) {
+    return { error: "Tài khoản không đúng loại đăng nhập" };
+  }
+  const ok = await verifyPassword(input.password, account.passwordHash);
+  if (!ok) return { error: "Email hoặc mật khẩu không đúng" };
+  return { account };
+}
+
 export async function listMerchants(filters?: {
   district?: string;
   category?: string;
@@ -113,16 +273,30 @@ export async function getMerchant(id: string): Promise<GiuMerchant | null> {
   return store.merchants.find((m) => m.id === id) ?? null;
 }
 
-export async function getMerchantByPhone(phone: string): Promise<GiuMerchant | null> {
+export async function getMerchantByAccountId(accountId: string): Promise<GiuMerchant | null> {
   const store = await loadStore();
-  const normalized = phone.replace(/\s/g, "");
-  return store.merchants.find((m) => m.phone.replace(/\s/g, "") === normalized) ?? null;
+  return store.merchants.find((m) => m.accountId === accountId) ?? null;
 }
 
+export async function getMerchantByPhone(phone: string): Promise<GiuMerchant | null> {
+  const store = await loadStore();
+  const normalized = normalizePhone(phone);
+  return store.merchants.find((m) => normalizePhone(m.phone) === normalized) ?? null;
+}
+
+/** @deprecated Use registerMerchantAccount */
 export async function createMerchant(
   input: Omit<
     GiuMerchant,
-    "id" | "slug" | "verified" | "rating" | "reviewCount" | "rescuedBoxes" | "createdAt"
+    | "id"
+    | "slug"
+    | "accountId"
+    | "verified"
+    | "rating"
+    | "reviewCount"
+    | "rescuedBoxes"
+    | "market"
+    | "createdAt"
   >,
 ): Promise<GiuMerchant> {
   const store = await loadStore();
@@ -133,11 +307,13 @@ export async function createMerchant(
   const merchant: GiuMerchant = {
     ...input,
     id: newId("mer"),
+    accountId: `acc_legacy_${randomBytes(4).toString("hex")}`,
     slug,
     verified: false,
     rating: 0,
     reviewCount: 0,
     rescuedBoxes: 0,
+    market: "vn",
     createdAt: new Date().toISOString(),
   };
   store.merchants.unshift(merchant);
@@ -193,10 +369,22 @@ export async function createBox(
   return box;
 }
 
-export async function createReservation(input: {
+async function processPayment(
+  method: GiuPaymentMethod,
+  amountVnd: number,
+): Promise<{ ok: true; paymentId: string } | { ok: false; error: string }> {
+  if (amountVnd < 5000) return { ok: false, error: "Số tiền không hợp lệ" };
+  // MVP: instant success. Production hooks MoMo / VNPay / Stripe here.
+  void method;
+  return { ok: true, paymentId: `pay_${randomBytes(6).toString("hex")}` };
+}
+
+export async function createPaidReservation(input: {
   boxId: string;
+  customerId: string;
   customerName: string;
   customerPhone: string;
+  paymentMethod: GiuPaymentMethod;
   quantity?: number;
 }): Promise<{ reservation: GiuReservation; box: GiuBox } | { error: string }> {
   const store = await loadStore();
@@ -208,18 +396,28 @@ export async function createReservation(input: {
   const qty = input.quantity ?? 1;
   if (qty > box.quantityLeft) return { error: "Không đủ số lượng" };
 
+  const totalVnd = box.salePriceVnd * qty;
+  const payment = await processPayment(input.paymentMethod, totalVnd);
+  if (!payment.ok) return { error: payment.error };
+
   const holdMinutes = 60;
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000).toISOString();
+  const platformFeeVnd = Math.round(totalVnd * GIU_BRAND.commissionRate);
 
   const reservation: GiuReservation = {
     id: newId("res"),
     boxId: box.id,
     merchantId: box.merchantId,
+    customerId: input.customerId,
     code: reservationCode(),
     customerName: input.customerName,
     customerPhone: input.customerPhone,
     quantity: qty,
-    totalVnd: box.salePriceVnd * qty,
+    totalVnd,
+    platformFeeVnd,
+    paymentStatus: "paid",
+    paymentMethod: input.paymentMethod,
+    paidAt: new Date().toISOString(),
     status: "giu_cho",
     createdAt: new Date().toISOString(),
     expiresAt,
@@ -231,6 +429,23 @@ export async function createReservation(input: {
   store.reservations.unshift(reservation);
   await saveStore(store);
   return { reservation, box };
+}
+
+/** @deprecated Use createPaidReservation with auth */
+export async function createReservation(input: {
+  boxId: string;
+  customerName: string;
+  customerPhone: string;
+  quantity?: number;
+}): Promise<{ reservation: GiuReservation; box: GiuBox } | { error: string }> {
+  return createPaidReservation({
+    boxId: input.boxId,
+    customerId: "legacy",
+    customerName: input.customerName,
+    customerPhone: input.customerPhone,
+    paymentMethod: "vietqr",
+    quantity: input.quantity,
+  });
 }
 
 export async function getReservation(id: string): Promise<GiuReservation | null> {
@@ -247,6 +462,7 @@ export async function getReservationByCode(code: string): Promise<GiuReservation
 
 export async function listReservations(filters?: {
   phone?: string;
+  customerId?: string;
   merchantId?: string;
   boxId?: string;
 }): Promise<GiuReservation[]> {
@@ -254,6 +470,7 @@ export async function listReservations(filters?: {
   return store.reservations
     .filter((r) => {
       if (filters?.phone && r.customerPhone !== filters.phone) return false;
+      if (filters?.customerId && r.customerId !== filters.customerId) return false;
       if (filters?.merchantId && r.merchantId !== filters.merchantId) return false;
       if (filters?.boxId && r.boxId !== filters.boxId) return false;
       return true;
@@ -287,6 +504,7 @@ export async function cancelReservation(id: string): Promise<GiuReservation | nu
     if (box.status === "het" && box.quantityLeft > 0) box.status = "mo";
   }
   res.status = "huy";
+  if (res.paymentStatus === "paid") res.paymentStatus = "refunded";
   await saveStore(store);
   return res;
 }
@@ -322,6 +540,7 @@ export async function getGiuStats() {
     co2Kg: SEED_CO2_KG + rescuedFromDb * 2.5,
     savedVnd: SEED_SAVED_VND + savedFromDb,
     waitlist: store.waitlist.length,
+    customers: store.accounts.filter((a) => a.role === "customer").length,
   };
 }
 

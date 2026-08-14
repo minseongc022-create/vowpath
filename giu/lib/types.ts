@@ -1,3 +1,5 @@
+export type GiuMarket = "vn" | "kr";
+
 export type GiuDistrict =
   | "quan_1"
   | "quan_3"
@@ -14,14 +16,34 @@ export type GiuCategory =
   | "nha_hang"
   | "tap_hoa"
   | "tra_sua"
-  | "hoa";
+  | "hoa"
+  | "khac";
 
 export type GiuBoxStatus = "mo" | "het" | "huy";
 
 export type GiuReservationStatus = "giu_cho" | "da_lay" | "het_han" | "huy";
 
+export type GiuPaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
+export type GiuPaymentMethod = "momo" | "vietqr" | "card";
+
+export type GiuAccountRole = "customer" | "merchant";
+
+export type GiuAccount = {
+  id: string;
+  role: GiuAccountRole;
+  email: string;
+  phone: string;
+  passwordHash: string;
+  name: string;
+  merchantId?: string;
+  market: GiuMarket;
+  createdAt: string;
+};
+
 export type GiuMerchant = {
   id: string;
+  accountId: string;
   name: string;
   slug: string;
   category: GiuCategory;
@@ -34,6 +56,7 @@ export type GiuMerchant = {
   rating: number;
   reviewCount: number;
   rescuedBoxes: number;
+  market: GiuMarket;
   createdAt: string;
 };
 
@@ -49,6 +72,7 @@ export type GiuBox = {
   quantityLeft: number;
   pickupStart: string;
   pickupEnd: string;
+  freshnessNote?: string;
   status: GiuBoxStatus;
   createdAt: string;
   expiresAt: string;
@@ -58,11 +82,16 @@ export type GiuReservation = {
   id: string;
   boxId: string;
   merchantId: string;
+  customerId: string;
   code: string;
   customerName: string;
   customerPhone: string;
   quantity: number;
   totalVnd: number;
+  platformFeeVnd: number;
+  paymentStatus: GiuPaymentStatus;
+  paymentMethod?: GiuPaymentMethod;
+  paidAt?: string;
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;
@@ -80,4 +109,5 @@ export type GiuStore = {
   boxes: GiuBox[];
   reservations: GiuReservation[];
   waitlist: GiuWaitlistEntry[];
+  accounts: GiuAccount[];
 };

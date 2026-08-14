@@ -25,6 +25,9 @@ export default async function GiuReservationPage({ params }: Props) {
         {reservation.code}
       </p>
       <p className="mt-2 text-giu-muted">Đọc mã này tại quán để nhận hộp</p>
+      {reservation.paymentStatus === "paid" ? (
+        <p className="mt-1 text-sm font-medium text-green-700">✓ Đã thanh toán</p>
+      ) : null}
 
       <div className="mt-8 rounded-2xl border border-giu-border bg-white p-6 text-left">
         {merchant ? (

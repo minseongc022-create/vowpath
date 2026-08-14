@@ -12,6 +12,7 @@ export function CancelReservationButton({ reservationId }: { reservationId: stri
     await fetch(`/api/giu/reservations/${reservationId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ status: "huy" }),
     });
     router.refresh();

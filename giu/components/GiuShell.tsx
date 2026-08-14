@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GIU_STRINGS } from "@/giu/lib/strings";
+import { useGiuAuth } from "./GiuAuthProvider";
 
 function navClass(active: boolean): string {
   return active
@@ -19,6 +20,7 @@ const NAV = [
 
 export function GiuHeader() {
   const pathname = usePathname();
+  const { account, loading, logout } = useGiuAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-giu-border/80 bg-white/90 backdrop-blur-md">
@@ -49,12 +51,35 @@ export function GiuHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/giu/cua-hang"
-            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-giu-muted hover:text-giu-ink sm:inline-flex"
-          >
-            {GIU_STRINGS.ctaMerchant}
-          </Link>
+          {!loading && account ? (
+            <>
+              <span className="hidden max-w-[120px] truncate text-xs text-giu-muted sm:inline">
+                {account.name}
+              </span>
+              {account.role === "merchant" ? (
+                <Link
+                  href="/giu/cua-hang/panel"
+                  className="hidden rounded-lg px-3 py-2 text-sm font-medium text-giu-muted hover:text-giu-ink sm:inline-flex"
+                >
+                  Panel
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="hidden rounded-lg px-3 py-2 text-sm text-giu-muted hover:text-giu-ink sm:inline-flex"
+              >
+                Thoát
+              </button>
+            </>
+          ) : !loading ? (
+            <Link
+              href="/giu/dang-nhap"
+              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-giu-muted hover:text-giu-ink sm:inline-flex"
+            >
+              Đăng nhập
+            </Link>
+          ) : null}
           <Link
             href="/giu/hop"
             className="rounded-xl bg-giu-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-giu-accent-hover"

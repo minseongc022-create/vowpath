@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MerchantSignupForm } from "@/giu/components/MerchantSignupForm";
+import { MerchantSignupForm } from "@/giu/components/MerchantAuthForms";
 import { MerchantCard } from "@/giu/components/MerchantCard";
 import { listMerchants } from "@/giu/lib/store";
 import { GIU_STRINGS } from "@/giu/lib/strings";
@@ -14,16 +14,16 @@ export default async function GiuMerchantsPage() {
           <h1 className="text-3xl font-bold text-giu-ink">{GIU_STRINGS.merchantTitle}</h1>
           <p className="mt-3 text-giu-muted">{GIU_STRINGS.merchantSubtitle}</p>
           <ul className="mt-6 space-y-3 text-sm text-giu-muted">
-            <li>✓ Đăng quán & đăng hộp miễn phí</li>
-            <li>✓ Khách giữ chỗ qua mã — tới quán trả tiền</li>
+            <li>✓ Đăng ký quán với email + mật khẩu</li>
+            <li>✓ Đăng mọi loại món — giữ tươi đến giờ khách lấy</li>
+            <li>✓ Khách thanh toán trước — bạn yên tâm, nhận mã tại quán</li>
             <li>✓ Phí nền tảng 12% chỉ khi giao dịch thành công</li>
-            <li>✓ VietQR / tiền mặt tại quán</li>
           </ul>
           <Link
-            href="/giu/cua-hang/panel"
+            href="/giu/cua-hang/dang-nhap"
             className="mt-6 inline-block text-sm font-semibold text-giu-primary"
           >
-            Đã có quán? Vào panel →
+            Đã có quán? Đăng nhập →
           </Link>
         </div>
         <MerchantSignupForm />

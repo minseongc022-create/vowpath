@@ -12,6 +12,7 @@ export const GIu_CATEGORIES: {
   { id: "nha_hang", label: "Nhà hàng", emoji: "🍜" },
   { id: "tap_hoa", label: "Tạp hóa", emoji: "🏪" },
   { id: "hoa", label: "Hoa tươi", emoji: "💐" },
+  { id: "khac", label: "Món khác", emoji: "🍱" },
 ];
 
 export function getCategoryLabel(id: GiuCategory): string {
