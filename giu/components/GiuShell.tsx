@@ -73,11 +73,6 @@ export function GiuFooter() {
       <div className="mx-auto max-w-6xl px-4 text-center text-sm text-giu-muted">
         <p>{GIU_STRINGS.footer}</p>
         <p className="mt-1">{GIU_STRINGS.commissionNote}</p>
-        <p className="mt-3 print:hidden">
-          <Link href="/giu/ban-hang" className="text-xs text-giu-muted/70 hover:text-giu-primary">
-            Sales kit
-          </Link>
-        </p>
       </div>
     </footer>
   );
