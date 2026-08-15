@@ -37,7 +37,7 @@ export const GIU_STRINGS = {
     "결제 금액은 Giu가 안전하게 보관합니다.",
   payCta: "안전 결제 & 코드 받기",
   navHome: "홈",
-  navBoxes: "구출",
+  navBoxes: "지도",
   navFavorites: "즐겨찾기",
   navMerchants: "가게",
   navMy: "내 코드",
