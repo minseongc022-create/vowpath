@@ -6,6 +6,7 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import { GIU_STRINGS } from "@/giu/lib/strings";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
+import { GiuLocaleToggle } from "./GiuLocaleProvider";
 
 export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -30,6 +31,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex items-center gap-2">
+            <GiuLocaleToggle />
             {!loading && account ? (
               <button
                 type="button"

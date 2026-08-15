@@ -99,6 +99,8 @@ export type GiuReservation = {
   paymentId?: string;
   paidAt?: string;
   paymentExpiresAt?: string;
+  /** True when Twilio SMS was actually sent; false/undefined if skipped or failed. */
+  smsSent?: boolean;
   settlementStatus?: GiuSettlementStatus;
   settledAt?: string;
   status: GiuReservationStatus;

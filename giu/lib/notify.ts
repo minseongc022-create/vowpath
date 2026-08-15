@@ -44,14 +44,14 @@ export async function notifyPickupCode(input: {
   merchantName: string;
   totalVnd: number;
   pickupWindow: string;
-}): Promise<void> {
-  const amount = new Intl.NumberFormat("ko-KR").format(input.totalVnd);
+}): Promise<{ ok: boolean; skipped?: boolean }> {
+  const amount = new Intl.NumberFormat("vi-VN").format(input.totalVnd);
   const body =
-    `[Giu] 구출 코드: ${input.code}\n` +
+    `[Giu] Mã cứu đồ: ${input.code}\n` +
     `${input.merchantName} · ${amount}₫\n` +
-    `픽업: ${input.pickupWindow}\n` +
+    `Nhận: ${input.pickupWindow}\n` +
     `giucuu.com/ma-cua-toi`;
-  await sendGiuPickupSms(input.phone, body);
+  return sendGiuPickupSms(input.phone, body);
 }
 
 function isGiuSmsPreview(): boolean {

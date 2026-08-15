@@ -32,6 +32,8 @@ export function ReserveForm({
   const [error, setError] = useState("");
   const [successCode, setSuccessCode] = useState<string | null>(null);
   const [reservationId, setReservationId] = useState<string | null>(null);
+  const [smsSent, setSmsSent] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const useLsCheckout = checkoutBackend === "lemon_squeezy";
   const useVnpayCheckout = checkoutBackend === "vnpay";
@@ -48,6 +50,7 @@ export function ReserveForm({
         credentials: "include",
         body: JSON.stringify({
           boxId,
+          quantity,
           paymentMethod: useVnpayCheckout ? paymentMethod : "card",
         }),
       });
@@ -57,6 +60,7 @@ export function ReserveForm({
         paymentUrl?: string;
         mode?: string;
         error?: string;
+        reservation?: { smsSent?: boolean };
       };
       if (!res.ok) {
         setError(data.error ?? "오류가 발생했습니다");
@@ -74,6 +78,7 @@ export function ReserveForm({
       if (data.code && data.id) {
         setSuccessCode(data.code);
         setReservationId(data.id);
+        setSmsSent(Boolean(data.reservation?.smsSent));
         router.refresh();
       }
     } catch {
@@ -109,7 +114,9 @@ export function ReserveForm({
       <div className="giu-card space-y-4 text-center">
         <span className="giu-badge-safe">결제 완료</span>
         <p className="font-mono text-4xl font-extrabold tracking-[0.2em] text-giu-ink">{successCode}</p>
-        <p className="text-sm text-giu-muted">구출 코드 · SMS 발송됨</p>
+        <p className="text-sm text-giu-muted">
+          {smsSent ? "구출 코드 · SMS 발송됨" : "구출 코드 · 앱에서 확인하세요"}
+        </p>
         <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
           상세 보기
         </Link>
@@ -138,6 +145,28 @@ export function ReserveForm({
       <div className="giu-info-banner">
         <p className="font-semibold text-giu-primary">{GIU_STRINGS.escrowTitle}</p>
         <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
+      </div>
+
+      <div>
+        <p className="giu-label">수량</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+          >
+            −
+          </button>
+          <span className="w-8 text-center font-semibold">{quantity}</span>
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+            onClick={() => setQuantity((q) => Math.min(5, q + 1))}
+          >
+            +
+          </button>
+          <span className="text-sm text-giu-muted">{formatVnd(salePriceVnd * quantity)}</span>
+        </div>
       </div>
 
       {useVnpayCheckout ? (

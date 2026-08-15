@@ -427,16 +427,49 @@ export async function confirmReservationPayment(
     store.merchants.find((m) => m.id === res.merchantId),
   ];
   if (box && merchant) {
-    await notifyPickupCode({
+    const sms = await notifyPickupCode({
       phone: res.customerPhone,
       code: res.code,
       merchantName: merchant.name,
       totalVnd: res.totalVnd,
       pickupWindow: formatPickupWindow(box.pickupStart, box.pickupEnd),
     });
+    res.smsSent = Boolean(sms.ok && !sms.skipped);
+    await saveStore(store);
   }
 
   return res;
+}
+
+export async function updateBox(
+  boxId: string,
+  patch: Partial<
+    Pick<
+      GiuBox,
+      | "title"
+      | "description"
+      | "freshnessNote"
+      | "status"
+      | "quantityLeft"
+      | "quantityTotal"
+      | "salePriceVnd"
+      | "originalPriceVnd"
+      | "pickupStart"
+      | "pickupEnd"
+      | "expiresAt"
+    >
+  >,
+): Promise<GiuBox | null> {
+  const store = await loadStore();
+  const box = store.boxes.find((b) => b.id === boxId);
+  if (!box) return null;
+  Object.assign(box, patch);
+  if (box.quantityLeft <= 0 && box.status === "mo") box.status = "het";
+  if (box.quantityLeft > 0 && box.status === "het" && patch.status !== "huy") {
+    box.status = "mo";
+  }
+  await saveStore(store);
+  return box;
 }
 
 export async function expireStaleGiuReservations(): Promise<{
