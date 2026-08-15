@@ -10,6 +10,7 @@ import {
   formatVnd,
 } from "@/giu/lib/format";
 import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
+import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -23,6 +24,8 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
   const soldOut = box.status !== "mo" || box.quantityLeft <= 0;
   const checkoutBackend = resolveGiuPaymentBackend();
+  const mapsUrl = googleMapsSearchUrl(merchant.address);
+  const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
 
   return (
     <div className="giu-page space-y-5">
@@ -40,6 +43,9 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             <p className="mt-1 text-sm text-giu-muted">{merchant.name}</p>
             <p className="text-xs text-giu-muted">
               {getCategoryLabel(box.category)} · {getDistrictLabel(merchant.district)}
+              {merchant.reviewCount > 0
+                ? ` · ★ ${merchant.rating.toFixed(1)} (${merchant.reviewCount})`
+                : ""}
             </p>
           </div>
         </div>
@@ -68,6 +74,17 @@ export default async function GiuBoxDetailPage({ params }: Props) {
               <span className="max-w-[60%] text-right font-medium text-giu-ink">{value}</span>
             </div>
           ))}
+        </div>
+
+        <div className="flex flex-wrap gap-3 text-sm font-semibold">
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+            지도에서 보기
+          </a>
+          {zaloUrl ? (
+            <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+              Zalo로 문의
+            </a>
+          ) : null}
         </div>
       </div>
 

@@ -1,0 +1,124 @@
+export type GiuLocale = "ko" | "vi";
+
+export const GIU_LOCALE_COOKIE = "giu-locale";
+
+export function normalizeGiuLocale(value: string | null | undefined): GiuLocale {
+  return value === "vi" ? "vi" : "ko";
+}
+
+type Dict = Record<string, string>;
+
+const KO: Dict = {
+  boxes: "구출 박스",
+  goldenHour: "골든타임 19~21시 — 가게 마감 시간",
+  emptyBoxes: "현재 열린 박스가 없습니다",
+  emptyBoxesHint: "전화번호를 남겨주세요 — 근처에 박스가 생기면 알려드릴게요.",
+  payCta: "안전 결제 & 코드 받기",
+  payCardPaypal: "카드 · PayPal로 결제",
+  escrowTitle: "Giu 안전 결제",
+  escrowDesc:
+    "금액은 Giu가 안전하게 보관합니다. 가게가 픽업을 확인하면 → 가게에 정산됩니다.",
+  loginSignup: "로그인 / 회원가입",
+  loading: "불러오는 중...",
+  payPending: "결제 대기",
+  payPendingHint:
+    "결제를 완료하면 코드를 받을 수 있습니다. 이미 결제했다면 잠시만 기다려 주세요.",
+  pickupCode: "구출 코드",
+  showCode: "가게에서 이 코드를 보여주고 박스를 받으세요",
+  paidSms: "✓ 결제 완료 · SMS 발송됨",
+  paidAppOnly: "✓ 결제 완료 · 앱에서 코드를 확인하세요",
+  settleHeld: "금액은 Giu가 안전하게 보관합니다. 가게가 픽업을 확인하면 → 가게에 정산됩니다.",
+  settleReleased: "픽업 완료 · 가게에 정산됨",
+  payFailed: "결제 실패 또는 취소되었습니다.",
+  total: "합계",
+  pickup: "픽업",
+  cancelConfirm: "예약을 취소할까요? 결제했다면 환불은 영업일 기준 처리됩니다.",
+  cancelCta: "예약 취소 — 다른 사람에게 양보",
+  canceling: "취소 중...",
+  maps: "지도에서 보기",
+  zalo: "Zalo로 문의",
+  moreBrowse: "더 찾아보기 →",
+  myCodes: "내 코드",
+  myCodesSub: "결제 완료 주문 — 가게에서 픽업할 코드",
+  myCodesLogin: "로그인하면 결제한 구출 코드를 볼 수 있습니다.",
+  noOrders: "구출 주문이 없습니다.",
+  findBoxes: "박스 찾기 →",
+  searchPlaceholder: "가게·박스 검색",
+  payBannerFailed: "결제가 완료되지 않았습니다. 다시 시도해 주세요.",
+  payBannerInvalid: "결제 정보가 올바르지 않습니다.",
+  payBannerError: "결제 확인 중 오류가 났습니다. 잠시 후 다시 시도해 주세요.",
+  payBannerCancelled: "결제가 취소되었습니다.",
+  soldOut: "박스 매진",
+  soldOutHint: "19시 이후에 다시 오거나 다른 박스를 선택하세요.",
+  otherBoxes: "다른 박스 보기",
+  back: "← 돌아가기",
+  qty: "수량",
+  howTitle: "3단계로 구출하기",
+  how1: "찾기",
+  how1d: "저녁에 Giu를 열고 주변 50~70% 할인 박스를 확인하세요.",
+  how2: "안전 결제",
+  how2d: "Giu로 결제 — 금액은 안전하게 보관됩니다.",
+  how3: "픽업",
+  how3d: "마감 전에 가게에 방문, 코드를 보여주고 박스를 받으세요.",
+};
+
+const VI: Dict = {
+  boxes: "Hộp cứu đồ ăn",
+  goldenHour: "Giờ vàng 19–21h — giờ đóng cửa cửa hàng",
+  emptyBoxes: "Hiện chưa có hộp nào",
+  emptyBoxesHint: "Để lại số điện thoại — chúng tôi báo khi có hộp gần bạn.",
+  payCta: "Thanh toán an toàn & nhận mã",
+  payCardPaypal: "Thanh toán thẻ · PayPal",
+  escrowTitle: "Thanh toán an toàn Giu",
+  escrowDesc:
+    "Giu giữ tiền an toàn. Khi cửa hàng xác nhận lấy hàng → chuyển cho cửa hàng.",
+  loginSignup: "Đăng nhập / Đăng ký",
+  loading: "Đang tải...",
+  payPending: "Chờ thanh toán",
+  payPendingHint:
+    "Hoàn tất thanh toán để nhận mã. Nếu đã trả, vui lòng chờ giây lát.",
+  pickupCode: "Mã cứu đồ",
+  showCode: "Đưa mã này cho cửa hàng để nhận hộp",
+  paidSms: "✓ Đã thanh toán · Đã gửi SMS",
+  paidAppOnly: "✓ Đã thanh toán · Xem mã trong app",
+  settleHeld: "Giu đang giữ tiền. Cửa hàng xác nhận lấy → thanh toán cho cửa hàng.",
+  settleReleased: "Đã lấy · Đã thanh toán cho cửa hàng",
+  payFailed: "Thanh toán thất bại hoặc đã hủy.",
+  total: "Tổng",
+  pickup: "Nhận",
+  cancelConfirm: "Hủy đặt chỗ? Nếu đã trả, hoàn tiền xử lý trong vài ngày làm việc.",
+  cancelCta: "Hủy đặt — nhường cho người khác",
+  canceling: "Đang hủy...",
+  maps: "Xem trên bản đồ",
+  zalo: "Nhắn Zalo",
+  moreBrowse: "Xem thêm →",
+  myCodes: "Mã của tôi",
+  myCodesSub: "Đơn đã trả — mã nhận tại cửa hàng",
+  myCodesLogin: "Đăng nhập để xem mã đã thanh toán.",
+  noOrders: "Chưa có đơn cứu đồ.",
+  findBoxes: "Tìm hộp →",
+  searchPlaceholder: "Tìm cửa hàng · hộp",
+  payBannerFailed: "Thanh toán chưa hoàn tất. Thử lại nhé.",
+  payBannerInvalid: "Thông tin thanh toán không hợp lệ.",
+  payBannerError: "Lỗi xác nhận thanh toán. Thử lại sau.",
+  payBannerCancelled: "Đã hủy thanh toán.",
+  soldOut: "Hết hộp",
+  soldOutHint: "Quay lại sau 19h hoặc chọn hộp khác.",
+  otherBoxes: "Xem hộp khác",
+  back: "← Quay lại",
+  qty: "Số lượng",
+  howTitle: "Cứu đồ ăn trong 3 bước",
+  how1: "Tìm",
+  how1d: "Mở Giu buổi tối, chọn hộp giảm 50–70%.",
+  how2: "Thanh toán an toàn",
+  how2d: "Trả qua Giu — tiền được giữ an toàn.",
+  how3: "Nhận",
+  how3d: "Đến cửa hàng trước giờ đóng, đưa mã và nhận hộp.",
+};
+
+export function t(locale: GiuLocale, key: keyof typeof KO): string {
+  const table = locale === "vi" ? VI : KO;
+  return table[key] ?? KO[key] ?? key;
+}
+
+export const GIU_I18N = { ko: KO, vi: VI } as const;

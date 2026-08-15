@@ -1,21 +1,26 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { GIu_DISTRICTS } from "@/giu/lib/districts";
 import { GIu_CATEGORIES } from "@/giu/lib/categories";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
 export function BoxFilters() {
   const router = useRouter();
   const params = useSearchParams();
+  const { tt } = useGiuLocale();
   const district = params.get("district") ?? "";
   const category = params.get("category") ?? "";
+  const q = params.get("q") ?? "";
+  const [query, setQuery] = useState(q);
 
   function update(key: string, value: string) {
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
-    const q = next.toString();
-    router.push(q ? `/giu/hop?${q}` : "/giu/hop");
+    const qs = next.toString();
+    router.push(qs ? `/giu/hop?${qs}` : "/giu/hop");
   }
 
   function chipClass(active: boolean): string {
@@ -26,6 +31,23 @@ export function BoxFilters() {
 
   return (
     <div className="space-y-3">
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          update("q", query.trim());
+        }}
+      >
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={tt("searchPlaceholder")}
+          className="giu-input flex-1"
+        />
+        <button type="submit" className="rounded-2xl bg-giu-primary px-4 text-sm font-semibold text-white">
+          검색
+        </button>
+      </form>
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"

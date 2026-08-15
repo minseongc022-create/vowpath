@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
 export function CancelReservationButton({ reservationId }: { reservationId: string }) {
   const router = useRouter();
+  const { tt } = useGiuLocale();
   const [loading, setLoading] = useState(false);
 
   async function cancel() {
+    if (!window.confirm(tt("cancelConfirm"))) return;
     setLoading(true);
     await fetch(`/api/giu/reservations/${reservationId}`, {
       method: "PATCH",
@@ -26,7 +29,7 @@ export function CancelReservationButton({ reservationId }: { reservationId: stri
       disabled={loading}
       className="text-sm text-giu-muted underline hover:text-giu-ink"
     >
-      {loading ? "취소 중..." : "예약 취소 — 다른 사람에게 양보"}
+      {loading ? tt("canceling") : tt("cancelCta")}
     </button>
   );
 }
