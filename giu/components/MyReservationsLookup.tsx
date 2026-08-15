@@ -62,7 +62,7 @@ export function MyReservationsLookup() {
     return (
       <div className="giu-card space-y-3 text-center">
         <p className="text-[13px] text-giu-muted">{tt("myCodesLogin")}</p>
-        <Link href={GIU_ROUTES.auth} className="giu-btn-primary block text-center">
+        <Link href={`${GIU_ROUTES.auth}?role=customer`} className="giu-btn-primary block text-center">
           {tt("loginSignup")}
         </Link>
       </div>

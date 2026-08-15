@@ -43,7 +43,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
               </button>
             ) : !loading ? (
               <Link
-                href={GIU_ROUTES.auth}
+                href={`${GIU_ROUTES.auth}?role=customer`}
                 className="rounded-full bg-giu-ink px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 로그인

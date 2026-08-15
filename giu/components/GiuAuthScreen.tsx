@@ -26,10 +26,10 @@ export function GiuAuthScreen() {
   const searchParams = useSearchParams();
   const { refresh } = useGiuAuth();
 
-  const initialRole = (searchParams.get("role") === "merchant" ? "merchant" : "customer") as GiuAppRole;
+  // Role is fixed by entry URL — no customer/merchant toggle on one screen.
+  const role = (searchParams.get("role") === "merchant" ? "merchant" : "customer") as GiuAppRole;
   const initialMode = (searchParams.get("mode") === "signup" ? "signup" : "login") as AuthMode;
 
-  const [role, setRole] = useState<GiuAppRole>(initialRole);
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -142,49 +142,33 @@ export function GiuAuthScreen() {
     <div className="giu-page space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-giu-ink">
-          {mode === "login" ? "로그인" : "회원가입"}
+          {role === "merchant"
+            ? mode === "login"
+              ? "가게 로그인"
+              : "가게 등록"
+            : mode === "login"
+              ? "손님 로그인"
+              : "손님 가입"}
         </h1>
-        <p className="mt-1 text-sm text-giu-muted">구매와 판매는 별도 앱으로 분리됩니다.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-giu-bg p-1">
-        {(
-          [
-            { id: "customer" as const, label: "구매", sub: "손님" },
-            { id: "merchant" as const, label: "판매", sub: "가게" },
-          ] as const
-        ).map((item) => {
-          const selected = role === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setRole(item.id)}
-              className={`rounded-xl px-3 py-3 text-left transition ${
-                selected ? "bg-giu-surface shadow-giu-sm ring-2 ring-giu-primary" : "text-giu-muted"
-              }`}
-            >
-              <span className="block text-sm font-bold text-giu-ink">{item.label}</span>
-              <span className="block text-xs">{item.sub}</span>
-            </button>
-          );
-        })}
+        <p className="mt-1 text-sm text-giu-muted">
+          {role === "merchant" ? "박스 등록 · 주문 · 정산" : "박스 찾기 · 결제 · 픽업 코드"}
+        </p>
       </div>
 
       <div className="flex gap-4 text-sm">
         <button
           type="button"
           onClick={() => setMode("login")}
-          className={mode === "login" ? "font-bold text-giu-primary" : "text-giu-muted"}
+          className={mode === "login" ? "font-bold text-giu-accent" : "text-giu-muted"}
         >
           로그인
         </button>
         <button
           type="button"
           onClick={() => setMode("signup")}
-          className={mode === "signup" ? "font-bold text-giu-primary" : "text-giu-muted"}
+          className={mode === "signup" ? "font-bold text-giu-accent" : "text-giu-muted"}
         >
-          회원가입
+          {role === "merchant" ? "가게 등록" : "회원가입"}
         </button>
       </div>
 
@@ -282,24 +266,34 @@ export function GiuAuthScreen() {
       {mode === "login" ? (
         <p className="text-center text-sm text-giu-muted">
           계정이 없으신가요?{" "}
-          <button type="button" onClick={() => setMode("signup")} className="font-semibold text-giu-primary">
-            회원가입
+          <button type="button" onClick={() => setMode("signup")} className="font-semibold text-giu-accent">
+            {role === "merchant" ? "가게 등록" : "회원가입"}
           </button>
         </p>
       ) : (
         <p className="text-center text-sm text-giu-muted">
           이미 계정이 있으신가요?{" "}
-          <button type="button" onClick={() => setMode("login")} className="font-semibold text-giu-primary">
+          <button type="button" onClick={() => setMode("login")} className="font-semibold text-giu-accent">
             로그인
           </button>
         </p>
       )}
 
-      <p className="text-center text-sm text-giu-muted">
-        <Link href={GIU_ROUTES.customer.home} className="text-giu-primary">
-          로그인 없이 박스 둘러보기 →
-        </Link>
-      </p>
+      {role === "customer" ? (
+        <p className="text-center text-[12px] text-giu-muted">
+          가게 사장님이신가요?{" "}
+          <Link href={`${GIU_ROUTES.auth}?role=merchant`} className="font-semibold text-giu-ink">
+            가게 로그인
+          </Link>
+        </p>
+      ) : (
+        <p className="text-center text-[12px] text-giu-muted">
+          손님이신가요?{" "}
+          <Link href={`${GIU_ROUTES.auth}?role=customer`} className="font-semibold text-giu-ink">
+            손님 로그인
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

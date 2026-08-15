@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
 import { MapEmbed } from "@/giu/components/MapEmbed";
-import { PickupSwipeConfirm } from "@/giu/components/PickupSwipeConfirm";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
@@ -22,8 +21,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
   const paid = reservation.paymentStatus === "paid";
   const pending = reservation.paymentStatus === "pending";
-  const held = reservation.settlementStatus === "held";
-  const released = reservation.settlementStatus === "released";
+  const pickedUp = reservation.status === "da_lay";
 
   const [box, merchant] = await Promise.all([
     getBox(reservation.boxId),
@@ -48,25 +46,19 @@ export default async function GiuReservationPage({ params, searchParams }: Props
         </div>
       ) : paid ? (
         <div className="giu-ticket space-y-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-primary">
-            Giu Pickup
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
+            픽업 코드
           </p>
           {sp.paid === "1" ? (
             <p className="text-[11px] font-semibold text-giu-accent">결제 확인</p>
           ) : null}
           <p className="giu-ticket-code">{reservation.code}</p>
           <p className="text-[13px] font-medium text-giu-muted">가게에 이 코드만 보여주세요</p>
-          <PickupSwipeConfirm />
-          <p className="text-[12px] font-semibold text-giu-accent">
-            {reservation.smsSent ? "✓ SMS 발송됨" : "✓ 앱에서 코드 보관"}
-          </p>
-          {held ? (
-            <p className="text-[11px] leading-snug text-giu-muted">
-              Giu가 금액 보관 중 · 픽업 확인 후 가게 정산
-            </p>
-          ) : released ? (
-            <p className="text-[11px] text-giu-muted">픽업 완료 · 정산됨</p>
-          ) : null}
+          {pickedUp ? (
+            <p className="text-[12px] font-semibold text-giu-accent">✓ 픽업 완료</p>
+          ) : (
+            <p className="text-[12px] font-semibold text-giu-ink">✓ 결제 완료 · 픽업 대기</p>
+          )}
         </div>
       ) : (
         <div className="giu-card text-center text-[13px] text-giu-muted">결제 실패 또는 취소</div>
@@ -86,12 +78,12 @@ export default async function GiuReservationPage({ params, searchParams }: Props
             <MapEmbed address={merchant.address} compact />
             <div className="flex gap-4 text-[13px] font-bold">
               {mapsUrl ? (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
                   지도 앱
                 </a>
               ) : null}
               {zaloUrl ? (
-                <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+                <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
                   Zalo
                 </a>
               ) : null}
@@ -109,7 +101,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
         <CancelReservationButton reservationId={reservation.id} />
       ) : null}
 
-      <Link href="/giu/hop" className="block text-center text-[13px] font-bold text-giu-primary">
+      <Link href="/giu/hop" className="block text-center text-[13px] font-bold text-giu-accent">
         더 구출하기
       </Link>
     </div>
