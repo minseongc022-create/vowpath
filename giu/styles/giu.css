@@ -31,6 +31,11 @@
   background-attachment: fixed;
 }
 
+/* Map home fills the small viewport (browser chrome visible) without clipping */
+.giu-app.h-svh {
+  background-attachment: scroll;
+}
+
 .giu-page {
   @apply mx-auto w-full max-w-[480px] px-4 pb-24 pt-1 md:max-w-xl lg:max-w-2xl;
 }
@@ -151,6 +156,8 @@
 .giu-map-root .leaflet-container {
   background: #dfe8ef;
   font: inherit;
+  width: 100%;
+  height: 100%;
 }
 
 .giu-map-root .leaflet-tile {

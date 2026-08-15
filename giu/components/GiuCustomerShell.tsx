@@ -22,9 +22,13 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   const displayName = account?.name?.trim() || t(locale, "guestName");
 
   return (
-    <div className="giu-app flex min-h-dvh flex-col text-giu-ink">
+    <div
+      className={`giu-app flex flex-col text-giu-ink ${
+        isMapHome ? "h-svh max-h-svh overflow-hidden" : "min-h-svh"
+      }`}
+    >
       <CustomerAvailabilityAlerts />
-      <header className="sticky top-0 z-40 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
           <Link href={GIU_ROUTES.customer.home} className="flex min-w-0 items-center gap-2.5">
             <GiuLogo size={36} priority />
@@ -54,10 +58,18 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className={`flex-1 ${hideNav ? "pb-8" : isMapHome ? "pb-16" : "pb-20"}`}>
+      <main
+        className={
+          isMapHome
+            ? "min-h-0 flex-1 overflow-hidden"
+            : hideNav
+              ? "flex-1 pb-8"
+              : "flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
+        }
+      >
         {children}
       </main>
-      {!hideNav ? <GiuCustomerBottomNav /> : null}
+      {!hideNav ? <GiuCustomerBottomNav docked={isMapHome} /> : null}
     </div>
   );
 }

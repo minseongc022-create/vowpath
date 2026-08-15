@@ -300,7 +300,7 @@ export function MapDiscover({ pins }: Props) {
   }, [selected, userPos]);
 
   return (
-    <div className="giu-map-root relative h-[calc(100dvh-54px-64px)] w-full overflow-hidden bg-[#dfe8ef]">
+    <div className="giu-map-root relative h-full min-h-0 w-full overflow-hidden bg-[#dfe8ef]">
       <MapContainer
         center={[HCMC_CENTER.lat, HCMC_CENTER.lng]}
         zoom={HCMC_DEFAULT_ZOOM}
@@ -467,7 +467,7 @@ export function MapDiscover({ pins }: Props) {
         type="button"
         onClick={locateMe}
         disabled={locating}
-        className="giu-map-fab absolute bottom-[calc(env(safe-area-inset-bottom)+9.5rem)] right-3 z-[500] !h-11 !w-11"
+        className="giu-map-fab absolute bottom-[7.75rem] right-3 z-[500] !h-11 !w-11"
         aria-label={t(locale, "myLocation")}
         title={t(locale, "myLocation")}
       >
@@ -489,7 +489,7 @@ export function MapDiscover({ pins }: Props) {
 
       {/* Bottom sheet OR nearby strip */}
       {selected ? (
-        <div className="absolute inset-x-0 bottom-0 z-[500] p-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+        <div className="absolute inset-x-0 bottom-0 z-[500] p-3 pb-3">
           <div className="mx-auto max-w-[480px] overflow-hidden rounded-[22px] bg-white shadow-[0_-10px_40px_rgba(31,42,51,0.16)] ring-1 ring-black/[0.04] md:max-w-xl">
             <div className="flex justify-center pt-2">
               <span className="h-1 w-9 rounded-full bg-giu-border" />
@@ -612,8 +612,8 @@ export function MapDiscover({ pins }: Props) {
           </div>
         </div>
       ) : (
-        <div className="absolute inset-x-0 bottom-0 z-[500] pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
-          <div className="flex gap-2.5 overflow-x-auto px-3 pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="absolute inset-x-0 bottom-0 z-[500] pb-2">
+          <div className="flex gap-2.5 overflow-x-auto px-3 pb-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {nearbyCards.map(({ pin, dist, best }) => (
               <button
                 key={pin.merchant.id}
