@@ -17,7 +17,7 @@ export default async function GiuBoxesPage({ searchParams }: Props) {
   const pins = buildMapPins(boxes, merchants);
 
   return (
-    <div className="relative w-full">
+    <div className="relative h-full min-h-0 w-full">
       <Suspense fallback={null}>
         <div className="absolute left-0 right-0 top-0 z-[600] px-3 pt-2">
           <div className="mx-auto max-w-[480px] md:max-w-xl">
