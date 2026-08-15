@@ -3,6 +3,7 @@ export const GIU_ROUTES = {
   customer: {
     home: "/giu/hop",
     boxes: "/giu/hop",
+    favorites: "/giu/yeu-thich",
     my: "/giu/ma-cua-toi",
     box: (id: string) => `/giu/hop/${id}`,
     reservation: (id: string) => `/giu/dat/${id}`,

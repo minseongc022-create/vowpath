@@ -1,0 +1,80 @@
+/** Client-side favorites (merchant IDs) — no account required. */
+
+const FAVORITES_KEY = "giu-favorites-merchants";
+const SEEN_BOXES_KEY = "giu-alert-seen-box-ids";
+const SEEN_ORDERS_KEY = "giu-alert-seen-order-ids";
+const BOX_ALERTS_BOOT_KEY = "giu-box-alerts-boot";
+const ORDER_ALERTS_BOOT_KEY = "giu-order-alerts-boot";
+
+function readIds(key: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === "string");
+  } catch {
+    return [];
+  }
+}
+
+function writeIds(key: string, ids: string[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(key, JSON.stringify([...new Set(ids)]));
+}
+
+export function getFavoriteMerchantIds(): string[] {
+  return readIds(FAVORITES_KEY);
+}
+
+export function isFavoriteMerchant(merchantId: string): boolean {
+  return getFavoriteMerchantIds().includes(merchantId);
+}
+
+/** Returns true if now favorited. */
+export function toggleFavoriteMerchant(merchantId: string): boolean {
+  const ids = getFavoriteMerchantIds();
+  const idx = ids.indexOf(merchantId);
+  if (idx >= 0) {
+    ids.splice(idx, 1);
+    writeIds(FAVORITES_KEY, ids);
+    return false;
+  }
+  ids.push(merchantId);
+  writeIds(FAVORITES_KEY, ids);
+  return true;
+}
+
+export function getSeenBoxIds(): string[] {
+  return readIds(SEEN_BOXES_KEY);
+}
+
+export function markBoxesSeen(boxIds: string[]): void {
+  writeIds(SEEN_BOXES_KEY, [...getSeenBoxIds(), ...boxIds]);
+}
+
+export function getSeenOrderIds(): string[] {
+  return readIds(SEEN_ORDERS_KEY);
+}
+
+export function markOrdersSeen(orderIds: string[]): void {
+  writeIds(SEEN_ORDERS_KEY, [...getSeenOrderIds(), ...orderIds]);
+}
+
+/** First poll should not spam — mark current inventory as already seen. Returns false on first boot. */
+export function bootstrapBoxAlerts(boxIds: string[]): boolean {
+  if (typeof window === "undefined") return true;
+  if (window.localStorage.getItem(BOX_ALERTS_BOOT_KEY) === "1") return true;
+  markBoxesSeen(boxIds);
+  window.localStorage.setItem(BOX_ALERTS_BOOT_KEY, "1");
+  return false;
+}
+
+export function bootstrapOrderAlerts(orderIds: string[]): boolean {
+  if (typeof window === "undefined") return true;
+  if (window.localStorage.getItem(ORDER_ALERTS_BOOT_KEY) === "1") return true;
+  markOrdersSeen(orderIds);
+  window.localStorage.setItem(ORDER_ALERTS_BOOT_KEY, "1");
+  return false;
+}

@@ -4,6 +4,11 @@ export function googleMapsSearchUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`;
 }
 
+/** Embeddable map (no API key). */
+export function googleMapsEmbedUrl(address: string): string {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(address.trim())}&z=16&output=embed`;
+}
+
 export function zaloChatUrl(zaloOrPhone: string): string | null {
   const digits = zaloOrPhone.replace(/\D/g, "");
   if (!digits) return null;

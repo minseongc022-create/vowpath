@@ -8,6 +8,7 @@ import { GIU_STRINGS } from "@/giu/lib/strings";
 
 const TABS = [
   { href: GIU_ROUTES.customer.boxes, label: GIU_STRINGS.navBoxes, icon: "box" as const },
+  { href: GIU_ROUTES.customer.favorites, label: GIU_STRINGS.navFavorites, icon: "heart" as const },
   { href: GIU_ROUTES.customer.my, label: GIU_STRINGS.navMy, icon: "ticket" as const },
 ];
 
@@ -20,7 +21,7 @@ export function GiuCustomerBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-giu-border bg-giu-surface/95 pb-[env(safe-area-inset-bottom)] shadow-giu-nav backdrop-blur-md">
-      <div className="mx-auto flex max-w-[480px] items-stretch justify-around px-6 md:max-w-xl lg:max-w-2xl">
+      <div className="mx-auto flex max-w-[480px] items-stretch justify-around px-4 md:max-w-xl lg:max-w-2xl">
         {TABS.map((tab) => {
           const active = isActive(pathname, tab.href);
           return (

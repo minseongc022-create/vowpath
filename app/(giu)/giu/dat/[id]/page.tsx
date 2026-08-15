@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
+import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
@@ -77,6 +78,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           <>
             <p className="font-semibold text-giu-ink">{merchant.name}</p>
             <p className="text-sm text-giu-muted">{merchant.address}</p>
+            <MapEmbed address={merchant.address} />
             <div className="flex flex-wrap gap-3 text-sm font-semibold">
               {mapsUrl ? (
                 <a
@@ -85,7 +87,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
                   rel="noopener noreferrer"
                   className="text-giu-primary"
                 >
-                  지도에서 보기
+                  지도 앱에서 열기
                 </a>
               ) : null}
               {zaloUrl ? (

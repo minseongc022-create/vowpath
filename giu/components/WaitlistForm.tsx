@@ -21,6 +21,13 @@ export function WaitlistForm({ district }: { district?: string }) {
         setError(data.error ?? "오류가 발생했습니다");
         return;
       }
+      if ("Notification" in window && Notification.permission === "default") {
+        try {
+          await Notification.requestPermission();
+        } catch {
+          /* ignore */
+        }
+      }
       setDone(true);
     } catch {
       setError("전송할 수 없습니다. 다시 시도해 주세요.");
@@ -30,7 +37,7 @@ export function WaitlistForm({ district }: { district?: string }) {
   if (done) {
     return (
       <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-accent">
-        ✓ 등록 완료! 근처에 박스가 생기면 알려드릴게요.
+        ✓ 등록 완료! 근처에 박스가 생기면 알려드릴게요. 즐겨찾기한 가게는 앱에서 바로 알림도 뜹니다.
       </p>
     );
   }
