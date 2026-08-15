@@ -3,32 +3,39 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { GiuNavIcon } from "@/giu/components/icons/GiuNavIcons";
+import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import { GIU_STRINGS } from "@/giu/lib/strings";
-
-const TABS = [
-  { href: GIU_ROUTES.merchant.panel, tab: "boxes", label: "박스", icon: "box" as const },
-  { href: `${GIU_ROUTES.merchant.panel}?tab=orders`, tab: "orders", label: "주문", icon: "ticket" as const },
-];
+import { useGiuLocale } from "./GiuLocaleProvider";
 
 export function GiuMerchantBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { locale } = useGiuLocale();
   const activeTab = searchParams.get("tab") === "orders" ? "orders" : "boxes";
 
   if (!pathname.startsWith(GIU_ROUTES.merchant.panel)) return null;
 
+  const tabs = [
+    { href: GIU_ROUTES.merchant.panel, tab: "boxes", label: t(locale, "mTabBoxes"), icon: "box" as const },
+    {
+      href: `${GIU_ROUTES.merchant.panel}?tab=orders`,
+      tab: "orders",
+      label: t(locale, "mTabOrders"),
+      icon: "ticket" as const,
+    },
+  ];
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-giu-border bg-giu-surface/95 pb-[env(safe-area-inset-bottom)] shadow-giu-nav backdrop-blur-md">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-giu-border/80 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-giu-nav backdrop-blur-xl">
       <div className="mx-auto flex max-w-[480px] items-stretch justify-around px-6 md:max-w-xl lg:max-w-2xl">
-        {TABS.map((tab) => {
+        {tabs.map((tab) => {
           const active = activeTab === tab.tab;
           return (
             <Link
               key={tab.tab}
               href={tab.href}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition ${
-                active ? "text-giu-primary" : "text-giu-muted"
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold tracking-tight transition ${
+                active ? "text-giu-accent" : "text-giu-muted"
               }`}
               aria-current={active ? "page" : undefined}
             >

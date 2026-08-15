@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { t } from "@/giu/lib/i18n";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
 export function WaitlistForm({ district }: { district?: string }) {
+  const { locale } = useGiuLocale();
   const [phone, setPhone] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +21,7 @@ export function WaitlistForm({ district }: { district?: string }) {
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "오류가 발생했습니다");
+        setError(data.error ?? t(locale, "waitlistError"));
         return;
       }
       if ("Notification" in window && Notification.permission === "default") {
@@ -30,14 +33,14 @@ export function WaitlistForm({ district }: { district?: string }) {
       }
       setDone(true);
     } catch {
-      setError("전송할 수 없습니다. 다시 시도해 주세요.");
+      setError(t(locale, "waitlistError"));
     }
   }
 
   if (done) {
     return (
       <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-accent">
-        ✓ 등록 완료! 근처에 박스가 생기면 알려드릴게요. 즐겨찾기한 가게는 앱에서 바로 알림도 뜹니다.
+        {t(locale, "waitlistDone")}
       </p>
     );
   }
@@ -49,11 +52,11 @@ export function WaitlistForm({ district }: { district?: string }) {
         type="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        placeholder="전화번호"
+        placeholder={t(locale, "waitlistPhone")}
         className="giu-input"
       />
-      <button type="submit" className="giu-btn-primary">
-        알림 받기
+      <button type="submit" className="giu-btn-primary !py-3 text-[13px]">
+        {t(locale, "waitlistCta")}
       </button>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
     </form>

@@ -6,7 +6,9 @@ import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { merchantCoords } from "@/giu/lib/geo";
+import { t } from "@/giu/lib/i18n";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
+import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
 export default async function GiuReservationPage({ params, searchParams }: Props) {
   const { id } = await params;
   const sp = await searchParams;
+  const locale = await getGiuLocaleServer();
   const reservation = await getReservation(id);
   if (!reservation) notFound();
 
@@ -37,10 +40,10 @@ export default async function GiuReservationPage({ params, searchParams }: Props
     <div className="giu-page space-y-3">
       {pending ? (
         <div className="giu-card space-y-2 text-center">
-          <span className="giu-badge bg-amber-50 text-amber-700">결제 대기</span>
-          <p className="text-[13px] text-giu-muted">결제하면 구출 코드가 열립니다.</p>
+          <span className="giu-badge bg-amber-50 text-amber-700">{t(locale, "payPending")}</span>
+          <p className="text-[13px] text-giu-muted">{t(locale, "payPendingHint")}</p>
           {sp.pay === "pending" ? (
-            <p className="text-[11px] text-giu-muted">결제 창에서 돌아옴 · 확인 중</p>
+            <p className="text-[11px] text-giu-muted">{t(locale, "paying")}</p>
           ) : null}
           <Suspense fallback={null}>
             <ReservationPaymentPoller reservationId={id} pending />
@@ -49,21 +52,26 @@ export default async function GiuReservationPage({ params, searchParams }: Props
       ) : paid ? (
         <div className="giu-ticket space-y-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
-            픽업 코드
+            {t(locale, "pickupCode")}
           </p>
           {sp.paid === "1" ? (
-            <p className="text-[11px] font-semibold text-giu-accent">결제 확인</p>
+            <p className="text-[11px] font-semibold text-giu-accent">{t(locale, "settleHeld")}</p>
           ) : null}
           <p className="giu-ticket-code">{reservation.code}</p>
-          <p className="text-[13px] font-medium text-giu-muted">가게에 이 코드만 보여주세요</p>
+          <p className="text-[13px] font-medium text-giu-muted">{t(locale, "showCode")}</p>
           {pickedUp ? (
-            <p className="text-[12px] font-semibold text-giu-accent">✓ 픽업 완료</p>
+            <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
           ) : (
-            <p className="text-[12px] font-semibold text-giu-ink">✓ 결제 완료 · 픽업 대기</p>
+            <p className="text-[12px] font-semibold text-giu-ink">{t(locale, "settleHeld")}</p>
+          )}
+          {reservation.smsSent ? (
+            <p className="text-[11px] text-giu-muted">{t(locale, "paidSms")}</p>
+          ) : (
+            <p className="text-[11px] text-giu-muted">{t(locale, "paidAppOnly")}</p>
           )}
         </div>
       ) : (
-        <div className="giu-card text-center text-[13px] text-giu-muted">결제 실패 또는 취소</div>
+        <div className="giu-card text-center text-[13px] text-giu-muted">{t(locale, "payFailed")}</div>
       )}
 
       <div className="giu-card space-y-3 text-left">
@@ -76,6 +84,9 @@ export default async function GiuReservationPage({ params, searchParams }: Props
                   {box.title} · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
                 </p>
               ) : null}
+              <p className="mt-1 text-[13px] font-bold text-giu-ink">
+                {t(locale, "total")} {formatVnd(reservation.totalVnd)}
+              </p>
             </div>
             <MapEmbed
               address={merchant.address}
@@ -86,31 +97,24 @@ export default async function GiuReservationPage({ params, searchParams }: Props
             <div className="flex gap-4 text-[13px] font-bold">
               {mapsUrl ? (
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
-                  지도 앱
+                  {t(locale, "maps")}
                 </a>
               ) : null}
               {zaloUrl ? (
                 <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
-                  Zalo
+                  {t(locale, "zalo")}
                 </a>
               ) : null}
             </div>
           </>
         ) : null}
-        <div className="giu-divider" />
-        <div className="flex items-center justify-between text-[14px]">
-          <span className="text-giu-muted">합계</span>
-          <span className="font-extrabold text-giu-ink">{formatVnd(reservation.totalVnd)}</span>
-        </div>
+
+        {paid && !pickedUp ? <CancelReservationButton reservationId={id} /> : null}
+
+        <Link href="/giu/hop" className="block text-center text-[13px] font-bold text-giu-primary">
+          {t(locale, "moreBrowse")}
+        </Link>
       </div>
-
-      {paid && reservation.status === "giu_cho" ? (
-        <CancelReservationButton reservationId={reservation.id} />
-      ) : null}
-
-      <Link href="/giu/hop" className="block text-center text-[13px] font-bold text-giu-accent">
-        더 구출하기
-      </Link>
     </div>
   );
 }

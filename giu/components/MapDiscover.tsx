@@ -33,9 +33,15 @@ import {
   formatOsrmDuration,
   type RouteResult,
 } from "@/giu/lib/routing";
+import {
+  formatRatingLine,
+  isClosingSoon,
+  isSurpriseTitle,
+} from "@/giu/lib/box-ux";
 import type { GiuCategory } from "@/giu/lib/types";
 import type { MapPin } from "@/giu/lib/map-pins";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { WaitlistForm } from "./WaitlistForm";
 import { t } from "@/giu/lib/i18n";
 
 type Props = {
@@ -503,6 +509,19 @@ export function MapDiscover({ pins }: Props) {
                   <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-giu-muted">
                     {districtLabel(selected.merchant.district, locale)} · {selected.merchant.address}
                   </p>
+                  {formatRatingLine(
+                    selected.merchant.rating,
+                    selected.merchant.reviewCount,
+                    locale,
+                  ) ? (
+                    <p className="mt-1 text-[11px] font-bold text-giu-ink">
+                      {formatRatingLine(
+                        selected.merchant.rating,
+                        selected.merchant.reviewCount,
+                        locale,
+                      )}
+                    </p>
+                  ) : null}
                   <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-bold">
                     {route ? (
                       <span className="rounded-md bg-[#E8F1FE] px-2 py-0.5 text-[#2F7CF6]">
@@ -521,7 +540,7 @@ export function MapDiscover({ pins }: Props) {
                       </span>
                     ) : null}
                     <span className="rounded-md bg-giu-bg px-2 py-0.5 text-giu-muted">
-                      {sortedSelectedBoxes.length} {locale === "vi" ? "hộp" : "박스"}
+                      {sortedSelectedBoxes.length} {t(locale, "impactBoxes")}
                     </span>
                   </div>
                 </div>
@@ -556,11 +575,21 @@ export function MapDiscover({ pins }: Props) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="truncate text-[13px] font-bold text-giu-ink">{box.title}</p>
+                          {isSurpriseTitle(box.title) ? (
+                            <span className="shrink-0 rounded bg-giu-ink px-1.5 py-0.5 text-[9px] font-bold text-white">
+                              {t(locale, "surprise")}
+                            </span>
+                          ) : null}
                           <span className="giu-badge-sale shrink-0">
                             {formatDiscount(box.originalPriceVnd, box.salePriceVnd)}
                           </span>
                         </div>
                         <p className="mt-0.5 text-[11px] text-giu-muted">
+                          {isClosingSoon(box.pickupEnd) ? (
+                            <span className="mr-1 font-bold text-giu-accent">
+                              {t(locale, "closingSoon")} ·{" "}
+                            </span>
+                          ) : null}
                           {formatPickupDate(box.pickupStart)} ·{" "}
                           {formatPickupWindow(box.pickupStart, box.pickupEnd)} · {box.quantityLeft}{" "}
                           {t(locale, "left")}
@@ -606,9 +635,12 @@ export function MapDiscover({ pins }: Props) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-[500] px-3">
-          <div className="mx-auto max-w-[480px] rounded-2xl bg-white px-4 py-3 text-center text-[13px] shadow-giu-md md:max-w-xl">
-            <p className="font-bold text-giu-ink">{t(locale, "emptyBoxes")}</p>
-            <p className="mt-1 text-giu-muted">{t(locale, "emptyBoxesHint")}</p>
+          <div className="mx-auto max-w-[480px] space-y-3 rounded-2xl bg-white px-4 py-3 shadow-giu-md md:max-w-xl">
+            <div className="text-center text-[13px]">
+              <p className="font-bold text-giu-ink">{t(locale, "emptyBoxes")}</p>
+              <p className="mt-1 text-giu-muted">{t(locale, "emptyBoxesHint")}</p>
+            </div>
+            <WaitlistForm />
           </div>
         </div>
       ) : (
