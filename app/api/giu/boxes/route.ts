@@ -29,7 +29,17 @@ export async function GET(request: Request) {
   const category = url.searchParams.get("category") ?? undefined;
   const merchantId = url.searchParams.get("merchantId") ?? undefined;
   const openOnly = url.searchParams.get("openOnly") === "1";
-  const boxes = await listBoxes({ district, category, merchantId, openOnly });
+  const includeSoldOut = url.searchParams.get("sold") === "1";
+  const when = url.searchParams.get("when");
+  const dayOffset = when === "today" ? (0 as const) : when === "tomorrow" ? (1 as const) : undefined;
+  const boxes = await listBoxes({
+    district,
+    category,
+    merchantId,
+    openOnly: openOnly && !includeSoldOut,
+    includeSoldOut: includeSoldOut || undefined,
+    dayOffset,
+  });
   return NextResponse.json({ boxes });
 }
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
 import { MapEmbed } from "@/giu/components/MapEmbed";
+import { PickupSwipeConfirm } from "@/giu/components/PickupSwipeConfirm";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
@@ -55,6 +56,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           ) : null}
           <p className="giu-ticket-code">{reservation.code}</p>
           <p className="text-[13px] font-medium text-giu-muted">가게에 이 코드만 보여주세요</p>
+          <PickupSwipeConfirm />
           <p className="text-[12px] font-semibold text-giu-accent">
             {reservation.smsSent ? "✓ SMS 발송됨" : "✓ 앱에서 코드 보관"}
           </p>

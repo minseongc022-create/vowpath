@@ -1,17 +1,18 @@
 .giu-theme {
-  --giu-bg: #eef2f7;
+  --giu-bg: #f4f7f6;
   --giu-surface: #ffffff;
-  --giu-ink: #141a22;
-  --giu-muted: #7a8694;
-  --giu-border: #e3e8ee;
-  --giu-primary: #2f7cf6;
-  --giu-primary-hover: #1a5fd4;
-  --giu-primary-soft: #e8f1ff;
-  --giu-accent: #00b86b;
-  --giu-accent-hover: #009a5a;
-  --giu-accent-soft: #e4f8ef;
-  --giu-danger: #f04452;
-  --giu-gold: #f5a623;
+  --giu-ink: #2d3e4e;
+  --giu-muted: #7a8a96;
+  --giu-border: #e2e8e6;
+  --giu-primary: #2d3e4e;
+  --giu-primary-hover: #223240;
+  --giu-primary-soft: #e8eef2;
+  --giu-accent: #6ba894;
+  --giu-accent-hover: #569882;
+  --giu-accent-soft: #e8f4ef;
+  --giu-mint: #9dcab8;
+  --giu-danger: #d64545;
+  --giu-gold: #c4a35a;
 }
 
 .giu-app {
@@ -24,8 +25,8 @@
     sans-serif;
   -webkit-font-smoothing: antialiased;
   background:
-    radial-gradient(120% 80% at 50% -10%, #dce9ff 0%, transparent 55%),
-    radial-gradient(90% 50% at 100% 0%, #e4f7ee 0%, transparent 45%),
+    radial-gradient(110% 70% at 20% -5%, #e8f4ef 0%, transparent 50%),
+    radial-gradient(90% 50% at 100% 0%, #e8eef2 0%, transparent 45%),
     var(--giu-bg);
   background-attachment: fixed;
 }
@@ -47,19 +48,19 @@
 }
 
 .giu-btn-primary {
-  @apply giu-btn w-full bg-giu-primary text-white hover:bg-giu-primary-hover;
+  @apply giu-btn w-full bg-giu-accent text-white hover:bg-giu-accent-hover;
 }
 
 .giu-btn-secondary {
-  @apply giu-btn w-full bg-giu-bg text-giu-ink hover:bg-giu-border;
+  @apply giu-btn w-full bg-giu-primary-soft text-giu-ink hover:bg-giu-border;
 }
 
 .giu-btn-ghost {
-  @apply giu-btn bg-transparent text-giu-muted hover:bg-white/60 hover:text-giu-ink;
+  @apply giu-btn bg-transparent text-giu-muted hover:bg-white/70 hover:text-giu-ink;
 }
 
 .giu-input {
-  @apply w-full rounded-[14px] border-0 bg-white/80 px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-primary;
+  @apply w-full rounded-[14px] border-0 bg-white/85 px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-mint;
 }
 
 .giu-label {
@@ -83,7 +84,7 @@
 }
 
 .giu-badge-safe {
-  @apply giu-badge bg-giu-primary-soft text-giu-primary;
+  @apply giu-badge bg-giu-primary-soft text-giu-ink;
 }
 
 .giu-list-row {
@@ -91,30 +92,15 @@
 }
 
 .giu-info-banner {
-  @apply rounded-[14px] bg-giu-primary-soft px-3.5 py-2.5 text-[13px] leading-snug text-giu-ink;
+  @apply rounded-[14px] bg-giu-accent-soft px-3.5 py-2.5 text-[13px] leading-snug text-giu-ink;
 }
 
 .giu-divider {
   @apply h-px bg-giu-border;
 }
 
-/* Compressed feed + ticket */
-
-.giu-brand-mark {
-  @apply flex h-9 w-9 items-center justify-center rounded-[12px] bg-giu-primary text-[15px] font-extrabold tracking-tight text-white shadow-[0_6px_16px_rgb(47_124_246_/_0.35)];
-}
-
-.giu-hour-chip {
-  @apply inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-giu-ink ring-1 ring-giu-border backdrop-blur;
-}
-
-.giu-hour-dot {
-  @apply h-1.5 w-1.5 rounded-full bg-giu-accent;
-  animation: giu-pulse 1.8s ease-in-out infinite;
-}
-
 .giu-feed-item {
-  animation: giu-rise 0.45s ease both;
+  animation: giu-rise 0.4s ease both;
 }
 
 .giu-ticket {
@@ -129,33 +115,25 @@
 }
 
 .giu-sticky-pay {
-  @apply sticky bottom-[calc(env(safe-area-inset-bottom)+12px)] z-30 mt-4 rounded-[18px] border border-white/60 bg-giu-surface/95 p-3 shadow-giu-md backdrop-blur-md;
+  @apply sticky bottom-[calc(env(safe-area-inset-bottom)+12px)] z-30 mt-4 rounded-[18px] border border-white/70 bg-giu-surface/95 p-3 shadow-giu-md backdrop-blur-md;
 }
 
 .giu-photo {
-  @apply overflow-hidden bg-giu-primary-soft;
+  @apply overflow-hidden bg-giu-accent-soft;
 }
 
 .giu-photo img {
-  @apply h-full w-full object-cover transition duration-500;
+  @apply h-full w-full object-cover;
 }
 
-@keyframes giu-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.85);
-  }
+.giu-map-pin {
+  @apply flex h-8 w-8 items-center justify-center rounded-full bg-giu-accent text-[11px] font-bold text-white shadow-md ring-2 ring-white;
 }
 
 @keyframes giu-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -164,7 +142,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .giu-hour-dot,
   .giu-feed-item {
     animation: none;
   }

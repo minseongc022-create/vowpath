@@ -334,9 +334,22 @@ export async function listBoxes(filters?: {
   merchantId?: string;
   status?: GiuBoxStatus;
   openOnly?: boolean;
+  /** Include sold-out / closed boxes that still haven't expired. */
+  includeSoldOut?: boolean;
+  /** Filter by calendar day in HCMC: 0=today, 1=tomorrow */
+  dayOffset?: 0 | 1;
 }): Promise<GiuBox[]> {
   const store = await loadStore();
   const now = Date.now();
+
+  function hcmDayKey(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  }
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+
   return store.boxes
     .filter((b) => {
       if (filters?.merchantId && b.merchantId !== filters.merchantId) return false;
@@ -345,7 +358,11 @@ export async function listBoxes(filters?: {
       if (filters?.openOnly) {
         if (b.status !== "mo" || b.quantityLeft <= 0) return false;
         if (new Date(b.expiresAt).getTime() < now) return false;
+      } else if (filters?.includeSoldOut) {
+        if (new Date(b.expiresAt).getTime() < now && b.status === "huy") return false;
       }
+      if (filters?.dayOffset === 0 && hcmDayKey(b.pickupStart) !== todayKey) return false;
+      if (filters?.dayOffset === 1 && hcmDayKey(b.pickupStart) !== tomorrowKey) return false;
       if (filters?.district) {
         const merchant = store.merchants.find((m) => m.id === b.merchantId);
         if (!merchant || merchant.district !== filters.district) return false;

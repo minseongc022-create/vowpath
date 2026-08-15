@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import { GIU_STRINGS } from "@/giu/lib/strings";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { CustomerAvailabilityAlerts } from "./CustomerAvailabilityAlerts";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
 import { GiuLocaleToggle } from "./GiuLocaleProvider";
+import { GiuLogo } from "./GiuLogo";
 
 export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,22 +17,21 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       pathname !== GIU_ROUTES.customer.boxes) ||
     pathname.startsWith("/giu/dat/");
 
+  const displayName = account?.name?.trim() || null;
+
   return (
     <div className="giu-app flex min-h-dvh flex-col text-giu-ink">
       <CustomerAvailabilityAlerts />
-      <header className="sticky top-0 z-40 border-b border-white/40 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-[52px] max-w-[480px] items-center justify-between px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={GIU_ROUTES.customer.home} className="flex items-center gap-2.5">
-            <span className="giu-brand-mark">G</span>
-            <div className="leading-none">
-              <p className="text-[17px] font-extrabold tracking-tight text-giu-ink">
-                {GIU_STRINGS.brand}
-              </p>
-              <p className="mt-0.5 text-[10px] font-medium text-giu-muted">호치민 음식 구출</p>
-            </div>
+      <header className="sticky top-0 z-40 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
+          <Link href={GIU_ROUTES.customer.home} className="flex min-w-0 items-center gap-2.5">
+            <GiuLogo size={36} priority />
+            <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-ink">
+              {loading ? "…" : displayName ?? "손님"}
+            </span>
           </Link>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             <GiuLocaleToggle />
             {!loading && account ? (
               <button
