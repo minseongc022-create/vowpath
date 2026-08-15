@@ -4,16 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatVnd } from "@/giu/lib/format";
+import { t } from "@/giu/lib/i18n";
 import type { GiuPaymentBackend } from "@/giu/lib/payments";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import { GIU_STRINGS } from "@/giu/lib/strings";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
-const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
-  { id: "vietqr", label: "VietQR", sub: "계좌이체" },
-  { id: "momo", label: "MoMo", sub: "지갑" },
-  { id: "card", label: "카드", sub: "국제 카드" },
+const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; subKo: string; subVi: string }[] = [
+  { id: "vietqr", label: "VietQR", subKo: "계좌이체", subVi: "Chuyển khoản" },
+  { id: "momo", label: "MoMo", subKo: "지갑", subVi: "Ví" },
+  { id: "card", label: "Card", subKo: "국제 카드", subVi: "Thẻ" },
 ];
 
 export function ReserveForm({
@@ -28,6 +29,7 @@ export function ReserveForm({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const { locale } = useGiuLocale();
   const { account, loading: authLoading } = useGiuAuth();
   const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("card");
   const [loading, setLoading] = useState(false);
@@ -65,14 +67,11 @@ export function ReserveForm({
         reservation?: { smsSent?: boolean };
       };
       if (!res.ok) {
-        setError(data.error ?? "오류가 발생했습니다");
+        setError(data.error ?? t(locale, "waitlistError"));
         return;
       }
 
-      if (
-        (data.mode === "vnpay" || data.mode === "lemon_squeezy") &&
-        data.paymentUrl
-      ) {
+      if ((data.mode === "vnpay" || data.mode === "lemon_squeezy") && data.paymentUrl) {
         window.location.href = data.paymentUrl;
         return;
       }
@@ -84,14 +83,14 @@ export function ReserveForm({
         router.refresh();
       }
     } catch {
-      setError("연결할 수 없습니다. 다시 시도해 주세요.");
+      setError(t(locale, "waitlistError"));
     } finally {
       setLoading(false);
     }
   }
 
   if (authLoading) {
-    return <p className="text-center text-[13px] text-giu-muted">불러오는 중...</p>;
+    return <p className="text-center text-[13px] text-giu-muted">{t(locale, "loading")}</p>;
   }
 
   if (!account) {
@@ -99,7 +98,7 @@ export function ReserveForm({
       <div className="space-y-2.5">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold text-giu-muted">Giu 안전 결제</p>
+            <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "escrowTitle")}</p>
             <p className="text-xl font-extrabold tracking-tight">{formatVnd(salePriceVnd)}</p>
           </div>
         </div>
@@ -107,7 +106,7 @@ export function ReserveForm({
           href={`${GIU_ROUTES.auth}?role=customer&next=${encodeURIComponent(`/giu/hop/${boxId}`)}`}
           className="giu-btn-primary block text-center"
         >
-          로그인하고 구출
+          {t(locale, "loginAndRescue")}
         </Link>
       </div>
     );
@@ -118,31 +117,31 @@ export function ReserveForm({
       <div className="space-y-3 text-center">
         <p className="giu-ticket-code !text-[32px]">{successCode}</p>
         <p className="text-[12px] text-giu-muted">
-          {smsSent ? "결제 완료 · SMS 발송" : "결제 완료 · 앱에서 코드 확인"}
+          {smsSent ? t(locale, "payDoneSms") : t(locale, "payDoneApp")}
         </p>
         <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
-          픽업 티켓 열기
+          {t(locale, "openTicket")}
         </Link>
       </div>
     );
   }
 
   const payLabel = loading
-    ? "이동 중..."
+    ? t(locale, "paying")
     : useLsCheckout
-      ? "카드 · PayPal 결제"
-      : GIU_STRINGS.payCta;
+      ? t(locale, "payCardPaypal")
+      : t(locale, "payCta");
 
   return (
     <form onSubmit={submit} className={compact ? "space-y-3" : "giu-card space-y-4"}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold text-giu-muted">합계</p>
+          <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "total")}</p>
           <p className="text-xl font-extrabold tracking-tight">
             {formatVnd(salePriceVnd * quantity)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" aria-label={t(locale, "qty")}>
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
@@ -161,16 +160,7 @@ export function ReserveForm({
         </div>
       </div>
 
-      {!compact ? (
-        <div className="giu-info-banner">
-          <p className="font-semibold text-giu-ink">안전 결제</p>
-          <p className="mt-1 text-giu-muted">결제 금액은 Giu가 안전하게 보관합니다.</p>
-        </div>
-      ) : (
-        <p className="text-[11px] leading-snug text-giu-muted">
-          결제 금액은 Giu가 안전하게 보관합니다.
-        </p>
-      )}
+      <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "escrowDesc")}</p>
 
       {useVnpayCheckout ? (
         <div className="grid grid-cols-3 gap-1.5">
@@ -188,7 +178,9 @@ export function ReserveForm({
                 }`}
               >
                 <span className="block text-[12px] font-bold text-giu-ink">{opt.label}</span>
-                <span className="block text-[10px] text-giu-muted">{opt.sub}</span>
+                <span className="block text-[10px] text-giu-muted">
+                  {locale === "vi" ? opt.subVi : opt.subKo}
+                </span>
               </button>
             );
           })}

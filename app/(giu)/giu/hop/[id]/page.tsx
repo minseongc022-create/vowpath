@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/giu/components/FavoriteButton";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReserveForm } from "@/giu/components/ReserveForm";
-import { getCategoryLabel } from "@/giu/lib/categories";
-import { getDistrictLabel } from "@/giu/lib/districts";
+import {
+  formatRatingLine,
+  isClosingSoon,
+  isSurpriseTitle,
+} from "@/giu/lib/box-ux";
 import {
   formatDiscount,
   formatPickupDate,
@@ -12,14 +15,18 @@ import {
   formatVnd,
 } from "@/giu/lib/format";
 import { merchantCoords } from "@/giu/lib/geo";
-import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
+import { t } from "@/giu/lib/i18n";
+import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
+import { getGiuLocaleServer } from "@/giu/lib/locale-server";
+import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function GiuBoxDetailPage({ params }: Props) {
   const { id } = await params;
+  const locale = await getGiuLocaleServer();
   const box = await getBox(id);
   if (!box) notFound();
   const merchant = await getMerchant(box.merchantId);
@@ -30,17 +37,20 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const mapsUrl = googleMapsSearchUrl(merchant.address);
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchantCoords(merchant.id, merchant.district);
+  const surprise = isSurpriseTitle(box.title);
+  const closing = !soldOut && isClosingSoon(box.pickupEnd);
+  const rating = formatRatingLine(merchant.rating, merchant.reviewCount, locale);
 
   return (
     <div className="giu-page !pt-0 space-y-3">
       <div className="flex items-center justify-between gap-2 py-2">
         <Link href="/giu/hop" className="text-[13px] font-bold text-giu-primary">
-          ← 목록
+          {t(locale, "back")}
         </Link>
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
       </div>
 
-      <div className="giu-photo aspect-[16/10] overflow-hidden rounded-[20px] ring-1 ring-giu-border">
+      <div className="giu-photo relative aspect-[16/10] overflow-hidden rounded-[20px] ring-1 ring-giu-border">
         {box.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={box.imageUrl} alt={box.title} />
@@ -49,6 +59,18 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             <p className="text-2xl font-extrabold text-giu-ink">{box.title}</p>
           </div>
         )}
+        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          {surprise ? (
+            <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
+              {t(locale, "surprise")}
+            </span>
+          ) : null}
+          {closing ? (
+            <span className="rounded-md bg-giu-accent px-2 py-1 text-[11px] font-bold text-white">
+              {t(locale, "closingSoon")}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-3 px-0.5">
@@ -62,8 +84,12 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             </span>
           </div>
           <p className="mt-1 text-[13px] font-medium text-giu-muted">
-            {merchant.name} · {getDistrictLabel(merchant.district)} · {getCategoryLabel(box.category)}
+            {merchant.name} · {districtLabel(merchant.district, locale)} ·{" "}
+            {categoryLabel(box.category, locale)}
           </p>
+          {rating ? (
+            <p className="mt-1 text-[12px] font-bold text-giu-ink">{rating}</p>
+          ) : null}
         </div>
 
         <div className="flex items-baseline gap-2">
@@ -75,6 +101,10 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           </p>
         </div>
 
+        {surprise ? (
+          <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "surpriseHint")}</p>
+        ) : null}
+
         {box.description ? (
           <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
         ) : null}
@@ -84,12 +114,14 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         ) : null}
 
         <dl className="grid grid-cols-2 gap-2 text-[13px]">
-          {[
-            ["날짜", formatPickupDate(box.pickupStart)],
-            ["시간", formatPickupWindow(box.pickupStart, box.pickupEnd)],
-            ["남음", `${box.quantityLeft}개`],
-            ["주소", merchant.address],
-          ].map(([label, value]) => (
+          {(
+            [
+              [t(locale, "date"), formatPickupDate(box.pickupStart)],
+              [t(locale, "time"), formatPickupWindow(box.pickupStart, box.pickupEnd)],
+              [t(locale, "left"), `${box.quantityLeft}`],
+              [t(locale, "address"), merchant.address],
+            ] as const
+          ).map(([label, value]) => (
             <div key={label} className="rounded-[14px] bg-white/70 px-3 py-2.5 ring-1 ring-giu-border">
               <dt className="text-[11px] font-medium text-giu-muted">{label}</dt>
               <dd className="mt-0.5 font-semibold leading-snug text-giu-ink">{value}</dd>
@@ -106,11 +138,11 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
         <div className="flex gap-4 text-[13px] font-bold">
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
-            지도 앱
+            {t(locale, "maps")}
           </a>
           {zaloUrl ? (
             <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
-              Zalo
+              {t(locale, "zalo")}
             </a>
           ) : null}
         </div>
@@ -118,10 +150,10 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
       {soldOut ? (
         <div className="giu-card text-center">
-          <p className="font-bold text-giu-ink">매진</p>
-          <p className="mt-1 text-[13px] text-giu-muted">다른 박스를 고르거나 즐겨찾기를 켜 두세요.</p>
+          <p className="font-bold text-giu-ink">{t(locale, "soldOut")}</p>
+          <p className="mt-1 text-[13px] text-giu-muted">{t(locale, "soldOutHint")}</p>
           <Link href="/giu/hop" className="giu-btn-primary mt-3 block text-center">
-            다른 박스
+            {t(locale, "otherBoxes")}
           </Link>
         </div>
       ) : (
