@@ -67,20 +67,26 @@ export function formatPaymentStatus(status: GiuPaymentStatus): string {
   return PAYMENT_STATUS_LABELS[status] ?? status;
 }
 
-/** Tonight 19:00–21:00 HCMC as ISO strings */
-export function defaultPickupWindow(): { start: string; end: string; expires: string } {
+/** Next flexible pickup window from now (HCMC) — anytime listing. */
+export function defaultPickupWindow(
+  durationHours = 2,
+): { start: string; end: string; expires: string } {
+  const now = new Date();
+  const start = new Date(now.getTime() + 15 * 60 * 1000);
+  // Round up to next 15 minutes
+  start.setMinutes(Math.ceil(start.getMinutes() / 15) * 15, 0, 0);
+  const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+  const expires = new Date(end.getTime() + 30 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString(), expires: expires.toISOString() };
+}
+
+/** Build ISO from HCMC calendar day + hour (+ optional minute). */
+export function hcmLocalToIso(dayOffset: number, hour: number, minute = 0): string {
   const now = new Date();
   const hcm = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-  hcm.setHours(19, 0, 0, 0);
-  const start = new Date(hcm);
-  if (start.getTime() < now.getTime()) {
-    start.setDate(start.getDate() + 1);
-  }
-  const end = new Date(start);
-  end.setHours(21, 0, 0, 0);
-  const expires = new Date(end);
-  expires.setMinutes(expires.getMinutes() + 30);
-  return { start: start.toISOString(), end: end.toISOString(), expires: expires.toISOString() };
+  hcm.setDate(hcm.getDate() + dayOffset);
+  hcm.setHours(hour, minute, 0, 0);
+  return hcm.toISOString();
 }
 
 export function slugify(name: string): string {

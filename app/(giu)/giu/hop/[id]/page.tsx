@@ -112,7 +112,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
       {soldOut ? (
         <div className="giu-card text-center">
           <p className="font-bold text-giu-ink">매진</p>
-          <p className="mt-1 text-[13px] text-giu-muted">19시 이후 다시 오거나 다른 박스를 고르세요.</p>
+          <p className="mt-1 text-[13px] text-giu-muted">다른 박스를 고르거나 즐겨찾기를 켜 두세요.</p>
           <Link href="/giu/hop" className="giu-btn-primary mt-3 block text-center">
             다른 박스
           </Link>
