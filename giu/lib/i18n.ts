@@ -60,6 +60,20 @@ const KO: Dict = {
   how2d: "Giu로 결제 — 금액은 안전하게 보관됩니다.",
   how3: "픽업",
   how3d: "마감 전에 가게에 방문, 코드를 보여주고 박스를 받으세요.",
+  favorite: "즐겨찾기",
+  favorited: "저장됨",
+  unfavorite: "즐겨찾기 해제",
+  favorites: "즐겨찾기",
+  favoritesEmpty: "즐겨찾기한 가게가 없습니다",
+  favoritesEmptyHint: "박스 상세에서 ♡를 눌러 가게를 저장하세요. 새 박스가 열리면 알려드릴게요.",
+  favoriteStores: "저장한 가게",
+  openFromFavorites: "즐겨찾기 가게의 열린 박스",
+  noOpenFromFavorites: "지금은 열린 박스가 없어요. 생기면 알림으로 알려드릴게요.",
+  alertNewBox: "즐겨찾기 가게에 새 박스!",
+  alertView: "보기",
+  alertNewOrder: "새 결제 주문!",
+  enableOrderAlerts: "🔔 새 주문 브라우저 알림 켜기",
+  mapEmbed: "지도",
 };
 
 const VI: Dict = {
@@ -114,6 +128,20 @@ const VI: Dict = {
   how2d: "Trả qua Giu — tiền được giữ an toàn.",
   how3: "Nhận",
   how3d: "Đến cửa hàng trước giờ đóng, đưa mã và nhận hộp.",
+  favorite: "Yêu thích",
+  favorited: "Đã lưu",
+  unfavorite: "Bỏ yêu thích",
+  favorites: "Yêu thích",
+  favoritesEmpty: "Chưa có cửa hàng yêu thích",
+  favoritesEmptyHint: "Bấm ♡ ở trang hộp để lưu cửa hàng. Chúng tôi báo khi có hộp mới.",
+  favoriteStores: "Cửa hàng đã lưu",
+  openFromFavorites: "Hộp đang mở từ cửa hàng yêu thích",
+  noOpenFromFavorites: "Chưa có hộp mở. Sẽ báo khi có.",
+  alertNewBox: "Cửa hàng yêu thích có hộp mới!",
+  alertView: "Xem",
+  alertNewOrder: "Đơn thanh toán mới!",
+  enableOrderAlerts: "🔔 Bật thông báo đơn mới trên trình duyệt",
+  mapEmbed: "Bản đồ",
 };
 
 export function t(locale: GiuLocale, key: keyof typeof KO): string {

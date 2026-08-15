@@ -38,6 +38,7 @@ export const GIU_STRINGS = {
   payCta: "안전 결제 & 코드 받기",
   navHome: "홈",
   navBoxes: "구출 박스",
+  navFavorites: "즐겨찾기",
   navMerchants: "가게",
   navMy: "내 코드",
   navPanel: "가게 관리",

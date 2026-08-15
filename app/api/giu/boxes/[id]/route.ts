@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
 import { getBox, getMerchant, updateBox } from "@/giu/lib/store";
 
 const patchSchema = z.object({
   status: z.enum(["mo", "het", "huy"]).optional(),
   title: z.string().min(3).max(120).optional(),
   description: z.string().max(500).optional(),
+  imageUrl: z
+    .union([
+      z.literal(""),
+      z.string().max(500).refine((v) => isAllowedGiuImageUrl(v), "이미지 URL이 올바르지 않습니다"),
+    ])
+    .optional(),
   freshnessNote: z.string().max(200).optional(),
   quantityLeft: z.number().int().min(0).max(50).optional(),
   pickupStart: z.string().datetime().optional(),
@@ -41,7 +48,11 @@ export async function PATCH(request: Request, { params }: Props) {
       );
     }
 
-    const updated = await updateBox(id, parsed.data);
+    const { imageUrl, ...rest } = parsed.data;
+    const updated = await updateBox(id, {
+      ...rest,
+      ...(imageUrl !== undefined ? { imageUrl: imageUrl || undefined } : {}),
+    });
     return NextResponse.json({ box: updated });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });

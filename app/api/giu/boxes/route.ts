@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isGiuCategory } from "@/giu/lib/categories";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
 import { createBox, getMerchant, listBoxes, defaultPickupWindow } from "@/giu/lib/store";
 
 const createSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().max(500).optional(),
+  imageUrl: z
+    .string()
+    .max(500)
+    .refine((v) => !v || isAllowedGiuImageUrl(v), "이미지 URL이 올바르지 않습니다")
+    .optional(),
   category: z.string().refine(isGiuCategory, "업종이 올바르지 않습니다").optional(),
   originalPriceVnd: z.number().int().min(10000),
   salePriceVnd: z.number().int().min(5000),
@@ -52,10 +58,12 @@ export async function POST(request: Request) {
     }
 
     const window = defaultPickupWindow();
+    const imageUrl = parsed.data.imageUrl?.trim() || undefined;
     const box = await createBox({
       merchantId: merchant.id,
       title: parsed.data.title,
       description: parsed.data.description,
+      imageUrl,
       category: parsed.data.category ?? merchant.category,
       originalPriceVnd: parsed.data.originalPriceVnd,
       salePriceVnd: parsed.data.salePriceVnd,

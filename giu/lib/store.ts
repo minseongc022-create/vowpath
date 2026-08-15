@@ -448,6 +448,7 @@ export async function updateBox(
       GiuBox,
       | "title"
       | "description"
+      | "imageUrl"
       | "freshnessNote"
       | "status"
       | "quantityLeft"
@@ -464,6 +465,9 @@ export async function updateBox(
   const box = store.boxes.find((b) => b.id === boxId);
   if (!box) return null;
   Object.assign(box, patch);
+  if ("imageUrl" in patch && !patch.imageUrl) {
+    delete box.imageUrl;
+  }
   if (box.quantityLeft <= 0 && box.status === "mo") box.status = "het";
   if (box.quantityLeft > 0 && box.status === "het" && patch.status !== "huy") {
     box.status = "mo";

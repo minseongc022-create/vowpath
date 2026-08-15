@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { GIU_STRINGS } from "@/giu/lib/strings";
 import { useGiuAuth } from "./GiuAuthProvider";
+import { CustomerAvailabilityAlerts } from "./CustomerAvailabilityAlerts";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
 import { GiuLocaleToggle } from "./GiuLocaleProvider";
 
@@ -18,6 +19,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="giu-app flex min-h-dvh flex-col bg-giu-bg text-giu-ink">
+      <CustomerAvailabilityAlerts />
       <header className="sticky top-0 z-40 bg-giu-bg/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-[480px] items-center justify-between px-5 md:max-w-xl lg:max-w-2xl">
           <Link href={GIU_ROUTES.customer.home} className="flex items-center gap-2.5">

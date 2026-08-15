@@ -13,6 +13,7 @@ import {
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { GiuLocaleToggle } from "./GiuLocaleProvider";
+import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 
 function tonightIso(hour: number, minute = 0): string {
   const now = new Date();
@@ -96,6 +97,7 @@ export function MerchantPanelClient() {
       body: JSON.stringify({
         title: fd.get("title"),
         description: fd.get("description") || undefined,
+        imageUrl: String(fd.get("imageUrl") || "").trim() || undefined,
         category: fd.get("category") || undefined,
         originalPriceVnd: Number(fd.get("originalPriceVnd")),
         salePriceVnd: Number(fd.get("salePriceVnd")),
@@ -181,6 +183,8 @@ export function MerchantPanelClient() {
 
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
 
+      <MerchantOrderAlerts merchantId={merchant.id} onNewOrder={() => void load(merchant.id)} />
+
       {tab === "boxes" ? (
         <>
           <section className="giu-card">
@@ -195,6 +199,15 @@ export function MerchantPanelClient() {
                 ))}
               </select>
               <input name="description" placeholder="설명 (선택)" className="giu-input sm:col-span-2" />
+              <input
+                name="imageUrl"
+                type="url"
+                placeholder="박스 사진 URL (https://…)"
+                className="giu-input sm:col-span-2"
+              />
+              <p className="text-xs text-giu-muted sm:col-span-2">
+                사진은 공개 이미지 링크를 붙여넣으세요 (Imgur, Google Drive 공개 링크 등).
+              </p>
               <input
                 name="freshnessNote"
                 placeholder="신선도 약속 (선택)"
@@ -257,26 +270,36 @@ export function MerchantPanelClient() {
               <ul className="mt-4 space-y-3">
                 {boxes.map((box) => (
                   <li key={box.id} className="giu-card-flat ring-1 ring-giu-border p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium">{box.title}</p>
-                        <p className="text-sm text-giu-muted">
-                          {formatVnd(box.salePriceVnd)} · 남은 {box.quantityLeft}/{box.quantityTotal} ·{" "}
-                          {formatBoxStatus(box.status)}
-                        </p>
-                        <p className="text-xs text-giu-muted">
-                          {formatPickupWindow(box.pickupStart, box.pickupEnd)}
-                        </p>
-                      </div>
-                      {box.status === "mo" ? (
-                        <button
-                          type="button"
-                          onClick={() => void closeBox(box.id)}
-                          className="shrink-0 rounded-xl bg-giu-bg px-3 py-1.5 text-xs font-semibold text-giu-muted ring-1 ring-giu-border"
-                        >
-                          마감
-                        </button>
+                    <div className="flex items-start gap-3">
+                      {box.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={box.imageUrl}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                        />
                       ) : null}
+                      <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium">{box.title}</p>
+                          <p className="text-sm text-giu-muted">
+                            {formatVnd(box.salePriceVnd)} · 남은 {box.quantityLeft}/{box.quantityTotal} ·{" "}
+                            {formatBoxStatus(box.status)}
+                          </p>
+                          <p className="text-xs text-giu-muted">
+                            {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+                          </p>
+                        </div>
+                        {box.status === "mo" ? (
+                          <button
+                            type="button"
+                            onClick={() => void closeBox(box.id)}
+                            className="shrink-0 rounded-xl bg-giu-bg px-3 py-1.5 text-xs font-semibold text-giu-muted ring-1 ring-giu-border"
+                          >
+                            마감
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </li>
                 ))}

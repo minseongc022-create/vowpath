@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FavoriteButton } from "@/giu/components/FavoriteButton";
+import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReserveForm } from "@/giu/components/ReserveForm";
 import { getCategoryEmoji, getCategoryLabel } from "@/giu/lib/categories";
 import { getDistrictLabel } from "@/giu/lib/districts";
@@ -29,15 +31,27 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
   return (
     <div className="giu-page space-y-5">
-      <Link href="/giu/hop" className="inline-flex text-sm font-semibold text-giu-primary">
-        ← 돌아가기
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/giu/hop" className="inline-flex text-sm font-semibold text-giu-primary">
+          ← 돌아가기
+        </Link>
+        <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
+      </div>
+
+      {box.imageUrl ? (
+        <div className="overflow-hidden rounded-[20px] ring-1 ring-giu-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={box.imageUrl} alt={box.title} className="aspect-[16/10] w-full object-cover" />
+        </div>
+      ) : null}
 
       <div className="giu-card space-y-4">
         <div className="flex items-start gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-giu-bg text-3xl">
-            {getCategoryEmoji(box.category)}
-          </span>
+          {!box.imageUrl ? (
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-giu-bg text-3xl">
+              {getCategoryEmoji(box.category)}
+            </span>
+          ) : null}
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold leading-snug text-giu-ink">{box.title}</h1>
             <p className="mt-1 text-sm text-giu-muted">{merchant.name}</p>
@@ -76,9 +90,11 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           ))}
         </div>
 
+        <MapEmbed address={merchant.address} />
+
         <div className="flex flex-wrap gap-3 text-sm font-semibold">
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
-            지도에서 보기
+            지도 앱에서 열기
           </a>
           {zaloUrl ? (
             <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
