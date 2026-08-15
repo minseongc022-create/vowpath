@@ -7,6 +7,7 @@ import {
   TileLayer,
   Marker,
   CircleMarker,
+  Polyline,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
@@ -26,7 +27,12 @@ import {
 } from "@/giu/lib/geo";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
-import { googleMapsSearchUrl } from "@/giu/lib/links";
+import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/giu/lib/links";
+import {
+  fetchDrivingRoute,
+  formatOsrmDuration,
+  type RouteResult,
+} from "@/giu/lib/routing";
 import type { GiuCategory } from "@/giu/lib/types";
 import type { MapPin } from "@/giu/lib/map-pins";
 import { useGiuLocale } from "./GiuLocaleProvider";
@@ -81,6 +87,16 @@ function FlyTo({
   return null;
 }
 
+function FitRoute({ latLngs }: { latLngs: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (latLngs.length < 2) return;
+    const bounds = L.latLngBounds(latLngs.map(([lat, lng]) => L.latLng(lat, lng)));
+    map.fitBounds(bounds, { padding: [72, 72], maxZoom: 16, animate: true });
+  }, [latLngs, map]);
+  return null;
+}
+
 function ZoomControls() {
   const map = useMap();
   return (
@@ -118,6 +134,8 @@ export function MapDiscover({ pins }: Props) {
   const [locError, setLocError] = useState("");
   const [locating, setLocating] = useState(false);
   const [farFromHcmc, setFarFromHcmc] = useState(false);
+  const [route, setRoute] = useState<RouteResult | null>(null);
+  const [routing, setRouting] = useState(false);
 
   const clearFly = useCallback(() => setFlyTarget(null), []);
 
@@ -186,6 +204,60 @@ export function MapDiscover({ pins }: Props) {
     setFlyTarget({ lat: HCMC_CENTER.lat, lng: HCMC_CENTER.lng, zoom: HCMC_DEFAULT_ZOOM });
   }
 
+  function openDirections() {
+    if (!selected) return;
+    const dest = { lat: selected.lat, lng: selected.lng };
+    if (userPos) {
+      window.open(
+        googleMapsDirectionsUrl({ origin: userPos, destination: dest, travelmode: "driving" }),
+        "_blank",
+        "noopener,noreferrer",
+      );
+      return;
+    }
+    // Need location first — then reopen Maps
+    setLocError("");
+    if (!("geolocation" in navigator)) {
+      window.open(
+        googleMapsDirectionsUrl({
+          destination: { address: selected.merchant.address },
+          travelmode: "driving",
+        }),
+        "_blank",
+        "noopener,noreferrer",
+      );
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserPos(next);
+        const near = distanceMeters(next, HCMC_CENTER) < 80_000;
+        setFarFromHcmc(!near);
+        setLocating(false);
+        window.open(
+          googleMapsDirectionsUrl({ origin: next, destination: dest, travelmode: "driving" }),
+          "_blank",
+          "noopener,noreferrer",
+        );
+      },
+      () => {
+        setLocError(t(locale, "directionsNeedLoc"));
+        setLocating(false);
+        window.open(
+          googleMapsDirectionsUrl({
+            destination: { address: selected.merchant.address },
+            travelmode: "driving",
+          }),
+          "_blank",
+          "noopener,noreferrer",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12000 },
+    );
+  }
+
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
     navigator.geolocation.getCurrentPosition(
@@ -199,6 +271,33 @@ export function MapDiscover({ pins }: Props) {
       { enableHighAccuracy: false, timeout: 8000 },
     );
   }, []);
+
+  // Draw driving route from current position → selected store
+  useEffect(() => {
+    if (!selected || !userPos) {
+      setRoute(null);
+      return;
+    }
+    const far = distanceMeters(userPos, HCMC_CENTER) >= 80_000;
+    // Don't route across countries when tester is in Korea etc.
+    if (far) {
+      setRoute(null);
+      return;
+    }
+    const ac = new AbortController();
+    setRouting(true);
+    void fetchDrivingRoute(userPos, { lat: selected.lat, lng: selected.lng }, ac.signal).then(
+      (result) => {
+        if (ac.signal.aborted) return;
+        setRoute(result);
+        setRouting(false);
+      },
+    );
+    return () => {
+      ac.abort();
+      setRouting(false);
+    };
+  }, [selected, userPos]);
 
   return (
     <div className="giu-map-root relative h-[calc(100dvh-54px-64px)] w-full overflow-hidden bg-[#dfe8ef]">
@@ -272,6 +371,21 @@ export function MapDiscover({ pins }: Props) {
             }}
           />
         ))}
+        {route && route.latLngs.length >= 2 ? (
+          <>
+            <Polyline
+              positions={route.latLngs}
+              pathOptions={{
+                color: "#2F7CF6",
+                weight: 5,
+                opacity: 0.92,
+                lineJoin: "round",
+                lineCap: "round",
+              }}
+            />
+            {!flyTarget ? <FitRoute latLngs={route.latLngs} /> : null}
+          </>
+        ) : null}
       </MapContainer>
 
       {/* Top search + filters */}
@@ -390,12 +504,20 @@ export function MapDiscover({ pins }: Props) {
                     {districtLabel(selected.merchant.district, locale)} · {selected.merchant.address}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-bold">
-                    {userPos ? (
+                    {route ? (
+                      <span className="rounded-md bg-[#E8F1FE] px-2 py-0.5 text-[#2F7CF6]">
+                        {t(locale, "directionsEta")}{" "}
+                        {formatOsrmDuration(route.durationSeconds, locale)} ·{" "}
+                        {formatDistance(route.distanceMeters, locale)}
+                      </span>
+                    ) : userPos && !farFromHcmc ? (
                       <span className="rounded-md bg-giu-accent-soft px-2 py-0.5 text-giu-accent">
-                        {formatDistance(
-                          distanceMeters(userPos, { lat: selected.lat, lng: selected.lng }),
-                          locale,
-                        )}
+                        {routing
+                          ? "…"
+                          : formatDistance(
+                              distanceMeters(userPos, { lat: selected.lat, lng: selected.lng }),
+                              locale,
+                            )}
                       </span>
                     ) : null}
                     <span className="rounded-md bg-giu-bg px-2 py-0.5 text-giu-muted">
@@ -453,14 +575,14 @@ export function MapDiscover({ pins }: Props) {
               </ul>
 
               <div className="flex gap-2">
-                <a
-                  href={googleMapsSearchUrl(selected.merchant.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={openDirections}
+                  disabled={locating}
                   className="giu-btn-secondary flex-1 !py-3 text-[13px]"
                 >
-                  {t(locale, "maps")}
-                </a>
+                  {locating ? t(locale, "directionsLocating") : t(locale, "directions")}
+                </button>
                 {sortedSelectedBoxes[0] ? (
                   <Link
                     href={`/giu/hop/${sortedSelectedBoxes[0].id}`}
@@ -468,7 +590,16 @@ export function MapDiscover({ pins }: Props) {
                   >
                     {t(locale, "rescueNow")}
                   </Link>
-                ) : null}
+                ) : (
+                  <a
+                    href={googleMapsSearchUrl(selected.merchant.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="giu-btn-primary flex-1 !py-3 text-[13px]"
+                  >
+                    {t(locale, "maps")}
+                  </a>
+                )}
               </div>
             </div>
           </div>

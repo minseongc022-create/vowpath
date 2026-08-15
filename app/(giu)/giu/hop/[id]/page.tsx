@@ -11,6 +11,7 @@ import {
   formatPickupWindow,
   formatVnd,
 } from "@/giu/lib/format";
+import { merchantCoords } from "@/giu/lib/geo";
 import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getBox, getMerchant } from "@/giu/lib/store";
@@ -28,6 +29,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const checkoutBackend = resolveGiuPaymentBackend();
   const mapsUrl = googleMapsSearchUrl(merchant.address);
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
+  const coords = merchantCoords(merchant.id, merchant.district);
 
   return (
     <div className="giu-page !pt-0 space-y-3">
@@ -95,7 +97,12 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           ))}
         </dl>
 
-        <MapEmbed address={merchant.address} compact />
+        <MapEmbed
+          address={merchant.address}
+          destLat={coords.lat}
+          destLng={coords.lng}
+          compact
+        />
 
         <div className="flex gap-4 text-[13px] font-bold">
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">

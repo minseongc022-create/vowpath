@@ -5,6 +5,7 @@ import { CancelReservationButton } from "@/giu/components/CancelReservationButto
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { merchantCoords } from "@/giu/lib/geo";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
 
@@ -30,6 +31,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
   const mapsUrl = merchant ? googleMapsSearchUrl(merchant.address) : null;
   const zaloUrl = merchant?.zalo ? zaloChatUrl(merchant.zalo) : null;
+  const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
 
   return (
     <div className="giu-page space-y-3">
@@ -75,7 +77,12 @@ export default async function GiuReservationPage({ params, searchParams }: Props
                 </p>
               ) : null}
             </div>
-            <MapEmbed address={merchant.address} compact />
+            <MapEmbed
+              address={merchant.address}
+              destLat={coords?.lat}
+              destLng={coords?.lng}
+              compact
+            />
             <div className="flex gap-4 text-[13px] font-bold">
               {mapsUrl ? (
                 <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
