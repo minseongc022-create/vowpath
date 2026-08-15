@@ -163,12 +163,12 @@ export function ReserveForm({
 
       {!compact ? (
         <div className="giu-info-banner">
-          <p className="font-semibold text-giu-primary">{GIU_STRINGS.escrowTitle}</p>
-          <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
+          <p className="font-semibold text-giu-ink">안전 결제</p>
+          <p className="mt-1 text-giu-muted">결제 금액은 Giu가 안전하게 보관합니다.</p>
         </div>
       ) : (
         <p className="text-[11px] leading-snug text-giu-muted">
-          Giu가 금액 보관 → 픽업 확인 후 가게 정산
+          결제 금액은 Giu가 안전하게 보관합니다.
         </p>
       )}
 

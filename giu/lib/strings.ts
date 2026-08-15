@@ -31,10 +31,10 @@ export const GIU_STRINGS = {
   trustFreeDesc: "거래 성사 시에만 12% 수수료.",
   trustEscrow: "Giu 안전 결제",
   trustEscrowDesc:
-    "Giu가 금액을 보관 — 픽업 확인 후 가게에 정산. 당근 안심결제와 비슷해요.",
+    "결제 금액은 Giu가 안전하게 보관합니다.",
   escrowTitle: "Giu 안전 결제",
   escrowDesc:
-    "금액은 Giu가 안전하게 보관합니다. 가게가 픽업을 확인하면 → 가게에 정산됩니다.",
+    "결제 금액은 Giu가 안전하게 보관합니다.",
   payCta: "안전 결제 & 코드 받기",
   navHome: "홈",
   navBoxes: "구출",

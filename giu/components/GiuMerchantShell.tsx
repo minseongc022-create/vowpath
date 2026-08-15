@@ -26,7 +26,7 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() =>
               void logout().then(() => {
-                window.location.href = GIU_ROUTES.auth;
+                window.location.href = `${GIU_ROUTES.auth}?role=merchant`;
               })
             }
             className="shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"
