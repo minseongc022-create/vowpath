@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/giu/components/FavoriteButton";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReserveForm } from "@/giu/components/ReserveForm";
-import { getCategoryEmoji, getCategoryLabel } from "@/giu/lib/categories";
+import { getCategoryLabel } from "@/giu/lib/categories";
 import { getDistrictLabel } from "@/giu/lib/districts";
 import {
   formatDiscount,
@@ -30,75 +30,80 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
 
   return (
-    <div className="giu-page space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <Link href="/giu/hop" className="inline-flex text-sm font-semibold text-giu-primary">
-          ← 돌아가기
+    <div className="giu-page !pt-0 space-y-3">
+      <div className="flex items-center justify-between gap-2 py-2">
+        <Link href="/giu/hop" className="text-[13px] font-bold text-giu-primary">
+          ← 목록
         </Link>
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
       </div>
 
-      {box.imageUrl ? (
-        <div className="overflow-hidden rounded-[20px] ring-1 ring-giu-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={box.imageUrl} alt={box.title} className="aspect-[16/10] w-full object-cover" />
-        </div>
-      ) : null}
-
-      <div className="giu-card space-y-4">
-        <div className="flex items-start gap-4">
-          {!box.imageUrl ? (
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-giu-bg text-3xl">
-              {getCategoryEmoji(box.category)}
-            </span>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold leading-snug text-giu-ink">{box.title}</h1>
-            <p className="mt-1 text-sm text-giu-muted">{merchant.name}</p>
-            <p className="text-xs text-giu-muted">
-              {getCategoryLabel(box.category)} · {getDistrictLabel(merchant.district)}
-              {merchant.reviewCount > 0
-                ? ` · ★ ${merchant.rating.toFixed(1)} (${merchant.reviewCount})`
-                : ""}
-            </p>
+      <div className="giu-photo aspect-[16/10] overflow-hidden rounded-[20px] ring-1 ring-giu-border">
+        {box.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={box.imageUrl} alt={box.title} />
+        ) : (
+          <div className="flex h-full items-end bg-gradient-to-br from-giu-primary-soft to-giu-accent-soft p-5">
+            <p className="text-2xl font-extrabold text-giu-ink">{box.title}</p>
           </div>
+        )}
+      </div>
+
+      <div className="space-y-3 px-0.5">
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-[22px] font-extrabold leading-snug tracking-tight text-giu-ink">
+              {box.title}
+            </h1>
+            <span className="giu-badge-sale mt-1 shrink-0">
+              {formatDiscount(box.originalPriceVnd, box.salePriceVnd)}
+            </span>
+          </div>
+          <p className="mt-1 text-[13px] font-medium text-giu-muted">
+            {merchant.name} · {getDistrictLabel(merchant.district)} · {getCategoryLabel(box.category)}
+          </p>
         </div>
 
-        {box.description ? <p className="text-sm leading-relaxed text-giu-muted">{box.description}</p> : null}
-
-        <div className="flex items-end gap-3">
-          <p className="text-3xl font-bold text-giu-ink">{formatVnd(box.salePriceVnd)}</p>
-          <p className="text-sm text-giu-muted line-through">{formatVnd(box.originalPriceVnd)}</p>
-          <span className="giu-badge-sale">{formatDiscount(box.originalPriceVnd, box.salePriceVnd)}</span>
+        <div className="flex items-baseline gap-2">
+          <p className="text-[28px] font-extrabold tracking-tight text-giu-ink">
+            {formatVnd(box.salePriceVnd)}
+          </p>
+          <p className="text-[13px] text-giu-muted line-through">
+            {formatVnd(box.originalPriceVnd)}
+          </p>
         </div>
 
-        {box.freshnessNote ? (
-          <div className="giu-info-banner text-sm">{box.freshnessNote}</div>
+        {box.description ? (
+          <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
         ) : null}
 
-        <div className="space-y-0 text-sm">
+        {box.freshnessNote ? (
+          <div className="giu-info-banner">{box.freshnessNote}</div>
+        ) : null}
+
+        <dl className="grid grid-cols-2 gap-2 text-[13px]">
           {[
-            ["픽업 날짜", formatPickupDate(box.pickupStart)],
-            ["픽업 시간", formatPickupWindow(box.pickupStart, box.pickupEnd)],
-            ["남은 수량", `${box.quantityLeft}개`],
+            ["날짜", formatPickupDate(box.pickupStart)],
+            ["시간", formatPickupWindow(box.pickupStart, box.pickupEnd)],
+            ["남음", `${box.quantityLeft}개`],
             ["주소", merchant.address],
-          ].map(([label, value], i) => (
-            <div key={label} className={`flex justify-between py-3 ${i > 0 ? "border-t border-giu-border" : ""}`}>
-              <span className="text-giu-muted">{label}</span>
-              <span className="max-w-[60%] text-right font-medium text-giu-ink">{value}</span>
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-[14px] bg-white/70 px-3 py-2.5 ring-1 ring-giu-border">
+              <dt className="text-[11px] font-medium text-giu-muted">{label}</dt>
+              <dd className="mt-0.5 font-semibold leading-snug text-giu-ink">{value}</dd>
             </div>
           ))}
-        </div>
+        </dl>
 
-        <MapEmbed address={merchant.address} />
+        <MapEmbed address={merchant.address} compact />
 
-        <div className="flex flex-wrap gap-3 text-sm font-semibold">
+        <div className="flex gap-4 text-[13px] font-bold">
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
-            지도 앱에서 열기
+            지도 앱
           </a>
           {zaloUrl ? (
             <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
-              Zalo로 문의
+              Zalo
             </a>
           ) : null}
         </div>
@@ -106,18 +111,21 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
       {soldOut ? (
         <div className="giu-card text-center">
-          <p className="font-semibold text-giu-ink">박스 매진</p>
-          <p className="mt-2 text-sm text-giu-muted">19시 이후에 다시 오거나 다른 박스를 선택하세요.</p>
-          <Link href="/giu/hop" className="giu-btn-primary mt-4 block text-center">
-            다른 박스 보기
+          <p className="font-bold text-giu-ink">매진</p>
+          <p className="mt-1 text-[13px] text-giu-muted">19시 이후 다시 오거나 다른 박스를 고르세요.</p>
+          <Link href="/giu/hop" className="giu-btn-primary mt-3 block text-center">
+            다른 박스
           </Link>
         </div>
       ) : (
-        <ReserveForm
-          boxId={box.id}
-          salePriceVnd={box.salePriceVnd}
-          checkoutBackend={checkoutBackend}
-        />
+        <div className="giu-sticky-pay">
+          <ReserveForm
+            boxId={box.id}
+            salePriceVnd={box.salePriceVnd}
+            checkoutBackend={checkoutBackend}
+            compact
+          />
+        </div>
       )}
     </div>
   );

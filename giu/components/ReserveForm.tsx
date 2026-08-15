@@ -11,8 +11,8 @@ import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
 const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
-  { id: "vietqr", label: "VietQR", sub: "빠른 계좌이체" },
-  { id: "momo", label: "MoMo", sub: "MoMo 지갑" },
+  { id: "vietqr", label: "VietQR", sub: "계좌이체" },
+  { id: "momo", label: "MoMo", sub: "지갑" },
   { id: "card", label: "카드", sub: "국제 카드" },
 ];
 
@@ -20,10 +20,12 @@ export function ReserveForm({
   boxId,
   salePriceVnd,
   checkoutBackend = "demo",
+  compact = false,
 }: {
   boxId: string;
   salePriceVnd: number;
   checkoutBackend?: GiuPaymentBackend;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const { account, loading: authLoading } = useGiuAuth();
@@ -89,21 +91,23 @@ export function ReserveForm({
   }
 
   if (authLoading) {
-    return (
-      <div className="giu-card text-center text-sm text-giu-muted">불러오는 중...</div>
-    );
+    return <p className="text-center text-[13px] text-giu-muted">불러오는 중...</p>;
   }
 
   if (!account) {
     return (
-      <div className="giu-card space-y-4">
-        <p className="text-2xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
-        <p className="text-sm text-giu-muted">{GIU_STRINGS.payCta}</p>
+      <div className="space-y-2.5">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold text-giu-muted">Giu 안전 결제</p>
+            <p className="text-xl font-extrabold tracking-tight">{formatVnd(salePriceVnd)}</p>
+          </div>
+        </div>
         <Link
           href={`${GIU_ROUTES.auth}?role=customer&next=${encodeURIComponent(`/giu/hop/${boxId}`)}`}
           className="giu-btn-primary block text-center"
         >
-          로그인 / 회원가입
+          로그인하고 구출
         </Link>
       </div>
     );
@@ -111,14 +115,13 @@ export function ReserveForm({
 
   if (successCode && reservationId) {
     return (
-      <div className="giu-card space-y-4 text-center">
-        <span className="giu-badge-safe">결제 완료</span>
-        <p className="font-mono text-4xl font-extrabold tracking-[0.2em] text-giu-ink">{successCode}</p>
-        <p className="text-sm text-giu-muted">
-          {smsSent ? "구출 코드 · SMS 발송됨" : "구출 코드 · 앱에서 확인하세요"}
+      <div className="space-y-3 text-center">
+        <p className="giu-ticket-code !text-[32px]">{successCode}</p>
+        <p className="text-[12px] text-giu-muted">
+          {smsSent ? "결제 완료 · SMS 발송" : "결제 완료 · 앱에서 코드 확인"}
         </p>
         <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
-          상세 보기
+          픽업 티켓 열기
         </Link>
       </div>
     );
@@ -127,82 +130,72 @@ export function ReserveForm({
   const payLabel = loading
     ? "이동 중..."
     : useLsCheckout
-      ? "카드 · PayPal로 결제"
+      ? "카드 · PayPal 결제"
       : GIU_STRINGS.payCta;
 
   return (
-    <form onSubmit={submit} className="giu-card space-y-5">
-      <div>
-        <p className="text-sm text-giu-muted">결제</p>
-        <p className="mt-1 text-3xl font-bold text-giu-ink">{formatVnd(salePriceVnd)}</p>
-        {useLsCheckout ? (
-          <p className="mt-1 text-xs text-giu-muted">
-            Lemon Squeezy · Visa · Mastercard · PayPal
+    <form onSubmit={submit} className={compact ? "space-y-3" : "giu-card space-y-4"}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold text-giu-muted">합계</p>
+          <p className="text-xl font-extrabold tracking-tight">
+            {formatVnd(salePriceVnd * quantity)}
           </p>
-        ) : null}
-      </div>
-
-      <div className="giu-info-banner">
-        <p className="font-semibold text-giu-primary">{GIU_STRINGS.escrowTitle}</p>
-        <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
-      </div>
-
-      <div>
-        <p className="giu-label">수량</p>
-        <div className="flex items-center gap-3">
+        </div>
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
           >
             −
           </button>
-          <span className="w-8 text-center font-semibold">{quantity}</span>
+          <span className="w-5 text-center text-sm font-bold">{quantity}</span>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
             onClick={() => setQuantity((q) => Math.min(5, q + 1))}
           >
             +
           </button>
-          <span className="text-sm text-giu-muted">{formatVnd(salePriceVnd * quantity)}</span>
         </div>
       </div>
 
+      {!compact ? (
+        <div className="giu-info-banner">
+          <p className="font-semibold text-giu-primary">{GIU_STRINGS.escrowTitle}</p>
+          <p className="mt-1 text-giu-muted">{GIU_STRINGS.escrowDesc}</p>
+        </div>
+      ) : (
+        <p className="text-[11px] leading-snug text-giu-muted">
+          Giu가 금액 보관 → 픽업 확인 후 가게 정산
+        </p>
+      )}
+
       {useVnpayCheckout ? (
-        <div>
-          <p className="giu-label">결제 수단</p>
-          <div className="space-y-2">
-            {VNPAY_OPTIONS.map((opt) => {
-              const selected = paymentMethod === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(opt.id)}
-                  className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition ${
-                    selected
-                      ? "bg-giu-primary-soft ring-2 ring-giu-primary"
-                      : "bg-giu-bg ring-1 ring-giu-border"
-                  }`}
-                >
-                  <span>
-                    <span className="block font-semibold text-giu-ink">{opt.label}</span>
-                    <span className="block text-xs text-giu-muted">{opt.sub}</span>
-                  </span>
-                  {selected ? (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-giu-primary text-xs text-white">
-                      ✓
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {VNPAY_OPTIONS.map((opt) => {
+            const selected = paymentMethod === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setPaymentMethod(opt.id)}
+                className={`rounded-[12px] px-2 py-2 text-center transition ${
+                  selected
+                    ? "bg-giu-primary-soft ring-2 ring-giu-primary"
+                    : "bg-giu-bg ring-1 ring-giu-border"
+                }`}
+              >
+                <span className="block text-[12px] font-bold text-giu-ink">{opt.label}</span>
+                <span className="block text-[10px] text-giu-muted">{opt.sub}</span>
+              </button>
+            );
+          })}
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
+      {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
 
       <button type="submit" disabled={loading} className="giu-btn-primary">
         {payLabel}

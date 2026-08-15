@@ -3,7 +3,7 @@ import { BoxCard } from "@/giu/components/BoxCard";
 import { BoxFilters } from "@/giu/components/BoxFilters";
 import { PayStatusBanner } from "@/giu/components/PayStatusBanner";
 import { WaitlistForm } from "@/giu/components/WaitlistForm";
-import { GIU_STRINGS } from "@/giu/lib/strings";
+import { GIU_BRAND } from "@/giu/lib/brand";
 import { listBoxes, listMerchants } from "@/giu/lib/store";
 
 type Props = {
@@ -42,46 +42,48 @@ export default async function GiuBoxesPage({ searchParams }: Props) {
         <PayStatusBanner />
       </Suspense>
 
-      <div className="giu-card mb-5 space-y-2">
-        <h2 className="font-semibold text-giu-ink">{GIU_STRINGS.howItWorks}</h2>
-        <ol className="space-y-1 text-sm text-giu-muted">
-          <li>
-            <span className="font-semibold text-giu-ink">1. {GIU_STRINGS.step1Title}</span> —{" "}
-            {GIU_STRINGS.step1Desc}
-          </li>
-          <li>
-            <span className="font-semibold text-giu-ink">2. {GIU_STRINGS.step2Title}</span> —{" "}
-            {GIU_STRINGS.step2Desc}
-          </li>
-          <li>
-            <span className="font-semibold text-giu-ink">3. {GIU_STRINGS.step3Title}</span> —{" "}
-            {GIU_STRINGS.step3Desc}
-          </li>
-        </ol>
-      </div>
+      <header className="mb-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-giu-primary">
+              {GIU_BRAND.name}
+            </p>
+            <h1 className="giu-section-title mt-0.5">오늘 구출</h1>
+            <p className="giu-section-sub">호치민 마감 · 50~70% · 코드로 픽업</p>
+          </div>
+          <span className="giu-hour-chip shrink-0">
+            <span className="giu-hour-dot" aria-hidden />
+            19–21시
+          </span>
+        </div>
+      </header>
 
-      <h1 className="giu-section-title">{GIU_STRINGS.navBoxes}</h1>
-      <p className="giu-section-sub">{GIU_STRINGS.goldenHour}</p>
-
-      <div className="mt-5">
+      <div className="mb-4">
         <Suspense fallback={null}>
           <BoxFilters />
         </Suspense>
       </div>
 
       {filtered.length > 0 ? (
-        <div className="mt-5 space-y-3">
-          {filtered.map((box) => {
-            const merchant = merchantMap.get(box.merchantId);
-            if (!merchant) return null;
-            return <BoxCard key={box.id} box={box} merchant={merchant} />;
-          })}
-        </div>
+        <>
+          <p className="mb-2 text-[12px] font-semibold text-giu-muted">
+            열린 박스 {filtered.length}
+          </p>
+          <div className="space-y-2.5">
+            {filtered.map((box, i) => {
+              const merchant = merchantMap.get(box.merchantId);
+              if (!merchant) return null;
+              return <BoxCard key={box.id} box={box} merchant={merchant} index={i} />;
+            })}
+          </div>
+        </>
       ) : (
-        <div className="mt-8 space-y-4">
-          <div className="giu-card text-center text-sm text-giu-muted">
-            <p className="font-medium text-giu-ink">{GIU_STRINGS.emptyBoxes}</p>
-            <p className="mt-2">{GIU_STRINGS.emptyBoxesHint}</p>
+        <div className="mt-6 space-y-3">
+          <div className="giu-card text-center">
+            <p className="font-bold text-giu-ink">지금은 열린 박스가 없어요</p>
+            <p className="mt-1.5 text-[13px] text-giu-muted">
+              번호를 남기면 근처에 생길 때 알려드릴게요.
+            </p>
           </div>
           <WaitlistForm district={params.district} />
         </div>

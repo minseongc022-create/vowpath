@@ -25,14 +25,14 @@ export function BoxFilters() {
 
   function chipClass(active: boolean): string {
     return active
-      ? "bg-giu-primary text-white"
-      : "bg-giu-surface text-giu-muted ring-1 ring-giu-border";
+      ? "bg-giu-ink text-white"
+      : "bg-white/75 text-giu-muted ring-1 ring-giu-border";
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <form
-        className="flex gap-2"
+        className="relative"
         onSubmit={(e) => {
           e.preventDefault();
           update("q", query.trim());
@@ -42,45 +42,50 @@ export function BoxFilters() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={tt("searchPlaceholder")}
-          className="giu-input flex-1"
+          className="giu-input pr-16"
         />
-        <button type="submit" className="rounded-2xl bg-giu-primary px-4 text-sm font-semibold text-white">
-          검색
+        <button
+          type="submit"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-[10px] bg-giu-primary px-3 py-1.5 text-[12px] font-bold text-white"
+        >
+          {tt("search")}
         </button>
       </form>
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
           onClick={() => update("district", "")}
-          className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!district)}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${chipClass(!district)}`}
         >
-          전체 구
+          {tt("allDistricts")}
         </button>
         {GIu_DISTRICTS.map((d) => (
           <button
             key={d.id}
             type="button"
             onClick={() => update("district", d.id)}
-            className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(district === d.id)}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${chipClass(district === d.id)}`}
           >
             {d.label}
           </button>
         ))}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
           onClick={() => update("category", "")}
-          className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(!category)}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${chipClass(!category)}`}
         >
-          전체
+          {tt("allCategories")}
         </button>
         {GIu_CATEGORIES.map((c) => (
           <button
             key={c.id}
             type="button"
             onClick={() => update("category", c.id)}
-            className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition ${chipClass(category === c.id)}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${chipClass(category === c.id)}`}
           >
             {c.emoji} {c.label}
           </button>
