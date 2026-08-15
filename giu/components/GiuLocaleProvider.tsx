@@ -25,16 +25,19 @@ type Ctx = {
 const GiuLocaleContext = createContext<Ctx | null>(null);
 
 function readCookieLocale(): GiuLocale {
-  if (typeof document === "undefined") return "ko";
+  if (typeof document === "undefined") return "vi";
   const match = document.cookie.match(new RegExp(`(?:^|; )${GIU_LOCALE_COOKIE}=([^;]*)`));
-  return normalizeGiuLocale(match?.[1] ? decodeURIComponent(match[1]) : null);
+  if (!match?.[1]) return "vi";
+  return normalizeGiuLocale(decodeURIComponent(match[1]));
 }
 
 export function GiuLocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<GiuLocale>("ko");
+  // Default Vietnamese for HCMC market; KO available via toggle.
+  const [locale, setLocaleState] = useState<GiuLocale>("vi");
 
   useEffect(() => {
     setLocaleState(readCookieLocale());
+    document.documentElement.lang = readCookieLocale() === "vi" ? "vi" : "ko";
   }, []);
 
   const setLocale = useCallback((next: GiuLocale) => {

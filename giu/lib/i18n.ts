@@ -9,7 +9,7 @@ export function normalizeGiuLocale(value: string | null | undefined): GiuLocale 
 type Dict = Record<string, string>;
 
 const KO: Dict = {
-  boxes: "구출하기",
+  boxes: "지도",
   goldenHour: "언제든 구출",
   emptyBoxes: "지금은 열린 박스가 없어요",
   emptyBoxesHint: "번호를 남기면 생기면 알려드릴게요.",
@@ -75,10 +75,19 @@ const KO: Dict = {
   alertNewOrder: "새 결제 주문",
   enableOrderAlerts: "🔔 새 주문 알림 켜기",
   mapEmbed: "지도",
+  mapSearchPlaceholder: "가게·음식 검색",
+  myLocation: "내 위치",
+  mapStoresOpen: "열린 가게",
+  left: "남음",
+  rescueNow: "구출하기",
+  locUnsupported: "이 기기는 위치 기능을 지원하지 않아요",
+  locDenied: "근처 거리를 보려면 위치 권한을 허용해 주세요",
+  guestName: "손님",
+  mapHcmcFocus: "지도는 호치민 중심으로 보여요 (테스트 위치가 멀면 지도는 HCMC에 유지)",
 };
 
 const VI: Dict = {
-  boxes: "Cứu đồ",
+  boxes: "Bản đồ",
   goldenHour: "Cứu bất cứ lúc nào",
   emptyBoxes: "Chưa có hộp mở",
   emptyBoxesHint: "Để số — báo khi có hộp mới.",
@@ -144,6 +153,15 @@ const VI: Dict = {
   alertNewOrder: "Đơn thanh toán mới",
   enableOrderAlerts: "🔔 Bật thông báo đơn mới",
   mapEmbed: "Bản đồ",
+  mapSearchPlaceholder: "Tìm cửa hàng · món",
+  myLocation: "Vị trí của tôi",
+  mapStoresOpen: "cửa hàng đang mở",
+  left: "còn",
+  rescueNow: "Cứu ngay",
+  locUnsupported: "Thiết bị không hỗ trợ định vị",
+  locDenied: "Cho phép vị trí để xem khoảng cách",
+  guestName: "Bạn",
+  mapHcmcFocus: "Bản đồ đang xem TP.HCM — vị trí của bạn ở xa nên không tự kéo bản đồ",
 };
 
 export function t(locale: GiuLocale, key: keyof typeof KO): string {
