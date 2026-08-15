@@ -146,3 +146,25 @@
     animation: none;
   }
 }
+
+/* Map — crisp consumer basemap (Carto Voyager + retina) */
+.giu-map-root .leaflet-container {
+  background: #dfe8ef;
+  font: inherit;
+}
+
+.giu-map-root .leaflet-tile {
+  filter: contrast(1.08) saturate(1.18) brightness(1.03);
+  image-rendering: -webkit-optimize-contrast;
+  backface-visibility: hidden;
+}
+
+.giu-map-root .leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.giu-map-fab {
+  @apply flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[18px] font-bold text-giu-ink shadow-[0_4px_16px_rgba(31,42,51,0.14)] ring-1 ring-black/[0.05] active:scale-95;
+}
+
