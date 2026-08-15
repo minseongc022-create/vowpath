@@ -32,10 +32,10 @@ export function FavoriteButton({ merchantId, merchantName, className = "" }: Pro
       aria-pressed={on}
       aria-label={on ? t(locale, "unfavorite") : t(locale, "favorite")}
       title={merchantName}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
+      className={`inline-flex h-9 items-center gap-1 rounded-full px-3 text-[12px] font-bold transition ${
         on
-          ? "bg-giu-primary/10 text-giu-primary ring-giu-primary/30"
-          : "bg-giu-bg text-giu-muted ring-giu-border hover:text-giu-ink"
+          ? "bg-giu-primary text-white"
+          : "bg-white/80 text-giu-muted ring-1 ring-giu-border"
       } ${className}`}
     >
       <span aria-hidden>{on ? "♥" : "♡"}</span>

@@ -151,34 +151,34 @@ export function MerchantPanelClient() {
       <div className="giu-card">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold">{merchant.name}</h1>
-            <p className="text-sm text-giu-muted">{merchant.address}</p>
+            <h1 className="text-[20px] font-extrabold tracking-tight">{merchant.name}</h1>
+            <p className="mt-0.5 text-[12px] text-giu-muted">{merchant.address}</p>
           </div>
           <GiuLocaleToggle />
         </div>
-        <p className="mt-2 text-sm">
-          구출 완료: <strong>{merchant.rescuedBoxes}</strong>박스
+        <p className="mt-2 text-[12px]">
+          구출 <strong>{merchant.rescuedBoxes}</strong>
           {merchant.verified ? (
-            <span className="ml-2 rounded-full bg-giu-primary/10 px-2 py-0.5 text-xs text-giu-primary">
-              ✓ 인증됨
+            <span className="ml-2 rounded-md bg-giu-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-giu-primary">
+              ✓ 인증
             </span>
           ) : (
-            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-              인증 대기 (픽업 3회)
+            <span className="ml-2 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+              인증 대기
             </span>
           )}
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-xl bg-giu-bg px-3 py-2">
-            <p className="text-xs text-giu-muted">정산 대기</p>
-            <p className="font-semibold text-giu-ink">{formatVnd(settlementHeld)}</p>
+        <div className="mt-2.5 grid grid-cols-2 gap-2 text-[13px]">
+          <div className="rounded-[12px] bg-giu-bg px-3 py-2">
+            <p className="text-[10px] font-medium text-giu-muted">정산 대기</p>
+            <p className="font-extrabold text-giu-ink">{formatVnd(settlementHeld)}</p>
           </div>
-          <div className="rounded-xl bg-giu-bg px-3 py-2">
-            <p className="text-xs text-giu-muted">정산 완료</p>
-            <p className="font-semibold text-giu-ink">{formatVnd(settlementReleased)}</p>
+          <div className="rounded-[12px] bg-giu-bg px-3 py-2">
+            <p className="text-[10px] font-medium text-giu-muted">정산 완료</p>
+            <p className="font-extrabold text-giu-ink">{formatVnd(settlementReleased)}</p>
           </div>
         </div>
-        <p className="mt-2 text-xs text-giu-muted">플랫폼 수수료 12% · 픽업 확인 후 정산</p>
+        <p className="mt-2 text-[11px] text-giu-muted">수수료 12% · 픽업 확인 후 정산</p>
       </div>
 
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}

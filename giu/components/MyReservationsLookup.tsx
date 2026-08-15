@@ -55,13 +55,13 @@ export function MyReservationsLookup() {
   }, [account, load]);
 
   if (authLoading) {
-    return <p className="text-sm text-giu-muted">{tt("loading")}</p>;
+    return <p className="text-[13px] text-giu-muted">{tt("loading")}</p>;
   }
 
   if (!account) {
     return (
-      <div className="giu-card space-y-4 text-center">
-        <p className="text-sm text-giu-muted">{tt("myCodesLogin")}</p>
+      <div className="giu-card space-y-3 text-center">
+        <p className="text-[13px] text-giu-muted">{tt("myCodesLogin")}</p>
         <Link href={GIU_ROUTES.auth} className="giu-btn-primary block text-center">
           {tt("loginSignup")}
         </Link>
@@ -70,14 +70,14 @@ export function MyReservationsLookup() {
   }
 
   if (loading) {
-    return <p className="text-sm text-giu-muted">{tt("loading")}</p>;
+    return <p className="text-[13px] text-giu-muted">{tt("loading")}</p>;
   }
 
   if (list.length === 0) {
     return (
-      <div className="giu-card text-center text-sm text-giu-muted">
+      <div className="giu-card text-center text-[13px] text-giu-muted">
         {tt("noOrders")}{" "}
-        <Link href="/giu/hop" className="font-semibold text-giu-primary">
+        <Link href="/giu/hop" className="font-bold text-giu-primary">
           {tt("findBoxes")}
         </Link>
       </div>
@@ -85,30 +85,29 @@ export function MyReservationsLookup() {
   }
 
   return (
-    <ul className="space-y-3">
-      {list.map((r) => (
-        <li key={r.id}>
-          <Link href={`/giu/dat/${r.id}`} className="giu-list-row shadow-giu-sm block">
-            <div className="flex-1">
-              <p className="font-mono text-xl font-bold text-giu-primary">{r.code}</p>
+    <ul className="space-y-2.5">
+      {list.map((r, i) => (
+        <li key={r.id} className="giu-feed-item" style={{ animationDelay: `${i * 40}ms` }}>
+          <Link href={`/giu/dat/${r.id}`} className="giu-list-row block">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-mono text-[20px] font-extrabold tracking-wider text-giu-primary">
+                  {r.code}
+                </p>
+                <span className="text-[11px] font-semibold text-giu-muted">
+                  {formatReservationStatus(r.status)}
+                </span>
+              </div>
               {r.merchant ? (
-                <p className="mt-1 text-sm font-medium text-giu-ink">{r.merchant.name}</p>
+                <p className="mt-0.5 truncate text-[13px] font-bold text-giu-ink">{r.merchant.name}</p>
               ) : null}
               {r.box ? (
-                <p className="text-sm text-giu-muted">
-                  {r.box.title}
-                  {" · "}
-                  {formatPickupWindow(r.box.pickupStart, r.box.pickupEnd)}
+                <p className="truncate text-[12px] text-giu-muted">
+                  {r.box.title} · {formatPickupWindow(r.box.pickupStart, r.box.pickupEnd)}
                 </p>
               ) : null}
-              {r.merchant ? (
-                <p className="text-xs text-giu-muted">{r.merchant.address}</p>
-              ) : null}
-              <p className="mt-1 text-sm text-giu-muted">
-                {formatVnd(r.totalVnd)} · {formatReservationStatus(r.status)}
-              </p>
+              <p className="mt-1 text-[12px] font-semibold text-giu-ink">{formatVnd(r.totalVnd)}</p>
             </div>
-            <span className="text-giu-muted">→</span>
           </Link>
         </li>
       ))}

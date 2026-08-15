@@ -37,7 +37,7 @@ export const GIU_STRINGS = {
     "금액은 Giu가 안전하게 보관합니다. 가게가 픽업을 확인하면 → 가게에 정산됩니다.",
   payCta: "안전 결제 & 코드 받기",
   navHome: "홈",
-  navBoxes: "구출 박스",
+  navBoxes: "오늘 구출",
   navFavorites: "즐겨찾기",
   navMerchants: "가게",
   navMy: "내 코드",
