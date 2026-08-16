@@ -10,10 +10,12 @@ import { getCategoryEmoji } from "@/giu/lib/categories";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant } from "@/giu/lib/types";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 import { t } from "@/giu/lib/i18n";
 
 export function FavoritesClient() {
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const [merchantIds, setMerchantIds] = useState<string[]>([]);
   const [merchants, setMerchants] = useState<GiuMerchant[]>([]);
   const [boxes, setBoxes] = useState<GiuBox[]>([]);
@@ -76,7 +78,7 @@ export function FavoritesClient() {
       <div className="giu-card text-center">
         <p className="font-bold text-giu-ink">{t(locale, "favoritesEmpty")}</p>
         <p className="mt-1.5 text-[13px] text-giu-muted">{t(locale, "favoritesEmptyHint")}</p>
-        <Link href={GIU_ROUTES.customer.boxes} className="giu-btn-primary mt-3 block">
+        <Link href={href(GIU_ROUTES.customer.boxes)} className="giu-btn-primary mt-3 block">
           {t(locale, "findBoxes")}
         </Link>
       </div>

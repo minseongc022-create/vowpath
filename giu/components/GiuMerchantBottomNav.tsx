@@ -4,21 +4,28 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { GiuNavIcon } from "@/giu/components/icons/GiuNavIcons";
 import { t } from "@/giu/lib/i18n";
-import { GIU_ROUTES } from "@/giu/lib/routes";
+import { GIU_ROUTES, isGiuMerchantPath } from "@/giu/lib/routes";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 export function GiuMerchantBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const activeTab = searchParams.get("tab") === "orders" ? "orders" : "boxes";
 
-  if (!pathname.startsWith(GIU_ROUTES.merchant.panel)) return null;
+  if (!isGiuMerchantPath(pathname)) return null;
 
   const tabs = [
-    { href: GIU_ROUTES.merchant.panel, tab: "boxes", label: t(locale, "mTabBoxes"), icon: "box" as const },
     {
-      href: `${GIU_ROUTES.merchant.panel}?tab=orders`,
+      path: GIU_ROUTES.merchant.panel,
+      tab: "boxes",
+      label: t(locale, "mTabBoxes"),
+      icon: "box" as const,
+    },
+    {
+      path: `${GIU_ROUTES.merchant.panel}?tab=orders`,
       tab: "orders",
       label: t(locale, "mTabOrders"),
       icon: "ticket" as const,
@@ -33,7 +40,7 @@ export function GiuMerchantBottomNav() {
           return (
             <Link
               key={tab.tab}
-              href={tab.href}
+              href={href(tab.path)}
               className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold tracking-tight transition ${
                 active ? "text-giu-accent" : "text-giu-muted"
               }`}

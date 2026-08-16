@@ -6,20 +6,23 @@ import { GiuNavIcon } from "@/giu/components/icons/GiuNavIcons";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
+import { toGiuInternalPath } from "@/giu/lib/routes";
 
 type Props = {
-  /** In-flow under map (no fixed overlay) so the viewport never clips the tab bar */
   docked?: boolean;
 };
 
 export function GiuCustomerBottomNav({ docked = false }: Props) {
   const pathname = usePathname();
+  const href = useGiuHref();
   const { locale } = useGiuLocale();
+  const internal = toGiuInternalPath(pathname);
 
   const tabs = [
-    { href: GIU_ROUTES.customer.boxes, label: t(locale, "boxes"), icon: "box" as const },
-    { href: GIU_ROUTES.customer.favorites, label: t(locale, "favorites"), icon: "heart" as const },
-    { href: GIU_ROUTES.customer.my, label: t(locale, "myCodes"), icon: "ticket" as const },
+    { path: GIU_ROUTES.customer.boxes, label: t(locale, "boxes"), icon: "box" as const },
+    { path: GIU_ROUTES.customer.favorites, label: t(locale, "favorites"), icon: "heart" as const },
+    { path: GIU_ROUTES.customer.my, label: t(locale, "myCodes"), icon: "ticket" as const },
   ];
 
   return (
@@ -32,11 +35,11 @@ export function GiuCustomerBottomNav({ docked = false }: Props) {
     >
       <div className="mx-auto flex max-w-[480px] items-stretch justify-around px-3 md:max-w-xl lg:max-w-2xl">
         {tabs.map((tab) => {
-          const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          const active = internal === tab.path || internal.startsWith(`${tab.path}/`);
           return (
             <Link
-              key={tab.href}
-              href={tab.href}
+              key={tab.path}
+              href={href(tab.path)}
               className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold tracking-tight transition ${
                 active ? "text-giu-accent" : "text-giu-muted"
               }`}

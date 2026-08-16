@@ -10,6 +10,7 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuPaymentMethod } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; subKo: string; subVi: string }[] = [
   { id: "vietqr", label: "VietQR", subKo: "계좌이체", subVi: "Chuyển khoản" },
@@ -30,6 +31,7 @@ export function ReserveForm({
 }) {
   const router = useRouter();
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const { account, loading: authLoading } = useGiuAuth();
   const [paymentMethod, setPaymentMethod] = useState<GiuPaymentMethod>("card");
   const [loading, setLoading] = useState(false);
@@ -103,7 +105,7 @@ export function ReserveForm({
           </div>
         </div>
         <Link
-          href={`${GIU_ROUTES.auth}?role=customer&next=${encodeURIComponent(`/giu/hop/${boxId}`)}`}
+          href={`${href(GIU_ROUTES.auth)}?role=customer&next=${encodeURIComponent(href(GIU_ROUTES.customer.box(boxId)))}`}
           className="giu-btn-primary block text-center"
         >
           {t(locale, "loginAndRescue")}
@@ -119,7 +121,7 @@ export function ReserveForm({
         <p className="text-[12px] text-giu-muted">
           {smsSent ? t(locale, "payDoneSms") : t(locale, "payDoneApp")}
         </p>
-        <Link href={`/giu/dat/${reservationId}`} className="giu-btn-primary block text-center">
+        <Link href={href(GIU_ROUTES.customer.reservation(reservationId))} className="giu-btn-primary block text-center">
           {t(locale, "openTicket")}
         </Link>
       </div>

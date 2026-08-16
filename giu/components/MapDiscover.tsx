@@ -42,6 +42,8 @@ import type { GiuCategory } from "@/giu/lib/types";
 import type { MapPin } from "@/giu/lib/map-pins";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { WaitlistForm } from "./WaitlistForm";
+import { useGiuHref } from "./GiuNavProvider";
+import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 
 type Props = {
@@ -129,6 +131,7 @@ function ZoomControls() {
 
 export function MapDiscover({ pins }: Props) {
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<GiuCategory | "">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -557,7 +560,7 @@ export function MapDiscover({ pins }: Props) {
                 {sortedSelectedBoxes.map((box) => (
                   <li key={box.id}>
                     <Link
-                      href={`/giu/hop/${box.id}`}
+                      href={href(GIU_ROUTES.customer.box(box.id))}
                       className="flex items-center gap-3 rounded-2xl bg-giu-bg/80 px-3 py-2.5 active:scale-[0.99]"
                     >
                       {box.imageUrl ? (
@@ -614,7 +617,7 @@ export function MapDiscover({ pins }: Props) {
                 </button>
                 {sortedSelectedBoxes[0] ? (
                   <Link
-                    href={`/giu/hop/${sortedSelectedBoxes[0].id}`}
+                    href={href(GIU_ROUTES.customer.box(sortedSelectedBoxes[0].id))}
                     className="giu-btn-primary flex-1 !py-3 text-[13px]"
                   >
                     {t(locale, "rescueNow")}

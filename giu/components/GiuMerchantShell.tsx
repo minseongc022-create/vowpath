@@ -8,10 +8,12 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { GiuLocaleToggle, useGiuLocale } from "./GiuLocaleProvider";
 import { GiuMerchantBottomNav } from "./GiuMerchantBottomNav";
 import { GiuLogo } from "./GiuLogo";
+import { useGiuHref } from "./GiuNavProvider";
 
 export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
   const { account, merchant, logout } = useGiuAuth();
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const storeName =
     merchant?.name?.trim() || account?.name?.trim() || t(locale, "mStoreFallback");
 
@@ -19,7 +21,7 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
     <div className="giu-app flex min-h-svh flex-col text-giu-ink">
       <header className="sticky top-0 z-40 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={GIU_ROUTES.merchant.home} className="flex min-w-0 items-center gap-2.5">
+          <Link href={href(GIU_ROUTES.merchant.home)} className="flex min-w-0 items-center gap-2.5">
             <GiuLogo size={36} priority />
             <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-ink">
               {storeName}
@@ -32,7 +34,7 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() =>
                 void logout().then(() => {
-                  window.location.href = `${GIU_ROUTES.auth}?role=merchant`;
+                  window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
                 })
               }
               className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"

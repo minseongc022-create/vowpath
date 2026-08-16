@@ -9,6 +9,8 @@ import { merchantCoords } from "@/giu/lib/geo";
 import { t } from "@/giu/lib/i18n";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
+import { GIU_ROUTES } from "@/giu/lib/routes";
+import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
 
 type Props = {
@@ -20,6 +22,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
   const { id } = await params;
   const sp = await searchParams;
   const locale = await getGiuLocaleServer();
+  const href = await getGiuHref();
   const reservation = await getReservation(id);
   if (!reservation) notFound();
 
@@ -111,7 +114,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
         {paid && !pickedUp ? <CancelReservationButton reservationId={id} /> : null}
 
-        <Link href="/giu/hop" className="block text-center text-[13px] font-bold text-giu-primary">
+        <Link href={href(GIU_ROUTES.customer.home)} className="block text-center text-[13px] font-bold text-giu-primary">
           {t(locale, "moreBrowse")}
         </Link>
       </div>

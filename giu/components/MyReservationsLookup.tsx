@@ -10,12 +10,14 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 type Enriched = GiuReservation & { box?: GiuBox | null; merchant?: GiuMerchant | null };
 
 export function MyReservationsLookup() {
   const { account, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const [list, setList] = useState<Enriched[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +73,7 @@ export function MyReservationsLookup() {
     return (
       <div className="giu-card space-y-3 text-center">
         <p className="text-[13px] text-giu-muted">{t(locale, "myCodesLogin")}</p>
-        <Link href={`${GIU_ROUTES.auth}?role=customer`} className="giu-btn-primary block text-center">
+        <Link href={`${href(GIU_ROUTES.auth)}?role=customer`} className="giu-btn-primary block text-center">
           {t(locale, "loginSignup")}
         </Link>
       </div>
@@ -86,7 +88,7 @@ export function MyReservationsLookup() {
     return (
       <div className="giu-card text-center text-[13px] text-giu-muted">
         {t(locale, "noOrders")}{" "}
-        <Link href="/giu/hop" className="font-bold text-giu-primary">
+        <Link href={href(GIU_ROUTES.customer.boxes)} className="font-bold text-giu-primary">
           {t(locale, "findBoxes")}
         </Link>
       </div>
@@ -122,7 +124,7 @@ export function MyReservationsLookup() {
       <ul className="space-y-2.5">
         {list.map((r, i) => (
           <li key={r.id} className="giu-feed-item" style={{ animationDelay: `${i * 40}ms` }}>
-            <Link href={`/giu/dat/${r.id}`} className="giu-list-row block">
+            <Link href={href(GIU_ROUTES.customer.reservation(r.id))} className="giu-list-row block">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-mono text-[20px] font-extrabold tracking-wider text-giu-primary">
