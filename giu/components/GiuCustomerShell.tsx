@@ -24,7 +24,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`giu-app flex flex-col text-giu-ink ${
-        isMapHome ? "h-svh max-h-svh overflow-hidden" : "min-h-svh"
+        isMapHome ? "giu-map-shell overflow-hidden" : "min-h-svh"
       }`}
     >
       <CustomerAvailabilityAlerts />

@@ -306,7 +306,7 @@ export function MapDiscover({ pins }: Props) {
   }, [selected, userPos]);
 
   return (
-    <div className="giu-map-root relative h-full min-h-0 w-full overflow-hidden bg-[#dfe8ef]">
+    <div className="giu-map-root relative h-full min-h-[50vh] w-full overflow-hidden bg-[#dfe8ef]">
       <MapContainer
         center={[HCMC_CENTER.lat, HCMC_CENTER.lng]}
         zoom={HCMC_DEFAULT_ZOOM}

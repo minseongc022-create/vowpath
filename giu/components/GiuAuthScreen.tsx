@@ -24,7 +24,7 @@ function safeNextPath(raw: string | null, role: GiuAppRole): string {
 export function GiuAuthScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refresh } = useGiuAuth();
+  const { refresh, applySession } = useGiuAuth();
 
   // Role is fixed by entry URL — no customer/merchant toggle on one screen.
   const role = (searchParams.get("role") === "merchant" ? "merchant" : "customer") as GiuAppRole;
@@ -55,14 +55,28 @@ export function GiuAuthScreen() {
           role,
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        account?: {
+          id: string;
+          email: string;
+          name: string;
+          phone: string;
+          role: "customer" | "merchant";
+          market: "vn" | "kr";
+        };
+        merchant?: import("@/giu/lib/types").GiuMerchant | null;
+      };
       if (!res.ok) {
         setError(data.error ?? "로그인에 실패했습니다");
         return;
       }
-      await refresh();
+      if (data.account) {
+        applySession({ account: data.account, merchant: data.merchant ?? null });
+      } else {
+        await refresh();
+      }
       router.push(nextPath);
-      router.refresh();
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
@@ -87,14 +101,27 @@ export function GiuAuthScreen() {
           password: fd.get("password"),
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        account?: {
+          id: string;
+          email: string;
+          name: string;
+          phone: string;
+          role: "customer" | "merchant";
+          market: "vn" | "kr";
+        };
+      };
       if (!res.ok) {
         setError(data.error ?? "회원가입에 실패했습니다");
         return;
       }
-      await refresh();
+      if (data.account) {
+        applySession({ account: data.account, merchant: null });
+      } else {
+        await refresh();
+      }
       router.push(nextPath);
-      router.refresh();
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
@@ -123,14 +150,28 @@ export function GiuAuthScreen() {
           zalo: fd.get("zalo") || undefined,
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        account?: {
+          id: string;
+          email: string;
+          name: string;
+          phone: string;
+          role: "customer" | "merchant";
+          market: "vn" | "kr";
+        };
+        merchant?: import("@/giu/lib/types").GiuMerchant | null;
+      };
       if (!res.ok) {
         setError(data.error ?? "회원가입에 실패했습니다");
         return;
       }
-      await refresh();
+      if (data.account) {
+        applySession({ account: data.account, merchant: data.merchant ?? null });
+      } else {
+        await refresh();
+      }
       router.push(GIU_ROUTES.merchant.home);
-      router.refresh();
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {

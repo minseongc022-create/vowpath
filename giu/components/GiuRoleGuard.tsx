@@ -3,8 +3,23 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { GIU_ROUTES, homePathForRole } from "@/giu/lib/routes";
+import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
+function GuardMessage({ text }: { text: string }) {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center px-4">
+      <p className="text-sm text-giu-muted">{text}</p>
+    </div>
+  );
+}
+
+/**
+ * Merchant routes: require merchant session.
+ * Customer routes: always render (map is public) — only bounce merchants away.
+ * Never return blank `null` (that looked like a white screen).
+ */
 export function GiuRoleGuard({
   requiredRole,
   children,
@@ -15,6 +30,7 @@ export function GiuRoleGuard({
   const router = useRouter();
   const pathname = usePathname();
   const { account, loading } = useGiuAuth();
+  const { locale } = useGiuLocale();
 
   useEffect(() => {
     if (loading) return;
@@ -35,16 +51,19 @@ export function GiuRoleGuard({
     }
   }, [account, loading, pathname, requiredRole, router]);
 
-  if (loading) {
-    return <p className="giu-page text-sm text-giu-muted">불러오는 중...</p>;
+  if (requiredRole === "merchant") {
+    if (loading) {
+      return <GuardMessage text={t(locale, "loading")} />;
+    }
+    if (!account || account.role !== "merchant") {
+      return <GuardMessage text={t(locale, "loading")} />;
+    }
+    return <>{children}</>;
   }
 
-  if (requiredRole === "merchant" && (!account || account.role !== "merchant")) {
-    return null;
-  }
-
-  if (requiredRole === "customer" && account?.role === "merchant") {
-    return null;
+  // Customer / public: do not block the map on auth/me.
+  if (!loading && account?.role === "merchant") {
+    return <GuardMessage text={t(locale, "loading")} />;
   }
 
   return <>{children}</>;
@@ -53,6 +72,7 @@ export function GiuRoleGuard({
 export function GiuAuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { account, loading } = useGiuAuth();
+  const { locale } = useGiuLocale();
 
   useEffect(() => {
     if (loading || !account) return;
@@ -60,10 +80,12 @@ export function GiuAuthRedirect({ children }: { children: React.ReactNode }) {
   }, [account, loading, router]);
 
   if (loading) {
-    return <p className="giu-page text-sm text-giu-muted">불러오는 중...</p>;
+    return <GuardMessage text={t(locale, "loading")} />;
   }
 
-  if (account) return null;
+  if (account) {
+    return <GuardMessage text={t(locale, "loading")} />;
+  }
 
   return <>{children}</>;
 }

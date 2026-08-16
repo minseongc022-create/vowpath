@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import type { GiuMerchant } from "@/giu/lib/types";
 
 export type GiuAuthAccount = {
@@ -12,42 +18,66 @@ export type GiuAuthAccount = {
   market: "vn" | "kr";
 };
 
+type SessionPayload = {
+  account: GiuAuthAccount | null;
+  merchant?: GiuMerchant | null;
+};
+
 type GiuAuthState = {
   account: GiuAuthAccount | null;
   merchant: GiuMerchant | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  /** Apply login/signup response immediately (avoids blank panel while /me reloads). */
+  applySession: (data: SessionPayload) => void;
   logout: () => Promise<void>;
 };
 
 const GiuAuthContext = createContext<GiuAuthState | null>(null);
+
+const ME_TIMEOUT_MS = 8000;
 
 export function GiuAuthProvider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<GiuAuthAccount | null>(null);
   const [merchant, setMerchant] = useState<GiuMerchant | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const applySession = useCallback((data: SessionPayload) => {
+    setAccount(data.account);
+    setMerchant(data.merchant ?? null);
+    setLoading(false);
+  }, []);
+
   const refresh = useCallback(async () => {
+    const ac = new AbortController();
+    const timer = window.setTimeout(() => ac.abort(), ME_TIMEOUT_MS);
     try {
-      const res = await fetch("/api/giu/auth/me", { credentials: "include" });
-      const data = (await res.json()) as {
-        account: GiuAuthAccount | null;
-        merchant?: GiuMerchant | null;
-      };
+      const res = await fetch("/api/giu/auth/me", {
+        credentials: "include",
+        signal: ac.signal,
+      });
+      const data = (await res.json()) as SessionPayload;
       setAccount(data.account);
       setMerchant(data.merchant ?? null);
     } catch {
-      setAccount(null);
-      setMerchant(null);
+      // Keep existing session on timeout/network blip if we already have one.
+      setAccount((prev) => prev);
+      setMerchant((prev) => prev);
     } finally {
+      window.clearTimeout(timer);
       setLoading(false);
     }
   }, []);
 
   const logout = useCallback(async () => {
-    await fetch("/api/giu/auth/logout", { method: "POST", credentials: "include" });
+    try {
+      await fetch("/api/giu/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+      /* ignore */
+    }
     setAccount(null);
     setMerchant(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -55,7 +85,9 @@ export function GiuAuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   return (
-    <GiuAuthContext.Provider value={{ account, merchant, loading, refresh, logout }}>
+    <GiuAuthContext.Provider
+      value={{ account, merchant, loading, refresh, applySession, logout }}
+    >
       {children}
     </GiuAuthContext.Provider>
   );

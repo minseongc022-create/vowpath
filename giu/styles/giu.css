@@ -32,7 +32,15 @@
 }
 
 /* Map home fills the small viewport (browser chrome visible) without clipping */
-.giu-app.h-svh {
+.giu-map-shell {
+  height: 100dvh;
+  height: 100svh;
+  max-height: 100dvh;
+  max-height: 100svh;
+}
+
+.giu-app.h-svh,
+.giu-app.giu-map-shell {
   background-attachment: scroll;
 }
 

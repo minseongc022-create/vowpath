@@ -219,8 +219,26 @@ export function MerchantPanelClient() {
     if (merchant) await load(merchant.id);
   }
 
-  if (authLoading || loading || !merchant) {
+  if (authLoading || loading) {
     return <p className="text-giu-muted">{t(locale, "loading")}</p>;
+  }
+
+  if (!merchant) {
+    return (
+      <div className="giu-card space-y-3 text-center">
+        <p className="font-bold text-giu-ink">{t(locale, "mLoadError")}</p>
+        <p className="text-[13px] text-giu-muted">{t(locale, "mSessionExpired")}</p>
+        <button
+          type="button"
+          className="giu-btn-primary"
+          onClick={() => {
+            window.location.href = `${GIU_ROUTES.auth}?role=merchant`;
+          }}
+        >
+          {t(locale, "loginSignup")}
+        </button>
+      </div>
+    );
   }
 
   return (
