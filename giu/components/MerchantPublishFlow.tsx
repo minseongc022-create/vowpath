@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
+import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatMoney,
@@ -12,6 +13,7 @@ import {
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { filterHistoryBoxes, historyFilterLabel, type HistoryListFilter } from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
 
@@ -59,16 +61,19 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [endH, setEndH] = useState(14);
   const [republishTarget, setRepublishTarget] = useState<GiuBox | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [historyFilter, setHistoryFilter] = useState<HistoryListFilter>("all");
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   const historyBoxes = useMemo(
-    () => [...boxes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [boxes],
+    () => filterHistoryBoxes(boxes, historyFilter),
+    [boxes, historyFilter],
   );
 
   function goIdle() {
     setView("idle");
     setCreateError("");
     setRepublishTarget(null);
+    setHistoryFilter("all");
   }
 
   async function createBox(e: React.FormEvent<HTMLFormElement>) {
@@ -152,6 +157,35 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       setCreateError(t(locale, "mLoadError"));
     } finally {
       setRepublishBusy(false);
+    }
+  }
+
+  async function deleteProduct(boxId: string) {
+    if (!window.confirm(t(locale, "mDeleteConfirm"))) return;
+    hapticConfirm();
+    setDeleteBusyId(boxId);
+    setCreateError("");
+    try {
+      const res = await fetch(`/api/giu/boxes/${boxId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setCreateError(data.error ?? t(locale, "mCreateFail"));
+        return;
+      }
+      hapticConfirm();
+      if (republishTarget?.id === boxId) {
+        setRepublishTarget(null);
+        setView("history");
+      }
+      await onPublished();
+      setSuccessMsg(t(locale, "toastDeleteSuccess"));
+    } catch {
+      setCreateError(t(locale, "mLoadError"));
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -354,6 +388,22 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             {t(locale, "mBackToStart")}
           </button>
 
+          <div className="giu-filter-tabs">
+            {(["all", "cancelled"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => {
+                  hapticSelect();
+                  setHistoryFilter(f);
+                }}
+                className={`giu-filter-tab ${historyFilter === f ? "is-active" : ""}`}
+              >
+                {historyFilterLabel(locale, f)}
+              </button>
+            ))}
+          </div>
+
           {historyBoxes.length === 0 ? (
             <p className="text-[13px] text-giu-muted">{t(locale, "mNoPastProducts")}</p>
           ) : (
@@ -362,7 +412,9 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                 <li
                   key={box.id}
                   className={`flex items-start gap-3 rounded-[16px] p-3 ring-1 ${
-                    index === 0 ? "bg-giu-accent-soft/70 ring-giu-accent/25" : "bg-giu-bg ring-giu-border"
+                    index === 0 && historyFilter === "all"
+                      ? "bg-giu-accent-soft/70 ring-giu-accent/25"
+                      : "bg-giu-bg ring-giu-border"
                   }`}
                 >
                   {box.imageUrl ? (
@@ -376,17 +428,26 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      hapticSelect();
-                      setRepublishTarget(box);
-                      setView("confirm");
-                    }}
-                    className="giu-btn-3d shrink-0 rounded-xl bg-giu-accent px-3 py-2 text-[11px] font-bold text-white"
-                  >
-                    {t(locale, "mRepublishThis")}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {box.status === "huy" ? (
+                      <GiuTrashButton
+                        label={t(locale, "mDeleteProduct")}
+                        disabled={deleteBusyId === box.id}
+                        onClick={() => void deleteProduct(box.id)}
+                      />
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        hapticSelect();
+                        setRepublishTarget(box);
+                        setView("confirm");
+                      }}
+                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-accent px-3 py-2 text-[11px] font-bold text-white"
+                    >
+                      {t(locale, "mRepublishThis")}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
