@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
@@ -13,6 +13,7 @@ import { BoxStatusBadge } from "@/giu/components/BoxStatusBadge";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import {
   filterBoxes,
+  findDuplicateActiveListing,
   productFilterLabel,
   type ProductListFilter,
 } from "@/giu/lib/product-list-ux";
@@ -38,8 +39,11 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
   const [listFilter, setListFilter] = useState<ProductListFilter>("all");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
+  const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
+  const pendingRepublishRef = useRef<(() => void | Promise<void>) | null>(null);
 
   const filteredBoxes = useMemo(() => filterBoxes(boxes, listFilter), [boxes, listFilter]);
+  const merchantId = boxes[0]?.merchantId ?? "";
 
   useEffect(() => {
     if (!selected) return;
@@ -120,9 +124,8 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
     }
   }
 
-  async function republishBox() {
+  async function submitRepublish() {
     if (!selected) return;
-    hapticConfirm();
     setBusy(true);
     setError("");
     try {
@@ -147,6 +150,37 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
     } finally {
       setBusy(false);
     }
+  }
+
+  function republishBox() {
+    if (!selected || !merchantId) return;
+    hapticConfirm();
+    setError("");
+    const sig = {
+      title: selected.title,
+      originalPriceVnd: selected.originalPriceVnd,
+      salePriceVnd: selected.salePriceVnd,
+    };
+    if (findDuplicateActiveListing(boxes, merchantId, sig)) {
+      pendingRepublishRef.current = () => void submitRepublish();
+      setDuplicateConfirmOpen(true);
+      return;
+    }
+    void submitRepublish();
+  }
+
+  function confirmDuplicateRepublish() {
+    hapticConfirm();
+    const action = pendingRepublishRef.current;
+    pendingRepublishRef.current = null;
+    setDuplicateConfirmOpen(false);
+    if (action) void action();
+  }
+
+  function cancelDuplicateRepublish() {
+    hapticSelect();
+    pendingRepublishRef.current = null;
+    setDuplicateConfirmOpen(false);
   }
 
   async function saveEdit(e: React.FormEvent<HTMLFormElement>) {
@@ -391,8 +425,8 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     [
                       [t(locale, "mSale"), money(selected.salePriceVnd)],
                       [t(locale, "mOriginal"), money(selected.originalPriceVnd)],
-                      [t(locale, "mQtyLeft"), `${selected.quantityLeft}개`],
-                      [t(locale, "mQtyTotal"), `${selected.quantityTotal}개`],
+                      [t(locale, "mQtyLeft"), `${selected.quantityLeft}${t(locale, "mUnitQty")}`],
+                      [t(locale, "mQtyTotal"), `${selected.quantityTotal}${t(locale, "mUnitQty")}`],
                       [t(locale, "mCategory"), categoryLabel(selected.category, locale)],
                       [t(locale, "time"), formatPickupWindow(selected.pickupStart, selected.pickupEnd, market)],
                     ] as const
@@ -507,6 +541,16 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
       </GiuBottomSheet>
 
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
+
+      <GiuConfirmSheet
+        open={duplicateConfirmOpen}
+        title={t(locale, "mDuplicateListingTitle")}
+        message={t(locale, "mDuplicateListingConfirm")}
+        confirmLabel={t(locale, "mDuplicateListingYes")}
+        cancelLabel={t(locale, "mCloseNo")}
+        onConfirm={confirmDuplicateRepublish}
+        onCancel={cancelDuplicateRepublish}
+      />
 
       <GiuConfirmSheet
         open={!!deleteTarget}

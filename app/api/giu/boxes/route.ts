@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isGiuCategory } from "@/giu/lib/categories";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
-import { createBox, getMerchant, listBoxes, defaultPickupWindow, merchantHasActiveListing } from "@/giu/lib/store";
+import { createBox, getMerchant, listBoxes, defaultPickupWindow } from "@/giu/lib/store";
 
 const createSchema = z.object({
   title: z.string().min(3).max(120),
@@ -83,10 +83,6 @@ export async function POST(request: Request) {
       }
     } else if (parsed.data.originalPriceVnd < 10000 || parsed.data.salePriceVnd < 5000) {
       return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
-    }
-
-    if (await merchantHasActiveListing(merchant.id)) {
-      return NextResponse.json({ error: "이미 판매 중인 상품이 있어요. 먼저 마감하거나 취소해 주세요." }, { status: 400 });
     }
 
     const window = defaultPickupWindow();

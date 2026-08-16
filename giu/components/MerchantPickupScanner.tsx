@@ -13,9 +13,12 @@ type Props = {
   onVerified?: () => void;
 };
 
+type VerifyPayload = { token?: string; code?: string };
+
 export function MerchantPickupScanner({ locale, onVerified }: Props) {
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pickupCode, setPickupCode] = useState("");
   const [message, setMessage] = useState("");
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
@@ -28,8 +31,33 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
     busyRef.current = busy;
   }, [busy]);
 
-  const verifyToken = useCallback(
-    async (token: string) => {
+  const showPickupResult = useCallback(
+    (data: {
+      error?: string;
+      reservation?: { customerName: string; quantity: number };
+      boxTitle?: string;
+      netPayoutVnd?: number;
+    }) => {
+      hapticConfirm();
+      setMessage(`${data.reservation?.customerName ?? ""} · ${t(locale, "mPickupDone")}`);
+      const parts = [
+        data.boxTitle ? `${t(locale, "mOrderProduct")}: ${data.boxTitle}` : "",
+        data.reservation?.quantity
+          ? `${t(locale, "mOrderQty")} ${data.reservation.quantity}${t(locale, "mUnitQty")}`
+          : "",
+        data.netPayoutVnd != null
+          ? `${t(locale, "mOrderNet")} ${money(data.netPayoutVnd)} · ${t(locale, "mPickupScanSuccessSettle")}`
+          : "",
+      ].filter(Boolean);
+      setDetail(parts.join(" · "));
+      setPickupCode("");
+      onVerified?.();
+    },
+    [locale, onVerified],
+  );
+
+  const verifyPickup = useCallback(
+    async (payload: VerifyPayload) => {
       if (busyRef.current) return;
       setBusy(true);
       busyRef.current = true;
@@ -41,7 +69,7 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ token: token.trim() }),
+          body: JSON.stringify(payload),
         });
         const data = (await res.json()) as {
           error?: string;
@@ -57,19 +85,7 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
           );
           return;
         }
-        hapticConfirm();
-        setMessage(`${data.reservation?.customerName ?? ""} · ${t(locale, "mPickupDone")}`);
-        const parts = [
-          data.boxTitle ? `${t(locale, "mOrderProduct")}: ${data.boxTitle}` : "",
-          data.reservation?.quantity
-            ? `${t(locale, "mOrderQty")} ${data.reservation.quantity}${t(locale, "mUnitQty")}`
-            : "",
-          data.netPayoutVnd != null
-            ? `${t(locale, "mOrderNet")} ${money(data.netPayoutVnd)} · ${t(locale, "mPickupScanSuccessSettle")}`
-            : "",
-        ].filter(Boolean);
-        setDetail(parts.join(" · "));
-        onVerified?.();
+        showPickupResult(data);
       } catch {
         setError(t(locale, "pickupScanFail"));
       } finally {
@@ -77,8 +93,20 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
         busyRef.current = false;
       }
     },
-    [locale, onVerified],
+    [locale, showPickupResult],
   );
+
+  const verifyToken = useCallback(
+    async (token: string) => verifyPickup({ token: token.trim() }),
+    [verifyPickup],
+  );
+
+  const verifyCode = useCallback(async () => {
+    const code = pickupCode.trim().toUpperCase();
+    if (!code || busyRef.current) return;
+    hapticSelect();
+    await verifyPickup({ code });
+  }, [pickupCode, verifyPickup]);
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -160,6 +188,29 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
             {t(locale, "pickupScanStart")}
           </button>
         )}
+      </div>
+
+      <div className="space-y-2 border-t border-giu-border pt-3">
+        <p className="text-[13px] font-bold text-giu-ink">{t(locale, "mPickupCodeLabel")}</p>
+        <p className="text-[11px] text-giu-muted">{t(locale, "mPickupCodeHint")}</p>
+        <div className="flex gap-2">
+          <input
+            value={pickupCode}
+            onChange={(e) => setPickupCode(e.target.value.toUpperCase())}
+            placeholder={t(locale, "mPickupCodePlaceholder")}
+            autoComplete="off"
+            autoCapitalize="characters"
+            className="giu-input min-w-0 flex-1 uppercase"
+          />
+          <button
+            type="button"
+            disabled={busy || !pickupCode.trim()}
+            onClick={() => void verifyCode()}
+            className="giu-btn-secondary shrink-0 !px-4 !py-2.5 text-[13px]"
+          >
+            {busy ? t(locale, "loading") : t(locale, "mPickupCodeConfirm")}
+          </button>
+        </div>
       </div>
 
       {message ? (

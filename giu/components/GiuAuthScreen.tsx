@@ -11,8 +11,10 @@ import {
   toGiuInternalPath,
   type GiuAppRole,
 } from "@/giu/lib/routes";
+import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuHref } from "./GiuNavProvider";
+import { useGiuLocale } from "./GiuLocaleProvider";
 
 type AuthMode = "login" | "signup";
 
@@ -32,6 +34,7 @@ function safeNextPath(raw: string | null, role: GiuAppRole): string {
 export function GiuAuthScreen() {
   const searchParams = useSearchParams();
   const href = useGiuHref();
+  const { locale } = useGiuLocale();
   const { refresh, applySession } = useGiuAuth();
 
   const role = (searchParams.get("role") === "merchant" ? "merchant" : "customer") as GiuAppRole;
@@ -211,6 +214,7 @@ export function GiuAuthScreen() {
             ? "마감할인 등록 · 주문 · 정산 · 입점비 0원"
             : "박스 찾기 · 결제 · 픽업 코드"}
         </p>
+        <p className="mt-2 text-[11px] leading-snug text-giu-muted">{t(locale, "authDualRoleHint")}</p>
       </div>
 
       <div className="flex gap-4 text-sm">

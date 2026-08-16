@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
@@ -14,7 +14,12 @@ import {
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
-import { filterHistoryBoxes, historyFilterLabel, type HistoryListFilter } from "@/giu/lib/product-list-ux";
+import {
+  filterHistoryBoxes,
+  findDuplicateActiveListing,
+  historyFilterLabel,
+  type HistoryListFilter,
+} from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
 
@@ -66,6 +71,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
   const [quickBusy, setQuickBusy] = useState(false);
+  const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
+  const pendingPublishRef = useRef<(() => void | Promise<void>) | null>(null);
 
   const historyBoxes = useMemo(
     () => filterHistoryBoxes(boxes, historyFilter),
@@ -79,20 +86,44 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setHistoryFilter("all");
   }
 
-  async function createBox(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    hapticSelect();
-    setCreateError("");
-    setSubmitBusy(true);
-    const fd = new FormData(e.currentTarget);
-    const start = Number(fd.get("pickupStartH") ?? startH);
-    const end = Number(fd.get("pickupEndH") ?? endH);
-    const day = Number(fd.get("dayOffset") ?? dayOffset);
-    if (end <= start) {
-      setCreateError(t(locale, "mTimeOrder"));
-      setSubmitBusy(false);
+  function requestDuplicateConfirm(action: () => void | Promise<void>) {
+    pendingPublishRef.current = action;
+    setDuplicateConfirmOpen(true);
+  }
+
+  function checkDuplicateAndRun(
+    sig: { title: string; originalPriceVnd: number; salePriceVnd: number },
+    action: () => void | Promise<void>,
+  ) {
+    if (findDuplicateActiveListing(boxes, merchant.id, sig)) {
+      requestDuplicateConfirm(action);
       return;
     }
+    void action();
+  }
+
+  function confirmDuplicateListing() {
+    hapticConfirm();
+    const action = pendingPublishRef.current;
+    pendingPublishRef.current = null;
+    setDuplicateConfirmOpen(false);
+    if (action) void action();
+  }
+
+  function cancelDuplicateListing() {
+    hapticSelect();
+    pendingPublishRef.current = null;
+    setDuplicateConfirmOpen(false);
+  }
+
+  async function submitCreateBox(
+    fd: FormData,
+    formEl: HTMLFormElement,
+    day: number,
+    start: number,
+    end: number,
+  ) {
+    setSubmitBusy(true);
     const tz = marketTimeZone(market);
     const pickupStart = localToIso(day, start, 0, tz);
     const pickupEnd = localToIso(day, end, 0, tz);
@@ -121,7 +152,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         return;
       }
       hapticConfirm();
-      e.currentTarget.reset();
+      formEl.reset();
       setDayOffset(0);
       setStartH(12);
       setEndH(14);
@@ -135,9 +166,30 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     }
   }
 
-  async function quickPublish() {
+  function createBox(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     hapticSelect();
     setCreateError("");
+    const fd = new FormData(e.currentTarget);
+    const start = Number(fd.get("pickupStartH") ?? startH);
+    const end = Number(fd.get("pickupEndH") ?? endH);
+    const day = Number(fd.get("dayOffset") ?? dayOffset);
+    if (end <= start) {
+      setCreateError(t(locale, "mTimeOrder"));
+      return;
+    }
+    const formEl = e.currentTarget;
+    checkDuplicateAndRun(
+      {
+        title: String(fd.get("title") ?? ""),
+        originalPriceVnd: Number(fd.get("originalPriceVnd")),
+        salePriceVnd: Number(fd.get("salePriceVnd")),
+      },
+      () => void submitCreateBox(fd, formEl, day, start, end),
+    );
+  }
+
+  async function submitQuickPublish() {
     setQuickBusy(true);
     const prices = quickPublishPrices(market);
     try {
@@ -170,9 +222,22 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     }
   }
 
-  async function confirmRepublish() {
+  function quickPublish() {
+    hapticSelect();
+    setCreateError("");
+    const prices = quickPublishPrices(market);
+    checkDuplicateAndRun(
+      {
+        title: t(locale, "mSurpriseDefault"),
+        originalPriceVnd: prices.originalPriceVnd,
+        salePriceVnd: prices.salePriceVnd,
+      },
+      () => void submitQuickPublish(),
+    );
+  }
+
+  async function submitRepublish() {
     if (!republishTarget) return;
-    hapticConfirm();
     setRepublishBusy(true);
     setCreateError("");
     try {
@@ -196,6 +261,20 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     } finally {
       setRepublishBusy(false);
     }
+  }
+
+  function confirmRepublish() {
+    if (!republishTarget) return;
+    hapticConfirm();
+    setCreateError("");
+    checkDuplicateAndRun(
+      {
+        title: republishTarget.title,
+        originalPriceVnd: republishTarget.originalPriceVnd,
+        salePriceVnd: republishTarget.salePriceVnd,
+      },
+      () => void submitRepublish(),
+    );
   }
 
   async function deleteProduct(boxId: string) {
@@ -227,11 +306,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     }
   }
 
-  const hasActiveListing = useMemo(
-    () => boxes.some((b) => b.status === "mo" && b.quantityLeft > 0),
-    [boxes],
-  );
-
   return (
     <section id="giu-publish-flow" className="giu-card giu-panel-enter space-y-3">
       <div>
@@ -243,16 +317,13 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         <div className="space-y-2.5">
           <button
             type="button"
-            disabled={quickBusy || hasActiveListing}
-            onClick={() => void quickPublish()}
+            disabled={quickBusy}
+            onClick={() => quickPublish()}
             className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
           >
             {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
           </button>
           <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mQuickPublishSub")}</p>
-          {hasActiveListing ? (
-            <p className="text-[11px] font-semibold text-amber-700">{t(locale, "mActiveListingExists")}</p>
-          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -480,7 +551,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-giu-ink">{box.title}</p>
                     <p className="text-[12px] text-giu-muted">
-                      {money(box.salePriceVnd)} · {box.quantityTotal}개 ·{" "}
+                      {money(box.salePriceVnd)} · {box.quantityTotal}
+                      {t(locale, "mUnitQty")} ·{" "}
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                     </p>
                   </div>
@@ -517,7 +589,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           <div className="rounded-[16px] bg-giu-bg p-3 ring-1 ring-giu-border">
             <p className="font-bold">{republishTarget.title}</p>
             <p className="mt-1 text-[13px] text-giu-muted">
-              {money(republishTarget.salePriceVnd)} · {republishTarget.quantityTotal}개
+              {money(republishTarget.salePriceVnd)} · {republishTarget.quantityTotal}
+              {t(locale, "mUnitQty")}
             </p>
             {republishTarget.description ? (
               <p className="mt-1 text-[12px] text-giu-muted">{republishTarget.description}</p>
@@ -550,6 +623,16 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       ) : null}
 
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
+
+      <GiuConfirmSheet
+        open={duplicateConfirmOpen}
+        title={t(locale, "mDuplicateListingTitle")}
+        message={t(locale, "mDuplicateListingConfirm")}
+        confirmLabel={t(locale, "mDuplicateListingYes")}
+        cancelLabel={t(locale, "mCloseNo")}
+        onConfirm={confirmDuplicateListing}
+        onCancel={cancelDuplicateListing}
+      />
 
       <GiuConfirmSheet
         open={!!deleteTarget}

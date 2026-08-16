@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isPickupQrToken } from "@/giu/lib/pickup-qr";
-import { confirmPickupByToken, getBox } from "@/giu/lib/store";
+import { confirmPickupByCode, confirmPickupByToken, getBox } from "@/giu/lib/store";
 
-const schema = z.object({
-  token: z.string().min(8).max(200),
-});
+const schema = z
+  .object({
+    token: z.string().min(8).max(200).optional(),
+    code: z.string().min(4).max(12).optional(),
+  })
+  .refine((d) => Boolean(d.token?.trim() || d.code?.trim()), {
+    message: "QR 또는 주문 코드를 입력해 주세요",
+  });
 
 export async function POST(request: Request) {
   try {
@@ -17,17 +22,29 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "QR 형식이 올바르지 않습니다" }, { status: 400 });
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" },
+        { status: 400 },
+      );
     }
-    const token = parsed.data.token.trim();
-    if (!isPickupQrToken(token)) {
-      return NextResponse.json({ error: "QR만 스캔할 수 있어요" }, { status: 400 });
+
+    const token = parsed.data.token?.trim();
+    const code = parsed.data.code?.trim();
+    let result;
+    if (code) {
+      result = await confirmPickupByCode(session.merchantId, code);
+    } else {
+      if (!token || !isPickupQrToken(token)) {
+        return NextResponse.json({ error: "QR만 스캔할 수 있어요" }, { status: 400 });
+      }
+      result = await confirmPickupByToken(session.merchantId, token);
     }
-    const result = await confirmPickupByToken(session.merchantId, token);
+
     if ("error" in result) {
       const status = result.error.includes("만료") ? 410 : 404;
       return NextResponse.json({ error: result.error }, { status });
     }
+
     const box = await getBox(result.boxId);
     const net = result.totalVnd - result.platformFeeVnd;
     return NextResponse.json({

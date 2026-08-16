@@ -43,6 +43,9 @@ export async function PATCH(request: Request) {
     }
     const merchant = await updateMerchantProfile(session.sub, parsed.data);
     if (!merchant) return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
+    if ("error" in merchant) {
+      return NextResponse.json({ error: merchant.error }, { status: 409 });
+    }
     return NextResponse.json({ merchant });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
