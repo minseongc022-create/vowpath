@@ -9,7 +9,8 @@ import { isGiuHostName } from "@/giu/lib/routes";
 export default async function GiuLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const publicPaths = isGiuHostName(host);
+  const shell = h.get("x-app-shell");
+  const publicPaths = shell === "giu" || isGiuHostName(host);
 
   return (
     <GiuLocaleProvider>
