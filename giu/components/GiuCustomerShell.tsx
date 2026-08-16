@@ -11,7 +11,7 @@ import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { CustomerAvailabilityAlerts } from "./CustomerAvailabilityAlerts";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
-import { GiuLocaleToggle, useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuLocale } from "./GiuLocaleProvider";
 import { GiuLogo } from "./GiuLogo";
 import { useGiuHref } from "./GiuNavProvider";
 
@@ -44,21 +44,20 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <GiuLocaleToggle />
             {!loading && account ? (
               <button
                 type="button"
                 onClick={() => void logout()}
                 className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"
               >
-                {locale === "vi" ? "Thoát" : "나가기"}
+                나가기
               </button>
             ) : !loading ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
                 className="rounded-full bg-giu-ink px-3 py-1.5 text-[11px] font-bold text-white"
               >
-                {locale === "vi" ? "Đăng nhập" : "로그인"}
+                로그인
               </Link>
             ) : null}
           </div>

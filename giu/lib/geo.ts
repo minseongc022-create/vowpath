@@ -56,10 +56,10 @@ export function distanceMeters(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function formatDistance(meters: number, locale: "ko" | "vi"): string {
+export function formatDistance(meters: number, _locale?: "ko"): string {
   if (meters < 1000) {
-    return locale === "vi" ? `${Math.round(meters)} m` : `${Math.round(meters)}m`;
+    return `${Math.round(meters)}m`;
   }
   const km = (meters / 1000).toFixed(1);
-  return locale === "vi" ? `${km} km` : `${km}km`;
+  return `${km}km`;
 }

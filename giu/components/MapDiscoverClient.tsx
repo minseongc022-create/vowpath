@@ -7,7 +7,7 @@ const MapDiscover = dynamic(() => import("./MapDiscover").then((m) => m.MapDisco
   ssr: false,
   loading: () => (
     <div className="flex h-full min-h-[50vh] items-center justify-center bg-giu-bg text-sm text-giu-muted">
-      Đang tải bản đồ…
+      지도 불러오는 중…
     </div>
   ),
 });

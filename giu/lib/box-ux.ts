@@ -4,7 +4,7 @@ import type { GiuBoxStatus, GiuPaymentStatus, GiuReservationStatus } from "./typ
 
 /** Mystery / surprise bag (TGTG-style) — title heuristics + default merchant copy. */
 export function isSurpriseTitle(title: string): boolean {
-  return /surprise|서프라이즈|bí\s*mật|bất\s*ngờ|mystery|ngẫu\s*nhiên/i.test(title);
+  return /surprise|서프라이즈|마감|럭키|mystery/i.test(title);
 }
 
 /** Minutes until pickup window ends; null if already past. */

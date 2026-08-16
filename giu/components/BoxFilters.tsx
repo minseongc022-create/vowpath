@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { customerDistricts } from "@/giu/lib/districts";
+import { merchantDistricts } from "@/giu/lib/districts";
 import { GIu_CATEGORIES } from "@/giu/lib/categories";
 import { useGiuLocale } from "./GiuLocaleProvider";
 
@@ -60,7 +60,7 @@ export function BoxFilters() {
         >
           {tt("allDistricts")}
         </button>
-        {customerDistricts().map((d) => (
+        {merchantDistricts().map((d) => (
           <button
             key={d.id}
             type="button"

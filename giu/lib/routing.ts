@@ -7,14 +7,13 @@ export type RouteResult = {
   durationSeconds: number;
 };
 
-function formatOsrmDuration(seconds: number, locale: "ko" | "vi"): string {
+function formatOsrmDuration(seconds: number, _locale?: "ko"): string {
   const mins = Math.max(1, Math.round(seconds / 60));
   if (mins < 60) {
-    return locale === "vi" ? `${mins} phút` : `${mins}분`;
+    return `${mins}분`;
   }
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  if (locale === "vi") return m ? `${h} giờ ${m} phút` : `${h} giờ`;
   return m ? `${h}시간 ${m}분` : `${h}시간`;
 }
 

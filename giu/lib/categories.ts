@@ -6,7 +6,7 @@ export const GIu_CATEGORIES: {
   label: string;
   emoji: string;
 }[] = [
-  { id: "banh_mi", label: "반미", emoji: "🥖" },
+  { id: "banh_mi", label: "빵·샌드위치", emoji: "🥖" },
   { id: "bakery", label: "베이커리", emoji: "🥐" },
   { id: "cafe", label: "카페·디저트", emoji: "☕" },
   { id: "tra_sua", label: "버블티", emoji: "🧋" },

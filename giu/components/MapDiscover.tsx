@@ -20,8 +20,8 @@ import {
   formatVnd,
 } from "@/giu/lib/format";
 import {
-  HCMC_CENTER,
-  HCMC_DEFAULT_ZOOM,
+  INCHEON_CENTER,
+  INCHEON_DEFAULT_ZOOM,
   distanceMeters,
   formatDistance,
 } from "@/giu/lib/geo";
@@ -59,7 +59,7 @@ function pinIcon(count: number, selected: boolean) {
     html: `<div style="
       width:36px;height:36px;border-radius:18px 18px 18px 5px;
       background:${bg};color:#fff;display:flex;align-items:center;justify-content:center;
-      font:800 12px/1 Be Vietnam Pro,Pretendard,system-ui,sans-serif;
+      font:800 12px/1 Pretendard,system-ui,sans-serif;
       box-shadow:0 4px 14px rgba(31,42,51,.28);
       border:2px solid #fff;transform:rotate(-45deg);
     "><span style="transform:rotate(45deg)">${count}</span></div>`,
@@ -142,7 +142,7 @@ export function MapDiscover({ pins }: Props) {
   );
   const [locError, setLocError] = useState("");
   const [locating, setLocating] = useState(false);
-  const [farFromHcmc, setFarFromHcmc] = useState(false);
+  const [farFromServiceCity, setFarFromServiceCity] = useState(false);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routing, setRouting] = useState(false);
 
@@ -175,7 +175,7 @@ export function MapDiscover({ pins }: Props) {
     const withDist = filtered.map((pin) => {
       const dist = userPos
         ? distanceMeters(userPos, { lat: pin.lat, lng: pin.lng })
-        : distanceMeters(HCMC_CENTER, { lat: pin.lat, lng: pin.lng });
+        : distanceMeters(INCHEON_CENTER, { lat: pin.lat, lng: pin.lng });
       const best = [...pin.boxes].sort((a, b) => a.salePriceVnd - b.salePriceVnd)[0];
       return { pin, dist, best };
     });
@@ -194,8 +194,8 @@ export function MapDiscover({ pins }: Props) {
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPos(next);
-        const near = distanceMeters(next, HCMC_CENTER) < 80_000;
-        setFarFromHcmc(!near);
+        const near = distanceMeters(next, INCHEON_CENTER) < 80_000;
+        setFarFromServiceCity(!near);
         setFollowUser(near);
         if (near) setFlyTarget({ lat: next.lat, lng: next.lng, zoom: 15 });
         setLocating(false);
@@ -210,7 +210,7 @@ export function MapDiscover({ pins }: Props) {
 
   function focusCity() {
     setFollowUser(false);
-    setFlyTarget({ lat: HCMC_CENTER.lat, lng: HCMC_CENTER.lng, zoom: HCMC_DEFAULT_ZOOM });
+    setFlyTarget({ lat: INCHEON_CENTER.lat, lng: INCHEON_CENTER.lng, zoom: INCHEON_DEFAULT_ZOOM });
   }
 
   function openDirections() {
@@ -242,8 +242,8 @@ export function MapDiscover({ pins }: Props) {
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPos(next);
-        const near = distanceMeters(next, HCMC_CENTER) < 80_000;
-        setFarFromHcmc(!near);
+        const near = distanceMeters(next, INCHEON_CENTER) < 80_000;
+        setFarFromServiceCity(!near);
         setLocating(false);
         window.open(
           googleMapsDirectionsUrl({ origin: next, destination: dest, travelmode: "driving" }),
@@ -273,7 +273,7 @@ export function MapDiscover({ pins }: Props) {
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPos(next);
-        setFarFromHcmc(distanceMeters(next, HCMC_CENTER) >= 80_000);
+        setFarFromServiceCity(distanceMeters(next, INCHEON_CENTER) >= 80_000);
         setFollowUser(false);
       },
       () => undefined,
@@ -287,7 +287,7 @@ export function MapDiscover({ pins }: Props) {
       setRoute(null);
       return;
     }
-    const far = distanceMeters(userPos, HCMC_CENTER) >= 80_000;
+    const far = distanceMeters(userPos, INCHEON_CENTER) >= 80_000;
     // Don't route across countries when tester is in Korea etc.
     if (far) {
       setRoute(null);
@@ -311,8 +311,8 @@ export function MapDiscover({ pins }: Props) {
   return (
     <div className="giu-map-root relative h-full min-h-[50vh] w-full overflow-hidden bg-[#dfe8ef]">
       <MapContainer
-        center={[HCMC_CENTER.lat, HCMC_CENTER.lng]}
-        zoom={HCMC_DEFAULT_ZOOM}
+        center={[INCHEON_CENTER.lat, INCHEON_CENTER.lng]}
+        zoom={INCHEON_DEFAULT_ZOOM}
         maxZoom={20}
         minZoom={11}
         className="h-full w-full"
@@ -453,7 +453,7 @@ export function MapDiscover({ pins }: Props) {
             <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-ink shadow-sm ring-1 ring-black/[0.04]">
               {filtered.length} {t(locale, "mapStoresOpen")}
             </span>
-            {farFromHcmc ? (
+            {farFromServiceCity ? (
               <button
                 type="button"
                 onClick={focusCity}
@@ -532,7 +532,7 @@ export function MapDiscover({ pins }: Props) {
                         {formatOsrmDuration(route.durationSeconds, locale)} ·{" "}
                         {formatDistance(route.distanceMeters, locale)}
                       </span>
-                    ) : userPos && !farFromHcmc ? (
+                    ) : userPos && !farFromServiceCity ? (
                       <span className="rounded-md bg-giu-accent-soft px-2 py-0.5 text-giu-accent">
                         {routing
                           ? "…"
@@ -679,7 +679,7 @@ export function MapDiscover({ pins }: Props) {
                     </p>
                     <p className="mt-0.5 text-[11px] font-semibold text-giu-muted">
                       {formatDistance(dist, locale)} · {pin.boxes.length}{" "}
-                      {locale === "vi" ? "hộp" : "박스"}
+                      박스
                     </p>
                     {best ? (
                       <p className="mt-1 truncate text-[12px] font-bold text-giu-ink">

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
-import { GiuLocaleToggle, useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuLocale } from "./GiuLocaleProvider";
 import { GiuMerchantBottomNav } from "./GiuMerchantBottomNav";
 import { GiuLogo } from "./GiuLogo";
 import { useGiuHref } from "./GiuNavProvider";
@@ -29,7 +29,6 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <GiuLocaleToggle />
             <button
               type="button"
               onClick={() =>

@@ -1,23 +1,5 @@
 import type { GiuCategory, GiuDistrict } from "./types";
 
-export const DISTRICT_LABELS_VI: Record<GiuDistrict, string> = {
-  quan_1: "Quận 1",
-  quan_3: "Quận 3",
-  quan_5: "Quận 5",
-  quan_7: "Quận 7",
-  quan_10: "Quận 10",
-  binh_thanh: "Bình Thạnh",
-  phu_nhuan: "Phú Nhuận",
-  icn_jung: "Jung-gu (Incheon)",
-  icn_dong: "Dong-gu (Incheon)",
-  icn_michuhol: "Michuhol-gu",
-  icn_yeonsu: "Yeonsu-gu",
-  icn_namdong: "Namdong-gu",
-  icn_bupyeong: "Bupyeong-gu",
-  icn_gyeyang: "Gyeyang-gu",
-  icn_seo: "Seo-gu",
-};
-
 export const DISTRICT_LABELS_KO: Record<GiuDistrict, string> = {
   quan_1: "1군",
   quan_3: "3군",
@@ -36,32 +18,21 @@ export const DISTRICT_LABELS_KO: Record<GiuDistrict, string> = {
   icn_seo: "서구 (청라·검단)",
 };
 
-export const CATEGORY_LABELS_VI: Record<GiuCategory, string> = {
-  banh_mi: "Bánh mì",
-  bakery: "Tiệm bánh",
-  cafe: "Cà phê",
-  tra_sua: "Trà sữa",
-  nha_hang: "Nhà hàng",
-  tap_hoa: "Tạp hóa",
-  hoa: "Hoa",
-  khac: "Khác",
-};
-
 export const CATEGORY_LABELS_KO: Record<GiuCategory, string> = {
-  banh_mi: "반미",
+  banh_mi: "빵·샌드위치",
   bakery: "베이커리",
   cafe: "카페·디저트",
-  tra_sua: "버블티",
+  tra_sua: "음료",
   nha_hang: "식당",
   tap_hoa: "편의점",
   hoa: "꽃",
   khac: "기타",
 };
 
-export function districtLabel(id: GiuDistrict, locale: "ko" | "vi"): string {
-  return locale === "vi" ? DISTRICT_LABELS_VI[id] : DISTRICT_LABELS_KO[id];
+export function districtLabel(id: GiuDistrict, _locale?: "ko"): string {
+  return DISTRICT_LABELS_KO[id] ?? id;
 }
 
-export function categoryLabel(id: GiuCategory, locale: "ko" | "vi"): string {
-  return locale === "vi" ? CATEGORY_LABELS_VI[id] : CATEGORY_LABELS_KO[id];
+export function categoryLabel(id: GiuCategory, _locale?: "ko"): string {
+  return CATEGORY_LABELS_KO[id] ?? id;
 }

@@ -45,12 +45,12 @@ export async function notifyPickupCode(input: {
   totalVnd: number;
   pickupWindow: string;
 }): Promise<{ ok: boolean; skipped?: boolean }> {
-  const amount = new Intl.NumberFormat("vi-VN").format(input.totalVnd);
+  const amount = new Intl.NumberFormat("ko-KR").format(input.totalVnd);
   const body =
-    `[Giu] Mã cứu đồ: ${input.code}\n` +
-    `${input.merchantName} · ${amount}₫\n` +
-    `Nhận: ${input.pickupWindow}\n` +
-    `giucuu.com/ma-cua-toi`;
+    `[Giu] 픽업 코드: ${input.code}\n` +
+    `${input.merchantName} · ${amount}원\n` +
+    `픽업: ${input.pickupWindow}\n` +
+    `giucuu.com`;
   return sendGiuPickupSms(input.phone, body);
 }
 
@@ -62,8 +62,10 @@ function isGiuSmsPreview(): boolean {
 function normalizeVnPhone(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
   if (!digits) return null;
+  if (digits.startsWith("82")) return `+${digits}`;
+  if (digits.startsWith("010") || digits.startsWith("011")) return `+82${digits.slice(1)}`;
   if (digits.startsWith("84")) return `+${digits}`;
-  if (digits.startsWith("0")) return `+84${digits.slice(1)}`;
+  if (digits.startsWith("0")) return `+82${digits.slice(1)}`;
   if (raw.trim().startsWith("+")) return raw.trim();
-  return `+84${digits}`;
+  return `+82${digits}`;
 }

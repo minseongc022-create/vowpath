@@ -12,10 +12,10 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 
-const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; subKo: string; subVi: string }[] = [
-  { id: "vietqr", label: "VietQR", subKo: "계좌이체", subVi: "Chuyển khoản" },
-  { id: "momo", label: "MoMo", subKo: "지갑", subVi: "Ví" },
-  { id: "card", label: "Card", subKo: "국제 카드", subVi: "Thẻ" },
+const VNPAY_OPTIONS: { id: GiuPaymentMethod; label: string; sub: string }[] = [
+  { id: "vietqr", label: "계좌이체", sub: "QR · 송금" },
+  { id: "momo", label: "간편결제", sub: "지갑" },
+  { id: "card", label: "카드", sub: "신용·체크" },
 ];
 
 export function ReserveForm({
@@ -180,9 +180,7 @@ export function ReserveForm({
                 }`}
               >
                 <span className="block text-[12px] font-bold text-giu-ink">{opt.label}</span>
-                <span className="block text-[10px] text-giu-muted">
-                  {locale === "vi" ? opt.subVi : opt.subKo}
-                </span>
+                <span className="block text-[10px] text-giu-muted">{opt.sub}</span>
               </button>
             );
           })}
