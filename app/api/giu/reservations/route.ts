@@ -14,7 +14,7 @@ import { getBox, initiateReservationPayment, listReservations } from "@/giu/lib/
 const createSchema = z.object({
   boxId: z.string().min(1),
   quantity: z.number().int().min(1).max(5).optional(),
-  paymentMethod: z.enum(["momo", "vietqr", "card"]).optional(),
+  paymentMethod: z.enum(["card", "kakao", "naver", "toss", "momo", "vietqr"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -127,6 +127,18 @@ export async function POST(request: Request) {
           mode: "lemon_squeezy",
           id: result.reservation.id,
           paymentUrl: checkout.url,
+          reservation: result.reservation,
+          payment: paymentMeta,
+        },
+        { status: 201 },
+      );
+    }
+
+    if (result.mode === "toss") {
+      return NextResponse.json(
+        {
+          mode: "toss",
+          id: result.reservation.id,
           reservation: result.reservation,
           payment: paymentMeta,
         },

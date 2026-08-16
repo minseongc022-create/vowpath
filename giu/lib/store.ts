@@ -466,6 +466,7 @@ async function holdBoxQuantity(store: GiuStore, box: GiuBox, qty: number): Promi
 export async function confirmReservationPayment(
   reservationId: string,
   paymentId: string,
+  paymentMethod?: GiuPaymentMethod,
 ): Promise<GiuReservation | null> {
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === reservationId);
@@ -476,6 +477,7 @@ export async function confirmReservationPayment(
 
   res.paymentStatus = "paid";
   res.paymentId = paymentId;
+  if (paymentMethod) res.paymentMethod = paymentMethod;
   res.paidAt = new Date().toISOString();
   res.status = "giu_cho";
   res.settlementStatus = "held";
@@ -588,6 +590,11 @@ export type InitiateReservationResult =
       reservation: GiuReservation;
       box: GiuBox;
     }
+  | {
+      mode: "toss";
+      reservation: GiuReservation;
+      box: GiuBox;
+    }
   | { error: string };
 
 export async function initiateReservationPayment(input: {
@@ -660,6 +667,10 @@ export async function initiateReservationPayment(input: {
 
   if (backend === "lemon_squeezy") {
     return { mode: "lemon_squeezy", reservation, box };
+  }
+
+  if (backend === "toss") {
+    return { mode: "toss", reservation, box };
   }
 
   const paymentUrl = input.paymentUrlBuilder(reservation, totalVnd);

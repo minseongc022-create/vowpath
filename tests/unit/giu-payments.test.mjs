@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-/** Mirrors giu/lib/payments.ts + lemon-squeezy-giu helpers for node tests. */
+/** Mirrors giu/lib/payments.ts + helpers for node tests. */
+function isTossConfigured() {
+  const secret = process.env.TOSS_PAYMENTS_SECRET_KEY?.trim();
+  const client = process.env.NEXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY?.trim();
+  return Boolean(secret && client && !secret.includes("xxxx"));
+}
+
 function isGiuLsConfigured() {
   const key = process.env.LEMON_SQUEEZY_API_KEY?.trim();
   const store = process.env.LEMON_SQUEEZY_STORE_ID?.trim();
@@ -19,12 +25,15 @@ function isGiuPaymentDemo() {
   const flag = process.env.GIU_PAYMENT_DEMO?.trim().toLowerCase();
   if (flag === "1" || flag === "true") return true;
   if (flag === "0" || flag === "false") return false;
-  return !isGiuLsConfigured() && !isVnpayConfigured();
+  return !isTossConfigured() && !isGiuLsConfigured() && !isVnpayConfigured();
 }
 
 function resolveGiuPaymentBackend() {
   if (isGiuPaymentDemo()) return "demo";
   const forced = process.env.GIU_PAYMENT_PROVIDER?.trim().toLowerCase();
+  if ((forced === "toss" || forced === "tosspayments") && isTossConfigured()) {
+    return "toss";
+  }
   if (
     (forced === "lemon_squeezy" || forced === "lemonsqueezy") &&
     isGiuLsConfigured()
@@ -32,6 +41,7 @@ function resolveGiuPaymentBackend() {
     return "lemon_squeezy";
   }
   if (forced === "vnpay" && isVnpayConfigured()) return "vnpay";
+  if (isTossConfigured()) return "toss";
   if (isGiuLsConfigured()) return "lemon_squeezy";
   if (isVnpayConfigured()) return "vnpay";
   return "demo";
@@ -46,6 +56,8 @@ describe("giu payment backend", () => {
   const envKeys = [
     "GIU_PAYMENT_DEMO",
     "GIU_PAYMENT_PROVIDER",
+    "NEXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY",
+    "TOSS_PAYMENTS_SECRET_KEY",
     "LEMON_SQUEEZY_API_KEY",
     "LEMON_SQUEEZY_STORE_ID",
     "LEMON_SQUEEZY_VARIANT_ID_GIU",
@@ -67,14 +79,20 @@ describe("giu payment backend", () => {
     assert.equal(resolveGiuPaymentBackend(), "demo");
   });
 
-  it("prefers lemon_squeezy when configured", () => {
+  it("prefers toss when configured", () => {
+    process.env.NEXT_PUBLIC_TOSS_PAYMENTS_CLIENT_KEY = "test_ck_giu";
+    process.env.TOSS_PAYMENTS_SECRET_KEY = "test_sk_giu";
+    assert.equal(resolveGiuPaymentBackend(), "toss");
+  });
+
+  it("prefers lemon_squeezy when toss absent", () => {
     process.env.LEMON_SQUEEZY_API_KEY = "ls_test_key";
     process.env.LEMON_SQUEEZY_STORE_ID = "12345";
     process.env.LEMON_SQUEEZY_VARIANT_ID_GIU = "999";
     assert.equal(resolveGiuPaymentBackend(), "lemon_squeezy");
   });
 
-  it("converts VND to USD cents", () => {
+  it("converts list price to USD cents", () => {
     process.env.GIU_VND_PER_USD = "25000";
     assert.equal(vndToUsdCents(50000), 200);
     assert.equal(vndToUsdCents(1000), 50);

@@ -20,6 +20,7 @@ import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
+import { tossClientKey } from "@/giu/lib/toss-payments";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { getBox, getMerchant } from "@/giu/lib/store";
@@ -37,6 +38,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
   const soldOut = box.status !== "mo" || box.quantityLeft <= 0;
   const checkoutBackend = resolveGiuPaymentBackend();
+  const tossKey = checkoutBackend === "toss" ? tossClientKey() : undefined;
   const mapsUrl = googleMapsSearchUrl(merchant.address);
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchantCoords(merchant.id, merchant.district);
@@ -163,8 +165,10 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         <div className="giu-sticky-pay">
           <ReserveForm
             boxId={box.id}
+            boxTitle={box.title}
             salePriceVnd={box.salePriceVnd}
             checkoutBackend={checkoutBackend}
+            tossClientKey={tossKey}
             compact
           />
         </div>

@@ -15,6 +15,7 @@ const KO: Dict = {
   emptyBoxesHint: "번호를 남기면 생기면 알려드릴게요.",
   payCta: "안전 결제 & 코드 받기",
   payCardPaypal: "카드 · PayPal 결제",
+  payKrwCta: "원화 결제하기",
   escrowTitle: "Giu 안전 결제",
   escrowDesc: "결제 금액은 Giu가 안전하게 보관합니다.",
   loginSignup: "로그인 / 회원가입",

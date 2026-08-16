@@ -37,7 +37,13 @@ export type GiuPaymentStatus = "pending" | "paid" | "failed" | "refunded";
 /** Escrow: held until merchant confirms pickup. */
 export type GiuSettlementStatus = "held" | "released" | "refunded";
 
-export type GiuPaymentMethod = "momo" | "vietqr" | "card";
+export type GiuPaymentMethod =
+  | "card"
+  | "kakao"
+  | "naver"
+  | "toss"
+  | "momo"
+  | "vietqr";
 
 export type GiuAccountRole = "customer" | "merchant";
 
