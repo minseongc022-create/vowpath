@@ -75,6 +75,10 @@ export type GiuMerchant = {
   reviewCount: number;
   rescuedBoxes: number;
   market: GiuMarket;
+  /** Settlement — bank account for pickup payouts. */
+  bankName?: string;
+  bankAccount?: string;
+  bankHolder?: string;
   createdAt: string;
 };
 
@@ -122,6 +126,9 @@ export type GiuReservation = {
   smsSent?: boolean;
   settlementStatus?: GiuSettlementStatus;
   settledAt?: string;
+  /** Bank transfer queued after QR pickup. */
+  payoutStatus?: "pending_account" | "queued" | "sent";
+  payoutAmountVnd?: number;
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;

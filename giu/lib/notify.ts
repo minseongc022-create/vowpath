@@ -47,7 +47,7 @@ export async function notifyPickupCode(input: {
 }): Promise<{ ok: boolean; skipped?: boolean }> {
   const amount = new Intl.NumberFormat("ko-KR").format(input.totalVnd);
   const body =
-    `[Giu] 픽업 코드: ${input.code}\n` +
+    `[Giu] 결제 완료 · 앱에서 픽업 QR을 보여주세요\n` +
     `${input.merchantName} · ${amount}원\n` +
     `픽업: ${input.pickupWindow}\n` +
     `giucuu.com`;

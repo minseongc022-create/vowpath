@@ -777,6 +777,7 @@ export async function updateReservationStatus(
     if (res.paymentStatus === "paid" && res.settlementStatus === "held") {
       res.settlementStatus = "released";
       res.settledAt = new Date().toISOString();
+      if (merchant) queueMerchantPayout(store, res, merchant);
     }
   }
   await saveStore(store);
@@ -855,7 +856,7 @@ function recalcMerchantRating(store: GiuStore, merchantId: string): void {
 export async function updateMerchantProfile(
   accountId: string,
   patch: Partial<
-    Pick<GiuMerchant, "name" | "address" | "addressHint" | "phone" | "category" | "district">
+    Pick<GiuMerchant, "name" | "address" | "addressHint" | "phone" | "category" | "district" | "bankName" | "bankAccount" | "bankHolder">
   >,
 ): Promise<GiuMerchant | null> {
   const store = await loadStore();
@@ -867,6 +868,9 @@ export async function updateMerchantProfile(
   if (patch.phone?.trim()) merchant.phone = normalizePhone(patch.phone);
   if (patch.category) merchant.category = patch.category;
   if (patch.district) merchant.district = patch.district;
+  if (patch.bankName !== undefined) merchant.bankName = patch.bankName?.trim() || undefined;
+  if (patch.bankAccount !== undefined) merchant.bankAccount = patch.bankAccount?.trim() || undefined;
+  if (patch.bankHolder !== undefined) merchant.bankHolder = patch.bankHolder?.trim() || undefined;
   await saveStore(store);
   return merchant;
 }
@@ -951,18 +955,61 @@ export async function confirmPickupByCode(
       r.status === "giu_cho",
   );
   if (!res) return { error: "코드를 찾을 수 없거나 이미 처리됐어요" };
+  return await finalizePickup(store, res, merchantId);
+}
+
+export async function confirmPickupByToken(
+  merchantId: string,
+  token: string,
+): Promise<GiuReservation | { error: string }> {
+  const { verifyPickupQrToken } = await import("@/giu/lib/pickup-qr");
+  const verified = verifyPickupQrToken(token);
+  if (!verified) return { error: "QR이 만료되었거나 올바르지 않아요" };
+  const store = await loadStore();
+  const res = store.reservations.find(
+    (r) =>
+      r.id === verified.reservationId &&
+      r.merchantId === merchantId &&
+      r.paymentStatus === "paid",
+  );
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  if (res.status === "da_lay") return res;
+  if (res.status !== "giu_cho") return { error: "픽업 대기 상태가 아니에요" };
+  return await finalizePickup(store, res, merchantId);
+}
+
+function queueMerchantPayout(
+  store: GiuStore,
+  res: GiuReservation,
+  merchant: GiuMerchant,
+): void {
+  const net = res.totalVnd - res.platformFeeVnd;
+  res.payoutAmountVnd = net;
+  const hasAccount = Boolean(merchant.bankAccount?.trim() && merchant.bankName?.trim());
+  res.payoutStatus = hasAccount ? "queued" : "pending_account";
+}
+
+function finalizePickup(
+  store: GiuStore,
+  res: GiuReservation,
+  merchantId: string,
+): Promise<GiuReservation | { error: string }> {
+  if (res.status === "da_lay") return Promise.resolve(res);
+  if (res.status !== "giu_cho" || res.paymentStatus !== "paid") {
+    return Promise.resolve({ error: "픽업 대기 상태가 아니에요" });
+  }
   res.status = "da_lay";
   const merchant = store.merchants.find((m) => m.id === merchantId);
   if (merchant) {
     merchant.rescuedBoxes += res.quantity;
     maybeAutoVerifyMerchant(store, merchant.id);
+    if (res.settlementStatus === "held") {
+      res.settlementStatus = "released";
+      res.settledAt = new Date().toISOString();
+      queueMerchantPayout(store, res, merchant);
+    }
   }
-  if (res.settlementStatus === "held") {
-    res.settlementStatus = "released";
-    res.settledAt = new Date().toISOString();
-  }
-  await saveStore(store);
-  return res;
+  return saveStore(store).then(() => res);
 }
 
 export async function addReview(input: {

@@ -363,6 +363,39 @@
   animation: giu-success-pop 0.22s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 }
 
+.giu-pickup-qr-secure {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.giu-pickup-qr-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.giu-pickup-qr-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.12) 50%,
+    transparent 60%
+  );
+  animation: giu-qr-shimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes giu-qr-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
 @keyframes giu-success-pop {
   from {
     opacity: 0;

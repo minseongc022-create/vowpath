@@ -41,6 +41,9 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
           phone: fd.get("phone"),
           category: fd.get("category"),
           district: fd.get("district"),
+          bankName: fd.get("bankName") || undefined,
+          bankAccount: fd.get("bankAccount") || undefined,
+          bankHolder: fd.get("bankHolder") || undefined,
         }),
       });
       const data = (await res.json()) as { error?: string; merchant?: GiuMerchant };
@@ -100,6 +103,22 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
       <div>
         <label className="giu-label">{t(locale, "waitlistPhone")}</label>
         <input name="phone" required type="tel" defaultValue={merchant.phone} className="giu-input" />
+      </div>
+      <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSettleDone")}</p>
+        <p className="text-[11px] text-giu-muted">{t(locale, "mBankHint")}</p>
+        <div>
+          <label className="giu-label">{t(locale, "mBankName")}</label>
+          <input name="bankName" defaultValue={merchant.bankName ?? ""} className="giu-input" placeholder="국민은행" />
+        </div>
+        <div>
+          <label className="giu-label">{t(locale, "mBankAccount")}</label>
+          <input name="bankAccount" inputMode="numeric" defaultValue={merchant.bankAccount ?? ""} className="giu-input" placeholder="123456-01-123456" />
+        </div>
+        <div>
+          <label className="giu-label">{t(locale, "mBankHolder")}</label>
+          <input name="bankHolder" defaultValue={merchant.bankHolder ?? ""} className="giu-input" placeholder={merchant.name} />
+        </div>
       </div>
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
       {saved ? <p className="giu-info-banner">{t(locale, "mSettingsSaved")}</p> : null}

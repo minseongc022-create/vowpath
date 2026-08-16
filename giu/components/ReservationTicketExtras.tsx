@@ -6,7 +6,6 @@ import { useGiuLocale } from "@/giu/components/GiuLocaleProvider";
 
 type Props = {
   reservationId: string;
-  code: string;
   pickedUp: boolean;
   paid: boolean;
   existingReviewRating?: number;
@@ -14,7 +13,6 @@ type Props = {
 
 export function ReservationTicketExtras({
   reservationId,
-  code,
   pickedUp,
   paid,
   existingReviewRating,
@@ -25,7 +23,7 @@ export function ReservationTicketExtras({
 
   return (
     <div className="space-y-3">
-      {!pickedUp ? <PickupQrCode locale={locale} code={code} reservationId={reservationId} /> : null}
+      {!pickedUp ? <PickupQrCode locale={locale} reservationId={reservationId} /> : null}
       {pickedUp ? (
         <ReviewForm
           locale={locale}
