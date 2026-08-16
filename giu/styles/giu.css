@@ -161,7 +161,7 @@
 }
 
 .giu-sheet-backdrop {
-  @apply fixed inset-0 z-[60] flex items-end justify-center;
+  @apply fixed inset-0 z-[60] flex items-end justify-center bg-black/25 backdrop-blur-[2px];
 }
 
 .giu-sheet-dismiss {
@@ -267,11 +267,9 @@
 @keyframes giu-tab-in {
   from {
     opacity: 0;
-    transform: translateX(8px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
