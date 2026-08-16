@@ -8,7 +8,6 @@ import {
   formatReservationStatusLocale,
 } from "@/giu/lib/box-ux";
 import { formatMoney } from "@/giu/lib/format";
-import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
@@ -37,7 +36,6 @@ export function MerchantPanelClient() {
   const [error, setError] = useState("");
   const [orderQuery, setOrderQuery] = useState("");
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
-  const [confirmPickupId, setConfirmPickupId] = useState<string | null>(null);
 
   const load = useCallback(
     async (merchantId: string, opts?: { silent?: boolean }) => {
@@ -110,18 +108,6 @@ export function MerchantPanelClient() {
   const settlementReleased = reservations
     .filter((r) => r.settlementStatus === "released")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
-
-  async function markPickedUp(reservationId: string) {
-    hapticConfirm();
-    await fetch(`/api/giu/reservations/${reservationId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ status: "da_lay" }),
-    });
-    setConfirmPickupId(null);
-    if (merchant) await load(merchant.id);
-  }
 
   if (authLoading || loading) {
     return <p className="text-giu-muted">{t(locale, "loading")}</p>;
@@ -253,12 +239,10 @@ export function MerchantPanelClient() {
             <ul className="space-y-2.5">
               {filteredOrders.slice(0, 50).map((r) => (
                 <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <p className="font-mono text-lg font-extrabold text-giu-accent">{r.code}</p>
-                      <p className="text-[13px]">
-                        {r.customerName} · {r.customerPhone}
-                      </p>
+                      <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
+                      <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
                       <p className="text-[12px] text-giu-muted">
                         {t(locale, "mOrderQty")} {r.quantity}개 · {money(r.totalVnd)} ·{" "}
                         {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
@@ -268,44 +252,17 @@ export function MerchantPanelClient() {
                           : r.settlementStatus === "released"
                             ? ` · ${t(locale, "mSettleDone")}`
                             : ""}
+                        {r.payoutStatus === "queued"
+                          ? ` · ${t(locale, "mPayoutQueued")}`
+                          : r.payoutStatus === "pending_account"
+                            ? ` · ${t(locale, "mPayoutPendingAccount")}`
+                            : ""}
                       </p>
-                      {confirmPickupId === r.id ? (
-                        <div className="mt-2 space-y-1.5">
-                          <p className="text-[12px] font-medium text-giu-ink">
-                            {t(locale, "mPickupConfirm")}
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void markPickedUp(r.id)}
-                              className="giu-btn-primary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
-                            >
-                              {t(locale, "mPickupYes")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmPickupId(null)}
-                              className="giu-btn-secondary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
-                            >
-                              {t(locale, "mPickupNo")}
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
-                    {r.status === "giu_cho" &&
-                    r.paymentStatus === "paid" &&
-                    confirmPickupId !== r.id ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          hapticSelect();
-                          setConfirmPickupId(r.id);
-                        }}
-                        className="giu-btn-primary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
-                      >
+                    {r.status === "da_lay" ? (
+                      <span className="rounded-full bg-giu-accent-soft px-2.5 py-1 text-[11px] font-bold text-giu-accent">
                         {t(locale, "mPickupDone")}
-                      </button>
+                      </span>
                     ) : null}
                   </div>
                 </li>

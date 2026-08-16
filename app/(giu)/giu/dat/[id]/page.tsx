@@ -57,12 +57,11 @@ export default async function GiuReservationPage({ params, searchParams }: Props
       ) : paid ? (
         <div className="giu-ticket space-y-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-giu-accent">
-            {t(locale, "pickupCode")}
+            {t(locale, "pickupQr")}
           </p>
           {sp.paid === "1" ? (
             <p className="text-[11px] font-semibold text-giu-accent">{t(locale, "settleHeld")}</p>
           ) : null}
-          <p className="giu-ticket-code">{reservation.code}</p>
           <p className="text-[13px] font-medium text-giu-muted">{t(locale, "showCode")}</p>
           {pickedUp ? (
             <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
@@ -76,7 +75,6 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           )}
           <ReservationTicketExtras
             reservationId={id}
-            code={reservation.code}
             pickedUp={pickedUp}
             paid={paid}
             existingReviewRating={existingReview?.rating}

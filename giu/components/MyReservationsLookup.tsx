@@ -127,18 +127,13 @@ export function MyReservationsLookup() {
             <Link href={href(GIU_ROUTES.customer.reservation(r.id))} className="giu-list-row block">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-mono text-[20px] font-extrabold tracking-wider text-giu-primary">
-                    {r.code}
+                  <p className="truncate text-[15px] font-bold text-giu-ink">
+                    {r.merchant?.name ?? r.box?.title ?? t(locale, "myCodes")}
                   </p>
                   <span className="text-[11px] font-semibold text-giu-muted">
                     {formatReservationStatusLocale(r.status, locale)}
                   </span>
                 </div>
-                {r.merchant ? (
-                  <p className="mt-0.5 truncate text-[13px] font-bold text-giu-ink">
-                    {r.merchant.name}
-                  </p>
-                ) : null}
                 {r.box ? (
                   <p className="truncate text-[12px] text-giu-muted">
                     {r.box.title} · {formatPickupWindow(r.box.pickupStart, r.box.pickupEnd)}

@@ -5,31 +5,31 @@ import { Html5Qrcode } from "html5-qrcode";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { isPickupQrToken } from "@/giu/lib/pickup-qr";
 
 type Props = {
   locale: GiuLocale;
   onVerified?: () => void;
 };
 
-function parseQrPayload(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith("GIU:")) return trimmed.slice(4).trim();
-  if (/^[A-F0-9]{6}$/i.test(trimmed)) return trimmed;
-  return null;
-}
-
 export function MerchantPickupScanner({ locale, onVerified }: Props) {
   const [scanning, setScanning] = useState(false);
-  const [manual, setManual] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const busyRef = useRef(false);
   const regionId = "giu-pickup-scanner";
 
-  const verifyCode = useCallback(
-    async (code: string) => {
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  const verifyToken = useCallback(
+    async (token: string) => {
+      if (busyRef.current) return;
       setBusy(true);
+      busyRef.current = true;
       setError("");
       setMessage("");
       try {
@@ -37,21 +37,21 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ token: token.trim() }),
         });
-        const data = (await res.json()) as { error?: string; reservation?: { code: string } };
+        const data = (await res.json()) as { error?: string; reservation?: { customerName: string } };
         if (!res.ok) {
           setError(data.error ?? t(locale, "pickupScanFail"));
           return;
         }
         hapticConfirm();
-        setMessage(`${data.reservation?.code ?? code} · ${t(locale, "mPickupDone")}`);
-        setManual("");
+        setMessage(`${data.reservation?.customerName ?? ""} · ${t(locale, "mPickupDone")}`);
         onVerified?.();
       } catch {
         setError(t(locale, "pickupScanFail"));
       } finally {
         setBusy(false);
+        busyRef.current = false;
       }
     },
     [locale, onVerified],
@@ -82,11 +82,11 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
         (decoded) => {
-          const code = parseQrPayload(decoded);
-          if (!code || busy) return;
-          void stopScanner().then(() => verifyCode(code));
+          const raw = decoded.trim();
+          if (!isPickupQrToken(raw) || busyRef.current) return;
+          void stopScanner().then(() => verifyToken(raw));
         },
         () => {},
       );
@@ -94,7 +94,7 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
       setError(t(locale, "pickupCameraFail"));
       setScanning(false);
     }
-  }, [busy, locale, stopScanner, verifyCode]);
+  }, [locale, stopScanner, verifyToken]);
 
   useEffect(() => {
     return () => {
@@ -126,26 +126,6 @@ export function MerchantPickupScanner({ locale, onVerified }: Props) {
           </button>
         )}
       </div>
-
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!manual.trim() || busy) return;
-          void verifyCode(manual.trim());
-        }}
-      >
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value.toUpperCase())}
-          placeholder={t(locale, "mOrderSearch")}
-          className="giu-input flex-1 font-mono text-[14px] uppercase"
-          maxLength={8}
-        />
-        <button type="submit" disabled={busy || !manual.trim()} className="giu-btn-primary !w-auto shrink-0 !px-4 !py-2.5 text-[13px]">
-          {t(locale, "mPickupYes")}
-        </button>
-      </form>
 
       {message ? <p className="giu-info-banner text-giu-accent">{message}</p> : null}
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}

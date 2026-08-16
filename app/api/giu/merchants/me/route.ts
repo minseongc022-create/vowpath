@@ -12,6 +12,9 @@ const patchSchema = z.object({
   phone: z.string().min(8).max(20).optional(),
   category: z.string().refine(isGiuCategory).optional(),
   district: z.string().refine(isGiuDistrict).optional(),
+  bankName: z.string().max(40).optional(),
+  bankAccount: z.string().max(40).optional(),
+  bankHolder: z.string().max(40).optional(),
 });
 
 export async function GET(request: Request) {
