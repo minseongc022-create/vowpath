@@ -62,3 +62,31 @@ export function historyFilterLabel(locale: GiuLocale, filter: HistoryListFilter)
   if (filter === "cancelled") return t(locale, "mHistoryCancelled");
   return t(locale, "mHistoryAll");
 }
+
+export type ListingSignature = {
+  title: string;
+  originalPriceVnd: number;
+  salePriceVnd: number;
+};
+
+function listingKey(sig: ListingSignature): string {
+  return `${sig.title.trim().toLowerCase()}|${sig.originalPriceVnd}|${sig.salePriceVnd}`;
+}
+
+/** Active selling listing with the same title + prices. */
+export function findDuplicateActiveListing(
+  boxes: GiuBox[],
+  merchantId: string,
+  sig: ListingSignature,
+): GiuBox | null {
+  const key = listingKey(sig);
+  return (
+    boxes.find(
+      (b) =>
+        b.merchantId === merchantId &&
+        b.status === "mo" &&
+        b.quantityLeft > 0 &&
+        listingKey(b) === key,
+    ) ?? null
+  );
+}

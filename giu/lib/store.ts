@@ -853,19 +853,6 @@ function recalcMerchantRating(store: GiuStore, merchantId: string): void {
     Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
 }
 
-export async function merchantHasActiveListing(merchantId: string): Promise<boolean> {
-  const store = await loadStore();
-  return store.boxes.some(
-    (b) => b.merchantId === merchantId && b.status === "mo" && b.quantityLeft > 0,
-  );
-}
-
-function merchantHasActiveListingInStore(store: GiuStore, merchantId: string): boolean {
-  return store.boxes.some(
-    (b) => b.merchantId === merchantId && b.status === "mo" && b.quantityLeft > 0,
-  );
-}
-
 function requeuePendingPayouts(store: GiuStore, merchant: GiuMerchant): void {
   if (!merchant.bankName?.trim() || !merchant.bankAccount?.trim()) return;
   for (const res of store.reservations) {
@@ -940,9 +927,6 @@ async function cloneBoxForRepublish(
   store: GiuStore,
   source: GiuBox,
 ): Promise<GiuBox | { error: string }> {
-  if (merchantHasActiveListingInStore(store, source.merchantId)) {
-    return { error: "이미 판매 중인 상품이 있어요. 먼저 마감하거나 취소해 주세요." };
-  }
   const win = defaultPickupWindow(2);
   const box: GiuBox = {
     id: newId("box"),
