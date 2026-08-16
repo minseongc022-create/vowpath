@@ -132,10 +132,23 @@ export type GiuWaitlistEntry = {
   createdAt: string;
 };
 
+export type GiuReview = {
+  id: string;
+  merchantId: string;
+  reservationId: string;
+  customerId: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+};
+
 export type GiuStore = {
   merchants: GiuMerchant[];
   boxes: GiuBox[];
   reservations: GiuReservation[];
   waitlist: GiuWaitlistEntry[];
   accounts: GiuAccount[];
+  reviews: GiuReview[];
+  /** customerId → favorited merchantIds */
+  customerFavorites: Record<string, string[]>;
 };

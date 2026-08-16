@@ -13,7 +13,9 @@ export function GiuMerchantBottomNav() {
   const searchParams = useSearchParams();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
-  const activeTab = searchParams.get("tab") === "orders" ? "orders" : "boxes";
+  const tabParam = searchParams.get("tab");
+  const activeTab =
+    tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
 
   if (!isGiuMerchantPath(pathname)) return null;
 
@@ -29,6 +31,12 @@ export function GiuMerchantBottomNav() {
       tab: "orders",
       label: t(locale, "mTabOrders"),
       icon: "ticket" as const,
+    },
+    {
+      path: `${GIU_ROUTES.merchant.panel}?tab=settings`,
+      tab: "settings",
+      label: t(locale, "mTabSettings"),
+      icon: "settings" as const,
     },
   ];
 

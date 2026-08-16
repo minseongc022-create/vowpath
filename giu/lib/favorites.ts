@@ -1,4 +1,4 @@
-/** Client-side favorites (merchant IDs) — no account required. */
+/** Client-side favorites cache — synced to account when logged in. */
 
 const FAVORITES_KEY = "giu-favorites-merchants";
 const SEEN_BOXES_KEY = "giu-alert-seen-box-ids";
@@ -44,6 +44,51 @@ export function toggleFavoriteMerchant(merchantId: string): boolean {
   ids.push(merchantId);
   writeIds(FAVORITES_KEY, ids);
   return true;
+}
+
+/** Merge localStorage favorites with server after login. */
+export async function syncFavoritesWithServer(): Promise<string[]> {
+  const local = getFavoriteMerchantIds();
+  try {
+    const res = await fetch("/api/giu/favorites", { credentials: "include" });
+    if (res.status === 401) return local;
+    const data = (await res.json()) as { merchantIds?: string[] };
+    const server = data.merchantIds ?? [];
+    const merged = [...new Set([...server, ...local])];
+    const put = await fetch("/api/giu/favorites", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ merchantIds: merged }),
+    });
+    if (put.ok) {
+      const synced = (await put.json()) as { merchantIds?: string[] };
+      const ids = synced.merchantIds ?? merged;
+      writeIds(FAVORITES_KEY, ids);
+      return ids;
+    }
+    writeIds(FAVORITES_KEY, merged);
+    return merged;
+  } catch {
+    return local;
+  }
+}
+
+export async function toggleFavoriteRemote(merchantId: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/giu/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ merchantId }),
+    });
+    if (res.status === 401) return toggleFavoriteMerchant(merchantId);
+    const data = (await res.json()) as { ids?: string[]; favorited?: boolean };
+    if (data.ids) writeIds(FAVORITES_KEY, data.ids);
+    return Boolean(data.favorited);
+  } catch {
+    return toggleFavoriteMerchant(merchantId);
+  }
 }
 
 export function getSeenBoxIds(): string[] {

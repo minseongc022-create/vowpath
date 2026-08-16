@@ -11,7 +11,8 @@ import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
-import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
+import { ReservationTicketExtras } from "@/giu/components/ReservationTicketExtras";
+import { getBox, getMerchant, getReservation, getReviewForReservation } from "@/giu/lib/store";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -30,9 +31,10 @@ export default async function GiuReservationPage({ params, searchParams }: Props
   const pending = reservation.paymentStatus === "pending";
   const pickedUp = reservation.status === "da_lay";
 
-  const [box, merchant] = await Promise.all([
+  const [box, merchant, existingReview] = await Promise.all([
     getBox(reservation.boxId),
     getMerchant(reservation.merchantId),
+    getReviewForReservation(id),
   ]);
 
   const mapsUrl = merchant ? googleMapsSearchUrl(merchant.address) : null;
@@ -72,6 +74,13 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           ) : (
             <p className="text-[11px] text-giu-muted">{t(locale, "paidAppOnly")}</p>
           )}
+          <ReservationTicketExtras
+            reservationId={id}
+            code={reservation.code}
+            pickedUp={pickedUp}
+            paid={paid}
+            existingReviewRating={existingReview?.rating}
+          />
         </div>
       ) : (
         <div className="giu-card text-center text-[13px] text-giu-muted">{t(locale, "payFailed")}</div>

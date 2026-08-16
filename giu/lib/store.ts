@@ -16,6 +16,7 @@ import type {
   GiuPaymentMethod,
   GiuReservation,
   GiuReservationStatus,
+  GiuReview,
   GiuStore,
   GiuWaitlistEntry,
 } from "./types";
@@ -65,6 +66,8 @@ function defaultStore(): GiuStore {
     reservations: [],
     waitlist: [],
     accounts: [],
+    reviews: [],
+    customerFavorites: {},
   };
 }
 
@@ -135,6 +138,8 @@ function normalizeStore(raw: Partial<GiuStore>): GiuStore {
     reservations: (raw.reservations ?? []).map(migrateReservation),
     waitlist: raw.waitlist ?? [],
     accounts: (raw.accounts ?? []).map(migrateAccount),
+    reviews: raw.reviews ?? [],
+    customerFavorites: raw.customerFavorites ?? {},
   };
 }
 
@@ -817,6 +822,187 @@ export async function getGiuStats() {
     waitlist: store.waitlist.length,
     customers: store.accounts.filter((a) => a.role === "customer").length,
   };
+}
+
+function recalcMerchantRating(store: GiuStore, merchantId: string): void {
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (!merchant) return;
+  const reviews = store.reviews.filter((r) => r.merchantId === merchantId);
+  if (reviews.length === 0) {
+    merchant.rating = 0;
+    merchant.reviewCount = 0;
+    return;
+  }
+  merchant.reviewCount = reviews.length;
+  merchant.rating =
+    Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
+}
+
+export async function updateMerchantProfile(
+  accountId: string,
+  patch: Partial<
+    Pick<GiuMerchant, "name" | "address" | "addressHint" | "phone" | "category" | "district">
+  >,
+): Promise<GiuMerchant | null> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.accountId === accountId);
+  if (!merchant) return null;
+  if (patch.name?.trim()) merchant.name = patch.name.trim();
+  if (patch.address?.trim()) merchant.address = patch.address.trim();
+  if (patch.addressHint !== undefined) merchant.addressHint = patch.addressHint?.trim() || undefined;
+  if (patch.phone?.trim()) merchant.phone = normalizePhone(patch.phone);
+  if (patch.category) merchant.category = patch.category;
+  if (patch.district) merchant.district = patch.district;
+  await saveStore(store);
+  return merchant;
+}
+
+export async function republishLastBox(
+  merchantId: string,
+): Promise<GiuBox | { error: string }> {
+  const store = await loadStore();
+  const last = store.boxes
+    .filter((b) => b.merchantId === merchantId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (!last) return { error: "이전 박스가 없어요. 먼저 한 번 등록해 주세요." };
+
+  const win = defaultPickupWindow(2);
+  const box: GiuBox = {
+    id: newId("box"),
+    merchantId,
+    title: last.title,
+    description: last.description,
+    imageUrl: last.imageUrl,
+    category: last.category,
+    originalPriceVnd: last.originalPriceVnd,
+    salePriceVnd: last.salePriceVnd,
+    quantityTotal: last.quantityTotal,
+    quantityLeft: last.quantityTotal,
+    pickupStart: win.start,
+    pickupEnd: win.end,
+    freshnessNote: last.freshnessNote,
+    status: "mo",
+    createdAt: new Date().toISOString(),
+    expiresAt: win.expires,
+  };
+  store.boxes.unshift(box);
+  await saveStore(store);
+  return box;
+}
+
+export async function confirmPickupByCode(
+  merchantId: string,
+  code: string,
+): Promise<GiuReservation | { error: string }> {
+  const normalized = code.trim().toUpperCase();
+  const store = await loadStore();
+  const res = store.reservations.find(
+    (r) =>
+      r.merchantId === merchantId &&
+      r.code.toUpperCase() === normalized &&
+      r.paymentStatus === "paid" &&
+      r.status === "giu_cho",
+  );
+  if (!res) return { error: "코드를 찾을 수 없거나 이미 처리됐어요" };
+  res.status = "da_lay";
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (merchant) {
+    merchant.rescuedBoxes += res.quantity;
+    maybeAutoVerifyMerchant(store, merchant.id);
+  }
+  if (res.settlementStatus === "held") {
+    res.settlementStatus = "released";
+    res.settledAt = new Date().toISOString();
+  }
+  await saveStore(store);
+  return res;
+}
+
+export async function addReview(input: {
+  reservationId: string;
+  customerId: string;
+  rating: number;
+  comment?: string;
+}): Promise<GiuReview | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === input.reservationId);
+  if (!res || res.customerId !== input.customerId) return { error: "주문을 찾을 수 없어요" };
+  if (res.status !== "da_lay") return { error: "픽업 완료 후에 리뷰를 남길 수 있어요" };
+  if (store.reviews.some((r) => r.reservationId === input.reservationId)) {
+    return { error: "이미 리뷰를 남겼어요" };
+  }
+  const rating = Math.min(5, Math.max(1, Math.round(input.rating)));
+  const review: GiuReview = {
+    id: newId("rev"),
+    merchantId: res.merchantId,
+    reservationId: res.id,
+    customerId: input.customerId,
+    rating,
+    comment: input.comment?.trim().slice(0, 500) || undefined,
+    createdAt: new Date().toISOString(),
+  };
+  store.reviews.unshift(review);
+  recalcMerchantRating(store, res.merchantId);
+  await saveStore(store);
+  return review;
+}
+
+export async function getReviewForReservation(
+  reservationId: string,
+): Promise<GiuReview | null> {
+  const store = await loadStore();
+  return store.reviews.find((r) => r.reservationId === reservationId) ?? null;
+}
+
+export async function listMerchantReviews(
+  merchantId: string,
+  limit = 20,
+): Promise<GiuReview[]> {
+  const store = await loadStore();
+  return store.reviews
+    .filter((r) => r.merchantId === merchantId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
+}
+
+export async function getCustomerFavorites(customerId: string): Promise<string[]> {
+  const store = await loadStore();
+  return store.customerFavorites[customerId] ?? [];
+}
+
+export async function setCustomerFavorites(
+  customerId: string,
+  merchantIds: string[],
+): Promise<string[]> {
+  const store = await loadStore();
+  const valid = new Set(store.merchants.map((m) => m.id));
+  const next = [...new Set(merchantIds.filter((id) => valid.has(id)))];
+  store.customerFavorites[customerId] = next;
+  await saveStore(store);
+  return next;
+}
+
+export async function toggleCustomerFavorite(
+  customerId: string,
+  merchantId: string,
+): Promise<{ ids: string[]; favorited: boolean }> {
+  const store = await loadStore();
+  if (!store.merchants.some((m) => m.id === merchantId)) {
+    return { ids: store.customerFavorites[customerId] ?? [], favorited: false };
+  }
+  const current = store.customerFavorites[customerId] ?? [];
+  const idx = current.indexOf(merchantId);
+  let favorited: boolean;
+  if (idx >= 0) {
+    current.splice(idx, 1);
+    favorited = false;
+  } else {
+    current.push(merchantId);
+    favorited = true;
+  }
+  store.customerFavorites[customerId] = current;
+  await saveStore(store);
+  return { ids: current, favorited };
 }
 
 export { defaultPickupWindow };

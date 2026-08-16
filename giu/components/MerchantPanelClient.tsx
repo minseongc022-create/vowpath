@@ -25,6 +25,8 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
+import { MerchantPickupScanner } from "./MerchantPickupScanner";
+import { MerchantSettingsForm } from "./MerchantSettingsForm";
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
 
@@ -48,7 +50,9 @@ function Field({
 
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") === "orders" ? "orders" : "boxes";
+  const tabParam = searchParams.get("tab");
+  const tab =
+    tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
@@ -67,6 +71,7 @@ export function MerchantPanelClient() {
   const [startH, setStartH] = useState(12);
   const [endH, setEndH] = useState(14);
   const [quickBusy, setQuickBusy] = useState(false);
+  const [republishBusy, setRepublishBusy] = useState(false);
   const [confirmCloseId, setConfirmCloseId] = useState<string | null>(null);
   const [confirmPickupId, setConfirmPickupId] = useState<string | null>(null);
 
@@ -187,6 +192,30 @@ export function MerchantPanelClient() {
     setStartH(12);
     setEndH(14);
     await load(merchant.id);
+  }
+
+  async function republishLast() {
+    if (!merchant) return;
+    hapticSelect();
+    setRepublishBusy(true);
+    setCreateError("");
+    try {
+      const res = await fetch("/api/giu/boxes/republish", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setCreateError(data.error ?? t(locale, "mCreateFail"));
+        return;
+      }
+      hapticConfirm();
+      await load(merchant.id);
+    } catch {
+      setCreateError(t(locale, "mLoadError"));
+    } finally {
+      setRepublishBusy(false);
+    }
   }
 
   async function quickPublish() {
@@ -328,6 +357,14 @@ export function MerchantPanelClient() {
                 className="giu-btn-primary mt-2.5 !py-3 text-[14px]"
               >
                 {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
+              </button>
+              <button
+                type="button"
+                disabled={republishBusy}
+                onClick={() => void republishLast()}
+                className="giu-btn-secondary mt-2 !py-2.5 text-[13px]"
+              >
+                {republishBusy ? t(locale, "loading") : t(locale, "mRepublish")}
               </button>
               <p className="mt-2 text-center text-[11px] font-medium text-giu-muted">
                 {t(locale, "mQuickPublishSub")}
@@ -549,8 +586,9 @@ export function MerchantPanelClient() {
             )}
           </section>
         </>
-      ) : (
+      ) : tab === "orders" ? (
         <section className="space-y-3">
+          <MerchantPickupScanner locale={locale} onVerified={() => void load(merchant.id)} />
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-bold">
               {t(locale, "mOrders")} ({filteredOrders.length})
@@ -656,6 +694,12 @@ export function MerchantPanelClient() {
             </ul>
           )}
         </section>
+      ) : (
+        <MerchantSettingsForm
+          locale={locale}
+          merchant={merchant}
+          onSaved={() => void load(merchant.id)}
+        />
       )}
     </div>
   );

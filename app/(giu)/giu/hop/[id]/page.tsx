@@ -23,6 +23,7 @@ import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
 import { tossClientKey } from "@/giu/lib/toss-payments";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
+import { MerchantReviews } from "@/giu/components/MerchantReviews";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -49,7 +50,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   return (
     <div className="giu-page !pt-0 space-y-3">
       <div className="flex items-center justify-between gap-2 py-2">
-        <Link href={href(GIU_ROUTES.customer.home)} className="text-[13px] font-bold text-giu-primary">
+        <Link href={href(GIU_ROUTES.customer.home)} className="text-[13px] font-bold text-giu-accent">
           {t(locale, "back")}
         </Link>
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
@@ -142,15 +143,17 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         />
 
         <div className="flex gap-4 text-[13px] font-bold">
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
             {t(locale, "maps")}
           </a>
           {zaloUrl ? (
-            <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
+            <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
               {t(locale, "zalo")}
             </a>
           ) : null}
         </div>
+
+        <MerchantReviews merchantId={merchant.id} locale={locale} />
       </div>
 
       {soldOut ? (
