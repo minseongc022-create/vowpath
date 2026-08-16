@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  formatBoxStatusLocale,
   formatPaymentStatusLocale,
   formatReservationStatusLocale,
 } from "@/giu/lib/box-ux";
-import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
+import { formatMoney } from "@/giu/lib/format";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
@@ -18,6 +17,7 @@ import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { MerchantPickupScanner } from "./MerchantPickupScanner";
+import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 
@@ -37,7 +37,6 @@ export function MerchantPanelClient() {
   const [error, setError] = useState("");
   const [orderQuery, setOrderQuery] = useState("");
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
-  const [confirmCloseId, setConfirmCloseId] = useState<string | null>(null);
   const [confirmPickupId, setConfirmPickupId] = useState<string | null>(null);
 
   const load = useCallback(
@@ -111,19 +110,6 @@ export function MerchantPanelClient() {
   const settlementReleased = reservations
     .filter((r) => r.settlementStatus === "released")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
-
-  async function closeBox(boxId: string) {
-    if (!merchant) return;
-    hapticConfirm();
-    await fetch(`/api/giu/boxes/${boxId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ status: "huy" }),
-    });
-    setConfirmCloseId(null);
-    await load(merchant.id);
-  }
 
   async function markPickedUp(reservationId: string) {
     hapticConfirm();
@@ -212,71 +198,11 @@ export function MerchantPanelClient() {
             onPublished={() => load(merchant.id)}
           />
 
-          <section>
-            <h2 className="font-bold">
-              {t(locale, "mListed")} ({boxes.length})
-            </h2>
-            {boxes.length === 0 ? (
-              <p className="mt-3 text-[13px] text-giu-muted">{t(locale, "mNoBoxes")}</p>
-            ) : (
-              <ul className="mt-3 space-y-2.5">
-                {boxes.map((box) => (
-                  <li key={box.id} className="giu-card-flat flex gap-3 p-3 ring-1 ring-giu-border">
-                    {box.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={box.imageUrl}
-                        alt=""
-                        className="h-14 w-14 shrink-0 rounded-xl object-cover"
-                      />
-                    ) : null}
-                    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                      <div>
-                        <p className="font-bold">{box.title}</p>
-                        <p className="text-[12px] text-giu-muted">
-                          {money(box.salePriceVnd)} · {box.quantityLeft}/{box.quantityTotal} ·{" "}
-                          {formatBoxStatusLocale(box.status, locale)}
-                        </p>
-                        <p className="text-[11px] text-giu-muted">
-                          {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
-                        </p>
-                        {confirmCloseId === box.id ? (
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void closeBox(box.id)}
-                              className="rounded-lg bg-giu-ink px-3 py-1.5 text-[11px] font-bold text-white"
-                            >
-                              {t(locale, "mCloseYes")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmCloseId(null)}
-                              className="rounded-lg bg-giu-bg px-3 py-1.5 text-[11px] font-bold text-giu-muted"
-                            >
-                              {t(locale, "mCloseNo")}
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                      {box.status === "mo" && confirmCloseId !== box.id ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            hapticSelect();
-                            setConfirmCloseId(box.id);
-                          }}
-                          className="shrink-0 rounded-xl bg-giu-bg px-3 py-1.5 text-[11px] font-bold text-giu-muted ring-1 ring-giu-border"
-                        >
-                          {t(locale, "mClose")}
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <MerchantProductList
+            locale={locale}
+            boxes={boxes}
+            onChanged={() => load(merchant.id)}
+          />
         </div>
       ) : tab === "orders" ? (
         <section key="orders" className="giu-tab-panel space-y-3">
@@ -351,14 +277,14 @@ export function MerchantPanelClient() {
                             <button
                               type="button"
                               onClick={() => void markPickedUp(r.id)}
-                              className="rounded-xl bg-giu-accent px-4 py-2 text-[13px] font-bold text-white"
+                              className="giu-btn-primary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
                             >
                               {t(locale, "mPickupYes")}
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmPickupId(null)}
-                              className="rounded-xl bg-giu-bg px-4 py-2 text-[13px] font-bold text-giu-muted"
+                              className="giu-btn-secondary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
                             >
                               {t(locale, "mPickupNo")}
                             </button>
@@ -375,7 +301,7 @@ export function MerchantPanelClient() {
                           hapticSelect();
                           setConfirmPickupId(r.id);
                         }}
-                        className="rounded-xl bg-giu-accent px-4 py-2 text-[13px] font-bold text-white"
+                        className="giu-btn-primary giu-btn-3d !w-auto !px-4 !py-2 text-[13px]"
                       >
                         {t(locale, "mPickupDone")}
                       </button>

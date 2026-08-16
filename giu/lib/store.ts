@@ -533,7 +533,14 @@ export async function updateBox(
   const store = await loadStore();
   const box = store.boxes.find((b) => b.id === boxId);
   if (!box) return null;
+  const prevTotal = box.quantityTotal;
+  const prevLeft = box.quantityLeft;
   Object.assign(box, patch);
+  if (patch.quantityTotal !== undefined && patch.quantityTotal !== prevTotal) {
+    const sold = prevTotal - prevLeft;
+    box.quantityTotal = patch.quantityTotal;
+    box.quantityLeft = Math.max(0, patch.quantityTotal - sold);
+  }
   if ("imageUrl" in patch && !patch.imageUrl) {
     delete box.imageUrl;
   }

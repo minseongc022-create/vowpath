@@ -8,6 +8,9 @@ const patchSchema = z.object({
   status: z.enum(["mo", "het", "huy"]).optional(),
   title: z.string().min(3).max(120).optional(),
   description: z.string().max(500).optional(),
+  originalPriceVnd: z.number().int().min(500).max(10_000_000).optional(),
+  salePriceVnd: z.number().int().min(500).max(10_000_000).optional(),
+  quantityTotal: z.number().int().min(1).max(50).optional(),
   imageUrl: z
     .union([
       z.literal(""),
