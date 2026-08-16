@@ -33,7 +33,14 @@ export function toGiuPublicPath(pathname: string): string {
 
 export function isGiuHostName(host: string | null | undefined): boolean {
   if (!host) return false;
-  const h = host.toLowerCase().split(":")[0]?.replace(/^www\./, "") ?? "";
+  // x-forwarded-host may be a list: "www.giucuu.com, giucuu.com"
+  const h =
+    host
+      .toLowerCase()
+      .split(",")[0]
+      ?.trim()
+      .split(":")[0]
+      ?.replace(/^www\./, "") ?? "";
   return h === GIU_PRIMARY_HOST || GIU_HOSTS.has(h) || GIU_HOSTS.has(`www.${h}`);
 }
 
