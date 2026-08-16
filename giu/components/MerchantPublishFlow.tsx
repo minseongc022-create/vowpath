@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatMoney,
@@ -57,6 +58,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [startH, setStartH] = useState(12);
   const [endH, setEndH] = useState(14);
   const [republishTarget, setRepublishTarget] = useState<GiuBox | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const historyBoxes = useMemo(
     () => [...boxes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -117,6 +119,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       setEndH(14);
       await onPublished();
       goIdle();
+      setSuccessMsg(t(locale, "toastPublishSuccess"));
     } catch {
       setCreateError(t(locale, "mLoadError"));
     } finally {
@@ -144,6 +147,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       hapticConfirm();
       await onPublished();
       goIdle();
+      setSuccessMsg(t(locale, "toastRepublishSuccess"));
     } catch {
       setCreateError(t(locale, "mLoadError"));
     } finally {
@@ -427,6 +431,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </div>
         </div>
       ) : null}
+
+      {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
     </section>
   );
 }
