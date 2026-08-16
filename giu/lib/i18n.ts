@@ -164,6 +164,7 @@ const KO: Dict = {
   qtyPickHint: "몇 개 살까요?",
   leftCount: "남은 수량",
   mSubmit: "이 설정으로 등록",
+  mListed: "등록된 상품",
   mFilterAll: "전체",
   mFilterSelling: "판매중",
   mFilterCancelled: "취소됨",

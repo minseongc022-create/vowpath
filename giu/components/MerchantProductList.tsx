@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { categoryLabel } from "@/giu/lib/labels-locale";
 import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
@@ -232,16 +233,14 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
         )}
       </section>
 
-      {selected ? (
-        <div className="giu-sheet-backdrop" role="presentation">
-          <button type="button" className="giu-sheet-dismiss" aria-label={t(locale, "mCloseSheet")} onClick={closeSheet} />
-          <div
-            className="giu-sheet giu-sheet-enter"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="giu-product-sheet-title"
-          >
-            {mode === "edit" ? (
+      <GiuBottomSheet
+        open={!!selected}
+        onClose={closeSheet}
+        dismissLabel={t(locale, "mCloseSheet")}
+        ariaLabelledBy="giu-product-sheet-title"
+      >
+        {selected ? (
+          mode === "edit" ? (
               <form onSubmit={saveEdit} className="giu-panel-enter space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-[17px] font-bold text-giu-ink">{t(locale, "mEditProduct")}</h3>
@@ -454,10 +453,9 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                   </button>
                 ) : null}
               </div>
-            )}
-          </div>
-        </div>
-      ) : null}
+            )
+        ) : null}
+      </GiuBottomSheet>
 
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
     </>
