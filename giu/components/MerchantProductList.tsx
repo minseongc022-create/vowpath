@@ -9,6 +9,7 @@ import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
 import { BoxStatusBadge } from "@/giu/components/BoxStatusBadge";
+import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import {
   filterBoxes,
   productFilterLabel,
@@ -82,6 +83,32 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       closeSheet();
       setSuccessMsg(t(locale, "toastCancelSuccess"));
       setListFilter("cancelled");
+      await onChanged();
+    } catch {
+      setError(t(locale, "mLoadError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteProduct(boxId: string) {
+    if (!window.confirm(t(locale, "mDeleteConfirm"))) return;
+    hapticConfirm();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/giu/boxes/${boxId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? t(locale, "mCreateFail"));
+        return;
+      }
+      hapticConfirm();
+      if (selected?.id === boxId) closeSheet();
+      setSuccessMsg(t(locale, "toastDeleteSuccess"));
       await onChanged();
     } catch {
       setError(t(locale, "mLoadError"));
@@ -219,13 +246,22 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => openDetail(box)}
-                    className="giu-btn-3d giu-tap shrink-0 rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-accent ring-1 ring-giu-border"
-                  >
-                    {t(locale, "mViewDetail")}
-                  </button>
+                  <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => openDetail(box)}
+                      className="giu-btn-3d giu-tap rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-accent ring-1 ring-giu-border"
+                    >
+                      {t(locale, "mViewDetail")}
+                    </button>
+                    {box.status === "huy" ? (
+                      <GiuTrashButton
+                        label={t(locale, "mDeleteProduct")}
+                        disabled={busy}
+                        onClick={() => void deleteProduct(box.id)}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               </li>
             ))}

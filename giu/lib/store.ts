@@ -527,6 +527,7 @@ export async function updateBox(
       | "pickupStart"
       | "pickupEnd"
       | "expiresAt"
+      | "cancelledAt"
     >
   >,
 ): Promise<GiuBox | null> {
@@ -535,7 +536,13 @@ export async function updateBox(
   if (!box) return null;
   const prevTotal = box.quantityTotal;
   const prevLeft = box.quantityLeft;
+  const prevStatus = box.status;
   Object.assign(box, patch);
+  if (patch.status === "huy" && prevStatus !== "huy") {
+    box.cancelledAt = new Date().toISOString();
+  } else if (patch.status && patch.status !== "huy") {
+    delete box.cancelledAt;
+  }
   if (patch.quantityTotal !== undefined && patch.quantityTotal !== prevTotal) {
     const sold = prevTotal - prevLeft;
     box.quantityTotal = patch.quantityTotal;
@@ -862,6 +869,23 @@ export async function updateMerchantProfile(
   if (patch.district) merchant.district = patch.district;
   await saveStore(store);
   return merchant;
+}
+
+export async function deleteBox(
+  merchantId: string,
+  boxId: string,
+): Promise<{ ok: true } | { error: string }> {
+  const store = await loadStore();
+  const box = store.boxes.find((b) => b.id === boxId && b.merchantId === merchantId);
+  if (!box) return { error: "상품을 찾을 수 없어요" };
+  if (box.status !== "huy") return { error: "취소된 상품만 삭제할 수 있어요" };
+  const awaiting = store.reservations.some(
+    (r) => r.boxId === boxId && r.paymentStatus === "paid" && r.status === "giu_cho",
+  );
+  if (awaiting) return { error: "픽업 대기 주문이 있어 삭제할 수 없어요" };
+  store.boxes = store.boxes.filter((b) => b.id !== boxId);
+  await saveStore(store);
+  return { ok: true };
 }
 
 export async function republishBox(

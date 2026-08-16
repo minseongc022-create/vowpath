@@ -94,6 +94,8 @@ export type GiuBox = {
   pickupEnd: string;
   freshnessNote?: string;
   status: GiuBoxStatus;
+  /** Set when merchant cancels listing (status → huy). */
+  cancelledAt?: string;
   createdAt: string;
   expiresAt: string;
 };
