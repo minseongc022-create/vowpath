@@ -40,8 +40,8 @@ export function MerchantPanelClient() {
   const [confirmPickupId, setConfirmPickupId] = useState<string | null>(null);
 
   const load = useCallback(
-    async (merchantId: string) => {
-      setLoading(true);
+    async (merchantId: string, opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
       setError("");
       try {
         const [bRes, rRes] = await Promise.all([
@@ -59,7 +59,7 @@ export function MerchantPanelClient() {
       } catch {
         setError(t(locale, "mLoadError"));
       } finally {
-        setLoading(false);
+        if (!opts?.silent) setLoading(false);
       }
     },
     [locale],
@@ -195,13 +195,13 @@ export function MerchantPanelClient() {
             locale={locale}
             merchant={merchant}
             boxes={boxes}
-            onPublished={() => load(merchant.id)}
+            onPublished={() => load(merchant.id, { silent: true })}
           />
 
           <MerchantProductList
             locale={locale}
             boxes={boxes}
-            onChanged={() => load(merchant.id)}
+            onChanged={() => load(merchant.id, { silent: true })}
           />
         </div>
       ) : tab === "orders" ? (

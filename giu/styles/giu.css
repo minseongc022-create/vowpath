@@ -301,7 +301,8 @@
   .giu-tab-panel,
   .giu-stagger-item,
   .giu-sheet-enter,
-  .giu-sheet-backdrop {
+  .giu-sheet-backdrop,
+  .giu-success-enter {
     animation: none;
   }
 
@@ -320,4 +321,57 @@
 
 .giu-textarea {
   @apply giu-input min-h-[72px] resize-none;
+}
+
+.giu-filter-tabs {
+  @apply flex gap-1 rounded-full bg-giu-bg p-1 ring-1 ring-giu-border;
+}
+
+.giu-filter-tab {
+  @apply giu-tap flex-1 rounded-full px-3 py-2 text-[12px] font-bold text-giu-muted transition duration-100;
+}
+
+.giu-filter-tab.is-active {
+  @apply bg-white text-giu-ink shadow-[0_2px_8px_rgba(45,62,78,0.1)];
+}
+
+.giu-status-badge {
+  @apply inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-extrabold tracking-tight;
+}
+
+.giu-status-selling {
+  @apply bg-giu-accent-soft text-giu-accent;
+}
+
+.giu-status-cancelled {
+  @apply bg-red-50 text-red-600;
+}
+
+.giu-status-muted {
+  @apply bg-giu-bg text-giu-muted;
+}
+
+.giu-success-toast-backdrop {
+  @apply fixed inset-0 z-[70] flex items-center justify-center px-6;
+  pointer-events: none;
+}
+
+.giu-success-toast {
+  @apply rounded-[20px] bg-white px-6 py-5 text-center shadow-[0_12px_48px_rgba(45,62,78,0.22)] ring-1 ring-giu-border;
+  pointer-events: auto;
+}
+
+.giu-success-enter {
+  animation: giu-success-pop 0.22s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+@keyframes giu-success-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }

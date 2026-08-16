@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { formatBoxStatusLocale } from "@/giu/lib/box-ux";
+import { useEffect, useMemo, useState } from "react";
+import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { categoryLabel } from "@/giu/lib/labels-locale";
 import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { BoxStatusBadge } from "@/giu/components/BoxStatusBadge";
+import {
+  filterBoxes,
+  productFilterLabel,
+  type ProductListFilter,
+} from "@/giu/lib/product-list-ux";
 import type { GiuBox } from "@/giu/lib/types";
 
 type Props = {
@@ -25,6 +31,10 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [listFilter, setListFilter] = useState<ProductListFilter>("all");
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const filteredBoxes = useMemo(() => filterBoxes(boxes, listFilter), [boxes, listFilter]);
 
   useEffect(() => {
     if (!selected) return;
@@ -69,6 +79,8 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       }
       hapticConfirm();
       closeSheet();
+      setSuccessMsg(t(locale, "toastCancelSuccess"));
+      setListFilter("cancelled");
       await onChanged();
     } catch {
       setError(t(locale, "mLoadError"));
@@ -96,6 +108,8 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       }
       hapticConfirm();
       closeSheet();
+      setSuccessMsg(t(locale, "toastRepublishSuccess"));
+      setListFilter("selling");
       await onChanged();
     } catch {
       setError(t(locale, "mLoadError"));
@@ -150,14 +164,33 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
   return (
     <>
       <section>
-        <h2 className="font-bold">
-          {t(locale, "mListed")} ({boxes.length})
-        </h2>
-        {boxes.length === 0 ? (
-          <p className="mt-3 text-[13px] text-giu-muted">{t(locale, "mNoBoxes")}</p>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-bold">
+            {t(locale, "mListed")} ({filteredBoxes.length})
+          </h2>
+        </div>
+
+        <div className="giu-filter-tabs mt-2.5">
+          {(["all", "selling", "cancelled"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => {
+                hapticSelect();
+                setListFilter(f);
+              }}
+              className={`giu-filter-tab ${listFilter === f ? "is-active" : ""}`}
+            >
+              {productFilterLabel(locale, f)}
+            </button>
+          ))}
+        </div>
+
+        {filteredBoxes.length === 0 ? (
+          <p className="mt-3 text-[13px] text-giu-muted">{t(locale, "mFilterEmpty")}</p>
         ) : (
           <ul className="mt-3 space-y-2.5">
-            {boxes.map((box, i) => (
+            {filteredBoxes.map((box, i) => (
               <li
                 key={box.id}
                 className="giu-card-interactive giu-stagger-item flex gap-3 p-3"
@@ -173,10 +206,13 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                 ) : null}
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-bold">{box.title}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate font-bold">{box.title}</p>
+                      <BoxStatusBadge box={box} locale={locale} />
+                    </div>
                     <p className="text-[12px] text-giu-muted">
                       {money(box.salePriceVnd)} · {t(locale, "mQtyLeft")} {box.quantityLeft}/
-                      {box.quantityTotal} · {formatBoxStatusLocale(box.status, locale)}
+                      {box.quantityTotal}
                     </p>
                     <p className="text-[11px] text-giu-muted">
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
@@ -283,11 +319,13 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                   <h3 id="giu-product-sheet-title" className="text-[17px] font-bold text-giu-ink">
                     {selected.title}
                   </h3>
-                  <p className="mt-1 text-[12px] font-medium text-giu-accent">
-                    {formatBoxStatusLocale(selected.status, locale)}
-                    {selected.status === "mo"
-                      ? ` · ${t(locale, "mQtyLeft")} ${selected.quantityLeft}/${selected.quantityTotal}`
-                      : null}
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px]">
+                    <BoxStatusBadge box={selected} locale={locale} />
+                    {selected.status === "mo" ? (
+                      <span className="font-medium text-giu-muted">
+                        {t(locale, "mQtyLeft")} {selected.quantityLeft}/{selected.quantityTotal}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
 
@@ -420,6 +458,8 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
           </div>
         </div>
       ) : null}
+
+      {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
     </>
   );
 }
