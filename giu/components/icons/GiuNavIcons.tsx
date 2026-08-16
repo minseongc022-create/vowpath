@@ -84,7 +84,20 @@ export function GiuIconHeart({ active, className = base }: IconProps) {
   );
 }
 
-export type GiuNavIconName = "home" | "box" | "ticket" | "store" | "heart";
+export type GiuNavIconName = "home" | "box" | "ticket" | "store" | "heart" | "settings";
+
+export function GiuIconSettings({ active, className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`${className} ${stroke(active)}`} aria-hidden>
+      <circle cx="12" cy="12" r="3" strokeWidth="1.75" />
+      <path
+        d="M12 3.5v2M12 18.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3.5 12h2M18.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export function GiuNavIcon({ name, active }: { name: GiuNavIconName; active?: boolean }) {
   switch (name) {
@@ -98,5 +111,7 @@ export function GiuNavIcon({ name, active }: { name: GiuNavIconName; active?: bo
       return <GiuIconStore active={active} />;
     case "heart":
       return <GiuIconHeart active={active} />;
+    case "settings":
+      return <GiuIconSettings active={active} />;
   }
 }

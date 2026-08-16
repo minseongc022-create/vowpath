@@ -1,18 +1,18 @@
 .giu-theme {
-  --giu-bg: #f4f7f6;
+  --giu-bg: #f2f4f6;
   --giu-surface: #ffffff;
-  --giu-ink: #2d3e4e;
-  --giu-muted: #7a8a96;
-  --giu-border: #e2e8e6;
-  --giu-primary: #2d3e4e;
-  --giu-primary-hover: #223240;
-  --giu-primary-soft: #e8eef2;
-  --giu-accent: #6ba894;
-  --giu-accent-hover: #569882;
-  --giu-accent-soft: #e8f4ef;
-  --giu-mint: #9dcab8;
-  --giu-danger: #d64545;
-  --giu-gold: #c4a35a;
+  --giu-ink: #191f28;
+  --giu-muted: #6b7684;
+  --giu-border: #e5e8eb;
+  --giu-primary: #191f28;
+  --giu-primary-hover: #333d4b;
+  --giu-primary-soft: #f2f4f6;
+  --giu-accent: #3182f6;
+  --giu-accent-hover: #1b64da;
+  --giu-accent-soft: #e8f3ff;
+  --giu-mint: #90c2ff;
+  --giu-danger: #f04452;
+  --giu-gold: #ffb800;
 }
 
 .giu-app {
@@ -23,11 +23,9 @@
     "Segoe UI",
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  background:
-    radial-gradient(110% 70% at 20% -5%, #e8f4ef 0%, transparent 50%),
-    radial-gradient(90% 50% at 100% 0%, #e8eef2 0%, transparent 45%),
-    var(--giu-bg);
+  background: var(--giu-bg);
   background-attachment: fixed;
+  color: var(--giu-ink);
 }
 
 /* Map home fills the small viewport (browser chrome visible) without clipping */
@@ -44,19 +42,19 @@
 }
 
 .giu-page {
-  @apply mx-auto w-full max-w-[480px] px-4 pb-24 pt-1 md:max-w-xl lg:max-w-2xl;
+  @apply mx-auto w-full max-w-[480px] px-4 pb-24 pt-2 md:max-w-xl lg:max-w-2xl;
 }
 
 .giu-card {
-  @apply rounded-[18px] bg-giu-surface p-4 shadow-giu-sm;
+  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_2px_16px_rgba(0,0,0,0.04)];
 }
 
 .giu-card-flat {
-  @apply rounded-[18px] bg-giu-surface p-4;
+  @apply rounded-[20px] bg-giu-surface p-4;
 }
 
 .giu-btn {
-  @apply inline-flex items-center justify-center rounded-[14px] px-5 py-3.5 text-[15px] font-semibold tracking-tight transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-[16px] px-5 py-3.5 text-[15px] font-semibold tracking-tight transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
 }
 
 .giu-btn-primary {
@@ -68,15 +66,15 @@
 }
 
 .giu-btn-ghost {
-  @apply giu-btn bg-transparent text-giu-muted hover:bg-white/70 hover:text-giu-ink;
+  @apply giu-btn bg-transparent text-giu-muted hover:bg-white hover:text-giu-ink;
 }
 
 .giu-input {
-  @apply w-full rounded-[14px] border-0 bg-white/85 px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-mint;
+  @apply w-full rounded-[14px] border-0 bg-giu-bg px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-accent/40;
 }
 
 .giu-label {
-  @apply mb-1.5 block text-xs font-medium text-giu-muted;
+  @apply mb-1.5 block text-[12px] font-semibold text-giu-muted;
 }
 
 .giu-section-title {
@@ -84,11 +82,11 @@
 }
 
 .giu-section-sub {
-  @apply mt-0.5 text-[13px] leading-snug text-giu-muted;
+  @apply mt-1 text-[14px] leading-snug text-giu-muted;
 }
 
 .giu-badge {
-  @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tracking-tight;
+  @apply inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-bold tracking-tight;
 }
 
 .giu-badge-sale {
@@ -100,7 +98,7 @@
 }
 
 .giu-list-row {
-  @apply flex items-center gap-3 rounded-[18px] bg-giu-surface p-3 shadow-giu-sm transition active:scale-[0.99];
+  @apply flex items-center gap-3 rounded-[18px] bg-giu-surface p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition active:scale-[0.99];
 }
 
 .giu-info-banner {
@@ -116,30 +114,29 @@
 }
 
 .giu-ticket {
-  @apply relative overflow-hidden rounded-[22px] bg-giu-surface p-5 text-center shadow-giu-md;
+  @apply relative overflow-hidden rounded-[24px] bg-giu-surface p-5 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)];
   background-image:
-    radial-gradient(circle at 0 50%, var(--giu-bg) 10px, transparent 11px),
-    radial-gradient(circle at 100% 50%, var(--giu-bg) 10px, transparent 11px);
+    radial-gradient(circle at 0% 50%, transparent 8px, var(--giu-surface) 8px),
+    radial-gradient(circle at 100% 50%, transparent 8px, var(--giu-surface) 8px);
+  background-size: 51% 100%;
+  background-repeat: no-repeat;
+  background-position: left, right;
 }
 
 .giu-ticket-code {
-  @apply font-mono text-[44px] font-extrabold leading-none tracking-[0.2em] text-giu-ink;
+  @apply font-mono text-[36px] font-extrabold tracking-[0.2em] text-giu-accent;
 }
 
 .giu-sticky-pay {
-  @apply sticky bottom-[calc(env(safe-area-inset-bottom)+12px)] z-30 mt-4 rounded-[18px] border border-white/70 bg-giu-surface/95 p-3 shadow-giu-md backdrop-blur-md;
+  @apply fixed inset-x-0 bottom-0 z-40 border-t border-giu-border/80 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl;
 }
 
-.giu-photo {
-  @apply overflow-hidden bg-giu-accent-soft;
+.giu-map-fab {
+  @apply flex h-12 w-12 items-center justify-center rounded-full bg-white text-giu-ink shadow-[0_4px_16px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] transition active:scale-95;
 }
 
 .giu-photo img {
   @apply h-full w-full object-cover;
-}
-
-.giu-map-pin {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-giu-accent text-[11px] font-bold text-white shadow-md ring-2 ring-white;
 }
 
 @keyframes giu-rise {
@@ -159,26 +156,10 @@
   }
 }
 
-/* Map — crisp consumer basemap (Carto Voyager + retina) */
-.giu-map-root .leaflet-container {
-  background: #dfe8ef;
-  font: inherit;
-  width: 100%;
-  height: 100%;
+.giu-star {
+  color: var(--giu-gold);
 }
 
-.giu-map-root .leaflet-tile {
-  filter: contrast(1.08) saturate(1.18) brightness(1.03);
-  image-rendering: -webkit-optimize-contrast;
-  backface-visibility: hidden;
+.giu-textarea {
+  @apply giu-input min-h-[72px] resize-none;
 }
-
-.giu-map-root .leaflet-marker-icon {
-  background: transparent !important;
-  border: none !important;
-}
-
-.giu-map-fab {
-  @apply flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[18px] font-bold text-giu-ink shadow-[0_4px_16px_rgba(31,42,51,0.14)] ring-1 ring-black/[0.05] active:scale-95;
-}
-

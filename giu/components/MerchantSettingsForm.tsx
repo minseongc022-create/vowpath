@@ -1,0 +1,111 @@
+"use client";
+
+import { useState } from "react";
+import { merchantCategories } from "@/giu/lib/categories";
+import { merchantDistricts } from "@/giu/lib/districts";
+import { hapticConfirm } from "@/giu/lib/haptics";
+import { t } from "@/giu/lib/i18n";
+import type { GiuLocale } from "@/giu/lib/i18n";
+import type { GiuMerchant } from "@/giu/lib/types";
+import { useGiuAuth } from "./GiuAuthProvider";
+
+type Props = {
+  locale: GiuLocale;
+  merchant: GiuMerchant;
+  onSaved?: (merchant: GiuMerchant) => void;
+};
+
+export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
+  const { refresh } = useGiuAuth();
+  const categories = merchantCategories();
+  const districts = merchantDistricts();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    setSaved(false);
+    const fd = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/giu/merchants/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: fd.get("name"),
+          address: fd.get("address"),
+          addressHint: fd.get("addressHint") || undefined,
+          phone: fd.get("phone"),
+          category: fd.get("category"),
+          district: fd.get("district"),
+        }),
+      });
+      const data = (await res.json()) as { error?: string; merchant?: GiuMerchant };
+      if (!res.ok) {
+        setError(data.error ?? t(locale, "mLoadError"));
+        return;
+      }
+      hapticConfirm();
+      setSaved(true);
+      if (data.merchant) onSaved?.(data.merchant);
+      await refresh();
+    } catch {
+      setError(t(locale, "mLoadError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="giu-card space-y-3">
+      <div>
+        <h2 className="text-[17px] font-bold text-giu-ink">{t(locale, "mSettingsTitle")}</h2>
+        <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mSettingsSub")}</p>
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "mStoreName")}</label>
+        <input name="name" required defaultValue={merchant.name} className="giu-input" />
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "mCategory")}</label>
+        <select name="category" defaultValue={merchant.category} className="giu-input">
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.emoji} {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "mDay")} (구)</label>
+        <select name="district" defaultValue={merchant.district} className="giu-input">
+          {districts.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "address")}</label>
+        <input name="address" required minLength={5} defaultValue={merchant.address} className="giu-input" />
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "mAddressHint")}</label>
+        <input name="addressHint" defaultValue={merchant.addressHint ?? ""} className="giu-input" placeholder={t(locale, "mAddressHintPh")} />
+      </div>
+      <div>
+        <label className="giu-label">{t(locale, "waitlistPhone")}</label>
+        <input name="phone" required type="tel" defaultValue={merchant.phone} className="giu-input" />
+      </div>
+      {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
+      {saved ? <p className="giu-info-banner">{t(locale, "mSettingsSaved")}</p> : null}
+      <button type="submit" disabled={busy} className="giu-btn-primary">
+        {busy ? t(locale, "loading") : t(locale, "mSettingsSave")}
+      </button>
+    </form>
+  );
+}

@@ -84,6 +84,15 @@ export function GiuAuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!account || account.role !== "customer") return;
+    void import("@/giu/lib/favorites").then(({ syncFavoritesWithServer }) =>
+      syncFavoritesWithServer().then(() => {
+        window.dispatchEvent(new CustomEvent("giu-favorites-changed"));
+      }),
+    );
+  }, [account?.id, account?.role]);
+
   return (
     <GiuAuthContext.Provider
       value={{ account, merchant, loading, refresh, applySession, logout }}
