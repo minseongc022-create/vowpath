@@ -551,7 +551,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-giu-ink">{box.title}</p>
                     <p className="text-[12px] text-giu-muted">
-                      {money(box.salePriceVnd)} · {box.quantityTotal}개 ·{" "}
+                      {money(box.salePriceVnd)} · {box.quantityTotal}
+                      {t(locale, "mUnitQty")} ·{" "}
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                     </p>
                   </div>
@@ -588,7 +589,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           <div className="rounded-[16px] bg-giu-bg p-3 ring-1 ring-giu-border">
             <p className="font-bold">{republishTarget.title}</p>
             <p className="mt-1 text-[13px] text-giu-muted">
-              {money(republishTarget.salePriceVnd)} · {republishTarget.quantityTotal}개
+              {money(republishTarget.salePriceVnd)} · {republishTarget.quantityTotal}
+              {t(locale, "mUnitQty")}
             </p>
             {republishTarget.description ? (
               <p className="mt-1 text-[12px] text-giu-muted">{republishTarget.description}</p>

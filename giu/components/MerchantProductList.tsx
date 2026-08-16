@@ -425,8 +425,8 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     [
                       [t(locale, "mSale"), money(selected.salePriceVnd)],
                       [t(locale, "mOriginal"), money(selected.originalPriceVnd)],
-                      [t(locale, "mQtyLeft"), `${selected.quantityLeft}개`],
-                      [t(locale, "mQtyTotal"), `${selected.quantityTotal}개`],
+                      [t(locale, "mQtyLeft"), `${selected.quantityLeft}${t(locale, "mUnitQty")}`],
+                      [t(locale, "mQtyTotal"), `${selected.quantityTotal}${t(locale, "mUnitQty")}`],
                       [t(locale, "mCategory"), categoryLabel(selected.category, locale)],
                       [t(locale, "time"), formatPickupWindow(selected.pickupStart, selected.pickupEnd, market)],
                     ] as const

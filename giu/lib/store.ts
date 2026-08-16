@@ -52,11 +52,28 @@ function reservationCode(): string {
 }
 
 function normalizePhone(phone: string): string {
-  return phone.replace(/\s/g, "");
+  let p = phone.replace(/\s/g, "").replace(/-/g, "");
+  if (p.startsWith("+82")) p = `0${p.slice(3)}`;
+  else if (p.startsWith("82") && p.length >= 10) p = `0${p.slice(2)}`;
+  return p;
 }
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+function accountEmailTaken(store: GiuStore, email: string, role: GiuAccountRole): boolean {
+  return store.accounts.some((a) => a.email === email && a.role === role);
+}
+
+function accountPhoneTaken(store: GiuStore, phone: string, role: GiuAccountRole): boolean {
+  return store.accounts.some((a) => a.phone === phone && a.role === role);
+}
+
+function merchantPhoneTaken(store: GiuStore, phone: string, excludeMerchantId?: string): boolean {
+  return store.merchants.some(
+    (m) => normalizePhone(m.phone) === phone && m.id !== excludeMerchantId,
+  );
 }
 
 function defaultStore(): GiuStore {
@@ -208,11 +225,11 @@ export async function registerCustomer(input: {
 }): Promise<{ account: GiuAccount } | { error: string }> {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
-  if (store.accounts.some((a) => a.email === email)) {
+  if (accountEmailTaken(store, email, "customer")) {
     return { error: "이미 등록된 이메일입니다" };
   }
   const phone = normalizePhone(input.phone);
-  if (store.accounts.some((a) => a.phone === phone)) {
+  if (accountPhoneTaken(store, phone, "customer")) {
     return { error: "이미 등록된 전화번호입니다" };
   }
   const account: GiuAccount = {
@@ -243,14 +260,14 @@ export async function registerMerchantAccount(input: {
 }): Promise<{ account: GiuAccount; merchant: GiuMerchant } | { error: string }> {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
-  if (store.accounts.some((a) => a.email === email)) {
+  if (accountEmailTaken(store, email, "merchant")) {
     return { error: "이미 등록된 이메일입니다" };
   }
   const phone = normalizePhone(input.phone);
-  if (store.accounts.some((a) => a.phone === phone)) {
+  if (accountPhoneTaken(store, phone, "merchant")) {
     return { error: "이미 등록된 전화번호입니다" };
   }
-  if (store.merchants.some((m) => normalizePhone(m.phone) === phone)) {
+  if (merchantPhoneTaken(store, phone)) {
     return { error: "이 전화번호의 가게가 이미 있습니다 — 로그인하세요" };
   }
 
@@ -302,11 +319,10 @@ export async function loginAccount(input: {
 }): Promise<{ account: GiuAccount } | { error: string }> {
   const store = await loadStore();
   const email = normalizeEmail(input.email);
-  const account = store.accounts.find((a) => a.email === email);
+  const account = input.role
+    ? store.accounts.find((a) => a.email === email && a.role === input.role)
+    : store.accounts.find((a) => a.email === email);
   if (!account) return { error: "이메일 또는 비밀번호가 올바르지 않습니다" };
-  if (input.role && account.role !== input.role) {
-    return { error: "로그인 유형과 맞지 않는 계정입니다" };
-  }
   const ok = await verifyPassword(input.password, account.passwordHash);
   if (!ok) return { error: "이메일 또는 비밀번호가 올바르지 않습니다" };
   return { account };
@@ -867,14 +883,26 @@ export async function updateMerchantProfile(
   patch: Partial<
     Pick<GiuMerchant, "name" | "address" | "addressHint" | "phone" | "category" | "district" | "bankName" | "bankAccount" | "bankHolder">
   >,
-): Promise<GiuMerchant | null> {
+): Promise<GiuMerchant | { error: string } | null> {
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.accountId === accountId);
   if (!merchant) return null;
+  const account = store.accounts.find((a) => a.id === accountId);
   if (patch.name?.trim()) merchant.name = patch.name.trim();
   if (patch.address?.trim()) merchant.address = patch.address.trim();
   if (patch.addressHint !== undefined) merchant.addressHint = patch.addressHint?.trim() || undefined;
-  if (patch.phone?.trim()) merchant.phone = normalizePhone(patch.phone);
+  if (patch.phone !== undefined) {
+    const phone = normalizePhone(patch.phone);
+    if (phone.length < 8) return { error: "전화번호를 확인해 주세요" };
+    if (
+      (accountPhoneTaken(store, phone, "merchant") && account?.phone !== phone) ||
+      merchantPhoneTaken(store, phone, merchant.id)
+    ) {
+      return { error: "이미 사용 중인 전화번호예요" };
+    }
+    merchant.phone = phone;
+    if (account) account.phone = phone;
+  }
   if (patch.category) merchant.category = patch.category;
   if (patch.district) merchant.district = patch.district;
   if (patch.bankName !== undefined) merchant.bankName = patch.bankName?.trim() || undefined;
