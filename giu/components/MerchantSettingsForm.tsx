@@ -83,7 +83,7 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
         </select>
       </div>
       <div>
-        <label className="giu-label">{t(locale, "mDay")} (구)</label>
+        <label className="giu-label">{t(locale, "mDistrict")}</label>
         <select name="district" defaultValue={merchant.district} className="giu-input">
           {districts.map((d) => (
             <option key={d.id} value={d.id}>
@@ -101,11 +101,11 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
         <input name="addressHint" defaultValue={merchant.addressHint ?? ""} className="giu-input" placeholder={t(locale, "mAddressHintPh")} />
       </div>
       <div>
-        <label className="giu-label">{t(locale, "waitlistPhone")}</label>
+        <label className="giu-label">{t(locale, "mStorePhone")}</label>
         <input name="phone" required type="tel" defaultValue={merchant.phone} className="giu-input" />
       </div>
       <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
-        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSettleDone")}</p>
+        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mBankSection")}</p>
         <p className="text-[11px] text-giu-muted">{t(locale, "mBankHint")}</p>
         <div>
           <label className="giu-label">{t(locale, "mBankName")}</label>

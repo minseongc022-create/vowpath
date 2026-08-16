@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
+import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { categoryLabel } from "@/giu/lib/labels-locale";
 import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
@@ -21,11 +22,12 @@ type Props = {
   locale: GiuLocale;
   boxes: GiuBox[];
   onChanged: () => Promise<void>;
+  onGoPublish?: () => void;
 };
 
 type SheetMode = "view" | "edit" | "confirm-republish";
 
-export function MerchantProductList({ locale, boxes, onChanged }: Props) {
+export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: Props) {
   const market = "kr" as const;
   const money = (n: number) => formatMoney(n, market);
   const [selected, setSelected] = useState<GiuBox | null>(null);
@@ -35,6 +37,7 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [listFilter, setListFilter] = useState<ProductListFilter>("all");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
 
   const filteredBoxes = useMemo(() => filterBoxes(boxes, listFilter), [boxes, listFilter]);
 
@@ -92,7 +95,6 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
   }
 
   async function deleteProduct(boxId: string) {
-    if (!window.confirm(t(locale, "mDeleteConfirm"))) return;
     hapticConfirm();
     setBusy(true);
     setError("");
@@ -108,6 +110,7 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       }
       hapticConfirm();
       if (selected?.id === boxId) closeSheet();
+      setDeleteTarget(null);
       setSuccessMsg(t(locale, "toastDeleteSuccess"));
       await onChanged();
     } catch {
@@ -215,7 +218,14 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
         </div>
 
         {filteredBoxes.length === 0 ? (
-          <p className="mt-3 text-[13px] text-giu-muted">{t(locale, "mFilterEmpty")}</p>
+          <div className="mt-3 space-y-2 text-center">
+            <p className="text-[13px] text-giu-muted">{t(locale, "mFilterEmpty")}</p>
+            {onGoPublish ? (
+              <button type="button" onClick={onGoPublish} className="giu-btn-primary giu-btn-3d !w-auto !px-5 !py-2.5 text-[13px]">
+                {t(locale, "mPostProduct")}
+              </button>
+            ) : null}
+          </div>
         ) : (
           <ul className="mt-3 space-y-2.5">
             {filteredBoxes.map((box, i) => (
@@ -251,7 +261,7 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                       <GiuTrashButton
                         label={t(locale, "mDeleteProduct")}
                         disabled={busy}
-                        onClick={() => void deleteProduct(box.id)}
+                        onClick={() => setDeleteTarget(box)}
                       />
                     ) : null}
                     <button
@@ -332,7 +342,7 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                 </div>
                 <div>
                   <label className="giu-label">{t(locale, "mQty")}</label>
-                  <p className="mb-1 text-[11px] text-giu-muted">{t(locale, "mQtyHint")}</p>
+                  <p className="mb-1 text-[11px] text-giu-muted">{t(locale, "mQtyEditHint")}</p>
                   <input
                     name="quantityTotal"
                     type="number"
@@ -360,6 +370,9 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                       <span className="font-medium text-giu-muted">
                         {t(locale, "mQtyLeft")} {selected.quantityLeft}/{selected.quantityTotal}
                       </span>
+                    ) : null}
+                    {selected.status === "het" ? (
+                      <span className="font-medium text-giu-muted">{t(locale, "mHetHint")}</span>
                     ) : null}
                   </p>
                 </div>
@@ -494,6 +507,18 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       </GiuBottomSheet>
 
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
+
+      <GiuConfirmSheet
+        open={!!deleteTarget}
+        title={t(locale, "mConfirmDeleteTitle")}
+        message={t(locale, "mDeleteConfirm")}
+        confirmLabel={t(locale, "mDeleteProduct")}
+        cancelLabel={t(locale, "mCloseNo")}
+        danger
+        busy={busy}
+        onConfirm={() => deleteTarget && void deleteProduct(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }

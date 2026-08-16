@@ -853,6 +853,28 @@ function recalcMerchantRating(store: GiuStore, merchantId: string): void {
     Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
 }
 
+export async function merchantHasActiveListing(merchantId: string): Promise<boolean> {
+  const store = await loadStore();
+  return store.boxes.some(
+    (b) => b.merchantId === merchantId && b.status === "mo" && b.quantityLeft > 0,
+  );
+}
+
+function merchantHasActiveListingInStore(store: GiuStore, merchantId: string): boolean {
+  return store.boxes.some(
+    (b) => b.merchantId === merchantId && b.status === "mo" && b.quantityLeft > 0,
+  );
+}
+
+function requeuePendingPayouts(store: GiuStore, merchant: GiuMerchant): void {
+  if (!merchant.bankName?.trim() || !merchant.bankAccount?.trim()) return;
+  for (const res of store.reservations) {
+    if (res.merchantId !== merchant.id || res.payoutStatus !== "pending_account") continue;
+    res.payoutStatus = "queued";
+    res.payoutAmountVnd = res.totalVnd - res.platformFeeVnd;
+  }
+}
+
 export async function updateMerchantProfile(
   accountId: string,
   patch: Partial<
@@ -871,6 +893,7 @@ export async function updateMerchantProfile(
   if (patch.bankName !== undefined) merchant.bankName = patch.bankName?.trim() || undefined;
   if (patch.bankAccount !== undefined) merchant.bankAccount = patch.bankAccount?.trim() || undefined;
   if (patch.bankHolder !== undefined) merchant.bankHolder = patch.bankHolder?.trim() || undefined;
+  requeuePendingPayouts(store, merchant);
   await saveStore(store);
   return merchant;
 }
@@ -917,6 +940,9 @@ async function cloneBoxForRepublish(
   store: GiuStore,
   source: GiuBox,
 ): Promise<GiuBox | { error: string }> {
+  if (merchantHasActiveListingInStore(store, source.merchantId)) {
+    return { error: "이미 판매 중인 상품이 있어요. 먼저 마감하거나 취소해 주세요." };
+  }
   const win = defaultPickupWindow(2);
   const box: GiuBox = {
     id: newId("box"),
@@ -964,7 +990,7 @@ export async function confirmPickupByToken(
 ): Promise<GiuReservation | { error: string }> {
   const { verifyPickupQrToken } = await import("@/giu/lib/pickup-qr");
   const verified = verifyPickupQrToken(token);
-  if (!verified) return { error: "QR이 만료되었거나 올바르지 않아요" };
+  if (!verified) return { error: "QR이 만료되었거나 올바르지 않아요. 손님 화면에서 새 QR이 보이면 다시 스캔하세요." };
   const store = await loadStore();
   const res = store.reservations.find(
     (r) =>

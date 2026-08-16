@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isGiuCategory } from "@/giu/lib/categories";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
-import { createBox, getMerchant, listBoxes, defaultPickupWindow } from "@/giu/lib/store";
+import { createBox, getMerchant, listBoxes, defaultPickupWindow, merchantHasActiveListing } from "@/giu/lib/store";
 
 const createSchema = z.object({
   title: z.string().min(3).max(120),
@@ -32,6 +32,14 @@ export async function GET(request: Request) {
   const includeSoldOut = url.searchParams.get("sold") === "1";
   const when = url.searchParams.get("when");
   const dayOffset = when === "today" ? (0 as const) : when === "tomorrow" ? (1 as const) : undefined;
+
+  if (merchantId) {
+    const session = await getGiuSessionFromRequest(request);
+    if (!session || session.role !== "merchant" || session.merchantId !== merchantId) {
+      return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
+    }
+  }
+
   const boxes = await listBoxes({
     district,
     category,
@@ -75,6 +83,10 @@ export async function POST(request: Request) {
       }
     } else if (parsed.data.originalPriceVnd < 10000 || parsed.data.salePriceVnd < 5000) {
       return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
+    }
+
+    if (await merchantHasActiveListing(merchant.id)) {
+      return NextResponse.json({ error: "이미 판매 중인 상품이 있어요. 먼저 마감하거나 취소해 주세요." }, { status: 400 });
     }
 
     const window = defaultPickupWindow();

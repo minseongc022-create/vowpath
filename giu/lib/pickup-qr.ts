@@ -3,7 +3,12 @@ import { createHmac, timingSafeEqual } from "crypto";
 const TOKEN_TTL_SEC = 60;
 
 function secret(): string {
-  return process.env.GIU_PICKUP_QR_SECRET?.trim() || "giu-dev-pickup-qr-secret-change-me";
+  const env = process.env.GIU_PICKUP_QR_SECRET?.trim();
+  if (env) return env;
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    throw new Error("GIU_PICKUP_QR_SECRET is required in production");
+  }
+  return "giu-dev-pickup-qr-secret-change-me";
 }
 
 /** Unix seconds — token rotates every 60s on aligned windows. */

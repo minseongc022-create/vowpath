@@ -52,6 +52,11 @@ export async function PATCH(request: Request, { params }: Props) {
     }
 
     const { imageUrl, ...rest } = parsed.data;
+    const nextOriginal = rest.originalPriceVnd ?? box.originalPriceVnd;
+    const nextSale = rest.salePriceVnd ?? box.salePriceVnd;
+    if (nextSale >= nextOriginal) {
+      return NextResponse.json({ error: "판매가는 정가보다 낮아야 합니다" }, { status: 400 });
+    }
     const updated = await updateBox(id, {
       ...rest,
       ...(imageUrl !== undefined ? { imageUrl: imageUrl || undefined } : {}),

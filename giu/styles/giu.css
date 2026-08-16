@@ -359,6 +359,10 @@
   pointer-events: auto;
 }
 
+.giu-confirm-sheet {
+  @apply relative z-[1] w-full max-w-[360px] rounded-[24px] bg-white px-5 py-5 shadow-[0_16px_56px_rgba(45,62,78,0.22)] ring-1 ring-giu-border;
+}
+
 .giu-success-enter {
   animation: giu-success-pop 0.22s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 }

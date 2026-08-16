@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import { merchantCategories } from "@/giu/lib/categories";
@@ -63,6 +64,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [historyFilter, setHistoryFilter] = useState<HistoryListFilter>("all");
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
+  const [quickBusy, setQuickBusy] = useState(false);
 
   const historyBoxes = useMemo(
     () => filterHistoryBoxes(boxes, historyFilter),
@@ -132,6 +135,41 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     }
   }
 
+  async function quickPublish() {
+    hapticSelect();
+    setCreateError("");
+    setQuickBusy(true);
+    const prices = quickPublishPrices(market);
+    try {
+      const res = await fetch("/api/giu/boxes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: t(locale, "mSurpriseDefault"),
+          category: merchant.category,
+          originalPriceVnd: prices.originalPriceVnd,
+          salePriceVnd: prices.salePriceVnd,
+          quantityTotal: 5,
+          freshnessNote: t(locale, "mFreshDefault"),
+        }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setCreateError(data.error ?? t(locale, "mCreateFail"));
+        return;
+      }
+      hapticConfirm();
+      await onPublished();
+      goIdle();
+      setSuccessMsg(t(locale, "toastPublishSuccess"));
+    } catch {
+      setCreateError(t(locale, "mLoadError"));
+    } finally {
+      setQuickBusy(false);
+    }
+  }
+
   async function confirmRepublish() {
     if (!republishTarget) return;
     hapticConfirm();
@@ -161,7 +199,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   }
 
   async function deleteProduct(boxId: string) {
-    if (!window.confirm(t(locale, "mDeleteConfirm"))) return;
     hapticConfirm();
     setDeleteBusyId(boxId);
     setCreateError("");
@@ -176,6 +213,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         return;
       }
       hapticConfirm();
+      setDeleteTarget(null);
       if (republishTarget?.id === boxId) {
         setRepublishTarget(null);
         setView("history");
@@ -189,8 +227,13 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     }
   }
 
+  const hasActiveListing = useMemo(
+    () => boxes.some((b) => b.status === "mo" && b.quantityLeft > 0),
+    [boxes],
+  );
+
   return (
-    <section className="giu-card giu-panel-enter space-y-3">
+    <section id="giu-publish-flow" className="giu-card giu-panel-enter space-y-3">
       <div>
         <h2 className="font-bold">{t(locale, "mPublish")}</h2>
         <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPublishHint")}</p>
@@ -200,14 +243,27 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         <div className="space-y-2.5">
           <button
             type="button"
+            disabled={quickBusy || hasActiveListing}
+            onClick={() => void quickPublish()}
+            className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
+          >
+            {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
+          </button>
+          <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mQuickPublishSub")}</p>
+          {hasActiveListing ? (
+            <p className="text-[11px] font-semibold text-amber-700">{t(locale, "mActiveListingExists")}</p>
+          ) : null}
+          <button
+            type="button"
             onClick={() => {
               hapticSelect();
               setView("compose");
             }}
-            className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
+            className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
           >
-            {t(locale, "mPostProduct")}
+            {t(locale, "mAdvanced")}
           </button>
+          <p className="text-[11px] text-giu-muted">{t(locale, "mAdvancedHint")}</p>
           <button
             type="button"
             onClick={() => {
@@ -433,7 +489,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                       <GiuTrashButton
                         label={t(locale, "mDeleteProduct")}
                         disabled={deleteBusyId === box.id}
-                        onClick={() => void deleteProduct(box.id)}
+                        onClick={() => setDeleteTarget(box)}
                       />
                     ) : null}
                     <button
@@ -494,6 +550,18 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       ) : null}
 
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
+
+      <GiuConfirmSheet
+        open={!!deleteTarget}
+        title={t(locale, "mConfirmDeleteTitle")}
+        message={t(locale, "mDeleteConfirm")}
+        confirmLabel={t(locale, "mDeleteProduct")}
+        cancelLabel={t(locale, "mCloseNo")}
+        danger
+        busy={!!deleteBusyId}
+        onConfirm={() => deleteTarget && void deleteProduct(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </section>
   );
 }
