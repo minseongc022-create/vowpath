@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
-import { getMerchantByAccountId, republishLastBox } from "@/giu/lib/store";
+import { getMerchantByAccountId, republishBox, republishLastBox } from "@/giu/lib/store";
+
+const bodySchema = z.object({
+  boxId: z.string().min(1).optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +15,19 @@ export async function POST(request: Request) {
     }
     const merchant = await getMerchantByAccountId(session.sub);
     const merchantId = merchant?.id ?? session.merchantId;
-    const result = await republishLastBox(merchantId);
+
+    let boxId: string | undefined;
+    try {
+      const body = await request.json();
+      const parsed = bodySchema.safeParse(body);
+      if (parsed.success) boxId = parsed.data.boxId;
+    } catch {
+      /* empty body — republish last */
+    }
+
+    const result = boxId
+      ? await republishBox(merchantId, boxId)
+      : await republishLastBox(merchantId);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

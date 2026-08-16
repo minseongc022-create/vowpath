@@ -69,7 +69,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             ? "min-h-0 flex-1 overflow-hidden"
             : hideNav
               ? "flex-1 pb-8"
-              : "flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))]"
+              : "flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
         }
       >
         {children}

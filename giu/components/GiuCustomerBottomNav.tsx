@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GiuNavIcon } from "@/giu/components/icons/GiuNavIcons";
+import { GiuFloatingBottomNav } from "@/giu/components/GiuFloatingBottomNav";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuLocale } from "./GiuLocaleProvider";
-import { useGiuHref } from "./GiuNavProvider";
 import { toGiuInternalPath } from "@/giu/lib/routes";
 
 type Props = {
@@ -15,42 +13,38 @@ type Props = {
 
 export function GiuCustomerBottomNav({ docked = false }: Props) {
   const pathname = usePathname();
-  const href = useGiuHref();
   const { locale } = useGiuLocale();
   const internal = toGiuInternalPath(pathname);
 
   const tabs = [
-    { path: GIU_ROUTES.customer.boxes, label: t(locale, "boxes"), icon: "box" as const },
-    { path: GIU_ROUTES.customer.favorites, label: t(locale, "favorites"), icon: "heart" as const },
-    { path: GIU_ROUTES.customer.my, label: t(locale, "myCodes"), icon: "ticket" as const },
+    {
+      href: GIU_ROUTES.customer.boxes,
+      label: t(locale, "boxes"),
+      icon: "box" as const,
+      match: (path: string) => {
+        const i = toGiuInternalPath(path);
+        return i === GIU_ROUTES.customer.boxes || i.startsWith(`${GIU_ROUTES.customer.boxes}/`);
+      },
+    },
+    {
+      href: GIU_ROUTES.customer.favorites,
+      label: t(locale, "favorites"),
+      icon: "heart" as const,
+      match: (path: string) => {
+        const i = toGiuInternalPath(path);
+        return i === GIU_ROUTES.customer.favorites || i.startsWith(`${GIU_ROUTES.customer.favorites}/`);
+      },
+    },
+    {
+      href: GIU_ROUTES.customer.my,
+      label: t(locale, "myCodes"),
+      icon: "ticket" as const,
+      match: (path: string) => {
+        const i = toGiuInternalPath(path);
+        return i === GIU_ROUTES.customer.my || i.startsWith(`${GIU_ROUTES.customer.my}/`);
+      },
+    },
   ];
 
-  return (
-    <nav
-      className={
-        docked
-          ? "relative z-50 shrink-0 border-t border-giu-border/80 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-giu-nav backdrop-blur-xl"
-          : "fixed inset-x-0 bottom-0 z-50 border-t border-giu-border/80 bg-white/90 pb-[env(safe-area-inset-bottom)] shadow-giu-nav backdrop-blur-xl"
-      }
-    >
-      <div className="mx-auto flex max-w-[480px] items-stretch justify-around px-3 md:max-w-xl lg:max-w-2xl">
-        {tabs.map((tab) => {
-          const active = internal === tab.path || internal.startsWith(`${tab.path}/`);
-          return (
-            <Link
-              key={tab.path}
-              href={href(tab.path)}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold tracking-tight transition ${
-                active ? "text-giu-accent" : "text-giu-muted"
-              }`}
-              aria-current={active ? "page" : undefined}
-            >
-              <GiuNavIcon name={tab.icon} active={active} />
-              <span className="truncate">{tab.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
+  return <GiuFloatingBottomNav tabs={tabs} docked={docked} getSearch={() => internal} />;
 }

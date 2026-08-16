@@ -1,52 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatBoxStatusLocale,
   formatPaymentStatusLocale,
   formatReservationStatusLocale,
 } from "@/giu/lib/box-ux";
-import {
-  defaultPickupWindow,
-  formatMoney,
-  formatPickupWindow,
-  localToIso,
-  moneySymbol,
-} from "@/giu/lib/format";
+import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
-import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import type { GiuBox, GiuMarket, GiuReservation } from "@/giu/lib/types";
+import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { MerchantPickupScanner } from "./MerchantPickupScanner";
+import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
-
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block space-y-1">
-      <span className="text-[12px] font-bold text-giu-ink">{label}</span>
-      {hint ? <span className="block text-[11px] leading-snug text-giu-muted">{hint}</span> : null}
-      {children}
-    </label>
-  );
-}
 
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
@@ -56,22 +29,14 @@ export function MerchantPanelClient() {
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
-  const market: GiuMarket = "kr";
+  const market = "kr" as const;
   const money = (n: number) => formatMoney(n, market);
-  const symbol = moneySymbol(market);
-  const publishCategories = merchantCategories();
   const [boxes, setBoxes] = useState<GiuBox[]>([]);
   const [reservations, setReservations] = useState<GiuReservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [orderQuery, setOrderQuery] = useState("");
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
-  const [createError, setCreateError] = useState("");
-  const [dayOffset, setDayOffset] = useState(0);
-  const [startH, setStartH] = useState(12);
-  const [endH, setEndH] = useState(14);
-  const [quickBusy, setQuickBusy] = useState(false);
-  const [republishBusy, setRepublishBusy] = useState(false);
   const [confirmCloseId, setConfirmCloseId] = useState<string | null>(null);
   const [confirmPickupId, setConfirmPickupId] = useState<string | null>(null);
 
@@ -147,108 +112,6 @@ export function MerchantPanelClient() {
     .filter((r) => r.settlementStatus === "released")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
 
-  async function createBox(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!merchant) return;
-    hapticSelect();
-    setCreateError("");
-    const fd = new FormData(e.currentTarget);
-    const start = Number(fd.get("pickupStartH") ?? startH);
-    const end = Number(fd.get("pickupEndH") ?? endH);
-    const day = Number(fd.get("dayOffset") ?? dayOffset);
-    if (end <= start) {
-      setCreateError(t(locale, "mTimeOrder"));
-      return;
-    }
-    const tz = marketTimeZone(market);
-    const pickupStart = localToIso(day, start, 0, tz);
-    const pickupEnd = localToIso(day, end, 0, tz);
-    const res = await fetch("/api/giu/boxes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        title: fd.get("title"),
-        description: fd.get("description") || undefined,
-        imageUrl: String(fd.get("imageUrl") || "").trim() || undefined,
-        category: fd.get("category") || undefined,
-        originalPriceVnd: Number(fd.get("originalPriceVnd")),
-        salePriceVnd: Number(fd.get("salePriceVnd")),
-        quantityTotal: Number(fd.get("quantityTotal")),
-        freshnessNote: fd.get("freshnessNote") || undefined,
-        pickupStart,
-        pickupEnd,
-        expiresAt: pickupEnd,
-      }),
-    });
-    if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
-      setCreateError(data.error ?? t(locale, "mCreateFail"));
-      return;
-    }
-    hapticConfirm();
-    e.currentTarget.reset();
-    setDayOffset(0);
-    setStartH(12);
-    setEndH(14);
-    await load(merchant.id);
-  }
-
-  async function republishLast() {
-    if (!merchant) return;
-    hapticSelect();
-    setRepublishBusy(true);
-    setCreateError("");
-    try {
-      const res = await fetch("/api/giu/boxes/republish", {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setCreateError(data.error ?? t(locale, "mCreateFail"));
-        return;
-      }
-      hapticConfirm();
-      await load(merchant.id);
-    } catch {
-      setCreateError(t(locale, "mLoadError"));
-    } finally {
-      setRepublishBusy(false);
-    }
-  }
-
-  async function quickPublish() {
-    if (!merchant) return;
-    hapticSelect();
-    setQuickBusy(true);
-    setCreateError("");
-    const win = defaultPickupWindow(2);
-    const res = await fetch("/api/giu/boxes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        title: t(locale, "mSurpriseDefault"),
-        category: merchant.category,
-        ...quickPublishPrices(market),
-        quantityTotal: 5,
-        freshnessNote: t(locale, "mFreshDefault"),
-        pickupStart: win.start,
-        pickupEnd: win.end,
-        expiresAt: win.expires,
-      }),
-    });
-    setQuickBusy(false);
-    if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
-      setCreateError(data.error ?? t(locale, "mCreateFail"));
-      return;
-    }
-    hapticConfirm();
-    await load(merchant.id);
-  }
-
   async function closeBox(boxId: string) {
     if (!merchant) return;
     hapticConfirm();
@@ -321,8 +184,8 @@ export function MerchantPanelClient() {
             <p className="text-[10px] font-medium text-giu-accent">{t(locale, "mOpenBoxes")}</p>
             <p className="font-extrabold text-giu-ink">{openBoxes}</p>
           </div>
-          <div className="rounded-[12px] bg-[#E8F1FE] px-3 py-2">
-            <p className="text-[10px] font-medium text-[#2F7CF6]">{t(locale, "mAwaitingPickup")}</p>
+          <div className="rounded-[12px] bg-giu-accent-soft px-3 py-2">
+            <p className="text-[10px] font-medium text-giu-accent">{t(locale, "mAwaitingPickup")}</p>
             <p className="font-extrabold text-giu-ink">{awaitingPickup}</p>
           </div>
           <div className="rounded-[12px] bg-giu-bg px-3 py-2">
@@ -341,184 +204,13 @@ export function MerchantPanelClient() {
       <MerchantOrderAlerts merchantId={merchant.id} onNewOrder={() => void load(merchant.id)} />
 
       {tab === "boxes" ? (
-        <>
-          <section className="giu-card space-y-3">
-            <div>
-              <h2 className="font-bold">{t(locale, "mPublish")}</h2>
-              <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPublishHint")}</p>
-            </div>
-
-            <div className="rounded-2xl bg-giu-accent-soft/60 p-3 ring-1 ring-giu-accent/20">
-              <p className="text-[12px] leading-snug text-giu-ink">{t(locale, "mQuickPublishDetail")}</p>
-              <button
-                type="button"
-                disabled={quickBusy}
-                onClick={() => void quickPublish()}
-                className="giu-btn-primary mt-2.5 !py-3 text-[14px]"
-              >
-                {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
-              </button>
-              <button
-                type="button"
-                disabled={republishBusy}
-                onClick={() => void republishLast()}
-                className="giu-btn-secondary mt-2 !py-2.5 text-[13px]"
-              >
-                {republishBusy ? t(locale, "loading") : t(locale, "mRepublish")}
-              </button>
-              <p className="mt-2 text-center text-[11px] font-medium text-giu-muted">
-                {t(locale, "mQuickPublishSub")}
-              </p>
-            </div>
-            {createError ? <p className="text-sm text-giu-danger">{createError}</p> : null}
-
-            <details open className="rounded-xl bg-giu-bg/80 p-3 open:pb-3">
-              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                <span className="block text-[13px] font-bold text-giu-ink">{t(locale, "mAdvanced")}</span>
-                <span className="mt-0.5 block text-[11px] font-medium text-giu-muted">
-                  {t(locale, "mAdvancedHint")}
-                </span>
-              </summary>
-              <form onSubmit={createBox} className="mt-3 space-y-3">
-                <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
-                  <input
-                    name="title"
-                    required
-                    defaultValue={t(locale, "mSurpriseDefault")}
-                    className="giu-input"
-                  />
-                </Field>
-
-                <Field label={t(locale, "mCategory")} hint={t(locale, "mCategoryHint")}>
-                  <select name="category" className="giu-input" defaultValue={merchant.category}>
-                    {publishCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.emoji} {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
-                  <input name="description" className="giu-input" />
-                </Field>
-
-                <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
-                  <input name="imageUrl" type="url" inputMode="url" className="giu-input" />
-                </Field>
-
-                <Field label={t(locale, "mFresh")} hint={t(locale, "mFreshHint")}>
-                  <input
-                    name="freshnessNote"
-                    defaultValue={t(locale, "mFreshDefault")}
-                    className="giu-input"
-                  />
-                </Field>
-
-                <div className="space-y-2 rounded-xl bg-white/70 p-3 ring-1 ring-giu-border">
-                  <div>
-                    <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
-                    <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mScheduleHint")}</p>
-                  </div>
-                  <Field label={t(locale, "mDay")}>
-                    <select
-                      name="dayOffset"
-                      className="giu-input"
-                      value={dayOffset}
-                      onChange={(e) => setDayOffset(Number(e.target.value))}
-                    >
-                      <option value={0}>{t(locale, "mToday")}</option>
-                      <option value={1}>{t(locale, "mTomorrow")}</option>
-                    </select>
-                  </Field>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Field label={t(locale, "mStart")}>
-                      <select
-                        name="pickupStartH"
-                        className="giu-input"
-                        value={startH}
-                        onChange={(e) => setStartH(Number(e.target.value))}
-                      >
-                        {HOURS.map((h) => (
-                          <option key={h} value={h}>
-                            {String(h).padStart(2, "0")}:00
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label={t(locale, "mEnd")}>
-                      <select
-                        name="pickupEndH"
-                        className="giu-input"
-                        value={endH}
-                        onChange={(e) => setEndH(Number(e.target.value))}
-                      >
-                        {HOURS.map((h) => (
-                          <option key={h} value={h}>
-                            {String(h).padStart(2, "0")}:00
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label={t(locale, "mOriginal")} hint={t(locale, "mOriginalHint")}>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
-                        {symbol}
-                      </span>
-                      <input
-                        name="originalPriceVnd"
-                        required
-                        type="number"
-                        min={market === "kr" ? 1000 : 10000}
-                        step={market === "kr" ? 500 : 1000}
-                        defaultValue={quickPublishPrices(market).originalPriceVnd}
-                        inputMode="numeric"
-                        className="giu-input !pl-8"
-                      />
-                    </div>
-                  </Field>
-                  <Field label={t(locale, "mSale")} hint={t(locale, "mSaleHint")}>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
-                        {symbol}
-                      </span>
-                      <input
-                        name="salePriceVnd"
-                        required
-                        type="number"
-                        min={market === "kr" ? 500 : 5000}
-                        step={market === "kr" ? 500 : 1000}
-                        defaultValue={quickPublishPrices(market).salePriceVnd}
-                        inputMode="numeric"
-                        className="giu-input !pl-8"
-                      />
-                    </div>
-                  </Field>
-                </div>
-
-                <Field label={t(locale, "mQty")} hint={t(locale, "mQtyHint")}>
-                  <input
-                    name="quantityTotal"
-                    required
-                    type="number"
-                    min={1}
-                    max={50}
-                    defaultValue={5}
-                    inputMode="numeric"
-                    className="giu-input"
-                  />
-                </Field>
-
-                <button type="submit" className="giu-btn-primary py-3">
-                  {t(locale, "mSubmit")}
-                </button>
-              </form>
-            </details>
-          </section>
+        <div key="boxes" className="giu-tab-panel space-y-4">
+          <MerchantPublishFlow
+            locale={locale}
+            merchant={merchant}
+            boxes={boxes}
+            onPublished={() => load(merchant.id)}
+          />
 
           <section>
             <h2 className="font-bold">
@@ -585,9 +277,9 @@ export function MerchantPanelClient() {
               </ul>
             )}
           </section>
-        </>
+        </div>
       ) : tab === "orders" ? (
-        <section className="space-y-3">
+        <section key="orders" className="giu-tab-panel space-y-3">
           <MerchantPickupScanner locale={locale} onVerified={() => void load(merchant.id)} />
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-bold">
@@ -695,11 +387,13 @@ export function MerchantPanelClient() {
           )}
         </section>
       ) : (
-        <MerchantSettingsForm
+        <div key="settings" className="giu-tab-panel">
+          <MerchantSettingsForm
           locale={locale}
           merchant={merchant}
           onSaved={() => void load(merchant.id)}
         />
+        </div>
       )}
     </div>
   );
