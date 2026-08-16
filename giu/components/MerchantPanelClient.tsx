@@ -8,6 +8,7 @@ import {
   formatReservationStatusLocale,
 } from "@/giu/lib/box-ux";
 import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
+import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
@@ -43,6 +44,13 @@ export function MerchantPanelClient() {
   const [orderQuery, setOrderQuery] = useState("");
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
   const [orderLimit, setOrderLimit] = useState(PAGE_SIZE);
+  const [pickupCodeDraft, setPickupCodeDraft] = useState("");
+
+  function fillPickupCode(code: string) {
+    hapticSelect();
+    setPickupCodeDraft(code.toUpperCase());
+    document.getElementById("giu-pickup-scanner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   const load = useCallback(
     async (merchantId: string, opts?: { silent?: boolean }) => {
@@ -234,30 +242,32 @@ export function MerchantPanelClient() {
         </div>
       ) : tab === "orders" ? (
         <section key="orders" className="giu-tab-panel space-y-3">
-          <MerchantPickupScanner locale={locale} onVerified={() => void load(merchant.id, { silent: true })} />
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="font-bold">
-              {t(locale, "mOrders")} ({filteredOrders.length})
-            </h2>
-            <div className="flex rounded-full bg-giu-bg p-0.5 text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => setOrderFilter("awaiting")}
-                className={`rounded-full px-3 py-1.5 ${
-                  orderFilter === "awaiting" ? "bg-white text-giu-ink shadow-sm" : "text-giu-muted"
-                }`}
-              >
-                {t(locale, "mOrdersAwaiting")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrderFilter("all")}
-                className={`rounded-full px-3 py-1.5 ${
-                  orderFilter === "all" ? "bg-white text-giu-ink shadow-sm" : "text-giu-muted"
-                }`}
-              >
-                {t(locale, "mOrdersAll")}
-              </button>
+          <MerchantPickupScanner
+            locale={locale}
+            pickupCode={pickupCodeDraft}
+            onPickupCodeChange={setPickupCodeDraft}
+            onVerified={() => void load(merchant.id, { silent: true })}
+          />
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-bold">
+                {t(locale, "mOrders")} ({filteredOrders.length})
+              </h2>
+            </div>
+            <div className="giu-filter-tabs">
+              {(["awaiting", "all"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => {
+                    hapticSelect();
+                    setOrderFilter(f);
+                  }}
+                  className={`giu-filter-tab ${orderFilter === f ? "is-active" : ""}`}
+                >
+                  {f === "awaiting" ? t(locale, "mOrdersAwaiting") : t(locale, "mOrdersAll")}
+                </button>
+              ))}
             </div>
           </div>
           <input
@@ -267,13 +277,10 @@ export function MerchantPanelClient() {
             className="giu-input"
           />
           {filteredOrders.length === 0 ? (
-            <div className="giu-card space-y-2 text-center">
+            <div className="giu-card space-y-3 text-center">
               <p className="font-bold text-giu-ink">{t(locale, "mNoOrders")}</p>
               <p className="text-[13px] text-giu-muted">{t(locale, "mNoOrdersHint")}</p>
-              <Link
-                href={panelHref}
-                className="giu-btn-primary mt-1 inline-flex !w-auto !px-5 !py-2.5 text-[13px]"
-              >
+              <Link href={panelHref} className="giu-btn-primary giu-btn-3d block !py-3 text-[14px]">
                 {t(locale, "mGoBoxes")}
               </Link>
             </div>
@@ -283,10 +290,11 @@ export function MerchantPanelClient() {
                 {visibleOrders.map((r) => {
                   const box = boxMap.get(r.boxId);
                   const net = r.totalVnd - r.platformFeeVnd;
+                  const awaitingPickup = r.status === "giu_cho" && r.paymentStatus === "paid";
                   return (
                     <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
                           <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
                           {box ? (
@@ -299,11 +307,29 @@ export function MerchantPanelClient() {
                               {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                             </p>
                           ) : null}
+                          {awaitingPickup ? (
+                            <button
+                              type="button"
+                              onClick={() => fillPickupCode(r.code)}
+                              className="giu-tap mt-2 flex w-full items-center justify-between gap-2 rounded-[14px] bg-giu-accent-soft px-3 py-2.5 ring-1 ring-giu-accent/20"
+                            >
+                              <span className="text-[11px] font-bold text-giu-muted">
+                                {t(locale, "mOrderCode")}
+                              </span>
+                              <span className="font-mono text-[18px] font-extrabold tracking-[0.18em] text-giu-ink">
+                                {r.code}
+                              </span>
+                              <span className="shrink-0 text-[11px] font-bold text-giu-accent">
+                                {t(locale, "mPickupCodeFill")}
+                              </span>
+                            </button>
+                          ) : (
+                            <p className="mt-1 text-[12px] text-giu-muted">
+                              {t(locale, "mOrderCode")} {r.code} · {t(locale, "mOrderQty")} {r.quantity}
+                              {t(locale, "mUnitQty")}
+                            </p>
+                          )}
                           <p className="mt-1 text-[12px] text-giu-muted">
-                            {t(locale, "mOrderCode")} {r.code} · {t(locale, "mOrderQty")} {r.quantity}
-                            {t(locale, "mUnitQty")}
-                          </p>
-                          <p className="text-[12px] text-giu-muted">
                             {money(r.totalVnd)} · {t(locale, "mOrderFee")} {money(r.platformFeeVnd)} ·{" "}
                             {t(locale, "mOrderNet")} {money(net)}
                           </p>
