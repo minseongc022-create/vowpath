@@ -161,12 +161,15 @@
 }
 
 .giu-sheet-backdrop {
-  @apply fixed inset-0 z-[60] flex items-end justify-center bg-giu-ink/30 backdrop-blur-[2px];
-  animation: giu-fade-in 0.15s ease both;
+  @apply fixed inset-0 z-[60] flex items-end justify-center;
+}
+
+.giu-sheet-dismiss {
+  @apply absolute inset-0;
 }
 
 .giu-sheet {
-  @apply w-full max-w-[480px] rounded-t-[24px] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_48px_rgba(45,62,78,0.18)] md:max-w-xl;
+  @apply relative z-[1] w-full max-w-[480px] rounded-t-[24px] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-16px_56px_rgba(45,62,78,0.22)] md:max-w-xl;
   max-height: min(88dvh, 640px);
   overflow-y: auto;
 }

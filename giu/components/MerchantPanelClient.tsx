@@ -260,7 +260,8 @@ export function MerchantPanelClient() {
                         {r.customerName} · {r.customerPhone}
                       </p>
                       <p className="text-[12px] text-giu-muted">
-                        {money(r.totalVnd)} · {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
+                        {t(locale, "mOrderQty")} {r.quantity}개 · {money(r.totalVnd)} ·{" "}
+                        {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
                         · {formatReservationStatusLocale(r.status, locale)}
                         {r.settlementStatus === "held"
                           ? ` · ${t(locale, "mSettleHeld")}`

@@ -124,7 +124,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             [
               [t(locale, "date"), formatPickupDate(box.pickupStart)],
               [t(locale, "time"), formatPickupWindow(box.pickupStart, box.pickupEnd)],
-              [t(locale, "left"), `${box.quantityLeft}`],
+              [t(locale, "leftCount"), `${box.quantityLeft}개 / ${box.quantityTotal}개`],
               [t(locale, "address"), merchant.address],
             ] as const
           ).map(([label, value]) => (
@@ -170,6 +170,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             boxId={box.id}
             boxTitle={box.title}
             salePriceVnd={box.salePriceVnd}
+            maxQuantity={box.quantityLeft}
             checkoutBackend={checkoutBackend}
             tossClientKey={tossKey}
             compact

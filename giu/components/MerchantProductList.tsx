@@ -15,7 +15,7 @@ type Props = {
   onChanged: () => Promise<void>;
 };
 
-type SheetMode = "view" | "edit";
+type SheetMode = "view" | "edit" | "confirm-republish";
 
 export function MerchantProductList({ locale, boxes, onChanged }: Props) {
   const market = "kr" as const;
@@ -77,6 +77,33 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
     }
   }
 
+  async function republishBox() {
+    if (!selected) return;
+    hapticConfirm();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/giu/boxes/republish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ boxId: selected.id }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? t(locale, "mCreateFail"));
+        return;
+      }
+      hapticConfirm();
+      closeSheet();
+      await onChanged();
+    } catch {
+      setError(t(locale, "mLoadError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!selected) return;
@@ -116,7 +143,9 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
     }
   }
 
-  const canCancel = selected?.status === "mo";
+  const isActive = selected?.status === "mo" && (selected?.quantityLeft ?? 0) > 0;
+  const canCancelListing = selected?.status === "mo";
+  const canRepublish = selected && !isActive;
 
   return (
     <>
@@ -146,8 +175,8 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                   <div className="min-w-0">
                     <p className="truncate font-bold">{box.title}</p>
                     <p className="text-[12px] text-giu-muted">
-                      {money(box.salePriceVnd)} · {box.quantityLeft}/{box.quantityTotal} ·{" "}
-                      {formatBoxStatusLocale(box.status, locale)}
+                      {money(box.salePriceVnd)} · {t(locale, "mQtyLeft")} {box.quantityLeft}/
+                      {box.quantityTotal} · {formatBoxStatusLocale(box.status, locale)}
                     </p>
                     <p className="text-[11px] text-giu-muted">
                       {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
@@ -168,116 +197,15 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
       </section>
 
       {selected ? (
-        <div className="giu-sheet-backdrop" onClick={closeSheet} role="presentation">
+        <div className="giu-sheet-backdrop" role="presentation">
+          <button type="button" className="giu-sheet-dismiss" aria-label={t(locale, "mCloseSheet")} onClick={closeSheet} />
           <div
             className="giu-sheet giu-sheet-enter"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="giu-product-sheet-title"
           >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-giu-border" />
-
-            {mode === "view" ? (
-              <div className="giu-panel-enter space-y-3">
-                <div>
-                  <h3 id="giu-product-sheet-title" className="text-[17px] font-bold text-giu-ink">
-                    {selected.title}
-                  </h3>
-                  <p className="mt-1 text-[12px] font-medium text-giu-accent">
-                    {formatBoxStatusLocale(selected.status, locale)}
-                  </p>
-                </div>
-
-                {selected.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={selected.imageUrl}
-                    alt=""
-                    className="max-h-40 w-full rounded-[16px] object-cover ring-1 ring-giu-border"
-                  />
-                ) : null}
-
-                <dl className="grid grid-cols-2 gap-2 text-[13px]">
-                  {(
-                    [
-                      [t(locale, "mSale"), money(selected.salePriceVnd)],
-                      [t(locale, "mOriginal"), money(selected.originalPriceVnd)],
-                      [t(locale, "mQty"), `${selected.quantityLeft}/${selected.quantityTotal}`],
-                      [t(locale, "mCategory"), categoryLabel(selected.category, locale)],
-                      [t(locale, "time"), formatPickupWindow(selected.pickupStart, selected.pickupEnd, market)],
-                    ] as const
-                  ).map(([label, value]) => (
-                    <div key={label} className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
-                      <dt className="text-[10px] font-medium text-giu-muted">{label}</dt>
-                      <dd className="mt-0.5 font-semibold text-giu-ink">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-
-                {selected.description ? (
-                  <p className="text-[13px] leading-relaxed text-giu-muted">{selected.description}</p>
-                ) : null}
-                {selected.freshnessNote ? (
-                  <p className="giu-info-banner text-[12px]">{selected.freshnessNote}</p>
-                ) : null}
-
-                {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
-
-                {confirmCancel ? (
-                  <div className="giu-panel-enter space-y-2 rounded-[16px] bg-red-50 p-3 ring-1 ring-red-100">
-                    <p className="text-[13px] font-bold text-giu-ink">{t(locale, "mCancelListingConfirm")}</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void cancelListing()}
-                        className="giu-btn-danger giu-btn-3d flex-1 !py-2.5 text-[13px]"
-                      >
-                        {busy ? t(locale, "loading") : t(locale, "mCancelListingYes")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmCancel(false)}
-                        className="giu-btn-secondary giu-btn-3d flex-1 !py-2.5 text-[13px]"
-                      >
-                        {t(locale, "mCloseNo")}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        hapticSelect();
-                        setMode("edit");
-                        setError("");
-                      }}
-                      className="giu-btn-primary giu-btn-3d flex-1 !py-3"
-                    >
-                      {t(locale, "mEditProduct")}
-                    </button>
-                    {canCancel ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          hapticSelect();
-                          setConfirmCancel(true);
-                        }}
-                        className="giu-btn-danger giu-btn-3d flex-1 !py-3"
-                      >
-                        {t(locale, "mCancelListing")}
-                      </button>
-                    ) : null}
-                  </div>
-                )}
-
-                <button type="button" onClick={closeSheet} className="giu-btn-ghost giu-tap w-full !py-2 text-[13px]">
-                  {t(locale, "mCloseSheet")}
-                </button>
-              </div>
-            ) : (
+            {mode === "edit" ? (
               <form onSubmit={saveEdit} className="giu-panel-enter space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-[17px] font-bold text-giu-ink">{t(locale, "mEditProduct")}</h3>
@@ -289,7 +217,6 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                     {t(locale, "mCloseNo")}
                   </button>
                 </div>
-
                 <div>
                   <label className="giu-label">{t(locale, "mTitle")}</label>
                   <input name="title" required defaultValue={selected.title} className="giu-input" />
@@ -334,6 +261,7 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                 </div>
                 <div>
                   <label className="giu-label">{t(locale, "mQty")}</label>
+                  <p className="mb-1 text-[11px] text-giu-muted">{t(locale, "mQtyHint")}</p>
                   <input
                     name="quantityTotal"
                     type="number"
@@ -344,13 +272,150 @@ export function MerchantProductList({ locale, boxes, onChanged }: Props) {
                     className="giu-input"
                   />
                 </div>
-
                 {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
-
                 <button type="submit" disabled={busy} className="giu-btn-primary giu-btn-3d py-3.5">
                   {busy ? t(locale, "loading") : t(locale, "mSaveEdit")}
                 </button>
               </form>
+            ) : (
+              <div className="giu-panel-enter space-y-3">
+                <div>
+                  <h3 id="giu-product-sheet-title" className="text-[17px] font-bold text-giu-ink">
+                    {selected.title}
+                  </h3>
+                  <p className="mt-1 text-[12px] font-medium text-giu-accent">
+                    {formatBoxStatusLocale(selected.status, locale)}
+                    {selected.status === "mo"
+                      ? ` · ${t(locale, "mQtyLeft")} ${selected.quantityLeft}/${selected.quantityTotal}`
+                      : null}
+                  </p>
+                </div>
+
+                {selected.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selected.imageUrl}
+                    alt=""
+                    className="max-h-40 w-full rounded-[16px] object-cover ring-1 ring-giu-border"
+                  />
+                ) : null}
+
+                <dl className="grid grid-cols-2 gap-2 text-[13px]">
+                  {(
+                    [
+                      [t(locale, "mSale"), money(selected.salePriceVnd)],
+                      [t(locale, "mOriginal"), money(selected.originalPriceVnd)],
+                      [t(locale, "mQtyLeft"), `${selected.quantityLeft}개`],
+                      [t(locale, "mQtyTotal"), `${selected.quantityTotal}개`],
+                      [t(locale, "mCategory"), categoryLabel(selected.category, locale)],
+                      [t(locale, "time"), formatPickupWindow(selected.pickupStart, selected.pickupEnd, market)],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
+                      <dt className="text-[10px] font-medium text-giu-muted">{label}</dt>
+                      <dd className="mt-0.5 font-semibold text-giu-ink">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                {selected.description ? (
+                  <p className="text-[13px] leading-relaxed text-giu-muted">{selected.description}</p>
+                ) : null}
+                {selected.freshnessNote ? (
+                  <p className="giu-info-banner text-[12px]">{selected.freshnessNote}</p>
+                ) : null}
+
+                {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
+
+                {confirmCancel ? (
+                  <div className="giu-panel-enter space-y-2 rounded-[16px] bg-red-50 p-3 ring-1 ring-red-100">
+                    <p className="text-[13px] font-bold text-giu-ink">{t(locale, "mCancelListingConfirm")}</p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void cancelListing()}
+                        className="giu-btn-danger giu-btn-3d !py-2.5 text-[13px]"
+                      >
+                        {busy ? t(locale, "loading") : t(locale, "mCancelListingYes")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmCancel(false)}
+                        className="giu-btn-secondary giu-btn-3d !py-2.5 text-[13px]"
+                      >
+                        {t(locale, "mCloseNo")}
+                      </button>
+                    </div>
+                  </div>
+                ) : mode === "confirm-republish" ? (
+                  <div className="giu-panel-enter space-y-2">
+                    <p className="text-[13px] font-bold text-giu-ink">{t(locale, "mRepublishConfirmTitle")}</p>
+                    <p className="text-[12px] text-giu-muted">{t(locale, "mRepublishConfirmHint")}</p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void republishBox()}
+                        className="giu-btn-primary giu-btn-3d !py-3"
+                      >
+                        {busy ? t(locale, "loading") : t(locale, "mRepublishConfirmYes")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMode("view")}
+                        className="giu-btn-secondary giu-btn-3d !py-3"
+                      >
+                        {t(locale, "mRepublishConfirmNo")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        hapticSelect();
+                        setMode("edit");
+                        setError("");
+                      }}
+                      className="giu-btn-primary giu-btn-3d !py-3"
+                    >
+                      {t(locale, "mEditProduct")}
+                    </button>
+                    {canCancelListing ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          hapticSelect();
+                          setConfirmCancel(true);
+                        }}
+                        className="giu-btn-danger giu-btn-3d !py-3"
+                      >
+                        {t(locale, "mCancelListing")}
+                      </button>
+                    ) : null}
+                    {canRepublish ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          hapticSelect();
+                          setMode("confirm-republish");
+                        }}
+                        className="giu-btn-secondary giu-btn-3d !py-3"
+                      >
+                        {t(locale, "mRepublishThis")}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
+                {!confirmCancel && mode === "view" ? (
+                  <button type="button" onClick={closeSheet} className="giu-btn-ghost giu-tap w-full !py-2 text-[13px]">
+                    {t(locale, "mCloseSheet")}
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         </div>
