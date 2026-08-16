@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatVnd } from "@/giu/lib/format";
@@ -23,6 +23,7 @@ export function ReserveForm({
   boxId,
   boxTitle,
   salePriceVnd,
+  maxQuantity = 5,
   checkoutBackend = "demo",
   tossClientKey,
   compact = false,
@@ -30,6 +31,7 @@ export function ReserveForm({
   boxId: string;
   boxTitle?: string;
   salePriceVnd: number;
+  maxQuantity?: number;
   checkoutBackend?: GiuPaymentBackend;
   tossClientKey?: string;
   compact?: boolean;
@@ -54,7 +56,12 @@ export function ReserveForm({
   const useLsCheckout = checkoutBackend === "lemon_squeezy";
   const useVnpayCheckout = checkoutBackend === "vnpay";
   const useTossCheckout = checkoutBackend === "toss";
+  const cap = Math.max(1, Math.min(maxQuantity, 50));
   const totalAmount = salePriceVnd * quantity;
+
+  useEffect(() => {
+    setQuantity((q) => Math.min(q, cap));
+  }, [cap]);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   async function createReservation(): Promise<boolean> {
@@ -181,22 +188,29 @@ export function ReserveForm({
           <p className="text-xl font-extrabold tracking-tight">{formatVnd(totalAmount)}</p>
         </div>
         {!tossCheckout ? (
-          <div className="flex items-center gap-2" aria-label={t(locale, "qty")}>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            >
-              −
-            </button>
-            <span className="w-5 text-center text-sm font-bold">{quantity}</span>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
-              onClick={() => setQuantity((q) => Math.min(5, q + 1))}
-            >
-              +
-            </button>
+          <div className="text-right">
+            <p className="text-[10px] font-semibold text-giu-muted">{t(locale, "qtyPickHint")}</p>
+            <p className="text-[11px] font-medium text-giu-accent">
+              {cap}
+              {t(locale, "qtyLeftHint")}
+            </p>
+            <div className="mt-1 flex items-center justify-end gap-2" aria-label={t(locale, "qty")}>
+              <button
+                type="button"
+                className="giu-btn-3d giu-tap flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              >
+                −
+              </button>
+              <span className="w-6 text-center text-sm font-bold">{quantity}</span>
+              <button
+                type="button"
+                className="giu-btn-3d giu-tap flex h-9 w-9 items-center justify-center rounded-xl bg-giu-bg text-lg ring-1 ring-giu-border"
+                onClick={() => setQuantity((q) => Math.min(cap, q + 1))}
+              >
+                +
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
