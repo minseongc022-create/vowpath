@@ -20,6 +20,8 @@ import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
 import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
+import { GIU_ROUTES } from "@/giu/lib/routes";
+import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -27,6 +29,7 @@ type Props = { params: Promise<{ id: string }> };
 export default async function GiuBoxDetailPage({ params }: Props) {
   const { id } = await params;
   const locale = await getGiuLocaleServer();
+  const href = await getGiuHref();
   const box = await getBox(id);
   if (!box) notFound();
   const merchant = await getMerchant(box.merchantId);
@@ -44,7 +47,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   return (
     <div className="giu-page !pt-0 space-y-3">
       <div className="flex items-center justify-between gap-2 py-2">
-        <Link href="/giu/hop" className="text-[13px] font-bold text-giu-primary">
+        <Link href={href(GIU_ROUTES.customer.home)} className="text-[13px] font-bold text-giu-primary">
           {t(locale, "back")}
         </Link>
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
@@ -152,7 +155,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         <div className="giu-card text-center">
           <p className="font-bold text-giu-ink">{t(locale, "soldOut")}</p>
           <p className="mt-1 text-[13px] text-giu-muted">{t(locale, "soldOutHint")}</p>
-          <Link href="/giu/hop" className="giu-btn-primary mt-3 block text-center">
+          <Link href={href(GIU_ROUTES.customer.home)} className="giu-btn-primary mt-3 block text-center">
             {t(locale, "otherBoxes")}
           </Link>
         </div>

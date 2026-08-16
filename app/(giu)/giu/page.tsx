@@ -1,11 +1,14 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getGiuSession } from "@/giu/lib/auth-request";
-import { GIU_ROUTES, homePathForRole } from "@/giu/lib/routes";
+import { homePathForRole } from "@/giu/lib/routes";
 
 export default async function GiuRootPage() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
   const session = await getGiuSession();
   if (session) {
-    redirect(homePathForRole(session.role));
+    redirect(homePathForRole(session.role, host));
   }
-  redirect(GIU_ROUTES.customer.home);
+  redirect(homePathForRole("customer", host));
 }

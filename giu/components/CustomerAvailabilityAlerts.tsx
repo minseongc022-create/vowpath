@@ -12,6 +12,7 @@ import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox } from "@/giu/lib/types";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 type AlertItem = { boxId: string; title: string };
 
@@ -19,6 +20,7 @@ const POLL_MS = 45_000;
 
 export function CustomerAvailabilityAlerts() {
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const [alert, setAlert] = useState<AlertItem | null>(null);
 
   const poll = useCallback(async () => {
@@ -75,7 +77,7 @@ export function CustomerAvailabilityAlerts() {
           <p className="mt-0.5 truncate text-white/80">{alert.title}</p>
         </div>
         <Link
-          href={GIU_ROUTES.customer.box(alert.boxId)}
+          href={href(GIU_ROUTES.customer.box(alert.boxId))}
           className="shrink-0 rounded-xl bg-giu-primary px-3 py-1.5 text-xs font-bold"
           onClick={() => setAlert(null)}
         >

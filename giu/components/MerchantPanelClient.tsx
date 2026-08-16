@@ -21,6 +21,7 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -30,6 +31,7 @@ export function MerchantPanelClient() {
   const tab = searchParams.get("tab") === "orders" ? "orders" : "boxes";
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
+  const href = useGiuHref();
   const [boxes, setBoxes] = useState<GiuBox[]>([]);
   const [reservations, setReservations] = useState<GiuReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +234,7 @@ export function MerchantPanelClient() {
           type="button"
           className="giu-btn-primary"
           onClick={() => {
-            window.location.href = `${GIU_ROUTES.auth}?role=merchant`;
+            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
           }}
         >
           {t(locale, "loginSignup")}
@@ -509,7 +511,7 @@ export function MerchantPanelClient() {
               <p className="font-bold text-giu-ink">{t(locale, "mNoOrders")}</p>
               <p className="text-[13px] text-giu-muted">{t(locale, "mNoOrdersHint")}</p>
               <Link
-                href={GIU_ROUTES.merchant.panel}
+                href={href(GIU_ROUTES.merchant.panel)}
                 className="giu-btn-primary mt-1 inline-flex !w-auto !px-5 !py-2.5 text-[13px]"
               >
                 {t(locale, "mGoBoxes")}

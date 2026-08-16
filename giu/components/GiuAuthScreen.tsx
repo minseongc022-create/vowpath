@@ -2,31 +2,38 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { GIu_CATEGORIES } from "@/giu/lib/categories";
 import { GIu_DISTRICTS } from "@/giu/lib/districts";
-import { GIU_ROUTES, homePathForRole, type GiuAppRole } from "@/giu/lib/routes";
+import {
+  GIU_ROUTES,
+  homePathForRole,
+  toGiuInternalPath,
+  type GiuAppRole,
+} from "@/giu/lib/routes";
 import { useGiuAuth } from "./GiuAuthProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 type AuthMode = "login" | "signup";
 
 function safeNextPath(raw: string | null, role: GiuAppRole): string {
-  if (!raw || !raw.startsWith("/giu")) return homePathForRole(role);
-  if (role === "merchant" && !raw.startsWith("/giu/cua-hang")) {
+  if (!raw) return homePathForRole(role);
+  const internal = toGiuInternalPath(raw);
+  if (!internal.startsWith("/giu")) return homePathForRole(role);
+  if (role === "merchant" && !internal.startsWith("/giu/cua-hang")) {
     return GIU_ROUTES.merchant.home;
   }
-  if (role === "customer" && raw.startsWith("/giu/cua-hang")) {
+  if (role === "customer" && internal.startsWith("/giu/cua-hang")) {
     return GIU_ROUTES.customer.home;
   }
-  return raw;
+  return internal;
 }
 
 export function GiuAuthScreen() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const href = useGiuHref();
   const { refresh, applySession } = useGiuAuth();
 
-  // Role is fixed by entry URL — no customer/merchant toggle on one screen.
   const role = (searchParams.get("role") === "merchant" ? "merchant" : "customer") as GiuAppRole;
   const initialMode = (searchParams.get("mode") === "signup" ? "signup" : "login") as AuthMode;
 
@@ -38,6 +45,11 @@ export function GiuAuthScreen() {
     () => safeNextPath(searchParams.get("next"), role),
     [role, searchParams],
   );
+
+  function go(internalPath: string) {
+    // Full navigation — reliable on giucuu.com public-path rewrite host
+    window.location.assign(href(internalPath));
+  }
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,7 +88,7 @@ export function GiuAuthScreen() {
       } else {
         await refresh();
       }
-      router.push(nextPath);
+      go(nextPath);
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
@@ -121,7 +133,7 @@ export function GiuAuthScreen() {
       } else {
         await refresh();
       }
-      router.push(nextPath);
+      go(nextPath);
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
@@ -171,7 +183,7 @@ export function GiuAuthScreen() {
       } else {
         await refresh();
       }
-      router.push(GIU_ROUTES.merchant.home);
+      go(GIU_ROUTES.merchant.home);
     } catch {
       setError("연결할 수 없습니다. 다시 시도해 주세요.");
     } finally {
@@ -323,14 +335,14 @@ export function GiuAuthScreen() {
       {role === "customer" ? (
         <p className="text-center text-[12px] text-giu-muted">
           가게 사장님이신가요?{" "}
-          <Link href={`${GIU_ROUTES.auth}?role=merchant`} className="font-semibold text-giu-ink">
+          <Link href={`${href(GIU_ROUTES.auth)}?role=merchant`} className="font-semibold text-giu-ink">
             가게 로그인
           </Link>
         </p>
       ) : (
         <p className="text-center text-[12px] text-giu-muted">
           손님이신가요?{" "}
-          <Link href={`${GIU_ROUTES.auth}?role=customer`} className="font-semibold text-giu-ink">
+          <Link href={`${href(GIU_ROUTES.auth)}?role=customer`} className="font-semibold text-giu-ink">
             손님 로그인
           </Link>
         </p>

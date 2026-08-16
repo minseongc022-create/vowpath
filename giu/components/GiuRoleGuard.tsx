@@ -6,6 +6,7 @@ import { GIU_ROUTES, homePathForRole } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { useGiuHref } from "./GiuNavProvider";
 
 function GuardMessage({ text }: { text: string }) {
   return (
@@ -15,11 +16,6 @@ function GuardMessage({ text }: { text: string }) {
   );
 }
 
-/**
- * Merchant routes: require merchant session.
- * Customer routes: always render (map is public) — only bounce merchants away.
- * Never return blank `null` (that looked like a white screen).
- */
 export function GiuRoleGuard({
   requiredRole,
   children,
@@ -29,6 +25,7 @@ export function GiuRoleGuard({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const href = useGiuHref();
   const { account, loading } = useGiuAuth();
   const { locale } = useGiuLocale();
 
@@ -37,19 +34,19 @@ export function GiuRoleGuard({
 
     if (requiredRole === "merchant") {
       if (!account) {
-        router.replace(`${GIU_ROUTES.auth}?role=merchant&next=${encodeURIComponent(pathname)}`);
+        router.replace(`${href(GIU_ROUTES.auth)}?role=merchant&next=${encodeURIComponent(pathname)}`);
         return;
       }
       if (account.role !== "merchant") {
-        router.replace(GIU_ROUTES.customer.home);
+        router.replace(href(GIU_ROUTES.customer.home));
       }
       return;
     }
 
     if (account?.role === "merchant") {
-      router.replace(GIU_ROUTES.merchant.home);
+      router.replace(href(GIU_ROUTES.merchant.home));
     }
-  }, [account, loading, pathname, requiredRole, router]);
+  }, [account, loading, pathname, requiredRole, router, href]);
 
   if (requiredRole === "merchant") {
     if (loading) {
@@ -61,7 +58,6 @@ export function GiuRoleGuard({
     return <>{children}</>;
   }
 
-  // Customer / public: do not block the map on auth/me.
   if (!loading && account?.role === "merchant") {
     return <GuardMessage text={t(locale, "loading")} />;
   }
@@ -71,13 +67,14 @@ export function GiuRoleGuard({
 
 export function GiuAuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const href = useGiuHref();
   const { account, loading } = useGiuAuth();
   const { locale } = useGiuLocale();
 
   useEffect(() => {
     if (loading || !account) return;
-    router.replace(homePathForRole(account.role));
-  }, [account, loading, router]);
+    router.replace(href(homePathForRole(account.role)));
+  }, [account, loading, router, href]);
 
   if (loading) {
     return <GuardMessage text={t(locale, "loading")} />;

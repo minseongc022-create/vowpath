@@ -1,3 +1,5 @@
+import { GIU_HOSTS, GIU_PRIMARY_HOST, giuPublicRedirectPath } from "./giu-host";
+
 export const GIU_ROUTES = {
   auth: "/giu/dang-ky",
   customer: {
@@ -16,21 +18,66 @@ export const GIU_ROUTES = {
 
 export type GiuAppRole = "customer" | "merchant";
 
+/** Browser/URL path → internal /giu/... path (giucuu.com/hop → /giu/hop). */
+export function toGiuInternalPath(pathname: string): string {
+  if (!pathname) return "/giu";
+  if (pathname.startsWith("/giu")) return pathname;
+  if (pathname === "/") return "/giu";
+  return `/giu${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
+}
+
+/** Internal /giu/... → public path on giucuu.com (/giu/hop → /hop). */
+export function toGiuPublicPath(pathname: string): string {
+  return giuPublicRedirectPath(toGiuInternalPath(pathname)) ?? pathname;
+}
+
+export function isGiuHostName(host: string | null | undefined): boolean {
+  if (!host) return false;
+  const h = host.toLowerCase().split(":")[0]?.replace(/^www\./, "") ?? "";
+  return h === GIU_PRIMARY_HOST || GIU_HOSTS.has(h) || GIU_HOSTS.has(`www.${h}`);
+}
+
+/**
+ * Href/router target for the current product host.
+ * On giucuu.com use /hop not /giu/hop (avoids 308 loops + blank RSC).
+ */
+export function giuHref(internalPath: string, host?: string | null): string {
+  const qIndex = internalPath.indexOf("?");
+  const pathOnly = qIndex >= 0 ? internalPath.slice(0, qIndex) : internalPath;
+  const query = qIndex >= 0 ? internalPath.slice(qIndex) : "";
+  const internal = pathOnly.startsWith("/giu") ? pathOnly : toGiuInternalPath(pathOnly);
+  const onGiu =
+    typeof host === "string"
+      ? isGiuHostName(host)
+      : typeof window !== "undefined"
+        ? isGiuHostName(window.location.hostname)
+        : false;
+  const out = onGiu ? toGiuPublicPath(internal) : internal;
+  return `${out}${query}`;
+}
+
 export function isGiuAuthPath(pathname: string): boolean {
+  const p = toGiuInternalPath(pathname);
   return (
-    pathname === GIU_ROUTES.auth ||
-    pathname.startsWith(`${GIU_ROUTES.auth}/`) ||
-    pathname === "/giu/auth" ||
-    pathname.startsWith("/giu/auth/") ||
-    pathname === "/giu/dang-nhap" ||
-    pathname === "/giu/dang-ky"
+    p === GIU_ROUTES.auth ||
+    p.startsWith(`${GIU_ROUTES.auth}/`) ||
+    p === "/giu/auth" ||
+    p.startsWith("/giu/auth/") ||
+    p === "/giu/dang-nhap" ||
+    p === "/giu/dang-ky"
   );
 }
 
 export function isGiuMerchantPath(pathname: string): boolean {
-  return pathname.startsWith("/giu/cua-hang");
+  return toGiuInternalPath(pathname).startsWith("/giu/cua-hang");
 }
 
-export function homePathForRole(role: GiuAppRole): string {
-  return role === "merchant" ? GIU_ROUTES.merchant.home : GIU_ROUTES.customer.home;
+export function isGiuMapHomePath(pathname: string): boolean {
+  const p = toGiuInternalPath(pathname);
+  return p === "/giu/hop" || p === "/giu/hop/";
+}
+
+export function homePathForRole(role: GiuAppRole, host?: string | null): string {
+  const internal = role === "merchant" ? GIU_ROUTES.merchant.home : GIU_ROUTES.customer.home;
+  return giuHref(internal, host);
 }

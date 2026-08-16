@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import type { GiuBox, GiuMerchant } from "@/giu/lib/types";
 import { getCategoryEmoji } from "@/giu/lib/categories";
 import { formatDiscount, formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { GIU_ROUTES } from "@/giu/lib/routes";
+import { useGiuHref } from "./GiuNavProvider";
 
 type Props = {
   box: GiuBox;
@@ -10,11 +14,12 @@ type Props = {
 };
 
 export function BoxCard({ box, merchant, index = 0 }: Props) {
+  const href = useGiuHref();
   const discount = formatDiscount(box.originalPriceVnd, box.salePriceVnd);
 
   return (
     <Link
-      href={`/giu/hop/${box.id}`}
+      href={href(GIU_ROUTES.customer.box(box.id))}
       className="giu-feed-item giu-list-row !gap-0 !overflow-hidden !p-0"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
@@ -28,18 +33,18 @@ export function BoxCard({ box, merchant, index = 0 }: Props) {
           </span>
         )}
       </div>
-      <div className="min-w-0 flex-1 px-3 py-2.5">
+      <div className="min-w-0 flex-1 space-y-1 p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-[15px] font-bold leading-snug text-giu-ink">{box.title}</p>
+          <p className="line-clamp-2 text-[14px] font-extrabold leading-snug text-giu-ink">
+            {box.title}
+          </p>
           <span className="giu-badge-sale shrink-0">{discount}</span>
         </div>
-        <p className="mt-0.5 truncate text-[12px] text-giu-muted">{merchant.name}</p>
-        <div className="mt-1.5 flex items-end justify-between gap-2">
-          <p className="text-[17px] font-extrabold tracking-tight text-giu-ink">
-            {formatVnd(box.salePriceVnd)}
-          </p>
-          <p className="text-right text-[11px] font-medium text-giu-muted">
-            {box.quantityLeft}개 · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+        <p className="truncate text-[12px] font-medium text-giu-muted">{merchant.name}</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[15px] font-extrabold text-giu-ink">{formatVnd(box.salePriceVnd)}</p>
+          <p className="text-[11px] font-semibold text-giu-muted">
+            {formatPickupWindow(box.pickupStart, box.pickupEnd)} · {box.quantityLeft}개
           </p>
         </div>
       </div>
