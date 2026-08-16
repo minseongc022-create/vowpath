@@ -1,6 +1,6 @@
 import type { GiuDistrict } from "./types";
 
-/** Approximate HCMC district centers (WGS84). */
+/** Approximate district centers (WGS84). */
 export const DISTRICT_COORDS: Record<GiuDistrict, { lat: number; lng: number }> = {
   quan_1: { lat: 10.7769, lng: 106.7009 },
   quan_3: { lat: 10.7841, lng: 106.6846 },
@@ -9,10 +9,21 @@ export const DISTRICT_COORDS: Record<GiuDistrict, { lat: number; lng: number }> 
   quan_10: { lat: 10.773, lng: 106.6675 },
   binh_thanh: { lat: 10.8106, lng: 106.709 },
   phu_nhuan: { lat: 10.7991, lng: 106.6802 },
+  icn_jung: { lat: 37.4738, lng: 126.6216 },
+  icn_dong: { lat: 37.4864, lng: 126.6432 },
+  icn_michuhol: { lat: 37.4635, lng: 126.6505 },
+  icn_yeonsu: { lat: 37.3866, lng: 126.6392 },
+  icn_namdong: { lat: 37.4471, lng: 126.7315 },
+  icn_bupyeong: { lat: 37.507, lng: 126.7219 },
+  icn_gyeyang: { lat: 37.5372, lng: 126.7377 },
+  icn_seo: { lat: 37.5459, lng: 126.6756 },
 };
 
 export const HCMC_CENTER = { lat: 10.7769, lng: 106.7009 };
 export const HCMC_DEFAULT_ZOOM = 13;
+
+export const INCHEON_CENTER = { lat: 37.4563, lng: 126.7052 };
+export const INCHEON_DEFAULT_ZOOM = 12;
 
 /** Stable jitter so nearby shops in same district don't stack perfectly. */
 export function merchantCoords(
@@ -24,7 +35,7 @@ export function merchantCoords(
   for (let i = 0; i < merchantId.length; i++) {
     hash = (hash * 31 + merchantId.charCodeAt(i)) >>> 0;
   }
-  const dLat = ((hash % 200) - 100) / 12000; // ~±0.008°
+  const dLat = ((hash % 200) - 100) / 12000;
   const dLng = (((hash >> 8) % 200) - 100) / 12000;
   return { lat: base.lat + dLat, lng: base.lng + dLng };
 }

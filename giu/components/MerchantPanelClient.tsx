@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { GIu_CATEGORIES } from "@/giu/lib/categories";
+import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatBoxStatusLocale,
   formatPaymentStatusLocale,
@@ -11,14 +11,16 @@ import {
 } from "@/giu/lib/box-ux";
 import {
   defaultPickupWindow,
+  formatMoney,
   formatPickupWindow,
-  formatVnd,
-  hcmLocalToIso,
+  localToIso,
+  moneySymbol,
 } from "@/giu/lib/format";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
+import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import type { GiuBox, GiuReservation } from "@/giu/lib/types";
+import type { GiuBox, GiuMarket, GiuReservation } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
@@ -50,6 +52,10 @@ export function MerchantPanelClient() {
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
+  const market: GiuMarket = merchant?.market === "kr" ? "kr" : merchant?.market === "vn" ? "vn" : "kr";
+  const money = (n: number) => formatMoney(n, market);
+  const symbol = moneySymbol(market);
+  const publishCategories = merchantCategories();
   const [boxes, setBoxes] = useState<GiuBox[]>([]);
   const [reservations, setReservations] = useState<GiuReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,8 +155,9 @@ export function MerchantPanelClient() {
       setCreateError(t(locale, "mTimeOrder"));
       return;
     }
-    const pickupStart = hcmLocalToIso(day, start, 0);
-    const pickupEnd = hcmLocalToIso(day, end, 0);
+    const tz = marketTimeZone(market);
+    const pickupStart = localToIso(day, start, 0, tz);
+    const pickupEnd = localToIso(day, end, 0, tz);
     const res = await fetch("/api/giu/boxes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -195,8 +202,7 @@ export function MerchantPanelClient() {
       body: JSON.stringify({
         title: t(locale, "mSurpriseDefault"),
         category: merchant.category,
-        originalPriceVnd: 120_000,
-        salePriceVnd: 49_000,
+        ...quickPublishPrices(market),
         quantityTotal: 5,
         freshnessNote: t(locale, "mFreshDefault"),
         pickupStart: win.start,
@@ -292,11 +298,11 @@ export function MerchantPanelClient() {
           </div>
           <div className="rounded-[12px] bg-giu-bg px-3 py-2">
             <p className="text-[10px] font-medium text-giu-muted">{t(locale, "mSettleHeld")}</p>
-            <p className="font-extrabold text-giu-ink">{formatVnd(settlementHeld)}</p>
+            <p className="font-extrabold text-giu-ink">{money(settlementHeld)}</p>
           </div>
           <div className="rounded-[12px] bg-giu-bg px-3 py-2">
             <p className="text-[10px] font-medium text-giu-muted">{t(locale, "mSettleDone")}</p>
-            <p className="font-extrabold text-giu-ink">{formatVnd(settlementReleased)}</p>
+            <p className="font-extrabold text-giu-ink">{money(settlementReleased)}</p>
           </div>
         </div>
         <p className="text-[11px] text-giu-muted">{t(locale, "mFeeNote")}</p>
@@ -348,7 +354,7 @@ export function MerchantPanelClient() {
 
                 <Field label={t(locale, "mCategory")} hint={t(locale, "mCategoryHint")}>
                   <select name="category" className="giu-input" defaultValue={merchant.category}>
-                    {GIu_CATEGORIES.map((c) => (
+                    {publishCategories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.emoji} {c.label}
                       </option>
@@ -424,15 +430,15 @@ export function MerchantPanelClient() {
                   <Field label={t(locale, "mOriginal")} hint={t(locale, "mOriginalHint")}>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
-                        ₫
+                        {symbol}
                       </span>
                       <input
                         name="originalPriceVnd"
                         required
                         type="number"
-                        min={10000}
-                        step={1000}
-                        defaultValue={120000}
+                        min={market === "kr" ? 1000 : 10000}
+                        step={market === "kr" ? 500 : 1000}
+                        defaultValue={quickPublishPrices(market).originalPriceVnd}
                         inputMode="numeric"
                         className="giu-input !pl-8"
                       />
@@ -441,15 +447,15 @@ export function MerchantPanelClient() {
                   <Field label={t(locale, "mSale")} hint={t(locale, "mSaleHint")}>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
-                        ₫
+                        {symbol}
                       </span>
                       <input
                         name="salePriceVnd"
                         required
                         type="number"
-                        min={5000}
-                        step={1000}
-                        defaultValue={49000}
+                        min={market === "kr" ? 500 : 5000}
+                        step={market === "kr" ? 500 : 1000}
+                        defaultValue={quickPublishPrices(market).salePriceVnd}
                         inputMode="numeric"
                         className="giu-input !pl-8"
                       />
@@ -499,11 +505,11 @@ export function MerchantPanelClient() {
                       <div>
                         <p className="font-bold">{box.title}</p>
                         <p className="text-[12px] text-giu-muted">
-                          {formatVnd(box.salePriceVnd)} · {box.quantityLeft}/{box.quantityTotal} ·{" "}
+                          {money(box.salePriceVnd)} · {box.quantityLeft}/{box.quantityTotal} ·{" "}
                           {formatBoxStatusLocale(box.status, locale)}
                         </p>
                         <p className="text-[11px] text-giu-muted">
-                          {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+                          {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
                         </p>
                         {confirmCloseId === box.id ? (
                           <div className="mt-2 flex gap-2">
@@ -598,7 +604,7 @@ export function MerchantPanelClient() {
                         {r.customerName} · {r.customerPhone}
                       </p>
                       <p className="text-[12px] text-giu-muted">
-                        {formatVnd(r.totalVnd)} · {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
+                        {money(r.totalVnd)} · {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
                         · {formatReservationStatusLocale(r.status, locale)}
                         {r.settlementStatus === "held"
                           ? ` · ${t(locale, "mSettleHeld")}`

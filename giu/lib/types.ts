@@ -7,7 +7,16 @@ export type GiuDistrict =
   | "quan_7"
   | "quan_10"
   | "binh_thanh"
-  | "phu_nhuan";
+  | "phu_nhuan"
+  /** Incheon (KR merchant-first). */
+  | "icn_jung"
+  | "icn_dong"
+  | "icn_michuhol"
+  | "icn_yeonsu"
+  | "icn_namdong"
+  | "icn_bupyeong"
+  | "icn_gyeyang"
+  | "icn_seo";
 
 export type GiuCategory =
   | "banh_mi"

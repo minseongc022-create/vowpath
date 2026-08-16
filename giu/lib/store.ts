@@ -212,7 +212,7 @@ export async function registerMerchantAccount(input: {
     phone,
     passwordHash: await hashPassword(input.password),
     name: input.name.trim(),
-    market: input.market ?? "vn",
+    market: input.market ?? "kr",
     createdAt: new Date().toISOString(),
   };
 
@@ -235,7 +235,7 @@ export async function registerMerchantAccount(input: {
     rating: 0,
     reviewCount: 0,
     rescuedBoxes: 0,
-    market: input.market ?? "vn",
+    market: input.market ?? "kr",
     createdAt: new Date().toISOString(),
   };
 

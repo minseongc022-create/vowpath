@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { GIu_CATEGORIES } from "@/giu/lib/categories";
-import { GIu_DISTRICTS } from "@/giu/lib/districts";
+import { merchantCategories } from "@/giu/lib/categories";
+import { merchantDistricts } from "@/giu/lib/districts";
 import {
   GIU_ROUTES,
   homePathForRole,
@@ -159,7 +159,7 @@ export function GiuAuthScreen() {
           district: fd.get("district"),
           address: fd.get("address"),
           phone: fd.get("phone"),
-          zalo: fd.get("zalo") || undefined,
+          market: "kr",
         }),
       });
       const data = (await res.json()) as {
@@ -191,6 +191,9 @@ export function GiuAuthScreen() {
     }
   }
 
+  const krCategories = merchantCategories();
+  const krDistricts = merchantDistricts();
+
   return (
     <div className="giu-page space-y-5">
       <div>
@@ -198,13 +201,15 @@ export function GiuAuthScreen() {
           {role === "merchant"
             ? mode === "login"
               ? "가게 로그인"
-              : "가게 등록"
+              : "인천 가게 입점"
             : mode === "login"
               ? "손님 로그인"
               : "손님 가입"}
         </h1>
         <p className="mt-1 text-sm text-giu-muted">
-          {role === "merchant" ? "박스 등록 · 주문 · 정산" : "박스 찾기 · 결제 · 픽업 코드"}
+          {role === "merchant"
+            ? "마감할인 등록 · 주문 · 정산 · 입점비 0원"
+            : "박스 찾기 · 결제 · 픽업 코드"}
         </p>
       </div>
 
@@ -267,7 +272,7 @@ export function GiuAuthScreen() {
         <form onSubmit={handleMerchantSignup} className="giu-card space-y-4">
           <div>
             <label className="giu-label">가게 이름</label>
-            <input name="name" required className="giu-input" />
+            <input name="name" required className="giu-input" placeholder="예: OO베이커리 송도점" />
           </div>
           <div>
             <label className="giu-label">로그인 이메일</label>
@@ -279,8 +284,8 @@ export function GiuAuthScreen() {
           </div>
           <div>
             <label className="giu-label">업종</label>
-            <select name="category" required className="giu-input" defaultValue="banh_mi">
-              {GIu_CATEGORIES.map((c) => (
+            <select name="category" required className="giu-input" defaultValue="bakery">
+              {krCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.emoji} {c.label}
                 </option>
@@ -288,9 +293,9 @@ export function GiuAuthScreen() {
             </select>
           </div>
           <div>
-            <label className="giu-label">구(군)</label>
-            <select name="district" required className="giu-input" defaultValue="quan_1">
-              {GIu_DISTRICTS.map((d) => (
+            <label className="giu-label">인천 구</label>
+            <select name="district" required className="giu-input" defaultValue="icn_yeonsu">
+              {krDistricts.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.label}
                 </option>
@@ -299,19 +304,21 @@ export function GiuAuthScreen() {
           </div>
           <div>
             <label className="giu-label">가게 주소</label>
-            <input name="address" required className="giu-input" placeholder="번지, 거리, 구" />
+            <input
+              name="address"
+              required
+              minLength={5}
+              className="giu-input"
+              placeholder="예: 인천 연수구 컨벤시아대로 123"
+            />
           </div>
           <div>
             <label className="giu-label">전화번호</label>
-            <input name="phone" required type="tel" className="giu-input" placeholder="0901234567" />
-          </div>
-          <div>
-            <label className="giu-label">Zalo (선택)</label>
-            <input name="zalo" type="tel" className="giu-input" />
+            <input name="phone" required type="tel" className="giu-input" placeholder="01012345678" />
           </div>
           {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
           <button type="submit" disabled={loading} className="giu-btn-primary">
-            {loading ? "가입 중..." : "가게로 시작"}
+            {loading ? "가입 중..." : "무료 입점 & 시작"}
           </button>
         </form>
       )}

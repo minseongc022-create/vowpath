@@ -8,6 +8,14 @@ export const DISTRICT_LABELS_VI: Record<GiuDistrict, string> = {
   quan_10: "Quận 10",
   binh_thanh: "Bình Thạnh",
   phu_nhuan: "Phú Nhuận",
+  icn_jung: "Jung-gu (Incheon)",
+  icn_dong: "Dong-gu (Incheon)",
+  icn_michuhol: "Michuhol-gu",
+  icn_yeonsu: "Yeonsu-gu",
+  icn_namdong: "Namdong-gu",
+  icn_bupyeong: "Bupyeong-gu",
+  icn_gyeyang: "Gyeyang-gu",
+  icn_seo: "Seo-gu",
 };
 
 export const DISTRICT_LABELS_KO: Record<GiuDistrict, string> = {
@@ -18,6 +26,14 @@ export const DISTRICT_LABELS_KO: Record<GiuDistrict, string> = {
   quan_10: "10군",
   binh_thanh: "빈탄",
   phu_nhuan: "푸뉴안",
+  icn_jung: "중구 (동인천)",
+  icn_dong: "동구",
+  icn_michuhol: "미추홀구 (주안)",
+  icn_yeonsu: "연수구 (송도)",
+  icn_namdong: "남동구 (구월)",
+  icn_bupyeong: "부평구",
+  icn_gyeyang: "계양구",
+  icn_seo: "서구 (청라·검단)",
 };
 
 export const CATEGORY_LABELS_VI: Record<GiuCategory, string> = {
@@ -34,7 +50,7 @@ export const CATEGORY_LABELS_VI: Record<GiuCategory, string> = {
 export const CATEGORY_LABELS_KO: Record<GiuCategory, string> = {
   banh_mi: "반미",
   bakery: "베이커리",
-  cafe: "카페",
+  cafe: "카페·디저트",
   tra_sua: "버블티",
   nha_hang: "식당",
   tap_hoa: "편의점",

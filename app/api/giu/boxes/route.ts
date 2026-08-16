@@ -14,8 +14,8 @@ const createSchema = z.object({
     .refine((v) => !v || isAllowedGiuImageUrl(v), "이미지 URL이 올바르지 않습니다")
     .optional(),
   category: z.string().refine(isGiuCategory, "업종이 올바르지 않습니다").optional(),
-  originalPriceVnd: z.number().int().min(10000),
-  salePriceVnd: z.number().int().min(5000),
+  originalPriceVnd: z.number().int().min(500),
+  salePriceVnd: z.number().int().min(500),
   quantityTotal: z.number().int().min(1).max(50),
   freshnessNote: z.string().max(200).optional(),
   pickupStart: z.string().datetime().optional(),
@@ -64,7 +64,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
     }
     if (parsed.data.salePriceVnd >= parsed.data.originalPriceVnd) {
-      return NextResponse.json({ error: "구출 가격은 정가보다 낮아야 합니다" }, { status: 400 });
+      return NextResponse.json(
+        { error: "판매가는 정가보다 낮아야 합니다" },
+        { status: 400 },
+      );
+    }
+    if (merchant.market === "kr") {
+      if (parsed.data.originalPriceVnd < 1000 || parsed.data.salePriceVnd < 500) {
+        return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
+      }
+    } else if (parsed.data.originalPriceVnd < 10000 || parsed.data.salePriceVnd < 5000) {
+      return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
     }
 
     const window = defaultPickupWindow();

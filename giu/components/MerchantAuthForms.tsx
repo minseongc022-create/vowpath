@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GIu_CATEGORIES } from "@/giu/lib/categories";
-import { GIu_DISTRICTS } from "@/giu/lib/districts";
+import { merchantCategories } from "@/giu/lib/categories";
+import { merchantDistricts } from "@/giu/lib/districts";
 import { useGiuAuth } from "./GiuAuthProvider";
 
 export function MerchantLoginForm() {
@@ -44,6 +44,7 @@ export function MerchantLoginForm() {
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
       <h2 className="text-xl font-bold text-giu-ink">가게 로그인</h2>
+      <p className="text-[13px] text-giu-muted">인천 마감할인 · 박스 등록 · 주문 · 정산</p>
       <div>
         <label className="giu-label">이메일</label>
         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="giu-input" />
@@ -71,6 +72,8 @@ export function MerchantSignupForm() {
   const { refresh } = useGiuAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const categories = merchantCategories();
+  const districts = merchantDistricts();
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,7 +93,7 @@ export function MerchantSignupForm() {
           district: fd.get("district"),
           address: fd.get("address"),
           phone: fd.get("phone"),
-          zalo: fd.get("zalo") || undefined,
+          market: "kr",
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -110,10 +113,15 @@ export function MerchantSignupForm() {
 
   return (
     <form onSubmit={submit} className="giu-card space-y-4">
-      <h2 className="text-xl font-bold text-giu-ink">가게 등록</h2>
+      <div>
+        <h2 className="text-xl font-bold text-giu-ink">인천 가게 입점</h2>
+        <p className="mt-1 text-[13px] text-giu-muted">
+          입점비 0원 · 마감 빵·디저트만 올리면 손님이 예약·픽업합니다
+        </p>
+      </div>
       <div>
         <label className="giu-label">가게 이름 *</label>
-        <input name="name" required className="giu-input" />
+        <input name="name" required className="giu-input" placeholder="예: OO베이커리 송도점" />
       </div>
       <div>
         <label className="giu-label">로그인 이메일 *</label>
@@ -125,8 +133,8 @@ export function MerchantSignupForm() {
       </div>
       <div>
         <label className="giu-label">업종 *</label>
-        <select name="category" required className="giu-input">
-          {GIu_CATEGORIES.map((c) => (
+        <select name="category" required className="giu-input" defaultValue="bakery">
+          {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.emoji} {c.label}
             </option>
@@ -134,9 +142,9 @@ export function MerchantSignupForm() {
         </select>
       </div>
       <div>
-        <label className="giu-label">구(군) *</label>
-        <select name="district" required className="giu-input">
-          {GIu_DISTRICTS.map((d) => (
+        <label className="giu-label">인천 구 *</label>
+        <select name="district" required className="giu-input" defaultValue="icn_yeonsu">
+          {districts.map((d) => (
             <option key={d.id} value={d.id}>
               {d.label}
             </option>
@@ -145,19 +153,21 @@ export function MerchantSignupForm() {
       </div>
       <div>
         <label className="giu-label">가게 주소 *</label>
-        <input name="address" required className="giu-input" placeholder="번지, 거리, 구" />
+        <input
+          name="address"
+          required
+          minLength={5}
+          className="giu-input"
+          placeholder="예: 인천 연수구 컨벤시아대로 123"
+        />
       </div>
       <div>
         <label className="giu-label">전화번호 *</label>
-        <input name="phone" required type="tel" className="giu-input" placeholder="0901234567" />
-      </div>
-      <div>
-        <label className="giu-label">Zalo (선택)</label>
-        <input name="zalo" type="tel" className="giu-input" />
+        <input name="phone" required type="tel" className="giu-input" placeholder="01012345678" />
       </div>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
       <button type="submit" disabled={loading} className="giu-btn-primary">
-        {loading ? "등록 중..." : "가게 등록 & 패널 이동"}
+        {loading ? "등록 중..." : "무료 입점 & 패널 이동"}
       </button>
       <p className="text-center text-sm text-giu-muted">
         이미 가게가 있으신가요?{" "}
