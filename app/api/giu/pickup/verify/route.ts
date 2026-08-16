@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isPickupQrToken } from "@/giu/lib/pickup-qr";
-import { confirmPickupByToken } from "@/giu/lib/store";
+import { confirmPickupByToken, getBox } from "@/giu/lib/store";
 
 const schema = z.object({
   token: z.string().min(8).max(200),
@@ -25,9 +25,16 @@ export async function POST(request: Request) {
     }
     const result = await confirmPickupByToken(session.merchantId, token);
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: 404 });
+      const status = result.error.includes("만료") ? 410 : 404;
+      return NextResponse.json({ error: result.error }, { status });
     }
-    return NextResponse.json({ reservation: result });
+    const box = await getBox(result.boxId);
+    const net = result.totalVnd - result.platformFeeVnd;
+    return NextResponse.json({
+      reservation: result,
+      boxTitle: box?.title ?? "",
+      netPayoutVnd: net,
+    });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }

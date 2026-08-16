@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const session = await getGiuSessionFromRequest(request);
     if (!session || session.role !== "merchant" || !session.merchantId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
     const merchant = await getMerchantByAccountId(session.sub);
     const merchantId = merchant?.id ?? session.merchantId;

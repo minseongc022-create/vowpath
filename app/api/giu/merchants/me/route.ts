@@ -20,10 +20,10 @@ const patchSchema = z.object({
 export async function GET(request: Request) {
   const session = await getGiuSessionFromRequest(request);
   if (!session || session.role !== "merchant") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
   }
   const merchant = await getMerchantByAccountId(session.sub);
-  if (!merchant) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!merchant) return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
   return NextResponse.json({ merchant });
 }
 
@@ -31,7 +31,7 @@ export async function PATCH(request: Request) {
   try {
     const session = await getGiuSessionFromRequest(request);
     if (!session || session.role !== "merchant") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
     const body = await request.json();
     const parsed = patchSchema.safeParse(body);
@@ -42,7 +42,7 @@ export async function PATCH(request: Request) {
       );
     }
     const merchant = await updateMerchantProfile(session.sub, parsed.data);
-    if (!merchant) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!merchant) return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
     return NextResponse.json({ merchant });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });

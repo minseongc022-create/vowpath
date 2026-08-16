@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
@@ -14,6 +15,7 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
   const { account, merchant, logout } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const storeName =
     merchant?.name?.trim() || account?.name?.trim() || t(locale, "mStoreFallback");
 
@@ -31,11 +33,7 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() =>
-                void logout().then(() => {
-                  window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
-                })
-              }
+              onClick={() => setLogoutOpen(true)}
               className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"
             >
               {t(locale, "logout")}
@@ -49,6 +47,20 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <GiuMerchantBottomNav />
       </Suspense>
+
+      <GiuConfirmSheet
+        open={logoutOpen}
+        title={t(locale, "logout")}
+        message={t(locale, "mLogoutConfirm")}
+        confirmLabel={t(locale, "logout")}
+        cancelLabel={t(locale, "mCloseNo")}
+        onConfirm={() =>
+          void logout().then(() => {
+            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
+          })
+        }
+        onCancel={() => setLogoutOpen(false)}
+      />
     </div>
   );
 }
