@@ -1,5 +1,5 @@
 /**
- * Giu pickup SMS — Vietnam (+84) via dedicated Twilio from-number.
+ * Giu pickup SMS — Korea (+82) via Twilio.
  * Set GIU_TWILIO_FROM (e.g. Twilio number with VN geo enabled).
  */
 export async function sendGiuPickupSms(

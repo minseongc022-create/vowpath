@@ -19,6 +19,7 @@ import type {
   GiuStore,
   GiuWaitlistEntry,
 } from "./types";
+import { getDistrictLabel, isKrDistrict } from "./districts";
 import { notifyPickupCode } from "./notify";
 import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
 import { resolveGiuPaymentBackend } from "./payments";
@@ -67,12 +68,48 @@ function defaultStore(): GiuStore {
   };
 }
 
+const VIETNAMESE_TEXT =
+  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]|Quận|TP\.HCM|HCM|Nguyễn|Huệ/i;
+
+function looksVietnamese(text: string): boolean {
+  return VIETNAMESE_TEXT.test(text);
+}
+
+function defaultKrAddress(district: GiuMerchant["district"]): string {
+  const id = isKrDistrict(district) ? district : "icn_yeonsu";
+  const label = getDistrictLabel(id).split(" (")[0];
+  return `인천 ${label} (주소를 가게 설정에서 수정해 주세요)`;
+}
+
 function migrateMerchant(merchant: GiuMerchant): GiuMerchant {
+  const district = isKrDistrict(merchant.district) ? merchant.district : "icn_yeonsu";
+  const address = looksVietnamese(merchant.address)
+    ? defaultKrAddress(district)
+    : merchant.address;
   return {
     ...merchant,
     accountId: merchant.accountId ?? `acc_legacy_${merchant.id}`,
-    market: merchant.market ?? "vn",
+    market: "kr",
+    district,
+    address,
   };
+}
+
+function migrateAccount(account: GiuAccount): GiuAccount {
+  return { ...account, market: "kr" };
+}
+
+function storeNeedsKrMigration(raw: Partial<GiuStore>): boolean {
+  const merchants = raw.merchants ?? [];
+  const accounts = raw.accounts ?? [];
+  return (
+    merchants.some(
+      (m) =>
+        m.market !== "kr" ||
+        !isKrDistrict(m.district) ||
+        looksVietnamese(m.address),
+    ) || accounts.some((a) => a.market !== "kr")
+  );
 }
 
 function migrateReservation(reservation: GiuReservation): GiuReservation {
@@ -97,14 +134,18 @@ function normalizeStore(raw: Partial<GiuStore>): GiuStore {
     boxes: raw.boxes?.length ? raw.boxes : base.boxes,
     reservations: (raw.reservations ?? []).map(migrateReservation),
     waitlist: raw.waitlist ?? [],
-    accounts: raw.accounts ?? [],
+    accounts: (raw.accounts ?? []).map(migrateAccount),
   };
 }
 
 async function loadStore(): Promise<GiuStore> {
   if (kvConfigured()) {
     const raw = await kvGetSafe<GiuStore>(KV_STORE_KEY);
-    if (raw) return normalizeStore(raw);
+    if (raw) {
+      const store = normalizeStore(raw);
+      if (storeNeedsKrMigration(raw)) await saveStore(store);
+      return store;
+    }
     const store = defaultStore();
     await saveStore(store);
     return store;
@@ -113,7 +154,10 @@ async function loadStore(): Promise<GiuStore> {
   try {
     await mkdir(DATA_DIR, { recursive: true });
     const raw = await readFile(STORE_FILE, "utf8");
-    return normalizeStore(JSON.parse(raw) as Partial<GiuStore>);
+    const parsed = JSON.parse(raw) as Partial<GiuStore>;
+    const store = normalizeStore(parsed);
+    if (storeNeedsKrMigration(parsed)) await saveStore(store);
+    return store;
   } catch {
     const store = defaultStore();
     await saveStore(store);
@@ -173,7 +217,7 @@ export async function registerCustomer(input: {
     phone,
     passwordHash: await hashPassword(input.password),
     name: input.name.trim(),
-    market: input.market ?? "vn",
+    market: input.market ?? "kr",
     createdAt: new Date().toISOString(),
   };
   store.accounts.unshift(account);
@@ -320,7 +364,7 @@ export async function createMerchant(
     rating: 0,
     reviewCount: 0,
     rescuedBoxes: 0,
-    market: "vn",
+    market: "kr",
     createdAt: new Date().toISOString(),
   };
   store.merchants.unshift(merchant);
@@ -336,19 +380,20 @@ export async function listBoxes(filters?: {
   openOnly?: boolean;
   /** Include sold-out / closed boxes that still haven't expired. */
   includeSoldOut?: boolean;
-  /** Filter by calendar day in HCMC: 0=today, 1=tomorrow */
+  /** Filter by calendar day in Seoul: 0=today, 1=tomorrow */
   dayOffset?: 0 | 1;
 }): Promise<GiuBox[]> {
   const store = await loadStore();
   const now = Date.now();
+  const tz = "Asia/Seoul";
 
-  function hcmDayKey(iso: string): string {
-    return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  function localDayKey(iso: string): string {
+    return new Date(iso).toLocaleDateString("en-CA", { timeZone: tz });
   }
-  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: tz });
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
 
   return store.boxes
     .filter((b) => {
@@ -361,8 +406,8 @@ export async function listBoxes(filters?: {
       } else if (filters?.includeSoldOut) {
         if (new Date(b.expiresAt).getTime() < now && b.status === "huy") return false;
       }
-      if (filters?.dayOffset === 0 && hcmDayKey(b.pickupStart) !== todayKey) return false;
-      if (filters?.dayOffset === 1 && hcmDayKey(b.pickupStart) !== tomorrowKey) return false;
+      if (filters?.dayOffset === 0 && localDayKey(b.pickupStart) !== todayKey) return false;
+      if (filters?.dayOffset === 1 && localDayKey(b.pickupStart) !== tomorrowKey) return false;
       if (filters?.district) {
         const merchant = store.merchants.find((m) => m.id === b.merchantId);
         if (!merchant || merchant.district !== filters.district) return false;

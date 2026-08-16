@@ -1,20 +1,15 @@
 import type { GiuBoxStatus, GiuMarket, GiuPaymentStatus, GiuReservationStatus } from "./types";
 import { marketTimeZone } from "./market";
 
-const vnd = new Intl.NumberFormat("ko-KR", {
-  style: "currency",
-  currency: "VND",
-  maximumFractionDigits: 0,
-});
-
 const krw = new Intl.NumberFormat("ko-KR", {
   style: "currency",
   currency: "KRW",
   maximumFractionDigits: 0,
 });
 
+/** Legacy name — amounts are stored in *Vnd fields but displayed as KRW. */
 export function formatVnd(amount: number): string {
-  return vnd.format(amount);
+  return krw.format(amount);
 }
 
 export function formatKrw(amount: number): string {
@@ -22,12 +17,12 @@ export function formatKrw(amount: number): string {
 }
 
 /** Amounts are stored in *Vnd fields; KR merchants store won. */
-export function formatMoney(amount: number, market: GiuMarket = "vn"): string {
-  return market === "kr" ? formatKrw(amount) : formatVnd(amount);
+export function formatMoney(amount: number, _market: GiuMarket = "kr"): string {
+  return formatKrw(amount);
 }
 
-export function moneySymbol(market: GiuMarket): string {
-  return market === "kr" ? "₩" : "₫";
+export function moneySymbol(_market: GiuMarket = "kr"): string {
+  return "₩";
 }
 
 export function formatDiscount(original: number, sale: number): string {
@@ -38,7 +33,7 @@ export function formatDiscount(original: number, sale: number): string {
 export function formatPickupWindow(
   startIso: string,
   endIso: string,
-  market: GiuMarket = "vn",
+  market: GiuMarket = "kr",
 ): string {
   const opts: Intl.DateTimeFormatOptions = {
     hour: "2-digit",
@@ -50,7 +45,7 @@ export function formatPickupWindow(
   return `${start} – ${end}`;
 }
 
-export function formatPickupDate(iso: string, market: GiuMarket = "vn"): string {
+export function formatPickupDate(iso: string, market: GiuMarket = "kr"): string {
   return new Date(iso).toLocaleDateString("ko-KR", {
     weekday: "short",
     day: "numeric",
@@ -108,7 +103,7 @@ export function localToIso(
   dayOffset: number,
   hour: number,
   minute = 0,
-  timeZone = "Asia/Ho_Chi_Minh",
+  timeZone = "Asia/Seoul",
 ): string {
   const now = new Date();
   const local = new Date(now.toLocaleString("en-US", { timeZone }));

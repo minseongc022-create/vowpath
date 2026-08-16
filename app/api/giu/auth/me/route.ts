@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       name: session.name,
       phone: session.phone,
       role: session.role,
-      market: session.market,
+      market: merchant?.market ?? "kr",
     },
     merchant,
   });

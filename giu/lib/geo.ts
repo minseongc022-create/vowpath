@@ -30,7 +30,7 @@ export function merchantCoords(
   merchantId: string,
   district: GiuDistrict,
 ): { lat: number; lng: number } {
-  const base = DISTRICT_COORDS[district] ?? HCMC_CENTER;
+  const base = DISTRICT_COORDS[district] ?? INCHEON_CENTER;
   let hash = 0;
   for (let i = 0; i < merchantId.length; i++) {
     hash = (hash * 31 + merchantId.charCodeAt(i)) >>> 0;

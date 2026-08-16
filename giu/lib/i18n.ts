@@ -88,7 +88,7 @@ const KO: Dict = {
   locUnsupported: "이 기기는 위치 기능을 지원하지 않아요",
   locDenied: "근처 거리를 보려면 위치 권한을 허용해 주세요",
   guestName: "손님",
-  mapHcmcFocus: "지도는 서비스 지역 중심으로 보여요 (위치가 멀면 기본 지역을 유지합니다)",
+  mapIncheonFocus: "인천",
   surprise: "마감 럭키백",
   surpriseHint: "구성은 당일 남은 재고에 따라 달라요 · 맛은 보장!",
   closingSoon: "마감 임박",

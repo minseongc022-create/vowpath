@@ -52,7 +52,7 @@ export function MerchantPanelClient() {
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
-  const market: GiuMarket = merchant?.market === "kr" ? "kr" : merchant?.market === "vn" ? "vn" : "kr";
+  const market: GiuMarket = "kr";
   const money = (n: number) => formatMoney(n, market);
   const symbol = moneySymbol(market);
   const publishCategories = merchantCategories();

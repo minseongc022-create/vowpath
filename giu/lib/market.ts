@@ -33,13 +33,10 @@ export function marketTimeZone(market: GiuMarket): string {
   return market === "kr" ? "Asia/Seoul" : "Asia/Ho_Chi_Minh";
 }
 
-/** Quick-publish defaults (stored in *Vnd fields; KR = won amounts). */
-export function quickPublishPrices(market: GiuMarket): {
+/** Quick-publish defaults (stored in *Vnd fields; values are KRW). */
+export function quickPublishPrices(_market: GiuMarket = "kr"): {
   originalPriceVnd: number;
   salePriceVnd: number;
 } {
-  if (market === "kr") {
-    return { originalPriceVnd: 12_000, salePriceVnd: 6_000 };
-  }
-  return { originalPriceVnd: 120_000, salePriceVnd: 49_000 };
+  return { originalPriceVnd: 12_000, salePriceVnd: 6_000 };
 }

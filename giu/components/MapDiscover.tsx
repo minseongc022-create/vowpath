@@ -459,7 +459,7 @@ export function MapDiscover({ pins }: Props) {
                 onClick={focusCity}
                 className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-accent shadow-sm ring-1 ring-black/[0.04]"
               >
-                TP.HCM ↓
+                {t(locale, "mapIncheonFocus")} ↓
               </button>
             ) : null}
           </div>

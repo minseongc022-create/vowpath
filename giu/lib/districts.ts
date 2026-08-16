@@ -28,9 +28,9 @@ export function districtsForMarket(market: GiuMarket) {
   return GIu_DISTRICTS.filter((d) => d.market === market);
 }
 
-/** Customer map still HCMC — VN districts only. */
+/** Customer map — Incheon KR districts. */
 export function customerDistricts() {
-  return districtsForMarket("vn");
+  return districtsForMarket("kr");
 }
 
 /** Merchant signup / panel — Incheon KR. */
