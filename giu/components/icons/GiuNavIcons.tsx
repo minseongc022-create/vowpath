@@ -6,7 +6,7 @@ type IconProps = {
 const base = "h-6 w-6 shrink-0";
 
 function stroke(active?: boolean) {
-  return active ? "stroke-giu-primary" : "stroke-giu-muted";
+  return active ? "stroke-giu-accent" : "stroke-giu-muted";
 }
 
 export function GiuIconHome({ active, className = base }: IconProps) {
@@ -78,7 +78,7 @@ export function GiuIconHeart({ active, className = base }: IconProps) {
         strokeWidth="1.75"
         strokeLinejoin="round"
         fill={active ? "currentColor" : "none"}
-        className={active ? "fill-giu-primary stroke-giu-primary" : ""}
+        className={active ? "fill-giu-accent stroke-giu-accent" : ""}
       />
     </svg>
   );

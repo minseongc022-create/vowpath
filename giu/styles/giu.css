@@ -1,18 +1,18 @@
 .giu-theme {
-  --giu-bg: #f2f4f6;
+  --giu-bg: #f4f7f6;
   --giu-surface: #ffffff;
-  --giu-ink: #191f28;
-  --giu-muted: #6b7684;
-  --giu-border: #e5e8eb;
-  --giu-primary: #191f28;
-  --giu-primary-hover: #333d4b;
-  --giu-primary-soft: #f2f4f6;
-  --giu-accent: #3182f6;
-  --giu-accent-hover: #1b64da;
-  --giu-accent-soft: #e8f3ff;
-  --giu-mint: #90c2ff;
-  --giu-danger: #f04452;
-  --giu-gold: #ffb800;
+  --giu-ink: #2d3e4e;
+  --giu-muted: #7a8a96;
+  --giu-border: #e2e8e6;
+  --giu-primary: #2d3e4e;
+  --giu-primary-hover: #223240;
+  --giu-primary-soft: #e8eef2;
+  --giu-accent: #6ba894;
+  --giu-accent-hover: #569882;
+  --giu-accent-soft: #e8f4ef;
+  --giu-mint: #9dcab8;
+  --giu-danger: #d64545;
+  --giu-gold: #c4a35a;
 }
 
 .giu-app {
@@ -28,7 +28,6 @@
   color: var(--giu-ink);
 }
 
-/* Map home fills the small viewport (browser chrome visible) without clipping */
 .giu-map-shell {
   height: 100dvh;
   height: 100svh;
@@ -42,19 +41,37 @@
 }
 
 .giu-page {
-  @apply mx-auto w-full max-w-[480px] px-4 pb-24 pt-2 md:max-w-xl lg:max-w-2xl;
+  @apply mx-auto w-full max-w-[480px] px-4 pb-28 pt-2 md:max-w-xl lg:max-w-2xl;
 }
 
 .giu-card {
-  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_2px_16px_rgba(0,0,0,0.04)];
+  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_8px_32px_rgba(45,62,78,0.08)];
 }
 
 .giu-card-flat {
-  @apply rounded-[20px] bg-giu-surface p-4;
+  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_4px_20px_rgba(45,62,78,0.05)];
 }
 
 .giu-btn {
-  @apply inline-flex items-center justify-center rounded-[16px] px-5 py-3.5 text-[15px] font-semibold tracking-tight transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-[16px] px-5 py-3.5 text-[15px] font-semibold tracking-tight transition duration-200 disabled:pointer-events-none disabled:opacity-50;
+}
+
+.giu-btn-3d {
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.25) inset,
+    0 4px 14px rgb(45 62 78 / 0.12),
+    0 1px 3px rgb(45 62 78 / 0.08);
+  transform: translateY(0);
+  transition:
+    transform 0.15s cubic-bezier(0.34, 1.2, 0.64, 1),
+    box-shadow 0.15s ease;
+}
+
+.giu-btn-3d:active:not(:disabled) {
+  transform: translateY(2px) scale(0.98);
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.15) inset,
+    0 1px 6px rgb(45 62 78 / 0.1);
 }
 
 .giu-btn-primary {
@@ -62,7 +79,7 @@
 }
 
 .giu-btn-secondary {
-  @apply giu-btn w-full bg-giu-primary-soft text-giu-ink hover:bg-giu-border;
+  @apply giu-btn w-full bg-white text-giu-ink ring-1 ring-giu-border hover:bg-giu-primary-soft;
 }
 
 .giu-btn-ghost {
@@ -70,7 +87,7 @@
 }
 
 .giu-input {
-  @apply w-full rounded-[14px] border-0 bg-giu-bg px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-accent/40;
+  @apply w-full rounded-[14px] border-0 bg-giu-bg px-3.5 py-3 text-[15px] text-giu-ink outline-none ring-1 ring-giu-border placeholder:text-giu-muted focus:bg-white focus:ring-2 focus:ring-giu-accent/35;
 }
 
 .giu-label {
@@ -98,7 +115,7 @@
 }
 
 .giu-list-row {
-  @apply flex items-center gap-3 rounded-[18px] bg-giu-surface p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition active:scale-[0.99];
+  @apply flex items-center gap-3 rounded-[18px] bg-giu-surface p-3.5 shadow-[0_6px_24px_rgba(45,62,78,0.07)] transition active:scale-[0.99];
 }
 
 .giu-info-banner {
@@ -113,8 +130,53 @@
   animation: giu-rise 0.4s ease both;
 }
 
+.giu-panel-enter {
+  animation: giu-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.giu-tab-panel {
+  animation: giu-tab-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.giu-floating-nav {
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgb(45 62 78 / 0.06),
+    0 8px 32px rgb(45 62 78 / 0.14),
+    0 2px 8px rgb(45 62 78 / 0.06);
+}
+
+.giu-floating-nav-pill {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  border-radius: 9999px;
+  background: var(--giu-accent-soft);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  transition: transform 0.32s cubic-bezier(0.34, 1.25, 0.64, 1);
+  pointer-events: none;
+}
+
+.giu-floating-nav-item {
+  @apply relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-semibold tracking-tight text-giu-muted transition duration-200;
+  transform: translateY(0);
+}
+
+.giu-floating-nav-item.is-active {
+  @apply text-giu-accent;
+  transform: translateY(-1px);
+}
+
+.giu-floating-nav-item:active {
+  transform: scale(0.92);
+}
+
 .giu-ticket {
-  @apply relative overflow-hidden rounded-[24px] bg-giu-surface p-5 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)];
+  @apply relative overflow-hidden rounded-[24px] bg-giu-surface p-5 text-center shadow-[0_8px_32px_rgba(45,62,78,0.1)];
   background-image:
     radial-gradient(circle at 0% 50%, transparent 8px, var(--giu-surface) 8px),
     radial-gradient(circle at 100% 50%, transparent 8px, var(--giu-surface) 8px);
@@ -128,11 +190,11 @@
 }
 
 .giu-sticky-pay {
-  @apply fixed inset-x-0 bottom-0 z-40 border-t border-giu-border/80 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl;
+  @apply fixed inset-x-0 bottom-0 z-40 border-t border-giu-border/80 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_32px_rgba(45,62,78,0.08)] backdrop-blur-xl;
 }
 
 .giu-map-fab {
-  @apply flex h-12 w-12 items-center justify-center rounded-full bg-white text-giu-ink shadow-[0_4px_16px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] transition active:scale-95;
+  @apply flex h-12 w-12 items-center justify-center rounded-full bg-white text-giu-ink shadow-[0_6px_20px_rgba(45,62,78,0.14)] ring-1 ring-black/[0.04] transition active:scale-95;
 }
 
 .giu-photo img {
@@ -150,9 +212,41 @@
   }
 }
 
+@keyframes giu-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes giu-tab-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .giu-feed-item {
+  .giu-feed-item,
+  .giu-panel-enter,
+  .giu-tab-panel {
     animation: none;
+  }
+
+  .giu-floating-nav-pill {
+    transition: none;
+  }
+
+  .giu-btn-3d:active:not(:disabled) {
+    transform: none;
   }
 }
 

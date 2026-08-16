@@ -857,6 +857,16 @@ export async function updateMerchantProfile(
   return merchant;
 }
 
+export async function republishBox(
+  merchantId: string,
+  sourceBoxId: string,
+): Promise<GiuBox | { error: string }> {
+  const store = await loadStore();
+  const source = store.boxes.find((b) => b.id === sourceBoxId && b.merchantId === merchantId);
+  if (!source) return { error: "상품을 찾을 수 없어요" };
+  return cloneBoxForRepublish(store, source);
+}
+
 export async function republishLastBox(
   merchantId: string,
 ): Promise<GiuBox | { error: string }> {
@@ -865,22 +875,28 @@ export async function republishLastBox(
     .filter((b) => b.merchantId === merchantId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   if (!last) return { error: "이전 박스가 없어요. 먼저 한 번 등록해 주세요." };
+  return cloneBoxForRepublish(store, last);
+}
 
+async function cloneBoxForRepublish(
+  store: GiuStore,
+  source: GiuBox,
+): Promise<GiuBox | { error: string }> {
   const win = defaultPickupWindow(2);
   const box: GiuBox = {
     id: newId("box"),
-    merchantId,
-    title: last.title,
-    description: last.description,
-    imageUrl: last.imageUrl,
-    category: last.category,
-    originalPriceVnd: last.originalPriceVnd,
-    salePriceVnd: last.salePriceVnd,
-    quantityTotal: last.quantityTotal,
-    quantityLeft: last.quantityTotal,
+    merchantId: source.merchantId,
+    title: source.title,
+    description: source.description,
+    imageUrl: source.imageUrl,
+    category: source.category,
+    originalPriceVnd: source.originalPriceVnd,
+    salePriceVnd: source.salePriceVnd,
+    quantityTotal: source.quantityTotal,
+    quantityLeft: source.quantityTotal,
     pickupStart: win.start,
     pickupEnd: win.end,
-    freshnessNote: last.freshnessNote,
+    freshnessNote: source.freshnessNote,
     status: "mo",
     createdAt: new Date().toISOString(),
     expiresAt: win.expires,
