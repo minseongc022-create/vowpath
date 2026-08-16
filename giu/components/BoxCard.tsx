@@ -20,7 +20,7 @@ export function BoxCard({ box, merchant, index = 0 }: Props) {
   return (
     <Link
       href={href(GIU_ROUTES.customer.box(box.id))}
-      className="giu-feed-item giu-list-row !gap-0 !overflow-hidden !p-0"
+      className="giu-feed-item giu-list-row giu-tap !gap-0 !overflow-hidden !p-0"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div className="giu-photo h-[92px] w-[92px] shrink-0">
