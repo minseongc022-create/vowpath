@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { GIu_CATEGORIES } from "@/giu/lib/categories";
 import {
@@ -25,6 +25,24 @@ import { useGiuHref } from "./GiuNavProvider";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-[12px] font-bold text-giu-ink">{label}</span>
+      {hint ? <span className="block text-[11px] leading-snug text-giu-muted">{hint}</span> : null}
+      {children}
+    </label>
+  );
+}
 
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
@@ -294,113 +312,165 @@ export function MerchantPanelClient() {
               <h2 className="font-bold">{t(locale, "mPublish")}</h2>
               <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPublishHint")}</p>
             </div>
-            <button
-              type="button"
-              disabled={quickBusy}
-              onClick={() => void quickPublish()}
-              className="giu-btn-primary !py-3 text-[14px]"
-            >
-              {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
-            </button>
+
+            <div className="rounded-2xl bg-giu-accent-soft/60 p-3 ring-1 ring-giu-accent/20">
+              <p className="text-[12px] leading-snug text-giu-ink">{t(locale, "mQuickPublishDetail")}</p>
+              <button
+                type="button"
+                disabled={quickBusy}
+                onClick={() => void quickPublish()}
+                className="giu-btn-primary mt-2.5 !py-3 text-[14px]"
+              >
+                {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
+              </button>
+              <p className="mt-2 text-center text-[11px] font-medium text-giu-muted">
+                {t(locale, "mQuickPublishSub")}
+              </p>
+            </div>
             {createError ? <p className="text-sm text-giu-danger">{createError}</p> : null}
 
-            <details className="rounded-xl bg-giu-bg/80 p-3">
-              <summary className="cursor-pointer text-[13px] font-bold text-giu-ink">
-                {locale === "vi" ? "Tuỳ chỉnh đăng" : "상세 등록"}
+            <details open className="rounded-xl bg-giu-bg/80 p-3 open:pb-3">
+              <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                <span className="block text-[13px] font-bold text-giu-ink">{t(locale, "mAdvanced")}</span>
+                <span className="mt-0.5 block text-[11px] font-medium text-giu-muted">
+                  {t(locale, "mAdvancedHint")}
+                </span>
               </summary>
-              <form onSubmit={createBox} className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                <input
-                  name="title"
-                  required
-                  placeholder={t(locale, "mTitle")}
-                  defaultValue={t(locale, "mSurpriseDefault")}
-                  className="giu-input sm:col-span-2"
-                />
-                <select name="category" className="giu-input sm:col-span-2" defaultValue={merchant.category}>
-                  {GIu_CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.emoji} {c.label}
-                    </option>
-                  ))}
-                </select>
-                <input name="description" placeholder={t(locale, "mDesc")} className="giu-input sm:col-span-2" />
-                <input
-                  name="imageUrl"
-                  type="url"
-                  placeholder={t(locale, "mPhoto")}
-                  className="giu-input sm:col-span-2"
-                />
-                <input
-                  name="freshnessNote"
-                  placeholder={t(locale, "mFresh")}
-                  defaultValue={t(locale, "mFreshDefault")}
-                  className="giu-input sm:col-span-2"
-                />
-                <label className="text-[11px] font-medium text-giu-muted sm:col-span-2">
-                  {t(locale, "mSchedule")}
-                </label>
-                <select
-                  name="dayOffset"
-                  className="giu-input sm:col-span-2"
-                  value={dayOffset}
-                  onChange={(e) => setDayOffset(Number(e.target.value))}
-                >
-                  <option value={0}>{t(locale, "mToday")}</option>
-                  <option value={1}>{t(locale, "mTomorrow")}</option>
-                </select>
-                <select
-                  name="pickupStartH"
-                  className="giu-input"
-                  value={startH}
-                  onChange={(e) => setStartH(Number(e.target.value))}
-                >
-                  {HOURS.map((h) => (
-                    <option key={h} value={h}>
-                      {t(locale, "mStart")} {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-                <select
-                  name="pickupEndH"
-                  className="giu-input"
-                  value={endH}
-                  onChange={(e) => setEndH(Number(e.target.value))}
-                >
-                  {HOURS.map((h) => (
-                    <option key={h} value={h}>
-                      {t(locale, "mEnd")} {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-                <input
-                  name="originalPriceVnd"
-                  required
-                  type="number"
-                  min={10000}
-                  defaultValue={120000}
-                  placeholder={t(locale, "mOriginal")}
-                  className="giu-input"
-                />
-                <input
-                  name="salePriceVnd"
-                  required
-                  type="number"
-                  min={5000}
-                  defaultValue={49000}
-                  placeholder={t(locale, "mSale")}
-                  className="giu-input"
-                />
-                <input
-                  name="quantityTotal"
-                  required
-                  type="number"
-                  min={1}
-                  max={50}
-                  defaultValue={5}
-                  placeholder={t(locale, "mQty")}
-                  className="giu-input"
-                />
-                <button type="submit" className="giu-btn-primary py-3 sm:col-span-2">
+              <form onSubmit={createBox} className="mt-3 space-y-3">
+                <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
+                  <input
+                    name="title"
+                    required
+                    defaultValue={t(locale, "mSurpriseDefault")}
+                    className="giu-input"
+                  />
+                </Field>
+
+                <Field label={t(locale, "mCategory")} hint={t(locale, "mCategoryHint")}>
+                  <select name="category" className="giu-input" defaultValue={merchant.category}>
+                    {GIu_CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.emoji} {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
+                  <input name="description" className="giu-input" />
+                </Field>
+
+                <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
+                  <input name="imageUrl" type="url" inputMode="url" className="giu-input" />
+                </Field>
+
+                <Field label={t(locale, "mFresh")} hint={t(locale, "mFreshHint")}>
+                  <input
+                    name="freshnessNote"
+                    defaultValue={t(locale, "mFreshDefault")}
+                    className="giu-input"
+                  />
+                </Field>
+
+                <div className="space-y-2 rounded-xl bg-white/70 p-3 ring-1 ring-giu-border">
+                  <div>
+                    <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
+                    <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mScheduleHint")}</p>
+                  </div>
+                  <Field label={t(locale, "mDay")}>
+                    <select
+                      name="dayOffset"
+                      className="giu-input"
+                      value={dayOffset}
+                      onChange={(e) => setDayOffset(Number(e.target.value))}
+                    >
+                      <option value={0}>{t(locale, "mToday")}</option>
+                      <option value={1}>{t(locale, "mTomorrow")}</option>
+                    </select>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label={t(locale, "mStart")}>
+                      <select
+                        name="pickupStartH"
+                        className="giu-input"
+                        value={startH}
+                        onChange={(e) => setStartH(Number(e.target.value))}
+                      >
+                        {HOURS.map((h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, "0")}:00
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label={t(locale, "mEnd")}>
+                      <select
+                        name="pickupEndH"
+                        className="giu-input"
+                        value={endH}
+                        onChange={(e) => setEndH(Number(e.target.value))}
+                      >
+                        {HOURS.map((h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, "0")}:00
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t(locale, "mOriginal")} hint={t(locale, "mOriginalHint")}>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
+                        ₫
+                      </span>
+                      <input
+                        name="originalPriceVnd"
+                        required
+                        type="number"
+                        min={10000}
+                        step={1000}
+                        defaultValue={120000}
+                        inputMode="numeric"
+                        className="giu-input !pl-8"
+                      />
+                    </div>
+                  </Field>
+                  <Field label={t(locale, "mSale")} hint={t(locale, "mSaleHint")}>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-giu-muted">
+                        ₫
+                      </span>
+                      <input
+                        name="salePriceVnd"
+                        required
+                        type="number"
+                        min={5000}
+                        step={1000}
+                        defaultValue={49000}
+                        inputMode="numeric"
+                        className="giu-input !pl-8"
+                      />
+                    </div>
+                  </Field>
+                </div>
+
+                <Field label={t(locale, "mQty")} hint={t(locale, "mQtyHint")}>
+                  <input
+                    name="quantityTotal"
+                    required
+                    type="number"
+                    min={1}
+                    max={50}
+                    defaultValue={5}
+                    inputMode="numeric"
+                    className="giu-input"
+                  />
+                </Field>
+
+                <button type="submit" className="giu-btn-primary py-3">
                   {t(locale, "mSubmit")}
                 </button>
               </form>
