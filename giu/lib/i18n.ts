@@ -89,6 +89,8 @@ const KO: Dict = {
   locUnsupported: "이 기기는 위치 기능을 지원하지 않아요",
   locDenied: "근처 거리를 보려면 위치 권한을 허용해 주세요",
   guestName: "손님",
+  welcomeCustomer: "{name}님 환영합니다!",
+  welcomeMerchant: "{name} 사장님 환영합니다!",
   mapIncheonFocus: "인천",
   surprise: "마감 럭키백",
   surpriseHint: "구성은 당일 남은 재고에 따라 달라요 · 맛은 보장!",
@@ -127,12 +129,12 @@ const KO: Dict = {
   mPublish: "마감할인 등록",
   mPublishHint: "원하는 마감가를 설정해서 올리세요!",
   mQuickPublish: "지금 바로 올리기",
-  mQuickPublishSub: "한 번 누르면 손님 앱에 바로 올라갑니다",
+  mQuickPublishSub: "상품 정보를 확인하고 픽업 시간을 설정한 뒤 올려요",
   mQuickPublishDetail:
-    "기본: 마감 럭키백 · ₩6,000 (정가 ₩12,000). 가격·시간을 바꾸려면 ‘직접 세부 설정’을 쓰세요.",
+    "기본: 마감 럭키백 · ₩6,000 (정가 ₩12,000). 픽업 시간은 직접 정할 수 있어요.",
   mQuickPublishing: "올리는 중…",
-  mAdvanced: "직접 세부 설정",
-  mAdvancedHint: "이름·가격·픽업 시간·수량을 직접 정할 때",
+  mLoadRecentListing: "최근에 올린 상품 불러오기",
+  mNoRecentListing: "아직 올린 상품이 없어요. 직접 입력해 주세요.",
   mTitle: "상품 이름",
   mTitleHint: "손님에게 보이는 이름 (예: 마감 럭키백, 오늘 빵 세트)",
   mCategory: "업종",
@@ -212,7 +214,7 @@ const KO: Dict = {
   mNoPastProducts: "아직 올린 상품이 없어요.",
   mRepublishThis: "다시 올리기",
   mRepublishConfirmTitle: "이대로 다시 올릴까요?",
-  mRepublishConfirmHint: "픽업 시간은 지금부터 약 2시간으로 자동 설정됩니다.",
+  mRepublishConfirmHint: "아래 픽업 시간을 확인하거나 바꾼 뒤 올릴 수 있어요.",
   mRepublishConfirmYes: "네, 올릴게요",
   mRepublishConfirmNo: "취소",
   mSettingsTitle: "가게 정보",
@@ -302,6 +304,15 @@ export type GiuI18nKey = keyof typeof KO;
 
 export function t(_locale: GiuLocale, key: GiuI18nKey): string {
   return KO[key] ?? String(key);
+}
+
+export function welcomeMessage(
+  locale: GiuLocale,
+  role: "customer" | "merchant",
+  name: string,
+): string {
+  const key = role === "merchant" ? "welcomeMerchant" : "welcomeCustomer";
+  return t(locale, key).replace("{name}", name);
 }
 
 export const GIU_I18N = { ko: KO } as const;

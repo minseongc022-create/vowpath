@@ -21,9 +21,12 @@ import {
   type HistoryListFilter,
 } from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
+import {
+  dayOffsetFromIso,
+  hourFromIso,
+  PUBLISH_HOURS,
+} from "@/giu/lib/publish-schedule";
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
-
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
 
 type PublishView = "idle" | "compose" | "history" | "confirm";
 
@@ -45,6 +48,74 @@ function Field({
   );
 }
 
+function ScheduleFields({
+  locale,
+  dayOffset,
+  startH,
+  endH,
+  onDayOffset,
+  onStartH,
+  onEndH,
+}: {
+  locale: GiuLocale;
+  dayOffset: number;
+  startH: number;
+  endH: number;
+  onDayOffset: (v: number) => void;
+  onStartH: (v: number) => void;
+  onEndH: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+      <div>
+        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
+        <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mScheduleHint")}</p>
+      </div>
+      <Field label={t(locale, "mDay")}>
+        <select
+          name="dayOffset"
+          className="giu-input"
+          value={dayOffset}
+          onChange={(e) => onDayOffset(Number(e.target.value))}
+        >
+          <option value={0}>{t(locale, "mToday")}</option>
+          <option value={1}>{t(locale, "mTomorrow")}</option>
+        </select>
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label={t(locale, "mStart")}>
+          <select
+            name="pickupStartH"
+            className="giu-input"
+            value={startH}
+            onChange={(e) => onStartH(Number(e.target.value))}
+          >
+            {PUBLISH_HOURS.map((h) => (
+              <option key={h} value={h}>
+                {String(h).padStart(2, "0")}:00
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t(locale, "mEnd")}>
+          <select
+            name="pickupEndH"
+            className="giu-input"
+            value={endH}
+            onChange={(e) => onEndH(Number(e.target.value))}
+          >
+            {PUBLISH_HOURS.map((h) => (
+              <option key={h} value={h}>
+                {String(h).padStart(2, "0")}:00
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   locale: GiuLocale;
   merchant: GiuMerchant;
@@ -57,6 +128,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const money = (n: number) => formatMoney(n, market);
   const symbol = moneySymbol(market);
   const publishCategories = merchantCategories();
+  const defaultPrices = quickPublishPrices(market);
 
   const [view, setView] = useState<PublishView>("idle");
   const [createError, setCreateError] = useState("");
@@ -65,12 +137,22 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [dayOffset, setDayOffset] = useState(0);
   const [startH, setStartH] = useState(12);
   const [endH, setEndH] = useState(14);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState(merchant.category);
+  const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [freshnessNote, setFreshnessNote] = useState("");
+  const [originalPrice, setOriginalPrice] = useState(defaultPrices.originalPriceVnd);
+  const [salePrice, setSalePrice] = useState(defaultPrices.salePriceVnd);
+  const [quantity, setQuantity] = useState(5);
   const [republishTarget, setRepublishTarget] = useState<GiuBox | null>(null);
+  const [republishDayOffset, setRepublishDayOffset] = useState(0);
+  const [republishStartH, setRepublishStartH] = useState(12);
+  const [republishEndH, setRepublishEndH] = useState(14);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [historyFilter, setHistoryFilter] = useState<HistoryListFilter>("all");
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
-  const [quickBusy, setQuickBusy] = useState(false);
   const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
   const pendingPublishRef = useRef<(() => void | Promise<void>) | null>(null);
 
@@ -78,6 +160,55 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     () => filterHistoryBoxes(boxes, historyFilter),
     [boxes, historyFilter],
   );
+
+  const mostRecentBox = useMemo(
+    () =>
+      boxes
+        .filter((b) => b.merchantId === merchant.id)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
+    [boxes, merchant.id],
+  );
+
+  function resetComposeForm() {
+    setTitle(t(locale, "mSurpriseDefault"));
+    setCategory(merchant.category);
+    setDescription("");
+    setImageUrl("");
+    setFreshnessNote(t(locale, "mFreshDefault"));
+    setOriginalPrice(defaultPrices.originalPriceVnd);
+    setSalePrice(defaultPrices.salePriceVnd);
+    setQuantity(5);
+    setDayOffset(0);
+    setStartH(12);
+    setEndH(14);
+    setCreateError("");
+  }
+
+  function openCompose() {
+    hapticSelect();
+    resetComposeForm();
+    setView("compose");
+  }
+
+  function loadRecentListing() {
+    if (!mostRecentBox) {
+      setCreateError(t(locale, "mNoRecentListing"));
+      return;
+    }
+    hapticSelect();
+    setTitle(mostRecentBox.title);
+    setCategory(mostRecentBox.category);
+    setDescription(mostRecentBox.description ?? "");
+    setImageUrl(mostRecentBox.imageUrl ?? "");
+    setFreshnessNote(mostRecentBox.freshnessNote ?? t(locale, "mFreshDefault"));
+    setOriginalPrice(mostRecentBox.originalPriceVnd);
+    setSalePrice(mostRecentBox.salePriceVnd);
+    setQuantity(mostRecentBox.quantityTotal);
+    setDayOffset(dayOffsetFromIso(mostRecentBox.pickupStart, market));
+    setStartH(hourFromIso(mostRecentBox.pickupStart, market));
+    setEndH(hourFromIso(mostRecentBox.pickupEnd, market));
+    setCreateError("");
+  }
 
   function goIdle() {
     setView("idle");
@@ -116,31 +247,29 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setDuplicateConfirmOpen(false);
   }
 
-  async function submitCreateBox(
-    fd: FormData,
-    formEl: HTMLFormElement,
-    day: number,
-    start: number,
-    end: number,
-  ) {
+  async function submitCreateBox() {
+    if (endH <= startH) {
+      setCreateError(t(locale, "mTimeOrder"));
+      return;
+    }
     setSubmitBusy(true);
     const tz = marketTimeZone(market);
-    const pickupStart = localToIso(day, start, 0, tz);
-    const pickupEnd = localToIso(day, end, 0, tz);
+    const pickupStart = localToIso(dayOffset, startH, 0, tz);
+    const pickupEnd = localToIso(dayOffset, endH, 0, tz);
     try {
       const res = await fetch("/api/giu/boxes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          title: fd.get("title"),
-          description: fd.get("description") || undefined,
-          imageUrl: String(fd.get("imageUrl") || "").trim() || undefined,
-          category: fd.get("category") || undefined,
-          originalPriceVnd: Number(fd.get("originalPriceVnd")),
-          salePriceVnd: Number(fd.get("salePriceVnd")),
-          quantityTotal: Number(fd.get("quantityTotal")),
-          freshnessNote: fd.get("freshnessNote") || undefined,
+          title,
+          description: description || undefined,
+          imageUrl: imageUrl.trim() || undefined,
+          category,
+          originalPriceVnd: originalPrice,
+          salePriceVnd: salePrice,
+          quantityTotal: quantity,
+          freshnessNote: freshnessNote || undefined,
           pickupStart,
           pickupEnd,
           expiresAt: pickupEnd,
@@ -152,10 +281,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         return;
       }
       hapticConfirm();
-      formEl.reset();
-      setDayOffset(0);
-      setStartH(12);
-      setEndH(14);
       await onPublished();
       goIdle();
       setSuccessMsg(t(locale, "toastPublishSuccess"));
@@ -170,74 +295,22 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     e.preventDefault();
     hapticSelect();
     setCreateError("");
-    const fd = new FormData(e.currentTarget);
-    const start = Number(fd.get("pickupStartH") ?? startH);
-    const end = Number(fd.get("pickupEndH") ?? endH);
-    const day = Number(fd.get("dayOffset") ?? dayOffset);
-    if (end <= start) {
-      setCreateError(t(locale, "mTimeOrder"));
-      return;
-    }
-    const formEl = e.currentTarget;
     checkDuplicateAndRun(
       {
-        title: String(fd.get("title") ?? ""),
-        originalPriceVnd: Number(fd.get("originalPriceVnd")),
-        salePriceVnd: Number(fd.get("salePriceVnd")),
+        title,
+        originalPriceVnd: originalPrice,
+        salePriceVnd: salePrice,
       },
-      () => void submitCreateBox(fd, formEl, day, start, end),
-    );
-  }
-
-  async function submitQuickPublish() {
-    setQuickBusy(true);
-    const prices = quickPublishPrices(market);
-    try {
-      const res = await fetch("/api/giu/boxes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          title: t(locale, "mSurpriseDefault"),
-          category: merchant.category,
-          originalPriceVnd: prices.originalPriceVnd,
-          salePriceVnd: prices.salePriceVnd,
-          quantityTotal: 5,
-          freshnessNote: t(locale, "mFreshDefault"),
-        }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setCreateError(data.error ?? t(locale, "mCreateFail"));
-        return;
-      }
-      hapticConfirm();
-      await onPublished();
-      goIdle();
-      setSuccessMsg(t(locale, "toastPublishSuccess"));
-    } catch {
-      setCreateError(t(locale, "mLoadError"));
-    } finally {
-      setQuickBusy(false);
-    }
-  }
-
-  function quickPublish() {
-    hapticSelect();
-    setCreateError("");
-    const prices = quickPublishPrices(market);
-    checkDuplicateAndRun(
-      {
-        title: t(locale, "mSurpriseDefault"),
-        originalPriceVnd: prices.originalPriceVnd,
-        salePriceVnd: prices.salePriceVnd,
-      },
-      () => void submitQuickPublish(),
+      () => void submitCreateBox(),
     );
   }
 
   async function submitRepublish() {
     if (!republishTarget) return;
+    if (republishEndH <= republishStartH) {
+      setCreateError(t(locale, "mTimeOrder"));
+      return;
+    }
     setRepublishBusy(true);
     setCreateError("");
     try {
@@ -245,7 +318,12 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ boxId: republishTarget.id }),
+        body: JSON.stringify({
+          boxId: republishTarget.id,
+          dayOffset: republishDayOffset,
+          pickupStartH: republishStartH,
+          pickupEndH: republishEndH,
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -275,6 +353,15 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       },
       () => void submitRepublish(),
     );
+  }
+
+  function openRepublishConfirm(box: GiuBox) {
+    hapticSelect();
+    setRepublishTarget(box);
+    setRepublishDayOffset(dayOffsetFromIso(box.pickupStart, market));
+    setRepublishStartH(hourFromIso(box.pickupStart, market));
+    setRepublishEndH(hourFromIso(box.pickupEnd, market));
+    setView("confirm");
   }
 
   async function deleteProduct(boxId: string) {
@@ -309,7 +396,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   return (
     <section id="giu-publish-flow" className="giu-card giu-panel-enter space-y-3">
       <div>
-        <h2 className="font-bold">{t(locale, "mPublish")}</h2>
+        <h2 className="font-bold text-giu-primary">{t(locale, "mPublish")}</h2>
         <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPublishHint")}</p>
       </div>
 
@@ -317,24 +404,12 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         <div className="space-y-2.5">
           <button
             type="button"
-            disabled={quickBusy}
-            onClick={() => quickPublish()}
+            onClick={openCompose}
             className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
           >
-            {quickBusy ? t(locale, "mQuickPublishing") : t(locale, "mQuickPublish")}
+            {t(locale, "mQuickPublish")}
           </button>
           <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mQuickPublishSub")}</p>
-          <button
-            type="button"
-            onClick={() => {
-              hapticSelect();
-              setView("compose");
-            }}
-            className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
-          >
-            {t(locale, "mAdvanced")}
-          </button>
-          <p className="text-[11px] text-giu-muted">{t(locale, "mAdvancedHint")}</p>
           <button
             type="button"
             onClick={() => {
@@ -350,28 +425,45 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
 
       {view === "compose" ? (
         <form onSubmit={createBox} className="giu-panel-enter space-y-3">
-          <button
-            type="button"
-            onClick={() => {
-              hapticSelect();
-              goIdle();
-            }}
-            className="text-[13px] font-bold text-giu-muted"
-          >
-            {t(locale, "mBackToStart")}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                hapticSelect();
+                goIdle();
+              }}
+              className="text-[13px] font-bold text-giu-muted"
+            >
+              {t(locale, "mBackToStart")}
+            </button>
+            {mostRecentBox ? (
+              <button
+                type="button"
+                onClick={loadRecentListing}
+                className="giu-btn-3d rounded-xl bg-giu-primary-soft px-3 py-2 text-[11px] font-bold text-giu-primary"
+              >
+                {t(locale, "mLoadRecentListing")}
+              </button>
+            ) : null}
+          </div>
 
           <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
             <input
               name="title"
               required
-              defaultValue={t(locale, "mSurpriseDefault")}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="giu-input"
             />
           </Field>
 
           <Field label={t(locale, "mCategory")} hint={t(locale, "mCategoryHint")}>
-            <select name="category" className="giu-input" defaultValue={merchant.category}>
+            <select
+              name="category"
+              className="giu-input"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as GiuMerchant["category"])}
+            >
               {publishCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.emoji} {c.label}
@@ -381,68 +473,43 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </Field>
 
           <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
-            <input name="description" className="giu-input" />
+            <input
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="giu-input"
+            />
           </Field>
 
           <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
-            <input name="imageUrl" type="url" inputMode="url" className="giu-input" />
+            <input
+              name="imageUrl"
+              type="url"
+              inputMode="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              className="giu-input"
+            />
           </Field>
 
           <Field label={t(locale, "mFresh")} hint={t(locale, "mFreshHint")}>
             <input
               name="freshnessNote"
-              defaultValue={t(locale, "mFreshDefault")}
+              value={freshnessNote}
+              onChange={(e) => setFreshnessNote(e.target.value)}
               className="giu-input"
             />
           </Field>
 
-          <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
-            <div>
-              <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
-              <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mScheduleHint")}</p>
-            </div>
-            <Field label={t(locale, "mDay")}>
-              <select
-                name="dayOffset"
-                className="giu-input"
-                value={dayOffset}
-                onChange={(e) => setDayOffset(Number(e.target.value))}
-              >
-                <option value={0}>{t(locale, "mToday")}</option>
-                <option value={1}>{t(locale, "mTomorrow")}</option>
-              </select>
-            </Field>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label={t(locale, "mStart")}>
-                <select
-                  name="pickupStartH"
-                  className="giu-input"
-                  value={startH}
-                  onChange={(e) => setStartH(Number(e.target.value))}
-                >
-                  {HOURS.map((h) => (
-                    <option key={h} value={h}>
-                      {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t(locale, "mEnd")}>
-                <select
-                  name="pickupEndH"
-                  className="giu-input"
-                  value={endH}
-                  onChange={(e) => setEndH(Number(e.target.value))}
-                >
-                  {HOURS.map((h) => (
-                    <option key={h} value={h}>
-                      {String(h).padStart(2, "0")}:00
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          </div>
+          <ScheduleFields
+            locale={locale}
+            dayOffset={dayOffset}
+            startH={startH}
+            endH={endH}
+            onDayOffset={setDayOffset}
+            onStartH={setStartH}
+            onEndH={setEndH}
+          />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t(locale, "mOriginal")} hint={t(locale, "mOriginalHint")}>
@@ -456,7 +523,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                   type="number"
                   min={1000}
                   step={500}
-                  defaultValue={quickPublishPrices(market).originalPriceVnd}
+                  value={originalPrice}
+                  onChange={(e) => setOriginalPrice(Number(e.target.value))}
                   inputMode="numeric"
                   className="giu-input !pl-8"
                 />
@@ -473,7 +541,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                   type="number"
                   min={500}
                   step={500}
-                  defaultValue={quickPublishPrices(market).salePriceVnd}
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(Number(e.target.value))}
                   inputMode="numeric"
                   className="giu-input !pl-8"
                 />
@@ -488,7 +557,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
               type="number"
               min={1}
               max={50}
-              defaultValue={5}
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
               inputMode="numeric"
               className="giu-input"
             />
@@ -540,7 +610,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                   key={box.id}
                   className={`flex items-start gap-3 rounded-[16px] p-3 ring-1 ${
                     index === 0 && historyFilter === "all"
-                      ? "bg-giu-accent-soft/70 ring-giu-accent/25"
+                      ? "bg-giu-accent-soft/70 ring-giu-primary/20"
                       : "bg-giu-bg ring-giu-border"
                   }`}
                 >
@@ -566,12 +636,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                     ) : null}
                     <button
                       type="button"
-                      onClick={() => {
-                        hapticSelect();
-                        setRepublishTarget(box);
-                        setView("confirm");
-                      }}
-                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-accent px-3 py-2 text-[11px] font-bold text-white"
+                      onClick={() => openRepublishConfirm(box)}
+                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-giu-accent"
                     >
                       {t(locale, "mRepublishThis")}
                     </button>
@@ -595,8 +661,17 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             {republishTarget.description ? (
               <p className="mt-1 text-[12px] text-giu-muted">{republishTarget.description}</p>
             ) : null}
-            <p className="mt-2 text-[12px] text-giu-accent">{t(locale, "mRepublishConfirmHint")}</p>
+            <p className="mt-2 text-[12px] text-giu-muted">{t(locale, "mRepublishConfirmHint")}</p>
           </div>
+          <ScheduleFields
+            locale={locale}
+            dayOffset={republishDayOffset}
+            startH={republishStartH}
+            endH={republishEndH}
+            onDayOffset={setRepublishDayOffset}
+            onStartH={setRepublishStartH}
+            onEndH={setRepublishEndH}
+          />
           {createError ? <p className="text-sm text-giu-danger">{createError}</p> : null}
           <div className="flex gap-2">
             <button

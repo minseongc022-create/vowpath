@@ -7,12 +7,11 @@ import {
   isGiuMapHomePath,
   toGiuInternalPath,
 } from "@/giu/lib/routes";
-import { t } from "@/giu/lib/i18n";
+import { t, welcomeMessage } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { CustomerAvailabilityAlerts } from "./CustomerAvailabilityAlerts";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
 import { useGiuLocale } from "./GiuLocaleProvider";
-import { GiuLogo } from "./GiuLogo";
 import { useGiuHref } from "./GiuNavProvider";
 
 export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
@@ -26,6 +25,8 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
     (internal.startsWith("/giu/hop/") && !isMapHome) || internal.startsWith("/giu/dat/");
 
   const displayName = account?.name?.trim() || t(locale, "guestName");
+  const headerText =
+    !loading && account ? welcomeMessage(locale, "customer", displayName) : displayName;
 
   return (
     <div
@@ -34,12 +35,11 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       }`}
     >
       <CustomerAvailabilityAlerts />
-      <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border/60 bg-giu-accent-soft/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={href(GIU_ROUTES.customer.home)} className="flex min-w-0 items-center gap-2.5">
-            <GiuLogo size={36} priority />
-            <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-ink">
-              {loading ? "…" : displayName}
+          <Link href={href(GIU_ROUTES.customer.home)} className="min-w-0 truncate">
+            <span className="text-[15px] font-extrabold tracking-tight text-giu-primary">
+              {loading ? "…" : headerText}
             </span>
           </Link>
 
@@ -55,7 +55,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             ) : !loading ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
-                className="rounded-full bg-giu-ink px-3 py-1.5 text-[11px] font-bold text-white"
+                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-giu-accent"
               >
                 로그인
               </Link>
