@@ -1,7 +1,7 @@
 "use client";
 
 import { googleMapsEmbedUrl, googleMapsSearchUrl } from "@/giu/lib/links";
-import { DirectionsFromHereButton } from "./DirectionsFromHereButton";
+import { GiuInAppDirections } from "./GiuInAppDirections";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { t } from "@/giu/lib/i18n";
 
@@ -50,7 +50,7 @@ export function MapEmbed({
           {address}
         </a>
         {hasCoords ? (
-          <DirectionsFromHereButton
+          <GiuInAppDirections
             destination={{ lat: destLat, lng: destLng }}
             destinationAddress={address}
             primary

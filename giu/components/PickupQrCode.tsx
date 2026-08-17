@@ -14,7 +14,7 @@ export function PickupQrCode({ locale, reservationId }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number>(0);
-  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [refreshIn, setRefreshIn] = useState(0);
 
   const fetchToken = useCallback(async () => {
@@ -23,18 +23,28 @@ export function PickupQrCode({ locale, reservationId }: Props) {
         credentials: "include",
         cache: "no-store",
       });
+      const data = (await res.json().catch(() => ({}))) as { token?: string; expiresAt?: number; error?: string };
       if (!res.ok) {
-        setError(true);
+        if (res.status === 401) setErrorMessage(t(locale, "qrLoginRequired"));
+        else if (res.status === 404) setErrorMessage(t(locale, "qrNotFound"));
+        else if (res.status === 400) setErrorMessage(data.error ?? t(locale, "qrNotReady"));
+        else setErrorMessage(data.error ?? t(locale, "qrFail"));
+        setToken(null);
         return;
       }
-      const data = (await res.json()) as { token: string; expiresAt: number };
+      if (!data.token || !data.expiresAt) {
+        setErrorMessage(t(locale, "qrFail"));
+        setToken(null);
+        return;
+      }
       setToken(data.token);
       setExpiresAt(data.expiresAt);
-      setError(false);
+      setErrorMessage(null);
     } catch {
-      setError(true);
+      setErrorMessage(t(locale, "qrFail"));
+      setToken(null);
     }
-  }, [reservationId]);
+  }, [reservationId, locale]);
 
   useEffect(() => {
     void fetchToken();
@@ -61,12 +71,23 @@ export function PickupQrCode({ locale, reservationId }: Props) {
       width: 200,
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#191F28", light: "#FFFFFF" },
-    }).catch(() => setError(true));
-  }, [token]);
+      color: { dark: "#1a3320", light: "#FFFFFF" },
+    }).catch(() => setErrorMessage(t(locale, "qrFail")));
+  }, [token, locale]);
 
-  if (error) {
-    return <p className="text-[12px] text-giu-muted">{t(locale, "qrFail")}</p>;
+  if (errorMessage) {
+    return (
+      <div className="space-y-2 text-center">
+        <p className="text-[12px] font-semibold text-giu-muted">{errorMessage}</p>
+        <button
+          type="button"
+          onClick={() => void fetchToken()}
+          className="text-[12px] font-bold text-giu-primary underline-offset-2 hover:underline"
+        >
+          {t(locale, "qrRetry")}
+        </button>
+      </div>
+    );
   }
 
   return (

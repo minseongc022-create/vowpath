@@ -7,10 +7,10 @@ import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { merchantCoords } from "@/giu/lib/geo";
 import { t } from "@/giu/lib/i18n";
-import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
+import { zaloChatUrl } from "@/giu/lib/links";
 import { ReservationTicketExtras } from "@/giu/components/ReservationTicketExtras";
 import { getBox, getMerchant, getReservation, getReviewForReservation } from "@/giu/lib/store";
 
@@ -37,7 +37,6 @@ export default async function GiuReservationPage({ params, searchParams }: Props
     getReviewForReservation(id),
   ]);
 
-  const mapsUrl = merchant ? googleMapsSearchUrl(merchant.address) : null;
   const zaloUrl = merchant?.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
 
@@ -104,18 +103,13 @@ export default async function GiuReservationPage({ params, searchParams }: Props
               destLng={coords?.lng}
               compact
             />
-            <div className="flex gap-4 text-[13px] font-bold">
-              {mapsUrl ? (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
-                  {t(locale, "maps")}
-                </a>
-              ) : null}
-              {zaloUrl ? (
-                <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
+            {zaloUrl ? (
+              <div className="text-[13px] font-bold">
+                <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-primary">
                   {t(locale, "zalo")}
                 </a>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </>
         ) : null}
 

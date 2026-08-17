@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
-import { addReview, listMerchantReviews } from "@/giu/lib/store";
+import { addReview, listCustomerReviews, listMerchantReviews } from "@/giu/lib/store";
 
 const createSchema = z.object({
   reservationId: z.string().min(1),
@@ -10,13 +10,18 @@ const createSchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const session = await getGiuSessionFromRequest(request);
   const url = new URL(request.url);
   const merchantId = url.searchParams.get("merchantId")?.trim();
-  if (!merchantId) {
-    return NextResponse.json({ error: "merchantId required" }, { status: 400 });
+  if (merchantId) {
+    const reviews = await listMerchantReviews(merchantId);
+    return NextResponse.json({ reviews });
   }
-  const reviews = await listMerchantReviews(merchantId);
-  return NextResponse.json({ reviews });
+  if (session?.role === "customer") {
+    const reviews = await listCustomerReviews(session.sub);
+    return NextResponse.json({ reviews });
+  }
+  return NextResponse.json({ error: "merchantId required" }, { status: 400 });
 }
 
 export async function POST(request: Request) {

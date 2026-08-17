@@ -17,7 +17,7 @@ import { useGiuHref } from "./GiuNavProvider";
 export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const href = useGiuHref();
-  const { account, loading, logout } = useGiuAuth();
+  const { account, loading } = useGiuAuth();
   const { locale } = useGiuLocale();
   const internal = toGiuInternalPath(pathname);
   const isMapHome = isGiuMapHomePath(pathname);
@@ -44,22 +44,16 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            {!loading && account ? (
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"
-              >
-                나가기
-              </button>
-            ) : !loading ? (
+            {!loading && !account ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
                 className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 로그인
               </Link>
-            ) : null}
+            ) : (
+              <span className="h-9 w-9 shrink-0" aria-hidden />
+            )}
           </div>
         </div>
       </header>
