@@ -3,7 +3,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import { t } from "@/giu/lib/i18n";
 
 export type ProductListFilter = "all" | "selling" | "cancelled";
-export type HistoryListFilter = "all" | "cancelled";
+export type HistoryListFilter = "all" | "closed" | "cancelled";
 
 /** Cancelled listings stay in “등록된 상품” for 12 hours. */
 export const CANCELLED_LIST_TTL_MS = 12 * 60 * 60 * 1000;
@@ -22,6 +22,22 @@ export function registeredListBoxes(boxes: GiuBox[], now = Date.now()): GiuBox[]
   return boxes.filter(
     (b) => b.status !== "huy" || isCancelledVisibleInRegisteredList(b, now),
   );
+}
+
+export function isActiveSellingBox(box: GiuBox, now = Date.now()): boolean {
+  return (
+    box.status === "mo" &&
+    box.quantityLeft > 0 &&
+    new Date(box.pickupEnd).getTime() > now
+  );
+}
+
+export function isClosedHistoryBox(box: GiuBox, now = Date.now()): boolean {
+  if (box.status === "huy") return false;
+  if (box.status === "het") return true;
+  if (box.quantityLeft <= 0) return true;
+  if (new Date(box.pickupEnd).getTime() <= now) return true;
+  return false;
 }
 
 export function boxSortRank(box: GiuBox): number {
@@ -46,9 +62,15 @@ export function filterBoxes(boxes: GiuBox[], filter: ProductListFilter, now = Da
   return sortBoxesForList(list);
 }
 
-export function filterHistoryBoxes(boxes: GiuBox[], filter: HistoryListFilter): GiuBox[] {
+export function filterHistoryBoxes(boxes: GiuBox[], filter: HistoryListFilter, now = Date.now()): GiuBox[] {
   let list = boxes;
-  if (filter === "cancelled") list = boxes.filter((b) => b.status === "huy");
+  if (filter === "all") {
+    list = boxes.filter((b) => !isActiveSellingBox(b, now));
+  } else if (filter === "closed") {
+    list = boxes.filter((b) => isClosedHistoryBox(b, now));
+  } else if (filter === "cancelled") {
+    list = boxes.filter((b) => b.status === "huy");
+  }
   return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -59,8 +81,15 @@ export function productFilterLabel(locale: GiuLocale, filter: ProductListFilter)
 }
 
 export function historyFilterLabel(locale: GiuLocale, filter: HistoryListFilter): string {
+  if (filter === "closed") return t(locale, "mHistoryClosed");
   if (filter === "cancelled") return t(locale, "mHistoryCancelled");
   return t(locale, "mHistoryAll");
+}
+
+export function historyEmptyLabel(locale: GiuLocale, filter: HistoryListFilter): string {
+  if (filter === "closed") return t(locale, "mNoClosedProducts");
+  if (filter === "cancelled") return t(locale, "mNoCancelledProducts");
+  return t(locale, "mNoPastProducts");
 }
 
 export type ListingSignature = {

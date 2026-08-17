@@ -63,7 +63,11 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
       dismissLabel={t(locale, "mCloseSheet")}
       ariaLabelledBy="giu-bank-sheet-title"
     >
-      <form onSubmit={submit} className="giu-panel-enter space-y-3">
+      <form
+        key={`${merchant.id}-${merchant.bankName ?? ""}-${merchant.bankAccount ?? ""}`}
+        onSubmit={submit}
+        className="giu-panel-enter space-y-3"
+      >
         <div>
           <h3 id="giu-bank-sheet-title" className="text-[17px] font-bold text-giu-ink">
             {t(locale, "mRegisterBankTitle")}
@@ -77,7 +81,7 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
             required
             defaultValue={merchant.bankName ?? ""}
             className="giu-input giu-input-hint"
-            placeholder="국민은행"
+            placeholder={t(locale, "mBankNamePh")}
           />
         </div>
         <div>
@@ -88,7 +92,7 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
             inputMode="numeric"
             defaultValue={merchant.bankAccount ?? ""}
             className="giu-input giu-input-hint"
-            placeholder="123456-01-123456"
+            placeholder={t(locale, "mBankAccountPh")}
           />
         </div>
         <div>

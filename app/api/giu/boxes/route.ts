@@ -87,6 +87,14 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    const pickupStart = parsed.data.pickupStart ?? defaultPickupWindow().start;
+    const pickupEnd = parsed.data.pickupEnd ?? defaultPickupWindow().end;
+    if (new Date(pickupEnd).getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: "픽업 종료 시간은 현재 이후여야 합니다" },
+        { status: 400 },
+      );
+    }
     if (merchant.market === "kr") {
       if (parsed.data.originalPriceVnd < 1000 || parsed.data.salePriceVnd < 500) {
         return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
@@ -95,7 +103,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "가격을 확인해 주세요" }, { status: 400 });
     }
 
-    const window = defaultPickupWindow();
     const urls = normalizeImageUrls(
       parsed.data.imageUrls?.length
         ? parsed.data.imageUrls
@@ -115,9 +122,9 @@ export async function POST(request: Request) {
       originalPriceVnd: parsed.data.originalPriceVnd,
       salePriceVnd: parsed.data.salePriceVnd,
       quantityTotal: parsed.data.quantityTotal,
-      pickupStart: parsed.data.pickupStart ?? window.start,
-      pickupEnd: parsed.data.pickupEnd ?? window.end,
-      expiresAt: parsed.data.expiresAt ?? window.expires,
+      pickupStart,
+      pickupEnd,
+      expiresAt: parsed.data.expiresAt ?? pickupEnd,
       freshnessNote:
         parsed.data.freshnessNote ??
         "픽업 시간까지 신선하게 보관합니다.",

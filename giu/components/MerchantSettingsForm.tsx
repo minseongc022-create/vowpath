@@ -68,7 +68,11 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="giu-card space-y-3">
+    <form
+      key={`${merchant.id}-${merchant.bankName ?? ""}-${merchant.bankAccount ?? ""}-${merchant.phone}`}
+      onSubmit={submit}
+      className="giu-card space-y-3"
+    >
       <div>
         <h2 className="text-[17px] font-bold text-giu-ink">{t(locale, "mSettingsTitle")}</h2>
         <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mSettingsSub")}</p>
@@ -114,11 +118,11 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
         <p className="text-[11px] text-giu-muted">{t(locale, "mBankHint")}</p>
         <div>
           <label className="giu-label">{t(locale, "mBankName")}</label>
-          <input name="bankName" defaultValue={merchant.bankName ?? ""} className="giu-input giu-input-hint" placeholder="국민은행" />
+          <input name="bankName" defaultValue={merchant.bankName ?? ""} className="giu-input giu-input-hint" placeholder={t(locale, "mBankNamePh")} />
         </div>
         <div>
           <label className="giu-label">{t(locale, "mBankAccount")}</label>
-          <input name="bankAccount" inputMode="numeric" defaultValue={merchant.bankAccount ?? ""} className="giu-input giu-input-hint" placeholder="123456-01-123456" />
+          <input name="bankAccount" inputMode="numeric" defaultValue={merchant.bankAccount ?? ""} className="giu-input giu-input-hint" placeholder={t(locale, "mBankAccountPh")} />
         </div>
         <div>
           <label className="giu-label">{t(locale, "mBankHolder")}</label>

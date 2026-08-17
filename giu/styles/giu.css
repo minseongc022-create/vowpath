@@ -386,7 +386,7 @@
 }
 
 .giu-filter-tab {
-  @apply giu-tap flex-1 rounded-full px-3 py-2 text-[12px] font-bold text-giu-muted transition duration-100;
+  @apply giu-tap flex-1 rounded-full px-2 py-2 text-[11px] font-bold text-giu-muted transition duration-100;
 }
 
 .giu-filter-tab.is-active {

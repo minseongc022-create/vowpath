@@ -19,15 +19,15 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import {
   filterHistoryBoxes,
   findDuplicateActiveListing,
+  historyEmptyLabel,
   historyFilterLabel,
   type HistoryListFilter,
 } from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import { parseQuantityInput, sanitizeQuantityInput } from "@/giu/lib/numeric-input";
 import {
-  dayOffsetFromIso,
-  hourFromIso,
   PUBLISH_HOURS,
+  republishScheduleFromBox,
 } from "@/giu/lib/publish-schedule";
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
 
@@ -207,9 +207,10 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setOriginalPrice(mostRecentBox.originalPriceVnd);
     setSalePrice(mostRecentBox.salePriceVnd);
     setQuantityText(String(mostRecentBox.quantityTotal));
-    setDayOffset(dayOffsetFromIso(mostRecentBox.pickupStart, market));
-    setStartH(hourFromIso(mostRecentBox.pickupStart, market));
-    setEndH(hourFromIso(mostRecentBox.pickupEnd, market));
+    const schedule = republishScheduleFromBox(mostRecentBox, market);
+    setDayOffset(schedule.dayOffset);
+    setStartH(schedule.startH);
+    setEndH(schedule.endH);
     setCreateError("");
   }
 
@@ -366,9 +367,10 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   function openRepublishConfirm(box: GiuBox) {
     hapticSelect();
     setRepublishTarget(box);
-    setRepublishDayOffset(dayOffsetFromIso(box.pickupStart, market));
-    setRepublishStartH(hourFromIso(box.pickupStart, market));
-    setRepublishEndH(hourFromIso(box.pickupEnd, market));
+    const schedule = republishScheduleFromBox(box, market);
+    setRepublishDayOffset(schedule.dayOffset);
+    setRepublishStartH(schedule.startH);
+    setRepublishEndH(schedule.endH);
     setView("confirm");
   }
 
@@ -592,7 +594,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </button>
 
           <div className="giu-filter-tabs">
-            {(["all", "cancelled"] as const).map((f) => (
+            {(["all", "closed", "cancelled"] as const).map((f) => (
               <button
                 key={f}
                 type="button"
@@ -608,7 +610,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </div>
 
           {historyBoxes.length === 0 ? (
-            <p className="text-[13px] text-giu-muted">{t(locale, "mNoPastProducts")}</p>
+            <p className="text-[13px] text-giu-muted">{historyEmptyLabel(locale, historyFilter)}</p>
           ) : (
             <ul className="space-y-2">
               {historyBoxes.map((box, index) => (
