@@ -30,7 +30,7 @@ export function GiuBottomNav() {
               key={tab.href}
               href={tab.href}
               className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition ${
-                active ? "text-giu-accent" : "text-giu-muted"
+                active ? "text-giu-primary" : "text-giu-muted"
               }`}
               aria-current={active ? "page" : undefined}
             >

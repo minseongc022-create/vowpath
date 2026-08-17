@@ -42,7 +42,7 @@ function Field({
   return (
     <label className="block space-y-1">
       <span className="text-[12px] font-bold text-giu-ink">{label}</span>
-      {hint ? <span className="block text-[11px] leading-snug text-giu-muted">{hint}</span> : null}
+      {hint ? <span className="block text-[11px] font-semibold leading-snug text-giu-muted">{hint}</span> : null}
       {children}
     </label>
   );
@@ -396,8 +396,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   return (
     <section id="giu-publish-flow" className="giu-card giu-panel-enter space-y-3">
       <div>
-        <h2 className="font-bold text-giu-primary">{t(locale, "mPublish")}</h2>
-        <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPublishHint")}</p>
+        <h2 className="font-extrabold text-giu-ink">{t(locale, "mPublish")}</h2>
+        <p className="mt-0.5 text-[12px] font-semibold text-giu-muted">{t(locale, "mPublishHint")}</p>
       </div>
 
       {view === "idle" ? (
@@ -637,7 +637,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                     <button
                       type="button"
                       onClick={() => openRepublishConfirm(box)}
-                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-giu-accent"
+                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-giu-primary"
                     >
                       {t(locale, "mRepublishThis")}
                     </button>

@@ -457,7 +457,7 @@ export function MapDiscover({ pins }: Props) {
               <button
                 type="button"
                 onClick={focusCity}
-                className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-accent shadow-sm ring-1 ring-black/[0.04]"
+                className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-primary shadow-sm ring-1 ring-black/[0.04]"
               >
                 {t(locale, "mapIncheonFocus")} ↓
               </button>
@@ -533,7 +533,7 @@ export function MapDiscover({ pins }: Props) {
                         {formatDistance(route.distanceMeters, locale)}
                       </span>
                     ) : userPos && !farFromServiceCity ? (
-                      <span className="rounded-md bg-giu-accent-soft px-2 py-0.5 text-giu-accent">
+                      <span className="rounded-md bg-giu-accent-soft px-2 py-0.5 text-giu-primary">
                         {routing
                           ? "…"
                           : formatDistance(
@@ -589,7 +589,7 @@ export function MapDiscover({ pins }: Props) {
                         </div>
                         <p className="mt-0.5 text-[11px] text-giu-muted">
                           {isClosingSoon(box.pickupEnd) ? (
-                            <span className="mr-1 font-bold text-giu-accent">
+                            <span className="mr-1 font-bold text-giu-primary">
                               {t(locale, "closingSoon")} ·{" "}
                             </span>
                           ) : null}
@@ -683,7 +683,7 @@ export function MapDiscover({ pins }: Props) {
                     </p>
                     {best ? (
                       <p className="mt-1 truncate text-[12px] font-bold text-giu-ink">
-                        <span className="text-giu-accent">{formatVnd(best.salePriceVnd)}</span>
+                        <span className="text-giu-primary">{formatVnd(best.salePriceVnd)}</span>
                         <span className="ml-1 font-semibold text-giu-muted">· {best.title}</span>
                       </p>
                     ) : null}

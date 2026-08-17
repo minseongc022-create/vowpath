@@ -39,7 +39,7 @@ export function WaitlistForm({ district }: { district?: string }) {
 
   if (done) {
     return (
-      <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-accent">
+      <p className="rounded-2xl bg-giu-accent-soft px-4 py-3 text-sm font-medium text-giu-primary">
         {t(locale, "waitlistDone")}
       </p>
     );

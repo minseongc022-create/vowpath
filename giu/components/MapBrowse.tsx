@@ -59,7 +59,7 @@ export function MapBrowse({ items }: { items: Item[] }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="mt-1.5 inline-block text-[11px] font-bold text-giu-accent"
+                      className="mt-1.5 inline-block text-[11px] font-bold text-giu-primary"
                     >
                       {merchant.address} →
                     </a>

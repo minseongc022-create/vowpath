@@ -221,14 +221,14 @@ export function GiuAuthScreen() {
         <button
           type="button"
           onClick={() => setMode("login")}
-          className={mode === "login" ? "font-bold text-giu-accent" : "text-giu-muted"}
+          className={mode === "login" ? "font-bold text-giu-primary" : "text-giu-muted"}
         >
           로그인
         </button>
         <button
           type="button"
           onClick={() => setMode("signup")}
-          className={mode === "signup" ? "font-bold text-giu-accent" : "text-giu-muted"}
+          className={mode === "signup" ? "font-bold text-giu-primary" : "text-giu-muted"}
         >
           {role === "merchant" ? "가게 등록" : "회원가입"}
         </button>
@@ -330,14 +330,14 @@ export function GiuAuthScreen() {
       {mode === "login" ? (
         <p className="text-center text-sm text-giu-muted">
           계정이 없으신가요?{" "}
-          <button type="button" onClick={() => setMode("signup")} className="font-semibold text-giu-accent">
+          <button type="button" onClick={() => setMode("signup")} className="font-semibold text-giu-primary">
             {role === "merchant" ? "가게 등록" : "회원가입"}
           </button>
         </p>
       ) : (
         <p className="text-center text-sm text-giu-muted">
           이미 계정이 있으신가요?{" "}
-          <button type="button" onClick={() => setMode("login")} className="font-semibold text-giu-accent">
+          <button type="button" onClick={() => setMode("login")} className="font-semibold text-giu-primary">
             로그인
           </button>
         </p>

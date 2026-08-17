@@ -113,7 +113,7 @@ export function MyReservationsLookup() {
             </p>
           </div>
           <div className="rounded-xl bg-giu-bg px-2 py-2.5">
-            <p className="text-[14px] font-extrabold leading-tight text-giu-accent">
+            <p className="text-[14px] font-extrabold leading-tight text-giu-primary">
               {formatVnd(impact.saved)}
             </p>
             <p className="text-[10px] font-semibold text-giu-muted">{t(locale, "impactSaved")}</p>
