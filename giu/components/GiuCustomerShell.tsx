@@ -35,7 +35,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       }`}
     >
       <CustomerAvailabilityAlerts />
-      <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border/60 bg-giu-accent-soft/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
           <Link href={href(GIU_ROUTES.customer.home)} className="min-w-0 truncate">
             <span className="text-[15px] font-extrabold tracking-tight text-giu-primary">
@@ -55,7 +55,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             ) : !loading ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
-                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-giu-accent"
+                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-giu-primary"
               >
                 로그인
               </Link>

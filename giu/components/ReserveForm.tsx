@@ -190,7 +190,7 @@ export function ReserveForm({
         {!tossCheckout ? (
           <div className="text-right">
             <p className="text-[10px] font-semibold text-giu-muted">{t(locale, "qtyPickHint")}</p>
-            <p className="text-[11px] font-medium text-giu-accent">
+            <p className="text-[11px] font-medium text-giu-primary">
               {cap}
               {t(locale, "qtyLeftHint")}
             </p>

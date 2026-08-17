@@ -325,7 +325,7 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     <button
                       type="button"
                       onClick={() => openDetail(box)}
-                      className="giu-btn-3d giu-tap rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-accent ring-1 ring-giu-border"
+                      className="giu-btn-3d giu-tap rounded-xl bg-white px-3 py-2 text-[11px] font-extrabold text-giu-primary ring-2 ring-giu-primary/20"
                     >
                       {t(locale, "mViewDetail")}
                     </button>

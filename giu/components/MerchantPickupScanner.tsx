@@ -316,7 +316,7 @@ export function MerchantPickupScanner({
       {sheetMode && showCodeSection ? codeBlock : null}
 
       {message ? (
-        <div className="giu-info-banner space-y-1 text-giu-accent">
+        <div className="giu-info-banner space-y-1 text-giu-primary">
           <p className="font-bold">{message}</p>
           {detail ? <p className="text-[12px] text-giu-ink">{detail}</p> : null}
         </div>

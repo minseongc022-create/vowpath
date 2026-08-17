@@ -184,7 +184,7 @@ export function MerchantPanelClient() {
           <p className="mt-2 text-[12px]">
             {t(locale, "mRescued")} <strong>{merchant.rescuedBoxes}</strong>
             {merchant.verified ? (
-              <span className="ml-2 rounded-md bg-giu-accent-soft px-1.5 py-0.5 text-[10px] font-bold text-giu-accent">
+              <span className="ml-2 rounded-md bg-giu-accent-soft px-1.5 py-0.5 text-[10px] font-bold text-giu-primary">
                 {t(locale, "mVerified")}
               </span>
             ) : (
@@ -199,24 +199,24 @@ export function MerchantPanelClient() {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
-          <div className="rounded-[12px] bg-giu-accent-soft px-3 py-2">
-            <p className="text-[10px] font-medium text-giu-accent">{t(locale, "mOpenBoxes")}</p>
+          <div className="rounded-[12px] bg-giu-primary-soft px-3 py-2">
+            <p className="text-[10px] font-bold text-giu-primary">{t(locale, "mOpenBoxes")}</p>
             <p className="font-extrabold text-giu-ink">{openBoxes}</p>
           </div>
-          <div className="rounded-[12px] bg-giu-accent-soft px-3 py-2">
-            <p className="text-[10px] font-medium text-giu-accent">{t(locale, "mAwaitingPickup")}</p>
+          <div className="rounded-[12px] bg-giu-primary-soft px-3 py-2">
+            <p className="text-[10px] font-bold text-giu-primary">{t(locale, "mAwaitingPickup")}</p>
             <p className="font-extrabold text-giu-ink">{awaitingPickup}</p>
           </div>
-          <div className="rounded-[12px] bg-giu-bg px-3 py-2">
-            <p className="text-[10px] font-medium text-giu-muted">{t(locale, "mSettleHeld")}</p>
+          <div className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
+            <p className="text-[10px] font-bold text-giu-muted">{t(locale, "mSettleHeld")}</p>
             <p className="font-extrabold text-giu-ink">{money(settlementHeld)}</p>
           </div>
-          <div className="rounded-[12px] bg-giu-bg px-3 py-2">
-            <p className="text-[10px] font-medium text-giu-muted">{t(locale, "mSettleDone")}</p>
+          <div className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
+            <p className="text-[10px] font-bold text-giu-muted">{t(locale, "mSettleDone")}</p>
             <p className="font-extrabold text-giu-ink">{money(settlementReleased)}</p>
           </div>
         </div>
-        <p className="text-[11px] text-giu-muted">{t(locale, "mFeeNote")}</p>
+        <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "mFeeNote")}</p>
       </div>
 
       {needsBank || pendingAccountCount > 0 ? (
@@ -330,7 +330,7 @@ export function MerchantPanelClient() {
                             <button
                               type="button"
                               onClick={() => fillPickupCode(r.code)}
-                              className="giu-tap mt-2 flex w-full items-center justify-between gap-2 rounded-[14px] bg-giu-accent-soft px-3 py-2.5 ring-1 ring-giu-accent/20"
+                              className="giu-tap mt-2 flex w-full items-center justify-between gap-2 rounded-[14px] bg-giu-primary-soft px-3 py-2.5 ring-1 ring-giu-primary/15"
                             >
                               <span className="text-[11px] font-bold text-giu-muted">
                                 {t(locale, "mOrderCode")}
@@ -338,7 +338,7 @@ export function MerchantPanelClient() {
                               <span className="font-mono text-[18px] font-extrabold tracking-[0.18em] text-giu-ink">
                                 {r.code}
                               </span>
-                              <span className="shrink-0 text-[11px] font-bold text-giu-accent">
+                              <span className="shrink-0 text-[11px] font-bold text-giu-primary">
                                 {t(locale, "mPickupCodeFill")}
                               </span>
                             </button>
@@ -370,7 +370,7 @@ export function MerchantPanelClient() {
                           </p>
                         </div>
                         {r.status === "da_lay" ? (
-                          <span className="rounded-full bg-giu-accent-soft px-2.5 py-1 text-[11px] font-bold text-giu-accent">
+                          <span className="rounded-full bg-giu-accent-soft px-2.5 py-1 text-[11px] font-bold text-giu-primary">
                             {t(locale, "mPickupDone")}
                           </span>
                         ) : null}
