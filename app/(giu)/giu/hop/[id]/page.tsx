@@ -18,7 +18,7 @@ import {
 import { merchantCoords } from "@/giu/lib/geo";
 import { t } from "@/giu/lib/i18n";
 import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
-import { googleMapsSearchUrl, zaloChatUrl } from "@/giu/lib/links";
+import { zaloChatUrl } from "@/giu/lib/links";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { resolveGiuPaymentBackend } from "@/giu/lib/payments";
 import { tossClientKey } from "@/giu/lib/toss-payments";
@@ -41,7 +41,6 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const soldOut = box.status !== "mo" || box.quantityLeft <= 0;
   const checkoutBackend = resolveGiuPaymentBackend();
   const tossKey = checkoutBackend === "toss" ? tossClientKey() : undefined;
-  const mapsUrl = googleMapsSearchUrl(merchant.address);
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchantCoords(merchant.id, merchant.district);
   const surprise = isSurpriseTitle(box.title);
@@ -130,10 +129,6 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           </p>
         </div>
 
-        {surprise ? (
-          <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "surpriseHint")}</p>
-        ) : null}
-
         {box.description ? (
           <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
         ) : null}
@@ -165,16 +160,13 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           compact
         />
 
-        <div className="flex gap-4 text-[13px] font-bold">
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
-            {t(locale, "maps")}
-          </a>
-          {zaloUrl ? (
+        {zaloUrl ? (
+          <div className="flex gap-4 text-[13px] font-bold">
             <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="text-giu-accent">
               {t(locale, "zalo")}
             </a>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <MerchantReviews merchantId={merchant.id} locale={locale} />
       </div>

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await saveProductImage(buffer, file.type || "image/jpeg");
+    const result = await saveProductImage(buffer, file.type, file.name);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

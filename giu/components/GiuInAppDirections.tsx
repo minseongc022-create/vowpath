@@ -39,8 +39,8 @@ export function GiuInAppDirections({
   const [route, setRoute] = useState<RouteResult | null>(null);
 
   async function startNavigation() {
-    hapticSelect();
     setError("");
+    setOpen(true);
     setBusy(true);
 
     const locate = (): Promise<LatLng> =>
