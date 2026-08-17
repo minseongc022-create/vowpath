@@ -32,7 +32,13 @@ jobs:
           node-version: "22"
 
       - name: Wait for Vercel production
-        run: sleep 150
+        run: sleep 210
 
       - name: Verify Giu (giucuu.com) production
-        run: node scripts/giu-deploy-verify.mjs
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== verify attempt $attempt ==="
+            node scripts/giu-deploy-verify.mjs && exit 0
+            sleep 45
+          done
+          exit 1
