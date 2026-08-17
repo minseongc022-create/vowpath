@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   formatPaymentStatusLocale,
@@ -19,22 +18,24 @@ import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
-import { MerchantPickupScanner } from "./MerchantPickupScanner";
+import { useMerchantPickup } from "./MerchantPickupProvider";
 import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
-import { GiuBottomSheet } from "./GiuBottomSheet";
 
 const PAGE_SIZE = 50;
+const MERCHANT_TABS = ["boxes", "orders", "settings"] as const;
+type MerchantTab = (typeof MERCHANT_TABS)[number];
 
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const tab =
+  const tab: MerchantTab =
     tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
   const { merchant, loading: authLoading } = useGiuAuth();
   const { locale } = useGiuLocale();
+  const { fillPickupCode, registerOnVerified } = useMerchantPickup();
   const href = useGiuHref();
   const panelHref = href(GIU_ROUTES.merchant.panel);
   const market = "kr" as const;
@@ -46,25 +47,19 @@ export function MerchantPanelClient() {
   const [orderQuery, setOrderQuery] = useState("");
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
   const [orderLimit, setOrderLimit] = useState(PAGE_SIZE);
-  const [pickupCodeDraft, setPickupCodeDraft] = useState("");
-  const [pickupSheetOpen, setPickupSheetOpen] = useState(false);
-  const [pickupView, setPickupView] = useState<"qr" | "code">("qr");
   const [bankSheetOpen, setBankSheetOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [tabSlide, setTabSlide] = useState<"forward" | "back">("forward");
+  const prevTabIndex = useRef(MERCHANT_TABS.indexOf(tab));
 
-  useEffect(() => setMounted(true), []);
+  const tabIndex = MERCHANT_TABS.indexOf(tab);
 
-  function openPickupSheet(view: "qr" | "code" = "qr") {
-    hapticSelect();
-    setPickupView(view);
-    setPickupSheetOpen(true);
-  }
-
-  function fillPickupCode(code: string) {
-    hapticSelect();
-    setPickupCodeDraft(code.toUpperCase());
-    openPickupSheet("code");
-  }
+  useEffect(() => {
+    const prev = prevTabIndex.current;
+    const next = tabIndex;
+    if (next > prev) setTabSlide("forward");
+    else if (next < prev) setTabSlide("back");
+    prevTabIndex.current = next;
+  }, [tabIndex]);
 
   const load = useCallback(
     async (merchantId: string, opts?: { silent?: boolean }) => {
@@ -100,6 +95,13 @@ export function MerchantPanelClient() {
     if (merchant) void load(merchant.id);
     else if (!authLoading) setLoading(false);
   }, [merchant, authLoading, load]);
+
+  useEffect(() => {
+    if (!merchant) return;
+    return registerOnVerified(() => {
+      void load(merchant.id, { silent: true });
+    });
+  }, [merchant, load, registerOnVerified]);
 
   const boxMap = useMemo(() => new Map(boxes.map((b) => [b.id, b])), [boxes]);
 
@@ -241,8 +243,12 @@ export function MerchantPanelClient() {
 
       <MerchantOrderAlerts merchantId={merchant.id} onNewOrder={() => void load(merchant.id, { silent: true })} />
 
-      {tab === "boxes" ? (
-        <div key="boxes" className="giu-tab-panel space-y-4">
+      <div className="giu-tab-stage">
+        {tab === "boxes" ? (
+          <div
+            key="boxes"
+            className={`giu-tab-panel-3d space-y-4 ${tabSlide === "forward" ? "is-forward" : "is-back"}`}
+          >
           <MerchantPublishFlow
             locale={locale}
             merchant={merchant}
@@ -257,31 +263,12 @@ export function MerchantPanelClient() {
               document.getElementById("giu-publish-flow")?.scrollIntoView({ behavior: "smooth" });
             }}
           />
-        </div>
-      ) : tab === "orders" ? (
-        <>
-          {mounted
-            ? createPortal(
-                <button
-                  type="button"
-                  onClick={() => openPickupSheet("qr")}
-                  className="giu-btn-3d giu-tap fixed right-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.75rem))] z-[55] flex h-12 w-12 items-center justify-center rounded-full bg-giu-accent text-[12px] font-extrabold text-white shadow-[0_8px_28px_rgba(45,62,78,0.28)] ring-2 ring-white"
-                  aria-label={t(locale, "pickupScanStart")}
-                >
-                  QR
-                </button>,
-                document.body,
-              )
-            : null}
-
-          <section key="orders" className="giu-tab-panel space-y-3">
-            <button
-              type="button"
-              onClick={() => openPickupSheet("qr")}
-              className="giu-btn-primary giu-btn-3d w-full !py-3.5 text-[15px]"
-            >
-              {t(locale, "pickupScanStart")}
-            </button>
+          </div>
+        ) : tab === "orders" ? (
+          <section
+            key="orders"
+            className={`giu-tab-panel-3d space-y-3 ${tabSlide === "forward" ? "is-forward" : "is-back"}`}
+          >
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-bold">
                 {t(locale, "mOrders")} ({filteredOrders.length})
@@ -404,36 +391,20 @@ export function MerchantPanelClient() {
             </>
           )}
           </section>
-
-          <GiuBottomSheet
-            open={pickupSheetOpen}
-            onClose={() => setPickupSheetOpen(false)}
-            dismissLabel={t(locale, "mCloseSheet")}
-            ariaLabelledBy="giu-pickup-sheet-title"
+        ) : (
+          <div
+            key="settings"
+            className={`giu-tab-panel-3d space-y-4 ${tabSlide === "forward" ? "is-forward" : "is-back"}`}
           >
-            <MerchantPickupScanner
-              locale={locale}
-              layout="sheet"
-              initialView={pickupView}
-              pickupCode={pickupCodeDraft}
-              onPickupCodeChange={setPickupCodeDraft}
-              onVerified={() => {
-                void load(merchant.id, { silent: true });
-                setPickupSheetOpen(false);
-              }}
-            />
-          </GiuBottomSheet>
-        </>
-      ) : (
-        <div key="settings" className="giu-tab-panel space-y-4">
           <MerchantSettingsForm
             locale={locale}
             merchant={merchant}
             onSaved={() => void load(merchant.id, { silent: true })}
           />
           <MerchantReviewsClient locale={locale} merchantId={merchant.id} />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <MerchantBankRegisterSheet
         locale={locale}
