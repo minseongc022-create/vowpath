@@ -279,7 +279,8 @@ export async function registerCustomer(input: {
 export async function registerMerchantAccount(input: {
   email: string;
   password: string;
-  name: string;
+  ownerName: string;
+  storeName: string;
   phone: string;
   category: GiuMerchant["category"];
   district: GiuMerchant["district"];
@@ -300,18 +301,21 @@ export async function registerMerchantAccount(input: {
     return { error: "이 전화번호의 가게가 이미 있습니다 — 로그인하세요" };
   }
 
+  const ownerName = input.ownerName.trim();
+  const storeName = input.storeName.trim();
+
   const account: GiuAccount = {
     id: newId("acc"),
     role: "merchant",
     email,
     phone,
     passwordHash: await hashPassword(input.password),
-    name: input.name.trim(),
+    name: ownerName,
     market: input.market ?? "kr",
     createdAt: new Date().toISOString(),
   };
 
-  let slug = slugify(input.name);
+  let slug = slugify(storeName);
   if (store.merchants.some((m) => m.slug === slug)) {
     slug = `${slug}-${randomBytes(2).toString("hex")}`;
   }
@@ -319,7 +323,7 @@ export async function registerMerchantAccount(input: {
   const merchant: GiuMerchant = {
     id: newId("mer"),
     accountId: account.id,
-    name: input.name.trim(),
+    name: storeName,
     slug,
     category: input.category,
     district: input.district,
