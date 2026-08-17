@@ -36,6 +36,10 @@ export function ProductPhotoPicker({
   const canAdd = remaining > 0 && !uploading;
 
   async function uploadFile(file: File): Promise<string | null> {
+    if (!file.size) {
+      onError?.(t(locale, "mPhotoUploadFail"));
+      return null;
+    }
     let prepared = file;
     try {
       prepared = await compressImageToJpeg(file);
@@ -44,17 +48,21 @@ export function ProductPhotoPicker({
     }
     const form = new FormData();
     form.append("file", prepared, prepared.name || "photo.jpg");
-    const res = await fetch("/api/giu/product-images", {
-      method: "POST",
-      credentials: "include",
-      body: form,
-    });
-    const data = (await res.json()) as { url?: string; error?: string };
-    if (!res.ok || !data.url) {
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch("/api/giu/product-images", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (res.ok && data.url) return data.url;
+      if (attempt === 0 && res.status >= 500) continue;
       onError?.(data.error ?? t(locale, "mPhotoUploadFail"));
       return null;
     }
-    return data.url;
+    onError?.(t(locale, "mPhotoUploadFail"));
+    return null;
   }
 
   async function uploadFiles(files: FileList | File[]) {
@@ -68,8 +76,11 @@ export function ProductPhotoPicker({
     setPendingCount(list.length);
 
     try {
-      const results = await Promise.all(list.map((file) => uploadFile(file)));
-      const uploaded = results.filter((url): url is string => Boolean(url));
+      const uploaded: string[] = [];
+      for (const file of list) {
+        const url = await uploadFile(file);
+        if (url) uploaded.push(url);
+      }
       if (uploaded.length) {
         hapticConfirm();
       }
@@ -115,13 +126,13 @@ export function ProductPhotoPicker({
   }
 
   function openCamera() {
+    cameraRef.current?.click();
     setSheetOpen(false);
-    window.requestAnimationFrame(() => cameraRef.current?.click());
   }
 
   function openLibrary() {
+    libraryRef.current?.click();
     setSheetOpen(false);
-    window.requestAnimationFrame(() => libraryRef.current?.click());
   }
 
   function removeAt(index: number) {
@@ -204,17 +215,17 @@ export function ProductPhotoPicker({
       <input
         ref={cameraRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/*"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
         capture="environment"
-        className="hidden"
+        className="sr-only"
         onChange={handleFileChange}
       />
       <input
         ref={libraryRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/*"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
         multiple={remaining > 1}
-        className="hidden"
+        className="sr-only"
         onChange={handleFileChange}
       />
 

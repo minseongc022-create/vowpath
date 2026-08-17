@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { detectImageMime } from "@/giu/lib/detect-image-mime";
 import { saveProductImage } from "@/giu/lib/product-image-store";
 
 export async function POST(request: Request) {
@@ -16,7 +17,11 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await saveProductImage(buffer, file.type, file.name);
+    const mime =
+      file.type && file.type !== "application/octet-stream"
+        ? file.type
+        : detectImageMime(buffer, file.name) ?? file.type;
+    const result = await saveProductImage(buffer, mime, file.name);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

@@ -146,7 +146,10 @@ const KO: Dict = {
   mPublish: "마감할인 등록",
   mPublishHint: "상품 정보를 확인하고 올려 보세요",
   mRandomClosingProduct: "오늘의 마감 랜덤 상품으로 채우기",
-  mRandomClosingTrust: "가게에서 신선하게 담아 드리는 행운의 마감 상품이에요",
+  mRandomClosingMerchantHint:
+    "제목과 손님용 안내 문구를 자동으로 채워요. 사진·가격·수량·픽업 시간은 그대로 수정할 수 있어요.",
+  mRandomClosingCancel: "취소",
+  mRandomComposeManual: "직접 올리기",
   mRandomClosingTitle: "오늘의 마감 랜덤 상품",
   mRandomClosingDesc: "행운의 랜덤 상품을 사서 열고 맛있게 드세요!",
   mQuickPublish: "직접 입력해서 올리기",
