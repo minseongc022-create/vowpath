@@ -51,7 +51,7 @@ async function checkHealth(expected) {
 }
 
 async function checkCss() {
-  const cssChecks = ["f6f8f4", "2d6a3e", "e8b923"];
+  const cssChecks = ["fcf9f2", "3c2a21", "f9a825"];
   const { res, text } = await fetchText(`${base}/hop`);
   const cssPaths = [...text.matchAll(/\/_next\/static\/css\/[a-z0-9]+\.css/g)].map((m) => m[0]);
   const uniqueCss = [...new Set(cssPaths)].slice(0, 6);

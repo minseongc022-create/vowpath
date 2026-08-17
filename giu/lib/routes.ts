@@ -9,6 +9,7 @@ export const GIU_ROUTES = {
     my: "/giu/ma-cua-toi",
     box: (id: string) => `/giu/hop/${id}`,
     reservation: (id: string) => `/giu/dat/${id}`,
+    merchant: (id: string) => `/giu/ga/${id}`,
   },
   merchant: {
     home: "/giu/cua-hang/panel",

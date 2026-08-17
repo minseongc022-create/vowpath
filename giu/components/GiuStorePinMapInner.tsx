@@ -28,7 +28,7 @@ export default function GiuStorePinMapInner({ lat, lng }: Props) {
       <CircleMarker
         center={[lat, lng]}
         radius={9}
-        pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#2d6a3e", fillOpacity: 1 }}
+        pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#3c2a21", fillOpacity: 1 }}
       />
     </MapContainer>
   );

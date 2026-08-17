@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { compressImageToJpeg } from "@/giu/lib/compress-image-client";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { MAX_BOX_IMAGES } from "@/giu/lib/box-images";
 import { hapticConfirm } from "@/giu/lib/haptics";
@@ -35,8 +36,14 @@ export function ProductPhotoPicker({
   const canAdd = remaining > 0 && !uploading;
 
   async function uploadFile(file: File): Promise<string | null> {
+    let prepared = file;
+    try {
+      prepared = await compressImageToJpeg(file);
+    } catch {
+      prepared = file;
+    }
     const form = new FormData();
-    form.append("file", file, file.name || "photo.jpg");
+    form.append("file", prepared, prepared.name || "photo.jpg");
     const res = await fetch("/api/giu/product-images", {
       method: "POST",
       credentials: "include",

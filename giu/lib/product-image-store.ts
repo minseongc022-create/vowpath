@@ -68,7 +68,15 @@ export async function saveProductImage(
   };
 
   if (kvConfigured()) {
-    await kv.set(`${KV_PREFIX}${id}`, entry);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await kv.set(`${KV_PREFIX}${id}`, entry);
+        break;
+      } catch {
+        if (attempt >= 3) return { error: "사진 저장에 실패했어요. 잠시 후 다시 시도해 주세요" };
+        await new Promise((r) => setTimeout(r, 35 * (attempt + 1)));
+      }
+    }
   } else {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(join(DATA_DIR, `${id}.json`), JSON.stringify(entry));
