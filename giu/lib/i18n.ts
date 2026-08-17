@@ -283,6 +283,7 @@ const KO: Dict = {
   mVerifiedHint: "픽업 3회 완료 시 자동 인증",
   mReviewsTitle: "손님 리뷰",
   mReviewsEmpty: "아직 리뷰가 없어요",
+  mLogout: "로그아웃",
   mLogoutConfirm: "로그아웃할까요?",
   mOnboardingBank: "정산 받을 계좌를 등록해 주세요",
   mConfirmDeleteTitle: "삭제 확인",
