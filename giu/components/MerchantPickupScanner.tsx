@@ -293,7 +293,9 @@ export function MerchantPickupScanner({
         </div>
       ) : (
         <div>
-          <h3 className="text-[17px] font-bold text-giu-ink">{t(locale, "pickupScanTitle")}</h3>
+          <h3 id="giu-pickup-sheet-title" className="text-[17px] font-bold text-giu-ink">
+            {t(locale, "pickupScanTitle")}
+          </h3>
           <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPickupScanExpireHint")}</p>
         </div>
       )}

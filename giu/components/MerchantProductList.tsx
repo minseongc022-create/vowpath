@@ -572,6 +572,11 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                       type="button"
                       onClick={() => {
                         hapticSelect();
+                        if (selected) {
+                          setEditDayOffset(dayOffsetFromIso(selected.pickupStart, market));
+                          setEditStartH(hourFromIso(selected.pickupStart, market));
+                          setEditEndH(hourFromIso(selected.pickupEnd, market));
+                        }
                         setMode("edit");
                         setError("");
                       }}
