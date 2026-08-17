@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { prepareImageForUpload } from "@/giu/lib/compress-image-client";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { MAX_BOX_IMAGES } from "@/giu/lib/box-images";
@@ -11,7 +11,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 type Props = {
   locale: GiuLocale;
   value: string[];
-  onChange: (urls: string[]) => void;
+  onChange: Dispatch<SetStateAction<string[]>>;
   onError?: (message: string) => void;
   max?: number;
 };
@@ -20,7 +20,12 @@ function isBlobPreview(url: string): boolean {
   return url.startsWith("blob:");
 }
 
-/** iOS Safari requires a visible, label-linked file input — not sr-only + programmatic click. */
+function newSlotId(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `slot-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 function IosFilePickLabel({
   id,
   accept,
@@ -78,9 +83,29 @@ export function ProductPhotoPicker({
   const [uploading, setUploading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [localError, setLocalError] = useState("");
+  const [slotIds, setSlotIds] = useState<string[]>([]);
+  const uploadSeqRef = useRef(0);
   const remaining = max - value.length;
   const canAdd = remaining > 0 && !uploading;
   const acceptTypes = "image/jpeg,image/png,image/webp,image/heic,image/heif,image/*";
+
+  useEffect(() => {
+    if (value.length === 0) {
+      setSlotIds([]);
+      return;
+    }
+    setSlotIds((ids) => {
+      if (ids.length === value.length) return ids;
+      if (ids.length > value.length) return ids.slice(0, value.length);
+      return [...ids, ...Array.from({ length: value.length - ids.length }, () => newSlotId())];
+    });
+  }, [value.length]);
+
+  function revokeBlobIfUnused(url: string, urls: string[]) {
+    if (!isBlobPreview(url)) return;
+    if (urls.some((u) => u === url)) return;
+    URL.revokeObjectURL(url);
+  }
 
   async function uploadFile(file: File): Promise<string | null> {
     if (!file.size) {
@@ -130,52 +155,81 @@ export function ProductPhotoPicker({
     return null;
   }
 
+  function mergeUploaded(
+    prev: string[],
+    previews: string[],
+    uploaded: string[],
+  ): string[] {
+    let uploadIdx = 0;
+    return prev
+      .map((url) => {
+        if (!previews.includes(url)) return url;
+        const server = uploaded[uploadIdx];
+        uploadIdx += 1;
+        return server ?? null;
+      })
+      .filter((url): url is string => Boolean(url))
+      .slice(0, max);
+  }
+
   async function uploadFiles(files: FileList | File[]) {
     const list = Array.from(files).slice(0, remaining);
     if (!list.length) return;
 
+    const seq = ++uploadSeqRef.current;
     setSheetOpen(false);
     setLocalError("");
 
     const previews = list.map((file) => URL.createObjectURL(file));
-    const nextValue = [...value, ...previews].slice(0, max);
-    onChange(nextValue);
+    const addedCount = Math.min(previews.length, max - value.length);
+
+    onChange((prev) => [...prev, ...previews.slice(0, addedCount)]);
+    setSlotIds((ids) => [
+      ...ids,
+      ...Array.from({ length: addedCount }, () => newSlotId()),
+    ]);
     setUploading(true);
     setPendingCount(list.length);
 
     try {
       const uploaded: string[] = [];
       for (const file of list) {
+        if (seq !== uploadSeqRef.current) break;
         const url = await uploadFile(file);
         if (url) uploaded.push(url);
       }
-      if (uploaded.length) {
-        hapticConfirm();
-      }
-      let uploadIdx = 0;
-      const merged = nextValue
-        .map((url) => {
-          if (previews.includes(url)) {
-            const server = uploaded[uploadIdx];
-            uploadIdx += 1;
-            return server ?? null;
-          }
-          return url;
-        })
-        .filter((url): url is string => Boolean(url));
-      onChange(merged.slice(0, max));
-      previews.forEach((url) => URL.revokeObjectURL(url));
+
+      if (seq !== uploadSeqRef.current) return;
+
+      if (uploaded.length) hapticConfirm();
+
+      onChange((prev) => {
+        const next = mergeUploaded(prev, previews, uploaded);
+        for (const preview of previews) revokeBlobIfUnused(preview, next);
+        return next;
+      });
+
       if (!uploaded.length) {
-        onChange(value.filter((url) => !previews.some((p) => p === url)));
+        onChange((prev) => {
+          const next = prev.filter((url) => !previews.includes(url)).slice(0, max);
+          for (const preview of previews) revokeBlobIfUnused(preview, next);
+          return next;
+        });
       }
     } catch {
+      if (seq !== uploadSeqRef.current) return;
       setLocalError(t(locale, "mLoadError"));
       onError?.(t(locale, "mLoadError"));
-      onChange(value.filter((url) => !previews.some((p) => p === url)));
-      previews.forEach((url) => URL.revokeObjectURL(url));
+      onChange((prev) => {
+        const next = prev.filter((url) => !previews.includes(url)).slice(0, max);
+        for (const preview of previews) revokeBlobIfUnused(preview, next);
+        return next;
+      });
     } finally {
-      setUploading(false);
-      setPendingCount(0);
+      if (seq === uploadSeqRef.current) {
+        setUploading(false);
+        setPendingCount(0);
+      }
     }
   }
 
@@ -187,9 +241,15 @@ export function ProductPhotoPicker({
         : t(locale, "mPhotoPick");
 
   function removeAt(index: number) {
-    const url = value[index];
-    if (url && isBlobPreview(url)) URL.revokeObjectURL(url);
-    onChange(value.filter((_, i) => i !== index));
+    uploadSeqRef.current += 1;
+    setSlotIds((ids) => ids.filter((_, i) => i !== index));
+    onChange((prev) => {
+      if (index < 0 || index >= prev.length) return prev;
+      const removed = prev[index];
+      const next = prev.filter((_, i) => i !== index);
+      if (removed) revokeBlobIfUnused(removed, next);
+      return next;
+    });
   }
 
   return (
@@ -199,7 +259,7 @@ export function ProductPhotoPicker({
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {value.map((url, index) => (
               <div
-                key={`${url}-${index}`}
+                key={slotIds[index] ?? `photo-${index}`}
                 className="relative aspect-square overflow-hidden rounded-xl ring-1 ring-giu-border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -215,7 +275,11 @@ export function ProductPhotoPicker({
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => removeAt(index)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeAt(index);
+                  }}
                   disabled={uploading && isBlobPreview(url)}
                   className="absolute right-1 top-1 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-giu-ink/80 text-[11px] font-bold text-white"
                   aria-label={t(locale, "mPhotoRemove")}
