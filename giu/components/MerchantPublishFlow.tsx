@@ -5,6 +5,7 @@ import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import { ProductPhotoPicker } from "@/giu/components/ProductPhotoPicker";
+import { boxImages, boxImageFields } from "@/giu/lib/box-images";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatMoney,
@@ -142,7 +143,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(merchant.category);
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [freshnessNote, setFreshnessNote] = useState("");
   const [originalPrice, setOriginalPrice] = useState(defaultPrices.originalPriceVnd);
   const [salePrice, setSalePrice] = useState(defaultPrices.salePriceVnd);
@@ -175,7 +176,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setTitle(t(locale, "mSurpriseDefault"));
     setCategory(merchant.category);
     setDescription("");
-    setImageUrl("");
+    setImageUrls([]);
     setFreshnessNote(t(locale, "mFreshDefault"));
     setOriginalPrice(defaultPrices.originalPriceVnd);
     setSalePrice(defaultPrices.salePriceVnd);
@@ -201,7 +202,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setTitle(mostRecentBox.title);
     setCategory(mostRecentBox.category);
     setDescription(mostRecentBox.description ?? "");
-    setImageUrl(mostRecentBox.imageUrl ?? "");
+    setImageUrls(boxImages(mostRecentBox));
     setFreshnessNote(mostRecentBox.freshnessNote ?? t(locale, "mFreshDefault"));
     setOriginalPrice(mostRecentBox.originalPriceVnd);
     setSalePrice(mostRecentBox.salePriceVnd);
@@ -271,7 +272,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         body: JSON.stringify({
           title,
           description: description || undefined,
-          imageUrl: imageUrl.trim() || undefined,
+          ...boxImageFields(imageUrls),
           category,
           originalPriceVnd: originalPrice,
           salePriceVnd: salePrice,
@@ -447,7 +448,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
               <button
                 type="button"
                 onClick={loadRecentListing}
-                className="giu-btn-3d rounded-xl bg-giu-primary-soft px-3 py-2 text-[11px] font-bold text-giu-primary"
+                className="giu-btn-3d rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-primary ring-1 ring-giu-primary/25"
               >
                 {t(locale, "mLoadRecentListing")}
               </button>
@@ -491,8 +492,8 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
             <ProductPhotoPicker
               locale={locale}
-              value={imageUrl}
-              onChange={setImageUrl}
+              value={imageUrls}
+              onChange={setImageUrls}
               onError={setCreateError}
             />
           </Field>
@@ -619,9 +620,9 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                       : "bg-giu-bg ring-giu-border"
                   }`}
                 >
-                  {box.imageUrl ? (
+                  {boxImages(box)[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={box.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+                    <img src={boxImages(box)[0]} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-giu-ink">{box.title}</p>

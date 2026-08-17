@@ -8,6 +8,7 @@ import {
   isClosingSoon,
   isSurpriseTitle,
 } from "@/giu/lib/box-ux";
+import { boxImages } from "@/giu/lib/box-images";
 import {
   formatDiscount,
   formatPickupDate,
@@ -47,6 +48,23 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const closing = !soldOut && isClosingSoon(box.pickupEnd);
   const rating = formatRatingLine(merchant.rating, merchant.reviewCount, locale);
 
+  const photos = boxImages(box);
+
+  const badges = (
+    <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+      {surprise ? (
+        <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
+          {t(locale, "surprise")}
+        </span>
+      ) : null}
+      {closing ? (
+        <span className="rounded-md bg-giu-accent px-2 py-1 text-[11px] font-bold text-white">
+          {t(locale, "closingSoon")}
+        </span>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="giu-page !pt-0 space-y-3">
       <div className="flex items-center justify-between gap-2 py-2">
@@ -56,27 +74,32 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
       </div>
 
-      <div className="giu-photo relative aspect-[16/10] overflow-hidden rounded-[20px] ring-1 ring-giu-border">
-        {box.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={box.imageUrl} alt={box.title} />
+      <div className="relative">
+        {photos.length > 1 ? (
+          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
+            {photos.map((url) => (
+              <div
+                key={url}
+                className="giu-photo relative aspect-[16/10] w-[88%] shrink-0 snap-center overflow-hidden rounded-[20px] ring-1 ring-giu-border"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={box.title} />
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="flex h-full items-end bg-gradient-to-br from-giu-primary-soft to-giu-accent-soft p-5">
-            <p className="text-2xl font-extrabold text-giu-ink">{box.title}</p>
+          <div className="giu-photo relative aspect-[16/10] overflow-hidden rounded-[20px] ring-1 ring-giu-border">
+            {photos[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photos[0]} alt={box.title} />
+            ) : (
+              <div className="flex h-full items-end bg-gradient-to-br from-giu-primary-soft to-giu-accent-soft p-5">
+                <p className="text-2xl font-extrabold text-giu-ink">{box.title}</p>
+              </div>
+            )}
           </div>
         )}
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {surprise ? (
-            <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
-              {t(locale, "surprise")}
-            </span>
-          ) : null}
-          {closing ? (
-            <span className="rounded-md bg-giu-accent px-2 py-1 text-[11px] font-bold text-white">
-              {t(locale, "closingSoon")}
-            </span>
-          ) : null}
-        </div>
+        {badges}
       </div>
 
       <div className="space-y-3 px-0.5">

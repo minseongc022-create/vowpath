@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
+import { MAX_BOX_IMAGES, normalizeImageUrls } from "@/giu/lib/box-images";
 import { deleteBox, getBox, getMerchant, updateBox } from "@/giu/lib/store";
 
 const patchSchema = z.object({
@@ -16,6 +17,15 @@ const patchSchema = z.object({
       z.literal(""),
       z.string().max(500).refine((v) => isAllowedGiuImageUrl(v), "이미지 URL이 올바르지 않습니다"),
     ])
+    .optional(),
+  imageUrls: z
+    .array(
+      z
+        .string()
+        .max(500)
+        .refine((v) => isAllowedGiuImageUrl(v), "이미지 URL이 올바르지 않습니다"),
+    )
+    .max(MAX_BOX_IMAGES)
     .optional(),
   freshnessNote: z.string().max(200).optional(),
   quantityLeft: z.number().int().min(0).max(50).optional(),
@@ -51,15 +61,29 @@ export async function PATCH(request: Request, { params }: Props) {
       );
     }
 
-    const { imageUrl, ...rest } = parsed.data;
+    const { imageUrl, imageUrls, ...rest } = parsed.data;
     const nextOriginal = rest.originalPriceVnd ?? box.originalPriceVnd;
     const nextSale = rest.salePriceVnd ?? box.salePriceVnd;
     if (nextSale >= nextOriginal) {
       return NextResponse.json({ error: "판매가는 정가보다 낮아야 합니다" }, { status: 400 });
     }
+
+    let imagePatch: { imageUrl?: string; imageUrls?: string[] } = {};
+    if (imageUrls !== undefined) {
+      const urls = normalizeImageUrls(imageUrls);
+      imagePatch = urls.length
+        ? { imageUrl: urls[0], imageUrls: urls }
+        : { imageUrl: undefined, imageUrls: undefined };
+    } else if (imageUrl !== undefined) {
+      const trimmed = imageUrl.trim();
+      imagePatch = trimmed
+        ? { imageUrl: trimmed, imageUrls: [trimmed] }
+        : { imageUrl: undefined, imageUrls: undefined };
+    }
+
     const updated = await updateBox(id, {
       ...rest,
-      ...(imageUrl !== undefined ? { imageUrl: imageUrl || undefined } : {}),
+      ...imagePatch,
     });
     return NextResponse.json({ box: updated });
   } catch {

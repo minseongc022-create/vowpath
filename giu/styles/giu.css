@@ -191,7 +191,7 @@
 }
 
 .giu-sheet-backdrop {
-  @apply fixed inset-0 z-[60] flex items-end justify-center bg-black/25 backdrop-blur-[2px];
+  @apply fixed inset-0 z-[100] flex items-end justify-center bg-black/25 backdrop-blur-[2px];
 }
 
 .giu-sheet-dismiss {
@@ -210,36 +210,43 @@
 
 .giu-floating-nav {
   border-radius: 9999px;
-  background: rgb(255 255 255 / 0.88);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background:
+    linear-gradient(180deg, rgb(255 248 220 / 0.96), rgb(255 255 255 / 0.94));
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
   box-shadow:
-    0 0 0 1px rgb(45 62 78 / 0.06),
-    0 8px 32px rgb(45 62 78 / 0.14),
-    0 2px 8px rgb(45 62 78 / 0.06);
+    0 0 0 1px rgb(201 168 50 / 0.28),
+    0 6px 24px rgb(45 70 40 / 0.14),
+    0 2px 6px rgb(45 70 40 / 0.06);
 }
 
 .giu-floating-nav-pill {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
+  top: 3px;
+  bottom: 3px;
   left: 0;
   border-radius: 9999px;
-  background: rgb(201 168 50 / 0.22);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  background: rgb(201 168 50 / 0.72);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.45),
+    0 1px 4px rgb(120 90 10 / 0.18);
   transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
   pointer-events: none;
 }
 
 .giu-floating-nav-item {
-  @apply relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-bold tracking-tight text-giu-muted transition duration-100;
+  @apply relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-0 px-1 py-1 text-[9px] font-extrabold tracking-tight text-giu-ink/70 transition duration-100;
   transform: translateY(0);
   touch-action: manipulation;
 }
 
+.giu-floating-nav-item svg {
+  @apply h-5 w-5;
+}
+
 .giu-floating-nav-item.is-active {
-  @apply text-giu-primary;
-  transform: translateY(-1px);
+  @apply text-giu-ink;
+  transform: translateY(0);
 }
 
 .giu-floating-nav-item:active {
@@ -403,7 +410,7 @@
 }
 
 .giu-success-toast-backdrop {
-  @apply fixed inset-0 z-[70] flex items-center justify-center px-6;
+  @apply fixed inset-0 z-[110] flex items-center justify-center px-6;
   pointer-events: none;
 }
 

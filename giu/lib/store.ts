@@ -581,6 +581,7 @@ export async function updateBox(
       | "title"
       | "description"
       | "imageUrl"
+      | "imageUrls"
       | "freshnessNote"
       | "status"
       | "quantityLeft"
@@ -613,6 +614,9 @@ export async function updateBox(
   }
   if ("imageUrl" in patch && !patch.imageUrl) {
     delete box.imageUrl;
+  }
+  if ("imageUrls" in patch && !patch.imageUrls?.length) {
+    delete box.imageUrls;
   }
   if (box.quantityLeft <= 0 && box.status === "mo") box.status = "het";
   if (box.quantityLeft > 0 && box.status === "het" && patch.status !== "huy") {
@@ -1018,6 +1022,7 @@ async function cloneBoxForRepublish(
     title: source.title,
     description: source.description,
     imageUrl: source.imageUrl,
+    imageUrls: source.imageUrls,
     category: source.category,
     originalPriceVnd: source.originalPriceVnd,
     salePriceVnd: source.salePriceVnd,
