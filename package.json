@@ -28,6 +28,7 @@
     "vercel:domains": "node scripts/vercel-link-domains.mjs",
     "porkbun:forward": "node scripts/porkbun-vowroad-forward.mjs",
     "giu:domain": "node scripts/giu-domain-setup.mjs",
+    "giu:verify-deploy": "node scripts/giu-deploy-verify.mjs",
     "twilio:status": "node scripts/twilio-account-status.mjs",
     "twilio:verify": "node scripts/verify-caller-id.mjs",
     "twilio:verified": "node scripts/list-verified-caller-ids.mjs",

@@ -65,3 +65,6 @@ jobs:
 
       - name: Verify redirects
         run: node scripts/seo-post-deploy.mjs
+
+      - name: Verify Giu (giucuu.com) production
+        run: node scripts/giu-deploy-verify.mjs
