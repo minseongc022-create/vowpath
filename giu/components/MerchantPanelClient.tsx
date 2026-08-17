@@ -16,6 +16,7 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
+import { MerchantLogoutLink } from "./MerchantLogoutLink";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
 import { useMerchantPickup } from "./MerchantPickupProvider";
@@ -418,6 +419,7 @@ export function MerchantPanelClient() {
             panelHref={panelHref}
           />
           <MerchantReviewsClient locale={locale} merchantId={merchant.id} />
+          <MerchantLogoutLink locale={locale} />
           </div>
         )}
       </div>

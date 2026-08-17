@@ -6,11 +6,8 @@ import { merchantDistricts } from "@/giu/lib/districts";
 import { hapticConfirm } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
-import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuMerchant } from "@/giu/lib/types";
-import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { useGiuAuth } from "./GiuAuthProvider";
-import { useGiuHref } from "./GiuNavProvider";
 
 type Props = {
   locale: GiuLocale;
@@ -19,14 +16,12 @@ type Props = {
 };
 
 export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
-  const { refresh, logout } = useGiuAuth();
-  const href = useGiuHref();
+  const { refresh } = useGiuAuth();
   const categories = merchantCategories();
   const districts = merchantDistricts();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const [logoutOpen, setLogoutOpen] = useState(false);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -134,27 +129,6 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
       <button type="submit" disabled={busy} className="giu-btn-primary giu-btn-3d w-full py-3.5">
         {busy ? t(locale, "loading") : t(locale, "mSettingsSave")}
       </button>
-      <button
-        type="button"
-        onClick={() => setLogoutOpen(true)}
-        className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
-      >
-        {t(locale, "logout")}
-      </button>
-
-      <GiuConfirmSheet
-        open={logoutOpen}
-        title={t(locale, "logout")}
-        message={t(locale, "mLogoutConfirm")}
-        confirmLabel={t(locale, "logout")}
-        cancelLabel={t(locale, "mCloseNo")}
-        onConfirm={() =>
-          void logout().then(() => {
-            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
-          })
-        }
-        onCancel={() => setLogoutOpen(false)}
-      />
     </form>
   );
 }
