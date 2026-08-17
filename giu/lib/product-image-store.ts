@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { kv } from "@vercel/kv";
+import { detectImageMime } from "@/giu/lib/detect-image-mime";
 import { kvGetSafe } from "@/lib/kv-safe";
 
 const KV_PREFIX = "giu:product-image:";
@@ -33,9 +34,12 @@ export function productImagePublicPath(id: string): string {
 export async function saveProductImage(
   buffer: Buffer,
   mime: string,
+  filename?: string,
 ): Promise<{ id: string; url: string } | { error: string }> {
-  if (!ALLOWED.has(mime)) {
-    return { error: "JPEG 또는 PNG 사진만 올릴 수 있어요" };
+  const resolved =
+    mime && ALLOWED.has(mime) ? mime : detectImageMime(buffer, filename) ?? mime;
+  if (!resolved || !ALLOWED.has(resolved)) {
+    return { error: "JPEG·PNG·HEIC 사진만 올릴 수 있어요" };
   }
   if (buffer.length > 8 * 1024 * 1024) {
     return { error: "사진은 8MB 이하로 올려 주세요" };

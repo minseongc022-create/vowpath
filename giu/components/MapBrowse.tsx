@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { googleMapsSearchUrl } from "@/giu/lib/links";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import type { GiuBox, GiuMerchant } from "@/giu/lib/types";
 import { getDistrictLabel } from "@/giu/lib/districts";
@@ -54,15 +53,9 @@ export function MapBrowse({ items }: { items: Item[] }) {
                         {formatVnd(box.salePriceVnd)}
                       </p>
                     </div>
-                    <a
-                      href={googleMapsSearchUrl(merchant.address)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-1.5 inline-block text-[11px] font-bold text-giu-primary"
-                    >
-                      {merchant.address} →
-                    </a>
+                        <p className="mt-0.5 truncate text-[11px] font-semibold text-giu-muted">
+                          {merchant.address}
+                        </p>
                   </Link>
                 </li>
               );

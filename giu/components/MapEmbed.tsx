@@ -1,13 +1,13 @@
 "use client";
 
-import { googleMapsEmbedUrl, googleMapsSearchUrl } from "@/giu/lib/links";
 import { GiuInAppDirections } from "./GiuInAppDirections";
+import { GiuStorePinMap } from "./GiuStorePinMap";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { t } from "@/giu/lib/i18n";
 
 type Props = {
   address: string;
-  /** Store coordinates — enables directions from current location */
+  /** Store coordinates — enables in-app directions */
   destLat?: number;
   destLng?: number;
   className?: string;
@@ -22,8 +22,6 @@ export function MapEmbed({
   compact = false,
 }: Props) {
   const { locale } = useGiuLocale();
-  const embed = googleMapsEmbedUrl(address);
-  const open = googleMapsSearchUrl(address);
   const hasCoords =
     typeof destLat === "number" &&
     typeof destLng === "number" &&
@@ -32,23 +30,17 @@ export function MapEmbed({
 
   return (
     <div className={`overflow-hidden rounded-[16px] ring-1 ring-giu-border ${className}`}>
-      <iframe
-        title={address}
-        src={embed}
-        className={`w-full border-0 bg-giu-bg ${compact ? "h-36" : "h-48"}`}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        allowFullScreen
-      />
-      <div className="space-y-2 bg-white px-3 py-2.5">
-        <a
-          href={open}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-[11px] font-bold text-giu-primary"
+      {hasCoords ? (
+        <GiuStorePinMap lat={destLat} lng={destLng} compact={compact} />
+      ) : (
+        <div
+          className={`flex items-center justify-center bg-giu-bg px-4 text-center text-[12px] font-medium text-giu-muted ${compact ? "h-36" : "h-48"}`}
         >
           {address}
-        </a>
+        </div>
+      )}
+      <div className="space-y-2 bg-white px-3 py-2.5">
+        <p className="text-center text-[11px] font-bold text-giu-ink">{address}</p>
         {hasCoords ? (
           <GiuInAppDirections
             destination={{ lat: destLat, lng: destLng }}
@@ -56,14 +48,9 @@ export function MapEmbed({
             primary
           />
         ) : (
-          <a
-            href={open}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="giu-btn-secondary block w-full !py-2.5 text-center text-[12px]"
-          >
-            {t(locale, "maps")}
-          </a>
+          <p className="text-center text-[11px] font-semibold text-giu-muted">
+            {t(locale, "directionsNeedLoc")}
+          </p>
         )}
       </div>
     </div>

@@ -32,6 +32,7 @@ import {
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
 
 type PublishView = "idle" | "compose" | "history" | "confirm";
+type ComposeMode = "random" | "custom";
 
 function Field({
   label,
@@ -134,6 +135,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const defaultPrices = quickPublishPrices(market);
 
   const [view, setView] = useState<PublishView>("idle");
+  const [composeMode, setComposeMode] = useState<ComposeMode>("random");
   const [createError, setCreateError] = useState("");
   const [submitBusy, setSubmitBusy] = useState(false);
   const [republishBusy, setRepublishBusy] = useState(false);
@@ -157,6 +159,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
   const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
+  const photosPending = imageUrls.some((url) => url.startsWith("blob:"));
   const pendingPublishRef = useRef<(() => void | Promise<void>) | null>(null);
 
   const historyBoxes = useMemo(
@@ -172,10 +175,16 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     [boxes, merchant.id],
   );
 
-  function resetComposeForm() {
-    setTitle(t(locale, "mSurpriseDefault"));
+  function resetComposeForm(mode: ComposeMode = "custom") {
+    setComposeMode(mode);
+    if (mode === "random") {
+      setTitle(t(locale, "mRandomClosingTitle"));
+      setDescription(t(locale, "mRandomClosingDesc"));
+    } else {
+      setTitle("");
+      setDescription("");
+    }
     setCategory(merchant.category);
-    setDescription("");
     setImageUrls([]);
     setFreshnessNote(t(locale, "mFreshDefault"));
     setOriginalPrice(defaultPrices.originalPriceVnd);
@@ -187,9 +196,13 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setCreateError("");
   }
 
+  function openRandomCompose() {
+    resetComposeForm("random");
+    setView("compose");
+  }
+
   function openCompose() {
-    hapticSelect();
-    resetComposeForm();
+    resetComposeForm("custom");
     setView("compose");
   }
 
@@ -270,9 +283,9 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
+          body: JSON.stringify({
           title,
-          description: description || undefined,
+          description: description || (composeMode === "random" ? t(locale, "mRandomClosingDesc") : undefined),
           ...boxImageFields(imageUrls),
           category,
           originalPriceVnd: originalPrice,
@@ -414,18 +427,23 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         <div className="space-y-2.5">
           <button
             type="button"
-            onClick={openCompose}
+            onClick={openRandomCompose}
             className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
+          >
+            {t(locale, "mRandomClosingProduct")}
+          </button>
+          <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mRandomClosingSub")}</p>
+          <button
+            type="button"
+            onClick={openCompose}
+            className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
           >
             {t(locale, "mQuickPublish")}
           </button>
           <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mQuickPublishSub")}</p>
           <button
             type="button"
-            onClick={() => {
-              hapticSelect();
-              setView("history");
-            }}
+            onClick={() => setView("history")}
             className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
           >
             {t(locale, "mViewPastProducts")}
@@ -464,6 +482,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="giu-input"
+              readOnly={composeMode === "random"}
             />
           </Field>
 
@@ -482,14 +501,20 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             </select>
           </Field>
 
-          <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
-            <input
-              name="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="giu-input"
-            />
-          </Field>
+          {composeMode === "random" ? (
+            <div className="giu-info-banner text-[13px] leading-relaxed">
+              {t(locale, "mRandomClosingDesc")}
+            </div>
+          ) : (
+            <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
+              <input
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="giu-input"
+              />
+            </Field>
+          )}
 
           <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
             <ProductPhotoPicker
@@ -574,8 +599,16 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
 
           {createError ? <p className="text-sm text-giu-danger">{createError}</p> : null}
 
-          <button type="submit" disabled={submitBusy} className="giu-btn-primary giu-btn-3d py-3.5">
-            {submitBusy ? t(locale, "mQuickPublishing") : t(locale, "mPostProduct")}
+          <button
+            type="submit"
+            disabled={submitBusy || photosPending}
+            className="giu-btn-primary giu-btn-3d py-3.5"
+          >
+            {submitBusy
+              ? t(locale, "mQuickPublishing")
+              : photosPending
+                ? t(locale, "mPhotoUploading")
+                : t(locale, "mPostProduct")}
           </button>
         </form>
       ) : null}
