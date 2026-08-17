@@ -197,9 +197,18 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   }
 
   function applyRandomPreset() {
+    hapticSelect();
     setComposeMode("random");
     setTitle(t(locale, "mRandomClosingTitle"));
     setDescription(t(locale, "mRandomClosingDesc"));
+    setCreateError("");
+  }
+
+  function exitRandomPreset() {
+    hapticSelect();
+    setComposeMode("custom");
+    setTitle("");
+    setDescription("");
     setCreateError("");
   }
 
@@ -469,8 +478,26 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </div>
 
           {composeMode === "random" ? (
-            <div className="giu-info-banner text-[13px] leading-relaxed">
-              {t(locale, "mRandomClosingDesc")}
+            <div className="space-y-2">
+              <div className="giu-info-banner text-[13px] leading-relaxed">
+                {t(locale, "mRandomClosingMerchantHint")}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={exitRandomPreset}
+                  className="giu-btn-3d giu-tap shrink-0 rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-muted ring-1 ring-giu-border"
+                >
+                  {t(locale, "mRandomClosingCancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={exitRandomPreset}
+                  className="giu-btn-3d giu-tap shrink-0 rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-giu-primary ring-1 ring-giu-primary/25"
+                >
+                  {t(locale, "mRandomComposeManual")}
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -481,9 +508,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
               {t(locale, "mRandomClosingProduct")}
             </button>
           )}
-          <p className="text-[11px] font-semibold leading-snug text-giu-muted">
-            {t(locale, "mRandomClosingTrust")}
-          </p>
 
           <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
             <input

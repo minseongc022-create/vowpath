@@ -136,7 +136,15 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         </div>
 
         {box.description ? (
-          <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
+          surprise ? (
+            <div className="giu-info-banner text-[13px] leading-relaxed">{box.description}</div>
+          ) : (
+            <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
+          )
+        ) : null}
+
+        {surprise ? (
+          <p className="text-[12px] font-semibold leading-snug text-giu-muted">{t(locale, "surpriseHint")}</p>
         ) : null}
 
         {box.freshnessNote ? (
