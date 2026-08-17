@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import {
   formatPaymentStatusLocale,
@@ -49,6 +50,9 @@ export function MerchantPanelClient() {
   const [pickupSheetOpen, setPickupSheetOpen] = useState(false);
   const [pickupView, setPickupView] = useState<"qr" | "code">("qr");
   const [bankSheetOpen, setBankSheetOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   function openPickupSheet(view: "qr" | "code" = "qr") {
     hapticSelect();
@@ -256,17 +260,29 @@ export function MerchantPanelClient() {
         </div>
       ) : tab === "orders" ? (
         <>
-          <button
-            type="button"
-            onClick={() => openPickupSheet("qr")}
-            className="giu-btn-3d giu-tap fixed right-4 top-[max(5.5rem,calc(env(safe-area-inset-top)+4.5rem))] z-30 flex h-12 w-12 items-center justify-center rounded-full bg-giu-accent text-[12px] font-extrabold text-white shadow-[0_6px_24px_rgba(45,62,78,0.22)] ring-2 ring-white"
-            aria-label={t(locale, "pickupScanStart")}
-          >
-            QR
-          </button>
+          {mounted
+            ? createPortal(
+                <button
+                  type="button"
+                  onClick={() => openPickupSheet("qr")}
+                  className="giu-btn-3d giu-tap fixed right-4 top-[max(4.25rem,calc(env(safe-area-inset-top)+3.75rem))] z-[55] flex h-12 w-12 items-center justify-center rounded-full bg-giu-accent text-[12px] font-extrabold text-white shadow-[0_8px_28px_rgba(45,62,78,0.28)] ring-2 ring-white"
+                  aria-label={t(locale, "pickupScanStart")}
+                >
+                  QR
+                </button>,
+                document.body,
+              )
+            : null}
 
           <section key="orders" className="giu-tab-panel space-y-3">
-            <div className="flex items-center justify-between gap-2 pr-14">
+            <button
+              type="button"
+              onClick={() => openPickupSheet("qr")}
+              className="giu-btn-primary giu-btn-3d w-full !py-3.5 text-[15px]"
+            >
+              {t(locale, "pickupScanStart")}
+            </button>
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-bold">
                 {t(locale, "mOrders")} ({filteredOrders.length})
               </h2>
