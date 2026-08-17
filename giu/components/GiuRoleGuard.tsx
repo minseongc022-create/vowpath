@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GIU_ROUTES, homePathForRole } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
@@ -25,6 +25,7 @@ export function GiuRoleGuard({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const href = useGiuHref();
   const { account, loading } = useGiuAuth();
   const { locale } = useGiuLocale();
@@ -34,7 +35,8 @@ export function GiuRoleGuard({
 
     if (requiredRole === "merchant") {
       if (!account) {
-        router.replace(`${href(GIU_ROUTES.auth)}?role=merchant&next=${encodeURIComponent(pathname)}`);
+        const nextPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+        router.replace(`${href(GIU_ROUTES.auth)}?role=merchant&next=${encodeURIComponent(nextPath)}`);
         return;
       }
       if (account.role !== "merchant") {
@@ -46,7 +48,7 @@ export function GiuRoleGuard({
     if (account?.role === "merchant") {
       router.replace(href(GIU_ROUTES.merchant.home));
     }
-  }, [account, loading, pathname, requiredRole, router, href]);
+  }, [account, loading, pathname, searchParams, requiredRole, router, href]);
 
   if (requiredRole === "merchant") {
     if (loading) {

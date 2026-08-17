@@ -76,7 +76,7 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
             name="bankName"
             required
             defaultValue={merchant.bankName ?? ""}
-            className="giu-input"
+            className="giu-input giu-input-hint"
             placeholder="국민은행"
           />
         </div>
@@ -87,7 +87,7 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
             required
             inputMode="numeric"
             defaultValue={merchant.bankAccount ?? ""}
-            className="giu-input"
+            className="giu-input giu-input-hint"
             placeholder="123456-01-123456"
           />
         </div>
@@ -96,7 +96,7 @@ export function MerchantBankRegisterSheet({ locale, open, merchant, onClose, onS
           <input
             name="bankHolder"
             defaultValue={merchant.bankHolder ?? merchant.name}
-            className="giu-input"
+            className="giu-input giu-input-hint"
             placeholder={merchant.name}
           />
         </div>

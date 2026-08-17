@@ -22,6 +22,7 @@ import { useMerchantPickup } from "./MerchantPickupProvider";
 import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantReviewsClient } from "./MerchantReviewsClient";
+import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 
 const PAGE_SIZE = 50;
@@ -33,7 +34,7 @@ export function MerchantPanelClient() {
   const tabParam = searchParams.get("tab");
   const tab: MerchantTab =
     tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
-  const { merchant, loading: authLoading } = useGiuAuth();
+  const { merchant, account, loading: authLoading, refresh, logout } = useGiuAuth();
   const { locale } = useGiuLocale();
   const { fillPickupCode, registerOnVerified } = useMerchantPickup();
   const href = useGiuHref();
@@ -72,6 +73,8 @@ export function MerchantPanelClient() {
         ]);
         if (bRes.status === 401 || rRes.status === 401) {
           setError(t(locale, "mSessionExpired"));
+          await logout();
+          window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
           return;
         }
         if (!bRes.ok || !rRes.ok) {
@@ -88,7 +91,7 @@ export function MerchantPanelClient() {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [locale],
+    [locale, logout, href],
   );
 
   useEffect(() => {
@@ -100,8 +103,9 @@ export function MerchantPanelClient() {
     if (!merchant) return;
     return registerOnVerified(() => {
       void load(merchant.id, { silent: true });
+      void refresh();
     });
-  }, [merchant, load, registerOnVerified]);
+  }, [merchant, load, registerOnVerified, refresh]);
 
   const boxMap = useMemo(() => new Map(boxes.map((b) => [b.id, b])), [boxes]);
 
@@ -144,10 +148,10 @@ export function MerchantPanelClient() {
   const hasMoreOrders = filteredOrders.length > orderLimit;
 
   const settlementHeld = reservations
-    .filter((r) => r.settlementStatus === "held")
+    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "held")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
   const settlementReleased = reservations
-    .filter((r) => r.settlementStatus === "released")
+    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "released")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
 
   const pendingAccountCount = reservations.filter((r) => r.payoutStatus === "pending_account").length;
@@ -158,10 +162,12 @@ export function MerchantPanelClient() {
   }
 
   if (!merchant) {
+    const detail =
+      account?.role === "merchant" ? t(locale, "mStoreNotFound") : t(locale, "mSessionExpired");
     return (
       <div className="giu-card space-y-3 text-center">
         <p className="font-bold text-giu-ink">{t(locale, "mLoadError")}</p>
-        <p className="text-[13px] text-giu-muted">{t(locale, "mSessionExpired")}</p>
+        <p className="text-[13px] font-semibold text-giu-muted">{detail}</p>
         <button
           type="button"
           className="giu-btn-primary"
@@ -400,6 +406,12 @@ export function MerchantPanelClient() {
             locale={locale}
             merchant={merchant}
             onSaved={() => void load(merchant.id, { silent: true })}
+          />
+          <MerchantSettlementSummary
+            locale={locale}
+            merchant={merchant}
+            reservations={reservations}
+            panelHref={panelHref}
           />
           <MerchantReviewsClient locale={locale} merchantId={merchant.id} />
           </div>

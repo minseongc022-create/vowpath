@@ -197,6 +197,7 @@ const KO: Dict = {
   mPickupConfirm: "손님이 코드를 보여주고 가져갔나요?",
   mPickupYes: "확인",
   mPickupNo: "취소",
+  mStoreNotFound: "가게 정보를 찾을 수 없어요. 다시 로그인해 주세요.",
   mSessionExpired: "로그인 세션이 만료되었습니다.",
   mLoadError: "데이터를 불러올 수 없습니다.",
   mCreateFail: "등록 실패",

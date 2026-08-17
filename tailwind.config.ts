@@ -38,6 +38,7 @@ const config: Config = {
           "accent-hover": "#1f3220",
           "accent-soft": "#ebe8df",
           highlight: "#c9a832",
+          placeholder: "#b8c2b6",
           mint: "#5a8f52",
           danger: "#c53030",
           gold: "#c9a832",

@@ -11,6 +11,7 @@
   --giu-accent-hover: #1f3220;
   --giu-accent-soft: #ebe8df;
   --giu-highlight: #c9a832;
+  --giu-placeholder: #b8c2b6;
   --giu-mint: #5a8f52;
   --giu-danger: #c53030;
   --giu-gold: #c9a832;
@@ -93,7 +94,12 @@
 }
 
 .giu-input {
-  @apply w-full rounded-[14px] border-0 bg-white px-3.5 py-3 text-[15px] font-semibold text-giu-ink outline-none ring-1 ring-giu-border placeholder:font-normal placeholder:text-giu-muted focus:ring-2 focus:ring-giu-primary/30;
+  @apply w-full rounded-[14px] border-0 bg-white px-3.5 py-3 text-[15px] font-semibold text-giu-ink outline-none ring-1 ring-giu-border placeholder:font-normal placeholder:text-giu-placeholder focus:ring-2 focus:ring-giu-primary/30;
+}
+
+.giu-input-hint::placeholder {
+  color: var(--giu-placeholder);
+  opacity: 1;
 }
 
 .giu-label {
