@@ -36,13 +36,13 @@ export function MerchantSettlementSummary({ locale, merchant, reservations, pane
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[13px]">
-        <div className="rounded-[12px] bg-giu-bg px-3 py-2">
-          <p className="text-[10px] font-medium text-giu-muted">{t(locale, "mSettleHeld")}</p>
+        <div className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
+          <p className="text-[10px] font-bold text-giu-muted">{t(locale, "mSettleHeld")}</p>
           <p className="font-extrabold text-giu-ink">{money(held)}</p>
           <p className="text-[10px] text-giu-muted">{t(locale, "mSettleHeldHint")}</p>
         </div>
-        <div className="rounded-[12px] bg-giu-accent-soft px-3 py-2">
-          <p className="text-[10px] font-medium text-giu-primary">{t(locale, "mSettleDone")}</p>
+        <div className="rounded-[12px] bg-giu-primary-soft px-3 py-2">
+          <p className="text-[10px] font-bold text-giu-primary">{t(locale, "mSettleDone")}</p>
           <p className="font-extrabold text-giu-ink">{money(released)}</p>
         </div>
       </div>

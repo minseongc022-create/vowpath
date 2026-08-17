@@ -634,13 +634,15 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                         onClick={() => setDeleteTarget(box)}
                       />
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => openRepublishConfirm(box)}
-                      className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-giu-primary"
-                    >
-                      {t(locale, "mRepublishThis")}
-                    </button>
+                    {box.status !== "mo" || box.quantityLeft === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => openRepublishConfirm(box)}
+                        className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-white"
+                      >
+                        {t(locale, "mRepublishThis")}
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               ))}

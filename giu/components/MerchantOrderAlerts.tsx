@@ -107,6 +107,7 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
             <button
               type="button"
               className="shrink-0 text-xs text-white/60"
+              aria-label={t(locale, "mCloseSheet")}
               onClick={() => setToast(null)}
             >
               ✕

@@ -138,6 +138,10 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
 
   async function submitRepublish() {
     if (!selected) return;
+    if (editEndH <= editStartH) {
+      setError(t(locale, "mTimeOrder"));
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -145,7 +149,12 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ boxId: selected.id }),
+        body: JSON.stringify({
+          boxId: selected.id,
+          dayOffset: editDayOffset,
+          pickupStartH: editStartH,
+          pickupEndH: editEndH,
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -545,9 +554,57 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     </div>
                   </div>
                 ) : mode === "confirm-republish" ? (
-                  <div className="giu-panel-enter space-y-2">
+                  <div className="giu-panel-enter space-y-3">
                     <p className="text-[13px] font-bold text-giu-ink">{t(locale, "mRepublishConfirmTitle")}</p>
-                    <p className="text-[12px] text-giu-muted">{t(locale, "mRepublishConfirmHint")}</p>
+                    <p className="text-[12px] font-semibold text-giu-muted">{t(locale, "mRepublishConfirmHint")}</p>
+                    <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+                      <div>
+                        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
+                        <p className="mt-0.5 text-[11px] font-semibold text-giu-muted">{t(locale, "mScheduleHint")}</p>
+                      </div>
+                      <div>
+                        <label className="giu-label">{t(locale, "mDay")}</label>
+                        <select
+                          className="giu-input"
+                          value={editDayOffset}
+                          onChange={(e) => setEditDayOffset(Number(e.target.value))}
+                        >
+                          <option value={0}>{t(locale, "mToday")}</option>
+                          <option value={1}>{t(locale, "mTomorrow")}</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="giu-label">{t(locale, "mStart")}</label>
+                          <select
+                            className="giu-input"
+                            value={editStartH}
+                            onChange={(e) => setEditStartH(Number(e.target.value))}
+                          >
+                            {PUBLISH_HOURS.map((h) => (
+                              <option key={h} value={h}>
+                                {String(h).padStart(2, "0")}:00
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="giu-label">{t(locale, "mEnd")}</label>
+                          <select
+                            className="giu-input"
+                            value={editEndH}
+                            onChange={(e) => setEditEndH(Number(e.target.value))}
+                          >
+                            {PUBLISH_HOURS.map((h) => (
+                              <option key={h} value={h}>
+                                {String(h).padStart(2, "0")}:00
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
                     <div className="flex flex-col gap-2">
                       <button
                         type="button"
@@ -601,7 +658,11 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                         type="button"
                         onClick={() => {
                           hapticSelect();
+                          setEditDayOffset(dayOffsetFromIso(selected.pickupStart, market));
+                          setEditStartH(hourFromIso(selected.pickupStart, market));
+                          setEditEndH(hourFromIso(selected.pickupEnd, market));
                           setMode("confirm-republish");
+                          setError("");
                         }}
                         className="giu-btn-secondary giu-btn-3d !py-3"
                       >
