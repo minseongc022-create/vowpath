@@ -44,7 +44,7 @@ export function FavoriteButton({ merchantId, merchantName, className = "" }: Pro
       aria-pressed={on}
       aria-label={on ? t(locale, "unfavorite") : t(locale, "favorite")}
       title={merchantName}
-      className={`inline-flex h-9 items-center gap-1 rounded-full px-3 text-[12px] font-bold transition ${
+      className={`giu-btn-3d giu-tap inline-flex h-9 items-center gap-1 rounded-full px-3 text-[12px] font-bold transition ${
         on
           ? "bg-giu-accent text-white"
           : "bg-white text-giu-muted ring-1 ring-giu-border"

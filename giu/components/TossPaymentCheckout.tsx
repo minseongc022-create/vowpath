@@ -103,7 +103,7 @@ export function TossPaymentCheckout({
         type="button"
         disabled={!ready || paying}
         onClick={() => void pay()}
-        className="giu-btn-primary w-full"
+        className="giu-btn-primary giu-btn-3d w-full"
       >
         {paying ? t(locale, "paying") : t(locale, "payKrwCta")}
       </button>

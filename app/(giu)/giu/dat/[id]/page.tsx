@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
+import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
@@ -115,9 +115,9 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
         {paid && !pickedUp ? <CancelReservationButton reservationId={id} /> : null}
 
-        <Link href={href(GIU_ROUTES.customer.home)} className="block text-center text-[13px] font-bold text-giu-primary">
+        <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap block text-center text-[13px] font-bold text-giu-primary">
           {t(locale, "moreBrowse")}
-        </Link>
+        </GiuCustomerBackLink>
       </div>
     </div>
   );

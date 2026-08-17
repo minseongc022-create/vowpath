@@ -21,7 +21,7 @@ export function EnableBoxAlertsButton() {
   return (
     <button
       type="button"
-      className="shrink-0 rounded-full bg-giu-ink px-3 py-2 text-[10px] font-bold text-white"
+      className="giu-btn-3d giu-tap shrink-0 rounded-full bg-giu-ink px-3 py-2 text-[10px] font-bold text-white"
       onClick={async () => {
         try {
           const next = await Notification.requestPermission();

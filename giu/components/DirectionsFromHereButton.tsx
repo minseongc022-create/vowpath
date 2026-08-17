@@ -72,8 +72,8 @@ export function DirectionsFromHereButton({
         disabled={busy}
         className={
           primary
-            ? "giu-btn-primary w-full !py-3 text-[13px]"
-            : "giu-btn-secondary w-full !py-3 text-[13px]"
+            ? "giu-btn-primary giu-btn-3d w-full !py-3 text-[13px]"
+            : "giu-btn-secondary giu-btn-3d w-full !py-3 text-[13px]"
         }
         title={destinationAddress}
       >

@@ -393,7 +393,7 @@ export function GiuAuthScreen() {
             />
           </div>
           {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
-          <button type="submit" disabled={loading} className="giu-btn-primary">
+          <button type="submit" disabled={loading} className="giu-btn-primary giu-btn-3d">
             {loading ? "로그인 중..." : role === "merchant" ? "가게 로그인" : "손님 로그인"}
           </button>
         </form>
@@ -427,7 +427,7 @@ export function GiuAuthScreen() {
             onConfirmChange={setCustomerPasswordConfirm}
           />
           {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
-          <button type="submit" disabled={loading} className="giu-btn-primary">
+          <button type="submit" disabled={loading} className="giu-btn-primary giu-btn-3d">
             {loading ? "가입 중..." : "손님으로 시작"}
           </button>
         </form>
@@ -515,7 +515,7 @@ export function GiuAuthScreen() {
             />
           </div>
           {error ? <p className="text-sm text-giu-danger">{error}</p> : null}
-          <button type="submit" disabled={loading} className="giu-btn-primary">
+          <button type="submit" disabled={loading} className="giu-btn-primary giu-btn-3d">
             {loading ? "가입 중..." : "무료 입점 & 시작"}
           </button>
         </form>

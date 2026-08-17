@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { GiuBox, GiuMerchant } from "@/giu/lib/types";
 import { getCategoryEmoji } from "@/giu/lib/categories";
 import { formatDiscount, formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { GIU_ROUTES } from "@/giu/lib/routes";
+import { GiuCustomerNavLink } from "./GiuCustomerNavLink";
 import { useGiuHref } from "./GiuNavProvider";
 
 type Props = {
@@ -18,9 +18,9 @@ export function BoxCard({ box, merchant, index = 0 }: Props) {
   const discount = formatDiscount(box.originalPriceVnd, box.salePriceVnd);
 
   return (
-    <Link
+    <GiuCustomerNavLink
       href={href(GIU_ROUTES.customer.box(box.id))}
-      className="giu-feed-item giu-list-row giu-tap !gap-0 !overflow-hidden !p-0"
+      className="giu-feed-item giu-list-row giu-btn-3d giu-tap !gap-0 !overflow-hidden !p-0"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
       <div className="giu-photo h-[92px] w-[92px] shrink-0">
@@ -48,6 +48,6 @@ export function BoxCard({ box, merchant, index = 0 }: Props) {
           </p>
         </div>
       </div>
-    </Link>
+    </GiuCustomerNavLink>
   );
 }

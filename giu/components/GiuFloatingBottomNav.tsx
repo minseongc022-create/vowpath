@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { GiuNavIcon, type GiuNavIconName } from "@/giu/components/icons/GiuNavIcons";
 import { hapticSelect } from "@/giu/lib/haptics";
+import { useGiuCustomerNavOptional } from "./GiuCustomerNavProvider";
 import { useGiuHref } from "./GiuNavProvider";
 
 export type GiuFloatingNavTab = {
@@ -25,6 +26,7 @@ type Props = {
 export function GiuFloatingBottomNav({ tabs, docked = false, getSearch }: Props) {
   const pathname = usePathname();
   const href = useGiuHref();
+  const customerNav = useGiuCustomerNavOptional();
   const [mounted, setMounted] = useState(false);
   const search = typeof window !== "undefined" && getSearch ? getSearch() : "";
 
@@ -61,7 +63,14 @@ export function GiuFloatingBottomNav({ tabs, docked = false, getSearch }: Props)
               <Link
                 key={tab.href}
                 href={href(tab.href)}
-                onClick={() => hapticSelect()}
+                onClick={() => {
+                  hapticSelect();
+                  if (customerNav && activeIndex >= 0) {
+                    const toIndex = tabs.indexOf(tab);
+                    if (toIndex > activeIndex) customerNav.setNavDirection("forward");
+                    else if (toIndex < activeIndex) customerNav.setNavDirection("back");
+                  }
+                }}
                 className={`giu-floating-nav-item ${active ? "is-active" : ""}`}
                 aria-current={active ? "page" : undefined}
               >

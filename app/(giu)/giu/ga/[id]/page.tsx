@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BoxCard } from "@/giu/components/BoxCard";
 import { FavoriteButton } from "@/giu/components/FavoriteButton";
+import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { MerchantReviews } from "@/giu/components/MerchantReviews";
 import { formatRatingLine } from "@/giu/lib/box-ux";
@@ -29,9 +29,9 @@ export default async function GiuMerchantStorePage({ params }: Props) {
 
   return (
     <div className="giu-page space-y-4">
-      <Link href={href(GIU_ROUTES.customer.favorites)} className="text-[13px] font-bold text-giu-accent">
+      <GiuCustomerBackLink href={href(GIU_ROUTES.customer.favorites)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
         {t(locale, "storeBack")}
-      </Link>
+      </GiuCustomerBackLink>
 
       <header className="flex items-start gap-3">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-giu-primary-soft text-2xl ring-1 ring-giu-border">
