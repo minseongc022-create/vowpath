@@ -1,44 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
-import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
+import { Suspense } from "react";
+import { usePathname } from "next/navigation";
+import { GiuQrScanIcon } from "@/giu/components/GiuQrScanIcon";
+import { MerchantPickupProvider, useMerchantPickupOptional } from "@/giu/components/MerchantPickupProvider";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
+import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { GiuMerchantBottomNav } from "./GiuMerchantBottomNav";
 import { GiuLogo } from "./GiuLogo";
 import { useGiuHref } from "./GiuNavProvider";
 
-export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
-  const { account, merchant, logout } = useGiuAuth();
+function MerchantHeaderQrButton({ locale }: { locale: GiuLocale }) {
+  const pickup = useMerchantPickupOptional();
+  if (!pickup) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => pickup.openPickupSheet("qr")}
+      className="giu-btn-3d giu-tap flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-giu-accent text-white shadow-[0_4px_16px_rgba(45,62,78,0.2)] ring-2 ring-white"
+      aria-label={t(locale, "pickupScanStart")}
+    >
+      <GiuQrScanIcon className="h-[22px] w-[22px]" />
+    </button>
+  );
+}
+
+function MerchantShellInner({ children }: { children: React.ReactNode }) {
+  const { account, merchant } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const pathname = usePathname();
   const storeName =
     merchant?.name?.trim() || account?.name?.trim() || t(locale, "mStoreFallback");
+  const showQr = Boolean(merchant) && pathname.includes("/panel");
 
   return (
     <div className="giu-app flex min-h-svh flex-col text-giu-ink">
       <header className="sticky top-0 z-40 border-b border-giu-border/60 bg-white/75 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={href(GIU_ROUTES.merchant.home)} className="flex min-w-0 items-center gap-2.5">
+          <Link href={href(GIU_ROUTES.merchant.home)} className="flex min-w-0 flex-1 items-center gap-2.5">
             <GiuLogo size={36} priority />
             <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-ink">
               {storeName}
             </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setLogoutOpen(true)}
-              className="rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-giu-muted"
-            >
-              {t(locale, "logout")}
-            </button>
-          </div>
+          {showQr ? (
+            <MerchantHeaderQrButton locale={locale} />
+          ) : (
+            <span className="h-10 w-10 shrink-0" aria-hidden />
+          )}
         </div>
       </header>
       <main className="mx-auto w-full max-w-[480px] flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 md:max-w-xl lg:max-w-2xl">
@@ -47,20 +63,19 @@ export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <GiuMerchantBottomNav />
       </Suspense>
-
-      <GiuConfirmSheet
-        open={logoutOpen}
-        title={t(locale, "logout")}
-        message={t(locale, "mLogoutConfirm")}
-        confirmLabel={t(locale, "logout")}
-        cancelLabel={t(locale, "mCloseNo")}
-        onConfirm={() =>
-          void logout().then(() => {
-            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
-          })
-        }
-        onCancel={() => setLogoutOpen(false)}
-      />
     </div>
+  );
+}
+
+export function GiuMerchantShell({ children }: { children: React.ReactNode }) {
+  const { merchant } = useGiuAuth();
+  const { locale } = useGiuLocale();
+  const pathname = usePathname();
+  const pickupEnabled = Boolean(merchant) && pathname.includes("/panel");
+
+  return (
+    <MerchantPickupProvider locale={locale} enabled={pickupEnabled}>
+      <MerchantShellInner>{children}</MerchantShellInner>
+    </MerchantPickupProvider>
   );
 }

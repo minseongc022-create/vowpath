@@ -156,6 +156,24 @@
   animation: giu-tab-in 0.18s cubic-bezier(0.22, 1.1, 0.36, 1) both;
 }
 
+.giu-tab-stage {
+  perspective: 1100px;
+  overflow: hidden;
+}
+
+.giu-tab-panel-3d {
+  transform-origin: center center;
+  backface-visibility: hidden;
+}
+
+.giu-tab-panel-3d.is-forward {
+  animation: giu-tab-slide-forward 0.34s cubic-bezier(0.22, 1.05, 0.36, 1) both;
+}
+
+.giu-tab-panel-3d.is-back {
+  animation: giu-tab-slide-back 0.34s cubic-bezier(0.22, 1.05, 0.36, 1) both;
+}
+
 .giu-stagger-item {
   animation: giu-rise 0.22s cubic-bezier(0.22, 1.1, 0.36, 1) both;
 }
@@ -273,6 +291,28 @@
   }
 }
 
+@keyframes giu-tab-slide-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(18%, 0, 0) rotateY(-9deg) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes giu-tab-slide-back {
+  from {
+    opacity: 0;
+    transform: translate3d(-18%, 0, 0) rotateY(9deg) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateY(0deg) scale(1);
+  }
+}
+
 @keyframes giu-fade-in {
   from {
     opacity: 0;
@@ -297,6 +337,7 @@
   .giu-feed-item,
   .giu-panel-enter,
   .giu-tab-panel,
+  .giu-tab-panel-3d,
   .giu-stagger-item,
   .giu-sheet-enter,
   .giu-sheet-backdrop,
