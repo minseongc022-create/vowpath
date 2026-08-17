@@ -50,7 +50,7 @@ export default function GiuRouteMapInner({ userPos, destination, route }: Props)
       <FitRouteBounds userPos={userPos} destination={destination} route={route} />
       <Polyline
         positions={route.latLngs}
-        pathOptions={{ color: "#2d6a3e", weight: 5, opacity: 0.9 }}
+        pathOptions={{ color: "#f9a825", weight: 5, opacity: 0.9 }}
       />
       <CircleMarker
         center={[userPos.lat, userPos.lng]}
@@ -60,7 +60,7 @@ export default function GiuRouteMapInner({ userPos, destination, route }: Props)
       <CircleMarker
         center={[destination.lat, destination.lng]}
         radius={8}
-        pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#2d6a3e", fillOpacity: 1 }}
+        pathOptions={{ color: "#ffffff", weight: 2, fillColor: "#3c2a21", fillOpacity: 1 }}
       />
     </MapContainer>
   );

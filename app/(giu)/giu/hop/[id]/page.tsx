@@ -112,8 +112,14 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             </span>
           </div>
           <p className="mt-1 text-[13px] font-medium text-giu-muted">
-            {merchant.name} · {districtLabel(merchant.district, locale)} ·{" "}
-            {categoryLabel(box.category, locale)}
+            <Link
+              href={href(GIU_ROUTES.customer.merchant(merchant.id))}
+              className="font-bold text-giu-primary underline-offset-2 hover:underline"
+            >
+              {merchant.name}
+            </Link>
+            {" · "}
+            {districtLabel(merchant.district, locale)} · {categoryLabel(box.category, locale)}
           </p>
           {rating ? (
             <p className="mt-1 text-[12px] font-bold text-giu-ink">{rating}</p>

@@ -59,7 +59,7 @@ type Props = {
 };
 
 function pinIcon(count: number, selected: boolean) {
-  const bg = selected ? "#1F2A33" : "#5FA893";
+  const bg = selected ? "#3C2A21" : "#F9A825";
   return L.divIcon({
     className: "giu-map-pin-icon",
     iconSize: [36, 36],

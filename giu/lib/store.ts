@@ -217,16 +217,20 @@ async function loadStore(): Promise<GiuStore> {
 }
 
 async function saveStore(store: GiuStore): Promise<void> {
-  if (kvConfigured()) {
-    await kv.set(KV_STORE_KEY, store);
-    return;
-  }
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      if (kvConfigured()) {
+        await kv.set(KV_STORE_KEY, store);
+        return;
+      }
 
-  try {
-    await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(STORE_FILE, JSON.stringify(store, null, 2));
-  } catch {
-    // read-only FS on some hosts
+      await mkdir(DATA_DIR, { recursive: true });
+      await writeFile(STORE_FILE, JSON.stringify(store, null, 2));
+      return;
+    } catch {
+      if (attempt >= 3) return;
+      await new Promise((r) => setTimeout(r, 35 * (attempt + 1)));
+    }
   }
 }
 

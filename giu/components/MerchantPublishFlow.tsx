@@ -196,9 +196,11 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setCreateError("");
   }
 
-  function openRandomCompose() {
-    resetComposeForm("random");
-    setView("compose");
+  function applyRandomPreset() {
+    setComposeMode("random");
+    setTitle(t(locale, "mRandomClosingTitle"));
+    setDescription(t(locale, "mRandomClosingDesc"));
+    setCreateError("");
   }
 
   function openCompose() {
@@ -427,20 +429,11 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         <div className="space-y-2.5">
           <button
             type="button"
-            onClick={openRandomCompose}
+            onClick={openCompose}
             className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
           >
-            {t(locale, "mRandomClosingProduct")}
+            {t(locale, "mPostProduct")}
           </button>
-          <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mRandomClosingSub")}</p>
-          <button
-            type="button"
-            onClick={openCompose}
-            className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
-          >
-            {t(locale, "mQuickPublish")}
-          </button>
-          <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mQuickPublishSub")}</p>
           <button
             type="button"
             onClick={() => setView("history")}
@@ -475,6 +468,23 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             ) : null}
           </div>
 
+          {composeMode === "random" ? (
+            <div className="giu-info-banner text-[13px] leading-relaxed">
+              {t(locale, "mRandomClosingDesc")}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={applyRandomPreset}
+              className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
+            >
+              {t(locale, "mRandomClosingProduct")}
+            </button>
+          )}
+          <p className="text-[11px] font-semibold leading-snug text-giu-muted">
+            {t(locale, "mRandomClosingTrust")}
+          </p>
+
           <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
             <input
               name="title"
@@ -501,11 +511,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             </select>
           </Field>
 
-          {composeMode === "random" ? (
-            <div className="giu-info-banner text-[13px] leading-relaxed">
-              {t(locale, "mRandomClosingDesc")}
-            </div>
-          ) : (
+          {composeMode === "random" ? null : (
             <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>
               <input
                 name="description"

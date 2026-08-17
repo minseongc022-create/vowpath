@@ -93,20 +93,28 @@ export function FavoritesClient() {
         </h2>
         <ul className="mt-2 space-y-2">
           {favMerchants.map((m) => (
-            <li
-              key={m.id}
-              className="flex items-center gap-3 rounded-[16px] bg-white/80 p-3 ring-1 ring-giu-border"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-giu-bg text-lg">
-                {getCategoryEmoji(m.category)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-bold text-giu-ink">{m.name}</p>
-                <p className="truncate text-[11px] text-giu-muted">
-                  {getDistrictLabel(m.district)} · {m.address}
-                </p>
-              </div>
-              <FavoriteButton merchantId={m.id} merchantName={m.name} />
+            <li key={m.id}>
+              <Link
+                href={href(GIU_ROUTES.customer.merchant(m.id))}
+                className="flex items-center gap-3 rounded-[16px] bg-white/80 p-3 ring-1 ring-giu-border active:scale-[0.99]"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-giu-bg text-lg">
+                  {getCategoryEmoji(m.category)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-bold text-giu-ink">{m.name}</p>
+                  <p className="truncate text-[11px] text-giu-muted">
+                    {getDistrictLabel(m.district)} · {m.address}
+                  </p>
+                </div>
+                <div
+                  className="shrink-0"
+                  onClick={(e) => e.preventDefault()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <FavoriteButton merchantId={m.id} merchantName={m.name} />
+                </div>
+              </Link>
             </li>
           ))}
         </ul>
