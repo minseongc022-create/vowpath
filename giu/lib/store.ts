@@ -1150,6 +1150,17 @@ export async function getReviewForReservation(
   return store.reviews.find((r) => r.reservationId === reservationId) ?? null;
 }
 
+export async function listCustomerReviews(
+  customerId: string,
+  limit = 30,
+): Promise<GiuReview[]> {
+  const store = await loadStore();
+  return store.reviews
+    .filter((r) => r.customerId === customerId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
+}
+
 export async function listMerchantReviews(
   merchantId: string,
   limit = 20,

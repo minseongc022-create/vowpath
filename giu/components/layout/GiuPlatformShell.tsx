@@ -12,7 +12,7 @@ export function GiuPlatformShell({ children }: { children: React.ReactNode }) {
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
         <meta name="application-name" content={GIU_STRINGS.brand} />
-        <meta name="theme-color" content="#2D3E4E" />
+        <meta name="theme-color" content="#2d6a3e" />
       </head>
       <body className="min-h-dvh bg-giu-bg font-sans antialiased text-giu-ink giu-theme">
         {children}

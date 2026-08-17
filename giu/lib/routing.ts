@@ -19,6 +19,11 @@ function formatOsrmDuration(seconds: number, _locale?: "ko"): string {
 
 export { formatOsrmDuration };
 
+export function formatRouteDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  return `${(meters / 1000).toFixed(1)}km`;
+}
+
 /**
  * Fetch a driving route via public OSRM (no API key).
  * Returns null on network/route failure — UI should fall back to straight-line / Maps app.

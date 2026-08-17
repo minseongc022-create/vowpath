@@ -5,8 +5,10 @@ const TOKEN_TTL_SEC = 60;
 function secret(): string {
   const env = process.env.GIU_PICKUP_QR_SECRET?.trim();
   if (env) return env;
+  const auth = process.env.AUTH_SECRET?.trim();
+  if (auth) return `giu-pickup:${auth}`;
   if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
-    throw new Error("GIU_PICKUP_QR_SECRET is required in production");
+    throw new Error("GIU_PICKUP_QR_SECRET or AUTH_SECRET is required in production");
   }
   return "giu-dev-pickup-qr-secret-change-me";
 }
