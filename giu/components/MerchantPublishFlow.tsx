@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
+import { ProductPhotoPicker } from "@/giu/components/ProductPhotoPicker";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatMoney,
@@ -21,6 +22,7 @@ import {
   type HistoryListFilter,
 } from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
+import { parseQuantityInput, sanitizeQuantityInput } from "@/giu/lib/numeric-input";
 import {
   dayOffsetFromIso,
   hourFromIso,
@@ -144,7 +146,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [freshnessNote, setFreshnessNote] = useState("");
   const [originalPrice, setOriginalPrice] = useState(defaultPrices.originalPriceVnd);
   const [salePrice, setSalePrice] = useState(defaultPrices.salePriceVnd);
-  const [quantity, setQuantity] = useState(5);
+  const [quantityText, setQuantityText] = useState("5");
   const [republishTarget, setRepublishTarget] = useState<GiuBox | null>(null);
   const [republishDayOffset, setRepublishDayOffset] = useState(0);
   const [republishStartH, setRepublishStartH] = useState(12);
@@ -177,7 +179,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setFreshnessNote(t(locale, "mFreshDefault"));
     setOriginalPrice(defaultPrices.originalPriceVnd);
     setSalePrice(defaultPrices.salePriceVnd);
-    setQuantity(5);
+    setQuantityText("5");
     setDayOffset(0);
     setStartH(12);
     setEndH(14);
@@ -203,7 +205,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setFreshnessNote(mostRecentBox.freshnessNote ?? t(locale, "mFreshDefault"));
     setOriginalPrice(mostRecentBox.originalPriceVnd);
     setSalePrice(mostRecentBox.salePriceVnd);
-    setQuantity(mostRecentBox.quantityTotal);
+    setQuantityText(String(mostRecentBox.quantityTotal));
     setDayOffset(dayOffsetFromIso(mostRecentBox.pickupStart, market));
     setStartH(hourFromIso(mostRecentBox.pickupStart, market));
     setEndH(hourFromIso(mostRecentBox.pickupEnd, market));
@@ -250,6 +252,11 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   async function submitCreateBox() {
     if (endH <= startH) {
       setCreateError(t(locale, "mTimeOrder"));
+      return;
+    }
+    const quantity = parseQuantityInput(quantityText);
+    if (!quantity) {
+      setCreateError(t(locale, "mQtyInvalid"));
       return;
     }
     setSubmitBusy(true);
@@ -482,13 +489,11 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           </Field>
 
           <Field label={t(locale, "mPhoto")} hint={t(locale, "mPhotoHint")}>
-            <input
-              name="imageUrl"
-              type="url"
-              inputMode="url"
+            <ProductPhotoPicker
+              locale={locale}
               value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="giu-input"
+              onChange={setImageUrl}
+              onError={setCreateError}
             />
           </Field>
 
@@ -554,12 +559,12 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             <input
               name="quantityTotal"
               required
-              type="number"
-              min={1}
-              max={50}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              value={quantityText}
+              onChange={(e) => setQuantityText(sanitizeQuantityInput(e.target.value))}
               className="giu-input"
             />
           </Field>
