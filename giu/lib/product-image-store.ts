@@ -47,13 +47,17 @@ export async function saveProductImage(
 
   let jpeg: Buffer;
   try {
-    jpeg = await sharp(buffer)
+    jpeg = await sharp(buffer, { failOn: "none" })
       .rotate()
       .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 82, mozjpeg: true })
       .toBuffer();
   } catch {
-    return { error: "사진을 처리할 수 없어요" };
+    return { error: "사진을 처리할 수 없어요. JPEG 또는 PNG로 다시 시도해 주세요" };
+  }
+
+  if (!jpeg.length) {
+    return { error: "사진을 처리할 수 없어요. JPEG 또는 PNG로 다시 시도해 주세요" };
   }
 
   if (jpeg.length > MAX_BYTES) {

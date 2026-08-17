@@ -174,6 +174,7 @@ const KO: Dict = {
   mPhotoSheetTitle: "사진 선택",
   mPhotoUploading: "사진 올리는 중…",
   mPhotoUploadFail: "사진을 올리지 못했어요",
+  mPhotoHeicFail: "사진 변환에 실패했어요. 사진 보관함에서 JPEG/PNG를 선택해 주세요",
   mPhotoRemove: "사진 삭제",
   mPhotoCount: "{count}/{max}장 · 최대 {max}장",
   mFresh: "보관·안내 문구",

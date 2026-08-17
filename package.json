@@ -66,6 +66,7 @@
     "@xyflow/react": "^12.11.3",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "heic2any": "^0.0.4",
     "html5-qrcode": "^2.3.8",
     "jose": "^6.2.3",
     "jszip": "^3.10.1",

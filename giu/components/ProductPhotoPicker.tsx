@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { compressImageToJpeg } from "@/giu/lib/compress-image-client";
+import { useId, useState, type ReactNode } from "react";
+import { prepareImageForUpload } from "@/giu/lib/compress-image-client";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { MAX_BOX_IMAGES } from "@/giu/lib/box-images";
 import { hapticConfirm } from "@/giu/lib/haptics";
@@ -20,6 +20,50 @@ function isBlobPreview(url: string): boolean {
   return url.startsWith("blob:");
 }
 
+/** iOS Safari requires a visible, label-linked file input — not sr-only + programmatic click. */
+function IosFilePickLabel({
+  id,
+  accept,
+  capture,
+  multiple,
+  disabled,
+  className,
+  onFiles,
+  children,
+}: {
+  id: string;
+  accept: string;
+  capture?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  className?: string;
+  onFiles: (files: FileList) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={disabled ? undefined : id}
+      className={`relative block touch-manipulation ${disabled ? "pointer-events-none opacity-50" : ""} ${className ?? ""}`}
+    >
+      <input
+        id={id}
+        type="file"
+        accept={accept}
+        capture={capture ? "environment" : undefined}
+        multiple={multiple}
+        disabled={disabled}
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-[0.01]"
+        onChange={(e) => {
+          const files = e.target.files;
+          if (files?.length) onFiles(files);
+          e.target.value = "";
+        }}
+      />
+      {children}
+    </label>
+  );
+}
+
 export function ProductPhotoPicker({
   locale,
   value,
@@ -27,25 +71,39 @@ export function ProductPhotoPicker({
   onError,
   max = MAX_BOX_IMAGES,
 }: Props) {
+  const cameraId = useId();
+  const libraryId = useId();
+  const quickPickId = useId();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const libraryRef = useRef<HTMLInputElement>(null);
+  const [localError, setLocalError] = useState("");
   const remaining = max - value.length;
   const canAdd = remaining > 0 && !uploading;
+  const acceptTypes = "image/jpeg,image/png,image/webp,image/heic,image/heif,image/*";
 
   async function uploadFile(file: File): Promise<string | null> {
     if (!file.size) {
+      setLocalError(t(locale, "mPhotoUploadFail"));
       onError?.(t(locale, "mPhotoUploadFail"));
       return null;
     }
-    let prepared = file;
+
+    let prepared: File;
     try {
-      prepared = await compressImageToJpeg(file);
+      prepared = await prepareImageForUpload(file);
     } catch {
-      prepared = file;
+      setLocalError(t(locale, "mPhotoHeicFail"));
+      onError?.(t(locale, "mPhotoHeicFail"));
+      return null;
     }
+
+    if (prepared.type !== "image/jpeg") {
+      setLocalError(t(locale, "mPhotoUploadFail"));
+      onError?.(t(locale, "mPhotoUploadFail"));
+      return null;
+    }
+
     const form = new FormData();
     form.append("file", prepared, prepared.name || "photo.jpg");
 
@@ -56,11 +114,18 @@ export function ProductPhotoPicker({
         body: form,
       });
       const data = (await res.json()) as { url?: string; error?: string };
-      if (res.ok && data.url) return data.url;
+      if (res.ok && data.url) {
+        setLocalError("");
+        return data.url;
+      }
       if (attempt === 0 && res.status >= 500) continue;
-      onError?.(data.error ?? t(locale, "mPhotoUploadFail"));
+      const msg = data.error ?? t(locale, "mPhotoUploadFail");
+      setLocalError(msg);
+      onError?.(msg);
       return null;
     }
+
+    setLocalError(t(locale, "mPhotoUploadFail"));
     onError?.(t(locale, "mPhotoUploadFail"));
     return null;
   }
@@ -68,6 +133,9 @@ export function ProductPhotoPicker({
   async function uploadFiles(files: FileList | File[]) {
     const list = Array.from(files).slice(0, remaining);
     if (!list.length) return;
+
+    setSheetOpen(false);
+    setLocalError("");
 
     const previews = list.map((file) => URL.createObjectURL(file));
     const nextValue = [...value, ...previews].slice(0, max);
@@ -98,9 +166,10 @@ export function ProductPhotoPicker({
       onChange(merged.slice(0, max));
       previews.forEach((url) => URL.revokeObjectURL(url));
       if (!uploaded.length) {
-        onError?.(t(locale, "mPhotoUploadFail"));
+        onChange(value.filter((url) => !previews.some((p) => p === url)));
       }
     } catch {
+      setLocalError(t(locale, "mLoadError"));
       onError?.(t(locale, "mLoadError"));
       onChange(value.filter((url) => !previews.some((p) => p === url)));
       previews.forEach((url) => URL.revokeObjectURL(url));
@@ -110,43 +179,18 @@ export function ProductPhotoPicker({
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    e.target.value = "";
-    if (!files?.length) {
-      setUploading(false);
-      return;
-    }
-    void uploadFiles(files);
-  }
-
-  function openPicker() {
-    if (!canAdd) return;
-    setSheetOpen(true);
-  }
-
-  function openCamera() {
-    cameraRef.current?.click();
-    setSheetOpen(false);
-  }
-
-  function openLibrary() {
-    libraryRef.current?.click();
-    setSheetOpen(false);
-  }
-
-  function removeAt(index: number) {
-    const url = value[index];
-    if (url && isBlobPreview(url)) URL.revokeObjectURL(url);
-    onChange(value.filter((_, i) => i !== index));
-  }
-
   const busyLabel =
     uploading && pendingCount > 0
       ? t(locale, "mPhotoUploading")
       : uploading
         ? t(locale, "mPhotoUploading")
         : t(locale, "mPhotoPick");
+
+  function removeAt(index: number) {
+    const url = value[index];
+    if (url && isBlobPreview(url)) URL.revokeObjectURL(url);
+    onChange(value.filter((_, i) => i !== index));
+  }
 
   return (
     <>
@@ -173,7 +217,7 @@ export function ProductPhotoPicker({
                   type="button"
                   onClick={() => removeAt(index)}
                   disabled={uploading && isBlobPreview(url)}
-                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-giu-ink/80 text-[11px] font-bold text-white"
+                  className="absolute right-1 top-1 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-giu-ink/80 text-[11px] font-bold text-white"
                   aria-label={t(locale, "mPhotoRemove")}
                 >
                   ×
@@ -183,7 +227,7 @@ export function ProductPhotoPicker({
             {canAdd ? (
               <button
                 type="button"
-                onClick={openPicker}
+                onClick={() => setSheetOpen(true)}
                 className="flex aspect-square flex-col items-center justify-center rounded-xl bg-giu-bg text-center ring-1 ring-giu-border active:scale-[0.97]"
               >
                 <span className="text-xl">+</span>
@@ -192,17 +236,20 @@ export function ProductPhotoPicker({
             ) : null}
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={openPicker}
+          <IosFilePickLabel
+            id={quickPickId}
+            accept={acceptTypes}
             disabled={!canAdd}
-            className="giu-input flex w-full items-center gap-3 text-left !py-2.5 active:scale-[0.99]"
+            className="block"
+            onFiles={(files) => void uploadFiles(files)}
           >
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-giu-bg text-2xl ring-1 ring-giu-border">
-              {uploading ? "…" : "📷"}
+            <span className="giu-input flex w-full items-center gap-3 text-left !py-2.5 active:scale-[0.99]">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-giu-bg text-2xl ring-1 ring-giu-border">
+                {uploading ? "…" : "📷"}
+              </span>
+              <span className="min-w-0 flex-1 text-[13px] font-semibold text-giu-muted">{busyLabel}</span>
             </span>
-            <span className="min-w-0 flex-1 text-[13px] font-semibold text-giu-muted">{busyLabel}</span>
-          </button>
+          </IosFilePickLabel>
         )}
 
         <p className="text-[11px] font-semibold text-giu-muted">
@@ -210,24 +257,8 @@ export function ProductPhotoPicker({
             ? t(locale, "mPhotoUploading")
             : t(locale, "mPhotoCount").replace("{count}", String(value.length)).replace("{max}", String(max))}
         </p>
+        {localError ? <p className="text-[12px] font-semibold text-giu-danger">{localError}</p> : null}
       </div>
-
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
-        capture="environment"
-        className="sr-only"
-        onChange={handleFileChange}
-      />
-      <input
-        ref={libraryRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
-        multiple={remaining > 1}
-        className="sr-only"
-        onChange={handleFileChange}
-      />
 
       <GiuBottomSheet
         open={sheetOpen}
@@ -242,20 +273,26 @@ export function ProductPhotoPicker({
           <p className="text-[12px] font-semibold text-giu-muted">
             {t(locale, "mPhotoCount").replace("{count}", String(value.length)).replace("{max}", String(max))}
           </p>
-          <button
-            type="button"
-            onClick={openCamera}
-            className="giu-btn-secondary giu-btn-3d w-full !py-3.5 text-[15px]"
+          <IosFilePickLabel
+            id={cameraId}
+            accept={acceptTypes}
+            capture
+            disabled={!canAdd}
+            className="giu-btn-secondary giu-btn-3d w-full !py-3.5 text-center text-[15px] font-bold"
+            onFiles={(files) => void uploadFiles(files)}
           >
             {t(locale, "mPhotoTake")}
-          </button>
-          <button
-            type="button"
-            onClick={openLibrary}
-            className="giu-btn-secondary giu-btn-3d w-full !py-3.5 text-[15px]"
+          </IosFilePickLabel>
+          <IosFilePickLabel
+            id={libraryId}
+            accept={acceptTypes}
+            multiple={remaining > 1}
+            disabled={!canAdd}
+            className="giu-btn-secondary giu-btn-3d w-full !py-3.5 text-center text-[15px] font-bold"
+            onFiles={(files) => void uploadFiles(files)}
           >
             {t(locale, "mPhotoLibrary")}
-          </button>
+          </IosFilePickLabel>
         </div>
       </GiuBottomSheet>
     </>
