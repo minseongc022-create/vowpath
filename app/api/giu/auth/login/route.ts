@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { authEmailError, normalizeAuthEmail } from "@/giu/lib/auth-validation";
 import {
   createGiuSessionToken,
   giuSessionCookieOptions,
@@ -7,7 +8,7 @@ import {
 import { getMerchantByAccountId, loginAccount } from "@/giu/lib/store";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(1),
   role: z.enum(["customer", "merchant"]).optional(),
 });
@@ -19,7 +20,16 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다" }, { status: 400 });
     }
-    const result = await loginAccount(parsed.data);
+
+    const emailErr = authEmailError(String(parsed.data.email));
+    if (emailErr) {
+      return NextResponse.json({ error: emailErr }, { status: 400 });
+    }
+
+    const result = await loginAccount({
+      ...parsed.data,
+      email: normalizeAuthEmail(parsed.data.email),
+    });
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 401 });
     }
