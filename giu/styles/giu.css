@@ -1,18 +1,18 @@
 .giu-theme {
-  --giu-bg: #f4f7f6;
+  --giu-bg: #fdf6d8;
   --giu-surface: #ffffff;
-  --giu-ink: #2d3e4e;
-  --giu-muted: #7a8a96;
-  --giu-border: #e2e8e6;
-  --giu-primary: #2d3e4e;
-  --giu-primary-hover: #223240;
-  --giu-primary-soft: #e8eef2;
-  --giu-accent: #6ba894;
-  --giu-accent-hover: #569882;
-  --giu-accent-soft: #e8f4ef;
-  --giu-mint: #9dcab8;
+  --giu-ink: #2d4628;
+  --giu-muted: #5a6b52;
+  --giu-border: #e8dcb0;
+  --giu-primary: #2d4628;
+  --giu-primary-hover: #1f3220;
+  --giu-primary-soft: #f5f0c8;
+  --giu-accent: #f5dc5c;
+  --giu-accent-hover: #e8cc45;
+  --giu-accent-soft: #fef9e7;
+  --giu-mint: #7aab6a;
   --giu-danger: #d64545;
-  --giu-gold: #c4a35a;
+  --giu-gold: #f5dc5c;
 }
 
 .giu-app {
@@ -45,11 +45,11 @@
 }
 
 .giu-card {
-  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_8px_32px_rgba(45,62,78,0.08)];
+  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_8px_32px_rgba(45,70,40,0.08)];
 }
 
 .giu-card-flat {
-  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_4px_20px_rgba(45,62,78,0.05)];
+  @apply rounded-[20px] bg-giu-surface p-4 shadow-[0_4px_20px_rgba(45,70,40,0.05)];
 }
 
 .giu-btn {
@@ -79,7 +79,7 @@
 }
 
 .giu-btn-primary {
-  @apply giu-btn w-full bg-giu-accent text-white hover:bg-giu-accent-hover;
+  @apply giu-btn w-full bg-giu-accent text-giu-primary hover:bg-giu-accent-hover;
 }
 
 .giu-btn-secondary {
@@ -111,7 +111,7 @@
 }
 
 .giu-badge-sale {
-  @apply giu-badge bg-giu-accent-soft text-giu-accent;
+  @apply giu-badge bg-giu-accent-soft text-giu-primary;
 }
 
 .giu-badge-safe {
@@ -226,7 +226,7 @@
 }
 
 .giu-floating-nav-item.is-active {
-  @apply text-giu-accent;
+  @apply text-giu-primary;
   transform: translateY(-1px);
 }
 
@@ -245,7 +245,7 @@
 }
 
 .giu-ticket-code {
-  @apply font-mono text-[36px] font-extrabold tracking-[0.2em] text-giu-accent;
+  @apply font-mono text-[36px] font-extrabold tracking-[0.2em] text-giu-primary;
 }
 
 .giu-sticky-pay {
@@ -379,7 +379,7 @@
 }
 
 .giu-status-selling {
-  @apply bg-giu-accent-soft text-giu-accent;
+  @apply bg-giu-accent-soft text-giu-primary;
 }
 
 .giu-status-cancelled {

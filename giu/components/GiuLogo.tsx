@@ -12,8 +12,8 @@ type Props = {
 export function GiuLogo({ size = 36, className = "", priority = false }: Props) {
   return (
     <Image
-      src="/giu/logo-icon.png"
-      alt="GIU"
+      src="/giu/logo.svg"
+      alt="GIUCUU"
       width={size}
       height={size}
       priority={priority}

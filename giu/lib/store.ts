@@ -23,11 +23,15 @@ import type {
 import { getDistrictLabel, isKrDistrict } from "./districts";
 import { notifyPickupCode } from "./notify";
 import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
+import { buildPickupWindow, dayOffsetFromIso, hourFromIso } from "./publish-schedule";
 import { resolveGiuPaymentBackend } from "./payments";
 import { vndToUsdCents } from "./lemon-squeezy-giu";
 import {
   SEED_BOXES,
   SEED_CO2_KG,
+  SEED_DEMO_CUSTOMER,
+  SEED_DEMO_MERCHANT,
+  SEED_DEMO_MERCHANT_ACCOUNT,
   SEED_MERCHANTS,
   SEED_RESCUED_COUNT,
   SEED_SAVED_VND,
@@ -78,14 +82,28 @@ function merchantPhoneTaken(store: GiuStore, phone: string, excludeMerchantId?: 
 
 function defaultStore(): GiuStore {
   return {
-    merchants: [...SEED_MERCHANTS],
+    merchants: [SEED_DEMO_MERCHANT, ...SEED_MERCHANTS],
     boxes: [...SEED_BOXES],
     reservations: [],
     waitlist: [],
-    accounts: [],
+    accounts: [SEED_DEMO_CUSTOMER, SEED_DEMO_MERCHANT_ACCOUNT],
     reviews: [],
     customerFavorites: {},
   };
+}
+
+function ensureDemoAccounts(store: GiuStore): GiuStore {
+  let next = store;
+  if (!next.accounts.some((a) => a.id === SEED_DEMO_CUSTOMER.id)) {
+    next = { ...next, accounts: [SEED_DEMO_CUSTOMER, ...next.accounts] };
+  }
+  if (!next.accounts.some((a) => a.id === SEED_DEMO_MERCHANT_ACCOUNT.id)) {
+    next = { ...next, accounts: [SEED_DEMO_MERCHANT_ACCOUNT, ...next.accounts] };
+  }
+  if (!next.merchants.some((m) => m.id === SEED_DEMO_MERCHANT.id)) {
+    next = { ...next, merchants: [SEED_DEMO_MERCHANT, ...next.merchants] };
+  }
+  return next;
 }
 
 const VIETNAMESE_TEXT =
@@ -119,6 +137,16 @@ function migrateAccount(account: GiuAccount): GiuAccount {
   return { ...account, market: "kr" };
 }
 
+function storeNeedsDemoAccounts(raw: Partial<GiuStore>): boolean {
+  const accounts = raw.accounts ?? [];
+  const merchants = raw.merchants ?? [];
+  return (
+    !accounts.some((a) => a.id === SEED_DEMO_CUSTOMER.id) ||
+    !accounts.some((a) => a.id === SEED_DEMO_MERCHANT_ACCOUNT.id) ||
+    !merchants.some((m) => m.id === SEED_DEMO_MERCHANT.id)
+  );
+}
+
 function storeNeedsKrMigration(raw: Partial<GiuStore>): boolean {
   const merchants = raw.merchants ?? [];
   const accounts = raw.accounts ?? [];
@@ -149,15 +177,16 @@ function migrateReservation(reservation: GiuReservation): GiuReservation {
 
 function normalizeStore(raw: Partial<GiuStore>): GiuStore {
   const base = defaultStore();
-  return {
+  const store: GiuStore = {
     merchants: (raw.merchants?.length ? raw.merchants : base.merchants).map(migrateMerchant),
     boxes: raw.boxes?.length ? raw.boxes : base.boxes,
     reservations: (raw.reservations ?? []).map(migrateReservation),
     waitlist: raw.waitlist ?? [],
-    accounts: (raw.accounts ?? []).map(migrateAccount),
+    accounts: (raw.accounts ?? base.accounts).map(migrateAccount),
     reviews: raw.reviews ?? [],
     customerFavorites: raw.customerFavorites ?? {},
   };
+  return ensureDemoAccounts(store);
 }
 
 async function loadStore(): Promise<GiuStore> {
@@ -165,7 +194,7 @@ async function loadStore(): Promise<GiuStore> {
     const raw = await kvGetSafe<GiuStore>(KV_STORE_KEY);
     if (raw) {
       const store = normalizeStore(raw);
-      if (storeNeedsKrMigration(raw)) await saveStore(store);
+      if (storeNeedsKrMigration(raw) || storeNeedsDemoAccounts(raw)) await saveStore(store);
       return store;
     }
     const store = defaultStore();
@@ -178,7 +207,7 @@ async function loadStore(): Promise<GiuStore> {
     const raw = await readFile(STORE_FILE, "utf8");
     const parsed = JSON.parse(raw) as Partial<GiuStore>;
     const store = normalizeStore(parsed);
-    if (storeNeedsKrMigration(parsed)) await saveStore(store);
+    if (storeNeedsKrMigration(parsed) || storeNeedsDemoAccounts(parsed)) await saveStore(store);
     return store;
   } catch {
     const store = defaultStore();
@@ -947,29 +976,38 @@ export async function deleteBox(
 export async function republishBox(
   merchantId: string,
   sourceBoxId: string,
+  schedule?: { dayOffset: number; startH: number; endH: number },
 ): Promise<GiuBox | { error: string }> {
   const store = await loadStore();
   const source = store.boxes.find((b) => b.id === sourceBoxId && b.merchantId === merchantId);
   if (!source) return { error: "상품을 찾을 수 없어요" };
-  return cloneBoxForRepublish(store, source);
+  return cloneBoxForRepublish(store, source, schedule);
 }
 
 export async function republishLastBox(
   merchantId: string,
+  schedule?: { dayOffset: number; startH: number; endH: number },
 ): Promise<GiuBox | { error: string }> {
   const store = await loadStore();
   const last = store.boxes
     .filter((b) => b.merchantId === merchantId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   if (!last) return { error: "이전 박스가 없어요. 먼저 한 번 등록해 주세요." };
-  return cloneBoxForRepublish(store, last);
+  return cloneBoxForRepublish(store, last, schedule);
 }
 
 async function cloneBoxForRepublish(
   store: GiuStore,
   source: GiuBox,
+  schedule?: { dayOffset: number; startH: number; endH: number },
 ): Promise<GiuBox | { error: string }> {
-  const win = defaultPickupWindow(2);
+  const merchant = store.merchants.find((m) => m.id === source.merchantId);
+  const market = merchant?.market ?? "kr";
+  const dayOffset = schedule?.dayOffset ?? dayOffsetFromIso(source.pickupStart, market);
+  const startH = schedule?.startH ?? hourFromIso(source.pickupStart, market);
+  const endH = schedule?.endH ?? hourFromIso(source.pickupEnd, market);
+  if (endH <= startH) return { error: "종료 시간은 시작보다 늦어야 합니다" };
+  const win = buildPickupWindow(dayOffset, startH, endH, market);
   const box: GiuBox = {
     id: newId("box"),
     merchantId: source.merchantId,
@@ -981,12 +1019,12 @@ async function cloneBoxForRepublish(
     salePriceVnd: source.salePriceVnd,
     quantityTotal: source.quantityTotal,
     quantityLeft: source.quantityTotal,
-    pickupStart: win.start,
-    pickupEnd: win.end,
+    pickupStart: win.pickupStart,
+    pickupEnd: win.pickupEnd,
     freshnessNote: source.freshnessNote,
     status: "mo",
     createdAt: new Date().toISOString(),
-    expiresAt: win.expires,
+    expiresAt: win.expiresAt,
   };
   store.boxes.unshift(box);
   await saveStore(store);

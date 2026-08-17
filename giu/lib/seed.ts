@@ -1,7 +1,50 @@
 import { defaultPickupWindow } from "./format";
-import type { GiuBox, GiuMerchant } from "./types";
+import type { GiuAccount, GiuBox, GiuMerchant } from "./types";
 
 const { start, end, expires } = defaultPickupWindow();
+
+/** Demo login: minseong@giucuu.com / minseong1234 (customer & merchant roles) */
+export const SEED_DEMO_PASSWORD = "minseong1234";
+
+export const SEED_DEMO_CUSTOMER: GiuAccount = {
+  id: "acc_minseong_customer",
+  role: "customer",
+  email: "minseong@giucuu.com",
+  phone: "01012345678",
+  passwordHash: "$2b$12$raI/PFY2vPd2VEdgvfrgDuWHnzzB54c0JfLRlKOPehODxiBlUCvQy",
+  name: "민성",
+  market: "kr",
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
+
+export const SEED_DEMO_MERCHANT_ACCOUNT: GiuAccount = {
+  id: "acc_minseong_merchant",
+  role: "merchant",
+  email: "minseong@giucuu.com",
+  phone: "01087654321",
+  passwordHash: "$2b$12$raI/PFY2vPd2VEdgvfrgDuWHnzzB54c0JfLRlKOPehODxiBlUCvQy",
+  name: "민성",
+  market: "kr",
+  merchantId: "mer_minseong_demo",
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
+
+export const SEED_DEMO_MERCHANT: GiuMerchant = {
+  id: "mer_minseong_demo",
+  accountId: "acc_minseong_merchant",
+  name: "민성 마감베이커리",
+  slug: "minseong-bakery",
+  category: "bakery",
+  district: "icn_yeonsu",
+  address: "인천 연수구 센트럴로 1",
+  phone: "01087654321",
+  verified: true,
+  rating: 5,
+  reviewCount: 1,
+  rescuedBoxes: 0,
+  market: "kr",
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
 
 const SEED_MERCHANTS_RAW: Omit<GiuMerchant, "accountId" | "market">[] = [
   {
