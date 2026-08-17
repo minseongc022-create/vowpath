@@ -87,8 +87,10 @@ export type GiuBox = {
   merchantId: string;
   title: string;
   description?: string;
-  /** Public HTTPS image URL (merchant-provided). */
+  /** Public HTTPS image URL (merchant-provided). Primary / first photo. */
   imageUrl?: string;
+  /** Up to 5 product photos; first entry mirrors imageUrl when set. */
+  imageUrls?: string[];
   category: GiuCategory;
   originalPriceVnd: number;
   salePriceVnd: number;

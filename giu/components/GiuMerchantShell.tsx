@@ -55,7 +55,7 @@ function MerchantShellInner({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[480px] flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 md:max-w-xl lg:max-w-2xl">
+      <main className="mx-auto w-full max-w-[480px] flex-1 px-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] pt-3 md:max-w-xl lg:max-w-2xl">
         {children}
       </main>
       <Suspense fallback={null}>

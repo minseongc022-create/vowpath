@@ -150,6 +150,8 @@ const KO: Dict = {
   mPhotoSheetTitle: "사진 선택",
   mPhotoUploading: "사진 올리는 중…",
   mPhotoUploadFail: "사진을 올리지 못했어요",
+  mPhotoRemove: "사진 삭제",
+  mPhotoCount: "{count}/{max}장 · 최대 {max}장",
   mFresh: "보관·안내 문구",
   mFreshDefault: "픽업 전까지 매장에서 신선하게 보관합니다.",
   mFreshHint: "손님에게 보여 주는 짧은 약속",

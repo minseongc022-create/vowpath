@@ -55,7 +55,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             ) : !loading ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
-                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-giu-primary"
+                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 로그인
               </Link>
@@ -69,7 +69,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             ? "min-h-0 flex-1 overflow-hidden"
             : hideNav
               ? "flex-1 pb-8"
-              : "flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
+              : "flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
         }
       >
         {children}
