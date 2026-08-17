@@ -150,7 +150,7 @@ export function ReserveForm({
         </div>
         <Link
           href={`${href(GIU_ROUTES.auth)}?role=customer&next=${encodeURIComponent(href(GIU_ROUTES.customer.box(boxId)))}`}
-          className="giu-btn-primary block text-center"
+          className="giu-btn-primary giu-btn-3d block text-center"
         >
           {t(locale, "loginAndRescue")}
         </Link>
@@ -165,7 +165,7 @@ export function ReserveForm({
         <p className="text-[12px] text-giu-muted">
           {smsSent ? t(locale, "payDoneSms") : t(locale, "payDoneApp")}
         </p>
-        <Link href={href(GIU_ROUTES.customer.reservation(reservationId))} className="giu-btn-primary block text-center">
+        <Link href={href(GIU_ROUTES.customer.reservation(reservationId))} className="giu-btn-primary giu-btn-3d block text-center">
           {t(locale, "openTicket")}
         </Link>
       </div>
@@ -241,7 +241,7 @@ export function ReserveForm({
                 key={opt.id}
                 type="button"
                 onClick={() => setPaymentMethod(opt.id)}
-                className={`rounded-[12px] px-2 py-2 text-center transition ${
+                className={`giu-btn-3d giu-tap rounded-[12px] px-2 py-2 text-center transition ${
                   selected
                     ? "bg-giu-primary-soft ring-2 ring-giu-primary"
                     : "bg-giu-bg ring-1 ring-giu-border"
@@ -263,13 +263,13 @@ export function ReserveForm({
             type="button"
             disabled={loading || !tossClientKey}
             onClick={() => void startTossCheckout()}
-            className="giu-btn-primary w-full"
+            className="giu-btn-primary giu-btn-3d w-full"
           >
             {!tossClientKey ? "결제 설정 필요" : payLabel}
           </button>
         ) : (
           <form onSubmit={submit}>
-            <button type="submit" disabled={loading} className="giu-btn-primary w-full">
+            <button type="submit" disabled={loading} className="giu-btn-primary giu-btn-3d w-full">
               {payLabel}
             </button>
           </form>

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   MapContainer,
   TileLayer,
@@ -42,6 +41,7 @@ import {
 import type { GiuCategory } from "@/giu/lib/types";
 import type { MapPin } from "@/giu/lib/map-pins";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { GiuCustomerNavLink } from "./GiuCustomerNavLink";
 import { WaitlistForm } from "./WaitlistForm";
 import { useGiuHref } from "./GiuNavProvider";
 import { GIU_ROUTES } from "@/giu/lib/routes";
@@ -413,7 +413,7 @@ export function MapDiscover({ pins }: Props) {
             {query ? (
               <button
                 type="button"
-                className="mr-1 rounded-xl px-2.5 py-1.5 text-[12px] font-bold text-giu-muted"
+                className="giu-btn-3d giu-tap mr-1 rounded-xl px-2.5 py-1.5 text-[12px] font-bold text-giu-muted"
                 onClick={() => setQuery("")}
               >
                 ✕
@@ -425,7 +425,7 @@ export function MapDiscover({ pins }: Props) {
             <button
               type="button"
               onClick={() => setCategory("")}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${
+              className={`giu-btn-3d giu-tap shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${
                 !category
                   ? "bg-giu-ink text-white"
                   : "bg-white/95 text-giu-ink ring-1 ring-black/[0.05]"
@@ -438,7 +438,7 @@ export function MapDiscover({ pins }: Props) {
                 key={c.id}
                 type="button"
                 onClick={() => setCategory(c.id === category ? "" : c.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${
+                className={`giu-btn-3d giu-tap shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-bold shadow-sm ${
                   category === c.id
                     ? "bg-giu-ink text-white"
                     : "bg-white/95 text-giu-ink ring-1 ring-black/[0.05]"
@@ -457,7 +457,7 @@ export function MapDiscover({ pins }: Props) {
               <button
                 type="button"
                 onClick={focusCity}
-                className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-primary shadow-sm ring-1 ring-black/[0.04]"
+                className="giu-btn-3d giu-tap rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-giu-primary shadow-sm ring-1 ring-black/[0.04]"
               >
                 {t(locale, "mapIncheonFocus")} ↓
               </button>
@@ -476,7 +476,7 @@ export function MapDiscover({ pins }: Props) {
         type="button"
         onClick={locateMe}
         disabled={locating}
-        className="giu-map-fab absolute bottom-[7.75rem] right-3 z-[500] !h-11 !w-11"
+        className="giu-map-fab giu-btn-3d absolute bottom-[7.75rem] right-3 z-[500] !h-11 !w-11"
         aria-label={t(locale, "myLocation")}
         title={t(locale, "myLocation")}
       >
@@ -550,7 +550,7 @@ export function MapDiscover({ pins }: Props) {
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="rounded-full bg-giu-bg px-2.5 py-1 text-[12px] font-bold text-giu-muted"
+                  className="giu-btn-3d giu-tap rounded-full bg-giu-bg px-2.5 py-1 text-[12px] font-bold text-giu-muted"
                 >
                   ✕
                 </button>
@@ -559,9 +559,9 @@ export function MapDiscover({ pins }: Props) {
               <ul className="max-h-40 space-y-2 overflow-y-auto">
                 {sortedSelectedBoxes.map((box) => (
                   <li key={box.id}>
-                    <Link
+                    <GiuCustomerNavLink
                       href={href(GIU_ROUTES.customer.box(box.id))}
-                      className="flex items-center gap-3 rounded-2xl bg-giu-bg/80 px-3 py-2.5 active:scale-[0.99]"
+                      className="giu-btn-3d giu-tap flex items-center gap-3 rounded-2xl bg-giu-bg/80 px-3 py-2.5"
                     >
                       {box.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -601,7 +601,7 @@ export function MapDiscover({ pins }: Props) {
                       <p className="shrink-0 text-[14px] font-extrabold text-giu-ink">
                         {formatVnd(box.salePriceVnd)}
                       </p>
-                    </Link>
+                    </GiuCustomerNavLink>
                   </li>
                 ))}
               </ul>
@@ -611,17 +611,17 @@ export function MapDiscover({ pins }: Props) {
                   type="button"
                   onClick={openDirections}
                   disabled={navBusy || locating}
-                  className="giu-btn-secondary flex-1 !py-3 text-[13px]"
+                  className="giu-btn-secondary giu-btn-3d flex-1 !py-3 text-[13px]"
                 >
                   {navBusy || locating ? t(locale, "directionsLocating") : t(locale, "directionsInApp")}
                 </button>
                 {sortedSelectedBoxes[0] ? (
-                  <Link
+                  <GiuCustomerNavLink
                     href={href(GIU_ROUTES.customer.box(sortedSelectedBoxes[0].id))}
-                    className="giu-btn-primary flex-1 !py-3 text-[13px]"
+                    className="giu-btn-primary giu-btn-3d flex-1 !py-3 text-[13px]"
                   >
                     {t(locale, "rescueNow")}
-                  </Link>
+                  </GiuCustomerNavLink>
                 ) : null}
               </div>
 
@@ -676,7 +676,7 @@ export function MapDiscover({ pins }: Props) {
                   setFollowUser(false);
                   setFlyTarget({ lat: pin.lat, lng: pin.lng, zoom: 16 });
                 }}
-                className="w-[min(72vw,280px)] shrink-0 rounded-2xl bg-white p-3 text-left shadow-[0_8px_28px_rgba(31,42,51,0.12)] ring-1 ring-black/[0.04] active:scale-[0.99]"
+                className="giu-btn-3d giu-tap w-[min(72vw,280px)] shrink-0 rounded-2xl bg-white p-3 text-left shadow-[0_8px_28px_rgba(31,42,51,0.12)] ring-1 ring-black/[0.04]"
               >
                 <div className="flex items-start gap-2.5">
                   {best?.imageUrl ? (

@@ -69,7 +69,7 @@ export function ReviewForm({ locale, reservationId, existingRating, onDone }: Pr
             key={n}
             type="button"
             onClick={() => setRating(n)}
-            className={`text-3xl transition ${n <= rating ? "text-giu-gold" : "text-giu-border"}`}
+            className={`giu-btn-3d giu-tap text-3xl transition ${n <= rating ? "text-giu-gold" : "text-giu-border"}`}
             aria-label={`${n}점`}
           >
             ★
@@ -85,7 +85,7 @@ export function ReviewForm({ locale, reservationId, existingRating, onDone }: Pr
         maxLength={500}
       />
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
-      <button type="button" disabled={busy} onClick={() => void submit()} className="giu-btn-primary">
+      <button type="button" disabled={busy} onClick={() => void submit()} className="giu-btn-primary giu-btn-3d">
         {busy ? t(locale, "loading") : t(locale, "reviewSubmit")}
       </button>
     </div>
