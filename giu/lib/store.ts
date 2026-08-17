@@ -393,6 +393,19 @@ export async function createMerchant(
   return merchant;
 }
 
+function expireStaleBoxesInStore(store: GiuStore): boolean {
+  const now = Date.now();
+  let changed = false;
+  for (const box of store.boxes) {
+    if (box.status !== "mo") continue;
+    if (new Date(box.pickupEnd).getTime() <= now) {
+      box.status = "het";
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export async function listBoxes(filters?: {
   district?: string;
   category?: string;
@@ -405,6 +418,7 @@ export async function listBoxes(filters?: {
   dayOffset?: 0 | 1;
 }): Promise<GiuBox[]> {
   const store = await loadStore();
+  if (expireStaleBoxesInStore(store)) await saveStore(store);
   const now = Date.now();
   const tz = "Asia/Seoul";
 

@@ -17,6 +17,12 @@ import {
   productFilterLabel,
   type ProductListFilter,
 } from "@/giu/lib/product-list-ux";
+import {
+  buildPickupWindow,
+  dayOffsetFromIso,
+  hourFromIso,
+  PUBLISH_HOURS,
+} from "@/giu/lib/publish-schedule";
 import type { GiuBox } from "@/giu/lib/types";
 
 type Props = {
@@ -41,6 +47,9 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
   const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
   const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
   const pendingRepublishRef = useRef<(() => void | Promise<void>) | null>(null);
+  const [editDayOffset, setEditDayOffset] = useState(0);
+  const [editStartH, setEditStartH] = useState(12);
+  const [editEndH, setEditEndH] = useState(14);
 
   const filteredBoxes = useMemo(() => filterBoxes(boxes, listFilter), [boxes, listFilter]);
   const merchantId = boxes[0]?.merchantId ?? "";
@@ -67,6 +76,9 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
     setMode("view");
     setError("");
     setConfirmCancel(false);
+    setEditDayOffset(dayOffsetFromIso(box.pickupStart, market));
+    setEditStartH(hourFromIso(box.pickupStart, market));
+    setEditEndH(hourFromIso(box.pickupEnd, market));
   }
 
   async function cancelListing() {
@@ -190,6 +202,15 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
     setBusy(true);
     setError("");
     const fd = new FormData(e.currentTarget);
+    const start = Number(fd.get("pickupStartH") ?? editStartH);
+    const end = Number(fd.get("pickupEndH") ?? editEndH);
+    const day = Number(fd.get("dayOffset") ?? editDayOffset);
+    if (end <= start) {
+      setError(t(locale, "mTimeOrder"));
+      setBusy(false);
+      return;
+    }
+    const schedule = buildPickupWindow(day, start, end, market);
     try {
       const res = await fetch(`/api/giu/boxes/${selected.id}`, {
         method: "PATCH",
@@ -203,6 +224,9 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
           originalPriceVnd: Number(fd.get("originalPriceVnd")),
           salePriceVnd: Number(fd.get("salePriceVnd")),
           quantityTotal: Number(fd.get("quantityTotal")),
+          pickupStart: schedule.pickupStart,
+          pickupEnd: schedule.pickupEnd,
+          expiresAt: schedule.expiresAt,
         }),
       });
       if (!res.ok) {
@@ -387,6 +411,58 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     className="giu-input"
                   />
                 </div>
+
+                <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+                  <div>
+                    <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mSchedule")}</p>
+                    <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mScheduleHint")}</p>
+                  </div>
+                  <div>
+                    <label className="giu-label">{t(locale, "mDay")}</label>
+                    <select
+                      name="dayOffset"
+                      className="giu-input"
+                      value={editDayOffset}
+                      onChange={(e) => setEditDayOffset(Number(e.target.value))}
+                    >
+                      <option value={0}>{t(locale, "mToday")}</option>
+                      <option value={1}>{t(locale, "mTomorrow")}</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="giu-label">{t(locale, "mStart")}</label>
+                      <select
+                        name="pickupStartH"
+                        className="giu-input"
+                        value={editStartH}
+                        onChange={(e) => setEditStartH(Number(e.target.value))}
+                      >
+                        {PUBLISH_HOURS.map((h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, "0")}:00
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="giu-label">{t(locale, "mEnd")}</label>
+                      <select
+                        name="pickupEndH"
+                        className="giu-input"
+                        value={editEndH}
+                        onChange={(e) => setEditEndH(Number(e.target.value))}
+                      >
+                        {PUBLISH_HOURS.map((h) => (
+                          <option key={h} value={h}>
+                            {String(h).padStart(2, "0")}:00
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
                 <button type="submit" disabled={busy} className="giu-btn-primary giu-btn-3d py-3.5">
                   {busy ? t(locale, "loading") : t(locale, "mSaveEdit")}

@@ -122,7 +122,7 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
       </div>
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
       {saved ? <p className="giu-info-banner">{t(locale, "mSettingsSaved")}</p> : null}
-      <button type="submit" disabled={busy} className="giu-btn-primary">
+      <button type="submit" disabled={busy} className="giu-btn-primary giu-btn-3d w-full py-3.5">
         {busy ? t(locale, "loading") : t(locale, "mSettingsSave")}
       </button>
     </form>
