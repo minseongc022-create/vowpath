@@ -82,7 +82,7 @@ export function PickupQrCode({ locale, reservationId }: Props) {
         <button
           type="button"
           onClick={() => void fetchToken()}
-          className="text-[12px] font-bold text-giu-primary underline-offset-2 hover:underline"
+          className="giu-btn-3d giu-tap text-[12px] font-bold text-giu-primary underline-offset-2 hover:underline"
         >
           {t(locale, "qrRetry")}
         </button>

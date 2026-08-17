@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CustomerLogoutLink } from "@/giu/components/CustomerLogoutLink";
 import { PickupQrCode } from "@/giu/components/PickupQrCode";
@@ -10,6 +9,7 @@ import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant, GiuReservation, GiuReview } from "@/giu/lib/types";
+import { GiuCustomerNavLink } from "./GiuCustomerNavLink";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
@@ -89,9 +89,9 @@ export function MyReservationsLookup() {
     return (
       <div className="giu-card space-y-3 text-center">
         <p className="text-[13px] text-giu-muted">{t(locale, "myCodesLogin")}</p>
-        <Link href={`${href(GIU_ROUTES.auth)}?role=customer`} className="giu-btn-primary block text-center">
+        <GiuCustomerNavLink href={`${href(GIU_ROUTES.auth)}?role=customer`} className="giu-btn-primary giu-btn-3d block text-center">
           {t(locale, "loginSignup")}
-        </Link>
+        </GiuCustomerNavLink>
       </div>
     );
   }
@@ -105,9 +105,9 @@ export function MyReservationsLookup() {
       <div className="space-y-3">
         <div className="giu-card text-center text-[13px] text-giu-muted">
           {t(locale, "noOrders")}{" "}
-          <Link href={href(GIU_ROUTES.customer.boxes)} className="font-bold text-giu-primary">
+          <GiuCustomerNavLink href={href(GIU_ROUTES.customer.boxes)} className="font-bold text-giu-primary">
             {t(locale, "findBoxes")}
-          </Link>
+          </GiuCustomerNavLink>
         </div>
         <CustomerLogoutLink locale={locale} />
       </div>
@@ -134,12 +134,12 @@ export function MyReservationsLookup() {
                 <p className="mt-1 text-[12px] font-semibold text-giu-ink">{formatVnd(r.totalVnd)}</p>
               </div>
               <PickupQrCode locale={locale} reservationId={r.id} />
-              <Link
+              <GiuCustomerNavLink
                 href={href(GIU_ROUTES.customer.reservation(r.id))}
-                className="block text-center text-[12px] font-bold text-giu-primary"
+                className="giu-btn-3d giu-tap block text-center text-[12px] font-bold text-giu-primary"
               >
                 {t(locale, "myViewReservation")}
-              </Link>
+              </GiuCustomerNavLink>
             </div>
           ))}
         </div>
@@ -156,7 +156,7 @@ export function MyReservationsLookup() {
                 hapticSelect();
                 setFilter(f);
               }}
-              className={`giu-filter-tab ${filter === f ? "is-active" : ""}`}
+              className={`giu-filter-tab giu-btn-3d ${filter === f ? "is-active" : ""}`}
             >
               {t(locale, f === "all" ? "mFilterAll" : f === "awaiting" ? "myFilterAwaiting" : f === "done" ? "myFilterDone" : "myFilterCancelled")}
             </button>
@@ -168,7 +168,7 @@ export function MyReservationsLookup() {
           <ul className="space-y-2">
             {filtered.map((r, i) => (
               <li key={r.id} className="giu-feed-item" style={{ animationDelay: `${i * 40}ms` }}>
-                <Link href={href(GIU_ROUTES.customer.reservation(r.id))} className="giu-list-row block">
+                <GiuCustomerNavLink href={href(GIU_ROUTES.customer.reservation(r.id))} className="giu-list-row giu-btn-3d giu-tap block">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-[15px] font-bold text-giu-ink">
@@ -187,7 +187,7 @@ export function MyReservationsLookup() {
                       {formatVnd(r.totalVnd)}
                     </p>
                   </div>
-                </Link>
+                </GiuCustomerNavLink>
               </li>
             ))}
           </ul>

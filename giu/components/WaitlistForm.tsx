@@ -55,7 +55,7 @@ export function WaitlistForm({ district }: { district?: string }) {
         placeholder={t(locale, "waitlistPhone")}
         className="giu-input"
       />
-      <button type="submit" className="giu-btn-primary !py-3 text-[13px]">
+      <button type="submit" className="giu-btn-primary giu-btn-3d !py-3 text-[13px]">
         {t(locale, "waitlistCta")}
       </button>
       {error ? <p className="text-sm text-giu-danger">{error}</p> : null}

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FavoriteButton } from "@/giu/components/FavoriteButton";
+import { GiuCustomerBackLink, GiuCustomerNavLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReserveForm } from "@/giu/components/ReserveForm";
 import {
@@ -67,9 +67,9 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   return (
     <div className="giu-page !pt-0 space-y-3">
       <div className="flex items-center justify-between gap-2 py-2">
-        <Link href={href(GIU_ROUTES.customer.home)} className="text-[13px] font-bold text-giu-accent">
+        <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
           {t(locale, "back")}
-        </Link>
+        </GiuCustomerBackLink>
         <FavoriteButton merchantId={merchant.id} merchantName={merchant.name} />
       </div>
 
@@ -112,12 +112,12 @@ export default async function GiuBoxDetailPage({ params }: Props) {
             </span>
           </div>
           <p className="mt-1 text-[13px] font-medium text-giu-muted">
-            <Link
+            <GiuCustomerNavLink
               href={href(GIU_ROUTES.customer.merchant(merchant.id))}
-              className="font-bold text-giu-primary underline-offset-2 hover:underline"
+              className="giu-btn-3d giu-tap font-bold text-giu-primary underline-offset-2 hover:underline"
             >
               {merchant.name}
-            </Link>
+            </GiuCustomerNavLink>
             {" · "}
             {districtLabel(merchant.district, locale)} · {categoryLabel(box.category, locale)}
           </p>
@@ -189,9 +189,9 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         <div className="giu-card text-center">
           <p className="font-bold text-giu-ink">{t(locale, "soldOut")}</p>
           <p className="mt-1 text-[13px] text-giu-muted">{t(locale, "soldOutHint")}</p>
-          <Link href={href(GIU_ROUTES.customer.home)} className="giu-btn-primary mt-3 block text-center">
+          <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-primary giu-btn-3d mt-3 block text-center">
             {t(locale, "otherBoxes")}
-          </Link>
+          </GiuCustomerBackLink>
         </div>
       ) : (
         <div className="giu-sticky-pay">

@@ -11,6 +11,10 @@ import { t, welcomeMessage } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { CustomerAvailabilityAlerts } from "./CustomerAvailabilityAlerts";
 import { GiuCustomerBottomNav } from "./GiuCustomerBottomNav";
+import {
+  GiuCustomerNavProvider,
+  GiuCustomerPageTransition,
+} from "./GiuCustomerNavProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 
@@ -29,6 +33,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
     !loading && account ? welcomeMessage(locale, "customer", displayName) : displayName;
 
   return (
+    <GiuCustomerNavProvider>
     <div
       className={`giu-app flex flex-col text-giu-ink ${
         isMapHome ? "giu-map-shell overflow-hidden" : "min-h-svh"
@@ -47,7 +52,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
             {!loading && !account ? (
               <Link
                 href={`${href(GIU_ROUTES.auth)}?role=customer`}
-                className="rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-white"
+                className="giu-btn-3d giu-tap rounded-full bg-giu-primary px-3 py-1.5 text-[11px] font-bold text-white"
               >
                 로그인
               </Link>
@@ -60,15 +65,16 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       <main
         className={
           isMapHome
-            ? "min-h-0 flex-1 overflow-hidden"
+            ? "giu-tab-stage flex min-h-0 flex-1 flex-col overflow-hidden"
             : hideNav
-              ? "flex-1 pb-8"
-              : "flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
+              ? "giu-tab-stage flex-1 overflow-x-hidden pb-8"
+              : "giu-tab-stage flex-1 overflow-x-hidden pb-[calc(4.25rem+env(safe-area-inset-bottom))]"
         }
       >
-        {children}
+        <GiuCustomerPageTransition>{children}</GiuCustomerPageTransition>
       </main>
       {!hideNav ? <GiuCustomerBottomNav docked={isMapHome} /> : null}
     </div>
+    </GiuCustomerNavProvider>
   );
 }

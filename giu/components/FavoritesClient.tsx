@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { BoxCard } from "@/giu/components/BoxCard";
 import { FavoriteButton } from "@/giu/components/FavoriteButton";
@@ -9,6 +8,7 @@ import { getDistrictLabel } from "@/giu/lib/districts";
 import { getCategoryEmoji } from "@/giu/lib/categories";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant } from "@/giu/lib/types";
+import { GiuCustomerNavLink } from "./GiuCustomerNavLink";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { t } from "@/giu/lib/i18n";
@@ -78,9 +78,9 @@ export function FavoritesClient() {
       <div className="giu-card text-center">
         <p className="font-bold text-giu-ink">{t(locale, "favoritesEmpty")}</p>
         <p className="mt-1.5 text-[13px] text-giu-muted">{t(locale, "favoritesEmptyHint")}</p>
-        <Link href={href(GIU_ROUTES.customer.boxes)} className="giu-btn-primary mt-3 block">
+        <GiuCustomerNavLink href={href(GIU_ROUTES.customer.boxes)} className="giu-btn-primary giu-btn-3d mt-3 block">
           {t(locale, "findBoxes")}
-        </Link>
+        </GiuCustomerNavLink>
       </div>
     );
   }
@@ -94,9 +94,9 @@ export function FavoritesClient() {
         <ul className="mt-2 space-y-2">
           {favMerchants.map((m) => (
             <li key={m.id}>
-              <Link
+              <GiuCustomerNavLink
                 href={href(GIU_ROUTES.customer.merchant(m.id))}
-                className="flex items-center gap-3 rounded-[16px] bg-white/80 p-3 ring-1 ring-giu-border active:scale-[0.99]"
+                className="giu-btn-3d giu-tap flex items-center gap-3 rounded-[16px] bg-white/80 p-3 ring-1 ring-giu-border"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-giu-bg text-lg">
                   {getCategoryEmoji(m.category)}
@@ -114,7 +114,7 @@ export function FavoritesClient() {
                 >
                   <FavoriteButton merchantId={m.id} merchantName={m.name} />
                 </div>
-              </Link>
+              </GiuCustomerNavLink>
             </li>
           ))}
         </ul>
