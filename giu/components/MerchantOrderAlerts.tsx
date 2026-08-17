@@ -96,7 +96,7 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
       ) : null}
 
       {toast ? (
-        <div className="fixed inset-x-0 bottom-24 z-[60] flex justify-center px-4 md:bottom-8">
+        <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[95] flex justify-center px-4">
           <div className="flex max-w-[440px] items-center gap-3 rounded-2xl bg-giu-ink px-4 py-3 text-sm text-white shadow-lg">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{t(locale, "alertNewOrder")}</p>
@@ -106,7 +106,7 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
             </div>
             <button
               type="button"
-              className="shrink-0 text-xs text-white/60"
+              className="shrink-0 rounded-full px-2 py-1 text-xs font-bold text-white/90 hover:text-white"
               aria-label={t(locale, "mCloseSheet")}
               onClick={() => setToast(null)}
             >

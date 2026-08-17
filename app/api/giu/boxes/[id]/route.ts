@@ -81,6 +81,14 @@ export async function PATCH(request: Request, { params }: Props) {
         : { imageUrl: undefined, imageUrls: undefined };
     }
 
+    const nextPickupEnd = rest.pickupEnd ?? box.pickupEnd;
+    if (rest.pickupEnd && new Date(nextPickupEnd).getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: "픽업 종료 시간은 현재 이후여야 합니다" },
+        { status: 400 },
+      );
+    }
+
     const updated = await updateBox(id, {
       ...rest,
       ...imagePatch,

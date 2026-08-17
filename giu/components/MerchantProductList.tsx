@@ -4,11 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GiuBottomSheet } from "@/giu/components/GiuBottomSheet";
 import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
+import { ProductPhotoPicker } from "@/giu/components/ProductPhotoPicker";
 import { categoryLabel } from "@/giu/lib/labels-locale";
+import { boxImageFields, boxImages, primaryBoxImage } from "@/giu/lib/box-images";
 import { formatMoney, formatPickupWindow } from "@/giu/lib/format";
 import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { parseQuantityInput, sanitizeQuantityInput } from "@/giu/lib/numeric-input";
 import { BoxStatusBadge } from "@/giu/components/BoxStatusBadge";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import {
@@ -19,9 +22,8 @@ import {
 } from "@/giu/lib/product-list-ux";
 import {
   buildPickupWindow,
-  dayOffsetFromIso,
-  hourFromIso,
   PUBLISH_HOURS,
+  republishScheduleFromBox,
 } from "@/giu/lib/publish-schedule";
 import type { GiuBox } from "@/giu/lib/types";
 
@@ -50,6 +52,8 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
   const [editDayOffset, setEditDayOffset] = useState(0);
   const [editStartH, setEditStartH] = useState(12);
   const [editEndH, setEditEndH] = useState(14);
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([]);
+  const [editQuantityText, setEditQuantityText] = useState("1");
 
   const filteredBoxes = useMemo(() => filterBoxes(boxes, listFilter), [boxes, listFilter]);
   const merchantId = boxes[0]?.merchantId ?? "";
@@ -70,15 +74,36 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
     setConfirmCancel(false);
   }
 
+  function applyScheduleFromBox(box: GiuBox) {
+    const schedule = republishScheduleFromBox(box, market);
+    setEditDayOffset(schedule.dayOffset);
+    setEditStartH(schedule.startH);
+    setEditEndH(schedule.endH);
+  }
+
+  function openEditMode(box: GiuBox) {
+    hapticSelect();
+    applyScheduleFromBox(box);
+    setEditImageUrls(boxImages(box));
+    setEditQuantityText(String(box.quantityTotal));
+    setMode("edit");
+    setError("");
+  }
+
+  function openRepublishMode(box: GiuBox) {
+    hapticSelect();
+    applyScheduleFromBox(box);
+    setMode("confirm-republish");
+    setError("");
+  }
+
   function openDetail(box: GiuBox) {
     hapticSelect();
     setSelected(box);
     setMode("view");
     setError("");
     setConfirmCancel(false);
-    setEditDayOffset(dayOffsetFromIso(box.pickupStart, market));
-    setEditStartH(hourFromIso(box.pickupStart, market));
-    setEditEndH(hourFromIso(box.pickupEnd, market));
+    applyScheduleFromBox(box);
   }
 
   async function cancelListing() {
@@ -219,6 +244,12 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
       setBusy(false);
       return;
     }
+    const quantityTotal = parseQuantityInput(editQuantityText);
+    if (!quantityTotal) {
+      setError(t(locale, "mQtyInvalid"));
+      setBusy(false);
+      return;
+    }
     const schedule = buildPickupWindow(day, start, end, market);
     try {
       const res = await fetch(`/api/giu/boxes/${selected.id}`, {
@@ -228,11 +259,11 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
         body: JSON.stringify({
           title: fd.get("title"),
           description: String(fd.get("description") || "").trim() || undefined,
-          imageUrl: String(fd.get("imageUrl") || "").trim() || "",
+          ...boxImageFields(editImageUrls),
           freshnessNote: String(fd.get("freshnessNote") || "").trim() || undefined,
           originalPriceVnd: Number(fd.get("originalPriceVnd")),
           salePriceVnd: Number(fd.get("salePriceVnd")),
-          quantityTotal: Number(fd.get("quantityTotal")),
+          quantityTotal,
           pickupStart: schedule.pickupStart,
           pickupEnd: schedule.pickupEnd,
           expiresAt: schedule.expiresAt,
@@ -247,6 +278,7 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
       hapticConfirm();
       setSelected(data.box);
       setMode("view");
+      setSuccessMsg(t(locale, "mSettingsSaved"));
       await onChanged();
     } catch {
       setError(t(locale, "mLoadError"));
@@ -301,10 +333,10 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                 className="giu-card-interactive giu-stagger-item flex gap-3 p-3"
                 style={{ animationDelay: `${Math.min(i, 6) * 35}ms` }}
               >
-                {box.imageUrl ? (
+                {primaryBoxImage(box) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={box.imageUrl}
+                    src={primaryBoxImage(box)!}
                     alt=""
                     className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-giu-border"
                   />
@@ -375,7 +407,13 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                 </div>
                 <div>
                   <label className="giu-label">{t(locale, "mPhoto")}</label>
-                  <input name="imageUrl" type="url" defaultValue={selected.imageUrl ?? ""} className="giu-input" />
+                  <p className="mb-1 text-[11px] font-semibold text-giu-muted">{t(locale, "mPhotoHint")}</p>
+                  <ProductPhotoPicker
+                    locale={locale}
+                    value={editImageUrls}
+                    onChange={setEditImageUrls}
+                    onError={setError}
+                  />
                 </div>
                 <div>
                   <label className="giu-label">{t(locale, "mFresh")}</label>
@@ -412,11 +450,13 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                   <p className="mb-1 text-[11px] text-giu-muted">{t(locale, "mQtyEditHint")}</p>
                   <input
                     name="quantityTotal"
-                    type="number"
                     required
-                    min={1}
-                    max={50}
-                    defaultValue={selected.quantityTotal}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    value={editQuantityText}
+                    onChange={(e) => setEditQuantityText(sanitizeQuantityInput(e.target.value))}
                     className="giu-input"
                   />
                 </div>
@@ -496,10 +536,22 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                   </p>
                 </div>
 
-                {selected.imageUrl ? (
+                {boxImages(selected).length > 1 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {boxImages(selected).map((url) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={url}
+                        src={url}
+                        alt=""
+                        className="aspect-square w-full rounded-[12px] object-cover ring-1 ring-giu-border"
+                      />
+                    ))}
+                  </div>
+                ) : primaryBoxImage(selected) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={selected.imageUrl}
+                    src={primaryBoxImage(selected)!}
                     alt=""
                     className="max-h-40 w-full rounded-[16px] object-cover ring-1 ring-giu-border"
                   />
@@ -627,16 +679,7 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        hapticSelect();
-                        if (selected) {
-                          setEditDayOffset(dayOffsetFromIso(selected.pickupStart, market));
-                          setEditStartH(hourFromIso(selected.pickupStart, market));
-                          setEditEndH(hourFromIso(selected.pickupEnd, market));
-                        }
-                        setMode("edit");
-                        setError("");
-                      }}
+                      onClick={() => selected && openEditMode(selected)}
                       className="giu-btn-primary giu-btn-3d !py-3"
                     >
                       {t(locale, "mEditProduct")}
@@ -656,14 +699,7 @@ export function MerchantProductList({ locale, boxes, onChanged, onGoPublish }: P
                     {canRepublish ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          hapticSelect();
-                          setEditDayOffset(dayOffsetFromIso(selected.pickupStart, market));
-                          setEditStartH(hourFromIso(selected.pickupStart, market));
-                          setEditEndH(hourFromIso(selected.pickupEnd, market));
-                          setMode("confirm-republish");
-                          setError("");
-                        }}
+                        onClick={() => selected && openRepublishMode(selected)}
                         className="giu-btn-secondary giu-btn-3d !py-3"
                       >
                         {t(locale, "mRepublishThis")}

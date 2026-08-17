@@ -1016,6 +1016,9 @@ async function cloneBoxForRepublish(
   const endH = schedule?.endH ?? hourFromIso(source.pickupEnd, market);
   if (endH <= startH) return { error: "종료 시간은 시작보다 늦어야 합니다" };
   const win = buildPickupWindow(dayOffset, startH, endH, market);
+  if (new Date(win.pickupEnd).getTime() <= Date.now()) {
+    return { error: "픽업 종료 시간이 이미 지났어요. 시간을 다시 설정해 주세요" };
+  }
   const box: GiuBox = {
     id: newId("box"),
     merchantId: source.merchantId,

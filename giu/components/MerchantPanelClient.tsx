@@ -303,8 +303,12 @@ export function MerchantPanelClient() {
           />
           {filteredOrders.length === 0 ? (
             <div className="giu-card space-y-3 text-center">
-              <p className="font-bold text-giu-ink">{t(locale, "mNoOrders")}</p>
-              <p className="text-[13px] text-giu-muted">{t(locale, "mNoOrdersHint")}</p>
+              <p className="font-bold text-giu-ink">
+                {orderFilter === "awaiting" ? t(locale, "mNoOrders") : t(locale, "mNoOrdersAll")}
+              </p>
+              <p className="text-[13px] text-giu-muted">
+                {orderFilter === "awaiting" ? t(locale, "mNoOrdersHint") : t(locale, "mNoOrdersAllHint")}
+              </p>
               <Link href={panelHref} className="giu-btn-primary giu-btn-3d block !py-3 text-[14px]">
                 {t(locale, "mGoBoxes")}
               </Link>
