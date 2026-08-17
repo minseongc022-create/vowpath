@@ -13,6 +13,9 @@ type Props = {
   onVerified?: () => void;
   pickupCode?: string;
   onPickupCodeChange?: (code: string) => void;
+  /** sheet = QR first, code via fallback button */
+  layout?: "full" | "sheet";
+  initialView?: "qr" | "code";
 };
 
 type VerifyPayload = { token?: string; code?: string };
@@ -22,10 +25,13 @@ export function MerchantPickupScanner({
   onVerified,
   pickupCode: pickupCodeProp,
   onPickupCodeChange,
+  layout = "full",
+  initialView = "qr",
 }: Props) {
   const [scanning, setScanning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [internalCode, setInternalCode] = useState("");
+  const [view, setView] = useState<"qr" | "code">(initialView);
   const [message, setMessage] = useState("");
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
@@ -34,9 +40,14 @@ export function MerchantPickupScanner({
   const busyRef = useRef(false);
   const regionId = "giu-pickup-scanner-view";
   const money = (n: number) => formatMoney(n, "kr");
+  const sheetMode = layout === "sheet";
 
   const pickupCode = pickupCodeProp ?? internalCode;
   const setPickupCode = onPickupCodeChange ?? setInternalCode;
+
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
 
   useEffect(() => {
     busyRef.current = busy;
@@ -44,7 +55,6 @@ export function MerchantPickupScanner({
 
   const showPickupResult = useCallback(
     (data: {
-      error?: string;
       reservation?: { customerName: string; quantity: number };
       boxTitle?: string;
       netPayoutVnd?: number;
@@ -62,6 +72,7 @@ export function MerchantPickupScanner({
       ].filter(Boolean);
       setDetail(parts.join(" · "));
       setPickupCode("");
+      setView("qr");
       onVerified?.();
     },
     [locale, onVerified, setPickupCode],
@@ -166,85 +177,141 @@ export function MerchantPickupScanner({
     };
   }, [stopScanner]);
 
-  return (
-    <div id="giu-pickup-scanner" className="giu-card-flat space-y-4 p-4 ring-1 ring-giu-border">
-      <div>
-        <p className="text-[15px] font-bold text-giu-ink">{t(locale, "pickupScanTitle")}</p>
-        <p className="mt-0.5 text-[12px] leading-snug text-giu-muted">{t(locale, "pickupScanSub")}</p>
-      </div>
+  useEffect(() => {
+    if (sheetMode && view === "code") void stopScanner();
+  }, [sheetMode, view, stopScanner]);
 
-      <div className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border">
-        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPickupQrSection")}</p>
-        <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "mPickupScanExpireHint")}</p>
+  const showCodeSection = !sheetMode || view === "code";
+  const showQrSection = !sheetMode || view === "qr";
 
-        {scanning ? (
-          <div className="relative overflow-hidden rounded-[14px] bg-black">
-            <div id={regionId} className="w-full" />
-            {busy ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-[13px] font-bold text-white">
-                {t(locale, "loading")}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+  const qrBlock = (
+    <div className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+      <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPickupQrSection")}</p>
+      <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "pickupScanSub")}</p>
 
-        {scanning ? (
-          <button
-            type="button"
-            onClick={() => void stopScanner()}
-            className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
-          >
-            {t(locale, "pickupScanStop")}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void startScanner()}
-            className="giu-btn-primary giu-btn-3d w-full !py-3 text-[14px]"
-          >
-            {t(locale, "pickupScanStart")}
-          </button>
-        )}
-
-        {cameraError ? <p className="text-[12px] text-giu-danger">{cameraError}</p> : null}
-      </div>
-
-      <div className="flex items-center gap-3 px-1">
-        <div className="giu-divider flex-1" />
-        <span className="text-[11px] font-bold text-giu-muted">{t(locale, "mPickupOr")}</span>
-        <div className="giu-divider flex-1" />
-      </div>
-
-      <form
-        className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void verifyCode();
-        }}
-      >
-        <div>
-          <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPickupCodeLabel")}</p>
-          <p className="mt-0.5 text-[11px] leading-snug text-giu-muted">{t(locale, "mPickupCodeHint")}</p>
+      {scanning ? (
+        <div className="relative overflow-hidden rounded-[14px] bg-black">
+          <div id={regionId} className="w-full" />
+          {busy ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-[13px] font-bold text-white">
+              {t(locale, "loading")}
+            </div>
+          ) : null}
         </div>
-        <input
-          value={pickupCode}
-          onChange={(e) => setPickupCode(e.target.value.toUpperCase())}
-          placeholder={t(locale, "mPickupCodePlaceholder")}
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          inputMode="text"
-          className="giu-input font-mono text-[16px] font-bold uppercase tracking-[0.2em]"
-        />
+      ) : null}
+
+      {scanning ? (
         <button
-          type="submit"
-          disabled={busy || !pickupCode.trim()}
+          type="button"
+          onClick={() => void stopScanner()}
+          className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
+        >
+          {t(locale, "pickupScanStop")}
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void startScanner()}
           className="giu-btn-primary giu-btn-3d w-full !py-3 text-[14px]"
         >
-          {busy ? t(locale, "loading") : t(locale, "mPickupCodeConfirm")}
+          {t(locale, "pickupScanStart")}
         </button>
-      </form>
+      )}
+
+      {cameraError ? <p className="text-[12px] text-giu-danger">{cameraError}</p> : null}
+
+      {sheetMode && view === "qr" ? (
+        <button
+          type="button"
+          onClick={() => {
+            hapticSelect();
+            void stopScanner();
+            setView("code");
+          }}
+          className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
+        >
+          {t(locale, "mPickupCodeFallback")}
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const codeBlock = (
+    <form
+      className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void verifyCode();
+      }}
+    >
+      <div>
+        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPickupCodeLabel")}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-giu-muted">{t(locale, "mPickupCodeHint")}</p>
+      </div>
+      <input
+        value={pickupCode}
+        onChange={(e) => setPickupCode(e.target.value.toUpperCase())}
+        placeholder={t(locale, "mPickupCodePlaceholder")}
+        autoComplete="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        inputMode="text"
+        className="giu-input font-mono text-[16px] font-bold uppercase tracking-[0.2em]"
+      />
+      <button
+        type="submit"
+        disabled={busy || !pickupCode.trim()}
+        className="giu-btn-primary giu-btn-3d w-full !py-3 text-[14px]"
+      >
+        {busy ? t(locale, "loading") : t(locale, "mPickupCodeConfirm")}
+      </button>
+      {sheetMode ? (
+        <button
+          type="button"
+          onClick={() => {
+            hapticSelect();
+            setView("qr");
+          }}
+          className="giu-btn-secondary giu-btn-3d w-full !py-3 text-[14px]"
+        >
+          {t(locale, "pickupScanStart")}
+        </button>
+      ) : null}
+    </form>
+  );
+
+  return (
+    <div
+      id={sheetMode ? undefined : "giu-pickup-scanner"}
+      className={sheetMode ? "space-y-3" : "giu-card-flat space-y-4 p-4 ring-1 ring-giu-border"}
+    >
+      {!sheetMode ? (
+        <div>
+          <p className="text-[15px] font-bold text-giu-ink">{t(locale, "pickupScanTitle")}</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-giu-muted">{t(locale, "mPickupScanExpireHint")}</p>
+        </div>
+      ) : (
+        <div>
+          <h3 className="text-[17px] font-bold text-giu-ink">{t(locale, "pickupScanTitle")}</h3>
+          <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPickupScanExpireHint")}</p>
+        </div>
+      )}
+
+      {showQrSection ? qrBlock : null}
+
+      {!sheetMode && showCodeSection ? (
+        <>
+          <div className="flex items-center gap-3 px-1">
+            <div className="giu-divider flex-1" />
+            <span className="text-[11px] font-bold text-giu-muted">{t(locale, "mPickupOr")}</span>
+            <div className="giu-divider flex-1" />
+          </div>
+          {codeBlock}
+        </>
+      ) : null}
+
+      {sheetMode && showCodeSection ? codeBlock : null}
 
       {message ? (
         <div className="giu-info-banner space-y-1 text-giu-accent">
