@@ -67,4 +67,10 @@ jobs:
         run: node scripts/seo-post-deploy.mjs
 
       - name: Verify Giu (giucuu.com) production
-        run: node scripts/giu-deploy-verify.mjs
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== verify attempt $attempt ==="
+            node scripts/giu-deploy-verify.mjs && exit 0
+            sleep 45
+          done
+          exit 1
