@@ -1,5 +1,6 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { useEffect, useState } from "react";
 import { naverMapsOpenHref } from "@/giu/lib/links";
 import { hapticSelect } from "@/giu/lib/haptics";
@@ -49,10 +50,17 @@ export function NaverDirectionsButton({
     );
   }, [address, hasCoords, lat, lng, placeName]);
 
+  function openDirections(event: MouseEvent<HTMLAnchorElement>) {
+    hapticSelect();
+    event.preventDefault();
+    // Synchronous navigation keeps the user-gesture chain in in-app WebViews.
+    window.location.assign(event.currentTarget.href);
+  }
+
   return (
     <a
       href={href}
-      onClick={() => hapticSelect()}
+      onClick={openDirections}
       className={
         primary
           ? `giu-btn-primary giu-btn-3d block w-full !py-3 text-center text-[13px] no-underline ${className}`
