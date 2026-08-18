@@ -230,12 +230,12 @@ export function ReservationChatSheet({
             <button
               type="submit"
               disabled={sending || !draft.trim()}
-              className="giu-tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-giu-gold text-giu-ink shadow-[0_4px_14px_rgba(249,168,37,0.35)] disabled:opacity-40"
+              className="giu-tap flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-giu-gold text-giu-ink shadow-[0_4px_14px_rgba(249,168,37,0.35)] disabled:opacity-40"
               aria-label={t(locale, "chatSend")}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
-                  d="M12 5v12M6 11l6 6 6-6"
+                  d="M12 19V7M6 13l6-6 6 6"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
