@@ -131,7 +131,10 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           />
         ) : null}
 
-        <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap block text-center text-[13px] font-bold text-giu-primary">
+        <GiuCustomerBackLink
+          href={href(GIU_ROUTES.customer.home)}
+          className="giu-btn giu-btn-3d block w-full rounded-[14px] bg-white py-3 text-center text-[13px] font-bold text-giu-primary ring-2 ring-giu-primary/20"
+        >
           {t(locale, "moreBrowse")}
         </GiuCustomerBackLink>
       </div>
