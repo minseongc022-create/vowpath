@@ -57,12 +57,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title: { default: GIU_BRAND.fullName, template: `%s · ${GIU_BRAND.name}` },
       description: GIU_BRAND.tagline,
       applicationName: GIU_BRAND.name,
+      manifest: "/giu/site.webmanifest",
       robots: { index: true, follow: true },
       openGraph: {
         title: GIU_BRAND.fullName,
         description: GIU_BRAND.tagline,
         locale: "ko_KR",
         url: origin,
+        images: [{ url: "/giu/jiucu/default.png", alt: "지우쿠" }],
       },
     };
   }

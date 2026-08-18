@@ -1,0 +1,25 @@
+{
+  "name": "GIUCUU — 지우쿠",
+  "short_name": "지우쿠",
+  "description": "오늘 지우쿠가 발견한 맛있는 상품!",
+  "start_url": "/hop",
+  "id": "/hop",
+  "display": "standalone",
+  "background_color": "#fcf9f2",
+  "theme_color": "#3c2a21",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/giu/jiucu/default.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/giu/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
