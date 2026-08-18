@@ -11,6 +11,7 @@ import type {
   GiuBox,
   GiuBoxStatus,
   GiuCategory,
+  GiuChatMessage,
   GiuMarket,
   GiuMerchant,
   GiuPaymentMethod,
@@ -21,7 +22,7 @@ import type {
   GiuWaitlistEntry,
 } from "./types";
 import { getDistrictLabel, isKrDistrict } from "./districts";
-import { notifyPickupCode } from "./notify";
+import { notifyPickupCode, notifyMerchantNewOrder } from "./notify";
 import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
 import { buildPickupWindow, dayOffsetFromIso, hourFromIso } from "./publish-schedule";
 import { resolveGiuPaymentBackend } from "./payments";
@@ -102,6 +103,7 @@ function defaultStore(): GiuStore {
     waitlist: [],
     accounts: [SEED_DEMO_CUSTOMER, SEED_DEMO_MERCHANT_ACCOUNT],
     reviews: [],
+    chatMessages: [],
     customerFavorites: {},
   };
 }
@@ -198,6 +200,7 @@ function normalizeStore(raw: Partial<GiuStore>): GiuStore {
     waitlist: raw.waitlist ?? [],
     accounts: (raw.accounts ?? base.accounts).map(migrateAccount),
     reviews: raw.reviews ?? [],
+    chatMessages: raw.chatMessages ?? [],
     customerFavorites: raw.customerFavorites ?? {},
   };
   return ensureDemoAccounts(store);
@@ -585,6 +588,13 @@ export async function confirmReservationPayment(
       pickupWindow: formatPickupWindow(box.pickupStart, box.pickupEnd),
     });
     res.smsSent = Boolean(sms.ok && !sms.skipped);
+    await notifyMerchantNewOrder({
+      phone: merchant.phone,
+      customerName: res.customerName,
+      boxTitle: box.title,
+      totalVnd: res.totalVnd,
+      quantity: res.quantity,
+    });
     await saveStore(store);
   }
 
@@ -1268,6 +1278,112 @@ export async function toggleCustomerFavorite(
   store.customerFavorites[customerId] = current;
   await saveStore(store);
   return { ids: current, favorited };
+}
+
+function chatAllowed(res: GiuReservation): boolean {
+  if (res.paymentStatus !== "paid") return false;
+  return res.status === "giu_cho" || res.status === "da_lay";
+}
+
+export async function listReservationChatMessages(
+  reservationId: string,
+): Promise<GiuChatMessage[]> {
+  const store = await loadStore();
+  return store.chatMessages
+    .filter((m) => m.reservationId === reservationId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function countUnreadChatMessages(
+  reservationId: string,
+  viewerRole: GiuAccountRole,
+): Promise<number> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === reservationId);
+  if (!res) return 0;
+  const lastRead =
+    viewerRole === "customer"
+      ? res.chatLastReadCustomerAt ?? ""
+      : res.chatLastReadMerchantAt ?? "";
+  return store.chatMessages.filter(
+    (m) =>
+      m.reservationId === reservationId &&
+      m.senderRole !== viewerRole &&
+      m.createdAt > lastRead,
+  ).length;
+}
+
+export async function markReservationChatRead(
+  reservationId: string,
+  viewerRole: GiuAccountRole,
+): Promise<void> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === reservationId);
+  if (!res) return;
+  const now = new Date().toISOString();
+  if (viewerRole === "customer") res.chatLastReadCustomerAt = now;
+  else res.chatLastReadMerchantAt = now;
+  await saveStore(store);
+}
+
+export async function addReservationChatMessage(input: {
+  reservationId: string;
+  senderRole: GiuAccountRole;
+  senderId: string;
+  body: string;
+}): Promise<GiuChatMessage | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === input.reservationId);
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  if (!chatAllowed(res)) return { error: "이 주문에서는 채팅을 사용할 수 없어요" };
+
+  if (input.senderRole === "customer" && res.customerId !== input.senderId) {
+    return { error: "Unauthorized" };
+  }
+  if (input.senderRole === "merchant") {
+    const merchant = store.merchants.find((m) => m.id === res.merchantId);
+    if (!merchant || merchant.accountId !== input.senderId) {
+      return { error: "Unauthorized" };
+    }
+  }
+
+  const body = input.body.trim().slice(0, 500);
+  if (body.length < 1) return { error: "메시지를 입력해 주세요" };
+
+  const message: GiuChatMessage = {
+    id: newId("msg"),
+    reservationId: input.reservationId,
+    senderRole: input.senderRole,
+    senderId: input.senderId,
+    body,
+    createdAt: new Date().toISOString(),
+  };
+  if (!store.chatMessages) store.chatMessages = [];
+  store.chatMessages.push(message);
+  if (input.senderRole === "customer") res.chatLastReadCustomerAt = message.createdAt;
+  else res.chatLastReadMerchantAt = message.createdAt;
+  await saveStore(store);
+  return message;
+}
+
+export async function listMerchantUnreadChats(
+  merchantId: string,
+): Promise<{ reservationId: string; unread: number }[]> {
+  const store = await loadStore();
+  const reservations = store.reservations.filter(
+    (r) => r.merchantId === merchantId && chatAllowed(r),
+  );
+  return reservations
+    .map((r) => ({
+      reservationId: r.id,
+      unread: store.chatMessages.filter(
+        (m) =>
+          m.reservationId === r.id &&
+          m.senderRole === "customer" &&
+          m.createdAt > (r.chatLastReadMerchantAt ?? ""),
+      ).length,
+    }))
+    .filter((x) => x.unread > 0);
 }
 
 export { defaultPickupWindow };

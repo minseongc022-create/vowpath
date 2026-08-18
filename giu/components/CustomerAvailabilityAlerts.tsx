@@ -11,6 +11,7 @@ import {
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox } from "@/giu/lib/types";
+import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 
@@ -20,7 +21,9 @@ const POLL_MS = 45_000;
 
 export function CustomerAvailabilityAlerts() {
   const { locale } = useGiuLocale();
+  const { account } = useGiuAuth();
   const href = useGiuHref();
+  const scopeId = account?.id;
   const [alert, setAlert] = useState<AlertItem | null>(null);
 
   const poll = useCallback(async () => {
@@ -34,13 +37,13 @@ export function CustomerAvailabilityAlerts() {
       const boxes = (data.boxes ?? []).filter((b) => favs.includes(b.merchantId));
       const ids = boxes.map((b) => b.id);
 
-      if (!bootstrapBoxAlerts(ids)) return;
+      if (!bootstrapBoxAlerts(ids, scopeId)) return;
 
-      const seen = new Set(getSeenBoxIds());
+      const seen = new Set(getSeenBoxIds(scopeId));
       const fresh = boxes.filter((b) => !seen.has(b.id));
       if (fresh.length === 0) return;
 
-      markBoxesSeen(fresh.map((b) => b.id));
+      markBoxesSeen(fresh.map((b) => b.id), scopeId);
       const first = fresh[0]!;
       setAlert({ boxId: first.id, title: first.title });
 
@@ -54,7 +57,7 @@ export function CustomerAvailabilityAlerts() {
     } catch {
       /* ignore network */
     }
-  }, [locale]);
+  }, [locale, scopeId]);
 
   useEffect(() => {
     void poll();

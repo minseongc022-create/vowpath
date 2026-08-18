@@ -54,6 +54,22 @@ export async function notifyPickupCode(input: {
   return sendGiuPickupSms(input.phone, body);
 }
 
+export async function notifyMerchantNewOrder(input: {
+  phone: string;
+  customerName: string;
+  boxTitle: string;
+  totalVnd: number;
+  quantity: number;
+}): Promise<{ ok: boolean; skipped?: boolean }> {
+  const amount = new Intl.NumberFormat("ko-KR").format(input.totalVnd);
+  const body =
+    `[Giu] 새 주문 · ${input.customerName}\n` +
+    `${input.boxTitle} · ${input.quantity}개 · ${amount}원\n` +
+    `가게 앱에서 픽업 확인하세요\n` +
+    `giucuu.com/hop`;
+  return sendGiuPickupSms(input.phone, body);
+}
+
 function isGiuSmsPreview(): boolean {
   const v = process.env.GIU_SMS_PREVIEW?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";

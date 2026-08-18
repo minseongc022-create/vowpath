@@ -17,8 +17,8 @@ import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
 import { MerchantLogoutLink } from "./MerchantLogoutLink";
-import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
+import { ReservationChatButton } from "./ReservationChatButton";
 import { useMerchantPickup } from "./MerchantPickupProvider";
 import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
@@ -107,6 +107,13 @@ export function MerchantPanelClient() {
       void refresh();
     });
   }, [merchant, load, registerOnVerified, refresh]);
+
+  useEffect(() => {
+    if (!merchant) return;
+    const onNew = () => void load(merchant.id, { silent: true });
+    window.addEventListener("giu-merchant-new-order", onNew);
+    return () => window.removeEventListener("giu-merchant-new-order", onNew);
+  }, [merchant, load]);
 
   const boxMap = useMemo(() => new Map(boxes.map((b) => [b.id, b])), [boxes]);
 
@@ -247,8 +254,6 @@ export function MerchantPanelClient() {
         </div>
       ) : null}
 
-      <MerchantOrderAlerts merchantId={merchant.id} onNewOrder={() => void load(merchant.id, { silent: true })} />
-
       <div className="giu-tab-stage">
         {tab === "boxes" ? (
           <div
@@ -373,6 +378,16 @@ export function MerchantPanelClient() {
                           </span>
                         ) : null}
                       </div>
+                      {r.paymentStatus === "paid" && (r.status === "giu_cho" || r.status === "da_lay") ? (
+                        <div className="mt-3">
+                          <ReservationChatButton
+                            locale={locale}
+                            reservationId={r.id}
+                            viewerRole="merchant"
+                            peerName={r.customerName}
+                          />
+                        </div>
+                      ) : null}
                     </li>
                   );
                 })}

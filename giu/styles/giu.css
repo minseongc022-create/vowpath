@@ -365,6 +365,10 @@
     animation: none;
   }
 
+  .giu-chat-bubble-wrap {
+    animation: none;
+  }
+
   .giu-floating-nav-pill {
     transition: none;
   }
@@ -376,6 +380,29 @@
 
 .giu-star {
   color: var(--giu-gold);
+}
+
+.giu-chat-sheet {
+  max-height: min(88vh, 720px);
+}
+
+.giu-chat-thread {
+  perspective: 900px;
+}
+
+.giu-chat-bubble-wrap {
+  animation: giu-chat-in 0.28s cubic-bezier(0.22, 1.1, 0.36, 1) both;
+}
+
+@keyframes giu-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) rotateX(8deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
 }
 
 .giu-textarea {

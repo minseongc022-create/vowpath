@@ -6,6 +6,10 @@ const SEEN_ORDERS_KEY = "giu-alert-seen-order-ids";
 const BOX_ALERTS_BOOT_KEY = "giu-box-alerts-boot";
 const ORDER_ALERTS_BOOT_KEY = "giu-order-alerts-boot";
 
+function scopedKey(base: string, scopeId?: string): string {
+  return scopeId ? `${base}:${scopeId}` : base;
+}
+
 function readIds(key: string): string[] {
   if (typeof window === "undefined") return [];
   try {
@@ -91,35 +95,37 @@ export async function toggleFavoriteRemote(merchantId: string): Promise<boolean>
   }
 }
 
-export function getSeenBoxIds(): string[] {
-  return readIds(SEEN_BOXES_KEY);
+export function getSeenBoxIds(scopeId?: string): string[] {
+  return readIds(scopedKey(SEEN_BOXES_KEY, scopeId));
 }
 
-export function markBoxesSeen(boxIds: string[]): void {
-  writeIds(SEEN_BOXES_KEY, [...getSeenBoxIds(), ...boxIds]);
+export function markBoxesSeen(boxIds: string[], scopeId?: string): void {
+  writeIds(scopedKey(SEEN_BOXES_KEY, scopeId), [...getSeenBoxIds(scopeId), ...boxIds]);
 }
 
-export function getSeenOrderIds(): string[] {
-  return readIds(SEEN_ORDERS_KEY);
+export function getSeenOrderIds(merchantId?: string): string[] {
+  return readIds(scopedKey(SEEN_ORDERS_KEY, merchantId));
 }
 
-export function markOrdersSeen(orderIds: string[]): void {
-  writeIds(SEEN_ORDERS_KEY, [...getSeenOrderIds(), ...orderIds]);
+export function markOrdersSeen(orderIds: string[], merchantId?: string): void {
+  writeIds(scopedKey(SEEN_ORDERS_KEY, merchantId), [...getSeenOrderIds(merchantId), ...orderIds]);
 }
 
 /** First poll should not spam — mark current inventory as already seen. Returns false on first boot. */
-export function bootstrapBoxAlerts(boxIds: string[]): boolean {
+export function bootstrapBoxAlerts(boxIds: string[], scopeId?: string): boolean {
   if (typeof window === "undefined") return true;
-  if (window.localStorage.getItem(BOX_ALERTS_BOOT_KEY) === "1") return true;
-  markBoxesSeen(boxIds);
-  window.localStorage.setItem(BOX_ALERTS_BOOT_KEY, "1");
+  const bootKey = scopedKey(BOX_ALERTS_BOOT_KEY, scopeId);
+  if (window.localStorage.getItem(bootKey) === "1") return true;
+  markBoxesSeen(boxIds, scopeId);
+  window.localStorage.setItem(bootKey, "1");
   return false;
 }
 
-export function bootstrapOrderAlerts(orderIds: string[]): boolean {
+export function bootstrapOrderAlerts(orderIds: string[], merchantId: string): boolean {
   if (typeof window === "undefined") return true;
-  if (window.localStorage.getItem(ORDER_ALERTS_BOOT_KEY) === "1") return true;
-  markOrdersSeen(orderIds);
-  window.localStorage.setItem(ORDER_ALERTS_BOOT_KEY, "1");
+  const bootKey = scopedKey(ORDER_ALERTS_BOOT_KEY, merchantId);
+  if (window.localStorage.getItem(bootKey) === "1") return true;
+  markOrdersSeen(orderIds, merchantId);
+  window.localStorage.setItem(bootKey, "1");
   return false;
 }

@@ -11,6 +11,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { GiuMerchantBottomNav } from "./GiuMerchantBottomNav";
+import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { useGiuHref } from "./GiuNavProvider";
 
 function MerchantHeaderQrButton({ locale }: { locale: GiuLocale }) {
@@ -30,7 +31,7 @@ function MerchantHeaderQrButton({ locale }: { locale: GiuLocale }) {
 }
 
 function MerchantShellInner({ children }: { children: React.ReactNode }) {
-  const { account } = useGiuAuth();
+  const { account, merchant } = useGiuAuth();
   const { locale } = useGiuLocale();
   const href = useGiuHref();
   const pathname = usePathname();
@@ -56,6 +57,7 @@ function MerchantShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-[480px] flex-1 px-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] pt-3 md:max-w-xl lg:max-w-2xl">
+        {merchant ? <MerchantOrderAlerts merchantId={merchant.id} /> : null}
         {children}
       </main>
       <Suspense fallback={null}>
