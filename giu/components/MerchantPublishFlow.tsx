@@ -5,6 +5,13 @@ import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
 import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import { ProductPhotoPicker } from "@/giu/components/ProductPhotoPicker";
+import {
+  MerchantFreshnessFields,
+  freshnessFromBox,
+  freshnessValueToPayload,
+  validateFreshnessValue,
+  type FreshnessFormValue,
+} from "@/giu/components/MerchantFreshnessFields";
 import { boxImages, boxImageFields } from "@/giu/lib/box-images";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
@@ -144,7 +151,14 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [category, setCategory] = useState(merchant.category);
   const [description, setDescription] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [freshnessNote, setFreshnessNote] = useState("");
+  const [freshness, setFreshness] = useState<FreshnessFormValue>(() => ({
+    madeDate: new Date().toISOString().slice(0, 10),
+    madeHour: new Date().getHours(),
+    bestBefore: "",
+    storageMethod: "fridge",
+    storageCustom: "",
+    freshnessNote: "",
+  }));
   const [originalPrice, setOriginalPrice] = useState(defaultPrices.originalPriceVnd);
   const [salePrice, setSalePrice] = useState(defaultPrices.salePriceVnd);
   const [quantityText, setQuantityText] = useState("5");
@@ -178,7 +192,14 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setDescription("");
     setCategory(merchant.category);
     setImageUrls([]);
-    setFreshnessNote(t(locale, "mFreshDefault"));
+    setFreshness({
+      madeDate: new Date().toISOString().slice(0, 10),
+      madeHour: new Date().getHours(),
+      bestBefore: "",
+      storageMethod: "fridge",
+      storageCustom: "",
+      freshnessNote: t(locale, "mFreshDefault"),
+    });
     setOriginalPrice(defaultPrices.originalPriceVnd);
     setSalePrice(defaultPrices.salePriceVnd);
     setQuantityText("5");
@@ -203,7 +224,10 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     setCategory(mostRecentBox.category);
     setDescription(mostRecentBox.description ?? "");
     setImageUrls(boxImages(mostRecentBox));
-    setFreshnessNote(mostRecentBox.freshnessNote ?? t(locale, "mFreshDefault"));
+    setFreshness({
+      ...freshnessFromBox(mostRecentBox),
+      freshnessNote: mostRecentBox.freshnessNote ?? t(locale, "mFreshDefault"),
+    });
     setOriginalPrice(mostRecentBox.originalPriceVnd);
     setSalePrice(mostRecentBox.salePriceVnd);
     setQuantityText(String(mostRecentBox.quantityTotal));
@@ -261,6 +285,11 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       setCreateError(t(locale, "mQtyInvalid"));
       return;
     }
+    const freshErr = validateFreshnessValue(freshness, locale);
+    if (freshErr) {
+      setCreateError(freshErr);
+      return;
+    }
     setSubmitBusy(true);
     const tz = marketTimeZone(market);
     const pickupStart = localToIso(dayOffset, startH, 0, tz);
@@ -278,7 +307,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
           originalPriceVnd: originalPrice,
           salePriceVnd: salePrice,
           quantityTotal: quantity,
-          freshnessNote: freshnessNote || undefined,
+          ...freshnessValueToPayload(freshness),
           pickupStart,
           pickupEnd,
           expiresAt: pickupEnd,
@@ -500,14 +529,12 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             />
           </Field>
 
-          <Field label={t(locale, "mFresh")} hint={t(locale, "mFreshHint")}>
-            <input
-              name="freshnessNote"
-              value={freshnessNote}
-              onChange={(e) => setFreshnessNote(e.target.value)}
-              className="giu-input"
-            />
-          </Field>
+          <MerchantFreshnessFields
+            locale={locale}
+            value={freshness}
+            onChange={setFreshness}
+            error={createError.includes("제조") || createError.includes("보관") ? createError : undefined}
+          />
 
           <ScheduleFields
             locale={locale}

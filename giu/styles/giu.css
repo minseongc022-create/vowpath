@@ -386,8 +386,21 @@
   max-height: min(88vh, 720px);
 }
 
+.giu-chat-composer {
+  transition: box-shadow 0.2s ease, ring-color 0.2s ease;
+}
+
+.giu-chat-composer:focus-within {
+  box-shadow: 0 0 0 3px rgb(249 168 37 / 0.22);
+}
+
+.giu-freshness-trust {
+  animation: giu-panel-in 0.32s cubic-bezier(0.22, 1.05, 0.36, 1) both;
+}
+
 .giu-chat-thread {
-  perspective: 900px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .giu-chat-bubble-wrap {

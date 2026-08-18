@@ -345,8 +345,8 @@ export function GiuAuthScreen() {
         </h1>
         <p className="mt-1 text-sm font-semibold text-giu-muted">
           {role === "merchant"
-            ? "오늘의 DEAL 등록 · 주문 · 정산 · 입점비 0원"
-            : "DEAL 찾기 · 결제 · 픽업 코드"}
+            ? "오늘의 딜 등록 · 주문 · 정산 · 입점비 0원"
+            : "딜 찾기 · 결제 · 픽업 코드"}
         </p>
         <p className="mt-2 text-[11px] leading-snug text-giu-muted">{t(locale, "authDualRoleHint")}</p>
       </div>

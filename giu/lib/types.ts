@@ -28,6 +28,8 @@ export type GiuCategory =
   | "hoa"
   | "khac";
 
+export type GiuStorageMethod = "room" | "fridge" | "freezer" | "display" | "other";
+
 export type GiuBoxStatus = "mo" | "het" | "huy";
 
 export type GiuReservationStatus = "giu_cho" | "da_lay" | "het_han" | "huy";
@@ -98,6 +100,14 @@ export type GiuBox = {
   quantityLeft: number;
   pickupStart: string;
   pickupEnd: string;
+  /** When the product was made (merchant-confirmed). */
+  madeAt?: string;
+  /** Best-before / consume-by date (optional). */
+  bestBefore?: string;
+  /** How the product is stored until pickup. */
+  storageMethod?: GiuStorageMethod;
+  /** Custom storage note when storageMethod is "other". */
+  storageCustom?: string;
   freshnessNote?: string;
   status: GiuBoxStatus;
   /** Set when merchant cancels listing (status → huy). */

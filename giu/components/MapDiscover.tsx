@@ -700,7 +700,7 @@ export function MapDiscover({ pins }: Props) {
                     </p>
                     <p className="mt-0.5 text-[11px] font-semibold text-giu-muted">
                       {formatDistance(dist, locale)} · {pin.boxes.length}{" "}
-                      DEAL
+                      딜
                     </p>
                     {best ? (
                       <p className="mt-1 truncate text-[12px] font-bold text-giu-ink">
