@@ -7,6 +7,7 @@ import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
 import { isPickupQrToken } from "@/giu/lib/pickup-qr";
+import { MerchantPickupConfirm, type PickupPreview } from "./MerchantPickupConfirm";
 
 type Props = {
   locale: GiuLocale;
@@ -36,6 +37,7 @@ export function MerchantPickupScanner({
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
   const [cameraError, setCameraError] = useState("");
+  const [pending, setPending] = useState<PickupPreview | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const busyRef = useRef(false);
   const regionId = "giu-pickup-scanner-view";
@@ -53,32 +55,30 @@ export function MerchantPickupScanner({
     busyRef.current = busy;
   }, [busy]);
 
+  const resetPending = useCallback(() => {
+    setPending(null);
+    setError("");
+  }, []);
+
   const showPickupResult = useCallback(
-    (data: {
-      reservation?: { customerName: string; quantity: number };
-      boxTitle?: string;
-      netPayoutVnd?: number;
-    }) => {
+    (data: PickupPreview) => {
       hapticConfirm();
-      setMessage(`${data.reservation?.customerName ?? ""} · ${t(locale, "mPickupDone")}`);
+      setPending(null);
+      setMessage(`${data.reservation.customerName} · ${t(locale, "mPickupDone")}`);
       const parts = [
-        data.boxTitle ? `${t(locale, "mOrderProduct")}: ${data.boxTitle}` : "",
-        data.reservation?.quantity
-          ? `${t(locale, "mOrderQty")} ${data.reservation.quantity}${t(locale, "mUnitQty")}`
-          : "",
-        data.netPayoutVnd != null
-          ? `${t(locale, "mOrderNet")} ${money(data.netPayoutVnd)} · ${t(locale, "mPickupScanSuccessSettle")}`
-          : "",
+        data.box?.title ? `${t(locale, "mOrderProduct")}: ${data.box.title}` : "",
+        `${t(locale, "mOrderQty")} ${data.reservation.quantity}${t(locale, "mUnitQty")}`,
+        `${t(locale, "mOrderNet")} ${money(data.netPayoutVnd)} · ${t(locale, "mPickupScanSuccessSettle")}`,
       ].filter(Boolean);
       setDetail(parts.join(" · "));
       setPickupCode("");
       setView("qr");
       onVerified?.();
     },
-    [locale, onVerified, setPickupCode],
+    [locale, money, onVerified, setPickupCode],
   );
 
-  const verifyPickup = useCallback(
+  const previewPickup = useCallback(
     async (payload: VerifyPayload) => {
       if (busyRef.current) return;
       setBusy(true);
@@ -87,18 +87,13 @@ export function MerchantPickupScanner({
       setMessage("");
       setDetail("");
       try {
-        const res = await fetch("/api/giu/pickup/verify", {
+        const res = await fetch("/api/giu/pickup/preview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(payload),
         });
-        const data = (await res.json()) as {
-          error?: string;
-          reservation?: { customerName: string; quantity: number };
-          boxTitle?: string;
-          netPayoutVnd?: number;
-        };
+        const data = (await res.json()) as PickupPreview & { error?: string };
         if (!res.ok) {
           setError(
             res.status === 410
@@ -107,7 +102,8 @@ export function MerchantPickupScanner({
           );
           return;
         }
-        showPickupResult(data);
+        hapticSelect();
+        setPending(data);
       } catch {
         setError(t(locale, "pickupScanFail"));
       } finally {
@@ -115,20 +111,50 @@ export function MerchantPickupScanner({
         busyRef.current = false;
       }
     },
-    [locale, showPickupResult],
+    [locale],
   );
 
+  const confirmPickup = useCallback(async () => {
+    if (!pending || busyRef.current) return;
+    setBusy(true);
+    busyRef.current = true;
+    setError("");
+    try {
+      const res = await fetch("/api/giu/pickup/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ reservationId: pending.reservation.id }),
+      });
+      const data = (await res.json()) as PickupPreview & { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? t(locale, "pickupScanFail"));
+        return;
+      }
+      showPickupResult({
+        reservation: pending.reservation,
+        box: pending.box,
+        netPayoutVnd: data.netPayoutVnd ?? pending.netPayoutVnd,
+      });
+    } catch {
+      setError(t(locale, "pickupScanFail"));
+    } finally {
+      setBusy(false);
+      busyRef.current = false;
+    }
+  }, [locale, pending, showPickupResult]);
+
   const verifyToken = useCallback(
-    async (token: string) => verifyPickup({ token: token.trim() }),
-    [verifyPickup],
+    async (token: string) => previewPickup({ token: token.trim() }),
+    [previewPickup],
   );
 
   const verifyCode = useCallback(async () => {
     const code = pickupCode.trim().replace(/\s/g, "");
     if (!/^\d{3}$/.test(code) || busyRef.current) return;
     hapticSelect();
-    await verifyPickup({ code });
-  }, [pickupCode, verifyPickup]);
+    await previewPickup({ code });
+  }, [pickupCode, previewPickup]);
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -146,6 +172,7 @@ export function MerchantPickupScanner({
 
   const startScanner = useCallback(async () => {
     hapticSelect();
+    resetPending();
     setCameraError("");
     setError("");
     setMessage("");
@@ -169,7 +196,7 @@ export function MerchantPickupScanner({
       setCameraError(t(locale, "pickupCameraFail"));
       setScanning(false);
     }
-  }, [locale, stopScanner, verifyToken]);
+  }, [locale, resetPending, stopScanner, verifyToken]);
 
   useEffect(() => {
     return () => {
@@ -181,8 +208,8 @@ export function MerchantPickupScanner({
     if (sheetMode && view === "code") void stopScanner();
   }, [sheetMode, view, stopScanner]);
 
-  const showCodeSection = !sheetMode || view === "code";
-  const showQrSection = !sheetMode || view === "qr";
+  const showCodeSection = !pending && (!sheetMode || view === "code");
+  const showQrSection = !pending && (!sheetMode || view === "qr");
 
   const qrBlock = (
     <div className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border">
@@ -301,6 +328,20 @@ export function MerchantPickupScanner({
           <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mPickupScanExpireHint")}</p>
         </div>
       )}
+
+      {pending ? (
+        <MerchantPickupConfirm
+          locale={locale}
+          preview={pending}
+          busy={busy}
+          onConfirm={() => void confirmPickup()}
+          onCancel={() => {
+            hapticSelect();
+            resetPending();
+            setPickupCode("");
+          }}
+        />
+      ) : null}
 
       {showQrSection ? qrBlock : null}
 

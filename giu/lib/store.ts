@@ -1115,7 +1115,7 @@ async function cloneBoxForRepublish(
   return box;
 }
 
-export async function confirmPickupByCode(
+export async function lookupPickupByCode(
   merchantId: string,
   code: string,
 ): Promise<GiuReservation | { error: string }> {
@@ -1133,16 +1133,18 @@ export async function confirmPickupByCode(
       r.status === "giu_cho",
   );
   if (!res) return { error: "코드를 찾을 수 없거나 이미 처리됐어요" };
-  return await finalizePickup(store, res, merchantId);
+  return res;
 }
 
-export async function confirmPickupByToken(
+export async function lookupPickupByToken(
   merchantId: string,
   token: string,
 ): Promise<GiuReservation | { error: string }> {
   const { verifyPickupQrToken } = await import("@/giu/lib/pickup-qr");
   const verified = verifyPickupQrToken(token);
-  if (!verified) return { error: "QR이 만료되었거나 올바르지 않아요. 손님 화면에서 새 QR이 보이면 다시 스캔하세요." };
+  if (!verified) {
+    return { error: "QR이 만료되었거나 올바르지 않아요. 손님 화면에서 새 QR이 보이면 다시 스캔하세요." };
+  }
   const store = await loadStore();
   const res = store.reservations.find(
     (r) =>
@@ -1151,8 +1153,44 @@ export async function confirmPickupByToken(
       r.paymentStatus === "paid",
   );
   if (!res) return { error: "주문을 찾을 수 없어요" };
-  if (res.status === "da_lay") return res;
+  if (res.status === "da_lay") return { error: "이미 픽업 완료된 주문이에요" };
   if (res.status !== "giu_cho") return { error: "픽업 대기 상태가 아니에요" };
+  return res;
+}
+
+export async function confirmPickupById(
+  merchantId: string,
+  reservationId: string,
+): Promise<GiuReservation | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find(
+    (r) => r.id === reservationId && r.merchantId === merchantId,
+  );
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  return await finalizePickup(store, res, merchantId);
+}
+
+export async function confirmPickupByCode(
+  merchantId: string,
+  code: string,
+): Promise<GiuReservation | { error: string }> {
+  const looked = await lookupPickupByCode(merchantId, code);
+  if ("error" in looked) return looked;
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === looked.id);
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  return await finalizePickup(store, res, merchantId);
+}
+
+export async function confirmPickupByToken(
+  merchantId: string,
+  token: string,
+): Promise<GiuReservation | { error: string }> {
+  const looked = await lookupPickupByToken(merchantId, token);
+  if ("error" in looked) return looked;
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === looked.id);
+  if (!res) return { error: "주문을 찾을 수 없어요" };
   return await finalizePickup(store, res, merchantId);
 }
 
