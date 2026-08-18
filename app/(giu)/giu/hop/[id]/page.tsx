@@ -69,7 +69,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   );
 
   return (
-    <div className="giu-page !pt-0 space-y-3">
+    <div className={`giu-page !pt-0 space-y-3 ${soldOut ? "" : "giu-page-sticky-checkout"}`}>
       <div className="flex items-center justify-between gap-2 py-2">
         <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
           {t(locale, "back")}
@@ -176,7 +176,9 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           </div>
         ) : null}
 
-        <MerchantReviews merchantId={merchant.id} locale={locale} />
+        <div className="pb-2">
+          <MerchantReviews merchantId={merchant.id} locale={locale} />
+        </div>
       </div>
 
       {soldOut ? (

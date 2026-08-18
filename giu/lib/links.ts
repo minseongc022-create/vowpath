@@ -11,6 +11,47 @@ export function googleMapsEmbedUrl(address: string): string {
 
 type LatLng = { lat: number; lng: number };
 
+/** Search place on Naver Map (mobile web / app). */
+export function naverMapsSearchUrl(address: string): string {
+  return `https://map.naver.com/v5/search/${encodeURIComponent(address.trim())}`;
+}
+
+/**
+ * Turn-by-turn directions on Naver Map.
+ * Start `-` = current location; destination is address or lng,lat,name.
+ */
+export function naverMapsDirectionsUrl(opts: {
+  address: string;
+  destination?: LatLng | null;
+  placeName?: string;
+  mode?: "car" | "walk" | "transit";
+}): string {
+  const mode = opts.mode ?? "car";
+  const label = encodeURIComponent((opts.placeName ?? opts.address).trim());
+  const dest =
+    opts.destination &&
+    Number.isFinite(opts.destination.lat) &&
+    Number.isFinite(opts.destination.lng)
+      ? `${opts.destination.lng},${opts.destination.lat},${label}`
+      : encodeURIComponent(opts.address.trim());
+  return `https://map.naver.com/v5/directions/-/${dest}/-/${mode}`;
+}
+
+/** Naver Map app deep link (Android/iOS). */
+export function naverMapsAppDirectionsUrl(opts: {
+  lat: number;
+  lng: number;
+  name: string;
+}): string {
+  const params = new URLSearchParams({
+    dlat: String(opts.lat),
+    dlng: String(opts.lng),
+    dname: opts.name.trim(),
+    appname: "giucuu",
+  });
+  return `nmap://route/car?${params.toString()}`;
+}
+
 /**
  * Turn-by-turn directions in Google Maps.
  * Prefer lat/lng origin+destination for accuracy; address fallback for dest.
