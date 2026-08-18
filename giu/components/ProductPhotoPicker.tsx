@@ -319,7 +319,9 @@ export function ProductPhotoPicker({
         <p className="text-[11px] font-semibold text-giu-muted">
           {uploading
             ? t(locale, "mPhotoUploading")
-            : t(locale, "mPhotoCount").replace("{count}", String(value.length)).replace("{max}", String(max))}
+            : t(locale, "mPhotoCount")
+                .replaceAll("{count}", String(value.length))
+                .replaceAll("{max}", String(max))}
         </p>
         {localError ? <p className="text-[12px] font-semibold text-giu-danger">{localError}</p> : null}
       </div>
@@ -335,7 +337,9 @@ export function ProductPhotoPicker({
             {t(locale, "mPhotoSheetTitle")}
           </h3>
           <p className="text-[12px] font-semibold text-giu-muted">
-            {t(locale, "mPhotoCount").replace("{count}", String(value.length)).replace("{max}", String(max))}
+            {t(locale, "mPhotoCount")
+              .replaceAll("{count}", String(value.length))
+              .replaceAll("{max}", String(max))}
           </p>
           <IosFilePickLabel
             id={cameraId}

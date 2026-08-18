@@ -22,8 +22,15 @@ export const VN_DISTRICTS: GiuDistrict[] = [
   "phu_nhuan",
 ];
 
-/** Bakery / cafe magam-sale first. */
-export const KR_MERCHANT_CATEGORIES: GiuCategory[] = ["bakery", "cafe", "khac"];
+/** Bakery / cafe / food deals for KR map filters. */
+export const KR_MERCHANT_CATEGORIES: GiuCategory[] = [
+  "bakery",
+  "cafe",
+  "banh_mi",
+  "tra_sua",
+  "nha_hang",
+  "khac",
+];
 
 export function isKrMarket(market: GiuMarket | undefined | null): boolean {
   return market === "kr";

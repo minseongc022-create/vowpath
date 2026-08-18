@@ -17,11 +17,18 @@ export const GIu_CATEGORIES: {
 ];
 
 export function categoriesForMarket(market: GiuMarket) {
-  if (market === "kr") {
-    return GIu_CATEGORIES.filter((c) => KR_MERCHANT_CATEGORIES.includes(c.id));
-  }
-  return GIu_CATEGORIES;
+  const list = market === "kr" ? KR_MERCHANT_CATEGORIES : GIu_CATEGORIES.map((c) => c.id);
+  return GIu_CATEGORIES.filter((c) => list.includes(c.id)).map((c) => ({
+    ...c,
+    label: market === "kr" ? (KR_LABEL_OVERRIDES[c.id] ?? c.label) : c.label,
+  }));
 }
+
+const KR_LABEL_OVERRIDES: Partial<Record<GiuCategory, string>> = {
+  tra_sua: "디저트·음료",
+  banh_mi: "샌드위치·간편식",
+  nha_hang: "식당·한식",
+};
 
 export function merchantCategories() {
   return categoriesForMarket("kr");
