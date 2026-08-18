@@ -34,7 +34,7 @@ export function naverMapsDirectionsUrl(opts: {
     Number.isFinite(opts.destination.lng)
       ? `${opts.destination.lng},${opts.destination.lat},${encodeURIComponent(name)}`
       : encodeURIComponent(opts.address.trim());
-  return `https://map.naver.com/v5/directions/-/${dest}/-/${mode}`;
+  return `https://map.naver.com/p/directions/-/${dest}/-/${mode}`;
 }
 
 /** Naver Map app deep link (Android/iOS). */

@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
@@ -30,9 +29,9 @@ import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
 import {
   fetchDrivingRoute,
   formatOsrmDuration,
-  formatRouteDistance,
   type RouteResult,
 } from "@/giu/lib/routing";
+import { NaverDirectionsButton } from "./NaverDirectionsButton";
 import {
   formatRatingLine,
   isClosingSoon,
@@ -46,13 +45,6 @@ import { WaitlistForm } from "./WaitlistForm";
 import { useGiuHref } from "./GiuNavProvider";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
-
-const GiuRouteMapInner = dynamic(() => import("@/giu/components/GiuRouteMapInner"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-40 items-center justify-center bg-giu-bg text-[12px] text-giu-muted">…</div>
-  ),
-});
 
 type Props = {
   pins: MapPin[];
@@ -153,10 +145,6 @@ export function MapDiscover({ pins }: Props) {
   const [farFromServiceCity, setFarFromServiceCity] = useState(false);
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [routing, setRouting] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
-  const [navBusy, setNavBusy] = useState(false);
-  const [navError, setNavError] = useState("");
-
   const clearFly = useCallback(() => setFlyTarget(null), []);
 
   const filtered = useMemo(() => {
@@ -222,49 +210,6 @@ export function MapDiscover({ pins }: Props) {
   function focusCity() {
     setFollowUser(false);
     setFlyTarget({ lat: INCHEON_CENTER.lat, lng: INCHEON_CENTER.lng, zoom: INCHEON_DEFAULT_ZOOM });
-  }
-
-  function openDirections() {
-    if (!selected) return;
-    hapticSelect();
-    setNavError("");
-    setNavOpen(true);
-
-    const dest = { lat: selected.lat, lng: selected.lng };
-    if (userPos && route) return;
-
-    if (userPos) {
-      setNavBusy(true);
-      void fetchDrivingRoute(userPos, dest).then((result) => {
-        setRoute(result);
-        setNavBusy(false);
-        if (!result) setNavError(t(locale, "directionsRouteFail"));
-      });
-      return;
-    }
-
-    if (!("geolocation" in navigator)) {
-      setNavError(t(locale, "locUnsupported"));
-      return;
-    }
-    setNavBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserPos(next);
-        setFarFromServiceCity(distanceMeters(next, INCHEON_CENTER) >= 80_000);
-        void fetchDrivingRoute(next, dest).then((result) => {
-          setRoute(result);
-          setNavBusy(false);
-          if (!result) setNavError(t(locale, "directionsRouteFail"));
-        });
-      },
-      () => {
-        setNavError(t(locale, "directionsNeedLoc"));
-        setNavBusy(false);
-      },
-      { enableHighAccuracy: true, timeout: 12000 },
-    );
   }
 
   useEffect(() => {
@@ -374,7 +319,6 @@ export function MapDiscover({ pins }: Props) {
               click: () => {
                 setSelectedId(pin.merchant.id);
                 setFollowUser(false);
-                setNavOpen(false);
                 setFlyTarget({ lat: pin.lat, lng: pin.lng, zoom: 16 });
               },
             }}
@@ -624,14 +568,13 @@ export function MapDiscover({ pins }: Props) {
                 >
                   {t(locale, "storeProfile")}
                 </GiuCustomerNavLink>
-                <button
-                  type="button"
-                  onClick={openDirections}
-                  disabled={navBusy || locating}
-                  className="giu-btn-secondary giu-btn-3d flex-1 !w-auto !py-3 text-[13px]"
-                >
-                  {navBusy || locating ? t(locale, "directionsLocating") : t(locale, "directionsInApp")}
-                </button>
+                <NaverDirectionsButton
+                  address={selected.merchant.address}
+                  lat={selected.lat}
+                  lng={selected.lng}
+                  placeName={selected.merchant.name}
+                  className="flex-1 !w-auto"
+                />
                 {sortedSelectedBoxes[0] ? (
                   <GiuCustomerNavLink
                     href={href(GIU_ROUTES.customer.box(sortedSelectedBoxes[0].id))}
@@ -642,32 +585,6 @@ export function MapDiscover({ pins }: Props) {
                 ) : null}
               </div>
 
-              {navOpen ? (
-                <div className="overflow-hidden rounded-[16px] ring-1 ring-giu-border">
-                  {userPos && route ? (
-                    <GiuRouteMapInner
-                      userPos={userPos}
-                      destination={{ lat: selected.lat, lng: selected.lng }}
-                      route={route}
-                    />
-                  ) : (
-                    <div className="flex h-40 items-center justify-center bg-giu-bg text-[12px] font-semibold text-giu-muted">
-                      {navBusy ? t(locale, "directionsLocating") : t(locale, "directionsRouteFail")}
-                    </div>
-                  )}
-                  <div className="space-y-0.5 bg-white px-3 py-2.5 text-center">
-                    {route ? (
-                      <p className="text-[13px] font-bold text-giu-ink">
-                        {formatRouteDistance(route.distanceMeters)} ·{" "}
-                        {formatOsrmDuration(route.durationSeconds, locale)}
-                      </p>
-                    ) : null}
-                    <p className="text-[11px] font-semibold text-giu-muted">
-                      {navError || t(locale, "directionsInAppHint")}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
