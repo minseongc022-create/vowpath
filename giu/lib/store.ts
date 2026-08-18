@@ -611,6 +611,10 @@ export async function updateBox(
       | "imageUrl"
       | "imageUrls"
       | "freshnessNote"
+      | "madeAt"
+      | "bestBefore"
+      | "storageMethod"
+      | "storageCustom"
       | "status"
       | "quantityLeft"
       | "quantityTotal"
@@ -1097,6 +1101,10 @@ async function cloneBoxForRepublish(
     quantityLeft: source.quantityTotal,
     pickupStart: win.pickupStart,
     pickupEnd: win.pickupEnd,
+    madeAt: source.madeAt,
+    bestBefore: source.bestBefore,
+    storageMethod: source.storageMethod,
+    storageCustom: source.storageCustom,
     freshnessNote: source.freshnessNote,
     status: "mo",
     createdAt: new Date().toISOString(),

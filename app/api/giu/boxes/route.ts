@@ -27,6 +27,10 @@ const createSchema = z.object({
   originalPriceVnd: z.number().int().min(500),
   salePriceVnd: z.number().int().min(500),
   quantityTotal: z.number().int().min(1).max(50),
+  madeAt: z.string().datetime(),
+  bestBefore: z.string().datetime().optional(),
+  storageMethod: z.enum(["room", "fridge", "freezer", "display", "other"]),
+  storageCustom: z.string().max(120).optional(),
   freshnessNote: z.string().max(200).optional(),
   pickupStart: z.string().datetime().optional(),
   pickupEnd: z.string().datetime().optional(),
@@ -87,6 +91,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (parsed.data.storageMethod === "other" && !parsed.data.storageCustom?.trim()) {
+      return NextResponse.json({ error: "기타 보관 방법을 입력해 주세요" }, { status: 400 });
+    }
+    if (new Date(parsed.data.madeAt).getTime() > Date.now() + 60_000) {
+      return NextResponse.json({ error: "제조·준비 시각은 현재 이후일 수 없어요" }, { status: 400 });
+    }
+
     const pickupStart = parsed.data.pickupStart ?? defaultPickupWindow().start;
     const pickupEnd = parsed.data.pickupEnd ?? defaultPickupWindow().end;
     if (new Date(pickupEnd).getTime() <= Date.now()) {
@@ -125,6 +136,13 @@ export async function POST(request: Request) {
       pickupStart,
       pickupEnd,
       expiresAt: parsed.data.expiresAt ?? pickupEnd,
+      madeAt: parsed.data.madeAt,
+      bestBefore: parsed.data.bestBefore,
+      storageMethod: parsed.data.storageMethod,
+      storageCustom:
+        parsed.data.storageMethod === "other"
+          ? parsed.data.storageCustom?.trim()
+          : undefined,
       freshnessNote:
         parsed.data.freshnessNote ??
         "픽업 시간까지 신선하게 보관합니다.",

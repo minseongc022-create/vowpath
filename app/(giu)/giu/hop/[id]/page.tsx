@@ -25,6 +25,7 @@ import { tossClientKey } from "@/giu/lib/toss-payments";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { MerchantReviews } from "@/giu/components/MerchantReviews";
+import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -142,9 +143,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
         ) : null}
 
-        {box.freshnessNote ? (
-          <div className="giu-info-banner">{box.freshnessNote}</div>
-        ) : null}
+        <ProductFreshnessTrust locale={locale} box={box} />
 
         <dl className="grid grid-cols-2 gap-2 text-[13px]">
           {(

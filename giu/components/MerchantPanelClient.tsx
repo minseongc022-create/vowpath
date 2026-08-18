@@ -391,6 +391,7 @@ export function MerchantPanelClient() {
                             reservationId={r.id}
                             viewerRole="merchant"
                             peerName={r.customerName}
+                            peerPhone={r.customerPhone}
                           />
                         </div>
                       ) : null}

@@ -28,6 +28,10 @@ const patchSchema = z.object({
     .max(MAX_BOX_IMAGES)
     .optional(),
   freshnessNote: z.string().max(200).optional(),
+  madeAt: z.string().datetime().optional(),
+  bestBefore: z.string().datetime().optional(),
+  storageMethod: z.enum(["room", "fridge", "freezer", "display", "other"]).optional(),
+  storageCustom: z.string().max(120).optional(),
   quantityLeft: z.number().int().min(0).max(50).optional(),
   pickupStart: z.string().datetime().optional(),
   pickupEnd: z.string().datetime().optional(),

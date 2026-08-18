@@ -124,6 +124,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
             reservationId={id}
             viewerRole="customer"
             peerName={merchant.name}
+            peerPhone={merchant.phone}
           />
         ) : null}
 
