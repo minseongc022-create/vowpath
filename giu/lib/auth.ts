@@ -56,7 +56,7 @@ export async function verifyGiuSessionToken(
       name: typeof payload.name === "string" ? payload.name : "",
       merchantId:
         typeof payload.merchantId === "string" ? payload.merchantId : undefined,
-      market: "kr",
+      market: payload.market === "vn" || payload.market === "kr" ? payload.market : "kr",
     };
   } catch {
     return null;

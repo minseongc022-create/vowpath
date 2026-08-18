@@ -106,6 +106,15 @@ export type GiuBox = {
   expiresAt: string;
 };
 
+export type GiuChatMessage = {
+  id: string;
+  reservationId: string;
+  senderRole: GiuAccountRole;
+  senderId: string;
+  body: string;
+  createdAt: string;
+};
+
 export type GiuReservation = {
   id: string;
   boxId: string;
@@ -137,6 +146,8 @@ export type GiuReservation = {
   noShowFeeVnd?: number;
   refundedAt?: string;
   refundType?: "full" | "partial";
+  chatLastReadCustomerAt?: string;
+  chatLastReadMerchantAt?: string;
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;
@@ -166,6 +177,7 @@ export type GiuStore = {
   waitlist: GiuWaitlistEntry[];
   accounts: GiuAccount[];
   reviews: GiuReview[];
+  chatMessages: GiuChatMessage[];
   /** customerId → favorited merchantIds */
   customerFavorites: Record<string, string[]>;
 };

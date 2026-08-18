@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
+import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
@@ -116,6 +117,15 @@ export default async function GiuReservationPage({ params, searchParams }: Props
         ) : null}
 
         {paid && !pickedUp ? <RefundReservationButton reservationId={id} /> : null}
+
+        {paid && (reservation.status === "giu_cho" || pickedUp) && merchant ? (
+          <ReservationChatButton
+            locale={locale}
+            reservationId={id}
+            viewerRole="customer"
+            peerName={merchant.name}
+          />
+        ) : null}
 
         <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap block text-center text-[13px] font-bold text-giu-primary">
           {t(locale, "moreBrowse")}
