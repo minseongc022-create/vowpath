@@ -605,3 +605,29 @@
     animation: none;
   }
 }
+
+/* Merchant 3D Jiucu — gentle bob on cream stage (PNG bg #fcf9f2) */
+.giu-jiucu-merchant-float {
+  animation: giu-jiucu-merchant-bob 3.2s ease-in-out infinite;
+}
+
+.giu-jiucu-merchant-bubble {
+  animation: giu-jiucu-bubble 3.2s ease-in-out infinite;
+}
+
+@keyframes giu-jiucu-merchant-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .giu-jiucu-merchant-float,
+  .giu-jiucu-merchant-bubble {
+    animation: none;
+  }
+}
