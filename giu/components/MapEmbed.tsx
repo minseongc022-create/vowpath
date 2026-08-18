@@ -8,6 +8,7 @@ type Props = {
   /** Store coordinates — enables map pin */
   destLat?: number;
   destLng?: number;
+  placeName?: string;
   className?: string;
   compact?: boolean;
 };
@@ -16,6 +17,7 @@ export function MapEmbed({
   address,
   destLat,
   destLng,
+  placeName,
   className = "",
   compact = false,
 }: Props) {
@@ -42,7 +44,7 @@ export function MapEmbed({
           address={address}
           lat={destLat}
           lng={destLng}
-          placeName={address}
+          placeName={placeName ?? address}
           primary
         />
       </div>

@@ -106,6 +106,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
               address={merchant.address}
               destLat={coords?.lat}
               destLng={coords?.lng}
+              placeName={merchant.name}
               compact
             />
             {zaloUrl ? (

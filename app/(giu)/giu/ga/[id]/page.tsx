@@ -73,7 +73,13 @@ export default async function GiuMerchantStorePage({ params }: Props) {
         ) : null}
       </dl>
 
-      <MapEmbed address={merchant.address} destLat={coords.lat} destLng={coords.lng} compact />
+      <MapEmbed
+        address={merchant.address}
+        destLat={coords.lat}
+        destLng={coords.lng}
+        placeName={merchant.name}
+        compact
+      />
 
       <section className="space-y-2">
         <h2 className="text-[15px] font-bold text-giu-ink">

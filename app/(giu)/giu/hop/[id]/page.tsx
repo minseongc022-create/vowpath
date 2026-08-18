@@ -165,6 +165,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           address={merchant.address}
           destLat={coords.lat}
           destLng={coords.lng}
+          placeName={merchant.name}
           compact
         />
 
@@ -176,7 +177,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
           </div>
         ) : null}
 
-        <div className="pb-2">
+        <div className="pb-6">
           <MerchantReviews merchantId={merchant.id} locale={locale} />
         </div>
       </div>

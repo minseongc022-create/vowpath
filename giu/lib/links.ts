@@ -27,12 +27,12 @@ export function naverMapsDirectionsUrl(opts: {
   mode?: "car" | "walk" | "transit";
 }): string {
   const mode = opts.mode ?? "car";
-  const label = encodeURIComponent((opts.placeName ?? opts.address).trim());
+  const name = (opts.placeName ?? opts.address).trim();
   const dest =
     opts.destination &&
     Number.isFinite(opts.destination.lat) &&
     Number.isFinite(opts.destination.lng)
-      ? `${opts.destination.lng},${opts.destination.lat},${label}`
+      ? `${opts.destination.lng},${opts.destination.lat},${encodeURIComponent(name)}`
       : encodeURIComponent(opts.address.trim());
   return `https://map.naver.com/v5/directions/-/${dest}/-/${mode}`;
 }
