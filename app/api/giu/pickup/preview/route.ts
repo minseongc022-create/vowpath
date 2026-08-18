@@ -2,15 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { isPickupQrToken } from "@/giu/lib/pickup-qr";
-import { confirmPickupByCode, confirmPickupById, confirmPickupByToken, getBox } from "@/giu/lib/store";
+import { getBox, lookupPickupByCode, lookupPickupByToken } from "@/giu/lib/store";
 
 const schema = z
   .object({
     token: z.string().min(8).max(200).optional(),
     code: z.string().regex(/^\d{3}$|^[A-F0-9]{6}$/i).optional(),
-    reservationId: z.string().min(4).max(80).optional(),
   })
-  .refine((d) => Boolean(d.token?.trim() || d.code?.trim() || d.reservationId?.trim()), {
+  .refine((d) => Boolean(d.token?.trim() || d.code?.trim()), {
     message: "QR 또는 주문 코드를 입력해 주세요",
   });
 
@@ -31,17 +30,14 @@ export async function POST(request: Request) {
 
     const token = parsed.data.token?.trim();
     const code = parsed.data.code?.trim();
-    const reservationId = parsed.data.reservationId?.trim();
     let result;
-    if (reservationId) {
-      result = await confirmPickupById(session.merchantId, reservationId);
-    } else if (code) {
-      result = await confirmPickupByCode(session.merchantId, code);
+    if (code) {
+      result = await lookupPickupByCode(session.merchantId, code);
     } else {
       if (!token || !isPickupQrToken(token)) {
         return NextResponse.json({ error: "QR만 스캔할 수 있어요" }, { status: 400 });
       }
-      result = await confirmPickupByToken(session.merchantId, token);
+      result = await lookupPickupByToken(session.merchantId, token);
     }
 
     if ("error" in result) {
@@ -52,7 +48,31 @@ export async function POST(request: Request) {
     const box = await getBox(result.boxId);
     const net = result.totalVnd - result.platformFeeVnd;
     return NextResponse.json({
-      reservation: result,
+      reservation: {
+        id: result.id,
+        customerName: result.customerName,
+        customerPhone: result.customerPhone,
+        quantity: result.quantity,
+        totalVnd: result.totalVnd,
+        platformFeeVnd: result.platformFeeVnd,
+        code: result.code,
+      },
+      box: box
+        ? {
+            title: box.title,
+            description: box.description,
+            imageUrl: box.imageUrl ?? box.imageUrls?.[0],
+            pickupStart: box.pickupStart,
+            pickupEnd: box.pickupEnd,
+            salePriceVnd: box.salePriceVnd,
+            originalPriceVnd: box.originalPriceVnd,
+            madeAt: box.madeAt,
+            bestBefore: box.bestBefore,
+            freshnessNote: box.freshnessNote,
+            storageMethod: box.storageMethod,
+            storageCustom: box.storageCustom,
+          }
+        : null,
       boxTitle: box?.title ?? "",
       netPayoutVnd: net,
     });
