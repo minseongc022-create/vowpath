@@ -1,6 +1,6 @@
 "use client";
 
-import { naverMapsAppDirectionsUrl, naverMapsDirectionsUrl } from "@/giu/lib/links";
+import { naverMapsDirectionsUrl } from "@/giu/lib/links";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { useGiuLocale } from "./GiuLocaleProvider";
@@ -37,22 +37,6 @@ export function NaverDirectionsButton({
 
   function openDirections() {
     hapticSelect();
-    if (hasCoords) {
-      const appUrl = naverMapsAppDirectionsUrl({
-        lat,
-        lng,
-        name: placeName ?? address,
-      });
-      const opened = window.open(appUrl, "_blank");
-      if (!opened) {
-        window.location.href = webUrl;
-        return;
-      }
-      window.setTimeout(() => {
-        window.open(webUrl, "_blank", "noopener,noreferrer");
-      }, 600);
-      return;
-    }
     window.open(webUrl, "_blank", "noopener,noreferrer");
   }
 
