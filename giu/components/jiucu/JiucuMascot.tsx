@@ -1,6 +1,7 @@
 "use client";
 
-import { JiucuSvg, type JiucuVariant } from "./JiucuSvg";
+import { JiucuImage } from "./JiucuImage";
+import type { JiucuVariant } from "./types";
 
 type Props = {
   variant?: JiucuVariant;
@@ -40,7 +41,7 @@ export function JiucuMascot({
           </div>
         ) : null}
         <div className={animated ? "giu-jiucu-3d-inner" : ""}>
-          <JiucuSvg variant={variant} animated={animated} className={`${SIZE[size]} drop-shadow-[0_6px_12px_rgba(60,42,33,0.15)]`} />
+          <JiucuImage variant={variant} className={`${SIZE[size]} object-contain drop-shadow-[0_6px_12px_rgba(60,42,33,0.15)]`} />
         </div>
       </div>
       {caption ? (

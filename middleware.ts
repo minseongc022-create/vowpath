@@ -33,6 +33,13 @@ const portalPublicPrefixes = [
   "/api/places/",
 ];
 
+function isBrowserDocumentRequest(request: NextRequest): boolean {
+  const accept = request.headers.get("accept") ?? "";
+  const secFetchDest = request.headers.get("sec-fetch-dest");
+  if (secFetchDest === "document") return true;
+  return accept.includes("text/html") && !accept.includes("application/json");
+}
+
 function loginRedirect(request: NextRequest, nextPath?: string | null) {
   const login = new URL("/login", request.url);
   const next = safeNextPath(nextPath ?? null);
@@ -142,6 +149,13 @@ export async function middleware(request: NextRequest) {
       pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|txt|xml|json|webmanifest)$/)
     ) {
       return NextResponse.next();
+    }
+    // Health JSON is for deploy checks — browser visits should land in the app.
+    if (pathname === "/api/giu/health" && isBrowserDocumentRequest(request)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/hop";
+      url.search = "";
+      return NextResponse.redirect(url, 302);
     }
     const publicPath = giuPublicRedirectPath(pathname);
     if (publicPath !== null) {
