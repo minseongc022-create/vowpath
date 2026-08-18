@@ -42,7 +42,7 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       <CustomerAvailabilityAlerts />
       <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={href(GIU_ROUTES.customer.home)} className="min-w-0 truncate">
+          <Link href={href(GIU_ROUTES.customer.home)} className="giu-link-plain min-w-0 truncate">
             <span className="text-[15px] font-extrabold tracking-tight text-giu-primary">
               {loading ? "…" : headerText}
             </span>

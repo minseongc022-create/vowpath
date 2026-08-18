@@ -34,7 +34,7 @@ export default async function GiuMerchantStorePage({ params }: Props) {
 
   return (
     <div className="giu-page space-y-4">
-      <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
+      <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-link-plain text-[13px] font-bold text-giu-accent">
         {t(locale, "back")}
       </GiuCustomerBackLink>
 

@@ -508,7 +508,7 @@ export function MapDiscover({ pins }: Props) {
                 <div className="min-w-0">
                   <GiuCustomerNavLink
                     href={href(GIU_ROUTES.customer.merchant(selected.merchant.id))}
-                    className="giu-btn-3d giu-tap block truncate text-[17px] font-extrabold tracking-tight text-giu-ink underline-offset-2 hover:underline"
+                    className="giu-link-plain block truncate text-[17px] font-extrabold tracking-tight text-giu-ink underline-offset-2 hover:underline"
                   >
                     {selected.merchant.name}
                   </GiuCustomerNavLink>
