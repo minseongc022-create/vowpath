@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CustomerLogoutLink } from "@/giu/components/CustomerLogoutLink";
-import { PickupQrCode } from "@/giu/components/PickupQrCode";
 import { formatReservationStatusLocale } from "@/giu/lib/box-ux";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
@@ -67,11 +66,6 @@ export function MyReservationsLookup() {
     if (account?.role === "customer") void load();
   }, [account, load]);
 
-  const activePickups = useMemo(
-    () => list.filter((r) => r.paymentStatus === "paid" && r.status === "giu_cho"),
-    [list],
-  );
-
   const filtered = useMemo(() => {
     return list.filter((r) => {
       if (filter === "awaiting") return r.paymentStatus === "paid" && r.status === "giu_cho";
@@ -116,35 +110,6 @@ export function MyReservationsLookup() {
 
   return (
     <div className="space-y-3">
-      {activePickups.length > 0 ? (
-        <div className="giu-card space-y-3">
-          <div>
-            <p className="text-[15px] font-bold text-giu-ink">{t(locale, "myActivePickup")}</p>
-            <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "myActivePickupHint")}</p>
-          </div>
-          {activePickups.map((r) => (
-            <div key={r.id} className="space-y-3 rounded-[16px] bg-giu-bg/80 p-3 ring-1 ring-giu-border">
-              <div>
-                <p className="font-bold text-giu-ink">{r.merchant?.name ?? r.box?.title}</p>
-                {r.box ? (
-                  <p className="text-[12px] text-giu-muted">
-                    {r.box.title} · {formatPickupWindow(r.box.pickupStart, r.box.pickupEnd)}
-                  </p>
-                ) : null}
-                <p className="mt-1 text-[12px] font-semibold text-giu-ink">{formatVnd(r.totalVnd)}</p>
-              </div>
-              <PickupQrCode locale={locale} reservationId={r.id} />
-              <GiuCustomerNavLink
-                href={href(GIU_ROUTES.customer.reservation(r.id))}
-                className="giu-btn-3d giu-tap block text-center text-[12px] font-bold text-giu-primary"
-              >
-                {t(locale, "myViewReservation")}
-              </GiuCustomerNavLink>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
       <div className="giu-card space-y-2.5">
         <p className="text-[15px] font-bold text-giu-ink">{t(locale, "myReservationsTitle")}</p>
         <div className="giu-filter-tabs">

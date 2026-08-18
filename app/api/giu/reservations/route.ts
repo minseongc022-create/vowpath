@@ -10,6 +10,7 @@ import {
   isGiuPaymentDemo,
 } from "@/giu/lib/vnpay";
 import { getBox, initiateReservationPayment, listReservations } from "@/giu/lib/store";
+import { stripPickupCodesForMerchant } from "@/giu/lib/reservation-sanitize";
 
 const createSchema = z.object({
   boxId: z.string().min(1),
@@ -37,12 +38,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ reservations });
   } else if (session?.role === "merchant" && session.merchantId) {
     const reservations = await listReservations({ merchantId: session.merchantId });
-    return NextResponse.json({ reservations });
+    return NextResponse.json({ reservations: stripPickupCodesForMerchant(reservations) });
   } else {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const reservations = await listReservations({ phone, merchantId, boxId });
+  if (merchantId) {
+    return NextResponse.json({ reservations: stripPickupCodesForMerchant(reservations) });
+  }
   return NextResponse.json({ reservations });
 }
 

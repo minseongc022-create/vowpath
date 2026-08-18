@@ -37,7 +37,7 @@ export function MerchantPanelClient() {
     tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
   const { merchant, account, loading: authLoading, refresh, logout } = useGiuAuth();
   const { locale } = useGiuLocale();
-  const { fillPickupCode, registerOnVerified } = useMerchantPickup();
+  const { registerOnVerified } = useMerchantPickup();
   const href = useGiuHref();
   const panelHref = href(GIU_ROUTES.merchant.panel);
   const market = "kr" as const;
@@ -131,7 +131,6 @@ export function MerchantPanelClient() {
     if (q) {
       list = list.filter(
         (r) =>
-          r.code.toLowerCase().includes(q) ||
           r.customerName.toLowerCase().includes(q) ||
           r.customerPhone.replace(/\s/g, "").includes(q.replace(/\s/g, "")) ||
           (boxMap.get(r.boxId)?.title.toLowerCase().includes(q) ?? false),
@@ -338,24 +337,12 @@ export function MerchantPanelClient() {
                             </p>
                           ) : null}
                           {awaitingPickup ? (
-                            <button
-                              type="button"
-                              onClick={() => fillPickupCode(r.code)}
-                              className="giu-tap mt-2 flex w-full items-center justify-between gap-2 rounded-[14px] bg-giu-primary-soft px-3 py-2.5 ring-1 ring-giu-primary/15"
-                            >
-                              <span className="text-[11px] font-bold text-giu-muted">
-                                {t(locale, "mOrderCode")}
-                              </span>
-                              <span className="font-mono text-[18px] font-extrabold tracking-[0.18em] text-giu-ink">
-                                {r.code}
-                              </span>
-                              <span className="shrink-0 text-[11px] font-bold text-giu-primary">
-                                {t(locale, "mPickupCodeFill")}
-                              </span>
-                            </button>
+                            <p className="mt-2 rounded-[14px] bg-giu-primary-soft px-3 py-2.5 text-[11px] font-semibold leading-snug text-giu-muted ring-1 ring-giu-primary/15">
+                              {t(locale, "mAwaitingPickupHint")}
+                            </p>
                           ) : (
                             <p className="mt-1 text-[12px] text-giu-muted">
-                              {t(locale, "mOrderCode")} {r.code} · {t(locale, "mOrderQty")} {r.quantity}
+                              {t(locale, "mOrderQty")} {r.quantity}
                               {t(locale, "mUnitQty")}
                             </p>
                           )}

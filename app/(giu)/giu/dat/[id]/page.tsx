@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CancelReservationButton } from "@/giu/components/CancelReservationButton";
+import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
@@ -62,6 +62,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
             <p className="text-[11px] font-semibold text-giu-accent">{t(locale, "settleHeld")}</p>
           ) : null}
           <p className="text-[13px] font-medium text-giu-muted">{t(locale, "showCode")}</p>
+          <p className="text-[12px] leading-relaxed text-giu-muted">{t(locale, "pickupPinHint")}</p>
           {pickedUp ? (
             <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
           ) : (
@@ -74,6 +75,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           )}
           <ReservationTicketExtras
             reservationId={id}
+            pickupCode={reservation.code}
             pickedUp={pickedUp}
             paid={paid}
             existingReviewRating={existingReview?.rating}
@@ -113,7 +115,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           </>
         ) : null}
 
-        {paid && !pickedUp ? <CancelReservationButton reservationId={id} /> : null}
+        {paid && !pickedUp ? <RefundReservationButton reservationId={id} /> : null}
 
         <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap block text-center text-[13px] font-bold text-giu-primary">
           {t(locale, "moreBrowse")}

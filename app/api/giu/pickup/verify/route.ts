@@ -7,7 +7,7 @@ import { confirmPickupByCode, confirmPickupByToken, getBox } from "@/giu/lib/sto
 const schema = z
   .object({
     token: z.string().min(8).max(200).optional(),
-    code: z.string().min(4).max(12).optional(),
+    code: z.string().regex(/^\d{3}$|^[A-F0-9]{6}$/i).optional(),
   })
   .refine((d) => Boolean(d.token?.trim() || d.code?.trim()), {
     message: "QR 또는 주문 코드를 입력해 주세요",

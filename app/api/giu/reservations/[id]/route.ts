@@ -3,9 +3,11 @@ import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import {
   cancelReservation,
+  getRefundPreview,
   getReservation,
   updateReservationStatus,
 } from "@/giu/lib/store";
+import { stripPickupCodeForMerchant } from "@/giu/lib/reservation-sanitize";
 import type { GiuReservationStatus } from "@/giu/lib/types";
 
 const patchSchema = z.object({
@@ -30,7 +32,25 @@ export async function GET(request: Request, { params }: Props) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ reservation });
+  const url = new URL(request.url);
+  const wantsPreview = url.searchParams.get("refundPreview") === "1";
+  if (wantsPreview) {
+    if (session?.role !== "customer" || session.sub !== reservation.customerId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const refundPreview = await getRefundPreview(id);
+    if (!refundPreview) {
+      return NextResponse.json({ error: "환불할 수 없는 주문이에요" }, { status: 400 });
+    }
+    return NextResponse.json({ refundPreview });
+  }
+
+  const payload =
+    session?.role === "merchant"
+      ? { reservation: stripPickupCodeForMerchant(reservation) }
+      : { reservation };
+
+  return NextResponse.json(payload);
 }
 
 export async function PATCH(request: Request, { params }: Props) {
