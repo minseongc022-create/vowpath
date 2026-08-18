@@ -6,7 +6,7 @@ import { ReserveForm } from "@/giu/components/ReserveForm";
 import {
   formatRatingLine,
   isClosingSoon,
-  isSurpriseTitle,
+  isLowStock,
 } from "@/giu/lib/box-ux";
 import { boxImages } from "@/giu/lib/box-images";
 import {
@@ -43,7 +43,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
   const tossKey = checkoutBackend === "toss" ? tossClientKey() : undefined;
   const zaloUrl = merchant.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchantCoords(merchant.id, merchant.district);
-  const surprise = isSurpriseTitle(box.title);
+  const lowStock = !soldOut && isLowStock(box.quantityLeft, box.quantityTotal);
   const closing = !soldOut && isClosingSoon(box.pickupEnd);
   const rating = formatRatingLine(merchant.rating, merchant.reviewCount, locale);
 
@@ -51,14 +51,17 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
   const badges = (
     <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-      {surprise ? (
-        <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
-          {t(locale, "surprise")}
+      <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
+        {t(locale, "dealBadge")}
+      </span>
+      {lowStock ? (
+        <span className="rounded-md bg-giu-gold px-2 py-1 text-[11px] font-bold text-giu-ink">
+          {t(locale, "qtyUrgent")}
         </span>
       ) : null}
       {closing ? (
         <span className="rounded-md bg-giu-accent px-2 py-1 text-[11px] font-bold text-white">
-          {t(locale, "closingSoon")}
+          {t(locale, "pickupSoon")}
         </span>
       ) : null}
     </div>
@@ -136,15 +139,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
         </div>
 
         {box.description ? (
-          surprise ? (
-            <div className="giu-info-banner text-[13px] leading-relaxed">{box.description}</div>
-          ) : (
-            <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
-          )
-        ) : null}
-
-        {surprise ? (
-          <p className="text-[12px] font-semibold leading-snug text-giu-muted">{t(locale, "surpriseHint")}</p>
+          <p className="text-[13px] leading-relaxed text-giu-muted">{box.description}</p>
         ) : null}
 
         {box.freshnessNote ? (

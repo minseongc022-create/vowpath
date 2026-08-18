@@ -9,7 +9,7 @@ type Item = { box: GiuBox; merchant: GiuMerchant };
 
 export function MapBrowse({ items }: { items: Item[] }) {
   if (items.length === 0) {
-    return <p className="text-[13px] text-giu-muted">지도에 표시할 박스가 없어요.</p>;
+    return <p className="text-[13px] text-giu-muted">지도에 표시할 DEAL이 없어요.</p>;
   }
 
   // Group by district for a compressed "map" without API keys

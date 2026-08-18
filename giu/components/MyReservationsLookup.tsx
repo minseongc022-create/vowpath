@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CustomerLogoutLink } from "@/giu/components/CustomerLogoutLink";
-import { formatReservationStatusLocale } from "@/giu/lib/box-ux";
+import { CO2_KG_PER_BOX, formatReservationStatusLocale } from "@/giu/lib/box-ux";
 import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
@@ -66,6 +66,24 @@ export function MyReservationsLookup() {
     if (account?.role === "customer") void load();
   }, [account, load]);
 
+  const impact = useMemo(() => {
+    const paid = list.filter(
+      (r) => r.paymentStatus === "paid" || r.status === "da_lay" || r.paymentStatus === "refunded",
+    );
+    const retail = paid.reduce((s, r) => {
+      const unit = r.box?.originalPriceVnd ?? Math.round(r.totalVnd / Math.max(1, r.quantity));
+      return s + unit * r.quantity;
+    }, 0);
+    const spent = paid.reduce((sum, r) => sum + r.totalVnd, 0);
+    return {
+      retail,
+      spent,
+      saved: Math.max(0, retail - spent),
+      count: paid.length,
+      co2: paid.reduce((s, r) => s + r.quantity, 0) * CO2_KG_PER_BOX,
+    };
+  }, [list]);
+
   const filtered = useMemo(() => {
     return list.filter((r) => {
       if (filter === "awaiting") return r.paymentStatus === "paid" && r.status === "giu_cho";
@@ -110,6 +128,25 @@ export function MyReservationsLookup() {
 
   return (
     <div className="space-y-3">
+      <div className="giu-card">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-giu-muted">
+          {t(locale, "impactTitle")}
+        </p>
+        <div className="mt-2.5 grid grid-cols-2 gap-2 text-[12px]">
+          <div className="rounded-xl bg-giu-bg px-3 py-2.5 ring-1 ring-giu-border">
+            <p className="text-[10px] font-semibold text-giu-muted">{t(locale, "impactRetail")}</p>
+            <p className="text-[15px] font-extrabold text-giu-ink">{formatVnd(impact.retail)}</p>
+          </div>
+          <div className="rounded-xl bg-giu-bg px-3 py-2.5 ring-1 ring-giu-border">
+            <p className="text-[10px] font-semibold text-giu-muted">{t(locale, "impactPaid")}</p>
+            <p className="text-[15px] font-extrabold text-giu-ink">{formatVnd(impact.spent)}</p>
+          </div>
+        </div>
+        <p className="mt-2 text-center text-[13px] font-bold text-giu-primary">
+          {t(locale, "impactSaved")} {formatVnd(impact.saved)}
+        </p>
+      </div>
+
       <div className="giu-card space-y-2.5">
         <p className="text-[15px] font-bold text-giu-ink">{t(locale, "myReservationsTitle")}</p>
         <div className="giu-filter-tabs">
