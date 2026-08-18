@@ -19,21 +19,23 @@ export function JiucuMerchantHelp({ bubble, caption, className = "" }: Props) {
           />
         </div>
 
-        <div className="giu-jiucu-merchant-float relative flex min-h-[188px] items-end justify-center overflow-hidden rounded-[20px] bg-[#fcf9f2] px-3 pb-2 pt-12">
+        <div className="relative flex min-h-[200px] items-end justify-center overflow-visible rounded-[20px] bg-[#fcf9f2] px-3 pb-3 pt-12">
           <div
-            className="pointer-events-none absolute inset-x-8 bottom-3 h-10 rounded-full bg-[rgba(60,42,33,0.07)] blur-xl"
+            className="pointer-events-none absolute inset-x-8 bottom-4 h-10 rounded-full bg-[rgba(60,42,33,0.07)] blur-xl"
             aria-hidden
           />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/giu/jiucu/merchant-help.png"
-            alt="지우쿠"
-            width={220}
-            height={280}
-            className="relative z-[1] h-[168px] w-auto max-w-full object-contain object-bottom"
-            draggable={false}
-            decoding="async"
-          />
+          <div className="giu-jiucu-merchant-greet relative z-[1]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/giu/jiucu/merchant-help.png"
+              alt="지우쿠"
+              width={220}
+              height={280}
+              className="h-[172px] w-auto max-w-full object-contain object-bottom"
+              draggable={false}
+              decoding="async"
+            />
+          </div>
         </div>
       </div>
 

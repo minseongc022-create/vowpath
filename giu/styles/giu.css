@@ -606,13 +606,129 @@
   }
 }
 
-/* Merchant 3D Jiucu — gentle bob on cream stage (PNG bg #fcf9f2) */
-.giu-jiucu-merchant-float {
-  animation: giu-jiucu-merchant-bob 3.2s ease-in-out infinite;
+/* Merchant 3D Jiucu — header face float */
+.giu-jiucu-header-3d {
+  perspective: 420px;
+}
+
+.giu-jiucu-header-3d-inner {
+  transform-style: preserve-3d;
+  animation: giu-jiucu-header-float 2.6s ease-in-out infinite;
+}
+
+@keyframes giu-jiucu-header-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotateY(-12deg) rotateX(6deg);
+  }
+  50% {
+    transform: translate3d(0, -3px, 6px) rotateY(12deg) rotateX(-4deg);
+  }
+}
+
+/* Merchant help — jump once + wave 3×, repeated 3 cycles */
+.giu-jiucu-merchant-greet {
+  transform-origin: 62% 88%;
+  animation: giu-jiucu-merchant-greet 4.5s ease-in-out 3 forwards;
 }
 
 .giu-jiucu-merchant-bubble {
   animation: giu-jiucu-bubble 3.2s ease-in-out infinite;
+}
+
+@keyframes giu-jiucu-merchant-greet {
+  /* ── cycle 1 ── */
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  2% {
+    transform: translateY(-16px) rotate(0deg);
+  }
+  4.5% {
+    transform: translateY(0) rotate(0deg);
+  }
+  6% {
+    transform: translateY(0) rotate(9deg);
+  }
+  7% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  8% {
+    transform: translateY(0) rotate(9deg);
+  }
+  9% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  10% {
+    transform: translateY(0) rotate(9deg);
+  }
+  11% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  13%,
+  33% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  /* ── cycle 2 ── */
+  35% {
+    transform: translateY(-16px) rotate(0deg);
+  }
+  37.5% {
+    transform: translateY(0) rotate(0deg);
+  }
+  39% {
+    transform: translateY(0) rotate(9deg);
+  }
+  40% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  41% {
+    transform: translateY(0) rotate(9deg);
+  }
+  42% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  43% {
+    transform: translateY(0) rotate(9deg);
+  }
+  44% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  46%,
+  66% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  /* ── cycle 3 ── */
+  68% {
+    transform: translateY(-16px) rotate(0deg);
+  }
+  70.5% {
+    transform: translateY(0) rotate(0deg);
+  }
+  72% {
+    transform: translateY(0) rotate(9deg);
+  }
+  73% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  74% {
+    transform: translateY(0) rotate(9deg);
+  }
+  75% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  76% {
+    transform: translateY(0) rotate(9deg);
+  }
+  77% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  79% {
+    transform: translateY(0) rotate(0deg);
+  }
 }
 
 @keyframes giu-jiucu-merchant-bob {
@@ -626,6 +742,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .giu-jiucu-header-3d-inner,
+  .giu-jiucu-merchant-greet,
   .giu-jiucu-merchant-float,
   .giu-jiucu-merchant-bubble {
     animation: none;
