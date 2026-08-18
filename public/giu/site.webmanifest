@@ -10,12 +10,6 @@
   "lang": "ko",
   "icons": [
     {
-      "src": "/giu/jiucu/default.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
       "src": "/giu/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",

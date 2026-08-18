@@ -606,128 +606,119 @@
   }
 }
 
-/* Merchant 3D Jiucu — header face float */
-.giu-jiucu-header-3d {
-  perspective: 420px;
+/* Merchant header avatar — static, white-bg PNG */
+.giu-jiucu-header-avatar img {
+  display: block;
 }
 
-.giu-jiucu-header-3d-inner {
-  transform-style: preserve-3d;
-  animation: giu-jiucu-header-float 2.6s ease-in-out infinite;
+/* Merchant help — body jumps; waving arm rotates separately */
+.giu-jiucu-merchant-jump {
+  animation: giu-jiucu-jump-cycle 4.5s ease-in-out 3 forwards;
 }
 
-@keyframes giu-jiucu-header-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotateY(-12deg) rotateX(6deg);
-  }
-  50% {
-    transform: translate3d(0, -3px, 6px) rotateY(12deg) rotateX(-4deg);
-  }
-}
-
-/* Merchant help — jump once + wave 3×, repeated 3 cycles */
-.giu-jiucu-merchant-greet {
-  transform-origin: 62% 88%;
-  animation: giu-jiucu-merchant-greet 4.5s ease-in-out 3 forwards;
+.giu-jiucu-wave-arm {
+  transform-origin: 84% 70%;
+  animation: giu-jiucu-arm-wave-cycle 4.5s ease-in-out 3 forwards;
 }
 
 .giu-jiucu-merchant-bubble {
   animation: giu-jiucu-bubble 3.2s ease-in-out infinite;
 }
 
-@keyframes giu-jiucu-merchant-greet {
-  /* ── cycle 1 ── */
+@keyframes giu-jiucu-jump-cycle {
   0%,
   100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0);
   }
   2% {
-    transform: translateY(-16px) rotate(0deg);
+    transform: translateY(-14px);
   }
-  4.5% {
-    transform: translateY(0) rotate(0deg);
+  4.5%,
+  33% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-14px);
+  }
+  37.5%,
+  66% {
+    transform: translateY(0);
+  }
+  68% {
+    transform: translateY(-14px);
+  }
+  70.5%,
+  79% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes giu-jiucu-arm-wave-cycle {
+  0%,
+  4.5%,
+  13%,
+  33%,
+  37.5%,
+  46%,
+  66%,
+  70.5%,
+  79%,
+  100% {
+    transform: rotate(0deg);
   }
   6% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   7% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   8% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   9% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   10% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   11% {
-    transform: translateY(0) rotate(-2deg);
-  }
-  13%,
-  33% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  /* ── cycle 2 ── */
-  35% {
-    transform: translateY(-16px) rotate(0deg);
-  }
-  37.5% {
-    transform: translateY(0) rotate(0deg);
+    transform: rotate(4deg);
   }
   39% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   40% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   41% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   42% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   43% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   44% {
-    transform: translateY(0) rotate(-2deg);
-  }
-  46%,
-  66% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  /* ── cycle 3 ── */
-  68% {
-    transform: translateY(-16px) rotate(0deg);
-  }
-  70.5% {
-    transform: translateY(0) rotate(0deg);
+    transform: rotate(4deg);
   }
   72% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   73% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   74% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   75% {
-    transform: translateY(0) rotate(-2deg);
+    transform: rotate(4deg);
   }
   76% {
-    transform: translateY(0) rotate(9deg);
+    transform: rotate(16deg);
   }
   77% {
-    transform: translateY(0) rotate(-2deg);
-  }
-  79% {
-    transform: translateY(0) rotate(0deg);
+    transform: rotate(4deg);
   }
 }
 
@@ -742,9 +733,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .giu-jiucu-header-3d-inner,
-  .giu-jiucu-merchant-greet,
-  .giu-jiucu-merchant-float,
+  .giu-jiucu-merchant-jump,
+  .giu-jiucu-wave-arm,
   .giu-jiucu-merchant-bubble {
     animation: none;
   }
