@@ -100,7 +100,7 @@ export function ReserveForm({
       if (data.mode === "toss" && data.id) {
         setTossCheckout({
           reservationId: data.id,
-          orderName: boxTitle ?? "Giu 마감할인",
+          orderName: boxTitle ?? "GIUCUU DEAL",
           amount: totalAmount,
         });
         return true;

@@ -2,9 +2,10 @@ import type { GiuLocale } from "./i18n";
 import { t } from "./i18n";
 import type { GiuBoxStatus, GiuPaymentStatus, GiuReservationStatus } from "./types";
 
-/** Mystery / surprise bag (TGTG-style) — title heuristics + default merchant copy. */
-export function isSurpriseTitle(title: string): boolean {
-  return /surprise|서프라이즈|마감|럭키|mystery/i.test(title);
+/** Low quantity urgency — price stays fixed; scarcity via remaining count only. */
+export function isLowStock(quantityLeft: number, quantityTotal: number): boolean {
+  if (quantityLeft <= 0 || quantityTotal <= 0) return false;
+  return quantityLeft <= Math.max(2, Math.ceil(quantityTotal * 0.35));
 }
 
 /** Minutes until pickup window ends; null if already past. */

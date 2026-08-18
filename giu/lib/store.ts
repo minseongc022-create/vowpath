@@ -722,9 +722,9 @@ export async function initiateReservationPayment(input: {
 }): Promise<InitiateReservationResult> {
   const store = await loadStore();
   const box = store.boxes.find((b) => b.id === input.boxId);
-  if (!box) return { error: "박스를 찾을 수 없습니다" };
-  if (box.status !== "mo" || box.quantityLeft <= 0) return { error: "박스가 매진되었습니다" };
-  if (new Date(box.expiresAt).getTime() < Date.now()) return { error: "박스가 만료되었습니다" };
+  if (!box) return { error: "상품을 찾을 수 없습니다" };
+  if (box.status !== "mo" || box.quantityLeft <= 0) return { error: "매진되었습니다" };
+  if (new Date(box.expiresAt).getTime() < Date.now()) return { error: "픽업 시간이 지났습니다" };
 
   const qty = input.quantity ?? 1;
   if (qty > box.quantityLeft) return { error: "수량이 부족합니다" };
@@ -1064,7 +1064,7 @@ export async function republishLastBox(
   const last = store.boxes
     .filter((b) => b.merchantId === merchantId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  if (!last) return { error: "이전 박스가 없어요. 먼저 한 번 등록해 주세요." };
+  if (!last) return { error: "이전 상품이 없어요. 먼저 한 번 등록해 주세요." };
   return cloneBoxForRepublish(store, last, schedule);
 }
 

@@ -36,7 +36,7 @@ import {
 import {
   formatRatingLine,
   isClosingSoon,
-  isSurpriseTitle,
+  isLowStock,
 } from "@/giu/lib/box-ux";
 import type { GiuCategory } from "@/giu/lib/types";
 import type { MapPin } from "@/giu/lib/map-pins";
@@ -578,11 +578,14 @@ export function MapDiscover({ pins }: Props) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="truncate text-[13px] font-bold text-giu-ink">{box.title}</p>
-                          {isSurpriseTitle(box.title) ? (
-                            <span className="shrink-0 rounded bg-giu-ink px-1.5 py-0.5 text-[9px] font-bold text-white">
-                              {t(locale, "surprise")}
+                          {isLowStock(box.quantityLeft, box.quantityTotal) ? (
+                            <span className="shrink-0 rounded bg-giu-gold px-1.5 py-0.5 text-[9px] font-bold text-giu-ink">
+                              {t(locale, "qtyUrgent")}
                             </span>
                           ) : null}
+                          <span className="shrink-0 rounded bg-giu-ink/90 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                            {t(locale, "dealBadge")}
+                          </span>
                           <span className="giu-badge-sale shrink-0">
                             {formatDiscount(box.originalPriceVnd, box.salePriceVnd)}
                           </span>
@@ -590,7 +593,7 @@ export function MapDiscover({ pins }: Props) {
                         <p className="mt-0.5 text-[11px] text-giu-muted">
                           {isClosingSoon(box.pickupEnd) ? (
                             <span className="mr-1 font-bold text-giu-primary">
-                              {t(locale, "closingSoon")} ·{" "}
+                              {t(locale, "pickupSoon")} ·{" "}
                             </span>
                           ) : null}
                           {formatPickupDate(box.pickupStart)} ·{" "}
@@ -697,7 +700,7 @@ export function MapDiscover({ pins }: Props) {
                     </p>
                     <p className="mt-0.5 text-[11px] font-semibold text-giu-muted">
                       {formatDistance(dist, locale)} · {pin.boxes.length}{" "}
-                      박스
+                      DEAL
                     </p>
                     {best ? (
                       <p className="mt-1 truncate text-[12px] font-bold text-giu-ink">

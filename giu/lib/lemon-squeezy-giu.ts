@@ -74,8 +74,8 @@ export async function createGiuLsCheckout(input: {
               },
             },
             product_options: {
-              name: `Giu — ${input.boxTitle}`.slice(0, 120),
-              description: `Food rescue box pickup code ${input.code} · giucuu.com`.slice(
+              name: `GIUCUU — ${input.boxTitle}`.slice(0, 120),
+              description: `GIUCUU DEAL pickup ${input.code} · giucuu.com`.slice(
                 0,
                 250,
               ),

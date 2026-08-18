@@ -45,7 +45,7 @@ export async function PATCH(request: Request, { params }: Props) {
 
     const { id } = await params;
     const box = await getBox(id);
-    if (!box) return NextResponse.json({ error: "박스를 찾을 수 없습니다" }, { status: 404 });
+    if (!box) return NextResponse.json({ error: "상품을 찾을 수 없습니다" }, { status: 404 });
 
     const merchant = await getMerchant(session.merchantId);
     if (!merchant || box.merchantId !== merchant.id) {
@@ -108,7 +108,7 @@ export async function DELETE(request: Request, { params }: Props) {
 
     const { id } = await params;
     const box = await getBox(id);
-    if (!box) return NextResponse.json({ error: "박스를 찾을 수 없습니다" }, { status: 404 });
+    if (!box) return NextResponse.json({ error: "상품을 찾을 수 없습니다" }, { status: 404 });
 
     const merchant = await getMerchant(session.merchantId);
     if (!merchant || box.merchantId !== merchant.id) {

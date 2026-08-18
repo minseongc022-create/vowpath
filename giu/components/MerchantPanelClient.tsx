@@ -16,6 +16,7 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
+import { MerchantCustomerInsights } from "./MerchantCustomerInsights";
 import { MerchantLogoutLink } from "./MerchantLogoutLink";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
 import { ReservationChatButton } from "./ReservationChatButton";
@@ -230,6 +231,11 @@ export function MerchantPanelClient() {
           </div>
         </div>
         <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "mFeeNote")}</p>
+        <ul className="mt-2 space-y-1 text-[11px] leading-snug text-giu-muted">
+          <li>· {t(locale, "mValueProp1")}</li>
+          <li>· {t(locale, "mValueProp2")}</li>
+          <li>· {t(locale, "mValueProp3")}</li>
+        </ul>
       </div>
 
       {needsBank || pendingAccountCount > 0 ? (
@@ -413,6 +419,11 @@ export function MerchantPanelClient() {
             locale={locale}
             merchant={merchant}
             onSaved={() => void load(merchant.id, { silent: true })}
+          />
+          <MerchantCustomerInsights
+            locale={locale}
+            merchantId={merchant.id}
+            reservations={reservations}
           />
           <MerchantSettlementSummary
             locale={locale}

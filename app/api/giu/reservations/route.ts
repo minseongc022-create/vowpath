@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const session = await getGiuSessionFromRequest(request);
     if (!session || session.role !== "customer") {
       return NextResponse.json(
-        { error: "구출 및 결제를 위해 로그인해 주세요" },
+        { error: "예약 및 결제를 위해 로그인해 주세요" },
         { status: 401 },
       );
     }
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         buildVnpayPaymentUrl({
           amountVnd: totalVnd,
           txnRef: reservation.id,
-          orderInfo: `Giu 구출 ${reservation.code}`,
+          orderInfo: `GIUCUU DEAL ${reservation.code}`,
           ipAddr: ip,
           returnUrl: `${origin}/api/giu/payments/vnpay/return`,
         }),
