@@ -285,6 +285,11 @@
   @apply fixed inset-x-0 bottom-0 z-40 border-t border-giu-border/80 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_32px_rgba(45,62,78,0.08)] backdrop-blur-xl;
 }
 
+/** Product detail with fixed checkout bar — keep reviews/content above the bar. */
+.giu-page-sticky-checkout {
+  padding-bottom: calc(15.5rem + env(safe-area-inset-bottom));
+}
+
 .giu-map-fab {
   @apply flex h-12 w-12 items-center justify-center rounded-full bg-white text-giu-ink shadow-[0_6px_20px_rgba(45,62,78,0.14)] ring-1 ring-black/[0.04] transition active:scale-95;
 }
