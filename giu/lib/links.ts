@@ -11,14 +11,21 @@ export function googleMapsEmbedUrl(address: string): string {
 
 type LatLng = { lat: number; lng: number };
 
-/** Search place on Naver Map (mobile web / app). */
+/** Search place on Naver Map (mobile web / app). Reliable entry when directions URL cannot resolve start. */
 export function naverMapsSearchUrl(address: string): string {
-  return `https://map.naver.com/v5/search/${encodeURIComponent(address.trim())}`;
+  return `https://map.naver.com/p/search/${encodeURIComponent(address.trim())}`;
+}
+
+/** WGS84 → EPSG:3857 for Naver web map paths. */
+export function naverMercatorCoords(lat: number, lng: number): { x: number; y: number } {
+  const r = 6378137;
+  const x = (lng * Math.PI) / 180 * r;
+  const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2)) * r;
+  return { x, y };
 }
 
 /**
- * Turn-by-turn directions on Naver Map.
- * Start `-` = current location; destination is address (preferred) or lng,lat,name.
+ * Legacy directions URL (desktop). Avoid on mobile web — start `-` needs geolocation and throws lng errors.
  */
 export function naverMapsDirectionsUrl(opts: {
   address: string;
@@ -30,25 +37,27 @@ export function naverMapsDirectionsUrl(opts: {
   const address = opts.address.trim();
   const name = (opts.placeName ?? address).trim();
 
-  // Prefer Korean street address — Naver geocodes more reliably than jittered coords.
-  const dest =
-    address.length > 0
-      ? encodeURIComponent(address)
-      : opts.destination &&
-          Number.isFinite(opts.destination.lat) &&
-          Number.isFinite(opts.destination.lng)
-        ? `${opts.destination.lng},${opts.destination.lat},${encodeURIComponent(name)}`
-        : encodeURIComponent(name);
+  if (
+    opts.destination &&
+    Number.isFinite(opts.destination.lat) &&
+    Number.isFinite(opts.destination.lng)
+  ) {
+    const { x, y } = naverMercatorCoords(opts.destination.lat, opts.destination.lng);
+    const dest = `${x},${y},${encodeURIComponent(name)}`;
+    return `https://map.naver.com/p/directions/-/${dest}/-/${mode}`;
+  }
 
-  return `https://map.naver.com/p/directions/-/${dest}/-/${mode}`;
+  return naverMapsSearchUrl(address || name);
 }
 
-/** Naver Map app deep link (Android/iOS). */
+/** Naver Map app deep link — destination only; app uses device location as start. */
 export function naverMapsAppDirectionsUrl(opts: {
   lat: number;
   lng: number;
   name?: string;
+  mode?: "car" | "walk" | "public";
 }): string {
+  const mode = opts.mode ?? "car";
   const params = new URLSearchParams({
     dlat: String(opts.lat),
     dlng: String(opts.lng),
@@ -57,19 +66,20 @@ export function naverMapsAppDirectionsUrl(opts: {
   if (opts.name?.trim()) {
     params.set("dname", opts.name.trim());
   }
-  return `nmap://route/car?${params.toString()}`;
+  return `nmap://route/${mode}?${params.toString()}`;
 }
 
 /**
- * Android Chrome / WebView: intent URL opens Naver app or falls back to web.
- * @see https://dev.to/piyaklabs/routing-around-google-maps-in-korea-naver-kakao-deep-links-weird-coordinates-and-ios-clipboard-25mf
+ * Android Chrome / WebView: intent URL opens Naver app or falls back to web search.
  */
 export function naverMapsAndroidIntentUrl(opts: {
   lat: number;
   lng: number;
   name?: string;
   webFallback: string;
+  mode?: "car" | "walk" | "public";
 }): string {
+  const mode = opts.mode ?? "car";
   const params = new URLSearchParams({
     dlat: String(opts.lat),
     dlng: String(opts.lng),
@@ -79,10 +89,10 @@ export function naverMapsAndroidIntentUrl(opts: {
     params.set("dname", opts.name.trim());
   }
   const fallback = encodeURIComponent(opts.webFallback);
-  return `intent://route/car?${params.toString()}#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url=${fallback};end`;
+  return `intent://route/${mode}?${params.toString()}#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url=${fallback};end`;
 }
 
-/** Best href for opening Naver directions on this device (client-side). */
+/** Best href for opening Naver navigation on this device (client-side). */
 export function naverMapsOpenHref(opts: {
   address: string;
   destination?: LatLng | null;
@@ -90,25 +100,37 @@ export function naverMapsOpenHref(opts: {
   mode?: "car" | "walk" | "transit";
   userAgent?: string;
 }): string {
-  const webUrl = naverMapsDirectionsUrl(opts);
+  const searchUrl = naverMapsSearchUrl(opts.address);
   const ua = opts.userAgent ?? "";
-  const isAndroid = /Android/i.test(ua);
   const dest = opts.destination;
   const hasCoords =
     dest &&
     Number.isFinite(dest.lat) &&
     Number.isFinite(dest.lng);
 
-  if (isAndroid && hasCoords) {
+  const name = opts.placeName ?? opts.address;
+  const appMode = opts.mode === "walk" ? "walk" : opts.mode === "transit" ? "public" : "car";
+
+  if (/Android/i.test(ua) && hasCoords) {
     return naverMapsAndroidIntentUrl({
       lat: dest.lat,
       lng: dest.lng,
-      name: opts.placeName ?? opts.address,
-      webFallback: webUrl,
+      name,
+      webFallback: searchUrl,
+      mode: appMode,
     });
   }
 
-  return webUrl;
+  if (/iPhone|iPad|iPod/i.test(ua) && hasCoords) {
+    return naverMapsAppDirectionsUrl({
+      lat: dest.lat,
+      lng: dest.lng,
+      name,
+      mode: appMode,
+    });
+  }
+
+  return searchUrl;
 }
 
 /**
