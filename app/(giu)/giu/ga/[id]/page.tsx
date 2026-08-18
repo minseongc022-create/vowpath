@@ -4,6 +4,8 @@ import { FavoriteButton } from "@/giu/components/FavoriteButton";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { MerchantReviews } from "@/giu/components/MerchantReviews";
+import { MerchantStoreContact } from "@/giu/components/MerchantStoreContact";
+import { MerchantTrustBadge } from "@/giu/components/MerchantTrustBadge";
 import { formatRatingLine } from "@/giu/lib/box-ux";
 import { getCategoryEmoji } from "@/giu/lib/categories";
 import { merchantCoords } from "@/giu/lib/geo";
@@ -12,7 +14,7 @@ import { t } from "@/giu/lib/i18n";
 import { categoryLabel, districtLabel } from "@/giu/lib/labels-locale";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
 import { GIU_ROUTES } from "@/giu/lib/routes";
-import { getMerchant, listBoxes } from "@/giu/lib/store";
+import { getMerchant, listBoxes, listMerchantReviews } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,14 +25,17 @@ export default async function GiuMerchantStorePage({ params }: Props) {
   const merchant = await getMerchant(id);
   if (!merchant) notFound();
 
-  const openBoxes = await listBoxes({ merchantId: id, openOnly: true });
+  const [openBoxes, reviews] = await Promise.all([
+    listBoxes({ merchantId: id, openOnly: true }),
+    listMerchantReviews(id, 20),
+  ]);
   const coords = merchantCoords(merchant.id, merchant.district);
   const rating = formatRatingLine(merchant.rating, merchant.reviewCount, locale);
 
   return (
     <div className="giu-page space-y-4">
-      <GiuCustomerBackLink href={href(GIU_ROUTES.customer.favorites)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
-        {t(locale, "storeBack")}
+      <GiuCustomerBackLink href={href(GIU_ROUTES.customer.home)} className="giu-btn-3d giu-tap text-[13px] font-bold text-giu-accent">
+        {t(locale, "back")}
       </GiuCustomerBackLink>
 
       <header className="flex items-start gap-3">
@@ -46,11 +51,10 @@ export default async function GiuMerchantStorePage({ params }: Props) {
             {districtLabel(merchant.district, locale)} · {categoryLabel(merchant.category, locale)}
           </p>
           {rating ? <p className="mt-1 text-[12px] font-bold text-giu-ink">{rating}</p> : null}
-          {merchant.verified ? (
-            <p className="mt-1 text-[11px] font-bold text-giu-primary">{t(locale, "mVerified")}</p>
-          ) : null}
         </div>
       </header>
+
+      <MerchantTrustBadge locale={locale} merchant={merchant} reviews={reviews} />
 
       <div className="giu-info-banner text-[13px] leading-relaxed">
         {t(locale, "storeAboutHint").replace("{category}", categoryLabel(merchant.category, locale))}
@@ -80,6 +84,16 @@ export default async function GiuMerchantStorePage({ params }: Props) {
         placeName={merchant.name}
         compact
       />
+
+      <section className="giu-card space-y-3">
+        <h2 className="text-[15px] font-bold text-giu-ink">{t(locale, "chatTitleCustomer")}</h2>
+        <MerchantStoreContact
+          locale={locale}
+          merchantId={merchant.id}
+          merchantName={merchant.name}
+          merchantPhone={merchant.phone}
+        />
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-[15px] font-bold text-giu-ink">

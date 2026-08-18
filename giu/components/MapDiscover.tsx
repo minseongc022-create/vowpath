@@ -506,9 +506,12 @@ export function MapDiscover({ pins }: Props) {
             <div className="space-y-3 p-4 pt-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-[17px] font-extrabold tracking-tight text-giu-ink">
+                  <GiuCustomerNavLink
+                    href={href(GIU_ROUTES.customer.merchant(selected.merchant.id))}
+                    className="giu-btn-3d giu-tap block truncate text-[17px] font-extrabold tracking-tight text-giu-ink underline-offset-2 hover:underline"
+                  >
                     {selected.merchant.name}
-                  </p>
+                  </GiuCustomerNavLink>
                   <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-giu-muted">
                     {districtLabel(selected.merchant.district, locale)} · {selected.merchant.address}
                   </p>
@@ -597,31 +600,42 @@ export function MapDiscover({ pins }: Props) {
                             </span>
                           ) : null}
                           {formatPickupDate(box.pickupStart)} ·{" "}
-                          {formatPickupWindow(box.pickupStart, box.pickupEnd)} · {box.quantityLeft}{" "}
-                          {t(locale, "left")}
+                          {formatPickupWindow(box.pickupStart, box.pickupEnd)}
                         </p>
                       </div>
-                      <p className="shrink-0 text-[14px] font-extrabold text-giu-ink">
-                        {formatVnd(box.salePriceVnd)}
-                      </p>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="rounded-[10px] bg-giu-gold px-2.5 py-1 text-[13px] font-extrabold leading-none text-giu-ink shadow-[0_2px_8px_rgba(249,168,37,0.25)]">
+                          {box.quantityLeft}
+                          {t(locale, "qtyLeftBold")}
+                        </span>
+                        <p className="text-[14px] font-extrabold text-giu-ink">
+                          {formatVnd(box.salePriceVnd)}
+                        </p>
+                      </div>
                     </GiuCustomerNavLink>
                   </li>
                 ))}
               </ul>
 
               <div className="flex gap-2">
+                <GiuCustomerNavLink
+                  href={href(GIU_ROUTES.customer.merchant(selected.merchant.id))}
+                  className="giu-btn-secondary giu-btn-3d flex-1 !w-auto !py-3 text-center text-[13px]"
+                >
+                  {t(locale, "storeProfile")}
+                </GiuCustomerNavLink>
                 <button
                   type="button"
                   onClick={openDirections}
                   disabled={navBusy || locating}
-                  className="giu-btn-secondary giu-btn-3d flex-1 !py-3 text-[13px]"
+                  className="giu-btn-secondary giu-btn-3d flex-1 !w-auto !py-3 text-[13px]"
                 >
                   {navBusy || locating ? t(locale, "directionsLocating") : t(locale, "directionsInApp")}
                 </button>
                 {sortedSelectedBoxes[0] ? (
                   <GiuCustomerNavLink
                     href={href(GIU_ROUTES.customer.box(sortedSelectedBoxes[0].id))}
-                    className="giu-btn-primary giu-btn-3d flex-1 !py-3 text-[13px]"
+                    className="giu-btn-primary giu-btn-3d flex-1 !w-auto !py-3 text-[13px]"
                   >
                     {t(locale, "rescueNow")}
                   </GiuCustomerNavLink>
