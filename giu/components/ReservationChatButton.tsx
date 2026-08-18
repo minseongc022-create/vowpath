@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ReservationChatSheet } from "@/giu/components/ReservationChatSheet";
 import { telHref } from "@/giu/lib/freshness";
 import { hapticSelect } from "@/giu/lib/haptics";
-import { chatCallLabel, chatOpenLabel, t } from "@/giu/lib/i18n";
+import { chatCallLabel, chatOpenLabel } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
 import type { GiuAccountRole } from "@/giu/lib/types";
 
@@ -19,7 +19,7 @@ type Props = {
 
 function PhoneIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M6.5 4h3l1.2 3.6-1.8 1.2a12.5 12.5 0 006.5 6.5l1.2-1.8L20 14.5V18a1.5 1.5 0 01-1.5 1.5C9.8 19.5 4.5 14.2 4.5 5.5A1.5 1.5 0 016 4z"
         stroke="currentColor"
@@ -36,7 +36,6 @@ export function ReservationChatButton({
   viewerRole,
   peerName,
   peerPhone,
-  compact,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -67,20 +66,16 @@ export function ReservationChatButton({
 
   return (
     <>
-      <div className={`flex gap-2 ${compact ? "" : "w-full"}`}>
+      <div className="flex w-full items-stretch gap-2.5">
         <button
           type="button"
           onClick={() => {
             hapticSelect();
             setOpen(true);
           }}
-          className={
-            compact
-              ? "giu-btn-secondary giu-btn-3d relative min-w-0 flex-1 !py-2 text-[12px]"
-              : "giu-btn-secondary giu-btn-3d relative min-w-0 flex-1 !py-2.5 text-[13px]"
-          }
+          className="giu-btn giu-btn-3d relative flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-[14px] bg-white px-4 py-3 text-[13px] font-bold text-giu-primary ring-2 ring-giu-primary/20"
         >
-          {label}
+          <span className="truncate">{label}</span>
           {unread > 0 ? (
             <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-giu-gold px-1 text-[10px] font-bold text-giu-ink">
               {unread > 9 ? "9+" : unread}
@@ -90,11 +85,7 @@ export function ReservationChatButton({
         {tel ? (
           <a
             href={tel}
-            className={
-              compact
-                ? "giu-btn-secondary giu-btn-3d flex h-[38px] w-[44px] shrink-0 items-center justify-center !p-0"
-                : "giu-btn-secondary giu-btn-3d flex h-[42px] w-[48px] shrink-0 items-center justify-center !p-0"
-            }
+            className="giu-btn giu-btn-3d flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[14px] bg-white text-giu-primary ring-2 ring-giu-primary/20"
             aria-label={chatCallLabel(locale, viewerRole)}
           >
             <PhoneIcon />
