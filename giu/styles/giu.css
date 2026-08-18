@@ -29,6 +29,25 @@
   background-attachment: fixed;
   color: var(--giu-ink);
   font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.giu-link-plain {
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.giu-link-plain:active {
+  transform: none !important;
+  opacity: 0.85;
+}
+
+.giu-app .leaflet-container,
+.giu-app .leaflet-container:focus,
+.giu-app .leaflet-container:focus-visible {
+  outline: none !important;
 }
 
 .giu-map-shell {
