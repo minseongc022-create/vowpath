@@ -486,29 +486,38 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             {t(locale, "mQuickPublishDetail")}
           </div>
 
-          <Field label={t(locale, "mTitle")} hint={t(locale, "mTitleHint")}>
+          <Field label={t(locale, "mTitle")}>
             <input
               name="title"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="예: 버터 크루아상 2개"
               className="giu-input"
             />
           </Field>
 
           <Field label={t(locale, "mCategory")} hint={t(locale, "mCategoryHint")}>
-            <select
-              name="category"
-              className="giu-input"
-              value={category}
-              onChange={(e) => setCategory(e.target.value as GiuMerchant["category"])}
-            >
-              {publishCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.emoji} {c.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-1.5">
+              {publishCategories.map((c) => {
+                const active = category === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCategory(c.id)}
+                    className={`giu-tap rounded-full px-3 py-2 text-[12px] font-bold transition ${
+                      active
+                        ? "bg-giu-ink text-white shadow-[0_4px_12px_rgba(60,42,33,0.18)]"
+                        : "bg-white text-giu-muted ring-1 ring-giu-border"
+                    }`}
+                  >
+                    {c.emoji} {c.label}
+                  </button>
+                );
+              })}
+            </div>
+            <input type="hidden" name="category" value={category} />
           </Field>
 
           <Field label={t(locale, "mDesc")} hint={t(locale, "mDescHint")}>

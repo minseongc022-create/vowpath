@@ -54,18 +54,18 @@ export function MerchantFreshnessFields({ locale, value, onChange, error }: Prop
         {t(locale, "mFreshLegal")}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className="block">
+      <div className="grid grid-cols-1 gap-2">
+        <label className="block min-w-0">
           <span className="giu-label">{t(locale, "mMadeAt")}</span>
           <input
             type="date"
             required
             value={value.madeDate}
             onChange={(e) => patch({ madeDate: e.target.value })}
-            className="giu-input mt-1"
+            className="giu-input giu-input-date mt-1"
           />
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className="giu-label">{t(locale, "mMadeHour")}</span>
           <select
             value={value.madeHour}
@@ -117,13 +117,13 @@ export function MerchantFreshnessFields({ locale, value, onChange, error }: Prop
         </label>
       ) : null}
 
-      <label className="block">
+      <label className="block min-w-0">
         <span className="giu-label">{t(locale, "mBestBefore")}</span>
         <input
           type="date"
           value={value.bestBefore}
           onChange={(e) => patch({ bestBefore: e.target.value })}
-          className="giu-input mt-1"
+          className="giu-input giu-input-date mt-1"
         />
         <span className="mt-1 block text-[10px] text-giu-muted">{t(locale, "mBestBeforeHint")}</span>
       </label>
