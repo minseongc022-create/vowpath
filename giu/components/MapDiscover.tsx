@@ -45,6 +45,8 @@ import { WaitlistForm } from "./WaitlistForm";
 import { useGiuHref } from "./GiuNavProvider";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import { t } from "@/giu/lib/i18n";
+import { JiucuDealBadge } from "./jiucu/JiucuDealBadge";
+import { JiucuMascot } from "./jiucu/JiucuMascot";
 
 type Props = {
   pins: MapPin[];
@@ -440,6 +442,12 @@ export function MapDiscover({ pins }: Props) {
         )}
       </button>
 
+      {!selected && filtered.length > 0 ? (
+        <div className="pointer-events-none absolute bottom-[10.5rem] right-1 z-[500]" aria-hidden>
+          <JiucuMascot variant="search" mode="3d" size="sm" />
+        </div>
+      ) : null}
+
       {/* Bottom sheet OR nearby strip */}
       {selected ? (
         <div className="absolute inset-x-0 bottom-0 z-[500] p-3 pb-3">
@@ -530,9 +538,7 @@ export function MapDiscover({ pins }: Props) {
                               {t(locale, "qtyUrgent")}
                             </span>
                           ) : null}
-                          <span className="shrink-0 rounded bg-giu-ink/90 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                            {t(locale, "dealBadge")}
-                          </span>
+                          <JiucuDealBadge locale={locale} compact />
                           <span className="giu-badge-sale shrink-0">
                             {formatDiscount(box.originalPriceVnd, box.salePriceVnd)}
                           </span>
@@ -590,11 +596,13 @@ export function MapDiscover({ pins }: Props) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-[500] px-3">
-          <div className="mx-auto max-w-[480px] space-y-3 rounded-2xl bg-white px-4 py-3 shadow-giu-md md:max-w-xl">
-            <div className="text-center text-[13px]">
-              <p className="font-bold text-giu-ink">{t(locale, "emptyBoxes")}</p>
-              <p className="mt-1 text-giu-muted">{t(locale, "emptyBoxesHint")}</p>
-            </div>
+          <div className="mx-auto max-w-[480px] space-y-3 rounded-2xl bg-white px-4 py-4 shadow-giu-md md:max-w-xl">
+            <JiucuMascot
+              variant="curious"
+              mode="3d"
+              size="md"
+              caption={t(locale, "jiucuMapEmpty")}
+            />
             <WaitlistForm />
           </div>
         </div>

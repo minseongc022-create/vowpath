@@ -37,6 +37,7 @@ import {
   republishScheduleFromBox,
 } from "@/giu/lib/publish-schedule";
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
+import { JiucuMascot } from "@/giu/components/jiucu/JiucuMascot";
 
 type PublishView = "idle" | "compose" | "history" | "confirm";
 
@@ -440,7 +441,14 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
       </div>
 
       {view === "idle" ? (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
+          <JiucuMascot
+            variant="shop"
+            mode="3d"
+            size="md"
+            bubble={t(locale, "jiucuAuthMerchant")}
+            caption={t(locale, "jiucuPublishIdle")}
+          />
           <button
             type="button"
             onClick={openCompose}
