@@ -64,7 +64,6 @@ export async function generateMetadata(): Promise<Metadata> {
         description: GIU_BRAND.tagline,
         locale: "ko_KR",
         url: origin,
-        images: [{ url: "/giu/jiucu/default.png", alt: "지우쿠" }],
       },
     };
   }
