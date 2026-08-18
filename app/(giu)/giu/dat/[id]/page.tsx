@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
 import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
+import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
@@ -100,6 +101,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
                 {t(locale, "total")} {formatVnd(reservation.totalVnd)}
               </p>
             </div>
+            {box ? <ProductFreshnessTrust locale={locale} box={box} compact /> : null}
             <MapEmbed
               address={merchant.address}
               destLat={coords?.lat}
