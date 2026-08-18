@@ -32,26 +32,23 @@ export function NaverDirectionsButton({
   const webUrl = naverMapsDirectionsUrl({
     address,
     destination: hasCoords ? { lat, lng } : null,
-    placeName,
+    placeName: placeName ?? address,
   });
 
-  function openDirections() {
-    hapticSelect();
-    window.open(webUrl, "_blank", "noopener,noreferrer");
-  }
-
   return (
-    <button
-      type="button"
-      onClick={openDirections}
+    <a
+      href={webUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => hapticSelect()}
       className={
         primary
-          ? `giu-btn-primary giu-btn-3d w-full !py-3 text-[13px] ${className}`
-          : `giu-btn-secondary giu-btn-3d w-full !py-3 text-[13px] ${className}`
+          ? `giu-btn-primary giu-btn-3d block w-full !py-3 text-center text-[13px] no-underline ${className}`
+          : `giu-btn-secondary giu-btn-3d block w-full !py-3 text-center text-[13px] no-underline ${className}`
       }
       title={address}
     >
       {t(locale, "directionsInApp")}
-    </button>
+    </a>
   );
 }

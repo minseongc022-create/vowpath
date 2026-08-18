@@ -287,7 +287,7 @@
 
 /** Product detail with fixed checkout bar — keep reviews/content above the bar. */
 .giu-page-sticky-checkout {
-  padding-bottom: calc(15.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(18rem + env(safe-area-inset-bottom));
 }
 
 .giu-map-fab {
