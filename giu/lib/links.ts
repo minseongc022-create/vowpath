@@ -18,7 +18,7 @@ export function naverMapsSearchUrl(address: string): string {
 
 /**
  * Turn-by-turn directions on Naver Map.
- * Start `-` = current location; destination is address or lng,lat,name.
+ * Start `-` = current location; destination is address (preferred) or lng,lat,name.
  */
 export function naverMapsDirectionsUrl(opts: {
   address: string;
@@ -27,13 +27,19 @@ export function naverMapsDirectionsUrl(opts: {
   mode?: "car" | "walk" | "transit";
 }): string {
   const mode = opts.mode ?? "car";
-  const name = (opts.placeName ?? opts.address).trim();
+  const address = opts.address.trim();
+  const name = (opts.placeName ?? address).trim();
+
+  // Prefer Korean street address — Naver geocodes more reliably than jittered coords.
   const dest =
-    opts.destination &&
-    Number.isFinite(opts.destination.lat) &&
-    Number.isFinite(opts.destination.lng)
-      ? `${opts.destination.lng},${opts.destination.lat},${encodeURIComponent(name)}`
-      : encodeURIComponent(opts.address.trim());
+    address.length > 0
+      ? encodeURIComponent(address)
+      : opts.destination &&
+          Number.isFinite(opts.destination.lat) &&
+          Number.isFinite(opts.destination.lng)
+        ? `${opts.destination.lng},${opts.destination.lat},${encodeURIComponent(name)}`
+        : encodeURIComponent(name);
+
   return `https://map.naver.com/p/directions/-/${dest}/-/${mode}`;
 }
 
@@ -41,15 +47,68 @@ export function naverMapsDirectionsUrl(opts: {
 export function naverMapsAppDirectionsUrl(opts: {
   lat: number;
   lng: number;
-  name: string;
+  name?: string;
 }): string {
   const params = new URLSearchParams({
     dlat: String(opts.lat),
     dlng: String(opts.lng),
-    dname: opts.name.trim(),
     appname: "giucuu",
   });
+  if (opts.name?.trim()) {
+    params.set("dname", opts.name.trim());
+  }
   return `nmap://route/car?${params.toString()}`;
+}
+
+/**
+ * Android Chrome / WebView: intent URL opens Naver app or falls back to web.
+ * @see https://dev.to/piyaklabs/routing-around-google-maps-in-korea-naver-kakao-deep-links-weird-coordinates-and-ios-clipboard-25mf
+ */
+export function naverMapsAndroidIntentUrl(opts: {
+  lat: number;
+  lng: number;
+  name?: string;
+  webFallback: string;
+}): string {
+  const params = new URLSearchParams({
+    dlat: String(opts.lat),
+    dlng: String(opts.lng),
+    appname: "giucuu",
+  });
+  if (opts.name?.trim()) {
+    params.set("dname", opts.name.trim());
+  }
+  const fallback = encodeURIComponent(opts.webFallback);
+  return `intent://route/car?${params.toString()}#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url=${fallback};end`;
+}
+
+/** Best href for opening Naver directions on this device (client-side). */
+export function naverMapsOpenHref(opts: {
+  address: string;
+  destination?: LatLng | null;
+  placeName?: string;
+  mode?: "car" | "walk" | "transit";
+  userAgent?: string;
+}): string {
+  const webUrl = naverMapsDirectionsUrl(opts);
+  const ua = opts.userAgent ?? "";
+  const isAndroid = /Android/i.test(ua);
+  const dest = opts.destination;
+  const hasCoords =
+    dest &&
+    Number.isFinite(dest.lat) &&
+    Number.isFinite(dest.lng);
+
+  if (isAndroid && hasCoords) {
+    return naverMapsAndroidIntentUrl({
+      lat: dest.lat,
+      lng: dest.lng,
+      name: opts.placeName ?? opts.address,
+      webFallback: webUrl,
+    });
+  }
+
+  return webUrl;
 }
 
 /**
