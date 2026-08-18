@@ -131,6 +131,12 @@ export type GiuReservation = {
   /** Bank transfer queued after QR pickup. */
   payoutStatus?: "pending_account" | "queued" | "sent";
   payoutAmountVnd?: number;
+  /** Amount returned to customer on cancel/refund. */
+  refundAmountVnd?: number;
+  /** Non-refundable no-show fee (partial refund). */
+  noShowFeeVnd?: number;
+  refundedAt?: string;
+  refundType?: "full" | "partial";
   status: GiuReservationStatus;
   createdAt: string;
   expiresAt: string;

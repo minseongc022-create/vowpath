@@ -124,8 +124,8 @@ export function MerchantPickupScanner({
   );
 
   const verifyCode = useCallback(async () => {
-    const code = pickupCode.trim().toUpperCase();
-    if (!code || busyRef.current) return;
+    const code = pickupCode.trim().replace(/\s/g, "");
+    if (!/^\d{3}$/.test(code) || busyRef.current) return;
     hapticSelect();
     await verifyPickup({ code });
   }, [pickupCode, verifyPickup]);
@@ -251,17 +251,19 @@ export function MerchantPickupScanner({
       </div>
       <input
         value={pickupCode}
-        onChange={(e) => setPickupCode(e.target.value.toUpperCase())}
+        onChange={(e) => setPickupCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
         placeholder={t(locale, "mPickupCodePlaceholder")}
         autoComplete="off"
-        autoCapitalize="characters"
+        autoCapitalize="off"
         spellCheck={false}
-        inputMode="text"
-        className="giu-input font-mono text-[16px] font-bold uppercase tracking-[0.2em]"
+        inputMode="numeric"
+        maxLength={3}
+        pattern="\d{3}"
+        className="giu-input text-center font-mono text-[22px] font-bold tracking-[0.35em]"
       />
       <button
         type="submit"
-        disabled={busy || !pickupCode.trim()}
+        disabled={busy || !/^\d{3}$/.test(pickupCode.trim())}
         className="giu-btn-primary giu-btn-3d w-full !py-3 text-[14px]"
       >
         {busy ? t(locale, "loading") : t(locale, "mPickupCodeConfirm")}

@@ -26,6 +26,7 @@ import { defaultPickupWindow, formatPickupWindow, slugify } from "./format";
 import { buildPickupWindow, dayOffsetFromIso, hourFromIso } from "./publish-schedule";
 import { resolveGiuPaymentBackend } from "./payments";
 import { vndToUsdCents } from "./lemon-squeezy-giu";
+import { calculateRefundSplit } from "./refund";
 import {
   SEED_BOXES,
   SEED_CO2_KG,
@@ -51,8 +52,21 @@ function newId(prefix: string): string {
   return `${prefix}_${randomBytes(8).toString("hex")}`;
 }
 
-function reservationCode(): string {
-  return randomBytes(3).toString("hex").toUpperCase();
+function reservationCode(existing: Iterable<string>): string {
+  const taken = new Set(existing);
+  for (let i = 0; i < 40; i++) {
+    const code = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    if (!taken.has(code)) return code;
+  }
+  return String(Math.floor(Math.random() * 900) + 100);
+}
+
+function normalizePickupCodeInput(raw: string): string {
+  return raw.trim().replace(/\s/g, "");
+}
+
+function isValidPickupCode(code: string): boolean {
+  return /^\d{3}$/.test(code) || /^[A-F0-9]{6}$/i.test(code);
 }
 
 function normalizePhone(phone: string): string {
@@ -719,7 +733,7 @@ export async function initiateReservationPayment(input: {
     boxId: box.id,
     merchantId: box.merchantId,
     customerId: input.customerId,
-    code: reservationCode(),
+    code: reservationCode(store.reservations.map((r) => r.code)),
     customerName: input.customerName,
     customerPhone: input.customerPhone,
     quantity: qty,
@@ -859,20 +873,56 @@ export async function cancelReservation(id: string): Promise<GiuReservation | nu
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === id);
   if (!res || res.status !== "giu_cho") return null;
+
   if (res.paymentStatus === "pending") {
     await releaseBoxQuantity(store, res.boxId, res.quantity);
-  } else if (res.paymentStatus === "paid") {
-    await releaseBoxQuantity(store, res.boxId, res.quantity);
-  }
-  res.status = "huy";
-  if (res.paymentStatus === "paid") {
-    res.paymentStatus = "refunded";
-    res.settlementStatus = "refunded";
-  } else if (res.paymentStatus === "pending") {
+    res.status = "huy";
     res.paymentStatus = "failed";
+    await saveStore(store);
+    return res;
   }
+
+  if (res.paymentStatus !== "paid") return null;
+
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  if (!box) return null;
+
+  const split = calculateRefundSplit(res, box);
+  await releaseBoxQuantity(store, res.boxId, res.quantity);
+
+  res.status = "huy";
+  res.paymentStatus = "refunded";
+  res.refundAmountVnd = split.refundVnd;
+  res.noShowFeeVnd = split.noShowFeeVnd;
+  res.refundType = split.type;
+  res.refundedAt = new Date().toISOString();
+
+  if (split.type === "full") {
+    res.settlementStatus = "refunded";
+  } else {
+    res.settlementStatus = "released";
+    res.settledAt = new Date().toISOString();
+    const merchant = store.merchants.find((m) => m.id === res.merchantId);
+    if (merchant && split.merchantCompensationVnd > 0) {
+      res.payoutAmountVnd = split.merchantCompensationVnd;
+      const hasAccount = Boolean(merchant.bankAccount?.trim() && merchant.bankName?.trim());
+      res.payoutStatus = hasAccount ? "queued" : "pending_account";
+    }
+  }
+
   await saveStore(store);
   return res;
+}
+
+export async function getRefundPreview(
+  id: string,
+): Promise<ReturnType<typeof calculateRefundSplit> | null> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === id);
+  if (!res || res.status !== "giu_cho" || res.paymentStatus !== "paid") return null;
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  if (!box) return null;
+  return calculateRefundSplit(res, box);
 }
 
 export async function addWaitlist(phone: string, district?: string): Promise<GiuWaitlistEntry> {
@@ -1051,12 +1101,16 @@ export async function confirmPickupByCode(
   merchantId: string,
   code: string,
 ): Promise<GiuReservation | { error: string }> {
-  const normalized = code.trim().toUpperCase();
+  const normalized = normalizePickupCodeInput(code);
+  if (!isValidPickupCode(normalized)) {
+    return { error: "손님이 알려준 3자리 숫자를 입력해 주세요" };
+  }
+  const lookup = /^\d{3}$/.test(normalized) ? normalized : normalized.toUpperCase();
   const store = await loadStore();
   const res = store.reservations.find(
     (r) =>
       r.merchantId === merchantId &&
-      r.code.toUpperCase() === normalized &&
+      r.code === lookup &&
       r.paymentStatus === "paid" &&
       r.status === "giu_cho",
   );

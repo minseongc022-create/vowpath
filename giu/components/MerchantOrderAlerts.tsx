@@ -19,7 +19,7 @@ const POLL_MS = 20_000;
 
 export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
   const { locale } = useGiuLocale();
-  const [toast, setToast] = useState<{ code: string; name: string } | null>(null);
+  const [toast, setToast] = useState<{ name: string } | null>(null);
   const [notifReady, setNotifReady] = useState(true);
   const [supportsNotif, setSupportsNotif] = useState(false);
   const knownRef = useRef(false);
@@ -48,13 +48,13 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
 
       markOrdersSeen(fresh.map((r) => r.id));
       const first = fresh[0]!;
-      setToast({ code: first.code, name: first.customerName });
+      setToast({ name: first.customerName });
       onNewOrder?.();
 
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         try {
           new Notification(t(locale, "alertNewOrder"), {
-            body: `${first.code} · ${first.customerName}`,
+            body: first.customerName,
           });
         } catch {
           /* ignore */
@@ -100,9 +100,7 @@ export function MerchantOrderAlerts({ merchantId, onNewOrder }: Props) {
           <div className="flex max-w-[440px] items-center gap-3 rounded-2xl bg-giu-ink px-4 py-3 text-sm text-white shadow-lg">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{t(locale, "alertNewOrder")}</p>
-              <p className="font-mono text-giu-gold">
-                {toast.code} · {toast.name}
-              </p>
+              <p className="font-semibold text-giu-gold">{toast.name}</p>
             </div>
             <button
               type="button"
