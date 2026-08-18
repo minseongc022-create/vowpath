@@ -26,6 +26,7 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { MerchantReviews } from "@/giu/components/MerchantReviews";
 import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
+import { JiucuDealBadge } from "@/giu/components/jiucu/JiucuDealBadge";
 import { getBox, getMerchant } from "@/giu/lib/store";
 
 type Props = { params: Promise<{ id: string }> };
@@ -52,9 +53,7 @@ export default async function GiuBoxDetailPage({ params }: Props) {
 
   const badges = (
     <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-      <span className="rounded-md bg-giu-ink/90 px-2 py-1 text-[11px] font-bold text-white">
-        {t(locale, "dealBadge")}
-      </span>
+      <JiucuDealBadge locale={locale} className="!py-1 !pl-1.5 !pr-2 !text-[11px]" />
       {lowStock ? (
         <span className="rounded-md bg-giu-gold px-2 py-1 text-[11px] font-bold text-giu-ink">
           {t(locale, "qtyUrgent")}

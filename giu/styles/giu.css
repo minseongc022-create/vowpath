@@ -548,3 +548,60 @@
     transform: scale(1) translateY(0);
   }
 }
+
+/* Jiucu mascot — 3D float + antenna wiggle */
+.giu-jiucu-3d {
+  perspective: 520px;
+}
+
+.giu-jiucu-3d-inner {
+  transform-style: preserve-3d;
+  animation: giu-jiucu-float 2.8s ease-in-out infinite;
+}
+
+.giu-jiucu-antenna {
+  transform-origin: 50px 38px;
+  animation: giu-jiucu-antenna 1.6s ease-in-out infinite;
+}
+
+.giu-jiucu-bubble {
+  animation: giu-jiucu-bubble 2.8s ease-in-out infinite;
+}
+
+@keyframes giu-jiucu-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotateY(-10deg) rotateX(4deg);
+  }
+  50% {
+    transform: translate3d(0, -10px, 8px) rotateY(10deg) rotateX(-3deg);
+  }
+}
+
+@keyframes giu-jiucu-antenna {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes giu-jiucu-bubble {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .giu-jiucu-3d-inner,
+  .giu-jiucu-antenna,
+  .giu-jiucu-bubble {
+    animation: none;
+  }
+}

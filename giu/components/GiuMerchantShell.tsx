@@ -13,6 +13,7 @@ import { useGiuLocale } from "./GiuLocaleProvider";
 import { GiuMerchantBottomNav } from "./GiuMerchantBottomNav";
 import { MerchantOrderAlerts } from "./MerchantOrderAlerts";
 import { useGiuHref } from "./GiuNavProvider";
+import { JiucuSvg } from "./jiucu/JiucuSvg";
 
 function MerchantHeaderQrButton({ locale }: { locale: GiuLocale }) {
   const pickup = useMerchantPickupOptional();
@@ -43,8 +44,9 @@ function MerchantShellInner({ children }: { children: React.ReactNode }) {
     <div className="giu-app flex min-h-svh flex-col text-giu-ink">
       <header className="sticky top-0 z-40 border-b border-giu-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={href(GIU_ROUTES.merchant.home)} className="min-w-0 flex-1 truncate">
-            <span className="text-[15px] font-extrabold tracking-tight text-giu-primary">
+          <Link href={href(GIU_ROUTES.merchant.home)} className="flex min-w-0 flex-1 items-center gap-2 truncate">
+            <JiucuSvg variant="shop" className="h-7 w-7 shrink-0" />
+            <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-primary">
               {headerText}
             </span>
           </Link>

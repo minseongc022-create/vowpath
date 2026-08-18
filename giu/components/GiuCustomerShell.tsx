@@ -17,6 +17,7 @@ import {
 } from "./GiuCustomerNavProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
+import { JiucuSvg } from "./jiucu/JiucuSvg";
 
 export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,8 +43,9 @@ export function GiuCustomerShell({ children }: { children: React.ReactNode }) {
       <CustomerAvailabilityAlerts />
       <header className="sticky top-0 z-40 shrink-0 border-b border-giu-border bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[54px] max-w-[480px] items-center justify-between gap-3 px-4 md:max-w-xl lg:max-w-2xl">
-          <Link href={href(GIU_ROUTES.customer.home)} className="giu-link-plain min-w-0 truncate">
-            <span className="text-[15px] font-extrabold tracking-tight text-giu-primary">
+          <Link href={href(GIU_ROUTES.customer.home)} className="giu-link-plain flex min-w-0 items-center gap-2 truncate">
+            <JiucuSvg variant="default" className="h-7 w-7 shrink-0" />
+            <span className="truncate text-[15px] font-extrabold tracking-tight text-giu-primary">
               {loading ? "…" : headerText}
             </span>
           </Link>

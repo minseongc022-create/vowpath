@@ -23,6 +23,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { JiucuMascot } from "./jiucu/JiucuMascot";
 
 type AuthMode = "login" | "signup";
 
@@ -333,6 +334,16 @@ export function GiuAuthScreen() {
 
   return (
     <div className="giu-page space-y-5">
+      <div className="flex flex-col items-center gap-3 pt-2">
+        <JiucuMascot
+          variant={role === "merchant" ? "shop" : "search"}
+          mode="3d"
+          size="lg"
+          bubble={role === "merchant" ? t(locale, "jiucuAuthMerchant") : t(locale, "jiucuAuthCustomer")}
+        />
+        <p className="text-center text-[12px] font-semibold text-giu-muted">{t(locale, "jiucuTagline")}</p>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-giu-ink">
           {role === "merchant"
