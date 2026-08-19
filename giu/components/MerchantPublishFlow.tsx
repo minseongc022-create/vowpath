@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { GiuConfirmSheet } from "@/giu/components/GiuConfirmSheet";
 import { GiuSuccessToast } from "@/giu/components/GiuSuccessToast";
-import { GiuTrashButton } from "@/giu/components/GiuTrashButton";
 import { ProductPhotoPicker } from "@/giu/components/ProductPhotoPicker";
 import {
   MerchantFreshnessFields,
@@ -16,7 +15,6 @@ import { boxImages, boxImageFields } from "@/giu/lib/box-images";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
   formatMoney,
-  formatPickupWindow,
   localToIso,
   moneySymbol,
 } from "@/giu/lib/format";
@@ -24,11 +22,7 @@ import { hapticConfirm, hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
 import {
-  filterHistoryBoxes,
   findDuplicateActiveListing,
-  historyEmptyLabel,
-  historyFilterLabel,
-  type HistoryListFilter,
 } from "@/giu/lib/product-list-ux";
 import { marketTimeZone, quickPublishPrices } from "@/giu/lib/market";
 import { parseQuantityInput, sanitizeQuantityInput } from "@/giu/lib/numeric-input";
@@ -39,7 +33,7 @@ import {
 import type { GiuBox, GiuMarket, GiuMerchant } from "@/giu/lib/types";
 import { JiucuMerchantHelp } from "@/giu/components/jiucu/JiucuMerchantHelp";
 
-type PublishView = "idle" | "compose" | "history" | "confirm";
+type PublishView = "idle" | "compose";
 
 function Field({
   label,
@@ -144,7 +138,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [view, setView] = useState<PublishView>("idle");
   const [createError, setCreateError] = useState("");
   const [submitBusy, setSubmitBusy] = useState(false);
-  const [republishBusy, setRepublishBusy] = useState(false);
   const [dayOffset, setDayOffset] = useState(0);
   const [startH, setStartH] = useState(12);
   const [endH, setEndH] = useState(14);
@@ -163,22 +156,10 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   const [originalPrice, setOriginalPrice] = useState(defaultPrices.originalPriceVnd);
   const [salePrice, setSalePrice] = useState(defaultPrices.salePriceVnd);
   const [quantityText, setQuantityText] = useState("5");
-  const [republishTarget, setRepublishTarget] = useState<GiuBox | null>(null);
-  const [republishDayOffset, setRepublishDayOffset] = useState(0);
-  const [republishStartH, setRepublishStartH] = useState(12);
-  const [republishEndH, setRepublishEndH] = useState(14);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [historyFilter, setHistoryFilter] = useState<HistoryListFilter>("all");
-  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<GiuBox | null>(null);
   const [duplicateConfirmOpen, setDuplicateConfirmOpen] = useState(false);
   const photosPending = imageUrls.some((url) => url.startsWith("blob:"));
   const pendingPublishRef = useRef<(() => void | Promise<void>) | null>(null);
-
-  const historyBoxes = useMemo(
-    () => filterHistoryBoxes(boxes, historyFilter),
-    [boxes, historyFilter],
-  );
 
   const mostRecentBox = useMemo(
     () =>
@@ -242,8 +223,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
   function goIdle() {
     setView("idle");
     setCreateError("");
-    setRepublishTarget(null);
-    setHistoryFilter("all");
   }
 
   function requestDuplicateConfirm(action: () => void | Promise<void>) {
@@ -344,95 +323,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
     );
   }
 
-  async function submitRepublish() {
-    if (!republishTarget) return;
-    if (republishEndH <= republishStartH) {
-      setCreateError(t(locale, "mTimeOrder"));
-      return;
-    }
-    setRepublishBusy(true);
-    setCreateError("");
-    try {
-      const res = await fetch("/api/giu/boxes/republish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          boxId: republishTarget.id,
-          dayOffset: republishDayOffset,
-          pickupStartH: republishStartH,
-          pickupEndH: republishEndH,
-        }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setCreateError(data.error ?? t(locale, "mCreateFail"));
-        return;
-      }
-      hapticConfirm();
-      await onPublished();
-      goIdle();
-      setSuccessMsg(t(locale, "toastRepublishSuccess"));
-    } catch {
-      setCreateError(t(locale, "mLoadError"));
-    } finally {
-      setRepublishBusy(false);
-    }
-  }
-
-  function confirmRepublish() {
-    if (!republishTarget) return;
-    hapticConfirm();
-    setCreateError("");
-    checkDuplicateAndRun(
-      {
-        title: republishTarget.title,
-        originalPriceVnd: republishTarget.originalPriceVnd,
-        salePriceVnd: republishTarget.salePriceVnd,
-      },
-      () => void submitRepublish(),
-    );
-  }
-
-  function openRepublishConfirm(box: GiuBox) {
-    hapticSelect();
-    setRepublishTarget(box);
-    const schedule = republishScheduleFromBox(box, market);
-    setRepublishDayOffset(schedule.dayOffset);
-    setRepublishStartH(schedule.startH);
-    setRepublishEndH(schedule.endH);
-    setView("confirm");
-  }
-
-  async function deleteProduct(boxId: string) {
-    hapticConfirm();
-    setDeleteBusyId(boxId);
-    setCreateError("");
-    try {
-      const res = await fetch(`/api/giu/boxes/${boxId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setCreateError(data.error ?? t(locale, "mCreateFail"));
-        return;
-      }
-      hapticConfirm();
-      setDeleteTarget(null);
-      if (republishTarget?.id === boxId) {
-        setRepublishTarget(null);
-        setView("history");
-      }
-      await onPublished();
-      setSuccessMsg(t(locale, "toastDeleteSuccess"));
-    } catch {
-      setCreateError(t(locale, "mLoadError"));
-    } finally {
-      setDeleteBusyId(null);
-    }
-  }
-
   return (
     <section id="giu-publish-flow" className="giu-card giu-panel-enter space-y-3">
       <div>
@@ -449,13 +339,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
             className="giu-btn-primary giu-btn-3d !py-3.5 text-[15px]"
           >
             {t(locale, "mPostProduct")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("history")}
-            className="giu-btn-secondary giu-btn-3d !py-3 text-[14px]"
-          >
-            {t(locale, "mViewPastProducts")}
           </button>
         </div>
       ) : null}
@@ -482,10 +365,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
                 {t(locale, "mLoadRecentListing")}
               </button>
             ) : null}
-          </div>
-
-          <div className="giu-info-banner text-[12px] leading-relaxed">
-            {t(locale, "mQuickPublishDetail")}
           </div>
 
           <Field label={t(locale, "mTitle")}>
@@ -626,133 +505,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         </form>
       ) : null}
 
-      {view === "history" ? (
-        <div className="giu-panel-enter space-y-3">
-          <button
-            type="button"
-            onClick={() => {
-              hapticSelect();
-              goIdle();
-            }}
-            className="text-[13px] font-bold text-giu-muted"
-          >
-            {t(locale, "mBackToStart")}
-          </button>
-
-          <div className="giu-filter-tabs">
-            {(["all", "closed", "cancelled"] as const).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => {
-                  hapticSelect();
-                  setHistoryFilter(f);
-                }}
-                className={`giu-filter-tab ${historyFilter === f ? "is-active" : ""}`}
-              >
-                {historyFilterLabel(locale, f)}
-              </button>
-            ))}
-          </div>
-
-          {historyBoxes.length === 0 ? (
-            <p className="text-[13px] text-giu-muted">{historyEmptyLabel(locale, historyFilter)}</p>
-          ) : (
-            <ul className="space-y-2">
-              {historyBoxes.map((box, index) => (
-                <li
-                  key={box.id}
-                  className={`flex items-start gap-3 rounded-[16px] p-3 ring-1 ${
-                    index === 0 && historyFilter === "all"
-                      ? "bg-giu-accent-soft/70 ring-giu-primary/20"
-                      : "bg-giu-bg ring-giu-border"
-                  }`}
-                >
-                  {boxImages(box)[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={boxImages(box)[0]} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-giu-ink">{box.title}</p>
-                    <p className="text-[12px] text-giu-muted">
-                      {money(box.salePriceVnd)} · {box.quantityTotal}
-                      {t(locale, "mUnitQty")} ·{" "}
-                      {formatPickupWindow(box.pickupStart, box.pickupEnd, market)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {box.status === "huy" ? (
-                      <GiuTrashButton
-                        label={t(locale, "mDeleteProduct")}
-                        disabled={deleteBusyId === box.id}
-                        onClick={() => setDeleteTarget(box)}
-                      />
-                    ) : null}
-                    {box.status !== "mo" || box.quantityLeft === 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => openRepublishConfirm(box)}
-                        className="giu-btn-3d shrink-0 rounded-xl bg-giu-primary px-3 py-2 text-[11px] font-bold text-white"
-                      >
-                        {t(locale, "mRepublishThis")}
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
-
-      {view === "confirm" && republishTarget ? (
-        <div className="giu-panel-enter space-y-3">
-          <p className="text-[15px] font-bold text-giu-ink">{t(locale, "mRepublishConfirmTitle")}</p>
-          <div className="rounded-[16px] bg-giu-bg p-3 ring-1 ring-giu-border">
-            <p className="font-bold">{republishTarget.title}</p>
-            <p className="mt-1 text-[13px] text-giu-muted">
-              {money(republishTarget.salePriceVnd)} · {republishTarget.quantityTotal}
-              {t(locale, "mUnitQty")}
-            </p>
-            {republishTarget.description ? (
-              <p className="mt-1 text-[12px] text-giu-muted">{republishTarget.description}</p>
-            ) : null}
-            <p className="mt-2 text-[12px] text-giu-muted">{t(locale, "mRepublishConfirmHint")}</p>
-          </div>
-          <ScheduleFields
-            locale={locale}
-            dayOffset={republishDayOffset}
-            startH={republishStartH}
-            endH={republishEndH}
-            onDayOffset={setRepublishDayOffset}
-            onStartH={setRepublishStartH}
-            onEndH={setRepublishEndH}
-          />
-          {createError ? <p className="text-sm text-giu-danger">{createError}</p> : null}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={republishBusy}
-              onClick={() => void confirmRepublish()}
-              className="giu-btn-primary giu-btn-3d flex-1 !py-3"
-            >
-              {republishBusy ? t(locale, "loading") : t(locale, "mRepublishConfirmYes")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                hapticSelect();
-                setView("history");
-                setRepublishTarget(null);
-              }}
-              className="giu-btn-secondary giu-btn-3d flex-1 !py-3"
-            >
-              {t(locale, "mRepublishConfirmNo")}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {successMsg ? <GiuSuccessToast message={successMsg} onClose={() => setSuccessMsg(null)} /> : null}
 
       <GiuConfirmSheet
@@ -763,18 +515,6 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
         cancelLabel={t(locale, "mCloseNo")}
         onConfirm={confirmDuplicateListing}
         onCancel={cancelDuplicateListing}
-      />
-
-      <GiuConfirmSheet
-        open={!!deleteTarget}
-        title={t(locale, "mConfirmDeleteTitle")}
-        message={t(locale, "mDeleteConfirm")}
-        confirmLabel={t(locale, "mDeleteProduct")}
-        cancelLabel={t(locale, "mCloseNo")}
-        danger
-        busy={!!deleteBusyId}
-        onConfirm={() => deleteTarget && void deleteProduct(deleteTarget.id)}
-        onCancel={() => setDeleteTarget(null)}
       />
     </section>
   );
