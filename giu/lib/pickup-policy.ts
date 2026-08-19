@@ -26,6 +26,8 @@ export const PICKUP_REMINDER_70_MIN = 70;
 export const PICKUP_REMINDER_30_MIN = 30;
 /** Merchant ping interval while extension pending. */
 export const EXTENSION_MERCHANT_PING_MIN = 5;
+/** After pickup grace, ghosted customers are auto-refunded (fee deducted) after this many days. */
+export const AUTO_NO_SHOW_REFUND_DAYS = 4;
 
 export function resolvePickupPolicy(merchant?: Pick<GiuMerchant, "pickupPolicy"> | null): GiuPickupPolicy {
   const p = merchant?.pickupPolicy ?? {};
@@ -93,18 +95,44 @@ export function pickupGraceEndsAt(
   return new Date(pickupEndIso).getTime() + policy.pickupGraceMinutes * 60_000;
 }
 
-export function merchantCanMarkNoShow(
-  pickupEndIso: string,
+/** Days after grace end before system auto-refunds ghosted orders (no merchant action). */
+export function autoNoShowRefundEligible(
+  reservation: Pick<
+    GiuReservation,
+    | "status"
+    | "paymentStatus"
+    | "merchantPickupPromiseUntil"
+    | "extensionRequest"
+    | "refundedAt"
+    | "merchantNoShowMarkedAt"
+    | "autoNoShowRefundAt"
+  >,
+  boxPickupEndIso: string,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
-  reservation?: Pick<
-    GiuReservation,
-    "merchantPickupPromiseUntil" | "extensionRequest"
-  >,
 ): boolean {
-  const endIso = reservation ? effectivePickupEndIso(reservation, pickupEndIso) : pickupEndIso;
-  const afterGrace = pickupGraceEndsAt(endIso, policy);
-  return now >= afterGrace + policy.merchantNoShowMarkAfterHours * 3_600_000;
+  if (reservation.paymentStatus !== "paid") return false;
+  if (reservation.refundedAt || reservation.merchantNoShowMarkedAt || reservation.autoNoShowRefundAt) {
+    return false;
+  }
+  if (reservation.status !== "het_han" && reservation.status !== "giu_cho") return false;
+  if (reservation.extensionRequest?.status === "pending") return false;
+  if (
+    reservation.merchantPickupPromiseUntil &&
+    new Date(reservation.merchantPickupPromiseUntil).getTime() > now
+  ) {
+    return false;
+  }
+  if (
+    reservation.status === "giu_cho" &&
+    !shouldMarkReservationExpired(reservation, boxPickupEndIso, policy, now)
+  ) {
+    return false;
+  }
+
+  const endIso = effectivePickupEndIso(reservation, boxPickupEndIso);
+  const graceEnd = pickupGraceEndsAt(endIso, policy);
+  return now >= graceEnd + AUTO_NO_SHOW_REFUND_DAYS * 86_400_000;
 }
 
 export function defaultPromiseUntil(pickupEndIso: string, now = Date.now()): string {

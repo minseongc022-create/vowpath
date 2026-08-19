@@ -69,29 +69,24 @@ export function MerchantCustomerInsights({
         ) : (
           <ul className="space-y-2">
             {customers.map((c) => (
-              <li key={c.customerId}>
+              <li key={c.customerId} className="giu-card-flat flex items-center justify-between gap-3 p-3 ring-1 ring-giu-border">
+                <div className="min-w-0">
+                  <p className="truncate text-[14px] font-bold text-giu-ink">{c.customerName}</p>
+                  <p className="text-[12px] text-giu-muted">{c.customerPhone}</p>
+                  <p className="mt-1 text-[11px] text-giu-muted">
+                    {t(locale, "mCustStatPickups")} {c.completedCount} · {t(locale, "mCustStatOrders")}{" "}
+                    {c.orderCount}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     hapticSelect();
                     onSelectCustomer(c.customerId);
                   }}
-                  className="giu-card-flat flex w-full items-center justify-between gap-3 p-3 text-left ring-1 ring-giu-border transition active:scale-[0.99]"
+                  className="giu-btn-secondary shrink-0 !px-3 !py-2 text-[12px] font-bold"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-bold text-giu-ink">{c.customerName}</p>
-                    <p className="text-[12px] text-giu-muted">{c.customerPhone}</p>
-                    <p className="mt-1 text-[11px] text-giu-muted">
-                      {t(locale, "mCustStatOrders")} {c.orderCount} · {t(locale, "mCustStatPickups")}{" "}
-                      {c.completedCount}
-                      {c.refundedCount > 0
-                        ? ` · ${t(locale, "mCustStatRefunds")} ${c.refundedCount}`
-                        : ""}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[11px] font-bold text-giu-primary">
-                    {t(locale, "mCustDetailOpen")} →
-                  </span>
+                  {t(locale, "mCustDetailOpen")}
                 </button>
               </li>
             ))}

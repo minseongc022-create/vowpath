@@ -4,7 +4,6 @@ import { getGiuSessionFromRequest, requireMerchantSession } from "@/giu/lib/auth
 import {
   approvePickupExtension,
   getReservation,
-  markMerchantNoShow,
   rejectPickupExtension,
   requestPickupExtension,
 } from "@/giu/lib/store";
@@ -23,7 +22,6 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("reject"),
     note: z.string().max(200).optional(),
   }),
-  z.object({ action: z.literal("mark-no-show") }),
 ]);
 
 type Props = { params: Promise<{ id: string }> };
@@ -82,11 +80,7 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ reservation: result });
     }
 
-    const result = await markMerchantNoShow(auth.merchantId, id);
-    if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-    return NextResponse.json({ reservation: result });
+    return NextResponse.json({ error: "지원하지 않는 요청이에요" }, { status: 400 });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }

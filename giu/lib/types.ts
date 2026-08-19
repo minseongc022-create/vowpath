@@ -179,6 +179,8 @@ export type GiuReservation = {
   merchantPickupPromiseUntil?: string;
   /** Merchant confirmed silent no-show for compensation. */
   merchantNoShowMarkedAt?: string;
+  /** System auto-refund after ghosted pickup window (no merchant action). */
+  autoNoShowRefundAt?: string;
   /** Pickup reminder SMS sent (ISO timestamps). */
   pickupRemindersSent?: { at70?: string; at30?: string };
   refundedAt?: string;
