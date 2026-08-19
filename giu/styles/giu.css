@@ -611,114 +611,135 @@
   display: block;
 }
 
-/* Merchant help — body jumps; waving arm rotates separately */
-.giu-jiucu-merchant-jump {
-  animation: giu-jiucu-jump-cycle 4.5s ease-in-out 3 forwards;
+/* Merchant help — motion presets (play once per mount / tap) */
+.giu-jiucu-figure {
+  transform: translateY(0);
 }
 
-.giu-jiucu-wave-arm {
-  transform-origin: 84% 70%;
-  animation: giu-jiucu-arm-wave-cycle 4.5s ease-in-out 3 forwards;
+.giu-jiucu-wave-arm-slot {
+  z-index: 2;
 }
 
 .giu-jiucu-merchant-bubble {
-  animation: giu-jiucu-bubble 3.2s ease-in-out infinite;
+  animation: giu-jiucu-bubble-pop 0.38s cubic-bezier(0.22, 1, 0.36, 1) 1;
 }
 
-@keyframes giu-jiucu-jump-cycle {
+.giu-jiucu-motion-greet {
+  animation: giu-jiucu-jump-once 1.35s ease-in-out 1 forwards;
+}
+
+.giu-jiucu-motion-greet .giu-jiucu-wave-arm,
+.giu-jiucu-motion-team .giu-jiucu-wave-arm {
+  animation: giu-jiucu-arm-wave-once 1.35s ease-in-out 1 forwards;
+}
+
+.giu-jiucu-motion-cheer {
+  animation: giu-jiucu-cheer 1.15s ease-in-out 1 forwards;
+}
+
+.giu-jiucu-motion-show {
+  animation: giu-jiucu-show 1.2s ease-in-out 1 forwards;
+}
+
+.giu-jiucu-motion-team {
+  animation: giu-jiucu-team-hop 1.35s ease-in-out 1 forwards;
+}
+
+@keyframes giu-jiucu-bubble-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes giu-jiucu-jump-once {
   0%,
   100% {
     transform: translateY(0);
   }
-  2% {
-    transform: translateY(-14px);
+  14% {
+    transform: translateY(-15px);
   }
-  4.5%,
-  33% {
-    transform: translateY(0);
-  }
-  35% {
-    transform: translateY(-14px);
-  }
-  37.5%,
-  66% {
-    transform: translateY(0);
-  }
-  68% {
-    transform: translateY(-14px);
-  }
-  70.5%,
-  79% {
+  28% {
     transform: translateY(0);
   }
 }
 
-@keyframes giu-jiucu-arm-wave-cycle {
+@keyframes giu-jiucu-arm-wave-once {
   0%,
-  4.5%,
-  13%,
-  33%,
-  37.5%,
-  46%,
-  66%,
-  70.5%,
-  79%,
+  24%,
   100% {
     transform: rotate(0deg);
   }
-  6% {
-    transform: rotate(16deg);
+  32% {
+    transform: rotate(13deg);
   }
-  7% {
-    transform: rotate(4deg);
-  }
-  8% {
-    transform: rotate(16deg);
-  }
-  9% {
-    transform: rotate(4deg);
-  }
-  10% {
-    transform: rotate(16deg);
-  }
-  11% {
-    transform: rotate(4deg);
-  }
-  39% {
-    transform: rotate(16deg);
-  }
-  40% {
-    transform: rotate(4deg);
-  }
-  41% {
-    transform: rotate(16deg);
-  }
-  42% {
-    transform: rotate(4deg);
-  }
-  43% {
-    transform: rotate(16deg);
+  38% {
+    transform: rotate(3deg);
   }
   44% {
-    transform: rotate(4deg);
+    transform: rotate(13deg);
   }
-  72% {
-    transform: rotate(16deg);
+  50% {
+    transform: rotate(3deg);
   }
-  73% {
-    transform: rotate(4deg);
+  56% {
+    transform: rotate(13deg);
   }
-  74% {
-    transform: rotate(16deg);
+  62% {
+    transform: rotate(3deg);
   }
-  75% {
-    transform: rotate(4deg);
+}
+
+@keyframes giu-jiucu-cheer {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
   }
-  76% {
-    transform: rotate(16deg);
+  18% {
+    transform: translateY(-8px) scale(1.03);
   }
-  77% {
-    transform: rotate(4deg);
+  36% {
+    transform: translateY(0) scale(1);
+  }
+  52% {
+    transform: translateY(-5px) scale(1.02);
+  }
+  68% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes giu-jiucu-show {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  20% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  45% {
+    transform: translateY(-1px) rotate(2deg);
+  }
+  70% {
+    transform: translateY(-4px) rotate(0deg);
+  }
+}
+
+@keyframes giu-jiucu-team-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  16% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  32% {
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -733,9 +754,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .giu-jiucu-merchant-jump,
+  .giu-jiucu-figure,
   .giu-jiucu-wave-arm,
   .giu-jiucu-merchant-bubble {
-    animation: none;
+    animation: none !important;
   }
 }

@@ -442,10 +442,7 @@ export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Pr
 
       {view === "idle" ? (
         <div className="space-y-3">
-          <JiucuMerchantHelp
-            bubble={t(locale, "jiucuAuthMerchant")}
-            caption={t(locale, "jiucuPublishIdle")}
-          />
+          <JiucuMerchantHelp locale={locale} caption={t(locale, "jiucuPublishIdle")} />
           <button
             type="button"
             onClick={openCompose}
