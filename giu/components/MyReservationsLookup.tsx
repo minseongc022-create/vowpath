@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CustomerLogoutLink } from "@/giu/components/CustomerLogoutLink";
 import { CO2_KG_PER_BOX, formatReservationStatusLocale } from "@/giu/lib/box-ux";
-import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { formatPickupWindowWithDate, formatVnd } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
@@ -86,12 +86,25 @@ export function MyReservationsLookup() {
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
-      if (filter === "awaiting") return r.paymentStatus === "paid" && r.status === "giu_cho";
+      if (filter === "awaiting") {
+        return r.paymentStatus === "paid" && r.status === "giu_cho";
+      }
       if (filter === "done") return r.status === "da_lay";
       if (filter === "cancelled") return r.status === "huy" || r.paymentStatus === "refunded";
       return true;
     });
   }, [list, filter]);
+
+  function statusLabel(r: Enriched): string {
+    if (r.status === "het_han") return t(locale, "statusHetHan");
+    return formatReservationStatusLocale(r.status, locale);
+  }
+
+  function statusClass(r: Enriched): string {
+    if (r.status === "het_han") return "font-bold text-amber-800";
+    if (r.status === "giu_cho") return "font-semibold text-giu-primary";
+    return "font-semibold text-giu-muted";
+  }
 
   if (authLoading) {
     return <p className="text-[13px] text-giu-muted">{t(locale, "loading")}</p>;
@@ -176,13 +189,16 @@ export function MyReservationsLookup() {
                       <p className="truncate text-[15px] font-bold text-giu-ink">
                         {r.merchant?.name ?? r.box?.title ?? t(locale, "myCodes")}
                       </p>
-                      <span className="text-[11px] font-semibold text-giu-muted">
-                        {formatReservationStatusLocale(r.status, locale)}
-                      </span>
+                      <span className={`text-[11px] ${statusClass(r)}`}>{statusLabel(r)}</span>
                     </div>
                     {r.box ? (
                       <p className="truncate text-[12px] text-giu-muted">
-                        {r.box.title} · {formatPickupWindow(r.box.pickupStart, r.box.pickupEnd)}
+                        {r.box.title} · {formatPickupWindowWithDate(r.box.pickupStart, r.box.pickupEnd)}
+                      </p>
+                    ) : null}
+                    {r.status === "het_han" ? (
+                      <p className="mt-1 text-[11px] font-semibold text-amber-800">
+                        {t(locale, "cExpiredListHint")}
                       </p>
                     ) : null}
                     <p className="mt-1 text-[12px] font-semibold text-giu-ink">

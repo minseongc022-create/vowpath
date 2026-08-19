@@ -6,7 +6,7 @@ import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuI18nKey, type GiuLocale } from "@/giu/lib/i18n";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { GiuBottomSheet } from "./GiuBottomSheet";
-import { MerchantPickupPromiseButton } from "./MerchantPickupPromiseButton";
+import { MerchantExtensionReview } from "./MerchantExtensionReview";
 import { MerchantNoShowButton } from "./MerchantNoShowButton";
 import { merchantCanMarkNoShow, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 import { ReservationChatButton } from "./ReservationChatButton";
@@ -79,10 +79,13 @@ export function MerchantStatsSheet({
   const awaiting = reservations.filter((r) => r.paymentStatus === "paid" && r.status === "giu_cho");
   const pickupDone = reservations.filter((r) => r.status === "da_lay");
   const settleHeld = reservations.filter(
-    (r) => r.paymentStatus === "paid" && r.settlementStatus === "held",
+    (r) =>
+      r.paymentStatus === "paid" &&
+      r.settlementStatus === "held" &&
+      (r.status === "giu_cho" || r.status === "het_han"),
   );
   const settleDone = reservations.filter(
-    (r) => r.paymentStatus === "paid" && r.settlementStatus === "released",
+    (r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay",
   );
 
   const list =
@@ -164,7 +167,7 @@ export function MerchantStatsSheet({
                         {formatReservationStatusLocale(r.status, locale)}
                         {r.settlementStatus === "held"
                           ? ` · ${t(locale, "mSettleHeld")}`
-                          : r.settlementStatus === "released"
+                          : r.settlementStatus === "released" && r.status === "da_lay"
                             ? ` · ${t(locale, "mSettleDone")}`
                             : ""}
                       </p>
@@ -184,12 +187,15 @@ export function MerchantStatsSheet({
                           {t(locale, "mLatePickupHint")}
                         </p>
                       ) : null}
-                      <MerchantPickupPromiseButton
+                      <MerchantExtensionReview
                         locale={locale}
-                        reservationId={r.id}
+                        reservation={r}
+                        boxPickupStart={box?.pickupStart}
+                        boxPickupEnd={box?.pickupEnd}
                         onDone={onChanged}
                       />
-                      {merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
+                      {r.extensionRequest?.status !== "pending" &&
+                      merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
                         <MerchantNoShowButton
                           locale={locale}
                           reservationId={r.id}

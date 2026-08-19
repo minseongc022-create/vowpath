@@ -1,4 +1,5 @@
-import type { GiuMerchant } from "./types";
+import type { GiuMerchant, GiuReservation } from "./types";
+import { getGiuPublicOrigin } from "./giu-host";
 
 export type GiuPickupPolicy = {
   cancelFreeBeforeMinutes: number;
@@ -11,19 +12,20 @@ export type GiuPickupPolicy = {
 
 /** Platform defaults — merchants can override in settings. */
 export const DEFAULT_PICKUP_POLICY: GiuPickupPolicy = {
-  /** Full refund if cancelled at least this many minutes before pickupEnd. */
   cancelFreeBeforeMinutes: 60,
-  /** In-app “픽업 연장 요청” only until this many minutes before pickupEnd. */
   extensionRequestBeforeMinutes: 10,
-  /** Minutes after pickupEnd when same-day QR pickup still works. */
   pickupGraceMinutes: 30,
-  /** Fee when cancelling inside the free window (before pickupEnd). */
   lateCancelFeeRate: 0.2,
-  /** Fee when refunding after missing pickup (no-show intent). */
   noShowFeeRate: 0.35,
-  /** Hours after pickupEnd+grace before merchant can mark unclaimed (silent no-show). */
   merchantNoShowMarkAfterHours: 24,
 };
+
+/** Customer reminder: 1h 10m before pickup end. */
+export const PICKUP_REMINDER_70_MIN = 70;
+/** Customer reminder: 30m before pickup end (extension nudge). */
+export const PICKUP_REMINDER_30_MIN = 30;
+/** Merchant ping interval while extension pending. */
+export const EXTENSION_MERCHANT_PING_MIN = 5;
 
 export function resolvePickupPolicy(merchant?: Pick<GiuMerchant, "pickupPolicy"> | null): GiuPickupPolicy {
   const p = merchant?.pickupPolicy ?? {};
@@ -111,30 +113,40 @@ export function defaultPromiseUntil(pickupEndIso: string, now = Date.now()): str
   return tomorrow.toISOString();
 }
 
+/** QR/code visible until pickup done or refund — not blocked by pickup window alone. */
 export function isPickupQrValid(
-  reservation: {
-    status: string;
-    paymentStatus: string;
-    merchantPickupPromiseUntil?: string;
-    expiresAt: string;
-  },
+  reservation: Pick<GiuReservation, "status" | "paymentStatus">,
+): boolean {
+  if (reservation.paymentStatus !== "paid") return false;
+  if (reservation.status === "da_lay" || reservation.status === "huy") return false;
+  return true;
+}
+
+export function shouldMarkReservationExpired(
+  reservation: Pick<
+    GiuReservation,
+    "status" | "paymentStatus" | "merchantPickupPromiseUntil" | "extensionRequest"
+  >,
   boxPickupEndIso: string,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
 ): boolean {
-  if (reservation.paymentStatus !== "paid") return false;
-  if (reservation.status === "da_lay" || reservation.status === "huy") return false;
+  if (reservation.paymentStatus !== "paid" || reservation.status !== "giu_cho") return false;
   if (
     reservation.merchantPickupPromiseUntil &&
     new Date(reservation.merchantPickupPromiseUntil).getTime() > now
   ) {
-    return true;
+    return false;
   }
-  if (reservation.status === "giu_cho") {
-    return new Date(reservation.expiresAt).getTime() > now || now <= pickupGraceEndsAt(boxPickupEndIso, policy);
-  }
-  if (reservation.status === "het_han") {
-    return now <= pickupGraceEndsAt(boxPickupEndIso, policy);
-  }
-  return false;
+  if (reservation.extensionRequest?.status === "approved") return false;
+  return now > pickupGraceEndsAt(boxPickupEndIso, policy);
+}
+
+export function reservationDeepLink(reservationId: string, from?: string): string {
+  const base = `${getGiuPublicOrigin()}/dat/${reservationId}`;
+  return from ? `${base}?from=${from}` : base;
+}
+
+export function merchantOrderDeepLink(reservationId: string): string {
+  return `${getGiuPublicOrigin()}/cua-hang/panel?tab=orders&order=${reservationId}`;
 }

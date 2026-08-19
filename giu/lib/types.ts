@@ -165,10 +165,22 @@ export type GiuReservation = {
   noShowFeeVnd?: number;
   /** Customer sent in-app extension request (before cutoff). */
   pickupExtensionRequestedAt?: string;
+  /** Structured extension request awaiting merchant approval. */
+  extensionRequest?: {
+    status: "pending" | "approved" | "rejected";
+    reason: string;
+    plannedPickupAt: string;
+    requestedAt: string;
+    reviewedAt?: string;
+    merchantNote?: string;
+    merchantPingAt?: string;
+  };
   /** Merchant agreed to hold (e.g. after phone call) — QR valid until then. */
   merchantPickupPromiseUntil?: string;
   /** Merchant confirmed silent no-show for compensation. */
   merchantNoShowMarkedAt?: string;
+  /** Pickup reminder SMS sent (ISO timestamps). */
+  pickupRemindersSent?: { at70?: string; at30?: string };
   refundedAt?: string;
   refundType?: "full" | "partial";
   chatLastReadCustomerAt?: string;

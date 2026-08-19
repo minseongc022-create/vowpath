@@ -27,7 +27,7 @@ import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
-import { MerchantPickupPromiseButton } from "./MerchantPickupPromiseButton";
+import { MerchantExtensionReview } from "./MerchantExtensionReview";
 import { MerchantNoShowButton } from "./MerchantNoShowButton";
 import { merchantCanMarkNoShow, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 
@@ -38,6 +38,7 @@ type MerchantTab = (typeof MERCHANT_TABS)[number];
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
+  const highlightOrderId = searchParams.get("order");
   const tab: MerchantTab =
     tabParam === "orders" ? "orders" : tabParam === "settings" ? "settings" : "boxes";
   const { merchant, account, loading: authLoading, refresh, logout } = useGiuAuth();
@@ -121,6 +122,16 @@ export function MerchantPanelClient() {
     return () => window.removeEventListener("giu-merchant-new-order", onNew);
   }, [merchant, load]);
 
+  useEffect(() => {
+    if (!highlightOrderId || tab !== "orders") return;
+    const timer = window.setTimeout(() => {
+      document
+        .getElementById(`giu-order-${highlightOrderId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [highlightOrderId, tab, loading]);
+
   const boxMap = useMemo(() => new Map(boxes.map((b) => [b.id, b])), [boxes]);
 
   const openBoxes = useMemo(
@@ -169,10 +180,15 @@ export function MerchantPanelClient() {
   const hasMoreOrders = filteredOrders.length > orderLimit;
 
   const settlementHeld = reservations
-    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "held")
+    .filter(
+      (r) =>
+        r.paymentStatus === "paid" &&
+        r.settlementStatus === "held" &&
+        (r.status === "giu_cho" || r.status === "het_han"),
+    )
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
   const settlementReleased = reservations
-    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "released")
+    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
 
   const pendingAccountCount = reservations.filter((r) => r.payoutStatus === "pending_account").length;
@@ -383,7 +399,13 @@ export function MerchantPanelClient() {
                   const net = r.totalVnd - r.platformFeeVnd;
                   const awaitingPickup = r.status === "giu_cho" && r.paymentStatus === "paid";
                   return (
-                    <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
+                    <li
+                      key={r.id}
+                      id={`giu-order-${r.id}`}
+                      className={`giu-card-flat p-3 ring-1 ${
+                        highlightOrderId === r.id ? "ring-2 ring-giu-primary" : "ring-giu-border"
+                      }`}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
@@ -444,18 +466,21 @@ export function MerchantPanelClient() {
                               {t(locale, "mLatePickupHint")}
                             </p>
                           ) : null}
-                          <MerchantPickupPromiseButton
-                            locale={locale}
-                            reservationId={r.id}
-                            onDone={() => void load(merchant.id, { silent: true })}
-                          />
-                          {merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
-                            <MerchantNoShowButton
-                              locale={locale}
-                              reservationId={r.id}
-                              onDone={() => void load(merchant.id, { silent: true })}
-                            />
-                          ) : null}
+                      <MerchantExtensionReview
+                        locale={locale}
+                        reservation={r}
+                        boxPickupStart={box?.pickupStart}
+                        boxPickupEnd={box?.pickupEnd}
+                        onDone={() => void load(merchant.id, { silent: true })}
+                      />
+                      {r.extensionRequest?.status !== "pending" &&
+                      merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
+                        <MerchantNoShowButton
+                          locale={locale}
+                          reservationId={r.id}
+                          onDone={() => void load(merchant.id, { silent: true })}
+                        />
+                      ) : null}
                         </div>
                       ) : null}
                       {r.paymentStatus === "paid" &&

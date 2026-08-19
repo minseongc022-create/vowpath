@@ -54,6 +54,14 @@ export function formatPickupDate(iso: string, market: GiuMarket = "kr"): string 
   });
 }
 
+export function formatPickupWindowWithDate(
+  startIso: string,
+  endIso: string,
+  market: GiuMarket = "kr",
+): string {
+  return `${formatPickupDate(startIso, market)} · ${formatPickupWindow(startIso, endIso, market)}`;
+}
+
 const BOX_STATUS_LABELS: Record<GiuBoxStatus, string> = {
   mo: "판매 중",
   het: "매진",
