@@ -81,6 +81,15 @@ export type GiuMerchant = {
   bankName?: string;
   bankAccount?: string;
   bankHolder?: string;
+  /** Per-store pickup / cancel rules (minutes & fee rates). */
+  pickupPolicy?: Partial<{
+    cancelFreeBeforeMinutes: number;
+    extensionRequestBeforeMinutes: number;
+    pickupGraceMinutes: number;
+    lateCancelFeeRate: number;
+    noShowFeeRate: number;
+    merchantNoShowMarkAfterHours: number;
+  }>;
   createdAt: string;
 };
 
@@ -154,11 +163,12 @@ export type GiuReservation = {
   refundAmountVnd?: number;
   /** Non-refundable no-show fee (partial refund). */
   noShowFeeVnd?: number;
-  /** Customer asked merchant to hold food after pickup window. */
+  /** Customer sent in-app extension request (before cutoff). */
   pickupExtensionRequestedAt?: string;
-  /** Merchant approved late pickup; reservation reopens until expiresAt. */
-  pickupExtendedAt?: string;
-  pickupExtensionCount?: number;
+  /** Merchant agreed to hold (e.g. after phone call) — QR valid until then. */
+  merchantPickupPromiseUntil?: string;
+  /** Merchant confirmed silent no-show for compensation. */
+  merchantNoShowMarkedAt?: string;
   refundedAt?: string;
   refundType?: "full" | "partial";
   chatLastReadCustomerAt?: string;

@@ -9,19 +9,23 @@ type Props = {
   locale: GiuLocale;
   reservationId: string;
   extensionRequested?: boolean;
+  canRequestInApp: boolean;
+  cutoffMinutes: number;
 };
 
 export function CustomerPickupExtensionButton({
   locale,
   reservationId,
   extensionRequested,
+  canRequestInApp,
+  cutoffMinutes,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [requested, setRequested] = useState(Boolean(extensionRequested));
 
   async function requestExtension() {
-    if (loading || requested) return;
+    if (loading || requested || !canRequestInApp) return;
     hapticSelect();
     setLoading(true);
     try {
@@ -47,6 +51,14 @@ export function CustomerPickupExtensionButton({
     return (
       <p className="text-[12px] font-semibold leading-snug text-giu-primary">
         {t(locale, "cExtendPickupRequested")}
+      </p>
+    );
+  }
+
+  if (!canRequestInApp) {
+    return (
+      <p className="text-[12px] leading-snug text-giu-muted">
+        {t(locale, "cExtendPickupClosed").replace("{min}", String(cutoffMinutes))}
       </p>
     );
   }
