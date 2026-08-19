@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { formatMoney } from "@/giu/lib/format";
 import { t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { isMerchantDeliveredOrder } from "@/giu/lib/order-status";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 
 type Props = {
@@ -27,11 +28,7 @@ type DayGroup = {
 };
 
 function isDeliveredOrder(r: GiuReservation): boolean {
-  return (
-    r.status === "da_lay" &&
-    r.paymentStatus === "paid" &&
-    r.settlementStatus === "released"
-  );
+  return isMerchantDeliveredOrder(r);
 }
 
 function dayLabel(iso: string): string {

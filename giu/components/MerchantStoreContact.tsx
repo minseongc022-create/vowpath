@@ -5,6 +5,7 @@ import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
 import { telHref } from "@/giu/lib/freshness";
 import { chatCallLabel, chatOpenLabel, t } from "@/giu/lib/i18n";
 import type { GiuLocale } from "@/giu/lib/i18n";
+import { isActiveCustomerOrder } from "@/giu/lib/order-status";
 import type { GiuReservation } from "@/giu/lib/types";
 
 type Props = {
@@ -47,10 +48,7 @@ export function MerchantStoreContact({
       const data = (await res.json()) as { reservations?: GiuReservation[] };
       const match =
         data.reservations?.find(
-          (r) =>
-            r.merchantId === merchantId &&
-            r.paymentStatus === "paid" &&
-            (r.status === "giu_cho" || r.status === "da_lay"),
+          (r) => r.merchantId === merchantId && isActiveCustomerOrder(r),
         ) ?? null;
       setReservation(match);
     } catch {
