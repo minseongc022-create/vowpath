@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  formatPaymentStatusLocale,
-  formatReservationStatusLocale,
-} from "@/giu/lib/box-ux";
-import { formatMoney, formatPickupWindowWithDate } from "@/giu/lib/format";
+import { formatMoney } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
 import { GIU_ROUTES } from "@/giu/lib/routes";
@@ -16,11 +12,9 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
-import { MerchantCustomerDetailSheet } from "./MerchantCustomerDetailSheet";
 import { MerchantCustomerInsights } from "./MerchantCustomerInsights";
 import { MerchantLogoutLink } from "./MerchantLogoutLink";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
-import { ReservationChatButton } from "./ReservationChatButton";
 import { useMerchantPickup } from "./MerchantPickupProvider";
 import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
@@ -28,18 +22,28 @@ import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
-import { MerchantExtensionReview } from "./MerchantExtensionReview";
-import { MerchantOrderStatusBadge } from "./MerchantOrderStatusBadge";
+import { MerchantOrderRow } from "./MerchantOrderRow";
 import {
-  AUTO_NO_SHOW_REFUND_DAYS,
   resolveDisplayReservationStatus,
   resolvePickupPolicy,
 } from "@/giu/lib/pickup-policy";
 
+function isOrderReserved(r: GiuReservation): boolean {
+  return r.paymentStatus === "paid" && r.status !== "da_lay";
+}
+
+function isOrderDelivered(r: GiuReservation): boolean {
+  return (
+    r.status === "da_lay" &&
+    r.paymentStatus === "paid" &&
+    r.settlementStatus === "released"
+  );
+}
+
 const PAGE_SIZE = 50;
 const MERCHANT_TABS = ["boxes", "orders", "settings"] as const;
 type MerchantTab = (typeof MERCHANT_TABS)[number];
-type OrderFilter = "awaiting" | "expired" | "all";
+type OrderFilter = "reserved" | "delivered";
 
 export function MerchantPanelClient() {
   const searchParams = useSearchParams();
@@ -59,11 +63,11 @@ export function MerchantPanelClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [orderQuery, setOrderQuery] = useState("");
-  const [orderFilter, setOrderFilter] = useState<OrderFilter>("awaiting");
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>("reserved");
   const [orderLimit, setOrderLimit] = useState(PAGE_SIZE);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [bankSheetOpen, setBankSheetOpen] = useState(false);
   const [statFilter, setStatFilter] = useState<MerchantStatFilter | null>(null);
-  const [customerDetailId, setCustomerDetailId] = useState<string | null>(null);
   const [tabSlide, setTabSlide] = useState<"forward" | "back">("forward");
   const prevTabIndex = useRef(MERCHANT_TABS.indexOf(tab));
 
@@ -162,36 +166,23 @@ export function MerchantPanelClient() {
     [boxMap, pickupPolicy],
   );
 
-  const awaitingPickup = useMemo(
-    () =>
-      reservations.filter(
-        (r) => r.paymentStatus === "paid" && reservationDisplayStatus(r) === "giu_cho",
-      ).length,
-    [reservations, reservationDisplayStatus],
+  const reservedCount = useMemo(
+    () => reservations.filter(isOrderReserved).length,
+    [reservations],
   );
 
-  const ghostedCount = useMemo(
-    () =>
-      reservations.filter((r) => {
-        if (r.paymentStatus !== "paid" || r.extensionRequest?.status === "pending") return false;
-        return reservationDisplayStatus(r) === "het_han";
-      }).length,
-    [reservations, reservationDisplayStatus],
+  const deliveredCount = useMemo(
+    () => reservations.filter(isOrderDelivered).length,
+    [reservations],
   );
 
   const filteredOrders = useMemo(() => {
     const q = orderQuery.trim().toLowerCase();
-    let list = reservations.filter(
-      (r) => r.paymentStatus === "paid" || r.paymentStatus === "refunded",
-    );
-    if (orderFilter === "awaiting") {
-      list = list.filter(
-        (r) => r.paymentStatus === "paid" && reservationDisplayStatus(r) === "giu_cho",
-      );
-    } else if (orderFilter === "expired") {
-      list = list.filter(
-        (r) => r.paymentStatus === "paid" && reservationDisplayStatus(r) === "het_han",
-      );
+    let list = reservations.filter((r) => r.paymentStatus === "paid");
+    if (orderFilter === "reserved") {
+      list = list.filter(isOrderReserved);
+    } else {
+      list = list.filter(isOrderDelivered);
     }
     if (q) {
       list = list.filter(
@@ -202,18 +193,12 @@ export function MerchantPanelClient() {
       );
     }
     return list.sort((a, b) => {
-      const rank = (r: GiuReservation) => {
-        const s = reservationDisplayStatus(r);
-        if (s === "het_han") return 0;
-        if (s === "giu_cho" && r.paymentStatus === "paid") return 1;
-        return 2;
-      };
-      const aWait = rank(a);
-      const bWait = rank(b);
-      if (aWait !== bWait) return aWait - bWait;
+      if (orderFilter === "delivered") {
+        return (b.settledAt ?? b.createdAt).localeCompare(a.settledAt ?? a.createdAt);
+      }
       return b.createdAt.localeCompare(a.createdAt);
     });
-  }, [reservations, orderQuery, orderFilter, boxMap, reservationDisplayStatus]);
+  }, [reservations, orderQuery, orderFilter, boxMap]);
 
   const visibleOrders = filteredOrders.slice(0, orderLimit);
   const hasMoreOrders = filteredOrders.length > orderLimit;
@@ -291,12 +276,17 @@ export function MerchantPanelClient() {
               {
                 key: "awaiting" as const,
                 label: t(locale, "mAwaitingPickup"),
-                value: String(awaitingPickup),
+                value: String(reservedCount),
               },
               {
                 key: "ghosted" as const,
                 label: t(locale, "mGhostedTitle"),
-                value: String(ghostedCount),
+                value: String(
+                  reservations.filter((r) => {
+                    if (!isOrderReserved(r) || r.extensionRequest?.status === "pending") return false;
+                    return reservationDisplayStatus(r) === "het_han";
+                  }).length,
+                ),
               },
               {
                 key: "settlement" as const,
@@ -388,21 +378,20 @@ export function MerchantPanelClient() {
               </h2>
             </div>
             <div className="giu-filter-tabs">
-              {(["awaiting", "expired", "all"] as const).map((f) => (
+              {(["reserved", "delivered"] as const).map((f) => (
                 <button
                   key={f}
                   type="button"
                   onClick={() => {
                     hapticSelect();
                     setOrderFilter(f);
+                    setExpandedOrderId(null);
                   }}
                   className={`giu-filter-tab ${orderFilter === f ? "is-active" : ""}`}
                 >
-                  {f === "awaiting"
-                    ? `${t(locale, "mOrdersAwaiting")}${awaitingPickup > 0 ? ` (${awaitingPickup})` : ""}`
-                    : f === "expired"
-                      ? `${t(locale, "mFilterExpired")}${ghostedCount > 0 ? ` (${ghostedCount})` : ""}`
-                      : t(locale, "mOrdersAll")}
+                  {f === "reserved"
+                    ? `${t(locale, "mOrdersReserved")}${reservedCount > 0 ? ` (${reservedCount})` : ""}`
+                    : `${t(locale, "mOrdersDelivered")}${deliveredCount > 0 ? ` (${deliveredCount})` : ""}`}
                 </button>
               ))}
             </div>
@@ -415,115 +404,39 @@ export function MerchantPanelClient() {
           {filteredOrders.length === 0 ? (
             <div className="giu-card space-y-3 text-center">
               <p className="font-bold text-giu-ink">
-                {orderFilter === "awaiting"
-                  ? t(locale, "mNoOrders")
-                  : orderFilter === "expired"
-                    ? t(locale, "mStatEmptyExpired")
-                    : t(locale, "mNoOrdersAll")}
+                {orderFilter === "reserved" ? t(locale, "mNoOrdersReserved") : t(locale, "mNoOrdersDelivered")}
               </p>
               <p className="text-[13px] text-giu-muted">
-                {orderFilter === "awaiting"
-                  ? t(locale, "mNoOrdersHint")
-                  : orderFilter === "expired"
-                    ? t(locale, "mStatSettleHeldHint")
-                    : t(locale, "mNoOrdersAllHint")}
+                {orderFilter === "reserved" ? t(locale, "mNoOrdersReservedHint") : t(locale, "mNoOrdersDeliveredHint")}
               </p>
-              <Link href={panelHref} className="giu-btn-primary giu-btn-3d block !py-3 text-[14px]">
-                {t(locale, "mGoBoxes")}
-              </Link>
+              {orderFilter === "reserved" ? (
+                <Link href={panelHref} className="giu-btn-primary giu-btn-3d block !py-3 text-[14px]">
+                  {t(locale, "mGoBoxes")}
+                </Link>
+              ) : null}
             </div>
           ) : (
             <>
-              <ul className="space-y-2.5">
+              <ul className="space-y-2">
                 {visibleOrders.map((r) => {
                   const box = boxMap.get(r.boxId);
                   const shown = reservationDisplayStatus(r);
-                  const isActiveAwaiting = shown === "giu_cho" && r.paymentStatus === "paid";
-                  const isExpired = shown === "het_han";
                   return (
-                    <li
+                    <MerchantOrderRow
                       key={r.id}
-                      id={`giu-order-${r.id}`}
-                      className={`giu-card-flat p-3 ring-1 ${
-                        highlightOrderId === r.id ? "ring-2 ring-giu-primary" : "ring-giu-border"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
-                          {box ? (
-                            <p className="mt-2 text-[12px] font-semibold text-giu-ink">{box.title}</p>
-                          ) : null}
-                          {box ? (
-                            <p className="text-[11px] font-medium text-giu-muted">
-                              {formatPickupWindowWithDate(box.pickupStart, box.pickupEnd, market)}
-                            </p>
-                          ) : null}
-                          {isActiveAwaiting ? (
-                            <p className="mt-2 text-[11px] font-semibold leading-snug text-giu-muted">
-                              {t(locale, "mAwaitingPickupHint")}
-                            </p>
-                          ) : isExpired ? (
-                            <p className="mt-2 text-[11px] font-semibold leading-snug text-amber-900">
-                              {t(locale, "mAutoRefundHint").replaceAll(
-                                "{days}",
-                                String(AUTO_NO_SHOW_REFUND_DAYS),
-                              )}
-                            </p>
-                          ) : null}
-                          <p className="mt-1.5 text-[13px] font-bold text-giu-ink">{money(r.totalVnd)}</p>
-                          <p className="text-[11px] text-giu-muted">
-                            {formatPaymentStatusLocale(r.paymentStatus, locale)} ·{" "}
-                            {formatReservationStatusLocale(shown, locale)}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-2">
-                          <MerchantOrderStatusBadge
-                            locale={locale}
-                            reservation={r}
-                            boxPickupEnd={box?.pickupEnd}
-                            policy={pickupPolicy}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              hapticSelect();
-                              setCustomerDetailId(r.customerId);
-                            }}
-                            className="giu-btn-secondary !px-3 !py-1.5 text-[11px] font-bold"
-                          >
-                            {t(locale, "mCustDetailOpen")}
-                          </button>
-                        </div>
-                      </div>
-                      {r.paymentStatus === "paid" &&
-                      r.extensionRequest?.status === "pending" &&
-                      (shown === "giu_cho" || shown === "het_han") &&
-                      box ? (
-                        <div className="mt-2">
-                          <MerchantExtensionReview
-                            locale={locale}
-                            reservation={r}
-                            boxPickupStart={box?.pickupStart}
-                            boxPickupEnd={box?.pickupEnd}
-                            onDone={() => void load(merchant.id, { silent: true })}
-                          />
-                        </div>
-                      ) : null}
-                      {r.paymentStatus === "paid" &&
-                      (shown === "giu_cho" || r.status === "da_lay" || shown === "het_han") ? (
-                        <div className="mt-3">
-                          <ReservationChatButton
-                            locale={locale}
-                            reservationId={r.id}
-                            viewerRole="merchant"
-                            peerName={r.customerName}
-                            peerPhone={r.customerPhone}
-                          />
-                        </div>
-                      ) : null}
-                    </li>
+                      locale={locale}
+                      reservation={r}
+                      box={box}
+                      expanded={expandedOrderId === r.id}
+                      onToggle={() =>
+                        setExpandedOrderId((prev) => (prev === r.id ? null : r.id))
+                      }
+                      money={money}
+                      shownStatus={shown}
+                      mode={orderFilter}
+                      onChanged={() => void load(merchant.id, { silent: true })}
+                      highlight={highlightOrderId === r.id}
+                    />
                   );
                 })}
               </ul>
@@ -553,7 +466,7 @@ export function MerchantPanelClient() {
             locale={locale}
             merchantId={merchant.id}
             reservations={reservations}
-            onSelectCustomer={setCustomerDetailId}
+            boxMap={boxMap}
           />
           <MerchantSettlementSummary
             locale={locale}
@@ -586,20 +499,8 @@ export function MerchantPanelClient() {
         money={money}
         onChanged={() => void load(merchant.id, { silent: true })}
         merchant={merchant}
-        onSelectCustomer={setCustomerDetailId}
       />
 
-      <MerchantCustomerDetailSheet
-        locale={locale}
-        open={customerDetailId !== null}
-        customerId={customerDetailId}
-        onClose={() => setCustomerDetailId(null)}
-        reservations={reservations}
-        boxMap={boxMap}
-        money={money}
-        merchant={merchant}
-        onChanged={() => void load(merchant.id, { silent: true })}
-      />
     </div>
   );
 }

@@ -35,7 +35,6 @@ type Props = {
   money: (n: number) => string;
   onChanged: () => void;
   merchant: import("@/giu/lib/types").GiuMerchant;
-  onSelectCustomer?: (customerId: string) => void;
 };
 
 function titleKey(filter: MerchantStatFilter): GiuI18nKey {
@@ -104,7 +103,6 @@ export function MerchantStatsSheet({
   money,
   onChanged,
   merchant,
-  onSelectCustomer,
 }: Props) {
   const [settlementView, setSettlementView] = useState<SettlementView>("menu");
 
@@ -248,18 +246,6 @@ export function MerchantStatsSheet({
                         })}
                       </p>
                     ) : null}
-                    {onSelectCustomer ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          hapticSelect();
-                          onSelectCustomer(r.customerId);
-                        }}
-                        className="mt-2 text-[12px] font-bold text-giu-primary"
-                      >
-                        {t(locale, "mCustDetailOpen")} →
-                      </button>
-                    ) : null}
                   </li>
                 );
               })}
@@ -299,18 +285,6 @@ export function MerchantStatsSheet({
                               policy={policy}
                             />
                           ) : null}
-                          {onSelectCustomer ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                hapticSelect();
-                                onSelectCustomer(g.customerId);
-                              }}
-                              className="giu-btn-secondary !px-3 !py-1.5 text-[11px] font-bold"
-                            >
-                              {t(locale, "mCustDetailOpen")}
-                            </button>
-                          ) : null}
                         </div>
                       </div>
                       {filter === "ghosted" && latest && box && latest.extensionRequest?.status !== "pending" ? (
@@ -349,18 +323,6 @@ export function MerchantStatsSheet({
                   <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
                     <p className="text-[14px] font-bold text-giu-ink">{r.customerName}</p>
                     {box ? <p className="text-[12px] text-giu-muted">{box.title}</p> : null}
-                    {onSelectCustomer ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          hapticSelect();
-                          onSelectCustomer(r.customerId);
-                        }}
-                        className="mt-2 text-[12px] font-bold text-giu-primary"
-                      >
-                        {t(locale, "mCustDetailOpen")} →
-                      </button>
-                    ) : null}
                   </li>
                 );
               })}
