@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { requireMerchantSession } from "@/giu/lib/auth-request";
 import { isPickupQrToken } from "@/giu/lib/pickup-qr";
 import { confirmPickupByCode, confirmPickupById, confirmPickupByToken, getBox } from "@/giu/lib/store";
 
@@ -16,8 +16,8 @@ const schema = z
 
 export async function POST(request: Request) {
   try {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || !session.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
     const body = await request.json();
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
     const reservationId = parsed.data.reservationId?.trim();
     let result;
     if (reservationId) {
-      result = await confirmPickupById(session.merchantId, reservationId);
+      result = await confirmPickupById(auth.merchantId, reservationId);
     } else if (code) {
-      result = await confirmPickupByCode(session.merchantId, code);
+      result = await confirmPickupByCode(auth.merchantId, code);
     } else {
       if (!token || !isPickupQrToken(token)) {
         return NextResponse.json({ error: "QR만 스캔할 수 있어요" }, { status: 400 });
       }
-      result = await confirmPickupByToken(session.merchantId, token);
+      result = await confirmPickupByToken(auth.merchantId, token);
     }
 
     if ("error" in result) {

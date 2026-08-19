@@ -79,7 +79,7 @@ export function MerchantPanelClient() {
   }, [tabIndex]);
 
   const load = useCallback(
-    async (merchantId: string, opts?: { silent?: boolean }) => {
+    async (merchantId: string, opts?: { silent?: boolean; retried?: boolean }) => {
       if (!opts?.silent) setLoading(true);
       setError("");
       try {
@@ -88,9 +88,13 @@ export function MerchantPanelClient() {
           fetch(`/api/giu/reservations?merchantId=${merchantId}`, { credentials: "include" }),
         ]);
         if (bRes.status === 401 || rRes.status === 401) {
+          if (!opts?.retried) {
+            await refresh();
+            return load(merchantId, { ...opts, silent: true, retried: true });
+          }
           setError(t(locale, "mSessionExpired"));
           await logout();
-          window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
+          window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant&reauth=1`;
           return;
         }
         if (!bRes.ok || !rRes.ok) {
@@ -107,7 +111,7 @@ export function MerchantPanelClient() {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [locale, logout, href],
+    [locale, logout, href, refresh],
   );
 
   useEffect(() => {
@@ -250,7 +254,7 @@ export function MerchantPanelClient() {
           type="button"
           className="giu-btn-primary"
           onClick={() => {
-            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
+            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant&reauth=1`;
           }}
         >
           {t(locale, "loginSignup")}
@@ -536,7 +540,7 @@ export function MerchantPanelClient() {
                       />
                       {r.extensionRequest?.status !== "pending" &&
                       isExpired &&
-                      merchantCanMarkNoShow(box.pickupEnd, pickupPolicy) ? (
+                      merchantCanMarkNoShow(box.pickupEnd, pickupPolicy, Date.now(), r) ? (
                         <MerchantNoShowButton
                           locale={locale}
                           reservationId={r.id}

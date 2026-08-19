@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { requireMerchantSession } from "@/giu/lib/auth-request";
 import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
 import { MAX_BOX_IMAGES, normalizeImageUrls } from "@/giu/lib/box-images";
-import { deleteBox, getBox, getMerchant, updateBox } from "@/giu/lib/store";
+import { deleteBox, getBox, getMerchantByAccountId, updateBox } from "@/giu/lib/store";
 
 const patchSchema = z.object({
   status: z.enum(["mo", "het", "huy"]).optional(),
@@ -42,8 +42,8 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Props) {
   try {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || !session.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
 
@@ -51,7 +51,7 @@ export async function PATCH(request: Request, { params }: Props) {
     const box = await getBox(id);
     if (!box) return NextResponse.json({ error: "상품을 찾을 수 없습니다" }, { status: 404 });
 
-    const merchant = await getMerchant(session.merchantId);
+    const merchant = await getMerchantByAccountId(auth.session.sub);
     if (!merchant || box.merchantId !== merchant.id) {
       return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
@@ -105,8 +105,8 @@ export async function PATCH(request: Request, { params }: Props) {
 
 export async function DELETE(request: Request, { params }: Props) {
   try {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || !session.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
 
@@ -114,7 +114,7 @@ export async function DELETE(request: Request, { params }: Props) {
     const box = await getBox(id);
     if (!box) return NextResponse.json({ error: "상품을 찾을 수 없습니다" }, { status: 404 });
 
-    const merchant = await getMerchant(session.merchantId);
+    const merchant = await getMerchantByAccountId(auth.session.sub);
     if (!merchant || box.merchantId !== merchant.id) {
       return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }

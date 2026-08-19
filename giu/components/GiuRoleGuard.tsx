@@ -69,20 +69,29 @@ export function GiuRoleGuard({
 
 export function GiuAuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const href = useGiuHref();
   const { account, loading } = useGiuAuth();
   const { locale } = useGiuLocale();
+  const requestedRole =
+    searchParams.get("role") === "merchant"
+      ? "merchant"
+      : searchParams.get("role") === "customer"
+        ? "customer"
+        : null;
+  const forceLogin = searchParams.get("reauth") === "1";
 
   useEffect(() => {
-    if (loading || !account) return;
+    if (loading || !account || forceLogin) return;
+    if (requestedRole && account.role !== requestedRole) return;
     router.replace(href(homePathForRole(account.role)));
-  }, [account, loading, router, href]);
+  }, [account, loading, requestedRole, forceLogin, router, href]);
 
   if (loading) {
     return <GuardMessage text={t(locale, "loading")} />;
   }
 
-  if (account) {
+  if (account && !forceLogin && (!requestedRole || account.role === requestedRole)) {
     return <GuardMessage text={t(locale, "loading")} />;
   }
 

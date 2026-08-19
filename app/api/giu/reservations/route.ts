@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuSessionFromRequest, requireMerchantSession, resolveMerchantId, merchantOwnsReservation } from "@/giu/lib/auth-request";
 import { getGiuPublicOrigin } from "@/giu/lib/giu-host";
 import { createGiuLsCheckout } from "@/giu/lib/lemon-squeezy-giu";
 import { giuPaymentStatus } from "@/giu/lib/payments";
@@ -26,7 +26,8 @@ export async function GET(request: Request) {
   const phone = url.searchParams.get("phone") ?? undefined;
 
   if (merchantId) {
-    if (!session || session.role !== "merchant" || session.merchantId !== merchantId) {
+    const auth = await requireMerchantSession(request, merchantId);
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   } else if (phone) {
@@ -36,8 +37,12 @@ export async function GET(request: Request) {
   } else if (session?.role === "customer") {
     const reservations = await listReservations({ customerId: session.sub });
     return NextResponse.json({ reservations });
-  } else if (session?.role === "merchant" && session.merchantId) {
-    const reservations = await listReservations({ merchantId: session.merchantId });
+  } else if (session?.role === "merchant") {
+    const resolvedId = await resolveMerchantId(session);
+    if (!resolvedId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const reservations = await listReservations({ merchantId: resolvedId });
     return NextResponse.json({ reservations: stripPickupCodesForMerchant(reservations) });
   } else {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

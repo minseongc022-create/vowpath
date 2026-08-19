@@ -97,8 +97,13 @@ export function merchantCanMarkNoShow(
   pickupEndIso: string,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
+  reservation?: Pick<
+    GiuReservation,
+    "merchantPickupPromiseUntil" | "extensionRequest"
+  >,
 ): boolean {
-  const afterGrace = pickupGraceEndsAt(pickupEndIso, policy);
+  const endIso = reservation ? effectivePickupEndIso(reservation, pickupEndIso) : pickupEndIso;
+  const afterGrace = pickupGraceEndsAt(endIso, policy);
   return now >= afterGrace + policy.merchantNoShowMarkAfterHours * 3_600_000;
 }
 
@@ -132,14 +137,40 @@ export function shouldMarkReservationExpired(
   now = Date.now(),
 ): boolean {
   if (reservation.paymentStatus !== "paid" || reservation.status !== "giu_cho") return false;
-  if (
-    reservation.merchantPickupPromiseUntil &&
-    new Date(reservation.merchantPickupPromiseUntil).getTime() > now
-  ) {
+
+  if (reservation.extensionRequest?.status === "pending") {
     return false;
   }
-  if (reservation.extensionRequest?.status === "approved") return false;
-  return now > pickupGraceEndsAt(boxPickupEndIso, policy);
+
+  const promisedUntil = reservation.merchantPickupPromiseUntil;
+  if (promisedUntil && new Date(promisedUntil).getTime() > now) {
+    return false;
+  }
+
+  const endIso =
+    promisedUntil ??
+    (reservation.extensionRequest?.status === "approved"
+      ? reservation.extensionRequest.plannedPickupAt
+      : boxPickupEndIso);
+
+  return now > pickupGraceEndsAt(endIso, policy);
+}
+
+/** Pickup deadline for expiry/display — honors approved extension times. */
+export function effectivePickupEndIso(
+  reservation: Pick<
+    GiuReservation,
+    "merchantPickupPromiseUntil" | "extensionRequest"
+  >,
+  boxPickupEndIso: string,
+): string {
+  if (reservation.merchantPickupPromiseUntil) {
+    return reservation.merchantPickupPromiseUntil;
+  }
+  if (reservation.extensionRequest?.status === "approved") {
+    return reservation.extensionRequest.plannedPickupAt;
+  }
+  return boxPickupEndIso;
 }
 
 /** UI + filters: treat past-grace giu_cho as 픽업 마감 even before cron persists het_han. */

@@ -311,7 +311,7 @@ export function MerchantStatsSheet({
                       />
                       {r.extensionRequest?.status !== "pending" &&
                       isExpired &&
-                      merchantCanMarkNoShow(box.pickupEnd, policy) ? (
+                      merchantCanMarkNoShow(box.pickupEnd, policy, Date.now(), r) ? (
                         <MerchantNoShowButton
                           locale={locale}
                           reservationId={r.id}

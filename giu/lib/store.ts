@@ -1750,7 +1750,7 @@ export async function markMerchantNoShow(
   if (!box || !merchant) return { error: "주문 정보를 찾을 수 없어요" };
 
   const policy = resolvePickupPolicy(merchant);
-  if (!merchantCanMarkNoShow(box.pickupEnd, policy)) {
+  if (!merchantCanMarkNoShow(box.pickupEnd, policy, Date.now(), res)) {
     return {
       error: `픽업 종료 후 ${policy.merchantNoShowMarkAfterHours}시간이 지나야 미수령 처리할 수 있어요`,
     };

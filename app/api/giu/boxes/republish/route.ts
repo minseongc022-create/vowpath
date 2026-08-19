@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { requireMerchantSession } from "@/giu/lib/auth-request";
 import { getMerchantByAccountId, republishBox, republishLastBox } from "@/giu/lib/store";
 
 const bodySchema = z.object({
@@ -27,12 +27,11 @@ function parseSchedule(parsed: z.infer<typeof bodySchema>) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || !session.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
-    const merchant = await getMerchantByAccountId(session.sub);
-    const merchantId = merchant?.id ?? session.merchantId;
+    const merchantId = auth.merchantId;
 
     let boxId: string | undefined;
     let schedule: ReturnType<typeof parseSchedule>;
