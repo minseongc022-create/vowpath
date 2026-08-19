@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CustomerLogoutLink } from "@/giu/components/CustomerLogoutLink";
-import { formatReservationStatusLocale } from "@/giu/lib/box-ux";
+import { orderStatusLabelKo } from "@/giu/lib/order-status";
 import { formatPickupWindowWithDate, formatVnd } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
+import { isActiveCustomerOrder, isPastCustomerOrder } from "@/giu/lib/order-status";
 import { resolveDisplayReservationStatus } from "@/giu/lib/pickup-policy";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant, GiuReservation } from "@/giu/lib/types";
@@ -18,13 +19,11 @@ type Enriched = GiuReservation & { box?: GiuBox | null; merchant?: GiuMerchant |
 type CustomerFilter = "all" | "active" | "past";
 
 function isActiveReservation(r: GiuReservation): boolean {
-  if (r.paymentStatus !== "paid") return false;
-  if (r.status === "da_lay" || r.status === "huy") return false;
-  return true;
+  return isActiveCustomerOrder(r);
 }
 
 function isPastReservation(r: GiuReservation): boolean {
-  return r.status === "da_lay" || r.status === "huy" || r.paymentStatus === "refunded";
+  return isPastCustomerOrder(r);
 }
 
 export function MyReservationsLookup() {
@@ -71,7 +70,11 @@ export function MyReservationsLookup() {
 
   const savedTotal = useMemo(() => {
     const paid = list.filter(
-      (r) => r.paymentStatus === "paid" || r.status === "da_lay" || r.paymentStatus === "refunded",
+      (r) =>
+        r.paymentStatus === "paid" ||
+        r.status === "pickup_completed" ||
+        r.status === "settlement_completed" ||
+        r.paymentStatus === "refunded",
     );
     const retail = paid.reduce((s, r) => {
       const unit = r.box?.originalPriceVnd ?? Math.round(r.totalVnd / Math.max(1, r.quantity));
@@ -91,14 +94,19 @@ export function MyReservationsLookup() {
 
   function statusLabel(r: Enriched): string {
     const shown = resolveDisplayReservationStatus(r, r.box?.pickupEnd);
-    if (shown === "het_han") return t(locale, "statusHetHan");
-    return formatReservationStatusLocale(shown, locale);
+    return orderStatusLabelKo(shown);
   }
 
   function statusClass(r: Enriched): string {
     const shown = resolveDisplayReservationStatus(r, r.box?.pickupEnd);
-    if (shown === "het_han") return "font-bold text-amber-800";
-    if (shown === "giu_cho") return "font-semibold text-giu-primary";
+    if (shown === "not_picked_up" || shown === "no_show_review") return "font-bold text-amber-800";
+    if (
+      shown === "pickup_waiting" ||
+      shown === "payment_completed" ||
+      shown === "merchant_confirmed"
+    ) {
+      return "font-semibold text-giu-primary";
+    }
     return "font-semibold text-giu-muted";
   }
 

@@ -3,6 +3,7 @@
 import { formatPickupWindowWithDate } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuI18nKey, type GiuLocale } from "@/giu/lib/i18n";
+import { isMerchantDeliveredOrder } from "@/giu/lib/order-status";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { GiuBottomSheet } from "./GiuBottomSheet";
 
@@ -34,9 +35,7 @@ export function MerchantStatsSheet({
   if (!filter) return null;
 
   const selling = boxes.filter((b) => b.status === "mo" && b.quantityLeft > 0);
-  const settleDone = reservations.filter(
-    (r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay",
-  );
+  const settleDone = reservations.filter(isMerchantDeliveredOrder);
   const settleDoneTotal = settleDone.reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
   const titleId = "giu-merchant-stat-sheet-title";
 

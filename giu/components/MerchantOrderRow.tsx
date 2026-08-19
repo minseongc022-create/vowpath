@@ -8,6 +8,7 @@ import { formatPickupWindowWithDate } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuLocale } from "@/giu/lib/i18n";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
+import { MerchantConfirmOrderButton } from "./MerchantConfirmOrderButton";
 import { MerchantExtensionReview } from "./MerchantExtensionReview";
 import { ReservationChatButton } from "./ReservationChatButton";
 
@@ -103,6 +104,13 @@ export function MerchantOrderRow({
                 minute: "2-digit",
               })}
             </p>
+          ) : null}
+          {mode === "reserved" && r.status === "payment_completed" ? (
+            <MerchantConfirmOrderButton
+              locale={locale}
+              reservationId={r.id}
+              onDone={onChanged}
+            />
           ) : null}
           {mode === "reserved" &&
           r.extensionRequest?.status === "pending" &&

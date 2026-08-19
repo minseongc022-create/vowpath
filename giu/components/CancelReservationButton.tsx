@@ -16,7 +16,7 @@ export function CancelReservationButton({ reservationId }: { reservationId: stri
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ status: "huy" }),
+      body: JSON.stringify({ action: "cancel" }),
     });
     router.refresh();
     setLoading(false);

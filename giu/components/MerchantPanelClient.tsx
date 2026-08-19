@@ -25,21 +25,12 @@ import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantValuePitch } from "./MerchantValuePitch";
 import { MerchantOrderRow } from "./MerchantOrderRow";
 import {
-  resolveDisplayReservationStatus,
-  resolvePickupPolicy,
-} from "@/giu/lib/pickup-policy";
-
-function isOrderReserved(r: GiuReservation): boolean {
-  return r.paymentStatus === "paid" && r.status !== "da_lay";
-}
-
-function isOrderDelivered(r: GiuReservation): boolean {
-  return (
-    r.status === "da_lay" &&
-    r.paymentStatus === "paid" &&
-    r.settlementStatus === "released"
-  );
-}
+  isMerchantDeliveredOrder,
+  isMerchantOpenOrder,
+  isPastCustomerOrder,
+  isActiveCustomerOrder,
+} from "@/giu/lib/order-status";
+import { resolveDisplayReservationStatus, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 
 const PAGE_SIZE = 50;
 const MERCHANT_TABS = ["boxes", "orders", "settings"] as const;
@@ -168,12 +159,12 @@ export function MerchantPanelClient() {
   );
 
   const reservedCount = useMemo(
-    () => reservations.filter(isOrderReserved).length,
+    () => reservations.filter(isMerchantOpenOrder).length,
     [reservations],
   );
 
   const deliveredCount = useMemo(
-    () => reservations.filter(isOrderDelivered).length,
+    () => reservations.filter(isMerchantDeliveredOrder).length,
     [reservations],
   );
 
@@ -181,9 +172,9 @@ export function MerchantPanelClient() {
     const q = orderQuery.trim().toLowerCase();
     let list = reservations.filter((r) => r.paymentStatus === "paid");
     if (orderFilter === "reserved") {
-      list = list.filter(isOrderReserved);
+      list = list.filter(isMerchantOpenOrder);
     } else {
-      list = list.filter(isOrderDelivered);
+      list = list.filter(isMerchantDeliveredOrder);
     }
     if (q) {
       list = list.filter(
@@ -205,12 +196,14 @@ export function MerchantPanelClient() {
   const hasMoreOrders = filteredOrders.length > orderLimit;
 
   const settlementReleased = reservations
-    .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay")
+    .filter(isMerchantDeliveredOrder)
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
 
   const pendingAccountCount = reservations.filter((r) => r.payoutStatus === "pending_account").length;
   const needsBank = !merchant?.bankName?.trim() || !merchant?.bankAccount?.trim();
-  const pickupDoneCount = reservations.filter((r) => r.status === "da_lay").length;
+  const pickupDoneCount = reservations.filter(
+    (r) => r.status === "pickup_completed" || r.status === "settlement_completed",
+  ).length;
 
   const openStatSheet = (filter: MerchantStatFilter) => {
     hapticSelect();
