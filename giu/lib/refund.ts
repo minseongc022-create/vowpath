@@ -1,61 +1,82 @@
 import { GIU_BRAND } from "./brand";
-import type { GiuBox, GiuReservation } from "./types";
-
-/** Share of order total kept when customer cancels after pickup window starts (no-show). */
-export const GIU_NO_SHOW_FEE_RATE = 0.35;
+import {
+  DEFAULT_PICKUP_POLICY,
+  minutesUntilPickupEnd,
+  resolvePickupPolicy,
+  type GiuPickupPolicy,
+} from "./pickup-policy";
+import type { GiuBox, GiuMerchant, GiuReservation } from "./types";
 
 export type RefundSplit = {
-  type: "full" | "partial";
+  type: "full" | "late_cancel" | "no_show";
   refundVnd: number;
   noShowFeeVnd: number;
   platformFeeVnd: number;
   merchantCompensationVnd: number;
+  reason: "free_window" | "late_cancel" | "no_show" | "promise_give_up";
 };
 
-export function calculateRefundSplit(
-  reservation: GiuReservation,
-  box: GiuBox,
-  now = Date.now(),
+function partialSplit(
+  totalVnd: number,
+  feeRate: number,
+  reason: RefundSplit["reason"],
 ): RefundSplit {
-  const zeroFee = {
-    platformFeeVnd: 0,
-    merchantCompensationVnd: 0,
-  };
-
-  if (reservation.status === "het_han") {
-    const extended = Boolean(reservation.pickupExtendedAt);
-    const extensionExpired =
-      extended && new Date(reservation.expiresAt).getTime() < now;
-    if (!extended || !extensionExpired) {
-      return {
-        type: "full",
-        refundVnd: reservation.totalVnd,
-        noShowFeeVnd: 0,
-        ...zeroFee,
-      };
-    }
-  }
-
-  const pickupStart = new Date(box.pickupStart).getTime();
-  if (now < pickupStart && reservation.status === "giu_cho") {
-    return {
-      type: "full",
-      refundVnd: reservation.totalVnd,
-      noShowFeeVnd: 0,
-      ...zeroFee,
-    };
-  }
-
-  const noShowFeeVnd = Math.round(reservation.totalVnd * GIU_NO_SHOW_FEE_RATE);
-  const refundVnd = reservation.totalVnd - noShowFeeVnd;
-  const platformFeeVnd = Math.round(reservation.totalVnd * GIU_BRAND.commissionRate);
+  const noShowFeeVnd = Math.round(totalVnd * feeRate);
+  const refundVnd = totalVnd - noShowFeeVnd;
+  const platformFeeVnd = Math.round(totalVnd * GIU_BRAND.commissionRate);
   const merchantCompensationVnd = Math.max(0, noShowFeeVnd - platformFeeVnd);
-
   return {
-    type: "partial",
+    type: reason === "late_cancel" ? "late_cancel" : "no_show",
     refundVnd,
     noShowFeeVnd,
     platformFeeVnd,
     merchantCompensationVnd,
+    reason,
   };
+}
+
+export function calculateRefundSplit(
+  reservation: GiuReservation,
+  box: GiuBox,
+  merchant?: Pick<GiuMerchant, "pickupPolicy"> | null,
+  now = Date.now(),
+): RefundSplit {
+  const policy = resolvePickupPolicy(merchant);
+  const minutesToEnd = minutesUntilPickupEnd(box.pickupEnd, now);
+
+  const zeroFee = {
+    type: "full" as const,
+    refundVnd: reservation.totalVnd,
+    noShowFeeVnd: 0,
+    platformFeeVnd: 0,
+    merchantCompensationVnd: 0,
+    reason: "free_window" as const,
+  };
+
+  if (
+    reservation.merchantPickupPromiseUntil &&
+    new Date(reservation.merchantPickupPromiseUntil).getTime() > now
+  ) {
+    return partialSplit(reservation.totalVnd, policy.noShowFeeRate, "promise_give_up");
+  }
+
+  if (minutesToEnd >= policy.cancelFreeBeforeMinutes) {
+    return zeroFee;
+  }
+
+  if (minutesToEnd > 0) {
+    return partialSplit(reservation.totalVnd, policy.lateCancelFeeRate, "late_cancel");
+  }
+
+  return partialSplit(reservation.totalVnd, policy.noShowFeeRate, "no_show");
+}
+
+export function refundSplitLabelReason(split: RefundSplit, policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY): string {
+  if (split.reason === "free_window") {
+    return `픽업 ${policy.cancelFreeBeforeMinutes}분 전 — 수수료 없음`;
+  }
+  if (split.reason === "late_cancel") {
+    return `픽업 ${policy.cancelFreeBeforeMinutes}분 이내 취소 — ${Math.round(policy.lateCancelFeeRate * 100)}%`;
+  }
+  return `노쇼/미수령 — ${Math.round(policy.noShowFeeRate * 100)}%`;
 }

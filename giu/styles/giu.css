@@ -625,24 +625,24 @@
 }
 
 .giu-jiucu-motion-greet {
-  animation: giu-jiucu-jump-once 2.2s ease-in-out 1 forwards;
+  animation: giu-jiucu-jump-once 2.4s ease-in-out 1 forwards;
 }
 
 .giu-jiucu-motion-greet .giu-jiucu-wave-arm,
 .giu-jiucu-motion-team .giu-jiucu-wave-arm {
-  animation: giu-jiucu-arm-wave-once 2.2s ease-in-out 1 forwards;
+  animation: none;
 }
 
 .giu-jiucu-motion-cheer {
-  animation: giu-jiucu-cheer 1.15s ease-in-out 1 forwards;
+  animation: giu-jiucu-cheer 1.8s ease-in-out 1 forwards;
 }
 
 .giu-jiucu-motion-show {
-  animation: giu-jiucu-show 1.2s ease-in-out 1 forwards;
+  animation: giu-jiucu-show 2s ease-in-out 1 forwards;
 }
 
 .giu-jiucu-motion-team {
-  animation: giu-jiucu-team-hop 2.2s ease-in-out 1 forwards;
+  animation: giu-jiucu-team-hop 2.4s ease-in-out 1 forwards;
 }
 
 @keyframes giu-jiucu-bubble-pop {

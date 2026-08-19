@@ -29,10 +29,12 @@ import { resolveGiuPaymentBackend } from "./payments";
 import { vndToUsdCents } from "./lemon-squeezy-giu";
 import { calculateRefundSplit } from "./refund";
 import {
-  computeExtensionExpiresAt,
+  canRequestExtensionInApp,
   computePickupExpiresAt,
-  PICKUP_AUTO_REFUND_HOURS,
-  PICKUP_MAX_EXTENSIONS,
+  defaultPromiseUntil,
+  isPickupQrValid,
+  merchantCanMarkNoShow,
+  resolvePickupPolicy,
 } from "./pickup-policy";
 import {
   SEED_BOXES,
@@ -576,8 +578,9 @@ export async function confirmReservationPayment(
   res.status = "giu_cho";
   res.settlementStatus = "held";
   const box = store.boxes.find((b) => b.id === res.boxId);
+  const merchantForPolicy = store.merchants.find((m) => m.id === res.merchantId);
   res.expiresAt = box
-    ? computePickupExpiresAt(box.pickupEnd)
+    ? computePickupExpiresAt(box.pickupEnd, resolvePickupPolicy(merchantForPolicy))
     : new Date(Date.now() + 60 * 60 * 1000).toISOString();
   res.paymentExpiresAt = undefined;
 
@@ -669,13 +672,11 @@ export async function updateBox(
 export async function expireStaleGiuReservations(): Promise<{
   expiredPayments: number;
   expiredPickups: number;
-  autoRefunded: number;
 }> {
   const store = await loadStore();
   const now = Date.now();
   let expiredPayments = 0;
   let expiredPickups = 0;
-  let autoRefunded = 0;
 
   for (const res of store.reservations) {
     if (res.paymentStatus === "pending" && res.status === "giu_cho") {
@@ -687,30 +688,24 @@ export async function expireStaleGiuReservations(): Promise<{
         expiredPayments++;
       }
     } else if (res.paymentStatus === "paid" && res.status === "giu_cho") {
+      if (
+        res.merchantPickupPromiseUntil &&
+        new Date(res.merchantPickupPromiseUntil).getTime() > now
+      ) {
+        continue;
+      }
       if (new Date(res.expiresAt).getTime() < now) {
         res.status = "het_han";
         expiredPickups++;
       }
-    } else if (res.paymentStatus === "paid" && res.status === "het_han") {
-      const expiredAt = new Date(res.expiresAt).getTime();
-      const autoRefundAfter =
-        expiredAt + PICKUP_AUTO_REFUND_HOURS * 60 * 60 * 1000;
-      if (
-        now > autoRefundAfter &&
-        res.pickupExtensionRequestedAt &&
-        !res.pickupExtendedAt
-      ) {
-        await applyFullRefund(store, res);
-        autoRefunded++;
-      }
     }
   }
 
-  if (expiredPayments > 0 || expiredPickups > 0 || autoRefunded > 0) {
+  if (expiredPayments > 0 || expiredPickups > 0) {
     await saveStore(store);
   }
 
-  return { expiredPayments, expiredPickups, autoRefunded };
+  return { expiredPayments, expiredPickups };
 }
 
 export type InitiateReservationResult =
@@ -905,16 +900,31 @@ export async function updateReservationStatus(
   return res;
 }
 
-async function applyFullRefund(store: GiuStore, res: GiuReservation): Promise<void> {
-  if (res.paymentStatus !== "paid") return;
+async function applyRefundSplit(
+  store: GiuStore,
+  res: GiuReservation,
+  split: ReturnType<typeof calculateRefundSplit>,
+): Promise<void> {
   await releaseBoxQuantity(store, res.boxId, res.quantity);
   res.status = "huy";
   res.paymentStatus = "refunded";
-  res.refundAmountVnd = res.totalVnd;
-  res.noShowFeeVnd = 0;
-  res.refundType = "full";
+  res.refundAmountVnd = split.refundVnd;
+  res.noShowFeeVnd = split.noShowFeeVnd;
+  res.refundType = split.type === "full" ? "full" : "partial";
   res.refundedAt = new Date().toISOString();
-  res.settlementStatus = "refunded";
+
+  if (split.type === "full") {
+    res.settlementStatus = "refunded";
+  } else {
+    res.settlementStatus = "released";
+    res.settledAt = new Date().toISOString();
+    const merchant = store.merchants.find((m) => m.id === res.merchantId);
+    if (merchant && split.merchantCompensationVnd > 0) {
+      res.payoutAmountVnd = split.merchantCompensationVnd;
+      const hasAccount = Boolean(merchant.bankAccount?.trim() && merchant.bankName?.trim());
+      res.payoutStatus = hasAccount ? "queued" : "pending_account";
+    }
+  }
 }
 
 export async function cancelReservation(id: string): Promise<GiuReservation | null> {
@@ -935,28 +945,9 @@ export async function cancelReservation(id: string): Promise<GiuReservation | nu
   const box = store.boxes.find((b) => b.id === res.boxId);
   if (!box) return null;
 
-  const split = calculateRefundSplit(res, box);
-  await releaseBoxQuantity(store, res.boxId, res.quantity);
-
-  res.status = "huy";
-  res.paymentStatus = "refunded";
-  res.refundAmountVnd = split.refundVnd;
-  res.noShowFeeVnd = split.noShowFeeVnd;
-  res.refundType = split.type;
-  res.refundedAt = new Date().toISOString();
-
-  if (split.type === "full") {
-    res.settlementStatus = "refunded";
-  } else {
-    res.settlementStatus = "released";
-    res.settledAt = new Date().toISOString();
-    const merchant = store.merchants.find((m) => m.id === res.merchantId);
-    if (merchant && split.merchantCompensationVnd > 0) {
-      res.payoutAmountVnd = split.merchantCompensationVnd;
-      const hasAccount = Boolean(merchant.bankAccount?.trim() && merchant.bankName?.trim());
-      res.payoutStatus = hasAccount ? "queued" : "pending_account";
-    }
-  }
+  const merchant = store.merchants.find((m) => m.id === res.merchantId);
+  const split = calculateRefundSplit(res, box, merchant);
+  await applyRefundSplit(store, res, split);
 
   await saveStore(store);
   return res;
@@ -976,7 +967,8 @@ export async function getRefundPreview(
   }
   const box = store.boxes.find((b) => b.id === res.boxId);
   if (!box) return null;
-  return calculateRefundSplit(res, box);
+  const merchant = store.merchants.find((m) => m.id === res.merchantId);
+  return calculateRefundSplit(res, box, merchant);
 }
 
 export async function addWaitlist(phone: string, district?: string): Promise<GiuWaitlistEntry> {
@@ -1040,7 +1032,19 @@ function requeuePendingPayouts(store: GiuStore, merchant: GiuMerchant): void {
 export async function updateMerchantProfile(
   accountId: string,
   patch: Partial<
-    Pick<GiuMerchant, "name" | "address" | "addressHint" | "phone" | "category" | "district" | "bankName" | "bankAccount" | "bankHolder">
+    Pick<
+      GiuMerchant,
+      | "name"
+      | "address"
+      | "addressHint"
+      | "phone"
+      | "category"
+      | "district"
+      | "bankName"
+      | "bankAccount"
+      | "bankHolder"
+      | "pickupPolicy"
+    >
   >,
 ): Promise<GiuMerchant | { error: string } | null> {
   const store = await loadStore();
@@ -1067,6 +1071,12 @@ export async function updateMerchantProfile(
   if (patch.bankName !== undefined) merchant.bankName = patch.bankName?.trim() || undefined;
   if (patch.bankAccount !== undefined) merchant.bankAccount = patch.bankAccount?.trim() || undefined;
   if (patch.bankHolder !== undefined) merchant.bankHolder = patch.bankHolder?.trim() || undefined;
+  if (patch.pickupPolicy !== undefined) {
+    merchant.pickupPolicy = {
+      ...merchant.pickupPolicy,
+      ...patch.pickupPolicy,
+    };
+  }
   requeuePendingPayouts(store, merchant);
   await saveStore(store);
   return merchant;
@@ -1155,6 +1165,19 @@ async function cloneBoxForRepublish(
   return box;
 }
 
+function pickupActiveForMerchant(
+  store: GiuStore,
+  res: GiuReservation,
+  merchantId: string,
+): boolean {
+  if (res.merchantId !== merchantId || res.paymentStatus !== "paid") return false;
+  if (res.status === "da_lay" || res.status === "huy") return false;
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  if (!merchant || !box) return false;
+  return isPickupQrValid(res, box.pickupEnd, resolvePickupPolicy(merchant));
+}
+
 export async function lookupPickupByCode(
   merchantId: string,
   code: string,
@@ -1169,8 +1192,7 @@ export async function lookupPickupByCode(
     (r) =>
       r.merchantId === merchantId &&
       r.code === lookup &&
-      r.paymentStatus === "paid" &&
-      (r.status === "giu_cho" || r.status === "het_han"),
+      pickupActiveForMerchant(store, r, merchantId),
   );
   if (!res) return { error: "코드를 찾을 수 없거나 이미 처리됐어요" };
   return res;
@@ -1194,8 +1216,8 @@ export async function lookupPickupByToken(
   );
   if (!res) return { error: "주문을 찾을 수 없어요" };
   if (res.status === "da_lay") return { error: "이미 픽업 완료된 주문이에요" };
-  if (res.status !== "giu_cho" && res.status !== "het_han") {
-    return { error: "픽업 대기 상태가 아니에요" };
+  if (!pickupActiveForMerchant(store, res, merchantId)) {
+    return { error: "픽업 가능 시간이 지났어요. 손님과 직접 상의 후 ‘픽업 보류’를 설정해 주세요." };
   }
   return res;
 }
@@ -1253,11 +1275,10 @@ function finalizePickup(
   merchantId: string,
 ): Promise<GiuReservation | { error: string }> {
   if (res.status === "da_lay") return Promise.resolve(res);
-  if (
-    (res.status !== "giu_cho" && res.status !== "het_han") ||
-    res.paymentStatus !== "paid"
-  ) {
-    return Promise.resolve({ error: "픽업 대기 상태가 아니에요" });
+  if (!pickupActiveForMerchant(store, res, merchantId)) {
+    return Promise.resolve({
+      error: "픽업 가능 시간이 지났어요. ‘픽업 보류(내일 OK)’ 설정 후 다시 시도해 주세요.",
+    });
   }
   res.status = "da_lay";
   const merchant = store.merchants.find((m) => m.id === merchantId);
@@ -1484,8 +1505,19 @@ export async function requestPickupExtension(
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === reservationId);
   if (!res || res.customerId !== customerId) return { error: "주문을 찾을 수 없어요" };
-  if (res.paymentStatus !== "paid" || res.status !== "het_han") {
-    return { error: "픽업 시간이 지난 주문만 연장을 요청할 수 있어요" };
+  if (res.paymentStatus !== "paid" || res.status !== "giu_cho") {
+    return { error: "픽업 대기 중에만 앱에서 연장을 요청할 수 있어요" };
+  }
+
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  const merchant = store.merchants.find((m) => m.id === res.merchantId);
+  if (!box || !merchant) return { error: "주문 정보를 찾을 수 없어요" };
+
+  const policy = resolvePickupPolicy(merchant);
+  if (!canRequestExtensionInApp(box.pickupEnd, policy)) {
+    return {
+      error: `픽업 ${policy.extensionRequestBeforeMinutes}분 전부터는 앱 요청이 불가해요. 가게에 전화·채팅으로 연락해 주세요.`,
+    };
   }
   if (res.pickupExtensionRequestedAt) return res;
 
@@ -1495,7 +1527,7 @@ export async function requestPickupExtension(
     reservationId,
     senderRole: "customer",
     senderId: customerId,
-    body: "픽업 시간을 놓쳤어요. 내일(또는 늦게) 받을 수 있을까요? 🙏",
+    body: "픽업 시간에 못 갈 것 같아요. 다른 시간(내일 등)에 받을 수 있을까요?",
     createdAt: new Date().toISOString(),
   };
   if (!store.chatMessages) store.chatMessages = [];
@@ -1505,7 +1537,36 @@ export async function requestPickupExtension(
   return res;
 }
 
-export async function grantPickupExtension(
+export async function promiseMerchantPickup(
+  merchantId: string,
+  reservationId: string,
+  untilIso?: string,
+): Promise<GiuReservation | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find(
+    (r) => r.id === reservationId && r.merchantId === merchantId,
+  );
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  if (res.paymentStatus !== "paid" || res.status === "da_lay" || res.status === "huy") {
+    return { error: "픽업 가능한 주문이 아니에요" };
+  }
+
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  if (!box) return { error: "상품 정보를 찾을 수 없어요" };
+
+  const until = untilIso ?? defaultPromiseUntil(box.pickupEnd);
+  if (new Date(until).getTime() <= Date.now()) {
+    return { error: "보류 시간이 올바르지 않아요" };
+  }
+
+  res.status = "giu_cho";
+  res.merchantPickupPromiseUntil = until;
+  res.expiresAt = until;
+  await saveStore(store);
+  return res;
+}
+
+export async function markMerchantNoShow(
   merchantId: string,
   reservationId: string,
 ): Promise<GiuReservation | { error: string }> {
@@ -1514,20 +1575,29 @@ export async function grantPickupExtension(
     (r) => r.id === reservationId && r.merchantId === merchantId,
   );
   if (!res) return { error: "주문을 찾을 수 없어요" };
-  if (res.paymentStatus !== "paid") return { error: "결제 완료 주문만 연장할 수 있어요" };
-  if (res.status !== "het_han" && res.status !== "giu_cho") {
-    return { error: "픽업 대기·만료 주문만 연장할 수 있어요" };
+  if (res.paymentStatus !== "paid" || res.status === "da_lay" || res.status === "huy") {
+    return { error: "처리할 수 없는 주문이에요" };
+  }
+  if (res.merchantNoShowMarkedAt) return res;
+
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (!box || !merchant) return { error: "주문 정보를 찾을 수 없어요" };
+
+  const policy = resolvePickupPolicy(merchant);
+  if (!merchantCanMarkNoShow(box.pickupEnd, policy)) {
+    return {
+      error: `픽업 종료 후 ${policy.merchantNoShowMarkAfterHours}시간이 지나야 미수령 처리할 수 있어요`,
+    };
   }
 
-  const count = res.pickupExtensionCount ?? 0;
-  if (count >= PICKUP_MAX_EXTENSIONS) {
-    return { error: `픽업 연장은 최대 ${PICKUP_MAX_EXTENSIONS}번까지 가능해요` };
+  const split = calculateRefundSplit(res, box, merchant);
+  if (split.type === "full") {
+    return { error: "아직 무료 취소 기간이에요. 손님이 직접 환불할 수 있습니다" };
   }
 
-  res.status = "giu_cho";
-  res.pickupExtendedAt = new Date().toISOString();
-  res.pickupExtensionCount = count + 1;
-  res.expiresAt = computeExtensionExpiresAt();
+  res.merchantNoShowMarkedAt = new Date().toISOString();
+  await applyRefundSplit(store, res, split);
   await saveStore(store);
   return res;
 }

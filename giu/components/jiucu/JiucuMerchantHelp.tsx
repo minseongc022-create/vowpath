@@ -12,15 +12,7 @@ type Props = {
 
 type Motion = "greet" | "cheer" | "show" | "team";
 
-const ARM = {
-  left: 52 / 1024,
-  top: 505 / 1536,
-  width: 265 / 1024,
-  height: 255 / 1536,
-  origin: "86% 10%",
-};
-
-/** Merchant publish hero — full body + overlaid waving arm on shared coordinates. */
+/** Merchant publish hero — single PNG, whole-body motion only (no arm layers). */
 export function JiucuMerchantHelp({ locale, caption, className = "" }: Props) {
   const reactions = useMemo(
     () =>
@@ -64,7 +56,7 @@ export function JiucuMerchantHelp({ locale, caption, className = "" }: Props) {
         <button
           type="button"
           onClick={onTap}
-          className="giu-tap relative flex w-full min-h-[210px] items-end justify-center overflow-visible rounded-[20px] bg-white px-3 pb-3 pt-12"
+          className="giu-tap relative flex w-full min-h-[210px] items-end justify-center overflow-hidden rounded-[20px] bg-white px-3 pb-3 pt-12"
           aria-label="지우쿠와 대화하기"
         >
           <div
@@ -81,34 +73,10 @@ export function JiucuMerchantHelp({ locale, caption, className = "" }: Props) {
             <img
               src="/giu/jiucu/merchant-help-white.png"
               alt="지우쿠"
-              className="absolute inset-0 h-full w-full select-none"
+              className="absolute inset-0 h-full w-full select-none object-contain object-bottom"
               draggable={false}
               decoding="async"
             />
-            <div
-              className="giu-jiucu-wave-arm-slot pointer-events-none absolute overflow-visible"
-              style={{
-                left: `${ARM.left * 100}%`,
-                top: `${ARM.top * 100}%`,
-                width: `${ARM.width * 100}%`,
-                height: `${ARM.height * 100}%`,
-              }}
-            >
-              <div
-                className="giu-jiucu-wave-arm h-full w-full"
-                style={{ transformOrigin: ARM.origin }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/giu/jiucu/merchant-help-arm.png"
-                  alt=""
-                  className="h-full w-full select-none"
-                  draggable={false}
-                  decoding="async"
-                  aria-hidden
-                />
-              </div>
-            </div>
           </div>
         </button>
       </div>

@@ -27,7 +27,9 @@ import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
-import { MerchantPickupExtensionButton } from "./MerchantPickupExtensionButton";
+import { MerchantPickupPromiseButton } from "./MerchantPickupPromiseButton";
+import { MerchantNoShowButton } from "./MerchantNoShowButton";
+import { merchantCanMarkNoShow, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 
 const PAGE_SIZE = 50;
 const MERCHANT_TABS = ["boxes", "orders", "settings"] as const;
@@ -433,16 +435,27 @@ export function MerchantPanelClient() {
                           </span>
                         ) : null}
                       </div>
-                      {r.status === "het_han" ? (
+                      {r.paymentStatus === "paid" &&
+                      (r.status === "giu_cho" || r.status === "het_han") &&
+                      box ? (
                         <div className="mt-2 space-y-2">
-                          <p className="text-[11px] leading-snug text-amber-800">
-                            {t(locale, "mLatePickupHint")}
-                          </p>
-                          <MerchantPickupExtensionButton
+                          {r.status === "het_han" ? (
+                            <p className="text-[11px] leading-snug text-amber-800">
+                              {t(locale, "mLatePickupHint")}
+                            </p>
+                          ) : null}
+                          <MerchantPickupPromiseButton
                             locale={locale}
                             reservationId={r.id}
                             onDone={() => void load(merchant.id, { silent: true })}
                           />
+                          {merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
+                            <MerchantNoShowButton
+                              locale={locale}
+                              reservationId={r.id}
+                              onDone={() => void load(merchant.id, { silent: true })}
+                            />
+                          ) : null}
                         </div>
                       ) : null}
                       {r.paymentStatus === "paid" &&
@@ -518,6 +531,7 @@ export function MerchantPanelClient() {
         boxMap={boxMap}
         money={money}
         onChanged={() => void load(merchant.id, { silent: true })}
+        merchant={merchant}
       />
     </div>
   );

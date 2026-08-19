@@ -6,7 +6,9 @@ import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuI18nKey, type GiuLocale } from "@/giu/lib/i18n";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { GiuBottomSheet } from "./GiuBottomSheet";
-import { MerchantPickupExtensionButton } from "./MerchantPickupExtensionButton";
+import { MerchantPickupPromiseButton } from "./MerchantPickupPromiseButton";
+import { MerchantNoShowButton } from "./MerchantNoShowButton";
+import { merchantCanMarkNoShow, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 import { ReservationChatButton } from "./ReservationChatButton";
 
 export type MerchantStatFilter =
@@ -26,6 +28,7 @@ type Props = {
   boxMap: Map<string, GiuBox>;
   money: (n: number) => string;
   onChanged: () => void;
+  merchant: import("@/giu/lib/types").GiuMerchant;
 };
 
 function titleKey(filter: MerchantStatFilter): GiuI18nKey {
@@ -68,6 +71,7 @@ export function MerchantStatsSheet({
   boxMap,
   money,
   onChanged,
+  merchant,
 }: Props) {
   if (!filter) return null;
 
@@ -171,14 +175,27 @@ export function MerchantStatsSheet({
                       </span>
                     ) : null}
                   </div>
-                  {r.status === "het_han" ? (
+                  {r.paymentStatus === "paid" &&
+                  (r.status === "giu_cho" || r.status === "het_han") &&
+                  box ? (
                     <div className="mt-2 space-y-2">
-                      <p className="text-[11px] leading-snug text-amber-800">{t(locale, "mLatePickupHint")}</p>
-                      <MerchantPickupExtensionButton
+                      {r.status === "het_han" ? (
+                        <p className="text-[11px] leading-snug text-amber-800">
+                          {t(locale, "mLatePickupHint")}
+                        </p>
+                      ) : null}
+                      <MerchantPickupPromiseButton
                         locale={locale}
                         reservationId={r.id}
                         onDone={onChanged}
                       />
+                      {merchantCanMarkNoShow(box.pickupEnd, resolvePickupPolicy(merchant)) ? (
+                        <MerchantNoShowButton
+                          locale={locale}
+                          reservationId={r.id}
+                          onDone={onChanged}
+                        />
+                      ) : null}
                     </div>
                   ) : null}
                   {r.paymentStatus === "paid" &&

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
-import { getReservation, grantPickupExtension, requestPickupExtension } from "@/giu/lib/store";
+import {
+  getReservation,
+  markMerchantNoShow,
+  promiseMerchantPickup,
+  requestPickupExtension,
+} from "@/giu/lib/store";
 
 const bodySchema = z.object({
-  action: z.enum(["request", "grant"]),
+  action: z.enum(["request", "promise", "mark-no-show"]),
 });
 
 type Props = { params: Promise<{ id: string }> };
@@ -42,7 +47,16 @@ export async function POST(request: Request, { params }: Props) {
     if (session.role !== "merchant" || session.merchantId !== reservation.merchantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const result = await grantPickupExtension(session.merchantId, id);
+
+    if (parsed.data.action === "promise") {
+      const result = await promiseMerchantPickup(session.merchantId, id);
+      if ("error" in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ reservation: result });
+    }
+
+    const result = await markMerchantNoShow(session.merchantId, id);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }

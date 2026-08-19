@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import { createPickupQrToken } from "@/giu/lib/pickup-qr";
-import { getReservation } from "@/giu/lib/store";
+import { isPickupQrValid, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
+import { getBox, getMerchant, getReservation } from "@/giu/lib/store";
 
 export async function GET(request: Request) {
   try {
@@ -20,10 +21,16 @@ export async function GET(request: Request) {
     if (!reservation || reservation.customerId !== session.sub) {
       return NextResponse.json({ error: "주문을 찾을 수 없습니다" }, { status: 404 });
     }
-    if (
-      reservation.paymentStatus !== "paid" ||
-      (reservation.status !== "giu_cho" && reservation.status !== "het_han")
-    ) {
+
+    const [box, merchant] = await Promise.all([
+      getBox(reservation.boxId),
+      getMerchant(reservation.merchantId),
+    ]);
+    if (!box || !merchant) {
+      return NextResponse.json({ error: "주문 정보를 찾을 수 없습니다" }, { status: 404 });
+    }
+
+    if (!isPickupQrValid(reservation, box.pickupEnd, resolvePickupPolicy(merchant))) {
       return NextResponse.json({ error: "픽업 QR을 표시할 수 없습니다" }, { status: 400 });
     }
 

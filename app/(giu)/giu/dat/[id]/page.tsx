@@ -15,6 +15,7 @@ import { GIU_ROUTES } from "@/giu/lib/routes";
 import { getGiuHref } from "@/giu/lib/giu-href-server";
 import { zaloChatUrl } from "@/giu/lib/links";
 import { ReservationTicketExtras } from "@/giu/components/ReservationTicketExtras";
+import { canRequestExtensionInApp, resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 import { getBox, getMerchant, getReservation, getReviewForReservation } from "@/giu/lib/store";
 
 type Props = {
@@ -43,6 +44,13 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
   const zaloUrl = merchant?.zalo ? zaloChatUrl(merchant.zalo) : null;
   const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
+  const policy = resolvePickupPolicy(merchant);
+  const canRequestInApp = Boolean(
+    box && reservation.status === "giu_cho" && canRequestExtensionInApp(box.pickupEnd, policy),
+  );
+  const hasPromise =
+    reservation.merchantPickupPromiseUntil &&
+    new Date(reservation.merchantPickupPromiseUntil).getTime() > Date.now();
 
   return (
     <div className="giu-page space-y-3">
@@ -69,6 +77,8 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           <p className="text-[12px] leading-relaxed text-giu-muted">{t(locale, "pickupPinHint")}</p>
           {pickedUp ? (
             <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
+          ) : hasPromise ? (
+            <p className="text-[12px] font-semibold text-giu-primary">{t(locale, "cPickupPromisedHint")}</p>
           ) : expired ? (
             <p className="text-[12px] font-semibold text-amber-800">{t(locale, "cPickupExpiredHint")}</p>
           ) : (
@@ -125,12 +135,16 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
         {paid && !pickedUp ? (
           <>
-            {expired ? (
+            {reservation.status === "giu_cho" ? (
               <CustomerPickupExtensionButton
                 locale={locale}
                 reservationId={id}
                 extensionRequested={Boolean(reservation.pickupExtensionRequestedAt)}
+                canRequestInApp={canRequestInApp}
+                cutoffMinutes={policy.extensionRequestBeforeMinutes}
               />
+            ) : expired ? (
+              <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "cPickupExpiredCallHint")}</p>
             ) : null}
             <RefundReservationButton reservationId={id} />
           </>

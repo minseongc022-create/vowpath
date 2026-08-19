@@ -76,18 +76,22 @@ export function RefundReservationButton({ reservationId }: Props) {
     return <p className="text-[12px] text-giu-muted">{tt("loading")}</p>;
   }
 
+  const hint =
+    preview.reason === "free_window"
+      ? tt("refundFullHint").replace("{min}", "60")
+      : preview.reason === "late_cancel"
+        ? tt("refundLateCancelHint")
+            .replace("{freeMin}", "60")
+            .replace("{feePct}", "20")
+            .replace("REFUND", formatVnd(preview.refundVnd))
+        : tt("refundNoShowHint")
+            .replace("{feePct}", "35")
+            .replace("REFUND", formatVnd(preview.refundVnd));
+
   return (
     <div className="space-y-2 rounded-[14px] bg-giu-bg/70 p-3 ring-1 ring-giu-border">
       <p className="text-[13px] font-bold text-giu-ink">{tt("refundTitle")}</p>
-      {preview.type === "full" ? (
-        <p className="text-[12px] leading-relaxed text-giu-muted">{tt("refundFullHint")}</p>
-      ) : (
-        <p className="text-[12px] leading-relaxed text-giu-muted">
-          {tt("refundPartialHint")
-            .replace("REFUND", formatVnd(preview.refundVnd))
-            .replace("FEE", formatVnd(preview.noShowFeeVnd))}
-        </p>
-      )}
+      <p className="text-[12px] leading-relaxed text-giu-muted">{hint}</p>
       <button
         type="button"
         onClick={() => void requestRefund()}
