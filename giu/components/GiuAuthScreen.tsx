@@ -23,6 +23,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { MerchantValuePitch } from "./MerchantValuePitch";
 
 type AuthMode = "login" | "signup";
 
@@ -344,9 +345,11 @@ export function GiuAuthScreen() {
               : "손님 가입"}
         </h1>
         <p className="mt-1 text-sm font-semibold text-giu-muted">
-          {role === "merchant" ? "등록 · 주문 · 정산" : "딜 찾기 · 결제 · 픽업"}
+          {role === "merchant" ? "마감상품 등록 · 주문 · 정산" : "딜 찾기 · 결제 · 픽업"}
         </p>
       </div>
+
+      {role === "merchant" ? <MerchantValuePitch locale={locale} variant="auth" /> : null}
 
       <div className="flex gap-4 text-sm">
         <button

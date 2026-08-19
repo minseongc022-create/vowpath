@@ -80,6 +80,16 @@ export function isGiuMerchantPath(pathname: string): boolean {
   return toGiuInternalPath(pathname).startsWith("/giu/cua-hang");
 }
 
+/** Public merchant pitch (/cua-hang) — not the logged-in panel. */
+export function isGiuMerchantLandingPath(pathname: string): boolean {
+  const p = toGiuInternalPath(pathname);
+  return p === "/giu/cua-hang" || p === "/giu/cua-hang/";
+}
+
+export function isGiuMerchantAppPath(pathname: string): boolean {
+  return isGiuMerchantPath(pathname) && !isGiuMerchantLandingPath(pathname);
+}
+
 export function isGiuMapHomePath(pathname: string): boolean {
   const p = toGiuInternalPath(pathname);
   return p === "/giu/hop" || p === "/giu/hop/";

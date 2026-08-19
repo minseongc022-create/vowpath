@@ -14,7 +14,6 @@ import {
 import { boxImages, boxImageFields } from "@/giu/lib/box-images";
 import { merchantCategories } from "@/giu/lib/categories";
 import {
-  formatMoney,
   localToIso,
   moneySymbol,
 } from "@/giu/lib/format";
@@ -130,7 +129,6 @@ type Props = {
 
 export function MerchantPublishFlow({ locale, merchant, boxes, onPublished }: Props) {
   const market: GiuMarket = "kr";
-  const money = (n: number) => formatMoney(n, market);
   const symbol = moneySymbol(market);
   const publishCategories = merchantCategories();
   const defaultPrices = quickPublishPrices(market);

@@ -21,6 +21,8 @@ import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
+import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
+import { MerchantValuePitch } from "./MerchantValuePitch";
 import { MerchantOrderRow } from "./MerchantOrderRow";
 import {
   resolveDisplayReservationStatus,
@@ -294,6 +296,8 @@ export function MerchantPanelClient() {
             </button>
           ))}
         </div>
+
+        <MerchantValuePitch locale={locale} variant="panel" />
       </div>
 
       {needsBank || pendingAccountCount > 0 ? (
@@ -433,6 +437,12 @@ export function MerchantPanelClient() {
             locale={locale}
             merchant={merchant}
             onSaved={() => void load(merchant.id, { silent: true })}
+          />
+          <MerchantSettlementSummary
+            locale={locale}
+            merchant={merchant}
+            reservations={reservations}
+            panelHref={panelHref}
           />
           <MerchantCustomerInsights
             locale={locale}
