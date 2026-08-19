@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 import {
   isGiuAuthPath,
-  isGiuMerchantPath,
+  isGiuMerchantAppPath,
+  isGiuMerchantLandingPath,
 } from "@/giu/lib/routes";
 import { GiuAuthShell } from "./GiuAuthShell";
 import { GiuCustomerShell } from "./GiuCustomerShell";
@@ -17,7 +18,11 @@ export function GiuShell({ children }: { children: React.ReactNode }) {
     return <GiuAuthShell>{children}</GiuAuthShell>;
   }
 
-  if (isGiuMerchantPath(pathname)) {
+  if (isGiuMerchantLandingPath(pathname)) {
+    return <GiuAuthShell>{children}</GiuAuthShell>;
+  }
+
+  if (isGiuMerchantAppPath(pathname)) {
     return (
       <GiuRoleGuard requiredRole="merchant">
         <GiuMerchantShell>{children}</GiuMerchantShell>

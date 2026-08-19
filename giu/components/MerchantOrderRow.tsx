@@ -8,7 +8,9 @@ import { formatPickupWindowWithDate } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuLocale } from "@/giu/lib/i18n";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
+import { MerchantConfirmOrderButton } from "./MerchantConfirmOrderButton";
 import { MerchantExtensionReview } from "./MerchantExtensionReview";
+import { MerchantPickupChangeProposal } from "./MerchantPickupChangeProposal";
 import { ReservationChatButton } from "./ReservationChatButton";
 
 type Props = {
@@ -57,6 +59,9 @@ export function MerchantOrderRow({
         <div className="min-w-0">
           <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
           <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+          {!expanded ? (
+            <p className="mt-0.5 text-[11px] text-giu-muted">{t(locale, "mOrderTapDetail")}</p>
+          ) : null}
         </div>
         <span
           className={`shrink-0 text-[11px] font-bold text-giu-muted transition ${
@@ -101,6 +106,13 @@ export function MerchantOrderRow({
               })}
             </p>
           ) : null}
+          {mode === "reserved" && r.status === "payment_completed" ? (
+            <MerchantConfirmOrderButton
+              locale={locale}
+              reservationId={r.id}
+              onDone={onChanged}
+            />
+          ) : null}
           {mode === "reserved" &&
           r.extensionRequest?.status === "pending" &&
           box ? (
@@ -113,13 +125,16 @@ export function MerchantOrderRow({
             />
           ) : null}
           {mode === "reserved" && r.paymentStatus === "paid" ? (
-            <ReservationChatButton
+            <>
+              <MerchantPickupChangeProposal locale={locale} reservation={r} onDone={onChanged} />
+              <ReservationChatButton
               locale={locale}
               reservationId={r.id}
               viewerRole="merchant"
               peerName={r.customerName}
               peerPhone={r.customerPhone}
             />
+            </>
           ) : null}
         </div>
       ) : null}

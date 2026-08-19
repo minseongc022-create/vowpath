@@ -12,6 +12,7 @@ type Props = {
   cutoffMinutes: number;
   extensionStatus?: "pending" | "approved" | "rejected";
   defaultPlannedAt?: string;
+  ctaLabel?: string;
 };
 
 export function CustomerExtensionRequestForm({
@@ -21,6 +22,7 @@ export function CustomerExtensionRequestForm({
   cutoffMinutes,
   extensionStatus,
   defaultPlannedAt,
+  ctaLabel,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -94,7 +96,7 @@ export function CustomerExtensionRequestForm({
         onClick={() => setOpen(true)}
         className="giu-btn-secondary giu-btn-3d w-full !py-2.5 text-[13px]"
       >
-        {t(locale, "cExtendPickupCta")}
+        {ctaLabel ?? t(locale, "orderPickupChangeCta")}
       </button>
     );
   }
