@@ -898,6 +898,23 @@ export async function getReservationByCode(code: string): Promise<GiuReservation
   );
 }
 
+function syncReservationPickupStatuses(store: GiuStore, now = Date.now()): boolean {
+  let changed = false;
+  for (const res of store.reservations) {
+    if (res.paymentStatus !== "paid" || res.status !== "giu_cho") continue;
+    const box = store.boxes.find((b) => b.id === res.boxId);
+    const merchant = store.merchants.find((m) => m.id === res.merchantId);
+    if (!box) continue;
+    syncReservationFromBox(store, res);
+    const policy = resolvePickupPolicy(merchant);
+    if (shouldMarkReservationExpired(res, box.pickupEnd, policy, now)) {
+      res.status = "het_han";
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export async function listReservations(filters?: {
   phone?: string;
   customerId?: string;
@@ -905,6 +922,9 @@ export async function listReservations(filters?: {
   boxId?: string;
 }): Promise<GiuReservation[]> {
   const store = await loadStore();
+  if (syncReservationPickupStatuses(store)) {
+    await saveStore(store);
+  }
   return store.reservations
     .filter((r) => {
       if (filters?.phone && r.customerPhone !== filters.phone) return false;
@@ -1253,7 +1273,7 @@ export async function lookupPickupByToken(
   if (!res) return { error: "주문을 찾을 수 없어요" };
   if (res.status === "da_lay") return { error: "이미 픽업 완료된 주문이에요" };
   if (!pickupActiveForMerchant(store, res, merchantId)) {
-    return { error: "픽업 가능 시간이 지났어요. 손님과 직접 상의 후 ‘픽업 보류’를 설정해 주세요." };
+    return { error: "픽업 시간이 지났어요. 손님 연장 승인 후 다시 스캔하거나 채팅으로 조율해 주세요." };
   }
   return res;
 }
@@ -1313,7 +1333,7 @@ function finalizePickup(
   if (res.status === "da_lay") return Promise.resolve(res);
   if (!pickupActiveForMerchant(store, res, merchantId)) {
     return Promise.resolve({
-      error: "픽업 가능 시간이 지났어요. ‘픽업 보류(내일 OK)’ 설정 후 다시 시도해 주세요.",
+      error: "픽업 시간이 지났어요. 손님 연장 승인 후 다시 시도하거나 채팅으로 조율해 주세요.",
     });
   }
   res.status = "da_lay";

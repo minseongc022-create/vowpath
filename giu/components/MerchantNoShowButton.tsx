@@ -37,13 +37,16 @@ export function MerchantNoShowButton({ locale, reservationId, onDone }: Props) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => void markNoShow()}
-      disabled={loading}
-      className="giu-btn-secondary giu-btn-3d w-full !py-2.5 text-[13px]"
-    >
-      {loading ? t(locale, "loading") : t(locale, "mNoShowCta")}
-    </button>
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => void markNoShow()}
+        disabled={loading}
+        className="giu-btn-secondary giu-btn-3d w-full !py-2.5 text-[13px]"
+      >
+        {loading ? t(locale, "loading") : t(locale, "mNoShowCta")}
+      </button>
+      <p className="text-center text-[10px] leading-snug text-giu-muted">{t(locale, "mNoShowHint")}</p>
+    </div>
   );
 }
