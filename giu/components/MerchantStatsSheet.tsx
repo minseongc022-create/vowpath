@@ -1,27 +1,28 @@
 "use client";
 
-import { formatPaymentStatusLocale, formatReservationStatusLocale } from "@/giu/lib/box-ux";
+import { useState } from "react";
 import { formatPickupWindowWithDate } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t, type GiuI18nKey, type GiuLocale } from "@/giu/lib/i18n";
+import { groupReservationsByCustomer } from "@/giu/lib/merchant-customer-history";
 import {
+  AUTO_NO_SHOW_REFUND_DAYS,
   resolveDisplayReservationStatus,
   resolvePickupPolicy,
 } from "@/giu/lib/pickup-policy";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { GiuBottomSheet } from "./GiuBottomSheet";
 import { MerchantExtensionReview } from "./MerchantExtensionReview";
-import { MerchantNoShowButton } from "./MerchantNoShowButton";
 import { MerchantOrderStatusBadge } from "./MerchantOrderStatusBadge";
-import { merchantCanMarkNoShow } from "@/giu/lib/pickup-policy";
-import { ReservationChatButton } from "./ReservationChatButton";
 
 export type MerchantStatFilter =
   | "selling"
   | "awaiting"
-  | "pickupDone"
-  | "settleHeld"
-  | "settleDone";
+  | "ghosted"
+  | "settlement"
+  | "pickupDone";
+
+type SettlementView = "menu" | "done";
 
 type Props = {
   locale: GiuLocale;
@@ -43,12 +44,12 @@ function titleKey(filter: MerchantStatFilter): GiuI18nKey {
       return "mOpenBoxes";
     case "awaiting":
       return "mAwaitingPickup";
+    case "ghosted":
+      return "mGhostedTitle";
+    case "settlement":
+      return "mSettlementMenu";
     case "pickupDone":
       return "mRescued";
-    case "settleHeld":
-      return "mSettleHeld";
-    case "settleDone":
-      return "mSettleDone";
   }
 }
 
@@ -58,12 +59,12 @@ function emptyKey(filter: MerchantStatFilter): GiuI18nKey {
       return "mStatEmptySelling";
     case "awaiting":
       return "mStatEmptyAwaiting";
+    case "ghosted":
+      return "mStatEmptyGhosted";
+    case "settlement":
+      return "mStatEmptySettleDone";
     case "pickupDone":
       return "mStatEmptyPickupDone";
-    case "settleHeld":
-      return "mStatEmptySettleHeld";
-    case "settleDone":
-      return "mStatEmptySettleDone";
   }
 }
 
@@ -71,9 +72,9 @@ function hintKey(filter: MerchantStatFilter): GiuI18nKey {
   switch (filter) {
     case "awaiting":
       return "mStatAwaitingHint";
-    case "settleHeld":
-      return "mStatSettleHeldHint";
-    case "settleDone":
+    case "ghosted":
+      return "mStatGhostedHint";
+    case "settlement":
       return "mStatSettleDoneHint";
     default:
       return "mStatSheetHint";
@@ -105,6 +106,8 @@ export function MerchantStatsSheet({
   merchant,
   onSelectCustomer,
 }: Props) {
+  const [settlementView, setSettlementView] = useState<SettlementView>("menu");
+
   if (!filter) return null;
 
   const policy = resolvePickupPolicy(merchant);
@@ -116,38 +119,33 @@ export function MerchantStatsSheet({
     return displayStatus(r, box, merchant) === "giu_cho";
   });
 
-  const pickupDone = reservations.filter((r) => r.status === "da_lay");
-
-  const settleHeld = reservations.filter((r) => {
-    if (r.paymentStatus !== "paid" || r.settlementStatus !== "held") return false;
+  const ghosted = reservations.filter((r) => {
+    if (r.paymentStatus !== "paid") return false;
+    if (r.extensionRequest?.status === "pending") return false;
     const box = boxMap.get(r.boxId);
     return displayStatus(r, box, merchant) === "het_han";
   });
+
+  const pickupDone = reservations.filter((r) => r.status === "da_lay");
 
   const settleDone = reservations.filter(
     (r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay",
   );
 
-  const list =
-    filter === "selling"
-      ? null
-      : filter === "awaiting"
-        ? awaiting
-        : filter === "pickupDone"
-          ? pickupDone
-          : filter === "settleHeld"
-            ? settleHeld
-            : settleDone;
+  const settleDoneTotal = settleDone.reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
 
   const titleId = "giu-merchant-stat-sheet-title";
+
+  const resetAndClose = () => {
+    setSettlementView("menu");
+    hapticSelect();
+    onClose();
+  };
 
   return (
     <GiuBottomSheet
       open={open}
-      onClose={() => {
-        hapticSelect();
-        onClose();
-      }}
+      onClose={resetAndClose}
       dismissLabel={t(locale, "mCloseSheet")}
       ariaLabelledBy={titleId}
     >
@@ -156,18 +154,49 @@ export function MerchantStatsSheet({
           {t(locale, titleKey(filter))}
         </h2>
         <p className="text-[12px] font-semibold leading-relaxed text-giu-muted">
-          {t(locale, hintKey(filter))}
+          {filter === "ghosted"
+            ? t(locale, "mStatGhostedHint").replaceAll("{days}", String(AUTO_NO_SHOW_REFUND_DAYS))
+            : t(locale, hintKey(filter))}
         </p>
 
-        {filter === "settleDone" && settleDone.length > 0 ? (
-          <p className="rounded-[14px] bg-giu-accent-soft px-3 py-2.5 text-[13px] font-bold text-giu-ink">
-            {t(locale, "mSettleDone")} {money(settleDone.reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0))}
-          </p>
+        {filter === "settlement" && settlementView === "menu" ? (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                hapticSelect();
+                setSettlementView("done");
+              }}
+              className="giu-card-flat flex w-full items-center justify-between p-4 text-left ring-1 ring-giu-border transition active:scale-[0.99]"
+            >
+              <div>
+                <p className="text-[14px] font-bold text-giu-ink">{t(locale, "mSettleDone")}</p>
+                <p className="mt-0.5 text-[12px] text-giu-muted">{t(locale, "mStatSettleDoneHint")}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[15px] font-extrabold text-giu-primary">{money(settleDoneTotal)}</p>
+                <p className="text-[11px] text-giu-muted">{settleDone.length}건</p>
+              </div>
+            </button>
+          </div>
         ) : null}
 
-        {filter === "settleHeld" && settleHeld.length > 0 ? (
-          <p className="rounded-[14px] bg-amber-50 px-3 py-2.5 text-[13px] font-bold text-amber-900 ring-1 ring-amber-200/60">
-            {t(locale, "mSettleHeld")} {money(settleHeld.reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0))}
+        {filter === "settlement" && settlementView === "done" ? (
+          <button
+            type="button"
+            onClick={() => {
+              hapticSelect();
+              setSettlementView("menu");
+            }}
+            className="text-[12px] font-bold text-giu-primary"
+          >
+            ← {t(locale, "mSettlementMenu")}
+          </button>
+        ) : null}
+
+        {filter === "settlement" && settlementView === "done" && settleDone.length > 0 ? (
+          <p className="rounded-[14px] bg-giu-accent-soft px-3 py-2.5 text-[13px] font-bold text-giu-ink">
+            {t(locale, "mSettleDone")} {money(settleDoneTotal)}
           </p>
         ) : null}
 
@@ -190,153 +219,154 @@ export function MerchantStatsSheet({
               ))}
             </ul>
           )
-        ) : list && list.length === 0 ? (
-          <p className="text-[13px] text-giu-muted">{t(locale, emptyKey(filter))}</p>
-        ) : filter === "settleDone" ? (
-          <ul className="space-y-2">
-            {settleDone.map((r) => {
-              const box = boxMap.get(r.boxId);
-              const net = r.totalVnd - r.platformFeeVnd;
-              return (
-                <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-giu-ink">{r.customerName}</p>
-                      {box ? (
-                        <p className="mt-0.5 text-[12px] text-giu-muted">{box.title}</p>
-                      ) : null}
-                      {box ? (
-                        <p className="text-[11px] text-giu-muted">
-                          {formatPickupWindowWithDate(box.pickupStart, box.pickupEnd, "kr")}
-                        </p>
-                      ) : null}
+        ) : filter === "settlement" && settlementView === "done" ? (
+          settleDone.length === 0 ? (
+            <p className="text-[13px] text-giu-muted">{t(locale, emptyKey("settlement"))}</p>
+          ) : (
+            <ul className="space-y-2">
+              {settleDone.map((r) => {
+                const box = boxMap.get(r.boxId);
+                const net = r.totalVnd - r.platformFeeVnd;
+                return (
+                  <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-bold text-giu-ink">{r.customerName}</p>
+                        {box ? (
+                          <p className="mt-0.5 text-[12px] text-giu-muted">{box.title}</p>
+                        ) : null}
+                      </div>
+                      <p className="text-[14px] font-extrabold text-giu-primary">+ {money(net)}</p>
                     </div>
-                    <MerchantOrderStatusBadge
-                      locale={locale}
-                      reservation={r}
-                      boxPickupEnd={box?.pickupEnd}
-                      policy={policy}
-                    />
-                  </div>
-                  <p className="mt-2 text-[13px] font-extrabold text-giu-primary">
-                    + {money(net)}
-                  </p>
-                  {r.settledAt ? (
-                    <p className="text-[11px] text-giu-muted">
-                      {new Date(r.settledAt).toLocaleString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      · {t(locale, "mSettleDone")}
-                    </p>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <ul className="space-y-2.5">
-            {list?.map((r) => {
-              const box = boxMap.get(r.boxId);
-              const net = r.totalVnd - r.platformFeeVnd;
-              const shown = displayStatus(r, box, merchant);
-              const isExpired = shown === "het_han";
-              return (
-                <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      {onSelectCustomer ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            hapticSelect();
-                            onSelectCustomer(r.customerId);
-                          }}
-                          className="w-full rounded-[12px] text-left transition active:bg-giu-bg/80"
-                        >
-                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
-                          <p className="mt-1 text-[10px] font-semibold text-giu-primary">
-                            {t(locale, "mCustDetailTap")}
-                          </p>
-                        </button>
-                      ) : (
-                        <>
-                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
-                        </>
-                      )}
-                      {box ? (
-                        <p className="mt-2 text-[12px] font-semibold text-giu-ink">
-                          {t(locale, "mOrderProduct")}: {box.title}
-                        </p>
-                      ) : null}
-                      {box ? (
-                        <p className="text-[11px] text-giu-muted">
-                          {formatPickupWindowWithDate(box.pickupStart, box.pickupEnd, "kr")}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-[12px] text-giu-muted">
-                        {money(r.totalVnd)} · {t(locale, "mOrderNet")} {money(net)}
+                    {r.settledAt ? (
+                      <p className="mt-1 text-[11px] text-giu-muted">
+                        {new Date(r.settledAt).toLocaleString("ko-KR", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
-                      <p className="text-[12px] text-giu-muted">
-                        {formatPaymentStatusLocale(r.paymentStatus, locale)} ·{" "}
-                        {formatReservationStatusLocale(shown, locale)}
-                      </p>
-                    </div>
-                    <MerchantOrderStatusBadge
-                      locale={locale}
-                      reservation={r}
-                      boxPickupEnd={box?.pickupEnd}
-                      policy={policy}
-                    />
-                  </div>
-                  {r.paymentStatus === "paid" &&
-                  (shown === "giu_cho" || shown === "het_han") &&
-                  box ? (
-                    <div className="mt-2 space-y-2">
-                      {isExpired ? (
-                        <p className="text-[11px] leading-snug text-amber-800">
-                          {t(locale, "mLatePickupHint")}
+                    ) : null}
+                    {onSelectCustomer ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          hapticSelect();
+                          onSelectCustomer(r.customerId);
+                        }}
+                        className="mt-2 text-[12px] font-bold text-giu-primary"
+                      >
+                        {t(locale, "mCustDetailOpen")} →
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        ) : filter === "awaiting" || filter === "ghosted" ? (
+          (() => {
+            const list = filter === "awaiting" ? awaiting : ghosted;
+            const groups = groupReservationsByCustomer(list);
+            if (groups.length === 0) {
+              return <p className="text-[13px] text-giu-muted">{t(locale, emptyKey(filter))}</p>;
+            }
+            return (
+              <ul className="space-y-2.5">
+                {groups.map((g) => {
+                  const latest = [...g.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+                  const box = latest ? boxMap.get(latest.boxId) : undefined;
+                  const shown = latest ? displayStatus(latest, box, merchant) : "giu_cho";
+                  return (
+                    <li key={g.customerId} className="giu-card-flat p-3 ring-1 ring-giu-border">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[15px] font-bold text-giu-ink">{g.customerName}</p>
+                          <p className="text-[12px] text-giu-muted">{g.customerPhone}</p>
+                          {latest && box ? (
+                            <p className="mt-1 text-[11px] text-giu-muted">
+                              {box.title} · {formatPickupWindowWithDate(box.pickupStart, box.pickupEnd, "kr")}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          {latest ? (
+                            <MerchantOrderStatusBadge
+                              locale={locale}
+                              reservation={latest}
+                              boxPickupEnd={box?.pickupEnd}
+                              policy={policy}
+                            />
+                          ) : null}
+                          {onSelectCustomer ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                hapticSelect();
+                                onSelectCustomer(g.customerId);
+                              }}
+                              className="giu-btn-secondary !px-3 !py-1.5 text-[11px] font-bold"
+                            >
+                              {t(locale, "mCustDetailOpen")}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                      {filter === "ghosted" && latest && box && latest.extensionRequest?.status !== "pending" ? (
+                        <p className="mt-2 text-[11px] leading-snug text-amber-800">
+                          {t(locale, "mAutoRefundHint").replaceAll(
+                            "{days}",
+                            String(AUTO_NO_SHOW_REFUND_DAYS),
+                          )}
                         </p>
                       ) : null}
-                      <MerchantExtensionReview
-                        locale={locale}
-                        reservation={r}
-                        boxPickupStart={box?.pickupStart}
-                        boxPickupEnd={box?.pickupEnd}
-                        onDone={onChanged}
-                      />
-                      {r.extensionRequest?.status !== "pending" &&
-                      isExpired &&
-                      merchantCanMarkNoShow(box.pickupEnd, policy) ? (
-                        <MerchantNoShowButton
-                          locale={locale}
-                          reservationId={r.id}
-                          onDone={onChanged}
-                        />
+                      {filter === "awaiting" && latest && box && shown === "giu_cho" ? (
+                        <div className="mt-2">
+                          <MerchantExtensionReview
+                            locale={locale}
+                            reservation={latest}
+                            boxPickupStart={box.pickupStart}
+                            boxPickupEnd={box.pickupEnd}
+                            onDone={onChanged}
+                          />
+                        </div>
                       ) : null}
-                    </div>
-                  ) : null}
-                  {r.paymentStatus === "paid" &&
-                  (shown === "giu_cho" || r.status === "da_lay" || shown === "het_han") ? (
-                    <div className="mt-3">
-                      <ReservationChatButton
-                        locale={locale}
-                        reservationId={r.id}
-                        viewerRole="merchant"
-                        peerName={r.customerName}
-                        peerPhone={r.customerPhone}
-                      />
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          })()
+        ) : filter === "pickupDone" ? (
+          pickupDone.length === 0 ? (
+            <p className="text-[13px] text-giu-muted">{t(locale, emptyKey(filter))}</p>
+          ) : (
+            <ul className="space-y-2">
+              {pickupDone.map((r) => {
+                const box = boxMap.get(r.boxId);
+                return (
+                  <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
+                    <p className="text-[14px] font-bold text-giu-ink">{r.customerName}</p>
+                    {box ? <p className="text-[12px] text-giu-muted">{box.title}</p> : null}
+                    {onSelectCustomer ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          hapticSelect();
+                          onSelectCustomer(r.customerId);
+                        }}
+                        className="mt-2 text-[12px] font-bold text-giu-primary"
+                      >
+                        {t(locale, "mCustDetailOpen")} →
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        ) : null}
       </div>
     </GiuBottomSheet>
   );

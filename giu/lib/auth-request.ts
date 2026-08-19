@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { getMerchantByAccountId } from "./store";
 import { verifyGiuSessionToken, GIU_SESSION_COOKIE, type GiuSessionPayload } from "./auth";
 
 export async function getGiuSession(): Promise<GiuSessionPayload | null> {
@@ -30,4 +31,31 @@ export async function getGiuSessionFromRequest(
   const token = getSessionTokenFromRequest(request);
   if (!token) return null;
   return verifyGiuSessionToken(token);
+}
+
+/** Resolve merchant id from DB (authoritative) with JWT fallback. */
+export async function resolveMerchantId(session: GiuSessionPayload): Promise<string | null> {
+  if (session.role !== "merchant") return null;
+  const fromDb = (await getMerchantByAccountId(session.sub))?.id;
+  return fromDb ?? session.merchantId ?? null;
+}
+
+export async function requireMerchantSession(
+  request: Request,
+  expectedMerchantId?: string,
+): Promise<{ session: GiuSessionPayload; merchantId: string } | null> {
+  const session = await getGiuSessionFromRequest(request);
+  if (!session || session.role !== "merchant") return null;
+  const merchantId = await resolveMerchantId(session);
+  if (!merchantId) return null;
+  if (expectedMerchantId && merchantId !== expectedMerchantId) return null;
+  return { session, merchantId };
+}
+
+export async function merchantOwnsReservation(
+  session: GiuSessionPayload,
+  reservationMerchantId: string,
+): Promise<boolean> {
+  const merchantId = await resolveMerchantId(session);
+  return Boolean(merchantId && merchantId === reservationMerchantId);
 }

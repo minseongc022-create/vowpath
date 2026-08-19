@@ -26,6 +26,8 @@ export const PICKUP_REMINDER_70_MIN = 70;
 export const PICKUP_REMINDER_30_MIN = 30;
 /** Merchant ping interval while extension pending. */
 export const EXTENSION_MERCHANT_PING_MIN = 5;
+/** After pickup grace, ghosted customers are auto-refunded (fee deducted) after this many days. */
+export const AUTO_NO_SHOW_REFUND_DAYS = 4;
 
 export function resolvePickupPolicy(merchant?: Pick<GiuMerchant, "pickupPolicy"> | null): GiuPickupPolicy {
   const p = merchant?.pickupPolicy ?? {};
@@ -93,13 +95,44 @@ export function pickupGraceEndsAt(
   return new Date(pickupEndIso).getTime() + policy.pickupGraceMinutes * 60_000;
 }
 
-export function merchantCanMarkNoShow(
-  pickupEndIso: string,
+/** Days after grace end before system auto-refunds ghosted orders (no merchant action). */
+export function autoNoShowRefundEligible(
+  reservation: Pick<
+    GiuReservation,
+    | "status"
+    | "paymentStatus"
+    | "merchantPickupPromiseUntil"
+    | "extensionRequest"
+    | "refundedAt"
+    | "merchantNoShowMarkedAt"
+    | "autoNoShowRefundAt"
+  >,
+  boxPickupEndIso: string,
   policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
   now = Date.now(),
 ): boolean {
-  const afterGrace = pickupGraceEndsAt(pickupEndIso, policy);
-  return now >= afterGrace + policy.merchantNoShowMarkAfterHours * 3_600_000;
+  if (reservation.paymentStatus !== "paid") return false;
+  if (reservation.refundedAt || reservation.merchantNoShowMarkedAt || reservation.autoNoShowRefundAt) {
+    return false;
+  }
+  if (reservation.status !== "het_han" && reservation.status !== "giu_cho") return false;
+  if (reservation.extensionRequest?.status === "pending") return false;
+  if (
+    reservation.merchantPickupPromiseUntil &&
+    new Date(reservation.merchantPickupPromiseUntil).getTime() > now
+  ) {
+    return false;
+  }
+  if (
+    reservation.status === "giu_cho" &&
+    !shouldMarkReservationExpired(reservation, boxPickupEndIso, policy, now)
+  ) {
+    return false;
+  }
+
+  const endIso = effectivePickupEndIso(reservation, boxPickupEndIso);
+  const graceEnd = pickupGraceEndsAt(endIso, policy);
+  return now >= graceEnd + AUTO_NO_SHOW_REFUND_DAYS * 86_400_000;
 }
 
 export function defaultPromiseUntil(pickupEndIso: string, now = Date.now()): string {
@@ -132,14 +165,40 @@ export function shouldMarkReservationExpired(
   now = Date.now(),
 ): boolean {
   if (reservation.paymentStatus !== "paid" || reservation.status !== "giu_cho") return false;
-  if (
-    reservation.merchantPickupPromiseUntil &&
-    new Date(reservation.merchantPickupPromiseUntil).getTime() > now
-  ) {
+
+  if (reservation.extensionRequest?.status === "pending") {
     return false;
   }
-  if (reservation.extensionRequest?.status === "approved") return false;
-  return now > pickupGraceEndsAt(boxPickupEndIso, policy);
+
+  const promisedUntil = reservation.merchantPickupPromiseUntil;
+  if (promisedUntil && new Date(promisedUntil).getTime() > now) {
+    return false;
+  }
+
+  const endIso =
+    promisedUntil ??
+    (reservation.extensionRequest?.status === "approved"
+      ? reservation.extensionRequest.plannedPickupAt
+      : boxPickupEndIso);
+
+  return now > pickupGraceEndsAt(endIso, policy);
+}
+
+/** Pickup deadline for expiry/display — honors approved extension times. */
+export function effectivePickupEndIso(
+  reservation: Pick<
+    GiuReservation,
+    "merchantPickupPromiseUntil" | "extensionRequest"
+  >,
+  boxPickupEndIso: string,
+): string {
+  if (reservation.merchantPickupPromiseUntil) {
+    return reservation.merchantPickupPromiseUntil;
+  }
+  if (reservation.extensionRequest?.status === "approved") {
+    return reservation.extensionRequest.plannedPickupAt;
+  }
+  return boxPickupEndIso;
 }
 
 /** UI + filters: treat past-grace giu_cho as 픽업 마감 even before cron persists het_han. */

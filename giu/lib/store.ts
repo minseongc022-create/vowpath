@@ -35,11 +35,11 @@ import { resolveGiuPaymentBackend } from "./payments";
 import { vndToUsdCents } from "./lemon-squeezy-giu";
 import { calculateRefundSplit } from "./refund";
 import {
+  autoNoShowRefundEligible,
   canRequestExtensionInApp,
   computePickupExpiresAt,
   defaultPromiseUntil,
   isPickupQrValid,
-  merchantCanMarkNoShow,
   merchantOrderDeepLink,
   reservationDeepLink,
   resolvePickupPolicy,
@@ -679,9 +679,30 @@ export async function updateBox(
   return box;
 }
 
+async function processAutoNoShowRefunds(store: GiuStore, now = Date.now()): Promise<number> {
+  let count = 0;
+  for (const res of store.reservations) {
+    const box = store.boxes.find((b) => b.id === res.boxId);
+    const merchant = store.merchants.find((m) => m.id === res.merchantId);
+    if (!box || !merchant) continue;
+    syncReservationFromBox(store, res);
+    const policy = resolvePickupPolicy(merchant);
+    if (!autoNoShowRefundEligible(res, box.pickupEnd, policy, now)) continue;
+
+    const split = calculateRefundSplit(res, box, merchant, now);
+    if (split.type === "full") continue;
+
+    res.autoNoShowRefundAt = new Date(now).toISOString();
+    await applyRefundSplit(store, res, split);
+    count++;
+  }
+  return count;
+}
+
 export async function expireStaleGiuReservations(): Promise<{
   expiredPayments: number;
   expiredPickups: number;
+  autoRefunds: number;
   customerReminders70: number;
   customerReminders30: number;
   merchantExtensionPings: number;
@@ -714,10 +735,12 @@ export async function expireStaleGiuReservations(): Promise<{
   }
 
   const reminders = await runGiuPickupReminders(store);
+  const autoRefunds = await processAutoNoShowRefunds(store, now);
 
   if (
     expiredPayments > 0 ||
     expiredPickups > 0 ||
+    autoRefunds > 0 ||
     reminders.customerReminders70 > 0 ||
     reminders.customerReminders30 > 0 ||
     reminders.merchantExtensionPings > 0
@@ -725,7 +748,7 @@ export async function expireStaleGiuReservations(): Promise<{
     await saveStore(store);
   }
 
-  return { expiredPayments, expiredPickups, ...reminders };
+  return { expiredPayments, expiredPickups, autoRefunds, ...reminders };
 }
 
 export type InitiateReservationResult =
@@ -1727,42 +1750,6 @@ export async function promiseMerchantPickup(
   res.status = "giu_cho";
   res.merchantPickupPromiseUntil = until;
   res.expiresAt = until;
-  await saveStore(store);
-  return res;
-}
-
-export async function markMerchantNoShow(
-  merchantId: string,
-  reservationId: string,
-): Promise<GiuReservation | { error: string }> {
-  const store = await loadStore();
-  const res = store.reservations.find(
-    (r) => r.id === reservationId && r.merchantId === merchantId,
-  );
-  if (!res) return { error: "주문을 찾을 수 없어요" };
-  if (res.paymentStatus !== "paid" || res.status === "da_lay" || res.status === "huy") {
-    return { error: "처리할 수 없는 주문이에요" };
-  }
-  if (res.merchantNoShowMarkedAt) return res;
-
-  const box = store.boxes.find((b) => b.id === res.boxId);
-  const merchant = store.merchants.find((m) => m.id === merchantId);
-  if (!box || !merchant) return { error: "주문 정보를 찾을 수 없어요" };
-
-  const policy = resolvePickupPolicy(merchant);
-  if (!merchantCanMarkNoShow(box.pickupEnd, policy)) {
-    return {
-      error: `픽업 종료 후 ${policy.merchantNoShowMarkAfterHours}시간이 지나야 미수령 처리할 수 있어요`,
-    };
-  }
-
-  const split = calculateRefundSplit(res, box, merchant);
-  if (split.type === "full") {
-    return { error: "아직 무료 취소 기간이에요. 손님이 직접 환불할 수 있습니다" };
-  }
-
-  res.merchantNoShowMarkedAt = new Date().toISOString();
-  await applyRefundSplit(store, res, split);
   await saveStore(store);
   return res;
 }

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuSessionFromRequest, requireMerchantSession } from "@/giu/lib/auth-request";
 import {
   approvePickupExtension,
   getReservation,
-  markMerchantNoShow,
   rejectPickupExtension,
   requestPickupExtension,
 } from "@/giu/lib/store";
@@ -23,7 +22,6 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("reject"),
     note: z.string().max(200).optional(),
   }),
-  z.object({ action: z.literal("mark-no-show") }),
 ]);
 
 type Props = { params: Promise<{ id: string }> };
@@ -61,12 +59,13 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ reservation: result });
     }
 
-    if (session.role !== "merchant" || session.merchantId !== reservation.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth || auth.merchantId !== reservation.merchantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (parsed.data.action === "approve") {
-      const result = await approvePickupExtension(session.merchantId, id, parsed.data.note);
+      const result = await approvePickupExtension(auth.merchantId, id, parsed.data.note);
       if ("error" in result) {
         return NextResponse.json({ error: result.error }, { status: 400 });
       }
@@ -74,18 +73,14 @@ export async function POST(request: Request, { params }: Props) {
     }
 
     if (parsed.data.action === "reject") {
-      const result = await rejectPickupExtension(session.merchantId, id, parsed.data.note);
+      const result = await rejectPickupExtension(auth.merchantId, id, parsed.data.note);
       if ("error" in result) {
         return NextResponse.json({ error: result.error }, { status: 400 });
       }
       return NextResponse.json({ reservation: result });
     }
 
-    const result = await markMerchantNoShow(session.merchantId, id);
-    if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-    return NextResponse.json({ reservation: result });
+    return NextResponse.json({ error: "지원하지 않는 요청이에요" }, { status: 400 });
   } catch {
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }

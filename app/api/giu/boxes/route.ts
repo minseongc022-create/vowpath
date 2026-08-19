@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isGiuCategory } from "@/giu/lib/categories";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuSessionFromRequest, requireMerchantSession } from "@/giu/lib/auth-request";
 import { isAllowedGiuImageUrl } from "@/giu/lib/image-url";
 import { MAX_BOX_IMAGES, normalizeImageUrls } from "@/giu/lib/box-images";
-import { createBox, getMerchant, listBoxes, defaultPickupWindow } from "@/giu/lib/store";
+import { createBox, getMerchant, getMerchantByAccountId, listBoxes, defaultPickupWindow } from "@/giu/lib/store";
 
 const createSchema = z.object({
   title: z.string().min(3).max(120),
@@ -27,7 +27,7 @@ const createSchema = z.object({
   originalPriceVnd: z.number().int().min(500),
   salePriceVnd: z.number().int().min(500),
   quantityTotal: z.number().int().min(1).max(50),
-  madeAt: z.string().datetime(),
+  madeAt: z.string().datetime().optional(),
   bestBefore: z.string().datetime().optional(),
   storageMethod: z.enum(["room", "fridge", "freezer", "display", "other"]),
   storageCustom: z.string().max(120).optional(),
@@ -48,8 +48,8 @@ export async function GET(request: Request) {
   const dayOffset = when === "today" ? (0 as const) : when === "tomorrow" ? (1 as const) : undefined;
 
   if (merchantId) {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || session.merchantId !== merchantId) {
+    const auth = await requireMerchantSession(request, merchantId);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
   }
@@ -67,21 +67,25 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getGiuSessionFromRequest(request);
-    if (!session || session.role !== "merchant" || !session.merchantId) {
+    const auth = await requireMerchantSession(request);
+    if (!auth) {
       return NextResponse.json({ error: "가게 로그인이 필요합니다" }, { status: 401 });
     }
 
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다" },
-        { status: 400 },
-      );
+      const issue = parsed.error.issues[0];
+      const msg =
+        issue?.message && issue.message !== "Invalid input"
+          ? issue.message
+          : "입력값을 다시 확인해 주세요";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
 
-    const merchant = await getMerchant(session.merchantId);
+    const merchant =
+      (await getMerchantByAccountId(auth.session.sub)) ??
+      (await getMerchant(auth.merchantId));
     if (!merchant) {
       return NextResponse.json({ error: "가게를 찾을 수 없습니다" }, { status: 404 });
     }
@@ -94,7 +98,8 @@ export async function POST(request: Request) {
     if (parsed.data.storageMethod === "other" && !parsed.data.storageCustom?.trim()) {
       return NextResponse.json({ error: "기타 보관 방법을 입력해 주세요" }, { status: 400 });
     }
-    if (new Date(parsed.data.madeAt).getTime() > Date.now() + 60_000) {
+    const madeAt = parsed.data.madeAt ?? new Date().toISOString();
+    if (new Date(madeAt).getTime() > Date.now() + 60_000) {
       return NextResponse.json({ error: "제조·준비 시각은 현재 이후일 수 없어요" }, { status: 400 });
     }
 
@@ -136,7 +141,7 @@ export async function POST(request: Request) {
       pickupStart,
       pickupEnd,
       expiresAt: parsed.data.expiresAt ?? pickupEnd,
-      madeAt: parsed.data.madeAt,
+      madeAt,
       bestBefore: parsed.data.bestBefore,
       storageMethod: parsed.data.storageMethod,
       storageCustom:

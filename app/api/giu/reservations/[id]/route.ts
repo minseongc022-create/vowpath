@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
+import { getGiuSessionFromRequest, merchantOwnsReservation, requireMerchantSession } from "@/giu/lib/auth-request";
 import {
   cancelReservation,
   getRefundPreview,
@@ -24,9 +24,9 @@ export async function GET(request: Request, { params }: Props) {
   }
 
   const session = await getGiuSessionFromRequest(request);
+  const merchantOk = session?.role === "merchant" && (await merchantOwnsReservation(session, reservation.merchantId));
   const allowed =
-    (session?.role === "customer" && session.sub === reservation.customerId) ||
-    (session?.role === "merchant" && session.merchantId === reservation.merchantId);
+    (session?.role === "customer" && session.sub === reservation.customerId) || merchantOk;
 
   if (!allowed) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,7 +77,7 @@ export async function PATCH(request: Request, { params }: Props) {
       }
       updated = await cancelReservation(id);
     } else {
-      if (session?.role !== "merchant" || session.merchantId !== reservation.merchantId) {
+      if (session?.role !== "merchant" || !(await merchantOwnsReservation(session, reservation.merchantId))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       updated = await updateReservationStatus(id, status);

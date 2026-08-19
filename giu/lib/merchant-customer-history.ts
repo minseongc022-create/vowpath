@@ -21,6 +21,7 @@ export type CustomerTimelineKind =
   | "pickup_done"
   | "refund"
   | "no_show"
+  | "auto_no_show"
   | "expired"
   | "cancelled";
 
@@ -71,6 +72,45 @@ export function listMerchantCustomers(
   }
 
   return [...map.values()].sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt));
+}
+
+/** Group reservations by customer for merchant stat lists. */
+export function groupReservationsByCustomer(
+  reservations: GiuReservation[],
+): Array<{ customerId: string; customerName: string; customerPhone: string; orders: GiuReservation[] }> {
+  const map = new Map<
+    string,
+    { customerId: string; customerName: string; customerPhone: string; orders: GiuReservation[] }
+  >();
+  for (const r of reservations) {
+    const row = map.get(r.customerId) ?? {
+      customerId: r.customerId,
+      customerName: r.customerName,
+      customerPhone: r.customerPhone,
+      orders: [],
+    };
+    row.orders.push(r);
+    map.set(r.customerId, row);
+  }
+  return [...map.values()].sort((a, b) => {
+    const aLatest = a.orders[0]?.createdAt ?? "";
+    const bLatest = b.orders[0]?.createdAt ?? "";
+    return bLatest.localeCompare(aLatest);
+  });
+}
+
+/** Visit label for merchant UI — completed pickups + current active visit. */
+export function customerVisitLabel(
+  orders: GiuReservation[],
+  locale: "ko",
+): string {
+  const completed = orders.filter((r) => r.status === "da_lay" && r.paymentStatus === "paid").length;
+  const hasActive = orders.some(
+    (r) => r.paymentStatus === "paid" && (r.status === "giu_cho" || r.status === "het_han"),
+  );
+  const visitNo = completed + (hasActive ? 1 : 0);
+  if (visitNo <= 0) return locale === "ko" ? "첫 방문 예정" : "First visit";
+  return locale === "ko" ? `${visitNo}번째 방문` : `Visit ${visitNo}`;
 }
 
 export function getCustomerReservations(
@@ -183,7 +223,15 @@ export function buildReservationTimelineEvents(
     });
   }
 
-  if (reservation.merchantNoShowMarkedAt) {
+  if (reservation.autoNoShowRefundAt) {
+    events.push({
+      id: `${reservation.id}-auto-noshow`,
+      at: reservation.autoNoShowRefundAt,
+      kind: "auto_no_show",
+      reservationId: reservation.id,
+      productTitle,
+    });
+  } else if (reservation.merchantNoShowMarkedAt) {
     events.push({
       id: `${reservation.id}-noshow`,
       at: reservation.merchantNoShowMarkedAt,

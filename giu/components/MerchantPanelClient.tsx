@@ -29,10 +29,9 @@ import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
 import { MerchantExtensionReview } from "./MerchantExtensionReview";
-import { MerchantNoShowButton } from "./MerchantNoShowButton";
 import { MerchantOrderStatusBadge } from "./MerchantOrderStatusBadge";
 import {
-  merchantCanMarkNoShow,
+  AUTO_NO_SHOW_REFUND_DAYS,
   resolveDisplayReservationStatus,
   resolvePickupPolicy,
 } from "@/giu/lib/pickup-policy";
@@ -79,7 +78,7 @@ export function MerchantPanelClient() {
   }, [tabIndex]);
 
   const load = useCallback(
-    async (merchantId: string, opts?: { silent?: boolean }) => {
+    async (merchantId: string, opts?: { silent?: boolean; retried?: boolean }) => {
       if (!opts?.silent) setLoading(true);
       setError("");
       try {
@@ -88,9 +87,13 @@ export function MerchantPanelClient() {
           fetch(`/api/giu/reservations?merchantId=${merchantId}`, { credentials: "include" }),
         ]);
         if (bRes.status === 401 || rRes.status === 401) {
+          if (!opts?.retried) {
+            await refresh();
+            return load(merchantId, { ...opts, silent: true, retried: true });
+          }
           setError(t(locale, "mSessionExpired"));
           await logout();
-          window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
+          window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant&reauth=1`;
           return;
         }
         if (!bRes.ok || !rRes.ok) {
@@ -107,7 +110,7 @@ export function MerchantPanelClient() {
         if (!opts?.silent) setLoading(false);
       }
     },
-    [locale, logout, href],
+    [locale, logout, href, refresh],
   );
 
   useEffect(() => {
@@ -167,11 +170,12 @@ export function MerchantPanelClient() {
     [reservations, reservationDisplayStatus],
   );
 
-  const expiredPickup = useMemo(
+  const ghostedCount = useMemo(
     () =>
-      reservations.filter(
-        (r) => r.paymentStatus === "paid" && reservationDisplayStatus(r) === "het_han",
-      ).length,
+      reservations.filter((r) => {
+        if (r.paymentStatus !== "paid" || r.extensionRequest?.status === "pending") return false;
+        return reservationDisplayStatus(r) === "het_han";
+      }).length,
     [reservations, reservationDisplayStatus],
   );
 
@@ -214,14 +218,6 @@ export function MerchantPanelClient() {
   const visibleOrders = filteredOrders.slice(0, orderLimit);
   const hasMoreOrders = filteredOrders.length > orderLimit;
 
-  const settlementHeld = reservations
-    .filter(
-      (r) =>
-        r.paymentStatus === "paid" &&
-        r.settlementStatus === "held" &&
-        (r.status === "giu_cho" || r.status === "het_han"),
-    )
-    .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
   const settlementReleased = reservations
     .filter((r) => r.paymentStatus === "paid" && r.settlementStatus === "released" && r.status === "da_lay")
     .reduce((s, r) => s + (r.totalVnd - r.platformFeeVnd), 0);
@@ -250,7 +246,7 @@ export function MerchantPanelClient() {
           type="button"
           className="giu-btn-primary"
           onClick={() => {
-            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant`;
+            window.location.href = `${href(GIU_ROUTES.auth)}?role=merchant&reauth=1`;
           }}
         >
           {t(locale, "loginSignup")}
@@ -288,7 +284,7 @@ export function MerchantPanelClient() {
           ) : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 text-[13px]">
           {(
             [
               { key: "selling" as const, label: t(locale, "mOpenBoxes"), value: String(openBoxes) },
@@ -298,13 +294,13 @@ export function MerchantPanelClient() {
                 value: String(awaitingPickup),
               },
               {
-                key: "settleHeld" as const,
-                label: t(locale, "mSettleHeld"),
-                value: money(settlementHeld),
+                key: "ghosted" as const,
+                label: t(locale, "mGhostedTitle"),
+                value: String(ghostedCount),
               },
               {
-                key: "settleDone" as const,
-                label: t(locale, "mSettleDone"),
+                key: "settlement" as const,
+                label: t(locale, "mSettlementMenu"),
                 value: money(settlementReleased),
               },
             ] as const
@@ -314,16 +310,14 @@ export function MerchantPanelClient() {
               type="button"
               onClick={() => openStatSheet(item.key)}
               className={`giu-tap rounded-[12px] px-3 py-2 text-left transition active:scale-[0.98] ${
-                item.key === "settleHeld" || item.key === "settleDone"
+                item.key === "settlement"
                   ? "bg-giu-bg ring-1 ring-giu-border"
                   : "bg-giu-primary-soft ring-1 ring-giu-primary/10"
               }`}
             >
               <p
                 className={`text-[10px] font-bold ${
-                  item.key === "settleHeld" || item.key === "settleDone"
-                    ? "text-giu-muted"
-                    : "text-giu-primary"
+                  item.key === "settlement" ? "text-giu-muted" : "text-giu-primary"
                 }`}
               >
                 {item.label}
@@ -407,7 +401,7 @@ export function MerchantPanelClient() {
                   {f === "awaiting"
                     ? `${t(locale, "mOrdersAwaiting")}${awaitingPickup > 0 ? ` (${awaitingPickup})` : ""}`
                     : f === "expired"
-                      ? `${t(locale, "mFilterExpired")}${expiredPickup > 0 ? ` (${expiredPickup})` : ""}`
+                      ? `${t(locale, "mFilterExpired")}${ghostedCount > 0 ? ` (${ghostedCount})` : ""}`
                       : t(locale, "mOrdersAll")}
                 </button>
               ))}
@@ -443,7 +437,6 @@ export function MerchantPanelClient() {
               <ul className="space-y-2.5">
                 {visibleOrders.map((r) => {
                   const box = boxMap.get(r.boxId);
-                  const net = r.totalVnd - r.platformFeeVnd;
                   const shown = reservationDisplayStatus(r);
                   const isActiveAwaiting = shown === "giu_cho" && r.paymentStatus === "paid";
                   const isExpired = shown === "het_han";
@@ -457,24 +450,10 @@ export function MerchantPanelClient() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              hapticSelect();
-                              setCustomerDetailId(r.customerId);
-                            }}
-                            className="w-full rounded-[12px] text-left ring-1 ring-transparent transition active:bg-giu-bg/80 active:ring-giu-border/60"
-                          >
-                            <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                            <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
-                            <p className="mt-1 text-[10px] font-semibold text-giu-primary">
-                              {t(locale, "mCustDetailTap")}
-                            </p>
-                          </button>
+                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
+                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
                           {box ? (
-                            <p className="mt-2 text-[12px] font-semibold text-giu-ink">
-                              {t(locale, "mOrderProduct")}: {box.title}
-                            </p>
+                            <p className="mt-2 text-[12px] font-semibold text-giu-ink">{box.title}</p>
                           ) : null}
                           {box ? (
                             <p className="text-[11px] font-medium text-giu-muted">
@@ -482,67 +461,54 @@ export function MerchantPanelClient() {
                             </p>
                           ) : null}
                           {isActiveAwaiting ? (
-                            <p className="mt-2 rounded-[14px] bg-giu-primary-soft px-3 py-2.5 text-[11px] font-semibold leading-snug text-giu-muted ring-1 ring-giu-primary/15">
+                            <p className="mt-2 text-[11px] font-semibold leading-snug text-giu-muted">
                               {t(locale, "mAwaitingPickupHint")}
                             </p>
                           ) : isExpired ? (
-                            <p className="mt-2 rounded-[14px] bg-amber-50 px-3 py-2.5 text-[11px] font-semibold leading-snug text-amber-900 ring-1 ring-amber-200/60">
-                              {t(locale, "mLatePickupHint")}
+                            <p className="mt-2 text-[11px] font-semibold leading-snug text-amber-900">
+                              {t(locale, "mAutoRefundHint").replaceAll(
+                                "{days}",
+                                String(AUTO_NO_SHOW_REFUND_DAYS),
+                              )}
                             </p>
-                          ) : (
-                            <p className="mt-1 text-[12px] text-giu-muted">
-                              {t(locale, "mOrderQty")} {r.quantity}
-                              {t(locale, "mUnitQty")}
-                            </p>
-                          )}
-                          <p className="mt-1 text-[12px] text-giu-muted">
-                            {money(r.totalVnd)} · {t(locale, "mOrderFee")} {money(r.platformFeeVnd)} ·{" "}
-                            {t(locale, "mOrderNet")} {money(net)}
-                          </p>
-                          <p className="text-[12px] text-giu-muted">
-                            {formatPaymentStatusLocale(r.paymentStatus, locale)}{" "}
-                            · {formatReservationStatusLocale(shown, locale)}
-                            {r.settlementStatus === "held"
-                              ? ` · ${t(locale, "mSettleHeld")}`
-                              : r.settlementStatus === "released"
-                                ? ` · ${t(locale, "mSettleDone")}`
-                                : ""}
-                            {r.payoutStatus === "queued"
-                              ? ` · ${t(locale, "mPayoutQueued")}`
-                              : r.payoutStatus === "pending_account"
-                                ? ` · ${t(locale, "mPayoutPendingAccount")}`
-                                : r.payoutStatus === "sent"
-                                  ? ` · ${t(locale, "mPayoutSent")}`
-                                  : ""}
+                          ) : null}
+                          <p className="mt-1.5 text-[13px] font-bold text-giu-ink">{money(r.totalVnd)}</p>
+                          <p className="text-[11px] text-giu-muted">
+                            {formatPaymentStatusLocale(r.paymentStatus, locale)} ·{" "}
+                            {formatReservationStatusLocale(shown, locale)}
                           </p>
                         </div>
-                        <MerchantOrderStatusBadge
-                          locale={locale}
-                          reservation={r}
-                          boxPickupEnd={box?.pickupEnd}
-                          policy={pickupPolicy}
-                        />
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          <MerchantOrderStatusBadge
+                            locale={locale}
+                            reservation={r}
+                            boxPickupEnd={box?.pickupEnd}
+                            policy={pickupPolicy}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              hapticSelect();
+                              setCustomerDetailId(r.customerId);
+                            }}
+                            className="giu-btn-secondary !px-3 !py-1.5 text-[11px] font-bold"
+                          >
+                            {t(locale, "mCustDetailOpen")}
+                          </button>
+                        </div>
                       </div>
                       {r.paymentStatus === "paid" &&
+                      r.extensionRequest?.status === "pending" &&
                       (shown === "giu_cho" || shown === "het_han") &&
                       box ? (
-                        <div className="mt-2 space-y-2">
-                      <MerchantExtensionReview
-                        locale={locale}
-                        reservation={r}
-                        boxPickupStart={box?.pickupStart}
-                        boxPickupEnd={box?.pickupEnd}
-                        onDone={() => void load(merchant.id, { silent: true })}
-                      />
-                      {r.extensionRequest?.status !== "pending" &&
-                      isExpired &&
-                      merchantCanMarkNoShow(box.pickupEnd, pickupPolicy) ? (
-                        <MerchantNoShowButton
-                          locale={locale}
-                          reservationId={r.id}
-                          onDone={() => void load(merchant.id, { silent: true })}
-                        />
-                      ) : null}
+                        <div className="mt-2">
+                          <MerchantExtensionReview
+                            locale={locale}
+                            reservation={r}
+                            boxPickupStart={box?.pickupStart}
+                            boxPickupEnd={box?.pickupEnd}
+                            onDone={() => void load(merchant.id, { silent: true })}
+                          />
                         </div>
                       ) : null}
                       {r.paymentStatus === "paid" &&

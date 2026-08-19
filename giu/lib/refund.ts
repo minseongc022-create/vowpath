@@ -1,6 +1,7 @@
 import { GIU_BRAND } from "./brand";
 import {
   DEFAULT_PICKUP_POLICY,
+  effectivePickupEndIso,
   minutesUntilPickupEnd,
   resolvePickupPolicy,
   type GiuPickupPolicy,
@@ -42,7 +43,8 @@ export function calculateRefundSplit(
   now = Date.now(),
 ): RefundSplit {
   const policy = resolvePickupPolicy(merchant);
-  const minutesToEnd = minutesUntilPickupEnd(box.pickupEnd, now);
+  const pickupEndIso = effectivePickupEndIso(reservation, box.pickupEnd);
+  const minutesToEnd = minutesUntilPickupEnd(pickupEndIso, now);
 
   const zeroFee = {
     type: "full" as const,
