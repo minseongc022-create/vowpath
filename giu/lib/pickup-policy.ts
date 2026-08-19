@@ -142,6 +142,23 @@ export function shouldMarkReservationExpired(
   return now > pickupGraceEndsAt(boxPickupEndIso, policy);
 }
 
+/** UI + filters: treat past-grace giu_cho as 픽업 마감 even before cron persists het_han. */
+export function resolveDisplayReservationStatus(
+  reservation: Pick<
+    GiuReservation,
+    "status" | "paymentStatus" | "merchantPickupPromiseUntil" | "extensionRequest"
+  >,
+  boxPickupEndIso: string | undefined,
+  policy: GiuPickupPolicy = DEFAULT_PICKUP_POLICY,
+  now = Date.now(),
+): GiuReservation["status"] {
+  if (reservation.status !== "giu_cho" || !boxPickupEndIso) return reservation.status;
+  if (shouldMarkReservationExpired(reservation, boxPickupEndIso, policy, now)) {
+    return "het_han";
+  }
+  return reservation.status;
+}
+
 export function reservationDeepLink(reservationId: string, from?: string): string {
   const base = `${getGiuPublicOrigin()}/dat/${reservationId}`;
   return from ? `${base}?from=${from}` : base;

@@ -6,6 +6,7 @@ import { CO2_KG_PER_BOX, formatReservationStatusLocale } from "@/giu/lib/box-ux"
 import { formatPickupWindowWithDate, formatVnd } from "@/giu/lib/format";
 import { hapticSelect } from "@/giu/lib/haptics";
 import { t } from "@/giu/lib/i18n";
+import { resolveDisplayReservationStatus } from "@/giu/lib/pickup-policy";
 import { GIU_ROUTES } from "@/giu/lib/routes";
 import type { GiuBox, GiuMerchant, GiuReservation, GiuReview } from "@/giu/lib/types";
 import { GiuCustomerNavLink } from "./GiuCustomerNavLink";
@@ -14,7 +15,7 @@ import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 
 type Enriched = GiuReservation & { box?: GiuBox | null; merchant?: GiuMerchant | null };
-type CustomerFilter = "all" | "awaiting" | "done" | "cancelled";
+type CustomerFilter = "all" | "awaiting" | "expired" | "done" | "cancelled";
 
 export function MyReservationsLookup() {
   const { account, loading: authLoading } = useGiuAuth();
@@ -86,8 +87,12 @@ export function MyReservationsLookup() {
 
   const filtered = useMemo(() => {
     return list.filter((r) => {
+      const shown = resolveDisplayReservationStatus(r, r.box?.pickupEnd);
       if (filter === "awaiting") {
-        return r.paymentStatus === "paid" && r.status === "giu_cho";
+        return r.paymentStatus === "paid" && shown === "giu_cho";
+      }
+      if (filter === "expired") {
+        return r.paymentStatus === "paid" && shown === "het_han";
       }
       if (filter === "done") return r.status === "da_lay";
       if (filter === "cancelled") return r.status === "huy" || r.paymentStatus === "refunded";
@@ -96,13 +101,15 @@ export function MyReservationsLookup() {
   }, [list, filter]);
 
   function statusLabel(r: Enriched): string {
-    if (r.status === "het_han") return t(locale, "statusHetHan");
-    return formatReservationStatusLocale(r.status, locale);
+    const shown = resolveDisplayReservationStatus(r, r.box?.pickupEnd);
+    if (shown === "het_han") return t(locale, "statusHetHan");
+    return formatReservationStatusLocale(shown, locale);
   }
 
   function statusClass(r: Enriched): string {
-    if (r.status === "het_han") return "font-bold text-amber-800";
-    if (r.status === "giu_cho") return "font-semibold text-giu-primary";
+    const shown = resolveDisplayReservationStatus(r, r.box?.pickupEnd);
+    if (shown === "het_han") return "font-bold text-amber-800";
+    if (shown === "giu_cho") return "font-semibold text-giu-primary";
     return "font-semibold text-giu-muted";
   }
 
@@ -163,7 +170,7 @@ export function MyReservationsLookup() {
       <div className="giu-card space-y-2.5">
         <p className="text-[15px] font-bold text-giu-ink">{t(locale, "myReservationsTitle")}</p>
         <div className="giu-filter-tabs">
-          {(["all", "awaiting", "done", "cancelled"] as const).map((f) => (
+          {(["all", "awaiting", "expired", "done", "cancelled"] as const).map((f) => (
             <button
               key={f}
               type="button"
@@ -173,7 +180,18 @@ export function MyReservationsLookup() {
               }}
               className={`giu-filter-tab giu-btn-3d ${filter === f ? "is-active" : ""}`}
             >
-              {t(locale, f === "all" ? "mFilterAll" : f === "awaiting" ? "myFilterAwaiting" : f === "done" ? "myFilterDone" : "myFilterCancelled")}
+              {t(
+                locale,
+                f === "all"
+                  ? "mFilterAll"
+                  : f === "awaiting"
+                    ? "myFilterAwaiting"
+                    : f === "expired"
+                      ? "myFilterExpired"
+                      : f === "done"
+                        ? "myFilterDone"
+                        : "myFilterCancelled",
+              )}
             </button>
           ))}
         </div>
@@ -196,7 +214,8 @@ export function MyReservationsLookup() {
                         {r.box.title} · {formatPickupWindowWithDate(r.box.pickupStart, r.box.pickupEnd)}
                       </p>
                     ) : null}
-                    {r.status === "het_han" ? (
+                    {r.status === "het_han" ||
+                    resolveDisplayReservationStatus(r, r.box?.pickupEnd) === "het_han" ? (
                       <p className="mt-1 text-[11px] font-semibold text-amber-800">
                         {t(locale, "cExpiredListHint")}
                       </p>
