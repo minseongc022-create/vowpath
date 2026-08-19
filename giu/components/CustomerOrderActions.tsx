@@ -3,17 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CustomerExtensionRequestForm } from "@/giu/components/CustomerExtensionRequestForm";
+import { CustomerPickupProposalReview } from "@/giu/components/CustomerPickupProposalReview";
+import { NotPickedUpBanner } from "@/giu/components/NotPickedUpBanner";
 import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
-import { canRequestExtensionInApp, type GiuPickupPolicy } from "@/giu/lib/pickup-policy";
+import { telHref } from "@/giu/lib/freshness";
+import { hapticSelect } from "@/giu/lib/haptics";
+import { t, type GiuLocale } from "@/giu/lib/i18n";
 import {
   canCustomerRequestPickupChange,
   chatAllowedForStatus,
   DISPUTE_REASONS_KO,
   notPickedUpGraceActionsAvailable,
 } from "@/giu/lib/order-status";
-import { telHref } from "@/giu/lib/freshness";
-import { hapticSelect } from "@/giu/lib/haptics";
-import { t, type GiuLocale } from "@/giu/lib/i18n";
+import { type GiuPickupPolicy } from "@/giu/lib/pickup-policy";
 import type { GiuOrderStatus, GiuReservation } from "@/giu/lib/types";
 
 type Props = {
@@ -22,6 +24,7 @@ type Props = {
   displayStatus: GiuOrderStatus;
   merchantName: string;
   merchantPhone?: string;
+  boxPickupStart?: string;
   boxPickupEnd?: string;
   policy: GiuPickupPolicy;
   defaultPlannedAt?: string;
@@ -33,6 +36,7 @@ export function CustomerOrderActions({
   displayStatus,
   merchantName,
   merchantPhone,
+  boxPickupStart,
   boxPickupEnd,
   policy,
   defaultPlannedAt,
@@ -45,11 +49,9 @@ export function CustomerOrderActions({
 
   const tel = merchantPhone ? telHref(merchantPhone) : "";
   const extensionStatus = reservation.extensionRequest?.status;
+  const inGrace = notPickedUpGraceActionsAvailable(reservation, policy);
+  const showNotPickedUp = displayStatus === "not_picked_up";
   const canChangePickup = canCustomerRequestPickupChange(reservation);
-  const inGrace = notPickedUpGraceActionsAvailable(reservation) || displayStatus === "not_picked_up";
-  const canExtendInApp = Boolean(
-    boxPickupEnd && canRequestExtensionInApp(boxPickupEnd, policy) && canChangePickup,
-  );
   const showChat = chatAllowedForStatus(displayStatus);
 
   async function submitReport() {
@@ -78,14 +80,22 @@ export function CustomerOrderActions({
 
   return (
     <div className="space-y-3">
+      <CustomerPickupProposalReview locale={locale} reservation={reservation} />
+
       {displayStatus === "payment_completed" ? (
         <p className="rounded-[14px] bg-giu-primary-soft px-3 py-2.5 text-[12px] font-semibold leading-snug text-giu-ink">
           {t(locale, "orderPaymentCompletedHint")}
         </p>
       ) : null}
 
-      {inGrace ? (
-        <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "orderNotPickedUpHint")}</p>
+      {showNotPickedUp && boxPickupStart && boxPickupEnd ? (
+        <NotPickedUpBanner
+          locale={locale}
+          reservation={reservation}
+          boxPickupStart={boxPickupStart}
+          boxPickupEnd={boxPickupEnd}
+          policy={policy}
+        />
       ) : null}
 
       {inGrace && tel ? (
@@ -97,13 +107,11 @@ export function CustomerOrderActions({
         </a>
       ) : null}
 
-      {(inGrace || displayStatus === "pickup_waiting" || displayStatus === "pickup_change_completed") &&
-      canChangePickup &&
-      extensionStatus !== "approved" ? (
+      {inGrace && canChangePickup && extensionStatus !== "approved" ? (
         <CustomerExtensionRequestForm
           locale={locale}
           reservationId={reservation.id}
-          canRequestInApp={canExtendInApp || inGrace}
+          canRequestInApp
           cutoffMinutes={policy.extensionRequestBeforeMinutes}
           extensionStatus={extensionStatus}
           defaultPlannedAt={defaultPlannedAt}
@@ -169,6 +177,8 @@ export function CustomerOrderActions({
           </div>
         )
       ) : null}
+
+      <p className="text-[11px] leading-snug text-giu-muted">{t(locale, "chatOfficialNotice")}</p>
 
       {showChat && merchantName ? (
         <ReservationChatButton

@@ -154,6 +154,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
               displayStatus={displayStatus}
               merchantName={merchant?.name ?? ""}
               merchantPhone={merchant?.phone}
+              boxPickupStart={box?.pickupStart}
               boxPickupEnd={box?.pickupEnd}
               policy={policy}
               defaultPlannedAt={defaultPlanned}

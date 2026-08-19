@@ -202,17 +202,9 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
             label={t(locale, "mPolicyGraceMin")}
             name="pickupGraceMinutes"
             defaultValue={policy.pickupGraceMinutes}
-            min={10}
-            max={120}
+            min={30}
+            max={480}
             unit={t(locale, "mPolicyUnitMinAfter")}
-          />
-          <PolicyNumberField
-            label={t(locale, "mPolicyNoShowHours")}
-            name="merchantNoShowMarkAfterHours"
-            defaultValue={policy.merchantNoShowMarkAfterHours}
-            min={6}
-            max={72}
-            unit={t(locale, "mPolicyUnitHoursAfter")}
           />
           <PolicyNumberField
             label={t(locale, "mPolicyLateCancelPct")}

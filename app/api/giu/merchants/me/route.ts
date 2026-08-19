@@ -19,10 +19,9 @@ const patchSchema = z.object({
     .object({
       cancelFreeBeforeMinutes: z.number().int().min(15).max(240).optional(),
       extensionRequestBeforeMinutes: z.number().int().min(5).max(120).optional(),
-      pickupGraceMinutes: z.number().int().min(10).max(120).optional(),
+      pickupGraceMinutes: z.number().int().min(30).max(480).optional(),
       lateCancelFeeRate: z.number().min(0.05).max(0.5).optional(),
       noShowFeeRate: z.number().min(0.05).max(0.5).optional(),
-      merchantNoShowMarkAfterHours: z.number().int().min(6).max(72).optional(),
     })
     .optional(),
 });

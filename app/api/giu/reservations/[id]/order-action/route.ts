@@ -7,11 +7,19 @@ import {
   getReservation,
   merchantConfirmOrder,
   reportOrderDispute,
+  reportProductIssue,
+  requestStructuredRefund,
 } from "@/giu/lib/store";
 
 const postSchema = z.object({
-  action: z.enum(["confirm", "report_dispute", "cancel"]),
+  action: z.enum(["confirm", "report_dispute", "cancel", "request_refund", "report_product"]),
   reason: z.string().max(300).optional(),
+  detail: z.string().max(500).optional(),
+  problemType: z.string().max(100).optional(),
+  evidenceUrls: z.array(z.string().url()).max(5).optional(),
+  kind: z.string().max(100).optional(),
+  description: z.string().max(500).optional(),
+  storageNote: z.string().max(300).optional(),
 });
 
 type Props = { params: Promise<{ id: string }> };
@@ -92,6 +100,38 @@ export async function POST(request: Request, { params }: Props) {
         return NextResponse.json({ error: "환불할 수 없는 주문이에요" }, { status: 400 });
       }
       return NextResponse.json({ reservation: updated });
+    }
+
+    if (action === "request_refund") {
+      if (session?.role !== "customer" || session.sub !== reservation.customerId) {
+        return NextResponse.json({ error: "고객만 요청할 수 있어요" }, { status: 401 });
+      }
+      const result = await requestStructuredRefund(id, session.sub, {
+        reason: reason ?? "",
+        detail: parsed.data.detail,
+        problemType: parsed.data.problemType,
+        evidenceUrls: parsed.data.evidenceUrls,
+      });
+      if ("error" in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ reservation: result });
+    }
+
+    if (action === "report_product") {
+      if (session?.role !== "customer" || session.sub !== reservation.customerId) {
+        return NextResponse.json({ error: "고객만 신고할 수 있어요" }, { status: 401 });
+      }
+      const result = await reportProductIssue(id, session.sub, {
+        kind: parsed.data.kind ?? reason ?? "기타",
+        description: parsed.data.description ?? parsed.data.detail,
+        evidenceUrls: parsed.data.evidenceUrls,
+        storageNote: parsed.data.storageNote,
+      });
+      if ("error" in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ reservation: result });
     }
 
     return NextResponse.json({ error: "알 수 없는 요청이에요" }, { status: 400 });

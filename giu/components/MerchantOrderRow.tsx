@@ -10,6 +10,7 @@ import { t, type GiuLocale } from "@/giu/lib/i18n";
 import type { GiuBox, GiuReservation } from "@/giu/lib/types";
 import { MerchantConfirmOrderButton } from "./MerchantConfirmOrderButton";
 import { MerchantExtensionReview } from "./MerchantExtensionReview";
+import { MerchantPickupChangeProposal } from "./MerchantPickupChangeProposal";
 import { ReservationChatButton } from "./ReservationChatButton";
 
 type Props = {
@@ -124,13 +125,16 @@ export function MerchantOrderRow({
             />
           ) : null}
           {mode === "reserved" && r.paymentStatus === "paid" ? (
-            <ReservationChatButton
+            <>
+              <MerchantPickupChangeProposal locale={locale} reservation={r} onDone={onChanged} />
+              <ReservationChatButton
               locale={locale}
               reservationId={r.id}
               viewerRole="merchant"
               peerName={r.customerName}
               peerPhone={r.customerPhone}
             />
+            </>
           ) : null}
         </div>
       ) : null}
