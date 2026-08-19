@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
-import { CustomerPickupExtensionButton } from "@/giu/components/CustomerPickupExtensionButton";
+import { CustomerExtensionRequestForm } from "@/giu/components/CustomerExtensionRequestForm";
 import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
+import { ReservationDeepLinkScroll } from "@/giu/components/ReservationDeepLinkScroll";
 import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
 import { MapEmbed } from "@/giu/components/MapEmbed";
 import { ReservationPaymentPoller } from "@/giu/components/PayStatusBanner";
-import { formatPickupWindow, formatVnd } from "@/giu/lib/format";
+import { formatPickupWindowWithDate, formatVnd } from "@/giu/lib/format";
 import { merchantCoords } from "@/giu/lib/geo";
 import { t } from "@/giu/lib/i18n";
 import { getGiuLocaleServer } from "@/giu/lib/locale-server";
@@ -20,7 +21,7 @@ import { getBox, getMerchant, getReservation, getReviewForReservation } from "@/
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ paid?: string; pay?: string }>;
+  searchParams: Promise<{ paid?: string; pay?: string; from?: string }>;
 };
 
 export default async function GiuReservationPage({ params, searchParams }: Props) {
@@ -46,14 +47,27 @@ export default async function GiuReservationPage({ params, searchParams }: Props
   const coords = merchant ? merchantCoords(merchant.id, merchant.district) : null;
   const policy = resolvePickupPolicy(merchant);
   const canRequestInApp = Boolean(
-    box && reservation.status === "giu_cho" && canRequestExtensionInApp(box.pickupEnd, policy),
+    box &&
+      (reservation.status === "giu_cho" || reservation.status === "het_han") &&
+      canRequestExtensionInApp(box.pickupEnd, policy),
   );
   const hasPromise =
     reservation.merchantPickupPromiseUntil &&
     new Date(reservation.merchantPickupPromiseUntil).getTime() > Date.now();
+  const extensionStatus = reservation.extensionRequest?.status;
+
+  const defaultPlanned = box
+    ? (() => {
+        const d = new Date(box.pickupEnd);
+        d.setDate(d.getDate() + 1);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      })()
+    : undefined;
 
   return (
     <div className="giu-page space-y-3">
+      <ReservationDeepLinkScroll from={sp.from} />
       {pending ? (
         <div className="giu-card space-y-2 text-center">
           <span className="giu-badge bg-amber-50 text-amber-700">{t(locale, "payPending")}</span>
@@ -108,7 +122,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
               <p className="text-[15px] font-extrabold text-giu-ink">{merchant.name}</p>
               {box ? (
                 <p className="mt-0.5 text-[13px] text-giu-muted">
-                  {box.title} · {formatPickupWindow(box.pickupStart, box.pickupEnd)}
+                  {box.title} · {formatPickupWindowWithDate(box.pickupStart, box.pickupEnd)}
                 </p>
               ) : null}
               <p className="mt-1 text-[13px] font-bold text-giu-ink">
@@ -135,18 +149,23 @@ export default async function GiuReservationPage({ params, searchParams }: Props
 
         {paid && !pickedUp ? (
           <>
-            {reservation.status === "giu_cho" ? (
-              <CustomerPickupExtensionButton
+            {(reservation.status === "giu_cho" || reservation.status === "het_han") &&
+            extensionStatus !== "approved" ? (
+              <CustomerExtensionRequestForm
                 locale={locale}
                 reservationId={id}
-                extensionRequested={Boolean(reservation.pickupExtensionRequestedAt)}
                 canRequestInApp={canRequestInApp}
                 cutoffMinutes={policy.extensionRequestBeforeMinutes}
+                extensionStatus={extensionStatus}
+                defaultPlannedAt={defaultPlanned}
               />
-            ) : expired ? (
-              <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "cPickupExpiredCallHint")}</p>
             ) : null}
-            <RefundReservationButton reservationId={id} />
+            {expired ? (
+              <p className="text-[12px] leading-snug text-giu-muted">{t(locale, "cPickupExpiredActionHint")}</p>
+            ) : null}
+            <div id="giu-refund-section">
+              <RefundReservationButton reservationId={id} />
+            </div>
           </>
         ) : null}
 

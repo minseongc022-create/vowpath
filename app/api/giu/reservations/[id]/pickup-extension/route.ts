@@ -2,15 +2,29 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getGiuSessionFromRequest } from "@/giu/lib/auth-request";
 import {
+  approvePickupExtension,
   getReservation,
   markMerchantNoShow,
-  promiseMerchantPickup,
+  rejectPickupExtension,
   requestPickupExtension,
 } from "@/giu/lib/store";
 
-const bodySchema = z.object({
-  action: z.enum(["request", "promise", "mark-no-show"]),
-});
+const bodySchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("request"),
+    reason: z.string().min(4).max(300),
+    plannedPickupAt: z.string().min(8),
+  }),
+  z.object({
+    action: z.literal("approve"),
+    note: z.string().max(200).optional(),
+  }),
+  z.object({
+    action: z.literal("reject"),
+    note: z.string().max(200).optional(),
+  }),
+  z.object({ action: z.literal("mark-no-show") }),
+]);
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -37,7 +51,10 @@ export async function POST(request: Request, { params }: Props) {
       if (session.role !== "customer" || session.sub !== reservation.customerId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const result = await requestPickupExtension(id, session.sub);
+      const result = await requestPickupExtension(id, session.sub, {
+        reason: parsed.data.reason,
+        plannedPickupAt: parsed.data.plannedPickupAt,
+      });
       if ("error" in result) {
         return NextResponse.json({ error: result.error }, { status: 400 });
       }
@@ -48,8 +65,16 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (parsed.data.action === "promise") {
-      const result = await promiseMerchantPickup(session.merchantId, id);
+    if (parsed.data.action === "approve") {
+      const result = await approvePickupExtension(session.merchantId, id, parsed.data.note);
+      if ("error" in result) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ reservation: result });
+    }
+
+    if (parsed.data.action === "reject") {
+      const result = await rejectPickupExtension(session.merchantId, id, parsed.data.note);
       if ("error" in result) {
         return NextResponse.json({ error: result.error }, { status: 400 });
       }
