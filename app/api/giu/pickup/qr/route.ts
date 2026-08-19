@@ -20,7 +20,10 @@ export async function GET(request: Request) {
     if (!reservation || reservation.customerId !== session.sub) {
       return NextResponse.json({ error: "주문을 찾을 수 없습니다" }, { status: 404 });
     }
-    if (reservation.paymentStatus !== "paid" || reservation.status !== "giu_cho") {
+    if (
+      reservation.paymentStatus !== "paid" ||
+      (reservation.status !== "giu_cho" && reservation.status !== "het_han")
+    ) {
       return NextResponse.json({ error: "픽업 QR을 표시할 수 없습니다" }, { status: 400 });
     }
 

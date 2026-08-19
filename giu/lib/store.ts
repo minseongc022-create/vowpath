@@ -29,6 +29,12 @@ import { resolveGiuPaymentBackend } from "./payments";
 import { vndToUsdCents } from "./lemon-squeezy-giu";
 import { calculateRefundSplit } from "./refund";
 import {
+  computeExtensionExpiresAt,
+  computePickupExpiresAt,
+  PICKUP_AUTO_REFUND_HOURS,
+  PICKUP_MAX_EXTENSIONS,
+} from "./pickup-policy";
+import {
   SEED_BOXES,
   SEED_CO2_KG,
   SEED_DEMO_CUSTOMER,
@@ -528,7 +534,6 @@ export async function createBox(
 }
 
 const PAYMENT_HOLD_MINUTES = 15;
-const PICKUP_HOLD_MINUTES = 60;
 const AUTO_VERIFY_PICKUPS = 3;
 
 function maybeAutoVerifyMerchant(store: GiuStore, merchantId: string): void {
@@ -570,28 +575,31 @@ export async function confirmReservationPayment(
   res.paidAt = new Date().toISOString();
   res.status = "giu_cho";
   res.settlementStatus = "held";
-  res.expiresAt = new Date(Date.now() + PICKUP_HOLD_MINUTES * 60 * 1000).toISOString();
+  const box = store.boxes.find((b) => b.id === res.boxId);
+  res.expiresAt = box
+    ? computePickupExpiresAt(box.pickupEnd)
+    : new Date(Date.now() + 60 * 60 * 1000).toISOString();
   res.paymentExpiresAt = undefined;
 
   await saveStore(store);
 
-  const [box, merchant] = [
-    store.boxes.find((b) => b.id === res.boxId),
+  const [boxForNotify, merchant] = [
+    box ?? store.boxes.find((b) => b.id === res.boxId),
     store.merchants.find((m) => m.id === res.merchantId),
   ];
-  if (box && merchant) {
+  if (boxForNotify && merchant) {
     const sms = await notifyPickupCode({
       phone: res.customerPhone,
       code: res.code,
       merchantName: merchant.name,
       totalVnd: res.totalVnd,
-      pickupWindow: formatPickupWindow(box.pickupStart, box.pickupEnd),
+      pickupWindow: formatPickupWindow(boxForNotify.pickupStart, boxForNotify.pickupEnd),
     });
     res.smsSent = Boolean(sms.ok && !sms.skipped);
     await notifyMerchantNewOrder({
       phone: merchant.phone,
       customerName: res.customerName,
-      boxTitle: box.title,
+      boxTitle: boxForNotify.title,
       totalVnd: res.totalVnd,
       quantity: res.quantity,
     });
@@ -661,11 +669,13 @@ export async function updateBox(
 export async function expireStaleGiuReservations(): Promise<{
   expiredPayments: number;
   expiredPickups: number;
+  autoRefunded: number;
 }> {
   const store = await loadStore();
   const now = Date.now();
   let expiredPayments = 0;
   let expiredPickups = 0;
+  let autoRefunded = 0;
 
   for (const res of store.reservations) {
     if (res.paymentStatus === "pending" && res.status === "giu_cho") {
@@ -681,14 +691,26 @@ export async function expireStaleGiuReservations(): Promise<{
         res.status = "het_han";
         expiredPickups++;
       }
+    } else if (res.paymentStatus === "paid" && res.status === "het_han") {
+      const expiredAt = new Date(res.expiresAt).getTime();
+      const autoRefundAfter =
+        expiredAt + PICKUP_AUTO_REFUND_HOURS * 60 * 60 * 1000;
+      if (
+        now > autoRefundAfter &&
+        res.pickupExtensionRequestedAt &&
+        !res.pickupExtendedAt
+      ) {
+        await applyFullRefund(store, res);
+        autoRefunded++;
+      }
     }
   }
 
-  if (expiredPayments > 0 || expiredPickups > 0) {
+  if (expiredPayments > 0 || expiredPickups > 0 || autoRefunded > 0) {
     await saveStore(store);
   }
 
-  return { expiredPayments, expiredPickups };
+  return { expiredPayments, expiredPickups, autoRefunded };
 }
 
 export type InitiateReservationResult =
@@ -883,10 +905,22 @@ export async function updateReservationStatus(
   return res;
 }
 
+async function applyFullRefund(store: GiuStore, res: GiuReservation): Promise<void> {
+  if (res.paymentStatus !== "paid") return;
+  await releaseBoxQuantity(store, res.boxId, res.quantity);
+  res.status = "huy";
+  res.paymentStatus = "refunded";
+  res.refundAmountVnd = res.totalVnd;
+  res.noShowFeeVnd = 0;
+  res.refundType = "full";
+  res.refundedAt = new Date().toISOString();
+  res.settlementStatus = "refunded";
+}
+
 export async function cancelReservation(id: string): Promise<GiuReservation | null> {
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === id);
-  if (!res || res.status !== "giu_cho") return null;
+  if (!res || (res.status !== "giu_cho" && res.status !== "het_han")) return null;
 
   if (res.paymentStatus === "pending") {
     await releaseBoxQuantity(store, res.boxId, res.quantity);
@@ -933,7 +967,13 @@ export async function getRefundPreview(
 ): Promise<ReturnType<typeof calculateRefundSplit> | null> {
   const store = await loadStore();
   const res = store.reservations.find((r) => r.id === id);
-  if (!res || res.status !== "giu_cho" || res.paymentStatus !== "paid") return null;
+  if (
+    !res ||
+    res.paymentStatus !== "paid" ||
+    (res.status !== "giu_cho" && res.status !== "het_han")
+  ) {
+    return null;
+  }
   const box = store.boxes.find((b) => b.id === res.boxId);
   if (!box) return null;
   return calculateRefundSplit(res, box);
@@ -1130,7 +1170,7 @@ export async function lookupPickupByCode(
       r.merchantId === merchantId &&
       r.code === lookup &&
       r.paymentStatus === "paid" &&
-      r.status === "giu_cho",
+      (r.status === "giu_cho" || r.status === "het_han"),
   );
   if (!res) return { error: "코드를 찾을 수 없거나 이미 처리됐어요" };
   return res;
@@ -1154,7 +1194,9 @@ export async function lookupPickupByToken(
   );
   if (!res) return { error: "주문을 찾을 수 없어요" };
   if (res.status === "da_lay") return { error: "이미 픽업 완료된 주문이에요" };
-  if (res.status !== "giu_cho") return { error: "픽업 대기 상태가 아니에요" };
+  if (res.status !== "giu_cho" && res.status !== "het_han") {
+    return { error: "픽업 대기 상태가 아니에요" };
+  }
   return res;
 }
 
@@ -1211,7 +1253,10 @@ function finalizePickup(
   merchantId: string,
 ): Promise<GiuReservation | { error: string }> {
   if (res.status === "da_lay") return Promise.resolve(res);
-  if (res.status !== "giu_cho" || res.paymentStatus !== "paid") {
+  if (
+    (res.status !== "giu_cho" && res.status !== "het_han") ||
+    res.paymentStatus !== "paid"
+  ) {
     return Promise.resolve({ error: "픽업 대기 상태가 아니에요" });
   }
   res.status = "da_lay";
@@ -1328,7 +1373,7 @@ export async function toggleCustomerFavorite(
 
 function chatAllowed(res: GiuReservation): boolean {
   if (res.paymentStatus !== "paid") return false;
-  return res.status === "giu_cho" || res.status === "da_lay";
+  return res.status === "giu_cho" || res.status === "da_lay" || res.status === "het_han";
 }
 
 export async function listReservationChatMessages(
@@ -1430,6 +1475,61 @@ export async function listMerchantUnreadChats(
       ).length,
     }))
     .filter((x) => x.unread > 0);
+}
+
+export async function requestPickupExtension(
+  reservationId: string,
+  customerId: string,
+): Promise<GiuReservation | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find((r) => r.id === reservationId);
+  if (!res || res.customerId !== customerId) return { error: "주문을 찾을 수 없어요" };
+  if (res.paymentStatus !== "paid" || res.status !== "het_han") {
+    return { error: "픽업 시간이 지난 주문만 연장을 요청할 수 있어요" };
+  }
+  if (res.pickupExtensionRequestedAt) return res;
+
+  res.pickupExtensionRequestedAt = new Date().toISOString();
+  const message: GiuChatMessage = {
+    id: newId("msg"),
+    reservationId,
+    senderRole: "customer",
+    senderId: customerId,
+    body: "픽업 시간을 놓쳤어요. 내일(또는 늦게) 받을 수 있을까요? 🙏",
+    createdAt: new Date().toISOString(),
+  };
+  if (!store.chatMessages) store.chatMessages = [];
+  store.chatMessages.push(message);
+  res.chatLastReadCustomerAt = message.createdAt;
+  await saveStore(store);
+  return res;
+}
+
+export async function grantPickupExtension(
+  merchantId: string,
+  reservationId: string,
+): Promise<GiuReservation | { error: string }> {
+  const store = await loadStore();
+  const res = store.reservations.find(
+    (r) => r.id === reservationId && r.merchantId === merchantId,
+  );
+  if (!res) return { error: "주문을 찾을 수 없어요" };
+  if (res.paymentStatus !== "paid") return { error: "결제 완료 주문만 연장할 수 있어요" };
+  if (res.status !== "het_han" && res.status !== "giu_cho") {
+    return { error: "픽업 대기·만료 주문만 연장할 수 있어요" };
+  }
+
+  const count = res.pickupExtensionCount ?? 0;
+  if (count >= PICKUP_MAX_EXTENSIONS) {
+    return { error: `픽업 연장은 최대 ${PICKUP_MAX_EXTENSIONS}번까지 가능해요` };
+  }
+
+  res.status = "giu_cho";
+  res.pickupExtendedAt = new Date().toISOString();
+  res.pickupExtensionCount = count + 1;
+  res.expiresAt = computeExtensionExpiresAt();
+  await saveStore(store);
+  return res;
 }
 
 export { defaultPickupWindow };

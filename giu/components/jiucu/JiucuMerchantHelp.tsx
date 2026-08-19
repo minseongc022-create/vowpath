@@ -14,10 +14,10 @@ type Motion = "greet" | "cheer" | "show" | "team";
 
 const ARM = {
   left: 52 / 1024,
-  top: 290 / 1536,
+  top: 505 / 1536,
   width: 265 / 1024,
-  height: 470 / 1536,
-  origin: "78% 62%",
+  height: 255 / 1536,
+  origin: "86% 10%",
 };
 
 /** Merchant publish hero — full body + overlaid waving arm on shared coordinates. */

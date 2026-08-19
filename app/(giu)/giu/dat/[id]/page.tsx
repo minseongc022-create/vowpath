@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RefundReservationButton } from "@/giu/components/RefundReservationButton";
+import { CustomerPickupExtensionButton } from "@/giu/components/CustomerPickupExtensionButton";
 import { ReservationChatButton } from "@/giu/components/ReservationChatButton";
 import { ProductFreshnessTrust } from "@/giu/components/ProductFreshnessTrust";
 import { GiuCustomerBackLink } from "@/giu/components/GiuCustomerNavLinks";
@@ -32,6 +33,7 @@ export default async function GiuReservationPage({ params, searchParams }: Props
   const paid = reservation.paymentStatus === "paid";
   const pending = reservation.paymentStatus === "pending";
   const pickedUp = reservation.status === "da_lay";
+  const expired = reservation.status === "het_han";
 
   const [box, merchant, existingReview] = await Promise.all([
     getBox(reservation.boxId),
@@ -67,6 +69,8 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           <p className="text-[12px] leading-relaxed text-giu-muted">{t(locale, "pickupPinHint")}</p>
           {pickedUp ? (
             <p className="text-[12px] font-semibold text-giu-accent">{t(locale, "settleReleased")}</p>
+          ) : expired ? (
+            <p className="text-[12px] font-semibold text-amber-800">{t(locale, "cPickupExpiredHint")}</p>
           ) : (
             <p className="text-[12px] font-semibold text-giu-ink">{t(locale, "settleHeld")}</p>
           )}
@@ -119,9 +123,20 @@ export default async function GiuReservationPage({ params, searchParams }: Props
           </>
         ) : null}
 
-        {paid && !pickedUp ? <RefundReservationButton reservationId={id} /> : null}
+        {paid && !pickedUp ? (
+          <>
+            {expired ? (
+              <CustomerPickupExtensionButton
+                locale={locale}
+                reservationId={id}
+                extensionRequested={Boolean(reservation.pickupExtensionRequestedAt)}
+              />
+            ) : null}
+            <RefundReservationButton reservationId={id} />
+          </>
+        ) : null}
 
-        {paid && (reservation.status === "giu_cho" || pickedUp) && merchant ? (
+        {paid && (reservation.status === "giu_cho" || pickedUp || expired) && merchant ? (
           <ReservationChatButton
             locale={locale}
             reservationId={id}
