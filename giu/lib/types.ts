@@ -154,6 +154,11 @@ export type GiuReservation = {
   refundAmountVnd?: number;
   /** Non-refundable no-show fee (partial refund). */
   noShowFeeVnd?: number;
+  /** Customer asked merchant to hold food after pickup window. */
+  pickupExtensionRequestedAt?: string;
+  /** Merchant approved late pickup; reservation reopens until expiresAt. */
+  pickupExtendedAt?: string;
+  pickupExtensionCount?: number;
   refundedAt?: string;
   refundType?: "full" | "partial";
   chatLastReadCustomerAt?: string;

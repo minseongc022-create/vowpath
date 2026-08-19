@@ -17,14 +17,32 @@ export function calculateRefundSplit(
   box: GiuBox,
   now = Date.now(),
 ): RefundSplit {
+  const zeroFee = {
+    platformFeeVnd: 0,
+    merchantCompensationVnd: 0,
+  };
+
+  if (reservation.status === "het_han") {
+    const extended = Boolean(reservation.pickupExtendedAt);
+    const extensionExpired =
+      extended && new Date(reservation.expiresAt).getTime() < now;
+    if (!extended || !extensionExpired) {
+      return {
+        type: "full",
+        refundVnd: reservation.totalVnd,
+        noShowFeeVnd: 0,
+        ...zeroFee,
+      };
+    }
+  }
+
   const pickupStart = new Date(box.pickupStart).getTime();
-  if (now < pickupStart) {
+  if (now < pickupStart && reservation.status === "giu_cho") {
     return {
       type: "full",
       refundVnd: reservation.totalVnd,
       noShowFeeVnd: 0,
-      platformFeeVnd: 0,
-      merchantCompensationVnd: 0,
+      ...zeroFee,
     };
   }
 

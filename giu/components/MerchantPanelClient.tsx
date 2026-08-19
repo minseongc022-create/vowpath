@@ -26,6 +26,8 @@ import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantReviewsClient } from "./MerchantReviewsClient";
 import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
+import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
+import { MerchantPickupExtensionButton } from "./MerchantPickupExtensionButton";
 
 const PAGE_SIZE = 50;
 const MERCHANT_TABS = ["boxes", "orders", "settings"] as const;
@@ -51,6 +53,7 @@ export function MerchantPanelClient() {
   const [orderFilter, setOrderFilter] = useState<"awaiting" | "all">("awaiting");
   const [orderLimit, setOrderLimit] = useState(PAGE_SIZE);
   const [bankSheetOpen, setBankSheetOpen] = useState(false);
+  const [statFilter, setStatFilter] = useState<MerchantStatFilter | null>(null);
   const [tabSlide, setTabSlide] = useState<"forward" | "back">("forward");
   const prevTabIndex = useRef(MERCHANT_TABS.indexOf(tab));
 
@@ -134,7 +137,10 @@ export function MerchantPanelClient() {
       (r) => r.paymentStatus === "paid" || r.paymentStatus === "refunded",
     );
     if (orderFilter === "awaiting") {
-      list = list.filter((r) => r.status === "giu_cho" && r.paymentStatus === "paid");
+      list = list.filter(
+        (r) =>
+          r.paymentStatus === "paid" && (r.status === "giu_cho" || r.status === "het_han"),
+      );
     }
     if (q) {
       list = list.filter(
@@ -145,8 +151,13 @@ export function MerchantPanelClient() {
       );
     }
     return list.sort((a, b) => {
-      const aWait = a.status === "giu_cho" && a.paymentStatus === "paid" ? 0 : 1;
-      const bWait = b.status === "giu_cho" && b.paymentStatus === "paid" ? 0 : 1;
+      const rank = (r: GiuReservation) => {
+        if (r.status === "het_han") return 0;
+        if (r.status === "giu_cho" && r.paymentStatus === "paid") return 1;
+        return 2;
+      };
+      const aWait = rank(a);
+      const bWait = rank(b);
       if (aWait !== bWait) return aWait - bWait;
       return b.createdAt.localeCompare(a.createdAt);
     });
@@ -164,6 +175,12 @@ export function MerchantPanelClient() {
 
   const pendingAccountCount = reservations.filter((r) => r.payoutStatus === "pending_account").length;
   const needsBank = !merchant?.bankName?.trim() || !merchant?.bankAccount?.trim();
+  const pickupDoneCount = reservations.filter((r) => r.status === "da_lay").length;
+
+  const openStatSheet = (filter: MerchantStatFilter) => {
+    hapticSelect();
+    setStatFilter(filter);
+  };
 
   if (authLoading || loading) {
     return <MerchantPanelSkeleton />;
@@ -196,7 +213,13 @@ export function MerchantPanelClient() {
           <h1 className="text-[20px] font-extrabold tracking-tight">{merchant.name}</h1>
           <p className="mt-0.5 text-[12px] text-giu-muted">{merchant.address}</p>
           <p className="mt-2 text-[12px]">
-            {t(locale, "mRescued")} <strong>{merchant.rescuedBoxes}</strong>
+            <button
+              type="button"
+              onClick={() => openStatSheet("pickupDone")}
+              className="giu-tap rounded-md px-0.5 font-semibold text-giu-ink underline decoration-giu-primary/30 underline-offset-2"
+            >
+              {t(locale, "mRescued")} <strong>{pickupDoneCount || merchant.rescuedBoxes}</strong>
+            </button>
             {merchant.verified ? (
               <span className="ml-2 rounded-md bg-giu-accent-soft px-1.5 py-0.5 text-[10px] font-bold text-giu-primary">
                 {t(locale, "mVerified")}
@@ -213,22 +236,48 @@ export function MerchantPanelClient() {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
-          <div className="rounded-[12px] bg-giu-primary-soft px-3 py-2">
-            <p className="text-[10px] font-bold text-giu-primary">{t(locale, "mOpenBoxes")}</p>
-            <p className="font-extrabold text-giu-ink">{openBoxes}</p>
-          </div>
-          <div className="rounded-[12px] bg-giu-primary-soft px-3 py-2">
-            <p className="text-[10px] font-bold text-giu-primary">{t(locale, "mAwaitingPickup")}</p>
-            <p className="font-extrabold text-giu-ink">{awaitingPickup}</p>
-          </div>
-          <div className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
-            <p className="text-[10px] font-bold text-giu-muted">{t(locale, "mSettleHeld")}</p>
-            <p className="font-extrabold text-giu-ink">{money(settlementHeld)}</p>
-          </div>
-          <div className="rounded-[12px] bg-giu-bg px-3 py-2 ring-1 ring-giu-border">
-            <p className="text-[10px] font-bold text-giu-muted">{t(locale, "mSettleDone")}</p>
-            <p className="font-extrabold text-giu-ink">{money(settlementReleased)}</p>
-          </div>
+          {(
+            [
+              { key: "selling" as const, label: t(locale, "mOpenBoxes"), value: String(openBoxes) },
+              {
+                key: "awaiting" as const,
+                label: t(locale, "mAwaitingPickup"),
+                value: String(awaitingPickup),
+              },
+              {
+                key: "settleHeld" as const,
+                label: t(locale, "mSettleHeld"),
+                value: money(settlementHeld),
+              },
+              {
+                key: "settleDone" as const,
+                label: t(locale, "mSettleDone"),
+                value: money(settlementReleased),
+              },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => openStatSheet(item.key)}
+              className={`giu-tap rounded-[12px] px-3 py-2 text-left transition active:scale-[0.98] ${
+                item.key === "settleHeld" || item.key === "settleDone"
+                  ? "bg-giu-bg ring-1 ring-giu-border"
+                  : "bg-giu-primary-soft ring-1 ring-giu-primary/10"
+              }`}
+            >
+              <p
+                className={`text-[10px] font-bold ${
+                  item.key === "settleHeld" || item.key === "settleDone"
+                    ? "text-giu-muted"
+                    : "text-giu-primary"
+                }`}
+              >
+                {item.label}
+              </p>
+              <p className="font-extrabold text-giu-ink">{item.value}</p>
+            </button>
+          ))}
         </div>
         <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "mFeeNote")}</p>
         <ul className="mt-2 space-y-1 text-[11px] leading-snug text-giu-muted">
@@ -384,7 +433,20 @@ export function MerchantPanelClient() {
                           </span>
                         ) : null}
                       </div>
-                      {r.paymentStatus === "paid" && (r.status === "giu_cho" || r.status === "da_lay") ? (
+                      {r.status === "het_han" ? (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-[11px] leading-snug text-amber-800">
+                            {t(locale, "mLatePickupHint")}
+                          </p>
+                          <MerchantPickupExtensionButton
+                            locale={locale}
+                            reservationId={r.id}
+                            onDone={() => void load(merchant.id, { silent: true })}
+                          />
+                        </div>
+                      ) : null}
+                      {r.paymentStatus === "paid" &&
+                      (r.status === "giu_cho" || r.status === "da_lay" || r.status === "het_han") ? (
                         <div className="mt-3">
                           <ReservationChatButton
                             locale={locale}
@@ -444,6 +506,18 @@ export function MerchantPanelClient() {
         merchant={merchant}
         onClose={() => setBankSheetOpen(false)}
         onSaved={() => void load(merchant.id, { silent: true })}
+      />
+
+      <MerchantStatsSheet
+        locale={locale}
+        open={statFilter !== null}
+        filter={statFilter}
+        onClose={() => setStatFilter(null)}
+        boxes={boxes}
+        reservations={reservations}
+        boxMap={boxMap}
+        money={money}
+        onChanged={() => void load(merchant.id, { silent: true })}
       />
     </div>
   );
