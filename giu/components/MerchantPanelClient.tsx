@@ -19,9 +19,10 @@ import { useMerchantPickup } from "./MerchantPickupProvider";
 import { MerchantProductList } from "./MerchantProductList";
 import { MerchantPublishFlow } from "./MerchantPublishFlow";
 import { MerchantReviewsClient } from "./MerchantReviewsClient";
-import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
 import { MerchantSettingsForm } from "./MerchantSettingsForm";
 import { MerchantStatsSheet, type MerchantStatFilter } from "./MerchantStatsSheet";
+import { MerchantSettlementSummary } from "./MerchantSettlementSummary";
+import { MerchantValuePitch } from "./MerchantValuePitch";
 import { MerchantOrderRow } from "./MerchantOrderRow";
 import {
   resolveDisplayReservationStatus,
@@ -246,14 +247,8 @@ export function MerchantPanelClient() {
         <div>
           <h1 className="text-[20px] font-extrabold tracking-tight">{merchant.name}</h1>
           <p className="mt-0.5 text-[12px] text-giu-muted">{merchant.address}</p>
-          <p className="mt-2 text-[12px]">
-            <button
-              type="button"
-              onClick={() => openStatSheet("pickupDone")}
-              className="giu-tap rounded-md px-0.5 font-semibold text-giu-ink underline decoration-giu-primary/30 underline-offset-2"
-            >
-              {t(locale, "mRescued")} <strong>{pickupDoneCount || merchant.rescuedBoxes}</strong>
-            </button>
+          <p className="mt-2 text-[12px] text-giu-muted">
+            {t(locale, "mRescued")} <strong>{pickupDoneCount || merchant.rescuedBoxes}</strong>
             {merchant.verified ? (
               <span className="ml-2 rounded-md bg-giu-accent-soft px-1.5 py-0.5 text-[10px] font-bold text-giu-primary">
                 {t(locale, "mVerified")}
@@ -273,21 +268,6 @@ export function MerchantPanelClient() {
           {(
             [
               { key: "selling" as const, label: t(locale, "mOpenBoxes"), value: String(openBoxes) },
-              {
-                key: "awaiting" as const,
-                label: t(locale, "mAwaitingPickup"),
-                value: String(reservedCount),
-              },
-              {
-                key: "ghosted" as const,
-                label: t(locale, "mGhostedTitle"),
-                value: String(
-                  reservations.filter((r) => {
-                    if (!isOrderReserved(r) || r.extensionRequest?.status === "pending") return false;
-                    return reservationDisplayStatus(r) === "het_han";
-                  }).length,
-                ),
-              },
               {
                 key: "settlement" as const,
                 label: t(locale, "mSettlementMenu"),
@@ -316,12 +296,8 @@ export function MerchantPanelClient() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] font-semibold text-giu-muted">{t(locale, "mFeeNote")}</p>
-        <ul className="mt-2 space-y-1 text-[11px] leading-snug text-giu-muted">
-          <li>· {t(locale, "mValueProp1")}</li>
-          <li>· {t(locale, "mValueProp2")}</li>
-          <li>· {t(locale, "mValueProp3")}</li>
-        </ul>
+
+        <MerchantValuePitch locale={locale} variant="panel" />
       </div>
 
       {needsBank || pendingAccountCount > 0 ? (
@@ -462,17 +438,17 @@ export function MerchantPanelClient() {
             merchant={merchant}
             onSaved={() => void load(merchant.id, { silent: true })}
           />
-          <MerchantCustomerInsights
-            locale={locale}
-            merchantId={merchant.id}
-            reservations={reservations}
-            boxMap={boxMap}
-          />
           <MerchantSettlementSummary
             locale={locale}
             merchant={merchant}
             reservations={reservations}
             panelHref={panelHref}
+          />
+          <MerchantCustomerInsights
+            locale={locale}
+            merchantId={merchant.id}
+            reservations={reservations}
+            boxMap={boxMap}
           />
           <MerchantReviewsClient locale={locale} merchantId={merchant.id} />
           <MerchantLogoutLink locale={locale} />
@@ -495,10 +471,7 @@ export function MerchantPanelClient() {
         onClose={() => setStatFilter(null)}
         boxes={boxes}
         reservations={reservations}
-        boxMap={boxMap}
         money={money}
-        onChanged={() => void load(merchant.id, { silent: true })}
-        merchant={merchant}
       />
 
     </div>

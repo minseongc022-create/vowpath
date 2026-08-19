@@ -23,6 +23,7 @@ import type { GiuLocale } from "@/giu/lib/i18n";
 import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
+import { MerchantValuePitch } from "./MerchantValuePitch";
 
 type AuthMode = "login" | "signup";
 
@@ -344,12 +345,11 @@ export function GiuAuthScreen() {
               : "손님 가입"}
         </h1>
         <p className="mt-1 text-sm font-semibold text-giu-muted">
-          {role === "merchant"
-            ? "오늘의 마감상품 등록 · 주문 · 정산 · 입점비 0원"
-            : "딜 찾기 · 결제 · 픽업 코드"}
+          {role === "merchant" ? "마감상품 등록 · 주문 · 정산" : "딜 찾기 · 결제 · 픽업"}
         </p>
-        <p className="mt-2 text-[11px] leading-snug text-giu-muted">{t(locale, "authDualRoleHint")}</p>
       </div>
+
+      {role === "merchant" ? <MerchantValuePitch locale={locale} variant="auth" /> : null}
 
       <div className="flex gap-4 text-sm">
         <button
@@ -519,22 +519,6 @@ export function GiuAuthScreen() {
             {loading ? "가입 중..." : "무료 입점 & 시작"}
           </button>
         </form>
-      )}
-
-      {mode === "login" ? (
-        <p className="text-center text-sm text-giu-muted">
-          계정이 없으신가요?{" "}
-          <button type="button" onClick={() => switchMode("signup")} className="font-semibold text-giu-primary">
-            {role === "merchant" ? "가게 등록" : "회원가입"}
-          </button>
-        </p>
-      ) : (
-        <p className="text-center text-sm text-giu-muted">
-          이미 계정이 있으신가요?{" "}
-          <button type="button" onClick={() => switchMode("login")} className="font-semibold text-giu-primary">
-            로그인
-          </button>
-        </p>
       )}
 
       {role === "customer" ? (
