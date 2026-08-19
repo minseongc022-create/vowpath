@@ -29,6 +29,7 @@ type Props = {
   money: (n: number) => string;
   onChanged: () => void;
   merchant: import("@/giu/lib/types").GiuMerchant;
+  onSelectCustomer?: (customerId: string) => void;
 };
 
 function titleKey(filter: MerchantStatFilter): GiuI18nKey {
@@ -72,6 +73,7 @@ export function MerchantStatsSheet({
   money,
   onChanged,
   merchant,
+  onSelectCustomer,
 }: Props) {
   if (!filter) return null;
 
@@ -147,8 +149,27 @@ export function MerchantStatsSheet({
                 <li key={r.id} className="giu-card-flat p-3 ring-1 ring-giu-border">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                      <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+                      {onSelectCustomer ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            hapticSelect();
+                            onSelectCustomer(r.customerId);
+                          }}
+                          className="w-full rounded-[12px] text-left transition active:bg-giu-bg/80"
+                        >
+                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
+                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+                          <p className="mt-1 text-[10px] font-semibold text-giu-primary">
+                            {t(locale, "mCustDetailTap")}
+                          </p>
+                        </button>
+                      ) : (
+                        <>
+                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
+                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+                        </>
+                      )}
                       {box ? (
                         <p className="mt-0.5 text-[12px] font-semibold text-giu-ink">
                           {t(locale, "mOrderProduct")}: {box.title}

@@ -16,6 +16,7 @@ import { useGiuAuth } from "./GiuAuthProvider";
 import { useGiuLocale } from "./GiuLocaleProvider";
 import { useGiuHref } from "./GiuNavProvider";
 import { MerchantBankRegisterSheet } from "./MerchantBankRegisterSheet";
+import { MerchantCustomerDetailSheet } from "./MerchantCustomerDetailSheet";
 import { MerchantCustomerInsights } from "./MerchantCustomerInsights";
 import { MerchantLogoutLink } from "./MerchantLogoutLink";
 import { MerchantPanelSkeleton } from "./MerchantPanelSkeleton";
@@ -57,6 +58,7 @@ export function MerchantPanelClient() {
   const [orderLimit, setOrderLimit] = useState(PAGE_SIZE);
   const [bankSheetOpen, setBankSheetOpen] = useState(false);
   const [statFilter, setStatFilter] = useState<MerchantStatFilter | null>(null);
+  const [customerDetailId, setCustomerDetailId] = useState<string | null>(null);
   const [tabSlide, setTabSlide] = useState<"forward" | "back">("forward");
   const prevTabIndex = useRef(MERCHANT_TABS.indexOf(tab));
 
@@ -408,10 +410,22 @@ export function MerchantPanelClient() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
-                          <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              hapticSelect();
+                              setCustomerDetailId(r.customerId);
+                            }}
+                            className="w-full rounded-[12px] text-left ring-1 ring-transparent transition active:bg-giu-bg/80 active:ring-giu-border/60"
+                          >
+                            <p className="text-[15px] font-bold text-giu-ink">{r.customerName}</p>
+                            <p className="text-[13px] text-giu-muted">{r.customerPhone}</p>
+                            <p className="mt-1 text-[10px] font-semibold text-giu-primary">
+                              {t(locale, "mCustDetailTap")}
+                            </p>
+                          </button>
                           {box ? (
-                            <p className="mt-0.5 text-[12px] font-semibold text-giu-ink">
+                            <p className="mt-2 text-[12px] font-semibold text-giu-ink">
                               {t(locale, "mOrderProduct")}: {box.title}
                             </p>
                           ) : null}
@@ -525,6 +539,7 @@ export function MerchantPanelClient() {
             locale={locale}
             merchantId={merchant.id}
             reservations={reservations}
+            onSelectCustomer={setCustomerDetailId}
           />
           <MerchantSettlementSummary
             locale={locale}
@@ -557,6 +572,19 @@ export function MerchantPanelClient() {
         money={money}
         onChanged={() => void load(merchant.id, { silent: true })}
         merchant={merchant}
+        onSelectCustomer={setCustomerDetailId}
+      />
+
+      <MerchantCustomerDetailSheet
+        locale={locale}
+        open={customerDetailId !== null}
+        customerId={customerDetailId}
+        onClose={() => setCustomerDetailId(null)}
+        reservations={reservations}
+        boxMap={boxMap}
+        money={money}
+        merchant={merchant}
+        onChanged={() => void load(merchant.id, { silent: true })}
       />
     </div>
   );
