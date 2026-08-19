@@ -10,6 +10,37 @@ import { resolvePickupPolicy } from "@/giu/lib/pickup-policy";
 import type { GiuMerchant } from "@/giu/lib/types";
 import { useGiuAuth } from "./GiuAuthProvider";
 
+type PolicyFieldProps = {
+  label: string;
+  name: string;
+  defaultValue: number;
+  min: number;
+  max: number;
+  unit: string;
+};
+
+function PolicyNumberField({ label, name, defaultValue, min, max, unit }: PolicyFieldProps) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[14px] bg-white/70 px-3 py-2.5 ring-1 ring-giu-border">
+      <label htmlFor={name} className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-giu-ink">
+        {label}
+      </label>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <input
+          id={name}
+          name={name}
+          type="number"
+          min={min}
+          max={max}
+          defaultValue={defaultValue}
+          className="giu-input !w-[72px] !min-w-[72px] px-2 py-2 text-center text-[15px] font-bold tabular-nums"
+        />
+        <span className="w-[52px] text-[11px] font-semibold text-giu-muted">{unit}</span>
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   locale: GiuLocale;
   merchant: GiuMerchant;
@@ -134,76 +165,62 @@ export function MerchantSettingsForm({ locale, merchant, onSaved }: Props) {
           <input name="bankHolder" defaultValue={merchant.bankHolder ?? ""} className="giu-input giu-input-hint" placeholder={merchant.name} />
         </div>
       </div>
-      <div className="space-y-2 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
-        <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPolicySection")}</p>
-        <p className="text-[11px] text-giu-muted">{t(locale, "mPolicySectionSub")}</p>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyCancelFreeMin")}</label>
-            <input
-              name="cancelFreeBeforeMinutes"
-              type="number"
-              min={15}
-              max={240}
-              defaultValue={policy.cancelFreeBeforeMinutes}
-              className="giu-input"
-            />
-          </div>
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyExtensionMin")}</label>
-            <input
-              name="extensionRequestBeforeMinutes"
-              type="number"
-              min={5}
-              max={120}
-              defaultValue={policy.extensionRequestBeforeMinutes}
-              className="giu-input"
-            />
-          </div>
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyGraceMin")}</label>
-            <input
-              name="pickupGraceMinutes"
-              type="number"
-              min={10}
-              max={120}
-              defaultValue={policy.pickupGraceMinutes}
-              className="giu-input"
-            />
-          </div>
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyNoShowHours")}</label>
-            <input
-              name="merchantNoShowMarkAfterHours"
-              type="number"
-              min={6}
-              max={72}
-              defaultValue={policy.merchantNoShowMarkAfterHours}
-              className="giu-input"
-            />
-          </div>
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyLateCancelPct")}</label>
-            <input
-              name="lateCancelFeeRate"
-              type="number"
-              min={5}
-              max={50}
-              defaultValue={Math.round(policy.lateCancelFeeRate * 100)}
-              className="giu-input"
-            />
-          </div>
-          <div>
-            <label className="giu-label">{t(locale, "mPolicyNoShowPct")}</label>
-            <input
-              name="noShowFeeRate"
-              type="number"
-              min={5}
-              max={50}
-              defaultValue={Math.round(policy.noShowFeeRate * 100)}
-              className="giu-input"
-            />
-          </div>
+      <div className="space-y-3 rounded-xl bg-giu-bg/80 p-3 ring-1 ring-giu-border">
+        <div>
+          <p className="text-[12px] font-bold text-giu-ink">{t(locale, "mPolicySection")}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-giu-muted">
+            {t(locale, "mPolicySectionSub")}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <PolicyNumberField
+            label={t(locale, "mPolicyCancelFreeMin")}
+            name="cancelFreeBeforeMinutes"
+            defaultValue={policy.cancelFreeBeforeMinutes}
+            min={15}
+            max={240}
+            unit={t(locale, "mPolicyUnitMinBefore")}
+          />
+          <PolicyNumberField
+            label={t(locale, "mPolicyExtensionMin")}
+            name="extensionRequestBeforeMinutes"
+            defaultValue={policy.extensionRequestBeforeMinutes}
+            min={5}
+            max={120}
+            unit={t(locale, "mPolicyUnitMinBefore")}
+          />
+          <PolicyNumberField
+            label={t(locale, "mPolicyGraceMin")}
+            name="pickupGraceMinutes"
+            defaultValue={policy.pickupGraceMinutes}
+            min={10}
+            max={120}
+            unit={t(locale, "mPolicyUnitMinAfter")}
+          />
+          <PolicyNumberField
+            label={t(locale, "mPolicyNoShowHours")}
+            name="merchantNoShowMarkAfterHours"
+            defaultValue={policy.merchantNoShowMarkAfterHours}
+            min={6}
+            max={72}
+            unit={t(locale, "mPolicyUnitHoursAfter")}
+          />
+          <PolicyNumberField
+            label={t(locale, "mPolicyLateCancelPct")}
+            name="lateCancelFeeRate"
+            defaultValue={Math.round(policy.lateCancelFeeRate * 100)}
+            min={5}
+            max={50}
+            unit={t(locale, "mPolicyUnitPct")}
+          />
+          <PolicyNumberField
+            label={t(locale, "mPolicyNoShowPct")}
+            name="noShowFeeRate"
+            defaultValue={Math.round(policy.noShowFeeRate * 100)}
+            min={5}
+            max={50}
+            unit={t(locale, "mPolicyUnitPct")}
+          />
         </div>
       </div>
       {error ? <p className="text-[12px] text-giu-danger">{error}</p> : null}
