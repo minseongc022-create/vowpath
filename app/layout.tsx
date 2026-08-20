@@ -4,6 +4,7 @@ import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell
 import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell";
 import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
+import { PricepulsePlatformShell } from "@/components/layout/PricepulsePlatformShell";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
 import { resolveGiuPublicOrigin } from "@/giu/lib/giu-host-server";
@@ -67,6 +68,13 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
+  if (shell === "pricepulse") {
+    return {
+      title: { default: "Pricepulse", template: "%s · Pricepulse" },
+      description: "토스쇼핑 가격·순위 인텔리전스 (내부 도구)",
+      robots: { index: false, follow: false },
+    };
+  }
   const locale = await resolveServerUiLocale();
   return buildSiteMetadata(marketingUiLocale(locale) === "es" ? "es" : "en");
 }
@@ -93,6 +101,9 @@ export default async function RootLayout({
   }
   if (shell === "giu") {
     return <GiuPlatformShell>{children}</GiuPlatformShell>;
+  }
+  if (shell === "pricepulse") {
+    return <PricepulsePlatformShell>{children}</PricepulsePlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }

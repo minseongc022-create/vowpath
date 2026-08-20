@@ -14,6 +14,10 @@ import {
   isGiuHost,
 } from "@/giu/lib/giu-host";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
+import {
+  PRICEPULSE_SESSION_COOKIE,
+  verifyPricepulseSessionToken,
+} from "@/pricepulse/lib/dashboard/session";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -180,6 +184,33 @@ export async function middleware(request: NextRequest) {
     const localeHandled = handleTopikLocale(request);
     if (localeHandled) return localeHandled;
     return topikShellResponse(request);
+  }
+
+  // Pricepulse — Toss Shopping price/rank intelligence, founder-only ops tool.
+  // Gated here (not in a layout Server Component) to match how /dashboard,
+  // /onboarding, /settings are gated below — one auth chokepoint per request.
+  if (pathname.startsWith("/pricepulse")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "pricepulse");
+    requestHeaders.set("x-pathname", pathname);
+
+    const isPublicPricepulsePath =
+      pathname.startsWith("/pricepulse/login") || pathname === "/pricepulse/logout";
+    const ppToken = request.cookies.get(PRICEPULSE_SESSION_COOKIE)?.value;
+    const ppSession = ppToken ? await verifyPricepulseSessionToken(ppToken) : false;
+
+    if (pathname === "/pricepulse/login" && ppSession) {
+      return NextResponse.redirect(new URL("/pricepulse/rank", request.url));
+    }
+    if (!isPublicPricepulsePath && !ppSession) {
+      const login = new URL("/pricepulse/login", request.url);
+      login.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(login);
+    }
+    if (pathname === "/pricepulse") {
+      return NextResponse.redirect(new URL("/pricepulse/rank", request.url));
+    }
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   // Mano — home services marketplace (Guadalajara), isolated product shell.

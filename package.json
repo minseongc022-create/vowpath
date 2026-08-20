@@ -47,6 +47,7 @@
     "pricepulse:replay": "node --experimental-strip-types scripts/pricepulse-replay.mjs",
     "pricepulse:test": "node --experimental-strip-types --test tests/unit/pricepulse-*.test.mjs",
     "pricepulse:typecheck": "tsc -p tsconfig.pricepulse.json",
+    "pricepulse:db:migrate": "node --experimental-strip-types scripts/pricepulse-db-migrate.mjs",
     "test": "node --experimental-strip-types --test tests/unit/*.test.mjs && node --experimental-strip-types scripts/test-priority-guardrails.mjs",
     "test:e2e": "node scripts/run-all-tests.mjs",
     "test:e2e:live": "node scripts/run-live-sms-smoke.mjs",
