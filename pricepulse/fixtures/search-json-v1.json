@@ -1,0 +1,223 @@
+{
+  "_fixture": "SYNTHETIC — hand-written to match the placeholder profile shape. Replace with a real capture from `npm run pricepulse:probe` once the live shape is known.",
+  "result": {
+    "totalCount": 1893,
+    "page": 1,
+    "products": [
+      {
+        "productId": 100000,
+        "name": "블루투스 무선이어폰 5.3 노이즈캔슬링",
+        "salePrice": 24900,
+        "originalPrice": 24900,
+        "seller": {
+          "id": 900,
+          "name": "사운드랩"
+        },
+        "reviewCount": 3234,
+        "reviewScore": 4.6,
+        "images": [
+          "https://static.toss.im/pp/100000_1.jpg"
+        ],
+        "productUrl": "/product/100000",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 100001,
+        "name": "초경량 무선이어폰 저지연 게이밍",
+        "salePrice": 58000,
+        "originalPrice": 58000,
+        "seller": {
+          "id": 901,
+          "name": "가전마루"
+        },
+        "reviewCount": 2995,
+        "reviewScore": 4.5,
+        "images": [
+          "https://static.toss.im/pp/100001_1.jpg"
+        ],
+        "productUrl": "/product/100001",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 100002,
+        "name": "오픈형 무선이어폰 골전도",
+        "salePrice": 12900,
+        "originalPrice": 12900,
+        "seller": {
+          "id": 902,
+          "name": "이어스토어"
+        },
+        "reviewCount": 3552,
+        "reviewScore": 4.3,
+        "images": [
+          "https://static.toss.im/pp/100002_1.jpg"
+        ],
+        "productUrl": "/product/100002",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "bannerId": "AD-77",
+        "type": "AD",
+        "imageUrl": "https://static.toss.im/ad/77.jpg"
+      },
+      {
+        "productId": 100003,
+        "name": "무선이어폰 케이스 실리콘",
+        "salePrice": 12900,
+        "originalPrice": 22900,
+        "seller": {
+          "id": 903,
+          "name": "데일리샵"
+        },
+        "reviewCount": 3477,
+        "reviewScore": 3.9,
+        "images": [
+          "https://static.toss.im/pp/100003_1.jpg"
+        ],
+        "productUrl": "/product/100003",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 100004,
+        "name": "고음질 무선이어폰 ANC 프로",
+        "salePrice": 19900,
+        "originalPrice": 29900,
+        "seller": {
+          "id": 904,
+          "name": "테크몰"
+        },
+        "reviewCount": 506,
+        "reviewScore": 4.5,
+        "images": [
+          "https://static.toss.im/pp/100004_1.jpg"
+        ],
+        "productUrl": "/product/100004",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 3000,
+        "soldOut": false
+      },
+      {
+        "productId": 100005,
+        "name": "방수 무선이어폰 IPX7 러닝",
+        "salePrice": 12900,
+        "originalPrice": 12900,
+        "seller": {
+          "id": 900,
+          "name": "사운드랩"
+        },
+        "reviewCount": 381,
+        "reviewScore": 4.5,
+        "images": [
+          "https://static.toss.im/pp/100005_1.jpg"
+        ],
+        "productUrl": "/product/100005",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 100006,
+        "name": "무선이어폰 이어팁 교체용",
+        "salePrice": 24900,
+        "originalPrice": 27900,
+        "seller": {
+          "id": 901,
+          "name": "가전마루"
+        },
+        "reviewCount": 1181,
+        "reviewScore": 4.4,
+        "images": [
+          "https://static.toss.im/pp/100006_1.jpg"
+        ],
+        "productUrl": "/product/100006",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 2500,
+        "soldOut": false
+      },
+      {
+        "productId": 100007,
+        "name": "가성비 무선이어폰 30시간",
+        "salePrice": 58000,
+        "originalPrice": 68000,
+        "seller": {
+          "id": 902,
+          "name": "이어스토어"
+        },
+        "reviewCount": 1480,
+        "reviewScore": 3.9,
+        "images": [
+          "https://static.toss.im/pp/100007_1.jpg"
+        ],
+        "productUrl": "/product/100007",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": true
+      },
+      {
+        "productId": 100008,
+        "name": "무선이어폰 충전독 C타입",
+        "salePrice": 24900,
+        "originalPrice": 24900,
+        "seller": {
+          "id": 903,
+          "name": "데일리샵"
+        },
+        "reviewCount": 514,
+        "reviewScore": 4.5,
+        "images": [
+          "https://static.toss.im/pp/100008_1.jpg"
+        ],
+        "productUrl": "/product/100008",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 100009,
+        "name": "프리미엄 무선이어폰 하이파이",
+        "salePrice": 39000,
+        "originalPrice": 49000,
+        "seller": {
+          "id": 904,
+          "name": "테크몰"
+        },
+        "reviewCount": 3502,
+        "reviewScore": 4.7,
+        "images": [
+          "https://static.toss.im/pp/100009_1.jpg"
+        ],
+        "productUrl": "/product/100009",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 3000,
+        "soldOut": false
+      },
+      {
+        "productId": 100000,
+        "name": "블루투스 무선이어폰 5.3 노이즈캔슬링",
+        "salePrice": 25900,
+        "originalPrice": 24900,
+        "seller": {
+          "id": 900,
+          "name": "사운드랩"
+        },
+        "reviewCount": 3234,
+        "reviewScore": 4.6,
+        "images": [
+          "https://static.toss.im/pp/100000_1.jpg"
+        ],
+        "productUrl": "/product/100000",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      }
+    ]
+  }
+}

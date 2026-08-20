@@ -10,6 +10,7 @@
 | **Appointment reminder SMS** | **Every 60 seconds** (same call) | Same external cron as above |
 | **Pick-time link nudge** (customer forgot / missed SMS) | **Every 60 seconds** (same call) | Same — remind customer ~90m, escalate owner ~4h |
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
+| **Pricepulse daily snapshot** | **Once per day, 3 shards** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/pricepulse-collect?slice=N&of=3` |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
 
 ### Why two schedulers?
@@ -39,6 +40,28 @@ Alternative (lighter — timeouts only, no appointment reminders):
 - Same interval and auth
 
 **Do not** duplicate the 60s schedule in `vercel.json` unless you upgrade to Vercel Pro and accept Hobby deploy risk on other environments.
+
+---
+
+## Pricepulse (Toss Shopping collector)
+
+Daily price/rank snapshot. **Not** in `vercel.json` — it is sharded, and a shard
+needs a query string, so it lives at cron-job.org like the other real schedules.
+
+| Field | Value |
+|-------|-------|
+| URL | `https://<host>/api/cron/pricepulse-collect?slice=0&of=3` (repeat for `slice=1`, `slice=2`) |
+| Time | 06:00 / 06:10 / 06:20 KST = **21:00 / 21:10 / 21:20 UTC** |
+| Method | GET |
+| Header | `Authorization: Bearer <CRON_SECRET>` |
+
+Why sharded: a Vercel function is capped at 60s and the collector paces requests
+(default 1.5s gap, robots `Crawl-delay` wins if larger). Targets are assigned to
+a shard by index, so a target always lands in the same shard.
+
+**Why a missed run matters:** price and rank history cannot be collected
+retroactively. A day skipped is a permanent hole. Failures alert to
+`PRICEPULSE_ALERT_WEBHOOK`; see `pricepulse/README.md` for the runbook.
 
 ---
 

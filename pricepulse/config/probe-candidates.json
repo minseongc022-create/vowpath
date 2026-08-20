@@ -1,0 +1,12 @@
+{
+  "notes": "URL patterns the probe tries when discovering page structure. {{keyword}} is URL-encoded before substitution. Ordered best-guess first; the probe reports which ones actually returned a product listing, and that is what goes into the profile.",
+  "searchPages": [
+    "https://shopping.toss.im/search?query={{keyword}}",
+    "https://shopping.toss.im/search?keyword={{keyword}}",
+    "https://shopping.toss.im/search/{{keyword}}",
+    "https://shopping.toss.im/?query={{keyword}}"
+  ],
+  "robotsUrl": "https://shopping.toss.im/robots.txt",
+  "interestingHosts": ["toss.im"],
+  "ignoreUrlPatterns": ["/log", "/event", "/metric", "/analytics", "/sentry", "/tracking", "/beacon"]
+}

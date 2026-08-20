@@ -3,6 +3,10 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  // Pricepulse reads its profile/watchlist from disk at runtime — trace them in.
+  outputFileTracingIncludes: {
+    "/api/cron/pricepulse-collect": ["./pricepulse/config/**"],
+  },
   async headers() {
     return [
       {

@@ -14,3 +14,8 @@ content-autopilot/node_modules/
 content-autopilot/dist/
 content-autopilot/data/
 content-autopilot/.env
+
+# Pricepulse working data (captures are raw site payloads; data/ is the local store)
+pricepulse/captures/*
+!pricepulse/captures/.gitkeep
+pricepulse/data/

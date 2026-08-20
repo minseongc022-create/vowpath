@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "notes": "Seed watchlist. Start narrow — a keyword only earns its slot if a real seller cares about it. Every target is collected once per day; ids are permanent (they key the time series).",
+  "targets": [
+    { "id": "kw-wireless-earbuds", "kind": "keyword", "query": "무선이어폰", "label": "무선이어폰", "pages": 2, "enabled": true },
+    { "id": "kw-protein-powder", "kind": "keyword", "query": "단백질보충제", "label": "단백질보충제", "pages": 2, "enabled": true },
+    { "id": "kw-cat-litter", "kind": "keyword", "query": "고양이모래", "label": "고양이모래", "pages": 2, "enabled": true },
+    { "id": "kw-lip-balm", "kind": "keyword", "query": "립밤", "label": "립밤", "pages": 2, "enabled": true },
+    { "id": "kw-camping-chair", "kind": "keyword", "query": "캠핑의자", "label": "캠핑의자", "pages": 2, "enabled": true },
+    { "id": "kw-air-fryer", "kind": "keyword", "query": "에어프라이어", "label": "에어프라이어", "pages": 2, "enabled": true },
+    { "id": "kw-hand-cream", "kind": "keyword", "query": "핸드크림", "label": "핸드크림", "pages": 2, "enabled": true },
+    { "id": "kw-yoga-mat", "kind": "keyword", "query": "요가매트", "label": "요가매트", "pages": 2, "enabled": true },
+    { "id": "kw-phone-case", "kind": "keyword", "query": "휴대폰케이스", "label": "휴대폰케이스", "pages": 2, "enabled": true },
+    { "id": "kw-vitamin-d", "kind": "keyword", "query": "비타민D", "label": "비타민D", "pages": 2, "enabled": true }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "_fixture": "SYNTHETIC page 2",
+  "result": {
+    "totalCount": 1893,
+    "page": 2,
+    "products": [
+      {
+        "productId": 200000,
+        "name": "무선이어폰 액세서리 1호",
+        "salePrice": 33000,
+        "originalPrice": 33000,
+        "seller": {
+          "id": 950,
+          "name": "사운드랩"
+        },
+        "reviewCount": 185,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200000_1.jpg"
+        ],
+        "productUrl": "/product/200000",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 200001,
+        "name": "무선이어폰 액세서리 2호",
+        "salePrice": 21900,
+        "originalPrice": 21900,
+        "seller": {
+          "id": 951,
+          "name": "가전마루"
+        },
+        "reviewCount": 127,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200001_1.jpg"
+        ],
+        "productUrl": "/product/200001",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 200002,
+        "name": "무선이어폰 액세서리 3호",
+        "salePrice": 15900,
+        "originalPrice": 15900,
+        "seller": {
+          "id": 952,
+          "name": "이어스토어"
+        },
+        "reviewCount": 357,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200002_1.jpg"
+        ],
+        "productUrl": "/product/200002",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 200003,
+        "name": "무선이어폰 액세서리 4호",
+        "salePrice": 15900,
+        "originalPrice": 15900,
+        "seller": {
+          "id": 953,
+          "name": "데일리샵"
+        },
+        "reviewCount": 41,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200003_1.jpg"
+        ],
+        "productUrl": "/product/200003",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 200004,
+        "name": "무선이어폰 액세서리 5호",
+        "salePrice": 21900,
+        "originalPrice": 21900,
+        "seller": {
+          "id": 954,
+          "name": "테크몰"
+        },
+        "reviewCount": 268,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200004_1.jpg"
+        ],
+        "productUrl": "/product/200004",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      },
+      {
+        "productId": 200005,
+        "name": "무선이어폰 액세서리 6호",
+        "salePrice": 33000,
+        "originalPrice": 33000,
+        "seller": {
+          "id": 955,
+          "name": "사운드랩"
+        },
+        "reviewCount": 448,
+        "reviewScore": 4.2,
+        "images": [
+          "https://static.toss.im/pp/200005_1.jpg"
+        ],
+        "productUrl": "/product/200005",
+        "categoryName": "이어폰/헤드폰",
+        "deliveryFee": 0,
+        "soldOut": false
+      }
+    ]
+  }
+}

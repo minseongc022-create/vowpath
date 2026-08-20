@@ -10,6 +10,7 @@ Instructions for AI coding assistants working in this repo.
 | Deploy & env | [DEPLOY.md](./DEPLOY.md) |
 | Twilio | [TWILIO_SETUP.md](./TWILIO_SETUP.md) |
 | Retell AI | [docs/RETELL_SETUP.md](./docs/RETELL_SETUP.md) |
+| **Pricepulse (토스쇼핑 수집기)** | [pricepulse/README.md](./pricepulse/README.md) — 파싱은 `pricepulse/lib/parse/search.ts` 한 곳, 응답 구조는 `pricepulse/config/profile.toss-shopping.json` |
 
 ## Cron — common mistake
 

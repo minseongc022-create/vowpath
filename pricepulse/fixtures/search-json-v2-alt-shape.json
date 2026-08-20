@@ -1,0 +1,144 @@
+{
+  "data": {
+    "searchResult": {
+      "items": [
+        {
+          "goodsId": "G0",
+          "title": "대체 스키마 상품 0",
+          "price": {
+            "sale": 10000,
+            "origin": 15000
+          },
+          "shop": {
+            "displayName": "사운드랩"
+          },
+          "review": {
+            "count": 0,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/0.jpg",
+          "link": "/product/G0"
+        },
+        {
+          "goodsId": "G1",
+          "title": "대체 스키마 상품 1",
+          "price": {
+            "sale": 11000,
+            "origin": 16000
+          },
+          "shop": {
+            "displayName": "가전마루"
+          },
+          "review": {
+            "count": 13,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/1.jpg",
+          "link": "/product/G1"
+        },
+        {
+          "goodsId": "G2",
+          "title": "대체 스키마 상품 2",
+          "price": {
+            "sale": 12000,
+            "origin": 17000
+          },
+          "shop": {
+            "displayName": "이어스토어"
+          },
+          "review": {
+            "count": 26,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/2.jpg",
+          "link": "/product/G2"
+        },
+        {
+          "goodsId": "G3",
+          "title": "대체 스키마 상품 3",
+          "price": {
+            "sale": 13000,
+            "origin": 18000
+          },
+          "shop": {
+            "displayName": "데일리샵"
+          },
+          "review": {
+            "count": 39,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/3.jpg",
+          "link": "/product/G3"
+        },
+        {
+          "goodsId": "G4",
+          "title": "대체 스키마 상품 4",
+          "price": {
+            "sale": 14000,
+            "origin": 19000
+          },
+          "shop": {
+            "displayName": "테크몰"
+          },
+          "review": {
+            "count": 52,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/4.jpg",
+          "link": "/product/G4"
+        },
+        {
+          "goodsId": "G5",
+          "title": "대체 스키마 상품 5",
+          "price": {
+            "sale": 15000,
+            "origin": 20000
+          },
+          "shop": {
+            "displayName": "사운드랩"
+          },
+          "review": {
+            "count": 65,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/5.jpg",
+          "link": "/product/G5"
+        },
+        {
+          "goodsId": "G6",
+          "title": "대체 스키마 상품 6",
+          "price": {
+            "sale": 16000,
+            "origin": 21000
+          },
+          "shop": {
+            "displayName": "가전마루"
+          },
+          "review": {
+            "count": 78,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/6.jpg",
+          "link": "/product/G6"
+        },
+        {
+          "goodsId": "G7",
+          "title": "대체 스키마 상품 7",
+          "price": {
+            "sale": 17000,
+            "origin": 22000
+          },
+          "shop": {
+            "displayName": "이어스토어"
+          },
+          "review": {
+            "count": 91,
+            "score": 4.5
+          },
+          "thumbnail": "https://static.toss.im/alt/7.jpg",
+          "link": "/product/G7"
+        }
+      ]
+    }
+  }
+}

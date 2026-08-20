@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["pricepulse/**/*.ts", "app/api/cron/pricepulse-collect/route.ts", "next-env.d.ts"]
+}

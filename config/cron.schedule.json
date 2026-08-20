@@ -26,6 +26,35 @@
         "Mark paid pickup holds as het_han after expiry"
       ],
       "note": "Giu (giucuu.com) food rescue — configure at cron-job.org alongside tech-dispatch."
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/pricepulse-collect?slice=0&of=3",
+      "intervalSeconds": 86400,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": [
+        "Collect the daily Toss Shopping search snapshot for shard 0 of the watchlist"
+      ],
+      "note": "Pricepulse. Three shards at 06:00 / 06:10 / 06:20 KST (21:00 / 21:10 / 21:20 UTC). Sharded because a Vercel function is capped at 60s and the collector paces its requests. A missed day is a permanent hole in the price history — failures alert via PRICEPULSE_ALERT_WEBHOOK."
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/pricepulse-collect?slice=1&of=3",
+      "intervalSeconds": 86400,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": ["Collect the daily Toss Shopping search snapshot for shard 1 of the watchlist"],
+      "note": "Pricepulse shard 1 — 06:10 KST (21:10 UTC)."
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/pricepulse-collect?slice=2&of=3",
+      "intervalSeconds": 86400,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": ["Collect the daily Toss Shopping search snapshot for shard 2 of the watchlist"],
+      "note": "Pricepulse shard 2 — 06:20 KST (21:20 UTC)."
     }
   ],
   "vercelCrons": [

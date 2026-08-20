@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "source": "toss-shopping",
+  "status": "unverified",
+  "notes": "PLACEHOLDER. The search endpoint and field paths below are guesses and MUST be replaced by output from `npm run pricepulse:probe`, which runs a real browser against shopping.toss.im, records every JSON response, and proposes a verified profile. Do not run a production collection while status is 'unverified'.",
+  "search": {
+    "mode": "json",
+    "endpoint": {
+      "method": "GET",
+      "url": "https://shopping.toss.im/api/v1/search/products",
+      "query": {
+        "keyword": "{{keyword}}",
+        "page": "{{page}}",
+        "size": "{{size}}"
+      },
+      "headers": {
+        "accept": "application/json"
+      }
+    },
+    "itemsPath": [
+      "result.products",
+      "data.products",
+      "data.items",
+      "result.items",
+      "products",
+      "items"
+    ],
+    "totalPath": ["result.totalCount", "data.totalCount", "totalCount", "total"],
+    "pageSize": 40,
+    "urlBase": "https://shopping.toss.im",
+    "fields": {
+      "externalId": ["productId", "id", "product.id", "goodsId", "itemId"],
+      "name": ["name", "productName", "title", "product.name"],
+      "price": ["salePrice", "discountedPrice", "price", "priceInfo.salePrice", "product.salePrice"],
+      "listPrice": ["originalPrice", "listPrice", "basePrice", "priceInfo.originalPrice"],
+      "sellerName": ["sellerName", "seller.name", "brandName", "brand.name", "shopName"],
+      "reviewCount": ["reviewCount", "reviewTotalCount", "review.count", "reviewInfo.count"],
+      "rating": ["reviewScore", "rating", "review.score", "reviewInfo.score"],
+      "imageUrl": ["imageUrl", "thumbnailUrl", "image.url", "images[0]", "images[0].url"],
+      "productUrl": ["productUrl", "linkUrl", "url", "landingUrl", "deepLink"],
+      "categoryName": ["categoryName", "category.name", "categoryPath"],
+      "deliveryFee": ["deliveryFee", "shippingFee", "delivery.fee"],
+      "soldOut": ["soldOut", "isSoldOut", "outOfStock", "saleStatus"]
+    }
+  }
+}
