@@ -4,8 +4,11 @@ import {
   getProductInfo,
   isDashboardDbConfigured,
 } from "@/pricepulse/lib/dashboard/db.ts";
+import { getCurrentSeller } from "@/pricepulse/lib/dashboard/auth.ts";
+import { getSellerPlan } from "@/pricepulse/lib/dashboard/plan.ts";
 import { formatDate, formatKrw } from "@/pricepulse/lib/dashboard/format.ts";
 import { EmptyState } from "@/components/pricepulse/EmptyState.tsx";
+import { UpgradeGate } from "@/components/pricepulse/UpgradeGate.tsx";
 import { PriceHistoryChart } from "@/components/pricepulse/PriceHistoryChart.tsx";
 
 export default async function PriceHistoryPage({
@@ -16,6 +19,10 @@ export default async function PriceHistoryPage({
   if (!isDashboardDbConfigured()) {
     return <EmptyState title="DB가 아직 연결되지 않았습니다" detail="pricepulse/README.md 참고." />;
   }
+
+  const seller = await getCurrentSeller();
+  const planInfo = seller ? await getSellerPlan(seller.sellerId) : null;
+  if (planInfo?.plan !== "pro") return <UpgradeGate feature="가격 히스토리" />;
 
   const { externalId } = await params;
   const [product, history] = await Promise.all([

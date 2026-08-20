@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { getTargetQueries, getTrending, isDashboardDbConfigured } from "@/pricepulse/lib/dashboard/db.ts";
+import { getCurrentSeller } from "@/pricepulse/lib/dashboard/auth.ts";
+import { getSellerPlan } from "@/pricepulse/lib/dashboard/plan.ts";
 import { formatDate, formatDelta, formatKrw } from "@/pricepulse/lib/dashboard/format.ts";
 import { EmptyState } from "@/components/pricepulse/EmptyState.tsx";
+import { UpgradeGate } from "@/components/pricepulse/UpgradeGate.tsx";
 
 export default async function TrendingPage() {
   if (!isDashboardDbConfigured()) {
     return <EmptyState title="DB가 아직 연결되지 않았습니다" detail="pricepulse/README.md 참고." />;
   }
+
+  const seller = await getCurrentSeller();
+  const planInfo = seller ? await getSellerPlan(seller.sellerId) : null;
+  if (planInfo?.plan !== "pro") return <UpgradeGate feature="급상승 상품" />;
 
   const [rows, queryByTarget] = await Promise.all([getTrending(30), getTargetQueries()]);
 

@@ -5,8 +5,7 @@
  * keyword share one collection, not two.
  */
 import { createClient } from "@supabase/supabase-js";
-
-const MAX_TARGETS_PER_SELLER = 20;
+import { limitsFor, type PricepulsePlan } from "./plan.ts";
 
 export type SellerTarget = {
   targetId: string;
@@ -48,21 +47,25 @@ export async function listSellerTargets(sellerId: string): Promise<SellerTarget[
 export async function addSellerTarget(
   sellerId: string,
   rawQuery: string,
+  plan: PricepulsePlan,
   label?: string,
-): Promise<{ target: SellerTarget } | { error: string }> {
+): Promise<{ target: SellerTarget } | { error: string; upgrade?: true }> {
   const query = rawQuery.trim();
   if (!query) return { error: "키워드를 입력하세요" };
   if (query.length > 80) return { error: "키워드는 80자 이내로 입력하세요" };
 
   const db = client();
+  const limit = limitsFor(plan).maxKeywords;
 
   const { count, error: countError } = await db
     .from("pricepulse_seller_targets")
     .select("id", { count: "exact", head: true })
     .eq("seller_id", sellerId);
   if (countError) throw new Error(`addSellerTarget count: ${countError.message}`);
-  if ((count ?? 0) >= MAX_TARGETS_PER_SELLER) {
-    return { error: `키워드는 최대 ${MAX_TARGETS_PER_SELLER}개까지 등록할 수 있습니다 (베타 기간 제한)` };
+  if ((count ?? 0) >= limit) {
+    return plan === "free"
+      ? { error: `무료 플랜은 키워드 ${limit}개까지 등록할 수 있습니다. Pro로 업그레이드하면 ${limitsFor("pro").maxKeywords}개까지 등록됩니다.`, upgrade: true }
+      : { error: `키워드는 최대 ${limit}개까지 등록할 수 있습니다` };
   }
 
   let targetId: string | undefined;
