@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkPassword, setSessionCookie } from "@/pricepulse/lib/dashboard/auth.ts";
+import { authenticateSeller, setSessionCookie } from "@/pricepulse/lib/dashboard/auth.ts";
 
 /**
  * Plain HTML form POST, not a Server Action — a real browser-native
@@ -9,17 +9,19 @@ import { checkPassword, setSessionCookie } from "@/pricepulse/lib/dashboard/auth
  */
 export async function POST(request: Request) {
   const formData = await request.formData();
+  const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/pricepulse/rank");
   const safeNext = next.startsWith("/pricepulse") ? next : "/pricepulse/rank";
 
-  if (!checkPassword(password)) {
+  const result = await authenticateSeller({ email, password });
+  if ("error" in result) {
     const url = new URL("/pricepulse/login", request.url);
     url.searchParams.set("error", "1");
     url.searchParams.set("next", safeNext);
     return NextResponse.redirect(url, 303);
   }
 
-  await setSessionCookie();
+  await setSessionCookie({ sellerId: result.seller.id, email: result.seller.email });
   return NextResponse.redirect(new URL(safeNext, request.url), 303);
 }

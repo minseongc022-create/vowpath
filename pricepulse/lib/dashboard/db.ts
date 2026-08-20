@@ -7,8 +7,6 @@
  * pricepulse/sql/001_init.sql. Nothing here writes.
  */
 import { createClient } from "@supabase/supabase-js";
-import { loadTargets } from "../config.ts";
-import type { CollectTarget } from "../types.ts";
 
 export type RankRow = {
   target_id: string;
@@ -59,11 +57,6 @@ function client() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** Watchlist targets, from config — the dashboard's source of human-readable labels. */
-export function getWatchlist(): CollectTarget[] {
-  return loadTargets();
-}
-
 /** Latest-day rank board for one target, best rank first. */
 export async function getRankBoard(targetId: string): Promise<RankRow[]> {
   const { data, error } = await client()
@@ -73,6 +66,13 @@ export async function getRankBoard(targetId: string): Promise<RankRow[]> {
     .order("rank_today", { ascending: true });
   if (error) throw new Error(`getRankBoard: ${error.message}`);
   return (data ?? []) as RankRow[];
+}
+
+/** target_id → keyword text, for display on cross-seller views like trending. */
+export async function getTargetQueries(): Promise<Map<string, string>> {
+  const { data, error } = await client().from("pricepulse_targets").select("id, query");
+  if (error) throw new Error(`getTargetQueries: ${error.message}`);
+  return new Map((data ?? []).map((row: { id: string; query: string }) => [row.id, row.query]));
 }
 
 /** Which target ids actually have data yet — drives the dropdown + empty states. */

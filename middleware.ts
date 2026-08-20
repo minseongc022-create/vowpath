@@ -186,7 +186,7 @@ export async function middleware(request: NextRequest) {
     return topikShellResponse(request);
   }
 
-  // Pricepulse — Toss Shopping price/rank intelligence, founder-only ops tool.
+  // Pricepulse — Toss Shopping price/rank intelligence for sellers.
   // Gated here (not in a layout Server Component) to match how /dashboard,
   // /onboarding, /settings are gated below — one auth chokepoint per request.
   if (pathname.startsWith("/pricepulse")) {
@@ -195,11 +195,13 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("x-pathname", pathname);
 
     const isPublicPricepulsePath =
-      pathname.startsWith("/pricepulse/login") || pathname === "/pricepulse/logout";
+      pathname.startsWith("/pricepulse/login") ||
+      pathname.startsWith("/pricepulse/signup") ||
+      pathname === "/pricepulse/logout";
     const ppToken = request.cookies.get(PRICEPULSE_SESSION_COOKIE)?.value;
-    const ppSession = ppToken ? await verifyPricepulseSessionToken(ppToken) : false;
+    const ppSession = ppToken ? await verifyPricepulseSessionToken(ppToken) : null;
 
-    if (pathname === "/pricepulse/login" && ppSession) {
+    if ((pathname === "/pricepulse/login" || pathname === "/pricepulse/signup") && ppSession) {
       return NextResponse.redirect(new URL("/pricepulse/rank", request.url));
     }
     if (!isPublicPricepulsePath && !ppSession) {

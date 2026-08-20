@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTrending, getWatchlist, isDashboardDbConfigured } from "@/pricepulse/lib/dashboard/db.ts";
+import { getTargetQueries, getTrending, isDashboardDbConfigured } from "@/pricepulse/lib/dashboard/db.ts";
 import { formatDate, formatDelta, formatKrw } from "@/pricepulse/lib/dashboard/format.ts";
 import { EmptyState } from "@/components/pricepulse/EmptyState.tsx";
 
@@ -8,8 +8,7 @@ export default async function TrendingPage() {
     return <EmptyState title="DB가 아직 연결되지 않았습니다" detail="pricepulse/README.md 참고." />;
   }
 
-  const [rows, watchlist] = await Promise.all([getTrending(30), getWatchlist()]);
-  const labelByTarget = new Map(watchlist.map((t) => [t.id, t.label ?? t.query]));
+  const [rows, queryByTarget] = await Promise.all([getTrending(30), getTargetQueries()]);
 
   return (
     <div className="space-y-6">
@@ -30,7 +29,7 @@ export default async function TrendingPage() {
                   {row.name}
                 </Link>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {labelByTarget.get(row.target_id) ?? row.target_id} · {row.seller_name ?? "판매자 미상"} · {formatDate(row.observed_on)}
+                  {queryByTarget.get(row.target_id) ?? row.target_id} · {row.seller_name ?? "판매자 미상"} · {formatDate(row.observed_on)}
                 </p>
               </div>
               <div className="text-right text-sm">

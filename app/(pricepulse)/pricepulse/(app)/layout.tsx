@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
 import Link from "next/link";
+import { getCurrentSeller } from "@/pricepulse/lib/dashboard/auth.ts";
 
 const NAV = [
   { href: "/pricepulse/rank", label: "순위 추적" },
   { href: "/pricepulse/trending", label: "급상승" },
+  { href: "/pricepulse/keywords", label: "키워드 관리" },
 ];
 
 /**
@@ -11,7 +13,7 @@ const NAV = [
  * unauthenticated requests to /pricepulse/login before they ever reach here.
  */
 async function PricepulseNav() {
-  const h = await headers();
+  const [h, seller] = await Promise.all([headers(), getCurrentSeller()]);
   const pathname = h.get("x-pathname") ?? "";
 
   return (
@@ -40,9 +42,12 @@ async function PricepulseNav() {
             })}
           </nav>
         </div>
-        <Link href="/pricepulse/logout" className="text-xs text-slate-400 hover:text-slate-600">
-          로그아웃
-        </Link>
+        <div className="flex items-center gap-3 text-xs text-slate-400">
+          {seller?.email ? <span className="hidden sm:inline">{seller.email}</span> : null}
+          <Link href="/pricepulse/logout" className="hover:text-slate-600">
+            로그아웃
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { runCollection } from "@/pricepulse/lib/collect/run.ts";
-import { loadTargets } from "@/pricepulse/lib/config.ts";
+import { listCollectionTargets } from "@/pricepulse/lib/store/targets.ts";
 
 /**
  * Daily Toss Shopping snapshot.
  *
- * Vercel Hobby caps a function at 60s, and the collector is deliberately slow
- * (polite request gap), so the watchlist is sharded: call this once per shard.
+ * The watchlist is whatever sellers have registered (pricepulse_targets) —
+ * no admin curation step. Vercel Hobby caps a function at 60s, and the
+ * collector is deliberately slow (polite request gap), so it's sharded:
+ * call this once per shard.
  *   /api/cron/pricepulse-collect?slice=0&of=3
- * Sharding is by target index, so a target always lands in the same shard.
+ * Sharding is by target index, so a target usually lands in the same shard
+ * run to run (a newly added keyword just joins whichever shard it sorts into).
  */
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,7 +40,7 @@ export async function GET(request: Request) {
   const onlyParam = url.searchParams.get("only");
 
   try {
-    const all = loadTargets();
+    const all = await listCollectionTargets();
     const shard = all.filter((_, index) => index % of === slice % of);
     const only = onlyParam ? onlyParam.split(",").map((id) => id.trim()) : undefined;
 

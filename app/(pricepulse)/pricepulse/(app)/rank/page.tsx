@@ -2,10 +2,11 @@ import Link from "next/link";
 import {
   getCollectedTargetIds,
   getRankBoard,
-  getWatchlist,
   isDashboardDbConfigured,
   type RankRow,
 } from "@/pricepulse/lib/dashboard/db.ts";
+import { getCurrentSeller } from "@/pricepulse/lib/dashboard/auth.ts";
+import { listSellerTargets } from "@/pricepulse/lib/dashboard/seller-targets.ts";
 import { formatDate, formatDelta, formatKrw, rankDeltaTone } from "@/pricepulse/lib/dashboard/format.ts";
 import { EmptyState } from "@/components/pricepulse/EmptyState.tsx";
 
@@ -30,16 +31,25 @@ export default async function RankPage({
     return <EmptyState title="DB가 아직 연결되지 않았습니다" detail="PRICEPULSE_SUPABASE_URL / PRICEPULSE_SUPABASE_SERVICE_ROLE_KEY를 설정하세요. pricepulse/README.md 참고." />;
   }
 
-  const [watchlist, collected] = await Promise.all([getWatchlist(), getCollectedTargetIds()]);
+  const seller = await getCurrentSeller();
+  const watchlist = seller ? await listSellerTargets(seller.sellerId) : [];
   if (!watchlist.length) {
-    return <EmptyState title="추적 중인 키워드가 없습니다" detail="pricepulse/config/targets.json에 타깃을 추가하세요." />;
+    return (
+      <EmptyState
+        title="아직 등록한 키워드가 없습니다"
+        detail="키워드 관리에서 내 상품과 관련된 검색어를 등록하면 다음 수집부터 추적이 시작됩니다."
+        actionHref="/pricepulse/keywords"
+        actionLabel="키워드 등록하러 가기"
+      />
+    );
   }
 
+  const collected = await getCollectedTargetIds();
   const params = await searchParams;
-  const targetId = params.target && watchlist.some((t) => t.id === params.target)
+  const targetId = params.target && watchlist.some((t) => t.targetId === params.target)
     ? params.target
-    : watchlist[0].id;
-  const target = watchlist.find((t) => t.id === targetId)!;
+    : watchlist[0].targetId;
+  const target = watchlist.find((t) => t.targetId === targetId)!;
 
   const rows = collected.has(targetId) ? await getRankBoard(targetId) : [];
 
@@ -47,12 +57,12 @@ export default async function RankPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         {watchlist.map((t) => {
-          const active = t.id === targetId;
-          const has = collected.has(t.id);
+          const active = t.targetId === targetId;
+          const has = collected.has(t.targetId);
           return (
             <Link
-              key={t.id}
-              href={`/pricepulse/rank?target=${t.id}`}
+              key={t.targetId}
+              href={`/pricepulse/rank?target=${t.targetId}`}
               className={
                 active
                   ? "rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white"
@@ -74,7 +84,7 @@ export default async function RankPage({
       {rows.length === 0 ? (
         <EmptyState
           title="아직 이 키워드의 수집 데이터가 없습니다"
-          detail="npm run pricepulse:collect 를 실행했는지, 프로필이 verified 상태인지 확인하세요."
+          detail="키워드를 등록한 다음 날부터 데이터가 표시됩니다 (하루 1회 수집)."
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

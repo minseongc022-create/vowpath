@@ -15,7 +15,8 @@ import type {
   SourceId,
   TargetResult,
 } from "../types.ts";
-import { getRuntimeConfig, loadProfile, loadTargets, type RuntimeConfig } from "../config.ts";
+import { getRuntimeConfig, loadProfile, type RuntimeConfig } from "../config.ts";
+import { listCollectionTargets } from "../store/targets.ts";
 import { renderTemplate, type SourceProfile } from "../profile.ts";
 import { evaluateHealth, parseSearchPayload } from "../parse/search.ts";
 import { fetchWithRetry, loadRobots, RateLimiter, robotsAllows } from "../fetch/http.ts";
@@ -183,7 +184,7 @@ export async function runCollection(options: CollectOptions = {}): Promise<Colle
     );
   }
 
-  const allTargets = options.targets ?? loadTargets();
+  const allTargets = options.targets ?? (await listCollectionTargets(config));
   const targets = options.only?.length
     ? allTargets.filter((target) => options.only?.includes(target.id))
     : allTargets;
