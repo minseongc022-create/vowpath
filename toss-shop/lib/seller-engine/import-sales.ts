@@ -1,4 +1,5 @@
 import type { CatalogProduct, ImportPick, MarketKeywordMetrics, TossShopCategory } from "../types";
+import { buildImportSourceRecommendations, USD_KRW, WHOLESALE_ENGINE_VERSION } from "../wholesale";
 import { competitorsForProduct } from "./pricing";
 import {
   assessRisks,
@@ -13,15 +14,7 @@ import {
 } from "./intelligence";
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 
-const USD_KRW = 1380;
 const IMPORT_CATEGORIES: TossShopCategory[] = ["digital", "home", "beauty", "fashion", "health"];
-const SOURCE_COUNTRIES = ["중국", "베트남", "일본", "미국"] as const;
-
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
 
 function landedCostBreakdown(sourceUsd: number, weightKg = 0.5) {
   const productKrw = Math.round(sourceUsd * USD_KRW);
@@ -39,11 +32,45 @@ function suggestedImportName(keyword: string, seed: string): string {
   return `${keyword} 프리미엄 ${seed}`.slice(0, 40);
 }
 
-export function generateImportPicks(
+function buildImportAutoSteps(
+  keyword: string,
+  importSrc: ReturnType<typeof buildImportSourceRecommendations>,
+  priceKrw: number,
+): string[] {
+  const best = importSrc.bestMatch;
+  const country = importSrc.primaryCountry;
+  const steps = [
+    `토스쇼핑 「${keyword}」 등록 · AI 판매가 ${priceKrw.toLocaleString()}원`,
+  ];
+  if (best) {
+    const platform =
+      best.platform === "1688"
+        ? "1688"
+        : best.platform === "taobao"
+          ? "타오바오"
+          : best.platform === "rakuten"
+            ? "라쿠텐"
+            : "Yahoo 쇼핑";
+    steps.push(
+      `${country} ${platform}에서 소싱: ${best.title}`,
+      `검색/상품 링크 확인 → 샘플·MOQ 협의 → 랜딩비 ${(best.landedCostKrw ?? 0).toLocaleString()}원 기준 마진 ${best.estimatedMarginPct ?? 0}%`,
+    );
+  } else {
+    steps.push(
+      country === "중국"
+        ? `1688.com 에서 「${keyword}」 검색 → 공장가 확인`
+        : `라쿠텐/Yahoo 에서 「${keyword}」 프리미엄 라인 검색`,
+    );
+  }
+  steps.push("KC·인증·표시사항 확인 → 통관·배송대행 견적 → 입고 후 재분석");
+  return steps;
+}
+
+export async function generateImportPicks(
   catalog: CatalogProduct[],
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
-): ImportPick[] {
+): Promise<ImportPick[]> {
   const ctx = marketContext(catalog, marketKeywords);
   const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 50).filter((k) =>
     IMPORT_CATEGORIES.includes(k.category),
@@ -53,16 +80,29 @@ export function generateImportPicks(
 
   for (let i = 0; i < keywords.length; i++) {
     const kw = keywords[i];
-    const h = hashString(kw.keyword + dateKey);
     const product =
       catalog.find((p) => p.category === kw.category && p.priceKrw >= kw.avgPriceKrw * 0.75) ??
       catalog.find((p) => p.category === kw.category) ??
       catalog[i % catalog.length];
 
     const intel = buildKeywordIntel(kw.keyword, catalog, marketKeywords);
-    const sourceUsd = Math.round((kw.avgPriceKrw / USD_KRW) * (0.22 + (h % 12) / 100) * 100) / 100;
-    const weight = 0.3 + (h % 5) / 10;
-    const landed = landedCostBreakdown(sourceUsd, weight);
+    const importSrc = buildImportSourceRecommendations({
+      keyword: kw.keyword,
+      tossAvgPriceKrw: kw.avgPriceKrw,
+      targetRetailKrw: product.priceKrw,
+    });
+
+    const best = importSrc.bestMatch;
+    const sourceUsd = best?.sourcePriceUsd ?? Math.round((kw.avgPriceKrw / USD_KRW) * 0.22 * 100) / 100;
+    const landed = best?.landedCostKrw
+      ? {
+          productKrw: best.sourcePriceKrw,
+          shippingKrw: Math.round((best.landedCostKrw - best.sourcePriceKrw) * 0.6),
+          dutyKrw: Math.round((best.landedCostKrw - best.sourcePriceKrw) * 0.4),
+          total: best.landedCostKrw,
+        }
+      : landedCostBreakdown(sourceUsd);
+
     const competitors = competitorsForProduct(product, catalog);
 
     const preview = buildV4Enrichment({
@@ -103,7 +143,7 @@ export function generateImportPicks(
 
     const priceKrw = v4.optimal.priceKrw;
     const name = suggestedImportName(kw.keyword, product.name.split(" ").slice(-1)[0] ?? "상품");
-    const aiSummary = buildAiSummary({
+    let aiSummary = buildAiSummary({
       mode: "import",
       keyword: kw.keyword,
       productName: product.name,
@@ -116,13 +156,14 @@ export function generateImportPicks(
       profitScore: v4.profitScore,
       recommendedScenario: v4.optimal.label,
     });
+    aiSummary += ` ${importSrc.sourcingBrief}`;
 
     candidates.push({
       id: `im_${dateKey}_${i}`,
       productName: name,
       suggestedTitle: name,
       category: kw.category,
-      sourceCountry: SOURCE_COUNTRIES[h % SOURCE_COUNTRIES.length],
+      sourceCountry: importSrc.primaryCountry,
       sourcePriceUsd: sourceUsd,
       landedCostKrw: landed.total,
       recommendedPriceKrw: priceKrw,
@@ -133,7 +174,7 @@ export function generateImportPicks(
       confidenceScore: v4.profitScore,
       winScore: score,
       profitScore: v4.profitScore,
-      reason: `${v4.optimal.label} · ${v4.pricing.strategy} · AI v4 수익점수 ${v4.profitScore}`,
+      reason: `${importSrc.primaryCountry} ${best?.platform ?? "소싱"} · ${v4.optimal.label} · AI ${WHOLESALE_ENGINE_VERSION}`,
       keyword: kw.keyword,
       pricing: { ...v4.pricing, undercutKrw: priceKrw },
       pricingScenarios: v4.pricingScenarios,
@@ -146,13 +187,7 @@ export function generateImportPicks(
         shippingKrw: landed.shippingKrw,
         dutyKrw: landed.dutyKrw,
       },
-      actionSteps: buildActionSteps("import", {
-        keyword: kw.keyword,
-        productName: product.name,
-        priceKrw,
-        supplierLabel: SOURCE_COUNTRIES[h % SOURCE_COUNTRIES.length],
-        supplierCost: landed.total,
-      }),
+      actionSteps: buildImportAutoSteps(kw.keyword, importSrc, priceKrw),
       risks: assessRisks({
         marginPct: v4.pricing.marginPct,
         competitionIntensity: intel.competitionIntensity,
@@ -161,7 +196,16 @@ export function generateImportPicks(
       }),
       aiSummary,
       competitorLandscape: landscape,
-      v4: v4.v4,
+      importSources: {
+        primaryCountry: importSrc.primaryCountry,
+        china: importSrc.china,
+        japan: importSrc.japan,
+        bestMatch: importSrc.bestMatch,
+        sourcingBrief: importSrc.sourcingBrief,
+      },
+      importBest: importSrc.bestMatch,
+      sourcingBrief: importSrc.sourcingBrief,
+      v4: { ...v4.v4, engineVersion: SELLER_AI_ENGINE_VERSION },
     });
   }
 
@@ -170,4 +214,4 @@ export function generateImportPicks(
     .slice(0, 5);
 }
 
-export { SELLER_AI_ENGINE_VERSION };
+export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

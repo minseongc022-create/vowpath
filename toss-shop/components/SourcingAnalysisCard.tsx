@@ -5,10 +5,13 @@ import { formatKrw } from "@/toss-shop/lib/format";
 import type {
   AnalysisSignal,
   CompetitorInsight,
+  ImportSourceBundle,
+  ImportSourceListing,
   PricingBreakdown,
   PricingScenario,
   ProfitPlaybookItem,
   RevenueForecast,
+  WholesaleListing,
 } from "@/toss-shop/lib/types";
 
 function impactClass(impact: AnalysisSignal["impact"]): string {
@@ -41,6 +44,13 @@ export function SourcingAnalysisCard({
   moatOpportunities,
   engineVersion,
   recommendedScenarioId,
+  wholesaleMatches,
+  wholesaleBest,
+  wholesaleApiLive,
+  autoSourcingSteps,
+  importSources,
+  importBest,
+  sourcingBrief,
   extra,
 }: {
   winScore?: number;
@@ -65,6 +75,13 @@ export function SourcingAnalysisCard({
   moatOpportunities?: string[];
   engineVersion?: string;
   recommendedScenarioId?: string;
+  wholesaleMatches?: WholesaleListing[];
+  wholesaleBest?: WholesaleListing | null;
+  wholesaleApiLive?: boolean;
+  autoSourcingSteps?: string[];
+  importSources?: ImportSourceBundle;
+  importBest?: ImportSourceListing | null;
+  sourcingBrief?: string;
   extra?: ReactNode;
 }) {
   if (!signals?.length && !pricing && !aiSummary) return null;
@@ -91,6 +108,108 @@ export function SourcingAnalysisCard({
         <div className="rounded-xl bg-ts-primary/5 px-3 py-2.5 text-xs leading-relaxed text-ts-ink ring-1 ring-ts-primary/15">
           <p className="font-semibold text-ts-primary">AI 종합 분석</p>
           <p className="mt-1">{aiSummary}</p>
+        </div>
+      )}
+
+      {sourcingBrief && (
+        <div className="rounded-xl bg-sky-50 px-3 py-2.5 text-xs leading-relaxed text-sky-900 ring-1 ring-sky-100">
+          <p className="font-semibold">해외 소싱 AI 브리핑</p>
+          <p className="mt-1">{sourcingBrief}</p>
+        </div>
+      )}
+
+      {wholesaleBest && (
+        <div className="rounded-xl border border-ts-border bg-white px-3 py-2.5 text-xs">
+          <p className="font-semibold text-ts-ink">
+            위탁 공급처 · {wholesaleBest.platform === "domeggook" ? "도매꾹" : "도매매"}
+            {wholesaleApiLive && wholesaleBest.source === "live" && (
+              <span className="ml-1 text-emerald-600">실시간 API</span>
+            )}
+          </p>
+          <p className="mt-1 font-medium">{wholesaleBest.title}</p>
+          <p className="mt-1 text-ts-muted">
+            공급가 {formatKrw(wholesaleBest.unitPriceKrw)}
+            {!wholesaleBest.freeShipping && ` + 배송 ${formatKrw(wholesaleBest.shippingFeeKrw)}`}
+            {wholesaleBest.marginVsTossPct != null && ` · 예상 마진 ${wholesaleBest.marginVsTossPct}%`}
+          </p>
+          <a
+            href={wholesaleBest.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block font-semibold text-ts-primary underline"
+          >
+            공급처 바로가기 →
+          </a>
+        </div>
+      )}
+
+      {wholesaleMatches && wholesaleMatches.length > 1 && (
+        <div>
+          <p className="text-xs font-semibold text-ts-muted">도매꾹·도매매 후보</p>
+          <ul className="mt-1 space-y-1 text-xs">
+            {wholesaleMatches.slice(0, 4).map((w) => (
+              <li key={`${w.platform}-${w.itemNo ?? w.title}`}>
+                <a href={w.url} target="_blank" rel="noopener noreferrer" className="text-ts-primary underline">
+                  [{w.platform === "domeggook" ? "도매꾹" : "도매매"}] {w.title.slice(0, 28)} ·{" "}
+                  {formatKrw(w.unitPriceKrw)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {importBest && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-3 py-2.5 text-xs">
+          <p className="font-semibold text-emerald-900">
+            수입 소싱 · {importBest.country}{" "}
+            {importBest.platform === "1688"
+              ? "1688"
+              : importBest.platform === "taobao"
+                ? "타오바오"
+                : importBest.platform === "rakuten"
+                  ? "라쿠텐"
+                  : "Yahoo"}
+          </p>
+          <p className="mt-1">{importBest.title}</p>
+          <p className="mt-1 text-emerald-800/80">
+            FOB ${importBest.sourcePriceUsd} · 랜딩 {formatKrw(importBest.landedCostKrw ?? 0)} · 마진{" "}
+            {importBest.estimatedMarginPct ?? 0}%
+          </p>
+          <a
+            href={importBest.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block font-semibold text-emerald-800 underline"
+          >
+            {importBest.country} 소싱 검색 바로가기 →
+          </a>
+        </div>
+      )}
+
+      {importSources && (importSources.china.length > 0 || importSources.japan.length > 0) && (
+        <div className="text-xs">
+          <p className="font-semibold text-ts-muted">중국·일본 소싱 링크</p>
+          <ul className="mt-1 space-y-1">
+            {[...importSources.china.slice(0, 2), ...importSources.japan.slice(0, 2)].map((s) => (
+              <li key={s.url}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-ts-primary underline">
+                  [{s.country}] {s.platform} · 마진 {s.estimatedMarginPct ?? 0}%
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {autoSourcingSteps && autoSourcingSteps.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-ts-primary">AI 자동 위탁 플로우</p>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-ts-muted">
+            {autoSourcingSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
         </div>
       )}
 

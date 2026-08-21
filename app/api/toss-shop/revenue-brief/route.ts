@@ -45,6 +45,6 @@ export async function GET(request: Request) {
     topPicks,
     consignmentCount: consignment.length,
     importCount: importPicks.length,
-    message: "AI v4 — 예상 월수익 기준 최적화된 오늘의 소싱 포트폴리오",
+    message: "AI v5 — 도매꾹·1688·라쿠텐 연동 · 예상 월수익 포트폴리오",
   });
 }

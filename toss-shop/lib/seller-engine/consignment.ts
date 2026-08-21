@@ -1,5 +1,10 @@
 import { CONSIGNMENT_DAILY_PICKS } from "../billing";
 import type { CatalogProduct, ConsignmentPick, MarketKeywordMetrics } from "../types";
+import {
+  landedWholesaleUnitCost,
+  searchWholesaleForConsignment,
+  WHOLESALE_ENGINE_VERSION,
+} from "../wholesale";
 import { competitorsForProduct, estimateSupplierCost } from "./pricing";
 import {
   assessRisks,
@@ -21,6 +26,31 @@ function suggestedTitle(keyword: string, productName: string): string {
   return `${keyword} ${base}`.slice(0, 45);
 }
 
+function buildAutoSourcingSteps(
+  keyword: string,
+  wholesale: Awaited<ReturnType<typeof searchWholesaleForConsignment>>,
+  priceKrw: number,
+): string[] {
+  const best = wholesale.bestMatch;
+  const steps = [
+    `토스쇼핑 「${keyword}」 키워드로 상품 등록 · AI 추천가 ${priceKrw.toLocaleString()}원`,
+  ];
+  if (best) {
+    const platformLabel = best.platform === "domeggook" ? "도매꾹" : "도매매";
+    steps.push(
+      `${platformLabel} 공급처 확보: ${best.title.slice(0, 30)} · 공급가 ${landedWholesaleUnitCost(best).toLocaleString()}원 (${best.source === "live" ? "실시간 API" : "검색 링크"})`,
+      `공급 URL 확인 → MOQ ${best.moq}개 · ${best.freeShipping ? "무료배송" : `배송 ${best.shippingFeeKrw.toLocaleString()}원`}`,
+    );
+  } else {
+    steps.push(`도매꾹·도매매에서 「${keyword}」 검색 → 마진 12% 이상 공급처 선정`);
+  }
+  steps.push(
+    "상품명·썸네일·상세: 토스 상위 3개 경쟁사 대비 차별화",
+    "위탁 발주 → 출고 3일 이내 · 첫 2주 리뷰 10개 목표",
+  );
+  return steps;
+}
+
 function buildPick(
   dateKey: string,
   product: CatalogProduct,
@@ -33,6 +63,7 @@ function buildPick(
   ctx: ReturnType<typeof marketContext>,
   aiSummary: string,
   competitorLandscape: ReturnType<typeof analyzeCompetitorLandscape>,
+  wholesale: Awaited<ReturnType<typeof searchWholesaleForConsignment>>,
 ): ConsignmentPick {
   const highThreat = insights.filter((c) => c.threat === "high").length;
   const priceKrw = v4.optimal.priceKrw;
@@ -57,7 +88,7 @@ function buildPick(
     confidenceScore: v4.profitScore,
     winScore,
     profitScore: v4.profitScore,
-    reason: `${v4.optimal.label} · ${pricing.strategy} · AI v4 수익점수 ${v4.profitScore}`,
+    reason: `${v4.optimal.label} · ${wholesale.bestMatch ? (wholesale.bestMatch.platform === "domeggook" ? "도매꾹" : "도매매") + " 연동" : "도매 추정"} · AI ${WHOLESALE_ENGINE_VERSION} 수익 ${v4.profitScore}`,
     pricing: { ...pricing, undercutKrw: priceKrw },
     pricingScenarios: v4.pricingScenarios,
     revenueForecast: v4.revenueForecast,
@@ -67,9 +98,10 @@ function buildPick(
       keyword,
       productName: product.name,
       priceKrw,
-      supplierLabel: "위탁",
+      supplierLabel: wholesale.bestMatch?.platform === "domeme" ? "도매매" : "도매꾹",
       supplierCost: pricing.supplierCostKrw,
     }),
+    autoSourcingSteps: buildAutoSourcingSteps(keyword, wholesale, priceKrw),
     risks: assessRisks({
       marginPct: pricing.marginPct,
       competitionIntensity: intel.competitionIntensity,
@@ -78,15 +110,18 @@ function buildPick(
     }),
     aiSummary,
     competitorLandscape,
-    v4: v4.v4,
+    wholesaleMatches: wholesale.listings,
+    wholesaleBest: wholesale.bestMatch,
+    wholesaleApiLive: wholesale.apiConfigured && wholesale.listings.some((l) => l.source === "live"),
+    v4: { ...v4.v4, engineVersion: SELLER_AI_ENGINE_VERSION },
   };
 }
 
-export function generateConsignmentPicks(
+export async function generateConsignmentPicks(
   catalog: CatalogProduct[],
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
-): ConsignmentPick[] {
+): Promise<ConsignmentPick[]> {
   const ctx = marketContext(catalog, marketKeywords);
   const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
@@ -96,6 +131,8 @@ export function generateConsignmentPicks(
   const usedProducts = new Set<string>();
 
   for (const kw of keywords) {
+    if (candidates.length >= CONSIGNMENT_DAILY_PICKS + 5) break;
+
     const product =
       pickBestProductForKeyword(kw.keyword, kw.category, catalog, marketKeywords) ??
       catalog.find((p) => !usedProducts.has(p.id) && p.category === kw.category);
@@ -105,7 +142,17 @@ export function generateConsignmentPicks(
 
     const intel = buildKeywordIntel(kw.keyword, catalog, marketKeywords);
     const competitors = competitorsForProduct(product, catalog);
-    const supplierCost = estimateSupplierCost(product.priceKrw, product.category);
+
+    const wholesale = await searchWholesaleForConsignment({
+      keyword: kw.keyword,
+      tossAvgPriceKrw: intel.avgPriceKrw,
+      targetRetailKrw: product.priceKrw,
+    });
+
+    const supplierCost =
+      wholesale.bestMatch != null
+        ? landedWholesaleUnitCost(wholesale.bestMatch)
+        : estimateSupplierCost(product.priceKrw, product.category);
 
     const pricingPreview = buildV4Enrichment({
       supplierCostKrw: supplierCost,
@@ -141,7 +188,7 @@ export function generateConsignmentPicks(
       mode: "consignment",
     });
 
-    const aiSummary = buildAiSummary({
+    let aiSummary = buildAiSummary({
       mode: "consignment",
       keyword: kw.keyword,
       productName: product.name,
@@ -155,8 +202,26 @@ export function generateConsignmentPicks(
       recommendedScenario: v4.optimal.label,
     });
 
+    if (wholesale.bestMatch) {
+      const pl = wholesale.bestMatch.platform === "domeggook" ? "도매꾹" : "도매매";
+      aiSummary += ` ${pl} 공급가 ${landedWholesaleUnitCost(wholesale.bestMatch).toLocaleString()}원(${wholesale.bestMatch.source === "live" ? "실데이터" : "검색 기반"})로 위탁 등록 가능.`;
+    }
+
     candidates.push(
-      buildPick(dateKey, product, kw.keyword, intel, v4, insights, signals, score, ctx, aiSummary, landscape),
+      buildPick(
+        dateKey,
+        product,
+        kw.keyword,
+        intel,
+        v4,
+        insights,
+        signals,
+        score,
+        ctx,
+        aiSummary,
+        landscape,
+        wholesale,
+      ),
     );
   }
 
@@ -165,4 +230,4 @@ export function generateConsignmentPicks(
     .slice(0, CONSIGNMENT_DAILY_PICKS);
 }
 
-export { SELLER_AI_ENGINE_VERSION };
+export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

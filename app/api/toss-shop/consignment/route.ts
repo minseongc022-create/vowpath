@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     picks,
     dailyLimit: CONSIGNMENT_DAILY_PICKS,
     mode: "consignment",
-    description: "AI v4 위탁 소싱 — 수익 극대화 · 3가지 가격 시나리오 · 하루 5개",
+    description: "AI v5 위탁 — 도매꾹·도매매 공급 연동 · 마진·가격 자동",
     engineVersion: SELLER_AI_ENGINE_VERSION,
     catalogSize: ctx.catalogSize,
     marketKeywordCount: ctx.marketKeywordCount,

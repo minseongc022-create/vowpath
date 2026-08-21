@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     picks,
     mode: "import",
-    description: "AI v4 수입 소싱 — 수익 극대화 · 랜딩·관세·3가지 가격 전략",
+    description: "AI v5 수입 — 중국 1688·일본 라쿠텐 소싱 · 랜딩·마진",
     engineVersion: SELLER_AI_ENGINE_VERSION,
     catalogSize: ctx.catalogSize,
     marketKeywordCount: ctx.marketKeywordCount,
