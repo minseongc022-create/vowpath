@@ -26,7 +26,7 @@ export function RankingsPanel() {
     setWatchlist(data.watchlist ?? []);
   }, [category]);
 
-  const { initialLoading, refreshing } = useSilentFetch(fetchData);
+  const { initialLoading } = useSilentFetch(fetchData);
 
   useEffect(() => {
     if (!selectedProduct && rankings[0]) {
@@ -75,12 +75,6 @@ export function RankingsPanel() {
         <button type="button" onClick={() => setTab("bestseller")} className={tab === "bestseller" ? "ts-tab ts-tab-active" : "ts-tab"}>
           베스트셀러
         </button>
-        {refreshing && (
-          <span className="ml-auto inline-flex items-center gap-1 self-center text-xs text-ts-muted">
-            <span className="ts-refresh-dot ts-refresh-dot-pulse" aria-hidden />
-            갱신 중
-          </span>
-        )}
       </div>
 
       {tab === "tracking" && (
