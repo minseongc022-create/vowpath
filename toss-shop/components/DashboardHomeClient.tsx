@@ -41,8 +41,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI", desc: "오늘 5개 · 경쟁가 자동 매칭", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI", desc: "해외 소싱 · 랜딩비·수익 분석", accent: true },
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI", desc: "AI 다층 분석 · 가격·소싱·체크리스트", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI", desc: "관세·랜딩·경쟁가·마진 자동 계산", accent: true },
   ];
 
   const toolCards = [

@@ -842,7 +842,7 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
   if (data.consignmentDate === today && data.consignmentPicks?.length) {
     return data.consignmentPicks;
   }
-  const picks = generateConsignmentPicks(store.catalog, today);
+  const picks = generateConsignmentPicks(store.catalog, today, store.marketKeywords);
   data.consignmentPicks = picks;
   data.consignmentDate = today;
   await saveStore(store);
@@ -856,7 +856,7 @@ export async function getImportPicksForMerchant(merchantId: string): Promise<Imp
   if (data.importDate === today && data.importPicks?.length) {
     return data.importPicks;
   }
-  const picks = generateImportPicks(store.catalog, today);
+  const picks = generateImportPicks(store.catalog, today, store.marketKeywords);
   data.importPicks = picks;
   data.importDate = today;
   await saveStore(store);

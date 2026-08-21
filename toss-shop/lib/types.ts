@@ -208,25 +208,74 @@ export type CompetitorPriceRef = {
   rank: number;
 };
 
+export type AnalysisSignal = {
+  label: string;
+  impact: "positive" | "neutral" | "negative";
+  detail: string;
+  weight?: number;
+};
+
+export type PricingBreakdown = {
+  supplierCostKrw: number;
+  platformFeesKrw: number;
+  netProfitKrw: number;
+  marginPct: number;
+  strategy: string;
+  priceFloorKrw: number;
+  priceCeilingKrw: number;
+  competitorLowKrw: number;
+  competitorMedianKrw: number;
+  competitorHighKrw: number;
+  undercutKrw: number;
+};
+
+export type CompetitorInsight = CompetitorPriceRef & {
+  reviewCount?: number;
+  rating?: number;
+  priceGapPct?: number;
+  threat?: "low" | "medium" | "high";
+};
+
+export type CompetitorLandscape = {
+  count: number;
+  priceSpreadPct: number;
+  avgReviewCount: number;
+  avgRating: number;
+  lowThreatCount: number;
+  highThreatCount: number;
+  dominance: "fragmented" | "balanced" | "concentrated";
+};
+
 export type ConsignmentPick = {
   id: string;
   keyword: string;
   productName: string;
+  suggestedTitle: string;
   category: TossShopCategory;
   supplierCostKrw: number;
   recommendedPriceKrw: number;
   competitorPrices: CompetitorPriceRef[];
+  competitorInsights?: CompetitorInsight[];
   searchVolume: number;
   competitionIntensity: number;
   estimatedMarginPct: number;
   estimatedDailyProfitKrw: number;
+  estimatedDailyUnits?: number;
   confidenceScore: number;
+  winScore?: number;
   reason: string;
+  pricing?: PricingBreakdown;
+  signals?: AnalysisSignal[];
+  actionSteps?: string[];
+  risks?: string[];
+  aiSummary?: string;
+  competitorLandscape?: CompetitorLandscape;
 };
 
 export type ImportPick = {
   id: string;
   productName: string;
+  suggestedTitle: string;
   category: TossShopCategory;
   sourceCountry: string;
   sourcePriceUsd: number;
@@ -237,8 +286,21 @@ export type ImportPick = {
   estimatedMonthlyUnits: number;
   estimatedMonthlyProfitKrw: number;
   confidenceScore: number;
+  winScore?: number;
   reason: string;
   keyword: string;
+  pricing?: PricingBreakdown;
+  signals?: AnalysisSignal[];
+  actionSteps?: string[];
+  risks?: string[];
+  competitorInsights?: CompetitorInsight[];
+  landedBreakdown?: {
+    productKrw: number;
+    shippingKrw: number;
+    dutyKrw: number;
+  };
+  aiSummary?: string;
+  competitorLandscape?: CompetitorLandscape;
 };
 
 export type TossShopStore = {

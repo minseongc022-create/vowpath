@@ -1,4 +1,5 @@
 import type { CatalogProduct, MarketKeywordMetrics, TossShopCategory } from "../types";
+import { getDiscoveryKeywords } from "../discovery";
 
 function hashString(s: string): number {
   let h = 0;
@@ -63,6 +64,10 @@ export function collectMarketIntelligence(catalog: CatalogProduct[]): {
     }
   }
 
+  for (const d of getDiscoveryKeywords()) {
+    keywordSet.add(d.keyword);
+  }
+
   const marketKeywords: Record<string, MarketKeywordMetrics> = {};
   for (const keyword of keywordSet) {
     marketKeywords[keyword] = metricsForKeyword(keyword, catalog);
@@ -117,6 +122,13 @@ export function mergeDiscoveryWithMarket<T extends {
 
 export function isSeedProductId(id: string): boolean {
   return /^p\d{3}$/.test(id);
+}
+
+export function inferDataQuality(catalog: { id: string }[]): "live" | "mixed" | "demo" {
+  const live = catalog.filter((p) => !/^p\d{3}$/.test(p.id)).length;
+  if (live >= catalog.length * 0.5) return "live";
+  if (live > 0) return "mixed";
+  return "demo";
 }
 
 export function inferCategoryFromKeyword(keyword: string): TossShopCategory | null {

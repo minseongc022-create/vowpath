@@ -1,109 +1,134 @@
-import { getDiscoveryKeywords } from "../discovery";
-import { analyzeKeyword } from "../catalog";
 import { CONSIGNMENT_DAILY_PICKS } from "../billing";
-import type { CatalogProduct, ConsignmentPick, TossShopCategory } from "../types";
+import type { CatalogProduct, ConsignmentPick, MarketKeywordMetrics } from "../types";
+import { competitorsForProduct, estimateSupplierCost } from "./pricing";
 import {
-  autoMatchPrice,
-  competitorsForProduct,
-  estimatePlatformFees,
-  estimateSupplierCost,
-  marginPct,
-} from "./pricing";
+  assessRisks,
+  analyzeCompetitorLandscape,
+  buildActionSteps,
+  buildAiSummary,
+  buildKeywordIntel,
+  buildPricingBreakdown,
+  enrichCompetitors,
+  marketContext,
+  pickBestProductForKeyword,
+  rankKeywordsForSourcing,
+  scoreOpportunity,
+} from "./intelligence";
 
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+function suggestedTitle(keyword: string, productName: string): string {
+  const base = productName.length > 28 ? productName.slice(0, 28) : productName;
+  if (base.toLowerCase().includes(keyword.toLowerCase())) return base;
+  return `${keyword} ${base}`.slice(0, 45);
 }
 
-function scoreProduct(
+function buildPick(
+  dateKey: string,
   product: CatalogProduct,
   keyword: string,
-  analysis: ReturnType<typeof analyzeKeyword>,
-): number {
-  const h = hashString(product.id + keyword);
-  const volumeScore = Math.min(analysis.searchVolume / 5000, 1) * 40;
-  const compScore = Math.max(0, (2 - analysis.competitionIntensity) * 25);
-  const reviewScore = Math.min(product.reviewCount / 2000, 1) * 15;
-  const rankScore = Math.max(0, (15 - product.rank) / 15) * 10;
-  const noise = (h % 10);
-  return volumeScore + compScore + reviewScore + rankScore + noise;
+  intel: ReturnType<typeof buildKeywordIntel>,
+  pricing: ReturnType<typeof buildPricingBreakdown>,
+  insights: ReturnType<typeof enrichCompetitors>,
+  signals: ReturnType<typeof scoreOpportunity>["signals"],
+  winScore: number,
+  dailyUnits: number,
+  ctx: ReturnType<typeof marketContext>,
+  aiSummary: string,
+  competitorLandscape: ReturnType<typeof analyzeCompetitorLandscape>,
+): ConsignmentPick {
+  const highThreat = insights.filter((c) => c.threat === "high").length;
+  const priceKrw = pricing.undercutKrw;
+
+  return {
+    id: `cs_${dateKey}_${product.id}`,
+    keyword,
+    productName: product.name,
+    suggestedTitle: suggestedTitle(keyword, product.name),
+    category: product.category,
+    supplierCostKrw: pricing.supplierCostKrw,
+    recommendedPriceKrw: priceKrw,
+    competitorPrices: insights.slice(0, 6),
+    competitorInsights: insights.slice(0, 8),
+    searchVolume: intel.searchVolume,
+    competitionIntensity: intel.competitionIntensity,
+    estimatedMarginPct: pricing.marginPct,
+    estimatedDailyProfitKrw: pricing.netProfitKrw * dailyUnits,
+    estimatedDailyUnits: dailyUnits,
+    confidenceScore: winScore,
+    winScore,
+    reason: `${pricing.strategy} · ${ctx.dataQuality === "demo" ? "데모" : ctx.dataQuality === "live" ? "실데이터" : "혼합"} · AI 승률 ${winScore}점`,
+    pricing: { ...pricing, undercutKrw: priceKrw },
+    signals,
+    actionSteps: buildActionSteps("consignment", {
+      keyword,
+      productName: product.name,
+      priceKrw,
+      supplierLabel: "위탁",
+      supplierCost: pricing.supplierCostKrw,
+    }),
+    risks: assessRisks({
+      marginPct: pricing.marginPct,
+      competitionIntensity: intel.competitionIntensity,
+      dataQuality: ctx.dataQuality,
+      highThreatCompetitors: highThreat,
+    }),
+    aiSummary,
+    competitorLandscape,
+  };
 }
 
 export function generateConsignmentPicks(
   catalog: CatalogProduct[],
   dateKey: string,
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
 ): ConsignmentPick[] {
-  const keywords = getDiscoveryKeywords()
-    .filter((k) => k.competitionGrade === "excellent" || k.competitionGrade === "good")
-    .sort((a, b) => a.competitionIntensity - b.competitionIntensity)
-    .slice(0, 30);
+  const ctx = marketContext(catalog, marketKeywords);
+  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 50).filter(
+    (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
+  );
 
   const picks: ConsignmentPick[] = [];
   const usedProducts = new Set<string>();
 
   for (const kw of keywords) {
     if (picks.length >= CONSIGNMENT_DAILY_PICKS) break;
-    const analysis = analyzeKeyword(kw.keyword);
-    const candidates = catalog
-      .filter((p) => p.category === kw.category || p.name.includes(kw.keyword.slice(0, 2)))
-      .map((p) => ({ product: p, score: scoreProduct(p, kw.keyword, analysis) }))
-      .sort((a, b) => b.score - a.score);
 
-    for (const { product } of candidates) {
-      if (usedProducts.has(product.id)) continue;
-      usedProducts.add(product.id);
+    const product =
+      pickBestProductForKeyword(kw.keyword, kw.category, catalog, marketKeywords) ??
+      catalog.find((p) => !usedProducts.has(p.id) && p.category === kw.category);
 
-      const competitors = competitorsForProduct(product, catalog);
-      const supplierCost = estimateSupplierCost(product.priceKrw, product.category);
-      const { priceKrw, strategy } = autoMatchPrice(supplierCost, competitors);
-      const margin = marginPct(supplierCost, priceKrw);
-      const fees = estimatePlatformFees(priceKrw);
-      const profitPerUnit = priceKrw - supplierCost - fees;
-      const dailyUnits = Math.max(1, Math.round(kw.searchVolume / 800));
-
-      picks.push({
-        id: `cs_${dateKey}_${product.id}`,
-        keyword: kw.keyword,
-        productName: product.name,
-        category: product.category as TossShopCategory,
-        supplierCostKrw: supplierCost,
-        recommendedPriceKrw: priceKrw,
-        competitorPrices: competitors.slice(0, 5),
-        searchVolume: kw.searchVolume,
-        competitionIntensity: kw.competitionIntensity,
-        estimatedMarginPct: margin,
-        estimatedDailyProfitKrw: profitPerUnit * dailyUnits,
-        confidenceScore: Math.min(98, Math.round(55 + margin + kw.searchVolume / 500)),
-        reason: `${strategy} · 검색 ${kw.searchVolume.toLocaleString()} · 경쟁강도 ${kw.competitionIntensity}`,
-      });
-      break;
-    }
-  }
-
-  while (picks.length < CONSIGNMENT_DAILY_PICKS && catalog.length > picks.length) {
-    const product = catalog[picks.length % catalog.length];
-    if (usedProducts.has(product.id)) continue;
+    if (!product || usedProducts.has(product.id)) continue;
     usedProducts.add(product.id);
-    const kw = keywords[picks.length % keywords.length]?.keyword ?? "인기상품";
+
+    const intel = buildKeywordIntel(kw.keyword, catalog, marketKeywords);
     const competitors = competitorsForProduct(product, catalog);
     const supplierCost = estimateSupplierCost(product.priceKrw, product.category);
-    const { priceKrw, strategy } = autoMatchPrice(supplierCost, competitors);
-    picks.push({
-      id: `cs_${dateKey}_${product.id}`,
-      keyword: kw,
-      productName: product.name,
-      category: product.category,
-      supplierCostKrw: supplierCost,
-      recommendedPriceKrw: priceKrw,
-      competitorPrices: competitors.slice(0, 5),
-      searchVolume: 1000 + hashString(product.id) % 5000,
-      competitionIntensity: 0.8,
-      estimatedMarginPct: marginPct(supplierCost, priceKrw),
-      estimatedDailyProfitKrw: Math.round((priceKrw - supplierCost) * 0.15),
-      confidenceScore: 72,
-      reason: strategy,
+    const pricing = buildPricingBreakdown(supplierCost, competitors);
+    const insights = enrichCompetitors(product, catalog, pricing.undercutKrw);
+    const landscape = analyzeCompetitorLandscape(insights, pricing);
+    const { score, signals } = scoreOpportunity({
+      keyword: intel,
+      marginPct: pricing.marginPct,
+      product,
+      competitorCount: competitors.length,
+      winPriceGap: pricing.competitorLowKrw - pricing.undercutKrw,
+      priceSpreadPct: landscape.priceSpreadPct,
+      highThreatCompetitors: landscape.highThreatCount,
     });
+    const dailyUnits = Math.max(1, Math.round(intel.searchVolume / 700));
+    const aiSummary = buildAiSummary({
+      mode: "consignment",
+      keyword: kw.keyword,
+      productName: product.name,
+      winScore: score,
+      intel,
+      pricing,
+      landscape,
+      dataQuality: ctx.dataQuality,
+    });
+
+    picks.push(
+      buildPick(dateKey, product, kw.keyword, intel, pricing, insights, signals, score, dailyUnits, ctx, aiSummary, landscape),
+    );
   }
 
   return picks.slice(0, CONSIGNMENT_DAILY_PICKS);
