@@ -25,6 +25,7 @@ import { generateConsignmentPicks } from "./seller-engine/consignment";
 import { generateImportPicks } from "./seller-engine/import-sales";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
+import { collectMarketIntelligence } from "./market-collector";
 import type {
   CatalogProduct,
   Competitor,
@@ -41,6 +42,7 @@ import type {
   TossShopStore,
   TrackedKeyword,
   WatchlistItem,
+  TossShopSubscriptionStatus,
 } from "./types";
 
 const DATA_DIR = join(process.cwd(), ".data", "toss-shop");
@@ -226,7 +228,7 @@ export async function connectTossSeller(input: {
     apiSandbox: input.sandbox ?? false,
     dataSource: "live",
   };
-  const plan = isOwnerEmail(email) ? "owner" : "pro";
+  const plan = isOwnerEmail(email) ? "owner" : "free";
   account = {
     id: newId("acc"),
     email,
@@ -236,7 +238,6 @@ export async function connectTossSeller(input: {
     createdAt: new Date().toISOString(),
     plan,
     usage: { date: todayDateKey(), keywordAnalyses: 0 },
-    ...(plan === "pro" ? { proExpiresAt: proExpiresAtFromNow(1) } : {}),
   };
   store.merchants.push(merchant);
   store.accounts.push(account);
@@ -320,7 +321,28 @@ export async function syncMerchantNow(merchantId: string): Promise<{
   return { ok: true, result: synced.result };
 }
 
-// ── Catalog & Rankings ──
+export async function getStoreCatalog(): Promise<CatalogProduct[]> {
+  const store = await loadStore();
+  return store.catalog;
+}
+
+export async function getProductsBySellerName(sellerName: string): Promise<CatalogProduct[]> {
+  const store = await loadStore();
+  return store.catalog.filter((p) => p.sellerName === sellerName);
+}
+
+export async function getMarketKeywords(): Promise<{
+  marketKeywords?: TossShopStore["marketKeywords"];
+  marketCollectedAt?: string;
+  marketProductCount?: number;
+}> {
+  const store = await loadStore();
+  return {
+    marketKeywords: store.marketKeywords,
+    marketCollectedAt: store.marketCollectedAt,
+    marketProductCount: store.marketProductCount,
+  };
+}
 
 export async function getRankings(category?: string): Promise<CatalogProduct[]> {
   const store = await loadStore();
@@ -355,7 +377,7 @@ export async function addToWatchlist(
   ) {
     throw new Error("ALREADY_WATCHING");
   }
-  if (!getProductById(productId) && !store.catalog.find((p) => p.id === productId)) {
+  if (!getProductById(productId, store.catalog) && !store.catalog.find((p) => p.id === productId)) {
     throw new Error("PRODUCT_NOT_FOUND");
   }
   const item: WatchlistItem = {
@@ -402,7 +424,12 @@ export async function addKeyword(
     addedAt: new Date().toISOString(),
   };
   data.keywords.unshift(item);
-  const snap = buildKeywordSnapshot(normalized, myProductId);
+  const snap = buildKeywordSnapshot(
+    normalized,
+    myProductId,
+    store.catalog,
+    store.marketKeywords,
+  );
   if (!store.keywordHistory[normalized]) store.keywordHistory[normalized] = [];
   store.keywordHistory[normalized].push(snap);
   await saveStore(store);
@@ -419,7 +446,7 @@ export async function removeKeyword(merchantId: string, keywordId: string): Prom
 export async function analyzeKeywordForMerchant(merchantId: string, keyword: string) {
   const store = await loadStore();
   const tracked = merchantData(store, merchantId).keywords.find((k) => k.keyword === keyword);
-  return analyzeKeyword(keyword, tracked?.myProductId);
+  return analyzeKeyword(keyword, tracked?.myProductId, store.catalog, store.marketKeywords);
 }
 
 export async function getKeywordHistory(keyword: string): Promise<KeywordSnapshot[]> {
@@ -608,6 +635,7 @@ export async function syncAllMerchants(): Promise<{
   keywordUpdates: number;
   alertsFired: number;
   apiSyncs: number;
+  marketKeywords?: number;
 }> {
   const store = await loadStore();
   const bucket = minuteKey();
@@ -651,7 +679,12 @@ export async function syncAllMerchants(): Promise<{
     const data = merchantData(store, merchantId);
 
     for (const kw of data.keywords) {
-      const snap = buildKeywordSnapshot(kw.keyword, kw.myProductId);
+      const snap = buildKeywordSnapshot(
+        kw.keyword,
+        kw.myProductId,
+        store.catalog,
+        store.marketKeywords,
+      );
       if (!store.keywordHistory[kw.keyword]) store.keywordHistory[kw.keyword] = [];
       if (!store.keywordHistory[kw.keyword].some((s) => s.date === bucket)) {
         store.keywordHistory[kw.keyword] = appendCapped(store.keywordHistory[kw.keyword], snap);
@@ -703,8 +736,13 @@ export async function syncAllMerchants(): Promise<{
     }
   }
 
+  const market = collectMarketIntelligence(store.catalog);
+  store.marketKeywords = market.marketKeywords;
+  store.marketCollectedAt = market.collectedAt;
+  store.marketProductCount = market.productCount;
+
   await saveStore(store);
-  return { priceUpdates, keywordUpdates, alertsFired, apiSyncs };
+  return { priceUpdates, keywordUpdates, alertsFired, apiSyncs, marketKeywords: Object.keys(market.marketKeywords).length };
 }
 
 // ── Billing usage ──
@@ -751,8 +789,48 @@ export async function syncOwnerPlanIfNeeded(accountId: string): Promise<void> {
   if (isOwnerEmail(account.email) && account.plan !== "owner") {
     account.plan = "owner";
     delete account.proExpiresAt;
+    delete account.subscriptionStatus;
     await saveStore(store);
   }
+}
+
+export async function findAccountByEmail(email: string): Promise<TossShopAccount | null> {
+  const store = await loadStore();
+  return store.accounts.find((a) => a.email.toLowerCase() === email.toLowerCase()) ?? null;
+}
+
+export async function findAccountByLsCustomerId(customerId: string): Promise<TossShopAccount | null> {
+  const store = await loadStore();
+  return store.accounts.find((a) => a.lsCustomerId === customerId) ?? null;
+}
+
+export async function applyTossShopSubscription(
+  accountId: string,
+  input: {
+    lsCustomerId?: string;
+    lsSubscriptionId?: string;
+    subscriptionStatus: TossShopSubscriptionStatus;
+    proExpiresAt?: string;
+  },
+): Promise<TossShopAccount | null> {
+  const store = await loadStore();
+  const account = store.accounts.find((a) => a.id === accountId);
+  if (!account || account.plan === "owner") return account ?? null;
+
+  if (input.lsCustomerId) account.lsCustomerId = input.lsCustomerId;
+  if (input.lsSubscriptionId) account.lsSubscriptionId = input.lsSubscriptionId;
+  account.subscriptionStatus = input.subscriptionStatus;
+
+  if (input.subscriptionStatus === "active" || input.subscriptionStatus === "past_due") {
+    account.plan = "pro";
+    if (input.proExpiresAt) account.proExpiresAt = input.proExpiresAt;
+  } else {
+    account.plan = "free";
+    delete account.proExpiresAt;
+  }
+
+  await saveStore(store);
+  return account;
 }
 
 // ── Seller engine picks ──

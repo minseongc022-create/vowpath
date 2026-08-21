@@ -44,7 +44,12 @@ export function normalizePlan(plan?: TossShopPlan): PlanTier {
   return "free";
 }
 
-export function getPlanAccess(account: Pick<TossShopAccount, "email" | "plan" | "trialEndsAt" | "proExpiresAt">): PlanAccess {
+export function getPlanAccess(
+  account: Pick<
+    TossShopAccount,
+    "email" | "plan" | "trialEndsAt" | "proExpiresAt" | "subscriptionStatus"
+  >,
+): PlanAccess {
   if (isOwnerEmail(account.email) || account.plan === "owner") {
     return {
       tier: "owner",
@@ -53,6 +58,19 @@ export function getPlanAccess(account: Pick<TossShopAccount, "email" | "plan" | 
       dailyKeywordLimit: null,
       priceKrw: null,
       isOwner: true,
+    };
+  }
+  const lsActive =
+    account.subscriptionStatus === "active" ||
+    (account.subscriptionStatus === "past_due" && account.plan === "pro");
+  if (lsActive) {
+    return {
+      tier: "pro",
+      label: "Pro",
+      fullAccess: true,
+      dailyKeywordLimit: null,
+      priceKrw: PRO_PRICE_KRW,
+      isOwner: false,
     };
   }
   if (account.plan === "pro" && account.proExpiresAt && new Date(account.proExpiresAt).getTime() > Date.now()) {

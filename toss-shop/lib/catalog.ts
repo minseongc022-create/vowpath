@@ -1,6 +1,8 @@
 import type { CatalogProduct, KeywordAnalysis, KeywordSnapshot } from "./types";
 import { SEED_CATALOG } from "./seed";
 import { minuteKey } from "./format";
+import { getMarketMetrics } from "./market-collector";
+import type { MarketKeywordMetrics } from "./types";
 
 function hashString(s: string): number {
   let h = 0;
@@ -25,25 +27,31 @@ function buildTrend(base: number, seed: string, days = 30): number[] {
   return trend;
 }
 
-export function getCatalogProducts(): CatalogProduct[] {
-  return SEED_CATALOG.map((p) => ({ ...p }));
+export function getCatalogProducts(catalog?: CatalogProduct[]): CatalogProduct[] {
+  const source = catalog?.length ? catalog : SEED_CATALOG;
+  return source.map((p) => ({ ...p }));
 }
 
-export function getProductById(id: string): CatalogProduct | null {
-  return getCatalogProducts().find((p) => p.id === id) ?? null;
+export function getProductById(id: string, catalog?: CatalogProduct[]): CatalogProduct | null {
+  return getCatalogProducts(catalog).find((p) => p.id === id) ?? null;
 }
 
-export function getProductsByCategory(category?: string): CatalogProduct[] {
-  const all = getCatalogProducts();
+export function getProductsByCategory(category?: string, catalog?: CatalogProduct[]): CatalogProduct[] {
+  const all = getCatalogProducts(catalog);
   if (!category) return all.sort((a, b) => a.rank - b.rank);
   return all.filter((p) => p.category === category).sort((a, b) => a.rank - b.rank);
 }
 
-export function getProductsBySeller(sellerName: string): CatalogProduct[] {
-  return getCatalogProducts().filter((p) => p.sellerName === sellerName);
+export function getProductsBySeller(sellerName: string, catalog?: CatalogProduct[]): CatalogProduct[] {
+  return getCatalogProducts(catalog).filter((p) => p.sellerName === sellerName);
 }
 
+import { isSeedProductId } from "./market-collector";
+
 export function simulatePriceUpdate(product: CatalogProduct): CatalogProduct {
+  if (!isSeedProductId(product.id)) {
+    return { ...product, updatedAt: new Date().toISOString() };
+  }
   const variance = (hashString(product.id + minuteKey()) % 7) - 3;
   const priceDelta = Math.round(product.priceKrw * (variance / 100));
   const rankDelta = (hashString(minuteKey() + product.id) % 3) - 1;
@@ -58,18 +66,30 @@ export function simulatePriceUpdate(product: CatalogProduct): CatalogProduct {
   };
 }
 
-export function analyzeKeyword(keyword: string, myProductId?: string): KeywordAnalysis {
+export function analyzeKeyword(
+  keyword: string,
+  myProductId?: string,
+  catalog?: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+): KeywordAnalysis {
   const h = hashString(keyword);
-  const searchVolume = 500 + (h % 9500);
+  const market = getMarketMetrics(keyword, marketKeywords);
+  const searchVolume = market?.searchVolume ?? 500 + (h % 9500);
   const mobileRatio = 0.55 + (h % 35) / 100;
   const mobileSearchVolume = Math.round(searchVolume * mobileRatio);
   const pcSearchVolume = searchVolume - mobileSearchVolume;
-  const competingProducts = 20 + (h % 480);
+  const competingProducts = market?.productCount ?? 20 + (h % 480);
   const competitionIntensity =
+    market?.competitionIntensity ??
     Math.round((competingProducts / Math.max(searchVolume, 1)) * 100) / 100;
-  const all = getCatalogProducts();
+  const all = getCatalogProducts(catalog);
   const related = all
-    .filter((p) => p.name.includes(keyword) || keyword.includes(p.category))
+    .filter(
+      (p) =>
+        p.name.includes(keyword) ||
+        keyword.includes(p.name.slice(0, 2)) ||
+        p.name.toLowerCase().includes(keyword.toLowerCase()),
+    )
     .slice(0, 8);
   const topProducts = (related.length >= 3 ? related : all.slice(0, 8))
     .map((p, i) => ({
@@ -82,9 +102,11 @@ export function analyzeKeyword(keyword: string, myProductId?: string): KeywordAn
     }))
     .sort((a, b) => a.rank - b.rank);
 
-  const avgPriceKrw = Math.round(
-    topProducts.reduce((s, p) => s + p.priceKrw, 0) / Math.max(topProducts.length, 1),
-  );
+  const avgPriceKrw =
+    market?.avgPriceKrw ??
+    Math.round(
+      topProducts.reduce((s, p) => s + p.priceKrw, 0) / Math.max(topProducts.length, 1),
+    );
 
   let difficulty: KeywordAnalysis["difficulty"] = "medium";
   if (competingProducts < 80 && searchVolume > 2000) difficulty = "easy";
@@ -131,9 +153,14 @@ export function analyzeKeyword(keyword: string, myProductId?: string): KeywordAn
   };
 }
 
-export function buildKeywordSnapshot(keyword: string, myProductId?: string): KeywordSnapshot {
-  const analysis = analyzeKeyword(keyword, myProductId);
-  const myProduct = myProductId ? getProductById(myProductId) : null;
+export function buildKeywordSnapshot(
+  keyword: string,
+  myProductId?: string,
+  catalog?: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+): KeywordSnapshot {
+  const analysis = analyzeKeyword(keyword, myProductId, catalog, marketKeywords);
+  const myProduct = myProductId ? getProductById(myProductId, catalog) : null;
   return {
     keyword,
     date: minuteKey(),
