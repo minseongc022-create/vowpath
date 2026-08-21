@@ -13,14 +13,14 @@ export const SP_STRINGS = {
   navLogin: "로그인",
   navLogout: "로그아웃",
   ctaStart: "무료로 시작하기",
-  ctaDemo: "데모 계정으로 체험",
-  heroTitle: "토스쇼핑 셀러 데이터, 1분마다 갱신",
+  ctaDemo: "데모로 둘러보기",
+  ctaTossConnect: "토스 셀러 연동",
+  heroTitle: "토스쇼핑 셀러를 위한 올인원 대시보드",
   heroSubtitle:
-    "셀러펄스는 랭킹·가격·키워드·경쟁사·정산을 거의 실시간으로 모니터링하는 토스쇼핑 셀러 전용 대시보드입니다.",
+    "랭킹·가격·키워드·경쟁사·정산을 한곳에서 관리하세요. 셀러펄스는 토스쇼핑 판매 데이터를 분석하고 의사결정을 돕는 독립 도구입니다.",
   demoEmail: "demo@sellerpulse.local",
   demoPassword: "demo1234",
   footer: "셀러펄스(Seller Pulse) — 토스쇼핑 공식 서비스가 아닌 독립 도구입니다.",
-  syncInterval: "1분마다 자동 동기화",
 } as const;
 
 /** @deprecated use SP_STRINGS */

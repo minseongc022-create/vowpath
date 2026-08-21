@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
+import { TossSellerConnect } from "@/toss-shop/components/TossSellerConnect";
 
 export function LoginForm() {
   const router = useRouter();
+  const [showEmail, setShowEmail] = useState(false);
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,75 +41,95 @@ export function LoginForm() {
     }
   }
 
-  function fillDemo() {
+  async function demoLogin() {
     setEmail(SP_STRINGS.demoEmail);
     setPassword(SP_STRINGS.demoPassword);
     setMode("login");
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/toss-shop/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: SP_STRINGS.demoEmail,
+          password: SP_STRINGS.demoPassword,
+          mode: "login",
+        }),
+      });
+      if (!res.ok) {
+        setError("데모 로그인 실패");
+        setShowEmail(true);
+        return;
+      }
+      router.push(SP_ROUTES.dashboard);
+      router.refresh();
+    } catch {
+      setError("네트워크 오류");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <div className="ts-card">
-        <p className="text-xs font-semibold text-ts-primary">{SP_STRINGS.brandEn}</p>
-        <h1 className="text-xl font-bold text-ts-ink">
-          {mode === "login" ? "로그인" : "회원가입"}
-        </h1>
-        <p className="mt-1 text-sm text-ts-muted">{SP_STRINGS.brand} · {SP_STRINGS.syncInterval}</p>
+    <div className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
+      <div className="mb-6 text-center">
+        <p className="text-sm font-semibold text-ts-primary">{SP_STRINGS.brandEn}</p>
+        <h1 className="mt-1 text-2xl font-bold text-ts-ink">{SP_STRINGS.brand}</h1>
+        <p className="mt-2 text-sm text-ts-muted">{SP_STRINGS.tagline}</p>
+      </div>
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          {mode === "signup" && (
-            <>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-ts-muted">이름</label>
-                <input className="ts-input" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-ts-muted">상점명</label>
-                <input className="ts-input" value={shopName} onChange={(e) => setShopName(e.target.value)} />
-              </div>
-            </>
-          )}
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-ts-muted">이메일</label>
-            <input
-              type="email"
-              className="ts-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-ts-muted">비밀번호</label>
-            <input
-              type="password"
-              className="ts-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+      <div className="ts-card space-y-4">
+        <TossSellerConnect onDemo={() => void demoLogin()} />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="button"
+          onClick={() => setShowEmail((v) => !v)}
+          className="w-full text-center text-xs font-medium text-ts-muted hover:text-ts-ink"
+        >
+          {showEmail ? "이메일 로그인 접기" : "이메일로 로그인 / 회원가입"}
+        </button>
 
-          <button type="submit" disabled={loading} className="ts-btn-primary w-full">
-            {loading ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
-          </button>
-        </form>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          <button type="button" onClick={fillDemo} className="text-ts-primary font-semibold hover:underline">
-            {SP_STRINGS.ctaDemo}
-          </button>
-          <span className="text-ts-muted">·</span>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="text-ts-muted hover:text-ts-ink"
-          >
-            {mode === "login" ? "회원가입" : "로그인으로"}
-          </button>
-        </div>
+        {showEmail && (
+          <>
+            <div className="ts-divider" />
+            <form onSubmit={submit} className="space-y-3">
+              {mode === "signup" && (
+                <>
+                  <input className="ts-input" placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
+                  <input className="ts-input" placeholder="상점명" value={shopName} onChange={(e) => setShopName(e.target.value)} />
+                </>
+              )}
+              <input
+                type="email"
+                className="ts-input"
+                placeholder="이메일"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <input
+                type="password"
+                className="ts-input"
+                placeholder="비밀번호"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <button type="submit" disabled={loading} className="ts-btn-primary w-full">
+                {loading ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode(mode === "login" ? "signup" : "login")}
+                className="w-full text-xs text-ts-muted hover:text-ts-ink"
+              >
+                {mode === "login" ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

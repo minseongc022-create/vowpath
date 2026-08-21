@@ -2,7 +2,7 @@ export const SELLER_PULSE_BRAND = {
   name: "셀러펄스",
   nameEn: "Seller Pulse",
   fullName: "셀러펄스 — 토스쇼핑 셀러 실시간 대시보드",
-  tagline: "랭킹·가격·키워드·경쟁사·정산을 1분 단위로",
+  tagline: "랭킹·가격·키워드·경쟁사·정산을 한곳에서",
   domain: "sellerpulse",
 } as const;
 

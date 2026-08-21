@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
-import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
-import { SP_STRINGS } from "@/toss-shop/lib/strings";
+import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { SettlementRow } from "@/toss-shop/lib/types";
 
 type Summary = {
@@ -23,46 +22,53 @@ TS-20260816-002,2026-08-16,친환경 주방세제 2L,12900,1032,2500`;
 export function SettlementsPanel() {
   const [rows, setRows] = useState<SettlementRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [reconcileId, setReconcileId] = useState("");
   const [actualPayout, setActualPayout] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     const res = await fetch("/api/toss-shop/settlements");
     const data = (await res.json()) as { rows: SettlementRow[]; summary: Summary };
     setRows(data.rows ?? []);
     setSummary(data.summary ?? null);
-    setLoading(false);
   }, []);
 
-  useLivePoll(() => {
-    void load();
-  });
+  const { initialLoading } = useSilentFetch(fetchData);
 
   async function importCsv() {
-    await fetch("/api/toss-shop/settlements", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "import", csv: SAMPLE_CSV }),
-    });
-    void load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch("/api/toss-shop/settlements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "import", csv: SAMPLE_CSV }),
+      });
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function reconcile() {
-    if (!reconcileId || !actualPayout) return;
-    await fetch("/api/toss-shop/settlements", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "reconcile",
-        settlementId: reconcileId,
-        actualPayoutKrw: Number(actualPayout),
-      }),
-    });
-    setReconcileId("");
-    setActualPayout("");
-    void load();
+    if (!reconcileId || !actualPayout || busy) return;
+    setBusy(true);
+    try {
+      await fetch("/api/toss-shop/settlements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reconcile",
+          settlementId: reconcileId,
+          actualPayoutKrw: Number(actualPayout),
+        }),
+      });
+      setReconcileId("");
+      setActualPayout("");
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   const statusLabel = { pending: "대기", matched: "일치", discrepancy: "불일치" };
@@ -73,7 +79,7 @@ export function SettlementsPanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {summary && (
         <div className="ts-stat-grid">
           <div className="ts-stat">
@@ -98,18 +104,12 @@ export function SettlementsPanel() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={importCsv} className="ts-btn-secondary">
-          샘플 CSV 가져오기
-        </button>
-      </div>
-
       <section className="ts-card">
         <h2 className="text-sm font-bold">정산 대조</h2>
         <p className="mt-1 text-xs text-ts-muted">실제 입금액을 입력하면 예상 정산금과 자동 대조합니다.</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <select
-            className="ts-input !w-auto min-w-[200px]"
+            className="ts-input sm:min-w-[200px] sm:!w-auto"
             value={reconcileId}
             onChange={(e) => setReconcileId(e.target.value)}
           >
@@ -119,52 +119,75 @@ export function SettlementsPanel() {
             ))}
           </select>
           <input
-            className="ts-input !w-32"
+            className="ts-input sm:!w-36"
             placeholder="실제 입금액"
+            inputMode="numeric"
             value={actualPayout}
             onChange={(e) => setActualPayout(e.target.value)}
           />
-          <button type="button" onClick={reconcile} className="ts-btn-primary">
+          <button type="button" onClick={reconcile} disabled={busy} className="ts-btn-primary">
             대조하기
+          </button>
+          <button type="button" onClick={importCsv} disabled={busy} className="ts-btn-secondary">
+            샘플 CSV
           </button>
         </div>
       </section>
 
-      <section className="ts-card overflow-x-auto">
+      <section className="ts-card">
         <h2 className="text-sm font-bold">정산 내역</h2>
-        {loading ? (
-          <p className="mt-3 text-sm text-ts-muted">불러오는 중…</p>
+        {initialLoading ? (
+          <div className="mt-4 space-y-2">
+            {[1, 2, 3].map((i) => <div key={i} className="ts-skeleton h-12 w-full" />)}
+          </div>
         ) : (
-          <table className="ts-table mt-4">
-            <thead>
-              <tr>
-                <th>주문번호</th>
-                <th>상품</th>
-                <th>판매가</th>
-                <th>수수료</th>
-                <th>예상 정산</th>
-                <th>실제 입금</th>
-                <th>상태</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="mt-4 space-y-2 md:hidden">
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="font-mono text-xs">{r.orderId}</td>
-                  <td>{r.productName}</td>
-                  <td>{formatKrw(r.grossKrw)}</td>
-                  <td>{formatKrw(r.platformFeeKrw)}</td>
-                  <td className="font-semibold">{formatKrw(r.expectedPayoutKrw)}</td>
-                  <td>{r.actualPayoutKrw != null ? formatKrw(r.actualPayoutKrw) : "—"}</td>
-                  <td>
-                    <span className={`ts-badge ${statusColor[r.status]}`}>
-                      {statusLabel[r.status]}
-                    </span>
-                  </td>
-                </tr>
+                <div key={r.id} className="ts-product-row flex-col items-stretch !items-start">
+                  <div className="flex w-full items-start justify-between gap-2">
+                    <p className="font-mono text-xs text-ts-muted">{r.orderId}</p>
+                    <span className={`ts-badge ${statusColor[r.status]}`}>{statusLabel[r.status]}</span>
+                  </div>
+                  <p className="font-medium">{r.productName}</p>
+                  <div className="flex w-full justify-between text-sm">
+                    <span className="text-ts-muted">예상 {formatKrw(r.expectedPayoutKrw)}</span>
+                    <span>{r.actualPayoutKrw != null ? formatKrw(r.actualPayoutKrw) : "—"}</span>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <div className="ts-table-wrap mt-4 hidden md:block">
+              <table className="ts-table">
+                <thead>
+                  <tr>
+                    <th>주문번호</th>
+                    <th>상품</th>
+                    <th>판매가</th>
+                    <th>수수료</th>
+                    <th>예상 정산</th>
+                    <th>실제 입금</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="font-mono text-xs">{r.orderId}</td>
+                      <td>{r.productName}</td>
+                      <td>{formatKrw(r.grossKrw)}</td>
+                      <td>{formatKrw(r.platformFeeKrw)}</td>
+                      <td className="font-semibold">{formatKrw(r.expectedPayoutKrw)}</td>
+                      <td>{r.actualPayoutKrw != null ? formatKrw(r.actualPayoutKrw) : "—"}</td>
+                      <td>
+                        <span className={`ts-badge ${statusColor[r.status]}`}>{statusLabel[r.status]}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

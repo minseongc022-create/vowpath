@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
-import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
-import { SP_STRINGS } from "@/toss-shop/lib/strings";
+import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { CatalogProduct, Competitor, CompetitorAlert, CompetitorAlertRule } from "@/toss-shop/lib/types";
 
 type EnrichedCompetitor = Competitor & { products: CatalogProduct[] };
@@ -13,10 +12,9 @@ export function CompetitorsPanel() {
   const [alerts, setAlerts] = useState<CompetitorAlert[]>([]);
   const [rules, setRules] = useState<CompetitorAlertRule[]>([]);
   const [sellerName, setSellerName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     const res = await fetch("/api/toss-shop/competitors");
     const data = (await res.json()) as {
       competitors: EnrichedCompetitor[];
@@ -26,27 +24,35 @@ export function CompetitorsPanel() {
     setCompetitors(data.competitors ?? []);
     setAlerts(data.alerts ?? []);
     setRules(data.rules ?? []);
-    setLoading(false);
   }, []);
 
-  useLivePoll(() => {
-    void load();
-  });
+  const { initialLoading } = useSilentFetch(fetchData);
 
   async function addCompetitor() {
-    if (!sellerName.trim()) return;
-    await fetch("/api/toss-shop/competitors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add_competitor", sellerName: sellerName.trim() }),
-    });
-    setSellerName("");
-    void load();
+    if (!sellerName.trim() || busy) return;
+    setBusy(true);
+    try {
+      await fetch("/api/toss-shop/competitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add_competitor", sellerName: sellerName.trim() }),
+      });
+      setSellerName("");
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function removeCompetitor(id: string) {
-    await fetch(`/api/toss-shop/competitors?id=${id}`, { method: "DELETE" });
-    void load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/toss-shop/competitors?id=${id}`, { method: "DELETE" });
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function markRead(alertId: string) {
@@ -55,22 +61,22 @@ export function CompetitorsPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "mark_read", alertId }),
     });
-    void load();
+    await fetchData();
   }
 
   const unread = alerts.filter((a) => !a.read);
 
   return (
-    <div className="space-y-6">
-      <p className="text-xs text-ts-muted">{SP_STRINGS.syncInterval} · 탭이 열려 있으면 자동 새로고침</p>
-      <div className="flex gap-2">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input
-          className="ts-input"
+          className="ts-input min-w-0 flex-1"
           placeholder="경쟁 셀러명 (예: 과일나라)"
           value={sellerName}
           onChange={(e) => setSellerName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void addCompetitor()}
         />
-        <button type="button" onClick={addCompetitor} className="ts-btn-primary shrink-0">
+        <button type="button" onClick={addCompetitor} disabled={busy} className="ts-btn-primary shrink-0">
           경쟁사 추가
         </button>
       </div>
@@ -81,8 +87,8 @@ export function CompetitorsPanel() {
           <ul className="mt-2 space-y-2">
             {unread.map((a) => (
               <li key={a.id} className="flex items-start justify-between gap-2 text-sm">
-                <span>{a.message}</span>
-                <button type="button" onClick={() => markRead(a.id)} className="shrink-0 text-xs text-ts-primary">
+                <span className="min-w-0">{a.message}</span>
+                <button type="button" onClick={() => markRead(a.id)} className="shrink-0 text-xs font-semibold text-ts-primary">
                   확인
                 </button>
               </li>
@@ -91,18 +97,20 @@ export function CompetitorsPanel() {
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="ts-card">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="ts-card min-h-[240px]">
           <h2 className="text-sm font-bold">추적 경쟁사</h2>
-          {loading ? (
-            <p className="mt-3 text-sm text-ts-muted">불러오는 중…</p>
+          {initialLoading ? (
+            <div className="mt-4 space-y-2">
+              {[1, 2].map((i) => <div key={i} className="ts-skeleton h-16 w-full" />)}
+            </div>
           ) : competitors.length === 0 ? (
             <p className="mt-3 text-sm text-ts-muted">경쟁 셀러를 추가하세요.</p>
           ) : (
             <ul className="mt-3 space-y-3">
               {competitors.map((c) => (
                 <li key={c.id} className="rounded-xl bg-ts-bg p-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold">{c.sellerName}</p>
                     <button type="button" onClick={() => removeCompetitor(c.id)} className="text-xs text-red-500">
                       삭제
@@ -110,7 +118,7 @@ export function CompetitorsPanel() {
                   </div>
                   <ul className="mt-2 space-y-1 text-xs text-ts-muted">
                     {c.products.slice(0, 3).map((p) => (
-                      <li key={p.id}>{p.name} · {formatKrw(p.priceKrw)} · #{p.rank}</li>
+                      <li key={p.id} className="truncate">{p.name} · {formatKrw(p.priceKrw)} · #{p.rank}</li>
                     ))}
                     {c.products.length === 0 && <li>등록 상품 없음</li>}
                   </ul>
@@ -120,9 +128,9 @@ export function CompetitorsPanel() {
           )}
         </section>
 
-        <section className="ts-card">
+        <section className="ts-card min-h-[240px]">
           <h2 className="text-sm font-bold">알림 규칙 ({rules.length})</h2>
-          <p className="mt-1 text-xs text-ts-muted">가격·랭킹 변동 시 자동 알림 ({SP_STRINGS.syncInterval})</p>
+          <p className="mt-1 text-xs text-ts-muted">가격·랭킹 변동 시 자동 알림</p>
           <ul className="mt-3 space-y-2 text-sm">
             {rules.map((r) => {
               const comp = competitors.find((c) => c.id === r.competitorId);
@@ -137,22 +145,22 @@ export function CompetitorsPanel() {
                 <li key={r.id} className="rounded-lg bg-ts-bg px-3 py-2">
                   <span className="font-medium">{comp?.sellerName ?? r.competitorId}</span>
                   <span className="text-ts-muted"> · {metricLabel} {r.threshold ?? ""}%</span>
-                  <span className={r.enabled ? " text-emerald-600" : " text-ts-muted"}>
-                    {r.enabled ? " · 활성" : " · 비활성"}
-                  </span>
                 </li>
               );
             })}
+            {rules.length === 0 && !initialLoading && (
+              <li className="text-sm text-ts-muted">경쟁사를 추가하면 기본 규칙이 생성됩니다.</li>
+            )}
           </ul>
 
           <h3 className="mt-4 text-xs font-bold text-ts-muted">알림 이력</h3>
-          <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs">
+          <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto overscroll-contain text-xs">
             {alerts.slice(0, 20).map((a) => (
               <li key={a.id} className={a.read ? "text-ts-muted" : "font-medium text-ts-ink"}>
                 {a.message}
               </li>
             ))}
-            {alerts.length === 0 && <li className="text-ts-muted">아직 알림 없음</li>}
+            {alerts.length === 0 && !initialLoading && <li className="text-ts-muted">아직 알림 없음</li>}
           </ul>
         </section>
       </div>

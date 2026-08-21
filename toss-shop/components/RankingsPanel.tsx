@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { formatKrw, formatRankDelta, categoryLabel } from "@/toss-shop/lib/format";
-import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
-import { SP_STRINGS } from "@/toss-shop/lib/strings";
+import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { CatalogProduct, WatchlistItem } from "@/toss-shop/lib/types";
 
 type WatchlistEntry = WatchlistItem & { product?: CatalogProduct };
@@ -13,44 +12,50 @@ export function RankingsPanel() {
   const [watchlist, setWatchlist] = useState<WatchlistEntry[]>([]);
   const [category, setCategory] = useState("");
   const [productId, setProductId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     const qs = category ? `?category=${category}` : "";
     const res = await fetch(`/api/toss-shop/rankings${qs}`);
     const data = (await res.json()) as { rankings: CatalogProduct[]; watchlist: WatchlistEntry[] };
     setRankings(data.rankings ?? []);
     setWatchlist(data.watchlist ?? []);
-    setLoading(false);
   }, [category]);
 
-  useLivePoll(() => {
-    void load();
-  });
+  const { initialLoading, refreshing } = useSilentFetch(fetchData);
 
   async function addWatch() {
-    if (!productId.trim()) return;
-    await fetch("/api/toss-shop/rankings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: productId.trim(), alertPriceDropPct: 5 }),
-    });
-    setProductId("");
-    void load();
+    if (!productId.trim() || busy) return;
+    setBusy(true);
+    try {
+      await fetch("/api/toss-shop/rankings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: productId.trim(), alertPriceDropPct: 5 }),
+      });
+      setProductId("");
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function removeWatch(id: string) {
-    await fetch(`/api/toss-shop/rankings?id=${id}`, { method: "DELETE" });
-    void load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/toss-shop/rankings?id=${id}`, { method: "DELETE" });
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-xs text-ts-muted">{SP_STRINGS.syncInterval} · 탭이 열려 있으면 자동 새로고침</p>
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <select
-          className="ts-input !w-auto"
+          className="ts-input sm:!w-40"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
@@ -61,15 +66,21 @@ export function RankingsPanel() {
         </select>
         <div className="flex flex-1 gap-2">
           <input
-            className="ts-input"
+            className="ts-input min-w-0 flex-1"
             placeholder="상품 ID (예: p001)"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void addWatch()}
           />
-          <button type="button" onClick={addWatch} className="ts-btn-primary shrink-0">
-            추적 추가
+          <button type="button" onClick={addWatch} disabled={busy} className="ts-btn-primary shrink-0">
+            추적
           </button>
         </div>
+        {refreshing && (
+          <span className="hidden text-xs text-ts-muted sm:inline-flex sm:items-center sm:gap-1">
+            <span className="ts-refresh-dot ts-refresh-dot-pulse" aria-hidden />
+          </span>
+        )}
       </div>
 
       {watchlist.length > 0 && (
@@ -81,14 +92,14 @@ export function RankingsPanel() {
                 ? formatRankDelta(w.product.rank, w.product.rankPrev)
                 : { label: "—" };
               return (
-                <div key={w.id} className="flex items-center justify-between rounded-xl bg-ts-bg px-3 py-2">
-                  <div>
-                    <p className="text-sm font-semibold">{w.product?.name ?? w.productId}</p>
+                <div key={w.id} className="flex items-center justify-between gap-2 rounded-xl bg-ts-bg px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{w.product?.name ?? w.productId}</p>
                     <p className="text-xs text-ts-muted">
-                      {w.product ? formatKrw(w.product.priceKrw) : ""} · 랭킹 {w.product?.rank} {label}
+                      {w.product ? formatKrw(w.product.priceKrw) : ""} · #{w.product?.rank} {label}
                     </p>
                   </div>
-                  <button type="button" onClick={() => removeWatch(w.id)} className="text-xs text-red-500">
+                  <button type="button" onClick={() => removeWatch(w.id)} className="shrink-0 text-xs text-red-500">
                     삭제
                   </button>
                 </div>
@@ -98,45 +109,75 @@ export function RankingsPanel() {
         </section>
       )}
 
-      <section className="ts-card overflow-x-auto">
+      <section className="ts-card">
         <h2 className="text-sm font-bold text-ts-ink">베스트셀러 랭킹</h2>
-        {loading ? (
-          <p className="mt-4 text-sm text-ts-muted">불러오는 중…</p>
+
+        {initialLoading ? (
+          <div className="mt-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="ts-skeleton h-14 w-full" />
+            ))}
+          </div>
         ) : (
-          <table className="ts-table mt-4">
-            <thead>
-              <tr>
-                <th>순위</th>
-                <th>상품</th>
-                <th>카테고리</th>
-                <th>가격</th>
-                <th>리뷰</th>
-                <th>변동</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <div className="mt-4 space-y-2 sm:hidden">
               {rankings.map((p) => {
                 const { label, delta } = formatRankDelta(p.rank, p.rankPrev);
                 return (
-                  <tr key={p.id}>
-                    <td className="font-bold">{p.rank}</td>
-                    <td>
-                      <p className="font-medium">{p.name}</p>
-                      <p className="text-xs text-ts-muted">{p.sellerName} · {p.id}</p>
-                    </td>
-                    <td>{categoryLabel(p.category)}</td>
-                    <td>{formatKrw(p.priceKrw)}</td>
-                    <td>{p.reviewCount.toLocaleString()}</td>
-                    <td>
+                  <div key={p.id} className="ts-product-row">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-ts-primary">#{p.rank}</p>
+                      <p className="truncate font-medium">{p.name}</p>
+                      <p className="text-xs text-ts-muted">{p.sellerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{formatKrw(p.priceKrw)}</p>
                       <span className={delta > 0 ? "ts-badge-up" : delta < 0 ? "ts-badge-down" : "ts-badge-neutral"}>
                         {label}
                       </span>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="ts-table-wrap mt-4 hidden sm:block">
+              <table className="ts-table">
+                <thead>
+                  <tr>
+                    <th>순위</th>
+                    <th>상품</th>
+                    <th>카테고리</th>
+                    <th>가격</th>
+                    <th>리뷰</th>
+                    <th>변동</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankings.map((p) => {
+                    const { label, delta } = formatRankDelta(p.rank, p.rankPrev);
+                    return (
+                      <tr key={p.id}>
+                        <td className="font-bold">{p.rank}</td>
+                        <td>
+                          <p className="font-medium">{p.name}</p>
+                          <p className="text-xs text-ts-muted">{p.sellerName} · {p.id}</p>
+                        </td>
+                        <td>{categoryLabel(p.category)}</td>
+                        <td>{formatKrw(p.priceKrw)}</td>
+                        <td>{p.reviewCount.toLocaleString()}</td>
+                        <td>
+                          <span className={delta > 0 ? "ts-badge-up" : delta < 0 ? "ts-badge-down" : "ts-badge-neutral"}>
+                            {label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

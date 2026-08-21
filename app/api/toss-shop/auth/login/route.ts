@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
-import { authenticateAccount, createAccount } from "@/toss-shop/lib/store";
+import { authenticateAccount, createAccount, getMerchant, syncMerchantNow } from "@/toss-shop/lib/store";
+import { isApiConfigured } from "@/toss-shop/lib/api/sync-merchant";
 import {
   createTossShopSessionToken,
   tossShopSessionCookieOptions,
@@ -50,6 +51,11 @@ export async function POST(request: Request) {
       name: account.name,
       merchantId: account.merchantId,
     });
+
+    const merchant = await getMerchant(account.merchantId);
+    if (merchant && isApiConfigured(merchant)) {
+      void syncMerchantNow(account.merchantId);
+    }
 
     const res = NextResponse.json({
       ok: true,

@@ -175,6 +175,69 @@ export async function createAccount(input: {
   return account;
 }
 
+/** Login or sign up using Toss Shopping API keys (Client Credentials — no OAuth redirect). */
+export async function connectTossSeller(input: {
+  accessKey: string;
+  secretKey: string;
+  sandbox?: boolean;
+  shopName?: string;
+  name?: string;
+}): Promise<TossShopAccount> {
+  const accessKey = input.accessKey.trim();
+  const secretKey = input.secretKey.trim();
+  if (!accessKey || !secretKey) throw new Error("KEYS_REQUIRED");
+
+  const store = await loadStore();
+  let merchant = store.merchants.find((m) => m.apiAccessKey === accessKey);
+  let account = merchant
+    ? store.accounts.find((a) => a.merchantId === merchant!.id) ?? null
+    : null;
+
+  if (merchant && account) {
+    merchant.apiSecretKey = secretKey;
+    merchant.apiSandbox = input.sandbox ?? false;
+    merchant.dataSource = "live";
+    await saveStore(store);
+    return account;
+  }
+
+  const shopName = input.shopName?.trim() || "내 토스쇼핑 상점";
+  const name = input.name?.trim() || "셀러";
+  const email = `seller_${accessKey.slice(-8).toLowerCase()}@connect.sellerpulse.local`;
+  const password = randomBytes(12).toString("base64url");
+
+  if (store.accounts.some((a) => a.email === email)) {
+    throw new Error("EMAIL_TAKEN");
+  }
+
+  const merchantId = newId("merch");
+  merchant = {
+    id: merchantId,
+    shopName,
+    category: "food",
+    createdAt: new Date().toISOString(),
+    apiAccessKey: accessKey,
+    apiSecretKey: secretKey,
+    apiSandbox: input.sandbox ?? false,
+    dataSource: "live",
+  };
+  account = {
+    id: newId("acc"),
+    email,
+    passwordHash: await hashPassword(password),
+    name,
+    merchantId,
+    createdAt: new Date().toISOString(),
+    plan: "trial",
+    trialEndsAt: defaultTrialEndsAt(),
+  };
+  store.merchants.push(merchant);
+  store.accounts.push(account);
+  store.merchantData[merchantId] = defaultMerchantData();
+  await saveStore(store);
+  return account;
+}
+
 export async function getMerchant(merchantId: string): Promise<TossShopMerchant | null> {
   const store = await loadStore();
   return store.merchants.find((m) => m.id === merchantId) ?? null;
