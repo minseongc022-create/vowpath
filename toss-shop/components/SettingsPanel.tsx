@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { dataSourceLabel, FREE_DAILY_KEYWORD_LIMIT, PRO_PRICE_KRW } from "@/toss-shop/lib/billing";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { TOSS_SELLER_CENTER_URL } from "@/toss-shop/lib/toss-connect";
