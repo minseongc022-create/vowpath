@@ -195,6 +195,26 @@ export async function middleware(request: NextRequest) {
     return giuShellResponse(request);
   }
 
+  // 셀러펄스 (Seller Pulse) — Toss Shopping seller tools.
+  if (pathname.startsWith("/sellerpulse")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "toss-shop");
+    requestHeaders.set("x-pathname", pathname);
+    const internal = pathname.replace(/^\/sellerpulse/, "/toss-shop");
+    if (internal !== pathname) {
+      const url = request.nextUrl.clone();
+      url.pathname = internal;
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    }
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  if (pathname.startsWith("/toss-shop")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/toss-shop/, "/sellerpulse");
+    return NextResponse.redirect(url, 308);
+  }
+
   if (isDecommissionedHost(hostname)) {
     if (pathname === "/robots.txt") {
       return new NextResponse("User-agent: *\nDisallow: /\n", {

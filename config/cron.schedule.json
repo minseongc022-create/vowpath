@@ -26,6 +26,19 @@
         "Mark paid pickup holds as het_han after expiry"
       ],
       "note": "Giu (giucuu.com) food rescue — configure at cron-job.org alongside tech-dispatch."
+    },
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/toss-shop-sync",
+      "intervalSeconds": 60,
+      "authHeader": "Authorization: Bearer $CRON_SECRET",
+      "requiredInProduction": false,
+      "does": [
+        "Seller Pulse: sync Toss Shopping API data every minute when keys configured",
+        "Snapshot catalog prices/ranks and keyword metrics (1-minute buckets, 24h retention)",
+        "Fire competitor price/rank alert rules"
+      ],
+      "note": "셀러펄스(Seller Pulse) — configure at cron-job.org every 60s alongside tech-dispatch."
     }
   ],
   "vercelCrons": [
@@ -36,7 +49,8 @@
     { "path": "/api/cron/revenue-sync", "schedule": "0 11 * * *", "utcHour": 11 },
     { "path": "/api/cron/daily-summary", "schedule": "0 14 * * *", "utcHour": 14 },
     { "path": "/api/cron/beta-cohort-price-step", "schedule": "0 10 * * *", "utcHour": 10 },
-    { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 }
+    { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 },
+    { "path": "/api/cron/toss-shop-sync", "schedule": "0 6 * * *", "utcHour": 6, "note": "Daily backup; production real-time sync is external 60s cron above" }
   ],
   "manualOrPostbuildCrons": [
     {
@@ -46,6 +60,10 @@
     {
       "path": "/api/cron/giu-reservation-expiry",
       "note": "Giu unpaid reservation expiry — use external 60s cron (see externalCrons); daily backup optional"
+    },
+    {
+      "path": "/api/cron/toss-shop-sync",
+      "note": "Seller Pulse (셀러펄스) — use external 60s cron (see externalCrons); daily backup optional"
     },
     {
       "path": "/api/cron/retell-production-sync",
@@ -60,6 +78,7 @@
     { "name": "Dashboard data", "intervalSeconds": 60, "file": "lib/hooks/use-dashboard-data.ts", "when": "Tab visible" },
     { "name": "Ops failures panel", "intervalSeconds": 15, "file": "components/settings/OpsFailuresPanel.tsx", "when": "Settings page, tab visible" },
     { "name": "Forwarding verify test", "intervalSeconds": 3, "file": "components/settings/ForwardingTestPanel.tsx", "when": "During active test only" },
-    { "name": "Relative time labels", "intervalSeconds": 30, "file": "lib/hooks/use-relative-now.ts", "when": "While subscribed" }
+    { "name": "Relative time labels", "intervalSeconds": 30, "file": "lib/hooks/use-relative-now.ts", "when": "While subscribed" },
+    { "name": "Seller Pulse dashboards", "intervalSeconds": 60, "file": "toss-shop/lib/hooks/use-live-poll.ts", "when": "Dashboard tab visible" }
   ]
 }
