@@ -89,9 +89,10 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
 
       {isDashboard && <DashboardMobileNav />}
 
-      <footer className="border-t border-ts-border bg-white py-5">
-        <div className="mx-auto max-w-6xl px-4 text-center text-xs text-ts-muted">
+      <footer className="border-t border-ts-border bg-ts-surface py-6">
+        <div className="mx-auto max-w-6xl space-y-2 px-4 text-center text-[11px] leading-relaxed text-ts-muted">
           <p>{SP_STRINGS.footer}</p>
+          <p>{SP_STRINGS.legalShort}</p>
         </div>
       </footer>
     </div>

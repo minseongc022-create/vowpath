@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LegalDisclaimer } from "@/toss-shop/components/LegalDisclaimer";
+import { TossSellerConnect } from "@/toss-shop/components/TossSellerConnect";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
-import { TossSellerConnect } from "@/toss-shop/components/TossSellerConnect";
 
 export function LoginForm() {
   const router = useRouter();
@@ -42,9 +43,6 @@ export function LoginForm() {
   }
 
   async function demoLogin() {
-    setEmail(SP_STRINGS.demoEmail);
-    setPassword(SP_STRINGS.demoPassword);
-    setMode("login");
     setError("");
     setLoading(true);
     try {
@@ -72,20 +70,22 @@ export function LoginForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-8 sm:py-12">
+    <div className="mx-auto w-full max-w-md px-4 py-8 sm:py-10">
       <div className="mb-6 text-center">
-        <p className="text-sm font-semibold text-ts-primary">{SP_STRINGS.brandEn}</p>
-        <h1 className="mt-1 text-2xl font-bold text-ts-ink">{SP_STRINGS.brand}</h1>
-        <p className="mt-2 text-sm text-ts-muted">{SP_STRINGS.tagline}</p>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-ts-primary text-lg font-bold text-white">
+          E
+        </div>
+        <h1 className="mt-4 text-2xl font-bold text-ts-ink">{SP_STRINGS.brand}</h1>
+        <p className="mt-1 text-sm text-ts-muted">{SP_STRINGS.tagline}</p>
       </div>
 
-      <div className="ts-card space-y-4">
+      <div className="ts-card space-y-5">
         <TossSellerConnect onDemo={() => void demoLogin()} />
 
         <button
           type="button"
           onClick={() => setShowEmail((v) => !v)}
-          className="w-full text-center text-xs font-medium text-ts-muted hover:text-ts-ink"
+          className="w-full cursor-pointer touch-manipulation py-1 text-center text-sm font-medium text-ts-muted hover:text-ts-ink"
         >
           {showEmail ? "이메일 로그인 접기" : "이메일로 로그인 / 회원가입"}
         </button>
@@ -117,19 +117,23 @@ export function LoginForm() {
                 required
               />
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <button type="submit" disabled={loading} className="ts-btn-primary w-full">
+              <button type="submit" disabled={loading} className="ts-btn-primary">
                 {loading ? "처리 중…" : mode === "login" ? "로그인" : "가입하기"}
               </button>
               <button
                 type="button"
                 onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                className="w-full text-xs text-ts-muted hover:text-ts-ink"
+                className="w-full cursor-pointer py-1 text-sm text-ts-muted hover:text-ts-ink"
               >
                 {mode === "login" ? "계정이 없으신가요? 회원가입" : "이미 계정이 있으신가요? 로그인"}
               </button>
             </form>
           </>
         )}
+      </div>
+
+      <div className="mt-4">
+        <LegalDisclaimer />
       </div>
     </div>
   );
