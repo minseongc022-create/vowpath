@@ -119,6 +119,13 @@ export function isSeedProductId(id: string): boolean {
   return /^p\d{3}$/.test(id);
 }
 
+export function inferDataQuality(catalog: { id: string }[]): "live" | "mixed" | "demo" {
+  const live = catalog.filter((p) => !/^p\d{3}$/.test(p.id)).length;
+  if (live >= catalog.length * 0.5) return "live";
+  if (live > 0) return "mixed";
+  return "demo";
+}
+
 export function inferCategoryFromKeyword(keyword: string): TossShopCategory | null {
   const food = ["토마토", "사과", "한우", "쌀", "만두", "요거트", "견과", "샐러드", "차", "tea"];
   const beauty = ["크림", "선크림", "립", "세럼", "마스크", "향수", "네일", "헤어"];

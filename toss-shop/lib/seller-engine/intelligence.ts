@@ -1,0 +1,339 @@
+import { analyzeKeyword } from "../catalog";
+import { getDiscoveryKeywords, type DiscoveryKeyword } from "../discovery";
+import { getMarketMetrics } from "../market-collector";
+import { inferDataQuality } from "../market-collector";
+import type {
+  CatalogProduct,
+  CompetitorPriceRef,
+  MarketKeywordMetrics,
+  TossShopCategory,
+} from "../types";
+import {
+  autoMatchPrice,
+  competitorsForProduct,
+  estimatePlatformFees,
+  estimateSupplierCost,
+  marginPct,
+  priceStatistics,
+} from "./pricing";
+
+export type AnalysisSignal = {
+  label: string;
+  impact: "positive" | "neutral" | "negative";
+  detail: string;
+  weight: number;
+};
+
+export type PricingBreakdown = {
+  supplierCostKrw: number;
+  platformFeesKrw: number;
+  netProfitKrw: number;
+  marginPct: number;
+  strategy: string;
+  priceFloorKrw: number;
+  priceCeilingKrw: number;
+  competitorLowKrw: number;
+  competitorMedianKrw: number;
+  competitorHighKrw: number;
+  undercutKrw: number;
+};
+
+export type CompetitorInsight = CompetitorPriceRef & {
+  reviewCount?: number;
+  rating?: number;
+  priceGapPct: number;
+  threat: "low" | "medium" | "high";
+};
+
+export type KeywordIntel = {
+  keyword: string;
+  category: TossShopCategory;
+  searchVolume: number;
+  competitionIntensity: number;
+  productCount: number;
+  avgPriceKrw: number;
+  trendPct: number;
+  grade: DiscoveryKeyword["competitionGrade"];
+  difficulty: "easy" | "medium" | "hard";
+};
+
+export type MarketContext = {
+  catalogSize: number;
+  marketKeywordCount: number;
+  dataQuality: "live" | "mixed" | "demo";
+  analyzedAt: string;
+};
+
+export function buildKeywordIntel(
+  keyword: string,
+  catalog: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+): KeywordIntel {
+  const discovery = getDiscoveryKeywords().find((k) => k.keyword === keyword);
+  const market = getMarketMetrics(keyword, marketKeywords);
+  const analysis = analyzeKeyword(keyword, undefined, catalog, marketKeywords);
+
+  return {
+    keyword,
+    category: (discovery?.category ?? "food") as TossShopCategory,
+    searchVolume: market?.searchVolume ?? discovery?.searchVolume ?? analysis.searchVolume,
+    competitionIntensity:
+      market?.competitionIntensity ?? discovery?.competitionIntensity ?? analysis.competitionIntensity,
+    productCount: market?.productCount ?? discovery?.productCount ?? analysis.competingProducts,
+    avgPriceKrw: market?.avgPriceKrw ?? discovery?.avgPriceKrw ?? analysis.avgPriceKrw,
+    trendPct: discovery?.trendPct ?? 0,
+    grade: discovery?.competitionGrade ?? analysis.competitionGrade,
+    difficulty: analysis.difficulty,
+  };
+}
+
+export function enrichCompetitors(
+  product: CatalogProduct,
+  catalog: CatalogProduct[],
+  targetPrice: number,
+): CompetitorInsight[] {
+  const refs = competitorsForProduct(product, catalog);
+  const full = refs.map((ref) => {
+    const p = catalog.find((c) => c.sellerName === ref.sellerName && c.priceKrw === ref.priceKrw);
+    const priceGapPct = Math.round(((ref.priceKrw - targetPrice) / Math.max(targetPrice, 1)) * 1000) / 10;
+    let threat: CompetitorInsight["threat"] = "medium";
+    if (ref.rank <= 3 && ref.priceKrw <= targetPrice) threat = "high";
+    else if (ref.rank > 8 || ref.priceKrw > targetPrice * 1.15) threat = "low";
+    return {
+      ...ref,
+      reviewCount: p?.reviewCount,
+      rating: p?.rating,
+      priceGapPct,
+      threat,
+    };
+  });
+  return full.sort((a, b) => a.priceKrw - b.priceKrw);
+}
+
+export function buildPricingBreakdown(
+  supplierCostKrw: number,
+  competitors: CompetitorPriceRef[],
+  minMarginPct = 12,
+): PricingBreakdown {
+  const stats = priceStatistics(competitors.map((c) => c.priceKrw));
+  const { priceKrw, strategy } = autoMatchPrice(supplierCostKrw, competitors, minMarginPct);
+  const fees = estimatePlatformFees(priceKrw);
+  const netProfitKrw = priceKrw - supplierCostKrw - fees;
+  const priceFloorKrw = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
+  const priceCeilingKrw = stats.high > 0 ? Math.round(stats.high * 0.95) : Math.round(priceKrw * 1.2);
+
+  return {
+    supplierCostKrw,
+    platformFeesKrw: fees,
+    netProfitKrw,
+    marginPct: marginPct(supplierCostKrw, priceKrw),
+    strategy,
+    priceFloorKrw,
+    priceCeilingKrw,
+    competitorLowKrw: stats.low,
+    competitorMedianKrw: stats.median,
+    competitorHighKrw: stats.high,
+    undercutKrw: priceKrw,
+  };
+}
+
+export function scoreOpportunity(input: {
+  keyword: KeywordIntel;
+  marginPct: number;
+  product: CatalogProduct;
+  competitorCount: number;
+  winPriceGap: number;
+}): { score: number; signals: AnalysisSignal[] } {
+  const signals: AnalysisSignal[] = [];
+  let score = 0;
+
+  const demand = Math.min(input.keyword.searchVolume / 8000, 1) * 28;
+  score += demand;
+  signals.push({
+    label: "수요",
+    impact: demand > 18 ? "positive" : demand > 10 ? "neutral" : "negative",
+    detail: `월 검색 ${input.keyword.searchVolume.toLocaleString()} · 추세 ${input.keyword.trendPct >= 0 ? "+" : ""}${input.keyword.trendPct}%`,
+    weight: demand,
+  });
+
+  const comp = Math.max(0, (2.2 - input.keyword.competitionIntensity) * 14);
+  score += comp;
+  signals.push({
+    label: "경쟁",
+    impact: input.keyword.competitionIntensity < 1 ? "positive" : input.keyword.competitionIntensity > 2 ? "negative" : "neutral",
+    detail: `경쟁강도 ${input.keyword.competitionIntensity} · 상품 ${input.keyword.productCount}개`,
+    weight: comp,
+  });
+
+  const margin = Math.min(Math.max(input.marginPct, 0) / 25, 1) * 22;
+  score += margin;
+  signals.push({
+    label: "마진",
+    impact: input.marginPct >= 15 ? "positive" : input.marginPct >= 8 ? "neutral" : "negative",
+    detail: `순마진 ${input.marginPct}% (플랫폼·결제 수수료 반영)`,
+    weight: margin,
+  });
+
+  const review = Math.min(input.product.reviewCount / 2500, 1) * 12;
+  score += review;
+  signals.push({
+    label: "리뷰·신뢰",
+    impact: review > 8 ? "positive" : "neutral",
+    detail: `카테고리 벤치마크 리뷰 ${input.product.reviewCount.toLocaleString()} · 평점 ${input.product.rating}`,
+    weight: review,
+  });
+
+  const priceWin = input.winPriceGap >= 0 ? 14 : input.winPriceGap > -500 ? 8 : 2;
+  score += priceWin;
+  signals.push({
+    label: "가격 우위",
+    impact: input.winPriceGap >= 0 ? "positive" : "negative",
+    detail:
+      input.winPriceGap >= 0
+        ? `추천가가 최저 경쟁가 대비 ${input.winPriceGap.toLocaleString()}원 유리`
+        : `최저가 대비 ${Math.abs(input.winPriceGap).toLocaleString()}원 높음 — 차별화 필요`,
+    weight: priceWin,
+  });
+
+  const rank = Math.max(0, (12 - input.product.rank) / 12) * 8;
+  score += rank;
+  signals.push({
+    label: "노출 잠재",
+    impact: rank > 5 ? "positive" : "neutral",
+    detail: `유사 상품 랭킹 참고 #${input.product.rank}`,
+    weight: rank,
+  });
+
+  const trendBonus = input.keyword.trendPct > 8 ? 6 : input.keyword.trendPct < -8 ? -4 : 0;
+  score += trendBonus;
+  if (trendBonus !== 0) {
+    signals.push({
+      label: "키워드 추세",
+      impact: trendBonus > 0 ? "positive" : "negative",
+      detail: `최근 검색 추세 ${input.keyword.trendPct > 0 ? "상승" : "하락"} (${input.keyword.trendPct}%)`,
+      weight: Math.abs(trendBonus),
+    });
+  }
+
+  return { score: Math.min(99, Math.round(score)), signals };
+}
+
+export function buildActionSteps(mode: "consignment" | "import", input: {
+  keyword: string;
+  productName: string;
+  priceKrw: number;
+  supplierLabel: string;
+  supplierCost: number;
+}): string[] {
+  if (mode === "consignment") {
+    return [
+      `「${input.keyword}」 키워드로 토스쇼핑 상품명·검색어 등록`,
+      `위탁 공급처 확보 (목표 공급가 ${input.supplierCost.toLocaleString()}원 이하)`,
+      `판매가 ${input.priceKrw.toLocaleString()}원 설정 · 경쟁가 대비 -100원 내외 유지`,
+      `썸네일·상세: 상위 3개 경쟁 상품 대비 차별 포인트 2개 이상`,
+      `출고 3일 이내 · 리뷰 10개 목표 (첫 2주 프로모션)`,
+    ];
+  }
+  return [
+    `${input.supplierLabel} 소싱 견적 (FOB $${(input.supplierCost / 1380).toFixed(2)} 목표)`,
+    `통관·관세·국제배송 랜딩비 확정 후 마진 재계산`,
+    `「${input.keyword}」 국내 키워드 SEO · ${input.productName} 등록`,
+    `판매가 ${input.priceKrw.toLocaleString()}원 · 국내 중위가 -2% 전략`,
+    `KC/인증 필요 카테고리면 사전 확인 후 입고`,
+  ];
+}
+
+export function assessRisks(input: {
+  marginPct: number;
+  competitionIntensity: number;
+  dataQuality: MarketContext["dataQuality"];
+  highThreatCompetitors: number;
+}): string[] {
+  const risks: string[] = [];
+  if (input.dataQuality === "demo") {
+    risks.push("데모 데이터 기반 — 입점 후 API 연동 시 추천가·경쟁사가 변경될 수 있음");
+  } else if (input.dataQuality === "mixed") {
+    risks.push("일부 실데이터·일부 시뮬레이션 혼합 — 입점 후 정밀도 상승");
+  }
+  if (input.marginPct < 10) risks.push("마진 10% 미만 — 프로모션·반품 시 적자 가능");
+  if (input.competitionIntensity > 1.8) risks.push("경쟁 과열 구간 — 광고비 없이 상위 노출 어려움");
+  if (input.highThreatCompetitors >= 2) risks.push("저가·고랭킹 경쟁사 2곳 이상 — 가격 전쟁 주의");
+  if (risks.length === 0) risks.push("현재 데이터 기준 특이 리스크 낮음 — 입점 후 1주 재분석 권장");
+  return risks;
+}
+
+export function rankKeywordsForSourcing(
+  catalog: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+  limit = 40,
+): KeywordIntel[] {
+  const seen = new Set<string>();
+  const list: KeywordIntel[] = [];
+
+  for (const d of getDiscoveryKeywords()) {
+    if (seen.has(d.keyword)) continue;
+    seen.add(d.keyword);
+    list.push(buildKeywordIntel(d.keyword, catalog, marketKeywords));
+  }
+
+  for (const p of catalog) {
+    const words = p.name.split(/\s+/).filter((w) => w.length >= 2);
+    for (const w of words.slice(0, 2)) {
+      if (seen.has(w)) continue;
+      seen.add(w);
+      list.push(buildKeywordIntel(w, catalog, marketKeywords));
+    }
+  }
+
+  return list
+    .sort((a, b) => {
+      const scoreA = a.searchVolume / Math.max(a.competitionIntensity, 0.3);
+      const scoreB = b.searchVolume / Math.max(b.competitionIntensity, 0.3);
+      return scoreB - scoreA;
+    })
+    .slice(0, limit);
+}
+
+export function pickBestProductForKeyword(
+  keyword: string,
+  category: TossShopCategory,
+  catalog: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+): CatalogProduct | null {
+  const intel = buildKeywordIntel(keyword, catalog, marketKeywords);
+  const candidates = catalog
+    .filter(
+      (p) =>
+        p.category === category ||
+        p.name.toLowerCase().includes(keyword.toLowerCase()) ||
+        keyword.toLowerCase().split(/\s+/).some((part) => p.name.toLowerCase().includes(part)),
+    )
+    .map((p) => {
+      const competitors = competitorsForProduct(p, catalog);
+      const supplier = estimateSupplierCost(p.priceKrw, p.category);
+      const pricing = buildPricingBreakdown(supplier, competitors);
+      const { score } = scoreOpportunity({
+        keyword: intel,
+        marginPct: pricing.marginPct,
+        product: p,
+        competitorCount: competitors.length,
+        winPriceGap: pricing.competitorLowKrw - pricing.undercutKrw,
+      });
+      return { product: p, score, pricing };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0]?.product ?? null;
+}
+
+export function marketContext(
+  catalog: CatalogProduct[],
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+): MarketContext {
+  return {
+    catalogSize: catalog.length,
+    marketKeywordCount: marketKeywords ? Object.keys(marketKeywords).length : 0,
+    dataQuality: inferDataQuality(catalog),
+    analyzedAt: new Date().toISOString(),
+  };
+}

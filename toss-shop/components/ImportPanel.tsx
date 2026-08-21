@@ -5,9 +5,16 @@ import { formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { ImportPick } from "@/toss-shop/lib/types";
 import { UpgradeBanner } from "@/toss-shop/components/UpgradeBanner";
+import { SourcingAnalysisCard } from "@/toss-shop/components/SourcingAnalysisCard";
+
+type Meta = {
+  dataQuality?: string;
+  catalogSize?: number;
+};
 
 export function ImportPanel() {
   const [picks, setPicks] = useState<ImportPick[]>([]);
+  const [meta, setMeta] = useState<Meta>({});
   const [blocked, setBlocked] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -16,8 +23,13 @@ export function ImportPanel() {
       setBlocked(true);
       return;
     }
-    const data = (await res.json()) as { picks: ImportPick[] };
+    const data = (await res.json()) as {
+      picks: ImportPick[];
+      dataQuality?: string;
+      catalogSize?: number;
+    };
     setPicks(data.picks ?? []);
+    setMeta({ dataQuality: data.dataQuality, catalogSize: data.catalogSize });
     setBlocked(false);
   }, []);
 
@@ -28,15 +40,20 @@ export function ImportPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
-        <p className="font-bold">오늘의 수입판매 추천</p>
+        <p className="font-bold">AI 수입 소싱 · 오늘 5선</p>
         <p className="mt-1 text-emerald-800/80">
-          해외 소싱가 · 관세·배송 랜딩비 · 국내 시장가 대비 수익 분석
+          해외 소싱가 · 관세·배송 · 국내 경쟁가 · 마진 · 실행 플랜까지 AI가 한 번에 분석
         </p>
+        {meta.catalogSize != null && (
+          <p className="mt-2 text-xs text-emerald-800/70">
+            {meta.catalogSize}개 시장 상품 기준 · {meta.dataQuality === "live" ? "실데이터" : "학습 데이터"}
+          </p>
+        )}
       </div>
 
       {initialLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="ts-skeleton h-32 w-full rounded-2xl" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="ts-skeleton h-40 w-full rounded-2xl" />)}
         </div>
       ) : (
         <div className="space-y-3">
@@ -44,10 +61,12 @@ export function ImportPanel() {
             <article key={p.id} className="ts-card">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-xs font-bold text-ts-primary">#{i + 1} · {p.sourceCountry} · {p.keyword}</p>
+                  <p className="text-xs font-bold text-ts-primary">
+                    #{i + 1} · {p.sourceCountry} · {p.keyword}
+                  </p>
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
-                <span className="ts-grade-badge ts-grade-excellent">{p.confidenceScore}점</span>
+                <span className="ts-grade-badge ts-grade-excellent">{p.winScore ?? p.confidenceScore}점</span>
               </div>
 
               <div className="ts-metric-grid mt-4">
@@ -60,7 +79,7 @@ export function ImportPanel() {
                   <p className="ts-metric-value text-base">{formatKrw(p.landedCostKrw)}</p>
                 </div>
                 <div className="ts-metric-cell">
-                  <p className="ts-metric-label">추천 판매가</p>
+                  <p className="ts-metric-label">AI 판매가</p>
                   <p className="ts-metric-value text-base">{formatKrw(p.recommendedPriceKrw)}</p>
                 </div>
                 <div className="ts-metric-cell">
@@ -70,9 +89,38 @@ export function ImportPanel() {
               </div>
 
               <p className="mt-3 text-xs text-ts-muted">
-                국내 평균 {formatKrw(p.marketAvgPriceKrw)} · 마진 {p.estimatedMarginPct}% · 월 {p.estimatedMonthlyUnits}개 예상
+                국내 평균 {formatKrw(p.marketAvgPriceKrw)} · 마진 {p.estimatedMarginPct}% · 월{" "}
+                {p.estimatedMonthlyUnits}개
               </p>
               <p className="mt-1 text-xs text-ts-muted">{p.reason}</p>
+
+              <SourcingAnalysisCard
+                winScore={p.winScore}
+                suggestedTitle={p.suggestedTitle}
+                pricing={p.pricing}
+                signals={p.signals}
+                actionSteps={p.actionSteps}
+                risks={p.risks}
+                competitors={p.competitorInsights}
+                extra={
+                  p.landedBreakdown ? (
+                    <div className="grid gap-2 sm:grid-cols-3 text-xs">
+                      <div className="ts-mini-stat">
+                        <p className="text-ts-muted">상품 원가</p>
+                        <p className="font-bold">{formatKrw(p.landedBreakdown.productKrw)}</p>
+                      </div>
+                      <div className="ts-mini-stat">
+                        <p className="text-ts-muted">국제배송</p>
+                        <p className="font-bold">{formatKrw(p.landedBreakdown.shippingKrw)}</p>
+                      </div>
+                      <div className="ts-mini-stat">
+                        <p className="text-ts-muted">관세</p>
+                        <p className="font-bold">{formatKrw(p.landedBreakdown.dutyKrw)}</p>
+                      </div>
+                    </div>
+                  ) : null
+                }
+              />
             </article>
           ))}
         </div>
