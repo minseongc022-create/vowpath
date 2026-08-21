@@ -1,5 +1,4 @@
 import type { CatalogProduct, MarketKeywordMetrics, TossShopCategory } from "../types";
-import { getDiscoveryKeywords } from "../discovery";
 
 function hashString(s: string): number {
   let h = 0;
@@ -62,10 +61,6 @@ export function collectMarketIntelligence(catalog: CatalogProduct[]): {
     for (const cat of [product.category]) {
       keywordSet.add(cat);
     }
-  }
-
-  for (const d of getDiscoveryKeywords()) {
-    keywordSet.add(d.keyword);
   }
 
   const marketKeywords: Record<string, MarketKeywordMetrics> = {};

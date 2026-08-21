@@ -26,6 +26,7 @@ import { generateImportPicks } from "./seller-engine/import-sales";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
 import { collectMarketIntelligence } from "./market-collector";
+import { getDiscoveryKeywords } from "./discovery";
 import type {
   CatalogProduct,
   Competitor,
@@ -737,6 +738,18 @@ export async function syncAllMerchants(): Promise<{
   }
 
   const market = collectMarketIntelligence(store.catalog);
+  for (const d of getDiscoveryKeywords()) {
+    if (!market.marketKeywords[d.keyword]) {
+      market.marketKeywords[d.keyword] = {
+        keyword: d.keyword,
+        searchVolume: d.searchVolume,
+        productCount: d.productCount,
+        avgPriceKrw: d.avgPriceKrw,
+        competitionIntensity: d.competitionIntensity,
+        updatedAt: market.collectedAt,
+      };
+    }
+  }
   store.marketKeywords = market.marketKeywords;
   store.marketCollectedAt = market.collectedAt;
   store.marketProductCount = market.productCount;

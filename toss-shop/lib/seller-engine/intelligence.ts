@@ -150,6 +150,9 @@ export function buildAiSummary(input: {
   pricing: PricingBreakdown;
   landscape: CompetitorLandscape;
   dataQuality: MarketContext["dataQuality"];
+  monthlyProfitKrw?: number;
+  profitScore?: number;
+  recommendedScenario?: string;
 }): string {
   const { intel, pricing, landscape, winScore } = input;
   const demandLabel =
@@ -194,18 +197,25 @@ export function buildAiSummary(input: {
         : "데모 학습 데이터 기반(입점 후 정밀도 상승)";
 
   const verdict =
-    winScore >= 75
-      ? "종합 판단: 적극 추천"
-      : winScore >= 55
-        ? "종합 판단: 조건부 추천"
-        : "종합 판단: 신중 검토";
+    input.profitScore != null && input.profitScore >= 70
+      ? "종합 판단: 수익 극대화 적극 추천"
+      : winScore >= 75
+        ? "종합 판단: 적극 추천"
+        : winScore >= 55
+          ? "종합 판단: 조건부 추천"
+          : "종합 판단: 신중 검토";
+
+  const profitNote =
+    input.monthlyProfitKrw != null
+      ? ` AI v4 예상 월수익 ${input.monthlyProfitKrw.toLocaleString()}원${input.recommendedScenario ? ` (${input.recommendedScenario} 전략)` : ""}.`
+      : "";
 
   if (input.mode === "consignment") {
     return [
       `「${input.keyword}」 — ${demandLabel} ${compLabel} 키워드입니다. ${trendNote} 월 검색 ${intel.searchVolume.toLocaleString()}·상품 ${intel.productCount}개를 분석했습니다.`,
       `${input.productName} 위탁 시 ${priceNote} ${marginNote}`,
       landscapeNote,
-      `${dataNote} · AI 승률 ${winScore}점. ${verdict}.`,
+      `${dataNote} · AI 승률 ${winScore}점.${profitNote} ${verdict}.`,
     ].join(" ");
   }
 
@@ -213,7 +223,7 @@ export function buildAiSummary(input: {
     `「${input.keyword}」 수입 — ${demandLabel} ${compLabel} 카테고리. ${trendNote} 국내 중위가 ${intel.avgPriceKrw.toLocaleString()}원 대비 랜딩 원가 ${pricing.supplierCostKrw.toLocaleString()}원입니다.`,
     `${priceNote} ${marginNote}`,
     landscapeNote,
-    `${dataNote} · AI 승률 ${winScore}점. ${verdict}.`,
+    `${dataNote} · AI 승률 ${winScore}점.${profitNote} ${verdict}.`,
   ].join(" ");
 }
 

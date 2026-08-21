@@ -4,6 +4,7 @@ import { requireFullAccess } from "@/toss-shop/lib/billing-access";
 import { getConsignmentPicksForMerchant, getMarketKeywords, getStoreCatalog } from "@/toss-shop/lib/store";
 import { CONSIGNMENT_DAILY_PICKS } from "@/toss-shop/lib/billing";
 import { marketContext } from "@/toss-shop/lib/seller-engine/intelligence";
+import { SELLER_AI_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/revenue-engine";
 
 export async function GET(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
@@ -23,7 +24,8 @@ export async function GET(request: Request) {
     picks,
     dailyLimit: CONSIGNMENT_DAILY_PICKS,
     mode: "consignment",
-    description: "AI 위탁 소싱 — 다층 시장 분석 · 경쟁가 자동 매칭 · 하루 5개",
+    description: "AI v4 위탁 소싱 — 수익 극대화 · 3가지 가격 시나리오 · 하루 5개",
+    engineVersion: SELLER_AI_ENGINE_VERSION,
     catalogSize: ctx.catalogSize,
     marketKeywordCount: ctx.marketKeywordCount,
     marketCollectedAt: market.marketCollectedAt,
