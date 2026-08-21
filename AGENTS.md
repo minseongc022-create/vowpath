@@ -7,6 +7,7 @@ Instructions for AI coding assistants working in this repo.
 | Topic | File |
 |-------|------|
 | **Cron, polling, “how often does X run?”** | **[CRON.md](./CRON.md)** ← always read before answering |
+| **Toss Shop / Effiroad seller** | **[docs/TOSS_SHOP_SETUP.md](./docs/TOSS_SHOP_SETUP.md)** |
 | Deploy & env | [DEPLOY.md](./DEPLOY.md) |
 | Twilio | [TWILIO_SETUP.md](./TWILIO_SETUP.md) |
 | Retell AI | [docs/RETELL_SETUP.md](./docs/RETELL_SETUP.md) |

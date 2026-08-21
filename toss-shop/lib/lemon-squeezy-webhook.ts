@@ -7,6 +7,7 @@ import {
   applyTossShopSubscription,
   findAccountByEmail,
   findAccountByLsCustomerId,
+  upgradeAccountToPro,
 } from "./store";
 import type { TossShopSubscriptionStatus } from "./types";
 
@@ -99,6 +100,11 @@ export async function handleTossShopLsWebhook(payload: TossShopLsWebhook): Promi
         subscriptionStatus: "past_due",
         proExpiresAt: parseRenewsAt(attrs) ?? account.proExpiresAt,
       });
+      break;
+    }
+    case "order_created": {
+      if (attrs?.status !== "paid" || attrs?.refunded) break;
+      await upgradeAccountToPro(account.id, 1);
       break;
     }
     default:

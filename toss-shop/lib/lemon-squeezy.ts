@@ -7,11 +7,20 @@ type LsCheckoutResponse = {
   data: { id: string; attributes: { url: string } };
 };
 
+/** Dedicated toss-shop variant, or GIU one-time variant (custom_price checkout). */
+export function tossShopProVariantId(): string | undefined {
+  const dedicated = process.env.LEMON_SQUEEZY_VARIANT_ID_TOSS_SHOP_PRO?.trim();
+  if (isValidLsEnvValue(dedicated)) return dedicated;
+  const giu = process.env.LEMON_SQUEEZY_VARIANT_ID_GIU?.trim();
+  if (isValidLsEnvValue(giu)) return giu;
+  return undefined;
+}
+
 export function isTossShopLsConfigured(): boolean {
   return (
     isValidLsEnvValue(process.env.LEMON_SQUEEZY_API_KEY) &&
     isValidLsEnvValue(process.env.LEMON_SQUEEZY_STORE_ID) &&
-    isValidLsEnvValue(process.env.LEMON_SQUEEZY_VARIANT_ID_TOSS_SHOP_PRO)
+    Boolean(tossShopProVariantId())
   );
 }
 
@@ -52,7 +61,8 @@ export async function createTossShopCheckout(input: {
   priceKrw?: number;
 }): Promise<{ url: string; checkoutId: string }> {
   const storeId = process.env.LEMON_SQUEEZY_STORE_ID!.trim();
-  const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID_TOSS_SHOP_PRO!.trim();
+  const variantId = tossShopProVariantId();
+  if (!variantId) throw new Error("Toss shop Lemon Squeezy variant not configured");
   const priceKrw = input.priceKrw ?? PRO_PRICE_KRW;
   const amountUsdCents = krwToUsdCents(priceKrw);
   const origin = tossShopPublicOrigin();
