@@ -37,6 +37,7 @@ type SettingsData = {
 };
 
 export function SettingsPanel() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<SettingsData | null>(null);
   const [accessKey, setAccessKey] = useState("");
   const [secretKey, setSecretKey] = useState("");
@@ -54,6 +55,13 @@ export function SettingsPanel() {
   }, []);
 
   const { initialLoading } = useSilentFetch(fetchData);
+
+  useEffect(() => {
+    if (searchParams.get("checkout") === "success") {
+      setUpgradeMessage("결제가 완료되었습니다. Pro 기능이 곧 활성화됩니다.");
+      void fetchData();
+    }
+  }, [searchParams, fetchData]);
 
   async function saveKeys() {
     setBusy(true);
