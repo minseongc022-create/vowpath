@@ -51,7 +51,7 @@ export function ImportPanel() {
           )}
         </div>
         <p className="mt-1 text-emerald-800/80">
-          월수익 극대화 · 랜딩·관세 · 3가지 가격 전략 · 수익 플레이북
+          중국 1688·일본 라쿠텐 소싱 링크 · 랜딩·마진 · AI가 수입 경로 추천
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-emerald-800/70">
@@ -121,6 +121,9 @@ export function ImportPanel() {
                 profitPlaybook={p.profitPlaybook}
                 keywordCluster={p.v4?.keywordCluster}
                 moatOpportunities={p.v4?.moatOpportunities}
+                importSources={p.importSources}
+                importBest={p.importBest}
+                sourcingBrief={p.sourcingBrief}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}
                 extra={

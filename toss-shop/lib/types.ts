@@ -283,6 +283,44 @@ export type SellerAiV4Meta = {
   moatOpportunities?: string[];
 };
 
+export type WholesaleListing = {
+  platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
+  itemNo?: number;
+  title: string;
+  unitPriceKrw: number;
+  shippingFeeKrw: number;
+  moq: number;
+  url: string;
+  imageUrl?: string;
+  sellerId?: string;
+  sellerNick?: string;
+  freeShipping: boolean;
+  source: "live" | "estimated";
+  marginVsTossPct?: number;
+};
+
+export type ImportSourceListing = {
+  platform: WholesaleListing["platform"];
+  country: "중국" | "일본" | "베트남" | "미국";
+  title: string;
+  sourcePriceUsd: number;
+  sourcePriceKrw: number;
+  url: string;
+  searchUrl: string;
+  imageUrl?: string;
+  source: "live" | "estimated";
+  landedCostKrw?: number;
+  estimatedMarginPct?: number;
+};
+
+export type ImportSourceBundle = {
+  primaryCountry: "중국" | "일본";
+  china: ImportSourceListing[];
+  japan: ImportSourceListing[];
+  bestMatch: ImportSourceListing | null;
+  sourcingBrief: string;
+};
+
 export type ConsignmentPick = {
   id: string;
   keyword: string;
@@ -313,6 +351,10 @@ export type ConsignmentPick = {
   profitScore?: number;
   estimatedMonthlyProfitKrw?: number;
   v4?: SellerAiV4Meta;
+  wholesaleMatches?: WholesaleListing[];
+  wholesaleBest?: WholesaleListing | null;
+  wholesaleApiLive?: boolean;
+  autoSourcingSteps?: string[];
 };
 
 export type ImportPick = {
@@ -349,6 +391,9 @@ export type ImportPick = {
   profitPlaybook?: ProfitPlaybookItem[];
   profitScore?: number;
   v4?: SellerAiV4Meta;
+  importSources?: ImportSourceBundle;
+  importBest?: ImportSourceListing | null;
+  sourcingBrief?: string;
 };
 
 export type TossShopStore = {

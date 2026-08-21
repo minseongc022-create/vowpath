@@ -58,7 +58,7 @@ export function ConsignmentPanel() {
           )}
         </div>
         <p className="mt-1 text-ts-muted">
-          월수익 극대화 · 3가지 가격 시나리오 · 수익 플레이북 · 경쟁 우위 분석
+          도매꾹·도매매 실공급가 연동 · 토스 경쟁가 대비 마진 · AI가 위탁 플로우 자동 설계
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-ts-muted">
@@ -125,6 +125,7 @@ export function ConsignmentPanel() {
                 pricing={p.pricing}
                 signals={p.signals}
                 actionSteps={p.actionSteps}
+                autoSourcingSteps={p.autoSourcingSteps}
                 risks={p.risks}
                 competitors={p.competitorInsights}
                 aiSummary={p.aiSummary}
@@ -136,6 +137,9 @@ export function ConsignmentPanel() {
                 moatOpportunities={p.v4?.moatOpportunities}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}
+                wholesaleMatches={p.wholesaleMatches}
+                wholesaleBest={p.wholesaleBest}
+                wholesaleApiLive={p.wholesaleApiLive}
               />
             </article>
           ))}

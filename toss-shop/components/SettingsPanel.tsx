@@ -267,6 +267,16 @@ export function SettingsPanel() {
         </div>
         {message && <p className="mt-3 text-sm text-ts-muted">{message}</p>}
       </section>
+
+      <section className="ts-card">
+        <h2 className="text-sm font-bold">도매꾹·도매매 API (위탁 v5)</h2>
+        <p className="mt-1 text-xs leading-relaxed text-ts-muted">
+          <a href="https://openapi.domeggook.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-ts-primary underline">
+            도매꾹 Open API
+          </a>
+          {" "}키를 Vercel에 <code className="text-xs">DOMEGGOOK_API_KEY</code> 로 등록하면 위탁 AI가 실시간 공급가·상품 URL을 가져옵니다. 미등록 시 검색 링크 + 추정가로 동작합니다.
+        </p>
+      </section>
     </div>
   );
 }

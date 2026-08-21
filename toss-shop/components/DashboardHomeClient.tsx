@@ -59,8 +59,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI v4", desc: "월수익 극대화 · 3가지 가격 전략", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI v4", desc: "랜딩·관세·수익 플레이북", accent: true },
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI v5", desc: "도매꾹·도매매 연동 · 자동 위탁 플로우", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI v5", desc: "중국·일본 소싱 · 1688·라쿠텐", accent: true },
   ];
 
   const toolCards = [
@@ -110,7 +110,7 @@ export function DashboardHomeClient() {
       {!initialLoading && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
         <div className="mt-5 rounded-2xl bg-gradient-to-br from-ts-primary/10 to-emerald-50 px-4 py-4 ring-1 ring-ts-primary/20">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold text-ts-ink">오늘의 AI v4 수익 브리핑</p>
+            <p className="font-bold text-ts-ink">오늘의 AI v5 수익 브리핑</p>
             {revenueBrief.engineVersion && (
               <span className="rounded-full bg-ts-primary px-2 py-0.5 text-xs font-bold text-white">
                 {revenueBrief.engineVersion.toUpperCase()}
