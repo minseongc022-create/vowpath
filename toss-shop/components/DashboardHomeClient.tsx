@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import {
   IconCompetitors,
+  IconDiscovery,
   IconKeywords,
   IconRankings,
   IconSettlements,
 } from "@/toss-shop/components/icons/FeatureIcons";
+import { KeywordSearchBar } from "@/toss-shop/components/ui/KeywordSearchBar";
 import { formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
@@ -44,8 +46,9 @@ export function DashboardHomeClient() {
   const { initialLoading, refreshing } = useSilentFetch(fetchData);
 
   const cards = [
-    { href: SP_ROUTES.rankings, title: "랭킹·가격", desc: "순위와 가격 변동", stat: stats?.watchlistCount, unit: "추적", Icon: IconRankings },
-    { href: SP_ROUTES.keywords, title: "키워드", desc: "검색·경쟁 분석", stat: stats?.keywordCount, unit: "키워드", Icon: IconKeywords },
+    { href: SP_ROUTES.discovery, title: "아이템 발굴", desc: "수요·공급 키워드 탐색", stat: null, unit: "", Icon: IconDiscovery },
+    { href: SP_ROUTES.keywords, title: "키워드 분석", desc: "검색량·경쟁·연관 키워드", stat: stats?.keywordCount, unit: "추적", Icon: IconKeywords },
+    { href: SP_ROUTES.rankings, title: "랭킹 추적", desc: "키워드별 노출 순위", stat: stats?.watchlistCount, unit: "상품", Icon: IconRankings },
     { href: SP_ROUTES.competitors, title: "경쟁사", desc: "가격·랭킹 알림", stat: stats?.unreadAlerts, unit: "새 알림", Icon: IconCompetitors },
     { href: SP_ROUTES.settlements, title: "정산", desc: "예상 vs 실제 입금", stat: stats?.pendingPayoutKrw, unit: "대기", format: true, Icon: IconSettlements },
   ];
@@ -84,7 +87,11 @@ export function DashboardHomeClient() {
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-5">
+        <KeywordSearchBar />
+      </div>
+
+      <div className="mt-5 space-y-2">
         {cards.map((c) => (
           <Link key={c.href} href={c.href} className="ts-list-row block">
             <div className="ts-icon-box">

@@ -12,6 +12,7 @@ export const SP_ROUTES = {
   home: sp(""),
   login: sp("/login"),
   dashboard: sp("/dashboard"),
+  discovery: sp("/dashboard/discovery"),
   rankings: sp("/dashboard/rankings"),
   keywords: sp("/dashboard/keywords"),
   competitors: sp("/dashboard/competitors"),

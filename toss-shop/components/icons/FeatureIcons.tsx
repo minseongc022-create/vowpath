@@ -43,3 +43,11 @@ export function IconLink({ className = "h-5 w-5" }: IconProps) {
     </svg>
   );
 }
+
+export function IconDiscovery({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path strokeLinecap="round" d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 17l-6.3 4 2.3-7-6-4.6h7.6L12 2z" />
+    </svg>
+  );
+}

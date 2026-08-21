@@ -45,6 +45,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       productId?: string;
+      keyword?: string;
       alertPriceDropPct?: number;
       alertRankUp?: number;
     };
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "상품 ID가 필요합니다." }, { status: 400 });
     }
     const item = await addToWatchlist(session.merchantId, body.productId, {
+      keyword: body.keyword,
       alertPriceDropPct: body.alertPriceDropPct,
       alertRankUp: body.alertRankUp,
     });

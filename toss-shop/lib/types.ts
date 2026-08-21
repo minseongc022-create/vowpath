@@ -61,6 +61,8 @@ export type PriceSnapshot = {
 export type WatchlistItem = {
   id: string;
   productId: string;
+  /** Keyword exposure rank tracking (Item Scout style). */
+  keyword?: string;
   alertPriceDropPct?: number;
   alertRankUp?: number;
   addedAt: string;
@@ -82,14 +84,33 @@ export type KeywordSnapshot = {
   topProductIds: string[];
 };
 
+export type CompetitionGrade = "excellent" | "good" | "fair" | "poor";
+
 export type KeywordAnalysis = {
   keyword: string;
   difficulty: "easy" | "medium" | "hard";
   searchVolume: number;
+  pcSearchVolume: number;
+  mobileSearchVolume: number;
+  mobileRatio: number;
   competingProducts: number;
+  competitionIntensity: number;
+  competitionGrade: CompetitionGrade;
   avgPriceKrw: number;
-  topProducts: Array<{ id: string; name: string; rank: number; priceKrw: number }>;
-  suggestions: string[];
+  sixMonthSales: number;
+  sixMonthRevenue: number;
+  realProductRatio: number;
+  overseasProductRatio: number;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    rank: number;
+    priceKrw: number;
+    reviewCount: number;
+    sellerName: string;
+  }>;
+  suggestions: Array<{ keyword: string; searchVolume: number; competitionIntensity: number }>;
+  trend: number[];
   analyzedAt: string;
 };
 
