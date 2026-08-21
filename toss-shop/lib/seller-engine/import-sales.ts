@@ -2,7 +2,9 @@ import type { CatalogProduct, ImportPick, MarketKeywordMetrics, TossShopCategory
 import { competitorsForProduct, marginPct } from "./pricing";
 import {
   assessRisks,
+  analyzeCompetitorLandscape,
   buildActionSteps,
+  buildAiSummary,
   buildKeywordIntel,
   buildPricingBreakdown,
   enrichCompetitors,
@@ -65,6 +67,7 @@ export function generateImportPicks(
     const pricing = buildPricingBreakdown(landed.total, competitors, 18);
     const priceKrw = pricing.undercutKrw;
     const insights = enrichCompetitors(product, catalog, priceKrw);
+    const landscape = analyzeCompetitorLandscape(insights, pricing);
     const margin = marginPct(landed.total, priceKrw);
     const monthlyUnits = Math.max(5, Math.round(intel.searchVolume / 550));
     const { score, signals } = scoreOpportunity({
@@ -73,6 +76,18 @@ export function generateImportPicks(
       product,
       competitorCount: competitors.length,
       winPriceGap: pricing.competitorLowKrw - priceKrw,
+      priceSpreadPct: landscape.priceSpreadPct,
+      highThreatCompetitors: landscape.highThreatCount,
+    });
+    const aiSummary = buildAiSummary({
+      mode: "import",
+      keyword: kw.keyword,
+      productName: product.name,
+      winScore: score,
+      intel,
+      pricing,
+      landscape,
+      dataQuality: ctx.dataQuality,
     });
 
     picks.push({
@@ -113,6 +128,8 @@ export function generateImportPicks(
         dataQuality: ctx.dataQuality,
         highThreatCompetitors: insights.filter((c) => c.threat === "high").length,
       }),
+      aiSummary,
+      competitorLandscape: landscape,
     });
   }
 

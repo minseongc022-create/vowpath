@@ -3,9 +3,13 @@ import { getDiscoveryKeywords, type DiscoveryKeyword } from "../discovery";
 import { getMarketMetrics } from "../market-collector";
 import { inferDataQuality } from "../market-collector";
 import type {
+  AnalysisSignal,
   CatalogProduct,
+  CompetitorInsight,
+  CompetitorLandscape,
   CompetitorPriceRef,
   MarketKeywordMetrics,
+  PricingBreakdown,
   TossShopCategory,
 } from "../types";
 import {
@@ -17,33 +21,7 @@ import {
   priceStatistics,
 } from "./pricing";
 
-export type AnalysisSignal = {
-  label: string;
-  impact: "positive" | "neutral" | "negative";
-  detail: string;
-  weight: number;
-};
-
-export type PricingBreakdown = {
-  supplierCostKrw: number;
-  platformFeesKrw: number;
-  netProfitKrw: number;
-  marginPct: number;
-  strategy: string;
-  priceFloorKrw: number;
-  priceCeilingKrw: number;
-  competitorLowKrw: number;
-  competitorMedianKrw: number;
-  competitorHighKrw: number;
-  undercutKrw: number;
-};
-
-export type CompetitorInsight = CompetitorPriceRef & {
-  reviewCount?: number;
-  rating?: number;
-  priceGapPct: number;
-  threat: "low" | "medium" | "high";
-};
+export type { AnalysisSignal, PricingBreakdown, CompetitorInsight };
 
 export type KeywordIntel = {
   keyword: string;
@@ -110,6 +88,135 @@ export function enrichCompetitors(
   return full.sort((a, b) => a.priceKrw - b.priceKrw);
 }
 
+export function analyzeCompetitorLandscape(
+  insights: CompetitorInsight[],
+  pricing: PricingBreakdown,
+): CompetitorLandscape {
+  if (!insights.length) {
+    return {
+      count: 0,
+      priceSpreadPct: 0,
+      avgReviewCount: 0,
+      avgRating: 0,
+      lowThreatCount: 0,
+      highThreatCount: 0,
+      dominance: "fragmented",
+    };
+  }
+
+  const prices = insights.map((c) => c.priceKrw);
+  const low = Math.min(...prices);
+  const high = Math.max(...prices);
+  const priceSpreadPct =
+    low > 0 ? Math.round(((high - low) / low) * 1000) / 10 : 0;
+  const withReviews = insights.filter((c) => c.reviewCount != null);
+  const avgReviewCount =
+    withReviews.length > 0
+      ? Math.round(withReviews.reduce((s, c) => s + (c.reviewCount ?? 0), 0) / withReviews.length)
+      : 0;
+  const withRating = insights.filter((c) => c.rating != null);
+  const avgRating =
+    withRating.length > 0
+      ? Math.round((withRating.reduce((s, c) => s + (c.rating ?? 0), 0) / withRating.length) * 10) / 10
+      : 0;
+  const highThreatCount = insights.filter((c) => c.threat === "high").length;
+  const lowThreatCount = insights.filter((c) => c.threat === "low").length;
+
+  const top3Share = insights.slice(0, 3).filter((c) => c.rank <= 3).length;
+  let dominance: CompetitorLandscape["dominance"] = "balanced";
+  if (highThreatCount >= 3 || (top3Share >= 2 && pricing.competitorLowKrw > 0 && pricing.undercutKrw > pricing.competitorLowKrw)) {
+    dominance = "concentrated";
+  } else if (priceSpreadPct > 35 || lowThreatCount >= insights.length * 0.6) {
+    dominance = "fragmented";
+  }
+
+  return {
+    count: insights.length,
+    priceSpreadPct,
+    avgReviewCount,
+    avgRating,
+    lowThreatCount,
+    highThreatCount,
+    dominance,
+  };
+}
+
+export function buildAiSummary(input: {
+  mode: "consignment" | "import";
+  keyword: string;
+  productName: string;
+  winScore: number;
+  intel: KeywordIntel;
+  pricing: PricingBreakdown;
+  landscape: CompetitorLandscape;
+  dataQuality: MarketContext["dataQuality"];
+}): string {
+  const { intel, pricing, landscape, winScore } = input;
+  const demandLabel =
+    intel.searchVolume >= 15000 ? "수요가 강한" : intel.searchVolume >= 5000 ? "수요가 양호한" : "틈새 수요";
+  const compLabel =
+    intel.competitionIntensity < 0.8
+      ? "경쟁이 낮은"
+      : intel.competitionIntensity < 1.5
+        ? "경쟁이 보통인"
+        : "경쟁이 치열한";
+  const trendNote =
+    intel.trendPct > 8
+      ? "검색 추세가 상승 중이며"
+      : intel.trendPct < -8
+        ? "검색 추세는 하락세이나"
+        : "검색 추세는 안정적이며";
+
+  const priceNote =
+    pricing.undercutKrw <= pricing.competitorLowKrw
+      ? `추천가 ${pricing.undercutKrw.toLocaleString()}원은 최저 경쟁가 대비 Buy Box에 유리합니다.`
+      : `추천가 ${pricing.undercutKrw.toLocaleString()}원은 중위가 ${pricing.competitorMedianKrw.toLocaleString()}원 기준 ${pricing.strategy.includes("프리미엄") ? "프리미엄" : "경쟁"} 전략입니다.`;
+
+  const marginNote =
+    pricing.marginPct >= 15
+      ? `순마진 ${pricing.marginPct}%로 수익성이 좋습니다.`
+      : pricing.marginPct >= 10
+        ? `순마진 ${pricing.marginPct}%로 프로모션 여유는 제한적입니다.`
+        : `순마진 ${pricing.marginPct}%로 가격·원가 재검토가 필요합니다.`;
+
+  const landscapeNote =
+    landscape.dominance === "fragmented"
+      ? `경쟁사 ${landscape.count}곳, 가격 분산이 커(${landscape.priceSpreadPct}%) 신규 진입 여지가 있습니다.`
+      : landscape.dominance === "concentrated"
+        ? `상위 셀러 ${landscape.highThreatCount}곳이 저가·고랭킹으로 시장을 주도합니다.`
+        : `경쟁사 ${landscape.count}곳, 가격대가 ${landscape.priceSpreadPct}% 범위로 혼재되어 있습니다.`;
+
+  const dataNote =
+    input.dataQuality === "live"
+      ? "실제 토스 API·카탈로그 데이터 기반"
+      : input.dataQuality === "mixed"
+        ? "일부 실데이터 혼합"
+        : "데모 학습 데이터 기반(입점 후 정밀도 상승)";
+
+  const verdict =
+    winScore >= 75
+      ? "종합 판단: 적극 추천"
+      : winScore >= 55
+        ? "종합 판단: 조건부 추천"
+        : "종합 판단: 신중 검토";
+
+  if (input.mode === "consignment") {
+    return [
+      `「${input.keyword}」 — ${demandLabel} ${compLabel} 키워드입니다. ${trendNote} 월 검색 ${intel.searchVolume.toLocaleString()}·상품 ${intel.productCount}개를 분석했습니다.`,
+      `${input.productName} 위탁 시 ${priceNote} ${marginNote}`,
+      landscapeNote,
+      `${dataNote} · AI 승률 ${winScore}점. ${verdict}.`,
+    ].join(" ");
+  }
+
+  return [
+    `「${input.keyword}」 수입 — ${demandLabel} ${compLabel} 카테고리. ${trendNote} 국내 중위가 ${intel.avgPriceKrw.toLocaleString()}원 대비 랜딩 원가 ${pricing.supplierCostKrw.toLocaleString()}원입니다.`,
+    `${priceNote} ${marginNote}`,
+    landscapeNote,
+    `${dataNote} · AI 승률 ${winScore}점. ${verdict}.`,
+  ].join(" ");
+}
+
 export function buildPricingBreakdown(
   supplierCostKrw: number,
   competitors: CompetitorPriceRef[],
@@ -143,6 +250,8 @@ export function scoreOpportunity(input: {
   product: CatalogProduct;
   competitorCount: number;
   winPriceGap: number;
+  priceSpreadPct?: number;
+  highThreatCompetitors?: number;
 }): { score: number; signals: AnalysisSignal[] } {
   const signals: AnalysisSignal[] = [];
   let score = 0;
@@ -215,7 +324,36 @@ export function scoreOpportunity(input: {
     });
   }
 
-  return { score: Math.min(99, Math.round(score)), signals };
+  const spreadBonus =
+    input.priceSpreadPct != null && input.priceSpreadPct > 25
+      ? 5
+      : input.priceSpreadPct != null && input.priceSpreadPct < 10
+        ? -2
+        : 0;
+  score += spreadBonus;
+  if (spreadBonus !== 0 && input.priceSpreadPct != null) {
+    signals.push({
+      label: "가격 분산",
+      impact: spreadBonus > 0 ? "positive" : "neutral",
+      detail:
+        spreadBonus > 0
+          ? `경쟁가 스프레드 ${input.priceSpreadPct}% — 틈새 포지셔닝 가능`
+          : `경쟁가가 촘촘(${input.priceSpreadPct}%) — 차별화 필수`,
+      weight: Math.abs(spreadBonus),
+    });
+  }
+
+  if (input.highThreatCompetitors != null && input.highThreatCompetitors >= 2) {
+    score -= 4;
+    signals.push({
+      label: "고위험 경쟁",
+      impact: "negative",
+      detail: `저가·고랭킹 경쟁사 ${input.highThreatCompetitors}곳 — 가격 전쟁 주의`,
+      weight: 4,
+    });
+  }
+
+  return { score: Math.min(99, Math.max(0, Math.round(score))), signals };
 }
 
 export function buildActionSteps(mode: "consignment" | "import", input: {

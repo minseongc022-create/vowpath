@@ -102,6 +102,8 @@ export function ImportPanel() {
                 actionSteps={p.actionSteps}
                 risks={p.risks}
                 competitors={p.competitorInsights}
+                aiSummary={p.aiSummary}
+                competitorLandscape={p.competitorLandscape}
                 extra={
                   p.landedBreakdown ? (
                     <div className="grid gap-2 sm:grid-cols-3 text-xs">

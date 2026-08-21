@@ -18,6 +18,8 @@ export function SourcingAnalysisCard({
   actionSteps,
   risks,
   competitors,
+  aiSummary,
+  competitorLandscape,
   extra,
 }: {
   winScore?: number;
@@ -27,12 +29,25 @@ export function SourcingAnalysisCard({
   actionSteps?: string[];
   risks?: string[];
   competitors?: CompetitorInsight[];
+  aiSummary?: string;
+  competitorLandscape?: {
+    count: number;
+    priceSpreadPct: number;
+    dominance: string;
+    highThreatCount: number;
+  };
   extra?: ReactNode;
 }) {
-  if (!signals?.length && !pricing) return null;
+  if (!signals?.length && !pricing && !aiSummary) return null;
 
   return (
     <div className="mt-4 space-y-3 border-t border-ts-border pt-4">
+      {aiSummary && (
+        <div className="rounded-xl bg-ts-primary/5 px-3 py-2.5 text-xs leading-relaxed text-ts-ink ring-1 ring-ts-primary/15">
+          <p className="font-semibold text-ts-primary">AI 종합 분석</p>
+          <p className="mt-1">{aiSummary}</p>
+        </div>
+      )}
       {winScore != null && (
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-ts-muted">AI 승률 점수</span>
@@ -60,6 +75,29 @@ export function SourcingAnalysisCard({
           <div className="ts-mini-stat">
             <p className="text-ts-muted">순이익/개</p>
             <p className="font-bold text-ts-primary">{formatKrw(pricing.netProfitKrw)}</p>
+          </div>
+        </div>
+      )}
+
+      {competitorLandscape && competitorLandscape.count > 0 && (
+        <div className="grid gap-2 sm:grid-cols-3 text-xs">
+          <div className="ts-mini-stat">
+            <p className="text-ts-muted">경쟁사</p>
+            <p className="font-bold">{competitorLandscape.count}곳</p>
+          </div>
+          <div className="ts-mini-stat">
+            <p className="text-ts-muted">가격 스프레드</p>
+            <p className="font-bold">{competitorLandscape.priceSpreadPct}%</p>
+          </div>
+          <div className="ts-mini-stat">
+            <p className="text-ts-muted">시장 구조</p>
+            <p className="font-bold">
+              {competitorLandscape.dominance === "fragmented"
+                ? "분산형"
+                : competitorLandscape.dominance === "concentrated"
+                  ? "집중형"
+                  : "균형형"}
+            </p>
           </div>
         </div>
       )}

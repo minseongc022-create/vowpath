@@ -236,6 +236,16 @@ export type CompetitorInsight = CompetitorPriceRef & {
   threat?: "low" | "medium" | "high";
 };
 
+export type CompetitorLandscape = {
+  count: number;
+  priceSpreadPct: number;
+  avgReviewCount: number;
+  avgRating: number;
+  lowThreatCount: number;
+  highThreatCount: number;
+  dominance: "fragmented" | "balanced" | "concentrated";
+};
+
 export type ConsignmentPick = {
   id: string;
   keyword: string;
@@ -258,6 +268,8 @@ export type ConsignmentPick = {
   signals?: AnalysisSignal[];
   actionSteps?: string[];
   risks?: string[];
+  aiSummary?: string;
+  competitorLandscape?: CompetitorLandscape;
 };
 
 export type ImportPick = {
@@ -287,6 +299,8 @@ export type ImportPick = {
     shippingKrw: number;
     dutyKrw: number;
   };
+  aiSummary?: string;
+  competitorLandscape?: CompetitorLandscape;
 };
 
 export type TossShopStore = {

@@ -3,7 +3,9 @@ import type { CatalogProduct, ConsignmentPick, MarketKeywordMetrics } from "../t
 import { competitorsForProduct, estimateSupplierCost } from "./pricing";
 import {
   assessRisks,
+  analyzeCompetitorLandscape,
   buildActionSteps,
+  buildAiSummary,
   buildKeywordIntel,
   buildPricingBreakdown,
   enrichCompetitors,
@@ -30,6 +32,8 @@ function buildPick(
   winScore: number,
   dailyUnits: number,
   ctx: ReturnType<typeof marketContext>,
+  aiSummary: string,
+  competitorLandscape: ReturnType<typeof analyzeCompetitorLandscape>,
 ): ConsignmentPick {
   const highThreat = insights.filter((c) => c.threat === "high").length;
   const priceKrw = pricing.undercutKrw;
@@ -67,6 +71,8 @@ function buildPick(
       dataQuality: ctx.dataQuality,
       highThreatCompetitors: highThreat,
     }),
+    aiSummary,
+    competitorLandscape,
   };
 }
 
@@ -98,16 +104,31 @@ export function generateConsignmentPicks(
     const supplierCost = estimateSupplierCost(product.priceKrw, product.category);
     const pricing = buildPricingBreakdown(supplierCost, competitors);
     const insights = enrichCompetitors(product, catalog, pricing.undercutKrw);
+    const landscape = analyzeCompetitorLandscape(insights, pricing);
     const { score, signals } = scoreOpportunity({
       keyword: intel,
       marginPct: pricing.marginPct,
       product,
       competitorCount: competitors.length,
       winPriceGap: pricing.competitorLowKrw - pricing.undercutKrw,
+      priceSpreadPct: landscape.priceSpreadPct,
+      highThreatCompetitors: landscape.highThreatCount,
     });
     const dailyUnits = Math.max(1, Math.round(intel.searchVolume / 700));
+    const aiSummary = buildAiSummary({
+      mode: "consignment",
+      keyword: kw.keyword,
+      productName: product.name,
+      winScore: score,
+      intel,
+      pricing,
+      landscape,
+      dataQuality: ctx.dataQuality,
+    });
 
-    picks.push(buildPick(dateKey, product, kw.keyword, intel, pricing, insights, signals, score, dailyUnits, ctx));
+    picks.push(
+      buildPick(dateKey, product, kw.keyword, intel, pricing, insights, signals, score, dailyUnits, ctx, aiSummary, landscape),
+    );
   }
 
   return picks.slice(0, CONSIGNMENT_DAILY_PICKS);

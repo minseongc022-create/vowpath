@@ -108,6 +108,8 @@ export function ConsignmentPanel() {
                 actionSteps={p.actionSteps}
                 risks={p.risks}
                 competitors={p.competitorInsights}
+                aiSummary={p.aiSummary}
+                competitorLandscape={p.competitorLandscape}
               />
             </article>
           ))}
