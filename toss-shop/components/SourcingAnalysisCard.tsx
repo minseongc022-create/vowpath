@@ -4,9 +4,11 @@ import type { ReactNode } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
 import type {
   AnalysisSignal,
+  CatalogWinAnalysis,
   CompetitorInsight,
   ImportSourceBundle,
   ImportSourceListing,
+  PolicyFlag,
   PricingBreakdown,
   PricingScenario,
   ProfitPlaybookItem,
@@ -54,6 +56,10 @@ export function SourcingAnalysisCard({
   geniusScore,
   goalSharePct,
   goalPathNote,
+  v6MasterScore,
+  catalogWin,
+  policyChecklist,
+  marketScanSummary,
   extra,
 }: {
   winScore?: number;
@@ -88,6 +94,10 @@ export function SourcingAnalysisCard({
   geniusScore?: number;
   goalSharePct?: number;
   goalPathNote?: string;
+  v6MasterScore?: number;
+  catalogWin?: CatalogWinAnalysis;
+  policyChecklist?: string[];
+  marketScanSummary?: string;
   extra?: ReactNode;
 }) {
   if (!signals?.length && !pricing && !aiSummary) return null;
@@ -107,6 +117,9 @@ export function SourcingAnalysisCard({
           {geniusScore != null && (
             <span className="font-bold text-violet-600">genius {geniusScore}</span>
           )}
+          {v6MasterScore != null && (
+            <span className="font-bold text-indigo-600">v6 {v6MasterScore}</span>
+          )}
           {goalSharePct != null && (
             <span className="text-ts-muted">목표 {goalSharePct}%</span>
           )}
@@ -118,6 +131,79 @@ export function SourcingAnalysisCard({
 
       {goalPathNote && (
         <p className="text-xs text-violet-700">{goalPathNote}</p>
+      )}
+
+      {marketScanSummary && (
+        <div className="rounded-xl bg-indigo-50 px-3 py-2.5 text-xs leading-relaxed text-indigo-900 ring-1 ring-indigo-100">
+          <p className="font-semibold">시장 전체 스캔 (v6)</p>
+          <p className="mt-1">{marketScanSummary}</p>
+        </div>
+      )}
+
+      {catalogWin && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 px-3 py-2.5 text-xs">
+          <p className="font-semibold text-indigo-900">
+            토스 카탈로그 · 대표 아이템 (Item Winner)
+            <span className="ml-2 font-bold text-indigo-700">{catalogWin.representativeItemScore}/99</span>
+          </p>
+          <p className="mt-1 text-indigo-800/90">{catalogWin.policyBrief}</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            <div className="ts-mini-stat">
+              <p className="text-indigo-700/70">우리 총액</p>
+              <p className="font-bold">{formatKrw(catalogWin.ourTotalPriceKrw)}</p>
+            </div>
+            <div className="ts-mini-stat">
+              <p className="text-indigo-700/70">최저 경쟁 총액</p>
+              <p className="font-bold">{formatKrw(catalogWin.bestCompetitorTotalKrw)}</p>
+            </div>
+            <div className="ts-mini-stat">
+              <p className="text-indigo-700/70">카탈로그 리스크</p>
+              <p className="font-bold">
+                {catalogWin.catalogMatchRisk === "high"
+                  ? "높음"
+                  : catalogWin.catalogMatchRisk === "low"
+                    ? "낮음"
+                    : "보통"}
+              </p>
+            </div>
+          </div>
+          {catalogWin.winStrategy.length > 0 && (
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-indigo-800/85">
+              {catalogWin.winStrategy.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          )}
+          {catalogWin.policyFlags.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {catalogWin.policyFlags.map((f: PolicyFlag) => (
+                <li
+                  key={f.code}
+                  className={`rounded px-2 py-1 ${
+                    f.level === "block"
+                      ? "bg-red-100 text-red-800"
+                      : f.level === "warn"
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-white/60 text-indigo-800"
+                  }`}
+                >
+                  {f.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {policyChecklist && policyChecklist.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-ts-muted">토스 정책 · 등록 체크리스트</p>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-ts-muted">
+            {policyChecklist.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {aiSummary && (

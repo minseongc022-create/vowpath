@@ -283,6 +283,42 @@ export type SellerAiV4Meta = {
   moatOpportunities?: string[];
 };
 
+export type PolicyFlag = {
+  level: "info" | "warn" | "block";
+  code: string;
+  message: string;
+};
+
+/** 토스쇼핑 카탈로그·대표 아이템(쿠팡 Item Winner 유사) 분석 */
+export type CatalogWinAnalysis = {
+  representativeItemScore: number;
+  catalogMatchRisk: "low" | "medium" | "high";
+  estimatedCatalogSellers: number;
+  ourTotalPriceKrw: number;
+  bestCompetitorTotalKrw: number;
+  priceGapKrw: number;
+  winStrategy: string[];
+  policyFlags: PolicyFlag[];
+  complianceScore: number;
+  policyBrief: string;
+};
+
+export type SellerAiV6Meta = {
+  engineVersion: string;
+  v6MasterScore: number;
+  catalogWin: CatalogWinAnalysis;
+  policyChecklist: string[];
+  marketScanSummary?: string;
+};
+
+export type TossPolicyBrief = {
+  engineVersion: string;
+  catalogModel: string;
+  representativeItemCriteria: string[];
+  sellerObligations: string[];
+  penaltyAvoidance: string[];
+};
+
 export type WholesaleListing = {
   platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
   itemNo?: number;
@@ -396,6 +432,10 @@ export type ConsignmentPick = {
   geniusScore?: number;
   goalSharePct?: number;
   goalPathNote?: string;
+  v6MasterScore?: number;
+  catalogWin?: CatalogWinAnalysis;
+  policyChecklist?: string[];
+  v6?: SellerAiV6Meta;
 };
 
 export type ImportPick = {
@@ -438,6 +478,10 @@ export type ImportPick = {
   geniusScore?: number;
   goalSharePct?: number;
   goalPathNote?: string;
+  v6MasterScore?: number;
+  catalogWin?: CatalogWinAnalysis;
+  policyChecklist?: string[];
+  v6?: SellerAiV6Meta;
 };
 
 export type TossShopStore = {

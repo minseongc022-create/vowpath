@@ -143,6 +143,10 @@ export function ConsignmentPanel() {
                 geniusScore={p.geniusScore}
                 goalSharePct={p.goalSharePct}
                 goalPathNote={p.goalPathNote}
+                v6MasterScore={p.v6MasterScore}
+                catalogWin={p.catalogWin}
+                policyChecklist={p.policyChecklist}
+                marketScanSummary={p.v6?.marketScanSummary}
               />
             </article>
           ))}

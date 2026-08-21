@@ -127,6 +127,10 @@ export function ImportPanel() {
                 geniusScore={p.geniusScore}
                 goalSharePct={p.goalSharePct}
                 goalPathNote={p.goalPathNote}
+                v6MasterScore={p.v6MasterScore}
+                catalogWin={p.catalogWin}
+                policyChecklist={p.policyChecklist}
+                marketScanSummary={p.v6?.marketScanSummary}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}
                 extra={

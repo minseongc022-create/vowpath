@@ -10,7 +10,7 @@ export function TenMillionGoalCard({ plan }: { plan: TenMillionPlan }) {
     <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-ts-primary px-4 py-5 text-white shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-white/90">AI v5 · 월 수익 목표</p>
+          <p className="text-sm font-semibold text-white/90">AI v6 · 월 수익 목표</p>
           <p className="mt-1 text-2xl font-bold">{formatKrw(plan.goalKrw)}</p>
         </div>
         <div className="text-right">
