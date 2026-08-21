@@ -78,7 +78,7 @@ export async function resolveApiConfig(
       accessKey: merchantKeys.accessKey,
       secretKey: merchantKeys.secretKey,
       sandbox: merchantKeys.sandbox ?? false,
-      partnerName: "sellerpulse",
+      partnerName: "effiroad",
     };
   }
   return configFromEnv();

@@ -9,10 +9,10 @@
 | **Tech dispatch timeout + escalation** | **Every 60 seconds** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/tech-dispatch` |
 | **Appointment reminder SMS** | **Every 60 seconds** (same call) | Same external cron as above |
 | **Pick-time link nudge** (customer forgot / missed SMS) | **Every 60 seconds** (same call) | Same — remind customer ~90m, escalate owner ~4h |
-| **셀러펄스 (Seller Pulse) data sync** | **Every 60 seconds** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/toss-shop-sync` |
+| **Effiroad (에피로드) data sync** | **Every 60 seconds** | **[cron-job.org](https://cron-job.org)** → `GET /api/cron/toss-shop-sync` |
 | Vercel built-in crons | Once per day each | `vercel.json` (Hobby plan limit) |
 | Dashboard UI refresh | Every 60 seconds | Browser poll in `lib/hooks/use-dashboard-data.ts` |
-| Seller Pulse dashboard UI | Every 60 seconds (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
+| Effiroad seller dashboard UI | Every 60 seconds (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
 
 ### Why two schedulers?
 
@@ -40,7 +40,7 @@ Alternative (lighter — timeouts only, no appointment reminders):
 - URL: `https://effiroad.com/api/cron/tech-offer-escalation`
 - Same interval and auth
 
-**Seller Pulse (셀러펄스)** — add a second job at cron-job.org:
+**Effiroad (에피로드)** — add a second job at cron-job.org:
 
 | Field | Value |
 |-------|-------|
@@ -69,7 +69,7 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/daily-summary` | `0 14 * * *` | Daily summary |
 | `/api/cron/beta-cohort-price-step` | `0 10 * * *` | Beta cohort pricing step |
 | `/api/cron/quote-follow-up` | `0 16 * * *` | Quote chase SMS (48h, 7d, 14d after quote sent) |
-| `/api/cron/toss-shop-sync` | `0 6 * * *` | Seller Pulse daily backup sync (real-time is external 60s cron) |
+| `/api/cron/toss-shop-sync` | `0 6 * * *` | Effiroad daily backup sync (real-time is external 60s cron) |
 
 ---
 
@@ -81,7 +81,7 @@ All schedules are UTC. **Never add per-minute or hourly entries here on Hobby.**
 | `/api/cron/ensure-pilot-trials` | One-off backfill after deploy |
 | `/api/cron/tech-offer-escalation` | Optional external 60s target (timeouts only) |
 | `/api/cron/giu-reservation-expiry` | **Every 60s** via cron-job.org — Giu unpaid reservation expiry (`docs/GIU_DEPLOY.md`) |
-| `/api/cron/toss-shop-sync` | **Every 60s** via cron-job.org — Seller Pulse (셀러펄스) merchant sync |
+| `/api/cron/toss-shop-sync` | **Every 60s** via cron-job.org — Effiroad (에피로드) merchant sync |
 
 All require `CRON_SECRET` in production (`Authorization: Bearer …` or `x-cron-secret` header).
 
@@ -95,7 +95,7 @@ All require `CRON_SECRET` in production (`Authorization: Bearer …` or `x-cron-
 | Ops failures panel | 15s | `components/settings/OpsFailuresPanel.tsx` |
 | Forwarding verify test | 3s | `components/settings/ForwardingTestPanel.tsx` |
 | “2m ago” labels | 30s | `lib/hooks/use-relative-now.ts` |
-| Seller Pulse dashboards | 60s (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
+| Effiroad seller dashboards | 60s (visible tab) | `toss-shop/lib/hooks/use-live-poll.ts` |
 
 ---
 

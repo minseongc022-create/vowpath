@@ -27,7 +27,7 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16">
           <Link href={SP_ROUTES.home} className="flex min-w-0 items-center gap-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ts-primary text-xs font-bold text-white sm:h-9 sm:w-9 sm:text-sm">
-              SP
+              E
             </span>
             <div className="min-w-0 leading-tight">
               <p className="truncate text-base font-bold tracking-tight text-ts-ink sm:text-lg">

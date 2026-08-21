@@ -218,7 +218,7 @@ export async function middleware(request: NextRequest) {
   const sellerPulseOwnsApex =
     isSellerPulsePrimaryHost(hostname) && !isEffiroadDispatchEnabled();
 
-  // effiroad.com → 셀러펄스 at / (legacy Effiroad UI: EFFIROAD_DISPATCH_ENABLED=1 local only).
+  // effiroad.com → Effiroad (에피로드) at / (legacy dispatch UI: EFFIROAD_DISPATCH_ENABLED=1 local only).
   if (sellerPulseOwnsApex) {
     if (
       pathname.startsWith("/api/") ||
@@ -263,7 +263,7 @@ export async function middleware(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  // 셀러펄스 (Seller Pulse) — Toss Shopping seller tools (/sellerpulse on non-apex hosts).
+  // Effiroad toss-shop seller tools (/sellerpulse on non-apex hosts).
   if (pathname.startsWith("/sellerpulse")) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "toss-shop");

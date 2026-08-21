@@ -24,7 +24,7 @@ export function configFromEnv(): TossApiConfig | null {
     accessKey,
     secretKey,
     sandbox: process.env.TOSS_SHOPPING_SANDBOX === "1",
-    partnerName: process.env.TOSS_SHOPPING_PARTNER_NAME?.trim() || "sellerpulse",
+    partnerName: process.env.TOSS_SHOPPING_PARTNER_NAME?.trim() || "effiroad",
   };
 }
 

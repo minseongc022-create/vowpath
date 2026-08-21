@@ -12,7 +12,7 @@ export function tossConnectConfig(
     accessKey: accessKey.trim(),
     secretKey: secretKey.trim(),
     sandbox: sandbox ?? false,
-    partnerName: "sellerpulse",
+    partnerName: "effiroad",
   };
 }
 

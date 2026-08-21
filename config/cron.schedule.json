@@ -34,11 +34,11 @@
       "authHeader": "Authorization: Bearer $CRON_SECRET",
       "requiredInProduction": false,
       "does": [
-        "Seller Pulse: sync Toss Shopping API data every minute when keys configured",
+        "Effiroad: sync Toss Shopping API data every minute when keys configured",
         "Snapshot catalog prices/ranks and keyword metrics (1-minute buckets, 24h retention)",
         "Fire competitor price/rank alert rules"
       ],
-      "note": "셀러펄스(Seller Pulse) — configure at cron-job.org every 60s alongside tech-dispatch."
+      "note": "Effiroad (에피로드) — configure at cron-job.org every 60s alongside tech-dispatch."
     }
   ],
   "vercelCrons": [
@@ -63,7 +63,7 @@
     },
     {
       "path": "/api/cron/toss-shop-sync",
-      "note": "Seller Pulse (셀러펄스) — use external 60s cron (see externalCrons); daily backup optional"
+      "note": "Effiroad (에피로드) — use external 60s cron (see externalCrons); daily backup optional"
     },
     {
       "path": "/api/cron/retell-production-sync",
@@ -79,6 +79,6 @@
     { "name": "Ops failures panel", "intervalSeconds": 15, "file": "components/settings/OpsFailuresPanel.tsx", "when": "Settings page, tab visible" },
     { "name": "Forwarding verify test", "intervalSeconds": 3, "file": "components/settings/ForwardingTestPanel.tsx", "when": "During active test only" },
     { "name": "Relative time labels", "intervalSeconds": 30, "file": "lib/hooks/use-relative-now.ts", "when": "While subscribed" },
-    { "name": "Seller Pulse dashboards", "intervalSeconds": 60, "file": "toss-shop/lib/hooks/use-live-poll.ts", "when": "Dashboard tab visible" }
+    { "name": "Effiroad seller dashboards", "intervalSeconds": 60, "file": "toss-shop/lib/hooks/use-live-poll.ts", "when": "Dashboard tab visible" }
   ]
 }

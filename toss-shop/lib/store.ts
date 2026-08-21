@@ -203,7 +203,7 @@ export async function connectTossSeller(input: {
 
   const shopName = input.shopName?.trim() || "내 토스쇼핑 상점";
   const name = input.name?.trim() || "셀러";
-  const email = `seller_${accessKey.slice(-8).toLowerCase()}@connect.sellerpulse.local`;
+  const email = `seller_${accessKey.slice(-8).toLowerCase()}@connect.effiroad.local`;
   const password = randomBytes(12).toString("base64url");
 
   if (store.accounts.some((a) => a.email === email)) {

@@ -28,11 +28,11 @@ Required:
 | `RESEND_API_KEY` | `re_...` (password reset email) |
 | `CRON_SECRET` | random string (protects /api/cron/*) |
 | `NEXT_PUBLIC_BETA` | `false` |
-| `NEXT_PUBLIC_SELLER_PULSE_AT_ROOT` | `1` (set in `vercel.json` build — effiroad.com serves 셀러펄스 at `/`) |
+| `NEXT_PUBLIC_SELLER_PULSE_AT_ROOT` | `1` (set in `vercel.json` build — effiroad.com serves 에피로드 at `/`) |
 
-## 2a. effiroad.com = 셀러펄스 (Seller Pulse)
+## 2a. effiroad.com = Effiroad (에피로드)
 
-**Production:** `effiroad.com` is the Seller Pulse site at the domain root:
+**Production:** `effiroad.com` is the Effiroad seller dashboard at the domain root:
 
 - https://effiroad.com/ — landing  
 - https://effiroad.com/login — login  
@@ -44,7 +44,7 @@ Legacy Effiroad dispatch marketing UI is **local only**. To run it on localhost:
 EFFIROAD_DISPATCH_ENABLED=1 npm run dev
 ```
 
-Then Effiroad stays at `/` and Seller Pulse stays at `/sellerpulse` (do not set `NEXT_PUBLIC_SELLER_PULSE_AT_ROOT` locally).
+Then legacy dispatch UI stays at `/` and Effiroad seller tools stay at `/sellerpulse` (do not set `NEXT_PUBLIC_SELLER_PULSE_AT_ROOT` locally).
 
 Customer SMS portal paths (`/r/`, `/t/`, `/intake/`, etc.) still work on effiroad.com. Subdomains (`link.effiroad.com`, `learn.effiroad.com`, …) are unchanged.
 

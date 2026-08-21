@@ -1,9 +1,9 @@
-import { SELLER_PULSE_BRAND } from "./brand";
+import { EFFIROAD_BRAND } from "./brand";
 
 export const SP_STRINGS = {
-  brand: SELLER_PULSE_BRAND.name,
-  brandEn: SELLER_PULSE_BRAND.nameEn,
-  tagline: SELLER_PULSE_BRAND.tagline,
+  brand: EFFIROAD_BRAND.nameKo,
+  brandEn: EFFIROAD_BRAND.name,
+  tagline: EFFIROAD_BRAND.tagline,
   navHome: "홈",
   navRankings: "랭킹·가격",
   navKeywords: "키워드",
@@ -17,10 +17,10 @@ export const SP_STRINGS = {
   ctaTossConnect: "토스 셀러 연동",
   heroTitle: "토스쇼핑 셀러를 위한 올인원 대시보드",
   heroSubtitle:
-    "랭킹·가격·키워드·경쟁사·정산을 한곳에서 관리하세요. 셀러펄스는 토스쇼핑 판매 데이터를 분석하고 의사결정을 돕는 독립 도구입니다.",
-  demoEmail: "demo@sellerpulse.local",
+    "랭킹·가격·키워드·경쟁사·정산을 한곳에서 관리하세요. 에피로드는 토스쇼핑 판매 데이터를 분석하고 의사결정을 돕는 도구입니다.",
+  demoEmail: "demo@effiroad.local",
   demoPassword: "demo1234",
-  footer: "셀러펄스(Seller Pulse) — 토스쇼핑 공식 서비스가 아닌 독립 도구입니다.",
+  footer: "Effiroad(에피로드) — 토스쇼핑 공식 서비스가 아닌 독립 도구입니다.",
 } as const;
 
 /** @deprecated use SP_STRINGS */

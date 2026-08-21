@@ -1,10 +1,13 @@
-export const SELLER_PULSE_BRAND = {
-  name: "셀러펄스",
-  nameEn: "Seller Pulse",
-  fullName: "셀러펄스 — 토스쇼핑 셀러 실시간 대시보드",
+export const EFFIROAD_BRAND = {
+  name: "Effiroad",
+  nameKo: "에피로드",
+  fullName: "Effiroad — 토스쇼핑 셀러 대시보드",
   tagline: "랭킹·가격·키워드·경쟁사·정산을 한곳에서",
-  domain: "sellerpulse",
+  domain: "effiroad.com",
 } as const;
 
-/** @deprecated use SELLER_PULSE_BRAND */
-export const TOSS_SHOP_BRAND = SELLER_PULSE_BRAND;
+/** @deprecated use EFFIROAD_BRAND */
+export const SELLER_PULSE_BRAND = EFFIROAD_BRAND;
+
+/** @deprecated use EFFIROAD_BRAND */
+export const TOSS_SHOP_BRAND = EFFIROAD_BRAND;
