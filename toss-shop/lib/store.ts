@@ -20,7 +20,9 @@ import {
 } from "./seed";
 import { todayDateKey, minuteKey, appendCapped } from "./format";
 import { parseSettlementCsv } from "./settlement-csv";
-import { defaultTrialEndsAt } from "./billing";
+import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
+import { generateConsignmentPicks } from "./seller-engine/consignment";
+import { generateImportPicks } from "./seller-engine/import-sales";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
 import type {
@@ -32,6 +34,8 @@ import type {
   MerchantData,
   PriceSnapshot,
   SettlementRow,
+  ConsignmentPick,
+  ImportPick,
   TossShopAccount,
   TossShopMerchant,
   TossShopStore,
@@ -149,6 +153,7 @@ export async function createAccount(input: {
     category: "food",
     createdAt: new Date().toISOString(),
   };
+  const plan = resolvePlanForEmail(input.email.toLowerCase());
   const account: TossShopAccount = {
     id: newId("acc"),
     email: input.email.toLowerCase(),
@@ -156,8 +161,8 @@ export async function createAccount(input: {
     name: input.name,
     merchantId,
     createdAt: new Date().toISOString(),
-    plan: "trial",
-    trialEndsAt: defaultTrialEndsAt(),
+    plan,
+    usage: { date: todayDateKey(), keywordAnalyses: 0 },
   };
   const envConfig = configFromEnv();
   if (envConfig) {
@@ -221,6 +226,7 @@ export async function connectTossSeller(input: {
     apiSandbox: input.sandbox ?? false,
     dataSource: "live",
   };
+  const plan = isOwnerEmail(email) ? "owner" : "pro";
   account = {
     id: newId("acc"),
     email,
@@ -228,8 +234,9 @@ export async function connectTossSeller(input: {
     name,
     merchantId,
     createdAt: new Date().toISOString(),
-    plan: "trial",
-    trialEndsAt: defaultTrialEndsAt(),
+    plan,
+    usage: { date: todayDateKey(), keywordAnalyses: 0 },
+    ...(plan === "pro" ? { proExpiresAt: proExpiresAtFromNow(1) } : {}),
   };
   store.merchants.push(merchant);
   store.accounts.push(account);
@@ -698,4 +705,82 @@ export async function syncAllMerchants(): Promise<{
 
   await saveStore(store);
   return { priceUpdates, keywordUpdates, alertsFired, apiSyncs };
+}
+
+// ── Billing usage ──
+
+function todayUsage(account: TossShopAccount): { date: string; keywordAnalyses: number } {
+  const today = todayDateKey();
+  if (account.usage?.date === today) {
+    return account.usage;
+  }
+  return { date: today, keywordAnalyses: 0 };
+}
+
+export async function getKeywordUsageToday(accountId: string): Promise<number> {
+  const account = await getAccount(accountId);
+  if (!account) return 0;
+  return todayUsage(account).keywordAnalyses;
+}
+
+export async function recordKeywordAnalysis(accountId: string): Promise<number> {
+  const store = await loadStore();
+  const account = store.accounts.find((a) => a.id === accountId);
+  if (!account) return 0;
+  const usage = todayUsage(account);
+  usage.keywordAnalyses += 1;
+  account.usage = usage;
+  await saveStore(store);
+  return usage.keywordAnalyses;
+}
+
+export async function upgradeAccountToPro(accountId: string, months = 1): Promise<TossShopAccount | null> {
+  const store = await loadStore();
+  const account = store.accounts.find((a) => a.id === accountId);
+  if (!account || account.plan === "owner") return account ?? null;
+  account.plan = "pro";
+  account.proExpiresAt = proExpiresAtFromNow(months);
+  await saveStore(store);
+  return account;
+}
+
+export async function syncOwnerPlanIfNeeded(accountId: string): Promise<void> {
+  const store = await loadStore();
+  const account = store.accounts.find((a) => a.id === accountId);
+  if (!account) return;
+  if (isOwnerEmail(account.email) && account.plan !== "owner") {
+    account.plan = "owner";
+    delete account.proExpiresAt;
+    await saveStore(store);
+  }
+}
+
+// ── Seller engine picks ──
+
+export async function getConsignmentPicksForMerchant(merchantId: string): Promise<ConsignmentPick[]> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const today = todayDateKey();
+  if (data.consignmentDate === today && data.consignmentPicks?.length) {
+    return data.consignmentPicks;
+  }
+  const picks = generateConsignmentPicks(store.catalog, today);
+  data.consignmentPicks = picks;
+  data.consignmentDate = today;
+  await saveStore(store);
+  return picks;
+}
+
+export async function getImportPicksForMerchant(merchantId: string): Promise<ImportPick[]> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const today = todayDateKey();
+  if (data.importDate === today && data.importPicks?.length) {
+    return data.importPicks;
+  }
+  const picks = generateImportPicks(store.catalog, today);
+  data.importPicks = picks;
+  data.importDate = today;
+  await saveStore(store);
+  return picks;
 }

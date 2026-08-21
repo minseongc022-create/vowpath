@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { requireFullAccess } from "@/toss-shop/lib/billing-access";
 import { parseSettlementCsv } from "@/toss-shop/lib/settlement-csv";
 import {
   getSettlementSummary,
@@ -12,6 +13,9 @@ import { verifySameOriginRequest } from "@/lib/security/request-guard";
 export async function GET(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   const [rows, summary] = await Promise.all([
     getSettlements(session.merchantId),
@@ -27,6 +31,9 @@ export async function POST(request: Request) {
 
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   try {
     const contentType = request.headers.get("content-type") ?? "";

@@ -10,6 +10,8 @@ import { formatCompact, formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { KeywordAnalysis, TrackedKeyword } from "@/toss-shop/lib/types";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
+import { UsageBadge } from "@/toss-shop/components/UpgradeBanner";
+import { FREE_DAILY_KEYWORD_LIMIT } from "@/toss-shop/lib/billing";
 
 type Tab = "overview" | "products" | "related";
 
@@ -24,11 +26,17 @@ export function KeywordsPanel() {
   const [tab, setTab] = useState<Tab>("overview");
   const [analyzing, setAnalyzing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [limitError, setLimitError] = useState("");
 
   const fetchList = useCallback(async () => {
     const res = await fetch("/api/toss-shop/keywords");
-    const data = (await res.json()) as { keywords: TrackedKeyword[] };
+    const data = (await res.json()) as {
+      keywords: TrackedKeyword[];
+      usage?: { used: number; limit: number } | null;
+    };
     setKeywords(data.keywords ?? []);
+    setUsage(data.usage ?? null);
   }, []);
 
   const { initialLoading } = useSilentFetch(fetchList);
@@ -36,13 +44,26 @@ export function KeywordsPanel() {
   const analyze = useCallback(async (keyword: string) => {
     setSelected(keyword);
     setAnalyzing(true);
+    setLimitError("");
     try {
       const res = await fetch(
         `/api/toss-shop/keywords?keyword=${encodeURIComponent(keyword)}&analyze=1`,
       );
-      const data = (await res.json()) as { analysis: KeywordAnalysis };
-      setAnalysis(data.analysis);
-      setTab("overview");
+      const data = (await res.json()) as {
+        analysis?: KeywordAnalysis;
+        error?: string;
+        usage?: { used: number; limit: number };
+      };
+      if (!res.ok) {
+        setLimitError(data.error ?? "분석할 수 없습니다.");
+        if (data.usage) setUsage(data.usage);
+        return;
+      }
+      if (data.analysis) {
+        setAnalysis(data.analysis);
+        setTab("overview");
+      }
+      if (data.usage) setUsage(data.usage);
     } finally {
       setAnalyzing(false);
     }
@@ -56,13 +77,21 @@ export function KeywordsPanel() {
     const word = (kw ?? newKeyword).trim();
     if (!word || busy) return;
     setBusy(true);
+    setLimitError("");
     try {
-      await fetch("/api/toss-shop/keywords", {
+      const res = await fetch("/api/toss-shop/keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword: word }),
       });
+      const data = (await res.json()) as { error?: string; usage?: { used: number; limit: number } };
+      if (!res.ok) {
+        setLimitError(data.error ?? "추가할 수 없습니다.");
+        if (data.usage) setUsage(data.usage);
+        return;
+      }
       setNewKeyword("");
+      if (data.usage) setUsage(data.usage);
       await fetchList();
       await analyze(word);
     } finally {
@@ -93,7 +122,19 @@ export function KeywordsPanel() {
 
   return (
     <div className="space-y-5">
-      <KeywordSearchBar defaultValue={initialQ} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <KeywordSearchBar defaultValue={initialQ} />
+        {usage && <UsageBadge used={usage.used} limit={usage.limit ?? FREE_DAILY_KEYWORD_LIMIT} />}
+      </div>
+
+      {limitError && (
+        <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {limitError}{" "}
+          <a href={`${SP_ROUTES.settings}#upgrade`} className="font-semibold underline">
+            Pro 업그레이드
+          </a>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <input

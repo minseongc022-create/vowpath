@@ -1,9 +1,17 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { dataSourceLabel } from "@/toss-shop/lib/billing";
+import { dataSourceLabel, FREE_DAILY_KEYWORD_LIMIT, PRO_PRICE_KRW } from "@/toss-shop/lib/billing";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { TOSS_SELLER_CENTER_URL } from "@/toss-shop/lib/toss-connect";
+
+type PlanAccess = {
+  tier: string;
+  label: string;
+  fullAccess: boolean;
+  dailyKeywordLimit: number | null;
+  isOwner: boolean;
+};
 
 type SettingsData = {
   merchant: { shopName: string };
@@ -18,8 +26,11 @@ type SettingsData = {
   billing: {
     plan: string;
     planLabel: string;
-    trialEndsAt?: string;
+    access: PlanAccess;
+    proExpiresAt?: string;
     entitled: boolean;
+    priceKrw: number;
+    keywordLimit: number;
     dataSourceLabel: string;
   };
 };
@@ -31,6 +42,8 @@ export function SettingsPanel() {
   const [sandbox, setSandbox] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [activationCode, setActivationCode] = useState("");
+  const [upgradeMessage, setUpgradeMessage] = useState("");
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/toss-shop/settings");
@@ -67,6 +80,32 @@ export function SettingsPanel() {
     }
   }
 
+  async function activatePro() {
+    setBusy(true);
+    setUpgradeMessage("");
+    try {
+      const res = await fetch("/api/toss-shop/billing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "activate_pro", code: activationCode }),
+      });
+      const json = (await res.json()) as { error?: string; proExpiresAt?: string };
+      if (!res.ok) {
+        setUpgradeMessage(json.error ?? "활성화 실패");
+      } else {
+        setUpgradeMessage(
+          json.proExpiresAt
+            ? `Pro 활성화 완료 · 만료 ${new Date(json.proExpiresAt).toLocaleDateString("ko-KR")}`
+            : "Pro 활성화 완료",
+        );
+        setActivationCode("");
+      }
+      await fetchData();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function syncNow() {
     setBusy(true);
     setMessage("");
@@ -96,10 +135,18 @@ export function SettingsPanel() {
     <div className="space-y-5">
       <section className="ts-card">
         <h2 className="text-sm font-bold">플랜</h2>
-        <p className="mt-2 text-2xl font-bold text-ts-primary">{data.billing.planLabel}</p>
-        {data.billing.trialEndsAt && (
+        <p className="mt-2 text-2xl font-bold text-ts-primary">{data.billing.access.label}</p>
+        {data.billing.proExpiresAt && data.billing.access.tier === "pro" && (
           <p className="mt-1 text-xs text-ts-muted">
-            체험 종료: {new Date(data.billing.trialEndsAt).toLocaleDateString("ko-KR")}
+            Pro 만료: {new Date(data.billing.proExpiresAt).toLocaleDateString("ko-KR")}
+          </p>
+        )}
+        {data.billing.access.isOwner && (
+          <p className="mt-1 text-xs text-emerald-700">Owner 계정 · 모든 기능 무제한 무료</p>
+        )}
+        {!data.billing.access.fullAccess && (
+          <p className="mt-2 text-sm text-ts-muted">
+            Free: 하루 키워드 분석 {FREE_DAILY_KEYWORD_LIMIT}회 · 위탁/수입 AI·발굴·랭킹은 Pro 필요
           </p>
         )}
         <p className="mt-2 text-sm text-ts-muted">
@@ -107,8 +154,41 @@ export function SettingsPanel() {
         </p>
       </section>
 
-      <section className="ts-card">
+      {!data.billing.access.fullAccess && (
+        <section id="upgrade" className="ts-card scroll-mt-24 ring-2 ring-ts-primary/20">
+          <h2 className="text-sm font-bold">Pro 업그레이드</h2>
+          <p className="mt-2 text-sm text-ts-muted">
+            위탁 AI · 수입 AI · 아이템 발굴 · 랭킹 · 경쟁사 · 정산 · API 연동 전체 이용
+          </p>
+          <p className="mt-3 text-2xl font-bold text-ts-primary">
+            월 {(data.billing.priceKrw ?? PRO_PRICE_KRW).toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-ts-muted">
+            결제 연동 준비 중 · 활성화 코드가 있으면 아래에 입력하세요
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              className="ts-input min-w-0 flex-1"
+              placeholder="Pro 활성화 코드"
+              value={activationCode}
+              onChange={(e) => setActivationCode(e.target.value)}
+              autoComplete="off"
+            />
+            <button type="button" disabled={busy || !activationCode.trim()} onClick={() => void activatePro()} className="ts-btn-primary shrink-0 sm:!w-auto sm:px-6">
+              활성화
+            </button>
+          </div>
+          {upgradeMessage && <p className="mt-3 text-sm text-ts-muted">{upgradeMessage}</p>}
+        </section>
+      )}
+
+      <section className={`ts-card ${!data.billing.entitled ? "opacity-60" : ""}`}>
         <h2 className="text-sm font-bold">토스쇼핑 API 연동</h2>
+        {!data.billing.entitled && (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Pro 플랜에서 API 연동·동기화를 사용할 수 있습니다.
+          </p>
+        )}
         <p className="mt-1 text-xs leading-relaxed text-ts-muted">
           <a href={TOSS_SELLER_CENTER_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-ts-primary underline">
             토스쇼핑 셀러센터

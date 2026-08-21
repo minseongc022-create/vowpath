@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { requireFullAccess } from "@/toss-shop/lib/billing-access";
 import {
   addCompetitor,
   getAlertRules,
@@ -15,6 +16,9 @@ import { verifySameOriginRequest } from "@/lib/security/request-guard";
 export async function GET(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   const [competitors, rules, alerts] = await Promise.all([
     getCompetitors(session.merchantId),
@@ -36,6 +40,9 @@ export async function POST(request: Request) {
 
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   try {
     const body = (await request.json()) as {
@@ -81,6 +88,9 @@ export async function DELETE(request: Request) {
 
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");

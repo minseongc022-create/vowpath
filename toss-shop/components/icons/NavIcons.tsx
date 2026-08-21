@@ -72,3 +72,21 @@ export function IconSettings({ active, className = "h-[22px] w-[22px]" }: IconPr
     </svg>
   );
 }
+
+export function IconConsignment({ active, className = "h-[22px] w-[22px]" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={stroke(active)} strokeWidth="1.75" aria-hidden>
+      <path strokeLinecap="round" d="M4 8h16v12H4zM8 8V5h8v3" />
+      <path strokeLinecap="round" d="M12 12v4M10 14h4" />
+    </svg>
+  );
+}
+
+export function IconImport({ active, className = "h-[22px] w-[22px]" }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={stroke(active)} strokeWidth="1.75" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" d="M3 12h18M12 3c2 2.5 3 5 3 9s-1 6.5-3 9" />
+    </svg>
+  );
+}

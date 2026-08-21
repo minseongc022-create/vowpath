@@ -10,50 +10,48 @@ import {
   IconSettlements,
 } from "@/toss-shop/components/icons/FeatureIcons";
 import { KeywordSearchBar } from "@/toss-shop/components/ui/KeywordSearchBar";
+import { UsageBadge } from "@/toss-shop/components/UpgradeBanner";
 import { formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
 
-type Stats = {
-  watchlistCount: number;
-  keywordCount: number;
-  competitorCount: number;
-  unreadAlerts: number;
-  pendingPayoutKrw: number;
-  discrepancyCount: number;
-};
-
-type ApiInfo = {
-  dataSource?: string;
-  lastSyncAt?: string;
-  configured?: boolean;
+type BillingInfo = {
+  access?: { label: string; fullAccess: boolean; tier: string };
+  keywordUsage?: { used: number; limit: number } | null;
 };
 
 export function DashboardHomeClient() {
-  const [stats, setStats] = useState<Stats | null>(null);
   const [userName, setUserName] = useState("");
-  const [api, setApi] = useState<ApiInfo | null>(null);
+  const [billing, setBilling] = useState<BillingInfo | null>(null);
+  const [apiConfigured, setApiConfigured] = useState(false);
 
   const fetchData = useCallback(async () => {
     const r = await fetch("/api/toss-shop/auth/me");
-    const d = (await r.json()) as { user?: { name: string }; stats?: Stats; api?: ApiInfo };
+    const d = (await r.json()) as {
+      user?: { name: string };
+      billing?: BillingInfo;
+      api?: { configured?: boolean };
+    };
     setUserName(d.user?.name ?? "");
-    setStats(d.stats ?? null);
-    setApi(d.api ?? null);
+    setBilling(d.billing ?? null);
+    setApiConfigured(Boolean(d.api?.configured));
   }, []);
 
   const { initialLoading } = useSilentFetch(fetchData);
 
-  const cards = [
-    { href: SP_ROUTES.discovery, title: "아이템 발굴", desc: "수요·공급 키워드 탐색", stat: null, unit: "", Icon: IconDiscovery },
-    { href: SP_ROUTES.keywords, title: "키워드 분석", desc: "검색량·경쟁·연관 키워드", stat: stats?.keywordCount, unit: "추적", Icon: IconKeywords },
-    { href: SP_ROUTES.rankings, title: "랭킹 추적", desc: "키워드별 노출 순위", stat: stats?.watchlistCount, unit: "상품", Icon: IconRankings },
-    { href: SP_ROUTES.competitors, title: "경쟁사", desc: "가격·랭킹 알림", stat: stats?.unreadAlerts, unit: "새 알림", Icon: IconCompetitors },
-    { href: SP_ROUTES.settlements, title: "정산", desc: "예상 vs 실제 입금", stat: stats?.pendingPayoutKrw, unit: "대기", format: true, Icon: IconSettlements },
+  const heroCards = [
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI", desc: "오늘 5개 · 경쟁가 자동 매칭", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI", desc: "해외 소싱 · 랜딩비·수익 분석", accent: true },
   ];
 
-  const modeLabel = api?.dataSource === "live" ? "API 연동" : api?.configured ? "연동됨" : "데모";
+  const toolCards = [
+    { href: SP_ROUTES.keywords, title: "키워드 분석", desc: "검색량·차트·연관 키워드", Icon: IconKeywords },
+    { href: SP_ROUTES.discovery, title: "아이템 발굴", desc: "수요·공급 키워드", Icon: IconDiscovery },
+    { href: SP_ROUTES.rankings, title: "랭킹 추적", desc: "키워드별 노출 순위", Icon: IconRankings },
+    { href: SP_ROUTES.settlements, title: "정산", desc: "토스 API 정산 대조", Icon: IconSettlements },
+    { href: SP_ROUTES.competitors, title: "경쟁사", desc: "가격·랭킹 알림", Icon: IconCompetitors },
+  ];
 
   return (
     <div className="sp-dashboard mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -62,22 +60,28 @@ export function DashboardHomeClient() {
           <h1 className="ts-page-title">{userName ? `${userName}님` : "대시보드"}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ts-muted">
             {SP_STRINGS.brand}
-            <span className="ts-badge-neutral">{modeLabel}</span>
+            {!initialLoading && billing?.access && (
+              <span className="ts-badge-neutral">{billing.access.label}</span>
+            )}
+            {!initialLoading && billing?.keywordUsage && (
+              <UsageBadge used={billing.keywordUsage.used} limit={billing.keywordUsage.limit} />
+            )}
           </p>
         </div>
-        {!api?.configured && (
+        {!apiConfigured && (
           <Link href={SP_ROUTES.settings} className="ts-btn-inline ts-btn-secondary">
             API 연동
           </Link>
         )}
       </div>
 
-      {stats && stats.discrepancyCount > 0 && (
-        <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
-          정산 불일치 {stats.discrepancyCount}건 —{" "}
-          <Link href={SP_ROUTES.settlements} className="font-semibold underline">
-            확인하기
+      {!initialLoading && billing?.access && !billing.access.fullAccess && (
+        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
+          Free 플랜: 하루 3회 키워드 분석 · 위탁/수입 AI는 Pro 필요 (
+          <Link href={`${SP_ROUTES.settings}#upgrade`} className="font-semibold underline">
+            월 1만원 업그레이드
           </Link>
+          )
         </div>
       )}
 
@@ -85,8 +89,21 @@ export function DashboardHomeClient() {
         <KeywordSearchBar />
       </div>
 
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {heroCards.map((c) => (
+          <Link
+            key={c.href}
+            href={c.href}
+            className="rounded-2xl bg-ts-primary px-4 py-5 text-white shadow-sm transition-opacity active:opacity-90"
+          >
+            <p className="text-lg font-bold">{c.title}</p>
+            <p className="mt-1 text-sm text-white/85">{c.desc}</p>
+          </Link>
+        ))}
+      </div>
+
       <div className="mt-5 space-y-2">
-        {cards.map((c) => (
+        {toolCards.map((c) => (
           <Link key={c.href} href={c.href} className="ts-list-row block">
             <div className="ts-icon-box">
               <c.Icon />
@@ -94,15 +111,6 @@ export function DashboardHomeClient() {
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-ts-ink">{c.title}</p>
               <p className="text-sm text-ts-muted">{c.desc}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              {!initialLoading && stats && c.stat != null && (
-                <p className="text-lg font-bold text-ts-primary">
-                  {c.format ? formatKrw(c.stat) : c.stat}
-                  <span className="ml-1 text-xs font-normal text-ts-muted">{c.unit}</span>
-                </p>
-              )}
-              {initialLoading && <div className="ts-skeleton h-7 w-16" />}
             </div>
           </Link>
         ))}

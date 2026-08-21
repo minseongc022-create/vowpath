@@ -2,7 +2,8 @@
   "framework": "nextjs",
   "build": {
     "env": {
-      "NEXT_PUBLIC_SELLER_PULSE_AT_ROOT": "1"
+      "NEXT_PUBLIC_SELLER_PULSE_AT_ROOT": "1",
+      "TOSS_SHOP_OWNER_EMAILS": "minseongc022@gmail.com"
     }
   },
   "redirects": [

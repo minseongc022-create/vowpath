@@ -17,5 +17,7 @@ export const SP_ROUTES = {
   keywords: sp("/dashboard/keywords"),
   competitors: sp("/dashboard/competitors"),
   settlements: sp("/dashboard/settlements"),
+  consignment: sp("/dashboard/consignment"),
+  importSales: sp("/dashboard/import"),
   settings: sp("/dashboard/settings"),
 } as const;

@@ -7,7 +7,7 @@ import {
   syncMerchantNow,
   updateMerchantApiKeys,
 } from "@/toss-shop/lib/store";
-import { isTossShopEntitled, planLabel, dataSourceLabel } from "@/toss-shop/lib/billing";
+import { getPlanAccess, planLabel, dataSourceLabel, PRO_PRICE_KRW, FREE_DAILY_KEYWORD_LIMIT } from "@/toss-shop/lib/billing";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 export async function GET(request: Request) {
@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   if (!merchant || !account) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const api = merchantApiStatus(merchant);
+  const access = getPlanAccess(account);
   return NextResponse.json({
     merchant: {
       shopName: merchant.shopName,
@@ -30,10 +31,13 @@ export async function GET(request: Request) {
     },
     api,
     billing: {
-      plan: account.plan ?? "trial",
-      planLabel: planLabel(account.plan),
-      trialEndsAt: account.trialEndsAt,
-      entitled: isTossShopEntitled(account),
+      plan: account.plan ?? "free",
+      planLabel: planLabel(account.plan, account.email),
+      access,
+      proExpiresAt: account.proExpiresAt,
+      entitled: access.fullAccess,
+      priceKrw: PRO_PRICE_KRW,
+      keywordLimit: FREE_DAILY_KEYWORD_LIMIT,
       dataSourceLabel: dataSourceLabel(api.dataSource),
     },
   });
@@ -47,8 +51,8 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const account = await getAccount(session.sub);
-  if (!account || !isTossShopEntitled(account)) {
-    return NextResponse.json({ error: "Trial expired", code: "PLAN_REQUIRED" }, { status: 402 });
+  if (!account || !getPlanAccess(account).fullAccess) {
+    return NextResponse.json({ error: "Pro 플랜이 필요합니다.", code: "PLAN_REQUIRED" }, { status: 402 });
   }
 
   try {
