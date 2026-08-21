@@ -43,7 +43,7 @@ export function DashboardHomeClient() {
     setApi(d.api ?? null);
   }, []);
 
-  const { initialLoading, refreshing } = useSilentFetch(fetchData);
+  const { initialLoading } = useSilentFetch(fetchData);
 
   const cards = [
     { href: SP_ROUTES.discovery, title: "아이템 발굴", desc: "수요·공급 키워드 탐색", stat: null, unit: "", Icon: IconDiscovery },
@@ -63,12 +63,6 @@ export function DashboardHomeClient() {
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ts-muted">
             {SP_STRINGS.brand}
             <span className="ts-badge-neutral">{modeLabel}</span>
-            {refreshing && (
-              <span className="inline-flex items-center gap-1 text-xs">
-                <span className="ts-refresh-dot ts-refresh-dot-pulse" aria-hidden />
-                갱신 중
-              </span>
-            )}
           </p>
         </div>
         {!api?.configured && (

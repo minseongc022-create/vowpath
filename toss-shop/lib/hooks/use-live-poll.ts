@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-/** Poll callback every 60s while tab is visible (matches server cron interval). */
+/** Poll callback every intervalMs while tab is visible. Does not fire on mount. */
 export function useLivePoll(callback: () => void, intervalMs = 60_000) {
+  const cbRef = useRef(callback);
+  cbRef.current = callback;
+
   useEffect(() => {
-    callback();
     let id: ReturnType<typeof setInterval> | undefined;
+
+    function tick() {
+      cbRef.current();
+    }
 
     function start() {
       if (id) clearInterval(id);
-      id = setInterval(callback, intervalMs);
+      id = setInterval(tick, intervalMs);
     }
 
     function stop() {
@@ -20,18 +26,20 @@ export function useLivePoll(callback: () => void, intervalMs = 60_000) {
 
     function onVisibility() {
       if (document.visibilityState === "visible") {
-        callback();
         start();
       } else {
         stop();
       }
     }
 
-    start();
+    if (document.visibilityState === "visible") {
+      start();
+    }
+
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [callback, intervalMs]);
+  }, [intervalMs]);
 }

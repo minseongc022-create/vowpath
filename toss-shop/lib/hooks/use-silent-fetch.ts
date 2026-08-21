@@ -3,22 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLivePoll } from "./use-live-poll";
 
-/** Fetch on mount + silent 60s refresh (no loading flicker after first load). */
+/** Fetch on mount + silent background refresh (no UI flicker). */
 export function useSilentFetch(run: () => Promise<void>, deps: unknown[] = []) {
   const hasLoaded = useRef(false);
+  const runRef = useRef(run);
+  runRef.current = run;
   const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const load = useCallback(async (silent = false) => {
-    if (silent) setRefreshing(true);
-    else if (!hasLoaded.current) setInitialLoading(true);
+    if (!silent && !hasLoaded.current) setInitialLoading(true);
     try {
-      await run();
+      await runRef.current();
       hasLoaded.current = true;
     } finally {
       setInitialLoading(false);
-      setRefreshing(false);
     }
   }, deps);
 
@@ -30,5 +28,5 @@ export function useSilentFetch(run: () => Promise<void>, deps: unknown[] = []) {
     if (hasLoaded.current) void load(true);
   });
 
-  return { initialLoading, refreshing, reload: () => load(false) };
+  return { initialLoading, reload: () => load(false) };
 }
