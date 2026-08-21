@@ -321,6 +321,44 @@ export type ImportSourceBundle = {
   sourcingBrief: string;
 };
 
+export type GoalProgress = {
+  goalKrw: number;
+  projectedMonthlyKrw: number;
+  gapKrw: number;
+  progressPct: number;
+  onTrack: boolean;
+  actualMonthlyKrw?: number;
+};
+
+export type GoalPickContribution = {
+  keyword: string;
+  mode: "consignment" | "import";
+  monthlyProfitKrw: number;
+  goalSharePct: number;
+  scalePotential: "high" | "medium" | "low";
+  geniusScore: number;
+  pathNote: string;
+};
+
+export type GoalMilestone = {
+  week: number;
+  label: string;
+  targetCumulativeKrw: number;
+  actions: string[];
+};
+
+export type TenMillionPlan = {
+  goalKrw: number;
+  progress: GoalProgress;
+  requiredActiveSkus: number;
+  recommendedMix: { consignment: number; import: number };
+  milestones: GoalMilestone[];
+  topContributors: GoalPickContribution[];
+  geniusBrief: string;
+  weeklyActions: string[];
+  scalingLevers: string[];
+};
+
 export type ConsignmentPick = {
   id: string;
   keyword: string;
@@ -355,6 +393,9 @@ export type ConsignmentPick = {
   wholesaleBest?: WholesaleListing | null;
   wholesaleApiLive?: boolean;
   autoSourcingSteps?: string[];
+  geniusScore?: number;
+  goalSharePct?: number;
+  goalPathNote?: string;
 };
 
 export type ImportPick = {
@@ -394,6 +435,9 @@ export type ImportPick = {
   importSources?: ImportSourceBundle;
   importBest?: ImportSourceListing | null;
   sourcingBrief?: string;
+  geniusScore?: number;
+  goalSharePct?: number;
+  goalPathNote?: string;
 };
 
 export type TossShopStore = {

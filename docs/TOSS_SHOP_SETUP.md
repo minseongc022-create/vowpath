@@ -22,6 +22,14 @@
 
 미설정 시: 도매꾹·도매매 **검색 링크 + 시장 기반 추정가**로 동작 (입력 후 정밀도 상승).
 
+## 월 수익 목표 (AI v5 genius)
+
+| Variable | Default |
+|----------|---------|
+| `TOSS_SHOP_MONTHLY_GOAL_KRW` | `10000000` (월 1,000만 원) |
+
+대시보드·수익 브리핑 API에서 목표 대비 진행률·12주 로드맵·genius 점수를 계산합니다.
+
 ## Vercel에 이미 있을 Lemon Squeezy (Effiroad 공용)
 
 토스쇼핑 Pro 결제는 **기존 LS 키**를 재사용합니다. 별도 variant 없으면 `LEMON_SQUEEZY_VARIANT_ID_GIU`로 fallback (custom_price 10,000원).

@@ -15,6 +15,8 @@ import { formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
+import { TenMillionGoalCard, GoalMilestonesList } from "@/toss-shop/components/TenMillionGoalCard";
+import type { TenMillionPlan } from "@/toss-shop/lib/types";
 
 type BillingInfo = {
   access?: { label: string; fullAccess: boolean; tier: string };
@@ -28,7 +30,8 @@ type RevenueBrief = {
     avgProfitScore: number;
     topKeyword: string;
   };
-  topPicks?: { keyword: string; monthlyProfitKrw: number; mode: string }[];
+  tenMillionPlan?: TenMillionPlan;
+  topPicks?: { keyword: string; monthlyProfitKrw: number; mode: string; geniusScore?: number }[];
 };
 
 export function DashboardHomeClient() {
@@ -59,8 +62,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI v5", desc: "도매꾹·도매매 연동 · 자동 위탁 플로우", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI v5", desc: "중국·일본 소싱 · 1688·라쿠텐", accent: true },
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI v5", desc: "월 1천만 목표 · 도매꾹 자동 소싱", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI v5", desc: "월 1천만 목표 · 1688·일본 소싱", accent: true },
   ];
 
   const toolCards = [
@@ -107,7 +110,14 @@ export function DashboardHomeClient() {
         <KeywordSearchBar />
       </div>
 
-      {!initialLoading && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
+      {!initialLoading && revenueBrief?.tenMillionPlan && (
+        <div className="mt-5 space-y-4">
+          <TenMillionGoalCard plan={revenueBrief.tenMillionPlan} />
+          <GoalMilestonesList milestones={revenueBrief.tenMillionPlan.milestones} />
+        </div>
+      )}
+
+      {!initialLoading && !revenueBrief?.tenMillionPlan && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
         <div className="mt-5 rounded-2xl bg-gradient-to-br from-ts-primary/10 to-emerald-50 px-4 py-4 ring-1 ring-ts-primary/20">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-bold text-ts-ink">오늘의 AI v5 수익 브리핑</p>

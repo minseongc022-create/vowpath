@@ -51,6 +51,9 @@ export function SourcingAnalysisCard({
   importSources,
   importBest,
   sourcingBrief,
+  geniusScore,
+  goalSharePct,
+  goalPathNote,
   extra,
 }: {
   winScore?: number;
@@ -82,6 +85,9 @@ export function SourcingAnalysisCard({
   importSources?: ImportSourceBundle;
   importBest?: ImportSourceListing | null;
   sourcingBrief?: string;
+  geniusScore?: number;
+  goalSharePct?: number;
+  goalPathNote?: string;
   extra?: ReactNode;
 }) {
   if (!signals?.length && !pricing && !aiSummary) return null;
@@ -96,12 +102,22 @@ export function SourcingAnalysisCard({
             AI {engineVersion}
           </span>
           {profitScore != null && (
-            <span className="font-semibold text-ts-primary">수익점수 {profitScore}/99</span>
+            <span className="font-semibold text-ts-primary">수익 {profitScore}/99</span>
+          )}
+          {geniusScore != null && (
+            <span className="font-bold text-violet-600">genius {geniusScore}</span>
+          )}
+          {goalSharePct != null && (
+            <span className="text-ts-muted">목표 {goalSharePct}%</span>
           )}
           {winScore != null && (
             <span className="text-ts-muted">승률 {winScore}/99</span>
           )}
         </div>
+      )}
+
+      {goalPathNote && (
+        <p className="text-xs text-violet-700">{goalPathNote}</p>
       )}
 
       {aiSummary && (

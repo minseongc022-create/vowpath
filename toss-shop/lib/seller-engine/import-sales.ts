@@ -13,6 +13,7 @@ import {
   scoreOpportunity,
 } from "./intelligence";
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
+import { buildPickContributions, getMonthlyGoalKrw } from "./goal-engine";
 
 const IMPORT_CATEGORIES: TossShopCategory[] = ["digital", "home", "beauty", "fashion", "health"];
 
@@ -210,7 +211,31 @@ export async function generateImportPicks(
   }
 
   return candidates
-    .sort((a, b) => (b.estimatedMonthlyProfitKrw ?? 0) - (a.estimatedMonthlyProfitKrw ?? 0))
+    .map((pick) => {
+      const contributions = buildPickContributions([
+        {
+          keyword: pick.keyword,
+          mode: "import",
+          monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
+          marginPct: pick.estimatedMarginPct,
+          category: pick.category,
+        },
+      ]);
+      const c = contributions[0];
+      return {
+        ...pick,
+        geniusScore: c?.geniusScore ?? pick.profitScore,
+        goalSharePct: c?.goalSharePct,
+        goalPathNote: c?.pathNote,
+        confidenceScore: c?.geniusScore ?? pick.confidenceScore,
+        aiSummary:
+          pick.aiSummary +
+          (c
+            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · genius ${c.geniusScore}점.`
+            : ""),
+      };
+    })
+    .sort((a, b) => (b.geniusScore ?? 0) - (a.geniusScore ?? 0))
     .slice(0, 5);
 }
 
