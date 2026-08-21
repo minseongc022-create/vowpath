@@ -10,6 +10,8 @@ const config: Config = {
     "./mano/**/*.{js,ts,jsx,tsx,mdx}",
     "./giu/**/*.{js,ts,jsx,tsx,mdx}",
     "./giu/styles/**/*.css",
+    "./toss-shop/**/*.{js,ts,jsx,tsx,mdx}",
+    "./toss-shop/styles/**/*.css",
   ],
   theme: {
     extend: {
@@ -24,6 +26,18 @@ const config: Config = {
           "primary-hover": "#0f766e",
           accent: "#ea580c",
           "accent-hover": "#c2410c",
+        },
+        ts: {
+          bg: "#f9fafb",
+          surface: "#ffffff",
+          ink: "#191f28",
+          muted: "#6b7684",
+          border: "#e5e8eb",
+          primary: "#3182f6",
+          "primary-hover": "#1b64da",
+          success: "#00c471",
+          danger: "#f04452",
+          warning: "#f9a825",
         },
         giu: {
           bg: "#fcf9f2",

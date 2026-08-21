@@ -195,6 +195,14 @@ export async function middleware(request: NextRequest) {
     return giuShellResponse(request);
   }
 
+  // Toss Shop Insight — Toss Shopping seller tools, isolated product shell.
+  if (pathname.startsWith("/toss-shop")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "toss-shop");
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (isDecommissionedHost(hostname)) {
     if (pathname === "/robots.txt") {
       return new NextResponse("User-agent: *\nDisallow: /\n", {

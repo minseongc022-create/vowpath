@@ -1,0 +1,76 @@
+.toss-shop-theme {
+  --ts-primary: #3182f6;
+  --ts-primary-hover: #1b64da;
+  --ts-bg: #f9fafb;
+  --ts-surface: #ffffff;
+  --ts-ink: #191f28;
+  --ts-muted: #6b7684;
+  --ts-border: #e5e8eb;
+  --ts-success: #00c471;
+  --ts-danger: #f04452;
+  --ts-warning: #f9a825;
+}
+
+.toss-shop-app {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+.ts-card {
+  @apply rounded-2xl border border-ts-border bg-ts-surface p-5 shadow-sm;
+}
+
+.ts-btn-primary {
+  @apply inline-flex items-center justify-center rounded-xl bg-ts-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ts-primary-hover disabled:opacity-50;
+}
+
+.ts-btn-secondary {
+  @apply inline-flex items-center justify-center rounded-xl border border-ts-border bg-white px-4 py-2.5 text-sm font-semibold text-ts-ink transition hover:bg-ts-bg disabled:opacity-50;
+}
+
+.ts-input {
+  @apply w-full rounded-xl border border-ts-border bg-white px-3 py-2.5 text-sm text-ts-ink placeholder:text-ts-muted/60 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/20;
+}
+
+.ts-badge {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold;
+}
+
+.ts-badge-up {
+  @apply ts-badge bg-emerald-50 text-emerald-700;
+}
+
+.ts-badge-down {
+  @apply ts-badge bg-red-50 text-red-600;
+}
+
+.ts-badge-neutral {
+  @apply ts-badge bg-ts-bg text-ts-muted;
+}
+
+.ts-stat-grid {
+  @apply grid grid-cols-2 gap-3 sm:grid-cols-4;
+}
+
+.ts-stat {
+  @apply rounded-xl bg-ts-bg px-4 py-3 ring-1 ring-ts-border;
+}
+
+.ts-table {
+  @apply w-full text-left text-sm;
+}
+
+.ts-table th {
+  @apply border-b border-ts-border pb-2 text-[11px] font-bold uppercase tracking-wide text-ts-muted;
+}
+
+.ts-table td {
+  @apply border-b border-ts-border/60 py-3;
+}
+
+.ts-nav-active {
+  @apply bg-ts-primary/10 text-ts-primary;
+}
+
+.ts-nav-item {
+  @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ts-muted transition hover:bg-ts-bg hover:text-ts-ink;
+}
