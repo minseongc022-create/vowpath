@@ -6,15 +6,6 @@ export type TossShopCategory =
   | "fashion"
   | "health";
 
-export type TossShopAccount = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  name: string;
-  merchantId: string;
-  createdAt: string;
-};
-
 export type TossShopMerchant = {
   id: string;
   shopName: string;
@@ -22,6 +13,27 @@ export type TossShopMerchant = {
   bankName?: string;
   bankAccount?: string;
   createdAt: string;
+  /** Per-merchant Toss Shopping API keys (server-side only). */
+  apiAccessKey?: string;
+  apiSecretKey?: string;
+  apiSandbox?: boolean;
+  apiConnectedAt?: string;
+  dataSource?: "demo" | "live" | "live_partial";
+  lastSyncAt?: string;
+  lastSyncError?: string;
+};
+
+export type TossShopPlan = "trial" | "free" | "pro";
+
+export type TossShopAccount = {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  merchantId: string;
+  createdAt: string;
+  plan?: TossShopPlan;
+  trialEndsAt?: string;
 };
 
 export type CatalogProduct = {

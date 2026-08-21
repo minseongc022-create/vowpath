@@ -19,6 +19,10 @@ import {
   SEED_MERCHANT,
 } from "./seed";
 import { todayDateKey } from "./format";
+import { parseSettlementCsv } from "./settlement-csv";
+import { defaultTrialEndsAt } from "./billing";
+import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
+import { configFromEnv, maskSecret } from "./api/config";
 import type {
   CatalogProduct,
   Competitor,
@@ -152,7 +156,18 @@ export async function createAccount(input: {
     name: input.name,
     merchantId,
     createdAt: new Date().toISOString(),
+    plan: "trial",
+    trialEndsAt: defaultTrialEndsAt(),
   };
+  const envConfig = configFromEnv();
+  if (envConfig) {
+    merchant.apiAccessKey = envConfig.accessKey;
+    merchant.apiSecretKey = envConfig.secretKey;
+    merchant.apiSandbox = envConfig.sandbox;
+    merchant.dataSource = "live";
+  } else {
+    merchant.dataSource = "demo";
+  }
   store.merchants.push(merchant);
   store.accounts.push(account);
   store.merchantData[merchantId] = defaultMerchantData();
@@ -163,6 +178,76 @@ export async function createAccount(input: {
 export async function getMerchant(merchantId: string): Promise<TossShopMerchant | null> {
   const store = await loadStore();
   return store.merchants.find((m) => m.id === merchantId) ?? null;
+}
+
+export async function getAccount(accountId: string): Promise<TossShopAccount | null> {
+  const store = await loadStore();
+  return store.accounts.find((a) => a.id === accountId) ?? null;
+}
+
+export async function updateMerchantApiKeys(
+  merchantId: string,
+  input: { accessKey?: string; secretKey?: string; sandbox?: boolean; clear?: boolean },
+): Promise<TossShopMerchant | null> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (!merchant) return null;
+
+  if (input.clear) {
+    delete merchant.apiAccessKey;
+    delete merchant.apiSecretKey;
+    merchant.apiSandbox = false;
+    merchant.dataSource = "demo";
+    merchant.lastSyncError = undefined;
+  } else {
+    if (input.accessKey?.trim()) merchant.apiAccessKey = input.accessKey.trim();
+    if (input.secretKey?.trim()) merchant.apiSecretKey = input.secretKey.trim();
+    if (input.sandbox != null) merchant.apiSandbox = input.sandbox;
+    merchant.dataSource = merchant.apiAccessKey && merchant.apiSecretKey ? "live" : "demo";
+  }
+
+  await saveStore(store);
+  return merchant;
+}
+
+export function merchantApiStatus(merchant: TossShopMerchant) {
+  const configured = isApiConfigured(merchant);
+  return {
+    configured,
+    dataSource: merchant.dataSource ?? (configured ? "live" : "demo"),
+    accessKeyMasked: merchant.apiAccessKey ? maskSecret(merchant.apiAccessKey) : null,
+    sandbox: merchant.apiSandbox ?? false,
+    lastSyncAt: merchant.lastSyncAt,
+    lastSyncError: merchant.lastSyncError,
+  };
+}
+
+export async function syncMerchantNow(merchantId: string): Promise<{
+  ok: boolean;
+  result?: Awaited<ReturnType<typeof syncMerchantFromTossApi>>["result"];
+  error?: string;
+}> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (!merchant) return { ok: false, error: "NOT_FOUND" };
+
+  const data = merchantData(store, merchantId);
+  const synced = await syncMerchantFromTossApi(merchant, data);
+
+  const idx = store.merchants.findIndex((m) => m.id === merchantId);
+  store.merchants[idx] = synced.merchant;
+  store.merchantData[merchantId] = synced.data;
+
+  if (synced.catalog.length > 0) {
+    const ownIds = new Set(synced.catalog.map((p) => p.id));
+    store.catalog = [
+      ...synced.catalog,
+      ...store.catalog.filter((p) => !ownIds.has(p.id)),
+    ];
+  }
+
+  await saveStore(store);
+  return { ok: true, result: synced.result };
 }
 
 // ── Catalog & Rankings ──
@@ -446,12 +531,28 @@ export async function syncAllMerchants(): Promise<{
   priceUpdates: number;
   keywordUpdates: number;
   alertsFired: number;
+  apiSyncs: number;
 }> {
   const store = await loadStore();
   const date = todayDateKey();
   let priceUpdates = 0;
   let keywordUpdates = 0;
   let alertsFired = 0;
+  let apiSyncs = 0;
+
+  for (const merchant of store.merchants) {
+    if (!isApiConfigured(merchant)) continue;
+    const data = merchantData(store, merchant.id);
+    const synced = await syncMerchantFromTossApi(merchant, data);
+    const idx = store.merchants.findIndex((m) => m.id === merchant.id);
+    store.merchants[idx] = synced.merchant;
+    store.merchantData[merchant.id] = synced.data;
+    if (synced.catalog.length > 0) {
+      const ownIds = new Set(synced.catalog.map((p) => p.id));
+      store.catalog = [...synced.catalog, ...store.catalog.filter((p) => !ownIds.has(p.id))];
+    }
+    apiSyncs++;
+  }
 
   store.catalog = store.catalog.map((p) => {
     const updated = simulatePriceUpdate(p);
@@ -527,7 +628,5 @@ export async function syncAllMerchants(): Promise<{
   }
 
   await saveStore(store);
-  return { priceUpdates, keywordUpdates, alertsFired };
+  return { priceUpdates, keywordUpdates, alertsFired, apiSyncs };
 }
-
-import { parseSettlementCsv } from "./settlement-csv";

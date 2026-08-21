@@ -14,16 +14,24 @@ type Stats = {
   discrepancyCount: number;
 };
 
+type ApiInfo = {
+  dataSource?: string;
+  lastSyncAt?: string;
+  configured?: boolean;
+};
+
 export function DashboardHomeClient() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [userName, setUserName] = useState("");
+  const [api, setApi] = useState<ApiInfo | null>(null);
 
   useEffect(() => {
     void fetch("/api/toss-shop/auth/me")
       .then((r) => r.json())
-      .then((d: { user?: { name: string }; stats?: Stats }) => {
+      .then((d: { user?: { name: string }; stats?: Stats; api?: ApiInfo }) => {
         setUserName(d.user?.name ?? "");
         setStats(d.stats ?? null);
+        setApi(d.api ?? null);
       });
   }, []);
 
@@ -39,7 +47,14 @@ export function DashboardHomeClient() {
       <h1 className="text-2xl font-bold text-ts-ink">
         {userName ? `${userName}님, ` : ""}대시보드
       </h1>
-      <p className="mt-1 text-sm text-ts-muted">토스쇼핑 셀러 운영 데이터를 한눈에 확인하세요.</p>
+      <p className="mt-1 text-sm text-ts-muted">
+        토스쇼핑 셀러 운영 데이터를 한눈에 확인하세요.
+        {api && (
+          <span className="ml-2 rounded-full bg-ts-bg px-2 py-0.5 text-xs font-semibold text-ts-muted">
+            {api.dataSource === "live" ? "실시간 API" : api.configured ? "API 연동" : "데모 모드"}
+          </span>
+        )}
+      </p>
 
       {stats && stats.discrepancyCount > 0 && (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

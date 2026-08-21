@@ -51,6 +51,9 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
                 <Link href="/toss-shop/dashboard/settlements" className={navClass(pathname.includes("/settlements"))}>
                   {TS_STRINGS.navSettlements}
                 </Link>
+                <Link href="/toss-shop/dashboard/settings" className={navClass(pathname.includes("/settings"))}>
+                  설정
+                </Link>
               </>
             ) : (
               <>

@@ -7,6 +7,7 @@ export const SEED_MERCHANT: TossShopMerchant = {
   bankName: "토스뱅크",
   bankAccount: "1000-0000-0000",
   createdAt: "2026-01-15T00:00:00.000Z",
+  dataSource: "demo",
 };
 
 export const SEED_ACCOUNT: TossShopAccount = {
@@ -16,6 +17,8 @@ export const SEED_ACCOUNT: TossShopAccount = {
   name: "데모 셀러",
   merchantId: SEED_MERCHANT.id,
   createdAt: "2026-01-15T00:00:00.000Z",
+  plan: "trial",
+  trialEndsAt: "2027-01-15T00:00:00.000Z",
 };
 
 export const SEED_CATALOG: CatalogProduct[] = [
