@@ -76,7 +76,7 @@ export function ImportPanel() {
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
                 <span className="ts-grade-badge ts-grade-excellent">
-                  {p.profitScore ?? p.winScore ?? p.confidenceScore}점
+                  {p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore} genius
                 </span>
               </div>
 
@@ -124,6 +124,9 @@ export function ImportPanel() {
                 importSources={p.importSources}
                 importBest={p.importBest}
                 sourcingBrief={p.sourcingBrief}
+                geniusScore={p.geniusScore}
+                goalSharePct={p.goalSharePct}
+                goalPathNote={p.goalPathNote}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}
                 extra={

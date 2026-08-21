@@ -82,7 +82,7 @@ export function ConsignmentPanel() {
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
                 <span className="ts-grade-badge ts-grade-good">
-                  {p.profitScore ?? p.winScore ?? p.confidenceScore}점
+                  {p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore} genius
                 </span>
               </div>
 
@@ -140,6 +140,9 @@ export function ConsignmentPanel() {
                 wholesaleMatches={p.wholesaleMatches}
                 wholesaleBest={p.wholesaleBest}
                 wholesaleApiLive={p.wholesaleApiLive}
+                geniusScore={p.geniusScore}
+                goalSharePct={p.goalSharePct}
+                goalPathNote={p.goalPathNote}
               />
             </article>
           ))}
