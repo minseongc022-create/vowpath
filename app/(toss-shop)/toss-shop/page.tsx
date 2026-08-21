@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LegalDisclaimer } from "@/toss-shop/components/LegalDisclaimer";
 import {
   IconCompetitors,
+  IconDiscovery,
   IconKeywords,
   IconRankings,
   IconSettlements,
@@ -11,14 +12,19 @@ import { SP_STRINGS } from "@/toss-shop/lib/strings";
 
 const FEATURES = [
   {
-    Icon: IconRankings,
-    title: "랭킹·가격 추적",
-    desc: "카테고리별 순위와 가격 변동을 확인하고 관심 상품을 추적합니다.",
+    Icon: IconDiscovery,
+    title: "아이템 발굴",
+    desc: "카테고리별 키워드 수요·공급, 경쟁강도로 판매 아이템을 찾습니다.",
   },
   {
     Icon: IconKeywords,
     title: "키워드 분석",
-    desc: "검색량·경쟁 상품·상위 노출 상품을 분석합니다.",
+    desc: "검색량·차트·상위 상품·연관 키워드를 분석합니다.",
+  },
+  {
+    Icon: IconRankings,
+    title: "랭킹 추적",
+    desc: "내 상품이 토스쇼핑에서 어떤 키워드로 몇 위에 노출되는지 추적합니다.",
   },
   {
     Icon: IconCompetitors,
@@ -28,7 +34,7 @@ const FEATURES = [
   {
     Icon: IconSettlements,
     title: "정산 대조",
-    desc: "예상 정산금과 실제 입금액을 대조합니다.",
+    desc: "예상 정산금과 실제 입금액을 대조합니다. (토스쇼핑 API 연동)",
   },
 ];
 

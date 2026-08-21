@@ -43,11 +43,14 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
                 <Link href={SP_ROUTES.dashboard} className={navClass(pathname === SP_ROUTES.dashboard)}>
                   {SP_STRINGS.navDashboard}
                 </Link>
-                <Link href={SP_ROUTES.rankings} className={navClass(pathname.includes("/rankings"))}>
-                  {SP_STRINGS.navRankings}
+                <Link href={SP_ROUTES.discovery} className={navClass(pathname.includes("/discovery"))}>
+                  {SP_STRINGS.navDiscovery}
                 </Link>
                 <Link href={SP_ROUTES.keywords} className={navClass(pathname.includes("/keywords"))}>
                   {SP_STRINGS.navKeywords}
+                </Link>
+                <Link href={SP_ROUTES.rankings} className={navClass(pathname.includes("/rankings"))}>
+                  {SP_STRINGS.navRankings}
                 </Link>
                 <Link href={SP_ROUTES.competitors} className={navClass(pathname.includes("/competitors"))}>
                   {SP_STRINGS.navCompetitors}

@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import {
+  filterDiscoveryKeywords,
+  getCategoryTabs,
+  getDiscoveryKeywords,
+  getTrendingKeywords,
+} from "@/toss-shop/lib/discovery";
+import { getRankings } from "@/toss-shop/lib/store";
+import type { TossShopCategory } from "@/toss-shop/lib/types";
+
+export async function GET(request: Request) {
+  const session = await requireTossShopSessionFromRequest(request);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const category = (searchParams.get("category") ?? undefined) as TossShopCategory | undefined;
+  const minSearch = searchParams.get("minSearch");
+  const maxCompetition = searchParams.get("maxCompetition");
+  const sort = searchParams.get("sort") as "search" | "competition" | "trend" | null;
+
+  let keywords = getDiscoveryKeywords(category);
+  keywords = filterDiscoveryKeywords(keywords, {
+    minSearch: minSearch ? Number(minSearch) : undefined,
+    maxCompetition: maxCompetition ? Number(maxCompetition) : undefined,
+    sort: sort ?? "search",
+  });
+
+  const [trendingKeywords, trendingProducts] = await Promise.all([
+    Promise.resolve(getTrendingKeywords(10)),
+    getRankings(category).then((products) =>
+      products.slice(0, 10).map((p, i) => ({
+        rank: i + 1,
+        id: p.id,
+        name: p.name,
+        priceKrw: p.priceKrw,
+        reviewCount: p.reviewCount,
+        sellerName: p.sellerName,
+      })),
+    ),
+  ]);
+
+  return NextResponse.json({
+    keywords,
+    categories: getCategoryTabs(),
+    trendingKeywords,
+    trendingProducts,
+  });
+}

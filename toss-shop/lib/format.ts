@@ -41,3 +41,18 @@ export function categoryLabel(category: string): string {
   };
   return labels[category] ?? category;
 }
+
+export function competitionGradeLabel(grade: string): string {
+  const labels: Record<string, string> = {
+    excellent: "아주좋음",
+    good: "좋음",
+    fair: "보통",
+    poor: "나쁨",
+  };
+  return labels[grade] ?? grade;
+}
+
+export function formatCompact(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+  return n.toLocaleString("ko-KR");
+}

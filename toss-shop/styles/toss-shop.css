@@ -189,3 +189,163 @@
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
+
+/* ── Item Scout style analytics UI ── */
+
+.ts-search-bar {
+  @apply flex items-center gap-3 rounded-2xl bg-ts-surface px-4 ring-1 ring-ts-border;
+  min-height: 52px;
+}
+
+.ts-search-submit {
+  @apply shrink-0 rounded-xl bg-ts-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ts-primary-hover;
+}
+
+.ts-card-compact {
+  @apply rounded-2xl bg-ts-surface p-4 ring-1 ring-ts-border;
+}
+
+.ts-section-title {
+  @apply text-sm font-bold text-ts-ink;
+}
+
+.ts-section-desc {
+  @apply mt-0.5 text-xs text-ts-muted;
+}
+
+.ts-filter-bar {
+  @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+}
+
+.ts-category-scroll {
+  @apply flex gap-2 overflow-x-auto pb-1;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ts-category-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ts-chip {
+  @apply shrink-0 cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-semibold text-ts-muted ring-1 ring-ts-border transition-colors hover:bg-ts-bg;
+}
+
+.ts-chip-active {
+  background-color: var(--ts-primary-soft);
+  @apply text-ts-primary ring-ts-primary/30;
+}
+
+.ts-select-compact {
+  @apply rounded-xl bg-ts-surface px-3 py-2 text-sm font-medium text-ts-ink ring-1 ring-ts-border;
+}
+
+.ts-data-table {
+  @apply w-full text-left text-sm;
+}
+
+.ts-data-table th {
+  @apply border-b border-ts-border bg-ts-bg px-4 py-2.5 text-xs font-semibold text-ts-muted;
+}
+
+.ts-data-table td {
+  @apply border-b border-ts-border/60 px-4 py-3 align-middle;
+}
+
+.ts-data-table tbody tr:hover {
+  @apply bg-ts-bg/60;
+}
+
+.ts-rank-list-item {
+  @apply flex items-center gap-2 rounded-xl px-2 py-2 text-sm transition-colors hover:bg-ts-bg;
+}
+
+.ts-rank-num {
+  @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ts-bg text-xs font-bold text-ts-muted;
+}
+
+.ts-link-action {
+  @apply text-sm font-semibold text-ts-primary hover:underline;
+}
+
+.ts-tab-bar {
+  @apply flex gap-1 overflow-x-auto border-b border-ts-border pb-px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ts-tab {
+  @apply shrink-0 cursor-pointer border-b-2 border-transparent px-3 py-2.5 text-sm font-semibold text-ts-muted transition-colors hover:text-ts-ink;
+}
+
+.ts-tab-active {
+  @apply border-ts-primary text-ts-primary;
+}
+
+.ts-metric-grid {
+  @apply grid grid-cols-2 gap-2 sm:grid-cols-3;
+}
+
+.ts-metric-cell {
+  @apply rounded-xl bg-ts-bg px-3 py-3 ring-1 ring-ts-border;
+}
+
+.ts-metric-label {
+  @apply text-[10px] font-bold uppercase tracking-wide text-ts-muted;
+}
+
+.ts-metric-value {
+  @apply mt-1 text-xl font-bold text-ts-ink;
+}
+
+.ts-metric-unit {
+  @apply ml-0.5 text-xs font-normal text-ts-muted;
+}
+
+.ts-mini-stat {
+  @apply rounded-xl bg-ts-bg px-3 py-2.5 ring-1 ring-ts-border;
+}
+
+.ts-keyword-item {
+  @apply flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-ts-bg;
+}
+
+.ts-keyword-item-active {
+  background-color: var(--ts-primary-soft);
+  @apply font-semibold text-ts-primary;
+}
+
+.ts-related-keyword {
+  @apply flex w-full cursor-pointer flex-wrap items-center gap-2 rounded-xl bg-ts-bg px-4 py-3 text-left ring-1 ring-ts-border transition-colors hover:ring-ts-primary/30;
+}
+
+.ts-grade-badge {
+  @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold;
+}
+
+.ts-grade-excellent {
+  @apply bg-emerald-50 text-emerald-700;
+}
+
+.ts-grade-good {
+  @apply bg-sky-50 text-sky-700;
+}
+
+.ts-grade-fair {
+  @apply bg-amber-50 text-amber-700;
+}
+
+.ts-grade-poor {
+  @apply bg-red-50 text-red-600;
+}
+
+.ts-trend-up {
+  @apply text-xs font-semibold text-emerald-600;
+}
+
+.ts-trend-down {
+  @apply text-xs font-semibold text-red-500;
+}
+
+.ts-trend-flat {
+  @apply text-xs text-ts-muted;
+}

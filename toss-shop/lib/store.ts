@@ -336,11 +336,16 @@ export async function getWatchlist(merchantId: string): Promise<WatchlistItem[]>
 export async function addToWatchlist(
   merchantId: string,
   productId: string,
-  opts?: { alertPriceDropPct?: number; alertRankUp?: number },
+  opts?: { keyword?: string; alertPriceDropPct?: number; alertRankUp?: number },
 ): Promise<WatchlistItem> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
-  if (data.watchlist.some((w) => w.productId === productId)) {
+  const keyword = opts?.keyword?.trim();
+  if (
+    data.watchlist.some(
+      (w) => w.productId === productId && (w.keyword ?? "") === (keyword ?? ""),
+    )
+  ) {
     throw new Error("ALREADY_WATCHING");
   }
   if (!getProductById(productId) && !store.catalog.find((p) => p.id === productId)) {
@@ -349,6 +354,7 @@ export async function addToWatchlist(
   const item: WatchlistItem = {
     id: newId("wl"),
     productId,
+    keyword: keyword || undefined,
     alertPriceDropPct: opts?.alertPriceDropPct,
     alertRankUp: opts?.alertRankUp,
     addedAt: new Date().toISOString(),
