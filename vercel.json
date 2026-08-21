@@ -1,5 +1,10 @@
 {
   "framework": "nextjs",
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_SELLER_PULSE_AT_ROOT": "1"
+    }
+  },
   "redirects": [
     {
       "source": "/:path*",

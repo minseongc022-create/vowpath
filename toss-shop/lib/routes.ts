@@ -1,13 +1,20 @@
-/** Public URL base — 셀러펄스 (Seller Pulse) */
-export const SP_BASE = "/sellerpulse";
+import { sellerPulseAtRoot } from "@/lib/seller-pulse-host";
 
+/** Public URL base — empty on effiroad.com root, /sellerpulse elsewhere. */
+export const SP_BASE = sellerPulseAtRoot() ? "" : "/sellerpulse";
+
+function sp(path: string): string {
+  return SP_BASE ? `${SP_BASE}${path}` : path || "/";
+}
+
+/** 셀러펄스 (Seller Pulse) public routes */
 export const SP_ROUTES = {
-  home: SP_BASE,
-  login: `${SP_BASE}/login`,
-  dashboard: `${SP_BASE}/dashboard`,
-  rankings: `${SP_BASE}/dashboard/rankings`,
-  keywords: `${SP_BASE}/dashboard/keywords`,
-  competitors: `${SP_BASE}/dashboard/competitors`,
-  settlements: `${SP_BASE}/dashboard/settlements`,
-  settings: `${SP_BASE}/dashboard/settings`,
+  home: sp(""),
+  login: sp("/login"),
+  dashboard: sp("/dashboard"),
+  rankings: sp("/dashboard/rankings"),
+  keywords: sp("/dashboard/keywords"),
+  competitors: sp("/dashboard/competitors"),
+  settlements: sp("/dashboard/settlements"),
+  settings: sp("/dashboard/settings"),
 } as const;

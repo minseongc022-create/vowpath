@@ -14,6 +14,13 @@ import {
   isGiuHost,
 } from "@/giu/lib/giu-host";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
+import {
+  isCustomerPortalPath,
+  isEffiroadDispatchEnabled,
+  isLegacyEffiroadUiPath,
+  isSellerPulsePrimaryHost,
+  sellerPulseInternalPath,
+} from "@/lib/seller-pulse-host";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -129,6 +136,19 @@ function handleTopikLocale(request: NextRequest): NextResponse | null {
   return null;
 }
 
+function sellerPulseShellResponse(
+  request: NextRequest,
+  rewritePath: string,
+  publicPath: string,
+) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-app-shell", "toss-shop");
+  requestHeaders.set("x-pathname", publicPath);
+  const url = request.nextUrl.clone();
+  url.pathname = rewritePath;
+  return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
@@ -195,7 +215,55 @@ export async function middleware(request: NextRequest) {
     return giuShellResponse(request);
   }
 
-  // 셀러펄스 (Seller Pulse) — Toss Shopping seller tools.
+  const sellerPulseOwnsApex =
+    isSellerPulsePrimaryHost(hostname) && !isEffiroadDispatchEnabled();
+
+  // effiroad.com → 셀러펄스 at / (legacy Effiroad UI: EFFIROAD_DISPATCH_ENABLED=1 local only).
+  if (sellerPulseOwnsApex) {
+    if (
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/favicon") ||
+      pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|txt|xml|json|webmanifest)$/)
+    ) {
+      return NextResponse.next();
+    }
+
+    if (isCustomerPortalPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    if (pathname.startsWith("/sellerpulse")) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname.slice("/sellerpulse".length) || "/";
+      return NextResponse.redirect(url, 308);
+    }
+
+    if (pathname.startsWith("/toss-shop")) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname.replace(/^\/toss-shop/, "") || "/";
+      return NextResponse.redirect(url, 308);
+    }
+
+    if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard/settings";
+      return NextResponse.redirect(url, 308);
+    }
+
+    if (isLegacyEffiroadUiPath(pathname)) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+
+    const internal = sellerPulseInternalPath(pathname);
+    if (internal) {
+      return sellerPulseShellResponse(request, internal, pathname);
+    }
+
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
+  // 셀러펄스 (Seller Pulse) — Toss Shopping seller tools (/sellerpulse on non-apex hosts).
   if (pathname.startsWith("/sellerpulse")) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "toss-shop");
