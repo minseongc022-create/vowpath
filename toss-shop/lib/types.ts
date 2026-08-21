@@ -23,7 +23,7 @@ export type TossShopMerchant = {
   lastSyncError?: string;
 };
 
-export type TossShopPlan = "trial" | "free" | "pro";
+export type TossShopPlan = "owner" | "trial" | "free" | "pro";
 
 export type TossShopAccount = {
   id: string;
@@ -34,6 +34,13 @@ export type TossShopAccount = {
   createdAt: string;
   plan?: TossShopPlan;
   trialEndsAt?: string;
+  /** Pro subscription expiry (monthly). */
+  proExpiresAt?: string;
+  /** Daily usage counters (UTC date key). */
+  usage?: {
+    date: string;
+    keywordAnalyses: number;
+  };
 };
 
 export type CatalogProduct = {
@@ -168,6 +175,50 @@ export type MerchantData = {
   alertRules: CompetitorAlertRule[];
   alerts: CompetitorAlert[];
   settlements: SettlementRow[];
+  /** Last generated consignment picks (date key). */
+  consignmentPicks?: ConsignmentPick[];
+  consignmentDate?: string;
+  importPicks?: ImportPick[];
+  importDate?: string;
+};
+
+export type CompetitorPriceRef = {
+  sellerName: string;
+  priceKrw: number;
+  rank: number;
+};
+
+export type ConsignmentPick = {
+  id: string;
+  keyword: string;
+  productName: string;
+  category: TossShopCategory;
+  supplierCostKrw: number;
+  recommendedPriceKrw: number;
+  competitorPrices: CompetitorPriceRef[];
+  searchVolume: number;
+  competitionIntensity: number;
+  estimatedMarginPct: number;
+  estimatedDailyProfitKrw: number;
+  confidenceScore: number;
+  reason: string;
+};
+
+export type ImportPick = {
+  id: string;
+  productName: string;
+  category: TossShopCategory;
+  sourceCountry: string;
+  sourcePriceUsd: number;
+  landedCostKrw: number;
+  recommendedPriceKrw: number;
+  marketAvgPriceKrw: number;
+  estimatedMarginPct: number;
+  estimatedMonthlyUnits: number;
+  estimatedMonthlyProfitKrw: number;
+  confidenceScore: number;
+  reason: string;
+  keyword: string;
 };
 
 export type TossShopStore = {

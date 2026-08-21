@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { requireFullAccess } from "@/toss-shop/lib/billing-access";
 import {
   filterDiscoveryKeywords,
   getCategoryTabs,
@@ -12,6 +13,9 @@ import type { TossShopCategory } from "@/toss-shop/lib/types";
 export async function GET(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const access = await requireFullAccess(session.sub);
+  if (!access.ok) return access.response;
 
   const { searchParams } = new URL(request.url);
   const category = (searchParams.get("category") ?? undefined) as TossShopCategory | undefined;

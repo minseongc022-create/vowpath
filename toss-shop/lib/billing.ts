@@ -1,6 +1,36 @@
 import type { TossShopAccount, TossShopPlan } from "./types";
 
+export const PRO_PRICE_KRW = 10_000;
+export const FREE_DAILY_KEYWORD_LIMIT = 3;
+export const CONSIGNMENT_DAILY_PICKS = 5;
+
 const TRIAL_DAYS = 30;
+
+export type PlanTier = "owner" | "pro" | "free";
+
+export type PlanAccess = {
+  tier: PlanTier;
+  label: string;
+  fullAccess: boolean;
+  dailyKeywordLimit: number | null;
+  priceKrw: number | null;
+  isOwner: boolean;
+};
+
+function ownerEmails(): string[] {
+  const raw = process.env.TOSS_SHOP_OWNER_EMAILS?.trim();
+  if (!raw) return [];
+  return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+}
+
+export function isOwnerEmail(email: string): boolean {
+  return ownerEmails().includes(email.toLowerCase());
+}
+
+export function resolvePlanForEmail(email: string): TossShopPlan {
+  if (isOwnerEmail(email)) return "owner";
+  return "free";
+}
 
 export function defaultTrialEndsAt(from = new Date()): string {
   const d = new Date(from);
@@ -8,20 +38,74 @@ export function defaultTrialEndsAt(from = new Date()): string {
   return d.toISOString();
 }
 
-export function isTossShopEntitled(account: Pick<TossShopAccount, "plan" | "trialEndsAt">): boolean {
-  if (account.plan === "pro" || account.plan === "free") return true;
-  if (!account.trialEndsAt) return true;
-  return new Date(account.trialEndsAt).getTime() > Date.now();
+export function normalizePlan(plan?: TossShopPlan): PlanTier {
+  if (plan === "owner") return "owner";
+  if (plan === "pro") return "pro";
+  return "free";
 }
 
-export function planLabel(plan?: TossShopPlan): string {
+export function getPlanAccess(account: Pick<TossShopAccount, "email" | "plan" | "trialEndsAt" | "proExpiresAt">): PlanAccess {
+  if (isOwnerEmail(account.email) || account.plan === "owner") {
+    return {
+      tier: "owner",
+      label: "Owner (무제한)",
+      fullAccess: true,
+      dailyKeywordLimit: null,
+      priceKrw: null,
+      isOwner: true,
+    };
+  }
+  if (account.plan === "pro" && account.proExpiresAt && new Date(account.proExpiresAt).getTime() > Date.now()) {
+    return {
+      tier: "pro",
+      label: "Pro",
+      fullAccess: true,
+      dailyKeywordLimit: null,
+      priceKrw: PRO_PRICE_KRW,
+      isOwner: false,
+    };
+  }
+  if (account.plan === "pro" && !account.proExpiresAt) {
+    return {
+      tier: "pro",
+      label: "Pro",
+      fullAccess: true,
+      dailyKeywordLimit: null,
+      priceKrw: PRO_PRICE_KRW,
+      isOwner: false,
+    };
+  }
+  return {
+    tier: "free",
+    label: "Free",
+    fullAccess: false,
+    dailyKeywordLimit: FREE_DAILY_KEYWORD_LIMIT,
+    priceKrw: PRO_PRICE_KRW,
+    isOwner: false,
+  };
+}
+
+/** @deprecated use getPlanAccess().fullAccess */
+export function isTossShopEntitled(account: Pick<TossShopAccount, "email" | "plan" | "trialEndsAt" | "proExpiresAt">): boolean {
+  return getPlanAccess(account).fullAccess;
+}
+
+export function planLabel(plan?: TossShopPlan, email?: string): string {
+  if (email && isOwnerEmail(email)) return "Owner";
+  if (plan === "owner") return "Owner";
   if (plan === "pro") return "Pro";
   if (plan === "free") return "Free";
-  return "Trial";
+  return "Free";
 }
 
 export function dataSourceLabel(source?: string): string {
   if (source === "live") return "실시간 API";
   if (source === "live_partial") return "API (부분)";
   return "데모 데이터";
+}
+
+export function proExpiresAtFromNow(months = 1): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString();
 }

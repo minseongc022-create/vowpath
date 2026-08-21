@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   IconCompetitors,
+  IconConsignment,
   IconDiscovery,
   IconHome,
+  IconImport,
   IconKeywords,
   IconMore,
   IconRankings,
@@ -17,19 +19,21 @@ import { SP_ROUTES } from "@/toss-shop/lib/routes";
 
 const PRIMARY_NAV = [
   { href: SP_ROUTES.dashboard, label: "홈", Icon: IconHome, match: (p: string) => p === SP_ROUTES.dashboard },
-  { href: SP_ROUTES.discovery, label: "발굴", Icon: IconDiscovery, match: (p: string) => p.includes("/discovery") },
+  { href: SP_ROUTES.consignment, label: "위탁", Icon: IconConsignment, match: (p: string) => p.includes("/consignment") },
+  { href: SP_ROUTES.importSales, label: "수입", Icon: IconImport, match: (p: string) => p.includes("/import") },
   { href: SP_ROUTES.keywords, label: "키워드", Icon: IconKeywords, match: (p: string) => p.includes("/keywords") },
-  { href: SP_ROUTES.rankings, label: "랭킹", Icon: IconRankings, match: (p: string) => p.includes("/rankings") },
 ] as const;
 
 const MORE_LINKS = [
+  { href: SP_ROUTES.discovery, label: "아이템 발굴", desc: "수요·공급 키워드", Icon: IconDiscovery },
+  { href: SP_ROUTES.rankings, label: "랭킹 추적", desc: "노출 순위", Icon: IconRankings },
   { href: SP_ROUTES.settlements, label: "정산", desc: "예상 vs 실제 입금", Icon: IconSettlements },
   { href: SP_ROUTES.competitors, label: "경쟁사", desc: "가격·랭킹 알림", Icon: IconCompetitors },
-  { href: SP_ROUTES.settings, label: "설정", desc: "API 연동·동기화", Icon: IconSettings },
+  { href: SP_ROUTES.settings, label: "설정", desc: "API 연동·플랜", Icon: IconSettings },
 ] as const;
 
 function isMoreActive(pathname: string): boolean {
-  return pathname.includes("/settlements") || pathname.includes("/competitors") || pathname.includes("/settings");
+  return MORE_LINKS.some((l) => pathname.includes(l.href.split("/dashboard")[1] ?? l.href));
 }
 
 export function DashboardMobileNav() {

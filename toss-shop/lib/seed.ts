@@ -17,8 +17,7 @@ export const SEED_ACCOUNT: TossShopAccount = {
   name: "데모 셀러",
   merchantId: SEED_MERCHANT.id,
   createdAt: "2026-01-15T00:00:00.000Z",
-  plan: "trial",
-  trialEndsAt: "2027-01-15T00:00:00.000Z",
+  plan: "free",
 };
 
 export const SEED_CATALOG: CatalogProduct[] = [
