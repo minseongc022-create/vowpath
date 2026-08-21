@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     picks,
     dailyLimit: CONSIGNMENT_DAILY_PICKS,
     mode: "consignment",
-    description: "AI v5 위탁 — 도매꾹·도매매 공급 연동 · 마진·가격 자동",
+    description: "AI v6 위탁 — 대표아이템·도매꾹·도매매 · 마진·가격 자동",
     engineVersion: SELLER_AI_ENGINE_VERSION,
     catalogSize: ctx.catalogSize,
     marketKeywordCount: ctx.marketKeywordCount,

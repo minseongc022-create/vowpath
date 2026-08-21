@@ -8,6 +8,7 @@ import {
 } from "@/toss-shop/lib/store";
 import { buildPortfolioBrief, SELLER_AI_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/revenue-engine";
 import { buildTenMillionPlan } from "@/toss-shop/lib/seller-engine/goal-engine";
+import { TOSS_POLICY_BRIEF, POLICY_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/policy-engine";
 
 function estimateActualMonthlyFromSettlements(
   rows: { grossKrw: number; orderDate: string }[],
@@ -41,6 +42,8 @@ export async function GET(request: Request) {
       monthlyProfitKrw: p.estimatedMonthlyProfitKrw ?? p.estimatedDailyProfitKrw * 30,
       profitScore: p.profitScore ?? p.winScore ?? 0,
       geniusScore: p.geniusScore,
+      v6MasterScore: p.v6MasterScore,
+      representativeItemScore: p.catalogWin?.representativeItemScore,
       keyword: p.keyword,
       mode: "consignment" as const,
       searchVolume: p.searchVolume,
@@ -52,6 +55,8 @@ export async function GET(request: Request) {
       monthlyProfitKrw: p.estimatedMonthlyProfitKrw ?? 0,
       profitScore: p.profitScore ?? p.winScore ?? 0,
       geniusScore: p.geniusScore,
+      v6MasterScore: p.v6MasterScore,
+      representativeItemScore: p.catalogWin?.representativeItemScore,
       keyword: p.keyword,
       mode: "import" as const,
       marginPct: p.estimatedMarginPct,
@@ -65,16 +70,36 @@ export async function GET(request: Request) {
   const tenMillionPlan = buildTenMillionPlan(allPicks, actualMonthly);
 
   const topPicks = [...allPicks]
-    .sort((a, b) => (b.geniusScore ?? b.profitScore) - (a.geniusScore ?? a.profitScore))
+    .sort(
+      (a, b) =>
+        (b.v6MasterScore ?? b.geniusScore ?? b.profitScore) -
+        (a.v6MasterScore ?? a.geniusScore ?? a.profitScore),
+    )
     .slice(0, 3);
+
+  const avgRepItemScore =
+    allPicks.filter((p) => p.representativeItemScore != null).length > 0
+      ? Math.round(
+          allPicks.reduce((s, p) => s + (p.representativeItemScore ?? 0), 0) /
+            allPicks.filter((p) => p.representativeItemScore != null).length,
+        )
+      : 0;
 
   return NextResponse.json({
     engineVersion: SELLER_AI_ENGINE_VERSION,
+    policyEngineVersion: POLICY_ENGINE_VERSION,
+    tossPolicyBrief: TOSS_POLICY_BRIEF,
+    policySummary: {
+      catalogModel: TOSS_POLICY_BRIEF.catalogModel,
+      avgRepresentativeItemScore: avgRepItemScore,
+      topRepItemKeyword: topPicks[0]?.keyword ?? "",
+    },
     portfolio,
     tenMillionPlan,
     topPicks,
     consignmentCount: consignment.length,
     importCount: importPicks.length,
-    message: "AI v5 — 월 1,000만 원 목표 · 도매·해외 소싱 · genius 점수",
+    message:
+      "AI v6 — 월 1,000만 원 목표 · 토스 카탈로그·대표아이템 · 도매·해외 소싱 · v6Master 점수",
   });
 }

@@ -62,8 +62,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI v5", desc: "월 1천만 목표 · 도매꾹 자동 소싱", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI v5", desc: "월 1천만 목표 · 1688·일본 소싱", accent: true },
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI v6", desc: "월 1천만 · 대표아이템·도매꾹 소싱", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI v6", desc: "월 1천만 · 카탈로그·1688·일본 소싱", accent: true },
   ];
 
   const toolCards = [
@@ -120,7 +120,7 @@ export function DashboardHomeClient() {
       {!initialLoading && !revenueBrief?.tenMillionPlan && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
         <div className="mt-5 rounded-2xl bg-gradient-to-br from-ts-primary/10 to-emerald-50 px-4 py-4 ring-1 ring-ts-primary/20">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold text-ts-ink">오늘의 AI v5 수익 브리핑</p>
+            <p className="font-bold text-ts-ink">오늘의 AI v6 수익 브리핑</p>
             {revenueBrief.engineVersion && (
               <span className="rounded-full bg-ts-primary px-2 py-0.5 text-xs font-bold text-white">
                 {revenueBrief.engineVersion.toUpperCase()}

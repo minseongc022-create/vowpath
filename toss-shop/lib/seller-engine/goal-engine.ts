@@ -1,5 +1,5 @@
 /**
- * AI v5 Goal Engine — 월 1,000만 원 수익 목표 최적화
+ * AI v6 Goal Engine — 월 1,000만 원 수익 목표 + 카탈로그·대표 아이템 최적화
  */
 
 export const DEFAULT_MONTHLY_GOAL_KRW = 10_000_000;
@@ -206,14 +206,14 @@ export function buildTenMillionPlan(
     consignmentProfit >= importProfit
       ? "위탁 비중 ↑ · 도매꾹 API 실공급가로 마진 방어"
       : "수입 비중 ↑ · 1688/라쿠텐 프리미엄 라인",
-    "고 geniusScore SKU에 80% 시간 투입 (파레토)",
-    "토스 API 실데이터 연동 시 추천 정밀도 ↑ → 재분석 주 1회",
+    "고 v6MasterScore SKU에 80% 시간 투입 (파레토)",
+    "토스 카탈로그 대표아이템(총액 최저) 유지 · API 실데이터 연동 시 주 1회 재분석",
   ];
 
   const top = contributors[0];
   const geniusBrief = progress.onTrack
-    ? `AI v5 분석: 오늘 10선 예상 월수익 ${projected.toLocaleString()}원으로 **월 ${progress.goalKrw.toLocaleString()}원 목표 ${progress.progressPct}%** 달성 경로에 있습니다. 「${top?.keyword ?? ""}」(${top?.geniusScore ?? 0}점)부터 즉시 실행하세요.`
-    : `AI v5 목표: **월 ${progress.goalKrw.toLocaleString()}원**. 현재 10선 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. 「${top?.keyword ?? ""}」 genius ${top?.geniusScore ?? 0}점 1순위 · 활성 SKU ${requiredActiveSkus}개·12주 로드맵으로 메우세요.`;
+    ? `AI v6 분석: 오늘 10선 예상 월수익 ${projected.toLocaleString()}원으로 **월 ${progress.goalKrw.toLocaleString()}원 목표 ${progress.progressPct}%** 달성 경로에 있습니다. 「${top?.keyword ?? ""}」(${top?.geniusScore ?? 0}점) · 대표아이템·정책 준수 우선 실행.`
+    : `AI v6 목표: **월 ${progress.goalKrw.toLocaleString()}원**. 현재 10선 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. 「${top?.keyword ?? ""}」 genius ${top?.geniusScore ?? 0}점 1순위 · 카탈로그 대표아이템 점수·활성 SKU ${requiredActiveSkus}개·12주 로드맵으로 메우세요.`;
 
   const weeklyActions = milestones[0].actions.concat(milestones[1].actions.slice(0, 2));
 

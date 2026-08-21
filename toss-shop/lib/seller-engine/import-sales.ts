@@ -14,6 +14,7 @@ import {
 } from "./intelligence";
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 import { buildPickContributions, getMonthlyGoalKrw } from "./goal-engine";
+import { buildV6PickEnrichment, POLICY_ENGINE_VERSION } from "./policy-engine";
 
 const IMPORT_CATEGORIES: TossShopCategory[] = ["digital", "home", "beauty", "fashion", "health"];
 
@@ -222,20 +223,55 @@ export async function generateImportPicks(
         },
       ]);
       const c = contributions[0];
+      const geniusScore = c?.geniusScore ?? pick.profitScore ?? 0;
+      const competitorPrices = pick.competitorInsights?.map((x) => x.priceKrw) ?? [pick.marketAvgPriceKrw];
+      const v6 = buildV6PickEnrichment({
+        keyword: pick.keyword,
+        productName: pick.productName,
+        suggestedTitle: pick.suggestedTitle,
+        category: pick.category,
+        priceKrw: pick.recommendedPriceKrw,
+        marginPct: pick.estimatedMarginPct,
+        competitorPrices,
+        competitionIntensity: pick.competitorLandscape?.count
+          ? pick.competitorLandscape.count / 10
+          : 1.2,
+        productCount: pick.competitorLandscape?.count ?? competitorPrices.length,
+        reviewCount: pick.competitorLandscape?.avgReviewCount ?? 0,
+        catalogSize: catalog.length,
+        searchVolume: 5000,
+        priceLow: pick.pricing?.competitorLowKrw ?? pick.marketAvgPriceKrw * 0.85,
+        priceMedian: pick.pricing?.competitorMedianKrw ?? pick.marketAvgPriceKrw,
+        priceHigh: pick.pricing?.competitorHighKrw ?? pick.marketAvgPriceKrw * 1.15,
+        geniusScore,
+        monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
+        goalKrw: getMonthlyGoalKrw(),
+        freeShippingRecommended: pick.recommendedPriceKrw >= 20000,
+      });
       return {
         ...pick,
-        geniusScore: c?.geniusScore ?? pick.profitScore,
+        geniusScore,
         goalSharePct: c?.goalSharePct,
         goalPathNote: c?.pathNote,
-        confidenceScore: c?.geniusScore ?? pick.confidenceScore,
+        v6MasterScore: v6.v6MasterScore,
+        catalogWin: v6.catalogWin,
+        policyChecklist: v6.policyChecklist,
+        v6: {
+          engineVersion: POLICY_ENGINE_VERSION,
+          v6MasterScore: v6.v6MasterScore,
+          catalogWin: v6.catalogWin,
+          policyChecklist: v6.policyChecklist,
+          marketScanSummary: v6.marketScanSummary,
+        },
+        confidenceScore: v6.v6MasterScore,
         aiSummary:
           pick.aiSummary +
           (c
-            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · genius ${c.geniusScore}점.`
+            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · genius ${geniusScore}점 · 대표아이템 ${v6.catalogWin.representativeItemScore} · v6 ${v6.v6MasterScore}.`
             : ""),
       };
     })
-    .sort((a, b) => (b.geniusScore ?? 0) - (a.geniusScore ?? 0))
+    .sort((a, b) => (b.v6MasterScore ?? 0) - (a.v6MasterScore ?? 0))
     .slice(0, 5);
 }
 
