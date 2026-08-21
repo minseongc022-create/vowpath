@@ -18,6 +18,18 @@ export function todayDateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Minute bucket for real-time snapshots (UTC). */
+export function minuteKey(d = new Date()): string {
+  return d.toISOString().slice(0, 16);
+}
+
+export const MAX_SNAPSHOTS_PER_SERIES = 1440;
+
+export function appendCapped<T>(arr: T[], item: T, max = MAX_SNAPSHOTS_PER_SERIES): T[] {
+  const next = [...arr, item];
+  return next.length > max ? next.slice(next.length - max) : next;
+}
+
 export function categoryLabel(category: string): string {
   const labels: Record<string, string> = {
     food: "식품",

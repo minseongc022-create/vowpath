@@ -5,7 +5,7 @@ import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell
 import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
 import { TossShopPlatformShell } from "@/toss-shop/components/layout/TossShopPlatformShell";
-import { TOSS_SHOP_BRAND } from "@/toss-shop/lib/brand";
+import { SELLER_PULSE_BRAND } from "@/toss-shop/lib/brand";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
 import { resolveGiuPublicOrigin } from "@/giu/lib/giu-host-server";
@@ -54,13 +54,13 @@ export async function generateMetadata(): Promise<Metadata> {
   }
   if (shell === "toss-shop") {
     return {
-      title: { default: TOSS_SHOP_BRAND.name, template: `%s · ${TOSS_SHOP_BRAND.name}` },
-      description: TOSS_SHOP_BRAND.tagline,
-      applicationName: TOSS_SHOP_BRAND.name,
+      title: { default: SELLER_PULSE_BRAND.name, template: `%s · ${SELLER_PULSE_BRAND.name}` },
+      description: SELLER_PULSE_BRAND.tagline,
+      applicationName: SELLER_PULSE_BRAND.name,
       robots: { index: true, follow: true },
       openGraph: {
-        title: TOSS_SHOP_BRAND.fullName,
-        description: TOSS_SHOP_BRAND.tagline,
+        title: SELLER_PULSE_BRAND.fullName,
+        description: SELLER_PULSE_BRAND.tagline,
         locale: "ko_KR",
       },
     };

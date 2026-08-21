@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
+import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
+import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import type { SettlementRow } from "@/toss-shop/lib/types";
 
 type Summary = {
@@ -34,9 +36,9 @@ export function SettlementsPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  useLivePoll(() => {
     void load();
-  }, [load]);
+  });
 
   async function importCsv() {
     await fetch("/api/toss-shop/settlements", {

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
+import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
+import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import type { KeywordAnalysis, TrackedKeyword } from "@/toss-shop/lib/types";
 
 export function KeywordsPanel() {
@@ -19,9 +21,9 @@ export function KeywordsPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  useLivePoll(() => {
     void load();
-  }, [load]);
+  });
 
   async function addKeyword() {
     if (!newKeyword.trim()) return;
@@ -52,6 +54,7 @@ export function KeywordsPanel() {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-ts-muted">{SP_STRINGS.syncInterval} · 탭이 열려 있으면 자동 새로고침</p>
       <div className="flex gap-2">
         <input
           className="ts-input"

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
+import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
+import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import type { CatalogProduct, Competitor, CompetitorAlert, CompetitorAlertRule } from "@/toss-shop/lib/types";
 
 type EnrichedCompetitor = Competitor & { products: CatalogProduct[] };
@@ -27,9 +29,9 @@ export function CompetitorsPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  useLivePoll(() => {
     void load();
-  }, [load]);
+  });
 
   async function addCompetitor() {
     if (!sellerName.trim()) return;
@@ -60,6 +62,7 @@ export function CompetitorsPanel() {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-ts-muted">{SP_STRINGS.syncInterval} · 탭이 열려 있으면 자동 새로고침</p>
       <div className="flex gap-2">
         <input
           className="ts-input"
@@ -119,7 +122,7 @@ export function CompetitorsPanel() {
 
         <section className="ts-card">
           <h2 className="text-sm font-bold">알림 규칙 ({rules.length})</h2>
-          <p className="mt-1 text-xs text-ts-muted">가격 하락·랭킹 변동 시 자동 알림 (크론 1시간마다 체크)</p>
+          <p className="mt-1 text-xs text-ts-muted">가격·랭킹 변동 시 자동 알림 ({SP_STRINGS.syncInterval})</p>
           <ul className="mt-3 space-y-2 text-sm">
             {rules.map((r) => {
               const comp = competitors.find((c) => c.id === r.competitorId);

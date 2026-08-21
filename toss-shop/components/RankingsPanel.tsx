@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { formatKrw, formatRankDelta, categoryLabel } from "@/toss-shop/lib/format";
+import { useLivePoll } from "@/toss-shop/lib/hooks/use-live-poll";
+import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import type { CatalogProduct, WatchlistItem } from "@/toss-shop/lib/types";
 
 type WatchlistEntry = WatchlistItem & { product?: CatalogProduct };
@@ -23,9 +25,9 @@ export function RankingsPanel() {
     setLoading(false);
   }, [category]);
 
-  useEffect(() => {
+  useLivePoll(() => {
     void load();
-  }, [load]);
+  });
 
   async function addWatch() {
     if (!productId.trim()) return;
@@ -45,6 +47,7 @@ export function RankingsPanel() {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-ts-muted">{SP_STRINGS.syncInterval} · 탭이 열려 있으면 자동 새로고침</p>
       <div className="flex flex-wrap items-center gap-3">
         <select
           className="ts-input !w-auto"

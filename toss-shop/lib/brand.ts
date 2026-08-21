@@ -1,5 +1,10 @@
-export const TOSS_SHOP_BRAND = {
-  name: "토스샵인사이트",
-  fullName: "토스샵인사이트 — 토스쇼핑 셀러 도구",
-  tagline: "랭킹·키워드·경쟁사·정산을 한 곳에서",
+export const SELLER_PULSE_BRAND = {
+  name: "셀러펄스",
+  nameEn: "Seller Pulse",
+  fullName: "셀러펄스 — 토스쇼핑 셀러 실시간 대시보드",
+  tagline: "랭킹·가격·키워드·경쟁사·정산을 1분 단위로",
+  domain: "sellerpulse",
 } as const;
+
+/** @deprecated use SELLER_PULSE_BRAND */
+export const TOSS_SHOP_BRAND = SELLER_PULSE_BRAND;

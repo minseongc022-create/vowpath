@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { getTossShopSession } from "@/toss-shop/lib/auth-request";
 import { KeywordsPanel } from "@/toss-shop/components/KeywordsPanel";
 
 export default async function KeywordsPage() {
   const session = await getTossShopSession();
-  if (!session) redirect("/toss-shop/login");
+  if (!session) redirect(SP_ROUTES.login);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

@@ -12,7 +12,7 @@ export const SEED_MERCHANT: TossShopMerchant = {
 
 export const SEED_ACCOUNT: TossShopAccount = {
   id: "acc_demo",
-  email: "demo@tossshop.local",
+  email: "demo@sellerpulse.local",
   passwordHash: "",
   name: "데모 셀러",
   merchantId: SEED_MERCHANT.id,

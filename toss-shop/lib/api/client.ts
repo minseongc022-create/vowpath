@@ -78,7 +78,7 @@ export async function resolveApiConfig(
       accessKey: merchantKeys.accessKey,
       secretKey: merchantKeys.secretKey,
       sandbox: merchantKeys.sandbox ?? false,
-      partnerName: "toss-shop-insight",
+      partnerName: "sellerpulse",
     };
   }
   return configFromEnv();

@@ -18,7 +18,7 @@ import {
   SEED_CATALOG,
   SEED_MERCHANT,
 } from "./seed";
-import { todayDateKey } from "./format";
+import { todayDateKey, minuteKey, appendCapped } from "./format";
 import { parseSettlementCsv } from "./settlement-csv";
 import { defaultTrialEndsAt } from "./billing";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
@@ -534,7 +534,7 @@ export async function syncAllMerchants(): Promise<{
   apiSyncs: number;
 }> {
   const store = await loadStore();
-  const date = todayDateKey();
+  const bucket = minuteKey();
   let priceUpdates = 0;
   let keywordUpdates = 0;
   let alertsFired = 0;
@@ -558,11 +558,11 @@ export async function syncAllMerchants(): Promise<{
     const updated = simulatePriceUpdate(p);
     priceUpdates++;
     if (!store.priceHistory[p.id]) store.priceHistory[p.id] = [];
-    const last = store.priceHistory[p.id].find((s) => s.date === date);
+    const last = store.priceHistory[p.id].find((s) => s.date === bucket);
     if (!last) {
-      store.priceHistory[p.id].push({
+      store.priceHistory[p.id] = appendCapped(store.priceHistory[p.id], {
         productId: p.id,
-        date,
+        date: bucket,
         priceKrw: updated.priceKrw,
         rank: updated.rank,
         reviewCount: updated.reviewCount,
@@ -577,8 +577,8 @@ export async function syncAllMerchants(): Promise<{
     for (const kw of data.keywords) {
       const snap = buildKeywordSnapshot(kw.keyword, kw.myProductId);
       if (!store.keywordHistory[kw.keyword]) store.keywordHistory[kw.keyword] = [];
-      if (!store.keywordHistory[kw.keyword].some((s) => s.date === date)) {
-        store.keywordHistory[kw.keyword].push(snap);
+      if (!store.keywordHistory[kw.keyword].some((s) => s.date === bucket)) {
+        store.keywordHistory[kw.keyword] = appendCapped(store.keywordHistory[kw.keyword], snap);
         keywordUpdates++;
       }
     }
@@ -609,7 +609,7 @@ export async function syncAllMerchants(): Promise<{
         }
         if (message) {
           const dup = data.alerts.some(
-            (a) => a.message === message && a.createdAt.slice(0, 10) === date,
+            (a) => a.message === message && a.createdAt.slice(0, 16) === bucket,
           );
           if (!dup) {
             data.alerts.unshift({

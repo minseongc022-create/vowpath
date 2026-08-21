@@ -1,5 +1,6 @@
 import type { CatalogProduct, KeywordAnalysis, KeywordSnapshot } from "./types";
 import { SEED_CATALOG } from "./seed";
+import { minuteKey } from "./format";
 
 function hashString(s: string): number {
   let h = 0;
@@ -26,9 +27,9 @@ export function getProductsBySeller(sellerName: string): CatalogProduct[] {
 }
 
 export function simulatePriceUpdate(product: CatalogProduct): CatalogProduct {
-  const variance = (hashString(product.id + todayKey()) % 7) - 3;
+  const variance = (hashString(product.id + minuteKey()) % 7) - 3;
   const priceDelta = Math.round(product.priceKrw * (variance / 100));
-  const rankDelta = (hashString(todayKey() + product.id) % 3) - 1;
+  const rankDelta = (hashString(minuteKey() + product.id) % 3) - 1;
   const newRank = Math.max(1, Math.min(20, product.rank + rankDelta));
   return {
     ...product,
@@ -38,10 +39,6 @@ export function simulatePriceUpdate(product: CatalogProduct): CatalogProduct {
     reviewCount: product.reviewCount + (hashString(product.id) % 5),
     updatedAt: new Date().toISOString(),
   };
-}
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export function analyzeKeyword(keyword: string, myProductId?: string): KeywordAnalysis {
@@ -88,7 +85,7 @@ export function buildKeywordSnapshot(keyword: string, myProductId?: string): Key
   const myProduct = myProductId ? getProductById(myProductId) : null;
   return {
     keyword,
-    date: todayKey(),
+    date: minuteKey(),
     searchVolume: analysis.searchVolume,
     competingProducts: analysis.competingProducts,
     myRank: myProduct?.rank,

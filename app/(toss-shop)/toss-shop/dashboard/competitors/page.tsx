@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { getTossShopSession } from "@/toss-shop/lib/auth-request";
 import { CompetitorsPanel } from "@/toss-shop/components/CompetitorsPanel";
 
 export default async function CompetitorsPage() {
   const session = await getTossShopSession();
-  if (!session) redirect("/toss-shop/login");
+  if (!session) redirect(SP_ROUTES.login);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TS_STRINGS } from "@/toss-shop/lib/strings";
+import { SP_ROUTES } from "@/toss-shop/lib/routes";
+import { SP_STRINGS } from "@/toss-shop/lib/strings";
 
 export function LoginForm() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export function LoginForm() {
         setError(data.error ?? "로그인 실패");
         return;
       }
-      router.push("/toss-shop/dashboard");
+      router.push(SP_ROUTES.dashboard);
       router.refresh();
     } catch {
       setError("네트워크 오류");
@@ -39,18 +40,19 @@ export function LoginForm() {
   }
 
   function fillDemo() {
-    setEmail(TS_STRINGS.demoEmail);
-    setPassword(TS_STRINGS.demoPassword);
+    setEmail(SP_STRINGS.demoEmail);
+    setPassword(SP_STRINGS.demoPassword);
     setMode("login");
   }
 
   return (
     <div className="mx-auto max-w-md">
       <div className="ts-card">
+        <p className="text-xs font-semibold text-ts-primary">{SP_STRINGS.brandEn}</p>
         <h1 className="text-xl font-bold text-ts-ink">
           {mode === "login" ? "로그인" : "회원가입"}
         </h1>
-        <p className="mt-1 text-sm text-ts-muted">토스쇼핑 셀러 데이터 도구</p>
+        <p className="mt-1 text-sm text-ts-muted">{SP_STRINGS.brand} · {SP_STRINGS.syncInterval}</p>
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           {mode === "signup" && (
@@ -95,7 +97,7 @@ export function LoginForm() {
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <button type="button" onClick={fillDemo} className="text-ts-primary font-semibold hover:underline">
-            {TS_STRINGS.ctaDemo}
+            {SP_STRINGS.ctaDemo}
           </button>
           <span className="text-ts-muted">·</span>
           <button
