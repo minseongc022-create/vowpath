@@ -36,6 +36,7 @@
       "does": [
         "Effiroad: sync Toss Shopping API data every minute when keys configured",
         "Snapshot catalog prices/ranks and keyword metrics (1-minute buckets, 24h retention)",
+        "Build aggregated market keyword intelligence from catalog",
         "Fire competitor price/rank alert rules"
       ],
       "note": "Effiroad (에피로드) — configure at cron-job.org every 60s alongside tech-dispatch."

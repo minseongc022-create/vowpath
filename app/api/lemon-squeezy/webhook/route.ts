@@ -13,6 +13,8 @@ import {
   findUserByLsCustomerId,
   updateUserBilling,
 } from "@/lib/users-db";
+import { handleTossShopLsWebhook } from "@/toss-shop/lib/lemon-squeezy-webhook";
+import type { TossShopLsWebhook } from "@/toss-shop/lib/lemon-squeezy";
 
 export const runtime = "nodejs";
 
@@ -124,6 +126,11 @@ export async function POST(request: Request) {
   const event = payload.meta?.event_name ?? "";
 
   try {
+    const tossHandled = await handleTossShopLsWebhook(payload as TossShopLsWebhook);
+    if (tossHandled) {
+      return NextResponse.json({ received: true });
+    }
+
     switch (event) {
       case "subscription_created":
       case "subscription_updated":

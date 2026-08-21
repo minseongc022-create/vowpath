@@ -80,6 +80,26 @@ export function SettingsPanel() {
     }
   }
 
+  async function startCheckout() {
+    setBusy(true);
+    setUpgradeMessage("");
+    try {
+      const res = await fetch("/api/toss-shop/billing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start_checkout" }),
+      });
+      const json = (await res.json()) as { error?: string; url?: string };
+      if (!res.ok || !json.url) {
+        setUpgradeMessage(json.error ?? "결제 페이지를 열 수 없습니다.");
+        return;
+      }
+      window.location.href = json.url;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function activatePro() {
     setBusy(true);
     setUpgradeMessage("");
@@ -164,8 +184,17 @@ export function SettingsPanel() {
             월 {(data.billing.priceKrw ?? PRO_PRICE_KRW).toLocaleString()}원
           </p>
           <p className="mt-1 text-xs text-ts-muted">
-            결제 연동 준비 중 · 활성화 코드가 있으면 아래에 입력하세요
+            Lemon Squeezy 카드/페이팔 결제 · 활성화 코드도 사용 가능
           </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void startCheckout()}
+            className="ts-btn-primary mt-4 sm:!w-auto sm:px-8"
+          >
+            Pro 구독하기
+          </button>
+          <p className="mt-4 text-xs font-semibold text-ts-muted">또는 활성화 코드</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input
               className="ts-input min-w-0 flex-1"

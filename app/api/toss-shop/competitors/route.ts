@@ -6,11 +6,11 @@ import {
   getAlertRules,
   getAlerts,
   getCompetitors,
+  getProductsBySellerName,
   markAlertRead,
   removeCompetitor,
   upsertAlertRule,
 } from "@/toss-shop/lib/store";
-import { getProductsBySeller } from "@/toss-shop/lib/catalog";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 
 export async function GET(request: Request) {
@@ -26,10 +26,12 @@ export async function GET(request: Request) {
     getAlerts(session.merchantId),
   ]);
 
-  const enriched = competitors.map((c) => ({
-    ...c,
-    products: getProductsBySeller(c.sellerName),
-  }));
+  const enriched = await Promise.all(
+    competitors.map(async (c) => ({
+      ...c,
+      products: await getProductsBySellerName(c.sellerName),
+    })),
+  );
 
   return NextResponse.json({ competitors: enriched, rules, alerts });
 }

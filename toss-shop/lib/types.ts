@@ -25,6 +25,13 @@ export type TossShopMerchant = {
 
 export type TossShopPlan = "owner" | "trial" | "free" | "pro";
 
+export type TossShopSubscriptionStatus =
+  | "active"
+  | "past_due"
+  | "cancelled"
+  | "expired"
+  | "paused";
+
 export type TossShopAccount = {
   id: string;
   email: string;
@@ -36,11 +43,24 @@ export type TossShopAccount = {
   trialEndsAt?: string;
   /** Pro subscription expiry (monthly). */
   proExpiresAt?: string;
+  /** Lemon Squeezy subscription (Pro billing). */
+  lsCustomerId?: string;
+  lsSubscriptionId?: string;
+  subscriptionStatus?: TossShopSubscriptionStatus;
   /** Daily usage counters (UTC date key). */
   usage?: {
     date: string;
     keywordAnalyses: number;
   };
+};
+
+export type MarketKeywordMetrics = {
+  keyword: string;
+  searchVolume: number;
+  productCount: number;
+  avgPriceKrw: number;
+  competitionIntensity: number;
+  updatedAt: string;
 };
 
 export type CatalogProduct = {
@@ -228,4 +248,8 @@ export type TossShopStore = {
   catalog: CatalogProduct[];
   priceHistory: Record<string, PriceSnapshot[]>;
   keywordHistory: Record<string, KeywordSnapshot[]>;
+  /** Aggregated market intelligence from catalog sync. */
+  marketKeywords?: Record<string, MarketKeywordMetrics>;
+  marketCollectedAt?: string;
+  marketProductCount?: number;
 };

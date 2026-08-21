@@ -26,6 +26,38 @@ test("mapApiProductsToCatalog assigns ranks", () => {
   assert.equal(catalog[0].sellerName, "내 상점");
 });
 
+test("collectMarketIntelligence builds keyword metrics from catalog", async () => {
+  const { collectMarketIntelligence } = await import("../../toss-shop/lib/market-collector/index.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+  const result = collectMarketIntelligence(SEED_CATALOG);
+  assert.ok(Object.keys(result.marketKeywords).length > 0);
+  const tomato = result.marketKeywords["방울토마토"] ?? result.marketKeywords["토마토"];
+  assert.ok(tomato);
+  assert.ok(tomato.searchVolume > 0);
+});
+
+test("getPlanAccess grants owner unlimited", async () => {
+  const { getPlanAccess } = await import("../../toss-shop/lib/billing.ts");
+  const access = getPlanAccess({
+    email: "minseongc022@gmail.com",
+    plan: "owner",
+  });
+  assert.equal(access.fullAccess, true);
+  assert.equal(access.isOwner, true);
+});
+
+test("getPlanAccess grants pro on active subscription", async () => {
+  const { getPlanAccess } = await import("../../toss-shop/lib/billing.ts");
+  const access = getPlanAccess({
+    email: "user@example.com",
+    plan: "pro",
+    subscriptionStatus: "active",
+  });
+  assert.equal(access.fullAccess, true);
+  assert.equal(access.tier, "pro");
+});
+
+
 test("reconcileImportedSettlements merges by orderId", () => {
   const existing = [
     {
