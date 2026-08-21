@@ -21,14 +21,28 @@ type BillingInfo = {
   keywordUsage?: { used: number; limit: number } | null;
 };
 
+type RevenueBrief = {
+  engineVersion?: string;
+  portfolio?: {
+    totalMonthlyProfitKrw: number;
+    avgProfitScore: number;
+    topKeyword: string;
+  };
+  topPicks?: { keyword: string; monthlyProfitKrw: number; mode: string }[];
+};
+
 export function DashboardHomeClient() {
   const [userName, setUserName] = useState("");
   const [billing, setBilling] = useState<BillingInfo | null>(null);
   const [apiConfigured, setApiConfigured] = useState(false);
+  const [revenueBrief, setRevenueBrief] = useState<RevenueBrief | null>(null);
 
   const fetchData = useCallback(async () => {
-    const r = await fetch("/api/toss-shop/auth/me");
-    const d = (await r.json()) as {
+    const [meRes, briefRes] = await Promise.all([
+      fetch("/api/toss-shop/auth/me"),
+      fetch("/api/toss-shop/revenue-brief").catch(() => null),
+    ]);
+    const d = (await meRes.json()) as {
       user?: { name: string };
       billing?: BillingInfo;
       api?: { configured?: boolean };
@@ -36,13 +50,17 @@ export function DashboardHomeClient() {
     setUserName(d.user?.name ?? "");
     setBilling(d.billing ?? null);
     setApiConfigured(Boolean(d.api?.configured));
+
+    if (briefRes?.ok) {
+      setRevenueBrief((await briefRes.json()) as RevenueBrief);
+    }
   }, []);
 
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI", desc: "AI 다층 분석 · 가격·소싱·체크리스트", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI", desc: "관세·랜딩·경쟁가·마진 자동 계산", accent: true },
+    { href: SP_ROUTES.consignment, title: "위탁판매 AI v4", desc: "월수익 극대화 · 3가지 가격 전략", accent: true },
+    { href: SP_ROUTES.importSales, title: "수입판매 AI v4", desc: "랜딩·관세·수익 플레이북", accent: true },
   ];
 
   const toolCards = [
@@ -88,6 +106,26 @@ export function DashboardHomeClient() {
       <div className="mt-5">
         <KeywordSearchBar />
       </div>
+
+      {!initialLoading && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
+        <div className="mt-5 rounded-2xl bg-gradient-to-br from-ts-primary/10 to-emerald-50 px-4 py-4 ring-1 ring-ts-primary/20">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-bold text-ts-ink">오늘의 AI v4 수익 브리핑</p>
+            {revenueBrief.engineVersion && (
+              <span className="rounded-full bg-ts-primary px-2 py-0.5 text-xs font-bold text-white">
+                {revenueBrief.engineVersion.toUpperCase()}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-2xl font-bold text-ts-primary">
+            월 예상 합계 {formatKrw(revenueBrief.portfolio.totalMonthlyProfitKrw)}
+          </p>
+          <p className="mt-1 text-sm text-ts-muted">
+            위탁+수입 10선 · 평균 수익점수 {revenueBrief.portfolio.avgProfitScore} · 1위 키워드 「
+            {revenueBrief.portfolio.topKeyword}」
+          </p>
+        </div>
+      )}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {heroCards.map((c) => (

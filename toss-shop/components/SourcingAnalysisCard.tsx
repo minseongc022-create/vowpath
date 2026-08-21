@@ -2,7 +2,14 @@
 
 import type { ReactNode } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
-import type { AnalysisSignal, CompetitorInsight, PricingBreakdown } from "@/toss-shop/lib/types";
+import type {
+  AnalysisSignal,
+  CompetitorInsight,
+  PricingBreakdown,
+  PricingScenario,
+  ProfitPlaybookItem,
+  RevenueForecast,
+} from "@/toss-shop/lib/types";
 
 function impactClass(impact: AnalysisSignal["impact"]): string {
   if (impact === "positive") return "text-emerald-700 bg-emerald-50";
@@ -10,8 +17,15 @@ function impactClass(impact: AnalysisSignal["impact"]): string {
   return "text-ts-muted bg-ts-bg";
 }
 
+function roiClass(roi: ProfitPlaybookItem["roi"]): string {
+  if (roi === "high") return "text-emerald-700";
+  if (roi === "medium") return "text-amber-700";
+  return "text-ts-muted";
+}
+
 export function SourcingAnalysisCard({
   winScore,
+  profitScore,
   suggestedTitle,
   pricing,
   signals,
@@ -20,9 +34,17 @@ export function SourcingAnalysisCard({
   competitors,
   aiSummary,
   competitorLandscape,
+  pricingScenarios,
+  revenueForecast,
+  profitPlaybook,
+  keywordCluster,
+  moatOpportunities,
+  engineVersion,
+  recommendedScenarioId,
   extra,
 }: {
   winScore?: number;
+  profitScore?: number;
   suggestedTitle?: string;
   pricing?: PricingBreakdown;
   signals?: AnalysisSignal[];
@@ -36,22 +58,92 @@ export function SourcingAnalysisCard({
     dominance: string;
     highThreatCount: number;
   };
+  pricingScenarios?: PricingScenario[];
+  revenueForecast?: RevenueForecast;
+  profitPlaybook?: ProfitPlaybookItem[];
+  keywordCluster?: string[];
+  moatOpportunities?: string[];
+  engineVersion?: string;
+  recommendedScenarioId?: string;
   extra?: ReactNode;
 }) {
   if (!signals?.length && !pricing && !aiSummary) return null;
 
+  const recommendedId = recommendedScenarioId ?? pricingScenarios?.[0]?.id;
+
   return (
     <div className="mt-4 space-y-3 border-t border-ts-border pt-4">
+      {engineVersion && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full bg-ts-primary px-2 py-0.5 font-bold text-white">
+            AI {engineVersion}
+          </span>
+          {profitScore != null && (
+            <span className="font-semibold text-ts-primary">수익점수 {profitScore}/99</span>
+          )}
+          {winScore != null && (
+            <span className="text-ts-muted">승률 {winScore}/99</span>
+          )}
+        </div>
+      )}
+
       {aiSummary && (
         <div className="rounded-xl bg-ts-primary/5 px-3 py-2.5 text-xs leading-relaxed text-ts-ink ring-1 ring-ts-primary/15">
           <p className="font-semibold text-ts-primary">AI 종합 분석</p>
           <p className="mt-1">{aiSummary}</p>
         </div>
       )}
-      {winScore != null && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-ts-muted">AI 승률 점수</span>
-          <span className="font-bold text-ts-primary">{winScore}/99</span>
+
+      {revenueForecast && (
+        <div className="rounded-xl bg-emerald-50 px-3 py-2.5 ring-1 ring-emerald-100">
+          <p className="text-xs font-semibold text-emerald-900">수익 예측 (AI v4)</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3 text-xs">
+            <div>
+              <p className="text-emerald-800/70">일 예상</p>
+              <p className="font-bold text-emerald-900">{formatKrw(revenueForecast.dailyProfitKrw)}</p>
+            </div>
+            <div>
+              <p className="text-emerald-800/70">월 예상</p>
+              <p className="font-bold text-emerald-900">{formatKrw(revenueForecast.monthlyProfitKrw)}</p>
+            </div>
+            <div>
+              <p className="text-emerald-800/70">낙관~보수</p>
+              <p className="font-bold text-emerald-900">
+                {formatKrw(revenueForecast.conservativeMonthlyKrw)}~
+                {formatKrw(revenueForecast.optimisticMonthlyKrw)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-emerald-800/80">{revenueForecast.seasonalityNote}</p>
+        </div>
+      )}
+
+      {pricingScenarios && pricingScenarios.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-ts-muted">가격 시나리오 (월수익 기준 최적 선택)</p>
+          <ul className="mt-2 space-y-1.5">
+            {pricingScenarios.map((s) => (
+              <li
+                key={s.id}
+                className={`rounded-lg px-2.5 py-1.5 text-xs ${
+                  s.id === recommendedId ? "bg-ts-primary/10 ring-1 ring-ts-primary/30" : "bg-ts-bg"
+                }`}
+              >
+                <div className="flex flex-wrap justify-between gap-1">
+                  <span className="font-semibold">
+                    {s.label}
+                    {s.id === recommendedId && (
+                      <span className="ml-1 text-ts-primary">★ 추천</span>
+                    )}
+                  </span>
+                  <span className="font-bold">{formatKrw(s.priceKrw)}</span>
+                </div>
+                <p className="mt-0.5 text-ts-muted">
+                  월 {formatKrw(s.estimatedMonthlyProfitKrw)} · 마진 {s.marginPct}% · 일 {s.estimatedDailyUnits}개
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -59,6 +151,19 @@ export function SourcingAnalysisCard({
         <div className="rounded-xl bg-ts-bg px-3 py-2 text-xs">
           <p className="font-semibold text-ts-muted">추천 등록 상품명</p>
           <p className="mt-1 font-medium text-ts-ink">{suggestedTitle}</p>
+        </div>
+      )}
+
+      {keywordCluster && keywordCluster.length > 1 && (
+        <div className="text-xs">
+          <p className="font-semibold text-ts-muted">연관 키워드 클러스터 (SEO)</p>
+          <p className="mt-1 flex flex-wrap gap-1">
+            {keywordCluster.map((k) => (
+              <span key={k} className="rounded-full bg-ts-bg px-2 py-0.5 text-ts-ink ring-1 ring-ts-border">
+                {k}
+              </span>
+            ))}
+          </p>
         </div>
       )}
 
@@ -102,7 +207,39 @@ export function SourcingAnalysisCard({
         </div>
       )}
 
+      {moatOpportunities && moatOpportunities.length > 0 && (
+        <div className="rounded-xl bg-violet-50 px-3 py-2 text-xs text-violet-900">
+          <p className="font-semibold">차별화 · 경쟁 우위 포인트</p>
+          <ul className="mt-1 list-disc pl-4">
+            {moatOpportunities.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {extra}
+
+      {profitPlaybook && profitPlaybook.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-ts-muted">수익 극대화 플레이북</p>
+          <ol className="mt-2 space-y-1.5">
+            {profitPlaybook.map((item) => (
+              <li key={item.priority} className="rounded-lg bg-ts-bg px-2.5 py-1.5 text-xs">
+                <div className="flex flex-wrap justify-between gap-1">
+                  <span className="font-semibold">
+                    {item.priority}. {item.action}
+                  </span>
+                  <span className={`font-semibold ${roiClass(item.roi)}`}>
+                    +{formatKrw(item.expectedImpactKrw)}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-ts-muted">{item.timeframe}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {signals && signals.length > 0 && (
         <div>

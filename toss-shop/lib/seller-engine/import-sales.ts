@@ -1,17 +1,17 @@
 import type { CatalogProduct, ImportPick, MarketKeywordMetrics, TossShopCategory } from "../types";
-import { competitorsForProduct, marginPct } from "./pricing";
+import { competitorsForProduct } from "./pricing";
 import {
   assessRisks,
   analyzeCompetitorLandscape,
   buildActionSteps,
   buildAiSummary,
   buildKeywordIntel,
-  buildPricingBreakdown,
   enrichCompetitors,
   marketContext,
   rankKeywordsForSourcing,
   scoreOpportunity,
 } from "./intelligence";
+import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 
 const USD_KRW = 1380;
 const IMPORT_CATEGORIES: TossShopCategory[] = ["digital", "home", "beauty", "fashion", "health"];
@@ -45,13 +45,13 @@ export function generateImportPicks(
   marketKeywords?: Record<string, MarketKeywordMetrics>,
 ): ImportPick[] {
   const ctx = marketContext(catalog, marketKeywords);
-  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 40).filter((k) =>
+  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 50).filter((k) =>
     IMPORT_CATEGORIES.includes(k.category),
   );
 
-  const picks: ImportPick[] = [];
+  const candidates: ImportPick[] = [];
 
-  for (let i = 0; i < 5 && i < keywords.length; i++) {
+  for (let i = 0; i < keywords.length; i++) {
     const kw = keywords[i];
     const h = hashString(kw.keyword + dateKey);
     const product =
@@ -64,50 +64,81 @@ export function generateImportPicks(
     const weight = 0.3 + (h % 5) / 10;
     const landed = landedCostBreakdown(sourceUsd, weight);
     const competitors = competitorsForProduct(product, catalog);
-    const pricing = buildPricingBreakdown(landed.total, competitors, 18);
-    const priceKrw = pricing.undercutKrw;
-    const insights = enrichCompetitors(product, catalog, priceKrw);
-    const landscape = analyzeCompetitorLandscape(insights, pricing);
-    const margin = marginPct(landed.total, priceKrw);
-    const monthlyUnits = Math.max(5, Math.round(intel.searchVolume / 550));
+
+    const preview = buildV4Enrichment({
+      supplierCostKrw: landed.total,
+      competitors,
+      intel,
+      product,
+      winScore: 50,
+      landscapeDominance: "balanced",
+      avgReviewCount: 0,
+      mode: "import",
+      minMarginPct: 18,
+    });
+    const insights = enrichCompetitors(product, catalog, preview.optimal.priceKrw);
+    const landscape = analyzeCompetitorLandscape(insights, preview.pricing);
+
     const { score, signals } = scoreOpportunity({
       keyword: intel,
-      marginPct: margin,
+      marginPct: preview.pricing.marginPct,
       product,
       competitorCount: competitors.length,
-      winPriceGap: pricing.competitorLowKrw - priceKrw,
+      winPriceGap: preview.pricing.competitorLowKrw - preview.optimal.priceKrw,
       priceSpreadPct: landscape.priceSpreadPct,
       highThreatCompetitors: landscape.highThreatCount,
     });
+
+    const v4 = buildV4Enrichment({
+      supplierCostKrw: landed.total,
+      competitors,
+      intel,
+      product,
+      winScore: score,
+      landscapeDominance: landscape.dominance,
+      avgReviewCount: landscape.avgReviewCount,
+      mode: "import",
+      minMarginPct: 18,
+    });
+
+    const priceKrw = v4.optimal.priceKrw;
+    const name = suggestedImportName(kw.keyword, product.name.split(" ").slice(-1)[0] ?? "상품");
     const aiSummary = buildAiSummary({
       mode: "import",
       keyword: kw.keyword,
       productName: product.name,
       winScore: score,
       intel,
-      pricing,
+      pricing: v4.pricing,
       landscape,
       dataQuality: ctx.dataQuality,
+      monthlyProfitKrw: v4.optimal.estimatedMonthlyProfitKrw,
+      profitScore: v4.profitScore,
+      recommendedScenario: v4.optimal.label,
     });
 
-    picks.push({
+    candidates.push({
       id: `im_${dateKey}_${i}`,
-      productName: suggestedImportName(kw.keyword, product.name.split(" ").slice(-1)[0] ?? "상품"),
-      suggestedTitle: suggestedImportName(kw.keyword, product.name.split(" ").slice(-1)[0] ?? "상품"),
+      productName: name,
+      suggestedTitle: name,
       category: kw.category,
       sourceCountry: SOURCE_COUNTRIES[h % SOURCE_COUNTRIES.length],
       sourcePriceUsd: sourceUsd,
       landedCostKrw: landed.total,
       recommendedPriceKrw: priceKrw,
       marketAvgPriceKrw: kw.avgPriceKrw,
-      estimatedMarginPct: margin,
-      estimatedMonthlyUnits: monthlyUnits,
-      estimatedMonthlyProfitKrw: Math.round(pricing.netProfitKrw * monthlyUnits),
-      confidenceScore: score,
+      estimatedMarginPct: v4.pricing.marginPct,
+      estimatedMonthlyUnits: Math.round(v4.dailyUnits * 30),
+      estimatedMonthlyProfitKrw: v4.optimal.estimatedMonthlyProfitKrw,
+      confidenceScore: v4.profitScore,
       winScore: score,
-      reason: `${pricing.strategy} · ${ctx.dataQuality === "live" ? "실데이터" : "학습 데이터"} · AI 승률 ${score}점`,
+      profitScore: v4.profitScore,
+      reason: `${v4.optimal.label} · ${v4.pricing.strategy} · AI v4 수익점수 ${v4.profitScore}`,
       keyword: kw.keyword,
-      pricing: { ...pricing, undercutKrw: priceKrw },
+      pricing: { ...v4.pricing, undercutKrw: priceKrw },
+      pricingScenarios: v4.pricingScenarios,
+      revenueForecast: v4.revenueForecast,
+      profitPlaybook: v4.profitPlaybook,
       signals,
       competitorInsights: insights.slice(0, 6),
       landedBreakdown: {
@@ -123,15 +154,20 @@ export function generateImportPicks(
         supplierCost: landed.total,
       }),
       risks: assessRisks({
-        marginPct: margin,
+        marginPct: v4.pricing.marginPct,
         competitionIntensity: intel.competitionIntensity,
         dataQuality: ctx.dataQuality,
-        highThreatCompetitors: insights.filter((c) => c.threat === "high").length,
+        highThreatCompetitors: landscape.highThreatCount,
       }),
       aiSummary,
       competitorLandscape: landscape,
+      v4: v4.v4,
     });
   }
 
-  return picks;
+  return candidates
+    .sort((a, b) => (b.estimatedMonthlyProfitKrw ?? 0) - (a.estimatedMonthlyProfitKrw ?? 0))
+    .slice(0, 5);
 }
+
+export { SELLER_AI_ENGINE_VERSION };

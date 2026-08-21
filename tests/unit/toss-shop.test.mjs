@@ -57,8 +57,6 @@ test("getPlanAccess grants pro on active subscription", async () => {
   assert.equal(access.tier, "pro");
 });
 
-
-
 test("reconcileImportedSettlements merges by orderId", () => {
   const existing = [
     {

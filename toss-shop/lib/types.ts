@@ -246,6 +246,43 @@ export type CompetitorLandscape = {
   dominance: "fragmented" | "balanced" | "concentrated";
 };
 
+export type PricingScenario = {
+  id: "volume" | "balanced" | "margin";
+  label: string;
+  priceKrw: number;
+  strategy: string;
+  marginPct: number;
+  netProfitKrw: number;
+  estimatedDailyUnits: number;
+  estimatedDailyProfitKrw: number;
+  estimatedMonthlyProfitKrw: number;
+};
+
+export type RevenueForecast = {
+  dailyProfitKrw: number;
+  weeklyProfitKrw: number;
+  monthlyProfitKrw: number;
+  optimisticMonthlyKrw: number;
+  conservativeMonthlyKrw: number;
+  seasonalityNote: string;
+};
+
+export type ProfitPlaybookItem = {
+  priority: number;
+  action: string;
+  expectedImpactKrw: number;
+  timeframe: string;
+  roi: "high" | "medium" | "low";
+};
+
+export type SellerAiV4Meta = {
+  engineVersion: string;
+  profitScore: number;
+  recommendedScenarioId: PricingScenario["id"];
+  keywordCluster?: string[];
+  moatOpportunities?: string[];
+};
+
 export type ConsignmentPick = {
   id: string;
   keyword: string;
@@ -270,6 +307,12 @@ export type ConsignmentPick = {
   risks?: string[];
   aiSummary?: string;
   competitorLandscape?: CompetitorLandscape;
+  pricingScenarios?: PricingScenario[];
+  revenueForecast?: RevenueForecast;
+  profitPlaybook?: ProfitPlaybookItem[];
+  profitScore?: number;
+  estimatedMonthlyProfitKrw?: number;
+  v4?: SellerAiV4Meta;
 };
 
 export type ImportPick = {
@@ -301,6 +344,11 @@ export type ImportPick = {
   };
   aiSummary?: string;
   competitorLandscape?: CompetitorLandscape;
+  pricingScenarios?: PricingScenario[];
+  revenueForecast?: RevenueForecast;
+  profitPlaybook?: ProfitPlaybookItem[];
+  profitScore?: number;
+  v4?: SellerAiV4Meta;
 };
 
 export type TossShopStore = {

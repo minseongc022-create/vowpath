@@ -7,13 +7,13 @@ import {
   buildActionSteps,
   buildAiSummary,
   buildKeywordIntel,
-  buildPricingBreakdown,
   enrichCompetitors,
   marketContext,
   pickBestProductForKeyword,
   rankKeywordsForSourcing,
   scoreOpportunity,
 } from "./intelligence";
+import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 
 function suggestedTitle(keyword: string, productName: string): string {
   const base = productName.length > 28 ? productName.slice(0, 28) : productName;
@@ -26,17 +26,17 @@ function buildPick(
   product: CatalogProduct,
   keyword: string,
   intel: ReturnType<typeof buildKeywordIntel>,
-  pricing: ReturnType<typeof buildPricingBreakdown>,
+  v4: ReturnType<typeof buildV4Enrichment>,
   insights: ReturnType<typeof enrichCompetitors>,
   signals: ReturnType<typeof scoreOpportunity>["signals"],
   winScore: number,
-  dailyUnits: number,
   ctx: ReturnType<typeof marketContext>,
   aiSummary: string,
   competitorLandscape: ReturnType<typeof analyzeCompetitorLandscape>,
 ): ConsignmentPick {
   const highThreat = insights.filter((c) => c.threat === "high").length;
-  const priceKrw = pricing.undercutKrw;
+  const priceKrw = v4.optimal.priceKrw;
+  const pricing = v4.pricing;
 
   return {
     id: `cs_${dateKey}_${product.id}`,
@@ -51,12 +51,17 @@ function buildPick(
     searchVolume: intel.searchVolume,
     competitionIntensity: intel.competitionIntensity,
     estimatedMarginPct: pricing.marginPct,
-    estimatedDailyProfitKrw: pricing.netProfitKrw * dailyUnits,
-    estimatedDailyUnits: dailyUnits,
-    confidenceScore: winScore,
+    estimatedDailyProfitKrw: v4.optimal.estimatedDailyProfitKrw,
+    estimatedDailyUnits: v4.dailyUnits,
+    estimatedMonthlyProfitKrw: v4.optimal.estimatedMonthlyProfitKrw,
+    confidenceScore: v4.profitScore,
     winScore,
-    reason: `${pricing.strategy} · ${ctx.dataQuality === "demo" ? "데모" : ctx.dataQuality === "live" ? "실데이터" : "혼합"} · AI 승률 ${winScore}점`,
+    profitScore: v4.profitScore,
+    reason: `${v4.optimal.label} · ${pricing.strategy} · AI v4 수익점수 ${v4.profitScore}`,
     pricing: { ...pricing, undercutKrw: priceKrw },
+    pricingScenarios: v4.pricingScenarios,
+    revenueForecast: v4.revenueForecast,
+    profitPlaybook: v4.profitPlaybook,
     signals,
     actionSteps: buildActionSteps("consignment", {
       keyword,
@@ -73,6 +78,7 @@ function buildPick(
     }),
     aiSummary,
     competitorLandscape,
+    v4: v4.v4,
   };
 }
 
@@ -82,16 +88,14 @@ export function generateConsignmentPicks(
   marketKeywords?: Record<string, MarketKeywordMetrics>,
 ): ConsignmentPick[] {
   const ctx = marketContext(catalog, marketKeywords);
-  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 50).filter(
+  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
   );
 
-  const picks: ConsignmentPick[] = [];
+  const candidates: ConsignmentPick[] = [];
   const usedProducts = new Set<string>();
 
   for (const kw of keywords) {
-    if (picks.length >= CONSIGNMENT_DAILY_PICKS) break;
-
     const product =
       pickBestProductForKeyword(kw.keyword, kw.category, catalog, marketKeywords) ??
       catalog.find((p) => !usedProducts.has(p.id) && p.category === kw.category);
@@ -102,34 +106,63 @@ export function generateConsignmentPicks(
     const intel = buildKeywordIntel(kw.keyword, catalog, marketKeywords);
     const competitors = competitorsForProduct(product, catalog);
     const supplierCost = estimateSupplierCost(product.priceKrw, product.category);
-    const pricing = buildPricingBreakdown(supplierCost, competitors);
-    const insights = enrichCompetitors(product, catalog, pricing.undercutKrw);
-    const landscape = analyzeCompetitorLandscape(insights, pricing);
+
+    const pricingPreview = buildV4Enrichment({
+      supplierCostKrw: supplierCost,
+      competitors,
+      intel,
+      product,
+      winScore: 50,
+      landscapeDominance: "balanced",
+      avgReviewCount: 0,
+      mode: "consignment",
+    });
+    const insights = enrichCompetitors(product, catalog, pricingPreview.optimal.priceKrw);
+    const landscape = analyzeCompetitorLandscape(insights, pricingPreview.pricing);
+
     const { score, signals } = scoreOpportunity({
       keyword: intel,
-      marginPct: pricing.marginPct,
+      marginPct: pricingPreview.pricing.marginPct,
       product,
       competitorCount: competitors.length,
-      winPriceGap: pricing.competitorLowKrw - pricing.undercutKrw,
+      winPriceGap: pricingPreview.pricing.competitorLowKrw - pricingPreview.optimal.priceKrw,
       priceSpreadPct: landscape.priceSpreadPct,
       highThreatCompetitors: landscape.highThreatCount,
     });
-    const dailyUnits = Math.max(1, Math.round(intel.searchVolume / 700));
+
+    const v4 = buildV4Enrichment({
+      supplierCostKrw: supplierCost,
+      competitors,
+      intel,
+      product,
+      winScore: score,
+      landscapeDominance: landscape.dominance,
+      avgReviewCount: landscape.avgReviewCount,
+      mode: "consignment",
+    });
+
     const aiSummary = buildAiSummary({
       mode: "consignment",
       keyword: kw.keyword,
       productName: product.name,
       winScore: score,
       intel,
-      pricing,
+      pricing: v4.pricing,
       landscape,
       dataQuality: ctx.dataQuality,
+      monthlyProfitKrw: v4.optimal.estimatedMonthlyProfitKrw,
+      profitScore: v4.profitScore,
+      recommendedScenario: v4.optimal.label,
     });
 
-    picks.push(
-      buildPick(dateKey, product, kw.keyword, intel, pricing, insights, signals, score, dailyUnits, ctx, aiSummary, landscape),
+    candidates.push(
+      buildPick(dateKey, product, kw.keyword, intel, v4, insights, signals, score, ctx, aiSummary, landscape),
     );
   }
 
-  return picks.slice(0, CONSIGNMENT_DAILY_PICKS);
+  return candidates
+    .sort((a, b) => (b.estimatedMonthlyProfitKrw ?? 0) - (a.estimatedMonthlyProfitKrw ?? 0))
+    .slice(0, CONSIGNMENT_DAILY_PICKS);
 }
+
+export { SELLER_AI_ENGINE_VERSION };

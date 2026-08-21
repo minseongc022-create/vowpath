@@ -10,6 +10,7 @@ import { SourcingAnalysisCard } from "@/toss-shop/components/SourcingAnalysisCar
 type Meta = {
   dataQuality?: string;
   catalogSize?: number;
+  engineVersion?: string;
 };
 
 export function ImportPanel() {
@@ -27,9 +28,10 @@ export function ImportPanel() {
       picks: ImportPick[];
       dataQuality?: string;
       catalogSize?: number;
+      engineVersion?: string;
     };
     setPicks(data.picks ?? []);
-    setMeta({ dataQuality: data.dataQuality, catalogSize: data.catalogSize });
+    setMeta({ dataQuality: data.dataQuality, catalogSize: data.catalogSize, engineVersion: data.engineVersion });
     setBlocked(false);
   }, []);
 
@@ -40,9 +42,16 @@ export function ImportPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
-        <p className="font-bold">AI 수입 소싱 · 오늘 5선</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-bold">AI 수입 소싱 · 오늘 5선</p>
+          {meta.engineVersion && (
+            <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-bold text-white">
+              {meta.engineVersion.toUpperCase()}
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-emerald-800/80">
-          해외 소싱가 · 관세·배송 · 국내 경쟁가 · 마진 · 실행 플랜까지 AI가 한 번에 분석
+          월수익 극대화 · 랜딩·관세 · 3가지 가격 전략 · 수익 플레이북
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-emerald-800/70">
@@ -66,7 +75,9 @@ export function ImportPanel() {
                   </p>
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
-                <span className="ts-grade-badge ts-grade-excellent">{p.winScore ?? p.confidenceScore}점</span>
+                <span className="ts-grade-badge ts-grade-excellent">
+                  {p.profitScore ?? p.winScore ?? p.confidenceScore}점
+                </span>
               </div>
 
               <div className="ts-metric-grid mt-4">
@@ -96,6 +107,7 @@ export function ImportPanel() {
 
               <SourcingAnalysisCard
                 winScore={p.winScore}
+                profitScore={p.profitScore}
                 suggestedTitle={p.suggestedTitle}
                 pricing={p.pricing}
                 signals={p.signals}
@@ -104,6 +116,13 @@ export function ImportPanel() {
                 competitors={p.competitorInsights}
                 aiSummary={p.aiSummary}
                 competitorLandscape={p.competitorLandscape}
+                pricingScenarios={p.pricingScenarios}
+                revenueForecast={p.revenueForecast}
+                profitPlaybook={p.profitPlaybook}
+                keywordCluster={p.v4?.keywordCluster}
+                moatOpportunities={p.v4?.moatOpportunities}
+                engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
+                recommendedScenarioId={p.v4?.recommendedScenarioId}
                 extra={
                   p.landedBreakdown ? (
                     <div className="grid gap-2 sm:grid-cols-3 text-xs">
