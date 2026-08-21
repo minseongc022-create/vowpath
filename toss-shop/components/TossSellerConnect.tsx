@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LegalDisclaimer } from "@/toss-shop/components/LegalDisclaimer";
+import { IconLink } from "@/toss-shop/components/icons/FeatureIcons";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
 
@@ -12,7 +14,7 @@ type ConnectOptions = {
 
 export function TossSellerConnect({ onDemo }: { onDemo?: () => void }) {
   const router = useRouter();
-  const [expanded, setExpanded] = useState(false);
+  const [showForm, setShowForm] = useState(true);
   const [accessKey, setAccessKey] = useState("");
   const [secretKey, setSecretKey] = useState("");
   const [sandbox, setSandbox] = useState(false);
@@ -39,13 +41,13 @@ export function TossSellerConnect({ onDemo }: { onDemo?: () => void }) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "연동 실패");
+        setError(data.error ?? "연동에 실패했습니다.");
         return;
       }
       router.push(SP_ROUTES.dashboard);
       router.refresh();
     } catch {
-      setError("네트워크 오류");
+      setError("네트워크 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -53,6 +55,10 @@ export function TossSellerConnect({ onDemo }: { onDemo?: () => void }) {
 
   async function submitKeys(e: React.FormEvent) {
     e.preventDefault();
+    if (!accessKey.trim() || !secretKey.trim()) {
+      setError("Access Key와 Secret Key를 입력해주세요.");
+      return;
+    }
     await connect({ accessKey, secretKey, sandbox, shopName: shopName || undefined });
   }
 
@@ -60,91 +66,109 @@ export function TossSellerConnect({ onDemo }: { onDemo?: () => void }) {
 
   return (
     <div className="space-y-4">
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => {
-          if (options?.serverKeysConfigured) void connect({ useServerKeys: true });
-          else setExpanded(true);
-        }}
-        className="ts-btn-toss"
-      >
-        <TossLogo />
-        {SP_STRINGS.ctaTossConnect}
-      </button>
+      {!showForm ? (
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => setShowForm(true)}
+          className="ts-btn-primary"
+        >
+          <IconLink className="h-5 w-5" />
+          {SP_STRINGS.ctaApiConnect}
+        </button>
+      ) : (
+        <form onSubmit={submitKeys} className="space-y-4">
+          <div>
+            <p className="text-base font-bold text-ts-ink">{SP_STRINGS.ctaApiConnect}</p>
+            <p className="mt-1 text-sm text-ts-muted">{SP_STRINGS.ctaApiConnectDesc}</p>
+          </div>
 
-      {expanded && (
-        <form onSubmit={submitKeys} className="space-y-3 rounded-xl border border-ts-border bg-ts-bg p-4">
+          <LegalDisclaimer compact />
+
           <p className="text-xs leading-relaxed text-ts-muted">
-            토스쇼핑은 셀러 OAuth 로그인 대신{" "}
-            <strong className="text-ts-ink">API 키</strong>로 연동합니다.
             <a
               href={sellerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 font-semibold text-ts-primary underline"
+              className="font-semibold text-ts-primary underline-offset-2 hover:underline"
             >
-              토스 셀러센터
+              토스쇼핑 셀러센터
             </a>
-            {" "}→ 쇼핑 → 연동 관리에서 키를 발급한 뒤 입력하세요. 연동 즉시 상품·정산·키워드가 동기화됩니다.
+            {" "}→ 쇼핑 → 연동 관리에서 API 키를 발급한 뒤 아래에 입력하세요.
           </p>
-          <input
-            className="ts-input"
-            placeholder="Access Key"
-            value={accessKey}
-            onChange={(e) => setAccessKey(e.target.value)}
-            required
-            autoComplete="off"
-          />
-          <input
-            className="ts-input"
-            type="password"
-            placeholder="Secret Key"
-            value={secretKey}
-            onChange={(e) => setSecretKey(e.target.value)}
-            required
-            autoComplete="off"
-          />
-          <input
-            className="ts-input"
-            placeholder="상점명 (선택)"
-            value={shopName}
-            onChange={(e) => setShopName(e.target.value)}
-          />
-          <label className="flex items-center gap-2 text-sm text-ts-muted">
-            <input type="checkbox" checked={sandbox} onChange={(e) => setSandbox(e.target.checked)} />
+
+          <div>
+            <label className="ts-label" htmlFor="access-key">Access Key</label>
+            <input
+              id="access-key"
+              className="ts-input"
+              placeholder="Access Key"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="off"
+            />
+          </div>
+          <div>
+            <label className="ts-label" htmlFor="secret-key">Secret Key</label>
+            <input
+              id="secret-key"
+              className="ts-input"
+              type="password"
+              placeholder="Secret Key"
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="ts-label" htmlFor="shop-name">상점명 (선택)</label>
+            <input
+              id="shop-name"
+              className="ts-input"
+              placeholder="내 상점"
+              value={shopName}
+              onChange={(e) => setShopName(e.target.value)}
+            />
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-ts-muted">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-ts-border"
+              checked={sandbox}
+              onChange={(e) => setSandbox(e.target.checked)}
+            />
             테스트(샌드박스) 환경
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={loading} className="ts-btn-primary w-full">
+
+          {error && (
+            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 ring-1 ring-red-100" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={loading} className="ts-btn-primary">
             {loading ? "연동 중…" : "연동하고 시작하기"}
           </button>
+
+          {options?.serverKeysConfigured && (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => void connect({ useServerKeys: true })}
+              className="ts-btn-ghost text-sm"
+            >
+              서버에 설정된 API 키로 연동
+            </button>
+          )}
         </form>
       )}
 
-      {!expanded && error && <p className="text-sm text-red-600">{error}</p>}
-
       <div className="ts-divider">또는</div>
 
-      <button
-        type="button"
-        onClick={onDemo}
-        className="ts-btn-secondary w-full"
-      >
+      <button type="button" onClick={onDemo} disabled={loading} className="ts-btn-secondary">
         {SP_STRINGS.ctaDemo}
       </button>
     </div>
-  );
-}
-
-function TossLogo() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-      <circle cx="10" cy="10" r="10" fill="white" fillOpacity="0.2" />
-      <path
-        d="M6 10.5c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5-1.8 4.5-4 4.5-4-2-4-4.5z"
-        fill="white"
-      />
-    </svg>
   );
 }

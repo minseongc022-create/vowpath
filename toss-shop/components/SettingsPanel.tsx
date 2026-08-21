@@ -108,10 +108,10 @@ export function SettingsPanel() {
       </section>
 
       <section className="ts-card">
-        <h2 className="text-sm font-bold">토스 셀러 연동</h2>
+        <h2 className="text-sm font-bold">토스쇼핑 API 연동</h2>
         <p className="mt-1 text-xs leading-relaxed text-ts-muted">
           <a href={TOSS_SELLER_CENTER_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-ts-primary underline">
-            토스 셀러센터
+            토스쇼핑 셀러센터
           </a>
           {" "}→ 쇼핑 → 연동 관리에서 API 키를 발급하세요. 저장 즉시 상품·정산·키워드가 동기화됩니다.
         </p>
