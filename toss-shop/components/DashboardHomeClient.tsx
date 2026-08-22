@@ -89,6 +89,7 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
+    { href: SP_ROUTES.listings, title: `${JARVIS_NAME} 등록함`, desc: "OK 사인 → 토스 자동 등록 · AI 상세", accent: true },
     { href: SP_ROUTES.consignment, title: `위탁판매 ${JARVIS_NAME}`, desc: "월 1천만 · 도매매 단품 · 93% 인증 SKU", accent: true },
     { href: SP_ROUTES.importSales, title: `수입판매 ${JARVIS_NAME}`, desc: "월 1천만 · 1688·일본 · 93% 인증 SKU", accent: true },
   ];

@@ -25,6 +25,7 @@ const PRIMARY_NAV = [
 ] as const;
 
 const MORE_LINKS = [
+  { href: SP_ROUTES.listings, label: "Jarvis 등록함", desc: "OK 사인 → 토스 등록", Icon: IconConsignment },
   { href: SP_ROUTES.discovery, label: "아이템 발굴", desc: "수요·공급 키워드", Icon: IconDiscovery },
   { href: SP_ROUTES.rankings, label: "랭킹 추적", desc: "노출 순위", Icon: IconRankings },
   { href: SP_ROUTES.settlements, label: "정산", desc: "예상 vs 실제 입금", Icon: IconSettlements },

@@ -23,6 +23,9 @@ import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
 import { generateConsignmentPicks } from "./seller-engine/consignment";
 import { generateImportPicks } from "./seller-engine/import-sales";
+import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
+import { publishListingToToss } from "./api/create-product";
+import { resolveApiConfig } from "./api/client";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
 import { collectMarketIntelligence } from "./market-collector";
@@ -38,6 +41,7 @@ import type {
   SettlementRow,
   ConsignmentPick,
   ImportPick,
+  JarvisListingDraft,
   TossShopAccount,
   TossShopMerchant,
   TossShopStore,
@@ -884,4 +888,179 @@ export async function getImportPicksForMerchant(merchantId: string): Promise<Imp
   data.importDate = today;
   await saveStore(store);
   return picks;
+}
+
+// ── Jarvis listing drafts (user OK → publish) ──
+
+function listingDrafts(data: ReturnType<typeof merchantData>): JarvisListingDraft[] {
+  if (!data.listingDrafts) data.listingDrafts = [];
+  return data.listingDrafts;
+}
+
+export async function listListingDraftsForMerchant(merchantId: string): Promise<JarvisListingDraft[]> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  return [...listingDrafts(data)].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+export async function getListingDraft(
+  merchantId: string,
+  draftId: string,
+): Promise<JarvisListingDraft | null> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  return listingDrafts(data).find((d) => d.id === draftId) ?? null;
+}
+
+export async function createListingDraftFromPick(input: {
+  merchantId: string;
+  pickId: string;
+  mode: "consignment" | "import";
+}): Promise<JarvisListingDraft> {
+  const store = await loadStore();
+  const data = merchantData(store, input.merchantId);
+  const merchant = store.merchants.find((m) => m.id === input.merchantId);
+  const today = todayDateKey();
+  const integrationCtx = {
+    tossApiConfigured: Boolean(merchant?.apiAccessKey && merchant?.apiSecretKey),
+    dataQuality: (merchant?.dataSource === "live"
+      ? "live"
+      : merchant?.dataSource === "live_partial"
+        ? "mixed"
+        : "demo") as "live" | "mixed" | "demo",
+  };
+
+  let pick: ConsignmentPick | ImportPick | undefined;
+  if (input.mode === "consignment") {
+    if (data.consignmentDate !== today || !data.consignmentPicks?.length) {
+      data.consignmentPicks = await generateConsignmentPicks(
+        store.catalog,
+        today,
+        store.marketKeywords,
+        integrationCtx,
+      );
+      data.consignmentDate = today;
+    }
+    pick = data.consignmentPicks.find((p) => p.id === input.pickId);
+  } else {
+    if (data.importDate !== today || !data.importPicks?.length) {
+      data.importPicks = await generateImportPicks(
+        store.catalog,
+        today,
+        store.marketKeywords,
+        integrationCtx,
+      );
+      data.importDate = today;
+    }
+    pick = data.importPicks.find((p) => p.id === input.pickId);
+  }
+
+  if (!pick) throw new Error("PICK_NOT_FOUND");
+
+  const existing = listingDrafts(data).find(
+    (d) => d.pickId === input.pickId && d.status !== "rejected" && d.status !== "failed",
+  );
+  if (existing) return existing;
+
+  const draft = await buildListingDraftFromPick({
+    merchantId: input.merchantId,
+    pick,
+    mode: input.mode,
+    draftId: newId("jl"),
+  });
+
+  listingDrafts(data).unshift(draft);
+  await saveStore(store);
+  return draft;
+}
+
+async function updateListingDraft(
+  merchantId: string,
+  draftId: string,
+  patch: Partial<JarvisListingDraft>,
+): Promise<JarvisListingDraft> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const drafts = listingDrafts(data);
+  const idx = drafts.findIndex((d) => d.id === draftId);
+  if (idx < 0) throw new Error("DRAFT_NOT_FOUND");
+  drafts[idx] = { ...drafts[idx], ...patch, updatedAt: new Date().toISOString() };
+  await saveStore(store);
+  return drafts[idx];
+}
+
+export async function approveListingDraft(input: {
+  merchantId: string;
+  draftId: string;
+  approvedBy: string;
+}): Promise<JarvisListingDraft> {
+  return updateListingDraft(input.merchantId, input.draftId, {
+    status: "approved",
+    approvedAt: new Date().toISOString(),
+    approvedBy: input.approvedBy,
+  });
+}
+
+export async function rejectListingDraft(input: {
+  merchantId: string;
+  draftId: string;
+  reason?: string;
+}): Promise<JarvisListingDraft> {
+  return updateListingDraft(input.merchantId, input.draftId, {
+    status: "rejected",
+    rejectionReason: input.reason ?? "사용자 거절",
+  });
+}
+
+export async function publishApprovedListingDraft(input: {
+  merchantId: string;
+  draftId: string;
+  categoryId?: number;
+  exchangeReturnLocationId?: number;
+}): Promise<JarvisListingDraft> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === input.merchantId);
+  const draft = await getListingDraft(input.merchantId, input.draftId);
+  if (!draft) throw new Error("DRAFT_NOT_FOUND");
+  if (draft.status !== "approved") throw new Error("DRAFT_NOT_APPROVED");
+
+  await updateListingDraft(input.merchantId, input.draftId, { status: "publishing" });
+
+  const config = await resolveApiConfig(input.merchantId, {
+    accessKey: merchant?.apiAccessKey,
+    secretKey: merchant?.apiSecretKey,
+    sandbox: merchant?.apiSandbox,
+  });
+
+  if (!config) {
+    return updateListingDraft(input.merchantId, input.draftId, {
+      status: "failed",
+      publishError: "토스 API 미연동 — 설정에서 키 등록 필요",
+    });
+  }
+
+  const result = await publishListingToToss({
+    merchantId: input.merchantId,
+    config,
+    draft,
+    categoryId: input.categoryId,
+    exchangeReturnLocationId: input.exchangeReturnLocationId,
+    imageUrl: draft.detailPage.thumbnailUrl,
+  });
+
+  if (!result.ok) {
+    return updateListingDraft(input.merchantId, input.draftId, {
+      status: result.simulated ? "approved" : "failed",
+      publishError: result.error,
+    });
+  }
+
+  return updateListingDraft(input.merchantId, input.draftId, {
+    status: "published",
+    publishedAt: new Date().toISOString(),
+    tossProductId: result.productId,
+    publishError: undefined,
+  });
 }

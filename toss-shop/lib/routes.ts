@@ -19,5 +19,6 @@ export const SP_ROUTES = {
   settlements: sp("/dashboard/settlements"),
   consignment: sp("/dashboard/consignment"),
   importSales: sp("/dashboard/import"),
+  listings: sp("/dashboard/listings"),
   settings: sp("/dashboard/settings"),
 } as const;
