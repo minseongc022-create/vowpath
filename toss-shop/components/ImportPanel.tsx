@@ -129,6 +129,7 @@ export function ImportPanel() {
                 goalPathNote={p.goalPathNote}
                 v6MasterScore={p.v6MasterScore}
                 catalogWin={p.catalogWin}
+                catalogStrategy={p.catalogStrategy ?? p.catalogWin?.catalogStrategy}
                 policyChecklist={p.policyChecklist}
                 marketScanSummary={p.v6?.marketScanSummary}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}

@@ -290,6 +290,19 @@ export type PolicyFlag = {
 };
 
 /** 토스쇼핑 카탈로그·대표 아이템(쿠팡 Item Winner 유사) 분석 */
+export type CatalogStrategyMode = "win_representative" | "avoid_catalog";
+
+export type CatalogStrategyPlan = {
+  /** win = 대표아이템(Item Winner) 선점 · avoid = 별도 카탈로그로 Item Winner 경쟁 회피 */
+  mode: CatalogStrategyMode;
+  rationale: string;
+  recommendedTitle: string;
+  /** avoid 모드: 카탈로그 분리·Item Winner 함정 회피 점수 0–99 */
+  isolationScore?: number;
+  actionSteps: string[];
+  avoidItemWinnerTrap: boolean;
+};
+
 export type CatalogWinAnalysis = {
   representativeItemScore: number;
   catalogMatchRisk: "low" | "medium" | "high";
@@ -301,12 +314,14 @@ export type CatalogWinAnalysis = {
   policyFlags: PolicyFlag[];
   complianceScore: number;
   policyBrief: string;
+  catalogStrategy?: CatalogStrategyPlan;
 };
 
 export type SellerAiV6Meta = {
   engineVersion: string;
   v6MasterScore: number;
   catalogWin: CatalogWinAnalysis;
+  catalogStrategy?: CatalogStrategyPlan;
   policyChecklist: string[];
   marketScanSummary?: string;
 };
@@ -434,6 +449,7 @@ export type ConsignmentPick = {
   goalPathNote?: string;
   v6MasterScore?: number;
   catalogWin?: CatalogWinAnalysis;
+  catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   v6?: SellerAiV6Meta;
 };
@@ -480,6 +496,7 @@ export type ImportPick = {
   goalPathNote?: string;
   v6MasterScore?: number;
   catalogWin?: CatalogWinAnalysis;
+  catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   v6?: SellerAiV6Meta;
 };

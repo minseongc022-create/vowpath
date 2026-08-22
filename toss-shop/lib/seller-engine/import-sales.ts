@@ -250,24 +250,32 @@ export async function generateImportPicks(
       });
       return {
         ...pick,
+        suggestedTitle: v6.recommendedTitle,
         geniusScore,
         goalSharePct: c?.goalSharePct,
         goalPathNote: c?.pathNote,
         v6MasterScore: v6.v6MasterScore,
         catalogWin: v6.catalogWin,
+        catalogStrategy: v6.catalogStrategy,
         policyChecklist: v6.policyChecklist,
+        actionSteps: [
+          ...(v6.catalogStrategy?.actionSteps ?? []),
+          ...(pick.actionSteps ?? []).slice(0, 2),
+        ],
         v6: {
           engineVersion: POLICY_ENGINE_VERSION,
           v6MasterScore: v6.v6MasterScore,
           catalogWin: v6.catalogWin,
+          catalogStrategy: v6.catalogStrategy,
           policyChecklist: v6.policyChecklist,
           marketScanSummary: v6.marketScanSummary,
         },
         confidenceScore: v6.v6MasterScore,
         aiSummary:
           pick.aiSummary +
+          ` ${v6.catalogStrategy?.rationale ?? ""}` +
           (c
-            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · genius ${geniusScore}점 · 대표아이템 ${v6.catalogWin.representativeItemScore} · v6 ${v6.v6MasterScore}.`
+            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · v6 ${v6.v6MasterScore}.`
             : ""),
       };
     })
