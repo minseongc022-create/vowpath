@@ -14,10 +14,12 @@ import type {
   PricingScenario,
   ProfitPlaybookItem,
   RevenueForecast,
+  JarvisConfidenceReport,
   RiskPlaybookReport,
   WholesaleListing,
 } from "@/toss-shop/lib/types";
 import { RiskPlaybookPanel } from "@/toss-shop/components/PolicyPlaybookCard";
+import { JarvisBadge } from "@/toss-shop/components/JarvisBadge";
 
 function impactClass(impact: AnalysisSignal["impact"]): string {
   if (impact === "positive") return "text-emerald-700 bg-emerald-50";
@@ -64,6 +66,7 @@ export function SourcingAnalysisCard({
   catalogStrategy,
   policyChecklist,
   riskPlaybook,
+  jarvis,
   marketScanSummary,
   extra,
 }: {
@@ -104,6 +107,7 @@ export function SourcingAnalysisCard({
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
+  jarvis?: JarvisConfidenceReport;
   marketScanSummary?: string;
   extra?: ReactNode;
 }) {
@@ -116,7 +120,7 @@ export function SourcingAnalysisCard({
       {engineVersion && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-ts-primary px-2 py-0.5 font-bold text-white">
-            AI {engineVersion}
+            {engineVersion?.startsWith("jarvis") ? "Jarvis" : engineVersion ? `AI ${engineVersion}` : "Jarvis"}
           </span>
           {profitScore != null && (
             <span className="font-semibold text-ts-primary">수익 {profitScore}/99</span>
@@ -135,6 +139,8 @@ export function SourcingAnalysisCard({
           )}
         </div>
       )}
+
+      {jarvis && <JarvisBadge jarvis={jarvis} />}
 
       {goalPathNote && (
         <p className="text-xs text-violet-700">{goalPathNote}</p>

@@ -16,6 +16,8 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import { TenMillionGoalCard, GoalMilestonesList } from "@/toss-shop/components/TenMillionGoalCard";
+import { JarvisIntegrationCard } from "@/toss-shop/components/JarvisBadge";
+import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 import {
   PolicyPlaybookSummaryCard,
   PenaltyTierList,
@@ -30,6 +32,17 @@ type BillingInfo = {
 
 type RevenueBrief = {
   engineVersion?: string;
+  jarvisName?: string;
+  jarvisIntegration?: {
+    score: number;
+    readyFor90: boolean;
+    missing: string[];
+  };
+  jarvisStats?: {
+    certifiedCount: number;
+    avgConfidence: number;
+    certifiedMonthlyProfitKrw: number;
+  };
   portfolio?: {
     totalMonthlyProfitKrw: number;
     avgProfitScore: number;
@@ -73,8 +86,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: "위탁판매 AI v6", desc: "월 1천만 · 대표아이템·도매꾹 소싱", accent: true },
-    { href: SP_ROUTES.importSales, title: "수입판매 AI v6", desc: "월 1천만 · 카탈로그·1688·일본 소싱", accent: true },
+    { href: SP_ROUTES.consignment, title: `위탁판매 ${JARVIS_NAME}`, desc: "월 1천만 · 도매매 단품 · 90% 인증 SKU", accent: true },
+    { href: SP_ROUTES.importSales, title: `수입판매 ${JARVIS_NAME}`, desc: "월 1천만 · 1688·일본 · 90% 인증 SKU", accent: true },
   ];
 
   const toolCards = [
@@ -123,7 +136,16 @@ export function DashboardHomeClient() {
 
       {!initialLoading && revenueBrief?.tenMillionPlan && (
         <div className="mt-5 space-y-4">
-          <TenMillionGoalCard plan={revenueBrief.tenMillionPlan} />
+          {revenueBrief.jarvisIntegration && (
+            <JarvisIntegrationCard
+              score={revenueBrief.jarvisIntegration.score}
+              missing={revenueBrief.jarvisIntegration.missing}
+              ready={revenueBrief.jarvisIntegration.readyFor90}
+              certifiedCount={revenueBrief.jarvisStats?.certifiedCount}
+              avgConfidence={revenueBrief.jarvisStats?.avgConfidence}
+            />
+          )}
+          <TenMillionGoalCard plan={revenueBrief.tenMillionPlan} jarvisStats={revenueBrief.jarvisStats} />
           {revenueBrief.policyHealth && (
             <PolicyPlaybookSummaryCard
               avgSafetyScore={revenueBrief.policyHealth.avgSafetyScore}
@@ -140,7 +162,7 @@ export function DashboardHomeClient() {
       {!initialLoading && !revenueBrief?.tenMillionPlan && revenueBrief?.portfolio && revenueBrief.portfolio.totalMonthlyProfitKrw > 0 && (
         <div className="mt-5 rounded-2xl bg-gradient-to-br from-ts-primary/10 to-emerald-50 px-4 py-4 ring-1 ring-ts-primary/20">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold text-ts-ink">오늘의 AI v6 수익 브리핑</p>
+            <p className="font-bold text-ts-ink">오늘의 {JARVIS_NAME} 수익 브리핑</p>
             {revenueBrief.engineVersion && (
               <span className="rounded-full bg-ts-primary px-2 py-0.5 text-xs font-bold text-white">
                 {revenueBrief.engineVersion.toUpperCase()}

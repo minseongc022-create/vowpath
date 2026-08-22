@@ -15,6 +15,13 @@ import {
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 import { buildPickContributions, getMonthlyGoalKrw } from "./goal-engine";
 import { buildV6PickEnrichment, POLICY_ENGINE_VERSION } from "./policy-engine";
+import {
+  assessIntegration,
+  computeJarvisConfidence,
+  filterJarvisCertifiedPicks,
+} from "./jarvis-engine";
+import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
+import type { SourcingIntegrationContext } from "./consignment";
 
 const IMPORT_CATEGORIES: TossShopCategory[] = ["digital", "home", "beauty", "fashion", "health"];
 
@@ -72,8 +79,15 @@ export async function generateImportPicks(
   catalog: CatalogProduct[],
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
+  integrationCtx?: SourcingIntegrationContext,
 ): Promise<ImportPick[]> {
   const ctx = marketContext(catalog, marketKeywords);
+  const integration = assessIntegration({
+    tossApiConfigured: integrationCtx?.tossApiConfigured ?? false,
+    wholesaleApiConfigured: isDomeggookApiConfigured(),
+    dataQuality: integrationCtx?.dataQuality ?? ctx.dataQuality,
+    catalogSize: catalog.length,
+  });
   const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 50).filter((k) =>
     IMPORT_CATEGORIES.includes(k.category),
   );
@@ -211,7 +225,7 @@ export async function generateImportPicks(
     });
   }
 
-  return candidates
+  const enriched = candidates
     .map((pick) => {
       const contributions = buildPickContributions([
         {
@@ -250,6 +264,25 @@ export async function generateImportPicks(
         mode: "import",
         sourceCountry: pick.sourceCountry,
       });
+      const jarvis = computeJarvisConfidence({
+        integration,
+        v6MasterScore: v6.v6MasterScore,
+        safetyScore: v6.riskPlaybook?.overallSafetyScore ?? 70,
+        marginPct: pick.estimatedMarginPct,
+        monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
+        moq: 1,
+        wholesaleLive: pick.importBest?.source === "live",
+        wholesalePlatform: undefined,
+        criticalRisks: v6.riskPlaybook?.criticalCount ?? 0,
+        blockRisks: v6.riskPlaybook?.blockCount ?? 0,
+        representativeItemScore: v6.catalogWin.representativeItemScore,
+        isolationScore: v6.catalogStrategy?.isolationScore,
+        catalogStrategyMode: v6.catalogStrategy?.mode,
+        competitionIntensity: pick.competitorLandscape?.count
+          ? pick.competitorLandscape.count / 10
+          : 1.2,
+        searchVolume: 5000,
+      });
       return {
         ...pick,
         suggestedTitle: v6.recommendedTitle,
@@ -261,6 +294,7 @@ export async function generateImportPicks(
         catalogStrategy: v6.catalogStrategy,
         policyChecklist: v6.policyChecklist,
         riskPlaybook: v6.riskPlaybook,
+        jarvis,
         actionSteps: [
           ...(v6.catalogStrategy?.actionSteps ?? []),
           ...(v6.riskPlaybook?.mandatoryActions.slice(0, 3) ?? []),
@@ -275,23 +309,25 @@ export async function generateImportPicks(
           marketScanSummary: v6.marketScanSummary,
           riskPlaybook: v6.riskPlaybook,
         },
-        confidenceScore: v6.v6MasterScore,
-        aiSummary:
-          pick.aiSummary +
-          ` ${v6.catalogStrategy?.rationale ?? ""}` +
-          ` ${v6.riskPlaybook?.playbookBrief ?? ""}` +
-          (c
-            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · v6 ${v6.v6MasterScore}.`
-            : ""),
+        confidenceScore: jarvis.certified ? jarvis.confidencePct : v6.v6MasterScore,
+        reason: `${jarvis.jackpotCertified ? "🎯 Jarvis 대박" : jarvis.certified ? "✓ Jarvis 90%+" : "Jarvis"} · ${pick.reason}`,
+        aiSummary: pick.aiSummary + ` ${jarvis.brief}` + (c ? ` · ${jarvis.monthlyPathNote}` : ""),
       };
     })
     .sort((a, b) => {
-      const blockA = (a.riskPlaybook?.criticalCount ?? 0) + (a.riskPlaybook?.blockCount ?? 0);
-      const blockB = (b.riskPlaybook?.criticalCount ?? 0) + (b.riskPlaybook?.blockCount ?? 0);
-      if (blockA !== blockB) return blockA - blockB;
-      return (b.v6MasterScore ?? 0) - (a.v6MasterScore ?? 0);
-    })
-    .slice(0, 5);
+      const certA = a.jarvis?.certified ? 1 : 0;
+      const certB = b.jarvis?.certified ? 1 : 0;
+      if (certA !== certB) return certB - certA;
+      return (b.jarvis?.confidencePct ?? 0) - (a.jarvis?.confidencePct ?? 0);
+    });
+
+  const ranked = integration.readyFor90
+    ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true }).length >= 2
+      ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true })
+      : enriched
+    : enriched;
+
+  return ranked.slice(0, 5);
 }
 
 export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

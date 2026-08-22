@@ -51,9 +51,19 @@ export function pickBestWholesaleMatch(
   tossRetailKrw: number,
   minMarginPct = 12,
 ): WholesaleListing | null {
-  const scored = attachMarginVsToss(listings, tossRetailKrw)
-    .filter((l) => (l.marginVsTossPct ?? 0) >= minMarginPct)
+  const withMargin = attachMarginVsToss(listings, tossRetailKrw).filter(
+    (l) => (l.marginVsTossPct ?? 0) >= minMarginPct,
+  );
+
+  const domemeUnit = withMargin
+    .filter((l) => l.platform === "domeme" && l.moq <= 1)
     .sort((a, b) => landedWholesaleUnitCost(a) - landedWholesaleUnitCost(b));
+  if (domemeUnit.length) return domemeUnit[0];
+
+  const moq1 = withMargin.filter((l) => l.moq <= 1).sort((a, b) => landedWholesaleUnitCost(a) - landedWholesaleUnitCost(b));
+  if (moq1.length) return moq1[0];
+
+  const scored = withMargin.sort((a, b) => landedWholesaleUnitCost(a) - landedWholesaleUnitCost(b));
   return scored[0] ?? listings.sort((a, b) => a.unitPriceKrw - b.unitPriceKrw)[0] ?? null;
 }
 
@@ -69,6 +79,12 @@ export async function searchWholesaleForConsignment(input: {
   if (!listings.length) {
     listings = estimateListings(input.keyword, input.tossAvgPriceKrw);
   }
+
+  listings = listings.sort((a, b) => {
+    const score = (l: WholesaleListing) =>
+      (l.platform === "domeme" ? 100 : 0) + (l.moq <= 1 ? 50 : 0) + (l.source === "live" ? 25 : 0);
+    return score(b) - score(a);
+  });
 
   listings = attachMarginVsToss(listings, target);
   const bestMatch = pickBestWholesaleMatch(listings, target, 10);

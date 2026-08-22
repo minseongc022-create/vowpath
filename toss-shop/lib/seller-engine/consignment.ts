@@ -21,6 +21,17 @@ import {
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 import { buildPickContributions, getMonthlyGoalKrw } from "./goal-engine";
 import { buildV6PickEnrichment, POLICY_ENGINE_VERSION } from "./policy-engine";
+import {
+  assessIntegration,
+  computeJarvisConfidence,
+  filterJarvisCertifiedPicks,
+} from "./jarvis-engine";
+import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
+
+export type SourcingIntegrationContext = {
+  tossApiConfigured: boolean;
+  dataQuality: "live" | "mixed" | "demo";
+};
 
 function suggestedTitle(keyword: string, productName: string): string {
   const base = productName.length > 28 ? productName.slice(0, 28) : productName;
@@ -123,8 +134,15 @@ export async function generateConsignmentPicks(
   catalog: CatalogProduct[],
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
+  integrationCtx?: SourcingIntegrationContext,
 ): Promise<ConsignmentPick[]> {
   const ctx = marketContext(catalog, marketKeywords);
+  const integration = assessIntegration({
+    tossApiConfigured: integrationCtx?.tossApiConfigured ?? false,
+    wholesaleApiConfigured: isDomeggookApiConfigured(),
+    dataQuality: integrationCtx?.dataQuality ?? ctx.dataQuality,
+    catalogSize: catalog.length,
+  });
   const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
   );
@@ -227,7 +245,7 @@ export async function generateConsignmentPicks(
     );
   }
 
-  return candidates
+  const enriched = candidates
     .map((pick) => {
       const contributions = buildPickContributions([
         {
@@ -267,6 +285,27 @@ export async function generateConsignmentPicks(
         freeShippingRecommended: pick.recommendedPriceKrw >= 15000,
         mode: "consignment",
       });
+      const wholesaleBest = pick.wholesaleBest;
+      const jarvis = computeJarvisConfidence({
+        integration,
+        v6MasterScore: v6.v6MasterScore,
+        safetyScore: v6.riskPlaybook?.overallSafetyScore ?? 70,
+        marginPct: pick.estimatedMarginPct,
+        monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
+        moq: wholesaleBest?.moq ?? 1,
+        wholesaleLive: wholesaleBest?.source === "live",
+        wholesalePlatform:
+          wholesaleBest?.platform === "domeggook" || wholesaleBest?.platform === "domeme"
+            ? wholesaleBest.platform
+            : undefined,
+        criticalRisks: v6.riskPlaybook?.criticalCount ?? 0,
+        blockRisks: v6.riskPlaybook?.blockCount ?? 0,
+        representativeItemScore: v6.catalogWin.representativeItemScore,
+        isolationScore: v6.catalogStrategy?.isolationScore,
+        catalogStrategyMode: v6.catalogStrategy?.mode,
+        competitionIntensity: pick.competitionIntensity,
+        searchVolume: pick.searchVolume,
+      });
       return {
         ...pick,
         suggestedTitle: v6.recommendedTitle,
@@ -278,6 +317,7 @@ export async function generateConsignmentPicks(
         catalogStrategy: v6.catalogStrategy,
         policyChecklist: v6.policyChecklist,
         riskPlaybook: v6.riskPlaybook,
+        jarvis,
         actionSteps: [
           ...(v6.catalogStrategy?.actionSteps ?? []),
           ...(v6.riskPlaybook?.mandatoryActions.slice(0, 3) ?? []),
@@ -292,23 +332,32 @@ export async function generateConsignmentPicks(
           marketScanSummary: v6.marketScanSummary,
           riskPlaybook: v6.riskPlaybook,
         },
-        confidenceScore: v6.v6MasterScore,
+        confidenceScore: jarvis.certified ? jarvis.confidencePct : v6.v6MasterScore,
+        reason: `${jarvis.jackpotCertified ? "🎯 Jarvis 대박" : jarvis.certified ? "✓ Jarvis 90%+" : "Jarvis"} · ${pick.reason}`,
         aiSummary:
           pick.aiSummary +
+          ` ${jarvis.brief}` +
           ` ${v6.catalogStrategy?.rationale ?? ""}` +
-          ` ${v6.riskPlaybook?.playbookBrief ?? ""}` +
-          (c
-            ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · v6 ${v6.v6MasterScore}.`
-            : ""),
+          (c ? ` · ${jarvis.monthlyPathNote}` : ""),
       };
     })
     .sort((a, b) => {
-      const blockA = (a.riskPlaybook?.criticalCount ?? 0) + (a.riskPlaybook?.blockCount ?? 0);
-      const blockB = (b.riskPlaybook?.criticalCount ?? 0) + (b.riskPlaybook?.blockCount ?? 0);
-      if (blockA !== blockB) return blockA - blockB;
-      return (b.v6MasterScore ?? 0) - (a.v6MasterScore ?? 0);
-    })
-    .slice(0, CONSIGNMENT_DAILY_PICKS);
+      const certA = a.jarvis?.certified ? 1 : 0;
+      const certB = b.jarvis?.certified ? 1 : 0;
+      if (certA !== certB) return certB - certA;
+      const jackA = a.jarvis?.jackpotCertified ? 1 : 0;
+      const jackB = b.jarvis?.jackpotCertified ? 1 : 0;
+      if (jackA !== jackB) return jackB - jackA;
+      return (b.jarvis?.confidencePct ?? 0) - (a.jarvis?.confidencePct ?? 0);
+    });
+
+  const ranked = integration.readyFor90
+    ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true }).length >= 2
+      ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true })
+      : enriched
+    : enriched;
+
+  return ranked.slice(0, CONSIGNMENT_DAILY_PICKS);
 }
 
 export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

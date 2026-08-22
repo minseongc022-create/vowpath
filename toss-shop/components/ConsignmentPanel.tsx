@@ -6,6 +6,7 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { ConsignmentPick } from "@/toss-shop/lib/types";
 import { UpgradeBanner } from "@/toss-shop/components/UpgradeBanner";
 import { SourcingAnalysisCard } from "@/toss-shop/components/SourcingAnalysisCard";
+import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 
 type Meta = {
   dataQuality?: string;
@@ -50,7 +51,7 @@ export function ConsignmentPanel() {
     <div className="space-y-4">
       <div className="rounded-2xl bg-ts-primary/10 px-4 py-3 text-sm text-ts-ink ring-1 ring-ts-primary/20">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-bold">AI 위탁 소싱 · 오늘 5선</p>
+          <p className="font-bold">{JARVIS_NAME} 위탁 소싱 · 오늘 5선</p>
           {meta.engineVersion && (
             <span className="rounded-full bg-ts-primary px-2 py-0.5 text-xs font-bold text-white">
               {meta.engineVersion.toUpperCase()}
@@ -58,7 +59,7 @@ export function ConsignmentPanel() {
           )}
         </div>
         <p className="mt-1 text-ts-muted">
-          도매꾹·도매매 실공급가 연동 · 토스 경쟁가 대비 마진 · AI가 위탁 플로우 자동 설계
+          도매매 단품(MOQ≤1) 우선 · 실공급가 연동 · 90% 인증 SKU만 월 1천만 경로
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-ts-muted">
@@ -82,7 +83,11 @@ export function ConsignmentPanel() {
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
                 <span className="ts-grade-badge ts-grade-good">
-                  {p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore} genius
+                  {p.jarvis?.certified
+                    ? `Jarvis ${p.jarvis.confidencePct}%`
+                    : p.jarvis
+                      ? `Jarvis ${p.jarvis.confidencePct}%`
+                      : `${p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore}`}
                 </span>
               </div>
 
@@ -148,6 +153,7 @@ export function ConsignmentPanel() {
                 catalogStrategy={p.catalogStrategy ?? p.catalogWin?.catalogStrategy}
                 policyChecklist={p.policyChecklist}
                 riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
+                jarvis={p.jarvis}
                 marketScanSummary={p.v6?.marketScanSummary}
               />
             </article>

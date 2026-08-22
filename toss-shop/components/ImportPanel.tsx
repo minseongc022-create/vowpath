@@ -6,6 +6,7 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { ImportPick } from "@/toss-shop/lib/types";
 import { UpgradeBanner } from "@/toss-shop/components/UpgradeBanner";
 import { SourcingAnalysisCard } from "@/toss-shop/components/SourcingAnalysisCard";
+import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 
 type Meta = {
   dataQuality?: string;
@@ -43,7 +44,7 @@ export function ImportPanel() {
     <div className="space-y-4">
       <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-bold">AI 수입 소싱 · 오늘 5선</p>
+          <p className="font-bold">{JARVIS_NAME} 수입 소싱 · 오늘 5선</p>
           {meta.engineVersion && (
             <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-xs font-bold text-white">
               {meta.engineVersion.toUpperCase()}
@@ -51,7 +52,7 @@ export function ImportPanel() {
           )}
         </div>
         <p className="mt-1 text-emerald-800/80">
-          중국 1688·일본 라쿠텐 소싱 링크 · 랜딩·마진 · AI가 수입 경로 추천
+          1688·라쿠텐 소싱 · 90% 인증 SKU · 월 1천만 경로
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-emerald-800/70">
@@ -76,7 +77,9 @@ export function ImportPanel() {
                   <h3 className="mt-1 font-bold text-ts-ink">{p.productName}</h3>
                 </div>
                 <span className="ts-grade-badge ts-grade-excellent">
-                  {p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore} genius
+                  {p.jarvis?.confidencePct != null
+                    ? `Jarvis ${p.jarvis.confidencePct}%`
+                    : `${p.geniusScore ?? p.profitScore ?? p.winScore ?? p.confidenceScore}`}
                 </span>
               </div>
 
@@ -132,6 +135,7 @@ export function ImportPanel() {
                 catalogStrategy={p.catalogStrategy ?? p.catalogWin?.catalogStrategy}
                 policyChecklist={p.policyChecklist}
                 riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
+                jarvis={p.jarvis}
                 marketScanSummary={p.v6?.marketScanSummary}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}
