@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
 import type {
   AnalysisSignal,
+  CatalogStrategyPlan,
   CatalogWinAnalysis,
   CompetitorInsight,
   ImportSourceBundle,
@@ -58,6 +59,7 @@ export function SourcingAnalysisCard({
   goalPathNote,
   v6MasterScore,
   catalogWin,
+  catalogStrategy,
   policyChecklist,
   marketScanSummary,
   extra,
@@ -96,6 +98,7 @@ export function SourcingAnalysisCard({
   goalPathNote?: string;
   v6MasterScore?: number;
   catalogWin?: CatalogWinAnalysis;
+  catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   marketScanSummary?: string;
   extra?: ReactNode;
@@ -137,6 +140,31 @@ export function SourcingAnalysisCard({
         <div className="rounded-xl bg-indigo-50 px-3 py-2.5 text-xs leading-relaxed text-indigo-900 ring-1 ring-indigo-100">
           <p className="font-semibold">시장 전체 스캔 (v6)</p>
           <p className="mt-1">{marketScanSummary}</p>
+        </div>
+      )}
+
+      {catalogStrategy && (
+        <div
+          className={`rounded-xl px-3 py-2.5 text-xs ring-1 ${
+            catalogStrategy.mode === "win_representative"
+              ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
+              : "bg-amber-50 text-amber-950 ring-amber-200"
+          }`}
+        >
+          <p className="font-bold">
+            {catalogStrategy.mode === "win_representative"
+              ? "전략 A · 대표 아이템(Item Winner) 선점"
+              : "전략 B · Item Winner 회피 · 별도 카탈로그"}
+            {catalogStrategy.isolationScore != null && (
+              <span className="ml-2 font-semibold">isolation {catalogStrategy.isolationScore}</span>
+            )}
+          </p>
+          <p className="mt-1 leading-relaxed">{catalogStrategy.rationale}</p>
+          {catalogStrategy.recommendedTitle && (
+            <p className="mt-2 font-medium">
+              권장 등록명: {catalogStrategy.recommendedTitle}
+            </p>
+          )}
         </div>
       )}
 

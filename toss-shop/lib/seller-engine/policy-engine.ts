@@ -11,15 +11,17 @@
  */
 
 import type {
+  CatalogStrategyMode,
+  CatalogStrategyPlan,
   CatalogWinAnalysis,
   PolicyFlag,
   TossPolicyBrief,
   TossShopCategory,
 } from "../types";
 
-export const POLICY_ENGINE_VERSION = "v6";
+export const POLICY_ENGINE_VERSION = "v6.1";
 
-export type { CatalogWinAnalysis, PolicyFlag, TossPolicyBrief };
+export type { CatalogWinAnalysis, PolicyFlag, TossPolicyBrief, CatalogStrategyPlan, CatalogStrategyMode };
 
 export const TOSS_POLICY_BRIEF: TossPolicyBrief = {
   engineVersion: POLICY_ENGINE_VERSION,
@@ -81,6 +83,144 @@ const CATEGORY_POLICY: Record<
     dispatchTip: "기능성 표현 과장 금지 (페널티)",
   },
 };
+
+/** 카테고리별 Item Winner 회피용 차별화 옵션 (별도 카탈로그 유도) */
+const DIFFERENTIATION_VARIANTS: Record<
+  TossShopCategory,
+  { suffix: string; detail: string; isolationBonus: number }[]
+> = {
+  food: [
+    { suffix: "2+1 세트", detail: "동일 SKU 대비 구성·수량 다르게 → 별도 카탈로그", isolationBonus: 14 },
+    { suffix: "대용량 패밀리", detail: "용량·입수 차별 → 기존 카탈로그와 분리", isolationBonus: 12 },
+    { suffix: "선물세트", detail: "구성·포장 차별 → Item Winner 경쟁 회피", isolationBonus: 16 },
+  ],
+  beauty: [
+    { suffix: "듀오 세트", detail: "본품+미니 구성 → 카탈로그 분리", isolationBonus: 15 },
+    { suffix: "리필 대용량", detail: "용량·구성 명시 → 오매칭·묶임 방지", isolationBonus: 13 },
+    { suffix: "기획세트", detail: "한정 구성 → 대표아이템 전쟁 회피", isolationBonus: 14 },
+  ],
+  home: [
+    { suffix: "2P 세트", detail: "색상·수량 세트 → 별도 PDP", isolationBonus: 12 },
+    { suffix: "프리미엄 XL", detail: "사이즈·옵션 분리 등록", isolationBonus: 11 },
+    { suffix: "풀세트", detail: "구성품 포함 세트 → 카탈로그 독립", isolationBonus: 15 },
+  ],
+  digital: [
+    { suffix: "호환 풀세트", detail: "케이블·액세서리 번들 → 별도 카탈로그", isolationBonus: 14 },
+    { suffix: "2개입", detail: "수량·구성 차별 → Item Winner 함정 회피", isolationBonus: 12 },
+    { suffix: "프리미엄 패키지", detail: "구성·색상 명확 분리", isolationBonus: 13 },
+  ],
+  fashion: [
+    { suffix: "2색 세트", detail: "색상·사이즈 조합 → 카탈로그 분리 필수", isolationBonus: 16 },
+    { suffix: "시즌 기획", detail: "한정 컬러·소재 → 기존 카탈로그와 분리", isolationBonus: 14 },
+    { suffix: "베이직 3P", detail: "수량·구성 차별 등록", isolationBonus: 12 },
+  ],
+  health: [
+    { suffix: "3개월분", detail: "용량·섭취기간 차별 → 별도 카탈로그", isolationBonus: 13 },
+    { suffix: "스타터 키트", detail: "입문 구성 → 대표아이템 경쟁 회피", isolationBonus: 14 },
+    { suffix: "프리미엄 2박스", detail: "구성·수량 명시 → AI 묶임 방지", isolationBonus: 15 },
+  ],
+};
+
+function pickVariant(keyword: string, category: TossShopCategory) {
+  const variants = DIFFERENTIATION_VARIANTS[category];
+  const idx = Math.abs(keyword.split("").reduce((s, c) => s + c.charCodeAt(0), 0)) % variants.length;
+  return variants[idx];
+}
+
+export function buildDifferentiatedTitle(
+  keyword: string,
+  productName: string,
+  category: TossShopCategory,
+): { title: string; variant: (typeof DIFFERENTIATION_VARIANTS)[TossShopCategory][number] } {
+  const variant = pickVariant(keyword, category);
+  const base = productName.length > 22 ? productName.slice(0, 22) : productName;
+  const title = `${keyword} ${variant.suffix} ${base}`.replace(/\s+/g, " ").trim().slice(0, 45);
+  return { title, variant };
+}
+
+export function decideCatalogStrategy(input: {
+  catalogWin: CatalogWinAnalysis;
+  keyword: string;
+  productName: string;
+  suggestedTitle: string;
+  category: TossShopCategory;
+  marginPct: number;
+  competitionIntensity: number;
+  searchVolume: number;
+}): CatalogStrategyPlan {
+  const { catalogWin } = input;
+  const rep = catalogWin.representativeItemScore;
+  const risk = catalogWin.catalogMatchRisk;
+  const gap = catalogWin.priceGapKrw;
+  const margin = input.marginPct;
+
+  const canWinRepresentative =
+    rep >= 62 &&
+    gap >= -200 &&
+    margin >= 10 &&
+    (risk === "low" || (risk === "medium" && rep >= 68));
+
+  const shouldAvoidCatalog =
+    risk === "high" ||
+    (rep < 52 && input.competitionIntensity > 1.4) ||
+    (gap < -800 && rep < 58) ||
+    (catalogWin.estimatedCatalogSellers > 20 && rep < 60);
+
+  let mode: CatalogStrategyMode = "win_representative";
+  if (shouldAvoidCatalog && !canWinRepresentative) {
+    mode = "avoid_catalog";
+  } else if (!canWinRepresentative && rep < 55 && risk !== "low") {
+    mode = "avoid_catalog";
+  }
+
+  const { title: diffTitle, variant } = buildDifferentiatedTitle(
+    input.keyword,
+    input.productName,
+    input.category,
+  );
+
+  if (mode === "win_representative") {
+    const actionSteps = [
+      "동일 카탈로그 내 **대표 아이템(Item Winner)** 선점 — 총액(상품+배송) 최저 유지",
+      gap < 0
+        ? `경쟁 대비 ${Math.abs(gap).toLocaleString()}원 추가 인하 또는 무료배송으로 총액 역전`
+        : "현재 총액 유리 — 가격 방어 + 오늘출발 유지",
+      "브랜드·모델·용량 **정확 기재** (오매칭 시 대표 자격 박탈)",
+      "검색 태그 10개 · 셀러 쿠폰 1개로 전환율 보강",
+    ];
+    return {
+      mode,
+      rationale: `대표아이템 ${rep}점 · 카탈로그 ${risk} · 총액 ${gap >= 0 ? "유리" : "불리"} → **Item Winner 선점**이 유리`,
+      recommendedTitle: input.suggestedTitle,
+      actionSteps,
+      avoidItemWinnerTrap: false,
+    };
+  }
+
+  let isolationScore = 45;
+  isolationScore += variant.isolationBonus;
+  isolationScore += margin >= 15 ? 12 : margin >= 10 ? 6 : 0;
+  isolationScore += input.searchVolume >= 5000 ? 8 : 4;
+  isolationScore -= risk === "high" ? 0 : 5;
+  isolationScore = Math.min(99, Math.max(0, Math.round(isolationScore)));
+
+  const actionSteps = [
+    "**Item Winner 경쟁 회피** — 구성·용량·세트로 **별도 카탈로그** 생성",
+    `상품명: 「${diffTitle}」 (${variant.detail})`,
+    "썸네일·상세에 **구성·수량·옵션** 명확 표기 → AI 오매칭·강제 묶임 방지",
+    "동일 브랜드 단품과 다른 SKU로 등록 — '다른 가격' 탭 노출 대신 **독립 PDP** 목표",
+    "가격은 중위~상위 구간 허용 (마진 방어) · 무료배송은 선택",
+  ];
+
+  return {
+    mode: "avoid_catalog",
+    rationale: `카탈로그 ${risk === "high" ? "과밀" : "경쟁"} · 대표아이템 ${rep}점 → **별도 카탈로그 소싱**으로 Item Winner 함정 회피`,
+    recommendedTitle: diffTitle,
+    isolationScore,
+    actionSteps,
+    avoidItemWinnerTrap: true,
+  };
+}
 
 export function scanPolicyFlags(input: {
   keyword: string;
@@ -243,15 +383,17 @@ export function computeV6MasterScore(input: {
   complianceScore: number;
   monthlyProfitKrw: number;
   goalKrw: number;
+  catalogStrategy?: CatalogStrategyPlan;
 }): number {
   const profitShare = Math.min(input.monthlyProfitKrw / input.goalKrw, 0.2) * 100;
+  const catalogPart =
+    input.catalogStrategy?.mode === "avoid_catalog"
+      ? (input.catalogStrategy.isolationScore ?? 50) * 0.35
+      : input.representativeItemScore * 0.35;
   return Math.min(
     99,
     Math.round(
-      input.geniusScore * 0.35 +
-        input.representativeItemScore * 0.35 +
-        input.complianceScore * 0.15 +
-        profitShare * 0.15,
+      input.geniusScore * 0.35 + catalogPart + input.complianceScore * 0.15 + profitShare * 0.15,
     ),
   );
 }
@@ -268,7 +410,7 @@ export function buildFullMarketScanSummary(input: {
   return [
     `시장 전체 스캔: 카탈로그 ${input.catalogSize}개 상품 · 「${input.keyword}」 경쟁사 ${input.competitorCount}곳`,
     `가격대 ${input.priceLow.toLocaleString()}~${input.priceHigh.toLocaleString()}원 (중위 ${input.priceMedian.toLocaleString()}원)`,
-    `월 검색 ${input.searchVolume.toLocaleString()} · 토스 AI 카탈로그 매칭·대표 아이템 기준으로 최적 포지션 산출`,
+    `월 검색 ${input.searchVolume.toLocaleString()} · AI가 **대표아이템 선점 vs Item Winner 회피** 중 최적 전략 선택`,
   ].join(" · ");
 }
 
@@ -315,7 +457,65 @@ export function buildV6PickEnrichment(input: {
 
   catalogWin.policyFlags = [...catalogWin.policyFlags, ...extraFlags];
 
-  const policyChecklist = buildPolicyChecklist(input.category);
+  const catalogStrategy = decideCatalogStrategy({
+    catalogWin,
+    keyword: input.keyword,
+    productName: input.productName,
+    suggestedTitle: input.suggestedTitle,
+    category: input.category,
+    marginPct: input.marginPct,
+    competitionIntensity: input.competitionIntensity,
+    searchVolume: input.searchVolume,
+  });
+
+  if (catalogStrategy.mode === "avoid_catalog") {
+    const avoidFlags = scanPolicyFlags({
+      keyword: input.keyword,
+      productName: input.productName,
+      category: input.category,
+      marginPct: input.marginPct,
+      suggestedTitle: catalogStrategy.recommendedTitle,
+    });
+    catalogWin.policyFlags = [...catalogWin.policyFlags, ...avoidFlags.filter((f) => f.code !== "CATEGORY_CERT")];
+  }
+
+  catalogWin.catalogStrategy = catalogStrategy;
+  catalogWin.winStrategy =
+    catalogStrategy.mode === "avoid_catalog"
+      ? [
+          "전략: **Item Winner 회피** — 별도 카탈로그 독립 PDP",
+          ...catalogStrategy.actionSteps.slice(0, 3),
+          ...catalogWin.winStrategy.filter((s) => !s.includes("대표 아이템")),
+        ]
+      : [
+          "전략: **대표 아이템(Item Winner) 선점**",
+          ...catalogWin.winStrategy,
+        ];
+
+  if (catalogStrategy.mode === "avoid_catalog") {
+    catalogWin.policyBrief = `회피 전략 · isolation ${catalogStrategy.isolationScore}점 · ${catalogWin.policyBrief}`;
+    catalogWin.policyFlags.push({
+      level: "info",
+      code: "AVOID_IW",
+      message: "Item Winner 경쟁 회피 — 구성·세트 차별화로 별도 카탈로그 등록 권장",
+    });
+  } else {
+    catalogWin.policyFlags.push({
+      level: repScoreLevel(catalogWin.representativeItemScore),
+      code: "WIN_IW",
+      message: "대표 아이템 선점 전략 — 총액·무료배송·출고속도 집중",
+    });
+  }
+
+  const policyChecklist =
+    catalogStrategy.mode === "avoid_catalog"
+      ? [
+          ...buildPolicyChecklist(input.category).slice(0, 1),
+          "구성·용량·색상·세트 **기존 카탈로그와 다르게** 기재 (Item Winner 회피)",
+          `권장 상품명: ${catalogStrategy.recommendedTitle}`,
+          ...buildPolicyChecklist(input.category).slice(1),
+        ]
+      : buildPolicyChecklist(input.category);
   const marketScanSummary = buildFullMarketScanSummary({
     catalogSize: input.catalogSize,
     keyword: input.keyword,
@@ -332,12 +532,21 @@ export function buildV6PickEnrichment(input: {
     complianceScore: catalogWin.complianceScore,
     monthlyProfitKrw: input.monthlyProfitKrw,
     goalKrw: input.goalKrw,
+    catalogStrategy,
   });
 
   return {
     catalogWin,
+    catalogStrategy,
     policyChecklist,
     marketScanSummary,
     v6MasterScore,
+    recommendedTitle: catalogStrategy.recommendedTitle,
   };
+}
+
+function repScoreLevel(rep: number): PolicyFlag["level"] {
+  if (rep >= 65) return "info";
+  if (rep >= 50) return "warn";
+  return "warn";
 }
