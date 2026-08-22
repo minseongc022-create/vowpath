@@ -254,7 +254,7 @@ node scripts/jarvis-setup-checklist.mjs
 |------|------|
 | 도매매/도매꾹 **자동 발주 API** | **없음** — URL + 고객정보 메모만 |
 | 토스 **광고 API** | 설계 JSON만 |
-| `JARVIS_AUTO_EXECUTE=true` | Health에 표시되나 **execute 자동 호출 코드 없음** |
+| `JARVIS_AUTO_EXECUTE=true` | cron `syncAllMerchants`에서 certified draft 자동 `executeJarvisListing` (cycle당 1건) |
 | 토스 **실검색량/SERP** | 공식 API 없음 — 카탈로그+추정+OpenAI |
 | Coupilot vs Jarvis | Coupilot=쿠팡 데이터, Jarvis=토스 **실행** |
 | Matchcut | 1688+OpenAI 필요; UI 일부 "예정" 문구 잔존 가능 |
@@ -335,7 +335,7 @@ npm run check:cron
 
 ### P1 — 코드 (Claude가 할 수 있음)
 
-- [ ] `JARVIS_AUTO_EXECUTE=true` 일 때 `executeJarvisListing` autopilot 연동 (현재 미구현)
+- [x] `JARVIS_AUTO_EXECUTE=true` → cron `syncAllMerchants`에서 `executeJarvisListing` (cycle당 1건)
 - [ ] Toss 공식 API 나오면 `toss-market-engine` live SERP 교체
 - [ ] Draph/Hookable 실 API 스펙 맞추기 (현재 generic POST)
 - [ ] E2E test: draft → execute (mock Toss)

@@ -27,7 +27,7 @@ import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
 import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
 import { executeConsignmentOrder } from "./seller-engine/consignment-order";
-import { runJarvisAutopilotCycle, enrichDraftWithAutopilot } from "./seller-engine/jarvis-autopilot-engine";
+import { runJarvisAutopilotCycle, enrichDraftWithAutopilot, isAutoExecuteEnabled } from "./seller-engine/jarvis-autopilot-engine";
 import { runJarvisHealthCheck } from "./seller-engine/jarvis-health-check";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
@@ -812,6 +812,29 @@ export async function syncAllMerchants(): Promise<{
         catalog: store.catalog,
         config,
       });
+
+      if (isAutoExecuteEnabled()) {
+        const autoCandidates = (data.listingDrafts ?? []).filter(
+          (d) =>
+            d.jarvisCertified &&
+            (d.status === "pending_review" || d.status === "approved"),
+        );
+        for (const draft of autoCandidates.slice(0, 1)) {
+          try {
+            await executeJarvisListing({
+              merchantId: merchant.id,
+              draftId: draft.id,
+              approvedBy: account?.email ?? "jarvis-autopilot",
+            });
+            report.stats.draftsExecuted += 1;
+            report.actions.push(`[AUTO] 「${draft.keyword}」 Jarvis 전체 실행 완료`);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "AUTO_EXECUTE_FAIL";
+            report.errors.push(`auto_execute:${draft.id}:${msg}`);
+          }
+        }
+      }
+
       data.lastAutopilotReport = report;
       autopilotRuns++;
     } catch (e) {

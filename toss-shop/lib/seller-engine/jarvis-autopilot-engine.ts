@@ -159,7 +159,12 @@ function buildNextSteps(input: {
   const steps: string[] = [];
   if (!input.hasApi) steps.push("토스 FEP API 연동 → 설정");
   if (!input.hasWholesale) steps.push("DOMEGGOOK_API_KEY → 도매매 실시간 소싱");
-  if (input.pendingReview > 0) steps.push(`등록함 ${input.pendingReview}건 → OK · Jarvis 전체 실행`);
+  if (input.pendingReview > 0 && !isAutoExecuteEnabled()) {
+    steps.push(`등록함 ${input.pendingReview}건 → OK · Jarvis 전체 실행`);
+  }
+  if (input.pendingReview > 0 && isAutoExecuteEnabled()) {
+    steps.push(`등록함 ${input.pendingReview}건 — JARVIS_AUTO_EXECUTE ON (cron 자동 실행)`);
+  }
   if (input.activeJobs > 0) steps.push(`발주함 ${input.activeJobs}건 → 도매매 발주 + 송장 등록`);
   if (input.certifiedCount === 0) steps.push("93% 미달 SKU — Jarvis 게이트 통과 SKU 확보");
   if (steps.length === 0) steps.push("Autopilot 정상 — Jarvis가 60초마다 모니터링 중");
