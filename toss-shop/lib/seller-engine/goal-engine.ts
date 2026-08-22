@@ -1,6 +1,8 @@
 /**
- * AI v6 Goal Engine — 월 1,000만 원 수익 목표 + 카탈로그·대표 아이템 최적화
+ * Jarvis Goal Engine — Effiroad 토스쇼핑 AI · 월 1,000만 원 목표
  */
+import { buildJarvisMonthlyBrief, JARVIS_NAME } from "./jarvis-engine";
+import type { IntegrationStatus, JarvisConfidenceReport } from "../types";
 
 export const DEFAULT_MONTHLY_GOAL_KRW = 10_000_000;
 
@@ -58,6 +60,7 @@ export type PickForGoal = {
   competitionIntensity?: number;
   marginPct?: number;
   category?: string;
+  jarvis?: JarvisConfidenceReport;
 };
 
 function scalePotential(input: PickForGoal): GoalPickContribution["scalePotential"] {
@@ -133,7 +136,7 @@ export function buildMilestones(progress: GoalProgress): GoalMilestone[] {
       label: "1주차 · 기반",
       targetCumulativeKrw: Math.round(g * 0.08),
       actions: [
-        "AI 추천 1위 SKU 위탁/수입 등록 + 도매꾹·1688 공급 확정",
+        "Jarvis 93% 인증 1위 SKU 위탁/수입 등록 + 도매매(단품) 공급 확정",
         "토스 API 연동 · 경쟁가 모니터링 ON",
         "상위 3 경쟁사 썸네일·상세 벤치마킹",
       ],
@@ -184,6 +187,7 @@ export function buildMilestones(progress: GoalProgress): GoalMilestone[] {
 export function buildTenMillionPlan(
   picks: PickForGoal[],
   actualMonthlyKrw?: number,
+  integration?: IntegrationStatus,
 ): TenMillionPlan {
   const projected = picks.reduce((s, p) => s + p.monthlyProfitKrw, 0);
   const progress = buildGoalProgress(projected, actualMonthlyKrw);
@@ -204,16 +208,39 @@ export function buildTenMillionPlan(
       ? `활성 SKU ${Math.min(requiredActiveSkus, 20)}개까지 확장 (현재 AI 10선 → ${Math.ceil(progress.gapKrw / Math.max(avgPickProfit, 200_000))}개 추가 필요)`
       : "목표 달성 구간 — SKU 깊이(재고·광고) 확대",
     consignmentProfit >= importProfit
-      ? "위탁 비중 ↑ · 도매꾹 API 실공급가로 마진 방어"
+      ? "위탁 비중 ↑ · 도매매 단품(MOQ≤1) API 실공급가로 마진 방어"
       : "수입 비중 ↑ · 1688/라쿠텐 프리미엄 라인",
-    "고 v6MasterScore SKU에 80% 시간 투입 (파레토)",
+    "Jarvis 93% 인증 SKU에 80% 시간 투입 (파레토)",
     "토스 카탈로그 대표아이템(총액 최저) 유지 · API 실데이터 연동 시 주 1회 재분석",
   ];
 
   const top = contributors[0];
+  const certifiedCount = picks.filter((p) => p.jarvis?.certified).length;
+  const integrationStatus: IntegrationStatus = integration ?? {
+    score: 0,
+    tossApi: false,
+    wholesaleApi: false,
+    liveCatalog: false,
+    domemePreferred: true,
+    readyFor90: false,
+    missing: ["토스 API", "도매매 API", "실데이터"],
+  };
+
+  const jarvisBrief = buildJarvisMonthlyBrief({
+    picks: picks.map((p) => ({
+      monthlyProfitKrw: p.jarvis?.certified ? p.monthlyProfitKrw : 0,
+      jarvis: p.jarvis,
+    })),
+    integration: integrationStatus,
+  });
+
+  const certifiedProfit = picks
+    .filter((p) => p.jarvis?.certified)
+    .reduce((s, p) => s + p.monthlyProfitKrw, 0);
+
   const geniusBrief = progress.onTrack
-    ? `AI v6 분석: 오늘 10선 예상 월수익 ${projected.toLocaleString()}원으로 **월 ${progress.goalKrw.toLocaleString()}원 목표 ${progress.progressPct}%** 달성 경로에 있습니다. 「${top?.keyword ?? ""}」(${top?.geniusScore ?? 0}점) · 대표아이템·정책 준수 우선 실행.`
-    : `AI v6 목표: **월 ${progress.goalKrw.toLocaleString()}원**. 현재 10선 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. 「${top?.keyword ?? ""}」 genius ${top?.geniusScore ?? 0}점 1순위 · 카탈로그 대표아이템 점수·활성 SKU ${requiredActiveSkus}개·12주 로드맵으로 메우세요.`;
+    ? `${JARVIS_NAME}: 93% 인증 ${certifiedCount}개 · 인증 SKU 월 ${certifiedProfit.toLocaleString()}원 · 전체 예상 ${projected.toLocaleString()}원(${progress.progressPct}%). 「${top?.keyword ?? ""}」 1순위. ${jarvisBrief}`
+    : `${JARVIS_NAME}: 월 ${progress.goalKrw.toLocaleString()}원 목표 · 93% 인증 ${certifiedCount}개 · 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. ${jarvisBrief}`;
 
   const weeklyActions = milestones[0].actions.concat(milestones[1].actions.slice(0, 2));
 

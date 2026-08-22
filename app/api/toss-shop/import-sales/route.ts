@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     picks,
     mode: "import",
-    description: "AI v6 수입 — 카탈로그·1688·일본 소싱 · 랜딩·마진",
+    description: "Jarvis 수입 — 카탈로그·1688·일본 · 93% 인증 · 상위셀러 전술",
     engineVersion: SELLER_AI_ENGINE_VERSION,
     catalogSize: ctx.catalogSize,
     marketKeywordCount: ctx.marketKeywordCount,

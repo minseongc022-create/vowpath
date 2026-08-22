@@ -380,6 +380,55 @@ export type RiskPlaybookReport = {
   penaltyTier?: PenaltyTierBrief;
 };
 
+export type IntegrationStatus = {
+  score: number;
+  tossApi: boolean;
+  wholesaleApi: boolean;
+  liveCatalog: boolean;
+  domemePreferred: boolean;
+  readyFor90: boolean;
+  missing: string[];
+};
+
+export type JarvisGateResult = {
+  id: string;
+  label: string;
+  passed: boolean;
+  weight: number;
+  detail: string;
+};
+
+export type JarvisConfidenceReport = {
+  jarvisVersion: string;
+  confidencePct: number;
+  jackpotPct: number;
+  certified: boolean;
+  jackpotCertified: boolean;
+  integration: IntegrationStatus;
+  gates: JarvisGateResult[];
+  brief: string;
+  monthlyPathNote: string;
+  topSellerAlignment?: number;
+};
+
+export type AppliedTactic = {
+  id: string;
+  title: string;
+  applied: boolean;
+  action: string;
+  source: string;
+};
+
+export type TopSellerPlaybookReport = {
+  engineVersion: string;
+  alignmentScore: number;
+  verifiedTacticCount: number;
+  appliedCount: number;
+  tactics: AppliedTactic[];
+  jarvisActions: string[];
+  brief: string;
+};
+
 export type WholesaleListing = {
   platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
   itemNo?: number;
@@ -498,6 +547,8 @@ export type ConsignmentPick = {
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
+  jarvis?: JarvisConfidenceReport;
+  topSellerPlaybook?: TopSellerPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 
@@ -546,6 +597,8 @@ export type ImportPick = {
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
+  jarvis?: JarvisConfidenceReport;
+  topSellerPlaybook?: TopSellerPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 

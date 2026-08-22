@@ -269,12 +269,14 @@ export function SettingsPanel() {
       </section>
 
       <section className="ts-card">
-        <h2 className="text-sm font-bold">도매꾹·도매매 API (위탁 v5)</h2>
+        <h2 className="text-sm font-bold">도매매·도매꾹 API (Jarvis 위탁)</h2>
         <p className="mt-1 text-xs leading-relaxed text-ts-muted">
+          <strong className="text-ts-ink">도매매(supply) 우선</strong> — 개당(MOQ≤1) 주문 가능. 도매꾹은 대량 MOQ 위주라 Jarvis는 도매매 단품 공급처를 먼저 검색합니다.
+          {" "}
           <a href="https://openapi.domeggook.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-ts-primary underline">
-            도매꾹 Open API
+            Open API
           </a>
-          {" "}키를 Vercel에 <code className="text-xs">DOMEGGOOK_API_KEY</code> 로 등록하면 위탁 AI가 실시간 공급가·상품 URL을 가져옵니다. 미등록 시 검색 링크 + 추정가로 동작합니다.
+          {" "}키를 Vercel에 <code className="text-xs">DOMEGGOOK_API_KEY</code> 로 등록하면 위탁 AI가 실시간 공급가·상품 URL을 가져옵니다.
         </p>
       </section>
     </div>

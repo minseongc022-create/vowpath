@@ -4,12 +4,21 @@ import { requireFullAccess } from "@/toss-shop/lib/billing-access";
 import {
   getConsignmentPicksForMerchant,
   getImportPicksForMerchant,
+  getMerchant,
   getSettlements,
+  getStoreCatalog,
 } from "@/toss-shop/lib/store";
 import { buildPortfolioBrief, SELLER_AI_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/revenue-engine";
 import { buildTenMillionPlan } from "@/toss-shop/lib/seller-engine/goal-engine";
 import { TOSS_POLICY_BRIEF, POLICY_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/policy-engine";
 import { RISK_PLAYBOOK_VERSION } from "@/toss-shop/lib/seller-engine/risk-playbook";
+import {
+  assessIntegration,
+  JARVIS_NAME,
+  JARVIS_VERSION,
+} from "@/toss-shop/lib/seller-engine/jarvis-engine";
+import { TOP_SELLER_PLAYBOOK_VERSION } from "@/toss-shop/lib/seller-engine/top-seller-playbook";
+import { isDomeggookApiConfigured } from "@/toss-shop/lib/wholesale/domeggook-api";
 
 function estimateActualMonthlyFromSettlements(
   rows: { grossKrw: number; orderDate: string }[],
@@ -32,11 +41,27 @@ export async function GET(request: Request) {
   const access = await requireFullAccess(session.sub);
   if (!access.ok) return access.response;
 
-  const [consignment, importPicks, settlements] = await Promise.all([
+  const [consignment, importPicks, settlements, merchant, catalog] = await Promise.all([
     getConsignmentPicksForMerchant(session.merchantId),
     getImportPicksForMerchant(session.merchantId),
     getSettlements(session.merchantId).catch(() => []),
+    getMerchant(session.merchantId),
+    getStoreCatalog(),
   ]);
+
+  const dataQuality =
+    merchant?.dataSource === "live"
+      ? "live"
+      : merchant?.dataSource === "live_partial"
+        ? "mixed"
+        : "demo";
+
+  const jarvisIntegration = assessIntegration({
+    tossApiConfigured: Boolean(merchant?.apiAccessKey && merchant?.apiSecretKey),
+    wholesaleApiConfigured: isDomeggookApiConfigured(),
+    dataQuality,
+    catalogSize: catalog.length,
+  });
 
   const allPicks = [
     ...consignment.map((p) => ({
@@ -51,6 +76,10 @@ export async function GET(request: Request) {
       competitionIntensity: p.competitionIntensity,
       marginPct: p.estimatedMarginPct,
       category: p.category,
+      jarvis: p.jarvis,
+      topSellerPlaybook: p.topSellerPlaybook,
+      jarvisConfidence: p.jarvis?.confidencePct,
+      jarvisCertified: p.jarvis?.certified,
     })),
     ...importPicks.map((p) => ({
       monthlyProfitKrw: p.estimatedMonthlyProfitKrw ?? 0,
@@ -62,20 +91,41 @@ export async function GET(request: Request) {
       mode: "import" as const,
       marginPct: p.estimatedMarginPct,
       category: p.category,
+      jarvis: p.jarvis,
+      topSellerPlaybook: p.topSellerPlaybook,
+      jarvisConfidence: p.jarvis?.confidencePct,
+      jarvisCertified: p.jarvis?.certified,
     })),
   ];
 
   const portfolio = buildPortfolioBrief(allPicks);
   const actualMonthly =
     settlements.length > 0 ? estimateActualMonthlyFromSettlements(settlements) : undefined;
-  const tenMillionPlan = buildTenMillionPlan(allPicks, actualMonthly);
+  const tenMillionPlan = buildTenMillionPlan(allPicks, actualMonthly, jarvisIntegration);
+
+  const certifiedPicks = allPicks.filter((p) => p.jarvisCertified);
+  const avgJarvisConfidence =
+    allPicks.length > 0
+      ? Math.round(
+          allPicks.reduce((s, p) => s + (p.jarvisConfidence ?? 0), 0) / allPicks.length,
+        )
+      : 0;
+
+  const avgTopSellerAlignment =
+    allPicks.length > 0
+      ? Math.round(
+          allPicks.reduce((s, p) => s + (p.topSellerPlaybook?.alignmentScore ?? 0), 0) / allPicks.length,
+        )
+      : 0;
 
   const topPicks = [...allPicks]
-    .sort(
-      (a, b) =>
-        (b.v6MasterScore ?? b.geniusScore ?? b.profitScore) -
-        (a.v6MasterScore ?? a.geniusScore ?? a.profitScore),
-    )
+    .sort((a, b) => {
+      const certA = a.jarvisCertified ? 1 : 0;
+      const certB = b.jarvisCertified ? 1 : 0;
+      if (certA !== certB) return certB - certA;
+      return (b.jarvisConfidence ?? b.v6MasterScore ?? b.geniusScore ?? b.profitScore) -
+        (a.jarvisConfidence ?? a.v6MasterScore ?? a.geniusScore ?? a.profitScore);
+    })
     .slice(0, 3);
 
   const avgRepItemScore =
@@ -105,6 +155,17 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     engineVersion: SELLER_AI_ENGINE_VERSION,
+    jarvisName: JARVIS_NAME,
+    jarvisVersion: JARVIS_VERSION,
+    topSellerPlaybookVersion: TOP_SELLER_PLAYBOOK_VERSION,
+    jarvisIntegration,
+    jarvisStats: {
+      certifiedCount: certifiedPicks.length,
+      totalPicks: allPicks.length,
+      avgConfidence: avgJarvisConfidence,
+      certifiedMonthlyProfitKrw: certifiedPicks.reduce((s, p) => s + p.monthlyProfitKrw, 0),
+      avgTopSellerAlignment,
+    },
     policyEngineVersion: POLICY_ENGINE_VERSION,
     riskPlaybookVersion: RISK_PLAYBOOK_VERSION,
     tossPolicyBrief: TOSS_POLICY_BRIEF,
@@ -120,6 +181,6 @@ export async function GET(request: Request) {
     consignmentCount: consignment.length,
     importCount: importPicks.length,
     message:
-      "AI v6.2 — 월 1천만 목표 · Item Winner/회피 · 종합 리스크 플레이북 · v6Master",
+      `${JARVIS_NAME} — 93% 인증 SKU ${certifiedPicks.length}개 · 상위셀러 전술 ${avgTopSellerAlignment}% · 연동 ${jarvisIntegration.score}%`,
   });
 }

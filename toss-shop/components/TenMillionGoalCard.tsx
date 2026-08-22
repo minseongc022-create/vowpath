@@ -2,19 +2,26 @@
 
 import { formatKrw } from "@/toss-shop/lib/format";
 import type { GoalMilestone, TenMillionPlan } from "@/toss-shop/lib/types";
+import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 
-export function TenMillionGoalCard({ plan }: { plan: TenMillionPlan }) {
+export function TenMillionGoalCard({
+  plan,
+  jarvisStats,
+}: {
+  plan: TenMillionPlan;
+  jarvisStats?: { certifiedCount: number; avgConfidence: number; certifiedMonthlyProfitKrw: number };
+}) {
   const { progress } = plan;
 
   return (
     <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-ts-primary px-4 py-5 text-white shadow-lg">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-white/90">AI v6 · 월 수익 목표</p>
+          <p className="text-sm font-semibold text-white/90">{JARVIS_NAME} · 월 수익 목표</p>
           <p className="mt-1 text-2xl font-bold">{formatKrw(plan.goalKrw)}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-white/80">genius 로드맵</p>
+          <p className="text-sm text-white/80">93% 인증 경로</p>
           <p className="text-xl font-bold">{progress.progressPct}%</p>
         </div>
       </div>
@@ -27,6 +34,13 @@ export function TenMillionGoalCard({ plan }: { plan: TenMillionPlan }) {
       </div>
 
       <p className="mt-3 text-sm leading-relaxed text-white/95">{plan.geniusBrief}</p>
+
+      {jarvisStats && jarvisStats.certifiedCount > 0 && (
+        <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs">
+          <p className="text-white/70">93% 인증 SKU 합산 월수익</p>
+          <p className="font-bold">{formatKrw(jarvisStats.certifiedMonthlyProfitKrw)} · {jarvisStats.certifiedCount}개 · 평균 {jarvisStats.avgConfidence}%</p>
+        </div>
+      )}
 
       <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs">
         <div className="rounded-xl bg-white/10 px-3 py-2">
@@ -47,7 +61,7 @@ export function TenMillionGoalCard({ plan }: { plan: TenMillionPlan }) {
         <div className="mt-4">
           <p className="text-xs font-semibold text-white/80">1순위 실행 SKU</p>
           <p className="mt-1 text-sm font-bold">
-            「{plan.topContributors[0].keyword}」 genius {plan.topContributors[0].geniusScore}점 · 목표{" "}
+            「{plan.topContributors[0].keyword}」 Jarvis {plan.topContributors[0].geniusScore}점 · 목표{" "}
             {plan.topContributors[0].goalSharePct}%
           </p>
         </div>

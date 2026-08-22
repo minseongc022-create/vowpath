@@ -851,11 +851,16 @@ export async function applyTossShopSubscription(
 export async function getConsignmentPicksForMerchant(merchantId: string): Promise<ConsignmentPick[]> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const integrationCtx = {
+    tossApiConfigured: Boolean(merchant?.apiAccessKey && merchant?.apiSecretKey),
+    dataQuality: (merchant?.dataSource === "live" ? "live" : merchant?.dataSource === "live_partial" ? "mixed" : "demo") as "live" | "mixed" | "demo",
+  };
   const today = todayDateKey();
   if (data.consignmentDate === today && data.consignmentPicks?.length) {
     return data.consignmentPicks;
   }
-  const picks = await generateConsignmentPicks(store.catalog, today, store.marketKeywords);
+  const picks = await generateConsignmentPicks(store.catalog, today, store.marketKeywords, integrationCtx);
   data.consignmentPicks = picks;
   data.consignmentDate = today;
   await saveStore(store);
@@ -865,11 +870,16 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
 export async function getImportPicksForMerchant(merchantId: string): Promise<ImportPick[]> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const integrationCtx = {
+    tossApiConfigured: Boolean(merchant?.apiAccessKey && merchant?.apiSecretKey),
+    dataQuality: (merchant?.dataSource === "live" ? "live" : merchant?.dataSource === "live_partial" ? "mixed" : "demo") as "live" | "mixed" | "demo",
+  };
   const today = todayDateKey();
   if (data.importDate === today && data.importPicks?.length) {
     return data.importPicks;
   }
-  const picks = await generateImportPicks(store.catalog, today, store.marketKeywords);
+  const picks = await generateImportPicks(store.catalog, today, store.marketKeywords, integrationCtx);
   data.importPicks = picks;
   data.importDate = today;
   await saveStore(store);

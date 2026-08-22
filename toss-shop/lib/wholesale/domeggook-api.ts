@@ -67,6 +67,7 @@ export async function searchDomeggookMarket(
   keyword: string,
   market: DomeMarket,
   limit = 8,
+  opts?: { maxMoq?: number },
 ): Promise<WholesaleListing[]> {
   const aid = getApiKey();
   if (!aid) return [];
@@ -83,6 +84,9 @@ export async function searchDomeggookMarket(
     pg: "1",
     so: "aa",
   });
+  if (opts?.maxMoq != null) {
+    params.set("mxq", String(opts.maxMoq));
+  }
 
   try {
     const res = await fetch(`${API_BASE}?${params.toString()}`, {
@@ -93,18 +97,24 @@ export async function searchDomeggookMarket(
     const data = (await res.json()) as unknown;
     return normalizeItems(data)
       .map((item) => toListing(item, platform))
-      .filter((x): x is WholesaleListing => x != null);
+      .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq));
   } catch {
     return [];
   }
 }
 
+/** 도매매(supply) 단품 MOQ≤1 우선 — 위탁 1개 주문용 */
+export async function searchDomemeUnitWholesale(keyword: string, limit = 10): Promise<WholesaleListing[]> {
+  return searchDomeggookMarket(keyword, "supply", limit, { maxMoq: 1 });
+}
+
 export async function searchAllKoreanWholesale(keyword: string, limit = 6): Promise<WholesaleListing[]> {
-  const [dome, supply] = await Promise.all([
-    searchDomeggookMarket(keyword, "dome", limit),
-    searchDomeggookMarket(keyword, "supply", limit),
-  ]);
-  const merged = [...dome, ...supply].sort((a, b) => a.unitPriceKrw - b.unitPriceKrw);
+  const domeme = await searchDomemeUnitWholesale(keyword, limit + 2);
+  if (domeme.length >= limit) {
+    return domeme.slice(0, limit * 2);
+  }
+  const dome = await searchDomeggookMarket(keyword, "dome", limit, { maxMoq: 1 });
+  const merged = [...domeme, ...dome].sort((a, b) => a.unitPriceKrw - b.unitPriceKrw);
   const seen = new Set<string>();
   const unique: WholesaleListing[] = [];
   for (const l of merged) {
