@@ -26,6 +26,13 @@ export function isAutoExecuteEnabled(): boolean {
   return process.env.JARVIS_AUTO_EXECUTE === "true";
 }
 
+const DEFAULT_PICKS_PER_CYCLE = 3;
+
+export function autopilotPicksPerCycle(): number {
+  const raw = Number(process.env.JARVIS_AUTOPILOT_PICKS_PER_CYCLE);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_PICKS_PER_CYCLE;
+}
+
 export type AutopilotCycleInput = {
   merchantId: string;
   accountEmail: string;
@@ -55,29 +62,32 @@ export async function runJarvisAutopilotCycle(
   );
 
   if (isAutopilotEnabled() && certified.length) {
-    const topPick = certified[0] as ConsignmentPick;
-    if (!pendingDraftIds.has(topPick.id)) {
+    const candidates = (certified as ConsignmentPick[])
+      .filter((pick) => !pendingDraftIds.has(pick.id))
+      .slice(0, autopilotPicksPerCycle());
+
+    for (const pick of candidates) {
       try {
         const draft = await buildListingDraftFromPick({
           merchantId: input.merchantId,
-          pick: topPick,
+          pick,
           mode: "consignment",
-          draftId: `jl_auto_${Date.now().toString(36)}`,
+          draftId: `jl_auto_${Date.now().toString(36)}_${draftsCreated}`,
           now,
         });
 
-        if (topPick.wholesaleBest) {
+        if (pick.wholesaleBest) {
           draft.wholesaleComposition = analyzeWholesaleComposition({
-            pick: topPick,
-            wholesale: topPick.wholesaleBest,
+            pick,
+            wholesale: pick.wholesaleBest,
             catalog: input.catalog,
           });
         }
-        draft.adCampaign = buildAdCampaignPlan(topPick, "consignment");
+        draft.adCampaign = buildAdCampaignPlan(pick, "consignment");
 
         listingDrafts.unshift(draft);
         draftsCreated++;
-        actions.push(`위탁 TOP SKU 「${topPick.keyword}」 등록 초안 자동 생성`);
+        actions.push(`위탁 SKU 「${pick.keyword}」 등록 초안 자동 생성`);
       } catch (e) {
         errors.push(e instanceof Error ? e.message : "DRAFT_CREATE_FAIL");
       }

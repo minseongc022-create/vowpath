@@ -61,6 +61,13 @@ const GROUPS = [
       ["TOSS_SHOP_PRO_ACTIVATION_CODE", false],
     ],
   },
+  {
+    title: "Autopilot tuning (optional)",
+    keys: [
+      ["JARVIS_AUTO_EXECUTE", false],
+      ["JARVIS_AUTOPILOT_PICKS_PER_CYCLE", false],
+    ],
+  },
 ];
 
 function inVercelJson(key) {

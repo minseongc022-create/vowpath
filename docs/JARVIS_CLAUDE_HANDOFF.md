@@ -228,7 +228,8 @@ DRAPH_API_URL, DRAPH_API_KEY
 HOOKABLE_API_URL, HOOKABLE_API_KEY
 JARVIS_OPENAI_MODEL=gpt-4o-mini
 TOSS_SHOP_MONTHLY_GOAL_KRW=10000000
-JARVIS_AUTO_EXECUTE=true   ← ⚠️ env만 있고 자동 execute 미구현 (§5)
+JARVIS_AUTO_EXECUTE=true   ← OK 없이 cron이 certified draft 자동 실행
+JARVIS_AUTOPILOT_PICKS_PER_CYCLE=3   ← 사이클당 신규 등록초안 + auto-execute 상한 (기본 3)
 ```
 
 ### Lemon Squeezy (Pro 결제 — Effiroad 공용)
@@ -254,7 +255,7 @@ node scripts/jarvis-setup-checklist.mjs
 |------|------|
 | 도매매/도매꾹 **자동 발주 API** | **없음** — URL + 고객정보 메모만 |
 | 토스 **광고 API** | 설계 JSON만 |
-| `JARVIS_AUTO_EXECUTE=true` | cron `syncAllMerchants`에서 certified draft 자동 `executeJarvisListing` (cycle당 1건) |
+| `JARVIS_AUTO_EXECUTE=true` | cron `syncAllMerchants`에서 certified draft 자동 `executeJarvisListing` (cycle당 `JARVIS_AUTOPILOT_PICKS_PER_CYCLE`건, 기본 3) |
 | 토스 **실검색량/SERP** | 공식 API 없음 — 카탈로그+추정+OpenAI |
 | Coupilot vs Jarvis | Coupilot=쿠팡 데이터, Jarvis=토스 **실행** |
 | Matchcut | 1688+OpenAI 필요; UI 일부 "예정" 문구 잔존 가능 |
@@ -335,14 +336,14 @@ npm run check:cron
 
 ### P1 — 코드 (Claude가 할 수 있음)
 
-- [x] `JARVIS_AUTO_EXECUTE=true` → cron `syncAllMerchants`에서 `executeJarvisListing` (cycle당 1건)
+- [x] `JARVIS_AUTO_EXECUTE=true` → cron `syncAllMerchants`에서 `executeJarvisListing` (cycle당 `JARVIS_AUTOPILOT_PICKS_PER_CYCLE`건, 기본 3)
 - [ ] Toss 공식 API 나오면 `toss-market-engine` live SERP 교체
 - [ ] Draph/Hookable 실 API 스펙 맞추기 (현재 generic POST)
 - [ ] E2E test: draft → execute (mock Toss)
 
 ### P2 — 수익 최적화
 
-- [ ] Autopilot: certified pick N개/일 (현재 TOP 1)
+- [x] Autopilot: certified pick N개/사이클 (기존 TOP 1 고정 → `JARVIS_AUTOPILOT_PICKS_PER_CYCLE` 기본 3, 발주도 동일 수만큼 auto-execute)
 - [ ] Health score 90%+ 모든 env green 가이드 UI
 - [ ] Import pick fulfillment flow
 
