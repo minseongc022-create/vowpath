@@ -23,7 +23,7 @@ export function JarvisBadge({ jarvis }: { jarvis?: JarvisConfidenceReport }) {
           <span className="font-bold text-amber-700">대박 {jarvis.jackpotPct}%</span>
         )}
         {jarvis.certified && (
-          <span className="text-emerald-700 font-semibold">90%+ 인증</span>
+          <span className="text-emerald-700 font-semibold">93%+ 인증</span>
         )}
       </div>
       <p className="mt-1 leading-relaxed">{jarvis.brief}</p>
@@ -56,12 +56,12 @@ export function JarvisIntegrationCard({
       <p className="mt-2 text-2xl font-bold text-ts-primary">{score}%</p>
       <p className="mt-1 text-xs text-ts-muted">
         {ready
-          ? "연동 완료 — 90%+ 인증 SKU만 월 1,000만 원 경로에 사용합니다."
-          : "90% 인증을 위해 아래 항목을 완료하세요. (가짜 90% 없음 — 게이트 통과 시에만 인증)"}
+          ? "연동 완료 — 93%+ 인증 SKU만 월 1,000만 원 경로에 사용합니다."
+          : "93% 인증을 위해 아래 항목을 완료하세요. (가짜 93% 없음 — 게이트+상위셀러 전술 통과 시에만 인증)"}
       </p>
       {certifiedCount != null && (
         <p className="mt-2 text-xs font-semibold text-violet-800">
-          오늘 90% 인증 SKU {certifiedCount}개 · 평균 신뢰 {avgConfidence ?? 0}%
+          오늘 93% 인증 SKU {certifiedCount}개 · 평균 신뢰 {avgConfidence ?? 0}%
         </p>
       )}
       {!ready && missing.length > 0 && (

@@ -59,7 +59,7 @@ export function ConsignmentPanel() {
           )}
         </div>
         <p className="mt-1 text-ts-muted">
-          도매매 단품(MOQ≤1) 우선 · 실공급가 연동 · 90% 인증 SKU만 월 1천만 경로
+          도매매 단품(MOQ≤1) 우선 · 93% 인증 SKU · 월 1천만 경로
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-ts-muted">
@@ -154,6 +154,7 @@ export function ConsignmentPanel() {
                 policyChecklist={p.policyChecklist}
                 riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
                 jarvis={p.jarvis}
+                topSellerPlaybook={p.topSellerPlaybook}
                 marketScanSummary={p.v6?.marketScanSummary}
               />
             </article>

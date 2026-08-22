@@ -21,7 +21,7 @@ export function TenMillionGoalCard({
           <p className="mt-1 text-2xl font-bold">{formatKrw(plan.goalKrw)}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-white/80">90% 인증 경로</p>
+          <p className="text-sm text-white/80">93% 인증 경로</p>
           <p className="text-xl font-bold">{progress.progressPct}%</p>
         </div>
       </div>
@@ -37,7 +37,7 @@ export function TenMillionGoalCard({
 
       {jarvisStats && jarvisStats.certifiedCount > 0 && (
         <div className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs">
-          <p className="text-white/70">90% 인증 SKU 합산 월수익</p>
+          <p className="text-white/70">93% 인증 SKU 합산 월수익</p>
           <p className="font-bold">{formatKrw(jarvisStats.certifiedMonthlyProfitKrw)} · {jarvisStats.certifiedCount}개 · 평균 {jarvisStats.avgConfidence}%</p>
         </div>
       )}

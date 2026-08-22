@@ -16,10 +16,12 @@ import type {
   RevenueForecast,
   JarvisConfidenceReport,
   RiskPlaybookReport,
+  TopSellerPlaybookReport,
   WholesaleListing,
 } from "@/toss-shop/lib/types";
 import { RiskPlaybookPanel } from "@/toss-shop/components/PolicyPlaybookCard";
 import { JarvisBadge } from "@/toss-shop/components/JarvisBadge";
+import { TopSellerPlaybookPanel } from "@/toss-shop/components/TopSellerPlaybookCard";
 
 function impactClass(impact: AnalysisSignal["impact"]): string {
   if (impact === "positive") return "text-emerald-700 bg-emerald-50";
@@ -67,6 +69,7 @@ export function SourcingAnalysisCard({
   policyChecklist,
   riskPlaybook,
   jarvis,
+  topSellerPlaybook,
   marketScanSummary,
   extra,
 }: {
@@ -108,6 +111,7 @@ export function SourcingAnalysisCard({
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
   jarvis?: JarvisConfidenceReport;
+  topSellerPlaybook?: TopSellerPlaybookReport;
   marketScanSummary?: string;
   extra?: ReactNode;
 }) {
@@ -141,6 +145,7 @@ export function SourcingAnalysisCard({
       )}
 
       {jarvis && <JarvisBadge jarvis={jarvis} />}
+      {topSellerPlaybook && <TopSellerPlaybookPanel playbook={topSellerPlaybook} />}
 
       {goalPathNote && (
         <p className="text-xs text-violet-700">{goalPathNote}</p>

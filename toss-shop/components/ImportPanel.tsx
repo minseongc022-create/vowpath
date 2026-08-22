@@ -52,7 +52,7 @@ export function ImportPanel() {
           )}
         </div>
         <p className="mt-1 text-emerald-800/80">
-          1688·라쿠텐 소싱 · 90% 인증 SKU · 월 1천만 경로
+          1688·라쿠텐 소싱 · 93% 인증 SKU · 월 1천만 경로
         </p>
         {meta.catalogSize != null && (
           <p className="mt-2 text-xs text-emerald-800/70">
@@ -136,6 +136,7 @@ export function ImportPanel() {
                 policyChecklist={p.policyChecklist}
                 riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
                 jarvis={p.jarvis}
+                topSellerPlaybook={p.topSellerPlaybook}
                 marketScanSummary={p.v6?.marketScanSummary}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}

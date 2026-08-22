@@ -20,6 +20,7 @@ import {
   computeJarvisConfidence,
   filterJarvisCertifiedPicks,
 } from "./jarvis-engine";
+import { buildTopSellerPlaybook } from "./top-seller-playbook";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
 import type { SourcingIntegrationContext } from "./consignment";
 
@@ -264,6 +265,26 @@ export async function generateImportPicks(
         mode: "import",
         sourceCountry: pick.sourceCountry,
       });
+      const topSellerPlaybook = buildTopSellerPlaybook({
+        mode: "import",
+        keyword: pick.keyword,
+        category: pick.category,
+        priceKrw: pick.recommendedPriceKrw,
+        marginPct: pick.estimatedMarginPct,
+        moq: 1,
+        wholesaleLive: pick.importBest?.source === "live",
+        catalogStrategyMode: v6.catalogStrategy?.mode,
+        representativeItemScore: v6.catalogWin.representativeItemScore,
+        isolationScore: v6.catalogStrategy?.isolationScore,
+        searchVolume: 5000,
+        competitionIntensity: pick.competitorLandscape?.count
+          ? pick.competitorLandscape.count / 10
+          : 1.2,
+        avgReviewCount: pick.competitorLandscape?.avgReviewCount,
+        monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
+        hasDifferentiatedTitle: pick.suggestedTitle !== pick.productName,
+        freeShippingRecommended: pick.recommendedPriceKrw >= 20000,
+      });
       const jarvis = computeJarvisConfidence({
         integration,
         v6MasterScore: v6.v6MasterScore,
@@ -282,6 +303,7 @@ export async function generateImportPicks(
           ? pick.competitorLandscape.count / 10
           : 1.2,
         searchVolume: 5000,
+        topSellerAlignment: topSellerPlaybook.alignmentScore,
       });
       return {
         ...pick,
@@ -294,10 +316,12 @@ export async function generateImportPicks(
         catalogStrategy: v6.catalogStrategy,
         policyChecklist: v6.policyChecklist,
         riskPlaybook: v6.riskPlaybook,
+        topSellerPlaybook,
         jarvis,
         actionSteps: [
+          ...topSellerPlaybook.jarvisActions.slice(0, 2),
           ...(v6.catalogStrategy?.actionSteps ?? []),
-          ...(v6.riskPlaybook?.mandatoryActions.slice(0, 3) ?? []),
+          ...(v6.riskPlaybook?.mandatoryActions.slice(0, 2) ?? []),
           ...(pick.actionSteps ?? []).slice(0, 1),
         ],
         v6: {
@@ -310,8 +334,9 @@ export async function generateImportPicks(
           riskPlaybook: v6.riskPlaybook,
         },
         confidenceScore: jarvis.certified ? jarvis.confidencePct : v6.v6MasterScore,
-        reason: `${jarvis.jackpotCertified ? "🎯 Jarvis 대박" : jarvis.certified ? "✓ Jarvis 90%+" : "Jarvis"} · ${pick.reason}`,
-        aiSummary: pick.aiSummary + ` ${jarvis.brief}` + (c ? ` · ${jarvis.monthlyPathNote}` : ""),
+        reason: `${jarvis.jackpotCertified ? "🎯 Jarvis 대박" : jarvis.certified ? "✓ Jarvis 93%+" : "Jarvis"} · ${pick.reason}`,
+        aiSummary:
+          pick.aiSummary + ` ${jarvis.brief}` + ` ${topSellerPlaybook.brief}` + (c ? ` · ${jarvis.monthlyPathNote}` : ""),
       };
     })
     .sort((a, b) => {

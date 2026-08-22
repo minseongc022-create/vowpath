@@ -136,7 +136,7 @@ export function buildMilestones(progress: GoalProgress): GoalMilestone[] {
       label: "1주차 · 기반",
       targetCumulativeKrw: Math.round(g * 0.08),
       actions: [
-        "Jarvis 90% 인증 1위 SKU 위탁/수입 등록 + 도매매(단품) 공급 확정",
+        "Jarvis 93% 인증 1위 SKU 위탁/수입 등록 + 도매매(단품) 공급 확정",
         "토스 API 연동 · 경쟁가 모니터링 ON",
         "상위 3 경쟁사 썸네일·상세 벤치마킹",
       ],
@@ -210,7 +210,7 @@ export function buildTenMillionPlan(
     consignmentProfit >= importProfit
       ? "위탁 비중 ↑ · 도매매 단품(MOQ≤1) API 실공급가로 마진 방어"
       : "수입 비중 ↑ · 1688/라쿠텐 프리미엄 라인",
-    "Jarvis 90% 인증 SKU에 80% 시간 투입 (파레토)",
+    "Jarvis 93% 인증 SKU에 80% 시간 투입 (파레토)",
     "토스 카탈로그 대표아이템(총액 최저) 유지 · API 실데이터 연동 시 주 1회 재분석",
   ];
 
@@ -239,8 +239,8 @@ export function buildTenMillionPlan(
     .reduce((s, p) => s + p.monthlyProfitKrw, 0);
 
   const geniusBrief = progress.onTrack
-    ? `${JARVIS_NAME}: 90% 인증 ${certifiedCount}개 · 인증 SKU 월 ${certifiedProfit.toLocaleString()}원 · 전체 예상 ${projected.toLocaleString()}원(${progress.progressPct}%). 「${top?.keyword ?? ""}」 1순위. ${jarvisBrief}`
-    : `${JARVIS_NAME}: 월 ${progress.goalKrw.toLocaleString()}원 목표 · 90% 인증 ${certifiedCount}개 · 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. ${jarvisBrief}`;
+    ? `${JARVIS_NAME}: 93% 인증 ${certifiedCount}개 · 인증 SKU 월 ${certifiedProfit.toLocaleString()}원 · 전체 예상 ${projected.toLocaleString()}원(${progress.progressPct}%). 「${top?.keyword ?? ""}」 1순위. ${jarvisBrief}`
+    : `${JARVIS_NAME}: 월 ${progress.goalKrw.toLocaleString()}원 목표 · 93% 인증 ${certifiedCount}개 · 예상 ${projected.toLocaleString()}원(${progress.progressPct}%) · 부족 ${progress.gapKrw.toLocaleString()}원. ${jarvisBrief}`;
 
   const weeklyActions = milestones[0].actions.concat(milestones[1].actions.slice(0, 2));
 

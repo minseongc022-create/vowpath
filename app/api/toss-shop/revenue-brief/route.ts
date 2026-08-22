@@ -17,6 +17,7 @@ import {
   JARVIS_NAME,
   JARVIS_VERSION,
 } from "@/toss-shop/lib/seller-engine/jarvis-engine";
+import { TOP_SELLER_PLAYBOOK_VERSION } from "@/toss-shop/lib/seller-engine/top-seller-playbook";
 import { isDomeggookApiConfigured } from "@/toss-shop/lib/wholesale/domeggook-api";
 
 function estimateActualMonthlyFromSettlements(
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
       marginPct: p.estimatedMarginPct,
       category: p.category,
       jarvis: p.jarvis,
+      topSellerPlaybook: p.topSellerPlaybook,
       jarvisConfidence: p.jarvis?.confidencePct,
       jarvisCertified: p.jarvis?.certified,
     })),
@@ -90,6 +92,7 @@ export async function GET(request: Request) {
       marginPct: p.estimatedMarginPct,
       category: p.category,
       jarvis: p.jarvis,
+      topSellerPlaybook: p.topSellerPlaybook,
       jarvisConfidence: p.jarvis?.confidencePct,
       jarvisCertified: p.jarvis?.certified,
     })),
@@ -105,6 +108,13 @@ export async function GET(request: Request) {
     allPicks.length > 0
       ? Math.round(
           allPicks.reduce((s, p) => s + (p.jarvisConfidence ?? 0), 0) / allPicks.length,
+        )
+      : 0;
+
+  const avgTopSellerAlignment =
+    allPicks.length > 0
+      ? Math.round(
+          allPicks.reduce((s, p) => s + (p.topSellerPlaybook?.alignmentScore ?? 0), 0) / allPicks.length,
         )
       : 0;
 
@@ -147,12 +157,14 @@ export async function GET(request: Request) {
     engineVersion: SELLER_AI_ENGINE_VERSION,
     jarvisName: JARVIS_NAME,
     jarvisVersion: JARVIS_VERSION,
+    topSellerPlaybookVersion: TOP_SELLER_PLAYBOOK_VERSION,
     jarvisIntegration,
     jarvisStats: {
       certifiedCount: certifiedPicks.length,
       totalPicks: allPicks.length,
       avgConfidence: avgJarvisConfidence,
       certifiedMonthlyProfitKrw: certifiedPicks.reduce((s, p) => s + p.monthlyProfitKrw, 0),
+      avgTopSellerAlignment,
     },
     policyEngineVersion: POLICY_ENGINE_VERSION,
     riskPlaybookVersion: RISK_PLAYBOOK_VERSION,
@@ -169,6 +181,6 @@ export async function GET(request: Request) {
     consignmentCount: consignment.length,
     importCount: importPicks.length,
     message:
-      `${JARVIS_NAME} — 90% 인증 SKU ${certifiedPicks.length}개 · 연동 ${jarvisIntegration.score}% · 월 1천만 목표 · 도매매 단품 우선`,
+      `${JARVIS_NAME} — 93% 인증 SKU ${certifiedPicks.length}개 · 상위셀러 전술 ${avgTopSellerAlignment}% · 연동 ${jarvisIntegration.score}%`,
   });
 }

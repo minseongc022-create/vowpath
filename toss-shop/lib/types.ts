@@ -408,6 +408,25 @@ export type JarvisConfidenceReport = {
   gates: JarvisGateResult[];
   brief: string;
   monthlyPathNote: string;
+  topSellerAlignment?: number;
+};
+
+export type AppliedTactic = {
+  id: string;
+  title: string;
+  applied: boolean;
+  action: string;
+  source: string;
+};
+
+export type TopSellerPlaybookReport = {
+  engineVersion: string;
+  alignmentScore: number;
+  verifiedTacticCount: number;
+  appliedCount: number;
+  tactics: AppliedTactic[];
+  jarvisActions: string[];
+  brief: string;
 };
 
 export type WholesaleListing = {
@@ -529,6 +548,7 @@ export type ConsignmentPick = {
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
   jarvis?: JarvisConfidenceReport;
+  topSellerPlaybook?: TopSellerPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 
@@ -578,6 +598,7 @@ export type ImportPick = {
   policyChecklist?: string[];
   riskPlaybook?: RiskPlaybookReport;
   jarvis?: JarvisConfidenceReport;
+  topSellerPlaybook?: TopSellerPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 

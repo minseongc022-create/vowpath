@@ -17,6 +17,7 @@ import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import { TenMillionGoalCard, GoalMilestonesList } from "@/toss-shop/components/TenMillionGoalCard";
 import { JarvisIntegrationCard } from "@/toss-shop/components/JarvisBadge";
+import { TopSellerPlaybookSummaryCard } from "@/toss-shop/components/TopSellerPlaybookCard";
 import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 import {
   PolicyPlaybookSummaryCard,
@@ -42,7 +43,9 @@ type RevenueBrief = {
     certifiedCount: number;
     avgConfidence: number;
     certifiedMonthlyProfitKrw: number;
+    avgTopSellerAlignment?: number;
   };
+  topSellerPlaybookVersion?: string;
   portfolio?: {
     totalMonthlyProfitKrw: number;
     avgProfitScore: number;
@@ -86,8 +89,8 @@ export function DashboardHomeClient() {
   const { initialLoading } = useSilentFetch(fetchData);
 
   const heroCards = [
-    { href: SP_ROUTES.consignment, title: `위탁판매 ${JARVIS_NAME}`, desc: "월 1천만 · 도매매 단품 · 90% 인증 SKU", accent: true },
-    { href: SP_ROUTES.importSales, title: `수입판매 ${JARVIS_NAME}`, desc: "월 1천만 · 1688·일본 · 90% 인증 SKU", accent: true },
+    { href: SP_ROUTES.consignment, title: `위탁판매 ${JARVIS_NAME}`, desc: "월 1천만 · 도매매 단품 · 93% 인증 SKU", accent: true },
+    { href: SP_ROUTES.importSales, title: `수입판매 ${JARVIS_NAME}`, desc: "월 1천만 · 1688·일본 · 93% 인증 SKU", accent: true },
   ];
 
   const toolCards = [
@@ -143,6 +146,12 @@ export function DashboardHomeClient() {
               ready={revenueBrief.jarvisIntegration.readyFor90}
               certifiedCount={revenueBrief.jarvisStats?.certifiedCount}
               avgConfidence={revenueBrief.jarvisStats?.avgConfidence}
+            />
+          )}
+          {revenueBrief.jarvisStats?.avgTopSellerAlignment != null && (
+            <TopSellerPlaybookSummaryCard
+              avgAlignment={revenueBrief.jarvisStats.avgTopSellerAlignment}
+              totalVerified={12}
             />
           )}
           <TenMillionGoalCard plan={revenueBrief.tenMillionPlan} jarvisStats={revenueBrief.jarvisStats} />
