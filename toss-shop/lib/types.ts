@@ -163,8 +163,9 @@ export type CompetitorAlertRule = {
 
 export type CompetitorAlert = {
   id: string;
-  ruleId: string;
-  competitorId: string;
+  ruleId?: string;
+  competitorId?: string;
+  watchlistId?: string;
   message: string;
   read: boolean;
   createdAt: string;
@@ -217,7 +218,14 @@ export type JarvisListingStatus =
   | "rejected"
   | "failed";
 
-export type JarvisDetailPageSource = "jarvis_ai" | "matchcut_pending" | "matchcut";
+export type JarvisDetailPageSource =
+  | "jarvis_ai"
+  | "matchcut_pending"
+  | "matchcut"
+  | "openai_premium"
+  | "hookable_api"
+  | "draph"
+  | "sellerbiseo";
 
 export type JarvisDetailPageBundle = {
   source: JarvisDetailPageSource;
@@ -228,6 +236,8 @@ export type JarvisDetailPageBundle = {
   matchcutReady: boolean;
   matchcutNote?: string;
   imageUrls?: string[];
+  detailProvider?: string;
+  detailCostKrw?: number;
 };
 
 export type JarvisPickBrief = {

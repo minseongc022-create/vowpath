@@ -26,9 +26,13 @@ function statusClass(status: JarvisListingDraft["status"]): string {
   return "bg-slate-100 text-slate-700";
 }
 
-function detailSourceLabel(source: JarvisListingDraft["detailPage"]["source"]): string {
+function detailSourceLabel(source: JarvisListingDraft["detailPage"]["source"], provider?: string): string {
   if (source === "matchcut") return "Matchcut AI";
-  if (source === "jarvis_ai") return "Hookable AI";
+  if (source === "openai_premium") return "OpenAI Premium (~150원)";
+  if (source === "draph") return "Draph AI (~800원)";
+  if (source === "hookable_api") return "Hookable API";
+  if (source === "sellerbiseo") return "SellerBiseo AI";
+  if (source === "jarvis_ai") return provider === "hookable_local" ? "Hookable Local" : "Hookable AI";
   return "생성 중";
 }
 
@@ -151,7 +155,7 @@ export function JarvisListingDraftCard({
           <p className="text-xs font-bold text-ts-primary">{draft.keyword}</p>
           <h3 className="mt-1 font-bold text-ts-ink">{draft.listingPayload.name}</h3>
           <p className="mt-0.5 text-[11px] text-ts-muted">
-            {draft.pickMode === "consignment" ? "위탁" : "수입"} · {detailSourceLabel(draft.detailPage.source)}
+            {draft.pickMode === "consignment" ? "위탁" : "수입"} · {detailSourceLabel(draft.detailPage.source, draft.detailPage.detailProvider)}
             {draft.detailPage.imageUrls?.length
               ? ` · ${draft.detailPage.imageUrls.length}장`
               : ""}
@@ -175,7 +179,10 @@ export function JarvisListingDraftCard({
         </div>
         <div className="ts-mini-stat">
           <p className="text-ts-muted">상세</p>
-          <p className="font-bold">{detailSourceLabel(draft.detailPage.source)}</p>
+          <p className="font-bold">{detailSourceLabel(draft.detailPage.source, draft.detailPage.detailProvider)}</p>
+          {draft.detailPage.detailCostKrw != null && draft.detailPage.detailCostKrw > 0 && (
+            <p className="text-[11px] text-ts-muted">예상 비용 {draft.detailPage.detailCostKrw.toLocaleString()}원</p>
+          )}
         </div>
       </div>
 
