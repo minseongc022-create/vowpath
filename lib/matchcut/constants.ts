@@ -17,7 +17,7 @@ export const MATCHCUT = {
   },
 } as const;
 
-export type MarketPlatform = "coupang" | "smartstore" | "both";
+export type MarketPlatform = "coupang" | "smartstore" | "toss" | "both";
 
 export type MarketImageSpec = {
   id: string;
@@ -29,7 +29,7 @@ export type MarketImageSpec = {
   quality: number;
 };
 
-export const MARKET_SPECS: Record<"coupang" | "smartstore", MarketImageSpec[]> = {
+export const MARKET_SPECS: Record<"coupang" | "smartstore" | "toss", MarketImageSpec[]> = {
   coupang: [
     {
       id: "main",
@@ -66,6 +66,26 @@ export const MARKET_SPECS: Record<"coupang" | "smartstore", MarketImageSpec[]> =
       width: 1000,
       height: 1000,
       maxBytes: 20 * 1024 * 1024,
+      format: "jpeg",
+      quality: 88,
+    },
+  ],
+  toss: [
+    {
+      id: "main",
+      label: "대표이미지",
+      width: 1000,
+      height: 1000,
+      maxBytes: 10 * 1024 * 1024,
+      format: "jpeg",
+      quality: 90,
+    },
+    {
+      id: "detail",
+      label: "상세이미지",
+      width: 750,
+      height: 750,
+      maxBytes: 10 * 1024 * 1024,
       format: "jpeg",
       quality: 88,
     },

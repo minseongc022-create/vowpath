@@ -6,9 +6,20 @@
  */
 
 import type { ConsignmentPick, ImportPick, JarvisDetailPageBundle } from "../types";
-import { requestMatchcutDetailPage } from "./matchcut-adapter";
+import { requestDetailPageFromProviders } from "./detail-page-providers";
+import type { DetailPageProviderId } from "./detail-page-providers";
 
-export const DETAIL_PAGE_ENGINE_VERSION = "2.0";
+export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
+
+function mapProviderToSource(provider: DetailPageProviderId): JarvisDetailPageBundle["source"] {
+  if (provider === "matchcut_pipeline") return "matchcut";
+  if (provider === "openai_premium") return "openai_premium";
+  if (provider === "hookable_api") return "hookable_api";
+  if (provider === "draph") return "draph";
+  if (provider === "sellerbiseo") return "sellerbiseo";
+  if (provider === "hookable_local") return "jarvis_ai";
+  return "jarvis_ai";
+}
 
 function extractKeywords(keyword: string, title: string, max = 10): string[] {
   const raw = `${keyword} ${title}`
@@ -63,7 +74,7 @@ export async function buildJarvisDetailPage(
   const importImage =
     mode === "import" && "importBest" in pick ? pick.importBest?.imageUrl : undefined;
 
-  const matchcut = await requestMatchcutDetailPage({
+  const detail = await requestDetailPageFromProviders({
     listingUrl: wholesale?.url ?? importUrl,
     referenceImageUrl: wholesale?.imageUrl ?? importImage,
     keyword: pick.keyword,
@@ -74,24 +85,27 @@ export async function buildJarvisDetailPage(
     generateAngles: mode === "import" && Boolean(importUrl?.includes("1688")),
   });
 
-  if (matchcut.status === "ready") {
+  if (detail.status === "ready" && detail.html) {
     return {
-      source: matchcut.source === "matchcut_pipeline" ? "matchcut" : "jarvis_ai",
-      html: matchcut.html,
-      thumbnailUrl: matchcut.thumbnailUrl,
+      source: mapProviderToSource(detail.provider),
+      html: detail.html,
+      thumbnailUrl: detail.thumbnailUrl,
       sellingPoints,
       searchKeywords,
-      matchcutReady: true,
-      imageUrls: matchcut.generatedImages,
+      matchcutReady: detail.provider === "matchcut_pipeline",
+      imageUrls: detail.generatedImages,
+      detailProvider: detail.provider,
+      detailCostKrw: detail.costEstimateKrw,
     };
   }
 
   return {
     source: "matchcut_pending",
-    html: `<p>상세페이지 생성 실패 — ${matchcut.note}</p>`,
+    html: `<p>상세페이지 생성 실패 — ${detail.note ?? "알 수 없는 오류"}</p>`,
     sellingPoints,
     searchKeywords,
     matchcutReady: false,
-    matchcutNote: matchcut.note,
+    matchcutNote: detail.note,
+    detailProvider: detail.provider,
   };
 }

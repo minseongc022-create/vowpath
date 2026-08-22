@@ -744,6 +744,39 @@ export async function syncAllMerchants(): Promise<{
         }
       }
     }
+
+    for (const item of data.watchlist) {
+      const product = store.catalog.find((p) => p.id === item.productId);
+      if (!product) continue;
+      const history = store.priceHistory[product.id] ?? [];
+      const prevPrice =
+        history.length >= 2 ? history[history.length - 2].priceKrw : product.priceKrw;
+      const priceChangePct = ((product.priceKrw - prevPrice) / prevPrice) * 100;
+      const rankDelta = product.rankPrev - product.rank;
+      const dropThreshold = item.alertPriceDropPct ?? 5;
+      const rankThreshold = item.alertRankUp ?? 2;
+      let message: string | null = null;
+      if (priceChangePct <= -dropThreshold) {
+        message = `[관심상품] ${product.name} 가격 ${Math.abs(priceChangePct).toFixed(0)}% 하락 (${product.priceKrw.toLocaleString()}원)`;
+      } else if (rankDelta >= rankThreshold) {
+        message = `[관심상품] ${product.name} 랭킹 ${product.rankPrev}→${product.rank} 상승`;
+      }
+      if (message) {
+        const dup = data.alerts.some(
+          (a) => a.message === message && a.createdAt.slice(0, 16) === bucket,
+        );
+        if (!dup) {
+          data.alerts.unshift({
+            id: newId("alert"),
+            watchlistId: item.id,
+            message,
+            read: false,
+            createdAt: new Date().toISOString(),
+          });
+          alertsFired++;
+        }
+      }
+    }
   }
 
   const market = collectMarketIntelligence(store.catalog);

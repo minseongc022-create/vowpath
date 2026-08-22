@@ -9,11 +9,12 @@ import { KeywordSearchBar } from "@/toss-shop/components/ui/KeywordSearchBar";
 import { formatCompact, formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { KeywordAnalysis, TrackedKeyword } from "@/toss-shop/lib/types";
+import type { TossDeepAnalysis } from "@/toss-shop/lib/seller-engine/toss-market-engine";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { UsageBadge } from "@/toss-shop/components/UpgradeBanner";
 import { FREE_DAILY_KEYWORD_LIMIT } from "@/toss-shop/lib/billing";
 
-type Tab = "overview" | "products" | "related";
+type Tab = "overview" | "products" | "related" | "deep";
 
 export function KeywordsPanel() {
   const searchParams = useSearchParams();
@@ -23,6 +24,7 @@ export function KeywordsPanel() {
   const [newKeyword, setNewKeyword] = useState(initialQ);
   const [selected, setSelected] = useState<string | null>(initialQ || null);
   const [analysis, setAnalysis] = useState<KeywordAnalysis | null>(null);
+  const [deepAnalysis, setDeepAnalysis] = useState<TossDeepAnalysis | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [analyzing, setAnalyzing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,6 +64,15 @@ export function KeywordsPanel() {
       if (data.analysis) {
         setAnalysis(data.analysis);
         setTab("overview");
+      }
+      const deepRes = await fetch(
+        `/api/toss-shop/market/deep-analysis?keyword=${encodeURIComponent(keyword)}`,
+      );
+      if (deepRes.ok) {
+        const deepData = (await deepRes.json()) as { deep?: TossDeepAnalysis };
+        setDeepAnalysis(deepData.deep ?? null);
+      } else {
+        setDeepAnalysis(null);
       }
       if (data.usage) setUsage(data.usage);
     } finally {
@@ -116,6 +127,7 @@ export function KeywordsPanel() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: "키워드 개요" },
+    { id: "deep", label: "Jarvis 심층" },
     { id: "products", label: "상품 목록" },
     { id: "related", label: "연관 키워드" },
   ];
@@ -222,6 +234,85 @@ export function KeywordsPanel() {
                   </button>
                 ))}
               </div>
+
+              {tab === "deep" && deepAnalysis && (
+                <div className="mt-5 space-y-5">
+                  <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 p-4 ring-1 ring-indigo-100">
+                    <p className="text-sm font-bold text-indigo-950">{deepAnalysis.jarvisRecommendation}</p>
+                    <p className="mt-1 text-xs text-indigo-700/80">
+                      데이터 품질: {deepAnalysis.dataQuality} · 기회점수 {deepAnalysis.opportunityScore}/100
+                    </p>
+                  </div>
+
+                  <div className="ts-metric-grid">
+                    <div className="ts-metric-cell">
+                      <p className="ts-metric-label">난이도</p>
+                      <p className="ts-metric-value">{deepAnalysis.keywordDifficultyScore}<span className="ts-metric-unit">/100</span></p>
+                    </div>
+                    <div className="ts-metric-cell">
+                      <p className="ts-metric-label">Wing 비율</p>
+                      <p className="ts-metric-value">{deepAnalysis.wingRatio}<span className="ts-metric-unit">%</span></p>
+                    </div>
+                    <div className="ts-metric-cell">
+                      <p className="ts-metric-label">예상 광고입찰</p>
+                      <p className="ts-metric-value">{deepAnalysis.adBidEstimateKrw.toLocaleString()}<span className="ts-metric-unit">원</span></p>
+                    </div>
+                    <div className="ts-metric-cell">
+                      <p className="ts-metric-label">일 SERP 조회</p>
+                      <p className="ts-metric-value">{formatCompact(deepAnalysis.estimatedDailyViews)}<span className="ts-metric-unit">회</span></p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-ts-muted">리뷰 AI 셀링포인트 {deepAnalysis.reviewInsights.aiGenerated ? "(OpenAI)" : ""}</p>
+                    <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm">
+                      {deepAnalysis.reviewInsights.sellingPoints.map((p) => (
+                        <li key={p}>{p}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-ts-muted">등록 팁</p>
+                    <ul className="mt-2 list-disc space-y-0.5 pl-4 text-sm text-ts-muted">
+                      {deepAnalysis.listingTips.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="ts-data-table">
+                      <thead>
+                        <tr>
+                          <th>순위</th>
+                          <th>상품</th>
+                          <th>일 조회</th>
+                          <th>입찰가</th>
+                          <th>변동</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deepAnalysis.serp.topProducts.map((p) => (
+                          <tr key={p.id}>
+                            <td className="font-bold">{p.rank}</td>
+                            <td className="max-w-[180px] truncate">{p.name}</td>
+                            <td>{formatCompact(p.estimatedDailyViews)}</td>
+                            <td>{p.adBidEstimateKrw.toLocaleString()}원</td>
+                            <td className={p.rankChange > 0 ? "text-emerald-600" : p.rankChange < 0 ? "text-red-500" : ""}>
+                              {p.rankChange > 0 ? `+${p.rankChange}` : p.rankChange}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {tab === "deep" && !deepAnalysis && (
+                <p className="mt-8 text-center text-sm text-ts-muted">심층 분석을 불러오는 중이거나 Pro 한도에 도달했습니다.</p>
+              )}
 
               {tab === "overview" && (
                 <div className="mt-5 space-y-5">

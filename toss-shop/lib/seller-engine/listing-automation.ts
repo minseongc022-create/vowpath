@@ -33,7 +33,7 @@ function buildSellerChecklist(
   mode: "consignment" | "import",
 ): string[] {
   const steps: string[] = [
-    "Hookable-class 상세페이지·키워드·가격 자동 생성",
+    "Draph/OpenAI Premium 상세 + 키워드·가격 자동 생성",
     "OK · Jarvis 전체 실행 → 토스 등록 + 위탁 발주(위탁만)",
   ];
   if (pick.jarvis?.certified) {

@@ -78,7 +78,20 @@ Header: `Authorization: Bearer $CRON_SECRET`
 
 Health check: `GET /api/toss-shop/jarvis/health`  
 Autopilot: `GET/POST /api/toss-shop/jarvis/autopilot`  
-발주함: `GET /api/toss-shop/fulfillment`
+발주함: `GET /api/toss-shop/fulfillment`  
+심층 시장분석: `GET /api/toss-shop/market/deep-analysis?keyword=...`
+
+### AI 상세페이지 프로바이더 (저렴·고품질)
+
+우선순위: Draph API → Hookable API → Matchcut → **OpenAI Premium (~150원)** → 로컬 Hookable
+
+| Variable | Notes |
+|----------|-------|
+| `DRAPH_API_URL` + `DRAPH_API_KEY` | Draph (~800원/장) B2B |
+| `HOOKABLE_API_URL` + `HOOKABLE_API_KEY` | Hookable B2B |
+| `SELLERBISEO_API_URL` + `SELLERBISEO_API_KEY` | SellerBiseo |
+| `OPENAI_API_KEY` | OpenAI Premium 폴백 (권장) |
+| `JARVIS_OPENAI_MODEL` | optional, default `gpt-4o-mini` |
 
 ## 스크립트
 

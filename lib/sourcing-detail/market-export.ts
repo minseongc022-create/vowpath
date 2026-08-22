@@ -13,7 +13,7 @@ export type ExportImageInput = {
 
 export type ExportedFile = {
   filename: string;
-  platform: "coupang" | "smartstore";
+  platform: "coupang" | "smartstore" | "toss";
   specId: string;
   specLabel: string;
   width: number;
@@ -43,7 +43,7 @@ async function resizeToSpec(
   input: Buffer,
   spec: MarketImageSpec,
   sourceName: string,
-  platform: "coupang" | "smartstore",
+  platform: "coupang" | "smartstore" | "toss",
 ): Promise<ExportedFile> {
   let pipeline = sharp(input)
     .rotate()
@@ -93,8 +93,10 @@ export async function exportImagesForMarkets(params: {
   images: ExportImageInput[];
   platform: MarketPlatform;
 }): Promise<ExportedFile[]> {
-  const platforms: ("coupang" | "smartstore")[] =
-    params.platform === "both" ? ["coupang", "smartstore"] : [params.platform];
+  const platforms: ("coupang" | "smartstore" | "toss")[] =
+    params.platform === "both"
+      ? ["coupang", "smartstore", "toss"]
+      : [params.platform];
 
   const results: ExportedFile[] = [];
 

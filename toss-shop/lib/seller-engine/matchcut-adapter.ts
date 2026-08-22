@@ -1,9 +1,5 @@
 /**
- * Matchcut 연동 어댑터 — Hookable-class 상세페이지
- *
- * - 1688/타오바오 + OpenAI: runSourcingPipeline (비전 매칭 + 각도 생성)
- * - 도매꾹/도매매: Hookable 템플릿 + 공급처 이미지 자동 수집
- * - 폴백: Hookable 템플릿
+ * Matchcut 연동 어댑터 — detail-page-providers에서 호출
  */
 
 import { isSupportedListingUrl } from "@/lib/sourcing-detail/platforms";
@@ -12,7 +8,7 @@ import type { ConsignmentPick, ImportPick } from "../types";
 import { buildHookableDetailFromPick } from "./hookable-detail-engine";
 import { fetchUrlAsBase64 } from "./wholesale-image-fetch";
 
-export const MATCHCUT_ADAPTER_VERSION = "1.0";
+export const MATCHCUT_ADAPTER_VERSION = "2.0";
 
 export type MatchcutRequest = {
   listingUrl?: string;

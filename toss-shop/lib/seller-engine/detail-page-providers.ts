@@ -1,0 +1,281 @@
+/**
+ * Multi-provider AI 상세페이지 — Hookable/Draph/SellerBiseo API → Matchcut → OpenAI Premium → Local
+ *
+ * 외부 SaaS API 키 있으면 우선, 없으면 OpenAI 프리미엄(저렴·고품질), 최종 Hookable 로컬.
+ */
+
+import type { ConsignmentPick, ImportPick } from "../types";
+import {
+  buildHookableDetailFromPick,
+  buildHookableDetailHtml,
+  type HookableDetailInput,
+} from "./hookable-detail-engine";
+import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
+import { requestMatchcutDetailPage, type MatchcutRequest } from "./matchcut-adapter";
+
+export const DETAIL_PROVIDERS_VERSION = "1.0";
+
+export type DetailPageProviderId =
+  | "hookable_api"
+  | "draph"
+  | "sellerbiseo"
+  | "matchcut_pipeline"
+  | "openai_premium"
+  | "hookable_local";
+
+export type DetailPageProviderResult = {
+  status: "ready" | "deferred";
+  html?: string;
+  thumbnailUrl?: string;
+  generatedImages?: string[];
+  provider: DetailPageProviderId;
+  costEstimateKrw?: number;
+  note?: string;
+};
+
+type ExternalProviderConfig = {
+  id: DetailPageProviderId;
+  apiUrl?: string;
+  apiKey?: string;
+  costKrw: number;
+};
+
+function externalProviders(): ExternalProviderConfig[] {
+  return [
+    {
+      id: "draph",
+      apiUrl: process.env.DRAPH_API_URL?.trim(),
+      apiKey: process.env.DRAPH_API_KEY?.trim(),
+      costKrw: 800,
+    },
+    {
+      id: "hookable_api",
+      apiUrl: process.env.HOOKABLE_API_URL?.trim(),
+      apiKey: process.env.HOOKABLE_API_KEY?.trim(),
+      costKrw: 990,
+    },
+    {
+      id: "sellerbiseo",
+      apiUrl: process.env.SELLERBISEO_API_URL?.trim(),
+      apiKey: process.env.SELLERBISEO_API_KEY?.trim(),
+      costKrw: 850,
+    },
+  ].filter((p) => p.apiUrl && p.apiKey) as ExternalProviderConfig[];
+}
+
+type ProviderPayload = {
+  title: string;
+  keyword: string;
+  priceKrw: number;
+  sellingPoints: string[];
+  description: string;
+  images: string[];
+  productUrl?: string;
+};
+
+async function fetchExternalDetail(
+  config: ExternalProviderConfig,
+  payload: ProviderPayload,
+): Promise<DetailPageProviderResult | null> {
+  if (!config.apiUrl || !config.apiKey) return null;
+  try {
+    const res = await fetch(config.apiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+        "X-Provider": config.id,
+      },
+      body: JSON.stringify({
+        title: payload.title,
+        keyword: payload.keyword,
+        price: payload.priceKrw,
+        sellingPoints: payload.sellingPoints,
+        description: payload.description,
+        images: payload.images,
+        productUrl: payload.productUrl,
+        platform: "toss",
+        format: "html",
+      }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      html?: string;
+      detailHtml?: string;
+      thumbnailUrl?: string;
+      thumbnail?: string;
+      images?: string[];
+    };
+    const html = json.html ?? json.detailHtml;
+    if (!html?.trim()) return null;
+    return {
+      status: "ready",
+      html,
+      thumbnailUrl: json.thumbnailUrl ?? json.thumbnail ?? payload.images[0],
+      generatedImages: json.images ?? payload.images,
+      provider: config.id,
+      costEstimateKrw: config.costKrw,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function buildOpenAiPremiumDetail(input: HookableDetailInput): Promise<DetailPageProviderResult | null> {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const prompt = `토스쇼핑 프리미um 상세페이지 HTML을 생성하세요. Hookable/Draph보다 전환율 높은 레이아웃.
+
+상품: ${input.title}
+키워드: ${input.keyword}
+가격: ${input.priceKrw.toLocaleString()}원
+셀링포인트: ${input.sellingPoints.join(" / ")}
+설명: ${input.description.slice(0, 600)}
+이미지 URL (${input.images.length}개): ${input.images.slice(0, 6).join(", ")}
+
+요구사항:
+- 완전한 <!DOCTYPE html> 단일 파일
+- 모바일 최적, Pretendard 폰트
+- 히어로 → 갤러리(img src 그대로) → 혜택 5개 → 스토리 → 신뢰 배지
+- 인라인 CSS만, JS 없음
+- 한국어`;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.JARVIS_OPENAI_MODEL ?? "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.5,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    let html = json.choices?.[0]?.message?.content?.trim() ?? "";
+    html = html.replace(/^```html?\n?/i, "").replace(/\n?```$/i, "");
+    if (!html.includes("<html")) {
+      html = buildHookableDetailHtml(input);
+    }
+    return {
+      status: "ready",
+      html,
+      thumbnailUrl: input.images[0],
+      generatedImages: input.images,
+      provider: "openai_premium",
+      costEstimateKrw: 150,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function buildProviderPayload(
+  pick: ConsignmentPick | ImportPick,
+  mode: "consignment" | "import",
+  sellingPoints: string[],
+): Promise<ProviderPayload> {
+  const title = pick.suggestedTitle ?? pick.productName;
+  const wholesale = mode === "consignment" && "wholesaleBest" in pick ? pick.wholesaleBest : null;
+  const importBest = mode === "import" && "importBest" in pick ? pick.importBest : null;
+  const productUrl = wholesale?.url ?? importBest?.url;
+  const primaryImage = wholesale?.imageUrl ?? importBest?.imageUrl;
+  const images = await fetchWholesaleProductImages({
+    productUrl,
+    primaryImageUrl: primaryImage,
+    maxImages: 8,
+  });
+  const description =
+    (pick.aiSummary ?? "").slice(0, 1200) ||
+    `${title} — ${pick.keyword} Jarvis 검증 SKU. ${sellingPoints.join(". ")}.`;
+  return {
+    title,
+    keyword: pick.keyword,
+    priceKrw: pick.recommendedPriceKrw,
+    sellingPoints,
+    description,
+    images,
+    productUrl,
+  };
+}
+
+export function listActiveDetailProviders(): Array<{ id: DetailPageProviderId; costKrw: number }> {
+  const list: Array<{ id: DetailPageProviderId; costKrw: number }> = externalProviders().map((p) => ({
+    id: p.id,
+    costKrw: p.costKrw,
+  }));
+  if (process.env.OPENAI_API_KEY?.trim()) {
+    list.push({ id: "openai_premium", costKrw: 150 });
+  }
+  list.push({ id: "hookable_local", costKrw: 0 });
+  return list;
+}
+
+export async function requestDetailPageFromProviders(
+  matchcutInput: MatchcutRequest,
+): Promise<DetailPageProviderResult> {
+  const payload = await buildProviderPayload(
+    matchcutInput.pick,
+    matchcutInput.mode,
+    matchcutInput.sellingPoints,
+  );
+
+  for (const provider of externalProviders()) {
+    const result = await fetchExternalDetail(provider, payload);
+    if (result?.status === "ready") return result;
+  }
+
+  const matchcut = await requestMatchcutDetailPage(matchcutInput);
+  if (matchcut.status === "ready") {
+    return {
+      status: "ready",
+      html: matchcut.html,
+      thumbnailUrl: matchcut.thumbnailUrl,
+      generatedImages: matchcut.generatedImages,
+      provider: matchcut.source === "matchcut_pipeline" ? "matchcut_pipeline" : "hookable_local",
+      costEstimateKrw: matchcut.source === "matchcut_pipeline" ? 0 : 0,
+    };
+  }
+
+  const hookableInput: HookableDetailInput = {
+    title: payload.title,
+    keyword: payload.keyword,
+    priceKrw: payload.priceKrw,
+    sellingPoints: payload.sellingPoints,
+    description: payload.description,
+    images: payload.images,
+    brandLabel: "Jarvis Pick",
+  };
+
+  const openAi = await buildOpenAiPremiumDetail(hookableInput);
+  if (openAi?.status === "ready") return openAi;
+
+  try {
+    const local = await buildHookableDetailFromPick(
+      matchcutInput.pick,
+      matchcutInput.mode,
+      matchcutInput.sellingPoints,
+    );
+    return {
+      status: "ready",
+      html: local.html,
+      thumbnailUrl: local.thumbnailUrl,
+      generatedImages: local.images,
+      provider: "hookable_local",
+      costEstimateKrw: 0,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "DETAIL_FAIL";
+    return {
+      status: "deferred",
+      provider: "hookable_local",
+      note: matchcut.status === "deferred" ? matchcut.note : msg,
+    };
+  }
+}

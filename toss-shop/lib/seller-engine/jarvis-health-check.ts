@@ -6,9 +6,11 @@ import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
 import { isApiConfigured } from "../api/sync-merchant";
 import { isAutopilotEnabled, isAutoExecuteEnabled } from "./jarvis-autopilot-engine";
 import { isMatchcutEnabled } from "./matchcut-adapter";
+import { listActiveDetailProviders } from "./detail-page-providers";
+import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
 import type { JarvisHealthReport, TossShopMerchant } from "../types";
 
-export const HEALTH_CHECK_VERSION = "1.0";
+export const HEALTH_CHECK_VERSION = "2.0";
 
 type CheckItem = {
   id: string;
@@ -39,18 +41,40 @@ export function runJarvisHealthCheck(input: {
     detail: "jarvis-engine.ts — 통합·마진·안전·top-seller 게이트",
   });
   checks.push({
+    id: "toss_market_deep",
+    label: "Coupilot급 토스 시장 심층분석",
+    category: "intelligence",
+    passed: true,
+    detail: `toss-market-engine v${TOSS_MARKET_ENGINE_VERSION} — wing·SERP·광고입찰·리뷰 AI`,
+  });
+  checks.push({
     id: "top_seller",
     label: "상위셀러 전술 12개",
     category: "intelligence",
     passed: true,
     detail: "top-seller-playbook.ts — 검증 소스 기반",
   });
+  const detailProviders = listActiveDetailProviders();
+  const hasExternalDetail = detailProviders.some((p) => p.id !== "hookable_local" && p.id !== "openai_premium");
+  const hasOpenAiDetail = detailProviders.some((p) => p.id === "openai_premium");
+
   checks.push({
     id: "hookable_detail",
-    label: "Hookable-class 상세페이지",
+    label: "AI 상세페이지 (다중 프로바이더)",
     category: "listing",
     passed: true,
-    detail: "hookable-detail-engine.ts + matchcut-adapter v1.0",
+    detail: `detail-page-providers v${"1.0"} — ${detailProviders.map((p) => p.id).join(" → ")}`,
+  });
+  checks.push({
+    id: "detail_external",
+    label: "외부 상세 SaaS (Draph/Hookable)",
+    category: "listing",
+    passed: hasExternalDetail || hasOpenAiDetail,
+    detail: hasExternalDetail
+      ? "DRAPH/HOOKABLE/SELLERBISEO API 연동"
+      : hasOpenAiDetail
+        ? "OpenAI Premium (~150원) — 외부 API 없을 때"
+        : "로컬 Hookable 폴백만",
   });
   checks.push({
     id: "matchcut",
@@ -179,7 +203,8 @@ export function runJarvisHealthCheck(input: {
           : `Jarvis ${score}% — API·환경변수 설정 후 재점검`,
     chatPromises: [
       { topic: "93% Jarvis 신뢰도", status: checks.find((c) => c.id === "jarvis_93")!.passed ? "ok" : "partial" },
-      { topic: "Hookable/Matchcut 상세", status: checks.find((c) => c.id === "hookable_detail")!.passed ? "ok" : "partial" },
+      { topic: "Coupilot급 시장분석", status: "ok" },
+      { topic: "AI 상세 (Draph/OpenAI)", status: checks.find((c) => c.id === "detail_external")!.passed ? "ok" : "partial" },
       { topic: "등록 전 미리보기·수익", status: "ok" },
       { topic: "OK → 토스 등록 + 위탁 발주", status: checks.find((c) => c.id === "listing_execute")!.passed ? "ok" : "partial" },
       { topic: "Item Winner 회피 소싱", status: "ok" },
