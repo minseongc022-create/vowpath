@@ -131,6 +131,7 @@ export function ImportPanel() {
                 catalogWin={p.catalogWin}
                 catalogStrategy={p.catalogStrategy ?? p.catalogWin?.catalogStrategy}
                 policyChecklist={p.policyChecklist}
+                riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
                 marketScanSummary={p.v6?.marketScanSummary}
                 engineVersion={p.v4?.engineVersion ?? meta.engineVersion}
                 recommendedScenarioId={p.v4?.recommendedScenarioId}

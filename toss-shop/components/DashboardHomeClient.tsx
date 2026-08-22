@@ -16,6 +16,11 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
 import { TenMillionGoalCard, GoalMilestonesList } from "@/toss-shop/components/TenMillionGoalCard";
+import {
+  PolicyPlaybookSummaryCard,
+  PenaltyTierList,
+  TossPolicyBriefPanel,
+} from "@/toss-shop/components/PolicyPlaybookCard";
 import type { TenMillionPlan } from "@/toss-shop/lib/types";
 
 type BillingInfo = {
@@ -32,6 +37,12 @@ type RevenueBrief = {
   };
   tenMillionPlan?: TenMillionPlan;
   topPicks?: { keyword: string; monthlyProfitKrw: number; mode: string; geniusScore?: number }[];
+  policyHealth?: {
+    avgSafetyScore: number;
+    totalRisks: number;
+    criticalCount: number;
+    blockCount: number;
+  };
 };
 
 export function DashboardHomeClient() {
@@ -113,6 +124,15 @@ export function DashboardHomeClient() {
       {!initialLoading && revenueBrief?.tenMillionPlan && (
         <div className="mt-5 space-y-4">
           <TenMillionGoalCard plan={revenueBrief.tenMillionPlan} />
+          {revenueBrief.policyHealth && (
+            <PolicyPlaybookSummaryCard
+              avgSafetyScore={revenueBrief.policyHealth.avgSafetyScore}
+              totalRisks={revenueBrief.policyHealth.totalRisks}
+              criticalCount={revenueBrief.policyHealth.criticalCount + revenueBrief.policyHealth.blockCount}
+            />
+          )}
+          <PenaltyTierList />
+          <TossPolicyBriefPanel />
           <GoalMilestonesList milestones={revenueBrief.tenMillionPlan.milestones} />
         </div>
       )}

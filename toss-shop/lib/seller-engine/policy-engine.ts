@@ -18,8 +18,9 @@ import type {
   TossPolicyBrief,
   TossShopCategory,
 } from "../types";
+import { buildRiskPlaybookReport } from "./risk-playbook";
 
-export const POLICY_ENGINE_VERSION = "v6.1";
+export const POLICY_ENGINE_VERSION = "v6.2";
 
 export type { CatalogWinAnalysis, PolicyFlag, TossPolicyBrief, CatalogStrategyPlan, CatalogStrategyMode };
 
@@ -384,16 +385,22 @@ export function computeV6MasterScore(input: {
   monthlyProfitKrw: number;
   goalKrw: number;
   catalogStrategy?: CatalogStrategyPlan;
+  safetyScore?: number;
 }): number {
   const profitShare = Math.min(input.monthlyProfitKrw / input.goalKrw, 0.2) * 100;
   const catalogPart =
     input.catalogStrategy?.mode === "avoid_catalog"
       ? (input.catalogStrategy.isolationScore ?? 50) * 0.35
       : input.representativeItemScore * 0.35;
+  const safetyPart = ((input.safetyScore ?? 80) / 99) * 8;
   return Math.min(
     99,
     Math.round(
-      input.geniusScore * 0.35 + catalogPart + input.complianceScore * 0.15 + profitShare * 0.15,
+      input.geniusScore * 0.32 +
+        catalogPart +
+        input.complianceScore * 0.13 +
+        profitShare * 0.13 +
+        safetyPart,
     ),
   );
 }
@@ -435,6 +442,8 @@ export function buildV6PickEnrichment(input: {
   goalKrw: number;
   freeShippingRecommended?: boolean;
   shippingFeeKrw?: number;
+  mode?: "consignment" | "import";
+  sourceCountry?: string;
 }) {
   const extraFlags = scanPolicyFlags({
     keyword: input.keyword,
@@ -526,6 +535,28 @@ export function buildV6PickEnrichment(input: {
     searchVolume: input.searchVolume,
   });
 
+  const riskPlaybook = buildRiskPlaybookReport({
+    keyword: input.keyword,
+    productName: input.productName,
+    suggestedTitle: catalogStrategy.recommendedTitle,
+    category: input.category,
+    marginPct: input.marginPct,
+    priceKrw: input.priceKrw,
+    mode: input.mode ?? "consignment",
+    catalogStrategy,
+    catalogWin,
+    competitionIntensity: input.competitionIntensity,
+    sourceCountry: input.sourceCountry,
+  });
+
+  if (riskPlaybook.criticalCount > 0 || riskPlaybook.blockCount > 0) {
+    catalogWin.policyFlags.push({
+      level: "block",
+      code: "RISK_BLOCK",
+      message: riskPlaybook.playbookBrief,
+    });
+  }
+
   const v6MasterScore = computeV6MasterScore({
     geniusScore: input.geniusScore,
     representativeItemScore: catalogWin.representativeItemScore,
@@ -533,6 +564,7 @@ export function buildV6PickEnrichment(input: {
     monthlyProfitKrw: input.monthlyProfitKrw,
     goalKrw: input.goalKrw,
     catalogStrategy,
+    safetyScore: riskPlaybook.overallSafetyScore,
   });
 
   return {
@@ -540,6 +572,7 @@ export function buildV6PickEnrichment(input: {
     catalogStrategy,
     policyChecklist,
     marketScanSummary,
+    riskPlaybook,
     v6MasterScore,
     recommendedTitle: catalogStrategy.recommendedTitle,
   };

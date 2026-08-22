@@ -14,8 +14,10 @@ import type {
   PricingScenario,
   ProfitPlaybookItem,
   RevenueForecast,
+  RiskPlaybookReport,
   WholesaleListing,
 } from "@/toss-shop/lib/types";
+import { RiskPlaybookPanel } from "@/toss-shop/components/PolicyPlaybookCard";
 
 function impactClass(impact: AnalysisSignal["impact"]): string {
   if (impact === "positive") return "text-emerald-700 bg-emerald-50";
@@ -61,6 +63,7 @@ export function SourcingAnalysisCard({
   catalogWin,
   catalogStrategy,
   policyChecklist,
+  riskPlaybook,
   marketScanSummary,
   extra,
 }: {
@@ -100,6 +103,7 @@ export function SourcingAnalysisCard({
   catalogWin?: CatalogWinAnalysis;
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
+  riskPlaybook?: RiskPlaybookReport;
   marketScanSummary?: string;
   extra?: ReactNode;
 }) {
@@ -466,6 +470,8 @@ export function SourcingAnalysisCard({
           </ul>
         </div>
       )}
+
+      {riskPlaybook && <RiskPlaybookPanel report={riskPlaybook} />}
 
       {extra}
 
