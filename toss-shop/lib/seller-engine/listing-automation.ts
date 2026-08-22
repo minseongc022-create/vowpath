@@ -1,5 +1,5 @@
 /**
- * Jarvis Listing Automation — 소싱 → 상세페이지 → 등록 초안 → 사용자 OK 대기
+ * Jarvis Listing Automation — 소싱 → Hookable 상세 → 등록 초안 → 사용자 OK → 전체 실행
  */
 
 import type {
@@ -10,9 +10,10 @@ import type {
   TossShopCategory,
 } from "../types";
 import { buildJarvisDetailPage } from "./detail-page-engine";
+import { buildJarvisPickBrief } from "./jarvis-pick-brief";
 import { JARVIS_CONFIDENCE_THRESHOLD } from "./jarvis-engine";
 
-export const LISTING_AUTOMATION_VERSION = "1.0";
+export const LISTING_AUTOMATION_VERSION = "2.0";
 
 const CATEGORY_HINT: Record<TossShopCategory, string> = {
   food: "식품",
@@ -32,8 +33,8 @@ function buildSellerChecklist(
   mode: "consignment" | "import",
 ): string[] {
   const steps: string[] = [
-    "Jarvis 상세페이지·키워드·가격 자동 생성 완료",
-    "사용자 OK 후 토스쇼핑 등록 API 호출",
+    "Hookable-class 상세페이지·키워드·가격 자동 생성",
+    "OK · Jarvis 전체 실행 → 토스 등록 + 위탁 발주(위탁만)",
   ];
   if (pick.jarvis?.certified) {
     steps.push(`Jarvis ${pick.jarvis.confidencePct}% 인증 SKU`);
@@ -43,8 +44,11 @@ function buildSellerChecklist(
   }
   if (mode === "consignment" && "wholesaleBest" in pick && pick.wholesaleBest) {
     steps.push(
-      `${pick.wholesaleBest.platform === "domeme" ? "도매매" : "도매꾹"} 발주 URL 확인 · MOQ ${pick.wholesaleBest.moq}`,
+      `${pick.wholesaleBest.platform === "domeme" ? "도매매" : "도매꾹"} 발주 URL 자동 기록 · MOQ ${pick.wholesaleBest.moq}`,
     );
+  }
+  if (mode === "import") {
+    steps.push("수입판매 — 발주는 수동(1688/일본 소싱 URL 확인)");
   }
   if (pick.riskPlaybook?.mandatoryActions.length) {
     steps.push(...pick.riskPlaybook.mandatoryActions.slice(0, 2));
@@ -93,6 +97,7 @@ export async function buildListingDraftFromPick(
   const detailPage = await buildJarvisDetailPage(pick, mode);
   const listingPayload = buildListingPayload(pick, mode, detailPage.searchKeywords);
   const sellerChecklist = buildSellerChecklist(pick, mode);
+  const pickBrief = buildJarvisPickBrief(pick, mode);
 
   const confidence = pick.jarvis?.confidencePct ?? 0;
   const certified = pick.jarvis?.certified ?? false;
@@ -108,6 +113,7 @@ export async function buildListingDraftFromPick(
     jarvisCertified: certified,
     detailPage,
     listingPayload,
+    pickBrief,
     sellerChecklist,
     createdAt: now,
     updatedAt: now,
