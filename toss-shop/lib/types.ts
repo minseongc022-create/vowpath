@@ -200,6 +200,64 @@ export type MerchantData = {
   consignmentDate?: string;
   importPicks?: ImportPick[];
   importDate?: string;
+  /** Jarvis listing drafts awaiting user OK before publish. */
+  listingDrafts?: JarvisListingDraft[];
+};
+
+export type JarvisListingStatus =
+  | "draft"
+  | "pending_review"
+  | "approved"
+  | "publishing"
+  | "published"
+  | "rejected"
+  | "failed";
+
+export type JarvisDetailPageSource = "jarvis_ai" | "matchcut_pending" | "matchcut";
+
+export type JarvisDetailPageBundle = {
+  source: JarvisDetailPageSource;
+  html: string;
+  thumbnailUrl?: string;
+  sellingPoints: string[];
+  searchKeywords: string[];
+  matchcutReady: boolean;
+  matchcutNote?: string;
+};
+
+export type JarvisListingPayload = {
+  name: string;
+  brandName: string;
+  salePrice: number;
+  originPrice: number;
+  searchKeywords: string[];
+  description: string;
+  categoryHint: string;
+  deliveryFeeType: "FREE" | "PAID" | "CONDITIONALLY_FREE";
+  supplierUrl?: string;
+  supplierPlatform?: string;
+};
+
+export type JarvisListingDraft = {
+  id: string;
+  merchantId: string;
+  pickId: string;
+  pickMode: "consignment" | "import";
+  keyword: string;
+  status: JarvisListingStatus;
+  jarvisConfidence?: number;
+  jarvisCertified?: boolean;
+  detailPage: JarvisDetailPageBundle;
+  listingPayload: JarvisListingPayload;
+  sellerChecklist: string[];
+  createdAt: string;
+  updatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  publishedAt?: string;
+  tossProductId?: number;
+  publishError?: string;
+  rejectionReason?: string;
 };
 
 export type CompetitorPriceRef = {

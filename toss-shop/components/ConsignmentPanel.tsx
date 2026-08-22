@@ -6,6 +6,7 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { ConsignmentPick } from "@/toss-shop/lib/types";
 import { UpgradeBanner } from "@/toss-shop/components/UpgradeBanner";
 import { SourcingAnalysisCard } from "@/toss-shop/components/SourcingAnalysisCard";
+import { JarvisPrepareListingButton } from "@/toss-shop/components/JarvisListingPanel";
 import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 
 type Meta = {
@@ -157,6 +158,10 @@ export function ConsignmentPanel() {
                 topSellerPlaybook={p.topSellerPlaybook}
                 marketScanSummary={p.v6?.marketScanSummary}
               />
+
+              <div className="mt-3">
+                <JarvisPrepareListingButton pickId={p.id} mode="consignment" />
+              </div>
             </article>
           ))}
         </div>
