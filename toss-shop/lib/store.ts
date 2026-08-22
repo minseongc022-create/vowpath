@@ -26,6 +26,7 @@ import { generateImportPicks } from "./seller-engine/import-sales";
 import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
 import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
+import { executeConsignmentOrder } from "./seller-engine/consignment-order";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
 import { collectMarketIntelligence } from "./market-collector";
@@ -1062,5 +1063,68 @@ export async function publishApprovedListingDraft(input: {
     publishedAt: new Date().toISOString(),
     tossProductId: result.productId,
     publishError: undefined,
+  });
+}
+
+async function resolvePickForDraft(
+  store: TossShopStore,
+  merchantId: string,
+  draft: JarvisListingDraft,
+): Promise<ConsignmentPick | ImportPick | null> {
+  const data = merchantData(store, merchantId);
+  if (draft.pickMode === "consignment") {
+    return data.consignmentPicks?.find((p) => p.id === draft.pickId) ?? null;
+  }
+  return data.importPicks?.find((p) => p.id === draft.pickId) ?? null;
+}
+
+/** OK · Jarvis 전체 실행 — 승인 → 토스 등록 → 위탁 발주(위탁만) */
+export async function executeJarvisListing(input: {
+  merchantId: string;
+  draftId: string;
+  approvedBy: string;
+  categoryId?: number;
+  exchangeReturnLocationId?: number;
+}): Promise<JarvisListingDraft> {
+  let draft = await getListingDraft(input.merchantId, input.draftId);
+  if (!draft) throw new Error("DRAFT_NOT_FOUND");
+
+  if (["rejected", "publishing"].includes(draft.status)) {
+    throw new Error("DRAFT_NOT_EXECUTABLE");
+  }
+
+  if (draft.status === "draft" || draft.status === "pending_review") {
+    draft = await updateListingDraft(input.merchantId, input.draftId, {
+      status: "approved",
+      approvedAt: new Date().toISOString(),
+      approvedBy: input.approvedBy,
+    });
+  }
+
+  if (draft.status === "approved") {
+    draft = await publishApprovedListingDraft({
+      merchantId: input.merchantId,
+      draftId: input.draftId,
+      categoryId: input.categoryId,
+      exchangeReturnLocationId: input.exchangeReturnLocationId,
+    });
+  }
+
+  const store = await loadStore();
+  const pick = await resolvePickForDraft(store, input.merchantId, draft);
+
+  let consignmentOrder = draft.consignmentOrder;
+  if (draft.pickMode === "consignment" && pick && "wholesaleBest" in pick) {
+    consignmentOrder = await executeConsignmentOrder(draft, pick);
+  } else if (draft.pickMode === "import") {
+    consignmentOrder = {
+      status: "skipped",
+      orderNote: "수입판매 — 발주는 수동 진행",
+    };
+  }
+
+  return updateListingDraft(input.merchantId, input.draftId, {
+    executedAt: new Date().toISOString(),
+    consignmentOrder,
   });
 }

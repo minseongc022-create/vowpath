@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { formatKrw } from "@/toss-shop/lib/format";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
-import type { JarvisListingDraft } from "@/toss-shop/lib/types";
+import type { JarvisListingDraft, JarvisPickBrief } from "@/toss-shop/lib/types";
 import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 
@@ -26,6 +26,85 @@ function statusClass(status: JarvisListingDraft["status"]): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function detailSourceLabel(source: JarvisListingDraft["detailPage"]["source"]): string {
+  if (source === "matchcut") return "Matchcut AI";
+  if (source === "jarvis_ai") return "Hookable AI";
+  return "생성 중";
+}
+
+function PickBriefPanel({ brief }: { brief: JarvisPickBrief }) {
+  return (
+    <div className="mt-3 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 p-4 ring-1 ring-violet-100">
+      <p className="text-sm font-bold text-violet-950">{brief.headline}</p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+        <div className="ts-mini-stat">
+          <p className="text-ts-muted">일 예상 수익</p>
+          <p className="font-bold text-emerald-700">{formatKrw(brief.profitDailyKrw)}</p>
+        </div>
+        <div className="ts-mini-stat">
+          <p className="text-ts-muted">월 예상 수익</p>
+          <p className="font-bold">{formatKrw(brief.profitMonthlyKrw)}</p>
+        </div>
+        <div className="ts-mini-stat">
+          <p className="text-ts-muted">마진</p>
+          <p className="font-bold">{brief.marginPct}%</p>
+        </div>
+        <div className="ts-mini-stat">
+          <p className="text-ts-muted">1천만 목표 기여</p>
+          <p className="font-bold">{brief.goalSharePct}%</p>
+        </div>
+      </div>
+
+      <p className="mt-2 text-[11px] text-violet-800/70">
+        보수 {formatKrw(brief.profitConservativeKrw)} ~ 낙관 {formatKrw(brief.profitOptimisticKrw)} /월
+      </p>
+
+      <div className="mt-3">
+        <p className="text-xs font-bold text-violet-900">왜 이 상품인가요?</p>
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-violet-950/90">
+          {brief.whyReasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      </div>
+
+      {brief.appliedTactics.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {brief.appliedTactics.map((t) => (
+            <span
+              key={t}
+              className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-violet-800 ring-1 ring-violet-200"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {brief.gateHighlights.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {brief.gateHighlights.map((g) => (
+            <span
+              key={g.label}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                g.passed ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+              }`}
+              title={g.detail}
+            >
+              {g.passed ? "✓" : "✗"} {g.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {brief.jarvisBrief && (
+        <p className="mt-2 text-[11px] text-violet-800/80">{brief.jarvisBrief}</p>
+      )}
+    </div>
+  );
+}
+
 export function JarvisListingDraftCard({
   draft,
   onUpdate,
@@ -34,7 +113,7 @@ export function JarvisListingDraftCard({
   onUpdate: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const [message, setMessage] = useState("");
 
   async function act(path: string, body?: object) {
@@ -57,9 +136,13 @@ export function JarvisListingDraftCard({
     }
   }
 
-  const canApprove = draft.status === "pending_review" || draft.status === "draft";
-  const canPublish = draft.status === "approved";
+  const canExecuteFull =
+    draft.status === "draft" ||
+    draft.status === "pending_review" ||
+    draft.status === "approved" ||
+    (draft.status === "failed" && !draft.executedAt);
   const canReject = !["published", "rejected", "publishing"].includes(draft.status);
+  const executed = Boolean(draft.executedAt);
 
   return (
     <article className="ts-card">
@@ -67,11 +150,19 @@ export function JarvisListingDraftCard({
         <div>
           <p className="text-xs font-bold text-ts-primary">{draft.keyword}</p>
           <h3 className="mt-1 font-bold text-ts-ink">{draft.listingPayload.name}</h3>
+          <p className="mt-0.5 text-[11px] text-ts-muted">
+            {draft.pickMode === "consignment" ? "위탁" : "수입"} · {detailSourceLabel(draft.detailPage.source)}
+            {draft.detailPage.imageUrls?.length
+              ? ` · ${draft.detailPage.imageUrls.length}장`
+              : ""}
+          </p>
         </div>
         <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusClass(draft.status)}`}>
           {STATUS_LABEL[draft.status]}
         </span>
       </div>
+
+      {draft.pickBrief && <PickBriefPanel brief={draft.pickBrief} />}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs">
         <div className="ts-mini-stat">
@@ -84,16 +175,38 @@ export function JarvisListingDraftCard({
         </div>
         <div className="ts-mini-stat">
           <p className="text-ts-muted">상세</p>
-          <p className="font-bold">
-            {draft.detailPage.source === "jarvis_ai" ? "AI 생성" : draft.detailPage.source}
-          </p>
+          <p className="font-bold">{detailSourceLabel(draft.detailPage.source)}</p>
         </div>
       </div>
 
-      {draft.detailPage.matchcutNote && (
+      {draft.detailPage.matchcutNote && !draft.detailPage.matchcutReady && (
         <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] text-ts-muted">
-          Matchcut: {draft.detailPage.matchcutNote}
+          {draft.detailPage.matchcutNote}
         </p>
+      )}
+
+      {draft.consignmentOrder && (
+        <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+          <p className="font-bold">
+            발주{" "}
+            {draft.consignmentOrder.status === "ordered"
+              ? "기록 완료"
+              : draft.consignmentOrder.status === "skipped"
+                ? "수동(수입)"
+                : draft.consignmentOrder.status}
+          </p>
+          {draft.consignmentOrder.orderNote && <p className="mt-0.5">{draft.consignmentOrder.orderNote}</p>}
+          {draft.consignmentOrder.supplierUrl && (
+            <a
+              href={draft.consignmentOrder.supplierUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block font-semibold underline"
+            >
+              공급처 발주 →
+            </a>
+          )}
+        </div>
       )}
 
       <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-ts-muted">
@@ -121,24 +234,24 @@ export function JarvisListingDraftCard({
         >
           {showPreview ? "미리보기 닫기" : "상세 미리보기"}
         </button>
-        {canApprove && (
+        {canExecuteFull && !executed && (
           <button
             type="button"
             disabled={busy}
-            onClick={() => void act(`/api/toss-shop/listings/${draft.id}/approve`)}
+            onClick={() => void act(`/api/toss-shop/listings/${draft.id}/execute`, {})}
             className="ts-btn-primary text-xs"
           >
-            OK · Jarvis 실행 승인
+            OK · Jarvis 전체 실행
           </button>
         )}
-        {canPublish && (
+        {draft.status === "approved" && !executed && (
           <button
             type="button"
             disabled={busy}
             onClick={() => void act(`/api/toss-shop/listings/${draft.id}/publish`, {})}
-            className="ts-btn-primary text-xs"
+            className="ts-btn-secondary text-xs"
           >
-            토스 등록
+            토스만 등록
           </button>
         )}
         {canReject && (
@@ -155,10 +268,10 @@ export function JarvisListingDraftCard({
 
       {message && <p className="mt-2 text-xs text-ts-muted">{message}</p>}
 
-      {showPreview && (
+      {showPreview && draft.detailPage.html && (
         <iframe
           title="detail preview"
-          className="mt-3 h-96 w-full rounded-xl border border-ts-border bg-white"
+          className="mt-3 h-[480px] w-full rounded-xl border border-ts-border bg-white"
           srcDoc={draft.detailPage.html}
           sandbox=""
         />
@@ -182,10 +295,11 @@ export function JarvisListingsPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-violet-50 px-4 py-3 text-sm text-violet-950 ring-1 ring-violet-100">
-        <p className="font-bold">{JARVIS_NAME} 자동 등록 · OK 사인 게이트</p>
+        <p className="font-bold">{JARVIS_NAME} 자동 등록 · Hookable 상세 · OK 게이트</p>
         <p className="mt-1 text-violet-900/80">
-          소싱 → AI 상세페이지 → 등록 초안 → <strong>사용자 OK</strong> → 토스 등록.
-          Matchcut 상세는 나중에 연결 (현재 Jarvis AI 상세 사용).
+          소싱 → 공급처 사진 자동 수집 → <strong>Hookable-class 상세</strong> → 예상 수익·이유 미리보기 →{" "}
+          <strong>OK · Jarvis 전체 실행</strong> → 토스 등록 + 위탁 발주.
+          수입은 발주 수동.
         </p>
       </div>
 
@@ -244,7 +358,7 @@ export function JarvisPrepareListingButton({
       </button>
       {done && (
         <Link href={SP_ROUTES.listings} className="text-xs font-semibold text-ts-primary underline">
-          등록함에서 OK →
+          등록함에서 미리보기 →
         </Link>
       )}
     </div>

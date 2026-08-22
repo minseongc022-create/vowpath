@@ -223,6 +223,48 @@ export type JarvisDetailPageBundle = {
   searchKeywords: string[];
   matchcutReady: boolean;
   matchcutNote?: string;
+  imageUrls?: string[];
+};
+
+export type JarvisPickBrief = {
+  version: string;
+  headline: string;
+  whyReasons: string[];
+  appliedTactics: string[];
+  profitDailyKrw: number;
+  profitMonthlyKrw: number;
+  profitOptimisticKrw: number;
+  profitConservativeKrw: number;
+  marginPct: number;
+  goalSharePct: number;
+  confidencePct: number;
+  certified: boolean;
+  jarvisBrief?: string;
+  gateHighlights: Array<{ label: string; passed: boolean; detail: string }>;
+  mode: "consignment" | "import";
+  keyword: string;
+  productName: string;
+  recommendedPriceKrw: number;
+};
+
+export type JarvisConsignmentOrderStatus =
+  | "pending"
+  | "ready"
+  | "ordered"
+  | "simulated"
+  | "failed"
+  | "skipped";
+
+export type JarvisConsignmentOrder = {
+  status: JarvisConsignmentOrderStatus;
+  platform?: string;
+  supplierUrl?: string;
+  itemNo?: number;
+  unitPriceKrw?: number;
+  moq?: number;
+  orderNote?: string;
+  autoOrderSupported?: boolean;
+  orderedAt?: string;
 };
 
 export type JarvisListingPayload = {
@@ -249,15 +291,18 @@ export type JarvisListingDraft = {
   jarvisCertified?: boolean;
   detailPage: JarvisDetailPageBundle;
   listingPayload: JarvisListingPayload;
+  pickBrief?: JarvisPickBrief;
   sellerChecklist: string[];
   createdAt: string;
   updatedAt: string;
   approvedAt?: string;
   approvedBy?: string;
   publishedAt?: string;
+  executedAt?: string;
   tossProductId?: number;
   publishError?: string;
   rejectionReason?: string;
+  consignmentOrder?: JarvisConsignmentOrder;
 };
 
 export type CompetitorPriceRef = {
