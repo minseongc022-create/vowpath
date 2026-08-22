@@ -324,6 +324,7 @@ export type SellerAiV6Meta = {
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist: string[];
   marketScanSummary?: string;
+  riskPlaybook?: RiskPlaybookReport;
 };
 
 export type TossPolicyBrief = {
@@ -332,6 +333,51 @@ export type TossPolicyBrief = {
   representativeItemCriteria: string[];
   sellerObligations: string[];
   penaltyAvoidance: string[];
+};
+
+export type RiskCategory =
+  | "catalog"
+  | "shipping"
+  | "penalty"
+  | "prohibited"
+  | "pricing"
+  | "coupon"
+  | "disclosure"
+  | "certification"
+  | "cs_returns"
+  | "listing"
+  | "commercial"
+  | "import";
+
+export type MarketplaceRisk = {
+  category: RiskCategory;
+  level: "info" | "warn" | "block" | "critical";
+  code: string;
+  title: string;
+  message: string;
+  penaltyPoints?: number;
+  mitigation: string[];
+};
+
+export type PenaltyTierBrief = {
+  windowDays: number;
+  suspendThreshold: number;
+  permanentAfterSuspensions: number;
+  topViolations: { label: string; points: number }[];
+};
+
+export type RiskPlaybookReport = {
+  engineVersion: string;
+  overallSafetyScore: number;
+  criticalCount: number;
+  warnCount: number;
+  blockCount: number;
+  penaltyExposurePoints: number;
+  risks: MarketplaceRisk[];
+  mandatoryActions: string[];
+  categoryCompliance: string[];
+  playbookBrief: string;
+  penaltyTier?: PenaltyTierBrief;
 };
 
 export type WholesaleListing = {
@@ -451,6 +497,7 @@ export type ConsignmentPick = {
   catalogWin?: CatalogWinAnalysis;
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
+  riskPlaybook?: RiskPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 
@@ -498,6 +545,7 @@ export type ImportPick = {
   catalogWin?: CatalogWinAnalysis;
   catalogStrategy?: CatalogStrategyPlan;
   policyChecklist?: string[];
+  riskPlaybook?: RiskPlaybookReport;
   v6?: SellerAiV6Meta;
 };
 

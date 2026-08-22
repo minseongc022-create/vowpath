@@ -147,6 +147,7 @@ export function ConsignmentPanel() {
                 catalogWin={p.catalogWin}
                 catalogStrategy={p.catalogStrategy ?? p.catalogWin?.catalogStrategy}
                 policyChecklist={p.policyChecklist}
+                riskPlaybook={p.riskPlaybook ?? p.v6?.riskPlaybook}
                 marketScanSummary={p.v6?.marketScanSummary}
               />
             </article>

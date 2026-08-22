@@ -265,6 +265,7 @@ export async function generateConsignmentPicks(
         monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
         goalKrw: getMonthlyGoalKrw(),
         freeShippingRecommended: pick.recommendedPriceKrw >= 15000,
+        mode: "consignment",
       });
       return {
         ...pick,
@@ -276,9 +277,11 @@ export async function generateConsignmentPicks(
         catalogWin: v6.catalogWin,
         catalogStrategy: v6.catalogStrategy,
         policyChecklist: v6.policyChecklist,
+        riskPlaybook: v6.riskPlaybook,
         actionSteps: [
           ...(v6.catalogStrategy?.actionSteps ?? []),
-          ...(pick.actionSteps ?? []).slice(0, 2),
+          ...(v6.riskPlaybook?.mandatoryActions.slice(0, 3) ?? []),
+          ...(pick.actionSteps ?? []).slice(0, 1),
         ],
         v6: {
           engineVersion: POLICY_ENGINE_VERSION,
@@ -287,17 +290,24 @@ export async function generateConsignmentPicks(
           catalogStrategy: v6.catalogStrategy,
           policyChecklist: v6.policyChecklist,
           marketScanSummary: v6.marketScanSummary,
+          riskPlaybook: v6.riskPlaybook,
         },
         confidenceScore: v6.v6MasterScore,
         aiSummary:
           pick.aiSummary +
           ` ${v6.catalogStrategy?.rationale ?? ""}` +
+          ` ${v6.riskPlaybook?.playbookBrief ?? ""}` +
           (c
             ? ` 월 ${getMonthlyGoalKrw().toLocaleString()}원 목표 기여 ${c.goalSharePct}% · v6 ${v6.v6MasterScore}.`
             : ""),
       };
     })
-    .sort((a, b) => (b.v6MasterScore ?? 0) - (a.v6MasterScore ?? 0))
+    .sort((a, b) => {
+      const blockA = (a.riskPlaybook?.criticalCount ?? 0) + (a.riskPlaybook?.blockCount ?? 0);
+      const blockB = (b.riskPlaybook?.criticalCount ?? 0) + (b.riskPlaybook?.blockCount ?? 0);
+      if (blockA !== blockB) return blockA - blockB;
+      return (b.v6MasterScore ?? 0) - (a.v6MasterScore ?? 0);
+    })
     .slice(0, CONSIGNMENT_DAILY_PICKS);
 }
 

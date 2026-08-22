@@ -26,7 +26,7 @@ const CATEGORY_CLUSTER: Record<TossShopCategory, string[]> = {
   health: ["영양", "프로틴", "면역", "건강식품"],
 };
 
-export const SELLER_AI_ENGINE_VERSION = "v6";
+export const SELLER_AI_ENGINE_VERSION = "v6.2";
 
 /** Category seasonality multiplier by calendar month (1–12). */
 const SEASONALITY: Record<TossShopCategory, number[]> = {

@@ -9,6 +9,7 @@ import {
 import { buildPortfolioBrief, SELLER_AI_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/revenue-engine";
 import { buildTenMillionPlan } from "@/toss-shop/lib/seller-engine/goal-engine";
 import { TOSS_POLICY_BRIEF, POLICY_ENGINE_VERSION } from "@/toss-shop/lib/seller-engine/policy-engine";
+import { RISK_PLAYBOOK_VERSION } from "@/toss-shop/lib/seller-engine/risk-playbook";
 
 function estimateActualMonthlyFromSettlements(
   rows: { grossKrw: number; orderDate: string }[],
@@ -85,21 +86,40 @@ export async function GET(request: Request) {
         )
       : 0;
 
+  const allRiskReports = [
+    ...consignment.map((p) => p.riskPlaybook ?? p.v6?.riskPlaybook),
+    ...importPicks.map((p) => p.riskPlaybook ?? p.v6?.riskPlaybook),
+  ].filter(Boolean);
+
+  const policyHealth =
+    allRiskReports.length > 0
+      ? {
+          avgSafetyScore: Math.round(
+            allRiskReports.reduce((s, r) => s + (r!.overallSafetyScore ?? 0), 0) / allRiskReports.length,
+          ),
+          totalRisks: allRiskReports.reduce((s, r) => s + (r!.risks?.length ?? 0), 0),
+          criticalCount: allRiskReports.reduce((s, r) => s + (r!.criticalCount ?? 0), 0),
+          blockCount: allRiskReports.reduce((s, r) => s + (r!.blockCount ?? 0), 0),
+        }
+      : undefined;
+
   return NextResponse.json({
     engineVersion: SELLER_AI_ENGINE_VERSION,
     policyEngineVersion: POLICY_ENGINE_VERSION,
+    riskPlaybookVersion: RISK_PLAYBOOK_VERSION,
     tossPolicyBrief: TOSS_POLICY_BRIEF,
     policySummary: {
       catalogModel: TOSS_POLICY_BRIEF.catalogModel,
       avgRepresentativeItemScore: avgRepItemScore,
       topRepItemKeyword: topPicks[0]?.keyword ?? "",
     },
+    policyHealth,
     portfolio,
     tenMillionPlan,
     topPicks,
     consignmentCount: consignment.length,
     importCount: importPicks.length,
     message:
-      "AI v6 — 월 1,000만 원 목표 · 토스 카탈로그·대표아이템 · 도매·해외 소싱 · v6Master 점수",
+      "AI v6.2 — 월 1천만 목표 · Item Winner/회피 · 종합 리스크 플레이북 · v6Master",
   });
 }
