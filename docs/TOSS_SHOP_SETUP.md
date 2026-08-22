@@ -64,6 +64,22 @@ Webhook: `https://effiroad.com/api/lemon-squeezy/webhook`
 `GET https://effiroad.com/api/cron/toss-shop-sync`  
 Header: `Authorization: Bearer $CRON_SECRET`
 
+60초 sync에 **Jarvis Autopilot** 포함: 인증 SKU 초안 생성, 토스 주문 감지, 도매매 발주 준비.
+
+## Jarvis Autopilot (v3)
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `JARVIS_AUTOPILOT_ENABLED` | `true` (vercel.json) | 60초 cron에서 autopilot 실행 |
+| `JARVIS_AUTO_EXECUTE` | unset | `true` = OK 없이 자동 등록 (비권장) |
+| `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
+| `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
+| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 |
+
+Health check: `GET /api/toss-shop/jarvis/health`  
+Autopilot: `GET/POST /api/toss-shop/jarvis/autopilot`  
+발주함: `GET /api/toss-shop/fulfillment`
+
 ## 스크립트
 
 ```bash
