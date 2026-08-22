@@ -71,7 +71,7 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `JARVIS_AUTOPILOT_ENABLED` | `true` (vercel.json) | 60초 cron에서 autopilot 실행 |
-| `JARVIS_AUTO_EXECUTE` | unset | `true` = OK 없이 자동 등록 (비권장) |
+| `JARVIS_AUTO_EXECUTE` | unset | `true` = cron에서 93% 인증 초안 자동 execute (OK 생략) |
 | `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
 | `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
 | `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 |

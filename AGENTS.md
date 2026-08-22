@@ -6,7 +6,8 @@ Instructions for AI coding assistants working in this repo.
 
 | Topic | File |
 |-------|------|
-| **Jarvis / Toss Shop — Claude handoff** | **[docs/JARVIS_CLAUDE_HANDOFF.md](./docs/JARVIS_CLAUDE_HANDOFF.md)** ← full architecture & TODO |
+| **Jarvis — Claude copy-paste** | **[docs/CLAUDE_COPY_PASTE.md](./docs/CLAUDE_COPY_PASTE.md)** ← new agent first message |
+| **Jarvis / Toss Shop — full handoff** | **[docs/JARVIS_CLAUDE_HANDOFF.md](./docs/JARVIS_CLAUDE_HANDOFF.md)** |
 | **Cron, polling, “how often does X run?”** | **[CRON.md](./CRON.md)** ← always read before answering |
 | **Toss Shop / Effiroad seller** | **[docs/TOSS_SHOP_SETUP.md](./docs/TOSS_SHOP_SETUP.md)** |
 | Deploy & env | [DEPLOY.md](./DEPLOY.md) |
