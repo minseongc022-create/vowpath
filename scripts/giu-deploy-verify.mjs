@@ -69,21 +69,36 @@ async function checkCss() {
 }
 
 async function checkJs() {
-  const chunkChecks = ["마감 된", "픽업 대기", "로그아웃"];
+  const chunkChecks = ["픽업 대기", "로그아웃", "픽업 마감"];
   const { text: hopHtml } = await fetchText(`${base}/hop`);
-  const chunkPaths = [...hopHtml.matchAll(/\/_next\/static\/chunks\/6931-[a-z0-9]+\.js/g)].map(
-    (m) => m[0],
-  );
-  const chunkPath = chunkPaths[0];
-  if (!chunkPath) {
-    console.log("✗ JS markers — 6931 chunk not found on /hop");
+  const chunkPaths = [
+    ...hopHtml.matchAll(/\/_next\/static\/chunks\/[a-zA-Z0-9-]+\.js/g),
+  ].map((m) => m[0]);
+  const uniqueChunks = [...new Set(chunkPaths)];
+
+  if (uniqueChunks.length === 0) {
+    console.log("✗ JS markers — no JS chunks found on /hop");
     return false;
   }
-  const { res, text } = await fetchText(`${base}${chunkPath}`);
-  const found = chunkChecks.filter((m) => text.includes(m));
-  const chunkOk = res.ok && found.length === chunkChecks.length;
+
+  const foundSet = new Set();
+  for (const chunkPath of uniqueChunks.slice(0, 40)) {
+    try {
+      const { res, text } = await fetchText(`${base}${chunkPath}`);
+      if (!res.ok) continue;
+      for (const marker of chunkChecks) {
+        if (text.includes(marker)) foundSet.add(marker);
+      }
+      if (foundSet.size === chunkChecks.length) break;
+    } catch {
+      // try next chunk
+    }
+  }
+
+  const found = chunkChecks.filter((m) => foundSet.has(m));
+  const chunkOk = found.length === chunkChecks.length;
   console.log(
-    `${chunkOk ? "✓" : "✗"} JS markers (${found.length}/${chunkChecks.length}) on ${chunkPath}`,
+    `${chunkOk ? "✓" : "✗"} JS markers (${found.length}/${chunkChecks.length}) across ${uniqueChunks.length} chunks`,
   );
   return chunkOk;
 }
