@@ -153,3 +153,41 @@ export async function tossApiPost<T>(
 
   return (await res.json()) as TossApiEnvelope<T>;
 }
+
+export async function tossApiPut<T>(
+  merchantId: string,
+  config: TossApiConfig,
+  path: string,
+  body: unknown,
+  query?: Record<string, string | number | undefined>,
+): Promise<TossApiEnvelope<T>> {
+  const token = await getAccessToken(merchantId, config);
+  const base = config.sandbox
+    ? "https://shopping-fep-alpha.toss.im"
+    : "https://shopping-fep.toss.im";
+  const url = new URL(path, base);
+  url.searchParams.set("partnerName", config.partnerName);
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
+    }
+  }
+
+  const res = await fetch(url.toString(), {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`TOSS_API_HTTP_${res.status}:${path}:${text.slice(0, 200)}`);
+  }
+
+  return (await res.json()) as TossApiEnvelope<T>;
+}
