@@ -96,9 +96,17 @@ Autopilot: `GET/POST /api/toss-shop/jarvis/autopilot`
 ## 스크립트
 
 ```bash
+# 로컬 env 체크리스트
+node scripts/jarvis-setup-checklist.mjs
+
 # Vercel runtime secrets push (토큰 있을 때)
 VERCEL_TOKEN=... VERCEL_PROJECT_ID=... node scripts/toss-shop-production-env.mjs
+
+# 배포 검증
+node scripts/effiroad-deploy-verify.mjs
 ```
+
+Claude 인수인계 전체: **[docs/JARVIS_CLAUDE_HANDOFF.md](./JARVIS_CLAUDE_HANDOFF.md)**
 
 ## 플랜
 
