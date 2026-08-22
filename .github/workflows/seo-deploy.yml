@@ -74,3 +74,6 @@ jobs:
             sleep 45
           done
           exit 1
+
+      - name: Verify Effiroad (effiroad.com) production
+        run: node scripts/effiroad-deploy-verify.mjs
