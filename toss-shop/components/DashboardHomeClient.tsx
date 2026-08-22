@@ -24,6 +24,7 @@ import {
   PenaltyTierList,
   TossPolicyBriefPanel,
 } from "@/toss-shop/components/PolicyPlaybookCard";
+import { JarvisCommandCenter } from "@/toss-shop/components/JarvisCommandCenter";
 import type { TenMillionPlan } from "@/toss-shop/lib/types";
 
 type BillingInfo = {
@@ -133,6 +134,10 @@ export function DashboardHomeClient() {
           )
         </div>
       )}
+
+      <div className="mt-5">
+        <JarvisCommandCenter />
+      </div>
 
       <div className="mt-5">
         <KeywordSearchBar />

@@ -27,6 +27,8 @@ import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
 import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
 import { executeConsignmentOrder } from "./seller-engine/consignment-order";
+import { runJarvisAutopilotCycle, enrichDraftWithAutopilot } from "./seller-engine/jarvis-autopilot-engine";
+import { runJarvisHealthCheck } from "./seller-engine/jarvis-health-check";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
 import { collectMarketIntelligence } from "./market-collector";
@@ -642,6 +644,7 @@ export async function syncAllMerchants(): Promise<{
   alertsFired: number;
   apiSyncs: number;
   marketKeywords?: number;
+  autopilotRuns?: number;
 }> {
   const store = await loadStore();
   const bucket = minuteKey();
@@ -649,6 +652,7 @@ export async function syncAllMerchants(): Promise<{
   let keywordUpdates = 0;
   let alertsFired = 0;
   let apiSyncs = 0;
+  let autopilotRuns = 0;
 
   for (const merchant of store.merchants) {
     if (!isApiConfigured(merchant)) continue;
@@ -759,8 +763,38 @@ export async function syncAllMerchants(): Promise<{
   store.marketCollectedAt = market.collectedAt;
   store.marketProductCount = market.productCount;
 
+  for (const merchant of store.merchants) {
+    const data = merchantData(store, merchant.id);
+    const account = store.accounts.find((a) => a.merchantId === merchant.id);
+    const config = await resolveApiConfig(merchant.id, {
+      accessKey: merchant.apiAccessKey,
+      secretKey: merchant.apiSecretKey,
+      sandbox: merchant.apiSandbox,
+    });
+    try {
+      const report = await runJarvisAutopilotCycle({
+        merchantId: merchant.id,
+        accountEmail: account?.email ?? "",
+        data,
+        catalog: store.catalog,
+        config,
+      });
+      data.lastAutopilotReport = report;
+      autopilotRuns++;
+    } catch (e) {
+      console.warn("[jarvis-autopilot]", merchant.id, e);
+    }
+  }
+
   await saveStore(store);
-  return { priceUpdates, keywordUpdates, alertsFired, apiSyncs, marketKeywords: Object.keys(market.marketKeywords).length };
+  return {
+    priceUpdates,
+    keywordUpdates,
+    alertsFired,
+    apiSyncs,
+    marketKeywords: Object.keys(market.marketKeywords).length,
+    autopilotRuns,
+  };
 }
 
 // ── Billing usage ──
@@ -972,9 +1006,10 @@ export async function createListingDraftFromPick(input: {
     draftId: newId("jl"),
   });
 
-  listingDrafts(data).unshift(draft);
+  const enriched = enrichDraftWithAutopilot(draft, pick, store.catalog);
+  listingDrafts(data).unshift(enriched);
   await saveStore(store);
-  return draft;
+  return enriched;
 }
 
 async function updateListingDraft(
@@ -1127,4 +1162,93 @@ export async function executeJarvisListing(input: {
     executedAt: new Date().toISOString(),
     consignmentOrder,
   });
+}
+
+export async function runAutopilotForMerchant(merchantId: string): Promise<import("./types").JarvisAutopilotReport> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  if (!merchant) throw new Error("MERCHANT_NOT_FOUND");
+  const data = merchantData(store, merchantId);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const config = await resolveApiConfig(merchantId, {
+    accessKey: merchant.apiAccessKey,
+    secretKey: merchant.apiSecretKey,
+    sandbox: merchant.apiSandbox,
+  });
+  const report = await runJarvisAutopilotCycle({
+    merchantId,
+    accountEmail: account?.email ?? "",
+    data,
+    catalog: store.catalog,
+    config,
+  });
+  data.lastAutopilotReport = report;
+  await saveStore(store);
+  return report;
+}
+
+export async function getJarvisHealthForMerchant(merchantId: string): Promise<import("./types").JarvisHealthReport> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const data = merchantData(store, merchantId);
+  return runJarvisHealthCheck({
+    merchant,
+    hasOpenAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
+    listingDraftCount: data.listingDrafts?.length ?? 0,
+    fulfillmentJobCount: data.fulfillmentJobs?.length ?? 0,
+  });
+}
+
+export async function getJarvisAutopilotForMerchant(merchantId: string) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  return data.lastAutopilotReport ?? null;
+}
+
+export async function listFulfillmentJobs(merchantId: string) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  return data.fulfillmentJobs ?? [];
+}
+
+export async function confirmFulfillmentTracking(input: {
+  merchantId: string;
+  jobId: string;
+  trackingNumber: string;
+  deliveryCompany?: string;
+}) {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === input.merchantId);
+  const data = merchantData(store, input.merchantId);
+  const jobs = data.fulfillmentJobs ?? [];
+  const idx = jobs.findIndex((j) => j.id === input.jobId);
+  if (idx < 0) throw new Error("JOB_NOT_FOUND");
+
+  const { applyTrackingFromSupplier } = await import("./seller-engine/fulfillment-engine");
+  jobs[idx] = applyTrackingFromSupplier(
+    jobs[idx],
+    input.trackingNumber,
+    input.deliveryCompany ?? "CJ대한통운",
+  );
+
+  const config = await resolveApiConfig(input.merchantId, {
+    accessKey: merchant?.apiAccessKey,
+    secretKey: merchant?.apiSecretKey,
+    sandbox: merchant?.apiSandbox,
+  });
+
+  if (config && jobs[idx].pendingTrackingNumber) {
+    const { registerOrderTracking } = await import("./api/orders");
+    await registerOrderTracking(input.merchantId, config, {
+      orderProductId: jobs[idx].orderProductId,
+      deliveryCompany: jobs[idx].pendingDeliveryCompany ?? "CJ대한통운",
+      trackingNumber: jobs[idx].pendingTrackingNumber,
+    });
+    jobs[idx].status = "tracking_registered";
+    jobs[idx].trackingRegisteredAt = new Date().toISOString();
+  }
+
+  data.fulfillmentJobs = jobs;
+  await saveStore(store);
+  return jobs[idx];
 }

@@ -202,6 +202,10 @@ export type MerchantData = {
   importDate?: string;
   /** Jarvis listing drafts awaiting user OK before publish. */
   listingDrafts?: JarvisListingDraft[];
+  /** Autopilot fulfillment queue — Toss order → wholesale → tracking */
+  fulfillmentJobs?: JarvisFulfillmentJob[];
+  /** Last Jarvis autopilot cycle report */
+  lastAutopilotReport?: JarvisAutopilotReport;
 };
 
 export type JarvisListingStatus =
@@ -267,6 +271,119 @@ export type JarvisConsignmentOrder = {
   orderedAt?: string;
 };
 
+export type JarvisAdCampaignPlan = {
+  engineVersion: string;
+  keyword: string;
+  primaryKeywords: string[];
+  longTailKeywords: string[];
+  dailyBudgetKrw: number;
+  estimatedCpcKrw: number;
+  estimatedDailyClicks: number;
+  rankTargetScore: number;
+  pageOneGoal: string;
+  itemWinnerAvoidance: boolean;
+  tactics: string[];
+  brief: string;
+  autoExecuteReady: boolean;
+};
+
+export type JarvisWholesaleComposition = {
+  engineVersion: string;
+  platform: string;
+  title: string;
+  unitPriceKrw: number;
+  moq: number;
+  compositionTags: string[];
+  differentiationSuffix?: string;
+  recommendedTitle: string;
+  catalogMode: "win_representative" | "avoid_catalog";
+  isolationScore: number;
+  itemWinnerRisk: "low" | "medium" | "high";
+  risks: Array<{ code: string; level: string; message: string; mitigation: string }>;
+  brief: string;
+  listingReady: boolean;
+};
+
+export type JarvisFulfillmentStatus =
+  | "detected"
+  | "toss_preparing"
+  | "wholesale_ready"
+  | "wholesale_ordered"
+  | "tracking_registered"
+  | "cancelled";
+
+export type JarvisFulfillmentJob = {
+  id: string;
+  merchantId: string;
+  orderId: number;
+  orderProductId: number;
+  productName: string;
+  status: JarvisFulfillmentStatus;
+  tossOrderStatus?: string;
+  customer: { name: string; phone: string; address: string; zipCode: string };
+  quantity: number;
+  wholesalePlatform?: string;
+  supplierUrl?: string;
+  itemNo?: number;
+  domemeOrderNote?: string;
+  pendingTrackingNumber?: string;
+  pendingDeliveryCompany?: string;
+  trackingNumber?: string;
+  deliveryCompany?: string;
+  wholesalePreparedAt?: string;
+  wholesaleOrderedAt?: string;
+  trackingRegisteredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type JarvisAutopilotReport = {
+  engineVersion: string;
+  ranAt: string;
+  enabled: boolean;
+  autoExecute: boolean;
+  actions: string[];
+  errors: string[];
+  stats: {
+    certifiedSkus: number;
+    draftsCreated: number;
+    draftsExecuted: number;
+    pendingReview: number;
+    published: number;
+    fulfillmentActive: number;
+    fulfillmentNew: number;
+  };
+  brief: string;
+  nextSteps: string[];
+};
+
+export type JarvisHealthCheckCategory =
+  | "intelligence"
+  | "listing"
+  | "sourcing"
+  | "ads"
+  | "fulfillment"
+  | "autopilot";
+
+export type JarvisHealthReport = {
+  engineVersion: string;
+  checkedAt: string;
+  score: number;
+  passed: number;
+  total: number;
+  readyForProduction: boolean;
+  checks: Array<{
+    id: string;
+    label: string;
+    category: JarvisHealthCheckCategory;
+    passed: boolean;
+    detail: string;
+  }>;
+  failedIds: string[];
+  summary: string;
+  chatPromises: Array<{ topic: string; status: "ok" | "partial" | "needs_api" }>;
+};
+
 export type JarvisListingPayload = {
   name: string;
   brandName: string;
@@ -303,6 +420,8 @@ export type JarvisListingDraft = {
   publishError?: string;
   rejectionReason?: string;
   consignmentOrder?: JarvisConsignmentOrder;
+  adCampaign?: JarvisAdCampaignPlan;
+  wholesaleComposition?: JarvisWholesaleComposition;
 };
 
 export type CompetitorPriceRef = {

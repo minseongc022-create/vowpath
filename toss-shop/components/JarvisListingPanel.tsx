@@ -179,6 +179,30 @@ export function JarvisListingDraftCard({
         </div>
       </div>
 
+      {draft.wholesaleComposition && (
+        <div className="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-950">
+          <p className="font-bold">
+            구성 분석 · Item Winner {draft.wholesaleComposition.itemWinnerRisk} ·{" "}
+            {draft.wholesaleComposition.catalogMode === "avoid_catalog" ? "카탈로그 분리" : "대표아이템"}
+          </p>
+          <p className="mt-0.5">{draft.wholesaleComposition.brief}</p>
+        </div>
+      )}
+
+      {draft.adCampaign && (
+        <div className="mt-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-950">
+          <p className="font-bold">
+            광고 설계 · 일 {formatKrw(draft.adCampaign.dailyBudgetKrw)} · 목표 {draft.adCampaign.rankTargetScore}점
+          </p>
+          <p className="mt-0.5">{draft.adCampaign.pageOneGoal}</p>
+          <ul className="mt-1 list-disc pl-4 text-[11px]">
+            {draft.adCampaign.tactics.slice(0, 2).map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {draft.detailPage.matchcutNote && !draft.detailPage.matchcutReady && (
         <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] text-ts-muted">
           {draft.detailPage.matchcutNote}
