@@ -8,6 +8,7 @@ on:
       - "scripts/jarvis-infra-bootstrap.mjs"
       - "scripts/cron-job-org-setup.mjs"
       - "scripts/toss-shop-production-env.mjs"
+      - "scripts/lib/vercel-infra.mjs"
       - "config/cron.schedule.json"
       - ".github/workflows/jarvis-infra-bootstrap.yml"
 
