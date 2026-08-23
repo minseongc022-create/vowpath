@@ -94,6 +94,14 @@ function productionEnv(envs, key) {
   );
 }
 
+async function fetchEnvValue(projectId, envRow) {
+  if (envRow?.value?.trim()) return envRow.value.trim();
+  if (!envRow?.id) return undefined;
+  const detail = await vercelApi(`/v10/projects/${projectId}/env/${envRow.id}`);
+  const value = detail?.value?.trim();
+  return value || undefined;
+}
+
 export async function resolveCronSecret(projectId) {
   const existing = process.env.CRON_SECRET?.trim();
   if (existing) return existing;
@@ -102,11 +110,18 @@ export async function resolveCronSecret(projectId) {
 
   const envs = await listProjectEnv(projectId);
   const row = productionEnv(envs, "CRON_SECRET");
-  if (row?.value?.trim()) {
-    const value = row.value.trim();
-    console.log("✓ CRON_SECRET loaded from Vercel Production");
-    process.env.CRON_SECRET = value;
-    return value;
+
+  if (row) {
+    const value = await fetchEnvValue(projectId, row);
+    if (value) {
+      console.log("✓ CRON_SECRET loaded from Vercel Production");
+      process.env.CRON_SECRET = value;
+      return value;
+    }
+    console.log(
+      "○ CRON_SECRET exists on Vercel but token cannot decrypt — add CRON_SECRET to GitHub secrets once",
+    );
+    return undefined;
   }
 
   const generated = randomBytes(32).toString("hex");
