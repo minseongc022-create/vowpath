@@ -28,10 +28,9 @@ const IN_VERCEL_JSON = new Set([
   "JARVIS_AUTOPILOT_ENABLED",
 ]);
 
-/** Optional runtime secrets (push when present in env) */
+/** Optional runtime secrets (push when present in env). CRON_SECRET is managed by jarvis-infra resolve/rotate. */
 const OPTIONAL_KEYS = [
   "AUTH_SECRET",
-  "CRON_SECRET",
   "OPENAI_API_KEY",
   "JARVIS_OPENAI_MODEL",
   "DRAPH_API_URL",
