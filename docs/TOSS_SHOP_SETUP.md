@@ -71,7 +71,9 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `JARVIS_AUTOPILOT_ENABLED` | `true` (vercel.json) | 60초 cron에서 autopilot 실행 |
-| `JARVIS_AUTO_EXECUTE` | unset | `true` = cron에서 93% 인증 초안 자동 execute (OK 생략) |
+| `JARVIS_AUTO_EXECUTE` | unset | `true` = cron에서 93% 인증 초안 자동 execute |
+| `JARVIS_AUTO_EXECUTE_MAX` | `1` | cycle당 자동 execute 최대 건수 (1–5) |
+| `JARVIS_AUTOPILOT_MAX_DRAFTS` | `3` | cycle당 자동 초안 최대 건수 (1–10) |
 | `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
 | `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
 | `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 |
@@ -102,6 +104,27 @@ node scripts/jarvis-setup-checklist.mjs
 # Vercel runtime secrets push (토큰 있을 때)
 VERCEL_TOKEN=... VERCEL_PROJECT_ID=... node scripts/toss-shop-production-env.mjs
 
+# cron-job.org 60초 잡 등록/갱신 (API 키 있을 때)
+CRONJOB_ORG_API_KEY=... CRON_SECRET=... npm run cron:setup
+
+# 전체 인프라 한 번에 (Vercel env + cron + redeploy + verify)
+npm run jarvis:infra
+```
+
+GitHub Actions: **Jarvis infra bootstrap** (`jarvis-infra-bootstrap.yml`) — `main` push 또는 수동 실행.
+
+**GitHub Secrets (최소):**
+
+| Secret | 필수 | Notes |
+|--------|------|-------|
+| `CRONJOB_ORG_API_KEY` | yes | cron-job.org API |
+| `VERCEL_TOKEN` | yes | env push + CRON_SECRET 자동 조회 |
+| `VERCEL_PROJECT_ID` | no | 없으면 API로 vowpath/effiroad 자동 탐색 |
+| `CRON_SECRET` | no | 없으면 Vercel에서 읽거나 **자동 rotate** (UI에서 복사 불가해도 OK) |
+
+`CRON_SECRET`을 GitHub에 따로 넣을 필요 없음 — `VERCEL_TOKEN`만 있으면 bootstrap이 Vercel에서 가져옵니다.
+
+```bash
 # 배포 검증
 node scripts/effiroad-deploy-verify.mjs
 ```

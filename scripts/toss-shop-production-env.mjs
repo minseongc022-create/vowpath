@@ -10,11 +10,12 @@
  * secrets you keep in GitHub / local env (LS keys, Toss API, etc.).
  */
 import { loadEnvLocal } from "./lib/load-env.mjs";
+import { resolveProjectId, vercelToken } from "./lib/vercel-infra.mjs";
 
 loadEnvLocal();
 
-const token = process.env.VERCEL_TOKEN?.trim();
-const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+const token = vercelToken();
+let projectId = process.env.VERCEL_PROJECT_ID?.trim();
 const teamId = process.env.VERCEL_TEAM_ID?.trim();
 
 /** Keys already baked into vercel.json — skip unless override in .env.local */
@@ -27,10 +28,9 @@ const IN_VERCEL_JSON = new Set([
   "JARVIS_AUTOPILOT_ENABLED",
 ]);
 
-/** Optional runtime secrets (push when present in env) */
+/** Optional runtime secrets (push when present in env). CRON_SECRET is managed by jarvis-infra resolve/rotate. */
 const OPTIONAL_KEYS = [
   "AUTH_SECRET",
-  "CRON_SECRET",
   "OPENAI_API_KEY",
   "JARVIS_OPENAI_MODEL",
   "DRAPH_API_URL",
@@ -41,6 +41,8 @@ const OPTIONAL_KEYS = [
   "SELLERBISEO_API_KEY",
   "DOMEGGOOK_API_KEY",
   "JARVIS_AUTO_EXECUTE",
+  "JARVIS_AUTO_EXECUTE_MAX",
+  "JARVIS_AUTOPILOT_MAX_DRAFTS",
   "JARVIS_MATCHCUT_ENABLED",
   "TOSS_SHOP_DEFAULT_CATEGORY_ID",
   "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID",
@@ -70,7 +72,24 @@ async function vercelApi(path, method, body) {
   return json;
 }
 
+async function listProjectEnv() {
+  const json = await vercelApi(`/v10/projects/${projectId}/env`);
+  return json.envs ?? [];
+}
+
 async function upsertEnv(key, value, target = ["production"]) {
+  const existing = (await listProjectEnv()).find(
+    (e) => e.key === key && (e.target ?? []).some((t) => target.includes(t)),
+  );
+  if (existing) {
+    await vercelApi(`/v10/projects/${projectId}/env/${existing.id}`, "PATCH", {
+      value,
+      type: "encrypted",
+      target,
+    });
+    console.log(`↻ ${key}`);
+    return;
+  }
   await vercelApi(`/v10/projects/${projectId}/env`, "POST", {
     key,
     value,
@@ -82,7 +101,12 @@ async function upsertEnv(key, value, target = ["production"]) {
 
 async function main() {
   if (!token || !projectId) {
-    console.log("Set VERCEL_TOKEN + VERCEL_PROJECT_ID to push runtime secrets.");
+    if (token) {
+      projectId = await resolveProjectId();
+    }
+  }
+  if (!token || !projectId) {
+    console.log("Set VERCEL_TOKEN (+ optional VERCEL_PROJECT_ID) to push runtime secrets.");
     console.log("Non-secrets are in vercel.json (deployed on next push to main).");
     console.log("\nAlready in vercel.json:");
     for (const k of IN_VERCEL_JSON) console.log(`  - ${k}`);

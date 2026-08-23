@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { JARVIS_NAME } from "@/toss-shop/lib/seller-engine/jarvis-engine";
+import { envFixHintForCheck } from "@/toss-shop/lib/seller-engine/jarvis-config";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import type {
   JarvisAutopilotReport,
@@ -103,6 +104,29 @@ export function JarvisCommandCenter() {
                   </span>
                 ))}
               </div>
+              {health.failedIds.length > 0 && (
+                <div className="mt-3 rounded-xl bg-white/5 p-3 ring-1 ring-amber-400/30">
+                  <p className="text-xs font-bold text-amber-200">설정 필요 ({health.failedIds.length})</p>
+                  <ul className="mt-2 space-y-1.5 text-[11px] text-violet-100/90">
+                    {health.checks
+                      .filter((c) => !c.passed)
+                      .map((c) => (
+                        <li key={c.id}>
+                          <span className="font-semibold text-amber-100">{c.label}</span>
+                          {envFixHintForCheck(c.id) && (
+                            <span className="block text-violet-200/80">→ {envFixHintForCheck(c.id)}</span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                  <Link
+                    href={`${SP_ROUTES.settings}#api`}
+                    className="mt-2 inline-block text-[11px] font-bold text-violet-300 underline"
+                  >
+                    설정 → API 연동
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

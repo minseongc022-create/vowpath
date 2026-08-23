@@ -11,6 +11,7 @@ import type {
   MerchantData,
 } from "../types";
 import { buildAdCampaignPlan } from "./ad-strategy-engine";
+import { getAutopilotMaxDraftsPerCycle } from "./jarvis-config";
 import { filterJarvisCertifiedPicks } from "./jarvis-engine";
 import { buildListingDraftFromPick } from "./listing-automation";
 import { analyzeWholesaleComposition } from "./wholesale-composition-engine";
@@ -24,13 +25,6 @@ export function isAutopilotEnabled(): boolean {
 
 export function isAutoExecuteEnabled(): boolean {
   return process.env.JARVIS_AUTO_EXECUTE === "true";
-}
-
-const DEFAULT_PICKS_PER_CYCLE = 3;
-
-export function autopilotPicksPerCycle(): number {
-  const raw = Number(process.env.JARVIS_AUTOPILOT_PICKS_PER_CYCLE);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_PICKS_PER_CYCLE;
 }
 
 export type AutopilotCycleInput = {
@@ -62,17 +56,17 @@ export async function runJarvisAutopilotCycle(
   );
 
   if (isAutopilotEnabled() && certified.length) {
-    const candidates = (certified as ConsignmentPick[])
-      .filter((pick) => !pendingDraftIds.has(pick.id))
-      .slice(0, autopilotPicksPerCycle());
-
-    for (const pick of candidates) {
+    const maxDrafts = getAutopilotMaxDraftsPerCycle();
+    let createdThisCycle = 0;
+    for (const pick of certified as ConsignmentPick[]) {
+      if (createdThisCycle >= maxDrafts) break;
+      if (pendingDraftIds.has(pick.id)) continue;
       try {
         const draft = await buildListingDraftFromPick({
           merchantId: input.merchantId,
           pick,
           mode: "consignment",
-          draftId: `jl_auto_${Date.now().toString(36)}_${draftsCreated}`,
+          draftId: `jl_auto_${Date.now().toString(36)}_${createdThisCycle}`,
           now,
         });
 
@@ -86,8 +80,10 @@ export async function runJarvisAutopilotCycle(
         draft.adCampaign = buildAdCampaignPlan(pick, "consignment");
 
         listingDrafts.unshift(draft);
+        pendingDraftIds.add(pick.id);
         draftsCreated++;
-        actions.push(`위탁 SKU 「${pick.keyword}」 등록 초안 자동 생성`);
+        createdThisCycle++;
+        actions.push(`위탁 SKU 「${pick.keyword}」 등록 초안 (${createdThisCycle}/${maxDrafts})`);
       } catch (e) {
         errors.push(e instanceof Error ? e.message : "DRAFT_CREATE_FAIL");
       }

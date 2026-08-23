@@ -77,3 +77,13 @@ jobs:
 
       - name: Verify Effiroad (effiroad.com) production
         run: node scripts/effiroad-deploy-verify.mjs
+
+      - name: cron-job.org external crons (60s)
+        env:
+          CRONJOB_ORG_API_KEY: ${{ secrets.CRONJOB_ORG_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          NEXT_PUBLIC_APP_URL: https://effiroad.com
+        run: node scripts/cron-job-org-setup.mjs
