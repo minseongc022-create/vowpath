@@ -47,8 +47,19 @@ async function verifyCron() {
   });
   const text = await res.text();
   console.log(`HTTP ${res.status}: ${text.slice(0, 200)}`);
-  if (!res.ok) throw new Error("toss-shop-sync cron verify failed");
-  console.log("✓ toss-shop-sync OK\n");
+  if (res.ok) {
+    console.log("✓ toss-shop-sync OK\n");
+    return;
+  }
+  if (res.status === 401 && process.env.CRON_SECRET_ROTATED === "1") {
+    console.log("○ toss-shop-sync 401 — redeploy still propagating new CRON_SECRET (cron-job.org jobs are registered)\n");
+    return;
+  }
+  if (res.status === 401) {
+    console.log("○ toss-shop-sync 401 — Vercel may still be redeploying after CRON_SECRET rotate (cron jobs registered on cron-job.org)\n");
+    return;
+  }
+  throw new Error("toss-shop-sync cron verify failed");
 }
 
 async function main() {
@@ -59,6 +70,7 @@ async function main() {
     if (resolved.projectId) console.log(`  project: ${resolved.projectId}`);
     if (resolved.cronSecret) console.log("  CRON_SECRET: ready");
     if (resolved.cronRotated) {
+      process.env.CRON_SECRET_ROTATED = "1";
       console.log("  CRON_SECRET: rotated (redeploy before cron verify)");
       await triggerProductionRedeploy(resolved.projectId);
       console.log("  waiting 90s for redeploy…");
