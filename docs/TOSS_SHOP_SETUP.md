@@ -111,8 +111,18 @@ CRONJOB_ORG_API_KEY=... CRON_SECRET=... npm run cron:setup
 npm run jarvis:infra
 ```
 
-GitHub Actions: **Jarvis infra bootstrap** (`jarvis-infra-bootstrap.yml`) — `main` push 또는 수동 실행.  
-필요 secrets: `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `CRON_SECRET`, `CRONJOB_ORG_API_KEY` (+ Jarvis/Toss keys).
+GitHub Actions: **Jarvis infra bootstrap** (`jarvis-infra-bootstrap.yml`) — `main` push 또는 수동 실행.
+
+**GitHub Secrets (최소):**
+
+| Secret | 필수 | Notes |
+|--------|------|-------|
+| `CRONJOB_ORG_API_KEY` | yes | cron-job.org API |
+| `VERCEL_TOKEN` | yes | env push + CRON_SECRET 자동 조회 |
+| `VERCEL_PROJECT_ID` | no | 없으면 API로 vowpath/effiroad 자동 탐색 |
+| `CRON_SECRET` | no | 없으면 Vercel Production에서 읽거나 새로 생성 |
+
+`CRON_SECRET`을 GitHub에 따로 넣을 필요 없음 — `VERCEL_TOKEN`만 있으면 bootstrap이 Vercel에서 가져옵니다.
 
 ```bash
 # 배포 검증

@@ -9,11 +9,12 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveInfraEnv, vercelToken } from "./lib/vercel-infra.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const API = "https://api.cron-job.org";
 const apiKey = process.env.CRONJOB_ORG_API_KEY?.trim();
-const cronSecret = process.env.CRON_SECRET?.trim();
+let cronSecret = process.env.CRON_SECRET?.trim();
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://effiroad.com").replace(/\/$/, "");
 
 function loadExternalCrons() {
@@ -71,8 +72,12 @@ async function main() {
     console.log("Skip cron-job.org — set CRONJOB_ORG_API_KEY (Console → Settings → API key)");
     process.exit(0);
   }
+  if (!cronSecret && vercelToken()) {
+    await resolveInfraEnv();
+    cronSecret = process.env.CRON_SECRET?.trim();
+  }
   if (!cronSecret) {
-    console.log("Skip cron-job.org — set CRON_SECRET (must match Vercel production)");
+    console.log("Skip cron-job.org — set CRON_SECRET or VERCEL_TOKEN (reads from Vercel Production)");
     process.exit(1);
   }
 

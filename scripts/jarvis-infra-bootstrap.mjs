@@ -6,6 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveInfraEnv, vercelToken } from "./lib/vercel-infra.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -51,6 +52,16 @@ async function verifyCron() {
 }
 
 async function main() {
+  if (vercelToken()) {
+    console.log("\n=== Resolve Vercel project + CRON_SECRET ===\n");
+    const resolved = await resolveInfraEnv();
+    if (resolved.projectId) console.log(`  project: ${resolved.projectId}`);
+    if (resolved.cronSecret) console.log("  CRON_SECRET: ready");
+    console.log("");
+  } else {
+    console.log("\n○ Skip Vercel resolve — set VERCEL_TOKEN (CRON_SECRET then manual in GitHub)\n");
+  }
+
   run("Jarvis setup checklist", "scripts/jarvis-setup-checklist.mjs");
   run("Vercel env push (toss-shop)", "scripts/toss-shop-production-env.mjs");
   run("cron-job.org external crons", "scripts/cron-job-org-setup.mjs");

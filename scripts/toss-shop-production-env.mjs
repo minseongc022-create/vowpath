@@ -10,11 +10,12 @@
  * secrets you keep in GitHub / local env (LS keys, Toss API, etc.).
  */
 import { loadEnvLocal } from "./lib/load-env.mjs";
+import { resolveProjectId, vercelToken } from "./lib/vercel-infra.mjs";
 
 loadEnvLocal();
 
-const token = process.env.VERCEL_TOKEN?.trim();
-const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+const token = vercelToken();
+let projectId = process.env.VERCEL_PROJECT_ID?.trim();
 const teamId = process.env.VERCEL_TEAM_ID?.trim();
 
 /** Keys already baked into vercel.json — skip unless override in .env.local */
@@ -101,7 +102,12 @@ async function upsertEnv(key, value, target = ["production"]) {
 
 async function main() {
   if (!token || !projectId) {
-    console.log("Set VERCEL_TOKEN + VERCEL_PROJECT_ID to push runtime secrets.");
+    if (token) {
+      projectId = await resolveProjectId();
+    }
+  }
+  if (!token || !projectId) {
+    console.log("Set VERCEL_TOKEN (+ optional VERCEL_PROJECT_ID) to push runtime secrets.");
     console.log("Non-secrets are in vercel.json (deployed on next push to main).");
     console.log("\nAlready in vercel.json:");
     for (const k of IN_VERCEL_JSON) console.log(`  - ${k}`);
