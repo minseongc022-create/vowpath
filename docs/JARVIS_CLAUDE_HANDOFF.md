@@ -339,7 +339,7 @@ npm run check:cron
 - [x] `JARVIS_AUTO_EXECUTE=true` → cron `syncAllMerchants`에서 `executeJarvisListing` (cycle당 `JARVIS_AUTOPILOT_PICKS_PER_CYCLE`건, 기본 3)
 - [ ] Toss 공식 API 나오면 `toss-market-engine` live SERP 교체
 - [ ] Draph/Hookable 실 API 스펙 맞추기 (현재 generic POST) — **차단됨**: Draph/Hookable은 공개 개발자 API 문서가 없는 소비자용 SaaS(웹앱)로 확인됨(2026-08-23 조사). 벤더가 실제 API 계약을 제공하기 전엔 스펙을 "맞출" 근거가 없음 — 추측으로 만들면 fake 스펙. 사용자가 벤더에서 API 계약/문서를 받으면 그때 정합.
-- [ ] E2E test: draft → execute (mock Toss)
+- [x] E2E test: draft → execute (mock Toss) — `tests/unit/toss-shop.test.mjs`; `npm test`가 `tsx --test`로 전환되어(기존 raw node ESM 로더는 `seller-engine/` 대부분을 확장자 없는 상대경로 때문에 import 못 했음) pick→draft→publishListingToToss(전역 fetch mock)→executeConsignmentOrder 전체 경로를 네트워크·시크릿 없이 검증
 
 ### P2 — 수익 최적화
 
