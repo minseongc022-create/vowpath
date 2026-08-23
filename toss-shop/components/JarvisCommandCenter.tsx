@@ -28,7 +28,7 @@ function FulfillmentJobRow({ job }: { job: JarvisFulfillmentJob }) {
       {job.domemeOrderNote && <p className="mt-1 text-[11px] text-violet-700">{job.domemeOrderNote}</p>}
       {job.supplierUrl && (
         <a href={job.supplierUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block font-semibold text-ts-primary underline">
-          도매매 발주 →
+          {job.wholesalePlatform === "domeggook" ? "도매꾹" : job.itemNo ? "도매매" : job.wholesalePlatform ?? "공급처"} 발주 →
         </a>
       )}
     </div>
