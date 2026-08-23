@@ -663,6 +663,8 @@ export type TopSellerPlaybookReport = {
 
 export type WholesaleListing = {
   platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
+  /** 공급사 등급·출고속도 (live 응답에서 판독; 미확인이면 verified:false → Jarvis 게이트 탈락) */
+  supplierQuality?: import("./wholesale/supplier-quality").SupplierQuality;
   itemNo?: number;
   title: string;
   unitPriceKrw: number;
