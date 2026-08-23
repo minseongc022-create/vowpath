@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveInfraEnv, vercelToken } from "./lib/vercel-infra.mjs";
+import { resolveInfraEnv, vercelToken, triggerProductionRedeploy } from "./lib/vercel-infra.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -52,11 +52,18 @@ async function verifyCron() {
 }
 
 async function main() {
+  let resolved = { cronRotated: false, projectId: undefined };
   if (vercelToken()) {
     console.log("\n=== Resolve Vercel project + CRON_SECRET ===\n");
-    const resolved = await resolveInfraEnv();
+    resolved = await resolveInfraEnv();
     if (resolved.projectId) console.log(`  project: ${resolved.projectId}`);
     if (resolved.cronSecret) console.log("  CRON_SECRET: ready");
+    if (resolved.cronRotated) {
+      console.log("  CRON_SECRET: rotated (redeploy before cron verify)");
+      await triggerProductionRedeploy(resolved.projectId);
+      console.log("  waiting 90s for redeploy…");
+      await new Promise((r) => setTimeout(r, 90_000));
+    }
     console.log("");
   } else {
     console.log("\n○ Skip Vercel resolve — set VERCEL_TOKEN (CRON_SECRET then manual in GitHub)\n");

@@ -120,7 +120,7 @@ GitHub Actions: **Jarvis infra bootstrap** (`jarvis-infra-bootstrap.yml`) — `m
 | `CRONJOB_ORG_API_KEY` | yes | cron-job.org API |
 | `VERCEL_TOKEN` | yes | env push + CRON_SECRET 자동 조회 |
 | `VERCEL_PROJECT_ID` | no | 없으면 API로 vowpath/effiroad 자동 탐색 |
-| `CRON_SECRET` | no | 없으면 Vercel Production에서 읽거나 새로 생성 |
+| `CRON_SECRET` | no | 없으면 Vercel에서 읽거나 **자동 rotate** (UI에서 복사 불가해도 OK) |
 
 `CRON_SECRET`을 GitHub에 따로 넣을 필요 없음 — `VERCEL_TOKEN`만 있으면 bootstrap이 Vercel에서 가져옵니다.
 

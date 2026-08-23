@@ -138,11 +138,45 @@ async function fetchEnvValue(projectId, envRow) {
   return detail?.value?.trim() || undefined;
 }
 
+async function rotateCronSecret(projectId, row) {
+  const generated = randomBytes(32).toString("hex");
+  const target = row.target?.length ? row.target : ["production", "preview"];
+  await vercelApi(`/v10/projects/${projectId}/env/${row.id}`, "PATCH", {
+    value: generated,
+    type: row.type ?? "encrypted",
+    target,
+  });
+  console.log(
+    "✓ CRON_SECRET rotated on Vercel (UI cannot reveal encrypted values — cron-job.org gets the new secret)",
+  );
+  process.env.CRON_SECRET = generated;
+  return { value: generated, rotated: true };
+}
+
+export async function triggerProductionRedeploy(projectId) {
+  const hook = process.env.VERCEL_DEPLOY_HOOK?.trim();
+  if (hook) {
+    const res = await fetch(hook, { method: "POST" });
+    if (!res.ok) throw new Error(`Deploy hook ${res.status}`);
+    console.log("✓ Vercel deploy hook triggered");
+    return;
+  }
+  try {
+    await vercelApi("/v13/deployments", "POST", {
+      project: projectId,
+      target: "production",
+    });
+    console.log("✓ Vercel production redeploy triggered (API)");
+  } catch (e) {
+    console.log(`○ Redeploy pending — ${e instanceof Error ? e.message : e}`);
+  }
+}
+
 export async function resolveCronSecret(projectId) {
   const existing = process.env.CRON_SECRET?.trim();
-  if (existing) return existing;
+  if (existing) return { value: existing, rotated: false };
 
-  if (!vercelToken() || !projectId) return undefined;
+  if (!vercelToken() || !projectId) return { value: undefined, rotated: false };
 
   const envs = await listProjectEnv(projectId);
   const row = productionEnv(envs, "CRON_SECRET");
@@ -152,12 +186,13 @@ export async function resolveCronSecret(projectId) {
     if (value) {
       console.log("✓ CRON_SECRET loaded from Vercel Production");
       process.env.CRON_SECRET = value;
-      return value;
+      return { value, rotated: false };
     }
-    console.log(
-      "○ CRON_SECRET exists on Vercel but token cannot decrypt — add CRON_SECRET to GitHub secrets once",
-    );
-    return undefined;
+    if (process.env.CRON_SECRET_ROTATE === "false") {
+      console.log("○ CRON_SECRET not readable — set CRON_SECRET in GitHub or unset CRON_SECRET_ROTATE=false");
+      return { value: undefined, rotated: false };
+    }
+    return rotateCronSecret(projectId, row);
   }
 
   const generated = randomBytes(32).toString("hex");
@@ -169,12 +204,18 @@ export async function resolveCronSecret(projectId) {
   });
   console.log("✓ CRON_SECRET generated and saved to Vercel Production");
   process.env.CRON_SECRET = generated;
-  return generated;
+  return { value: generated, rotated: true };
 }
 
 /** Resolve project id + cron secret into process.env. Returns summary. */
 export async function resolveInfraEnv() {
-  const summary = { projectId: undefined, cronSecret: false, projectAuto: false, cronAuto: false };
+  const summary = {
+    projectId: undefined,
+    cronSecret: false,
+    projectAuto: false,
+    cronAuto: false,
+    cronRotated: false,
+  };
 
   const hadProject = Boolean(process.env.VERCEL_PROJECT_ID?.trim());
   const projectId = await resolveProjectId();
@@ -182,9 +223,12 @@ export async function resolveInfraEnv() {
   summary.projectAuto = Boolean(projectId && !hadProject);
 
   const hadCron = Boolean(process.env.CRON_SECRET?.trim());
-  const cron = projectId ? await resolveCronSecret(projectId) : process.env.CRON_SECRET?.trim();
-  summary.cronSecret = Boolean(cron);
-  summary.cronAuto = Boolean(cron && !hadCron);
+  const cronResult = projectId
+    ? await resolveCronSecret(projectId)
+    : { value: process.env.CRON_SECRET?.trim(), rotated: false };
+  summary.cronSecret = Boolean(cronResult.value);
+  summary.cronAuto = Boolean(cronResult.value && !hadCron);
+  summary.cronRotated = cronResult.rotated;
 
   return summary;
 }
