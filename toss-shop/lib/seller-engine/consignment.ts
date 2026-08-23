@@ -329,6 +329,8 @@ export async function generateConsignmentPicks(
         competitionIntensity: pick.competitionIntensity,
         searchVolume: pick.searchVolume,
         topSellerAlignment: topSellerPlaybook.alignmentScore,
+        supplierQuality: wholesaleBest?.supplierQuality,
+        supplierPolicyApplies: wholesaleBest?.source === "live",
       });
       return {
         ...pick,

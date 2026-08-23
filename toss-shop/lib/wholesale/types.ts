@@ -1,3 +1,5 @@
+import type { SupplierQuality } from "./supplier-quality";
+
 export type WholesalePlatform = "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
 
 export type WholesaleListing = {
@@ -14,6 +16,8 @@ export type WholesaleListing = {
   freeShipping: boolean;
   source: "live" | "estimated";
   marginVsTossPct?: number;
+  /** 공급사 등급·출고속도 (live 응답에서 판독; 미확인이면 verified:false) */
+  supplierQuality?: SupplierQuality;
 };
 
 export type ImportSourceListing = {

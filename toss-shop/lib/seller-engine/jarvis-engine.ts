@@ -10,6 +10,7 @@ import type {
   JarvisConfidenceReport,
   JarvisGateResult,
 } from "../types";
+import { meetsSupplierPolicy, supplierPolicyDetail, type SupplierQuality } from "../wholesale/supplier-quality";
 
 export const JARVIS_NAME = "Jarvis";
 export const JARVIS_VERSION = "1.1";
@@ -75,6 +76,10 @@ export function computeJarvisConfidence(input: {
   competitionIntensity: number;
   searchVolume: number;
   topSellerAlignment?: number;
+  /** 공급사 등급·출고속도 — 1등급+당일발송만 통과 (미확인이면 탈락) */
+  supplierQuality?: SupplierQuality;
+  /** live 위탁 소싱이 아닌 경우(데모/수입) 공급처 게이트를 적용하지 않음 */
+  supplierPolicyApplies?: boolean;
 }): JarvisConfidenceReport {
   const gates: JarvisGateResult[] = [];
   const topSeller = input.topSellerAlignment ?? 0;
@@ -100,6 +105,19 @@ export function computeJarvisConfidence(input: {
           ? "도매매 단품 공급"
           : "MOQ 1 — 위탁 가능"
         : `MOQ ${input.moq} — 도매매 단품 공급처 재검색 필요`,
+  });
+
+  // 사용자 정책: 공급처는 1등급(우수) + 당일발송만. 판독 불가도 탈락(fail-closed) —
+  // 배송 지연/품절은 토스 페널티와 반품 손실로 직결되므로 추측 통과시키지 않는다.
+  const supplierPolicyApplies = input.supplierPolicyApplies ?? input.wholesaleLive;
+  gates.push({
+    id: "supplier_grade",
+    label: "공급처 1등급·당일발송",
+    passed: supplierPolicyApplies ? meetsSupplierPolicy(input.supplierQuality) : true,
+    weight: 12,
+    detail: supplierPolicyApplies
+      ? supplierPolicyDetail(input.supplierQuality)
+      : "데모/미연동 — 실공급처 확정 후 재판정",
   });
 
   gates.push({
@@ -191,7 +209,9 @@ export function computeJarvisConfidence(input: {
   const allHardGates =
     gates
       .filter((g) =>
-        ["integration", "margin", "safety", "domeme_moq", "top_seller"].includes(g.id),
+        // supplier_grade = 사용자 절대 조건(1등급·당일발송). 소프트 가중치로만 두면
+        // 게이트가 X여도 99% 인증이 나와 "가짜 93%"가 되므로 하드 게이트로 둔다.
+        ["integration", "margin", "safety", "domeme_moq", "top_seller", "supplier_grade"].includes(g.id),
       )
       .every((g) => g.passed) &&
     input.criticalRisks === 0 &&

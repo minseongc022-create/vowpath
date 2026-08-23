@@ -1,4 +1,5 @@
 import type { WholesaleListing, WholesalePlatform } from "./types";
+import { readSupplierQuality, meetsSupplierPolicy } from "./supplier-quality";
 
 const API_BASE = "https://www.domeggook.com/ssl/api/";
 
@@ -36,6 +37,7 @@ function normalizeItems(raw: unknown): DomeItem[] {
 }
 
 function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListing | null {
+  const supplierQuality = readSupplierQuality(item);
   if (!item.title || item.price == null || item.price <= 0) return null;
   const shippingFeeKrw = parseDeliFee(item.deli?.fee);
   const freeShipping = item.deli?.who === "S";
@@ -56,6 +58,7 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
     sellerNick: item.nick ?? item.id,
     freeShipping,
     source: "live",
+    supplierQuality,
   };
 }
 
@@ -67,7 +70,7 @@ export async function searchDomeggookMarket(
   keyword: string,
   market: DomeMarket,
   limit = 8,
-  opts?: { maxMoq?: number },
+  opts?: { maxMoq?: number; requireTopSupplier?: boolean },
 ): Promise<WholesaleListing[]> {
   const aid = getApiKey();
   if (!aid) return [];
@@ -97,7 +100,9 @@ export async function searchDomeggookMarket(
     const data = (await res.json()) as unknown;
     return normalizeItems(data)
       .map((item) => toListing(item, platform))
-      .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq));
+      .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq))
+      // 사용자 정책: 1등급 + 당일발송 공급처만. 판독 불가(verified:false)도 탈락(fail-closed).
+      .filter((x) => !opts?.requireTopSupplier || meetsSupplierPolicy(x.supplierQuality));
   } catch {
     return [];
   }

@@ -166,3 +166,85 @@ test("reconcileImportedSettlements merges by orderId", () => {
   assert.equal(merged.length, 1);
   assert.equal(merged[0].status, "matched");
 });
+
+test("supplier policy: fail-closed when grade/ship speed unreadable", async () => {
+  const { readSupplierQuality, meetsSupplierPolicy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-quality.ts"
+  );
+  // 등급·출고 필드가 전혀 없는 응답 → 추측 통과 금지
+  const q = readSupplierQuality({ no: 1, title: "상품", price: 1000 });
+  assert.equal(q.verified, false);
+  assert.equal(q.grade, "unknown");
+  assert.equal(meetsSupplierPolicy(q), false);
+  assert.equal(meetsSupplierPolicy(undefined), false);
+});
+
+test("supplier policy: only 1등급 + 당일발송 passes", async () => {
+  const { readSupplierQuality, meetsSupplierPolicy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-quality.ts"
+  );
+  const pass = readSupplierQuality({ grade: "우수", todayShip: "Y" });
+  assert.equal(pass.verified, true);
+  assert.equal(pass.grade, "excellent");
+  assert.equal(pass.shipSpeed, "same_day");
+  assert.equal(meetsSupplierPolicy(pass), true);
+
+  // 등급은 우수지만 익일발송 → 탈락
+  const slowShip = readSupplierQuality({ grade: "우수", avgShipDays: 1 });
+  assert.equal(slowShip.shipSpeed, "next_day");
+  assert.equal(meetsSupplierPolicy(slowShip), false);
+
+  // 당일발송이지만 일반등급 → 탈락
+  const lowGrade = readSupplierQuality({ grade: "일반", todayShip: "Y" });
+  assert.equal(lowGrade.grade, "normal");
+  assert.equal(meetsSupplierPolicy(lowGrade), false);
+
+  // 정상 출고율 80% 미만 → 탈락
+  const lowRate = readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: "72" });
+  assert.equal(lowRate.fulfillmentRatePct, 72);
+  assert.equal(meetsSupplierPolicy(lowRate), false);
+});
+
+test("jarvis gate rejects picks whose live supplier is not 1등급+당일발송", async () => {
+  const { computeJarvisConfidence, assessIntegration } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-engine.ts"
+  );
+  const { readSupplierQuality } = await import("../../toss-shop/lib/wholesale/supplier-quality.ts");
+
+  const base = {
+    integration: assessIntegration({
+      tossApiConfigured: true,
+      wholesaleApiConfigured: true,
+      dataQuality: "live",
+      catalogSize: 50,
+    }),
+    v6MasterScore: 95,
+    safetyScore: 95,
+    marginPct: 30,
+    monthlyProfitKrw: 900000,
+    moq: 1,
+    wholesaleLive: true,
+    wholesalePlatform: "domeme",
+    criticalRisks: 0,
+    blockRisks: 0,
+    competitionIntensity: 30,
+    searchVolume: 5000,
+    topSellerAlignment: 90,
+  };
+
+  const bad = computeJarvisConfidence({
+    ...base,
+    supplierQuality: readSupplierQuality({ title: "정보없음" }),
+  });
+  const badGate = bad.gates.find((g) => g.id === "supplier_grade");
+  assert.ok(badGate, "supplier_grade gate should exist");
+  assert.equal(badGate.passed, false);
+
+  const good = computeJarvisConfidence({
+    ...base,
+    supplierQuality: readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: 97 }),
+  });
+  const goodGate = good.gates.find((g) => g.id === "supplier_grade");
+  assert.equal(goodGate.passed, true);
+  assert.ok(good.confidencePct > bad.confidencePct);
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { meetsSupplierPolicy, supplierPolicyDetail } from "@/toss-shop/lib/wholesale/supplier-quality";
 import { formatKrw } from "@/toss-shop/lib/format";
 import type {
   AnalysisSignal,
@@ -277,6 +278,16 @@ export function SourcingAnalysisCard({
             {!wholesaleBest.freeShipping && ` + 배송 ${formatKrw(wholesaleBest.shippingFeeKrw)}`}
             {wholesaleBest.marginVsTossPct != null && ` · 예상 마진 ${wholesaleBest.marginVsTossPct}%`}
           </p>
+          {wholesaleBest.source === "live" && (
+            <p
+              className={`mt-1 font-semibold ${
+                meetsSupplierPolicy(wholesaleBest.supplierQuality) ? "text-emerald-700" : "text-red-700"
+              }`}
+            >
+              {meetsSupplierPolicy(wholesaleBest.supplierQuality) ? "✓ " : "✗ "}
+              {supplierPolicyDetail(wholesaleBest.supplierQuality)}
+            </p>
+          )}
           <a
             href={wholesaleBest.url}
             target="_blank"
