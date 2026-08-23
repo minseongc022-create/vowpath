@@ -138,6 +138,23 @@ async function fetchEnvValue(projectId, envRow) {
   return detail?.value?.trim() || undefined;
 }
 
+async function externalCronsConfigured() {
+  const apiKey = process.env.CRONJOB_ORG_API_KEY?.trim();
+  if (!apiKey) return false;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://effiroad.com").replace(/\/$/, "");
+  const paths = [
+    "/api/cron/tech-dispatch",
+    "/api/cron/giu-reservation-expiry",
+    "/api/cron/toss-shop-sync",
+  ];
+  const res = await fetch("https://api.cron-job.org/jobs", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) return false;
+  const { jobs = [] } = await res.json().catch(() => ({}));
+  return paths.every((path) => jobs.some((j) => j.url === `${baseUrl}${path}`));
+}
+
 async function rotateCronSecret(projectId, row) {
   const generated = randomBytes(32).toString("hex");
   const target = row.target?.length ? row.target : ["production", "preview"];
@@ -163,6 +180,7 @@ export async function triggerProductionRedeploy(projectId) {
   }
   try {
     await vercelApi("/v13/deployments", "POST", {
+      name: "vowpath",
       project: projectId,
       target: "production",
     });
@@ -187,6 +205,10 @@ export async function resolveCronSecret(projectId) {
       console.log("✓ CRON_SECRET loaded from Vercel Production");
       process.env.CRON_SECRET = value;
       return { value, rotated: false };
+    }
+    if (process.env.CRONJOB_ORG_API_KEY?.trim() && (await externalCronsConfigured())) {
+      console.log("○ CRON_SECRET not readable — cron-job.org jobs already configured, skip rotate");
+      return { value: undefined, rotated: false };
     }
     if (process.env.CRON_SECRET_ROTATE === "false") {
       console.log("○ CRON_SECRET not readable — set CRON_SECRET in GitHub or unset CRON_SECRET_ROTATE=false");
