@@ -70,8 +70,8 @@ async function main() {
   }
 
   run("Jarvis setup checklist", "scripts/jarvis-setup-checklist.mjs");
-  run("Vercel env push (toss-shop)", "scripts/toss-shop-production-env.mjs");
   run("cron-job.org external crons", "scripts/cron-job-org-setup.mjs");
+  run("Vercel env push (toss-shop)", "scripts/toss-shop-production-env.mjs");
   await redeployIfHook();
   await new Promise((r) => setTimeout(r, 15_000));
   run("Effiroad deploy verify", "scripts/effiroad-deploy-verify.mjs");
