@@ -28,6 +28,7 @@ import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
 import { executeConsignmentOrder } from "./seller-engine/consignment-order";
 import { runJarvisAutopilotCycle, enrichDraftWithAutopilot, isAutoExecuteEnabled } from "./seller-engine/jarvis-autopilot-engine";
+import { getAutoExecuteMaxPerCycle } from "./seller-engine/jarvis-config";
 import { runJarvisHealthCheck } from "./seller-engine/jarvis-health-check";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
 import { configFromEnv, maskSecret } from "./api/config";
@@ -819,7 +820,7 @@ export async function syncAllMerchants(): Promise<{
             d.jarvisCertified &&
             (d.status === "pending_review" || d.status === "approved"),
         );
-        for (const draft of autoCandidates.slice(0, 1)) {
+        for (const draft of autoCandidates.slice(0, getAutoExecuteMaxPerCycle())) {
           try {
             await executeJarvisListing({
               merchantId: merchant.id,

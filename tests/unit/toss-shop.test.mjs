@@ -57,6 +57,28 @@ test("getPlanAccess grants pro on active subscription", async () => {
   assert.equal(access.tier, "pro");
 });
 
+test("jarvis config limits clamp env values", async () => {
+  const { getAutopilotMaxDraftsPerCycle, getAutoExecuteMaxPerCycle } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-config.ts"
+  );
+  process.env.JARVIS_AUTOPILOT_MAX_DRAFTS = "99";
+  process.env.JARVIS_AUTO_EXECUTE_MAX = "0";
+  assert.equal(getAutopilotMaxDraftsPerCycle(), 10);
+  assert.equal(getAutoExecuteMaxPerCycle(), 1);
+  delete process.env.JARVIS_AUTOPILOT_MAX_DRAFTS;
+  delete process.env.JARVIS_AUTO_EXECUTE_MAX;
+  assert.equal(getAutopilotMaxDraftsPerCycle(), 3);
+});
+
+test("runTossDeepAnalysis returns opportunity metrics", async () => {
+  const { runTossDeepAnalysis } = await import("../../toss-shop/lib/seller-engine/toss-market-engine.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+  const deep = await runTossDeepAnalysis({ keyword: "방울토마토", catalog: SEED_CATALOG });
+  assert.equal(deep.keyword, "방울토마토");
+  assert.ok(deep.opportunityScore >= 0 && deep.opportunityScore <= 100);
+  assert.ok(deep.serp.topProducts.length > 0);
+});
+
 test("reconcileImportedSettlements merges by orderId", () => {
   const existing = [
     {

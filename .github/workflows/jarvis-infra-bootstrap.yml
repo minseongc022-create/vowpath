@@ -1,0 +1,46 @@
+name: Jarvis infra bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/jarvis-infra-bootstrap.mjs"
+      - "scripts/cron-job-org-setup.mjs"
+      - "scripts/toss-shop-production-env.mjs"
+      - "config/cron.schedule.json"
+      - ".github/workflows/jarvis-infra-bootstrap.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Jarvis infra (Vercel env + cron-job.org + verify)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+          CRONJOB_ORG_API_KEY: ${{ secrets.CRONJOB_ORG_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NEXT_PUBLIC_APP_URL: https://effiroad.com
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          DOMEGGOOK_API_KEY: ${{ secrets.DOMEGGOOK_API_KEY }}
+          TOSS_SHOPPING_ACCESS_KEY: ${{ secrets.TOSS_SHOPPING_ACCESS_KEY }}
+          TOSS_SHOPPING_SECRET_KEY: ${{ secrets.TOSS_SHOPPING_SECRET_KEY }}
+          TOSS_SHOPPING_SANDBOX: ${{ secrets.TOSS_SHOPPING_SANDBOX }}
+          TOSS_SHOP_DEFAULT_CATEGORY_ID: ${{ secrets.TOSS_SHOP_DEFAULT_CATEGORY_ID }}
+          TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID: ${{ secrets.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID }}
+          JARVIS_AUTO_EXECUTE: ${{ secrets.JARVIS_AUTO_EXECUTE }}
+          JARVIS_AUTOPILOT_MAX_DRAFTS: ${{ secrets.JARVIS_AUTOPILOT_MAX_DRAFTS }}
+        run: node scripts/jarvis-infra-bootstrap.mjs
