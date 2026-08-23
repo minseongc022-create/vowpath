@@ -338,14 +338,14 @@ npm run check:cron
 
 - [x] `JARVIS_AUTO_EXECUTE=true` → cron `syncAllMerchants`에서 `executeJarvisListing` (cycle당 `JARVIS_AUTOPILOT_PICKS_PER_CYCLE`건, 기본 3)
 - [ ] Toss 공식 API 나오면 `toss-market-engine` live SERP 교체
-- [ ] Draph/Hookable 실 API 스펙 맞추기 (현재 generic POST)
+- [ ] Draph/Hookable 실 API 스펙 맞추기 (현재 generic POST) — **차단됨**: Draph/Hookable은 공개 개발자 API 문서가 없는 소비자용 SaaS(웹앱)로 확인됨(2026-08-23 조사). 벤더가 실제 API 계약을 제공하기 전엔 스펙을 "맞출" 근거가 없음 — 추측으로 만들면 fake 스펙. 사용자가 벤더에서 API 계약/문서를 받으면 그때 정합.
 - [ ] E2E test: draft → execute (mock Toss)
 
 ### P2 — 수익 최적화
 
 - [x] Autopilot: certified pick N개/사이클 (기존 TOP 1 고정 → `JARVIS_AUTOPILOT_PICKS_PER_CYCLE` 기본 3, 발주도 동일 수만큼 auto-execute)
 - [ ] Health score 90%+ 모든 env green 가이드 UI
-- [ ] Import pick fulfillment flow
+- [x] Import pick fulfillment flow — `fulfillment-engine.ts`가 수입판매 주문에도 "도매매" 라벨/발주 안내를 붙이던 버그 수정 (pickMode별 안내 분리 + UI 발주 버튼 라벨 수정)
 
 ---
 
