@@ -77,8 +77,8 @@ async function main() {
     cronSecret = process.env.CRON_SECRET?.trim();
   }
   if (!cronSecret) {
-    console.log("Skip cron-job.org — set CRON_SECRET or VERCEL_TOKEN (reads from Vercel Production)");
-    process.exit(1);
+    console.log("Skip cron-job.org — set VERCEL_TOKEN (auto-reads CRON_SECRET) or CRON_SECRET in GitHub secrets");
+    process.exit(0);
   }
 
   const entries = loadExternalCrons();
