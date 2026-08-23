@@ -41,6 +41,8 @@ const OPTIONAL_KEYS = [
   "SELLERBISEO_API_KEY",
   "DOMEGGOOK_API_KEY",
   "JARVIS_AUTO_EXECUTE",
+  "JARVIS_AUTO_EXECUTE_MAX",
+  "JARVIS_AUTOPILOT_MAX_DRAFTS",
   "JARVIS_MATCHCUT_ENABLED",
   "TOSS_SHOP_DEFAULT_CATEGORY_ID",
   "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID",
@@ -70,7 +72,24 @@ async function vercelApi(path, method, body) {
   return json;
 }
 
+async function listProjectEnv() {
+  const json = await vercelApi(`/v10/projects/${projectId}/env`);
+  return json.envs ?? [];
+}
+
 async function upsertEnv(key, value, target = ["production"]) {
+  const existing = (await listProjectEnv()).find(
+    (e) => e.key === key && (e.target ?? []).some((t) => target.includes(t)),
+  );
+  if (existing) {
+    await vercelApi(`/v10/projects/${projectId}/env/${existing.id}`, "PATCH", {
+      value,
+      type: "encrypted",
+      target,
+    });
+    console.log(`↻ ${key}`);
+    return;
+  }
   await vercelApi(`/v10/projects/${projectId}/env`, "POST", {
     key,
     value,

@@ -11,6 +11,7 @@ import type {
   MerchantData,
 } from "../types";
 import { buildAdCampaignPlan } from "./ad-strategy-engine";
+import { getAutopilotMaxDraftsPerCycle } from "./jarvis-config";
 import { filterJarvisCertifiedPicks } from "./jarvis-engine";
 import { buildListingDraftFromPick } from "./listing-automation";
 import { analyzeWholesaleComposition } from "./wholesale-composition-engine";
@@ -55,29 +56,34 @@ export async function runJarvisAutopilotCycle(
   );
 
   if (isAutopilotEnabled() && certified.length) {
-    const topPick = certified[0] as ConsignmentPick;
-    if (!pendingDraftIds.has(topPick.id)) {
+    const maxDrafts = getAutopilotMaxDraftsPerCycle();
+    let createdThisCycle = 0;
+    for (const pick of certified as ConsignmentPick[]) {
+      if (createdThisCycle >= maxDrafts) break;
+      if (pendingDraftIds.has(pick.id)) continue;
       try {
         const draft = await buildListingDraftFromPick({
           merchantId: input.merchantId,
-          pick: topPick,
+          pick,
           mode: "consignment",
-          draftId: `jl_auto_${Date.now().toString(36)}`,
+          draftId: `jl_auto_${Date.now().toString(36)}_${createdThisCycle}`,
           now,
         });
 
-        if (topPick.wholesaleBest) {
+        if (pick.wholesaleBest) {
           draft.wholesaleComposition = analyzeWholesaleComposition({
-            pick: topPick,
-            wholesale: topPick.wholesaleBest,
+            pick,
+            wholesale: pick.wholesaleBest,
             catalog: input.catalog,
           });
         }
-        draft.adCampaign = buildAdCampaignPlan(topPick, "consignment");
+        draft.adCampaign = buildAdCampaignPlan(pick, "consignment");
 
         listingDrafts.unshift(draft);
+        pendingDraftIds.add(pick.id);
         draftsCreated++;
-        actions.push(`위탁 TOP SKU 「${topPick.keyword}」 등록 초안 자동 생성`);
+        createdThisCycle++;
+        actions.push(`위탁 SKU 「${pick.keyword}」 등록 초안 (${createdThisCycle}/${maxDrafts})`);
       } catch (e) {
         errors.push(e instanceof Error ? e.message : "DRAFT_CREATE_FAIL");
       }
