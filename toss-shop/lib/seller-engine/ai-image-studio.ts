@@ -28,7 +28,8 @@ export function aiImagesEnabled(): boolean {
 
 type CategoryScene = { ko: string; sceneEn: string };
 
-const CATEGORY_SCENES: Record<string, CategoryScene> = {
+/** 배경을 실제 생활공간으로 바꾸는 라이프스타일 컷 (판매 맥락 전달용, style: "lifestyle") */
+const CATEGORY_LIFESTYLE_SCENES: Record<string, CategoryScene> = {
   food: { ko: "식탁", sceneEn: "a clean modern kitchen table with soft natural daylight" },
   beauty: { ko: "화장대", sceneEn: "a minimal beige vanity table with soft studio lighting" },
   home: { ko: "거실", sceneEn: "a bright minimal living room interior" },
@@ -37,8 +38,40 @@ const CATEGORY_SCENES: Record<string, CategoryScene> = {
   health: { ko: "웰니스", sceneEn: "a calm minimal wellness setting with plants and soft light" },
 };
 
-function sceneFor(category: string): CategoryScene {
-  return CATEGORY_SCENES[category] ?? CATEGORY_SCENES.home;
+/**
+ * 진짜 스튜디오 촬영처럼 보이게 하는 배경톤 (기본값, style: "studio").
+ * 카테고리별로 배경색 톤만 살짝 다르게 — 나머지 조명·구도는 전문 제품
+ * 촬영 공통 규칙(seamless backdrop·softbox·바닥 반사광)으로 통일한다.
+ */
+const CATEGORY_STUDIO_TONES: Record<string, string> = {
+  food: "warm neutral beige seamless studio backdrop",
+  beauty: "soft blush pink seamless studio backdrop",
+  home: "cool light gray seamless studio backdrop",
+  digital: "dark charcoal gradient seamless studio backdrop",
+  fashion: "clean white seamless studio backdrop",
+  health: "soft sage green seamless studio backdrop",
+};
+
+export type ImageStyle = "studio" | "lifestyle";
+
+function lifestyleSceneFor(category: string): CategoryScene {
+  return CATEGORY_LIFESTYLE_SCENES[category] ?? CATEGORY_LIFESTYLE_SCENES.home;
+}
+
+/**
+ * 실제 제품 촬영 스튜디오에서 쓰는 표준 조명·구도 문구.
+ * "AI가 그린 티" 대신 커머스 카탈로그 사진 특유의 질감(소프트박스 반사,
+ * 바닥 그라데이션 반사광, 살짝의 비네팅)을 명시적으로 지시한다.
+ */
+function studioPromptFor(category: string): string {
+  const tone = CATEGORY_STUDIO_TONES[category] ?? CATEGORY_STUDIO_TONES.home;
+  return (
+    `professional e-commerce product photography studio shot, ${tone}, ` +
+    `large softbox key light from upper-left with a subtle fill light, ` +
+    `soft realistic floor reflection/gradient shadow beneath the product, ` +
+    `sharp focus on the product, shallow depth of field on the backdrop, ` +
+    `catalog-quality lighting like a professional studio photoshoot, no props, no text, no watermark`
+  );
 }
 
 async function fetchImageAsPngBuffer(url: string): Promise<Buffer | null> {
@@ -61,6 +94,7 @@ export async function regenerateProductBackground(input: {
   imageUrl: string;
   category: string;
   productLabel: string;
+  style?: ImageStyle;
 }): Promise<{ url: string } | null> {
   if (!aiImagesEnabled()) return null;
   const apiKey = process.env.OPENAI_API_KEY!.trim();
@@ -68,12 +102,17 @@ export async function regenerateProductBackground(input: {
   const original = await fetchImageAsPngBuffer(input.imageUrl);
   if (!original) return null;
 
-  const scene = sceneFor(input.category);
+  const style = input.style ?? "studio";
+  const backdrop =
+    style === "studio"
+      ? studioPromptFor(input.category)
+      : `the product placed naturally in ${lifestyleSceneFor(input.category).sceneEn}`;
+
   const prompt =
-    `Replace only the background of this product photo with ${scene.sceneEn}. ` +
-    `Keep the product itself (${input.productLabel}) completely unchanged in shape, color, text, and label — ` +
-    `do not redesign, retouch, or alter the product. Photorealistic, e-commerce product photography style, ` +
-    `soft natural shadow under the product.`;
+    `Replace only the background of this product photo. New background: ${backdrop}. ` +
+    `Keep the product itself (${input.productLabel}) completely unchanged in shape, size, color, proportions, ` +
+    `text, and label — do not redesign, retouch, warp, or alter the product in any way. ` +
+    `Photorealistic, high-resolution, e-commerce product photography.`;
 
   try {
     const form = new FormData();
@@ -168,6 +207,8 @@ export async function upgradeDetailImages(input: {
   category: string;
   productLabel: string;
   sellingPoints: string[];
+  /** 기본 "studio" — 진짜 스튜디오 촬영처럼. "lifestyle"은 생활공간 합성컷 */
+  style?: ImageStyle;
 }): Promise<{ heroUrl: string | null; badges: SellingPointBadge[] }> {
   if (!aiImagesEnabled()) return { heroUrl: null, badges: [] };
 
@@ -177,6 +218,7 @@ export async function upgradeDetailImages(input: {
           imageUrl: input.heroImageUrl,
           category: input.category,
           productLabel: input.productLabel,
+          style: input.style,
         })
       : Promise.resolve(null),
     generateSellingPointBadges({ sellingPoints: input.sellingPoints }),
