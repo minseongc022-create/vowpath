@@ -26,6 +26,8 @@ export const JARVIS_ENV_FIX_HINTS: Record<string, string> = {
   tracking_register: "토스 FEP API + 주문 sync",
   autopilot: "JARVIS_AUTOPILOT_ENABLED=true (vercel.json 기본 ON)",
   auto_execute: "JARVIS_AUTO_EXECUTE=true (선택, OK 생략 자동 등록)",
+  ai_image_studio: "OPENAI_API_KEY → Vercel Production (배경 재구성·셀링포인트 배지 자동 생성)",
+  supplier_grade_gate: "DOMEGGOOK_API_KEY → 공급처 1등급·당일발송 실데이터 판정 (미연동 시 fail-closed로 전부 탈락)",
 };
 
 export function envFixHintForCheck(checkId: string): string | undefined {

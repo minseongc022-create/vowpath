@@ -7,6 +7,7 @@ import { isApiConfigured } from "../api/sync-merchant";
 import { isAutopilotEnabled, isAutoExecuteEnabled } from "./jarvis-autopilot-engine";
 import { isMatchcutEnabled } from "./matchcut-adapter";
 import { listActiveDetailProviders } from "./detail-page-providers";
+import { aiImagesEnabled } from "./ai-image-studio";
 import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
 import type { JarvisHealthReport, TossShopMerchant } from "../types";
 
@@ -179,6 +180,47 @@ export function runJarvisHealthCheck(input: {
     passed: true,
     detail: "policy-engine v6 + risk-playbook",
   });
+  checks.push({
+    id: "supplier_grade_gate",
+    label: "공급처 1등급·당일발송 게이트",
+    category: "sourcing",
+    passed: wholesaleApi,
+    detail: wholesaleApi
+      ? "supplier-quality.ts — 라이브 응답에서 등급·출고속도 판정 (fail-closed)"
+      : "DOMEGGOOK_API_KEY 없음 — 판독 불가로 전부 탈락 처리 중 (의도된 동작)",
+  });
+  checks.push({
+    id: "profit_probability",
+    label: "몬테카를로 수익 확률 · 적응형 소싱량",
+    category: "intelligence",
+    passed: true,
+    detail: wholesaleApi && tossApi
+      ? "profit-probability.ts + sourcing-plan.ts — trustworthy 데이터"
+      : "엔진은 항상 동작하나 demo 데이터 기준(trustworthy:false) — API 연동 시 실확률로 전환",
+  });
+  checks.push({
+    id: "toss_seo_policy",
+    label: "토스 공식 SEO·등록규칙·카탈로그 전략",
+    category: "listing",
+    passed: true,
+    detail: "toss-seo-engine.ts + toss-policy-engine.ts + catalog-entry-strategy.ts (공식문서 기반)",
+  });
+  checks.push({
+    id: "growth_levers",
+    label: "광고 손익분기 CPC·장바구니 쿠폰",
+    category: "ads",
+    passed: true,
+    detail: "toss-growth-levers.ts — 토스 광고 API 없어 입찰가 계산만, 집행은 수동",
+  });
+  checks.push({
+    id: "ai_image_studio",
+    label: "AI 이미지 스튜디오 (스튜디오 배경·배지)",
+    category: "listing",
+    passed: aiImagesEnabled(),
+    detail: aiImagesEnabled()
+      ? "OPENAI_API_KEY 연동 — 배경 재구성 + 셀링포인트 배지 자동 생성"
+      : "OPENAI_API_KEY 없음 — 도매매 원본 사진 그대로 사용",
+  });
 
   const passed = checks.filter((c) => c.passed).length;
   const total = checks.length;
@@ -211,6 +253,8 @@ export function runJarvisHealthCheck(input: {
       { topic: "광고·1페이지 설계", status: "ok" },
       { topic: "주문→도매매 발주→송장", status: tossApi ? "ok" : "needs_api" },
       { topic: "Autopilot 60초", status: isAutopilotEnabled() ? "ok" : "partial" },
+      { topic: "공급처 1등급·당일발송 게이트", status: wholesaleApi ? "ok" : "needs_api" },
+      { topic: "AI 이미지 스튜디오", status: aiImagesEnabled() ? "ok" : "needs_api" },
     ],
   };
 }
