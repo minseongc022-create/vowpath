@@ -461,3 +461,69 @@ test("toss policy: 페널티·등록규칙 검증", async () => {
   });
   assert.equal(clean.filter((i) => i.severity === "block").length, 0);
 });
+
+test("ad economics: 손익분기 CPC = 판매가 × 수수료율 × 전환율", async () => {
+  const { computeAdEconomics } = await import("../../toss-shop/lib/seller-engine/toss-growth-levers.ts");
+
+  // 광고로 팔면 수수료 8% 면제 → 그 면제분이 광고비보다 크면 이득
+  const a = computeAdEconomics({
+    priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3, alreadyFeeFree: false,
+  });
+  assert.equal(a.feeSavedPerSaleKrw, 1600, "20,000원의 8%");
+  assert.equal(a.breakevenCpcKrw, 48, "1600 × 0.03");
+  assert.equal(a.recommendation, "run");
+
+  // 전환율이 오르면 더 비싼 CPC도 감당된다
+  const hi = computeAdEconomics({
+    priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 6, alreadyFeeFree: false,
+  });
+  assert.ok(hi.breakevenCpcKrw > a.breakevenCpcKrw);
+
+  // 손익분기를 크게 넘는 입찰은 중단시켜야 한다
+  const over = computeAdEconomics({
+    priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3,
+    alreadyFeeFree: false, currentCpcKrw: 200,
+  });
+  assert.equal(over.recommendation, "stop");
+  assert.ok((over.netDeltaPerSaleKrw ?? 0) < 0);
+
+  // 전환율 미측정이면 입찰 근거가 없다
+  const noData = computeAdEconomics({
+    priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 0, alreadyFeeFree: false,
+  });
+  assert.equal(noData.recommendation, "cannot_bid");
+});
+
+test("ad economics: 배송 인센티브로 이미 0%면 수수료 면제가 중복되지 않는다", async () => {
+  const { computeAdEconomics } = await import("../../toss-shop/lib/seller-engine/toss-growth-levers.ts");
+  const ff = computeAdEconomics({
+    priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3,
+    alreadyFeeFree: true, currentCpcKrw: 50,
+  });
+  assert.equal(ff.feeSavedPerSaleKrw, 0, "이미 0%면 추가 면제 없음");
+  assert.equal(ff.breakevenCpcKrw, 0);
+  assert.match(ff.reason, /중복되지 않는다/);
+});
+
+test("cart coupon: 전환율 상승분이 쿠폰 비용보다 클 때만 실행", async () => {
+  const { planCartCoupon, bestCartCouponDiscount, CART_COUPON_CVR_UPLIFT_PCT } = await import(
+    "../../toss-shop/lib/seller-engine/toss-growth-levers.ts"
+  );
+  assert.equal(CART_COUPON_CVR_UPLIFT_PCT, 45);
+
+  // 할인이 단위순익을 넘으면 팔수록 손해 → 실행 금지
+  const tooDeep = planCartCoupon({
+    priceKrw: 20000, netProfitPerUnitKrw: 1000, abandonedCarts: 100, discountPct: 15,
+  });
+  assert.equal(tooDeep.worthIt, false);
+  assert.ok(tooDeep.netAfterCouponKrw < 0);
+  assert.match(tooDeep.reason, /손해/);
+
+  // 정상 마진이면 이득이어야 하고, 최적 할인율을 찾아야 한다
+  const best = bestCartCouponDiscount({
+    priceKrw: 20000, netProfitPerUnitKrw: 5900, abandonedCarts: 100,
+  });
+  assert.equal(best.worthIt, true);
+  assert.ok(best.expectedNetDeltaKrw > 0);
+  assert.ok(best.netAfterCouponKrw > 0);
+});
