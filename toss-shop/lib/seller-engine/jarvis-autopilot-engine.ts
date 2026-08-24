@@ -16,6 +16,9 @@ import { filterJarvisCertifiedPicks } from "./jarvis-engine";
 import { buildListingDraftFromPick } from "./listing-automation";
 import { analyzeWholesaleComposition } from "./wholesale-composition-engine";
 import { processFulfillmentCycle } from "./fulfillment-engine";
+import { computeSourcingPlan } from "./sourcing-plan";
+import { computeAdEconomics, bestCartCouponDiscount } from "./toss-growth-levers";
+import { getMonthlyGoalKrw } from "./goal-engine";
 
 export const JARVIS_AUTOPILOT_VERSION = "1.0";
 
@@ -55,8 +58,37 @@ export async function runJarvisAutopilotCycle(
     listingDrafts.filter((d) => !["rejected", "failed"].includes(d.status)).map((d) => d.pickId),
   );
 
+  // 이번 사이클에 몇 개를 만들지 목표 달성확률에서 역산한다.
+  // 이미 등록된(published) SKU가 많을수록 필요 수가 줄어든다.
+  const publishedCount = listingDrafts.filter((d) => d.status === "published").length;
+  const repPick = (certified[0] ?? consignmentPicks[0]) as ConsignmentPick | undefined;
+  const sourcingPlan = repPick
+    ? computeSourcingPlan({
+        currentSkus: publishedCount,
+        econ: {
+          baselineDailyUnits: Math.max(0.3, repPick.estimatedDailyUnits ?? 1),
+          netProfitPerUnitKrw:
+            repPick.catalogEntry?.best.netProfitKrw ??
+            Math.max(1, Math.round(repPick.recommendedPriceKrw * 0.25)),
+          competitionIntensity: repPick.competitionIntensity,
+          competitorAvgReviews: repPick.competitorLandscape?.avgReviewCount,
+          seoScore: repPick.seo?.score,
+        },
+        dataQuality: repPick.profitProbability?.confidence === "high" ? "live" : "demo",
+        goalKrw: getMonthlyGoalKrw(),
+      })
+    : null;
+
+  if (sourcingPlan) {
+    actions.push(`소싱 계획: ${sourcingPlan.reason}`);
+  }
+
   if (isAutopilotEnabled() && certified.length) {
-    const maxDrafts = getAutopilotMaxDraftsPerCycle();
+    // 목표에서 역산한 값과 안전 상한 중 작은 쪽을 쓴다
+    const maxDrafts = Math.min(
+      getAutopilotMaxDraftsPerCycle(),
+      sourcingPlan?.dailyTarget ?? getAutopilotMaxDraftsPerCycle(),
+    );
     let createdThisCycle = 0;
     for (const pick of certified as ConsignmentPick[]) {
       if (createdThisCycle >= maxDrafts) break;
@@ -78,6 +110,22 @@ export async function runJarvisAutopilotCycle(
           });
         }
         draft.adCampaign = buildAdCampaignPlan(pick, "consignment");
+
+        // 광고 손익분기 CPC — 토스는 광고 판매분 수수료가 0%라 입찰 상한이 계산된다
+        const unitNet =
+          pick.catalogEntry?.best.netProfitKrw ??
+          Math.max(1, Math.round(pick.recommendedPriceKrw * 0.25));
+        draft.adEconomics = computeAdEconomics({
+          priceKrw: pick.recommendedPriceKrw,
+          grossMarginKrw: unitNet,
+          conversionRatePct: 3,
+          alreadyFeeFree: false,
+        });
+        draft.cartCoupon = bestCartCouponDiscount({
+          priceKrw: pick.recommendedPriceKrw,
+          netProfitPerUnitKrw: unitNet,
+          abandonedCarts: 30,
+        });
 
         listingDrafts.unshift(draft);
         pendingDraftIds.add(pick.id);
