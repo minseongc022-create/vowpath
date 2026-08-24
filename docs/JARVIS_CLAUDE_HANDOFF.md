@@ -344,7 +344,7 @@ npm run check:cron
 ### P2 — 수익 최적화
 
 - [x] Autopilot: certified pick N개/사이클 (기존 TOP 1 고정 → `JARVIS_AUTOPILOT_PICKS_PER_CYCLE` 기본 3, 발주도 동일 수만큼 auto-execute)
-- [ ] Health score 90%+ 모든 env green 가이드 UI
+- [x] Health score 90%+ 모든 env green 가이드 UI — `jarvis-health-check.ts`가 최근 엔진(공급처 게이트·확률·SEO·광고·AI이미지)까지 실제 반영하도록 갱신 + `JARVIS_ENV_FIX_HINTS`로 고치는 법 자동 안내. 실제 90%+ 도달은 여전히 토스/도매꾹/OPENAI 키 연동 필요 (현재 시크릿 0개 기준 63%)
 - [x] Import pick fulfillment flow — `fulfillment-engine.ts`가 수입판매 주문에도 "도매매" 라벨/발주 안내를 붙이던 버그 수정 (pickMode별 안내 분리 + UI 발주 버튼 라벨 수정)
 
 ---
