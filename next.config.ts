@@ -3,6 +3,9 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
+  // undici(ProxyAgent, 토스 API 고정IP 프록시용)는 node: 스킴 내부 임포트를
+  // 쓰는데 webpack이 그걸 못 다뤄서 번들링하지 않고 런타임 require로 남긴다.
+  serverExternalPackages: ["undici"],
   async headers() {
     return [
       {

@@ -2,6 +2,7 @@ import { kv } from "@vercel/kv";
 import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
 import { configFromEnv, tossOAuthUrl, type TossApiConfig } from "./config";
+import { tossFetch } from "./toss-proxy-fetch";
 
 type CachedToken = {
   accessToken: string;
@@ -37,7 +38,7 @@ export async function getAccessToken(
     scope: "toss-shopping-fep:write",
   });
 
-  const res = await fetch(tossOAuthUrl(config.sandbox), {
+  const res = await tossFetch(tossOAuthUrl(config.sandbox), {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -107,7 +108,7 @@ export async function tossApiGet<T>(
     }
   }
 
-  const res = await fetch(url.toString(), {
+  const res = await tossFetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
@@ -135,7 +136,7 @@ export async function tossApiPost<T>(
   const url = new URL(path, base);
   url.searchParams.set("partnerName", config.partnerName);
 
-  const res = await fetch(url.toString(), {
+  const res = await tossFetch(url.toString(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -173,7 +174,7 @@ export async function tossApiPut<T>(
     }
   }
 
-  const res = await fetch(url.toString(), {
+  const res = await tossFetch(url.toString(), {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
