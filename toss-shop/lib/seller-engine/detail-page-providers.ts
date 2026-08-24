@@ -122,9 +122,27 @@ async function fetchExternalDetail(
   }
 }
 
-async function buildOpenAiPremiumDetail(input: HookableDetailInput): Promise<DetailPageProviderResult | null> {
+async function buildOpenAiPremiumDetail(
+  input: HookableDetailInput,
+  category: string,
+): Promise<DetailPageProviderResult | null> {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return null;
+
+  // 도매매 원본 사진을 후커블급으로 업그레이드 — 실패하면 원본 그대로 진행한다
+  // (이미지 생성은 부가 개선일 뿐, 실패로 상세페이지 생성 자체를 막지 않는다)
+  const { upgradeDetailImages } = await import("./ai-image-studio");
+  const upgraded = await upgradeDetailImages({
+    heroImageUrl: input.images[0],
+    category,
+    productLabel: input.title,
+    sellingPoints: input.sellingPoints,
+  });
+  const heroImage = upgraded.heroUrl ?? input.images[0];
+  const galleryImages = upgraded.heroUrl ? [upgraded.heroUrl, ...input.images.slice(1)] : input.images;
+  const badgeLines = upgraded.badges
+    .map((b) => `  - "${b.text}" 배지 이미지: ${b.url}`)
+    .join("\n");
 
   const prompt = `토스쇼핑 프리미um 상세페이지 HTML을 생성하세요. Hookable/Draph보다 전환율 높은 레이아웃.
 
@@ -133,12 +151,14 @@ async function buildOpenAiPremiumDetail(input: HookableDetailInput): Promise<Det
 가격: ${input.priceKrw.toLocaleString()}원
 셀링포인트: ${input.sellingPoints.join(" / ")}
 설명: ${input.description.slice(0, 600)}
-이미지 URL (${input.images.length}개): ${input.images.slice(0, 6).join(", ")}
+이미지 URL (${galleryImages.length}개): ${galleryImages.slice(0, 6).join(", ")}
+히어로 이미지(AI 배경 재구성 여부: ${upgraded.heroUrl ? "완료 — 이 URL을 히어로로 사용" : "없음 — 원본 사용"}): ${heroImage}
+${upgraded.badges.length ? `AI 생성 셀링포인트 배지 이미지:\n${badgeLines}` : ""}
 
 요구사항:
 - 완전한 <!DOCTYPE html> 단일 파일
 - 모바일 최적, Pretendard 폰트
-- 히어로 → 갤러리(img src 그대로) → 혜택 5개 → 스토리 → 신뢰 배지
+- 히어로(위 히어로 이미지 URL 사용) → 갤러리(img src 그대로) → 혜택 5개(배지 이미지가 있으면 아이콘 대신 배지 이미지 사용) → 스토리 → 신뢰 배지
 - 인라인 CSS만, JS 없음
 - 한국어`;
 
@@ -166,10 +186,10 @@ async function buildOpenAiPremiumDetail(input: HookableDetailInput): Promise<Det
     return {
       status: "ready",
       html,
-      thumbnailUrl: input.images[0],
-      generatedImages: input.images,
+      thumbnailUrl: heroImage,
+      generatedImages: galleryImages,
       provider: "openai_premium",
-      costEstimateKrw: 150,
+      costEstimateKrw: upgraded.heroUrl || upgraded.badges.length ? 150 + 40 * (1 + upgraded.badges.length) : 150,
     };
   } catch {
     return null;
@@ -253,7 +273,7 @@ export async function requestDetailPageFromProviders(
     brandLabel: "Jarvis Pick",
   };
 
-  const openAi = await buildOpenAiPremiumDetail(hookableInput);
+  const openAi = await buildOpenAiPremiumDetail(hookableInput, matchcutInput.pick.category);
   if (openAi?.status === "ready") return openAi;
 
   try {

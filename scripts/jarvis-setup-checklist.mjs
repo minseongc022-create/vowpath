@@ -68,6 +68,14 @@ const GROUPS = [
       ["JARVIS_AUTOPILOT_PICKS_PER_CYCLE", false],
     ],
   },
+  {
+    title: "AI 이미지 스튜디오 (선택 — OPENAI_API_KEY 있으면 기본 ON)",
+    keys: [
+      ["JARVIS_AI_IMAGES", false],
+      ["JARVIS_IMAGE_MODEL", false],
+      ["JARVIS_IMAGE_SIZE", false],
+    ],
+  },
 ];
 
 function inVercelJson(key) {
