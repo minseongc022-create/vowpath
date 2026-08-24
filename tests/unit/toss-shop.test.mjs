@@ -848,3 +848,29 @@ test("ai image studio: 이미지 API가 실패해도 null/빈배열로 안전 �
   const badges = await generateSellingPointBadges({ sellingPoints: ["당일발송"] });
   assert.deepEqual(badges, []);
 });
+
+test("health check: 최근 추가된 엔진(공급처 게이트·확률·SEO·광고·AI이미지)이 반영된다", async () => {
+  const { runJarvisHealthCheck } = await import("../../toss-shop/lib/seller-engine/jarvis-health-check.ts");
+  const { envFixHintForCheck } = await import("../../toss-shop/lib/seller-engine/jarvis-config.ts");
+
+  const report = runJarvisHealthCheck({ hasOpenAi: false });
+  const ids = report.checks.map((c) => c.id);
+  for (const id of [
+    "supplier_grade_gate", "profit_probability", "toss_seo_policy", "growth_levers", "ai_image_studio",
+  ]) {
+    assert.ok(ids.includes(id), `헬스체크에 ${id}가 있어야`);
+  }
+
+  // DOMEGGOOK_API_KEY, OPENAI_API_KEY 없으면 해당 항목은 실패로 표시되고 고치는 법이 있어야 한다
+  const gate = report.checks.find((c) => c.id === "supplier_grade_gate");
+  const images = report.checks.find((c) => c.id === "ai_image_studio");
+  assert.equal(gate.passed, false);
+  assert.equal(images.passed, false);
+  assert.ok(envFixHintForCheck("supplier_grade_gate"));
+  assert.ok(envFixHintForCheck("ai_image_studio"));
+
+  // chatPromises에도 새 항목이 보고되어야 사용자가 대시보드에서 놓치지 않는다
+  const topics = report.chatPromises.map((p) => p.topic);
+  assert.ok(topics.some((t) => t.includes("1등급")));
+  assert.ok(topics.some((t) => t.includes("AI 이미지")));
+});
