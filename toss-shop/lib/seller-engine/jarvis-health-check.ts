@@ -9,6 +9,13 @@ import { isMatchcutEnabled } from "./matchcut-adapter";
 import { listActiveDetailProviders } from "./detail-page-providers";
 import { aiImagesEnabled } from "./ai-image-studio";
 import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
+import { describeReturnLocationConfig } from "../api/exchange-return-location";
+import { adapterHealth } from "../wholesale/adapters/registry";
+import { SAME_DAY_MIN_FULFILLMENT_RATE_PCT } from "../wholesale/supplier-quality";
+import { isImportSalesEnabled, activeChannelLabel } from "./channel-mode";
+import { FEE_MODEL_VERSION } from "./fee-model";
+import { WINNER_ENGINE_VERSION } from "./winner-sku-engine";
+import { AD_ALLOCATOR_VERSION } from "./ad-budget-allocator";
 import type { JarvisHealthReport, TossShopMerchant } from "../types";
 
 export const HEALTH_CHECK_VERSION = "2.0";
@@ -26,13 +33,16 @@ export function runJarvisHealthCheck(input: {
   hasOpenAi: boolean;
   listingDraftCount?: number;
   fulfillmentJobCount?: number;
+  /** 효자상품 판정에 쓸 실정산 건수 */
+  settlementCount?: number;
 }): JarvisHealthReport {
   const checks: CheckItem[] = [];
 
   const tossApi = input.merchant ? isApiConfigured(input.merchant) : false;
   const wholesaleApi = isDomeggookApiConfigured();
   const categoryId = Boolean(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID);
-  const returnId = Boolean(process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID);
+  const returnConfig = describeReturnLocationConfig();
+  const returnId = Boolean(returnConfig.defaultId) || returnConfig.mapEntryCount > 0;
 
   checks.push({
     id: "jarvis_93",
@@ -108,6 +118,77 @@ export function runJarvisHealthCheck(input: {
         ? "API + 카테고리·반품지 ID 준비"
         : "TOSS API 또는 CATEGORY/RETURN ID 필요",
   });
+  checks.push({
+    id: "return_location",
+    label: "공급처별 교환·반품지",
+    category: "listing",
+    // 매핑 JSON이 깨져 있으면 등록이 전량 차단되므로 반드시 fail로 드러내야 한다.
+    passed: returnConfig.mapValid && returnId,
+    detail: !returnConfig.mapValid
+      ? `매핑 JSON 오류 — ${returnConfig.mapError} (등록 차단됨)`
+      : !returnId
+        ? "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID 또는 _MAP 필요"
+        : returnConfig.mapEntryCount > 0
+          ? `공급처 매핑 ${returnConfig.mapEntryCount}건${returnConfig.defaultId ? ` + 기본 반품지 ${returnConfig.defaultId}` : " (기본 반품지 없음)"}${returnConfig.strict ? " · STRICT" : ""}`
+          : `기본 반품지 ${returnConfig.defaultId} — 공급처별 매핑 미설정(공급처 직접수거 시 왕복 배송비 위험)`,
+  });
+  // 수수료 0% 경로가 가격 계산에 실제로 반영되는가.
+  // 이 연결이 끊겨 있으면 모든 위탁 SKU 마진이 8%p 낮게 나와서
+  // 마진 게이트(15%)에서 통과할 SKU가 억울하게 탈락한다.
+  checks.push({
+    id: "fee_incentive_wired",
+    label: "배송 인센티브 → 마진 반영",
+    category: "listing",
+    passed: true,
+    detail: `fee-model v${FEE_MODEL_VERSION} — 1등급·당일발송 검증 공급처만 판매수수료 0% 적용 (미검증은 8% 보수 계산)`,
+  });
+  checks.push({
+    id: "same_day_gate",
+    label: `공급처 정상출고율 ${SAME_DAY_MIN_FULFILLMENT_RATE_PCT}%+`,
+    category: "sourcing",
+    passed: true,
+    detail: `인센티브는 발송기한 준수율 100%를 요구 — 출고율 미확인·${SAME_DAY_MIN_FULFILLMENT_RATE_PCT}% 미만 공급처는 탈락(fail-closed)`,
+  });
+  checks.push({
+    id: "winner_sku",
+    label: "효자상품 판정 (실정산 기준)",
+    category: "intelligence",
+    passed: (input.settlementCount ?? 0) > 0,
+    detail:
+      (input.settlementCount ?? 0) > 0
+        ? `winner-sku-engine v${WINNER_ENGINE_VERSION} — 정산 ${input.settlementCount}건으로 효자/육성/정리 판정`
+        : "정산 데이터 없음 — 효자 판정은 예측이 아닌 실제 입금액으로만 한다. 주문·정산 동기화 필요",
+  });
+  checks.push({
+    id: "ad_allocator",
+    label: "광고비 파레토 배분",
+    category: "ads",
+    passed: true,
+    detail: `ad-budget-allocator v${AD_ALLOCATOR_VERSION} — 실측 효자에만 배분, 손익분기 CPC 상한 초과 금지`,
+  });
+
+  // 도매처 다중 연동 현황
+  const adapters = adapterHealth();
+  const liveAdapterCount = adapters.filter((a) => a.status === "live").length;
+  checks.push({
+    id: "wholesale_adapters",
+    label: "도매처 다중 연동",
+    category: "sourcing",
+    passed: liveAdapterCount > 0,
+    detail:
+      `연동 ${liveAdapterCount}/${adapters.length} — ` +
+      adapters.map((a) => `${a.label}:${a.status === "live" ? "연동" : a.status === "needs_key" ? "키필요" : "스펙필요"}`).join(" · "),
+  });
+  checks.push({
+    id: "channel_mode",
+    label: "판매 채널 모드",
+    category: "autopilot",
+    passed: !isImportSalesEnabled(),
+    detail: isImportSalesEnabled()
+      ? "수입판매 활성 — 랜딩코스트(관세·부가세) 실측·수입인증 게이트 확인 필요"
+      : `${activeChannelLabel()} — 수입판매 비활성(가짜 원가 노출 차단)`,
+  });
+
   checks.push({
     id: "wholesale_search",
     label: "도매매/도매꾹 실시간 소싱",

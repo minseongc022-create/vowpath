@@ -26,17 +26,23 @@ export type ApiSyncResult = {
 export async function syncMerchantFromTossApi(
   merchant: TossShopMerchant,
   data: MerchantData,
+  /** merchant 소유 계정 이메일 — 오너일 때만 환경변수 키로 폴백한다 */
+  accountEmail?: string,
 ): Promise<{
   catalog: CatalogProduct[];
   merchant: TossShopMerchant;
   data: MerchantData;
   result: ApiSyncResult;
 }> {
-  const config = await resolveApiConfig(merchant.id, {
-    accessKey: merchant.apiAccessKey,
-    secretKey: merchant.apiSecretKey,
-    sandbox: merchant.apiSandbox,
-  });
+  const config = await resolveApiConfig(
+    merchant.id,
+    {
+      accessKey: merchant.apiAccessKey,
+      secretKey: merchant.apiSecretKey,
+      sandbox: merchant.apiSandbox,
+    },
+    accountEmail,
+  );
 
   if (!config) {
     return {

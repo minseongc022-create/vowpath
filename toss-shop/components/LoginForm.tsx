@@ -80,7 +80,12 @@ export function LoginForm() {
       </div>
 
       <div className="ts-card space-y-5">
-        <TossSellerConnect onDemo={() => void demoLogin()} />
+        {/* 프로덕션에서는 데모 계정이 로그인 불가라 버튼을 숨긴다 */}
+        <TossSellerConnect
+          onDemo={
+            process.env.NEXT_PUBLIC_TOSS_SHOP_DEMO === "0" ? undefined : () => void demoLogin()
+          }
+        />
 
         <button
           type="button"

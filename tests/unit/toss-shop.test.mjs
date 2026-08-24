@@ -122,6 +122,274 @@ test("E2E: consignment pick -> listing draft -> execute (mock Toss API, no real 
   }
 });
 
+// ── 교환·반품지 결정 엔진 ────────────────────────────────────────────
+// 위탁은 공급처마다 반품 수거 방식이 달라(공급처 직접수거 vs 셀러 처리)
+// 반품지를 하나로 고정하면 왕복 배송비 손실·반품 미아·분쟁이 발생한다.
+
+async function loadReturnLocationEngine() {
+  const mod = await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  mod.clearReturnLocationMapCache();
+  return mod;
+}
+
+function clearReturnLocationEnv() {
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+  delete process.env.TOSS_SHOP_RETURN_LOCATION_STRICT;
+}
+
+test("return location: 공급처 단위 > 플랫폼 > 모드 > 기본 순으로 구체적인 것이 이긴다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
+    "domeggook:12345": 201,
+    domeggook: 202,
+    "mode:consignment": 203,
+  });
+
+  // 도매꾹 한 플랫폼 안에 공급사가 수천 개이므로 공급사 ID가 최우선이어야 한다.
+  const bySupplier = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+  assert.equal(bySupplier.locationId, 201);
+  assert.equal(bySupplier.source, "supplier");
+  assert.equal(bySupplier.matchedKey, "domeggook:12345");
+
+  // 매핑되지 않은 공급사 → 같은 플랫폼의 플랫폼 단위 반품지로 내려간다.
+  const byPlatform = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "99999",
+    pickMode: "consignment",
+  });
+  assert.equal(byPlatform.locationId, 202);
+  assert.equal(byPlatform.source, "platform");
+
+  // 매핑에 없는 플랫폼 → 모드 단위
+  const byMode = resolveReturnLocation({ supplierPlatform: "domeme", pickMode: "consignment" });
+  assert.equal(byMode.locationId, 203);
+  assert.equal(byMode.source, "mode");
+
+  // 아무 키도 안 맞으면 기본 반품지 + 경고
+  const byDefault = resolveReturnLocation({ supplierPlatform: "1688", pickMode: "import" });
+  assert.equal(byDefault.locationId, 100);
+  assert.equal(byDefault.source, "default");
+  assert.ok(byDefault.warnings.some((w) => w.includes("왕복 배송비")));
+});
+
+test("return location: 사용자가 직접 지정한 반품지가 항상 최우선", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:12345": 201 });
+
+  const d = resolveReturnLocation({
+    explicitLocationId: 777,
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+  assert.equal(d.locationId, 777);
+  assert.equal(d.source, "explicit");
+});
+
+test("return location: 매핑 JSON이 깨지면 fail-closed로 등록을 차단한다", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+
+  // 기본 반품지가 멀쩡히 있어도 조용히 폴백하면 안 된다 —
+  // 셀러는 매핑이 동작한다고 믿는 동안 전 SKU가 틀린 주소로 등록된다.
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  for (const broken of ["{not-json", "[1,2,3]", '{"domeggook":"셋째창고"}', '{"domeggook":0}']) {
+    process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = broken;
+    clearReturnLocationMapCache();
+    const d = resolveReturnLocation({ supplierPlatform: "domeggook", pickMode: "consignment" });
+    assert.equal(isReturnLocationResolved(d), false, `${broken} 는 차단돼야 함`);
+    assert.equal(d.error.code, "MAP_INVALID");
+    assert.equal(d.locationId, undefined);
+  }
+});
+
+test("return location: STRICT는 매핑 누락을 차단, 기본 모드는 경고 후 진행", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:12345": 201 });
+
+  const lookup = { supplierPlatform: "domeggook", supplierId: "99999", pickMode: "consignment" };
+
+  // 사람이 승인 화면에서 보는 경로 → 경고만 남기고 등록은 진행
+  const lenient = resolveReturnLocation(lookup);
+  assert.equal(isReturnLocationResolved(lenient), true);
+  assert.equal(lenient.source, "default");
+  assert.ok(lenient.warnings.length > 0);
+
+  // 무인 자동등록 경로 → 잘못된 반품지가 수십 건 쌓이므로 차단
+  const strict = resolveReturnLocation({ ...lookup, strict: true });
+  assert.equal(isReturnLocationResolved(strict), false);
+  assert.equal(strict.error.code, "UNMAPPED");
+  assert.ok(strict.error.message.includes("domeggook:99999"));
+
+  // env로도 STRICT를 켤 수 있어야 한다
+  process.env.TOSS_SHOP_RETURN_LOCATION_STRICT = "true";
+  assert.equal(resolveReturnLocation(lookup).error.code, "UNMAPPED");
+});
+
+test("return location: 기본값도 매핑도 없으면 MISSING", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+  clearReturnLocationEnv();
+
+  const d = resolveReturnLocation({ supplierPlatform: "domeggook", pickMode: "consignment" });
+  assert.equal(d.error.code, "MISSING");
+  assert.equal(d.source, "unresolved");
+});
+
+test("return location: 수입 건의 국가명은 플랫폼 키로 오인되지 않는다", async (t) => {
+  const { resolveReturnLocation, buildReturnLocationKeys } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  // 수입에서 supplierPlatform은 "중국"/"일본" 같은 국가명이다.
+  // 반품을 해외로 보낼 수는 없으므로 국가를 공급처처럼 취급하면 안 된다.
+  const keys = buildReturnLocationKeys({ supplierPlatform: "중국", pickMode: "import" });
+  assert.ok(keys.includes("country:중국"));
+  assert.ok(!keys.includes("중국"), "국가명이 플랫폼 키로 새면 안 됨");
+  assert.ok(keys.includes("mode:import"));
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "mode:import": 501 });
+  const d = resolveReturnLocation({ supplierPlatform: "중국", pickMode: "import" });
+  assert.equal(d.locationId, 501, "수입 반품지는 mode:import 국내 주소로 잡혀야 함");
+  assert.equal(d.source, "mode");
+});
+
+test("return location: 매핑 미설정 수입 건은 국내 반품지 확인 경고를 남긴다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  const d = resolveReturnLocation({ supplierPlatform: "중국", pickMode: "import" });
+  assert.equal(d.locationId, 100);
+  assert.ok(d.warnings.some((w) => w.includes("해외로 보낼 수 없습니다")));
+});
+
+test("return location: 숫자 문자열 값과 키 대소문자·공백을 정규화한다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  // Vercel 환경변수는 문자열로만 들어오는 경우가 흔하다.
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "  DomeGgook:AB12  ": "301" });
+  const d = resolveReturnLocation({ supplierPlatform: "domeggook", supplierId: "ab12" });
+  assert.equal(d.locationId, 301);
+  assert.equal(d.source, "supplier");
+});
+
+test("return location: 초안에 결정 근거가 남아 사후 추적이 가능하다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ domeggook: 202 });
+  const d = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+
+  assert.deepEqual(d.triedKeys, ["domeggook:12345", "domeggook", "mode:consignment"]);
+  assert.equal(d.matchedKey, "domeggook");
+  assert.ok(d.engineVersion);
+  // 저장 가능한 순수 데이터여야 KV에 그대로 들어간다
+  assert.deepEqual(JSON.parse(JSON.stringify(d)), d);
+});
+
+test("health check: 반품지 매핑이 깨지면 헬스체크가 fail로 드러낸다", async (t) => {
+  const { runJarvisHealthCheck } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-health-check.ts"
+  );
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{broken";
+  clearReturnLocationMapCache();
+  const broken = runJarvisHealthCheck({ hasOpenAi: false });
+  const brokenCheck = broken.checks.find((c) => c.id === "return_location");
+  assert.ok(brokenCheck, "return_location 체크가 있어야 함");
+  assert.equal(brokenCheck.passed, false);
+  assert.match(brokenCheck.detail, /매핑 JSON 오류/);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:1": 2 });
+  clearReturnLocationMapCache();
+  const okCheck = runJarvisHealthCheck({ hasOpenAi: false }).checks.find(
+    (c) => c.id === "return_location",
+  );
+  assert.equal(okCheck.passed, true);
+  assert.match(okCheck.detail, /공급처 매핑 1건/);
+});
+
+test("publish: 반품지 결정 실패는 등록을 차단하고 근거를 결과에 담는다", async (t) => {
+  const { publishListingToToss } = await import("../../toss-shop/lib/api/create-product.ts");
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  const realFetchForPublish = globalThis.fetch;
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+    globalThis.fetch = realFetchForPublish;
+  });
+
+  let tossCalled = false;
+  globalThis.fetch = async () => {
+    tossCalled = true;
+    return new Response(JSON.stringify({ resultType: "SUCCESS", success: { id: 1 } }), { status: 200 });
+  };
+
+  const draft = {
+    pickMode: "consignment",
+    keyword: "테스트",
+    detailPage: { thumbnailUrl: undefined },
+    listingPayload: {
+      name: "테스트 상품",
+      brandName: "에피로드",
+      salePrice: 19000,
+      originPrice: 20000,
+      searchKeywords: ["테스트"],
+      description: "설명",
+      categoryHint: "생활/홈",
+      deliveryFeeType: "FREE",
+      supplierPlatform: "domeggook",
+      supplierId: "12345",
+    },
+  };
+
+  process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID = "555";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{broken";
+  clearReturnLocationMapCache();
+
+  const res = await publishListingToToss({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    draft,
+    });
+
+  assert.equal(res.ok, false);
+  assert.equal(res.simulated, true, "설정 오류는 초안을 approved로 남겨 재실행 가능해야 함");
+  assert.equal(res.returnLocation.error.code, "MAP_INVALID");
+  assert.equal(tossCalled, false, "반품지가 확정되기 전에 토스를 호출하면 안 됨");
+  delete process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID;
+});
+
 test("jarvis config limits clamp env values", async () => {
   const { getAutopilotMaxDraftsPerCycle, getAutoExecuteMaxPerCycle } = await import(
     "../../toss-shop/lib/seller-engine/jarvis-config.ts"
@@ -183,11 +451,24 @@ test("supplier policy: only 1등급 + 당일발송 passes", async () => {
   const { readSupplierQuality, meetsSupplierPolicy } = await import(
     "../../toss-shop/lib/wholesale/supplier-quality.ts"
   );
-  const pass = readSupplierQuality({ grade: "우수", todayShip: "Y" });
+  // 1등급 + 당일발송 + 출고율 98%+ 세 조건이 모두 필요하다.
+  // 배송 인센티브는 발송기한 준수율 100%를 요구하므로, 출고율이 낮으면
+  // 오늘출발을 약속하는 순간 인센티브가 날아간다.
+  const pass = readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: 99 });
   assert.equal(pass.verified, true);
   assert.equal(pass.grade, "excellent");
   assert.equal(pass.shipSpeed, "same_day");
   assert.equal(meetsSupplierPolicy(pass), true);
+
+  // 출고율 미확인 → 탈락. "모르면 통과"는 fail-closed 위반이다.
+  const noRate = readSupplierQuality({ grade: "우수", todayShip: "Y" });
+  assert.equal(noRate.verified, true, "등급·출고속도는 판독됨");
+  assert.equal(noRate.fulfillmentRatePct, undefined);
+  assert.equal(meetsSupplierPolicy(noRate), false, "출고율 미확인은 오늘출발 약속 불가");
+
+  // 97%는 종전 기준(80%)이면 통과했지만, 오늘출발 전략에서는 탈락이어야 한다.
+  const almost = readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: 97 });
+  assert.equal(meetsSupplierPolicy(almost), false, "98% 미만은 준수율 100%를 못 지킨다");
 
   // 등급은 우수지만 익일발송 → 탈락
   const slowShip = readSupplierQuality({ grade: "우수", avgShipDays: 1 });
@@ -242,7 +523,7 @@ test("jarvis gate rejects picks whose live supplier is not 1등급+당일발송"
 
   const good = computeJarvisConfidence({
     ...base,
-    supplierQuality: readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: 97 }),
+    supplierQuality: readSupplierQuality({ grade: "우수", todayShip: "Y", shipRate: 99 }),
   });
   const goodGate = good.gates.find((g) => g.id === "supplier_grade");
   assert.equal(goodGate.passed, true);
@@ -930,4 +1211,386 @@ test("toss proxy fetch: 프록시 URL이 설정되면 실제로 그 프록시를
   assert.match(out, /DONE/, `자식 프로세스가 정상 완료해야 (exit=${exitCode}, out=${out})`);
   assert.equal(connectCount, 1, "요청이 설정한 프록시로 나가야 한다");
   assert.match(connectHost, /example\.com/);
+});
+
+// ── 수수료 모델: 수수료 0% 경로가 마진에 실제로 반영되는가 ──────────────
+
+test("fee model: 배송 인센티브가 판매수수료를 0%로 만들고 결제수수료만 남긴다", async () => {
+  const { computeFees, effectiveSalesFeeRate } = await import(
+    "../../toss-shop/lib/seller-engine/fee-model.ts"
+  );
+  // 인센티브 없음 — 판매 8% + 결제 2.5%
+  const plain = computeFees(20000);
+  assert.equal(plain.salesFeeRate, 0.08);
+  assert.equal(plain.salesFeeKrw, 1600);
+  assert.equal(plain.paymentFeeKrw, 500);
+  assert.equal(plain.totalFeeKrw, 2100);
+  assert.equal(plain.incentiveApplied, false);
+
+  // 인센티브 적용 — 판매수수료 0%, 결제수수료는 그대로 남는다
+  const inc = computeFees(20000, { deliveryIncentiveEligible: true });
+  assert.equal(inc.salesFeeRate, 0);
+  assert.equal(inc.totalFeeKrw, 500);
+  assert.equal(inc.incentiveApplied, true);
+
+  // 건당 1,600원 차이 = 판매가의 8%
+  assert.equal(plain.totalFeeKrw - inc.totalFeeKrw, 1600);
+  assert.equal(effectiveSalesFeeRate({ deliveryIncentiveEligible: true }), 0);
+});
+
+test("fee model: 기본값은 보수적(8%) — 낙관값이 조용히 새면 안 된다", async () => {
+  const { effectiveSalesFeeRate } = await import("../../toss-shop/lib/seller-engine/fee-model.ts");
+  assert.equal(effectiveSalesFeeRate(), 0.08);
+  assert.equal(effectiveSalesFeeRate({}), 0.08);
+  assert.equal(effectiveSalesFeeRate({ deliveryIncentiveEligible: false }), 0.08);
+});
+
+test("fee model: 광고 유입분만 면제되어 가중평균된다", async () => {
+  const { effectiveSalesFeeRate } = await import("../../toss-shop/lib/seller-engine/fee-model.ts");
+  // 광고 유입 50%면 실효 판매수수료는 4%
+  assert.equal(effectiveSalesFeeRate({ adAttributedSharePct: 50 }), 0.04);
+  assert.equal(effectiveSalesFeeRate({ adAttributedSharePct: 100 }), 0);
+  // 범위를 벗어난 값은 클램프
+  assert.equal(effectiveSalesFeeRate({ adAttributedSharePct: 500 }), 0);
+  assert.equal(effectiveSalesFeeRate({ adAttributedSharePct: -20 }), 0.08);
+  // 인센티브가 걸리면 광고 비중과 무관하게 0%
+  assert.equal(
+    effectiveSalesFeeRate({ deliveryIncentiveEligible: true, adAttributedSharePct: 10 }),
+    0,
+  );
+});
+
+test("fee model: 인센티브가 마진을 8%p 끌어올린다 (마진 게이트 통과 여부가 갈린다)", async () => {
+  const { marginPct } = await import("../../toss-shop/lib/seller-engine/pricing.ts");
+  // 마진 게이트가 15%인데, 이 원가 구간(공급가 15,500 / 판매가 20,000)은
+  // 인센티브 없이는 12%로 탈락하고 인센티브가 걸리면 20%로 통과한다.
+  // 연결이 끊겨 있던 동안 이 구간의 SKU가 전부 억울하게 떨어지고 있었다.
+  const cost = 15500;
+  const price = 20000;
+  const without = marginPct(cost, price);
+  const withInc = marginPct(cost, price, { deliveryIncentiveEligible: true });
+  assert.equal(without, 12);
+  assert.equal(withInc, 20);
+  assert.ok(withInc - without >= 7.9 && withInc - without <= 8.1, `8%p 차이여야: ${without} → ${withInc}`);
+  assert.ok(without < 15, `인센티브 없이 ${without}% — 게이트 탈락`);
+  assert.ok(withInc >= 15, `인센티브 적용 시 ${withInc}% — 게이트 통과`);
+});
+
+// ── 효자상품 엔진: 실정산 기준 판정 ───────────────────────────────────
+
+function settlement(id, date, product, payout, status = "matched") {
+  return {
+    id, orderId: id, orderDate: date, productName: product,
+    grossKrw: payout + 800, platformFeeKrw: 800, shippingFeeKrw: 0,
+    expectedPayoutKrw: payout, status,
+  };
+}
+
+/** n일간 매일 payout씩 팔린 SKU */
+function steadySales(product, days, payout, startDay = 1) {
+  return Array.from({ length: days }, (_, i) => {
+    const d = String(startDay + i).padStart(2, "0");
+    return settlement(`${product}-${i}`, `2026-08-${d}`, product, payout);
+  });
+}
+
+test("winner engine: 정산 데이터가 없으면 판정하지 않고 이유를 남긴다", async () => {
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  const r = analyzeWinnerSkus({ settlements: [], goalKrw: 10_000_000 });
+  assert.equal(r.skus.length, 0);
+  assert.equal(r.actualMonthlyNetKrw, 0);
+  assert.match(r.brief, /예측이 아니라 실제 입금액/);
+});
+
+test("winner engine: 표본 부족 SKU는 효자로 판정하지 않는다 (fail-closed)", async () => {
+  const { analyzeWinnerSkus, MIN_ORDERS_FOR_GRADE } = await import(
+    "../../toss-shop/lib/seller-engine/winner-sku-engine.ts"
+  );
+  // 3건만 팔렸지만 건당 금액이 큰 SKU — 크기만 보면 효자로 오인된다
+  const rows = [
+    settlement("a1", "2026-08-01", "대박상품", 900000),
+    settlement("a2", "2026-08-02", "대박상품", 900000),
+    settlement("a3", "2026-08-03", "대박상품", 900000),
+  ];
+  const r = analyzeWinnerSkus({ settlements: rows, goalKrw: 10_000_000 });
+  const sku = r.skus[0];
+  assert.equal(sku.grade, "insufficient_data", "3건으로 효자 판정하면 안 된다");
+  assert.equal(r.heroes.length, 0);
+  assert.ok(MIN_ORDERS_FOR_GRADE > 3);
+});
+
+test("winner engine: 크고 꾸준한 SKU만 효자가 된다", async () => {
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  // 30일간 매일 20,000원 → 월 60만원 = 목표 1,000만원의 6%
+  const rows = steadySales("효자상품", 30, 20000);
+  const r = analyzeWinnerSkus({ settlements: rows, goalKrw: 10_000_000 });
+  const sku = r.skus[0];
+  assert.equal(sku.grade, "hero", `효자여야 하는데 ${sku.grade} (${sku.reason})`);
+  assert.ok(sku.monthlyNetKrw >= 500000);
+  assert.ok(sku.consistencyScore >= 90, "매일 팔렸으므로 꾸준함이 높아야");
+  assert.equal(r.heroes.length, 1);
+  assert.ok(r.actualMonthlyNetKrw > 0);
+});
+
+test("winner engine: 꺾인 SKU는 크기와 무관하게 하락으로 잡는다", async () => {
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  // 전반 15일은 잘 팔리다 후반 15일에 급감
+  const strong = steadySales("하락상품", 15, 40000, 1);
+  const weak = steadySales("하락상품", 15, 3000, 16).map((r, i) => ({ ...r, id: `w${i}`, orderId: `w${i}` }));
+  const r = analyzeWinnerSkus({ settlements: [...strong, ...weak], goalKrw: 10_000_000 });
+  const sku = r.skus[0];
+  assert.ok(sku.trendPct <= -30, `추세가 크게 꺾여야: ${sku.trendPct}%`);
+  assert.equal(sku.grade, "declining");
+  assert.equal(r.heroes.length, 0, "꺾인 SKU는 효자가 아니다");
+});
+
+test("winner engine: 기여도 낮은 SKU는 정리대상으로 분류된다", async () => {
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  // 30일간 매일 100원 → 월 3,000원, 목표의 0.03%
+  const r = analyzeWinnerSkus({ settlements: steadySales("소액상품", 30, 100), goalKrw: 10_000_000 });
+  assert.equal(r.skus[0].grade, "drain");
+  assert.equal(r.drains.length, 1);
+  assert.ok(r.nextActions.some((a) => a.includes("정리대상")));
+});
+
+test("winner engine: 파레토와 목표까지 필요한 효자 수를 실측으로 낸다", async () => {
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  const rows = [
+    ...steadySales("효자A", 30, 25000),
+    ...steadySales("효자B", 30, 20000),
+    ...steadySales("소액C", 30, 300),
+    ...steadySales("소액D", 30, 200),
+    ...steadySales("소액E", 30, 100),
+  ];
+  const r = analyzeWinnerSkus({ settlements: rows, goalKrw: 10_000_000 });
+  assert.equal(r.heroes.length, 2);
+  assert.ok(r.paretoTopSharePct >= 50, `상위 20%가 대부분을 만들어야: ${r.paretoTopSharePct}%`);
+  // 아직 목표 미달이므로 추가 효자가 필요하다고 계산되어야 한다
+  assert.ok(r.actualMonthlyNetKrw < 10_000_000);
+  assert.ok(r.heroesNeededForGoal > 0);
+  assert.match(r.brief, /효자 \d+개 더 필요/);
+});
+
+// ── 광고비 배분: 실측 효자에만, 손익분기 상한 준수 ─────────────────────
+
+test("ad allocator: 검증 안 된 SKU에는 예산을 태우지 않는다", async () => {
+  const { allocateAdBudget } = await import("../../toss-shop/lib/seller-engine/ad-budget-allocator.ts");
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  // 표본 부족 SKU만 존재
+  const winners = analyzeWinnerSkus({
+    settlements: [settlement("x1", "2026-08-01", "신상품", 5000)],
+    goalKrw: 10_000_000,
+  });
+  const plan = allocateAdBudget({
+    totalDailyBudgetKrw: 50000,
+    winners,
+    candidates: [
+      { productName: "신상품", priceKrw: 20000, grossMarginKrw: 6000, conversionRatePct: 3, alreadyFeeFree: false },
+    ],
+  });
+  assert.equal(plan.allocatedDailyKrw, 0, "실판매 미검증 SKU에 태우면 예측 오차에 돈을 거는 것");
+  assert.equal(plan.paused.length, 1);
+  assert.match(plan.paused[0].reason, /표본 부족/);
+  assert.ok(plan.warnings.length > 0);
+});
+
+test("ad allocator: 효자에 예산이 집중되고 손익분기 CPC를 넘지 않는다", async () => {
+  const { allocateAdBudget } = await import("../../toss-shop/lib/seller-engine/ad-budget-allocator.ts");
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  const winners = analyzeWinnerSkus({
+    settlements: [...steadySales("효자상품", 30, 20000), ...steadySales("소액상품", 30, 100)],
+    goalKrw: 10_000_000,
+  });
+  const plan = allocateAdBudget({
+    totalDailyBudgetKrw: 50000,
+    winners,
+    candidates: [
+      { productName: "효자상품", priceKrw: 20000, grossMarginKrw: 6000, conversionRatePct: 4, alreadyFeeFree: false },
+      { productName: "소액상품", priceKrw: 20000, grossMarginKrw: 6000, conversionRatePct: 4, alreadyFeeFree: false },
+    ],
+  });
+  const hero = plan.allocations.find((a) => a.productName === "효자상품");
+  assert.ok(hero, "효자에 배분되어야");
+  assert.equal(hero.grade, "hero");
+  assert.equal(hero.action, "scale");
+  // 손익분기 CPC = 판매가 × 8% × 전환율 = 20000 × 0.08 × 0.04 = 64
+  assert.equal(hero.maxCpcKrw, 64);
+  assert.equal(hero.economics.feeSavedPerSaleKrw, 1600);
+  // 정리대상에는 한 푼도 안 간다
+  assert.ok(!plan.allocations.some((a) => a.productName === "소액상품"));
+  assert.ok(plan.paused.some((p) => p.productName === "소액상품"));
+});
+
+test("ad allocator: 이미 수수료 0%인 SKU는 광고 중복 효과가 없어 비중을 낮춘다", async () => {
+  const { allocateAdBudget } = await import("../../toss-shop/lib/seller-engine/ad-budget-allocator.ts");
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  const winners = analyzeWinnerSkus({
+    settlements: steadySales("효자상품", 30, 20000),
+    goalKrw: 10_000_000,
+  });
+  const plan = allocateAdBudget({
+    totalDailyBudgetKrw: 50000,
+    winners,
+    candidates: [
+      { productName: "효자상품", priceKrw: 20000, grossMarginKrw: 6000, conversionRatePct: 4, alreadyFeeFree: true },
+    ],
+  });
+  const a = plan.allocations[0];
+  assert.equal(a.action, "reduce");
+  assert.equal(a.economics.feeSavedPerSaleKrw, 0, "면제할 수수료가 없다");
+  assert.ok(a.dailyBudgetKrw < 50000 * 0.5, "비중이 크게 낮아져야");
+  assert.match(a.reason, /중복되지 않아/);
+});
+
+test("ad allocator: 전환율 실측이 없으면 배분을 보류한다", async () => {
+  const { allocateAdBudget } = await import("../../toss-shop/lib/seller-engine/ad-budget-allocator.ts");
+  const { analyzeWinnerSkus } = await import("../../toss-shop/lib/seller-engine/winner-sku-engine.ts");
+  const winners = analyzeWinnerSkus({
+    settlements: steadySales("효자상품", 30, 20000),
+    goalKrw: 10_000_000,
+  });
+  const plan = allocateAdBudget({
+    totalDailyBudgetKrw: 50000,
+    winners,
+    candidates: [
+      { productName: "효자상품", priceKrw: 20000, grossMarginKrw: 6000, alreadyFeeFree: false },
+    ],
+  });
+  assert.equal(plan.allocatedDailyKrw, 0);
+  assert.match(plan.paused[0].reason, /전환율 실측 없음/);
+});
+
+// ── 도매처 어댑터: 미검증 플랫폼은 소싱에 참여하지 않는다 ───────────────
+
+test("wholesale adapters: 스펙 미확보 플랫폼은 검색에 참여하지 않는다", async () => {
+  const { listAdapters, liveAdapters, adapterHealth, searchAllWholesale } = await import(
+    "../../toss-shop/lib/wholesale/adapters/registry.ts"
+  );
+  const all = listAdapters();
+  assert.ok(all.length >= 4, "도매꾹 외 확장 후보가 등록되어야");
+
+  const pending = adapterHealth().filter((a) => a.status === "needs_spec");
+  assert.ok(pending.length > 0);
+  // needs_spec 어댑터는 search 자체가 없어야 한다 — 추정 데이터를 만들 수 없다
+  for (const a of all.filter((x) => x.status() === "needs_spec")) {
+    assert.equal(a.search, undefined, `${a.label}: 스펙 미확보인데 search가 있으면 추측 데이터가 샌다`);
+    assert.ok(a.specNote, `${a.label}: 활성화에 필요한 것이 명시되어야`);
+  }
+
+  // 키 없으면 live 어댑터가 없고, 검색은 빈 결과 + skipped 사유를 준다
+  const prevKey = process.env.DOMEGGOOK_API_KEY;
+  delete process.env.DOMEGGOOK_API_KEY;
+  assert.equal(liveAdapters().length, 0);
+  const res = await searchAllWholesale("테스트", 5);
+  assert.equal(res.listings.length, 0, "미연동 상태에서 추정 상품을 만들면 안 된다");
+  assert.ok(res.skipped.length > 0);
+  if (prevKey) process.env.DOMEGGOOK_API_KEY = prevKey;
+});
+
+// ── 채널 모드: 수입판매 격리 ──────────────────────────────────────────
+
+test("channel mode: 수입판매는 기본 비활성 (가짜 원가 노출 차단)", async () => {
+  const { isImportSalesEnabled, activeChannelLabel } = await import(
+    "../../toss-shop/lib/seller-engine/channel-mode.ts"
+  );
+  const prev = process.env.TOSS_SHOP_IMPORT_SALES_ENABLED;
+  delete process.env.TOSS_SHOP_IMPORT_SALES_ENABLED;
+  assert.equal(isImportSalesEnabled(), false);
+  assert.match(activeChannelLabel(), /위탁 전용/);
+
+  process.env.TOSS_SHOP_IMPORT_SALES_ENABLED = "true";
+  assert.equal(isImportSalesEnabled(), true);
+
+  if (prev === undefined) delete process.env.TOSS_SHOP_IMPORT_SALES_ENABLED;
+  else process.env.TOSS_SHOP_IMPORT_SALES_ENABLED = prev;
+});
+
+// ── 접근 제어: 내 계정만 무료 ─────────────────────────────────────────
+// 이 테스트들은 수익 모델 자체를 지킨다. 깨지면 아무나 무료로 쓰거나,
+// 남이 오너의 토스 상점을 조작할 수 있다는 뜻이다.
+
+test("access: 만료일 없는 pro는 영구 무료가 되지 않는다", async () => {
+  const { getPlanAccess } = await import("../../toss-shop/lib/billing.ts");
+  // 종전에는 plan==="pro" && !proExpiresAt 이면 만료 없이 fullAccess였다
+  const forever = getPlanAccess({ email: "stranger@example.com", plan: "pro" });
+  assert.equal(forever.fullAccess, false, "만료일 없는 pro는 free로 강등되어야");
+  assert.equal(forever.tier, "free");
+
+  const expired = getPlanAccess({
+    email: "stranger@example.com", plan: "pro", proExpiresAt: "2020-01-01T00:00:00.000Z",
+  });
+  assert.equal(expired.fullAccess, false, "만료된 pro는 차단");
+
+  // 실제로 돈을 낸 사람은 막히면 안 된다
+  const valid = getPlanAccess({
+    email: "payer@example.com", plan: "pro", proExpiresAt: "2099-01-01T00:00:00.000Z",
+  });
+  assert.equal(valid.fullAccess, true);
+  const subscriber = getPlanAccess({
+    email: "payer@example.com", plan: "pro", subscriptionStatus: "active",
+  });
+  assert.equal(subscriber.fullAccess, true);
+});
+
+test("access: 오너만 무제한, 나머지는 free", async (t) => {
+  const { getPlanAccess, isOwnerEmail } = await import("../../toss-shop/lib/billing.ts");
+  const prev = process.env.TOSS_SHOP_OWNER_EMAILS;
+  t.after(() => {
+    if (prev === undefined) delete process.env.TOSS_SHOP_OWNER_EMAILS;
+    else process.env.TOSS_SHOP_OWNER_EMAILS = prev;
+  });
+  process.env.TOSS_SHOP_OWNER_EMAILS = "owner@example.com";
+
+  assert.equal(isOwnerEmail("owner@example.com"), true);
+  assert.equal(isOwnerEmail("OWNER@example.com"), true, "대소문자 무관");
+  assert.equal(isOwnerEmail("owner@example.com.evil.com"), false, "부분일치로 뚫리면 안 됨");
+  assert.equal(isOwnerEmail("notowner@example.com"), false);
+
+  assert.equal(getPlanAccess({ email: "owner@example.com", plan: "free" }).fullAccess, true);
+  assert.equal(getPlanAccess({ email: "stranger@example.com", plan: "free" }).fullAccess, false);
+});
+
+test("access: 오너 아닌 계정은 환경변수 토스 API 키를 상속받지 못한다", async (t) => {
+  const { resolveApiConfig } = await import("../../toss-shop/lib/api/client.ts");
+  const prevOwner = process.env.TOSS_SHOP_OWNER_EMAILS;
+  const prevKey = process.env.TOSS_SHOPPING_ACCESS_KEY;
+  const prevSecret = process.env.TOSS_SHOPPING_SECRET_KEY;
+  t.after(() => {
+    if (prevOwner === undefined) delete process.env.TOSS_SHOP_OWNER_EMAILS;
+    else process.env.TOSS_SHOP_OWNER_EMAILS = prevOwner;
+    if (prevKey === undefined) delete process.env.TOSS_SHOPPING_ACCESS_KEY;
+    else process.env.TOSS_SHOPPING_ACCESS_KEY = prevKey;
+    if (prevSecret === undefined) delete process.env.TOSS_SHOPPING_SECRET_KEY;
+    else process.env.TOSS_SHOPPING_SECRET_KEY = prevSecret;
+  });
+  process.env.TOSS_SHOP_OWNER_EMAILS = "owner@example.com";
+  process.env.TOSS_SHOPPING_ACCESS_KEY = "OWNER_LIVE_KEY";
+  process.env.TOSS_SHOPPING_SECRET_KEY = "OWNER_LIVE_SECRET";
+
+  // 남의 merchant — env 키로 폴백하면 오너 상점을 조작할 수 있다
+  const stranger = await resolveApiConfig("merch_stranger", {}, "stranger@example.com");
+  assert.equal(stranger, null, "남에게 오너 키가 새면 안 된다");
+
+  // 이메일 자체가 없을 때도 폴백 금지 (호출부가 빠뜨린 경우)
+  const unknown = await resolveApiConfig("merch_unknown", {});
+  assert.equal(unknown, null, "소유자 미상이면 폴백 금지");
+
+  // 오너는 정상 동작해야 한다
+  const owner = await resolveApiConfig("merch_owner", {}, "owner@example.com");
+  assert.ok(owner, "오너까지 막히면 안 된다");
+  assert.equal(owner.accessKey, "OWNER_LIVE_KEY");
+
+  // 자기 키를 가진 셀러는 소유자와 무관하게 자기 키를 쓴다
+  const own = await resolveApiConfig("merch_self", { accessKey: "MY_KEY", secretKey: "MY_SECRET" });
+  assert.equal(own.accessKey, "MY_KEY");
+});
+
+test("access: Pro 활성화 코드가 저장소에 커밋되어 있지 않다", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vercel = JSON.parse(readFileSync(new URL("../../vercel.json", import.meta.url), "utf8"));
+  const committed = vercel.build?.env?.TOSS_SHOP_PRO_ACTIVATION_CODE;
+  assert.equal(
+    committed, undefined,
+    "활성화 코드가 vercel.json에 있으면 저장소를 보는 누구나 무료 Pro를 받는다",
+  );
 });

@@ -33,11 +33,30 @@ export type SupplierQuality = {
   reason: string;
 };
 
-/** 도매꾹 Open API 응답에서 등급/출고 관련 값이 담길 수 있는 필드 후보 */
-const GRADE_FIELDS = ["grade", "sellerGrade", "seller_grade", "lvl", "level", "sellerLevel"];
-const SHIP_DAY_FIELDS = ["shipDays", "avgShipDays", "deliAvgDay", "avgDeliveryDay", "outDays"];
-const SHIP_FLAG_FIELDS = ["todayShip", "isTodayShip", "sameDay", "isSameDayShip", "todayDeli"];
-const RATE_FIELDS = ["shipRate", "fulfillRate", "normalShipRate", "deliveryRate"];
+/**
+ * 등급/출고 값이 담길 수 있는 필드 후보.
+ *
+ * ⚠️ 이 후보군은 **도매꾹/도매매 응답 기준**이다. 다른 도매 플랫폼은 필드명이
+ * 전혀 다르므로, 이 기본값을 그대로 쓰면 전부 판독 실패 → verified:false →
+ * 전량 탈락한다. fail-closed라 안전하긴 하지만 그 플랫폼 상품이 하나도
+ * 안 올라간다. 그래서 플랫폼별 어댑터가 자기 필드맵을 넘기도록 한다.
+ */
+export type SupplierQualityFieldMap = {
+  grade: string[];
+  shipDays: string[];
+  shipFlag: string[];
+  rate: string[];
+  /** 판매자 정보가 중첩될 수 있는 키 */
+  nested: string[];
+};
+
+export const DOMEGGOOK_QUALITY_FIELDS: SupplierQualityFieldMap = {
+  grade: ["grade", "sellerGrade", "seller_grade", "lvl", "level", "sellerLevel"],
+  shipDays: ["shipDays", "avgShipDays", "deliAvgDay", "avgDeliveryDay", "outDays"],
+  shipFlag: ["todayShip", "isTodayShip", "sameDay", "isSameDayShip", "todayDeli"],
+  rate: ["shipRate", "fulfillRate", "normalShipRate", "deliveryRate"],
+  nested: ["seller", "sellerInfo", "supplier", "deli"],
+};
 
 function pick(src: Record<string, unknown>, fields: string[]): { value: unknown; from: string } | null {
   for (const f of fields) {
@@ -86,7 +105,10 @@ function normalizeGrade(v: unknown): SupplierGrade | undefined {
  * 도매꾹/도매매 상품 응답 객체에서 공급처 품질을 판독한다.
  * 판독 실패 시 verified:false (게이트에서 탈락) — 추측하지 않는다.
  */
-export function readSupplierQuality(raw: unknown): SupplierQuality {
+export function readSupplierQuality(
+  raw: unknown,
+  fields: SupplierQualityFieldMap = DOMEGGOOK_QUALITY_FIELDS,
+): SupplierQuality {
   const readFrom: string[] = [];
   if (!raw || typeof raw !== "object") {
     return {
@@ -100,13 +122,13 @@ export function readSupplierQuality(raw: unknown): SupplierQuality {
 
   // 상품 객체 안에 판매자 정보가 중첩될 수 있으므로 평탄화해서 함께 검사
   const obj = raw as Record<string, unknown>;
-  const nested = ["seller", "sellerInfo", "supplier", "deli"]
+  const nested = fields.nested
     .map((k) => obj[k])
     .filter((v): v is Record<string, unknown> => Boolean(v) && typeof v === "object");
   const flat: Record<string, unknown> = Object.assign({}, ...nested, obj);
 
   let grade: SupplierGrade = "unknown";
-  const gHit = pick(flat, GRADE_FIELDS);
+  const gHit = pick(flat, fields.grade);
   if (gHit) {
     const g = normalizeGrade(gHit.value);
     if (g) {
@@ -118,7 +140,7 @@ export function readSupplierQuality(raw: unknown): SupplierQuality {
   let shipSpeed: ShipSpeed = "unknown";
   let avgShipDays: number | undefined;
 
-  const flagHit = pick(flat, SHIP_FLAG_FIELDS);
+  const flagHit = pick(flat, fields.shipFlag);
   if (flagHit) {
     const b = toBool(flagHit.value);
     if (b === true) {
@@ -131,7 +153,7 @@ export function readSupplierQuality(raw: unknown): SupplierQuality {
   }
 
   if (shipSpeed === "unknown") {
-    const dHit = pick(flat, SHIP_DAY_FIELDS);
+    const dHit = pick(flat, fields.shipDays);
     const d = dHit ? toNum(dHit.value) : undefined;
     if (dHit && d !== undefined) {
       avgShipDays = d;
@@ -141,7 +163,7 @@ export function readSupplierQuality(raw: unknown): SupplierQuality {
   }
 
   let fulfillmentRatePct: number | undefined;
-  const rHit = pick(flat, RATE_FIELDS);
+  const rHit = pick(flat, fields.rate);
   if (rHit) {
     const r = toNum(rHit.value);
     if (r !== undefined) {
@@ -176,14 +198,31 @@ export function shipLabel(s: ShipSpeed): string {
 }
 
 /**
+ * 배송 인센티브(판매수수료 0%)가 요구하는 발송기한 준수율은 **100%**다.
+ * 준수율이 한 번이라도 깨지면 인센티브가 통째로 날아가고, 발송지연은
+ * 셀러 페널티로도 쌓여 이중으로 맞는다. 그래서 오늘출발을 약속하려면
+ * 공급처의 정상 출고율이 사실상 무결점이어야 한다.
+ *
+ * 종전 기준 80%는 "5건 중 1건 지연"을 허용하는 값이라 오늘출발 전략에서는
+ * 재앙이다. 인센티브 손실 없이 감당 가능한 수준으로 올린다.
+ */
+export const SAME_DAY_MIN_FULFILLMENT_RATE_PCT = 98;
+
+/**
  * 사용자 정책: 1등급(우수) + 당일발송만 통과.
  * 미확인은 통과시키지 않는다 (fail-closed).
+ *
+ * 출고율은 **필수 판독 항목**이다. 종전에는 `!== undefined` 조건이라
+ * 출고율 필드가 없는 공급처는 검사를 통째로 건너뛰었는데, 그건 "모르면 통과"라
+ * 이 파일의 fail-closed 원칙과 정면으로 어긋난다.
  */
 export function meetsSupplierPolicy(q: SupplierQuality | undefined): boolean {
   if (!q || !q.verified) return false;
   if (q.grade !== "excellent") return false;
   if (q.shipSpeed !== "same_day") return false;
-  if (q.fulfillmentRatePct !== undefined && q.fulfillmentRatePct < 80) return false;
+  // 출고율 미확인 = 탈락. 오늘출발은 남의 창고에 거는 약속이라 추측할 수 없다.
+  if (q.fulfillmentRatePct === undefined) return false;
+  if (q.fulfillmentRatePct < SAME_DAY_MIN_FULFILLMENT_RATE_PCT) return false;
   return true;
 }
 
@@ -192,8 +231,11 @@ export function supplierPolicyDetail(q: SupplierQuality | undefined): string {
   if (!q.verified) return q.reason;
   if (q.grade !== "excellent") return `공급사 ${gradeLabel(q.grade)} — 1등급 아님`;
   if (q.shipSpeed !== "same_day") return `${shipLabel(q.shipSpeed)} — 당일발송 아님`;
-  if (q.fulfillmentRatePct !== undefined && q.fulfillmentRatePct < 80) {
-    return `정상출고율 ${q.fulfillmentRatePct}% — 80% 미만`;
+  if (q.fulfillmentRatePct === undefined) {
+    return "정상출고율 미확인 — 오늘출발 약속 불가 (인센티브 준수율 100% 요구)";
+  }
+  if (q.fulfillmentRatePct < SAME_DAY_MIN_FULFILLMENT_RATE_PCT) {
+    return `정상출고율 ${q.fulfillmentRatePct}% — ${SAME_DAY_MIN_FULFILLMENT_RATE_PCT}% 미만이면 발송기한 준수율 100%를 못 지켜 인센티브가 날아간다`;
   }
   return q.reason;
 }

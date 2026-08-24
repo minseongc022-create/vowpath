@@ -19,6 +19,7 @@ import { processFulfillmentCycle } from "./fulfillment-engine";
 import { computeSourcingPlan } from "./sourcing-plan";
 import { computeAdEconomics, bestCartCouponDiscount } from "./toss-growth-levers";
 import { getMonthlyGoalKrw } from "./goal-engine";
+import { analyzeWinnerSkus } from "./winner-sku-engine";
 
 export const JARVIS_AUTOPILOT_VERSION = "1.0";
 
@@ -164,6 +165,22 @@ export async function runJarvisAutopilotCycle(
     }
   }
 
+  // 효자상품 판정 — 예측이 아니라 실제 정산(입금액)으로만 등급을 매긴다.
+  // 광고·재고를 어디에 몰아줄지는 예측 점수가 아니라 이 결과가 정한다.
+  const winners = analyzeWinnerSkus({
+    settlements: input.data.settlements ?? [],
+    goalKrw: getMonthlyGoalKrw(),
+    now,
+  });
+  if (winners.heroes.length) {
+    actions.push(
+      `효자 ${winners.heroes.length}개 확인 (실측 월 ${winners.actualMonthlyNetKrw.toLocaleString()}원 · 목표의 ${winners.goalProgressPct}%)`,
+    );
+  }
+  if (winners.drains.length) {
+    actions.push(`정리대상 ${winners.drains.length}개 — 광고 중단 권고`);
+  }
+
   const certifiedCount = certified.length;
   const pendingReview = listingDrafts.filter((d) => d.status === "pending_review").length;
   const published = listingDrafts.filter((d) => d.status === "published").length;
@@ -191,6 +208,7 @@ export async function runJarvisAutopilotCycle(
       certifiedCount > 0
         ? `Jarvis Autopilot — 인증 SKU ${certifiedCount} · OK대기 ${pendingReview} · 등록 ${published} · 발주대기 ${activeJobs}`
         : "Jarvis Autopilot — 93% 인증 SKU 없음 · 연동·도매매 API 확인",
+    winners,
     nextSteps: buildNextSteps({
       certifiedCount,
       pendingReview,

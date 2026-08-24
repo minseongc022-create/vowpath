@@ -33,6 +33,8 @@ import { decideCatalogEntry } from "./catalog-entry-strategy";
 import { analyzeTitleSeo, buildSearchKeywords } from "./toss-seo-engine";
 import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
+import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
+import type { TossFeeContext } from "./fee-model";
 
 export type SourcingIntegrationContext = {
   tossApiConfigured: boolean;
@@ -183,6 +185,15 @@ export async function generateConsignmentPicks(
         ? landedWholesaleUnitCost(wholesale.bestMatch)
         : estimateSupplierCost(product.priceKrw, product.category);
 
+    // 배송 인센티브(판매수수료 0%)는 공급처가 실제로 1등급·당일발송일 때만
+    // 약속할 수 있다. 미확인 공급처에 0%를 가정하면 마진이 부풀려지므로,
+    // meetsSupplierPolicy가 통과한 live 공급처에 한해서만 적용한다.
+    const feeCtx: TossFeeContext = {
+      deliveryIncentiveEligible:
+        wholesale.bestMatch?.source === "live" &&
+        meetsSupplierPolicy(wholesale.bestMatch?.supplierQuality),
+    };
+
     const pricingPreview = buildV4Enrichment({
       supplierCostKrw: supplierCost,
       competitors,
@@ -192,6 +203,7 @@ export async function generateConsignmentPicks(
       landscapeDominance: "balanced",
       avgReviewCount: 0,
       mode: "consignment",
+      feeCtx,
     });
     const insights = enrichCompetitors(product, catalog, pricingPreview.optimal.priceKrw);
     const landscape = analyzeCompetitorLandscape(insights, pricingPreview.pricing);
@@ -215,6 +227,7 @@ export async function generateConsignmentPicks(
       landscapeDominance: landscape.dominance,
       avgReviewCount: landscape.avgReviewCount,
       mode: "consignment",
+      feeCtx,
     });
 
     let aiSummary = buildAiSummary({

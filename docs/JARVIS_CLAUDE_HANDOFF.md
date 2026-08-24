@@ -3,7 +3,7 @@
 > **대상:** Claude (또는 후속 AI 코딩 에이전트)  
 > **사용자:** minseongc022@gmail.com  
 > **프로덕션:** https://effiroad.com  
-> **Pro 코드:** `effiroad-tspro-539d`  
+> **Pro 코드:** (제거됨 — git 히스토리에 노출되어 폐기)  
 > **목표:** 월 1,000만 원 (토스쇼핑 위탁·Jarvis Full Autopilot)
 
 ---
@@ -204,7 +204,7 @@ NEXT_PUBLIC_SELLER_PULSE_AT_ROOT=1
 NEXT_PUBLIC_APP_URL=https://effiroad.com
 TOSS_SHOP_OWNER_EMAILS=minseongc022@gmail.com
 TOSS_SHOP_KRW_PER_USD=1350
-TOSS_SHOP_PRO_ACTIVATION_CODE=effiroad-tspro-539d
+# TOSS_SHOP_PRO_ACTIVATION_CODE=<새 코드>  # 선택 — 미설정 시 activate_pro 비활성
 JARVIS_AUTOPILOT_ENABLED=true
 ```
 
@@ -357,7 +357,7 @@ npm run check:cron
 - Hookable보다 **싼데 좋은** 상세 → v4에서 OpenAI Premium + Draph API 체인
 - **Coupilot보다** 토스에서 돈 벌기 → 실행력 + v4 시장분석
 - domeme-first, 월 **1천만**, OK gate 후 등록, 송장 자동
-- **effiroad.com** 배포, Pro `effiroad-tspro-539d`
+- **effiroad.com** 배포 · Pro 활성화 코드는 비활성(오너는 이메일로 자동 인증)
 
 ---
 

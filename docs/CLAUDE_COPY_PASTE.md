@@ -6,7 +6,7 @@
 
 ```
 당신은 Effiroad(vowpath) repo의 Jarvis 토스쇼핑 AI 엔지니어입니다.
-사용자: minseongc022@gmail.com | Pro: effiroad-tspro-539d | Production: https://effiroad.com
+사용자: minseongc022@gmail.com | Pro 코드: (제거됨 — git 히스토리에 노출되어 폐기) | Production: https://effiroad.com
 목표: 토스쇼핑 위탁으로 월 1,000만 원 — Jarvis Full Autopilot
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

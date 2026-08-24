@@ -23,6 +23,7 @@ import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
 import { generateConsignmentPicks } from "./seller-engine/consignment";
 import { generateImportPicks } from "./seller-engine/import-sales";
+import { isImportSalesEnabled } from "./seller-engine/channel-mode";
 import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
 import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
@@ -90,7 +91,7 @@ async function loadStore(): Promise<TossShopStore> {
     const raw = await kvGetSafe<TossShopStore>(KV_STORE_KEY);
     if (raw) return normalizeStore(raw);
     const store = defaultStore();
-    store.accounts[0].passwordHash = await hashPassword("demo1234");
+    await seedDemoPassword(store);
     await saveStore(store);
     return store;
   }
@@ -98,14 +99,14 @@ async function loadStore(): Promise<TossShopStore> {
     await mkdir(DATA_DIR, { recursive: true });
     const raw = await readFile(STORE_FILE, "utf8");
     const store = normalizeStore(JSON.parse(raw) as Partial<TossShopStore>);
-    if (!store.accounts[0]?.passwordHash) {
-      store.accounts[0].passwordHash = await hashPassword("demo1234");
+    if (!store.accounts[0]?.passwordHash && demoAccountPassword()) {
+      await seedDemoPassword(store);
       await saveStore(store);
     }
     return store;
   } catch {
     const store = defaultStore();
-    store.accounts[0].passwordHash = await hashPassword("demo1234");
+    await seedDemoPassword(store);
     await saveStore(store);
     return store;
   }
@@ -125,6 +126,32 @@ async function saveStore(store: TossShopStore): Promise<void> {
   } catch {
     // read-only FS
   }
+}
+
+/**
+ * 데모 계정 비밀번호.
+ *
+ * ⚠️ 프로덕션에서는 데모 계정을 만들지 않는다.
+ * 종전에는 어떤 환경에서든 `demo@effiroad.local / demo1234` 계정이 생성됐고,
+ * 이 비밀번호는 strings.ts에 있어 로그인 화면에도 노출된다. 프로덕션에
+ * 고정 비밀번호 계정이 살아 있으면 누구나 들어와 시드 상점 데이터를 만지고,
+ * 다른 데모 사용자와 같은 merchant를 공유하게 된다.
+ *
+ * 로컬/미리보기에서는 데모 체험이 필요하므로 그대로 둔다.
+ */
+function demoAccountPassword(): string | null {
+  if (process.env.VERCEL_ENV === "production") return null;
+  return process.env.TOSS_SHOP_DEMO_PASSWORD?.trim() || "demo1234";
+}
+
+async function seedDemoPassword(store: TossShopStore): Promise<void> {
+  const pw = demoAccountPassword();
+  if (!pw) {
+    // 프로덕션 — 데모 계정을 로그인 불가 상태로 남긴다(빈 해시 = 인증 거부)
+    if (store.accounts[0]) store.accounts[0].passwordHash = "";
+    return;
+  }
+  store.accounts[0].passwordHash = await hashPassword(pw);
 }
 
 function merchantData(store: TossShopStore, merchantId: string): MerchantData {
@@ -175,7 +202,12 @@ export async function createAccount(input: {
     plan,
     usage: { date: todayDateKey(), keywordAnalyses: 0 },
   };
-  const envConfig = configFromEnv();
+  // ⚠️ 환경변수의 토스 API 키는 **오너 계정에만** 붙인다.
+  // 종전에는 모든 신규 가입자의 merchant에 TOSS_SHOPPING_* 키가 주입되어,
+  // 아무나 가입하면 오너의 토스 상점에 상품을 등록하고 주문·정산을 조회할
+  // 수 있었다. 키 유출이자 "내 계정만 무료" 정책이 무너지는 지점이었다.
+  // 일반 셀러는 설정 → API 연동에서 자기 키를 직접 입력해야 한다.
+  const envConfig = isOwnerEmail(account.email) ? configFromEnv() : null;
   if (envConfig) {
     merchant.apiAccessKey = envConfig.accessKey;
     merchant.apiSecretKey = envConfig.secretKey;
@@ -312,7 +344,8 @@ export async function syncMerchantNow(merchantId: string): Promise<{
   if (!merchant) return { ok: false, error: "NOT_FOUND" };
 
   const data = merchantData(store, merchantId);
-  const synced = await syncMerchantFromTossApi(merchant, data);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const synced = await syncMerchantFromTossApi(merchant, data, account?.email);
 
   const idx = store.merchants.findIndex((m) => m.id === merchantId);
   store.merchants[idx] = synced.merchant;
@@ -658,7 +691,8 @@ export async function syncAllMerchants(): Promise<{
   for (const merchant of store.merchants) {
     if (!isApiConfigured(merchant)) continue;
     const data = merchantData(store, merchant.id);
-    const synced = await syncMerchantFromTossApi(merchant, data);
+    const syncAccount = store.accounts.find((a) => a.merchantId === merchant.id);
+    const synced = await syncMerchantFromTossApi(merchant, data, syncAccount?.email);
     const idx = store.merchants.findIndex((m) => m.id === merchant.id);
     store.merchants[idx] = synced.merchant;
     store.merchantData[merchant.id] = synced.data;
@@ -800,11 +834,15 @@ export async function syncAllMerchants(): Promise<{
   for (const merchant of store.merchants) {
     const data = merchantData(store, merchant.id);
     const account = store.accounts.find((a) => a.merchantId === merchant.id);
-    const config = await resolveApiConfig(merchant.id, {
-      accessKey: merchant.apiAccessKey,
-      secretKey: merchant.apiSecretKey,
-      sandbox: merchant.apiSandbox,
-    });
+    const config = await resolveApiConfig(
+      merchant.id,
+      {
+        accessKey: merchant.apiAccessKey,
+        secretKey: merchant.apiSecretKey,
+        sandbox: merchant.apiSandbox,
+      },
+      account?.email,
+    );
     try {
       const report = await runJarvisAutopilotCycle({
         merchantId: merchant.id,
@@ -903,6 +941,21 @@ export async function syncOwnerPlanIfNeeded(accountId: string): Promise<void> {
   }
 }
 
+/**
+ * 기존 계정의 비밀번호를 재설정한다 (오너 프로비저닝 스크립트 전용).
+ * 평문 비밀번호는 저장하지 않고 bcrypt 해시만 남긴다.
+ */
+export async function setAccountPassword(email: string, password: string): Promise<boolean> {
+  const store = await loadStore();
+  const idx = store.accounts.findIndex((a) => a.email.toLowerCase() === email.toLowerCase());
+  if (idx < 0) return false;
+  store.accounts[idx].passwordHash = await hashPassword(password);
+  // 오너 이메일이면 플랜도 오너로 정정한다 (이메일 기준 판정과 일치시킴)
+  if (isOwnerEmail(email)) store.accounts[idx].plan = "owner";
+  await saveStore(store);
+  return true;
+}
+
 export async function findAccountByEmail(email: string): Promise<TossShopAccount | null> {
   const store = await loadStore();
   return store.accounts.find((a) => a.email.toLowerCase() === email.toLowerCase()) ?? null;
@@ -964,6 +1017,11 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
 }
 
 export async function getImportPicksForMerchant(merchantId: string): Promise<ImportPick[]> {
+  // 수입판매 비활성 시 아무것도 내지 않는다. import-sources.ts는 공급가를
+  // 키워드 해시로 생성하고 랜딩코스트에 부가세가 빠져 있어, 표시되는 마진이
+  // 실제보다 낙관적이다. 그 숫자를 근거로 발주하면 돈을 잃는다.
+  if (!isImportSalesEnabled()) return [];
+
   const store = await loadStore();
   const data = merchantData(store, merchantId);
   const merchant = store.merchants.find((m) => m.id === merchantId);
@@ -1037,6 +1095,8 @@ export async function createListingDraftFromPick(input: {
     }
     pick = data.consignmentPicks.find((p) => p.id === input.pickId);
   } else {
+    // 수입 초안 생성도 차단 — 가짜 원가로 만든 초안이 등록까지 가면 안 된다.
+    if (!isImportSalesEnabled()) throw new Error("IMPORT_SALES_DISABLED");
     if (data.importDate !== today || !data.importPicks?.length) {
       data.importPicks = await generateImportPicks(
         store.catalog,
@@ -1112,20 +1172,27 @@ export async function publishApprovedListingDraft(input: {
   draftId: string;
   categoryId?: number;
   exchangeReturnLocationId?: number;
+  /** 무인 자동등록 경로 — 반품지 매핑 누락 시 등록을 차단한다 */
+  strictReturnLocation?: boolean;
 }): Promise<JarvisListingDraft> {
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.id === input.merchantId);
+  const account = store.accounts.find((a) => a.merchantId === input.merchantId);
   const draft = await getListingDraft(input.merchantId, input.draftId);
   if (!draft) throw new Error("DRAFT_NOT_FOUND");
   if (draft.status !== "approved") throw new Error("DRAFT_NOT_APPROVED");
 
   await updateListingDraft(input.merchantId, input.draftId, { status: "publishing" });
 
-  const config = await resolveApiConfig(input.merchantId, {
-    accessKey: merchant?.apiAccessKey,
-    secretKey: merchant?.apiSecretKey,
-    sandbox: merchant?.apiSandbox,
-  });
+  const config = await resolveApiConfig(
+    input.merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
 
   if (!config) {
     return updateListingDraft(input.merchantId, input.draftId, {
@@ -1141,12 +1208,14 @@ export async function publishApprovedListingDraft(input: {
     categoryId: input.categoryId,
     exchangeReturnLocationId: input.exchangeReturnLocationId,
     imageUrl: draft.detailPage.thumbnailUrl,
+    strictReturnLocation: input.strictReturnLocation,
   });
 
   if (!result.ok) {
     return updateListingDraft(input.merchantId, input.draftId, {
       status: result.simulated ? "approved" : "failed",
       publishError: result.error,
+      returnLocation: result.returnLocation,
     });
   }
 
@@ -1155,6 +1224,7 @@ export async function publishApprovedListingDraft(input: {
     publishedAt: new Date().toISOString(),
     tossProductId: result.productId,
     publishError: undefined,
+    returnLocation: result.returnLocation,
   });
 }
 
@@ -1177,6 +1247,8 @@ export async function executeJarvisListing(input: {
   approvedBy: string;
   categoryId?: number;
   exchangeReturnLocationId?: number;
+  /** 무인 자동등록 경로 — 반품지 매핑 누락 시 등록을 차단한다 */
+  strictReturnLocation?: boolean;
 }): Promise<JarvisListingDraft> {
   let draft = await getListingDraft(input.merchantId, input.draftId);
   if (!draft) throw new Error("DRAFT_NOT_FOUND");
@@ -1199,6 +1271,7 @@ export async function executeJarvisListing(input: {
       draftId: input.draftId,
       categoryId: input.categoryId,
       exchangeReturnLocationId: input.exchangeReturnLocationId,
+      strictReturnLocation: input.strictReturnLocation,
     });
   }
 
@@ -1227,11 +1300,15 @@ export async function runAutopilotForMerchant(merchantId: string): Promise<impor
   if (!merchant) throw new Error("MERCHANT_NOT_FOUND");
   const data = merchantData(store, merchantId);
   const account = store.accounts.find((a) => a.merchantId === merchantId);
-  const config = await resolveApiConfig(merchantId, {
-    accessKey: merchant.apiAccessKey,
-    secretKey: merchant.apiSecretKey,
-    sandbox: merchant.apiSandbox,
-  });
+  const config = await resolveApiConfig(
+    merchantId,
+    {
+      accessKey: merchant.apiAccessKey,
+      secretKey: merchant.apiSecretKey,
+      sandbox: merchant.apiSandbox,
+    },
+    account?.email,
+  );
   const report = await runJarvisAutopilotCycle({
     merchantId,
     accountEmail: account?.email ?? "",
@@ -1253,7 +1330,55 @@ export async function getJarvisHealthForMerchant(merchantId: string): Promise<im
     hasOpenAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
     listingDraftCount: data.listingDrafts?.length ?? 0,
     fulfillmentJobCount: data.fulfillmentJobs?.length ?? 0,
+    settlementCount: data.settlements?.length ?? 0,
   });
+}
+
+/**
+ * 효자상품 리포트 + 광고비 배분 계획.
+ *
+ * 효자 판정은 예측이 아니라 **실제 정산 입금액**으로만 한다. 그래서 광고비도
+ * 예측 점수가 아니라 이 결과를 기준으로 배분된다 — 예측에 태우면 예측 오차에
+ * 돈을 거는 것이고, 실적에 태우면 사실에 거는 것이다.
+ */
+export async function getWinnerReportForMerchant(merchantId: string, dailyAdBudgetKrw?: number) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { analyzeWinnerSkus } = await import("./seller-engine/winner-sku-engine");
+  const { allocateAdBudget } = await import("./seller-engine/ad-budget-allocator");
+  const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
+  const { meetsSupplierPolicy } = await import("./wholesale/supplier-quality");
+
+  const winners = analyzeWinnerSkus({
+    settlements: data.settlements ?? [],
+    goalKrw: getMonthlyGoalKrw(),
+  });
+
+  const budget = dailyAdBudgetKrw ?? (Number(process.env.TOSS_SHOP_DAILY_AD_BUDGET_KRW) || 0);
+  if (!budget) return { winners, adPlan: null };
+
+  // 광고 후보는 등록된 초안에서 만든다. 이미 배송 인센티브로 수수료가 0%인
+  // SKU는 광고의 수수료 면제가 중복되지 않으므로 배분기가 비중을 낮춘다.
+  const published = (data.listingDrafts ?? []).filter((d) => d.status === "published");
+  const picks = data.consignmentPicks ?? [];
+  const candidates = published.map((d) => {
+    const pick = picks.find((p) => p.id === d.pickId);
+    const price = d.listingPayload.salePrice;
+    const supplierCost = pick?.supplierCostKrw ?? Math.round(price * 0.62);
+    return {
+      productName: d.listingPayload.name,
+      priceKrw: price,
+      grossMarginKrw: Math.max(0, price - supplierCost),
+      alreadyFeeFree: meetsSupplierPolicy(pick?.wholesaleBest?.supplierQuality),
+    };
+  });
+
+  const adPlan = allocateAdBudget({
+    totalDailyBudgetKrw: budget,
+    winners,
+    candidates,
+  });
+  return { winners, adPlan };
 }
 
 export async function getJarvisAutopilotForMerchant(merchantId: string) {
@@ -1276,6 +1401,7 @@ export async function confirmFulfillmentTracking(input: {
 }) {
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.id === input.merchantId);
+  const account = store.accounts.find((a) => a.merchantId === input.merchantId);
   const data = merchantData(store, input.merchantId);
   const jobs = data.fulfillmentJobs ?? [];
   const idx = jobs.findIndex((j) => j.id === input.jobId);
@@ -1288,11 +1414,15 @@ export async function confirmFulfillmentTracking(input: {
     input.deliveryCompany ?? "CJ대한통운",
   );
 
-  const config = await resolveApiConfig(input.merchantId, {
-    accessKey: merchant?.apiAccessKey,
-    secretKey: merchant?.apiSecretKey,
-    sandbox: merchant?.apiSandbox,
-  });
+  const config = await resolveApiConfig(
+    input.merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
 
   if (config && jobs[idx].pendingTrackingNumber) {
     const { registerOrderTracking } = await import("./api/orders");

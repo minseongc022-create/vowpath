@@ -6,8 +6,8 @@
       "NEXT_PUBLIC_APP_URL": "https://effiroad.com",
       "TOSS_SHOP_OWNER_EMAILS": "minseongc022@gmail.com",
       "TOSS_SHOP_KRW_PER_USD": "1350",
-      "TOSS_SHOP_PRO_ACTIVATION_CODE": "effiroad-tspro-539d",
-      "JARVIS_AUTOPILOT_ENABLED": "true"
+      "JARVIS_AUTOPILOT_ENABLED": "true",
+      "NEXT_PUBLIC_TOSS_SHOP_DEMO": "0"
     }
   },
   "redirects": [

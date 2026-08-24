@@ -83,16 +83,10 @@ export function getPlanAccess(
       isOwner: false,
     };
   }
-  if (account.plan === "pro" && !account.proExpiresAt) {
-    return {
-      tier: "pro",
-      label: "Pro",
-      fullAccess: true,
-      dailyKeywordLimit: null,
-      priceKrw: PRO_PRICE_KRW,
-      isOwner: false,
-    };
-  }
+  // ⚠️ 만료일 없는 pro를 통과시키면 영구 무료가 된다.
+  // 종전에는 `plan === "pro" && !proExpiresAt`를 fullAccess로 처리해서,
+  // 만료일 없이 pro가 붙은 계정은 결제 없이 영원히 전체 기능을 썼다.
+  // 유효한 Pro는 (a) 활성 구독 또는 (b) 미래 만료일 둘 중 하나여야 한다.
   return {
     tier: "free",
     label: "Free",

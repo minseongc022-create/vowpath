@@ -25,6 +25,7 @@ import {
   TossPolicyBriefPanel,
 } from "@/toss-shop/components/PolicyPlaybookCard";
 import { JarvisCommandCenter } from "@/toss-shop/components/JarvisCommandCenter";
+import { WinnerSkuCard } from "@/toss-shop/components/WinnerSkuCard";
 import type { TenMillionPlan } from "@/toss-shop/lib/types";
 
 type BillingInfo = {
@@ -137,6 +138,11 @@ export function DashboardHomeClient() {
 
       <div className="mt-5">
         <JarvisCommandCenter />
+      </div>
+
+      {/* 효자상품은 실측 기반이라 추정 카드들보다 위에 둔다 */}
+      <div className="mt-5">
+        <WinnerSkuCard />
       </div>
 
       <div className="mt-5">

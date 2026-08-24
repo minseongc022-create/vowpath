@@ -1,10 +1,13 @@
 import type { CatalogProduct, CompetitorPriceRef } from "../types";
+import { computeFees, type TossFeeContext } from "./fee-model";
 
-const PLATFORM_FEE_RATE = 0.08;
-const PAYMENT_FEE_RATE = 0.025;
-
-export function estimatePlatformFees(priceKrw: number): number {
-  return Math.round(priceKrw * (PLATFORM_FEE_RATE + PAYMENT_FEE_RATE));
+/**
+ * 수수료는 fee-model.ts가 단일 진실원이다 (배송 인센티브 0% · 광고 유입 0%).
+ * ctx를 주지 않으면 인센티브 없음(판매수수료 8%)으로 보수적으로 계산한다 —
+ * 낙관값을 기본값으로 두면 마진이 조용히 부풀려지기 때문.
+ */
+export function estimatePlatformFees(priceKrw: number, ctx: TossFeeContext = {}): number {
+  return computeFees(priceKrw, ctx).totalFeeKrw;
 }
 
 /** Match or undercut competitors while keeping minimum margin. */
@@ -38,8 +41,8 @@ export function autoMatchPrice(
   return { priceKrw: Math.max(target, minPrice), strategy };
 }
 
-export function marginPct(costKrw: number, sellKrw: number): number {
-  const fees = estimatePlatformFees(sellKrw);
+export function marginPct(costKrw: number, sellKrw: number, ctx: TossFeeContext = {}): number {
+  const fees = estimatePlatformFees(sellKrw, ctx);
   const profit = sellKrw - costKrw - fees;
   return Math.round((profit / sellKrw) * 1000) / 10;
 }
