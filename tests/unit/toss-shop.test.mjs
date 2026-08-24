@@ -375,3 +375,89 @@ test("sourcing plan: daily target respects the safety cap", async () => {
   assert.ok(plan.dailyTarget <= sourcingMaxPerDay(), "상한을 넘으면 안 됨");
   assert.match(plan.reason, /상한/);
 });
+
+test("toss policy: 배송 인센티브는 4조건 모두 충족해야 수수료 0%", async () => {
+  const { evaluateShippingIncentive, tossFees, incentiveProfitUplift } = await import(
+    "../../toss-shop/lib/seller-engine/toss-policy-engine.ts"
+  );
+  const ok = evaluateShippingIncentive({
+    penaltyPoints: 0, todayDispatchEnabled: true, shipmentsLast7BizDays: 3, onTimeRatePct: 100,
+  });
+  assert.equal(ok.eligible, true);
+  assert.equal(ok.salesFeeRate, 0);
+
+  // 4조건 각각이 단독으로 자격을 무효화해야 한다
+  const cases = [
+    { penaltyPoints: 1, todayDispatchEnabled: true, shipmentsLast7BizDays: 3, onTimeRatePct: 100 },
+    { penaltyPoints: 0, todayDispatchEnabled: false, shipmentsLast7BizDays: 3, onTimeRatePct: 100 },
+    { penaltyPoints: 0, todayDispatchEnabled: true, shipmentsLast7BizDays: 0, onTimeRatePct: 100 },
+    { penaltyPoints: 0, todayDispatchEnabled: true, shipmentsLast7BizDays: 3, onTimeRatePct: 99 },
+  ];
+  for (const c of cases) {
+    const v = evaluateShippingIncentive(c);
+    assert.equal(v.eligible, false, `조건 미충족인데 통과됨: ${JSON.stringify(c)}`);
+    assert.ok(v.failed.length > 0 && v.actions.length > 0);
+  }
+
+  // 인센티브는 판매수수료만 0으로, 결제수수료는 남는다
+  assert.ok(tossFees(20000, true) < tossFees(20000, false));
+  assert.ok(tossFees(20000, true) > 0, "결제수수료는 인센티브와 무관하게 발생");
+  assert.equal(incentiveProfitUplift(20000), 1600);
+});
+
+test("toss policy: 카탈로그 대표 미선정이면 노출이 막힌다", async () => {
+  const { evaluateCatalogPosition } = await import("../../toss-shop/lib/seller-engine/toss-policy-engine.ts");
+
+  // 총가격 열세 → 대표 불가 → 자연노출·광고 모두 제한 → 구성 차별화로 탈출
+  const losing = evaluateCatalogPosition({
+    likelyMerged: true, myTotalKrw: 21000, bestTotalKrw: 19000, inStock: true, freeShipping: false,
+  });
+  assert.equal(losing.canWinRepresentative, false);
+  assert.equal(losing.exposureBlocked, true);
+  assert.equal(losing.strategy, "differentiate");
+  assert.equal(losing.gapKrw, 2000);
+
+  // 품절이면 공식 기준상 대표 선정 대상에서 제외
+  const soldOut = evaluateCatalogPosition({
+    likelyMerged: true, myTotalKrw: 18000, bestTotalKrw: 19000, inStock: false, freeShipping: true,
+  });
+  assert.equal(soldOut.canWinRepresentative, false);
+
+  // 총가격 우위 + 재고 있음 → 대표 가능
+  const winning = evaluateCatalogPosition({
+    likelyMerged: true, myTotalKrw: 18000, bestTotalKrw: 19000, inStock: true, freeShipping: true,
+  });
+  assert.equal(winning.canWinRepresentative, true);
+  assert.equal(winning.exposureBlocked, false);
+
+  // 구성 차별화로 별도 카탈로그면 최저가 경쟁 자체를 피한다
+  const standalone = evaluateCatalogPosition({
+    likelyMerged: false, myTotalKrw: 25000, bestTotalKrw: 19000, inStock: true, freeShipping: true,
+  });
+  assert.equal(standalone.strategy, "safe_standalone");
+  assert.equal(standalone.exposureBlocked, false);
+});
+
+test("toss policy: 페널티·등록규칙 검증", async () => {
+  const { assessPenaltyRisk, checkListingCompliance } = await import(
+    "../../toss-shop/lib/seller-engine/toss-policy-engine.ts"
+  );
+  assert.equal(assessPenaltyRisk(0).level, "safe");
+  assert.equal(assessPenaltyRisk(0).losesIncentive, false);
+  assert.equal(assessPenaltyRisk(1).losesIncentive, true, "페널티 1점만 있어도 수수료 0% 자격 상실");
+  assert.equal(assessPenaltyRisk(10).level, "critical");
+  assert.match(assessPenaltyRisk(10, 1).note, /영구/);
+
+  // 비법정 계량단위는 block
+  const units = checkListingCompliance({ name: "금 한 돈 5 돈 목걸이", searchKeywords: ["a","b","c","d","e"] });
+  assert.ok(units.some((i) => i.severity === "block" && i.message.includes("법정계량단위")));
+
+  // 수량·색상은 상품명이 아니라 검색키워드로
+  const qty = checkListingCompliance({ name: "방울토마토 3팩 블랙", searchKeywords: ["a","b","c","d","e"] });
+  assert.ok(qty.some((i) => i.field === "name" && i.message.includes("검색 키워드")));
+
+  const clean = checkListingCompliance({
+    name: "방울토마토 국내산 당일발송", searchKeywords: ["a","b","c","d","e","f"],
+  });
+  assert.equal(clean.filter((i) => i.severity === "block").length, 0);
+});
