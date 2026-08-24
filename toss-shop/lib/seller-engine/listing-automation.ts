@@ -12,6 +12,7 @@ import type {
 import { buildJarvisDetailPage } from "./detail-page-engine";
 import { buildJarvisPickBrief } from "./jarvis-pick-brief";
 import { JARVIS_CONFIDENCE_THRESHOLD } from "./jarvis-engine";
+import { checkListingCompliance, type ListingComplianceIssue } from "./toss-policy-engine";
 
 export const LISTING_AUTOMATION_VERSION = "2.0";
 
@@ -102,13 +103,23 @@ export async function buildListingDraftFromPick(
   const confidence = pick.jarvis?.confidencePct ?? 0;
   const certified = pick.jarvis?.certified ?? false;
 
+  // 토스 등록 규칙 위반은 미노출·페널티로 직결되므로 등록 전에 잡는다.
+  // block 등급(비법정 계량단위 등)이 있으면 인증됐어도 자동 등록을 막는다.
+  const compliance = checkListingCompliance({
+    name: listingPayload.name,
+    searchKeywords: listingPayload.searchKeywords,
+  });
+  const hasBlocker = compliance.some((c) => c.severity === "block");
+
   return {
     id: draftId,
     merchantId,
     pickId: pick.id,
     pickMode: mode,
     keyword: pick.keyword,
-    status: certified && confidence >= JARVIS_CONFIDENCE_THRESHOLD ? "pending_review" : "draft",
+    status:
+      certified && confidence >= JARVIS_CONFIDENCE_THRESHOLD && !hasBlocker ? "pending_review" : "draft",
+    compliance,
     jarvisConfidence: confidence,
     jarvisCertified: certified,
     detailPage,

@@ -29,6 +29,7 @@ import {
 import { buildTopSellerPlaybook } from "./top-seller-playbook";
 import { computeSkuProbability } from "./profit-probability";
 import { sourcingMaxPerDay } from "./sourcing-plan";
+import { decideCatalogEntry } from "./catalog-entry-strategy";
 import { analyzeTitleSeo, buildSearchKeywords } from "./toss-seo-engine";
 import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
@@ -355,7 +356,24 @@ export async function generateConsignmentPicks(
 
       // 실제 단위 순익으로 월 수익 분포를 시뮬레이션
       const supplierCost = wholesaleBest?.unitPriceKrw ?? Math.round(pick.recommendedPriceKrw * 0.62);
-      const unitNet = netProfitPerUnit(supplierCost, pick.recommendedPriceKrw);
+
+      // 대장(대표 아이템)과 같은 카탈로그에 그대로 들어가면 노출이 막힌다.
+      // 최저가 경쟁 / 묶음 구성 / 소싱 거부 중 하루 기대순익이 가장 큰 길을 고른다.
+      const incumbentPrice =
+        pick.competitorInsights?.[0]?.priceKrw ?? Math.round(pick.recommendedPriceKrw * 0.97);
+      const catalogEntry = decideCatalogEntry({
+        supplierUnitKrw: supplierCost,
+        supplierShippingKrw: wholesaleBest?.freeShipping ? 0 : (wholesaleBest?.shippingFeeKrw ?? 2500),
+        incumbentPriceKrw: incumbentPrice,
+        incumbentShippingKrw: 0,
+        baselineDailyUnits: Math.max(0.3, pick.estimatedDailyUnits ?? 1),
+      });
+
+      // 진입 전략이 정한 가격/구성을 실제 등록가로 채택한다
+      const entryPrice = catalogEntry.sourceable ? catalogEntry.best.priceKrw : pick.recommendedPriceKrw;
+      const unitNet = catalogEntry.sourceable
+        ? catalogEntry.best.netProfitKrw
+        : netProfitPerUnit(supplierCost, pick.recommendedPriceKrw);
       const competitorLow = pick.competitorInsights?.[0]?.priceKrw ?? 0;
       const profitProbability = computeSkuProbability({
         seedKey: `${pick.id}:${pick.keyword}`,
@@ -368,12 +386,14 @@ export async function generateConsignmentPicks(
         dataQuality: ctx.dataQuality,
         competitorAvgReviews: pick.competitorLandscape?.avgReviewCount,
         seoScore: seo.score,
-        priceRatioVsLow: competitorLow > 0 ? pick.recommendedPriceKrw / competitorLow : undefined,
+        priceRatioVsLow: competitorLow > 0 ? entryPrice / competitorLow : undefined,
       });
 
       return {
         ...pick,
         profitProbability,
+        catalogEntry,
+        recommendedPriceKrw: entryPrice,
         seo,
         suggestedTitle: v6.recommendedTitle,
         geniusScore,
@@ -425,11 +445,16 @@ export async function generateConsignmentPicks(
       return (b.jarvis?.confidencePct ?? 0) - (a.jarvis?.confidencePct ?? 0);
     });
 
+  // 진입 전략이 "거부"로 판정한 픽은 소싱하지 않는다.
+  // 대장을 이길 수도, 묶음으로 빠져나갈 수도 없는 상품은 올려봐야 노출이 안 되고
+  // 재고·CS·페널티 리스크만 남는다. (계산만 하고 거르지 않으면 무의미하다)
+  const sourceable = enriched.filter((p) => p.catalogEntry?.sourceable !== false);
+
   const ranked = integration.readyFor90
-    ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true }).length >= 2
-      ? filterJarvisCertifiedPicks(enriched, { onlyCertified: true })
-      : enriched
-    : enriched;
+    ? filterJarvisCertifiedPicks(sourceable, { onlyCertified: true }).length >= 2
+      ? filterJarvisCertifiedPicks(sourceable, { onlyCertified: true })
+      : sourceable
+    : sourceable;
 
   const target = Math.max(1, Math.min(sourcingMaxPerDay(), dailyTarget ?? CONSIGNMENT_DAILY_PICKS));
   return ranked.slice(0, target);
