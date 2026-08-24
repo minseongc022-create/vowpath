@@ -527,3 +527,57 @@ test("cart coupon: 전환율 상승분이 쿠폰 비용보다 클 때만 실행"
   assert.ok(best.expectedNetDeltaKrw > 0);
   assert.ok(best.netAfterCouponKrw > 0);
 });
+
+test("catalog entry: 대장과 같은 카탈로그면 묶음 구성으로 회피한다", async () => {
+  const { decideCatalogEntry } = await import(
+    "../../toss-shop/lib/seller-engine/catalog-entry-strategy.ts"
+  );
+  // 대장이 여유 있는 가격 → 묶음이 최저가 경쟁보다 유리해야 한다
+  const v = decideCatalogEntry({
+    supplierUnitKrw: 12000, supplierShippingKrw: 2500,
+    incumbentPriceKrw: 22000, incumbentShippingKrw: 0, baselineDailyUnits: 3,
+  });
+  assert.equal(v.sourceable, true);
+  assert.ok(v.best.strategy.startsWith("bundle"), `묶음이 선택되어야: ${v.best.strategy}`);
+  assert.equal(v.best.separateCatalog, true, "별도 카탈로그라야 대장과 경쟁 안 함");
+  assert.equal(v.best.winsRepresentative, true);
+
+  const undercut = v.options.find((o) => o.strategy === "undercut");
+  assert.ok(v.best.dailyProfitKrw > undercut.dailyProfitKrw, "묶음이 최저가경쟁보다 수익 커야");
+});
+
+test("catalog entry: 묶음가가 대장 단품 N개보다 비싸면 팔리지 않는다", async () => {
+  const { decideCatalogEntry } = await import(
+    "../../toss-shop/lib/seller-engine/catalog-entry-strategy.ts"
+  );
+  // 대장이 원가 근처 → 최저가는 역마진, 묶음은 마진하한 때문에 시장가 위로 밀림
+  const dead = decideCatalogEntry({
+    supplierUnitKrw: 12000, supplierShippingKrw: 2500,
+    incumbentPriceKrw: 15000, incumbentShippingKrw: 0, baselineDailyUnits: 3,
+  });
+  assert.equal(dead.sourceable, false, "수익 안 나면 소싱 거부해야");
+  assert.equal(dead.best.strategy, "reject");
+
+  const b2 = dead.options.find((o) => o.strategy === "bundle_2");
+  assert.equal(b2.dailyProfitKrw, 0, "고객은 대장 단품을 2번 사면 되므로 안 팔림");
+  assert.match(b2.note, /비싸다/);
+
+  // 최저가 경쟁은 역마진이라 대표를 딸 수 없다
+  const uc = dead.options.find((o) => o.strategy === "undercut");
+  assert.ok(uc.marginPct < 0);
+  assert.equal(uc.winsRepresentative, false);
+});
+
+test("catalog entry: 묶음은 배송비가 1건분이라 단위마진이 개선된다", async () => {
+  const { decideCatalogEntry } = await import(
+    "../../toss-shop/lib/seller-engine/catalog-entry-strategy.ts"
+  );
+  const v = decideCatalogEntry({
+    supplierUnitKrw: 12000, supplierShippingKrw: 2500,
+    incumbentPriceKrw: 22000, incumbentShippingKrw: 0, baselineDailyUnits: 3,
+  });
+  const b2 = v.options.find((o) => o.strategy === "bundle_2");
+  const uc = v.options.find((o) => o.strategy === "undercut");
+  // 2입은 배송비를 1번만 부담하므로 마진율이 단품 최저가보다 높아야 한다
+  assert.ok(b2.marginPct > uc.marginPct, `묶음 마진 ${b2.marginPct}% > 단품 ${uc.marginPct}%`);
+});
