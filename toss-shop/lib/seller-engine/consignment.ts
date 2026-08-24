@@ -27,6 +27,9 @@ import {
   filterJarvisCertifiedPicks,
 } from "./jarvis-engine";
 import { buildTopSellerPlaybook } from "./top-seller-playbook";
+import { computeSkuProbability } from "./profit-probability";
+import { analyzeTitleSeo, buildSearchKeywords } from "./toss-seo-engine";
+import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
 
 export type SourcingIntegrationContext = {
@@ -332,8 +335,42 @@ export async function generateConsignmentPicks(
         supplierQuality: wholesaleBest?.supplierQuality,
         supplierPolicyApplies: wholesaleBest?.source === "live",
       });
+      // 상위노출 최적화 — 제목/키워드가 노출확률을 좌우하고, 노출확률이 수익확률을 좌우한다
+      const searchKeywords = buildSearchKeywords({
+        mainKeyword: pick.keyword,
+        productName: v6.recommendedTitle ?? pick.productName,
+        category: pick.category,
+      });
+      const seo = analyzeTitleSeo({
+        title: v6.recommendedTitle ?? pick.productName,
+        mainKeyword: pick.keyword,
+        productName: pick.productName,
+        category: pick.category,
+        searchKeywords,
+      });
+
+      // 실제 단위 순익으로 월 수익 분포를 시뮬레이션
+      const supplierCost = wholesaleBest?.unitPriceKrw ?? Math.round(pick.recommendedPriceKrw * 0.62);
+      const unitNet = netProfitPerUnit(supplierCost, pick.recommendedPriceKrw);
+      const competitorLow = pick.competitorInsights?.[0]?.priceKrw ?? 0;
+      const profitProbability = computeSkuProbability({
+        seedKey: `${pick.id}:${pick.keyword}`,
+        keyword: pick.keyword,
+        category: pick.category,
+        baselineDailyUnits: Math.max(0.3, pick.estimatedDailyUnits ?? 1),
+        netProfitPerUnitKrw: unitNet,
+        competitionIntensity: pick.competitionIntensity,
+        searchVolume: pick.searchVolume,
+        dataQuality: ctx.dataQuality,
+        competitorAvgReviews: pick.competitorLandscape?.avgReviewCount,
+        seoScore: seo.score,
+        priceRatioVsLow: competitorLow > 0 ? pick.recommendedPriceKrw / competitorLow : undefined,
+      });
+
       return {
         ...pick,
+        profitProbability,
+        seo,
         suggestedTitle: v6.recommendedTitle,
         geniusScore,
         goalSharePct: c?.goalSharePct,
@@ -377,6 +414,10 @@ export async function generateConsignmentPicks(
       const jackA = a.jarvis?.jackpotCertified ? 1 : 0;
       const jackB = b.jarvis?.jackpotCertified ? 1 : 0;
       if (jackA !== jackB) return jackB - jackA;
+      // 동급이면 "실제로 돈이 될 기대값" 순 — 확률×금액이 곧 수익이다
+      const expA = a.profitProbability?.expectedKrw ?? 0;
+      const expB = b.profitProbability?.expectedKrw ?? 0;
+      if (expA !== expB) return expB - expA;
       return (b.jarvis?.confidencePct ?? 0) - (a.jarvis?.confidencePct ?? 0);
     });
 

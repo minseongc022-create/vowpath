@@ -2,7 +2,7 @@ import type { TossShopAccount, TossShopPlan } from "./types";
 
 export const PRO_PRICE_KRW = 10_000;
 export const FREE_DAILY_KEYWORD_LIMIT = 3;
-export const CONSIGNMENT_DAILY_PICKS = 5;
+export const CONSIGNMENT_DAILY_PICKS = 15;
 
 const TRIAL_DAYS = 30;
 

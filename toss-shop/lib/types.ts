@@ -784,6 +784,10 @@ export type ConsignmentPick = {
   jarvis?: JarvisConfidenceReport;
   topSellerPlaybook?: TopSellerPlaybookReport;
   v6?: SellerAiV6Meta;
+  /** 몬테카를로 수익 확률 (1페이지 노출확률·월순익 분포) */
+  profitProbability?: import("./seller-engine/profit-probability").SkuProbability;
+  /** 제목·검색키워드 상위노출 최적화 */
+  seo?: import("./seller-engine/toss-seo-engine").SeoAnalysis;
 };
 
 export type ImportPick = {
