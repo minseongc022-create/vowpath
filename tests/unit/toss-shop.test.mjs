@@ -1725,3 +1725,104 @@ test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID
   assert.equal(sentCategoryId, 8080, "뷰티 상품이 뷰티 카테고리 ID로 등록되어야");
   assert.equal(res.category.matchedCategory, "beauty");
 });
+
+// ── 토스 카테고리·반품지 조회: 실제 응답 필드명 미확인 → 방어적 판독 ────
+// 이 두 엔드포인트는 공개 문서 색인에서 존재를 확인했지만(네트워크 제한으로
+// 문서 원문은 못 봄), 정확한 응답 필드명(id/name/isLeaf 등)은 검증되지
+// 않았다. 그래서 후보 필드 여러 개를 시도하는 방어적 판독을 쓴다 — 실제
+// 응답을 받아보면 이 테스트의 mock 형태를 진짜 스키마로 교체해야 한다.
+
+test("category lookup: id/name/isLeaf 후보 필드를 방어적으로 판독한다", async (t) => {
+  const { listTossCategories } = await import("../../toss-shop/lib/api/category-lookup.ts");
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  globalThis.fetch = async (url) => {
+    const href = String(url);
+    if (href.includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    return new Response(
+      JSON.stringify({
+        resultType: "SUCCESS",
+        success: {
+          items: [
+            { id: 100, name: "식품", isLeaf: false },
+            { categoryId: 101, categoryName: "과일", leaf: true },
+            { id: 102, name: "고기", hasChildren: false },
+          ],
+        },
+      }),
+      { status: 200 },
+    );
+  };
+
+  const { nodes } = await listTossCategories("m1", { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" });
+  assert.equal(nodes.length, 3);
+  assert.equal(nodes[0].isLeaf, false);
+  assert.equal(nodes[1].id, 101, "categoryId 후보 필드도 판독되어야");
+  assert.equal(nodes[1].isLeaf, true);
+  assert.equal(nodes[2].isLeaf, true, "hasChildren:false 는 리프로 해석되어야");
+});
+
+test("category lookup: 판독 불가능한 항목은 조용히 걸러진다 (에러로 죽지 않음)", async (t) => {
+  const { listTossCategories } = await import("../../toss-shop/lib/api/category-lookup.ts");
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    return new Response(
+      JSON.stringify({ resultType: "SUCCESS", success: { items: [{ noIdField: true }, null, "junk"] } }),
+      { status: 200 },
+    );
+  };
+  const { nodes } = await listTossCategories("m1", { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" });
+  assert.equal(nodes.length, 0);
+});
+
+test("return location lookup: id/name/address 후보 필드를 방어적으로 판독한다", async (t) => {
+  const { listTossReturnLocations } = await import("../../toss-shop/lib/api/return-location-lookup.ts");
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    return new Response(
+      JSON.stringify({
+        resultType: "SUCCESS",
+        success: { locations: [{ id: 678, name: "본사창고", address: "서울시 어딘가" }] },
+      }),
+      { status: 200 },
+    );
+  };
+  const { locations } = await listTossReturnLocations("m1", { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" });
+  assert.equal(locations.length, 1);
+  assert.equal(locations[0].id, 678);
+  assert.equal(locations[0].name, "본사창고");
+  assert.equal(locations[0].address, "서울시 어딘가");
+});
+
+test("return location lookup: 등록된 반품지가 없으면 빈 배열 (에러 아님)", async (t) => {
+  const { listTossReturnLocations } = await import("../../toss-shop/lib/api/return-location-lookup.ts");
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+  });
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ resultType: "SUCCESS", success: { locations: [] } }), { status: 200 });
+  };
+  const { locations } = await listTossReturnLocations("m1", { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" });
+  assert.deepEqual(locations, []);
+});

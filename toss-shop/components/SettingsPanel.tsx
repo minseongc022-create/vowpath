@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { dataSourceLabel, FREE_DAILY_KEYWORD_LIMIT, PRO_PRICE_KRW } from "@/toss-shop/lib/billing";
 import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { TOSS_SELLER_CENTER_URL } from "@/toss-shop/lib/toss-connect-constants";
+import { TossCategoryReturnLookup } from "@/toss-shop/components/TossCategoryReturnLookup";
 
 type PlanAccess = {
   tier: string;
@@ -267,6 +268,8 @@ export function SettingsPanel() {
         </div>
         {message && <p className="mt-3 text-sm text-ts-muted">{message}</p>}
       </section>
+
+      {data.api.configured && <TossCategoryReturnLookup />}
 
       <section className="ts-card">
         <h2 className="text-sm font-bold">도매매·도매꾹 API (Jarvis 위탁)</h2>
