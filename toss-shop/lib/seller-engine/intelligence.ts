@@ -20,6 +20,7 @@ import {
   marginPct,
   priceStatistics,
 } from "./pricing";
+import type { TossFeeContext } from "./fee-model";
 
 export type { AnalysisSignal, PricingBreakdown, CompetitorInsight };
 
@@ -231,10 +232,15 @@ export function buildPricingBreakdown(
   supplierCostKrw: number,
   competitors: CompetitorPriceRef[],
   minMarginPct = 12,
+  /**
+   * 수수료 맥락 — 공급처가 1등급·당일발송으로 검증되면 배송 인센티브로
+   * 판매수수료가 0%가 되어 마진이 8%p 올라간다. 미지정이면 보수적으로 8%.
+   */
+  feeCtx: TossFeeContext = {},
 ): PricingBreakdown {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
   const { priceKrw, strategy } = autoMatchPrice(supplierCostKrw, competitors, minMarginPct);
-  const fees = estimatePlatformFees(priceKrw);
+  const fees = estimatePlatformFees(priceKrw, feeCtx);
   const netProfitKrw = priceKrw - supplierCostKrw - fees;
   const priceFloorKrw = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
   const priceCeilingKrw = stats.high > 0 ? Math.round(stats.high * 0.95) : Math.round(priceKrw * 1.2);
@@ -243,7 +249,7 @@ export function buildPricingBreakdown(
     supplierCostKrw,
     platformFeesKrw: fees,
     netProfitKrw,
-    marginPct: marginPct(supplierCostKrw, priceKrw),
+    marginPct: marginPct(supplierCostKrw, priceKrw, feeCtx),
     strategy,
     priceFloorKrw,
     priceCeilingKrw,

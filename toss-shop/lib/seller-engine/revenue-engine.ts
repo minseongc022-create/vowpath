@@ -8,6 +8,7 @@ import type {
   TossShopCategory,
 } from "../types";
 import { estimatePlatformFees, marginPct, priceStatistics } from "./pricing";
+import type { TossFeeContext } from "./fee-model";
 
 type KeywordIntelInput = {
   keyword: string;
@@ -70,8 +71,12 @@ export function estimateDailyUnits(input: {
   return Math.max(0.5, Math.round(units * 10) / 10);
 }
 
-export function netProfitPerUnit(supplierCostKrw: number, priceKrw: number): number {
-  return priceKrw - supplierCostKrw - estimatePlatformFees(priceKrw);
+export function netProfitPerUnit(
+  supplierCostKrw: number,
+  priceKrw: number,
+  feeCtx: TossFeeContext = {},
+): number {
+  return priceKrw - supplierCostKrw - estimatePlatformFees(priceKrw, feeCtx);
 }
 
 export function buildPricingScenarios(
@@ -79,6 +84,7 @@ export function buildPricingScenarios(
   competitors: CompetitorPriceRef[],
   intel: KeywordIntelInput,
   minMarginPct = 12,
+  feeCtx: TossFeeContext = {},
 ): PricingScenario[] {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
   const floor = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
@@ -112,7 +118,7 @@ export function buildPricingScenarios(
   }
 
   const scenarios: PricingScenario[] = candidates.map((c) => {
-    const profit = netProfitPerUnit(supplierCostKrw, c.price);
+    const profit = netProfitPerUnit(supplierCostKrw, c.price, feeCtx);
     const dailyUnits = estimateDailyUnits({
       searchVolume: intel.searchVolume,
       competitionIntensity: intel.competitionIntensity,
@@ -129,7 +135,7 @@ export function buildPricingScenarios(
       label: c.label,
       priceKrw: c.price,
       strategy: c.strategy,
-      marginPct: marginPct(supplierCostKrw, c.price),
+      marginPct: marginPct(supplierCostKrw, c.price, feeCtx),
       netProfitKrw: profit,
       estimatedDailyUnits: dailyUnits,
       estimatedDailyProfitKrw: dailyProfitKrw,
@@ -272,10 +278,11 @@ export function applyScenarioToPricing(
   supplierCostKrw: number,
   scenario: PricingScenario,
   competitors: CompetitorPriceRef[],
+  feeCtx: TossFeeContext = {},
 ): PricingBreakdown {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
   const priceKrw = scenario.priceKrw;
-  const fees = estimatePlatformFees(priceKrw);
+  const fees = estimatePlatformFees(priceKrw, feeCtx);
   return {
     supplierCostKrw,
     platformFeesKrw: fees,
@@ -340,15 +347,23 @@ export function buildV4Enrichment(input: {
   avgReviewCount: number;
   mode: "consignment" | "import";
   minMarginPct?: number;
+  /**
+   * 수수료 맥락. 공급처가 1등급·당일발송으로 검증되면 배송 인센티브로
+   * 판매수수료가 0%가 되어 전 시나리오 마진이 8%p 올라간다.
+   * 미지정 시 보수적으로 8% — 낙관값을 기본으로 두지 않는다.
+   */
+  feeCtx?: TossFeeContext;
 }): V4Enrichment {
+  const feeCtx = input.feeCtx ?? {};
   const scenarios = buildPricingScenarios(
     input.supplierCostKrw,
     input.competitors,
     input.intel,
     input.minMarginPct ?? 12,
+    feeCtx,
   );
   const optimal = selectOptimalScenario(scenarios);
-  const pricing = applyScenarioToPricing(input.supplierCostKrw, optimal, input.competitors);
+  const pricing = applyScenarioToPricing(input.supplierCostKrw, optimal, input.competitors, feeCtx);
   const season = seasonalityMultiplier(input.intel.category);
   const revenueForecast = buildRevenueForecast({
     dailyProfitKrw: optimal.estimatedDailyProfitKrw,

@@ -30,6 +30,12 @@ export const JARVIS_ENV_FIX_HINTS: Record<string, string> = {
   auto_execute: "JARVIS_AUTO_EXECUTE=true (선택, OK 생략 자동 등록)",
   ai_image_studio: "OPENAI_API_KEY → Vercel Production (배경 재구성·셀링포인트 배지 자동 생성)",
   supplier_grade_gate: "DOMEGGOOK_API_KEY → 공급처 1등급·당일발송 실데이터 판정 (미연동 시 fail-closed로 전부 탈락)",
+  winner_sku: "토스 주문·정산 동기화 (설정 → API 연동) — 효자상품은 예측이 아닌 실제 입금액으로만 판정한다",
+  wholesale_adapters:
+    "도매처별 API 키 (OWNERCLAN_API_KEY / ONCH_API_KEY / ZENTRADE_API_KEY 등) + 실응답 1건으로 등급·출고 필드명 확정 필요",
+  channel_mode: "TOSS_SHOP_IMPORT_SALES_ENABLED=true (수입판매 재활성 — 랜딩코스트 실측·수입인증 게이트 선행 필요)",
+  fee_incentive_wired: "설정 불필요 — 공급처가 1등급·당일발송으로 검증되면 자동으로 판매수수료 0% 마진 적용",
+  same_day_gate: "DOMEGGOOK_API_KEY → 공급처 정상출고율 판독 (미확인이면 오늘출발 약속 불가로 탈락)",
 };
 
 export function envFixHintForCheck(checkId: string): string | undefined {

@@ -44,8 +44,25 @@ const GROUPS = [
     ],
   },
   {
-    title: "Wholesale sourcing",
-    keys: [["DOMEGGOOK_API_KEY", false]],
+    title: "Wholesale sourcing (도매처 다중 연동)",
+    keys: [
+      ["DOMEGGOOK_API_KEY", false],
+      ["OWNERCLAN_API_KEY", false],
+      ["ONCH_API_KEY", false],
+      ["ZENTRADE_API_KEY", false],
+      ["DOMETOPIA_API_KEY", false],
+    ],
+  },
+  {
+    title: "효자상품·광고 효율",
+    keys: [
+      ["TOSS_SHOP_DAILY_AD_BUDGET_KRW", false],
+      ["TOSS_SHOP_MONTHLY_GOAL_KRW", false],
+    ],
+  },
+  {
+    title: "채널 모드 (지금은 토스 위탁 전용)",
+    keys: [["TOSS_SHOP_IMPORT_SALES_ENABLED", false]],
   },
   {
     title: "Billing (Pro)",

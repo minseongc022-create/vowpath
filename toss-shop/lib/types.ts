@@ -365,6 +365,11 @@ export type JarvisAutopilotReport = {
   };
   brief: string;
   nextSteps: string[];
+  /**
+   * 효자상품 판정 — 실제 정산 입금액 기준 (예측 아님).
+   * 광고·재고 배분의 근거가 되므로 사이클마다 갱신된다.
+   */
+  winners?: import("./seller-engine/winner-sku-engine").WinnerReport;
 };
 
 export type JarvisHealthCheckCategory =

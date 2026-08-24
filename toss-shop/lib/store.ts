@@ -23,6 +23,7 @@ import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
 import { generateConsignmentPicks } from "./seller-engine/consignment";
 import { generateImportPicks } from "./seller-engine/import-sales";
+import { isImportSalesEnabled } from "./seller-engine/channel-mode";
 import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
 import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
@@ -964,6 +965,11 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
 }
 
 export async function getImportPicksForMerchant(merchantId: string): Promise<ImportPick[]> {
+  // 수입판매 비활성 시 아무것도 내지 않는다. import-sources.ts는 공급가를
+  // 키워드 해시로 생성하고 랜딩코스트에 부가세가 빠져 있어, 표시되는 마진이
+  // 실제보다 낙관적이다. 그 숫자를 근거로 발주하면 돈을 잃는다.
+  if (!isImportSalesEnabled()) return [];
+
   const store = await loadStore();
   const data = merchantData(store, merchantId);
   const merchant = store.merchants.find((m) => m.id === merchantId);
@@ -1037,6 +1043,8 @@ export async function createListingDraftFromPick(input: {
     }
     pick = data.consignmentPicks.find((p) => p.id === input.pickId);
   } else {
+    // 수입 초안 생성도 차단 — 가짜 원가로 만든 초안이 등록까지 가면 안 된다.
+    if (!isImportSalesEnabled()) throw new Error("IMPORT_SALES_DISABLED");
     if (data.importDate !== today || !data.importPicks?.length) {
       data.importPicks = await generateImportPicks(
         store.catalog,
@@ -1261,7 +1269,55 @@ export async function getJarvisHealthForMerchant(merchantId: string): Promise<im
     hasOpenAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
     listingDraftCount: data.listingDrafts?.length ?? 0,
     fulfillmentJobCount: data.fulfillmentJobs?.length ?? 0,
+    settlementCount: data.settlements?.length ?? 0,
   });
+}
+
+/**
+ * 효자상품 리포트 + 광고비 배분 계획.
+ *
+ * 효자 판정은 예측이 아니라 **실제 정산 입금액**으로만 한다. 그래서 광고비도
+ * 예측 점수가 아니라 이 결과를 기준으로 배분된다 — 예측에 태우면 예측 오차에
+ * 돈을 거는 것이고, 실적에 태우면 사실에 거는 것이다.
+ */
+export async function getWinnerReportForMerchant(merchantId: string, dailyAdBudgetKrw?: number) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { analyzeWinnerSkus } = await import("./seller-engine/winner-sku-engine");
+  const { allocateAdBudget } = await import("./seller-engine/ad-budget-allocator");
+  const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
+  const { meetsSupplierPolicy } = await import("./wholesale/supplier-quality");
+
+  const winners = analyzeWinnerSkus({
+    settlements: data.settlements ?? [],
+    goalKrw: getMonthlyGoalKrw(),
+  });
+
+  const budget = dailyAdBudgetKrw ?? (Number(process.env.TOSS_SHOP_DAILY_AD_BUDGET_KRW) || 0);
+  if (!budget) return { winners, adPlan: null };
+
+  // 광고 후보는 등록된 초안에서 만든다. 이미 배송 인센티브로 수수료가 0%인
+  // SKU는 광고의 수수료 면제가 중복되지 않으므로 배분기가 비중을 낮춘다.
+  const published = (data.listingDrafts ?? []).filter((d) => d.status === "published");
+  const picks = data.consignmentPicks ?? [];
+  const candidates = published.map((d) => {
+    const pick = picks.find((p) => p.id === d.pickId);
+    const price = d.listingPayload.salePrice;
+    const supplierCost = pick?.supplierCostKrw ?? Math.round(price * 0.62);
+    return {
+      productName: d.listingPayload.name,
+      priceKrw: price,
+      grossMarginKrw: Math.max(0, price - supplierCost),
+      alreadyFeeFree: meetsSupplierPolicy(pick?.wholesaleBest?.supplierQuality),
+    };
+  });
+
+  const adPlan = allocateAdBudget({
+    totalDailyBudgetKrw: budget,
+    winners,
+    candidates,
+  });
+  return { winners, adPlan };
 }
 
 export async function getJarvisAutopilotForMerchant(merchantId: string) {
