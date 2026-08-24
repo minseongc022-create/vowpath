@@ -1504,3 +1504,93 @@ test("channel mode: 수입판매는 기본 비활성 (가짜 원가 노출 차�
   if (prev === undefined) delete process.env.TOSS_SHOP_IMPORT_SALES_ENABLED;
   else process.env.TOSS_SHOP_IMPORT_SALES_ENABLED = prev;
 });
+
+// ── 접근 제어: 내 계정만 무료 ─────────────────────────────────────────
+// 이 테스트들은 수익 모델 자체를 지킨다. 깨지면 아무나 무료로 쓰거나,
+// 남이 오너의 토스 상점을 조작할 수 있다는 뜻이다.
+
+test("access: 만료일 없는 pro는 영구 무료가 되지 않는다", async () => {
+  const { getPlanAccess } = await import("../../toss-shop/lib/billing.ts");
+  // 종전에는 plan==="pro" && !proExpiresAt 이면 만료 없이 fullAccess였다
+  const forever = getPlanAccess({ email: "stranger@example.com", plan: "pro" });
+  assert.equal(forever.fullAccess, false, "만료일 없는 pro는 free로 강등되어야");
+  assert.equal(forever.tier, "free");
+
+  const expired = getPlanAccess({
+    email: "stranger@example.com", plan: "pro", proExpiresAt: "2020-01-01T00:00:00.000Z",
+  });
+  assert.equal(expired.fullAccess, false, "만료된 pro는 차단");
+
+  // 실제로 돈을 낸 사람은 막히면 안 된다
+  const valid = getPlanAccess({
+    email: "payer@example.com", plan: "pro", proExpiresAt: "2099-01-01T00:00:00.000Z",
+  });
+  assert.equal(valid.fullAccess, true);
+  const subscriber = getPlanAccess({
+    email: "payer@example.com", plan: "pro", subscriptionStatus: "active",
+  });
+  assert.equal(subscriber.fullAccess, true);
+});
+
+test("access: 오너만 무제한, 나머지는 free", async (t) => {
+  const { getPlanAccess, isOwnerEmail } = await import("../../toss-shop/lib/billing.ts");
+  const prev = process.env.TOSS_SHOP_OWNER_EMAILS;
+  t.after(() => {
+    if (prev === undefined) delete process.env.TOSS_SHOP_OWNER_EMAILS;
+    else process.env.TOSS_SHOP_OWNER_EMAILS = prev;
+  });
+  process.env.TOSS_SHOP_OWNER_EMAILS = "owner@example.com";
+
+  assert.equal(isOwnerEmail("owner@example.com"), true);
+  assert.equal(isOwnerEmail("OWNER@example.com"), true, "대소문자 무관");
+  assert.equal(isOwnerEmail("owner@example.com.evil.com"), false, "부분일치로 뚫리면 안 됨");
+  assert.equal(isOwnerEmail("notowner@example.com"), false);
+
+  assert.equal(getPlanAccess({ email: "owner@example.com", plan: "free" }).fullAccess, true);
+  assert.equal(getPlanAccess({ email: "stranger@example.com", plan: "free" }).fullAccess, false);
+});
+
+test("access: 오너 아닌 계정은 환경변수 토스 API 키를 상속받지 못한다", async (t) => {
+  const { resolveApiConfig } = await import("../../toss-shop/lib/api/client.ts");
+  const prevOwner = process.env.TOSS_SHOP_OWNER_EMAILS;
+  const prevKey = process.env.TOSS_SHOPPING_ACCESS_KEY;
+  const prevSecret = process.env.TOSS_SHOPPING_SECRET_KEY;
+  t.after(() => {
+    if (prevOwner === undefined) delete process.env.TOSS_SHOP_OWNER_EMAILS;
+    else process.env.TOSS_SHOP_OWNER_EMAILS = prevOwner;
+    if (prevKey === undefined) delete process.env.TOSS_SHOPPING_ACCESS_KEY;
+    else process.env.TOSS_SHOPPING_ACCESS_KEY = prevKey;
+    if (prevSecret === undefined) delete process.env.TOSS_SHOPPING_SECRET_KEY;
+    else process.env.TOSS_SHOPPING_SECRET_KEY = prevSecret;
+  });
+  process.env.TOSS_SHOP_OWNER_EMAILS = "owner@example.com";
+  process.env.TOSS_SHOPPING_ACCESS_KEY = "OWNER_LIVE_KEY";
+  process.env.TOSS_SHOPPING_SECRET_KEY = "OWNER_LIVE_SECRET";
+
+  // 남의 merchant — env 키로 폴백하면 오너 상점을 조작할 수 있다
+  const stranger = await resolveApiConfig("merch_stranger", {}, "stranger@example.com");
+  assert.equal(stranger, null, "남에게 오너 키가 새면 안 된다");
+
+  // 이메일 자체가 없을 때도 폴백 금지 (호출부가 빠뜨린 경우)
+  const unknown = await resolveApiConfig("merch_unknown", {});
+  assert.equal(unknown, null, "소유자 미상이면 폴백 금지");
+
+  // 오너는 정상 동작해야 한다
+  const owner = await resolveApiConfig("merch_owner", {}, "owner@example.com");
+  assert.ok(owner, "오너까지 막히면 안 된다");
+  assert.equal(owner.accessKey, "OWNER_LIVE_KEY");
+
+  // 자기 키를 가진 셀러는 소유자와 무관하게 자기 키를 쓴다
+  const own = await resolveApiConfig("merch_self", { accessKey: "MY_KEY", secretKey: "MY_SECRET" });
+  assert.equal(own.accessKey, "MY_KEY");
+});
+
+test("access: Pro 활성화 코드가 저장소에 커밋되어 있지 않다", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vercel = JSON.parse(readFileSync(new URL("../../vercel.json", import.meta.url), "utf8"));
+  const committed = vercel.build?.env?.TOSS_SHOP_PRO_ACTIVATION_CODE;
+  assert.equal(
+    committed, undefined,
+    "활성화 코드가 vercel.json에 있으면 저장소를 보는 누구나 무료 Pro를 받는다",
+  );
+});

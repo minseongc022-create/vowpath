@@ -10,7 +10,7 @@
 | `NEXT_PUBLIC_APP_URL` | `https://effiroad.com` |
 | `TOSS_SHOP_OWNER_EMAILS` | `minseongc022@gmail.com` |
 | `TOSS_SHOP_KRW_PER_USD` | `1350` |
-| `TOSS_SHOP_PRO_ACTIVATION_CODE` | `effiroad-tspro-539d` |
+| ~~`TOSS_SHOP_PRO_ACTIVATION_CODE`~~ | **제거됨** — 커밋된 코드로 누구나 무료 Pro를 받을 수 있었음 |
 
 ## 도매꾹·도매매 (위탁 실공급가)
 

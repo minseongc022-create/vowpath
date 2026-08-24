@@ -164,11 +164,15 @@ export function TossSellerConnect({ onDemo }: { onDemo?: () => void }) {
         </form>
       )}
 
-      <div className="ts-divider">또는</div>
-
-      <button type="button" onClick={onDemo} disabled={loading} className="ts-btn-secondary">
-        {SP_STRINGS.ctaDemo}
-      </button>
+      {/* onDemo가 없으면(프로덕션) 데모 진입 자체를 노출하지 않는다 */}
+      {onDemo && (
+        <>
+          <div className="ts-divider">또는</div>
+          <button type="button" onClick={onDemo} disabled={loading} className="ts-btn-secondary">
+            {SP_STRINGS.ctaDemo}
+          </button>
+        </>
+      )}
     </div>
   );
 }

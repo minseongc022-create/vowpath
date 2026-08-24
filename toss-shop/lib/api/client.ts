@@ -1,6 +1,7 @@
 import { kv } from "@vercel/kv";
 import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
+import { isOwnerEmail } from "../billing";
 import { configFromEnv, tossOAuthUrl, type TossApiConfig } from "./config";
 import { tossFetch } from "./toss-proxy-fetch";
 
@@ -70,9 +71,22 @@ export async function getAccessToken(
   return cached.accessToken;
 }
 
+/**
+ * merchant 자기 키를 최우선으로 쓰고, 없으면 환경변수 키로 폴백한다.
+ *
+ * ⚠️ env 폴백은 **오너 계정에만** 허용된다.
+ * 종전에는 키가 없는 모든 merchant가 TOSS_SHOPPING_* 환경변수 키로 폴백해서,
+ * 아무나 가입만 하면 오너의 토스 상점에 상품을 등록하고 주문·정산을 조회할
+ * 수 있었다. 가입 시점이 아니라 **매 API 호출마다** 새는 경로였다.
+ *
+ * 일반 셀러는 설정 → API 연동에서 자기 키를 입력해야 하고, 입력 전에는
+ * config가 null이라 라이브 기능이 동작하지 않는다(의도된 동작).
+ */
 export async function resolveApiConfig(
   merchantId: string,
   merchantKeys?: { accessKey?: string; secretKey?: string; sandbox?: boolean },
+  /** 이 merchant를 소유한 계정 이메일 — 오너일 때만 env 키로 폴백한다 */
+  accountEmail?: string,
 ): Promise<TossApiConfig | null> {
   if (merchantKeys?.accessKey && merchantKeys?.secretKey) {
     return {
@@ -82,7 +96,8 @@ export async function resolveApiConfig(
       partnerName: "effiroad",
     };
   }
-  return configFromEnv();
+  if (accountEmail && isOwnerEmail(accountEmail)) return configFromEnv();
+  return null;
 }
 
 export type TossApiEnvelope<T> = {
