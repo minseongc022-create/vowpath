@@ -92,6 +92,27 @@ export type PublishListingResult = {
   simulated?: boolean;
 };
 
+/**
+ * 공급처별 반품지 매핑 — 위탁 공급처마다 반품 수거 방식이 달라(공급처 직접
+ * 수거 vs 셀러 자체 처리) 반품지가 달라야 하는 경우를 위한 오버라이드.
+ * TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP='{"domeggook":123,"1688":456}' (JSON, platform key는 소문자)
+ * 매핑에 없거나 파싱 실패 시 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID(기본값)로 폴백.
+ */
+export function resolveExchangeReturnLocationId(supplierPlatform?: string): number {
+  const fallback = parseInt(process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID ?? "0", 10);
+  const rawMap = process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP?.trim();
+  if (!rawMap || !supplierPlatform) return fallback;
+
+  try {
+    const parsed = JSON.parse(rawMap) as Record<string, unknown>;
+    const match = parsed[supplierPlatform.toLowerCase()];
+    const matchId = typeof match === "number" ? match : parseInt(String(match ?? ""), 10);
+    return Number.isFinite(matchId) && matchId > 0 ? matchId : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function publishListingToToss(input: {
   merchantId: string;
   config: TossApiConfig;
@@ -103,7 +124,7 @@ export async function publishListingToToss(input: {
   const categoryId = input.categoryId ?? parseInt(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID ?? "0", 10);
   const returnId =
     input.exchangeReturnLocationId ??
-    parseInt(process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID ?? "0", 10);
+    resolveExchangeReturnLocationId(input.draft.listingPayload.supplierPlatform);
 
   if (!categoryId || !returnId) {
     return {

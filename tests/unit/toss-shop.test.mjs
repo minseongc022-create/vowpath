@@ -122,6 +122,31 @@ test("E2E: consignment pick -> listing draft -> execute (mock Toss API, no real 
   }
 });
 
+test("resolveExchangeReturnLocationId falls back per supplier, then to default", async () => {
+  const { resolveExchangeReturnLocationId } = await import("../../toss-shop/lib/api/create-product.ts");
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "111";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = '{"domeggook":222,"1688":333}';
+
+  assert.equal(resolveExchangeReturnLocationId("domeggook"), 222);
+  assert.equal(resolveExchangeReturnLocationId("1688"), 333);
+  // 매핑에 없는 공급처는 기본값으로 폴백
+  assert.equal(resolveExchangeReturnLocationId("taobao"), 111);
+  // 공급처 정보 없음 → 기본값
+  assert.equal(resolveExchangeReturnLocationId(undefined), 111);
+
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+});
+
+test("resolveExchangeReturnLocationId tolerates malformed map JSON", async () => {
+  const { resolveExchangeReturnLocationId } = await import("../../toss-shop/lib/api/create-product.ts");
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "999";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{not-json";
+  assert.equal(resolveExchangeReturnLocationId("domeggook"), 999);
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+});
+
 test("jarvis config limits clamp env values", async () => {
   const { getAutopilotMaxDraftsPerCycle, getAutoExecuteMaxPerCycle } = await import(
     "../../toss-shop/lib/seller-engine/jarvis-config.ts"

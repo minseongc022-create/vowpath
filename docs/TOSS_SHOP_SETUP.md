@@ -76,7 +76,8 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | `JARVIS_AUTOPILOT_MAX_DRAFTS` | `3` | cycle당 자동 초안 최대 건수 (1–10) |
 | `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
 | `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
-| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 |
+| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 (기본 반품지) |
+| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP` | — | 선택 — 공급처별 반품지 오버라이드. JSON, 예: `{"domeggook":123,"1688":456}` (platform key 소문자, `listingPayload.supplierPlatform` 기준). 매핑에 없으면 위 기본값으로 폴백 |
 
 Health check: `GET /api/toss-shop/jarvis/health`  
 Autopilot: `GET/POST /api/toss-shop/jarvis/autopilot`  
