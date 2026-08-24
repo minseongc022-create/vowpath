@@ -248,3 +248,79 @@ test("jarvis gate rejects picks whose live supplier is not 1등급+당일발송"
   assert.equal(goodGate.passed, true);
   assert.ok(good.confidencePct > bad.confidencePct);
 });
+
+test("profit probability: page1 exposure drives revenue, deterministic", async () => {
+  const { computeSkuProbability, estimatePage1Probability } = await import(
+    "../../toss-shop/lib/seller-engine/profit-probability.ts"
+  );
+  // 경쟁 심하고 경쟁사 리뷰 많으면 신규 리스팅 노출 확률이 낮아야 한다
+  const hard = estimatePage1Probability({ competitionIntensity: 2.5, competitorAvgReviews: 5000, seoScore: 40 });
+  const easy = estimatePage1Probability({ competitionIntensity: 0.5, competitorAvgReviews: 20, seoScore: 90 });
+  assert.ok(hard < easy, "경쟁 심할수록 노출확률 낮아야");
+  assert.ok(hard >= 0.03 && easy <= 0.95);
+
+  const base = {
+    seedKey: "t1", keyword: "테스트", category: "food",
+    baselineDailyUnits: 3, netProfitPerUnitKrw: 5000,
+    competitionIntensity: 1.2, searchVolume: 4000, dataQuality: "live",
+  };
+  const a = computeSkuProbability(base);
+  const b = computeSkuProbability(base);
+  assert.equal(a.expectedKrw, b.expectedKrw, "같은 입력이면 같은 확률(결정적)");
+  assert.ok(a.p10Krw <= a.p50Krw && a.p50Krw <= a.p90Krw, "분위수 순서");
+});
+
+test("profit probability: demo data is marked untrustworthy", async () => {
+  const { computePortfolioGoal } = await import("../../toss-shop/lib/seller-engine/profit-probability.ts");
+  const skus = Array.from({ length: 10 }, (_, i) => ({
+    seedKey: `s${i}`, baselineDailyUnits: 3, netProfitPerUnitKrw: 6000,
+    competitionIntensity: 1.0, competitorAvgReviews: 100, seoScore: 80,
+  }));
+  const demo = computePortfolioGoal({ skus, dataQuality: "demo", goalKrw: 10_000_000 });
+  assert.equal(demo.trustworthy, false, "demo 확률은 근거로 쓸 수 없어야");
+  assert.match(demo.gap.note, /근거로 쓸 수 없음/);
+
+  const live = computePortfolioGoal({ skus, dataQuality: "live", goalKrw: 10_000_000 });
+  assert.equal(live.trustworthy, true);
+  assert.ok(live.goalProbPct >= 0 && live.goalProbPct <= 100);
+});
+
+test("portfolio goal: more SKUs raise achievement probability", async () => {
+  const { computePortfolioGoal } = await import("../../toss-shop/lib/seller-engine/profit-probability.ts");
+  const mk = (n) => Array.from({ length: n }, (_, i) => ({
+    seedKey: `p${i}`, baselineDailyUnits: 3, netProfitPerUnitKrw: 5800,
+    competitionIntensity: 0.8, competitorAvgReviews: 50, seoScore: 85,
+  }));
+  const few = computePortfolioGoal({ skus: mk(15), dataQuality: "live", goalKrw: 10_000_000 });
+  const many = computePortfolioGoal({ skus: mk(90), dataQuality: "live", goalKrw: 10_000_000 });
+  assert.ok(many.goalProbPct > few.goalProbPct, "SKU 늘면 달성확률 올라야");
+  assert.ok(few.gap.moreSkusNeeded > 0, "미달이면 몇 개 더 필요한지 역산해야");
+});
+
+test("toss SEO: banned phrases and keyword placement are enforced", async () => {
+  const { analyzeTitleSeo, buildSearchKeywords, optimizeTitle } = await import(
+    "../../toss-shop/lib/seller-engine/toss-seo-engine.ts"
+  );
+  const bad = analyzeTitleSeo({
+    title: "최저가!! 정품보장 판매량 1위 무료배송 상품",
+    mainKeyword: "방울토마토", productName: "방울토마토 1kg", category: "food",
+    searchKeywords: ["a", "b"],
+  });
+  assert.ok(bad.score < 50, `금지어 범벅 제목은 낮은 점수여야 (got ${bad.score})`);
+  assert.ok(bad.issues.some((i) => i.includes("메인 키워드")), "메인 키워드 누락 지적해야");
+  assert.ok(bad.optimizedTitle.startsWith("방울토마토"), "최적화 제목은 메인키워드로 시작");
+
+  const good = analyzeTitleSeo({
+    title: "방울토마토 1kg 국내산 신선 당일발송 대용량 파티용",
+    mainKeyword: "방울토마토", productName: "방울토마토 1kg", category: "food",
+    searchKeywords: buildSearchKeywords({ mainKeyword: "방울토마토", productName: "방울토마토 1kg 국내산", category: "food" }),
+  });
+  assert.ok(good.score > bad.score);
+
+  const kws = buildSearchKeywords({ mainKeyword: "방울토마토", productName: "방울토마토 1kg 국내산 신선", category: "food" });
+  assert.ok(kws.length >= 5 && kws.length <= 10, `키워드 5~10개 (got ${kws.length})`);
+  assert.equal(kws[0], "방울토마토");
+  assert.equal(new Set(kws).size, kws.length, "키워드 중복 없어야");
+
+  assert.ok(!optimizeTitle({ mainKeyword: "가디건", productName: "최저가 가디건 정품보장", category: "fashion" }).includes("최저가"));
+});
