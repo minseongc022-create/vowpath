@@ -120,7 +120,15 @@ export function optimizeTitle(input: {
 
   if (input.spec) parts.push(input.spec);
 
-  let title = parts.join(" ").replace(/\s+/g, " ").trim();
+  // 토스 공식 가이드: 수량·색상·맛은 상품명이 아니라 **검색 키워드 영역**에 등록한다.
+  // (스마트스토어식으로 제목에 몰아넣으면 토스에서는 역효과)
+
+  let title = parts
+    .join(" ")
+    .replace(/\d+\s*(개입|입|팩|세트|매|박스)/g, " ")
+    .replace(/(블랙|화이트|레드|블루|그린|핑크|베이지|네이비)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (title.length > TITLE_MAX) title = title.slice(0, TITLE_MAX).trim();
   return title;
 }
