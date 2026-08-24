@@ -28,6 +28,7 @@ import {
 } from "./jarvis-engine";
 import { buildTopSellerPlaybook } from "./top-seller-playbook";
 import { computeSkuProbability } from "./profit-probability";
+import { sourcingMaxPerDay } from "./sourcing-plan";
 import { analyzeTitleSeo, buildSearchKeywords } from "./toss-seo-engine";
 import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
@@ -139,6 +140,8 @@ export async function generateConsignmentPicks(
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
   integrationCtx?: SourcingIntegrationContext,
+  /** 적응형 소싱 계획이 산출한 오늘 목표 개수 (없으면 기본값) */
+  dailyTarget?: number,
 ): Promise<ConsignmentPick[]> {
   const ctx = marketContext(catalog, marketKeywords);
   const integration = assessIntegration({
@@ -155,7 +158,8 @@ export async function generateConsignmentPicks(
   const usedProducts = new Set<string>();
 
   for (const kw of keywords) {
-    if (candidates.length >= CONSIGNMENT_DAILY_PICKS + 5) break;
+    // 적응형 목표가 최대 상한까지 올라갈 수 있으므로 후보 풀을 그만큼 확보한다
+    if (candidates.length >= sourcingMaxPerDay() + 5) break;
 
     const product =
       pickBestProductForKeyword(kw.keyword, kw.category, catalog, marketKeywords) ??
@@ -427,7 +431,8 @@ export async function generateConsignmentPicks(
       : enriched
     : enriched;
 
-  return ranked.slice(0, CONSIGNMENT_DAILY_PICKS);
+  const target = Math.max(1, Math.min(sourcingMaxPerDay(), dailyTarget ?? CONSIGNMENT_DAILY_PICKS));
+  return ranked.slice(0, target);
 }
 
 export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

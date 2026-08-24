@@ -324,3 +324,54 @@ test("toss SEO: banned phrases and keyword placement are enforced", async () => 
 
   assert.ok(!optimizeTitle({ mainKeyword: "가디건", productName: "최저가 가디건 정품보장", category: "fashion" }).includes("최저가"));
 });
+
+test("sourcing plan: daily target is derived from the goal, not hardcoded", async () => {
+  const { computeSourcingPlan, findRequiredSkuCount, SOURCING_FALLBACK_PER_DAY } = await import(
+    "../../toss-shop/lib/seller-engine/sourcing-plan.ts"
+  );
+  const weak = {
+    baselineDailyUnits: 3, netProfitPerUnitKrw: 5800,
+    competitionIntensity: 1.5, competitorAvgReviews: 300, seoScore: 70,
+  };
+  const strong = {
+    baselineDailyUnits: 4, netProfitPerUnitKrw: 7000,
+    competitionIntensity: 0.8, competitorAvgReviews: 50, seoScore: 85,
+  };
+
+  // 경제성이 좋을수록 목표 달성에 필요한 SKU가 적어야 한다
+  const needWeak = findRequiredSkuCount({ econ: weak, dataQuality: "live", goalKrw: 10_000_000 });
+  const needStrong = findRequiredSkuCount({ econ: strong, dataQuality: "live", goalKrw: 10_000_000 });
+  assert.ok(needStrong < needWeak, `좋은 SKU면 더 적게 필요 (${needStrong} < ${needWeak})`);
+
+  // 누적이 늘수록 오늘 필요한 소싱량은 줄어야 한다
+  const early = computeSourcingPlan({ currentSkus: 0, econ: weak, dataQuality: "live", goalKrw: 10_000_000 });
+  const later = computeSourcingPlan({ currentSkus: 80, econ: weak, dataQuality: "live", goalKrw: 10_000_000 });
+  assert.equal(early.mode, "ramp");
+  assert.ok(later.dailyTarget <= early.dailyTarget, "누적이 쌓이면 일일 목표 감소");
+
+  // 목표를 넘기면 유지 모드로 전환
+  const done = computeSourcingPlan({ currentSkus: 300, econ: strong, dataQuality: "live", goalKrw: 10_000_000 });
+  assert.equal(done.mode, "maintain");
+  assert.ok(done.currentGoalProbPct >= 90);
+
+  // demo 데이터면 역산값이 아니라 고정 기본값을 써야 한다 (못 믿을 값을 쓰면 안 됨)
+  const demo = computeSourcingPlan({ currentSkus: 0, econ: weak, dataQuality: "demo", goalKrw: 10_000_000 });
+  assert.equal(demo.trustworthy, false);
+  assert.equal(demo.mode, "unknown");
+  assert.equal(demo.dailyTarget, SOURCING_FALLBACK_PER_DAY);
+});
+
+test("sourcing plan: daily target respects the safety cap", async () => {
+  const { computeSourcingPlan, sourcingMaxPerDay } = await import(
+    "../../toss-shop/lib/seller-engine/sourcing-plan.ts"
+  );
+  const terrible = {
+    baselineDailyUnits: 0.4, netProfitPerUnitKrw: 900,
+    competitionIntensity: 2.5, competitorAvgReviews: 5000, seoScore: 30,
+  };
+  const plan = computeSourcingPlan({
+    currentSkus: 0, econ: terrible, dataQuality: "live", goalKrw: 10_000_000, horizonDays: 1,
+  });
+  assert.ok(plan.dailyTarget <= sourcingMaxPerDay(), "상한을 넘으면 안 됨");
+  assert.match(plan.reason, /상한/);
+});
