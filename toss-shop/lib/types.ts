@@ -415,6 +415,11 @@ export type JarvisListingPayload = {
   supplierPlatform?: string;
   /** 도매꾹/도매매 공급사 ID — 공급처 단위 반품지 매핑 키 */
   supplierId?: string;
+  /**
+   * 공급처 반품 처리 방식 — 반품지 결정에 쓴다.
+   * 공급처 수거형/미확인이면 전용 반품지가 없을 때 등록이 차단된다.
+   */
+  returnHandling?: import("./wholesale/supplier-return-policy").ReturnHandling;
   /** 공급사 표시명 — 반품지 매핑 누락 경고를 사람이 읽을 수 있게 */
   supplierName?: string;
 };
@@ -690,6 +695,11 @@ export type WholesaleListing = {
   platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
   /** 공급사 등급·출고속도 (live 응답에서 판독; 미확인이면 verified:false → Jarvis 게이트 탈락) */
   supplierQuality?: import("./wholesale/supplier-quality").SupplierQuality;
+  /**
+   * 공급처 반품·수거 안내 원문. 비어 있으면 반품 처리 주체를 판독할 수 없어
+   * 반품지 결정이 fail-closed로 막힌다(전용 주소 또는 셀러 자체 주소 선언 필요).
+   */
+  policyText?: string;
   itemNo?: number;
   title: string;
   unitPriceKrw: number;

@@ -128,7 +128,7 @@ export function DashboardHomeClient() {
 
       {!initialLoading && billing?.access && !billing.access.fullAccess && (
         <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
-          Free 플랜: 하루 3회 키워드 분석 · 위탁/수입 AI는 Pro 필요 (
+          Free 플랜: 하루 3회 키워드 분석 · 위탁 소싱 AI는 Pro 필요 (
           <Link href={`${SP_ROUTES.settings}#upgrade`} className="font-semibold underline">
             월 1만원 업그레이드
           </Link>

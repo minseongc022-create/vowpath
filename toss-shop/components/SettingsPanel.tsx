@@ -176,7 +176,7 @@ export function SettingsPanel() {
         )}
         {!data.billing.access.fullAccess && (
           <p className="mt-2 text-sm text-ts-muted">
-            Free: 하루 키워드 분석 {FREE_DAILY_KEYWORD_LIMIT}회 · 위탁/수입 AI·발굴·랭킹은 Pro 필요
+            Free: 하루 키워드 분석 {FREE_DAILY_KEYWORD_LIMIT}회 · 위탁 소싱 AI·발굴·랭킹은 Pro 필요
           </p>
         )}
         <p className="mt-2 text-sm text-ts-muted">

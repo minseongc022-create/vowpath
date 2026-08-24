@@ -42,6 +42,7 @@ const GROUPS = [
       ["TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID", false],
       ["TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP", false],
       ["TOSS_SHOP_RETURN_LOCATION_STRICT", false],
+      ["TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED", false],
     ],
   },
   {
@@ -92,6 +93,8 @@ const GROUPS = [
     title: "AI 이미지 스튜디오 (선택 — OPENAI_API_KEY 있으면 기본 ON)",
     keys: [
       ["JARVIS_AI_IMAGES", false],
+      ["JARVIS_SHOT_KINDS", false],
+      ["JARVIS_MAX_SHOTS_PER_PRODUCT", false],
       ["JARVIS_IMAGE_MODEL", false],
       ["JARVIS_IMAGE_SIZE", false],
     ],

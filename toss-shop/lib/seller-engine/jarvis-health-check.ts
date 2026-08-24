@@ -135,9 +135,11 @@ export function runJarvisHealthCheck(input: {
     label: "공급처별 교환·반품지",
     category: "listing",
     // 매핑 JSON이 깨져 있으면 등록이 전량 차단되므로 반드시 fail로 드러내야 한다.
-    passed: returnConfig.mapValid && returnId,
+    passed: returnConfig.mapValid && returnId && !returnConfig.defaultUndeclared,
     detail: !returnConfig.mapValid
       ? `매핑 JSON 오류 — ${returnConfig.mapError} (등록 차단됨)`
+      : returnConfig.defaultUndeclared
+        ? `기본 반품지 ${returnConfig.defaultId}의 성격 미선언 — 예전 공급처 주소라면 다른 상품 반품이 그곳으로 갑니다. 내 주소가 맞으면 TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED=true`
       : !returnId
         ? "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID 또는 _MAP 필요"
         : returnConfig.mapEntryCount > 0

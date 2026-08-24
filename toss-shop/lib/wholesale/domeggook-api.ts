@@ -15,6 +15,10 @@ type DomeItem = {
   unitQty?: number;
   url?: string;
   deli?: { who?: string; fee?: string | number; fromOversea?: boolean };
+  /** 응답에 설명·안내 텍스트가 실려 오는 경우 (검색 API는 보통 주지 않음) */
+  desc?: string;
+  content?: string;
+  info?: string;
 };
 
 function getApiKey(): string | null {
@@ -34,6 +38,14 @@ function normalizeItems(raw: unknown): DomeItem[] {
   const item = list.list?.item;
   if (!item) return [];
   return Array.isArray(item) ? item : [item];
+}
+
+/** 응답에 실려 온 설명·안내 텍스트를 모아 반품정책 판독 입력으로 쓴다 */
+function collectPolicyText(item: DomeItem): string | undefined {
+  const parts = [item.desc, item.content, item.info].filter(
+    (v): v is string => typeof v === "string" && v.trim().length > 0,
+  );
+  return parts.length ? parts.join("\n") : undefined;
 }
 
 function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListing | null {
@@ -59,6 +71,7 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
     freeShipping,
     source: "live",
     supplierQuality,
+    policyText: collectPolicyText(item),
   };
 }
 

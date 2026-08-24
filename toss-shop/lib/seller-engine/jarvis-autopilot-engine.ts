@@ -20,6 +20,7 @@ import { computeSourcingPlan } from "./sourcing-plan";
 import { computeAdEconomics, bestCartCouponDiscount } from "./toss-growth-levers";
 import { getMonthlyGoalKrw } from "./goal-engine";
 import { analyzeWinnerSkus } from "./winner-sku-engine";
+import { filterCertainPicks } from "./certainty-gate";
 
 export const JARVIS_AUTOPILOT_VERSION = "1.0";
 
@@ -52,7 +53,20 @@ export async function runJarvisAutopilotCycle(
   let fulfillmentNew = 0;
 
   const consignmentPicks = input.data.consignmentPicks ?? [];
-  const certified = filterJarvisCertifiedPicks(consignmentPicks);
+
+  // 2단 게이트:
+  //  1) Jarvis 93% — 점수 기반 (여러 지표의 가중합)
+  //  2) 확실성 게이트 — 근거가 실측인지 따진다. 점수가 높아도 공급처·원가·등급이
+  //     추정이면 통과시키지 않는다. 추정치에 광고비를 걸 수 없기 때문.
+  const scored = filterJarvisCertifiedPicks(consignmentPicks);
+  const { certain, rejected } = filterCertainPicks(scored);
+  const certified = certain;
+
+  if (rejected.length) {
+    // 왜 떨어졌는지 남긴다 — 기준을 낮추는 대신 원인을 고치기 위해
+    const topReasons = rejected.slice(0, 3).map((r) => r.verdict.reason);
+    actions.push(`확실성 미달 ${rejected.length}건 제외 — ${topReasons.join(" / ")}`);
+  }
 
   const listingDrafts = input.data.listingDrafts ?? [];
   const pendingDraftIds = new Set(

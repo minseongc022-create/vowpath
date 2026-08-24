@@ -7,6 +7,10 @@
 
 import type { ConsignmentPick, ImportPick } from "../types";
 import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
+import { buildProductShotSet } from "./product-shot-set";
+import { buildPremiumDetailHtml } from "./premium-detail-template";
+import { readSupplierReturnPolicy, returnHandlingLabel } from "../wholesale/supplier-return-policy";
+import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
 
 export const HOOKABLE_DETAIL_VERSION = "1.0";
 
@@ -154,27 +158,59 @@ export async function buildHookableDetailFromPick(
     (pick.aiSummary ?? "").slice(0, 1200) ||
     `${title} — ${pick.keyword} 카테고리 Jarvis 검증 SKU. ${sellingPoints.join(". ")}.`;
 
-  const html = buildHookableDetailHtml({
+  // 멀티컷 세트 — 히어로/디테일/사용맥락. 실패하면 원본 이미지로 폴백한다.
+  const shotSet = await buildProductShotSet({
+    imageUrl: primaryImage ?? images[0],
+    category: pick.category,
+    productLabel: pick.productName,
+  });
+
+  // 배송·반품 안내는 **사실만** 넣는다.
+  // 오늘출발은 공급처가 1등급·당일발송으로 검증된 경우에만 표기한다 —
+  // 지키지 못할 배송 약속은 발송지연 페널티와 인센티브 상실로 직결된다.
+  const sameDayVerified = meetsSupplierPolicy(wholesale?.supplierQuality);
+  const deliveryNote = sameDayVerified
+    ? "평일 기준 당일 출고됩니다. (주문 마감 시간 이후 접수 건은 다음 영업일 출고)"
+    : "결제 확인 후 순차 발송됩니다.";
+
+  const returnPolicy = readSupplierReturnPolicy(wholesale?.policyText);
+  const returnNote =
+    returnPolicy.handling === "supplier_collects"
+      ? "수령 후 7일 이내 신청 가능합니다. 반품은 공급처에서 직접 수거합니다."
+      : returnPolicy.handling === "seller_handles"
+        ? "수령 후 7일 이내 신청 가능합니다. 단순 변심의 경우 왕복 배송비가 부과될 수 있습니다."
+        : "수령 후 7일 이내 신청 가능합니다. 상품 특성에 따라 왕복 배송비가 부과될 수 있습니다.";
+
+  const supplierLabel =
+    wholesale?.platform === "domeme"
+      ? "도매매"
+      : wholesale?.platform === "domeggook"
+        ? "도매꾹"
+        : mode === "import" && "sourceCountry" in pick
+          ? pick.sourceCountry
+          : undefined;
+
+  const html = buildPremiumDetailHtml({
     title,
     keyword: pick.keyword,
     priceKrw: pick.recommendedPriceKrw,
+    category: pick.category,
     sellingPoints,
     description,
-    images,
-    brandLabel: "Jarvis Pick",
-    supplierLabel:
-      wholesale?.platform === "domeme"
-        ? "도매매"
-        : wholesale?.platform === "domeggook"
-          ? "도매꾹"
-          : mode === "import" && "sourceCountry" in pick
-            ? pick.sourceCountry
-            : undefined,
+    shots: shotSet.shots,
+    fallbackImages: images,
+    supplierLabel,
+    deliveryNote,
+    returnNote,
   });
+
+  // 생성 컷이 있으면 그걸 우선 노출하고, 원본도 뒤에 남겨 실물 확인이 가능하게 한다.
+  const generatedUrls = shotSet.shots.map((s) => s.url);
+  const allImages = [...generatedUrls, ...images];
 
   return {
     html,
-    images,
-    thumbnailUrl: images[0] ?? primaryImage,
+    images: allImages,
+    thumbnailUrl: generatedUrls[0] ?? images[0] ?? primaryImage,
   };
 }

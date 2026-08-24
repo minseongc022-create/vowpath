@@ -13,6 +13,7 @@ import { buildJarvisDetailPage } from "./detail-page-engine";
 import { buildJarvisPickBrief } from "./jarvis-pick-brief";
 import { JARVIS_CONFIDENCE_THRESHOLD } from "./jarvis-engine";
 import { checkListingCompliance, type ListingComplianceIssue } from "./toss-policy-engine";
+import { readSupplierReturnPolicy } from "../wholesale/supplier-return-policy";
 
 export const LISTING_AUTOMATION_VERSION = "2.0";
 
@@ -84,6 +85,9 @@ function buildListingPayload(
     // 수천 개라 플랫폼 단위로는 반품지를 특정할 수 없다.
     supplierId: wholesale?.sellerId,
     supplierName: wholesale?.sellerNick ?? wholesale?.sellerId,
+    // 반품 처리 주체를 공급처 안내 원문에서 판독한다. 텍스트가 없으면
+    // unknown → 반품지 결정이 fail-closed로 막힌다(전용 주소 필요).
+    returnHandling: readSupplierReturnPolicy(wholesale?.policyText).handling,
   };
 }
 

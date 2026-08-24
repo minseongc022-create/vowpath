@@ -26,6 +26,7 @@
  */
 
 import { z } from "zod";
+import type { ReturnHandling } from "../wholesale/supplier-return-policy";
 
 export const RETURN_LOCATION_ENGINE_VERSION = "1.0";
 
@@ -50,7 +51,12 @@ export type ReturnLocationErrorCode =
   /** 기본 반품지도 매핑도 없다 — 토스 등록 자체가 불가 */
   | "MISSING"
   /** STRICT 모드인데 이 공급처 매핑이 없다 */
-  | "UNMAPPED";
+  | "UNMAPPED"
+  /**
+   * 공급처 전용 반품지가 필요한데(공급처 수거형 또는 판독 실패) 매핑에 없다.
+   * 기본 반품지로 폴백하면 그 주소의 주인이 남의 반품을 받게 된다.
+   */
+  | "SUPPLIER_ADDRESS_REQUIRED";
 
 export type ReturnLocationDecision = {
   engineVersion: string;
@@ -145,6 +151,32 @@ function isStrict(): boolean {
   return process.env.TOSS_SHOP_RETURN_LOCATION_STRICT?.trim().toLowerCase() === "true";
 }
 
+/**
+ * 기본 반품지가 **셀러 자체 주소**임이 선언되었는가.
+ *
+ * 이 선언이 없으면 기본 반품지는 "성격 미상"으로 취급한다. 성격 미상 주소를
+ * 공급처 수거형 상품의 반품지로 쓰면, 그 주소의 주인(예전 공급처)이 남의
+ * 반품을 받게 되어 수취 거부·미아·분쟁으로 이어진다.
+ *
+ * 매핑의 `seller_default` 키로도 같은 선언이 가능하다 — 그쪽이 더 명시적이다.
+ */
+function sellerOwnedDefaultId(map?: Map<string, number>): number | undefined {
+  const fromMap = map?.get("seller_default");
+  if (fromMap) return fromMap;
+  const declared =
+    process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED?.trim().toLowerCase() === "true";
+  return declared ? readDefaultLocationId() : undefined;
+}
+
+/**
+ * 이 상품이 셀러 자체 반품지를 써도 되는가.
+ * seller_handles로 확인된 경우에만 true — 나머지(공급처 수거형·판독 실패)는
+ * 공급처 전용 주소가 필요하다.
+ */
+function mayUseSellerOwned(handling: ReturnHandling | undefined): boolean {
+  return handling === "seller_handles";
+}
+
 // ─────────────────────────────────────────────────────────────
 // 조회 키 생성
 // ─────────────────────────────────────────────────────────────
@@ -203,6 +235,15 @@ export type ResolveReturnLocationInput = ReturnLocationLookup & {
    * 미지정 시 TOSS_SHOP_RETURN_LOCATION_STRICT를 따른다.
    */
   strict?: boolean;
+  /**
+   * 이 공급처의 반품 처리 방식 (supplier-return-policy.ts 판독 결과).
+   *
+   * seller_handles로 **확인된** 경우에만 셀러 자체 반품지 폴백을 허용한다.
+   * supplier_collects·unknown이면 공급처 전용 반품지가 없는 한 등록을 막는다 —
+   * 예전에 등록해둔 다른 공급처 주소가 기본 반품지로 걸려 있으면, 그 주소로
+   * 엉뚱한 상품이 반품되어 수취 거부·미아·분쟁이 발생하기 때문이다.
+   */
+  returnHandling?: ReturnHandling;
 };
 
 export function resolveReturnLocation(input: ResolveReturnLocationInput): ReturnLocationDecision {
@@ -252,6 +293,27 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
 
     // 매핑을 쓴다 = 공급처마다 반품지가 다르다는 선언. 그런데 이 건은 누락됐다.
     const label = describeSupplier(input);
+
+    // 공급처 수거형(또는 판독 실패)인데 전용 주소가 없다 → 기본값 폴백 금지.
+    // 폴백하면 기본 반품지 주인이 남의 반품을 받는다.
+    const sellerOwned = sellerOwnedDefaultId(parsed.map);
+    if (!mayUseSellerOwned(input.returnHandling) && !sellerOwned) {
+      return {
+        ...base,
+        source: "unresolved",
+        triedKeys,
+        error: {
+          code: "SUPPLIER_ADDRESS_REQUIRED",
+          message:
+            `${label}는 ${input.returnHandling === "supplier_collects" ? "공급처가 직접 수거하는 곳" : "반품 처리 주체가 확인되지 않은 곳"}이라 ` +
+            "전용 반품지가 필요합니다. 기본 반품지로 등록하면 그 주소의 주인이 남의 반품을 받게 되어 " +
+            `수취 거부·분쟁으로 이어집니다. 시도한 키: ${triedKeys.join(", ") || "없음"}. ` +
+            "이 공급처 주소를 토스에 등록하고 매핑에 추가하거나, 셀러 자체 반품지를 " +
+            "매핑의 seller_default 키로 선언하세요.",
+        },
+      };
+    }
+
     if (strict) {
       return {
         ...base,
@@ -277,13 +339,57 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
   }
 
   // 3) 기본 반품지
-  if (defaultId) {
+  //
+  // ⚠️ 여기가 가장 위험한 지점이다. 셀러가 예전에 A공급처 상품을 팔면서
+  // A의 주소를 반품지로 등록해뒀다면, 그게 기본 반품지가 되어 이후 B·C·D
+  // 공급처 상품이 전부 A의 주소로 반품되도록 등록된다. A는 남의 물건이라
+  // 수취를 거부하고, 반품은 미아가 되고, 분쟁·페널티는 셀러가 받는다.
+  //
+  // 그래서 기본 반품지는 **셀러 자체 주소임이 선언된 경우에만** 폴백으로 쓴다.
+  // 선언은 매핑의 seller_default 키 또는
+  // TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED=true 로 한다.
+  const parsedMapForDefault = rawMap ? parseMap(rawMap) : undefined;
+  const sellerOwned = sellerOwnedDefaultId(
+    parsedMapForDefault?.ok ? parsedMapForDefault.map : undefined,
+  );
+
+  if (sellerOwned) {
+    if (!mayUseSellerOwned(input.returnHandling)) {
+      // 셀러 주소로 보내도 "남의 주소"는 아니라 분쟁은 안 나지만,
+      // 공급처 수거형이면 셀러→공급처 재발송 왕복비가 든다. 경고만 남긴다.
+      warnings.push(
+        `${describeSupplier(input)}는 ${
+          input.returnHandling === "supplier_collects"
+            ? "공급처 직접수거형"
+            : "반품 처리 주체 미확인"
+        }인데 셀러 자체 반품지로 등록됩니다 — 반품 시 셀러가 받아 공급처로 재발송해야 해 왕복 택배비가 발생할 수 있습니다.`,
+      );
+    }
     if (input.pickMode === "import" && !rawMap) {
       warnings.push(
         "해외구매대행 건입니다 — 기본 반품지가 국내 주소인지 확인하세요. 반품은 해외로 보낼 수 없습니다.",
       );
     }
-    return { ...base, locationId: defaultId, source: "default", triedKeys };
+    return { ...base, locationId: sellerOwned, source: "default", triedKeys };
+  }
+
+  if (defaultId) {
+    // 기본 반품지는 있는데 성격이 선언되지 않았다 — 누구 주소인지 모른다.
+    return {
+      ...base,
+      source: "unresolved",
+      triedKeys,
+      error: {
+        code: "SUPPLIER_ADDRESS_REQUIRED",
+        message:
+          `기본 반품지 ${defaultId}의 성격이 선언되지 않아 사용할 수 없습니다. ` +
+          "이 주소가 예전 공급처 주소라면, 다른 공급처 상품의 반품이 그 공급처로 가서 " +
+          "수취 거부·미아·분쟁이 발생합니다. " +
+          "이 주소가 셀러(내) 자체 반품지가 맞다면 TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED=true 를 설정하고, " +
+          "특정 공급처 전용 주소라면 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP에 " +
+          `"${input.supplierPlatform ?? "platform"}:${input.supplierId ?? "sellerId"}" 키로 매핑하세요.`,
+      },
+    };
   }
 
   return {
@@ -314,14 +420,45 @@ export function describeReturnLocationConfig(): {
   mapValid: boolean;
   mapError?: string;
   strict: boolean;
+  /** 폴백으로 쓸 수 있는 셀러 자체 반품지 (선언된 경우에만) */
+  sellerOwnedId?: number;
+  /** 기본 반품지는 있는데 성격이 선언되지 않았다 — 오배정 위험 */
+  defaultUndeclared: boolean;
 } {
   const defaultId = readDefaultLocationId();
   const strict = isStrict();
   const raw = process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP?.trim();
-  if (!raw) return { defaultId, mapEntryCount: 0, mapValid: true, strict };
+
+  if (!raw) {
+    const sellerOwnedId = sellerOwnedDefaultId();
+    return {
+      defaultId,
+      mapEntryCount: 0,
+      mapValid: true,
+      strict,
+      sellerOwnedId,
+      defaultUndeclared: Boolean(defaultId) && !sellerOwnedId,
+    };
+  }
 
   const parsed = parseMap(raw);
-  return parsed.ok
-    ? { defaultId, mapEntryCount: parsed.map.size, mapValid: true, strict }
-    : { defaultId, mapEntryCount: 0, mapValid: false, mapError: parsed.message, strict };
+  if (!parsed.ok) {
+    return {
+      defaultId,
+      mapEntryCount: 0,
+      mapValid: false,
+      mapError: parsed.message,
+      strict,
+      defaultUndeclared: false,
+    };
+  }
+  const sellerOwnedId = sellerOwnedDefaultId(parsed.map);
+  return {
+    defaultId,
+    mapEntryCount: parsed.map.size,
+    mapValid: true,
+    strict,
+    sellerOwnedId,
+    defaultUndeclared: Boolean(defaultId) && !sellerOwnedId,
+  };
 }

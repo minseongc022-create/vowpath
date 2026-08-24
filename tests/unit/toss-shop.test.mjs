@@ -136,6 +136,7 @@ function clearReturnLocationEnv() {
   delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
   delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
   delete process.env.TOSS_SHOP_RETURN_LOCATION_STRICT;
+  delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
 }
 
 test("return location: 공급처 단위 > 플랫폼 > 모드 > 기본 순으로 구체적인 것이 이긴다", async (t) => {
@@ -143,6 +144,9 @@ test("return location: 공급처 단위 > 플랫폼 > 모드 > 기본 순으로 
   t.after(clearReturnLocationEnv);
 
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  // 기본값 폴백을 쓰려면 그 주소가 셀러 자체 주소임을 선언해야 한다
+  // (성격 미상 주소는 남의 반품을 받게 될 수 있어 차단된다)
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
     "domeggook:12345": 201,
     domeggook: 202,
@@ -221,9 +225,14 @@ test("return location: STRICT는 매핑 누락을 차단, 기본 모드는 경�
   t.after(clearReturnLocationEnv);
 
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:12345": 201 });
 
-  const lookup = { supplierPlatform: "domeggook", supplierId: "99999", pickMode: "consignment" };
+  // 셀러 처리형이어야 기본 반품지 폴백이 의미가 있다
+  const lookup = {
+    supplierPlatform: "domeggook", supplierId: "99999",
+    pickMode: "consignment", returnHandling: "seller_handles",
+  };
 
   // 사람이 승인 화면에서 보는 경로 → 경고만 남기고 등록은 진행
   const lenient = resolveReturnLocation(lookup);
@@ -275,7 +284,10 @@ test("return location: 매핑 미설정 수입 건은 국내 반품지 확인 �
   t.after(clearReturnLocationEnv);
 
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
-  const d = resolveReturnLocation({ supplierPlatform: "중국", pickMode: "import" });
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+  const d = resolveReturnLocation({
+    supplierPlatform: "중국", pickMode: "import", returnHandling: "seller_handles",
+  });
   assert.equal(d.locationId, 100);
   assert.ok(d.warnings.some((w) => w.includes("해외로 보낼 수 없습니다")));
 });
@@ -329,13 +341,27 @@ test("health check: 반품지 매핑이 깨지면 헬스체크가 fail로 드러
   assert.equal(brokenCheck.passed, false);
   assert.match(brokenCheck.detail, /매핑 JSON 오류/);
 
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:1": 2 });
+  // 매핑에 공급처 전용 주소 + 셀러 자체 주소(seller_default)가 함께 선언되면 통과
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
+    "domeggook:1": 2,
+    seller_default: 3,
+  });
   clearReturnLocationMapCache();
   const okCheck = runJarvisHealthCheck({ hasOpenAi: false }).checks.find(
     (c) => c.id === "return_location",
   );
   assert.equal(okCheck.passed, true);
-  assert.match(okCheck.detail, /공급처 매핑 1건/);
+  assert.match(okCheck.detail, /공급처 매핑/);
+
+  // 기본 반품지만 있고 성격이 선언되지 않으면 fail — 남의 주소일 수 있다
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "777";
+  clearReturnLocationMapCache();
+  const undeclared = runJarvisHealthCheck({ hasOpenAi: false }).checks.find(
+    (c) => c.id === "return_location",
+  );
+  assert.equal(undeclared.passed, false, "성격 미선언 기본 반품지는 위험으로 드러나야");
+  assert.match(undeclared.detail, /성격 미선언/);
 });
 
 test("publish: 반품지 결정 실패는 등록을 차단하고 근거를 결과에 담는다", async (t) => {
@@ -921,7 +947,25 @@ test("autopilot: 소싱 계획·광고 손익분기·쿠폰이 사이클에서 �
   const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
 
   const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
-  for (const p of picks) p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+  // 시드는 추정(demo) 데이터라 확실성 게이트를 통과하지 못한다 — 의도된 동작.
+  // 이 테스트는 사이클 계산부를 검증하는 것이므로 실측 근거를 갖춘 픽으로 만든다.
+  for (const p of picks) {
+    p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+    p.estimatedMarginPct = Math.max(p.estimatedMarginPct, 20);
+    p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
+    p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
+    p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
+    p.wholesaleBest = {
+      platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
+      shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
+      source: "live", sellerId: "s1", sellerNick: "공급사",
+      supplierQuality: {
+        grade: "excellent", shipSpeed: "same_day", verified: true,
+        fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
+      },
+      policyText: "반품은 판매자가 직접 처리해주셔야 합니다.",
+    };
+  }
 
   const data = { consignmentPicks: picks, listingDrafts: [], fulfillmentJobs: [] };
   const report = await runJarvisAutopilotCycle({
@@ -1097,7 +1141,16 @@ test("ai image studio: 기본 style은 진짜 스튜디오 촬영 프롬프트�
   await regenerateProductBackground({ imageUrl: "https://supplier.example/p.jpg", category: "beauty", productLabel: "세럼" });
   assert.match(capturedPrompt, /studio/i, "기본 style은 studio 촬영 프롬프트여야");
   assert.match(capturedPrompt, /softbox|studio backdrop/i);
-  assert.match(capturedPrompt, /completely unchanged/i, "제품 자체는 바꾸지 말라는 지시가 있어야");
+  // 형태 보존 제약 — 이게 느슨하면 모델이 로고·라벨을 다시 그려서 실물과
+  // 다른 이미지가 되고, 그건 허위표시가 된다.
+  assert.match(capturedPrompt, /faithful to the input image/i, "제품 불변 지시가 있어야");
+  assert.match(capturedPrompt, /Do not rotate it/i, "회전 금지 — 안 보이던 면을 지어내면 안 된다");
+  assert.match(
+    capturedPrompt,
+    /not already visible in the input/i,
+    "원본에 없는 면을 만들지 말라는 지시가 있어야",
+  );
+  assert.match(capturedPrompt, /do not invent or redraw logos, labels/i, "로고·라벨 조작 금지");
 
   capturedPrompt = "";
   await regenerateProductBackground({
@@ -1685,6 +1738,7 @@ test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID
 
   process.env.TOSS_SHOP_CATEGORY_ID_MAP = JSON.stringify({ beauty: 8080 });
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
   clearCategoryMapCache();
 
   let sentCategoryId;
@@ -1712,6 +1766,7 @@ test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID
       categoryHint: "뷰티",
       category: "beauty",
       deliveryFeeType: "FREE",
+      returnHandling: "seller_handles",
     },
   };
 
@@ -1825,4 +1880,398 @@ test("return location lookup: 등록된 반품지가 없으면 빈 배열 (에�
   };
   const { locations } = await listTossReturnLocations("m1", { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" });
   assert.deepEqual(locations, []);
+});
+
+// ── 반품지 오배정 방지 ────────────────────────────────────────────────
+// 셀러가 예전에 A공급처 상품을 팔며 A의 주소를 반품지로 등록해뒀다면,
+// 그게 기본 반품지가 되어 이후 B·C·D 공급처 상품이 전부 A 주소로 반품된다.
+// A는 남의 물건이라 수취 거부 → 미아 → 분쟁 → 페널티.
+
+test("return policy: 공급처 직접수거 / 셀러 처리 / 반품불가를 판독한다", async () => {
+  const { readSupplierReturnPolicy, canUseSellerOwnedReturnLocation, isReturnPolicyDisqualifying } =
+    await import("../../toss-shop/lib/wholesale/supplier-return-policy.ts");
+
+  const collects = readSupplierReturnPolicy("반품 시 공급사에서 직접 수거합니다. 고객센터로 접수해주세요.");
+  assert.equal(collects.handling, "supplier_collects");
+  assert.equal(collects.verified, true);
+  assert.equal(canUseSellerOwnedReturnLocation(collects), false, "공급처 수거형은 셀러 주소 쓰면 왕복비 손실");
+
+  const seller = readSupplierReturnPolicy("반품은 판매자가 직접 처리해주셔야 합니다.");
+  assert.equal(seller.handling, "seller_handles");
+  assert.equal(canUseSellerOwnedReturnLocation(seller), true);
+
+  const refused = readSupplierReturnPolicy("단순 변심에 의한 반품 불가 상품입니다.");
+  assert.equal(refused.handling, "refused");
+  assert.equal(isReturnPolicyDisqualifying(refused), true, "반품 불가 공급처는 소싱 제외");
+});
+
+test("return policy: 판독 실패는 unknown (추측으로 셀러 주소를 쓰지 않는다)", async () => {
+  const { readSupplierReturnPolicy, canUseSellerOwnedReturnLocation } = await import(
+    "../../toss-shop/lib/wholesale/supplier-return-policy.ts"
+  );
+  for (const text of [undefined, "", "고급 원단으로 제작된 상품입니다."]) {
+    const p = readSupplierReturnPolicy(text);
+    assert.equal(p.handling, "unknown");
+    assert.equal(p.verified, false);
+    assert.equal(canUseSellerOwnedReturnLocation(p), false);
+  }
+  // 양쪽 신호가 섞이면 판독 불가로 남긴다
+  const mixed = readSupplierReturnPolicy("공급사에서 직접 수거하며, 반품은 판매자가 처리합니다.");
+  assert.equal(mixed.handling, "unknown");
+});
+
+test("return location: 성격 미상 기본 반품지는 사용을 차단한다 (남의 주소일 수 있음)", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved, clearReturnLocationMapCache } =
+    await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+  clearReturnLocationEnv();
+  clearReturnLocationMapCache();
+
+  // 예전 A공급처 주소가 기본 반품지로 남아 있는 상황
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "111";
+
+  const d = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "B공급처",
+    pickMode: "consignment",
+    returnHandling: "unknown",
+  });
+  assert.equal(isReturnLocationResolved(d), false, "성격 미상 기본값으로 등록하면 안 된다");
+  assert.equal(d.error.code, "SUPPLIER_ADDRESS_REQUIRED");
+  assert.match(d.error.message, /예전 공급처 주소라면/);
+});
+
+test("return location: 셀러 자체 주소로 선언하면 폴백이 허용된다", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved, clearReturnLocationMapCache } =
+    await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  t.after(() => {
+    clearReturnLocationEnv();
+    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
+    clearReturnLocationMapCache();
+  });
+  clearReturnLocationEnv();
+  clearReturnLocationMapCache();
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "111";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+
+  // 셀러 처리형 → 깨끗하게 통과
+  const clean = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "s1",
+    pickMode: "consignment", returnHandling: "seller_handles",
+  });
+  assert.equal(clean.locationId, 111);
+  assert.equal(clean.warnings.length, 0);
+
+  // 공급처 수거형 → 등록은 되지만 왕복비 경고
+  const warned = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "s2",
+    pickMode: "consignment", returnHandling: "supplier_collects",
+  });
+  assert.equal(isReturnLocationResolved(warned), true);
+  assert.ok(warned.warnings.some((w) => w.includes("왕복 택배비")));
+});
+
+test("return location: seller_default 매핑 키로도 셀러 주소를 선언할 수 있다", async (t) => {
+  const { resolveReturnLocation, clearReturnLocationMapCache } = await import(
+    "../../toss-shop/lib/api/exchange-return-location.ts"
+  );
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+  clearReturnLocationEnv();
+  clearReturnLocationMapCache();
+
+  // 공급처 전용 주소 + 셀러 자체 주소를 한 매핑에 선언
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
+    "domeggook:A공급처": 201,
+    seller_default: 999,
+  });
+  clearReturnLocationMapCache();
+
+  // A공급처 상품 → 전용 주소
+  const a = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "A공급처",
+    pickMode: "consignment", returnHandling: "supplier_collects",
+  });
+  assert.equal(a.locationId, 201, "A공급처는 자기 주소로");
+
+  // 매핑에 없는 B공급처(셀러 처리형) → seller_default로 안전하게 폴백
+  const b = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "B공급처",
+    pickMode: "consignment", returnHandling: "seller_handles",
+  });
+  assert.equal(b.locationId, 999, "A의 주소가 아니라 셀러 자체 주소로");
+});
+
+test("return location: 매핑은 있으나 공급처 전용 주소가 없으면 차단한다", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved, clearReturnLocationMapCache } =
+    await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+  clearReturnLocationEnv();
+  clearReturnLocationMapCache();
+
+  // A공급처만 매핑됨, seller_default 선언 없음
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:A공급처": 201 });
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "111";
+  clearReturnLocationMapCache();
+
+  const d = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "B공급처",
+    pickMode: "consignment", returnHandling: "supplier_collects",
+  });
+  assert.equal(isReturnLocationResolved(d), false, "B의 반품이 A 주소로 가면 안 된다");
+  assert.equal(d.error.code, "SUPPLIER_ADDRESS_REQUIRED");
+});
+
+// ── 멀티컷 스튜디오 + 프리미엄 상세 ──────────────────────────────────
+
+test("shot set: 컷마다 다른 촬영 지시를 쓰되 회전은 절대 지시하지 않는다", async (t) => {
+  const { buildProductShotSet } = await import("../../toss-shop/lib/seller-engine/product-shot-set.ts");
+  const hadKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "sk-test-mock";
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    hadKey === undefined ? delete process.env.OPENAI_API_KEY : (process.env.OPENAI_API_KEY = hadKey);
+    globalThis.fetch = realFetch;
+    delete process.env.JARVIS_SHOT_KINDS;
+  });
+
+  // 512바이트 미만 이미지는 ai-image-studio가 걸러내므로 충분한 크기로 만든다
+  const bigPng = Buffer.concat([
+    Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"),
+    Buffer.alloc(1024, 0),
+  ]);
+  const tiny = bigPng.toString("base64");
+  const prompts = [];
+  globalThis.fetch = async (url, opts) => {
+    const href = String(url);
+    if (href.includes("images/edits")) {
+      for (const [k, v] of opts.body.entries()) if (k === "prompt") prompts.push(v);
+      return new Response(JSON.stringify({ data: [{ b64_json: tiny }] }), { status: 200 });
+    }
+    return new Response(bigPng, { status: 200, headers: { "Content-Type": "image/png" } });
+  };
+
+  process.env.JARVIS_SHOT_KINDS = "hero,detail,lifestyle";
+  const result = await buildProductShotSet({
+    imageUrl: "https://supplier.example/p.jpg",
+    category: "beauty",
+    productLabel: "세럼",
+  });
+
+  assert.equal(result.shots.length, 3, "3컷이 생성되어야");
+  assert.deepEqual(result.shots.map((s) => s.kind), ["hero", "detail", "lifestyle"]);
+  assert.ok(result.shots.every((s) => s.caption.length > 0), "컷마다 캡션이 있어야");
+
+  // 컷마다 지시가 실제로 달라야 "다른 스튜디오에서 찍은 것"처럼 보인다
+  assert.equal(new Set(prompts).size, 3, "컷마다 프롬프트가 달라야");
+
+  // 그런데 어떤 컷도 회전·뒷면을 지시하면 안 된다 (없는 면을 지어내면 허위표시)
+  for (const p of prompts) {
+    assert.doesNotMatch(p, /rotate the product|show the back|from behind|opposite side/i);
+    assert.match(p, /same viewing side/i, "보이는 면 유지 지시가 있어야");
+    assert.match(p, /faithful to the input image/i, "형태 보존 제약이 매 컷에 걸려야");
+  }
+});
+
+test("shot set: 원본 없음·AI 비활성이면 조용히 건너뛴다 (등록을 막지 않는다)", async (t) => {
+  const { buildProductShotSet } = await import("../../toss-shop/lib/seller-engine/product-shot-set.ts");
+  const hadKey = process.env.OPENAI_API_KEY;
+  t.after(() => {
+    hadKey === undefined ? delete process.env.OPENAI_API_KEY : (process.env.OPENAI_API_KEY = hadKey);
+  });
+
+  delete process.env.OPENAI_API_KEY;
+  const noKey = await buildProductShotSet({ imageUrl: "https://x/p.jpg", category: "home", productLabel: "선반" });
+  assert.equal(noKey.shots.length, 0);
+  assert.ok(noKey.skipped.length > 0, "건너뛴 이유가 남아야");
+
+  process.env.OPENAI_API_KEY = "sk-test-mock";
+  const noImage = await buildProductShotSet({ imageUrl: undefined, category: "home", productLabel: "선반" });
+  assert.equal(noImage.shots.length, 0);
+  assert.match(noImage.skipped[0].reason, /원본 이미지 없음/);
+});
+
+test("premium detail: 카테고리별 톤과 멀티컷 캡션이 반영된다", async () => {
+  const { buildPremiumDetailHtml } = await import(
+    "../../toss-shop/lib/seller-engine/premium-detail-template.ts"
+  );
+  const html = buildPremiumDetailHtml({
+    title: "수분 세럼 30ml",
+    keyword: "세럼",
+    priceKrw: 19000,
+    originPriceKrw: 25000,
+    category: "beauty",
+    sellingPoints: ["저자극 테스트 완료", "펌프형 용기"],
+    description: "건조한 피부에 수분을 채웁니다. 아침저녁으로 사용하세요.",
+    shots: [
+      { kind: "hero", url: "https://x/1.jpg", caption: "정면 스튜디오 컷" },
+      { kind: "detail", url: "https://x/2.jpg", caption: "디테일 클로즈업" },
+    ],
+    deliveryNote: "평일 기준 당일 출고됩니다.",
+    returnNote: "반품은 공급처에서 직접 수거합니다.",
+  });
+
+  assert.match(html, /수분 세럼 30ml/);
+  assert.match(html, /데일리 뷰티/, "뷰티 카테고리 톤이 적용되어야");
+  assert.match(html, /디테일 클로즈업/, "컷 캡션이 노출되어야");
+  assert.match(html, /24%/, "할인율이 계산되어야");
+  assert.match(html, /평일 기준 당일 출고/, "배송 안내는 사실만");
+  assert.match(html, /공급처에서 직접 수거/, "반품 안내는 판독된 사실만");
+});
+
+test("premium detail: 근거 없는 최상급 표현을 넣지 않는다", async () => {
+  const { buildPremiumDetailHtml } = await import(
+    "../../toss-shop/lib/seller-engine/premium-detail-template.ts"
+  );
+  const html = buildPremiumDetailHtml({
+    title: "테스트 상품", keyword: "테스트", priceKrw: 10000,
+    category: "home", sellingPoints: ["포인트"], description: "설명",
+    fallbackImages: ["https://x/1.jpg"],
+  });
+  // 토스 정책상 실증 없는 최상급·배타성 표현은 제재 대상이다
+  for (const banned of ["최고급", "업계 1위", "최저가", "유일한", "100% 보장"]) {
+    assert.ok(!html.includes(banned), `"${banned}" 같은 근거 없는 표현이 있으면 안 된다`);
+  }
+});
+
+test("premium detail: XSS — 상품명·설명이 이스케이프된다", async () => {
+  const { buildPremiumDetailHtml } = await import(
+    "../../toss-shop/lib/seller-engine/premium-detail-template.ts"
+  );
+  const html = buildPremiumDetailHtml({
+    title: '<script>alert(1)</script>', keyword: "x", priceKrw: 1000,
+    category: "home", sellingPoints: ['<img onerror=alert(1)>'],
+    description: '"><script>bad()</script>',
+  });
+  assert.ok(!html.includes("<script>alert(1)</script>"));
+  assert.ok(!html.includes("<img onerror"));
+  assert.match(html, /&lt;script&gt;/);
+});
+
+// ── 확실성 게이트: 추정치로는 통과 못 한다 ────────────────────────────
+
+function certainPick(overrides = {}) {
+  return {
+    id: "p1", keyword: "테스트", productName: "상품", suggestedTitle: "상품",
+    category: "home", supplierCostKrw: 12000, recommendedPriceKrw: 20000,
+    competitorPrices: [], searchVolume: 5000, competitionIntensity: 1.0,
+    estimatedMarginPct: 20, estimatedDailyProfitKrw: 15000,
+    estimatedMonthlyProfitKrw: 450000, confidenceScore: 90, reason: "",
+    catalogStrategy: { mode: "avoid_catalog" },
+    riskPlaybook: { criticalCount: 0, blockCount: 0 },
+    wholesaleBest: {
+      platform: "domeme", title: "공급상품", unitPriceKrw: 12000, shippingFeeKrw: 0,
+      moq: 1, url: "https://x", freeShipping: true, source: "live",
+      sellerId: "s1", sellerNick: "공급사",
+      supplierQuality: {
+        grade: "excellent", shipSpeed: "same_day", verified: true,
+        fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송·정상출고 99%",
+      },
+      policyText: "반품은 판매자가 직접 처리해주셔야 합니다.",
+    },
+    ...overrides,
+  };
+}
+
+test("certainty: 실측 근거가 모두 갖춰지면 확실로 판정한다", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick());
+  assert.equal(v.certain, true, v.reason);
+  assert.equal(v.blockers.length, 0);
+});
+
+test("certainty: 공급처가 추정이면 점수와 무관하게 탈락한다", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const pick = certainPick({
+    wholesaleBest: { ...certainPick().wholesaleBest, source: "estimated" },
+  });
+  const v = evaluateCertainty(pick);
+  assert.equal(v.certain, false);
+  assert.match(v.reason, /추정치로는 돈을 걸 수 없다|미달/);
+});
+
+test("certainty: 공급처 등급 미확인이면 탈락 (오늘출발 약속 불가)", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick({
+    wholesaleBest: { ...certainPick().wholesaleBest, supplierQuality: undefined },
+  }));
+  assert.equal(v.certain, false);
+  assert.ok(v.blockers.some((b) => b.includes("당일발송")));
+});
+
+test("certainty: 반품 불가 공급처는 소싱에서 제외한다", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick({
+    wholesaleBest: {
+      ...certainPick().wholesaleBest,
+      policyText: "단순 변심에 의한 반품 불가 상품입니다.",
+    },
+  }));
+  assert.equal(v.certain, false);
+  assert.ok(v.blockers.some((b) => b.includes("반품")));
+});
+
+test("certainty: 목표 기여가 작으면 탈락한다 (22개 채워도 목표 미달)", async () => {
+  const { evaluateCertainty, MIN_MONTHLY_PROFIT_KRW } = await import(
+    "../../toss-shop/lib/seller-engine/certainty-gate.ts"
+  );
+  const v = evaluateCertainty(certainPick({ estimatedMonthlyProfitKrw: MIN_MONTHLY_PROFIT_KRW - 1 }));
+  assert.equal(v.certain, false);
+  assert.ok(v.blockers.some((b) => b.includes("월 기여")));
+});
+
+test("certainty: 카탈로그를 못 뚫으면 탈락한다 (올려도 노출 없음)", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick({
+    catalogStrategy: { mode: "win_representative" },
+    catalogWin: { representativeItemScore: 30 },
+  }));
+  assert.equal(v.certain, false);
+  assert.ok(v.blockers.some((b) => b.includes("카탈로그")));
+});
+
+test("certainty: MOQ가 1을 넘으면 위탁이 아니라 탈락한다", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick({
+    wholesaleBest: { ...certainPick().wholesaleBest, moq: 10 },
+  }));
+  assert.equal(v.certain, false);
+  assert.ok(v.blockers.some((b) => b.includes("개당 발주")));
+});
+
+test("certainty: 개수를 채우려고 기준을 낮추지 않는다", async () => {
+  const { filterCertainPicks } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const picks = [
+    certainPick({ id: "ok1" }),
+    certainPick({ id: "bad1", estimatedMarginPct: 5 }),
+    certainPick({ id: "bad2", wholesaleBest: { ...certainPick().wholesaleBest, source: "estimated" } }),
+  ];
+  const { certain, rejected } = filterCertainPicks(picks);
+  assert.equal(certain.length, 1, "확실한 것만 통과");
+  assert.equal(rejected.length, 2);
+  assert.equal(certain[0].id, "ok1");
+});
+
+test("certainty: 목표까지 필요한 SKU 수를 실제 기여로 역산한다", async () => {
+  const { skusNeededForGoal, MIN_MONTHLY_PROFIT_KRW } = await import(
+    "../../toss-shop/lib/seller-engine/certainty-gate.ts"
+  );
+  // 목표 1,000만 · 현재 0 · SKU당 50만 → 20개
+  assert.equal(skusNeededForGoal({ goalKrw: 10_000_000, currentMonthlyKrw: 0, avgMonthlyPerSkuKrw: 500_000 }), 20);
+  // 이미 목표 달성이면 0개
+  assert.equal(skusNeededForGoal({ goalKrw: 10_000_000, currentMonthlyKrw: 12_000_000 }), 0);
+  // 실측 평균이 없으면 최소 기여 기준으로 역산
+  assert.equal(
+    skusNeededForGoal({ goalKrw: 10_000_000, currentMonthlyKrw: 0 }),
+    Math.ceil(10_000_000 / MIN_MONTHLY_PROFIT_KRW),
+  );
 });

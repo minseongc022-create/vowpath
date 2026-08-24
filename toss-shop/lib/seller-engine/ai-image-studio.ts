@@ -95,6 +95,11 @@ export async function regenerateProductBackground(input: {
   category: string;
   productLabel: string;
   style?: ImageStyle;
+  /**
+   * 컷별 촬영 지시 (product-shot-set.ts). 조명·구도·거리만 바꾸는 지시여야 한다 —
+   * 상품을 회전시키거나 안 보이던 면을 만들라는 지시는 넣으면 안 된다.
+   */
+  directive?: string;
 }): Promise<{ url: string } | null> {
   if (!aiImagesEnabled()) return null;
   const apiKey = process.env.OPENAI_API_KEY!.trim();
@@ -108,11 +113,24 @@ export async function regenerateProductBackground(input: {
       ? studioPromptFor(input.category)
       : `the product placed naturally in ${lifestyleSceneFor(input.category).sceneEn}`;
 
+  // 형태 보존 제약은 모든 컷에 공통으로 강하게 건다.
+  //
+  // 이 제약이 느슨하면 모델이 "더 예쁘게" 만들려고 상품을 손본다 — 로고를
+  // 다시 그리거나, 라벨 문구를 바꾸거나, 비율을 미화한다. 그 이미지를 보고 산
+  // 고객은 다른 물건을 받는다(반품·분쟁·허위표시). 위탁은 실물 검증이
+  // 불가능하므로 프롬프트 제약이 유일한 안전장치다.
+  const PRESERVE =
+    `CRITICAL CONSTRAINT: the product itself (${input.productLabel}) must remain byte-for-byte faithful to the input image. ` +
+    `Do not rotate it, do not show any side or surface that is not already visible in the input, ` +
+    `do not invent or redraw logos, labels, text, patterns, buttons, ports, or finishes. ` +
+    `Preserve exact shape, proportions, colors, materials, and every existing marking. ` +
+    `You may only change lighting, background, camera distance and framing.`;
+
   const prompt =
-    `Replace only the background of this product photo. New background: ${backdrop}. ` +
-    `Keep the product itself (${input.productLabel}) completely unchanged in shape, size, color, proportions, ` +
-    `text, and label — do not redesign, retouch, warp, or alter the product in any way. ` +
-    `Photorealistic, high-resolution, e-commerce product photography.`;
+    `Re-photograph this existing product without altering the product. New background: ${backdrop}. ` +
+    `${input.directive ?? "Keep the same viewing side; re-light as a clean studio product shot."} ` +
+    `${PRESERVE} ` +
+    `Photorealistic, high-resolution, professional e-commerce product photography, no added text or watermark.`;
 
   try {
     const form = new FormData();

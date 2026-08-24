@@ -124,6 +124,7 @@ export async function publishListingToToss(input: {
     supplierId: payload.supplierId,
     pickMode: input.draft.pickMode,
     strict: input.strictReturnLocation,
+    returnHandling: payload.returnHandling,
   });
 
   if (!isCategoryResolved(category)) {

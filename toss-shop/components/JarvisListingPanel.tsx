@@ -338,7 +338,7 @@ export function JarvisListingsPanel() {
         <div className="ts-skeleton h-40 w-full rounded-2xl" />
       ) : drafts.length === 0 ? (
         <div className="ts-card text-sm text-ts-muted">
-          등록 초안이 없습니다. 위탁/수입 AI에서 「Jarvis 등록 준비」를 눌러주세요.
+          등록 초안이 없습니다. 소싱 화면에서 「Jarvis 등록 준비」를 눌러주세요.
         </div>
       ) : (
         drafts.map((d) => (
