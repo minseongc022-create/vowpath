@@ -6,6 +6,7 @@ import {
   resolveReturnLocation,
   type ReturnLocationDecision,
 } from "./exchange-return-location";
+import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./category-resolver";
 
 /** Minimal Toss FEP product create body — categoryId required at publish time. */
 export type TossCreateProductBody = {
@@ -97,6 +98,8 @@ export type PublishListingResult = {
   simulated?: boolean;
   /** 등록에 사용된 반품지 결정 근거 — 초안에 기록해 사후 추적에 쓴다 */
   returnLocation?: ReturnLocationDecision;
+  /** 등록에 사용된 카테고리 결정 근거 */
+  category?: CategoryDecision;
 };
 
 export async function publishListingToToss(input: {
@@ -109,9 +112,12 @@ export async function publishListingToToss(input: {
   /** 무인 자동등록 경로 — 반품지 매핑 누락을 경고가 아닌 차단으로 처리 */
   strictReturnLocation?: boolean;
 }): Promise<PublishListingResult> {
-  const categoryId = input.categoryId ?? parseInt(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID ?? "0", 10);
   const payload = input.draft.listingPayload;
 
+  const category = resolveCategoryId({
+    category: payload.category,
+    explicitCategoryId: input.categoryId,
+  });
   const returnLocation = resolveReturnLocation({
     explicitLocationId: input.exchangeReturnLocationId,
     supplierPlatform: payload.supplierPlatform,
@@ -120,13 +126,13 @@ export async function publishListingToToss(input: {
     strict: input.strictReturnLocation,
   });
 
-  if (!categoryId) {
+  if (!isCategoryResolved(category)) {
     return {
       ok: false,
       simulated: true,
       returnLocation,
-      error:
-        "토스 카테고리 ID 필요 — Vercel에 TOSS_SHOP_DEFAULT_CATEGORY_ID 설정 또는 승인 시 입력",
+      category,
+      error: category.error?.message ?? "토스 카테고리 결정 실패",
     };
   }
 
@@ -137,13 +143,14 @@ export async function publishListingToToss(input: {
       ok: false,
       simulated: true,
       returnLocation,
+      category,
       error: returnLocation.error?.message ?? "교환·반품지 결정 실패",
     };
   }
 
   const body = buildTossCreatePayload(
     input.draft,
-    categoryId,
+    category.categoryId,
     returnLocation.locationId,
     input.imageUrl,
   );
@@ -160,6 +167,7 @@ export async function publishListingToToss(input: {
       return {
         ok: false,
         returnLocation,
+        category,
         error: res.error?.reason ?? res.error?.errorCode ?? "TOSS_CREATE_FAIL",
       };
     }
@@ -168,12 +176,14 @@ export async function publishListingToToss(input: {
     return {
       ok: true,
       returnLocation,
+      category,
       productId: productId != null ? Number(productId) : undefined,
     };
   } catch (e) {
     return {
       ok: false,
       returnLocation,
+      category,
       error: e instanceof Error ? e.message : "TOSS_PUBLISH_ERROR",
     };
   }

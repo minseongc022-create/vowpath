@@ -75,10 +75,26 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | `JARVIS_AUTO_EXECUTE_MAX` | `1` | cycle당 자동 execute 최대 건수 (1–5) |
 | `JARVIS_AUTOPILOT_MAX_DRAFTS` | `3` | cycle당 자동 초안 최대 건수 (1–10) |
 | `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
-| `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
+| `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 기본 카테고리 (아래 매핑이 없으면 필수) |
+| `TOSS_SHOP_CATEGORY_ID_MAP` | — | 카테고리별 토스 ID JSON — 아래 참조 |
 | `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 기본 반품지 (아래 매핑이 없으면 필수) |
 | `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP` | — | 공급처별 반품지 JSON — 아래 참조 |
 | `TOSS_SHOP_RETURN_LOCATION_STRICT` | `false` | `true` = 매핑에 없는 공급처는 등록 차단 |
+
+### 토스 카테고리 ID — 상품마다 자동 선택
+
+자비스는 픽마다 이미 식품/뷰티/생활/디지털/패션/건강 6개로 분류해둔다. 종전에는 `TOSS_SHOP_DEFAULT_CATEGORY_ID` 하나가 **모든 상품에 그대로** 적용됐다 — 뷰티 상품도 식품 카테고리로 등록되는 식이었다. 지금은 `category-resolver.ts`가 상품 분류에 맞춰 자동으로 고른다.
+
+```jsonc
+// TOSS_SHOP_CATEGORY_ID_MAP
+{ "food": 123, "beauty": 456, "home": 789, "digital": 1011, "fashion": 1213, "health": 1415 }
+```
+
+**결정 순서**: 승인 화면 직접 지정 → `TOSS_SHOP_CATEGORY_ID_MAP`의 해당 카테고리 → `TOSS_SHOP_DEFAULT_CATEGORY_ID`(매핑에 없는 카테고리의 폴백) → 등록 차단(`MISSING`).
+
+**주의 — 이 숫자는 자비스가 지어낼 수 없다.** 토스 자체 카테고리 분류체계의 실제 ID라, 틀린 번호를 넣으면 등록이 거부되거나 엉뚱한 카테고리로 등록된다(노출 저하). 6개 값은 토스 셀러센터의 상품등록 화면에서 실제 판매하실 카테고리를 하나씩 골라 확인하셔야 한다. 하나만 파신다면 `TOSS_SHOP_DEFAULT_CATEGORY_ID` 하나로 충분하다.
+
+매핑 JSON이 깨지면(`exchange-return-location.ts`와 같은 fail-closed 원칙) 등록을 차단한다 — 조용히 기본값으로 넘어가면 전 상품이 잘못된 카테고리로 등록되기 때문이다.
 
 ### 교환·반품지 — 왜 하나로 고정하면 안 되는가
 
@@ -88,6 +104,8 @@ Header: `Authorization: Bearer $CRON_SECRET`
 - **셀러 처리형** — 셀러 주소로 등록해야 합니다. 공급처 주소로 잘못 등록하면 공급처가 수취를 거부하고 반품이 미아가 됩니다 → 분쟁 → 토스 페널티.
 
 게다가 도매꾹/도매매는 **플랫폼 하나에 공급사가 수천 개**라 플랫폼 단위 매핑으로는 반품지를 특정할 수 없습니다. 그래서 `platform:sellerId` 공급처 단위까지 내려갑니다.
+
+**주의 — 이 ID도 카테고리 ID처럼 자비스가 지어낼 수 없습니다.** 반품지 ID는 토스 셀러센터에 실제로 등록된 물리 주소를 가리키는 값이라, 그 주소가 토스 시스템에 존재해야만 ID를 얻을 수 있습니다. 그래서 최소한 **기본 반품지 하나**(보통 셀러 본인 주소나 반품 처리 업체 주소)는 실제로 등록·발급받아야 하고, 그 뒤로 공급처별 실제 협의된 주소가 생길 때마다 매핑에 하나씩 추가하면 됩니다 — 자비스는 그 시점부터 자동으로 알맞은 걸 골라 씁니다.
 
 ```jsonc
 // TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP

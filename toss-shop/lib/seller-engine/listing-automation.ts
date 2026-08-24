@@ -74,6 +74,7 @@ function buildListingPayload(
     searchKeywords: detailKeywords.slice(0, 10),
     description: (pick.aiSummary ?? pick.productName).slice(0, 1500),
     categoryHint: CATEGORY_HINT[pick.category],
+    category: pick.category,
     deliveryFeeType: salePrice >= 15000 ? "FREE" : "CONDITIONALLY_FREE",
     supplierUrl: wholesale?.url ?? (mode === "import" && "importBest" in pick ? pick.importBest?.url : undefined),
     supplierPlatform:

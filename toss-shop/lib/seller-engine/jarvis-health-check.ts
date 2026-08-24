@@ -10,6 +10,7 @@ import { listActiveDetailProviders } from "./detail-page-providers";
 import { aiImagesEnabled } from "./ai-image-studio";
 import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
 import { describeReturnLocationConfig } from "../api/exchange-return-location";
+import { describeCategoryConfig } from "../api/category-resolver";
 import { adapterHealth } from "../wholesale/adapters/registry";
 import { SAME_DAY_MIN_FULFILLMENT_RATE_PCT } from "../wholesale/supplier-quality";
 import { isImportSalesEnabled, activeChannelLabel } from "./channel-mode";
@@ -40,7 +41,8 @@ export function runJarvisHealthCheck(input: {
 
   const tossApi = input.merchant ? isApiConfigured(input.merchant) : false;
   const wholesaleApi = isDomeggookApiConfigured();
-  const categoryId = Boolean(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID);
+  const categoryConfig = describeCategoryConfig();
+  const categoryId = Boolean(categoryConfig.defaultId) || categoryConfig.mapEntryCount > 0;
   const returnConfig = describeReturnLocationConfig();
   const returnId = Boolean(returnConfig.defaultId) || returnConfig.mapEntryCount > 0;
 
@@ -112,11 +114,21 @@ export function runJarvisHealthCheck(input: {
     id: "toss_publish",
     label: "토스 상품 등록 API",
     category: "listing",
-    passed: tossApi && categoryId && returnId,
-    detail:
-      tossApi && categoryId && returnId
-        ? "API + 카테고리·반품지 ID 준비"
-        : "TOSS API 또는 CATEGORY/RETURN ID 필요",
+    passed: tossApi,
+    detail: tossApi ? "TOSS_SHOPPING_ACCESS_KEY/SECRET_KEY 연동됨" : "TOSS_SHOPPING_ACCESS_KEY + TOSS_SHOPPING_SECRET_KEY 필요",
+  });
+  checks.push({
+    id: "category_id",
+    label: "상품별 토스 카테고리 자동 선택",
+    category: "listing",
+    passed: categoryConfig.mapValid && categoryId,
+    detail: !categoryConfig.mapValid
+      ? `매핑 JSON 오류 — ${categoryConfig.mapError} (등록 차단됨)`
+      : !categoryId
+        ? "TOSS_SHOP_DEFAULT_CATEGORY_ID 또는 TOSS_SHOP_CATEGORY_ID_MAP 필요"
+        : categoryConfig.mapEntryCount > 0
+          ? `카테고리별 매핑 ${categoryConfig.mapEntryCount}개 — 상품 분류(식품/뷰티/생활 등)에 맞춰 자동 선택${categoryConfig.defaultId ? ` (기본 ${categoryConfig.defaultId})` : ""}`
+          : `기본 카테고리 ${categoryConfig.defaultId} — 전 상품 동일 적용 (카테고리별로 다르게 하려면 TOSS_SHOP_CATEGORY_ID_MAP 권장)`,
   });
   checks.push({
     id: "return_location",

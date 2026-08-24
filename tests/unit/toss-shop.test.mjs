@@ -366,6 +366,7 @@ test("publish: 반품지 결정 실패는 등록을 차단하고 근거를 결�
       searchKeywords: ["테스트"],
       description: "설명",
       categoryHint: "생활/홈",
+      category: "home",
       deliveryFeeType: "FREE",
       supplierPlatform: "domeggook",
       supplierId: "12345",
@@ -1593,4 +1594,134 @@ test("access: Pro 활성화 코드가 저장소에 커밋되어 있지 않다", 
     committed, undefined,
     "활성화 코드가 vercel.json에 있으면 저장소를 보는 누구나 무료 Pro를 받는다",
   );
+});
+
+// ── 카테고리 자동 선택: 자비스가 분류한 상품 카테고리로 자동으로 고른다 ──
+// 종전에는 TOSS_SHOP_DEFAULT_CATEGORY_ID 하나가 모든 상품에 그대로
+// 적용됐다. 식품용 ID를 넣어두면 뷰티 상품도 식품으로 등록되는 셈이었다.
+
+async function loadCategoryResolver() {
+  const mod = await import("../../toss-shop/lib/api/category-resolver.ts");
+  mod.clearCategoryMapCache();
+  return mod;
+}
+
+function clearCategoryEnv() {
+  delete process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID;
+  delete process.env.TOSS_SHOP_CATEGORY_ID_MAP;
+}
+
+test("category resolver: 카테고리별 매핑이 있으면 상품 분류에 맞춰 자동 선택한다", async (t) => {
+  const { resolveCategoryId } = await loadCategoryResolver();
+  t.after(clearCategoryEnv);
+
+  process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID = "999";
+  process.env.TOSS_SHOP_CATEGORY_ID_MAP = JSON.stringify({ food: 111, beauty: 222, home: 333 });
+
+  const food = resolveCategoryId({ category: "food" });
+  assert.equal(food.categoryId, 111);
+  assert.equal(food.source, "category_map");
+  assert.equal(food.matchedCategory, "food");
+
+  const beauty = resolveCategoryId({ category: "beauty" });
+  assert.equal(beauty.categoryId, 222);
+
+  // 매핑에 없는 카테고리(digital)는 기본값으로 폴백 + 경고
+  const digital = resolveCategoryId({ category: "digital" });
+  assert.equal(digital.categoryId, 999);
+  assert.equal(digital.source, "default");
+  assert.ok(digital.warnings.length > 0);
+});
+
+test("category resolver: 승인 화면 직접 지정이 항상 최우선", async (t) => {
+  const { resolveCategoryId } = await loadCategoryResolver();
+  t.after(clearCategoryEnv);
+  process.env.TOSS_SHOP_CATEGORY_ID_MAP = JSON.stringify({ food: 111 });
+  const d = resolveCategoryId({ category: "food", explicitCategoryId: 777 });
+  assert.equal(d.categoryId, 777);
+  assert.equal(d.source, "explicit");
+});
+
+test("category resolver: 매핑 JSON이 깨지면 fail-closed로 등록을 차단한다", async (t) => {
+  const { resolveCategoryId, isCategoryResolved } = await loadCategoryResolver();
+  t.after(clearCategoryEnv);
+  process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID = "999";
+  for (const broken of ["{not-json", '{"food":"식품"}', '{"unknown_category":123}']) {
+    const { clearCategoryMapCache } = await import("../../toss-shop/lib/api/category-resolver.ts");
+    process.env.TOSS_SHOP_CATEGORY_ID_MAP = broken;
+    clearCategoryMapCache();
+    const d = resolveCategoryId({ category: "food" });
+    assert.equal(isCategoryResolved(d), false, `${broken} 는 차단돼야 함`);
+    assert.equal(d.error.code, "MAP_INVALID");
+  }
+});
+
+test("category resolver: 기본값도 매핑도 없으면 MISSING", async (t) => {
+  const { resolveCategoryId } = await loadCategoryResolver();
+  t.after(clearCategoryEnv);
+  clearCategoryEnv();
+  const d = resolveCategoryId({ category: "food" });
+  assert.equal(d.error.code, "MISSING");
+});
+
+test("category resolver: 매핑 없이 기본값 하나만 있으면 전 카테고리 동일 적용", async (t) => {
+  const { resolveCategoryId } = await loadCategoryResolver();
+  t.after(clearCategoryEnv);
+  process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID = "500";
+  assert.equal(resolveCategoryId({ category: "food" }).categoryId, 500);
+  assert.equal(resolveCategoryId({ category: "digital" }).categoryId, 500);
+});
+
+test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID가 실제 등록에 쓰인다", async (t) => {
+  const { publishListingToToss } = await import("../../toss-shop/lib/api/create-product.ts");
+  const { clearCategoryMapCache } = await loadCategoryResolver();
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    clearCategoryEnv();
+    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+    clearCategoryMapCache();
+    globalThis.fetch = realFetch;
+  });
+
+  process.env.TOSS_SHOP_CATEGORY_ID_MAP = JSON.stringify({ beauty: 8080 });
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  clearCategoryMapCache();
+
+  let sentCategoryId;
+  globalThis.fetch = async (url, opts) => {
+    const href = String(url);
+    if (href.includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    const body = JSON.parse(opts.body);
+    sentCategoryId = body.categoryId;
+    return new Response(JSON.stringify({ resultType: "SUCCESS", success: { id: 1 } }), { status: 200 });
+  };
+
+  const draft = {
+    pickMode: "consignment",
+    keyword: "립스틱",
+    detailPage: { thumbnailUrl: undefined },
+    listingPayload: {
+      name: "테스트 립스틱",
+      brandName: "에피로드",
+      salePrice: 15000,
+      originPrice: 16000,
+      searchKeywords: ["립스틱"],
+      description: "설명",
+      categoryHint: "뷰티",
+      category: "beauty",
+      deliveryFeeType: "FREE",
+    },
+  };
+
+  const res = await publishListingToToss({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    draft,
+  });
+
+  assert.equal(res.ok, true);
+  assert.equal(sentCategoryId, 8080, "뷰티 상품이 뷰티 카테고리 ID로 등록되어야");
+  assert.equal(res.category.matchedCategory, "beauty");
 });

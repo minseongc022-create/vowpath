@@ -408,6 +408,8 @@ export type JarvisListingPayload = {
   description: string;
   categoryHint: string;
   deliveryFeeType: "FREE" | "PAID" | "CONDITIONALLY_FREE";
+  /** 자비스가 분류한 상품 카테고리 — 토스 카테고리 ID 자동 선택에 쓰인다 */
+  category: TossShopCategory;
   supplierUrl?: string;
   /** 위탁: 도매 플랫폼 슬러그(domeggook/domeme/1688...) · 수입: 소싱 국가명 */
   supplierPlatform?: string;
@@ -453,6 +455,8 @@ export type JarvisListingDraft = {
    * 터지므로 어떤 키로 어느 반품지가 뽑혔는지 사후 추적이 가능해야 한다.
    */
   returnLocation?: import("./api/exchange-return-location").ReturnLocationDecision;
+  /** 등록에 사용된 카테고리 결정 근거 */
+  category?: import("./api/category-resolver").CategoryDecision;
 };
 
 export type CompetitorPriceRef = {

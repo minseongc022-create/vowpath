@@ -1216,6 +1216,7 @@ export async function publishApprovedListingDraft(input: {
       status: result.simulated ? "approved" : "failed",
       publishError: result.error,
       returnLocation: result.returnLocation,
+      category: result.category,
     });
   }
 
@@ -1225,6 +1226,7 @@ export async function publishApprovedListingDraft(input: {
     tossProductId: result.productId,
     publishError: undefined,
     returnLocation: result.returnLocation,
+    category: result.category,
   });
 }
 
