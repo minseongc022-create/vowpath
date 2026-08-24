@@ -874,3 +874,60 @@ test("health check: 최근 추가된 엔진(공급처 게이트·확률·SEO·�
   assert.ok(topics.some((t) => t.includes("1등급")));
   assert.ok(topics.some((t) => t.includes("AI 이미지")));
 });
+
+test("toss proxy fetch: 프록시 미설정 시 일반 fetch로 동작한다", async () => {
+  const { tossProxyConfigured } = await import("../../toss-shop/lib/api/toss-proxy-fetch.ts");
+  const had = {
+    a: process.env.QUOTAGUARD_STATIC_URL,
+    b: process.env.QUOTAGUARDSTATIC_URL,
+    c: process.env.TOSS_API_PROXY_URL,
+  };
+  delete process.env.QUOTAGUARD_STATIC_URL;
+  delete process.env.QUOTAGUARDSTATIC_URL;
+  delete process.env.TOSS_API_PROXY_URL;
+  try {
+    assert.equal(tossProxyConfigured(), false);
+  } finally {
+    if (had.a !== undefined) process.env.QUOTAGUARD_STATIC_URL = had.a;
+    if (had.b !== undefined) process.env.QUOTAGUARDSTATIC_URL = had.b;
+    if (had.c !== undefined) process.env.TOSS_API_PROXY_URL = had.c;
+  }
+});
+
+test("toss proxy fetch: 프록시 URL이 설정되면 실제로 그 프록시를 거쳐나간다", async (t) => {
+  const http = await import("node:http");
+  const { spawn } = await import("node:child_process");
+  let connectCount = 0;
+  let connectHost = "";
+  const proxy = http.createServer();
+  proxy.on("connect", (req, clientSocket) => {
+    connectCount++;
+    connectHost = req.url;
+    clientSocket.end("HTTP/1.1 502 Bad Gateway\r\n\r\n");
+  });
+  await new Promise((resolve) => proxy.listen(0, resolve));
+  const port = proxy.address().port;
+  t.after(() => proxy.close());
+
+  // toss-proxy-fetch.ts는 dispatcher를 모듈 스코프에 한 번 캐싱하므로, 같은
+  // 프로세스 안에서 재평가하면 앞선 테스트(프록시 미설정)의 상태를 물려받는다.
+  // 실제 런타임(요청마다 새 함수 인스턴스)과 같은 조건으로 보려면 완전히
+  // 새 프로세스에서 돌려야 한다.
+  const script = `
+    process.env.TOSS_API_PROXY_URL = "http://localhost:${port}";
+    const { tossFetch, tossProxyConfigured } = await import(${JSON.stringify(
+      new URL("../../toss-shop/lib/api/toss-proxy-fetch.ts", import.meta.url).href,
+    )});
+    if (!tossProxyConfigured()) { console.log("NOT_CONFIGURED"); process.exit(1); }
+    try { await tossFetch("https://example.com/test", { method: "GET" }); } catch {}
+    console.log("DONE");
+  `;
+  const child = spawn(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script]);
+  let out = "";
+  child.stdout.on("data", (d) => (out += d));
+  const exitCode = await new Promise((resolve) => child.on("close", resolve));
+
+  assert.match(out, /DONE/, `자식 프로세스가 정상 완료해야 (exit=${exitCode}, out=${out})`);
+  assert.equal(connectCount, 1, "요청이 설정한 프록시로 나가야 한다");
+  assert.match(connectHost, /example\.com/);
+});

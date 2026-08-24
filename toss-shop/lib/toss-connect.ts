@@ -1,7 +1,7 @@
 import { getAccessToken } from "./api/client";
 import type { TossApiConfig } from "./api/config";
 
-export const TOSS_SELLER_CENTER_URL = "https://shopping-seller.toss.im";
+export { TOSS_SELLER_CENTER_URL } from "./toss-connect-constants";
 
 export function tossConnectConfig(
   accessKey: string,
