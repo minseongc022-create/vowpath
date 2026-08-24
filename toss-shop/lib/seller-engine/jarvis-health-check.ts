@@ -9,6 +9,7 @@ import { isMatchcutEnabled } from "./matchcut-adapter";
 import { listActiveDetailProviders } from "./detail-page-providers";
 import { aiImagesEnabled } from "./ai-image-studio";
 import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
+import { describeReturnLocationConfig } from "../api/exchange-return-location";
 import type { JarvisHealthReport, TossShopMerchant } from "../types";
 
 export const HEALTH_CHECK_VERSION = "2.0";
@@ -32,7 +33,8 @@ export function runJarvisHealthCheck(input: {
   const tossApi = input.merchant ? isApiConfigured(input.merchant) : false;
   const wholesaleApi = isDomeggookApiConfigured();
   const categoryId = Boolean(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID);
-  const returnId = Boolean(process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID);
+  const returnConfig = describeReturnLocationConfig();
+  const returnId = Boolean(returnConfig.defaultId) || returnConfig.mapEntryCount > 0;
 
   checks.push({
     id: "jarvis_93",
@@ -107,6 +109,20 @@ export function runJarvisHealthCheck(input: {
       tossApi && categoryId && returnId
         ? "API + 카테고리·반품지 ID 준비"
         : "TOSS API 또는 CATEGORY/RETURN ID 필요",
+  });
+  checks.push({
+    id: "return_location",
+    label: "공급처별 교환·반품지",
+    category: "listing",
+    // 매핑 JSON이 깨져 있으면 등록이 전량 차단되므로 반드시 fail로 드러내야 한다.
+    passed: returnConfig.mapValid && returnId,
+    detail: !returnConfig.mapValid
+      ? `매핑 JSON 오류 — ${returnConfig.mapError} (등록 차단됨)`
+      : !returnId
+        ? "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID 또는 _MAP 필요"
+        : returnConfig.mapEntryCount > 0
+          ? `공급처 매핑 ${returnConfig.mapEntryCount}건${returnConfig.defaultId ? ` + 기본 반품지 ${returnConfig.defaultId}` : " (기본 반품지 없음)"}${returnConfig.strict ? " · STRICT" : ""}`
+          : `기본 반품지 ${returnConfig.defaultId} — 공급처별 매핑 미설정(공급처 직접수거 시 왕복 배송비 위험)`,
   });
   checks.push({
     id: "wholesale_search",

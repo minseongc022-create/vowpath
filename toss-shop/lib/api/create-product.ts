@@ -1,6 +1,11 @@
 import { tossApiPost } from "./client";
 import type { TossApiConfig } from "./config";
 import type { JarvisListingDraft } from "../types";
+import {
+  isReturnLocationResolved,
+  resolveReturnLocation,
+  type ReturnLocationDecision,
+} from "./exchange-return-location";
 
 /** Minimal Toss FEP product create body — categoryId required at publish time. */
 export type TossCreateProductBody = {
@@ -90,28 +95,9 @@ export type PublishListingResult = {
   productId?: number;
   error?: string;
   simulated?: boolean;
+  /** 등록에 사용된 반품지 결정 근거 — 초안에 기록해 사후 추적에 쓴다 */
+  returnLocation?: ReturnLocationDecision;
 };
-
-/**
- * 공급처별 반품지 매핑 — 위탁 공급처마다 반품 수거 방식이 달라(공급처 직접
- * 수거 vs 셀러 자체 처리) 반품지가 달라야 하는 경우를 위한 오버라이드.
- * TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP='{"domeggook":123,"1688":456}' (JSON, platform key는 소문자)
- * 매핑에 없거나 파싱 실패 시 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID(기본값)로 폴백.
- */
-export function resolveExchangeReturnLocationId(supplierPlatform?: string): number {
-  const fallback = parseInt(process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID ?? "0", 10);
-  const rawMap = process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP?.trim();
-  if (!rawMap || !supplierPlatform) return fallback;
-
-  try {
-    const parsed = JSON.parse(rawMap) as Record<string, unknown>;
-    const match = parsed[supplierPlatform.toLowerCase()];
-    const matchId = typeof match === "number" ? match : parseInt(String(match ?? ""), 10);
-    return Number.isFinite(matchId) && matchId > 0 ? matchId : fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 export async function publishListingToToss(input: {
   merchantId: string;
@@ -120,22 +106,47 @@ export async function publishListingToToss(input: {
   categoryId?: number;
   exchangeReturnLocationId?: number;
   imageUrl?: string;
+  /** 무인 자동등록 경로 — 반품지 매핑 누락을 경고가 아닌 차단으로 처리 */
+  strictReturnLocation?: boolean;
 }): Promise<PublishListingResult> {
   const categoryId = input.categoryId ?? parseInt(process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID ?? "0", 10);
-  const returnId =
-    input.exchangeReturnLocationId ??
-    resolveExchangeReturnLocationId(input.draft.listingPayload.supplierPlatform);
+  const payload = input.draft.listingPayload;
 
-  if (!categoryId || !returnId) {
+  const returnLocation = resolveReturnLocation({
+    explicitLocationId: input.exchangeReturnLocationId,
+    supplierPlatform: payload.supplierPlatform,
+    supplierId: payload.supplierId,
+    pickMode: input.draft.pickMode,
+    strict: input.strictReturnLocation,
+  });
+
+  if (!categoryId) {
     return {
       ok: false,
       simulated: true,
+      returnLocation,
       error:
-        "토스 카테고리 ID·교환반품지 ID 필요 — Vercel에 TOSS_SHOP_DEFAULT_CATEGORY_ID, TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID 설정 또는 승인 시 입력",
+        "토스 카테고리 ID 필요 — Vercel에 TOSS_SHOP_DEFAULT_CATEGORY_ID 설정 또는 승인 시 입력",
     };
   }
 
-  const body = buildTossCreatePayload(input.draft, categoryId, returnId, input.imageUrl);
+  if (!isReturnLocationResolved(returnLocation)) {
+    // 매핑 오류(MAP_INVALID)·STRICT 누락(UNMAPPED)은 설정을 고쳐야 하는 문제라
+    // simulated로 되돌려 초안을 approved 상태로 남긴다. 고친 뒤 재실행하면 된다.
+    return {
+      ok: false,
+      simulated: true,
+      returnLocation,
+      error: returnLocation.error?.message ?? "교환·반품지 결정 실패",
+    };
+  }
+
+  const body = buildTossCreatePayload(
+    input.draft,
+    categoryId,
+    returnLocation.locationId,
+    input.imageUrl,
+  );
 
   try {
     const res = await tossApiPost<{ id?: number; productId?: number }>(
@@ -148,13 +159,22 @@ export async function publishListingToToss(input: {
     if (res.resultType === "FAIL") {
       return {
         ok: false,
+        returnLocation,
         error: res.error?.reason ?? res.error?.errorCode ?? "TOSS_CREATE_FAIL",
       };
     }
 
     const productId = res.success?.id ?? res.success?.productId;
-    return { ok: true, productId: productId != null ? Number(productId) : undefined };
+    return {
+      ok: true,
+      returnLocation,
+      productId: productId != null ? Number(productId) : undefined,
+    };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "TOSS_PUBLISH_ERROR" };
+    return {
+      ok: false,
+      returnLocation,
+      error: e instanceof Error ? e.message : "TOSS_PUBLISH_ERROR",
+    };
   }
 }

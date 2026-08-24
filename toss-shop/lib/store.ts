@@ -1112,6 +1112,8 @@ export async function publishApprovedListingDraft(input: {
   draftId: string;
   categoryId?: number;
   exchangeReturnLocationId?: number;
+  /** 무인 자동등록 경로 — 반품지 매핑 누락 시 등록을 차단한다 */
+  strictReturnLocation?: boolean;
 }): Promise<JarvisListingDraft> {
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.id === input.merchantId);
@@ -1141,12 +1143,14 @@ export async function publishApprovedListingDraft(input: {
     categoryId: input.categoryId,
     exchangeReturnLocationId: input.exchangeReturnLocationId,
     imageUrl: draft.detailPage.thumbnailUrl,
+    strictReturnLocation: input.strictReturnLocation,
   });
 
   if (!result.ok) {
     return updateListingDraft(input.merchantId, input.draftId, {
       status: result.simulated ? "approved" : "failed",
       publishError: result.error,
+      returnLocation: result.returnLocation,
     });
   }
 
@@ -1155,6 +1159,7 @@ export async function publishApprovedListingDraft(input: {
     publishedAt: new Date().toISOString(),
     tossProductId: result.productId,
     publishError: undefined,
+    returnLocation: result.returnLocation,
   });
 }
 
@@ -1177,6 +1182,8 @@ export async function executeJarvisListing(input: {
   approvedBy: string;
   categoryId?: number;
   exchangeReturnLocationId?: number;
+  /** 무인 자동등록 경로 — 반품지 매핑 누락 시 등록을 차단한다 */
+  strictReturnLocation?: boolean;
 }): Promise<JarvisListingDraft> {
   let draft = await getListingDraft(input.merchantId, input.draftId);
   if (!draft) throw new Error("DRAFT_NOT_FOUND");
@@ -1199,6 +1206,7 @@ export async function executeJarvisListing(input: {
       draftId: input.draftId,
       categoryId: input.categoryId,
       exchangeReturnLocationId: input.exchangeReturnLocationId,
+      strictReturnLocation: input.strictReturnLocation,
     });
   }
 

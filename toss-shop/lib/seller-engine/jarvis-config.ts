@@ -21,6 +21,8 @@ export const JARVIS_ENV_FIX_HINTS: Record<string, string> = {
   detail_external: "OPENAI_API_KEY 또는 DRAPH/HOOKABLE API → Vercel Production",
   matchcut: "OPENAI_API_KEY → Vercel Production",
   toss_publish: "TOSS_SHOPPING_* + TOSS_SHOP_DEFAULT_CATEGORY_ID + TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID",
+  return_location:
+    "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID(기본) + TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP(공급처별 JSON, 예 {\"domeggook:12345\":678})",
   wholesale_search: "DOMEGGOOK_API_KEY → Vercel Production",
   order_sync: "TOSS_SHOPPING_ACCESS_KEY + TOSS_SHOPPING_SECRET_KEY (설정 → API 연동)",
   tracking_register: "토스 FEP API + 주문 sync",

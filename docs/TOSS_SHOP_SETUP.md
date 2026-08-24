@@ -76,8 +76,43 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | `JARVIS_AUTOPILOT_MAX_DRAFTS` | `3` | cycle당 자동 초안 최대 건수 (1–10) |
 | `JARVIS_MATCHCUT_ENABLED` | `true` | Hookable/Matchcut 상세 |
 | `TOSS_SHOP_DEFAULT_CATEGORY_ID` | — | 토스 등록 필수 |
-| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 토스 등록 필수 (기본 반품지) |
-| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP` | — | 선택 — 공급처별 반품지 오버라이드. JSON, 예: `{"domeggook":123,"1688":456}` (platform key 소문자, `listingPayload.supplierPlatform` 기준). 매핑에 없으면 위 기본값으로 폴백 |
+| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID` | — | 기본 반품지 (아래 매핑이 없으면 필수) |
+| `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP` | — | 공급처별 반품지 JSON — 아래 참조 |
+| `TOSS_SHOP_RETURN_LOCATION_STRICT` | `false` | `true` = 매핑에 없는 공급처는 등록 차단 |
+
+### 교환·반품지 — 왜 하나로 고정하면 안 되는가
+
+위탁판매는 공급처마다 반품 처리 방식이 다릅니다.
+
+- **공급처 직접 수거형** — 반품지를 그 공급처 주소로 등록해야 합니다. 셀러 주소로 등록해두면 고객이 셀러에게 보내고 셀러가 다시 공급처로 재발송해야 해서, 왕복 택배비가 건당 그대로 손실입니다.
+- **셀러 처리형** — 셀러 주소로 등록해야 합니다. 공급처 주소로 잘못 등록하면 공급처가 수취를 거부하고 반품이 미아가 됩니다 → 분쟁 → 토스 페널티.
+
+게다가 도매꾹/도매매는 **플랫폼 하나에 공급사가 수천 개**라 플랫폼 단위 매핑으로는 반품지를 특정할 수 없습니다. 그래서 `platform:sellerId` 공급처 단위까지 내려갑니다.
+
+```jsonc
+// TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP
+{
+  "domeggook:12345": 678,   // 공급처 단위 — 가장 구체적, 최우선
+  "domeggook": 679,         // 플랫폼 단위 — 위 매핑에 없는 도매꾹 공급사
+  "mode:import": 680,       // 해외구매대행 전용 국내 반품지
+  "mode:consignment": 681   // 위탁 전체 폴백
+}
+```
+
+**결정 순서** (구체적인 것이 이김): 승인 화면 직접 지정 → `platform:sellerId` → `platform` → `mode:*` → `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID`
+
+**fail-closed 규칙** (`toss-shop/lib/api/exchange-return-location.ts`):
+
+| 상황 | 동작 |
+|------|------|
+| 매핑 JSON이 깨짐 / ID가 양의 정수가 아님 | **등록 차단** (`MAP_INVALID`). 조용히 기본값으로 넘어가면 셀러가 매핑이 동작한다고 믿는 동안 전 SKU가 틀린 주소로 등록됨 |
+| 매핑은 유효한데 이 공급처만 누락 | 기본 반품지로 등록 + **경고 기록**. `STRICT=true`면 차단 (`UNMAPPED`) |
+| 기본값·매핑 둘 다 없음 | 등록 차단 (`MISSING`) |
+| 수입 건인데 매핑 미설정 | 기본 반품지 + "반품은 해외로 보낼 수 없음" 경고 |
+
+수입(해외구매대행)의 `supplierPlatform`은 국가명(`중국`/`일본`)이라 `country:중국`으로 네임스페이스가 분리됩니다 — 국가는 공급처가 아니고 반품을 해외로 보낼 수 없기 때문입니다.
+
+결정 근거는 초안의 `returnLocation`에 남습니다(`source`, `matchedKey`, `triedKeys`, `warnings`). 반품 사고는 등록 몇 주 뒤에 터지므로 사후 추적이 가능해야 합니다. 설정 상태는 헬스체크 `return_location` 항목에서 확인합니다.
 
 Health check: `GET /api/toss-shop/jarvis/health`  
 Autopilot: `GET/POST /api/toss-shop/jarvis/autopilot`  

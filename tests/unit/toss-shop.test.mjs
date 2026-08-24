@@ -122,29 +122,272 @@ test("E2E: consignment pick -> listing draft -> execute (mock Toss API, no real 
   }
 });
 
-test("resolveExchangeReturnLocationId falls back per supplier, then to default", async () => {
-  const { resolveExchangeReturnLocationId } = await import("../../toss-shop/lib/api/create-product.ts");
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "111";
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = '{"domeggook":222,"1688":333}';
+// ── 교환·반품지 결정 엔진 ────────────────────────────────────────────
+// 위탁은 공급처마다 반품 수거 방식이 달라(공급처 직접수거 vs 셀러 처리)
+// 반품지를 하나로 고정하면 왕복 배송비 손실·반품 미아·분쟁이 발생한다.
 
-  assert.equal(resolveExchangeReturnLocationId("domeggook"), 222);
-  assert.equal(resolveExchangeReturnLocationId("1688"), 333);
-  // 매핑에 없는 공급처는 기본값으로 폴백
-  assert.equal(resolveExchangeReturnLocationId("taobao"), 111);
-  // 공급처 정보 없음 → 기본값
-  assert.equal(resolveExchangeReturnLocationId(undefined), 111);
+async function loadReturnLocationEngine() {
+  const mod = await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  mod.clearReturnLocationMapCache();
+  return mod;
+}
 
-  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+function clearReturnLocationEnv() {
   delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
+  delete process.env.TOSS_SHOP_RETURN_LOCATION_STRICT;
+}
+
+test("return location: 공급처 단위 > 플랫폼 > 모드 > 기본 순으로 구체적인 것이 이긴다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
+    "domeggook:12345": 201,
+    domeggook: 202,
+    "mode:consignment": 203,
+  });
+
+  // 도매꾹 한 플랫폼 안에 공급사가 수천 개이므로 공급사 ID가 최우선이어야 한다.
+  const bySupplier = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+  assert.equal(bySupplier.locationId, 201);
+  assert.equal(bySupplier.source, "supplier");
+  assert.equal(bySupplier.matchedKey, "domeggook:12345");
+
+  // 매핑되지 않은 공급사 → 같은 플랫폼의 플랫폼 단위 반품지로 내려간다.
+  const byPlatform = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "99999",
+    pickMode: "consignment",
+  });
+  assert.equal(byPlatform.locationId, 202);
+  assert.equal(byPlatform.source, "platform");
+
+  // 매핑에 없는 플랫폼 → 모드 단위
+  const byMode = resolveReturnLocation({ supplierPlatform: "domeme", pickMode: "consignment" });
+  assert.equal(byMode.locationId, 203);
+  assert.equal(byMode.source, "mode");
+
+  // 아무 키도 안 맞으면 기본 반품지 + 경고
+  const byDefault = resolveReturnLocation({ supplierPlatform: "1688", pickMode: "import" });
+  assert.equal(byDefault.locationId, 100);
+  assert.equal(byDefault.source, "default");
+  assert.ok(byDefault.warnings.some((w) => w.includes("왕복 배송비")));
 });
 
-test("resolveExchangeReturnLocationId tolerates malformed map JSON", async () => {
-  const { resolveExchangeReturnLocationId } = await import("../../toss-shop/lib/api/create-product.ts");
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "999";
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{not-json";
-  assert.equal(resolveExchangeReturnLocationId("domeggook"), 999);
-  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP;
-  delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+test("return location: 사용자가 직접 지정한 반품지가 항상 최우선", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:12345": 201 });
+
+  const d = resolveReturnLocation({
+    explicitLocationId: 777,
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+  assert.equal(d.locationId, 777);
+  assert.equal(d.source, "explicit");
+});
+
+test("return location: 매핑 JSON이 깨지면 fail-closed로 등록을 차단한다", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+
+  // 기본 반품지가 멀쩡히 있어도 조용히 폴백하면 안 된다 —
+  // 셀러는 매핑이 동작한다고 믿는 동안 전 SKU가 틀린 주소로 등록된다.
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  for (const broken of ["{not-json", "[1,2,3]", '{"domeggook":"셋째창고"}', '{"domeggook":0}']) {
+    process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = broken;
+    clearReturnLocationMapCache();
+    const d = resolveReturnLocation({ supplierPlatform: "domeggook", pickMode: "consignment" });
+    assert.equal(isReturnLocationResolved(d), false, `${broken} 는 차단돼야 함`);
+    assert.equal(d.error.code, "MAP_INVALID");
+    assert.equal(d.locationId, undefined);
+  }
+});
+
+test("return location: STRICT는 매핑 누락을 차단, 기본 모드는 경고 후 진행", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:12345": 201 });
+
+  const lookup = { supplierPlatform: "domeggook", supplierId: "99999", pickMode: "consignment" };
+
+  // 사람이 승인 화면에서 보는 경로 → 경고만 남기고 등록은 진행
+  const lenient = resolveReturnLocation(lookup);
+  assert.equal(isReturnLocationResolved(lenient), true);
+  assert.equal(lenient.source, "default");
+  assert.ok(lenient.warnings.length > 0);
+
+  // 무인 자동등록 경로 → 잘못된 반품지가 수십 건 쌓이므로 차단
+  const strict = resolveReturnLocation({ ...lookup, strict: true });
+  assert.equal(isReturnLocationResolved(strict), false);
+  assert.equal(strict.error.code, "UNMAPPED");
+  assert.ok(strict.error.message.includes("domeggook:99999"));
+
+  // env로도 STRICT를 켤 수 있어야 한다
+  process.env.TOSS_SHOP_RETURN_LOCATION_STRICT = "true";
+  assert.equal(resolveReturnLocation(lookup).error.code, "UNMAPPED");
+});
+
+test("return location: 기본값도 매핑도 없으면 MISSING", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+  clearReturnLocationEnv();
+
+  const d = resolveReturnLocation({ supplierPlatform: "domeggook", pickMode: "consignment" });
+  assert.equal(d.error.code, "MISSING");
+  assert.equal(d.source, "unresolved");
+});
+
+test("return location: 수입 건의 국가명은 플랫폼 키로 오인되지 않는다", async (t) => {
+  const { resolveReturnLocation, buildReturnLocationKeys } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  // 수입에서 supplierPlatform은 "중국"/"일본" 같은 국가명이다.
+  // 반품을 해외로 보낼 수는 없으므로 국가를 공급처처럼 취급하면 안 된다.
+  const keys = buildReturnLocationKeys({ supplierPlatform: "중국", pickMode: "import" });
+  assert.ok(keys.includes("country:중국"));
+  assert.ok(!keys.includes("중국"), "국가명이 플랫폼 키로 새면 안 됨");
+  assert.ok(keys.includes("mode:import"));
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "mode:import": 501 });
+  const d = resolveReturnLocation({ supplierPlatform: "중국", pickMode: "import" });
+  assert.equal(d.locationId, 501, "수입 반품지는 mode:import 국내 주소로 잡혀야 함");
+  assert.equal(d.source, "mode");
+});
+
+test("return location: 매핑 미설정 수입 건은 국내 반품지 확인 경고를 남긴다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  const d = resolveReturnLocation({ supplierPlatform: "중국", pickMode: "import" });
+  assert.equal(d.locationId, 100);
+  assert.ok(d.warnings.some((w) => w.includes("해외로 보낼 수 없습니다")));
+});
+
+test("return location: 숫자 문자열 값과 키 대소문자·공백을 정규화한다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  // Vercel 환경변수는 문자열로만 들어오는 경우가 흔하다.
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "  DomeGgook:AB12  ": "301" });
+  const d = resolveReturnLocation({ supplierPlatform: "domeggook", supplierId: "ab12" });
+  assert.equal(d.locationId, 301);
+  assert.equal(d.source, "supplier");
+});
+
+test("return location: 초안에 결정 근거가 남아 사후 추적이 가능하다", async (t) => {
+  const { resolveReturnLocation } = await loadReturnLocationEngine();
+  t.after(clearReturnLocationEnv);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ domeggook: 202 });
+  const d = resolveReturnLocation({
+    supplierPlatform: "domeggook",
+    supplierId: "12345",
+    pickMode: "consignment",
+  });
+
+  assert.deepEqual(d.triedKeys, ["domeggook:12345", "domeggook", "mode:consignment"]);
+  assert.equal(d.matchedKey, "domeggook");
+  assert.ok(d.engineVersion);
+  // 저장 가능한 순수 데이터여야 KV에 그대로 들어간다
+  assert.deepEqual(JSON.parse(JSON.stringify(d)), d);
+});
+
+test("health check: 반품지 매핑이 깨지면 헬스체크가 fail로 드러낸다", async (t) => {
+  const { runJarvisHealthCheck } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-health-check.ts"
+  );
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{broken";
+  clearReturnLocationMapCache();
+  const broken = runJarvisHealthCheck({ hasOpenAi: false });
+  const brokenCheck = broken.checks.find((c) => c.id === "return_location");
+  assert.ok(brokenCheck, "return_location 체크가 있어야 함");
+  assert.equal(brokenCheck.passed, false);
+  assert.match(brokenCheck.detail, /매핑 JSON 오류/);
+
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({ "domeggook:1": 2 });
+  clearReturnLocationMapCache();
+  const okCheck = runJarvisHealthCheck({ hasOpenAi: false }).checks.find(
+    (c) => c.id === "return_location",
+  );
+  assert.equal(okCheck.passed, true);
+  assert.match(okCheck.detail, /공급처 매핑 1건/);
+});
+
+test("publish: 반품지 결정 실패는 등록을 차단하고 근거를 결과에 담는다", async (t) => {
+  const { publishListingToToss } = await import("../../toss-shop/lib/api/create-product.ts");
+  const { clearReturnLocationMapCache } = await loadReturnLocationEngine();
+  const realFetchForPublish = globalThis.fetch;
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+    globalThis.fetch = realFetchForPublish;
+  });
+
+  let tossCalled = false;
+  globalThis.fetch = async () => {
+    tossCalled = true;
+    return new Response(JSON.stringify({ resultType: "SUCCESS", success: { id: 1 } }), { status: 200 });
+  };
+
+  const draft = {
+    pickMode: "consignment",
+    keyword: "테스트",
+    detailPage: { thumbnailUrl: undefined },
+    listingPayload: {
+      name: "테스트 상품",
+      brandName: "에피로드",
+      salePrice: 19000,
+      originPrice: 20000,
+      searchKeywords: ["테스트"],
+      description: "설명",
+      categoryHint: "생활/홈",
+      deliveryFeeType: "FREE",
+      supplierPlatform: "domeggook",
+      supplierId: "12345",
+    },
+  };
+
+  process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID = "555";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = "{broken";
+  clearReturnLocationMapCache();
+
+  const res = await publishListingToToss({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    draft,
+    });
+
+  assert.equal(res.ok, false);
+  assert.equal(res.simulated, true, "설정 오류는 초안을 approved로 남겨 재실행 가능해야 함");
+  assert.equal(res.returnLocation.error.code, "MAP_INVALID");
+  assert.equal(tossCalled, false, "반품지가 확정되기 전에 토스를 호출하면 안 됨");
+  delete process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID;
 });
 
 test("jarvis config limits clamp env values", async () => {

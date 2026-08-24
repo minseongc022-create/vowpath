@@ -79,6 +79,10 @@ function buildListingPayload(
     supplierPlatform:
       wholesale?.platform ??
       (mode === "import" && "sourceCountry" in pick ? pick.sourceCountry : undefined),
+    // 공급처 단위 반품지 매핑 키. 도매꾹/도매매는 플랫폼 하나에 공급사가
+    // 수천 개라 플랫폼 단위로는 반품지를 특정할 수 없다.
+    supplierId: wholesale?.sellerId,
+    supplierName: wholesale?.sellerNick ?? wholesale?.sellerId,
   };
 }
 

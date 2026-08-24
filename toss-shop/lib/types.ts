@@ -404,7 +404,12 @@ export type JarvisListingPayload = {
   categoryHint: string;
   deliveryFeeType: "FREE" | "PAID" | "CONDITIONALLY_FREE";
   supplierUrl?: string;
+  /** 위탁: 도매 플랫폼 슬러그(domeggook/domeme/1688...) · 수입: 소싱 국가명 */
   supplierPlatform?: string;
+  /** 도매꾹/도매매 공급사 ID — 공급처 단위 반품지 매핑 키 */
+  supplierId?: string;
+  /** 공급사 표시명 — 반품지 매핑 누락 경고를 사람이 읽을 수 있게 */
+  supplierName?: string;
 };
 
 export type JarvisListingDraft = {
@@ -438,6 +443,11 @@ export type JarvisListingDraft = {
   consignmentOrder?: JarvisConsignmentOrder;
   adCampaign?: JarvisAdCampaignPlan;
   wholesaleComposition?: JarvisWholesaleComposition;
+  /**
+   * 등록에 사용된 교환·반품지 결정 근거. 반품 사고는 등록 몇 주 뒤에
+   * 터지므로 어떤 키로 어느 반품지가 뽑혔는지 사후 추적이 가능해야 한다.
+   */
+  returnLocation?: import("./api/exchange-return-location").ReturnLocationDecision;
 };
 
 export type CompetitorPriceRef = {
