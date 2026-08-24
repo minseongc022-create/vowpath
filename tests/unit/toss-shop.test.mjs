@@ -581,3 +581,52 @@ test("catalog entry: 묶음은 배송비가 1건분이라 단위마진이 개선
   // 2입은 배송비를 1번만 부담하므로 마진율이 단품 최저가보다 높아야 한다
   assert.ok(b2.marginPct > uc.marginPct, `묶음 마진 ${b2.marginPct}% > 단품 ${uc.marginPct}%`);
 });
+
+test("pipeline: 소싱 픽에 카탈로그 진입전략이 실제로 적용된다", async () => {
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+  const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  assert.ok(picks.length > 0);
+
+  for (const p of picks) {
+    assert.ok(p.catalogEntry, `${p.keyword}: 진입전략이 계산되어야`);
+    // 소싱된 픽은 수익 가능한 진입 경로가 있어야 한다
+    assert.equal(p.catalogEntry.sourceable, true, `${p.keyword}: 수익 안 나는 픽이 통과됨`);
+    // 등록가는 진입전략이 정한 가격이어야 한다
+    assert.equal(p.recommendedPriceKrw, p.catalogEntry.best.priceKrw, `${p.keyword}: 등록가 불일치`);
+    assert.ok(p.catalogEntry.best.netProfitKrw > 0);
+  }
+});
+
+test("pipeline: 등록 규칙 위반이 초안에 기록되고 block이면 자동등록을 막는다", async () => {
+  const { buildListingDraftFromPick } = await import("../../toss-shop/lib/seller-engine/listing-automation.ts");
+
+  const basePick = {
+    id: "p1", keyword: "목걸이", productName: "순금 5 돈 목걸이",
+    suggestedTitle: "순금 5 돈 목걸이", category: "fashion",
+    recommendedPriceKrw: 50000, supplierCostKrw: 30000,
+    estimatedMarginPct: 30, estimatedDailyUnits: 2, estimatedDailyProfitKrw: 10000,
+    searchVolume: 3000, competitionIntensity: 1.0, confidenceScore: 95,
+    reason: "test", aiSummary: "테스트 상품",
+    // 93% 인증 상태로 만들어 compliance만이 차단 요인이 되게 한다
+    jarvis: { certified: true, confidencePct: 95, gates: [], jarvisVersion: "t", jackpotPct: 95,
+      jackpotCertified: false, integration: {}, brief: "", monthlyPathNote: "", topSellerAlignment: 90 },
+  };
+
+  const blocked = await buildListingDraftFromPick({
+    merchantId: "m", pick: basePick, mode: "consignment", draftId: "d1",
+  });
+  assert.ok(blocked.compliance, "compliance 결과가 초안에 있어야");
+  const hasBlock = blocked.compliance.some((c) => c.severity === "block");
+  assert.equal(hasBlock, true, "비법정 계량단위(돈)는 block이어야");
+  assert.equal(blocked.status, "draft", "block이 있으면 인증됐어도 pending_review로 안 감");
+
+  // 규칙 위반이 없으면 인증 상태 그대로 OK 대기로 간다
+  const clean = await buildListingDraftFromPick({
+    merchantId: "m",
+    pick: { ...basePick, productName: "순금 목걸이 18.75g", suggestedTitle: "순금 목걸이 18.75g" },
+    mode: "consignment", draftId: "d2",
+  });
+  assert.equal(clean.compliance.some((c) => c.severity === "block"), false);
+  assert.equal(clean.status, "pending_review");
+});

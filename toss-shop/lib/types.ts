@@ -408,6 +408,8 @@ export type JarvisListingPayload = {
 };
 
 export type JarvisListingDraft = {
+  /** 토스 등록 규칙 검증 결과 — block이 있으면 자동 등록되지 않는다 */
+  compliance?: import("./seller-engine/toss-policy-engine").ListingComplianceIssue[];
   id: string;
   merchantId: string;
   pickId: string;
@@ -788,6 +790,8 @@ export type ConsignmentPick = {
   profitProbability?: import("./seller-engine/profit-probability").SkuProbability;
   /** 제목·검색키워드 상위노출 최적화 */
   seo?: import("./seller-engine/toss-seo-engine").SeoAnalysis;
+  /** 카탈로그 진입 전략 — 대장 회피(묶음 구성) vs 최저가 vs 소싱 거부 */
+  catalogEntry?: import("./seller-engine/catalog-entry-strategy").CatalogEntryVerdict;
 };
 
 export type ImportPick = {
