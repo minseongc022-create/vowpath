@@ -410,6 +410,10 @@ export type JarvisListingPayload = {
 export type JarvisListingDraft = {
   /** 토스 등록 규칙 검증 결과 — block이 있으면 자동 등록되지 않는다 */
   compliance?: import("./seller-engine/toss-policy-engine").ListingComplianceIssue[];
+  /** 광고 손익분기 CPC (광고 판매분 수수료 0% 반영) */
+  adEconomics?: import("./seller-engine/toss-growth-levers").AdEconomics;
+  /** 장바구니 이탈 고객 쿠폰 설계 */
+  cartCoupon?: import("./seller-engine/toss-growth-levers").CartCouponPlan;
   id: string;
   merchantId: string;
   pickId: string;

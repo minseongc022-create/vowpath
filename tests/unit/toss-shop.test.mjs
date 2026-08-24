@@ -630,3 +630,54 @@ test("pipeline: 등록 규칙 위반이 초안에 기록되고 block이면 자�
   assert.equal(clean.compliance.some((c) => c.severity === "block"), false);
   assert.equal(clean.status, "pending_review");
 });
+
+test("autopilot: 소싱 계획·광고 손익분기·쿠폰이 사이클에서 실제로 계산된다", async () => {
+  const { runJarvisAutopilotCycle } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
+  );
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+  const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  for (const p of picks) p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+
+  const data = { consignmentPicks: picks, listingDrafts: [], fulfillmentJobs: [] };
+  const report = await runJarvisAutopilotCycle({
+    merchantId: "m1", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
+  });
+
+  assert.ok(report.stats.draftsCreated > 0, "초안이 생성되어야");
+  assert.ok(
+    report.actions.some((a) => a.startsWith("소싱 계획")),
+    "소싱 계획이 사이클에서 계산되어 보고되어야",
+  );
+
+  const draft = data.listingDrafts[0];
+  assert.ok(draft.adEconomics, "광고 손익분기가 초안에 붙어야");
+  assert.ok(draft.adEconomics.breakevenCpcKrw > 0);
+  assert.ok(draft.cartCoupon, "장바구니 쿠폰 설계가 초안에 붙어야");
+  assert.ok(draft.compliance, "등록규칙 검증 결과가 초안에 있어야");
+});
+
+test("sourcing plan: 같은 입력이면 캐시로 재계산하지 않는다", async () => {
+  const { computeSourcingPlan } = await import("../../toss-shop/lib/seller-engine/sourcing-plan.ts");
+  const args = {
+    currentSkus: 7,
+    econ: {
+      baselineDailyUnits: 3, netProfitPerUnitKrw: 5900,
+      competitionIntensity: 1.0, competitorAvgReviews: 120, seoScore: 85,
+    },
+    dataQuality: "live", goalKrw: 10_000_000,
+  };
+  const first = computeSourcingPlan(args);
+  const t0 = Date.now();
+  const second = computeSourcingPlan(args);
+  const elapsed = Date.now() - t0;
+
+  assert.deepEqual(second, first, "같은 입력이면 같은 계획");
+  assert.ok(elapsed < 20, `캐시 히트는 즉시여야 (${elapsed}ms)`);
+
+  // 누적 SKU가 달라지면 다시 계산되어야 한다
+  const changed = computeSourcingPlan({ ...args, currentSkus: 60 });
+  assert.notEqual(changed.currentSkus, first.currentSkus);
+});

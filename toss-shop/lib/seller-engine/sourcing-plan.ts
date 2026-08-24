@@ -97,6 +97,37 @@ export function findRequiredSkuCount(input: {
   return lo;
 }
 
+/**
+ * 계획 캐시 — 이분탐색 + 몬테카를로라 1회 ~150ms가 든다.
+ * cron은 60초마다 도는데 누적 SKU와 경제성이 그대로면 답도 그대로이므로
+ * 같은 입력에는 재계산하지 않는다 (서버리스 실행시간 낭비 방지).
+ */
+const planCache = new Map<string, { at: number; plan: SourcingPlan }>();
+const PLAN_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function planCacheKey(i: {
+  currentSkus: number;
+  econ: SkuEconomics;
+  dataQuality: DataQuality;
+  goalKrw: number;
+  horizonDays?: number;
+  targetProbPct?: number;
+}): string {
+  const e = i.econ;
+  return [
+    i.currentSkus,
+    Math.round(e.baselineDailyUnits * 10),
+    Math.round(e.netProfitPerUnitKrw / 100),
+    Math.round(e.competitionIntensity * 10),
+    Math.round(e.competitorAvgReviews ?? -1),
+    Math.round(e.seoScore ?? -1),
+    i.dataQuality,
+    i.goalKrw,
+    i.horizonDays ?? SOURCING_HORIZON_DAYS,
+    i.targetProbPct ?? GOAL_PROB_TARGET_PCT,
+  ].join(":");
+}
+
 export function computeSourcingPlan(input: {
   currentSkus: number;
   econ: SkuEconomics;
@@ -105,6 +136,10 @@ export function computeSourcingPlan(input: {
   horizonDays?: number;
   targetProbPct?: number;
 }): SourcingPlan {
+  const cacheKey = planCacheKey(input);
+  const cached = planCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < PLAN_CACHE_TTL_MS) return cached.plan;
+
   const horizon = Math.max(1, input.horizonDays ?? SOURCING_HORIZON_DAYS);
   const target = input.targetProbPct ?? GOAL_PROB_TARGET_PCT;
   const cap = sourcingMaxPerDay();
@@ -151,7 +186,7 @@ export function computeSourcingPlan(input: {
       `유지 모드: 품절·이탈 SKU 교체 위주로 ${dailyTarget}개/일`;
   }
 
-  return {
+  const plan: SourcingPlan = {
     dailyTarget,
     requiredSkus: required,
     currentSkus: input.currentSkus,
@@ -160,4 +195,6 @@ export function computeSourcingPlan(input: {
     trustworthy,
     reason,
   };
+  planCache.set(cacheKey, { at: Date.now(), plan });
+  return plan;
 }
