@@ -3260,3 +3260,141 @@ test("반품지 조회: 이름이 없는 실제 응답 구조를 그대로 판�
     globalThis.fetch = realFetch;
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// 광고 — 입찰가를 손익분기에서 역산한다
+// ─────────────────────────────────────────────────────────────
+
+const adPickOf = (over = {}) => ({
+  id: "p1",
+  keyword: "보온병",
+  productName: "스테인리스 보온병",
+  suggestedTitle: "스테인리스 보온병 500ml",
+  category: "home",
+  recommendedPriceKrw: 20000,
+  estimatedMarginPct: 25,
+  competitionIntensity: 0.4,
+  searchVolume: 8000,
+  supplierCostKrw: 12000,
+  jarvis: { certified: true, confidencePct: 95 },
+  ...over,
+});
+
+test("광고: 입찰 상한이 판매 1건의 가치에서 역산된다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+
+  const plan = buildAdCampaignPlan(adPickOf(), "consignment");
+
+  // 판매 1건 가치 = 순이익(20,000×25%=5,000) + 수수료 면제(20,000×8%=1,600) = 6,600
+  // 손익분기 = 6,600 × 전환율 2% × 증분비율 70% = 92원, 상한 = 92×65% = 59원
+  assert.equal(plan.estimatedCpcKrw, 59);
+  assert.ok(plan.dailyBudgetKrw > 0);
+  assert.ok(plan.estimatedDailyClicks > 0);
+  assert.equal(plan.autoExecuteReady, true);
+  // 수수료 면제분만 세면 상한이 32원까지 떨어져 사실상 광고가 불가능해진다.
+  // 광고로 새로 생긴 판매는 이익 전체를 가져온다는 게 이 계산의 핵심이다.
+  assert.ok(plan.tactics.some((t) => t.includes("판매 1건 가치")));
+});
+
+test("광고: 비싼 상품일수록 감당 가능한 입찰가가 커진다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+  const cheap = buildAdCampaignPlan(adPickOf({ recommendedPriceKrw: 20000 }), "consignment");
+  const rich = buildAdCampaignPlan(
+    adPickOf({ recommendedPriceKrw: 50000, estimatedMarginPct: 30 }),
+    "consignment",
+  );
+  assert.ok(rich.estimatedCpcKrw > cheap.estimatedCpcKrw);
+});
+
+test("광고: 마진이 얇아 손익분기가 최저 입찰선에 못 미치면 광고를 걸지 않는다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+  // 저가 상품은 판매 1건 가치가 작아 감당 가능한 입찰가가 바닥으로 떨어진다.
+  // 손해는 안 나지만 그 입찰가로는 노출이 안 나올 수 있으므로 자동 집행에서 뺀다.
+  const plan = buildAdCampaignPlan(adPickOf({ recommendedPriceKrw: 3000 }), "consignment");
+  assert.ok(plan.estimatedCpcKrw < 50);
+  assert.equal(plan.autoExecuteReady, false, "노출이 안 나올 입찰가를 자동 집행하면 안 된다");
+  assert.ok(plan.tactics.some((t) => t.includes("노출이 거의 안 나올 수 있습니다")));
+});
+
+test("광고: 임의의 최저 입찰선으로 광고를 아예 막지는 않는다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+  // 토스가 공개한 최저 입찰가는 모른다. 우리가 정한 선으로 차단하면
+  // 될 수도 있는 광고를 못 하게 된다 — 경고는 하되 숫자는 보여준다.
+  const plan = buildAdCampaignPlan(adPickOf({ recommendedPriceKrw: 3000 }), "consignment");
+  assert.ok(plan.estimatedCpcKrw > 0, "경제성이 있으면 입찰가는 그대로 보여줘야");
+  assert.ok(plan.dailyBudgetKrw > 0);
+});
+
+test("광고: 이미 수수료 0%면 면제 효과가 중복되지 않아 광고를 권하지 않는다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+  const plan = buildAdCampaignPlan(
+    adPickOf({
+      wholesaleBest: {
+        platform: "domeme",
+        title: "보온병",
+        unitPriceKrw: 12000,
+        shippingFeeKrw: 0,
+        moq: 1,
+        url: "https://x",
+        freeShipping: true,
+        source: "live",
+        sellerId: "s1",
+        supplierQuality: {
+          grade: "excellent",
+          shipSpeed: "same_day",
+          verified: true,
+          readFrom: ["grade"],
+          reason: "우수·당일발송",
+        },
+      },
+    }),
+    "consignment",
+  );
+  // 수수료 면제 보너스는 없지만 증분 판매의 이익은 그대로다 — 광고가 무의미하진 않다
+  assert.ok(plan.estimatedCpcKrw > 0);
+  assert.ok(plan.tactics.some((t) => t.includes("면제 보너스는 없습니다")));
+});
+
+test("광고: 인센티브 자격이 실증되지 않으면 수수료 0%로 가정하지 않는다", async () => {
+  const { buildAdCampaignPlan } = await import(
+    "../../toss-shop/lib/seller-engine/ad-strategy-engine.ts"
+  );
+  // verified:false — 판독 안 된 공급처를 0% 취급하면 광고 기회를 통째로 버린다
+  const plan = buildAdCampaignPlan(
+    adPickOf({
+      wholesaleBest: {
+        platform: "domeme",
+        title: "보온병",
+        unitPriceKrw: 12000,
+        shippingFeeKrw: 0,
+        moq: 1,
+        url: "https://x",
+        freeShipping: true,
+        source: "live",
+        sellerId: "s1",
+        supplierQuality: {
+          grade: "excellent",
+          shipSpeed: "same_day",
+          verified: false,
+          readFrom: [],
+          reason: "미확인",
+        },
+      },
+    }),
+    "consignment",
+  );
+  assert.ok(
+    plan.tactics.some((t) => t.includes("수수료 면제")),
+    "미확인 공급처는 수수료가 부과되므로 면제 보너스가 계산에 들어간다",
+  );
+});
