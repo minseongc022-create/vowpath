@@ -26,18 +26,44 @@ import { fetchSupplierDetail } from "@/toss-shop/lib/wholesale/domeggook-detail"
 
 const ENDPOINT = "/api/v3/shopping-fep/merchants/group-delivery/exchange-refund-location/v2";
 
-export async function GET(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+/**
+ * 브라우저 세션 없이 이 진단을 돌릴 수 있는 일회용 통로.
+ *
+ * 스키마 확인은 실제 토스 계정으로 호출해야만 가능한데, 세션 쿠키가 필요하면
+ * 사람이 브라우저를 열어야 한다. 그 한 번 때문에 "완전 자동"이 막히는 게
+ * 우스워서, 값을 아는 쪽만 호출할 수 있는 헤더 통로를 둔다.
+ *
+ * ⚠️ 이 통로는 확인이 끝나면 env에서 지운다. 값이 없으면 통로 자체가 닫힌다
+ * (아래에서 secret이 비어 있으면 절대 통과시키지 않는다).
+ */
+function hasProbeSecret(request: Request): boolean {
+  const expected = process.env.JARVIS_PROBE_SECRET?.trim();
+  if (!expected) return false;
+  const given = request.headers.get("x-jarvis-probe-secret")?.trim();
+  return Boolean(given) && given === expected;
+}
 
-  const [merchant, account] = await Promise.all([
-    getMerchant(session.merchantId),
-    getAccount(session.sub),
-  ]);
-  if (!merchant || !account) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!isOwnerEmail(account.email)) {
+export async function GET(request: Request) {
+  const viaSecret = hasProbeSecret(request);
+
+  const session = viaSecret ? null : await requireTossShopSessionFromRequest(request);
+  if (!viaSecret && !session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // 시크릿 경로는 오너 계정을 특정할 수 없으므로 env 키(오너 자격)로만 동작한다.
+  const [merchant, account] = session
+    ? await Promise.all([getMerchant(session.merchantId), getAccount(session.sub)])
+    : [null, null];
+  if (session && (!merchant || !account)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (account && !isOwnerEmail(account.email)) {
     return NextResponse.json({ error: "Owner only" }, { status: 403 });
   }
+
+  const merchantId = session?.merchantId ?? "probe";
+  const ownerEmail = account?.email ?? process.env.TOSS_SHOP_OWNER_EMAILS?.split(",")[0]?.trim();
 
   const url = new URL(request.url);
   const type = url.searchParams.get("type");
@@ -53,13 +79,13 @@ export async function GET(request: Request) {
   }
 
   const config = await resolveApiConfig(
-    session.merchantId,
+    merchantId,
     {
-      accessKey: merchant.apiAccessKey,
-      secretKey: merchant.apiSecretKey,
-      sandbox: merchant.apiSandbox,
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
     },
-    account.email,
+    ownerEmail,
   );
   if (!config) {
     return NextResponse.json({ error: "토스 API 미연동" }, { status: 400 });
@@ -67,7 +93,7 @@ export async function GET(request: Request) {
 
   try {
     if (type === "return-location-raw") {
-      const { locations, rawResponse } = await listTossReturnLocations(session.merchantId, config);
+      const { locations, rawResponse } = await listTossReturnLocations(merchantId, config);
       return NextResponse.json({ locations, rawResponse });
     }
 
@@ -77,7 +103,7 @@ export async function GET(request: Request) {
       // 보내면 실제 계정에 잘못된 반품지가 영구 생성될 수 있다.
       //  · 405 Method Not Allowed → 등록 API 없음
       //  · 400/422 (검증 실패)     → 등록 API 있음. 스키마만 맞추면 완전 자동 가능
-      const token = await getAccessToken(session.merchantId, config);
+      const token = await getAccessToken(merchantId, config);
       const probeUrl = new URL(ENDPOINT, tossApiBaseUrl(config.sandbox));
       probeUrl.searchParams.set("partnerName", config.partnerName);
       const res = await tossFetch(probeUrl.toString(), {
