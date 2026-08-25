@@ -3743,3 +3743,105 @@ test("일괄 등록: 지시서에 값어치 필터·3곳 상한이 없다", asyn
   const text = renderBulkProvisioningInstructions(list);
   for (let i = 0; i < 5; i++) assert.ok(text.includes(`주소-s${i}`));
 });
+
+// ─────────────────────────────────────────────────────────────
+// 사람이 개입하면 수익이 오르는 지점 — 신규 공급처 샘플 검수, 초기 리뷰
+// ─────────────────────────────────────────────────────────────
+
+test("체크리스트: 신규 공급처는 샘플 검수 안내가 최상단에 뜬다", async () => {
+  const { buildListingDraftFromPick } = await import(
+    "../../toss-shop/lib/seller-engine/listing-automation.ts"
+  );
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+  const [pick] = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  pick.wholesaleBest = {
+    platform: "domeme", title: pick.productName, unitPriceKrw: 12000,
+    shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
+    source: "live", sellerId: "brand-new-supplier",
+  };
+
+  const draft = await buildListingDraftFromPick({
+    merchantId: "m1", pick, mode: "consignment", draftId: "d1", isNewSupplier: true,
+  });
+
+  assert.ok(
+    draft.sellerChecklist[0].includes("처음 거래"),
+    "샘플 검수 안내가 체크리스트 맨 앞이어야 (UI가 상위 4개만 보여준다)",
+  );
+
+  const repeat = await buildListingDraftFromPick({
+    merchantId: "m1", pick, mode: "consignment", draftId: "d2", isNewSupplier: false,
+  });
+  assert.ok(
+    !repeat.sellerChecklist.some((s) => s.includes("처음 거래")),
+    "이미 본 공급처면 매번 안내가 뜨면 안 된다",
+  );
+});
+
+test("체크리스트: 초기 리뷰 확보 권장이 항상 상위에 남는다", async () => {
+  const { buildListingDraftFromPick } = await import(
+    "../../toss-shop/lib/seller-engine/listing-automation.ts"
+  );
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+  const [pick] = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  const draft = await buildListingDraftFromPick({
+    merchantId: "m1", pick, mode: "consignment", draftId: "d3",
+  });
+  const top4 = draft.sellerChecklist.slice(0, 4);
+  assert.ok(
+    top4.some((s) => s.includes("초기 리뷰")),
+    "카탈로그 진입을 좌우하는 안내가 화면에 실제로 보이는 위치에 있어야",
+  );
+});
+
+test("autopilot: 처음 보는 공급처만 샘플 검수 안내가 뜨고, 두 번째부터는 안 뜬다", async () => {
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "1520171";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+  try {
+    const { runJarvisAutopilotCycle } = await import(
+      "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
+    );
+    const { generateConsignmentPicks } = await import(
+      "../../toss-shop/lib/seller-engine/consignment.ts"
+    );
+    const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+    const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+    for (const p of picks.slice(0, 2)) {
+      p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+      p.estimatedMarginPct = Math.max(p.estimatedMarginPct, 20);
+      p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
+      p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
+      p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
+      // 두 픽 모두 같은 공급사를 쓰게 만든다 — 두 번째는 신규가 아니어야 한다
+      p.wholesaleBest = {
+        platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
+        shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
+        source: "live", sellerId: "same-supplier",
+        supplierQuality: {
+          grade: "excellent", shipSpeed: "same_day", verified: true,
+          fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
+        },
+        policyText: "반품은 판매자가 직접 처리해주셔야 합니다.",
+      };
+    }
+
+    const data = { consignmentPicks: picks, listingDrafts: [], fulfillmentJobs: [] };
+    const report = await runJarvisAutopilotCycle({
+      merchantId: "m1", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
+    });
+    assert.ok(report.stats.draftsCreated >= 2, "두 초안 모두 만들어져야");
+
+    const withNotice = data.listingDrafts.filter((d) =>
+      d.sellerChecklist.some((s) => s.includes("처음 거래")),
+    );
+    assert.equal(withNotice.length, 1, "같은 공급처는 이번 사이클에서도 한 번만 안내되어야");
+  } finally {
+    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
+  }
+});

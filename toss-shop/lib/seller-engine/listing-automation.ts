@@ -30,11 +30,40 @@ function discountOrigin(sale: number): number {
   return Math.round(sale / 0.92);
 }
 
+/**
+ * 코드가 못 하는 일 — 실물 검수와 초기 리뷰는 사람이 해야 매출이 오른다
+ *
+ * 자비스는 도매 사이트의 사진·텍스트로만 상세페이지를 만든다. 실제 상품을
+ * 손에 쥐어본 적이 없다. 그래서 새 공급처를 처음 쓸 때는 사람이 샘플을
+ * 한 번 받아보는 게, 코드가 아무리 정교해져도 대체가 안 되는 유일한 방법이다
+ * — 여기서 걸러지는 게 나중 CS·반품보다 훨씬 싸게 먹힌다.
+ *
+ * 초기 리뷰도 마찬가지다. 토스 카탈로그의 대표 노출은 신뢰 신호(리뷰·판매량)에
+ * 좌우되는데, 등록 직후엔 그 신호가 0이다. 광고비를 아무리 태워도 안 만들어지는
+ * 걸 지인 구매·체험단 몇 건이 만들어준다 — 이게 등록 후 첫 1~2주에 사람이
+ * 개입하면 광고 효율이 가장 크게 오르는 지점이다.
+ */
 function buildSellerChecklist(
   pick: ConsignmentPick | ImportPick,
   mode: "consignment" | "import",
+  isNewSupplier: boolean,
 ): string[] {
+  // 사람이 해야 확실한 두 가지를 맨 앞에 둔다 — 등록함 화면은 체크리스트
+  // 상위 4개만 보여준다. 뒤에 묻히면 안 본다.
+  const humanSteps: string[] = [];
+  if (isNewSupplier && mode === "consignment" && "wholesaleBest" in pick && pick.wholesaleBest) {
+    humanSteps.push(
+      "🆕 이 공급처는 처음 거래합니다 — 샘플 1개를 직접 주문해 실물·포장 상태를 확인하세요. " +
+        "여기서 걸러지는 불량이 나중 CS·반품보다 훨씬 저렴합니다.",
+    );
+  }
+  humanSteps.push(
+    "📈 등록 후 1~2주 안에 지인 구매·체험단으로 초기 리뷰 5개+ 확보 권장 " +
+      "— 리뷰가 없으면 광고를 태워도 대표 노출로 안 이어집니다",
+  );
+
   const steps: string[] = [
+    ...humanSteps,
     "Draph/OpenAI Premium 상세 + 키워드·가격 자동 생성",
     "OK · Jarvis 전체 실행 → 토스 등록 + 위탁 발주(위탁만)",
   ];
@@ -118,6 +147,14 @@ export type BuildListingDraftInput = {
   now?: string;
   /** 반품 물류 두뇌의 결정 — 무인 등록 경로에서 항상 넘어온다 */
   resolvedReturn?: ResolvedReturn;
+  /**
+   * 이 공급처(platform:sellerId)로 처음 거래하는가.
+   *
+   * 자비스는 실물을 본 적이 없다 — 새 공급처를 처음 쓸 때 사람이 샘플을
+   * 한 번 검수하는 게 CS·반품 리스크를 가장 싸게 줄이는 방법이라, 매번이
+   * 아니라 딱 이 시점에만 체크리스트 최상단에 안내한다.
+   */
+  isNewSupplier?: boolean;
 };
 
 export async function buildListingDraftFromPick(
@@ -132,7 +169,7 @@ export async function buildListingDraftFromPick(
     detailPage.searchKeywords,
     input.resolvedReturn,
   );
-  const sellerChecklist = buildSellerChecklist(pick, mode);
+  const sellerChecklist = buildSellerChecklist(pick, mode, input.isNewSupplier ?? false);
   const pickBrief = buildJarvisPickBrief(pick, mode);
 
   const confidence = pick.jarvis?.confidencePct ?? 0;
