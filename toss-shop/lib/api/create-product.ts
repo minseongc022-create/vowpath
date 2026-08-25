@@ -137,7 +137,9 @@ export async function publishListingToToss(input: {
     autoMatch,
   });
   const returnLocation = resolveReturnLocation({
-    explicitLocationId: input.exchangeReturnLocationId,
+    // 사람이 승인 화면에서 지정한 값이 최우선. 없으면 반품 물류 두뇌가
+    // 공급처 주소를 대조해 확정해둔 값을 쓴다 — 매핑 JSON 없이도 맞게 걸린다.
+    explicitLocationId: input.exchangeReturnLocationId ?? payload.resolvedReturnLocationId,
     supplierPlatform: payload.supplierPlatform,
     supplierId: payload.supplierId,
     pickMode: input.draft.pickMode,

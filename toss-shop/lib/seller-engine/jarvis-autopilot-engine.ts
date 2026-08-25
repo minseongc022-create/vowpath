@@ -21,6 +21,15 @@ import { computeAdEconomics, bestCartCouponDiscount } from "./toss-growth-levers
 import { getMonthlyGoalKrw } from "./goal-engine";
 import { analyzeWinnerSkus } from "./winner-sku-engine";
 import { filterCertainPicks } from "./certainty-gate";
+import { listTossReturnLocations, type TossReturnLocation } from "../api/return-location-lookup";
+import { describeReturnLocationConfig } from "../api/exchange-return-location";
+import { decideReturnForListing } from "./return-decision-pipeline";
+import { canPublishWithDecision, returnRouteLabel } from "./return-logistics-brain";
+import {
+  planReturnLocationProvisioning,
+  renderProvisioningInstructions,
+} from "./return-location-provisioner";
+import type { ProvisioningRequest } from "./return-logistics-brain";
 
 export const JARVIS_AUTOPILOT_VERSION = "1.0";
 
@@ -98,6 +107,31 @@ export async function runJarvisAutopilotCycle(
     actions.push(`소싱 계획: ${sourcingPlan.reason}`);
   }
 
+  // 반품지 목록은 사이클당 한 번만 읽는다 — 같은 사이클 안에서 판단 기준이
+  // 흔들리지 않게 하기 위해서다. 조회에 실패해도 사이클을 멈추지 않는다:
+  // 목록이 비면 공급처 매칭이 안 될 뿐이고, 셀러 경유 후보로는 계속 채울 수 있다.
+  let registeredLocations: TossReturnLocation[] = [];
+  if (input.config) {
+    try {
+      const res = await listTossReturnLocations(input.merchantId, input.config);
+      registeredLocations = res.locations;
+    } catch (e) {
+      errors.push(
+        `반품지 목록 조회 실패 — ${e instanceof Error ? e.message : "RETURN_LOCATION_LOOKUP_FAIL"}. 공급처별 자동 매칭 없이 진행합니다.`,
+      );
+    }
+  }
+  const sellerOwnedLocationId = describeReturnLocationConfig().sellerOwnedId;
+
+  // 반품지가 없어 못 판 공급처 — 사이클 끝에 "등록할 가치가 있는 것만" 추린다
+  const blockedByReturnLocation: Array<{
+    request: ProvisioningRequest;
+    monthlyValueKrw?: number;
+  }> = [];
+  let skippedByReturn = 0;
+  /** 전역 반품지 설정 경고는 사이클당 한 번만 — 후보 수만큼 반복하면 로그가 묻힌다 */
+  let returnConfigWarned = false;
+
   if (isAutopilotEnabled() && certified.length) {
     // 목표에서 역산한 값과 안전 상한 중 작은 쪽을 쓴다
     const maxDrafts = Math.min(
@@ -109,12 +143,61 @@ export async function runJarvisAutopilotCycle(
       if (createdThisCycle >= maxDrafts) break;
       if (pendingDraftIds.has(pick.id)) continue;
       try {
+        // ── 반품이 어디로 가야 하는지부터 정한다 ──────────────────
+        //
+        // 여기서 막히면 사람을 기다리지 않고 **다음 후보로 넘어간다**.
+        // 한 공급처가 막혔다고 그날 등록이 멈추면 자동화가 아니다.
+        let resolvedReturn: { locationId?: number; returnNote?: string } | undefined;
+        if (pick.wholesaleBest) {
+          const unitNetForReturn =
+            pick.catalogEntry?.best.netProfitKrw ??
+            Math.max(1, Math.round(pick.recommendedPriceKrw * 0.25));
+          const { decision, returnNote, listing } = await decideReturnForListing({
+            listing: pick.wholesaleBest,
+            registeredLocations,
+            sellerOwnedLocationId,
+            netProfitPerUnitKrw: unitNetForReturn,
+          });
+          // 보강된 리스팅을 되돌려 넣는다 — 이후 상세·발주가 같은 사실을 본다
+          pick.wholesaleBest = listing;
+
+          if (decision.route === "needs_provisioning" && decision.provisioning) {
+            blockedByReturnLocation.push({
+              request: decision.provisioning,
+              monthlyValueKrw: Math.round(
+                unitNetForReturn * Math.max(0.3, pick.estimatedDailyUnits ?? 1) * 30,
+              ),
+            });
+            skippedByReturn++;
+            continue;
+          }
+          if (!canPublishWithDecision(decision)) {
+            // 전역 설정 누락은 다음 후보로 넘어가도 똑같이 막힌다 — 건너뛰면
+            // 하루치가 통째로 사라지고 사장님은 이유를 모른다. 그래서 초안은
+            // 그대로 만들고(등록 단계에서 막힌다) 설정하라고 한 번만 알린다.
+            if (decision.blocker === "global_config") {
+              if (!returnConfigWarned) {
+                returnConfigWarned = true;
+                actions.push(`반품지 설정 필요 — ${decision.rejectReason}`);
+              }
+            } else {
+              skippedByReturn++;
+              actions.push(
+                `「${pick.keyword}」 제외 — ${returnRouteLabel(decision.route)}: ${decision.rejectReason ?? "반품 경로 미확정"}`,
+              );
+              continue;
+            }
+          }
+          resolvedReturn = { locationId: decision.locationId, returnNote };
+        }
+
         const draft = await buildListingDraftFromPick({
           merchantId: input.merchantId,
           pick,
           mode: "consignment",
           draftId: `jl_auto_${Date.now().toString(36)}_${createdThisCycle}`,
           now,
+          resolvedReturn,
         });
 
         if (pick.wholesaleBest) {
@@ -151,6 +234,15 @@ export async function runJarvisAutopilotCycle(
         errors.push(e instanceof Error ? e.message : "DRAFT_CREATE_FAIL");
       }
     }
+  }
+
+  // 반품지 때문에 막힌 건들 중 **뚫을 가치가 있는 것만** 추린다.
+  // 전부 떠넘기면 하루 수십 건이 되어 자동화가 아니게 된다.
+  const provisioningPlan = planReturnLocationProvisioning({ blocked: blockedByReturnLocation });
+  if (skippedByReturn > 0) {
+    actions.push(
+      `반품 경로 미확정 ${skippedByReturn}건은 건너뛰고 등록 가능한 후보로 채웠습니다 — ${provisioningPlan.summary}`,
+    );
   }
 
   for (const draft of listingDrafts) {
@@ -223,6 +315,18 @@ export async function runJarvisAutopilotCycle(
         ? `Jarvis Autopilot — 인증 SKU ${certifiedCount} · OK대기 ${pendingReview} · 등록 ${published} · 발주대기 ${activeJobs}`
         : "Jarvis Autopilot — 93% 인증 SKU 없음 · 연동·도매매 API 확인",
     winners,
+    returnProvisioning: provisioningPlan.asks.length
+      ? {
+          summary: provisioningPlan.summary,
+          instructions: renderProvisioningInstructions(provisioningPlan),
+          asks: provisioningPlan.asks.map((a) => ({
+            supplier: `${a.request.supplierPlatform}:${a.request.supplierId}`,
+            name: a.request.suggestedName,
+            address: a.request.address,
+            blockedCount: a.blockedCount,
+          })),
+        }
+      : undefined,
     nextSteps: buildNextSteps({
       certifiedCount,
       pendingReview,
@@ -230,6 +334,7 @@ export async function runJarvisAutopilotCycle(
       activeJobs,
       hasApi: Boolean(input.config),
       hasWholesale: Boolean(process.env.DOMEGGOOK_API_KEY),
+      provisioningAsks: provisioningPlan.asks.length,
     }),
   };
 }
@@ -241,8 +346,14 @@ function buildNextSteps(input: {
   activeJobs: number;
   hasApi: boolean;
   hasWholesale: boolean;
+  provisioningAsks?: number;
 }): string[] {
   const steps: string[] = [];
+  // 반품지 등록은 토스가 API를 안 열어둬서 사람이 해야 하는 유일한 일이다.
+  // 그래서 다른 안내보다 앞에 둔다 — 이걸 해두면 그 공급처는 영구 자동화된다.
+  if (input.provisioningAsks) {
+    steps.push(`반품지 ${input.provisioningAsks}곳 등록 → 막힌 상품 자동 해제`);
+  }
   if (!input.hasApi) steps.push("토스 FEP API 연동 → 설정");
   if (!input.hasWholesale) steps.push("DOMEGGOOK_API_KEY → 도매매 실시간 소싱");
   if (input.pendingReview > 0 && !isAutoExecuteEnabled()) {

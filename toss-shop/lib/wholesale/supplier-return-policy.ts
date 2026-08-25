@@ -29,14 +29,33 @@
 export const RETURN_POLICY_ENGINE_VERSION = "1.0";
 
 export type ReturnHandling =
-  /** 공급처가 직접 수거 — 반품지는 공급처 주소여야 한다 */
+  /** 공급처가 직접 수거(회수 접수) — 반품지는 공급처 주소여야 한다 */
   | "supplier_collects"
+  /**
+   * 고객이 택배로 공급처에 직접 반송 — 반품지는 역시 공급처 주소여야 한다.
+   *
+   * supplier_collects와 반품지 요구는 같지만 회수 주체가 다르다. 수거형은
+   * 공급처가 택배를 부르고, 반송형은 고객이 부친다. 반송형에서 반품지를 셀러
+   * 주소로 걸면 고객이 셀러에게 보내고 셀러가 다시 부쳐야 해서 왕복비가 뜬다 —
+   * 손실 구조가 같으므로 같은 등급으로 다룬다.
+   */
+  | "supplier_courier"
   /** 셀러가 받아서 처리 — 반품지는 셀러 자체 주소 */
   | "seller_handles"
   /** 반품 불가·과도한 조건 — 소싱 제외 대상 */
   | "refused"
   /** 판독 실패 — 공급처 전용 반품지 필요로 간주(fail-closed) */
   | "unknown";
+
+/**
+ * 반품지가 **공급처 주소여야만 하는** 처리 방식인가.
+ *
+ * 수거형이든 택배 반송형이든, 물건이 공급처로 가야 한다는 점은 같다.
+ * 셀러 주소를 걸면 둘 다 왕복 택배비가 발생한다.
+ */
+export function needsSupplierAddress(h: ReturnHandling | undefined): boolean {
+  return h === "supplier_collects" || h === "supplier_courier";
+}
 
 export type SupplierReturnPolicy = {
   engineVersion: string;
@@ -66,6 +85,19 @@ const SUPPLIER_COLLECT_PATTERNS = [
   /반품\s*(주소|지)\s*[:：]?\s*(공급|본사|당사)/,
   /수거\s*(요청|접수)\s*(는|은)?\s*(공급|본사|당사|고객센터)/,
   /반품\s*시\s*(공급|본사|당사)\s*(로|으로)\s*(연락|접수)/,
+];
+
+/**
+ * 고객이 택배로 공급처에 직접 반송해야 한다는 신호.
+ *
+ * "반품 주소: OO시 ..." 처럼 주소를 명시하는 형태가 가장 흔하다. 주소를 적어뒀다는
+ * 것 자체가 "그 주소로 보내라"는 뜻이므로 공급처 주소가 필요하다는 강한 신호다.
+ */
+const SUPPLIER_COURIER_PATTERNS = [
+  /(반품|교환|반송)\s*(주소|지|처)\s*[:：]/,
+  /(택배|우체국|편의점)\s*(로|으로)?\s*(직접)?\s*(반송|발송|보내)/,
+  /착불\s*(로|으로)?\s*(반송|발송|보내|접수)/,
+  /(아래|하기|다음)\s*주소\s*(로|으로)\s*(반품|반송|보내)/,
 ];
 
 /** 셀러(구매자=재판매자)가 받아서 처리해야 한다는 신호 */
@@ -137,6 +169,7 @@ export function readSupplierReturnPolicy(text: string | undefined | null): Suppl
   }
 
   const supplierHits = collectMatches(norm, SUPPLIER_COLLECT_PATTERNS);
+  const courierHits = collectMatches(norm, SUPPLIER_COURIER_PATTERNS);
   const sellerHits = collectMatches(norm, SELLER_HANDLE_PATTERNS);
   const paysHits = collectMatches(norm, SELLER_PAYS_PATTERNS);
   const sellerBearsReturnShipping = paysHits.length > 0;
@@ -145,13 +178,13 @@ export function readSupplierReturnPolicy(text: string | undefined | null): Suppl
   const detectedAddress = addrMatch?.[1]?.trim();
 
   // 양쪽 신호가 동시에 잡히면 판독이 신뢰할 수 없다 → unknown (추측 금지)
-  if (supplierHits.length && sellerHits.length) {
+  if ((supplierHits.length || courierHits.length) && sellerHits.length) {
     return {
       ...base,
       handling: "unknown",
       verified: false,
       sellerBearsReturnShipping,
-      matchedPhrases: [...supplierHits, ...sellerHits],
+      matchedPhrases: [...supplierHits, ...courierHits, ...sellerHits],
       detectedAddress,
       reason:
         "공급처 수거·셀러 처리 신호가 동시에 잡혀 판독 불가 — 공급처 전용 반품지가 필요한 것으로 간주",
@@ -169,6 +202,22 @@ export function readSupplierReturnPolicy(text: string | undefined | null): Suppl
       reason:
         `공급처 직접 수거 — "${supplierHits[0]}". 반품지를 이 공급처 주소로 등록해야 한다. ` +
         "셀러 주소로 등록하면 고객→셀러→공급처 재발송으로 왕복 택배비가 손실된다.",
+    };
+  }
+
+  if (courierHits.length) {
+    return {
+      ...base,
+      handling: "supplier_courier",
+      verified: true,
+      sellerBearsReturnShipping,
+      matchedPhrases: courierHits,
+      detectedAddress,
+      reason:
+        `고객이 택배로 공급처에 직접 반송하는 방식 — "${courierHits[0]}". ` +
+        "반품지를 공급처 주소로 등록해야 한다. 셀러 주소로 등록하면 셀러가 받아 " +
+        "다시 부쳐야 해서 왕복 택배비가 손실된다." +
+        (detectedAddress ? ` 안내문에서 읽은 주소: ${detectedAddress}` : ""),
     };
   }
 
@@ -215,9 +264,11 @@ export function isReturnPolicyDisqualifying(p: SupplierReturnPolicy | undefined)
 export function returnHandlingLabel(h: ReturnHandling): string {
   return h === "supplier_collects"
     ? "공급처 직접수거"
-    : h === "seller_handles"
-      ? "셀러 처리"
-      : h === "refused"
-        ? "반품 불가(제외)"
-        : "미확인";
+    : h === "supplier_courier"
+      ? "공급처로 택배 반송"
+      : h === "seller_handles"
+        ? "셀러 처리"
+        : h === "refused"
+          ? "반품 불가(제외)"
+          : "미확인";
 }

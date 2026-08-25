@@ -43,6 +43,9 @@ function metricsForKeyword(keyword: string, catalog: CatalogProduct[]): MarketKe
     avgPriceKrw,
     competitionIntensity,
     updatedAt: new Date().toISOString(),
+    // 매칭 상품이 하나도 없으면 위 숫자들은 전부 키워드 해시로 채운 자리표시자다.
+    // 그럴듯해 보여도 시장과 무관하므로, 판단에 쓰는 쪽이 알아볼 수 있게 표시한다.
+    basis: matched.length > 0 ? "catalog" : "synthetic",
   };
 }
 

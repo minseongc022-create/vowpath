@@ -26,7 +26,7 @@
  */
 
 import { z } from "zod";
-import type { ReturnHandling } from "../wholesale/supplier-return-policy";
+import { needsSupplierAddress, type ReturnHandling } from "../wholesale/supplier-return-policy";
 
 export const RETURN_LOCATION_ENGINE_VERSION = "1.0";
 
@@ -188,7 +188,7 @@ function mayUseSellerOwned(handling: ReturnHandling | undefined): boolean {
  * 경고로 넘어가면 안 되고 반드시 공급처 전용 주소가 있어야 등록을 허용한다.
  */
 function requiresSupplierAddressStrictly(handling: ReturnHandling | undefined): boolean {
-  return handling === "supplier_collects";
+  return needsSupplierAddress(handling);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -320,7 +320,7 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
         error: {
           code: "SUPPLIER_ADDRESS_REQUIRED",
           message:
-            `${label}는 ${input.returnHandling === "supplier_collects" ? "공급처가 직접 수거하는 곳" : "반품 처리 주체가 확인되지 않은 곳"}이라 ` +
+            `${label}는 ${describeHandling(input.returnHandling)}이라 ` +
             "전용 반품지가 필요합니다. 기본 반품지로 등록하면 그 주소의 주인이 남의 반품을 받게 되어 " +
             `수취 거부·분쟁으로 이어집니다. 시도한 키: ${triedKeys.join(", ") || "없음"}. ` +
             "이 공급처 주소를 토스에 등록하고 매핑에 추가하거나, 셀러 자체 반품지를 " +
@@ -338,7 +338,7 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
         error: {
           code: "SUPPLIER_ADDRESS_REQUIRED",
           message:
-            `${label}는 공급처가 직접 수거하는 곳으로 확인됐습니다. 셀러 자체 반품지(seller_default)로 ` +
+            `${label}는 ${describeHandling(input.returnHandling)}으로 확인됐습니다. 셀러 자체 반품지(seller_default)로 ` +
             "대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
             `이 공급처의 실제 주소를 토스에 등록하고 매핑에 "${label.replace("공급처 ", "")}" 키로 추가하세요.`,
         },
@@ -394,7 +394,7 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
         error: {
           code: "SUPPLIER_ADDRESS_REQUIRED",
           message:
-            `${describeSupplier(input)}는 공급처가 직접 수거하는 곳으로 확인됐습니다. ` +
+            `${describeSupplier(input)}는 ${describeHandling(input.returnHandling)}으로 확인됐습니다. ` +
             "셀러 자체 반품지로 대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
             "이 공급처의 실제 주소를 토스에 등록하고 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP에 " +
             `"${input.supplierPlatform ?? "platform"}:${input.supplierId ?? "sellerId"}" 키로 추가하세요.`,
@@ -447,6 +447,13 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
         "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP에 이 공급처를 추가하세요.",
     },
   };
+}
+
+/** 반품 처리 방식을 사람이 읽는 문구로 — 오류 메시지가 실제 상황을 말하게 한다 */
+function describeHandling(handling: ReturnHandling | undefined): string {
+  if (handling === "supplier_collects") return "공급처가 직접 수거하는 곳";
+  if (handling === "supplier_courier") return "고객이 공급처로 택배 반송하는 곳";
+  return "반품 처리 주체가 확인되지 않은 곳";
 }
 
 function describeSupplier(input: ReturnLocationLookup): string {

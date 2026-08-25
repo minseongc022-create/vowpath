@@ -136,16 +136,29 @@ for (const group of GROUPS) {
 function checkReturnLocationMap() {
   const raw = process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP?.trim();
   const defaultId = process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID?.trim();
+  const sellerOwned =
+    process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED?.trim().toLowerCase() === "true";
   console.log("## 교환·반품지 매핑 검증");
 
+  // 매핑 JSON은 더 이상 필수가 아니다. 자비스가 공급처 주소를 읽어
+  // 토스 등록 반품지와 자동으로 대조하기 때문이다(return-location-matcher).
+  // 매핑은 자동 매칭이 실패할 때의 수동 보정 수단으로만 남는다.
   if (!raw) {
-    console.log(
-      defaultId
-        ? `  · 매핑 미설정 — 전 공급처가 기본 반품지 ${defaultId} 사용 (공급처 직접수거 시 왕복 배송비 위험)`
-        : "  ✗ 기본 반품지도 매핑도 없음 — 토스 등록 불가",
-    );
+    if (defaultId && sellerOwned) {
+      console.log(
+        `  ✓ 셀러 자체 반품지 ${defaultId} 선언됨 — 반품 안내가 없는 상품은 여기로 자동 등록`,
+      );
+      console.log("  · 공급처 직접수거로 확인된 상품은 공급처 주소를 찾아 자동 연결(미등록 시 보류)");
+    } else if (defaultId) {
+      console.log(
+        `  ✗ 기본 반품지 ${defaultId}의 성격이 선언되지 않음 — TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED=true 필요`,
+      );
+      console.log("    (내 주소가 맞는지 선언하지 않으면 남의 공급처 주소로 반품이 갈 수 있어 차단됩니다)");
+    } else {
+      console.log("  ✗ 기본 반품지도 매핑도 없음 — 토스 등록 불가");
+    }
     console.log("");
-    return raw || defaultId ? 0 : 1;
+    return defaultId && sellerOwned ? 0 : 1;
   }
 
   let parsed;

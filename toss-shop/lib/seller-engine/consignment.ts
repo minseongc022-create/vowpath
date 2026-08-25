@@ -21,6 +21,7 @@ import {
 import { buildV4Enrichment, SELLER_AI_ENGINE_VERSION } from "./revenue-engine";
 import { buildPickContributions, getMonthlyGoalKrw } from "./goal-engine";
 import { buildV6PickEnrichment, POLICY_ENGINE_VERSION } from "./policy-engine";
+import { scanMarket } from "./market-scanner";
 import {
   assessIntegration,
   computeJarvisConfidence,
@@ -153,9 +154,32 @@ export async function generateConsignmentPicks(
     dataQuality: integrationCtx?.dataQuality ?? ctx.dataQuality,
     catalogSize: catalog.length,
   });
-  const keywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
+  const rankedKeywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
   );
+
+  // 시장 스캐너로 한 번 더 거른다.
+  //
+  // 위 랭킹은 "사람들이 많이 찾는가"를 본다. 스캐너는 "신규 셀러가 뚫을 수 있는가"를
+  // 본다 — 리뷰 3천 개짜리 상위권이 장악한 키워드는 검색량이 아무리 커도
+  // 광고비만 태우고 끝나기 때문이다. skip 판정은 후보에서 빼고, enter 판정을
+  // 앞으로 당긴다. 그래야 하루치 등록 슬롯이 이길 수 있는 싸움에 쓰인다.
+  const scan = scanMarket({
+    keywords: rankedKeywords.map((k) => k.keyword),
+    catalog,
+    marketKeywords,
+    limit: 60,
+  });
+  const scanRank = new Map<string, number>();
+  scan.enter.forEach((s, i) => scanRank.set(s.keyword, i));
+  scan.watch.forEach((s, i) => scanRank.set(s.keyword, 1000 + i));
+  const blocked = new Set(scan.skip.map((s) => s.keyword));
+
+  const keywords = rankedKeywords
+    .filter((k) => !blocked.has(k.keyword))
+    // 스캐너 목록에 없는 키워드는 판정 근거가 부족했던 것이므로 enter와 watch
+    // 사이(500)에 둔다 — 확실한 기회보다는 뒤, 확실한 함정보다는 앞.
+    .sort((a, b) => (scanRank.get(a.keyword) ?? 500) - (scanRank.get(b.keyword) ?? 500));
 
   const candidates: ConsignmentPick[] = [];
   const usedProducts = new Set<string>();

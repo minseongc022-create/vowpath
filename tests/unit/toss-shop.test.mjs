@@ -2530,3 +2530,472 @@ test("return location: 매핑에 seller_default가 있어도 공급처 직접수
   assert.equal(d.error.code, "SUPPLIER_ADDRESS_REQUIRED");
   assert.match(d.error.message, /대체하지 않습니다/);
 });
+
+// ─────────────────────────────────────────────────────────────
+// 반품지 자동 매칭 — 사람이 매핑 JSON을 쓰지 않게 만드는 핵심
+// ─────────────────────────────────────────────────────────────
+
+test("주소 매칭: 표기가 달라도 같은 건물이면 같은 반품지로 연결된다", async () => {
+  const { compareAddresses, normalizeAddress, buildingKey } = await import(
+    "../../toss-shop/lib/api/return-location-matcher.ts"
+  );
+
+  // 시/도 표기·우편번호·괄호 주석이 달라도 같은 주소여야 한다
+  assert.equal(
+    normalizeAddress("인천광역시 남동구 구월로 123"),
+    normalizeAddress("인천 남동구 구월로 123"),
+  );
+  assert.equal(
+    compareAddresses("인천광역시 남동구 구월로 123", "(21550) 인천 남동구 구월로 123"),
+    "exact_address",
+  );
+
+  // 층·호수만 다르면 같은 건물
+  assert.equal(
+    compareAddresses("인천 남동구 구월로 123, 4층", "인천 남동구 구월로 123 201호"),
+    "same_building",
+  );
+  assert.equal(buildingKey("인천 남동구 구월로 123, 4층"), "인천남동구구월로123");
+});
+
+test("주소 매칭: 건물번호가 다르면 절대 같은 곳으로 보지 않는다", async () => {
+  const { compareAddresses, matchReturnLocation } = await import(
+    "../../toss-shop/lib/api/return-location-matcher.ts"
+  );
+
+  // 옆 건물로 반품이 가면 수취 거부 → 미아 → 분쟁이다. 반드시 불일치여야 한다.
+  assert.equal(compareAddresses("인천 남동구 구월로 123", "인천 남동구 구월로 125"), null);
+
+  const match = matchReturnLocation({
+    locations: [{ id: 1, name: "창고A", address: "인천 남동구 구월로 125", raw: {} }],
+    supplierAddress: "인천 남동구 구월로 123",
+    supplierPlatform: "domeme",
+    supplierId: "s1",
+  });
+  assert.equal(match, null, "건물번호가 다르면 매칭되면 안 된다");
+});
+
+test("주소 매칭: 이름 태그가 주소보다 우선한다", async () => {
+  const { matchReturnLocation, jarvisLocationName } = await import(
+    "../../toss-shop/lib/api/return-location-matcher.ts"
+  );
+
+  assert.equal(jarvisLocationName("domeme", "s1"), "자비스-domeme-s1");
+
+  const match = matchReturnLocation({
+    locations: [
+      { id: 9, name: "자비스-domeme-s1", address: "", raw: {} },
+      { id: 2, name: "다른창고", address: "인천 남동구 구월로 123", raw: {} },
+    ],
+    supplierAddress: "인천 남동구 구월로 123",
+    supplierPlatform: "domeme",
+    supplierId: "s1",
+  });
+  assert.equal(match.location.id, 9);
+  assert.equal(match.strength, "name_tag");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 반품 물류 두뇌
+// ─────────────────────────────────────────────────────────────
+
+const policyOf = async (text) => {
+  const { readSupplierReturnPolicy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-return-policy.ts"
+  );
+  return readSupplierReturnPolicy(text);
+};
+
+test("반품 두뇌: 공급처 수거형인데 주소가 등록돼 있으면 공급처로 직행한다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf("반품은 공급사에서 직접 수거합니다."),
+    supplierPlatform: "domeme",
+    supplierId: "s1",
+    supplierReturnAddress: "경기 화성시 동탄대로 45",
+    registeredLocations: [{ id: 777, name: "공급사창고", address: "경기 화성시 동탄대로 45", raw: {} }],
+    sellerOwnedLocationId: 1520171,
+    netProfitPerUnitKrw: 5000,
+  });
+  assert.equal(decision.route, "supplier_direct");
+  assert.equal(decision.locationId, 777);
+  // 공급처로 직행하면 셀러가 물 반품 물류비가 없다
+  assert.equal(decision.reservePerUnitKrw, 0);
+});
+
+test("반품 두뇌: 수거형인데 토스에 주소가 없으면 등록 요청만 남기고 상품은 보류한다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf("반품은 공급사에서 직접 수거합니다."),
+    supplierPlatform: "domeme",
+    supplierId: "s1",
+    supplierReturnAddress: "경기 화성시 동탄대로 45",
+    registeredLocations: [],
+    // 셀러 주소가 있어도 수거형은 절대 셀러로 돌리지 않는다
+    sellerOwnedLocationId: 1520171,
+    netProfitPerUnitKrw: 5000,
+  });
+  assert.equal(decision.route, "needs_provisioning");
+  assert.equal(decision.locationId, undefined);
+  assert.equal(decision.provisioning.address, "경기 화성시 동탄대로 45");
+  assert.equal(decision.provisioning.suggestedName, "자비스-domeme-s1");
+});
+
+test("반품 두뇌: 택배 반송형도 수거형과 같이 공급처 주소를 요구한다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const policy = await policyOf("반품 주소: 경기 화성시 동탄대로 45 로 착불 반송해 주세요.");
+  assert.equal(policy.handling, "supplier_courier");
+
+  const decision = decideReturnLogistics({
+    policy,
+    supplierPlatform: "domeme",
+    supplierId: "s2",
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+    netProfitPerUnitKrw: 5000,
+  });
+  // 안내문에서 주소를 읽어냈으므로 등록 요청으로 간다 (셀러 주소로 떨어지지 않는다)
+  assert.equal(decision.route, "needs_provisioning");
+  assert.notEqual(decision.locationId, 1520171);
+});
+
+test("반품 두뇌: 안내문이 없으면 셀러 경유로 팔되 왕복비를 미리 뺀다", async () => {
+  const { decideReturnLogistics, ASSUMED_RETURN_RATE_CEILING } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf(undefined),
+    supplierPlatform: "domeme",
+    supplierId: "s3",
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+    shippingFeeKrw: 3000,
+    netProfitPerUnitKrw: 5000,
+  });
+  assert.equal(decision.route, "seller_relay");
+  assert.equal(decision.locationId, 1520171);
+  // 왕복 2구간 × 반품률 상한 — 예측이 아니라 충당금이다
+  assert.equal(decision.reservePerUnitKrw, Math.round(3000 * 2 * ASSUMED_RETURN_RATE_CEILING));
+  assert.equal(decision.confidence, "assumed");
+});
+
+test("반품 두뇌: 충당금을 빼면 안 남는 상품은 팔지 않는다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf(undefined),
+    supplierPlatform: "domeme",
+    supplierId: "s4",
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+    shippingFeeKrw: 5000,
+    netProfitPerUnitKrw: 500, // 충당금(5000×2×8%=800)보다 작다
+  });
+  assert.equal(decision.route, "rejected");
+  assert.equal(decision.blocker, "economics");
+});
+
+test("반품 두뇌: 반품 불가 공급처는 마진과 무관하게 제외한다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf("단순 변심 반품 불가 상품입니다."),
+    supplierPlatform: "domeme",
+    supplierId: "s5",
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+    netProfitPerUnitKrw: 999999,
+  });
+  assert.equal(decision.route, "rejected");
+  assert.equal(decision.blocker, "policy");
+});
+
+test("반품 두뇌: 셀러 반품지 자체가 없으면 전역 설정 문제로 표시한다", async () => {
+  const { decideReturnLogistics } = await import(
+    "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
+  );
+  const decision = decideReturnLogistics({
+    policy: await policyOf(undefined),
+    supplierPlatform: "domeme",
+    supplierId: "s6",
+    registeredLocations: [],
+    sellerOwnedLocationId: undefined,
+    netProfitPerUnitKrw: 5000,
+  });
+  assert.equal(decision.route, "rejected");
+  // 다음 후보로 넘어가도 똑같이 막히는 문제 — 공급처 문제와 구분되어야 한다
+  assert.equal(decision.blocker, "global_config");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 공급처 상세 판독
+// ─────────────────────────────────────────────────────────────
+
+test("공급처 상세: 반품 라벨이 붙은 주소만 채택하고 출고지는 배제한다", async () => {
+  const { readSupplierDetailFromResponse } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+  const detail = readSupplierDetailFromResponse(
+    {
+      domeggook: {
+        seller: { id: "abc123", nick: "테스트공급사" },
+        // 출고지는 반품지가 아니다 — 채택되면 안 된다
+        sendAddr: "서울 강남구 테헤란로 100",
+        returnAddr: "경기 성남시 분당구 판교로 250",
+      },
+    },
+    123,
+  );
+  assert.equal(detail.returnAddress, "경기 성남시 분당구 판교로 250");
+  assert.equal(detail.returnAddressConfidence, "return_labeled");
+  assert.equal(detail.sellerId, "abc123");
+  assert.ok(
+    !detail.addressCandidates.some((c) => c.address.includes("테헤란로")),
+    "출고지는 후보에서 제외되어야",
+  );
+});
+
+test("공급처 상세: 키에 단서 없이 본문에만 있는 주소는 채택하지 않는다", async () => {
+  const { readSupplierDetailFromResponse } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+  const detail = readSupplierDetailFromResponse(
+    { desc: "본사는 서울 마포구 양화로 45 에 있습니다. 品質 최고." },
+    1,
+  );
+  // 제조사·매장 주소일 수 있다 — 반품지로 쓰면 남의 주소로 반품이 간다
+  assert.equal(detail.returnAddress, undefined);
+});
+
+// ─────────────────────────────────────────────────────────────
+// 구매심리 — 촌스러움·과장 차단
+// ─────────────────────────────────────────────────────────────
+
+test("구매심리: 과장·가짜 긴박감 문구는 규칙으로 걸러진다", async () => {
+  const { sanitizeCopy, isCopyClean } = await import(
+    "../../toss-shop/lib/seller-engine/buyer-psychology.ts"
+  );
+
+  assert.equal(isCopyClean("업계 1위 최고급 제품!!!"), false);
+  assert.equal(isCopyClean("100% 만족 보장"), false);
+  // 재고를 모르면서 쓰는 긴박감은 거짓말이다
+  assert.equal(isCopyClean("품절 임박 서두르세요"), false);
+  assert.equal(isCopyClean("스테인리스 재질 · 용량 1.2L"), true);
+
+  const { clean, removed } = sanitizeCopy("초특가 대박 상품!!! 튼튼한 손잡이");
+  assert.ok(!clean.includes("초특가"));
+  assert.ok(!clean.includes("대박"));
+  assert.ok(clean.includes("튼튼한 손잡이"));
+  assert.ok(!clean.includes("!!!"), "느낌표 도배는 하나로 줄어야");
+  assert.ok(removed.length >= 2);
+});
+
+test("구매심리: 셀러 관점이 아니라 구매자 관점 문구를 만든다", async () => {
+  const { buildPersuasionPlan } = await import(
+    "../../toss-shop/lib/seller-engine/buyer-psychology.ts"
+  );
+  const plan = buildPersuasionPlan({
+    title: "스테인리스 보온병 500ml",
+    keyword: "보온병",
+    facts: {
+      priceKrw: 12000,
+      category: "home",
+      sameDayShipping: true,
+      freeShipping: true,
+      competitorAvgKrw: 16000,
+      returnNote: "단순 변심 반품이 가능합니다.",
+    },
+  });
+
+  // 마진율 같은 셀러 정보가 고객 문구에 새면 안 된다
+  assert.ok(!plan.sellingPoints.some((p) => /마진|MOQ|도매|Jarvis|정책 체크/.test(p)));
+  assert.ok(plan.differentiators.some((d) => d.includes("25%")), "중앙가 대비 가격차가 계산되어야");
+  assert.ok(plan.sellingPoints.some((p) => p.includes("당일 출고")));
+  // 실패해도 되돌릴 수 있다는 게 실물을 못 보는 구매에서 가장 강한 안심 장치다
+  assert.ok(plan.objections.some((o) => o.answer.includes("반품")));
+});
+
+test("구매심리: 배송 속도가 실측되지 않으면 당일 출고를 약속하지 않는다", async () => {
+  const { buildPersuasionPlan } = await import(
+    "../../toss-shop/lib/seller-engine/buyer-psychology.ts"
+  );
+  const plan = buildPersuasionPlan({
+    title: "보온병",
+    keyword: "보온병",
+    facts: { priceKrw: 12000, category: "home", sameDayShipping: false },
+  });
+  assert.ok(!plan.sellingPoints.some((p) => p.includes("당일 출고")));
+  assert.ok(!plan.differentiators.some((d) => d.includes("당일 출고")));
+});
+
+// ─────────────────────────────────────────────────────────────
+// 시장 스캐너
+// ─────────────────────────────────────────────────────────────
+
+const catalogOf = (rows) =>
+  rows.map((r, i) => ({
+    id: String(i + 1),
+    name: r.name,
+    category: "home",
+    priceKrw: r.price,
+    reviewCount: r.reviews,
+    rating: 4.5,
+    sellerName: "s",
+    rank: i + 1,
+    rankPrev: i + 1,
+    updatedAt: "2026-08-01",
+  }));
+
+test("시장 스캐너: 리뷰 장벽이 높으면 검색량이 커도 들어가지 않는다", async () => {
+  const { scanOpportunity } = await import("../../toss-shop/lib/seller-engine/market-scanner.ts");
+  const scan = scanOpportunity({
+    keyword: "보온병",
+    catalog: catalogOf([
+      { name: "보온병 A", price: 20000, reviews: 4000 },
+      { name: "보온병 B", price: 21000, reviews: 3800 },
+      { name: "보온병 C", price: 19000, reviews: 5200 },
+    ]),
+    metrics: {
+      keyword: "보온병",
+      searchVolume: 90000,
+      productCount: 100,
+      avgPriceKrw: 20000,
+      competitionIntensity: 1,
+      updatedAt: "2026-08-01",
+      basis: "catalog",
+    },
+  });
+  assert.equal(scan.verdict, "skip");
+  assert.ok(scan.blockers.some((b) => b.includes("리뷰")));
+});
+
+test("시장 스캐너: 수요가 있고 장벽이 낮으면 진입 판정을 낸다", async () => {
+  const { scanOpportunity } = await import("../../toss-shop/lib/seller-engine/market-scanner.ts");
+  const scan = scanOpportunity({
+    keyword: "실리콘 주걱",
+    catalog: catalogOf([
+      { name: "실리콘 주걱 A", price: 12000, reviews: 10 },
+      { name: "실리콘 주걱 B", price: 9000, reviews: 25 },
+      { name: "실리콘 주걱 C", price: 14000, reviews: 5 },
+    ]),
+    metrics: {
+      keyword: "실리콘 주걱",
+      searchVolume: 8000,
+      productCount: 200,
+      avgPriceKrw: 12000,
+      competitionIntensity: 1,
+      updatedAt: "2026-08-01",
+      basis: "catalog",
+    },
+  });
+  assert.equal(scan.verdict, "enter");
+  assert.equal(scan.dataQuality, "measured");
+});
+
+test("시장 스캐너: 근거가 없으면 절대 진입 판정을 내지 않는다", async () => {
+  const { scanOpportunity } = await import("../../toss-shop/lib/seller-engine/market-scanner.ts");
+  const scan = scanOpportunity({ keyword: "듣도보도못한키워드", catalog: [] });
+  assert.equal(scan.dataQuality, "unmeasured");
+  assert.notEqual(scan.verdict, "enter");
+});
+
+// ─────────────────────────────────────────────────────────────
+// 반품지 프로비저닝 큐
+// ─────────────────────────────────────────────────────────────
+
+test("프로비저닝: 막힌 걸 전부 떠넘기지 않고 돈 되는 것만 요청한다", async () => {
+  const { planReturnLocationProvisioning, renderProvisioningInstructions } = await import(
+    "../../toss-shop/lib/seller-engine/return-location-provisioner.ts"
+  );
+
+  const req = (id, addr) => ({
+    supplierPlatform: "domeme",
+    supplierId: id,
+    address: addr,
+    suggestedName: `자비스-domeme-${id}`,
+    why: "공급처 직접수거",
+  });
+
+  const plan = planReturnLocationProvisioning({
+    blocked: [
+      { request: req("big", "경기 화성시 동탄대로 45"), monthlyValueKrw: 600_000 },
+      { request: req("big", "경기 화성시 동탄대로 45"), monthlyValueKrw: 400_000 },
+      // 한 번 스친 저가 공급처는 등록 수고를 요청할 값어치가 없다
+      { request: req("tiny", "부산 해운대구 센텀로 10"), monthlyValueKrw: 1_000 },
+    ],
+  });
+
+  assert.equal(plan.asks.length, 1);
+  assert.equal(plan.asks[0].request.supplierId, "big");
+  assert.equal(plan.asks[0].blockedCount, 2);
+  assert.equal(plan.asks[0].monthlyValueKrw, 1_000_000);
+
+  const text = renderProvisioningInstructions(plan);
+  assert.ok(text.includes("자비스-domeme-big"), "이름 규칙이 지시서에 그대로 나와야");
+  assert.ok(!text.includes("tiny"));
+});
+
+test("프로비저닝: 이미 요청한 공급처는 다시 올리지 않는다", async () => {
+  const { planReturnLocationProvisioning } = await import(
+    "../../toss-shop/lib/seller-engine/return-location-provisioner.ts"
+  );
+  const plan = planReturnLocationProvisioning({
+    blocked: [
+      {
+        request: {
+          supplierPlatform: "domeme",
+          supplierId: "s1",
+          address: "경기 화성시 동탄대로 45",
+          suggestedName: "자비스-domeme-s1",
+          why: "수거형",
+        },
+        monthlyValueKrw: 900_000,
+      },
+    ],
+    alreadyAsked: ["domeme:s1"],
+  });
+  assert.equal(plan.asks.length, 0);
+});
+
+test("시장 스캐너: 해시로 지어낸 지표는 실측으로 취급하지 않는다", async () => {
+  const { scanOpportunity } = await import("../../toss-shop/lib/seller-engine/market-scanner.ts");
+  // market-collector는 매칭 상품이 없으면 키워드 해시로 숫자를 채운다.
+  // 그럴듯한 검색량이 나오지만 시장과 무관하므로 진입 근거가 되면 안 된다.
+  const scan = scanOpportunity({
+    keyword: "존재하지않는키워드",
+    catalog: [],
+    metrics: {
+      keyword: "존재하지않는키워드",
+      searchVolume: 38000,
+      productCount: 12,
+      avgPriceKrw: 20000,
+      competitionIntensity: 0.1,
+      updatedAt: "2026-08-01",
+      basis: "synthetic",
+    },
+  });
+  assert.equal(scan.dataQuality, "unmeasured");
+  assert.notEqual(scan.verdict, "enter");
+  assert.ok(scan.blockers.some((b) => b.includes("자리표시자")));
+});
+
+test("시장 수집기: 매칭 상품 유무로 지표 출처를 표시한다", async () => {
+  const { collectMarketIntelligence } = await import("../../toss-shop/lib/market-collector/index.ts");
+  const { marketKeywords } = collectMarketIntelligence([
+    {
+      id: "1", name: "스테인리스 보온병", category: "home", priceKrw: 12000,
+      reviewCount: 30, rating: 4.6, sellerName: "s", rank: 1, rankPrev: 1, updatedAt: "2026-08-01",
+    },
+  ]);
+  assert.equal(marketKeywords["보온병"].basis, "catalog");
+  // 카탈로그에 매칭이 없는 카테고리 키워드는 자리표시자여야 한다
+  assert.equal(marketKeywords["digital"]?.basis ?? "synthetic", "synthetic");
+});

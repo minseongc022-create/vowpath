@@ -59,10 +59,21 @@ function buildSellerChecklist(
   return steps.slice(0, 8);
 }
 
+/**
+ * 반품 물류 두뇌가 내린 결정 — 등록 초안에 실려 토스 등록까지 그대로 간다.
+ * 넘기지 않으면 종전처럼 매핑/기본 반품지에 기대는 경로로 떨어진다.
+ */
+export type ResolvedReturn = {
+  locationId?: number;
+  returnNote?: string;
+  returnHandling?: import("../wholesale/supplier-return-policy").ReturnHandling;
+};
+
 function buildListingPayload(
   pick: ConsignmentPick | ImportPick,
   mode: "consignment" | "import",
   detailKeywords: string[],
+  resolvedReturn?: ResolvedReturn,
 ): JarvisListingPayload {
   const salePrice = pick.recommendedPriceKrw;
   const wholesale = mode === "consignment" && "wholesaleBest" in pick ? pick.wholesaleBest : null;
@@ -85,9 +96,14 @@ function buildListingPayload(
     // 수천 개라 플랫폼 단위로는 반품지를 특정할 수 없다.
     supplierId: wholesale?.sellerId,
     supplierName: wholesale?.sellerNick ?? wholesale?.sellerId,
-    // 반품 처리 주체를 공급처 안내 원문에서 판독한다. 텍스트가 없으면
-    // unknown → 반품지 결정이 fail-closed로 막힌다(전용 주소 필요).
-    returnHandling: readSupplierReturnPolicy(wholesale?.policyText).handling,
+    // 반품 처리 주체를 공급처 안내 원문에서 판독한다. 상세 조회로 보강된
+    // 텍스트가 있으면 여기서 수거형·반송형까지 구분된다.
+    returnHandling:
+      resolvedReturn?.returnHandling ?? readSupplierReturnPolicy(wholesale?.policyText).handling,
+    // 두뇌가 공급처 주소를 대조해 확정한 반품지. 이게 실리면 매핑 JSON 없이도
+    // 공급처별 반품지가 정확히 걸린다.
+    resolvedReturnLocationId: resolvedReturn?.locationId,
+    returnNote: resolvedReturn?.returnNote,
   };
 }
 
@@ -97,6 +113,8 @@ export type BuildListingDraftInput = {
   mode: "consignment" | "import";
   draftId: string;
   now?: string;
+  /** 반품 물류 두뇌의 결정 — 무인 등록 경로에서 항상 넘어온다 */
+  resolvedReturn?: ResolvedReturn;
 };
 
 export async function buildListingDraftFromPick(
@@ -104,8 +122,13 @@ export async function buildListingDraftFromPick(
 ): Promise<JarvisListingDraft> {
   const { pick, mode, merchantId, draftId } = input;
   const now = input.now ?? new Date().toISOString();
-  const detailPage = await buildJarvisDetailPage(pick, mode);
-  const listingPayload = buildListingPayload(pick, mode, detailPage.searchKeywords);
+  const detailPage = await buildJarvisDetailPage(pick, mode, input.resolvedReturn?.returnNote);
+  const listingPayload = buildListingPayload(
+    pick,
+    mode,
+    detailPage.searchKeywords,
+    input.resolvedReturn,
+  );
   const sellerChecklist = buildSellerChecklist(pick, mode);
   const pickBrief = buildJarvisPickBrief(pick, mode);
 

@@ -159,6 +159,37 @@ export function JarvisCommandCenter() {
             </ul>
           )}
 
+          {/*
+            반품지 등록은 토스가 생성 API를 열어두지 않아 사람이 해야 하는
+            유일한 작업이다. 그래서 다른 안내와 섞지 않고 따로, 눈에 띄게 띄운다.
+            한 번 등록하면 그 공급처는 영구히 자동 처리된다.
+          */}
+          {autopilot?.returnProvisioning && (
+            <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-400/10 p-3">
+              <p className="text-xs font-bold text-amber-200">
+                반품지 등록 필요 ({autopilot.returnProvisioning.asks.length}곳)
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-amber-100/90">
+                {autopilot.returnProvisioning.summary}
+              </p>
+              <div className="mt-2 space-y-2">
+                {autopilot.returnProvisioning.asks.map((a) => (
+                  <div key={a.supplier} className="rounded-lg bg-black/20 p-2">
+                    <p className="font-mono text-[11px] text-amber-100">{a.name}</p>
+                    <p className="mt-0.5 text-[11px] text-amber-100/80">{a.address}</p>
+                    <p className="mt-0.5 text-[10px] text-amber-200/70">
+                      막힌 상품 {a.blockedCount}건
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-amber-200/70">
+                토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보에서 위 이름 그대로 등록하면
+                자비스가 다음 사이클에 자동 연결합니다.
+              </p>
+            </div>
+          )}
+
           {jobs.length > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-xs font-bold text-violet-200">발주함 ({jobs.length})</p>

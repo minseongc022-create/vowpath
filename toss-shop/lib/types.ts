@@ -61,6 +61,17 @@ export type MarketKeywordMetrics = {
   avgPriceKrw: number;
   competitionIntensity: number;
   updatedAt: string;
+  /**
+   * 이 수치가 어디서 나왔는가 — **판단의 무게가 달라지므로 반드시 구분한다**.
+   *
+   * · `catalog`   — 실제 카탈로그에서 매칭된 상품으로 계산했다. 근거로 쓸 수 있다.
+   * · `synthetic` — 매칭 상품이 없어 키워드 해시로 채운 자리표시자다.
+   *                 그럴듯한 숫자가 나오지만 **시장과 아무 관계가 없다**.
+   *                 이걸 실측으로 착각하면 없는 수요에 광고비를 태우게 된다.
+   *
+   * 미지정(과거 데이터)은 알 수 없는 것으로 보고 보수적으로 다룬다.
+   */
+  basis?: "catalog" | "synthetic";
 };
 
 export type CatalogProduct = {
@@ -370,6 +381,22 @@ export type JarvisAutopilotReport = {
    * 광고·재고 배분의 근거가 되므로 사이클마다 갱신된다.
    */
   winners?: import("./seller-engine/winner-sku-engine").WinnerReport;
+  /**
+   * 반품지 등록 요청 — 토스가 반품지 생성 API를 열어두지 않아 사람이 해야 하는
+   * 유일한 작업이다. 자비스는 막힌 공급처를 전부 떠넘기지 않고, 반복해서 걸리고
+   * 실제로 돈이 되는 곳만 추려 올린다. 한 번 등록하면 그 공급처는 영구 자동화된다.
+   */
+  returnProvisioning?: {
+    summary: string;
+    /** 셀러센터에 그대로 옮겨 적을 수 있는 지시서 */
+    instructions: string;
+    asks: Array<{
+      supplier: string;
+      name: string;
+      address: string;
+      blockedCount: number;
+    }>;
+  };
 };
 
 export type JarvisHealthCheckCategory =
@@ -422,6 +449,16 @@ export type JarvisListingPayload = {
   returnHandling?: import("./wholesale/supplier-return-policy").ReturnHandling;
   /** 공급사 표시명 — 반품지 매핑 누락 경고를 사람이 읽을 수 있게 */
   supplierName?: string;
+  /**
+   * 반품 물류 두뇌가 확정한 반품지 ID.
+   *
+   * 공급처 주소를 토스 등록 반품지와 대조해 자동으로 고른 값이다. 이게 들어오면
+   * 사람이 매핑 JSON을 쓰지 않아도 공급처별 반품지가 맞게 걸린다.
+   * 승인 화면에서 사람이 직접 지정하면 그쪽이 우선한다.
+   */
+  resolvedReturnLocationId?: number;
+  /** 반품 안내 문구 — 확정된 반품 경로에서 나온 사실만 담긴다 */
+  returnNote?: string;
 };
 
 export type JarvisListingDraft = {
