@@ -20,6 +20,7 @@
  */
 
 import type { ProvisioningRequest } from "./return-logistics-brain";
+import type { PendingReturnAddress } from "../types";
 
 export const PROVISIONER_VERSION = "1.0";
 
@@ -148,5 +149,122 @@ export function renderProvisioningInstructions(plan: ProvisioningPlan): string {
     lines.push(`${i + 1}. ${ask.request.address}`, `   (${ask.rationale})`, "");
   }
   lines.push("등록 후에는 아무것도 하지 않아도 됩니다 — 자비스가 다음 사이클에 자동 연결합니다.");
+  return lines.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────
+// 일괄 등록용 누적 목록 — "손해를 완전히 0으로 만드는" 유일한 실제 경로
+//
+// ★ 왜 필요한가
+//
+// 위 planReturnLocationProvisioning()은 매 사이클 "지금 뚫을 가치가 있는
+// 3곳"만 추천한다. 그건 사람을 안 지치게 하려는 설계지만, 사장님이
+// "마진 깎이는 것도 싫고 딱 한 번만 몰아서 다 등록하고 싶다"고 하면
+// 3곳씩 찔끔 알려주는 게 오히려 느리다.
+//
+// 그래서 사이클마다 막힌 공급처 주소를 지우지 않고 계속 쌓아둔다
+// (MerchantData.pendingReturnAddresses). 사장님이 원하는 때에 이 전체
+// 목록을 한 번에 토스 셀러센터에 등록하면, 그 순간부터 그 공급처들은
+// 전부 비용 0(공급처 직행)으로 전환된다 — 등록 API가 없는 이상 이게
+// "손해 없이 진짜 주소를 그대로 쓰는" 유일한 실제 경로다.
+//
+// 등록되면(주소가 매칭되면) 해당 공급처는 자동으로 이 목록에서 빠진다.
+// ─────────────────────────────────────────────────────────────
+
+export type MergeResult = {
+  list: PendingReturnAddress[];
+  /** 이번 사이클에 새로 추가된 공급처 수 */
+  added: number;
+  /** 이번 사이클에 등록 확인돼 목록에서 빠진 공급처 수 */
+  resolved: number;
+};
+
+/** 목록이 무한정 커지지 않게 — 오래된 것부터 밀어낸다 */
+const MAX_PENDING_ADDRESSES = 300;
+
+/**
+ * 이번 사이클에 새로 막힌 공급처를 누적 목록에 합치고, 이번 사이클에
+ * 매칭에 성공한(더 이상 막히지 않는) 공급처는 목록에서 뺀다.
+ */
+export function mergePendingReturnAddresses(input: {
+  existing: PendingReturnAddress[];
+  newlyBlocked: Array<{ request: ProvisioningRequest; monthlyValueKrw?: number }>;
+  /** 이번 사이클에 주소가 매칭돼 더 이상 막히지 않는 공급처 키(platform:supplierId) */
+  resolvedKeys: string[];
+  now: string;
+}): MergeResult {
+  const resolvedSet = new Set(input.resolvedKeys.map((k) => k.toLowerCase()));
+  const byKey = new Map(input.existing.map((e) => [e.key, { ...e }]));
+
+  let added = 0;
+  for (const item of input.newlyBlocked) {
+    const key = keyOf(item.request);
+    if (resolvedSet.has(key)) continue; // 같은 사이클에 막혔다가 바로 풀리는 경우는 없지만 방어적으로
+    const prev = byKey.get(key);
+    if (prev) {
+      prev.blockedCount += 1;
+      prev.monthlyValueKrw += item.monthlyValueKrw ?? 0;
+      prev.lastSeenAt = input.now;
+      prev.address = item.request.address; // 더 최근 판독 주소로 갱신
+    } else {
+      added++;
+      byKey.set(key, {
+        key,
+        supplierPlatform: item.request.supplierPlatform,
+        supplierId: item.request.supplierId,
+        supplierNick: item.request.supplierNick,
+        address: item.request.address,
+        blockedCount: 1,
+        monthlyValueKrw: item.monthlyValueKrw ?? 0,
+        firstSeenAt: input.now,
+        lastSeenAt: input.now,
+      });
+    }
+  }
+
+  let resolved = 0;
+  for (const key of resolvedSet) {
+    if (byKey.delete(key)) resolved++;
+  }
+
+  let list = [...byKey.values()].sort(
+    (a, b) => b.monthlyValueKrw - a.monthlyValueKrw || b.blockedCount - a.blockedCount,
+  );
+  if (list.length > MAX_PENDING_ADDRESSES) {
+    // 오래되고 값어치 낮은 것부터 밀어낸다 — 최근 것·비싼 것을 남긴다
+    list = list
+      .sort((a, b) => (b.lastSeenAt > a.lastSeenAt ? 1 : -1))
+      .slice(0, MAX_PENDING_ADDRESSES)
+      .sort((a, b) => b.monthlyValueKrw - a.monthlyValueKrw || b.blockedCount - a.blockedCount);
+  }
+
+  return { list, added, resolved };
+}
+
+/**
+ * 누적 목록 전체를 한 번에 등록할 수 있는 지시서로 만든다.
+ * 값어치 필터도 3곳 상한도 없다 — "몰아서 한 번에" 끝내기 위한 것이다.
+ */
+export function renderBulkProvisioningInstructions(list: PendingReturnAddress[]): string {
+  if (!list.length) {
+    return "지금 등록할 주소가 없습니다 — 모든 공급처가 이미 반품지로 처리되고 있습니다.";
+  }
+  const lines = [
+    `${list.length}곳 — 아래 주소를 토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보 → 교환·반품지에서 한 번에 등록하세요.`,
+    "이름은 붙일 수 없습니다 — 주소만 정확히 넣으면 자비스가 자동으로 연결합니다.",
+    "",
+  ];
+  for (const [i, item] of list.entries()) {
+    lines.push(
+      `${i + 1}. ${item.address}` +
+        (item.monthlyValueKrw > 0
+          ? ` — 막힌 상품 ${item.blockedCount}건, 월 기여 약 ${item.monthlyValueKrw.toLocaleString()}원`
+          : ` — 막힌 상품 ${item.blockedCount}건`),
+    );
+  }
+  lines.push(
+    "",
+    "전부 등록하면 다음 사이클부터 이 공급처들의 반품 비용이 전부 0원(공급처 직행)으로 바뀝니다.",
+  );
   return lines.join("\n");
 }

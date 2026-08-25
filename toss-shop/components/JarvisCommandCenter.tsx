@@ -40,6 +40,18 @@ export function JarvisCommandCenter() {
   const [autopilot, setAutopilot] = useState<JarvisAutopilotReport | null>(null);
   const [jobs, setJobs] = useState<JarvisFulfillmentJob[]>([]);
   const [busy, setBusy] = useState(false);
+  const [showBacklog, setShowBacklog] = useState(false);
+  const [backlogCopied, setBacklogCopied] = useState(false);
+
+  async function copyBacklog(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setBacklogCopied(true);
+      setTimeout(() => setBacklogCopied(false), 2000);
+    } catch {
+      // 클립보드 권한이 없는 브라우저 — 조용히 무시, 목록은 화면에 이미 보인다
+    }
+  }
 
   const fetchData = useCallback(async () => {
     const [h, a, f] = await Promise.all([
@@ -184,9 +196,53 @@ export function JarvisCommandCenter() {
                 ))}
               </div>
               <p className="mt-2 text-[10px] leading-relaxed text-amber-200/70">
-                토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보에서 위 이름 그대로 등록하면
-                자비스가 다음 사이클에 자동 연결합니다.
+                토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보에서 위 주소를 그대로 등록하면
+                자비스가 다음 사이클에 자동 연결합니다 (이름은 붙일 수 없습니다).
               </p>
+            </div>
+          )}
+
+          {/*
+            오늘의 추천(위) 대신 "한 번에 몰아서 다 등록하고 싶다"는 사장님을 위한
+            누적 전체 목록. 이걸 다 등록하면 반품 비용 차감이 완전히 0으로 수렴한다
+            — 등록 API가 없는 이상 이게 유일한 실제 방법이다.
+          */}
+          {autopilot?.returnAddressBacklog && autopilot.returnAddressBacklog.count > 0 && (
+            <div className="mt-3 rounded-xl border border-white/15 bg-white/5 p-3">
+              <button
+                type="button"
+                onClick={() => setShowBacklog((v) => !v)}
+                className="flex w-full items-center justify-between text-left text-xs font-bold text-violet-100"
+              >
+                <span>반품지 미등록 전체 목록 ({autopilot.returnAddressBacklog.count}곳) — 한 번에 몰아서 등록</span>
+                <span className="text-violet-300">{showBacklog ? "접기 ▲" : "펼치기 ▼"}</span>
+              </button>
+              {showBacklog && (
+                <>
+                  <p className="mt-2 text-[11px] leading-relaxed text-violet-200/80">
+                    오늘의 추천 3곳과 달리 상한이 없습니다. 이 목록을 전부 등록하면 그 순간부터
+                    이 공급처들의 반품 비용 차감이 0원으로 바뀝니다.
+                  </p>
+                  <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto">
+                    {autopilot.returnAddressBacklog.items.map((item) => (
+                      <div key={item.supplier} className="rounded-lg bg-black/20 p-2">
+                        <p className="text-[11px] text-violet-100">{item.address}</p>
+                        <p className="mt-0.5 text-[10px] text-violet-300/70">
+                          막힌 상품 {item.blockedCount}건
+                          {item.monthlyValueKrw > 0 ? ` · 월 기여 약 ${item.monthlyValueKrw.toLocaleString()}원` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void copyBacklog(autopilot.returnAddressBacklog!.instructions)}
+                    className="mt-2 rounded-lg bg-violet-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-400"
+                  >
+                    {backlogCopied ? "복사됨 ✓" : "전체 주소 복사"}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

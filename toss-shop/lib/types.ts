@@ -218,6 +218,31 @@ export type MerchantData = {
   fulfillmentJobs?: JarvisFulfillmentJob[];
   /** Last Jarvis autopilot cycle report */
   lastAutopilotReport?: JarvisAutopilotReport;
+  /**
+   * 아직 토스에 등록되지 않아 셀러 주소로 강제 폴백 중인 공급처 주소들 —
+   * 사이클마다 누적된다.
+   *
+   * 등록 API가 없어(405 실측) 사람이 한 번은 등록해야 하는데, 매 사이클
+   * 3곳씩 찔끔 알려주면 손대는 횟수가 계속 반복된다. 이 목록은 지워지지
+   * 않고 계속 쌓이므로, 사장님이 한 번 앉아서 전부 등록하면(일괄 등록)
+   * 그 이후로는 마진 차감이 0에 수렴한다 — 등록된 주소는 다음 사이클에
+   * 자동으로 이 목록에서 빠진다(주소 매칭 성공 시 제거).
+   */
+  pendingReturnAddresses?: PendingReturnAddress[];
+};
+
+export type PendingReturnAddress = {
+  key: string;
+  supplierPlatform: string;
+  supplierId: string;
+  supplierNick?: string;
+  address: string;
+  /** 이 공급처 때문에 막혀 셀러 주소로 대신 처리된 누적 건수 */
+  blockedCount: number;
+  /** 누적 월 기여 추정(원) — 등록할 가치를 가늠하는 참고용 */
+  monthlyValueKrw: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
 };
 
 export type JarvisListingStatus =
@@ -395,6 +420,24 @@ export type JarvisAutopilotReport = {
       name: string;
       address: string;
       blockedCount: number;
+    }>;
+  };
+  /**
+   * 지금까지 누적된 반품지 미등록 공급처 **전체** 목록 — 오늘의 추천(위
+   * returnProvisioning, 최대 3곳)과 달리 상한도 값어치 필터도 없다.
+   *
+   * 마진 차감을 완전히 0으로 만드는 유일한 실제 방법은 이 목록을 한 번에
+   * 몰아서 등록하는 것이다(토스 반품지 생성 API가 없어 자동으로는 안 된다).
+   * 등록된 공급처는 다음 사이클에 자동으로 이 목록에서 빠진다.
+   */
+  returnAddressBacklog?: {
+    count: number;
+    instructions: string;
+    items: Array<{
+      supplier: string;
+      address: string;
+      blockedCount: number;
+      monthlyValueKrw: number;
     }>;
   };
 };

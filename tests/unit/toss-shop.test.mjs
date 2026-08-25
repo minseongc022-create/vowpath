@@ -3665,3 +3665,81 @@ test("autopilot: 반품지 없는 수거형 공급처도 셀러 반품지가 있
   // 프로비저닝 큐는 여전히 그 주소를 추천한다 — 등록하면 충당금이 0으로 준다
   assert.ok(report.returnProvisioning?.asks.some((a) => a.address === "경기 화성시 동탄대로 45"));
 });
+
+// ─────────────────────────────────────────────────────────────
+// 반품지 일괄 등록 — 손해를 완전히 0으로 만드는 유일한 실제 경로
+// ─────────────────────────────────────────────────────────────
+
+test("일괄 등록: 사이클마다 막힌 공급처가 지워지지 않고 누적된다", async () => {
+  const { mergePendingReturnAddresses } = await import(
+    "../../toss-shop/lib/seller-engine/return-location-provisioner.ts"
+  );
+  const req = (id, addr) => ({
+    supplierPlatform: "domeme",
+    supplierId: id,
+    address: addr,
+    suggestedName: `자비스-domeme-${id}`,
+    why: "수거형",
+  });
+
+  // 1번째 사이클: 저가 공급처 하나만 걸림 (오늘의 top-3 추천엔 안 뜰 값이어도 누적엔 남아야)
+  const first = mergePendingReturnAddresses({
+    existing: [],
+    newlyBlocked: [{ request: req("tiny", "부산 해운대구 센텀로 10"), monthlyValueKrw: 1000 }],
+    resolvedKeys: [],
+    now: "2026-08-01T00:00:00Z",
+  });
+  assert.equal(first.list.length, 1, "값어치가 작아도 일괄 목록에는 남아야 한다");
+  assert.equal(first.added, 1);
+
+  // 2번째 사이클: 같은 공급처가 다시 걸리면 건수만 늘고, 새 공급처도 추가된다
+  const second = mergePendingReturnAddresses({
+    existing: first.list,
+    newlyBlocked: [
+      { request: req("tiny", "부산 해운대구 센텀로 10"), monthlyValueKrw: 1000 },
+      { request: req("big", "경기 화성시 동탄대로 45"), monthlyValueKrw: 500_000 },
+    ],
+    resolvedKeys: [],
+    now: "2026-08-02T00:00:00Z",
+  });
+  assert.equal(second.list.length, 2, "지워지지 않고 계속 쌓여야 한다");
+  const tiny = second.list.find((x) => x.supplierId === "tiny");
+  assert.equal(tiny.blockedCount, 2);
+
+  // 3번째 사이클: tiny 공급처 주소가 등록돼 매칭 성공 — 목록에서 빠져야 한다
+  const third = mergePendingReturnAddresses({
+    existing: second.list,
+    newlyBlocked: [],
+    resolvedKeys: ["domeme:tiny"],
+    now: "2026-08-03T00:00:00Z",
+  });
+  assert.equal(third.resolved, 1);
+  assert.equal(third.list.length, 1, "등록된 공급처는 자동으로 빠져야 한다");
+  assert.equal(third.list[0].supplierId, "big");
+});
+
+test("일괄 등록: 지시서에 값어치 필터·3곳 상한이 없다", async () => {
+  const { mergePendingReturnAddresses, renderBulkProvisioningInstructions } = await import(
+    "../../toss-shop/lib/seller-engine/return-location-provisioner.ts"
+  );
+  const req = (id) => ({
+    supplierPlatform: "domeme",
+    supplierId: id,
+    address: `주소-${id}`,
+    suggestedName: `자비스-domeme-${id}`,
+    why: "수거형",
+  });
+  const { list } = mergePendingReturnAddresses({
+    existing: [],
+    newlyBlocked: Array.from({ length: 5 }, (_, i) => ({
+      request: req(`s${i}`),
+      monthlyValueKrw: 1, // 오늘의 추천(planReturnLocationProvisioning)에서는 전부 걸러질 값어치
+    })),
+    resolvedKeys: [],
+    now: "2026-08-01T00:00:00Z",
+  });
+  assert.equal(list.length, 5, "일괄 목록은 값어치로 거르지 않아야 한다");
+
+  const text = renderBulkProvisioningInstructions(list);
+  for (let i = 0; i < 5; i++) assert.ok(text.includes(`주소-s${i}`));
+});

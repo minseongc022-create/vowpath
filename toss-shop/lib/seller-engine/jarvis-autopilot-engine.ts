@@ -28,6 +28,8 @@ import { canPublishWithDecision, returnRouteLabel } from "./return-logistics-bra
 import {
   planReturnLocationProvisioning,
   renderProvisioningInstructions,
+  mergePendingReturnAddresses,
+  renderBulkProvisioningInstructions,
 } from "./return-location-provisioner";
 import type { ProvisioningRequest } from "./return-logistics-brain";
 import { checkSupplierAutonomy } from "../wholesale/supplier-autonomy-filter";
@@ -130,6 +132,8 @@ export async function runJarvisAutopilotCycle(
     request: ProvisioningRequest;
     monthlyValueKrw?: number;
   }> = [];
+  /** 이번 사이클에 주소 매칭이 성공한 공급처 — 누적 목록에서 빼낼 대상 */
+  const resolvedSupplierKeys: string[] = [];
   let skippedByReturn = 0;
   /** 전역 반품지 설정 경고는 사이클당 한 번만 — 후보 수만큼 반복하면 로그가 묻힌다 */
   let returnConfigWarned = false;
@@ -196,6 +200,11 @@ export async function runJarvisAutopilotCycle(
           });
           // 보강된 리스팅을 되돌려 넣는다 — 이후 상세·발주가 같은 사실을 본다
           pick.wholesaleBest = listing;
+
+          // 공급처 주소가 등록돼 직행으로 풀렸다 — 누적 목록에서 빼낼 대상
+          if (decision.route === "supplier_direct" && listing.sellerId) {
+            resolvedSupplierKeys.push(`${listing.platform}:${listing.sellerId}`);
+          }
 
           // 공급처 전용 주소가 아직 없어 셀러 주소로 강제 폴백된 경우에도
           // 등록은 막지 않는다(아래에서 그대로 진행) — 다만 그 폴백 자체는
@@ -295,13 +304,27 @@ export async function runJarvisAutopilotCycle(
     }
   }
 
-  // 반품지 때문에 막힌 건들 중 **뚫을 가치가 있는 것만** 추린다.
+  // 반품지 때문에 막힌 건들 중 **뚫을 가치가 있는 것만** 오늘의 추천으로 추린다.
   // 전부 떠넘기면 하루 수십 건이 되어 자동화가 아니게 된다.
   const provisioningPlan = planReturnLocationProvisioning({ blocked: blockedByReturnLocation });
   if (skippedByReturn > 0) {
     actions.push(
       `반품 경로 미확정 ${skippedByReturn}건은 건너뛰고 등록 가능한 후보로 채웠습니다 — ${provisioningPlan.summary}`,
     );
+  }
+
+  // 동시에 누적 전체 목록도 갱신한다 — 사장님이 "손해 완전히 0으로" 원하면
+  // 3곳씩 기다리지 않고 이 전체 목록을 한 번에 등록하면 된다. 등록 API가
+  // 없는 이상 이게 마진 차감을 완전히 없애는 유일한 실제 경로다.
+  const pendingMerge = mergePendingReturnAddresses({
+    existing: input.data.pendingReturnAddresses ?? [],
+    newlyBlocked: blockedByReturnLocation,
+    resolvedKeys: resolvedSupplierKeys,
+    now,
+  });
+  input.data.pendingReturnAddresses = pendingMerge.list;
+  if (pendingMerge.resolved > 0) {
+    actions.push(`반품지 등록 확인 — 공급처 ${pendingMerge.resolved}곳이 이제 직행(비용 0원)으로 전환됐습니다`);
   }
 
   for (const draft of listingDrafts) {
@@ -383,6 +406,20 @@ export async function runJarvisAutopilotCycle(
             name: a.request.suggestedName,
             address: a.request.address,
             blockedCount: a.blockedCount,
+          })),
+        }
+      : undefined,
+    // 오늘 추천(위 asks)과 별개로, 지금까지 누적된 전체 목록 — 한 번에 몰아서
+    // 등록하면 마진 차감이 완전히 0으로 수렴한다.
+    returnAddressBacklog: pendingMerge.list.length
+      ? {
+          count: pendingMerge.list.length,
+          instructions: renderBulkProvisioningInstructions(pendingMerge.list),
+          items: pendingMerge.list.map((a) => ({
+            supplier: `${a.supplierPlatform}:${a.supplierId}`,
+            address: a.address,
+            blockedCount: a.blockedCount,
+            monthlyValueKrw: a.monthlyValueKrw,
           })),
         }
       : undefined,
