@@ -3398,3 +3398,128 @@ test("광고: 인센티브 자격이 실증되지 않으면 수수료 0%로 가�
     "미확인 공급처는 수수료가 부과되므로 면제 보너스가 계산에 들어간다",
   );
 });
+
+// ─────────────────────────────────────────────────────────────
+// 통합 — 공급처 안내 한 덩어리에서 등록 값까지 이어지는가
+// ─────────────────────────────────────────────────────────────
+
+test("통합: 공급처 안내를 읽어 반품지·배송비·안내문까지 한 번에 정해진다", async () => {
+  const { decideReturnForListing } = await import(
+    "../../toss-shop/lib/seller-engine/return-decision-pipeline.ts"
+  );
+
+  // 실제 도매 상세페이지에 흔한 형태의 안내문
+  const policyText = [
+    "[배송안내]",
+    "평일 오후 2시 이전 주문건은 당일발송 됩니다.",
+    "제주 및 도서산간 지역은 배송비 4,000원이 추가됩니다.",
+    "",
+    "[교환/반품 안내]",
+    "반품 배송비 3,000원 (편도)",
+    "교환 배송비 7,000원",
+    "단순변심 반품 가능합니다.",
+  ].join("\n");
+
+  const { decision, returnNote, policyValues, policyFacts } = await decideReturnForListing({
+    listing: {
+      platform: "domeme",
+      itemNo: 12345,
+      title: "스테인리스 보온병 500ml",
+      unitPriceKrw: 12000,
+      shippingFeeKrw: 3000,
+      moq: 1,
+      url: "https://domeme.com/s/12345",
+      freeShipping: false,
+      source: "live",
+      sellerId: "supplier-a",
+      policyText,
+    },
+    registeredLocations: [
+      { id: 1520171, name: "반품지 #1520171", address: "인천광역시 미추홀구 독정이로 113", raw: {} },
+    ],
+    sellerOwnedLocationId: 1520171,
+    netProfitPerUnitKrw: 5000,
+    skipDetailFetch: true,
+  });
+
+  // 반품 처리 주체가 명시되지 않았으므로 셀러 경유로 가되 비용을 반영한다
+  assert.equal(decision.route, "seller_relay");
+  assert.equal(decision.locationId, 1520171);
+
+  // 편도 3,000원 → 왕복 6,000원으로 환산되어 충당금 계산에 쓰인다
+  assert.equal(policyFacts.returnShippingKrw.value, 6000);
+  assert.equal(decision.costPerReturnKrw, 6000);
+  assert.equal(decision.reservePerUnitKrw, Math.round(6000 * 0.08));
+
+  // 등록에 넣을 값들이 안내문에서 그대로 나온다
+  assert.equal(policyValues.dispatchDays, 0, "당일발송");
+  assert.equal(policyValues.exchangeShippingKrw, 7000);
+  assert.equal(policyValues.remoteAreaSurchargeKrw, 4000);
+  assert.equal(policyValues.measured.remoteSurcharge, true);
+
+  // 고객에게 보이는 안내문에는 실제로 읽어낸 금액만 들어간다
+  assert.ok(returnNote.includes("6,000원"));
+});
+
+test("통합: 도서산간 추가비를 읽으면 등록 페이로드에 그 값이 실린다", async () => {
+  const { buildTossCreatePayload } = await import("../../toss-shop/lib/api/create-product.ts");
+
+  const draft = {
+    id: "d1",
+    keyword: "보온병",
+    pickMode: "consignment",
+    listingPayload: {
+      name: "보온병",
+      brandName: "에피로드",
+      salePrice: 20000,
+      originPrice: 21740,
+      searchKeywords: ["보온병"],
+      description: "설명",
+      categoryHint: "생활/홈",
+      category: "home",
+      deliveryFeeType: "PAID",
+      supplierPolicy: {
+        returnShippingKrw: 6000,
+        exchangeShippingKrw: 7000,
+        dispatchDays: 0,
+        remoteAreaSurchargeKrw: 9000,
+        measured: {
+          returnShipping: true,
+          exchangeShipping: true,
+          dispatch: true,
+          remoteSurcharge: true,
+        },
+      },
+    },
+  };
+
+  const body = buildTossCreatePayload(draft, 14817, 1520171);
+  // 공급처가 9,000원을 받는데 하드코딩된 3,000/5,000을 걸면 매 건 차액이 손실이다
+  assert.equal(body.deliveryPolicy.jejuDeliveryFee, 9000);
+  assert.equal(body.deliveryPolicy.islandsMountainsDeliveryFee, 9000);
+  assert.equal(body.exchangeReturnPolicy.exchangeRefundLocationId, 1520171);
+});
+
+test("통합: 도서산간비를 못 읽었으면 기본값 아래로 내려가지 않는다", async () => {
+  const { buildTossCreatePayload } = await import("../../toss-shop/lib/api/create-product.ts");
+  const draft = {
+    id: "d2",
+    keyword: "보온병",
+    pickMode: "consignment",
+    listingPayload: {
+      name: "보온병",
+      brandName: "에피로드",
+      salePrice: 20000,
+      originPrice: 21740,
+      searchKeywords: ["보온병"],
+      description: "설명",
+      categoryHint: "생활/홈",
+      category: "home",
+      deliveryFeeType: "PAID",
+      // supplierPolicy 없음 — 판독 실패
+    },
+  };
+  const body = buildTossCreatePayload(draft, 14817, 1520171);
+  assert.equal(body.deliveryPolicy.jejuDeliveryFee, 3000);
+  assert.equal(body.deliveryPolicy.islandsMountainsDeliveryFee, 5000);
+});
