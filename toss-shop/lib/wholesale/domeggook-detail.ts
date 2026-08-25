@@ -213,6 +213,47 @@ function getApiKey(): string | null {
   return process.env.DOMEGGOOK_API_KEY?.trim() || null;
 }
 
+/**
+ * 상세 응답 캐시.
+ *
+ * 자동 등록 사이클은 60초마다 돈다. 캐시가 없으면 같은 상품의 상세를 1분마다
+ * 다시 조회하게 되고, 후보가 수십 개면 도매꾹 API 호출이 분당 수십 건이 되어
+ * 레이트리밋에 걸린다. 그러면 상세를 못 읽어 전 상품이 `unknown`으로 떨어지고,
+ * 자동화가 조용히 멈춘다 — 캐시가 성능이 아니라 **동작 조건**인 이유다.
+ *
+ * 공급처 반품 주소는 거의 바뀌지 않으므로 TTL을 넉넉히 잡는다.
+ */
+const DETAIL_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+/** 프로세스 메모리 상한 — 서버리스 인스턴스가 오래 살아도 무한정 늘지 않게 */
+const DETAIL_CACHE_MAX = 500;
+
+const detailCache = new Map<number, { at: number; result: SupplierDetailResult }>();
+
+function readCache(itemNo: number): SupplierDetailResult | null {
+  const hit = detailCache.get(itemNo);
+  if (!hit) return null;
+  if (Date.now() - hit.at > DETAIL_CACHE_TTL_MS) {
+    detailCache.delete(itemNo);
+    return null;
+  }
+  return hit.result;
+}
+
+function writeCache(itemNo: number, result: SupplierDetailResult): void {
+  // 실패는 캐시하지 않는다 — 일시적 장애를 6시간 동안 물고 있으면 안 된다
+  if (!result.ok) return;
+  if (detailCache.size >= DETAIL_CACHE_MAX) {
+    const oldest = detailCache.keys().next().value;
+    if (oldest !== undefined) detailCache.delete(oldest);
+  }
+  detailCache.set(itemNo, { at: Date.now(), result });
+}
+
+/** 테스트·핫리로드용 */
+export function clearSupplierDetailCache(): void {
+  detailCache.clear();
+}
+
 /** 도매꾹 오류 응답: { errors: { code, message, dcode, dmessage } } */
 function readApiError(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
@@ -242,6 +283,9 @@ export async function fetchSupplierDetail(
   if (!Number.isFinite(itemNo) || itemNo <= 0) {
     return { ok: false, code: "EMPTY", reason: `유효하지 않은 상품번호(${itemNo})` };
   }
+
+  const cached = readCache(itemNo);
+  if (cached) return cached;
 
   const params = new URLSearchParams({
     ver: "4.1",
@@ -283,7 +327,7 @@ export async function fetchSupplierDetail(
     ? Array.from(new Set(out.policyChunks)).join("\n").slice(0, 20_000)
     : undefined;
 
-  return {
+  const result: SupplierDetailResult = {
     ok: true,
     itemNo,
     platform,
@@ -296,6 +340,8 @@ export async function fetchSupplierDetail(
     sellerNick: out.sellerNick,
     responseKeys: Object.keys(data as Record<string, unknown>),
   };
+  writeCache(itemNo, result);
+  return result;
 }
 
 /**

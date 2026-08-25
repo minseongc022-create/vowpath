@@ -132,15 +132,35 @@ export async function runJarvisAutopilotCycle(
   /** 전역 반품지 설정 경고는 사이클당 한 번만 — 후보 수만큼 반복하면 로그가 묻힌다 */
   let returnConfigWarned = false;
 
+  /**
+   * 사이클당 공급처 상세 조회 예산.
+   *
+   * 이 사이클은 60초마다 돈다. 후보가 수십 개인데 전부 상세를 조회하면 도매꾹
+   * API 호출이 분당 수십 건이 되어 레이트리밋에 걸리고, 그러면 상세를 못 읽어
+   * 전 상품이 판독 실패로 떨어진다 — 자동화가 조용히 멈춘다.
+   *
+   * 그래서 "만들 초안 수의 몇 배"까지만 본다. 거절된 후보도 예산을 쓰므로,
+   * 예산이 바닥나면 이번 사이클은 여기서 접고 다음 사이클에 이어서 본다.
+   * 조회 결과는 6시간 캐시되므로 다음 사이클은 훨씬 적게 쓴다.
+   */
+  let detailBudget = 0;
+
   if (isAutopilotEnabled() && certified.length) {
     // 목표에서 역산한 값과 안전 상한 중 작은 쪽을 쓴다
     const maxDrafts = Math.min(
       getAutopilotMaxDraftsPerCycle(),
       sourcingPlan?.dailyTarget ?? getAutopilotMaxDraftsPerCycle(),
     );
+    detailBudget = maxDrafts * 4;
     let createdThisCycle = 0;
     for (const pick of certified as ConsignmentPick[]) {
       if (createdThisCycle >= maxDrafts) break;
+      if (detailBudget <= 0) {
+        actions.push(
+          "공급처 상세 조회 예산 소진 — 다음 사이클에 이어서 봅니다 (도매꾹 API 과호출 방지)",
+        );
+        break;
+      }
       if (pendingDraftIds.has(pick.id)) continue;
       try {
         // ── 반품이 어디로 가야 하는지부터 정한다 ──────────────────
@@ -152,6 +172,7 @@ export async function runJarvisAutopilotCycle(
           const unitNetForReturn =
             pick.catalogEntry?.best.netProfitKrw ??
             Math.max(1, Math.round(pick.recommendedPriceKrw * 0.25));
+          detailBudget--;
           const { decision, returnNote, listing } = await decideReturnForListing({
             listing: pick.wholesaleBest,
             registeredLocations,

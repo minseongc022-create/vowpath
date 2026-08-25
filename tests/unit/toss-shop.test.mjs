@@ -2999,3 +2999,70 @@ test("시장 수집기: 매칭 상품 유무로 지표 출처를 표시한다", 
   // 카탈로그에 매칭이 없는 카테고리 키워드는 자리표시자여야 한다
   assert.equal(marketKeywords["digital"]?.basis ?? "synthetic", "synthetic");
 });
+
+test("공급처 상세: 같은 상품을 다시 조회하면 캐시로 API를 재호출하지 않는다", async () => {
+  const { fetchSupplierDetail, clearSupplierDetailCache } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+
+  const prevKey = process.env.DOMEGGOOK_API_KEY;
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  process.env.DOMEGGOOK_API_KEY = "test-key";
+  clearSupplierDetailCache();
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response(
+      JSON.stringify({ domeggook: { seller: { id: "s1" }, returnAddr: "경기 화성시 동탄대로 45" } }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  try {
+    const a = await fetchSupplierDetail(999001, "domeme");
+    const b = await fetchSupplierDetail(999001, "domeme");
+    assert.equal(a.ok, true);
+    assert.equal(b.returnAddress, "경기 화성시 동탄대로 45");
+    // 60초마다 도는 사이클에서 캐시가 없으면 도매꾹 API가 막힌다 — 동작 조건이다
+    assert.equal(calls, 1, "두 번째 조회는 캐시에서 나와야");
+  } finally {
+    globalThis.fetch = realFetch;
+    clearSupplierDetailCache();
+    if (prevKey === undefined) delete process.env.DOMEGGOOK_API_KEY;
+    else process.env.DOMEGGOOK_API_KEY = prevKey;
+  }
+});
+
+test("공급처 상세: 실패는 캐시하지 않는다", async () => {
+  const { fetchSupplierDetail, clearSupplierDetailCache } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+
+  const prevKey = process.env.DOMEGGOOK_API_KEY;
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  process.env.DOMEGGOOK_API_KEY = "test-key";
+  clearSupplierDetailCache();
+  globalThis.fetch = async () => {
+    calls++;
+    // 첫 호출은 실패, 두 번째는 성공 — 일시 장애를 6시간 물고 있으면 안 된다
+    if (calls === 1) return new Response("nope", { status: 500 });
+    return new Response(JSON.stringify({ domeggook: { returnAddr: "서울 강남구 테헤란로 12" } }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    const first = await fetchSupplierDetail(999002, "domeme");
+    assert.equal(first.ok, false);
+    const second = await fetchSupplierDetail(999002, "domeme");
+    assert.equal(second.ok, true);
+    assert.equal(calls, 2, "실패 뒤에는 다시 조회해야");
+  } finally {
+    globalThis.fetch = realFetch;
+    clearSupplierDetailCache();
+    if (prevKey === undefined) delete process.env.DOMEGGOOK_API_KEY;
+    else process.env.DOMEGGOOK_API_KEY = prevKey;
+  }
+});
