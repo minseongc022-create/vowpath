@@ -131,24 +131,21 @@ export function planReturnLocationProvisioning(input: ProvisioningInput): Provis
 /**
  * 사장님이 토스 셀러센터에 그대로 옮겨 적을 수 있는 지시서.
  *
- * 이름 규칙(`자비스-플랫폼-공급사ID`)을 반드시 그대로 쓰게 안내한다 —
- * 그 이름이 있어야 주소 판독이 실패해도 자비스가 이름만으로 자동 연결한다.
+ * ⚠️ 토스 반품지에는 **이름을 붙일 수 없다** (2026-08 실측: 응답에 이름 필드가
+ * 없고 주소·상세주소·우편번호만 있다). 그래서 "이 이름으로 만드세요"라고
+ * 안내하지 않는다 — 만들 수 없는 걸 시키는 안내가 되기 때문이다.
+ * 연결은 전적으로 **주소 일치**로 이뤄지므로, 주소를 정확히 넣는 것만이 중요하다.
  */
 export function renderProvisioningInstructions(plan: ProvisioningPlan): string {
   if (!plan.asks.length) return plan.summary;
 
   const lines = [
-    "토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보 → 교환·반품지에서 아래를 등록하세요.",
-    "이름을 규칙대로 써야 자비스가 자동으로 물어갑니다.",
+    "토스 셀러센터 → 판매자정보 → 배송/교환/반품 정보 → 교환·반품지에서 아래 주소를 추가하세요.",
+    "주소만 정확히 넣으면 됩니다 — 자비스가 주소로 알아서 연결합니다.",
     "",
   ];
   for (const [i, ask] of plan.asks.entries()) {
-    lines.push(
-      `${i + 1}. 이름: ${ask.request.suggestedName}`,
-      `   주소: ${ask.request.address}`,
-      `   이유: ${ask.rationale}`,
-      "",
-    );
+    lines.push(`${i + 1}. ${ask.request.address}`, `   (${ask.rationale})`, "");
   }
   lines.push("등록 후에는 아무것도 하지 않아도 됩니다 — 자비스가 다음 사이클에 자동 연결합니다.");
   return lines.join("\n");

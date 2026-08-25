@@ -67,6 +67,8 @@ export type ResolvedReturn = {
   locationId?: number;
   returnNote?: string;
   returnHandling?: import("../wholesale/supplier-return-policy").ReturnHandling;
+  /** 공급처 안내에서 읽은 배송·반품 조건 — 등록 값으로 그대로 쓴다 */
+  supplierPolicy?: import("../wholesale/supplier-policy-reader").ListingPolicyValues;
 };
 
 function buildListingPayload(
@@ -104,6 +106,7 @@ function buildListingPayload(
     // 공급처별 반품지가 정확히 걸린다.
     resolvedReturnLocationId: resolvedReturn?.locationId,
     returnNote: resolvedReturn?.returnNote,
+    supplierPolicy: resolvedReturn?.supplierPolicy,
   };
 }
 

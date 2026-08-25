@@ -2939,8 +2939,11 @@ test("프로비저닝: 막힌 걸 전부 떠넘기지 않고 돈 되는 것만 �
   assert.equal(plan.asks[0].monthlyValueKrw, 1_000_000);
 
   const text = renderProvisioningInstructions(plan);
-  assert.ok(text.includes("자비스-domeme-big"), "이름 규칙이 지시서에 그대로 나와야");
-  assert.ok(!text.includes("tiny"));
+  // 토스 반품지에는 이름을 붙일 수 없다(실측: 응답에 이름 필드 없음).
+  // 그래서 지시서는 주소만 알려줘야 하고, 만들 수 없는 이름을 시키면 안 된다.
+  assert.ok(text.includes("경기 화성시 동탄대로 45"), "등록할 주소가 지시서에 나와야");
+  assert.ok(!text.includes("이름:"), "붙일 수 없는 이름을 지시하면 안 된다");
+  assert.ok(!text.includes("부산 해운대구"), "값어치 낮은 공급처는 올리지 않아야");
 });
 
 test("프로비저닝: 이미 요청한 공급처는 다시 올리지 않는다", async () => {
@@ -3064,5 +3067,196 @@ test("공급처 상세: 실패는 캐시하지 않는다", async () => {
     clearSupplierDetailCache();
     if (prevKey === undefined) delete process.env.DOMEGGOOK_API_KEY;
     else process.env.DOMEGGOOK_API_KEY = prevKey;
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// 공급처 정책 종합 판독 — 배송비·출고일·도서산간
+// ─────────────────────────────────────────────────────────────
+
+test("공급처 정책: 반품·교환 배송비와 출고일을 안내문에서 읽는다", async () => {
+  const { readSupplierPolicyFacts } = await import(
+    "../../toss-shop/lib/wholesale/supplier-policy-reader.ts"
+  );
+  const facts = readSupplierPolicyFacts(
+    [
+      "■ 배송안내",
+      "당일발송 (오후 2시 이전 주문 건)",
+      "제주 및 도서산간 지역은 4,000원 추가됩니다.",
+      "■ 반품/교환",
+      "반품 배송비 5,000원 (왕복)",
+      "교환 배송비 6,000원",
+      "묶음배송 불가",
+    ].join("\n"),
+  );
+
+  assert.equal(facts.dispatchDays.value, 0, "당일발송은 0일");
+  assert.equal(facts.returnShippingKrw.value, 5000);
+  assert.equal(facts.exchangeShippingKrw.value, 6000);
+  assert.equal(facts.remoteAreaSurchargeKrw.value, 4000);
+  assert.equal(facts.bundleShipping, false);
+});
+
+test("공급처 정책: 편도로 적힌 반품비는 왕복으로 환산한다", async () => {
+  const { readSupplierPolicyFacts } = await import(
+    "../../toss-shop/lib/wholesale/supplier-policy-reader.ts"
+  );
+  // 편도만 보고 그대로 걸면 반품 1건마다 절반이 셀러 손실이 된다
+  const facts = readSupplierPolicyFacts("반품 배송비 3,000원 (편도)");
+  assert.equal(facts.returnShippingKrw.value, 6000);
+});
+
+test("공급처 정책: 못 읽은 값은 지어내지 않고 보수적 기본값으로 채운다", async () => {
+  const { readSupplierPolicyFacts, toListingPolicyValues, POLICY_DEFAULTS } = await import(
+    "../../toss-shop/lib/wholesale/supplier-policy-reader.ts"
+  );
+  const facts = readSupplierPolicyFacts("이 상품은 아주 좋은 상품입니다.");
+  assert.equal(facts.returnShippingKrw, undefined);
+  assert.equal(facts.dispatchDays, undefined);
+
+  const values = toListingPolicyValues(facts);
+  assert.equal(values.returnShippingKrw, POLICY_DEFAULTS.returnShippingKrw);
+  assert.equal(values.dispatchDays, POLICY_DEFAULTS.dispatchDays);
+  // 무엇이 실측이고 무엇이 기본값인지 구분되어야 사후에 조일 수 있다
+  assert.equal(values.measured.returnShipping, false);
+  assert.equal(values.measured.dispatch, false);
+});
+
+test("공급처 정책: 출고 범위는 늦은 쪽을 쓴다 (발송기한 준수가 인센티브 조건)", async () => {
+  const { readSupplierPolicyFacts } = await import(
+    "../../toss-shop/lib/wholesale/supplier-policy-reader.ts"
+  );
+  const facts = readSupplierPolicyFacts("주문 후 2~3영업일 이내 발송됩니다.");
+  assert.equal(facts.dispatchDays.value, 3);
+});
+
+// ─────────────────────────────────────────────────────────────
+// 무인 처리 가능 공급처 선별
+// ─────────────────────────────────────────────────────────────
+
+const listingOf = (over = {}) => ({
+  platform: "domeme",
+  itemNo: 1,
+  title: "테스트",
+  unitPriceKrw: 10000,
+  shippingFeeKrw: 3000,
+  moq: 1,
+  url: "https://x",
+  freeShipping: false,
+  source: "live",
+  sellerId: "s1",
+  ...over,
+});
+
+test("자율성 필터: 반품 불가 공급처는 팔 수 없음으로 분류한다", async () => {
+  const { checkSupplierAutonomy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
+  );
+  const check = checkSupplierAutonomy({
+    listing: listingOf({ policyText: "단순 변심 반품 불가 상품입니다." }),
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+  });
+  assert.equal(check.verdict, "unsellable");
+});
+
+test("자율성 필터: 반품 안내가 없으면 셀러 반품지로 무인 처리한다", async () => {
+  const { checkSupplierAutonomy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
+  );
+  const check = checkSupplierAutonomy({
+    listing: listingOf(),
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+  });
+  assert.equal(check.verdict, "autonomous");
+  assert.equal(check.locationId, 1520171);
+});
+
+test("자율성 필터: 공급처 수거형은 주소가 등록돼 있을 때만 무인이다", async () => {
+  const { checkSupplierAutonomy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
+  );
+  const listing = listingOf({
+    policyText: "반품은 공급사에서 직접 수거합니다.",
+    supplierReturnAddress: "경기 화성시 동탄대로 45",
+  });
+
+  const blocked = checkSupplierAutonomy({
+    listing,
+    registeredLocations: [],
+    sellerOwnedLocationId: 1520171,
+  });
+  assert.equal(blocked.verdict, "needs_address", "등록 전에는 셀러 주소로 대체하면 안 된다");
+
+  const ok = checkSupplierAutonomy({
+    listing,
+    registeredLocations: [{ id: 900, name: "반품지 #900", address: "경기 화성시 동탄대로 45", raw: {} }],
+    sellerOwnedLocationId: 1520171,
+  });
+  assert.equal(ok.verdict, "autonomous");
+  assert.equal(ok.locationId, 900);
+});
+
+test("자율성 필터: 후보를 처리 가능성으로 나눈다", async () => {
+  const { partitionByAutonomy } = await import(
+    "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
+  );
+  const { autonomous, deferred, unsellable } = partitionByAutonomy(
+    [
+      listingOf({ sellerId: "a" }),
+      listingOf({ sellerId: "b", policyText: "반품은 공급사에서 직접 수거합니다." }),
+      listingOf({ sellerId: "c", policyText: "반품 및 교환 불가" }),
+    ],
+    { registeredLocations: [], sellerOwnedLocationId: 1520171 },
+  );
+  assert.equal(autonomous.length, 1);
+  assert.equal(deferred.length, 1);
+  assert.equal(unsellable.length, 1);
+});
+
+test("반품지 조회: 이름이 없는 실제 응답 구조를 그대로 판독한다", async () => {
+  const { listTossReturnLocations } = await import(
+    "../../toss-shop/lib/api/return-location-lookup.ts"
+  );
+  // 2026-08 실측 응답 형태 — 이름 필드가 없고 items로 감싸여 온다
+  const realShape = {
+    resultType: "SUCCESS",
+    success: {
+      items: [
+        {
+          id: 1520171,
+          zipCode: "22161",
+          address: "인천광역시 미추홀구 독정이로 113 (숭의동, 다복아파트)",
+          detailAddress: "2동305호",
+          isMain: false,
+        },
+        { id: 1518645, zipCode: "", address: "", detailAddress: "", isMain: true },
+      ],
+    },
+  };
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify(realShape), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  try {
+    const { locations } = await listTossReturnLocations("m1", {
+      accessKey: "a",
+      secretKey: "b",
+      sandbox: false,
+      partnerName: "t",
+    });
+    assert.equal(locations.length, 2);
+    assert.equal(locations[0].address, "인천광역시 미추홀구 독정이로 113 (숭의동, 다복아파트)");
+    assert.equal(locations[0].detailAddress, "2동305호");
+    assert.equal(locations[0].zipCode, "22161");
+    // 주소가 빈 반품지는 매칭에 쓰이면 안 된다
+    assert.equal(locations[1].address, undefined);
+    assert.equal(locations[1].isMain, true);
+  } finally {
+    globalThis.fetch = realFetch;
   }
 });

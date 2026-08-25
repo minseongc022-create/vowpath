@@ -123,8 +123,15 @@ export type ReturnLogisticsInput = {
   registeredLocations: TossReturnLocation[];
   /** 셀러 자체 반품지 ID — 선언된 경우에만 들어온다 */
   sellerOwnedLocationId?: number;
-  /** 이 상품의 배송비 — 반품 왕복비 계산 기준 */
+  /** 이 상품의 배송비 — 반품 왕복비를 추정할 때의 기준 */
   shippingFeeKrw?: number;
+  /**
+   * 공급처 안내에서 **실제로 읽어낸** 반품 왕복 배송비.
+   *
+   * 있으면 배송비로 추정하지 않고 이 값을 쓴다. 공급처가 "반품비 8,000원"이라고
+   * 적어뒀는데 상품 배송비(3,000원)로 6,000원을 잡으면 건당 2,000원씩 샌다.
+   */
+  measuredReturnShippingKrw?: number;
   /** 판매 1건당 순이익 — 반품 충당금을 빼고도 남는지 따진다 */
   netProfitPerUnitKrw?: number;
   /** 실측 반품률 (0~1). 정산 데이터가 있으면 넣는다 — 없으면 보수적 상한을 쓴다 */
@@ -180,7 +187,8 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
 
   const rate = input.measuredReturnRate ?? ASSUMED_RETURN_RATE_CEILING;
   const rateIsMeasured = input.measuredReturnRate != null;
-  const relayCost = relayCostPerReturn(input.shippingFeeKrw);
+  // 공급처가 반품비를 명시했으면 그 값이 진실이다 — 배송비로 추정하지 않는다
+  const relayCost = input.measuredReturnShippingKrw ?? relayCostPerReturn(input.shippingFeeKrw);
 
   reasoning.push(
     `반품 처리 방식: ${returnHandlingLabel(handling)}${policy.verified ? " (안내문에서 확인)" : " (안내문에 명시 없음)"}`,

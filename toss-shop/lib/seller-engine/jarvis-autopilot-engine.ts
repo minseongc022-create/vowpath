@@ -13,7 +13,7 @@ import type {
 import { buildAdCampaignPlan } from "./ad-strategy-engine";
 import { getAutopilotMaxDraftsPerCycle } from "./jarvis-config";
 import { filterJarvisCertifiedPicks } from "./jarvis-engine";
-import { buildListingDraftFromPick } from "./listing-automation";
+import { buildListingDraftFromPick, type ResolvedReturn } from "./listing-automation";
 import { analyzeWholesaleComposition } from "./wholesale-composition-engine";
 import { processFulfillmentCycle } from "./fulfillment-engine";
 import { computeSourcingPlan } from "./sourcing-plan";
@@ -30,6 +30,7 @@ import {
   renderProvisioningInstructions,
 } from "./return-location-provisioner";
 import type { ProvisioningRequest } from "./return-logistics-brain";
+import { checkSupplierAutonomy } from "../wholesale/supplier-autonomy-filter";
 
 export const JARVIS_AUTOPILOT_VERSION = "1.0";
 
@@ -167,13 +168,26 @@ export async function runJarvisAutopilotCycle(
         //
         // 여기서 막히면 사람을 기다리지 않고 **다음 후보로 넘어간다**.
         // 한 공급처가 막혔다고 그날 등록이 멈추면 자동화가 아니다.
-        let resolvedReturn: { locationId?: number; returnNote?: string } | undefined;
+        let resolvedReturn: ResolvedReturn | undefined;
         if (pick.wholesaleBest) {
+          // 검색 응답만으로 이미 "팔 수 없다"가 확정되는 경우는 상세 조회 예산을
+          // 쓰지 않고 바로 버린다. 반품 불가 공급처는 주소를 알아내봐야 못 판다.
+          const autonomy = checkSupplierAutonomy({
+            listing: pick.wholesaleBest,
+            registeredLocations,
+            sellerOwnedLocationId,
+          });
+          if (autonomy.verdict === "unsellable") {
+            skippedByReturn++;
+            actions.push(`「${pick.keyword}」 제외 — ${autonomy.reason}`);
+            continue;
+          }
+
           const unitNetForReturn =
             pick.catalogEntry?.best.netProfitKrw ??
             Math.max(1, Math.round(pick.recommendedPriceKrw * 0.25));
           detailBudget--;
-          const { decision, returnNote, listing } = await decideReturnForListing({
+          const { decision, returnNote, listing, policyValues } = await decideReturnForListing({
             listing: pick.wholesaleBest,
             registeredLocations,
             sellerOwnedLocationId,
@@ -209,7 +223,11 @@ export async function runJarvisAutopilotCycle(
               continue;
             }
           }
-          resolvedReturn = { locationId: decision.locationId, returnNote };
+          resolvedReturn = {
+            locationId: decision.locationId,
+            returnNote,
+            supplierPolicy: policyValues,
+          };
         }
 
         const draft = await buildListingDraftFromPick({

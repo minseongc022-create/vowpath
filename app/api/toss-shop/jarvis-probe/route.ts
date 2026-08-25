@@ -27,14 +27,16 @@ import { fetchSupplierDetail } from "@/toss-shop/lib/wholesale/domeggook-detail"
 const ENDPOINT = "/api/v3/shopping-fep/merchants/group-delivery/exchange-refund-location/v2";
 
 /**
- * 브라우저 세션 없이 이 진단을 돌릴 수 있는 일회용 통로.
+ * 브라우저 세션 없이 이 진단을 돌리는 통로 — **현재 닫혀 있다**.
  *
- * 스키마 확인은 실제 토스 계정으로 호출해야만 가능한데, 세션 쿠키가 필요하면
- * 사람이 브라우저를 열어야 한다. 그 한 번 때문에 "완전 자동"이 막히는 게
- * 우스워서, 값을 아는 쪽만 호출할 수 있는 헤더 통로를 둔다.
+ * 2026-08 스키마 확인에 한 번 쓰고 env에서 `JARVIS_PROBE_SECRET`을 지웠다.
+ * 값이 없으면 이 함수는 항상 false를 돌려주므로 통로가 완전히 닫힌다.
+ * 다시 열려면 env에 고엔트로피 값을 넣고, 확인이 끝나는 즉시 지워야 한다.
  *
- * ⚠️ 이 통로는 확인이 끝나면 env에서 지운다. 값이 없으면 통로 자체가 닫힌다
- * (아래에서 secret이 비어 있으면 절대 통과시키지 않는다).
+ * 그 확인으로 알아낸 것 (코드가 이 사실 위에 서 있다):
+ *  · 반품지 등록 POST → 405. 토스는 반품지 생성 API를 제공하지 않는다.
+ *  · 반품지 응답에 이름 필드가 없다 (id·zipCode·address·detailAddress·isMain).
+ *    → 공급처 연결은 **주소 일치로만** 가능하다.
  */
 function hasProbeSecret(request: Request): boolean {
   const expected = process.env.JARVIS_PROBE_SECRET?.trim();

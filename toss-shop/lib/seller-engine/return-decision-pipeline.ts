@@ -23,6 +23,12 @@
 
 import type { TossReturnLocation } from "../api/return-location-lookup";
 import { enrichWithSupplierDetail } from "../wholesale/domeggook-detail";
+import {
+  readSupplierPolicyFacts,
+  toListingPolicyValues,
+  type ListingPolicyValues,
+  type SupplierPolicyFacts,
+} from "../wholesale/supplier-policy-reader";
 import { readSupplierReturnPolicy } from "../wholesale/supplier-return-policy";
 import type { WholesaleListing } from "../wholesale/types";
 import {
@@ -56,6 +62,10 @@ export type ReturnDecisionResult = {
   decision: ReturnLogisticsDecision;
   /** 반품 안내로 확인된 사실 — 상세페이지 안심 문구로 그대로 쓴다 */
   returnNote?: string;
+  /** 공급처 안내에서 읽은 배송·반품 조건 원본 (판독 근거 포함) */
+  policyFacts: SupplierPolicyFacts;
+  /** 토스 등록에 그대로 넣을 값 — 못 읽은 항목은 보수적 기본값 */
+  policyValues: ListingPolicyValues;
 };
 
 /**
@@ -65,14 +75,19 @@ export type ReturnDecisionResult = {
  * 반품 경로가 확정되지 않았으면 아무 말도 하지 않는다. 애매한 반품 안내는
  * 안 쓰느니만 못하고, 분쟁에서 셀러에게 불리하게 해석된다.
  */
-function buildReturnNote(decision: ReturnLogisticsDecision): string | undefined {
-  if (decision.route === "supplier_direct") {
-    return "단순 변심 반품이 가능합니다. 반품 접수 시 공급처로 바로 회수되며, 왕복 배송비는 상품 상세의 반품 배송비 기준을 따릅니다.";
-  }
-  if (decision.route === "seller_relay") {
-    return "단순 변심 반품이 가능합니다. 반품 배송비는 상품 상세의 반품 배송비 기준을 따릅니다.";
-  }
-  return undefined;
+function buildReturnNote(
+  decision: ReturnLogisticsDecision,
+  values: ListingPolicyValues,
+): string | undefined {
+  if (decision.route !== "supplier_direct" && decision.route !== "seller_relay") return undefined;
+
+  // 금액을 실제로 읽어냈을 때만 숫자를 쓴다. 기본값을 숫자로 적어두면
+  // 고객에게 한 약속이 되고, 실제 청구액과 다르면 분쟁이 된다.
+  const fee = values.measured.returnShipping
+    ? `반품 배송비는 ${values.returnShippingKrw.toLocaleString()}원입니다.`
+    : "반품 배송비는 상품 상세의 반품 배송비 기준을 따릅니다.";
+
+  return `단순 변심 반품이 가능합니다. ${fee}`;
 }
 
 /**
@@ -91,6 +106,9 @@ export async function decideReturnForListing(
     : await enrichWithSupplierDetail(input.listing);
 
   const policy = readSupplierReturnPolicy(listing.policyText);
+  // 반품 처리 주체와 별개로, 등록에 넣을 배송·반품 **금액과 기한**을 읽는다.
+  const policyFacts = readSupplierPolicyFacts(listing.policyText);
+  const policyValues = toListingPolicyValues(policyFacts);
 
   const decision = decideReturnLogistics({
     policy,
@@ -101,6 +119,8 @@ export async function decideReturnForListing(
     registeredLocations: input.registeredLocations,
     sellerOwnedLocationId: input.sellerOwnedLocationId,
     shippingFeeKrw: listing.shippingFeeKrw,
+    // 공급처가 반품비를 명시했으면 추정 대신 그 값으로 충당금을 잡는다
+    measuredReturnShippingKrw: policyFacts.returnShippingKrw?.value,
     netProfitPerUnitKrw: input.netProfitPerUnitKrw,
     measuredReturnRate: input.measuredReturnRate,
   });
@@ -113,10 +133,16 @@ export async function decideReturnForListing(
     );
   }
 
+  if (policyFacts.readCount > 0) {
+    decision.reasoning.push(policyFacts.summary);
+  }
+
   return {
     engineVersion: RETURN_PIPELINE_VERSION,
     listing,
     decision,
-    returnNote: buildReturnNote(decision),
+    returnNote: buildReturnNote(decision, policyValues),
+    policyFacts,
+    policyValues,
   };
 }

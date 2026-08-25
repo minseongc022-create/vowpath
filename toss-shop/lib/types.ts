@@ -459,6 +459,14 @@ export type JarvisListingPayload = {
   resolvedReturnLocationId?: number;
   /** 반품 안내 문구 — 확정된 반품 경로에서 나온 사실만 담긴다 */
   returnNote?: string;
+  /**
+   * 공급처 안내에서 읽어낸 배송·반품 조건.
+   *
+   * 반품/교환 배송비, 출고 소요일, 도서산간 추가비 — 등록 시 이 값들이 실제
+   * 공급처 조건과 어긋나면 차액이 전부 셀러 부담이 된다. 못 읽은 항목은
+   * 보수적 기본값이 들어가고, `measured`로 무엇이 실측인지 구분된다.
+   */
+  supplierPolicy?: import("./wholesale/supplier-policy-reader").ListingPolicyValues;
 };
 
 export type JarvisListingDraft = {

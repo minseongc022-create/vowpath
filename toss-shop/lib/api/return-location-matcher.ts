@@ -29,12 +29,19 @@ export const RETURN_LOCATION_MATCHER_VERSION = "1.0";
 export const JARVIS_LOCATION_PREFIX = "자비스";
 
 export type MatchStrength =
-  /** 반품지 이름에 공급처 태그(자비스-domeme-abc123)가 박혀 있다 — 사람이 명시적으로 선언한 것 */
-  | "name_tag"
   /** 주소 정규화 결과가 완전히 같다 */
   | "exact_address"
   /** 시/도·시군구·도로명·건물번호가 같다 (층·호수만 다름) */
-  | "same_building";
+  | "same_building"
+  /**
+   * 반품지 이름에 공급처 태그가 박혀 있다.
+   *
+   * ⚠️ 2026-08 실측 기준 토스 반품지 응답에는 **이름 필드가 아예 없다**
+   * (id·zipCode·address·detailAddress·isMain만 온다). 즉 이 경로는 현재
+   * 절대 걸리지 않는다. 토스가 나중에 이름을 주기 시작할 때를 위해 남겨둘 뿐,
+   * **이 경로에 기대어 설계하면 안 된다** — 매칭은 주소로만 성립한다.
+   */
+  | "name_tag";
 
 export type ReturnLocationMatch = {
   location: TossReturnLocation;
@@ -151,11 +158,12 @@ export function compareAddresses(a: string, b: string): MatchStrength | null {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * 이 공급처 전용 반품지에 붙일 이름.
+ * 이 공급처 전용 반품지에 붙일 이름 (토스가 이름을 지원하게 되면 쓸 값).
  *
- * 토스 셀러센터에서 반품지를 만들 때 이 이름을 그대로 쓰면, 이후 자비스가
- * 주소를 못 읽어도 이름만으로 자동 연결된다. 주소 매칭이 실패할 때의
- * 안전망이자, 사람이 개입할 때의 유일한 규칙이다.
+ * ⚠️ 현재 토스 셀러센터 반품지에는 이름을 붙일 수 없다 — 응답에 이름 필드
+ * 자체가 없다. 그래서 지금은 **주소만이 유일한 연결 고리**다. 이 함수는
+ * 사람이 읽는 라벨 용도로만 쓰고, 등록 안내에서 "이 이름으로 만드세요"라고
+ * 지시해서는 안 된다(만들 수 없는 걸 시키는 안내가 된다).
  */
 export function jarvisLocationName(platform: string, sellerId: string): string {
   return `${JARVIS_LOCATION_PREFIX}-${platform}-${sellerId}`;
@@ -196,9 +204,12 @@ export function matchReturnLocation(input: MatchInput): ReturnLocationMatch | nu
   const { locations, supplierAddress, supplierPlatform, supplierId } = input;
   if (!locations.length) return null;
 
-  // 1) 이름 태그
+  // 1) 이름 태그 — 토스가 이름을 주기 시작하면만 걸린다. 현재는 항상 미적중이다.
+  //    합성된 표시명(`반품지 #123`)이 우연히 걸리지 않도록 실제 이름만 본다.
   if (supplierPlatform && supplierId) {
-    const tagged = locations.find((l) => l.name && hasNameTag(l.name, supplierPlatform, supplierId));
+    const tagged = locations.find(
+      (l) => l.name && !/^반품지\s*#/.test(l.name) && hasNameTag(l.name, supplierPlatform, supplierId),
+    );
     if (tagged) {
       return {
         location: tagged,

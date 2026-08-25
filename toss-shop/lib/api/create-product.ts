@@ -41,6 +41,15 @@ export type TossCreateProductBody = {
   };
 };
 
+/**
+ * 도서산간 추가비 기본값 — 공급처 안내에서 금액을 못 읽었을 때만 쓴다.
+ *
+ * 국내 도매 공급처의 제주·도서 추가비는 보통 이 선 안쪽이다. 여기를 낮게 잡으면
+ * 해당 지역 주문마다 차액이 셀러 손실로 남으므로, 모를 때는 넉넉히 잡는다.
+ */
+const DEFAULT_JEJU_FEE_KRW = 3_000;
+const DEFAULT_ISLAND_FEE_KRW = 5_000;
+
 export function buildTossCreatePayload(
   draft: JarvisListingDraft,
   categoryId: number,
@@ -49,6 +58,15 @@ export function buildTossCreatePayload(
 ): TossCreateProductBody {
   const p = draft.listingPayload;
   const deliveryFree = p.deliveryFeeType === "FREE";
+
+  // 도서산간 추가비를 실제보다 낮게 걸면 제주·도서 주문마다 차액을 셀러가 문다.
+  // 공급처 안내에서 실제 금액을 읽어냈으면 그 값을 쓰고, 못 읽었으면 보수적
+  // 기본값을 쓴다 — 과소 계상은 매 건 손실이지만 과대 계상은 기회 손실에 그친다.
+  const readSurcharge = p.supplierPolicy?.measured.remoteSurcharge
+    ? p.supplierPolicy.remoteAreaSurchargeKrw
+    : 0;
+  const jejuFee = deliveryFree ? 0 : Math.max(DEFAULT_JEJU_FEE_KRW, readSurcharge);
+  const islandFee = deliveryFree ? 0 : Math.max(DEFAULT_ISLAND_FEE_KRW, readSurcharge);
 
   return {
     name: p.name,
@@ -83,8 +101,8 @@ export function buildTossCreatePayload(
       minimumPurchasePrice: deliveryFree ? 0 : 15000,
       deliveryFee: deliveryFree ? 0 : 2500,
       isJejuAndIslandsMountainsDelivery: true,
-      jejuDeliveryFee: deliveryFree ? 0 : 3000,
-      islandsMountainsDeliveryFee: deliveryFree ? 0 : 5000,
+      jejuDeliveryFee: jejuFee,
+      islandsMountainsDeliveryFee: islandFee,
     },
     exchangeReturnPolicy: {
       exchangeRefundLocationId: exchangeReturnLocationId,

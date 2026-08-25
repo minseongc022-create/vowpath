@@ -19,14 +19,28 @@ import type { TossApiConfig } from "./config";
 
 export type TossReturnLocation = {
   id: number;
+  /**
+   * 표시용 이름.
+   *
+   * ⚠️ 실제 토스 응답에는 **이름 필드가 없다** (2026-08 실측: id·zipCode·address·
+   * detailAddress·isMain만 온다). 그래서 대부분 `반품지 #<id>`로 합성된 값이며,
+   * **이름으로 공급처를 구분할 수 없다**. 매칭은 주소로만 해야 한다.
+   */
   name: string;
+  /** 도로명 주소 (상세주소 제외) */
   address?: string;
+  /** 동·호수 등 상세주소 — 같은 건물 판정에서는 제외한다 */
+  detailAddress?: string;
+  zipCode?: string;
+  /** 셀러센터에서 기본으로 지정된 반품지인가 */
+  isMain?: boolean;
   raw: unknown;
 };
 
 const ID_FIELDS = ["id", "locationId", "exchangeRefundLocationId"];
 const NAME_FIELDS = ["name", "locationName", "label", "title"];
 const ADDRESS_FIELDS = ["address", "addr", "fullAddress", "roadAddress"];
+const DETAIL_ADDRESS_FIELDS = ["detailAddress", "addressDetail", "detail"];
 
 function pick(obj: Record<string, unknown>, fields: string[]): unknown {
   for (const f of fields) if (obj[f] !== undefined) return obj[f];
@@ -43,10 +57,15 @@ function readLocation(raw: unknown): TossReturnLocation | null {
 
   const name = pick(obj, NAME_FIELDS);
   const address = pick(obj, ADDRESS_FIELDS);
+  const detailAddress = pick(obj, DETAIL_ADDRESS_FIELDS);
+  const zipCode = obj.zipCode;
   return {
     id: numId,
-    name: typeof name === "string" ? name : `반품지 #${numId}`,
-    address: typeof address === "string" ? address : undefined,
+    name: typeof name === "string" && name.trim() ? name : `반품지 #${numId}`,
+    address: typeof address === "string" && address.trim() ? address : undefined,
+    detailAddress: typeof detailAddress === "string" && detailAddress.trim() ? detailAddress : undefined,
+    zipCode: typeof zipCode === "string" && zipCode.trim() ? zipCode : undefined,
+    isMain: typeof obj.isMain === "boolean" ? obj.isMain : undefined,
     raw,
   };
 }
