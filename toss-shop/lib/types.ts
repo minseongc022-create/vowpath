@@ -229,6 +229,19 @@ export type MerchantData = {
    * 자동으로 이 목록에서 빠진다(주소 매칭 성공 시 제거).
    */
   pendingReturnAddresses?: PendingReturnAddress[];
+  /**
+   * 사장님 휴대폰 — 필수 작업(발주·송장)이 밀렸을 때 문자로 알린다.
+   *
+   * 환경변수(OWNER_ALERT_PHONE)가 아니라 여기 두는 이유: 사장님이 대화창에
+   * "내 번호 010-…"라고 말하면 바로 저장돼야 하기 때문이다. 배포를 다시
+   * 하거나 콘솔에 들어갈 필요가 없다.
+   */
+  ownerAlertPhone?: string;
+  /**
+   * 이미 문자로 알린 할 일 종류 — 같은 걸 60초마다 다시 보내지 않기 위해.
+   * 그 종류가 해소되면 목록에서 빠지고, 다시 생기면 새로 알린다.
+   */
+  sentTodoKinds?: string[];
 };
 
 export type PendingReturnAddress = {

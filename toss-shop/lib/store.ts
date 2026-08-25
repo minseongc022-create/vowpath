@@ -1320,6 +1320,16 @@ export async function runAutopilotForMerchant(merchantId: string): Promise<impor
   });
   data.lastAutopilotReport = report;
   await saveStore(store);
+
+  // 한 바퀴 돌 때마다 밀린 필수 작업이 있는지 보고, 있으면 사장님 휴대폰으로
+  // 알린다. 실패해도 사이클 결과는 그대로 돌려준다 — 알림이 안 갔다고 자동화가
+  // 멈추면 안 된다.
+  try {
+    await dispatchOwnerTodoAlerts(merchantId);
+  } catch (e) {
+    console.warn("[jarvis] 사장님 알림 처리 실패:", e);
+  }
+
   return report;
 }
 
@@ -1513,4 +1523,140 @@ export async function syncReturnLocationsForMerchant(merchantId: string): Promis
   await saveStore(store);
 
   return { locationCount: locations.length, matched, stillPending: remaining.length };
+}
+
+// ── 발주 · 알림 · 반품지 목록 (전부 대화로 처리된다) ──────────────
+
+/**
+ * "발주했어" — 방금 안내한 만큼을 발주 완료로 넘긴다.
+ *
+ * 안내한 건수(ORDER_BRIEF_LIMIT)와 여기서 처리하는 건수가 반드시 같아야 한다.
+ * 3건만 보여주고 전부를 완료 처리하면, 사장님이 안 넣은 주문이 "발주됨"으로
+ * 넘어가 송장이 영영 안 나오고 발송기한을 넘긴다.
+ */
+export async function markWholesaleOrdered(merchantId: string): Promise<{
+  marked: number;
+  remaining: number;
+  names: string[];
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const jobs = data.fulfillmentJobs ?? [];
+  const { pickJobsNeedingOrder, ORDER_BRIEF_LIMIT } = await import("./seller-engine/jarvis-chat");
+  const { applyWholesaleOrderConfirmed } = await import("./seller-engine/fulfillment-engine");
+
+  const waiting = pickJobsNeedingOrder(jobs);
+  const target = waiting.slice(0, ORDER_BRIEF_LIMIT);
+  const names: string[] = [];
+  for (const job of target) {
+    const idx = jobs.findIndex((j) => j.id === job.id);
+    if (idx < 0) continue;
+    jobs[idx] = applyWholesaleOrderConfirmed(jobs[idx]);
+    names.push(jobs[idx].productName);
+  }
+
+  data.fulfillmentJobs = jobs;
+  await saveStore(store);
+  return { marked: names.length, remaining: waiting.length - names.length, names };
+}
+
+/** 발주 대기 주문 — 대화창이 붙여넣기 좋은 형태로 뿌린다 */
+export async function getSupplierOrderBrief(merchantId: string): Promise<string> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { pickJobsNeedingOrder, renderSupplierOrderBrief } = await import(
+    "./seller-engine/jarvis-chat"
+  );
+  return renderSupplierOrderBrief(pickJobsNeedingOrder(data.fulfillmentJobs ?? []));
+}
+
+/** 아직 토스에 없는 반품지 주소 — 셀러센터에 그대로 붙여넣을 수 있게 */
+export async function getReturnAddressBrief(merchantId: string): Promise<string> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const pending = data.pendingReturnAddresses ?? [];
+  if (pending.length === 0) {
+    return "등록하실 반품지가 없습니다. 지금은 전부 공급처로 바로 반품되고 있어요 (비용 0원).";
+  }
+  const { renderBulkProvisioningInstructions } = await import(
+    "./seller-engine/return-location-provisioner"
+  );
+  return renderBulkProvisioningInstructions(pending);
+}
+
+/**
+ * 알림 받을 번호를 저장한다.
+ *
+ * 환경변수가 아니라 가맹점 데이터에 넣는 이유: 사장님이 대화창에서 번호를
+ * 바꾸면 즉시 반영돼야 하기 때문이다. 배포를 다시 할 일이 없다.
+ */
+export async function setOwnerAlertPhone(
+  merchantId: string,
+  phoneE164: string,
+): Promise<void> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  data.ownerAlertPhone = phoneE164;
+  // 번호를 바꿨으면 이전에 보냈다는 기록은 지운다 — 새 번호로는 아직
+  // 아무것도 안 갔으므로, 밀린 일이 있으면 곧바로 한 통 가야 한다.
+  data.sentTodoKinds = [];
+  await saveStore(store);
+}
+
+/**
+ * 밀린 필수 작업을 사장님 휴대폰으로 알린다.
+ *
+ * 자비스 사이클이 끝날 때마다 호출된다. 같은 종류는 한 번만 나가고, 해소됐다가
+ * 다시 생기면 그때 다시 나간다 — 60초마다 문자가 오면 사장님은 알림을 꺼버리고,
+ * 그러면 진짜 급한 걸 놓치게 된다.
+ *
+ * 문자 발송이 실패해도 사이클은 계속 간다. 알림은 보조 수단이지 자동화의
+ * 전제가 아니다.
+ */
+export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
+  sent: number;
+  skippedReason?: string;
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { collectOwnerTodos, pickUnsentTodos } = await import(
+    "./seller-engine/owner-todo-alerts"
+  );
+
+  type TodoKind = import("./seller-engine/owner-todo-alerts").TodoKind;
+  const todos = collectOwnerTodos(data.fulfillmentJobs ?? []);
+  const { toSend, nextSent } = pickUnsentTodos(
+    todos,
+    (data.sentTodoKinds ?? []) as TodoKind[],
+  );
+
+  const phone = data.ownerAlertPhone?.trim();
+  if (!phone) {
+    // 번호가 없으면 보낼 수 없다. 기록은 갱신하지 않는다 — 번호를 넣는 순간
+    // 밀린 일이 있으면 바로 한 통 가야 하기 때문이다.
+    return { sent: 0, skippedReason: todos.length > 0 ? "OWNER_PHONE_UNSET" : undefined };
+  }
+
+  let sent = 0;
+  const failed = new Set<TodoKind>();
+  if (toSend.length > 0) {
+    const { sendSms } = await import("@/lib/send-sms");
+    for (const todo of toSend) {
+      const result = await sendSms(phone, todo.message, "jarvis-owner-todo", {
+        // 사장님이 직접 등록한 본인 번호다 — 미국(+1) 전용 가드 대상이 아니다.
+        usRecipientsOnly: false,
+      });
+      if (result.ok) sent += 1;
+      else {
+        failed.add(todo.kind);
+        console.warn("[jarvis] 사장님 알림 실패:", result.error);
+      }
+    }
+  }
+
+  // 실제로 나간 것만 "보냄"으로 기록한다. 실패한 종류는 기록에서 빼야
+  // 다음 사이클에 다시 시도된다 — 한 번 실패했다고 영영 안 알리면 안 된다.
+  data.sentTodoKinds = nextSent.filter((k) => !failed.has(k));
+  await saveStore(store);
+  return { sent };
 }

@@ -3,7 +3,11 @@ import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request"
 import {
   confirmFulfillmentTracking,
   getJarvisChatContext,
+  getReturnAddressBrief,
+  getSupplierOrderBrief,
+  markWholesaleOrdered,
   runAutopilotForMerchant,
+  setOwnerAlertPhone,
   syncReturnLocationsForMerchant,
 } from "@/toss-shop/lib/store";
 import {
@@ -112,6 +116,54 @@ export async function POST(request: Request) {
         );
       }
       return NextResponse.json({ reply: lines.join("\n"), did: "register_tracking" });
+    }
+
+    // ── 발주 정보 줘 ─────────────────────────────────────────────
+    if (action.intent === "supplier_order_info" && action.confident) {
+      return NextResponse.json({
+        reply: await getSupplierOrderBrief(session.merchantId),
+        did: "supplier_order_info",
+      });
+    }
+
+    // ── 발주했어 ─────────────────────────────────────────────────
+    if (action.intent === "mark_ordered" && action.confident) {
+      const r = await markWholesaleOrdered(session.merchantId);
+      if (r.marked === 0) {
+        return NextResponse.json({
+          reply:
+            "발주 대기로 잡혀 있는 주문이 없습니다. 이미 다 넘어갔거나, 아직 주문이 안 들어왔어요.",
+          did: "mark_ordered",
+        });
+      }
+      const lines = [
+        `${r.marked}건 발주 완료로 넘겼습니다 — ${r.names.join(", ")}`,
+        "공급처 송장 나오면 「1234567890 CJ대한통운」처럼 보내주세요. 토스 등록은 제가 합니다.",
+      ];
+      if (r.remaining > 0) {
+        lines.push("", `아직 ${r.remaining}건 남았습니다. 「발주 정보 줘」 하시면 다음 걸 드릴게요.`);
+      }
+      return NextResponse.json({ reply: lines.join("\n"), did: "mark_ordered" });
+    }
+
+    // ── 반품지 주소 줘 ───────────────────────────────────────────
+    if (action.intent === "return_addresses" && action.confident) {
+      return NextResponse.json({
+        reply: await getReturnAddressBrief(session.merchantId),
+        did: "return_addresses",
+      });
+    }
+
+    // ── 내 번호는 이거야 ─────────────────────────────────────────
+    if (action.intent === "set_alert_phone" && action.confident && action.alertPhone) {
+      await setOwnerAlertPhone(session.merchantId, action.alertPhone);
+      const shown = action.alertPhone.replace(/^\+82/, "0");
+      return NextResponse.json({
+        reply:
+          `알림 번호를 ${shown} 로 저장했습니다.\n` +
+          "발주가 12시간, 송장이 6시간 넘게 밀리면 그때만 문자 드릴게요 — 그 외엔 안 보냅니다.",
+        did: "set_alert_phone",
+      });
     }
 
     // ── 상태 ─────────────────────────────────────────────────────

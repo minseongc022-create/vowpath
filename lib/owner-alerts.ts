@@ -19,7 +19,13 @@ export async function alertOwner(message: string): Promise<void> {
     console.warn("[owner-alerts] OWNER_ALERT_PHONE not set — skipped:", message);
     return;
   }
-  const result = await sendSms(phone, message, "owner-alert");
+  // OWNER_ALERT_PHONE은 운영자가 직접 넣은 목적지다 — 고객이 입력한 번호가
+  // 아니므로 미국(+1) 전용 가드를 적용하지 않는다. 이 가드가 걸려 있으면
+  // 한국(+82) 번호로는 알림이 한 통도 못 나간다(userId가 없어 허용 경로가
+  // 막힌다). 실측으로 확인하고 연 것이다.
+  const result = await sendSms(phone, message, "owner-alert", {
+    usRecipientsOnly: false,
+  });
   if (!result.ok) {
     console.error("[owner-alerts] failed to notify site owner:", result.error);
   }

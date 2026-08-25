@@ -53,8 +53,6 @@ export function JarvisConsole() {
   const [report, setReport] = useState<JarvisAutopilotReport | null>(null);
   const [jobs, setJobs] = useState<JarvisFulfillmentJob[]>([]);
   const [apiConfigured, setApiConfigured] = useState(true);
-  const [running, setRunning] = useState(false);
-  const [runLog, setRunLog] = useState<string[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -79,33 +77,6 @@ export function JarvisConsole() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // 실행 중에는 무슨 일이 일어나는지 한 줄씩 보여준다 — 눌렀는데 아무것도
-  // 안 보이면 사장님은 "안 되는구나"라고 판단하고 다시 누른다.
-  async function runNow() {
-    setRunning(true);
-    setRunLog(["시장을 보고 있습니다…"]);
-    try {
-      const res = await fetch("/api/toss-shop/jarvis/autopilot", { method: "POST" });
-      const json = (await res.json()) as { report?: JarvisAutopilotReport; error?: string };
-      if (!res.ok || json.error) {
-        setRunLog([`막혔습니다 — ${json.error ?? "실행 실패"}`]);
-        return;
-      }
-      const r = json.report;
-      setReport(r ?? null);
-      setRunLog(
-        r?.actions?.length
-          ? r.actions.slice(0, 6)
-          : ["한 바퀴 돌았습니다 — 이번엔 기준을 통과한 새 상품이 없었습니다."],
-      );
-      void fetchData();
-    } catch {
-      setRunLog(["연결이 끊겼습니다. 잠시 후 다시 눌러주세요."]);
-    } finally {
-      setRunning(false);
-    }
-  }
 
   async function send(text?: string) {
     const msg = (text ?? input).trim();
@@ -156,15 +127,6 @@ export function JarvisConsole() {
           </p>
         </div>
 
-        <button
-          type="button"
-          disabled={running || !apiConfigured}
-          onClick={() => void runNow()}
-          className="mt-4 w-full rounded-2xl bg-white px-6 py-4 text-lg font-bold text-violet-700 shadow-sm transition active:scale-[0.99] disabled:opacity-60"
-        >
-          {running ? "돌리는 중…" : "지금 한 바퀴 돌리기"}
-        </button>
-
         {!apiConfigured && !initialLoading && (
           <Link
             href={SP_ROUTES.settings}
@@ -174,13 +136,18 @@ export function JarvisConsole() {
           </Link>
         )}
 
-        {runLog.length > 0 && (
+        {report?.actions?.length ? (
           <ul className="mt-4 space-y-1 rounded-xl bg-black/20 p-3 text-xs leading-relaxed text-white/90">
-            {runLog.map((l, i) => (
+            {report.actions.slice(0, 4).map((l, i) => (
               <li key={i}>· {l}</li>
             ))}
           </ul>
-        )}
+        ) : null}
+
+        <p className="mt-4 text-xs leading-relaxed text-white/70">
+          지시는 아래 대화창에 말로 하시면 됩니다 — 「지금 돌려」, 「발주 정보 줘」, 「발주했어」,
+          송장은 「1234567890 CJ대한통운」.
+        </p>
       </section>
 
       {/* ── 2. 숫자 셋 ────────────────────────────────────────── */}
@@ -209,62 +176,29 @@ export function JarvisConsole() {
         <section className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
           <p className="font-bold text-amber-900">반품지 {backlog.count}곳 등록하면 끝</p>
           <p className="mt-1 text-sm leading-relaxed text-amber-800">
-            토스가 반품지 등록만 API를 안 열어놨습니다. 아래 주소를 복사해서 셀러센터에 넣고
-            저한테 「등록했어」라고 말해주시면 나머지는 제가 다 합니다.
+            토스가 반품지 등록만 API를 안 열어놨습니다. 아래 대화창에 「반품지 주소 줘」라고
+            하시면 주소를 그대로 드릴게요. 셀러센터에 넣으신 뒤 「반품지 등록했어」라고만
+            해주시면 나머지는 제가 다 합니다.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void navigator.clipboard.writeText(backlog.instructions)}
-              className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white"
-            >
-              주소 {backlog.count}개 복사
-            </button>
-            <a
-              href="https://sellercenter.toss.im"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-amber-900 ring-1 ring-amber-300"
-            >
-              셀러센터 열기 →
-            </a>
-            <button
-              type="button"
-              onClick={() => void send("반품지 등록했어")}
-              className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-amber-900 ring-1 ring-amber-300"
-            >
-              등록 다 했어
-            </button>
-          </div>
         </section>
       )}
 
       {jobs.some((j) => j.status !== "tracking_registered" && !j.pendingTrackingNumber) && (
         <section className="mt-4 rounded-2xl border border-sky-300 bg-sky-50 p-4">
-          <p className="font-bold text-sky-900">송장 기다리는 주문이 있습니다</p>
-          <div className="mt-2 space-y-1.5">
+          <p className="font-bold text-sky-900">손이 필요한 주문이 있습니다</p>
+          <div className="mt-2 space-y-1 text-sm text-sky-900">
             {jobs
               .filter((j) => j.status !== "tracking_registered" && !j.pendingTrackingNumber)
               .slice(0, 3)
               .map((j) => (
-                <div key={j.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate text-sky-900">{j.productName}</span>
-                  {j.supplierUrl && (
-                    <a
-                      href={j.supplierUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 font-semibold text-sky-700 underline"
-                    >
-                      공급처 →
-                    </a>
-                  )}
-                </div>
+                <p key={j.id} className="truncate">
+                  · {j.productName}
+                </p>
               ))}
           </div>
           <p className="mt-2 text-xs leading-relaxed text-sky-800">
-            송장 나오면 아래 대화창에 「1234567890 CJ대한통운」처럼 붙여넣어 주세요. 토스 등록까지
-            제가 합니다.
+            아직 발주 전이면 「발주 정보 줘」, 발주를 넣으셨으면 「발주했어」, 송장이 나왔으면
+            「1234567890 CJ대한통운」처럼 아래 대화창에 말씀해 주세요. 토스 등록까지 제가 합니다.
           </p>
         </section>
       )}
@@ -276,7 +210,7 @@ export function JarvisConsole() {
             <div className="text-sm leading-relaxed text-slate-500">
               <p className="font-semibold text-slate-700">자비스에게 말 걸어보세요</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {["상태 어때?", "지금 돌려", "왜 상품이 안 올라가?"].map((q) => (
+                {["상태 어때?", "지금 돌려", "발주 정보 줘", "반품지 주소 줘"].map((q) => (
                   <button
                     key={q}
                     type="button"
@@ -319,7 +253,7 @@ export function JarvisConsole() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="송장번호를 붙여넣거나 물어보세요"
+            placeholder="송장번호를 붙여넣거나 뭐든 물어보세요"
             className="min-w-0 flex-1 rounded-xl bg-slate-100 px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-400"
           />
           <button

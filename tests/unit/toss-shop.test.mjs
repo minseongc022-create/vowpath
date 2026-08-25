@@ -3854,3 +3854,153 @@ test("대화: 상태 요약은 없는 숫자를 지어내지 않는다", async (
   // 순익이 0이면 아예 언급하지 않는다 — 0원을 실적처럼 적으면 오해를 부른다
   assert.ok(!reply.includes("이번 달 실제 순익"));
 });
+
+// ── 발주·알림 대화 ────────────────────────────────────────────
+
+test("대화: 발주 완료 보고를 정보 요청으로 잘못 읽지 않는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+
+  for (const msg of ["발주했어", "발주 완료", "도매매에 주문 넣었어", "발주 다 했다"]) {
+    assert.equal(parseChatAction(msg).intent, "mark_ordered", msg);
+  }
+  for (const msg of ["발주 정보 줘", "뭐 발주해야 해?", "발주 목록 알려줘"]) {
+    assert.equal(parseChatAction(msg).intent, "supplier_order_info", msg);
+  }
+});
+
+test("대화: 반품지 '등록했어'(동기화)와 '주소 줘'(목록)를 구분한다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  assert.equal(parseChatAction("반품지 등록했어").intent, "sync_return_locations");
+  assert.equal(parseChatAction("반품지 주소 줘").intent, "return_addresses");
+  assert.equal(parseChatAction("반품지 어디 넣어야 해? 주소 알려줘").intent, "return_addresses");
+});
+
+test("대화: 내 번호는 저장하고, 송장번호는 번호로 오해하지 않는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+
+  const phone = parseChatAction("알림은 내 번호 010-1234-5678 로 보내줘");
+  assert.equal(phone.intent, "set_alert_phone");
+  assert.equal(phone.alertPhone, "+821012345678", "E.164로 정규화돼야 문자가 나간다");
+
+  // 택배사가 같이 오면 송장이 먼저다 — 그게 시간에 가장 민감하다
+  const tracking = parseChatAction("1234567890 CJ대한통운");
+  assert.equal(tracking.intent, "register_tracking");
+  assert.equal(tracking.tracking.trackingNumber, "1234567890");
+
+  // 고객 휴대폰을 송장으로 등록하면 배송 조회가 통째로 깨진다
+  assert.equal(parseChatAction("01012345678").intent, "talk");
+});
+
+test("발주 안내는 칸마다 한 줄 — 옮겨 적다 틀릴 여지를 없앤다", async () => {
+  const { pickJobsNeedingOrder, renderSupplierOrderBrief, ORDER_BRIEF_LIMIT } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-chat.ts"
+  );
+  const mk = (id, status, at) => ({
+    id,
+    merchantId: "m",
+    orderId: 1,
+    orderProductId: 1,
+    productName: `상품${id}`,
+    status,
+    customer: { name: "홍길동", phone: "010-1111-2222", address: "서울 강남구 1", zipCode: "06000" },
+    quantity: 2,
+    createdAt: at,
+    updatedAt: at,
+  });
+
+  const jobs = [
+    mk("new", "detected", "2026-08-05"),
+    mk("old", "wholesale_ready", "2026-08-01"),
+    mk("done", "tracking_registered", "2026-08-02"),
+    mk("ordered", "wholesale_ordered", "2026-08-03"),
+  ];
+  const need = pickJobsNeedingOrder(jobs);
+  assert.deepEqual(
+    need.map((j) => j.id),
+    ["old", "new"],
+    "발주 전인 것만, 오래 기다린 순서로",
+  );
+
+  const brief = renderSupplierOrderBrief(need);
+  assert.ok(brief.includes("수취인: 홍길동"));
+  assert.ok(brief.includes("우편번호: 06000"));
+  assert.ok(brief.includes("주소: 서울 강남구 1"));
+  assert.ok(brief.includes("발주했어"), "다음에 뭘 해야 하는지 알려줘야");
+
+  assert.ok(renderSupplierOrderBrief([]).includes("없습니다"));
+  assert.equal(ORDER_BRIEF_LIMIT, 3);
+});
+
+test("알림: 같은 종류는 한 번만, 해소되면 다시 알린다", async () => {
+  const { collectOwnerTodos, pickUnsentTodos } = await import(
+    "../../toss-shop/lib/seller-engine/owner-todo-alerts.ts"
+  );
+  const now = Date.parse("2026-08-05T00:00:00Z");
+  const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString();
+  const mk = (over) => ({
+    id: "a",
+    merchantId: "m",
+    orderId: 1,
+    orderProductId: 1,
+    productName: "상품",
+    status: "detected",
+    customer: { name: "n", phone: "p", address: "a", zipCode: "z" },
+    quantity: 1,
+    createdAt: hoursAgo(24),
+    updatedAt: hoursAgo(24),
+    ...over,
+  });
+
+  // 방금 들어온 주문은 알리지 않는다 — 그러면 하루 종일 문자가 온다
+  assert.equal(collectOwnerTodos([mk({ createdAt: hoursAgo(1) })], now).length, 0);
+
+  const todos = collectOwnerTodos([mk({})], now);
+  assert.equal(todos.length, 1);
+  assert.equal(todos[0].kind, "need_supplier_order");
+
+  const first = pickUnsentTodos(todos, []);
+  assert.equal(first.toSend.length, 1);
+
+  // 두 번째 사이클 — 같은 게 그대로 걸려 있어도 다시 보내지 않는다
+  const second = pickUnsentTodos(todos, first.nextSent);
+  assert.equal(second.toSend.length, 0);
+
+  // 해소되면 기록에서 빠지고, 다시 생기면 새로 알린다
+  const cleared = pickUnsentTodos([], second.nextSent);
+  assert.deepEqual(cleared.nextSent, []);
+  assert.equal(pickUnsentTodos(todos, cleared.nextSent).toSend.length, 1);
+});
+
+test("알림: 송장 대기는 발주 시각 기준으로 재는다", async () => {
+  const { collectOwnerTodos } = await import(
+    "../../toss-shop/lib/seller-engine/owner-todo-alerts.ts"
+  );
+  const now = Date.parse("2026-08-05T00:00:00Z");
+  const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString();
+  const base = {
+    id: "a",
+    merchantId: "m",
+    orderId: 1,
+    orderProductId: 1,
+    productName: "상품",
+    status: "wholesale_ordered",
+    customer: { name: "n", phone: "p", address: "a", zipCode: "z" },
+    quantity: 1,
+    createdAt: hoursAgo(48),
+    updatedAt: hoursAgo(48),
+  };
+
+  // 발주한 지 2시간 — 공급처가 아직 출고 준비 중일 수 있다
+  assert.equal(collectOwnerTodos([{ ...base, wholesaleOrderedAt: hoursAgo(2) }], now).length, 0);
+  // 8시간 — 이건 밀린 것이다
+  const late = collectOwnerTodos([{ ...base, wholesaleOrderedAt: hoursAgo(8) }], now);
+  assert.equal(late[0].kind, "need_tracking");
+  // 이미 송장이 들어온 건 알리지 않는다
+  assert.equal(
+    collectOwnerTodos(
+      [{ ...base, wholesaleOrderedAt: hoursAgo(8), pendingTrackingNumber: "123" }],
+      now,
+    ).length,
+    0,
+  );
+});
