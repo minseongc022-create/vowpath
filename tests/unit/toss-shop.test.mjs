@@ -1966,13 +1966,23 @@ test("return location: 셀러 자체 주소로 선언하면 폴백이 허용된�
   assert.equal(clean.locationId, 111);
   assert.equal(clean.warnings.length, 0);
 
-  // 공급처 수거형 → 등록은 되지만 왕복비 경고
-  const warned = resolveReturnLocation({
+  // 판독 실패(unknown) → 셀러 주소로 등록은 되지만 왕복비 경고
+  const unknownFallback = resolveReturnLocation({
     supplierPlatform: "domeggook", supplierId: "s2",
+    pickMode: "consignment", returnHandling: undefined,
+  });
+  assert.equal(isReturnLocationResolved(unknownFallback), true);
+  assert.ok(unknownFallback.warnings.some((w) => w.includes("반품 처리 주체가 확인되지 않아")));
+
+  // 공급처 직접수거로 확인됨 → 셀러 주소로 절대 대체하지 않는다.
+  // "내 상품이 아닌데 나한테 반품 오면 안 된다" — 경고가 아니라 차단.
+  const collects = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "s3",
     pickMode: "consignment", returnHandling: "supplier_collects",
   });
-  assert.equal(isReturnLocationResolved(warned), true);
-  assert.ok(warned.warnings.some((w) => w.includes("왕복 택배비")));
+  assert.equal(isReturnLocationResolved(collects), false, "공급처 수거형은 셀러 주소로 등록되면 안 된다");
+  assert.equal(collects.error.code, "SUPPLIER_ADDRESS_REQUIRED");
+  assert.match(collects.error.message, /대체하지 않습니다/);
 });
 
 test("return location: seller_default 매핑 키로도 셀러 주소를 선언할 수 있다", async (t) => {
@@ -2494,4 +2504,29 @@ test("publish: 카테고리 자동 매칭 결과가 실제 등록에 쓰이고 �
   assert.equal(sentCategoryId, 51101, "실시간으로 찾은 리프 카테고리가 실제 등록에 쓰여야");
   assert.equal(res.category.source, "auto_match");
   assert.deepEqual(res.category.matchedPath, ["뷰티", "스킨케어", "세럼/에센스"]);
+});
+
+test("return location: 매핑에 seller_default가 있어도 공급처 직접수거는 절대 대체하지 않는다", async (t) => {
+  const { resolveReturnLocation, isReturnLocationResolved, clearReturnLocationMapCache } =
+    await import("../../toss-shop/lib/api/exchange-return-location.ts");
+  t.after(() => {
+    clearReturnLocationEnv();
+    clearReturnLocationMapCache();
+  });
+  clearReturnLocationEnv();
+
+  // seller_default가 매핑에 명시적으로 선언돼 있어도
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
+    seller_default: 999,
+    "domeggook:다른공급처": 201,
+  });
+  clearReturnLocationMapCache();
+
+  const d = resolveReturnLocation({
+    supplierPlatform: "domeggook", supplierId: "직접수거공급처",
+    pickMode: "consignment", returnHandling: "supplier_collects",
+  });
+  assert.equal(isReturnLocationResolved(d), false);
+  assert.equal(d.error.code, "SUPPLIER_ADDRESS_REQUIRED");
+  assert.match(d.error.message, /대체하지 않습니다/);
 });

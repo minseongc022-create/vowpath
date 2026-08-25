@@ -177,6 +177,20 @@ function mayUseSellerOwned(handling: ReturnHandling | undefined): boolean {
   return handling === "seller_handles";
 }
 
+/**
+ * "공급처가 직접 수거한다"고 **확인된** 경우는 셀러 주소를 절대 쓰면 안 된다.
+ *
+ * unknown(판독 실패)은 경고 후 셀러 주소로 폴백하는 걸 허용한다 — 대부분의
+ * 위탁 상품은 반품 안내 텍스트 자체가 없어 unknown이 압도적으로 많고, 국내
+ * 위탁 관행상 셀러가 반품 접점이 되는 게 일반적이기 때문이다. 하지만
+ * supplier_collects처럼 **공급처가 직접 수거한다고 명시적으로 확인된** 상품은
+ * 다르다 — 이건 "내 상품이 아닌데 반품이 나한테 온다"가 확정된 상황이라,
+ * 경고로 넘어가면 안 되고 반드시 공급처 전용 주소가 있어야 등록을 허용한다.
+ */
+function requiresSupplierAddressStrictly(handling: ReturnHandling | undefined): boolean {
+  return handling === "supplier_collects";
+}
+
 // ─────────────────────────────────────────────────────────────
 // 조회 키 생성
 // ─────────────────────────────────────────────────────────────
@@ -297,7 +311,8 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
     // 공급처 수거형(또는 판독 실패)인데 전용 주소가 없다 → 기본값 폴백 금지.
     // 폴백하면 기본 반품지 주인이 남의 반품을 받는다.
     const sellerOwned = sellerOwnedDefaultId(parsed.map);
-    if (!mayUseSellerOwned(input.returnHandling) && !sellerOwned) {
+    const strictlyRequired = requiresSupplierAddressStrictly(input.returnHandling);
+    if ((strictlyRequired || !mayUseSellerOwned(input.returnHandling)) && !sellerOwned) {
       return {
         ...base,
         source: "unresolved",
@@ -310,6 +325,22 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
             `수취 거부·분쟁으로 이어집니다. 시도한 키: ${triedKeys.join(", ") || "없음"}. ` +
             "이 공급처 주소를 토스에 등록하고 매핑에 추가하거나, 셀러 자체 반품지를 " +
             "매핑의 seller_default 키로 선언하세요.",
+        },
+      };
+    }
+    // 공급처가 직접 수거한다고 확인됐으면, 셀러 주소가 선언돼 있어도 절대
+    // 그걸로 대체하지 않는다 — "내 상품이 아닌데 나한테 반품 오면 안 된다".
+    if (strictlyRequired && sellerOwned) {
+      return {
+        ...base,
+        source: "unresolved",
+        triedKeys,
+        error: {
+          code: "SUPPLIER_ADDRESS_REQUIRED",
+          message:
+            `${label}는 공급처가 직접 수거하는 곳으로 확인됐습니다. 셀러 자체 반품지(seller_default)로 ` +
+            "대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
+            `이 공급처의 실제 주소를 토스에 등록하고 매핑에 "${label.replace("공급처 ", "")}" 키로 추가하세요.`,
         },
       };
     }
@@ -354,15 +385,28 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
   );
 
   if (sellerOwned) {
+    // 공급처가 직접 수거한다고 확인됐으면 셀러 주소로 절대 대체하지 않는다.
+    if (requiresSupplierAddressStrictly(input.returnHandling)) {
+      return {
+        ...base,
+        source: "unresolved",
+        triedKeys,
+        error: {
+          code: "SUPPLIER_ADDRESS_REQUIRED",
+          message:
+            `${describeSupplier(input)}는 공급처가 직접 수거하는 곳으로 확인됐습니다. ` +
+            "셀러 자체 반품지로 대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
+            "이 공급처의 실제 주소를 토스에 등록하고 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP에 " +
+            `"${input.supplierPlatform ?? "platform"}:${input.supplierId ?? "sellerId"}" 키로 추가하세요.`,
+        },
+      };
+    }
     if (!mayUseSellerOwned(input.returnHandling)) {
-      // 셀러 주소로 보내도 "남의 주소"는 아니라 분쟁은 안 나지만,
-      // 공급처 수거형이면 셀러→공급처 재발송 왕복비가 든다. 경고만 남긴다.
+      // unknown(판독 실패)만 여기 도달한다 — 반품 안내 텍스트가 없는 절대다수의
+      // 경우다. 국내 위탁 관행상 셀러가 반품 접점인 게 일반적이라 경고 후 진행한다.
       warnings.push(
-        `${describeSupplier(input)}는 ${
-          input.returnHandling === "supplier_collects"
-            ? "공급처 직접수거형"
-            : "반품 처리 주체 미확인"
-        }인데 셀러 자체 반품지로 등록됩니다 — 반품 시 셀러가 받아 공급처로 재발송해야 해 왕복 택배비가 발생할 수 있습니다.`,
+        `${describeSupplier(input)}는 반품 처리 주체가 확인되지 않아 셀러 자체 반품지로 등록됩니다 — ` +
+          "이 공급처가 실제로 직접 수거하는 곳이면 반품 시 셀러가 받아 재발송해야 해 왕복 택배비가 발생할 수 있습니다.",
       );
     }
     if (input.pickMode === "import" && !rawMap) {
