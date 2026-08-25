@@ -38,6 +38,8 @@ export type ChatIntent =
   | "return_addresses"
   /** 알림 받을 내 번호는 이거다 */
   | "set_alert_phone"
+  /** 문자가 실제로 오는지 지금 한 통 보내봐 */
+  | "test_alert"
   /** 그 외 — 대화로 답한다 */
   | "talk";
 
@@ -124,6 +126,16 @@ function readOwnerPhone(text: string): string | null {
   return `+82${digits.slice(1)}`;
 }
 
+/**
+ * 문자 테스트 — 설정이 끝났는지 12시간 기다려 보고 알 수는 없다.
+ *
+ * 실제로는 통신사·Twilio 지역 허용 같은 게 걸려서 안 오는 경우가 대부분인데,
+ * 그건 진짜 급한 알림이 필요한 순간에 발견하면 이미 늦다. 그래서 지금 당장
+ * 한 통 보내보는 길을 열어둔다.
+ */
+const TEST_ALERT_PATTERNS =
+  /(문자|알림|sms).{0,10}(테스트|보내봐|시험|확인해|와\?|오나|되나)|테스트.{0,6}(문자|알림)/i;
+
 const RUN_PATTERNS = /(지금\s*(한번|한\s*번)?\s*(돌려|실행|시작)|실행해|돌려줘|시작해|가동)/;
 const STATUS_PATTERNS = /(상태|어때|어떻게\s*(돼|되)|잘\s*되|현황|뭐하고|리포트|보고)/;
 const ORDER_INFO_PATTERNS =
@@ -152,6 +164,10 @@ export function parseChatAction(message: string): ChatAction {
       tracking: { trackingNumber, deliveryCompany },
       confident: true,
     };
+  }
+
+  if (TEST_ALERT_PATTERNS.test(text)) {
+    return { intent: "test_alert", confident: true };
   }
 
   const alertPhone = readOwnerPhone(text);

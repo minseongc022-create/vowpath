@@ -7,6 +7,7 @@ import {
   getSupplierOrderBrief,
   markWholesaleOrdered,
   runAutopilotForMerchant,
+  sendOwnerTestAlert,
   setOwnerAlertPhone,
   syncReturnLocationsForMerchant,
 } from "@/toss-shop/lib/store";
@@ -163,6 +164,26 @@ export async function POST(request: Request) {
           `알림 번호를 ${shown} 로 저장했습니다.\n` +
           "발주가 12시간, 송장이 6시간 넘게 밀리면 그때만 문자 드릴게요 — 그 외엔 안 보냅니다.",
         did: "set_alert_phone",
+      });
+    }
+
+    // ── 문자 테스트 ──────────────────────────────────────────────
+    if (action.intent === "test_alert" && action.confident) {
+      const r = await sendOwnerTestAlert(session.merchantId);
+      if (r.ok) {
+        const shown = (r.phone ?? "").replace(/^\+82/, "0");
+        return NextResponse.json({
+          reply: `${shown} 로 문자 한 통 보냈습니다. 안 오면 바로 말씀해 주세요.`,
+          did: "test_alert",
+        });
+      }
+      return NextResponse.json({
+        reply:
+          `문자를 못 보냈습니다 — ${r.error}\n` +
+          (r.phone
+            ? "번호는 저장돼 있으니, 발송 설정 쪽 문제입니다."
+            : "먼저 「내 번호 010-…」 으로 번호를 알려주세요."),
+        did: "test_alert",
       });
     }
 

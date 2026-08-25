@@ -1604,6 +1604,32 @@ export async function setOwnerAlertPhone(
 }
 
 /**
+ * 지금 당장 문자 한 통을 보내본다 — 설정이 실제로 되는지 확인용.
+ *
+ * 실패하면 왜 실패했는지 그대로 돌려준다. "안 왔다"만으로는 번호가 문제인지
+ * 발송 설정이 문제인지 알 수 없어서, 사장님이 뭘 고쳐야 하는지 판단이 안 된다.
+ */
+export async function sendOwnerTestAlert(merchantId: string): Promise<{
+  ok: boolean;
+  phone?: string;
+  error?: string;
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const phone = data.ownerAlertPhone?.trim() || process.env.OWNER_ALERT_PHONE?.trim();
+  if (!phone) return { ok: false, error: "번호가 아직 없습니다" };
+
+  const { sendSms } = await import("@/lib/send-sms");
+  const result = await sendSms(
+    phone,
+    "[자비스] 알림 테스트입니다. 이 문자가 왔으면 설정이 끝난 겁니다.",
+    "jarvis-owner-test",
+    { usRecipientsOnly: false, strict: true },
+  );
+  return result.ok ? { ok: true, phone } : { ok: false, phone, error: result.error };
+}
+
+/**
  * 밀린 필수 작업을 사장님 휴대폰으로 알린다.
  *
  * 자비스 사이클이 끝날 때마다 호출된다. 같은 종류는 한 번만 나가고, 해소됐다가

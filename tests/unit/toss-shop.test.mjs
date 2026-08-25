@@ -4004,3 +4004,12 @@ test("알림: 송장 대기는 발주 시각 기준으로 재는다", async () =
     0,
   );
 });
+
+test("대화: 문자 테스트를 상태 질문으로 잘못 읽지 않는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  for (const msg of ["문자 테스트 해봐", "알림 오나 확인해줘", "sms 테스트"]) {
+    assert.equal(parseChatAction(msg).intent, "test_alert", msg);
+  }
+  // 번호를 주는 건 테스트가 아니라 저장이다
+  assert.equal(parseChatAction("내 번호 010-5596-9438").intent, "set_alert_phone");
+});
