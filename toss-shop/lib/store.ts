@@ -1441,3 +1441,76 @@ export async function confirmFulfillmentTracking(input: {
   await saveStore(store);
   return jobs[idx];
 }
+
+// ── 자비스 대화 지원 ──────────────────────────────────────────
+
+/** 대화창이 답하는 데 필요한 현재 상태 — 숫자를 지어내지 않기 위한 근거 */
+export async function getJarvisChatContext(merchantId: string) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { summarizeJarvisStatus } = await import("./seller-engine/jarvis-chat");
+  const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
+  return {
+    status: summarizeJarvisStatus(data, getMonthlyGoalKrw()),
+    jobs: data.fulfillmentJobs ?? [],
+  };
+}
+
+/**
+ * "반품지 등록했어" — 토스에서 목록을 다시 읽어 대기 중이던 공급처와 맞춰본다.
+ *
+ * 토스가 반품지 생성 API를 안 줘서(405 실측) 등록은 사람이 하지만, 등록한
+ * **다음**은 전부 자동이다. 사장님이 한마디만 하면 이 함수가 즉시 목록을
+ * 다시 읽어 매칭하고, 연결된 공급처는 대기 목록에서 빠진다 — 다음 크론
+ * 사이클까지 기다릴 필요가 없다.
+ */
+export async function syncReturnLocationsForMerchant(merchantId: string): Promise<{
+  locationCount: number;
+  matched: number;
+  stillPending: number;
+  error?: string;
+}> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const data = merchantData(store, merchantId);
+  const pending = data.pendingReturnAddresses ?? [];
+
+  const config = await resolveApiConfig(
+    merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
+  if (!config) {
+    return { locationCount: 0, matched: 0, stillPending: pending.length, error: "토스 API 미연동" };
+  }
+
+  const { listTossReturnLocations } = await import("./api/return-location-lookup");
+  const { findLocationByAddress } = await import("./api/return-location-matcher");
+
+  let locations;
+  try {
+    ({ locations } = await listTossReturnLocations(merchantId, config));
+  } catch (e) {
+    return {
+      locationCount: 0,
+      matched: 0,
+      stillPending: pending.length,
+      error: e instanceof Error ? e.message : "RETURN_LOCATION_LOOKUP_FAIL",
+    };
+  }
+
+  // 등록이 확인된 공급처는 대기 목록에서 뺀다 — 다음 사이클에 자동으로
+  // 공급처 직행(비용 0원)으로 처리된다.
+  const remaining = pending.filter((p) => !findLocationByAddress(locations, p.address));
+  const matched = pending.length - remaining.length;
+
+  data.pendingReturnAddresses = remaining;
+  await saveStore(store);
+
+  return { locationCount: locations.length, matched, stillPending: remaining.length };
+}

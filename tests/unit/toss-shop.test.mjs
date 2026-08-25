@@ -3748,38 +3748,6 @@ test("일괄 등록: 지시서에 값어치 필터·3곳 상한이 없다", asyn
 // 사람이 개입하면 수익이 오르는 지점 — 신규 공급처 샘플 검수, 초기 리뷰
 // ─────────────────────────────────────────────────────────────
 
-test("체크리스트: 신규 공급처는 샘플 검수 안내가 최상단에 뜬다", async () => {
-  const { buildListingDraftFromPick } = await import(
-    "../../toss-shop/lib/seller-engine/listing-automation.ts"
-  );
-  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
-  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
-
-  const [pick] = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
-  pick.wholesaleBest = {
-    platform: "domeme", title: pick.productName, unitPriceKrw: 12000,
-    shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
-    source: "live", sellerId: "brand-new-supplier",
-  };
-
-  const draft = await buildListingDraftFromPick({
-    merchantId: "m1", pick, mode: "consignment", draftId: "d1", isNewSupplier: true,
-  });
-
-  assert.ok(
-    draft.sellerChecklist[0].includes("처음 거래"),
-    "샘플 검수 안내가 체크리스트 맨 앞이어야 (UI가 상위 4개만 보여준다)",
-  );
-
-  const repeat = await buildListingDraftFromPick({
-    merchantId: "m1", pick, mode: "consignment", draftId: "d2", isNewSupplier: false,
-  });
-  assert.ok(
-    !repeat.sellerChecklist.some((s) => s.includes("처음 거래")),
-    "이미 본 공급처면 매번 안내가 뜨면 안 된다",
-  );
-});
-
 test("체크리스트: 초기 리뷰 확보 권장이 항상 상위에 남는다", async () => {
   const { buildListingDraftFromPick } = await import(
     "../../toss-shop/lib/seller-engine/listing-automation.ts"
@@ -3798,50 +3766,91 @@ test("체크리스트: 초기 리뷰 확보 권장이 항상 상위에 남는다
   );
 });
 
-test("autopilot: 처음 보는 공급처만 샘플 검수 안내가 뜨고, 두 번째부터는 안 뜬다", async () => {
-  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "1520171";
-  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
-  try {
-    const { runJarvisAutopilotCycle } = await import(
-      "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
-    );
-    const { generateConsignmentPicks } = await import(
-      "../../toss-shop/lib/seller-engine/consignment.ts"
-    );
-    const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
 
-    const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
-    for (const p of picks.slice(0, 2)) {
-      p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
-      p.estimatedMarginPct = Math.max(p.estimatedMarginPct, 20);
-      p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
-      p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
-      p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
-      // 두 픽 모두 같은 공급사를 쓰게 만든다 — 두 번째는 신규가 아니어야 한다
-      p.wholesaleBest = {
-        platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
-        shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
-        source: "live", sellerId: "same-supplier",
-        supplierQuality: {
-          grade: "excellent", shipSpeed: "same_day", verified: true,
-          fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
-        },
-        policyText: "반품은 판매자가 직접 처리해주셔야 합니다.",
-      };
-    }
+// ─────────────────────────────────────────────────────────────
+// 자비스 대화 — 돈이 걸린 행동은 LLM 없이 결정적으로 파싱한다
+// ─────────────────────────────────────────────────────────────
 
-    const data = { consignmentPicks: picks, listingDrafts: [], fulfillmentJobs: [] };
-    const report = await runJarvisAutopilotCycle({
-      merchantId: "m1", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
-    });
-    assert.ok(report.stats.draftsCreated >= 2, "두 초안 모두 만들어져야");
+test("대화: 송장번호와 택배사를 같이 주면 즉시 등록 의도로 읽는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
 
-    const withNotice = data.listingDrafts.filter((d) =>
-      d.sellerChecklist.some((s) => s.includes("처음 거래")),
-    );
-    assert.equal(withNotice.length, 1, "같은 공급처는 이번 사이클에서도 한 번만 안내되어야");
-  } finally {
-    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
-    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
-  }
+  const a = parseChatAction("1234567890 CJ대한통운");
+  assert.equal(a.intent, "register_tracking");
+  assert.equal(a.confident, true);
+  assert.equal(a.tracking.trackingNumber, "1234567890");
+  assert.equal(a.tracking.deliveryCompany, "CJ대한통운");
+
+  // 별칭·하이픈·문장 속에 섞여 있어도 읽어야 한다
+  const b = parseChatAction("송장 나왔어 한진 12345678901234 이걸로 넣어줘");
+  assert.equal(b.tracking.trackingNumber, "12345678901234");
+  assert.equal(b.tracking.deliveryCompany, "한진택배");
+
+  const c = parseChatAction("우체국 6041-2345-6789");
+  assert.equal(c.tracking.trackingNumber, "604123456789");
+  assert.equal(c.tracking.deliveryCompany, "우체국택배");
+});
+
+test("대화: 휴대폰 번호를 송장으로 오인하지 않는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  // 고객 전화번호를 송장으로 등록하면 배송 조회가 통째로 깨진다
+  const a = parseChatAction("고객이 01012345678 로 연락왔어");
+  assert.notEqual(a.intent, "register_tracking");
+});
+
+test("대화: 택배사 없이 송장번호만 오면 되묻는다 (추측 금지)", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  const a = parseChatAction("1234567890");
+  assert.equal(a.intent, "register_tracking");
+  assert.equal(a.confident, false, "택배사를 지어내면 안 된다");
+});
+
+test("대화: 실행·상태·반품지 동기화 의도를 규칙만으로 읽는다", async () => {
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  assert.equal(parseChatAction("지금 돌려").intent, "run_now");
+  assert.equal(parseChatAction("실행해줘").intent, "run_now");
+  assert.equal(parseChatAction("상태 어때?").intent, "status");
+  assert.equal(parseChatAction("지금 잘 되고 있어?").intent, "status");
+  assert.equal(parseChatAction("반품지 등록했어").intent, "sync_return_locations");
+  assert.equal(parseChatAction("반품지 다 넣었어").intent, "sync_return_locations");
+  // 그 외는 대화로 넘긴다
+  assert.equal(parseChatAction("요즘 뭐가 잘 팔려?").intent, "talk");
+});
+
+test("대화: 송장은 가장 오래 기다린 주문에 붙이고, 여러 건이면 알린다", async () => {
+  const { pickJobForTracking } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+  const job = (id, createdAt, over = {}) => ({
+    id, createdAt, updatedAt: createdAt, merchantId: "m1", orderId: 1, orderProductId: 1,
+    productName: `상품${id}`, status: "wholesale_ordered", quantity: 1,
+    customer: { name: "a", phone: "b", address: "c", zipCode: "d" }, ...over,
+  });
+
+  const single = pickJobForTracking([job("a", "2026-08-02")]);
+  assert.equal(single.job.id, "a");
+  assert.equal(single.ambiguous, false);
+
+  const many = pickJobForTracking([job("new", "2026-08-05"), job("old", "2026-08-01")]);
+  assert.equal(many.job.id, "old", "오래 기다린 주문이 발송지연 페널티에 가장 가깝다");
+  assert.equal(many.ambiguous, true);
+
+  // 이미 송장이 들어간 주문은 후보가 아니다
+  const done = pickJobForTracking([
+    job("x", "2026-08-01", { status: "tracking_registered" }),
+    job("y", "2026-08-02", { pendingTrackingNumber: "111" }),
+  ]);
+  assert.equal(done.job, null);
+});
+
+test("대화: 상태 요약은 없는 숫자를 지어내지 않는다", async () => {
+  const { summarizeJarvisStatus, renderStatusReply } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-chat.ts"
+  );
+  const s = summarizeJarvisStatus({ listingDrafts: [], fulfillmentJobs: [] }, 10_000_000);
+  assert.equal(s.publishedCount, 0);
+  assert.equal(s.monthlyNetKrw, 0);
+  assert.equal(s.running, false);
+
+  const reply = renderStatusReply(s);
+  assert.ok(reply.includes("멈춰"), "안 돌고 있으면 그렇게 말해야");
+  // 순익이 0이면 아예 언급하지 않는다 — 0원을 실적처럼 적으면 오해를 부른다
+  assert.ok(!reply.includes("이번 달 실제 순익"));
 });

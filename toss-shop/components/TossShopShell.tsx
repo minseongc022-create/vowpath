@@ -38,28 +38,19 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="hidden items-center gap-0.5 lg:flex">
+            {/*
+              메뉴는 둘뿐이다 — 자비스와 연동.
+              나머지(발굴·키워드·랭킹·경쟁사·정산)는 전부 자비스가 알아서 하는
+              일의 중간 결과였고, 사장님이 그 화면을 보고 할 수 있는 게 없었다.
+              페이지는 그대로 살아있으니 필요해지면 그때 다시 꺼내면 된다.
+            */}
             {isDashboard ? (
               <>
                 <Link href={SP_ROUTES.dashboard} className={navClass(pathname === SP_ROUTES.dashboard)}>
-                  {SP_STRINGS.navDashboard}
-                </Link>
-                <Link href={SP_ROUTES.discovery} className={navClass(pathname.includes("/discovery"))}>
-                  {SP_STRINGS.navDiscovery}
-                </Link>
-                <Link href={SP_ROUTES.keywords} className={navClass(pathname.includes("/keywords"))}>
-                  {SP_STRINGS.navKeywords}
-                </Link>
-                <Link href={SP_ROUTES.rankings} className={navClass(pathname.includes("/rankings"))}>
-                  {SP_STRINGS.navRankings}
-                </Link>
-                <Link href={SP_ROUTES.competitors} className={navClass(pathname.includes("/competitors"))}>
-                  {SP_STRINGS.navCompetitors}
-                </Link>
-                <Link href={SP_ROUTES.settlements} className={navClass(pathname.includes("/settlements"))}>
-                  {SP_STRINGS.navSettlements}
+                  자비스
                 </Link>
                 <Link href={SP_ROUTES.settings} className={navClass(pathname.includes("/settings"))}>
-                  설정
+                  연동
                 </Link>
               </>
             ) : (

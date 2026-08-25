@@ -85,18 +85,6 @@ export async function runJarvisAutopilotCycle(
   const pendingDraftIds = new Set(
     listingDrafts.filter((d) => !["rejected", "failed"].includes(d.status)).map((d) => d.pickId),
   );
-  // 이미 한 번이라도 초안이 만들어진 공급처는 "신규"가 아니다 — 사람이 이미
-  // 그 공급처의 상품 정보를 한 번 봤을 가능성이 높다. 샘플 검수 안내는
-  // 진짜 처음 마주치는 공급처에만 띄운다.
-  const seenSuppliers = new Set(
-    listingDrafts
-      .map((d) => {
-        const platform = d.listingPayload.supplierPlatform;
-        const supplierId = d.listingPayload.supplierId;
-        return platform && supplierId ? `${platform}:${supplierId}`.toLowerCase() : null;
-      })
-      .filter((k): k is string => k !== null),
-  );
 
   // 이번 사이클에 몇 개를 만들지 목표 달성확률에서 역산한다.
   // 이미 등록된(published) SKU가 많을수록 필요 수가 줄어든다.
@@ -264,13 +252,6 @@ export async function runJarvisAutopilotCycle(
           needsSupplierAddress(readSupplierReturnPolicy(pick.wholesaleBest.policyText).handling) &&
           resolvedReturn?.locationId === sellerOwnedLocationId;
 
-        const supplierKey =
-          pick.wholesaleBest?.platform && pick.wholesaleBest.sellerId
-            ? `${pick.wholesaleBest.platform}:${pick.wholesaleBest.sellerId}`.toLowerCase()
-            : null;
-        const isNewSupplier = supplierKey !== null && !seenSuppliers.has(supplierKey);
-        if (supplierKey) seenSuppliers.add(supplierKey);
-
         const draft = await buildListingDraftFromPick({
           merchantId: input.merchantId,
           pick,
@@ -278,7 +259,6 @@ export async function runJarvisAutopilotCycle(
           draftId: `jl_auto_${Date.now().toString(36)}_${createdThisCycle}`,
           now,
           resolvedReturn,
-          isNewSupplier,
         });
 
         if (forcedSellerFallback) {
