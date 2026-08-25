@@ -30,9 +30,11 @@ export const CATEGORY_RESOLVER_VERSION = "1.0";
 export type CategoryDecision = {
   engineVersion: string;
   categoryId?: number;
-  /** 어떤 근거로 결정됐는가 */
-  source: "explicit" | "category_map" | "default" | "unresolved";
+  /** 어떤 근거로 결정됐는가 — 구체적인 것이 우선한다 */
+  source: "explicit" | "auto_match" | "category_map" | "default" | "unresolved";
   matchedCategory?: TossShopCategory;
+  /** auto_match일 때 실제로 내려간 카테고리 경로 (사후 검증용) */
+  matchedPath?: string[];
   warnings: string[];
   error?: { code: "MAP_INVALID" | "MISSING"; message: string };
 };
@@ -101,12 +103,27 @@ function readDefaultCategoryId(): number | undefined {
 export function resolveCategoryId(input: {
   category?: TossShopCategory;
   explicitCategoryId?: number;
+  /**
+   * 상품별 실시간 카테고리 매칭 결과 (category-auto-match.ts).
+   * 사람이 승인 화면에서 직접 지정한 것보다는 아래지만, 정적 매핑·기본값보다는
+   * 우선한다 — 실제 상품에 맞춰 찾은 값이라 정적 매핑보다 정확하다.
+   */
+  autoMatch?: { categoryId: number; path: string[] };
 }): CategoryDecision {
   const warnings: string[] = [];
   const base = { engineVersion: CATEGORY_RESOLVER_VERSION, warnings };
 
   if (input.explicitCategoryId && input.explicitCategoryId > 0) {
     return { ...base, categoryId: input.explicitCategoryId, source: "explicit" };
+  }
+
+  if (input.autoMatch?.categoryId) {
+    return {
+      ...base,
+      categoryId: input.autoMatch.categoryId,
+      source: "auto_match",
+      matchedPath: input.autoMatch.path,
+    };
   }
 
   const rawMap = process.env.TOSS_SHOP_CATEGORY_ID_MAP?.trim();

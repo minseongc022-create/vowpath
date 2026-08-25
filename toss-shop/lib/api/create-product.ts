@@ -7,6 +7,7 @@ import {
   type ReturnLocationDecision,
 } from "./exchange-return-location";
 import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./category-resolver";
+import { autoMatchCategoryId } from "./category-auto-match";
 
 /** Minimal Toss FEP product create body — categoryId required at publish time. */
 export type TossCreateProductBody = {
@@ -114,9 +115,26 @@ export async function publishListingToToss(input: {
 }): Promise<PublishListingResult> {
   const payload = input.draft.listingPayload;
 
+  // 명시 지정이 없으면, 이 상품에 맞는 실제 리프 카테고리를 실시간으로
+  // 찾아본다. 실패해도 조용히 정적 매핑·기본값으로 폴백한다 —
+  // category-resolver.ts가 그 폴백을 담당한다.
+  let autoMatch: { categoryId: number; path: string[] } | undefined;
+  if (!input.categoryId) {
+    const matched = await autoMatchCategoryId({
+      merchantId: input.merchantId,
+      config: input.config,
+      title: payload.name,
+      keyword: input.draft.keyword,
+    });
+    if (matched.confident && matched.categoryId) {
+      autoMatch = { categoryId: matched.categoryId, path: matched.path };
+    }
+  }
+
   const category = resolveCategoryId({
     category: payload.category,
     explicitCategoryId: input.categoryId,
+    autoMatch,
   });
   const returnLocation = resolveReturnLocation({
     explicitLocationId: input.exchangeReturnLocationId,

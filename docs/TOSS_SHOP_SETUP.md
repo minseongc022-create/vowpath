@@ -81,18 +81,22 @@ Header: `Authorization: Bearer $CRON_SECRET`
 | `TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP` | — | 공급처별 반품지 JSON — 아래 참조 |
 | `TOSS_SHOP_RETURN_LOCATION_STRICT` | `false` | `true` = 매핑에 없는 공급처는 등록 차단 |
 
-### 토스 카테고리 ID — 상품마다 자동 선택
+### 토스 카테고리 ID — 상품마다 실시간 자동 매칭
 
-자비스는 픽마다 이미 식품/뷰티/생활/디지털/패션/건강 6개로 분류해둔다. 종전에는 `TOSS_SHOP_DEFAULT_CATEGORY_ID` 하나가 **모든 상품에 그대로** 적용됐다 — 뷰티 상품도 식품 카테고리로 등록되는 식이었다. 지금은 `category-resolver.ts`가 상품 분류에 맞춰 자동으로 고른다.
+토스 최상위 카테고리는 15개뿐이고 전부 비-리프(하위 보기 필요)다. 우리 내부 분류(식품/뷰티/생활/디지털/패션/건강) 6개로는 이 트리를 정확히 못 덮는다 — "생활" 하나만 봐도 실제로는 가구/홈데코·생활용품·주방용품 세 갈래로 갈린다. 여러 카테고리를 폭넓게 파는 전략에서는 정적 매핑 몇 개로 커버가 안 된다.
+
+그래서 `category-auto-match.ts`가 **상품마다 실제 토스 카테고리 트리를 실시간으로 내려가며** 맞는 리프를 찾는다 (`OPENAI_API_KEY` 필요). 매 단계, 실제 하위 카테고리 목록 중에서만 고르게 강제한다 — 모델이 트리에 없는 ID를 답하면 그 응답은 버린다(지어낸 카테고리 방지). 확신이 안 서면 매칭 실패로 남기고 아래 정적 폴백으로 넘어간다.
+
+**결정 순서**: 승인 화면 직접 지정 → 실시간 자동 매칭 → `TOSS_SHOP_CATEGORY_ID_MAP`의 해당 카테고리 → `TOSS_SHOP_DEFAULT_CATEGORY_ID`(최종 폴백) → 등록 차단.
+
+`TOSS_SHOP_CATEGORY_ID_MAP`/`_DEFAULT_CATEGORY_ID`는 이제 **자동 매칭이 실패했을 때만 쓰이는 안전망**이다. `OPENAI_API_KEY`가 있으면 대부분 자동 매칭이 처리한다.
 
 ```jsonc
 // TOSS_SHOP_CATEGORY_ID_MAP
 { "food": 123, "beauty": 456, "home": 789, "digital": 1011, "fashion": 1213, "health": 1415 }
 ```
 
-**결정 순서**: 승인 화면 직접 지정 → `TOSS_SHOP_CATEGORY_ID_MAP`의 해당 카테고리 → `TOSS_SHOP_DEFAULT_CATEGORY_ID`(매핑에 없는 카테고리의 폴백) → 등록 차단(`MISSING`).
-
-**주의 — 이 숫자는 자비스가 지어낼 수 없다.** 토스 자체 카테고리 분류체계의 실제 ID라, 틀린 번호를 넣으면 등록이 거부되거나 엉뚱한 카테고리로 등록된다(노출 저하). 6개 값은 토스 셀러센터의 상품등록 화면에서 실제 판매하실 카테고리를 하나씩 골라 확인하셔야 한다. 하나만 파신다면 `TOSS_SHOP_DEFAULT_CATEGORY_ID` 하나로 충분하다.
+**주의 — 이 숫자는 자비스가 지어낼 수 없다.** (정적 폴백에 한정된 이야기 — 자동 매칭은 실시간으로 실제 트리를 조회하므로 이 문제가 없다.) 정적 매핑 값은 토스 셀러센터의 상품등록 화면에서 실제 판매하실 카테고리를 하나씩 골라 확인하셔야 한다. 하나만 파신다면 `TOSS_SHOP_DEFAULT_CATEGORY_ID` 하나로 충분하다.
 
 매핑 JSON이 깨지면(`exchange-return-location.ts`와 같은 fail-closed 원칙) 등록을 차단한다 — 조용히 기본값으로 넘어가면 전 상품이 잘못된 카테고리로 등록되기 때문이다.
 

@@ -21,8 +21,9 @@ export const JARVIS_ENV_FIX_HINTS: Record<string, string> = {
   detail_external: "OPENAI_API_KEY 또는 DRAPH/HOOKABLE API → Vercel Production",
   matchcut: "OPENAI_API_KEY → Vercel Production",
   toss_publish: "TOSS_SHOPPING_ACCESS_KEY + TOSS_SHOPPING_SECRET_KEY (토스 셀러센터 발급)",
+  category_auto_match: "OPENAI_API_KEY → 상품마다 실제 토스 카테고리 트리를 실시간 탐색해 리프 카테고리 자동 선택",
   category_id:
-    "TOSS_SHOP_DEFAULT_CATEGORY_ID(기본 1개) 또는 TOSS_SHOP_CATEGORY_ID_MAP(카테고리별 JSON, 예 {\"food\":123,\"beauty\":456}) — 자비스가 상품마다 자동 선택",
+    "(자동 매칭 실패 시 폴백) TOSS_SHOP_DEFAULT_CATEGORY_ID(기본 1개) 또는 TOSS_SHOP_CATEGORY_ID_MAP(카테고리별 JSON, 예 {\"food\":123,\"beauty\":456})",
   return_location:
     "TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID(기본) + TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP(공급처별 JSON, 예 {\"domeggook:12345\":678})",
   wholesale_search: "DOMEGGOOK_API_KEY → Vercel Production",

@@ -11,6 +11,7 @@ import { aiImagesEnabled } from "./ai-image-studio";
 import { TOSS_MARKET_ENGINE_VERSION } from "./toss-market-engine";
 import { describeReturnLocationConfig } from "../api/exchange-return-location";
 import { describeCategoryConfig } from "../api/category-resolver";
+import { autoCategoryMatchEnabled } from "../api/category-auto-match";
 import { adapterHealth } from "../wholesale/adapters/registry";
 import { SAME_DAY_MIN_FULFILLMENT_RATE_PCT } from "../wholesale/supplier-quality";
 import { isImportSalesEnabled, activeChannelLabel } from "./channel-mode";
@@ -117,9 +118,19 @@ export function runJarvisHealthCheck(input: {
     passed: tossApi,
     detail: tossApi ? "TOSS_SHOPPING_ACCESS_KEY/SECRET_KEY 연동됨" : "TOSS_SHOPPING_ACCESS_KEY + TOSS_SHOPPING_SECRET_KEY 필요",
   });
+  const autoCategory = autoCategoryMatchEnabled();
+  checks.push({
+    id: "category_auto_match",
+    label: "상품별 카테고리 실시간 자동 매칭",
+    category: "listing",
+    passed: autoCategory,
+    detail: autoCategory
+      ? "OPENAI_API_KEY 연동 — 상품마다 실제 토스 카테고리 트리에서 리프를 실시간 탐색"
+      : "OPENAI_API_KEY 필요 — 비활성 시 정적 매핑/기본값으로만 동작(카테고리 다양성 커버 불가)",
+  });
   checks.push({
     id: "category_id",
-    label: "상품별 토스 카테고리 자동 선택",
+    label: "카테고리 폴백(자동 매칭 실패 시)",
     category: "listing",
     passed: categoryConfig.mapValid && categoryId,
     detail: !categoryConfig.mapValid
@@ -127,8 +138,8 @@ export function runJarvisHealthCheck(input: {
       : !categoryId
         ? "TOSS_SHOP_DEFAULT_CATEGORY_ID 또는 TOSS_SHOP_CATEGORY_ID_MAP 필요"
         : categoryConfig.mapEntryCount > 0
-          ? `카테고리별 매핑 ${categoryConfig.mapEntryCount}개 — 상품 분류(식품/뷰티/생활 등)에 맞춰 자동 선택${categoryConfig.defaultId ? ` (기본 ${categoryConfig.defaultId})` : ""}`
-          : `기본 카테고리 ${categoryConfig.defaultId} — 전 상품 동일 적용 (카테고리별로 다르게 하려면 TOSS_SHOP_CATEGORY_ID_MAP 권장)`,
+          ? `카테고리별 매핑 ${categoryConfig.mapEntryCount}개${categoryConfig.defaultId ? ` + 기본 ${categoryConfig.defaultId}` : ""}`
+          : `기본 카테고리 ${categoryConfig.defaultId}`,
   });
   checks.push({
     id: "return_location",

@@ -39,6 +39,7 @@ const GROUPS = [
       ["TOSS_SHOPPING_SECRET_KEY", false],
       ["TOSS_SHOP_DEFAULT_CATEGORY_ID", false],
       ["TOSS_SHOP_CATEGORY_ID_MAP", false],
+      ["JARVIS_AUTO_CATEGORY", false],
       ["TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID", false],
       ["TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP", false],
       ["TOSS_SHOP_RETURN_LOCATION_STRICT", false],

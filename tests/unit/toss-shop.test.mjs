@@ -2275,3 +2275,223 @@ test("certainty: 목표까지 필요한 SKU 수를 실제 기여로 역산한다
     Math.ceil(10_000_000 / MIN_MONTHLY_PROFIT_KRW),
   );
 });
+
+// ── 카테고리 자동 매칭: 상품마다 실제 트리를 내려가며 리프를 찾는다 ─────
+
+function mockCategoryTreeFetch({ topLevelWinner = "beauty" } = {}) {
+  const tree = {
+    root: [
+      { id: 50995, name: "식품" },
+      { id: 50997, name: "뷰티" },
+      { id: 22343, name: "생활용품" },
+    ],
+    50997: [
+      { id: 51001, name: "스킨케어" },
+      { id: 51002, name: "메이크업" },
+    ],
+    51001: [
+      { id: 51101, name: "세럼/에센스", isLeaf: true },
+      { id: 51102, name: "로션/크림", isLeaf: true },
+    ],
+  };
+
+  return async (url, opts) => {
+    const href = String(url);
+    if (href.includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    if (href.includes("chat/completions")) {
+      const body = JSON.parse(opts.body);
+      const userMsg = body.messages[0].content;
+      // 세럼 상품이 뷰티 > 스킨케어 > 세럼/에센스로 내려가도록, 매 단계 옵션
+      // 중 그 경로에 있는 이름을 우선순위로 고르는 단순 mock.
+      const priority = ["세럼/에센스", "스킨케어", "뷰티"];
+      let answer = { matched: false };
+      for (const name of priority) {
+        const m = userMsg.match(new RegExp(`id=(\\d+): ${name}`));
+        if (m) {
+          answer = { id: Number(m[1]), matched: true };
+          break;
+        }
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) } }] }),
+        { status: 200 },
+      );
+    }
+    if (href.includes("categories/children")) {
+      const u = new URL(href);
+      const parentId = u.searchParams.get("id");
+      const nodes = tree[parentId ?? "root"] ?? [];
+      return new Response(JSON.stringify({ resultType: "SUCCESS", success: { items: nodes } }), { status: 200 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+}
+
+test("category auto-match: 실제 트리를 내려가며 리프 카테고리를 찾는다", async (t) => {
+  const { autoMatchCategoryId, clearCategoryAutoMatchCache } = await import(
+    "../../toss-shop/lib/api/category-auto-match.ts"
+  );
+  const hadKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "sk-test-mock";
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    hadKey === undefined ? delete process.env.OPENAI_API_KEY : (process.env.OPENAI_API_KEY = hadKey);
+    globalThis.fetch = realFetch;
+    clearCategoryAutoMatchCache();
+  });
+  clearCategoryAutoMatchCache();
+  globalThis.fetch = mockCategoryTreeFetch();
+
+  const result = await autoMatchCategoryId({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    title: "수분 세럼 30ml",
+    keyword: "세럼",
+  });
+
+  assert.equal(result.confident, true, result.reason);
+  assert.equal(result.categoryId, 51101, "뷰티 > 스킨케어 > 세럼/에센스로 내려가야");
+  assert.deepEqual(result.path, ["뷰티", "스킨케어", "세럼/에센스"]);
+});
+
+test("category auto-match: 모델이 트리에 없는 id를 답하면 지어낸 것으로 보고 버린다", async (t) => {
+  const { autoMatchCategoryId, clearCategoryAutoMatchCache } = await import(
+    "../../toss-shop/lib/api/category-auto-match.ts"
+  );
+  const hadKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "sk-test-mock";
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    hadKey === undefined ? delete process.env.OPENAI_API_KEY : (process.env.OPENAI_API_KEY = hadKey);
+    globalThis.fetch = realFetch;
+    clearCategoryAutoMatchCache();
+  });
+  clearCategoryAutoMatchCache();
+
+  globalThis.fetch = async (url, opts) => {
+    const href = String(url);
+    if (href.includes("oauth2")) {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    if (href.includes("chat/completions")) {
+      // 존재하지 않는 id 999999를 답함 — 모델의 환각
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: JSON.stringify({ id: 999999, matched: true }) } }] }),
+        { status: 200 },
+      );
+    }
+    if (href.includes("categories/children")) {
+      return new Response(
+        JSON.stringify({ resultType: "SUCCESS", success: { items: [{ id: 1, name: "식품" }] } }),
+        { status: 200 },
+      );
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  const result = await autoMatchCategoryId({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    title: "테스트 상품",
+    keyword: "테스트",
+  });
+  assert.equal(result.confident, false, "옵션에 없는 id는 신뢰하면 안 된다");
+});
+
+test("category auto-match: OPENAI_API_KEY 없으면 비활성 (정적 매핑으로 폴백)", async (t) => {
+  const { autoMatchCategoryId } = await import("../../toss-shop/lib/api/category-auto-match.ts");
+  const hadKey = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  t.after(() => {
+    if (hadKey !== undefined) process.env.OPENAI_API_KEY = hadKey;
+  });
+
+  const result = await autoMatchCategoryId({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    title: "테스트", keyword: "테스트",
+  });
+  assert.equal(result.confident, false);
+  assert.match(result.reason, /비활성/);
+});
+
+test("category resolver: auto_match가 정적 매핑보다 우선하지만 명시 지정보다는 아래", async (t) => {
+  const { resolveCategoryId, clearCategoryMapCache } = await import(
+    "../../toss-shop/lib/api/category-resolver.ts"
+  );
+  t.after(() => {
+    delete process.env.TOSS_SHOP_CATEGORY_ID_MAP;
+    delete process.env.TOSS_SHOP_DEFAULT_CATEGORY_ID;
+    clearCategoryMapCache();
+  });
+  process.env.TOSS_SHOP_CATEGORY_ID_MAP = JSON.stringify({ beauty: 222 });
+  clearCategoryMapCache();
+
+  const withAutoMatch = resolveCategoryId({
+    category: "beauty",
+    autoMatch: { categoryId: 51101, path: ["뷰티", "스킨케어", "세럼/에센스"] },
+  });
+  assert.equal(withAutoMatch.categoryId, 51101, "실시간 매칭이 정적 매핑(222)보다 우선해야");
+  assert.equal(withAutoMatch.source, "auto_match");
+  assert.deepEqual(withAutoMatch.matchedPath, ["뷰티", "스킨케어", "세럼/에센스"]);
+
+  const withExplicit = resolveCategoryId({
+    category: "beauty",
+    explicitCategoryId: 999,
+    autoMatch: { categoryId: 51101, path: [] },
+  });
+  assert.equal(withExplicit.categoryId, 999, "사람이 직접 지정하면 그게 최우선");
+});
+
+test("publish: 카테고리 자동 매칭 결과가 실제 등록에 쓰이고 결정 근거가 남는다", async (t) => {
+  const { publishListingToToss } = await import("../../toss-shop/lib/api/create-product.ts");
+  const { clearCategoryAutoMatchCache } = await import("../../toss-shop/lib/api/category-auto-match.ts");
+  const hadKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "sk-test-mock";
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "100";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+  const realFetch = globalThis.fetch;
+  t.after(() => {
+    hadKey === undefined ? delete process.env.OPENAI_API_KEY : (process.env.OPENAI_API_KEY = hadKey);
+    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
+    globalThis.fetch = realFetch;
+    clearCategoryAutoMatchCache();
+  });
+  clearCategoryAutoMatchCache();
+
+  let sentCategoryId;
+  const categoryFetch = mockCategoryTreeFetch();
+  globalThis.fetch = async (url, opts) => {
+    const href = String(url);
+    if (href.includes("products/v2") && opts?.method === "POST") {
+      sentCategoryId = JSON.parse(opts.body).categoryId;
+      return new Response(JSON.stringify({ resultType: "SUCCESS", success: { id: 1 } }), { status: 200 });
+    }
+    return categoryFetch(url, opts);
+  };
+
+  const draft = {
+    pickMode: "consignment",
+    keyword: "세럼",
+    detailPage: { thumbnailUrl: undefined },
+    listingPayload: {
+      name: "수분 세럼 30ml", brandName: "에피로드", salePrice: 15000, originPrice: 16000,
+      searchKeywords: ["세럼"], description: "설명", categoryHint: "뷰티", category: "beauty",
+      deliveryFeeType: "FREE", returnHandling: "seller_handles",
+    },
+  };
+
+  const res = await publishListingToToss({
+    merchantId: "m1",
+    config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
+    draft,
+  });
+
+  assert.equal(res.ok, true);
+  assert.equal(sentCategoryId, 51101, "실시간으로 찾은 리프 카테고리가 실제 등록에 쓰여야");
+  assert.equal(res.category.source, "auto_match");
+  assert.deepEqual(res.category.matchedPath, ["뷰티", "스킨케어", "세럼/에센스"]);
+});
