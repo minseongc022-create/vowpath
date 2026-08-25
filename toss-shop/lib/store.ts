@@ -1630,7 +1630,9 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
     (data.sentTodoKinds ?? []) as TodoKind[],
   );
 
-  const phone = data.ownerAlertPhone?.trim();
+  // 대화창에서 넣은 번호가 우선이고, 없으면 환경변수(OWNER_ALERT_PHONE)로
+  // 떨어진다 — 이미 등록해 둔 번호가 있으면 아무것도 안 해도 알림이 나가야 한다.
+  const phone = data.ownerAlertPhone?.trim() || process.env.OWNER_ALERT_PHONE?.trim();
   if (!phone) {
     // 번호가 없으면 보낼 수 없다. 기록은 갱신하지 않는다 — 번호를 넣는 순간
     // 밀린 일이 있으면 바로 한 통 가야 하기 때문이다.
