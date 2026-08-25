@@ -307,42 +307,27 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
 
     // 매핑을 쓴다 = 공급처마다 반품지가 다르다는 선언. 그런데 이 건은 누락됐다.
     const label = describeSupplier(input);
-
-    // 공급처 수거형(또는 판독 실패)인데 전용 주소가 없다 → 기본값 폴백 금지.
-    // 폴백하면 기본 반품지 주인이 남의 반품을 받는다.
     const sellerOwned = sellerOwnedDefaultId(parsed.map);
     const strictlyRequired = requiresSupplierAddressStrictly(input.returnHandling);
+
+    // ⚠️ 예전엔 여기서 등록을 막았다 — 공급처 수거형인데 전용 주소가 없으면
+    // 기본 반품지로도 대체하지 않았다. 사장님 지시로 그 제약을 풀었다:
+    // 토스가 반품지 생성 API를 안 주는 이상(405 실측 확인) 등록을 막으면
+    // 곧 "사람이 계속 손봐야 자동화가 된다"는 뜻이라 무인화가 성립하지 않는다.
+    // 지금은 셀러 주소로 강제 폴백시키고, 그 비용은 반품 물류 두뇌
+    // (return-logistics-brain.ts)가 판매 단가에서 충당금으로 미리 뗀다 —
+    // "막는다"가 아니라 "비용을 알고 진행한다"로 바뀐 것이다.
     if ((strictlyRequired || !mayUseSellerOwned(input.returnHandling)) && !sellerOwned) {
-      return {
-        ...base,
-        source: "unresolved",
-        triedKeys,
-        error: {
-          code: "SUPPLIER_ADDRESS_REQUIRED",
-          message:
-            `${label}는 ${describeHandling(input.returnHandling)}이라 ` +
-            "전용 반품지가 필요합니다. 기본 반품지로 등록하면 그 주소의 주인이 남의 반품을 받게 되어 " +
-            `수취 거부·분쟁으로 이어집니다. 시도한 키: ${triedKeys.join(", ") || "없음"}. ` +
-            "이 공급처 주소를 토스에 등록하고 매핑에 추가하거나, 셀러 자체 반품지를 " +
-            "매핑의 seller_default 키로 선언하세요.",
-        },
-      };
-    }
-    // 공급처가 직접 수거한다고 확인됐으면, 셀러 주소가 선언돼 있어도 절대
-    // 그걸로 대체하지 않는다 — "내 상품이 아닌데 나한테 반품 오면 안 된다".
-    if (strictlyRequired && sellerOwned) {
-      return {
-        ...base,
-        source: "unresolved",
-        triedKeys,
-        error: {
-          code: "SUPPLIER_ADDRESS_REQUIRED",
-          message:
-            `${label}는 ${describeHandling(input.returnHandling)}으로 확인됐습니다. 셀러 자체 반품지(seller_default)로 ` +
-            "대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
-            `이 공급처의 실제 주소를 토스에 등록하고 매핑에 "${label.replace("공급처 ", "")}" 키로 추가하세요.`,
-        },
-      };
+      warnings.push(
+        `${label}는 ${describeHandling(input.returnHandling)}이라 전용 반품지가 필요하지만, ` +
+          "아직 없어 기본 반품지로 등록됩니다. 반품이 오면 셀러가 공급처로 재발송해야 할 수 있어 " +
+          "왕복 배송비가 발생합니다 — 전용 주소를 등록하면 다음부터는 공급처로 직행합니다.",
+      );
+    } else if (strictlyRequired && sellerOwned) {
+      warnings.push(
+        `${label}는 ${describeHandling(input.returnHandling)}으로 확인됐습니다. 전용 반품지가 없어 ` +
+          "셀러 자체 반품지(seller_default)로 대신 등록합니다 — 반품이 오면 공급처로 재발송이 필요할 수 있습니다.",
+      );
     }
 
     if (strict) {
@@ -385,23 +370,17 @@ export function resolveReturnLocation(input: ResolveReturnLocationInput): Return
   );
 
   if (sellerOwned) {
-    // 공급처가 직접 수거한다고 확인됐으면 셀러 주소로 절대 대체하지 않는다.
+    // ⚠️ 예전엔 공급처가 직접 수거한다고 확인되면 셀러 주소로 절대 대체하지
+    // 않았다. 지금은 강제 폴백을 허용한다(사장님 지시 — 반품지 없다고
+    // 소싱·등록을 막지 말 것). 비용은 return-logistics-brain.ts가 충당금으로
+    // 미리 뗀다. 전용 주소를 등록하면 다음부터는 자동으로 공급처 직행이 된다.
     if (requiresSupplierAddressStrictly(input.returnHandling)) {
-      return {
-        ...base,
-        source: "unresolved",
-        triedKeys,
-        error: {
-          code: "SUPPLIER_ADDRESS_REQUIRED",
-          message:
-            `${describeSupplier(input)}는 ${describeHandling(input.returnHandling)}으로 확인됐습니다. ` +
-            "셀러 자체 반품지로 대체하지 않습니다 — 반품이 셀러에게 오면 안 되는 상품입니다. " +
-            "이 공급처의 실제 주소를 토스에 등록하고 TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP에 " +
-            `"${input.supplierPlatform ?? "platform"}:${input.supplierId ?? "sellerId"}" 키로 추가하세요.`,
-        },
-      };
-    }
-    if (!mayUseSellerOwned(input.returnHandling)) {
+      warnings.push(
+        `${describeSupplier(input)}는 ${describeHandling(input.returnHandling)}으로 확인됐지만 전용 반품지가 없어 ` +
+          "셀러 자체 반품지로 대신 등록합니다. 반품이 오면 공급처로 재발송이 필요할 수 있습니다 — " +
+          "이 공급처의 실제 주소를 등록하면 다음부터는 공급처로 직행합니다.",
+      );
+    } else if (!mayUseSellerOwned(input.returnHandling)) {
       // unknown(판독 실패)만 여기 도달한다 — 반품 안내 텍스트가 없는 절대다수의
       // 경우다. 국내 위탁 관행상 셀러가 반품 접점인 게 일반적이라 경고 후 진행한다.
       warnings.push(

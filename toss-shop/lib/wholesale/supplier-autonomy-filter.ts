@@ -85,7 +85,10 @@ export function checkSupplierAutonomy(input: AutonomyInput): AutonomyCheck {
     };
   }
 
-  // 공급처 주소가 필요한 경우: 그 주소가 이미 토스에 있으면 자동, 없으면 보류.
+  // 공급처 주소가 필요한 경우: 등록돼 있으면 공급처 직행, 없으면 셀러 주소로
+  // 강제 폴백한다(반품 물류 두뇌가 그 비용을 마진에서 미리 뗀다). 그래서
+  // 여기서는 셀러 반품지가 있는 한 소싱을 막지 않는다 — "주소가 없다"는
+  // "지금은 비용이 조금 더 든다"는 뜻이지 "못 판다"는 뜻이 아니다.
   if (needsSupplierAddress(policy.handling)) {
     const address = listing.supplierReturnAddress ?? policy.detectedAddress;
     const existing = address ? findLocationByAddress(registeredLocations, address) : null;
@@ -97,12 +100,18 @@ export function checkSupplierAutonomy(input: AutonomyInput): AutonomyCheck {
         reason: `공급처 반품 주소가 등록된 반품지(${existing.id})와 일치해 자동 처리됩니다.`,
       };
     }
+    if (sellerOwnedLocationId) {
+      return {
+        ...base,
+        verdict: "autonomous",
+        locationId: sellerOwnedLocationId,
+        reason: "공급처 전용 반품지가 아직 없어 셀러 주소로 대신 처리합니다 (왕복비는 마진에서 미리 차감).",
+      };
+    }
     return {
       ...base,
       verdict: "needs_address",
-      reason: address
-        ? "공급처 전용 반품 주소가 토스에 등록되어 있지 않습니다 — 등록되면 자동으로 풀립니다."
-        : "공급처가 자기 주소로 반품을 받는 곳인데 그 주소를 알아내지 못했습니다.",
+      reason: "셀러 자체 반품지조차 설정되어 있지 않아 임시로도 처리할 곳이 없습니다.",
     };
   }
 

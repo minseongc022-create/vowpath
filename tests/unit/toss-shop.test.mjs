@@ -2026,15 +2026,16 @@ test("return location: 셀러 자체 주소로 선언하면 폴백이 허용된�
   assert.equal(isReturnLocationResolved(unknownFallback), true);
   assert.ok(unknownFallback.warnings.some((w) => w.includes("반품 처리 주체가 확인되지 않아")));
 
-  // 공급처 직접수거로 확인됨 → 셀러 주소로 절대 대체하지 않는다.
-  // "내 상품이 아닌데 나한테 반품 오면 안 된다" — 경고가 아니라 차단.
+  // 공급처 직접수거로 확인됐지만 전용 주소가 없다 → 사장님 지시로 소싱을
+  // 막지 않는다. 셀러 주소로 강제 폴백하고, 재발송 가능성을 경고로만 남긴다.
+  // (비용은 return-logistics-brain.ts가 별도로 충당금으로 계산한다)
   const collects = resolveReturnLocation({
     supplierPlatform: "domeggook", supplierId: "s3",
     pickMode: "consignment", returnHandling: "supplier_collects",
   });
-  assert.equal(isReturnLocationResolved(collects), false, "공급처 수거형은 셀러 주소로 등록되면 안 된다");
-  assert.equal(collects.error.code, "SUPPLIER_ADDRESS_REQUIRED");
-  assert.match(collects.error.message, /대체하지 않습니다/);
+  assert.equal(isReturnLocationResolved(collects), true, "반품지 없다고 등록을 막으면 안 된다");
+  assert.equal(collects.locationId, 111);
+  assert.ok(collects.warnings.some((w) => w.includes("재발송")));
 });
 
 test("return location: seller_default 매핑 키로도 셀러 주소를 선언할 수 있다", async (t) => {
@@ -2576,7 +2577,10 @@ test("publish: 카테고리 자동 매칭 결과가 실제 등록에 쓰이고 �
   assert.deepEqual(res.category.matchedPath, ["뷰티", "스킨케어", "세럼/에센스"]);
 });
 
-test("return location: 매핑에 seller_default가 있어도 공급처 직접수거는 절대 대체하지 않는다", async (t) => {
+test("return location: 매핑에 seller_default가 있으면 공급처 직접수거도 강제 폴백된다", async (t) => {
+  // 토스가 반품지 생성 API를 안 준다(405 실측 확인) — 등록을 막으면 사람이
+  // 계속 손봐야 하므로 무인화가 안 된다. 그래서 전용 주소가 없는 수거형
+  // 공급처는 seller_default로 강제 폴백하고 경고만 남긴다.
   const { resolveReturnLocation, isReturnLocationResolved, clearReturnLocationMapCache } =
     await import("../../toss-shop/lib/api/exchange-return-location.ts");
   t.after(() => {
@@ -2585,7 +2589,6 @@ test("return location: 매핑에 seller_default가 있어도 공급처 직접수
   });
   clearReturnLocationEnv();
 
-  // seller_default가 매핑에 명시적으로 선언돼 있어도
   process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_MAP = JSON.stringify({
     seller_default: 999,
     "domeggook:다른공급처": 201,
@@ -2596,9 +2599,9 @@ test("return location: 매핑에 seller_default가 있어도 공급처 직접수
     supplierPlatform: "domeggook", supplierId: "직접수거공급처",
     pickMode: "consignment", returnHandling: "supplier_collects",
   });
-  assert.equal(isReturnLocationResolved(d), false);
-  assert.equal(d.error.code, "SUPPLIER_ADDRESS_REQUIRED");
-  assert.match(d.error.message, /대체하지 않습니다/);
+  assert.equal(isReturnLocationResolved(d), true, "반품지 없다고 등록을 막으면 안 된다");
+  assert.equal(d.locationId, 999);
+  assert.ok(d.warnings.some((w) => w.includes("재발송")));
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -2695,8 +2698,10 @@ test("반품 두뇌: 공급처 수거형인데 주소가 등록돼 있으면 공
   assert.equal(decision.reservePerUnitKrw, 0);
 });
 
-test("반품 두뇌: 수거형인데 토스에 주소가 없으면 등록 요청만 남기고 상품은 보류한다", async () => {
-  const { decideReturnLogistics } = await import(
+test("반품 두뇌: 수거형인데 토스에 주소가 없으면 셀러 주소로 강제 폴백하되 프로비저닝은 계속 추천한다", async () => {
+  // 사장님 지시: 반품지 없다고 소싱을 막지 말 것. 토스가 반품지 생성 API를
+  // 안 주는 이상(405 실측), 등록을 막으면 무인화가 성립하지 않는다.
+  const { decideReturnLogistics, canPublishWithDecision } = await import(
     "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
   );
   const decision = decideReturnLogistics({
@@ -2705,17 +2710,18 @@ test("반품 두뇌: 수거형인데 토스에 주소가 없으면 등록 요청
     supplierId: "s1",
     supplierReturnAddress: "경기 화성시 동탄대로 45",
     registeredLocations: [],
-    // 셀러 주소가 있어도 수거형은 절대 셀러로 돌리지 않는다
     sellerOwnedLocationId: 1520171,
     netProfitPerUnitKrw: 5000,
   });
-  assert.equal(decision.route, "needs_provisioning");
-  assert.equal(decision.locationId, undefined);
+  assert.equal(decision.route, "seller_relay", "등록을 막지 않고 셀러 주소로 진행해야 한다");
+  assert.equal(decision.locationId, 1520171);
+  assert.ok(canPublishWithDecision(decision), "이 결정으로 바로 등록 가능해야 한다");
+  // 공급처 주소는 알고 있으므로 등록되면 비용이 사라진다는 추천은 계속 남긴다
   assert.equal(decision.provisioning.address, "경기 화성시 동탄대로 45");
-  assert.equal(decision.provisioning.suggestedName, "자비스-domeme-s1");
+  assert.ok(decision.reservePerUnitKrw > 0, "강제 폴백 비용은 충당금으로 반영돼야 한다");
 });
 
-test("반품 두뇌: 택배 반송형도 수거형과 같이 공급처 주소를 요구한다", async () => {
+test("반품 두뇌: 택배 반송형도 수거형과 같이 셀러 주소로 폴백된다", async () => {
   const { decideReturnLogistics } = await import(
     "../../toss-shop/lib/seller-engine/return-logistics-brain.ts"
   );
@@ -2730,9 +2736,9 @@ test("반품 두뇌: 택배 반송형도 수거형과 같이 공급처 주소를
     sellerOwnedLocationId: 1520171,
     netProfitPerUnitKrw: 5000,
   });
-  // 안내문에서 주소를 읽어냈으므로 등록 요청으로 간다 (셀러 주소로 떨어지지 않는다)
-  assert.equal(decision.route, "needs_provisioning");
-  assert.notEqual(decision.locationId, 1520171);
+  assert.equal(decision.route, "seller_relay");
+  assert.equal(decision.locationId, 1520171);
+  assert.ok(decision.provisioning.address.startsWith("경기 화성시 동탄대로 45"));
 });
 
 test("반품 두뇌: 안내문이 없으면 셀러 경유로 팔되 왕복비를 미리 뺀다", async () => {
@@ -3243,7 +3249,10 @@ test("자율성 필터: 반품 안내가 없으면 셀러 반품지로 무인 �
   assert.equal(check.locationId, 1520171);
 });
 
-test("자율성 필터: 공급처 수거형은 주소가 등록돼 있을 때만 무인이다", async () => {
+test("자율성 필터: 공급처 수거형은 전용 주소가 없어도 셀러 주소로 무인 처리된다", async () => {
+  // 반품지 생성 API가 없는 이상(405 실측), "등록 전엔 소싱 안 함"은 곧 무기한
+  // 대기다. 셀러 반품지가 있는 한 항상 autonomous로 판정하고, 등록되면
+  // 더 저렴한(0원) 공급처 직행 경로로 자동 승격된다.
   const { checkSupplierAutonomy } = await import(
     "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
   );
@@ -3252,12 +3261,13 @@ test("자율성 필터: 공급처 수거형은 주소가 등록돼 있을 때만
     supplierReturnAddress: "경기 화성시 동탄대로 45",
   });
 
-  const blocked = checkSupplierAutonomy({
+  const fallback = checkSupplierAutonomy({
     listing,
     registeredLocations: [],
     sellerOwnedLocationId: 1520171,
   });
-  assert.equal(blocked.verdict, "needs_address", "등록 전에는 셀러 주소로 대체하면 안 된다");
+  assert.equal(fallback.verdict, "autonomous", "반품지 미등록으로 소싱을 막으면 안 된다");
+  assert.equal(fallback.locationId, 1520171, "등록 전에는 셀러 주소로 임시 처리해야 한다");
 
   const ok = checkSupplierAutonomy({
     listing,
@@ -3265,24 +3275,25 @@ test("자율성 필터: 공급처 수거형은 주소가 등록돼 있을 때만
     sellerOwnedLocationId: 1520171,
   });
   assert.equal(ok.verdict, "autonomous");
-  assert.equal(ok.locationId, 900);
+  assert.equal(ok.locationId, 900, "등록된 주소가 있으면 그쪽이 우선(비용 0원)이어야 한다");
 });
 
-test("자율성 필터: 후보를 처리 가능성으로 나눈다", async () => {
+test("자율성 필터: 반품 불가 공급처만 걸러내고 나머지는 전부 소싱 가능하다", async () => {
   const { partitionByAutonomy } = await import(
     "../../toss-shop/lib/wholesale/supplier-autonomy-filter.ts"
   );
   const { autonomous, deferred, unsellable } = partitionByAutonomy(
     [
       listingOf({ sellerId: "a" }),
+      // 수거형이어도 셀러 반품지가 있으면 이제 autonomous — 강제 폴백된다
       listingOf({ sellerId: "b", policyText: "반품은 공급사에서 직접 수거합니다." }),
       listingOf({ sellerId: "c", policyText: "반품 및 교환 불가" }),
     ],
     { registeredLocations: [], sellerOwnedLocationId: 1520171 },
   );
-  assert.equal(autonomous.length, 1);
-  assert.equal(deferred.length, 1);
-  assert.equal(unsellable.length, 1);
+  assert.equal(autonomous.length, 2, "반품지 미등록은 더 이상 소싱을 막지 않아야 한다");
+  assert.equal(deferred.length, 0);
+  assert.equal(unsellable.length, 1, "반품 불가만 진짜로 팔 수 없는 것이다");
 });
 
 test("반품지 조회: 이름이 없는 실제 응답 구조를 그대로 판독한다", async () => {
@@ -3594,7 +3605,17 @@ test("통합: 도서산간비를 못 읽었으면 기본값 아래로 내려가�
   assert.equal(body.deliveryPolicy.islandsMountainsDeliveryFee, 5000);
 });
 
-test("autopilot: 반품지 미등록이어도 수익성 높은 상품은 소싱을 버리지 않고 등록함에 남긴다", async () => {
+test("autopilot: 반품지 없는 수거형 공급처도 셀러 반품지가 있으면 완전 자동 등록된다", async (t) => {
+  // 사장님 지시: "반품지 못 넣는다고 소싱 안 하지 말고 제약 없이 자동화해라."
+  // 토스에 반품지 생성 API가 없는 이상(405 실측), 완전 무인화의 유일한 길은
+  // 셀러 반품지로 강제 폴백하고 그 비용을 충당금으로 미리 떼는 것이다.
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "1520171";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+  t.after(() => {
+    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
+  });
+
   const { runJarvisAutopilotCycle } = await import(
     "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
   );
@@ -3608,8 +3629,8 @@ test("autopilot: 반품지 미등록이어도 수익성 높은 상품은 소싱�
     p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
     p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
     p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
-    // 공급처 직접수거로 확인됐지만 반품 주소를 얻지 못한 상황 — 종전에는
-    // 이 사이클에서 통째로 스킵됐다. 수익성이 좋으면(마진 20%+) 버리면 안 된다.
+    // 공급처 직접수거로 확인됐지만 그 주소가 토스에 아직 등록돼 있지 않은
+    // 상황 — 종전엔 이 사이클에서 통째로 스킵되거나 사람 승인을 기다렸다.
     p.wholesaleBest = {
       platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
       shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
@@ -3618,8 +3639,6 @@ test("autopilot: 반품지 미등록이어도 수익성 높은 상품은 소싱�
         grade: "excellent", shipSpeed: "same_day", verified: true,
         fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
       },
-      // 반품 주소를 확보는 했지만(=needs_provisioning 성립 조건) 토스에는
-      // 아직 등록돼 있지 않은 상황을 재현한다.
       policyText: "반품은 공급사에서 직접 수거합니다. 반품 주소: 경기 화성시 동탄대로 45",
     };
   }
@@ -3629,20 +3648,20 @@ test("autopilot: 반품지 미등록이어도 수익성 높은 상품은 소싱�
     merchantId: "m1", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
   });
 
-  assert.ok(report.stats.draftsCreated > 0, "반품지가 없어도 소싱 자체는 유지되어야");
+  assert.ok(report.stats.draftsCreated > 0, "소싱 자체는 유지되어야");
   const draft = data.listingDrafts[0];
-  assert.equal(draft.status, "draft", "반품지 미확정 상태로 자동 실행되면 안 된다");
+  // 사람 개입 없이 셀러 반품지로 확정 등록된다 — status가 draft로 강제되지 않는다
+  assert.equal(draft.status, "pending_review", "반품지가 확정됐으므로 정상 등록 대기 상태여야");
   assert.equal(
     draft.listingPayload.resolvedReturnLocationId,
-    undefined,
-    "확정된 반품지가 없어야 한다 — 지어내면 안 된다",
+    1520171,
+    "셀러 반품지로 강제 폴백돼 즉시 등록 가능한 값이 채워져야",
   );
+  // 그래도 사장님이 알아야 할 사실은 남긴다 — 반품 오면 재발송이 필요할 수 있음
   assert.ok(
-    draft.sellerChecklist.some((s) => s.includes("반품지 미등록")),
-    "사장님이 손으로 지정해야 함을 체크리스트에 남겨야",
+    draft.sellerChecklist.some((s) => s.includes("재발송")),
+    "강제 폴백이었다는 사실은 정보로 남아야 한다",
   );
-  assert.ok(
-    report.actions.some((a) => a.includes("수익성이 높아 소싱은 유지")),
-    "버리지 않고 유지했다는 근거를 사이클 로그에 남겨야",
-  );
+  // 프로비저닝 큐는 여전히 그 주소를 추천한다 — 등록하면 충당금이 0으로 준다
+  assert.ok(report.returnProvisioning?.asks.some((a) => a.address === "경기 화성시 동탄대로 45"));
 });

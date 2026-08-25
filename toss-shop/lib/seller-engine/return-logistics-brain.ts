@@ -241,60 +241,53 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
     };
   }
 
-  // ── 3) 공급처 전용 주소가 반드시 필요한 경우 ────────────────────
+  // ── 3) 공급처 전용 주소를 아직 못 구한 경우 ─────────────────────
   //
-  // 수거형이든 택배 반송형이든, 물건이 공급처로 가야 한다는 점은 같다.
-  // 셀러 주소로 걸면 "내 상품이 아닌데 나한테 반품이 오는" 상황이 확정된다.
+  // ⚠️ 사장님 지시: "반품지 못 넣는다고 소싱 안 하지 말고, 제약 없이
+  // 자동화해라." 예전엔 여기서 등록을 막았다(수거형인데 공급처 주소가
+  // 없으면 셀러 주소로 절대 대체하지 않는다는 안전장치). 토스가 반품지
+  // 생성 API를 안 주는 이상(405 실측 확인됨) "공급처 주소를 구할 때까지
+  // 기다린다"는 곧 "사람이 계속 개입해야 한다"는 뜻이라, 진짜 무인화는
+  // 여기서 막으면 성립하지 않는다.
+  //
+  // 그래서 지금은 셀러 자체 반품지로 **강제 폴백**한다. 이 상품의 반품은
+  // 원래 공급처로 가야 하는데 아직 못 보내니, 일단 셀러에게 오게 하고
+  // (사장님이 받아서 공급처로 재발송하거나 처리) 그 왕복비를 충당금으로
+  // 마진에서 미리 뗀다 — "공짜로 자동화"가 아니라 "비용을 알고 자동화"다.
+  // 공급처 주소는 여전히 프로비저닝 큐에 올려 등록되면 다음 사이클부터
+  // 자동으로 공급처 직행(충당금 0)으로 승격된다 — 손대는 비용은 시간이
+  // 갈수록 준다.
+  let provisioning: ProvisioningRequest | undefined;
   if (needsSupplierAddress(handling)) {
     if (address && input.supplierId) {
-      // 주소는 알아냈다 — 토스에 등록만 되면 자동으로 풀린다.
       reasoning.push(
-        `공급처 반품 주소를 ${addressSource === "detail_api" ? "상세 조회" : "반품 안내문"}에서 확보했으나 토스에 등록된 반품지 중 일치하는 곳이 없습니다.`,
+        `공급처 반품 주소를 ${addressSource === "detail_api" ? "상세 조회" : "반품 안내문"}에서 확보했으나 토스에 등록된 반품지 중 일치하는 곳이 없어, 등록될 때까지 셀러 주소로 대신 처리합니다.`,
       );
-      return {
-        ...base,
-        route: "needs_provisioning",
-        reservePerUnitKrw: 0,
-        costPerReturnKrw: relayCost,
-        confidence: "confirmed",
-        provisioning: {
-          supplierPlatform: input.supplierPlatform,
-          supplierId: input.supplierId,
-          supplierNick: input.supplierNick,
-          address,
-          suggestedName: jarvisLocationName(input.supplierPlatform, input.supplierId),
-          why:
-            `${returnHandlingLabel(handling)} 공급처입니다. 반품이 이 주소로 직행해야 ` +
-            `셀러가 왕복 택배비(건당 약 ${relayCost.toLocaleString()}원)를 물지 않습니다.`,
-        },
+      provisioning = {
+        supplierPlatform: input.supplierPlatform,
+        supplierId: input.supplierId,
+        supplierNick: input.supplierNick,
+        address,
+        suggestedName: jarvisLocationName(input.supplierPlatform, input.supplierId),
+        why:
+          `${returnHandlingLabel(handling)} 공급처입니다. 지금은 셀러 주소로 대신 처리 중이라 ` +
+          `건당 약 ${relayCost.toLocaleString()}원의 왕복 택배비가 마진에서 빠지고 있습니다. ` +
+          "이 주소를 등록하면 공급처 직행으로 바뀌어 그 비용이 사라집니다.",
       };
+    } else {
+      reasoning.push(
+        "공급처 반품 주소를 확보하지 못해 어느 곳으로도 자동 청구할 수 없습니다 — 셀러 주소로 대신 처리합니다.",
+      );
     }
-
-    // 주소조차 못 읽었다. 셀러 주소로 대신 거는 건 금지 — 확인된 수거형이므로
-    // 반품이 셀러에게 오면 안 되는 상품이다. 이 후보는 넘기고 다음으로 간다.
-    reasoning.push(
-      address
-        ? "공급사 ID를 판독하지 못해 공급처 단위 반품지를 만들 수 없습니다."
-        : "공급처 반품 주소를 상세 조회·안내문 어디에서도 읽지 못했습니다.",
-    );
-    return {
-      ...base,
-      route: "rejected",
-      reservePerUnitKrw: 0,
-      costPerReturnKrw: relayCost,
-      confidence: "confirmed",
-      blocker: "supplier",
-      rejectReason:
-        `${returnHandlingLabel(handling)} 공급처인데 반품 주소를 확보하지 못했습니다. ` +
-        "셀러 주소로 대신 등록하면 남의 상품 반품을 셀러가 받게 되므로 이 상품은 건너뜁니다.",
-    };
   }
 
-  // ── 4) 셀러가 받아도 되는 경우 ──────────────────────────────────
+  // ── 4) 셀러 반품지로 처리 ────────────────────────────────────────
   //
-  // seller_handles(확인됨) 또는 unknown(안내문 자체가 없는 절대다수).
-  // 국내 위탁 관행상 반품 안내가 없으면 셀러가 접점이 되는 게 일반적이다.
-  // 다만 공짜가 아니다 — 왕복비를 마진에서 미리 뺀다.
+  // 여기 도달하는 경우는 셋이다: seller_handles(확인됨), unknown(안내문
+  // 없음, 절대다수), 그리고 이제는 needsSupplierAddress인데 아직 등록이
+  // 안 된 경우(강제 폴백)까지 전부 포함한다. 셀러 반품지 자체가 없으면
+  // 그건 정말 아무것도 할 수 없다 — 어떤 상품도 물리적으로 등록 주소가
+  // 있어야 하는 건 토스 정책이 아니라 전자상거래법이 요구하는 최소 요건이다.
   if (!input.sellerOwnedLocationId) {
     reasoning.push("셀러 자체 반품지가 선언되지 않아 이 상품을 등록할 수 없습니다.");
     return {
@@ -304,6 +297,7 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
       costPerReturnKrw: relayCost,
       confidence: "assumed",
       blocker: "global_config",
+      provisioning,
       rejectReason:
         "셀러 자체 반품지가 없습니다 — TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID와 " +
         "TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED=true를 설정하세요.",
@@ -312,20 +306,22 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
 
   const isVerifiedSellerHandling = handling === "seller_handles";
   // 셀러 처리형으로 확인됐으면 원래 셀러가 받는 게 맞으므로 재발송 구간이 없다.
+  // 그 외(unknown·강제 폴백)는 셀러→공급처 재발송까지 감안해 왕복 비용을 쓴다.
   const costPerReturn = isVerifiedSellerHandling ? courierFee(input.shippingFeeKrw) : relayCost;
   const reservePerUnit = reserve(costPerReturn, rate);
 
   reasoning.push(
     isVerifiedSellerHandling
       ? "셀러가 직접 처리하는 공급처로 확인돼 셀러 자체 반품지로 등록합니다."
-      : "반품 안내가 없어 처리 주체가 확인되지 않았습니다. 국내 위탁 관행상 셀러가 반품 접점이 되므로 셀러 자체 반품지로 등록하되, 공급처로 재발송해야 할 경우를 비용에 미리 반영합니다.",
+      : "셀러 자체 반품지로 등록하되, 공급처로 재발송해야 할 경우를 비용에 미리 반영합니다.",
   );
   reasoning.push(
     `반품 1건당 약 ${costPerReturn.toLocaleString()}원 · 반품률 ${(rate * 100).toFixed(1)}%` +
       `${rateIsMeasured ? " (실측)" : " (실측 없음 — 보수적 상한)"} → 판매 1건당 ${reservePerUnit.toLocaleString()}원 충당`,
   );
 
-  // 충당금을 빼면 남는 게 없는 상품은 팔 이유가 없다.
+  // 충당금을 빼도 남는지만 본다 — "제약 없이"는 "손해 봐도 팔아라"가 아니다.
+  // 마진이 정말 없는 상품은 자동화해도 여전히 손해다.
   if (input.netProfitPerUnitKrw != null && input.netProfitPerUnitKrw - reservePerUnit <= 0) {
     return {
       ...base,
@@ -334,6 +330,7 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
       costPerReturnKrw: costPerReturn,
       confidence: isVerifiedSellerHandling ? "probable" : "assumed",
       blocker: "economics",
+      provisioning,
       rejectReason:
         `반품 충당금 ${reservePerUnit.toLocaleString()}원을 빼면 순이익이 ` +
         `${input.netProfitPerUnitKrw.toLocaleString()}원 → ${(input.netProfitPerUnitKrw - reservePerUnit).toLocaleString()}원으로 남지 않습니다.`,
@@ -347,6 +344,7 @@ export function decideReturnLogistics(input: ReturnLogisticsInput): ReturnLogist
     reservePerUnitKrw: reservePerUnit,
     costPerReturnKrw: costPerReturn,
     confidence: isVerifiedSellerHandling ? "probable" : "assumed",
+    provisioning,
   };
 }
 
