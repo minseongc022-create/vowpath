@@ -288,12 +288,12 @@ export function runJarvisHealthCheck(input: {
   });
   checks.push({
     id: "supplier_grade_gate",
-    label: "공급처 1등급·당일발송 게이트",
+    label: "공급처 위험 신호 판독",
     category: "sourcing",
     passed: wholesaleApi,
     detail: wholesaleApi
-      ? "supplier-quality.ts — 라이브 응답에서 등급·출고속도 판정 (fail-closed)"
-      : "DOMEGGOOK_API_KEY 없음 — 판독 불가로 전부 탈락 처리 중 (의도된 동작)",
+      ? "supplier-quality.ts — 등급·출고속도는 실측되면 가점, 미확인은 소싱을 막지 않는다. 실측된 위험 신호(출고율<70%·배송지연 확정)만 차단"
+      : "DOMEGGOOK_API_KEY 없음 — 공급처 판독 불가",
   });
   checks.push({
     id: "profit_probability",
@@ -359,7 +359,7 @@ export function runJarvisHealthCheck(input: {
       { topic: "광고·1페이지 설계", status: "ok" },
       { topic: "주문→도매매 발주→송장", status: tossApi ? "ok" : "needs_api" },
       { topic: "Autopilot 60초", status: isAutopilotEnabled() ? "ok" : "partial" },
-      { topic: "공급처 1등급·당일발송 게이트", status: wholesaleApi ? "ok" : "needs_api" },
+      { topic: "공급처 위험 신호 판독", status: wholesaleApi ? "ok" : "needs_api" },
       { topic: "AI 이미지 스튜디오", status: aiImagesEnabled() ? "ok" : "needs_api" },
     ],
   };

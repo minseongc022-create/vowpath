@@ -546,7 +546,7 @@ test("jarvis gate rejects picks whose live supplier is not 1등급+당일발송"
   });
   const badGate = bad.gates.find((g) => g.id === "supplier_grade");
   assert.ok(badGate, "supplier_grade gate should exist");
-  assert.equal(badGate.passed, false);
+  assert.equal(badGate.passed, false, "등급 미확인이면 가점 게이트는 실패로 남아야");
 
   const good = computeJarvisConfidence({
     ...base,
@@ -554,7 +554,57 @@ test("jarvis gate rejects picks whose live supplier is not 1등급+당일발송"
   });
   const goodGate = good.gates.find((g) => g.id === "supplier_grade");
   assert.equal(goodGate.passed, true);
-  assert.ok(good.confidencePct > bad.confidencePct);
+  // supplier_grade는 이제 가점(soft)일 뿐 하드 게이트가 아니다 — 최상급 공급처를
+  // 우대는 하되, 등급이 미확인이라는 이유만으로 인증을 막지 않는다.
+  assert.ok(good.confidencePct >= bad.confidencePct);
+});
+
+test("jarvis gate: 등급 미확인이어도 나머지가 확실하면 인증을 막지 않는다", async () => {
+  const { computeJarvisConfidence, assessIntegration, JARVIS_CONFIDENCE_THRESHOLD } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-engine.ts"
+  );
+  const { readSupplierQuality } = await import("../../toss-shop/lib/wholesale/supplier-quality.ts");
+
+  // 도매꾹 API가 등급 필드를 안 주는 절대다수 공급처 상황을 재현한다.
+  // 예전엔 이 하나 때문에 confidencePct가 92로 하드 캡됐다 — 마진·안전·
+  // 카탈로그가 전부 확실해도 인증 자체가 안 됐다는 뜻이다.
+  const result = computeJarvisConfidence({
+    integration: assessIntegration({
+      tossApiConfigured: true, wholesaleApiConfigured: true, dataQuality: "live", catalogSize: 50,
+    }),
+    v6MasterScore: 95, safetyScore: 95, marginPct: 30, monthlyProfitKrw: 900000, moq: 1,
+    wholesaleLive: true, wholesalePlatform: "domeme", criticalRisks: 0, blockRisks: 0,
+    competitionIntensity: 0.5, searchVolume: 5000, topSellerAlignment: 90,
+    catalogStrategyMode: "avoid_catalog", isolationScore: 70,
+    supplierQuality: readSupplierQuality({ title: "정보없음" }),
+  });
+
+  assert.equal(result.certified, true, "등급 미확인만으로 인증이 막히면 안 된다");
+  assert.ok(result.confidencePct >= JARVIS_CONFIDENCE_THRESHOLD);
+});
+
+test("jarvis gate: 실측으로 확인된 위험한 공급처는 여전히 막는다", async () => {
+  const { computeJarvisConfidence, assessIntegration } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-engine.ts"
+  );
+  const { readSupplierQuality } = await import("../../toss-shop/lib/wholesale/supplier-quality.ts");
+
+  const result = computeJarvisConfidence({
+    integration: assessIntegration({
+      tossApiConfigured: true, wholesaleApiConfigured: true, dataQuality: "live", catalogSize: 50,
+    }),
+    v6MasterScore: 95, safetyScore: 95, marginPct: 30, monthlyProfitKrw: 900000, moq: 1,
+    wholesaleLive: true, wholesalePlatform: "domeme", criticalRisks: 0, blockRisks: 0,
+    competitionIntensity: 0.5, searchVolume: 5000, topSellerAlignment: 90,
+    catalogStrategyMode: "avoid_catalog", isolationScore: 70,
+    // grade·shipDays·shipRate가 전부 판독돼 verified:true가 되고, 출고율이
+    // 실측 60%로 확인된 상황 — 미확인이 아니라 확인된 나쁨이므로 막아야 한다.
+    supplierQuality: readSupplierQuality({ grade: "일반", shipDays: 3, shipRate: 60 }),
+  });
+
+  const safeGate = result.gates.find((g) => g.id === "supplier_safe");
+  assert.equal(safeGate.passed, false, "위험 신호가 실측되면 supplier_safe가 실패해야");
+  assert.equal(result.certified, false, "위험이 확인된 공급처는 인증되면 안 된다");
 });
 
 test("profit probability: page1 exposure drives revenue, deterministic", async () => {
@@ -1206,7 +1256,9 @@ test("health check: 최근 추가된 엔진(공급처 게이트·확률·SEO·�
 
   // chatPromises에도 새 항목이 보고되어야 사용자가 대시보드에서 놓치지 않는다
   const topics = report.chatPromises.map((p) => p.topic);
-  assert.ok(topics.some((t) => t.includes("1등급")));
+  // 라벨이 "1등급·당일발송 게이트"에서 "위험 신호 판독"으로 바뀌었다 —
+  // 등급 미확인은 더 이상 소싱을 막는 게이트가 아니기 때문이다.
+  assert.ok(topics.some((t) => t.includes("위험 신호")));
   assert.ok(topics.some((t) => t.includes("AI 이미지")));
 });
 
@@ -2209,13 +2261,31 @@ test("certainty: 공급처가 추정이면 점수와 무관하게 탈락한다",
   assert.match(v.reason, /추정치로는 돈을 걸 수 없다|미달/);
 });
 
-test("certainty: 공급처 등급 미확인이면 탈락 (오늘출발 약속 불가)", async () => {
+test("certainty: 공급처 등급이 미확인이어도 나머지가 확실하면 통과한다", async () => {
+  // 도매꾹 API가 등급 필드를 안 주는 공급처가 대부분이다. 예전엔 이것만으로
+  // 마진·반품정책이 멀쩡한 상품도 통째로 탈락했다 — 오늘출발을 약속 못 한다는
+  // 이유로 소싱 자체를 막은 것이다. 이제는 "모른다"와 "위험하다"를 구분해,
+  // 모르는 경우는 통과시키고(오늘출발만 약속하지 않는다) 확인된 위험만 막는다.
   const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
   const v = evaluateCertainty(certainPick({
     wholesaleBest: { ...certainPick().wholesaleBest, supplierQuality: undefined },
   }));
-  assert.equal(v.certain, false);
-  assert.ok(v.blockers.some((b) => b.includes("당일발송")));
+  assert.equal(v.certain, true, "등급 미확인만으로 소싱을 막으면 안 된다");
+});
+
+test("certainty: 출고율이 실측으로 위험하게 나오면 여전히 탈락시킨다", async () => {
+  const { evaluateCertainty } = await import("../../toss-shop/lib/seller-engine/certainty-gate.ts");
+  const v = evaluateCertainty(certainPick({
+    wholesaleBest: {
+      ...certainPick().wholesaleBest,
+      supplierQuality: {
+        grade: "normal", shipSpeed: "next_day", verified: true,
+        fulfillmentRatePct: 55, readFrom: ["shipRate"], reason: "출고율 55% — 불안정",
+      },
+    },
+  }));
+  assert.equal(v.certain, false, "실측된 위험 신호는 미확인과 다르게 취급해야");
+  assert.ok(v.blockers.some((b) => b.includes("위험 신호")));
 });
 
 test("certainty: 반품 불가 공급처는 소싱에서 제외한다", async () => {

@@ -209,12 +209,18 @@ export function shipLabel(s: ShipSpeed): string {
 export const SAME_DAY_MIN_FULFILLMENT_RATE_PCT = 98;
 
 /**
- * 사용자 정책: 1등급(우수) + 당일발송만 통과.
- * 미확인은 통과시키지 않는다 (fail-closed).
+ * 1등급(우수) + 당일발송 + 출고율 98%+ **전부 실측 확인**된 경우에만 true.
  *
- * 출고율은 **필수 판독 항목**이다. 종전에는 `!== undefined` 조건이라
- * 출고율 필드가 없는 공급처는 검사를 통째로 건너뛰었는데, 그건 "모르면 통과"라
- * 이 파일의 fail-closed 원칙과 정면으로 어긋난다.
+ * ⚠️ 이 함수는 "이 상품을 팔아도 되는가"가 아니라 **"오늘출발을 약속해도 되는가
+ * / 배송 인센티브(수수료 0%)를 가정해도 되는가"** 만 판정한다. 오늘출발은
+ * 남의 창고에 거는 약속이라 추측할 수 없고, 잘못 약속하면 발송지연 페널티로
+ * 이어지므로 여기서는 미확인도 fail-closed로 탈락시킨다.
+ *
+ * 소싱 자체(팔 수 있는가)를 막는 게이트로 쓰지 말 것 — 그건
+ * `isSupplierViableForSourcing`이 담당한다. 둘을 섞으면, 도매꾹 API가 등급
+ * 필드를 안 주는 대다수 공급처(실제로는 정상 배송하는 곳들)까지 "당일발송
+ * 미확인"이라는 이유로 소싱 자체가 막힌다 — 마진도 반품정책도 멀쩡한 상품을
+ * 배송 약속 하나 때문에 통째로 버리는 셈이다.
  */
 export function meetsSupplierPolicy(q: SupplierQuality | undefined): boolean {
   if (!q || !q.verified) return false;
@@ -223,6 +229,35 @@ export function meetsSupplierPolicy(q: SupplierQuality | undefined): boolean {
   // 출고율 미확인 = 탈락. 오늘출발은 남의 창고에 거는 약속이라 추측할 수 없다.
   if (q.fulfillmentRatePct === undefined) return false;
   if (q.fulfillmentRatePct < SAME_DAY_MIN_FULFILLMENT_RATE_PCT) return false;
+  return true;
+}
+
+/** 이 아래로 실측되면 "위험한 공급처"로 본다 — 미확인이 아니라 확인된 나쁨 */
+const UNRELIABLE_FULFILLMENT_RATE_PCT = 70;
+
+/**
+ * **소싱 여부**를 가르는 기준 — "당일발송을 약속할 수 있는가"가 아니라
+ * "이 공급처에서 사와도 큰 사고가 안 나는가"만 본다.
+ *
+ * 도매꾹/도매매 API는 등급·출고속도 필드를 안 주는 공급처가 많다(fail-closed
+ * 설계상 그런 공급처는 `verified:false`가 된다). 그게 "위험하다"는 뜻은
+ * 아니다 — 단지 모른다는 뜻이다. `meetsSupplierPolicy`처럼 미확인을 전부
+ * 탈락시키면, 마진·반품정책·MOQ가 전부 정상인 상품도 이 필드 하나로 소싱
+ * 자체가 막혀 등록 개수가 바닥으로 떨어진다.
+ *
+ * 그래서 여기서는 **확인된 나쁜 신호**만 탈락시킨다: 실제로 판독된 출고율이
+ * 위험 수준(70% 미만)이거나, 배송이 명시적으로 느리다고("slow") 확인된 경우.
+ * 이런 경우는 실제 데이터가 위험을 말해주고 있으므로 막는다. 반대로 미확인이나
+ * "일반/신규" 등급, "익일발송"은 정상 위탁 셀러가 흔히 쓰는 조건이라 통과시킨다
+ * — 다만 그 상품은 "오늘출발"을 약속하지 않고 배송 인센티브도 가정하지 않는다
+ * (그건 여전히 `meetsSupplierPolicy`가 별도로 지킨다).
+ */
+export function isSupplierViableForSourcing(q: SupplierQuality | undefined): boolean {
+  if (!q) return true;
+  if (q.verified && q.fulfillmentRatePct !== undefined) {
+    if (q.fulfillmentRatePct < UNRELIABLE_FULFILLMENT_RATE_PCT) return false;
+  }
+  if (q.verified && q.shipSpeed === "slow") return false;
   return true;
 }
 

@@ -28,7 +28,7 @@
  */
 
 import type { ConsignmentPick } from "../types";
-import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
+import { isSupplierViableForSourcing, meetsSupplierPolicy } from "../wholesale/supplier-quality";
 import {
   isReturnPolicyDisqualifying,
   readSupplierReturnPolicy,
@@ -109,17 +109,28 @@ export function evaluateCertainty(pick: ConsignmentPick): CertaintyVerdict {
       : "공급가가 추정치 — 마진 계산의 기반이 사실이 아님",
   });
 
-  // ── 3. 공급처 등급·출고속도 (실측, 인센티브 조건) ──────────
-  const supplierOk = meetsSupplierPolicy(w?.supplierQuality);
+  // ── 3. 공급처가 위험하지 않은가 (실측된 나쁨만 탈락) ────────
+  //
+  // ⚠️ 예전엔 "1등급+당일발송+출고율98%"를 여기서도 요구했다. 그건 소싱
+  // 여부가 아니라 "오늘출발을 약속해도 되는가"에 대한 기준인데, 도매꾹 API가
+  // 등급 필드를 안 주는 공급처가 많아 미확인이면 전부 탈락 처리되어 마진·
+  // 반품정책이 멀쩡한 상품도 이 항목 하나로 통째로 버려졌다. 이제는 "확인된
+  // 나쁜 신호"(출고율 실측 70% 미만, 배송 지연 확정)만 걸러낸다.
+  // 1등급·당일발송 여부는 여전히 `meetsSupplierPolicy`가 판정하며, 그 결과에
+  // 따라 "오늘출발" 약속·배송 인센티브 가정만 갈릴 뿐 소싱 자체는 막지 않는다.
+  const viable = isSupplierViableForSourcing(w?.supplierQuality);
+  const topGrade = meetsSupplierPolicy(w?.supplierQuality);
   evidence.push({
     id: "supplier_grade",
-    label: "1등급·당일발송·출고율",
+    label: "공급처 위험 신호 없음",
     factual: Boolean(w?.supplierQuality?.verified),
-    passed: supplierOk,
+    passed: viable,
     required: true,
-    detail: supplierOk
-      ? w!.supplierQuality!.reason
-      : "공급처 등급·출고율 미확인 또는 기준 미달 — 오늘출발 약속 불가(인센티브 상실 위험)",
+    detail: !viable
+      ? `공급처 출고 실적이 위험 수준으로 확인됨 — ${w?.supplierQuality?.reason ?? "출고 불안정"}`
+      : topGrade
+        ? `${w!.supplierQuality!.reason} — 오늘출발 약속·배송 인센티브 가정 가능`
+        : "1등급·당일발송 미확인 — 오늘출발은 약속하지 않고 일반 배송으로 진행 (소싱은 유지)",
   });
 
   // ── 4. 반품 정책이 소싱 가능한가 ───────────────────────────
@@ -207,10 +218,14 @@ export function evaluateCertainty(pick: ConsignmentPick): CertaintyVerdict {
   const factualCount = evidence.filter((e) => e.factual).length;
 
   // 필수 근거가 전부 통과해야 확실하다.
-  // 추가로, **돈의 기반이 되는 근거(공급처·원가·등급)는 실측이어야 한다** —
+  // 추가로, **돈의 기반이 되는 근거(공급처 실재·원가)는 실측이어야 한다** —
   // 이게 추정이면 나머지가 아무리 좋아도 사상누각이다.
+  //
+  // ⚠️ 등급(supplier_grade)은 이 목록에서 뺐다. 등급은 "오늘출발을 약속해도
+  // 되는가"의 근거이지 "이 거래가 실재하는가"의 근거가 아니다. 등급 필드가
+  // 없는 공급처가 대부분인데 여기 넣으면 결국 원래의 하드 게이트로 되돌아간다.
   const moneyEvidenceFactual = evidence
-    .filter((e) => ["supplier_live", "cost_live", "supplier_grade"].includes(e.id))
+    .filter((e) => ["supplier_live", "cost_live"].includes(e.id))
     .every((e) => e.factual);
 
   const certain = blockers.length === 0 && moneyEvidenceFactual;
@@ -223,9 +238,9 @@ export function evaluateCertainty(pick: ConsignmentPick): CertaintyVerdict {
     evidence,
     blockers,
     reason: certain
-      ? `확실 — 필수 ${evidence.length}개 근거 통과, 공급처·원가·등급이 실측으로 확인됨`
+      ? `확실 — 필수 ${evidence.length}개 근거 통과, 공급처·원가가 실측으로 확인됨`
       : !moneyEvidenceFactual
-        ? "공급처·원가·등급 중 실측이 아닌 항목이 있어 등록 불가 — 추정치로는 돈을 걸 수 없다"
+        ? "공급처·원가 중 실측이 아닌 항목이 있어 등록 불가 — 추정치로는 돈을 걸 수 없다"
         : `미달 — ${blockers.join(", ")}`,
   };
 }

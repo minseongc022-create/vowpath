@@ -10,7 +10,12 @@ import type {
   JarvisConfidenceReport,
   JarvisGateResult,
 } from "../types";
-import { meetsSupplierPolicy, supplierPolicyDetail, type SupplierQuality } from "../wholesale/supplier-quality";
+import {
+  isSupplierViableForSourcing,
+  meetsSupplierPolicy,
+  supplierPolicyDetail,
+  type SupplierQuality,
+} from "../wholesale/supplier-quality";
 
 export const JARVIS_NAME = "Jarvis";
 export const JARVIS_VERSION = "1.1";
@@ -107,17 +112,32 @@ export function computeJarvisConfidence(input: {
         : `MOQ ${input.moq} — 도매매 단품 공급처 재검색 필요`,
   });
 
-  // 사용자 정책: 공급처는 1등급(우수) + 당일발송만. 판독 불가도 탈락(fail-closed) —
-  // 배송 지연/품절은 토스 페널티와 반품 손실로 직결되므로 추측 통과시키지 않는다.
+  // 1등급·당일발송은 "오늘출발을 약속해도 되는가"의 근거이지 "팔아도
+  // 되는가"의 근거가 아니다. 도매꾹 API가 등급 필드를 안 주는 공급처가
+  // 대부분이라, 이걸 하드 게이트로 두면 마진·반품정책이 멀쩡한 상품도
+  // 등급 미확인 하나로 통째로 막힌다. 그래서 여기서는 **가중치**로만 반영해
+  // 최상급 공급처를 우대하되, 통과 못 해도 인증 자체를 막지는 않는다.
   const supplierPolicyApplies = input.supplierPolicyApplies ?? input.wholesaleLive;
   gates.push({
     id: "supplier_grade",
-    label: "공급처 1등급·당일발송",
+    label: "공급처 1등급·당일발송 (가점)",
     passed: supplierPolicyApplies ? meetsSupplierPolicy(input.supplierQuality) : true,
     weight: 12,
     detail: supplierPolicyApplies
       ? supplierPolicyDetail(input.supplierQuality)
       : "데모/미연동 — 실공급처 확정 후 재판정",
+  });
+
+  // 대신 소싱을 막는 실질적 안전장치는 이것이다 — **실측으로 확인된 나쁨**만
+  // 걸러낸다(출고율 70% 미만, 배송 지연 확정). 미확인·일반등급은 통과한다.
+  gates.push({
+    id: "supplier_safe",
+    label: "공급처 위험 신호 없음",
+    passed: supplierPolicyApplies ? isSupplierViableForSourcing(input.supplierQuality) : true,
+    weight: 8,
+    detail: input.supplierQuality?.verified
+      ? input.supplierQuality.reason
+      : "등급 미확인 — 위험 신호 없어 소싱 유지",
   });
 
   gates.push({
@@ -209,9 +229,14 @@ export function computeJarvisConfidence(input: {
   const allHardGates =
     gates
       .filter((g) =>
-        // supplier_grade = 사용자 절대 조건(1등급·당일발송). 소프트 가중치로만 두면
-        // 게이트가 X여도 99% 인증이 나와 "가짜 93%"가 되므로 하드 게이트로 둔다.
-        ["integration", "margin", "safety", "domeme_moq", "top_seller", "supplier_grade"].includes(g.id),
+        // supplier_grade(1등급·당일발송)는 뺐다 — 도매꾹 API가 등급 필드를
+        // 안 주는 공급처가 대부분이라 하드 게이트로 두면 마진·안전이 멀쩡한
+        // 상품도 등급 미확인 하나로 인증 자체가 막혔다. 대신 supplier_safe
+        // (실측으로 확인된 위험만 차단)를 하드 게이트로 둔다 — "가짜 93%"를
+        // 막는 목적은 유지하되, 모르는 것과 위험한 것을 구분한다.
+        ["integration", "margin", "safety", "domeme_moq", "top_seller", "supplier_safe"].includes(
+          g.id,
+        ),
       )
       .every((g) => g.passed) &&
     input.criticalRisks === 0 &&

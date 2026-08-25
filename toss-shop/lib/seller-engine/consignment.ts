@@ -158,12 +158,19 @@ export async function generateConsignmentPicks(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
   );
 
-  // 시장 스캐너로 한 번 더 거른다.
+  // 시장 스캐너로 순서를 다시 매긴다 (제외는 하지 않는다).
   //
   // 위 랭킹은 "사람들이 많이 찾는가"를 본다. 스캐너는 "신규 셀러가 뚫을 수 있는가"를
   // 본다 — 리뷰 3천 개짜리 상위권이 장악한 키워드는 검색량이 아무리 커도
-  // 광고비만 태우고 끝나기 때문이다. skip 판정은 후보에서 빼고, enter 판정을
-  // 앞으로 당긴다. 그래야 하루치 등록 슬롯이 이길 수 있는 싸움에 쓰인다.
+  // 광고비만 태우고 끝나기 때문이다. enter 판정을 앞으로 당겨 하루치 등록
+  // 슬롯이 이길 수 있는 싸움에 먼저 쓰이게 한다.
+  //
+  // ⚠️ 예전엔 skip 판정을 후보에서 완전히 제외했다. 하지만 스캐너의 임계값
+  // (리뷰 장벽 500개, 대형셀러 장악도 70% 등)은 검증된 외부 기준이 아니라
+  // 이 엔진 자체가 정한 값이다. 그 값 하나로 마진 좋은 상품을 통째로 못 올리게
+  // 막으면, 하루 등록 개수가 스캐너의 추측만큼만 나온다. 그래서 이제는
+  // **맨 뒤로 미룰 뿐 자르지 않는다** — 다른 확실한 후보가 부족하면 그때는
+  // skip 판정 키워드도 최종 판단(certainty-gate)까지 가서 스스로 증명할 기회를 준다.
   const scan = scanMarket({
     keywords: rankedKeywords.map((k) => k.keyword),
     catalog,
@@ -173,13 +180,13 @@ export async function generateConsignmentPicks(
   const scanRank = new Map<string, number>();
   scan.enter.forEach((s, i) => scanRank.set(s.keyword, i));
   scan.watch.forEach((s, i) => scanRank.set(s.keyword, 1000 + i));
-  const blocked = new Set(scan.skip.map((s) => s.keyword));
+  scan.skip.forEach((s, i) => scanRank.set(s.keyword, 2000 + i));
 
-  const keywords = rankedKeywords
-    .filter((k) => !blocked.has(k.keyword))
+  const keywords = [...rankedKeywords].sort(
     // 스캐너 목록에 없는 키워드는 판정 근거가 부족했던 것이므로 enter와 watch
     // 사이(500)에 둔다 — 확실한 기회보다는 뒤, 확실한 함정보다는 앞.
-    .sort((a, b) => (scanRank.get(a.keyword) ?? 500) - (scanRank.get(b.keyword) ?? 500));
+    (a, b) => (scanRank.get(a.keyword) ?? 500) - (scanRank.get(b.keyword) ?? 500),
+  );
 
   const candidates: ConsignmentPick[] = [];
   const usedProducts = new Set<string>();
