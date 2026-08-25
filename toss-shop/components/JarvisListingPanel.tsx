@@ -119,6 +119,7 @@ export function JarvisListingDraftCard({
   const [busy, setBusy] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [message, setMessage] = useState("");
+  const [manualLocationId, setManualLocationId] = useState("");
 
   async function act(path: string, body?: object) {
     setBusy(true);
@@ -147,6 +148,13 @@ export function JarvisListingDraftCard({
     (draft.status === "failed" && !draft.executedAt);
   const canReject = !["published", "rejected", "publishing"].includes(draft.status);
   const executed = Boolean(draft.executedAt);
+
+  // 반품지 자동 매칭이 안 돼 자비스가 소싱은 하되 등록을 보류한 건이다 —
+  // 수익성 때문에 버리지 않고 여기까지 올라왔으니, 사장님이 반품지 ID를
+  // 직접 넣어 실행할 수 있어야 "손 타게 해도 된다"는 지시가 완결된다.
+  const needsManualLocation = draft.sellerChecklist.some((s) => s.includes("반품지 미등록"));
+  const manualLocationIdNum = Number.parseInt(manualLocationId, 10);
+  const manualLocationValid = Number.isFinite(manualLocationIdNum) && manualLocationIdNum > 0;
 
   return (
     <article className="ts-card">
@@ -246,6 +254,39 @@ export function JarvisListingDraftCard({
         ))}
       </ul>
 
+      {needsManualLocation && !executed && (
+        <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+          <p className="text-xs font-bold text-amber-900">반품지를 직접 지정해서 등록</p>
+          <p className="mt-0.5 text-[11px] text-amber-800/90">
+            공급처 전용 반품지가 아직 없어 자동 등록을 보류했습니다. 이미 등록된 반품지 ID를 알고 있으면
+            (설정 → 카테고리·반품지 조회에서 확인) 여기 넣고 바로 등록하세요 — 수익성이 좋다면 이 상품을 놓치지 마세요.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={manualLocationId}
+              onChange={(e) => setManualLocationId(e.target.value)}
+              placeholder="반품지 ID (예: 1520171)"
+              className="w-40 rounded-md border border-amber-300 bg-white px-2 py-1 text-xs"
+            />
+            <button
+              type="button"
+              disabled={busy || !manualLocationValid}
+              onClick={() =>
+                void act(`/api/toss-shop/listings/${draft.id}/execute`, {
+                  exchangeReturnLocationId: manualLocationIdNum,
+                })
+              }
+              className="ts-btn-primary text-xs disabled:opacity-50"
+            >
+              이 반품지로 실행
+            </button>
+          </div>
+        </div>
+      )}
+
       {draft.publishError && (
         <p className="mt-2 text-xs text-red-700">{draft.publishError}</p>
       )}
@@ -265,7 +306,7 @@ export function JarvisListingDraftCard({
         >
           {showPreview ? "미리보기 닫기" : "상세 미리보기"}
         </button>
-        {canExecuteFull && !executed && (
+        {canExecuteFull && !executed && !needsManualLocation && (
           <button
             type="button"
             disabled={busy}

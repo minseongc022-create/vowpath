@@ -3523,3 +3523,56 @@ test("통합: 도서산간비를 못 읽었으면 기본값 아래로 내려가�
   assert.equal(body.deliveryPolicy.jejuDeliveryFee, 3000);
   assert.equal(body.deliveryPolicy.islandsMountainsDeliveryFee, 5000);
 });
+
+test("autopilot: 반품지 미등록이어도 수익성 높은 상품은 소싱을 버리지 않고 등록함에 남긴다", async () => {
+  const { runJarvisAutopilotCycle } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
+  );
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+  const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  for (const p of picks) {
+    p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+    p.estimatedMarginPct = Math.max(p.estimatedMarginPct, 20);
+    p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
+    p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
+    p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
+    // 공급처 직접수거로 확인됐지만 반품 주소를 얻지 못한 상황 — 종전에는
+    // 이 사이클에서 통째로 스킵됐다. 수익성이 좋으면(마진 20%+) 버리면 안 된다.
+    p.wholesaleBest = {
+      platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
+      shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
+      source: "live", sellerId: "s-needs-addr", sellerNick: "공급사",
+      supplierQuality: {
+        grade: "excellent", shipSpeed: "same_day", verified: true,
+        fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
+      },
+      // 반품 주소를 확보는 했지만(=needs_provisioning 성립 조건) 토스에는
+      // 아직 등록돼 있지 않은 상황을 재현한다.
+      policyText: "반품은 공급사에서 직접 수거합니다. 반품 주소: 경기 화성시 동탄대로 45",
+    };
+  }
+
+  const data = { consignmentPicks: picks, listingDrafts: [], fulfillmentJobs: [] };
+  const report = await runJarvisAutopilotCycle({
+    merchantId: "m1", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
+  });
+
+  assert.ok(report.stats.draftsCreated > 0, "반품지가 없어도 소싱 자체는 유지되어야");
+  const draft = data.listingDrafts[0];
+  assert.equal(draft.status, "draft", "반품지 미확정 상태로 자동 실행되면 안 된다");
+  assert.equal(
+    draft.listingPayload.resolvedReturnLocationId,
+    undefined,
+    "확정된 반품지가 없어야 한다 — 지어내면 안 된다",
+  );
+  assert.ok(
+    draft.sellerChecklist.some((s) => s.includes("반품지 미등록")),
+    "사장님이 손으로 지정해야 함을 체크리스트에 남겨야",
+  );
+  assert.ok(
+    report.actions.some((a) => a.includes("수익성이 높아 소싱은 유지")),
+    "버리지 않고 유지했다는 근거를 사이클 로그에 남겨야",
+  );
+});

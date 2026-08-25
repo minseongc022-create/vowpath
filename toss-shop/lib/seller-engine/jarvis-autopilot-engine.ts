@@ -169,6 +169,9 @@ export async function runJarvisAutopilotCycle(
         // 여기서 막히면 사람을 기다리지 않고 **다음 후보로 넘어간다**.
         // 한 공급처가 막혔다고 그날 등록이 멈추면 자동화가 아니다.
         let resolvedReturn: ResolvedReturn | undefined;
+        // 반품지가 없어 자동 등록은 못 하지만, 수익성 때문에 버리지 않고 초안으로
+        // 살려둔 경우 — 사장님이 손으로 반품지를 지정해야 한다는 표시.
+        let needsManualReturnLocation = false;
         if (pick.wholesaleBest) {
           // 검색 응답만으로 이미 "팔 수 없다"가 확정되는 경우는 상세 조회 예산을
           // 쓰지 않고 바로 버린다. 반품 불가 공급처는 주소를 알아내봐야 못 판다.
@@ -197,16 +200,23 @@ export async function runJarvisAutopilotCycle(
           pick.wholesaleBest = listing;
 
           if (decision.route === "needs_provisioning" && decision.provisioning) {
+            // ⚠️ 예전에는 여기서 이 상품을 완전히 버렸다. 사장님 지시: 수익 확률이
+            // 높은 상품을 반품지 자동화가 안 됐다는 이유로 소싱조차 안 하지 말 것 —
+            // 손이 가더라도 돈이 되면 등록함에 올려서 사람이 반품지를 지정하게 한다.
+            //
+            // 그래서 이제 이 후보는 버리지 않는다. 초안은 만들되 locationId 없이
+            // 남겨두고(아래에서 status를 "draft"로 강제해 자동 실행은 막는다),
+            // 등록함(listings)에 노출시켜 사장님이 반품지를 수동 지정하거나
+            // (publish/execute API가 exchangeReturnLocationId 직접 지정을 지원한다)
+            // 프로비저닝 큐가 추천하는 주소를 등록하면 다음 사이클에 자동으로 풀린다.
             blockedByReturnLocation.push({
               request: decision.provisioning,
               monthlyValueKrw: Math.round(
                 unitNetForReturn * Math.max(0.3, pick.estimatedDailyUnits ?? 1) * 30,
               ),
             });
-            skippedByReturn++;
-            continue;
-          }
-          if (!canPublishWithDecision(decision)) {
+            needsManualReturnLocation = true;
+          } else if (!canPublishWithDecision(decision)) {
             // 전역 설정 누락은 다음 후보로 넘어가도 똑같이 막힌다 — 건너뛰면
             // 하루치가 통째로 사라지고 사장님은 이유를 모른다. 그래서 초안은
             // 그대로 만들고(등록 단계에서 막힌다) 설정하라고 한 번만 알린다.
@@ -238,6 +248,23 @@ export async function runJarvisAutopilotCycle(
           now,
           resolvedReturn,
         });
+
+        if (needsManualReturnLocation) {
+          // 반품지가 없는 채로는 절대 자동 실행(publish)되면 안 된다 — 토스에 빈
+          // exchangeRefundLocationId로 등록 시도가 나가 에러만 반복해서 쌓인다.
+          // "draft"로 고정해 auto-execute 후보(pending_review/approved)에서 뺀다.
+          // 등록함 화면에서는 그대로 보이므로 사장님이 반품지를 수동 지정하거나
+          // 프로비저닝 큐의 주소를 등록하면 그때 정식으로 검토·발행하면 된다.
+          draft.status = "draft";
+          draft.sellerChecklist = [
+            "⚠ 반품지 미등록 — 이 공급처는 반품지가 토스에 없어 자동 등록이 보류됩니다",
+            "등록함에서 반품지를 직접 지정하거나, 대시보드 프로비저닝 안내의 주소를 셀러센터에 등록하세요",
+            ...draft.sellerChecklist,
+          ];
+          actions.push(
+            `「${pick.keyword}」 수익성이 높아 소싱은 유지 — 반품지 미등록으로 등록함에서 수동 지정 대기`,
+          );
+        }
 
         if (pick.wholesaleBest) {
           draft.wholesaleComposition = analyzeWholesaleComposition({
