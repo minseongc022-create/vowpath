@@ -264,6 +264,8 @@ export type MerchantData = {
   discoveredProducts?: CatalogProduct[];
   /** 다음 사이클이 이어서 훑을 키워드 위치 — 앞쪽만 반복해서 보지 않게 */
   discoveryCursor?: number;
+  /** 저장된 발굴 표본의 형식 판 — 다르면 옛 표본을 버리고 다시 훑는다 */
+  discoveryFormatVersion?: string;
   discoveryRanAt?: string;
   /** 발굴이 한 건도 응답을 못 받은 마지막 시각 — 연동 문제를 구분해 알리기 위해 */
   discoverySilentAt?: string;

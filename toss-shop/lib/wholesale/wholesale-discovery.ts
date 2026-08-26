@@ -320,6 +320,19 @@ export async function discoverWholesaleMarket(input: {
  *  · `id`는 실물 상품번호에서 만든다. 데모 시드(p001 형식)와 형태가 달라야
  *    `inferDataQuality`가 이 표본을 실데이터로 인식한다.
  */
+/**
+ * 발굴 표본의 **형식** 판. 표본에 실리는 필드가 바뀌면 올린다.
+ *
+ * 표본은 가맹점 데이터에 그대로 저장돼 다음 사이클에도 재사용된다.
+ * 그래서 형식이 바뀌어도 옛 표본이 남아 새 필드 없이 계속 돌아가는데,
+ * 그러면 배포를 해도 결과가 그대로라 고쳤는지 아닌지 알 수가 없다.
+ * (실제로 sourceKeyword·sourceListing을 추가하고 배포했는데 프로덕션
+ * 수치가 한 자리도 안 바뀌어 한참을 헤맸다.)
+ *
+ * 판이 다르면 옛 표본을 버리고 처음부터 다시 훑는다.
+ */
+export const DISCOVERY_FORMAT_VERSION = "2";
+
 export function buildCatalogFromDiscovery(
   discovered: DiscoveredKeyword[],
   now: string,

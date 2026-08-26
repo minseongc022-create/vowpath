@@ -1976,7 +1976,9 @@ export async function runDiscoveryForMerchant(
     };
   }
 
-  const { discoverWholesaleMarket } = await import("./wholesale/wholesale-discovery");
+  const { discoverWholesaleMarket, DISCOVERY_FORMAT_VERSION } = await import(
+    "./wholesale/wholesale-discovery"
+  );
   // 저장소 쓰기를 아끼려고 몇 개마다 한 번만 갱신한다. 매 키워드마다 쓰면
   // 발굴보다 저장이 더 오래 걸린다.
   const PROGRESS_EVERY = 4;
@@ -1993,7 +1995,14 @@ export async function runDiscoveryForMerchant(
     },
   });
 
-  const existing = data.discoveredProducts ?? [];
+  // 형식이 바뀌었으면 옛 표본을 버린다.
+  //
+  // 표본에는 그것을 찾아낸 검색어·공급처가 실려 있는데, 옛 표본엔 그게
+  // 없다. 없으면 하류가 상품명을 쪼개 키워드를 만들고 도매를 다시 검색하는
+  // 옛 경로로 되돌아간다 — 고쳐 배포해도 결과가 그대로인 이유가 이것이었다.
+  // 버려도 손해가 없다: 다음 사이클부터 새 형식으로 다시 채워진다.
+  const formatOk = data.discoveryFormatVersion === DISCOVERY_FORMAT_VERSION;
+  const existing = formatOk ? (data.discoveredProducts ?? []) : [];
   const byId = new Map(existing.map((p) => [p.id, p]));
   let added = 0;
   for (const p of result.products) {
@@ -2009,12 +2018,15 @@ export async function runDiscoveryForMerchant(
     .slice(0, MAX_DISCOVERED_PRODUCTS);
 
   data.discoveredProducts = merged;
+  data.discoveryFormatVersion = DISCOVERY_FORMAT_VERSION;
   data.discoveryCursor = result.nextCursor;
   data.discoveryRanAt = new Date().toISOString();
   if (result.apiSilent) data.discoverySilentAt = data.discoveryRanAt;
 
-  // 새로 찾은 게 있으면 오늘치 픽 캐시를 버린다 — 그래야 지금 반영된다
-  if (added > 0) {
+  // 새로 찾은 게 있거나 형식이 바뀌었으면 오늘치 픽 캐시를 버린다 —
+  // 그래야 지금 반영된다. 형식이 바뀐 경우엔 새로 추가된 게 없어도
+  // 기존 표본의 내용이 통째로 달라졌으므로 다시 계산해야 한다.
+  if (added > 0 || !formatOk) {
     data.consignmentDate = undefined;
     data.consignmentPicks = undefined;
   }
