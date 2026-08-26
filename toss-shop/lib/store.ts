@@ -2368,6 +2368,10 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   published: number;
   orders: number;
   bottleneck: string;
+  /** 93% 신뢰도 게이트에서 확실성 게이트에 닿기도 전에 잘린 수 */
+  droppedBeforeGate: number;
+  /** 확실성 게이트에서 어떤 근거가 몇 번 걸렸나 */
+  blockers: Array<{ label: string; count: number }>;
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -2380,8 +2384,30 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
 
   const { filterJarvisCertifiedPicks } = await import("./seller-engine/jarvis-engine");
   const { filterCertainPicks } = await import("./seller-engine/certainty-gate");
-  const scored = filterJarvisCertifiedPicks(data.consignmentPicks ?? []);
-  const certified = filterCertainPicks(scored).certain.length;
+  const allPicks = data.consignmentPicks ?? [];
+  const scored = filterJarvisCertifiedPicks(allPicks);
+  const gate = filterCertainPicks(scored);
+  const certified = gate.certain.length;
+
+  // 어느 근거에서 걸리는지 세어둔다.
+  //
+  // "게이트 통과 0"만 알면 기준을 낮추고 싶어지는데, 그건 추정치에 광고비를
+  // 태우는 길이다. 어떤 항목이 몇 번 걸렸는지 보이면 고쳐야 할 곳이
+  // 드러난다 — 대개 기준이 아니라 입력 데이터 쪽이다.
+  const blockerCounts: Record<string, number> = {};
+  for (const r of gate.rejected) {
+    for (const b of r.verdict.blockers) {
+      blockerCounts[b] = (blockerCounts[b] ?? 0) + 1;
+    }
+    if (r.verdict.blockers.length === 0) {
+      // blockers는 비었는데 통과 못 했다면 공급처·원가가 실측이 아닌 경우다
+      blockerCounts["공급처·원가가 실측이 아님"] =
+        (blockerCounts["공급처·원가가 실측이 아님"] ?? 0) + 1;
+    }
+  }
+  // 93% 신뢰도 게이트에서 먼저 잘린 것도 별도로 센다 — 확실성 게이트까지
+  // 오지도 못한 것이므로 원인이 다르다.
+  const droppedBeforeGate = allPicks.length - scored.length;
 
   // 가장 앞에서 끊긴 곳이 진짜 병목이다. 뒤쪽만 보면 "등록이 0개"라고만
   // 알게 되는데, 원인은 그보다 앞 단계에 있는 경우가 대부분이다.
@@ -2398,7 +2424,20 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
               ? "주문 0 — 등록은 됐고 이제 노출·판매를 기다리는 단계"
               : "정상 — 주문까지 흐르고 있음";
 
-  return { discovered, picks, certified, drafts, published, orders, bottleneck };
+  return {
+    discovered,
+    picks,
+    certified,
+    drafts,
+    published,
+    orders,
+    bottleneck,
+    droppedBeforeGate,
+    blockers: Object.entries(blockerCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([label, count]) => ({ label, count })),
+  };
 }
 
 
