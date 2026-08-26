@@ -9,6 +9,7 @@ import {
 import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./category-resolver";
 import { autoMatchCategoryId } from "./category-auto-match";
 import { CATEGORY_RESOLVER_VERSION } from "./category-resolver";
+import { MIN_THUMBNAIL_PX, pickThumbnail } from "./image-dimensions";
 import {
   sanitizeBrandName,
   sanitizeProductName,
@@ -40,7 +41,13 @@ export type TossCreateProductBody = {
     salePrice: number;
     isPurchasableAlone: boolean;
   }>;
-  images: Array<{ type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML"; url?: string; order: string }>;
+  images: Array<{
+    type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML";
+    url?: string;
+    /** DESCRIPTION_HTML일 때 상세 본문 (토스가 sanitization 후 저장) */
+    html?: string;
+    order: string;
+  }>;
   exposure: { searchKeywords: string[]; description: string };
   isTaxFree: boolean;
   deliveryPolicy: {
@@ -91,8 +98,26 @@ const DEFAULT_ISLAND_FEE_KRW = 5_000;
 export function buildImageList(
   thumbnailUrl: string | undefined,
   detailUrls: string[] | undefined,
-): Array<{ type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML"; url?: string; order: string }> {
-  const images: Array<{ type: "THUMBNAIL" | "DESCRIPTION"; url: string; order: string }> = [];
+  /**
+   * 상세 본문 HTML. 있으면 DESCRIPTION_HTML로 실어 보낸다.
+   *
+   * 토스 이미지 항목은 url 말고 **html 필드**를 받는다. 그래서 우리가 만든
+   * 상세페이지를 어디에 호스팅하지 않고 그대로 보낼 수 있다 — 이걸 몰라서
+   * 상세에 작은 썸네일 한 장만 덩그러니 올라가 있었다.
+   */
+  detailHtml?: string,
+): Array<{
+  type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML";
+  url?: string;
+  html?: string;
+  order: string;
+}> {
+  const images: Array<{
+    type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML";
+    url?: string;
+    html?: string;
+    order: string;
+  }> = [];
   const seen = new Set<string>();
 
   const push = (type: "THUMBNAIL" | "DESCRIPTION", url: string) => {
@@ -107,9 +132,14 @@ export function buildImageList(
   if (thumbnailUrl) push("THUMBNAIL", thumbnailUrl);
   else if (details.length) push("THUMBNAIL", details[0]);
 
+  // 상세 본문을 먼저 넣는다 — 사진만 늘어놓는 것보다 설명이 먼저 읽혀야 한다.
+  if (detailHtml?.trim()) {
+    images.push({ type: "DESCRIPTION_HTML", html: detailHtml, order: String(images.length) });
+  }
+
   for (const u of details) push("DESCRIPTION", u);
 
-  // 상세가 한 장도 없으면 썸네일을 상세로도 쓴다 — 토스는 상세를 요구한다.
+  // 상세가 하나도 없으면 썸네일을 상세로도 쓴다 — 토스는 상세를 요구한다.
   if (images.length === 1 && images[0].type === "THUMBNAIL") {
     images.push({ type: "DESCRIPTION", url: images[0].url, order: "1" });
   }
@@ -172,7 +202,7 @@ export function buildTossCreatePayload(
     //
     // 그래서 썸네일과 상세 이미지를 실사진 URL로 채운다. 생성 이미지가
     // 있으면 그걸 쓰고, 없으면 공급처 실사진을 쓴다.
-    images: buildImageList(imageUrl, draft.detailPage?.imageUrls),
+    images: buildImageList(imageUrl, draft.detailPage?.imageUrls, draft.detailPage?.html),
     exposure: {
       // ★ 검색 키워드는 공백이 안 되고 10자를 넘을 수 없다
       //
@@ -380,17 +410,28 @@ export async function publishListingToToss(input: {
     };
   }
 
-  // 이미지가 하나도 없으면 토스가 거절한다. 보내보고 거절당하느니
-  // 여기서 멈추고 사유를 남긴다 — 초안은 approved로 남아 재실행된다.
-  if (buildImageList(thumbnailUrl, input.draft.detailPage?.imageUrls).length === 0) {
+  // ★ 썸네일 크기를 우리가 먼저 잰다 — 반려당하기 전에
+  //
+  // 실측 반려 사유: "썸네일 이미지가 최소 크기(600x600)보다 작습니다."
+  // 도매꾹 검색 응답의 thumb는 목록용 축소본이라 대개 300px 안팎이고,
+  // 그걸 그대로 올리니 전부 반려됐다. 후보 중 기준을 넘는 것을 고른다.
+  const thumbCandidates = [thumbnailUrl, ...(input.draft.detailPage?.imageUrls ?? [])].filter(
+    (u): u is string => Boolean(u),
+  );
+  const chosen = await pickThumbnail(thumbCandidates);
+  const finalThumb = chosen.thumbnailUrl ?? thumbnailUrl;
+
+  if (!finalThumb) {
+    const why = chosen.tooSmall.length
+      ? `확보된 이미지가 전부 ${MIN_THUMBNAIL_PX}x${MIN_THUMBNAIL_PX} 미만입니다 ` +
+        `(가장 큰 것 ${chosen.tooSmall[0].size.width}x${chosen.tooSmall[0].size.height})`
+      : "공급처 사진도 상세 생성 이미지도 확보되지 않았습니다";
     return {
       ok: false,
       simulated: true,
       returnLocation,
       category,
-      error:
-        "상품 이미지가 없어 등록할 수 없습니다 — 공급처 사진도 상세 생성 이미지도 " +
-        "확보되지 않았습니다.",
+      error: `상품 이미지가 없어 등록할 수 없습니다 — ${why}`,
     };
   }
 
@@ -398,7 +439,7 @@ export async function publishListingToToss(input: {
     input.draft,
     category.categoryId,
     returnLocation.locationId,
-    thumbnailUrl,
+    finalThumb,
     requirements,
   );
 

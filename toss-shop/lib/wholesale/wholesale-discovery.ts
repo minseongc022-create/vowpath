@@ -186,7 +186,59 @@ export function proposeRetailKrw(landedCostKrw: number): number {
  */
 const MIN_LANDED_COST_KRW = 6000;
 /** 위탁 한 건에 이만큼 넘게 묶이면 반품 한 건의 타격이 너무 크다 */
-const MAX_LANDED_COST_KRW = 120_000;
+/**
+ * 도매 원가 상한 — 소비자가 실제로 사는 가격대에서 역산한다.
+ *
+ * ★ 실측으로 드러난 사고
+ *
+ * 원가 100,409원짜리를 소싱해 **판매가 159,380원**으로 올렸다.
+ * 시리얼 한 세트가 15만원이다. 도매꾹에서 30개들이 박스를 낱개로 착각한
+ * 것인데, 우리 가격 계산에는 "이 값이 소비자가 살 만한 값인가"를 보는
+ * 단계가 아예 없었다 — 원가에 마진만 얹으면 얼마가 나오든 그대로 올렸다.
+ *
+ * 상한 120,000원은 제안가 190,490원이 된다. 리뷰 하나 없는 신규 셀러의
+ * 19만원짜리 상품은 팔리지 않는다. 소비자가 실제로 사는 구간(5만원 이하)에
+ * 맞춰 상한을 정한다.
+ */
+const MAX_LANDED_COST_KRW = 31_500;
+
+/**
+ * 낱개가 아니라 **묶음·박스**로 파는 상품의 신호.
+ *
+ * 도매꾹에는 업소용 대량 상품이 섞여 있다. 그건 소비자가 토스에서 살
+ * 물건이 아니고, 낱개로 착각하면 위 사고처럼 값이 터무니없어진다.
+ */
+const BULK_LOT_PATTERNS = [
+  /\b\d{2,}\s*(개|입|매|장|포|봉|병|캔|팩)입?\b/,
+  /x\s*\d{2,}\b/i,
+  /(박스|케이스|BOX|카톤)\s*(단위|판매)?/i,
+  /(업소용|대용량|벌크|도매전용|대량)/,
+];
+
+function looksLikeBulkLot(title: string): boolean {
+  return BULK_LOT_PATTERNS.some((re) => re.test(title));
+}
+
+/**
+ * 같은 키워드의 다른 공급처들과 견줘 **혼자만 비싼** 물건을 걸러낸다.
+ *
+ * ★ 이게 진짜 경쟁 분석이다
+ *
+ * 종전엔 "경쟁사 가격"이라고 부르던 값이 사실 **우리가 만든 제안가끼리의
+ * 비교**였다. 카탈로그가 전부 우리 계산 결과라 순환 참조였고, 그래서
+ * 시장에서 말이 안 되는 값도 아무 데서도 안 걸렸다.
+ *
+ * 반면 같은 키워드로 검색된 공급처들의 도매가는 **실제 시장 데이터**다.
+ * 다들 8천~1만2천 원에 파는데 혼자 10만원이면, 그건 같은 물건이 아니라
+ * 묶음이거나 다른 상품이다. 중앙값의 몇 배가 넘으면 뺀다.
+ */
+const PEER_PRICE_MULTIPLE_LIMIT = 3;
+
+function medianPrice(values: number[]): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+}
 
 function median(nums: number[]): number {
   const s = [...nums].sort((a, b) => a - b);
@@ -350,7 +402,7 @@ export async function discoverWholesaleMarket(input: {
  *
  * 판이 다르면 옛 표본을 버리고 처음부터 다시 훑는다.
  */
-export const DISCOVERY_FORMAT_VERSION = "3";
+export const DISCOVERY_FORMAT_VERSION = "4";
 
 export function buildCatalogFromDiscovery(
   discovered: DiscoveredKeyword[],
@@ -361,11 +413,23 @@ export function buildCatalogFromDiscovery(
 
   for (const d of discovered) {
     let rank = 1;
+
+    // 같은 키워드 공급처들의 도매가 중앙값 — 이게 이 상품군의 실제 시세다.
+    const peerMedian = medianPrice(
+      d.supply.map((x) => x.unitPriceKrw + (x.freeShipping ? 0 : x.shippingFeeKrw)).filter((n) => n > 0),
+    );
+
     for (const s of d.supply) {
       // 배송비를 원가에 포함한다. 무료배송으로 걸어놓고 이걸 빼먹으면
       // 팔수록 손해가 나는데, 그건 등록한 뒤에야 드러난다.
       const landed = s.unitPriceKrw + (s.freeShipping ? 0 : s.shippingFeeKrw);
       if (landed < MIN_LANDED_COST_KRW || landed > MAX_LANDED_COST_KRW) continue;
+
+      // 묶음·박스 상품은 소비자가 토스에서 살 물건이 아니다.
+      if (looksLikeBulkLot(s.title)) continue;
+
+      // 같은 키워드의 시세에서 혼자만 크게 벗어나면 같은 물건이 아니다.
+      if (peerMedian > 0 && landed > peerMedian * PEER_PRICE_MULTIPLE_LIMIT) continue;
 
       const id = `dg-${s.platform}-${s.itemNo ?? s.title.slice(0, 12)}`;
       if (seen.has(id)) continue;

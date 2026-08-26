@@ -5419,3 +5419,124 @@ test("등록 옵션: 중량·용량은 상품명에 적힌 공급사 사양을 �
   const wrongUnit = buildStockOptions(req("개당 중량", ["g", "kg"]), { name: "생수 500ml" });
   assert.ok("blocked" in wrongUnit, "허용 단위가 아니면 환산하지 않고 막아야 한다");
 });
+
+// ── 반려·가격·상세페이지: 사장님이 화면에서 잡아낸 것들 ──────────
+
+test("가격: 묶음·박스 상품과 혼자만 비싼 물건을 걸러낸다", async () => {
+  // ★ 실측으로 드러난 사고
+  //
+  // 원가 100,409원짜리를 소싱해 **판매가 159,380원**으로 올렸다.
+  // 시리얼 한 세트가 15만원이다. 도매꾹 30개들이 박스를 낱개로 착각한
+  // 것인데, 가격 계산에 "이 값이 소비자가 살 만한 값인가"를 보는 단계가
+  // 아예 없었다 — 원가에 마진만 얹으면 얼마가 나오든 그대로 올렸다.
+  const { buildCatalogFromDiscovery } = await import(
+    "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
+  );
+  const sup = (no, title, price) => ({
+    platform: "domeme", itemNo: no, title, unitPriceKrw: price,
+    shippingFeeKrw: 0, moq: 1, url: "https://x", sellerId: "s", sellerNick: "공급사",
+    freeShipping: true, source: "live",
+  });
+  const kw = (supply) => [{ keyword: "시리얼", category: "food", supply }];
+
+  // 같은 키워드에 정상 시세 + 박스 상품이 섞여 있는 상황
+  const out = buildCatalogFromDiscovery(
+    kw([
+      sup(1, "포스트 오레오 오즈 시리얼 250g", 9000),
+      sup(2, "포스트 시리얼 250g", 10000),
+      sup(3, "포스트 오레오 오즈 시리얼 250g x 30개", 100409),
+    ]),
+    "2026-08-26T00:00:00Z",
+  );
+
+  const titles = out.map((p) => p.name);
+  assert.ok(!titles.some((t) => t.includes("x 30")), "묶음 상품은 소싱하지 않아야 한다");
+  assert.equal(out.length, 2, "정상 시세 상품만 남아야");
+  // 남은 것들의 제안가가 소비자가 살 만한 구간이어야 한다
+  assert.ok(out.every((p) => p.priceKrw < 50000), `제안가: ${out.map((p) => p.priceKrw)}`);
+
+  // 업소용·대용량 표기도 뺀다
+  const bulk = buildCatalogFromDiscovery(
+    kw([sup(4, "업소용 시리얼 대용량", 9000), sup(5, "시리얼 250g", 9500)]),
+    "2026-08-26T00:00:00Z",
+  );
+  assert.equal(bulk.length, 1);
+  assert.ok(!bulk[0].name.includes("업소용"));
+
+  // 시세보다 3배 넘게 비싼 건 같은 물건이 아니다
+  const outlier = buildCatalogFromDiscovery(
+    kw([sup(6, "시리얼 A", 9000), sup(7, "시리얼 B", 9500), sup(8, "시리얼 C", 30000)]),
+    "2026-08-26T00:00:00Z",
+  );
+  assert.equal(outlier.length, 2, "시세에서 크게 벗어난 건 빼야 한다");
+});
+
+test("상세페이지: AI 없이도 제대로 된 본문을 만든다", async () => {
+  // ★ 실측으로 본 상태
+  //
+  // 미리보기가 망가져 있었다 — 상세에 작은 썸네일 한 장만 덩그러니 있고
+  // 설명이 없었다. AI 생성이 실패하면 `<p>상세페이지 생성 실패</p>` 한
+  // 줄만 남았기 때문이다.
+  const { buildDetailPageHtml } = await import(
+    "../../toss-shop/lib/seller-engine/detail-page-html.ts"
+  );
+
+  const html = buildDetailPageHtml({
+    productName: "포스트 오레오 오즈 시리얼 250g",
+    sellingPoints: ["250g 정량", "국내 정식 유통"],
+    imageUrls: ["https://img/1.jpg", "https://img/2.jpg"],
+    dispatchDays: 2,
+    returnNote: "수령 후 7일 이내 반품 가능합니다.",
+    specs: [{ label: "중량", value: "250g" }],
+  });
+
+  assert.ok(html.includes("포스트 오레오 오즈 시리얼"), "상품명이 있어야");
+  assert.ok(html.includes("250g 정량"), "셀링포인트가 있어야");
+  assert.ok(html.includes("https://img/1.jpg"), "이미지가 들어가야");
+  assert.ok(html.includes("2영업일"), "출고 안내가 있어야");
+  assert.ok(html.includes("반품"), "반품 안내가 있어야");
+  assert.ok(!html.includes("생성 실패"), "실패 문구가 고객에게 보이면 안 된다");
+  // 토스가 sanitization하므로 script는 애초에 넣지 않는다
+  assert.ok(!html.includes("<script"), "스크립트를 넣지 않아야");
+});
+
+test("상세페이지: 토스에 html 필드로 실어 보낸다", async () => {
+  // 토스 이미지 항목은 url 말고 **html 필드**를 받는다(DESCRIPTION_HTML).
+  // 이걸 몰라서 상세에 작은 썸네일 한 장만 올라가 있었다 — 우리가 만든
+  // 상세페이지를 어디에 호스팅하지 않고 그대로 보낼 수 있다.
+  const { buildImageList } = await import("../../toss-shop/lib/api/create-product.ts");
+
+  const imgs = buildImageList("https://img/thumb.jpg", ["https://img/d1.jpg"], "<div>상세</div>");
+  const htmlItem = imgs.find((i) => i.type === "DESCRIPTION_HTML");
+  assert.ok(htmlItem, "DESCRIPTION_HTML 항목이 있어야 한다");
+  assert.equal(htmlItem.html, "<div>상세</div>");
+  assert.ok(imgs.some((i) => i.type === "THUMBNAIL"));
+  assert.deepEqual(imgs.map((i) => i.order), ["0", "1", "2"], "순서는 0부터 증가");
+});
+
+test("반려 방지: 썸네일 크기를 보내기 전에 잰다", async () => {
+  // ★ 실측 반려 사유
+  //   "썸네일 이미지가 최소 크기(600x600)보다 작습니다."
+  // 도매꾹 검색 응답의 thumb는 목록용 축소본이라 대개 300px 안팎이다.
+  const { readImageSize, MIN_THUMBNAIL_PX } = await import(
+    "../../toss-shop/lib/api/image-dimensions.ts"
+  );
+  assert.equal(MIN_THUMBNAIL_PX, 600);
+
+  // PNG 헤더: 시그니처 + IHDR(가로·세로 빅엔디언 uint32)
+  const png = new Uint8Array(24);
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  new DataView(png.buffer).setUint32(16, 800);
+  new DataView(png.buffer).setUint32(20, 600);
+  assert.deepEqual(readImageSize(png), { width: 800, height: 600 });
+
+  // GIF: 리틀엔디언 uint16
+  const gif = new Uint8Array(10);
+  gif.set([0x47, 0x49, 0x46, 0x38, 0x39, 0x61], 0);
+  new DataView(gif.buffer).setUint16(6, 300, true);
+  new DataView(gif.buffer).setUint16(8, 300, true);
+  assert.deepEqual(readImageSize(gif), { width: 300, height: 300 });
+
+  // 형식을 모르면 지어내지 않는다
+  assert.equal(readImageSize(new Uint8Array([1, 2, 3, 4])), null);
+});

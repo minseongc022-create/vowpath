@@ -9,6 +9,7 @@ import type { ConsignmentPick, ImportPick, JarvisDetailPageBundle } from "../typ
 import { requestDetailPageFromProviders } from "./detail-page-providers";
 import type { DetailPageProviderId } from "./detail-page-providers";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
+import { buildDetailPageHtml } from "./detail-page-html";
 
 export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
 
@@ -137,9 +138,29 @@ export async function buildJarvisDetailPage(
   // 공급처가 올린 사진은 그 상품의 실물 사진이다 — 생성 이미지가 없을 때
   // 쓸 수 있는 가장 정확한 자료이고, 없는 것보다 훨씬 낫다.
   const fallbackImage = wholesale?.imageUrl ?? importImage;
+
+  // ★ AI가 안 돼도 상세페이지는 제대로 만든다
+  //
+  // 종전엔 여기서 `<p>상세페이지 생성 실패</p>` 한 줄만 남겼다. 그 결과
+  // 상세에 작은 사진 한 장만 덩그러니 올라가 미리보기가 망가져 보였다.
+  //
+  // 상세페이지에 필요한 건 창작이 아니라 **사실의 배치**다 — 무엇인지,
+  // 어떤 사양인지, 언제 오는지, 안 맞으면 어떻게 되는지. 전부 이미 아는
+  // 값이라 AI 없이도 구매 결정 순서대로 놓을 수 있다. AI는 문장을 더
+  // 매끄럽게 다듬는 역할이지, 없다고 페이지가 비어야 할 이유가 아니다.
+  const objectionsHtml = renderObjectionsHtml(plan.objections);
+  const html = buildDetailPageHtml({
+    productName: title,
+    sellingPoints,
+    imageUrls: fallbackImage ? [fallbackImage] : [],
+    dispatchDays: wholesale?.supplierQuality?.shipSpeed === "same_day" ? 1 : undefined,
+    returnNote,
+    objectionsHtml,
+  });
+
   return {
     source: "matchcut_pending",
-    html: `<p>상세페이지 생성 실패 — ${detail.note ?? "알 수 없는 오류"}</p>`,
+    html,
     thumbnailUrl: fallbackImage,
     imageUrls: fallbackImage ? [fallbackImage] : undefined,
     sellingPoints,

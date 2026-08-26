@@ -132,7 +132,7 @@ export function validateListingBody(body: {
     originPrice?: number;
     salePrice?: number;
   }>;
-  images?: Array<{ type: string; url?: string; order: string }>;
+  images?: Array<{ type: string; url?: string; html?: string; order: string }>;
   exposure?: { searchKeywords?: string[]; description?: string };
   deliveryPolicy?: { deliveryFeeType?: string; preparationDays?: number };
   exchangeReturnPolicy?: {
@@ -218,7 +218,10 @@ export function validateListingBody(body: {
   if (thumbs.length < 1) v.push({ field: "images", reason: "썸네일 이미지가 없습니다" });
   if (descs.length < 1) v.push({ field: "images", reason: "상세 이미지가 없습니다" });
   images.forEach((img, i) => {
-    // DESCRIPTION_HTML은 html로 줄 수 있으므로 url이 없어도 된다.
+    // DESCRIPTION_HTML은 html로 준다 — url이 없어도 되지만 둘 다 없으면 빈 항목이다.
+    if (img.type === "DESCRIPTION_HTML" && !img.html && !img.url) {
+      v.push({ field: `images[${i}]`, reason: "상세 HTML 항목에 내용이 없습니다" });
+    }
     if (img.type !== "DESCRIPTION_HTML" && !img.url) {
       v.push({ field: `images[${i}]`, reason: `${img.type} 이미지에 주소가 없습니다` });
     }
