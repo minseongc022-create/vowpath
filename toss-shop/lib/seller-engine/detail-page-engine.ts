@@ -127,9 +127,21 @@ export async function buildJarvisDetailPage(
     };
   }
 
+  // 상세페이지 생성이 실패해도 **공급처 실사진은 남긴다**.
+  //
+  // 토스는 상세 이미지가 하나도 없으면 등록을 거절한다
+  // ("상세 이미지 또는 html을 찾을 수 없음"). 종전엔 생성이 실패하면
+  // 참조 이미지까지 통째로 버려서, AI가 안 되는 순간 등록도 같이 멈췄다.
+  // 실제로 OpenAI 크레딧이 떨어지자 그렇게 멈췄다.
+  //
+  // 공급처가 올린 사진은 그 상품의 실물 사진이다 — 생성 이미지가 없을 때
+  // 쓸 수 있는 가장 정확한 자료이고, 없는 것보다 훨씬 낫다.
+  const fallbackImage = wholesale?.imageUrl ?? importImage;
   return {
     source: "matchcut_pending",
     html: `<p>상세페이지 생성 실패 — ${detail.note ?? "알 수 없는 오류"}</p>`,
+    thumbnailUrl: fallbackImage,
+    imageUrls: fallbackImage ? [fallbackImage] : undefined,
     sellingPoints,
     searchKeywords,
     matchcutReady: false,

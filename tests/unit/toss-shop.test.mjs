@@ -149,6 +149,11 @@ test("E2E: consignment pick -> listing draft -> execute (mock Toss API, no real 
     );
   };
 
+  // 토스는 이미지 없는 상품을 거절한다("상세 이미지 또는 html을 찾을 수 없음").
+  // 프로덕션에서는 도매꾹 상품 사진이 여기 들어온다 — 시드 카탈로그에는
+  // 그 사진이 없으므로, 등록 경로를 끝까지 태우려면 여기서 채워준다.
+  draft.detailPage.thumbnailUrl ??= "https://img.example/seed-thumb.jpg";
+
   const publishResult = await publishListingToToss({
     merchantId: "merchant_test",
     config: { accessKey: "mock_key", secretKey: "mock_secret", sandbox: true, partnerName: "effiroad" },
@@ -432,7 +437,9 @@ test("publish: 반품지 결정 실패는 등록을 차단하고 근거를 결�
   const draft = {
     pickMode: "consignment",
     keyword: "테스트",
-    detailPage: { thumbnailUrl: undefined },
+    // 토스는 이미지 없는 상품을 거절한다 — 실제 등록 경로를 태우는 테스트는
+    // 공급처 실사진이 있는 상태여야 한다
+    detailPage: { thumbnailUrl: "https://img.example/thumb.jpg" },
     listingPayload: {
       name: "테스트 상품",
       brandName: "에피로드",
@@ -1858,7 +1865,9 @@ test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID
   const draft = {
     pickMode: "consignment",
     keyword: "립스틱",
-    detailPage: { thumbnailUrl: undefined },
+    // 토스는 이미지 없는 상품을 거절한다 — 실제 등록 경로를 태우는 테스트는
+    // 공급처 실사진이 있는 상태여야 한다
+    detailPage: { thumbnailUrl: "https://img.example/thumb.jpg" },
     listingPayload: {
       name: "테스트 립스틱",
       brandName: "에피로드",
@@ -2622,7 +2631,9 @@ test("publish: 카테고리 자동 매칭 결과가 실제 등록에 쓰이고 �
   const draft = {
     pickMode: "consignment",
     keyword: "세럼",
-    detailPage: { thumbnailUrl: undefined },
+    // 토스는 이미지 없는 상품을 거절한다 — 실제 등록 경로를 태우는 테스트는
+    // 공급처 실사진이 있는 상태여야 한다
+    detailPage: { thumbnailUrl: "https://img.example/thumb.jpg" },
     listingPayload: {
       name: "수분 세럼 30ml", brandName: "에피로드", salePrice: 15000, originPrice: 16000,
       searchKeywords: ["세럼"], description: "설명", categoryHint: "뷰티", category: "beauty",
@@ -4989,4 +5000,37 @@ test("등록 필수 옵션: 치수처럼 모르는 값을 요구하면 지어내
     { key: "무늬", isOption: true, valueCandidates: ["줄무늬"], unitValues: null },
   ]);
   assert.deepEqual(optional.options, []);
+});
+
+test("등록 이미지: url 없는 항목을 넣지 않는다 — 토스가 거절하던 원인", async () => {
+  // ★ 실측으로 드러난 결함
+  //
+  // 종전엔 url이 **없는** DESCRIPTION_HTML 항목을 넣었다. 토스는 그걸 보고
+  // "상세 이미지 또는 html을 찾을 수 없음"으로 거절했다 — 가리키는 게
+  // 아무것도 없으니 당연하다. url은 255자 제한이라 HTML 본문을 인라인으로
+  // 넣을 수도 없고, 실제 이미지 주소를 줘야 한다.
+  const { buildImageList } = await import("../../toss-shop/lib/api/create-product.ts");
+
+  // 썸네일 + 상세 이미지
+  const full = buildImageList("https://img/thumb.jpg", ["https://img/d1.jpg", "https://img/d2.jpg"]);
+  assert.equal(full.length, 3);
+  assert.equal(full[0].type, "THUMBNAIL");
+  assert.ok(full.every((i) => typeof i.url === "string" && i.url.length > 0), "url 없는 항목이 있으면 안 된다");
+  assert.deepEqual(full.map((i) => i.order), ["0", "1", "2"], "순서는 0부터 증가해야");
+
+  // 썸네일만 있으면 상세로도 쓴다 — 토스는 상세를 요구한다
+  const onlyThumb = buildImageList("https://img/thumb.jpg", undefined);
+  assert.equal(onlyThumb.length, 2);
+  assert.equal(onlyThumb[1].type, "DESCRIPTION");
+
+  // 같은 사진이 겹치면 한 번만 — 겹쳐 넣으면 상세가 한 장짜리로 보인다
+  const dup = buildImageList("https://img/a.jpg", ["https://img/a.jpg", "https://img/b.jpg"]);
+  assert.equal(dup.filter((i) => i.url === "https://img/a.jpg").length, 1);
+
+  // 255자 넘는 주소는 토스가 거절한다 — 아예 넣지 않는다
+  const tooLong = `https://img/${"x".repeat(300)}.jpg`;
+  assert.equal(buildImageList(tooLong, undefined).length, 0);
+
+  // 이미지가 없으면 빈 배열 — 호출부가 이걸 보고 등록을 막는다
+  assert.equal(buildImageList(undefined, []).length, 0);
 });

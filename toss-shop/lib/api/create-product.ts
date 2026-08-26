@@ -74,6 +74,40 @@ export type TossCreateProductBody = {
 const DEFAULT_JEJU_FEE_KRW = 3_000;
 const DEFAULT_ISLAND_FEE_KRW = 5_000;
 
+/**
+ * 등록에 실을 이미지 목록을 만든다 — url이 있는 항목만.
+ *
+ * 첫 장은 썸네일, 나머지는 상세 이미지가 된다. 중복은 뺀다 (같은 사진이
+ * 썸네일과 상세에 겹쳐 들어가면 상세가 한 장짜리로 보인다).
+ */
+export function buildImageList(
+  thumbnailUrl: string | undefined,
+  detailUrls: string[] | undefined,
+): Array<{ type: "THUMBNAIL" | "DESCRIPTION" | "DESCRIPTION_HTML"; url?: string; order: string }> {
+  const images: Array<{ type: "THUMBNAIL" | "DESCRIPTION"; url: string; order: string }> = [];
+  const seen = new Set<string>();
+
+  const push = (type: "THUMBNAIL" | "DESCRIPTION", url: string) => {
+    const clean = url.trim();
+    // 255자 제한을 넘는 주소는 토스가 거절한다 — 넣지 않는다
+    if (!clean || clean.length > 255 || seen.has(clean)) return;
+    seen.add(clean);
+    images.push({ type, url: clean, order: String(images.length) });
+  };
+
+  const details = (detailUrls ?? []).filter(Boolean);
+  if (thumbnailUrl) push("THUMBNAIL", thumbnailUrl);
+  else if (details.length) push("THUMBNAIL", details[0]);
+
+  for (const u of details) push("DESCRIPTION", u);
+
+  // 상세가 한 장도 없으면 썸네일을 상세로도 쓴다 — 토스는 상세를 요구한다.
+  if (images.length === 1 && images[0].type === "THUMBNAIL") {
+    images.push({ type: "DESCRIPTION", url: images[0].url, order: "1" });
+  }
+  return images;
+}
+
 export function buildTossCreatePayload(
   draft: JarvisListingDraft,
   categoryId: number,
@@ -116,12 +150,16 @@ export function buildTossCreatePayload(
         isPurchasableAlone: true,
       },
     ],
-    images: imageUrl
-      ? [
-          { type: "THUMBNAIL", url: imageUrl, order: "0" },
-          { type: "DESCRIPTION_HTML", order: "1" },
-        ]
-      : [{ type: "DESCRIPTION_HTML", order: "0" }],
+    // ★ 이미지는 **실제 URL이 있는 것만** 넣는다
+    //
+    // 종전엔 url 없는 DESCRIPTION_HTML 항목을 넣었다. 토스는 그걸 보고
+    // "상세 이미지 또는 html을 찾을 수 없음"으로 등록을 거절했다 — 당연하다,
+    // 가리키는 게 아무것도 없으니까. (url은 255자 제한이라 HTML 본문을
+    // 인라인으로 넣을 수도 없다. 실제 이미지 주소를 줘야 한다.)
+    //
+    // 그래서 썸네일과 상세 이미지를 실사진 URL로 채운다. 생성 이미지가
+    // 있으면 그걸 쓰고, 없으면 공급처 실사진을 쓴다.
+    images: buildImageList(imageUrl, draft.detailPage?.imageUrls),
     exposure: {
       searchKeywords: p.searchKeywords.length ? p.searchKeywords : [draft.keyword.slice(0, 10)],
       description: p.description.slice(0, 1500),
@@ -176,6 +214,9 @@ export async function publishListingToToss(input: {
   strictReturnLocation?: boolean;
 }): Promise<PublishListingResult> {
   const payload = input.draft.listingPayload;
+  // 썸네일은 초안이 이미 들고 있다. 호출부가 따로 넘겨주기만 기다리면,
+  // 한 곳이라도 안 넘기는 순간 이미지 없는 상품이 되어 등록이 거절된다.
+  const thumbnailUrl = input.imageUrl ?? input.draft.detailPage?.thumbnailUrl;
 
   // ★ 순서: 값싼 판정 먼저, 비싼 조회 나중
   //
@@ -311,11 +352,25 @@ export async function publishListingToToss(input: {
     };
   }
 
+  // 이미지가 하나도 없으면 토스가 거절한다. 보내보고 거절당하느니
+  // 여기서 멈추고 사유를 남긴다 — 초안은 approved로 남아 재실행된다.
+  if (buildImageList(thumbnailUrl, input.draft.detailPage?.imageUrls).length === 0) {
+    return {
+      ok: false,
+      simulated: true,
+      returnLocation,
+      category,
+      error:
+        "상품 이미지가 없어 등록할 수 없습니다 — 공급처 사진도 상세 생성 이미지도 " +
+        "확보되지 않았습니다.",
+    };
+  }
+
   const body = buildTossCreatePayload(
     input.draft,
     category.categoryId,
     returnLocation.locationId,
-    input.imageUrl,
+    thumbnailUrl,
     requirements,
   );
 
