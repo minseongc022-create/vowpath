@@ -1351,13 +1351,26 @@ export async function autoPublishCertifiedDrafts(
       break;
     }
     try {
-      await executeJarvisListing({
+      // ⚠️ 예외가 안 났다고 등록된 게 아니다 — 실측으로 드러난 착각
+      //
+      // publishApprovedListingDraft는 토스가 거절해도 예외를 던지지 않는다.
+      // 초안 상태를 "failed"로 바꾸고 publishError에 사유를 적어 돌려줄 뿐이다.
+      // 그래서 예외 없음을 성공으로 세면 "등록 1건"이라 보고하면서 실제로는
+      // 아무것도 안 올라간 상태가 된다 — 심박이 listedNow 1, published 0을
+      // 동시에 보고한 게 그것이었다. 돌려받은 상태로 판정한다.
+      const after = await executeJarvisListing({
         merchantId,
         draftId: draft.id,
         approvedBy: opts.approvedBy,
       });
-      published += 1;
-      actions.push(`[AUTO] 「${draft.keyword}」 토스 등록 완료`);
+      if (after.status === "published") {
+        published += 1;
+        actions.push(`[AUTO] 「${draft.keyword}」 토스 등록 완료`);
+      } else {
+        const why = after.publishError ?? `상태 ${after.status}`;
+        errors.push(`auto_execute:${draft.id}:${why}`);
+        notEligible[`등록 거절 — ${why}`] = (notEligible[`등록 거절 — ${why}`] ?? 0) + 1;
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "AUTO_EXECUTE_FAIL";
       errors.push(`auto_execute:${draft.id}:${msg}`);
