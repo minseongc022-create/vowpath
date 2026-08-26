@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   autoPlaceWholesaleOrders,
+  checkOrderingReadiness,
   autoRegisterReturnLocations,
   dispatchOwnerTodoAlerts,
   listMerchantIds,
@@ -60,11 +61,22 @@ export async function GET(request: Request) {
     ordersPlaced?: number;
     ordersFailed?: number;
     emoneyInsufficient?: boolean;
+    ordering?: { configured: boolean; loginOk: boolean; balanceKrw: number | null; reason?: string };
     error?: string;
   }> = [];
 
   for (const merchantId of merchantIds) {
     try {
+      // 발주 준비가 됐는지 먼저 본다 — 읽기 전용이라 아무것도 사지 않는다.
+      // 주문이 없어도 로그인·잔액이 확인되므로, 첫 고객 주문이 테스트가 되는
+      // 상황을 피할 수 있다.
+      let ordering: Awaited<ReturnType<typeof checkOrderingReadiness>> | undefined;
+      try {
+        ordering = await checkOrderingReadiness();
+      } catch (e) {
+        console.warn("[pulse] 발주 준비 점검 실패", e);
+      }
+
       // 발주가 알림보다 먼저다 — 이번에 발주가 되거나 잔액 부족이 새로
       // 드러나야, 뒤이은 알림이 방금 상태를 보고 판단한다.
       let ordersPlaced: number | undefined;
@@ -117,6 +129,7 @@ export async function GET(request: Request) {
         ordersPlaced,
         ordersFailed,
         emoneyInsufficient,
+        ordering,
         scanned: diag.scanned,
         matched: diag.found,
         added: diag.added,

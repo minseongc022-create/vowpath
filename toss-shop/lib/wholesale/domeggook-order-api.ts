@@ -300,3 +300,42 @@ function splitAddressForDelivery(fullAddress: string): { address1: string; addre
   }
   return { address1: text, address2: "-" };
 }
+
+/**
+ * 발주 준비 상태를 미리 확인한다 — 주문 없이도, 아무것도 사지 않고.
+ *
+ * ★ 왜 필요한가
+ *
+ * 이 확인이 없으면 **첫 고객 주문이 곧 첫 테스트**가 된다. 로그인 설정이
+ * 틀려 있으면 그 사실을 고객이 기다리는 동안 알게 되고, 발송기한은 그 사이
+ * 계속 흘러간다. 돈이 걸린 경로는 실전 전에 검증할 수 있어야 한다.
+ *
+ * 로그인과 잔액 조회만 한다 — 둘 다 읽기 전용이라 호출해도 아무것도 사지
+ * 않고 아무 값도 바뀌지 않는다.
+ */
+export type OrderingHealth = {
+  configured: boolean;
+  loginOk: boolean;
+  balanceKrw: number | null;
+  reason?: string;
+};
+
+export async function checkOrderingHealth(): Promise<OrderingHealth> {
+  if (!isDomeggookOrderingConfigured()) {
+    return { configured: false, loginOk: false, balanceKrw: null, reason: "계정 정보 미설정" };
+  }
+
+  const login = await loginDomeggook();
+  if (!login.ok) {
+    return { configured: true, loginOk: false, balanceKrw: null, reason: login.reason };
+  }
+
+  const balance = await getEmoneyBalance(login.session);
+  if (!balance.ok) {
+    // 로그인은 됐으니 절반은 확인된 것이다. 잔액만 못 읽은 것과 로그인
+    // 자체가 안 되는 것은 원인이 전혀 다르므로 구분해서 돌려준다.
+    return { configured: true, loginOk: true, balanceKrw: null, reason: balance.reason };
+  }
+
+  return { configured: true, loginOk: true, balanceKrw: balance.balance.cashKrw };
+}

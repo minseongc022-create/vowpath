@@ -2308,3 +2308,20 @@ export async function autoPlaceWholesaleOrders(merchantId: string): Promise<{
     errors: errors.slice(0, 5),
   };
 }
+
+
+/**
+ * 발주 준비 상태 점검 — 주문 없이, 아무것도 사지 않고 확인한다.
+ *
+ * 이 확인이 없으면 첫 고객 주문이 곧 첫 테스트가 된다. 로그인이나 잔액에
+ * 문제가 있으면 고객이 기다리는 동안 알게 되고, 그 사이 발송기한이 흘러간다.
+ */
+export async function checkOrderingReadiness(): Promise<{
+  configured: boolean;
+  loginOk: boolean;
+  balanceKrw: number | null;
+  reason?: string;
+}> {
+  const { checkOrderingHealth } = await import("./wholesale/domeggook-order-api");
+  return checkOrderingHealth();
+}
