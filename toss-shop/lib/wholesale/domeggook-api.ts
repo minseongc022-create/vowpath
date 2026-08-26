@@ -42,12 +42,59 @@ function describeShape(raw: unknown): string {
   return `${top.join(",")}${inner}`;
 }
 
+/**
+ * 응답에서 상품 목록을 꺼낸다.
+ *
+ * ★ 실측으로 드러난 것
+ *
+ * 도매꾹 응답은 `{ domeggook: { list: { item: [...] } } }`처럼 **바깥 껍질이
+ * 한 겹 더 있다**(시장에 따라 껍질 이름이 달라진다). 종전 파서는 `list.item`만
+ * 봤기 때문에 정상 응답을 전부 빈 목록으로 읽었다. 오류도 안 났다 — 그냥
+ * "팔 물건이 없다"로 보였고, 그 결과 소싱이 통째로 멈춰 있었다.
+ *
+ * 그래서 껍질 이름을 특정하지 않고 **목록을 찾아 들어간다**. 도매꾹이 응답
+ * 구조를 또 바꿔도 이 코드는 계속 동작해야 한다 — 한 번 겪은 실패를 같은
+ * 모양으로 다시 겪지 않기 위해서다.
+ */
 function normalizeItems(raw: unknown): DomeItem[] {
-  if (!raw || typeof raw !== "object") return [];
-  const list = raw as { list?: { item?: DomeItem | DomeItem[] } };
-  const item = list.list?.item;
-  if (!item) return [];
-  return Array.isArray(item) ? item : [item];
+  const found = findItemList(raw, 0);
+  if (!found) return [];
+  return Array.isArray(found) ? found : [found];
+}
+
+/** 최대 이만큼만 파고든다 — 순환 참조나 거대한 응답에서 멈추지 못하면 안 된다 */
+const MAX_SEARCH_DEPTH = 6;
+
+function findItemList(node: unknown, depth: number): DomeItem | DomeItem[] | null {
+  if (depth > MAX_SEARCH_DEPTH || !node || typeof node !== "object") return null;
+
+  const obj = node as Record<string, unknown>;
+
+  // 우리가 찾는 모양: { list: { item: ... } }
+  const list = obj.list;
+  if (list && typeof list === "object") {
+    const item = (list as Record<string, unknown>).item;
+    if (item && typeof item === "object") return item as DomeItem | DomeItem[];
+  }
+  // 껍질이 한 겹 덜한 경우: { item: ... }
+  if (obj.item && typeof obj.item === "object" && looksLikeItems(obj.item)) {
+    return obj.item as DomeItem | DomeItem[];
+  }
+
+  // 아니면 껍질을 하나씩 벗겨 내려간다
+  for (const value of Object.values(obj)) {
+    const hit = findItemList(value, depth + 1);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** 상품처럼 생겼는가 — 엉뚱한 `item` 키를 상품으로 오인하지 않게 */
+function looksLikeItems(value: unknown): boolean {
+  const first = Array.isArray(value) ? value[0] : value;
+  if (!first || typeof first !== "object") return false;
+  const o = first as Record<string, unknown>;
+  return "no" in o || "title" in o || "price" in o;
 }
 
 /** 응답에 실려 온 설명·안내 텍스트를 모아 반품정책 판독 입력으로 쓴다 */
@@ -83,6 +130,16 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
     supplierQuality,
     policyText: collectPolicyText(item),
   };
+}
+
+/**
+ * 테스트 전용 — 응답 파싱만 따로 검증하기 위해 연다.
+ *
+ * 이 경로가 조용히 어긋나면 소싱이 통째로 멈추는데 오류는 하나도 안 난다.
+ * 실제로 그렇게 멈춰 있었다. 그래서 파싱만은 반드시 테스트로 묶어둔다.
+ */
+export function __readItemsForTest(raw: unknown): DomeItem[] {
+  return normalizeItems(raw);
 }
 
 export function isDomeggookApiConfigured(): boolean {

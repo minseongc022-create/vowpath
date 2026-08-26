@@ -4141,3 +4141,28 @@ test("지시: '확인했어'가 문자 테스트로 새지 않는다", async () 
   assert.equal(parseExtraAction("오늘 날씨 어때"), null);
   assert.equal(parseExtraAction("반품지 확인해줘"), null);
 });
+
+test("도매꾹 응답: 바깥 껍질이 한 겹 더 있어도 상품을 읽는다", async () => {
+  // 실측: 도매꾹은 { domeggook: { list: { item: [...] } } } 로 준다.
+  // 종전 파서는 list.item만 봐서 정상 응답을 전부 빈 목록으로 읽었고,
+  // 오류도 안 나서 "팔 물건이 없다"로 보였다. 이 테스트가 그 재발을 막는다.
+  const mod = await import("../../toss-shop/lib/wholesale/domeggook-api.ts");
+
+  const item = { no: 123, title: "테스트 양말", price: 3000, unitQty: 1, id: "s1", nick: "공급사" };
+  const shapes = [
+    { domeggook: { list: { item: [item] } } },
+    { domeme: { list: { item: item } } },
+    { list: { item: [item] } },
+    { header: {}, body: { list: { item: [item] } } },
+  ];
+
+  for (const shape of shapes) {
+    const got = mod.__readItemsForTest(shape);
+    assert.equal(got.length, 1, JSON.stringify(shape).slice(0, 60));
+    assert.equal(got[0].no, 123);
+  }
+
+  // 상품이 없으면 빈 배열 — 엉뚱한 걸 상품으로 오인하면 안 된다
+  assert.equal(mod.__readItemsForTest({ domeggook: { list: {} } }).length, 0);
+  assert.equal(mod.__readItemsForTest({ menu: { item: { label: "메뉴" } } }).length, 0);
+});
