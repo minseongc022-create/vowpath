@@ -109,6 +109,7 @@ export async function fetchCategorySalesOptions(
  */
 export function buildStockOptions(
   template: CategorySalesOption[],
+  product?: { name: string },
 ): { options: Array<{ groupName: string; valueName: string }> } | { blocked: string } {
   // isOption === false 가 "필수"다 (토스 문서 표기)
   const required = template.filter((t) => t.isOption === false);
@@ -116,6 +117,18 @@ export function buildStockOptions(
 
   for (const t of required) {
     if (t.unitValues && t.unitValues.length > 0) {
+      // ★ 수량은 우리가 **아는** 값이다 — 치수와 다르다
+      //
+      // 위탁판매는 낱개 공급(MOQ≤1)만 소싱하고, 한 주문에 한 개를 사서
+      // 그대로 보낸다. 그러니 "이 상품을 사면 몇 개가 오는가"는 추측이
+      // 아니라 우리 이행 구조에서 나오는 사실이다.
+      //
+      // 반면 가로길이·무게 같은 실물 치수는 도매 응답에 없어서 정말 모른다.
+      // 그건 계속 막는다 — 지어낸 치수는 반품·분쟁으로 돌아온다.
+      if (/수량|개수/.test(t.key)) {
+        options.push({ groupName: t.key, valueName: `1${pickCountUnit(t.unitValues, product?.name)}` });
+        continue;
+      }
       return {
         blocked: `필수 옵션 「${t.key}」는 숫자+단위(${t.unitValues.join("/")})를 요구하는데 공급처 정보로 확인할 수 없습니다.`,
       };
@@ -128,6 +141,21 @@ export function buildStockOptions(
   }
 
   return { options };
+}
+
+/**
+ * 수량 단위를 고른다 — 상품명이 세트 구성을 말하면 그걸 따른다.
+ *
+ * "3종 세트"를 "1개"라고 하면 실물과 어긋난다. 한 번 주문에 세트 하나가
+ * 가는 것이므로 "1세트"가 맞다. 단위는 반드시 토스가 준 후보 중에서 고른다.
+ */
+function pickCountUnit(unitValues: string[], productName?: string): string {
+  const name = productName ?? "";
+  const prefer = /세트|종\s*세트|\d+\s*종/.test(name) ? ["세트", "개"] : ["개", "세트"];
+  for (const want of prefer) {
+    if (unitValues.includes(want)) return want;
+  }
+  return unitValues[0];
 }
 
 /** 정보제공 고시 카테고리 코드 목록 */

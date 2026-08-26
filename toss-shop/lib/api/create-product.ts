@@ -264,7 +264,7 @@ export async function publishListingToToss(input: {
       input.config,
       category.categoryId,
     );
-    const built = buildStockOptions(template);
+    const built = buildStockOptions(template, { name: payload.name });
     if ("blocked" in built) {
       // 필수 옵션에 치수 같은 숫자를 요구하는데 우리가 모르는 경우다.
       // 지어내면 반품·분쟁으로 돌아오므로 등록을 멈춘다.

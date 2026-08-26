@@ -4949,6 +4949,29 @@ test("등록 필수 옵션: 치수처럼 모르는 값을 요구하면 지어내
   ]);
   assert.ok("blocked" in blocked, "모르는 치수를 요구하면 막아야 한다");
 
+  // ⚠️ 수량은 다르다 — 우리가 아는 값이다.
+  // 위탁은 낱개(MOQ≤1)만 소싱해 한 주문에 하나를 사서 그대로 보낸다.
+  // "몇 개가 오는가"는 추측이 아니라 우리 이행 구조에서 나오는 사실이다.
+  const qty = buildStockOptions(
+    [{ key: "수량", isOption: false, valueCandidates: [], unitValues: ["개", "세트", "박스"] }],
+    { name: "실리콘 주방 집게" },
+  );
+  assert.deepEqual(qty.options, [{ groupName: "수량", valueName: "1개" }]);
+
+  // 세트 상품이면 "1개"가 아니라 "1세트"여야 실물과 맞는다
+  const setQty = buildStockOptions(
+    [{ key: "수량", isOption: false, valueCandidates: [], unitValues: ["개", "세트"] }],
+    { name: "실리콘 주방 집게 3종 세트" },
+  );
+  assert.deepEqual(setQty.options, [{ groupName: "수량", valueName: "1세트" }]);
+
+  // 단위는 반드시 토스가 준 후보 중에서만 고른다 — 없는 단위는 거절당한다
+  const onlyBox = buildStockOptions(
+    [{ key: "수량", isOption: false, valueCandidates: [], unitValues: ["박스"] }],
+    { name: "아무 상품" },
+  );
+  assert.deepEqual(onlyBox.options, [{ groupName: "수량", valueName: "1박스" }]);
+
   // 보기가 정해져 있으면 반드시 그중에서 고른다 — 없는 값을 넣으면 거절당한다
   const fromCandidates = buildStockOptions([
     { key: "색상", isOption: false, valueCandidates: ["검정", "흰색"], unitValues: null },
