@@ -4119,11 +4119,11 @@ test("발굴: 판매가는 원가에서 계산한 제안이고, 배송비를 빼
   });
   const mk = (sup) => [{ keyword: "양말", category: "fashion", domeListings: 5, supply: sup }];
 
-  const p = buildCatalogFromDiscovery(mk([supply(1, 5000)]), "2026-08-05T00:00:00Z");
+  const p = buildCatalogFromDiscovery(mk([supply(1, 9000)]), "2026-08-05T00:00:00Z");
   assert.equal(p.length, 1);
   // 수수료와 목표 마진을 얹은 값이어야 한다 — 원가보다 확실히 커야
-  assert.ok(p[0].priceKrw > 5000 * 1.5, `제안가 ${p[0].priceKrw}`);
-  assert.equal(p[0].priceKrw, proposeRetailKrw(5000));
+  assert.ok(p[0].priceKrw > 9000 * 1.5, `제안가 ${p[0].priceKrw}`);
+  assert.equal(p[0].priceKrw, proposeRetailKrw(9000));
 
   // 배송비를 원가에 포함한다. 무료배송으로 걸어놓고 이걸 빼먹으면
   // 팔수록 손해가 나는데 등록한 뒤에야 드러난다.
@@ -4138,8 +4138,17 @@ test("발굴: 판매가는 원가에서 계산한 제안이고, 배송비를 빼
   // 데모 시드(p001)와 형태가 달라야 실데이터로 인식된다
   assert.ok(!/^p\d{3}$/.test(p[0].id));
 
-  // 너무 싼 물건은 배송비가 마진을 통째로 먹는다
+  // ★ 너무 싼 물건은 아예 안 본다 — 목표를 수량으로 못 메우기 때문이다
+  //
+  // 원가 1,500원짜리는 순마진 25%를 지켜도 개당 598원이고, 그 숫자로 월
+  // 1,000만원을 만들려면 한 달에 16,722개를 팔아야 한다. 위탁으로 불가능한
+  // 수다. 발굴 단계에서 걸러야 후보 자리를 낭비하지 않는다.
   assert.equal(buildCatalogFromDiscovery(mk([supply(3, 500)]), "2026-08-05T00:00:00Z").length, 0);
+  assert.equal(
+    buildCatalogFromDiscovery(mk([supply(4, 3000)]), "2026-08-05T00:00:00Z").length,
+    0,
+    "개당 순이익이 목표에 못 미치는 저가 상품은 발굴 단계에서 제외된다",
+  );
   // 너무 비싼 물건은 반품 한 건의 타격이 크다
   assert.equal(buildCatalogFromDiscovery(mk([supply(4, 500000)]), "2026-08-05T00:00:00Z").length, 0);
 });
@@ -4750,7 +4759,7 @@ test("발굴 표본은 자기 공급처를 들고 다녀야 한다 — 제안가
   const listing = {
     platform: "domeme",
     title: "실리콘 주방 집게",
-    unitPriceKrw: 3000,
+    unitPriceKrw: 9000,
     shippingFeeKrw: 0,
     moq: 1,
     url: "https://domeggook.com/1",
@@ -4768,17 +4777,17 @@ test("발굴 표본은 자기 공급처를 들고 다녀야 한다 — 제안가
   assert.ok(p.sourceListing, "표본이 자기 공급처를 들고 있어야 한다");
   assert.equal(
     landedWholesaleUnitCost(p.sourceListing),
-    3000,
+    9000,
     "들고 있는 공급처의 원가가 제안가를 계산할 때 쓴 그 원가여야 한다",
   );
   assert.equal(
     p.priceKrw,
-    proposeRetailKrw(3000),
+    proposeRetailKrw(9000),
     "제안가는 그 원가에서 나온 값이어야 한다",
   );
 
   // 짝이 맞으면 마진은 목표 근처가 나온다. 어긋나 있었을 때가 0.2%였다.
-  const impliedMarginPct = ((p.priceKrw - 3000) / p.priceKrw) * 100;
+  const impliedMarginPct = ((p.priceKrw - 9000) / p.priceKrw) * 100;
   assert.ok(
     impliedMarginPct > 15,
     `제안가와 원가의 짝이 맞으면 마진이 15%를 넘어야 한다 — 실제 ${impliedMarginPct.toFixed(1)}%`,
@@ -4811,7 +4820,7 @@ test("발굴 키워드가 쪼개지지 않아야 한다 — 롱테일이 헤드 
           {
             platform: "domeme",
             title: "실리콘 집게 3종",
-            unitPriceKrw: 3000,
+            unitPriceKrw: 9000,
             shippingFeeKrw: 0,
             moq: 1,
             url: "https://domeggook.com/1",
@@ -5248,4 +5257,78 @@ test("반려 방지: '이 중 하나는 필수' 옵션 그룹을 빠뜨리지 �
     { key: "무늬", isOption: true, valueCandidates: ["줄무늬"], unitValues: null, isOneOfRequiredGroup: false },
   ]);
   assert.deepEqual(none.options, []);
+});
+
+// ── 월 목표 달성 공식 ──────────────────────────────────────────
+
+test("전략: 목표에서 소싱 기준을 역산한다", async () => {
+  // ★ 실측으로 드러난 전략적 결함
+  //
+  // 소싱이 마진**율**만 봤다. 율 25%를 지켜도 원가 1,500원짜리는 개당
+  // 598원이고, 그 숫자로 월 1,000만원을 만들려면 한 달에 16,722개를
+  // 팔아야 한다 — 위탁으로 불가능하다. 소싱 단계에서 이미 목표가
+  // 불가능해지고 있었다.
+  const { computeStrategyTargets, diagnoseStrategy } = await import(
+    "../../toss-shop/lib/seller-engine/revenue-strategy.ts"
+  );
+
+  const t = computeStrategyTargets({ goalKrw: 10_000_000, skuTarget: 300 });
+  assert.ok(
+    t.requiredNetProfitPerUnitKrw >= 3000,
+    `SKU 300개로 월 1,000만원이면 개당 3,000원 이상이어야 — 실제 ${t.requiredNetProfitPerUnitKrw}`,
+  );
+  assert.ok(t.requiredLandedCostKrw >= 6000, "그 순이익이 나오려면 원가도 그만큼 필요하다");
+
+  // SKU를 늘리면 개당 요구치가 내려간다 — 둘은 맞바꿀 수 있다
+  const wide = computeStrategyTargets({ goalKrw: 10_000_000, skuTarget: 400 });
+  assert.ok(wide.requiredNetProfitPerUnitKrw < t.requiredNetProfitPerUnitKrw);
+
+  // ── 병목 진단: 가장 먼저 끊긴 곳 하나만 짚어야 한다 ──
+  const noSupply = diagnoseStrategy({
+    goalKrw: 10_000_000, discoveredCount: 0, publishedSkus: 0,
+    netProfitPerUnitKrw: [], actualMonthlyNetKrw: 0,
+  });
+  assert.equal(noSupply.constraint, "no_supply");
+
+  // 개당 순이익이 낮으면 SKU를 늘려도 소용없다 — 이걸 먼저 짚어야 한다
+  const lowProfit = diagnoseStrategy({
+    goalKrw: 10_000_000, discoveredCount: 50, publishedSkus: 10,
+    netProfitPerUnitKrw: [600, 700, 800, 900], actualMonthlyNetKrw: 0,
+  });
+  assert.equal(lowProfit.constraint, "unit_profit_too_low");
+  assert.match(lowProfit.priority, /원가/, "무엇을 바꿔야 하는지 말해야 한다");
+
+  // 순이익이 충분하면 그 다음은 SKU 수가 병목이다
+  const fewSkus = diagnoseStrategy({
+    goalKrw: 10_000_000, discoveredCount: 50, publishedSkus: 10,
+    netProfitPerUnitKrw: [5000, 6000, 7000], actualMonthlyNetKrw: 0,
+  });
+  assert.equal(fewSkus.constraint, "not_enough_skus");
+});
+
+test("전략: 개당 순이익 금액이 인증 게이트에 반영된다", async () => {
+  // 마진율만 보면 원가 1,500원짜리도 통과한다. 그건 개당 598원이라
+  // 아무리 많이 올려도 목표에 못 닿는다 — 금액을 따로 본다.
+  const { computeJarvisConfidence, MIN_UNIT_PROFIT_KRW } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-engine.ts"
+  );
+  const base = {
+    integration: { score: 100, tossApi: true, wholesaleApi: true, liveCatalog: true, domemePreferred: true, readyFor90: true, missing: [] },
+    v6MasterScore: 85, safetyScore: 95, marginPct: 25, monthlyProfitKrw: 800_000,
+    moq: 1, wholesaleLive: true, wholesalePlatform: "domeme",
+    criticalRisks: 0, blockRisks: 0, isolationScore: 70, catalogStrategyMode: "avoid_catalog",
+    competitionIntensity: 1.0, searchVolume: 6000, topSellerAlignment: 85,
+  };
+
+  const cheap = computeJarvisConfidence({ ...base, netProfitPerUnitKrw: 600 });
+  const good = computeJarvisConfidence({ ...base, netProfitPerUnitKrw: 6000 });
+
+  const gate = (r) => r.gates.find((g) => g.id === "unit_profit");
+  assert.equal(gate(cheap).passed, false, `개당 600원은 ${MIN_UNIT_PROFIT_KRW}원 미만이라 탈락해야`);
+  assert.equal(gate(good).passed, true, "개당 6,000원은 통과해야");
+  // 하드 게이트다 — 다른 항목이 아무리 좋아도 이건 상쇄되지 않는다.
+  // 가중치로만 뒀더니 개당 600원짜리도 신뢰도 99%로 인증됐다.
+  assert.equal(cheap.certified, false, "개당 순이익이 미달이면 인증되면 안 된다");
+  assert.equal(good.certified, true, "충분하면 인증돼야 한다");
+  assert.ok(good.confidencePct > cheap.confidencePct, "신뢰도도 더 높아야 한다");
 });

@@ -165,7 +165,26 @@ export function proposeRetailKrw(landedCostKrw: number): number {
 }
 
 /** 이 값보다 싼 물건은 배송비가 마진을 통째로 먹는다 */
-const MIN_LANDED_COST_KRW = 1200;
+/**
+ * 도매 원가 하한 — 목표에서 역산한 값.
+ *
+ * ★ 왜 1,200원에서 올렸나
+ *
+ * 종전 하한은 1,200원이었다. 그 상품은 순마진 25%를 지켜도 개당 598원이고,
+ * 그 숫자로 월 1,000만원을 만들려면 한 달에 16,722개를 팔아야 한다 —
+ * 위탁판매로 불가능한 수다. 즉 **아무리 많이 발굴해도 목표에 못 닿는
+ * 상품들로 후보 자리를 채우고 있었다.**
+ *
+ * 시뮬레이션 실측(SKU 300개 기준):
+ *   개당 3,300원 → 달성확률  3.9%
+ *   개당 4,500원 → 달성확률 52.8%
+ *   개당 6,000원 → 달성확률 95.5%
+ *
+ * 개당 3,200원(= 원가 약 8,000원)이 SKU 300개로 목표를 여는 최소선이다.
+ * 여기에 약간 여유를 둬 6,000원부터 본다 — 너무 좁게 잡으면 공급이 말라
+ * 발굴 자체가 멈추기 때문이다. 그 위의 선별은 인증 게이트가 맡는다.
+ */
+const MIN_LANDED_COST_KRW = 6000;
 /** 위탁 한 건에 이만큼 넘게 묶이면 반품 한 건의 타격이 너무 크다 */
 const MAX_LANDED_COST_KRW = 120_000;
 
@@ -331,7 +350,7 @@ export async function discoverWholesaleMarket(input: {
  *
  * 판이 다르면 옛 표본을 버리고 처음부터 다시 훑는다.
  */
-export const DISCOVERY_FORMAT_VERSION = "2";
+export const DISCOVERY_FORMAT_VERSION = "3";
 
 export function buildCatalogFromDiscovery(
   discovered: DiscoveredKeyword[],

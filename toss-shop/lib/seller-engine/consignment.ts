@@ -421,6 +421,10 @@ export async function generateConsignmentPicks(
         competitionIntensity: pick.competitionIntensity,
         searchVolume: pick.searchVolume,
         topSellerAlignment: topSellerPlaybook.alignmentScore,
+        // 마진율과 별개로 **개당 순이익 금액**을 본다. 율만 지키면 원가
+        // 1,500원짜리도 통과하는데, 그건 개당 598원이라 아무리 많이 올려도
+        // 목표에 못 닿는다.
+        netProfitPerUnitKrw: netProfitPerUnit(pick.supplierCostKrw, pick.recommendedPriceKrw),
         supplierQuality: wholesaleBest?.supplierQuality,
         supplierPolicyApplies: wholesaleBest?.source === "live",
       });

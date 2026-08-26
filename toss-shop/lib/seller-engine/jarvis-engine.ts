@@ -18,7 +18,7 @@ import {
 } from "../wholesale/supplier-quality";
 
 export const JARVIS_NAME = "Jarvis";
-export const JARVIS_VERSION = "1.3";
+export const JARVIS_VERSION = "1.4";
 export const JARVIS_CONFIDENCE_THRESHOLD = 93;
 export const JARVIS_MONTHLY_GOAL_KRW = 10_000_000;
 
@@ -27,6 +27,15 @@ export const JARVIS_JACKPOT_THRESHOLD = 93;
 
 /** 미인증 시 confidence 상한 (threshold - 1) */
 export const JARVIS_UNCERTIFIED_CAP = 92;
+
+/**
+ * 개당 순이익 하한 — 목표에서 역산한 값.
+ *
+ * SKU 300개로 월 1,000만원을 만들려면 개당 3,201원이 필요하다
+ * (revenue-strategy.ts의 computeStrategyTargets 참조). 여유를 두지 않고
+ * 딱 맞추면 한 SKU만 부진해도 목표가 무너지므로 그 선을 기준으로 잡는다.
+ */
+export const MIN_UNIT_PROFIT_KRW = 3200;
 
 export type { IntegrationStatus, JarvisConfidenceReport, JarvisGateResult };
 
@@ -81,6 +90,8 @@ export function computeJarvisConfidence(input: {
   competitionIntensity: number;
   searchVolume: number;
   topSellerAlignment?: number;
+  /** 개당 순이익 금액 — 마진율과 별개로 목표 달성을 좌우한다 */
+  netProfitPerUnitKrw?: number;
   /** 공급사 등급·출고속도 — 1등급+당일발송만 통과 (미확인이면 탈락) */
   supplierQuality?: SupplierQuality;
   /** live 위탁 소싱이 아닌 경우(데모/수입) 공급처 게이트를 적용하지 않음 */
@@ -146,6 +157,35 @@ export function computeJarvisConfidence(input: {
     passed: input.marginPct >= 15,
     weight: 12,
     detail: `마진 ${input.marginPct}% ${input.marginPct >= 15 ? "✓" : "(15% 미만)"}`,
+  });
+
+  // ★ 마진**율**만 보면 목표에 못 닿는다 — 금액을 따로 본다
+  //
+  // 마진율 25%를 지켜도 원가 1,500원짜리는 개당 598원이다. 그 숫자로 월
+  // 1,000만원을 만들려면 한 달에 16,722개를 팔아야 한다 — 위탁으로 불가능하다.
+  // 즉 **소싱 단계에서 이미 목표가 불가능해진다.**
+  //
+  // 시뮬레이션 실측(SKU 300개 기준): 개당 3,300원이면 달성확률 3.9%,
+  // 4,500원이면 52.8%, 6,000원이면 95.5%. 이 게이트가 그 차이를 만든다.
+  //
+  // 하드 게이트다. 가중치로만 반영했더니 개당 600원짜리도 신뢰도 99%로
+  // 인증됐다 — 다른 항목이 다 좋으면 이 하나쯤은 묻히기 때문이다.
+  // 그런데 이 항목은 "조금 아쉬운" 게 아니라 **목표를 불가능하게 만드는**
+  // 것이라, 다른 장점으로 상쇄될 수 있는 성질이 아니다.
+  //
+  // 단, **모르는 것과 나쁜 것은 구분한다**(supplier_grade와 같은 원칙).
+  // 개당 순이익을 아직 계산하지 못한 경로에서는 막지 않는다 — 측정된
+  // 미달만 막는다. 측정도 안 하고 막으면 멀쩡한 상품이 통째로 잘린다.
+  const unitProfit = input.netProfitPerUnitKrw ?? 0;
+  gates.push({
+    id: "unit_profit",
+    label: "개당 순이익 금액",
+    passed: unitProfit <= 0 || unitProfit >= MIN_UNIT_PROFIT_KRW,
+    weight: 12,
+    detail:
+      unitProfit > 0
+        ? `개당 ${unitProfit.toLocaleString()}원 ${unitProfit >= MIN_UNIT_PROFIT_KRW ? "✓" : `(${MIN_UNIT_PROFIT_KRW.toLocaleString()}원 미만 — 수량으로 못 메움)`}`
+        : "개당 순이익 미확인",
   });
 
   gates.push({
@@ -234,9 +274,15 @@ export function computeJarvisConfidence(input: {
         // 상품도 등급 미확인 하나로 인증 자체가 막혔다. 대신 supplier_safe
         // (실측으로 확인된 위험만 차단)를 하드 게이트로 둔다 — "가짜 93%"를
         // 막는 목적은 유지하되, 모르는 것과 위험한 것을 구분한다.
-        ["integration", "margin", "safety", "domeme_moq", "top_seller", "supplier_safe"].includes(
-          g.id,
-        ),
+        [
+          "integration",
+          "margin",
+          "unit_profit",
+          "safety",
+          "domeme_moq",
+          "top_seller",
+          "supplier_safe",
+        ].includes(g.id),
       )
       .every((g) => g.passed) &&
     input.criticalRisks === 0 &&
