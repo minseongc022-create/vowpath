@@ -205,11 +205,29 @@ export async function generateConsignmentPicks(
     const intel = buildKeywordIntel(kw.keyword, catalog, marketKeywords);
     const competitors = competitorsForProduct(product, catalog);
 
-    const wholesale = await searchWholesaleForConsignment({
-      keyword: kw.keyword,
-      tossAvgPriceKrw: intel.avgPriceKrw,
-      targetRetailKrw: product.priceKrw,
-    });
+    // ★ 발굴 표본은 자기 공급처를 이미 알고 있다 — 다시 찾지 않는다
+    //
+    // 종전엔 무조건 키워드로 도매를 다시 검색했다. 그런데 발굴로 만든
+    // 표본의 제안가는 **그 표본을 만든 공급처의 원가**에서 계산된 값이다.
+    // 재검색이 다른(대개 더 비싼) 공급처를 잡으면 제안가와 원가의 짝이
+    // 어긋나고, 마진은 그 둘의 차이로 계산되므로 0에 가깝게 나온다.
+    //
+    // 실측: 모든 후보가 「마진 0.2% (15% 미만)」로 탈락했다. 그리고 저마진은
+    // 리스크로 잡혀 안전점수를 72로 떨어뜨리고, 그게 다시 종합점수를 깎아
+    // 인증을 막았다 — 한 번의 어긋남이 게이트 세 개를 동시에 닫고 있었다.
+    const wholesale = product.sourceListing
+      ? {
+          keyword: kw.keyword,
+          listings: [product.sourceListing],
+          bestMatch: product.sourceListing,
+          searchedAt: new Date().toISOString(),
+          apiConfigured: true,
+        }
+      : await searchWholesaleForConsignment({
+          keyword: kw.keyword,
+          tossAvgPriceKrw: intel.avgPriceKrw,
+          targetRetailKrw: product.priceKrw,
+        });
 
     const supplierCost =
       wholesale.bestMatch != null

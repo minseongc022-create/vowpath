@@ -353,6 +353,10 @@ export function buildCatalogFromDiscovery(
         rank,
         rankPrev: rank,
         updatedAt: now,
+        // 제안가를 계산한 바로 그 공급처를 함께 들려보낸다.
+        // 이게 없으면 하류가 키워드로 다시 검색해 다른 공급처를 잡고,
+        // 그 순간 제안가(A의 원가 기준)와 원가(B)가 짝이 어긋난다.
+        sourceListing: s,
       });
       rank += 1;
     }

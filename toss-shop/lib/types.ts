@@ -86,6 +86,15 @@ export type CatalogProduct = {
   rank: number;
   rankPrev: number;
   updatedAt: string;
+  /**
+   * 이 표본을 만들어낸 실제 도매 공급처.
+   *
+   * 발굴로 만든 표본은 **어느 공급처의 얼마짜리 물건인지 이미 알고** 있다.
+   * 그 사실을 안 들고 다니면 하류에서 키워드로 다시 검색하게 되는데, 그때
+   * 전혀 다른(더 비싼) 공급처가 잡혀 제안가와 원가의 짝이 어긋난다.
+   * 실제로 그 어긋남이 "마진 0.2%"를 만들어 모든 후보를 탈락시켰다.
+   */
+  sourceListing?: WholesaleListing;
 };
 
 export type PriceSnapshot = {

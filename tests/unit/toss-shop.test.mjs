@@ -4593,3 +4593,59 @@ test("리스크: 상시 행동수칙이 안전점수를 깎아 모든 상품을 
     "실제로 감지된 위험(저마진)은 여전히 감점돼야 한다",
   );
 });
+
+test("발굴 표본은 자기 공급처를 들고 다녀야 한다 — 제안가·원가 짝 어긋남 방지", async () => {
+  // ★ 실측으로 드러난 결함 — 「마진 0.2%」의 정체
+  //
+  // 발굴로 만든 표본의 제안가는 **그 표본을 만든 공급처의 원가**에서
+  // 역산한 값이다(목표 순마진 25%). 그런데 하류가 그 사실을 모른 채
+  // 키워드로 도매를 다시 검색해, 전혀 다른(대개 더 비싼) 공급처를 원가로
+  // 썼다. 제안가는 A 기준, 원가는 B 기준 — 마진이 0에 가깝게 나온다.
+  //
+  // 그 한 번의 어긋남이 게이트 세 개를 동시에 닫았다:
+  //   순마진 게이트 탈락 → 저마진이 리스크로 잡혀 안전점수 72 →
+  //   안전점수가 종합점수를 깎아 v6 미달 → 인증 0 → 등록 0.
+  const { buildCatalogFromDiscovery, proposeRetailKrw } = await import(
+    "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
+  );
+  const { landedWholesaleUnitCost } = await import(
+    "../../toss-shop/lib/wholesale/consignment-search.ts"
+  );
+
+  const listing = {
+    platform: "domeme",
+    title: "실리콘 주방 집게",
+    unitPriceKrw: 3000,
+    shippingFeeKrw: 0,
+    moq: 1,
+    url: "https://domeggook.com/1",
+    freeShipping: true,
+    source: "live",
+    itemNo: "1",
+  };
+  const products = buildCatalogFromDiscovery(
+    [{ keyword: "주방 집게", category: "home", supply: [listing] }],
+    "2026-08-26T00:00:00.000Z",
+  );
+
+  assert.equal(products.length, 1);
+  const p = products[0];
+  assert.ok(p.sourceListing, "표본이 자기 공급처를 들고 있어야 한다");
+  assert.equal(
+    landedWholesaleUnitCost(p.sourceListing),
+    3000,
+    "들고 있는 공급처의 원가가 제안가를 계산할 때 쓴 그 원가여야 한다",
+  );
+  assert.equal(
+    p.priceKrw,
+    proposeRetailKrw(3000),
+    "제안가는 그 원가에서 나온 값이어야 한다",
+  );
+
+  // 짝이 맞으면 마진은 목표 근처가 나온다. 어긋나 있었을 때가 0.2%였다.
+  const impliedMarginPct = ((p.priceKrw - 3000) / p.priceKrw) * 100;
+  assert.ok(
+    impliedMarginPct > 15,
+    `제안가와 원가의 짝이 맞으면 마진이 15%를 넘어야 한다 — 실제 ${impliedMarginPct.toFixed(1)}%`,
+  );
+});
