@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  autoPlaceWholesaleOrders,
   autoRegisterReturnLocations,
   dispatchOwnerTodoAlerts,
   listMerchantIds,
@@ -56,12 +57,29 @@ export async function GET(request: Request) {
     priceCuts?: number;
     hidden?: number;
     returnLocationsRegistered?: number;
+    ordersPlaced?: number;
+    ordersFailed?: number;
+    emoneyInsufficient?: boolean;
     error?: string;
   }> = [];
 
   for (const merchantId of merchantIds) {
     try {
-      // 알림이 먼저다. 발굴이 시간을 다 써서 알림을 못 보내는 일이 없어야 한다.
+      // 발주가 알림보다 먼저다 — 이번에 발주가 되거나 잔액 부족이 새로
+      // 드러나야, 뒤이은 알림이 방금 상태를 보고 판단한다.
+      let ordersPlaced: number | undefined;
+      let ordersFailed: number | undefined;
+      let emoneyInsufficient: boolean | undefined;
+      try {
+        const order = await autoPlaceWholesaleOrders(merchantId);
+        ordersPlaced = order.placed;
+        ordersFailed = order.failed;
+        emoneyInsufficient = order.insufficientBalance;
+      } catch (e) {
+        console.warn("[pulse] 자동 발주 실패", e);
+      }
+
+      // 알림이 다음이다. 발굴이 시간을 다 써서 알림을 못 보내는 일이 없어야 한다.
       const alerts = await dispatchOwnerTodoAlerts(merchantId);
       let diag: Partial<Awaited<ReturnType<typeof runDiscoveryForMerchant>>> = {};
       try {
@@ -96,6 +114,9 @@ export async function GET(request: Request) {
         priceCuts,
         hidden,
         returnLocationsRegistered,
+        ordersPlaced,
+        ordersFailed,
+        emoneyInsufficient,
         scanned: diag.scanned,
         matched: diag.found,
         added: diag.added,

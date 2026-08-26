@@ -251,6 +251,14 @@ export type MerchantData = {
   /** 발굴이 한 건도 응답을 못 받은 마지막 시각 — 연동 문제를 구분해 알리기 위해 */
   discoverySilentAt?: string;
   /**
+   * 도매꾹 이머니 잔액 부족을 처음 감지한 시각.
+   *
+   * 이게 걸리면 자동 발주가 전부 멈춘다 — 시간이 지날수록 나빠지는 게
+   * 아니라 그 순간부터 전체가 막히는 것이라, 발주 실패의 다른 이유와
+   * 구분해서 즉시 알려야 한다. 발주가 한 번이라도 성공하면 지운다.
+   */
+  emoneyInsufficientAt?: string;
+  /**
    * 이미 문자로 알린 할 일 종류 — 같은 걸 매 사이클 다시 보내지 않기 위해.
    * 그 종류가 해소되면 목록에서 빠지고, 다시 생기면 새로 알린다.
    */
@@ -433,6 +441,8 @@ export type JarvisFulfillmentJob = {
   deliveryCompany?: string;
   wholesalePreparedAt?: string;
   wholesaleOrderedAt?: string;
+  /** 도매꾹/도매매 발주 성공시 받은 주문번호 — 자동 발주 결과의 유일한 증거 */
+  wholesaleOrderNo?: number;
   trackingRegisteredAt?: string;
   createdAt: string;
   updatedAt: string;

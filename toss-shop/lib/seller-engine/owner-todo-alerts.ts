@@ -11,13 +11,19 @@
  *  2. 자비스가 스스로 처리할 수 있는 건 애초에 알리지 않는다 — 반품지 미등록은
  *     이제 셀러 주소로 강제 폴백되어 등록이 계속되므로 "급한 일"이 아니다.
  *
- * ★ 정말 사람이 해야만 하는 것 둘
+ * ★ 발주는 이제 자동이다 — 그런데도 알리는 이유
  *
- *  · 발주 — 도매매 발주는 오픈 API로 안 된다(대행사 승인 필요). 주문이 들어왔는데
- *    발주가 안 나가면 발송기한을 넘겨 페널티가 쌓이고, 배송 인센티브(수수료 0%)가
- *    통째로 날아간다. 이건 시간이 걸린 문제라 반드시 알려야 한다.
+ * 도매꾹 Private API 승인을 받아 발주(setOrder)까지 자동으로 나간다.
+ * 그래도 알림이 필요한 경우가 남는다:
+ *
+ *  · **이머니 부족** — 발주는 성공하려면 사전에 충전해둔 이머니가 있어야
+ *    한다. 잔액이 없으면 그 순간부터 **모든** 발주가 막힌다. 이건 시간이
+ *    지날수록 나빠지는 게 아니라 즉시 전체가 멈추는 것이라 바로 알린다.
+ *  · **발주가 계속 실패**(12시간 넘게 안 나감) — 자동 발주가 매 사이클
+ *    시도하는데도 안 됐다면 옵션코드가 안 맞거나 지원 안 하는 플랫폼(수입
+ *    판매 등)일 가능성이 높다. 「발주 정보 줘」로 사람이 대신 넣어야 한다.
  *  · 송장 — 공급처가 발송했는데 토스에 송장이 안 올라가면 고객이 배송 조회를
- *    못 하고, 역시 발송기한 미준수로 잡힌다.
+ *    못 하고, 발송기한 미준수로 잡힌다.
  *
  * 반품지는 알리지 않는다. 강제 폴백으로 판매가 계속되므로 "지금 안 하면 손해가
  * 커지는" 일이 아니고, 대시보드와 대화로 충분히 전달된다.
@@ -27,7 +33,7 @@ import type { JarvisFulfillmentJob } from "../types";
 
 export const OWNER_TODO_ALERTS_VERSION = "1.0";
 
-export type TodoKind = "need_supplier_order" | "need_tracking";
+export type TodoKind = "need_supplier_order" | "need_tracking" | "need_emoney";
 
 export type OwnerTodo = {
   kind: TodoKind;
@@ -55,10 +61,22 @@ function hoursSince(iso: string, now: number): number {
 export function collectOwnerTodos(
   jobs: JarvisFulfillmentJob[],
   nowMs: number = Date.now(),
+  extra?: { emoneyInsufficientSince?: string },
 ): OwnerTodo[] {
   const todos: OwnerTodo[] = [];
 
-  // 발주가 아직 안 나간 주문 (자비스가 발주 정보는 다 준비해둔 상태)
+  // 이머니 부족 — 다른 무엇보다 급하다. 이게 걸리면 발주 전체가 멈춘다.
+  if (extra?.emoneyInsufficientSince) {
+    todos.push({
+      kind: "need_emoney",
+      count: 1,
+      message:
+        `[자비스] 도매꾹 이머니 부족 — 발주가 전부 막혔습니다. ` +
+        `도매꾹 사이트에서 이머니를 충전해 주세요. 충전되는 즉시 자동으로 다시 발주합니다.`,
+    });
+  }
+
+  // 자동 발주가 계속 실패해서 오래 묶여 있는 주문 (자비스가 매 사이클 시도하는데도 안 됨)
   const needOrder = jobs.filter(
     (j) =>
       (j.status === "detected" || j.status === "toss_preparing" || j.status === "wholesale_ready") &&
@@ -69,8 +87,8 @@ export function collectOwnerTodos(
       kind: "need_supplier_order",
       count: needOrder.length,
       message:
-        `[자비스] 발주 안 나간 주문 ${needOrder.length}건 — 발송기한이 위험합니다. ` +
-        `사이트에서 자비스에게 "발주 정보 줘"라고 하면 바로 알려드립니다.`,
+        `[자비스] 발주 안 나간 주문 ${needOrder.length}건 — 자동 발주가 계속 실패하고 있습니다. ` +
+        `사이트에서 자비스에게 "발주 정보 줘"라고 하면 직접 넣으실 수 있게 정리해 드립니다.`,
     });
   }
 

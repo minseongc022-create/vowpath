@@ -1337,6 +1337,15 @@ export async function runAutopilotForMerchant(merchantId: string): Promise<impor
   data.lastAutopilotReport = report;
   await saveStore(store);
 
+  // 발주 대기로 잡힌 주문을 실제로 도매꾹/도매매에 넣는다. 알림보다 먼저다 —
+  // 알림은 발주가 안 됐을 때를 대비한 안전망이고, 발주 자체가 이 사이클의
+  // 핵심 작업이다.
+  try {
+    await autoPlaceWholesaleOrders(merchantId);
+  } catch (e) {
+    console.warn("[jarvis] 자동 발주 실패:", e);
+  }
+
   // 한 바퀴 돌 때마다 밀린 필수 작업이 있는지 보고, 있으면 사장님 휴대폰으로
   // 알린다. 실패해도 사이클 결과는 그대로 돌려준다 — 알림이 안 갔다고 자동화가
   // 멈추면 안 된다.
@@ -1689,7 +1698,9 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
     "./seller-engine/owner-todo-alerts"
   );
 
-  const todos = collectOwnerTodos(data.fulfillmentJobs ?? []);
+  const todos = collectOwnerTodos(data.fulfillmentJobs ?? [], Date.now(), {
+    emoneyInsufficientSince: data.emoneyInsufficientAt,
+  });
   const { toSend, nextState } = pickTodosToSend(todos, data.todoAlerts ?? [], {
     ackedAt: data.todosAckedAt,
   });
@@ -2179,4 +2190,121 @@ export async function addReturnLocationManually(
   await saveStore(store);
 
   return { ok: true, cleared };
+}
+
+
+// ── 발주 자동화 — 도매꾹 Private API ────────────────────────────
+
+/** 한 사이클에 발주하는 최대 건수 — 로그인 실패나 잔액 문제가 한꺼번에
+ * 수십 건을 물어뜯지 않게 상한을 둔다 */
+const MAX_ORDERS_PER_CYCLE = 8;
+
+/**
+ * 발주 대기 주문을 도매꾹/도매매에 실제로 발주한다.
+ *
+ * ★ 여기까지 오게 된 경위
+ *
+ * 처음엔 "도매매는 발주 API가 없다"고 판단했다. 공개 문서만 보고 내린
+ * 결론이었다. 실제로는 Private API 승인을 받아야 열리는 자리에 있었다 —
+ * 사장님 계정이 승인된 뒤에야 setOrder가 문서에 나타났다.
+ *
+ * ★ 이머니가 다른 무엇보다 우선한다
+ *
+ * 잔액이 부족하면 그 뒤로 뭘 시도해도 다 같은 이유로 실패한다. 그래서
+ * 한 건이라도 잔액 부족으로 실패하면 **그 사이클은 거기서 멈춘다** —
+ * 나머지 건을 계속 시도해봐야 잔액만 반복 조회하고 결과는 똑같다.
+ */
+export async function autoPlaceWholesaleOrders(merchantId: string): Promise<{
+  configured: boolean;
+  placed: number;
+  failed: number;
+  insufficientBalance: boolean;
+  errors: string[];
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+
+  const { isDomeggookOrderingConfigured, loginDomeggook, placeWholesaleOrder } = await import(
+    "./wholesale/domeggook-order-api"
+  );
+  if (!isDomeggookOrderingConfigured()) {
+    return { configured: false, placed: 0, failed: 0, insufficientBalance: false, errors: [] };
+  }
+
+  const jobs = data.fulfillmentJobs ?? [];
+  // 자비스가 이미 공급처를 찾아 배송지까지 준비해둔(wholesale_ready) 건 중,
+  // 발주 API가 실제로 지원하는 두 플랫폼만 자동으로 넣는다. 수입판매(1688 등)는
+  // 애초에 이 API 대상이 아니라 사람이 하는 게 맞다.
+  const targets = jobs.filter(
+    (j) =>
+      j.status === "wholesale_ready" &&
+      j.itemNo != null &&
+      (j.wholesalePlatform === "domeggook" || j.wholesalePlatform === "domeme"),
+  ).slice(0, MAX_ORDERS_PER_CYCLE);
+
+  if (targets.length === 0) {
+    return { configured: true, placed: 0, failed: 0, insufficientBalance: false, errors: [] };
+  }
+
+  const login = await loginDomeggook();
+  if (!login.ok) {
+    return {
+      configured: true,
+      placed: 0,
+      failed: targets.length,
+      insufficientBalance: false,
+      errors: [`로그인 실패: ${login.reason}`],
+    };
+  }
+
+  let placed = 0;
+  let insufficientBalance = false;
+  const errors: string[] = [];
+
+  for (const job of targets) {
+    // 잔액 부족으로 한 번 걸리면 나머지는 다 같은 이유로 실패한다 —
+    // 헛되이 반복 호출하지 않는다.
+    if (insufficientBalance) break;
+
+    const idx = jobs.findIndex((x) => x.id === job.id);
+    if (idx < 0) continue;
+
+    const market = job.wholesalePlatform === "domeggook" ? "dome" : "supply";
+    const res = await placeWholesaleOrder({
+      session: login.session,
+      itemNo: job.itemNo!,
+      market,
+      quantity: job.quantity,
+      receiver: job.customer,
+    });
+
+    if (res.ok) {
+      jobs[idx] = {
+        ...jobs[idx],
+        status: "wholesale_ordered",
+        wholesaleOrderedAt: new Date().toISOString(),
+        wholesaleOrderNo: res.orderNo,
+        updatedAt: new Date().toISOString(),
+      };
+      placed += 1;
+    } else {
+      errors.push(`${job.productName}: ${res.reason}`);
+      if (res.insufficientBalance) insufficientBalance = true;
+    }
+  }
+
+  data.fulfillmentJobs = jobs;
+  // 이번에 하나라도 성공했으면 잔액 문제는 해소된 것이다 — 계속 남겨두면
+  // 이미 해결된 뒤에도 "이머니 부족" 알림이 되풀이된다.
+  if (placed > 0) data.emoneyInsufficientAt = undefined;
+  else if (insufficientBalance) data.emoneyInsufficientAt = data.emoneyInsufficientAt ?? new Date().toISOString();
+  await saveStore(store);
+
+  return {
+    configured: true,
+    placed,
+    failed: targets.length - placed,
+    insufficientBalance,
+    errors: errors.slice(0, 5),
+  };
 }

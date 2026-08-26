@@ -4344,3 +4344,61 @@ test("반품지: 우편번호 붙은 주소를 공급처 안내에서 뽑아낸�
   // 주소가 아예 없으면 null
   assert.equal(__readAddressForTest("서울 당일배송 가능합니다"), null);
 });
+
+// ── 도매꾹 발주 API ───────────────────────────────────────────
+
+test("발주: item[]·deliinfo 조립이 실측 스펙과 정확히 맞는다", async () => {
+  const { __buildOrderFieldsForTest } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-order-api.ts"
+  );
+  // 도매꾹 연동 가이드(주문서_생성_API_연동_가이드) 예시와 형태를 맞춘다.
+  // item[] = 채널||배송비부담||옵션코드|수량||판매자전달사항||배송요청사항
+  const single = __buildOrderFieldsForTest({
+    market: "dome",
+    quantity: 3,
+    receiver: { name: "홍길동", phone: "010-1111-2222", address: "서울 강남구 테헤란로 123 5층", zipCode: "06234" },
+  });
+  assert.equal(single.itemValue, "dome||P||00|3||||", "옵션 없는 단일옵션 상품은 코드 00");
+
+  const withOption = __buildOrderFieldsForTest({
+    market: "supply",
+    optionCode: "01_03",
+    quantity: 2,
+    sellerNote: "빠른 배송 부탁드립니다",
+    receiver: { name: "홍길동", phone: "010-1111-2222", address: "서울 강남구 테헤란로 123", zipCode: "06234" },
+  });
+  assert.equal(withOption.itemValue, "supply||P||01_03|2||빠른 배송 부탁드립니다||");
+
+  // deliinfo = 성명|이메일|우편번호|주소1|주소2|휴대전화|추가연락처|상호명|통관고유부호
+  const parts = single.deliinfo.split("|");
+  assert.equal(parts.length, 9, "9칸을 정확히 채워야 한다 — 하나라도 빠지면 필수칸 누락으로 거절된다");
+  assert.equal(parts[0], "홍길동");
+  assert.equal(parts[2], "06234", "우편번호는 3번째 칸");
+  assert.equal(parts[5], "010-1111-2222", "휴대전화는 6번째 칸");
+  assert.equal(parts[7], "에피로드", "상호명 자리 — 도매꾹/도매매 상표가 고객 송장에 노출되면 안 된다");
+});
+
+test("발주: 잔액부족을 키워드로 판별한다", async () => {
+  const { __looksLikeInsufficientBalanceForTest } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-order-api.ts"
+  );
+  assert.ok(__looksLikeInsufficientBalanceForTest("이머니 잔액이 부족합니다"));
+  assert.ok(__looksLikeInsufficientBalanceForTest("충전 후 다시 시도해 주세요"));
+  assert.ok(!__looksLikeInsufficientBalanceForTest("올바른 요청이 아닙니다"));
+  assert.ok(!__looksLikeInsufficientBalanceForTest("상품이 품절되었습니다"));
+});
+
+test("알림: 이머니 부족은 다른 무엇보다 먼저, 즉시 알린다", async () => {
+  const { collectOwnerTodos } = await import(
+    "../../toss-shop/lib/seller-engine/owner-todo-alerts.ts"
+  );
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  // 방금 감지됐어도(시간 조건 없음) 바로 떠야 한다 — 이건 시간이 지나서
+  // 나빠지는 게 아니라 그 순간부터 전체가 막히는 문제다.
+  const todos = collectOwnerTodos([], now, { emoneyInsufficientSince: new Date(now).toISOString() });
+  assert.equal(todos[0].kind, "need_emoney");
+  assert.ok(todos[0].message.includes("이머니"));
+
+  // 감지된 게 없으면 안 뜬다
+  assert.equal(collectOwnerTodos([], now, {}).length, 0);
+});
