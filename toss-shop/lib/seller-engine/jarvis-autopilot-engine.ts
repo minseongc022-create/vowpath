@@ -95,7 +95,17 @@ export async function runJarvisAutopilotCycle(
     actions.push(`확실성 미달 ${rejected.length}건 제외 — ${topReasons.join(" / ")}`);
   }
 
-  const listingDrafts = input.data.listingDrafts ?? [];
+  // ⚠️ 여기서 반드시 되꽂아야 한다 — 실측으로 드러난 결함
+  //
+  // 종전엔 `?? []`로 만든 **새 배열**에 초안을 unshift하고 끝이었다.
+  // 그 배열은 input.data 어디에도 안 붙어 있으므로, 저장(saveStore)될 때
+  // 통째로 사라졌다. 실제 심박 응답이 그걸 그대로 보여줬다:
+  // `draftsCreated: 2`인데 `funnel.drafts: 0`. 만들긴 만들었는데 남은 게 없었다.
+  //
+  // 즉 후보가 게이트를 통과해도 등록까지 절대 못 갔다는 뜻이고,
+  // 매출이 0인 이유가 이것이었다. 바로 아래 형제들(pendingReturnAddresses,
+  // fulfillmentJobs)은 전부 되꽂고 있는데 이것만 빠져 있었다.
+  const listingDrafts = (input.data.listingDrafts ??= []);
   const pendingDraftIds = new Set(
     listingDrafts.filter((d) => !["rejected", "failed"].includes(d.status)).map((d) => d.pickId),
   );

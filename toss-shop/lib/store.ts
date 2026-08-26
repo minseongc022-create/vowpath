@@ -853,28 +853,6 @@ export async function syncAllMerchants(): Promise<{
         config,
       });
 
-      if (isAutoExecuteEnabled()) {
-        const autoCandidates = (data.listingDrafts ?? []).filter(
-          (d) =>
-            d.jarvisCertified &&
-            (d.status === "pending_review" || d.status === "approved"),
-        );
-        for (const draft of autoCandidates.slice(0, getAutoExecuteMaxPerCycle())) {
-          try {
-            await executeJarvisListing({
-              merchantId: merchant.id,
-              draftId: draft.id,
-              approvedBy: account?.email ?? "jarvis-autopilot",
-            });
-            report.stats.draftsExecuted += 1;
-            report.actions.push(`[AUTO] 「${draft.keyword}」 Jarvis 전체 실행 완료`);
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "AUTO_EXECUTE_FAIL";
-            report.errors.push(`auto_execute:${draft.id}:${msg}`);
-          }
-        }
-      }
-
       data.lastAutopilotReport = report;
       autopilotRuns++;
     } catch (e) {
@@ -1300,6 +1278,60 @@ export async function executeJarvisListing(input: {
   });
 }
 
+/**
+ * 게이트를 통과한 초안을 토스에 실제로 등록한다.
+ *
+ * 심박(runAutopilotForMerchant)과 일괄 동기화(syncAllMerchants)가 **같은**
+ * 이 함수를 쓴다. 종전엔 이 로직이 후자에만 있어서, 10분마다 도는 심박은
+ * 초안만 만들고 등록은 한 건도 못 했다.
+ *
+ * 등록은 건당 토스 API를 여러 번 태워서 몇 초씩 걸린다. Hobby 함수는 60초에
+ * 강제 종료되므로, 마감시각이 있으면 남은 시간을 보고 다음 건을 시작할지
+ * 정한다 — 한 건이라도 온전히 끝내는 게 여러 건을 하다 잘리는 것보다 낫다.
+ */
+export async function autoPublishCertifiedDrafts(
+  merchantId: string,
+  opts: { approvedBy: string; deadlineAt?: number },
+): Promise<{ published: number; actions: string[]; errors: string[] }> {
+  const actions: string[] = [];
+  const errors: string[] = [];
+  let published = 0;
+
+  if (!isAutoExecuteEnabled()) {
+    return { published, actions, errors };
+  }
+
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const candidates = (data.listingDrafts ?? []).filter(
+    (d) => d.jarvisCertified && (d.status === "pending_review" || d.status === "approved"),
+  );
+
+  /** 등록 한 건에 넉넉히 잡은 시간 — 이만큼 안 남았으면 시작하지 않는다 */
+  const PUBLISH_MIN_MS = 8_000;
+
+  for (const draft of candidates.slice(0, getAutoExecuteMaxPerCycle())) {
+    if (opts.deadlineAt && opts.deadlineAt - Date.now() < PUBLISH_MIN_MS) {
+      actions.push("등록 시간 부족 — 남은 건은 다음 심박에서 이어서 올립니다");
+      break;
+    }
+    try {
+      await executeJarvisListing({
+        merchantId,
+        draftId: draft.id,
+        approvedBy: opts.approvedBy,
+      });
+      published += 1;
+      actions.push(`[AUTO] 「${draft.keyword}」 토스 등록 완료`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "AUTO_EXECUTE_FAIL";
+      errors.push(`auto_execute:${draft.id}:${msg}`);
+    }
+  }
+
+  return { published, actions, errors };
+}
+
 export async function runAutopilotForMerchant(
   merchantId: string,
   opts?: { discoverySize?: number; discoveryBudgetMs?: number; deadlineAt?: number },
@@ -1360,6 +1392,38 @@ export async function runAutopilotForMerchant(
 
   data.lastAutopilotReport = report;
   await saveStore(store);
+
+  // 만든 초안을 실제로 토스에 올린다.
+  //
+  // ⚠️ 이게 여기 없어서 매출이 0이었다 — 실측으로 드러난 결함
+  //
+  // 자동 등록 코드는 원래 syncAllMerchants() 안에만 있었다. 그런데 10분마다
+  // 도는 심박은 그 함수를 부르지 않고 이 함수를 부른다. 그래서 초안은 계속
+  // 쌓이는데 등록은 영원히 0이었다 — 심박 응답의 `published: 0`이 그거였다.
+  // 「지금 돌려」를 눌러도 마찬가지였다.
+  //
+  // 같은 실수를 또 하지 않으려고 아예 공용 함수로 빼서 양쪽이 같은 코드를
+  // 쓰게 했다. 한쪽만 고쳐지고 다른 쪽이 뒤처지는 게 이 결함의 원인이었다.
+  //
+  // saveStore 뒤에 두는 이유: 등록 함수는 저장된 초안을 id로 다시 읽는다.
+  // 저장 전에 부르면 방금 만든 초안을 못 찾는다.
+  try {
+    const pub = await autoPublishCertifiedDrafts(merchantId, {
+      approvedBy: account?.email ?? "jarvis-autopilot",
+      deadlineAt: opts?.deadlineAt,
+    });
+    report.stats.draftsExecuted += pub.published;
+    report.actions.push(...pub.actions);
+    report.errors.push(...pub.errors);
+    if (pub.published > 0 || pub.errors.length > 0) {
+      // 등록 결과가 리포트에 남아야 대시보드가 진짜 상태를 보여준다
+      const s2 = await loadStore();
+      merchantData(s2, merchantId).lastAutopilotReport = report;
+      await saveStore(s2);
+    }
+  } catch (e) {
+    console.warn("[jarvis] 자동 등록 실패:", e);
+  }
 
   // 발주 대기로 잡힌 주문을 실제로 도매꾹/도매매에 넣는다. 알림보다 먼저다 —
   // 알림은 발주가 안 됐을 때를 대비한 안전망이고, 발주 자체가 이 사이클의

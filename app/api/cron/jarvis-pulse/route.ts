@@ -61,6 +61,8 @@ type MerchantResult = {
   skipped?: string;
   draftsCreated?: number;
   published?: number;
+  /** 이번 심박에 실제로 토스에 올린 건수 */
+  listedNow?: number;
   returnLocationsRegistered?: number;
   priceCuts?: number;
   hidden?: number;
@@ -121,7 +123,10 @@ export async function GET(request: Request) {
       });
       r.timings = report.stageTimings;
       r.draftsCreated = report.stats.draftsCreated;
+      // stats.published는 사이클 **중간에** 센 값이라 이번에 올린 건 안 잡힌다.
+      // 이번 심박의 실제 등록 성과는 draftsExecuted가 들고 있다.
       r.published = report.stats.published;
+      r.listedNow = report.stats.draftsExecuted;
       if (report.errors.length) r.errors = report.errors.slice(0, 3);
     } catch (e) {
       r.error = e instanceof Error ? e.message : "CYCLE_FAIL";

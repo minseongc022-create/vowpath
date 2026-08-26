@@ -4463,3 +4463,65 @@ test("리스크: 진짜 위반은 여전히 잡는다", async () => {
   });
   assert.ok(healthClaim.blockCount > 0, "의학적 효능 표현은 그대로 걸려야 한다");
 });
+
+// ─────────────────────────────────────────────────────────────
+// 초안이 저장되는가 — 실측으로 드러난 매출 0의 원인
+// ─────────────────────────────────────────────────────────────
+
+test("autopilot: listingDrafts 키가 없는 신규 가맹점에서도 만든 초안이 data에 남는다", async (t) => {
+  // ★ 왜 이 테스트가 필요한가
+  //
+  // 심박 응답이 이렇게 나왔다: `draftsCreated: 2`인데 `funnel.drafts: 0`.
+  // 엔진은 `input.data.listingDrafts ?? []`로 **새 배열**을 만들고 거기에
+  // 초안을 넣은 뒤, input.data에는 되꽂지 않았다. 저장 시점에 통째로 증발.
+  //
+  // 기존 테스트들이 이걸 못 잡은 이유는 전부 `listingDrafts: []`를 미리
+  // 넣어줬기 때문이다 — 그러면 `??`가 그 배열을 그대로 쓰므로 참조가 살아있다.
+  // 정작 실제 신규 가맹점은 그 키가 **없는** 상태로 시작한다. 테스트가
+  // 프로덕션보다 유리한 조건을 깔아준 셈이라 결함을 통과시켰다.
+  process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID = "1520171";
+  process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED = "true";
+  t.after(() => {
+    delete process.env.TOSS_SHOP_EXCHANGE_RETURN_LOCATION_ID;
+    delete process.env.TOSS_SHOP_RETURN_LOCATION_DEFAULT_IS_SELLER_OWNED;
+  });
+
+  const { runJarvisAutopilotCycle } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-autopilot-engine.ts"
+  );
+  const { generateConsignmentPicks } = await import("../../toss-shop/lib/seller-engine/consignment.ts");
+  const { SEED_CATALOG } = await import("../../toss-shop/lib/seed.ts");
+
+  const picks = await generateConsignmentPicks(SEED_CATALOG, "2026-08-24");
+  for (const p of picks) {
+    p.jarvis = { ...(p.jarvis ?? {}), certified: true, confidencePct: 95 };
+    p.estimatedMarginPct = Math.max(p.estimatedMarginPct, 20);
+    p.estimatedMonthlyProfitKrw = Math.max(p.estimatedMonthlyProfitKrw ?? 0, 500_000);
+    p.catalogStrategy = { ...(p.catalogStrategy ?? {}), mode: "avoid_catalog" };
+    p.riskPlaybook = { ...(p.riskPlaybook ?? {}), criticalCount: 0, blockCount: 0 };
+    p.wholesaleBest = {
+      platform: "domeme", title: p.productName, unitPriceKrw: p.supplierCostKrw || 12000,
+      shippingFeeKrw: 0, moq: 1, url: "https://x", freeShipping: true,
+      source: "live", sellerId: "s-fresh", sellerNick: "공급사",
+      supplierQuality: {
+        grade: "excellent", shipSpeed: "same_day", verified: true,
+        fulfillmentRatePct: 99, readFrom: ["grade"], reason: "우수·당일발송",
+      },
+      policyText: "반품은 공급사에서 직접 수거합니다. 반품 주소: 경기 화성시 동탄대로 45",
+    };
+  }
+
+  // 신규 가맹점 그대로 — listingDrafts 키가 아예 없다
+  const data = { consignmentPicks: picks };
+  const report = await runJarvisAutopilotCycle({
+    merchantId: "m-fresh", accountEmail: "t@t.com", data, catalog: SEED_CATALOG, config: null,
+  });
+
+  assert.ok(report.stats.draftsCreated > 0, "초안이 만들어지긴 해야 이 테스트가 의미가 있다");
+  assert.ok(Array.isArray(data.listingDrafts), "엔진이 data.listingDrafts를 만들어 붙여야 한다");
+  assert.equal(
+    data.listingDrafts.length,
+    report.stats.draftsCreated,
+    "만들었다고 보고한 수만큼 실제로 data에 남아 있어야 한다 — 여기가 어긋나면 저장 시 증발한다",
+  );
+});
