@@ -65,6 +65,8 @@ type MerchantResult = {
   listedNow?: number;
   /** 안 올라간 초안의 사유별 집계 */
   publishSkips?: Record<string, number>;
+  /** 목표까지의 전략 진단 — 지금 무엇을 해야 하는가 */
+  strategy?: { constraint: string; headline: string; priority: string };
   returnLocationsRegistered?: number;
   priceCuts?: number;
   hidden?: number;
@@ -160,6 +162,15 @@ export async function GET(request: Request) {
     // 파이프라인이 어디서 멈춰 있는지 — 매출 0일 때 원인을 짚는 유일한 근거
     try {
       r.funnel = await getPipelineFunnel(merchantId);
+      // 숫자만 보면 "그래서 뭘 해야 하는가"가 안 나온다. 목표에서 역산한
+      // 기준과 대조해 지금 막힌 곳 하나와 할 일을 함께 남긴다.
+      if (r.funnel?.strategy) {
+        r.strategy = {
+          constraint: r.funnel.strategy.constraint,
+          headline: r.funnel.strategy.headline,
+          priority: r.funnel.strategy.priority,
+        };
+      }
     } catch (e) {
       console.warn("[pulse] 파이프라인 집계 실패", e);
     }

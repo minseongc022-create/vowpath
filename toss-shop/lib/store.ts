@@ -2538,6 +2538,8 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   certGateFailures: Array<{ label: string; count: number; samples: string[] }>;
   /** 도매꾹 상품 응답이 실제로 담고 있는 필드 이름 */
   supplyItemFields?: string[];
+  /** 월 목표까지의 전략 진단 — 지금 무엇이 막고 있고 무엇을 해야 하는가 */
+  strategy?: import("./seller-engine/revenue-strategy").StrategyDiagnosis;
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -2598,6 +2600,27 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
     .map(([label, count]) => ({ label, count, samples: (certGateDetails[label] ?? []).slice(0, 4) }))
     .sort((a, b) => b.count - a.count);
 
+  // 목표까지 무엇이 막고 있는지 — 파이프라인 숫자만으로는 "그래서 뭘
+  // 해야 하는가"가 안 나온다. 목표에서 역산한 기준과 대조해 짚어준다.
+  const { diagnoseStrategy } = await import("./seller-engine/revenue-strategy");
+  const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
+  const publishedDrafts = (data.listingDrafts ?? []).filter((d) => d.status === "published");
+  const strategy = diagnoseStrategy({
+    goalKrw: getMonthlyGoalKrw(),
+    discoveredCount: discovered,
+    publishedSkus: published,
+    netProfitPerUnitKrw: publishedDrafts
+      .map((d) => {
+        const p = d.listingPayload;
+        // 등록가에서 수수료·원가를 뺀 실제 개당 순이익
+        return p?.salePrice && d.landedCostKrw
+          ? Math.round(p.salePrice * 0.88 - d.landedCostKrw)
+          : 0;
+      })
+      .filter((n) => n > 0),
+    actualMonthlyNetKrw: 0,
+  });
+
   // 가장 앞에서 끊긴 곳이 진짜 병목이다. 뒤쪽만 보면 "등록이 0개"라고만
   // 알게 되는데, 원인은 그보다 앞 단계에 있는 경우가 대부분이다.
   const bottleneck =
@@ -2624,6 +2647,7 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
     droppedBeforeGate,
     certGateFailures,
     supplyItemFields: data.discoveryItemFields,
+    strategy,
     blockers: Object.entries(blockerCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
