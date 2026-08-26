@@ -32,6 +32,16 @@ function parseDeliFee(fee: string | number | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** 응답의 최상위 구조만 짧게 적는다 — 파싱 경로가 어긋났는지 판별용 */
+function describeShape(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return typeof raw;
+  const top = Object.keys(raw as object).slice(0, 6);
+  const list = (raw as { list?: unknown }).list;
+  const inner =
+    list && typeof list === "object" ? `/list:${Object.keys(list as object).slice(0, 6).join(",")}` : "";
+  return `${top.join(",")}${inner}`;
+}
+
 function normalizeItems(raw: unknown): DomeItem[] {
   if (!raw || typeof raw !== "object") return [];
   const list = raw as { list?: { item?: DomeItem | DomeItem[] } };
@@ -158,7 +168,19 @@ export async function searchDomeggookMarket(
     const data = (await res.json()) as unknown;
     // 도매꾹은 오류도 200으로 준다. 여기서 안 잡으면 원인이 통째로 사라진다.
     if (captureApiError(data)) return [];
-    return normalizeItems(data)
+
+    const items = normalizeItems(data);
+    if (items.length === 0) {
+      // 오류도 없고 상품도 없다 — 응답 구조가 우리가 아는 것과 다를 수 있다.
+      // 최상위 키만 남긴다: 원인을 좁히는 데 이게 결정적인데, 본문 전체를
+      // 남기면 로그가 터지고 공급처 정보까지 흘러 들어간다.
+      lastApiError = {
+        code: "EMPTY",
+        message: `상품 목록이 비어 있음 (응답 키: ${describeShape(data)})`,
+        at: new Date().toISOString(),
+      };
+    }
+    return items
       .map((item) => toListing(item, platform))
       .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq))
       // 사용자 정책: 1등급 + 당일발송 공급처만. 판독 불가(verified:false)도 탈락(fail-closed).
