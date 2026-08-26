@@ -404,6 +404,10 @@ function scanImport(input: RiskScanInput, risks: MarketplaceRisk[]) {
 }
 
 function scanCommercial(input: RiskScanInput, risks: MarketplaceRisk[]) {
+  // 이건 이 상품에서 감지한 문제가 아니라 **모든 판매에 항상 적용되는
+  // 행동 수칙**이다. standing으로 표시해 위험 집계에서 빼지 않으면 모든
+  // 상품이 항상 critical 1건을 갖게 되고, "치명 리스크 0"을 요구하는
+  // 확실성 게이트를 영원히 통과하지 못한다. 실제로 그 상태였다.
   pushRisk(risks, {
     category: "commercial",
     level: "critical",
@@ -412,6 +416,7 @@ function scanCommercial(input: RiskScanInput, risks: MarketplaceRisk[]) {
     message: "셀러 직접구매·허수주문 → 10점 · 계정 정지",
     penaltyPoints: 10,
     mitigation: ["본인·지인 구매 금지", "리뷰 조작·구매평 대행 금지"],
+    standing: true,
   });
 
   if (input.competitionIntensity > 2) {
@@ -450,8 +455,12 @@ export function scanMarketplaceRisks(input: RiskScanInput): MarketplaceRisk[] {
 
 export function buildRiskPlaybookReport(input: RiskScanInput): RiskPlaybookReport {
   const risks = scanMarketplaceRisks(input);
-  const criticalCount = risks.filter((r) => r.level === "critical").length;
-  const blockCount = risks.filter((r) => r.level === "block").length;
+  // 항상 적용되는 행동 수칙은 이 상품의 위험도가 아니므로 집계에서 뺀다.
+  // 모든 상품에 똑같이 붙는 값은 상품 간 구분에 아무 정보도 주지 못하면서,
+  // "치명 0" 같은 조건만 영원히 못 넘게 만든다.
+  const detected = risks.filter((r) => !r.standing);
+  const criticalCount = detected.filter((r) => r.level === "critical").length;
+  const blockCount = detected.filter((r) => r.level === "block").length;
   const warnCount = risks.filter((r) => r.level === "warn").length;
 
   const penaltyExposurePoints = risks.reduce((s, r) => s + (r.penaltyPoints ?? 0), 0);

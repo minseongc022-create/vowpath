@@ -4402,3 +4402,64 @@ test("알림: 이머니 부족은 다른 무엇보다 먼저, 즉시 알린다",
   // 감지된 게 없으면 안 뜬다
   assert.equal(collectOwnerTodos([], now, {}).length, 0);
 });
+
+// ── 리스크 집계 — 등록을 영원히 막던 버그 ────────────────────
+
+test("리스크: 항상 붙는 행동 수칙이 상품 위험도로 세어지지 않는다", async () => {
+  const { scanMarketplaceRisks, buildRiskPlaybookReport } = await import(
+    "../../toss-shop/lib/seller-engine/risk-playbook.ts"
+  );
+  const input = {
+    keyword: "양말",
+    productName: "무지 양말 5족",
+    suggestedTitle: "양말 무지 5족 세트",
+    category: "fashion",
+    priceKrw: 9900,
+    competitionIntensity: 1.2,
+  };
+
+  const risks = scanMarketplaceRisks(input);
+  const standing = risks.filter((r) => r.standing);
+  // "셀러 직접구매 금지"는 지켜야 할 수칙이지 이 상품의 결함이 아니다.
+  // 안내로는 계속 남아야 한다.
+  assert.ok(standing.length > 0, "행동 수칙은 안내로 계속 보여야 한다");
+  assert.ok(standing.some((r) => r.code === "FAKE_ORDER"));
+
+  const playbook = buildRiskPlaybookReport(input);
+  // ★ 이게 이 테스트의 핵심이다.
+  // 종전엔 FAKE_ORDER가 critical로 무조건 붙어 criticalCount가 항상 1 이상이었다.
+  // 확실성 게이트는 "치명 리스크 0"을 요구하므로 **어떤 상품도 영원히 등록될
+  // 수 없었다** — 실제로 등록 0건이었다.
+  assert.equal(playbook.criticalCount, 0, "깨끗한 상품은 치명 0이어야 등록될 수 있다");
+  assert.equal(playbook.blockCount, 0);
+});
+
+test("리스크: 진짜 위반은 여전히 잡는다", async () => {
+  const { buildRiskPlaybookReport } = await import(
+    "../../toss-shop/lib/seller-engine/risk-playbook.ts"
+  );
+  // 행동 수칙을 집계에서 뺐다고 실제 감지까지 무뎌지면 안 된다.
+  // 실제 규칙에 있는 표현으로 검증한다 — 내가 있을 거라 짐작한 표현 말고.
+
+  // 금지 품목 키워드 → block
+  const prohibited = buildRiskPlaybookReport({
+    keyword: "의약품",
+    productName: "의약품 세트",
+    suggestedTitle: "의약품 세트 특가",
+    category: "health",
+    priceKrw: 29000,
+    competitionIntensity: 2.5,
+  });
+  assert.ok(prohibited.blockCount > 0, "판매 금지 품목은 그대로 걸려야 한다");
+
+  // 의학적 효능 표현 → block
+  const healthClaim = buildRiskPlaybookReport({
+    keyword: "유산균",
+    productName: "당뇨 치료 유산균",
+    suggestedTitle: "당뇨 치료에 좋은 유산균",
+    category: "health",
+    priceKrw: 29000,
+    competitionIntensity: 2.5,
+  });
+  assert.ok(healthClaim.blockCount > 0, "의학적 효능 표현은 그대로 걸려야 한다");
+});

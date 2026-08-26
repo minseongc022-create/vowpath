@@ -780,6 +780,19 @@ export type MarketplaceRisk = {
   message: string;
   penaltyPoints?: number;
   mitigation: string[];
+  /**
+   * 이 상품에서 **감지된** 문제가 아니라, 모든 판매에 항상 적용되는 행동 수칙인가.
+   *
+   * ★ 왜 구분이 필요한가
+   *
+   * "셀러 직접구매 금지" 같은 건 지켜야 할 규칙이지 이 상품의 결함이 아니다.
+   * 그런데 이걸 감지된 리스크와 같은 등급으로 세면 **모든 상품이 항상
+   * critical 1건**을 갖게 되고, "치명 리스크 0"을 요구하는 확실성 게이트는
+   * 영원히 통과하지 못한다. 실제로 그 상태였다 — 등록이 한 건도 안 됐다.
+   *
+   * 수칙은 계속 보여주되(안내로서 가치가 있다) 위험 집계에서는 뺀다.
+   */
+  standing?: boolean;
 };
 
 export type PenaltyTierBrief = {
