@@ -126,7 +126,10 @@ function pickBranchByName(input: {
     if (etc) return { node: etc };
   }
 
-  return { why: "상품명과 겹치는 카테고리 이름이 없음" };
+  // 무엇 중에서 못 골랐는지 남긴다 — 이게 없으면 사전을 어떻게 보완해야
+  // 할지 알 수가 없다. 추측 대신 실제 선택지를 보고 고친다.
+  const names = input.options.slice(0, 12).map((o) => o.name).join(", ");
+  return { why: `상품명과 겹치는 카테고리 이름이 없음 [선택지: ${names}]` };
 }
 
 /**
