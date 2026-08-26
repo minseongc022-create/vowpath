@@ -17,7 +17,7 @@ import type {
   TossShopCategory,
 } from "../types";
 
-export const RISK_PLAYBOOK_VERSION = "v6.2";
+export const RISK_PLAYBOOK_VERSION = "v6.3";
 
 /** 토스셀러 페널티: 30일 합산 10점 → 이용정지, 2회째 10점 → 영구정지 */
 export const TOSS_PENALTY_TIER: PenaltyTierBrief = {

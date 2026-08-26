@@ -29,6 +29,8 @@ import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
 import { executeConsignmentOrder } from "./seller-engine/consignment-order";
 import { runJarvisAutopilotCycle, enrichDraftWithAutopilot, isAutoExecuteEnabled } from "./seller-engine/jarvis-autopilot-engine";
+import { JARVIS_VERSION } from "./seller-engine/jarvis-engine";
+import { RISK_PLAYBOOK_VERSION } from "./seller-engine/risk-playbook";
 import { getAutoExecuteMaxPerCycle } from "./seller-engine/jarvis-config";
 import { runJarvisHealthCheck } from "./seller-engine/jarvis-health-check";
 import { syncMerchantFromTossApi, isApiConfigured } from "./api/sync-merchant";
@@ -985,7 +987,16 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
     dataQuality: (merchant?.dataSource === "live" ? "live" : merchant?.dataSource === "live_partial" ? "mixed" : "demo") as "live" | "mixed" | "demo",
   };
   const today = todayDateKey();
-  if (data.consignmentDate === today && data.consignmentPicks?.length) {
+
+  // 캐시 열쇠에 **엔진 버전**을 함께 넣는다.
+  //
+  // 종전엔 날짜만 봤다. 그래서 점수·리스크 엔진을 고쳐도 이미 만들어둔
+  // 후보가 그대로 남아, 배포 뒤에도 최대 24시간 동안 옛 판정이 유지됐다.
+  // 실제로 safety 게이트 결함을 고치고 배포했는데 후보 3건이 전부 옛
+  // 점수를 들고 있어 여전히 인증 0이었다 — 고쳤는지 아닌지 확인할 방법이
+  // 없는 상태가 된다. 엔진이 바뀌면 후보도 다시 계산돼야 한다.
+  const picksKey = `${today}|${JARVIS_VERSION}|${RISK_PLAYBOOK_VERSION}`;
+  if (data.consignmentDate === picksKey && data.consignmentPicks?.length) {
     return data.consignmentPicks;
   }
   // 발굴로 모은 실측 표본을 앞에 둔다 — 데모 시드보다 먼저 보게 해서,
@@ -993,7 +1004,7 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
   const catalog = [...(data.discoveredProducts ?? []), ...store.catalog];
   const picks = await generateConsignmentPicks(catalog, today, store.marketKeywords, integrationCtx);
   data.consignmentPicks = picks;
-  data.consignmentDate = today;
+  data.consignmentDate = picksKey;
   await saveStore(store);
   return picks;
 }
