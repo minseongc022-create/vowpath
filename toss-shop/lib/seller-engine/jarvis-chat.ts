@@ -134,7 +134,9 @@ function readOwnerPhone(text: string): string | null {
  * 한 통 보내보는 길을 열어둔다.
  */
 const TEST_ALERT_PATTERNS =
-  /(문자|알림|sms).{0,10}(테스트|보내봐|시험|확인해|와\?|오나|되나)|테스트.{0,6}(문자|알림)/i;
+  // "확인해봐"는 테스트지만 "확인했어"는 알림을 봤다는 뜻이다. 이 둘을 같이
+  // 잡으면 사장님이 "알림 확인했어"라고 할 때마다 문자가 한 통씩 더 간다.
+  /(문자|알림|sms).{0,10}(테스트|보내봐|시험|확인해\s*줘|확인해\s*봐|와\?|오나|되나)|테스트.{0,6}(문자|알림)/i;
 
 const RUN_PATTERNS = /(지금\s*(한번|한\s*번)?\s*(돌려|실행|시작)|실행해|돌려줘|시작해|가동)/;
 const STATUS_PATTERNS = /(상태|어때|어떻게\s*(돼|되)|잘\s*되|현황|뭐하고|리포트|보고)/;
@@ -224,6 +226,9 @@ export type JarvisStatusSummary = {
   todos: string[];
 };
 
+/** 이 시간 안에 한 바퀴 돈 적이 있어야 "돌고 있다"고 말할 수 있다 */
+const RUNNING_WINDOW_MS = 30 * 60 * 1000;
+
 export function summarizeJarvisStatus(data: MerchantData, goalKrw: number): JarvisStatusSummary {
   const drafts = data.listingDrafts ?? [];
   const jobs = data.fulfillmentJobs ?? [];
@@ -253,8 +258,19 @@ export function summarizeJarvisStatus(data: MerchantData, goalKrw: number): Jarv
     todos.push(`발주한 주문 ${needTracking}건 — 공급처 송장 나오면 여기 붙여넣어 주세요`);
   }
 
+  // "돌고 있다"는 **최근에 실제로 돌았을 때만** 참이다.
+  //
+  // 종전엔 환경변수 스위치(enabled)를 그대로 보여줬다. 그래서 심박이 끊겨
+  // 하루 종일 아무것도 안 돌아도 화면엔 "24시간 돌고 있습니다"가 떠 있었다.
+  // 그 상태에서 사장님은 기다리기만 하고, 그 사이 발송기한이 넘어간다.
+  const lastRanMs = report?.ranAt ? Date.parse(report.ranAt) : NaN;
+  const running =
+    (report?.enabled ?? false) &&
+    Number.isFinite(lastRanMs) &&
+    Date.now() - lastRanMs < RUNNING_WINDOW_MS;
+
   return {
-    running: report?.enabled ?? false,
+    running,
     lastRanAt: report?.ranAt,
     publishedCount: drafts.filter((d) => d.status === "published").length,
     pendingReviewCount: drafts.filter((d) => d.status === "pending_review").length,
@@ -273,7 +289,7 @@ export function renderStatusReply(s: JarvisStatusSummary): string {
   lines.push(
     s.running
       ? "지금 돌고 있습니다 (60초마다 시장을 보고 있어요)."
-      : "지금 멈춰 있습니다 — 실행 버튼을 눌러주세요.",
+      : "지금 멈춰 있습니다 — 「지금 돌려」라고 말씀해 주세요.",
   );
   lines.push(
     `등록 ${s.publishedCount}개 · 승인 대기 ${s.pendingReviewCount}개 · 진행 중인 주문 ${s.activeOrders}건`,

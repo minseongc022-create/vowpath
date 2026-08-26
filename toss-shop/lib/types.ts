@@ -238,10 +238,52 @@ export type MerchantData = {
    */
   ownerAlertPhone?: string;
   /**
-   * 이미 문자로 알린 할 일 종류 — 같은 걸 60초마다 다시 보내지 않기 위해.
+   * 도매꾹·도매매를 직접 훑어 모은 실측 시장 표본.
+   *
+   * 카탈로그가 데모 시드면 소싱 후보가 데모에서만 나오고, 확실성 게이트가
+   * 전부 걷어낸다(공급처·원가가 실측이 아니므로 — 게이트는 옳다). 이 목록이
+   * 그 입구를 실물로 바꾼다. 사이클마다 조금씩 쌓이고 오래된 건 밀려난다.
+   */
+  discoveredProducts?: CatalogProduct[];
+  /** 다음 사이클이 이어서 훑을 키워드 위치 — 앞쪽만 반복해서 보지 않게 */
+  discoveryCursor?: number;
+  discoveryRanAt?: string;
+  /** 발굴이 한 건도 응답을 못 받은 마지막 시각 — 연동 문제를 구분해 알리기 위해 */
+  discoverySilentAt?: string;
+  /**
+   * 이미 문자로 알린 할 일 종류 — 같은 걸 매 사이클 다시 보내지 않기 위해.
    * 그 종류가 해소되면 목록에서 빠지고, 다시 생기면 새로 알린다.
    */
   sentTodoKinds?: string[];
+  /**
+   * 종류별 마지막 발송 시각·횟수 — 사장님이 확인할 때까지 되풀이하기 위해.
+   *
+   * 한 번만 보내면 못 보고 넘어간 순간 그걸로 끝이고, 발송기한을 넘겨
+   * 배송 인센티브가 날아간다. 그래서 확인 전까지는 간격을 두고 다시 보낸다.
+   */
+  todoAlerts?: TodoAlertState[];
+  /** 사장님이 "확인했어"라고 한 시각 — 그 이후로는 되풀이를 멈춘다 */
+  todosAckedAt?: string;
+  /** 월 목표 순이익(원) — 대화로 바꾼다. 없으면 환경변수 기본값 */
+  monthlyGoalKrw?: number;
+  /** 지금 자비스가 뭘 하고 있는지 — 화면에 "찾는중…"으로 뜬다 */
+  activity?: JarvisActivity;
+};
+
+export type TodoAlertState = {
+  kind: string;
+  lastSentAt: string;
+  count: number;
+};
+
+export type JarvisActivity = {
+  /** "도매꾹 구석구석 뒤지는 중" 같은 문구 */
+  label: string;
+  /** "무선 이어폰 (12/24)" 같은 세부 */
+  detail?: string;
+  startedAt: string;
+  updatedAt: string;
+  done: boolean;
 };
 
 export type PendingReturnAddress = {

@@ -3931,44 +3931,58 @@ test("발주 안내는 칸마다 한 줄 — 옮겨 적다 틀릴 여지를 없�
   assert.equal(ORDER_BRIEF_LIMIT, 3);
 });
 
-test("알림: 같은 종류는 한 번만, 해소되면 다시 알린다", async () => {
-  const { collectOwnerTodos, pickUnsentTodos } = await import(
+test("알림: 확인할 때까지 10분마다 되풀이하고, 확인하면 멈춘다", async () => {
+  const { collectOwnerTodos, pickTodosToSend, ALERT_REPEAT_MS, ALERT_MAX_REPEATS } = await import(
     "../../toss-shop/lib/seller-engine/owner-todo-alerts.ts"
   );
   const now = Date.parse("2026-08-05T00:00:00Z");
   const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString();
   const mk = (over) => ({
-    id: "a",
-    merchantId: "m",
-    orderId: 1,
-    orderProductId: 1,
-    productName: "상품",
-    status: "detected",
+    id: "a", merchantId: "m", orderId: 1, orderProductId: 1,
+    productName: "상품", status: "detected",
     customer: { name: "n", phone: "p", address: "a", zipCode: "z" },
-    quantity: 1,
-    createdAt: hoursAgo(24),
-    updatedAt: hoursAgo(24),
-    ...over,
+    quantity: 1, createdAt: hoursAgo(24), updatedAt: hoursAgo(24), ...over,
   });
 
   // 방금 들어온 주문은 알리지 않는다 — 그러면 하루 종일 문자가 온다
   assert.equal(collectOwnerTodos([mk({ createdAt: hoursAgo(1) })], now).length, 0);
 
   const todos = collectOwnerTodos([mk({})], now);
-  assert.equal(todos.length, 1);
   assert.equal(todos[0].kind, "need_supplier_order");
 
-  const first = pickUnsentTodos(todos, []);
+  // 처음엔 바로 나간다
+  const first = pickTodosToSend(todos, [], { nowMs: now });
   assert.equal(first.toSend.length, 1);
+  assert.equal(first.nextState[0].count, 1);
 
-  // 두 번째 사이클 — 같은 게 그대로 걸려 있어도 다시 보내지 않는다
-  const second = pickUnsentTodos(todos, first.nextSent);
-  assert.equal(second.toSend.length, 0);
+  // 곧바로 또 돌아도 다시 보내지 않는다
+  const soon = pickTodosToSend(todos, first.nextState, { nowMs: now + 60_000 });
+  assert.equal(soon.toSend.length, 0, "1분 뒤에 또 보내면 알림을 꺼버리게 된다");
 
-  // 해소되면 기록에서 빠지고, 다시 생기면 새로 알린다
-  const cleared = pickUnsentTodos([], second.nextSent);
-  assert.deepEqual(cleared.nextSent, []);
-  assert.equal(pickUnsentTodos(todos, cleared.nextSent).toSend.length, 1);
+  // 10분이 지나면 다시 보낸다 — 못 보고 넘어갔을 수 있으므로
+  const later = pickTodosToSend(todos, first.nextState, { nowMs: now + ALERT_REPEAT_MS });
+  assert.equal(later.toSend.length, 1);
+  assert.equal(later.nextState[0].count, 2);
+
+  // 확인했다고 하면 그 뒤로는 멈춘다
+  const acked = pickTodosToSend(todos, later.nextState, {
+    nowMs: now + ALERT_REPEAT_MS * 3,
+    ackedAt: new Date(now + ALERT_REPEAT_MS * 2).toISOString(),
+  });
+  assert.equal(acked.toSend.length, 0);
+
+  // 확인이 없어도 상한을 넘겨 계속 보내지는 않는다
+  const capped = pickTodosToSend(
+    todos,
+    [{ kind: "need_supplier_order", lastSentAt: new Date(now).toISOString(), count: ALERT_MAX_REPEATS }],
+    { nowMs: now + ALERT_REPEAT_MS * 5 },
+  );
+  assert.equal(capped.toSend.length, 0);
+
+  // 해소되면 상태에서 빠지고, 다시 생기면 처음부터 알린다
+  const cleared = pickTodosToSend([], later.nextState, { nowMs: now });
+  assert.deepEqual(cleared.nextState, []);
+  assert.equal(pickTodosToSend(todos, cleared.nextState, { nowMs: now }).toSend.length, 1);
 });
 
 test("알림: 송장 대기는 발주 시각 기준으로 재는다", async () => {
@@ -4012,4 +4026,118 @@ test("대화: 문자 테스트를 상태 질문으로 잘못 읽지 않는다", 
   }
   // 번호를 주는 건 테스트가 아니라 저장이다
   assert.equal(parseChatAction("내 번호 010-5596-9438").intent, "set_alert_phone");
+});
+
+
+// ── 도매꾹 직접 발굴 ──────────────────────────────────────────
+
+test("발굴: 시세를 원가에서 지어내지 않는다", async () => {
+  const { buildCatalogFromDiscovery } = await import(
+    "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
+  );
+  const supply = (no, price) => ({
+    platform: "domeme", itemNo: no, title: `테스트상품${no}`,
+    unitPriceKrw: price, shippingFeeKrw: 0, moq: 1,
+    url: "https://x", sellerId: "s1", sellerNick: "공급사", freeShipping: true, source: "live",
+  });
+
+  const products = buildCatalogFromDiscovery(
+    [{ keyword: "양말", category: "fashion", anchorPriceKrw: 9000, anchorSamples: 5, supply: [supply(1, 3000)] }],
+    "2026-08-05T00:00:00Z",
+  );
+  assert.equal(products.length, 1);
+  // 소매가는 도매꾹에서 관측한 시세여야 한다. 원가×마진이면 마진 계산이
+  // 동어반복이 되어 아무것도 검증하지 못한다.
+  assert.equal(products[0].priceKrw, 9000);
+  // 모르는 값은 0으로 둔다 — 그럴듯한 수를 넣으면 경쟁 분석이 가짜 위에서 돈다
+  assert.equal(products[0].reviewCount, 0);
+  // 데모 시드(p001)와 형태가 달라야 실데이터로 인식된다
+  assert.ok(!/^p\d{3}$/.test(products[0].id));
+
+  // 시세가 원가에 붙어 있으면(마진 없음) 버린다
+  assert.equal(
+    buildCatalogFromDiscovery(
+      [{ keyword: "양말", category: "fashion", anchorPriceKrw: 3100, anchorSamples: 5, supply: [supply(2, 3000)] }],
+      "2026-08-05T00:00:00Z",
+    ).length,
+    0,
+  );
+  // 시세가 터무니없이 벌어져 있으면 다른 물건을 비교한 것이다
+  assert.equal(
+    buildCatalogFromDiscovery(
+      [{ keyword: "양말", category: "fashion", anchorPriceKrw: 90000, anchorSamples: 5, supply: [supply(3, 3000)] }],
+      "2026-08-05T00:00:00Z",
+    ).length,
+    0,
+  );
+});
+
+test("발굴: 키워드를 앞에서부터만 훑지 않는다", async () => {
+  const { rotatingSlice, allDiscoveryKeywords } = await import(
+    "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
+  );
+  const all = [1, 2, 3, 4, 5];
+  const a = rotatingSlice(all, 2, 0);
+  assert.deepEqual(a.slice, [1, 2]);
+  const b = rotatingSlice(all, 2, a.next);
+  assert.deepEqual(b.slice, [3, 4], "다음 사이클은 이어서 봐야 전체를 한 바퀴 돈다");
+  // 끝에서 앞으로 넘어간다
+  assert.deepEqual(rotatingSlice(all, 2, 4).slice, [5, 1]);
+
+  // 카테고리를 번갈아 넣는다 — 중간에 끊겨도 한쪽만 잔뜩 보고 끝나지 않게
+  const kws = allDiscoveryKeywords();
+  assert.ok(kws.length > 100, "구석구석 보려면 키워드가 넉넉해야 한다");
+  const firstSix = new Set(kws.slice(0, 6).map((k) => k.category));
+  assert.equal(firstSix.size, 6, "앞 6개가 서로 다른 카테고리여야");
+});
+
+// ── 자연어 지시 ───────────────────────────────────────────────
+
+test("지시: 정해진 문구가 아니어도 소싱이 실제로 실행된다", async () => {
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  for (const msg of ["추가적은 소싱 해", "더 찾아봐", "싹 다 뒤져봐", "구석구석 다 분석해"]) {
+    assert.equal(parseExtraAction(msg)?.name, "discover", msg);
+  }
+  assert.equal(parseExtraAction("싹 다 뒤져봐")?.deep, true);
+  assert.equal(parseExtraAction("더 찾아봐")?.deep, false);
+});
+
+test("지시: 금액 표기가 달라도 같은 목표로 읽힌다", async () => {
+  const { readGoalKrw, parseExtraAction, MIN_GOAL_KRW } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  assert.equal(readGoalKrw("월 천만원 벌게 해줘"), 10_000_000);
+  assert.equal(readGoalKrw("목표 1000만원"), 10_000_000);
+  assert.equal(readGoalKrw("2천만원까지 가보자"), 20_000_000);
+  assert.equal(readGoalKrw("700만원은 벌어야지"), 7_000_000);
+  assert.equal(readGoalKrw("최소 500만원"), 5_000_000);
+
+  // 범위 밖은 목표가 아니라 희망이다
+  assert.equal(readGoalKrw("월 1억 벌자"), null);
+  assert.equal(readGoalKrw("10만원"), null);
+  assert.ok(MIN_GOAL_KRW > 0);
+
+  const a = parseExtraAction("무조건 월 천만원 벌게 만들어");
+  assert.equal(a?.name, "set_goal");
+  assert.equal(a?.goalKrw, 10_000_000);
+});
+
+test("지시: '확인했어'가 문자 테스트로 새지 않는다", async () => {
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  const { parseChatAction } = await import("../../toss-shop/lib/seller-engine/jarvis-chat.ts");
+
+  assert.equal(parseExtraAction("확인했어")?.name, "ack_alerts");
+  assert.equal(parseExtraAction("알림 그만 보내")?.name, "ack_alerts");
+  // "알림 확인했어"를 테스트로 읽으면 확인할 때마다 문자가 한 통씩 더 간다
+  assert.notEqual(parseChatAction("알림 확인했어").intent, "test_alert");
+  // 테스트 요청은 그대로 테스트로 잡혀야 한다
+  assert.equal(parseChatAction("문자 테스트 해봐").intent, "test_alert");
+
+  // 지시가 아닌 말은 아무 행동도 만들지 않는다
+  assert.equal(parseExtraAction("오늘 날씨 어때"), null);
+  assert.equal(parseExtraAction("반품지 확인해줘"), null);
 });

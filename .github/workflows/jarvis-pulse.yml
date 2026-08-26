@@ -1,0 +1,32 @@
+# 자비스 심박 — 10분마다 사이트를 깨운다
+#
+# Vercel Hobby 플랜의 크론은 하루 한 번이 한계라, 필수 작업 알림을 10분마다
+# 되풀이할 수가 없다. 발송기한을 넘기면 배송 인센티브(수수료 0%)가 통째로
+# 날아가므로 하루 한 번으로는 부족하다. GitHub Actions는 무료이고 스케줄이
+# 저장소 안에 남아서, 플랜을 올리지 않고도 같은 일을 한다.
+#
+# 필요한 저장소 시크릿: CRON_SECRET (Vercel 환경변수와 같은 값)
+name: jarvis-pulse
+
+on:
+  schedule:
+    # GitHub Actions 스케줄은 정확히 그 시각에 뜨지 않고 몇 분 밀릴 수 있다.
+    # 알림 간격이 10분이라 조금 밀려도 문제가 없게 설계돼 있다.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 자비스 깨우기
+        run: |
+          code=$(curl -sS -o /tmp/pulse.json -w "%{http_code}" \
+            --max-time 120 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://effiroad.com/api/cron/jarvis-pulse)
+          echo "HTTP $code"
+          cat /tmp/pulse.json
+          # 실패를 조용히 넘기지 않는다 — 알림이 안 나가고 있는데
+          # 초록 체크만 뜨면 아무도 눈치채지 못한다.
+          test "$code" = "200"

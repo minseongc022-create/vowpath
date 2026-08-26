@@ -1009,7 +1009,10 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
   if (data.consignmentDate === today && data.consignmentPicks?.length) {
     return data.consignmentPicks;
   }
-  const picks = await generateConsignmentPicks(store.catalog, today, store.marketKeywords, integrationCtx);
+  // 발굴로 모은 실측 표본을 앞에 둔다 — 데모 시드보다 먼저 보게 해서,
+  // 후보가 실측 공급처·원가 위에서 만들어지게 한다.
+  const catalog = [...(data.discoveredProducts ?? []), ...store.catalog];
+  const picks = await generateConsignmentPicks(catalog, today, store.marketKeywords, integrationCtx);
   data.consignmentPicks = picks;
   data.consignmentDate = today;
   await saveStore(store);
@@ -1297,6 +1300,19 @@ export async function executeJarvisListing(input: {
 }
 
 export async function runAutopilotForMerchant(merchantId: string): Promise<import("./types").JarvisAutopilotReport> {
+  // 한 바퀴 돌기 전에 시장을 새로 훑는다.
+  //
+  // 이걸 안 하면 사이클은 어제 만든 후보 목록을 다시 보고 같은 결론을 낸다 —
+  // "올릴 만한 게 없습니다"가 반복된 이유가 이것이었다. 발굴은 실패해도
+  // 사이클을 막지 않는다: 새로 못 찾았을 뿐 기존 후보 처리는 계속돼야 한다.
+  try {
+    await runDiscoveryForMerchant(merchantId, { size: 24, budgetMs: 20_000 });
+  } catch (e) {
+    console.warn("[jarvis] 시장 발굴 실패:", e);
+  }
+  // 발굴로 캐시가 깨졌으면 여기서 후보가 새로 만들어진다
+  await getConsignmentPicksForMerchant(merchantId);
+
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.id === merchantId);
   if (!merchant) throw new Error("MERCHANT_NOT_FOUND");
@@ -1461,7 +1477,7 @@ export async function getJarvisChatContext(merchantId: string) {
   const { summarizeJarvisStatus } = await import("./seller-engine/jarvis-chat");
   const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
   return {
-    status: summarizeJarvisStatus(data, getMonthlyGoalKrw()),
+    status: summarizeJarvisStatus(data, data.monthlyGoalKrw ?? getMonthlyGoalKrw()),
     jobs: data.fulfillmentJobs ?? [],
   };
 }
@@ -1645,16 +1661,14 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
-  const { collectOwnerTodos, pickUnsentTodos } = await import(
+  const { collectOwnerTodos, pickTodosToSend } = await import(
     "./seller-engine/owner-todo-alerts"
   );
 
-  type TodoKind = import("./seller-engine/owner-todo-alerts").TodoKind;
   const todos = collectOwnerTodos(data.fulfillmentJobs ?? []);
-  const { toSend, nextSent } = pickUnsentTodos(
-    todos,
-    (data.sentTodoKinds ?? []) as TodoKind[],
-  );
+  const { toSend, nextState } = pickTodosToSend(todos, data.todoAlerts ?? [], {
+    ackedAt: data.todosAckedAt,
+  });
 
   // 대화창에서 넣은 번호가 우선이고, 없으면 환경변수(OWNER_ALERT_PHONE)로
   // 떨어진다 — 이미 등록해 둔 번호가 있으면 아무것도 안 해도 알림이 나가야 한다.
@@ -1666,7 +1680,7 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
   }
 
   let sent = 0;
-  const failed = new Set<TodoKind>();
+  const failed = new Set<string>();
   if (toSend.length > 0) {
     const { sendSms } = await import("@/lib/send-sms");
     for (const todo of toSend) {
@@ -1682,9 +1696,177 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
     }
   }
 
-  // 실제로 나간 것만 "보냄"으로 기록한다. 실패한 종류는 기록에서 빼야
-  // 다음 사이클에 다시 시도된다 — 한 번 실패했다고 영영 안 알리면 안 된다.
-  data.sentTodoKinds = nextSent.filter((k) => !failed.has(k));
+  // 실제로 나간 것만 "보냄"으로 기록한다. 실패한 종류는 마지막 발송 시각을
+  // 갱신하지 않아야 다음 사이클에 곧바로 다시 시도된다 — 한 번 실패했다고
+  // 10분을 더 기다리면 그만큼 발송기한에 가까워진다.
+  const prev = new Map((data.todoAlerts ?? []).map((a) => [a.kind, a]));
+  data.todoAlerts = nextState.map((n) => (failed.has(n.kind) ? (prev.get(n.kind) ?? n) : n));
   await saveStore(store);
   return { sent };
+}
+
+/** "확인했어" — 되풀이 문자를 멈춘다 */
+export async function ackOwnerTodos(merchantId: string): Promise<void> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  data.todosAckedAt = new Date().toISOString();
+  await saveStore(store);
+}
+
+/** 월 목표 순이익을 바꾼다 — 소싱량이 여기서 역산된다 */
+export async function setMonthlyGoal(merchantId: string, goalKrw: number): Promise<void> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  data.monthlyGoalKrw = goalKrw;
+  // 목표가 바뀌면 필요한 SKU 수가 달라진다. 오늘치 후보를 다시 만들게 한다.
+  data.consignmentDate = undefined;
+  data.consignmentPicks = undefined;
+  await saveStore(store);
+}
+
+export async function getMerchantGoalKrw(merchantId: string): Promise<number> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const { getMonthlyGoalKrw } = await import("./seller-engine/goal-engine");
+  return data.monthlyGoalKrw ?? getMonthlyGoalKrw();
+}
+
+// ── 지금 뭐 하는 중인지 ────────────────────────────────────────
+
+/**
+ * 자비스가 지금 하고 있는 일을 기록한다.
+ *
+ * 서버리스라 요청마다 다른 인스턴스에 붙을 수 있어서, 메모리에 두면 화면이
+ * 못 읽는다. 그래서 저장소에 쓴다. 대신 키워드 하나마다 쓰면 저장소가
+ * 못 버티므로 **몇 개마다 한 번**만 갱신한다.
+ */
+export async function setJarvisActivity(
+  merchantId: string,
+  activity: { label: string; detail?: string; done?: boolean },
+): Promise<void> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const now = new Date().toISOString();
+  data.activity = {
+    label: activity.label,
+    detail: activity.detail,
+    startedAt: data.activity && !data.activity.done ? data.activity.startedAt : now,
+    updatedAt: now,
+    done: activity.done ?? false,
+  };
+  await saveStore(store);
+}
+
+/** 오래된 활동은 "하는 중"으로 보이면 안 된다 — 죽은 요청의 잔해다 */
+const ACTIVITY_STALE_MS = 3 * 60 * 1000;
+
+export async function getJarvisActivity(merchantId: string) {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const a = data.activity;
+  if (!a || a.done) return null;
+  if (Date.now() - Date.parse(a.updatedAt) > ACTIVITY_STALE_MS) return null;
+  return a;
+}
+
+
+// ── 도매꾹 직접 발굴 ──────────────────────────────────────────
+
+/** 표본을 무한정 쌓지 않는다 — 오래된 건 밀어낸다 */
+const MAX_DISCOVERED_PRODUCTS = 800;
+
+/**
+ * 도매꾹·도매매를 직접 훑어 실측 시장 표본을 쌓는다.
+ *
+ * ★ 왜 소싱 캐시를 깨는가
+ *
+ * 픽은 하루 한 번만 만들어지고 그날치가 캐시된다. 그대로 두면 새로 발굴한
+ * 상품이 **내일**에야 후보가 된다 — 사장님이 "지금 돌려"라고 했는데 어제 만든
+ * 같은 결과가 또 나오는 이유가 이것이었다. 새로 찾은 게 있으면 캐시를 버려서
+ * 이번 사이클에 바로 후보로 올라오게 한다.
+ */
+export async function runDiscoveryForMerchant(
+  merchantId: string,
+  opts?: { size?: number; budgetMs?: number },
+): Promise<{
+  scanned: number;
+  found: number;
+  added: number;
+  total: number;
+  truncated: boolean;
+  apiSilent: boolean;
+  configured: boolean;
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+
+  const { isDomeggookApiConfigured } = await import("./wholesale/domeggook-api");
+  if (!isDomeggookApiConfigured()) {
+    return {
+      scanned: 0, found: 0, added: 0,
+      total: data.discoveredProducts?.length ?? 0,
+      truncated: false, apiSilent: true, configured: false,
+    };
+  }
+
+  const { discoverWholesaleMarket } = await import("./wholesale/wholesale-discovery");
+  // 저장소 쓰기를 아끼려고 몇 개마다 한 번만 갱신한다. 매 키워드마다 쓰면
+  // 발굴보다 저장이 더 오래 걸린다.
+  const PROGRESS_EVERY = 4;
+  const result = await discoverWholesaleMarket({
+    size: opts?.size ?? 24,
+    cursor: data.discoveryCursor ?? 0,
+    budgetMs: opts?.budgetMs ?? 40_000,
+    onProgress: (p) => {
+      if (p.done % PROGRESS_EVERY !== 0 && p.done !== p.total) return;
+      void setJarvisActivity(merchantId, {
+        label: "도매꾹 구석구석 뒤지는 중",
+        detail: `${p.keyword} (${p.done}/${p.total}) · 쓸 만한 것 ${p.found}개`,
+      }).catch(() => {});
+    },
+  });
+
+  const existing = data.discoveredProducts ?? [];
+  const byId = new Map(existing.map((p) => [p.id, p]));
+  let added = 0;
+  for (const p of result.products) {
+    if (!byId.has(p.id)) added += 1;
+    // 이미 있던 것도 새 값으로 덮는다 — 시세와 재고 상황은 계속 변한다
+    byId.set(p.id, p);
+  }
+
+  // 최근 것부터 남긴다. 오래된 표본은 이미 품절이거나 시세가 어긋나 있어
+  // 남겨두면 판단만 흐린다.
+  const merged = [...byId.values()]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, MAX_DISCOVERED_PRODUCTS);
+
+  data.discoveredProducts = merged;
+  data.discoveryCursor = result.nextCursor;
+  data.discoveryRanAt = new Date().toISOString();
+  if (result.apiSilent) data.discoverySilentAt = data.discoveryRanAt;
+
+  // 새로 찾은 게 있으면 오늘치 픽 캐시를 버린다 — 그래야 지금 반영된다
+  if (added > 0) {
+    data.consignmentDate = undefined;
+    data.consignmentPicks = undefined;
+  }
+
+  await saveStore(store);
+  return {
+    scanned: result.keywordsScanned,
+    found: result.keywordsWithSupply,
+    added,
+    total: merged.length,
+    truncated: result.truncated,
+    apiSilent: result.apiSilent,
+    configured: true,
+  };
+}
+
+
+/** 심박(크론)이 모든 가맹점을 돌기 위해 필요한 목록 — 키는 넘기지 않는다 */
+export async function listMerchantIds(): Promise<string[]> {
+  const store = await loadStore();
+  return store.merchants.map((m) => m.id);
 }

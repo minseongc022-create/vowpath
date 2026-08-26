@@ -95,22 +95,64 @@ export function collectOwnerTodos(
 }
 
 /**
- * 이미 보낸 알림인지 판별한다.
+ * 지금 보내야 할 알림을 고른다 — 확인할 때까지 되풀이한다.
  *
- * 같은 종류가 계속 걸려 있으면 다시 보내지 않는다. 해소됐다가(그 종류의 할 일이
- * 0이 됨) 다시 생기면 그때는 새 상황이므로 다시 보낸다 — 그래야 "아까 그거"와
- * "새로 생긴 거"를 구분할 수 있다.
+ * ★ 왜 한 번만 보내면 안 되나
+ *
+ * 종전엔 종류당 한 번만 보냈다. 그런데 사장님이 그 한 통을 못 보고 넘어가면
+ * 그걸로 끝이었다. 발주가 안 나간 채 발송기한을 넘기면 배송 인센티브(수수료
+ * 0%)가 통째로 날아가고, 그건 그 달 전 상품의 마진이 깎인다는 뜻이다.
+ * 한 통 놓친 대가가 그만큼 크다.
+ *
+ * ★ 왜 무한정 보내지도 않나
+ *
+ * 확인했다고 말하면 즉시 멈춘다. 그리고 그 전에도 상한을 둔다 — 답이 없는데
+ * 하루 종일 문자가 가면 사장님은 알림을 꺼버리고, 그러면 다음에 진짜 급한
+ * 걸 못 보게 된다. 되풀이는 "놓치지 않게" 하는 장치이지 압박 수단이 아니다.
  */
-export function pickUnsentTodos(
+
+/** 확인 전까지 다시 보내는 간격 */
+export const ALERT_REPEAT_MS = 10 * 60 * 1000;
+/** 한 건에 대해 이 횟수를 넘겨 보내지 않는다 */
+export const ALERT_MAX_REPEATS = 6;
+
+export type AlertState = { kind: string; lastSentAt: string; count: number };
+
+export function pickTodosToSend(
   todos: OwnerTodo[],
-  alreadySent: TodoKind[],
-): { toSend: OwnerTodo[]; nextSent: TodoKind[] } {
-  const sent = new Set(alreadySent);
-  const activeKinds = new Set(todos.map((t) => t.kind));
+  state: AlertState[],
+  opts: { ackedAt?: string; nowMs?: number },
+): { toSend: OwnerTodo[]; nextState: AlertState[] } {
+  const now = opts.nowMs ?? Date.now();
+  const ackedMs = opts.ackedAt ? Date.parse(opts.ackedAt) : NaN;
+  const byKind = new Map(state.map((s) => [s.kind, s]));
+  const toSend: OwnerTodo[] = [];
+  const nextState: AlertState[] = [];
 
-  const toSend = todos.filter((t) => !sent.has(t.kind));
-  // 지금 없는 종류는 기록에서 지운다 — 다음에 다시 생기면 알림이 나가게
-  const nextSent = [...activeKinds];
+  for (const todo of todos) {
+    const prev = byKind.get(todo.kind);
+    if (!prev) {
+      // 처음 생긴 일 — 바로 알린다
+      toSend.push(todo);
+      nextState.push({ kind: todo.kind, lastSentAt: new Date(now).toISOString(), count: 1 });
+      continue;
+    }
 
-  return { toSend, nextSent };
+    const lastMs = Date.parse(prev.lastSentAt);
+    // 마지막 발송 뒤에 확인했다고 했으면 되풀이를 멈춘다. 확인이 발송보다
+    // 앞이면 그건 이전 건에 대한 확인이므로 멈출 근거가 못 된다.
+    const ackedSinceLast = Number.isFinite(ackedMs) && ackedMs >= lastMs;
+    const due = Number.isFinite(lastMs) && now - lastMs >= ALERT_REPEAT_MS;
+    const underCap = prev.count < ALERT_MAX_REPEATS;
+
+    if (!ackedSinceLast && due && underCap) {
+      toSend.push(todo);
+      nextState.push({ kind: todo.kind, lastSentAt: new Date(now).toISOString(), count: prev.count + 1 });
+    } else {
+      nextState.push(prev);
+    }
+  }
+
+  // 해소된 종류는 상태에서 지운다 — 다시 생기면 처음부터 알린다
+  return { toSend, nextState };
 }

@@ -28,7 +28,7 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import type { JarvisAutopilotReport, JarvisFulfillmentJob } from "@/toss-shop/lib/types";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = { role: "user" | "assistant"; content: string; steps?: string[] };
 
 type Status = {
   running: boolean;
@@ -57,6 +57,10 @@ export function JarvisConsole() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // 자비스가 지금 뭘 하는 중인지 — 서버가 기록한 걸 그대로 보여준다.
+  // 눌렀는데 아무 반응이 없으면 사장님은 안 되는 줄 알고 다시 누르게 되고,
+  // 그러면 같은 일이 두 번 돈다.
+  const [activity, setActivity] = useState<{ label: string; detail?: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
@@ -85,19 +89,38 @@ export function JarvisConsole() {
     const next = [...messages, { role: "user" as const, content: msg }];
     setMessages(next);
     setSending(true);
+    setActivity({ label: "듣고 있습니다" });
+
+    // 오래 걸리는 일(도매꾹 발굴 등)은 서버가 진행 상황을 기록한다.
+    // 그걸 계속 읽어서 "무선 이어폰 (12/24)"처럼 실제로 어디까지 갔는지 띄운다.
+    const poll = setInterval(() => {
+      void fetch("/api/toss-shop/jarvis/activity")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          const a = (j as { activity?: { label: string; detail?: string } } | null)?.activity;
+          if (a) setActivity(a);
+        })
+        .catch(() => {});
+    }, 1500);
+
     try {
       const res = await fetch("/api/toss-shop/jarvis/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: messages.slice(-8) }),
       });
-      const json = (await res.json()) as { reply?: string; did?: string };
-      setMessages([...next, { role: "assistant", content: json.reply ?? "응답이 비었습니다." }]);
-      // 실제로 뭔가 실행된 경우 화면 숫자도 같이 갱신한다
+      const json = (await res.json()) as { reply?: string; steps?: string[]; did?: string };
+      setMessages([
+        ...next,
+        { role: "assistant", content: json.reply ?? "응답이 비었습니다.", steps: json.steps },
+      ]);
+      // 실제로 뭔가 실행됐으면 화면 숫자도 같이 갱신한다
       if (json.did && json.did !== "talk") void fetchData();
     } catch {
       setMessages([...next, { role: "assistant", content: "연결이 끊겼습니다." }]);
     } finally {
+      clearInterval(poll);
+      setActivity(null);
       setSending(false);
     }
   }
@@ -122,8 +145,8 @@ export function JarvisConsole() {
             {initialLoading
               ? "확인 중…"
               : status?.running
-                ? "자비스가 24시간 돌고 있습니다"
-                : "자비스가 멈춰 있습니다"}
+                ? "자비스가 돌고 있습니다"
+                : "자비스가 쉬고 있습니다 — 말 걸어주세요"}
           </p>
         </div>
 
@@ -210,7 +233,7 @@ export function JarvisConsole() {
             <div className="text-sm leading-relaxed text-slate-500">
               <p className="font-semibold text-slate-700">자비스에게 말 걸어보세요</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {["상태 어때?", "지금 돌려", "발주 정보 줘", "반품지 주소 줘"].map((q) => (
+                {["지금 돌려", "더 찾아봐", "상태 어때?", "발주 정보 줘"].map((q) => (
                   <button
                     key={q}
                     type="button"
@@ -233,11 +256,24 @@ export function JarvisConsole() {
               }`}
             >
               {m.content}
+              {m.role === "assistant" && m.steps && m.steps.length > 0 && (
+                <ul className="mt-2 space-y-0.5 border-t border-slate-200 pt-2 text-xs text-slate-500">
+                  {m.steps.map((st, si) => (
+                    <li key={si}>✓ {st}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
           {sending && (
-            <div className="mr-auto rounded-2xl bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500">
-              …
+            <div className="mr-auto max-w-[92%] rounded-2xl bg-slate-100 px-3.5 py-2.5 text-sm text-slate-600">
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-violet-500" />
+                <span className="font-medium">{activity?.label ?? "생각하는 중"}…</span>
+              </span>
+              {activity?.detail && (
+                <p className="mt-1 text-xs text-slate-500">{activity.detail}</p>
+              )}
             </div>
           )}
           <div ref={chatEndRef} />
