@@ -4311,3 +4311,36 @@ test("지시: 운영·반품지등록을 다른 행동으로 오인하지 않는
   assert.equal(parseExtraAction("반품지 등록해줘")?.name, "register_returns");
   assert.equal(parseExtraAction("확인했어")?.name, "ack_alerts");
 });
+
+test("반품지: 우편번호가 원문에 있으면 주소와 함께 잡는다", async () => {
+  const { readReturnLocation } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  const a = readReturnLocation("06234 서울 강남구 테헤란로 123, 5층 501호");
+  assert.equal(a.zipCode, "06234");
+  assert.equal(a.address, "서울 강남구 테헤란로 123");
+  assert.equal(a.detailAddress, "5층 501호");
+
+  assert.equal(readReturnLocation("(13529) 경기 성남시 분당구 판교로 255, 2동").zipCode, "13529");
+
+  // 우편번호가 없으면 인정하지 않는다 — 지어내면 반품이 다른 동네로 간다
+  assert.equal(readReturnLocation("서울 강남구 테헤란로 123"), null);
+  // 주소 없이 숫자만 있는 건 반품지가 아니다
+  assert.equal(readReturnLocation("06234"), null);
+  // 송장번호를 반품지로 오인하면 안 된다
+  assert.equal(readReturnLocation("1234567890 CJ대한통운"), null);
+});
+
+test("반품지: 우편번호 붙은 주소를 공급처 안내에서 뽑아낸다", async () => {
+  const { __readAddressForTest } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+  // 토스 반품지 등록은 우편번호가 필수다. 여기서 안 잡으면 자동 등록이
+  // 마지막 한 칸에서 전부 거절된다.
+  assert.ok(__readAddressForTest("반품주소: (06234) 서울 강남구 테헤란로 123, 5층").includes("06234"));
+  assert.ok(__readAddressForTest("반품지 06234 서울 강남구 테헤란로 123").includes("06234"));
+  // 없으면 주소만 — 없는 걸 만들어내지 않는다
+  assert.equal(__readAddressForTest("서울 강남구 테헤란로 123"), "서울 강남구 테헤란로 123");
+  // 주소가 아예 없으면 null
+  assert.equal(__readAddressForTest("서울 당일배송 가능합니다"), null);
+});

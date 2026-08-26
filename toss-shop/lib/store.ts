@@ -1923,6 +1923,8 @@ export async function autoRegisterReturnLocations(merchantId: string): Promise<{
   registered: number;
   failed: number;
   remaining: number;
+  /** 우편번호가 없어 제가 못 넣은 것 — 이건 사장님 도움이 필요한 유일한 경우 */
+  blockedNoZip: number;
   errors: string[];
   configured: boolean;
 }> {
@@ -1932,7 +1934,7 @@ export async function autoRegisterReturnLocations(merchantId: string): Promise<{
   const data = merchantData(store, merchantId);
   const pending = data.pendingReturnAddresses ?? [];
   if (pending.length === 0) {
-    return { registered: 0, failed: 0, remaining: 0, errors: [], configured: true };
+    return { registered: 0, failed: 0, remaining: 0, blockedNoZip: 0, errors: [], configured: true };
   }
 
   const config = await resolveApiConfig(
@@ -1945,7 +1947,10 @@ export async function autoRegisterReturnLocations(merchantId: string): Promise<{
     account?.email,
   );
   if (!config) {
-    return { registered: 0, failed: 0, remaining: pending.length, errors: [], configured: false };
+    return {
+      registered: 0, failed: 0, remaining: pending.length,
+      blockedNoZip: 0, errors: [], configured: false,
+    };
   }
 
   const { createReturnLocation } = await import("./api/return-location-create");
@@ -1957,11 +1962,15 @@ export async function autoRegisterReturnLocations(merchantId: string): Promise<{
 
   const errors: string[] = [];
   const doneKeys = new Set<string>();
+  let blockedNoZip = 0;
   for (const p of target) {
     const parts = splitKoreanAddress(p.address);
     if (!parts.zipCode) {
-      // 우편번호가 없으면 등록이 거절된다. 지어내면 반품이 엉뚱한 데로 간다.
-      errors.push(`${p.supplierNick ?? p.supplierId}: 우편번호를 못 읽음`);
+      // 우편번호가 없으면 등록이 거절된다. 지어내면 반품이 엉뚱한 데로 간다 —
+      // 그건 상품값을 통째로 잃는 일이고 되돌릴 방법이 없다. 그래서 이 건은
+      // 사장님께 넘긴다. 자동화가 못 하는 유일한 지점이므로 숨기지 않는다.
+      blockedNoZip += 1;
+      errors.push(`${p.supplierNick ?? p.supplierId}: 공급처 안내에 우편번호가 없음 — ${p.address}`);
       continue;
     }
     const res = await createReturnLocation(merchantId, config, {
@@ -1981,6 +1990,7 @@ export async function autoRegisterReturnLocations(merchantId: string): Promise<{
     registered: doneKeys.size,
     failed: target.length - doneKeys.size,
     remaining: remaining.length,
+    blockedNoZip,
     errors: errors.slice(0, 5),
     configured: true,
   };
@@ -2123,4 +2133,50 @@ function markHidden(data: MerchantData, productId: number, atIso: string): void 
     d.hiddenAt = atIso;
     d.updatedAt = atIso;
   }
+}
+
+
+/**
+ * 사장님이 직접 알려준 반품지를 등록한다.
+ *
+ * 자동 등록이 못 하는 유일한 경우가 **우편번호가 공급처 안내에 없는 것**이다.
+ * 우편번호는 지어낼 수 없다 — 틀리면 반품 택배가 다른 동네로 가고, 그건
+ * 상품값을 통째로 잃는 일이라 되돌릴 방법이 없다. 그래서 그때만 사장님께
+ * 물어보고, 받은 값으로 여기서 마무리한다.
+ */
+export async function addReturnLocationManually(
+  merchantId: string,
+  input: { zipCode: string; address: string; detailAddress: string },
+): Promise<{ ok: boolean; reason?: string; cleared: number }> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const data = merchantData(store, merchantId);
+
+  const config = await resolveApiConfig(
+    merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
+  if (!config) return { ok: false, reason: "토스 API 미연동", cleared: 0 };
+
+  const { createReturnLocation } = await import("./api/return-location-create");
+  const res = await createReturnLocation(merchantId, config, input);
+  if (!res.ok) return { ok: false, reason: res.reason, cleared: 0 };
+
+  // 이 주소를 기다리던 공급처는 대기 목록에서 뺀다 — 같은 건물이면 같은
+  // 반품지로 처리된다(층·호가 달라도 반품은 같은 곳으로 간다).
+  const { compareAddresses } = await import("./api/return-location-matcher");
+  const pending = data.pendingReturnAddresses ?? [];
+  // compareAddresses는 같으면 강도를, 다르면 null을 준다. null인 것만 남긴다.
+  const remaining = pending.filter((p) => compareAddresses(p.address, input.address) == null);
+  const cleared = pending.length - remaining.length;
+  data.pendingReturnAddresses = remaining;
+  await saveStore(store);
+
+  return { ok: true, cleared };
 }

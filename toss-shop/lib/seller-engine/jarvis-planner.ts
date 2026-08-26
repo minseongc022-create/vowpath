@@ -264,6 +264,9 @@ function toAction(
       if (!goalKrw) return null;
       return { name: "set_goal", goalKrw };
     }
+    // add_return_location은 일부러 LLM 도구 목록에 없다. 우편번호를 한 자리
+    // 잘못 읽으면 반품 택배가 다른 동네로 가고 되돌릴 수 없다 — 정규식이
+    // 판단해야 하는 영역이다.
     default:
       return null;
   }

@@ -31,10 +31,14 @@ export type JarvisActionName =
   /** 올린 상품 손보기 — 안 팔리면 가격 인하, 바닥에서도 안 팔리면 숨김 */
   | "operate"
   /** 대기 중인 공급처 반품지를 토스에 직접 등록 */
-  | "register_returns";
+  | "register_returns"
+  /** 사장님이 우편번호까지 알려준 반품지 하나를 등록 */
+  | "add_return_location";
 
 export type JarvisAction = {
   name: JarvisActionName;
+  /** add_return_location — 우편번호·주소·상세주소 */
+  returnLocation?: { zipCode: string; address: string; detailAddress: string };
   trackingNumber?: string;
   deliveryCompany?: string;
   alertPhone?: string;
@@ -109,6 +113,7 @@ export const ACTION_LABELS: Record<JarvisActionName, string> = {
   ack_alerts: "알림 끄는 중",
   operate: "안 팔리는 상품 손보는 중",
   register_returns: "반품지 등록하는 중",
+  add_return_location: "알려주신 반품지 넣는 중",
   talk: "생각하는 중",
 };
 
@@ -145,6 +150,12 @@ const RETURN_REG_PATTERNS =
 export function parseExtraAction(message: string): JarvisAction | null {
   const text = message.trim();
 
+  // 우편번호 + 한국 주소가 같이 오면 그건 "이 반품지 넣어줘"다.
+  // 자동 등록이 못 하는 유일한 경우(공급처 안내에 우편번호가 없는 것)를
+  // 사장님이 한 줄로 메꿔주는 경로라 다른 무엇보다 먼저 본다.
+  const loc = readReturnLocation(text);
+  if (loc) return { name: "add_return_location", returnLocation: loc };
+
   // 목표가 먼저다. "월 천만원 벌게 만들어"는 소싱 지시처럼 보이지만
   // 실제로 바뀌어야 하는 건 목표값이고, 소싱량은 거기서 역산된다.
   if (GOAL_PATTERNS.test(text)) {
@@ -160,4 +171,32 @@ export function parseExtraAction(message: string): JarvisAction | null {
     return { name: "discover", deep: /(싹\s*다|전부|구석구석|샅샅이|광범위|더\s*넓게)/.test(text) };
   }
   return null;
+}
+
+
+/** 한국 주소 — 반품지로 쓸 수 있는 최소 형태 */
+const KR_ADDRESS_IN_TEXT =
+  /((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)(?:특별시|광역시|특별자치시|특별자치도|도)?\s*[^\n]{2,60}?(?:로|길|동|가|읍|면|리)\s*[0-9][^\n]{0,60})/;
+
+/**
+ * "12345 서울 강남구 테헤란로 123, 5층" 같은 말에서 반품지를 읽는다.
+ *
+ * 우편번호가 **반드시** 있어야 인정한다. 없으면 등록이 거절될 뿐 아니라,
+ * 우편번호는 지어낼 수 없는 값이라(틀리면 반품 택배가 다른 동네로 간다)
+ * 반쪽짜리로 진행하면 안 된다.
+ */
+export function readReturnLocation(
+  text: string,
+): { zipCode: string; address: string; detailAddress: string } | null {
+  const zip = text.match(/(?:^|[\s(\[])(\d{5})(?=[\s)\]]|$)/);
+  if (!zip) return null;
+  const addr = text.match(KR_ADDRESS_IN_TEXT);
+  if (!addr?.[1]) return null;
+
+  const whole = addr[1].trim();
+  const comma = whole.indexOf(",");
+  const address = (comma > 0 ? whole.slice(0, comma) : whole).trim();
+  const detailAddress = comma > 0 ? whole.slice(comma + 1).trim() : "";
+
+  return { zipCode: zip[1], address, detailAddress };
 }

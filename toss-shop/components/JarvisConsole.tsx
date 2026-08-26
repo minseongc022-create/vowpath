@@ -216,8 +216,9 @@ export function JarvisConsole() {
         <section className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm font-bold text-amber-900">반품지 {backlog.count}곳 등록 대기</p>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            제가 토스에 직접 등록합니다. 10분마다 도는 사이클에서 자동으로 처리되고, 급하시면
-            아래에 「반품지 등록해줘」라고 하시면 지금 바로 넣겠습니다.
+            제가 토스에 직접 등록합니다 — 10분마다 도는 사이클에서 자동으로 처리돼요.
+            다만 공급처 안내에 우편번호가 없는 곳은 제가 못 넣습니다(지어내면 반품이 엉뚱한
+            데로 갑니다). 그런 건 아래 대화로 알려드릴 테니 우편번호만 보내주세요.
           </p>
         </section>
       )}

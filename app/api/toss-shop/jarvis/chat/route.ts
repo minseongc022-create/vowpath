@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
 import {
   ackOwnerTodos,
+  addReturnLocationManually,
   autoRegisterReturnLocations,
   confirmFulfillmentTracking,
   getJarvisChatContext,
@@ -350,10 +351,49 @@ async function executeAction(
         };
       }
       const lines = [`공급처 반품지 ${r.registered}곳을 토스에 등록했습니다.`];
-      if (r.remaining > 0) lines.push(`${r.remaining}곳 남았습니다 — 다음에 이어서 등록하겠습니다.`);
-      if (r.errors.length) lines.push("", "못 넣은 것:", ...r.errors.map((e) => `· ${e}`));
+      if (r.remaining > 0) lines.push(`${r.remaining}곳 남았습니다 — 다음 사이클에 이어서 넣겠습니다.`);
+      if (r.blockedNoZip > 0) {
+        // 자동화가 못 하는 유일한 지점이다. 숨기면 사장님은 다 된 줄 알고
+        // 기다리는데 그 공급처들은 영원히 안 풀린다.
+        lines.push(
+          "",
+          `${r.blockedNoZip}곳은 제가 못 넣습니다 — 공급처 안내에 우편번호가 없습니다.`,
+          "우편번호는 지어낼 수가 없어요. 틀리면 반품 택배가 다른 동네로 가고 그건 되돌릴 수 없습니다.",
+          "아래처럼 우편번호만 같이 보내주시면 제가 바로 넣겠습니다:",
+          "「06234 서울 강남구 테헤란로 123, 5층」",
+        );
+      }
+      if (r.errors.length) lines.push("", "자세히:", ...r.errors.map((e) => `· ${e}`));
       steps.push(`반품지 ${r.registered}곳 등록`);
       return { reply: lines.join("\n"), steps, did: "register_returns" };
+    }
+
+    // ── 사장님이 우편번호까지 알려준 반품지 ─────────────────────
+    case "add_return_location": {
+      const loc = action.returnLocation;
+      if (!loc) {
+        return {
+          reply: "주소를 못 읽었습니다. 「06234 서울 강남구 테헤란로 123, 5층」처럼 보내주세요.",
+          steps,
+          did: "add_return_location",
+        };
+      }
+      const r = await addReturnLocationManually(merchantId, loc);
+      if (!r.ok) {
+        return {
+          reply: `반품지를 못 넣었습니다 — ${r.reason}`,
+          steps,
+          did: "add_return_location",
+        };
+      }
+      const lines = [`반품지 등록했습니다 — ${loc.zipCode} ${loc.address} ${loc.detailAddress}`.trim()];
+      if (r.cleared > 0) {
+        lines.push(
+          `이 주소를 기다리던 공급처 ${r.cleared}곳이 풀렸습니다. 이제 그 상품들은 반품이 공급처로 바로 갑니다 (비용 0원).`,
+        );
+      }
+      steps.push("반품지 1곳 등록");
+      return { reply: lines.join("\n"), steps, did: "add_return_location" };
     }
 
     // ── 알림 ────────────────────────────────────────────────────
