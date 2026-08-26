@@ -4031,45 +4031,41 @@ test("대화: 문자 테스트를 상태 질문으로 잘못 읽지 않는다", 
 
 // ── 도매꾹 직접 발굴 ──────────────────────────────────────────
 
-test("발굴: 시세를 원가에서 지어내지 않는다", async () => {
-  const { buildCatalogFromDiscovery } = await import(
+test("발굴: 판매가는 원가에서 계산한 제안이고, 배송비를 빼먹지 않는다", async () => {
+  const { buildCatalogFromDiscovery, proposeRetailKrw } = await import(
     "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
   );
-  const supply = (no, price) => ({
+  const supply = (no, price, over = {}) => ({
     platform: "domeme", itemNo: no, title: `테스트상품${no}`,
     unitPriceKrw: price, shippingFeeKrw: 0, moq: 1,
-    url: "https://x", sellerId: "s1", sellerNick: "공급사", freeShipping: true, source: "live",
+    url: "https://x", sellerId: "s1", sellerNick: "공급사",
+    freeShipping: true, source: "live", ...over,
   });
+  const mk = (sup) => [{ keyword: "양말", category: "fashion", domeListings: 5, supply: sup }];
 
-  const products = buildCatalogFromDiscovery(
-    [{ keyword: "양말", category: "fashion", anchorPriceKrw: 9000, anchorSamples: 5, supply: [supply(1, 3000)] }],
+  const p = buildCatalogFromDiscovery(mk([supply(1, 5000)]), "2026-08-05T00:00:00Z");
+  assert.equal(p.length, 1);
+  // 수수료와 목표 마진을 얹은 값이어야 한다 — 원가보다 확실히 커야
+  assert.ok(p[0].priceKrw > 5000 * 1.5, `제안가 ${p[0].priceKrw}`);
+  assert.equal(p[0].priceKrw, proposeRetailKrw(5000));
+
+  // 배송비를 원가에 포함한다. 무료배송으로 걸어놓고 이걸 빼먹으면
+  // 팔수록 손해가 나는데 등록한 뒤에야 드러난다.
+  const withShip = buildCatalogFromDiscovery(
+    mk([supply(2, 5000, { freeShipping: false, shippingFeeKrw: 3000 })]),
     "2026-08-05T00:00:00Z",
   );
-  assert.equal(products.length, 1);
-  // 소매가는 도매꾹에서 관측한 시세여야 한다. 원가×마진이면 마진 계산이
-  // 동어반복이 되어 아무것도 검증하지 못한다.
-  assert.equal(products[0].priceKrw, 9000);
-  // 모르는 값은 0으로 둔다 — 그럴듯한 수를 넣으면 경쟁 분석이 가짜 위에서 돈다
-  assert.equal(products[0].reviewCount, 0);
-  // 데모 시드(p001)와 형태가 달라야 실데이터로 인식된다
-  assert.ok(!/^p\d{3}$/.test(products[0].id));
+  assert.equal(withShip[0].priceKrw, proposeRetailKrw(8000));
 
-  // 시세가 원가에 붙어 있으면(마진 없음) 버린다
-  assert.equal(
-    buildCatalogFromDiscovery(
-      [{ keyword: "양말", category: "fashion", anchorPriceKrw: 3100, anchorSamples: 5, supply: [supply(2, 3000)] }],
-      "2026-08-05T00:00:00Z",
-    ).length,
-    0,
-  );
-  // 시세가 터무니없이 벌어져 있으면 다른 물건을 비교한 것이다
-  assert.equal(
-    buildCatalogFromDiscovery(
-      [{ keyword: "양말", category: "fashion", anchorPriceKrw: 90000, anchorSamples: 5, supply: [supply(3, 3000)] }],
-      "2026-08-05T00:00:00Z",
-    ).length,
-    0,
-  );
+  // 모르는 값은 0으로 둔다 — 그럴듯한 수를 넣으면 경쟁 분석이 가짜 위에서 돈다
+  assert.equal(p[0].reviewCount, 0);
+  // 데모 시드(p001)와 형태가 달라야 실데이터로 인식된다
+  assert.ok(!/^p\d{3}$/.test(p[0].id));
+
+  // 너무 싼 물건은 배송비가 마진을 통째로 먹는다
+  assert.equal(buildCatalogFromDiscovery(mk([supply(3, 500)]), "2026-08-05T00:00:00Z").length, 0);
+  // 너무 비싼 물건은 반품 한 건의 타격이 크다
+  assert.equal(buildCatalogFromDiscovery(mk([supply(4, 500000)]), "2026-08-05T00:00:00Z").length, 0);
 });
 
 test("발굴: 키워드를 앞에서부터만 훑지 않는다", async () => {

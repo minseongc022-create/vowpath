@@ -1798,7 +1798,7 @@ export async function runDiscoveryForMerchant(
   configured: boolean;
   apiError?: { code: string; message: string };
   itemFields?: string[];
-  priceMultiples?: number[];
+  costSamples?: number[];
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -1866,7 +1866,7 @@ export async function runDiscoveryForMerchant(
     configured: true,
     apiError: result.apiError,
     itemFields: result.itemFields,
-    priceMultiples: result.priceMultiples,
+    costSamples: result.costSamples,
   };
 }
 

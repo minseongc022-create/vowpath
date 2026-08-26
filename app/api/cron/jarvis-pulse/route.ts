@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     apiError?: { code: string; message: string };
     configured?: boolean;
     itemFields?: string[];
-    priceMultiples?: number[];
+    costSamples?: number[];
     error?: string;
   }> = [];
 
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
         apiError: diag.apiError,
         configured: diag.configured,
         itemFields: diag.itemFields,
-        priceMultiples: diag.priceMultiples,
+        costSamples: diag.costSamples,
       });
     } catch (e) {
       results.push({

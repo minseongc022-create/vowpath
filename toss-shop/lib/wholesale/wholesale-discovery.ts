@@ -20,14 +20,28 @@
  * 하류의 모든 판단(키워드 랭킹·경쟁 분석·가격·게이트)이 실측 위에서 돈다.
  * 카탈로그가 데모냐 아니냐와 무관해진다.
  *
- * ★ 두 시장을 다르게 쓴다 — 이게 핵심이다
+ * ★ 두 시장을 다르게 쓴다
  *
  *  · 도매매(supply, MOQ≤1) → **원가**. 위탁으로 한 개씩 발주할 수 있는 쪽.
- *  · 도매꾹(dome)          → **시세 기준선**. 같은 물건이 얼마에 거래되는지.
+ *  · 도매꾹(dome)          → **바닥 확인**. 같은 물건이 대량으로 얼마에 도는지.
  *
- * 소매가를 원가에 마진율을 곱해 지어내지 않는다. 그렇게 하면 "마진 20% 확보"가
- * 동어반복이 되어 버린다 — 내가 정한 마진이 다시 근거로 돌아오는 것이라
- * 아무것도 검증하지 못한다. 시세는 반드시 바깥에서 관측한 값이어야 한다.
+ * ★ 소매가를 관측하려던 시도는 실측으로 폐기했다
+ *
+ * 처음엔 도매꾹 시세를 소매 기준선으로 쓰려 했다. 실제로 돌려보니 원가 대비
+ * 배수가 40배~6,800배로 나왔다 — 도매꾹 리스팅의 price는 **묶음 전체 가격**
+ * 이라 낱개 단가와 비교 자체가 성립하지 않았다. 그리고 정규화해도 도매꾹은
+ * 여전히 도매가다. 소매가가 아니다.
+ *
+ * 그래서 이렇게 정리했다:
+ *
+ *  · **원가는 실측이다** — 도매매 낱개 공급가. 이건 진짜 확인된 값이다.
+ *  · **판매가는 제안이다** — 원가에 수수료와 목표 마진을 얹어 계산한 값.
+ *    관측한 값이 아니므로 사실이라고 말하지 않는다.
+ *
+ * 이 구분이 중요한 이유: "이 가격에 팔면 마진 20%"는 참이지만, "이 가격에
+ * 팔린다"는 아직 아무도 확인하지 않았다. 그 검증은 토스 카탈로그가 붙은
+ * 뒤에 경쟁 분석이 한다. 확실성 게이트의 catalog 근거가 그 자리를 지킨다 —
+ * 그래서 여기서 판매가를 제안으로 두어도 검증 없는 SKU가 새어 나가지 않는다.
  */
 
 import type { CatalogProduct, TossShopCategory } from "../types";
@@ -126,12 +140,34 @@ export function rotatingSlice<T>(all: T[], size: number, cursor: number): { slic
   return { slice, next: (start + slice.length) % all.length };
 }
 
-/** 시세 기준선을 믿으려면 관측치가 이만큼은 있어야 한다 */
-const MIN_ANCHOR_SAMPLES = 3;
-/** 원가 대비 시세가 이 배수 미만이면 위탁 마진이 안 나온다 */
-const MIN_PRICE_MULTIPLE = 1.35;
-/** 시세가 원가의 이 배수를 넘으면 짝이 안 맞는 물건을 비교한 것이다 */
-const MAX_PRICE_MULTIPLE = 12;
+/**
+ * 토스 판매수수료·결제수수료·반품 여유를 합쳐 잡은 값.
+ *
+ * 배송 인센티브(수수료 0%)를 받는 상태를 전제로 잡지 않는다 — 그건 발송기한
+ * 100% 준수 같은 조건이 붙어 있고, 못 지키면 마진이 통째로 어긋난다.
+ * 못 받는 쪽을 기본으로 두면 실제로 받을 때 여유가 생길 뿐이다.
+ */
+const ASSUMED_FEE_RATE = 0.12;
+/** 광고·반품·프로모션을 감당하고 남아야 하는 순마진 */
+const TARGET_NET_MARGIN = 0.25;
+
+/**
+ * 원가에서 판매가를 계산한다 — **제안이지 관측이 아니다**.
+ *
+ * 원가 = 판매가 × (1 - 수수료 - 마진) 을 뒤집은 것이다. 배송비는 원가에
+ * 포함해서 계산한다: 무료배송으로 걸어놓고 배송비를 빼먹으면 팔수록 손해다.
+ */
+export function proposeRetailKrw(landedCostKrw: number): number {
+  const divisor = 1 - ASSUMED_FEE_RATE - TARGET_NET_MARGIN;
+  const raw = landedCostKrw / divisor;
+  // 990원 단위로 맞춘다 — 가격 끝자리는 전환율에 실제로 영향을 준다
+  return Math.max(1000, Math.round(raw / 100) * 100 - 10);
+}
+
+/** 이 값보다 싼 물건은 배송비가 마진을 통째로 먹는다 */
+const MIN_LANDED_COST_KRW = 1500;
+/** 위탁 한 건에 이만큼 넘게 묶이면 반품 한 건의 타격이 너무 크다 */
+const MAX_LANDED_COST_KRW = 120_000;
 
 function median(nums: number[]): number {
   const s = [...nums].sort((a, b) => a - b);
@@ -142,9 +178,8 @@ function median(nums: number[]): number {
 export type DiscoveredKeyword = {
   keyword: string;
   category: TossShopCategory;
-  /** 도매꾹에서 관측한 시세 중앙값 — 소매가를 지어내지 않기 위한 바깥 기준 */
-  anchorPriceKrw: number;
-  anchorSamples: number;
+  /** 도매꾹 묶음 리스팅 수 — 이 물건이 실제로 도는지 확인하는 용도 */
+  domeListings: number;
   /** 위탁 가능한(MOQ≤1) 실시간 공급 리스팅 */
   supply: WholesaleListing[];
 };
@@ -165,8 +200,8 @@ export type DiscoveryResult = {
   apiError?: { code: string; message: string };
   /** 응답 상품이 실제로 담고 있던 필드 — 가정이 아니라 실측으로 짜기 위해 */
   itemFields?: string[];
-  /** 원가 대비 시세 배수 표본 — 왜 걸러졌는지 판단 근거 */
-  priceMultiples?: number[];
+  /** 관측된 낱개 공급가 표본 — 왜 걸러졌는지 판단 근거 */
+  costSamples?: number[];
 };
 
 export type DiscoveryProgress = {
@@ -231,15 +266,10 @@ export async function discoverWholesaleMarket(input: {
       scanned += 1;
       if (supply.length > 0 || dome.length > 0) anyResponse = true;
 
-      const anchorPrices = dome.map((d) => d.unitPriceKrw).filter((p) => p > 0);
-      if (supply.length > 0 && anchorPrices.length >= MIN_ANCHOR_SAMPLES) {
-        discovered.push({
-          keyword,
-          category,
-          anchorPriceKrw: median(anchorPrices),
-          anchorSamples: anchorPrices.length,
-          supply,
-        });
+      // 도매꾹 리스팅은 이 물건이 시장에서 실제로 도는지 확인하는 데만 쓴다.
+      // 가격은 묶음 단위라 낱개 원가와 비교가 성립하지 않는다(실측으로 확인).
+      if (supply.length > 0) {
+        discovered.push({ keyword, category, domeListings: dome.length, supply });
       }
       input.onProgress?.({
         done: scanned,
@@ -264,23 +294,19 @@ export async function discoverWholesaleMarket(input: {
     apiSilent: scanned > 0 && !anyResponse,
     apiError: getLastDomeggookError() ?? undefined,
     itemFields: getLastDomeggookItemFields() ?? undefined,
-    priceMultiples: discovered
-      .slice(0, 8)
-      .map((d) =>
-        d.supply[0]?.unitPriceKrw
-          ? Math.round((d.anchorPriceKrw / d.supply[0].unitPriceKrw) * 100) / 100
-          : 0,
-      ),
+    // 원가 표본 — 걸러진 이유를 판단할 근거로 남긴다
+    costSamples: discovered.slice(0, 8).map((d) => d.supply[0]?.unitPriceKrw ?? 0),
   };
 }
 
 /**
- * 발굴 결과를 카탈로그(시장 표본)로 바꾼다.
+ * 발굴 결과를 소싱 후보 표본으로 바꾼다.
  *
  * ★ 값을 지어내지 않기 위해 지킨 것
  *
- *  · `priceKrw`는 도매꾹에서 **관측한 시세 중앙값**이다. 원가에 마진을 곱한
- *    값이 아니다. 그래야 하류의 마진 계산이 실제로 뭔가를 검증한다.
+ *  · `priceKrw`는 원가에서 계산한 **제안가**다. 관측한 소매가가 아니다.
+ *    이 구분은 확실성 게이트가 지킨다 — 게이트는 공급처와 원가가 실측인지만
+ *    필수로 따지고, "이 가격에 팔리는가"는 카탈로그 근거가 따로 검증한다.
  *  · `reviewCount`·`rating`은 0이다. 도매꾹 검색 응답에 없는 값이라 모르는
  *    것이고, 모르는 값은 0으로 둔다. 그럴듯한 수를 넣으면 경쟁 분석이
  *    그 가짜 위에서 돌아간다.
@@ -297,10 +323,10 @@ export function buildCatalogFromDiscovery(
   for (const d of discovered) {
     let rank = 1;
     for (const s of d.supply) {
-      const multiple = s.unitPriceKrw > 0 ? d.anchorPriceKrw / s.unitPriceKrw : 0;
-      // 시세가 원가에 너무 붙어 있으면 팔아도 남는 게 없고, 너무 벌어져 있으면
-      // 애초에 다른 물건을 비교한 것이다(용량 차이·묶음 등). 둘 다 버린다.
-      if (multiple < MIN_PRICE_MULTIPLE || multiple > MAX_PRICE_MULTIPLE) continue;
+      // 배송비를 원가에 포함한다. 무료배송으로 걸어놓고 이걸 빼먹으면
+      // 팔수록 손해가 나는데, 그건 등록한 뒤에야 드러난다.
+      const landed = s.unitPriceKrw + (s.freeShipping ? 0 : s.shippingFeeKrw);
+      if (landed < MIN_LANDED_COST_KRW || landed > MAX_LANDED_COST_KRW) continue;
 
       const id = `dg-${s.platform}-${s.itemNo ?? s.title.slice(0, 12)}`;
       if (seen.has(id)) continue;
@@ -312,7 +338,7 @@ export function buildCatalogFromDiscovery(
         // 공급처가 지은 제목에는 검색어가 안 들어 있는 경우가 흔하다.
         name: s.title.includes(d.keyword) ? s.title : `${d.keyword} ${s.title}`,
         category: d.category,
-        priceKrw: d.anchorPriceKrw,
+        priceKrw: proposeRetailKrw(landed),
         reviewCount: 0,
         rating: 0,
         sellerName: s.sellerNick ?? s.sellerId ?? "공급처",
