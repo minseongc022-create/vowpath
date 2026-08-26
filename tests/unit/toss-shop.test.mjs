@@ -3,6 +3,53 @@ import assert from "node:assert/strict";
 import { parseSettlementCsv } from "../../toss-shop/lib/settlement-csv.ts";
 import { mapApiProductsToCatalog, reconcileImportedSettlements } from "../../toss-shop/lib/api/mappers.ts";
 
+
+/**
+ * 토스 상품 등록이 **필수로** 부르는 부속 조회를 흉내낸다.
+ *
+ * 등록 payload에는 카테고리마다 다른 필수 항목이 있다 — 구매옵션
+ * (constraint-templates)과 정보제공 고시(notices). 실제로 이걸 안 채워서
+ * 토스가 `{"stocks":"필수 값이 누락되었습니다."}`로 거절했다.
+ * 그 뒤로 등록 경로가 두 엔드포인트를 더 부르므로, mock도 같이 답해야 한다.
+ *
+ * 처리한 요청이면 Response를, 아니면 null을 돌려준다.
+ */
+function mockTossRequirements(href) {
+  if (href.includes("constraint-templates")) {
+    return new Response(
+      JSON.stringify({
+        resultType: "SUCCESS",
+        success: { categorySalesOptions: [], categorySearchOptions: [] },
+      }),
+      { status: 200 },
+    );
+  }
+  if (href.includes("notices/category-codes")) {
+    return new Response(
+      JSON.stringify({
+        resultType: "SUCCESS",
+        success: {
+          items: [
+            { categoryCode: "COSMETIC", firstCategoryName: "화장품" },
+            { categoryCode: "ETC_GOODS", firstCategoryName: "기타 재화" },
+          ],
+        },
+      }),
+      { status: 200 },
+    );
+  }
+  if (href.includes("/notices")) {
+    return new Response(
+      JSON.stringify({
+        resultType: "SUCCESS",
+        success: { items: [{ id: 27, title: "1. 제품 소재" }, { id: 29, title: "2. 제조자" }] },
+      }),
+      { status: 200 },
+    );
+  }
+  return null;
+}
+
 test("parseSettlementCsv parses English headers", () => {
   const csv = `order_id,order_date,product_name,gross_krw,platform_fee_krw,shipping_fee_krw
 TS-001,2026-08-15,테스트상품,10000,800,0`;
@@ -89,6 +136,8 @@ test("E2E: consignment pick -> listing draft -> execute (mock Toss API, no real 
   });
   globalThis.fetch = async (url) => {
     const href = String(url);
+    const reqMock = mockTossRequirements(href);
+    if (reqMock) return reqMock;
     if (href.includes("oauth2")) {
       return new Response(JSON.stringify({ access_token: "mock_token", expires_in: 3600 }), {
         status: 200,
@@ -1796,6 +1845,8 @@ test("publish: 카테고리 매핑으로 상품 종류에 맞는 카테고리 ID
   let sentCategoryId;
   globalThis.fetch = async (url, opts) => {
     const href = String(url);
+    const reqMock = mockTossRequirements(href);
+    if (reqMock) return reqMock;
     if (href.includes("oauth2")) {
       return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
     }
@@ -1848,6 +1899,8 @@ test("category lookup: id/name/isLeaf 후보 필드를 방어적으로 판독한
 
   globalThis.fetch = async (url) => {
     const href = String(url);
+    const reqMock = mockTossRequirements(href);
+    if (reqMock) return reqMock;
     if (href.includes("oauth2")) {
       return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
     }
@@ -2378,6 +2431,8 @@ function mockCategoryTreeFetch({ topLevelWinner = "beauty" } = {}) {
 
   return async (url, opts) => {
     const href = String(url);
+    const reqMock = mockTossRequirements(href);
+    if (reqMock) return reqMock;
     if (href.includes("oauth2")) {
       return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
     }
@@ -2453,6 +2508,8 @@ test("category auto-match: 모델이 트리에 없는 id를 답하면 지어낸 
 
   globalThis.fetch = async (url, opts) => {
     const href = String(url);
+    const reqMock = mockTossRequirements(href);
+    if (reqMock) return reqMock;
     if (href.includes("oauth2")) {
       return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
     }
@@ -4816,4 +4873,97 @@ test("카테고리: AI 없이도 실제 트리에서 고른다 — 단, 지어�
     category: "health", options: [{ id: 9, name: "식품", isLeaf: false }], isRoot: true,
   });
   assert.equal(noRoot.node, undefined, "맞는 최상위가 없으면 고르지 않아야 한다");
+});
+
+test("등록 payload: 토스가 필수로 요구하는 항목이 전부 들어간다", async () => {
+  // ★ 실측으로 드러난 결함 — 이래서 단 한 건도 등록된 적이 없었다
+  //
+  // 파이프라인을 끝까지 고쳐 마침내 토스 등록 API를 실제로 불렀더니:
+  //   {"stocks":"필수 값이 누락되었습니다."}
+  //
+  // 공식 문서와 대조하니 빠진 게 하나가 아니라 여섯이었다.
+  // 우리 payload가 스펙의 필수 항목을 다 채우는지 여기서 고정한다.
+  const { buildTossCreatePayload } = await import(
+    "../../toss-shop/lib/api/create-product.ts"
+  );
+
+  const draft = {
+    pickMode: "consignment",
+    keyword: "주방 집게",
+    detailPage: { thumbnailUrl: "https://img.example/1.jpg" },
+    listingPayload: {
+      name: "실리콘 주방 집게 3종",
+      brandName: "에피로드",
+      salePrice: 12900,
+      originPrice: 15900,
+      searchKeywords: ["주방 집게"],
+      description: "설명",
+      category: "home",
+      deliveryFeeType: "FREE",
+      supplierPolicy: {
+        returnShippingKrw: 3500,
+        exchangeShippingKrw: 7000,
+        dispatchDays: 2,
+        remoteAreaSurchargeKrw: 0,
+        measured: { returnShipping: true, exchangeShipping: true, dispatch: true, remoteSurcharge: false },
+      },
+    },
+  };
+
+  const body = buildTossCreatePayload(draft, 14835, 111, "https://img.example/1.jpg", {
+    stockOptions: [{ groupName: "색상", valueName: "단일" }],
+    notice: { categoryCode: "ETC_GOODS", items: [{ id: 27, content: "실리콘" }] },
+  });
+
+  // stocks — 옵션이 실제로 실려야 한다 (이게 빠져서 거절당했다)
+  assert.equal(body.stocks.length, 1);
+  assert.deepEqual(body.stocks[0].options, [{ groupName: "색상", valueName: "단일" }]);
+  assert.equal(body.stocks[0].isMainPrice, true, "stocks 중 최소 1개는 대표가격이어야");
+
+  // exchangeReturnPolicy — 네 항목 전부 필수
+  const er = body.exchangeReturnPolicy;
+  assert.equal(er.exchangeRefundLocationId, 111);
+  assert.equal(er.refundOneWayDeliveryFee, 3500, "공급처에서 읽은 실제 반품비를 써야");
+  assert.equal(er.exchangeRoundTripDeliveryFee, 7000, "공급처에서 읽은 실제 교환비를 써야");
+  assert.ok(er.applicationMethodDescription.length > 0);
+  assert.ok(er.applicationMethodDescription.length <= 500, "500자 이내여야");
+  assert.ok(er.applicationTermDescription.length > 0);
+  assert.ok(er.applicationTermDescription.length <= 500, "500자 이내여야");
+
+  // notice — 전자상거래법상 의무 표시사항
+  assert.equal(body.notice.categoryCode, "ETC_GOODS");
+  assert.deepEqual(body.notice.items, [{ id: 27, content: "실리콘" }]);
+});
+
+test("등록 필수 옵션: 치수처럼 모르는 값을 요구하면 지어내지 않고 막는다", async () => {
+  // 필수 옵션이 "가로길이(cm)"처럼 숫자+단위를 요구하는 경우가 있다.
+  // 도매 검색 응답에는 그런 치수가 없다. 그럴듯한 숫자를 넣어 올리면
+  // 실물과 달라 반품·분쟁으로 돌아온다 — 등록을 막는 게 맞다.
+  const { buildStockOptions } = await import(
+    "../../toss-shop/lib/api/product-requirements.ts"
+  );
+
+  // isOption === false 가 "필수"다 (토스 문서 표기)
+  const blocked = buildStockOptions([
+    { key: "가로길이", isOption: false, valueCandidates: [], unitValues: ["cm", "mm"] },
+  ]);
+  assert.ok("blocked" in blocked, "모르는 치수를 요구하면 막아야 한다");
+
+  // 보기가 정해져 있으면 반드시 그중에서 고른다 — 없는 값을 넣으면 거절당한다
+  const fromCandidates = buildStockOptions([
+    { key: "색상", isOption: false, valueCandidates: ["검정", "흰색"], unitValues: null },
+  ]);
+  assert.deepEqual(fromCandidates.options, [{ groupName: "색상", valueName: "검정" }]);
+
+  // 자유 입력이면 무난한 값을 쓴다
+  const free = buildStockOptions([
+    { key: "종류", isOption: false, valueCandidates: [], unitValues: null },
+  ]);
+  assert.deepEqual(free.options, [{ groupName: "종류", valueName: "단일" }]);
+
+  // 선택 옵션(isOption === true)은 채우지 않는다
+  const optional = buildStockOptions([
+    { key: "무늬", isOption: true, valueCandidates: ["줄무늬"], unitValues: null },
+  ]);
+  assert.deepEqual(optional.options, []);
 });

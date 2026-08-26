@@ -9,6 +9,14 @@ import {
 import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./category-resolver";
 import { autoMatchCategoryId } from "./category-auto-match";
 import { CATEGORY_RESOLVER_VERSION } from "./category-resolver";
+import {
+  buildNoticeItems,
+  buildStockOptions,
+  fetchCategorySalesOptions,
+  fetchNoticeCategoryCodes,
+  fetchNoticeItems,
+  pickNoticeCategoryCode,
+} from "./product-requirements";
 
 /** Minimal Toss FEP product create body — categoryId required at publish time. */
 export type TossCreateProductBody = {
@@ -16,6 +24,8 @@ export type TossCreateProductBody = {
   brandName: string;
   categoryId: number;
   stocks: Array<{
+    /** 필수 — 구매옵션. 카테고리가 정한 필수 옵션을 채워야 한다 */
+    options: Array<{ groupName: string; valueName: string }>;
     remainingCount: number;
     isHide: boolean;
     isMainPrice: boolean;
@@ -39,6 +49,19 @@ export type TossCreateProductBody = {
   };
   exchangeReturnPolicy: {
     exchangeRefundLocationId: number;
+    /** 필수 — 반품 편도 배송비 */
+    refundOneWayDeliveryFee: number;
+    /** 필수 — 교환 왕복 배송비 */
+    exchangeRoundTripDeliveryFee: number;
+    /** 필수 — 교환·환불 방법 설명 (500자 이내) */
+    applicationMethodDescription: string;
+    /** 필수 — 교환·환불 신청 가능 기간 설명 (500자 이내) */
+    applicationTermDescription: string;
+  };
+  /** 필수 — 전자상거래법상 정보제공 고시 */
+  notice: {
+    categoryCode: string;
+    items: Array<{ id: number; content: string }>;
   };
 };
 
@@ -56,6 +79,14 @@ export function buildTossCreatePayload(
   categoryId: number,
   exchangeReturnLocationId: number,
   imageUrl?: string,
+  /**
+   * 카테고리마다 다른 필수 부속 정보. 등록 직전에 토스에서 조회해 넘긴다 —
+   * 상수로 박을 수 없는 값들이라 여기로 주입받는다.
+   */
+  requirements?: {
+    stockOptions: Array<{ groupName: string; valueName: string }>;
+    notice: { categoryCode: string; items: Array<{ id: number; content: string }> };
+  },
 ): TossCreateProductBody {
   const p = draft.listingPayload;
   const deliveryFree = p.deliveryFeeType === "FREE";
@@ -75,6 +106,7 @@ export function buildTossCreatePayload(
     categoryId,
     stocks: [
       {
+        options: requirements?.stockOptions ?? [],
         remainingCount: 99,
         isHide: false,
         isMainPrice: true,
@@ -107,7 +139,18 @@ export function buildTossCreatePayload(
     },
     exchangeReturnPolicy: {
       exchangeRefundLocationId: exchangeReturnLocationId,
+      // 공급처 안내에서 읽어낸 실제 금액을 쓴다. 못 읽었으면 판독기의
+      // 보수적 기본값이 들어와 있다 — 과소 계상은 매 건 셀러 손실이다.
+      refundOneWayDeliveryFee: p.supplierPolicy?.returnShippingKrw ?? 3000,
+      exchangeRoundTripDeliveryFee: p.supplierPolicy?.exchangeShippingKrw ?? 6000,
+      applicationMethodDescription:
+        "판매자 고객센터로 교환·반품을 신청해 주세요. 상품 수령 후 7일 이내 신청 가능하며, " +
+        "단순 변심의 경우 왕복 배송비가 부과됩니다. 상품 하자·오배송은 판매자가 부담합니다.",
+      applicationTermDescription:
+        "상품 수령일로부터 7일 이내 (전자상거래법 제17조). 상품 하자 또는 표시·광고와 다른 경우 " +
+        "수령일로부터 3개월 이내, 그 사실을 안 날로부터 30일 이내 신청 가능합니다.",
     },
+    notice: requirements?.notice ?? { categoryCode: "", items: [] },
   };
 }
 
@@ -205,11 +248,75 @@ export async function publishListingToToss(input: {
     };
   }
 
+  // 카테고리가 정한 필수 부속 정보를 등록 직전에 조회한다.
+  //
+  // 이게 없어서 토스가 `{"stocks":"필수 값이 누락되었습니다."}`로 거절했다.
+  // 구매옵션과 정보제공 고시는 카테고리마다 항목이 달라 상수로 못 박는다.
+  let requirements:
+    | {
+        stockOptions: Array<{ groupName: string; valueName: string }>;
+        notice: { categoryCode: string; items: Array<{ id: number; content: string }> };
+      }
+    | undefined;
+  try {
+    const template = await fetchCategorySalesOptions(
+      input.merchantId,
+      input.config,
+      category.categoryId,
+    );
+    const built = buildStockOptions(template);
+    if ("blocked" in built) {
+      // 필수 옵션에 치수 같은 숫자를 요구하는데 우리가 모르는 경우다.
+      // 지어내면 반품·분쟁으로 돌아오므로 등록을 멈춘다.
+      return {
+        ok: false,
+        simulated: true,
+        returnLocation,
+        category,
+        error: built.blocked,
+      };
+    }
+
+    const codes = await fetchNoticeCategoryCodes(input.merchantId, input.config);
+    const noticeCode = pickNoticeCategoryCode(codes, payload.category);
+    if (!noticeCode) {
+      return {
+        ok: false,
+        simulated: true,
+        returnLocation,
+        category,
+        error:
+          "정보제공 고시 카테고리를 정하지 못했습니다 — 법정 의무 표시사항이라 " +
+          "임의로 넣지 않고 등록을 멈춥니다.",
+      };
+    }
+    const noticeItems = await fetchNoticeItems(input.merchantId, input.config, noticeCode);
+    requirements = {
+      stockOptions: built.options,
+      notice: {
+        categoryCode: noticeCode,
+        items: buildNoticeItems(noticeItems, {
+          productName: payload.name,
+          brandName: payload.brandName,
+        }),
+      },
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      simulated: true,
+      returnLocation,
+      category,
+      error: `등록 필수 정보 조회 실패 — ${e instanceof Error ? e.message : "알 수 없는 오류"}`,
+    };
+  }
+
   const body = buildTossCreatePayload(
     input.draft,
     category.categoryId,
     returnLocation.locationId,
     input.imageUrl,
+    requirements,
   );
 
   try {
