@@ -66,6 +66,7 @@ type MerchantResult = {
   hidden?: number;
   funnel?: Awaited<ReturnType<typeof getPipelineFunnel>>;
   errors?: string[];
+  timings?: { discoveryMs: number; picksMs: number; cycleMs: number };
   error?: string;
 };
 
@@ -113,7 +114,12 @@ export async function GET(request: Request) {
       const report = await runAutopilotForMerchant(merchantId, {
         discoverySize: 10,
         discoveryBudgetMs: 8_000,
+        // 초안 생성은 AI 호출이 들어가 건당 수 초가 걸린다. 마감시각을
+        // 넘기면 만들던 것까지만 하고 정상 종료해 **저장은 되게** 한다 —
+        // 함수가 강제 종료되면 이번 사이클 작업이 통째로 날아간다.
+        deadlineAt: startedAt + DEADLINE_MS - TAIL_MIN_MS,
       });
+      r.timings = report.stageTimings;
       r.draftsCreated = report.stats.draftsCreated;
       r.published = report.stats.published;
       if (report.errors.length) r.errors = report.errors.slice(0, 3);

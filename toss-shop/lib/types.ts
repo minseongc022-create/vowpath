@@ -495,6 +495,13 @@ export type JarvisAutopilotReport = {
    * 몰아서 등록하는 것이다(토스 반품지 생성 API가 없어 자동으로는 안 된다).
    * 등록된 공급처는 다음 사이클에 자동으로 이 목록에서 빠진다.
    */
+  /**
+   * 각 단계에 걸린 시간(ms).
+   *
+   * 서버리스 함수는 60초에 강제 종료되고, 죽으면 그 사이클 작업이 통째로
+   * 날아간다. 어디를 줄여야 하는지 추측하지 않으려면 재서 남겨야 한다.
+   */
+  stageTimings?: { discoveryMs: number; picksMs: number; cycleMs: number };
   returnAddressBacklog?: {
     count: number;
     instructions: string;

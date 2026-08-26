@@ -52,6 +52,20 @@ export type AutopilotCycleInput = {
   catalog: import("../types").CatalogProduct[];
   config: TossApiConfig | null;
   now?: string;
+  /**
+   * 이 시각(Date.now() 기준 ms)을 넘기면 **새 초안을 더 만들지 않는다**.
+   *
+   * ★ 왜 필요한가
+   *
+   * 초안 하나를 만드는 데 상세페이지 생성(AI 호출)이 들어가 수 초가 걸린다.
+   * 서버리스 함수는 60초에 강제 종료되는데, 죽는 순간 **그 사이클에서 한
+   * 일이 통째로 저장되지 않는다** — 저장은 사이클이 끝난 뒤에 하기 때문이다.
+   * 그러면 10분마다 같은 작업을 반복하며 영원히 아무것도 못 남긴다.
+   *
+   * 그래서 시간이 부족하면 만들던 것까지만 하고 정상 종료해 저장한다.
+   * 남은 후보는 다음 사이클이 이어서 만든다.
+   */
+  deadlineAt?: number;
 };
 
 export async function runJarvisAutopilotCycle(
@@ -161,6 +175,12 @@ export async function runJarvisAutopilotCycle(
     let createdThisCycle = 0;
     for (const pick of certified as ConsignmentPick[]) {
       if (createdThisCycle >= maxDrafts) break;
+      // 시간이 모자라면 여기서 멈춘다. 반쯤 만들다 함수가 죽으면 이번 사이클
+      // 작업이 통째로 날아가고, 그게 10분마다 반복된다.
+      if (input.deadlineAt && Date.now() > input.deadlineAt) {
+        actions.push("시간이 부족해 남은 후보는 다음 사이클로 넘김");
+        break;
+      }
       if (detailBudget <= 0) {
         actions.push(
           "공급처 상세 조회 예산 소진 — 다음 사이클에 이어서 봅니다 (도매꾹 API 과호출 방지)",

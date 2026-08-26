@@ -844,7 +844,8 @@ export async function syncAllMerchants(): Promise<{
       account?.email,
     );
     try {
-      const report = await runJarvisAutopilotCycle({
+      const t2 = Date.now();
+  const report = await runJarvisAutopilotCycle({
         merchantId: merchant.id,
         accountEmail: account?.email ?? "",
         data,
@@ -1301,7 +1302,7 @@ export async function executeJarvisListing(input: {
 
 export async function runAutopilotForMerchant(
   merchantId: string,
-  opts?: { discoverySize?: number; discoveryBudgetMs?: number },
+  opts?: { discoverySize?: number; discoveryBudgetMs?: number; deadlineAt?: number },
 ): Promise<import("./types").JarvisAutopilotReport> {
   // 한 바퀴 돌기 전에 시장을 새로 훑는다.
   //
@@ -1311,6 +1312,7 @@ export async function runAutopilotForMerchant(
   //
   // 예산을 밖에서 조절할 수 있게 열어둔 이유: 크론은 60초 안에 여러 가맹점을
   // 다 돌아야 해서 발굴에 20초를 쓰면 정작 등록까지 못 간다.
+  const t0 = Date.now();
   try {
     await runDiscoveryForMerchant(merchantId, {
       size: opts?.discoverySize ?? 24,
@@ -1319,8 +1321,16 @@ export async function runAutopilotForMerchant(
   } catch (e) {
     console.warn("[jarvis] 시장 발굴 실패:", e);
   }
-  // 발굴로 캐시가 깨졌으면 여기서 후보가 새로 만들어진다
+  const tDiscovery = Date.now() - t0;
+
+  // 발굴로 캐시가 깨졌으면 여기서 후보가 새로 만들어진다.
+  //
+  // ⚠️ 이 단계가 생각보다 무겁다 — 키워드마다 도매 검색을 돌리기 때문이다.
+  // 어느 단계가 시간을 먹는지 추측하지 않고 재서 남긴다. 서버리스는 60초에
+  // 강제 종료되므로 어디를 줄여야 하는지 정확히 알아야 한다.
+  const t1 = Date.now();
   await getConsignmentPicksForMerchant(merchantId);
+  const tPicks = Date.now() - t1;
 
   const store = await loadStore();
   const merchant = store.merchants.find((m) => m.id === merchantId);
@@ -1336,13 +1346,18 @@ export async function runAutopilotForMerchant(
     },
     account?.email,
   );
+  const t2 = Date.now();
   const report = await runJarvisAutopilotCycle({
     merchantId,
     accountEmail: account?.email ?? "",
     data,
     catalog: store.catalog,
     config,
+    deadlineAt: opts?.deadlineAt,
   });
+  const tCycle = Date.now() - t2;
+  report.stageTimings = { discoveryMs: tDiscovery, picksMs: tPicks, cycleMs: tCycle };
+
   data.lastAutopilotReport = report;
   await saveStore(store);
 
