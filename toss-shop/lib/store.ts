@@ -2493,7 +2493,7 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   /** 확실성 게이트에서 어떤 근거가 몇 번 걸렸나 */
   blockers: Array<{ label: string; count: number }>;
   /** 93% 인증 게이트에서 실제로 실패한 항목 — 인증 0의 진짜 원인 */
-  certGateFailures: Array<{ label: string; count: number }>;
+  certGateFailures: Array<{ label: string; count: number; samples: string[] }>;
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -2538,14 +2538,20 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   // 게이트가 통째로 실패한 것이고, 그 항목을 안 보면 영원히 못 고친다.
   // 실제로 등록이 0인 채로 초안만 쌓인 원인이 이거였다.
   const certGateCounts: Record<string, number> = {};
+  // 실제 측정값도 같이 모은다 — "종합점수 미달"만으로는 78인지 40인지 모른다.
+  // 기준에 가까우면 입력 데이터를 손보면 되고, 한참 멀면 기준이나 계산이
+  // 잘못된 것이다. 그 둘은 완전히 다른 처방이라 숫자 없이는 판단이 안 된다.
+  const certGateDetails: Record<string, string[]> = {};
   for (const p of allPicks) {
     if (p.jarvis?.certified) continue;
     for (const g of p.jarvis?.gates ?? []) {
-      if (!g.passed) certGateCounts[g.label] = (certGateCounts[g.label] ?? 0) + 1;
+      if (g.passed) continue;
+      certGateCounts[g.label] = (certGateCounts[g.label] ?? 0) + 1;
+      (certGateDetails[g.label] ??= []).push(g.detail);
     }
   }
   const certGateFailures = Object.entries(certGateCounts)
-    .map(([label, count]) => ({ label, count }))
+    .map(([label, count]) => ({ label, count, samples: (certGateDetails[label] ?? []).slice(0, 4) }))
     .sort((a, b) => b.count - a.count);
 
   // 가장 앞에서 끊긴 곳이 진짜 병목이다. 뒤쪽만 보면 "등록이 0개"라고만
