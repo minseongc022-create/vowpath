@@ -335,11 +335,32 @@ export type OrderingHealth = {
  */
 const LOGIN_RETRY_BACKOFF_MS = 60 * 60 * 1000;
 
-let lastLoginFailure: { at: number; reason: string } | null = null;
+let lastLoginFailure: { at: number; reason: string; credKey: string } | null = null;
 
 /** 설정을 바꿨을 때 즉시 다시 시도할 수 있게 열어둔다 */
 export function clearLoginBackoff(): void {
   lastLoginFailure = null;
+}
+
+/**
+ * 지금 설정된 계정 정보를 가리키는 키 — 값 자체는 남기지 않는다.
+ *
+ * ★ 왜 필요한가 — 실측으로 드러난 결함
+ *
+ * 사장님이 도매꾹 아이디를 새로 넣었는데도 한 시간 동안 계속 옛날
+ * 실패 사유("존재하지 않는 아이디입니다")가 그대로 돌아왔다. 백오프가
+ * "언제 실패했는지"만 기억하고 "무슨 값으로 실패했는지"는 몰랐기
+ * 때문이다. 그래서 계정 정보를 고쳐도 한 시간을 기다려야 새로 시도됐다.
+ *
+ * 이제 마지막 실패가 **지금과 다른 자격증명**으로 일어난 것이면, 그건
+ * 이미 해결됐을 수도 있는 문제이니 대기 없이 즉시 다시 시도한다.
+ * 같은 값으로 계속 실패하는 경우에만 계정 잠금을 피하려고 물러선다.
+ */
+function credentialKey(): string {
+  const raw = `${process.env.DOMEGGOOK_ACCOUNT_ID ?? ""}:${process.env.DOMEGGOOK_ACCOUNT_PW ?? ""}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) hash = (hash * 31 + raw.charCodeAt(i)) | 0;
+  return hash.toString(36);
 }
 
 export async function checkOrderingHealth(): Promise<OrderingHealth> {
@@ -347,7 +368,14 @@ export async function checkOrderingHealth(): Promise<OrderingHealth> {
     return { configured: false, loginOk: false, balanceKrw: null, reason: "계정 정보 미설정" };
   }
 
-  if (lastLoginFailure && Date.now() - lastLoginFailure.at < LOGIN_RETRY_BACKOFF_MS) {
+  const currentCredKey = credentialKey();
+  const sameCredsAsLastFailure = lastLoginFailure?.credKey === currentCredKey;
+
+  if (
+    lastLoginFailure &&
+    sameCredsAsLastFailure &&
+    Date.now() - lastLoginFailure.at < LOGIN_RETRY_BACKOFF_MS
+  ) {
     return {
       configured: true,
       loginOk: false,
@@ -358,7 +386,7 @@ export async function checkOrderingHealth(): Promise<OrderingHealth> {
 
   const login = await loginDomeggook();
   if (!login.ok) {
-    lastLoginFailure = { at: Date.now(), reason: login.reason };
+    lastLoginFailure = { at: Date.now(), reason: login.reason, credKey: currentCredKey };
     return { configured: true, loginOk: false, balanceKrw: null, reason: login.reason };
   }
   lastLoginFailure = null;

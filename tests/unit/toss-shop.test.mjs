@@ -4454,6 +4454,65 @@ test("발주: item[]·deliinfo 조립이 실측 스펙과 정확히 맞는다", 
   assert.equal(parts[7], "에피로드", "상호명 자리 — 도매꾹/도매매 상표가 고객 송장에 노출되면 안 된다");
 });
 
+test("발주 백오프: 자격증명을 바꾸면 대기 없이 즉시 다시 시도한다", async (t) => {
+  // ★ 실측으로 드러난 결함
+  //
+  // 사장님이 도매꾹 아이디를 새로 넣었는데도 한 시간 동안 계속 옛날
+  // 실패 사유가 그대로 돌아왔다. 백오프가 "언제 실패했는지"만 기억하고
+  // "무슨 값으로 실패했는지"는 몰랐기 때문이다 — 계정 정보를 고쳐도
+  // 한 시간을 기다려야 새로 시도됐다.
+  const mod = await import("../../toss-shop/lib/wholesale/domeggook-order-api.ts");
+  const { checkOrderingHealth, clearLoginBackoff } = mod;
+
+  const realFetch = globalThis.fetch;
+  const originalId = process.env.DOMEGGOOK_ACCOUNT_ID;
+  const originalPw = process.env.DOMEGGOOK_ACCOUNT_PW;
+  const originalKey = process.env.DOMEGGOOK_API_KEY;
+  t.after(() => {
+    globalThis.fetch = realFetch;
+    clearLoginBackoff();
+    if (originalId === undefined) delete process.env.DOMEGGOOK_ACCOUNT_ID;
+    else process.env.DOMEGGOOK_ACCOUNT_ID = originalId;
+    if (originalPw === undefined) delete process.env.DOMEGGOOK_ACCOUNT_PW;
+    else process.env.DOMEGGOOK_ACCOUNT_PW = originalPw;
+    if (originalKey === undefined) delete process.env.DOMEGGOOK_API_KEY;
+    else process.env.DOMEGGOOK_API_KEY = originalKey;
+  });
+
+  clearLoginBackoff();
+  process.env.DOMEGGOOK_ACCOUNT_ID = "wrong-id";
+  process.env.DOMEGGOOK_ACCOUNT_PW = "wrong-pw";
+  process.env.DOMEGGOOK_API_KEY = "test-key";
+
+  let loginCalls = 0;
+  globalThis.fetch = async () => {
+    loginCalls += 1;
+    return new Response(
+      "<response><header><successYN>N</successYN><resultCode>ID_ERROR</resultCode><resultMessage>존재하지 않는 아이디입니다</resultMessage></header></response>",
+      { status: 200 },
+    );
+  };
+
+  const first = await checkOrderingHealth();
+  assert.equal(first.loginOk, false);
+  assert.equal(loginCalls, 1, "첫 시도는 실제로 로그인을 불러야 한다");
+
+  // 같은(틀린) 자격증명으로 다시 확인하면 — 계정 잠금을 피하려고 물러서야 한다
+  const second = await checkOrderingHealth();
+  assert.match(second.reason ?? "", /재시도를 미루는 중/, "같은 값이면 대기해야 한다");
+  assert.equal(loginCalls, 1, "같은 자격증명이면 다시 로그인을 시도하면 안 된다");
+
+  // ⚠️ 이제 사장님이 새 아이디를 넣었다 — 대기 중에도 즉시 다시 시도해야 한다
+  process.env.DOMEGGOOK_ACCOUNT_ID = "correct-id";
+  const third = await checkOrderingHealth();
+  assert.equal(loginCalls, 2, "자격증명이 바뀌었으면 대기 시간과 무관하게 즉시 재시도해야 한다");
+  assert.doesNotMatch(
+    third.reason ?? "",
+    /재시도를 미루는 중/,
+    "새 자격증명에 대한 진짜 결과여야 한다 — 옛 실패 메시지를 재탕하면 안 된다",
+  );
+});
+
 test("발주: 잔액부족을 키워드로 판별한다", async () => {
   const { __looksLikeInsufficientBalanceForTest } = await import(
     "../../toss-shop/lib/wholesale/domeggook-order-api.ts"
