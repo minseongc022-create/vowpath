@@ -181,10 +181,16 @@ async function executeAction(
         };
       }
       if (r.apiSilent) {
+        // 원인을 그대로 전한다. "없습니다"로 뭉뚱그리면 사장님은 물건이 없는
+        // 줄 알고 기다리게 되고, 실제로는 연동이 끊겨 영원히 아무것도 안 온다.
+        const cause = r.apiError
+          ? `도매꾹이 이렇게 답했습니다 — ${r.apiError.message} (${r.apiError.code})`
+          : "도매꾹이 아무 응답도 주지 않았습니다.";
         return {
           reply:
-            `키워드 ${r.scanned}개를 물어봤는데 도매꾹이 한 건도 응답하지 않았습니다.\n` +
-            "물건이 없는 게 아니라 연동 쪽 문제로 보입니다 — API 키가 만료됐거나 권한이 빠진 상태일 수 있습니다.",
+            `키워드 ${r.scanned}개를 물어봤는데 한 건도 못 받았습니다.\n${cause}\n\n` +
+            "물건이 없는 게 아니라 연동 문제입니다. 도매꾹 로그인 → API Key 관리에서 " +
+            "키가 살아 있는지, 허용 IP가 걸려 있진 않은지 확인해 주세요.",
           steps,
           did: "discover",
         };

@@ -1796,6 +1796,7 @@ export async function runDiscoveryForMerchant(
   truncated: boolean;
   apiSilent: boolean;
   configured: boolean;
+  apiError?: { code: string; message: string };
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -1861,6 +1862,7 @@ export async function runDiscoveryForMerchant(
     truncated: result.truncated,
     apiSilent: result.apiSilent,
     configured: true,
+    apiError: result.apiError,
   };
 }
 

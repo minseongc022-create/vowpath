@@ -79,6 +79,44 @@ export function isDomeggookApiConfigured(): boolean {
   return Boolean(getApiKey());
 }
 
+/**
+ * 마지막으로 도매꾹이 돌려준 오류 — 실패 원인을 사장님에게 그대로 전하기 위해.
+ *
+ * ★ 왜 필요했나
+ *
+ * 도매꾹은 인증 실패·권한 없음도 **HTTP 200에 오류 본문**을 담아 보낸다.
+ * 그래서 `if (!res.ok)` 검사에 걸리지 않고, 목록이 비어 있는 것처럼 보였다.
+ * 결과는 "팔 만한 게 없습니다"였고, 진짜 원인(키 만료·IP 제한)은 아무 데도
+ * 안 나타났다. 없는 것과 못 읽는 것은 완전히 다른 상황인데 화면에서는
+ * 똑같아 보였다.
+ */
+let lastApiError: { code: string; message: string; at: string } | null = null;
+
+export function getLastDomeggookError() {
+  return lastApiError;
+}
+
+export function clearDomeggookError() {
+  lastApiError = null;
+}
+
+type DomeErrorBody = {
+  errors?: { code?: string; message?: string; dcode?: string; dmessage?: string };
+};
+
+/** 응답에 오류가 실려 있으면 기록하고 true를 돌려준다 */
+function captureApiError(data: unknown): boolean {
+  const err = (data as DomeErrorBody | null)?.errors;
+  if (!err) return false;
+  lastApiError = {
+    code: err.dcode || err.code || "UNKNOWN",
+    // 상세 메시지가 원인을 말해준다 ("유효하지 않은 API Key 입니다" 등)
+    message: err.dmessage || err.message || "도매꾹이 오류를 돌려줬습니다",
+    at: new Date().toISOString(),
+  };
+  return true;
+}
+
 export async function searchDomeggookMarket(
   keyword: string,
   market: DomeMarket,
@@ -109,14 +147,28 @@ export async function searchDomeggookMarket(
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(12_000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      lastApiError = {
+        code: `HTTP_${res.status}`,
+        message: `도매꾹 응답 실패 (HTTP ${res.status})`,
+        at: new Date().toISOString(),
+      };
+      return [];
+    }
     const data = (await res.json()) as unknown;
+    // 도매꾹은 오류도 200으로 준다. 여기서 안 잡으면 원인이 통째로 사라진다.
+    if (captureApiError(data)) return [];
     return normalizeItems(data)
       .map((item) => toListing(item, platform))
       .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq))
       // 사용자 정책: 1등급 + 당일발송 공급처만. 판독 불가(verified:false)도 탈락(fail-closed).
       .filter((x) => !opts?.requireTopSupplier || meetsSupplierPolicy(x.supplierQuality));
-  } catch {
+  } catch (e) {
+    lastApiError = {
+      code: "NETWORK",
+      message: e instanceof Error ? e.message : "도매꾹에 연결하지 못했습니다",
+      at: new Date().toISOString(),
+    };
     return [];
   }
 }

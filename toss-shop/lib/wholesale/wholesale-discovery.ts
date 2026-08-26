@@ -31,7 +31,12 @@
  */
 
 import type { CatalogProduct, TossShopCategory } from "../types";
-import { searchDomeggookMarket, searchDomemeUnitWholesale } from "./domeggook-api";
+import {
+  clearDomeggookError,
+  getLastDomeggookError,
+  searchDomeggookMarket,
+  searchDomemeUnitWholesale,
+} from "./domeggook-api";
 import type { WholesaleListing } from "./types";
 
 export const WHOLESALE_DISCOVERY_VERSION = "1.0";
@@ -155,6 +160,8 @@ export type DiscoveryResult = {
   truncated: boolean;
   /** API가 한 건도 응답하지 않았는가 — 키 문제와 "물건이 없음"을 구분한다 */
   apiSilent: boolean;
+  /** 도매꾹이 돌려준 오류 원문 — 있으면 이게 진짜 원인이다 */
+  apiError?: { code: string; message: string };
 };
 
 export type DiscoveryProgress = {
@@ -191,6 +198,8 @@ export async function discoverWholesaleMarket(input: {
   const concurrency = Math.max(1, input.concurrency ?? 4);
   const startedAt = Date.now();
   const now = input.now ?? new Date().toISOString();
+  // 지난 번 오류가 이번 결과에 묻어나지 않게 지우고 시작한다
+  clearDomeggookError();
 
   const discovered: DiscoveredKeyword[] = [];
   let scanned = 0;
@@ -248,6 +257,7 @@ export async function discoverWholesaleMarket(input: {
     // 한 키워드도 응답이 없었다면 "팔 게 없는 것"이 아니라 연동이 끊긴 것이다.
     // 이 둘을 뭉뚱그리면 사장님은 영원히 원인을 모른 채 기다리게 된다.
     apiSilent: scanned > 0 && !anyResponse,
+    apiError: getLastDomeggookError() ?? undefined,
   };
 }
 

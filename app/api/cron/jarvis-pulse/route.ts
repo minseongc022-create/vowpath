@@ -47,6 +47,7 @@ export async function GET(request: Request) {
     matched?: number;
     added?: number;
     apiSilent?: boolean;
+    apiError?: { code: string; message: string };
     configured?: boolean;
     error?: string;
   }> = [];
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
         matched: diag.found,
         added: diag.added,
         apiSilent: diag.apiSilent,
+        apiError: diag.apiError,
         configured: diag.configured,
       });
     } catch (e) {
