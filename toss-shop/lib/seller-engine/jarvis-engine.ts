@@ -297,7 +297,19 @@ export function filterJarvisCertifiedPicks<T extends { jarvis?: JarvisConfidence
     if (opts?.onlyCertified) return p.jarvis?.certified === true;
     return c >= min;
   });
-  return filtered.length > 0 ? filtered : picks.slice(0, 3);
+
+  // ⚠️ 예전엔 여기서 아무것도 통과 못 하면 상위 3개를 그냥 돌려줬다.
+  //
+  // 그 조용한 폴백이 시스템 전체를 거짓말하게 만들었다:
+  //  · 파이프라인 집계가 "인증 2건"이라고 보고했지만 실제 인증은 0건이었다.
+  //  · 자율주행이 그 미인증 후보로 초안을 만들었고, 등록 단계는 진짜 인증
+  //    여부를 다시 보므로 그 초안들은 영원히 못 올라갔다 — 초안만 쌓이고
+  //    등록은 0인 상태가 이렇게 만들어졌다.
+  //  · onlyCertified로 부르는 쪽은 `.length >= 2`로 판단하는데, 인증 0건일
+  //    때도 3이 돌아와 조건이 항상 참이 됐다.
+  //
+  // 통과한 게 없으면 없다고 해야 원인을 고칠 수 있다. 빈 배열이 정답이다.
+  return filtered;
 }
 
 export function buildJarvisMonthlyBrief(input: {

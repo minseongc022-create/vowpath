@@ -4525,3 +4525,71 @@ test("autopilot: listingDrafts 키가 없는 신규 가맹점에서도 만든 �
     "만들었다고 보고한 수만큼 실제로 data에 남아 있어야 한다 — 여기가 어긋나면 저장 시 증발한다",
   );
 });
+
+test("리스크: 상시 행동수칙이 안전점수를 깎아 모든 상품을 막던 결함", async () => {
+  // ★ 실측으로 드러난 결함 — 어떤 상품도 인증될 수 없었다
+  //
+  // 리스크 스캐너는 모든 상품에 똑같이 붙는 **행동 수칙** 8개를 만든다
+  // (배송 SLA·필수고시·CS SLA·KC 안내·검색태그 등). 이건 이 상품이
+  // 위험하다는 뜻이 아니라 "셀러가 늘 지켜야 할 것"이다.
+  //
+  // 그런데 안전점수 계산이 그것들까지 감점에 넣었다. 결과:
+  //   아무 문제 없는 상품 = 77점, safety 게이트 기준 = 85점
+  // 즉 통과 가능한 상품이 존재하지 않았다. 인증이 늘 실패하니 신뢰도는
+  // 92%로 덮이고, 초안은 "draft"로 만들어져 자동 등록에서 영원히 빠졌다.
+  // 등록 0 · 매출 0의 마지막 원인이 이것이었다.
+  const { buildRiskPlaybookReport } = await import(
+    "../../toss-shop/lib/seller-engine/risk-playbook.ts"
+  );
+  const base = {
+    keyword: "주방 집게",
+    productName: "실리콘 주방 집게 3종",
+    suggestedTitle: "실리콘 주방 집게 3종 세트",
+    category: "home",
+    marginPct: 22,
+    priceKrw: 12900,
+    mode: "consignment",
+    competitionIntensity: 1.4,
+    catalogStrategy: { mode: "avoid_catalog" },
+  };
+
+  // 깨끗한 상품은 통과해야 한다 — 이게 안 되면 파이프라인 전체가 죽는다
+  const clean = buildRiskPlaybookReport(base);
+  assert.ok(
+    clean.overallSafetyScore >= 85,
+    `문제 없는 상품이 safety 게이트(85)를 넘어야 한다 — 실제 ${clean.overallSafetyScore}`,
+  );
+  assert.equal(clean.criticalCount, 0);
+  assert.equal(clean.blockCount, 0);
+
+  // ⚠️ 그렇다고 안전망을 걷어낸 게 아니다 — 진짜 위반은 여전히 막혀야 한다.
+  // 위 완화가 "기준을 낮춰서 통과시킨 것"이 되면 페널티로 계정이 정지된다.
+  const drug = buildRiskPlaybookReport({
+    ...base,
+    productName: "의약품 진통제",
+    suggestedTitle: "의약품 진통제 특가",
+  });
+  assert.ok(drug.blockCount > 0, "금지어(의약품)는 여전히 차단돼야");
+  assert.ok(drug.overallSafetyScore < 85, "금지어 상품은 safety 게이트를 못 넘어야");
+
+  const claim = buildRiskPlaybookReport({
+    ...base,
+    category: "health",
+    productName: "당뇨 치료 보조제",
+    suggestedTitle: "당뇨 치료에 좋은 보조제",
+  });
+  assert.ok(claim.blockCount > 0, "질병 치료 표방은 여전히 차단돼야");
+
+  const direct = buildRiskPlaybookReport({
+    ...base,
+    suggestedTitle: "카톡으로 직거래 문의주세요 계좌이체",
+  });
+  assert.ok(direct.criticalCount > 0, "직거래 유도는 여전히 치명으로 잡혀야");
+
+  // 실측된 위험은 점수를 깎아야 한다 — 상시 항목만 빼는 것이지 전부 빼는 게 아니다
+  const lowMargin = buildRiskPlaybookReport({ ...base, marginPct: 3 });
+  assert.ok(
+    lowMargin.overallSafetyScore < clean.overallSafetyScore,
+    "실제로 감지된 위험(저마진)은 여전히 감점돼야 한다",
+  );
+});

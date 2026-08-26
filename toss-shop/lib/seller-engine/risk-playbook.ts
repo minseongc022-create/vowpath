@@ -141,6 +141,7 @@ function scanShipping(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "shipping",
     level: "warn",
     code: "SHIP_SLA",
+    standing: true,
     title: "발송 기한 SLA",
     message: "발송기한 미준수 → 셀러 1점 + 아이템 페널티(해당 옵션 미노출)",
     penaltyPoints: 1,
@@ -213,6 +214,7 @@ function scanPricing(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "pricing",
     level: "info",
     code: "PRICE_MATCH",
+    standing: true,
     title: "판매가 불일치",
     message: "상품명·썸네일·옵션과 다른 가격 노출 → 2점",
     penaltyPoints: 2,
@@ -257,6 +259,7 @@ function scanCatalog(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "catalog",
     level: "info",
     code: "CATALOG_RULES",
+    standing: true,
     title: "카탈로그 매칭 규칙",
     message: "1+1=2개 구성 · 모델명 완전일치 · 연도표기 일치 시에만 병합",
     mitigation: [
@@ -287,6 +290,7 @@ function scanDisclosure(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "disclosure",
     level: "warn",
     code: "DISCLOSURE",
+    standing: true,
     title: "필수 고시사항",
     message: `누락/오기재 → 2점 · 노출중단 가능: ${fields.join(", ")}`,
     penaltyPoints: 2,
@@ -303,6 +307,7 @@ function scanCertification(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "certification",
     level: input.category === "digital" || input.category === "health" ? "warn" : "info",
     code: "CERT_KC",
+    standing: true,
     title: "KC·인증",
     message: cert.required,
     penaltyPoints: cert.penaltyPoints,
@@ -330,6 +335,7 @@ function scanCsReturns(risks: MarketplaceRisk[]) {
     category: "cs_returns",
     level: "warn",
     code: "CS_SLA",
+    standing: true,
     title: "CS·반품 SLA",
     message: "1:1 문의 1영업일 미응대 4점 · 반품 승인 후 5영업일 환불 지연 3점",
     penaltyPoints: 4,
@@ -368,6 +374,7 @@ function scanListing(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "listing",
     level: "info",
     code: "SEARCH_TAGS",
+    standing: true,
     title: "검색 태그 10개",
     message: "태그 미등록 시 노출·추천 불리",
     mitigation: ["카테고리 필수 태그 + 롱테일 3개", "경쟁사 태그 벤치마킹"],
@@ -381,6 +388,7 @@ function scanImport(input: RiskScanInput, risks: MarketplaceRisk[]) {
     category: "import",
     level: "warn",
     code: "IMPORT_KC",
+    standing: true,
     title: "수입 통관·KC",
     message: "해외직구 → KC·라벨·원산지 국문 표시 · 미준수 5점",
     penaltyPoints: 5,
@@ -461,9 +469,22 @@ export function buildRiskPlaybookReport(input: RiskScanInput): RiskPlaybookRepor
   const detected = risks.filter((r) => !r.standing);
   const criticalCount = detected.filter((r) => r.level === "critical").length;
   const blockCount = detected.filter((r) => r.level === "block").length;
-  const warnCount = risks.filter((r) => r.level === "warn").length;
+  // ⚠️ warn·페널티도 반드시 detected 기준이어야 한다 — 실측으로 드러난 결함
+  //
+  // 종전엔 critical·block만 상시 항목을 뺐고 warn과 페널티 합계는 risks
+  // 전체를 썼다. 그런데 상시 항목이 8개(배송 SLA·필수고시·CS SLA·KC 안내
+  // 등)나 되고, 이건 모든 상품에 똑같이 붙는 **행동 수칙**이지 이 상품의
+  // 위험이 아니다.
+  //
+  // 그 결과 아무 문제 없는 상품의 안전점수가 이렇게 나왔다:
+  //   92 - warn 3건×4 - 페널티 24/3 + 마진 3 + 카탈로그 2 = 77
+  // safety 게이트 통과 기준은 85다. 즉 **어떤 상품도 통과할 수 없었다.**
+  // 인증이 항상 실패하니 신뢰도는 92%로 덮이고(UNCERTIFIED_CAP), 초안은
+  // status "draft"로 만들어져 자동 등록 대상에서 영원히 제외됐다.
+  // 등록 0·매출 0의 마지막 원인이 이것이다.
+  const warnCount = detected.filter((r) => r.level === "warn").length;
 
-  const penaltyExposurePoints = risks.reduce((s, r) => s + (r.penaltyPoints ?? 0), 0);
+  const penaltyExposurePoints = detected.reduce((s, r) => s + (r.penaltyPoints ?? 0), 0);
 
   let overallSafetyScore = 92;
   overallSafetyScore -= criticalCount * 25;
