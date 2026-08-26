@@ -116,6 +116,9 @@ export async function fetchCategorySalesOptions(
  * 그런 필수 옵션이 있으면 null을 돌려 등록을 막는다 — 치수를 지어내
  * 올리면 반품·분쟁으로 돌아온다.
  */
+/** 토스 스펙: 옵션 그룹은 1~3개만 허용된다 */
+const MAX_STOCK_OPTION_GROUPS = 3;
+
 export function buildStockOptions(
   template: CategorySalesOption[],
   product?: { name: string },
@@ -123,12 +126,28 @@ export function buildStockOptions(
   // isOption === false 가 "필수"다 (토스 문서 표기)
   const required = template.filter((t) => t.isOption === false);
 
+  // ★ 옵션 그룹은 최대 3개다 — 필수 그룹만으로 이미 넘으면 등록 자체가
+  // 안 되는 카테고리다. 실측: "옵션 그룹은 최대 3개입니다 (현재 4개)"로
+  // 반려됐다. 이건 우리가 고를 수 있는 문제가 아니라 카테고리 설정
+  // 자체의 모순이므로 지어내지 않고 막는다.
+  if (required.length > MAX_STOCK_OPTION_GROUPS) {
+    return {
+      blocked: `이 카테고리는 필수 옵션이 ${required.length}개인데 토스는 최대 ${MAX_STOCK_OPTION_GROUPS}개까지만 허용합니다.`,
+    };
+  }
+
   // "이 중 하나는 반드시" 그룹 — 필수 그룹에 이미 포함된 게 없으면 하나 채운다.
   // 스펙에 있는 조건인데 종전엔 읽지도 않았다. 그래서 이 조건만 걸린
   // 카테고리에서는 옵션을 비운 채 보내고 반려당했다.
+  //
+  // 단, 필수 그룹만으로 이미 한도(3개)에 닿아 있으면 더 넣을 자리가 없다.
+  // 실측으로 그렇게 반려됐다("현재 4개") — 필수 3개에 이 그룹까지 넣어
+  // 4개가 됐기 때문이다. 그럴 땐 넣지 않는다: 이 조건을 어기는 것과
+  // 그룹 개수 한도를 어기는 것 중 하나를 고를 수밖에 없는데, 후자는
+  // 스펙이 절대 받아주지 않는 반면 전자는 등록이 될 수도 있다.
   const oneOf = template.filter((t) => t.isOneOfRequiredGroup && !required.includes(t));
   const chosen = [...required];
-  if (oneOf.length > 0) {
+  if (oneOf.length > 0 && chosen.length < MAX_STOCK_OPTION_GROUPS) {
     // 값을 확실히 채울 수 있는 것부터 고른다 — 단위를 요구하는 건 뒤로.
     const pickable = oneOf.find((t) => !t.unitValues?.length) ?? oneOf[0];
     chosen.push(pickable);

@@ -170,7 +170,12 @@ ${upgraded.badges.length ? `AI 생성 셀링포인트 배지 이미지:\n${badge
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.JARVIS_OPENAI_MODEL ?? "gpt-4o-mini",
+        // 상세페이지는 문장력·설득력이 실제 전환율에 영향을 준다.
+        // 카테고리 매칭(기계적 분류)과 달리 여기는 더 좋은 모델을 쓸
+        // 값어치가 있어서 별도 환경변수로 분리했다 — JARVIS_OPENAI_MODEL을
+        // 그대로 두고 여기만 올리고 싶을 때를 위해서다.
+        model:
+          process.env.JARVIS_DETAIL_OPENAI_MODEL ?? process.env.JARVIS_OPENAI_MODEL ?? "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.5,
       }),

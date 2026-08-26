@@ -5540,3 +5540,31 @@ test("반려 방지: 썸네일 크기를 보내기 전에 잰다", async () => {
   // 형식을 모르면 지어내지 않는다
   assert.equal(readImageSize(new Uint8Array([1, 2, 3, 4])), null);
 });
+
+test("등록 옵션: 그룹 개수 한도(3개)를 넘기지 않는다", async () => {
+  // ★ 실측 반려 사유
+  //   "옵션 그룹은 최대 3개입니다 (현재 4개)"
+  // 필수 옵션 3개에 "이 중 하나는 필수" 그룹까지 넣어 4개가 됐다.
+  const { buildStockOptions } = await import(
+    "../../toss-shop/lib/api/product-requirements.ts"
+  );
+
+  // 필수 3개 + oneOf 후보가 있어도 4개로 넘기지 않는다
+  const atLimit = buildStockOptions([
+    { key: "색상", isOption: false, valueCandidates: ["검정"], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "재질", isOption: false, valueCandidates: ["면"], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "브랜드", isOption: false, valueCandidates: [], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "사이즈", isOption: true, valueCandidates: ["M"], unitValues: null, isOneOfRequiredGroup: true },
+  ]);
+  assert.ok(!("blocked" in atLimit), "필수 3개만으로는 등록 가능해야 한다");
+  assert.equal(atLimit.options.length, 3, "4번째(oneOf)는 넣지 않아야 한다");
+
+  // 필수 그룹 자체가 4개를 넘으면 — 우리가 고칠 수 없는 카테고리 모순이므로 막는다
+  const tooMany = buildStockOptions([
+    { key: "A", isOption: false, valueCandidates: [], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "B", isOption: false, valueCandidates: [], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "C", isOption: false, valueCandidates: [], unitValues: null, isOneOfRequiredGroup: false },
+    { key: "D", isOption: false, valueCandidates: [], unitValues: null, isOneOfRequiredGroup: false },
+  ]);
+  assert.ok("blocked" in tooMany, "필수 옵션 자체가 4개면 막아야 한다 — 지어낼 수 없는 모순이다");
+});
