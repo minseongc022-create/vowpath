@@ -150,6 +150,18 @@ export function buildStockOptions(
         options.push({ groupName: t.key, valueName: `1${pickCountUnit(t.unitValues, product?.name)}` });
         continue;
       }
+
+      // ★ 중량·용량은 상품명에 적혀 있는 경우가 많다
+      //
+      // "국내산 볶음참깨 500g", "냉동만두 1kg"처럼 공급사가 제목에 직접
+      // 써 둔다. 그건 우리가 지어낸 값이 아니라 **공급사가 밝힌 사양**이다.
+      // 제목에서 허용 단위로 끝나는 수치를 찾으면 그걸 쓴다.
+      const fromTitle = readMeasureFromTitle(product?.name ?? "", t.unitValues);
+      if (fromTitle) {
+        options.push({ groupName: t.key, valueName: fromTitle });
+        continue;
+      }
+
       return {
         blocked: `필수 옵션 「${t.key}」는 숫자+단위(${t.unitValues.join("/")})를 요구하는데 공급처 정보로 확인할 수 없습니다.`,
       };
@@ -162,6 +174,28 @@ export function buildStockOptions(
   }
 
   return { options };
+}
+
+/**
+ * 상품명에서 "숫자+단위" 사양을 찾아낸다.
+ *
+ * 공급사가 제목에 써 둔 값만 쓴다 — 없으면 null을 돌려 등록을 막는다.
+ * 실물과 다른 치수를 올리면 반품·분쟁으로 돌아오므로, 모를 때 지어내는
+ * 것보다 안 올리는 게 낫다.
+ *
+ * 단위는 반드시 토스가 준 후보(unitValues) 중에서만 고른다. 제목에 "500ml"이
+ * 있어도 토스가 g/kg만 받는다면 쓸 수 없다 — 환산은 추정이기 때문이다.
+ */
+function readMeasureFromTitle(title: string, unitValues: string[]): string | null {
+  if (!title || unitValues.length === 0) return null;
+  // 긴 단위부터 본다 — "kg"을 "g"보다 먼저 잡아야 500kg을 500g으로 안 읽는다
+  const units = [...unitValues].sort((a, b) => b.length - a.length);
+  for (const unit of units) {
+    const re = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${unit}(?![0-9a-zA-Z가-힣])`, "i");
+    const m = title.match(re);
+    if (m) return `${m[1]}${unit}`;
+  }
+  return null;
 }
 
 /**

@@ -5381,3 +5381,41 @@ test("카테고리: 붙어 있는 낱말도 알아본다 — 실제 토스 식�
   assert.equal(pick("원두커피 1kg"), "커피/차");
   assert.equal(pick("유산균 30포"), "건강식품");
 });
+
+test("등록 옵션: 중량·용량은 상품명에 적힌 공급사 사양을 쓴다", async () => {
+  // ★ 실측으로 드러난 막힘
+  //
+  // 토스가 「개당 중량(g/kg)」, 「(택1) 개당 캡슐/정」 같은 필수 옵션을
+  // 요구했는데 도매 검색 응답엔 그런 사양이 없어서 등록이 막혔다.
+  //
+  // 그런데 공급사는 제목에 직접 써 둔다 — "볶음참깨 500g", "냉동만두 1kg".
+  // 그건 우리가 지어낸 값이 아니라 **공급사가 밝힌 사양**이므로 쓸 수 있다.
+  const { buildStockOptions } = await import(
+    "../../toss-shop/lib/api/product-requirements.ts"
+  );
+  const req = (key, units) => [
+    { key, isOption: false, valueCandidates: [], unitValues: units, isOneOfRequiredGroup: false },
+  ];
+
+  assert.deepEqual(
+    buildStockOptions(req("개당 중량", ["g", "kg"]), { name: "국내산 볶음참깨 500g" }).options,
+    [{ groupName: "개당 중량", valueName: "500g" }],
+  );
+  // 긴 단위를 먼저 봐야 1kg을 1g으로 안 읽는다
+  assert.deepEqual(
+    buildStockOptions(req("개당 중량", ["g", "kg"]), { name: "냉동만두 1kg" }).options,
+    [{ groupName: "개당 중량", valueName: "1kg" }],
+  );
+  assert.deepEqual(
+    buildStockOptions(req("개당 정", ["개", "정", "mg"]), { name: "비타민 60정" }).options,
+    [{ groupName: "개당 정", valueName: "60정" }],
+  );
+
+  // ⚠️ 제목에 없으면 지어내지 않고 막는다 — 실물과 다른 치수는 반품으로 돌아온다
+  const blocked = buildStockOptions(req("개당 중량", ["g", "kg"]), { name: "주방 집게" });
+  assert.ok("blocked" in blocked, "사양을 모르면 등록을 막아야 한다");
+
+  // 토스가 받는 단위 중에서만 고른다 — 제목의 ml을 g으로 환산하면 그건 추정이다
+  const wrongUnit = buildStockOptions(req("개당 중량", ["g", "kg"]), { name: "생수 500ml" });
+  assert.ok("blocked" in wrongUnit, "허용 단위가 아니면 환산하지 않고 막아야 한다");
+});

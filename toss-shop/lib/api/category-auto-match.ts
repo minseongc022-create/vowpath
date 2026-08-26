@@ -85,6 +85,8 @@ function pickBranchByName(input: {
   category?: string;
   options: TossCategoryNode[];
   isRoot: boolean;
+  /** 지금까지 내려온 깊이 — 깊을수록 남은 선택이 사소해진다 */
+  depth?: number;
 }): { node?: TossCategoryNode; why?: string } {
   if (input.isRoot && input.category) {
     const hints = ROOT_NAME_HINTS[input.category] ?? [];
@@ -131,6 +133,17 @@ function pickBranchByName(input: {
   if (!input.isRoot) {
     const etc = input.options.find((o) => /기타|그 외|일반/.test(o.name));
     if (etc) return { node: etc };
+
+    // 이미 여러 단계를 확신을 갖고 내려왔다면, 남은 갈래는 사소한 구분이다.
+    // 실측 예: "가전/디지털 > 휴대폰/태블릿PC/액세서리 > 태블릿PC용 액세서리
+    // > 거치대 > 일반용" 까지 맞춘 뒤 마지막에서 막혔다. 여기서 포기하면
+    // 대분류까지 정확히 맞춘 상품이 등록조차 못 된다.
+    //
+    // 얕은 단계에서는 절대 이러지 않는다 — 대분류가 어긋나면 그 아래가
+    // 통째로 어긋나기 때문이다.
+    if ((input.depth ?? 0) >= 3) {
+      return { node: input.options[0] };
+    }
   }
 
   // 무엇 중에서 못 골랐는지 남긴다 — 이게 없으면 사전을 어떻게 보완해야
@@ -341,6 +354,7 @@ export async function autoMatchCategoryId(input: {
         category: input.category,
         options,
         isRoot: depth === 0,
+        depth,
       });
       if (byName.node) {
         node = byName.node;
