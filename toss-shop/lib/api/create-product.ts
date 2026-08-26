@@ -137,6 +137,10 @@ export async function publishListingToToss(input: {
   // 찾아본다. 실패해도 조용히 정적 매핑·기본값으로 폴백한다 —
   // category-resolver.ts가 그 폴백을 담당한다.
   let autoMatch: { categoryId: number; path: string[] } | undefined;
+  // 자동 매칭이 왜 실패했는지 들고 다닌다. 종전엔 버렸는데, 그러면 등록이
+  // 막혔을 때 "카테고리 ID가 없다"까지만 알고 그 앞단이 키가 없어서인지,
+  // 트리 조회가 실패해서인지, 확신을 못 해서인지 알 길이 없다.
+  let autoMatchReason: string | undefined;
   if (!input.categoryId) {
     const matched = await autoMatchCategoryId({
       merchantId: input.merchantId,
@@ -146,6 +150,8 @@ export async function publishListingToToss(input: {
     });
     if (matched.confident && matched.categoryId) {
       autoMatch = { categoryId: matched.categoryId, path: matched.path };
+    } else {
+      autoMatchReason = matched.reason;
     }
   }
 
@@ -153,6 +159,7 @@ export async function publishListingToToss(input: {
     category: payload.category,
     explicitCategoryId: input.categoryId,
     autoMatch,
+    autoMatchReason,
   });
   const returnLocation = resolveReturnLocation({
     // 사람이 승인 화면에서 지정한 값이 최우선. 없으면 반품 물류 두뇌가

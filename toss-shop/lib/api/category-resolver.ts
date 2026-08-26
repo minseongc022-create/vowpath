@@ -109,6 +109,8 @@ export function resolveCategoryId(input: {
    * 우선한다 — 실제 상품에 맞춰 찾은 값이라 정적 매핑보다 정확하다.
    */
   autoMatch?: { categoryId: number; path: string[] };
+  /** 자동 매칭이 실패했다면 그 사유 — 막혔을 때 원인을 짚는 근거 */
+  autoMatchReason?: string;
 }): CategoryDecision {
   const warnings: string[] = [];
   const base = { engineVersion: CATEGORY_RESOLVER_VERSION, warnings };
@@ -166,7 +168,9 @@ export function resolveCategoryId(input: {
     error: {
       code: "MISSING",
       message:
-        "토스 카테고리 ID가 없습니다 — TOSS_SHOP_DEFAULT_CATEGORY_ID(기본 1개) 또는 " +
+        "토스 카테고리 ID가 없습니다 — " +
+        (input.autoMatchReason ? `자동 매칭 실패: ${input.autoMatchReason}. ` : "") +
+        "TOSS_SHOP_DEFAULT_CATEGORY_ID(기본 1개) 또는 " +
         "TOSS_SHOP_CATEGORY_ID_MAP(카테고리별, 예: {\"food\":123,\"beauty\":456})을 설정하세요.",
     },
   };
