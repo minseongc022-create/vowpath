@@ -1292,20 +1292,44 @@ export async function executeJarvisListing(input: {
 export async function autoPublishCertifiedDrafts(
   merchantId: string,
   opts: { approvedBy: string; deadlineAt?: number },
-): Promise<{ published: number; actions: string[]; errors: string[] }> {
+): Promise<{
+  published: number;
+  actions: string[];
+  errors: string[];
+  /** 왜 안 올라갔는지 — 등록 0일 때 원인을 짚는 유일한 근거 */
+  notEligible: Record<string, number>;
+}> {
   const actions: string[] = [];
   const errors: string[] = [];
+  /**
+   * 등록이 0으로 나올 때 "왜"를 남긴다.
+   *
+   * 종전엔 조건에 안 맞는 초안이 조용히 걸러져서, 심박 응답에 `published: 0`만
+   * 찍히고 원인을 알 길이 없었다. 결함인지 정상적인 경제성 탈락인지 구분이
+   * 안 되면 고칠 수가 없다.
+   */
+  const notEligible: Record<string, number> = {};
   let published = 0;
 
   if (!isAutoExecuteEnabled()) {
-    return { published, actions, errors };
+    notEligible["JARVIS_AUTO_EXECUTE 꺼짐"] = 1;
+    return { published, actions, errors, notEligible };
   }
 
   const store = await loadStore();
   const data = merchantData(store, merchantId);
-  const candidates = (data.listingDrafts ?? []).filter(
+  const all = data.listingDrafts ?? [];
+  const candidates = all.filter(
     (d) => d.jarvisCertified && (d.status === "pending_review" || d.status === "approved"),
   );
+
+  for (const d of all) {
+    if (candidates.includes(d)) continue;
+    const why = !d.jarvisCertified
+      ? `미인증(신뢰도 ${d.jarvisConfidence ?? 0}%)`
+      : `상태=${d.status}${d.publishError ? ` — ${d.publishError}` : ""}`;
+    notEligible[why] = (notEligible[why] ?? 0) + 1;
+  }
 
   /** 등록 한 건에 넉넉히 잡은 시간 — 이만큼 안 남았으면 시작하지 않는다 */
   const PUBLISH_MIN_MS = 8_000;
@@ -1329,7 +1353,7 @@ export async function autoPublishCertifiedDrafts(
     }
   }
 
-  return { published, actions, errors };
+  return { published, actions, errors, notEligible };
 }
 
 export async function runAutopilotForMerchant(
@@ -1407,6 +1431,7 @@ export async function runAutopilotForMerchant(
   //
   // saveStore 뒤에 두는 이유: 등록 함수는 저장된 초안을 id로 다시 읽는다.
   // 저장 전에 부르면 방금 만든 초안을 못 찾는다.
+  let publishSkips: Record<string, number> = {};
   try {
     const pub = await autoPublishCertifiedDrafts(merchantId, {
       approvedBy: account?.email ?? "jarvis-autopilot",
@@ -1415,6 +1440,10 @@ export async function runAutopilotForMerchant(
     report.stats.draftsExecuted += pub.published;
     report.actions.push(...pub.actions);
     report.errors.push(...pub.errors);
+    publishSkips = pub.notEligible;
+    for (const [why, n] of Object.entries(pub.notEligible)) {
+      report.actions.push(`등록 대상 아님 ${n}건 — ${why}`);
+    }
     if (pub.published > 0 || pub.errors.length > 0) {
       // 등록 결과가 리포트에 남아야 대시보드가 진짜 상태를 보여준다
       const s2 = await loadStore();
@@ -1424,6 +1453,7 @@ export async function runAutopilotForMerchant(
   } catch (e) {
     console.warn("[jarvis] 자동 등록 실패:", e);
   }
+  report.publishSkips = publishSkips;
 
   // 발주 대기로 잡힌 주문을 실제로 도매꾹/도매매에 넣는다. 알림보다 먼저다 —
   // 알림은 발주가 안 됐을 때를 대비한 안전망이고, 발주 자체가 이 사이클의

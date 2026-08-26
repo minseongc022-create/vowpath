@@ -502,6 +502,8 @@ export type JarvisAutopilotReport = {
    * 날아간다. 어디를 줄여야 하는지 추측하지 않으려면 재서 남겨야 한다.
    */
   stageTimings?: { discoveryMs: number; picksMs: number; cycleMs: number };
+  /** 등록 안 된 초안의 사유별 집계 — 등록 0일 때 원인 규명용 */
+  publishSkips?: Record<string, number>;
   returnAddressBacklog?: {
     count: number;
     instructions: string;

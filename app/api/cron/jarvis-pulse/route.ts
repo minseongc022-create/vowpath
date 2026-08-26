@@ -63,6 +63,8 @@ type MerchantResult = {
   published?: number;
   /** 이번 심박에 실제로 토스에 올린 건수 */
   listedNow?: number;
+  /** 안 올라간 초안의 사유별 집계 */
+  publishSkips?: Record<string, number>;
   returnLocationsRegistered?: number;
   priceCuts?: number;
   hidden?: number;
@@ -127,6 +129,9 @@ export async function GET(request: Request) {
       // 이번 심박의 실제 등록 성과는 draftsExecuted가 들고 있다.
       r.published = report.stats.published;
       r.listedNow = report.stats.draftsExecuted;
+      if (report.publishSkips && Object.keys(report.publishSkips).length) {
+        r.publishSkips = report.publishSkips;
+      }
       if (report.errors.length) r.errors = report.errors.slice(0, 3);
     } catch (e) {
       r.error = e instanceof Error ? e.message : "CYCLE_FAIL";
