@@ -165,7 +165,7 @@ export function proposeRetailKrw(landedCostKrw: number): number {
 }
 
 /** 이 값보다 싼 물건은 배송비가 마진을 통째로 먹는다 */
-const MIN_LANDED_COST_KRW = 1500;
+const MIN_LANDED_COST_KRW = 1200;
 /** 위탁 한 건에 이만큼 넘게 묶이면 반품 한 건의 타격이 너무 크다 */
 const MAX_LANDED_COST_KRW = 120_000;
 
@@ -295,7 +295,14 @@ export async function discoverWholesaleMarket(input: {
     apiError: getLastDomeggookError() ?? undefined,
     itemFields: getLastDomeggookItemFields() ?? undefined,
     // 원가 표본 — 걸러진 이유를 판단할 근거로 남긴다
-    costSamples: discovered.slice(0, 8).map((d) => d.supply[0]?.unitPriceKrw ?? 0),
+    // 관측된 낱개 공급가 전체 범위 — "왜 하나도 안 남았나"를 판단할 근거.
+    // 표본을 앞 몇 개만 보면 정렬이 밀어주는 쪽만 보고 오판하게 된다.
+    costSamples: (() => {
+      const all = discovered.flatMap((d) => d.supply.map((x) => x.unitPriceKrw)).filter((n) => n > 0);
+      if (all.length === 0) return [];
+      const sorted = [...all].sort((a, b) => a - b);
+      return [sorted[0], sorted[Math.floor(sorted.length / 2)], sorted[sorted.length - 1], all.length];
+    })(),
   };
 }
 

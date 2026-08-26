@@ -191,6 +191,74 @@ function captureApiError(data: unknown): boolean {
   return true;
 }
 
+/**
+ * 정렬 순서.
+ *
+ * ★ 실측으로 드러난 문제
+ *
+ * 기본값 `aa`로 뽑으면 관측된 낱개 공급가가 전부 35~1,290원이었다 — 12개
+ * 키워드가 예외 없이 그랬다. 그 값들은 진짜지만(도매꾹엔 200원짜리 머리끈이
+ * 실제로 있다) 위탁으로는 못 판다: 주문 한 건마다 붙는 배송비가 마진을
+ * 통째로 먹기 때문이다. 즉 우리는 시장의 바닥만 반복해서 보고 있었다.
+ *
+ * 그래서 다른 정렬을 먼저 시도한다. 도매꾹 API 문서가 로그인 뒤에 있어
+ * 유효한 값을 확인할 수 없으므로 **실패하면 원래 값으로 되돌아온다** —
+ * 추측한 파라미터 하나 때문에 소싱이 통째로 멈추면 안 된다.
+ */
+const SORT_PREFERRED = "rd";
+const SORT_FALLBACK = "aa";
+
+function buildSearchParams(
+  aid: string,
+  keyword: string,
+  market: DomeMarket,
+  limit: number,
+  sort: string,
+  opts?: { maxMoq?: number },
+): URLSearchParams {
+  const params = new URLSearchParams({
+    ver: "4.1",
+    mode: "getItemList",
+    aid,
+    market,
+    om: "json",
+    kw: keyword,
+    // 넉넉히 받아서 팔 수 있는 가격대를 고른다. 적게 받으면 정렬이 밀어주는
+    // 쪽(대개 최저가)만 보게 되고, 그게 바로 위에 적은 문제였다.
+    sz: String(Math.min(Math.max(limit, 20), 20)),
+    pg: "1",
+    so: sort,
+  });
+  if (opts?.maxMoq != null) params.set("mxq", String(opts.maxMoq));
+  return params;
+}
+
+async function fetchItems(url: string): Promise<DomeItem[] | null> {
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!res.ok) {
+    lastApiError = {
+      code: `HTTP_${res.status}`,
+      message: `도매꾹 응답 실패 (HTTP ${res.status})`,
+      at: new Date().toISOString(),
+    };
+    return null;
+  }
+  const data = (await res.json()) as unknown;
+  // 도매꾹은 오류도 200으로 준다. 여기서 안 잡으면 원인이 통째로 사라진다.
+  if (captureApiError(data)) return null;
+
+  const items = normalizeItems(data);
+  if (items.length > 0) {
+    // 상품에 어떤 필드가 실려 오는지 남긴다. 문서를 못 보는 상황에서
+    // 이걸 모르면 계속 추측으로 짜게 된다.
+    lastItemFields = Object.keys(items[0] as object).sort();
+  }
+  return items;
+}
+
 export async function searchDomeggookMarket(
   keyword: string,
   market: DomeMarket,
@@ -201,55 +269,32 @@ export async function searchDomeggookMarket(
   if (!aid) return [];
 
   const platform: WholesalePlatform = market === "supply" ? "domeme" : "domeggook";
-  const params = new URLSearchParams({
-    ver: "4.1",
-    mode: "getItemList",
-    aid,
-    market,
-    om: "json",
-    kw: keyword,
-    sz: String(Math.min(limit, 20)),
-    pg: "1",
-    so: "aa",
-  });
-  if (opts?.maxMoq != null) {
-    params.set("mxq", String(opts.maxMoq));
-  }
 
   try {
-    const res = await fetch(`${API_BASE}?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!res.ok) {
+    let items = await fetchItems(
+      `${API_BASE}?${buildSearchParams(aid, keyword, market, limit, SORT_PREFERRED, opts)}`,
+    );
+    if (items == null || items.length === 0) {
+      // 추측한 정렬값이 안 먹혔을 수 있다 — 원래 값으로 한 번 더.
+      const fallback = await fetchItems(
+        `${API_BASE}?${buildSearchParams(aid, keyword, market, limit, SORT_FALLBACK, opts)}`,
+      );
+      if (fallback != null && fallback.length > 0) {
+        clearDomeggookError();
+        items = fallback;
+      }
+    }
+    if (items == null) return [];
+
+    if (items.length === 0) {
       lastApiError = {
-        code: `HTTP_${res.status}`,
-        message: `도매꾹 응답 실패 (HTTP ${res.status})`,
+        code: "EMPTY",
+        message: "상품 목록이 비어 있음",
         at: new Date().toISOString(),
       };
       return [];
     }
-    const data = (await res.json()) as unknown;
-    // 도매꾹은 오류도 200으로 준다. 여기서 안 잡으면 원인이 통째로 사라진다.
-    if (captureApiError(data)) return [];
 
-    const items = normalizeItems(data);
-    if (items.length > 0) {
-      // 상품에 어떤 필드가 실려 오는지 한 번은 봐야 한다. 소비자가·권장가가
-      // 있는지에 따라 마진을 실측으로 검증할 수 있느냐가 갈리는데, 문서를
-      // 못 보는 상황에서 이걸 모르면 계속 추측으로 짜게 된다.
-      lastItemFields = Object.keys(items[0] as object).sort();
-    }
-    if (items.length === 0) {
-      // 오류도 없고 상품도 없다 — 응답 구조가 우리가 아는 것과 다를 수 있다.
-      // 최상위 키만 남긴다: 원인을 좁히는 데 이게 결정적인데, 본문 전체를
-      // 남기면 로그가 터지고 공급처 정보까지 흘러 들어간다.
-      lastApiError = {
-        code: "EMPTY",
-        message: `상품 목록이 비어 있음 (응답 키: ${describeShape(data)})`,
-        at: new Date().toISOString(),
-      };
-    }
     return items
       .map((item) => toListing(item, platform))
       .filter((x): x is WholesaleListing => x != null && (opts?.maxMoq == null || x.moq <= opts.maxMoq))
