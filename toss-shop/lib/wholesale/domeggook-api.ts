@@ -163,6 +163,13 @@ export function getLastDomeggookError() {
   return lastApiError;
 }
 
+/** 마지막 응답 상품이 실제로 담고 있던 필드 이름 — 가정이 아니라 실측으로 짜기 위해 */
+let lastItemFields: string[] | null = null;
+
+export function getLastDomeggookItemFields() {
+  return lastItemFields;
+}
+
 export function clearDomeggookError() {
   lastApiError = null;
 }
@@ -227,6 +234,12 @@ export async function searchDomeggookMarket(
     if (captureApiError(data)) return [];
 
     const items = normalizeItems(data);
+    if (items.length > 0) {
+      // 상품에 어떤 필드가 실려 오는지 한 번은 봐야 한다. 소비자가·권장가가
+      // 있는지에 따라 마진을 실측으로 검증할 수 있느냐가 갈리는데, 문서를
+      // 못 보는 상황에서 이걸 모르면 계속 추측으로 짜게 된다.
+      lastItemFields = Object.keys(items[0] as object).sort();
+    }
     if (items.length === 0) {
       // 오류도 없고 상품도 없다 — 응답 구조가 우리가 아는 것과 다를 수 있다.
       // 최상위 키만 남긴다: 원인을 좁히는 데 이게 결정적인데, 본문 전체를

@@ -34,6 +34,7 @@ import type { CatalogProduct, TossShopCategory } from "../types";
 import {
   clearDomeggookError,
   getLastDomeggookError,
+  getLastDomeggookItemFields,
   searchDomeggookMarket,
   searchDomemeUnitWholesale,
 } from "./domeggook-api";
@@ -162,6 +163,10 @@ export type DiscoveryResult = {
   apiSilent: boolean;
   /** 도매꾹이 돌려준 오류 원문 — 있으면 이게 진짜 원인이다 */
   apiError?: { code: string; message: string };
+  /** 응답 상품이 실제로 담고 있던 필드 — 가정이 아니라 실측으로 짜기 위해 */
+  itemFields?: string[];
+  /** 원가 대비 시세 배수 표본 — 왜 걸러졌는지 판단 근거 */
+  priceMultiples?: number[];
 };
 
 export type DiscoveryProgress = {
@@ -258,6 +263,14 @@ export async function discoverWholesaleMarket(input: {
     // 이 둘을 뭉뚱그리면 사장님은 영원히 원인을 모른 채 기다리게 된다.
     apiSilent: scanned > 0 && !anyResponse,
     apiError: getLastDomeggookError() ?? undefined,
+    itemFields: getLastDomeggookItemFields() ?? undefined,
+    priceMultiples: discovered
+      .slice(0, 8)
+      .map((d) =>
+        d.supply[0]?.unitPriceKrw
+          ? Math.round((d.anchorPriceKrw / d.supply[0].unitPriceKrw) * 100) / 100
+          : 0,
+      ),
   };
 }
 
