@@ -320,15 +320,48 @@ export type OrderingHealth = {
   reason?: string;
 };
 
+/**
+ * 로그인이 실패한 뒤 다시 시도하기까지 기다리는 시간.
+ *
+ * ★ 왜 물러서야 하나
+ *
+ * 심박이 10분마다 도는데 아이디·비밀번호가 틀린 상태면 하루 144번 로그인
+ * 실패가 쌓인다. 대부분의 서비스는 그런 패턴을 무차별 대입으로 보고 계정을
+ * 잠근다. 설정이 틀린 것보다 **계정이 잠기는 게 훨씬 나쁘다** — 사장님이
+ * 도매꾹에 직접 로그인하는 것까지 막히기 때문이다.
+ *
+ * 그래서 한 번 실패하면 한 시간 쉰다. 그 사이엔 마지막 실패 사유를 그대로
+ * 돌려주므로 화면에서 원인은 계속 보인다.
+ */
+const LOGIN_RETRY_BACKOFF_MS = 60 * 60 * 1000;
+
+let lastLoginFailure: { at: number; reason: string } | null = null;
+
+/** 설정을 바꿨을 때 즉시 다시 시도할 수 있게 열어둔다 */
+export function clearLoginBackoff(): void {
+  lastLoginFailure = null;
+}
+
 export async function checkOrderingHealth(): Promise<OrderingHealth> {
   if (!isDomeggookOrderingConfigured()) {
     return { configured: false, loginOk: false, balanceKrw: null, reason: "계정 정보 미설정" };
   }
 
+  if (lastLoginFailure && Date.now() - lastLoginFailure.at < LOGIN_RETRY_BACKOFF_MS) {
+    return {
+      configured: true,
+      loginOk: false,
+      balanceKrw: null,
+      reason: `${lastLoginFailure.reason} — 계정 잠금을 피하려고 재시도를 미루는 중`,
+    };
+  }
+
   const login = await loginDomeggook();
   if (!login.ok) {
+    lastLoginFailure = { at: Date.now(), reason: login.reason };
     return { configured: true, loginOk: false, balanceKrw: null, reason: login.reason };
   }
+  lastLoginFailure = null;
 
   const balance = await getEmoneyBalance(login.session);
   if (!balance.ok) {

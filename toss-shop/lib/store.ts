@@ -2246,6 +2246,20 @@ export async function autoPlaceWholesaleOrders(merchantId: string): Promise<{
     return { configured: true, placed: 0, failed: 0, insufficientBalance: false, errors: [] };
   }
 
+  // 로그인 가능 여부는 백오프가 걸린 공용 점검을 통해 확인한다 — 발주 경로가
+  // 따로 로그인을 재시도하면 백오프가 무의미해지고, 실패가 쌓여 계정이 잠긴다.
+  const { checkOrderingHealth } = await import("./wholesale/domeggook-order-api");
+  const health = await checkOrderingHealth();
+  if (!health.loginOk) {
+    return {
+      configured: true,
+      placed: 0,
+      failed: targets.length,
+      insufficientBalance: false,
+      errors: [`로그인 실패: ${health.reason ?? "원인 미상"}`],
+    };
+  }
+
   const login = await loginDomeggook();
   if (!login.ok) {
     return {

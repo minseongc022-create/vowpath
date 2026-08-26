@@ -65,18 +65,19 @@ export async function GET(request: Request) {
     error?: string;
   }> = [];
 
+  // 발주 준비 점검은 **가맹점마다가 아니라 한 번만** 한다. 도매꾹 계정은
+  // 전체가 공유하는 하나라, 가맹점 수만큼 로그인하면 같은 결과를 얻으려고
+  // 실패만 몇 배로 쌓게 된다 — 그게 계정 잠금으로 이어진다.
+  // 읽기 전용이라 아무것도 사지 않는다.
+  let ordering: Awaited<ReturnType<typeof checkOrderingReadiness>> | undefined;
+  try {
+    ordering = await checkOrderingReadiness();
+  } catch (e) {
+    console.warn("[pulse] 발주 준비 점검 실패", e);
+  }
+
   for (const merchantId of merchantIds) {
     try {
-      // 발주 준비가 됐는지 먼저 본다 — 읽기 전용이라 아무것도 사지 않는다.
-      // 주문이 없어도 로그인·잔액이 확인되므로, 첫 고객 주문이 테스트가 되는
-      // 상황을 피할 수 있다.
-      let ordering: Awaited<ReturnType<typeof checkOrderingReadiness>> | undefined;
-      try {
-        ordering = await checkOrderingReadiness();
-      } catch (e) {
-        console.warn("[pulse] 발주 준비 점검 실패", e);
-      }
-
       // 발주가 알림보다 먼저다 — 이번에 발주가 되거나 잔액 부족이 새로
       // 드러나야, 뒤이은 알림이 방금 상태를 보고 판단한다.
       let ordersPlaced: number | undefined;
