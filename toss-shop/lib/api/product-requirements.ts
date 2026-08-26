@@ -36,6 +36,14 @@ export type CategorySalesOption = {
   isOption: boolean;
   valueCandidates: string[];
   unitValues: string[] | null;
+  /**
+   * true인 그룹들 중 **최소 하나는 반드시** 넣어야 등록된다.
+   *
+   * 스펙에 있는 조건인데 종전엔 이 필드를 아예 안 읽었다. 그래서 필수
+   * 옵션(isOption=false)이 하나도 없는 카테고리인데 이 조건이 걸려 있으면,
+   * 옵션을 비운 채 보내고 반려당한다.
+   */
+  isOneOfRequiredGroup: boolean;
 };
 
 export type NoticeItem = { id: number; title: string };
@@ -89,6 +97,7 @@ export async function fetchCategorySalesOptions(
         isOption: o.isOption === true,
         valueCandidates: asArray(o.valueCandidates).map(str).filter(Boolean),
         unitValues: Array.isArray(o.unitValues) ? o.unitValues.map(str).filter(Boolean) : null,
+        isOneOfRequiredGroup: o.isOneOfRequiredGroup === true,
       },
     ];
   });
@@ -113,9 +122,21 @@ export function buildStockOptions(
 ): { options: Array<{ groupName: string; valueName: string }> } | { blocked: string } {
   // isOption === false 가 "필수"다 (토스 문서 표기)
   const required = template.filter((t) => t.isOption === false);
+
+  // "이 중 하나는 반드시" 그룹 — 필수 그룹에 이미 포함된 게 없으면 하나 채운다.
+  // 스펙에 있는 조건인데 종전엔 읽지도 않았다. 그래서 이 조건만 걸린
+  // 카테고리에서는 옵션을 비운 채 보내고 반려당했다.
+  const oneOf = template.filter((t) => t.isOneOfRequiredGroup && !required.includes(t));
+  const chosen = [...required];
+  if (oneOf.length > 0) {
+    // 값을 확실히 채울 수 있는 것부터 고른다 — 단위를 요구하는 건 뒤로.
+    const pickable = oneOf.find((t) => !t.unitValues?.length) ?? oneOf[0];
+    chosen.push(pickable);
+  }
+
   const options: Array<{ groupName: string; valueName: string }> = [];
 
-  for (const t of required) {
+  for (const t of chosen) {
     if (t.unitValues && t.unitValues.length > 0) {
       // ★ 수량은 우리가 **아는** 값이다 — 치수와 다르다
       //

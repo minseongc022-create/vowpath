@@ -10,6 +10,12 @@ import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./
 import { autoMatchCategoryId } from "./category-auto-match";
 import { CATEGORY_RESOLVER_VERSION } from "./category-resolver";
 import {
+  sanitizeBrandName,
+  sanitizeProductName,
+  sanitizeSearchKeywords,
+  validateListingBody,
+} from "./listing-validator";
+import {
   buildNoticeItems,
   buildStockOptions,
   fetchCategorySalesOptions,
@@ -41,6 +47,8 @@ export type TossCreateProductBody = {
     deliveryMethod: "NORMAL";
     deliveryFeeType: "FREE" | "PAID" | "CONDITIONALLY_FREE";
     deliveryType: "NORMAL";
+    /** 상품 준비 기간(일). 미입력 시 토스 기본값 3일 */
+    preparationDays: number;
     minimumPurchasePrice: number;
     deliveryFee: number;
     isJejuAndIslandsMountainsDelivery: boolean;
@@ -134,9 +142,14 @@ export function buildTossCreatePayload(
   const jejuFee = deliveryFree ? 0 : Math.max(DEFAULT_JEJU_FEE_KRW, readSurcharge);
   const islandFee = deliveryFree ? 0 : Math.max(DEFAULT_ISLAND_FEE_KRW, readSurcharge);
 
+  // 토스 스펙에 맞게 정리한다 — 허용되지 않는 글자를 빼기만 하고 뜻은 안 바꾼다.
+  // 도매꾹 제목에는 `%`나 `!` 같은 글자가 흔한데, 하나만 섞여도 반려된다.
+  const safeName = sanitizeProductName(p.name) ?? p.name;
+  const safeBrand = sanitizeBrandName(p.brandName) ?? undefined;
+
   return {
-    name: p.name,
-    brandName: p.brandName,
+    name: safeName,
+    brandName: safeBrand ?? p.brandName,
     categoryId,
     stocks: [
       {
@@ -161,7 +174,15 @@ export function buildTossCreatePayload(
     // 있으면 그걸 쓰고, 없으면 공급처 실사진을 쓴다.
     images: buildImageList(imageUrl, draft.detailPage?.imageUrls),
     exposure: {
-      searchKeywords: p.searchKeywords.length ? p.searchKeywords : [draft.keyword.slice(0, 10)],
+      // ★ 검색 키워드는 공백이 안 되고 10자를 넘을 수 없다
+      //
+      // 우리 대표 키워드는 "주방 집게"처럼 롱테일 구절이라 거의 항상 공백이
+      // 들어간다 — 그대로 보내면 사실상 전 상품이 반려된다. 그래서 구절을
+      // 낱말로 쪼개 넣고 붙여 쓴 형태도 함께 넣는다(둘 다 원래 키워드에서
+      // 나온 말이지 지어낸 게 아니다).
+      searchKeywords: sanitizeSearchKeywords(
+        p.searchKeywords.length ? p.searchKeywords : [draft.keyword],
+      ),
       description: p.description.slice(0, 1500),
     },
     isTaxFree: false,
@@ -169,6 +190,13 @@ export function buildTossCreatePayload(
       deliveryMethod: "NORMAL",
       deliveryFeeType: p.deliveryFeeType,
       deliveryType: "NORMAL",
+      // 공급처가 실제로 며칠 만에 출고하는지를 그대로 약속한다.
+      //
+      // 미입력 시 토스 기본값은 3일이다. 공급처가 그보다 느린데 3일이라고
+      // 약속하면 발송기한 미준수로 페널티가 쌓이고, 배송 인센티브(수수료 0%)도
+      // 날아간다. 반대로 실제보다 길게 잡으면 구매 전환이 떨어진다.
+      // 그래서 판독한 값을 쓰되 스펙 한계(1~14일)를 지킨다.
+      preparationDays: Math.min(14, Math.max(1, p.supplierPolicy?.dispatchDays ?? 3)),
       minimumPurchasePrice: deliveryFree ? 0 : 15000,
       deliveryFee: deliveryFree ? 0 : 2500,
       isJejuAndIslandsMountainsDelivery: true,
@@ -373,6 +401,25 @@ export async function publishListingToToss(input: {
     thumbnailUrl,
     requirements,
   );
+
+  // ★ 보내기 전에 스펙 위반을 잡는다
+  //
+  // 반려는 단순한 재시도로 끝나지 않는다 — 반복되면 셀러 신뢰도에 영향을
+  // 주고, 그 사이 그 상품은 팔리지 않는다. 그래서 "보내보고 결과를 보자"가
+  // 아니라 "보내기 전에 확실히 한다".
+  const violations = validateListingBody(body);
+  if (violations.length > 0) {
+    return {
+      ok: false,
+      simulated: true,
+      returnLocation,
+      category,
+      error: `등록 규격 위반 ${violations.length}건 — ${violations
+        .slice(0, 3)
+        .map((x) => `${x.field}: ${x.reason}`)
+        .join(" / ")}`,
+    };
+  }
 
   try {
     const res = await tossApiPost<{ id?: number; productId?: number }>(

@@ -5121,3 +5121,131 @@ test("상품명: 공급사 원본과 겹치지 않게 우리 브랜드로 구별
   // 빈 제목이어도 무언가는 나와야 한다
   assert.equal(buildDistinctProductName("   ", "에피로드"), "에피로드");
 });
+
+// ── 등록 반려 방지: 토스 OpenAPI 스펙 제약을 그대로 지킨다 ──────────
+
+test("반려 방지: 검색 키워드는 공백이 안 된다 — 롱테일 구절을 쪼개서 살린다", async () => {
+  // ★ 실측으로 드러난 반려 원인
+  //
+  // 토스 스펙: searchKeywords 허용 정규식 [0-9a-zA-Z가-힣]{1,10}
+  // 즉 **공백 불가, 10자 이하**다. 그런데 우리 대표 키워드는 "주방 집게"처럼
+  // 롱테일 구절이라 거의 항상 공백이 들어간다 — 그대로 보내면 사실상
+  // 전 상품이 반려된다.
+  //
+  // 그렇다고 버리면 롱테일 검색 노출을 통째로 잃는다. 구절을 낱말로 쪼개
+  // 넣고 붙여 쓴 형태도 함께 넣는다 — 둘 다 원래 키워드에서 나온 말이다.
+  const { sanitizeSearchKeywords } = await import(
+    "../../toss-shop/lib/api/listing-validator.ts"
+  );
+
+  const out = sanitizeSearchKeywords(["주방 집게"]);
+  assert.ok(out.includes("주방"), "낱말이 살아야");
+  assert.ok(out.includes("집게"), "낱말이 살아야");
+  assert.ok(out.includes("주방집게"), "붙여 쓴 형태도 넣어야 — 실제로 그렇게 검색한다");
+  assert.ok(out.every((k) => /^[0-9a-zA-Z가-힣]{1,10}$/.test(k)), "전부 스펙을 지켜야");
+
+  // 10자를 넘는 낱말은 자르지 않고 버린다 — 자르면 뜻이 달라져 엉뚱한
+  // 검색어에 걸린다
+  assert.ok(!sanitizeSearchKeywords(["가나다라마바사아자차카타"]).length);
+
+  // 특수문자는 제거된다
+  assert.deepEqual(sanitizeSearchKeywords(["특가!"]), ["특가"]);
+
+  // 중복은 한 번만
+  assert.deepEqual(sanitizeSearchKeywords(["집게", "집게"]), ["집게"]);
+});
+
+test("반려 방지: 상품명의 허용되지 않는 글자를 걷어낸다", async () => {
+  // 토스 상품명 정규식: ^[0-9a-zA-Z가-힣 ()\-·\[\]/&+,~.*_#]{1,100}$
+  // 도매꾹 제목에는 `%`, `!` 같은 글자가 흔한데 하나만 섞여도 반려된다.
+  const { sanitizeProductName } = await import(
+    "../../toss-shop/lib/api/listing-validator.ts"
+  );
+
+  // 뜻을 바꾸지 않고 글자만 뺀다
+  assert.equal(sanitizeProductName("보습 크림 100% 순수"), "보습 크림 100 순수");
+  assert.equal(sanitizeProductName("실리콘 매트 특가!"), "실리콘 매트 특가");
+  // 허용된 글자는 그대로 남는다
+  assert.equal(sanitizeProductName("주방 집게 3종 (내열) A/B"), "주방 집게 3종 (내열) A/B");
+  // 100자 제한
+  assert.ok((sanitizeProductName("가".repeat(200)) ?? "").length <= 100);
+  // 글자를 다 빼서 이름이랄 게 안 남으면 등록을 막는다
+  assert.equal(sanitizeProductName("!!!@@@"), null);
+});
+
+test("반려 방지: 등록 규격 위반을 보내기 전에 전부 잡는다", async () => {
+  const { validateListingBody } = await import(
+    "../../toss-shop/lib/api/listing-validator.ts"
+  );
+
+  const good = {
+    name: "에피로드 주방 집게 3종",
+    brandName: "에피로드",
+    categoryId: 14835,
+    stocks: [{ options: [{ groupName: "수량", valueName: "1개" }], remainingCount: 99, isMainPrice: true, originPrice: 15900, salePrice: 12900 }],
+    images: [
+      { type: "THUMBNAIL", url: "https://img/a.jpg", order: "0" },
+      { type: "DESCRIPTION", url: "https://img/b.jpg", order: "1" },
+    ],
+    exposure: { searchKeywords: ["주방", "집게"], description: "설명" },
+    deliveryPolicy: { deliveryFeeType: "FREE", preparationDays: 2 },
+    exchangeReturnPolicy: {
+      exchangeRefundLocationId: 111,
+      refundOneWayDeliveryFee: 3000,
+      exchangeRoundTripDeliveryFee: 6000,
+      applicationMethodDescription: "고객센터로 신청",
+      applicationTermDescription: "수령 후 7일 이내",
+    },
+    notice: { categoryCode: "ETC_GOODS", items: [{ id: 27, content: "실리콘" }] },
+  };
+  assert.deepEqual(validateListingBody(good), [], "규격을 지킨 상품은 통과해야 한다");
+
+  const field = (b) => validateListingBody(b).map((v) => v.field);
+
+  // 판매가가 정상가보다 높으면 거절된다 (스펙: salePrice <= originPrice)
+  assert.ok(
+    field({ ...good, stocks: [{ ...good.stocks[0], salePrice: 99999 }] }).some((f) => f.includes("salePrice")),
+  );
+  // 대표 가격은 정확히 1개
+  assert.ok(
+    field({ ...good, stocks: [{ ...good.stocks[0], isMainPrice: false }] }).some((f) => f.includes("isMainPrice")),
+  );
+  // 썸네일 없음
+  assert.ok(field({ ...good, images: [good.images[1]] }).some((f) => f === "images"));
+  // 상세 이미지 없음
+  assert.ok(field({ ...good, images: [good.images[0]] }).some((f) => f === "images"));
+  // 공백 있는 검색 키워드
+  assert.ok(
+    field({ ...good, exposure: { searchKeywords: ["주방 집게"] } }).some((f) => f.includes("searchKeywords")),
+  );
+  // 브랜드 금지어
+  assert.ok(field({ ...good, brandName: "기타" }).some((f) => f === "brandName"));
+  // 고시정보 누락
+  assert.ok(field({ ...good, notice: { categoryCode: "", items: [] } }).length >= 2);
+  // 준비기간 범위 초과
+  assert.ok(
+    field({ ...good, deliveryPolicy: { preparationDays: 30 } }).some((f) => f.includes("preparationDays")),
+  );
+});
+
+test("반려 방지: '이 중 하나는 필수' 옵션 그룹을 빠뜨리지 않는다", async () => {
+  // 스펙: isOneOfRequiredGroup = true인 그룹 중 최소 1개는 반드시 포함해야
+  // 등록된다. 종전엔 이 필드를 아예 읽지도 않아서, 이 조건만 걸린
+  // 카테고리에서는 옵션을 비운 채 보내고 반려당했다.
+  const { buildStockOptions } = await import(
+    "../../toss-shop/lib/api/product-requirements.ts"
+  );
+
+  const out = buildStockOptions([
+    { key: "색상", isOption: true, valueCandidates: ["검정"], unitValues: null, isOneOfRequiredGroup: true },
+    { key: "사이즈", isOption: true, valueCandidates: ["S"], unitValues: null, isOneOfRequiredGroup: true },
+  ]);
+  assert.equal(out.options.length, 1, "둘 중 하나는 반드시 들어가야 한다");
+  assert.equal(out.options[0].valueName, "검정", "보기 중에서 골라야 한다");
+
+  // 해당 조건이 없으면 선택 옵션은 여전히 채우지 않는다
+  const none = buildStockOptions([
+    { key: "무늬", isOption: true, valueCandidates: ["줄무늬"], unitValues: null, isOneOfRequiredGroup: false },
+  ]);
+  assert.deepEqual(none.options, []);
+});
