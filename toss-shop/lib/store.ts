@@ -2339,3 +2339,55 @@ export async function checkOrderingReadiness(): Promise<{
   const { checkOrderingHealth } = await import("./wholesale/domeggook-order-api");
   return checkOrderingHealth();
 }
+
+
+/**
+ * 수익 파이프라인이 어느 단계에서 멈춰 있는지 한눈에 본다.
+ *
+ * ★ 왜 단계별로 세나
+ *
+ * "이번 달 얼마 벌었다"만 보면 0원일 때 원인을 알 수 없다. 발굴이 안 되는
+ * 건지, 후보는 있는데 게이트에서 걸리는 건지, 등록은 됐는데 안 팔리는
+ * 건지 — 고쳐야 할 곳이 매번 다르다. 단계별 숫자가 있으면 어디가 막혔는지
+ * 바로 보인다.
+ */
+export async function getPipelineFunnel(merchantId: string): Promise<{
+  discovered: number;
+  picks: number;
+  certified: number;
+  drafts: number;
+  published: number;
+  orders: number;
+  bottleneck: string;
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+
+  const discovered = data.discoveredProducts?.length ?? 0;
+  const picks = data.consignmentPicks?.length ?? 0;
+  const drafts = (data.listingDrafts ?? []).length;
+  const published = (data.listingDrafts ?? []).filter((d) => d.status === "published").length;
+  const orders = (data.fulfillmentJobs ?? []).length;
+
+  const { filterJarvisCertifiedPicks } = await import("./seller-engine/jarvis-engine");
+  const { filterCertainPicks } = await import("./seller-engine/certainty-gate");
+  const scored = filterJarvisCertifiedPicks(data.consignmentPicks ?? []);
+  const certified = filterCertainPicks(scored).certain.length;
+
+  // 가장 앞에서 끊긴 곳이 진짜 병목이다. 뒤쪽만 보면 "등록이 0개"라고만
+  // 알게 되는데, 원인은 그보다 앞 단계에 있는 경우가 대부분이다.
+  const bottleneck =
+    discovered === 0
+      ? "발굴 0 — 도매꾹에서 상품을 못 가져오고 있음"
+      : picks === 0
+        ? "후보 0 — 발굴한 상품이 소싱 후보로 안 올라감"
+        : certified === 0
+          ? "확실성 게이트 통과 0 — 후보는 있으나 근거가 실측이 아님"
+          : published === 0
+            ? "등록 0 — 통과한 후보가 토스에 안 올라감"
+            : orders === 0
+              ? "주문 0 — 등록은 됐고 이제 노출·판매를 기다리는 단계"
+              : "정상 — 주문까지 흐르고 있음";
+
+  return { discovered, picks, certified, drafts, published, orders, bottleneck };
+}

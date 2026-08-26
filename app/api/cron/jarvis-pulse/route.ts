@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   autoPlaceWholesaleOrders,
   checkOrderingReadiness,
+  getPipelineFunnel,
   autoRegisterReturnLocations,
   dispatchOwnerTodoAlerts,
   listMerchantIds,
@@ -62,6 +63,7 @@ export async function GET(request: Request) {
     ordersFailed?: number;
     emoneyInsufficient?: boolean;
     ordering?: { configured: boolean; loginOk: boolean; balanceKrw: number | null; reason?: string };
+    funnel?: Awaited<ReturnType<typeof getPipelineFunnel>>;
     error?: string;
   }> = [];
 
@@ -121,9 +123,18 @@ export async function GET(request: Request) {
         console.warn("[pulse] 상점 운영 실패", e);
       }
 
+      // 파이프라인이 어디서 멈춰 있는지 — 매출 0일 때 원인을 짚는 유일한 근거
+      let funnel: Awaited<ReturnType<typeof getPipelineFunnel>> | undefined;
+      try {
+        funnel = await getPipelineFunnel(merchantId);
+      } catch (e) {
+        console.warn("[pulse] 파이프라인 집계 실패", e);
+      }
+
       results.push({
         merchantId,
         alertsSent: alerts.sent,
+        funnel,
         priceCuts,
         hidden,
         returnLocationsRegistered,
