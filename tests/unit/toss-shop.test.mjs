@@ -5356,3 +5356,28 @@ test("전략: 개당 순이익 금액이 인증 게이트에 반영된다", asyn
   assert.equal(good.certified, true, "충분하면 인증돼야 한다");
   assert.ok(good.confidencePct > cheap.confidencePct, "신뢰도도 더 높아야 한다");
 });
+
+test("카테고리: 붙어 있는 낱말도 알아본다 — 실제 토스 식품 트리로 검증", async () => {
+  // ★ 실측한 토스 식품 대분류로 검증한다 (추측한 이름이 아니다)
+  //
+  // 상품명은 낱말이 붙어서 온다. "볶음참깨"는 "참깨"가 아니고 "컵라면"은
+  // "라면"이 아니다. 사전을 정확히 일치하는 열쇠로만 찾으면 전부 놓친다.
+  const { __pickBranchByNameForTest } = await import(
+    "../../toss-shop/lib/api/category-auto-match.ts"
+  );
+  const food = [
+    "가공/즉석식품", "가루/조미료/향신료", "건강식품", "냉장/냉동식품",
+    "생수/음료", "스낵/간식", "신선식품", "유제품/아이스크림/디저트",
+    "장/소스", "전통주", "커피/차",
+  ].map((n, i) => ({ id: 100 + i, name: n, isLeaf: false }));
+
+  const pick = (title) =>
+    __pickBranchByNameForTest({ title, keyword: "", category: "food", options: food, isRoot: false })
+      .node?.name;
+
+  assert.equal(pick("국내산 볶음참깨 500g"), "가루/조미료/향신료");
+  assert.equal(pick("컵라면 12개입"), "가공/즉석식품");
+  assert.equal(pick("냉동만두 1kg"), "냉장/냉동식품");
+  assert.equal(pick("원두커피 1kg"), "커피/차");
+  assert.equal(pick("유산균 30포"), "건강식품");
+});
