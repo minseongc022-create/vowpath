@@ -999,9 +999,22 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
   if (data.consignmentDate === picksKey && data.consignmentPicks?.length) {
     return data.consignmentPicks;
   }
-  // 발굴로 모은 실측 표본을 앞에 둔다 — 데모 시드보다 먼저 보게 해서,
-  // 후보가 실측 공급처·원가 위에서 만들어지게 한다.
-  const catalog = [...(data.discoveredProducts ?? []), ...store.catalog];
+  // ★ 실측 표본이 있으면 **그것만** 쓴다 — 데모 시드를 섞지 않는다
+  //
+  // 종전엔 시드 카탈로그를 뒤에 붙여 같이 넘겼다. 그런데 시드는 데모용이라
+  // 공급처도 원가도 실측이 아니다. 그걸로 만들어진 후보는:
+  //  · 자기 공급처(sourceListing)가 없어 하류가 도매를 다시 검색하고,
+  //    그 결과 제안가와 원가가 어긋나 마진이 0.2%로 나온다.
+  //  · 저마진이 리스크로 잡혀 안전점수가 72로 떨어지고, 종합점수까지
+  //    끌어내려 **절대 인증되지 않는다.**
+  //
+  // 그러면서 후보 자리(6개)를 차지한다. 실측 표본으로 채웠으면 인증됐을
+  // 자리를, 인증될 수 없는 후보가 먹고 있었던 것이다.
+  //
+  // 시드는 발굴이 아직 아무것도 못 찾았을 때만 쓴다 — 그때는 화면이 비는
+  // 것보다 데모라도 보여주는 게 낫다.
+  const discovered = data.discoveredProducts ?? [];
+  const catalog = discovered.length > 0 ? discovered : store.catalog;
   const picks = await generateConsignmentPicks(catalog, today, store.marketKeywords, integrationCtx);
   data.consignmentPicks = picks;
   data.consignmentDate = picksKey;
