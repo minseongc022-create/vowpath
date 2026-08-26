@@ -2481,7 +2481,14 @@ test("category auto-match: 모델이 트리에 없는 id를 답하면 지어낸 
   assert.equal(result.confident, false, "옵션에 없는 id는 신뢰하면 안 된다");
 });
 
-test("category auto-match: OPENAI_API_KEY 없으면 비활성 (정적 매핑으로 폴백)", async (t) => {
+test("category auto-match: 트리를 못 읽으면 카테고리를 지어내지 않는다", async (t) => {
+  // 종전엔 OPENAI_API_KEY가 없으면 매칭 자체를 포기했다. 그런데 크레딧이
+  // 떨어지자(429) 등록이 통째로 멈춰서, 이제 AI가 안 되면 이름 대조로
+  // 실제 트리에서 고른다.
+  //
+  // 그래도 변하지 않아야 하는 것: **트리를 못 읽으면 아무것도 고르지 않는다.**
+  // 실제 선택지를 모르는 채 카테고리를 만들어내면 잘못된 카테고리로 등록돼
+  // 노출 저하·페널티가 난다. 못 고르는 편이 낫다(fail-closed).
   const { autoMatchCategoryId } = await import("../../toss-shop/lib/api/category-auto-match.ts");
   const hadKey = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;
@@ -2492,10 +2499,11 @@ test("category auto-match: OPENAI_API_KEY 없으면 비활성 (정적 매핑으�
   const result = await autoMatchCategoryId({
     merchantId: "m1",
     config: { accessKey: "k", secretKey: "s", sandbox: true, partnerName: "effiroad" },
-    title: "테스트", keyword: "테스트",
+    title: "테스트", keyword: "테스트", category: "home",
   });
-  assert.equal(result.confident, false);
-  assert.match(result.reason, /비활성/);
+  assert.equal(result.confident, false, "트리 조회가 실패하면 확신할 수 없다");
+  assert.equal(result.categoryId, undefined, "카테고리 ID를 지어내면 안 된다");
+  assert.ok(result.reason, "왜 못 골랐는지 사유가 남아야 한다");
 });
 
 test("category resolver: auto_match가 정적 매핑보다 우선하지만 명시 지정보다는 아래", async (t) => {
@@ -4746,4 +4754,66 @@ test("상위셀러 전술: 대표아이템 승리 전략도 카탈로그 전략�
     representativeItemScore: 20,
   });
   assert.equal(applied(weak), false, "전략 점수가 미달이면 여전히 탈락해야");
+});
+
+test("카테고리: AI 없이도 실제 트리에서 고른다 — 단, 지어내지는 않는다", async () => {
+  // ★ 왜 필요한가
+  //
+  // OpenAI 크레딧이 떨어지자(429 insufficient_quota) 카테고리 매칭이 전부
+  // 실패했고, 그 순간 상품 등록이 통째로 멈췄다. 카테고리 하나 고르는 일로
+  // 매출 파이프라인 전체가 외부 유료 API에 묶여 있으면 안 된다.
+  //
+  // 그렇다고 아무 카테고리나 골라선 안 된다 — 잘못된 카테고리 등록은
+  // 노출 저하·페널티다. 실제 트리의 선택지 중에서만, 상품명과 실제로
+  // 겹치는 낱말이 있을 때만 고른다.
+  const { __pickBranchByNameForTest } = await import(
+    "../../toss-shop/lib/api/category-auto-match.ts"
+  );
+
+  const roots = [
+    { id: 1, name: "식품", isLeaf: false },
+    { id: 2, name: "뷰티", isLeaf: false },
+    { id: 3, name: "생활/주방", isLeaf: false },
+    { id: 4, name: "디지털/가전", isLeaf: false },
+  ];
+
+  // 최상위는 내부 분류로 좁힌다
+  const root = __pickBranchByNameForTest({
+    title: "실리콘 주방 집게 3종", keyword: "주방 집게",
+    category: "home", options: roots, isRoot: true,
+  });
+  assert.equal(root.node?.id, 3, "생활/주방으로 내려가야");
+
+  const beauty = __pickBranchByNameForTest({
+    title: "수분 세럼 50ml", keyword: "보습 세럼",
+    category: "beauty", options: roots, isRoot: true,
+  });
+  assert.equal(beauty.node?.id, 2, "뷰티로 내려가야");
+
+  // 하위는 상품명과 겹치는 낱말이 있을 때만 내려간다
+  const kids = [
+    { id: 31, name: "가구/홈데코", isLeaf: false },
+    { id: 32, name: "주방용품", isLeaf: false },
+    { id: 33, name: "청소용품", isLeaf: false },
+  ];
+  const deep = __pickBranchByNameForTest({
+    title: "실리콘 주방 집게 3종", keyword: "주방 집게",
+    category: "home", options: kids, isRoot: false,
+  });
+  assert.equal(deep.node?.id, 32, "「주방」이 겹치는 주방용품으로 가야");
+
+  // ⚠️ 겹치는 게 없으면 고르지 않는다 — 이게 페널티를 막는 안전장치다
+  const nothing = __pickBranchByNameForTest({
+    title: "무선 이어폰", keyword: "이어폰",
+    category: "digital", options: kids, isRoot: false,
+  });
+  assert.equal(nothing.node, undefined, "겹치는 이름이 없으면 고르지 않아야 한다");
+  assert.ok(nothing.why, "왜 못 골랐는지 사유가 남아야");
+
+  // 최상위에서 맞는 이름이 없어도 지어내지 않는다
+  const noRoot = __pickBranchByNameForTest({
+    title: "무선 이어폰", keyword: "이어폰",
+    category: "health", options: [{ id: 9, name: "식품", isLeaf: false }], isRoot: true,
+  });
+  assert.equal(noRoot.node, undefined, "맞는 최상위가 없으면 고르지 않아야 한다");
 });

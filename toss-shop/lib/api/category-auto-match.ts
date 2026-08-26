@@ -39,8 +39,74 @@ export type CategoryAutoMatchResult = {
 };
 
 export function autoCategoryMatchEnabled(): boolean {
-  if (!process.env.OPENAI_API_KEY?.trim()) return false;
+  // LLM 키가 없어도 이름 대조 폴백으로 내려갈 수 있으므로 켜둔다.
+  // (종전엔 키가 없으면 매칭 자체를 포기했다 — 그러면 등록이 통째로 막힌다.)
   return process.env.JARVIS_AUTO_CATEGORY !== "false";
+}
+
+/**
+ * 내부 6분류 → 토스 최상위 카테고리 이름의 단서.
+ *
+ * 최상위만 이 표를 쓴다. 최상위는 15개 남짓이고 우리 분류와 뜻이 거의
+ * 그대로 겹쳐서 이름 대조가 확실하기 때문이다. 그 아래로는 이 표를 안 쓴다 —
+ * 깊은 곳은 "세럼이 뷰티 밑"처럼 이름만으로는 알 수 없어서, 상품명과 실제로
+ * 겹치는 낱말이 있을 때만 내려간다.
+ */
+const ROOT_NAME_HINTS: Record<string, string[]> = {
+  food: ["식품", "먹거리", "신선", "가공식품"],
+  beauty: ["뷰티", "화장품", "미용"],
+  home: ["생활", "주방", "가구", "홈", "인테리어"],
+  digital: ["디지털", "가전", "컴퓨터", "모바일", "전자"],
+  fashion: ["패션", "의류", "잡화", "신발", "가방"],
+  health: ["건강", "헬스", "의료", "영양"],
+};
+
+/** 낱말 단위로 쪼갠다 — 한글/숫자/영문 덩어리만 남긴다 */
+function tokens(text: string): string[] {
+  return (text.match(/[가-힣]{2,}|[a-zA-Z]{3,}|\d+/g) ?? []).map((t) => t.toLowerCase());
+}
+
+/**
+ * 이름 대조로 한 단계를 고른다 — LLM 없이.
+ *
+ * ★ 왜 필요한가
+ * OpenAI 크레딧이 떨어지자 카테고리 매칭이 전부 실패하고, 그 순간 등록이
+ * 통째로 멈췄다(429 insufficient_quota). 카테고리 고르기 하나 때문에 매출
+ * 파이프라인 전체가 외부 유료 API에 묶여 있으면 안 된다.
+ *
+ * ★ 지어내지 않는다
+ * 실제 트리의 선택지 중에서만 고르고, 상품명과 **실제로 겹치는 낱말**이
+ * 있을 때만 고른다. 겹치는 게 없으면 고르지 않는다 — 잘못된 카테고리 등록은
+ * 노출 저하·페널티로 이어지므로, 못 고르는 편이 낫다(fail-closed).
+ */
+function pickBranchByName(input: {
+  title: string;
+  keyword: string;
+  category?: string;
+  options: TossCategoryNode[];
+  isRoot: boolean;
+}): { node?: TossCategoryNode; why?: string } {
+  if (input.isRoot && input.category) {
+    const hints = ROOT_NAME_HINTS[input.category] ?? [];
+    const hit = input.options.find((o) => hints.some((h) => o.name.includes(h)));
+    if (hit) return { node: hit };
+    return { why: `최상위에서 "${input.category}"에 맞는 이름을 못 찾음` };
+  }
+
+  const words = new Set([...tokens(input.title), ...tokens(input.keyword)]);
+  let best: { node: TossCategoryNode; score: number } | undefined;
+  for (const o of input.options) {
+    let score = 0;
+    for (const t of tokens(o.name)) {
+      // 양방향 부분일치: "주방용품"과 "주방", "조리도구"와 "조리"가 걸리게
+      for (const w of words) {
+        if (t === w || t.includes(w) || w.includes(t)) score += 1;
+      }
+    }
+    if (score > 0 && (!best || score > best.score)) best = { node: o, score };
+  }
+  if (best) return { node: best.node };
+  return { why: "상품명과 겹치는 카테고리 이름이 없음" };
 }
 
 // 트리 구조는 자주 바뀌지 않는다 — 프로세스 생애주기 동안 캐시해 상품마다
@@ -139,8 +205,11 @@ export async function autoMatchCategoryId(input: {
   config: TossApiConfig;
   title: string;
   keyword: string;
+  /** 내부 6분류 — 최상위 카테고리를 이름으로 좁힐 때만 쓴다 */
+  category?: string;
 }): Promise<CategoryAutoMatchResult> {
   const base = { engineVersion: CATEGORY_AUTO_MATCH_VERSION };
+  let matchedByName = false;
 
   if (!autoCategoryMatchEnabled()) {
     return { ...base, confident: false, path: [], reason: "카테고리 자동 매칭 비활성 (OPENAI_API_KEY 필요)" };
@@ -166,12 +235,38 @@ export async function autoMatchCategoryId(input: {
       return { ...base, confident: false, path, reason: "더 내려갈 하위 카테고리가 없음" };
     }
 
-    const { node, confident, why } = await pickBranch({
+    // 1순위 LLM. 실패하면 이름 대조로 한 번 더 시도한다.
+    //
+    // LLM만 믿으면 크레딧이 떨어지는 순간 등록이 통째로 멈춘다 — 실제로
+    // 그렇게 멈췄다(OpenAI 429 "no credits remaining"). 카테고리 하나 고르는
+    // 일로 매출 파이프라인 전체가 외부 유료 API에 묶여 있으면 안 된다.
+    const llm = await pickBranch({
       title: input.title,
       keyword: input.keyword,
       options,
     });
-    if (!confident || !node) {
+
+    let node = llm.confident ? llm.node : undefined;
+    let via = "AI";
+    let why = llm.why;
+
+    if (!node) {
+      const byName = pickBranchByName({
+        title: input.title,
+        keyword: input.keyword,
+        category: input.category,
+        options,
+        isRoot: depth === 0,
+      });
+      if (byName.node) {
+        node = byName.node;
+        via = "이름 대조";
+      } else {
+        why = `${why ?? "AI 실패"} / 이름 대조도 실패 — ${byName.why}`;
+      }
+    }
+
+    if (!node) {
       return {
         ...base,
         confident: false,
@@ -181,11 +276,18 @@ export async function autoMatchCategoryId(input: {
           (why ? ` — ${why}` : ""),
       };
     }
+    if (via === "이름 대조") matchedByName = true;
 
     path.push(node.name);
 
     if (node.isLeaf) {
-      return { ...base, categoryId: node.id, confident: true, path, reason: `실시간 매칭: ${path.join(" > ")}` };
+      return {
+        ...base,
+        categoryId: node.id,
+        confident: true,
+        path,
+        reason: `실시간 매칭${matchedByName ? "(이름 대조 포함)" : ""}: ${path.join(" > ")}`,
+      };
     }
 
     parentId = node.id;
@@ -193,3 +295,6 @@ export async function autoMatchCategoryId(input: {
 
   return { ...base, confident: false, path, reason: `카테고리 트리가 ${MAX_DEPTH}단계 넘게 깊음 — 안전하게 중단` };
 }
+
+/** 테스트 전용 — 이름 대조 폴백을 직접 검증한다 */
+export const __pickBranchByNameForTest = pickBranchByName;

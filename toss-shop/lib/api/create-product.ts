@@ -8,6 +8,7 @@ import {
 } from "./exchange-return-location";
 import { isCategoryResolved, resolveCategoryId, type CategoryDecision } from "./category-resolver";
 import { autoMatchCategoryId } from "./category-auto-match";
+import { CATEGORY_RESOLVER_VERSION } from "./category-resolver";
 
 /** Minimal Toss FEP product create body — categoryId required at publish time. */
 export type TossCreateProductBody = {
@@ -133,9 +134,40 @@ export async function publishListingToToss(input: {
 }): Promise<PublishListingResult> {
   const payload = input.draft.listingPayload;
 
-  // 명시 지정이 없으면, 이 상품에 맞는 실제 리프 카테고리를 실시간으로
-  // 찾아본다. 실패해도 조용히 정적 매핑·기본값으로 폴백한다 —
-  // category-resolver.ts가 그 폴백을 담당한다.
+  // ★ 순서: 값싼 판정 먼저, 비싼 조회 나중
+  //
+  // 반품지 결정은 설정만 보는 국소 판정이라 즉시 끝나고, 실패하면 등록
+  // 자체가 불가능하다. 반면 카테고리 자동 매칭은 토스 트리를 여러 단계
+  // 내려가며 조회하고 단계마다 AI를 부른다. 비싼 쪽을 먼저 하면, 어차피
+  // 반품지에서 막힐 건에 매번 그 비용을 태우게 된다.
+  const returnLocation = resolveReturnLocation({
+    // 사람이 승인 화면에서 지정한 값이 최우선. 없으면 반품 물류 두뇌가
+    // 공급처 주소를 대조해 확정해둔 값을 쓴다 — 매핑 JSON 없이도 맞게 걸린다.
+    explicitLocationId: input.exchangeReturnLocationId ?? payload.resolvedReturnLocationId,
+    supplierPlatform: payload.supplierPlatform,
+    supplierId: payload.supplierId,
+    pickMode: input.draft.pickMode,
+    strict: input.strictReturnLocation,
+    returnHandling: payload.returnHandling,
+  });
+
+  if (!isReturnLocationResolved(returnLocation)) {
+    // 매핑 오류(MAP_INVALID)·STRICT 누락(UNMAPPED)은 설정을 고쳐야 하는 문제라
+    // simulated로 되돌려 초안을 approved 상태로 남긴다. 고친 뒤 재실행하면 된다.
+    //
+    // 여기서 끊기면 카테고리 조회는 시작도 안 했다 — 그게 이 순서의 목적이다.
+    return {
+      ok: false,
+      simulated: true,
+      returnLocation,
+      category: { engineVersion: CATEGORY_RESOLVER_VERSION, warnings: [], source: "unresolved" },
+      error: returnLocation.error?.message ?? "교환·반품지 결정 실패",
+    };
+  }
+
+  // 반품지가 확정된 뒤에야 카테고리를 찾는다. 명시 지정이 없으면 이 상품에
+  // 맞는 실제 리프 카테고리를 트리에서 내려가며 찾고, 실패하면 정적 매핑·
+  // 기본값으로 폴백한다 — category-resolver.ts가 그 폴백을 담당한다.
   let autoMatch: { categoryId: number; path: string[] } | undefined;
   // 자동 매칭이 왜 실패했는지 들고 다닌다. 종전엔 버렸는데, 그러면 등록이
   // 막혔을 때 "카테고리 ID가 없다"까지만 알고 그 앞단이 키가 없어서인지,
@@ -147,6 +179,7 @@ export async function publishListingToToss(input: {
       config: input.config,
       title: payload.name,
       keyword: input.draft.keyword,
+      category: payload.category,
     });
     if (matched.confident && matched.categoryId) {
       autoMatch = { categoryId: matched.categoryId, path: matched.path };
@@ -161,16 +194,6 @@ export async function publishListingToToss(input: {
     autoMatch,
     autoMatchReason,
   });
-  const returnLocation = resolveReturnLocation({
-    // 사람이 승인 화면에서 지정한 값이 최우선. 없으면 반품 물류 두뇌가
-    // 공급처 주소를 대조해 확정해둔 값을 쓴다 — 매핑 JSON 없이도 맞게 걸린다.
-    explicitLocationId: input.exchangeReturnLocationId ?? payload.resolvedReturnLocationId,
-    supplierPlatform: payload.supplierPlatform,
-    supplierId: payload.supplierId,
-    pickMode: input.draft.pickMode,
-    strict: input.strictReturnLocation,
-    returnHandling: payload.returnHandling,
-  });
 
   if (!isCategoryResolved(category)) {
     return {
@@ -179,18 +202,6 @@ export async function publishListingToToss(input: {
       returnLocation,
       category,
       error: category.error?.message ?? "토스 카테고리 결정 실패",
-    };
-  }
-
-  if (!isReturnLocationResolved(returnLocation)) {
-    // 매핑 오류(MAP_INVALID)·STRICT 누락(UNMAPPED)은 설정을 고쳐야 하는 문제라
-    // simulated로 되돌려 초안을 approved 상태로 남긴다. 고친 뒤 재실행하면 된다.
-    return {
-      ok: false,
-      simulated: true,
-      returnLocation,
-      category,
-      error: returnLocation.error?.message ?? "교환·반품지 결정 실패",
     };
   }
 
