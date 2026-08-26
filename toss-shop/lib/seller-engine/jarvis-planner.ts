@@ -66,6 +66,23 @@ const TOOLS = [
   {
     type: "function" as const,
     function: {
+      name: "operate",
+      description:
+        "이미 올린 상품을 손본다. 안 팔리는 상품 가격을 내리고, 최저가에서도 안 팔리면 숨긴다. '안 팔리는 거 가격 내려', '상품 정리해', '운영 좀 해', '할인 걸어' 등.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "register_returns",
+      description: "대기 중인 공급처 반품지를 토스에 직접 등록한다. '반품지 등록해줘' 등.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "status",
       description: "현재 상황 보고. '어떻게 돼가', '상태', '잘 되고 있어?' 등.",
       parameters: { type: "object", properties: {}, required: [] },
@@ -234,6 +251,8 @@ function toAction(
     case "sync_return_locations":
     case "test_alert":
     case "ack_alerts":
+    case "operate":
+    case "register_returns":
       return { name };
     case "discover":
       return { name: "discover", deep: args.deep === true };

@@ -27,7 +27,11 @@ export type JarvisActionName =
   | ChatIntent
   | "discover"
   | "set_goal"
-  | "ack_alerts";
+  | "ack_alerts"
+  /** 올린 상품 손보기 — 안 팔리면 가격 인하, 바닥에서도 안 팔리면 숨김 */
+  | "operate"
+  /** 대기 중인 공급처 반품지를 토스에 직접 등록 */
+  | "register_returns";
 
 export type JarvisAction = {
   name: JarvisActionName;
@@ -103,6 +107,8 @@ export const ACTION_LABELS: Record<JarvisActionName, string> = {
   test_alert: "문자 보내보는 중",
   set_goal: "목표 다시 잡는 중",
   ack_alerts: "알림 끄는 중",
+  operate: "안 팔리는 상품 손보는 중",
+  register_returns: "반품지 등록하는 중",
   talk: "생각하는 중",
 };
 
@@ -124,6 +130,12 @@ const ACK_PATTERNS =
 
 const GOAL_PATTERNS = /(목표|벌게|벌어|벌자|달성)/;
 
+const OPERATE_PATTERNS =
+  /(안\s*팔리|안팔리|가격).{0,10}(내려|낮춰|조정|손봐|봐줘)|(재고|상품).{0,6}(정리|점검)|운영\s*(해|좀)|(할인|세일).{0,6}(해|걸어)/;
+
+const RETURN_REG_PATTERNS =
+  /반품지.{0,10}(등록해|올려|넣어|추가해|처리해)|반품지\s*자동/;
+
 /**
  * 정규식만으로 잡히는 지시를 읽는다.
  *
@@ -139,6 +151,10 @@ export function parseExtraAction(message: string): JarvisAction | null {
     const goalKrw = readGoalKrw(text);
     if (goalKrw) return { name: "set_goal", goalKrw };
   }
+  // 반품지 등록이 알림 끄기보다 먼저다 — "반품지 등록해줘"의 '등록'이
+  // 확인으로 읽히면 시킨 일이 통째로 사라진다.
+  if (RETURN_REG_PATTERNS.test(text)) return { name: "register_returns" };
+  if (OPERATE_PATTERNS.test(text)) return { name: "operate" };
   if (ACK_PATTERNS.test(text)) return { name: "ack_alerts" };
   if (DISCOVER_PATTERNS.test(text)) {
     return { name: "discover", deep: /(싹\s*다|전부|구석구석|샅샅이|광범위|더\s*넓게)/.test(text) };

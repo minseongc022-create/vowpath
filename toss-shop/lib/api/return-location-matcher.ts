@@ -255,3 +255,60 @@ export function findLocationByAddress(
   }
   return null;
 }
+
+/**
+ * 한 줄 주소를 토스가 요구하는 세 칸으로 나눈다.
+ *
+ * ★ 왜 필요한가
+ *
+ * 공급처 안내에서 읽어 온 주소는 보통 한 덩어리다:
+ *   "(06234) 서울 강남구 테헤란로 123, 5층 501호"
+ * 그런데 토스 반품지 등록은 우편번호·주소·상세주소를 각각 받는다. 한 덩어리로
+ * 밀어 넣으면 거절되거나, 더 나쁘게는 이상한 위치로 등록된다.
+ *
+ * ★ 우편번호는 절대 지어내지 않는다
+ *
+ * 못 읽으면 빈 값으로 돌려주고, 호출 쪽이 등록을 포기한다. 우편번호를
+ * 추측해서 넣으면 반품 택배가 실제로 엉뚱한 동네로 간다 — 그건 상품값을
+ * 통째로 잃는 일이고, 되돌릴 방법이 없다.
+ */
+export function splitKoreanAddress(raw: string): {
+  zipCode: string;
+  address: string;
+  detailAddress: string;
+} {
+  let text = (raw ?? "").trim();
+
+  // 우편번호 — 괄호 안이든 앞머리든, 5자리 숫자만 인정한다.
+  // 6자리 구우편번호(123-456)는 토스가 안 받으므로 잡지 않는다.
+  let zipCode = "";
+  const paren = text.match(/\(\s*(\d{5})\s*\)/);
+  if (paren) {
+    zipCode = paren[1];
+    text = text.replace(paren[0], " ").trim();
+  } else {
+    const lead = text.match(/^\s*(\d{5})\s+(?=[가-힣])/);
+    if (lead) {
+      zipCode = lead[1];
+      text = text.slice(lead[0].length).trim();
+    }
+  }
+
+  // 상세주소 — 쉼표 뒤가 관례다. 쉼표가 없으면 동·호·층으로 시작하는 토막을 찾는다.
+  let address = text;
+  let detailAddress = "";
+  const comma = text.indexOf(",");
+  if (comma > 0) {
+    address = text.slice(0, comma).trim();
+    detailAddress = text.slice(comma + 1).trim();
+  } else {
+    // "테헤란로 123 5층 501호" 처럼 쉼표가 없는 경우
+    const m = text.match(/\s((?:[\d-]+동\s*)?(?:지하\s*)?[\dB]+층.*|[\d-]+동\s.*|[\d-]+호\b.*)$/);
+    if (m) {
+      address = text.slice(0, m.index).trim();
+      detailAddress = m[1].trim();
+    }
+  }
+
+  return { zipCode, address: address.replace(/\s+/g, " ").trim(), detailAddress };
+}

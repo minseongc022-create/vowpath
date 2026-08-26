@@ -4162,3 +4162,152 @@ test("도매꾹 응답: 바깥 껍질이 한 겹 더 있어도 상품을 읽는�
   assert.equal(mod.__readItemsForTest({ domeggook: { list: {} } }).length, 0);
   assert.equal(mod.__readItemsForTest({ menu: { item: { label: "메뉴" } } }).length, 0);
 });
+
+// ── 상점 운영 두뇌 ────────────────────────────────────────────
+
+test("운영: 잘 팔리는 상품은 건드리지 않는다", async () => {
+  const { decideForSku } = await import("../../toss-shop/lib/seller-engine/store-operations.ts");
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  const ago = (d) => new Date(now - d * 86_400_000).toISOString();
+
+  const selling = {
+    productId: 1, productItemId: 11, name: "잘 팔리는 상품",
+    salePriceKrw: 12000, originPriceKrw: 15000, landedCostKrw: 5000,
+    listedAt: ago(30), lastSoldAt: ago(1), unitsSold30d: 12,
+  };
+  // 잘 되는 걸 건드리는 게 가장 흔한 실수다. 가격을 내리면 지금 나는 이익만 깎인다.
+  assert.equal(decideForSku(selling, now).kind, "hold");
+});
+
+test("운영: 안 팔리면 내리되 손해 구간으로는 절대 안 내린다", async () => {
+  const { decideForSku, priceFloorKrw } = await import(
+    "../../toss-shop/lib/seller-engine/store-operations.ts"
+  );
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  const ago = (d) => new Date(now - d * 86_400_000).toISOString();
+  const base = {
+    productId: 1, productItemId: 11, name: "안 팔리는 상품",
+    salePriceKrw: 20000, originPriceKrw: 25000, landedCostKrw: 8000,
+    listedAt: ago(20), unitsSold30d: 0,
+  };
+
+  const a = decideForSku(base, now);
+  assert.equal(a.kind, "cut_price");
+  const floor = priceFloorKrw(base);
+  assert.ok(a.toPriceKrw < base.salePriceKrw, "내려야 한다");
+  assert.ok(a.toPriceKrw >= floor, `바닥(${floor}) 밑으로 내리면 팔릴수록 손해다`);
+
+  // 이미 바닥이면 더 내리지 않고, 오래 됐으면 숨긴다
+  const atFloor = { ...base, salePriceKrw: floor, listedAt: ago(30) };
+  assert.equal(decideForSku(atFloor, now).kind, "hide");
+  // 바닥이지만 아직 얼마 안 됐으면 지켜본다
+  assert.equal(decideForSku({ ...atFloor, listedAt: ago(7) }, now).kind, "hold");
+});
+
+test("운영: 원가를 모르면 가격을 만지지 않는다", async () => {
+  const { decideForSku, priceFloorKrw } = await import(
+    "../../toss-shop/lib/seller-engine/store-operations.ts"
+  );
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  const ago = (d) => new Date(now - d * 86_400_000).toISOString();
+  const noCost = {
+    productId: 1, productItemId: 11, name: "원가 모름",
+    salePriceKrw: 20000, originPriceKrw: 25000,
+    listedAt: ago(30), unitsSold30d: 0,
+  };
+  // 얼마까지 내려도 되는지 모른 채 내리면, 팔릴수록 손해가 나는데
+  // 그걸 알아채는 데 몇 주가 걸린다.
+  assert.equal(priceFloorKrw(noCost), null);
+  assert.equal(decideForSku(noCost, now).kind, "hold");
+});
+
+test("운영: 방금 만진 상품은 결과를 보고 나서 다시 만진다", async () => {
+  const { decideForSku } = await import("../../toss-shop/lib/seller-engine/store-operations.ts");
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  const ago = (d) => new Date(now - d * 86_400_000).toISOString();
+  const justChanged = {
+    productId: 1, productItemId: 11, name: "어제 내린 상품",
+    salePriceKrw: 20000, originPriceKrw: 25000, landedCostKrw: 8000,
+    listedAt: ago(30), unitsSold30d: 0, lastPriceChangeAt: ago(1),
+  };
+  // 매일 흔들면 무엇이 효과였는지 영영 모른다
+  assert.equal(decideForSku(justChanged, now).kind, "hold");
+  assert.equal(decideForSku({ ...justChanged, lastPriceChangeAt: ago(5) }, now).kind, "cut_price");
+
+  // 올린 지 얼마 안 됐으면 "안 팔려서"가 아니라 "아직 안 보여서"일 수 있다
+  assert.equal(
+    decideForSku({ ...justChanged, listedAt: ago(2), lastPriceChangeAt: undefined }, now).kind,
+    "hold",
+  );
+});
+
+test("운영: 한 사이클에 손대는 개수를 제한한다", async () => {
+  const { planStoreOperations, MAX_ACTIONS_PER_CYCLE } = await import(
+    "../../toss-shop/lib/seller-engine/store-operations.ts"
+  );
+  const now = Date.parse("2026-08-26T00:00:00Z");
+  const ago = (d) => new Date(now - d * 86_400_000).toISOString();
+  const many = Array.from({ length: 25 }, (_, i) => ({
+    productId: i, productItemId: 100 + i, name: `상품${i}`,
+    salePriceKrw: 20000, originPriceKrw: 25000, landedCostKrw: 8000,
+    listedAt: ago(30), unitsSold30d: 0,
+  }));
+  const plan = planStoreOperations(many, now);
+  // 한꺼번에 다 흔들면 무엇이 원인인지 못 읽는다
+  assert.ok(plan.cuts.length + plan.hides.length <= MAX_ACTIONS_PER_CYCLE);
+});
+
+// ── 택배사 코드 ───────────────────────────────────────────────
+
+test("택배사: 이름이 아니라 토스 코드로 맞추고, 못 맞추면 안 보낸다", async () => {
+  const { matchDeliveryCompanyCode } = await import("../../toss-shop/lib/api/product-ops.ts");
+  const codes = ["CJ대한통운", "한진택배", "우체국택배", "롯데택배"];
+
+  assert.equal(matchDeliveryCompanyCode("CJ대한통운", codes), "CJ대한통운");
+  assert.equal(matchDeliveryCompanyCode("CJ", codes), "CJ대한통운");
+  assert.equal(matchDeliveryCompanyCode("대한통운", codes), "CJ대한통운");
+  assert.equal(matchDeliveryCompanyCode("한진", codes), "한진택배");
+
+  // 비슷한 게 없으면 아무거나 고르지 않는다 — 엉뚱한 택배사로 등록되면
+  // 고객 배송 조회가 다른 회사를 가리킨다
+  assert.equal(matchDeliveryCompanyCode("페덱스", codes), null);
+  // 목록을 못 받아왔으면 추측하지 않는다
+  assert.equal(matchDeliveryCompanyCode("CJ", []), null);
+});
+
+// ── 반품지 주소 분해 ──────────────────────────────────────────
+
+test("반품지: 한 줄 주소를 토스 세 칸으로 나누고, 우편번호는 지어내지 않는다", async () => {
+  const { splitKoreanAddress } = await import(
+    "../../toss-shop/lib/api/return-location-matcher.ts"
+  );
+
+  const a = splitKoreanAddress("(06234) 서울 강남구 테헤란로 123, 5층 501호");
+  assert.equal(a.zipCode, "06234");
+  assert.equal(a.address, "서울 강남구 테헤란로 123");
+  assert.equal(a.detailAddress, "5층 501호");
+
+  const b = splitKoreanAddress("06234 서울 강남구 테헤란로 123, 5층");
+  assert.equal(b.zipCode, "06234");
+  assert.equal(b.detailAddress, "5층");
+
+  // 우편번호가 없으면 빈 값 — 추측해 넣으면 반품 택배가 엉뚱한 동네로 간다
+  const c = splitKoreanAddress("서울 강남구 테헤란로 123");
+  assert.equal(c.zipCode, "");
+  assert.equal(c.address, "서울 강남구 테헤란로 123");
+
+  // 6자리 구우편번호는 토스가 안 받으므로 잡지 않는다
+  assert.equal(splitKoreanAddress("(135-080) 서울 강남구 역삼동 1").zipCode, "");
+});
+
+test("지시: 운영·반품지등록을 다른 행동으로 오인하지 않는다", async () => {
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  for (const m of ["안 팔리는 거 가격 내려", "상품 정리해", "운영 좀 해", "할인 걸어"]) {
+    assert.equal(parseExtraAction(m)?.name, "operate", m);
+  }
+  // "반품지 등록해줘"의 '등록'이 확인(ack)으로 새면 시킨 일이 사라진다
+  assert.equal(parseExtraAction("반품지 등록해줘")?.name, "register_returns");
+  assert.equal(parseExtraAction("확인했어")?.name, "ack_alerts");
+});

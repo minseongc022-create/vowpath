@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import { SP_STRINGS } from "@/toss-shop/lib/strings";
-import { DashboardMobileNav } from "@/toss-shop/components/layout/DashboardLayout";
 
 function navClass(active: boolean): string {
   return active ? "ts-nav-item ts-nav-active" : "ts-nav-item";
@@ -81,8 +80,13 @@ export function TossShopShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      {isDashboard && <DashboardMobileNav />}
-
+      {/*
+        하단 탭바(홈·소싱·등록함·키워드·더보기)를 없앴다.
+        그 화면들은 전부 자비스가 알아서 하는 일의 중간 결과였고, 사장님이
+        거기서 할 수 있는 게 없었다. 볼 필요 없는 걸 보여주면 정작 봐야 할
+        "지금 뭐가 막혔나"가 묻힌다. 페이지 자체는 살아 있으니 필요해지면
+        그때 다시 꺼내면 된다.
+      */}
       <footer className="border-t border-ts-border bg-ts-surface py-6">
         <div className="mx-auto max-w-6xl space-y-2 px-4 text-center text-[11px] leading-relaxed text-ts-muted">
           <p>{SP_STRINGS.footer}</p>

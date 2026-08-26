@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  autoRegisterReturnLocations,
   dispatchOwnerTodoAlerts,
   listMerchantIds,
   runDiscoveryForMerchant,
+  runStoreOperations,
 } from "@/toss-shop/lib/store";
 
 /**
@@ -51,6 +53,9 @@ export async function GET(request: Request) {
     configured?: boolean;
     itemFields?: string[];
     costSamples?: number[];
+    priceCuts?: number;
+    hidden?: number;
+    returnLocationsRegistered?: number;
     error?: string;
   }> = [];
 
@@ -65,9 +70,32 @@ export async function GET(request: Request) {
         // 발굴 실패는 알림 결과를 무효로 만들지 않는다
         console.warn("[pulse] 발굴 실패", e);
       }
+      // 반품지를 먼저 등록한다 — 이게 풀려야 그 공급처 상품들이 마진 차감
+      // 없이 팔린다. 실패해도 나머지 운영은 계속돼야 한다.
+      let returnLocationsRegistered: number | undefined;
+      try {
+        returnLocationsRegistered = (await autoRegisterReturnLocations(merchantId)).registered;
+      } catch (e) {
+        console.warn("[pulse] 반품지 자동 등록 실패", e);
+      }
+
+      // 올린 상품 손보기 — 안 팔리면 내리고, 바닥에서도 안 팔리면 숨긴다.
+      let priceCuts: number | undefined;
+      let hidden: number | undefined;
+      try {
+        const ops = await runStoreOperations(merchantId);
+        priceCuts = ops.cuts;
+        hidden = ops.hides;
+      } catch (e) {
+        console.warn("[pulse] 상점 운영 실패", e);
+      }
+
       results.push({
         merchantId,
         alertsSent: alerts.sent,
+        priceCuts,
+        hidden,
+        returnLocationsRegistered,
         scanned: diag.scanned,
         matched: diag.found,
         added: diag.added,

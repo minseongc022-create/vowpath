@@ -168,48 +168,64 @@ export function JarvisConsole() {
         ) : null}
 
         <p className="mt-4 text-xs leading-relaxed text-white/70">
-          지시는 아래 대화창에 말로 하시면 됩니다 — 「지금 돌려」, 「발주 정보 줘」, 「발주했어」,
-          송장은 「1234567890 CJ대한통운」.
+          10분마다 시장을 훑고, 안 팔리는 상품은 값을 내리고, 손이 필요하면 문자로 알립니다.
         </p>
       </section>
 
-      {/* ── 2. 숫자 셋 ────────────────────────────────────────── */}
+      {/* ── 2. 숫자 ────────────────────────────────────────────── */}
       {status && (
-        <section className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-white p-3 text-center ring-1 ring-slate-200">
-            <p className="text-xs text-slate-500">등록</p>
-            <p className="mt-0.5 text-xl font-bold text-slate-900">{status.publishedCount}</p>
+        <section className="mt-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-slate-500">등록</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums text-slate-900">
+                {status.publishedCount}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">주문</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums text-slate-900">
+                {status.activeOrders}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">이번 달</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums text-violet-700">
+                {formatMoney(status.monthlyNetKrw)}
+              </p>
+            </div>
           </div>
-          <div className="rounded-2xl bg-white p-3 text-center ring-1 ring-slate-200">
-            <p className="text-xs text-slate-500">주문</p>
-            <p className="mt-0.5 text-xl font-bold text-slate-900">{status.activeOrders}</p>
-          </div>
-          <div className="rounded-2xl bg-white p-3 text-center ring-1 ring-slate-200">
-            <p className="text-xs text-slate-500">이번 달</p>
-            <p className="mt-0.5 text-xl font-bold text-violet-700">
-              {formatMoney(status.monthlyNetKrw)}
+
+          {/* 목표까지 얼마나 왔는지 — 숫자만 있으면 감이 안 온다 */}
+          <div className="mt-3">
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-violet-600 transition-all"
+                style={{ width: `${goalPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-center text-[11px] text-slate-400">
+              월 목표 {formatMoney(status.goalKrw)}원의 {goalPct}%
             </p>
-            <p className="text-[10px] text-slate-400">목표 {goalPct}%</p>
           </div>
         </section>
       )}
 
       {/* ── 3. 사장님이 할 일 (있을 때만) ──────────────────────── */}
       {backlog && backlog.count > 0 && (
-        <section className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          <p className="font-bold text-amber-900">반품지 {backlog.count}곳 등록하면 끝</p>
-          <p className="mt-1 text-sm leading-relaxed text-amber-800">
-            토스가 반품지 등록만 API를 안 열어놨습니다. 아래 대화창에 「반품지 주소 줘」라고
-            하시면 주소를 그대로 드릴게요. 셀러센터에 넣으신 뒤 「반품지 등록했어」라고만
-            해주시면 나머지는 제가 다 합니다.
+        <section className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-bold text-amber-900">반품지 {backlog.count}곳 등록 대기</p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            제가 토스에 직접 등록합니다. 10분마다 도는 사이클에서 자동으로 처리되고, 급하시면
+            아래에 「반품지 등록해줘」라고 하시면 지금 바로 넣겠습니다.
           </p>
         </section>
       )}
 
       {jobs.some((j) => j.status !== "tracking_registered" && !j.pendingTrackingNumber) && (
-        <section className="mt-4 rounded-2xl border border-sky-300 bg-sky-50 p-4">
-          <p className="font-bold text-sky-900">손이 필요한 주문이 있습니다</p>
-          <div className="mt-2 space-y-1 text-sm text-sky-900">
+        <section className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+          <p className="text-sm font-bold text-sky-900">손이 필요한 주문</p>
+          <div className="mt-1.5 space-y-0.5 text-xs text-sky-900">
             {jobs
               .filter((j) => j.status !== "tracking_registered" && !j.pendingTrackingNumber)
               .slice(0, 3)
@@ -220,8 +236,8 @@ export function JarvisConsole() {
               ))}
           </div>
           <p className="mt-2 text-xs leading-relaxed text-sky-800">
-            아직 발주 전이면 「발주 정보 줘」, 발주를 넣으셨으면 「발주했어」, 송장이 나왔으면
-            「1234567890 CJ대한통운」처럼 아래 대화창에 말씀해 주세요. 토스 등록까지 제가 합니다.
+            발주 전이면 「발주 정보 줘」, 발주하셨으면 「발주했어」, 송장이 나왔으면
+            「1234567890 CJ대한통운」이라고 아래에 말씀해 주세요.
           </p>
         </section>
       )}
@@ -233,7 +249,7 @@ export function JarvisConsole() {
             <div className="text-sm leading-relaxed text-slate-500">
               <p className="font-semibold text-slate-700">자비스에게 말 걸어보세요</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {["지금 돌려", "더 찾아봐", "상태 어때?", "발주 정보 줘"].map((q) => (
+                {["지금 돌려", "더 찾아봐", "안 팔리는 거 손봐", "상태 어때?"].map((q) => (
                   <button
                     key={q}
                     type="button"
@@ -303,7 +319,7 @@ export function JarvisConsole() {
       </section>
 
       <div className="mt-4 text-center">
-        <Link href={SP_ROUTES.settings} className="text-xs text-slate-400 underline">
+        <Link href={SP_ROUTES.settings} className="text-[11px] text-slate-400 underline">
           연동 설정
         </Link>
       </div>

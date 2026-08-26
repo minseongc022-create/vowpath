@@ -1452,20 +1452,44 @@ export async function confirmFulfillmentTracking(input: {
     account?.email,
   );
 
+  // 택배사는 **코드**로 보내야 한다(토스 문서 명시). 여태 "CJ대한통운" 같은
+  // 이름을 보내고 있었는데, 그러면 등록이 거절되고 고객은 배송 조회를 못 한다.
+  // 실제 목록을 받아 맞추고, 못 맞추면 **추측해서 보내지 않는다** —
+  // 틀린 택배사로 등록하면 조회가 엉뚱한 데를 가리킨다.
+  let trackingError: string | undefined;
   if (config && jobs[idx].pendingTrackingNumber) {
-    const { registerOrderTracking } = await import("./api/orders");
-    await registerOrderTracking(input.merchantId, config, {
-      orderProductId: jobs[idx].orderProductId,
-      deliveryCompany: jobs[idx].pendingDeliveryCompany ?? "CJ대한통운",
-      trackingNumber: jobs[idx].pendingTrackingNumber,
-    });
-    jobs[idx].status = "tracking_registered";
-    jobs[idx].trackingRegisteredAt = new Date().toISOString();
+    const { listDeliveryCompanyCodes, matchDeliveryCompanyCode } = await import(
+      "./api/product-ops"
+    );
+    const spoken = jobs[idx].pendingDeliveryCompany ?? "";
+    const codes = await listDeliveryCompanyCodes(input.merchantId, config);
+    const code = matchDeliveryCompanyCode(spoken, codes);
+
+    if (!code) {
+      trackingError =
+        codes.length === 0
+          ? "토스에서 택배사 목록을 못 받아왔습니다"
+          : `「${spoken}」에 맞는 택배사를 토스 목록에서 못 찾았습니다`;
+    } else {
+      const { registerOrderTracking } = await import("./api/orders");
+      const ok = await registerOrderTracking(input.merchantId, config, {
+        orderProductId: jobs[idx].orderProductId,
+        deliveryCompany: code,
+        trackingNumber: jobs[idx].pendingTrackingNumber,
+      });
+      if (ok) {
+        jobs[idx].deliveryCompany = code;
+        jobs[idx].status = "tracking_registered";
+        jobs[idx].trackingRegisteredAt = new Date().toISOString();
+      } else {
+        trackingError = "토스가 송장 등록을 거절했습니다";
+      }
+    }
   }
 
   data.fulfillmentJobs = jobs;
   await saveStore(store);
-  return jobs[idx];
+  return { ...jobs[idx], trackingError };
 }
 
 // ── 자비스 대화 지원 ──────────────────────────────────────────
@@ -1875,4 +1899,228 @@ export async function runDiscoveryForMerchant(
 export async function listMerchantIds(): Promise<string[]> {
   const store = await loadStore();
   return store.merchants.map((m) => m.id);
+}
+
+
+// ── 반품지 자동 등록 ──────────────────────────────────────────
+
+/** 한 번에 등록하는 반품지 수 상한 — 토스 쪽에 한꺼번에 몰아치지 않는다 */
+const MAX_RETURN_LOCATIONS_PER_RUN = 8;
+
+/**
+ * 대기 중인 공급처 반품지를 토스에 직접 등록한다.
+ *
+ * ★ 앞선 결론이 틀렸다
+ *
+ * 이 프로젝트는 "토스는 반품지 등록 API를 안 준다"는 전제로 우회로를 잔뜩
+ * 쌓아왔다. 그 결론은 `.../exchange-refund-location/v2`에 POST를 보내 405를
+ * 받은 데서 나왔는데, **경로가 틀렸다**. 쓰기는 `/v2`가 없는 쪽이다.
+ * 405는 "그 경로에 그 메서드가 없다"였지 "그런 기능이 없다"가 아니었다.
+ *
+ * 이제 자비스가 직접 등록한다. 사장님이 셀러센터에 들어갈 일이 없어진다.
+ */
+export async function autoRegisterReturnLocations(merchantId: string): Promise<{
+  registered: number;
+  failed: number;
+  remaining: number;
+  errors: string[];
+  configured: boolean;
+}> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const data = merchantData(store, merchantId);
+  const pending = data.pendingReturnAddresses ?? [];
+  if (pending.length === 0) {
+    return { registered: 0, failed: 0, remaining: 0, errors: [], configured: true };
+  }
+
+  const config = await resolveApiConfig(
+    merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
+  if (!config) {
+    return { registered: 0, failed: 0, remaining: pending.length, errors: [], configured: false };
+  }
+
+  const { createReturnLocation } = await import("./api/return-location-create");
+  const { splitKoreanAddress } = await import("./api/return-location-matcher");
+
+  // 기여가 큰 공급처부터 등록한다 — 먼저 풀리는 쪽이 돈이 큰 쪽이어야 한다
+  const ordered = [...pending].sort((a, b) => b.monthlyValueKrw - a.monthlyValueKrw);
+  const target = ordered.slice(0, MAX_RETURN_LOCATIONS_PER_RUN);
+
+  const errors: string[] = [];
+  const doneKeys = new Set<string>();
+  for (const p of target) {
+    const parts = splitKoreanAddress(p.address);
+    if (!parts.zipCode) {
+      // 우편번호가 없으면 등록이 거절된다. 지어내면 반품이 엉뚱한 데로 간다.
+      errors.push(`${p.supplierNick ?? p.supplierId}: 우편번호를 못 읽음`);
+      continue;
+    }
+    const res = await createReturnLocation(merchantId, config, {
+      zipCode: parts.zipCode,
+      address: parts.address,
+      detailAddress: parts.detailAddress,
+    });
+    if (res.ok) doneKeys.add(p.key);
+    else errors.push(`${p.supplierNick ?? p.supplierId}: ${res.reason}`);
+  }
+
+  const remaining = pending.filter((p) => !doneKeys.has(p.key));
+  data.pendingReturnAddresses = remaining;
+  await saveStore(store);
+
+  return {
+    registered: doneKeys.size,
+    failed: target.length - doneKeys.size,
+    remaining: remaining.length,
+    errors: errors.slice(0, 5),
+    configured: true,
+  };
+}
+
+
+// ── 상점 운영 (24시간) ────────────────────────────────────────
+
+/**
+ * 올린 상품을 손본다 — 안 팔리면 내리고, 바닥에서도 안 팔리면 숨긴다.
+ *
+ * ★ 실측 원가가 없으면 손대지 않는다
+ *
+ * 얼마까지 내려도 되는지는 원가에서만 나온다. 원가를 모르는 상품은 얼마를
+ * 내려야 남는지도 모르므로 건드리지 않는다 — 감으로 내리면 팔릴수록 손해가
+ * 나는데 그걸 알아채는 데 몇 주가 걸린다.
+ */
+export async function runStoreOperations(merchantId: string): Promise<{
+  configured: boolean;
+  cuts: number;
+  hides: number;
+  holds: number;
+  failures: string[];
+  notes: string[];
+}> {
+  const store = await loadStore();
+  const merchant = store.merchants.find((m) => m.id === merchantId);
+  const account = store.accounts.find((a) => a.merchantId === merchantId);
+  const data = merchantData(store, merchantId);
+
+  const config = await resolveApiConfig(
+    merchantId,
+    {
+      accessKey: merchant?.apiAccessKey,
+      secretKey: merchant?.apiSecretKey,
+      sandbox: merchant?.apiSandbox,
+    },
+    account?.email,
+  );
+  if (!config) {
+    return { configured: false, cuts: 0, hides: 0, holds: 0, failures: [], notes: [] };
+  }
+
+  const { buildListedSkus } = await import("./seller-engine/listed-sku-reader");
+  const { planStoreOperations } = await import("./seller-engine/store-operations");
+  const { updateSalePrice, hideProduct } = await import("./api/product-ops");
+
+  // 토스에서 현재 가격과 옵션 ID를 읽어 온다. 우리 기록이 아니라 토스가
+  // 정답이다 — 사장님이 셀러센터에서 직접 바꿨을 수 있고, 그걸 모른 채
+  // 우리 값으로 계산하면 엉뚱한 가격으로 덮어쓰게 된다.
+  const { listProductItems } = await import("./api/product-ops");
+  const productIds = [
+    ...new Set(
+      (data.listingDrafts ?? [])
+        .filter((d) => d.status === "published" && d.tossProductId != null)
+        .map((d) => d.tossProductId!),
+    ),
+  ].slice(0, 40);
+
+  const live: import("./seller-engine/listed-sku-reader").LiveItem[] = [];
+  for (const productId of productIds) {
+    for (const item of await listProductItems(merchantId, config, productId)) {
+      live.push({
+        productId,
+        itemId: item.itemId,
+        itemName: item.itemName,
+        salePrice: item.salePrice,
+        originPrice: item.originPrice,
+      });
+    }
+  }
+
+  const skus = buildListedSkus(data, live);
+  if (skus.length === 0) {
+    return { configured: true, cuts: 0, hides: 0, holds: 0, failures: [], notes: ["운영할 상품이 아직 없습니다"] };
+  }
+
+  const plan = planStoreOperations(skus);
+  const failures: string[] = [];
+  const now = new Date().toISOString();
+  let cuts = 0;
+  let hides = 0;
+
+  for (const c of plan.cuts) {
+    const res = await updateSalePrice(merchantId, config, {
+      productId: c.sku.productId,
+      productItemId: c.sku.productItemId,
+      salePriceKrw: c.toPriceKrw,
+    });
+    if (res.ok) {
+      cuts += 1;
+      recordPriceChange(data, c.sku.productItemId, c.toPriceKrw, now);
+    } else {
+      failures.push(`${c.sku.name}: ${res.reason}`);
+    }
+  }
+
+  for (const h of plan.hides) {
+    const res = await hideProduct(merchantId, config, h.sku.productId);
+    if (res.ok) {
+      hides += 1;
+      markHidden(data, h.sku.productId, now);
+    } else {
+      failures.push(`${h.sku.name}: ${res.reason}`);
+    }
+  }
+
+  await saveStore(store);
+  return {
+    configured: true,
+    cuts,
+    hides,
+    holds: plan.holds,
+    failures: failures.slice(0, 5),
+    notes: [
+      ...plan.cuts.slice(0, 3).map((c) => `${c.sku.name} → ${c.toPriceKrw.toLocaleString()}원 (${c.reason})`),
+      ...plan.hides.slice(0, 2).map((h) => `${h.sku.name} 숨김 (${h.reason})`),
+    ],
+  };
+}
+
+/** 가격을 만진 사실을 초안에 남긴다 — 다음 사이클이 쿨다운을 지키려면 필요하다 */
+function recordPriceChange(
+  data: MerchantData,
+  productItemId: number,
+  priceKrw: number,
+  atIso: string,
+): void {
+  for (const d of data.listingDrafts ?? []) {
+    if (d.tossProductItemId !== productItemId) continue;
+    d.listingPayload.salePrice = priceKrw;
+    d.lastPriceChangeAt = atIso;
+    d.updatedAt = atIso;
+  }
+}
+
+function markHidden(data: MerchantData, productId: number, atIso: string): void {
+  for (const d of data.listingDrafts ?? []) {
+    if (d.tossProductId !== productId) continue;
+    d.hiddenAt = atIso;
+    d.updatedAt = atIso;
+  }
 }

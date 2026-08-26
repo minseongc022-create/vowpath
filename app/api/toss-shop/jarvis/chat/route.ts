@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
 import {
   ackOwnerTodos,
+  autoRegisterReturnLocations,
   confirmFulfillmentTracking,
   getJarvisChatContext,
   getReturnAddressBrief,
@@ -9,6 +10,7 @@ import {
   markWholesaleOrdered,
   runAutopilotForMerchant,
   runDiscoveryForMerchant,
+  runStoreOperations,
   sendOwnerTestAlert,
   setJarvisActivity,
   setMonthlyGoal,
@@ -260,10 +262,13 @@ async function executeAction(
         deliveryCompany: action.deliveryCompany,
       });
       const done = updated.status === "tracking_registered";
+      // 실패를 성공처럼 말하지 않는다. "등록했습니다"라고 해놓고 실제로는
+      // 안 올라갔으면 고객은 배송 조회를 못 하고, 사장님은 그걸 모른다.
       const lines = [
         done
-          ? `「${job.productName}」 송장 등록 완료했습니다 (${action.deliveryCompany} ${action.trackingNumber}). 고객에게 배송 조회가 열렸어요.`
-          : `「${job.productName}」에 송장을 기록했습니다. 토스 등록은 다음 사이클에 자동으로 올라갑니다.`,
+          ? `「${job.productName}」 송장 등록 완료했습니다 (${updated.deliveryCompany ?? action.deliveryCompany} ${action.trackingNumber}). 고객에게 배송 조회가 열렸어요.`
+          : `「${job.productName}」 송장을 토스에 못 올렸습니다 — ${updated.trackingError ?? "원인 미상"}.\n` +
+            "송장번호는 기록해뒀습니다. 택배사 이름을 다르게 알려주시면 다시 시도하겠습니다.",
       ];
       if (ambiguous) {
         lines.push(
@@ -299,6 +304,57 @@ async function executeAction(
 
     case "return_addresses":
       return { reply: await getReturnAddressBrief(merchantId), steps, did: "return_addresses" };
+
+    // ── 상품 손보기 (안 팔리면 가격 인하 → 바닥이면 숨김) ────────
+    case "operate": {
+      await setJarvisActivity(merchantId, { label: "안 팔리는 상품 손보는 중" });
+      const r = await runStoreOperations(merchantId);
+      await setJarvisActivity(merchantId, { label: "끝", done: true });
+
+      if (!r.configured) {
+        return { reply: "토스 연동이 안 돼 있어 상품을 손볼 수가 없습니다.", steps, did: "operate" };
+      }
+      const lines: string[] = [];
+      if (r.cuts === 0 && r.hides === 0) {
+        lines.push(
+          r.notes[0] ?? `손댈 상품이 없습니다 — ${r.holds}개는 그대로 두는 게 맞습니다.`,
+          "",
+          "팔리고 있는 상품, 올린 지 얼마 안 된 상품, 최근에 가격을 만진 상품은 건드리지 않습니다.",
+        );
+      } else {
+        if (r.cuts > 0) lines.push(`가격을 내린 상품 ${r.cuts}개`);
+        if (r.hides > 0) lines.push(`숨긴 상품 ${r.hides}개 (최저가에서도 안 팔려서)`);
+        lines.push("", ...r.notes.map((n) => `· ${n}`));
+      }
+      if (r.failures.length) {
+        lines.push("", "못 바꾼 것:", ...r.failures.map((f) => `· ${f}`));
+      }
+      steps.push(`가격 인하 ${r.cuts}건`, `숨김 ${r.hides}건`);
+      return { reply: lines.join("\n"), steps, did: "operate" };
+    }
+
+    // ── 반품지 자동 등록 ────────────────────────────────────────
+    case "register_returns": {
+      await setJarvisActivity(merchantId, { label: "반품지 등록하는 중" });
+      const r = await autoRegisterReturnLocations(merchantId);
+      await setJarvisActivity(merchantId, { label: "끝", done: true });
+
+      if (!r.configured) {
+        return { reply: "토스 연동이 안 돼 있어 반품지를 등록할 수 없습니다.", steps, did: "register_returns" };
+      }
+      if (r.registered === 0 && r.remaining === 0) {
+        return {
+          reply: "등록할 반품지가 없습니다. 지금은 전부 공급처로 바로 반품되고 있어요 (비용 0원).",
+          steps,
+          did: "register_returns",
+        };
+      }
+      const lines = [`공급처 반품지 ${r.registered}곳을 토스에 등록했습니다.`];
+      if (r.remaining > 0) lines.push(`${r.remaining}곳 남았습니다 — 다음에 이어서 등록하겠습니다.`);
+      if (r.errors.length) lines.push("", "못 넣은 것:", ...r.errors.map((e) => `· ${e}`));
+      steps.push(`반품지 ${r.registered}곳 등록`);
+      return { reply: lines.join("\n"), steps, did: "register_returns" };
+    }
 
     // ── 알림 ────────────────────────────────────────────────────
     case "set_alert_phone": {

@@ -593,6 +593,14 @@ export type JarvisListingDraft = {
   publishedAt?: string;
   executedAt?: string;
   tossProductId?: number;
+  /** 가격을 만들 때 쓰는 옵션 ID — 판매가 수정은 옵션 단위로 걸린다 */
+  tossProductItemId?: number;
+  /** 자비스가 마지막으로 판매가를 만진 시각 — 쿨다운을 지키려면 필요하다 */
+  lastPriceChangeAt?: string;
+  /** 안 팔려 숨긴 시각. 삭제가 아니라 숨김이라 되돌릴 수 있다 */
+  hiddenAt?: string;
+  /** 실측 원가(배송비 포함) — 이게 없으면 얼마까지 내려도 되는지 알 수 없다 */
+  landedCostKrw?: number;
   publishError?: string;
   rejectionReason?: string;
   consignmentOrder?: JarvisConsignmentOrder;
