@@ -38,20 +38,39 @@ export async function GET(request: Request) {
   }
 
   const merchantIds = await listMerchantIds();
-  const results: Array<{ merchantId: string; alertsSent: number; found?: number; error?: string }> = [];
+  // 진단값을 그대로 싣는다. "찾은 게 0개"만 보면 팔 물건이 없는 건지
+  // 연동이 끊긴 건지 구분이 안 되고, 그러면 원인을 영원히 못 찾는다.
+  const results: Array<{
+    merchantId: string;
+    alertsSent: number;
+    scanned?: number;
+    matched?: number;
+    added?: number;
+    apiSilent?: boolean;
+    configured?: boolean;
+    error?: string;
+  }> = [];
 
   for (const merchantId of merchantIds) {
     try {
       // 알림이 먼저다. 발굴이 시간을 다 써서 알림을 못 보내는 일이 없어야 한다.
       const alerts = await dispatchOwnerTodoAlerts(merchantId);
-      let found: number | undefined;
+      let diag: Partial<Awaited<ReturnType<typeof runDiscoveryForMerchant>>> = {};
       try {
-        const d = await runDiscoveryForMerchant(merchantId, { size: 12, budgetMs: 20_000 });
-        found = d.added;
-      } catch {
+        diag = await runDiscoveryForMerchant(merchantId, { size: 12, budgetMs: 20_000 });
+      } catch (e) {
         // 발굴 실패는 알림 결과를 무효로 만들지 않는다
+        console.warn("[pulse] 발굴 실패", e);
       }
-      results.push({ merchantId, alertsSent: alerts.sent, found });
+      results.push({
+        merchantId,
+        alertsSent: alerts.sent,
+        scanned: diag.scanned,
+        matched: diag.found,
+        added: diag.added,
+        apiSilent: diag.apiSilent,
+        configured: diag.configured,
+      });
     } catch (e) {
       results.push({
         merchantId,
