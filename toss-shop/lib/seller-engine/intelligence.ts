@@ -431,6 +431,18 @@ export function rankKeywordsForSourcing(
   }
 
   for (const p of catalog) {
+    // 발굴 표본은 자기를 찾아낸 검색어를 알고 있다 — 그 구절을 그대로 쓴다.
+    //
+    // 상품명을 공백으로 쪼개 첫 두 낱말을 키워드로 삼으면 "주방 집게"가
+    // "주방"·"집게"가 된다. 그건 우리가 실제로 상품을 찾은 검색어가 아니라
+    // 훨씬 경쟁이 센 헤드 키워드이고, 위탁판매의 전제인 틈새 공략과 정반대다.
+    // (상위셀러 전술의 롱테일 항목 두 개가 이것 때문에 늘 탈락했다.)
+    if (p.sourceKeyword) {
+      if (seen.has(p.sourceKeyword)) continue;
+      seen.add(p.sourceKeyword);
+      list.push(buildKeywordIntel(p.sourceKeyword, catalog, marketKeywords));
+      continue;
+    }
     const words = p.name.split(/\s+/).filter((w) => w.length >= 2);
     for (const w of words.slice(0, 2)) {
       if (seen.has(w)) continue;

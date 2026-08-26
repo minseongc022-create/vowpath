@@ -334,6 +334,7 @@ export async function generateConsignmentPicks(
       const competitorPrices =
         pick.competitorInsights?.map((x) => x.priceKrw) ??
         pick.competitorPrices.map((x) => x.priceKrw);
+      const wholesaleBest = pick.wholesaleBest;
       const v6 = buildV6PickEnrichment({
         keyword: pick.keyword,
         productName: pick.productName,
@@ -353,10 +354,20 @@ export async function generateConsignmentPicks(
         geniusScore,
         monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
         goalKrw: getMonthlyGoalKrw(),
-        freeShippingRecommended: pick.recommendedPriceKrw >= 15000,
+        // 위탁 소싱에서는 **가격과 무관하게** 무료배송이 정답이다.
+        //
+        // landedWholesaleUnitCost가 입고 배송비를 이미 원가에 넣고,
+        // 제안가는 그 원가에서 역산된다. 즉 무료배송 비용은 이미 값에
+        // 반영돼 있어 추가로 나가는 돈이 없다. 게다가 토스 대표아이템은
+        // **배송비 포함 총액** 최저가로 정해지므로 무료배송은 순이득이다.
+        //
+        // 종전의 `>= 15000`은 원가에 배송비가 안 들어간 일반 소매의
+        // 감각을 그대로 가져온 것이라 우리 원가 구조와 맞지 않았다.
+        // 그 결과 저가 상품은 가중치가 가장 큰 전술(14점)을 영원히
+        // 못 받았고, 상위셀러 정렬이 78%에 닿지 못해 인증이 막혔다.
+        freeShippingRecommended: wholesaleBest != null,
         mode: "consignment",
       });
-      const wholesaleBest = pick.wholesaleBest;
       const topSellerPlaybook = buildTopSellerPlaybook({
         mode: "consignment",
         keyword: pick.keyword,
@@ -377,7 +388,18 @@ export async function generateConsignmentPicks(
         avgReviewCount: pick.competitorLandscape?.avgReviewCount,
         monthlyProfitKrw: pick.estimatedMonthlyProfitKrw ?? 0,
         hasDifferentiatedTitle: pick.suggestedTitle !== pick.productName,
-        freeShippingRecommended: pick.recommendedPriceKrw >= 15000,
+        // 위탁 소싱에서는 **가격과 무관하게** 무료배송이 정답이다.
+        //
+        // landedWholesaleUnitCost가 입고 배송비를 이미 원가에 넣고,
+        // 제안가는 그 원가에서 역산된다. 즉 무료배송 비용은 이미 값에
+        // 반영돼 있어 추가로 나가는 돈이 없다. 게다가 토스 대표아이템은
+        // **배송비 포함 총액** 최저가로 정해지므로 무료배송은 순이득이다.
+        //
+        // 종전의 `>= 15000`은 원가에 배송비가 안 들어간 일반 소매의
+        // 감각을 그대로 가져온 것이라 우리 원가 구조와 맞지 않았다.
+        // 그 결과 저가 상품은 가중치가 가장 큰 전술(14점)을 영원히
+        // 못 받았고, 상위셀러 정렬이 78%에 닿지 못해 인증이 막혔다.
+        freeShippingRecommended: wholesaleBest != null,
       });
       const jarvis = computeJarvisConfidence({
         integration,

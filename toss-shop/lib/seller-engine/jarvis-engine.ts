@@ -18,7 +18,7 @@ import {
 } from "../wholesale/supplier-quality";
 
 export const JARVIS_NAME = "Jarvis";
-export const JARVIS_VERSION = "1.1";
+export const JARVIS_VERSION = "1.2";
 export const JARVIS_CONFIDENCE_THRESHOLD = 93;
 export const JARVIS_MONTHLY_GOAL_KRW = 10_000_000;
 

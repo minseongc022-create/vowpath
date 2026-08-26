@@ -357,6 +357,9 @@ export function buildCatalogFromDiscovery(
         // 이게 없으면 하류가 키워드로 다시 검색해 다른 공급처를 잡고,
         // 그 순간 제안가(A의 원가 기준)와 원가(B)가 짝이 어긋난다.
         sourceListing: s,
+        // 이 표본을 찾아낸 검색어 그대로 — 하류에서 상품명을 쪼개 만들지
+        // 않게 한다. 쪼개면 롱테일이 헤드 키워드가 된다.
+        sourceKeyword: d.keyword,
       });
       rank += 1;
     }

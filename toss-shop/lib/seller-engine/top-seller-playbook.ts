@@ -256,7 +256,12 @@ export function buildTopSellerPlaybook(input: {
   add(
     "catalog_differentiation",
     "카탈로그 차별(구성·용량)",
-    input.catalogStrategyMode === "avoid_catalog" && (input.isolationScore ?? 0) >= 55,
+    // 카탈로그 전략은 두 갈래 다 정당하다 — 별도 카탈로그로 피하거나,
+    // 대표아이템을 차지하거나. 종전엔 avoid_catalog만 인정해서,
+    // 엔진이 win_representative를 고르면 바로 위 행동지침은 "그 전략을
+    // 유지하라"고 하면서 점수는 10점을 깎았다. 앞뒤가 안 맞는다.
+    // 바로 위에서 계산한 catalogOk가 이미 두 갈래를 모두 판정한다.
+    catalogOk,
     input.catalogStrategyMode === "win_representative"
       ? "대표아이템 승리 전략 유지 — 총액·출고 속도"
       : "구성·옵션·세트명 차별로 별도 카탈로그 확보",

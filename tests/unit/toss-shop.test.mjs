@@ -4649,3 +4649,101 @@ test("발굴 표본은 자기 공급처를 들고 다녀야 한다 — 제안가
     `제안가와 원가의 짝이 맞으면 마진이 15%를 넘어야 한다 — 실제 ${impliedMarginPct.toFixed(1)}%`,
   );
 });
+
+test("발굴 키워드가 쪼개지지 않아야 한다 — 롱테일이 헤드 키워드로 바뀌던 결함", async () => {
+  // ★ 실측으로 드러난 결함
+  //
+  // 키워드 랭킹이 상품명을 공백으로 쪼개 첫 두 낱말을 키워드로 삼았다.
+  // 그래서 발굴 검색어 "주방 집게"가 "주방"이 됐다. 두 가지가 동시에 망가진다:
+  //
+  //  1. 위탁판매의 전제가 무너진다 — 우리는 경쟁이 약한 롱테일을 노리는데
+  //     헤드 키워드로 바뀌면 대형 셀러와 정면 충돌한다.
+  //  2. 상위셀러 전술의 롱테일 항목 두 개(가중치 18)가 늘 탈락해
+  //     정렬 점수가 78%에 닿지 못하고 인증이 막혔다.
+  const { buildCatalogFromDiscovery } = await import(
+    "../../toss-shop/lib/wholesale/wholesale-discovery.ts"
+  );
+  const { rankKeywordsForSourcing } = await import(
+    "../../toss-shop/lib/seller-engine/intelligence.ts"
+  );
+
+  const catalog = buildCatalogFromDiscovery(
+    [
+      {
+        keyword: "주방 집게",
+        category: "home",
+        supply: [
+          {
+            platform: "domeme",
+            title: "실리콘 집게 3종",
+            unitPriceKrw: 3000,
+            shippingFeeKrw: 0,
+            moq: 1,
+            url: "https://domeggook.com/1",
+            freeShipping: true,
+            source: "live",
+            itemNo: "1",
+          },
+        ],
+      },
+    ],
+    "2026-08-26T00:00:00.000Z",
+  );
+
+  assert.equal(catalog[0].sourceKeyword, "주방 집게", "표본이 자기 검색어를 들고 있어야");
+
+  const ranked = rankKeywordsForSourcing(catalog, undefined, 60);
+  const keywords = ranked.map((k) => k.keyword);
+  assert.ok(
+    keywords.includes("주방 집게"),
+    `발굴 검색어가 온전한 구절로 남아야 한다 — 실제: ${keywords.slice(0, 8).join(", ")}`,
+  );
+});
+
+test("상위셀러 전술: 대표아이템 승리 전략도 카탈로그 전략으로 인정된다", async () => {
+  // 종전엔 avoid_catalog만 인정했다. 그래서 엔진이 win_representative를
+  // 고르면, 같은 항목의 행동지침은 "그 전략을 유지하라"고 하면서 점수는
+  // 10점을 깎았다 — 앞뒤가 안 맞는 판정이었다.
+  const { buildTopSellerPlaybook } = await import(
+    "../../toss-shop/lib/seller-engine/top-seller-playbook.ts"
+  );
+  const base = {
+    keyword: "주방 집게",
+    productName: "실리콘 주방 집게",
+    category: "home",
+    priceKrw: 12900,
+    marginPct: 30,
+    monthlyProfitKrw: 600_000,
+    competitionIntensity: 1.2,
+    searchVolume: 5000,
+    avgReviewCount: 0,
+    mode: "consignment",
+    moq: 1,
+    wholesaleLive: true,
+    freeShippingRecommended: true,
+    hasDifferentiatedTitle: true,
+  };
+
+  const rep = buildTopSellerPlaybook({
+    ...base,
+    catalogStrategyMode: "win_representative",
+    representativeItemScore: 70,
+  });
+  const avoid = buildTopSellerPlaybook({
+    ...base,
+    catalogStrategyMode: "avoid_catalog",
+    isolationScore: 70,
+  });
+
+  const applied = (pb) => pb.tactics.find((t) => t.id === "catalog_differentiation")?.applied;
+  assert.equal(applied(rep), true, "대표아이템 승리 전략도 인정돼야");
+  assert.equal(applied(avoid), true, "카탈로그 회피 전략도 인정돼야");
+
+  // 전략이 실제로 미달이면 여전히 탈락해야 한다 — 무조건 통과가 아니다
+  const weak = buildTopSellerPlaybook({
+    ...base,
+    catalogStrategyMode: "win_representative",
+    representativeItemScore: 20,
+  });
+  assert.equal(applied(weak), false, "전략 점수가 미달이면 여전히 탈락해야");
+});

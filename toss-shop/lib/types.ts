@@ -95,6 +95,14 @@ export type CatalogProduct = {
    * 실제로 그 어긋남이 "마진 0.2%"를 만들어 모든 후보를 탈락시켰다.
    */
   sourceListing?: WholesaleListing;
+  /**
+   * 이 표본을 찾아낸 실제 검색어 (예: "주방 집게").
+   *
+   * 이게 없으면 하류가 상품명을 공백으로 쪼개 첫 두 낱말을 키워드로 쓴다.
+   * 그러면 "주방 집게"가 "주방"이 되어 롱테일이 헤드 키워드로 바뀐다 —
+   * 경쟁이 훨씬 세지고, 위탁판매의 전제(틈새 공략) 자체가 무너진다.
+   */
+  sourceKeyword?: string;
 };
 
 export type PriceSnapshot = {
