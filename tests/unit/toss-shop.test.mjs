@@ -4938,6 +4938,14 @@ test("카테고리: AI 없이도 실제 트리에서 고른다 — 단, 지어�
   });
   assert.equal(deep.node?.id, 32, "「주방」이 겹치는 주방용품으로 가야");
 
+  // 낱말이 직접 안 겹쳐도, 흔히 속하는 분류어까지 넓혀서 찾는다.
+  // "집게"는 "주방용품"과 한 글자도 안 겹치지만 주방용품이 맞다.
+  const expanded = __pickBranchByNameForTest({
+    title: "실리콘 집게", keyword: "집게",
+    category: "home", options: kids, isRoot: false,
+  });
+  assert.equal(expanded.node?.id, 32, "「집게」는 주방용품으로 넓혀서 찾아야");
+
   // ⚠️ 겹치는 게 없으면 고르지 않는다 — 이게 페널티를 막는 안전장치다
   const nothing = __pickBranchByNameForTest({
     title: "무선 이어폰", keyword: "이어폰",
@@ -4945,6 +4953,22 @@ test("카테고리: AI 없이도 실제 트리에서 고른다 — 단, 지어�
   });
   assert.equal(nothing.node, undefined, "겹치는 이름이 없으면 고르지 않아야 한다");
   assert.ok(nothing.why, "왜 못 골랐는지 사유가 남아야");
+
+  // 다만 "기타"류가 있으면 그리로 간다 — 지어내는 게 아니라, 어느 세부
+  // 분류에도 안 맞는 상품을 위해 토스가 만들어 둔 자리다.
+  const withEtc = __pickBranchByNameForTest({
+    title: "무선 이어폰", keyword: "이어폰",
+    category: "digital", isRoot: false,
+    options: [...kids, { id: 39, name: "기타 생활용품", isLeaf: true }],
+  });
+  assert.equal(withEtc.node?.id, 39, "기타 자리가 있으면 거기로");
+
+  // 최상위에서는 기타로 도망가지 않는다 — 대분류가 어긋나면 그 아래가 전부 어긋난다
+  const rootEtc = __pickBranchByNameForTest({
+    title: "무선 이어폰", keyword: "이어폰", category: "digital", isRoot: true,
+    options: [{ id: 1, name: "식품", isLeaf: false }, { id: 2, name: "기타", isLeaf: false }],
+  });
+  assert.equal(rootEtc.node, undefined, "최상위는 기타로 넘기면 안 된다");
 
   // 최상위에서 맞는 이름이 없어도 지어내지 않는다
   const noRoot = __pickBranchByNameForTest({
