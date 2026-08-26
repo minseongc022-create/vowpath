@@ -89,6 +89,19 @@ export type ResolvedReturn = {
   supplierPolicy?: import("../wholesale/supplier-policy-reader").ListingPolicyValues;
 };
 
+/**
+ * 우리 상품명을 만든다 — 공급사 원본과 겹치지 않게.
+ *
+ * 브랜드명을 앞에 붙이되, 이미 들어 있으면 두 번 붙이지 않는다.
+ * 토스 상품명 제한(100자)을 넘지 않게 뒤를 자른다.
+ */
+export function buildDistinctProductName(baseTitle: string, brand: string): string {
+  const base = baseTitle.trim();
+  if (!base) return brand;
+  if (base.includes(brand)) return base.slice(0, 100);
+  return `${brand} ${base}`.slice(0, 100);
+}
+
 function buildListingPayload(
   pick: ConsignmentPick | ImportPick,
   mode: "consignment" | "import",
@@ -99,7 +112,16 @@ function buildListingPayload(
   const wholesale = mode === "consignment" && "wholesaleBest" in pick ? pick.wholesaleBest : null;
 
   return {
-    name: (pick.suggestedTitle ?? pick.productName).slice(0, 100),
+    // ★ 상품명은 공급사 원본과 달라야 한다 — 두 가지 이유가 겹친다
+    //
+    // 1) 토스가 거절한다: "다른 상품과 겹치지 않는 상품명만 쓸 수 있어요."
+    //    같은 도매 상품을 여러 셀러가 원본명 그대로 올리면 충돌한다.
+    // 2) 우리 상위셀러 전술(title_thumb_diff)이 요구하는 것이기도 하다 —
+    //    원본명 그대로 올리면 동일 SKU끼리 가격 경쟁만 하게 된다.
+    //
+    // 우리 브랜드명을 앞에 붙인다. 지어낸 수식어가 아니라 실제 판매자명이라
+    // 사실에 어긋나지 않으면서 이름이 우리 것으로 구별된다.
+    name: buildDistinctProductName(pick.suggestedTitle ?? pick.productName, "에피로드"),
     brandName: "에피로드",
     salePrice,
     originPrice: discountOrigin(salePrice),

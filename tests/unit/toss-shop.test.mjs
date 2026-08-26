@@ -5034,3 +5034,31 @@ test("등록 이미지: url 없는 항목을 넣지 않는다 — 토스가 거�
   // 이미지가 없으면 빈 배열 — 호출부가 이걸 보고 등록을 막는다
   assert.equal(buildImageList(undefined, []).length, 0);
 });
+
+test("상품명: 공급사 원본과 겹치지 않게 우리 브랜드로 구별한다", async () => {
+  // 토스가 거절한 실제 사유: "다른 상품과 겹치지 않는 상품명만 쓸 수 있어요."
+  // 같은 도매 상품을 원본명 그대로 올리면 충돌한다. 우리 상위셀러 전술
+  // (title_thumb_diff)도 원본명 그대로 쓰지 말라고 한다 — 동일 SKU끼리
+  // 가격 경쟁만 하게 되기 때문이다.
+  const { buildDistinctProductName } = await import(
+    "../../toss-shop/lib/seller-engine/listing-automation.ts"
+  );
+
+  assert.equal(
+    buildDistinctProductName("실리콘 주방 집게 3종", "에피로드"),
+    "에피로드 실리콘 주방 집게 3종",
+  );
+
+  // 이미 브랜드가 들어 있으면 두 번 붙이지 않는다
+  assert.equal(
+    buildDistinctProductName("에피로드 주방 집게", "에피로드"),
+    "에피로드 주방 집게",
+  );
+
+  // 토스 상품명 100자 제한을 넘지 않아야 한다
+  const long = buildDistinctProductName("가".repeat(200), "에피로드");
+  assert.ok(long.length <= 100, `100자 이내여야 — 실제 ${long.length}`);
+
+  // 빈 제목이어도 무언가는 나와야 한다
+  assert.equal(buildDistinctProductName("   ", "에피로드"), "에피로드");
+});
