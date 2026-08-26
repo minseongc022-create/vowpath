@@ -2481,6 +2481,8 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   droppedBeforeGate: number;
   /** 확실성 게이트에서 어떤 근거가 몇 번 걸렸나 */
   blockers: Array<{ label: string; count: number }>;
+  /** 93% 인증 게이트에서 실제로 실패한 항목 — 인증 0의 진짜 원인 */
+  certGateFailures: Array<{ label: string; count: number }>;
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -2518,6 +2520,23 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   // 오지도 못한 것이므로 원인이 다르다.
   const droppedBeforeGate = allPicks.length - scored.length;
 
+  // ★ 인증이 왜 안 되는지 — 신뢰도 숫자만으로는 알 수 없다
+  //
+  // 인증 실패 시 신뢰도는 92%로 **덮어씌워진다**(JARVIS_UNCERTIFIED_CAP).
+  // 그래서 로그에 92%가 찍히면 "1%만 더" 같아 보이지만 실제로는 어떤
+  // 게이트가 통째로 실패한 것이고, 그 항목을 안 보면 영원히 못 고친다.
+  // 실제로 등록이 0인 채로 초안만 쌓인 원인이 이거였다.
+  const certGateCounts: Record<string, number> = {};
+  for (const p of allPicks) {
+    if (p.jarvis?.certified) continue;
+    for (const g of p.jarvis?.gates ?? []) {
+      if (!g.passed) certGateCounts[g.label] = (certGateCounts[g.label] ?? 0) + 1;
+    }
+  }
+  const certGateFailures = Object.entries(certGateCounts)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+
   // 가장 앞에서 끊긴 곳이 진짜 병목이다. 뒤쪽만 보면 "등록이 0개"라고만
   // 알게 되는데, 원인은 그보다 앞 단계에 있는 경우가 대부분이다.
   const bottleneck =
@@ -2542,6 +2561,7 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
     orders,
     bottleneck,
     droppedBeforeGate,
+    certGateFailures,
     blockers: Object.entries(blockerCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
