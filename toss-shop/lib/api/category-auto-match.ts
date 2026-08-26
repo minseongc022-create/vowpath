@@ -74,9 +74,13 @@ async function pickBranch(input: {
   title: string;
   keyword: string;
   options: TossCategoryNode[];
-}): Promise<{ node?: TossCategoryNode; confident: boolean }> {
+}): Promise<{ node?: TossCategoryNode; confident: boolean; why?: string }> {
+  // 실패 사유를 구분해서 돌려준다. 종전엔 여섯 갈래가 전부 똑같은
+  // `confident: false`였다 — 키가 문제인지, 모델 호출이 거절당한 건지,
+  // 모델이 정말 못 고른 건지 알 수가 없어 손댈 곳을 못 찾는다.
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey || !input.options.length) return { confident: false };
+  if (!apiKey) return { confident: false, why: "OPENAI_API_KEY 없음" };
+  if (!input.options.length) return { confident: false, why: "선택지 없음" };
 
   const optionList = input.options
     .map((o) => `- id=${o.id}: ${o.name}${o.isLeaf ? " (등록 가능·최종)" : ""}`)
@@ -101,22 +105,27 @@ async function pickBranch(input: {
       }),
       signal: AbortSignal.timeout(20_000),
     });
-    if (!res.ok) return { confident: false };
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return { confident: false, why: `OpenAI ${res.status} ${body.slice(0, 200)}` };
+    }
 
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json.choices?.[0]?.message?.content;
-    if (!raw) return { confident: false };
+    if (!raw) return { confident: false, why: "OpenAI 응답 본문 비어 있음" };
 
     const parsed = JSON.parse(raw) as { id?: number; matched?: boolean };
-    if (!parsed.matched || typeof parsed.id !== "number") return { confident: false };
+    if (!parsed.matched || typeof parsed.id !== "number") {
+      return { confident: false, why: `모델이 고르지 못함 (${raw.slice(0, 120)})` };
+    }
 
     // 트리에 실제로 있는 옵션인지 검증 — 이게 없으면 지어낸 카테고리가 샌다
     const node = input.options.find((o) => o.id === parsed.id);
-    if (!node) return { confident: false };
+    if (!node) return { confident: false, why: `트리에 없는 id=${parsed.id}` };
 
     return { node, confident: true };
-  } catch {
-    return { confident: false };
+  } catch (e) {
+    return { confident: false, why: `OpenAI 호출 실패 — ${e instanceof Error ? e.message : "알 수 없음"}` };
   }
 }
 
@@ -157,13 +166,19 @@ export async function autoMatchCategoryId(input: {
       return { ...base, confident: false, path, reason: "더 내려갈 하위 카테고리가 없음" };
     }
 
-    const { node, confident } = await pickBranch({ title: input.title, keyword: input.keyword, options });
+    const { node, confident, why } = await pickBranch({
+      title: input.title,
+      keyword: input.keyword,
+      options,
+    });
     if (!confident || !node) {
       return {
         ...base,
         confident: false,
         path,
-        reason: `${path.length ? path.join(" > ") + " 아래에서 " : ""}확신할 수 있는 하위 카테고리를 찾지 못함`,
+        reason:
+          `${path.length ? path.join(" > ") + " 아래에서 " : ""}확신할 수 있는 하위 카테고리를 찾지 못함` +
+          (why ? ` — ${why}` : ""),
       };
     }
 
