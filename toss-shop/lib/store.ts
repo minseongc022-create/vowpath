@@ -1299,14 +1299,23 @@ export async function executeJarvisListing(input: {
   });
 }
 
-export async function runAutopilotForMerchant(merchantId: string): Promise<import("./types").JarvisAutopilotReport> {
+export async function runAutopilotForMerchant(
+  merchantId: string,
+  opts?: { discoverySize?: number; discoveryBudgetMs?: number },
+): Promise<import("./types").JarvisAutopilotReport> {
   // 한 바퀴 돌기 전에 시장을 새로 훑는다.
   //
   // 이걸 안 하면 사이클은 어제 만든 후보 목록을 다시 보고 같은 결론을 낸다 —
   // "올릴 만한 게 없습니다"가 반복된 이유가 이것이었다. 발굴은 실패해도
   // 사이클을 막지 않는다: 새로 못 찾았을 뿐 기존 후보 처리는 계속돼야 한다.
+  //
+  // 예산을 밖에서 조절할 수 있게 열어둔 이유: 크론은 60초 안에 여러 가맹점을
+  // 다 돌아야 해서 발굴에 20초를 쓰면 정작 등록까지 못 간다.
   try {
-    await runDiscoveryForMerchant(merchantId, { size: 24, budgetMs: 20_000 });
+    await runDiscoveryForMerchant(merchantId, {
+      size: opts?.discoverySize ?? 24,
+      budgetMs: opts?.discoveryBudgetMs ?? 20_000,
+    });
   } catch (e) {
     console.warn("[jarvis] 시장 발굴 실패:", e);
   }
@@ -2390,4 +2399,17 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
               : "정상 — 주문까지 흐르고 있음";
 
   return { discovered, picks, certified, drafts, published, orders, bottleneck };
+}
+
+
+/**
+ * 토스 연동이 되어 있는 가맹점인가.
+ *
+ * 크론은 60초 안에 여러 가맹점을 다 돌아야 한다. 연동이 없는 가맹점(데모 등)에
+ * 시간을 쓰면 정작 돈이 걸린 가맹점이 마감시각에 밀려 건너뛰어진다.
+ */
+export async function merchantHasTossApi(merchantId: string): Promise<boolean> {
+  const store = await loadStore();
+  const m = store.merchants.find((x) => x.id === merchantId);
+  return Boolean(m?.apiAccessKey && m?.apiSecretKey);
 }
