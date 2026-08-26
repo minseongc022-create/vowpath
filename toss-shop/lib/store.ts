@@ -2044,6 +2044,10 @@ export async function runDiscoveryForMerchant(
     .slice(0, MAX_DISCOVERED_PRODUCTS);
 
   data.discoveredProducts = merged;
+  // 도매꾹이 상품에 어떤 필드를 실어 보내는지 남긴다 — 문서 없이 짜지
+  // 않으려면 실제 응답을 봐야 한다. (카테고리 필드가 있으면 그걸로
+  // 토스 카테고리를 정할 수 있어 AI 의존을 줄일 수 있다.)
+  if (result.itemFields?.length) data.discoveryItemFields = result.itemFields;
   data.discoveryFormatVersion = DISCOVERY_FORMAT_VERSION;
   data.discoveryCursor = result.nextCursor;
   data.discoveryRanAt = new Date().toISOString();
@@ -2532,6 +2536,8 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
   blockers: Array<{ label: string; count: number }>;
   /** 93% 인증 게이트에서 실제로 실패한 항목 — 인증 0의 진짜 원인 */
   certGateFailures: Array<{ label: string; count: number; samples: string[] }>;
+  /** 도매꾹 상품 응답이 실제로 담고 있는 필드 이름 */
+  supplyItemFields?: string[];
 }> {
   const store = await loadStore();
   const data = merchantData(store, merchantId);
@@ -2617,6 +2623,7 @@ export async function getPipelineFunnel(merchantId: string): Promise<{
     bottleneck,
     droppedBeforeGate,
     certGateFailures,
+    supplyItemFields: data.discoveryItemFields,
     blockers: Object.entries(blockerCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)

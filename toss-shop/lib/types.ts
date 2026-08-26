@@ -266,6 +266,8 @@ export type MerchantData = {
   discoveryCursor?: number;
   /** 저장된 발굴 표본의 형식 판 — 다르면 옛 표본을 버리고 다시 훑는다 */
   discoveryFormatVersion?: string;
+  /** 도매꾹 상품 응답의 실제 필드 이름 — 추측 대신 실측으로 짜기 위해 */
+  discoveryItemFields?: string[];
   discoveryRanAt?: string;
   /** 발굴이 한 건도 응답을 못 받은 마지막 시각 — 연동 문제를 구분해 알리기 위해 */
   discoverySilentAt?: string;
