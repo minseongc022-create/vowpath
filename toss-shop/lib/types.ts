@@ -266,6 +266,17 @@ export type MerchantData = {
   discoveryCursor?: number;
   /** 저장된 발굴 표본의 형식 판 — 다르면 옛 표본을 버리고 다시 훑는다 */
   discoveryFormatVersion?: string;
+  /**
+   * 등록을 미룬다 — true(또는 아직 값이 없을 때)면 초안은 만들지만
+   * 토스에 올리지는 않는다.
+   *
+   * 사장님이 "상세페이지만 보고 싶다, 올리라고 하면 올려라"고 명시적으로
+   * 요청해 추가했다. 값이 없는 상태(신규)도 보류로 본다 — 확인 없이
+   * 자동으로 팔기 시작하는 것보다, 안전한 쪽을 기본값으로 둔다.
+   * "올려" 한마디로 풀리고 그 즉시 대기 중인 초안이 등록된다.
+   */
+  publishHold?: boolean;
+
   /** 도매꾹 상품 응답의 실제 필드 이름 — 추측 대신 실측으로 짜기 위해 */
   discoveryItemFields?: string[];
   discoveryRanAt?: string;

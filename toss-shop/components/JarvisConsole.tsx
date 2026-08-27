@@ -28,7 +28,13 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import type { JarvisAutopilotReport, JarvisFulfillmentJob } from "@/toss-shop/lib/types";
 
-type ChatMessage = { role: "user" | "assistant"; content: string; steps?: string[] };
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  steps?: string[];
+  /** show_detail_page — 상세페이지 본문. 있으면 채팅 안에 미리보기로 렌더링한다 */
+  detailHtml?: string;
+};
 
 type Status = {
   running: boolean;
@@ -109,10 +115,20 @@ export function JarvisConsole() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, history: messages.slice(-8) }),
       });
-      const json = (await res.json()) as { reply?: string; steps?: string[]; did?: string };
+      const json = (await res.json()) as {
+        reply?: string;
+        steps?: string[];
+        did?: string;
+        detailHtml?: string;
+      };
       setMessages([
         ...next,
-        { role: "assistant", content: json.reply ?? "응답이 비었습니다.", steps: json.steps },
+        {
+          role: "assistant",
+          content: json.reply ?? "응답이 비었습니다.",
+          steps: json.steps,
+          detailHtml: json.detailHtml,
+        },
       ]);
       // 실제로 뭔가 실행됐으면 화면 숫자도 같이 갱신한다
       if (json.did && json.did !== "talk") void fetchData();
@@ -273,6 +289,17 @@ export function JarvisConsole() {
               }`}
             >
               {m.content}
+              {m.role === "assistant" && m.detailHtml && (
+                // 상세페이지는 판매자가 작성한 HTML이라 우리 페이지 스크립트와
+                // 격리해서 렌더링한다 — sandbox로 스크립트 실행을 막는다
+                // (원본 상세 생성 자체가 스크립트를 안 넣지만, 이중 안전장치).
+                <iframe
+                  title="상세페이지 미리보기"
+                  srcDoc={m.detailHtml}
+                  sandbox=""
+                  className="mt-2.5 h-[520px] w-full rounded-xl border border-slate-200 bg-white"
+                />
+              )}
               {m.role === "assistant" && m.steps && m.steps.length > 0 && (
                 <ul className="mt-2 space-y-0.5 border-t border-slate-200 pt-2 text-xs text-slate-500">
                   {m.steps.map((st, si) => (

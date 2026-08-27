@@ -152,6 +152,52 @@ const TOOLS = [
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "hold_publish",
+      description:
+        "초안은 계속 만들되 토스에는 올리지 않는다. '올리지 말고', '상품 올리지마', '보류해', '아직 올리지마' 등.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "release_publish",
+      description:
+        "보류를 풀고 대기 중이던 인증 상품을 실제로 토스에 등록한다. **실제로 판매를 시작시키는 명령이므로, " +
+        "사장님이 분명히 '올려', '이제 올려도 돼', '발행해', '판매 시작해'라고 확실하게 말했을 때만 고른다.** " +
+        "그냥 상태를 물어보는 말이나 애매한 말에는 고르지 않는다.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "show_detail_page",
+      description:
+        "지금까지 만든 상품의 상세페이지 본문을 보여준다. '상세페이지 보여줘', '상품 상세 어떻게 나왔어', " +
+        "'상세페이지 잘 만들었는지 보고 싶어' 등. 특정 상품을 콕 집었으면 그 키워드를 keyword로 넘긴다.",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "찾는 상품의 키워드 일부 (없으면 최근 것)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "what_happened",
+      description:
+        "지금까지 만든 상품 정보와 진행 상황을 보고한다. '뭐 만들었어', '지금까지 뭐 했어', " +
+        "'상품 정보 알려줘', '뭐 하고 있었어' 등 — 승인/확인을 요청하는 게 아니라 그냥 현황을 궁금해할 때.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
 ];
 
 const PLANNER_SYSTEM = `사장님의 말에서 **지금 실행할 행동 하나**를 고르는 것이 당신의 유일한 일입니다.
@@ -162,6 +208,8 @@ const PLANNER_SYSTEM = `사장님의 말에서 **지금 실행할 행동 하나*
 - 말투는 상관없습니다. "소싱 해", "더 찾아봐", "추가적은 소싱 해"는 전부 discover입니다.
 - 시킨 게 아니라 순수한 질문·잡담이면 도구를 부르지 말고 그냥 답하세요.
 - 확실하지 않으면 부르지 마세요. 잘못 실행하는 것보다 되묻는 게 낫습니다.
+- release_publish는 실제로 상품을 판매 시작시킵니다. 사장님이 명확하게 "올려"라고
+  말하지 않았다면 절대 고르지 마세요 — 애매하면 hold 상태를 유지하는 쪽이 항상 안전합니다.
 
 한 번에 하나만 고릅니다.`;
 
@@ -253,7 +301,15 @@ function toAction(
     case "ack_alerts":
     case "operate":
     case "register_returns":
+    case "hold_publish":
+    case "release_publish":
+    case "what_happened":
       return { name };
+    case "show_detail_page":
+      return {
+        name: "show_detail_page",
+        keyword: typeof args.keyword === "string" ? args.keyword : undefined,
+      };
     case "discover":
       return { name: "discover", deep: args.deep === true };
     case "set_goal": {

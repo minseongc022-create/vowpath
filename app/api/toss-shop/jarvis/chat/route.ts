@@ -5,10 +5,14 @@ import {
   addReturnLocationManually,
   autoRegisterReturnLocations,
   confirmFulfillmentTracking,
+  getDraftDetailHtml,
   getJarvisChatContext,
   getReturnAddressBrief,
   getSupplierOrderBrief,
+  holdPublishing,
+  listRecentDrafts,
   markWholesaleOrdered,
+  releasePublishing,
   runAutopilotForMerchant,
   runDiscoveryForMerchant,
   runStoreOperations,
@@ -74,7 +78,7 @@ export async function POST(request: Request) {
       // 목표 금액이 분명히 들어 있으면 그게 우선이다 — "월 천만원 벌게 해줘"가
       // 상태 조회로 읽히면 시킨 일이 통째로 사라진다.
       if (action.goalKrw && parsed.intent === "status") action.name = "set_goal";
-      return NextResponse.json(await executeAction(merchantId, action, ctx.jobs, ctx.status));
+      return NextResponse.json(await executeAction(merchantId, action, ctx.jobs, ctx.status, session.email));
     }
 
     // 송장번호는 있는데 택배사가 없으면 되물어야 한다 — 추측하면 안 된다
@@ -92,7 +96,7 @@ export async function POST(request: Request) {
     // 사장님이 가장 자주 쓰는 지시들이다.
     const extra = parseExtraAction(message);
     if (extra) {
-      return NextResponse.json(await executeAction(merchantId, extra, ctx.jobs, ctx.status));
+      return NextResponse.json(await executeAction(merchantId, extra, ctx.jobs, ctx.status, session.email));
     }
 
     // ── 3. LLM이 행동을 고른다 ───────────────────────────────────
@@ -103,7 +107,7 @@ export async function POST(request: Request) {
     });
     if (planned.action) {
       return NextResponse.json(
-        await executeAction(merchantId, planned.action, ctx.jobs, ctx.status),
+        await executeAction(merchantId, planned.action, ctx.jobs, ctx.status, session.email),
       );
     }
 
@@ -141,6 +145,7 @@ async function executeAction(
   action: JarvisAction,
   jobs: Awaited<ReturnType<typeof getJarvisChatContext>>["jobs"],
   status: JarvisStatusSummary,
+  approvedBy: string,
 ): Promise<ActionResult> {
   const steps: string[] = [ACTION_LABELS[action.name] ?? "처리하는 중"];
 
@@ -366,6 +371,93 @@ async function executeAction(
       if (r.errors.length) lines.push("", "자세히:", ...r.errors.map((e) => `· ${e}`));
       steps.push(`반품지 ${r.registered}곳 등록`);
       return { reply: lines.join("\n"), steps, did: "register_returns" };
+    }
+
+    // ── 올리지 마 — 만들기는 하되 등록은 보류 ────────────────────
+    case "hold_publish": {
+      await holdPublishing(merchantId);
+      return {
+        reply:
+          "알겠습니다 — 상품은 계속 만들지만 토스에는 안 올립니다.\n" +
+          "「상세페이지 보여줘」로 미리 확인하시고, 준비되면 「올려」라고 말씀해 주세요.",
+        steps,
+        did: "hold_publish",
+      };
+    }
+
+    // ── 올려 — 보류를 풀고 대기 중이던 인증 상품을 즉시 등록 ─────
+    case "release_publish": {
+      await setJarvisActivity(merchantId, { label: "보류 풀고 등록하는 중" });
+      const r = await releasePublishing(merchantId, approvedBy);
+      await setJarvisActivity(merchantId, { label: "끝", done: true });
+
+      if (r.published === 0) {
+        const reasonLines = r.errors.length ? ["", "막힌 이유:", ...r.errors.slice(0, 3).map((e) => `· ${e}`)] : [];
+        return {
+          reply:
+            "보류는 풀었는데, 지금 바로 올릴 수 있는 상품이 없습니다.\n" +
+            "「지금 돌려」로 후보를 만들거나 「상세페이지 보여줘」로 준비된 게 있는지 먼저 봐 주세요." +
+            reasonLines.join("\n"),
+          steps,
+          did: "release_publish",
+        };
+      }
+      steps.push(...r.actions.slice(0, 4));
+      return {
+        reply: `보류를 풀고 ${r.published}개를 토스에 올렸습니다.\n앞으로는 인증되는 대로 자동으로 계속 올라갑니다.`,
+        steps,
+        did: "release_publish",
+      };
+    }
+
+    // ── 상세페이지 보여줘 ─────────────────────────────────────────
+    case "show_detail_page": {
+      const found = await getDraftDetailHtml(merchantId, action.keyword);
+      if (!found) {
+        return {
+          reply: action.keyword
+            ? `「${action.keyword}」에 맞는 상세페이지를 못 찾았습니다.`
+            : "아직 만들어 둔 상세페이지가 없습니다. 「지금 돌려」로 먼저 만들어 보겠습니다.",
+          steps,
+          did: "show_detail_page",
+        };
+      }
+      return {
+        reply: `「${found.productName}」 상세페이지입니다. (상태: ${found.status})`,
+        steps,
+        did: "show_detail_page",
+        detailHtml: found.html,
+      };
+    }
+
+    // ── 뭐 했어 — 지금까지 만든 것 정리 (조회용, 확인 요청 아님) ─
+    case "what_happened": {
+      const drafts = await listRecentDrafts(merchantId, 10);
+      if (drafts.length === 0) {
+        return {
+          reply: "아직 만들어 둔 상품이 없습니다. 「지금 돌려」로 시작해 보겠습니다.",
+          steps,
+          did: "what_happened",
+        };
+      }
+      const statusLabel: Record<string, string> = {
+        draft: "초안(미인증)",
+        pending_review: "등록 대기(보류 중이면 안 올라감)",
+        approved: "승인됨",
+        published: "판매 중",
+        failed: "등록 실패",
+        rejected: "탈락",
+      };
+      const lines = drafts.map((d) => {
+        const price = d.salePrice ? ` · ${d.salePrice.toLocaleString()}원` : "";
+        const err = d.publishError ? ` — ${d.publishError.slice(0, 60)}` : "";
+        return `· ${d.productName}${price} [${statusLabel[d.status] ?? d.status}]${err}`;
+      });
+      return {
+        reply: [`최근 만든 상품 ${drafts.length}개:`, ...lines].join("\n"),
+        steps,
+        did: "what_happened",
+      };
     }
 
     // ── 사장님이 우편번호까지 알려준 반품지 ─────────────────────

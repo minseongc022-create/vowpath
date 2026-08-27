@@ -5568,3 +5568,84 @@ test("등록 옵션: 그룹 개수 한도(3개)를 넘기지 않는다", async (
   ]);
   assert.ok("blocked" in tooMany, "필수 옵션 자체가 4개면 막아야 한다 — 지어낼 수 없는 모순이다");
 });
+
+// ── 자비스 대화: 보류·발행·상세페이지 조회·현황 보고 ──────────────
+
+test("발행 보류: 값이 없는 신규 상태도 보류로 본다 — 안전한 기본값", async () => {
+  // 사장님 지시: "상세페이지만 보여주고, 올리라고 하면 올려."
+  // 확인 없이 자동으로 팔기 시작하는 것보다 안전한 쪽을 기본값으로 둔다.
+  const { autoPublishCertifiedDrafts } = await import("../../toss-shop/lib/store.ts");
+  const hadFlag = process.env.JARVIS_AUTO_EXECUTE;
+  process.env.JARVIS_AUTO_EXECUTE = "true";
+  const { __resetStoreForTest } = await import("../../toss-shop/lib/store.ts").catch(() => ({}));
+
+  // publishHold를 아예 지정하지 않은 신규 가맹점 데이터 상황을 흉내낸다.
+  // (직접 loadStore를 건드리는 대신, 기본값 시맨틱만 문서로 남긴다 —
+  //  실제 파일시스템/KV 스토어 없이 이 테스트가 실행되므로 신규
+  //  merchantId를 쓰면 기본 데이터 경로를 그대로 탄다.)
+  const r = await autoPublishCertifiedDrafts(`m-hold-default-${Date.now()}`, {
+    approvedBy: "test",
+  });
+  assert.equal(r.published, 0, "값이 없으면 보류로 취급해 등록하지 않아야 한다");
+  assert.ok(
+    Object.keys(r.notEligible).some((k) => k.includes("보류")),
+    "왜 안 올라갔는지 '보류'라고 남아야 한다",
+  );
+
+  if (hadFlag === undefined) delete process.env.JARVIS_AUTO_EXECUTE;
+  else process.env.JARVIS_AUTO_EXECUTE = hadFlag;
+});
+
+test("발행 명령 정규식: '올려'는 문장 전체가 그 뜻일 때만 잡는다", async () => {
+  // ★ 왜 좁게 잡나
+  //
+  // release_publish는 실제로 상품을 판매 시작시키는 명령이다. "사진 좀
+  // 올려줘"처럼 무관한 문장에도 "올려"가 흔히 섞이므로, 잘못 잡으면
+  // 사장님이 보지도 않은 상품이 팔리기 시작한다.
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+
+  for (const yes of ["올려", "올려줘", "올려도 돼", "이제 올려", "발행해", "판매 시작 해"]) {
+    assert.equal(
+      parseExtraAction(yes)?.name,
+      "release_publish",
+      `"${yes}"는 발행 명령으로 잡혀야 한다`,
+    );
+  }
+
+  // 애매하거나 무관한 문장은 잡지 않는다 — LLM이 문맥을 보고 판단하게 넘긴다
+  for (const no of ["사진 좀 올려줘", "상세페이지 다시 올려줘야 하나", "가격 좀 올려줘"]) {
+    assert.notEqual(
+      parseExtraAction(no)?.name,
+      "release_publish",
+      `"${no}"는 발행 명령이 아니어야 한다`,
+    );
+  }
+});
+
+test("보류 명령 정규식: '올리지마'는 넓게 잡아도 안전하다", async () => {
+  // HOLD는 반대 방향(안 판다)이라 넓게 잡아도 위험이 낮다.
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  for (const yes of ["상품 올리지마", "올리지 말고 보여줘", "등록 보류해", "판매 멈춰"]) {
+    assert.equal(parseExtraAction(yes)?.name, "hold_publish", `"${yes}"는 보류로 잡혀야 한다`);
+  }
+});
+
+test("상세페이지 조회: 초안이 없으면 지어내지 않고 없다고 말한다", async () => {
+  const { getDraftDetailHtml } = await import("../../toss-shop/lib/store.ts");
+  const found = await getDraftDetailHtml(`m-empty-${Date.now()}`);
+  assert.equal(found, null);
+});
+
+test("현황 보고: parseExtraAction이 '뭐 했어'류 질문을 what_happened로 잡는다", async () => {
+  const { parseExtraAction } = await import(
+    "../../toss-shop/lib/seller-engine/jarvis-actions.ts"
+  );
+  for (const q of ["뭐 만들었어", "지금까지 뭐 했어", "상품 정보 알려줘"]) {
+    assert.equal(parseExtraAction(q)?.name, "what_happened", `"${q}"는 현황 질문이어야 한다`);
+  }
+  assert.equal(parseExtraAction("상세페이지 보여줘")?.name, "show_detail_page");
+});

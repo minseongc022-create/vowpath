@@ -1342,6 +1342,19 @@ export async function autoPublishCertifiedDrafts(
 
   const store = await loadStore();
   const data = merchantData(store, merchantId);
+
+  // ★ 사장님이 "올려"라고 하기 전까지는 만들기만 하고 올리지 않는다
+  //
+  // 값이 없는 상태(신규)도 보류로 본다 — 확인 없이 자동으로 팔기
+  // 시작하는 것보다 안전한 쪽을 기본값으로 둔다. releasePublishHold로
+  // 풀리면 그 즉시 대기 중인 초안이 등록된다.
+  if (data.publishHold !== false) {
+    notEligible["등록 보류 중 — '올려'라고 하면 등록합니다"] = (data.listingDrafts ?? []).filter(
+      (d) => d.jarvisCertified && (d.status === "pending_review" || d.status === "approved"),
+    ).length;
+    return { published, actions, errors, notEligible };
+  }
+
   const all = data.listingDrafts ?? [];
   const candidates = all.filter(
     (d) => d.jarvisCertified && (d.status === "pending_review" || d.status === "approved"),
@@ -1391,6 +1404,94 @@ export async function autoPublishCertifiedDrafts(
   }
 
   return { published, actions, errors, notEligible };
+}
+
+/**
+ * 등록을 보류한다 — 만들기는 계속하되, "올려"라고 할 때까지 토스에 안 올린다.
+ */
+export async function holdPublishing(merchantId: string): Promise<void> {
+  const store = await loadStore();
+  merchantData(store, merchantId).publishHold = true;
+  await saveStore(store);
+}
+
+/**
+ * 보류를 풀고, 대기 중이던 인증 초안을 즉시 등록한다.
+ *
+ * "말하면 바로 처리된다"를 지키려면 플래그만 바꾸고 다음 심박(최대 10분)을
+ * 기다리게 하면 안 된다 — 그 자리에서 곧바로 올린다.
+ */
+export async function releasePublishing(
+  merchantId: string,
+  approvedBy: string,
+): Promise<{ published: number; actions: string[]; errors: string[] }> {
+  const store = await loadStore();
+  merchantData(store, merchantId).publishHold = false;
+  await saveStore(store);
+
+  const pub = await autoPublishCertifiedDrafts(merchantId, { approvedBy });
+  return { published: pub.published, actions: pub.actions, errors: pub.errors };
+}
+
+export type DraftPreview = {
+  id: string;
+  keyword: string;
+  productName: string;
+  status: string;
+  salePrice?: number;
+  originPrice?: number;
+  jarvisCertified: boolean;
+  createdAt: string;
+  publishError?: string;
+};
+
+/**
+ * "뭐뭐 했는지" — 지금까지 만든 초안을 사람이 읽을 수 있게 정리한다.
+ *
+ * push 알림과 다르다: 사장님이 궁금할 때 부르는 조회용이라, 여기서는
+ * 아무것도 실행하지 않고 있는 그대로만 보여준다.
+ */
+export async function listRecentDrafts(merchantId: string, limit = 10): Promise<DraftPreview[]> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  return (data.listingDrafts ?? []).slice(0, limit).map((d) => ({
+    id: d.id,
+    keyword: d.keyword,
+    productName: d.listingPayload?.name ?? d.pickBrief?.headline ?? d.keyword,
+    status: d.status,
+    salePrice: d.listingPayload?.salePrice,
+    originPrice: d.listingPayload?.originPrice,
+    jarvisCertified: Boolean(d.jarvisCertified),
+    createdAt: d.createdAt,
+    publishError: d.publishError,
+  }));
+}
+
+/**
+ * 상세페이지 본문 HTML을 하나 골라 돌려준다 — 등록 전에 미리 보고 싶을 때.
+ *
+ * keyword가 있으면 그 키워드를 포함한 가장 최근 초안, 없으면 그냥 가장
+ * 최근 초안을 고른다. 초안이 하나도 없으면 null — 지어내지 않는다.
+ */
+export async function getDraftDetailHtml(
+  merchantId: string,
+  keyword?: string,
+): Promise<{ productName: string; html: string; status: string } | null> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const drafts = data.listingDrafts ?? [];
+  const pool = keyword
+    ? drafts.filter(
+        (d) => d.keyword.includes(keyword) || d.listingPayload?.name?.includes(keyword),
+      )
+    : drafts;
+  const found = pool.find((d) => d.detailPage?.html);
+  if (!found?.detailPage?.html) return null;
+  return {
+    productName: found.listingPayload?.name ?? found.keyword,
+    html: found.detailPage.html,
+    status: found.status,
+  };
 }
 
 export async function runAutopilotForMerchant(

@@ -33,7 +33,15 @@ export type JarvisActionName =
   /** 대기 중인 공급처 반품지를 토스에 직접 등록 */
   | "register_returns"
   /** 사장님이 우편번호까지 알려준 반품지 하나를 등록 */
-  | "add_return_location";
+  | "add_return_location"
+  /** 초안은 계속 만들되 토스에는 올리지 않는다 */
+  | "hold_publish"
+  /** 보류를 풀고 대기 중이던 초안을 즉시 등록한다 */
+  | "release_publish"
+  /** 최근에 만든 초안의 상세페이지 본문을 보여준다 */
+  | "show_detail_page"
+  /** 지금까지 만든 상품 정보와 진행 상황을 보고한다 */
+  | "what_happened";
 
 export type JarvisAction = {
   name: JarvisActionName;
@@ -46,6 +54,8 @@ export type JarvisAction = {
   goalKrw?: number;
   /** discover — 얼마나 넓게 훑을지 */
   deep?: boolean;
+  /** show_detail_page — 어느 상품인지 콕 집었을 때 */
+  keyword?: string;
 };
 
 export type ActionResult = {
@@ -54,6 +64,8 @@ export type ActionResult = {
   /** 실제로 무슨 일이 있었는지 — 화면에 단계로 뜬다 */
   steps: string[];
   did: JarvisActionName | "talk" | "error";
+  /** show_detail_page — 렌더링할 상세페이지 본문 (있을 때만) */
+  detailHtml?: string;
 };
 
 /** 목표는 이 범위 밖으로 못 잡는다 — 밖은 계획이 아니라 희망이다 */
@@ -114,6 +126,10 @@ export const ACTION_LABELS: Record<JarvisActionName, string> = {
   operate: "안 팔리는 상품 손보는 중",
   register_returns: "반품지 등록하는 중",
   add_return_location: "알려주신 반품지 넣는 중",
+  hold_publish: "등록 보류하는 중",
+  release_publish: "보류 풀고 등록하는 중",
+  show_detail_page: "상세페이지 불러오는 중",
+  what_happened: "지금까지 한 일 정리하는 중",
   talk: "생각하는 중",
 };
 
@@ -141,6 +157,27 @@ const OPERATE_PATTERNS =
 const RETURN_REG_PATTERNS =
   /반품지.{0,10}(등록해|올려|넣어|추가해|처리해)|반품지\s*자동/;
 
+// "상품 올리지마" / "올리지 말고" — 반품지·발주의 '등록'과 안 겹치게
+// 대상이 상품·판매·등록 자체를 가리킬 때만 잡는다.
+const HOLD_PUBLISH_PATTERNS =
+  /(상품|올리|등록|발행|판매).{0,8}(올리지\s*마|하지\s*마|말고|보류|멈춰|잠깐|대기)/;
+
+// ★ 왜 이렇게 좁게 잡나
+//
+// 이건 실제로 상품을 파는 명령이다 — 잘못 잡으면 사장님이 보지도 않은
+// 상품이 팔리기 시작한다. "사진 좀 올려줘"처럼 무관한 문장에 "올려"가
+// 흔히 섞이므로, 문장 **전체**가 발행 지시로 읽힐 때만 잡는다. 애매하면
+// 여기서 넘겨 LLM(jarvis-planner)이 문맥을 보고 판단하게 한다 — LLM도
+// 확신 없으면 실행하지 말라고 지시돼 있다.
+const RELEASE_PUBLISH_PATTERNS =
+  /^\s*(그럼\s*)?(이제\s*)?(올려|올려도\s*돼|올려\s*줘|발행\s*해|판매\s*시작\s*해|등록\s*하고\s*판매\s*해)\s*[.!]*\s*$/;
+
+const SHOW_DETAIL_PATTERNS =
+  /(상세\s*페이지|상세페이지|상품\s*상세).{0,6}(보여|보고\s*싶|줘|확인)|보여\s*줘.{0,6}상세/;
+
+const WHAT_HAPPENED_PATTERNS =
+  /(뭐|뭘)\s*(했|하고\s*있|만들|올렸)|무슨\s*(일|상품)|상품\s*정보|지금까지/;
+
 /**
  * 정규식만으로 잡히는 지시를 읽는다.
  *
@@ -167,6 +204,18 @@ export function parseExtraAction(message: string): JarvisAction | null {
   if (RETURN_REG_PATTERNS.test(text)) return { name: "register_returns" };
   if (OPERATE_PATTERNS.test(text)) return { name: "operate" };
   if (ACK_PATTERNS.test(text)) return { name: "ack_alerts" };
+
+  // 보류가 발행보다 먼저다 — "상품 올리지 말고 보여줘"에서 '올리'만 보고
+  // 발행으로 오인하면 안 된다. HOLD는 넓게 잡아도 안전하다: 잘못 잡혀도
+  // 결과는 "안 판다"이지 "잘못 판다"가 아니다.
+  if (HOLD_PUBLISH_PATTERNS.test(text)) return { name: "hold_publish" };
+  // 반대로 RELEASE는 실제로 파는 명령이라 문장 전체가 그 뜻일 때만 잡는다
+  // (패턴 자체가 좁게 잡혀 있다). 애매하면 여기서 안 잡히고 LLM으로 넘어간다.
+  if (RELEASE_PUBLISH_PATTERNS.test(text)) return { name: "release_publish" };
+
+  if (SHOW_DETAIL_PATTERNS.test(text)) return { name: "show_detail_page" };
+  if (WHAT_HAPPENED_PATTERNS.test(text)) return { name: "what_happened" };
+
   if (DISCOVER_PATTERNS.test(text)) {
     return { name: "discover", deep: /(싹\s*다|전부|구석구석|샅샅이|광범위|더\s*넓게)/.test(text) };
   }
