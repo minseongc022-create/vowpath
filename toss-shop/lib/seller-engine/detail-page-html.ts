@@ -114,30 +114,44 @@ export function buildDetailPageHtml(input: DetailPageInput): string {
   // ── 2. 특징 블록 — 사진 하나에 문구 하나, 번갈아 ──
   //
   // 히어로에 쓴 첫 사진은 다시 안 쓴다. 남은 사진과 남은 셀링포인트를
-  // 순서대로 짝짓는다 — 짝이 안 맞으면(사진 4장, 문구 2개처럼) 남는 쪽만
-  // 이어서 보여준다. 억지로 같은 개수를 만들지 않는다.
+  // 순서대로 짝짓는다 — **짝지을 수 있는 만큼만** 묶고, 그 이상 남는 쪽은
+  // 억지로 짝을 안 만든다(사진만 남으면 사진 갤러리로, 문구만 남으면
+  // 문구만 있는 블록으로 각각 따로 처리한다).
+  //
+  // ⚠️ 예전엔 pairCount를 두 배열 중 **긴 쪽**(Math.max)으로 잡았다. 그러면
+  // 루프가 이미 두 배열을 끝까지 다 써버려서, "남는 사진"이 생길 수 없는
+  // 죽은 코드가 됐다 — 사진이 훨씬 많아도 "제품 디테일" 섹션이 절대 안
+  // 나오는 버그였다. **짧은 쪽**(Math.min)까지만 짝짓고 그 이후는 남긴다.
   const restImages = images.slice(1);
-  const pairCount = Math.max(restImages.length, points.length);
-  for (let i = 0; i < pairCount; i++) {
-    const point = points[i];
-    const photo = restImages[i];
-    if (!point && !photo) continue;
-
-    sections.push(`<div style="margin:0 0 32px">`);
-    if (point) {
-      sections.push(
+  const pairedCount = Math.min(restImages.length, points.length);
+  for (let i = 0; i < pairedCount; i++) {
+    sections.push(
+      `<div style="margin:0 0 32px">` +
         `<p style="margin:0 0 14px;font-size:17px;line-height:1.6;font-weight:600;` +
-          `color:#0f172a;text-align:center">${esc(point)}</p>`,
-      );
-    }
-    if (photo) sections.push(img(photo, `${input.productName} 상세 ${i + 1}`, "border-radius:8px"));
-    sections.push(`</div>`);
+        `color:#0f172a;text-align:center">${esc(points[i])}</p>` +
+        img(restImages[i], `${input.productName} 상세 ${i + 1}`, "border-radius:8px") +
+        `</div>`,
+    );
   }
 
-  // 짝짓고 남은 사진이 있으면(사진이 훨씬 많은 경우) 갤러리로 이어 붙인다.
-  // 실제 사진이 많다는 건 성의 있는 페이지라는 뜻이므로 버리지 않는다.
-  if (restImages.length > pairCount) {
-    for (const url of restImages.slice(pairCount)) {
+  // 문구가 사진보다 많으면 남는 문구는 사진 없이 이어 붙인다.
+  for (let i = pairedCount; i < points.length; i++) {
+    sections.push(
+      `<p style="margin:0 0 18px;font-size:16px;line-height:1.7;font-weight:600;` +
+        `color:#0f172a;text-align:center">${esc(points[i])}</p>`,
+    );
+  }
+
+  // 사진이 문구보다 훨씬 많으면(성의 있게 찍어 올린 상품) "제품 디테일"
+  // 섹션으로 묶어 남김없이 보여준다 — 실제 사진을 버리지 않는다. 다만
+  // 어느 부분을 확대한 것인지는 모르므로(화살표·원형 표시는 위치를
+  // 지어내는 것이라 하지 않는다) 사진만 있는 그대로 보여준다.
+  if (restImages.length > pairedCount) {
+    sections.push(
+      `<h3 style="margin:24px 0 14px;font-size:16px;font-weight:700;color:#0f172a;text-align:center">` +
+        `제품 디테일</h3>`,
+    );
+    for (const url of restImages.slice(pairedCount)) {
       sections.push(img(url, input.productName, "border-radius:8px;margin:0 0 12px"));
     }
   }

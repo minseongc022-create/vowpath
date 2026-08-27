@@ -5627,6 +5627,22 @@ test("상세페이지: 사진 한 장 + 그 사진을 설명하는 문구를 반
   assert.ok(html.includes("motor.jpg"), "짝이 안 맞아도 남는 실사진은 버리면 안 된다");
 });
 
+test("상세페이지: 셀링포인트보다 사진이 훨씬 많으면 '제품 디테일' 섹션으로 묶는다", async () => {
+  // 남는 사진은 어디를 확대한 것인지 모르므로(화살표·원형 표시는 위치를
+  // 지어내는 것이라 하지 않는다) 사진만 그대로 보여주되, "제품 디테일"
+  // 섹션 제목 아래로 묶어 아무 맥락 없이 나열되지 않게 한다.
+  const { buildDetailPageHtml } = await import(
+    "../../toss-shop/lib/seller-engine/detail-page-html.ts"
+  );
+  const html = buildDetailPageHtml({
+    productName: "테스트 상품",
+    sellingPoints: ["장점 하나"],
+    imageUrls: ["https://img/hero.jpg", "https://img/a.jpg", "https://img/b.jpg", "https://img/c.jpg"],
+  });
+  assert.ok(html.includes("제품 디테일"), "남는 사진은 섹션 제목 아래 묶여야 한다");
+  assert.ok(html.includes("b.jpg") && html.includes("c.jpg"), "남는 사진 전부가 실려야 한다");
+});
+
 test("상세페이지: 사진이 지어낸 게 아니라 입력받은 실제 URL 그대로 나온다", async () => {
   // 지어낸 각도를 만들면 안 된다는 요구사항 — 이미지를 가공하거나 다른
   // URL로 바꾸지 않고, 받은 그대로 <img src>에 넣는지 확인한다.
