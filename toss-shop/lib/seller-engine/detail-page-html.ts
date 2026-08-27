@@ -68,8 +68,14 @@ export type DetailPageInput = {
   dispatchDays?: number;
   /** 반품 안내 한 줄 */
   returnNote?: string;
-  /** 구매 저항 해소 섹션 HTML (buyer-psychology가 만든 것) */
-  objectionsHtml?: string;
+  /**
+   * 구매 전 궁금증 — buyer-psychology가 만든 걱정거리·대응 쌍.
+   *
+   * "자주 묻는 질문" 형식으로 렌더링한다. 사장님 요구사항(구매자가 궁금해할
+   * 질문을 도출해 섹션으로 해소)을 지어낸 질문이 아니라, 이미 검증된 규칙
+   * 기반 대응(buyer-psychology.ts)으로 채운다.
+   */
+  objections?: Array<{ concern: string; answer: string }>;
   /** 옵션/구성 — "1개", "500g" 같은 확인된 사양 */
   specs?: Array<{ label: string; value: string }>;
 };
@@ -180,8 +186,29 @@ export function buildDetailPageHtml(input: DetailPageInput): string {
       `</div>`,
   );
 
-  // ── 5. 구매 저항 해소 — 자랑 밑에 조용히 ──
-  if (input.objectionsHtml?.trim()) sections.push(input.objectionsHtml);
+  // ── 5. 자주 묻는 질문 — 사는 사람이 결제 직전에 갖는 의문 ──
+  //
+  // 지어낸 질문이 아니라 buyer-psychology.ts의 규칙 기반 대응만 쓴다.
+  // "배송이 언제 오는지", "안 맞으면 어떻게 하는지" 같은, 실제로 확인된
+  // 정책·사실에서 나온 답만 나열한다.
+  const objections = (input.objections ?? []).filter((o) => o.concern && o.answer);
+  if (objections.length) {
+    const items = objections
+      .map(
+        (o) =>
+          `<div style="padding:16px 0;border-bottom:1px solid #f1f5f9">` +
+          `<p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#0f172a">Q. ${esc(o.concern)}</p>` +
+          `<p style="margin:0;font-size:14px;line-height:1.7;color:#475569">A. ${esc(o.answer)}</p>` +
+          `</div>`,
+      )
+      .join("");
+    sections.push(
+      `<div style="margin:8px 0 0">` +
+        `<h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#0f172a">자주 묻는 질문</h3>` +
+        items +
+        `</div>`,
+    );
+  }
 
   return `<div style="max-width:860px;margin:0 auto;padding:8px 0;font-family:${FONT_STACK}">${sections.join(
     "",

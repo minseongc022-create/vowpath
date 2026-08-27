@@ -5640,6 +5640,26 @@ test("상세페이지: 사진이 지어낸 게 아니라 입력받은 실제 URL
   }
 });
 
+test("상세페이지: 구매 전 궁금증을 자주 묻는 질문 형식으로 보여준다", async () => {
+  // 사장님 지시: "구매 전 소비자가 가질 의문을 상세페이지 안에서 해결해야
+  // 한다." 지어낸 질문이 아니라 buyer-psychology.ts의 규칙 기반 대응만
+  // Q/A 형식으로 렌더링하는지 확인한다.
+  const { buildDetailPageHtml } = await import(
+    "../../toss-shop/lib/seller-engine/detail-page-html.ts"
+  );
+  const html = buildDetailPageHtml({
+    productName: "테스트 상품",
+    sellingPoints: [],
+    imageUrls: [],
+    objections: [
+      { concern: "받아봤는데 생각과 다르면 어떡하지", answer: "7일 이내 교환·반품 가능합니다." },
+    ],
+  });
+  assert.ok(html.includes("자주 묻는 질문"));
+  assert.ok(html.includes("Q. 받아봤는데 생각과 다르면 어떡하지"));
+  assert.ok(html.includes("A. 7일 이내 교환·반품 가능합니다."));
+});
+
 test("등록 옵션: 그룹 개수 한도(3개)를 넘기지 않는다", async () => {
   // ★ 실측 반려 사유
   //   "옵션 그룹은 최대 3개입니다 (현재 4개)"
