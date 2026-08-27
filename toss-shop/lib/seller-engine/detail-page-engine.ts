@@ -9,6 +9,7 @@ import type { ConsignmentPick, ImportPick, JarvisDetailPageBundle } from "../typ
 import { requestDetailPageFromProviders } from "./detail-page-providers";
 import type { DetailPageProviderId } from "./detail-page-providers";
 import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
+import { generateDetailShots } from "./image-detail-shots";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
 import { buildDetailPageHtml, DETAIL_PAGE_HTML_VERSION } from "./detail-page-html";
 
@@ -85,6 +86,9 @@ function buildSellingPoints(
   return { points: plan.sellingPoints.slice(0, 5), plan };
 }
 
+/** 이 미만이면 "사진이 별로 없다"고 보고 클로즈업 컷을 더 만든다 */
+const THIN_GALLERY_THRESHOLD = 4;
+
 /**
  * 실제 상품 사진을 최대한 모은다 — 지어낸 이미지는 절대 안 넣는다.
  *
@@ -94,11 +98,14 @@ function buildSellingPoints(
  *  2. 부족하면 상품 상세페이지 자체를 가볍게 스크랩해 보충한다
  *     (`fetchWholesaleProductImages`) — 이것도 실제 <img> 태그를 그대로
  *     읽는 것이지 AI가 만들어내는 게 아니다. 비용이 안 든다(순수 fetch).
- *  3. 그래도 없으면 검색 결과 썸네일 1장.
+ *  3. 그래도 사진이 적으면(공급처가 성의 없이 1~2장만 올린 경우) 있는
+ *     실사진을 **잘라서** 클로즈업 컷을 만든다(image-detail-shots.ts).
+ *     새로 그리는 게 아니라 같은 사진의 다른 영역을 확대하는 것이라
+ *     100% 실물이다 — "다른 상품처럼 보일" 위험이 구조적으로 없다.
+ *  4. 그래도 아무것도 없으면 검색 결과 썸네일 1장.
  *
- * 이 셋 다 **공급사가 이미 찍어 올린 사진**이다. 어떤 단계에서도 이미지를
- * 편집·생성하지 않는다 — 배경을 새로 그리거나 각도를 지어내면 실물과
- * 다르게 보일 위험이 있고, 그건 반품·분쟁으로 돌아온다.
+ * 어떤 단계에서도 배경을 새로 그리거나 없는 각도를 지어내지 않는다 —
+ * 실물과 다르게 보이면 반품·분쟁으로 돌아온다.
  */
 async function collectRealImages(
   productUrl: string | undefined,
@@ -116,7 +123,7 @@ async function collectRealImages(
 
   for (const u of knownGallery ?? []) add(u);
 
-  if (out.length < 4 && (productUrl || primaryImageUrl)) {
+  if (out.length < THIN_GALLERY_THRESHOLD && (productUrl || primaryImageUrl)) {
     try {
       const scraped = await fetchWholesaleProductImages({
         productUrl,
@@ -130,6 +137,22 @@ async function collectRealImages(
   }
 
   if (out.length === 0) add(primaryImageUrl);
+
+  // 사장님 지시: "공급처에서 제공하는 사진이 별로 없으면 우리가 더 만들어서"
+  // — 단, 안 보이는 곳을 지어내지 않고 보이는 곳을 다른 프레임으로만 보여준다.
+  if (out.length > 0 && out.length < THIN_GALLERY_THRESHOLD) {
+    try {
+      const need = THIN_GALLERY_THRESHOLD - out.length;
+      const shots = await generateDetailShots(out[0], Math.min(3, need + 1));
+      for (const u of shots) {
+        if (out.length >= THIN_GALLERY_THRESHOLD) break;
+        add(u);
+      }
+    } catch {
+      // 실패해도 있는 실사진만으로 진행한다 — 지어낼 수는 없다
+    }
+  }
+
   return out;
 }
 

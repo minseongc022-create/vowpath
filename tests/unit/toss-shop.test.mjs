@@ -5784,3 +5784,54 @@ test("현황 보고: parseExtraAction이 '뭐 했어'류 질문을 what_happened
   }
   assert.equal(parseExtraAction("상세페이지 보여줘")?.name, "show_detail_page");
 });
+
+// ─────────────────────────────────────────────────────────────
+// 실사진 클로즈업 컷 — AI로 지어내지 않고 실제 사진을 자른다
+// ─────────────────────────────────────────────────────────────
+
+test("클로즈업 컷: 실제 사진 픽셀만 자른다 — 새로 그리지 않는다는 걸 좌표로 보장", async () => {
+  // ★ 사장님 지시: 공급처 사진이 적으면 우리가 더 만들되, 안 보이는 곳을
+  // 지어내면 안 되고 "보이는 곳을 다른 각도에서 찍은 것처럼"만 해야 한다.
+  //
+  // AI로 새 이미지를 생성하면 그 순간부터 실제 사진이 아니게 된다.
+  // 그래서 이 모듈은 생성하지 않고 **자른다** — 잘라낸 영역이 항상
+  // 원본 크기 안에 있는지(=지어낸 픽셀이 없는지)를 좌표로 검증한다.
+  const { computeCropRect } = await import(
+    "../../toss-shop/lib/seller-engine/image-detail-shots.ts"
+  );
+
+  for (const [w, h] of [[1000, 1000], [1200, 800], [600, 900], [333, 777]]) {
+    for (const [wr, hr, anchor] of [
+      [1, 1, "center"],
+      [0.6, 0.6, "center"],
+      [0.75, 0.65, "top"],
+    ]) {
+      const rect = computeCropRect(w, h, wr, hr, anchor);
+      assert.ok(rect.left >= 0 && rect.top >= 0, `잘라낸 영역이 원본 밖에서 시작하면 안 된다 (${w}x${h})`);
+      assert.ok(
+        rect.left + rect.width <= w && rect.top + rect.height <= h,
+        `잘라낸 영역이 원본을 벗어나면 없는 픽셀을 만들어야 한다 (${w}x${h}, ${wr}/${hr})`,
+      );
+      assert.ok(rect.width > 0 && rect.height > 0);
+    }
+  }
+
+  // top 기준은 위쪽에 붙어야 한다 — center와 달리 top=0이어야 함
+  const topRect = computeCropRect(1000, 1000, 0.75, 0.65, "top");
+  assert.equal(topRect.top, 0, "top 기준 크롭은 상단에 붙어야 한다");
+
+  // center 기준은 좌우·상하 여백이 대칭이어야 한다(가운데 정렬)
+  const centerRect = computeCropRect(1000, 1000, 0.6, 0.6, "center");
+  const leftMargin = centerRect.left;
+  const rightMargin = 1000 - (centerRect.left + centerRect.width);
+  assert.ok(Math.abs(leftMargin - rightMargin) <= 1, "가운데 정렬이어야 한다");
+});
+
+test("클로즈업 컷: 다운로드·처리에 실패하면 지어내지 않고 빈 배열을 돌려준다", async () => {
+  const { generateDetailShots } = await import(
+    "../../toss-shop/lib/seller-engine/image-detail-shots.ts"
+  );
+  // 존재하지 않는 주소 — 실패해야 정상이다
+  const urls = await generateDetailShots("https://example.invalid/nope.jpg", 2);
+  assert.deepEqual(urls, [], "실패하면 빈 배열이어야 한다 — 지어낸 URL을 돌려주면 안 된다");
+});
