@@ -2927,6 +2927,60 @@ test("공급처 상세: 키에 단서 없이 본문에만 있는 주소는 채�
   assert.equal(detail.returnAddress, undefined);
 });
 
+test("공급처 상세: 응답 전체에서 실제 사진 URL을 필드명 추측 없이 모은다", async () => {
+  // ★ 왜 필요한가
+  //
+  // 사장님 지적: 상세페이지에 사진이 1장뿐이었다. 검색 API(getItemList)는
+  // 목록용 축소 썸네일 1장만 주지만, 상세 조회(getItemView)에는 공급사가
+  // 실제로 찍은 사진이 여러 장 들어 있는 경우가 많다.
+  //
+  // 도매꾹 getItemView 스키마 문서가 폐쇄돼 있어 이미지 필드명을 모른다
+  // (업체마다 img1..img10, detailImages, content 안 <img> 등 관례가
+  // 제각각이다). 그래서 주소 판독과 같은 원칙을 쓴다 — 키 이름이 아니라
+  // **값의 형태**로 이미지 URL을 찾는다.
+  const { readSupplierDetailFromResponse } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+  const detail = readSupplierDetailFromResponse(
+    {
+      domeggook: {
+        seller: { id: "s1", nick: "공급사" },
+        img1: "https://cdn.domeggook.com/detail/photo1.jpg",
+        img2: "https://cdn.domeggook.com/detail/photo2.jpg",
+        // 이건 목록용 축소 썸네일이다 — 상세 갤러리에서는 빼야 한다
+        thumb: "https://cdn.domeggook.com/thumb/small_123.jpg",
+        content: "설명 안에 이미지가 있을 수도 있다: https://cdn.domeggook.com/content/photo3.png 참고",
+      },
+    },
+    123,
+  );
+
+  assert.ok(
+    detail.imageUrls.includes("https://cdn.domeggook.com/detail/photo1.jpg"),
+    "img1 같은 필드명이어도 값이 이미지 URL이면 잡아야 한다",
+  );
+  assert.ok(detail.imageUrls.includes("https://cdn.domeggook.com/detail/photo2.jpg"));
+  assert.ok(
+    detail.imageUrls.includes("https://cdn.domeggook.com/content/photo3.png"),
+    "본문 텍스트 안에 섞여 있는 이미지 주소도 찾아야 한다",
+  );
+  assert.ok(
+    !detail.imageUrls.some((u) => u.includes("thumb")),
+    "목록용 축소 썸네일은 상세 갤러리에서 빼야 한다",
+  );
+});
+
+test("공급처 상세: 이미지가 하나도 없으면 지어내지 않고 빈 배열을 돌려준다", async () => {
+  const { readSupplierDetailFromResponse } = await import(
+    "../../toss-shop/lib/wholesale/domeggook-detail.ts"
+  );
+  const detail = readSupplierDetailFromResponse(
+    { domeggook: { seller: { id: "s1" }, desc: "사진 없는 상품 설명입니다." } },
+    1,
+  );
+  assert.deepEqual(detail.imageUrls, []);
+});
+
 // ─────────────────────────────────────────────────────────────
 // 구매심리 — 촌스러움·과장 차단
 // ─────────────────────────────────────────────────────────────
@@ -5539,6 +5593,51 @@ test("반려 방지: 썸네일 크기를 보내기 전에 잰다", async () => {
 
   // 형식을 모르면 지어내지 않는다
   assert.equal(readImageSize(new Uint8Array([1, 2, 3, 4])), null);
+});
+
+test("상세페이지: 사진 한 장 + 그 사진을 설명하는 문구를 반복하는 구조로 만든다", async () => {
+  // ★ 실측 지적: "텍스트만 많고 사진도 없다"
+  //
+  // 한국 이커머스 상세페이지의 표준 구조는 텍스트 목록이 아니라 **사진
+  // 한 장 + 그 사진이 보여주는 것을 설명하는 짧은 문구**를 반복하는
+  // 것이다(선풍기 예시 — 리모컨 사진 아래 "리모컨 조작"). 이 구조를
+  // 실제로 만드는지 검증한다.
+  const { buildDetailPageHtml } = await import(
+    "../../toss-shop/lib/seller-engine/detail-page-html.ts"
+  );
+
+  const html = buildDetailPageHtml({
+    productName: "리모컨 선풍기 2 IN 1",
+    sellingPoints: ["리모컨으로 편하게 조작", "접이식 다리로 간편 수납", "저소음 모터"],
+    imageUrls: ["https://img/hero.jpg", "https://img/remote.jpg", "https://img/fold.jpg", "https://img/motor.jpg"],
+  });
+
+  // 히어로 사진은 한 번만 나와야 한다(특징 블록에서 재사용하지 않는다)
+  const heroCount = (html.match(/hero\.jpg/g) ?? []).length;
+  assert.equal(heroCount, 1, "히어로 사진이 중복되면 안 된다");
+
+  // 각 셀링포인트가 자기 사진과 같은 블록 안에서 이웃해야 한다
+  const remoteIdx = html.indexOf("remote.jpg");
+  const remoteTextIdx = html.indexOf("리모컨으로 편하게 조작");
+  assert.ok(remoteTextIdx !== -1 && remoteIdx !== -1);
+  assert.ok(Math.abs(remoteIdx - remoteTextIdx) < 400, "문구와 사진이 같은 블록에 붙어 있어야 한다");
+
+  // 셀링포인트보다 사진이 많으면(4장 vs 3개) 남는 사진도 버리지 않는다 —
+  // 실제 사진이 많다는 건 성의 있는 페이지라는 뜻이다
+  assert.ok(html.includes("motor.jpg"), "짝이 안 맞아도 남는 실사진은 버리면 안 된다");
+});
+
+test("상세페이지: 사진이 지어낸 게 아니라 입력받은 실제 URL 그대로 나온다", async () => {
+  // 지어낸 각도를 만들면 안 된다는 요구사항 — 이미지를 가공하거나 다른
+  // URL로 바꾸지 않고, 받은 그대로 <img src>에 넣는지 확인한다.
+  const { buildDetailPageHtml } = await import(
+    "../../toss-shop/lib/seller-engine/detail-page-html.ts"
+  );
+  const realUrls = ["https://domeggook.com/real/photo1.jpg", "https://domeggook.com/real/photo2.jpg"];
+  const html = buildDetailPageHtml({ productName: "테스트 상품", sellingPoints: [], imageUrls: realUrls });
+  for (const url of realUrls) {
+    assert.ok(html.includes(`src="${url}"`), `실제 URL이 변형 없이 들어가야 한다: ${url}`);
+  }
 });
 
 test("등록 옵션: 그룹 개수 한도(3개)를 넘기지 않는다", async () => {

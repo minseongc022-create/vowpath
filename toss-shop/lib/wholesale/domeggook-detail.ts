@@ -58,6 +58,16 @@ export type SupplierDetail = {
   /** 공급사 식별자 — 반품지 매칭 키 */
   sellerId?: string;
   sellerNick?: string;
+  /**
+   * 상세 응답에서 발견한 **실제 상품 사진** 전체.
+   *
+   * 검색 API(getItemList)는 목록용 축소 썸네일 1장만 준다. 그런데 상세
+   * 조회(getItemView)에는 공급사가 올린 진짜 상품 사진이 여러 장 들어
+   * 있다 — 한국 도매 상세페이지 관례상 다각도·클로즈업 사진을 이미
+   * 갖추고 있는 경우가 많다. 그 사진들을 그대로 쓴다: 지어낸 각도가
+   * 아니라 공급사가 실제로 찍은 사진이라 상품 왜곡 위험이 없다.
+   */
+  imageUrls: string[];
   /** 응답 최상위 키들 — 스키마 확인용 진단 정보 */
   responseKeys: string[];
 };
@@ -157,7 +167,49 @@ type Walked = {
   policyChunks: string[];
   sellerId?: string;
   sellerNick?: string;
+  /** 응답 전체에서 발견한 실제 이미지 URL — 등장 순서대로 */
+  imageUrls: string[];
 };
+
+/**
+ * 이 응답이 이미지 URL인지 판단한다.
+ *
+ * ★ 왜 필드명을 안 정하고 이렇게 하나
+ *
+ * getItemView 응답 스키마 문서가 폐쇄돼 있어 이미지 필드명을 모른다
+ * (도매꾹은 "img1".."img10", "detailImages", "content" 안의 <img> 태그 등
+ * 업체마다 관례가 제각각이다). 주소를 찾을 때와 같은 원칙을 쓴다 —
+ * **값의 형태**로 판단하고 키 이름은 신경 쓰지 않는다. 그러면 스키마가
+ * 뭐든 실제 이미지 주소를 놓치지 않는다.
+ */
+/** URL로 보이는 조각을 찾는 정규식 — 공백·따옴표·괄호에서 끊는다 */
+const URL_IN_TEXT = /https?:\/\/[^\s"'<>()]+/gi;
+
+function isImageLikeUrl(url: string): boolean {
+  if (/\.(jpe?g|png|gif|webp|bmp)(\?|#|$)/i.test(url)) return true;
+  // 확장자가 안 붙는 CDN(쿼리 파라미터로 처리)도 있다 — 도메인이 이미지
+  // 호스팅으로 흔히 쓰이는 패턴이면 인정한다.
+  return /(image|img|photo|thumb|cdn)[./]/i.test(url) && url.length < 500;
+}
+
+/**
+ * 문자열 안에서 이미지 URL을 전부 뽑아낸다.
+ *
+ * ★ 왜 "값 전체가 URL인지"가 아니라 "URL을 포함하는지"로 보나
+ *
+ * 도매꾹 응답은 설명 본문(content) 안에 평문으로 이미지 주소를 섞어 쓰는
+ * 경우가 있다 — "상세 이미지: https://.../photo.jpg 참고"처럼. 값 전체를
+ * URL 형태로만 판단하면 이런 경우를 전부 놓친다.
+ */
+function extractImageUrls(text: string): string[] {
+  const matches = text.match(URL_IN_TEXT) ?? [];
+  return matches.filter(isImageLikeUrl);
+}
+
+/** 목록용 축소본으로 보이는 주소는 상세 갤러리에서 제외한다 */
+function looksLikeThumbnail(url: string): boolean {
+  return /thumb|_s\.|_small|\/s_|list_?img/i.test(url);
+}
 
 /**
  * 응답 전체를 훑어 주소 후보와 정책 텍스트를 모은다.
@@ -185,6 +237,15 @@ function walk(node: unknown, path: string, depth: number, out: Walked): void {
     const tail = path.split(".").slice(-2).join(".");
     if (text.length >= 20 && POLICY_KEY.test(tail)) {
       out.policyChunks.push(text);
+    }
+
+    // 실제 이미지 주소 — 값의 형태로만 판단한다(위 설명 참조).
+    // stripHtml 이전의 원본(node)에서 찾는다 — HTML 속성 안 URL이
+    // stripHtml로 잘려 나갈 수 있기 때문이다.
+    for (const url of extractImageUrls(node)) {
+      if (looksLikeThumbnail(url)) continue;
+      if (out.imageUrls.length >= MAX_CANDIDATES) break;
+      if (!out.imageUrls.includes(url)) out.imageUrls.push(url);
     }
     return;
   }
@@ -339,7 +400,7 @@ export async function fetchSupplierDetail(
     return { ok: false, code: "EMPTY", reason: "상세 응답이 비어 있음" };
   }
 
-  const out: Walked = { candidates: [], policyChunks: [] };
+  const out: Walked = { candidates: [], policyChunks: [], imageUrls: [] };
   walk(data, "", 0, out);
 
   const picked = pickReturnAddress(out.candidates);
@@ -358,6 +419,7 @@ export async function fetchSupplierDetail(
     policyText,
     sellerId: out.sellerId,
     sellerNick: out.sellerNick,
+    imageUrls: out.imageUrls,
     responseKeys: Object.keys(data as Record<string, unknown>),
   };
   writeCache(itemNo, result);
@@ -382,6 +444,7 @@ export async function enrichWithSupplierDetail<
     supplierReturnAddress?: string;
     detailFetched?: boolean;
     sellerId?: string;
+    detailImageUrls?: string[];
   },
 >(listing: T): Promise<T> {
   if (!listing.itemNo) return { ...listing, detailFetched: false };
@@ -396,6 +459,8 @@ export async function enrichWithSupplierDetail<
     policyText: [listing.policyText, detail.policyText].filter(Boolean).join("\n") || undefined,
     supplierReturnAddress: detail.returnAddress ?? listing.supplierReturnAddress,
     sellerId: listing.sellerId ?? detail.sellerId,
+    // 공급사가 실제로 올린 사진 — 지어낸 각도가 아니라 진짜 촬영본이다
+    detailImageUrls: detail.imageUrls.length ? detail.imageUrls : listing.detailImageUrls,
   };
 }
 
@@ -405,7 +470,7 @@ export function readSupplierDetailFromResponse(
   itemNo: number,
   platform: WholesalePlatform = "domeme",
 ): SupplierDetail {
-  const out: Walked = { candidates: [], policyChunks: [] };
+  const out: Walked = { candidates: [], policyChunks: [], imageUrls: [] };
   walk(data, "", 0, out);
   const picked = pickReturnAddress(out.candidates);
   return {
@@ -420,6 +485,7 @@ export function readSupplierDetailFromResponse(
       : undefined,
     sellerId: out.sellerId,
     sellerNick: out.sellerNick,
+    imageUrls: out.imageUrls,
     responseKeys:
       data && typeof data === "object" ? Object.keys(data as Record<string, unknown>) : [],
   };

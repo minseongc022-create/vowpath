@@ -137,7 +137,16 @@ export async function buildJarvisDetailPage(
   //
   // 공급처가 올린 사진은 그 상품의 실물 사진이다 — 생성 이미지가 없을 때
   // 쓸 수 있는 가장 정확한 자료이고, 없는 것보다 훨씬 낫다.
-  const fallbackImage = wholesale?.imageUrl ?? importImage;
+  //
+  // ★ 검색 결과 썸네일 1장이 아니라, 상세 조회로 확보한 갤러리 전체를 쓴다
+  //
+  // 검색 API는 목록용 축소 썸네일 1장만 준다. 그런데 상세 조회
+  // (getItemView)에는 공급사가 실제로 찍은 사진이 여러 장 들어 있는
+  // 경우가 많다 — 한국 도매 상세페이지는 이미 다각도·클로즈업 사진을
+  // 갖추고 있는 관례가 있다. 지어낸 각도가 아니라 공급사의 진짜 촬영본을
+  // 그대로 쓰는 것이 "성의 없는 페이지"를 고치는 정직한 방법이다.
+  const galleryImages = wholesale?.detailImageUrls?.length ? wholesale.detailImageUrls : undefined;
+  const fallbackImage = galleryImages?.[0] ?? wholesale?.imageUrl ?? importImage;
 
   // ★ AI가 안 돼도 상세페이지는 제대로 만든다
   //
@@ -149,10 +158,11 @@ export async function buildJarvisDetailPage(
   // 값이라 AI 없이도 구매 결정 순서대로 놓을 수 있다. AI는 문장을 더
   // 매끄럽게 다듬는 역할이지, 없다고 페이지가 비어야 할 이유가 아니다.
   const objectionsHtml = renderObjectionsHtml(plan.objections);
+  const allImages = galleryImages ?? (fallbackImage ? [fallbackImage] : []);
   const html = buildDetailPageHtml({
     productName: title,
     sellingPoints,
-    imageUrls: fallbackImage ? [fallbackImage] : [],
+    imageUrls: allImages,
     dispatchDays: wholesale?.supplierQuality?.shipSpeed === "same_day" ? 1 : undefined,
     returnNote,
     objectionsHtml,
@@ -162,7 +172,7 @@ export async function buildJarvisDetailPage(
     source: "matchcut_pending",
     html,
     thumbnailUrl: fallbackImage,
-    imageUrls: fallbackImage ? [fallbackImage] : undefined,
+    imageUrls: allImages.length ? allImages : undefined,
     sellingPoints,
     searchKeywords,
     matchcutReady: false,
