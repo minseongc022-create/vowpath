@@ -29,6 +29,7 @@ import { publishListingToToss } from "./api/create-product";
 import { resolveApiConfig } from "./api/client";
 import { executeConsignmentOrder } from "./seller-engine/consignment-order";
 import { runJarvisAutopilotCycle, enrichDraftWithAutopilot, isAutoExecuteEnabled } from "./seller-engine/jarvis-autopilot-engine";
+import { DETAIL_PAGE_HTML_VERSION } from "./seller-engine/detail-page-html";
 import { JARVIS_VERSION } from "./seller-engine/jarvis-engine";
 import { RISK_PLAYBOOK_VERSION } from "./seller-engine/risk-playbook";
 import { getAutoExecuteMaxPerCycle } from "./seller-engine/jarvis-config";
@@ -1487,6 +1488,42 @@ export async function getDraftDetailHtml(
     : drafts;
   const found = pool.find((d) => d.detailPage?.html);
   if (!found?.detailPage?.html) return null;
+
+  // ★ 옛 레이아웃이면 그 자리에서 다시 만든다
+  //
+  // 레이아웃 엔진을 고쳐도 이미 저장된 초안의 html은 예전 버전 그대로다.
+  // "상세페이지 보여줘"를 불렀는데 고치기 전 페이지가 나오면 사장님
+  // 입장에서는 "안 고쳐졌다"와 구분이 안 된다. 아직 등록 전(팔리기 전)인
+  // 초안이라면 지금 코드로 다시 만들어서 보여준다.
+  //
+  // 이미 published된 상품은 건드리지 않는다 — 토스에 이미 올라간 사진과
+  // 여기서 보여주는 게 달라지면 그게 더 혼란스럽다.
+  const stale = found.detailPage.layoutVersion !== DETAIL_PAGE_HTML_VERSION;
+  if (stale && found.status !== "published" && found.pickMode === "consignment") {
+    const pick = await resolvePickForDraft(store, merchantId, found);
+    if (pick) {
+      try {
+        const { buildJarvisDetailPage } = await import("./seller-engine/detail-page-engine");
+        const fresh = await buildJarvisDetailPage(
+          pick,
+          "consignment",
+          found.listingPayload?.returnNote,
+        );
+        found.detailPage = fresh;
+        await saveStore(store);
+        return {
+          productName: found.listingPayload?.name ?? found.keyword,
+          html: fresh.html,
+          status: found.status,
+        };
+      } catch (e) {
+        // 재생성이 실패해도 옛 페이지라도 보여준다 — 아예 안 보여주는
+        // 것보다 낫다. 원인은 콘솔에 남겨 원격으로 확인할 수 있게 한다.
+        console.warn("[jarvis] 상세페이지 재생성 실패:", e);
+      }
+    }
+  }
+
   return {
     productName: found.listingPayload?.name ?? found.keyword,
     html: found.detailPage.html,

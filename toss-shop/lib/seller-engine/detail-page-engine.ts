@@ -10,7 +10,7 @@ import { requestDetailPageFromProviders } from "./detail-page-providers";
 import type { DetailPageProviderId } from "./detail-page-providers";
 import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
-import { buildDetailPageHtml } from "./detail-page-html";
+import { buildDetailPageHtml, DETAIL_PAGE_HTML_VERSION } from "./detail-page-html";
 
 export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
 
@@ -181,6 +181,7 @@ export async function buildJarvisDetailPage(
       sellingPoints,
       searchKeywords,
       matchcutReady: false,
+      layoutVersion: DETAIL_PAGE_HTML_VERSION,
     };
   }
 

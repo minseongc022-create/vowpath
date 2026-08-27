@@ -369,6 +369,15 @@ export type JarvisDetailPageBundle = {
   imageUrls?: string[];
   detailProvider?: string;
   detailCostKrw?: number;
+  /**
+   * 이 상세페이지를 만든 레이아웃 판.
+   *
+   * 레이아웃 엔진을 고쳐도 이미 저장된 초안의 html은 예전 버전 그대로다.
+   * 이 값이 지금 코드의 판과 다르면(또는 없으면) 옛 레이아웃이라는 뜻이고,
+   * store.ts의 getDraftDetailHtml이 그 자리에서 다시 만들어 준다 — 사장님이
+   * "상세페이지 보여줘"라고 할 때마다 최신 코드로 본다.
+   */
+  layoutVersion?: string;
 };
 
 export type JarvisPickBrief = {
