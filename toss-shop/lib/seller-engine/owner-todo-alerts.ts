@@ -33,7 +33,19 @@ import type { JarvisFulfillmentJob } from "../types";
 
 export const OWNER_TODO_ALERTS_VERSION = "1.0";
 
-export type TodoKind = "need_supplier_order" | "need_tracking" | "need_emoney";
+export type TodoKind =
+  | "need_supplier_order"
+  | "need_tracking"
+  | "need_emoney"
+  /**
+   * 등록 전 검수 대기 — 사장님이 최종 확인해야 올라간다.
+   *
+   * 다른 알림은 "이미 벌어진 일이 방치되고 있다"를 알리는데, 이건 반대로
+   * **아직 아무 일도 안 일어났다**를 알린다. 자비스는 초안까지만 만들고
+   * 멈춰 있으므로, 사장님이 안 보면 하루치 소싱이 그대로 잠들어 있는다.
+   * 손해가 커지는 종류는 아니지만 기회가 그냥 지나간다.
+   */
+  | "need_review";
 
 export type OwnerTodo = {
   kind: TodoKind;
@@ -61,9 +73,29 @@ function hoursSince(iso: string, now: number): number {
 export function collectOwnerTodos(
   jobs: JarvisFulfillmentJob[],
   nowMs: number = Date.now(),
-  extra?: { emoneyInsufficientSince?: string },
+  extra?: {
+    emoneyInsufficientSince?: string;
+    /** 검수 대기 중인 인증 초안 수 — 사장님 승인 전까지 등록되지 않는다 */
+    pendingReviewCount?: number;
+    /** 검수 화면 주소 — 문자에서 바로 열 수 있게 */
+    reviewUrl?: string;
+  },
 ): OwnerTodo[] {
   const todos: OwnerTodo[] = [];
+
+  // 검수 대기 — 자비스가 초안까지 만들고 멈춰 있다.
+  // 급한 정도는 낮지만 안 보면 하루치 소싱이 그대로 잠든다.
+  const pendingReview = extra?.pendingReviewCount ?? 0;
+  if (pendingReview > 0) {
+    todos.push({
+      kind: "need_review",
+      count: pendingReview,
+      message:
+        `[자비스] 등록 대기 ${pendingReview}건 — 올리기 전에 확인해 주세요. ` +
+        `상품이 실제로 어떻게 보일지 미리보기로 확인하고 승인하시면 바로 등록합니다.` +
+        (extra?.reviewUrl ? ` ${extra.reviewUrl}` : ""),
+    });
+  }
 
   // 이머니 부족 — 다른 무엇보다 급하다. 이게 걸리면 발주 전체가 멈춘다.
   if (extra?.emoneyInsufficientSince) {

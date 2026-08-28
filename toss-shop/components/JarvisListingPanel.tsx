@@ -29,10 +29,8 @@ function statusClass(status: JarvisListingDraft["status"]): string {
 function detailSourceLabel(source: JarvisListingDraft["detailPage"]["source"], provider?: string): string {
   if (source === "matchcut") return "Matchcut AI";
   if (source === "openai_premium") return "OpenAI Premium (~150원)";
-  if (source === "draph") return "Draph AI (~800원)";
-  if (source === "hookable_api") return "Hookable API";
-  if (source === "sellerbiseo") return "SellerBiseo AI";
-  if (source === "jarvis_ai") return provider === "hookable_local" ? "Hookable Local" : "Hookable AI";
+  if (source === "manual_import") return "외부 툴 반입 (검수 완료)";
+  if (source === "jarvis_ai") return provider === "hookable_local" ? "로컬 템플릿" : "자비스 생성";
   return "생성 중";
 }
 

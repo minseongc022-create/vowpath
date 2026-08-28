@@ -21,6 +21,7 @@ import {
   priceStatistics,
 } from "./pricing";
 import type { TossFeeContext } from "./fee-model";
+import { assessKeywordRelevance } from "./keyword-relevance";
 
 export type { AnalysisSignal, PricingBreakdown, CompetitorInsight };
 
@@ -239,10 +240,18 @@ export function buildPricingBreakdown(
   feeCtx: TossFeeContext = {},
 ): PricingBreakdown {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
-  const { priceKrw, strategy } = autoMatchPrice(supplierCostKrw, competitors, minMarginPct);
+  // 하한은 수수료·광고비까지 반영해 역산한다 (price-floor.ts).
+  // 종전의 `공급가 × (1 + m/100)`은 마진이 아니라 원가 인상률이라
+  // 목표 12%를 넣어도 실제로는 0.2%가 나왔다.
+  const { priceKrw, strategy, floorKrw } = autoMatchPrice(
+    supplierCostKrw,
+    competitors,
+    minMarginPct,
+    feeCtx,
+  );
   const fees = estimatePlatformFees(priceKrw, feeCtx);
   const netProfitKrw = priceKrw - supplierCostKrw - fees;
-  const priceFloorKrw = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
+  const priceFloorKrw = floorKrw ?? 0;
   const priceCeilingKrw = stats.high > 0 ? Math.round(stats.high * 0.95) : Math.round(priceKrw * 1.2);
 
   return {
@@ -467,14 +476,25 @@ export function pickBestProductForKeyword(
   marketKeywords?: Record<string, MarketKeywordMetrics>,
 ): CatalogProduct | null {
   const intel = buildKeywordIntel(keyword, catalog, marketKeywords);
+
+  // ★ 관련성을 필터이자 정렬 기준으로 쓴다.
+  //
+  // 종전엔 `p.category === category`가 단독 통과 조건이라 키워드와 무관한
+  // 상품도 후보가 됐고, 정렬은 수요·경쟁·마진으로만 해서 **관련성이 순위에
+  // 전혀 반영되지 않았다.** 그 결과 마진 좋은 엉뚱한 상품이 1등으로 뽑혀
+  // "무선이어폰 주방 세제" 같은 제목이 만들어졌다 (keyword-relevance.ts 참조).
   const candidates = catalog
-    .filter(
-      (p) =>
-        p.category === category ||
-        p.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        keyword.toLowerCase().split(/\s+/).some((part) => p.name.toLowerCase().includes(part)),
-    )
-    .map((p) => {
+    .map((p) => ({
+      product: p,
+      relevance: assessKeywordRelevance({
+        keyword,
+        productName: p.name,
+        supplierTitle: p.sourceListing?.title,
+      }),
+    }))
+    // 카테고리가 같아도 관련이 없으면 후보가 아니다
+    .filter((c) => c.relevance.relevant)
+    .map(({ product: p, relevance }) => {
       const competitors = competitorsForProduct(p, catalog);
       const supplier = estimateSupplierCost(p.priceKrw, p.category);
       const pricing = buildPricingBreakdown(supplier, competitors);
@@ -485,9 +505,15 @@ export function pickBestProductForKeyword(
         competitorCount: competitors.length,
         winPriceGap: pricing.competitorLowKrw - pricing.undercutKrw,
       });
-      return { product: p, score, pricing };
+      // 같은 카테고리면 소폭 가산 — 관련성이 동률일 때의 tie-break용이다.
+      const categoryBonus = p.category === category ? 5 : 0;
+      return { product: p, score, pricing, relevance, categoryBonus };
     })
-    .sort((a, b) => b.score - a.score);
+    // 관련성이 먼저다. 아무리 마진이 좋아도 다른 물건이면 팔리지 않는다.
+    .sort((a, b) => {
+      if (a.relevance.score !== b.relevance.score) return b.relevance.score - a.relevance.score;
+      return b.score + b.categoryBonus - (a.score + a.categoryBonus);
+    });
 
   return candidates[0]?.product ?? null;
 }

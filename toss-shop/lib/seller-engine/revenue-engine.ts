@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import { estimatePlatformFees, marginPct, priceStatistics } from "./pricing";
 import type { TossFeeContext } from "./fee-model";
+import { computePriceFloor, netProfitPerUnitAfterAds } from "./price-floor";
 
 type KeywordIntelInput = {
   keyword: string;
@@ -87,7 +88,17 @@ export function buildPricingScenarios(
   feeCtx: TossFeeContext = {},
 ): PricingScenario[] {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
-  const floor = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
+  // 하한은 수수료·광고비를 반영해 역산한다 (price-floor.ts).
+  // 종전의 `공급가 × (1 + m/100)`은 원가 인상률이라 마진을 지키지 못했다.
+  // 역산이 불가능한 경우(비용률+목표마진 ≥ 100%)엔 시나리오를 만들지 않는다 —
+  // 어떤 가격을 제시해도 목표 마진이 안 나오는 상황이기 때문.
+  const floorResult = computePriceFloor({
+    supplierCostKrw,
+    targetMarginPct: minMarginPct,
+    feeCtx,
+  });
+  if (floorResult.floorKrw === null) return [];
+  const floor = floorResult.floorKrw;
 
   const candidates: { id: PricingScenario["id"]; price: number; label: string; strategy: string }[] = [];
 
@@ -118,7 +129,20 @@ export function buildPricingScenarios(
   }
 
   const scenarios: PricingScenario[] = candidates.map((c) => {
-    const profit = netProfitPerUnit(supplierCostKrw, c.price, feeCtx);
+    // ★ 수익 전망은 **광고비를 뺀 뒤**의 순익으로 잡는다.
+    //
+    // 종전엔 수수료만 뺀 netProfitPerUnit을 썼다. 그 값이 곧
+    // estimatedMonthlyProfitKrw가 되고, 확실성 게이트의 "월 기여 30만원+"
+    // 판정과 목표 기여도·수익확률까지 전부 그걸 근거로 삼는다.
+    // 그런데 우리는 광고를 켤 계획이므로, 광고비를 빼지 않은 순익으로
+    // 통과시킨 SKU는 광고를 켜는 순간 기대치에 못 미친다.
+    // 가격 하한은 이미 광고비를 반영하므로(price-floor), 전망도 같은
+    // 기준이어야 둘이 어긋나지 않는다.
+    const profit = netProfitPerUnitAfterAds({
+      supplierCostKrw,
+      priceKrw: c.price,
+      feeCtx,
+    });
     const dailyUnits = estimateDailyUnits({
       searchVolume: intel.searchVolume,
       competitionIntensity: intel.competitionIntensity,

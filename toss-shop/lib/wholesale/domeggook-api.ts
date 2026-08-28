@@ -1,5 +1,27 @@
 import type { WholesaleListing, WholesalePlatform } from "./types";
 import { readSupplierQuality, meetsSupplierPolicy } from "./supplier-quality";
+import {
+  readPriceFieldsFromItemView,
+  resolveSingleUnitSourcing,
+  type SingleUnitSourcing,
+} from "./domeggook-price";
+
+/**
+ * 낱개 발주 판정 캐시.
+ *
+ * 자동 등록 사이클이 60초마다 돌기 때문에, 캐시가 없으면 같은 상품의 상세를
+ * 1분마다 다시 조회한다. 후보가 수십 개면 분당 수십 건이 되어 레이트리밋에
+ * 걸리고, 그러면 전부 "미확인"으로 떨어져 소싱이 조용히 멈춘다.
+ * 구매단위·가격 구간은 자주 바뀌지 않으므로 넉넉히 잡는다.
+ */
+const UNIT_SOURCING_TTL_MS = 6 * 60 * 60 * 1000;
+const UNIT_SOURCING_CACHE_MAX = 500;
+const unitSourcingCache = new Map<number, { at: number; value: SingleUnitSourcing }>();
+
+/** 테스트·핫리로드용 */
+export function clearUnitSourcingCache(): void {
+  unitSourcingCache.clear();
+}
 
 const API_BASE = "https://www.domeggook.com/ssl/api/";
 
@@ -20,6 +42,14 @@ type DomeItem = {
   content?: string;
   info?: string;
 };
+
+/**
+ * MOQ를 못 읽었을 때 쓰는 값.
+ *
+ * 1(낙관)도 아니고 0(무의미)도 아닌, "위탁으로는 못 쓴다"가 분명한 큰 수다.
+ * 이 값이 그대로 마진 계산에 들어가는 일은 없다 — 소싱 게이트가 먼저 막는다.
+ */
+export const UNKNOWN_MOQ = 9999;
 
 function getApiKey(): string | null {
   const key = process.env.DOMEGGOOK_API_KEY?.trim();
@@ -114,13 +144,30 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
     item.url?.trim() ||
     (item.no ? `https://domeme.com/s/${item.no}` : `https://www.domeggook.com/main/item/itemView.php?itemNo=${item.no ?? ""}`);
 
+  // ★ MOQ는 fail-closed로 읽는다.
+  //
+  // `unitQty`는 공식 문서상 **상품 최소구매수량(MOQ)**이다. 종전 코드는
+  // `item.unitQty ?? 1`로 읽어서, 필드가 없으면 "1개씩 살 수 있다"고 단정했다.
+  // 실제 MOQ가 10인 상품에 이 가정을 적용하면 주문을 받아 놓고 발주를 못 한다
+  // — 위탁은 주문 뒤 발주하기 때문이다. 취소·페널티가 쌓이면 배송 인센티브
+  // (판매수수료 0%)가 날아가 전 상품 마진이 8%p 깎인다.
+  //
+  // 그래서 못 읽으면 1이 아니라 **미확인**으로 둔다. 미확인 MOQ는 소싱
+  // 게이트에서 걸러진다. 확인된 1만 낱개 발주로 인정한다.
+  const moqRead = typeof item.unitQty === "number" && item.unitQty > 0 ? item.unitQty : null;
+
   return {
     platform,
     itemNo: item.no,
     title: item.title.replace(/\s+/g, " ").trim(),
+    // 이 단가는 **MOQ 수량으로 살 때의 개당 가격**이다. MOQ가 1이 아니면
+    // "1개 살 때의 가격"이 아니므로 그대로 원가로 쓰면 안 된다.
+    // 낱개 원가는 상세 조회로 확정한다 (domeggook-price.resolveSingleUnitSourcing).
     unitPriceKrw: item.price,
     shippingFeeKrw: freeShipping ? 0 : shippingFeeKrw,
-    moq: item.unitQty ?? 1,
+    // 미확인은 낙관적으로 1이 아니라, 위탁 불가에 해당하는 값으로 둔다.
+    moq: moqRead ?? UNKNOWN_MOQ,
+    moqVerified: moqRead != null,
     url,
     imageUrl: item.thumb?.trim(),
     sellerId: item.id,
@@ -194,19 +241,23 @@ function captureApiError(data: unknown): boolean {
 /**
  * 정렬 순서.
  *
- * ★ 실측으로 드러난 문제
+ * ★ 공식 문서로 확인한 유효값 (상품리스트 API)
+ *   se 정확도순 · rd 도매꾹랭킹순 · ha 인기상품순 · aa 낮은가격순
+ *   ad 높은가격순 · sd 신규판매자순 · qa 적은판매단위순 · qd 많은판매단위순
+ *   da 최근등록순
  *
- * 기본값 `aa`로 뽑으면 관측된 낱개 공급가가 전부 35~1,290원이었다 — 12개
- * 키워드가 예외 없이 그랬다. 그 값들은 진짜지만(도매꾹엔 200원짜리 머리끈이
- * 실제로 있다) 위탁으로는 못 판다: 주문 한 건마다 붙는 배송비가 마진을
- * 통째로 먹기 때문이다. 즉 우리는 시장의 바닥만 반복해서 보고 있었다.
+ * ★ 왜 `qa`(적은판매단위순)를 먼저 쓰는가
  *
- * 그래서 다른 정렬을 먼저 시도한다. 도매꾹 API 문서가 로그인 뒤에 있어
- * 유효한 값을 확인할 수 없으므로 **실패하면 원래 값으로 되돌아온다** —
- * 추측한 파라미터 하나 때문에 소싱이 통째로 멈추면 안 된다.
+ * 위탁은 **1개씩 발주할 수 있는 상품**만 성립한다. `qa`는 판매단위가 작은
+ * 순으로 주므로 MOQ 1 상품이 앞에 온다 — 우리가 필요한 것과 정확히 같다.
+ *
+ * 종전엔 `aa`(낮은가격순)를 쓰다가 "관측 공급가가 전부 35~1,290원"이라
+ * `rd`(랭킹순)로 바꿨는데, 둘 다 MOQ를 보지 않는다. 그래서 랭킹 상위의
+ * 묶음 상품(MOQ 10, 50…)이 계속 올라왔고, 그 묶음 단가가 낱개 원가로
+ * 쓰이면서 마진 계산이 어긋났다. 정렬로 MOQ를 앞당기는 게 근본 처방이다.
  */
-const SORT_PREFERRED = "rd";
-const SORT_FALLBACK = "aa";
+const SORT_PREFERRED = "qa";
+const SORT_FALLBACK = "rd";
 
 function buildSearchParams(
   aid: string,
@@ -229,7 +280,13 @@ function buildSearchParams(
     pg: "1",
     so: sort,
   });
-  if (opts?.maxMoq != null) params.set("mxq", String(opts.maxMoq));
+  // mnq/mxq = 최소구매수량 검색 범위 (공식 문서 확인).
+  // 위탁은 MOQ 1만 쓸 수 있으므로 서버 쪽에서 걸러 받는 게 가장 정확하다 —
+  // 클라이언트에서 거르면 20개 받아 전부 버리고 후보가 0이 되는 일이 생긴다.
+  if (opts?.maxMoq != null) {
+    params.set("mnq", "1");
+    params.set("mxq", String(opts.maxMoq));
+  }
   return params;
 }
 
@@ -321,14 +378,173 @@ export async function searchAllKoreanWholesale(keyword: string, limit = 6): Prom
     return domeme.slice(0, limit * 2);
   }
   const dome = await searchDomeggookMarket(keyword, "dome", limit, { maxMoq: 1 });
-  const merged = [...domeme, ...dome].sort((a, b) => a.unitPriceKrw - b.unitPriceKrw);
+
+  // ⚠️ 두 마켓의 단가를 한 배열에 놓고 정렬하지 않는다.
+  //
+  // 종전엔 `[...domeme, ...dome].sort((a,b) => a.unitPriceKrw - b.unitPriceKrw)`로
+  // 합쳤다. 그런데 두 값은 같은 뜻이 아니다 — 도매매 단가는 낱개 기준이고,
+  // 도매꾹 단가는 그 상품 MOQ 수량으로 살 때의 개당 가격이다. 섞어서 정렬하면
+  // 묶음으로만 팔리는 상품이 "더 싸 보여서" 앞에 오고, 그 값이 낱개 원가로
+  // 쓰인다. 그래서 **낱개 발주가 확인된 것(도매매)을 항상 앞에 둔다.**
   const seen = new Set<string>();
   const unique: WholesaleListing[] = [];
-  for (const l of merged) {
+  for (const l of [
+    ...domeme.sort((a, b) => a.unitPriceKrw - b.unitPriceKrw),
+    ...dome.sort((a, b) => a.unitPriceKrw - b.unitPriceKrw),
+  ]) {
     const key = `${l.platform}-${l.itemNo ?? l.title}`;
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(l);
   }
   return unique.slice(0, limit * 2);
+}
+
+/**
+ * 이 상품을 **1개씩 발주할 수 있는지** 상세 조회로 확정한다.
+ *
+ * ★ 왜 검색 결과만으로는 부족한가
+ *
+ * 검색 응답의 `price`는 그 상품 MOQ에 해당하는 개당 단가다. MOQ가 2면
+ * "2개 이상 살 때의 개당 가격"이지 1개 값이 아니다. 그리고 `unitQty`가
+ * 빠져 오는 응답도 있어 MOQ 자체를 모를 수 있다.
+ *
+ * 상세 조회(getItemView)에는 마켓별 가격·구매단위가 따로 들어 있다:
+ *
+ *     price.supply / qty.supplyUnit  — 도매매(낱개 배송대행)
+ *     price.dome / qty.domeMoq       — 도매꾹(묶음 도매)
+ *
+ * 상품번호는 하나이므로, **도매꾹에서 찾은 상품이 도매매에서 낱개로 팔리는지**를
+ * 같은 번호로 조회해 확인할 수 있다. 사용자가 지적한 "도매꾹에 있는 상품이
+ * 도매매엔 없을 수도 있다"가 바로 이 판정이다 — `price.supply`가 없으면
+ * 그 상품은 묶음 전용이므로 위탁 소싱에서 제외한다.
+ *
+ * 판독 실패는 실패로 답한다. 모르면 소싱하지 않는 쪽이 항상 싸다.
+ */
+export async function confirmSingleUnitSourcing(
+  itemNo: number,
+): Promise<SingleUnitSourcing> {
+  const aid = getApiKey();
+  if (!aid) {
+    return {
+      available: false,
+      unitPriceKrw: null,
+      minOrderQty: null,
+      market: null,
+      verified: false,
+      reason: "DOMEGGOOK_API_KEY 미설정 — 낱개 발주 가능 여부를 확인할 수 없다",
+    };
+  }
+  if (!Number.isFinite(itemNo) || itemNo <= 0) {
+    return {
+      available: false,
+      unitPriceKrw: null,
+      minOrderQty: null,
+      market: null,
+      verified: false,
+      reason: `유효하지 않은 상품번호(${itemNo})`,
+    };
+  }
+
+  const cached = unitSourcingCache.get(itemNo);
+  if (cached && Date.now() - cached.at < UNIT_SOURCING_TTL_MS) return cached.value;
+
+  const params = new URLSearchParams({
+    // 가격 구간·구매단위 필드는 상세 API에서 제공된다. 문서 권장 버전을 쓴다.
+    ver: "4.6",
+    mode: "getItemView",
+    aid,
+    no: String(itemNo),
+    om: "json",
+  });
+
+  try {
+    const res = await fetch(`${API_BASE}?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) {
+      return {
+        available: false,
+        unitPriceKrw: null,
+        minOrderQty: null,
+        market: null,
+        verified: false,
+        reason: `상세 조회 HTTP ${res.status} — 낱개 발주 여부 미확인`,
+      };
+    }
+    const data = (await res.json()) as unknown;
+    if (captureApiError(data)) {
+      return {
+        available: false,
+        unitPriceKrw: null,
+        minOrderQty: null,
+        market: null,
+        verified: false,
+        reason: `도매꾹 API 오류 — ${lastApiError?.message ?? "원인 불명"}`,
+      };
+    }
+
+    const value = resolveSingleUnitSourcing(readPriceFieldsFromItemView(data));
+    // 성공한 판독만 캐시한다 — 일시적 장애를 오래 물고 있으면 안 된다
+    if (value.verified) {
+      if (unitSourcingCache.size >= UNIT_SOURCING_CACHE_MAX) {
+        const oldest = unitSourcingCache.keys().next().value;
+        if (oldest !== undefined) unitSourcingCache.delete(oldest);
+      }
+      unitSourcingCache.set(itemNo, { at: Date.now(), value });
+    }
+    return value;
+  } catch (e) {
+    return {
+      available: false,
+      unitPriceKrw: null,
+      minOrderQty: null,
+      market: null,
+      verified: false,
+      reason: e instanceof Error ? `상세 조회 실패 — ${e.message}` : "상세 조회 네트워크 오류",
+    };
+  }
+}
+
+/**
+ * 낱개 발주 판정을 붙여 위탁 가능한 것만 남긴다.
+ *
+ * 검색으로 찾은 목록에는 묶음 전용 상품이 섞여 있다. 그대로 두면 그 묶음
+ * 단가가 낱개 원가로 쓰여 마진이 통째로 어긋난다. 여기서 상세 조회로
+ * 확정하고, **확인된 낱개 가격으로 단가를 교체**한다.
+ *
+ * 동시 호출 수를 제한한다 — 후보가 수십 개일 때 한 번에 던지면 레이트리밋에
+ * 걸려 전부 실패하고, 그러면 하루치 소싱이 통째로 비어버린다.
+ */
+export async function withConfirmedUnitPricing(
+  listings: WholesaleListing[],
+  opts: { concurrency?: number; max?: number } = {},
+): Promise<WholesaleListing[]> {
+  const max = opts.max ?? 12;
+  const concurrency = Math.max(1, opts.concurrency ?? 3);
+  const target = listings.slice(0, max);
+  const out: WholesaleListing[] = [];
+
+  for (let i = 0; i < target.length; i += concurrency) {
+    const batch = target.slice(i, i + concurrency);
+    const resolved = await Promise.all(
+      batch.map(async (l) => {
+        if (l.source !== "live" || !l.itemNo) return null;
+        const s = await confirmSingleUnitSourcing(l.itemNo);
+        if (!s.available || s.unitPriceKrw == null) return null;
+        return {
+          ...l,
+          // 확인된 낱개 단가로 교체한다 — 검색 응답의 값은 MOQ 기준이었다
+          unitPriceKrw: s.unitPriceKrw,
+          moq: 1,
+          moqVerified: true,
+          unitSourcing: s,
+        } satisfies WholesaleListing;
+      }),
+    );
+    for (const r of resolved) if (r) out.push(r);
+  }
+
+  return out;
 }

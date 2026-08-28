@@ -19,6 +19,15 @@ import {
   SEED_MERCHANT,
 } from "./seed";
 import { todayDateKey, minuteKey, appendCapped } from "./format";
+import { canonicalMarketingUrl } from "@/lib/canonical-host";
+
+/**
+ * 검수 화면 주소 — 문자로 보낼 때 바로 열 수 있게 절대 주소로 만든다.
+ *
+ * 상대 경로("/toss-shop/...")를 문자에 넣으면 링크로 안 잡힌다. 알림의
+ * 목적이 "지금 바로 확인하게 하는 것"이라 눌러서 열리는 게 중요하다.
+ */
+const REVIEW_PAGE_URL = canonicalMarketingUrl("/toss-shop/dashboard/review");
 import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
 import { generateConsignmentPicks } from "./seller-engine/consignment";
@@ -1991,8 +2000,19 @@ export async function dispatchOwnerTodoAlerts(merchantId: string): Promise<{
     "./seller-engine/owner-todo-alerts"
   );
 
+  // 등록 보류 중일 때만 검수 알림을 낸다.
+  // 보류가 풀려 있으면 자비스가 알아서 올리므로 사장님이 볼 이유가 없다.
+  const pendingReviewCount =
+    data.publishHold !== false
+      ? (data.listingDrafts ?? []).filter(
+          (d) => d.jarvisCertified && d.status === "pending_review",
+        ).length
+      : 0;
+
   const todos = collectOwnerTodos(data.fulfillmentJobs ?? [], Date.now(), {
     emoneyInsufficientSince: data.emoneyInsufficientAt,
+    pendingReviewCount,
+    reviewUrl: REVIEW_PAGE_URL,
   });
   const { toSend, nextState } = pickTodosToSend(todos, data.todoAlerts ?? [], {
     ackedAt: data.todosAckedAt,

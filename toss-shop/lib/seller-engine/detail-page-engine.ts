@@ -11,16 +11,20 @@ import type { DetailPageProviderId } from "./detail-page-providers";
 import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
 import { generateDetailShots } from "./image-detail-shots";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
-import { buildDetailPageHtml, DETAIL_PAGE_HTML_VERSION } from "./detail-page-html";
+import { buildDetailPageHtml } from "./detail-page-html";
+import { planDetailSections } from "./detail-section-plan";
+import { renderSectionPlanHtml, SECTION_DETAIL_HTML_VERSION } from "./section-detail-html";
+import { buildProductShotSet, type ProductShot } from "./product-shot-set";
+import { aiImagesEnabled } from "./ai-image-studio";
+import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
+import { polishSellingCopy } from "./copy-polish";
 
 export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
 
 function mapProviderToSource(provider: DetailPageProviderId): JarvisDetailPageBundle["source"] {
   if (provider === "matchcut_pipeline") return "matchcut";
   if (provider === "openai_premium") return "openai_premium";
-  if (provider === "hookable_api") return "hookable_api";
-  if (provider === "draph") return "draph";
-  if (provider === "sellerbiseo") return "sellerbiseo";
+  if (provider === "manual_import") return "manual_import";
   if (provider === "hookable_local") return "jarvis_ai";
   return "jarvis_ai";
 }
@@ -182,29 +186,80 @@ export async function buildJarvisDetailPage(
   // 설계한 "사진+문구" 구조가 지켜진다는 보장이 없었다 — 실제로 크레딧을
   // 충전하자 이 경로가 되살아나면서 새로 만든 레이아웃이 통째로 무시됐다.
   //
-  // 그래서 위탁 모드는 **항상** 우리 자체 레이아웃(buildDetailPageHtml)을
-  // 쓰고, AI는 이미지 생성·레이아웃 결정에 관여하지 않는다. 수입판매
-  // (1688) 모드는 그대로 둔다 — 기본 비활성 기능이고 이번 지적의 대상이
-  // 아니다.
+  // 그 원칙은 그대로 지킨다: **레이아웃은 항상 코드가 정한다.** AI는 그
+  // 안에서 두 가지에만 관여한다 — 사진(허용된 범위 안에서 다시 조명한
+  // 컷)과 문장(사실은 그대로, 표현만). 둘 다 실패하면 조용히 원래 방식으로
+  // 폴백하므로, 후커블 급으로 안 올라가는 것과 상세페이지 생성 자체가
+  // 막히는 것은 다른 문제로 다룬다.
   if (mode === "consignment") {
-    const images = await collectRealImages(wholesale?.url, wholesale?.imageUrl, wholesale?.detailImageUrls);
-    const html = buildDetailPageHtml({
-      productName: title,
-      sellingPoints,
-      imageUrls: images,
-      dispatchDays: wholesale?.supplierQuality?.shipSpeed === "same_day" ? 1 : undefined,
-      returnNote,
+    const baseImages = await collectRealImages(
+      wholesale?.url,
+      wholesale?.imageUrl,
+      wholesale?.detailImageUrls,
+    );
+
+    // 사진 보강 — product-shot-set은 "원본에 보이는 면만 유지"를 프롬프트에
+    // 강제한 파이프라인이다(뒷면·반대편 지어내기 금지). 배경 재구성 사고가
+    // 났던 경로(자유 배경+통짜 HTML 생성)와는 다른, 더 좁고 검증된 경로다.
+    // 실패하면 원본 사진만으로 계속 진행한다.
+    let shots: ProductShot[] = [];
+    if (baseImages.length && aiImagesEnabled()) {
+      try {
+        const shotSet = await buildProductShotSet({
+          imageUrl: baseImages[0],
+          category: pick.category,
+          productLabel: title,
+        });
+        shots = shotSet.shots;
+      } catch {
+        shots = [];
+      }
+    }
+
+    // 문장 다듬기 — 사실(숫자·핵심 단어)은 검증 통과해야만 채택한다.
+    // 실패하면 buyer-psychology가 만든 원문 그대로 쓴다.
+    const polish = await polishSellingCopy(sellingPoints);
+    const finalPoints = polish.points;
+
+    const sameDayVerified = meetsSupplierPolicy(wholesale?.supplierQuality);
+    const deliveryNote = sameDayVerified
+      ? "평일 기준 당일 출고됩니다. (주문 마감 시간 이후 접수 건은 다음 영업일 출고)"
+      : "결제 확인 후 순차 발송됩니다.";
+
+    // 생성 컷이 있으면 그걸 먼저 쓰고, 없으면 실사진 그대로.
+    const generatedUrls = shots.map((s) => s.url);
+    const displayImages = generatedUrls.length ? [...generatedUrls, ...baseImages] : baseImages;
+
+    // ★ 섹션 구성은 후커블·드랩이 쓰는 구조를 따른다 (detail-section-plan 참조):
+    //   문제 제기 → 솔루션 → 기능 → 사회적 증거 → 정보 → 보증 → FAQ
+    // 다만 **근거가 있는 섹션만** 만든다. 그들은 리뷰가 없으면 지어내지만
+    // 우리는 없으면 섹션을 뺀다 — 위탁은 실물 검증이 불가능해서 지어낸
+    // 사회적 증거가 곧 기만적 표시가 되기 때문이다.
+    const sectionPlan = planDetailSections({
+      title,
+      category: pick.category,
+      sellingPoints: finalPoints,
+      imageUrls: displayImages,
       objections: plan.objections,
+      deliveryNote,
+      returnNote,
+      proof: { verifiedFastShipping: sameDayVerified },
     });
+
+    const finalHtml = renderSectionPlanHtml(sectionPlan, {
+      title,
+      category: pick.category,
+    });
+
     return {
       source: "jarvis_ai",
-      html,
-      thumbnailUrl: images[0],
-      imageUrls: images.length ? images : undefined,
-      sellingPoints,
+      html: finalHtml,
+      thumbnailUrl: displayImages[0],
+      imageUrls: displayImages.length ? displayImages : undefined,
+      sellingPoints: finalPoints,
       searchKeywords,
       matchcutReady: false,
-      layoutVersion: DETAIL_PAGE_HTML_VERSION,
+      layoutVersion: SECTION_DETAIL_HTML_VERSION,
     };
   }
 
