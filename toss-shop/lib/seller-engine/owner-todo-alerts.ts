@@ -54,6 +54,18 @@ export type OwnerTodo = {
   message: string;
 };
 
+/**
+ * SMS 한 건(UCS-2, 한글) 한도는 67자다. 이 문자는 해외발신(Twilio 국제
+ * 발송)이라 통신사가 여러 조각을 재조립해 주지 않는다 — 한 건에 다 안
+ * 들어가면 링크가 반토막 난 채로 도착한다(실제로 발생했던 사고).
+ *
+ * ⚠️ 이 값 하나가 진짜 한도다. 가드용으로 따로 더 빡빡한 숫자를 만들면
+ * "가드는 통과 못 하는데 실제로는 안전한" 거짓 경보가 생긴다 — 실제로
+ * 그 실수를 했다(가드 60자, 실제 한도 67자로 따로 둬서 60~67자 사이의
+ * 정상 메시지가 개발 환경에서 예외로 터졌다). 기준은 하나만 둔다.
+ */
+const SMS_SINGLE_SEGMENT_LIMIT = 67;
+
 /** 이 시간이 지나도록 발주가 안 나가면 발송기한이 위험해진다 */
 const ORDER_URGENT_AFTER_HOURS = 12;
 /** 송장은 더 급하다 — 공급처가 이미 보냈다는 뜻이므로 */
@@ -87,22 +99,32 @@ export function collectOwnerTodos(
   // 급한 정도는 낮지만 안 보면 하루치 소싱이 그대로 잠든다.
   const pendingReview = extra?.pendingReviewCount ?? 0;
   if (pendingReview > 0) {
-    // ⚠️ 문자는 짧아야 한다 — 길면 분할 발송되고, 사장님은 마지막 조각만 본다.
+    // ⚠️ "문구만 줄이면 된다"고 생각했는데, **URL까지 합친 전체 길이**가
+    // 기준이라는 걸 놓쳤다. 그게 이 문제의 진짜 원인이었다.
     //
-    // 실측 사고: 종전 문구가 길어 SMS가 쪼개졌고, 사장님 휴대폰엔
-    // "바로 등록합니다. https://…" 만 도착했다. **뜻이 정반대로 읽힌다** —
-    // 확인해 달라는 알림이 이미 등록했다는 통보로 보였다.
+    // 실측: 문구를 줄인 뒤에도 또 쪼개졌다. 계산해보면 —
+    //   문구 40자 + 줄바꿈 1자 + URL(effiroad.com/dashboard/review) 37자 = 78자
+    // 한글(UCS-2) SMS 1건 한도는 67자다. 78자는 그 한도를 넘어 두 번째
+    // 조각으로 쪼개지는데, **하필 그 경계가 URL 한가운데**였다
+    // ("…effiroad.com/dashb" / "oard/review"). 게다가 이 문자는 해외발신
+    // (Twilio 국제 발송)이라 통신사가 여러 조각을 하나로 재조립해주지
+    // 않는다 — 그래서 사장님 화면에 링크가 반토막 난 채로 각각 도착했다.
     //
-    // 한글 SMS는 70자를 넘으면 LMS로 넘어가거나 분할된다. 그래서 링크를
-    // 빼고 세면 40자 안쪽으로 유지하고, 문장을 자르더라도 앞부분만으로
-    // 뜻이 완결되게 쓴다. 세부 설명은 검수 화면에 이미 다 있다.
-    todos.push({
-      kind: "need_review",
-      count: pendingReview,
-      message:
-        `[자비스] 등록 전 확인 부탁드립니다 (${pendingReview}건). 승인하셔야 올라갑니다.` +
-        (extra?.reviewUrl ? `\n${extra.reviewUrl}` : ""),
-    });
+    // 그래서 이번엔 **문구+줄바꿈+URL 전체**를 60자 안쪽으로 잡는다
+    // (67자 한도에서 여유를 둔다 — 건수가 두 자리에서 세 자리로 늘어나도
+    // 안전하게). 문구는 "승인 대기 N건 확인해주세요"까지만 줄였다.
+    const message = `[자비스] 승인 대기 ${pendingReview}건 확인해주세요` + (extra?.reviewUrl ? `\n${extra.reviewUrl}` : "");
+
+    // 회귀 방지 — 이 계산을 또 놓치면 같은 사고가 반복된다. 개발 중에는
+    // 바로 터뜨려서 알아채게 하고, 운영에서는 조용히 로그만 남긴다
+    // (문자 발송 자체를 막으면 더 급한 알림이 하나도 안 나가게 된다).
+    if (message.length > SMS_SINGLE_SEGMENT_LIMIT) {
+      const msg = `[owner-todo-alerts] need_review 메시지가 ${message.length}자 — 한도(${SMS_SINGLE_SEGMENT_LIMIT}자) 초과, SMS 분할로 링크가 깨질 수 있음`;
+      if (process.env.NODE_ENV !== "production") throw new Error(msg);
+      console.error(msg);
+    }
+
+    todos.push({ kind: "need_review", count: pendingReview, message });
   }
 
   // 이머니 부족 — 다른 무엇보다 급하다. 이게 걸리면 발주 전체가 멈춘다.
