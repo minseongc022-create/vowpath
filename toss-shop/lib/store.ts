@@ -20,14 +20,20 @@ import {
 } from "./seed";
 import { todayDateKey, minuteKey, appendCapped } from "./format";
 import { canonicalMarketingUrl } from "@/lib/canonical-host";
+import { SP_ROUTES } from "./routes";
 
 /**
  * 검수 화면 주소 — 문자로 보낼 때 바로 열 수 있게 절대 주소로 만든다.
  *
- * 상대 경로("/toss-shop/...")를 문자에 넣으면 링크로 안 잡힌다. 알림의
- * 목적이 "지금 바로 확인하게 하는 것"이라 눌러서 열리는 게 중요하다.
+ * 상대 경로를 문자에 넣으면 링크로 안 잡힌다. 알림의 목적이 "지금 바로
+ * 확인하게 하는 것"이라 눌러서 열리는 게 중요하다.
+ *
+ * ⚠️ 경로는 반드시 SP_ROUTES에서 가져온다. effiroad.com은 에피로드를
+ * 루트(`/dashboard/review`)에 서비스하고 다른 호스트는 `/sellerpulse` 밑에
+ * 둔다. 여기에 `/toss-shop/...`을 하드코딩하면 운영에서 308 리다이렉트를
+ * 한 번 더 타게 되고, 호스트 설정이 바뀌면 조용히 깨진다.
  */
-const REVIEW_PAGE_URL = canonicalMarketingUrl("/toss-shop/dashboard/review");
+const REVIEW_PAGE_URL = canonicalMarketingUrl(SP_ROUTES.review);
 import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
 import { generateConsignmentPicks } from "./seller-engine/consignment";
