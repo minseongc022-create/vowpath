@@ -91,7 +91,25 @@ test("「지금 돌려」는 초안 삭제로 오해되지 않는다", () => {
 // 검수 문자 — 잘려도 뜻이 뒤집히면 안 된다
 // ─────────────────────────────────────────────────────────────
 
-test("검수 문자는 짧고, 앞부분만 읽어도 뜻이 통한다", () => {
+test("검수 문자 — 문구+URL 전체가 SMS 1건 한도 안에 들어간다", () => {
+  // 종전 사고: 문구만 줄이고 URL 합산 길이를 안 봐서, 78자(문구 40+URL 37+개행)가
+  // 67자 한도를 넘어 URL 한가운데("…effiroad.com/dashb" / "oard/review")에서
+  // 쪼개졌다. 해외발신(Twilio)이라 통신사가 재조립도 안 해준다.
+  for (const count of [1, 15, 100, 999]) {
+    const todos = collectOwnerTodos([], Date.now(), {
+      pendingReviewCount: count,
+      reviewUrl: "https://effiroad.com/dashboard/review",
+    });
+    const review = todos.find((t) => t.kind === "need_review");
+    assert.ok(review, `count=${count}`);
+    assert.ok(
+      review.message.length <= 67,
+      `count=${count}: 전체 ${review.message.length}자 — 67자 한도를 넘으면 URL이 잘린다`,
+    );
+  }
+});
+
+test("검수 문자 — 앞부분만 읽어도 뜻이 통한다", () => {
   const todos = collectOwnerTodos([], Date.now(), {
     pendingReviewCount: 3,
     reviewUrl: "https://effiroad.com/dashboard/review",
