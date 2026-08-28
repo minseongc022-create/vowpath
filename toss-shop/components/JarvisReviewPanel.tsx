@@ -26,7 +26,13 @@ import { useSilentFetch } from "@/toss-shop/lib/hooks/use-silent-fetch";
 import type { JarvisListingDraft } from "@/toss-shop/lib/types";
 import { SP_ROUTES } from "@/toss-shop/lib/routes";
 
-/** 토스 상품 페이지를 흉내 낸 미리보기 카드 */
+/**
+ * 상품 페이지 미리보기 — 고객 휴대폰에서 보이는 모습 그대로.
+ *
+ * 대표 이미지 → 상품명 → 가격 → 배송 → 상세 → 하단 구매바 순서는 국내
+ * 모바일 커머스 상품 페이지의 공통 구조다. 데스크톱 카드로 보여주면
+ * "실제로 어떻게 보일지"가 안 잡히므로 휴대폰 폭(390px)으로 가둔다.
+ */
 function StorefrontPreview({ draft }: { draft: JarvisListingDraft }) {
   const p = draft.listingPayload;
   const thumb = draft.detailPage.thumbnailUrl ?? draft.detailPage.imageUrls?.[0];
@@ -43,39 +49,76 @@ function StorefrontPreview({ draft }: { draft: JarvisListingDraft }) {
         : "배송비 별도";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-ts-border bg-white">
-      {/* 상품 대표 이미지 */}
-      <div className="aspect-square w-full bg-slate-50">
-        {thumb ? (
-          // 외부 도매 이미지라 next/image 최적화 대상이 아니다 — 원본 그대로 띄운다
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt={p.name} className="h-full w-full object-contain" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-xs text-ts-muted">
-            대표 이미지 없음
-          </div>
-        )}
+    <div className="mx-auto w-full max-w-[390px] overflow-hidden rounded-[28px] border-[6px] border-slate-900 bg-white shadow-xl">
+      {/* 상단 바 — 실제 앱처럼 보이게 하는 최소한의 장치 */}
+      <div className="flex items-center justify-between bg-white px-4 py-2.5 text-slate-900">
+        <span aria-hidden className="text-lg leading-none">‹</span>
+        <span className="text-[13px] font-semibold">상품</span>
+        <span aria-hidden className="text-sm leading-none">⋯</span>
       </div>
 
-      {/* 상품명·가격 — 토스 상품 페이지 상단 구성 */}
-      <div className="p-4">
-        <p className="text-[15px] font-semibold leading-snug text-slate-900">{p.name}</p>
-        <div className="mt-2 flex flex-wrap items-baseline gap-2">
-          {discountPct > 0 && (
-            <span className="text-lg font-extrabold text-rose-600">{discountPct}%</span>
-          )}
-          <span className="text-xl font-extrabold text-slate-900">{formatKrw(p.salePrice)}</span>
-          {discountPct > 0 && (
-            <span className="text-sm text-ts-muted line-through">{formatKrw(p.originPrice)}</span>
+      {/* 스크롤 영역 — 대표 이미지부터 상세까지 한 흐름으로 */}
+      <div className="max-h-[620px] overflow-y-auto">
+        <div className="aspect-square w-full bg-slate-50">
+          {thumb ? (
+            // 외부 도매 이미지라 next/image 최적화 대상이 아니다 — 원본 그대로 띄운다
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumb} alt={p.name} className="h-full w-full object-contain" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs text-ts-muted">
+              대표 이미지 없음
+            </div>
           )}
         </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-            {deliveryLabel}
-          </span>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-            {p.brandName}
-          </span>
+
+        <div className="px-4 pb-4 pt-4">
+          <p className="text-[16px] font-semibold leading-snug text-slate-900">{p.name}</p>
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
+            {discountPct > 0 && (
+              <span className="text-[22px] font-extrabold text-rose-600">{discountPct}%</span>
+            )}
+            <span className="text-[22px] font-extrabold text-slate-900">
+              {formatKrw(p.salePrice)}
+            </span>
+            {discountPct > 0 && (
+              <span className="text-sm text-ts-muted line-through">{formatKrw(p.originPrice)}</span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+              {deliveryLabel}
+            </span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+              {p.brandName}
+            </span>
+          </div>
+        </div>
+
+        {/* 상세페이지 — 상품 페이지 안에서 이어지는 위치에 그대로 둔다.
+            따로 떼어 보여주면 "고객이 보는 흐름"이 안 잡힌다. */}
+        <div className="border-t border-slate-100">
+          {draft.detailPage.html ? (
+            <iframe
+              title={`상세 ${draft.id}`}
+              className="h-[900px] w-full bg-white"
+              srcDoc={draft.detailPage.html}
+              // 공급처 외부 콘텐츠다 — 스크립트를 못 돌게 막아 대시보드에
+              // 영향을 못 주게 한다.
+              sandbox=""
+            />
+          ) : (
+            <p className="p-4 text-xs text-ts-muted">상세페이지가 아직 없습니다.</p>
+          )}
+        </div>
+      </div>
+
+      {/* 하단 구매바 — 모바일 커머스 상품 페이지의 고정 요소 */}
+      <div className="flex items-center gap-2 border-t border-slate-200 bg-white px-4 py-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400">
+          ♡
+        </div>
+        <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-[#3182f6] text-[15px] font-bold text-white">
+          구매하기
         </div>
       </div>
     </div>
@@ -161,16 +204,16 @@ function ReviewCard({
 
   return (
     <article className="ts-card">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        {/* 왼쪽 — 고객이 보게 될 모습 */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        {/* 왼쪽 — 고객 휴대폰에 보이는 그대로 */}
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ts-muted">
-            고객 화면
+          <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-ts-muted">
+            고객 화면 미리보기
           </p>
           <StorefrontPreview draft={draft} />
         </div>
 
-        {/* 오른쪽 — 판단 근거 + 상세페이지 */}
+        {/* 오른쪽 — 판단 근거와 결정 */}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-900">
@@ -197,20 +240,14 @@ function ReviewCard({
             </div>
           )}
 
-          <p className="mt-4 mb-2 text-[11px] font-bold uppercase tracking-wider text-ts-muted">
-            상세페이지
-          </p>
-          {draft.detailPage.html ? (
-            <iframe
-              title={`상세 미리보기 ${draft.id}`}
-              className="h-[560px] w-full rounded-xl border border-ts-border bg-white"
-              srcDoc={draft.detailPage.html}
-              // 상세 HTML은 공급처 이미지를 포함한 외부 콘텐츠다.
-              // 스크립트를 못 돌게 막아 미리보기가 대시보드에 영향을 못 주게 한다.
-              sandbox=""
-            />
-          ) : (
-            <p className="text-xs text-ts-muted">상세페이지가 아직 없습니다.</p>
+          {/* 자비스가 왜 이 상품을 골랐는지 — 승인 판단의 근거 */}
+          {draft.pickBrief?.headline && (
+            <div className="mt-4 rounded-xl bg-slate-50 p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-ts-muted">
+                자비스 판단
+              </p>
+              <p className="mt-1 text-sm text-slate-800">{draft.pickBrief.headline}</p>
+            </div>
           )}
 
           {/* 승인 / 반려 */}

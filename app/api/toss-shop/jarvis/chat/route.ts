@@ -28,6 +28,7 @@ import {
   renderStatusReply,
   type JarvisStatusSummary,
 } from "@/toss-shop/lib/seller-engine/jarvis-chat";
+import { SP_ROUTES } from "@/toss-shop/lib/routes";
 import {
   ACTION_LABELS,
   parseExtraAction,
@@ -159,11 +160,23 @@ async function executeAction(
       const created = report.stats.draftsCreated;
       const lines = [
         created > 0
-          ? `한 바퀴 돌렸습니다 — 새 상품 ${created}개를 준비했어요.`
+          ? `다 만들었습니다 — 새 상품 ${created}개를 등록 직전까지 준비했어요.`
           : "한 바퀴 돌렸는데, 이번엔 기준을 통과한 새 상품이 없었습니다.",
       ];
       if (report.actions.length) lines.push("", ...report.actions.slice(0, 5).map((a) => `· ${a}`));
-      if (created === 0) {
+
+      // ★ 만들었으면 어디서 확인하는지를 같이 준다.
+      //
+      // 등록은 사장님 승인 전까지 막혀 있다(publishHold 기본값). 그런데
+      // 어디서 승인하는지 안 알려주면 초안이 그대로 잠들어 있게 된다 —
+      // 실제로 그 상태였다. 만든 즉시 확인 경로를 함께 안내한다.
+      if (created > 0) {
+        lines.push(
+          "",
+          "올리기 전에 확인 부탁드립니다. 고객에게 보일 모습 그대로 볼 수 있어요:",
+          SP_ROUTES.review,
+        );
+      } else {
         lines.push("", "「더 찾아봐」라고 하시면 도매꾹을 더 넓게 훑어보겠습니다.");
       }
       steps.push(...report.actions.slice(0, 4));
