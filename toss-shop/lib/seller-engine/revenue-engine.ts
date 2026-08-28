@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import { estimatePlatformFees, marginPct, priceStatistics } from "./pricing";
 import type { TossFeeContext } from "./fee-model";
+import { computePriceFloor } from "./price-floor";
 
 type KeywordIntelInput = {
   keyword: string;
@@ -87,7 +88,17 @@ export function buildPricingScenarios(
   feeCtx: TossFeeContext = {},
 ): PricingScenario[] {
   const stats = priceStatistics(competitors.map((c) => c.priceKrw));
-  const floor = Math.round(supplierCostKrw * (1 + minMarginPct / 100));
+  // 하한은 수수료·광고비를 반영해 역산한다 (price-floor.ts).
+  // 종전의 `공급가 × (1 + m/100)`은 원가 인상률이라 마진을 지키지 못했다.
+  // 역산이 불가능한 경우(비용률+목표마진 ≥ 100%)엔 시나리오를 만들지 않는다 —
+  // 어떤 가격을 제시해도 목표 마진이 안 나오는 상황이기 때문.
+  const floorResult = computePriceFloor({
+    supplierCostKrw,
+    targetMarginPct: minMarginPct,
+    feeCtx,
+  });
+  if (floorResult.floorKrw === null) return [];
+  const floor = floorResult.floorKrw;
 
   const candidates: { id: PricingScenario["id"]; price: number; label: string; strategy: string }[] = [];
 
