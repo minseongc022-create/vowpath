@@ -87,13 +87,21 @@ export function collectOwnerTodos(
   // 급한 정도는 낮지만 안 보면 하루치 소싱이 그대로 잠든다.
   const pendingReview = extra?.pendingReviewCount ?? 0;
   if (pendingReview > 0) {
+    // ⚠️ 문자는 짧아야 한다 — 길면 분할 발송되고, 사장님은 마지막 조각만 본다.
+    //
+    // 실측 사고: 종전 문구가 길어 SMS가 쪼개졌고, 사장님 휴대폰엔
+    // "바로 등록합니다. https://…" 만 도착했다. **뜻이 정반대로 읽힌다** —
+    // 확인해 달라는 알림이 이미 등록했다는 통보로 보였다.
+    //
+    // 한글 SMS는 70자를 넘으면 LMS로 넘어가거나 분할된다. 그래서 링크를
+    // 빼고 세면 40자 안쪽으로 유지하고, 문장을 자르더라도 앞부분만으로
+    // 뜻이 완결되게 쓴다. 세부 설명은 검수 화면에 이미 다 있다.
     todos.push({
       kind: "need_review",
       count: pendingReview,
       message:
-        `[자비스] 등록 대기 ${pendingReview}건 — 올리기 전에 확인해 주세요. ` +
-        `상품이 실제로 어떻게 보일지 미리보기로 확인하고 승인하시면 바로 등록합니다.` +
-        (extra?.reviewUrl ? ` ${extra.reviewUrl}` : ""),
+        `[자비스] 등록 전 확인 부탁드립니다 (${pendingReview}건). 승인하셔야 올라갑니다.` +
+        (extra?.reviewUrl ? `\n${extra.reviewUrl}` : ""),
     });
   }
 

@@ -1189,6 +1189,41 @@ export async function rejectListingDraft(input: {
   });
 }
 
+/**
+ * 아직 안 올라간 초안을 전부 버린다.
+ *
+ * ★ 왜 필요한가 — 옛 엔진이 만든 초안이 그대로 남는다
+ *
+ * 초안은 만들어진 시점의 엔진으로 계산된 값을 통째로 들고 있다(가격·제목·
+ * 상세페이지 HTML까지). 그래서 엔진을 고쳐도 **이미 만들어진 초안은 안
+ * 고쳐진다.** 실제로 가격 버그를 고친 뒤에도 검수 화면에는 수정 전 엔진이
+ * 만든 2,700만원짜리 상품과 "태블릿케이스 블루투스 이어폰" 같은 뒤섞인
+ * 제목이 그대로 떠 있었다.
+ *
+ * 이걸 손으로 하나씩 지우게 하면 안 된다 — 17건이 쌓여 있었고, 앞으로도
+ * 엔진을 고칠 때마다 같은 일이 생긴다.
+ *
+ * ⚠️ **이미 등록된(published) 초안은 건드리지 않는다.** 그건 토스에 실제로
+ * 올라가 있는 상품이라 여기서 지우면 화면과 실제가 어긋난다. 등록 취소는
+ * 전혀 다른 작업이고, 사람이 의도해서 해야 한다.
+ */
+export async function discardPendingDrafts(merchantId: string): Promise<{
+  discarded: number;
+  kept: number;
+}> {
+  const store = await loadStore();
+  const data = merchantData(store, merchantId);
+  const all = data.listingDrafts ?? [];
+
+  // 올라간 것과 올라가는 중인 것은 남긴다 — 실제 상태와 어긋나면 안 된다.
+  const keep = all.filter((d) => d.status === "published" || d.status === "publishing");
+  const discarded = all.length - keep.length;
+
+  data.listingDrafts = keep;
+  await saveStore(store);
+  return { discarded, kept: keep.length };
+}
+
 export async function publishApprovedListingDraft(input: {
   merchantId: string;
   draftId: string;

@@ -40,6 +40,14 @@ export type ChatIntent =
   | "set_alert_phone"
   /** 문자가 실제로 오는지 지금 한 통 보내봐 */
   | "test_alert"
+  /**
+   * 만들어 둔 초안 다 버려라.
+   *
+   * 엔진을 고치면 이미 만들어진 초안은 안 고쳐진다 — 만들어진 시점의
+   * 가격·제목·상세 HTML을 통째로 들고 있기 때문이다. 그래서 옛 초안을
+   * 한 번에 비울 방법이 필요하다.
+   */
+  | "discard_drafts"
   /** 그 외 — 대화로 답한다 */
   | "talk";
 
@@ -150,6 +158,15 @@ const RETURN_SYNC_PATTERNS =
   /(반품지).{0,20}(등록|넣었|추가|했어|했다|완료)|(등록|추가).{0,10}(했으니|했어).{0,20}(확인|반영|동기화)|반품지.{0,10}(확인|동기화|다시)/;
 
 /**
+ * "초안 다 지워" — 옛 엔진이 만든 상품을 비운다.
+ *
+ * "지우다/비우다/버리다/삭제" + "초안/등록함/만든거/상품" 조합만 잡는다.
+ * 너무 넓게 잡으면 "이 상품 지워줘"(개별 삭제 요청)까지 전부 비워버린다.
+ */
+const DISCARD_DRAFTS_PATTERNS =
+  /(초안|등록함|만든\s*거|만든\s*것|대기\s*중인?\s*(거|것|상품)).{0,8}(다|전부|모두|싹)?\s*(지워|삭제|비워|버려|없애)|(다|전부|모두|싹).{0,6}(지워|삭제|비워|버려|없애).{0,8}(초안|등록함|상품)/;
+
+/**
  * 사장님 말에서 **실행할 행동**을 뽑는다.
  *
  * 송장이 가장 우선이다 — 숫자와 택배사가 같이 있으면 다른 해석의 여지가 없고,
@@ -192,6 +209,11 @@ export function parseChatAction(message: string): ChatAction {
   }
   if (ORDER_INFO_PATTERNS.test(text)) {
     return { intent: "supplier_order_info", confident: true };
+  }
+  // "초안 다 지워"가 "지금 돌려"보다 먼저다 — 둘 다 걸릴 수 있는 문장에서
+  // 잘못 돌리면 지우려던 사람이 초안을 더 만들게 된다.
+  if (DISCARD_DRAFTS_PATTERNS.test(text)) {
+    return { intent: "discard_drafts", confident: true };
   }
   if (RUN_PATTERNS.test(text)) {
     return { intent: "run_now", confident: true };

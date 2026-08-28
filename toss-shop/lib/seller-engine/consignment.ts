@@ -38,6 +38,7 @@ import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
 import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
 import type { TossFeeContext } from "./fee-model";
+import { checkPriceSanity, checkSupplierCostSanity } from "./price-sanity";
 
 export type SourcingIntegrationContext = {
   tossApiConfigured: boolean;
@@ -280,6 +281,16 @@ export async function generateConsignmentPicks(
     // 위탁은 1개를 못 사면 성립하지 않는다. 못 사는 건 후보가 아니다.
     if (wholesale.bestMatch == null) continue;
     const supplierCost = landedWholesaleUnitCost(wholesale.bestMatch);
+
+    // ★ 원가가 상식을 벗어나면 여기서 끊는다.
+    //
+    // 실측: 공급가가 묶음 전체 가격으로 들어와 판매가 2,700만원짜리 태블릿
+    // 케이스가 만들어졌다. 마진 게이트는 이걸 못 잡는다 — 원가 900만원에
+    // 판매가 2,700만원이면 마진 15%가 **수학적으로 성립**하기 때문이다.
+    // 비율만 보는 게이트는 자릿수 오류를 통과시킨다.
+    if (!checkSupplierCostSanity(supplierCost).sane) {
+      continue;
+    }
 
     // 배송 인센티브(판매수수료 0%)는 공급처가 실제로 1등급·당일발송일 때만
     // 약속할 수 있다. 미확인 공급처에 0%를 가정하면 마진이 부풀려지므로,
@@ -669,7 +680,19 @@ export async function generateConsignmentPicks(
   // 진입 전략이 "거부"로 판정한 픽은 소싱하지 않는다.
   // 대장을 이길 수도, 묶음으로 빠져나갈 수도 없는 상품은 올려봐야 노출이 안 되고
   // 재고·CS·페널티 리스크만 남는다. (계산만 하고 거르지 않으면 무의미하다)
-  const sourceable = enriched.filter((p) => p.catalogEntry?.sourceable !== false);
+  const sourceable = enriched.filter((p) => {
+    if (p.catalogEntry?.sourceable === false) return false;
+
+    // ★ 마지막 관문 — 최종 등록가가 상식적인 숫자인가.
+    //
+    // 진입 전략이 묶음가를 정하면서 가격이 다시 커질 수 있으므로, 원가
+    // 검사(위쪽)와 별개로 **실제 등록될 가격**을 한 번 더 본다.
+    // 마진율이 아무리 좋아도 태블릿 케이스가 2,700만원일 수는 없다.
+    return checkPriceSanity({
+      priceKrw: p.recommendedPriceKrw,
+      supplierCostKrw: p.supplierCostKrw,
+    }).sane;
+  });
 
   const ranked = integration.readyFor90
     ? filterJarvisCertifiedPicks(sourceable, { onlyCertified: true }).length >= 2
