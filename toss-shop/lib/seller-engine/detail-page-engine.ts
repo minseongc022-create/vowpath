@@ -11,7 +11,12 @@ import type { DetailPageProviderId } from "./detail-page-providers";
 import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
 import { generateDetailShots } from "./image-detail-shots";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
-import { buildDetailPageHtml, DETAIL_PAGE_HTML_VERSION } from "./detail-page-html";
+import { buildDetailPageHtml } from "./detail-page-html";
+import { buildPremiumDetailHtml, PREMIUM_DETAIL_VERSION } from "./premium-detail-template";
+import { buildProductShotSet, type ProductShot } from "./product-shot-set";
+import { aiImagesEnabled } from "./ai-image-studio";
+import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
+import { polishSellingCopy } from "./copy-polish";
 
 export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
 
@@ -180,29 +185,81 @@ export async function buildJarvisDetailPage(
   // 설계한 "사진+문구" 구조가 지켜진다는 보장이 없었다 — 실제로 크레딧을
   // 충전하자 이 경로가 되살아나면서 새로 만든 레이아웃이 통째로 무시됐다.
   //
-  // 그래서 위탁 모드는 **항상** 우리 자체 레이아웃(buildDetailPageHtml)을
-  // 쓰고, AI는 이미지 생성·레이아웃 결정에 관여하지 않는다. 수입판매
-  // (1688) 모드는 그대로 둔다 — 기본 비활성 기능이고 이번 지적의 대상이
-  // 아니다.
+  // 그 원칙은 그대로 지킨다: **레이아웃은 항상 코드가 정한다.** AI는 그
+  // 안에서 두 가지에만 관여한다 — 사진(허용된 범위 안에서 다시 조명한
+  // 컷)과 문장(사실은 그대로, 표현만). 둘 다 실패하면 조용히 원래 방식으로
+  // 폴백하므로, 후커블 급으로 안 올라가는 것과 상세페이지 생성 자체가
+  // 막히는 것은 다른 문제로 다룬다.
   if (mode === "consignment") {
-    const images = await collectRealImages(wholesale?.url, wholesale?.imageUrl, wholesale?.detailImageUrls);
-    const html = buildDetailPageHtml({
-      productName: title,
-      sellingPoints,
-      imageUrls: images,
-      dispatchDays: wholesale?.supplierQuality?.shipSpeed === "same_day" ? 1 : undefined,
+    const baseImages = await collectRealImages(
+      wholesale?.url,
+      wholesale?.imageUrl,
+      wholesale?.detailImageUrls,
+    );
+
+    // 사진 보강 — product-shot-set은 "원본에 보이는 면만 유지"를 프롬프트에
+    // 강제한 파이프라인이다(뒷면·반대편 지어내기 금지). 배경 재구성 사고가
+    // 났던 경로(자유 배경+통짜 HTML 생성)와는 다른, 더 좁고 검증된 경로다.
+    // 실패하면 원본 사진만으로 계속 진행한다.
+    let shots: ProductShot[] = [];
+    if (baseImages.length && aiImagesEnabled()) {
+      try {
+        const shotSet = await buildProductShotSet({
+          imageUrl: baseImages[0],
+          category: pick.category,
+          productLabel: title,
+        });
+        shots = shotSet.shots;
+      } catch {
+        shots = [];
+      }
+    }
+
+    // 문장 다듬기 — 사실(숫자·핵심 단어)은 검증 통과해야만 채택한다.
+    // 실패하면 buyer-psychology가 만든 원문 그대로 쓴다.
+    const polish = await polishSellingCopy(sellingPoints);
+    const finalPoints = polish.points;
+
+    const sameDayVerified = meetsSupplierPolicy(wholesale?.supplierQuality);
+    const deliveryNote = sameDayVerified
+      ? "평일 기준 당일 출고됩니다. (주문 마감 시간 이후 접수 건은 다음 영업일 출고)"
+      : "결제 확인 후 순차 발송됩니다.";
+
+    const description =
+      (pick.aiSummary ?? "").slice(0, 1200) ||
+      `${title} — ${pick.keyword} Jarvis 검증 SKU. ${finalPoints.join(". ")}.`;
+
+    const html = buildPremiumDetailHtml({
+      title,
+      keyword: pick.keyword,
+      priceKrw: pick.recommendedPriceKrw,
+      category: pick.category,
+      sellingPoints: finalPoints,
+      description,
+      // 생성 컷이 있으면 그걸 쓰고, 없으면 실사진 그대로.
+      shots: shots.length ? shots : undefined,
+      fallbackImages: shots.length ? undefined : baseImages,
+      deliveryNote,
       returnNote,
-      objections: plan.objections,
     });
+
+    // 구매 저항 해소(FAQ)는 프리미엄 템플릿에 없는 섹션이라 뒤에 붙인다 —
+    // 자랑 밑에 조용히 놓는 게 buyer-psychology의 원래 배치 의도다.
+    const objectionsHtml = renderObjectionsHtml(plan.objections);
+    const finalHtml = objectionsHtml ? `${html}${objectionsHtml}` : html;
+
+    const generatedUrls = shots.map((s) => s.url);
+    const allImages = [...generatedUrls, ...baseImages];
+
     return {
       source: "jarvis_ai",
-      html,
-      thumbnailUrl: images[0],
-      imageUrls: images.length ? images : undefined,
-      sellingPoints,
+      html: finalHtml,
+      thumbnailUrl: generatedUrls[0] ?? baseImages[0],
+      imageUrls: allImages.length ? allImages : undefined,
+      sellingPoints: finalPoints,
       searchKeywords,
       matchcutReady: false,
-      layoutVersion: DETAIL_PAGE_HTML_VERSION,
+      layoutVersion: PREMIUM_DETAIL_VERSION,
     };
   }
 
