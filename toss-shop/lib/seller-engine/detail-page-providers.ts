@@ -16,9 +16,8 @@ import { requestMatchcutDetailPage, type MatchcutRequest } from "./matchcut-adap
 export const DETAIL_PROVIDERS_VERSION = "1.0";
 
 export type DetailPageProviderId =
-  | "hookable_api"
-  | "draph"
-  | "sellerbiseo"
+  /** 사람이 외부 툴(후커블·드랩아트 등)에서 만들어 반입한 것 */
+  | "manual_import"
   | "matchcut_pipeline"
   | "openai_premium"
   | "hookable_local";
@@ -33,35 +32,21 @@ export type DetailPageProviderResult = {
   note?: string;
 };
 
-type ExternalProviderConfig = {
-  id: DetailPageProviderId;
-  apiUrl?: string;
-  apiKey?: string;
-  costKrw: number;
-};
-
-function externalProviders(): ExternalProviderConfig[] {
-  return [
-    {
-      id: "draph",
-      apiUrl: process.env.DRAPH_API_URL?.trim(),
-      apiKey: process.env.DRAPH_API_KEY?.trim(),
-      costKrw: 800,
-    },
-    {
-      id: "hookable_api",
-      apiUrl: process.env.HOOKABLE_API_URL?.trim(),
-      apiKey: process.env.HOOKABLE_API_KEY?.trim(),
-      costKrw: 990,
-    },
-    {
-      id: "sellerbiseo",
-      apiUrl: process.env.SELLERBISEO_API_URL?.trim(),
-      apiKey: process.env.SELLERBISEO_API_KEY?.trim(),
-      costKrw: 850,
-    },
-  ].filter((p) => p.apiUrl && p.apiKey) as ExternalProviderConfig[];
-}
+/**
+ * ⚠️ 외부 SaaS 직접 호출은 제거했다.
+ *
+ * 종전 코드는 후커블·드랩아트·셀러비서가 **모두 같은 REST 스펙**(Bearer 인증 +
+ * {title, keyword, price, images} → {html})을 쓴다고 가정하고 호출했다.
+ * 그런 근거는 없었고, 확인해 보니 세 곳 다 공개 개발자 API 자체가 확인되지
+ * 않는다 (근거는 detail-page-sources.ts에 정리).
+ *
+ * 게다가 호출부가 오류를 통째로 삼켜서, 키를 넣어도 조용히 실패하고 다음
+ * 폴백으로 넘어갔다 — 연동이 안 된다는 사실조차 남지 않았다.
+ *
+ * 그래서 이제 이 자리는 두 갈래다:
+ *   · 실제로 계약된 API가 생기면 그때 진짜 스펙으로 어댑터를 구현한다
+ *   · 그 전까지 고품질이 필요하면 **반입(detail-page-import.ts)**을 쓴다
+ */
 
 type ProviderPayload = {
   title: string;
@@ -72,55 +57,6 @@ type ProviderPayload = {
   images: string[];
   productUrl?: string;
 };
-
-async function fetchExternalDetail(
-  config: ExternalProviderConfig,
-  payload: ProviderPayload,
-): Promise<DetailPageProviderResult | null> {
-  if (!config.apiUrl || !config.apiKey) return null;
-  try {
-    const res = await fetch(config.apiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-        "X-Provider": config.id,
-      },
-      body: JSON.stringify({
-        title: payload.title,
-        keyword: payload.keyword,
-        price: payload.priceKrw,
-        sellingPoints: payload.sellingPoints,
-        description: payload.description,
-        images: payload.images,
-        productUrl: payload.productUrl,
-        platform: "toss",
-        format: "html",
-      }),
-      signal: AbortSignal.timeout(45_000),
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      html?: string;
-      detailHtml?: string;
-      thumbnailUrl?: string;
-      thumbnail?: string;
-      images?: string[];
-    };
-    const html = json.html ?? json.detailHtml;
-    if (!html?.trim()) return null;
-    return {
-      status: "ready",
-      html,
-      thumbnailUrl: json.thumbnailUrl ?? json.thumbnail ?? payload.images[0],
-      generatedImages: json.images ?? payload.images,
-      provider: config.id,
-      costEstimateKrw: config.costKrw,
-    };
-  } catch {
-    return null;
-  }
-}
 
 async function buildOpenAiPremiumDetail(
   input: HookableDetailInput,
@@ -230,11 +166,9 @@ async function buildProviderPayload(
   };
 }
 
+/** 지금 실제로 쓸 수 있는 경로만 — 연동 안 된 SaaS는 여기 나오지 않는다 */
 export function listActiveDetailProviders(): Array<{ id: DetailPageProviderId; costKrw: number }> {
-  const list: Array<{ id: DetailPageProviderId; costKrw: number }> = externalProviders().map((p) => ({
-    id: p.id,
-    costKrw: p.costKrw,
-  }));
+  const list: Array<{ id: DetailPageProviderId; costKrw: number }> = [];
   if (process.env.OPENAI_API_KEY?.trim()) {
     list.push({ id: "openai_premium", costKrw: 150 });
   }
@@ -242,8 +176,17 @@ export function listActiveDetailProviders(): Array<{ id: DetailPageProviderId; c
   return list;
 }
 
+/**
+ * 상세페이지를 만든다.
+ *
+ * `importedDetail`이 주어지면 그것을 최우선으로 쓴다 — 사람이 외부 툴에서
+ * 만든 고품질 결과이므로, 자체 생성으로 덮어쓸 이유가 없다.
+ * 없으면 자체 생성 경로(Matchcut → OpenAI → 로컬)로 내려간다.
+ */
 export async function requestDetailPageFromProviders(
   matchcutInput: MatchcutRequest,
+  /** 외부 툴에서 반입한 상세페이지 (detail-page-import.ts가 검수를 마친 것) */
+  importedDetail?: { html: string; thumbnailUrl?: string; images?: string[] },
 ): Promise<DetailPageProviderResult> {
   const payload = await buildProviderPayload(
     matchcutInput.pick,
@@ -251,9 +194,17 @@ export async function requestDetailPageFromProviders(
     matchcutInput.sellingPoints,
   );
 
-  for (const provider of externalProviders()) {
-    const result = await fetchExternalDetail(provider, payload);
-    if (result?.status === "ready") return result;
+  // 사람이 외부 툴로 만든 것이 있으면 그게 최우선이다
+  if (importedDetail?.html?.trim()) {
+    return {
+      status: "ready",
+      html: importedDetail.html,
+      thumbnailUrl: importedDetail.thumbnailUrl ?? payload.images[0],
+      generatedImages: importedDetail.images ?? payload.images,
+      provider: "manual_import",
+      costEstimateKrw: 0,
+      note: "외부 툴 반입 상세페이지 — 검수 통과",
+    };
   }
 
   const matchcut = await requestMatchcutDetailPage(matchcutInput);

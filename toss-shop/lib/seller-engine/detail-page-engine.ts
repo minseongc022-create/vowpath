@@ -18,9 +18,7 @@ export const DETAIL_PAGE_ENGINE_VERSION = "3.0";
 function mapProviderToSource(provider: DetailPageProviderId): JarvisDetailPageBundle["source"] {
   if (provider === "matchcut_pipeline") return "matchcut";
   if (provider === "openai_premium") return "openai_premium";
-  if (provider === "hookable_api") return "hookable_api";
-  if (provider === "draph") return "draph";
-  if (provider === "sellerbiseo") return "sellerbiseo";
+  if (provider === "manual_import") return "manual_import";
   if (provider === "hookable_local") return "jarvis_ai";
   return "jarvis_ai";
 }

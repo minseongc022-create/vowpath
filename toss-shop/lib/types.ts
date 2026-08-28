@@ -354,9 +354,14 @@ export type JarvisDetailPageSource =
   | "matchcut_pending"
   | "matchcut"
   | "openai_premium"
-  | "hookable_api"
-  | "draph"
-  | "sellerbiseo";
+  /**
+   * 사람이 외부 툴(후커블·드랩아트 등)에서 만들어 반입한 상세페이지.
+   *
+   * 종전엔 "hookable_api" | "draph" | "sellerbiseo"가 있었으나, 세 곳 다
+   * 공개 개발자 API가 확인되지 않아 실제로는 한 번도 이 값이 될 수 없었다
+   * (근거는 detail-page-sources.ts). 실제로 동작하는 경로 하나로 합친다.
+   */
+  | "manual_import";
 
 export type JarvisDetailPageBundle = {
   source: JarvisDetailPageSource;
