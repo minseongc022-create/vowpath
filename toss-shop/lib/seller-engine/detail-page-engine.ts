@@ -12,7 +12,8 @@ import { fetchWholesaleProductImages } from "./wholesale-image-fetch";
 import { generateDetailShots } from "./image-detail-shots";
 import { buildPersuasionPlan, renderObjectionsHtml, type PersuasionPlan } from "./buyer-psychology";
 import { buildDetailPageHtml } from "./detail-page-html";
-import { buildPremiumDetailHtml, PREMIUM_DETAIL_VERSION } from "./premium-detail-template";
+import { planDetailSections } from "./detail-section-plan";
+import { renderSectionPlanHtml, SECTION_DETAIL_HTML_VERSION } from "./section-detail-html";
 import { buildProductShotSet, type ProductShot } from "./product-shot-set";
 import { aiImagesEnabled } from "./ai-image-studio";
 import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
@@ -225,41 +226,40 @@ export async function buildJarvisDetailPage(
       ? "평일 기준 당일 출고됩니다. (주문 마감 시간 이후 접수 건은 다음 영업일 출고)"
       : "결제 확인 후 순차 발송됩니다.";
 
-    const description =
-      (pick.aiSummary ?? "").slice(0, 1200) ||
-      `${title} — ${pick.keyword} Jarvis 검증 SKU. ${finalPoints.join(". ")}.`;
+    // 생성 컷이 있으면 그걸 먼저 쓰고, 없으면 실사진 그대로.
+    const generatedUrls = shots.map((s) => s.url);
+    const displayImages = generatedUrls.length ? [...generatedUrls, ...baseImages] : baseImages;
 
-    const html = buildPremiumDetailHtml({
+    // ★ 섹션 구성은 후커블·드랩이 쓰는 구조를 따른다 (detail-section-plan 참조):
+    //   문제 제기 → 솔루션 → 기능 → 사회적 증거 → 정보 → 보증 → FAQ
+    // 다만 **근거가 있는 섹션만** 만든다. 그들은 리뷰가 없으면 지어내지만
+    // 우리는 없으면 섹션을 뺀다 — 위탁은 실물 검증이 불가능해서 지어낸
+    // 사회적 증거가 곧 기만적 표시가 되기 때문이다.
+    const sectionPlan = planDetailSections({
       title,
-      keyword: pick.keyword,
-      priceKrw: pick.recommendedPriceKrw,
       category: pick.category,
       sellingPoints: finalPoints,
-      description,
-      // 생성 컷이 있으면 그걸 쓰고, 없으면 실사진 그대로.
-      shots: shots.length ? shots : undefined,
-      fallbackImages: shots.length ? undefined : baseImages,
+      imageUrls: displayImages,
+      objections: plan.objections,
       deliveryNote,
       returnNote,
+      proof: { verifiedFastShipping: sameDayVerified },
     });
 
-    // 구매 저항 해소(FAQ)는 프리미엄 템플릿에 없는 섹션이라 뒤에 붙인다 —
-    // 자랑 밑에 조용히 놓는 게 buyer-psychology의 원래 배치 의도다.
-    const objectionsHtml = renderObjectionsHtml(plan.objections);
-    const finalHtml = objectionsHtml ? `${html}${objectionsHtml}` : html;
-
-    const generatedUrls = shots.map((s) => s.url);
-    const allImages = [...generatedUrls, ...baseImages];
+    const finalHtml = renderSectionPlanHtml(sectionPlan, {
+      title,
+      category: pick.category,
+    });
 
     return {
       source: "jarvis_ai",
       html: finalHtml,
-      thumbnailUrl: generatedUrls[0] ?? baseImages[0],
-      imageUrls: allImages.length ? allImages : undefined,
+      thumbnailUrl: displayImages[0],
+      imageUrls: displayImages.length ? displayImages : undefined,
       sellingPoints: finalPoints,
       searchKeywords,
       matchcutReady: false,
-      layoutVersion: PREMIUM_DETAIL_VERSION,
+      layoutVersion: SECTION_DETAIL_HTML_VERSION,
     };
   }
 

@@ -20,5 +20,7 @@ export const SP_ROUTES = {
   consignment: sp("/dashboard/consignment"),
   importSales: sp("/dashboard/import"),
   listings: sp("/dashboard/listings"),
+  /** 등록 전 최종 검수 — 고객에게 보일 모습 그대로 확인하고 승인하는 곳 */
+  review: sp("/dashboard/review"),
   settings: sp("/dashboard/settings"),
 } as const;

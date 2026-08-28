@@ -22,18 +22,23 @@ import { SP_ROUTES } from "@/toss-shop/lib/routes";
  * 수입판매는 비활성(channel-mode.ts)이라 탭에서 뺐다 — 눌러도 빈 화면만
  * 나오는 메뉴는 화면만 복잡하게 만든다. 되살리려면 여기에 다시 넣으면 된다.
  *
- * 하단 탭은 **매일 쓰는 4개**만 남긴다: 홈(현황) · 위탁(소싱) · 등록함(승인) · 키워드(분석).
- * 등록함을 더보기에서 탭으로 올린 이유는, 무인 자동화에서 사장님이 실제로
- * 손대는 유일한 지점이 "승인"이기 때문이다.
+ * 하단 탭은 **매일 쓰는 4개**만 남긴다: 홈(현황) · 위탁(소싱) · 검수(승인) · 키워드(분석).
+ *
+ * 종전엔 이 자리에 "등록함"이 있었다. 등록함은 모든 상태의 초안을 나열하는
+ * 관리 화면이라 정보가 많고, 그래서 "지금 내가 뭘 해야 하는지"가 잘 안 보인다.
+ * 검수 화면은 **아직 결정 안 된 것만** 고객 화면 그대로 보여주므로, 무인
+ * 자동화에서 사장님이 매일 손대는 유일한 동작(승인)에 정확히 대응한다.
+ * 등록함은 더보기로 옮겼다 — 필요할 때 찾아 들어가는 화면이다.
  */
 const PRIMARY_NAV = [
   { href: SP_ROUTES.dashboard, label: "홈", Icon: IconHome, match: (p: string) => p === SP_ROUTES.dashboard },
   { href: SP_ROUTES.consignment, label: "소싱", Icon: IconConsignment, match: (p: string) => p.includes("/consignment") },
-  { href: SP_ROUTES.listings, label: "등록함", Icon: IconConsignment, match: (p: string) => p.includes("/listings") },
+  { href: SP_ROUTES.review, label: "검수", Icon: IconConsignment, match: (p: string) => p.includes("/review") },
   { href: SP_ROUTES.keywords, label: "키워드", Icon: IconKeywords, match: (p: string) => p.includes("/keywords") },
 ] as const;
 
 const MORE_LINKS = [
+  { href: SP_ROUTES.listings, label: "등록함", desc: "모든 초안·등록 상태", Icon: IconConsignment },
   { href: SP_ROUTES.settlements, label: "정산 · 효자상품", desc: "실제 입금 기준 SKU 등급", Icon: IconSettlements },
   { href: SP_ROUTES.discovery, label: "아이템 발굴", desc: "수요·공급 키워드", Icon: IconDiscovery },
   { href: SP_ROUTES.rankings, label: "랭킹 추적", desc: "노출 순위", Icon: IconRankings },
