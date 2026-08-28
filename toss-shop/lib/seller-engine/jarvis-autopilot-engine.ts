@@ -95,6 +95,24 @@ export async function runJarvisAutopilotCycle(
     actions.push(`확실성 미달 ${rejected.length}건 제외 — ${topReasons.join(" / ")}`);
   }
 
+  // ★ "인증 SKU가 없다"의 진짜 원인은 이 함수 안이 아니라 그 이전
+  // 단계(소싱)에서 이미 결정돼 있다 — 여기서 볼 수 있는 건 소싱이 넘겨준
+  // 후보뿐이다. 인증이 적거나 0이면, 관문별로 몇 개가 왜 떨어졌는지를
+  // 실제 숫자로 알려준다. "기준을 낮춰야 하나"가 아니라 "어디를(키워드
+  // 풀·도매 소스) 넓혀야 하는가"를 답하기 위해서다.
+  const nearMiss = input.data.lastSourcingNearMissReport;
+  if (nearMiss && certified.length < 2) {
+    const topRejections = Object.entries(nearMiss.rejections)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([reason, n]) => `${reason} ${n}건`);
+    if (topRejections.length) {
+      actions.push(
+        `소싱 탈락 원인(키워드 ${nearMiss.keywordsScanned}개 시도) — ${topRejections.join(" / ")}`,
+      );
+    }
+  }
+
   // ⚠️ 여기서 반드시 되꽂아야 한다 — 실측으로 드러난 결함
   //
   // 종전엔 `?? []`로 만든 **새 배열**에 초안을 unshift하고 끝이었다.
@@ -427,6 +445,7 @@ export async function runJarvisAutopilotCycle(
         ? `Jarvis Autopilot — 인증 SKU ${certifiedCount} · OK대기 ${pendingReview} · 등록 ${published} · 발주대기 ${activeJobs}`
         : "Jarvis Autopilot — 93% 인증 SKU 없음 · 연동·도매매 API 확인",
     winners,
+    sourcingNearMiss: nearMiss,
     returnProvisioning: provisioningPlan.asks.length
       ? {
           summary: provisioningPlan.summary,

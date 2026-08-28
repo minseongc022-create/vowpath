@@ -164,6 +164,22 @@ async function executeAction(
           ? `다 만들었습니다 — 새 상품 ${created}개를 등록 직전까지 준비했어요.`
           : "한 바퀴 돌렸는데, 이번엔 기준을 통과한 새 상품이 없었습니다.",
       ];
+      // ★ "없었습니다" 한 줄로 끝내지 않는다 — 어디서 몇 개가 왜 떨어졌는지를
+      // 숫자로 보여준다. 그래야 "기준 자체가 계속 없을 것 같다"는 걱정 대신
+      // "이 지점을 넓히면 된다"는 실제 판단을 할 수 있다.
+      if (created === 0 && report.sourcingNearMiss) {
+        const { keywordsScanned, rejections } = report.sourcingNearMiss;
+        const topReasons = Object.entries(rejections)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4);
+        if (topReasons.length) {
+          lines.push(
+            "",
+            `키워드 ${keywordsScanned}개를 시도했고, 이렇게 떨어졌습니다:`,
+            ...topReasons.map(([reason, n]) => `· ${reason} — ${n}건`),
+          );
+        }
+      }
       if (report.actions.length) lines.push("", ...report.actions.slice(0, 5).map((a) => `· ${a}`));
 
       // ★ 만들었으면 어디서 확인하는지를 같이 준다.

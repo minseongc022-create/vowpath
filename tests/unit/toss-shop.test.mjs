@@ -876,15 +876,16 @@ test("toss policy: 페널티·등록규칙 검증", async () => {
   assert.equal(clean.filter((i) => i.severity === "block").length, 0);
 });
 
-test("ad economics: 손익분기 CPC = 판매가 × 수수료율 × 전환율", async () => {
+test("ad economics: 손익분기 CPC = (단위 순이익 + 수수료 면제분) × 전환율 × 증분비율", async () => {
   const { computeAdEconomics } = await import("../../toss-shop/lib/seller-engine/toss-growth-levers.ts");
 
-  // 광고로 팔면 수수료 8% 면제 → 그 면제분이 광고비보다 크면 이득
+  // 손익분기는 수수료 면제분만이 아니라 단위 순이익까지 반영해야 한다
+  // (예전 버그: grossMarginKrw를 입력으로 받아놓고 계산에 쓰지 않았다)
   const a = computeAdEconomics({
     priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3, alreadyFeeFree: false,
   });
   assert.equal(a.feeSavedPerSaleKrw, 1600, "20,000원의 8%");
-  assert.equal(a.breakevenCpcKrw, 48, "1600 × 0.03");
+  assert.equal(a.breakevenCpcKrw, 201, "(8000+1600) × 0.03 × 0.7(증분비율)");
   assert.equal(a.recommendation, "run");
 
   // 전환율이 오르면 더 비싼 CPC도 감당된다
@@ -896,7 +897,7 @@ test("ad economics: 손익분기 CPC = 판매가 × 수수료율 × 전환율", 
   // 손익분기를 크게 넘는 입찰은 중단시켜야 한다
   const over = computeAdEconomics({
     priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3,
-    alreadyFeeFree: false, currentCpcKrw: 200,
+    alreadyFeeFree: false, currentCpcKrw: 500,
   });
   assert.equal(over.recommendation, "stop");
   assert.ok((over.netDeltaPerSaleKrw ?? 0) < 0);
@@ -908,15 +909,16 @@ test("ad economics: 손익분기 CPC = 판매가 × 수수료율 × 전환율", 
   assert.equal(noData.recommendation, "cannot_bid");
 });
 
-test("ad economics: 배송 인센티브로 이미 0%면 수수료 면제가 중복되지 않는다", async () => {
+test("ad economics: 배송 인센티브로 이미 0%여도 단위 순이익만으로 손익분기가 성립한다", async () => {
   const { computeAdEconomics } = await import("../../toss-shop/lib/seller-engine/toss-growth-levers.ts");
   const ff = computeAdEconomics({
     priceKrw: 20000, grossMarginKrw: 8000, conversionRatePct: 3,
     alreadyFeeFree: true, currentCpcKrw: 50,
   });
   assert.equal(ff.feeSavedPerSaleKrw, 0, "이미 0%면 추가 면제 없음");
-  assert.equal(ff.breakevenCpcKrw, 0);
-  assert.match(ff.reason, /중복되지 않는다/);
+  // 면제 보너스는 없지만 순이익 8000원 자체가 손익분기를 만든다 — 0원이 아니다
+  assert.equal(ff.breakevenCpcKrw, 168, "8000 × 0.03 × 0.7(증분비율)");
+  assert.equal(ff.recommendation, "run", "현재 CPC 50원이 손익분기 168원 아래라 이득");
 });
 
 test("cart coupon: 전환율 상승분이 쿠폰 비용보다 클 때만 실행", async () => {
@@ -1575,8 +1577,8 @@ test("ad allocator: 효자에 예산이 집중되고 손익분기 CPC를 넘지 
   assert.ok(hero, "효자에 배분되어야");
   assert.equal(hero.grade, "hero");
   assert.equal(hero.action, "scale");
-  // 손익분기 CPC = 판매가 × 8% × 전환율 = 20000 × 0.08 × 0.04 = 64
-  assert.equal(hero.maxCpcKrw, 64);
+  // 손익분기 CPC = (단위순이익 6000 + 수수료면제 1600) × 전환 4% × 증분비율 0.7 = 212
+  assert.equal(hero.maxCpcKrw, 212);
   assert.equal(hero.economics.feeSavedPerSaleKrw, 1600);
   // 정리대상에는 한 푼도 안 간다
   assert.ok(!plan.allocations.some((a) => a.productName === "소액상품"));

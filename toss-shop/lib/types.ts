@@ -227,6 +227,8 @@ export type MerchantData = {
   /** Last generated consignment picks (date key). */
   consignmentPicks?: ConsignmentPick[];
   consignmentDate?: string;
+  /** 방금 소싱 사이클의 탈락 근접 로그 — "0개"가 왜인지 화면·문자에 쓴다 */
+  lastSourcingNearMissReport?: SourcingNearMissReport;
   importPicks?: ImportPick[];
   importDate?: string;
   /** Jarvis listing drafts awaiting user OK before publish. */
@@ -550,6 +552,8 @@ export type JarvisAutopilotReport = {
   stageTimings?: { discoveryMs: number; picksMs: number; cycleMs: number };
   /** 등록 안 된 초안의 사유별 집계 — 등록 0일 때 원인 규명용 */
   publishSkips?: Record<string, number>;
+  /** 이번 사이클 소싱의 탈락 근접 로그 — 인증 SKU가 적거나 0일 때 원인 규명용 */
+  sourcingNearMiss?: SourcingNearMissReport;
   returnAddressBacklog?: {
     count: number;
     instructions: string;
@@ -992,6 +996,29 @@ export type TenMillionPlan = {
   geniusBrief: string;
   weeklyActions: string[];
   scalingLevers: string[];
+};
+
+/**
+ * 소싱 탈락 근접 로그 — "이번엔 0개였습니다"가 반복될 때 진짜 원인을 남긴다.
+ *
+ * ★ 왜 필요한가
+ *
+ * 종전엔 후보가 하나도 안 남으면 사장님께 "기준을 통과한 새 상품이 없었다"고만
+ * 알렸다. 그런데 탈락은 키워드 랭킹부터 관련성·공급처·가격 타당성까지 여러
+ * 관문을 순서대로 거치며 일어난다 — 어느 관문에서 몇 개가 왜 떨어졌는지를
+ * 모르면, "기준을 낮춰야 하나"라는 잘못된 결론으로 이어지기 쉽다(마진 하한처럼
+ * 손익분기선인 관문은 낮추면 안 된다). 이 숫자는 그 대신 "어디를 넓혀야 하는가"
+ * (키워드 풀, 도매 소스 범위)를 알려준다.
+ */
+export type SourcingNearMissReport = {
+  /** 랭킹 필터를 통과해 실제로 시도한 키워드 수 */
+  keywordsScanned: number;
+  /** 랭킹 필터에서 등급 미달로 아예 시도조차 못 한 키워드 수 */
+  keywordsFilteredByRank: number;
+  /** 관문을 하나라도 통과해 최종 후보에 남은 수 */
+  picksProduced: number;
+  /** 관문별 탈락 사유 → 건수. 값이 큰 순서가 "가장 넓혀야 할 지점"이다 */
+  rejections: Record<string, number>;
 };
 
 export type ConsignmentPick = {

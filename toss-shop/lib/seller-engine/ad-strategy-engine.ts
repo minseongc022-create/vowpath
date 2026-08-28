@@ -36,19 +36,10 @@
  *     돈 못 버는 상품에 광고를 안 거는 것도 전략이다.
  */
 
-import { TOSS_DEFAULT_SALES_FEE_RATE } from "./toss-policy-engine";
+import { computeAdBreakeven, ASSUMED_CVR_PCT, ASSUMED_INCREMENTALITY } from "./ad-economics";
 import type { ConsignmentPick, ImportPick, JarvisAdCampaignPlan } from "../types";
 
-export const AD_STRATEGY_VERSION = "2.0";
-
-/**
- * 실측 전환율이 없을 때 쓰는 보수적 가정.
- *
- * 낙관적으로 잡으면 손익분기 CPC가 부풀고, 그대로 입찰하면 실제 전환율에서
- * 건당 손해가 난다. 그래서 낮게 잡는다 — 실제가 더 좋으면 이득일 뿐이다.
- * 등록 후 실제 전환이 쌓이면 그 값으로 대체된다.
- */
-const ASSUMED_CVR_PCT = 2;
+export const AD_STRATEGY_VERSION = "2.1";
 
 /**
  * 손익분기의 몇 %까지 입찰할 것인가.
@@ -57,16 +48,6 @@ const ASSUMED_CVR_PCT = 2;
  * 바로 적자다. 여유를 두어 실제로 남게 만든다.
  */
 const BID_SAFETY_RATIO = 0.65;
-
-/**
- * 광고로 팔린 것 중 **광고가 없었다면 안 팔렸을** 비중.
- *
- * 광고 유입 판매의 일부는 어차피 자연 검색으로 팔렸을 물건이다. 그 몫은
- * 광고가 만든 이익이 아니라 잠식이므로, 100%를 증분으로 세면 상한이 부풀어
- * 실제로는 손해가 나는 입찰을 하게 된다. 실측(광고 켜기 전후 매출 비교)이
- * 쌓이기 전까지는 보수적으로 깎는다.
- */
-const ASSUMED_INCREMENTALITY = 0.7;
 
 /**
  * 이 아래 입찰가는 노출이 안 나올 수 있다고 **경고**하는 선.
@@ -127,13 +108,16 @@ export function buildAdCampaignPlan(
 
   // 광고로 새로 생긴 판매는 이익 전체를 가져온다. 여기에 토스 특유의
   // 수수료 면제 보너스가 더해진다(이미 0%면 보너스는 없고 이익만 남는다).
-  const feeSavedKrw = alreadyFeeFree
-    ? 0
-    : Math.round(pick.recommendedPriceKrw * TOSS_DEFAULT_SALES_FEE_RATE);
-  const valuePerAdSaleKrw = unitGrossKrw + feeSavedKrw;
-
-  const cvr = ASSUMED_CVR_PCT / 100;
-  const breakevenCpcKrw = Math.floor(valuePerAdSaleKrw * cvr * ASSUMED_INCREMENTALITY);
+  // 손익분기 계산은 단일 진실원(ad-economics.ts)에서 가져온다 — 여기서
+  // 다시 공식을 베끼면 toss-growth-levers.ts처럼 나중에 어긋난다.
+  const breakevenResult = computeAdBreakeven({
+    priceKrw: pick.recommendedPriceKrw,
+    netProfitPerUnitKrw: unitGrossKrw,
+    alreadyFeeFree,
+  });
+  const feeSavedKrw = breakevenResult.feeSavedPerSaleKrw;
+  const valuePerAdSaleKrw = breakevenResult.valuePerSaleKrw;
+  const breakevenCpcKrw = breakevenResult.breakevenCpcKrw;
 
   const maxBid = Math.floor(breakevenCpcKrw * BID_SAFETY_RATIO);
   // 경제성이 아예 없는 경우(입찰가가 0원)만 광고를 막는다.

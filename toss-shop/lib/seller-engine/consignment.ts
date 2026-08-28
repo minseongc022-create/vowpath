@@ -1,5 +1,10 @@
 import { CONSIGNMENT_DAILY_PICKS } from "../billing";
-import type { CatalogProduct, ConsignmentPick, MarketKeywordMetrics } from "../types";
+import type {
+  CatalogProduct,
+  ConsignmentPick,
+  MarketKeywordMetrics,
+  SourcingNearMissReport,
+} from "../types";
 import {
   landedWholesaleUnitCost,
   searchWholesaleForConsignment,
@@ -147,14 +152,40 @@ function buildPick(
   };
 }
 
+/**
+ * 근접 로그 없이 픽만 필요한 호출자를 위한 얇은 래퍼.
+ * 실제 소싱은 generateConsignmentPicksWithReport가 다 한다 — 여기서 공식을
+ * 다시 적으면 이 파일이 방금 고친 ad-economics 이중 공식 버그와 같은 실수를
+ * 반복하게 된다.
+ */
 export async function generateConsignmentPicks(
+  catalog: CatalogProduct[],
+  dateKey: string,
+  marketKeywords?: Record<string, MarketKeywordMetrics>,
+  integrationCtx?: SourcingIntegrationContext,
+  dailyTarget?: number,
+): Promise<ConsignmentPick[]> {
+  const { picks } = await generateConsignmentPicksWithReport(
+    catalog,
+    dateKey,
+    marketKeywords,
+    integrationCtx,
+    dailyTarget,
+  );
+  return picks;
+}
+
+export async function generateConsignmentPicksWithReport(
   catalog: CatalogProduct[],
   dateKey: string,
   marketKeywords?: Record<string, MarketKeywordMetrics>,
   integrationCtx?: SourcingIntegrationContext,
   /** 적응형 소싱 계획이 산출한 오늘 목표 개수 (없으면 기본값) */
   dailyTarget?: number,
-): Promise<ConsignmentPick[]> {
+): Promise<{ picks: ConsignmentPick[]; report: SourcingNearMissReport }> {
+  const rejections = new Map<string, number>();
+  const bump = (reason: string, n = 1) => rejections.set(reason, (rejections.get(reason) ?? 0) + n);
+
   const ctx = marketContext(catalog, marketKeywords);
   const integration = assessIntegration({
     tossApiConfigured: integrationCtx?.tossApiConfigured ?? false,
@@ -162,9 +193,14 @@ export async function generateConsignmentPicks(
     dataQuality: integrationCtx?.dataQuality ?? ctx.dataQuality,
     catalogSize: catalog.length,
   });
-  const rankedKeywords = rankKeywordsForSourcing(catalog, marketKeywords, 60).filter(
+  const allRankedKeywords = rankKeywordsForSourcing(catalog, marketKeywords, 60);
+  const rankedKeywords = allRankedKeywords.filter(
     (k) => k.grade === "excellent" || k.grade === "good" || k.difficulty === "easy",
   );
+  const keywordsFilteredByRank = allRankedKeywords.length - rankedKeywords.length;
+  if (keywordsFilteredByRank > 0) {
+    bump("키워드 등급 미달(수요·난이도 기준 미충족)", keywordsFilteredByRank);
+  }
 
   // 시장 스캐너로 순서를 다시 매긴다 (제외는 하지 않는다).
   //
@@ -215,7 +251,14 @@ export async function generateConsignmentPicks(
     // 올리는 것보다 덜 올리는 게 낫다 — 확실성 게이트가 이미 같은 원칙으로 돈다.
     const product = pickBestProductForKeyword(kw.keyword, kw.category, catalog, marketKeywords);
 
-    if (!product || usedProducts.has(product.id)) continue;
+    if (!product) {
+      bump("연관 상품 없음(카탈로그에 이 키워드와 맞는 상품 부재)");
+      continue;
+    }
+    if (usedProducts.has(product.id)) {
+      bump("같은 상품이 다른 키워드에 이미 배정됨");
+      continue;
+    }
 
     // 뽑힌 상품이 정말 이 키워드의 상품인지 확인한다.
     // pickBestProductForKeyword는 카테고리만 맞아도 후보에 넣고 수요·마진으로
@@ -225,7 +268,10 @@ export async function generateConsignmentPicks(
       productName: product.name,
       supplierTitle: product.sourceListing?.title,
     });
-    if (!relevance.relevant) continue;
+    if (!relevance.relevant) {
+      bump("키워드-상품 관련성 미달");
+      continue;
+    }
 
     usedProducts.add(product.id);
 
@@ -279,7 +325,10 @@ export async function generateConsignmentPicks(
     // 그때까지 하루치 소싱 슬롯과 화면의 수익 숫자를 오염시킨다.
     //
     // 위탁은 1개를 못 사면 성립하지 않는다. 못 사는 건 후보가 아니다.
-    if (wholesale.bestMatch == null) continue;
+    if (wholesale.bestMatch == null) {
+      bump("낱개 구매 가능한 도매 공급처 없음");
+      continue;
+    }
     const supplierCost = landedWholesaleUnitCost(wholesale.bestMatch);
 
     // ★ 원가가 상식을 벗어나면 여기서 끊는다.
@@ -289,6 +338,7 @@ export async function generateConsignmentPicks(
     // 판매가 2,700만원이면 마진 15%가 **수학적으로 성립**하기 때문이다.
     // 비율만 보는 게이트는 자릿수 오류를 통과시킨다.
     if (!checkSupplierCostSanity(supplierCost).sane) {
+      bump("공급단가 비정상(자릿수 오류 추정)");
       continue;
     }
 
@@ -681,17 +731,22 @@ export async function generateConsignmentPicks(
   // 대장을 이길 수도, 묶음으로 빠져나갈 수도 없는 상품은 올려봐야 노출이 안 되고
   // 재고·CS·페널티 리스크만 남는다. (계산만 하고 거르지 않으면 무의미하다)
   const sourceable = enriched.filter((p) => {
-    if (p.catalogEntry?.sourceable === false) return false;
+    if (p.catalogEntry?.sourceable === false) {
+      bump("대표아이템 진입 불가(최저가 경쟁·묶음 분리 모두 안 됨)");
+      return false;
+    }
 
     // ★ 마지막 관문 — 최종 등록가가 상식적인 숫자인가.
     //
     // 진입 전략이 묶음가를 정하면서 가격이 다시 커질 수 있으므로, 원가
     // 검사(위쪽)와 별개로 **실제 등록될 가격**을 한 번 더 본다.
     // 마진율이 아무리 좋아도 태블릿 케이스가 2,700만원일 수는 없다.
-    return checkPriceSanity({
+    const sane = checkPriceSanity({
       priceKrw: p.recommendedPriceKrw,
       supplierCostKrw: p.supplierCostKrw,
     }).sane;
+    if (!sane) bump("최종 등록가 비정상(진입 전략 재계산 후)");
+    return sane;
   });
 
   const ranked = integration.readyFor90
@@ -701,7 +756,19 @@ export async function generateConsignmentPicks(
     : sourceable;
 
   const target = Math.max(1, Math.min(sourcingMaxPerDay(), dailyTarget ?? CONSIGNMENT_DAILY_PICKS));
-  return ranked.slice(0, target);
+  const picks = ranked.slice(0, target);
+
+  return {
+    picks,
+    report: {
+      keywordsScanned: rankedKeywords.length,
+      keywordsFilteredByRank,
+      picksProduced: picks.length,
+      rejections: Object.fromEntries(
+        [...rejections.entries()].sort((a, b) => b[1] - a[1]),
+      ),
+    },
+  };
 }
 
 export { SELLER_AI_ENGINE_VERSION, WHOLESALE_ENGINE_VERSION };

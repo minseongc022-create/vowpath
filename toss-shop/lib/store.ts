@@ -36,7 +36,7 @@ import { SP_ROUTES } from "./routes";
 const REVIEW_PAGE_URL = canonicalMarketingUrl(SP_ROUTES.review);
 import { parseSettlementCsv } from "./settlement-csv";
 import { resolvePlanForEmail, proExpiresAtFromNow, isOwnerEmail } from "./billing";
-import { generateConsignmentPicks } from "./seller-engine/consignment";
+import { generateConsignmentPicks, generateConsignmentPicksWithReport } from "./seller-engine/consignment";
 import { generateImportPicks } from "./seller-engine/import-sales";
 import { isImportSalesEnabled } from "./seller-engine/channel-mode";
 import { buildListingDraftFromPick } from "./seller-engine/listing-automation";
@@ -1031,9 +1031,17 @@ export async function getConsignmentPicksForMerchant(merchantId: string): Promis
   // 것보다 데모라도 보여주는 게 낫다.
   const discovered = data.discoveredProducts ?? [];
   const catalog = discovered.length > 0 ? discovered : store.catalog;
-  const picks = await generateConsignmentPicks(catalog, today, store.marketKeywords, integrationCtx);
+  const { picks, report } = await generateConsignmentPicksWithReport(
+    catalog,
+    today,
+    store.marketKeywords,
+    integrationCtx,
+  );
   data.consignmentPicks = picks;
   data.consignmentDate = picksKey;
+  // 이번 사이클에 0개(또는 몇 개 안) 나온 진짜 원인 — 다음 사이클도 "없다고
+  // 뜰까 봐" 기준을 함부로 낮추지 않고, 어디를 넓혀야 하는지 숫자로 남긴다.
+  data.lastSourcingNearMissReport = report;
   await saveStore(store);
   return picks;
 }
