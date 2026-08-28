@@ -5,6 +5,7 @@ import {
   addReturnLocationManually,
   autoRegisterReturnLocations,
   confirmFulfillmentTracking,
+  discardPendingDrafts,
   getDraftDetailHtml,
   getJarvisChatContext,
   getReturnAddressBrief,
@@ -387,6 +388,27 @@ async function executeAction(
     }
 
     // ── 올리지 마 — 만들기는 하되 등록은 보류 ────────────────────
+    // ── 초안 다 지워 — 옛 엔진이 만든 상품을 비운다 ─────────────
+    case "discard_drafts": {
+      const r = await discardPendingDrafts(merchantId);
+      const lines =
+        r.discarded > 0
+          ? [
+              `만들어 둔 초안 ${r.discarded}건을 버렸습니다.`,
+              "",
+              "엔진을 고쳐도 이미 만들어진 초안은 안 고쳐집니다 — 만들어진 시점의",
+              "가격·제목·상세페이지를 통째로 들고 있기 때문입니다. 그래서 비우고",
+              "다시 만드는 게 맞습니다.",
+              "",
+              "「지금 돌려줘」라고 하시면 고쳐진 기준으로 새로 만들겠습니다.",
+            ]
+          : ["버릴 초안이 없습니다."];
+      if (r.kept > 0) {
+        lines.push("", `이미 등록된 ${r.kept}건은 그대로 뒀습니다 — 토스에 올라가 있는 상품입니다.`);
+      }
+      return { reply: lines.join("\n"), steps, did: "discard_drafts" };
+    }
+
     case "hold_publish": {
       await holdPublishing(merchantId);
       return {

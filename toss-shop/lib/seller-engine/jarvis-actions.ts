@@ -130,6 +130,7 @@ export const ACTION_LABELS: Record<JarvisActionName, string> = {
   release_publish: "보류 풀고 등록하는 중",
   show_detail_page: "상세페이지 불러오는 중",
   what_happened: "지금까지 한 일 정리하는 중",
+  discard_drafts: "만들어 둔 초안 비우는 중",
   talk: "생각하는 중",
 };
 

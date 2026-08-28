@@ -14,6 +14,7 @@ import { buildJarvisPickBrief } from "./jarvis-pick-brief";
 import { JARVIS_CONFIDENCE_THRESHOLD } from "./jarvis-engine";
 import { checkListingCompliance, type ListingComplianceIssue } from "./toss-policy-engine";
 import { readSupplierReturnPolicy } from "../wholesale/supplier-return-policy";
+import { checkPriceSanity } from "./price-sanity";
 
 export const LISTING_AUTOMATION_VERSION = "2.0";
 
@@ -165,6 +166,24 @@ export async function buildListingDraftFromPick(
 ): Promise<JarvisListingDraft> {
   const { pick, mode, merchantId, draftId } = input;
   const now = input.now ?? new Date().toISOString();
+
+  // ★ 초안을 만들기 전에 가격이 상식적인지 본다.
+  //
+  // 소싱 단계에도 같은 검사가 있지만 여기서 한 번 더 한다. 이 함수는
+  // 소싱을 거치지 않은 픽(옛 엔진이 저장해 둔 것, 수동 생성)으로도
+  // 호출되기 때문이다. 실제로 수정 전 엔진이 만든 2,700만원짜리 픽이
+  // 저장소에 남아 검수 화면까지 올라왔다.
+  //
+  // 여기서 막으면 어떤 경로로 들어온 픽이든 잘못된 가격이 상품이 되지 못한다.
+  const sanity = checkPriceSanity({
+    priceKrw: pick.recommendedPriceKrw,
+    // 수입판매(ImportPick)에는 위탁 공급가 개념이 없다 — 판매가만 본다.
+    supplierCostKrw: "supplierCostKrw" in pick ? pick.supplierCostKrw : undefined,
+  });
+  if (!sanity.sane) {
+    throw new Error(`PRICE_SANITY: ${sanity.reason}`);
+  }
+
   const detailPage = await buildJarvisDetailPage(pick, mode, input.resolvedReturn?.returnNote);
   const listingPayload = buildListingPayload(
     pick,
