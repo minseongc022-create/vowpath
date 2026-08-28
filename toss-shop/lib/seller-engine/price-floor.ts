@@ -204,6 +204,46 @@ export function trueMarginPct(input: {
   return Math.round((net / input.priceKrw) * 1000) / 10;
 }
 
+/**
+ * 광고비·반품충당까지 뺀 **개당 실순익(원)**.
+ *
+ * ★ 왜 별도로 필요한가
+ *
+ * `revenue-engine.netProfitPerUnit`은 수수료만 뺀다. 그 값이 그대로
+ * `estimatedMonthlyProfitKrw`가 되고, 그게 다시
+ *
+ *   · 확실성 게이트의 "월 기여 30만원+" 판정
+ *   · 자비스 신뢰도 점수
+ *   · 목표 기여도 계산
+ *   · 수익 확률 시뮬레이션의 단위 순익
+ *
+ * 으로 전부 흘러간다. 그런데 우리는 **광고를 켤 계획**이다. 광고비를 빼지
+ * 않은 순익으로 이 판정을 하면, 게이트를 통과한 SKU가 광고를 켜는 순간
+ * 기대치에 못 미친다. 매출의 8%를 광고에 쓰면 개당 순익이 판매가의 8%만큼
+ * 줄어드는데, 저마진 상품에서 그건 순익의 절반이 넘기도 한다.
+ *
+ * 가격 하한은 이미 광고비를 반영하도록 고쳤다(computePriceFloor).
+ * 수익 전망도 같은 기준을 써야 둘이 어긋나지 않는다.
+ */
+export function netProfitPerUnitAfterAds(input: {
+  supplierCostKrw: number;
+  priceKrw: number;
+  feeCtx?: TossFeeContext;
+  adCostRatePct?: number;
+  returnReserveRatePct?: number;
+  fixedCostPerUnitKrw?: number;
+}): number {
+  if (input.priceKrw <= 0) return 0;
+  const salesFeeRate = effectiveSalesFeeRate(input.feeCtx ?? {});
+  const adCostRate = rate(input.adCostRatePct, ASSUMED_AD_COST_RATE_PCT);
+  const returnReserveRate = rate(input.returnReserveRatePct, ASSUMED_RETURN_RESERVE_RATE_PCT);
+  const fixedCost = Math.max(0, input.fixedCostPerUnitKrw ?? 0);
+
+  const variableCost =
+    input.priceKrw * (salesFeeRate + TOSS_PAYMENT_FEE_RATE + adCostRate + returnReserveRate);
+  return Math.round(input.priceKrw - input.supplierCostKrw - variableCost - fixedCost);
+}
+
 // ─────────────────────────────────────────────────────────────
 // 매력가격 (구매심리)
 // ─────────────────────────────────────────────────────────────

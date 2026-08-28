@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { estimatePlatformFees, marginPct, priceStatistics } from "./pricing";
 import type { TossFeeContext } from "./fee-model";
-import { computePriceFloor } from "./price-floor";
+import { computePriceFloor, netProfitPerUnitAfterAds } from "./price-floor";
 
 type KeywordIntelInput = {
   keyword: string;
@@ -129,7 +129,20 @@ export function buildPricingScenarios(
   }
 
   const scenarios: PricingScenario[] = candidates.map((c) => {
-    const profit = netProfitPerUnit(supplierCostKrw, c.price, feeCtx);
+    // ★ 수익 전망은 **광고비를 뺀 뒤**의 순익으로 잡는다.
+    //
+    // 종전엔 수수료만 뺀 netProfitPerUnit을 썼다. 그 값이 곧
+    // estimatedMonthlyProfitKrw가 되고, 확실성 게이트의 "월 기여 30만원+"
+    // 판정과 목표 기여도·수익확률까지 전부 그걸 근거로 삼는다.
+    // 그런데 우리는 광고를 켤 계획이므로, 광고비를 빼지 않은 순익으로
+    // 통과시킨 SKU는 광고를 켜는 순간 기대치에 못 미친다.
+    // 가격 하한은 이미 광고비를 반영하므로(price-floor), 전망도 같은
+    // 기준이어야 둘이 어긋나지 않는다.
+    const profit = netProfitPerUnitAfterAds({
+      supplierCostKrw,
+      priceKrw: c.price,
+      feeCtx,
+    });
     const dailyUnits = estimateDailyUnits({
       searchVolume: intel.searchVolume,
       competitionIntensity: intel.competitionIntensity,

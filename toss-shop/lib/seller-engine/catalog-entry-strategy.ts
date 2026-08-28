@@ -22,6 +22,7 @@
  */
 
 import { TOSS_DEFAULT_SALES_FEE_RATE, TOSS_PAYMENT_FEE_RATE } from "./toss-policy-engine";
+import { computePriceFloor, netProfitPerUnitAfterAds, trueMarginPct } from "./price-floor";
 
 export const CATALOG_ENTRY_VERSION = "1.0";
 
@@ -38,6 +39,21 @@ export type CatalogEntryInput = {
   baselineDailyUnits: number;
   /** 최소 허용 마진율 % */
   minMarginPct?: number;
+  /**
+   * `incumbentPriceKrw`가 **실제 관측된 경쟁가**인가.
+   *
+   * ★ 이 플래그가 없으면 가격이 순환한다
+   *
+   * 경쟁 상품을 하나도 못 찾으면 호출부는 대장가를 우리 제안가에서 역산해
+   * 넘긴다(`추천가 × 0.97` 같은 식). 그 값으로 "최저가 경쟁"을 계산하면
+   * **우리 가격을 우리가 깎는 셈**이 되어, 결과가 항상 마진 하한 아래로
+   * 떨어진다. 실제로 파이프라인을 돌려 보니 이 경로에서 모든 후보가
+   * 탈락하고 있었다.
+   *
+   * 애초에 대장이 없으면 "대표 탈환"이라는 전략 자체가 성립하지 않는다.
+   * false면 최저가 경쟁을 선택지에서 뺀다.
+   */
+  incumbentIsReal?: boolean;
 };
 
 export type EntryOption = {
@@ -67,8 +83,39 @@ export type CatalogEntryVerdict = {
   reason: string;
 };
 
+/**
+ * ⚠️ 이 함수는 **수수료만** 뺀다 — 광고비·반품충당은 빠져 있다.
+ *
+ * 진입 전략이 정한 가격은 그대로 등록가가 되므로(consignment의 entryPrice),
+ * 여기서 재는 마진도 실제로 남는 돈이어야 한다. 그래서 마진 판정은
+ * price-floor.trueMarginPct를 쓰고, 이 함수는 표시용 수수료 계산에만 남긴다.
+ */
 function fees(priceKrw: number): number {
   return Math.round(priceKrw * (TOSS_DEFAULT_SALES_FEE_RATE + TOSS_PAYMENT_FEE_RATE));
+}
+
+/**
+ * 이 옵션의 가격에서 실제로 남는 마진 % (광고비·반품충당 반영).
+ *
+ * ★ 왜 자체 공식을 버리고 price-floor를 쓰는가
+ *
+ * 종전엔 여기서 직접 하한을 계산했다:
+ *
+ *     floor = cost / (1 − (판매수수료 + 결제수수료) − minMargin/100)
+ *
+ * 공식의 **모양은 맞다**(역산이다). 문제는 분모에 광고비와 반품충당이
+ * 빠져 있다는 것이다. 그래서 minMargin 15%로 계산한 가격의 실마진이
+ * 광고를 켜는 순간 6~10%로 떨어진다.
+ *
+ * 실제로 파이프라인을 돌려 보니 최종 픽의 마진이 전부 9.8~9.9%로 나왔다.
+ * 확실성 게이트는 15%를 요구하므로, **파이프라인이 자기 게이트가 거절할
+ * 가격만 만들어내고 있었다** — 처음 고친 0.2% 버그와 정확히 같은 구조가
+ * 네 번째 위치에 남아 있던 것이다.
+ *
+ * 하한 계산은 한 곳(price-floor)만 알아야 이런 재발이 없다.
+ */
+function realMarginPct(costKrw: number, priceKrw: number): number {
+  return trueMarginPct({ supplierCostKrw: costKrw, priceKrw });
 }
 
 /**
@@ -89,21 +136,30 @@ function buildBundle(input: CatalogEntryInput, qty: number): EntryOption {
   const bundleDiscount = qty === 2 ? 0.93 : 0.88;
   let price = Math.round((input.incumbentPriceKrw * qty * bundleDiscount) / 10) * 10;
 
-  // 최소 마진 미달이면 마진 기준으로 올린다
-  const floor = Math.ceil(
-    cost / (1 - (TOSS_DEFAULT_SALES_FEE_RATE + TOSS_PAYMENT_FEE_RATE) - minMargin / 100),
-  );
-  if (price < floor) price = Math.ceil(floor / 10) * 10;
+  // 최소 마진 미달이면 마진 기준으로 올린다.
+  // 하한은 price-floor가 단일 진실원이다 — 광고비·반품충당까지 반영한다.
+  const floorResult = computePriceFloor({ supplierCostKrw: cost, targetMarginPct: minMargin });
+  if (floorResult.floorKrw != null && price < floorResult.floorKrw) {
+    price = Math.ceil(floorResult.floorKrw / 10) * 10;
+  }
 
-  const net = price - cost - fees(price);
-  const marginPct = Math.round((net / price) * 1000) / 10;
+  const net = netProfitPerUnitAfterAds({ supplierCostKrw: cost, priceKrw: price });
+  const marginPct = realMarginPct(cost, price);
 
   // 고객은 언제든 대장 단품을 qty개 살 수 있다. 내 묶음이 그보다 비싸면
   // 별도 카탈로그로 노출돼도 아무도 사지 않는다 — 마진 하한 때문에 가격이
   // 시장가 위로 밀려 올라간 경우가 여기 해당한다.
+  //
+  // ⚠️ 단, 이 비교는 **대장가가 실제로 관측됐을 때만** 뜻이 있다.
+  // 경쟁 상품을 못 찾으면 호출부는 우리 제안가에서 역산한 값을 넘기는데,
+  // 그 값과 우리 묶음가를 비교하는 건 우리 가격을 우리 가격과 재는 것이다.
+  // 그리고 그 계산은 구조적으로 항상 "비싸다"가 나온다 — 묶음 하한(원가×qty를
+  // 마진으로 역산)이 단품 하한×qty보다 근소하게 크기 때문이다.
+  // 실제로 이 경로에서 모든 후보가 탈락하고 있었다.
+  const canCompareToIncumbent = input.incumbentIsReal !== false;
   const singlesReference = input.incumbentPriceKrw * qty;
   const priceAdvantage = (singlesReference - price) / singlesReference;
-  const uncompetitive = price >= singlesReference;
+  const uncompetitive = canCompareToIncumbent && price >= singlesReference;
 
   const daily = uncompetitive
     ? 0
@@ -123,8 +179,11 @@ function buildBundle(input: CatalogEntryInput, qty: number): EntryOption {
     note: uncompetitive
       ? `묶음가 ${price.toLocaleString()}원이 대장 단품 ${qty}개(${singlesReference.toLocaleString()}원)보다 비싸다 — ` +
         `별도 카탈로그로 노출돼도 고객은 대장을 ${qty}번 산다. 마진 하한 때문에 시장가 위로 밀린 경우`
-      : `구성이 달라 별도 카탈로그 — 대장과 경쟁하지 않고 내가 대표. ` +
-        `단품 ${qty}개 대비 ${Math.round(priceAdvantage * 100)}% 저렴하고, 배송비 1건분만 들어 단위마진 ${marginPct}%`,
+      : canCompareToIncumbent
+        ? `구성이 달라 별도 카탈로그 — 대장과 경쟁하지 않고 내가 대표. ` +
+          `단품 ${qty}개 대비 ${Math.round(priceAdvantage * 100)}% 저렴하고, 배송비 1건분만 들어 단위마진 ${marginPct}%`
+        : `구성이 달라 별도 카탈로그 — 배송비 1건분만 들어 단위마진 ${marginPct}%. ` +
+          `⚠️ 경쟁 상품이 관측되지 않아 시장가 대비 경쟁력은 확인되지 않았다 — 등록 후 실판매로 재판정 필요`,
   };
 }
 
@@ -136,8 +195,10 @@ function buildUndercut(input: CatalogEntryInput): EntryOption {
   const incumbentTotal = input.incumbentPriceKrw + input.incumbentShippingKrw;
   const price = incumbentTotal - 10; // 무료배송 전제 → 판매가 = 총가격
 
-  const net = price - cost - fees(price);
-  const marginPct = price > 0 ? Math.round((net / price) * 1000) / 10 : -100;
+  // 최저가 경쟁은 가격을 올릴 수 없다(올리면 대표를 못 딴다). 그래서 하한을
+  // 적용하는 대신, **그 가격에서 실제로 남는지**를 보고 안 되면 탈락시킨다.
+  const net = netProfitPerUnitAfterAds({ supplierCostKrw: cost, priceKrw: price });
+  const marginPct = price > 0 ? realMarginPct(cost, price) : -100;
   const viable = net > 0 && marginPct >= minMargin;
   const daily = viable ? Math.round(net * input.baselineDailyUnits) : 0;
 
@@ -164,8 +225,15 @@ function buildUndercut(input: CatalogEntryInput): EntryOption {
  * 올리는 건 재고·CS·페널티 리스크만 늘린다.
  */
 export function decideCatalogEntry(input: CatalogEntryInput): CatalogEntryVerdict {
+  // 대장이 실제로 관측되지 않았으면 "대표 탈환"은 계산하지 않는다.
+  // 없는 경쟁자를 상대로 최저가를 만들면 우리 가격을 우리가 깎게 된다
+  // (incumbentIsReal 주석 참조). 그때는 단독 카탈로그(묶음)로만 판단한다.
+  //
+  // 하위 호환: 플래그를 안 넘긴 기존 호출부는 종전대로 최저가 경쟁을 포함한다.
+  const hasIncumbent = input.incumbentIsReal !== false;
+
   const options: EntryOption[] = [
-    buildUndercut(input),
+    ...(hasIncumbent ? [buildUndercut(input)] : []),
     buildBundle(input, 2),
     buildBundle(input, 3),
   ];
@@ -197,7 +265,9 @@ export function decideCatalogEntry(input: CatalogEntryInput): CatalogEntryVerdic
   }
 
   const best = viable[0];
-  const undercut = options.find((o) => o.strategy === "undercut")!;
+  // ⚠️ `!`로 단언하면 안 된다 — 대장이 관측되지 않으면 최저가 옵션 자체가 없다.
+  // 종전엔 non-null 단언이 붙어 있어, 그 경우 undefined를 참조해 터졌다.
+  const undercut = options.find((o) => o.strategy === "undercut");
 
   return {
     best,
@@ -206,8 +276,12 @@ export function decideCatalogEntry(input: CatalogEntryInput): CatalogEntryVerdic
     reason:
       best.strategy === "undercut"
         ? `최저가 진입이 최선 (하루 ${best.dailyProfitKrw.toLocaleString()}원) — 단, 대장이 맞받으면 재검토 필요`
-        : `${best.label} 선택 — 하루 ${best.dailyProfitKrw.toLocaleString()}원. ` +
-          `최저가 경쟁(${undercut.dailyProfitKrw.toLocaleString()}원/일, 마진 ${undercut.marginPct}%)보다 유리하고, ` +
-          `별도 카탈로그라 대장과 가격 싸움 자체를 하지 않는다`,
+        : undercut
+          ? `${best.label} 선택 — 하루 ${best.dailyProfitKrw.toLocaleString()}원. ` +
+            `최저가 경쟁(${undercut.dailyProfitKrw.toLocaleString()}원/일, 마진 ${undercut.marginPct}%)보다 유리하고, ` +
+            `별도 카탈로그라 대장과 가격 싸움 자체를 하지 않는다`
+          : `${best.label} 선택 — 하루 ${best.dailyProfitKrw.toLocaleString()}원. ` +
+            `경쟁 상품이 관측되지 않아 최저가 경쟁은 계산하지 않았다 — 대장이 없으면 ` +
+            `대표 탈환이라는 전략 자체가 성립하지 않는다. 별도 카탈로그로 진입한다`,
   };
 }

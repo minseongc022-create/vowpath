@@ -920,37 +920,19 @@ export type TopSellerPlaybookReport = {
   brief: string;
 };
 
-export type WholesaleListing = {
-  platform: "domeggook" | "domeme" | "1688" | "taobao" | "rakuten" | "yahoo_jp";
-  /** 공급사 등급·출고속도 (live 응답에서 판독; 미확인이면 verified:false → Jarvis 게이트 탈락) */
-  supplierQuality?: import("./wholesale/supplier-quality").SupplierQuality;
-  /**
-   * 공급처 반품·수거 안내 원문. 비어 있으면 반품 처리 주체를 판독할 수 없어
-   * 반품지 결정이 fail-closed로 막힌다(전용 주소 또는 셀러 자체 주소 선언 필요).
-   */
-  policyText?: string;
-  itemNo?: number;
-  title: string;
-  unitPriceKrw: number;
-  shippingFeeKrw: number;
-  moq: number;
-  url: string;
-  imageUrl?: string;
-  /**
-   * 공급사가 실제로 올린 상품 사진 전체 (상세 조회로 채워짐).
-   *
-   * 검색 API는 목록용 축소 썸네일 1장만 준다. 상세페이지에 사진이 한
-   * 장뿐이면 "성의 없는 페이지"로 보여 전환율이 떨어진다 — 그렇다고
-   * 지어낸 각도를 만들면 상품 왜곡이다. 상세 조회(getItemView)에 실려
-   * 있는 공급사의 실제 사진들을 여기 채운다.
-   */
-  detailImageUrls?: string[];
-  sellerId?: string;
-  sellerNick?: string;
-  freeShipping: boolean;
-  source: "live" | "estimated";
-  marginVsTossPct?: number;
-};
+/**
+ * ⚠️ 이 타입은 `./wholesale/types`가 단일 진실원이다.
+ *
+ * 종전엔 같은 이름의 타입이 여기와 wholesale/types.ts에 **따로 정의**돼
+ * 있었고, 시간이 지나며 서로 어긋났다 — 한쪽엔 detailImageUrls가, 다른
+ * 쪽엔 moqVerified·unitSourcing이 있었다. 두 타입 사이로 값을 주고받는
+ * 코드가 있었으므로, 한쪽에 필드를 추가할 때마다 반대쪽에서 타입 오류가
+ * 나거나(운이 좋은 경우) 필드가 조용히 사라졌다(나쁜 경우).
+ *
+ * 그래서 재정의하지 않고 다시 내보낸다. 필드 추가는 wholesale/types.ts에서만 한다.
+ */
+import type { WholesaleListing } from "./wholesale/types";
+export type { WholesaleListing };
 
 export type ImportSourceListing = {
   platform: WholesaleListing["platform"];

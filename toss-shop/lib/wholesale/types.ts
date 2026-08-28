@@ -33,6 +33,15 @@ export type WholesaleListing = {
   unitSourcing?: SingleUnitSourcing;
   url: string;
   imageUrl?: string;
+  /**
+   * 공급사가 실제로 올린 상품 사진 전체 (상세 조회로 채워짐).
+   *
+   * 검색 API는 목록용 축소 썸네일 1장만 준다. 상세페이지에 사진이 한
+   * 장뿐이면 "성의 없는 페이지"로 보여 전환율이 떨어진다 — 그렇다고
+   * 지어낸 각도를 만들면 상품 왜곡이다. 상세 조회(getItemView)에 실려
+   * 있는 공급사의 실제 사진들을 여기 채운다.
+   */
+  detailImageUrls?: string[];
   sellerId?: string;
   sellerNick?: string;
   freeShipping: boolean;

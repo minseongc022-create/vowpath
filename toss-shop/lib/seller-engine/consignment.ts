@@ -33,7 +33,7 @@ import { sourcingMaxPerDay } from "./sourcing-plan";
 import { decideCatalogEntry } from "./catalog-entry-strategy";
 import { analyzeTitleSeo, buildSearchKeywords } from "./toss-seo-engine";
 import { assessKeywordRelevance, buildRelevantTitle } from "./keyword-relevance";
-import { trueMarginPct } from "./price-floor";
+import { netProfitPerUnitAfterAds, trueMarginPct } from "./price-floor";
 import { netProfitPerUnit } from "./revenue-engine";
 import { isDomeggookApiConfigured } from "../wholesale/domeggook-api";
 import { meetsSupplierPolicy } from "../wholesale/supplier-quality";
@@ -241,11 +241,25 @@ export async function generateConsignmentPicks(
     // 실측: 모든 후보가 「마진 0.2% (15% 미만)」로 탈락했다. 그리고 저마진은
     // 리스크로 잡혀 안전점수를 72로 떨어뜨리고, 그게 다시 종합점수를 깎아
     // 인증을 막았다 — 한 번의 어긋남이 게이트 세 개를 동시에 닫고 있었다.
-    const wholesale = product.sourceListing
+    // ★ 발굴 표본도 낱개 발주 여부를 확인하고 쓴다.
+    //
+    // ⚠️ 종전엔 `product.sourceListing`이 있으면 그대로 bestMatch로 썼다.
+    // 그 경로는 pickBestWholesaleMatch를 거치지 않으므로 **낱개 발주 검증을
+    // 통째로 건너뛴다.** 발굴은 시장을 넓게 훑어 표본을 만드는데, 그 표본에는
+    // MOQ 10짜리 묶음 상품이 당연히 섞여 있다. 검증 없이 쓰면 그 묶음 단가가
+    // 그대로 원가가 되어, 방금 고친 버그가 이 경로로 되살아난다.
+    const sourceListing = product.sourceListing;
+    const sourceListingSellsSingle =
+      sourceListing != null &&
+      (sourceListing.unitSourcing
+        ? sourceListing.unitSourcing.available
+        : sourceListing.source === "live" && sourceListing.moqVerified === true && sourceListing.moq <= 1);
+
+    const wholesale = sourceListingSellsSingle
       ? {
           keyword: kw.keyword,
-          listings: [product.sourceListing],
-          bestMatch: product.sourceListing,
+          listings: [sourceListing!],
+          bestMatch: sourceListing!,
           searchedAt: new Date().toISOString(),
           apiConfigured: true,
         }
@@ -255,10 +269,17 @@ export async function generateConsignmentPicks(
           targetRetailKrw: product.priceKrw,
         });
 
-    const supplierCost =
-      wholesale.bestMatch != null
-        ? landedWholesaleUnitCost(wholesale.bestMatch)
-        : estimateSupplierCost(product.priceKrw, product.category);
+    // 낱개로 살 수 있는 공급처를 못 찾았으면 이 키워드는 건너뛴다.
+    //
+    // ⚠️ 종전엔 estimateSupplierCost(카테고리별 고정 배수 테이블)로 원가를
+    // 지어내 계속 진행했다. 그건 import-sources가 "해시로 원가 생성"으로
+    // 저지른 것과 같은 종류의 실수다 — 상품과 아무 관계 없는 숫자 위에
+    // 마진·수익·확률이 전부 쌓인다. 확실성 게이트가 등록은 막아주지만,
+    // 그때까지 하루치 소싱 슬롯과 화면의 수익 숫자를 오염시킨다.
+    //
+    // 위탁은 1개를 못 사면 성립하지 않는다. 못 사는 건 후보가 아니다.
+    if (wholesale.bestMatch == null) continue;
+    const supplierCost = landedWholesaleUnitCost(wholesale.bestMatch);
 
     // 배송 인센티브(판매수수료 0%)는 공급처가 실제로 1등급·당일발송일 때만
     // 약속할 수 있다. 미확인 공급처에 0%를 가정하면 마진이 부풀려지므로,
@@ -504,9 +525,13 @@ export async function generateConsignmentPicks(
 
       // 대장(대표 아이템)과 같은 카탈로그에 그대로 들어가면 노출이 막힌다.
       // 최저가 경쟁 / 묶음 구성 / 소싱 거부 중 하루 기대순익이 가장 큰 길을 고른다.
-      const incumbentPrice =
-        pick.competitorInsights?.[0]?.priceKrw ?? Math.round(pick.recommendedPriceKrw * 0.97);
+      // 대장가는 **관측된 경쟁가일 때만** 진짜다. 경쟁 상품을 못 찾으면
+      // 우리 제안가에서 역산한 값이 들어가는데, 그걸로 최저가 경쟁을 계산하면
+      // 우리 가격을 우리가 깎아 항상 마진 하한 아래가 된다.
+      const observedIncumbent = pick.competitorInsights?.[0]?.priceKrw;
+      const incumbentPrice = observedIncumbent ?? Math.round(pick.recommendedPriceKrw * 0.97);
       const catalogEntry = decideCatalogEntry({
+        incumbentIsReal: observedIncumbent != null,
         supplierUnitKrw: supplierCost,
         // supplierCost가 이미 landed(입고 배송비 포함)이므로 배송비를 또 더하면
         // 이중 계상이 된다. 여기서는 0으로 넘긴다.
@@ -518,10 +543,33 @@ export async function generateConsignmentPicks(
 
       // 진입 전략이 정한 가격/구성을 실제 등록가로 채택한다
       const entryPrice = catalogEntry.sourceable ? catalogEntry.best.priceKrw : pick.recommendedPriceKrw;
+      // 수익 확률 시뮬레이션에 넣는 단위 순익도 **광고비를 뺀 값**이어야 한다.
+      // 광고를 켤 계획으로 확률을 뽑으면서 광고비를 안 빼면, 나오는 월 순익
+      // 분포가 통째로 낙관 쪽으로 밀린다.
+      // 묶음이면 진입 전략이 계산한 묶음 순익을 쓴다 (낱개 원가로 재면 부풀려진다)
       const unitNet = catalogEntry.sourceable
         ? catalogEntry.best.netProfitKrw
-        : netProfitPerUnit(supplierCost, pick.recommendedPriceKrw);
+        : netProfitPerUnitAfterAds({
+            supplierCostKrw: supplierCost,
+            priceKrw: entryPrice,
+            feeCtx: {
+              deliveryIncentiveEligible:
+                wholesaleBest?.source === "live" &&
+                meetsSupplierPolicy(wholesaleBest?.supplierQuality),
+            },
+          });
 
+      // ★ 묶음이면 원가도 묶음 기준이어야 한다.
+      //
+      // ⚠️ entryPrice가 2입·3입 묶음가일 때 **낱개 원가**로 마진을 재면
+      // 마진이 묶음 수량만큼 부풀려진다. 실제로 관측된 값: 2입 묶음가
+      // 45,370원(= 15% 마진 하한)인데 낱개 원가 14,857원으로 재서 47.8%로
+      // 표시됐다 — 실제는 15%다.
+      //
+      // 진입 전략은 이미 묶음 원가(단가×수량 + 배송비 1건분)로 순익·마진을
+      // 정확히 계산해 두었다. 다시 계산하지 않고 그 값을 쓴다 — 같은 것을
+      // 두 곳에서 계산하면 언젠가 어긋난다.
+      //
       // ★ 가격이 바뀌었으면 마진도 다시 계산한다.
       //
       // ⚠️ 종전엔 `recommendedPriceKrw`만 entryPrice로 갈아끼우고
@@ -533,14 +581,17 @@ export async function generateConsignmentPicks(
       // 여기서는 광고비·반품충당까지 뺀 **실마진**으로 다시 잰다. 광고를 켤
       // 상품인데 광고비를 안 뺀 마진으로 게이트를 통과시키면, 광고를 켜는
       // 순간 적자가 되기 때문이다 (price-floor.ts 참조).
-      const entryMarginPct = trueMarginPct({
-        supplierCostKrw: supplierCost,
-        priceKrw: entryPrice,
-        feeCtx: {
-          deliveryIncentiveEligible:
-            wholesaleBest?.source === "live" && meetsSupplierPolicy(wholesaleBest?.supplierQuality),
-        },
-      });
+      const entryMarginPct = catalogEntry.sourceable
+        ? catalogEntry.best.marginPct
+        : trueMarginPct({
+            supplierCostKrw: supplierCost,
+            priceKrw: entryPrice,
+            feeCtx: {
+              deliveryIncentiveEligible:
+                wholesaleBest?.source === "live" &&
+                meetsSupplierPolicy(wholesaleBest?.supplierQuality),
+            },
+          });
       const competitorLow = pick.competitorInsights?.[0]?.priceKrw ?? 0;
       const profitProbability = computeSkuProbability({
         seedKey: `${pick.id}:${pick.keyword}`,
