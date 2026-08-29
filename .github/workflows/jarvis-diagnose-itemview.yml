@@ -2,11 +2,6 @@ name: 자비스 진단 — getItemView 실제 응답 (임시)
 
 on:
   workflow_dispatch:
-    inputs:
-      no:
-        description: "조회할 상품번호"
-        required: false
-        default: "9502515"
 
 permissions:
   contents: read
@@ -19,7 +14,6 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          no="${{ github.event.inputs.no }}"
           curl -sS --max-time 20 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "https://www.giucuu.com/api/cron/jarvis-diagnose-itemview?no=${no:-9502515}"
+            "https://www.giucuu.com/api/cron/jarvis-diagnose-itemview?no=9502515"
