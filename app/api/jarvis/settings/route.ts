@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { isOwnerSession } from "@/jarvis/core/access";
 import { loadState, saveState } from "@/jarvis/core/store";
 import { MIN_GOAL_KRW, MAX_GOAL_KRW } from "@/jarvis/chat/intents";
 import { isDomeggookApiConfigured } from "@/toss-shop/lib/wholesale/domeggook-api";
@@ -15,7 +16,7 @@ function mask(v?: string): string | null {
 
 export async function GET(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
-  if (!session) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const state = await loadState();
   const s = state.settings;
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await requireTossShopSessionFromRequest(request);
-  if (!session) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {
