@@ -27,7 +27,7 @@ import type { JarvisSession } from "./session";
  * 비어 있으면 아무도 통과하지 못한다(fail-closed). 설정이 빠졌을 때
  * 전부 열리는 것보다 전부 막히는 쪽이 안전하다.
  */
-function ownerEmails(): string[] {
+export function ownerEmails(): string[] {
   const raw = process.env.TOSS_SHOP_OWNER_EMAILS?.trim();
   if (!raw) return [];
   return raw

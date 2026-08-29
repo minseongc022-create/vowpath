@@ -288,3 +288,25 @@ export async function sendTestMessage(
   const result = await sendOwnerSms(phone, text, "jarvis-test", settings);
   return { ...result, via };
 }
+
+/**
+ * 비밀번호를 잊었을 때 — 새 비밀번호를 **문자로만** 전달한다.
+ *
+ * ★ 왜 응답이 아니라 문자인가
+ *
+ * 이 함수를 부르는 경로는 CRON_SECRET로 잠긴 관리용 라우트이고, 그
+ * 라우트는 GitHub Actions에서 한 번 실행하고 로그를 읽어 확인한다.
+ * 만약 새 비밀번호를 HTTP 응답에 실어 돌려주면, 그 값이 워크플로 로그에
+ * 그대로 남는다 — 저장소가 사장님 개인 계정이라 해도, 로그는 "사장님만
+ * 아는 값"이 아니게 된다. 그래서 새 비밀번호는 이 함수 밖으로 **문자열로도
+ * 반환하지 않고**, 사장님이 이미 등록해 둔 휴대폰으로만 보낸다 — 그 번호를
+ * 쥔 사람이 곧 사장님이라는 전제가 이 프로젝트 전체의 보안 모델이다.
+ */
+export async function sendPasswordResetSms(
+  phone: string,
+  newPassword: string,
+  settings?: SavedSolapiSettings,
+): Promise<{ sent: boolean; reason: string }> {
+  const text = `[자비스] 새 비밀번호: ${newPassword}\n\n로그인 후 반드시 확인하세요.`;
+  return sendOwnerSms(phone, text, "jarvis-password-reset", settings);
+}
