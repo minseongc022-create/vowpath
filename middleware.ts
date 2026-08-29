@@ -8,11 +8,6 @@ import {
 } from "@/lib/canonical-host";
 import { isPortalHost } from "@/lib/portal-url";
 import { safeNextPath } from "@/lib/safe-next-path";
-import {
-  giuInternalPath,
-  giuPublicRedirectPath,
-  isGiuHost,
-} from "@/giu/lib/giu-host";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
 import {
   isEffiroadDispatchEnabled,
@@ -21,6 +16,7 @@ import {
   isSellerPulsePrimaryHost,
   sellerPulseInternalPath,
 } from "@/lib/seller-pulse-host";
+import { isJarvisHost } from "@/jarvis/host";
 import { isPublicJarvisPath } from "@/jarvis/core/gate";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { JARVIS_SESSION_COOKIE, verifyJarvisSessionToken } from "@/jarvis/core/session";
@@ -70,18 +66,6 @@ function learnShellResponse(request: NextRequest, rewritePath?: string) {
 }
 
 const TOPIK_LOCALE_COOKIE = "topik-locale";
-
-function giuShellResponse(request: NextRequest, rewritePath?: string) {
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-app-shell", "giu");
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
-  if (rewritePath) {
-    const url = request.nextUrl.clone();
-    url.pathname = rewritePath;
-    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
-  }
-  return NextResponse.next({ request: { headers: requestHeaders } });
-}
 
 function topikShellResponse(request: NextRequest, locale?: "ko" | "vi") {
   const requestHeaders = new Headers(request.headers);
@@ -163,74 +147,18 @@ export async function middleware(request: NextRequest) {
     return learnShellResponse(request, internal === pathname ? undefined : internal ?? undefined);
   }
 
-  // giucuu.com → Giu only (food rescue HCMC), isolated from Effiroad.
-  if (isGiuHost(hostname)) {
-    // Never rewrite/redirect static assets — avoids broken CSS on www vs apex.
-    if (
-      pathname.startsWith("/_next") ||
-      pathname.startsWith("/favicon") ||
-      pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|txt|xml|json|webmanifest)$/)
-    ) {
-      return NextResponse.next();
-    }
-    // Health JSON is for deploy checks — browser visits should land in the app.
-    if (pathname === "/api/giu/health" && isBrowserDocumentRequest(request)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/hop";
-      url.search = "";
-      return NextResponse.redirect(url, 302);
-    }
-    const publicPath = giuPublicRedirectPath(pathname);
-    if (publicPath !== null) {
-      const url = request.nextUrl.clone();
-      url.pathname = publicPath;
-      return NextResponse.redirect(url, 308);
-    }
-    const internal = giuInternalPath(pathname);
-    if (internal === null) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
-    return giuShellResponse(request, internal === pathname ? undefined : internal);
-  }
-
-  // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
-  if (pathname.startsWith("/learn")) {
-    return learnShellResponse(request);
-  }
-
-  // TOPIK Master VN — isolated from Effiroad marketing shell and floating AI widget.
-  if (pathname.startsWith("/topik")) {
-    const localeHandled = handleTopikLocale(request);
-    if (localeHandled) return localeHandled;
-    return topikShellResponse(request);
-  }
-
-  // Mano — home services marketplace (Guadalajara), isolated product shell.
-  if (pathname.startsWith("/mano")) {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "mano");
-    requestHeaders.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers: requestHeaders } });
-  }
-
-  // Giu — food rescue marketplace (HCMC), isolated product shell.
-  if (pathname.startsWith("/giu")) {
-    return giuShellResponse(request);
-  }
-
-  const sellerPulseOwnsApex =
-    isSellerPulsePrimaryHost(hostname) && !isEffiroadDispatchEnabled();
-
-  // effiroad.com → 자비스. 사장님 한 명만 쓰는 개인 자동화다.
-  if (sellerPulseOwnsApex) {
-    // ★ 문 — 라우트에 닿기 전에 먼저 막는다
-    //
-    // 화면·API마다 소유자 검사가 이미 있지만, 검사를 빠뜨린 라우트가 하나만
-    // 생겨도 자비스 전체가 뚫린다(저장소가 가맹점별로 안 나뉜 전역 상태라
-    // 그렇다). 그래서 여기서 한 겹 더 막는다.
-    //
-    // 이 도메인은 예전에 미국 복원·냉난방 업체 전화를 대신 받던 AI 서비스
-    // 자리였다. 그때 가입한 사람이 남아 있어도 여기서 끊긴다.
+  // ★ giucuu.com → 자비스. 사장님 한 명만 쓰는 개인 자동화다.
+  //
+  // 예전엔 여기가 구쿠(음식 나눔)였고 자비스는 effiroad.com에 있었다.
+  // effiroad.com은 그보다 더 예전에 미국 복원·냉난방 업체 전화를 대신 받던
+  // AI 서비스 자리라, 그 시절 흔적(가입자·옛 링크·같은 키로 서명된 세션)이
+  // 계속 얽혔다. 그래서 자비스를 이 도메인으로 통째로 옮기고 effiroad.com은
+  // 아무것도 없는 상태로 비웠다. 구쿠 코드는 지우기 전에 따로 보존해 뒀다
+  // (커밋 5c9df16).
+  if (isJarvisHost(hostname)) {
+    // 문 — 라우트에 닿기 전에 먼저 막는다. 화면·API마다 소유자 검사가
+    // 있지만, 검사를 빠뜨린 라우트가 하나만 생겨도 자비스 전체가 뚫린다
+    // (저장소가 가맹점별로 안 나뉜 전역 상태라 그렇다).
     if (!isPublicJarvisPath(pathname)) {
       const token = request.cookies.get(JARVIS_SESSION_COOKIE)?.value;
       const session = token ? await verifyJarvisSessionToken(token) : null;
@@ -256,20 +184,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    if (pathname.startsWith("/sellerpulse")) {
-      const url = request.nextUrl.clone();
-      url.pathname = pathname.slice("/sellerpulse".length) || "/";
-      return NextResponse.redirect(url, 308);
-    }
-
-    if (pathname.startsWith("/toss-shop")) {
-      const url = request.nextUrl.clone();
-      url.pathname = pathname.replace(/^\/toss-shop/, "") || "/";
-      return NextResponse.redirect(url, 308);
-    }
-
-    // 옛 대시보드는 은퇴했다. 문자로 받아둔 옛 링크(/dashboard/review 등)를
-    // 눌렀을 때 404가 뜨면 서비스가 깨진 줄 알게 되므로 자비스 홈으로 보낸다.
+    // 문자로 받아둔 옛 링크가 404가 뜨면 서비스가 깨진 줄 안다 — 홈으로 보낸다
     if (isRetiredDashboardPath(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
@@ -277,16 +192,53 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url, 307);
     }
 
-    if (isLegacyEffiroadUiPath(pathname)) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
-
     const internal = sellerPulseInternalPath(pathname);
     if (internal) {
       return sellerPulseShellResponse(request, internal, pathname);
     }
 
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
+  if (pathname.startsWith("/learn")) {
+    return learnShellResponse(request);
+  }
+
+  // TOPIK Master VN — isolated from Effiroad marketing shell and floating AI widget.
+  if (pathname.startsWith("/topik")) {
+    const localeHandled = handleTopikLocale(request);
+    if (localeHandled) return localeHandled;
+    return topikShellResponse(request);
+  }
+
+  // Mano — home services marketplace (Guadalajara), isolated product shell.
+  if (pathname.startsWith("/mano")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "mano");
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  const sellerPulseOwnsApex =
+    isSellerPulsePrimaryHost(hostname) && !isEffiroadDispatchEnabled();
+
+  // ★ effiroad.com → 텅 빈 도메인
+  //
+  // 이 도메인엔 두 시대의 흔적이 겹쳐 있었다 — 미국 복원·냉난방 업체 전화를
+  // 대신 받던 AI 서비스, 그리고 옛 toss-shop 셀러 대시보드. 그 시절 가입자와
+  // 옛 링크가 자비스와 계속 얽혀서, 자비스는 giucuu.com으로 옮기고 여기는
+  // 아무것도 없는 상태로 비웠다.
+  //
+  // 리다이렉트하지 않는다 — 자비스가 어디로 갔는지 알려줄 이유가 없다.
+  if (sellerPulseOwnsApex) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+      },
+    });
   }
 
   // Effiroad 셀러 도구 (apex가 아닌 호스트에서는 /sellerpulse 밑).
