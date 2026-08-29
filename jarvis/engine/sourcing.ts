@@ -20,6 +20,8 @@ import {
   searchAllKoreanWholesale,
   confirmSingleUnitSourcing,
   isDomeggookApiConfigured,
+  getLastDomeggookError,
+  clearDomeggookError,
 } from "@/toss-shop/lib/wholesale/domeggook-api";
 import type { WholesaleListing } from "@/toss-shop/lib/wholesale/types";
 import { checkCost, decidePrice, MIN_RELEVANCE } from "../core/rules";
@@ -42,6 +44,21 @@ const DETAIL_BUDGET = 40;
 
 /** 검색어 하나당 살펴볼 도매 상품 수 */
 const PER_KEYWORD_LIMIT = 6;
+
+/**
+ * 한 사이클에 기본으로 훑는 검색어 수.
+ *
+ * ★ 왜 24가 아니라 이 값인가
+ *
+ * 검색어를 훑는 것 자체(searchAllKoreanWholesale)는 후보가 하나도 안
+ * 나와도 시간과 API 호출을 쓴다. 24개로는 검색어 풀(수백 개) 전체를
+ * 도는 데 여러 사이클이 걸려 "왜 이렇게 좁게 찾나"는 불만이 나올 만했다.
+ * 이 값을 넉넉히 올려도 안전한 이유는 실제 상한이 이 숫자가 아니라
+ * **시간(deadlineAt)**이기 때문이다 — 아래 루프가 마감을 넘기면 몇 개가
+ * 남았든 즉시 멈춘다. 그래서 "많이 훑되, 시간이 되는 만큼만"이 자동으로
+ * 성립한다.
+ */
+const DEFAULT_KEYWORD_COUNT = 60;
 
 export type SourcingInput = {
   /** 몇 개를 찾으면 멈출지 */
@@ -92,7 +109,11 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
     };
   }
 
-  const keywords = getKeywords(input.keywordCount ?? 24, input.keywordOffset ?? 0);
+  // 이번 사이클 시작 전에 지난 오류를 비운다 — 안 비우면 지난번 오류가
+  // 이번에도 "최근 오류"로 잡혀, 실제로는 이번엔 성공했는데도 헷갈리게 된다.
+  clearDomeggookError();
+
+  const keywords = getKeywords(input.keywordCount ?? DEFAULT_KEYWORD_COUNT, input.keywordOffset ?? 0);
 
   for (const seed of keywords) {
     if (candidates.length >= input.want) break;
@@ -116,7 +137,20 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
     }
 
     if (!listings.length) {
-      bump("도매에 이 검색어로 나오는 상품이 없음");
+      // ★ "상품이 없다"와 "API를 못 읽었다"는 다른 상황인데 여기서는
+      // 둘 다 빈 배열로 보인다 — searchDomeggookMarket이 인증 실패·IP
+      // 제한 같은 오류도 예외를 던지지 않고 조용히 []를 돌려주기 때문이다
+      // (도매꾹이 그런 오류도 HTTP 200에 담아 보낸다). 실측: 무선이어폰부터
+      // 캠핑의자까지 전혀 다른 카테고리 24개가 전부 "상품 없음"으로 잡힌 적이
+      // 있었는데, 실제 원인은 API 키 오류였다 — 수백만 개짜리 도매 마켓에서
+      // 서로 다른 24개 검색어가 전부 진짜 0건일 수는 없다. getLastDomeggookError
+      // 로 진짜 이유를 가져와 구분한다.
+      const apiError = getLastDomeggookError();
+      if (apiError) {
+        bump(`도매꾹 오류: ${apiError.message}`);
+      } else {
+        bump("도매에 이 검색어로 나오는 상품이 없음");
+      }
       continue;
     }
 

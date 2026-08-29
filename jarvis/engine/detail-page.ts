@@ -97,6 +97,18 @@ const TONES: Record<string, Tone> = {
     solutionHeading: "매일 들 수 있게",
     benefits: ["어디에나 어울리는 형태", "필요한 만큼 들어가는 수납", "가볍게"],
   },
+  bath: {
+    problem: "욕실은 늘 축축하고 어수선하지 않으신가요",
+    agitation: "물기가 남으면 위생도 걱정되고, 매번 정리해도 금방 다시 어질러집니다.",
+    solutionHeading: "물기 걱정 없이 정리됩니다",
+    benefits: ["물빠짐이 좋은 구조", "미끄럼 방지", "세척이 쉬운 소재"],
+  },
+  hobby: {
+    problem: "쉬는 시간을 그냥 흘려보내지 않으셨나요",
+    agitation: "막상 시간이 나도 뭘 해야 할지 몰라 스마트폰만 보게 됩니다.",
+    solutionHeading: "손이 먼저 움직이게",
+    benefits: ["바로 시작할 수 있는 구성", "혼자서도 충분함", "자리를 많이 차지하지 않음"],
+  },
 };
 
 const DEFAULT_TONE: Tone = {
