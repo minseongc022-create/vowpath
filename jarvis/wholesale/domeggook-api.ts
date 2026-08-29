@@ -482,6 +482,17 @@ export async function searchAllKoreanWholesale(keyword: string, limit = 6): Prom
  */
 export async function confirmSingleUnitSourcing(
   itemNo: string,
+  opts?: {
+    /**
+     * 캐시를 건너뛰고 지금 값을 다시 읽는다.
+     *
+     * 캐시 수명이 6시간이라, 아침에 만든 초안을 저녁에 승인할 때 캐시를
+     * 그대로 믿으면 **그 사이 오른 원가나 품절을 못 본다**. 승인처럼
+     * 드물게 일어나는 확인 시점에만 켠다 (소싱 루프에서 켜면 레이트리밋에
+     * 걸려 전부 미확인으로 떨어진다).
+     */
+    fresh?: boolean;
+  },
 ): Promise<SingleUnitSourcing> {
   const aid = getApiKey();
   if (!aid) {
@@ -509,8 +520,10 @@ export async function confirmSingleUnitSourcing(
     };
   }
 
-  const cached = unitSourcingCache.get(itemNo);
-  if (cached && Date.now() - cached.at < UNIT_SOURCING_TTL_MS) return cached.value;
+  if (!opts?.fresh) {
+    const cached = unitSourcingCache.get(itemNo);
+    if (cached && Date.now() - cached.at < UNIT_SOURCING_TTL_MS) return cached.value;
+  }
 
   const params = new URLSearchParams({
     // 가격 구간·구매단위 필드는 상세 API에서 제공된다. 문서 권장 버전을 쓴다.

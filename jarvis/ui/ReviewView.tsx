@@ -24,6 +24,8 @@ export function ReviewView() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** 승인 직전 공급처를 다시 확인해 값이 바뀌었을 때 — 오류가 아니라 알림이다 */
+  const [notice, setNotice] = useState<string | null>(null);
   const [publishedCount, setPublishedCount] = useState(0);
 
   const load = useCallback(async () => {
@@ -50,19 +52,29 @@ export function ReviewView() {
     async (draftId: string, action: "approve" | "reject") => {
       setBusyId(draftId);
       setError(null);
+      setNotice(null);
       try {
         const res = await fetch(JV_API.drafts, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, draftId }),
         });
-        const data = (await res.json()) as { reason?: string };
+        const data = (await res.json()) as {
+          reason?: string;
+          supplierChanged?: boolean;
+          supplierNote?: string;
+        };
         if (!res.ok) {
           // 게이트가 막았으면 그 이유를 그대로 보여준다 — 왜 승인이 안 되는지
           // 모르면 사장님은 같은 버튼을 계속 누른다
           setError(data.reason ?? "처리하지 못했습니다.");
           await load();
           return;
+        }
+        // 승인 직전 공급처가 바뀌어 가격을 다시 정했다면 반드시 말해준다 —
+        // 조용히 넘기면 사장님이 승인한 가격과 실제로 올라간 가격이 다르다
+        if (data.supplierChanged && data.supplierNote) {
+          setNotice(data.supplierNote);
         }
         setDrafts((d) => d.filter((x) => x.id !== draftId));
       } catch {
@@ -122,6 +134,7 @@ export function ReviewView() {
       </div>
 
       {error && <div className="jv-review-error">{error}</div>}
+      {notice && <div className="jv-review-notice">{notice}</div>}
 
       {drafts.map((draft) => (
         <DraftCard
@@ -141,6 +154,12 @@ export function ReviewView() {
         }
         .jv-review-error {
           background: #fff0f0; color: var(--jv-red); border-radius: 12px;
+          padding: 12px 14px; font-size: 14px; margin-bottom: 14px; line-height: 1.6;
+        }
+        /* 오류가 아니라 알림 — 승인은 됐는데 값이 바뀌어 다시 정했다는 뜻이라
+           빨간색으로 보여주면 실패한 줄 안다 */
+        .jv-review-notice {
+          background: #fff8e6; color: #7a5200; border-radius: 12px;
           padding: 12px 14px; font-size: 14px; margin-bottom: 14px; line-height: 1.6;
         }
       `}</style>

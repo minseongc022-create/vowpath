@@ -83,6 +83,24 @@ export type Candidate = {
 
   /** 관측된 경쟁 최저가 (있을 때만) */
   competitorLowKrw?: number;
+
+  /**
+   * 검색어와 상품 제목이 얼마나 같은 물건인가 (0~1).
+   *
+   * 관문은 "전혀 다른 물건"만 막지만, 아슬아슬하게 통과한 상품은 제목·
+   * 검색 노출·광고 문구가 전부 흐릿해진다. 그래서 관문 통과 여부와 별개로
+   * 값을 남겨 **고를 때** 쓴다 (engine/judge.ts).
+   */
+  relevance?: number;
+
+  /**
+   * 판단 점수 0~100 — 관문을 통과한 것들 중 무엇을 먼저 만들지 정한 근거.
+   * 통과 여부가 아니라 **우열**이다. 없으면 아직 줄 세우기 전이라는 뜻.
+   */
+  score?: number;
+  /** 그 점수가 나온 이유 — 검수 화면에 그대로 보여준다 */
+  scoreReasons?: string[];
+
   foundAt: string;
 };
 
@@ -125,6 +143,11 @@ export type Draft = {
   /** 승인/반려한 사람 */
   decidedBy?: string;
   rejectReason?: string;
+  /**
+   * 승인 시점에 공급처를 다시 확인한 결과 한 줄.
+   * 원가가 바뀌어 가격을 다시 정했다면 그 사실이 여기 남는다.
+   */
+  revalidationNote?: string;
   /** 등록 성공 시 토스 상품번호 */
   tossProductNo?: string;
   publishError?: string;

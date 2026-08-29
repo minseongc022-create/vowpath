@@ -24,11 +24,13 @@ import {
   clearDomeggookError,
 } from "@/jarvis/wholesale/domeggook-api";
 import type { WholesaleListing } from "@/jarvis/wholesale/types";
+import { isSupplierViableForSourcing } from "@/jarvis/wholesale/supplier-quality";
 import { checkCost, decidePrice, MIN_RELEVANCE } from "../core/rules";
 import { computeAdBreakeven } from "../core/money";
 import type { Candidate, SourcingRun, Supplier } from "../core/types";
 import { getKeywords } from "./keywords";
 import { scoreRelevance, buildTitle } from "./relevance";
+import { pickBest } from "./judge";
 
 export const SOURCING_VERSION = "2.0";
 
@@ -43,7 +45,28 @@ export const SOURCING_VERSION = "2.0";
 const DETAIL_BUDGET = 40;
 
 /** 검색어 하나당 살펴볼 도매 상품 수 */
-const PER_KEYWORD_LIMIT = 6;
+const PER_KEYWORD_LIMIT = 10;
+
+/**
+ * 검색어 하나가 쓸 수 있는 상세조회 수.
+ *
+ * ★ 없으면 "광범위하게 훑는다"가 거짓말이 된다
+ *
+ * 상세조회 예산(DETAIL_BUDGET)은 사이클 전체 공용이다. 상한이 없으면
+ * 첫 검색어가 예산을 다 먹고 루프가 "예산 소진"으로 끊긴다 — 검색어를
+ * 60개 훑도록 해놔도 실제로는 한두 개만 보고 끝난다. 검색어당 상한을
+ * 두면 예산이 검색어 여러 개에 고르게 퍼져 실제로 넓게 돈다.
+ */
+const PER_KEYWORD_DETAIL_BUDGET = 4;
+
+/**
+ * 관문을 통과한 것들을 몇 개나 모아 놓고 고를지 (필요 개수의 배수).
+ *
+ * 예전엔 필요한 만큼 찾으면 그 자리에서 멈췄다. 그러면 먼저 나온 게
+ * 곧 선택이 되어 **고를 기회 자체가 없다**. 여유분을 모아 두고
+ * judge.pickBest가 그중 좋은 것을 고른다.
+ */
+const SHORTLIST_MULTIPLIER = 3;
 
 /**
  * 한 사이클에 기본으로 훑는 검색어 수.
@@ -87,7 +110,9 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
   const rejections = new Map<string, number>();
   const bump = (why: string, n = 1) => rejections.set(why, (rejections.get(why) ?? 0) + n);
 
-  const candidates: Candidate[] = [];
+  /** 관문을 통과한 것들 — 여기서 골라낸다 (곧바로 결과가 아니다) */
+  const shortlist: Candidate[] = [];
+  const shortlistTarget = Math.max(input.want, input.want * SHORTLIST_MULTIPLIER);
   const seenSuppliers = new Set(input.existingSupplierKeys ?? []);
   let keywordsTried = 0;
   let productsSeen = 0;
@@ -116,7 +141,7 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
   const keywords = getKeywords(input.keywordCount ?? DEFAULT_KEYWORD_COUNT, input.keywordOffset ?? 0);
 
   for (const seed of keywords) {
-    if (candidates.length >= input.want) break;
+    if (shortlist.length >= shortlistTarget) break;
     if (input.deadlineAt && Date.now() > input.deadlineAt) {
       bump("시간 초과로 다음 사이클로 넘김");
       break;
@@ -127,6 +152,9 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
     }
 
     keywordsTried++;
+    // 이 검색어가 쓸 수 있는 상세조회 몫 — 한 검색어가 예산을 독식하면
+    // 나머지 검색어는 훑어보지도 못한다
+    let keywordDetailBudget = PER_KEYWORD_DETAIL_BUDGET;
 
     let listings: WholesaleListing[] = [];
     try {
@@ -155,8 +183,9 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
     }
 
     for (const listing of listings) {
-      if (candidates.length >= input.want) break;
+      if (shortlist.length >= shortlistTarget) break;
       if (detailBudget <= 0) break;
+      if (keywordDetailBudget <= 0) break;
 
       productsSeen++;
 
@@ -183,12 +212,24 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         continue;
       }
 
+      // ── 1-2. 공급처가 확인된 위험 신호를 갖고 있는가 ─────────
+      //
+      // 미확인은 막지 않는다(도매꾹은 등급 필드를 안 주는 공급처가 많고,
+      // 그건 나쁘다는 뜻이 아니라 모른다는 뜻이다). **판독된** 출고율이
+      // 위험 수준이거나 배송이 느리다고 확인된 경우만 거른다 — 그런
+      // 공급처는 배송 지연 페널티와 반품으로 마진이 통째로 날아간다.
+      if (!isSupplierViableForSourcing(listing.supplierQuality)) {
+        bump("공급처 배송 신뢰도가 확인된 위험 수준");
+        continue;
+      }
+
       // ── 2. 낱개로 실제로 살 수 있는가 ────────────────────────
       //
       // 검색 응답의 단가는 그 상품 MOQ 기준 개당 가격이라 낱개 값이 아니다.
       // 상세 조회로 확정하지 않으면 묶음가가 낱개 원가 자리에 들어간다 —
       // 2,700만원 사고의 근원이 정확히 이것이었다.
       detailBudget--;
+      keywordDetailBudget--;
       let unit;
       try {
         unit = await confirmSingleUnitSourcing(itemNo);
@@ -253,8 +294,8 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
       });
 
       seenSuppliers.add(key);
-      candidates.push({
-        id: `c_${Date.now().toString(36)}_${candidates.length}`,
+      shortlist.push({
+        id: `c_${Date.now().toString(36)}_${shortlist.length}`,
         keyword: seed.keyword,
         title: buildTitle(seed.keyword, listing.title),
         category: seed.category,
@@ -266,9 +307,23 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         pricingReason: pricing.reason,
         maxBidKrw: ad.maxBidKrw,
         breakevenCpcKrw: ad.breakevenCpcKrw,
+        relevance,
         foundAt: new Date().toISOString(),
       });
     }
+  }
+
+  // ── 고른다 ───────────────────────────────────────────────
+  //
+  // 여기까지 온 것들은 전부 "팔아도 되는" 상품이다. 그중 무엇을 실제로
+  // 만들지는 별개의 판단이다 — 발견 순서가 아니라 점수 순으로 고른다.
+  const candidates = pickBest(shortlist, input.want);
+  const passedGates = shortlist.length;
+  if (passedGates > candidates.length) {
+    bump(
+      `기준은 통과했지만 더 나은 후보에 밀림`,
+      passedGates - candidates.length,
+    );
   }
 
   const sortedRejections = Object.fromEntries(
@@ -283,7 +338,13 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
       productsSeen,
       candidatesFound: candidates.length,
       rejections: sortedRejections,
-      summary: buildSummary(candidates.length, keywordsTried, productsSeen, sortedRejections),
+      summary: buildSummary(
+        candidates.length,
+        keywordsTried,
+        productsSeen,
+        sortedRejections,
+        passedGates,
+      ),
       elapsedMs: Date.now() - startedAt,
     },
   };
@@ -298,9 +359,14 @@ function buildSummary(
   keywordsTried: number,
   productsSeen: number,
   rejections: Record<string, number>,
+  passedGates = found,
 ): string {
   if (found > 0) {
-    return `검색어 ${keywordsTried}개에서 상품 ${productsSeen}개를 보고 ${found}개를 찾았습니다.`;
+    const chose =
+      passedGates > found
+        ? ` (기준 통과 ${passedGates}개 중 좋은 순으로 ${found}개)`
+        : "";
+    return `검색어 ${keywordsTried}개에서 상품 ${productsSeen}개를 보고 ${found}개를 찾았습니다${chose}.`;
   }
   const top = Object.entries(rejections).slice(0, 2);
   if (!top.length) {
