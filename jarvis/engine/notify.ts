@@ -20,9 +20,10 @@ import { sendSms } from "@/lib/send-sms";
 import { normalizeSmsPhone } from "@/lib/phone";
 import {
   byteLength,
-  isSolapiConfigured,
   LMS_KR_LIMIT,
+  resolveSolapiConfig,
   sendSolapiSms,
+  type SavedSolapiSettings,
 } from "../notify/solapi";
 import { jarvisUrl } from "../host";
 import { JV_ROUTES } from "../routes";
@@ -63,6 +64,7 @@ async function sendOwnerSms(
   phoneRaw: string,
   message: string,
   label: string,
+  settings?: SavedSolapiSettings,
 ): Promise<{ sent: boolean; reason: string }> {
   const phone = normalizeSmsPhone(phoneRaw);
   if (!phone || !(phone.startsWith("+82") || phone.startsWith("+1"))) {
@@ -71,9 +73,10 @@ async function sendOwnerSms(
   }
 
   // ── 국내 발송 (솔라피) ───────────────────────────────────
-  if (isSolapiConfigured() && phone.startsWith("+82")) {
+  const solapi = resolveSolapiConfig(settings);
+  if (solapi && phone.startsWith("+82")) {
     try {
-      const result = await sendSolapiSms({ to: phone, text: message });
+      const result = await sendSolapiSms({ to: phone, text: message, config: solapi });
       if (result.ok) return { sent: true, reason: "OK" };
       // 실패를 조용히 트윌리오로 넘기지 않는다. 발신번호 미등록·잔액
       // 부족은 사장님이 해결할 수 있는 일인데, 트윌리오로 흘려보내면
@@ -114,6 +117,7 @@ export function buildReviewAlert(pendingCount: number): ReviewAlert {
 export async function sendReviewAlert(
   phone: string,
   pendingCount: number,
+  settings?: SavedSolapiSettings,
 ): Promise<{ sent: boolean; reason: string }> {
   const alert = buildReviewAlert(pendingCount);
 
@@ -126,7 +130,7 @@ export async function sendReviewAlert(
     return { sent: false, reason: "MESSAGE_TOO_LONG" };
   }
 
-  return sendOwnerSms(phone, alert.message, "jarvis-review-alert");
+  return sendOwnerSms(phone, alert.message, "jarvis-review-alert", settings);
 }
 
 /**
@@ -145,6 +149,7 @@ export function buildReturnAlert(openCount: number): ReviewAlert {
 export async function sendReturnAlert(
   phone: string,
   openCount: number,
+  settings?: SavedSolapiSettings,
 ): Promise<{ sent: boolean; reason: string }> {
   const alert = buildReturnAlert(openCount);
   if (!alert.withinLimit) {
@@ -153,7 +158,7 @@ export async function sendReturnAlert(
     );
     return { sent: false, reason: "MESSAGE_TOO_LONG" };
   }
-  return sendOwnerSms(phone, alert.message, "jarvis-return-alert");
+  return sendOwnerSms(phone, alert.message, "jarvis-return-alert", settings);
 }
 
 /** 30분마다: 이 창 동안 자비스가 실제로 무엇을 했는지 */
@@ -241,9 +246,10 @@ export async function sendPeriodicReport(
   window: Pick<ReportWindow, "cyclesRun" | "productsSeen" | "candidatesFound" | "draftsCreated">,
   goal: { skusNow: number; skusNeeded: number; dailyTarget?: number },
   extra?: { lastSummary?: string; pendingReview?: number; openReturns?: number },
+  settings?: SavedSolapiSettings,
 ): Promise<{ sent: boolean; reason: string }> {
   // 국내 발송이면 67자 한도가 없다 — 깎은 한 줄 대신 읽을 수 있는 보고를 보낸다
-  const report = isSolapiConfigured()
+  const report = resolveSolapiConfig(settings)
     ? buildLongReport(window, goal, extra)
     : buildPeriodicReport(window, goal);
 
@@ -254,5 +260,31 @@ export async function sendPeriodicReport(
     return { sent: false, reason: "MESSAGE_TOO_LONG" };
   }
 
-  return sendOwnerSms(phone, report.message, "jarvis-periodic-report");
+  return sendOwnerSms(phone, report.message, "jarvis-periodic-report", settings);
+}
+
+/**
+ * 「테스트 문자 보내기」 — 설정이 진짜 되는지 지금 확인한다.
+ *
+ * ★ 왜 필요한가
+ *
+ * 이 문자는 30분 보고나 검수 알림이 있을 때만 나간다. 즉 키를 넣고
+ * **잘 들어갔는지 확인하려면 30분을 기다려야** 했다. 그동안 발신번호
+ * 등록이 안 됐거나 키를 잘못 넣었어도 알 수 없다. 설정을 저장한 그
+ * 자리에서 한 통 보내보면 그 자리에서 답이 나온다.
+ *
+ * 실패하면 이유를 그대로 돌려준다 — 발신번호 미등록·잔액 부족·키 오류는
+ * 사장님이 해야 할 일이 전혀 다르다.
+ */
+export async function sendTestMessage(
+  phone: string,
+  settings?: SavedSolapiSettings,
+): Promise<{ sent: boolean; reason: string; via: "solapi" | "twilio" }> {
+  const via = resolveSolapiConfig(settings) ? "solapi" : "twilio";
+  const text =
+    via === "solapi"
+      ? `[자비스] 테스트 문자입니다.\n\n국내 발송으로 연결됐습니다. 이제 30분 보고에 왜 0건인지, 검수 대기가 몇 건인지까지 담아서 보내드립니다.\n\n${REVIEW_URL}`
+      : `[자비스] 테스트 문자입니다`;
+  const result = await sendOwnerSms(phone, text, "jarvis-test", settings);
+  return { ...result, via };
 }

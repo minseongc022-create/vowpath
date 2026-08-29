@@ -288,6 +288,16 @@ export type Settings = {
   domeggookApiKey?: string;
   /** 알림받을 휴대폰 */
   alertPhone?: string;
+  /**
+   * 솔라피(국내 문자) — 화면에서 직접 넣을 수 있게 저장한다.
+   *
+   * 토스·도매꾹과 같은 방식이다. Vercel 환경변수로 넣어도 되고 설정
+   * 화면에서 넣어도 된다. 배포를 다시 하지 않고도 바꿀 수 있어야 한다.
+   */
+  solapiApiKey?: string;
+  solapiApiSecret?: string;
+  /** 사전등록된 발신번호 */
+  solapiSenderPhone?: string;
   /** 월 목표 순이익 */
   monthlyGoalKrw: number;
   /** 자동 소싱을 돌릴 것인가 */
