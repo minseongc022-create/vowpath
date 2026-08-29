@@ -285,6 +285,9 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         ),
         sellerId: listing.sellerId,
         returnPolicyText: listing.policyText,
+        // 반품 주소까지 같이 들고 온다. 이게 빠지면 반품이 들어올 때마다
+        // 회수지를 확정 못 해 전부 사람 손으로 넘어간다.
+        returnAddress: listing.supplierReturnAddress,
         live: listing.source === "live",
       };
 

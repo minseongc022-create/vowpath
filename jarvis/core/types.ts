@@ -49,6 +49,14 @@ export type Supplier = {
   sellerId?: string;
   /** 공급처가 밝힌 반품 정책 원문 */
   returnPolicyText?: string;
+  /**
+   * 공급처 반품 주소.
+   *
+   * 이게 있어야 반품을 공급처로 바로 보낼 수 있다. 없으면 반품 두뇌가
+   * 회수지를 확정하지 못해 매번 사장님 확인으로 넘어간다 — 자동 처리가
+   * 되려면 여기까지 값이 와야 한다.
+   */
+  returnAddress?: string;
   /** API 실시간 조회 결과인가, 검색 결과 추정인가 */
   live: boolean;
 };
