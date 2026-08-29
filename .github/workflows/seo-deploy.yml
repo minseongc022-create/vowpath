@@ -66,17 +66,17 @@ jobs:
       - name: Verify redirects
         run: node scripts/seo-post-deploy.mjs
 
-      - name: Verify Giu (giucuu.com) production
+      # 예전엔 구쿠(giucuu.com)와 옛 toss-shop(effiroad.com)을 확인했다.
+      # 구쿠는 빠졌고 toss-shop은 삭제돼서 늘 실패하며 배포를 빨간불로
+      # 만들고 있었다. 지금 실제로 도는 자비스만 본다.
+      - name: 자비스 배포 검증
         run: |
           for attempt in 1 2 3; do
-            echo "=== verify attempt $attempt ==="
-            node scripts/giu-deploy-verify.mjs && exit 0
+            echo "=== 검증 시도 $attempt ==="
+            node scripts/jarvis-deploy-verify.mjs && exit 0
             sleep 45
           done
           exit 1
-
-      - name: Verify Effiroad (effiroad.com) production
-        run: node scripts/effiroad-deploy-verify.mjs
 
       - name: cron-job.org external crons (60s)
         env:

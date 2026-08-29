@@ -86,7 +86,7 @@ async function main() {
   run("Vercel env push (toss-shop)", "scripts/toss-shop-production-env.mjs");
   await redeployIfHook();
   await new Promise((r) => setTimeout(r, 15_000));
-  run("Effiroad deploy verify", "scripts/effiroad-deploy-verify.mjs");
+  run("자비스 배포 검증", "scripts/jarvis-deploy-verify.mjs");
   await verifyCron();
   console.log("\n✓ Jarvis infra bootstrap complete\n");
 }

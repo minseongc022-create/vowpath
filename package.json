@@ -28,7 +28,6 @@
     "vercel:domains": "node scripts/vercel-link-domains.mjs",
     "porkbun:forward": "node scripts/porkbun-vowroad-forward.mjs",
     "giu:domain": "node scripts/giu-domain-setup.mjs",
-    "giu:verify-deploy": "node scripts/giu-deploy-verify.mjs",
     "toss-shop:vercel-env": "node scripts/toss-shop-production-env.mjs",
     "jarvis:infra": "node scripts/jarvis-infra-bootstrap.mjs",
     "cron:setup": "node scripts/cron-job-org-setup.mjs",
@@ -54,7 +53,8 @@
     "learn:generate": "prisma generate",
     "learn:migrate": "prisma migrate dev",
     "learn:push": "prisma db push",
-    "learn:studio": "prisma studio"
+    "learn:studio": "prisma studio",
+    "jarvis:verify-deploy": "node scripts/jarvis-deploy-verify.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
