@@ -1,0 +1,26 @@
+# 일회성 계정 정리 — 감사(list-accounts, 이미 지워짐)로 찾아낸, 이제는
+# 로그인이 막혀 무해하지만 남아 있는 옛 계정 두 개를 지운다.
+# 다 지운 뒤 이 워크플로와 /api/admin/delete-accounts 라우트는 함께 지운다
+# (list-accounts 감사 도구를 썼던 것과 같은 패턴).
+#
+# 필요한 저장소 시크릿: CRON_SECRET (Vercel 환경변수와 같은 값)
+name: jarvis-account-cleanup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 남은 두 계정 삭제
+        run: |
+          code=$(curl -sS -o /tmp/cleanup.json -w "%{http_code}" \
+            --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"emails":["seller_thxs94nk@connect.effiroad.local","randomstranger12345@example.com"]}' \
+            https://effiroad.com/api/admin/delete-accounts)
+          echo "HTTP $code"
+          cat /tmp/cleanup.json
+          test "$code" = "200"
