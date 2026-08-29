@@ -226,5 +226,16 @@ function buildChecklist(candidate: import("../core/types").Candidate): string[] 
     list.push("⚠ 공급처 정보가 실시간 조회가 아닌 검색 결과 기반입니다 — 발주 전 한 번 확인해 주세요");
   }
 
+  // 상세페이지에 실제로 몇 장이 실렸는지, 왜 그만큼인지 — 사진 한 장뿐인
+  // 페이지를 보고 "왜 이거밖에 없지"를 사장님이 매번 다시 묻지 않게 한다
+  const photoCount = candidate.supplier.imageUrls.length;
+  if (candidate.supplier.imageLicenseUsable) {
+    list.push(`공급처가 이미지 사용을 허가해 상세설명 사진까지 전부 실었습니다 (${photoCount}장)`);
+  } else if (candidate.supplier.imageLicenseUsable === false) {
+    list.push(`공급처가 이미지 사용을 허가하지 않아 대표 사진 ${photoCount}장만 실었습니다`);
+  } else {
+    list.push(`이미지 사용 허가 여부를 못 읽어 대표 사진 ${photoCount}장만 실었습니다`);
+  }
+
   return list;
 }

@@ -114,3 +114,29 @@ test("적합도가 기록 안 된 옛 후보를 벌하지 않는다 — 없는 �
 test("0개를 원하면 0개를 낸다", () => {
   assert.deepEqual(pickBest([candidate()], 0), []);
 });
+
+// ── 사진 품질(비주얼) ────────────────────────────────────────
+
+test("★ 못 살거같은 사진(낮은 visualAppeal)은 감점된다", () => {
+  const good = judgeCandidate(candidate({ id: "a" }));
+  const bad = candidate({ id: "b" });
+  bad.visualAppeal = 0.1;
+  bad.visualAppealNote = "조명이 어둡고 배경이 지저분함";
+  const badJ = judgeCandidate(bad);
+  assert.ok(badJ.score < good.score);
+});
+
+test("시간이 없어 사진 품질을 못 봤으면(undefined) 벌하지 않는다 — 중립", () => {
+  const c = candidate();
+  delete c.visualAppeal;
+  const j = judgeCandidate(c);
+  assert.ok(j.reasons.some((r) => r.includes("미판단")));
+});
+
+test("사진 품질 근거가 그대로 검수 화면 문구로 남는다", () => {
+  const c = candidate();
+  c.visualAppeal = 0.9;
+  c.visualAppealNote = "선명하고 정돈된 사진";
+  const j = judgeCandidate(c);
+  assert.ok(j.reasons.includes("선명하고 정돈된 사진"));
+});

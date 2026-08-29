@@ -5,6 +5,7 @@ import {
   resolveSingleUnitSourcing,
   type SingleUnitSourcing,
 } from "./domeggook-price";
+import { readItemDetailExtras, type ItemDetailExtras } from "./domeggook-detail";
 
 /**
  * 낱개 발주 판정 캐시.
@@ -17,6 +18,18 @@ import {
 const UNIT_SOURCING_TTL_MS = 6 * 60 * 60 * 1000;
 const UNIT_SOURCING_CACHE_MAX = 500;
 const unitSourcingCache = new Map<string, { at: number; value: SingleUnitSourcing }>();
+
+/**
+ * getItemView **원본 응답** 캐시.
+ *
+ * confirmSingleUnitSourcing과 getItemDetail(사진·반품주소·이미지 사용
+ * 허가)이 같은 상품번호로 같은 엔드포인트를 부른다. 따로 부르면 후보
+ * 하나당 API 호출이 두 배가 되어 레이트리밋에 더 쉽게 걸린다 — 한 번
+ * 받은 원본을 여기 캐시해 두 곳이 나눠 쓴다.
+ */
+const ITEM_VIEW_TTL_MS = 6 * 60 * 60 * 1000;
+const ITEM_VIEW_CACHE_MAX = 500;
+const itemViewCache = new Map<string, { at: number; data: unknown }>();
 
 /** 테스트·핫리로드용 */
 export function clearUnitSourcingCache(): void {
@@ -525,8 +538,45 @@ export async function confirmSingleUnitSourcing(
     if (cached && Date.now() - cached.at < UNIT_SOURCING_TTL_MS) return cached.value;
   }
 
+  const fetched = await fetchItemViewRaw(itemNo, aid, opts?.fresh);
+  if (!fetched.ok) {
+    return {
+      available: false,
+      unitPriceKrw: null,
+      minOrderQty: null,
+      market: null,
+      verified: false,
+      reason: fetched.reason,
+    };
+  }
+
+  const value = resolveSingleUnitSourcing(readPriceFieldsFromItemView(fetched.data));
+  // 성공한 판독만 캐시한다 — 일시적 장애를 오래 물고 있으면 안 된다
+  if (value.verified) {
+    if (unitSourcingCache.size >= UNIT_SOURCING_CACHE_MAX) {
+      const oldest = unitSourcingCache.keys().next().value;
+      if (oldest !== undefined) unitSourcingCache.delete(oldest);
+    }
+    unitSourcingCache.set(itemNo, { at: Date.now(), value });
+  }
+  return value;
+}
+
+/**
+ * getItemView 원본을 가져온다 — 캐시를 confirmSingleUnitSourcing과
+ * getItemDetail이 나눠 쓴다(같은 엔드포인트를 두 번 부르지 않는다).
+ */
+async function fetchItemViewRaw(
+  itemNo: string,
+  aid: string,
+  fresh?: boolean,
+): Promise<{ ok: true; data: unknown } | { ok: false; reason: string }> {
+  if (!fresh) {
+    const cached = itemViewCache.get(itemNo);
+    if (cached && Date.now() - cached.at < ITEM_VIEW_TTL_MS) return { ok: true, data: cached.data };
+  }
+
   const params = new URLSearchParams({
-    // 가격 구간·구매단위 필드는 상세 API에서 제공된다. 문서 권장 버전을 쓴다.
     ver: "4.6",
     mode: "getItemView",
     aid,
@@ -540,47 +590,44 @@ export async function confirmSingleUnitSourcing(
       signal: AbortSignal.timeout(12_000),
     });
     if (!res.ok) {
-      return {
-        available: false,
-        unitPriceKrw: null,
-        minOrderQty: null,
-        market: null,
-        verified: false,
-        reason: `상세 조회 HTTP ${res.status} — 낱개 발주 여부 미확인`,
-      };
+      return { ok: false, reason: `상세 조회 HTTP ${res.status} — 낱개 발주 여부 미확인` };
     }
     const data = (await res.json()) as unknown;
     if (captureApiError(data)) {
-      return {
-        available: false,
-        unitPriceKrw: null,
-        minOrderQty: null,
-        market: null,
-        verified: false,
-        reason: `도매꾹 API 오류 — ${lastApiError?.message ?? "원인 불명"}`,
-      };
+      return { ok: false, reason: `도매꾹 API 오류 — ${lastApiError?.message ?? "원인 불명"}` };
     }
 
-    const value = resolveSingleUnitSourcing(readPriceFieldsFromItemView(data));
-    // 성공한 판독만 캐시한다 — 일시적 장애를 오래 물고 있으면 안 된다
-    if (value.verified) {
-      if (unitSourcingCache.size >= UNIT_SOURCING_CACHE_MAX) {
-        const oldest = unitSourcingCache.keys().next().value;
-        if (oldest !== undefined) unitSourcingCache.delete(oldest);
-      }
-      unitSourcingCache.set(itemNo, { at: Date.now(), value });
+    if (itemViewCache.size >= ITEM_VIEW_CACHE_MAX) {
+      const oldest = itemViewCache.keys().next().value;
+      if (oldest !== undefined) itemViewCache.delete(oldest);
     }
-    return value;
+    itemViewCache.set(itemNo, { at: Date.now(), data });
+    return { ok: true, data };
   } catch (e) {
     return {
-      available: false,
-      unitPriceKrw: null,
-      minOrderQty: null,
-      market: null,
-      verified: false,
+      ok: false,
       reason: e instanceof Error ? `상세 조회 실패 — ${e.message}` : "상세 조회 네트워크 오류",
     };
   }
+}
+
+/**
+ * 상세페이지에 쓸 것들 — 사진(대표 + 이미지 사용 허가된 경우 추가 사진),
+ * 반품 주소, 원산지.
+ *
+ * confirmSingleUnitSourcing과 같은 캐시를 쓰므로, 같은 사이클에서 낱개
+ * 발주를 이미 확인한 상품이면 API를 한 번 더 부르지 않는다.
+ */
+export async function getItemDetail(
+  itemNo: string,
+  opts?: { fresh?: boolean },
+): Promise<ItemDetailExtras | null> {
+  const aid = getApiKey();
+  if (!aid || !/^\d+$/.test(itemNo.trim())) return null;
+
+  const fetched = await fetchItemViewRaw(itemNo, aid, opts?.fresh);
+  if (!fetched.ok) return null;
+  return readItemDetailExtras(fetched.data);
 }
 
 /**
