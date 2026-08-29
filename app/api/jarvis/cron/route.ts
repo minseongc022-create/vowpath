@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       // 정확히 알아야 한다.
       if (state.settings.alertPhone) {
         const pendingNow = state.drafts.filter((d) => d.status === "pending_review").length;
-        const alert = await sendReviewAlert(state.settings.alertPhone, pendingNow);
+        const alert = await sendReviewAlert(state.settings.alertPhone, pendingNow, state.settings);
         alertSent = alert.sent;
         alertReason = alert.reason;
       }
@@ -108,6 +108,9 @@ export async function GET(request: Request) {
               (r) => r.status === "open" && r.decision.action === "needs_owner",
             ).length,
           },
+          // 화면에서 넣은 솔라피 키도 쓰이게 넘긴다 — 환경변수만 보면
+          // 사장님이 설정 화면에 넣은 값이 무시된다
+          state.settings,
         );
         reportSent = report.sent;
         reportReason = report.reason;

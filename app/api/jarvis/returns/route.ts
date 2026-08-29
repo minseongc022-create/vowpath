@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const openCount = state.returns.filter(
       (r) => r.status === "open" && r.decision.action === "needs_owner",
     ).length;
-    const alert = await sendReturnAlert(state.settings.alertPhone, openCount);
+    const alert = await sendReturnAlert(state.settings.alertPhone, openCount, state.settings);
     alertSent = alert.sent;
   }
 

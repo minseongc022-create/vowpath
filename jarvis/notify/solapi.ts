@@ -60,11 +60,18 @@ export type SolapiConfig = {
   from: string;
 };
 
+export type SavedSolapiSettings = {
+  solapiApiKey?: string;
+  solapiApiSecret?: string;
+  solapiSenderPhone?: string;
+};
+
 /**
  * 설정이 갖춰졌는가.
  *
  * 셋 중 하나라도 없으면 null이다 — 발신번호 없이 키만 있어도 보낼 수
- * 없으므로 "반쯤 설정됨"이라는 상태를 만들지 않는다.
+ * 없으므로 "반쯤 설정됨"이라는 상태를 만들지 않는다. 반쯤 설정된 상태를
+ * 허용하면 화면엔 "연결됨"이 뜨는데 문자는 안 나가는 일이 생긴다.
  */
 export function solapiConfigFromEnv(): SolapiConfig | null {
   const apiKey = process.env.SOLAPI_API_KEY?.trim();
@@ -74,8 +81,23 @@ export function solapiConfigFromEnv(): SolapiConfig | null {
   return { apiKey, apiSecret, from };
 }
 
-export function isSolapiConfigured(): boolean {
-  return solapiConfigFromEnv() !== null;
+/**
+ * 실제로 쓸 솔라피 설정.
+ *
+ * 화면에서 직접 넣은 값을 환경변수보다 우선한다 — 사장님이 방금 넣은
+ * 값이 더 최신이라고 보는 게 맞다. 토스 설정과 같은 규칙이다(같은 판단을
+ * 두 군데서 다르게 하면 반드시 어긋난다).
+ */
+export function resolveSolapiConfig(settings?: SavedSolapiSettings): SolapiConfig | null {
+  const apiKey = settings?.solapiApiKey?.trim();
+  const apiSecret = settings?.solapiApiSecret?.trim();
+  const from = settings?.solapiSenderPhone?.trim();
+  if (apiKey && apiSecret && from) return { apiKey, apiSecret, from };
+  return solapiConfigFromEnv();
+}
+
+export function isSolapiConfigured(settings?: SavedSolapiSettings): boolean {
+  return resolveSolapiConfig(settings) !== null;
 }
 
 /** 국내 형식으로 — 솔라피는 하이픈 없는 01012345678을 받는다 */

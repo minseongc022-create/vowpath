@@ -21,6 +21,15 @@ type Conn = {
   sandbox?: boolean;
 };
 
+/** 문자를 어느 길로 보내는지 — 국내(솔라피)인지 국제발신(트윌리오)인지 */
+type SmsConn = {
+  provider: "solapi" | "twilio";
+  connected: boolean;
+  senderPhone: string | null;
+  fromEnv?: boolean;
+  note: string;
+};
+
 type Payload = {
   settings: {
     monthlyGoalKrw: number;
@@ -29,7 +38,7 @@ type Payload = {
     alertPhone: string | null;
     tossSandbox: boolean;
   };
-  connections: { toss: Conn; domeggook: Conn; openai: Conn };
+  connections: { toss: Conn; domeggook: Conn; openai: Conn; sms: SmsConn };
 };
 
 export function SettingsView() {
@@ -42,6 +51,10 @@ export function SettingsView() {
   const [tossAccessKey, setTossAccessKey] = useState("");
   const [tossSecretKey, setTossSecretKey] = useState("");
   const [domeggookApiKey, setDomeggookApiKey] = useState("");
+  const [solapiApiKey, setSolapiApiKey] = useState("");
+  const [solapiApiSecret, setSolapiApiSecret] = useState("");
+  const [solapiSenderPhone, setSolapiSenderPhone] = useState("");
+  const [testing, setTesting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +93,8 @@ export function SettingsView() {
         setTossAccessKey("");
         setTossSecretKey("");
         setDomeggookApiKey("");
+        setSolapiApiKey("");
+        setSolapiApiSecret("");
         await load();
       } catch {
         setMsg({ kind: "err", text: "저장하지 못했습니다." });
@@ -89,6 +104,45 @@ export function SettingsView() {
     },
     [load],
   );
+
+  /**
+   * 「테스트 문자 보내기」.
+   *
+   * 문자는 30분 보고나 검수 알림이 있을 때만 나가서, 키를 넣고 잘 들어갔는지
+   * 확인하려면 30분을 기다려야 했다. 그 자리에서 한 통 보내본다.
+   */
+  const sendTest = useCallback(async () => {
+    setTesting(true);
+    setMsg(null);
+    try {
+      const res = await fetch(JV_API.settings, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendTest: true }),
+      });
+      const body = (await res.json()) as {
+        test?: { sent: boolean; reason: string; via?: string };
+        reason?: string;
+      };
+      if (!res.ok || !body.test) {
+        setMsg({ kind: "err", text: body.reason ?? "보내지 못했습니다." });
+        return;
+      }
+      if (body.test.sent) {
+        setMsg({
+          kind: "ok",
+          text: `보냈습니다 (${body.test.via === "solapi" ? "국내 발송" : "국제발신"}). 문자를 확인해 보세요.`,
+        });
+      } else {
+        // 실패 이유를 그대로 보여준다 — 발신번호 등록·잔액·키는 해야 할 일이 다르다
+        setMsg({ kind: "err", text: body.test.reason });
+      }
+    } catch {
+      setMsg({ kind: "err", text: "보내지 못했습니다." });
+    } finally {
+      setTesting(false);
+    }
+  }, []);
 
   if (!data) return <div className="jv-empty">불러오는 중…</div>;
 
@@ -117,6 +171,16 @@ export function SettingsView() {
                 ? `서버 환경변수로 연결됨${c.toss.sandbox ? " · 테스트(샌드박스) 모드" : ""}`
                 : `아래에서 넣은 키로 연결됨${c.toss.sandbox ? " · 테스트(샌드박스) 모드" : ""}`
               : undefined
+          }
+        />
+        <ConnRow
+          label={c.sms.provider === "solapi" ? "문자 (국내 발송)" : "문자 (국제발신)"}
+          connected={c.sms.connected}
+          need="이게 없으면 검수·반품·30분 보고 문자가 안 옵니다"
+          note={
+            c.sms.connected
+              ? `${c.sms.senderPhone ? `발신 ${c.sms.senderPhone} · ` : ""}${c.sms.note}`
+              : c.sms.note
           }
         />
         <ConnRow
@@ -189,6 +253,54 @@ export function SettingsView() {
             onClick={() => void save({ alertPhone: phone })}
           >
             저장
+          </button>
+        </div>
+      </section>
+
+      {/* ── 문자 보내는 길 ── */}
+      <section>
+        <h2>문자 발송 (솔라피)</h2>
+        <p className="jv-help">
+          국내 발송으로 바꾸면 문자 67자 제한이 없어져서, 30분 보고에 왜 0건인지·검수 대기가
+          몇 건인지까지 담아 보낼 수 있습니다. 발신번호는 <b>솔라피에 미리 등록</b>해야 합니다
+          (전기통신사업법상 필수라 건너뛸 수 없습니다 — 통신서비스 이용증명원을 올리면 됩니다).
+        </p>
+        <KeyField label="솔라피 API Key" value={solapiApiKey} onChange={setSolapiApiKey} />
+        <KeyField label="솔라피 API Secret" value={solapiApiSecret} onChange={setSolapiApiSecret} />
+        <div className="jv-inline" style={{ marginBottom: 10 }}>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={solapiSenderPhone}
+            onChange={(e) => setSolapiSenderPhone(e.target.value)}
+            placeholder="등록한 발신번호 (01012345678)"
+          />
+        </div>
+        <div className="jv-inline">
+          <button
+            type="button"
+            className="jv-btn jv-btn-primary"
+            style={{ flex: 1 }}
+            disabled={saving || (!solapiApiKey && !solapiApiSecret && !solapiSenderPhone)}
+            onClick={() =>
+              void save({
+                ...(solapiApiKey ? { solapiApiKey } : {}),
+                ...(solapiApiSecret ? { solapiApiSecret } : {}),
+                ...(solapiSenderPhone ? { solapiSenderPhone } : {}),
+              })
+            }
+          >
+            저장
+          </button>
+          {/* 30분을 기다리지 않고 그 자리에서 확인한다 */}
+          <button
+            type="button"
+            className="jv-btn jv-btn-ghost"
+            style={{ flex: 1 }}
+            disabled={testing || saving}
+            onClick={() => void sendTest()}
+          >
+            {testing ? "보내는 중…" : "테스트 문자"}
           </button>
         </div>
       </section>

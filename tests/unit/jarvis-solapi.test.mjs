@@ -130,3 +130,67 @@ test("긴 보고도 LMS 한 통 안에 들어간다", () => {
   );
   assert.equal(r.withinLimit, true, `${byteLength(r.message)}바이트로 ${LMS_KR_LIMIT * 2}를 넘는다`);
 });
+
+// ── 화면에서 넣은 키 ─────────────────────────────────────────
+//
+// 토스·도매꾹과 같은 방식이다. Vercel 환경변수를 건드리지 않고 설정
+// 화면에서 넣어도 되어야 한다 — 배포를 다시 하지 않고 바꿀 수 있어야
+// 사장님이 직접 붙일 수 있다.
+
+import { resolveSolapiConfig } from "../../jarvis/notify/solapi.ts";
+
+test("★ 화면에서 넣은 키로도 연결된다 — Vercel을 안 건드려도 된다", () => {
+  const cfg = resolveSolapiConfig({
+    solapiApiKey: "k",
+    solapiApiSecret: "s",
+    solapiSenderPhone: "01012345678",
+  });
+  assert.ok(cfg);
+  assert.equal(cfg.from, "01012345678");
+});
+
+test("화면 값이 환경변수보다 우선한다 — 방금 넣은 값이 더 최신이다", () => {
+  const saved = { ...process.env };
+  try {
+    process.env.SOLAPI_API_KEY = "env-k";
+    process.env.SOLAPI_API_SECRET = "env-s";
+    process.env.SOLAPI_SENDER_PHONE = "01000000000";
+    const cfg = resolveSolapiConfig({
+      solapiApiKey: "screen-k",
+      solapiApiSecret: "screen-s",
+      solapiSenderPhone: "01012345678",
+    });
+    assert.equal(cfg.apiKey, "screen-k");
+    assert.equal(cfg.from, "01012345678");
+  } finally {
+    process.env = saved;
+  }
+});
+
+test("화면에 반쯤만 넣으면 환경변수로 떨어진다 — 반쯤 설정된 상태를 만들지 않는다", () => {
+  const saved = { ...process.env };
+  try {
+    process.env.SOLAPI_API_KEY = "env-k";
+    process.env.SOLAPI_API_SECRET = "env-s";
+    process.env.SOLAPI_SENDER_PHONE = "01000000000";
+    // 발신번호를 안 넣었다 — 이 상태로 "연결됨"이 뜨면 문자가 안 나가는데
+    // 화면만 초록불이 된다
+    const cfg = resolveSolapiConfig({ solapiApiKey: "screen-k", solapiApiSecret: "screen-s" });
+    assert.equal(cfg.apiKey, "env-k");
+  } finally {
+    process.env = saved;
+  }
+});
+
+test("아무 데도 없으면 연결 안 된 것이다", () => {
+  const saved = { ...process.env };
+  try {
+    delete process.env.SOLAPI_API_KEY;
+    delete process.env.SOLAPI_API_SECRET;
+    delete process.env.SOLAPI_SENDER_PHONE;
+    assert.equal(resolveSolapiConfig({}), null);
+    assert.equal(resolveSolapiConfig(undefined), null);
+  } finally {
+    process.env = saved;
+  }
+});

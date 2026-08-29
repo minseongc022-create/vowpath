@@ -5,7 +5,8 @@ import { loadState, saveState } from "@/jarvis/core/store";
 import { MIN_GOAL_KRW, MAX_GOAL_KRW } from "@/jarvis/chat/intents";
 import { isDomeggookApiConfigured } from "@/jarvis/wholesale/domeggook-api";
 import { resolveTossConfig, maskTossKey } from "@/jarvis/core/toss-config";
-import { isSolapiConfigured, solapiConfigFromEnv } from "@/jarvis/notify/solapi";
+import { resolveSolapiConfig, solapiConfigFromEnv } from "@/jarvis/notify/solapi";
+import { sendTestMessage } from "@/jarvis/engine/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,12 +48,13 @@ export async function GET(request: Request) {
       // 문자를 어느 길로 보내는지 보여준다. 안 보이면 왜 문자가 짧은지,
       // 왜 안 오는지 화면만 봐서는 알 수 없다.
       sms: (() => {
-        const solapi = solapiConfigFromEnv();
-        if (isSolapiConfigured()) {
+        const solapi = resolveSolapiConfig(s);
+        if (solapi) {
           return {
             provider: "solapi",
             connected: true,
-            senderPhone: solapi?.from ?? null,
+            senderPhone: solapi.from,
+            fromEnv: solapiConfigFromEnv() !== null && !s.solapiApiKey,
             note: "국내 발송 — 긴 보고(LMS)를 보낼 수 있습니다",
           };
         }
@@ -105,6 +107,22 @@ export async function POST(request: Request) {
   if (typeof body.tossAccessKey === "string") s.tossAccessKey = body.tossAccessKey.trim() || undefined;
   if (typeof body.tossSecretKey === "string") s.tossSecretKey = body.tossSecretKey.trim() || undefined;
   if (typeof body.domeggookApiKey === "string") s.domeggookApiKey = body.domeggookApiKey.trim() || undefined;
+  if (typeof body.solapiApiKey === "string") s.solapiApiKey = body.solapiApiKey.trim() || undefined;
+  if (typeof body.solapiApiSecret === "string") {
+    s.solapiApiSecret = body.solapiApiSecret.trim() || undefined;
+  }
+  if (typeof body.solapiSenderPhone === "string") {
+    // 발신번호도 010 형식만 받는다 — 잘못 넣으면 솔라피가 거부하는데,
+    // 그 거부 이유를 보려면 문자를 한 번 보내봐야 한다
+    const digits = body.solapiSenderPhone.replace(/[^0-9]/g, "");
+    if (digits && !/^01[0-9]{8,9}$/.test(digits)) {
+      return NextResponse.json(
+        { error: "BAD_SENDER", reason: "발신번호 형식이 아닙니다 (예: 01012345678)" },
+        { status: 400 },
+      );
+    }
+    s.solapiSenderPhone = digits || undefined;
+  }
 
   if (typeof body.alertPhone === "string") {
     const digits = body.alertPhone.replace(/[^0-9]/g, "");
@@ -118,5 +136,23 @@ export async function POST(request: Request) {
   }
 
   await saveState(state);
+
+  // ★ 「테스트 문자 보내기」
+  //
+  // 문자는 30분 보고나 검수 알림이 있을 때만 나간다. 즉 키를 넣고
+  // 잘 들어갔는지 확인하려면 30분을 기다려야 했다 — 그동안 발신번호
+  // 등록이 안 됐어도 알 수 없다. 저장한 그 자리에서 한 통 보내본다.
+  if (body.sendTest === true) {
+    const phone = s.alertPhone;
+    if (!phone) {
+      return NextResponse.json(
+        { ok: true, test: { sent: false, reason: "알림받을 휴대폰 번호를 먼저 넣어주세요." } },
+        { status: 200 },
+      );
+    }
+    const test = await sendTestMessage(phone, s);
+    return NextResponse.json({ ok: true, test });
+  }
+
   return NextResponse.json({ ok: true });
 }
