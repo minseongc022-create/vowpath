@@ -19,6 +19,7 @@
 import { sendSms } from "@/lib/send-sms";
 import { canonicalMarketingUrl } from "@/lib/canonical-host";
 import { JV_ROUTES } from "../routes";
+import type { ReportWindow } from "../core/types";
 
 export const NOTIFY_VERSION = "1.0";
 
@@ -61,6 +62,56 @@ export async function sendReviewAlert(
 
   try {
     const result = await sendSms(phone, alert.message, "jarvis-review-alert");
+    if (!result.ok) return { sent: false, reason: result.error };
+    return { sent: true, reason: "OK" };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "SEND_FAILED" };
+  }
+}
+
+/** 30분마다: 이 창 동안 자비스가 실제로 무엇을 했는지 */
+export const REPORT_INTERVAL_MS = 30 * 60 * 1000;
+
+export type PeriodicReport = { message: string; withinLimit: boolean };
+
+/**
+ * "30분간 몇 번 돌았고 뭘 찾았는지"를 한 줄에 담는다.
+ *
+ * 숫자가 999까지 세 자리로 커져도(현실적으로 그럴 일은 없지만) 한 세그먼트
+ * 안에 들어가도록 문구를 미리 재보고 정했다 — jarvis-report.test.mjs에서
+ * 그 최악의 경우를 실제로 잰다.
+ */
+export function buildPeriodicReport(
+  window: Pick<ReportWindow, "cyclesRun" | "productsSeen" | "candidatesFound" | "draftsCreated">,
+  goal: { skusNow: number; skusNeeded: number },
+): PeriodicReport {
+  const message =
+    `[자비스] 30분 보고 · 소싱 ${window.cyclesRun}회 · 확인 ${window.productsSeen}개 · ` +
+    `후보 ${window.candidatesFound}개 · 신규 ${window.draftsCreated}건 · ` +
+    `목표 ${goal.skusNow}/${goal.skusNeeded}`;
+  return { message, withinLimit: message.length <= SMS_SINGLE_SEGMENT_LIMIT };
+}
+
+/**
+ * 30분 보고 문자를 보낸다. 검수 대기 알림과 마찬가지로, 발송 실패가
+ * 자동 운전 사이클 자체를 막지 않는다.
+ */
+export async function sendPeriodicReport(
+  phone: string,
+  window: Pick<ReportWindow, "cyclesRun" | "productsSeen" | "candidatesFound" | "draftsCreated">,
+  goal: { skusNow: number; skusNeeded: number },
+): Promise<{ sent: boolean; reason: string }> {
+  const report = buildPeriodicReport(window, goal);
+
+  if (!report.withinLimit) {
+    console.error(
+      `[jarvis/notify] 30분 보고 문자가 ${report.message.length}자로 한도(${SMS_SINGLE_SEGMENT_LIMIT}자)를 넘어 보내지 않았습니다`,
+    );
+    return { sent: false, reason: "MESSAGE_TOO_LONG" };
+  }
+
+  try {
+    const result = await sendSms(phone, report.message, "jarvis-periodic-report");
     if (!result.ok) return { sent: false, reason: result.error };
     return { sent: true, reason: "OK" };
   } catch (e) {

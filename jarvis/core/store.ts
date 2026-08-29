@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { kv } from "@vercel/kv";
 import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
-import { DEFAULT_SETTINGS, type Draft, type JarvisState } from "./types";
+import { DEFAULT_SETTINGS, emptyReportWindow, type Draft, type JarvisState } from "./types";
 
 export const JARVIS_STATE_VERSION = "2.0";
 
@@ -34,6 +34,7 @@ function emptyState(): JarvisState {
     candidates: [],
     drafts: [],
     chat: [],
+    reportWindow: emptyReportWindow(),
   };
 }
 
@@ -55,6 +56,7 @@ function normalize(raw: Partial<JarvisState> | null): JarvisState {
     lastSourcingRun: raw.lastSourcingRun,
     lastAutopilotAt: raw.lastAutopilotAt,
     activity: raw.activity,
+    reportWindow: raw.reportWindow ?? emptyReportWindow(),
   };
 }
 
