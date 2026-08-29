@@ -24,6 +24,8 @@ export const JV_ROUTES = {
   chat: jv("/"),
   /** 올리기 전 검수 */
   review: jv("/review"),
+  /** 반품 처리 */
+  returns: jv("/returns"),
   /** 연동 설정 */
   settings: jv("/settings"),
   login: jv("/login"),
@@ -32,6 +34,7 @@ export const JV_ROUTES = {
 export const JV_API = {
   chat: "/api/jarvis/chat",
   drafts: "/api/jarvis/drafts",
+  returns: "/api/jarvis/returns",
   settings: "/api/jarvis/settings",
   cron: "/api/jarvis/cron",
 } as const;

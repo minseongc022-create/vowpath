@@ -28,6 +28,7 @@ export const NOTIFY_VERSION = "1.0";
 export const SMS_SINGLE_SEGMENT_LIMIT = 67;
 
 const REVIEW_URL = jarvisUrl(JV_ROUTES.review);
+const RETURNS_URL = jarvisUrl(JV_ROUTES.returns);
 
 /**
  * 사장님에게 문자 한 통. 자비스의 모든 문자는 여기를 지난다.
@@ -96,6 +97,33 @@ export async function sendReviewAlert(
   }
 
   return sendOwnerSms(phone, alert.message, "jarvis-review-alert");
+}
+
+/**
+ * 반품이 사장님 결정을 기다릴 때 보내는 문자.
+ *
+ * ★ 왜 따로 보내는가 — 반품은 응답 기한이 있는 일이다. 30분 보고에 숫자
+ * 하나로 섞어 보내면 "소싱 3회 · 반품 1"처럼 지나가고, 기한은 그동안
+ * 흘러간다. 자비스가 알아서 처리한 반품은 문자를 보내지 않는다(그건
+ * 끝난 일이다) — **결정을 기다리는 건만** 보낸다.
+ */
+export function buildReturnAlert(openCount: number): ReviewAlert {
+  const message = `[자비스] 반품 ${openCount}건 확인 필요\n${RETURNS_URL}`;
+  return { message, withinLimit: message.length <= SMS_SINGLE_SEGMENT_LIMIT };
+}
+
+export async function sendReturnAlert(
+  phone: string,
+  openCount: number,
+): Promise<{ sent: boolean; reason: string }> {
+  const alert = buildReturnAlert(openCount);
+  if (!alert.withinLimit) {
+    console.error(
+      `[jarvis/notify] 반품 문자가 ${alert.message.length}자로 한도(${SMS_SINGLE_SEGMENT_LIMIT}자)를 넘어 보내지 않았습니다`,
+    );
+    return { sent: false, reason: "MESSAGE_TOO_LONG" };
+  }
+  return sendOwnerSms(phone, alert.message, "jarvis-return-alert");
 }
 
 /** 30분마다: 이 창 동안 자비스가 실제로 무엇을 했는지 */

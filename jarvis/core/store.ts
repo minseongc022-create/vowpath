@@ -35,6 +35,7 @@ function emptyState(): JarvisState {
     drafts: [],
     chat: [],
     reportWindow: emptyReportWindow(),
+    returns: [],
   };
 }
 
@@ -57,6 +58,7 @@ function normalize(raw: Partial<JarvisState> | null): JarvisState {
     lastAutopilotAt: raw.lastAutopilotAt,
     activity: raw.activity,
     reportWindow: raw.reportWindow ?? emptyReportWindow(),
+    returns: Array.isArray(raw.returns) ? raw.returns : [],
   };
 }
 

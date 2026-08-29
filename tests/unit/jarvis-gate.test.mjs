@@ -85,3 +85,8 @@ test("구쿠 경로는 자비스 게이트에서도 공개가 아니다", () => 
     assert.equal(isPublicJarvisPath(p), false, `${p}가 열리면 옛 구쿠 사용자가 들어온다`);
   }
 });
+
+test("★ 새로 만든 반품 화면·API도 자동으로 잠긴다 — 기본값이 잠김이어야 한다", () => {
+  assert.equal(isPublicJarvisPath("/returns"), false);
+  assert.equal(isPublicJarvisPath("/api/jarvis/returns"), false);
+});

@@ -212,6 +212,31 @@ export type ChatTurn = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// 반품
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 접수된 반품 한 건과 자비스의 판정.
+ *
+ * 판정을 **저장해 둔다**. 다시 계산하면 그 사이 바뀐 기준으로 다른 답이
+ * 나오는데, 고객에게는 이미 처음 판정대로 안내가 나갔다. 두 값이 생기는
+ * 순간 어느 쪽이 진짜인지 아무도 모른다.
+ */
+export type ReturnCase = {
+  id: string;
+  /** 어느 상품인가 — 토스 상품번호 또는 초안 id */
+  draftId?: string;
+  tossProductNo?: string;
+  request: import("../returns/decide").ReturnRequest;
+  decision: import("../returns/decide").ReturnDecision;
+  status: "open" | "resolved";
+  /** 사장님이 확인해서 마무리한 경우 그 결과 */
+  resolvedNote?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ─────────────────────────────────────────────────────────────
 // 30분 보고 — "몇 번 돌았고 뭘 찾았는지" 누적
 // ─────────────────────────────────────────────────────────────
 
@@ -279,6 +304,8 @@ export type JarvisState = {
   activity?: { label: string; at: string; done?: boolean };
   /** 30분 보고 누적 창 */
   reportWindow: ReportWindow;
+  /** 접수된 반품 — 처리 안 된 건이 조용히 묻히면 페널티가 된다 */
+  returns?: ReturnCase[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
