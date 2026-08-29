@@ -44,10 +44,21 @@ test("링크는 자비스가 실제로 사는 도메인의 검수 화면을 가�
   // (vercel.json build.env). 로컬 tsx 실행에선 /sellerpulse가 붙으므로
   // 정확한 접두어가 아니라 "그 도메인의 review 화면"인지만 본다.
   const alert = buildReviewAlert(3);
-  assert.match(alert.message, /https:\/\/giucuu\.com\/(sellerpulse\/)?review$/m);
+  assert.match(alert.message, /https:\/\/www\.giucuu\.com\/(sellerpulse\/)?review$/m);
   assert.ok(
     !alert.message.includes("effiroad.com"),
     "옛 도메인이 남아 있으면 링크를 눌러도 빈 도메인이 뜬다",
+  );
+});
+
+test("주소에 www가 붙는다 — apex는 308이라 기계 호출이 거기서 멈춘다", () => {
+  // ★ 실제로 난 사고: Vercel이 apex(giucuu.com) → www로 308 리다이렉트하는데
+  // 크론은 -L 없이 따라가지 않아 308에서 멈췄고, 10분 자동 소싱과 문자 보고가
+  // 조용히 죽었다. 사람이 누르는 링크는 브라우저가 따라가서 티가 안 난다.
+  const alert = buildReviewAlert(1);
+  assert.ok(
+    alert.message.includes("https://www."),
+    "www가 빠지면 크론이 308에서 멈춰 자동 운전이 조용히 죽는다",
   );
 });
 

@@ -5,6 +5,10 @@
 # 플랜을 올리지 않고도 같은 일을 한다 — cron-job.org 같은 외부 서비스에
 # 새로 가입할 필요 없이, 이미 CRON_SECRET이 설정된 이 워크플로 하나로 된다.
 #
+# ⚠️ 자비스는 effiroad.com이 아니라 www.giucuu.com에 있다. effiroad.com은
+# 옛 흔적(AI 전화 서비스 가입자, 옛 toss-shop 대시보드)과 얽히지 않게
+# 텅 비워서 모든 경로가 404다 — 옛 주소를 그대로 두면 크론이 조용히 죽는다.
+#
 # ⚠️ 예전엔 이 워크플로가 옛 toss-shop 엔진(/api/cron/jarvis-pulse)을
 # 깨우고 있었다. 자비스를 처음부터 다시 지은 뒤에도 이 워크플로를 안 옮겨서,
 # 옛 엔진이 옛 저장소 기준으로 계속 초안을 만들고 앞뒤 안 맞는 문자를
@@ -27,10 +31,13 @@ jobs:
     steps:
       - name: 자비스 깨우기
         run: |
+          # ★ www가 붙어야 한다. apex(giucuu.com)는 Vercel이 www로 308
+          # 리다이렉트하는데 curl은 -L 없이 따라가지 않아 308에서 멈춘다.
+          # 실제로 자비스 크론이 이것 때문에 죽었다.
           code=$(curl -sS -o /tmp/pulse.json -w "%{http_code}" \
             --max-time 120 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://effiroad.com/api/jarvis/cron)
+            https://www.giucuu.com/api/jarvis/cron)
           echo "HTTP $code"
           cat /tmp/pulse.json
           # 실패를 조용히 넘기지 않는다 — 자동 소싱이 안 되고 있는데

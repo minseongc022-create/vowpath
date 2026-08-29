@@ -28,8 +28,23 @@ export function isJarvisHost(host: string | null | undefined): boolean {
   return JARVIS_HOSTS.has(normalizeHostname(host));
 }
 
-/** 문자·알림에 넣을 절대 주소 */
+/**
+ * 바깥에 알려줄 주소 — **www가 붙는다**.
+ *
+ * ★ 왜 apex(giucuu.com)가 아닌가
+ *
+ * 이 도메인은 Vercel 쪽 설정에서 apex → www로 308 리다이렉트가 걸려 있다.
+ * 미들웨어가 보기도 전에 플랫폼이 먼저 튕긴다. 브라우저는 리다이렉트를
+ * 따라가니 문자 링크는 apex여도 열리지만, **크론처럼 리다이렉트를 안 따라가는
+ * 호출은 308에서 그대로 멈춘다** — 실제로 자비스 크론이 이것 때문에 죽었다.
+ * 그래서 기계가 부를 주소는 처음부터 www로 준다.
+ */
+export const JARVIS_PUBLIC_ORIGIN = (
+  process.env.NEXT_PUBLIC_JARVIS_URL?.trim() || `https://www.${JARVIS_HOST}`
+).replace(/\/$/, "");
+
+/** 문자·알림·크론에 넣을 절대 주소 */
 export function jarvisUrl(pathname: string, search = ""): string {
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  return `https://${JARVIS_HOST}${path}${search}`;
+  return `${JARVIS_PUBLIC_ORIGIN}${path}${search}`;
 }

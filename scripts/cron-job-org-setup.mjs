@@ -58,8 +58,23 @@ function minuteMarks(intervalSeconds) {
   return marks;
 }
 
+/**
+ * 이 크론이 부를 주소.
+ *
+ * ★ 항목마다 baseUrl이 다를 수 있다
+ *
+ * 자비스는 www.giucuu.com에 있고, effiroad.com은 텅 비어(모든 경로 404)
+ * 있다. 예전엔 baseUrl이 하나뿐이라 전부 effiroad.com을 불렀고, 자비스를
+ * 옮긴 뒤 크론이 조용히 404를 두드리며 죽었다 — 실제로 난 사고다.
+ * 그래서 항목이 baseUrl을 직접 지정할 수 있게 한다.
+ */
+function urlFor(entry) {
+  const base = (entry.baseUrl ?? baseUrl).replace(/\/$/, "");
+  return `${base}${entry.path}`;
+}
+
 function jobPayload(entry) {
-  const url = `${baseUrl}${entry.path}`;
+  const url = urlFor(entry);
   const title = `Effiroad ${entry.path.replace(/^\/api\/(cron|jarvis)\//, "")} (${entry.intervalSeconds}s)`;
   return {
     job: {
@@ -109,7 +124,7 @@ async function main() {
   let updated = 0;
 
   for (const entry of entries) {
-    const url = `${baseUrl}${entry.path}`;
+    const url = urlFor(entry);
     const existing = jobs.find((j) => j.url === url);
     const payload = jobPayload(entry);
 
@@ -133,7 +148,7 @@ async function main() {
   // 여기서 명시적으로 끈다 — config에 없다고 조용히 지나가지 않는다.
   let disabled = 0;
   for (const entry of retired) {
-    const url = `${baseUrl}${entry.path}`;
+    const url = urlFor(entry);
     const existing = jobs.find((j) => j.url === url);
     if (!existing) continue;
     await cronApi(`/jobs/${existing.jobId}`, "DELETE");
