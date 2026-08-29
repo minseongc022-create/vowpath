@@ -138,3 +138,30 @@ test("도매 API 키가 없으면 그 사실을 정확히 말한다", async () =
     );
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// 30분 보고 누적 — 이 파일의 state()는 reportWindow를 안 만들어준다.
+// 오래된 상태에도 그대로 적용되는 상황이라, runCycle이 방어적으로
+// 채워야 한다.
+// ─────────────────────────────────────────────────────────────
+
+test("reportWindow가 없는 상태로 들어와도 죽지 않고 채워진다", async () => {
+  const s = state(); // reportWindow 필드 자체가 없다
+  await runCycle(s);
+  assert.ok(s.reportWindow, "runCycle이 없는 reportWindow를 채워야 한다");
+  assert.equal(s.reportWindow.cyclesRun, 1);
+});
+
+test("사이클을 돌 때마다 reportWindow의 cyclesRun이 누적된다", async () => {
+  const s = state();
+  await runCycle(s);
+  await runCycle(s);
+  await runCycle(s);
+  assert.equal(s.reportWindow.cyclesRun, 3);
+});
+
+test("돌지 않고 이유만 남긴 사이클도 cyclesRun에는 들어간다 — 「살아있음」을 알아야 하니까", async () => {
+  const s = state({ settings: { monthlyGoalKrw: 5_000_000, autopilotEnabled: false, autoPublish: false } });
+  await runCycle(s);
+  assert.equal(s.reportWindow.cyclesRun, 1);
+});

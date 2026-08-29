@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { loadState, saveState, appendChat } from "@/jarvis/core/store";
+import { emptyReportWindow } from "@/jarvis/core/types";
 import { runCycle } from "@/jarvis/engine/autopilot";
-import { sendReviewAlert } from "@/jarvis/engine/notify";
+import { sendReviewAlert, sendPeriodicReport, REPORT_INTERVAL_MS } from "@/jarvis/engine/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,28 @@ export async function GET(request: Request) {
       }
     }
 
+    // ★ 30분 보고 — 사이클마다 문자를 보내면 스팸이고(예전에 실제로 사고가
+    // 났다), 아예 안 보내면 사장님은 자비스가 살아있는지도 모른다. 창이
+    // 시작된 지 30분이 지났을 때만 이번 창의 누적 실적을 한 줄로 보낸다.
+    let reportSent = false;
+    let reportReason: string | undefined;
+    const windowElapsed = Date.now() - new Date(state.reportWindow.since).getTime();
+    if (windowElapsed >= REPORT_INTERVAL_MS) {
+      if (state.settings.alertPhone) {
+        const report = await sendPeriodicReport(state.settings.alertPhone, state.reportWindow, {
+          skusNow: result.goal.skusNow,
+          skusNeeded: result.goal.skusNeeded,
+        });
+        reportSent = report.sent;
+        reportReason = report.reason;
+      } else {
+        reportReason = "NO_PHONE";
+      }
+      // 문자를 못 보냈어도 창은 새로 시작한다 — 그러지 않으면 다음 사이클마다
+      // 계속 "지나갔다"고 나오면서 숫자가 끝없이 쌓인다.
+      state.reportWindow = emptyReportWindow();
+    }
+
     await saveState(state);
 
     return NextResponse.json({
@@ -89,6 +112,8 @@ export async function GET(request: Request) {
       idleReason: result.idleReason,
       alertSent,
       alertReason,
+      reportSent,
+      reportReason,
       goal: {
         skusNeeded: result.goal.skusNeeded,
         skusNow: result.goal.skusNow,

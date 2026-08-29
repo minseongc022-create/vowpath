@@ -174,6 +174,37 @@ export type ChatTurn = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// 30분 보고 — "몇 번 돌았고 뭘 찾았는지" 누적
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 10분마다 도는 자동 사이클(수동 「소싱 다시해봐」 포함)의 실적을
+ * 30분 단위로 모아뒀다가 문자로 보고한다. 사이클마다 매번 문자를
+ * 보내면 스팸이 되고(예전에 실제로 사고가 났다), 아예 안 보내면
+ * 사장님은 자비스가 살아있는지도 모른다 — 그 중간이 30분 보고다.
+ */
+export type ReportWindow = {
+  /** 이 창이 시작된 시각 — 여기서부터 30분이 지나면 보고하고 새로 시작한다 */
+  since: string;
+  cyclesRun: number;
+  keywordsTried: number;
+  productsSeen: number;
+  candidatesFound: number;
+  draftsCreated: number;
+};
+
+export function emptyReportWindow(now: Date = new Date()): ReportWindow {
+  return {
+    since: now.toISOString(),
+    cyclesRun: 0,
+    keywordsTried: 0,
+    productsSeen: 0,
+    candidatesFound: 0,
+    draftsCreated: 0,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // 설정 · 상태
 // ─────────────────────────────────────────────────────────────
 
@@ -208,6 +239,8 @@ export type JarvisState = {
   lastAutopilotAt?: string;
   /** 지금 자비스가 뭘 하고 있는지 — 화면에 실시간 표시 */
   activity?: { label: string; at: string; done?: boolean };
+  /** 30분 보고 누적 창 */
+  reportWindow: ReportWindow;
 };
 
 export const DEFAULT_SETTINGS: Settings = {

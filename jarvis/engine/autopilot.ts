@@ -23,6 +23,7 @@
  */
 
 import type { Draft, JarvisState, SourcingRun } from "../core/types";
+import { emptyReportWindow } from "../core/types";
 import { sourceCandidates, supplierKey } from "./sourcing";
 import { buildDetailPage } from "./detail-page";
 import { planForGoal, type GoalPlan } from "./goal";
@@ -51,6 +52,11 @@ export async function runCycle(
 ): Promise<CycleResult> {
   const ranAt = new Date().toISOString();
   const actions: string[] = [];
+
+  // 오래된 상태(테스트 픽스처 포함)에는 이 필드가 없을 수 있다 — 30분 보고가
+  // 그 때문에 죽으면 안 되니 여기서 한 번 채운다
+  state.reportWindow ??= emptyReportWindow();
+  state.reportWindow.cyclesRun += 1;
 
   const published = state.drafts.filter((d) => d.status === "published").length;
   const pending = state.drafts.filter((d) => d.status === "pending_review").length;
@@ -119,6 +125,9 @@ export async function runCycle(
   });
 
   state.lastSourcingRun = run;
+  state.reportWindow.keywordsTried += run.keywordsTried;
+  state.reportWindow.productsSeen += run.productsSeen;
+  state.reportWindow.candidatesFound += run.candidatesFound;
   actions.push(run.summary);
 
   if (!candidates.length) {
@@ -168,6 +177,7 @@ export async function runCycle(
   }
 
   state.lastAutopilotAt = ranAt;
+  state.reportWindow.draftsCreated += created;
 
   return {
     ranAt,
