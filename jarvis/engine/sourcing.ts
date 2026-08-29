@@ -191,7 +191,7 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
       detailBudget--;
       let unit;
       try {
-        unit = await confirmSingleUnitSourcing(Number(itemNo));
+        unit = await confirmSingleUnitSourcing(itemNo);
       } catch {
         bump("낱개 발주 확인 실패(일시적 오류)");
         continue;
