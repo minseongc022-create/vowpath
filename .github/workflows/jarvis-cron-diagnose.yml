@@ -1,0 +1,30 @@
+# 일회성 진단 — GitHub Actions 스케줄(jarvis-pulse)이 몇 시간 비었던
+# 구간에 cron-job.org 쪽 외부 크론이 실제로 돌고 있었는지, 등록 상태가
+# 여전히 올바른지 확인한다. 확인 끝나면 이 워크플로와
+# scripts/cron-job-org-history-check.mjs는 함께 지운다.
+name: jarvis-cron-diagnose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: cron-job.org 등록 상태 다시 맞추기 (idempotent)
+        env:
+          CRONJOB_ORG_API_KEY: ${{ secrets.CRONJOB_ORG_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          NEXT_PUBLIC_APP_URL: https://effiroad.com
+        run: node scripts/cron-job-org-setup.mjs
+
+      - name: cron-job.org 실행 이력 확인
+        env:
+          CRONJOB_ORG_API_KEY: ${{ secrets.CRONJOB_ORG_API_KEY }}
+          NEXT_PUBLIC_APP_URL: https://effiroad.com
+        run: node scripts/cron-job-org-history-check.mjs
