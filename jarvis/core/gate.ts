@@ -37,7 +37,12 @@ const MACHINE_CALLED_PREFIXES = [
 ];
 
 /** 로그인하기 위해 반드시 열려 있어야 하는 것 */
-const LOGIN_PATHS = ["/login", "/api/jarvis/login"];
+const LOGIN_PATHS = [
+  "/login",
+  "/api/jarvis/login",
+  // 2단계 인증(문자 코드 확인) — 로그인 과정의 일부라 세션이 없어도 열려야 한다
+  "/api/jarvis/login/verify-otp",
+];
 
 /** 화면이 그려지려면 필요한 정적 파일 */
 function isStaticAsset(pathname: string): boolean {

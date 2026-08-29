@@ -90,3 +90,11 @@ test("★ 새로 만든 반품 화면·API도 자동으로 잠긴다 — 기본�
   assert.equal(isPublicJarvisPath("/returns"), false);
   assert.equal(isPublicJarvisPath("/api/jarvis/returns"), false);
 });
+
+test("★ 2단계 인증(문자 코드) 확인 라우트는 로그인 과정이라 열려 있어야 한다", () => {
+  assert.equal(isPublicJarvisPath("/api/jarvis/login/verify-otp"), true);
+});
+
+test("verify-otp로 시작한다고 다 열리면 안 된다", () => {
+  assert.equal(isPublicJarvisPath("/api/jarvis/login/verify-otp-bypass"), false);
+});
