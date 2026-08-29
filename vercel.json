@@ -51,7 +51,7 @@
   "crons": [
     {
       "path": "/api/jarvis/cron",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/customer-verification",
