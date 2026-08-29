@@ -17,9 +17,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { emails?: string[] };
+  const raw = await request.text();
+  let body: { emails?: string[] } = {};
+  try {
+    body = raw ? JSON.parse(raw) : {};
+  } catch {
+    // body가 비어있거나 JSON이 아니면 아래에서 emails 배열이 필요합니다로 처리한다.
+  }
   if (!Array.isArray(body.emails) || body.emails.length === 0) {
-    return NextResponse.json({ error: "emails 배열이 필요합니다" }, { status: 400 });
+    return NextResponse.json(
+      { error: "emails 배열이 필요합니다", rawLength: raw.length, rawPreview: raw.slice(0, 200) },
+      { status: 400 },
+    );
   }
 
   const result = await deleteAccountsByEmail(body.emails);
