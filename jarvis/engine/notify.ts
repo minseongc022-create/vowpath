@@ -17,6 +17,7 @@
  */
 
 import { sendSms } from "@/lib/send-sms";
+import { normalizeSmsPhone } from "@/lib/phone";
 import { jarvisUrl } from "../host";
 import { JV_ROUTES } from "../routes";
 import type { ReportWindow } from "../core/types";
@@ -27,6 +28,40 @@ export const NOTIFY_VERSION = "1.0";
 export const SMS_SINGLE_SEGMENT_LIMIT = 67;
 
 const REVIEW_URL = jarvisUrl(JV_ROUTES.review);
+
+/**
+ * 사장님에게 문자 한 통. 자비스의 모든 문자는 여기를 지난다.
+ *
+ * ★ 왜 따로 두는가 — 이 도메인에 원래 있던 미국 전화응대 서비스는
+ * 수신 번호를 **미국(+1)로만** 제한한다(lib/send-sms의 기본값). 자비스
+ * 사장님 번호는 한국(+82)이라 그 관문에서 전부 거부됐다. 크론 응답에
+ * `"SMS can only be sent to US (+1) numbers"`가 계속 찍히고 있었는데,
+ * 소싱은 성공으로 뜨니 아무도 문자가 안 오는 걸 고장으로 안 봤다.
+ *
+ * 그렇다고 관문을 통째로 열면 오타 하나로 아무 국제번호에나 문자가
+ * 나간다. 그래서 여기서 **한국 휴대폰(010…)과 미국 번호만** 직접
+ * 확인하고 통과시킨다 — 자비스 설정도 이미 010 형식만 저장한다.
+ */
+async function sendOwnerSms(
+  phoneRaw: string,
+  message: string,
+  label: string,
+): Promise<{ sent: boolean; reason: string }> {
+  const phone = normalizeSmsPhone(phoneRaw);
+  if (!phone || !(phone.startsWith("+82") || phone.startsWith("+1"))) {
+    console.error(`[jarvis/notify] 수신 번호를 못 읽었습니다: ${phoneRaw}`);
+    return { sent: false, reason: "BAD_PHONE" };
+  }
+
+  try {
+    // 자비스는 한국 사업이다 — 옛 서비스의 "+1만" 제한을 여기서 끈다.
+    const result = await sendSms(phone, message, label, { usRecipientsOnly: false });
+    if (!result.ok) return { sent: false, reason: result.error };
+    return { sent: true, reason: "OK" };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "SEND_FAILED" };
+  }
+}
 
 export type ReviewAlert = { message: string; withinLimit: boolean };
 
@@ -60,13 +95,7 @@ export async function sendReviewAlert(
     return { sent: false, reason: "MESSAGE_TOO_LONG" };
   }
 
-  try {
-    const result = await sendSms(phone, alert.message, "jarvis-review-alert");
-    if (!result.ok) return { sent: false, reason: result.error };
-    return { sent: true, reason: "OK" };
-  } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : "SEND_FAILED" };
-  }
+  return sendOwnerSms(phone, alert.message, "jarvis-review-alert");
 }
 
 /** 30분마다: 이 창 동안 자비스가 실제로 무엇을 했는지 */
@@ -110,11 +139,5 @@ export async function sendPeriodicReport(
     return { sent: false, reason: "MESSAGE_TOO_LONG" };
   }
 
-  try {
-    const result = await sendSms(phone, report.message, "jarvis-periodic-report");
-    if (!result.ok) return { sent: false, reason: result.error };
-    return { sent: true, reason: "OK" };
-  } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : "SEND_FAILED" };
-  }
+  return sendOwnerSms(phone, report.message, "jarvis-periodic-report");
 }
