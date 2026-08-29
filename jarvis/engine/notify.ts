@@ -18,6 +18,12 @@
 
 import { sendSms } from "@/lib/send-sms";
 import { normalizeSmsPhone } from "@/lib/phone";
+import {
+  byteLength,
+  isSolapiConfigured,
+  LMS_KR_LIMIT,
+  sendSolapiSms,
+} from "../notify/solapi";
 import { jarvisUrl } from "../host";
 import { JV_ROUTES } from "../routes";
 import type { ReportWindow } from "../core/types";
@@ -33,15 +39,25 @@ const RETURNS_URL = jarvisUrl(JV_ROUTES.returns);
 /**
  * 사장님에게 문자 한 통. 자비스의 모든 문자는 여기를 지난다.
  *
- * ★ 왜 따로 두는가 — 이 도메인에 원래 있던 미국 전화응대 서비스는
- * 수신 번호를 **미국(+1)로만** 제한한다(lib/send-sms의 기본값). 자비스
- * 사장님 번호는 한국(+82)이라 그 관문에서 전부 거부됐다. 크론 응답에
- * `"SMS can only be sent to US (+1) numbers"`가 계속 찍히고 있었는데,
- * 소싱은 성공으로 뜨니 아무도 문자가 안 오는 걸 고장으로 안 봤다.
+ * ★ 국내 발송을 먼저 쓴다 (솔라피)
  *
- * 그렇다고 관문을 통째로 열면 오타 하나로 아무 국제번호에나 문자가
- * 나간다. 그래서 여기서 **한국 휴대폰(010…)과 미국 번호만** 직접
- * 확인하고 통과시킨다 — 자비스 설정도 이미 010 형식만 저장한다.
+ * 이 도메인에 원래 있던 미국 전화응대 서비스는 트윌리오로 국제발신을
+ * 한다. 자비스는 한국 사업이라 그 경로가 세 가지로 계속 걸렸다:
+ * 계정 Geo permissions에 한국이 없으면 아예 안 나가고, 국제발신 SMS는
+ * 67자를 넘으면 쪼개져 뜻이 뒤집히고, 단가가 다섯 배쯤 된다.
+ *
+ * 그래서 솔라피 설정(키 + 사전등록 발신번호)이 있으면 **국내 발송을
+ * 먼저 쓴다.** 없으면 예전처럼 트윌리오로 간다 — 키를 넣는 순간 알아서
+ * 넘어가고, 아직 안 넣었다고 문자가 끊기지도 않는다.
+ *
+ * ★ 트윌리오로 갈 때만 지역 관문을 끈다
+ *
+ * lib/send-sms의 기본값은 수신 번호를 미국(+1)로만 제한한다. 사장님
+ * 번호는 +82라 그 관문에서 전부 거부됐다("SMS can only be sent to US
+ * (+1) numbers"가 크론 응답에 계속 찍혔는데, 소싱은 성공으로 뜨니
+ * 아무도 고장으로 안 봤다). 그렇다고 관문을 통째로 열면 오타 하나로
+ * 아무 국제번호에나 문자가 나가므로, 여기서 **한국 휴대폰과 미국
+ * 번호만** 직접 확인하고 통과시킨다.
  */
 async function sendOwnerSms(
   phoneRaw: string,
@@ -54,8 +70,22 @@ async function sendOwnerSms(
     return { sent: false, reason: "BAD_PHONE" };
   }
 
+  // ── 국내 발송 (솔라피) ───────────────────────────────────
+  if (isSolapiConfigured() && phone.startsWith("+82")) {
+    try {
+      const result = await sendSolapiSms({ to: phone, text: message });
+      if (result.ok) return { sent: true, reason: "OK" };
+      // 실패를 조용히 트윌리오로 넘기지 않는다. 발신번호 미등록·잔액
+      // 부족은 사장님이 해결할 수 있는 일인데, 트윌리오로 흘려보내면
+      // 그 이유가 트윌리오 오류에 덮여 영영 안 보인다.
+      return { sent: false, reason: result.error };
+    } catch (e) {
+      return { sent: false, reason: e instanceof Error ? e.message : "SOLAPI_FAILED" };
+    }
+  }
+
+  // ── 국제 발송 (트윌리오) — 솔라피 설정 전까지 ────────────
   try {
-    // 자비스는 한국 사업이다 — 옛 서비스의 "+1만" 제한을 여기서 끈다.
     const result = await sendSms(phone, message, label, { usRecipientsOnly: false });
     if (!result.ok) return { sent: false, reason: result.error };
     return { sent: true, reason: "OK" };
@@ -150,15 +180,72 @@ export function buildPeriodicReport(
 }
 
 /**
+ * 국내 발송일 때 쓰는 **긴 보고**.
+ *
+ * ★ 왜 두 벌인가
+ *
+ * 위의 한 줄짜리는 국제발신 67자 한도에 맞추느라 깎을 대로 깎은 것이다.
+ * 숫자만 나열돼 있어서 "소싱 3회 · 확인 15개 · 후보 2개"를 봐도 잘
+ * 되고 있는 건지 막혀 있는 건지 알 수 없다. 사장님이 원한 건
+ * "몇 번 했는지 **성과가 뭔지**"였는데, 성과는 그 자리에 안 들어갔다.
+ *
+ * 국내 LMS는 한글 1,000자가 한 통이라 그 제약이 없다. 그래서 같은
+ * 창의 실적을 **읽을 수 있는 말로** 담는다 — 특히 0건일 때 왜 0인지가
+ * 들어가야 한다. 숫자만 오면 사장님은 매번 화면을 열어봐야 한다.
+ */
+export function buildLongReport(
+  window: Pick<ReportWindow, "cyclesRun" | "productsSeen" | "candidatesFound" | "draftsCreated">,
+  goal: { skusNow: number; skusNeeded: number; dailyTarget?: number },
+  extra?: {
+    /** 이번 창에서 무엇이 막았는지 — 마지막 소싱의 한 줄 요약 */
+    lastSummary?: string;
+    /** 지금 검수 대기 건수 */
+    pendingReview?: number;
+    /** 사장님 결정을 기다리는 반품 */
+    openReturns?: number;
+  },
+): PeriodicReport {
+  const lines: string[] = ["[자비스] 30분 보고", ""];
+
+  lines.push(`· 소싱 ${window.cyclesRun}회 돌았습니다`);
+  lines.push(`· 도매 상품 ${window.productsSeen}개를 봤습니다`);
+  lines.push(`· 기준을 통과한 후보 ${window.candidatesFound}개`);
+  lines.push(`· 새로 만든 상품 ${window.draftsCreated}건`);
+
+  // 0건일 때 이유를 안 적으면 이 문자는 "아무 일도 없었다"만 전한다
+  if (window.draftsCreated === 0 && extra?.lastSummary) {
+    lines.push("", `왜 0건인가: ${extra.lastSummary}`);
+  }
+
+  lines.push("", `목표까지 ${goal.skusNow}/${goal.skusNeeded}개`);
+  if (goal.dailyTarget != null) lines.push(`오늘 목표 ${goal.dailyTarget}개`);
+
+  if (extra?.pendingReview != null && extra.pendingReview > 0) {
+    lines.push("", `검수 대기 ${extra.pendingReview}건`, REVIEW_URL);
+  }
+  if (extra?.openReturns != null && extra.openReturns > 0) {
+    lines.push("", `확인 필요한 반품 ${extra.openReturns}건`, RETURNS_URL);
+  }
+
+  const message = lines.join("\n");
+  // LMS 한도(한글 1,000자)를 넘길 일은 없지만, 없으면 언젠가 넘는다
+  return { message, withinLimit: byteLength(message) <= LMS_KR_LIMIT * 2 };
+}
+
+/**
  * 30분 보고 문자를 보낸다. 검수 대기 알림과 마찬가지로, 발송 실패가
  * 자동 운전 사이클 자체를 막지 않는다.
  */
 export async function sendPeriodicReport(
   phone: string,
   window: Pick<ReportWindow, "cyclesRun" | "productsSeen" | "candidatesFound" | "draftsCreated">,
-  goal: { skusNow: number; skusNeeded: number },
+  goal: { skusNow: number; skusNeeded: number; dailyTarget?: number },
+  extra?: { lastSummary?: string; pendingReview?: number; openReturns?: number },
 ): Promise<{ sent: boolean; reason: string }> {
-  const report = buildPeriodicReport(window, goal);
+  // 국내 발송이면 67자 한도가 없다 — 깎은 한 줄 대신 읽을 수 있는 보고를 보낸다
+  const report = isSolapiConfigured()
+    ? buildLongReport(window, goal, extra)
+    : buildPeriodicReport(window, goal);
 
   if (!report.withinLimit) {
     console.error(

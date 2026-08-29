@@ -5,6 +5,7 @@ import { loadState, saveState } from "@/jarvis/core/store";
 import { MIN_GOAL_KRW, MAX_GOAL_KRW } from "@/jarvis/chat/intents";
 import { isDomeggookApiConfigured } from "@/jarvis/wholesale/domeggook-api";
 import { resolveTossConfig, maskTossKey } from "@/jarvis/core/toss-config";
+import { isSolapiConfigured, solapiConfigFromEnv } from "@/jarvis/notify/solapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,6 +44,27 @@ export async function GET(request: Request) {
         fromEnv: isDomeggookApiConfigured(),
       },
       openai: { connected: Boolean(process.env.OPENAI_API_KEY) },
+      // 문자를 어느 길로 보내는지 보여준다. 안 보이면 왜 문자가 짧은지,
+      // 왜 안 오는지 화면만 봐서는 알 수 없다.
+      sms: (() => {
+        const solapi = solapiConfigFromEnv();
+        if (isSolapiConfigured()) {
+          return {
+            provider: "solapi",
+            connected: true,
+            senderPhone: solapi?.from ?? null,
+            note: "국내 발송 — 긴 보고(LMS)를 보낼 수 있습니다",
+          };
+        }
+        return {
+          provider: "twilio",
+          connected: Boolean(process.env.TWILIO_ACCOUNT_SID?.trim()),
+          senderPhone: null,
+          note:
+            "국제발신 — 67자를 넘으면 문자가 잘려서 짧은 보고만 보냅니다. " +
+            "솔라피(SOLAPI_API_KEY·SOLAPI_API_SECRET·SOLAPI_SENDER_PHONE)를 넣으시면 국내 발송으로 바뀝니다.",
+        };
+      })(),
     },
   });
 }
