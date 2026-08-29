@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifySameOriginRequest } from "@/lib/security/request-guard";
 import { connectTossSeller, syncMerchantNow } from "@/toss-shop/lib/store";
+import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { isOwnerSession } from "@/jarvis/core/access";
 import {
   createTossShopSessionToken,
   tossShopSessionCookieOptions,
@@ -16,9 +18,31 @@ export async function GET() {
   });
 }
 
+/**
+ * ★ 실제로 발견된 두 번째 구멍
+ *
+ * 이 라우트는 인증 없이 누구나 부를 수 있었다. Toss Access/Secret Key만
+ * 있으면(자기 것이든, `useServerKeys: true`로 **우리 서버에 저장된 진짜
+ * 키**를 그대로 가져다 쓰든) 새 계정과 세션이 만들어졌다. 실제로 계정
+ * 감사에서 `seller_thxs94nk@connect.effiroad.local`이라는, 사장님 본인
+ * 계정보다 먼저 만들어진 낯선 계정이 발견됐다.
+ *
+ * 로그인 라우트(app/api/toss-shop/auth/login)처럼 이메일로 소유자를
+ * 가리는 게 안 된다 — 여기서 만들어지는 이메일은 Toss 키에서 뽑아낸
+ * 값이라 사전에 알 수 없다. 그래서 대신 **이미 소유자로 로그인된 세션이
+ * 있어야만** 이 라우트가 동작하게 막는다. 사장님이 처음 들어올 때는
+ * `/login`으로 소유자 이메일 로그인부터 하고, 그다음 이 화면에서 Toss
+ * 키를 연결하는 흐름이면 충분하다 — 이 라우트 자체가 "계정을 새로
+ * 만드는" 입구일 필요가 없다.
+ */
 export async function POST(request: Request) {
   const forbidden = verifySameOriginRequest(request);
   if (forbidden) return forbidden;
+
+  const session = await requireTossShopSessionFromRequest(request);
+  if (!isOwnerSession(session)) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
 
   try {
     const body = (await request.json()) as {
