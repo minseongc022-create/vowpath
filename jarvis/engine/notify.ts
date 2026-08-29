@@ -310,3 +310,20 @@ export async function sendPasswordResetSms(
   const text = `[자비스] 새 비밀번호: ${newPassword}\n\n로그인 후 반드시 확인하세요.`;
   return sendOwnerSms(phone, text, "jarvis-password-reset", settings);
 }
+
+/**
+ * 로그인 2단계 인증 코드 문자.
+ *
+ * 다른 문자들과 달리 이건 **실패해도 로그인 사이클을 죽여야 한다** —
+ * 코드가 안 갔는데 로그인이 되면 2단계 인증이 없는 것과 같다. 그래서
+ * 이 함수는 성공/실패를 있는 그대로 돌려주고, 호출하는 쪽(로그인 라우트)이
+ * 실패 시 로그인 자체를 막는다.
+ */
+export async function sendLoginOtpSms(
+  phone: string,
+  code: string,
+  settings?: SavedSolapiSettings,
+): Promise<{ sent: boolean; reason: string }> {
+  const text = `[자비스] 로그인 인증번호: ${code}\n\n5분 안에 입력하세요. 본인이 요청하지 않았다면 무시하세요.`;
+  return sendOwnerSms(phone, text, "jarvis-login-otp", settings);
+}
