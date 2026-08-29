@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   sellerPulseInternalPath,
   isRetiredDashboardPath,
+  isLegacyEffiroadUiPath,
 } from "../../lib/seller-pulse-host.ts";
 
 // ─────────────────────────────────────────────────────────────
@@ -40,4 +41,26 @@ test("자비스와 무관한 주소는 건드리지 않는다", () => {
   assert.equal(isRetiredDashboardPath("/review"), false);
   assert.equal(isRetiredDashboardPath("/"), false);
   assert.equal(sellerPulseInternalPath("/pricing"), null);
+});
+
+// ─────────────────────────────────────────────────────────────
+// 실제 사고 재현: /settings가 옛 UI 차단 목록에도 들어 있어서
+// sellerPulseInternalPath까지 가보지도 못하고 미들웨어가 404로 막았다.
+// 배포는 됐는데 설정 화면만 안 뜨는 형태로 나타났다.
+// ─────────────────────────────────────────────────────────────
+
+test("/settings는 은퇴한 UI 목록에 없다 — 자비스 설정 화면이라 막히면 안 된다", () => {
+  assert.equal(
+    isLegacyEffiroadUiPath("/settings"),
+    false,
+    "/settings가 이 목록에 있으면 sellerPulseInternalPath보다 먼저 404로 막힌다",
+  );
+});
+
+test("apex 미들웨어 순서상 /settings가 실제로 자비스 화면에 닿는다", () => {
+  // isLegacyEffiroadUiPath를 먼저 통과해야 sellerPulseInternalPath가 뜻이 있다.
+  // 이 순서를 흉내내 두 조건을 함께 확인한다 — 실제 미들웨어 로직과 어긋나면
+  // 이 테스트가 통과해도 배포에서는 여전히 막힐 수 있으므로 순서 자체를 명시한다.
+  assert.equal(isLegacyEffiroadUiPath("/settings"), false);
+  assert.equal(sellerPulseInternalPath("/settings"), "/jarvis/settings");
 });

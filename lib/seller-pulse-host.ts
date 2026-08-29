@@ -16,7 +16,13 @@ export const CUSTOMER_PORTAL_PREFIXES = [
   "/api/places/",
 ];
 
-/** Effiroad dispatch marketing UI — local dev only when EFFIROAD_DISPATCH_ENABLED=1. */
+/**
+ * Effiroad dispatch marketing UI — local dev only when EFFIROAD_DISPATCH_ENABLED=1.
+ *
+ * ⚠️ `/settings`는 여기 없다. 자비스가 apex를 서비스하는 지금은 `/settings`가
+ * 자비스의 연동 설정 화면이다 — 여기 넣으면 sellerPulseInternalPath까지
+ * 가보지도 못하고 404로 막혀버린다(실제로 배포 후 이 버그가 났다).
+ */
 const LEGACY_EFFIROAD_UI_PREFIXES = [
   "/pricing",
   "/signup",
@@ -36,7 +42,6 @@ const LEGACY_EFFIROAD_UI_PREFIXES = [
   "/privacy",
   "/refund",
   "/forgot-password",
-  "/settings",
 ];
 
 export function isSellerPulsePrimaryHost(host: string | null | undefined): boolean {
