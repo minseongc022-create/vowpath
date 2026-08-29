@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     request: req,
     supplier: {
       policyText: draft?.candidate.supplier.returnPolicyText,
-      returnAddress: undefined,
+      returnAddress: draft?.candidate.supplier.returnAddress,
     },
   });
 

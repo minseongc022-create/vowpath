@@ -186,3 +186,30 @@ test("반품 문자에 확인할 곳 주소가 들어간다", () => {
   assert.match(a.message, /https:\/\//);
   assert.match(a.message, /반품 2건/);
 });
+
+// ── 반품 주소가 실제로 전달되는가 ─────────────────────────────
+//
+// 공급처가 반품을 받아줘도 **주소가 없으면** 회수지를 확정할 수 없어
+// 매번 사람 손으로 넘어간다. 자동 처리가 되려면 소싱 → 초안 → 반품까지
+// 주소가 끊기지 않고 와야 한다. 실제로 이 연결이 빠져 있었다.
+
+test("★ 반품 주소가 없으면 공급처로 안 보낸다 — 받아준다고 해도 어디로 보낼지 모른다", () => {
+  const d = decideReturn({
+    request: req(),
+    supplier: { policyText: "반품 가능합니다." }, // 주소 없음
+  });
+  assert.equal(d.shipBackTo, "seller");
+  assert.equal(d.action, "needs_owner");
+});
+
+test("★ 주소가 오면 자동으로 공급처 회수가 된다 — 이 연결이 끊겨 있었다", () => {
+  const d = decideReturn({
+    request: req(),
+    supplier: {
+      policyText: "반품 가능합니다.",
+      returnAddress: "경기도 부천시 도매로 12",
+    },
+  });
+  assert.equal(d.shipBackTo, "supplier");
+  assert.equal(d.action, "accept", "주소까지 있으면 사람 손을 안 거쳐야 한다");
+});
