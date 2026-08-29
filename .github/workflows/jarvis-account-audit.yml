@@ -1,0 +1,29 @@
+# 일회성 계정 감사 — 회원가입이 한동안 누구에게나 열려 있던 사고 이후,
+# 실제로 다른 사람이 가입한 적이 있는지 확인하기 위해 만들었다.
+# 수동 실행(workflow_dispatch)만 있고 스케줄은 없다 — 상시 도는 게 아니다.
+name: jarvis-account-audit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 계정 목록 조회
+        run: |
+          curl -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://effiroad.com/api/admin/list-accounts \
+            | node -e '
+              let d = "";
+              process.stdin.on("data", c => d += c);
+              process.stdin.on("end", () => {
+                const j = JSON.parse(d);
+                if (!j.ok) { console.error(JSON.stringify(j)); process.exit(1); }
+                console.log(`총 계정 수: ${j.count}`);
+                for (const a of j.accounts) {
+                  console.log(`- ${a.email} | ${a.name} | 가입: ${a.createdAt} | merchant: ${a.merchantId}`);
+                }
+              });
+            '

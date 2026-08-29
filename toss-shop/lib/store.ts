@@ -181,6 +181,25 @@ function merchantData(store: TossShopStore, merchantId: string): MerchantData {
 
 // ── Auth ──
 
+/**
+ * 계정 감사용 — 비밀번호 해시는 절대 포함하지 않는다.
+ *
+ * 회원가입이 한동안 누구에게나 열려 있던 사고 이후, 실제로 다른 사람이
+ * 가입한 적이 있는지 확인하기 위해 추가했다. 언제·어떤 이메일로 계정이
+ * 만들어졌는지만 본다 — 그 이상은 감사에 필요하지 않다.
+ */
+export async function listAccountsForAudit(): Promise<
+  Array<{ email: string; name: string; createdAt: string; merchantId: string }>
+> {
+  const store = await loadStore();
+  return store.accounts.map((a) => ({
+    email: a.email,
+    name: a.name,
+    createdAt: a.createdAt,
+    merchantId: a.merchantId,
+  }));
+}
+
 export async function authenticateAccount(
   email: string,
   password: string,
