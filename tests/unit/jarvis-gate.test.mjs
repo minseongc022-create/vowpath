@@ -64,3 +64,24 @@ test("로그인 경로를 접두어로 흉내 내도 안 열린다", () => {
   assert.equal(isPublicJarvisPath("/login-bypass"), false);
   assert.equal(isPublicJarvisPath("/api/jarvis/login-x"), false);
 });
+
+// ─────────────────────────────────────────────────────────────
+// 구쿠 격리 — giucuu.com은 이제 자비스 자리다.
+//
+// 구쿠 코드 파일은 되살릴 수 있게 남겨뒀지만 라우팅은 완전히 끊었다.
+// 호스트별 분기만으로는 부족하다: 배포 자체의 주소(*.vercel.app)로
+// 들어오면 자비스 분기도 effiroad 분기도 안 걸려서 /giu·/api/giu가
+// 그대로 열린다. 그래서 경로로 막는다.
+// ─────────────────────────────────────────────────────────────
+
+test("구쿠 경로는 자비스 게이트에서도 공개가 아니다", () => {
+  for (const p of [
+    "/giu",
+    "/giu/hop",
+    "/api/giu/health",
+    "/api/giu/payments/vnpay/ipn",
+    "/api/giu/auth/login",
+  ]) {
+    assert.equal(isPublicJarvisPath(p), false, `${p}가 열리면 옛 구쿠 사용자가 들어온다`);
+  }
+});

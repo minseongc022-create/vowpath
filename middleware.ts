@@ -141,6 +141,26 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const hostname = normalizeHostname(host);
 
+  // ★ 구쿠는 이 배포에서 완전히 빠졌다 — 어느 호스트에서도 안 열린다
+  //
+  // giucuu.com은 이제 자비스 자리다. 구쿠 코드 파일은 되살릴 수 있게 그대로
+  // 두었지만(커밋 5c9df16 + tar 백업), **라우팅은 여기서 완전히 끊는다**.
+  //
+  // 호스트별 분기만으로는 부족하다: giucuu.com은 아래 자비스 분기가 잡고
+  // effiroad.com은 텅 비었지만, **배포 자체의 주소(*.vercel.app)로 들어오면**
+  // 두 분기 모두 걸리지 않고 흘러내려가 `/giu`·`/api/giu`가 그대로 열린다.
+  // 그러면 옛 가맹점·고객이 그 주소로 계속 들어올 수 있고, 결제 웹훅도
+  // 살아 있게 된다. 호스트와 무관하게 경로로 막는 이유다.
+  if (pathname === "/giu" || pathname.startsWith("/giu/") || pathname.startsWith("/api/giu")) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+      },
+    });
+  }
+
   // learn.effiroad.com → Lane only (no Effiroad dispatch chrome or auth gates).
   if (isLearnHost(hostname)) {
     const internal = learnInternalPath(pathname);
