@@ -20,7 +20,13 @@ export const SP_ROUTES = {
   consignment: sp("/dashboard/consignment"),
   importSales: sp("/dashboard/import"),
   listings: sp("/dashboard/listings"),
-  /** 등록 전 최종 검수 — 고객에게 보일 모습 그대로 확인하고 승인하는 곳 */
-  review: sp("/dashboard/review"),
+  /**
+   * 등록 전 최종 검수.
+   *
+   * ⚠️ 이제 자비스 화면(`/review`)을 가리킨다. 옛 경로(`/dashboard/review`)는
+   * 은퇴해 홈으로 리다이렉트되므로, 여기를 안 바꾸면 문자로 나가는 링크가
+   * 리다이렉트를 한 번 더 타고 검수 화면이 아닌 홈에 떨어진다.
+   */
+  review: sp("/review"),
   settings: sp("/dashboard/settings"),
 } as const;
