@@ -90,10 +90,25 @@ export async function GET(request: Request) {
     const windowElapsed = Date.now() - new Date(state.reportWindow.since).getTime();
     if (windowElapsed >= REPORT_INTERVAL_MS) {
       if (state.settings.alertPhone) {
-        const report = await sendPeriodicReport(state.settings.alertPhone, state.reportWindow, {
-          skusNow: result.goal.skusNow,
-          skusNeeded: result.goal.skusNeeded,
-        });
+        const report = await sendPeriodicReport(
+          state.settings.alertPhone,
+          state.reportWindow,
+          {
+            skusNow: result.goal.skusNow,
+            skusNeeded: result.goal.skusNeeded,
+            dailyTarget: result.goal.dailyTarget,
+          },
+          // 국내 발송(솔라피)이면 이 값들이 보고에 실린다. 국제발신 67자
+          // 한도에서는 넣을 자리가 없어 숫자만 보냈는데, 그러면 0건일 때
+          // 왜 0인지를 사장님이 화면을 열어봐야만 알 수 있었다.
+          {
+            lastSummary: result.sourcingRun?.summary ?? result.idleReason,
+            pendingReview: state.drafts.filter((d) => d.status === "pending_review").length,
+            openReturns: (state.returns ?? []).filter(
+              (r) => r.status === "open" && r.decision.action === "needs_owner",
+            ).length,
+          },
+        );
         reportSent = report.sent;
         reportReason = report.reason;
       } else {
