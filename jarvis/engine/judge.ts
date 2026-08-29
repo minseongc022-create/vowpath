@@ -108,6 +108,24 @@ function judgeImages(c: Candidate): JudgeSignal {
 }
 
 /**
+ * 사진이 몇 장이든, 그 사진이 실제로 사고 싶게 만드는가.
+ *
+ * "아무도 안 살거같은 비주얼"이 실제로 문제였다 — 개수(judgeImages)만
+ * 보면 흐릿하고 조악한 사진도 여러 장이면 만점을 받는다. AI가 실제로
+ * 사진을 봐야만 답할 수 있는 값이라 sourcing.ts에서 미리 판단해 candidate에
+ * 실어 온다. 시간이 없어 못 봤으면(undefined) 중립 — 못 봤다고 벌하지 않는다.
+ */
+function judgeAppeal(c: Candidate): JudgeSignal {
+  if (c.visualAppeal == null) {
+    return { score: 0.5, note: "사진 품질 미판단" };
+  }
+  return {
+    score: clamp01(c.visualAppeal),
+    note: c.visualAppealNote ?? `사진 품질 점수 ${Math.round(c.visualAppeal * 100)}%`,
+  };
+}
+
+/**
  * 배송비가 원가에서 차지하는 비중.
  *
  * 배송비 비중이 크면 반품 한 건에 왕복 배송비가 마진을 통째로 먹는다.
@@ -140,16 +158,18 @@ function judgeSupplier(c: Candidate): JudgeSignal {
  * 가중치. 합이 100이 되게 두어 점수를 그대로 읽을 수 있게 한다.
  *
  * 순이익이 가장 무겁다 — 목표(월 매출)는 마진율이 아니라 금액으로
- * 채워지기 때문이다. 그다음이 마진율(버틸 여유), 적합도(팔릴 확률),
- * 사진(페이지 품질) 순이다.
+ * 채워지기 때문이다. 그다음이 마진율(버틸 여유). "아무도 안 살거같은
+ * 비주얼"이 실제로 문제였던 만큼, 사진 품질(appeal)도 적합도만큼
+ * 무겁게 둔다 — 사진 개수(images)와는 다른 값이다.
  */
 const WEIGHTS = {
-  profit: 35,
-  margin: 20,
-  relevance: 15,
-  images: 12,
-  shipping: 10,
-  supplier: 8,
+  profit: 30,
+  margin: 18,
+  relevance: 13,
+  appeal: 15,
+  images: 9,
+  shipping: 8,
+  supplier: 7,
 } as const;
 
 export function judgeCandidate(c: Candidate): Judgement {
@@ -157,6 +177,7 @@ export function judgeCandidate(c: Candidate): Judgement {
     ["profit", judgeProfit(c)],
     ["margin", judgeMargin(c)],
     ["relevance", judgeRelevance(c)],
+    ["appeal", judgeAppeal(c)],
     ["images", judgeImages(c)],
     ["shipping", judgeShipping(c)],
     ["supplier", judgeSupplier(c)],

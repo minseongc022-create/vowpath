@@ -223,6 +223,10 @@ export function buildPageCopy(candidate: Candidate): PageCopy {
   const cleanSupplier = cleanSupplierTitle(candidate.supplier.title);
   if (cleanSupplier.length >= 4) specs.push(["상품", cleanSupplier]);
   specs.push(["판매 단위", "1개"]);
+  // 확인된 사실만 넣는다 — 공급처 상세에서 못 읽었으면 행 자체를 안 만든다
+  if (candidate.supplier.originCountry) {
+    specs.push(["원산지", candidate.supplier.originCountry]);
+  }
 
   return {
     title: candidate.title,

@@ -19,6 +19,7 @@
 import {
   searchAllKoreanWholesale,
   confirmSingleUnitSourcing,
+  getItemDetail,
   isDomeggookApiConfigured,
   getLastDomeggookError,
   clearDomeggookError,
@@ -31,6 +32,7 @@ import type { Candidate, SourcingRun, Supplier } from "../core/types";
 import { getKeywords } from "./keywords";
 import { scoreRelevance, buildTitle } from "./relevance";
 import { pickBest } from "./judge";
+import { judgeVisualAppealBatch } from "./visual-appeal";
 
 export const SOURCING_VERSION = "2.0";
 
@@ -247,6 +249,18 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         continue;
       }
 
+      // ── 2-1. 상세페이지에 쓸 것들 — 사진·반품주소·원산지 ──────
+      //
+      // confirmSingleUnitSourcing이 이미 getItemView를 불렀으니(같은
+      // 캐시를 쓴다) 여기서 또 API를 부르는 게 아니다. 실패해도 소싱을
+      // 막을 이유는 없다 — 대표 이미지 한 장으로는 어차피 등록된다.
+      let detail: Awaited<ReturnType<typeof getItemDetail>> = null;
+      try {
+        detail = await getItemDetail(itemNo);
+      } catch {
+        // 상세페이지 재료를 못 얻은 것뿐 — 소싱 자체를 막지 않는다
+      }
+
       // ── 3. 원가 확정 ─────────────────────────────────────────
       //
       // landed = 낱개 단가 + 입고 배송비. 마진은 **항상** 이 값으로만 잰다.
@@ -280,14 +294,22 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         landedCostKrw,
         moq: unit.minOrderQty ?? 1,
         singleUnitVerified: true,
-        imageUrls: [listing.imageUrl, ...(listing.detailImageUrls ?? [])].filter(
-          (u): u is string => typeof u === "string" && u.length > 0,
-        ),
+        // 대표 이미지(고해상도 버전 우선) + 이미지 사용이 허가된 경우에만
+        // 상세설명 속 진짜 추가 사진들. 허가를 못 읽었거나 안 됐으면
+        // 대표 이미지 한 장뿐이다 — 허락 없이 남의 사진을 더 가져오지 않는다.
+        imageUrls: [
+          detail?.primaryImageUrl ?? listing.imageUrl,
+          ...(detail?.licensedImageUrls ?? []),
+          ...(listing.detailImageUrls ?? []),
+        ].filter((u): u is string => typeof u === "string" && u.length > 0),
         sellerId: listing.sellerId,
         returnPolicyText: listing.policyText,
-        // 반품 주소까지 같이 들고 온다. 이게 빠지면 반품이 들어올 때마다
-        // 회수지를 확정 못 해 전부 사람 손으로 넘어간다.
-        returnAddress: listing.supplierReturnAddress,
+        // 반품 주소는 getItemView의 구조화된 필드(return.addr)에서 온다 —
+        // 검색 응답(listing.supplierReturnAddress)에는 애초에 이 값이
+        // 안 실려 온다.
+        returnAddress: detail?.returnAddress ?? listing.supplierReturnAddress,
+        imageLicenseUsable: detail?.license?.usable,
+        originCountry: detail?.originCountry,
         live: listing.source === "live",
       };
 
@@ -313,6 +335,31 @@ export async function sourceCandidates(input: SourcingInput): Promise<SourcingRe
         relevance,
         foundAt: new Date().toISOString(),
       });
+    }
+  }
+
+  // ── 5-1. 사진이 실제로 팔릴 비주얼인가 ───────────────────
+  //
+  // "아무도 안 살거같은 비주얼"이 실제로 나온 문제다. 개수가 아니라
+  // 품질을 AI가 직접 본다. 크론이 25초 안에 응답해야 하므로(cron-job.org
+  // 무료 플랜의 관측된 한도) 남은 시간을 재서 예산을 잡고, 못 본 나머지는
+  // 중립값으로 남긴다 — 판단을 못 했다고 크론 자체가 실패하면 안 된다.
+  if (shortlist.length) {
+    const budgetMs = input.deadlineAt
+      ? input.deadlineAt - Date.now() - 1500
+      : 60_000;
+    if (budgetMs > 2000) {
+      const appeal = await judgeVisualAppealBatch(
+        shortlist.map((c) => ({ cacheKey: supplierKey(c.supplier.platform, c.supplier.itemNo), imageUrls: c.supplier.imageUrls })),
+        { deadlineAt: input.deadlineAt ? input.deadlineAt - 1000 : undefined },
+      );
+      for (const c of shortlist) {
+        const found = appeal.get(supplierKey(c.supplier.platform, c.supplier.itemNo));
+        if (found?.judged) {
+          c.visualAppeal = found.score;
+          c.visualAppealNote = found.reason;
+        }
+      }
     }
   }
 

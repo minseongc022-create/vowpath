@@ -57,6 +57,16 @@ export type Supplier = {
    * 되려면 여기까지 값이 와야 한다.
    */
   returnAddress?: string;
+  /**
+   * 공급처가 상세설명에 쓴 이미지를 우리 상세페이지에서 써도 되는가.
+   *
+   * true여야 대표 이미지 말고 상세설명 속 추가 사진들도 쓸 수 있다.
+   * 못 읽었거나 false면 대표 이미지 한 장만 쓴다 — 허락 없이 남의
+   * 상품 사진을 가져다 쓰면 저작권 문제가 된다.
+   */
+  imageLicenseUsable?: boolean;
+  /** 원산지 (공급처 상세에서 확인된 경우만) — 상품정보 표에 쓴다 */
+  originCountry?: string;
   /** API 실시간 조회 결과인가, 검색 결과 추정인가 */
   live: boolean;
 };
@@ -108,6 +118,14 @@ export type Candidate = {
   score?: number;
   /** 그 점수가 나온 이유 — 검수 화면에 그대로 보여준다 */
   scoreReasons?: string[];
+
+  /**
+   * 사진을 실제로 본 AI가 매긴 "이 사진으로 팔릴까" 점수 (0~1).
+   * 시간이 부족해 못 봤으면 undefined — judge.ts가 중립으로 다룬다.
+   */
+  visualAppeal?: number;
+  /** 그 점수의 근거 한 줄 — 검수 화면에 그대로 보여준다 */
+  visualAppealNote?: string;
 
   foundAt: string;
 };
