@@ -17,6 +17,16 @@ export const maxDuration = 60;
  * 저장은 끝에 한 번 하기 때문이다. 그러면 10분마다 같은 일을 반복하며
  * 영원히 아무것도 못 남긴다. 그래서 마감을 넉넉히 앞당겨 잡고, 만들던 것까지만
  * 하고 저장한다. 남은 후보는 다음 사이클이 이어서 만든다.
+ *
+ * ★ 마감을 25초로 잡은 이유 — cron-job.org(무료) 실행 이력을 실제로
+ * 확인해보니, 이 라우트가 40초 넘게 걸린 호출은 전부 status=5(타임아웃)로
+ * 잡혔다 — Vercel(maxDuration=60)이나 요청에 준 requestTimeout(120)과
+ * 무관하게, cron-job.org 무료 플랜 자체가 응답을 약 30초까지만 기다리는
+ * 것으로 보인다. 그래서 10분마다의 외부 자동 소싱이 매번 "실패"로 기록되고
+ * 있었다(서버 쪽은 계속 돌아 저장까지 끝났을 수 있지만, 신뢰할 수 없다).
+ * cron-job.org의 관측된 한도보다 확실히 짧게 끊어 항상 정상 응답을
+ * 돌려준다 — 한 사이클에 다루는 검색어가 줄어드는 대신, 다음 사이클이
+ * 이어서 하니 전체적으로는 문제없다.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
@@ -34,8 +44,9 @@ export async function GET(request: Request) {
   }
 
   const startedAt = Date.now();
-  // 50초에 끊는다 — 저장과 응답에 쓸 시간을 남겨둔다
-  const deadlineAt = startedAt + 50_000;
+  // 25초에 끊는다 — cron-job.org 무료 플랜의 실제 응답 대기 한도(관측상 약
+  // 30초)보다 확실히 짧게, 저장·응답에 쓸 시간도 남겨둔다
+  const deadlineAt = startedAt + 25_000;
 
   try {
     const state = await loadState();
