@@ -15,9 +15,18 @@ test("루트가 자비스 대화 화면으로 간다", () => {
   assert.equal(sellerPulseInternalPath("/"), "/jarvis");
 });
 
-test("검수·설정이 자비스 화면으로 간다", () => {
+test("검수·설정·반품이 자비스 화면으로 간다", () => {
   assert.equal(sellerPulseInternalPath("/review"), "/jarvis/review");
   assert.equal(sellerPulseInternalPath("/settings"), "/jarvis/settings");
+  assert.equal(sellerPulseInternalPath("/returns"), "/jarvis/returns");
+});
+
+// ★ 실제 사고 재현: 반품 화면을 만들면서 이 매핑을 빠뜨렸다. 그러면
+// 로그인 여부와 무관하게 메뉴의 「반품」을 눌러도 늘 빈 흰 화면만 떴다 —
+// 물리적 파일은 있는데 미들웨어가 거기로 보내는 길 자체가 없었다.
+test("★ /returns가 안 뚫려 있으면 늘 빈 화면이 뜬다 — 이 매핑이 그 사고를 막는다", () => {
+  assert.notEqual(sellerPulseInternalPath("/returns"), null);
+  assert.equal(isLegacyEffiroadUiPath("/returns"), false, "옛 UI 차단 목록에도 없어야 한다");
 });
 
 test("로그인은 자비스 화면으로 간다 — 옛 엔진을 안 거친다", () => {

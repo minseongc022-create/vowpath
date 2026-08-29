@@ -84,6 +84,13 @@ export function sellerPulseInternalPath(pathname: string): string | null {
   if (pathname === "/settings" || pathname.startsWith("/settings/")) {
     return "/jarvis/settings";
   }
+  // 반품 화면 — 이 매핑이 빠져 있어서 메뉴의 「반품」을 눌러도 실제 파일
+  // (app/(jarvis)/jarvis/returns)로 안 가고 이 함수가 null을 돌려줬다.
+  // 그러면 미들웨어가 silentNotFound()로 떨어져 **로그인 여부와 무관하게**
+  // 늘 빈 흰 화면만 떴다 — 실제로 이 사고가 났다.
+  if (pathname === "/returns" || pathname.startsWith("/returns/")) {
+    return "/jarvis/returns";
+  }
   // `/jarvis/login`이 아니라 `/jarvis-login`이다 — 자비스 layout이 소유자가
   // 아니면 로그인으로 돌려보내므로, 로그인 화면이 그 layout 아래 있으면
   // 무한 루프가 된다.
