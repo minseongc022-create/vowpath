@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "summary": "Tech dispatch runs every 60 seconds via cron-job.org (external). vercel.json is daily-only so Vercel Hobby deploys succeed.",
+  "summary": "Tech dispatch runs every 60 seconds via cron-job.org (external). vercel.json is daily-only so Vercel Hobby deploys succeed. Jarvis (Effiroad) automation runs every 10 minutes via cron-job.org, calling the new /api/jarvis/cron pipeline.",
   "externalCrons": [
     {
       "provider": "cron-job.org",
@@ -29,18 +29,23 @@
     },
     {
       "provider": "cron-job.org",
-      "path": "/api/cron/toss-shop-sync",
-      "intervalSeconds": 60,
+      "path": "/api/jarvis/cron",
+      "intervalSeconds": 600,
       "authHeader": "Authorization: Bearer $CRON_SECRET",
       "requiredInProduction": false,
       "does": [
-        "Effiroad: sync Toss Shopping API data every minute when keys configured",
-        "Snapshot catalog prices/ranks and keyword metrics (1-minute buckets, 24h retention)",
-        "Build aggregated market keyword intelligence from catalog",
-        "Fire competitor price/rank alert rules",
-        "Jarvis Autopilot: draft creation, order fulfillment, wholesale prep"
+        "Jarvis (자비스): source new wholesale candidates, build detail pages, queue drafts for owner review",
+        "Send exactly one SMS to the owner when new drafts were created this cycle"
       ],
-      "note": "Effiroad (에피로드) — configure at cron-job.org every 60s alongside tech-dispatch."
+      "note": "Effiroad (에피로드) — replaces the retired /api/cron/toss-shop-sync (see retiredCrons). 600s matches Jarvis's own design cadence (keyword rotation, API rate budget); do not lower it."
+    }
+  ],
+  "retiredCrons": [
+    {
+      "provider": "cron-job.org",
+      "path": "/api/cron/toss-shop-sync",
+      "retiredAt": "2026-08-29",
+      "reason": "Old toss-shop engine, replaced end-to-end by /api/jarvis/cron. Left running, it kept building drafts from a separate old store and sending owner SMS with counts that didn't match the new pipeline (\"승인 대기 2건\" immediately followed by \"15건\") — a real incident. scripts/cron-job-org-setup.mjs disables/deletes any live cron-job.org job matching this path."
     }
   ],
   "vercelCrons": [
@@ -52,7 +57,7 @@
     { "path": "/api/cron/daily-summary", "schedule": "0 14 * * *", "utcHour": 14 },
     { "path": "/api/cron/beta-cohort-price-step", "schedule": "0 10 * * *", "utcHour": 10 },
     { "path": "/api/cron/quote-follow-up", "schedule": "0 16 * * *", "utcHour": 16 },
-    { "path": "/api/cron/toss-shop-sync", "schedule": "0 6 * * *", "utcHour": 6, "note": "Daily backup; production real-time sync is external 60s cron above" }
+    { "path": "/api/jarvis/cron", "schedule": "0 6 * * *", "utcHour": 6, "note": "Daily backup; production real-time cadence is the external 600s cron-job.org job above" }
   ],
   "manualOrPostbuildCrons": [
     {
@@ -64,8 +69,8 @@
       "note": "Giu unpaid reservation expiry — use external 60s cron (see externalCrons); daily backup optional"
     },
     {
-      "path": "/api/cron/toss-shop-sync",
-      "note": "Effiroad (에피로드) — use external 60s cron (see externalCrons); daily backup optional"
+      "path": "/api/jarvis/cron",
+      "note": "Effiroad (에피로드) — use external 600s cron-job.org job (see externalCrons); daily backup optional. Also driven by .github/workflows/jarvis-pulse.yml as a free redundant path."
     },
     {
       "path": "/api/cron/retell-production-sync",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadState, saveState, appendChat } from "@/jarvis/core/store";
 import { runCycle } from "@/jarvis/engine/autopilot";
+import { sendReviewAlert } from "@/jarvis/engine/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export async function GET(request: Request) {
 
     // 만든 게 있으면 대화창에도 남긴다. 사장님이 채팅만 봐도
     // 그 사이 무슨 일이 있었는지 알 수 있어야 한다.
+    let alertSent = false;
+    let alertReason: string | undefined;
     if (result.draftsCreated > 0) {
       appendChat(state, {
         role: "jarvis",
@@ -54,6 +57,17 @@ export async function GET(request: Request) {
           },
         ],
       });
+
+      // 문자는 **여기 한 곳에서만** 보낸다. 이번 사이클에 실제로 새 초안이
+      // 생겼을 때만 보내고, 숫자는 이번에 만든 개수가 아니라 지금 대기
+      // 중인 전체 건수로 — 사장님이 문자만 보고 "확인해야 할 게 몇 개"를
+      // 정확히 알아야 한다.
+      if (state.settings.alertPhone) {
+        const pendingNow = state.drafts.filter((d) => d.status === "pending_review").length;
+        const alert = await sendReviewAlert(state.settings.alertPhone, pendingNow);
+        alertSent = alert.sent;
+        alertReason = alert.reason;
+      }
     }
 
     await saveState(state);
@@ -62,6 +76,8 @@ export async function GET(request: Request) {
       ok: true,
       draftsCreated: result.draftsCreated,
       idleReason: result.idleReason,
+      alertSent,
+      alertReason,
       goal: {
         skusNeeded: result.goal.skusNeeded,
         skusNow: result.goal.skusNow,
