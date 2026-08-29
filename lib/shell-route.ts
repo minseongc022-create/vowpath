@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-export type AppShell = "learn" | "topik" | "mano" | "giu" | "toss-shop" | "sellerpulse" | "effiroad";
+export type AppShell = "learn" | "topik" | "mano" | "giu" | "jarvis" | "effiroad";
 
 /** Resolve product shell from middleware tags, with pathname fallback. */
 export async function getAppShell(): Promise<AppShell> {
@@ -11,10 +11,9 @@ export async function getAppShell(): Promise<AppShell> {
     tagged === "topik" ||
     tagged === "mano" ||
     tagged === "giu" ||
-    tagged === "toss-shop" ||
-    tagged === "sellerpulse"
+    tagged === "jarvis"
   ) {
-    return tagged === "sellerpulse" ? "toss-shop" : tagged;
+    return tagged;
   }
 
   const path = h.get("x-pathname") ?? "";
@@ -22,7 +21,7 @@ export async function getAppShell(): Promise<AppShell> {
   if (path.startsWith("/topik")) return "topik";
   if (path.startsWith("/mano")) return "mano";
   if (path.startsWith("/giu")) return "giu";
-  if (path.startsWith("/sellerpulse") || path.startsWith("/toss-shop")) return "toss-shop";
+  if (path.startsWith("/jarvis") || path.startsWith("/sellerpulse")) return "jarvis";
   return "effiroad";
 }
 
@@ -32,7 +31,7 @@ export function isIsolatedProductPath(pathname: string): boolean {
     pathname.startsWith("/topik") ||
     pathname.startsWith("/mano") ||
     pathname.startsWith("/giu") ||
-    pathname.startsWith("/toss-shop") ||
+    pathname.startsWith("/jarvis") ||
     pathname.startsWith("/sellerpulse")
   );
 }

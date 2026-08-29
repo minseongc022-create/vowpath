@@ -72,8 +72,9 @@ export function isLegacyEffiroadUiPath(pathname: string): boolean {
  * 고친 기준이 소급 적용되지 않았다(판매가 2,700만원짜리가 계속 떴다).
  * 새 화면은 저장소 자체가 달라서 그 오염이 넘어오지 않는다.
  *
- * 로그인만 기존 것을 그대로 쓴다 — 세션·비밀번호는 외부 계약이라
- * 다시 만들 이유가 없다.
+ * 로그인도 자비스 것을 쓴다. 옛 로그인은 `toss-shop/lib/store.ts`(2,876줄)를
+ * 거쳤고 그 store.ts가 옛 엔진 전체를 import해서, **비밀번호 한 번 확인하려고
+ * 옛 파일 106개가 통째로 딸려오는** 구조였다 — 옛 것을 지우려면 끊어야 했다.
  */
 export function sellerPulseInternalPath(pathname: string): string | null {
   if (pathname === "/") return "/jarvis";
@@ -83,8 +84,11 @@ export function sellerPulseInternalPath(pathname: string): string | null {
   if (pathname === "/settings" || pathname.startsWith("/settings/")) {
     return "/jarvis/settings";
   }
+  // `/jarvis/login`이 아니라 `/jarvis-login`이다 — 자비스 layout이 소유자가
+  // 아니면 로그인으로 돌려보내므로, 로그인 화면이 그 layout 아래 있으면
+  // 무한 루프가 된다.
   if (pathname === "/login" || pathname.startsWith("/login/")) {
-    return `/toss-shop${pathname}`;
+    return "/jarvis-login";
   }
   return null;
 }

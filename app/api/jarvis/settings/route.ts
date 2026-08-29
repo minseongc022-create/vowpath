@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { getJarvisSessionFromRequest } from "@/jarvis/core/session-request";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { loadState, saveState } from "@/jarvis/core/store";
 import { MIN_GOAL_KRW, MAX_GOAL_KRW } from "@/jarvis/chat/intents";
-import { isDomeggookApiConfigured } from "@/toss-shop/lib/wholesale/domeggook-api";
+import { isDomeggookApiConfigured } from "@/jarvis/wholesale/domeggook-api";
+import { resolveTossConfig, maskTossKey } from "@/jarvis/core/toss-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 비밀키는 절대 그대로 내보내지 않는다 — 연결됐는지만 알려준다 */
-function mask(v?: string): string | null {
-  if (!v) return null;
-  return v.length <= 4 ? "****" : `${v.slice(0, 2)}${"*".repeat(6)}${v.slice(-2)}`;
-}
-
 export async function GET(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const state = await loadState();
@@ -30,10 +25,18 @@ export async function GET(request: Request) {
       tossSandbox: s.tossSandbox ?? false,
     },
     connections: {
-      toss: {
-        connected: Boolean(s.tossAccessKey && s.tossSecretKey),
-        accessKeyMasked: mask(s.tossAccessKey),
-      },
+      toss: (() => {
+        // 도매꾹과 같은 기준으로 본다 — 환경변수든 화면에서 넣었든 하나면
+        // 연결된 것이다. 예전엔 저장소만 봐서, 서버에 키가 있는데도 계속
+        // "미연결"로 떴다.
+        const cfg = resolveTossConfig(s);
+        return {
+          connected: cfg !== null,
+          fromEnv: cfg?.fromEnv ?? false,
+          accessKeyMasked: cfg ? maskTossKey(cfg.accessKey) : null,
+          sandbox: cfg?.sandbox ?? false,
+        };
+      })(),
       domeggook: {
         // 환경변수로 넣었거나 화면에서 넣었거나 — 둘 중 하나면 연결된 것이다
         connected: isDomeggookApiConfigured() || Boolean(s.domeggookApiKey),
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   let body: Record<string, unknown>;

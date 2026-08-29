@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { getJarvisSessionFromRequest } from "@/jarvis/core/session-request";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { loadState, saveState, findDraft, discardPendingDrafts } from "@/jarvis/core/store";
 import { checkPrice, checkProfit } from "@/jarvis/core/rules";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** 검수 대기 목록 */
 export async function GET(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const state = await loadState();
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
 /** 승인 · 반려 · 전부 비우기 */
 export async function POST(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   let body: { action?: string; draftId?: string; reason?: string };

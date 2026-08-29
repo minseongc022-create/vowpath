@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireTossShopSessionFromRequest } from "@/toss-shop/lib/auth-request";
+import { getJarvisSessionFromRequest } from "@/jarvis/core/session-request";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { loadState, saveState, appendChat } from "@/jarvis/core/store";
 import { think } from "@/jarvis/chat/brain";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** 대화 한 줄 — 사장님 말을 받아 실제로 일을 하고 답한다 */
 export async function POST(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   let body: { message?: string };
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
 /** 대화 기록 불러오기 */
 export async function GET(request: Request) {
-  const session = await requireTossShopSessionFromRequest(request);
+  const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
   const state = await loadState();

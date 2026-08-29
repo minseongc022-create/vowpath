@@ -15,13 +15,15 @@ import {
 } from "@/giu/lib/giu-host";
 import { isLearnHost, learnInternalPath } from "@/learn/lib/learn-host";
 import {
-  isCustomerPortalPath,
   isEffiroadDispatchEnabled,
   isLegacyEffiroadUiPath,
   isRetiredDashboardPath,
   isSellerPulsePrimaryHost,
   sellerPulseInternalPath,
 } from "@/lib/seller-pulse-host";
+import { isPublicJarvisPath } from "@/jarvis/core/gate";
+import { isOwnerSession } from "@/jarvis/core/access";
+import { JARVIS_SESSION_COOKIE, verifyJarvisSessionToken } from "@/jarvis/core/session";
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
@@ -143,7 +145,7 @@ function sellerPulseShellResponse(
   publicPath: string,
 ) {
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-app-shell", "toss-shop");
+  requestHeaders.set("x-app-shell", "jarvis");
   requestHeaders.set("x-pathname", publicPath);
   const url = request.nextUrl.clone();
   url.pathname = rewritePath;
@@ -219,18 +221,38 @@ export async function middleware(request: NextRequest) {
   const sellerPulseOwnsApex =
     isSellerPulsePrimaryHost(hostname) && !isEffiroadDispatchEnabled();
 
-  // effiroad.com → Effiroad (에피로드) at / (legacy dispatch UI: EFFIROAD_DISPATCH_ENABLED=1 local only).
+  // effiroad.com → 자비스. 사장님 한 명만 쓰는 개인 자동화다.
   if (sellerPulseOwnsApex) {
+    // ★ 문 — 라우트에 닿기 전에 먼저 막는다
+    //
+    // 화면·API마다 소유자 검사가 이미 있지만, 검사를 빠뜨린 라우트가 하나만
+    // 생겨도 자비스 전체가 뚫린다(저장소가 가맹점별로 안 나뉜 전역 상태라
+    // 그렇다). 그래서 여기서 한 겹 더 막는다.
+    //
+    // 이 도메인은 예전에 미국 복원·냉난방 업체 전화를 대신 받던 AI 서비스
+    // 자리였다. 그때 가입한 사람이 남아 있어도 여기서 끊긴다.
+    if (!isPublicJarvisPath(pathname)) {
+      const token = request.cookies.get(JARVIS_SESSION_COOKIE)?.value;
+      const session = token ? await verifyJarvisSessionToken(token) : null;
+      if (!isOwnerSession(session)) {
+        // 로그인으로 돌려보내지 않는다 — 돌려보내면 그 경로에 뭔가 있다는
+        // 걸 알려주는 셈이다. 없는 것처럼 보이는 편이 낫다.
+        return new NextResponse(null, {
+          status: 404,
+          headers: {
+            "Cache-Control": "no-store",
+            "X-Robots-Tag": "noindex, nofollow, noarchive",
+          },
+        });
+      }
+    }
+
     if (
       pathname.startsWith("/api/") ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
       pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|txt|xml|json|webmanifest)$/)
     ) {
-      return NextResponse.next();
-    }
-
-    if (isCustomerPortalPath(pathname)) {
       return NextResponse.next();
     }
 
@@ -274,7 +296,7 @@ export async function middleware(request: NextRequest) {
   // 따라 갈린다.
   if (pathname.startsWith("/sellerpulse")) {
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-app-shell", "toss-shop");
+    requestHeaders.set("x-app-shell", "jarvis");
     requestHeaders.set("x-pathname", pathname);
 
     const publicPath = pathname.replace(/^\/sellerpulse/, "") || "/";

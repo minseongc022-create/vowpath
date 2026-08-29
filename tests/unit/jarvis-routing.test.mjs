@@ -20,8 +20,16 @@ test("검수·설정이 자비스 화면으로 간다", () => {
   assert.equal(sellerPulseInternalPath("/settings"), "/jarvis/settings");
 });
 
-test("로그인은 기존 것을 그대로 쓴다 — 세션은 외부 계약이라 다시 만들지 않는다", () => {
-  assert.equal(sellerPulseInternalPath("/login"), "/toss-shop/login");
+test("로그인은 자비스 화면으로 간다 — 옛 엔진을 안 거친다", () => {
+  assert.equal(sellerPulseInternalPath("/login"), "/jarvis-login");
+});
+
+test("로그인 화면은 자비스 layout 아래가 아니다 — 무한 루프 방지", () => {
+  // app/(jarvis)/jarvis/layout.tsx가 소유자가 아니면 로그인으로 돌려보낸다.
+  // 로그인 화면이 `/jarvis/...` 아래 있으면 로그인하러 갔다가 다시 로그인으로
+  // 튕기는 무한 루프가 된다. 그래서 형제 경로여야 한다.
+  const login = sellerPulseInternalPath("/login");
+  assert.ok(login && !login.startsWith("/jarvis/"), `${login}은 자비스 layout에 걸린다`);
 });
 
 test("옛 대시보드 주소는 은퇴 대상으로 잡힌다", () => {
