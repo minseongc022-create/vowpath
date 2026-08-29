@@ -1,5 +1,5 @@
 # 일회성 진단 — 도매꾹이 왜 모든 검색어에 0개를 주는지 응답 원문을 본다.
-# 원인을 찾아 고치면 이 워크플로와 app/api/admin/domeggook-probe는 함께 지운다.
+# 원인을 찾아 고치면 이 워크플로와 app/api/cron/domeggook-probe는 함께 지운다.
 name: jarvis-domeggook-probe
 
 on:
@@ -20,7 +20,7 @@ jobs:
           code=$(curl -sS -o /tmp/probe.json -w "%{http_code}" \
             --max-time 90 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.giucuu.com/api/admin/domeggook-probe?kw=$kw")
+            "https://www.giucuu.com/api/cron/domeggook-probe?kw=$kw")
           echo "HTTP $code"
           python3 -m json.tool /tmp/probe.json || cat /tmp/probe.json
           test "$code" = "200"
