@@ -109,7 +109,10 @@ export async function runCycle(
 
   const { candidates, run } = await sourceCandidates({
     want,
-    keywordCount: 24,
+    // keywordCount를 안 넘긴다 — sourceCandidates의 기본값(DEFAULT_KEYWORD_COUNT)이
+    // 넓게 훑는 기준이다. 여기서 24로 좁혀 덮어쓰면 그 기본값을 올려도
+    // 자동 운전 쪽은 계속 좁게 도는 결함이 생긴다(실제로 이런 식으로
+    // 어긋난 상수가 여러 번 사고를 냈다).
     keywordOffset,
     existingSupplierKeys: existing,
     deadlineAt: opts?.deadlineAt,

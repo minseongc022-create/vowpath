@@ -186,6 +186,21 @@ export function SettingsView() {
         <p className="jv-help">
           한 번 저장하면 다시 보이지 않습니다. 바꾸려면 새로 넣어 저장하세요.
         </p>
+        {!c.toss.connected && (
+          <p className="jv-help" style={{ marginTop: -6 }}>
+            토스 키는{" "}
+            <a
+              href="https://shopping-seller.toss.im"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--jv-blue)", fontWeight: 700 }}
+            >
+              토스쇼핑 셀러센터
+            </a>
+            {" "}→ 쇼핑 → 연동 관리에서 발급받아 아래에 넣어주세요. 이게 없으면 상품을 찾고
+            만들 수는 있지만 실제 등록은 안 됩니다.
+          </p>
+        )}
         <KeyField label="도매꾹 API 키" value={domeggookApiKey} onChange={setDomeggookApiKey} />
         <KeyField label="토스 Access Key" value={tossAccessKey} onChange={setTossAccessKey} />
         <KeyField label="토스 Secret Key" value={tossSecretKey} onChange={setTossSecretKey} />
