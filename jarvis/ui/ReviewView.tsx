@@ -1,0 +1,278 @@
+"use client";
+
+/**
+ * 검수 화면 — 올리기 전에 고객이 볼 모습 그대로 확인하는 곳
+ *
+ * ★ 왜 미리보기를 실제 상품 페이지처럼 만드는가
+ *
+ * 숫자만 나열하면 "판매가 27,195,670원"이 그냥 한 줄로 지나간다. 실제 상품
+ * 페이지 모양으로 보여주면 **이상한 게 눈에 걸린다.** 검수의 목적은 정보를
+ * 나열하는 게 아니라 사장님이 이상한 걸 알아채게 하는 것이다.
+ *
+ * ★ 돈 이야기는 접어둔다
+ *
+ * 원가·마진은 사장님만 보는 값이라 고객 미리보기와 섞이면 안 된다.
+ * 그래서 미리보기는 고객 화면 그대로 두고, 셀러 정보는 아래에 따로 둔다.
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import { JV_API } from "../routes";
+import type { Draft } from "../core/types";
+
+export function ReviewView() {
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [publishedCount, setPublishedCount] = useState(0);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(JV_API.drafts);
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { drafts?: Draft[]; published?: number };
+      setDrafts(data.drafts ?? []);
+      setPublishedCount(data.published ?? 0);
+      setError(null);
+    } catch {
+      setError("불러오지 못했습니다. 새로고침해 주세요.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const act = useCallback(
+    async (draftId: string, action: "approve" | "reject") => {
+      setBusyId(draftId);
+      setError(null);
+      try {
+        const res = await fetch(JV_API.drafts, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, draftId }),
+        });
+        const data = (await res.json()) as { reason?: string };
+        if (!res.ok) {
+          // 게이트가 막았으면 그 이유를 그대로 보여준다 — 왜 승인이 안 되는지
+          // 모르면 사장님은 같은 버튼을 계속 누른다
+          setError(data.reason ?? "처리하지 못했습니다.");
+          await load();
+          return;
+        }
+        setDrafts((d) => d.filter((x) => x.id !== draftId));
+      } catch {
+        setError("처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [load],
+  );
+
+  const discardAll = useCallback(async () => {
+    if (!window.confirm("검수 대기 중인 상품을 전부 비웁니다. 이미 올라간 상품은 그대로 둡니다.")) {
+      return;
+    }
+    setBusyId("all");
+    try {
+      await fetch(JV_API.drafts, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discard_all" }),
+      });
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }, [load]);
+
+  if (loading) return <div className="jv-empty">불러오는 중…</div>;
+
+  if (!drafts.length) {
+    return (
+      <div className="jv-empty">
+        <p>검수할 상품이 없습니다.</p>
+        <p style={{ fontSize: 14, marginTop: 6 }}>
+          지금까지 {publishedCount}건 등록했습니다.
+          <br />
+          자비스가 10분마다 도매를 훑고 있으니, 기준을 넘는 상품이 나오면 여기에 올라옵니다.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="jv-review">
+      <div className="jv-review-head">
+        <span>{drafts.length}건 확인 대기</span>
+        <button
+          type="button"
+          className="jv-btn jv-btn-danger"
+          onClick={() => void discardAll()}
+          disabled={busyId !== null}
+          style={{ padding: "8px 12px", fontSize: 13 }}
+        >
+          전부 비우기
+        </button>
+      </div>
+
+      {error && <div className="jv-review-error">{error}</div>}
+
+      {drafts.map((draft) => (
+        <DraftCard
+          key={draft.id}
+          draft={draft}
+          busy={busyId === draft.id}
+          onApprove={() => void act(draft.id, "approve")}
+          onReject={() => void act(draft.id, "reject")}
+        />
+      ))}
+
+      <style jsx>{`
+        .jv-review { padding: 18px; }
+        .jv-review-head {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 14px; font-size: 15px; font-weight: 700;
+        }
+        .jv-review-error {
+          background: #fff0f0; color: var(--jv-red); border-radius: 12px;
+          padding: 12px 14px; font-size: 14px; margin-bottom: 14px; line-height: 1.6;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+
+function DraftCard({
+  draft,
+  busy,
+  onApprove,
+  onReject,
+}: {
+  draft: Draft;
+  busy: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const [showDetail, setShowDetail] = useState(false);
+  const c = draft.candidate;
+
+  return (
+    <article className="jv-card">
+      {/* ── 고객이 보는 모습 ── */}
+      <div className="jv-preview">
+        <div className="jv-preview-tag">고객이 보는 화면</div>
+        {c.supplier.imageUrls[0] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="jv-preview-img" src={c.supplier.imageUrls[0]} alt={c.title} />
+        )}
+        <div className="jv-preview-body">
+          <h3>{c.title}</h3>
+          <div className="jv-price">{c.priceKrw.toLocaleString()}원</div>
+          <button type="button" className="jv-fake-buy" disabled>
+            구매하기
+          </button>
+        </div>
+      </div>
+
+      <button type="button" className="jv-toggle" onClick={() => setShowDetail((v) => !v)}>
+        {showDetail ? "상세페이지 접기" : "상세페이지 보기"}
+      </button>
+
+      {showDetail && (
+        <div
+          className="jv-detail-frame"
+          // 상세페이지는 우리 엔진이 만든 HTML이다. 공급처에서 온 문자열은
+          // 전부 escapeHtml을 거쳐 들어가므로 여기서 다시 정제하지 않는다.
+          dangerouslySetInnerHTML={{ __html: draft.detailHtml }}
+        />
+      )}
+
+      {/* ── 사장님만 보는 숫자 ── */}
+      <div className="jv-seller">
+        <div className="jv-seller-grid">
+          <div>
+            <span>원가</span>
+            <b>{c.supplier.landedCostKrw.toLocaleString()}원</b>
+          </div>
+          <div>
+            <span>팔면 남는 돈</span>
+            <b className="jv-good">{c.netProfitKrw.toLocaleString()}원</b>
+          </div>
+          <div>
+            <span>실마진</span>
+            <b>{c.marginPct}%</b>
+          </div>
+          <div>
+            <span>적자선</span>
+            <b>{c.priceFloorKrw.toLocaleString()}원</b>
+          </div>
+        </div>
+        <ul className="jv-checklist">
+          {draft.checklist.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="jv-actions">
+        <button type="button" className="jv-btn jv-btn-ghost" onClick={onReject} disabled={busy}>
+          반려
+        </button>
+        <button type="button" className="jv-btn jv-btn-primary" onClick={onApprove} disabled={busy}>
+          {busy ? "처리 중…" : "승인하고 등록"}
+        </button>
+      </div>
+
+      <style jsx>{`
+        .jv-card {
+          border: 1px solid var(--jv-line); border-radius: 18px;
+          overflow: hidden; margin-bottom: 20px; background: #fff;
+        }
+        .jv-preview { position: relative; }
+        .jv-preview-tag {
+          position: absolute; top: 12px; left: 12px; z-index: 2;
+          background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 11px;
+          font-weight: 700; padding: 5px 9px; border-radius: 999px;
+        }
+        .jv-preview-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--jv-surface); }
+        .jv-preview-body { padding: 16px 18px 18px; }
+        .jv-preview-body h3 { font-size: 17px; font-weight: 700; margin: 0 0 8px; line-height: 1.45; }
+        .jv-price { font-size: 23px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 14px; }
+        .jv-fake-buy {
+          width: 100%; border: 0; border-radius: 12px; background: var(--jv-blue);
+          color: #fff; font-size: 16px; font-weight: 700; padding: 14px;
+          opacity: 0.55; font-family: inherit;
+        }
+        .jv-toggle {
+          width: 100%; border: 0; border-top: 1px solid var(--jv-line);
+          background: var(--jv-surface); padding: 12px; font-size: 14px;
+          font-weight: 600; color: var(--jv-muted); cursor: pointer; font-family: inherit;
+        }
+        .jv-detail-frame { border-top: 1px solid var(--jv-line); padding: 18px; max-height: 520px; overflow-y: auto; }
+        .jv-seller { border-top: 1px solid var(--jv-line); padding: 16px 18px; background: var(--jv-surface); }
+        .jv-seller-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+        .jv-seller-grid div { display: flex; flex-direction: column; gap: 3px; }
+        .jv-seller-grid span { font-size: 12px; color: var(--jv-muted); font-weight: 600; }
+        .jv-seller-grid b { font-size: 16px; font-weight: 700; }
+        .jv-good { color: var(--jv-green); }
+        .jv-checklist { list-style: none; margin: 0; padding: 0; }
+        .jv-checklist li {
+          font-size: 13px; color: var(--jv-muted); line-height: 1.6;
+          padding: 5px 0 5px 14px; position: relative;
+        }
+        .jv-checklist li::before { content: "·"; position: absolute; left: 3px; }
+        .jv-actions { display: flex; gap: 10px; padding: 14px 18px 18px; }
+        .jv-actions :global(button) { flex: 1; }
+        .jv-actions :global(button.jv-btn-primary) { flex: 2; }
+      `}</style>
+    </article>
+  );
+}

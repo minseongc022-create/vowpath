@@ -18,6 +18,7 @@ import {
   isCustomerPortalPath,
   isEffiroadDispatchEnabled,
   isLegacyEffiroadUiPath,
+  isRetiredDashboardPath,
   isSellerPulsePrimaryHost,
   sellerPulseInternalPath,
 } from "@/lib/seller-pulse-host";
@@ -245,10 +246,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url, 308);
     }
 
-    if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+    // 옛 대시보드는 은퇴했다. 문자로 받아둔 옛 링크(/dashboard/review 등)를
+    // 눌렀을 때 404가 뜨면 서비스가 깨진 줄 알게 되므로 자비스 홈으로 보낸다.
+    if (isRetiredDashboardPath(pathname)) {
       const url = request.nextUrl.clone();
-      url.pathname = "/dashboard/settings";
-      return NextResponse.redirect(url, 308);
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url, 307);
     }
 
     if (isLegacyEffiroadUiPath(pathname)) {
@@ -263,13 +267,27 @@ export async function middleware(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  // Effiroad toss-shop seller tools (/sellerpulse on non-apex hosts).
+  // Effiroad 셀러 도구 (apex가 아닌 호스트에서는 /sellerpulse 밑).
+  //
+  // apex(effiroad.com)와 **같은 규칙**을 써야 한다. 한쪽만 자비스로 옮기면
+  // 호스트에 따라 다른 화면이 뜨고, 문자로 보낸 링크가 어디서 열리느냐에
+  // 따라 갈린다.
   if (pathname.startsWith("/sellerpulse")) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-app-shell", "toss-shop");
     requestHeaders.set("x-pathname", pathname);
-    const internal = pathname.replace(/^\/sellerpulse/, "/toss-shop");
-    if (internal !== pathname) {
+
+    const publicPath = pathname.replace(/^\/sellerpulse/, "") || "/";
+
+    if (isRetiredDashboardPath(publicPath)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sellerpulse";
+      url.search = "";
+      return NextResponse.redirect(url, 307);
+    }
+
+    const internal = sellerPulseInternalPath(publicPath);
+    if (internal) {
       const url = request.nextUrl.clone();
       url.pathname = internal;
       return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
