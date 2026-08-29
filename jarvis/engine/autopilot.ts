@@ -157,6 +157,7 @@ export async function runCycle(
       status: "pending_review",
       detailHtml: page.html,
       sellingPoints: page.sellingPoints,
+      pageCopy: page.copy,
       listingPayload: {
         name: candidate.title,
         salePrice: candidate.priceKrw,
@@ -212,6 +213,13 @@ function buildChecklist(candidate: import("../core/types").Candidate): string[] 
     );
   } else {
     list.push("이 마진으로는 광고 입찰이 성립하지 않습니다 — 광고 없이 노출로만 가야 합니다");
+  }
+
+  // 왜 **이것을** 골랐는지 — 관문 통과는 "팔아도 된다"일 뿐이고,
+  // 여러 개가 통과했을 때 이걸 고른 이유는 따로 말해줘야 한다
+  if (candidate.score != null) {
+    const why = (candidate.scoreReasons ?? []).slice(0, 3).join(" · ");
+    list.push(`판단 점수 ${candidate.score}점으로 골랐습니다${why ? ` — ${why}` : ""}`);
   }
 
   if (!candidate.supplier.live) {

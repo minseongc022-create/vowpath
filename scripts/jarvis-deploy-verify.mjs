@@ -48,8 +48,12 @@ async function main() {
   checks.push(await check("로그인 안 하면 홈이 안 보인다", `${base}/`, [404]));
   checks.push(await check("로그인 안 하면 검수 화면이 안 보인다", `${base}/review`, [404]));
   checks.push(await check("로그인 안 하면 설정이 안 보인다", `${base}/settings`, [404]));
+  checks.push(await check("로그인 안 하면 반품 화면이 안 보인다", `${base}/returns`, [404]));
   checks.push(
     await check("자비스 API는 세션 없이 안 열린다", `${base}/api/jarvis/settings`, [401, 404]),
+  );
+  checks.push(
+    await check("반품 API도 세션 없이 안 열린다", `${base}/api/jarvis/returns`, [401, 404]),
   );
 
   // ★ 자동 소싱 크론 — 리다이렉트를 따라가지 않고 본다.

@@ -152,8 +152,55 @@ function safeLines(lines: string[]): string[] {
 // 섹션
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * 상세페이지의 **내용**. HTML이 아니라 데이터다.
+ *
+ * ★ 왜 HTML로 저장하지 않는가
+ *
+ * 사장님이 검수하다가 "이 부분만 고쳐줘"라고 하려면, 그 부분이 무엇인지
+ * 프로그램이 알아야 한다. 완성된 HTML 한 덩어리에서는 "문제 제기 문단"을
+ * 짚어낼 방법이 문자열 검색밖에 없고, 그건 문구가 조금만 바뀌어도 깨진다.
+ *
+ * 그래서 페이지를 **내용(PageCopy) + 그리는 함수(renderDetailPage)**로
+ * 갈랐다. 고칠 때는 내용만 바꾸고 다시 그린다. 이렇게 하면 고친 결과가
+ * 처음 만든 페이지와 정확히 같은 규칙으로 그려진다 — 부분 수정이 레이아웃을
+ * 망가뜨릴 수 없다.
+ */
+export type PageCopy = {
+  title: string;
+  /** 히어로 한 줄 */
+  lead: string;
+  problemHeading: string;
+  problemBody: string;
+  solutionHeading: string;
+  sellingPoints: string[];
+  /** 공급처가 올린 실물 사진만 — 생성 이미지는 절대 안 들어온다 */
+  images: string[];
+  specs: Array<[string, string]>;
+  guarantee: string[];
+};
+
+/** 사장님이 클릭해서 고칠 수 있는 단위 */
+export type SectionKind =
+  | "hero"
+  | "problem"
+  | "solution"
+  | "gallery"
+  | "spec"
+  | "guarantee";
+
+/** 검수 화면에 그대로 뜨는 이름 — 사장님이 부르는 말이어야 한다 */
+export const SECTION_LABELS: Record<SectionKind, string> = {
+  hero: "맨 위 (상품명·한 줄 소개)",
+  problem: "문제 제기",
+  solution: "이 상품이 해결하는 것",
+  gallery: "사진",
+  spec: "상품 정보",
+  guarantee: "배송 · 교환 · 반품",
+};
+
 export type Section = {
-  kind: "hero" | "problem" | "solution" | "gallery" | "spec" | "guarantee";
+  kind: SectionKind;
   heading?: string;
   html: string;
 };
@@ -162,19 +209,55 @@ export type DetailPage = {
   version: string;
   html: string;
   sellingPoints: string[];
+  /** 페이지의 내용 — 부분 수정은 이걸 고쳐서 다시 그린다 */
+  copy: PageCopy;
   /** 근거가 없어 뺀 섹션과 그 이유 — 왜 짧은지 설명할 수 있어야 한다 */
   omitted: Array<{ kind: string; why: string }>;
 };
 
-export function buildDetailPage(candidate: Candidate): DetailPage {
+/** 후보에서 페이지 내용을 뽑아낸다 — 여기서 지어내는 건 하나도 없다 */
+export function buildPageCopy(candidate: Candidate): PageCopy {
   const tone = toneFor(candidate.category);
-  const title = candidate.title;
-  const images = candidate.supplier.imageUrls.filter(Boolean).slice(0, 6);
-  const omitted: Array<{ kind: string; why: string }> = [];
 
-  const sellingPoints = safeLines(tone.benefits);
+  const specs: Array<[string, string]> = [];
+  const cleanSupplier = cleanSupplierTitle(candidate.supplier.title);
+  if (cleanSupplier.length >= 4) specs.push(["상품", cleanSupplier]);
+  specs.push(["판매 단위", "1개"]);
 
+  return {
+    title: candidate.title,
+    lead: tone.solutionHeading,
+    problemHeading: tone.problem,
+    problemBody: tone.agitation,
+    solutionHeading: tone.solutionHeading,
+    sellingPoints: safeLines(tone.benefits),
+    // 사진은 공급처 실물만 쓴다. 생성 이미지를 쓰면 받은 물건과 화면이
+    // 달라져 반품 사유가 되고, 그 비용은 전부 우리 마진에서 나간다.
+    images: candidate.supplier.imageUrls.filter(Boolean).slice(0, 6),
+    specs,
+    guarantee: [
+      "결제 확인 후 순차 출고됩니다.",
+      "단순 변심 반품이 가능합니다. 반품 배송비는 상품 상세의 기준을 따릅니다.",
+      "상품 불량·오배송은 왕복 배송비를 판매자가 부담합니다.",
+    ],
+  };
+}
+
+/**
+ * 내용을 섹션 단위로 그린다.
+ *
+ * 근거가 없는 섹션은 **통째로 뺀다.** 드랩류는 입력 4개로 9개 섹션을 항상
+ * 만드는데, 가능한 이유는 없는 걸 지어내기 때문이다 — 아직 하나도 안 팔린
+ * 상품에 "고객 후기"가 박힌다. 섹션이 적은 페이지가 지어낸 후기가 박힌
+ * 페이지보다 언제나 낫다.
+ */
+export function renderSections(copy: PageCopy): {
+  sections: Section[];
+  omitted: Array<{ kind: string; why: string }>;
+} {
   const sections: Section[] = [];
+  const omitted: Array<{ kind: string; why: string }> = [];
+  const title = copy.title;
 
   // ── 히어로 ───────────────────────────────────────────────
   sections.push({
@@ -182,31 +265,35 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
     html: `
       <section class="jv-hero">
         ${
-          images[0]
-            ? `<div class="jv-hero-img"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" /></div>`
+          copy.images[0]
+            ? `<div class="jv-hero-img"><img src="${escapeHtml(copy.images[0])}" alt="${escapeHtml(title)}" /></div>`
             : ""
         }
         <div class="jv-hero-copy">
           <h1>${escapeHtml(title)}</h1>
-          <p class="jv-lead">${escapeHtml(tone.solutionHeading)}</p>
+          <p class="jv-lead">${escapeHtml(copy.lead)}</p>
         </div>
       </section>`,
   });
 
   // ── 문제 제기 ────────────────────────────────────────────
-  sections.push({
-    kind: "problem",
-    heading: tone.problem,
-    html: `
+  if (copy.problemHeading || copy.problemBody) {
+    sections.push({
+      kind: "problem",
+      heading: copy.problemHeading,
+      html: `
       <section class="jv-block jv-problem">
-        <h2>${escapeHtml(tone.problem)}</h2>
-        <p>${escapeHtml(tone.agitation)}</p>
+        <h2>${escapeHtml(copy.problemHeading)}</h2>
+        <p>${escapeHtml(copy.problemBody)}</p>
       </section>`,
-  });
+    });
+  } else {
+    omitted.push({ kind: "problem", why: "문제 제기 문단을 뺐습니다" });
+  }
 
   // ── 해결 ─────────────────────────────────────────────────
-  if (sellingPoints.length) {
-    const items = sellingPoints
+  if (copy.sellingPoints.length) {
+    const items = copy.sellingPoints
       .map(
         (p, i) =>
           `<li><span class="jv-num">${String(i + 1).padStart(2, "0")}</span><span>${escapeHtml(p)}</span></li>`,
@@ -214,10 +301,10 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
       .join("");
     sections.push({
       kind: "solution",
-      heading: tone.solutionHeading,
+      heading: copy.solutionHeading,
       html: `
       <section class="jv-block jv-solution">
-        <h2>${escapeHtml(tone.solutionHeading)}</h2>
+        <h2>${escapeHtml(copy.solutionHeading)}</h2>
         <ul class="jv-points">${items}</ul>
       </section>`,
     });
@@ -226,10 +313,7 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
   }
 
   // ── 갤러리 ───────────────────────────────────────────────
-  //
-  // 사진은 공급처 실물만 쓴다. 생성 이미지를 쓰면 받은 물건과 화면이
-  // 달라져 반품 사유가 되고, 그 비용은 전부 우리 마진에서 나간다.
-  const rest = images.slice(1);
+  const rest = copy.images.slice(1);
   if (rest.length) {
     const shots = rest
       .map(
@@ -249,12 +333,8 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
   //
   // 확인된 사실만 표에 넣는다. 소재·원산지처럼 공급처가 안 밝힌 항목은
   // 아예 행을 만들지 않는다 — 빈칸이 낫지 추측이 낫진 않다.
-  const specs: Array<[string, string]> = [];
-  const cleanSupplier = cleanSupplierTitle(candidate.supplier.title);
-  if (cleanSupplier.length >= 4) specs.push(["상품", cleanSupplier]);
-  specs.push(["판매 단위", "1개"]);
-  if (specs.length) {
-    const rows = specs
+  if (copy.specs.length) {
+    const rows = copy.specs
       .map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(v)}</td></tr>`)
       .join("");
     sections.push({
@@ -265,19 +345,18 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
   }
 
   // ── 배송·교환·반품 ───────────────────────────────────────
-  sections.push({
-    kind: "guarantee",
-    heading: "배송 · 교환 · 반품",
-    html: `
+  if (copy.guarantee.length) {
+    const items = copy.guarantee.map((g) => `<li>${escapeHtml(g)}</li>`).join("");
+    sections.push({
+      kind: "guarantee",
+      heading: "배송 · 교환 · 반품",
+      html: `
       <section class="jv-block jv-guarantee">
         <h2>배송 · 교환 · 반품</h2>
-        <ul>
-          <li>결제 확인 후 순차 출고됩니다.</li>
-          <li>단순 변심 반품이 가능합니다. 반품 배송비는 상품 상세의 기준을 따릅니다.</li>
-          <li>상품 불량·오배송은 왕복 배송비를 판매자가 부담합니다.</li>
-        </ul>
+        <ul>${items}</ul>
       </section>`,
-  });
+    });
+  }
 
   // 후기 섹션은 **의도적으로 만들지 않는다** — 아직 판매 실적이 없다.
   omitted.push({
@@ -285,9 +364,25 @@ export function buildDetailPage(candidate: Candidate): DetailPage {
     why: "실제 구매 후기가 아직 없음 — 후기를 지어내지 않는다(표시광고법)",
   });
 
-  const html = `<div class="jv-detail">${STYLE}${sections.map((s) => s.html).join("\n")}</div>`;
+  return { sections, omitted };
+}
 
-  return { version: DETAIL_PAGE_VERSION, html, sellingPoints, omitted };
+export function renderDetailPage(copy: PageCopy): string {
+  const { sections } = renderSections(copy);
+  return `<div class="jv-detail">${STYLE}${sections.map((s) => s.html).join("\n")}</div>`;
+}
+
+export function buildDetailPage(candidate: Candidate): DetailPage {
+  const copy = buildPageCopy(candidate);
+  const { omitted } = renderSections(copy);
+
+  return {
+    version: DETAIL_PAGE_VERSION,
+    html: renderDetailPage(copy),
+    sellingPoints: copy.sellingPoints,
+    copy,
+    omitted,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

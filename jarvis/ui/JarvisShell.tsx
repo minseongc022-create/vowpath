@@ -14,6 +14,7 @@ import { JV_ROUTES } from "../routes";
 const TABS = [
   { href: JV_ROUTES.chat, label: "대화", key: "chat" },
   { href: JV_ROUTES.review, label: "검수", key: "review" },
+  { href: JV_ROUTES.returns, label: "반품", key: "returns" },
   { href: JV_ROUTES.settings, label: "설정", key: "settings" },
 ] as const;
 

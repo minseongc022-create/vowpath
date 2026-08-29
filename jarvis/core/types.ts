@@ -83,6 +83,24 @@ export type Candidate = {
 
   /** 관측된 경쟁 최저가 (있을 때만) */
   competitorLowKrw?: number;
+
+  /**
+   * 검색어와 상품 제목이 얼마나 같은 물건인가 (0~1).
+   *
+   * 관문은 "전혀 다른 물건"만 막지만, 아슬아슬하게 통과한 상품은 제목·
+   * 검색 노출·광고 문구가 전부 흐릿해진다. 그래서 관문 통과 여부와 별개로
+   * 값을 남겨 **고를 때** 쓴다 (engine/judge.ts).
+   */
+  relevance?: number;
+
+  /**
+   * 판단 점수 0~100 — 관문을 통과한 것들 중 무엇을 먼저 만들지 정한 근거.
+   * 통과 여부가 아니라 **우열**이다. 없으면 아직 줄 세우기 전이라는 뜻.
+   */
+  score?: number;
+  /** 그 점수가 나온 이유 — 검수 화면에 그대로 보여준다 */
+  scoreReasons?: string[];
+
   foundAt: string;
 };
 
@@ -108,6 +126,21 @@ export type Draft = {
   /** 상세페이지에 쓴 셀링포인트 — 검수 화면에서 따로 보여준다 */
   sellingPoints: string[];
 
+  /**
+   * 상세페이지의 **내용**(HTML이 아니라 데이터).
+   *
+   * 사장님이 "이 부분만 고쳐줘"라고 하려면 그 부분이 무엇인지 프로그램이
+   * 알아야 한다. 완성된 HTML에서 "문제 제기 문단"을 짚는 방법은 문자열
+   * 검색뿐이고 그건 문구가 조금만 바뀌어도 깨진다. 그래서 내용을 따로
+   * 들고 있다가, 고칠 때는 이걸 바꾸고 detailHtml을 다시 그린다.
+   *
+   * 옛 초안에는 없을 수 있다(그때는 부분 수정이 안 되고 전체 보기만 된다).
+   */
+  pageCopy?: import("../engine/detail-page").PageCopy;
+
+  /** 사장님이 고쳐달라고 한 기록 — 무엇을 어떻게 고쳤는지 남는다 */
+  revisions?: Array<{ at: string; section: string; request: string; note: string }>;
+
   /** 토스에 보낼 등록 페이로드 */
   listingPayload: {
     name: string;
@@ -125,6 +158,11 @@ export type Draft = {
   /** 승인/반려한 사람 */
   decidedBy?: string;
   rejectReason?: string;
+  /**
+   * 승인 시점에 공급처를 다시 확인한 결과 한 줄.
+   * 원가가 바뀌어 가격을 다시 정했다면 그 사실이 여기 남는다.
+   */
+  revalidationNote?: string;
   /** 등록 성공 시 토스 상품번호 */
   tossProductNo?: string;
   publishError?: string;
@@ -171,6 +209,31 @@ export type ChatTurn = {
     | { kind: "sourcing"; run: SourcingRun }
     | { kind: "detail"; draftId: string }
   >;
+};
+
+// ─────────────────────────────────────────────────────────────
+// 반품
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 접수된 반품 한 건과 자비스의 판정.
+ *
+ * 판정을 **저장해 둔다**. 다시 계산하면 그 사이 바뀐 기준으로 다른 답이
+ * 나오는데, 고객에게는 이미 처음 판정대로 안내가 나갔다. 두 값이 생기는
+ * 순간 어느 쪽이 진짜인지 아무도 모른다.
+ */
+export type ReturnCase = {
+  id: string;
+  /** 어느 상품인가 — 토스 상품번호 또는 초안 id */
+  draftId?: string;
+  tossProductNo?: string;
+  request: import("../returns/decide").ReturnRequest;
+  decision: import("../returns/decide").ReturnDecision;
+  status: "open" | "resolved";
+  /** 사장님이 확인해서 마무리한 경우 그 결과 */
+  resolvedNote?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -241,6 +304,8 @@ export type JarvisState = {
   activity?: { label: string; at: string; done?: boolean };
   /** 30분 보고 누적 창 */
   reportWindow: ReportWindow;
+  /** 접수된 반품 — 처리 안 된 건이 조용히 묻히면 페널티가 된다 */
+  returns?: ReturnCase[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
