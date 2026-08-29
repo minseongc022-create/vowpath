@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { JV_API } from "../routes";
 import type { Draft } from "../core/types";
+import { renderSections, SECTION_LABELS, type SectionKind } from "../engine/detail-page";
 
 export function ReviewView() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -143,6 +144,10 @@ export function ReviewView() {
           busy={busyId === draft.id}
           onApprove={() => void act(draft.id, "approve")}
           onReject={() => void act(draft.id, "reject")}
+          onRevised={(updated, note) => {
+            setDrafts((d) => d.map((x) => (x.id === updated.id ? updated : x)));
+            setNotice(note);
+          }}
         />
       ))}
 
@@ -174,14 +179,24 @@ function DraftCard({
   busy,
   onApprove,
   onReject,
+  onRevised,
 }: {
   draft: Draft;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
+  onRevised: (draft: Draft, note: string) => void;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const c = draft.candidate;
+
+  // ★ 고칠 수 있는 단위로 나눠 그린다.
+  //
+  // 상세페이지를 HTML 한 덩어리로 넣으면 사장님이 "이 부분"을 짚을 방법이
+  // 없다. 초안이 들고 있는 **내용**에서 섹션을 다시 그려, 각 섹션 옆에
+  // 「이 부분 고치기」를 붙인다. 옛 초안(내용이 없는 것)은 예전처럼
+  // 통째로 보여준다 — 고치진 못해도 검수는 돼야 한다.
+  const sections = draft.pageCopy ? renderSections(draft.pageCopy).sections : null;
 
   return (
     <article className="jv-card">
@@ -205,14 +220,27 @@ function DraftCard({
         {showDetail ? "상세페이지 접기" : "상세페이지 보기"}
       </button>
 
-      {showDetail && (
-        <div
-          className="jv-detail-frame"
-          // 상세페이지는 우리 엔진이 만든 HTML이다. 공급처에서 온 문자열은
-          // 전부 escapeHtml을 거쳐 들어가므로 여기서 다시 정제하지 않는다.
-          dangerouslySetInnerHTML={{ __html: draft.detailHtml }}
-        />
-      )}
+      {showDetail &&
+        (sections ? (
+          <div className="jv-detail-frame">
+            {sections.map((section) => (
+              <SectionBlock
+                key={section.kind}
+                draftId={draft.id}
+                kind={section.kind}
+                html={section.html}
+                onRevised={onRevised}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="jv-detail-frame"
+            // 상세페이지는 우리 엔진이 만든 HTML이다. 공급처에서 온 문자열은
+            // 전부 escapeHtml을 거쳐 들어가므로 여기서 다시 정제하지 않는다.
+            dangerouslySetInnerHTML={{ __html: draft.detailHtml }}
+          />
+        ))}
 
       {/* ── 사장님만 보는 숫자 ── */}
       <div className="jv-seller">
@@ -293,5 +321,122 @@ function DraftCard({
         .jv-actions :global(button.jv-btn-primary) { flex: 2; }
       `}</style>
     </article>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * 상세페이지 한 조각 + 「이 부분 고치기」.
+ *
+ * 사장님 요구는 "내가 맘에 안 드는 곳 있으면 그 부분만 클릭해서 이거
+ * 고쳐달라고 하면 고쳐주게"였다. 그래서 고치는 단위가 곧 보이는 단위여야
+ * 한다 — 화면에서 짚은 자리와 자비스가 고치는 자리가 같아야 한다.
+ */
+function SectionBlock({
+  draftId,
+  kind,
+  html,
+  onRevised,
+}: {
+  draftId: string;
+  kind: SectionKind;
+  html: string;
+  onRevised: (draft: Draft, note: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [request, setRequest] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useCallback(async () => {
+    if (!request.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(JV_API.drafts, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "revise", draftId, section: kind, request }),
+      });
+      const data = (await res.json()) as { reason?: string; draft?: Draft; note?: string };
+      if (!res.ok || !data.draft) {
+        // 왜 못 고쳤는지 그대로 보여준다 — 이유를 모르면 사장님은 같은 말을
+        // 계속 반복하게 된다
+        setError(data.reason ?? "고치지 못했습니다.");
+        return;
+      }
+      setRequest("");
+      setOpen(false);
+      onRevised(data.draft, data.note ?? "고쳤습니다.");
+    } catch {
+      setError("고치지 못했습니다. 잠시 뒤 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }, [draftId, kind, request, onRevised]);
+
+  return (
+    <div className="jv-section">
+      <div className="jv-section-bar">
+        <span className="jv-section-name">{SECTION_LABELS[kind]}</span>
+        <button type="button" className="jv-fix-btn" onClick={() => setOpen((v) => !v)}>
+          {open ? "닫기" : "이 부분 고치기"}
+        </button>
+      </div>
+
+      {/* 이 HTML은 우리 엔진이 그린 것이다. 공급처·AI에서 온 문자열은 전부
+          escapeHtml을 거쳐 들어가므로 여기서 다시 정제하지 않는다. */}
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+
+      {open && (
+        <div className="jv-fix">
+          <textarea
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+            placeholder="어떻게 고칠까요? (예: 좀 더 짧고 담백하게 / 캠핑에서 쓰는 상황으로 / 이 부분 빼줘)"
+            rows={2}
+            disabled={busy}
+          />
+          {error && <p className="jv-fix-error">{error}</p>}
+          <button
+            type="button"
+            className="jv-fix-send"
+            onClick={() => void submit()}
+            disabled={busy || !request.trim()}
+          >
+            {busy ? "고치는 중…" : "자비스에게 고쳐달라고 하기"}
+          </button>
+        </div>
+      )}
+
+      <style jsx>{`
+        .jv-section { position: relative; border-bottom: 1px dashed var(--jv-line); }
+        .jv-section:last-child { border-bottom: 0; }
+        .jv-section-bar {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 8px 10px; background: var(--jv-surface);
+        }
+        .jv-section-name { font-size: 12px; font-weight: 700; color: #6b7280; }
+        .jv-fix-btn {
+          border: 1px solid var(--jv-line); background: #fff; border-radius: 999px;
+          font-size: 12px; font-weight: 700; padding: 5px 11px; cursor: pointer;
+          color: var(--jv-blue);
+        }
+        .jv-fix { padding: 10px; background: #f7f8fa; }
+        .jv-fix textarea {
+          width: 100%; border: 1px solid var(--jv-line); border-radius: 10px;
+          padding: 10px; font-size: 14px; line-height: 1.5; resize: vertical;
+          font-family: inherit;
+        }
+        .jv-fix-error { color: var(--jv-red); font-size: 13px; margin: 8px 0 0; line-height: 1.6; }
+        .jv-fix-send {
+          margin-top: 8px; width: 100%; border: 0; border-radius: 10px;
+          background: var(--jv-blue); color: #fff; font-size: 14px; font-weight: 700;
+          padding: 11px; cursor: pointer;
+        }
+        .jv-fix-send:disabled { opacity: 0.5; cursor: default; }
+      `}</style>
+    </div>
   );
 }

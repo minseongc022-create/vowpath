@@ -157,6 +157,7 @@ export async function runCycle(
       status: "pending_review",
       detailHtml: page.html,
       sellingPoints: page.sellingPoints,
+      pageCopy: page.copy,
       listingPayload: {
         name: candidate.title,
         salePrice: candidate.priceKrw,

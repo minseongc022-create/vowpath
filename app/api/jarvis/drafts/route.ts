@@ -4,6 +4,12 @@ import { isOwnerSession } from "@/jarvis/core/access";
 import { loadState, saveState, findDraft, discardPendingDrafts } from "@/jarvis/core/store";
 import { checkPrice, checkProfit } from "@/jarvis/core/rules";
 import { revalidateCandidate } from "@/jarvis/engine/revalidate";
+import { reviseSection } from "@/jarvis/engine/revise";
+import {
+  renderDetailPage,
+  SECTION_LABELS,
+  type SectionKind,
+} from "@/jarvis/engine/detail-page";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +40,13 @@ export async function POST(request: Request) {
   const session = await getJarvisSessionFromRequest(request);
   if (!isOwnerSession(session)) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  let body: { action?: string; draftId?: string; reason?: string };
+  let body: {
+    action?: string;
+    draftId?: string;
+    reason?: string;
+    section?: string;
+    request?: string;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -51,6 +63,62 @@ export async function POST(request: Request) {
 
   const draft = body.draftId ? findDraft(state, body.draftId) : undefined;
   if (!draft) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // ── 부분 수정 — "이 부분만 고쳐줘" ─────────────────────────
+  //
+  // 페이지를 통째로 다시 만들지 않는다. 사장님이 짚은 자리만 고치고
+  // 나머지는 처음 그대로 둔다 — 통째로 다시 만들면 마음에 들었던 부분까지
+  // 바뀐다.
+  if (body.action === "revise") {
+    if (!draft.pageCopy) {
+      return NextResponse.json(
+        {
+          error: "NO_PAGE_COPY",
+          reason:
+            "이 초안은 부분 수정을 지원하기 전에 만들어져 고칠 자리를 짚을 수 없습니다. 반려하시면 다음 소싱에서 새로 만듭니다.",
+        },
+        { status: 409 },
+      );
+    }
+    const section = body.section as SectionKind | undefined;
+    if (!section || !(section in SECTION_LABELS)) {
+      return NextResponse.json(
+        { error: "BAD_SECTION", reason: "어느 부분을 고칠지 알 수 없습니다." },
+        { status: 400 },
+      );
+    }
+
+    const result = await reviseSection({
+      copy: draft.pageCopy,
+      section,
+      request: body.request ?? "",
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: "REVISE_FAILED", reason: result.reason }, { status: 422 });
+    }
+
+    // 내용을 바꾼 뒤 **처음과 같은 규칙으로 다시 그린다** — 부분 수정이
+    // 레이아웃을 망가뜨릴 수 없는 이유가 이것이다
+    draft.pageCopy = result.copy;
+    draft.detailHtml = renderDetailPage(result.copy);
+    draft.sellingPoints = result.copy.sellingPoints;
+    draft.listingPayload.detailHtml = draft.detailHtml;
+    draft.listingPayload.name = result.copy.title;
+    draft.listingPayload.imageUrls = result.copy.images.slice(0, 10);
+    draft.candidate = { ...draft.candidate, title: result.copy.title };
+    draft.revisions = [
+      ...(draft.revisions ?? []),
+      {
+        at: new Date().toISOString(),
+        section,
+        request: (body.request ?? "").slice(0, 300),
+        note: result.note,
+      },
+    ];
+    draft.updatedAt = new Date().toISOString();
+    await saveState(state);
+    return NextResponse.json({ ok: true, draft, note: result.note });
+  }
 
   if (body.action === "reject") {
     draft.status = "rejected";

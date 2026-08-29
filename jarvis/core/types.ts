@@ -126,6 +126,21 @@ export type Draft = {
   /** 상세페이지에 쓴 셀링포인트 — 검수 화면에서 따로 보여준다 */
   sellingPoints: string[];
 
+  /**
+   * 상세페이지의 **내용**(HTML이 아니라 데이터).
+   *
+   * 사장님이 "이 부분만 고쳐줘"라고 하려면 그 부분이 무엇인지 프로그램이
+   * 알아야 한다. 완성된 HTML에서 "문제 제기 문단"을 짚는 방법은 문자열
+   * 검색뿐이고 그건 문구가 조금만 바뀌어도 깨진다. 그래서 내용을 따로
+   * 들고 있다가, 고칠 때는 이걸 바꾸고 detailHtml을 다시 그린다.
+   *
+   * 옛 초안에는 없을 수 있다(그때는 부분 수정이 안 되고 전체 보기만 된다).
+   */
+  pageCopy?: import("../engine/detail-page").PageCopy;
+
+  /** 사장님이 고쳐달라고 한 기록 — 무엇을 어떻게 고쳤는지 남는다 */
+  revisions?: Array<{ at: string; section: string; request: string; note: string }>;
+
   /** 토스에 보낼 등록 페이로드 */
   listingPayload: {
     name: string;
