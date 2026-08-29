@@ -13,7 +13,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { JV_API } from "../routes";
 
-type Conn = { connected: boolean; fromEnv?: boolean; accessKeyMasked?: string | null };
+type Conn = {
+  connected: boolean;
+  fromEnv?: boolean;
+  accessKeyMasked?: string | null;
+  /** 토스만 해당 — 테스트(샌드박스) 모드로 붙어 있는지 */
+  sandbox?: boolean;
+};
 
 type Payload = {
   settings: {
@@ -105,6 +111,13 @@ export function SettingsView() {
           label="토스쇼핑"
           connected={c.toss.connected}
           need="이게 없으면 찾고 만들 수는 있지만 실제 등록이 안 됩니다"
+          note={
+            c.toss.connected
+              ? c.toss.fromEnv
+                ? `서버 환경변수로 연결됨${c.toss.sandbox ? " · 테스트(샌드박스) 모드" : ""}`
+                : `아래에서 넣은 키로 연결됨${c.toss.sandbox ? " · 테스트(샌드박스) 모드" : ""}`
+              : undefined
+          }
         />
         <ConnRow
           label="대화 AI"

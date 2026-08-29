@@ -13,8 +13,6 @@ import {
   findUserByLsCustomerId,
   updateUserBilling,
 } from "@/lib/users-db";
-import { handleTossShopLsWebhook } from "@/toss-shop/lib/lemon-squeezy-webhook";
-import type { TossShopLsWebhook } from "@/toss-shop/lib/lemon-squeezy";
 
 export const runtime = "nodejs";
 
@@ -126,11 +124,8 @@ export async function POST(request: Request) {
   const event = payload.meta?.event_name ?? "";
 
   try {
-    const tossHandled = await handleTossShopLsWebhook(payload as TossShopLsWebhook);
-    if (tossHandled) {
-      return NextResponse.json({ received: true });
-    }
-
+    // 옛 toss-shop 셀러 구독(Pro 결제) 분기는 제거했다 — 그 SaaS 자체가
+    // 없어졌다. 이 웹훅은 메인 앱 구독만 처리한다.
     switch (event) {
       case "subscription_created":
       case "subscription_updated":

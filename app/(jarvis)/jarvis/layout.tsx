@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getTossShopSession } from "@/toss-shop/lib/auth-request";
+import { getJarvisSession } from "@/jarvis/core/session-request";
 import { loadState } from "@/jarvis/core/store";
 import { isOwnerSession } from "@/jarvis/core/access";
 import { JarvisShell } from "@/jarvis/ui/JarvisShell";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * 그 문이 실수로 열렸을 때 전부 뚫린다.
  */
 export default async function JarvisLayout({ children }: { children: React.ReactNode }) {
-  const session = await getTossShopSession();
+  const session = await getJarvisSession();
   if (!isOwnerSession(session)) redirect(JV_ROUTES.login);
 
   const state = await loadState();

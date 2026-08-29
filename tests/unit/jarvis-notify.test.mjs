@@ -33,12 +33,22 @@ test("첫 줄만 읽어도 뜻이 통한다 — 쪼개져도 의미가 안 뒤�
   assert.ok(firstLine.length <= 45);
 });
 
-test("링크는 effiroad.com의 실제 검수 화면을 가리킨다", () => {
+test("링크는 자비스가 실제로 사는 도메인의 검수 화면을 가리킨다", () => {
+  // ★ 자비스는 effiroad.com이 아니라 giucuu.com에 있다.
+  //
+  // effiroad.com엔 두 시대의 흔적(옛 AI 전화 서비스 가입자, 옛 toss-shop
+  // 대시보드)이 겹쳐 있어 도메인을 통째로 옮겼다. 문자에 적힌 주소와 실제
+  // 서비스 주소가 어긋나면 사장님이 링크를 눌러도 아무것도 안 뜬다.
+  //
   // NEXT_PUBLIC_SELLER_PULSE_AT_ROOT는 Vercel 빌드에서만 "1"로 박힌다
   // (vercel.json build.env). 로컬 tsx 실행에선 /sellerpulse가 붙으므로
-  // 정확한 접두어가 아니라 "effiroad.com 도메인의 review 화면"인지만 본다.
+  // 정확한 접두어가 아니라 "그 도메인의 review 화면"인지만 본다.
   const alert = buildReviewAlert(3);
-  assert.match(alert.message, /https:\/\/effiroad\.com\/(sellerpulse\/)?review$/m);
+  assert.match(alert.message, /https:\/\/giucuu\.com\/(sellerpulse\/)?review$/m);
+  assert.ok(
+    !alert.message.includes("effiroad.com"),
+    "옛 도메인이 남아 있으면 링크를 눌러도 빈 도메인이 뜬다",
+  );
 });
 
 test("건수가 정확히 그 숫자로 들어간다 — 옛 파이프라인처럼 앞뒤가 안 맞으면 안 된다", () => {

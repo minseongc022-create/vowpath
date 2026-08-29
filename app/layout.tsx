@@ -4,8 +4,8 @@ import { LearnPlatformShell } from "@/learn/components/layout/LearnPlatformShell
 import { TopikPlatformShell } from "@/topik/components/layout/TopikPlatformShell";
 import { ManoPlatformShell } from "@/mano/components/layout/ManoPlatformShell";
 import { GiuPlatformShell } from "@/giu/components/layout/GiuPlatformShell";
-import { TossShopPlatformShell } from "@/toss-shop/components/layout/TossShopPlatformShell";
-import { EFFIROAD_BRAND } from "@/toss-shop/lib/brand";
+import { JarvisPlatformShell } from "@/jarvis/ui/JarvisPlatformShell";
+import { EFFIROAD_BRAND } from "@/jarvis/brand";
 import { MANO_BRAND } from "@/mano/lib/brand";
 import { GIU_BRAND } from "@/giu/lib/brand";
 import { resolveGiuPublicOrigin } from "@/giu/lib/giu-host-server";
@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     };
   }
-  if (shell === "toss-shop") {
+  if (shell === "jarvis") {
     return {
       title: { default: EFFIROAD_BRAND.nameKo, template: `%s · ${EFFIROAD_BRAND.nameKo}` },
       description: EFFIROAD_BRAND.tagline,
@@ -109,8 +109,8 @@ export default async function RootLayout({
   if (shell === "giu") {
     return <GiuPlatformShell>{children}</GiuPlatformShell>;
   }
-  if (shell === "toss-shop") {
-    return <TossShopPlatformShell>{children}</TossShopPlatformShell>;
+  if (shell === "jarvis") {
+    return <JarvisPlatformShell>{children}</JarvisPlatformShell>;
   }
   return <PlatformShell>{children}</PlatformShell>;
 }

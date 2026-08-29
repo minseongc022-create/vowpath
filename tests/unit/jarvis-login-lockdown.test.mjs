@@ -2,16 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 // ─────────────────────────────────────────────────────────────
-// 로그인 라우트 자체가 첫 번째 방어선이다. 소유자가 아니면 계정 생성이든
-// 로그인 시도든 store를 건드리기도 전에 여기서 막혀야 한다 — 그래야
-// "이미 사용 중인 이메일입니다" 같은 응답으로 계정 존재 여부가 새지 않는다.
+// 실제로 있었던 구멍: 회원가입이 누구에게나 열려 있었다.
+// 자비스의 저장소는 가맹점별로 나뉘지 않은 **하나의 전역 상태**라,
+// 아무나 가입만 하면 사장님의 대화·목표·전화번호·연동 상태를 그대로 보고
+// 설정까지 바꿀 수 있었다.
+//
+// 새 로그인(app/api/jarvis/login)은 회원가입 자체가 없고, 소유자 이메일이
+// 아니면 통과하지 못한다. 이 테스트는 그 문이 계속 잠겨 있는지 본다.
 // ─────────────────────────────────────────────────────────────
 
-process.env.TOSS_SHOP_OWNER_EMAILS = "owner@example.com";
 process.env.NEXT_PUBLIC_APP_URL = "https://effiroad.com";
+process.env.TOSS_SHOP_OWNER_EMAILS = "owner@effiroad.com";
 
 function req(body) {
-  return new Request("https://effiroad.com/api/toss-shop/auth/login", {
+  return new Request("https://effiroad.com/api/jarvis/login", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -21,26 +25,35 @@ function req(body) {
   });
 }
 
-test("소유자가 아닌 이메일의 회원가입 시도는 계정을 만들기 전에 거절된다", async () => {
-  const { POST } = await import("../../app/api/toss-shop/auth/login/route.ts");
-  const res = await POST(req({ mode: "signup", email: "stranger@example.com", password: "aaaaaaaa" }));
-  assert.equal(res.status, 401);
-  const body = await res.json();
-  // "이미 사용 중인 이메일입니다" 같은 계정-존재 힌트를 주면 안 된다 —
-  // 로그인 실패와 똑같은 문구여야 계정 존재 여부가 새지 않는다
-  assert.equal(body.error, "이메일 또는 비밀번호가 올바르지 않습니다.");
-});
-
-test("소유자가 아닌 이메일의 로그인 시도도 같은 이유로 거절된다", async () => {
-  const { POST } = await import("../../app/api/toss-shop/auth/login/route.ts");
-  const res = await POST(req({ mode: "login", email: "stranger@example.com", password: "whatever" }));
+test("소유자가 아닌 이메일은 로그인하지 못한다", async () => {
+  const { POST } = await import("../../app/api/jarvis/login/route.ts");
+  const res = await POST(req({ email: "stranger@example.com", password: "whatever123" }));
   assert.equal(res.status, 401);
 });
 
-test("소유자 이메일 대소문자를 바꿔도 거절 여부가 안 바뀐다 — 우회 경로가 없다", async () => {
-  const { POST } = await import("../../app/api/toss-shop/auth/login/route.ts");
+test("소유자가 아닌 이메일에 계정 존재 여부를 흘리지 않는다", async () => {
+  const { POST } = await import("../../app/api/jarvis/login/route.ts");
+  const stranger = await POST(req({ email: "stranger@example.com", password: "x1" }));
+  const owner = await POST(req({ email: "owner@effiroad.com", password: "wrong-password" }));
+
+  // 둘 다 같은 문구여야 한다 — 다르면 어떤 이메일이 존재하는지 알려주는 셈이다
+  const a = await stranger.json();
+  const b = await owner.json();
+  assert.equal(stranger.status, 401);
+  assert.equal(owner.status, 401);
+  assert.equal(a.error, b.error, "실패 문구가 다르면 계정 존재 여부가 샌다");
+});
+
+test("회원가입 경로가 아예 없다 — mode를 보내도 계정이 안 만들어진다", async () => {
+  const { POST } = await import("../../app/api/jarvis/login/route.ts");
   const res = await POST(
-    req({ mode: "signup", email: "STRANGER@EXAMPLE.COM", password: "aaaaaaaa" }),
+    req({ email: "newbie@example.com", password: "pw123456", mode: "signup", name: "새사람" }),
   );
-  assert.equal(res.status, 401);
+  assert.equal(res.status, 401, "mode:signup은 무시되고 소유자 검사에서 막혀야 한다");
+});
+
+test("이메일이나 비밀번호가 비면 400", async () => {
+  const { POST } = await import("../../app/api/jarvis/login/route.ts");
+  assert.equal((await POST(req({ email: "", password: "x" }))).status, 400);
+  assert.equal((await POST(req({ email: "owner@effiroad.com", password: "" }))).status, 400);
 });

@@ -22,8 +22,8 @@ import {
   isDomeggookApiConfigured,
   getLastDomeggookError,
   clearDomeggookError,
-} from "@/toss-shop/lib/wholesale/domeggook-api";
-import type { WholesaleListing } from "@/toss-shop/lib/wholesale/types";
+} from "@/jarvis/wholesale/domeggook-api";
+import type { WholesaleListing } from "@/jarvis/wholesale/types";
 import { checkCost, decidePrice, MIN_RELEVANCE } from "../core/rules";
 import { computeAdBreakeven } from "../core/money";
 import type { Candidate, SourcingRun, Supplier } from "../core/types";

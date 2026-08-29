@@ -17,7 +17,7 @@
  */
 
 import { sendSms } from "@/lib/send-sms";
-import { canonicalMarketingUrl } from "@/lib/canonical-host";
+import { jarvisUrl } from "../host";
 import { JV_ROUTES } from "../routes";
 import type { ReportWindow } from "../core/types";
 
@@ -26,7 +26,7 @@ export const NOTIFY_VERSION = "1.0";
 /** 해외발신 SMS 1건 한도. 이 문자만이 아니라 이 프로젝트 전체가 지키는 값이다 */
 export const SMS_SINGLE_SEGMENT_LIMIT = 67;
 
-const REVIEW_URL = canonicalMarketingUrl(JV_ROUTES.review);
+const REVIEW_URL = jarvisUrl(JV_ROUTES.review);
 
 export type ReviewAlert = { message: string; withinLimit: boolean };
 
