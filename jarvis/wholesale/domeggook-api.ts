@@ -16,7 +16,7 @@ import {
  */
 const UNIT_SOURCING_TTL_MS = 6 * 60 * 60 * 1000;
 const UNIT_SOURCING_CACHE_MAX = 500;
-const unitSourcingCache = new Map<number, { at: number; value: SingleUnitSourcing }>();
+const unitSourcingCache = new Map<string, { at: number; value: SingleUnitSourcing }>();
 
 /** 테스트·핫리로드용 */
 export function clearUnitSourcingCache(): void {
@@ -27,14 +27,29 @@ const API_BASE = "https://www.domeggook.com/ssl/api/";
 
 type DomeMarket = "dome" | "supply";
 
+/**
+ * ★ 도매꾹은 숫자를 **문자열로** 준다
+ *
+ * 실제 응답을 떠서 확인했다:
+ *   {"no":"9502515","price":"6900","unitQty":"1","deli":{"fee":"5000"}}
+ *
+ * 종전 타입은 이걸 전부 `number`로 선언했다. 타입은 컴파일 때만 존재하니
+ * 아무도 안 막아줬고, 런타임에서 `typeof item.unitQty === "number"`가 늘
+ * false가 됐다. 그래서 **모든 상품이 "MOQ 미확인"으로 읽혀** 소싱 게이트에서
+ * 통째로 걸러졌다 — 검색어 24개가 전부 "상품 0개"로 나오던 진짜 원인이다.
+ * API는 멀쩡히 3,777개를 주고 있었다.
+ *
+ * 오류가 하나도 안 났다는 게 이 고장의 고약한 점이다. "팔 물건이 없네"로만
+ * 보였다. 그래서 타입을 실제 응답대로 적고, 읽을 때 반드시 숫자로 바꾼다.
+ */
 type DomeItem = {
-  no?: number;
+  no?: string | number;
   title?: string;
-  price?: number;
+  price?: string | number;
   thumb?: string;
   id?: string;
   nick?: string;
-  unitQty?: number;
+  unitQty?: string | number;
   url?: string;
   deli?: { who?: string; fee?: string | number; fromOversea?: boolean };
   /** 응답에 설명·안내 텍스트가 실려 오는 경우 (검색 API는 보통 주지 않음) */
@@ -42,6 +57,20 @@ type DomeItem = {
   content?: string;
   info?: string;
 };
+
+/**
+ * 문자열로 와도 숫자로 읽는다. 숫자로 못 읽으면 null —
+ * **0이나 1로 얼버무리지 않는다**. MOQ를 얼버무리면 발주가 안 되는 상품을
+ * 팔게 되고, 가격을 얼버무리면 마진 계산이 통째로 틀어진다.
+ */
+function toNum(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const n = Number(v.trim().replace(/,/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
 
 /**
  * MOQ를 못 읽었을 때 쓰는 값.
@@ -137,12 +166,20 @@ function collectPolicyText(item: DomeItem): string | undefined {
 
 function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListing | null {
   const supplierQuality = readSupplierQuality(item);
-  if (!item.title || item.price == null || item.price <= 0) return null;
+
+  // 문자열로 와도 숫자로 읽는다 — 도매꾹은 "6900"처럼 준다.
+  // 종전 코드는 `item.price <= 0`을 문자열에 그대로 걸었다. 자바스크립트가
+  // 알아서 숫자로 바꿔주는 바람에 통과는 했지만, 그 뒤로 **문자열이 그대로
+  // 원가 자리에 들어가** 마진 계산에 섞였다.
+  const priceKrw = toNum(item.price);
+  if (!item.title || priceKrw == null || priceKrw <= 0) return null;
+
   const shippingFeeKrw = parseDeliFee(item.deli?.fee);
   const freeShipping = item.deli?.who === "S";
+  const itemNo = item.no != null ? String(item.no) : "";
   const url =
     item.url?.trim() ||
-    (item.no ? `https://domeme.com/s/${item.no}` : `https://www.domeggook.com/main/item/itemView.php?itemNo=${item.no ?? ""}`);
+    (itemNo ? `https://domeme.com/s/${itemNo}` : `https://www.domeggook.com/main/item/itemView.php?itemNo=`);
 
   // ★ MOQ는 fail-closed로 읽는다.
   //
@@ -154,16 +191,25 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
   //
   // 그래서 못 읽으면 1이 아니라 **미확인**으로 둔다. 미확인 MOQ는 소싱
   // 게이트에서 걸러진다. 확인된 1만 낱개 발주로 인정한다.
-  const moqRead = typeof item.unitQty === "number" && item.unitQty > 0 ? item.unitQty : null;
+  //
+  // ★ 여기가 "검색어 24개에서 상품 0개"의 진짜 원인이었다.
+  //
+  // 종전 코드는 `typeof item.unitQty === "number"`를 요구했는데, 도매꾹은
+  // `"unitQty":"1"`처럼 **문자열로** 준다. 그래서 이 검사가 늘 false가 되어
+  // **모든 상품이 MOQ 미확인**으로 읽혔고, 소싱 게이트가 전부 걸러냈다.
+  // API는 멀쩡히 3,777개를 주고 있었는데 화면엔 "팔 물건이 없다"만 떴다.
+  // 오류가 하나도 안 나서 몇 주를 그렇게 돌았다.
+  const moqNum = toNum(item.unitQty);
+  const moqRead = moqNum != null && moqNum > 0 ? moqNum : null;
 
   return {
     platform,
-    itemNo: item.no,
+    itemNo,
     title: item.title.replace(/\s+/g, " ").trim(),
     // 이 단가는 **MOQ 수량으로 살 때의 개당 가격**이다. MOQ가 1이 아니면
     // "1개 살 때의 가격"이 아니므로 그대로 원가로 쓰면 안 된다.
     // 낱개 원가는 상세 조회로 확정한다 (domeggook-price.resolveSingleUnitSourcing).
-    unitPriceKrw: item.price,
+    unitPriceKrw: priceKrw,
     shippingFeeKrw: freeShipping ? 0 : shippingFeeKrw,
     // 미확인은 낙관적으로 1이 아니라, 위탁 불가에 해당하는 값으로 둔다.
     moq: moqRead ?? UNKNOWN_MOQ,
@@ -187,6 +233,19 @@ function toListing(item: DomeItem, platform: WholesalePlatform): WholesaleListin
  */
 export function __readItemsForTest(raw: unknown): DomeItem[] {
   return normalizeItems(raw);
+}
+
+/**
+ * 테스트 전용 — 상품 한 건을 실제로 어떻게 읽는지 검증하기 위해 연다.
+ *
+ * 파싱이 되어도 여기서 값을 잘못 읽으면(문자열 MOQ를 못 읽는 것처럼) 결과는
+ * 똑같이 "상품 0개"다. 실제로 그렇게 멈춰 있었으므로 이 단계도 묶어둔다.
+ */
+export function __toListingForTest(
+  item: DomeItem,
+  platform: WholesalePlatform,
+): WholesaleListing | null {
+  return toListing(item, platform);
 }
 
 export function isDomeggookApiConfigured(): boolean {
@@ -422,7 +481,7 @@ export async function searchAllKoreanWholesale(keyword: string, limit = 6): Prom
  * 판독 실패는 실패로 답한다. 모르면 소싱하지 않는 쪽이 항상 싸다.
  */
 export async function confirmSingleUnitSourcing(
-  itemNo: number,
+  itemNo: string,
 ): Promise<SingleUnitSourcing> {
   const aid = getApiKey();
   if (!aid) {
@@ -435,7 +494,11 @@ export async function confirmSingleUnitSourcing(
       reason: "DOMEGGOOK_API_KEY 미설정 — 낱개 발주 가능 여부를 확인할 수 없다",
     };
   }
-  if (!Number.isFinite(itemNo) || itemNo <= 0) {
+  // ★ 예전엔 `Number.isFinite(itemNo)`로 검사했다. 도매꾹이 상품번호를
+  // `"9502515"`처럼 **문자열로** 주기 때문에 이 검사가 늘 false가 되어
+  // 낱개 발주 확인이 통째로 거부됐다 — "검색어 24개에서 상품 0개"를 만든
+  // 것과 같은 계열의 고장이다. 숫자로 바꿔서 재는 게 아니라, 번호 모양인지만 본다.
+  if (!/^\d+$/.test(itemNo.trim())) {
     return {
       available: false,
       unitPriceKrw: null,

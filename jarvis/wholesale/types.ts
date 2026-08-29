@@ -5,7 +5,13 @@ export type WholesalePlatform = "domeggook" | "domeme" | "1688" | "taobao" | "ra
 
 export type WholesaleListing = {
   platform: WholesalePlatform;
-  itemNo?: number;
+  /**
+   * 도매꾹 상품번호. **식별자라 문자열이다** — 도매꾹이 `"9502515"`처럼
+   * 문자열로 주고, 쓰는 쪽(Supplier.itemNo)도 문자열이다. 예전엔 여기만
+   * number로 적혀 있어서 `Number.isFinite()` 검사에 걸려 낱개 확인이
+   * 통째로 거부됐다. 숫자로 다룰 값이 아니다(더하거나 비교할 일이 없다).
+   */
+  itemNo?: string;
   title: string;
   /**
    * 개당 공급가.
