@@ -23,6 +23,31 @@ import { JARVIS_SESSION_COOKIE, verifyJarvisSessionToken } from "@/jarvis/core/s
 
 const protectedPaths = ["/dashboard", "/onboarding", "/settings"];
 
+/**
+ * 소유자가 아닌 방문자에게 내미는 "아무것도 없음" 응답.
+ *
+ * ★ 왜 본문을 채우는가 — 진짜로 있었던 사고
+ *
+ * 처음엔 `new NextResponse(null, { status: 404, ... })`로 몸통을 아예
+ * 비웠다. 그러면 Content-Type이 안 실리는데, iOS Safari는 Content-Type
+ * 없는 응답을 **파일 다운로드**로 취급한다 — 사장님이 로그아웃된 채로
+ * `/settings`에 들어갔을 때 정상적인 "없음" 화면 대신 `settings`라는
+ * 이름의 정체불명 다운로드 배너가 떴다. 남이 봐도 "이 경로에 뭔가
+ * 있다"는 낌새는 안 줘야 하니 빈 페이지로 보이는 건 그대로 두되,
+ * **HTML로 렌더링되게** 최소한의 문서 하나만 채운다.
+ */
+function silentNotFound(): NextResponse {
+  return new NextResponse("<!doctype html><title></title>", {
+    status: 404,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    },
+  });
+}
+
+
 /** Customer portal paths — safe on portal/app subdomains (no marketing homepage). */
 const portalPublicPrefixes = [
   "/r/",
@@ -152,13 +177,7 @@ export async function middleware(request: NextRequest) {
   // 그러면 옛 가맹점·고객이 그 주소로 계속 들어올 수 있고, 결제 웹훅도
   // 살아 있게 된다. 호스트와 무관하게 경로로 막는 이유다.
   if (pathname === "/giu" || pathname.startsWith("/giu/") || pathname.startsWith("/api/giu")) {
-    return new NextResponse(null, {
-      status: 404,
-      headers: {
-        "Cache-Control": "no-store",
-        "X-Robots-Tag": "noindex, nofollow, noarchive",
-      },
-    });
+    return silentNotFound();
   }
 
   // learn.effiroad.com → Lane only (no Effiroad dispatch chrome or auth gates).
@@ -185,13 +204,7 @@ export async function middleware(request: NextRequest) {
       if (!isOwnerSession(session)) {
         // 로그인으로 돌려보내지 않는다 — 돌려보내면 그 경로에 뭔가 있다는
         // 걸 알려주는 셈이다. 없는 것처럼 보이는 편이 낫다.
-        return new NextResponse(null, {
-          status: 404,
-          headers: {
-            "Cache-Control": "no-store",
-            "X-Robots-Tag": "noindex, nofollow, noarchive",
-          },
-        });
+        return silentNotFound();
       }
     }
 
@@ -217,7 +230,7 @@ export async function middleware(request: NextRequest) {
       return sellerPulseShellResponse(request, internal, pathname);
     }
 
-    return new NextResponse(null, { status: 404 });
+    return silentNotFound();
   }
 
   // Lane Learn — fully isolated product; skip Effiroad dispatch middleware entirely.
@@ -252,13 +265,7 @@ export async function middleware(request: NextRequest) {
   //
   // 리다이렉트하지 않는다 — 자비스가 어디로 갔는지 알려줄 이유가 없다.
   if (sellerPulseOwnsApex) {
-    return new NextResponse(null, {
-      status: 404,
-      headers: {
-        "Cache-Control": "no-store",
-        "X-Robots-Tag": "noindex, nofollow, noarchive",
-      },
-    });
+    return silentNotFound();
   }
 
   // Effiroad 셀러 도구 (apex가 아닌 호스트에서는 /sellerpulse 밑).
