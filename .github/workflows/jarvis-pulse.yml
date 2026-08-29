@@ -1,9 +1,15 @@
 # 자비스 심박 — 10분마다 사이트를 깨운다
 #
-# Vercel Hobby 플랜의 크론은 하루 한 번이 한계라, 필수 작업 알림을 10분마다
-# 되풀이할 수가 없다. 발송기한을 넘기면 배송 인센티브(수수료 0%)가 통째로
-# 날아가므로 하루 한 번으로는 부족하다. GitHub Actions는 무료이고 스케줄이
-# 저장소 안에 남아서, 플랜을 올리지 않고도 같은 일을 한다.
+# Vercel Hobby 플랜의 크론은 하루 한 번이 한계라, 10분마다 자동 소싱을
+# 돌릴 수가 없다. GitHub Actions는 무료이고 스케줄이 저장소 안에 남아서,
+# 플랜을 올리지 않고도 같은 일을 한다 — cron-job.org 같은 외부 서비스에
+# 새로 가입할 필요 없이, 이미 CRON_SECRET이 설정된 이 워크플로 하나로 된다.
+#
+# ⚠️ 예전엔 이 워크플로가 옛 toss-shop 엔진(/api/cron/jarvis-pulse)을
+# 깨우고 있었다. 자비스를 처음부터 다시 지은 뒤에도 이 워크플로를 안 옮겨서,
+# 옛 엔진이 옛 저장소 기준으로 계속 초안을 만들고 앞뒤 안 맞는 문자를
+# 보내고 있었다("승인 대기 2건" 다음에 바로 "15건") — 실제 사고였다.
+# 이제 새 엔드포인트(/api/jarvis/cron) 하나만 깨운다.
 #
 # 필요한 저장소 시크릿: CRON_SECRET (Vercel 환경변수와 같은 값)
 name: jarvis-pulse
@@ -24,9 +30,9 @@ jobs:
           code=$(curl -sS -o /tmp/pulse.json -w "%{http_code}" \
             --max-time 120 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://effiroad.com/api/cron/jarvis-pulse)
+            https://effiroad.com/api/jarvis/cron)
           echo "HTTP $code"
           cat /tmp/pulse.json
-          # 실패를 조용히 넘기지 않는다 — 알림이 안 나가고 있는데
+          # 실패를 조용히 넘기지 않는다 — 자동 소싱이 안 되고 있는데
           # 초록 체크만 뜨면 아무도 눈치채지 못한다.
           test "$code" = "200"
