@@ -181,45 +181,6 @@ function merchantData(store: TossShopStore, merchantId: string): MerchantData {
 
 // ── Auth ──
 
-/**
- * 지정한 이메일의 계정만 지운다 — 일회성 정리용.
- *
- * 소유자 계정은 이메일이 일치해도 **절대 지우지 않는다**. 호출하는 쪽이
- * 실수로 소유자 이메일을 목록에 넣어도, 이 함수 자체가 그 사고를 막는다.
- * 계정과 함께 그 가맹점(merchant)·가맹점 데이터도 정리한다 — 계정만
- * 지우고 가맹점을 남기면 고아 데이터가 계속 쌓인다.
- */
-export async function deleteAccountsByEmail(
-  emails: string[],
-): Promise<{ deleted: string[]; skippedOwner: string[] }> {
-  const store = await loadStore();
-  const targets = new Set(emails.map((e) => e.toLowerCase()));
-  const deleted: string[] = [];
-  const skippedOwner: string[] = [];
-
-  const merchantIdsToRemove = new Set<string>();
-  store.accounts = store.accounts.filter((a) => {
-    if (!targets.has(a.email.toLowerCase())) return true;
-    if (isOwnerEmail(a.email)) {
-      skippedOwner.push(a.email);
-      return true;
-    }
-    deleted.push(a.email);
-    merchantIdsToRemove.add(a.merchantId);
-    return false;
-  });
-
-  if (merchantIdsToRemove.size) {
-    store.merchants = store.merchants.filter((m) => !merchantIdsToRemove.has(m.id));
-    for (const id of merchantIdsToRemove) {
-      delete store.merchantData[id];
-    }
-  }
-
-  await saveStore(store);
-  return { deleted, skippedOwner };
-}
-
 export async function authenticateAccount(
   email: string,
   password: string,
