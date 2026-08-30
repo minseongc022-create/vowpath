@@ -37,6 +37,13 @@ export type IntentName =
   | "set_goal"
   /** 소싱 기준이 뭐냐 */
   | "explain_rules"
+  /** 쉐어링크 — 베스트랭킹 지금 훑어라 */
+  | "sharelink_source_now"
+  /** 쉐어링크 검수 대기 보여줘 */
+  | "sharelink_show_posts"
+  /** 쉐어링크 자동 운전 켜기/끄기 */
+  | "sharelink_autopilot_on"
+  | "sharelink_autopilot_off"
   /** 그냥 대화 */
   | "talk";
 
@@ -60,6 +67,10 @@ export const ACTION_LABELS: Record<IntentName, string> = {
   autopilot_off: "자동 운전 멈추는 중",
   set_goal: "목표 다시 잡는 중",
   explain_rules: "기준 정리하는 중",
+  sharelink_source_now: "쉐어링크 베스트랭킹 훑는 중",
+  sharelink_show_posts: "쉐어링크 검수 대기 불러오는 중",
+  sharelink_autopilot_on: "쉐어링크 자동 운전 켜는 중",
+  sharelink_autopilot_off: "쉐어링크 자동 운전 멈추는 중",
   talk: "생각하는 중",
 };
 
@@ -129,6 +140,15 @@ const P = {
   publish: /^\s*(그럼\s*)?(이제\s*)?(다\s*)?(올려|올려도\s*돼|올려\s*줘|등록\s*해|발행\s*해|판매\s*시작)\s*[.!~]*\s*$/,
 
   goal: /(목표|벌게|벌어|벌자|달성|월에)/,
+
+  // 쉐어링크 — 반드시 "쉐어링크"가 붙어야 잡힌다. 일반 소싱/자동운전
+  // 패턴과 글자가 겹쳐서(자동, 소싱, 검수) 접두어 없이 잡으면 도매
+  // 소싱 명령과 뒤섞인다. 그래서 이 넷은 parseIntent에서 일반 패턴보다
+  // **먼저** 검사한다.
+  sharelinkSourceNow: /쉐어링크.{0,10}(소싱|찾|훑|베스트\s*랭킹|랭킹)/,
+  sharelinkShowPosts: /쉐어링크.{0,10}(검수|대기|올릴\s*거|만든\s*거).{0,8}(보여|알려|확인|뭐)/,
+  sharelinkAutopilotOff: /쉐어링크.{0,10}자동.{0,6}(꺼|멈춰|중지|정지|그만|스톱)/,
+  sharelinkAutopilotOn: /쉐어링크.{0,10}자동.{0,6}(켜|시작|다시\s*해|계속)|쉐어링크.{0,10}알아서\s*해/,
 };
 
 /**
@@ -146,6 +166,14 @@ export function parseIntent(message: string): Intent | null {
     const goalKrw = readGoalKrw(text);
     if (goalKrw) return { name: "set_goal", goalKrw };
   }
+
+  // 쉐어링크는 "쉐어링크"가 붙은 문장만 잡으므로 일반 패턴보다 먼저 본다 —
+  // 안 그러면 "쉐어링크 자동 꺼줘"가 일반 autopilotOff("자동...꺼")에
+  // 먼저 걸려 도매 소싱 자동운전이 꺼진다(사장님이 원한 건 쉐어링크 쪽인데).
+  if (P.sharelinkAutopilotOff.test(text)) return { name: "sharelink_autopilot_off" };
+  if (P.sharelinkAutopilotOn.test(text)) return { name: "sharelink_autopilot_on" };
+  if (P.sharelinkShowPosts.test(text)) return { name: "sharelink_show_posts" };
+  if (P.sharelinkSourceNow.test(text)) return { name: "sharelink_source_now" };
 
   // 멈춤이 켜기보다 먼저 — 잘못 잡혀도 결과는 "안 한다"이지 "잘못 한다"가 아니다
   if (P.autopilotOff.test(text)) return { name: "autopilot_off" };
@@ -174,5 +202,9 @@ export const INTENT_MENU: Array<{ name: IntentName; when: string }> = [
   { name: "autopilot_off", when: "잠깐 멈추라고 할 때" },
   { name: "set_goal", when: "월 목표 금액을 바꾸려 할 때" },
   { name: "explain_rules", when: "어떤 기준으로 상품을 고르는지 물을 때" },
+  { name: "sharelink_source_now", when: "쉐어링크 베스트랭킹을 지금 훑어달라고 할 때" },
+  { name: "sharelink_show_posts", when: "쉐어링크 게시 검수 대기를 보고 싶어할 때" },
+  { name: "sharelink_autopilot_on", when: "쉐어링크 자동 게시를 켜달라고 할 때" },
+  { name: "sharelink_autopilot_off", when: "쉐어링크 자동 게시를 멈추라고 할 때" },
   { name: "talk", when: "그 외 전부 — 질문·잡담·확신이 안 설 때" },
 ];

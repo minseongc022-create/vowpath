@@ -216,6 +216,7 @@ export type ChatTurn = {
     | { kind: "drafts"; draftIds: string[] }
     | { kind: "sourcing"; run: SourcingRun }
     | { kind: "detail"; draftId: string }
+    | { kind: "sharelinkPosts"; postIds: string[] }
   >;
 };
 
@@ -324,6 +325,14 @@ export type JarvisState = {
   reportWindow: ReportWindow;
   /** 접수된 반품 — 처리 안 된 건이 조용히 묻히면 페널티가 된다 */
   returns?: ReturnCase[];
+
+  /**
+   * 쉐어링크 자동화 — 완전히 다른 파이프라인(도매 소싱이 아니라 베스트랭킹
+   * → 링크 발급 → SNS 게시)이라 자기 설정을 따로 갖는다. `jarvis/sharelink/`
+   * 참고. 옛 상태에는 이 필드가 없을 수 있어 `?`를 둔다 — store.ts의
+   * normalize()가 없으면 채운다.
+   */
+  sharelink?: import("../sharelink/types").SharelinkState;
 };
 
 export const DEFAULT_SETTINGS: Settings = {

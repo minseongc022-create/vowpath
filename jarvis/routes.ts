@@ -37,4 +37,6 @@ export const JV_API = {
   returns: "/api/jarvis/returns",
   settings: "/api/jarvis/settings",
   cron: "/api/jarvis/cron",
+  /** 쉐어링크 자동화 — 검수 대기 조회, 설정, 승인/반려, 수동 소싱 */
+  sharelink: "/api/jarvis/sharelink",
 } as const;

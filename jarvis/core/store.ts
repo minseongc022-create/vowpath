@@ -15,6 +15,7 @@ import { kv } from "@vercel/kv";
 import { useKvStore } from "@/lib/kv-config";
 import { kvGetSafe } from "@/lib/kv-safe";
 import { DEFAULT_SETTINGS, emptyReportWindow, type Draft, type JarvisState } from "./types";
+import { emptySharelinkState } from "../sharelink/types";
 
 export const JARVIS_STATE_VERSION = "2.0";
 
@@ -26,6 +27,11 @@ const STATE_FILE = join(DATA_DIR, "jarvis-state.json");
 const MAX_CHAT_TURNS = 200;
 const MAX_DRAFTS = 300;
 const MAX_CANDIDATES = 120;
+const MAX_SHARELINK_POSTS = 300;
+const MAX_SHARELINK_ITEMS = 60;
+/** "오늘 이미 올린 상품" 중복 방지용. 무한히 쌓이면 언젠가 모든 인기상품이
+ *  "이미 올림"으로 막힌다 — 최근 것만 남기고 흘려보낸다 */
+const MAX_POSTED_PRODUCT_IDS = 500;
 
 function emptyState(): JarvisState {
   return {
@@ -36,6 +42,7 @@ function emptyState(): JarvisState {
     chat: [],
     reportWindow: emptyReportWindow(),
     returns: [],
+    sharelink: emptySharelinkState(),
   };
 }
 
@@ -59,6 +66,27 @@ function normalize(raw: Partial<JarvisState> | null): JarvisState {
     activity: raw.activity,
     reportWindow: raw.reportWindow ?? emptyReportWindow(),
     returns: Array.isArray(raw.returns) ? raw.returns : [],
+    sharelink: normalizeSharelink(raw.sharelink),
+  };
+}
+
+/**
+ * 쉐어링크 상태도 같은 이유로 방어한다 — 옛 상태(이 기능이 생기기 전에
+ * 저장된 것)에는 `sharelink` 자체가 없거나, 배열 필드가 없을 수 있다.
+ * `undefined.filter is not a function` 같은 사고를 여기서 한 번에 막는다.
+ */
+function normalizeSharelink(
+  raw: Partial<import("../sharelink/types").SharelinkState> | undefined,
+): import("../sharelink/types").SharelinkState {
+  const base = emptySharelinkState();
+  if (!raw) return base;
+  return {
+    settings: { ...base.settings, ...(raw.settings ?? {}) },
+    items: Array.isArray(raw.items) ? raw.items : [],
+    posts: Array.isArray(raw.posts) ? raw.posts : [],
+    lastRun: raw.lastRun,
+    lastAutopilotAt: raw.lastAutopilotAt,
+    postedProductIds: Array.isArray(raw.postedProductIds) ? raw.postedProductIds : [],
   };
 }
 
@@ -83,6 +111,14 @@ export async function saveState(state: JarvisState): Promise<void> {
     chat: state.chat.slice(-MAX_CHAT_TURNS),
     drafts: state.drafts.slice(0, MAX_DRAFTS),
     candidates: state.candidates.slice(0, MAX_CANDIDATES),
+    sharelink: state.sharelink
+      ? {
+          ...state.sharelink,
+          posts: state.sharelink.posts.slice(0, MAX_SHARELINK_POSTS),
+          items: state.sharelink.items.slice(0, MAX_SHARELINK_ITEMS),
+          postedProductIds: state.sharelink.postedProductIds.slice(-MAX_POSTED_PRODUCT_IDS),
+        }
+      : state.sharelink,
   };
 
   if (useKvStore()) {

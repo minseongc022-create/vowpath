@@ -3,6 +3,8 @@ import { loadState, saveState, appendChat } from "@/jarvis/core/store";
 import { emptyReportWindow } from "@/jarvis/core/types";
 import { runCycle } from "@/jarvis/engine/autopilot";
 import { sendReviewAlert, sendPeriodicReport, REPORT_INTERVAL_MS } from "@/jarvis/engine/notify";
+import { emptySharelinkState } from "@/jarvis/sharelink/types";
+import { runSharelinkCycle } from "@/jarvis/sharelink/autopilot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,6 +84,34 @@ export async function GET(request: Request) {
       }
     }
 
+    // ── 쉐어링크 자동 운전 ────────────────────────────────────
+    //
+    // 도매 소싱과 완전히 다른 파이프라인이라 별도 사이클로 돈다. 다만 같은
+    // 25초 예산을 나눠 쓰므로, 위 소싱이 이미 시간을 다 썼으면 이번 틱은
+    // 건너뛰고 다음 10분 틱이 이어서 한다 — 억지로 끼워 넣어 크론 자체가
+    // 타임아웃(그러면 소싱 결과 저장도 못 함)되는 것보다 낫다.
+    let sharelinkPostsCreated = 0;
+    let sharelinkIdleReason: string | undefined;
+    if (Date.now() < deadlineAt - 5_000) {
+      state.sharelink ??= emptySharelinkState();
+      const slResult = await runSharelinkCycle(state.sharelink);
+      sharelinkPostsCreated = slResult.postsCreated;
+      sharelinkIdleReason = slResult.idleReason;
+      if (slResult.postsCreated > 0) {
+        appendChat(state, {
+          role: "jarvis",
+          text: `쉐어링크 게시 초안 ${slResult.postsCreated}건을 새로 만들어 검수 대기에 올렸습니다.`,
+          did: "sharelink_source_now",
+          attachments: [
+            {
+              kind: "sharelinkPosts",
+              postIds: state.sharelink.posts.slice(0, slResult.postsCreated).map((p) => p.id),
+            },
+          ],
+        });
+      }
+    }
+
     // ★ 30분 보고 — 사이클마다 문자를 보내면 스팸이고(예전에 실제로 사고가
     // 났다), 아예 안 보내면 사장님은 자비스가 살아있는지도 모른다. 창이
     // 시작된 지 30분이 지났을 때만 이번 창의 누적 실적을 한 줄로 보낸다.
@@ -138,6 +168,7 @@ export async function GET(request: Request) {
         dailyTarget: result.goal.dailyTarget,
       },
       sourcing: result.sourcingRun,
+      sharelink: { postsCreated: sharelinkPostsCreated, idleReason: sharelinkIdleReason },
       elapsedMs: Date.now() - startedAt,
     });
   } catch (e) {

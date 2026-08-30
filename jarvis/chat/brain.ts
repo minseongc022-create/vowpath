@@ -26,6 +26,8 @@ import { describeRules } from "../core/rules";
 import { discardPendingDrafts } from "../core/store";
 import { runCycle } from "../engine/autopilot";
 import { planForGoal } from "../engine/goal";
+import { runSharelinkCycle } from "../sharelink/autopilot";
+import { emptySharelinkState } from "../sharelink/types";
 import {
   parseIntent,
   readGoalKrw,
@@ -262,6 +264,83 @@ export async function think(
         did: "publish",
       };
 
+    // ── 쉐어링크 ──────────────────────────────────────────────
+    // 옛 상태에는 이 필드가 없을 수 있어 여기서 한 번 채운다
+    // (engine/autopilot.ts가 reportWindow에 쓰는 것과 같은 방어).
+
+    case "sharelink_source_now": {
+      state.sharelink ??= emptySharelinkState();
+      const result = await runSharelinkCycle(state.sharelink, { force: true });
+      if (result.postsCreated > 0) {
+        const created = state.sharelink.posts.slice(0, result.postsCreated);
+        return {
+          text: [
+            `쉐어링크 게시 초안 ${result.postsCreated}건을 만들었습니다. 올리기 전에 한 번 봐주세요.`,
+            "",
+            ...created.map(
+              (p) => `· ${p.item.title} — ${p.item.priceKrw.toLocaleString()}원 (${p.item.scoreReasons.join(", ") || "가격 기준"})`,
+            ),
+          ].join("\n"),
+          did: "sharelink_source_now",
+          attachments: [{ kind: "sharelinkPosts", postIds: created.map((p) => p.id) }],
+        };
+      }
+      const lines = [result.idleReason ?? "이번엔 올릴 만한 상품이 없었습니다."];
+      if (Object.keys(result.rejections).length) {
+        lines.push("", "어디서 걸렸는지:");
+        for (const [why, n] of Object.entries(result.rejections).slice(0, 4)) {
+          lines.push(`· ${why} — ${n}건`);
+        }
+      }
+      return { text: lines.join("\n"), did: "sharelink_source_now" };
+    }
+
+    case "sharelink_show_posts": {
+      state.sharelink ??= emptySharelinkState();
+      const pending = state.sharelink.posts.filter((p) => p.status === "pending_review");
+      if (!pending.length) {
+        return {
+          text: "지금 쉐어링크 검수 대기 중인 게시물이 없습니다. 「쉐어링크 소싱해줘」라고 하시면 베스트랭킹을 바로 훑겠습니다.",
+          did: "sharelink_show_posts",
+        };
+      }
+      const lines = [
+        `쉐어링크 검수 대기 ${pending.length}건입니다.`,
+        "",
+        ...pending.slice(0, 8).map((p) => `· ${p.item.title} — ${p.item.priceKrw.toLocaleString()}원`),
+      ];
+      return {
+        text: lines.join("\n"),
+        did: "sharelink_show_posts",
+        attachments: [{ kind: "sharelinkPosts", postIds: pending.map((p) => p.id) }],
+      };
+    }
+
+    case "sharelink_autopilot_on": {
+      state.sharelink ??= emptySharelinkState();
+      state.sharelink.settings.autopilotEnabled = true;
+      const channels = [
+        state.sharelink.settings.postToThreads ? "스레드" : null,
+        state.sharelink.settings.postToInstagram ? "인스타그램" : null,
+      ].filter(Boolean);
+      return {
+        text:
+          channels.length > 0
+            ? `쉐어링크 자동 운전 켰습니다. 베스트랭킹을 훑어 기준을 넘는 상품만 검수 대기로 올리고, 승인하시면 ${channels.join("·")}에 올라갑니다.`
+            : "쉐어링크 자동 운전은 켰지만, 아직 게시할 채널(스레드·인스타그램)이 설정에서 하나도 켜져 있지 않습니다. 설정 화면에서 채널을 먼저 켜주세요.",
+        did: "sharelink_autopilot_on",
+      };
+    }
+
+    case "sharelink_autopilot_off": {
+      state.sharelink ??= emptySharelinkState();
+      state.sharelink.settings.autopilotEnabled = false;
+      return {
+        text: "쉐어링크 자동 운전 멈췄습니다. 이미 만들어 둔 검수 대기는 그대로 있습니다.",
+        did: "sharelink_autopilot_off",
+      };
+    }
+
     case "talk":
     default:
       return { text: await smallTalk(state, message), did: "talk" };
@@ -289,7 +368,10 @@ async function smallTalk(state: JarvisState, message: string): Promise<string> {
             `월 목표 ${(state.settings.monthlyGoalKrw / 10_000).toLocaleString()}만원, ` +
             `자동 운전 ${state.settings.autopilotEnabled ? "켜짐" : "꺼짐"}.\n\n` +
             "네가 할 수 있는 일: 도매에서 상품 찾기, 상세페이지 만들기, 검수 대기에 올리기, " +
-            "자동 운전 켜고 끄기, 월 목표 바꾸기, 소싱 기준 설명하기.\n\n" +
+            "자동 운전 켜고 끄기, 월 목표 바꾸기, 소싱 기준 설명하기. " +
+            "그리고 별도로, 토스쇼핑 쉐어링크(베스트랭킹에서 상품을 골라 수익 링크를 발급하고 " +
+            "스레드·인스타그램에 자동 게시하는 것)도 관리한다 — 「쉐어링크 소싱해줘」, " +
+            "「쉐어링크 자동 켜줘」 같은 말로 조작한다.\n\n" +
             "규칙:\n" +
             "- 확인되지 않은 숫자를 지어내지 않는다. 모르면 모른다고 한다.\n" +
             "- 실제로 하지 않은 일을 했다고 말하지 않는다.\n" +
@@ -310,6 +392,7 @@ async function smallTalk(state: JarvisState, message: string): Promise<string> {
       "· 「만든 거 보여줘」 — 검수 대기 중인 상품을 봅니다",
       "· 「월 500만원 목표」 — 목표를 바꾸면 소싱 속도가 따라옵니다",
       "· 「어떤 기준으로 골라?」 — 소싱 기준을 설명합니다",
+      "· 「쉐어링크 소싱해줘」 — 토스쇼핑 베스트랭킹에서 게시할 상품을 찾습니다",
     ].join("\n");
   }
 }
