@@ -134,6 +134,10 @@ export type UserProgress = {
   bestMockScore?: number;
   /** Diagnostic test result */
   placementLevel?: TopikLevel;
+  /** Weak sections from last placement (examSection ids) */
+  placementGaps?: string[];
+  /** Per-section scores from last placement */
+  placementSectionScores?: Record<string, { correct: number; total: number }>;
   /** Daily guided steps — date → step ids completed */
   dailyStepsDone?: Record<string, string[]>;
   dailyGoalCompleted?: number;
