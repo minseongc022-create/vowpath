@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #0e1a18;
+  --paper: #f3f5f1;
+  --pine: #1f7a66;
+  --line: #d8e0da;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    var(--font-sans-fallback),
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.65;
+}
+
+.font-display {
+  font-family: var(--font-display), "Noto Serif KR", Georgia, serif;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+::selection {
+  background: rgba(31, 122, 102, 0.22);
+}
+
+/* —— Hero 3D (one focal only) —— */
+.hero-3d-scene {
+  perspective: 1100px;
+  perspective-origin: 50% 40%;
+}
+
+.hero-3d-card {
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-3d-face {
+  transform: translateZ(18px);
+  backface-visibility: hidden;
+}
+
+@media (pointer: coarse) {
+  .hero-3d-card {
+    transform: rotateX(6deg) rotateY(-6deg) !important;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-3d-scene {
+    perspective: none;
+  }
+  .hero-3d-card {
+    transform: none !important;
+    transition: none;
+  }
+  .animate-rise,
+  .animate-rise-delay,
+  .animate-rise-delay-2,
+  .animate-slide-in,
+  .animate-pulse-dot {
+    animation: none !important;
+  }
+}
+
+@layer components {
+  .sc-container {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-8;
+  }
+
+  .sc-btn {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold tracking-tight transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pine-600;
+  }
+
+  .sc-btn-primary {
+    @apply sc-btn bg-pine-700 text-white shadow-[0_8px_20px_-10px_rgba(20,82,69,0.7)] hover:bg-pine-800;
+  }
+
+  .sc-btn-secondary {
+    @apply sc-btn border border-ink/15 bg-white/80 text-ink hover:bg-white;
+  }
+
+  .sc-btn-ghost {
+    @apply sc-btn text-ink-muted hover:text-ink hover:bg-white/50;
+  }
+
+  .sc-card {
+    @apply rounded-2xl border border-paper-line bg-paper-card/90 shadow-soft backdrop-blur;
+  }
+
+  .sc-input {
+    @apply w-full min-h-11 rounded-xl border border-paper-line bg-white px-3 py-2.5 text-base text-ink placeholder:text-ink-muted/60 focus:border-pine-500 focus:outline-none focus:ring-2 focus:ring-pine-500/20 sm:text-sm;
+  }
+
+  .sc-label {
+    @apply mb-1.5 block text-xs font-semibold tracking-wide text-ink-muted;
+  }
+}
