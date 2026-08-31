@@ -2,6 +2,15 @@
 
 AI phone + SMS intake, emergency triage, and crew dispatch for independent US water/fire/mold restoration shops.
 
+## Monorepo note
+
+| Path | Product |
+|------|---------|
+| repo root (`/`) | **Effiroad** — this app |
+| [`apps/docchase`](./apps/docchase) | **수임체크 (SuimCheck)** — Korea tax-office document-request SaaS (separate site, port 3001) |
+
+Deploy each as its own Vercel/Cloudflare project. Do not merge routes.
+
 ## Stack
 
 - Next.js 15 (App Router), TypeScript, Tailwind

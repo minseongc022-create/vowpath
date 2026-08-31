@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #12151a;
+  --paper: #f0f1f3;
+  --steel: #2f6fed;
+  --signal: #e8b923;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  font-family: "Pretendard Variable", Pretendard, var(--font-sans-fallback), system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.65;
+}
+
+.font-display {
+  font-family: var(--font-display), "Noto Serif KR", Georgia, serif;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+::selection {
+  background: rgba(47, 111, 237, 0.22);
+}
+
+@layer components {
+  .sc-container {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .sc-card {
+    @apply rounded-2xl border border-paper-line bg-paper-card shadow-soft;
+  }
+  .sc-btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-steel-600 px-4 text-sm font-semibold text-white transition hover:bg-steel-700 active:scale-[0.98] disabled:opacity-50;
+  }
+  .sc-btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-paper-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-paper active:scale-[0.98];
+  }
+  .sc-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg px-3 text-sm font-medium text-ink-muted hover:text-ink;
+  }
+  .sc-label {
+    @apply mb-1.5 block text-xs font-semibold text-ink-muted;
+  }
+  .sc-input {
+    @apply w-full rounded-xl border border-paper-line bg-white px-3 py-2.5 text-sm text-ink outline-none ring-steel-500 focus:ring-2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay,
+  .animate-rise-delay-2 {
+    animation: none !important;
+  }
+}
