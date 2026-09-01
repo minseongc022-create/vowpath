@@ -1,0 +1,257 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { DAJEONG_BRAND } from "../lib/brand";
+import { getPersonProfile, listPlans, rememberPersonProfile, savePlan } from "../lib/storage";
+import type { DajeongPlan, PlanRequest, PlanningConversationResult, PlanningQuestionKey, PlanRevisionResult } from "../lib/types";
+import { ArrowIcon, CheckIcon, MapPinIcon, SparkleIcon } from "./DajeongIcons";
+
+const examples = [
+  "여자친구랑 특별한 날을 보내고 싶은데 아직 아무것도 못 정했어.",
+  "오늘 여자친구랑 뭔가 신비롭고 영화 같은 데 가고 싶어.",
+  "친구들이랑 놀러 가고 싶은데 당일치기인지 숙박인지도 추천해줘.",
+];
+
+type HomeConversationEntry = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  plan?: DajeongPlan;
+};
+
+function homeEntry(role: HomeConversationEntry["role"], text: string, plan?: DajeongPlan): HomeConversationEntry {
+  return { id: `home_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`, role, text, plan };
+}
+
+function displayDate(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
+}
+
+function requestMessages(entries: HomeConversationEntry[], latest: string) {
+  return [
+    ...entries.filter((entry) => !entry.plan).map((entry) => ({ role: entry.role, text: entry.text })),
+    { role: "user" as const, text: latest },
+  ];
+}
+
+export function HomePlanner() {
+  const [request, setRequest] = useState("");
+  const [draft, setDraft] = useState<Partial<PlanRequest>>({});
+  const [pendingQuestion, setPendingQuestion] = useState<PlanningQuestionKey>(null);
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
+  const [loading, setLoading] = useState<"analyze" | "plan" | null>(null);
+  const [searchStage, setSearchStage] = useState("");
+  const [error, setError] = useState("");
+  const [completedPlan, setCompletedPlan] = useState<DajeongPlan | null>(null);
+  const [conversation, setConversation] = useState<HomeConversationEntry[]>([]);
+  const [plans, setPlans] = useState<DajeongPlan[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const refresh = () => setPlans(listPlans());
+    refresh();
+    window.addEventListener("dajeong:plans-updated", refresh);
+    return () => window.removeEventListener("dajeong:plans-updated", refresh);
+  }, []);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [conversation.length, searchStage, completedPlan, error, quickReplies.length]);
+
+  function resetConversation() {
+    setRequest("");
+    setDraft({});
+    setPendingQuestion(null);
+    setQuickReplies([]);
+    setCompletedPlan(null);
+    setConversation([]);
+    setSearchStage("");
+    setError("");
+    setSidebarOpen(false);
+  }
+
+  async function createPlan(result: PlanningConversationResult) {
+    setLoading("plan");
+    setError("");
+    setQuickReplies([]);
+    setSearchStage(result.understanding.situation.planScope === "trip" ? "숙소와 실제 장소를 함께 찾고 있어요" : "취향에 맞는 실제 장소를 찾고 있어요");
+    const timer = window.setInterval(() => {
+      setSearchStage((current) => current.includes("실제 장소") || current.includes("숙소")
+        ? "사진·리뷰·영업 정보와 가격을 확인하고 있어요"
+        : current.includes("사진")
+          ? "체크인과 일정 사이 이동이 자연스럽게 이어지는지 맞추고 있어요"
+          : "예산 안에서 하루의 하이라이트를 고르고 있어요");
+    }, 1500);
+    try {
+      const remembered = getPersonProfile(result.understanding.situation.recipient);
+      const payload: PlanRequest = {
+        ...result.draft,
+        request: result.draft.request || result.understanding.situation.occasionLabel,
+        personProfile: result.draft.personProfile ?? remembered ?? undefined,
+      };
+      const response = await fetch("/api/dajeong/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({})) as { plan?: DajeongPlan; error?: string };
+      if (!response.ok || !data.plan) throw new Error(data.error || "계획을 만들지 못했어요. 방금 답변을 그대로 한 번 더 보내 주세요.");
+      rememberPersonProfile(data.plan.situation, {
+        ageBand: data.plan.situation.ageBand,
+        preferences: data.plan.situation.preferences,
+        moodPreferences: data.plan.situation.desiredMoods,
+      });
+      savePlan(data.plan);
+      setPlans(listPlans());
+      setCompletedPlan(data.plan);
+      setConversation((current) => [...current, homeEntry("assistant", "후보와 동선을 다 정했어요. 마음에 들지 않는 부분은 여기서 바로 말로 바꿀 수도 있어요.", data.plan)]);
+      setSearchStage("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "잠시 후 다시 시도해 주세요.");
+      setSearchStage("");
+    } finally {
+      window.clearInterval(timer);
+      setLoading(null);
+    }
+  }
+
+  async function reviseCompletedPlan(nextRequest: string) {
+    if (!completedPlan) return;
+    const currentPlan = completedPlan;
+    setLoading("plan");
+    setSearchStage("지금 계획을 기억하면서 말씀하신 부분을 이해하고 있어요");
+    setError("");
+    try {
+      const response = await fetch("/api/dajeong/plans/revise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: currentPlan, instruction: nextRequest }),
+      });
+      const result = await response.json().catch(() => ({})) as PlanRevisionResult & { error?: string };
+      if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
+      savePlan(result.plan);
+      setPlans(listPlans());
+      setCompletedPlan(result.plan);
+      setConversation((current) => [...current, homeEntry("assistant", result.message, result.plan)]);
+    } catch (err) {
+      setCompletedPlan(currentPlan);
+      setError(err instanceof Error ? err.message : "잠시 후 다시 말해 주세요.");
+    } finally {
+      setSearchStage("");
+      setLoading(null);
+    }
+  }
+
+  async function sendMessage(nextRequest: string) {
+    const text = nextRequest.trim();
+    if (text.length < 1 || loading) return;
+    setRequest("");
+    setQuickReplies([]);
+    setConversation((current) => [...current, homeEntry("user", text)]);
+    if (completedPlan) {
+      await reviseCompletedPlan(text);
+      return;
+    }
+    setLoading("analyze");
+    setSearchStage("말씀하신 내용을 앞 대화와 함께 이해하고 있어요");
+    setError("");
+    try {
+      const response = await fetch("/api/dajeong/conversation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: requestMessages(conversation, text),
+          draft,
+          currentQuestion: pendingQuestion,
+        }),
+      });
+      const result = await response.json().catch(() => ({})) as PlanningConversationResult & { error?: string };
+      if (!response.ok || !result.understanding) throw new Error(result.error || "말씀하신 내용을 이해하지 못했어요.");
+      const remembered = getPersonProfile(result.understanding.situation.recipient);
+      const nextDraft = remembered && !result.draft.personProfile ? { ...result.draft, personProfile: remembered } : result.draft;
+      const nextResult = { ...result, draft: nextDraft };
+      setDraft(nextDraft);
+      setPendingQuestion(result.questionKey);
+      setQuickReplies(result.quickReplies);
+      setConversation((current) => [...current, homeEntry("assistant", result.reply)]);
+      setSearchStage("");
+      if (result.ready) await createPlan(nextResult);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "잠시 후 다시 말해 주세요.");
+      setSearchStage("");
+    } finally {
+      setLoading((current) => current === "analyze" ? null : current);
+    }
+  }
+
+  function analyze(event?: FormEvent, value?: string) {
+    event?.preventDefault();
+    const nextRequest = (value ?? request).trim();
+    if (!nextRequest) {
+      setError("편하게 한마디만 말해 주세요. 온이가 이어서 물어볼게요.");
+      return;
+    }
+    void sendMessage(nextRequest);
+  }
+
+  function handleComposerKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      analyze();
+    }
+  }
+
+  return (
+    <div className="dj-chat-shell">
+      <aside className={`dj-chat-sidebar ${sidebarOpen ? "dj-sidebar-open" : ""}`}>
+        <div className="dj-sidebar-brand"><span className="dj-brand-orb"><SparkleIcon size={17} /></span><strong>{DAJEONG_BRAND.name}</strong><button type="button" onClick={() => setSidebarOpen(false)} aria-label="닫기">×</button></div>
+        <button type="button" className="dj-new-chat" onClick={resetConversation}><span>＋</span> 새 계획</button>
+        <Link href="/dajeong/plans" className="dj-sidebar-plans"><span>♡</span> 내 계획 <b>{plans.length}</b></Link>
+        <div className="dj-sidebar-label">최근 대화</div>
+        <nav className="dj-conversation-list" aria-label="최근 계획">
+          {plans.length ? plans.slice(0, 12).map((plan) => (
+            <Link key={plan.id} href={`/dajeong/plan/${plan.id}`} onClick={() => setSidebarOpen(false)}><strong>{plan.title}</strong><span>{displayDate(plan.situation.targetDate)} · {plan.situation.region}</span></Link>
+          )) : <p>아직 준비한 계획이 없어요.</p>}
+        </nav>
+        <div className="dj-sidebar-trust"><SparkleIcon size={14} /><span>특별한 경험 발견부터 실행 준비까지<br />한 대화에서 이어가요.</span></div>
+      </aside>
+      {sidebarOpen ? <button className="dj-sidebar-backdrop" type="button" aria-label="대화 목록 닫기" onClick={() => setSidebarOpen(false)} /> : null}
+
+      <main className="dj-chat-main">
+        <header className="dj-chat-topbar">
+          <button className="dj-mobile-sidebar-button" type="button" onClick={() => setSidebarOpen(true)} aria-label="대화 목록 열기"><span /><span /><span /></button>
+          <div className="dj-topbar-brand"><span className="dj-concierge-avatar dj-brand-orb"><SparkleIcon size={17} /></span><p><strong>{DAJEONG_BRAND.name}</strong><small>{DAJEONG_BRAND.tagline}</small></p></div>
+          <Link href="/dajeong/plans" className="dj-topbar-plans">내 계획</Link>
+        </header>
+
+        <section className="dj-home-conversation" aria-live="polite">
+          <div className="dj-home-message dj-home-assistant"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><strong>어떤 하루가 필요하세요?</strong><p>정해진 게 없어도 괜찮아요. 누구와 무엇을 하고 싶은지만 말하면 제가 필요한 것을 하나씩 여쭤볼게요.</p></div></div>
+          {!conversation.length ? <div className="dj-prompt-suggestions">{examples.map((example, index) => <button key={example} type="button" onClick={() => setRequest(example)}><span>{index === 0 ? "아직 미정" : index === 1 ? "오늘" : "여행"}</span>{example}</button>)}</div> : null}
+
+          {conversation.map((entry) => entry.role === "user" ? (
+            <div key={entry.id} className="dj-home-message dj-home-user"><div><p>{entry.text}</p></div></div>
+          ) : entry.plan ? (
+            <div key={entry.id} className="dj-home-message dj-home-assistant"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div className="dj-plan-ready-message"><span><CheckIcon size={15} /> {entry.text}</span><strong>{entry.plan.title}</strong><p>{entry.plan.items.length}개 일정 · 예상 {entry.plan.total.toLocaleString("ko-KR")}원 · {entry.plan.situation.region}</p><Link href={`/dajeong/plan/${entry.plan.id}`}>후보들 같이 보러 가기 <ArrowIcon size={17} /></Link></div></div>
+          ) : (
+            <div key={entry.id} className="dj-home-message dj-home-assistant"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><p>{entry.text}</p></div></div>
+          ))}
+
+          {searchStage ? <div className="dj-home-message dj-home-assistant dj-home-searching"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><p>{searchStage}</p><i><b /><b /><b /></i></div></div> : null}
+          {!loading && quickReplies.length ? <div className="dj-chat-quick-replies">{quickReplies.map((reply) => <button type="button" key={reply} onClick={() => analyze(undefined, reply)}>{reply}</button>)}</div> : null}
+          {error ? <div className="dj-home-message dj-home-assistant dj-home-error"><span className="dj-home-avatar">!</span><div><p>{error}</p></div></div> : null}
+          <div ref={conversationEndRef} aria-hidden="true" />
+        </section>
+
+        <div className="dj-home-composer-wrap">
+          <form className="dj-home-composer" onSubmit={(event) => analyze(event)}>
+            <textarea value={request} onChange={(event) => setRequest(event.target.value)} onKeyDown={handleComposerKey} placeholder={pendingQuestion ? "대답을 편하게 말해 주세요" : "어떤 하루가 필요한지 말해 주세요"} aria-label={`${DAJEONG_BRAND.assistantName}에게 상황 말하기`} rows={1} />
+            <button type="submit" disabled={Boolean(loading) || request.trim().length < 1} aria-label="보내기"><ArrowIcon size={19} /></button>
+          </form>
+          <p><MapPinIcon size={12} /> 실제 장소와 리뷰를 확인하고, 결제·예약은 금액 확인 후 승인받아요.</p>
+        </div>
+      </main>
+    </div>
+  );
+}

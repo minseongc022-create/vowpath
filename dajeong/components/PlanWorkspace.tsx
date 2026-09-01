@@ -1,0 +1,423 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { getPlan, savePlan } from "../lib/storage";
+import { appendPlanConversation, replacePlanItem } from "../lib/plan-engine";
+import { DAJEONG_BRAND } from "../lib/brand";
+import { MOOD_LABEL } from "../lib/experience";
+import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
+import { ArrowIcon, CategoryIcon, CheckIcon, ChevronIcon, ClockIcon, MapPinIcon, ShieldIcon, SparkleIcon, WalletIcon } from "./DajeongIcons";
+
+function money(value: number): string {
+  return `${new Intl.NumberFormat("ko-KR").format(value)}원`;
+}
+
+function displayDate(value: string): string {
+  const date = new Date(`${value}T12:00:00`);
+  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" }).format(date);
+}
+
+function checkedLabel(value?: string): string {
+  if (!value) return "확인 시각 없음";
+  const elapsed = Date.now() - new Date(value).getTime();
+  if (elapsed < 60_000) return "방금 확인";
+  if (elapsed < 3_600_000) return `${Math.max(1, Math.floor(elapsed / 60_000))}분 전 확인`;
+  return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function chatMessage(role: ConciergeMessage["role"], text: string, status: ConciergeMessage["status"] = "done"): ConciergeMessage {
+  return { id: `chat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, role, text, status, createdAt: new Date().toISOString() };
+}
+
+function OptionCard({ option, selected, onSelect }: { option: PlanOption; selected: boolean; onSelect: () => void }) {
+  const hasPhoto = Boolean(option.imageUrl);
+  return (
+    <button className={`dj-option-card ${selected ? "dj-option-selected" : ""}`} type="button" onClick={onSelect}>
+      {hasPhoto ? <img src={option.imageUrl} alt={option.imageAlt || option.title} onError={(event) => { if (option.referenceImageUrl && event.currentTarget.src !== option.referenceImageUrl) event.currentTarget.src = option.referenceImageUrl; else event.currentTarget.style.display = "none"; }} /> : <span className="dj-option-photo-empty"><MapPinIcon size={16} /></span>}
+      <span className="dj-option-copy">
+        <strong>{option.title}</strong>
+        <small>{option.reality?.address || option.subtitle}</small>
+        <em>
+          {option.reality?.rating ? `★ ${option.reality.rating.toFixed(1)}${option.reality.reviewCount ? ` · 리뷰 ${option.reality.reviewCount.toLocaleString("ko-KR")}` : ""}` : "지도에서 리뷰 확인"}
+          {option.reality?.localIndependent ? " · 로컬 매장" : ""}
+        </em>
+      </span>
+      <span className="dj-option-side"><b>{money(option.price)}</b><i>{selected ? <><CheckIcon size={12} /> 선택됨</> : "이곳으로 변경"}</i></span>
+    </button>
+  );
+}
+
+type ItemChatEntry = { id: string; role: "user" | "assistant"; text: string; status?: "searching" | "error" };
+
+function TimelineItem({
+  item,
+  isLast,
+  changed,
+  highlight,
+  onReplace,
+  onAsk,
+  onApplyProposal,
+}: {
+  item: PlanItem;
+  isLast: boolean;
+  changed: boolean;
+  highlight: boolean;
+  onReplace: (optionId: string) => void;
+  onAsk: (instruction: string) => Promise<PlanRevisionResult>;
+  onApplyProposal: (proposal: PlanChangeProposal) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [localInstruction, setLocalInstruction] = useState("");
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localProposal, setLocalProposal] = useState<PlanChangeProposal | null>(null);
+  const localChatRef = useRef<HTMLDivElement>(null);
+  const [localMessages, setLocalMessages] = useState<ItemChatEntry[]>([
+    { id: "welcome", role: "assistant", text: `지금 선택한 ‘${item.title}’을 기준으로 찾아볼게요. 원하는 분위기나 음식, 가격을 평소 말하듯 알려주세요.` },
+  ]);
+  const allOptions = useMemo(() => [item, ...item.alternatives], [item]);
+  const reservationLabel = item.reality?.reservationLabel ?? (item.reservationRequired ? "예약 확인 필요" : "예약 없이 가능");
+  const openLabel = item.reality?.openNow === true ? "지금 영업 중" : item.reality?.openNow === false ? "지금은 영업 종료" : "방문 시간 영업 확인";
+  const hasPhoto = Boolean(item.imageUrl);
+  const photoLabel = item.reality?.imageKind === "place" ? "실제 대표 사진" : "분위기 참고 사진";
+
+  useEffect(() => {
+    const chat = localChatRef.current;
+    if (chat) chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  }, [localMessages.length, localProposal]);
+
+  async function ask(event: FormEvent) {
+    event.preventDefault();
+    const text = localInstruction.trim();
+    if (text.length < 2 || localLoading) return;
+    const searchingId = `local_${Date.now().toString(36)}`;
+    setLocalMessages((current) => [...current, { id: `${searchingId}_user`, role: "user", text }, { id: searchingId, role: "assistant", text: "말씀하신 느낌에 맞는 실제 후보와 리뷰, 앞뒤 동선을 같이 확인하고 있어요.", status: "searching" }]);
+    setLocalInstruction("");
+    setLocalProposal(null);
+    setLocalLoading(true);
+    try {
+      const result = await onAsk(text);
+      setLocalMessages((current) => current.map((message) => message.id === searchingId ? { ...message, text: result.message, status: undefined } : message));
+      setLocalProposal(result.proposal ?? null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "잠시 후 다시 말해 주세요.";
+      setLocalMessages((current) => current.map((entry) => entry.id === searchingId ? { ...entry, text: message, status: "error" } : entry));
+    } finally {
+      setLocalLoading(false);
+    }
+  }
+
+  return (
+    <>
+      {item.travelFromPrevious ? (
+        <div className="dj-travel-row">
+          <span>{item.travelFromPrevious.mode} {item.travelFromPrevious.minutes}분</span>
+          <p>{item.travelFromPrevious.note}</p>
+        </div>
+      ) : null}
+      <article className={`dj-timeline-row ${changed ? "dj-plan-changed" : ""} ${highlight ? "dj-plan-highlight" : ""}`}>
+        <div className="dj-time-column"><strong>{item.time}</strong><span>{item.durationMinutes}분</span></div>
+        <div className="dj-timeline-track">
+          <span className="dj-category-dot"><CategoryIcon category={item.category} size={20} /></span>
+          {!isLast ? <i /> : null}
+        </div>
+        <div className="dj-plan-item dj-card">
+          {hasPhoto ? <div className="dj-plan-image"><img src={item.imageUrl} alt={item.imageAlt || item.title} onError={(event) => { if (item.referenceImageUrl && event.currentTarget.src !== item.referenceImageUrl) event.currentTarget.src = item.referenceImageUrl; else event.currentTarget.style.display = "none"; }} /><span>{item.location || `${item.categoryLabel} 후보`}</span><small>{photoLabel}</small>{changed ? <em>방금 조정됨</em> : null}</div> : <div className="dj-plan-image dj-plan-image-placeholder"><MapPinIcon size={25} /><span>{item.location || item.title}</span><small>사진은 상세 페이지에서 확인</small>{changed ? <em>방금 조정됨</em> : null}</div>}
+          <div className="dj-plan-item-body">
+            <div className="dj-plan-item-top">
+              <div className="dj-plan-category"><span>{item.categoryLabel}</span>{highlight ? <em className="dj-highlight-badge">이번 코스의 하이라이트</em> : item.badge ? <em>{item.badge}</em> : null}</div>
+              <strong className="dj-plan-price">{money(item.price)}</strong>
+            </div>
+            <h3>{item.title}</h3>
+            <p className="dj-plan-subtitle">{item.subtitle}</p>
+            {item.reality ? (
+              <div className="dj-reality-strip">
+                <span className={item.reality.openNow === true ? "dj-open-now" : ""}>{openLabel}</span>
+                <span>{item.reality.priceConfidence === "provider" ? "가격대 확인됨" : "예상 비용"}</span>
+                {item.reality.rating ? <span>★ {item.reality.rating.toFixed(1)}{item.reality.reviewCount ? ` · 리뷰 ${item.reality.reviewCount.toLocaleString("ko-KR")}` : ""}</span> : null}
+                {item.reality.localIndependent ? <span className="dj-local-place">로컬 매장</span> : null}
+              </div>
+            ) : null}
+            {item.experience?.traits.length ? <div className="dj-experience-traits">{item.experience.traits.slice(0, 4).map((trait) => <span key={trait}>{trait}</span>)}{item.experience.limited ? <span className="dj-limited-candidate">기간 확인 중</span> : null}</div> : null}
+            <div className="dj-experience-facts">
+              <span><ClockIcon size={14} /> 약 {item.durationMinutes}분</span>
+              {item.category === "lodging" ? <span><ClockIcon size={14} /> 체크인 {item.time}</span> : null}
+              <span><ShieldIcon size={14} /> {reservationLabel}</span>
+              {item.reality?.distanceFromPreviousKm != null ? <span><MapPinIcon size={14} /> 앞 일정에서 약 {item.reality.distanceFromPreviousKm.toFixed(1)}km</span> : null}
+            </div>
+            {item.reality?.reviewHighlights?.length ? <div className="dj-review-glance"><strong>Google 지도 실제 리뷰</strong>{item.reality.reviewHighlights.slice(0, 2).map((review, index) => <p key={`${item.id}-review-${index}`}>“{review}” <small>— {item.reality?.reviewAuthors?.[index] || "지도 이용자"}</small></p>)}</div> : item.reality?.editorialSummary ? <div className="dj-review-glance"><strong>장소 한눈에 보기</strong><p>{item.reality.editorialSummary}</p></div> : null}
+            <div className="dj-plan-reason"><SparkleIcon size={15} /><p><strong>{highlight ? "이 하루의 하이라이트인 이유" : "당신에게 맞춰 고른 이유"}</strong>{item.reason || "전체 흐름과 예산을 함께 고려했어요."}{item.experience?.highlightReason ? ` ${item.experience.highlightReason}` : ""}</p></div>
+            <div className="dj-plan-actions">
+              {item.handoffKind === "self" ? (
+                <span className="dj-self-chip">♡ 직접 준비하는 항목</span>
+              ) : (
+                <a href={item.href} target="_blank" rel="noreferrer" className="dj-btn dj-btn-secondary dj-connect-link">
+                  사진·리뷰 더 보기 <ArrowIcon size={16} />
+                </a>
+              )}
+              <button type="button" className="dj-change-button dj-item-change-button" onClick={() => setOpen((value) => !value)}>
+                <SparkleIcon size={15} /> {open ? "변경 창 닫기" : `${DAJEONG_BRAND.assistantName}와 이 일정 바꾸기`}
+              </button>
+            </div>
+            {open ? (
+              <div className="dj-options-panel">
+                <div className="dj-item-chat-context">
+                  {hasPhoto ? <img src={item.imageUrl} alt={item.imageAlt || item.title} /> : <span><MapPinIcon size={18} /></span>}
+                  <div><small>지금 바꾸려는 일정</small><strong>{item.title}</strong><p>{item.reality?.address || item.subtitle}</p></div>
+                </div>
+                <div className="dj-item-chat" aria-live="polite" ref={localChatRef}>
+                  {localMessages.slice(-10).map((message) => <div key={message.id} className={`dj-item-chat-${message.role} ${message.status ? `dj-item-chat-${message.status}` : ""}`}><p>{message.text}{message.status === "searching" ? <i className="dj-thinking-dots"><b /><b /><b /></i> : null}</p></div>)}
+                  {localProposal ? <div className="dj-item-route-proposal"><p>{localProposal.reason}</p><button type="button" onClick={() => { onApplyProposal(localProposal); setLocalMessages((current) => [...current, { id: `applied_${Date.now()}`, role: "assistant", text: "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요." }]); setLocalProposal(null); }}>추천 순서로 바꿔줘</button><button type="button" onClick={() => setLocalProposal(null)}>지금 순서 유지</button></div> : null}
+                </div>
+                <form className="dj-item-chat-form" onSubmit={ask}><input value={localInstruction} onChange={(event) => setLocalInstruction(event.target.value)} placeholder="예: 여긴 좋은데 더 조용하고 디저트가 맛있는 곳이면 좋겠어" aria-label={`${item.title} 대체 후보 요청`} /><button type="submit" disabled={localLoading || localInstruction.trim().length < 2}>{localLoading ? <span className="dj-spinner dj-spinner-coral" /> : <ArrowIcon size={16} />}</button></form>
+                <div className="dj-option-divider"><span>바로 고를 수 있는 후보</span></div>
+                {allOptions.map((option) => <OptionCard key={option.id} option={option} selected={option.id === item.id} onSelect={() => { onReplace(option.id); setLocalMessages((current) => [...current, { id: `picked_${Date.now()}`, role: "assistant", text: `좋아요. ‘${option.title}’으로 바꾸고 전체 비용을 다시 계산했어요.` }]); }} />)}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </article>
+    </>
+  );
+}
+
+const revisionExamples = ["조금 더 싸게 해줘", "저녁 식당만 바꿔줘", "실내 위주로 바꿔줘", "마지막에 야경 넣어줘", "좀 더 특별하게 해줘"];
+
+export function PlanWorkspace({ planId }: { planId: string }) {
+  const router = useRouter();
+  const [plan, setPlan] = useState<DajeongPlan | null | undefined>(undefined);
+  const [instruction, setInstruction] = useState("");
+  const [revisionMessage, setRevisionMessage] = useState("");
+  const [changed, setChanged] = useState<PlanCategory[]>([]);
+  const [revising, setRevising] = useState(false);
+  const [proposal, setProposal] = useState<PlanChangeProposal | null>(null);
+  const [messages, setMessages] = useState<ConciergeMessage[]>([
+    chatMessage("assistant", "원하는 장면을 편하게 말해 주세요. 기존 일정은 기억하고 실제 장소와 동선을 확인해 필요한 부분만 바꿀게요."),
+  ]);
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const stored = getPlan(planId);
+    setPlan(stored);
+    if (stored?.conversation?.length) setMessages(stored.conversation);
+    else if (stored?.revisions?.length) {
+      const restored = [...stored.revisions].reverse().flatMap((revision) => [
+        chatMessage("user", revision.instruction),
+        chatMessage("assistant", revision.summary),
+      ]);
+      setMessages([
+        chatMessage("assistant", "원하는 장면을 편하게 말해 주세요. 기존 일정은 기억하고 필요한 부분만 바꿀게요."),
+        ...restored,
+      ]);
+    }
+  }, [planId]);
+
+  useEffect(() => {
+    const chat = chatRef.current;
+    if (chat) chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+  }, [messages.length, proposal]);
+
+  function replace(item: PlanItem, optionId: string) {
+    if (!plan) return;
+    const category = item.category;
+    let next = replacePlanItem(plan, category, optionId, item.id);
+    const selectedTitle = next.items.find((entry) => entry.id === item.id)?.title ?? "새 후보";
+    const response = `${selectedTitle}(으)로 바꾸고 전체 비용을 다시 계산했어요.`;
+    next = appendPlanConversation(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
+    next = {
+      ...next,
+      revisions: [{
+        id: `rev_${Date.now().toString(36)}`,
+        instruction: `후보에서 ‘${selectedTitle}’ 선택`,
+        summary: response,
+        createdAt: new Date().toISOString(),
+        changedCategories: [category],
+      }, ...(next.revisions ?? [])].slice(0, 12),
+    };
+    savePlan(next);
+    setPlan(next);
+    setChanged([category]);
+    setRevisionMessage(`${next.items.find((item) => item.category === category)?.categoryLabel ?? "일정"}만 바꿨어요. 전체 비용도 다시 계산했습니다.`);
+    setMessages((current) => [...current, chatMessage("assistant", response)]);
+  }
+
+  async function revise(event?: FormEvent, example?: string) {
+    event?.preventDefault();
+    if (!plan) return;
+    const nextInstruction = (example ?? instruction).trim();
+    if (nextInstruction.length < 2) return;
+    setRevising(true);
+    setProposal(null);
+    setRevisionMessage("");
+    const searching = chatMessage("assistant", "요청을 이해했어요. 근처의 실제 장소와 남은 예산, 앞뒤 이동 동선을 확인하고 있어요…", "searching");
+    setMessages((current) => [...current, chatMessage("user", nextInstruction), searching]);
+    try {
+      const response = await fetch("/api/dajeong/plans/revise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, instruction: nextInstruction }),
+      });
+      const result = await response.json() as PlanRevisionResult & { error?: string };
+      if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
+      setPlan(result.plan);
+      savePlan(result.plan);
+      setChanged(result.changedCategories);
+      setRevisionMessage(result.message);
+      setProposal(result.proposal ?? null);
+      setMessages((current) => current.map((message) => message.id === searching.id
+        ? { ...message, text: result.message, status: result.proposal ? "proposal" : "done" }
+        : message));
+      setInstruction("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "잠시 후 다시 말해 주세요.";
+      setRevisionMessage(message);
+      setMessages((current) => current.map((entry) => entry.id === searching.id ? { ...entry, text: message, status: "error" } : entry));
+    } finally {
+      setRevising(false);
+    }
+  }
+
+  async function reviseItem(item: PlanItem, nextInstruction: string): Promise<PlanRevisionResult> {
+    if (!plan) throw new Error("계획을 불러오지 못했어요.");
+    const response = await fetch("/api/dajeong/plans/revise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan, instruction: nextInstruction, targetCategory: item.category, targetItemId: item.id }),
+    });
+    const result = await response.json() as PlanRevisionResult & { error?: string };
+    if (!response.ok || !result.plan) throw new Error(result.error || "새 후보를 찾지 못했어요.");
+    setPlan(result.plan);
+    savePlan(result.plan);
+    setChanged(result.changedCategories);
+    setRevisionMessage(result.message);
+    return result;
+  }
+
+  function applyItemProposal(nextProposal: PlanChangeProposal) {
+    const next = appendPlanConversation(nextProposal.plan, "추천한 동선으로 바꿔줘", "좋아요. 이동이 덜 끊기도록 순서까지 바꿨어요.");
+    setPlan(next);
+    savePlan(next);
+    setChanged(next.items.map((item) => item.category));
+    setRevisionMessage("이동이 덜 끊기도록 일정 순서를 바꿨어요.");
+  }
+
+  function acceptProposal() {
+    if (!proposal) return;
+    const next = appendPlanConversation(proposal.plan, "추천한 순서로 바꿔줘", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.");
+    setPlan(next);
+    savePlan(next);
+    setChanged(next.items.map((item) => item.category));
+    setMessages((current) => [...current, chatMessage("user", "추천한 순서로 바꿔줘"), chatMessage("assistant", "좋아요. 이동이 덜 끊기도록 일정 순서를 바꿨어요. 실제 이동시간은 출발 전에 지도에서 한 번 더 확인해 주세요.")]);
+    setProposal(null);
+  }
+
+  function keepCurrentOrder() {
+    if (plan) {
+      const next = appendPlanConversation(plan, "지금 순서를 유지할게", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.");
+      setPlan(next);
+      savePlan(next);
+    }
+    setMessages((current) => [...current, chatMessage("user", "지금 순서를 유지할게"), chatMessage("assistant", "알겠어요. 장소만 바꾸고 기존 순서는 그대로 유지했어요.")]);
+    setProposal(null);
+  }
+
+  function confirmPlan() {
+    if (!plan || plan.budgetRemaining < 0) return;
+    const next: DajeongPlan = {
+      ...plan,
+      status: "confirmed",
+      items: plan.items.map((item) => ({ ...item, status: "confirmed" })),
+    };
+    savePlan(next);
+    router.push(`/dajeong/plan/${plan.id}/execute`);
+  }
+
+  if (plan === undefined) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /><p>계획을 꺼내고 있어요</p></div>;
+  if (!plan) return <div className="dj-empty-page dj-narrow"><span className="dj-empty-mark"><SparkleIcon size={28} /></span><h1>이 계획을 찾지 못했어요</h1><p>이 기기에 저장된 계획이 아니거나 브라우저 데이터가 지워졌을 수 있어요.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 만들기 <ArrowIcon size={17} /></Link></div>;
+
+  const overBudget = plan.budgetRemaining < 0;
+  const spendPercent = Math.min(100, Math.round((plan.total / plan.budget) * 100));
+  const start = plan.items[0]?.time ?? plan.situation.startTime ?? "14:00";
+  const end = plan.items.at(-1)?.time ?? plan.situation.preferredTime;
+  const tripLabel = plan.situation.planScope === "trip" ? ` · ${plan.situation.tripNights ?? 0}박 ${plan.situation.tripDays ?? 1}일` : "";
+  const constraints = plan.situation.constraints ?? [];
+
+  return (
+    <div className="dj-plan-page dj-container">
+      <div className="dj-plan-breadcrumb"><Link href="/dajeong">새 계획</Link><ChevronIcon size={14} /><span>계획 검토</span></div>
+      <section className="dj-plan-hero dj-animate">
+        <div>
+          <span className="dj-kicker"><SparkleIcon size={15} /> 상황을 읽고 하루로 만들었어요</span>
+          <h1>{plan.title}</h1>
+          <p>{plan.summary}</p>
+          <div className="dj-hero-tags"><span>{plan.situation.occasionLabel}</span><span>{plan.situation.recipient}</span>{plan.situation.ageBand !== "미상" ? <span>{plan.situation.ageBand}</span> : null}{plan.situation.desiredMoods.slice(0, 2).map((mood) => <span key={mood}>{MOOD_LABEL[mood]}</span>)}{constraints.slice(0, 2).map((value) => <span key={value}>{value}</span>)}</div>
+        </div>
+        <div className="dj-readiness"><div className="dj-readiness-ring" style={{ "--readiness": `${plan.readiness * 3.6}deg` } as React.CSSProperties}><strong>{plan.readiness}</strong><span>조건 일치도</span></div></div>
+      </section>
+
+      {plan.discovery ? (
+        <div className={`dj-discovery-banner dj-discovery-${plan.discovery.status}`}>
+          <span><MapPinIcon size={17} /></span>
+          <div><strong>{plan.discovery.realPlaceCount > 0 ? `방문할 수 있는 장소 후보 ${plan.discovery.realPlaceCount}곳을 찾았어요` : "장소 정보를 더 확인하고 있어요"}</strong><p>{plan.discovery.message} · {checkedLabel(plan.discovery.checkedAt)}</p></div>
+        </div>
+      ) : null}
+
+      <div className="dj-fact-row">
+        <div><ClockIcon size={19} /><span>날짜·전체 시간</span><strong>{displayDate(plan.situation.targetDate)}{tripLabel} · {start} 시작</strong></div>
+        <div><MapPinIcon size={19} /><span>활동 지역</span><strong>{plan.situation.region}</strong></div>
+        <div><WalletIcon size={19} /><span>총 예상 비용</span><strong>{money(plan.total)}</strong></div>
+        <div><ShieldIcon size={19} /><span>예약 확인</span><strong>{plan.items.filter((item) => item.reservationRequired).length}곳 필요</strong></div>
+      </div>
+
+      <section className="dj-revision-studio">
+        <div className="dj-revision-heading"><span className="dj-concierge-avatar dj-brand-orb"><SparkleIcon size={18} /></span><div><strong>{DAJEONG_BRAND.assistantName}와 마음에 들 때까지 조정하세요</strong><p>사람의 취향과 기존 일정은 기억하고, 필요한 부분만 바꿉니다.</p></div></div>
+        <div className="dj-concierge-chat" aria-live="polite" ref={chatRef}>
+          {messages.slice(-16).map((message) => (
+            <div key={message.id} className={`dj-chat-message dj-chat-${message.role} dj-chat-${message.status}`}>
+              {message.role === "assistant" ? <span className="dj-chat-avatar"><SparkleIcon size={13} /></span> : null}
+              <p>{message.text}{message.status === "searching" ? <i className="dj-thinking-dots"><b /><b /><b /></i> : null}</p>
+            </div>
+          ))}
+          {proposal ? (
+            <div className="dj-proposal-actions">
+              <p>{proposal.reason}</p>
+              <div><button type="button" onClick={acceptProposal}>이 순서로 바꿀게요</button><button type="button" onClick={keepCurrentOrder}>지금 순서 유지</button></div>
+            </div>
+          ) : null}
+        </div>
+        <form className="dj-revision-form" onSubmit={(event) => revise(event)}>
+          <input value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="예: 엄마가 매운 걸 못 드셔. 식사와 동선을 자연스럽게 다시 맞춰줘" aria-label="계획 수정 요청" />
+          <button type="submit" disabled={revising || instruction.trim().length < 2}>{revising ? <span className="dj-spinner dj-spinner-coral" /> : <ArrowIcon size={18} />}<span>조정</span></button>
+        </form>
+        <div className="dj-revision-examples">{revisionExamples.map((example) => <button key={example} type="button" onClick={() => revise(undefined, example)} disabled={revising}>{example}</button>)}</div>
+        {revisionMessage ? <span className="dj-sr-only" role="status">{revisionMessage}</span> : null}
+      </section>
+
+      <div className="dj-plan-layout">
+        <section className="dj-plan-main">
+          <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>시간보다 장면이 기억되는 하루</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {start} 시작</p></div>
+          <div className="dj-timeline">
+            {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} /></Fragment>)}
+          </div>
+        </section>
+
+        <aside className="dj-plan-summary dj-card">
+          <span className="dj-summary-eyebrow">하루 한눈에 보기</span>
+          <div className="dj-summary-heading"><span>총 예상 비용</span><strong>{money(plan.total)}</strong></div>
+          <div className="dj-budget-meter"><i style={{ width: `${spendPercent}%` }} /></div>
+          <div className="dj-summary-lines">{plan.items.map((item) => <div key={item.id}><span>{plan.situation.planScope === "trip" ? `${item.dayNumber ?? 1}일차 · ` : ""}{item.time} · {item.categoryLabel}</span><strong>{money(item.price)}</strong></div>)}</div>
+          <div className={`dj-budget-remaining ${overBudget ? "dj-over-budget" : ""}`}>
+            <div><span>{overBudget ? "초과 금액" : "남겨둔 여유"}</span><strong>{money(Math.abs(plan.budgetRemaining))}</strong></div>
+            <p>{overBudget ? "더 가벼운 선택으로 바꿔 주세요." : "교통비와 현장 변동을 위해 일부러 남겨뒀어요."}</p>
+          </div>
+          <div className="dj-booking-summary"><strong>확인할 예약</strong>{plan.items.filter((item) => item.reservationRequired).map((item) => <span key={item.id}><i />{item.dayNumber && plan.situation.planScope === "trip" ? `${item.dayNumber}일차 ` : ""}{item.time} {item.title}</span>)}</div>
+          <button className="dj-btn dj-btn-primary dj-confirm-button" type="button" onClick={confirmPlan} disabled={overBudget}>확정하고 예약 준비하기 <ArrowIcon size={17} /></button>
+          <p className="dj-summary-trust"><ShieldIcon size={14} /> 다음 화면에서 예약할 곳과 예약금을 먼저 확인합니다. 최종 승인 전에는 결제하거나 예약 완료로 표시하지 않아요.</p>
+        </aside>
+      </div>
+
+      <div className="dj-honesty-note"><ShieldIcon size={20} /><div><strong>추천과 실제 확정을 분명히 나눕니다</strong><p>{plan.notice}</p></div></div>
+    </div>
+  );
+}

@@ -1,0 +1,55 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { listPlans, removePlan } from "../lib/storage";
+import type { DajeongPlan } from "../lib/types";
+import { ArrowIcon, CheckIcon, ClockIcon, HeartIcon, MapPinIcon, SparkleIcon, TrashIcon } from "./DajeongIcons";
+
+function displayDate(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "short", day: "numeric" }).format(new Date(`${value}T12:00:00`));
+}
+
+export function PlansWorkspace() {
+  const [plans, setPlans] = useState<DajeongPlan[] | null>(null);
+  useEffect(() => {
+    const refresh = () => setPlans(listPlans());
+    refresh();
+    window.addEventListener("dajeong:plans-updated", refresh);
+    return () => window.removeEventListener("dajeong:plans-updated", refresh);
+  }, []);
+
+  function remove(id: string) {
+    if (!window.confirm("이 계획을 목록에서 지울까요?")) return;
+    removePlan(id);
+    setPlans(listPlans());
+  }
+
+  if (!plans) return <div className="dj-loading-page"><span className="dj-spinner dj-spinner-coral" /></div>;
+  return (
+    <div className="dj-plans-page dj-narrow">
+      <div className="dj-plans-heading"><div><span className="dj-kicker"><HeartIcon size={15} /> 준비한 마음들</span><h1>내 계획</h1><p>이 브라우저에 저장된 계획을 다시 열어 이어서 준비할 수 있어요.</p></div><Link href="/dajeong" className="dj-btn dj-btn-primary">새 계획 <ArrowIcon size={16} /></Link></div>
+      {plans.length === 0 ? (
+        <div className="dj-plans-empty dj-card"><span><SparkleIcon size={28} /></span><h2>아직 만든 계획이 없어요</h2><p>한 문장만 들려주면 첫 계획을 바로 정리해 드릴게요.</p><Link href="/dajeong" className="dj-btn dj-btn-primary">첫 계획 만들기</Link></div>
+      ) : (
+        <div className="dj-plans-list">
+          {plans.map((plan) => {
+            const done = plan.items.filter((item) => item.status === "done").length;
+            const href = plan.status === "draft" ? `/dajeong/plan/${plan.id}` : `/dajeong/plan/${plan.id}/execute`;
+            return (
+              <article key={plan.id} className="dj-saved-plan dj-card">
+                <Link href={href} className="dj-saved-plan-main">
+                  <span className={`dj-status-mark dj-status-${plan.status}`}>{plan.status === "completed" ? <CheckIcon size={18} /> : <HeartIcon size={18} />}</span>
+                  <div><div className="dj-saved-meta"><span><ClockIcon size={13} />{displayDate(plan.situation.targetDate)}</span><span><MapPinIcon size={13} />{plan.situation.region}</span></div><h2>{plan.title}</h2><p>{plan.summary}</p></div>
+                  <div className="dj-saved-progress"><strong>{plan.status === "draft" ? "검토 중" : plan.status === "completed" ? "준비 완료" : `${done}/${plan.items.length} 완료`}</strong><span>예상 {new Intl.NumberFormat("ko-KR").format(plan.total)}원</span><ArrowIcon size={18} /></div>
+                </Link>
+                <button type="button" className="dj-plan-delete" aria-label={`${plan.title} 삭제`} onClick={() => remove(plan.id)}><TrashIcon size={16} /></button>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

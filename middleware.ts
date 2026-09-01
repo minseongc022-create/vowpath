@@ -245,6 +245,14 @@ export async function middleware(request: NextRequest) {
     return topikShellResponse(request);
   }
 
+  // Dajeong — occasion planning product, isolated from every legacy shell.
+  if (pathname.startsWith("/dajeong")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-app-shell", "dajeong");
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   // Mano — home services marketplace (Guadalajara), isolated product shell.
   if (pathname.startsWith("/mano")) {
     const requestHeaders = new Headers(request.headers);
