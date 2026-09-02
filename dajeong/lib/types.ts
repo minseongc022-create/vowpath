@@ -26,6 +26,14 @@ export type PersonProfile = {
   visitedPlaceIds: string[];
   likedPlaceIds: string[];
   dislikedPlaceIds: string[];
+  likedActivities?: string[];
+  dislikedActivities?: string[];
+  likedAtmospheres?: string[];
+  dislikedAtmospheres?: string[];
+  crowdTolerance?: "low" | "medium" | "high" | "unknown";
+  walkingTolerance?: "low" | "medium" | "high" | "unknown";
+  likedPlanIds?: string[];
+  dislikedPlanIds?: string[];
   notes: string[];
   updatedAt: string;
 };
@@ -36,6 +44,12 @@ export type PersonMemoryUpdate = {
   likedFoods: string[];
   dislikedFoods: string[];
   hobbies: string[];
+  likedActivities: string[];
+  dislikedActivities: string[];
+  likedAtmospheres: string[];
+  dislikedAtmospheres: string[];
+  crowdTolerance: "low" | "medium" | "high" | "unknown";
+  walkingTolerance: "low" | "medium" | "high" | "unknown";
   notes: string[];
 };
 
@@ -212,6 +226,7 @@ export type PlanningConversationResult = {
   ready: boolean;
   questionKey: PlanningQuestionKey;
   quickReplies: string[];
+  decisionSource?: "structured_ai" | "deterministic_fallback";
 };
 
 export type SituationUnderstanding = {
@@ -292,6 +307,7 @@ export type PlanVersion = {
   budget: number;
   budgetRemaining: number;
   experienceFlow?: DajeongPlan["experienceFlow"];
+  discovery?: DajeongPlan["discovery"];
 };
 
 export type DajeongPlan = {

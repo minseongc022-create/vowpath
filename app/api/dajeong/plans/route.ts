@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createDajeongPlan } from "@/dajeong/lib/plan-engine";
+import { createDajeongPlan, initializePlanVersion } from "@/dajeong/lib/plan-engine";
 import { personalizePlanSummary } from "@/dajeong/lib/personalize";
 import { enrichDajeongPlanWithRealPlaces } from "@/dajeong/lib/place-discovery";
 
@@ -20,8 +20,31 @@ const personProfileSchema = z.object({
   visitedPlaceIds: z.array(z.string().max(180)).max(100),
   likedPlaceIds: z.array(z.string().max(180)).max(100),
   dislikedPlaceIds: z.array(z.string().max(180)).max(100),
+  likedActivities: z.array(z.string().max(100)).max(30).optional(),
+  dislikedActivities: z.array(z.string().max(100)).max(30).optional(),
+  likedAtmospheres: z.array(z.string().max(100)).max(30).optional(),
+  dislikedAtmospheres: z.array(z.string().max(100)).max(30).optional(),
+  crowdTolerance: z.enum(["low", "medium", "high", "unknown"]).optional(),
+  walkingTolerance: z.enum(["low", "medium", "high", "unknown"]).optional(),
+  likedPlanIds: z.array(z.string().max(180)).max(100).optional(),
+  dislikedPlanIds: z.array(z.string().max(180)).max(100).optional(),
   notes: z.array(z.string().max(180)).max(20),
   updatedAt: z.string().max(40),
+});
+
+const personMemoryUpdateSchema = z.object({
+  preferences: z.array(z.string().max(100)).max(30),
+  constraints: z.array(z.string().max(100)).max(30),
+  likedFoods: z.array(z.string().max(100)).max(30),
+  dislikedFoods: z.array(z.string().max(100)).max(30),
+  hobbies: z.array(z.string().max(100)).max(30),
+  likedActivities: z.array(z.string().max(100)).max(30),
+  dislikedActivities: z.array(z.string().max(100)).max(30),
+  likedAtmospheres: z.array(z.string().max(100)).max(30),
+  dislikedAtmospheres: z.array(z.string().max(100)).max(30),
+  crowdTolerance: z.enum(["low", "medium", "high", "unknown"]),
+  walkingTolerance: z.enum(["low", "medium", "high", "unknown"]),
+  notes: z.array(z.string().max(180)).max(20),
 });
 
 const requestSchema = z.object({
@@ -29,9 +52,9 @@ const requestSchema = z.object({
   recipient: z.string().trim().max(30).optional(),
   region: z.string().trim().max(40).optional(),
   departureRegion: z.string().trim().max(40).optional(),
-  budget: z.number().int().min(50_000).max(2_000_000).optional(),
+  budget: z.number().int().min(10_000).max(5_000_000).optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  partySize: z.number().int().min(1).max(12).optional(),
+  partySize: z.number().int().min(1).max(20).optional(),
   transport: z.enum(["public_transit", "car", "walking", "unknown"]).optional(),
   ageBand: ageBandSchema.optional(),
   preferences: z.array(z.string().max(180)).max(30).optional(),
@@ -41,6 +64,17 @@ const requestSchema = z.object({
   tripNights: z.number().int().min(0).max(13).optional(),
   checkInTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   checkOutTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  returnDepartureTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  lodgingPreference: z.string().trim().max(120).optional(),
+  lodgingIncludedInBudget: z.boolean().optional(),
+  requestKind: z.enum(["day_plan", "trip_plan", "place_search", "reservation", "product_search"]).optional(),
+  singleCategory: z.enum(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"]).optional(),
+  requestedCategories: z.array(z.enum(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"])).max(9).optional(),
+  excludedCategories: z.array(z.enum(["activity", "cafe", "meal", "view", "lodging", "cake", "flower", "gift", "moment"])).max(9).optional(),
+  explicitUnknowns: z.array(z.string().max(80)).max(20).optional(),
+  personMemoryUpdate: personMemoryUpdateSchema.optional(),
+  intakeConversation: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(600) })).max(40).optional(),
   personProfile: personProfileSchema.optional(),
   desiredMoods: z.array(moodSchema).max(10).optional(),
 });
@@ -59,6 +93,6 @@ export async function POST(request: Request) {
   }
 
   const discovered = await enrichDajeongPlanWithRealPlaces(createDajeongPlan(parsed.data));
-  const plan = await personalizePlanSummary(discovered);
+  const plan = initializePlanVersion(await personalizePlanSummary(discovered));
   return NextResponse.json({ plan });
 }

@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createDajeongPlan, replacePlanItem, reviseDajeongPlan } from "../../dajeong/lib/plan-engine.ts";
+import { createDajeongPlan, replacePlanItem, restorePlanVersion, restoreReferencedCandidate, reviseDajeongPlan } from "../../dajeong/lib/plan-engine.ts";
+import { applyDeterministicConversation, continuePlanningConversation, missingPlanningQuestions } from "../../dajeong/lib/planning-brain.ts";
 import { analyzeSituation, parseSituation } from "../../dajeong/lib/situation.ts";
 import { chainNameFor, haversineKm, rankRealPlaceCandidates } from "../../dajeong/lib/place-utils.ts";
 import { prepareReservationOrder } from "../../dajeong/lib/reservation-engine.ts";
@@ -245,4 +246,159 @@ test("여행의 두 번째 날 후보만 바꾸면 첫날 같은 종류 일정�
   const changed = replacePlanItem(trip, "activity", replacement.id, activities[1].id);
   assert.equal(changed.items.find((item) => item.id === activities[0].id)?.title, activities[0].title);
   assert.ok(changed.items.some((item) => item.dayNumber === 2 && item.category === "activity" && item.title === replacement.title));
+});
+
+test("하루온 멀티턴 여행 대화는 9턴의 조건을 잃지 않고 질문을 멈춘다", async () => {
+  const turns = [
+    "나 여친이랑 제주도 가고 싶은데 뭐하고 놀지",
+    "2박3일",
+    "일주일 뒤",
+    "숙소까지 100만원",
+    "렌터카",
+    "오션뷰",
+    "힐링이랑 액티비티 둘 다",
+    "딱히 꼭 하고 싶은 건 없어",
+    "도착 오후 3시, 돌아가는 것도 오후 3시쯤",
+  ];
+  const expectedQuestions = ["tripLength", "date", "budget", "transport", "lodgingPreference", "preference", "mustHave", "arrivalTime", null];
+  let messages = [];
+  let draft = {};
+  let currentQuestion = null;
+  let result;
+  for (let index = 0; index < turns.length; index += 1) {
+    messages.push({ role: "user", text: turns[index] });
+    result = await continuePlanningConversation({ messages, draft, currentQuestion });
+    assert.equal(result.questionKey, expectedQuestions[index]);
+    messages.push({ role: "assistant", text: result.reply });
+    draft = result.draft;
+    currentQuestion = result.questionKey;
+  }
+  assert.equal(result.ready, true);
+  assert.equal(result.draft.recipient, "여자친구");
+  assert.equal(result.draft.region, "제주");
+  assert.equal(result.draft.tripDays, 3);
+  assert.equal(result.draft.tripNights, 2);
+  assert.equal(result.draft.budget, 1_000_000);
+  assert.equal(result.draft.transport, "car");
+  assert.equal(result.draft.lodgingPreference, "오션뷰");
+  assert.equal(result.draft.arrivalTime, "15:00");
+  assert.equal(result.draft.returnDepartureTime, "15:00");
+  assert.ok(result.draft.explicitUnknowns.includes("mustHave"));
+});
+
+test("한 문장에 제공한 날짜·동행·지역·예산·교통·선호·비선호를 다시 묻지 않는다", () => {
+  const draft = applyDeterministicConversation([{ role: "user", text: "다음주 금요일 여자친구랑 서울에서 15만원 안으로 차 없이 놀고 싶어. 전시는 좋아하고 공방은 싫어." }], {});
+  assert.deepEqual(missingPlanningQuestions(draft), []);
+  assert.equal(draft.budget, 150_000);
+  assert.equal(draft.transport, "public_transit");
+  assert.ok(draft.preferences.includes("전시"));
+  assert.ok(draft.constraints.includes("공방 제외"));
+  assert.ok(draft.personMemoryUpdate.likedActivities.includes("전시"));
+  assert.ok(draft.personMemoryUpdate.dislikedActivities.includes("공방"));
+});
+
+test("식당과 꽃 요청은 각각 하나의 목적만 유지한다", () => {
+  const restaurant = applyDeterministicConversation([{ role: "user", text: "성수에서 분위기 좋은 식당 찾아줘." }], {});
+  const flower = applyDeterministicConversation([{ role: "user", text: "여친 줄 꽃다발 예약하고 싶어." }], {});
+  assert.equal(restaurant.planScope, "single");
+  assert.equal(restaurant.singleCategory, "meal");
+  assert.deepEqual(missingPlanningQuestions(restaurant), []);
+  assert.equal(flower.planScope, "single");
+  assert.equal(flower.singleCategory, "flower");
+  assert.equal(flower.requestKind, "reservation");
+});
+
+test("생일이라는 이유만으로 요청하지 않은 꽃·선물·케이크를 끼워 넣지 않는다", () => {
+  const plan = createDajeongPlan({ request: "다음주 금요일 서울에서 여자친구 생일 데이트 40만원", budget: 400_000, region: "서울" });
+  assert.equal(plan.items.some((item) => ["flower", "gift", "cake"].includes(item.category)), false);
+});
+
+test("처음 계획 버전은 장소·시간표·예산을 통째로 복원한다", () => {
+  const initial = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  const changed = reviseDajeongPlan(initial, "저녁 식당만 바꿔줘").plan;
+  assert.ok((changed.versions?.length ?? 0) >= 2);
+  const restored = restorePlanVersion(changed, changed.versions[0], "처음 걸로 돌아가자");
+  assert.deepEqual(restored.items.map((item) => item.title), initial.items.map((item) => item.title));
+  assert.equal(restored.total, initial.total);
+  assert.equal(restored.budgetRemaining, initial.budgetRemaining);
+});
+
+test("아까 두 번째 후보 문맥은 직전 수정 카테고리의 실제 후보를 복원한다", () => {
+  const initial = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  const changed = reviseDajeongPlan(initial, "식당만 바꿔줘").plan;
+  const mealBeforeRestore = changed.items.find((item) => item.category === "meal");
+  const expected = mealBeforeRestore?.alternatives[0];
+  const restored = restoreReferencedCandidate(changed, "아까 두 번째가 더 좋아");
+  assert.ok(expected);
+  assert.ok(restored);
+  assert.equal(restored.category, "meal");
+  assert.equal(restored.plan.items.find((item) => item.category === "meal")?.title, expected.title);
+  assert.deepEqual(
+    restored.plan.items.filter((item) => item.category !== "meal").map((item) => item.id),
+    changed.items.filter((item) => item.category !== "meal").map((item) => item.id),
+  );
+});
+
+test("도착과 귀가 시간이 있는 여행은 체크인·체크아웃·짐·출발 물류를 만든다", () => {
+  const trip = createDajeongPlan({
+    request: "여자친구와 제주 2박3일 여행",
+    recipient: "여자친구",
+    planScope: "trip",
+    tripDays: 3,
+    tripNights: 2,
+    region: "제주",
+    budget: 1_000_000,
+    targetDate: "2026-09-08",
+    transport: "public_transit",
+    arrivalTime: "15:00",
+    returnDepartureTime: "15:00",
+  });
+  assert.ok(trip.logistics.some((item) => item.kind === "arrival" && item.time === "15:00"));
+  assert.ok(trip.logistics.some((item) => item.kind === "checkout"));
+  assert.ok(trip.logistics.some((item) => item.kind === "luggage"));
+  assert.ok(trip.logistics.some((item) => item.kind === "departure" && item.time === "15:00"));
+  assert.ok(trip.items.filter((item) => item.dayNumber === 3).every((item) => item.time < "15:00"));
+});
+
+test("10턴 넘게 조건을 추가해도 앞의 구조화 상태가 유지된다", () => {
+  const turns = ["여자친구랑", "서울에서", "다음주 금요일", "15만원", "차 없이", "전시 좋아", "공방 싫어", "야경 좋아", "사람 많은 곳 싫어", "많이 걷기는 싫어", "조용한 식당", "카페는 빼줘"];
+  let draft = {};
+  const messages = [];
+  for (const text of turns) {
+    messages.push({ role: "user", text });
+    draft = applyDeterministicConversation(messages, draft);
+  }
+  assert.equal(draft.recipient, "여자친구");
+  assert.equal(draft.region, "서울");
+  assert.equal(draft.budget, 150_000);
+  assert.equal(draft.transport, "public_transit");
+  assert.ok(draft.constraints.includes("공방 제외"));
+  assert.ok(draft.excludedCategories.includes("cafe"));
+});
+
+test("멀티턴의 최신 명시 조건은 이전 초안보다 우선한다", () => {
+  const firstMessages = [{ role: "user", text: "다음주 금요일 여자친구랑 서울에서 15만원으로 전시 보고 싶어" }];
+  const first = applyDeterministicConversation(firstMessages, {});
+  const messages = [...firstMessages, { role: "assistant", text: "좋아" }, { role: "user", text: "아, 남자친구랑 부산에서 야경 보는 걸로 바꿀게" }];
+  const changed = applyDeterministicConversation(messages, first);
+  assert.equal(changed.recipient, "남자친구");
+  assert.equal(changed.region, "부산");
+  assert.ok(changed.preferences.some((value) => /야경/.test(value)));
+  assert.match(changed.request, /부산에서 야경/);
+});
+
+test("카페 제거는 실제 항목·총예산·시간표 상태에 함께 반영된다", () => {
+  const plan = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 30만원", budget: 300_000, region: "서울" });
+  const result = reviseDajeongPlan(plan, "카페 빼줘");
+  assert.equal(result.plan.items.some((item) => item.category === "cafe"), false);
+  assert.ok(result.plan.total < plan.total);
+  assert.equal(result.plan.budgetRemaining, result.plan.budget - result.plan.total);
+});
+
+test("평범하다는 수정은 조건을 유지하면서 핵심 경험 후보만 강화한다", () => {
+  const plan = createDajeongPlan({ request: "이번 토요일 서울 여자친구 데이트 40만원", budget: 400_000, region: "서울" });
+  const result = reviseDajeongPlan(plan, "너무 평범한데? 좀 더 특별하게 해줘");
+  assert.equal(result.plan.situation.region, plan.situation.region);
+  assert.equal(result.plan.situation.targetDate, plan.situation.targetDate);
+  assert.ok(result.changedCategories.every((category) => ["activity", "meal", "view"].includes(category)));
 });

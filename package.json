@@ -44,7 +44,7 @@
     "check:cron": "node scripts/check-cron-config.mjs",
     "topik:verify-openai": "node scripts/topik-verify-openai.mjs",
     "seed:dev-user": "node scripts/seed-dev-user.mjs",
-    "test": "tsx --test tests/unit/*.test.mjs && node --experimental-strip-types scripts/test-priority-guardrails.mjs",
+    "test": "node --import tsx --test tests/unit/*.test.mjs && node --experimental-strip-types scripts/test-priority-guardrails.mjs",
     "test:e2e": "node scripts/run-all-tests.mjs",
     "test:e2e:live": "node scripts/run-live-sms-smoke.mjs",
     "launch:check": "node scripts/e2e-checklist.mjs",

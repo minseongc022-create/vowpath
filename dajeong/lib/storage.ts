@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgeBand, DajeongPlan, ExperienceMood, ParsedSituation, PersonProfile } from "./types";
+import type { AgeBand, DajeongPlan, ExperienceMood, ParsedSituation, PersonMemoryUpdate, PersonProfile } from "./types";
 
 const STORAGE_KEY = "dajeong:plans:v1";
 const PEOPLE_STORAGE_KEY = "haruon:people:v1";
@@ -58,7 +58,7 @@ export function listPersonProfiles(): PersonProfile[] {
 
 export function rememberPersonProfile(
   situation: ParsedSituation,
-  extras: { ageBand?: AgeBand; preferences?: string[]; moodPreferences?: ExperienceMood[]; notes?: string[] } = {},
+  extras: { ageBand?: AgeBand; preferences?: string[]; moodPreferences?: ExperienceMood[]; notes?: string[]; memoryUpdate?: PersonMemoryUpdate } = {},
 ): PersonProfile | null {
   if (typeof window === "undefined" || situation.recipient === "함께할 사람") return null;
   const current = getPersonProfile(situation.recipient);
@@ -67,15 +67,23 @@ export function rememberPersonProfile(
     name: current?.name ?? situation.recipient,
     relation: situation.recipient,
     ageBand: extras.ageBand && extras.ageBand !== "미상" ? extras.ageBand : situation.ageBand !== "미상" ? situation.ageBand : current?.ageBand ?? "미상",
-    preferences: unique([...(current?.preferences ?? []), ...situation.preferences, ...(extras.preferences ?? [])]),
-    constraints: unique([...(current?.constraints ?? []), ...situation.constraints]),
-    likedFoods: unique([...(current?.likedFoods ?? []), ...situation.preferences.filter((value) => /한식|일식|이탈리안|고기|베이커리|파스타|디저트/.test(value))]),
-    dislikedFoods: unique([...(current?.dislikedFoods ?? []), ...situation.constraints.filter((value) => /음식|알레르기|채식|논알코올/.test(value))]),
-    hobbies: unique([...(current?.hobbies ?? []), ...situation.preferences.filter((value) => /전시|공연|야경|소품샵|사진|미디어아트|체험/.test(value))]),
+    preferences: unique([...(current?.preferences ?? []), ...situation.preferences, ...(extras.preferences ?? []), ...(extras.memoryUpdate?.preferences ?? [])]),
+    constraints: unique([...(current?.constraints ?? []), ...situation.constraints, ...(extras.memoryUpdate?.constraints ?? [])]),
+    likedFoods: unique([...(current?.likedFoods ?? []), ...situation.preferences.filter((value) => /한식|일식|이탈리안|고기|베이커리|파스타|디저트/.test(value)), ...(extras.memoryUpdate?.likedFoods ?? [])]),
+    dislikedFoods: unique([...(current?.dislikedFoods ?? []), ...situation.constraints.filter((value) => /음식|알레르기|채식|논알코올|맵/.test(value)), ...(extras.memoryUpdate?.dislikedFoods ?? [])]),
+    hobbies: unique([...(current?.hobbies ?? []), ...situation.preferences.filter((value) => /전시|공연|야경|소품샵|사진|미디어아트|체험/.test(value)), ...(extras.memoryUpdate?.hobbies ?? [])]),
     moodPreferences: Array.from(new Set([...(current?.moodPreferences ?? []), ...situation.desiredMoods, ...(extras.moodPreferences ?? [])])),
     visitedPlaceIds: current?.visitedPlaceIds ?? [],
     likedPlaceIds: current?.likedPlaceIds ?? [],
     dislikedPlaceIds: current?.dislikedPlaceIds ?? [],
+    likedActivities: unique([...(current?.likedActivities ?? []), ...(extras.memoryUpdate?.likedActivities ?? [])]),
+    dislikedActivities: unique([...(current?.dislikedActivities ?? []), ...(extras.memoryUpdate?.dislikedActivities ?? [])]),
+    likedAtmospheres: unique([...(current?.likedAtmospheres ?? []), ...(extras.memoryUpdate?.likedAtmospheres ?? [])]),
+    dislikedAtmospheres: unique([...(current?.dislikedAtmospheres ?? []), ...(extras.memoryUpdate?.dislikedAtmospheres ?? [])]),
+    crowdTolerance: extras.memoryUpdate?.crowdTolerance && extras.memoryUpdate.crowdTolerance !== "unknown" ? extras.memoryUpdate.crowdTolerance : current?.crowdTolerance ?? "unknown",
+    walkingTolerance: extras.memoryUpdate?.walkingTolerance && extras.memoryUpdate.walkingTolerance !== "unknown" ? extras.memoryUpdate.walkingTolerance : current?.walkingTolerance ?? "unknown",
+    likedPlanIds: current?.likedPlanIds ?? [],
+    dislikedPlanIds: current?.dislikedPlanIds ?? [],
     notes: unique([...(current?.notes ?? []), ...(extras.notes ?? [])]).slice(-20),
     updatedAt: new Date().toISOString(),
   };

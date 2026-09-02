@@ -41,6 +41,7 @@
 .dj-home-user > div { padding: 12px 16px; border-radius: 18px 18px 5px 18px; background: #ece7e1; }
 .dj-home-user p { margin: 0; color: #37322e; }
 .dj-prompt-suggestions { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 6px 0 43px 42px; }
+.dj-prompt-suggestions > p { grid-column: 1 / -1; margin: 0 0 2px; color: #756b64; font-size: 12px; font-weight: 800; }
 .dj-prompt-suggestions button { min-height: 96px; padding: 14px; border: 1px solid #e4dcd5; border-radius: 15px; background: #fff; color: #5b534d; font: inherit; font-size: 11px; line-height: 1.55; text-align: left; cursor: pointer; }
 .dj-prompt-suggestions button:hover { border-color: #e2a89d; transform: translateY(-1px); }
 .dj-prompt-suggestions span { display: block; margin-bottom: 7px; color: var(--dj-coral-dark); font-size: 10px; font-weight: 850; }
@@ -79,7 +80,7 @@
 .dj-chat-quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin: -12px 0 27px 42px; }
 .dj-chat-quick-replies button { min-height: 38px; padding: 0 13px; border: 1px solid #e4d9d1; border-radius: 999px; background: #fff; color: #5c534d; font: inherit; font-size: 12px; font-weight: 720; cursor: pointer; box-shadow: 0 4px 12px rgba(72,49,38,.045); }
 .dj-chat-quick-replies button:hover { border-color: #e4a396; color: var(--dj-coral-dark); }
-.dj-home-composer-wrap { width: min(780px, calc(100% - 40px)); position: fixed; left: calc(50% + 136px); bottom: 0; transform: translateX(-50%); padding: 16px 0 19px; background: linear-gradient(transparent, #fbfaf8 28%); z-index: 22; }
+.dj-home-composer-wrap { width: min(780px, calc(100% - 40px)); position: fixed; left: calc(50% + 136px); bottom: 0; transform: translateX(-50%); padding: 16px 0 calc(19px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, #fbfaf8 28%); z-index: 22; }
 .dj-home-composer { display: grid; grid-template-columns: 1fr 42px; align-items: end; gap: 8px; padding: 9px 9px 9px 16px; border: 1px solid #ddd5ce; border-radius: 20px; background: #fff; box-shadow: 0 12px 35px rgba(55,43,36,.09); }
 .dj-home-composer textarea { min-height: 42px; max-height: 160px; resize: none; padding: 10px 0 7px; border: 0; outline: 0; background: transparent; color: var(--dj-ink); font: inherit; font-size: 14px; line-height: 1.55; }
 .dj-home-composer button { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 14px; background: var(--dj-coral); color: #fff; cursor: pointer; }
@@ -105,8 +106,9 @@
   .dj-home-message p { font-size: 13px; }
   .dj-home-message > div { max-width: calc(100% - 42px); }
   .dj-home-user > div { max-width: 88%; }
-  .dj-prompt-suggestions { grid-template-columns: 1fr; margin-left: 42px; gap: 7px; }
+  .dj-prompt-suggestions { grid-template-columns: 1fr; min-width: 0; margin-left: 42px; gap: 7px; }
   .dj-prompt-suggestions button { min-height: 68px; }
+  .dj-prompt-suggestions > p { font-size: 11px; }
   .dj-chat-quick-replies { flex-wrap: nowrap; margin-right: -12px; padding-right: 12px; overflow-x: auto; scrollbar-width: none; }
   .dj-chat-quick-replies button { flex: 0 0 auto; }
   .dj-chat-facts { gap: 5px; }

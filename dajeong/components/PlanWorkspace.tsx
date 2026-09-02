@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { getPlan, savePlan } from "../lib/storage";
-import { appendPlanConversation, replacePlanItem } from "../lib/plan-engine";
+import { getPlan, rememberPersonProfile, savePlan } from "../lib/storage";
+import { appendPlanConversation, appendPlanVersion, replacePlanItem } from "../lib/plan-engine";
 import { DAJEONG_BRAND } from "../lib/brand";
 import { MOOD_LABEL } from "../lib/experience";
 import type { ConciergeMessage, DajeongPlan, PlanCategory, PlanChangeProposal, PlanItem, PlanOption, PlanRevisionResult } from "../lib/types";
@@ -222,7 +222,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     if (!plan) return;
     const category = item.category;
     let next = replacePlanItem(plan, category, optionId, item.id);
-    const selectedTitle = next.items.find((entry) => entry.id === item.id)?.title ?? "새 후보";
+    const selectedTitle = next.items.find((entry) => entry.category === category && entry.dayNumber === item.dayNumber)?.title ?? "새 후보";
     const response = `${selectedTitle}(으)로 바꾸고 전체 비용을 다시 계산했어요.`;
     next = appendPlanConversation(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
     next = {
@@ -235,6 +235,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
         changedCategories: [category],
       }, ...(next.revisions ?? [])].slice(0, 12),
     };
+    next = appendPlanVersion(next, `후보에서 ‘${selectedTitle}’ 선택`, response);
     savePlan(next);
     setPlan(next);
     setChanged([category]);
@@ -262,6 +263,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
       setPlan(result.plan);
       savePlan(result.plan);
+      if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
       setChanged(result.changedCategories);
       setRevisionMessage(result.message);
       setProposal(result.proposal ?? null);
@@ -289,6 +291,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
     if (!response.ok || !result.plan) throw new Error(result.error || "새 후보를 찾지 못했어요.");
     setPlan(result.plan);
     savePlan(result.plan);
+    if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
     setChanged(result.changedCategories);
     setRevisionMessage(result.message);
     return result;
@@ -397,6 +400,7 @@ export function PlanWorkspace({ planId }: { planId: string }) {
       <div className="dj-plan-layout">
         <section className="dj-plan-main">
           <div className="dj-section-heading"><div><span>오늘의 여정</span><h2>시간보다 장면이 기억되는 하루</h2>{plan.experienceFlow ? <small className="dj-flow-story">{plan.experienceFlow.labels.join(" → ")}</small> : null}</div><p>{plan.items.length}개의 경험 · {start} 시작</p></div>
+          {plan.logistics?.length ? <div className="dj-trip-logistics"><strong>현실 이동 기준</strong>{plan.logistics.map((item) => <div key={item.id}><span>{item.dayNumber}일차 · {item.time}</span><p><b>{item.title}</b>{item.note}</p></div>)}</div> : null}
           <div className="dj-timeline">
             {plan.items.map((item, index) => <Fragment key={item.id}>{(plan.situation.planScope === "trip" && (index === 0 || plan.items[index - 1]?.dayNumber !== item.dayNumber)) ? <div className="dj-plan-day-divider"><span>{item.dayNumber ?? 1}일차</span><strong>{index === 0 ? displayDate(plan.situation.targetDate) : "다음 날"}</strong></div> : null}<TimelineItem item={item} isLast={index === plan.items.length - 1} changed={changed.includes(item.category)} highlight={plan.experienceFlow?.highlightItemId === item.id} onReplace={(optionId) => replace(item, optionId)} onAsk={(nextInstruction) => reviseItem(item, nextInstruction)} onApplyProposal={applyItemProposal} /></Fragment>)}
           </div>

@@ -1,7 +1,7 @@
 import { getOptions } from "./catalog";
 import { buildExperienceFlow, journeyRoleFor, MOOD_LABEL } from "./experience";
 import { parseSituation } from "./situation";
-import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanOption, PlanRequest, PlanRevisionResult } from "./types";
+import type { ConciergeMessage, DajeongPlan, ParsedSituation, PlanCategory, PlanItem, PlanLogisticsItem, PlanOption, PlanRequest, PlanRevisionResult, PlanVersion } from "./types";
 
 const CATEGORY_LABEL: Record<PlanCategory, string> = {
   activity: "경험",
@@ -60,10 +60,125 @@ export function appendPlanConversation(plan: DajeongPlan, userText: string, assi
   };
 }
 
+function copyItems(items: PlanItem[]): PlanItem[] {
+  return items.map((item) => ({
+    ...item,
+    alternatives: item.alternatives.map((option) => ({ ...option })),
+    travelFromPrevious: item.travelFromPrevious ? { ...item.travelFromPrevious } : undefined,
+  }));
+}
+
+function planVersion(plan: DajeongPlan, instruction: string, summary: string): PlanVersion {
+  return {
+    id: `version_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    createdAt: new Date().toISOString(),
+    instruction,
+    summary,
+    situation: { ...plan.situation },
+    title: plan.title,
+    summaryText: plan.summary,
+    items: copyItems(plan.items),
+    logistics: (plan.logistics ?? []).map((item) => ({ ...item })),
+    subtotal: plan.subtotal,
+    reserve: plan.reserve,
+    total: plan.total,
+    budget: plan.budget,
+    budgetRemaining: plan.budgetRemaining,
+    experienceFlow: plan.experienceFlow ? { ...plan.experienceFlow, labels: [...plan.experienceFlow.labels] } : undefined,
+    discovery: plan.discovery ? { ...plan.discovery } : undefined,
+  };
+}
+
+export function appendPlanVersion(plan: DajeongPlan, instruction: string, summary: string): DajeongPlan {
+  return {
+    ...plan,
+    versions: [...(plan.versions ?? []), planVersion(plan, instruction, summary)].slice(-16),
+  };
+}
+
+export function initializePlanVersion(plan: DajeongPlan): DajeongPlan {
+  return { ...plan, versions: [planVersion(plan, "처음 계획", "처음 만든 계획")] };
+}
+
+export function restorePlanVersion(plan: DajeongPlan, version: PlanVersion, instruction: string): DajeongPlan {
+  const restored: DajeongPlan = {
+    ...plan,
+    situation: { ...version.situation },
+    title: version.title,
+    summary: version.summaryText,
+    items: copyItems(version.items),
+    logistics: version.logistics.map((item) => ({ ...item })),
+    subtotal: version.subtotal,
+    reserve: version.reserve,
+    total: version.total,
+    budget: version.budget,
+    budgetRemaining: version.budgetRemaining,
+    experienceFlow: version.experienceFlow ? { ...version.experienceFlow, labels: [...version.experienceFlow.labels] } : undefined,
+    discovery: version.discovery ? { ...version.discovery } : undefined,
+    status: "draft",
+  };
+  return appendPlanVersion(restored, instruction, `${version.summary} 상태로 복원`);
+}
+
 function minutesToTime(start: string, minutes: number): string {
   const [hour, minute] = start.split(":").map(Number);
   const total = Math.max(0, hour * 60 + minute + minutes);
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export function buildPlanLogistics(situation: ParsedSituation): PlanLogisticsItem[] {
+  if (situation.planScope !== "trip") return [];
+  const lastDay = Math.max(1, situation.tripDays ?? 1);
+  const result: PlanLogisticsItem[] = [];
+  if (situation.arrivalTime) {
+    result.push({
+      id: "logistics_arrival",
+      dayNumber: 1,
+      time: situation.arrivalTime,
+      kind: "arrival",
+      title: `${situation.region} 도착`,
+      note: situation.transport === "car" ? "렌터카 수령·짐 적재 시간을 60분 확보" : "짐 수령과 첫 이동 시간을 45분 확보",
+    });
+  }
+  if (situation.needsLodging) {
+    result.push({
+      id: "logistics_checkin",
+      dayNumber: 1,
+      time: situation.checkInTime ?? "15:00",
+      kind: "checkin",
+      title: "숙소 체크인 기준",
+      note: "실제 숙소 확정 후 체크인 마감과 주차 여부를 다시 확인",
+    });
+    result.push({
+      id: "logistics_checkout",
+      dayNumber: lastDay,
+      time: situation.checkOutTime ?? "11:00",
+      kind: "checkout",
+      title: "체크아웃",
+      note: situation.transport === "car" ? "짐은 차량에 보관하고 마지막 일정을 진행" : "숙소 또는 역·공항 보관소에 짐을 맡긴 뒤 이동",
+    });
+    if (situation.transport !== "car") {
+      result.push({
+        id: "logistics_luggage",
+        dayNumber: lastDay,
+        time: minutesToTime(situation.checkOutTime ?? "11:00", 15),
+        kind: "luggage",
+        title: "짐 보관",
+        note: "확정된 숙소의 체크아웃 후 보관 가능 여부가 확인되지 않으면 역·공항 보관소 사용",
+      });
+    }
+  }
+  if (situation.returnDepartureTime) {
+    result.push({
+      id: "logistics_departure",
+      dayNumber: lastDay,
+      time: situation.returnDepartureTime,
+      kind: "departure",
+      title: "귀가편 출발",
+      note: `공항·역에는 최소 ${situation.transport === "car" ? "90분" : "60분"} 전에 도착하도록 마지막 장소를 마감`,
+    });
+  }
+  return result.sort((a, b) => a.dayNumber - b.dayNumber || a.time.localeCompare(b.time));
 }
 
 function selectWithinBudget(options: PlanOption[], remaining: number, situation: ParsedSituation): PlanOption {
@@ -92,7 +207,16 @@ function selectWithinBudget(options: PlanOption[], remaining: number, situation:
   return ranked[0] ?? [...candidates].sort((a, b) => a.price - b.price)[0];
 }
 
-type PlanSlot = { category: PlanCategory; dayNumber: number; offset: number };
+type PlanSlot = { category: PlanCategory; dayNumber: number; offset: number; time?: string };
+
+function timeToMinutes(value?: string): number {
+  const [hour, minute] = (value ?? "00:00").split(":").map(Number);
+  return (Number.isFinite(hour) ? hour : 0) * 60 + (Number.isFinite(minute) ? minute : 0);
+}
+
+function laterTime(first: string, second: string): string {
+  return timeToMinutes(first) >= timeToMinutes(second) ? first : second;
+}
 
 function categorySet(situation: ParsedSituation): PlanSlot[] {
   if (situation.planScope === "single" && situation.singleCategory) {
@@ -101,25 +225,47 @@ function categorySet(situation: ParsedSituation): PlanSlot[] {
   if (situation.planScope === "trip") {
     const days = Math.max(1, Math.min(7, situation.tripDays ?? 2));
     const slots: PlanSlot[] = [];
+    const arrival = situation.arrivalTime ?? "11:00";
+    const departure = situation.returnDepartureTime ?? "18:00";
+    const lateArrival = timeToMinutes(arrival) >= 14 * 60;
     for (let day = 1; day <= days; day += 1) {
+      const isFirst = day === 1;
       const isLast = day === days;
-      slots.push({ category: "activity", dayNumber: day, offset: day === 1 ? 0 : 60 });
-      slots.push({ category: "cafe", dayNumber: day, offset: day === 1 ? 120 : 220 });
-      if (day <= (situation.tripNights ?? 0)) slots.push({ category: "lodging", dayNumber: day, offset: 240 });
-      slots.push({ category: "meal", dayNumber: day, offset: day === 1 ? 420 : 390 });
-      if (!isLast) slots.push({ category: "view", dayNumber: day, offset: 540 });
+      if (isFirst && lateArrival && situation.needsLodging) {
+        const checkIn = laterTime(situation.checkInTime ?? "15:00", minutesToTime(arrival, 60));
+        slots.push({ category: "lodging", dayNumber: day, offset: 0, time: checkIn });
+        slots.push({ category: "activity", dayNumber: day, offset: 0, time: minutesToTime(checkIn, 75) });
+        slots.push({ category: "meal", dayNumber: day, offset: 0, time: minutesToTime(checkIn, 240) });
+        if (!isLast) slots.push({ category: "view", dayNumber: day, offset: 0, time: minutesToTime(checkIn, 360) });
+      } else if (isFirst) {
+        slots.push({ category: "activity", dayNumber: day, offset: 0, time: minutesToTime(arrival, 60) });
+        if (timeToMinutes(arrival) <= 12 * 60) slots.push({ category: "cafe", dayNumber: day, offset: 0, time: minutesToTime(arrival, 210) });
+        if (situation.needsLodging) slots.push({ category: "lodging", dayNumber: day, offset: 0, time: situation.checkInTime ?? "15:00" });
+        slots.push({ category: "meal", dayNumber: day, offset: 0, time: laterTime("18:00", minutesToTime(arrival, 360)) });
+        if (!isLast) slots.push({ category: "view", dayNumber: day, offset: 0, time: laterTime("20:00", minutesToTime(arrival, 480)) });
+      } else if (isLast) {
+        slots.push({ category: "activity", dayNumber: day, offset: 0, time: "09:00" });
+        const latestMeal = minutesToTime(departure, -210);
+        slots.push({ category: "meal", dayNumber: day, offset: 0, time: laterTime("11:30", latestMeal) });
+        if (timeToMinutes(departure) >= 17 * 60) slots.push({ category: "cafe", dayNumber: day, offset: 0, time: minutesToTime(departure, -150) });
+      } else {
+        slots.push({ category: "activity", dayNumber: day, offset: 0, time: "09:30" });
+        slots.push({ category: "cafe", dayNumber: day, offset: 0, time: "13:00" });
+        slots.push({ category: "meal", dayNumber: day, offset: 0, time: "18:30" });
+        slots.push({ category: "view", dayNumber: day, offset: 0, time: "20:30" });
+      }
     }
-    return slots;
+    return slots.filter((slot) => !situation.excludedCategories.includes(slot.category));
   }
   const categories: PlanCategory[] = ["activity"];
   if (situation.budget >= 100_000) categories.push("cafe");
-  if (situation.occasion === "birthday" && situation.budget >= 240_000) categories.push("gift");
-  if (["anniversary", "proposal"].includes(situation.occasion) && situation.budget >= 220_000) categories.push("flower");
-  if (situation.occasion === "birthday" && situation.budget >= 140_000) categories.push("cake");
   categories.push("meal");
   if (situation.occasion === "thanks") categories.push("moment");
   else categories.push("view");
-  return categories.map((category) => ({ category, dayNumber: 1, offset: CATEGORY_OFFSET[category] }));
+  situation.requestedCategories.forEach((category) => {
+    if (!categories.includes(category)) categories.push(category);
+  });
+  return categories.filter((category) => !situation.excludedCategories.includes(category)).map((category) => ({ category, dayNumber: 1, offset: CATEGORY_OFFSET[category] }));
 }
 
 function travelFor(situation: ParsedSituation, index: number): PlanItem["travelFromPrevious"] {
@@ -129,14 +275,14 @@ function travelFor(situation: ParsedSituation, index: number): PlanItem["travelF
   return { minutes: 20, mode: "대중교통", note: "환승 1회 이내 후보를 우선 탐색" };
 }
 
-function planItem(category: PlanCategory, selected: PlanOption, options: PlanOption[], situation: ParsedSituation, index: number, total: number, dayNumber = 1, offset = CATEGORY_OFFSET[category]): PlanItem {
+function planItem(category: PlanCategory, selected: PlanOption, options: PlanOption[], situation: ParsedSituation, index: number, total: number, dayNumber = 1, offset = CATEGORY_OFFSET[category], explicitTime?: string): PlanItem {
   return {
     ...selected,
     id: `${selected.id}-d${dayNumber}-${index}`,
     category,
     categoryLabel: CATEGORY_LABEL[category],
     icon: category,
-    time: category === "lodging" ? situation.checkInTime ?? "15:00" : minutesToTime(situation.startTime, offset),
+    time: explicitTime ?? (category === "lodging" ? situation.checkInTime ?? "15:00" : minutesToTime(situation.startTime, offset)),
     status: "proposed",
     dayNumber,
     alternatives: options.filter((option) => option.id !== selected.id),
@@ -170,7 +316,7 @@ function buildItems(input: PlanRequest): { items: PlanItem[]; budget: number } {
     const remaining = Math.max(0, spendable - used);
     const selected = selectWithinBudget(options, Math.min(categoryLimit, remaining), situation);
     used += selected.price;
-    return planItem(category, selected, options, situation, index, slots.length, slot.dayNumber, slot.offset);
+    return planItem(category, selected, options, situation, index, slots.length, slot.dayNumber, slot.offset, slot.time);
   });
 
   let total = items.reduce((sum, item) => sum + item.price, 0);
@@ -203,6 +349,7 @@ function recalculate(plan: DajeongPlan, items: PlanItem[], situation = plan.situ
     ...plan,
     situation,
     items: ordered,
+    logistics: buildPlanLogistics(situation),
     subtotal: total,
     total,
     reserve: Math.max(0, plan.budget - total),
@@ -243,9 +390,10 @@ export function createDajeongPlan(input: PlanRequest): DajeongPlan {
     status: "draft",
     notice: "현재 화면의 장소는 조건에 맞는 탐색 방향입니다. 가격·영업·좌석은 연결된 서비스에서 최종 확인되며, 하루온은 사용자 승인 없이 예약하거나 결제하지 않습니다.",
     revisions: [],
+    logistics: buildPlanLogistics(situation),
     experienceFlow: buildExperienceFlow(items),
   };
-  return appendPlanConversation(createdPlan, input.request.trim(), "말씀하신 조건을 기억하고 실제 장소와 이동 흐름을 함께 살펴 계획을 준비했어요.");
+  return initializePlanVersion(appendPlanConversation(createdPlan, input.request.trim(), "말씀하신 조건을 기억하고 실제 장소와 이동 흐름을 함께 살펴 계획을 준비했어요."));
 }
 
 export function replacePlanItem(plan: DajeongPlan, category: PlanCategory, optionId: string, itemId?: string): DajeongPlan {
@@ -264,6 +412,27 @@ export function replacePlanItem(plan: DajeongPlan, category: PlanCategory, optio
       }
     : item);
   return recalculate(plan, nextItems);
+}
+
+export function restoreReferencedCandidate(
+  plan: DajeongPlan,
+  instruction: string,
+): { plan: DajeongPlan; category: PlanCategory; title: string } | null {
+  if (!/아까.{0,8}(두\s*번째|2\s*번째).{0,8}(좋|선택|걸로)/.test(instruction)) return null;
+  const recentCategory = plan.revisions?.[0]?.changedCategories?.[0];
+  if (!recentCategory) return null;
+  const dayNumber = /첫\s*날|첫째\s*날|1\s*일차/.test(instruction) ? 1
+    : /둘째\s*날|두\s*번째\s*날|2\s*일차/.test(instruction) ? 2
+      : /셋째\s*날|세\s*번째\s*날|3\s*일차/.test(instruction) ? 3
+        : Number(instruction.match(/(\d{1,2})\s*일차/)?.[1]) || undefined;
+  const item = plan.items.find((entry) => entry.category === recentCategory && (!dayNumber || entry.dayNumber === dayNumber));
+  const previousSecond = item?.alternatives?.[0];
+  if (!item || !previousSecond) return null;
+  return {
+    plan: replacePlanItem(plan, item.category, previousSecond.id, item.id),
+    category: item.category,
+    title: previousSecond.title,
+  };
 }
 
 function targetCategory(instruction: string): PlanCategory | null {
@@ -367,5 +536,6 @@ export function reviseDajeongPlan(
     next = { ...next, revisions: [revision, ...(plan.revisions ?? [])].slice(0, 12), status: "draft" };
   }
   if (options.recordConversation !== false) next = appendPlanConversation(next, instruction, message);
+  if (changed.length > 0) next = appendPlanVersion(next, instruction, message);
   return { plan: next, message, changedCategories: changed };
 }

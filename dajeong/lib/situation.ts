@@ -43,6 +43,12 @@ function deriveDate(text: string, explicit?: string): { targetDate: string; urge
     now.setDate(now.getDate() + 2);
     return { targetDate: dateAtLocalNoon(now), urgency: "soon" };
   }
+  const relativeDays = text.match(/(\d{1,3})\s*일\s*(?:뒤|후)/);
+  if (/일주일\s*뒤|한\s*주\s*뒤/.test(text) || relativeDays) {
+    const days = relativeDays ? Math.max(1, Math.min(365, Number(relativeDays[1]))) : 7;
+    now.setDate(now.getDate() + days);
+    return { targetDate: dateAtLocalNoon(now), urgency: days <= 4 ? "soon" : "planned" };
+  }
   const weekdayMatch = text.match(/(?:(이번|다음|다다음)\s*(?:주\s*)?)?(월|화|수|목|금|토|일)요일/);
   if (weekdayMatch) {
     const target = ({ 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 } as const)[weekdayMatch[2] as "일" | "월" | "화" | "수" | "목" | "금" | "토"];
@@ -60,14 +66,14 @@ function deriveDate(text: string, explicit?: string): { targetDate: string; urge
 
 function budgetFromText(text: string): number | null {
   const manwon = text.match(/(\d{1,3})\s*만\s*원?/);
-  if (manwon) return Math.min(2_000_000, Math.max(50_000, Number(manwon[1]) * 10_000));
-  const won = text.match(/(?:\d{1,3}(?:,\d{3})+|\d{5,7})\s*원/);
-  if (won) return Math.min(2_000_000, Math.max(50_000, Number(won[0].replace(/[^\d]/g, ""))));
+  if (manwon) return Math.min(5_000_000, Math.max(10_000, Number(manwon[1]) * 10_000));
+  const won = text.match(/(?:\d{1,3}(?:,\d{3})+|\d{4,8})\s*원/);
+  if (won) return Math.min(5_000_000, Math.max(10_000, Number(won[0].replace(/[^\d]/g, ""))));
   return null;
 }
 
 function deriveBudget(text: string, explicit?: number): number {
-  if (explicit && explicit >= 50_000) return Math.min(2_000_000, explicit);
+  if (explicit && explicit >= 10_000) return Math.min(5_000_000, explicit);
   return budgetFromText(text) ?? 200_000;
 }
 
@@ -83,15 +89,15 @@ function deriveOccasion(text: string): { occasion: Occasion; occasionLabel: stri
 function deriveTransport(text: string, explicit?: TransportMode): TransportMode {
   if (explicit && explicit !== "unknown") return explicit;
   if (/(?:차|자차)(?:는|가)?\s*(?:없|없이)|운전(?:은|을)?\s*(?:못|안)|뚜벅|대중교통|지하철|버스/.test(text)) return "public_transit";
-  if (/차로|자차|운전|주차/.test(text)) return "car";
+  if (/차로|자차|운전|주차|렌터카|렌트카/.test(text)) return "car";
   if (/도보|걸어서|걷기/.test(text)) return "walking";
   return "unknown";
 }
 
 function deriveRecipient(text: string, explicit?: string): string {
   if (explicit?.trim()) return explicit.trim().slice(0, 30);
-  if (/남자친구/.test(text)) return "남자친구";
-  if (/여자친구/.test(text)) return "여자친구";
+  if (/남자친구|남친/.test(text)) return "남자친구";
+  if (/여자친구|여친/.test(text)) return "여자친구";
   if (/남편/.test(text)) return "남편";
   if (/아내/.test(text)) return "아내";
   if (/엄마|어머니/.test(text)) return "어머니";
@@ -113,9 +119,9 @@ function deriveMoods(text: string, remembered: ExperienceMood[] = []): Experienc
     /로맨틱|낭만|설레/.test(text) ? "romantic" : null,
     /신비|몽환|영화 같|빛|미디어아트/.test(text) ? "mysterious" : null,
     /트렌디|힙|세련/.test(text) ? "trendy" : null,
-    /조용|차분|편안|여유/.test(text) ? "calm" : null,
+    /조용|차분|편안|여유|힐링/.test(text) ? "calm" : null,
     /고급|우아|격식/.test(text) ? "luxurious" : null,
-    /재밌|신나|활동|액티브|놀고|놀고 싶|놀거리/.test(text) ? "playful" : null,
+    /재밌|신나|활동|액티브|액티비티|놀고|놀고 싶|놀거리/.test(text) ? "playful" : null,
     /따뜻|감사|가족/.test(text) ? "warm" : null,
     /숲|정원|자연|바다|오션/.test(text) ? "nature" : null,
     /전시|예술|건축|공연/.test(text) ? "artistic" : null,
@@ -137,7 +143,7 @@ function deriveSingleCategory(text: string): PlanCategory | undefined {
 function derivePlanScope(text: string, singleCategory?: PlanCategory, explicit?: PlanScope): PlanScope {
   if (explicit) return explicit;
   if (/\d+\s*박\s*\d+\s*일|여행|숙소|항공|렌터카/.test(text)) return "trip";
-  if (singleCategory && /예약|잡아|찾아|찾아줘|가고 싶|가고싶/.test(text)
+  if (singleCategory && /예약|잡아|찾아|찾아줘|골라|가고 싶|가고싶/.test(text)
     && !/하루|코스|데이트|놀고|놀자|특별하게 보내|준비해/.test(text)) return "single";
   return "day";
 }
@@ -159,9 +165,18 @@ function deriveTripStay(text: string, explicitDays?: number, explicitNights?: nu
 }
 
 function derivePartySize(text: string, explicit?: number): number {
-  if (explicit && explicit > 0) return Math.min(12, explicit);
+  if (explicit && explicit > 0) return Math.min(20, explicit);
+  if (/여자친구|여친|남자친구|남친|아내|남편|둘이/.test(text)) return 2;
   const match = text.match(/(\d{1,2})\s*명/);
-  return match ? Math.max(1, Math.min(12, Number(match[1]))) : 2;
+  return match ? Math.max(1, Math.min(20, Number(match[1]))) : 2;
+}
+
+function deriveRequestKind(text: string, scope: PlanScope, category?: PlanCategory, explicit?: PlanRequest["requestKind"]): ParsedSituation["requestKind"] {
+  if (explicit) return explicit;
+  if (/예약|잡아\s*줘|잡아줘/.test(text)) return "reservation";
+  if (scope === "trip") return "trip_plan";
+  if (scope === "single" && category && ["flower", "gift", "cake"].includes(category)) return "product_search";
+  return scope === "single" ? "place_search" : "day_plan";
 }
 
 function deriveTimes(text: string): { startTime: string; preferredTime: string } {
@@ -183,7 +198,7 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
   const rawTimes = deriveTimes(text);
   const region = input.region?.trim() || REGIONS.find((candidate) => text.includes(candidate)) || "서울";
   const transport = deriveTransport(text, input.transport);
-  const singleCategory = deriveSingleCategory(text);
+  const singleCategory = input.singleCategory ?? deriveSingleCategory(text);
   const planScope = derivePlanScope(text, singleCategory, input.planScope);
   const tripStay = deriveTripStay(text, input.tripDays, input.tripNights);
   const startTime = planScope === "trip" && rawTimes.startTime === "14:00" ? "11:00" : rawTimes.startTime;
@@ -218,7 +233,8 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
     /정원|숲|자연/.test(text) ? "정원·자연 공간" : null,
     /미디어아트|몰입형/.test(text) ? "미디어아트·몰입형 경험" : null,
     /신비|몽환|영화 같/.test(text) ? "신비롭고 몽환적인 분위기" : null,
-    /재밌|신나|액티브|놀고|놀고 싶|놀거리/.test(text) ? "재미있는 체험" : null,
+    /재밌|신나|액티브|액티비티|놀고|놀고 싶|놀거리/.test(text) ? "재미있는 체험" : null,
+    /힐링/.test(text) ? "힐링과 여유" : null,
   ].filter((value): value is string => Boolean(value));
   const parsedConstraints = [
     /술.{0,4}(못|안)|논알코올/.test(text) ? "논알코올" : null,
@@ -231,9 +247,15 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
     /걷.{0,8}(싫|힘|않)|많이.{0,4}(못 걸|걷지)|오래.{0,4}(못 걸|걷지)/.test(text) ? "도보 이동 최소화" : null,
     /사람.{0,5}(많|붐비).{0,5}(싫|피)|붐비는.{0,5}(싫|피)/.test(text) ? "혼잡한 장소 제외" : null,
     /시끄럽.{0,5}(싫|피)|소음/.test(text) ? "시끄러운 장소 제외" : null,
+    /공방.{0,8}(싫|별로|제외|안\s*좋)/.test(text) ? "공방 제외" : null,
   ].filter((value): value is string => Boolean(value));
-  const preferences = Array.from(new Set([...(input.personProfile?.preferences ?? []), ...(input.personProfile?.hobbies ?? []), ...(input.preferences ?? []), ...parsedPreferences]));
-  const constraints = Array.from(new Set([...(input.personProfile?.constraints ?? []), ...(input.constraints ?? []), ...parsedConstraints]));
+  const preferences = Array.from(new Set([...(input.personProfile?.preferences ?? []), ...(input.personProfile?.hobbies ?? []), ...(input.personProfile?.likedActivities ?? []), ...(input.personProfile?.likedAtmospheres ?? []), ...(input.preferences ?? []), ...(input.personMemoryUpdate?.preferences ?? []), ...(input.personMemoryUpdate?.likedActivities ?? []), ...(input.personMemoryUpdate?.likedAtmospheres ?? []), ...parsedPreferences]));
+  const constraints = Array.from(new Set([...(input.personProfile?.constraints ?? []), ...(input.personProfile?.dislikedActivities ?? []).map((value) => `${value} 제외`), ...(input.personProfile?.dislikedAtmospheres ?? []).map((value) => `${value} 제외`), ...(input.constraints ?? []), ...(input.personMemoryUpdate?.constraints ?? []), ...(input.personMemoryUpdate?.dislikedFoods ?? []).map((value) => `${value} 제외`), ...(input.personMemoryUpdate?.dislikedActivities ?? []).map((value) => `${value} 제외`), ...parsedConstraints]));
+  const requestedCategories = Array.from(new Set([...(input.requestedCategories ?? []), ...(singleCategory ? [singleCategory] : [])]));
+  const excludedCategories = Array.from(new Set([
+    ...(input.excludedCategories ?? []),
+    /카페(?:는|를|도)?\s*(?:빼|제외)/.test(text) ? "cafe" as PlanCategory : null,
+  ].filter((value): value is PlanCategory => Boolean(value))));
 
   return {
     occasion,
@@ -264,10 +286,10 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
     arrivalTime: input.arrivalTime,
     returnDepartureTime: input.returnDepartureTime,
     lodgingPreference: input.lodgingPreference,
-    lodgingIncludedInBudget: input.lodgingIncludedInBudget ?? false,
-    requestKind: input.requestKind ?? (planScope === "trip" ? "trip_plan" : planScope === "single" ? "place_search" : "day_plan"),
-    requestedCategories: input.requestedCategories ?? (singleCategory ? [singleCategory] : []),
-    excludedCategories: input.excludedCategories ?? [],
+    lodgingIncludedInBudget: input.lodgingIncludedInBudget ?? /숙소(?:까지|포함)|숙박(?:까지|포함)/.test(text),
+    requestKind: deriveRequestKind(text, planScope, singleCategory, input.requestKind),
+    requestedCategories,
+    excludedCategories,
     explicitUnknowns: input.explicitUnknowns ?? [],
     personMemoryUpdate: input.personMemoryUpdate,
     limitedEventPriority: /오늘|이번|주말|이번 주|이번주|기간 한정|팝업|축제|야간개장|시즌/.test(text),
@@ -278,7 +300,7 @@ export function parseSituation(input: PlanRequest): ParsedSituation {
 export function analyzeSituation(input: PlanRequest): SituationUnderstanding {
   const text = input.request.trim();
   const situation = parseSituation(input);
-  const hasDate = Boolean(input.targetDate || explicitDateInText(text) || /오늘|내일|모레|(?:이번|다음|다다음) ?주|주말|곧|(?:이번|다음|다다음)?\s*(?:주\s*)?(?:월|화|수|목|금|토|일)요일/.test(text));
+  const hasDate = Boolean(input.targetDate || explicitDateInText(text) || /오늘|내일|모레|일주일\s*뒤|한\s*주\s*뒤|\d{1,3}\s*일\s*(?:뒤|후)|(?:이번|다음|다다음) ?주|주말|곧|(?:이번|다음|다다음)?\s*(?:주\s*)?(?:월|화|수|목|금|토|일)요일/.test(text));
   const hasRegion = Boolean(input.region?.trim() || REGIONS.some((region) => text.includes(region)));
   const hasBudget = Boolean(input.budget || budgetFromText(text));
   const missing = [!hasDate ? "date" : null, !hasRegion ? "region" : null, situation.planScope !== "single" && !hasBudget ? "budget" : null]

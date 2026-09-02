@@ -8,9 +8,11 @@ import type { DajeongPlan, PlanRequest, PlanningConversationResult, PlanningQues
 import { ArrowIcon, CheckIcon, MapPinIcon, SparkleIcon } from "./DajeongIcons";
 
 const examples = [
-  "여자친구랑 특별한 날을 보내고 싶은데 아직 아무것도 못 정했어.",
-  "오늘 여자친구랑 뭔가 신비롭고 영화 같은 데 가고 싶어.",
-  "친구들이랑 놀러 가고 싶은데 당일치기인지 숙박인지도 추천해줘.",
+  "꽃 사고 싶은데 예쁜 거 예약 좀 해줘",
+  "이번 주말에 여자친구랑 놀러 가고 싶어",
+  "오늘 저녁 분위기 좋은 식당 잡아줘",
+  "여자친구 생일인데 특별하게 보내고 싶어",
+  "여자친구 선물 같이 골라줘",
 ];
 
 type HomeConversationEntry = {
@@ -102,6 +104,7 @@ export function HomePlanner() {
         ageBand: data.plan.situation.ageBand,
         preferences: data.plan.situation.preferences,
         moodPreferences: data.plan.situation.desiredMoods,
+        memoryUpdate: data.plan.situation.personMemoryUpdate,
       });
       savePlan(data.plan);
       setPlans(listPlans());
@@ -132,6 +135,7 @@ export function HomePlanner() {
       const result = await response.json().catch(() => ({})) as PlanRevisionResult & { error?: string };
       if (!response.ok || !result.plan) throw new Error(result.error || "계획을 조정하지 못했어요.");
       savePlan(result.plan);
+      if (result.profileUpdate) rememberPersonProfile(result.plan.situation, { memoryUpdate: result.profileUpdate });
       setPlans(listPlans());
       setCompletedPlan(result.plan);
       setConversation((current) => [...current, homeEntry("assistant", result.message, result.plan)]);
@@ -228,7 +232,7 @@ export function HomePlanner() {
 
         <section className="dj-home-conversation" aria-live="polite">
           <div className="dj-home-message dj-home-assistant"><span className="dj-home-avatar"><SparkleIcon size={15} /></span><div><strong>어떤 하루가 필요하세요?</strong><p>정해진 게 없어도 괜찮아요. 누구와 무엇을 하고 싶은지만 말하면 제가 필요한 것을 하나씩 여쭤볼게요.</p></div></div>
-          {!conversation.length ? <div className="dj-prompt-suggestions">{examples.map((example, index) => <button key={example} type="button" onClick={() => setRequest(example)}><span>{index === 0 ? "아직 미정" : index === 1 ? "오늘" : "여행"}</span>{example}</button>)}</div> : null}
+          {!conversation.length ? <div className="dj-prompt-suggestions"><p>이렇게 물어보세요!</p>{examples.map((example, index) => <button key={example} type="button" onClick={() => setRequest(example)}><span>{["꽃", "주말", "식당", "생일", "선물"][index]}</span>{example}</button>)}</div> : null}
 
           {conversation.map((entry) => entry.role === "user" ? (
             <div key={entry.id} className="dj-home-message dj-home-user"><div><p>{entry.text}</p></div></div>
